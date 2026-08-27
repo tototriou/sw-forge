@@ -9,6 +9,7 @@
 //
 // Usage : set-relax-diag.ts <export.json> <deckId> <nomMonstre> <setsRelaches, ex: rage> [statKeys=atk,cr,cd] [objective=none] [slotFilterCap=80] [--explore-all]
 
+import { resolveObjectifCli } from './lib/objectifCli';
 import { computeStats } from '../src/lib/stats';
 import { activeSets } from '../src/lib/effects';
 import { excludedRuneIds, BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, totalPairCount, pairBuckets, NodeBudget, CHECKPOINT_EVERY } from '../src/lib/runeBuildOptim';
@@ -37,7 +38,7 @@ const relaxedSets = relaxedSetsArg.split(',').map((s) => s.trim());
 const statKeysArg = args.rest[1] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim());
 const objectiveArg = args.rest[2] ?? 'none';
-const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
+const { objective, objectiveStats } = resolveObjectifCli(objectiveArg);
 const slotFilterCap = args.rest[3] ? Number(args.rest[3]) : 80;
 const bucketCapOverride = args.rest[4] ? Number(args.rest[4]) : undefined;
 // Phase 0 (spec/outils/optimizer/) : forcer un budget de paires généreux,

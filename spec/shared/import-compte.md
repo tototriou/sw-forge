@@ -49,6 +49,22 @@ unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
 > pour qu'il ne puisse pas être rebranché. Voir aussi la règle générale dans
 > [siege/recommandations.md](../siege/recommandations.md).
 
+> ⚠️⚠️ **MAIS L'IDENTITÉ D'UNE ÉQUIPE SURVIT AU REMPLACEMENT.** `importTeams`
+> régénérait l'`id` de chaque équipe (`newId()`), alors que les **listes de
+> travail de l'Optimizer** désignent un monstre par `{ teamId, slotIndex }`
+> (voir [../outils/optimizer.md](../outils/optimizer.md)). Plus aucun sélecteur
+> ne résolvait après un import, et la revérification supprimait
+> **définitivement** tous les membres et builds validés venus du siège — sur le
+> geste même qu'elle est censée servir. Ce n'était pas « mon compte a changé »,
+> c'était l'identifiant qui avait changé sous eux.
+>
+> ⚠️ **L'identité, c'est la POSITION** : le siège est remplacé en bloc, et la
+> Nᵉ équipe reste la Nᵉ. Ce qui a vraiment bougé — un monstre retiré du deck —
+> est justement ce que `revalidateMembers` voit, sur des sélecteurs qui
+> résolvent encore. Une équipe sans prédécesseur à sa position reçoit un id
+> neuf. **Gardé** par un contrôle de source
+> ([tests/optimizer-exclusion.test.ts](tests/optimizer-exclusion.test.ts)).
+
 Message global récapitulatif **éphémère** (disparaît seul ~5 s ; ~9 s pour une
 erreur) : « Import : N monstres 6★ · N monstres RTA · N défenses · N attaques ».
 

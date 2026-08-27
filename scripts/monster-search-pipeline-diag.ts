@@ -6,6 +6,7 @@
 //
 // Usage : monster-search-pipeline-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80]
 
+import { resolveObjectifCli } from './lib/objectifCli';
 import { computeStats } from '../src/lib/stats';
 import { activeSets, StatKey } from '../src/lib/effects';
 import {
@@ -28,7 +29,7 @@ const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
 const statKeysArg = args.rest[0] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
 const objectiveArg = args.rest[1] ?? 'degats';
-const objective = (objectiveArg === 'none' ? undefined : objectiveArg) as Objective | undefined;
+const { objective, objectiveStats } = resolveObjectifCli(objectiveArg);
 // ⚠️ Défaut à 80 (preset « Moyen », le vrai défaut de l'app) — PAS 300.
 const slotFilterCap = args.rest[2] ? Number(args.rest[2]) : 80;
 

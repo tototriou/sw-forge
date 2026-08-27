@@ -4,15 +4,23 @@
 // résolution exclut les mauvaises runes, ou n'exclut rien, sans qu'aucune
 // erreur ne le signale à l'écran).
 
+import { readFileSync } from 'fs';
 import { BoxItem } from '../src/lib/applyAccount';
 import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../src/types';
 import {
+  comptePeutJuger,
   ExclusionSourceData,
+  OptimizerListMember,
+  ValidatedBuild,
   autoExcludedRuneIds,
   exclusionCandidatesFor,
   exclusionSelectorKey,
+  findValidatedBuild,
+  otherValidatedRuneIds,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
+  revalidateBuilds,
+  revalidateMembers,
 } from '../src/lib/optimizerExclusion';
 import { egal, ok, titre } from './outils';
 
@@ -69,7 +77,25 @@ export default function testOptimizerExclusion() {
       ],
     },
   ];
-  const data: ExclusionSourceData = { box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams: [], monsterById };
+  // Monstre ASSIGNÉ à un deck d'offense siège mais jamais runé — bug
+  // signalé : `slot.gear` existe toujours dès qu'un monstre est placé
+  // (`buildGear` renvoie `runes: []`, jamais `gear: undefined`), seul
+  // `runes.length` distingue « assigné, nu » de « slot vide ».
+  const nonRune = monster(4, 'NonRune');
+  monsterById.set(String(nonRune.id), nonRune);
+  const siegeOffenseTeams: SiegeTeam[] = [
+    {
+      id: 'off-1',
+      lead: 0,
+      tickAlertDismissed: false,
+      slots: [
+        { monsterId: String(nonRune.id), runeSpeed: null, tick: 0, gear: gear([]) },
+        { monsterId: null, runeSpeed: null, tick: 0 },
+        { monsterId: null, runeSpeed: null, tick: 0 },
+      ],
+    },
+  ];
+  const data: ExclusionSourceData = { box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById };
 
   // ── exclusionCandidatesFor ──────────────────────────────────────────
   {
@@ -93,7 +119,24 @@ export default function testOptimizerExclusion() {
     );
 
     const offCandidates = exclusionCandidatesFor('siege-offense', data, null, null);
-    egal(offCandidates.length, 0, 'siège offense : aucune équipe chargée, aucun candidat');
+    egal(offCandidates.length, 0, "siège offense : le seul monstre assigné (NonRune) n'a aucune rune — rien à exclure, par défaut (requireRunes)");
+
+    // ── Bug signalé : un monstre ASSIGNÉ à un deck d'offense siège mais
+    // jamais runé ne voyait pas son exemplaire proposé pour « Monstre à
+    // optimiser » (contrairement à Box, qui autorise déjà un exemplaire nu
+    // — « construire un build depuis rien »). `requireRunes: false`
+    // corrige : le monstre assigné redevient un candidat valide, gear
+    // toujours résolu (0 rune, pas absent). ──
+    const offCandidatesSansRunes = exclusionCandidatesFor('siege-offense', data, null, null, false);
+    egal(offCandidatesSansRunes.length, 1, 'siège offense (requireRunes:false) : le monstre assigné mais nu redevient un candidat');
+    egal(offCandidatesSansRunes[0]?.monster.name, 'NonRune', 'siège offense (requireRunes:false) : bon monstre résolu');
+    egal(offCandidatesSansRunes[0]?.gear.runes, [], 'siège offense (requireRunes:false) : gear résolu avec 0 rune, jamais absent');
+    // Même correctif pour RTA — même bug, même cause.
+    const rtaCandidatesSansRunes = exclusionCandidatesFor('rta', { ...data, rtaEntries: { ...rtaEntries, [String(nonRune.id)]: { monsterId: String(nonRune.id), section: 'violent', runeSpeed: null, gear: gear([]) } } }, null, null, false);
+    ok(
+      rtaCandidatesSansRunes.some((c) => c.monster.name === 'NonRune'),
+      'rta (requireRunes:false) : un favori RTA assigné mais nu redevient un candidat'
+    );
   }
 
   // ── Trou trouvé par une revue de code externe : `excludeOwnUnitKey`
@@ -319,6 +362,226 @@ export default function testOptimizerExclusion() {
       [...autoExcludedRuneIds('siege-defense', data, null)].sort((a, b) => a - b),
       [201, 202, 203, 204, 205, 206, 301, 302, 303, 304, 305, 306],
       'aucun monstre "à soi" (com2usId null) : rien ne peut être reconnu comme le sien, tout le périmètre est exclu'
+    );
+  }
+
+  // ── Runes VALIDÉES (Lot 3, « Monstres de la liste ») — 3ᵉ mécanisme
+  // d'exclusion : un INSTANTANÉ de runeIds, pas une entrée relue
+  // dynamiquement, scopé PAR LISTE (deux listes ne se bloquent jamais entre
+  // elles — un deck d'offense siège est un preset appliqué momentanément,
+  // jamais simultanément à un autre). ──
+  {
+    const validated: ValidatedBuild[] = [
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] },
+      { listId: 'deck-a', selector: { source: 'rta', monsterId: String(lushen.id) }, runeIds: [101, 102, 103, 104, 105, 106] },
+      // Même sélecteur que Camilla ci-dessus, mais dans une AUTRE liste — ne
+      // doit JAMAIS être compté comme une auto-exemption ni bloquer deck-a.
+      { listId: 'deck-b', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [21, 22, 23, 24, 25, 26] },
+    ];
+    const ownKey = exclusionSelectorKey({ source: 'box', unitKey: 'unit-camilla' });
+
+    egal(
+      [...otherValidatedRuneIds(validated, 'deck-a', ownKey)].sort((a, b) => a - b),
+      [101, 102, 103, 104, 105, 106],
+      "runes validées : les AUTRES exemplaires de LA MÊME LISTE bloquent leurs runes, jamais les siennes propres (auto-exemption), jamais celles d'une AUTRE liste"
+    );
+    egal(
+      [...otherValidatedRuneIds(validated, 'deck-a', null)].sort((a, b) => a - b),
+      [1, 2, 3, 4, 5, 6, 101, 102, 103, 104, 105, 106],
+      'runes validées : aucun exemplaire actif (ownSelectorKey=null) → TOUTES les runes validées de CETTE liste bloquent'
+    );
+    egal(
+      [...otherValidatedRuneIds(validated, 'deck-b', null)].sort((a, b) => a - b),
+      [21, 22, 23, 24, 25, 26],
+      'runes validées : deck-b ignore totalement ce qui est validé dans deck-a — pools indépendants'
+    );
+    egal([...otherValidatedRuneIds(validated, null, null)], [], 'runes validées : aucune liste active → rien à bloquer');
+
+    egal(
+      findValidatedBuild(validated, 'deck-a', ownKey)?.runeIds,
+      [1, 2, 3, 4, 5, 6],
+      'findValidatedBuild : retrouve le build de CET exemplaire précis DANS CETTE liste'
+    );
+    egal(
+      findValidatedBuild(validated, 'deck-b', ownKey)?.runeIds,
+      [21, 22, 23, 24, 25, 26],
+      'findValidatedBuild : le MÊME sélecteur porte un build DIFFÉRENT dans une autre liste'
+    );
+    egal(findValidatedBuild(validated, 'deck-a', 'clé-inconnue'), undefined, 'findValidatedBuild : aucun match → undefined');
+    egal(findValidatedBuild(validated, null, ownKey), undefined, 'findValidatedBuild : listId null → jamais de faux positif');
+  }
+
+  // ── revalidateBuilds — revérification au réimport (point bloquant 4 du
+  // cadrage) : un sélecteur introuvable OU une rune validée qui n'EXISTE
+  // PLUS DU TOUT dans le compte (vendue/reforgée depuis) est abandonné,
+  // jamais silencieusement gardé — mais rester PAS ENCORE équipée sur
+  // l'exemplaire ne suffit PAS à l'abandonner (voir le cas dédié plus bas,
+  // bug corrigé). ──
+  {
+    const validated: ValidatedBuild[] = [
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] }, // toujours intact → conservé
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-jamais-vu' }, runeIds: [1, 2, 3, 4, 5, 6] }, // sélecteur introuvable → abandonné
+      { listId: 'deck-a', selector: { source: 'rta', monsterId: String(camilla.id) }, runeIds: [101, 102, 103, 104, 105, 999] }, // 999 absente du compte entier → abandonné
+    ];
+    const allRuneIds = new Set(box.flatMap((b) => b.gear!.runes.map((r) => r.id)).concat(
+      Object.values(rtaEntries).flatMap((e) => e.gear?.runes.map((r) => r.id) ?? []),
+      siegeDefenseTeams.flatMap((t) => t.slots.flatMap((s) => s.gear?.runes.map((r) => r.id) ?? []))
+    ));
+    const { kept, droppedCount } = revalidateBuilds(validated, data, allRuneIds);
+    egal(droppedCount, 2, 'revalidateBuilds : les 2 builds périmés (sélecteur introuvable, rune manquante) sont comptés');
+    egal(kept.length, 1, 'revalidateBuilds : le build encore intact (box Camilla) est conservé');
+    egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateBuilds : conserve le bon sélecteur');
+
+    const allValid = revalidateBuilds([validated[0]], data, allRuneIds);
+    egal(allValid.droppedCount, 0, 'revalidateBuilds : rien de périmé → droppedCount à 0, pas juste kept correct');
+
+    // ── BUG CORRIGÉ (revue de code externe) : un build validé n'est PAS
+    // censé être déjà équipé sur l'exemplaire (voir ValidatedBuild, tête de
+    // fichier) — un build validé sur Lushen mais composé des runes
+    // ACTUELLEMENT portées par Camilla (pas les siennes, [7..12]) doit
+    // rester valide tant que ces runes existent QUELQUE PART dans le
+    // compte. L'ancienne version exigeait « encore portées par CET
+    // exemplaire » — elle aurait abandonné ce build à tort, silencieusement
+    // (perte de données sur pratiquement TOUT build validé réel). ──
+    const validatedPasEncoreEquipe: ValidatedBuild[] = [
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-lushen' }, runeIds: [1, 2, 3, 4, 5, 6] },
+    ];
+    const pasEncoreEquipeResult = revalidateBuilds(validatedPasEncoreEquipe, data, allRuneIds);
+    egal(
+      pasEncoreEquipeResult.droppedCount,
+      0,
+      'revalidateBuilds : un build validé PAS ENCORE équipé sur son exemplaire reste valide tant que ses runes existent dans le compte'
+    );
+    egal(pasEncoreEquipeResult.kept.length, 1, 'revalidateBuilds : conservé, pas abandonné à tort');
+
+    // ── Sélecteur `unowned` (« ajouter un monstre qu'on ne possède pas ») —
+    // son `gear.runes` résolu est TOUJOURS vide (pas d'exemplaire réel), donc
+    // la question posée diffère : « ces runes existent-elles encore dans le
+    // compte », pas « sont-elles encore PORTÉES par lui ». ──
+    // ⚠️ **Un id LIBRE, vérifié.** Il valait 4 — déjà pris par `NonRune`, posé
+    // en offense siège, et par `Fran` : le monstre n'était donc PAS « possédé
+    // nulle part », et `dataAvecZaiross` écrasait l'entrée 4 de `monsterById`.
+    // Le scénario ne testait pas ce qu'il annonce, et polluait le reste.
+    const zaiross = monster(9, 'Zaiross'); // absent de box/rta/siège — possédé nulle part
+    const dataAvecZaiross: ExclusionSourceData = { ...data, monsterById: new Map([...monsterById, [String(zaiross.id), zaiross]]) };
+    const unownedSelector = { source: 'unowned' as const, monsterId: String(zaiross.id) };
+    // Le contrôle qui rend le scénario honnête : l'id doit être VRAIMENT libre.
+    ok(
+      !monsterById.has(String(zaiross.id)),
+      'l’espèce du scénario « possédé nulle part » n’est pas déjà l’un des monstres du compte'
+    );
+    egal(exclusionSelectorKey(unownedSelector), `unowned:${zaiross.id}`, 'exclusionSelectorKey : clé stable pour unowned');
+    const resolvedUnowned = resolveExclusionEntry(unownedSelector, dataAvecZaiross);
+    ok(resolvedUnowned != null, 'resolveExclusionEntry : une espèce absente des 4 sources résout quand même (bestiaire entier)');
+    egal(resolvedUnowned?.gear.runes, [], 'resolveExclusionEntry : gear synthétique, jamais de rune propre');
+    ok(
+      resolveExclusionEntry({ source: 'unowned', monsterId: '999999' }, dataAvecZaiross) == null,
+      'resolveExclusionEntry : une espèce absente MÊME du bestiaire ne résout pas'
+    );
+    egal(
+      resolveExcludedRuneIds([unownedSelector], dataAvecZaiross, null, null).size,
+      0,
+      'resolveExcludedRuneIds : un sélecteur unowned ne fait jamais rien exclure'
+    );
+    const unownedValidated: ValidatedBuild[] = [
+      { listId: 'deck-a', selector: unownedSelector, runeIds: [1, 2, 3] }, // 1,2,3 existent dans le compte (box Camilla)
+    ];
+    const unownedKept = revalidateBuilds(unownedValidated, dataAvecZaiross, allRuneIds);
+    egal(unownedKept.droppedCount, 0, 'revalidateBuilds (unowned) : conservé si ses runes existent encore dans le compte, malgré gear.runes vide');
+    const unownedStale: ValidatedBuild[] = [
+      { listId: 'deck-a', selector: unownedSelector, runeIds: [1, 2, 999999] }, // 999999 n'existe nulle part
+    ];
+    const unownedDropped = revalidateBuilds(unownedStale, dataAvecZaiross, allRuneIds);
+    egal(unownedDropped.droppedCount, 1, "revalidateBuilds (unowned) : abandonné si une rune n'existe plus du tout dans le compte");
+  }
+
+  // ── revalidateMembers (Lot 3) — même principe que revalidateBuilds, mais
+  // pour la simple appartenance à une liste : seul le sélecteur doit encore
+  // résoudre, aucune rune à comparer. ──
+  {
+    const members: OptimizerListMember[] = [
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' } }, // résout toujours → conservé
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-jamais-vu' } }, // sélecteur introuvable → abandonné
+    ];
+    const { kept, droppedCount } = revalidateMembers(members, data);
+    egal(droppedCount, 1, 'revalidateMembers : le membre au sélecteur introuvable est abandonné');
+    egal(kept.length, 1, 'revalidateMembers : le membre encore valide est conservé');
+    egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateMembers : conserve le bon sélecteur');
+  }
+
+  // ── ⚠️⚠️ ON NE REVALIDE JAMAIS CONTRE UN COMPTE VIDE ──
+  //
+  // Face à un compte sans monstre ni rune, la revérification ne peut répondre
+  // qu'une chose — plus rien ne résout, donc tout est jeté — et cette réponse
+  // n'est jamais la bonne : un compte vide veut dire « pas encore chargé », pas
+  // « tes monstres ont disparu ». Le résultat étant ÉCRIT sur disque, la perte
+  // est définitive. C'est ce qui se produisait à CHAQUE rechargement de page :
+  // `React.StrictMode` monte le composant deux fois, le garde-fou d'App.tsx ne
+  // protégeait que le premier passage, et le second revalidait sur du vide. Les
+  // listes restaient, leur contenu partait.
+  {
+    const vide: ExclusionSourceData = {
+      box: [],
+      rtaEntries: {},
+      siegeDefenseTeams: [],
+      siegeOffenseTeams: [],
+      monsterById: new Map(),
+    };
+    ok(!comptePeutJuger(vide, new Set()), 'un compte SANS rien ne peut juger personne');
+    // ⚠️ Une seule source suffit : le compte est « chargé », la revérification
+    // a de quoi répondre autre chose que « tout est faux ».
+    ok(comptePeutJuger(vide, new Set([1])), 'des runes seules suffisent à juger');
+    ok(comptePeutJuger({ ...vide, box: data.box }, new Set()), 'une box seule aussi');
+    ok(comptePeutJuger(data, new Set()), 'et le compte complet du scénario, évidemment');
+
+    // ⚠️⚠️ **RTA ET LE SIÈGE NE COMPTENT PAS.** C'est LE COMPTE qui arrive en
+    // retard : il se relit en asynchrone, tandis que RTA et le siège sont des
+    // états persistés à part, présents dès le premier rendu. Une version de
+    // cette garde acceptait « n'importe quelle source non vide » — elle passait
+    // donc toujours, et la revérification tournait sur `box=0 runes=0` pendant
+    // que `rta=40` et `siege=52`. Tout était jeté, puis écrit sur disque.
+    ok(
+      !comptePeutJuger(
+        { ...vide, rtaEntries: data.rtaEntries, siegeDefenseTeams: data.siegeDefenseTeams, siegeOffenseTeams: data.siegeOffenseTeams },
+        new Set()
+      ),
+      'RTA et le siège chargés ne suffisent PAS : ils ne disent rien de la box'
+    );
+
+    // ⚠️ Le contrôle qui montre POURQUOI la garde existe : sans elle, tout part.
+    const membres: OptimizerListMember[] = [
+      { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' } },
+    ];
+    egal(
+      revalidateMembers(membres, vide).kept.length,
+      0,
+      'sur un compte vide, la revérification jetterait TOUT — d’où la garde en amont'
+    );
+  }
+
+  // ── ⚠️⚠️ L'IDENTITÉ D'UNE ÉQUIPE DE SIÈGE SURVIT AU RÉIMPORT ──
+  //
+  // Un sélecteur siège désigne un monstre par `{ teamId, slotIndex }`. Tant que
+  // `importTeams` régénérait les ids (`newId()`), plus aucun ne résolvait après
+  // un import : `revalidateMembers` supprimait DÉFINITIVEMENT tous les membres
+  // et builds venus du siège — sur le geste même qu'elle est censée servir. Ce
+  // n'était pas « mon compte a changé », c'était l'identifiant qui avait changé
+  // sous eux.
+  //
+  // ⚠️ Contrôle de SOURCE, comme celui des clés collantes : `importTeams` est un
+  // callback de hook React, et le dépôt ne teste pas les composants. C'est la
+  // seule façon de voir la régression revenir.
+  {
+    const source = readFileSync('src/hooks/useSiegeState.ts', 'utf8');
+    const ligne = /return \{ id: ([^,]+), slots, lead: 0/.exec(source);
+    ok(!!ligne, 'la construction d’une équipe importée est trouvée dans le source');
+    ok(
+      /s\.teams\[i\]\?\.id/.test(ligne![1]),
+      'une équipe importée REPREND l’id de celle qui occupait sa position — sinon les sélecteurs siège meurent au réimport'
+    );
+    ok(
+      /newId\(\)/.test(ligne![1]),
+      'et retombe sur un id neuf quand il n’y avait pas d’équipe à cette position'
     );
   }
 }

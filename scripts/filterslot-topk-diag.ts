@@ -15,7 +15,8 @@
 //
 // Usage : filterslot-topk-diag.ts [scenarios=200] [seed=9000]
 
-import { BaseStats, EffectLine, RuneDetail, StatKey } from '../src/types';
+import { BaseStats, EffectLine, RuneDetail } from '../src/types';
+import { StatKey } from '../src/lib/effects';;
 import {
   BuildRequirement,
   MAX_PER_SLOT_FILL,
@@ -41,7 +42,17 @@ function mulberry32(seed: number) {
 const SET_KEYS = ['violent', 'swift', 'will', 'shield', 'fight', 'blade', 'rage', 'energy'];
 const STAT_CODES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
 const STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
-const OBJECTIVES: (Objective | undefined)[] = [undefined, 'efficience', 'degats', 'ehp', 'vitesse'];
+// ⚠️ `'degats'` a été RETIRÉ d'`Objective` : le laisser ici faisait balayer un
+// objectif dont `objectiveKeysOf` rend `[]` — soit le même cas que `undefined`,
+// mesuré deux fois, et l'ancien biais ATQ/Dgts Crit jamais mesuré. Il est repris
+// par un override explicite, comme dans perfShared.
+const OBJECTIVES: { objective: Objective | undefined; objectiveStats?: StatKey[] }[] = [
+  { objective: undefined },
+  { objective: 'efficience' },
+  { objective: 'efficience', objectiveStats: ['atk', 'cd'] },
+  { objective: 'ehp' },
+  { objective: 'vitesse' },
+];
 
 function randomRune(id: number, slot: number, rng: () => number, sparse: boolean): RuneDetail {
   const set = SET_KEYS[Math.floor(rng() * SET_KEYS.length)];
@@ -99,7 +110,10 @@ function filterSlotOld(
   requirement: BuildRequirement,
   matchCap = MAX_PER_SLOT_MATCH,
   fillCap = MAX_PER_SLOT_FILL,
-  objective?: Objective
+  objective?: Objective,
+  // ⚠️ Même override que `filterSlot` : sans lui, la référence de contrôle ne
+  // verrait pas le biais qu'on mesure, et toute divergence lui serait imputée.
+  objectiveStats?: StatKey[]
 ): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
   const scored = candidates.map((r) => ({ r, s: relevance(r, requirement, SYNTHETIC_BASE) })).sort((a, b) => b.s - a.s);
@@ -116,7 +130,7 @@ function filterSlotOld(
   const offSet = scored.filter(({ r }) => !requiredKeys.has(r.set) && r.set !== 'intangible');
   for (const { r } of offSet.slice(0, effectiveFillCap)) kept.set(r.id, r);
 
-  const objectiveKeys = objective ? OBJECTIVE_RELEVANT_STATS[objective] : [];
+  const objectiveKeys = objectiveStats ?? (objective ? OBJECTIVE_RELEVANT_STATS[objective] : []);
   for (const k of ALL_STAT_KEYS) {
     const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
     const top = candidates
@@ -172,10 +186,10 @@ for (let s = 0; s < SCENARIOS; s++) {
   const sets: string[] = [];
   for (let i = 0; i < nSets; i++) sets.push(SET_KEYS[Math.floor(rng() * SET_KEYS.length)]);
   const requirement: BuildRequirement = { sets, minStats };
-  const objective = OBJECTIVES[Math.floor(rng() * OBJECTIVES.length)];
+  const cas = OBJECTIVES[Math.floor(rng() * OBJECTIVES.length)];
 
-  const newKept = filterSlot(candidates, requirement, SYNTHETIC_BASE, MAX_PER_SLOT_MATCH, MAX_PER_SLOT_FILL, objective);
-  const oldKept = filterSlotOld(candidates, requirement, MAX_PER_SLOT_MATCH, MAX_PER_SLOT_FILL, objective);
+  const newKept = filterSlot(candidates, requirement, SYNTHETIC_BASE, MAX_PER_SLOT_MATCH, MAX_PER_SLOT_FILL, cas.objective, cas.objectiveStats);
+  const oldKept = filterSlotOld(candidates, requirement, MAX_PER_SLOT_MATCH, MAX_PER_SLOT_FILL, cas.objective, cas.objectiveStats);
 
   const a = idSet(newKept);
   const b = idSet(oldKept);
@@ -187,7 +201,7 @@ for (let s = 0; s < SCENARIOS; s++) {
     totalSymDiff += diff;
     if (diff > maxSymDiff) maxSymDiff = diff;
     if (divergentExamples.length < 5) {
-      divergentExamples.push(`  scénario ${s} : n=${n} sparse=${sparse} objective=${objective ?? '—'} nMin=${nMin} nSets=${nSets} → symDiff=${diff} (nouveau=${a.size} ancien=${b.size})`);
+      divergentExamples.push(`  scénario ${s} : n=${n} sparse=${sparse} objective=${cas.objective ?? '—'}${cas.objectiveStats ? `(${cas.objectiveStats.join('/')})` : ''} nMin=${nMin} nSets=${nSets} → symDiff=${diff} (nouveau=${a.size} ancien=${b.size})`);
     }
   }
 }

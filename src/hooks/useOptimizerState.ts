@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
+import { DamageSetup, DEFAULT_DAMAGE_SETUP } from '../lib/damage';
 import { AutoExclusionScope, ExclusionSelector } from '../lib/optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
@@ -54,8 +55,27 @@ export interface OptimizerState {
   setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
   mainStatsBySlot: Partial<Record<2 | 4 | 6, number[]>>;
   setMainStatsBySlot: Dispatch<SetStateAction<Partial<Record<2 | 4 | 6, number[]>>>>;
+  // Runes IMPOSÉES par emplacement (1..6) — `lockedRunes[slot] = runeId`.
+  // Réduit le pool de CE slot à cette seule rune (voir
+  // `BuildRequirement.lockedRunes`, runeBuildOptim.ts). Vide = aucun
+  // emplacement verrouillé, comportement inchangé.
+  // ⚠️ Fait partie des CRITÈRES (remis à zéro par `resetSearch` au
+  // changement de monstre) et non des réglages avancés : une rune précise
+  // n'a de sens que pour le monstre pour lequel on l'a choisie.
+  lockedRunes: Partial<Record<number, number>>;
+  setLockedRunes: Dispatch<SetStateAction<Partial<Record<number, number>>>>;
   objective: Objective;
   setObjective: Dispatch<SetStateAction<Objective>>;
+  // Réglage de l'objectif « Dégâts réels » (voir spec/outils/degats-reels.md) :
+  // quel sort, quel adversaire, quels effets de combat actifs. N'a d'effet
+  // que si `objective === 'degats_reels'` — mais reste saisi/conservé même
+  // si l'utilisateur change d'objectif puis revient, pour ne pas lui faire
+  // ressaisir un adversaire qu'il vient de configurer.
+  // ⚠️ Ne contient AUCUNE donnée dérivée du monstre chargé : uniquement de la
+  // saisie, pour rester sérialisable dans une recette partagée entre joueurs
+  // et traversable par le Web Worker.
+  damageSetup: DamageSetup;
+  setDamageSetup: Dispatch<SetStateAction<DamageSetup>>;
   // « Exclure les runes déjà utilisées » — DÉCOCHÉ par défaut (inversion du
   // comportement historique de l'ancienne case « Utiliser tout l'inventaire »,
   // qui était COCHÉE par défaut avec la signification opposée : les deux
@@ -146,7 +166,9 @@ export function useOptimizerState(): OptimizerState {
   const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
+  const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
+  const [damageSetup, setDamageSetup] = useState<DamageSetup>(DEFAULT_DAMAGE_SETUP);
   const [excludeUsedRunes, setExcludeUsedRunes] = useState(false);
   const [excludeUsedScope, setExcludeUsedScope] = useState<AutoExclusionScope>('rta');
   const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
@@ -170,7 +192,15 @@ export function useOptimizerState(): OptimizerState {
     setIgnoreArtifacts(false);
     setArtifactMainByKind({});
     setMainStatsBySlot({});
+    // ⚠️ Une rune imposée référence un `runeId` PRÉCIS, choisi pour l'ancien
+    // monstre — le garder verrouillerait la recherche du nouveau sur une
+    // rune qui n'a plus rien à voir (et la rendrait probablement vide).
+    setLockedRunes({});
     setObjective('efficience');
+    // ⚠️ Réinitialisé AVEC les autres critères : `skillCom2usId` désigne un
+    // sort du monstre PRÉCÉDENT, qui n'existe pas chez le nouveau — le
+    // garder afficherait un réglage muet, jamais appliqué.
+    setDamageSetup(DEFAULT_DAMAGE_SETUP);
     setSortBy('efficience');
     setResultsPage(1);
     setStoppedManually(false);
@@ -197,8 +227,12 @@ export function useOptimizerState(): OptimizerState {
     setArtifactMainByKind,
     mainStatsBySlot,
     setMainStatsBySlot,
+    lockedRunes,
+    setLockedRunes,
     objective,
     setObjective,
+    damageSetup,
+    setDamageSetup,
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,

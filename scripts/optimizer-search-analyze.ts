@@ -19,9 +19,33 @@ import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { loadBoxMonster, printMonsterSummary } from './lib/loadMonster';
 import { recipeToSearchParams } from './lib/recipeToSearchParams';
 import { runSearchToCompletion } from './lib/runSearch';
-import { objectiveScore } from '../src/lib/runeBuildOptim';
+import { objectiveScore, RealDamageContext } from '../src/lib/runeBuildOptim';
 import { activeSets } from '../src/lib/effects';
 import { RuneDetail } from '../src/types';
+import { loadMonsterSkills } from './lib/skillsData';
+import { loadMonstersList } from './lib/monstersData';
+import {
+  DEFAULT_DAMAGE_SETUP,
+  monsterBonusDegatsConditionnel,
+  monsterBonusDegatsSelonCr,
+  monsterBonusDegatsSelonDef,
+  monsterBonusDegatsSelonVit,
+  monsterBonusSiAtqSeuil,
+  monsterBonusDegatsStackable,
+  monsterBonusEcartDef,
+  monsterBonusFixeCiblePvMax,
+  monsterBonusFixeMaxHpPropre,
+  monsterBonusParEffetCible,
+  monsterBonusParEffetPropre,
+  monsterBonusSacrifice,
+  monsterBonusStatFixe,
+  monsterCritRateSelonVit,
+  monsterCritSiPlusRapide,
+  monsterDamageSkills,
+  monsterOffensivePassives,
+  resolveDamageSkill,
+  speedBuffAmpliPct,
+} from '../src/lib/damage';
 
 const [exportPath, recipePath, maxMsArg] = process.argv.slice(2);
 if (!exportPath || !recipePath) {
@@ -35,6 +59,22 @@ if (!recipe) {
   process.exit(1);
 }
 
+// ⚠️ **BUG CORRIGÉ** (revue de code externe — piège « un type, plusieurs
+// constructeurs », CLAUDE.md) : `parseOptimizerRecipe` ne valide PAS
+// `objective` contre le type (JSON non validé) — une recette exportée
+// pendant la durée de vie d'un objectif depuis retiré (`speed_nuker`,
+// `degats`) porte encore cette valeur. L'ÉCRAN a un repli explicite
+// (`OptimizerSection.tsx`, `importRecipe` : legacyObjective === 'speed_nuker'
+// || 'degats' → 'efficience'), CE script ne l'avait pas — `objectiveScore`
+// (plus bas, via le tri) lève sur un objectif inconnu APRÈS avoir consommé
+// toute la recherche, pas avant. Même repli que l'écran, appliqué ici une
+// seule fois, avant toute autre lecture de `recipe.objective`.
+const legacyObjective = recipe.objective as unknown as string;
+if (legacyObjective === 'speed_nuker' || legacyObjective === 'degats') {
+  console.warn(`⚠️ Objectif retiré « ${legacyObjective} » dans la recette — repli sur « efficience » (comme l'écran).`);
+  recipe.objective = 'efficience';
+}
+
 console.log(
   `Recette : ${recipe.monsterName} — sets ${recipe.requirement.sets.join('+')} — objectif ${recipe.objective} — ` +
     `métrique ${recipe.metric} — préfiltrage ${recipe.slotFilterPreset}`
@@ -45,6 +85,50 @@ const loaded = loadBoxMonster(exportPath, recipe.monsterName);
 printMonsterSummary('box', loaded);
 
 const params = recipeToSearchParams(recipe, loaded);
+
+// ⚠️ `objectiveScore('degats_reels')` EXIGE ce contexte et lève sans lui
+// (même garde-fou que l'écran, voir src/lib/runeBuildOptim.ts) — construit
+// EXACTEMENT comme OptimizerSection.tsx (`realDamage`) et comme le résumé
+// console de scripts/optimizer-search.ts, jamais une reconstruction
+// approximative. `null` pour tout autre objectif : `objectiveScore` l'ignore
+// alors de toute façon. `params.artifacts` — PAS `loaded.gear.artifacts` —
+// APRÈS `recipeToSearchParams` : ce sont ceux réellement envoyés au moteur
+// (réels, hypothétiques ou aucun selon la recette), même artéfacts que
+// `candidate.stats`, dont `ampliVitPct` doit rester solidaire.
+let realDamage: RealDamageContext | null = null;
+if (recipe.objective === 'degats_reels') {
+  const detail = loadMonsterSkills(loaded.com2usId);
+  const profile = resolveDamageSkill(monsterDamageSkills(detail), recipe.damageSetup?.skillCom2usId ?? null);
+  if (profile) {
+    const element = loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null;
+    realDamage = {
+      profile,
+      passifs: monsterOffensivePassives(detail),
+      setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+      element,
+      ampliVitPct: speedBuffAmpliPct(params.artifacts),
+      critSiPlusRapide: monsterCritSiPlusRapide(detail),
+      bonusDegatsSelonVit: monsterBonusDegatsSelonVit(detail),
+      bonusDegatsStack: monsterBonusDegatsStackable(detail),
+      monsterWide: {
+        critRateSelonVit: monsterCritRateSelonVit(detail) ?? undefined,
+        bonusStatFixe: monsterBonusStatFixe(detail) ?? undefined,
+        bonusFixeCiblePvMax: monsterBonusFixeCiblePvMax(detail) ?? undefined,
+        bonusEcartDef: monsterBonusEcartDef(detail) ?? undefined,
+        bonusFixeMaxHpPropre: monsterBonusFixeMaxHpPropre(detail) ?? undefined,
+        bonusSacrifice: monsterBonusSacrifice(detail) ?? undefined,
+        bonusParEffetCible: monsterBonusParEffetCible(detail) ?? undefined,
+        bonusParEffetPropre: monsterBonusParEffetPropre(detail) ?? undefined,
+      },
+      bonusDegatsConditionnel: monsterBonusDegatsConditionnel(detail),
+      bonusDegatsSelonCr: monsterBonusDegatsSelonCr(detail),
+      bonusDegatsSelonDef: monsterBonusDegatsSelonDef(detail),
+      bonusSiAtqSeuil: monsterBonusSiAtqSeuil(detail),
+    };
+  } else {
+    console.warn(`⚠️ Objectif « Dégâts réels » mais aucun sort calculable pour ${loaded.monsterName} — objectiveScore lèvera.`);
+  }
+}
 if (maxMsArg) {
   const override = Number(maxMsArg);
   console.log(`⚠️ maxMs FORCÉ à ${override}ms (au lieu de ${params.maxMs}ms) — tendance seulement, pas une preuve de complétude.`);
@@ -61,9 +145,11 @@ console.log(
 
 const runeById = new Map<number, RuneDetail>(loaded.allRunes.map((r) => [r.id, r]));
 
-// Tri identique à l'écran pour l'objectif "degats" (OptimizerSection.tsx,
-// fullSortedCandidates) : objectiveScore décroissant.
-const sorted = [...result.candidates].sort((a, b) => objectiveScore(b, recipe.objective) - objectiveScore(a, recipe.objective));
+// Tri identique à l'écran (OptimizerSection.tsx, fullSortedCandidates) :
+// objectiveScore décroissant, `realDamage` transmis pour « Dégâts réels ».
+const sorted = [...result.candidates].sort(
+  (a, b) => objectiveScore(b, recipe.objective, realDamage ?? undefined) - objectiveScore(a, recipe.objective, realDamage ?? undefined)
+);
 
 console.log(`\nTop 15 (triés comme l'écran, objectif=${recipe.objective}) :`);
 let completeCount = 0;
@@ -78,7 +164,7 @@ for (let i = 0; i < Math.min(TOP_N, sorted.length); i++) {
   const isBroken = extraActive.length === 0 && requestedActive.length === recipe.requirement.sets.length;
   if (isBroken) brokenInTop++;
   console.log(
-    `  #${i + 1} score=${objectiveScore(c, recipe.objective).toFixed(1)} sets actifs=[${active.join('+') || 'aucun'}] ` +
+    `  #${i + 1} score=${objectiveScore(c, recipe.objective, realDamage ?? undefined).toFixed(1)} sets actifs=[${active.join('+') || 'aucun'}] ` +
       `runes/set=[${sets.join(',')}] ${isBroken ? '⚠️ SET CASSÉ (rien de plus que le requis)' : ''}`
   );
 }

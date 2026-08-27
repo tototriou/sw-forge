@@ -13,10 +13,16 @@ import {
   Ban,
   SlidersHorizontal,
   Wrench,
+  Plus,
+  CheckCircle2,
+  Unlock,
+  Trash2,
+  Eye,
 } from 'lucide-react';
-import { ArtifactDetail, ARTIFACT_KINDS, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { ArtifactDetail, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { BoxItem } from '../../lib/applyAccount';
-import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeEfficiency } from '../../lib/effects';
+import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeSetIconFilter } from '../../lib/effects';
+import RuneIcon from '../RuneIcon';
 import {
   BuildRequirement,
   SLOT_MAIN_OPTIONS,
@@ -29,20 +35,58 @@ import {
   objectiveScore,
   candidateMetricTotal,
   OBJECTIVE_LABELS,
+  RealDamageContext,
   SLOT_FILTER_PRESETS,
   ARTIFACT_MAIN_VALUE,
   ARTIFACT_MAIN_OPTIONS,
 } from '../../lib/runeBuildOptim';
+import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
+import { monsterBaseStats } from '../../lib/stats';
+import {
+  DEFAULT_DAMAGE_SETUP,
+  computeTotalDamage,
+  damageRelevantStats,
+  monsterBonusDegatsConditionnel,
+  monsterBonusDegatsSelonCr,
+  monsterBonusDegatsSelonDef,
+  monsterBonusDegatsSelonVit,
+  monsterBonusSiAtqSeuil,
+  monsterBonusDegatsStackable,
+  monsterBonusEcartDef,
+  monsterBonusFixeCiblePvMax,
+  monsterBonusFixeMaxHpPropre,
+  monsterBonusParEffetCible,
+  monsterBonusParEffetPropre,
+  monsterBonusSacrifice,
+  monsterBonusStatFixe,
+  monsterCritRateSelonVit,
+  monsterCritSiPlusRapide,
+  monsterDamageSkills,
+  monsterModificateursVit,
+  monsterOffensivePassives,
+  resolveDamageSkill,
+  speedBuffAmpliPct,
+} from '../../lib/damage';
 import {
   AUTO_EXCLUSION_SCOPES,
   AutoExclusionScope,
+  ExclusionCandidate,
+  ExclusionSelector,
+  ExclusionSource,
   ExclusionSourceData,
+  SOURCE_OPTIONS,
+  ValidatedBuild,
   autoExcludedRuneIds,
+  exclusionCandidatesFor,
+  exclusionSelectorKey,
+  findValidatedBuild,
+  otherValidatedRuneIds,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
+import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
@@ -55,17 +99,24 @@ import {
   Bouton,
   BoutonIcone,
   Champ,
+  ConfirmDialog,
+  Flottant,
+  FlottantAuto,
   Interrupteur,
   MobileSheet,
   NumberField,
   Pastille,
+  PromptDialog,
   Selecteur,
   ZoneCliquable,
 } from '../../ui';
-import MonsterGearPicker, { GearedMonster } from './MonsterGearPicker';
+import MonsterSourcePicker from './MonsterSourcePicker';
+import OptimizerListPicker from './OptimizerListPicker';
+import ExclusionCandidateRow from './ExclusionCandidateRow';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
+import DamageSetupCard from './DamageSetupCard';
 
 interface Props {
   box: BoxItem[];
@@ -81,6 +132,11 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
+  // Listes de travail (Lot 3) — remonté dans App.tsx pour les mêmes raisons
+  // qu'`optimizer` (survit au démontage) ET pour persister sur disque (voir
+  // useOptimizerLists.ts), ce qu'`optimizer` lui-même ne fait délibérément
+  // pas.
+  lists: UseOptimizerLists;
   // Panneau d'actions mobile « Options » — piloté par le bouton de la barre
   // de nav (voir App.tsx), même patron que RunesOptim.tsx. Réglages avancés
   // et Exclusion de runes y vivent au doigt ; en ligne (cartes) au bureau.
@@ -104,6 +160,86 @@ const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
 
 const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
+// Candidats de COMPTE pour une espèce précise, un tableau par source (Box/
+// RTA/Défenses siège/Offenses siège) — fonction MODULE (pas un Hook) : appelée
+// À LA FOIS depuis un `useMemo` (affichage courant, voir `candidatesBySource`
+// plus bas) et directement depuis les gestionnaires qui changent d'espèce
+// (recherche bestiaire, import de recette) pour résoudre l'exemplaire SANS
+// attendre le rendu suivant (`selectedId`/`speciesMonster` n'auraient pas
+// encore la nouvelle valeur dans le même appel). Sert deux choses : activer/
+// désactiver chaque puce (une espèce jamais possédée dans une source
+// précise désactive SA puce, voir spec/outils/optimizer/historique-import-
+// monstres-a-optimiser.md, Questions 2-3) et peupler la désambiguïsation
+// d'exemplaire (zone D, plusieurs candidats dans la même source — ex. 2
+// équipes de siège).
+// ⚠️ Box : `item.gear` truthy suffit (PAS `item.gear.runes.length>0`,
+// contrairement à `exclusionCandidatesFor`) — un monstre possédé mais
+// totalement nu reste une entrée Box valide (cas « construire un build
+// depuis rien », déjà permis avant ce remaniement). ⚠️ RTA/siège :
+// `requireRunes: false` (bug signalé — un monstre assigné à un deck
+// d'offense siège mais non runé ne voyait pas son exemplaire proposé ici,
+// alors que Box l'autorise juste au-dessus pour le même cas) — `exclusion
+// CandidatesFor` garde son défaut `requireRunes: true` pour SON autre
+// appelant (« Exclure les runes d'un monstre », où une entrée sans rune n'a
+// rien à exclure).
+function speciesCandidatesBySource(
+  com2usId: number | null,
+  box: BoxItem[],
+  exclusionData: ExclusionSourceData
+): Record<ExclusionSource, ExclusionCandidate[]> {
+  if (com2usId == null) return { box: [], rta: [], 'siege-defense': [], 'siege-offense': [] };
+  const boxCandidates: ExclusionCandidate[] = box
+    .filter((item) => item.gear && item.monster.com2usId === com2usId)
+    .map((item) => ({ selector: { source: 'box' as const, unitKey: item.key }, monster: item.monster, gear: item.gear! }));
+  return {
+    box: boxCandidates,
+    rta: exclusionCandidatesFor('rta', exclusionData, null, null, false).filter((c) => c.monster.com2usId === com2usId),
+    'siege-defense': exclusionCandidatesFor('siege-defense', exclusionData, null, null, false).filter((c) => c.monster.com2usId === com2usId),
+    'siege-offense': exclusionCandidatesFor('siege-offense', exclusionData, null, null, false).filter((c) => c.monster.com2usId === com2usId),
+  };
+}
+
+// Un sélecteur `unowned` pour une espèce absente des 4 sources du compte —
+// demande explicite (« ajouter un monstre qu'on ne possède pas dans une
+// liste : le joueur a obtenu le monstre et veut essayer des runages de
+// teams sans avoir mis à jour son json »). `null` dès que l'espèce est
+// possédée QUELQUE PART (même une seule source, même ambiguë) : ne
+// masque JAMAIS un exemplaire réel derrière un sélecteur `unowned` — la
+// désambiguïsation normale (zone D / clic sur une puce) garde la main.
+// Factorisé : utilisé aux 3 points d'entrée qui choisissent une espèce
+// (recherche bestiaire, continuité au montage, import de recette).
+function unownedSelectorIfNoneOwned(monster: Monster, box: BoxItem[], exclusionData: ExclusionSourceData): ExclusionSelector | null {
+  const candidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData);
+  const possedeQuelquePart = Object.values(candidates).some((list) => list.length > 0);
+  return possedeQuelquePart ? null : { source: 'unowned', monsterId: String(monster.id) };
+}
+
+// Deux builds portent-ils EXACTEMENT le même jeu de 6 runes (peu importe
+// l'ordre) ? Sert à repérer, parmi les candidats affichés, celui qui EST le
+// build déjà validé pour ce monstre (Lot 2) — un simple `===` sur les
+// tableaux ne suffirait pas, `runeIds` n'est jamais garanti dans le même
+// ordre d'un calcul à l'autre.
+function sameRuneIds(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort((x, y) => x - y);
+  const sb = [...b].sort((x, y) => x - y);
+  return sa.every((v, i) => v === sb[i]);
+}
+
+// Équipement NUL, affiché tant qu'aucun monstre n'est choisi — demande
+// explicite de l'utilisateur : la fiche (stats, artéfacts, roue, relique)
+// reste TOUJOURS visible, vide plutôt qu'absente, pour que choisir un
+// monstre ne fasse jamais apparaître un bloc entier là où il n'y avait rien
+// (voir spec/shared/design.md, « un clic ne déplace jamais ce qu'on vient de
+// cliquer »). `MonsterGear` n'a besoin d'aucune adaptation : `computeStats`
+// sur une base à zéro renvoie des lignes à zéro, `ArtifactSlots`/`RuneWheel`
+// gèrent déjà nativement un tableau vide (voir leurs propres commentaires).
+const EMPTY_GEAR: GearSet = {
+  base: { hp: 0, atk: 0, def: 0, spd: 0, cr: 0, cd: 0, res: 0, acc: 0 },
+  runes: [],
+  artifacts: [],
+};
+
 function formatBig(n: number): string {
   if (!Number.isFinite(n)) return '—';
   if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
@@ -124,13 +260,13 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
-export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, menuOuvert, onFermerMenu }: Props) {
+export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
-  // ⚠️ Sous `sm`, les `Segmented` pleine largeur à libellés longs (l'objectif :
-  // « PV effectifs ») débordent leur quart de rangée que `whitespace-nowrap`
-  // interdit de couper. `dense` (texte réduit, retour à la ligne) est le
-  // mécanisme prévu pour ça — activé seulement au format étroit, le bureau garde
-  // le rendu normal.
+  // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
+  // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
+  // seuil de FENÊTRE ne pouvait pas voir. Reste utilisé par les vignettes
+  // d'effet de `DamageSetupCard`, dont la disposition (et pas seulement la
+  // taille du texte) change au format étroit.
   const etroit = useMediaQuery(SOUS_SM);
   const {
     selectedId,
@@ -151,8 +287,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setArtifactMainByKind,
     mainStatsBySlot,
     setMainStatsBySlot,
+    lockedRunes,
+    setLockedRunes,
     objective,
     setObjective,
+    damageSetup,
+    setDamageSetup,
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,
@@ -182,39 +322,173 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   } = optimizer;
   const { status, result, progress, run, stop } = search;
 
-  // TOUS les monstres 6★ de la box importée (avec ou sans runes actuellement
-  // équipées — voir « Mon compte » → Monstres), dédupliqués par monstre : on
-  // garde le meilleur exemplaire équipé pour les stats/artéfacts affichés —
-  // voir spec/outils/optimizer/ pour cette simplification.
-  // ⚠️ `gearedMonsters` ET la clé de box (`unitKey`) du meilleur exemplaire
-  // PAR MONSTRE sont dérivés du MÊME passage sur `box` (un seul `score`, un
-  // seul balayage) — auparavant deux calculs séparés (revue de code externe,
-  // duplication) : `gearedMonsters` perdait `unitKey` en aplatissant vers
-  // `GearedMonster` (le type partagé avec MonsterGearPicker.tsx, qui n'en a
-  // pas besoin), obligeant `selectedUnitKey` à rebalayer `box` et
-  // redéfinir SA PROPRE copie de `score` juste pour le retrouver.
-  const { gearedMonsters, bestUnitKeyByMonsterId } = useMemo(() => {
-    const best = new Map<string, BoxItem>();
-    const score = (b: BoxItem) => (b.gear?.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
-    for (const item of box) {
-      if (!item.gear) continue;
-      const id = String(item.monster.id);
-      const prev = best.get(id);
-      if (!prev || score(item) > score(prev)) best.set(id, item);
-    }
-    const gearedMonsters: GearedMonster[] = Array.from(best.values()).map((item) => ({ monster: item.monster, gear: item.gear! }));
-    const bestUnitKeyByMonsterId = new Map<string, string>(Array.from(best, ([id, item]) => [id, item.key]));
-    return { gearedMonsters, bestUnitKeyByMonsterId };
-  }, [box]);
+  // Tous les monstres du BESTIAIRE, indexés par id — la recherche du
+  // monstre à optimiser résout désormais une ESPÈCE dans TOUT le bestiaire
+  // (monstre possédé ou non), pas seulement dans les 4 sources du compte
+  // (voir spec/outils/optimizer/historique-import-monstres-a-optimiser.md,
+  // Question 1). Indexé par `String(monster.id)` — même clé que
+  // `RtaEntry.monsterId`/`SiegeSlot.monsterId` (voir applyAccount.ts).
+  // Recalculé seulement si la liste de monstres change, pas à chaque rendu.
+  const monsterById = useMemo(() => {
+    const m = new Map<string, Monster>();
+    for (const mon of allMonsters) m.set(String(mon.id), mon);
+    return m;
+  }, [allMonsters]);
 
-  const selected = gearedMonsters.find((g) => String(g.monster.id) === selectedId) ?? null;
+  // L'ESPÈCE choisie par la recherche — nom, icône, stats de base, sorts,
+  // indépendamment de toute source du compte. Le choix RÉEL de l'exemplaire
+  // (build précis dans Box/RTA/Défenses siège/Offenses siège) passe par les 4
+  // puces, plus bas (`selected`) — une espèce non possédée reste
+  // sélectionnable ici (`selected` retombe alors sur ses stats de base 6★,
+  // voir `monsterBaseStats`).
+  const speciesMonster = selectedId ? (monsterById.get(selectedId) ?? null) : null;
 
-  // `unitKey` (box) du monstre RECHERCHÉ, pour l'exclure de ses propres
-  // propositions dans RuneExclusionPicker (s'exclure soi-même n'a pas de
-  // sens) — simple lookup O(1) dans la Map déjà calculée ci-dessus, pas un
-  // nouveau balayage de `box`.
-  const selectedUnitKey = selected ? (bestUnitKeyByMonsterId.get(String(selected.monster.id)) ?? null) : null;
+  // ── Objectif « Dégâts réels » ────────────────────────────────────────
+  // Fiche de compétences du monstre choisi. ⚠️ Chargée pour TOUT monstre
+  // sélectionné, pas seulement quand l'objectif est « Dégâts réels » : sans
+  // ça, choisir l'objectif afficherait un panneau vide le temps d'un
+  // aller-retour réseau, juste après le clic. `chargerDetail` met en cache
+  // (y compris les absences), donc ce préchargement ne coûte rien à la
+  // seconde visite.
+  const [skillDetail, setSkillDetail] = useState<DetailMonstre | null>(null);
+  const [skillLoading, setSkillLoading] = useState(false);
+  const selectedCom2usId = speciesMonster?.com2usId ?? null;
+  useEffect(() => {
+    let vivant = true;
+    setSkillLoading(true);
+    chargerDetail(selectedCom2usId).then((d) => {
+      // ⚠️ Garde de démontage/changement de monstre : on peut changer de
+      // monstre avant la fin du chargement, et écrire l'ancienne fiche
+      // écraserait la bonne (même garde que MonsterDetailDialog.tsx).
+      if (!vivant) return;
+      setSkillDetail(d);
+      setSkillLoading(false);
+    });
+    return () => {
+      vivant = false;
+    };
+  }, [selectedCom2usId]);
 
+  const damageSkills = useMemo(() => monsterDamageSkills(skillDetail), [skillDetail]);
+  // Le sort RÉELLEMENT retenu — `resolveDamageSkill` est la source unique de
+  // cette résolution, partagée avec la relecture d'une recette en ligne de
+  // commande (scripts/lib/recipeToSearchParams.ts).
+  const resolvedSkill = useMemo(
+    () => resolveDamageSkill(damageSkills, damageSetup.skillCom2usId),
+    [damageSkills, damageSetup.skillCom2usId]
+  );
+  // Passifs offensifs de CE monstre (Feng Yan, Sia, Roid… — voir
+  // spec/outils/degats-reels.md) — indépendants du sort choisi, calculés dès
+  // qu'une fiche est chargée, comme `damageSkills`.
+  const offensivePassives = useMemo(() => monsterOffensivePassives(skillDetail), [skillDetail]);
+  // Modificateurs monstre-wide liés à la VIT (Ciri Eau/Rigna/Magic Order
+  // Swordsinger, Sonia/Battle Angel) — ne dépendent que de la fiche, pas des
+  // artéfacts (contrairement à `ampliVitPct`, calculé plus bas après
+  // `searchArtifacts`) : ils font travailler la VIT au pré-filtrage même
+  // pour un sort dont la formule ne la lit pas (voir `damageRelevantStats`).
+  const critSiPlusRapide = useMemo(() => monsterCritSiPlusRapide(skillDetail), [skillDetail]);
+  const bonusDegatsSelonVit = useMemo(() => monsterBonusDegatsSelonVit(skillDetail), [skillDetail]);
+  // Momo/Mage — le pourcentage EFFECTIF vit dans `damageSetup.stackPersonnalise`
+  // (saisi par l'utilisateur), pas ici : ceci ne porte que la DÉTECTION du
+  // passif (nom/plafond), comme les deux modificateurs ci-dessus.
+  const bonusDegatsStack = useMemo(() => monsterBonusDegatsStackable(skillDetail), [skillDetail]);
+  // Ciri (Feu)/MOS (Feu)/Reyka — Taux Crit selon la VIT, avec surplus
+  // reversé en Dgts Crit. Lizardman/Glinodon — points flats de Taux
+  // Crit/Dgts Crit, inconditionnels. Les deux touchent directement le
+  // Taux/Dgts Crit à chaque instance, groupés en un seul objet pour
+  // `computeTotalDamage`/`computeSkillDamageDetail` (voir `monsterWide`).
+  const critRateSelonVit = useMemo(() => monsterCritRateSelonVit(skillDetail), [skillDetail]);
+  const bonusStatFixe = useMemo(() => monsterBonusStatFixe(skillDetail), [skillDetail]);
+  // Spear of Tenacity/Martial Arts Specialist/Sickle Blade/Sand Blade/
+  // Calculated Sacrifice — modificateurs ADDITIFS au multiplicateur du sort
+  // choisi, toujours actifs (aucun bouton), déduits du passif comme les deux
+  // ci-dessus. Backup Code/Blessing of Curse — MULTIPLICATIFS selon un
+  // compte d'effets (cible/soi) saisi par l'utilisateur, même famille que
+  // `bonusParEffetCible` propre à un sort mais MONSTRE-WIDE ici.
+  const bonusFixeCiblePvMax = useMemo(() => monsterBonusFixeCiblePvMax(skillDetail), [skillDetail]);
+  const bonusEcartDef = useMemo(() => monsterBonusEcartDef(skillDetail), [skillDetail]);
+  const bonusFixeMaxHpPropre = useMemo(() => monsterBonusFixeMaxHpPropre(skillDetail), [skillDetail]);
+  const bonusSacrifice = useMemo(() => monsterBonusSacrifice(skillDetail), [skillDetail]);
+  const bonusParEffetCibleMonstre = useMemo(() => monsterBonusParEffetCible(skillDetail), [skillDetail]);
+  const bonusParEffetPropre = useMemo(() => monsterBonusParEffetPropre(skillDetail), [skillDetail]);
+  const monsterWide = useMemo(
+    () => ({
+      critRateSelonVit: critRateSelonVit ?? undefined,
+      bonusStatFixe: bonusStatFixe ?? undefined,
+      bonusFixeCiblePvMax: bonusFixeCiblePvMax ?? undefined,
+      bonusEcartDef: bonusEcartDef ?? undefined,
+      bonusFixeMaxHpPropre: bonusFixeMaxHpPropre ?? undefined,
+      bonusSacrifice: bonusSacrifice ?? undefined,
+      bonusParEffetCible: bonusParEffetCibleMonstre ?? undefined,
+      bonusParEffetPropre: bonusParEffetPropre ?? undefined,
+    }),
+    [
+      critRateSelonVit,
+      bonusStatFixe,
+      bonusFixeCiblePvMax,
+      bonusEcartDef,
+      bonusFixeMaxHpPropre,
+      bonusSacrifice,
+      bonusParEffetCibleMonstre,
+      bonusParEffetPropre,
+    ]
+  );
+  // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
+  // Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu, Qilin Slasher, Panda
+  // Warrior, Mi Ying…) — condition que l'app ne peut pas déduire (PV
+  // propres, état d'un allié, tour précédent…), toggle dans `damageSetup.
+  // passifsOffensifs` comme un passif `bonus`/`conditionnel` classique.
+  const bonusDegatsConditionnel = useMemo(() => monsterBonusDegatsConditionnel(skillDetail), [skillDetail]);
+  // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — même famille que
+  // `bonusDegatsSelonVit`, mais selon le Taux Crit BRUT (voir
+  // `monsterBonusDegatsSelonCr`).
+  const bonusDegatsSelonCr = useMemo(() => monsterBonusDegatsSelonCr(skillDetail), [skillDetail]);
+  // Gideon (« Aegis Shell ») — même famille ENCORE, mais selon TA PROPRE DEF
+  // (voir `monsterBonusDegatsSelonDef`).
+  const bonusDegatsSelonDef = useMemo(() => monsterBonusDegatsSelonDef(skillDetail), [skillDetail]);
+  // Brita (« Might of the Mercenary ») — même famille que `critSiPlusRapide`
+  // (entièrement déduit, aucun bouton), mais un SEUIL d'ATQ plutôt qu'un
+  // écart de VIT (voir `monsterBonusSiAtqSeuil`).
+  const bonusSiAtqSeuil = useMemo(() => monsterBonusSiAtqSeuil(skillDetail), [skillDetail]);
+  // Affichage seul (icône/nom/description) des deux modificateurs VIT
+  // ci-dessus, pour « Passifs offensifs » — voir `DamageSetupCard.tsx`.
+  const modificateursVit = useMemo(() => monsterModificateursVit(skillDetail), [skillDetail]);
+  // Stats que le pré-filtrage doit privilégier — `undefined` hors de cet
+  // objectif, auquel cas le moteur retombe sur `OBJECTIVE_RELEVANT_STATS`
+  // (comportement strictement inchangé pour les cinq autres objectifs).
+  const objectiveStats = useMemo(
+    () =>
+      objective === 'degats_reels'
+        ? damageRelevantStats(
+            resolvedSkill,
+            offensivePassives,
+            damageSetup,
+            critSiPlusRapide,
+            bonusDegatsSelonVit,
+            critRateSelonVit,
+            bonusEcartDef,
+            bonusFixeMaxHpPropre != null || bonusSacrifice != null,
+            bonusDegatsSelonCr,
+            bonusDegatsSelonDef,
+            bonusSiAtqSeuil
+          )
+        : undefined,
+    [
+      objective,
+      resolvedSkill,
+      offensivePassives,
+      damageSetup,
+      critSiPlusRapide,
+      bonusDegatsSelonVit,
+      critRateSelonVit,
+      bonusEcartDef,
+      bonusFixeMaxHpPropre,
+      bonusSacrifice,
+      bonusDegatsSelonCr,
+      bonusDegatsSelonDef,
+      bonusSiAtqSeuil,
+    ]
+  );
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
   // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
   // ATQ% en 6 — sans cette contrainte, ces slots partent dans n'importe quel
@@ -269,33 +543,230 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // fois, voir `AUTO_EXCLUSION_SCOPES`) là où l'ancienne case ne portait QUE
   // sur la box. Voir spec/outils/optimizer/ « Suite — case cochée par
   // défaut » pour l'historique de la case d'origine.
-  // Indexé par `String(monster.id)` — même clé que `RtaEntry.monsterId`/
-  // `SiegeSlot.monsterId` (voir applyAccount.ts). Recalculé seulement si la
-  // liste de monstres change, pas à chaque rendu.
-  const monsterById = useMemo(() => {
-    const m = new Map<string, Monster>();
-    for (const mon of allMonsters) m.set(String(mon.id), mon);
-    return m;
-  }, [allMonsters]);
-
   const exclusionData = useMemo<ExclusionSourceData>(
     () => ({ box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById }),
     [box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById]
   );
+
+  // Candidats de compte pour l'ESPÈCE COURANTE, un tableau par source —
+  // pilote À LA FOIS l'état actif/grisé/désactivé de chaque puce (Questions
+  // 2-3 du cadrage) et le contenu de la désambiguïsation d'exemplaire (zone
+  // D, plus bas) une fois une puce cliquée. Voir `speciesCandidatesBySource`
+  // (fonction module, en tête de fichier) pour pourquoi ce n'est PAS un
+  // simple appel direct dans les gestionnaires qui changent d'espèce.
+  const candidatesBySource = useMemo(
+    () => speciesCandidatesBySource(speciesMonster?.com2usId ?? null, box, exclusionData),
+    [speciesMonster, box, exclusionData]
+  );
+
+  // Source active — box (défaut, voir la maquette du cadrage), RTA, ou un
+  // deck de siège. ⚠️ Ne filtre plus la RECHERCHE (rôle 1, supprimé — voir
+  // Question 1 du cadrage) : une fois l'ESPÈCE choisie par la recherche
+  // bestiaire (`speciesMonster`), les puces choisissent seulement quel
+  // EXEMPLAIRE de cette espèce afficher/optimiser. État LOCAL (pas dans
+  // `useOptimizerState`) : même statut que `resultsPage` (voir son
+  // commentaire dans useOptimizerState.ts), donc hors recette exportée/
+  // scripts CLI pour l'instant (limite connue, voir spec).
+  const [gearSource, setGearSource] = useState<ExclusionSource>('box');
+  // ⚠️ Choix EXPLICITE de l'utilisateur (via `pickSource`, plus bas), sauf
+  // dans un seul cas NON ambigu : un seul exemplaire existe dans la source
+  // active pour cette espèce — jamais un « meilleur » deviné en silence dès
+  // qu'il y a un choix réel à faire (voir Question 1 du cadrage : le retour
+  // explicite qui a fait supprimer l'ancien `ownGearForSource` à la 5ᵉ
+  // révision reste valable ici). Initialisé PARESSEUSEMENT pour la
+  // continuité au montage (retour sur l'onglet Optimizer après un
+  // aller-retour ailleurs — cet état LOCAL ne survit pas au démontage) :
+  // résout la même règle pour l'espèce déjà persistée (`selectedId`).
+  const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(() => {
+    if (!selectedId) return null;
+    const species = monsterById.get(selectedId);
+    if (!species) return null;
+    const boxCandidates = speciesCandidatesBySource(species.com2usId, box, exclusionData).box;
+    return boxCandidates.length === 1 ? boxCandidates[0].selector : unownedSelectorIfNoneOwned(species, box, exclusionData);
+  });
+  // Zone D — désambiguïsation d'exemplaire (plusieurs candidats dans la
+  // source active pour l'espèce choisie, ex. 2 équipes de siège) : un
+  // `Flottant` ouvert EXPLICITEMENT par un clic sur une puce (`pickSource`),
+  // jamais automatiquement — voir le rendu plus bas.
+  const [zoneDOpen, setZoneDOpen] = useState(false);
+
+  // Choisit la source active ET résout l'exemplaire s'il n'y en a qu'UN pour
+  // l'espèce courante dans cette source — sinon ouvre la désambiguïsation
+  // (zone D) plutôt que de deviner. Une puce désactivée (aucun candidat,
+  // voir `candidatesBySource`) n'appelle jamais cette fonction (voir
+  // `disabled` du `Segmented`, plus bas).
+  function pickSource(source: ExclusionSource) {
+    setGearSource(source);
+    const candidates = candidatesBySource[source];
+    if (candidates.length === 1) {
+      setSourceSelector(candidates[0].selector);
+      setZoneDOpen(false);
+    } else if (candidates.length > 1) {
+      setSourceSelector(null);
+      setZoneDOpen(true);
+    } else {
+      setSourceSelector(null);
+      setZoneDOpen(false);
+    }
+  }
+
+  // Choisit l'ESPÈCE (recherche bestiaire, voir `MonsterSourcePicker mode=
+  // "bestiary"` plus bas) — remet TOUJOURS la source à Box (valeur par
+  // défaut de la maquette du cadrage) et résout directement le PREMIER
+  // exemplaire Box (demande explicite : plutôt qu'ouvrir la désambiguïsation
+  // dès qu'il y en a plusieurs, choisir un exemplaire par défaut — l'utilisateur
+  // reste libre de changer via la zone D). Aucun exemplaire Box, mais possédée
+  // ailleurs (RTA/siège) : repli sur `null`, jamais la désambiguïsation
+  // ouverte automatiquement — un clic sur la recherche ne doit pas faire
+  // surgir un panneau qu'on n'a pas demandé, voir spec/shared/design.md.
+  // ⚠️ Possédée NULLE PART : `unownedSelectorIfNoneOwned` — permet
+  // « Ajouter à la liste »/« Valider ce build » sur ses stats de base 6★
+  // seules (demande explicite, voir ExclusionSelector « unowned »).
+  function pickSpecies(monster: Monster) {
+    const id = String(monster.id);
+    if (id !== selectedId) resetSearch();
+    setSelectedId(id);
+    setGearSource('box');
+    const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
+    setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData));
+    setZoneDOpen(false);
+  }
+
+  // Bureau uniquement : ferme la désambiguïsation d'exemplaire (zone D) au
+  // clic extérieur — même patron que `avancesRef`/« Réglages avancés » plus
+  // bas. Au doigt, la zone D est un bloc INLINE (pas un `Flottant`), donc ce
+  // garde n'a rien à fermer par-dessus autre chose.
+  const zoneDRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!zoneDOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (zoneDRef.current && !zoneDRef.current.contains(e.target as Node)) setZoneDOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [zoneDOpen]);
+
+  // Mobile uniquement (Question 7 du cadrage) : la zone C (liste des
+  // monstres à optimiser) est un dépliement REPLIÉ par défaut, rattaché
+  // sous la barre de recherche — sur bureau, elle reste un encart FIXE
+  // toujours visible (voir la maquette). La zone D, elle, n'a pas besoin
+  // d'un second état : `zoneDOpen` ci-dessus pilote déjà sa visibilité des
+  // deux côtés, seule sa PRÉSENTATION change (`Flottant` flottant vs bloc
+  // en ligne, voir le rendu plus bas).
+  const [zoneCOpen, setZoneCOpen] = useState(false);
+
+  // Confirmation avant de libérer un build validé — demande explicite de
+  // l'utilisateur. Porte la PAIRE (liste, sélecteur) à libérer (`null` =
+  // dialogue fermé), pas juste un booléen, pour savoir LAQUELLE confirmer —
+  // un build validé est identifié par les DEUX depuis le Lot 3 (le même
+  // exemplaire peut porter un build différent dans deux listes).
+  const [releaseConfirm, setReleaseConfirm] = useState<{ listId: string; selector: ExclusionSelector } | null>(null);
+  // Confirmation avant de libérer TOUTES les runes validées d'une liste
+  // d'un coup (Lot 3) — porte l'id de la liste concernée.
+  const [releaseAllConfirm, setReleaseAllConfirm] = useState<string | null>(null);
+  // Confirmation avant de retirer un monstre DÉJÀ VALIDÉ de la liste — le
+  // retrait libère aussi ses runes (voir `removeMember`), donc destructif
+  // comme `releaseConfirm` ; un monstre PAS ENCORE validé se retire sans
+  // rien demander (rien à perdre).
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<{ listId: string; selector: ExclusionSelector } | null>(null);
+  // Ouvre la saisie du nom quand on veut ajouter le monstre courant (ou
+  // valider son runage actuel) alors qu'aucune liste n'est encore active —
+  // crée la liste ET fait l'action d'origine dans le même geste. Porte
+  // laquelle des deux actions relancer une fois la liste créée (voir
+  // `handleAddToList`/`handleValidateDisplayed` plus bas), pas juste un
+  // booléen — les deux boutons partagent ce même prompt.
+  const [addListPromptOpen, setAddListPromptOpen] = useState<'add' | 'validate' | null>(null);
+
+  // L'exemplaire RÉELLEMENT optimisé — l'entrée choisie explicitement (ou
+  // résolue sans ambiguïté, voir `pickSource`/l'initialisation paresseuse
+  // ci-dessus) via `sourceSelector`. ⚠️ Repli sur l'ESPÈCE SEULE (stats de
+  // base 6★ niveau max, `monsterBaseStats`, sans rune ni artéfact) — deux
+  // chemins DISTINCTS y mènent : `sourceSelector` porte un sélecteur
+  // `unowned` (espèce possédée dans AUCUNE des 4 sources, voir
+  // `unownedSelectorIfNoneOwned` — même stats de base, mais un sélecteur
+  // RÉEL, ajoutable à une liste/validable comme un exemplaire) ; OU
+  // `sourceSelector` reste `null` (repli tout en bas de ce `useMemo`) parce
+  // que la source active propose PLUSIEURS candidats sans qu'un choix ait
+  // encore été fait (zone D ouverte) — possédée quelque part, juste pas
+  // encore désambiguïsée. `null` UNIQUEMENT si aucune espèce n'est choisie
+  // du tout (recherche vide).
+  // Clé du sélecteur ACTIF — sert d'auto-exemption pour les runes validées
+  // (voir `otherValidatedRuneIds` plus bas) et à retrouver si CET exemplaire
+  // a déjà un build validé (Lot 2, `findValidatedBuild`).
+  const ownSelectorKey = sourceSelector ? exclusionSelectorKey(sourceSelector) : null;
+  const ownValidatedBuild = findValidatedBuild(lists.validated, lists.activeListId, ownSelectorKey);
+
+  // Bascule d'affichage de la fiche quand un build VALIDÉ existe pour
+  // l'exemplaire actif — demande explicite : « une fois le runage validé,
+  // on ne peut plus voir à quoi ressemblait le runage précédent tant qu'on
+  // est dans la liste ». `false` = build validé (défaut, l'illusion
+  // habituelle) ; `true` = équipement RÉELLEMENT porté, celui qu'aurait
+  // affiché la fiche SANS validation. ⚠️ Réinitialisée à CHAQUE changement
+  // d'exemplaire (`ownSelectorKey`) — sans quoi choisir un autre monstre
+  // garderait « runage actuel » affiché pour un exemplaire dont ce n'est
+  // pas ce qu'on a demandé à voir.
+  const [showRealGear, setShowRealGear] = useState(false);
+  useEffect(() => {
+    setShowRealGear(false);
+  }, [ownSelectorKey]);
+
+  const selected = useMemo(() => {
+    if (sourceSelector) {
+      const resolved = resolveExclusionEntry(sourceSelector, exclusionData);
+      if (resolved) {
+        // ⚠️ **Runes VALIDÉES affichées comme équipées** (Lot 2) — un build
+        // trouvé par la recherche puis validé n'est PAS réellement reruné en
+        // jeu ; substituer seulement `runes` (base/artéfacts/relique restent
+        // ceux réellement équipés, voir spec/outils/optimizer/historique-
+        // import-monstres-a-optimiser.md) donne l'illusion voulue « ce
+        // monstre porte déjà ce build » sans toucher au reste de la fiche.
+        // `showRealGear` désactive CETTE substitution (mais pas la
+        // résolution elle-même) pour retrouver l'équipement réel sur
+        // demande.
+        if (ownValidatedBuild && !showRealGear) {
+          const validatedRunes = ownValidatedBuild.runeIds
+            .map((id) => runeById.get(id))
+            .filter((r): r is RuneDetail => !!r);
+          return { monster: resolved.monster, gear: { ...resolved.gear, runes: validatedRunes } };
+        }
+        return resolved;
+      }
+    }
+    if (!speciesMonster) return null;
+    return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
+  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, showRealGear]);
+
+  // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
+  // seulement quand l'exemplaire RÉELLEMENT résolu est un exemplaire Box
+  // (`sourceSelector` porte alors sa clé précise). ⚠️ Quand la source est
+  // RTA/siège, le build BOX de cette même espèce n'est PLUS l'exemplaire
+  // optimisé : c'est alors une entrée comme une autre, légitimement
+  // excluable — la protéger aurait empêché de l'exclure à tort. La
+  // protection de l'exemplaire RTA/siège réellement optimisé, elle, passe
+  // par `ownCom2usId` (species-level, déjà correct dans
+  // `resolveExcludedRuneIds`/`autoExcludedRuneIds` pour CE cas précis, voir
+  // leurs propres commentaires).
+  const selectedUnitKey = sourceSelector?.source === 'box' ? sourceSelector.unitKey : null;
 
   const pool = useMemo(() => {
     if (!selected) return runes;
     // Se SUPERPOSENT, ne se remplacent pas : `excludeUsedRunes` l'exclusion
     // automatique (un périmètre entier, RTA/Défenses siège/Box),
     // `excludedSelectors` l'exclusion manuelle en plus (entrée par entrée,
-    // n'importe laquelle des 4 sources) — voir optimizerExclusion.ts.
+    // n'importe laquelle des 4 sources), `lists.validated` les runes déjà
+    // VALIDÉES pour un AUTRE monstre de LA MÊME liste active (Lot 3 — scopé
+    // par liste, deux listes ne se bloquent jamais entre elles) — voir
+    // optimizerExclusion.ts. Jamais les siennes propres (`ownSelectorKey`) :
+    // sans cette exemption, relancer une recherche sur un monstre déjà
+    // validé s'auto-bloquerait avec ses propres runes.
     const auto = excludeUsedRunes
       ? autoExcludedRuneIds(excludeUsedScope, exclusionData, selected.monster.com2usId)
       : new Set<number>();
     const manual = resolveExcludedRuneIds(excludedSelectors, exclusionData, selectedUnitKey, selected.monster.com2usId);
-    if (auto.size === 0 && manual.size === 0) return runes;
-    return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id));
-  }, [selected, selectedUnitKey, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes]);
+    const reserved = otherValidatedRuneIds(lists.validated, lists.activeListId, ownSelectorKey);
+    if (auto.size === 0 && manual.size === 0 && reserved.size === 0) return runes;
+    return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id) && !reserved.has(r.id));
+  }, [selected, selectedUnitKey, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes, lists.validated, lists.activeListId, ownSelectorKey]);
 
   // ⚠️ Purge les sélecteurs d'exclusion manuelle devenus AUTO-exclusion
   // depuis un changement de monstre recherché — `resolveExcludedRuneIds`
@@ -341,14 +812,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // comportement historique inchangé tant que rien n'est touché — un code
   // de stat HYPOTHÈQUE un artéfact différent (même sans le posséder),
   // `'none'` retire cet emplacement même s'il est réellement équipé.
-  // ⚠️ **`selected.gear` est TOUJOURS le build de base** (voir
-  // `gearedMonsters`, dérivé de `box`) — jamais celui de RTA ni d'un deck de
-  // siège, qui peuvent porter des artéfacts DIFFÉRENTS pour le MÊME monstre
-  // (presets de runage/artéfacts séparés, pas une seule vérité par monstre).
-  // `'equipped'` par défaut est donc une hypothèse implicite (« le build de
-  // base »), pas une garantie que ça matche le build qu'un joueur cherche
-  // réellement à reproduire — d'où l'intérêt des deux autres choix pour
-  // hypothéquer un artéfact différent sans avoir à changer de monstre.
+  // ⚠️ **`selected.gear` suit l'EXEMPLAIRE choisi par les 4 puces**
+  // (`sourceSelector` — Box/RTA/Défenses siège/Offenses siège), pas
+  // forcément un build Box : RTA et un deck de siège peuvent porter des
+  // artéfacts DIFFÉRENTS pour le MÊME monstre (presets de runage/artéfacts
+  // séparés, pas une seule vérité par monstre). `'equipped'` par défaut est
+  // donc une hypothèse implicite (« le build actuellement affiché »), pas
+  // une garantie que ça matche le build qu'un joueur cherche réellement à
+  // reproduire — d'où l'intérêt des deux autres choix pour hypothéquer un
+  // artéfact différent sans avoir à changer de monstre.
   const searchArtifacts = useMemo<ArtifactDetail[]>(() => {
     if (!selected || ignoreArtifacts) return [];
     const out: ArtifactDetail[] = [];
@@ -365,6 +837,48 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     return out;
   }, [selected, ignoreArtifacts, artifactMainByKind]);
 
+  // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
+  // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
+  // tri « Dégâts réels » (voir `sortOptions`). Après `searchArtifacts` :
+  // `ampliVitPct` en dépend (mêmes artéfacts que ceux réellement envoyés au
+  // moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
+  const ampliVitPct = useMemo(() => speedBuffAmpliPct(searchArtifacts), [searchArtifacts]);
+  const realDamage = useMemo<RealDamageContext | null>(
+    () =>
+      resolvedSkill
+        ? {
+            profile: resolvedSkill,
+            setup: damageSetup,
+            element: speciesMonster?.element ?? null,
+            passifs: offensivePassives,
+            ampliVitPct,
+            critSiPlusRapide,
+            bonusDegatsSelonVit,
+            bonusDegatsStack,
+            monsterWide,
+            bonusDegatsConditionnel,
+            bonusDegatsSelonCr,
+            bonusDegatsSelonDef,
+            bonusSiAtqSeuil,
+          }
+        : null,
+    [
+      resolvedSkill,
+      damageSetup,
+      speciesMonster?.element,
+      offensivePassives,
+      ampliVitPct,
+      critSiPlusRapide,
+      bonusDegatsSelonVit,
+      bonusDegatsStack,
+      monsterWide,
+      bonusDegatsConditionnel,
+      bonusDegatsSelonCr,
+      bonusDegatsSelonDef,
+      bonusSiAtqSeuil,
+    ]
+  );
+
   // Ce que le moteur reçoit réellement — partagé entre la recherche et
   // l'estimation affichée avant de lancer quoi que ce soit (voir plus bas) :
   // les deux doivent voir EXACTEMENT la même exigence.
@@ -374,8 +888,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       const codes = mainStatsBySlot[slot];
       if (codes && codes.length > 0) mainStatsReq[slot] = codes;
     }
-    return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq };
-  }, [comboSets, minStats, maxStats, mainStatsBySlot]);
+    return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq, lockedRunes };
+  }, [comboSets, minStats, maxStats, mainStatsBySlot, lockedRunes]);
 
   // Indication du nombre de builds qui vont être testés — un ORDRE DE
   // GRANDEUR (le produit des pools filtrés par emplacement), pas le nombre
@@ -384,8 +898,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // stricts avant d'attendre un résultat.
   const estimate = useMemo(() => {
     if (!selected || comboSets.length === 0) return null;
-    return estimateSearchSpace(pool, requirement, selected.gear.base, slotFilterCap, objective);
-  }, [selected, comboSets, pool, requirement, slotFilterCap, objective]);
+    return estimateSearchSpace(pool, requirement, selected.gear.base, slotFilterCap, objective, objectiveStats);
+  }, [selected, comboSets, pool, requirement, slotFilterCap, objective, objectiveStats]);
 
   // Diagnostic affiché UNIQUEMENT si une recherche aboutit à 0 résultat (voir
   // le rendu plus bas) : pour chaque condition posée, le meilleur cas
@@ -455,6 +969,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       maxMs: exhaustiveSearch ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
       slotFilterCap,
       objective,
+      // ⚠️ `undefined` hors de « Dégâts réels » — le moteur retombe alors sur
+      // `OBJECTIVE_RELEVANT_STATS[objective]`, comportement inchangé.
+      objectiveStats,
       adaptiveTrancheWeighting,
     });
   }
@@ -475,6 +992,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       monsterName: selected.monster.name,
       requirement,
       objective,
+      damageSetup,
       metric,
       slotFilterPreset,
       adaptiveTrancheWeighting,
@@ -517,6 +1035,22 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     return () => clearTimeout(t);
   }, [importMsg]);
 
+  // « Réglages avancés » (bureau) : ancre du `FlottantAuto`, PAS un bloc
+  // inline — un panneau replié par défaut ne peut pas réserver sa place à
+  // l'avance sans perdre l'intérêt d'être replié, donc il flotte PAR-DESSUS
+  // la page plutôt que de pousser « Critères de recherche » en dessous
+  // (voir spec/shared/design.md, « un clic ne déplace jamais ce qu'on vient
+  // de cliquer »). Même patron que HelpPopover.tsx : ferme au clic extérieur.
+  const avancesRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showAdvanced) return;
+    const onDown = (e: MouseEvent) => {
+      if (avancesRef.current && !avancesRef.current.contains(e.target as Node)) setShowAdvanced(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [showAdvanced, setShowAdvanced]);
+
   function importRecipe(file: File) {
     file.text().then((text) => {
       const { recipe, error } = parseOptimizerRecipe(text);
@@ -528,7 +1062,41 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       setMinStats(recipe.requirement.minStats);
       setMaxStats(recipe.requirement.maxStats ?? {});
       setMainStatsBySlot(recipe.requirement.mainStats ?? {});
-      setObjective(recipe.objective);
+      // ⚠️ **Runes imposées : gardées SEULEMENT si elles existent dans CET
+      // inventaire.** Un `runeId` est propre à un compte — une recette reçue
+      // d'un autre joueur en porte forcément d'inconnus, et les garder
+      // viderait le pool du slot concerné (donc zéro résultat) sans que rien
+      // n'explique pourquoi. Même tolérance que `excludedSelectors` : ce qui
+      // ne se résout pas est ignoré, jamais une erreur d'import — mais on le
+      // DIT (voir le message plus bas), contrairement aux sélecteurs
+      // d'exclusion dont la perte est sans conséquence sur le résultat.
+      const locksRecus = recipe.requirement.lockedRunes ?? {};
+      const locksValides: Partial<Record<number, number>> = {};
+      let locksIgnores = 0;
+      for (const [slot, runeId] of Object.entries(locksRecus)) {
+        if (runeId != null && runeById.has(runeId)) locksValides[Number(slot)] = runeId;
+        else locksIgnores++;
+      }
+      setLockedRunes(locksValides);
+      // ⚠️ Repli sur « Efficience » pour DEUX valeurs devenues invalides :
+      // `speed_nuker` (retiré, remplacé par « Dégâts réels ») et `degats`
+      // (formule générique sans sort ni adversaire, retirée le 2026-08-27 —
+      // approximation strictement inférieure de « Dégâts réels » une fois
+      // celle-ci mature). Une recette exportée avant l'un ou l'autre retrait
+      // porte encore ces valeurs — `parseOptimizerRecipe` ne valide pas
+      // `objective` contre le type, donc sans ce repli l'état affiché
+      // porterait une valeur qu'aucun bouton ne peut représenter. « Efficience »,
+      // pas « Dégâts réels » : celle-ci EXIGE un sort/adversaire résolus
+      // (`objectiveScore` lève sans contexte, voir runeBuildOptim.ts) — une
+      // recette ancienne n'en a pas forcément un valide pour CE compte-ci.
+      const legacyObjective = recipe.objective as unknown as string;
+      setObjective(legacyObjective === 'speed_nuker' || legacyObjective === 'degats' ? 'efficience' : recipe.objective);
+      // ⚠️ `?? DEFAULT_DAMAGE_SETUP` : une recette exportée AVANT ce champ n'a
+      // pas de `damageSetup`. Le `skillCom2usId` qu'elle porte, lui, peut
+      // désigner un sort d'un AUTRE monstre que celui de cette box — c'est
+      // `resolveDamageSkill` qui retombe alors sur le sort par défaut, pas
+      // une erreur d'import (même tolérance que le monstre lui-même, plus bas).
+      setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);
       setSlotFilterPreset(recipe.slotFilterPreset);
       setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
       // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
@@ -552,13 +1120,38 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       setIgnoreArtifacts(recipe.ignoreArtifacts);
       setArtifactMainByKind(recipe.artifactMainByKind);
 
-      const match = gearedMonsters.find((g) => g.monster.com2usId === recipe.monsterCom2usId);
+      // Les runes imposées ignorées (voir plus haut) sont signalées en
+      // SUFFIXE du message d'import — un verrou perdu change réellement le
+      // résultat, contrairement à un sélecteur d'exclusion introuvable.
+      const suffixeLocks = locksIgnores > 0 ? ` ${locksIgnores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.` : '';
+      // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
+      // monstres possédés — la recherche « Monstre à optimiser » couvre
+      // désormais tout le bestiaire (voir Question 1 du cadrage), donc une
+      // recette reçue d'un autre joueur pour un monstre qu'on ne possède pas
+      // reste sélectionnable (repli sur ses stats de base 6★, voir
+      // `selected`) au lieu d'échouer.
+      const match = allMonsters.find((m) => m.com2usId === recipe.monsterCom2usId);
       if (match) {
-        setSelectedId(String(match.monster.id));
-        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.` });
+        // ⚠️ Une recette ne porte que l'ESPÈCE (`monsterCom2usId`), jamais un
+        // exemplaire précis (voir le commentaire de `gearSource` plus haut) —
+        // repli sur Box, comme si l'utilisateur venait de le choisir dans
+        // cette source (résolution automatique si un seul exemplaire, sinon
+        // stats de base seules — même règle que `pickSource`) ; possédée
+        // NULLE PART → sélecteur `unowned`, même règle que `pickSpecies`.
+        setGearSource('box');
+        const boxCandidates = speciesCandidatesBySource(match.com2usId, box, exclusionData).box;
+        setSourceSelector(boxCandidates.length === 1 ? boxCandidates[0].selector : unownedSelectorIfNoneOwned(match, box, exclusionData));
+        setZoneDOpen(false);
+        setSelectedId(String(match.id));
+        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}` });
       } else {
+        // Cas limite : le `com2usId` de la recette ne correspond à AUCUN
+        // monstre des données actuellement chargées (ex. retiré du jeu) —
+        // devrait rester rare maintenant que `allMonsters` couvre tout le
+        // bestiaire (avant Lot 1, ce message apparaissait dès que le
+        // monstre n'était simplement pas POSSÉDÉ, un cas bien plus courant).
         setImportMsg({
-          text: `Réglages importés (${recipe.monsterName}), mais ce monstre n'est pas dans ta box — choisis-en un manuellement.`,
+          text: `Réglages importés (${recipe.monsterName}), mais ce monstre est introuvable dans les données actuelles — choisis-en un manuellement.${suffixeLocks}`,
         });
       }
     });
@@ -588,16 +1181,21 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       // avec le popover d'une rune (recalculé en direct) si l'utilisateur
       // bascule Efficience ↔ Score après coup sans relancer.
       list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
-    } else if (sortBy === 'degats' || sortBy === 'ehp' || sortBy === 'vitesse' || sortBy === 'speed_nuker') {
-      // ⚠️ `speed_nuker` retombe sur la même formule que `degats` dans
-      // `objectiveScore` — voir son commentaire dans runeBuildOptim.ts (VIT
-      // n'y participe pas encore, en attendant une formule par monstre/sort).
+    } else if (sortBy === 'degats_reels') {
+      // ⚠️ `realDamage` peut être `null` (aucun sort calculable pour ce
+      // monstre) : ce tri n'est alors même pas proposé (voir `sortOptions`),
+      // mais un `sortBy` hérité d'un monstre précédent pourrait encore le
+      // porter — on laisse l'ordre en place plutôt que de lever.
+      if (realDamage) {
+        list.sort((a, b) => objectiveScore(b, sortBy, realDamage) - objectiveScore(a, sortBy, realDamage));
+      }
+    } else if (sortBy === 'ehp' || sortBy === 'vitesse') {
       list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
     } else {
       list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
     }
     return list;
-  }, [candidatesSource, sortBy, runeById, metric]);
+  }, [candidatesSource, sortBy, runeById, metric, realDamage]);
 
   const RESULTS_PAGE_SIZE = 20;
   const totalResultsPages = Math.max(1, Math.ceil(fullSortedCandidates.length / RESULTS_PAGE_SIZE));
@@ -643,11 +1241,326 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     }, 0);
   }
 
+  // Puces avec disponibilité PAR OPTION (Questions 2-3 du cadrage) — une
+  // source sans AUCUN candidat pour l'espèce courante voit SA puce
+  // désactivée (voir l'axe `disabled` ajouté à Segmented.tsx), le contrôle
+  // entier en plus si les 4 le sont (aucune source ne possède l'espèce).
+  const sourceOptions = SOURCE_OPTIONS.map((o) => ({ ...o, disabled: candidatesBySource[o.key].length === 0 }));
+  const allSourcesEmpty = sourceOptions.every((o) => o.disabled);
+
+  // Effectif par liste (Lot 3) — affiché dans `OptimizerListPicker`, à côté
+  // de chaque nom de liste.
+  const memberCountsByList = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const m of lists.members) out[m.listId] = (out[m.listId] ?? 0) + 1;
+    return out;
+  }, [lists.members]);
+
+  // Contenu de la zone D (désambiguïsation d'exemplaire) — factorisé, PAS un
+  // composant à part : réutilisé tel quel dans le `Flottant` du bureau et le
+  // bloc en ligne du mobile (voir le rendu plus bas), qui ne diffèrent QUE
+  // par leur présentation (flottant vs en ligne), pas par leur contenu.
+  const zoneDList =
+    candidatesBySource[gearSource].length === 0 ? (
+      <div className="px-3 py-2 text-ink-dim text-[12.5px]">Aucun exemplaire.</div>
+    ) : (
+      candidatesBySource[gearSource].map((c) => (
+        <button
+          key={exclusionSelectorKey(c.selector)}
+          type="button"
+          onClick={() => {
+            setSourceSelector(c.selector);
+            setZoneDOpen(false);
+          }}
+          className={`flex w-full items-center gap-3 px-3 text-left transition hoverable:bg-accent-soft ${
+            c.teamContext ? 'py-1' : 'py-1.5'
+          }`}
+        >
+          <ExclusionCandidateRow candidate={c} />
+        </button>
+      ))
+    );
+
+  // Zone C (Lot 3) — les monstres de la liste ACTIVE, fusionnée avec
+  // l'ancienne « Monstres déjà runés » (Lot 2) : chaque ligne porte
+  // directement son état validé, une section séparée ailleurs dans l'écran
+  // pour la même info aurait été redondante (voir spec/outils/optimizer/
+  // historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 »).
+  const activeList = lists.lists.find((l) => l.id === lists.activeListId) ?? null;
+  const activeMembers = lists.activeListId ? lists.members.filter((m) => m.listId === lists.activeListId) : [];
+  const alreadyMember = ownSelectorKey != null && activeMembers.some((m) => exclusionSelectorKey(m.selector) === ownSelectorKey);
+  const listHasValidated = activeList != null && lists.validated.some((v) => v.listId === activeList.id);
+
+  // « Ajouter à la liste » — agit sur `sourceSelector`, qui porte soit un
+  // exemplaire RÉELLEMENT résolu, soit (demande explicite : « ajouter un
+  // monstre qu'on ne possède pas ») un sélecteur `unowned` quand l'espèce
+  // n'est possédée dans AUCUNE des 4 sources (voir `unownedSelectorIfNoneOwned`) —
+  // `null` seulement si aucune espèce n'est choisie, ou si elle est possédée
+  // mais pas encore désambiguïsée (zone D). Sans liste active, crée-en une
+  // ET y ajoute le monstre dans le même geste plutôt que d'obliger un
+  // aller-retour par le menu déroulant.
+  function handleAddToList() {
+    if (!sourceSelector) return;
+    if (!lists.activeListId) {
+      setAddListPromptOpen('add');
+      return;
+    }
+    lists.addMember(lists.activeListId, sourceSelector);
+  }
+  const unowned = sourceSelector?.source === 'unowned';
+  const addLabel = !selected || !sourceSelector
+    ? 'Ajouter à la liste'
+    : alreadyMember
+      ? `Déjà dans « ${activeList?.name ?? ''} »`
+      : lists.activeListId
+        ? `Ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''} à « ${activeList?.name ?? ''} »`
+        : `Créer une liste et y ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''}`;
+
+  // « Valider ce build » (sous la fiche stats+artéfacts+runes+relique,
+  // demande explicite) — valide directement les runes ACTUELLEMENT
+  // affichées sur l'exemplaire, sans passer par une recherche : utile pour
+  // un runage déjà composé (en jeu ou dans le planning) qu'on veut juste
+  // RÉSERVER dans la liste. Exige exactement 6 runes affichées (même
+  // contrainte qu'un build trouvé par la recherche, `ValidatedBuild.
+  // runeIds` porte toujours 6 ids) — rien à valider sur un exemplaire
+  // partiellement runé ou nu (`unowned`, `EMPTY_GEAR`). ⚠️ Si `selected.gear
+  // .runes` reflète déjà un build VALIDÉ (voir `selected`, substitution des
+  // runes) le bouton affiche « Validé » (identique à `BuildCandidateCard`)
+  // plutôt que de re-valider inutilement les mêmes runes.
+  const displayedRuneIds = selected?.gear.runes.map((r) => r.id) ?? [];
+  // Les runes AFFICHÉES sont-elles EXACTEMENT le build validé ? Presque
+  // toujours équivalent à `!!ownValidatedBuild` (la substitution dans
+  // `selected` le garantit dès que `showRealGear` est `false`) — mais PAS
+  // quand `showRealGear` est `true` : la fiche montre alors l'équipement
+  // RÉEL, qui peut différer du build validé (c'est justement le but du
+  // bouton). Sert à distinguer « un build validé EXISTE pour cet
+  // exemplaire » de « ce qui est affiché EN CE MOMENT est ce build ».
+  const matchesValidatedBuild = !!ownValidatedBuild && sameRuneIds(ownValidatedBuild.runeIds, displayedRuneIds);
+  // ⚠️ Jamais valider une rune déjà réservée pour un AUTRE monstre de LA
+  // MÊME liste active — demande explicite. Contrairement à un résultat de
+  // recherche (dont le pool exclut déjà `otherValidatedRuneIds`, voir
+  // `pool` plus bas), les runes AFFICHÉES ici viennent de l'équipement
+  // réel de l'exemplaire (ou d'un build déjà validé) : rien n'empêche
+  // structurellement qu'elles chevauchent une réservation posée APRÈS coup
+  // pour un autre monstre. `otherValidatedBuilds` (pas juste l'ensemble des
+  // ids, voir `reservedByOthers`) sert aussi à nommer le monstre concerné
+  // dans le message.
+  const otherValidatedBuilds = useMemo(
+    () => (lists.activeListId ? lists.validated.filter((v) => v.listId === lists.activeListId && exclusionSelectorKey(v.selector) !== ownSelectorKey) : []),
+    [lists.validated, lists.activeListId, ownSelectorKey]
+  );
+  // ⚠️ **Le même calcul pour la FICHE et pour les CARTES DE RÉSULTAT.** Il ne
+  // vivait qu'ici : « Valider » sur une carte de résultat ne vérifiait rien,
+  // en s'appuyant sur le fait que le pool de recherche exclut déjà
+  // `otherValidatedRuneIds`. Vrai AU MOMENT de la recherche seulement — des
+  // résultats affichés avant un changement de liste active, ou avant qu'un
+  // autre monstre ne réserve, permettaient de réserver DEUX FOIS la même rune
+  // dans une même liste. La garde doit être là où l'on valide, pas là où l'on
+  // cherche.
+  const conflitsDeRunes = (ids: number[]) =>
+    ids
+      .map((id) => {
+        const build = otherValidatedBuilds.find((v) => v.runeIds.includes(id));
+        if (!build) return null;
+        const rune = runeById.get(id);
+        const monsterName = resolveExclusionEntry(build.selector, exclusionData)?.monster.name ?? 'un autre monstre';
+        return { slot: rune?.slot ?? null, monsterName };
+      })
+      .filter((c): c is { slot: number | null; monsterName: string } => c != null);
+  const displayedRuneConflicts = conflitsDeRunes(displayedRuneIds);
+  const canValidateDisplayed = !!sourceSelector && displayedRuneIds.length === 6 && displayedRuneConflicts.length === 0;
+  function handleValidateDisplayed() {
+    if (!sourceSelector || !canValidateDisplayed) return;
+    if (!lists.activeListId) {
+      setAddListPromptOpen('validate');
+      return;
+    }
+    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds);
+  }
+
+  // Bandeau « build validé », devenu une BASCULE — demande explicite : en
+  // plus des 4 puces grisées (voir plus haut), un signal explicite dans la
+  // fiche elle-même, pour que ce qui est affiché (le build validé, PAS
+  // l'équipement réellement porté) ne prête jamais à confusion. ⚠️ Suite —
+  // « on ne peut plus voir à quoi ressemblait le runage précédent tant
+  // qu'on est dans la liste » : `showRealGear` (voir `selected`) permet de
+  // rebasculer vers l'équipement RÉEL sans quitter la liste ni changer
+  // d'exemplaire. Factorisé, réutilisé aux deux endroits où la fiche
+  // s'affiche (bureau/mobile).
+  const validatedBadge = ownValidatedBuild ? (
+    <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent">
+      <CheckCircle2 size={13} className="flex-none" />
+      <span className="flex-1">
+        {showRealGear ? "Équipement réellement porté affiché" : "Build validé affiché — pas l'équipement réellement porté"}
+      </span>
+      <BoutonIcone
+        cadre
+        libelle={showRealGear ? 'Revoir le build validé' : "Voir le runage réellement porté"}
+        icone={showRealGear ? <CheckCircle2 size={13} /> : <Eye size={13} />}
+        onClick={() => setShowRealGear((v) => !v)}
+        className="h-6 w-6 flex-none"
+      />
+    </div>
+  ) : null;
+
+  // Même bouton que sur une carte de résultat (`BuildCandidateCard`), sous
+  // la fiche cette fois — demande explicite : valider un runage déjà
+  // composé (en jeu ou planifié) sans passer par une recherche. `disabled`
+  // dès qu'il n'y a rien de validable (pas 6 runes affichées, OU au moins
+  // une rune déjà réservée pour un autre monstre de la liste — voir
+  // `displayedRuneConflicts`) OU que c'est déjà EXACTEMENT le build validé
+  // (`matchesValidatedBuild` — PAS `ownValidatedBuild` seul, qui reste vrai
+  // même en vue « runage réellement porté », voir son commentaire).
+  const validateBuildButton = (
+    <>
+      <Bouton
+        onClick={handleValidateDisplayed}
+        disabled={!canValidateDisplayed || matchesValidatedBuild}
+        ton={matchesValidatedBuild ? 'accent' : 'neutre'}
+        fond={matchesValidatedBuild ? 'doux' : 'plein'}
+        taille="sm"
+        pleineLargeur
+        icone={matchesValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
+        libelle={matchesValidatedBuild ? 'Validé' : 'Valider ce build'}
+        className="mt-2.5"
+      />
+      {/* Message listant les runes déjà utilisées — demande explicite,
+          « il faut afficher quelles runes sont déjà utilisées dans la
+          liste ». Absent si déjà validé (le bandeau `validatedBadge`
+          suffit alors, ce build EST la réservation). */}
+      {displayedRuneConflicts.length > 0 && !matchesValidatedBuild && (
+        <p className="mt-1.5 text-[11px] text-warn">
+          {displayedRuneConflicts.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste :{' '}
+          {displayedRuneConflicts.map((c, i) => (
+            <span key={i}>
+              {i > 0 && ', '}
+              {c.slot != null ? `emplacement ${c.slot}` : 'une rune'} ({c.monsterName})
+            </span>
+          ))}
+          .
+        </p>
+      )}
+    </>
+  );
+
+  const zoneCContent = (
+    <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+        <p className="text-[12px] font-semibold text-ink-dim truncate">
+          {activeList ? `Monstres de « ${activeList.name} »` : 'Monstres de la liste'}
+        </p>
+        {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
+      </div>
+
+      <Bouton
+        trait="pointille"
+        taille="sm"
+        pleineLargeur
+        icone={<Plus size={14} />}
+        libelle={addLabel}
+        disabled={!selected || !sourceSelector || alreadyMember}
+        onClick={handleAddToList}
+        className="mb-2"
+      />
+
+      {activeMembers.length === 0 ? (
+        <p className="px-0.5 py-3 text-center text-[12px] italic text-ink-dim">
+          {activeList ? "Aucun monstre dans cette liste pour l'instant." : 'Choisis ou crée une liste ci-dessus.'}
+        </p>
+      ) : (
+        <div className="max-h-[220px] space-y-1 overflow-y-auto">
+          {activeMembers.map((m) => {
+            const key = exclusionSelectorKey(m.selector);
+            const resolved = resolveExclusionEntry(m.selector, exclusionData);
+            const build = findValidatedBuild(lists.validated, lists.activeListId, key);
+            return (
+              <div key={key} className="flex items-center gap-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
+                <ZoneCliquable
+                  imbrique
+                  disabled={!resolved}
+                  onClick={() => {
+                    if (!resolved) return;
+                    const id = String(resolved.monster.id);
+                    if (id !== selectedId) resetSearch();
+                    setSelectedId(id);
+                    // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une
+                    // des 4 puces) — `gearSource` reste sur sa dernière
+                    // valeur réelle, la puce active se désallume de toute
+                    // façon (`value={... || unowned ? null : gearSource}`).
+                    if (m.selector.source !== 'unowned') setGearSource(m.selector.source);
+                    setSourceSelector(m.selector);
+                    setZoneDOpen(false);
+                  }}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                >
+                  <MonsterAvatar monster={resolved?.monster ?? null} size={24} className="flex-none" />
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">
+                    {resolved?.monster.name ?? 'Introuvable'}
+                    {m.selector.source === 'unowned' && (
+                      <span className="ml-1 text-[10px] font-normal text-ink-dimmer">(non possédé)</span>
+                    )}
+                  </span>
+                </ZoneCliquable>
+                {build ? (
+                  <>
+                    <span className="flex flex-none items-center gap-1 text-[10.5px] font-semibold text-accent">
+                      <CheckCircle2 size={12} />
+                      Validé
+                    </span>
+                    <BoutonIcone
+                      cadre
+                      libelle="Libérer ces runes"
+                      icone={<CheckCircle2 size={14} className="text-accent" />}
+                      onClick={() => setReleaseConfirm({ listId: m.listId, selector: m.selector })}
+                      className="h-6 w-6 flex-none"
+                    />
+                  </>
+                ) : (
+                  <span className="flex-none text-[10.5px] text-ink-dimmer">pas encore validé</span>
+                )}
+                <BoutonIcone
+                  cadre
+                  libelle="Retirer de la liste"
+                  icone={<Trash2 size={14} className="text-ink-dim" />}
+                  onClick={() =>
+                    build
+                      ? setRemoveMemberConfirm({ listId: m.listId, selector: m.selector })
+                      : lists.removeMember(m.listId, m.selector)
+                  }
+                  className="h-6 w-6 flex-none"
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {listHasValidated && activeList && (
+        <Bouton
+          ton="neutre"
+          fond="vide"
+          trait="plein"
+          taille="sm"
+          pleineLargeur
+          icone={<Unlock size={13} />}
+          libelle={`Libérer toutes les runes de « ${activeList.name} »`}
+          onClick={() => setReleaseAllConfirm(activeList.id)}
+          className="mt-2"
+        />
+      )}
+    </div>
+  );
+
   return (
-    // ⚠️ 768 px : l'optimiseur est une SUITE DE RÉGLAGES qu'on lit de haut en
-    // bas, pas un tableau. Étalé sur tout l'écran, chaque ligne « libellé …
-    // champ » devenait un aller-retour du regard.
-    <div className="max-w-3xl space-y-5">
+    // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
+    // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
+    // empilait ~2 000 px de réglages à faire défiler sur un écran large à
+    // moitié vide. La raison d'origine (« une ligne "libellé … champ" étalée
+    // sur tout l'écran devient un aller-retour du regard ») reste vraie et
+    // est traitée AUTREMENT : ce ne sont pas les lignes qui s'étirent, ce
+    // sont les COLONNES qui se juxtaposent (voir la grille ci-dessous) — la
+    // longueur de chaque ligne reste courte.
+    <div className="space-y-5">
       {/* ⚠️ Pas de `useStickyState`/case à fermer, contrairement à
           MobileNotice : ce n'est pas un avertissement ponctuel mais un statut
           qui reste vrai tant que l'outil est en rodage — il doit rester
@@ -666,58 +1579,266 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         indicatif — c'est à toi de re-runer dans le jeu.
       </p>
 
-      {/* Regroupement visuel — voir spec/outils/optimizer/, proposition
-          d'ergonomie 2026-08-18 : la page était une pile plate de ~12
-          sections au même poids visuel. Cette carte et les suivantes
-          regroupent des réglages apparentés sous un en-tête commun,
-          comportement des champs eux-mêmes INCHANGÉ. */}
-      <div className="rounded-xl border border-border bg-panel p-3">
+      {/* ── UNE SEULE grille, à partir de `xl`, pour tout l'écran de
+          réglages (Monstre, Critères, Objectif, Réglages avancés,
+          Exclusion) ────────────────────────────────────────────────────
+          ⚠️ **Disposition ACTUELLE** (après le repositionnement demandé
+          suite au Lot 3) : rangée 1 = Monstre & équipement, PLEINE
+          LARGEUR (`xl:col-span-2`). Rangées 2-3, colonne 1 = Critères de
+          recherche (`row-span-2`, même patron que l'ancien Monstre ci-
+          dessous). Rangée 2, colonne 2 = Objectif de recherche (à droite
+          de Critères, demande explicite). Rangée 3, colonne 2 = Réglages
+          avancés (sous Objectif). Rangée 4, colonne 2 = Exclusion de
+          runes (sous Réglages avancés). Rangée 5, pleine largeur =
+          estimation. Le paragraphe qui suit décrit la disposition
+          ANTÉRIEURE (avant Lot 3) — gardé pour la narration chronologique
+          de `row-span-2`/`FlottantAuto`, toujours d'actualité sur le
+          PRINCIPE (juste plus sur les mêmes blocs).
+          ⚠️ **Placement EXPLICITE (`col-start`/`row-start`/`row-span`) sur
+          CHAQUE bloc** — l'ordre du DOM peut alors rester celui de l'ordre
+          d'USAGE (1. monstre, 2. objectif, 3. critères, puis
+          optionnellement exclusion/réglages avancés) SANS dicter l'ordre
+          VISUEL au bureau, qui suit une logique de PAIRES : Monstre à côté
+          d'Exclusion/Réglages avancés (rangées 1-2), Critères à côté
+          d'Objectif (rangée 3). Sous `xl`, une seule colonne : ces classes
+          ne s'appliquent plus, l'ordre du DOM (= l'ordre d'usage) devient
+          l'ordre de lecture.
+          ⚠️ **Réglages avancés reste EMPILÉ sous Exclusion de runes**
+          (rangée 2, `row-span-2` sur Monstre pour couvrir les deux) —
+          demande explicite : une tentative précédente l'avait isolé en
+          DERNIÈRE rangée pour éviter qu'il pousse « Critères de
+          recherche » en se dépliant, corrigeant le bon symptôme par le
+          mauvais moyen (déplacer un bloc que l'utilisateur n'avait pas
+          demandé à déplacer). Le VRAI fix : son contenu déplié n'est plus
+          un bloc INLINE qui grandit la carte, mais un **`FlottantAuto`**
+          qui flotte PAR-DESSUS la page — la carte elle-même garde
+          toujours la même hauteur repliée, donc aucune rangée ne peut
+          plus jamais bouger quand on déplie, quel que soit l'endroit où
+          le bloc vit dans la grille. Voir `avancesRef`/`showAdvanced` plus
+          bas, et [design.md](../../../spec/shared/design.md) : « un clic
+          ne déplace jamais ce qu'on vient de cliquer » — un panneau
+          replié par défaut ne peut pas réserver sa place à l'avance sans
+          perdre l'intérêt d'être replié, donc il sort du flux (flottant),
+          l'autre option prévue par cette règle.
+          ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
+          rangée et les cartes courtes se retrouvent avec un grand vide
+          bordé.
+          ⚠️ **Colonne 1 en `1.35fr`, plus une largeur en pixels** : elle
+          était bornée à `minmax(480px,560px)`, trop étroite pour la rangée
+          d'équipement (recherche 224 + stats 200 + artéfacts 58 + roue 208 +
+          relique ≈ 800 px) — la roue puis la relique passaient à la ligne,
+          cette dernière finissant hors du cadre. En `fr`, la colonne suit la
+          largeur réelle de l'écran (≈ 700 px à `xl`, ≈ 965 px sur un 1920)
+          au lieu d'un plafond deviné, et « Critères de recherche » (`w-fit`,
+          même colonne) continue de se serrer sur son contenu. */}
+      <div className="grid gap-5 items-start xl:grid-cols-[1.35fr_1fr]">
+      {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
+          TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
+          choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle
+          occupe est réservé d'avance (voir spec/shared/design.md).
+          `row-span-2` : occupe les DEUX rangées où « Exclusion de runes »
+          puis « Réglages avancés » s'empilent à sa droite — sûr même une
+          fois Avancés déplié, puisque son contenu déplié est un
+          `FlottantAuto` qui ne grandit plus la carte (voir plus bas).
+          ⚠️ **SUPERSÉDÉ PAR LE LOT 3** (commentaire ci-dessous) — gardé pour
+          la narration chronologique : la carte n'est plus `row-span-2`
+          dans la colonne 1, elle occupe désormais la rangée 1 en PLEINE
+          LARGEUR. */}
+      {/* ⚠️ Lot 3 : carte élargie EN PLEINE LARGEUR (`xl:col-span-2`,
+          `xl:row-start-1`, plus de `row-span-2`) — la fiche stats/artéfacts/
+          runes/relique a déménagé DANS cette carte (colonne interne de
+          droite, sous les puces) au lieu de vivre pleine largeur tout en bas
+          (voir plus loin) ; elle a besoin de la largeur des DEUX colonnes de
+          la page pour tenir stats+artéfacts+roue+relique sur une seule
+          ligne sans repasser à la ligne. « Exclusion de runes »/« Réglages
+          avancés », qui vivaient à sa droite, descendent donc d'une rangée
+          (voir plus bas). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-span-2 xl:row-start-1">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
             <GameIcon name="monster" size={15} />
           </div>
           <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
         </div>
-        <div>
-          <p className="label mb-1.5">Monstre à optimiser</p>
-          {/* ⚠️ Réinitialise « Critères de recherche » et « Combinaisons
-              trouvées » (`resetSearch`, voir useOptimizerState.ts) AVANT de
-              changer de monstre — sinon des critères/résultats posés pour
-              l'ANCIEN monstre resteraient affichés comme s'ils valaient pour
-              le nouveau. Garde `id !== selectedId` : re-cliquer le monstre
-              déjà sélectionné ne doit rien effacer, ce n'est pas un
-              changement. Uniquement dans CE picker, pas dans `setSelectedId`
-              lui-même — l'import d'une recette (plus bas) l'appelle aussi
-              mais pose ses PROPRES critères juste avant : les effacer
-              ensuite les perdrait aussitôt. */}
-          <MonsterGearPicker
-            items={gearedMonsters}
-            onPick={(id) => {
-              if (id !== selectedId) resetSearch();
-              setSelectedId(id);
-            }}
-          />
+        {/* ⚠️ Bureau et mobile ont des dispositions RÉELLEMENT DIFFÉRENTES
+            ici, une par bloc `hidden`/`lg:hidden`, pas l'une déclinée de
+            l'autre (Question 7 du cadrage, voir spec/outils/optimizer/
+            historique-import-monstres-a-optimiser.md — Lot 1) : recherche +
+            puces CÔTE À CÔTE avec zones C/D en encarts fixes sur bureau,
+            contre 3 blocs empilés avec un dépliement propre chacun au
+            doigt. La fiche (zone E), elle, est PARTAGÉE (même JSX, tout en
+            bas) — son contenu ne change pas entre les deux formats. */}
+        {/* ⚠️ Lot 3 : carte élargie en PLEINE LARGEUR (voir le commentaire
+            d'ouverture de cette carte) — nécessaire pour que la fiche
+            stats/artéfacts/roue/relique, déplacée ici SOUS les puces
+            (colonne de droite), tienne sur une seule ligne sans repasser à
+            la ligne (gabarit réel : ~200px stats + ~60px artéfacts + ~210px
+            roue + ~60px relique).
+            ⚠️ **`lg:grid-cols-[1.35fr_1fr]`, PAS `lg:grid-cols-2`** (demande
+            explicite) : la séparation entre « Monstre à optimiser » et
+            « Exemplaire » s'aligne ainsi avec celle des deux colonnes
+            PRINCIPALES de la grille (`xl:grid-cols-[1.35fr_1fr]`, voir le
+            commentaire d'ouverture de la grille) — un seul ratio de
+            colonnes pour tout l'écran, pas deux proportions différentes
+            qui se contrediraient visuellement l'une sous l'autre. */}
+        <div className="hidden lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-6">
+          {/* Zone A (recherche — résout une ESPÈCE dans tout le bestiaire,
+              possédée ou non, voir Question 1 du cadrage) + liste active
+              (Lot 3) + zone C (monstres de cette liste), à GAUCHE. */}
+          <div>
+            <p className="label mb-1.5">Monstre à optimiser</p>
+            {/* ⚠️ Mode BESTIAIRE (voir MonsterSourcePicker.tsx, Question 8
+                du cadrage) : résout une ESPÈCE (nom, icône, stats de base,
+                sorts) dans TOUT le bestiaire — remplace la recherche PAR
+                SOURCE d'avant Lot 1 (rôle 1 des 4 puces, SUPPRIMÉ). Choisir
+                un résultat pose l'espèce et tente une résolution Box
+                silencieuse (`pickSpecies`, jamais en cas d'ambiguïté — voir
+                sa définition). */}
+            <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
+            {selected && (
+              <div className="mt-3 flex items-center gap-2">
+                <MonsterAvatar monster={selected.monster} size={32} />
+                <span className="font-semibold text-[14px]">{selected.monster.name}</span>
+              </div>
+            )}
+            {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont plus des
+                cas spéciaux, voir spec/outils/optimizer/historique-import-
+                monstres-a-optimiser.md, « Suite — cadrage du Lot 3 ») —
+                tout est créé/renommé/supprimé par l'utilisateur. Flotte par-
+                dessus zone C, ne la pousse jamais (voir OptimizerListPicker.tsx). */}
+            <div className="mt-3">
+              <p className="label mb-1.5">Liste active</p>
+              <OptimizerListPicker
+                lists={lists.lists}
+                activeListId={lists.activeListId}
+                memberCounts={memberCountsByList}
+                onSelect={lists.setActiveListId}
+                onCreate={lists.createList}
+                onRename={lists.renameList}
+                onDelete={lists.deleteList}
+              />
+            </div>
+            <div className="mt-3">{zoneCContent}</div>
+          </div>
+
+          {/* Zone B (les 4 puces — choisissent l'EXEMPLAIRE de l'espèce
+              déjà choisie à gauche dans un « contenu » précis, rôle 2 SEUL
+              survit, voir Question 1) + zone D (désambiguïsation
+              d'exemplaire, en `Flottant` sous les puces — ex. 2 équipes de
+              siège, voir Question 6) + fiche (déplacée ici, Lot 3), à DROITE. */}
+          <div className="flex flex-col gap-3">
+            <div ref={zoneDRef} className="relative">
+              <p className="label mb-1.5">Exemplaire</p>
+              {/* ⚠️ Puce individuellement grisée si l'espèce n'est PAS
+                  possédée dans CETTE source précise, tout le contrôle grisé
+                  si elle ne l'est dans AUCUNE des 4 (Questions 2-3 du
+                  cadrage) — voir l'axe `disabled` par option, ajouté à
+                  Segmented.tsx pour ce cas précis. ⚠️ **`value={null}`
+                  quand le build VALIDÉ est ACTUELLEMENT affiché**
+                  (`matchesValidatedBuild`, PAS `ownValidatedBuild` seul —
+                  la bascule « voir le runage réellement porté »,
+                  `showRealGear`, peut en montrer l'équipement réel, qui
+                  LUI reste la source réelle d'une puce) **ou quand
+                  `sourceSelector` est `unowned`** (monstre non possédé,
+                  demande explicite) : dans les deux cas, aucune puce ne
+                  doit s'allumer — voir l'axe `value: T | null` ajouté à
+                  Segmented.tsx pour ce cas précis. */}
+              <Segmented
+                options={sourceOptions}
+                value={matchesValidatedBuild || unowned ? null : gearSource}
+                onChange={pickSource}
+                disabled={allSourcesEmpty}
+                size="lg"
+              />
+              {zoneDOpen && (
+                <Flottant aria-label="Choisir l'exemplaire" rembourrage="aucun" className="max-h-[300px] overflow-y-auto">
+                  {zoneDList}
+                </Flottant>
+              )}
+            </div>
+            <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
+              {validatedBadge}
+              <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+              {validateBuildButton}
+            </div>
+          </div>
         </div>
 
-        {selected && (
-          <div className="mt-3 rounded-xl border border-accent bg-panel/60 p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <MonsterAvatar monster={selected.monster} size={32} />
-              <span className="font-semibold text-[14px]">{selected.monster.name}</span>
-            </div>
-            {/* ⚠️ Même composant que RTA/Siège quand on clique un monstre — pas
-                une réimplémentation : stats base/bonus, artéfacts, roue de
-                runes et relique tels qu'ACTUELLEMENT équipés, chacun cliquable
-                pour son détail complet (RuneDetailBox/ArtifactDetailBox/
-                RelicDetailBox), inline sous la roue. Ce que l'Optimizer part
-                d'optimiser, visible d'un coup d'œil avant de lancer quoi que
-                ce soit. */}
-            <MonsterGear gear={selected.gear} />
+        {/* Mobile (Question 7) : 3 blocs empilés, chacun son propre
+            dépliement — pas les zones fixes ci-dessus. */}
+        <div className="lg:hidden space-y-3">
+          {/* Bloc 1 — recherche TOUJOURS visible, liste active + zone C
+              rattachées EN DESSOUS en dépliement (`zoneCOpen`, repliée par
+              défaut). */}
+          <div>
+            <p className="label mb-1.5">Monstre à optimiser</p>
+            <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
+            {selected && (
+              <div className="mt-3 flex items-center gap-2">
+                <MonsterAvatar monster={selected.monster} size={32} />
+                <span className="font-semibold text-[14px]">{selected.monster.name}</span>
+              </div>
+            )}
+            <ZoneCliquable
+              onClick={() => setZoneCOpen((v) => !v)}
+              aria-expanded={zoneCOpen}
+              className="mt-2 flex w-full items-center gap-1.5 text-[12.5px] font-semibold text-ink-dim"
+            >
+              Monstres à optimiser
+              <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
+            </ZoneCliquable>
+            {zoneCOpen && (
+              <div className="mt-2 space-y-3">
+                <OptimizerListPicker
+                  lists={lists.lists}
+                  activeListId={lists.activeListId}
+                  memberCounts={memberCountsByList}
+                  onSelect={lists.setActiveListId}
+                  onCreate={lists.createList}
+                  onRename={lists.renameList}
+                  onDelete={lists.deleteList}
+                />
+                {zoneCContent}
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Bloc 2 — puces TOUJOURS visibles, zone D rattachée EN DESSOUS
+              en dépliement (`zoneDOpen`, EN LIGNE plutôt qu'en `Flottant` —
+              un panneau flottant se prête mal à un écran étroit). */}
+          <div>
+            <p className="label mb-1.5">Exemplaire</p>
+            <Segmented
+              options={sourceOptions}
+              value={matchesValidatedBuild || unowned ? null : gearSource}
+              onChange={pickSource}
+              disabled={allSourcesEmpty}
+              size="lg"
+            />
+            {zoneDOpen && <div className="mt-2 rounded-lg border border-border-soft overflow-hidden">{zoneDList}</div>}
+          </div>
+
+          {/* Bloc 3 — fiche stats/artéfacts/runes/relique (même composant
+              `MonsterGear` que RTA/Siège), bandeau « build validé » +
+              bouton « Valider ce build » en plus, voir leur commentaire
+              plus haut (`validatedBadge`/`validateBuildButton`). */}
+          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
+            {validatedBadge}
+            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+            {validateBuildButton}
+          </div>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-panel p-3">
+      {/* Étape 3. ⚠️ **`w-fit` RETIRÉ, `xl:row-span-3`** (demande explicite) :
+          la carte occupe maintenant TOUTE la hauteur de la colonne 2
+          (Objectif/Exclusion/Réglages avancés empilés sur 3 rangées, voir
+          plus bas) — même patron que l'ancien `row-span-2` de « Monstre &
+          équipement » avant le Lot 3 (carte haute à gauche, PLEINE LARGEUR
+          de sa colonne, cartes plus courtes empilées à sa droite) : sans
+          `w-fit`, elle profite de toute la largeur de la colonne 1 comme
+          Monstre le faisait, plutôt que de se serrer sur son contenu. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-3">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -728,19 +1849,38 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </div>
           <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
         </div>
-        {/* ⚠️ `space-y-4` restaure l'espacement entre blocs (Set/Statistique
-            principale/Objectif/Artéfacts/Conditions) — ces blocs comptaient
-            sur le `space-y-5` du CONTENEUR DE PAGE avant leur regroupement
-            dans cette carte ; devenus des enfants directs de la carte, ils
-            en ont hérité aucun espacement propre sans ce wrapper. */}
-        <div className="space-y-4">
+        {/* ⚠️ **Deux colonnes** (demande explicite) : Set de runes recherché
+            + Statistique principale imposée à GAUCHE (les deux contraintes
+            qui portent sur les runes elles-mêmes), Artéfacts + Conditions à
+            DROITE — vérifié sur un écran réel (capture d'écran) qu'il reste
+            assez de place pour « Objectif de recherche » à côté, malgré la
+            carte élargie par cette deuxième colonne. `items-start` : la
+            colonne la plus courte ne s'étire pas à la hauteur de l'autre.
+            Sous `lg`, retour à l'empilement (ordre du DOM inchangé : Set,
+            Statistique principale, Artéfacts, Conditions). */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+        {/* ⚠️ **Trait vertical entre les deux colonnes** (demande explicite,
+            capture d'écran à l'appui) — `lg:border-r` posé sur la colonne de
+            GAUCHE uniquement (pas de `border-l` en plus sur la droite : deux
+            traits à 1 px l'un de l'autre se liraient comme un contour flou,
+            voir spec/shared/design.md). `lg:pr-6` : le trait respire du même
+            écart que `lg:gap-6` sur le conteneur, sans quoi il collerait au
+            texte de gauche. UNIQUEMENT à partir de `lg` — sous ce seuil, les
+            deux « colonnes » s'empilent (`flex-col`), un trait vertical n'y
+            aurait aucun sens. */}
+        <div className="lg:border-r lg:border-border-soft lg:pr-6">
+      {/* ⚠️ `max-w-md` — SEUL rempart désormais (la carte elle-même a
+          perdu son `w-fit` en repositionnant « Critères de recherche »,
+          voir le commentaire d'ouverture de cette carte) : sans lui, ce
+          bloc se laisserait pousser jusqu'à la largeur disponible de la
+          piste de grille, beaucoup plus large que ce set n'en a besoin. */}
       <div
         ref={setPickerSectionRef}
-        className={
+        className={`max-w-md ${
           setPickerInvalid
             ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition'
             : 'transition'
-        }
+        }`}
       >
         <p className="label mb-1.5">Set de runes recherché</p>
         <SetComboPicker
@@ -757,7 +1897,12 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         )}
       </div>
 
-      <div>
+      {/* ⚠️ Trait horizontal entre Set de runes recherché et Statistique
+          principale imposée (demande explicite) — `mt-4 border-t pt-4`
+          remplace le `space-y-4` qu'avait le conteneur parent (sinon la
+          marge automatique ET la bordure s'additionneraient, doublant
+          l'écart visuel). */}
+      <div className="mt-4 border-t border-border-soft pt-4">
         <div className="mb-2.5 flex items-center gap-1.5">
           <p className="label">Statistique principale imposée (slots pairs)</p>
           <HelpPopover title="Statistique principale imposée (slots pairs)">
@@ -785,21 +1930,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           ))}
         </div>
       </div>
-
-      <div>
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <p className="label">Objectif de recherche</p>
-          <HelpPopover title="Objectif de recherche">
-            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
-            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
-            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts</b> considère{' '}
-            <b className="text-ink">ATQ</b>, <b className="text-ink">Taux Crit</b> et{' '}
-            <b className="text-ink">Dgts Crit</b> ensemble (espérance moyenne).
-          </HelpPopover>
         </div>
-        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" dense={etroit} />
-      </div>
 
+        <div>
       <div>
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <div className="flex items-center gap-1.5">
@@ -856,7 +1989,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         )}
       </div>
 
-      <div>
+      {/* Trait horizontal entre Artéfacts et Conditions (demande explicite)
+          — même patron que celui entre Set de runes recherché et
+          Statistique principale imposée, colonne de gauche. */}
+      <div className="mt-4 border-t border-border-soft pt-4">
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
@@ -881,7 +2017,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
         {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
             16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
-        <div className="grid grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
+        {/* ⚠️ `w-fit` : sans lui, un conteneur `grid` en bloc prend TOUTE la
+            largeur de son parent, et les colonnes `auto` (Min/Max) SE
+            PARTAGENT l'espace libre restant (comportement CSS Grid par
+            défaut dès qu'aucune piste n'est en `fr`) — sur une carte large,
+            Min et Max se retrouvaient étirés à des dizaines de pixels l'un
+            de l'autre. `w-fit` borne la grille à son contenu réel : les
+            colonnes redeviennent SERRÉES, quelle que soit la largeur de la
+            carte qui l'entoure. Demande explicite : « resserré ». */}
+        <div className="grid w-fit grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
           {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
               « Min »/« Max » collé à chaque champ faisait déborder la rangée
               (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
@@ -982,14 +2126,85 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           />
         </div>
       </div>
+
         </div>
+        </div>
+      </div>
+
+      {/* Étape 2 de l'ordre d'usage voulu — une carte À PART, PAS un bloc
+          DANS « Critères de recherche » : l'objectif se choisit avant même
+          de composer le set recherché, ce n'est pas un critère de plus
+          parmi d'autres. Aux côtés de « Critères de recherche » : demande
+          explicite — « à droite des critères de recherche ». ⚠️
+          Repositionnée en DEUXIÈME rangée avec elle (`xl:row-start-2`, plus
+          `row-start-3` — voir le commentaire de « Critères de recherche »)
+          : reste à sa droite, seule la rangée commune a changé. `1fr`,
+          colonne large : contrairement à Critères (compactée au maximum),
+          Objectif profite de tout l'espace restant — utile une fois
+          « Dégâts réels » choisi (`DamageSetupCard` a besoin de place pour
+          ses vignettes d'effet). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
+        {/* ⚠️ Point d'interrogation JUSTE À DROITE du titre (demande
+            explicite) — même rangée que l'icône et le texte, pas sur sa
+            propre ligne en dessous. */}
+        <div className="mb-3 flex items-center gap-1.5">
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
+            <Target size={13} className="text-accent" />
+          </div>
+          <p className="text-[13.5px] font-bold text-ink">Objectif de recherche</p>
+          <HelpPopover title="Objectif de recherche">
+            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
+            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
+            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts réels</b>{' '}
+            va plus loin que les autres : la vraie formule d&apos;un sort précis contre un adversaire
+            configuré.
+          </HelpPopover>
+        </div>
+        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
+        {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
+            section séparée plus bas : c'est le choix « Dégâts réels » qui
+            rend ces champs pertinents, et rien d'autre à l'écran ne les
+            concerne. Un panneau permanent à moitié grisé aurait alourdi les
+            trois autres objectifs pour rien. */}
+        {objective === 'degats_reels' && (
+          <div className="mt-2.5">
+            <DamageSetupCard
+              skills={damageSkills}
+              resolved={resolvedSkill}
+              passifs={offensivePassives}
+              modificateursVit={modificateursVit}
+              setup={damageSetup}
+              setSetup={setDamageSetup}
+              chargement={skillLoading}
+              etroit={etroit}
+              critSiPlusRapide={critSiPlusRapide}
+              bonusDegatsSelonVit={bonusDegatsSelonVit}
+              bonusDegatsStack={bonusDegatsStack}
+              critRateSelonVit={critRateSelonVit}
+              bonusDegatsConditionnel={bonusDegatsConditionnel}
+              bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
+              bonusParEffetPropre={bonusParEffetPropre}
+              bonusSacrifice={bonusSacrifice}
+              ampliVitPct={ampliVitPct}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── Réglages avancés + Exclusion de runes ──────────────────────
           Contenu factorisé une fois, affiché deux fois : en cartes en
           ligne au bureau (ordre : Exclusion de runes, puis Réglages
           avancés), dans le panneau « Options » au doigt — jamais dupliqué.
-          Même patron que RunesOptim.tsx (voir MobileSheet plus bas). */}
+          Même patron que RunesOptim.tsx (voir MobileSheet plus bas).
+          ⚠️ **Fragment, PAS un `<div>`** : les deux cartes desktop qu'il
+          rend (Exclusion de runes, Réglages avancés) doivent devenir des
+          ENFANTS DIRECTS de la grille pour se placer chacune dans sa propre
+          rangée (`xl:row-start-1`/`xl:row-start-2`, à côté du duo
+          Monstre/Critères) — un `<div>` intermédiaire les aurait fait
+          compter comme UNE seule cellule de grille. `MobileSheet` (portail)
+          et le paragraphe d'estimation n'ont pas besoin de cette
+          contrainte, voir leurs commentaires plus bas. */}
+      <>
       {(() => {
         // ⚠️ `dansPanneau` : seule la version DANS LE PANNEAU affiche « Pool de
         // runes = X » à côté du pré-filtrage — sur la page principale, la
@@ -1128,12 +2343,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         // Choisir un monstre ici, dans n'importe laquelle des 4 sources,
         // retire ses runes ACTUELLEMENT équipées du pool considéré, en plus
         // de l'exclusion automatique éventuelle.
-        // ⚠️ `dansPanneau` : dans le panneau resserré, les 4 onglets de
-        // source (Box/RTA/Défenses siège/Offenses siège) restent sur UNE
-        // seule ligne mais en texte/rembourrage réduits (voir
-        // Segmented.tsx `dense`) — au bureau, la carte a la largeur pour le
-        // rendu normal.
-        const monstrePrecisBlock = (dansPanneau: boolean) => (
+        // ⚠️ **Plus de paramètre `dansPanneau`** : il ne servait qu'à
+        // resserrer les 4 onglets de source dans le panneau « Options »
+        // (`denseSourceTabs`, retiré) — `Segmented` mesure désormais lui-même
+        // la place qu'il reçoit et se resserre tout seul, au bureau comme au
+        // doigt (voir Segmented.tsx). Le bloc est donc identique dans les
+        // deux rendus.
+        const monstrePrecisBlock = (
           <div>
             <div className="mb-2.5 flex items-center gap-1.5">
               {/* Même icône que « Monstre & équipement » (GameIcon
@@ -1161,8 +2377,78 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               excludeOwnCom2usId={selected?.monster.com2usId ?? null}
               selected={excludedSelectors}
               onChange={setExcludedSelectors}
-              denseSourceTabs={dansPanneau}
             />
+          </div>
+        );
+
+        // ⚠️ **Runes imposées** — déplacé depuis « Critères de recherche »
+        // (demande explicite) : verrouille un emplacement sur UNE rune
+        // précise, ce slot n'a plus qu'un seul candidat, les cinq autres
+        // restent optimisés normalement. Le cas d'usage réel est « je garde
+        // CETTE rune, cherche les cinq autres autour » — d'où un choix
+        // limité aux runes que le monstre PORTE DÉJÀ (celles de
+        // « Monstre & équipement »), et non un second sélecteur parmi les
+        // milliers de runes de l'inventaire : désigner une rune qu'on ne
+        // porte pas n'a pas de sens pour ce geste-là.
+        // ⚠️ Techniquement une RÉDUCTION DE POOL, pas une contrainte de plus
+        // — voir `BuildRequirement.lockedRunes` (runeBuildOptim.ts) : le
+        // moteur n'a rien appris de la notion de verrou, il travaille juste
+        // sur un pool où ce slot ne contient plus qu'une rune. Regroupé
+        // avec l'exclusion : même thème (agir sur le POOL de runes à partir
+        // de l'exemplaire recherché), même carte.
+        const runesImposeesBlock = (
+          <div>
+            <div className="mb-2.5 flex items-center gap-1.5">
+              <p className="label">Runes imposées</p>
+              <HelpPopover title="Runes imposées">
+                Verrouille un emplacement sur la rune que le monstre porte déjà : la recherche gardera
+                <b className="text-ink"> exactement cette rune</b> et n'optimisera que les autres. Utile pour
+                conserver une rune que tu ne veux pas déruner. Les emplacements laissés libres sont optimisés
+                normalement.
+              </HelpPopover>
+            </div>
+            {!selected || selected.gear.runes.length === 0 ? (
+              <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à imposer.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {[1, 2, 3, 4, 5, 6].map((slot) => {
+                  const portee = selected.gear.runes.find((r) => r.slot === slot);
+                  const verrouille = lockedRunes[slot] != null;
+                  if (!portee) {
+                    return (
+                      <span
+                        key={slot}
+                        className="rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50"
+                        title={`Aucune rune en emplacement ${slot}`}
+                      >
+                        Slot {slot} —
+                      </span>
+                    );
+                  }
+                  return (
+                    <Pastille
+                      key={slot}
+                      actif={verrouille}
+                      onClick={() =>
+                        setLockedRunes((prev) => {
+                          const next = { ...prev };
+                          if (next[slot] != null) delete next[slot];
+                          else next[slot] = portee.id;
+                          return next;
+                        })
+                      }
+                      icone={<RuneIcon setKey={portee.set} size={13} filter={runeSetIconFilter(verrouille)} />}
+                      libelle={`Slot ${slot} · ${RUNE_EFFECT[portee.main.code]?.label ?? portee.main.code}`}
+                      title={
+                        verrouille
+                          ? `Libérer l'emplacement ${slot}`
+                          : `Imposer cette rune en emplacement ${slot} (le pool de ce slot tombe à 1)`
+                      }
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
 
@@ -1172,7 +2458,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         // et les deux restent EMPILÉS (jamais côte à côte, même sur un
         // panneau assez large pour `sm:` — la largeur calibrée de la
         // colonne de gauche, pensée pour la carte du bureau, ne vaudrait
-        // plus rien ici). Au bureau, ordre et grille inchangés.
+        // plus rien ici). Au bureau, ordre et grille inchangés. « Runes
+        // imposées », un mécanisme DISTINCT (verrou, pas exclusion), suit en
+        // dernier après un séparateur, pleine largeur dans les deux cas.
         const exclusionRunesInner = (dansPanneau: boolean) => (
           <>
             <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
@@ -1182,19 +2470,27 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               // `[data-tiroir]`, `align-items: flex-start` raboterait ces deux
               // blocs — et donc leurs contrôles pleine largeur — à leur contenu.
               <div className="space-y-4">
-                {monstrePrecisBlock(true)}
+                {monstrePrecisBlock}
                 {dejaUtiliseesBlock}
               </div>
             ) : (
-              // Côte à côte à partir de `sm` (les deux tiennent dans les
-              // 768px du conteneur) ; empilés en dessous. Colonne de gauche
-              // plus étroite (toggle + 3 options) que celle de droite
+              // Côte à côte à partir de `sm` — cette carte vit maintenant
+              // dans la colonne LARGE (`1fr`) de la grille de réglages, aux
+              // côtés de « Monstre & équipement » (voir le commentaire
+              // d'ouverture de la grille), largement assez pour ce layout
+              // interne. ⚠️ Un `xl:grid-cols-1` a existé ici le temps d'une
+              // révision antérieure de la mise en page, où cette carte se
+              // retrouvait confinée à une colonne étroite (340-400px) —
+              // retiré avec cette colonne, voir historique. Colonne de
+              // gauche plus étroite (toggle + 3 options) que celle de droite
               // (recherche + liste), pas un 50/50 aveugle.
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
                 <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
-                {monstrePrecisBlock(false)}
+                {monstrePrecisBlock}
               </div>
             )}
+
+            <div className="mt-4 border-t border-border-soft pt-4">{runesImposeesBlock}</div>
           </>
         );
 
@@ -1214,15 +2510,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
         return (
           <>
-            {/* Bureau : deux cartes en ligne, masquées au doigt (voir le
-                panneau plus bas). Exclusion de runes en tête — fonctionnalité
-                vedette, Réglages avancés en second. */}
-            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3">
-              <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
-              {exclusionRunesInner(false)}
-            </div>
-
-            <div className="hidden lg:block rounded-xl border border-border bg-panel p-3">
+            {/* Bureau : « Réglages avancés », colonne 2, rangée 4 — SOUS
+                « Exclusion de runes » (ordre inversé sur demande explicite,
+                voir le commentaire d'Exclusion ci-dessous) — ⚠️ **`relative`**
+                : ancre du `FlottantAuto` ci-dessous, qui se positionne en
+                `absolute` par rapport à CETTE carte, pas à la page. La carte
+                elle-même ne change JAMAIS de hauteur au dépliement — son
+                contenu déplié flotte par-dessus, il ne s'ajoute plus au DOM
+                en flux normal. */}
+            <div
+              ref={avancesRef}
+              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-4"
+            >
               <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
                 aria-expanded={showAdvanced}
@@ -1234,13 +2533,36 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
                 />
               </ZoneCliquable>
-              {showAdvanced && (
-                <div className="mt-3 rounded-lg border border-border bg-panel2 p-3">{reglagesAvancesInner(false)}</div>
-              )}
+              {/* ⚠️ Dimensions ESTIMÉES (`largeur`/`hauteur`) pour que
+                  `FlottantAuto` choisisse son côté AVANT que le contenu
+                  existe — la carte elle-même fait ~320px de large, le
+                  contenu (presets + 3 réglages) tient sur ~420px de haut ;
+                  `max-h-[70vh] overflow-y-auto` en garde-fou si jamais ça ne
+                  suffit pas sur une fenêtre basse. */}
+              <FlottantAuto ouvert={showAdvanced} ancre={avancesRef} largeur={340} hauteur={420} rembourrage="md">
+                <div className="max-h-[70vh] overflow-y-auto">{reglagesAvancesInner(false)}</div>
+              </FlottantAuto>
             </div>
 
+            {/* Bureau : « Exclusion de runes », colonne 2, rangée 3 — SOUS
+                « Objectif de recherche » (même colonne, rangée 2, voir son
+                commentaire) — ordre inversé avec « Réglages avancés » sur
+                demande explicite. Masquée au doigt (voir le panneau plus
+                bas). */}
+            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-3">
+              <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
+              {exclusionRunesInner(false)}
+            </div>
+
+            {/* ⚠️ Placée en rangée 5 (`xl:col-span-2`, pleine largeur) : ni
+                dans la paire Critères/Objectif (rangée 2) ni dans la colonne
+                Objectif/Avancés/Exclusion (rangées 2-4), cette ligne
+                d'estimation n'a pas sa place dans une cellule précise —
+                simple info sous tout le reste. Ne bouge plus JAMAIS au
+                dépliement de Réglages avancés, désormais un flottant hors
+                flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
             {estimate && (
-              <p className="font-mono text-micro text-ink-dim">
+              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-5">
                 {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
                 (pool par emplacement : {estimate.perSlot.join(' + ')})
               </p>
@@ -1276,6 +2598,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           </>
         );
       })()}
+      </>
+      {/* fin de la grille de réglages — tout ce qui suit reprend la pleine
+          largeur : la barre d'actions, la progression et les résultats
+          (une grille de cartes qui, elle, PROFITE de la largeur). */}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-3 shadow-lg">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
@@ -1470,7 +2797,11 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   ))}
                 </optgroup>
                 <optgroup label="Objectifs">
-                  {OBJECTIVE_LABELS.map((o) => (
+                  {/* ⚠️ « Dégâts réels » n'est proposé que si un sort est
+                      réellement calculable pour ce monstre : sans sort, ce
+                      tri n'aurait aucune formule à appliquer et laisserait la
+                      liste dans son ordre précédent, sans rien dire. */}
+                  {OBJECTIVE_LABELS.filter((o) => o.key !== 'degats_reels' || realDamage).map((o) => (
                     <option key={o.key} value={o.key}>
                       {o.label}
                     </option>
@@ -1591,6 +2922,66 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 metric={metric}
                 openRuneKey={openRuneKey}
                 onToggleRune={(key) => setOpenRuneKey((cur) => (cur === key ? null : key))}
+                // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
+                // critère de classement courant (objectif OU tri) — pas
+                // seulement quand `objective` vaut « Dégâts réels » : on peut
+                // avoir lancé la recherche sur un autre objectif puis re-trier
+                // par dégâts réels, auquel cas le chiffre qui ordonne les
+                // cartes doit être visible dessus.
+                degatsReels={
+                  realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
+                    ? (() => {
+                        const total = computeTotalDamage(
+                          realDamage.profile,
+                          realDamage.passifs,
+                          c.stats,
+                          realDamage.setup,
+                          realDamage.element,
+                          realDamage.ampliVitPct,
+                          realDamage.critSiPlusRapide,
+                          realDamage.bonusDegatsSelonVit,
+                          realDamage.bonusDegatsStack,
+                          realDamage.monsterWide,
+                          realDamage.bonusDegatsConditionnel,
+                          realDamage.bonusDegatsSelonCr,
+                          realDamage.bonusDegatsSelonDef,
+                          realDamage.bonusSiAtqSeuil
+                        );
+                        return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
+                      })()
+                    : undefined
+                }
+                // « Valider » (Lot 2) — réserve les 6 runes RÉELLES de CE
+                // candidat pour `sourceSelector`, qu'il pointe un exemplaire
+                // réel OU un sélecteur `unowned` (monstre non possédé,
+                // demande explicite — « essayer des runages de teams sans
+                // avoir mis à jour son json » : les runes trouvées restent de
+                // VRAIES runes du compte, réservables comme n'importe quel
+                // autre build validé). Absent uniquement si `sourceSelector`
+                // est `null` (aucune espèce choisie, ou possédée ailleurs
+                // sans exemplaire encore désambiguïsé — zone D).
+                // ⚠️ Exige `sourceSelector` non nul ET une liste active (Lot
+                // 3 — un build validé appartient TOUJOURS à une liste, voir
+                // ValidatedBuild). Valider ajoute aussi implicitement le
+                // monstre à la liste s'il n'y était pas déjà (voir
+                // `validateBuild`, useOptimizerLists.ts).
+                onValidate={
+                  sourceSelector && lists.activeListId
+                    ? () => {
+                        // ⚠️ Garde de DERNIÈRE minute en plus du bouton
+                        // désactivé : le clic peut partir d'un rendu périmé.
+                        if (conflitsDeRunes(c.runeIds).length > 0) return;
+                        lists.validateBuild(lists.activeListId!, sourceSelector, c.runeIds);
+                      }
+                    : undefined
+                }
+                validated={ownValidatedBuild ? sameRuneIds(ownValidatedBuild.runeIds, c.runeIds) : false}
+                conflit={(() => {
+                  const conflits = conflitsDeRunes(c.runeIds);
+                  if (conflits.length === 0) return null;
+                  const noms = [...new Set(conflits.map((x) => x.monsterName))];
+                  return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
+                })()}
               />
             ))}
           </div>
@@ -1655,6 +3046,68 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </div>
           )}
         </div>
+      )}
+
+      {/* Confirmations de libération — demande explicite de l'utilisateur.
+          `Modale` est portalisée : sa position dans l'arbre n'a pas
+          d'importance pour son rendu. */}
+      {releaseConfirm && (
+        <ConfirmDialog
+          titre="Libérer les runes validées ?"
+          message="Ces 6 runes redeviendront disponibles pour les recherches des autres monstres de cette liste."
+          libelleAction="Libérer"
+          onConfirm={() => {
+            lists.releaseBuild(releaseConfirm.listId, releaseConfirm.selector);
+            setReleaseConfirm(null);
+          }}
+          onCancel={() => setReleaseConfirm(null)}
+        />
+      )}
+      {releaseAllConfirm && (
+        <ConfirmDialog
+          titre="Libérer toutes les runes validées de cette liste ?"
+          message="Tous les builds validés de cette liste seront libérés d'un coup — leurs runes redeviennent disponibles."
+          libelleAction="Tout libérer"
+          destructif
+          onConfirm={() => {
+            lists.releaseAllInList(releaseAllConfirm);
+            setReleaseAllConfirm(null);
+          }}
+          onCancel={() => setReleaseAllConfirm(null)}
+        />
+      )}
+      {removeMemberConfirm && (
+        <ConfirmDialog
+          titre="Retirer ce monstre de la liste ?"
+          message="Ses runes validées seront aussi libérées — elles redeviennent disponibles pour les recherches des autres monstres de cette liste."
+          libelleAction="Retirer"
+          destructif
+          onConfirm={() => {
+            lists.removeMember(removeMemberConfirm.listId, removeMemberConfirm.selector);
+            setRemoveMemberConfirm(null);
+          }}
+          onCancel={() => setRemoveMemberConfirm(null)}
+        />
+      )}
+      {addListPromptOpen && (
+        <PromptDialog
+          titre="Nouvelle liste"
+          placeholder="ex. Deck A, Mon RTA…"
+          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : 'Créer et ajouter'}
+          onValider={(valeur) => {
+            const nom = valeur.trim();
+            const intent = addListPromptOpen;
+            setAddListPromptOpen(null);
+            if (!nom || !sourceSelector) return;
+            const id = lists.createList(nom);
+            if (intent === 'validate') {
+              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds);
+            } else {
+              lists.addMember(id, sourceSelector);
+            }
+          }}
+          onCancel={() => setAddListPromptOpen(null)}
+        />
       )}
     </div>
   );

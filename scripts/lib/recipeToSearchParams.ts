@@ -9,8 +9,26 @@
 import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE } from '../../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
+import {
+  DEFAULT_DAMAGE_SETUP,
+  damageRelevantStats,
+  monsterBonusDegatsSelonCr,
+  monsterBonusDegatsSelonDef,
+  monsterBonusDegatsSelonVit,
+  monsterBonusSiAtqSeuil,
+  monsterBonusEcartDef,
+  monsterBonusFixeMaxHpPropre,
+  monsterBonusSacrifice,
+  monsterCritRateSelonVit,
+  monsterCritSiPlusRapide,
+  monsterDamageSkills,
+  monsterOffensivePassives,
+  resolveDamageSkill,
+} from '../../src/lib/damage';
+import { StatKey } from '../../src/lib/effects';
 import { ArtifactDetail, ArtifactKind, RuneDetail } from '../../src/types';
 import { LoadedMonster } from './loadMonster';
+import { loadMonsterSkills } from './skillsData';
 
 export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
   const found = SLOT_FILTER_PRESETS.find((p) => p.key === preset);
@@ -80,6 +98,44 @@ export function resolvePool(
   return loaded.allRunes.filter((r) => !auto.has(r.id) && !manual.has(r.id));
 }
 
+// Stats à privilégier au pré-filtrage quand l'objectif est « Dégâts réels » —
+// elles dépendent du SORT choisi, pas seulement du nom de l'objectif.
+//
+// ⚠️ Même logique que `objectiveStats` (OptimizerSection.tsx), et surtout
+// **les mêmes fonctions** : `resolveDamageSkill` + `damageRelevantStats`
+// (src/lib/damage.ts). Rien n'est réimplémenté ici — c'est précisément le
+// genre de recopie qui a déjà fait diverger un script de l'écran en silence
+// (voir spec/README.md, « Conventions communes »).
+export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMonster): StatKey[] | undefined {
+  if (recipe.objective !== 'degats_reels') return undefined;
+  const detail = loadMonsterSkills(loaded.com2usId);
+  const skills = monsterDamageSkills(detail);
+  // ⚠️ `?? null` : une recette exportée AVANT ce champ n'a pas de
+  // `damageSetup` — repli sur le sort par défaut, comme à l'import d'écran.
+  const profile = resolveDamageSkill(skills, recipe.damageSetup?.skillCom2usId ?? null);
+  // Mêmes passifs offensifs que l'écran (OptimizerSection.tsx) — sinon le
+  // pré-filtrage CLI serait plus étroit que celui de l'écran pour la même
+  // recette dès qu'un passif utilise une stat absente du sort de base. Même
+  // chose pour les deux modificateurs monstre-wide liés à la VIT
+  // (`critSiPlusRapide`/`bonusDegatsSelonVit`) : sans eux, un monstre comme
+  // Sonia (dont AUCUN sort actif ne dépend de la VIT) ne verrait jamais la
+  // VIT privilégiée par le CLI, contrairement à l'écran.
+  const passifs = monsterOffensivePassives(detail);
+  return damageRelevantStats(
+    profile,
+    passifs,
+    recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+    monsterCritSiPlusRapide(detail),
+    monsterBonusDegatsSelonVit(detail),
+    monsterCritRateSelonVit(detail),
+    monsterBonusEcartDef(detail),
+    monsterBonusFixeMaxHpPropre(detail) != null || monsterBonusSacrifice(detail) != null,
+    monsterBonusDegatsSelonCr(detail),
+    monsterBonusDegatsSelonDef(detail),
+    monsterBonusSiAtqSeuil(detail)
+  );
+}
+
 const HARD_TIMEOUT_MS = 10 * 60 * 1000; // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (OptimizerSection.tsx).
 
 export function recipeToSearchParams(
@@ -95,6 +151,7 @@ export function recipeToSearchParams(
     requirement: recipe.requirement,
     metric: recipe.metric,
     objective: recipe.objective,
+    objectiveStats: resolveObjectiveStats(recipe, loaded),
     // ⚠️ `?? false` : une recette exportée avant l'ajout de ce réglage n'a pas
     // ce champ — même repli que `importRecipe` (OptimizerSection.tsx).
     maxMs: (recipe.exhaustiveSearch ?? false) ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,

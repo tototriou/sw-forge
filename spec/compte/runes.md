@@ -905,34 +905,79 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
   [HelpPopover](src/components/HelpPopover.tsx) (bulle à la souris, **panneau
   montant** au doigt), voir l'onglet Courbes § « L'aide a DEUX supports ». Elle
   détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce qu'il
-  mesure et sa reconversion), **les icônes marteau/gemme** du plan, et le filtre
-  de réserve.
+  mesure et sa reconversion), **les icônes marteau/gemme** du plan, le filtre
+  de réserve et **« Runes utilisées »**.
 
-#### ⚠️ Le panneau « Options » (mobile) ne prend que quatre contrôles
+#### ⚠️ Le panneau « Options » (mobile) ne prend que cinq contrôles
 
 Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
 téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
 **grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
-quatre** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
-**filtre antique** et **« Faisable avec ma réserve »**. **Sets, slot, tri et
-l'aide restent dans la page**, à tous les formats.
+cinq** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
+**filtre antique**, **« Faisable avec ma réserve »** et **« Runes utilisées »**.
+**Sets, slot, tri et l'aide restent dans la page**, à tous les formats.
 
-- Les quatre sont écrits **une fois** (`optionsControls`) et posés à deux
+- Les cinq sont écrits **une fois** (`optionsControls`) et posés à deux
   endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
   doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
   largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
-- ⚠️ **Dans le panneau, tout occupe la largeur — le bouton « Faisable » aussi.**
-  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve » prend
-  donc lui aussi toute la colonne (`pleineLargeur={large}`), sinon il pendait
-  seul, à la largeur de son texte, sous des contrôles pleins. En ligne au bureau
-  (`large` faux) il reste serré.
+- ⚠️ **Dans le panneau, tout occupe la largeur — les deux boutons aussi.**
+  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve » et
+  « Runes utilisées » prennent donc eux aussi toute la colonne
+  (`pleineLargeur={large}`), sinon ils pendaient seuls, à la largeur de leur
+  texte, sous des contrôles pleins. En ligne au bureau (`large` faux) ils
+  restent serrés.
 - ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
   crans se partagent la largeur à égalité et « Antiques uniquement » débordait
   son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
   active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
   voir [AncientFilter](src/components/account/AncientFilter.tsx).
-- ⚠️ Au **bureau, rien ne change** : les quatre restent visibles dans la rangée
+- ⚠️ Au **bureau, rien ne change** : les cinq restent visibles dans la rangée
   de filtres. Le panneau n'existe que sous `lg`.
+
+### « Runes utilisées » — le filtre qui regarde les decks
+
+Un compte de 3 000 runes n'en fait jouer qu'un tiers ; les autres dorment dans le
+sac. Améliorer l'une d'elles ne change **aucun combat**. Ce bouton restreint la
+liste aux runes **qui jouent**.
+
+⚠️ **Un filtre, pas un onglet** — même règle que « Faisable avec ma réserve »
+ci-dessous : potentiels, gains et tris restent exactement les mêmes.
+
+**Est utilisée** une rune posée sur un monstre présent :
+
+- dans un **deck enregistré**, `deck_list` **tous `deck_type` confondus** —
+  arène, donjons, ToA, labyrinthe, attaques de siège… ⚠️ **Aucune liste blanche
+  de contenus** : Com2uS en ajoute, et un type oublié ferait passer des runes qui
+  jouent pour des runes qui dorment. Sur un export réel, 19 types différents.
+- dans une **défense de siège** (`guildsiege_defense_deck_*`) ;
+- dans une **défense d'arène** — `defense_deck_info` (arène) et
+  `server_arena_defense_deck_info` (arène de serveur), qui ne sont **pas** dans
+  `deck_list`. ⚠️ Les deux n'ont pas la même forme d'`unit_id_list` : ids nus
+  d'un côté, `{ unit_id, pos_id }` de l'autre.
+- dans un **preset RTA** (`world_arena_rune_equip_list`).
+
+⚠️ **« Utilisée » ≠ « équipée ».** Les presets (RTA, siège, arène, decks) ne
+déplacent rien en jeu : une rune de l'**inventaire** peut très bien jouer en RTA,
+et une rune posée sur un monstre qui ne joue nulle part ne joue pas. Se fier au
+seul `occupied_id` aurait raté les deux cas. Pour un monstre d'un deck **sans
+preset**, ce sont ses runes **actuellement portées** qui comptent : c'est avec
+elles qu'il combat.
+
+- Extraction : `parseUsedRuneIds` dans
+  [importAccount.ts](src/lib/importAccount.ts) → une liste de `rune_id` triée.
+- ⚠️ **Conservée dans IndexedDB** (`usedRuneIds`, `ACCOUNT_SCHEMA` 4) : les decks
+  ne vivent que dans l'**export brut**, jamais stocké (5 à 8 Mo). Sans ça le
+  filtre s'éteindrait à chaque rechargement d'un compte conservé.
+- **Désactivé sans decks lus** (compte conservé sous un schéma antérieur, export
+  sans aucun deck), avec l'explication en infobulle — même règle que le filtre de
+  réserve : un bouton grisé qui dit pourquoi vaut mieux qu'une liste vidée sans
+  raison.
+- Le compteur rappelle le filtre actif (« · utilisées ») et le message de liste
+  vide propose de le désactiver.
+- Il **se cumule** avec tous les autres (palier, sets, slot, antiques, réserve) :
+  « ce que je peux améliorer ce soir, sur des runes qui jouent » est justement la
+  question qu'on pose le plus souvent.
 
 ### « Faisable avec ma réserve » — le filtre qui regarde le sac
 

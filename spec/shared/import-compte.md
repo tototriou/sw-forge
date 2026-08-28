@@ -263,6 +263,20 @@ sobriété : un gros compte (des milliers de runes) ne remplit pas le stockage.
 - Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
   [compte/runes.md](../compte/runes.md), [compte/artefacts.md](../compte/artefacts.md)).
 
+### Runes utilisées — `parseUsedRuneIds`
+
+Les `rune_id` des runes **qui jouent** : posées sur un monstre présent dans un
+**deck** (`deck_list`, **tous les `deck_type`** — arène, donjons, ToA, siège…),
+dans une **défense de siège**, dans une **défense d'arène** (`defense_deck_info`,
+`server_arena_defense_deck_info`) ou dans un **preset RTA**. Alimente le filtre
+« Runes utilisées » de l'onglet Optimisation — règles détaillées dans
+[compte/runes.md](../compte/runes.md#-runes-utilisées--le-filtre-qui-regarde-les-decks).
+
+⚠️ Le preset d'un contenu **ne déplace rien en jeu** : une rune de l'inventaire
+peut jouer en RTA, et une rune posée sur un monstre qui ne joue nulle part ne
+joue pas. `occupied_id` seul se trompe dans les deux sens. Un monstre d'un deck
+**sans preset** compte, lui, ses runes actuellement portées.
+
 ## Persistance optionnelle du compte — [accountStore.ts](src/lib/accountStore.ts)
 
 Stockage **IndexedDB**, pour rendre le ré-import facultatif. Déclenché par le
@@ -286,7 +300,7 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 ### Ce qu'on stocke
 
 Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
-`{ schema, savedAt, box, runes, artifacts, crafts }`.
+`{ schema, savedAt, box, runes, artifacts, crafts, usedRuneIds }`.
 
 - ⚠️ **La sortie des extracteurs (`BoxMonster[]`), jamais l'état affiché
   (`BoxItem[]`).** Un `BoxItem` embarque l'objet `Monster` complet : ça duplique
@@ -296,7 +310,11 @@ Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
   jour.
 - ⚠️ **Le compte du joueur, et lui seul.** Les JSON d'autres joueurs importés
   dans la comparaison restent en mémoire, comme les courbes partagées.
-- `schema` (`ACCOUNT_SCHEMA`, **3** depuis l'ajout de `crafts`) est à
+- ⚠️ **`usedRuneIds` est stocké, pas recalculé.** Les decks ne vivent que dans
+  l'**export brut**, qu'on ne conserve jamais (5 à 8 Mo) : sans cette liste, le
+  filtre « Runes utilisées » s'éteindrait à chaque rechargement d'un compte
+  conservé. Quelques milliers d'entiers, négligeable à côté des runes.
+- `schema` (`ACCOUNT_SCHEMA`, **4** depuis l'ajout de `usedRuneIds`) est à
   **incrémenter dès qu'un extracteur produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à la lecture,
   et l'app invite à réimporter — sinon elle affiche des chiffres incomplets en
   silence.

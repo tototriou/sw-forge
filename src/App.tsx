@@ -77,6 +77,7 @@ import {
   parseSiegeOffense,
   parseAccountBox,
   parseAccountInventory,
+  parseUsedRuneIds,
   parseWizardId,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
@@ -257,6 +258,11 @@ export default function App() {
   const [runes, setRunes] = useState<RuneDetail[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
   const [crafts, setCrafts] = useState<CraftLine[]>([]);
+  // Runes UTILISÉES (posées sur un monstre d'un deck ou en RTA — voir
+  // `parseUsedRuneIds`). ⚠️ Instancié ICI, comme le reste du compte : les decks
+  // ne vivent que dans l'export brut, cette liste est la seule trace qu'il en
+  // reste une fois l'import terminé.
+  const [usedRuneIds, setUsedRuneIds] = useState<number[]>([]);
 
   // Un nouveau compte importé (`appliquerImport`, `setBox` avec une NOUVELLE
   // référence) rend obsolètes les « Critères de recherche »/« Combinaisons
@@ -500,6 +506,7 @@ export default function App() {
         setRunes(rec.runes);
         setArtifacts(rec.artifacts);
         setCrafts(rec.crafts);
+        setUsedRuneIds(rec.usedRuneIds);
         setAccountExportedAt(rec.exportedAt);
         setAccountName(rec.wizardName ?? null);
       }
@@ -579,6 +586,9 @@ export default function App() {
     const offRes = parseSiegeOffense(data);
     const boxRes = parseAccountBox(data);
     const invRes = parseAccountInventory(data);
+    // Tous les contenus où le joueur a posé des monstres (decks + RTA + siège),
+    // réduits aux runes qui y jouent.
+    const usedRunes = parseUsedRuneIds(data);
 
     const rtaItems = rtaRes.units ? mapRtaItems(rtaRes.units, monsterByCom2us) : [];
     const def = mapSiegeTeams(defRes.decks ?? [], monsterByCom2us);
@@ -640,6 +650,7 @@ export default function App() {
     setRunes(invRes.runes ?? []);
     setArtifacts(invRes.artifacts ?? []);
     setCrafts(invRes.crafts ?? []);
+    setUsedRuneIds(usedRunes);
 
     // Enregistrement **après** la mise à jour de l'affichage et sans attendre :
     // une écriture de 2 Mo ne doit pas retarder l'apparition du compte. Un échec
@@ -651,6 +662,7 @@ export default function App() {
         runes: invRes.runes ?? [],
         artifacts: invRes.artifacts ?? [],
         crafts: invRes.crafts ?? [],
+        usedRuneIds: usedRunes,
         exportedAt: exporte,
         wizardName: nomJoueur,
       });
@@ -728,6 +740,7 @@ export default function App() {
       runes,
       artifacts,
       crafts,
+      usedRuneIds,
       exportedAt: accountExportedAt,
       wizardName: accountName,
     });
@@ -1253,6 +1266,7 @@ export default function App() {
             runes={runes}
             artifacts={artifacts}
             crafts={crafts}
+            usedRuneIds={usedRuneIds}
             loadState={data.loadState}
             hydrating={accountHydrating}
             // ⚠️ Le bestiaire COMPLET, pas seulement la box : la fiche d'un

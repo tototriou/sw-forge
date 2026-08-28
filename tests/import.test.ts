@@ -11,6 +11,7 @@ import {
   parseAccountSource,
   parseSiegeDefense,
   parseSiegeOffense,
+  parseUsedRuneIds,
   parseWizardId,
 } from '../src/lib/importAccount';
 import { egal, exportReel, exportSynthetique, ignore, ok, titre } from './outils';
@@ -42,6 +43,29 @@ export default function testImport() {
   egal(off.decks!.length, 1, 'siège attaque : seuls les decks de type 22');
   egal(off.decks![0].slots[0]!.com2usId, 14314, 'siège attaque : le leader est en tête');
 
+  /* --- Runes utilisées (decks tous contenus + RTA) --------------------- */
+
+  // Le fichier d'exemple couvre les quatre chemins d'un coup :
+  //  - preset RTA (1001-1003 + 9002, dont une rune qui dort en INVENTAIRE) ;
+  //  - preset de défense de siège (1001-1003, 2001-2002) ;
+  //  - deck de type 22 avec `equip` (1001, 1004, 2001) ;
+  //  - deck ordinaire SANS preset (unité 101) → ses runes actuellement portées.
+  // Reste dehors : 9001, en réserve et posée nulle part.
+  const utilisees = parseUsedRuneIds(objet);
+  egal(
+    utilisees,
+    [1001, 1002, 1003, 1004, 2001, 2002, 9002],
+    'runes utilisées : decks (tous types) + presets RTA et siège'
+  );
+  ok(
+    !utilisees.includes(9001),
+    "runes utilisées : une rune de réserve posée nulle part n'y est pas"
+  );
+  // ⚠️ Une rune de l'INVENTAIRE peut jouer : les presets RTA/siège ne
+  // déplacent rien en jeu. S'en tenir à `occupied_id` aurait raté ce cas.
+  ok(utilisees.includes(9002), 'runes utilisées : une rune de réserve montée en RTA compte');
+  egal(parseUsedRuneIds('{oops'), [], 'fichier illisible → aucune rune utilisée');
+
   /* --- Texte et objet : strictement équivalents ------------------------ */
 
   // ⚠️ C'est cette égalité qui autorise `App` à ne parser qu'une fois. Si elle
@@ -53,6 +77,7 @@ export default function testImport() {
     ['inventaire', parseAccountInventory],
     ['siège défense', parseSiegeDefense],
     ['siège attaque', parseSiegeOffense],
+    ['runes utilisées', parseUsedRuneIds],
   ] as const) {
     ok(
       JSON.stringify(fn(texte)) === JSON.stringify(fn(objet)),
@@ -103,4 +128,12 @@ export default function testImport() {
   ok(d !== null && d < Date.now(), 'export réel : date d’export plausible');
   const w = parseWizardId(reelObjet);
   ok(w !== null && w > 0, 'export réel : wizard_id plausible');
+  // Un compte réel fait jouer une PART de son stock : ni zéro (les decks
+  // seraient mal lus), ni tout (le filtre ne servirait à rien).
+  const utiliseesReelles = parseUsedRuneIds(reelObjet);
+  const totalRunes = parseAccountInventory(reelObjet).runes.length;
+  ok(
+    utiliseesReelles.length > 0 && utiliseesReelles.length < totalRunes,
+    `export réel : ${utiliseesReelles.length} runes utilisées sur ${totalRunes}`
+  );
 }

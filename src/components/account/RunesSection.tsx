@@ -11,6 +11,9 @@ import ComingSoon from '../../pages/ComingSoon';
 interface Props {
   runes: RuneDetail[];
   crafts: CraftLine[];
+  // Runes UTILISÉES (`rune_id`) — voir `parseUsedRuneIds`. Seule
+  // l'Optimisation s'en sert pour l'instant.
+  usedRuneIds: number[];
   // Vue courante. ⚠️ Elle vient de l'URL et de la barre latérale — les onglets
   // internes qui vivaient ici ont disparu : sept vues cachées derrière une
   // rangée d'onglets qu'on ne voyait qu'une fois sur la page.
@@ -23,6 +26,7 @@ interface Props {
 export default function RunesSection({
   runes,
   crafts,
+  usedRuneIds,
   vue: view,
   menuOuvert,
   onFermerMenu,
@@ -39,6 +43,7 @@ export default function RunesSection({
         <RunesOptim
           runes={runes}
           crafts={crafts}
+          usedRuneIds={usedRuneIds}
           menuOuvert={menuOuvert}
           onFermerMenu={onFermerMenu}
         />

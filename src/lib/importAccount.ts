@@ -587,6 +587,119 @@ export function parseAccountInventory(src: AccountSource): InventoryParseResult 
 }
 
 /* --------------------------------------------------------------------------
+ * Runes UTILISÉES — posées sur un monstre d'un deck, ou en RTA
+ *
+ * ⚠️ « Utilisée » ne veut PAS dire « équipée ». Une rune peut être posée sur un
+ * monstre qui ne joue nulle part (elle dort), et une rune de l'INVENTAIRE peut
+ * très bien servir en RTA ou en siège : ces contenus ont leurs propres presets
+ * de runes, indépendants de ce que l'unité porte en jeu. Se fier au seul
+ * `occupied_id` aurait donc raté les presets et compté les monstres oubliés.
+ *
+ * On balaie donc TOUS les contenus où le joueur pose des monstres :
+ *  - les presets **RTA** (`world_arena_rune_equip_list`) ;
+ *  - les **défenses de siège** (`guildsiege_defense_deck_*`), preset par unité ;
+ *  - **`deck_list`** — TOUS les `deck_type` confondus (arène, donjons, ToA,
+ *    labyrinthe, attaques de siège…) : c'est là que le jeu enregistre les
+ *    équipes de chaque contenu, et l'utilisateur les veut toutes ;
+ *  - les **défenses d'arène** (`defense_deck_info`,
+ *    `server_arena_defense_deck_info`), qui ne sont pas dans `deck_list`.
+ *
+ * Pour un monstre d'un deck SANS preset (la plupart des contenus), les runes
+ * utilisées sont celles qu'il **porte actuellement** : c'est avec elles qu'il
+ * combat.
+ * ----------------------------------------------------------------------- */
+
+// deck_type des équipes d'ARÈNE d'attaque, de donjon, de ToA… : aucun n'est
+// filtré. Une constante de plus serait une liste à tenir à jour à chaque
+// contenu ajouté par Com2uS, et un contenu manquant se traduirait par des runes
+// annoncées « inutilisées » alors qu'elles jouent.
+
+export function parseUsedRuneIds(src: AccountSource): number[] {
+  const data = parseAccountSource(src);
+  if (!data) return [];
+
+  const runeById = indexRunes(data);
+  const unitById = indexUnits(data);
+  const used = new Set<number>();
+
+  // Une rune inconnue de l'index (preset qui référence un exemplaire vendu
+  // depuis) n'est jamais ajoutée : elle ne pourrait correspondre à aucune rune
+  // de l'inventaire affiché.
+  const addRuneIds = (ids: any) => {
+    if (!Array.isArray(ids)) return;
+    for (const rid of ids) {
+      const id = Number(rid);
+      if (runeById.has(id)) used.add(id);
+    }
+  };
+
+  // Les runes actuellement portées par une unité — le repli quand le contenu
+  // n'a pas de preset propre.
+  const addUnitRunes = (uid: number) => {
+    const unit = unitById.get(uid);
+    if (!unit || !Array.isArray(unit.runes)) return;
+    addRuneIds(unit.runes.map((r: any) => r?.rune_id));
+  };
+
+  // Un monstre d'un deck : son preset s'il en a un, sinon ce qu'il porte.
+  const addUnit = (uid: any, presets: Map<number, any[]>) => {
+    const id = Number(uid);
+    if (!Number.isFinite(id) || id === 0) return;
+    const preset = presets.get(id);
+    if (preset && preset.length > 0) addRuneIds(preset);
+    else addUnitRunes(id);
+  };
+
+  // RTA : le preset EST le build joué, quel que soit l'endroit où la rune dort.
+  for (const e of findRtaEquipList(data) ?? []) {
+    const id = Number(e?.rune_id);
+    if (runeById.has(id)) used.add(id);
+  }
+
+  // Défenses de siège : un preset par unité, dans une table indexée par deck_id.
+  const defList = data?.guildsiege_defense_deck_unit_list;
+  if (Array.isArray(defList)) {
+    const equipList = data?.guildsiege_defense_deck_equip_list;
+    for (const dk of defList) {
+      const entry = equipList?.[String(dk?.deck_id)] ?? equipList?.[dk?.deck_id];
+      const presets = equipArrayToMap(entry?.equip);
+      const unitIds = Array.isArray(dk?.unit_id_list) ? dk.unit_id_list : [];
+      for (const uid of unitIds) addUnit(uid, presets);
+    }
+  }
+
+  // Tous les decks enregistrés, tous contenus confondus.
+  const deckList = data?.deck_list;
+  if (Array.isArray(deckList)) {
+    for (const dk of deckList) {
+      const presets = equipArrayToMap(dk?.equip);
+      const unitIds = Array.isArray(dk?.unit_id_list) ? dk.unit_id_list : [];
+      for (const uid of unitIds) addUnit(uid, presets);
+      addUnit(dk?.leader_unit_id, presets); // absent de unit_id_list sur certains exports
+    }
+  }
+
+  // Défenses d'ARÈNE — deux decks uniques, en dehors de `deck_list`, avec leur
+  // propre preset de runes : l'arène classique (`defense_deck_info`) et l'arène
+  // de serveur (`server_arena_defense_deck_info`).
+  //
+  // ⚠️ Les deux ne portent PAS la même forme d'`unit_id_list` : des ids nus
+  // pour la première, des objets `{ unit_id, pos_id }` pour la seconde. Relevé
+  // sur un export réel — n'en lire qu'une aurait tu la moitié des défenses.
+  for (const cle of ['defense_deck_info', 'server_arena_defense_deck_info']) {
+    const info = data?.[cle];
+    if (!info || typeof info !== 'object') continue;
+    const presets = equipArrayToMap(info.equip);
+    const unitIds = Array.isArray(info.unit_id_list) ? info.unit_id_list : [];
+    for (const u of unitIds) addUnit(u && typeof u === 'object' ? u.unit_id : u, presets);
+  }
+
+  // Trié : la liste part telle quelle dans IndexedDB et dans les tests — un
+  // ordre d'insertion dépendant du fichier n'y apporterait rien.
+  return Array.from(used).sort((x, y) => x - y);
+}
+
+/* --------------------------------------------------------------------------
  * Meules & gemmes en réserve (`rune_craft_item_list`)
  * ----------------------------------------------------------------------- */
 

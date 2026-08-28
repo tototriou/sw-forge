@@ -50,33 +50,26 @@ import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
 import LeadPill, { LeadBadge } from './LeadPill';
-import { LeadInfo, pctSpeedBonus, siegeLeadFor, speedLeadOf, swiftFlat } from '../../lib/speed';
 
 
-// ⚠️ La VIT stockée dans une reco est la vitesse du BUILD (base + runes), et
-// c'est bien elle qui sert de minimum et qui s'édite. Le bonus en % du siège
-// — totem de guilde + lead du slot 0 — n'entre QUE dans la colonne « total »,
-// pour qu'on y lise la vitesse de combat affichée sur les cartes d'équipe.
-// Ne pas l'injecter dans la base ni dans le bonus saisi : ce sont les valeurs
-// visibles du build. Voir ../../spec/siege/recommandations.md.
-// En infobulle seulement : pas de note de bas de table, elle alourdissait la
-// carte pour une précision qu'on ne lit qu'une fois.
-const SPD_HINT = 'Total = VIT de combat en siège : totem de guilde (+15 %) et lead du deck inclus';
-
-// Points de vitesse apportés par le siège à CE monstre : totem + lead du deck,
-// nul si le lead est élémentaire et ne le concerne pas.
-function spdLeadBonus(
-  monster: Monster | null,
-  lead: LeadInfo | null,
-  sets: string[] = []
-): number {
-  const base = monster?.stats.speed;
-  if (base == null) return 0; // base inconnue → on ne peut rien ajouter
-  // Le Swift est déjà compté à plat dans la VIT stockée : on le retire pour le
-  // remettre dans la somme des % (voir `swiftFlat` dans speed.ts).
-  const swift = sets.includes('swift');
-  return pctSpeedBonus(base, siegeLeadFor(lead, monster!.element), swift) - (swift ? swiftFlat(base) : 0);
-}
+// ⚠️ **UNE reco affiche des stats de FICHE** : celles que le jeu montre sur la
+// carte du monstre, runes posées, AVANT le combat. Rien d'autre n'y entre.
+//
+// La colonne « total » de la VIT ajoutait le bonus de siège (totem de guilde
+// +15 % et lead du deck), pour y lire la vitesse de combat des cartes d'équipe.
+// Trois conséquences, toutes mauvaises :
+//
+//  - le total ne valait plus base + bonus — « 107 + 105 » s'affichait « 245 »,
+//    et la ligne se lisait comme une erreur de calcul ;
+//  - la colonne « actuel » recevait le même bonus, alors que le VERDICT
+//    (`ok`/`ko`, voir recoMatch.ts) se calcule sur la stat de fiche : on
+//    pouvait lire deux nombres égaux sur une ligne marquée en rouge ;
+//  - c'est la stat de fiche qu'on relève dans le jeu quand on rune un monstre,
+//    et c'est elle que l'Optimiseur cherche à atteindre.
+//
+// La vitesse de COMBAT reste affichée là où elle décide de quelque chose : sur
+// les cartes d'équipe de siège et dans le speed tuning, où l'ordre de tour se
+// joue. Voir ../../spec/siege/recommandations.md.
 
 
 // Nom d'un deck : les noms de ses monstres séparés par un tiret
@@ -1093,7 +1086,6 @@ function DeckBlock({
   const leaderId = deck.slots[0]?.com2usId;
   const leaderLead = leaderId != null ? monsterByCom2us.get(leaderId)?.leaderSkill ?? null : null;
   // Lead de VITESSE du deck (slot 0), pour le total de VIT des monstres.
-  const leadInfo = leaderId != null ? speedLeadOf(monsterByCom2us.get(leaderId)) : null;
 
   return (
     <div className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}`}>
@@ -1339,7 +1331,6 @@ function DeckBlock({
                       <StatEditor
                         slot={slot}
                         monster={monster}
-                        spdLead={spdLeadBonus(monster, leadInfo, slot.setOptions[0])}
                         onSet={(key, total) =>
                           recos.setSlotStat(reco.id, deckIndex, idx, key, total)
                         }
@@ -1349,7 +1340,6 @@ function DeckBlock({
                         slot={slot}
                         monster={monster}
                         sm={sm}
-                        spdLead={spdLeadBonus(monster, leadInfo, slot.setOptions[0])}
                       />
                     )}
                   </div>
@@ -1894,12 +1884,10 @@ function baseFor(key: RecoStatKey, monster: Monster | null): number | null {
 function StatEditor({
   slot,
   monster,
-  spdLead,
   onSet,
 }: {
   slot: RecoSlot;
   monster: Monster | null;
-  spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
   onSet: (key: RecoStatKey, total: number | null) => void;
 }) {
   // ⚠️ **PLUS de table qui défile.** Une table à colonnes fixes, sous sa
@@ -1923,12 +1911,7 @@ function StatEditor({
             key={st.key}
             className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1 text-micro last:border-0"
           >
-            <span
-              className="w-14 flex-none text-ink-dim"
-              title={st.key === 'spd' && spdLead > 0 ? SPD_HINT : undefined}
-            >
-              {st.label}
-            </span>
+            <span className="w-14 flex-none text-ink-dim">{st.label}</span>
             <span className="flex-none font-mono text-ink-dim tabular-nums">
               {known != null ? fmtStat(known) : '—'}
             </span>
@@ -1963,9 +1946,7 @@ function StatEditor({
                 total != null ? 'font-semibold text-ink' : 'text-ink-dim'
               }`}
             >
-              {total != null
-                ? `= ${fmtStat(total + (st.key === 'spd' ? spdLead : 0))}${st.suffix}`
-                : '—'}
+              {total != null ? `= ${fmtStat(total)}${st.suffix}` : '—'}
             </span>
           </div>
         );
@@ -2589,12 +2570,10 @@ function StatList({
   slot,
   monster,
   sm,
-  spdLead,
 }: {
   slot: RecoSlot;
   monster: Monster | null;
   sm: SlotMatch | null;
-  spdLead: number; // points de VIT ajoutés par le siège, au TOTAL seulement
 }) {
   const entries = RECO_STATS.filter((st) => (slot.stats[st.key] ?? 0) > 0);
   const [total, setTotal] = useState(false);
@@ -2632,24 +2611,18 @@ function StatList({
         // Stat non respectée → ligne mise en évidence (fond rouge léger), pour
         // qu'on voie d'un coup CE qui bloque sans lire les chiffres.
         const rate = analyse && c && c.actual !== null && !c.ok;
-        // Le bonus du siege (totem + lead) n'entre que dans les TOTAUX : la base
-        // et le bonus affiches restent les valeurs visibles du build.
-        const add = st.key === 'spd' ? spdLead : 0;
         return (
           <div
             key={st.key}
             className={`flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1
               text-micro last:border-0 ${rate ? 'bg-fire/10' : ''}`}
           >
-            <span
-              className={`w-14 flex-none ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}
-              title={add > 0 ? SPD_HINT : undefined}
-            >
+            <span className={`w-14 flex-none ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}>
               {st.label}
             </span>
             {total ? (
               <span className="flex-none font-mono font-semibold text-ink tabular-nums">
-                {fmtStat(req + add)}
+                {fmtStat(req)}
                 {st.suffix}
               </span>
             ) : (
@@ -2675,7 +2648,7 @@ function StatList({
               >
                 {c && c.actual !== null ? (
                   <>
-                    {fmtStat(c.actual + add)}
+                    {fmtStat(c.actual)}
                     {st.suffix}
                     {!c.ok && <span className="text-fire/70"> (−{fmtStat(-c.diff)})</span>}
                   </>

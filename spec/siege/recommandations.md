@@ -456,31 +456,34 @@ La colonne **« actuel » n'apparaît qu'après une analyse**, cohérent avec le
 fait que rien n'est confronté par défaut — mais une fois là, elle reste
 affichée dans les deux états détail/total (voir plus haut).
 
-#### ⚠️ VIT : le lead entre dans le TOTAL, pas dans le bonus
+#### ⚠️ Une reco affiche des stats de FICHE, et rien d'autre
 
-En siège, la vitesse gagne un bonus en % de la **base** : **totem de guilde
-(+15 %)** et **lead de vitesse du leader du deck** (slot 0). C'est ce qui donne
-la vitesse de combat lue sur les cartes d'équipe, et donc la seule valeur qu'on
-puisse rapprocher d'une consigne (« Trevor 352 »).
-
-Ce bonus est appliqué **uniquement à l'affichage du total** (et de « actuel »),
-jamais à la base ni au bonus saisi — **base et bonus restent les valeurs
-visibles du build** :
+Les chiffres d'une reco sont ceux que le jeu montre sur la **carte du monstre,
+runes posées, AVANT le combat** : base + runes + artéfacts + relique + bonus de
+set. Ni totem de guilde, ni lead, ni tour — **le total vaut toujours base +
+bonus**.
 
 ```
 Stat        base    bonus      total
-VIT          101  + [ 208 ]      352      ← 309 de build + 43 (totem 15 % + lead 28 %)
+VIT          101  + [ 208 ]      309
 ```
 
-- Le lead vient du **slot 0 du deck** (`speedLeadOf`), filtré par élément s'il
-  est élémentaire (`siegeLeadFor`) — il ne profite alors qu'aux monstres du bon
-  élément, donc le bonus est **par monstre**, pas par deck.
-- **Rien ne change dans les données ni dans la comparaison** : `RecoSlot.stats`
-  stocke toujours la vitesse du build, et l'analyse confronte build à build. Le
-  bonus étant identique des deux côtés (même deck, même leader), l'ajouter
-  n'aurait fait que déplacer les deux valeurs.
-- La précision reste **en infobulle** sur le libellé VIT. Pas de note de bas de
-  table : elle alourdissait la carte pour un détail qu'on ne lit qu'une fois.
+⚠️ **Corrigé** : la colonne « total » de la VIT ajoutait le bonus de siège
+(totem +15 % et lead du deck) pour y lire la vitesse de combat des cartes
+d'équipe. Trois conséquences, toutes mauvaises :
+
+- **le total ne valait plus base + bonus** — « 101 + 208 » s'affichait « 352 »,
+  et la ligne se lisait comme une erreur de calcul ;
+- **la colonne « actuel » recevait le même bonus**, alors que le verdict
+  (`ok`/`ko`, [recoMatch.ts](src/lib/recoMatch.ts)) se calcule sur la stat de
+  fiche : on pouvait lire **deux nombres égaux sur une ligne marquée en rouge** ;
+- c'est la stat de **fiche** qu'on relève dans le jeu quand on rune un monstre,
+  et c'est elle que l'Optimiseur cherche à atteindre — donc celle qu'une reco
+  doit demander, a fortiori le jour où ses minimums s'importeront depuis lui.
+
+La vitesse de **combat** reste affichée là où elle décide de quelque chose : sur
+les **cartes d'équipe de siège** et dans le **speed tuning**, où se joue l'ordre
+de tour. Deux écrans, deux questions — et chacun le dit.
 
 Le champ de saisie du bonus est un **`type="text"` + `inputMode="numeric"`**, et
 non un `type="number"` : les boutons `+/-` du navigateur mangeaient la largeur

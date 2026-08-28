@@ -136,18 +136,35 @@ silencieuse type, du même ordre qu'envoyer farmer le mauvais donjon. Pas
 d'intitulé « Propriété unique » non plus : la phrase se suffit, et la tuile n'a
 que deux lignes.
 
-⚠️ **L'unité de la tranche est déduite de l'ORDRE DE GRANDEUR**, seul argument
-disponible (`RELIC_UNIQUE_STAT` dans [effects.ts](src/lib/effects.ts)) :
+#### Deux tables, deux degrés de précision
+
+| Table | Contenu | Quand |
+|---|---|---|
+| `RELIC_UNIQUE` | la **phrase du jeu**, recopiée telle quelle | dès qu'une pièce a été lue en jeu |
+| `RELIC_UNIQUE_STAT` | l'**unité** de la tranche seule | sinon, avec la formule générique |
+
+⚠️ **La phrase vient de l'écran du jeu, jamais d'une reformulation** (règle des
+libellés) : « +9 Relique de Conquête Aiguisé », PV +12%, `sec [1, 1000, 1]` →
+*« DGTS infligés +1% tous les 1000 pts d'ATQ au début du combat »*. Cette seule
+pièce confirme la mécanique entière — 3ᵉ nombre = pourcentage, 2ᵉ = tranche,
+unité portée par le type.
+
+⚠️ **L'unité du repli est déduite de l'ORDRE DE GRANDEUR**, seul argument
+disponible en l'absence de pièce lue :
 
 | Types | Tranches observées | Stat |
 |---|---|---|
 | 3, 6, 12, 16 | 45 000 → 36 000 → 27 000 | **PV** — aucune autre stat n'approche ces valeurs |
-| 1, 2, 5, 15 | 2 500 → 2 000 → 1 000 | ATQ **ou** DEF : ambigu, **laissé sans unité** |
+| 1 | 2 500 → 1 000 | **ATQ** — *lu en jeu*, c'est lui qui tranche la famille |
+| 2, 5, 15 | 2 500 → 2 000 → 1 000 | **ATQ** — même courbe, aux mêmes paliers, que le type 1 |
 | 7, 11, 14 | 250 → 200 | DEF **ou** VIT : ambigu, **laissé sans unité** |
 
 Une tranche sans unité est incomplète mais **vraie** ; une unité devinée serait
-fausse une fois sur deux. La table se complète type par type, à mesure qu'un
-exemple lu en jeu tranche.
+fausse une fois sur deux. Les deux tables se complètent type par type, à mesure
+que des pièces sont lues en jeu — un seul endroit à toucher.
+
+⚠️ **Le libellé de la stat principale ne porte pas le « % »** : le jeu affiche
+« PV +12% », et `PV%` + `+12%` doublait le signe.
 
 ⚠️ **Bug corrigé** : elle était lue comme un `{ code, value }` de substat et
 affichée « Effet secondaire · 27000 ». Le pourcentage était purement perdu, et

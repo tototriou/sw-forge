@@ -59,6 +59,21 @@ export default function testImport() {
     `+1% par tranche de ${(1000).toLocaleString('fr-FR')}`,
     'relique : un type dont la stat est inconnue s’affiche sans unité, jamais avec une unité devinée'
   );
+  // ⚠️ Quand la phrase du JEU est connue pour ce type, c'est elle qui s'affiche
+  // — pas la formule générique. Relevée sur une pièce réelle : « +9 Relique de
+  // Conquête Aiguisé », PV +12%, sec [1, 1000, 1].
+  egal(
+    formatRelicUnique({ type: 1, tranche: 1000, percent: 1 }),
+    `DGTS infligés +1% tous les ${(1000).toLocaleString('fr-FR')} pts d'ATQ au début du combat`,
+    'relique : la phrase du jeu prime sur la formule générique'
+  );
+  // Sans pourcentage (fichier partagé par une version antérieure), la phrase du
+  // jeu serait incomplète : on retombe sur la formule.
+  egal(
+    formatRelicUnique({ type: 1, tranche: 1000 }),
+    `par tranche de ${(1000).toLocaleString('fr-FR')} ATQ`,
+    'relique : sans pourcentage connu, on retombe sur la formule plutôt que d’écrire une phrase trouée'
+  );
 
   const inv = parseAccountInventory(objet);
   egal(inv.runes.length, 8, 'inventaire : runes équipées ET en réserve, dédupliquées');

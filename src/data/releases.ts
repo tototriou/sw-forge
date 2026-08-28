@@ -91,7 +91,7 @@ export const RELEASES: Release[] = [
       {
         kind: 'fix',
         scope: 'Mon compte',
-        text: 'La propriété unique d’une relique s’affiche enfin : « +2% par tranche de 27 000 PV » au lieu d’un nombre nu.',
+        text: 'La propriété unique d’une relique s’affiche enfin en toutes lettres, au lieu d’un nombre nu.',
       },
       {
         kind: 'feat',

@@ -110,10 +110,13 @@ export const ARTIFACT_SUB: Record<number, (v: number) => string> = {
 };
 
 // Stat principale de relique (pri_effect) : PV% / ATQ% / DEF%.
+//
+// ⚠️ Le libellé ne porte PAS le « % » : la valeur, elle, s'écrit « +12% ». Le
+// jeu affiche « PV +12% » ; « PV% +12% » doublait le signe.
 export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
-  100: { label: 'PV%', stat: 'hp' },
-  101: { label: 'ATQ%', stat: 'atk' },
-  102: { label: 'DEF%', stat: 'def' },
+  100: { label: 'PV', stat: 'hp' },
+  101: { label: 'ATQ', stat: 'atk' },
+  102: { label: 'DEF', stat: 'def' },
 };
 
 // Rareté → libellé + couleur de texte + fond de bannière (dégradé sombre),
@@ -557,8 +560,29 @@ export function formatRelicMain(e: EffectLine): string {
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
 }
 
+// Propriété unique d'une relique, **dans les mots du jeu**, par `type`.
+//
+// ⚠️ **Recopiée depuis l'écran de la relique, jamais reformulée** (règle des
+// libellés, spec/README.md). Le `type` d'une relique désigne sa propriété
+// unique ; l'export ne porte que ce numéro, et rien qui dise ce qu'il
+// déclenche. Chaque entrée ici vient donc d'une pièce lue en jeu — pas d'une
+// déduction.
+//
+//   type 1 → « +9 Relique de Conquête Aiguisé », PV +12%, `sec [1, 1000, 1]`
+//            « DGTS infligés +1% tous les 1000 pts d'ATQ au début du combat »
+//
+// Cette seule pièce confirme la mécanique entière : le 3ᵉ nombre est bien le
+// POURCENTAGE, le 2ᵉ la TRANCHE, et l'unité de la tranche appartient au type.
+//
+// ⚠️ Table forcément INCOMPLÈTE (seize types au moins) : un type absent retombe
+// sur la formule générique ci-dessous. On n'invente pas la phrase des autres —
+// une description fausse sur un effet de combat est l'erreur silencieuse type.
+export const RELIC_UNIQUE: Record<number, (percent: number, tranche: string) => string> = {
+  1: (p, t) => `DGTS infligés +${p}% tous les ${t} pts d'ATQ au début du combat`,
+};
+
 // Stat à laquelle se rapporte la TRANCHE d'une propriété unique, par type de
-// relique.
+// relique. Sert au REPLI, quand la phrase exacte du jeu n'est pas connue.
 //
 // ⚠️ **Table volontairement INCOMPLÈTE.** L'export ne porte qu'un numéro de
 // type, sans rien qui dise à quelle stat il se rapporte. Le seul argument
@@ -567,17 +591,27 @@ export function formatRelicMain(e: EffectLine): string {
 //   | Types | Tranches observées | Stat |
 //   |---|---|---|
 //   | 3, 6, 12, 16 | 45 000 → 36 000 → 27 000 | **PV** — aucune autre stat du jeu n'approche ces valeurs |
-//   | 1, 2, 5, 15 | 2 500 → 2 000 → 1 000 | ATQ **ou** DEF : ambigu |
-//   | 7, 11, 14 | 250 → 200 | DEF **ou** VIT : ambigu |
+//   | 2, 5, 15 | 2 500 → 2 000 → 1 000 | **ATQ** — même échelle et même courbe que le type 1, lu en jeu |
+//   | 7, 11, 14 | 250 → 200 | DEF **ou** VIT : ambigu, laissé DEHORS |
 //
-// Les deux familles ambiguës restent DEHORS tant qu'un exemple lu en jeu n'aura
-// pas tranché : la tranche s'affiche alors sans unité, ce qui est incomplet mais
-// vrai — là où une unité devinée serait fausse une fois sur deux.
+// ⚠️ La famille des milliers a été tranchée par une pièce réelle : le type 1
+// annonce « tous les 1000 pts d'ATQ » à +9, et les types 2, 5 et 15 suivent la
+// MÊME courbe aux mêmes paliers (2 500 à +0, 2 000 à +5, 1 000 à +9/+10). La
+// petite famille, elle, reste dehors tant qu'un exemple ne l'aura pas tranchée :
+// une tranche sans unité est incomplète mais vraie, là où une unité devinée
+// serait fausse une fois sur deux.
 export const RELIC_UNIQUE_STAT: Record<number, string> = {
   3: 'PV',
   6: 'PV',
   12: 'PV',
   16: 'PV',
+  // ⚠️ Le type 1 est ICI AUSSI, alors que sa phrase complète est connue : le
+  // repli sert quand le pourcentage manque (fichier partagé par une version
+  // antérieure), et la phrase du jeu ne s'écrit pas sans lui.
+  1: 'ATQ',
+  2: 'ATQ',
+  5: 'ATQ',
+  15: 'ATQ',
 };
 
 // Propriété unique d'une relique : la FORMULE, jamais un libellé d'effet.
@@ -593,7 +627,14 @@ export const RELIC_UNIQUE_STAT: Record<number, string> = {
 // antérieure, qui ne transportait que le type et la tranche) : on annonce alors
 // la tranche seule, plutôt qu'un « +0 % » qui serait faux.
 export function formatRelicUnique(u: RelicUnique): string {
+  const nombre = u.tranche.toLocaleString('fr-FR');
+  // La phrase du jeu quand on la connaît — elle dit l'effet, pas seulement la
+  // formule. ⚠️ Elle réclame le pourcentage : sans lui (vieux fichier partagé),
+  // on retombe sur la formule plutôt que d'écrire « +undefined% ».
+  const phrase = RELIC_UNIQUE[u.type];
+  if (phrase && u.percent) return phrase(u.percent, nombre);
+
   const stat = RELIC_UNIQUE_STAT[u.type];
-  const tranche = u.tranche.toLocaleString('fr-FR') + (stat ? ` ${stat}` : '');
+  const tranche = nombre + (stat ? ` ${stat}` : '');
   return u.percent ? `+${u.percent}% par tranche de ${tranche}` : `par tranche de ${tranche}`;
 }

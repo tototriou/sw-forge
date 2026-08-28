@@ -24,7 +24,20 @@ les libellés ne sont pas réécrits dans chaque écran.
   flottant à placement automatique** (même composant que les runes,
   [DetailPopover.tsx](src/components/account/DetailPopover.tsx)) — stat principale,
   substats (↻ orange si modifié), type.
-- **Tri** : par **rareté décroissante** puis **niveau décroissant**.
+- **Tri** : par **critères posés** (le premier classe, les suivants départagent),
+  puis score, rareté et niveau décroissants.
+- **Sens du tri** : un bouton
+  ([BoutonSensTri](src/components/BoutonSensTri.tsx)) retourne le classement —
+  le même que dans les listes de runes, un seul geste à apprendre.
+  - ⚠️ **Il vit à côté du compte et de la pagination**, pas dans le panneau de
+    filtres : cette liste n'a pas de sélecteur « Trier par » (son classement
+    vient de la grille de propriétés). Il rejoint donc les deux autres réglages
+    de **présentation** de la liste, et reste visible aux deux formats.
+  - ⚠️ Le sens s'applique à **toute la cascade**, critères et départages : voir
+    le premier critère s'inverser sans les suivants donnerait un classement
+    illisible.
+  - Aucun cas d'« absence » à protéger ici, contrairement aux runes : le filtre a
+    déjà écarté les artéfacts qui ne portent pas les propriétés cherchées.
 - **Propriété recherchée mise en avant** : sur chaque tuile, la ligne de substat
   qui correspond à un critère posé porte un **liseré d'accent à gauche et un fond
   d'accent à 8 %**.

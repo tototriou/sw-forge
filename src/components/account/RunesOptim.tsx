@@ -15,6 +15,8 @@ import NumberField from '../../ui/NumberField';
 import Selecteur from '../../ui/Selecteur';
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
+import BoutonSensTri from '../BoutonSensTri';
+import { SENS_PAR_DEFAUT, SensTri, signeTri } from '../../lib/tri';
 import { FlottantAuto } from '../../ui';
 import MobileSheet from '../../ui/MobileSheet';
 import HelpPopover from '../HelpPopover';
@@ -79,6 +81,8 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
   const [threshold, setThreshold] = useStickyState('optim.threshold', 100);
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [sort, setSort] = useStickyState<SortMode>('optim.sort', 'effCur');
+  // Sens du tri — le même axe que dans la Liste, le même bouton (voir lib/tri.ts).
+  const [sens, setSens] = useStickyState<SensTri>('optim.sens', SENS_PAR_DEFAUT);
   const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('optim.gemMode', 'gem');
   // Antiques : elles ont leurs propres tables de max, donc un potentiel qui ne
   // se compare pas aux runes normales — pouvoir les écarter (ou n'avoir qu'elles)
@@ -202,6 +206,7 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
   // Runes dont l'efficience actuelle dépasse le palier, triées selon le mode choisi.
   const filtered = useMemo(() => {
     const val = SORT_VAL[sort];
+    const signe = signeTri(sens);
     return rows
       .filter(
         (r) =>
@@ -212,8 +217,8 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
           slots.has(r.rune.slot) &&
           (!faisable || faisable.has(r.id))
       )
-      .sort((a, b) => val(b.pot) - val(a.pot));
-  }, [rows, threshold, sort, ancient, sets, slots, faisable, filtreUtilisees, utilisees]);
+      .sort((a, b) => signe * (val(b.pot) - val(a.pot)));
+  }, [rows, threshold, sort, ancient, sets, slots, faisable, filtreUtilisees, utilisees, sens]);
 
   // ⚠️ Le palier est exprimé DANS la mesure courante : « 100 » ne veut pas dire
   // la même chose en efficience et en score. Changer de mesure sans convertir
@@ -421,6 +426,13 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
               </option>
             ))}
           </Selecteur>
+          <BoutonSensTri
+            sens={sens}
+            onChange={(v) => {
+              setSens(v);
+              setPage(0);
+            }}
+          />
         </div>
 
         {/* Palier, mesure gemme/meule, filtre antique, « Faisable avec ma

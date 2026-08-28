@@ -1193,6 +1193,16 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
   order: -1;
 }
 
+/* ⚠️ **Le sens du tri reste À CÔTÉ du sélecteur**, pas seul sur la ligne
+   d'après. Dans le panneau, tout contrôle prend la largeur (règle ci-dessus) :
+   le `select` poussait le bouton à la ligne suivante, où il pendait à 40 px
+   dans une bande vide. Il garde donc sa taille, et c'est le sélecteur qui prend
+   ce qui reste — les deux morceaux du MÊME réglage restent côte à côte. */
+[data-tiroir] [data-filtres-runes] [data-tri-bloc] select {
+  width: auto;
+  flex: 1 1 auto;
+}
+
 /* Les six emplacements se répartissent sur toute la largeur ; « Antiques » et le
    bouton « ✕ tout » gardent leur taille à côté. */
 [data-tiroir] [data-filtres-runes] [data-filtre-slots] {

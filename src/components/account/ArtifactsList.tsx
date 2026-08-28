@@ -18,6 +18,8 @@ import Segmented from '../../ui/Segmented';
 import MobileSheet from '../../ui/MobileSheet';
 import { ELEMENT_FILTER_STYLES } from '../elementStyles';
 import Pager from './Pager';
+import BoutonSensTri from '../BoutonSensTri';
+import { SENS_PAR_DEFAUT, SensTri, signeTri } from '../../lib/tri';
 import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -102,6 +104,8 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
   // Mesure affichée : le réglage GLOBAL de l'application (menu ⚙), partagé avec
   // les runes. Pas de sélecteur répété dans la page.
   const metric = useRuneMetric();
+  // Sens du tri — même axe et même bouton que la liste de runes (voir lib/tri.ts).
+  const [sens, setSens] = useStickyState<SensTri>('artefacts.sens', SENS_PAR_DEFAUT);
   const [page, setPage] = useState(0);
 
   function toggleRarity(v: number) {
@@ -159,14 +163,20 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
     const valeurDe = (r: ArtRow, code: number) =>
       r.art.subs.find((s) => s.code === code)?.value ?? -Infinity;
 
+    // ⚠️ Le SENS s'applique à toute la cascade, critères ET départages : demander
+    // « les moins bons » et voir le premier critère s'inverser sans les suivants
+    // donnerait un classement que personne ne saurait relire.
+    // ⚠️ Aucun cas d'absence à protéger ici, contrairement aux runes : le filtre
+    // a déjà écarté les artéfacts qui ne portent pas les propriétés cherchées.
+    const signe = signeTri(sens);
     return [...gardees].sort((a, b) => {
       for (const c of actifs) {
         const d = valeurDe(b, c.code) - valeurDe(a, c.code);
-        if (d) return d;
+        if (d) return signe * d;
       }
-      return b.score - a.score || b.art.rarity - a.art.rarity || b.art.level - a.art.level;
+      return signe * (b.score - a.score || b.art.rarity - a.art.rarity || b.art.level - a.art.level);
     });
-  }, [rows, kind, elementActif, archetypeActif, rarities, main, actifs]);
+  }, [rows, kind, elementActif, archetypeActif, rarities, main, actifs, sens]);
 
   // Propriétés proposables : celles **réellement portées** par un artéfact de
   // l'inventaire, restreintes à la catégorie choisie et privées de celles déjà
@@ -480,7 +490,21 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
             </span>
           )}
         </p>
-        <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
+        {/* ⚠️ **Le sens du tri vit ICI, pas dans le panneau de filtres** : cette
+            liste n'a pas de « Trier par » — son classement vient de la grille de
+            propriétés, et à défaut du score. Le bouton se pose donc à côté du
+            compte et de la pagination, les deux autres réglages de PRÉSENTATION
+            de la liste, et reste visible aux deux formats. */}
+        <div className="flex items-center gap-2 ml-auto">
+          <BoutonSensTri
+            sens={sens}
+            onChange={(v) => {
+              setSens(v);
+              setPage(0);
+            }}
+          />
+          <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
+        </div>
       </div>
 
       {/* ⚠️ Tuiles plus larges que celles des runes (150px) : elles portent les

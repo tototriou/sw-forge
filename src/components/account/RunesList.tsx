@@ -10,6 +10,8 @@ import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
 import MobileSheet from '../../ui/MobileSheet';
 import Selecteur from '../../ui/Selecteur';
+import BoutonSensTri from '../BoutonSensTri';
+import { SENS_PAR_DEFAUT, SensTri } from '../../lib/tri';
 import AncientFilter, {
   AncientFilter as AncientFilterValue,
   keepAncient,
@@ -66,6 +68,9 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   const [ancientBrut, setAncient] = useStickyState<AncientFilterValue>('runesList.ancient', 'all');
   const ancient = normFiltreAntique(ancientBrut);
   const [sortBrut, setSort] = useStickyState<RuneSortMode>('runesList.sort', 'score');
+  // Sens du tri — un AXE à part du critère : il vaut pour celui qui est choisi,
+  // quel qu'il soit (voir lib/tri.ts).
+  const [sens, setSens] = useStickyState<SensTri>('runesList.sens', SENS_PAR_DEFAUT);
   // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
   // du jeu) retombe sur le défaut : sinon `sortFn` renvoie `undefined` et le
   // `sort` lève, page blanche à la clé.
@@ -123,8 +128,8 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // Le 1ᵉʳ critère posé sert aux deux tris « propriété secondaire ».
   const premierCode = actifs[0]?.code ?? 0;
   const sorted = useMemo(
-    () => [...filtered].sort(comparateurRunes(sort, metric, premierCode)),
-    [filtered, sort, metric, premierCode]
+    () => [...filtered].sort(comparateurRunes(sort, metric, premierCode, sens)),
+    [filtered, sort, metric, premierCode, sens]
   );
   const best = useMemo(
     () => filtered.reduce((m, r) => Math.max(m, metric === 'eff' ? r.eff : r.score), 0),
@@ -209,6 +214,15 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
               </option>
             ))}
           </Selecteur>
+          {/* ⚠️ Collé au sélecteur, jamais ailleurs : c'est le MÊME réglage en
+              deux morceaux — sur quoi l'on trie, et dans quel sens. */}
+          <BoutonSensTri
+            sens={sens}
+            onChange={(v) => {
+              setSens(v);
+              setPage(0);
+            }}
+          />
           {/* ⚠️ Les deux tris « propriété » n'ont rien à classer sans critère :
               le dire ici évite de croire que le tri est cassé. */}
           {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (

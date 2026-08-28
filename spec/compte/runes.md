@@ -906,24 +906,25 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
   montant** au doigt), voir l'onglet Courbes § « L'aide a DEUX supports ». Elle
   détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce qu'il
   mesure et sa reconversion), **les icônes marteau/gemme** du plan, le filtre
-  de réserve et **« Runes utilisées »**.
+  de réserve, **« Sans les immémoriaux »** et **« Runes utilisées »**.
 
-#### ⚠️ Le panneau « Options » (mobile) ne prend que cinq contrôles
+#### ⚠️ Le panneau « Options » (mobile) ne prend que six contrôles
 
 Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
 téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
 **grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
-cinq** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
-**filtre antique**, **« Faisable avec ma réserve »** et **« Runes utilisées »**.
-**Sets, slot, tri et l'aide restent dans la page**, à tous les formats.
+six** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
+**filtre antique**, **« Faisable avec ma réserve »**, **« Sans les
+immémoriaux »** et **« Runes utilisées »**. **Sets, slot, tri et l'aide restent
+dans la page**, à tous les formats.
 
-- Les cinq sont écrits **une fois** (`optionsControls`) et posés à deux
+- Les six sont écrits **une fois** (`optionsControls`) et posés à deux
   endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
   doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
   largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
-- ⚠️ **Dans le panneau, tout occupe la largeur — les deux boutons aussi.**
-  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve » et
-  « Runes utilisées » prennent donc eux aussi toute la colonne
+- ⚠️ **Dans le panneau, tout occupe la largeur — les trois boutons aussi.**
+  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve »,
+  « Sans les immémoriaux » et « Runes utilisées » prennent donc eux aussi toute la colonne
   (`pleineLargeur={large}`), sinon ils pendaient seuls, à la largeur de leur
   texte, sous des contrôles pleins. En ligne au bureau (`large` faux) ils
   restent serrés.
@@ -932,7 +933,7 @@ cinq** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
   son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
   active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
   voir [AncientFilter](src/components/account/AncientFilter.tsx).
-- ⚠️ Au **bureau, rien ne change** : les cinq restent visibles dans la rangée
+- ⚠️ Au **bureau, rien ne change** : les six restent visibles dans la rangée
   de filtres. Le panneau n'existe que sous `lg`.
 
 ### « Runes utilisées » — le filtre qui regarde les decks
@@ -1025,6 +1026,34 @@ sets, antique et normal étanches) : [crafts.ts](src/lib/crafts.ts).
 sont toutes deux annoncées faisables — ce qui est vrai de chacune. Compter les
 quantités répondrait à une autre question (« que farmer pour toutes les faire »),
 et c'est le sujet des onglets Meules et Gemmes.
+
+#### « Sans les immémoriaux » — garder la pièce rare de côté
+
+Une gemme ou une meule **immémoriale** va sur **n'importe quel set** : c'est le
+consommable le plus rare du compte, celui qu'on garde pour la rune qui le
+méritera. Tant qu'il entre dans la réserve, une rune annoncée « faisable » peut
+ne l'être **qu'au prix de cette pièce-là**, sans que rien ne le dise. Ce bouton
+retire ces lignes et répond donc à : *« et sans y toucher, qu'est-ce qui reste
+faisable ? »*.
+
+- ⚠️ **Un filtre de la RÉSERVE, pas du calcul.** Les lignes `setKey === null`
+  sont écartées **en amont de `buildCraftStock`**, plutôt que d'ajouter un
+  paramètre à `ownsCraft`/`pickCraft`. Une réserve sans immémoriaux **est** une
+  réserve : la même règle de choix s'y applique, et il ne doit pas exister deux
+  façons de décider ce qui est disponible — c'est déjà la raison d'être de
+  `pickCraft` (voir [crafts.ts](src/lib/crafts.ts)).
+- ⚠️ **Il agit même si « Faisable avec ma réserve » est éteint** : le marquage
+  vert/grisé des marteaux et des gemmes du plan lit la **même** réserve. Le
+  bouton n'est donc pas asservi au précédent — il n'est grisé que si aucune
+  réserve n'a été lue.
+- ⚠️ **Le bouton « Faisable » distingue deux causes de grisement** : réserve
+  jamais lue (« réimporte ton compte ») et réserve **vidée par ce filtre-ci**.
+  Sans la nuance, il accusait l'import d'un choix fait à l'écran deux secondes
+  plus tôt.
+- Le compteur ajoute « · sans immémoriaux » **quand le filtre de réserve est
+  actif** — c'est là seulement que le nombre de runes change.
+- ⚠️ Aucun immémorial **antique** n'existe dans les données observées : le filtre
+  ne change donc jamais rien pour une rune antique.
 
 #### ⚠️ Le filtre change AUSSI le calcul — `noDowngrade`
 

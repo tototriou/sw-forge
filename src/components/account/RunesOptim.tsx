@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCw, AlertTriangle, PackageCheck, Hammer, Gem } from 'lucide-react';
+import { RotateCw, AlertTriangle, PackageCheck, Swords, Hammer, Gem } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
 import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
@@ -27,6 +27,9 @@ import AncientFilter, {
 interface Props {
   runes: RuneDetail[];
   crafts: CraftLine[];
+  // `rune_id` des runes UTILISÉES : posées sur un monstre d'un deck — tous
+  // contenus confondus — ou en RTA. Voir `parseUsedRuneIds`.
+  usedRuneIds: number[];
   // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx),
   // comme la Liste. Ne s'ouvre que sous `lg`.
   menuOuvert: boolean;
@@ -72,7 +75,7 @@ export const signed = (g: number, metric: 'eff' | 'score') =>
 export const effColor = (e: number, base: number) =>
   e > base + 0.05 ? 'text-good' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
 
-export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: Props) {
+export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onFermerMenu }: Props) {
   const [threshold, setThreshold] = useStickyState('optim.threshold', 100);
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [sort, setSort] = useStickyState<SortMode>('optim.sort', 'effCur');
@@ -104,6 +107,20 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
   // faire une vue séparée obligeait à y réimplémenter tout ça.
   const [checkStock, setCheckStock] = useStickyState('optim.checkStock', false);
   const verifie = checkStock && stockDispo;
+
+  // « Runes utilisées » — MÊME principe que « Faisable avec ma réserve » : un
+  // filtre de plus, pas un onglet de plus. Un compte de 3 000 runes en fait
+  // jouer trois cents ; les autres dorment dans le sac, et améliorer l'une
+  // d'elles ne change rien à aucun combat. Le potentiel, les gains et les tris
+  // restent exactement les mêmes.
+  const utilisees = useMemo(() => new Set(usedRuneIds), [usedRuneIds]);
+  // ⚠️ Un compte conservé sous l'ancien schéma n'a pas cette liste, et un export
+  // sans aucun deck enregistré non plus : le bouton est alors DÉSACTIVÉ et dit
+  // pourquoi, plutôt que de vider la liste sans explication (même règle que la
+  // réserve de meules).
+  const utiliseesDispo = utilisees.size > 0;
+  const [usedOnly, setUsedOnly] = useStickyState('optim.usedOnly', false);
+  const filtreUtilisees = usedOnly && utiliseesDispo;
   const scenario = scenarioOf(sort);
 
   // Potentiel calculé une fois par import (linéaire, mémoïsé).
@@ -162,12 +179,13 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
         (r) =>
           r.pot.eff >= threshold &&
           keepAncient(r.rune, ancient) &&
+          (!filtreUtilisees || utilisees.has(r.rune.id)) &&
           sets.has(r.rune.set) &&
           slots.has(r.rune.slot) &&
           (!faisable || faisable.has(r.id))
       )
       .sort((a, b) => val(b.pot) - val(a.pot));
-  }, [rows, threshold, sort, ancient, sets, slots, faisable]);
+  }, [rows, threshold, sort, ancient, sets, slots, faisable, filtreUtilisees, utilisees]);
 
   // ⚠️ Le palier est exprimé DANS la mesure courante : « 100 » ne veut pas dire
   // la même chose en efficience et en score. Changer de mesure sans convertir
@@ -281,6 +299,27 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
         }
         icone={<PackageCheck size={14} />}
         libelle="Faisable avec ma réserve"
+      />
+
+      {/* ⚠️ Même gabarit que le bouton ci-dessus (`pleineLargeur={large}`) :
+          dans le panneau « Options », les deux prennent la largeur de la
+          colonne ; en ligne au bureau, ils restent serrés côte à côte. */}
+      <Bouton
+        onClick={() => {
+          setUsedOnly((v) => !v);
+          setPage(0);
+        }}
+        disabled={!utiliseesDispo}
+        actif={filtreUtilisees}
+        taille="sm"
+        pleineLargeur={large}
+        title={
+          utiliseesDispo
+            ? `Ne garder que les ${utilisees.size} runes qui jouent : posées sur un monstre d'un deck (tous contenus) ou en RTA`
+            : 'Aucun deck lu dans les données chargées — réimporte ton compte'
+        }
+        icone={<Swords size={14} />}
+        libelle="Runes utilisées"
       />
     </>
   );
@@ -418,6 +457,16 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
                 posée. Le gain affiché est donc <b className="text-ink">celui que tu peux réellement aller
                 chercher aujourd'hui</b>, pas le potentiel théorique.
               </p>
+
+              <p className="mt-2">
+                <span className="text-ink font-semibold">Runes utilisées</span> : ne garde que les runes qui{' '}
+                <b className="text-ink">jouent</b> — posées sur un monstre présent dans un{' '}
+                <b className="text-ink">deck</b> (arène, donjons, ToA, siège… <b className="text-ink">tous
+                les contenus enregistrés</b>) ou dans un <b className="text-ink">preset RTA</b>. Les presets
+                comptent même si la rune dort dans ton inventaire : c'est bien elle qui se pose au combat.
+                Le reste de ton stock n'est pas affiché — améliorer une rune que personne ne porte ne change
+                aucun combat.
+              </p>
           </HelpPopover>
         </div>
       </div>
@@ -437,6 +486,7 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
           {ancient === 'without' && ' · hors antiques'}
           {ancient === 'only' && ' · antiques seules'}
           {verifie && ' · faisables avec ma réserve'}
+          {filtreUtilisees && ' · utilisées'}
         </p>
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
       </div>
@@ -472,8 +522,10 @@ export default function RunesOptim({ runes, crafts, menuOuvert, onFermerMenu }: 
         <p className="text-ink-dim text-sm">
           Aucune rune ≥ {threshold}
           {metric === 'eff' ? '%' : ''}
-          {ancient !== 'all' && (ancient === 'without' ? ' hors antiques' : ' parmi les antiques')}. Baisse le
-          palier{ancient !== 'all' ? ' ou repasse sur « Toutes »' : ''} pour en voir plus.
+          {ancient !== 'all' && (ancient === 'without' ? ' hors antiques' : ' parmi les antiques')}
+          {filtreUtilisees && ' parmi tes runes utilisées'}. Baisse le palier
+          {ancient !== 'all' ? ' ou repasse sur « Toutes »' : ''}
+          {filtreUtilisees ? ' ou désactive « Runes utilisées »' : ''} pour en voir plus.
         </p>
       )}
 

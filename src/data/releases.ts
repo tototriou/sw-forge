@@ -75,6 +75,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Nouveau filtre « Sans les immémoriaux » : vois ce qui reste faisable sans dépenser tes pièces rares.',
+      },
+      {
+        kind: 'feat',
         scope: 'Paramètres',
         text: 'Recliquer sur ⚙ referme les paramètres et te ramène à l’écran d’où tu venais.',
       },

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCw, AlertTriangle, PackageCheck, Swords, Hammer, Gem } from 'lucide-react';
+import { RotateCw, AlertTriangle, PackageCheck, Swords, Lock, Hammer, Gem } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
 import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
@@ -99,8 +99,36 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
   // `matchMedia` pour une seule et même réponse. Même patron que RunesList.
   const etroit = useMediaQuery(SOUS_LG);
 
-  const stock = useMemo(() => (crafts.length ? buildCraftStock(crafts) : EMPTY_STOCK), [crafts]);
+  // ⚠️ **Les immémoriaux se mettent DE CÔTÉ, ils ne se comptent pas à part.**
+  // Une gemme ou une meule immémoriale va sur n'importe quel set : c'est le
+  // consommable le plus rare et le plus précieux du compte, celui qu'on garde
+  // pour la rune qui le méritera. Tant qu'il entrait dans la réserve, une rune
+  // annoncée « faisable » pouvait ne l'être qu'au prix de cette pièce-là — et
+  // rien ne le disait. Exclure ces lignes revient exactement à répondre « et
+  // sans y toucher, qu'est-ce qui reste faisable ? ».
+  //
+  // ⚠️ **Un filtre de la RÉSERVE, pas du calcul** : on retire les lignes en
+  // amont de `buildCraftStock` plutôt que d'ajouter un paramètre à `ownsCraft`
+  // et à `pickCraft`. Une réserve sans immémoriaux EST une réserve — la même
+  // règle de choix s'y applique, et il n'y a pas deux façons de décider ce qui
+  // est disponible (voir crafts.ts, « la MÊME règle décide de la faisabilité et
+  // de ce qu'on décompte »).
+  const [sansImmemoriaux, setSansImmemoriaux] = useStickyState('optim.sansImmemoriaux', false);
+  // `setKey === null` = immémorial (voir CraftLine) : utilisable sur tous les sets.
+  const lignesReserve = useMemo(
+    () => (sansImmemoriaux ? crafts.filter((l) => l.setKey !== null) : crafts),
+    [crafts, sansImmemoriaux]
+  );
+  const stock = useMemo(
+    () => (lignesReserve.length ? buildCraftStock(lignesReserve) : EMPTY_STOCK),
+    [lignesReserve]
+  );
   const stockDispo = stock.total > 0;
+  // ⚠️ Distinct de `stockDispo` : une réserve a bien été lue, mais le filtre
+  // ci-dessus a pu la vider entièrement. Sans cette nuance, le bouton
+  // « Faisable » se grisait en accusant l'import — « réimporte ton compte » —
+  // alors que c'est un filtre de l'écran qui venait de tout retirer.
+  const reserveLue = crafts.length > 0;
   // ⚠️ **Un filtre de plus, pas un onglet de plus.** « Ce que je peux faire
   // maintenant » est la même liste, restreinte : le potentiel héroïque, le
   // potentiel légendaire et les deux gains restent affichés et triables. En
@@ -295,10 +323,34 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
         title={
           stockDispo
             ? `Ne garder que les runes applicables avec tes ${stock.total} meules et gemmes en réserve`
-            : 'Aucune meule ni gemme dans les données chargées — réimporte ton compte'
+            : reserveLue
+              ? 'Ta réserve ne contient que des immémoriaux, que le filtre voisin met de côté'
+              : 'Aucune meule ni gemme dans les données chargées — réimporte ton compte'
         }
         icone={<PackageCheck size={14} />}
         libelle="Faisable avec ma réserve"
+      />
+
+      {/* ⚠️ Utile MÊME quand « Faisable » est éteint : le marquage vert/grisé
+          des marteaux et des gemmes du plan lit la même réserve. Le bouton
+          n'est donc pas asservi au précédent — il n'est grisé que si aucune
+          réserve n'a été lue, où il n'aurait rien à retirer. */}
+      <Bouton
+        onClick={() => {
+          setSansImmemoriaux((v) => !v);
+          setPage(0);
+        }}
+        disabled={!reserveLue}
+        actif={sansImmemoriaux}
+        taille="sm"
+        pleineLargeur={large}
+        title={
+          reserveLue
+            ? 'Garder tes gemmes et meules immémoriales de côté : elles vont sur tous les sets, elles ne se remplacent pas'
+            : 'Aucune meule ni gemme dans les données chargées — réimporte ton compte'
+        }
+        icone={<Lock size={14} />}
+        libelle="Sans les immémoriaux"
       />
 
       {/* ⚠️ Même gabarit que le bouton ci-dessus (`pleineLargeur={large}`) :
@@ -371,10 +423,20 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
           </Selecteur>
         </div>
 
-        {/* Palier, mesure gemme/meule, filtre antique et « Faisable avec ma
-            réserve » : au BUREAU en ligne ici, sur TÉLÉPHONE dans le panneau
-            « Options » (bouton de la barre de nav, voir la fin du composant). */}
-        <div className="hidden lg:flex lg:items-center lg:gap-4">{optionsControls(false)}</div>
+        {/* Palier, mesure gemme/meule, filtre antique, « Faisable avec ma
+            réserve », « Sans les immémoriaux » et « Runes utilisées » : au
+            BUREAU en ligne ici, sur TÉLÉPHONE dans le panneau « Options »
+            (bouton de la barre de nav, voir la fin du composant).
+
+            ⚠️ **`flex-wrap`, comme la rangée qui le contient.** Ce groupe est
+            UN seul élément de la rangée parente : sans retour à la ligne
+            interne, il ne peut pas se réduire sous la largeur de ses six
+            contrôles et c'est la PAGE qui déborde par la droite — la rangée
+            parente, elle, n'a rien à passer à la ligne, elle ne voit qu'un
+            bloc. Le `gap-y` sépare les lignes ainsi créées. */}
+        <div className="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-x-4 lg:gap-y-2">
+          {optionsControls(false)}
+        </div>
 
         {/* Aide : « ? » sur la même ligne, à droite */}
         <div className="ml-auto">
@@ -459,6 +521,15 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
               </p>
 
               <p className="mt-2">
+                <span className="text-ink font-semibold">Sans les immémoriaux</span> : retire de ta réserve
+                les gemmes et meules <b className="text-ink">immémoriales</b> — celles qui vont sur{' '}
+                <b className="text-ink">n'importe quel set</b>. Ce sont les plus rares : ce bouton répond à
+                « qu'est-ce qui reste faisable <b className="text-ink">sans y toucher</b> ? ». Il change le
+                filtre de réserve <i>et</i> les icônes vertes du plan, puisque les deux lisent la même
+                réserve.
+              </p>
+
+              <p className="mt-2">
                 <span className="text-ink font-semibold">Runes utilisées</span> : ne garde que les runes qui{' '}
                 <b className="text-ink">jouent</b> — posées sur un monstre présent dans un{' '}
                 <b className="text-ink">deck</b> (arène, donjons, ToA, siège… <b className="text-ink">tous
@@ -486,6 +557,7 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
           {ancient === 'without' && ' · hors antiques'}
           {ancient === 'only' && ' · antiques seules'}
           {verifie && ' · faisables avec ma réserve'}
+          {verifie && sansImmemoriaux && ' · sans immémoriaux'}
           {filtreUtilisees && ' · utilisées'}
         </p>
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />

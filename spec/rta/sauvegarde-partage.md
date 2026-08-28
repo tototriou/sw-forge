@@ -212,6 +212,17 @@ Conformément à la règle générale (voir [../README.md](../README.md)), le d�
 ne perd rien : « Annuler » est le bouton mis en avant, l'action porte la couleur
 d'alerte.
 
+#### La relique dans un fichier partagé
+
+Le fichier transporte la **propriété unique** de la relique
+(`relic.unique = { type, tranche, percent }`, voir
+[../compte/calcul-runes.md](../compte/calcul-runes.md)).
+
+⚠️ **Les fichiers antérieurs portent `relic.sub = { code, value }`** — en réalité
+le *type* et la *tranche*, le pourcentage n'ayant jamais été extrait. Ils sont
+**relus**, pas jetés : la formule s'affiche alors sans le « +x % », ce qui reste
+vrai. On n'invente pas un pourcentage pour combler le trou.
+
 #### ⚠️ Mon équipement actuel prime sur celui du fichier
 
 Un monstre **déjà présent** chez moi garde le `gear` venu de **mon** import de

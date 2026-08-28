@@ -1,7 +1,7 @@
 // Mapping des codes d'effets com2us (runes, artéfacts, reliques) → libellés.
 // Aligné sur sw-exporter (app/mapping.js) et vérifié sur des exports réels.
 
-import { ArtifactKind, EffectLine, RuneDetail } from '../types';
+import { ArtifactKind, EffectLine, RelicUnique, RuneDetail } from '../types';
 
 export type StatKey = 'hp' | 'atk' | 'def' | 'spd' | 'cr' | 'cd' | 'res' | 'acc';
 
@@ -555,4 +555,21 @@ export function artifactSubsFor(kind: ArtifactKind): { code: number; label: stri
 export function formatRelicMain(e: EffectLine): string {
   const def = RELIC_MAIN[e.code];
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
+}
+
+// Propriété unique d'une relique : la FORMULE, jamais un libellé d'effet.
+//
+// ⚠️ **On n'invente pas ce que l'effet fait.** L'export ne porte qu'un numéro de
+// type, sans aucune table qui dise « type 12 = … ». Une description devinée
+// serait fausse en silence sur un effet de combat — exactement l'erreur que le
+// dépôt s'interdit. Ce qui est CERTAIN, et vérifiable dans le fichier, c'est la
+// mécanique : un pourcentage accordé par tranche de stat (« +1 % par 2 500 »),
+// et c'est cela qu'on affiche.
+//
+// ⚠️ Le pourcentage peut manquer (fichier de prépa exporté par une version
+// antérieure, qui ne transportait que le type et la tranche) : on annonce alors
+// la tranche seule, plutôt qu'un « +0 % » qui serait faux.
+export function formatRelicUnique(u: RelicUnique): string {
+  const tranche = u.tranche.toLocaleString('fr-FR');
+  return u.percent ? `+${u.percent}% par tranche de ${tranche}` : `par tranche de ${tranche}`;
 }

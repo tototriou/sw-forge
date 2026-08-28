@@ -28,6 +28,20 @@ export default function testImport() {
   egal(box.monsters.length, 2, 'box : seules les unités montées 6★ sont retenues');
   egal(box.monsters[0].com2usId, 15105, 'box : com2usId lu depuis unit_master_id');
 
+  // ⚠️ **La propriété unique d'une relique n'est pas une substat.** Elle
+  // déclenche un effet proportionnel à une stat (« +2 % par tranche de
+  // 27 000 »), et `sec_effect` porte donc TYPE, TRANCHE et POURCENTAGE. Lue
+  // comme un `{ code, value }`, elle affichait « Effet secondaire · 27000 » : le
+  // pourcentage était perdu, et le nombre montré n'était pas une valeur mais un
+  // diviseur.
+  const relique = box.monsters[0].gear?.relic;
+  egal(relique?.main, { code: 100, value: 11 }, 'relique : la stat principale reste un PV%');
+  egal(
+    relique?.unique,
+    { type: 12, tranche: 27000, percent: 2 },
+    'relique : type, tranche et pourcentage sont tous les trois lus'
+  );
+
   const inv = parseAccountInventory(objet);
   egal(inv.runes.length, 8, 'inventaire : runes équipées ET en réserve, dédupliquées');
   egal(inv.artifacts.length, 3, 'inventaire : artéfacts équipés ET en réserve');

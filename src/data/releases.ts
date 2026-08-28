@@ -89,6 +89,11 @@ export const RELEASES: Release[] = [
         text: 'Un ami sans SW Forge ? Ouvre son export SWEX complet : sa box RTA s’affiche pareil.',
       },
       {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'La propriété unique d’une relique s’affiche enfin : « +2% par tranche de 27 000 » au lieu d’un nombre nu.',
+      },
+      {
         kind: 'feat',
         scope: 'Paramètres',
         text: 'Recliquer sur ⚙ referme les paramètres et te ramène à l’écran d’où tu venais.',

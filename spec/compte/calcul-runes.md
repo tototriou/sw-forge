@@ -108,7 +108,36 @@ Précision) — soit exactement la différence entre les deux objets du jeu.
 
 ### Relique (`unit.relics[0]`)
 
-`pri_effect` : 100 PV% / 101 ATQ% / 102 DEF% (pourcentages).
+`pri_effect` : 100 PV% / 101 ATQ% / 102 DEF% (pourcentages). C'est la seule part
+de la relique qui entre dans le **calcul des stats** (voir `computeStats`).
+
+#### La propriété unique (`sec_effect`) n'est PAS une substat
+
+`sec_effect` = **`[type, tranche, pourcentage]`**. Elle n'ajoute aucune valeur à
+une stat : elle déclenche un effet **proportionnel à une stat du monstre**, de la
+forme « **+2 % par tranche de 27 000** ».
+
+Relevé sur un compte réel (15 reliques) :
+
+- le **premier nombre vaut toujours le `type` de la relique** — ce n'est donc pas
+  un code d'effet parmi d'autres, c'est **la** propriété unique de la pièce,
+  fixée à l'obtention ;
+- le **deuxième est une tranche de stat**, et il **diminue quand la relique
+  monte** (un type 12 passe de 45 000 à +0 à 27 000 à +8) : plus la relique est
+  forte, plus la tranche est petite, donc plus l'effet se déclenche ;
+- le **troisième est le pourcentage** accordé par tranche (1 ou 2 sur les pièces
+  observées).
+
+⚠️ **Ce que l'effet FAIT n'est nulle part dans l'export** : `type` est un numéro,
+sans table qui dise « type 12 = … ». On affiche donc la **formule** — « Propriété
+unique · +2 % par tranche de 27 000 », le numéro de type en infobulle — et
+**jamais un libellé deviné** : une description fausse sur un effet de combat est
+l'erreur silencieuse type, du même ordre qu'envoyer farmer le mauvais donjon.
+
+⚠️ **Bug corrigé** : elle était lue comme un `{ code, value }` de substat et
+affichée « Effet secondaire · 27000 ». Le pourcentage était purement perdu, et
+le nombre montré n'était pas une valeur mais un **diviseur** — le lecteur ne
+pouvait qu'en tirer une conclusion fausse.
 
 ### Unité / monstre
 

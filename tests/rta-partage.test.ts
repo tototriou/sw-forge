@@ -515,4 +515,65 @@ export default function testRtaPartage() {
   const vuePartielle = mapRtaVueAmi(unitsAmi, parCom2us([bestiaireAmi[0]]), null);
   egal(vuePartielle.entries.length, 1, 'seul le monstre connu est affiché');
   egal(vuePartielle.inconnus, [14314], 'et l’autre est annoncé comme inconnu, par com2usId');
+
+  /* ---- Relique : la propriété unique traverse le partage ----------------- */
+
+  // ⚠️ Elle n'est PAS une substat : type, tranche et pourcentage doivent arriver
+  // entiers chez le lecteur, sinon la formule affichée (« +2 % par tranche de
+  // 27 000 ») devient un nombre nu qui ne veut rien dire.
+  const avecRelique = validateRtaImport(
+    JSON.stringify({
+      format: 'sw-forge/prepa-rta',
+      sections: ['swift'],
+      monstres: [
+        {
+          com2usId: 15214,
+          nom: 'Trevor',
+          section: 'swift',
+          vitesse: 100,
+          gear: {
+            base: { hp: 10000, atk: 700, def: 600, spd: 107, cr: 15, cd: 50, res: 15, acc: 0 },
+            runes: [],
+            artifacts: [],
+            relic: { main: { code: 100, value: 11 }, unique: { type: 12, tranche: 27000, percent: 2 } },
+          },
+        },
+      ],
+    })
+  );
+  egal(
+    avecRelique.snapshot!.entries[0].gear?.relic?.unique,
+    { type: 12, tranche: 27000, percent: 2 },
+    'relique partagée : la propriété unique arrive entière'
+  );
+
+  // ⚠️ Un fichier exporté AVANT cette version porte `relic.sub = { code, value }`
+  // — en réalité le type et la tranche, le pourcentage n'ayant jamais été lu. On
+  // le relit plutôt que de le jeter, sans inventer de pourcentage : la formule
+  // s'affiche alors sans « +x % », ce qui reste vrai.
+  const ancienFichier = validateRtaImport(
+    JSON.stringify({
+      format: 'sw-forge/prepa-rta',
+      sections: ['swift'],
+      monstres: [
+        {
+          com2usId: 15214,
+          nom: 'Trevor',
+          section: 'swift',
+          vitesse: 100,
+          gear: {
+            base: { hp: 10000, atk: 700, def: 600, spd: 107, cr: 15, cd: 50, res: 15, acc: 0 },
+            runes: [],
+            artifacts: [],
+            relic: { main: { code: 100, value: 11 }, sub: { code: 12, value: 27000 } },
+          },
+        },
+      ],
+    })
+  );
+  egal(
+    ancienFichier.snapshot!.entries[0].gear?.relic?.unique,
+    { type: 12, tranche: 27000 },
+    'ancien fichier : type et tranche relus, aucun pourcentage inventé'
+  );
 }

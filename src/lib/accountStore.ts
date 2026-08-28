@@ -62,12 +62,13 @@ export interface StoredAccount {
   usedRuneIds: number[];
 }
 
-// À incrémenter dès qu'un extracteur produit un champ de plus : un compte
-// enregistré sous l'ancien schéma serait incomplet et donnerait des chiffres
-// faux en silence. À la lecture, un schéma différent est **ignoré** — l'app
+// À incrémenter dès qu'un extracteur produit un champ de plus — ou en produit
+// un AUTREMENT : un compte enregistré sous l'ancien schéma serait incomplet, ou
+// mal lu, et donnerait des chiffres faux en silence. (5 : la propriété unique
+// des reliques, qui remplace un `relic.sub` mal modélisé.) À la lecture, un schéma différent est **ignoré** — l'app
 // retombe sur « aucun compte » et invite à réimporter, comme pour les vieux
 // fichiers de recommandation.
-export const ACCOUNT_SCHEMA = 4;
+export const ACCOUNT_SCHEMA = 5;
 
 const DB_NAME = 'sw-forge';
 const DB_VERSION = 1;

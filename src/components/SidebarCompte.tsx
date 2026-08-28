@@ -17,6 +17,7 @@ export default function SidebarCompte({
   nom,
   retractee,
   parametresActifs,
+  onToggleParametres,
   onImport,
 }: {
   // `null` = aucun compte chargé. L'avatar cède alors la place au seul geste
@@ -24,6 +25,13 @@ export default function SidebarCompte({
   nom: string | null;
   retractee: boolean;
   parametresActifs: boolean;
+  // ⚠️ **Une BASCULE, pas un lien.** Le ⚙ ouvre les paramètres, et le clic
+  // suivant ramène à l'écran d'où l'on vient — c'est le même geste que le ⚙ de
+  // la barre supérieure au doigt (`basculerParametres` dans App.tsx). Un
+  // `<a href="#/parametres">` ne pouvait pas défaire ce qu'il venait de faire :
+  // une fois dans les paramètres, il ne restait qu'à choisir une autre
+  // destination pour en sortir.
+  onToggleParametres: () => void;
   // Reçoit le contenu du fichier choisi. ⚠️ Le composant porte son propre
   // `<input type="file">` : le sélecteur natif ne s'ouvre que depuis un vrai
   // clic utilisateur, et le relayer à travers un parent aurait ajouté une ref
@@ -65,18 +73,23 @@ export default function SidebarCompte({
         >
           <Import size={16} />
         </button>
-        <a
-          href="#/parametres"
-          title="Paramètres"
-          aria-label="Paramètres"
+        <button
+          type="button"
+          onClick={onToggleParametres}
+          title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
+          aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
+          aria-pressed={parametresActifs}
           className={`flex aspect-square h-8 w-8 items-center justify-center rounded-lg transition-colors ${
             parametresActifs
               ? 'bg-ctx-soft text-ctx'
               : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
           }`}
         >
-          <Settings size={16} />
-        </a>
+          <Settings
+            size={16}
+            className={`transition-transform ${parametresActifs ? 'rotate-45' : ''}`}
+          />
+        </button>
       </div>
     );
   }
@@ -115,10 +128,16 @@ export default function SidebarCompte({
       >
         <Import size={16} />
       </button>
-      <a
-        href="#/parametres"
-        title="Paramètres"
-        aria-label="Paramètres"
+      {/* L'engrenage pivote d'un huitième de tour quand les paramètres sont
+          ouverts : le bouton dit alors qu'il fera l'INVERSE au prochain clic,
+          sans changer d'icône — une croix aurait fait croire à la fermeture de
+          la page entière. Même signe que le ⚙ de la barre supérieure. */}
+      <button
+        type="button"
+        onClick={onToggleParametres}
+        title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
+        aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
+        aria-pressed={parametresActifs}
         className={`flex aspect-square h-8 w-8 flex-none items-center justify-center rounded-md
                     transition-colors ${
                       parametresActifs
@@ -126,8 +145,11 @@ export default function SidebarCompte({
                         : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
                     }`}
       >
-        <Settings size={16} />
-      </a>
+        <Settings
+          size={16}
+          className={`transition-transform ${parametresActifs ? 'rotate-45' : ''}`}
+        />
+      </button>
     </div>
   );
 }

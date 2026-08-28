@@ -746,6 +746,17 @@ export default function App() {
     });
   }
 
+  // ⚠️ **Le ⚙ BASCULE, il ne navigue pas** : il ouvre les paramètres, puis
+  // ramène à l'écran d'où l'on vient. Écrit UNE fois et branché aux DEUX
+  // boutons — celui de la barre supérieure (téléphone) et celui du pied de la
+  // barre latérale (bureau). Chacun portait sa propre logique : le premier
+  // basculait, le second était un simple lien, et sur bureau on entrait dans
+  // les paramètres sans pouvoir en ressortir autrement qu'en choisissant une
+  // autre destination.
+  function basculerParametres() {
+    window.location.hash = route === 'parametres' ? avantParametres.current : '#/parametres';
+  }
+
   useEffect(() => {
     const onHash = () => {
       // ⚠️ Mémorisé AVANT la mise à jour : `window.location.hash` porte déjà la
@@ -1098,6 +1109,7 @@ export default function App() {
             nom={accountName}
             retractee={sidebarRetractee}
             parametresActifs={route === 'parametres'}
+            onToggleParametres={basculerParametres}
             onImport={importAccount}
           />
         }
@@ -1138,10 +1150,7 @@ export default function App() {
         // second chemin : deux façons de purger auraient divergé à la première
         // garde ajoutée (le dialogue de conservation, par exemple).
         onDeconnexion={() => setPurgeGlobale(true)}
-        onToggleParametres={() => {
-          window.location.hash =
-            route === 'parametres' ? avantParametres.current : '#/parametres';
-        }}
+        onToggleParametres={basculerParametres}
         gauche={
           /* ⚠️ Le LOGO SEUL, et seulement sous `lg` — au-dessus, la barre
              latérale porte déjà l'identité. La zone a porté l'import et les

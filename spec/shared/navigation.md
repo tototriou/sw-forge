@@ -210,6 +210,7 @@ endroits où les deux se séparent (voir
 - ⚠️ Sur mobile, à l'inverse, le ⚙ est le **seul accès** aux paramètres : il n'y
   a pas de barre latérale, et aucun des cinq onglets n'y mène. C'est donc la
   déconnexion qui descend, pas lui.
+- ⚠️ **Les deux ⚙ BASCULENT** — voir « Le ⚙ ouvre ET referme » plus bas.
 
 - ⚠️ Sur **mobile**, trois cibles dans 48 px de haut, à côté d'un titre centré
   en absolu, ne laissaient à chacune ni la place ni la marge d'erreur qu'un
@@ -537,6 +538,31 @@ Le pied de la barre porte l'avatar et le nom du joueur
   tous les comptes déjà conservés** — un réimport forcé pour un simple libellé.
 - ⚠️ **Le nom seulement, jamais `wizard_id`** : c'est un numéro de compte, il
   n'apprend rien à qui lit son propre écran.
+
+### ⚠️ Le ⚙ ouvre ET referme — la même bascule aux deux formats
+
+Cliquer le ⚙ ouvre `#/parametres` ; **le recliquer ramène à l'écran d'où l'on
+vient**. Vaut pour le ⚙ de la barre supérieure (mobile) **comme** pour celui du
+pied de la barre latérale (bureau).
+
+- ⚠️ **Un lien ne peut pas défaire ce qu'il vient de faire.** Le ⚙ du bureau
+  était un simple `<a href="#/parametres">` : une fois dans les paramètres, on
+  n'en sortait qu'en **choisissant une autre destination** — or on y était entré
+  pour régler une chose et revenir, pas pour partir ailleurs. Le geste qui ouvre
+  doit pouvoir refermer, exactement comme un onglet mobile qu'on retouche (voir
+  « Un onglet à sous-sections les FAIT CHOISIR »).
+- L'écran de retour est **celui qu'on quittait**, mémorisé au moment d'entrer
+  (`avantParametres` dans [App.tsx](src/App.tsx)) — jamais un `history.back()`,
+  qui rejouerait n'importe quel détour antérieur. Arrivé **directement** sur
+  `#/parametres` (lien, rechargement), le retour se fait sur l'accueil : il n'y
+  a rien d'autre à proposer.
+- ⚠️ **Une seule fonction pour les deux boutons** (`basculerParametres`), pas une
+  logique par barre : c'est ce qui les avait laissés diverger — l'un basculait,
+  l'autre pas.
+- L'engrenage **pivote d'un huitième de tour** quand les paramètres sont ouverts,
+  et le bouton porte `aria-pressed`. Il annonce ainsi qu'il fera l'**inverse** au
+  prochain clic, sans changer d'icône : une croix aurait fait croire à la
+  fermeture de la page entière.
 
 ## Page Paramètres
 

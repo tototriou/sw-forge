@@ -73,6 +73,11 @@ export const RELEASES: Release[] = [
         scope: 'Mon compte',
         text: 'Tous tes contenus comptent : decks d’arène, de donjons, de ToA, de siège, et tes presets RTA.',
       },
+      {
+        kind: 'feat',
+        scope: 'Paramètres',
+        text: 'Recliquer sur ⚙ referme les paramètres et te ramène à l’écran d’où tu venais.',
+      },
     ],
   },
   {

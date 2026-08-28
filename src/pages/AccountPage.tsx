@@ -46,6 +46,9 @@ interface Props {
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
   crafts: CraftLine[];
+  // Runes UTILISÉES (`rune_id`) : posées sur un monstre d'un deck, tous
+  // contenus confondus, ou en RTA. Filtre de l'onglet Optimisation.
+  usedRuneIds: number[];
   loadState: LoadState;
   // Relecture du compte conservé en cours : on n'annonce pas « aucune donnée »
   // tant qu'on n'a pas fini de regarder.
@@ -391,6 +394,7 @@ export default function AccountPage({
   runes,
   artifacts,
   crafts,
+  usedRuneIds,
   loadState,
   hydrating,
   allMonsters,
@@ -454,6 +458,7 @@ export default function AccountPage({
         <RunesSection
           runes={runes}
           crafts={crafts}
+          usedRuneIds={usedRuneIds}
           vue={vue}
           menuOuvert={menuOuvert}
           onFermerMenu={onFermerMenu}

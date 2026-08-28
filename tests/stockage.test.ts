@@ -7,7 +7,12 @@
 
 import 'fake-indexeddb/auto';
 import { ACCOUNT_SCHEMA, clearAccount, loadAccount, saveAccount } from '../src/lib/accountStore';
-import { parseAccountBox, parseAccountInventory, parseAccountSource } from '../src/lib/importAccount';
+import {
+  parseAccountBox,
+  parseAccountInventory,
+  parseAccountSource,
+  parseUsedRuneIds,
+} from '../src/lib/importAccount';
 import { egal, exportSynthetique, ok, titre } from './outils';
 
 export default async function testStockage() {
@@ -21,6 +26,7 @@ export default async function testStockage() {
     runes: inv.runes,
     artifacts: inv.artifacts,
     crafts: inv.crafts,
+    usedRuneIds: parseUsedRuneIds(data),
     exportedAt: 1786261890000,
   };
 
@@ -35,6 +41,10 @@ export default async function testStockage() {
   egal(relu.runes.length, inv.runes.length, 'runes identiques');
   egal(relu.exportedAt, 1786261890000, "date d'export conservée");
   egal(relu.schema, ACCOUNT_SCHEMA, 'schéma estampillé');
+  // ⚠️ Les decks ne vivent QUE dans l'export brut, jamais conservé : sans cette
+  // liste au stockage, le filtre « Runes utilisées » s'éteindrait à chaque
+  // rechargement d'un compte conservé.
+  egal(relu.usedRuneIds, compte.usedRuneIds, 'runes utilisées conservées');
 
   // ⚠️ Le structured clone doit rendre des objets INDÉPENDANTS : muter ce qu'on
   // relit ne doit pas contaminer ce qui est en mémoire ailleurs dans l'app.

@@ -303,6 +303,33 @@ l'efficience est notre mesure, le slot sert au repérage.
 - Un tri **mémorisé qui n'existe plus** retombe sur le défaut : sans ce
   garde-fou, le comparateur serait `undefined` et la page blanche.
 
+#### Le SENS du tri — un axe à part, un bouton
+
+Un bouton collé au sélecteur retourne le classement
+([BoutonSensTri](src/components/BoutonSensTri.tsx), `SensTri` dans
+[tri.ts](src/lib/tri.ts)). Il vaut pour le **critère courant, quel qu'il soit**.
+
+- ⚠️ **Un AXE, pas deux entrées de plus par critère.** Doubler la liste
+  déroulante (« Score ↓ », « Score ↑ »…) l'aurait allongée de neuf entrées, sans
+  que rien ne dise que ce sont les mêmes classements à l'envers.
+- ⚠️ **Décroissant par défaut**, partout : une liste d'inventaire répond d'abord
+  à « qu'est-ce que j'ai de mieux ? ». L'ordre inverse sert une question précise
+  (« qu'est-ce que je peux nourrir ? »), qu'on pose en la demandant.
+- ⚠️ **L'ABSENCE reste en queue dans les DEUX sens.** Une rune qui ne porte pas
+  la propriété triée n'est pas une petite valeur : la remonter en tête là où l'on
+  cherche justement les plus faibles serait un contresens. C'est pourquoi le sens
+  est passé **dans** `comparateurRunes` plutôt qu'appliqué de l'extérieur
+  (`-cmp(a, b)`), ce qui aurait retourné cette règle avec le reste. Épinglé par
+  [rune-tri.test.ts](tests/rune-tri.test.ts).
+- L'icône dit l'**état courant** (flèche vers le bas = du plus grand au plus
+  petit), comme un tableur ; le `title` annonce l'action.
+- ⚠️ **Dans le panneau mobile, il reste À CÔTÉ du sélecteur** : tout y prend la
+  largeur, ce qui l'aurait renvoyé seul à la ligne suivante. Une règle dédiée
+  rend la largeur au sélecteur et laisse le bouton à sa taille (voir
+  `index.css`, `[data-tri-bloc] select`).
+- Le même bouton sert à l'**Optimisation** et à la **liste d'artéfacts** (voir
+  [artefacts.md](artefacts.md)) : un seul geste à apprendre.
+
 ### Filtre par propriété secondaire — ⚠️ la MODALE du jeu
 
 Le jeu pose la question dans l'autre sens que quatre menus déroulants : au lieu
@@ -905,34 +932,86 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
   [HelpPopover](src/components/HelpPopover.tsx) (bulle à la souris, **panneau
   montant** au doigt), voir l'onglet Courbes § « L'aide a DEUX supports ». Elle
   détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce qu'il
-  mesure et sa reconversion), **les icônes marteau/gemme** du plan, et le filtre
-  de réserve.
+  mesure et sa reconversion), **les icônes marteau/gemme** du plan, le filtre
+  de réserve, **« Sans les immémoriaux »** et **« Runes utilisées »**.
 
-#### ⚠️ Le panneau « Options » (mobile) ne prend que quatre contrôles
+#### ⚠️ Le panneau « Options » (mobile) ne prend que six contrôles
 
 Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
 téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
 **grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
-quatre** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
-**filtre antique** et **« Faisable avec ma réserve »**. **Sets, slot, tri et
-l'aide restent dans la page**, à tous les formats.
+six** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
+**filtre antique**, **« Faisable avec ma réserve »**, **« Sans les
+immémoriaux »** et **« Runes utilisées »**. **Sets, slot, tri et l'aide restent
+dans la page**, à tous les formats.
 
-- Les quatre sont écrits **une fois** (`optionsControls`) et posés à deux
+- ⚠️ **Au bureau, le groupe en ligne passe à la ligne tout seul**
+  (`lg:flex-wrap`). Il est **un seul élément** de la rangée de filtres : sans
+  retour à la ligne interne, il ne peut pas se réduire sous la largeur cumulée
+  de ses six contrôles, et c'est la **page** qui déborde par la droite — la
+  rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Constaté au
+  sixième contrôle, sur un écran de bureau ordinaire.
+- Les six sont écrits **une fois** (`optionsControls`) et posés à deux
   endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
   doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
   largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
-- ⚠️ **Dans le panneau, tout occupe la largeur — le bouton « Faisable » aussi.**
-  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve » prend
-  donc lui aussi toute la colonne (`pleineLargeur={large}`), sinon il pendait
-  seul, à la largeur de son texte, sous des contrôles pleins. En ligne au bureau
-  (`large` faux) il reste serré.
+- ⚠️ **Dans le panneau, tout occupe la largeur — les trois boutons aussi.**
+  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve »,
+  « Sans les immémoriaux » et « Runes utilisées » prennent donc eux aussi toute la colonne
+  (`pleineLargeur={large}`), sinon ils pendaient seuls, à la largeur de leur
+  texte, sous des contrôles pleins. En ligne au bureau (`large` faux) ils
+  restent serrés.
 - ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
   crans se partagent la largeur à égalité et « Antiques uniquement » débordait
   son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
   active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
   voir [AncientFilter](src/components/account/AncientFilter.tsx).
-- ⚠️ Au **bureau, rien ne change** : les quatre restent visibles dans la rangée
+- ⚠️ Au **bureau, rien ne change** : les six restent visibles dans la rangée
   de filtres. Le panneau n'existe que sous `lg`.
+
+### « Runes utilisées » — le filtre qui regarde les decks
+
+Un compte de 3 000 runes n'en fait jouer qu'un tiers ; les autres dorment dans le
+sac. Améliorer l'une d'elles ne change **aucun combat**. Ce bouton restreint la
+liste aux runes **qui jouent**.
+
+⚠️ **Un filtre, pas un onglet** — même règle que « Faisable avec ma réserve »
+ci-dessous : potentiels, gains et tris restent exactement les mêmes.
+
+**Est utilisée** une rune posée sur un monstre présent :
+
+- dans un **deck enregistré**, `deck_list` **tous `deck_type` confondus** —
+  arène, donjons, ToA, labyrinthe, attaques de siège… ⚠️ **Aucune liste blanche
+  de contenus** : Com2uS en ajoute, et un type oublié ferait passer des runes qui
+  jouent pour des runes qui dorment. Sur un export réel, 19 types différents.
+- dans une **défense de siège** (`guildsiege_defense_deck_*`) ;
+- dans une **défense d'arène** — `defense_deck_info` (arène) et
+  `server_arena_defense_deck_info` (arène de serveur), qui ne sont **pas** dans
+  `deck_list`. ⚠️ Les deux n'ont pas la même forme d'`unit_id_list` : ids nus
+  d'un côté, `{ unit_id, pos_id }` de l'autre.
+- dans un **preset RTA** (`world_arena_rune_equip_list`).
+
+⚠️ **« Utilisée » ≠ « équipée ».** Les presets (RTA, siège, arène, decks) ne
+déplacent rien en jeu : une rune de l'**inventaire** peut très bien jouer en RTA,
+et une rune posée sur un monstre qui ne joue nulle part ne joue pas. Se fier au
+seul `occupied_id` aurait raté les deux cas. Pour un monstre d'un deck **sans
+preset**, ce sont ses runes **actuellement portées** qui comptent : c'est avec
+elles qu'il combat.
+
+- Extraction : `parseUsedRuneIds` dans
+  [importAccount.ts](src/lib/importAccount.ts) → une liste de `rune_id` triée.
+- ⚠️ **Conservée dans IndexedDB** (`usedRuneIds`, `ACCOUNT_SCHEMA` 4) : les decks
+  ne vivent que dans l'**export brut**, jamais stocké (5 à 8 Mo). Sans ça le
+  filtre s'éteindrait à chaque rechargement d'un compte conservé.
+- **Désactivé sans decks lus** (compte conservé sous un schéma antérieur, export
+  sans aucun deck), avec l'explication en infobulle — même règle que le filtre de
+  réserve : un bouton grisé qui dit pourquoi vaut mieux qu'une liste vidée sans
+  raison.
+- Le compteur rappelle le filtre actif (« · utilisées ») et le message de liste
+  vide propose de le désactiver.
+- Il **se cumule** avec tous les autres (palier, sets, slot, antiques, réserve) :
+  « ce que je peux améliorer ce soir, sur des runes qui jouent » est justement la
+  question qu'on pose le plus souvent.
 
 ### « Faisable avec ma réserve » — le filtre qui regarde le sac
 
@@ -980,6 +1059,34 @@ sets, antique et normal étanches) : [crafts.ts](src/lib/crafts.ts).
 sont toutes deux annoncées faisables — ce qui est vrai de chacune. Compter les
 quantités répondrait à une autre question (« que farmer pour toutes les faire »),
 et c'est le sujet des onglets Meules et Gemmes.
+
+#### « Sans les immémoriaux » — garder la pièce rare de côté
+
+Une gemme ou une meule **immémoriale** va sur **n'importe quel set** : c'est le
+consommable le plus rare du compte, celui qu'on garde pour la rune qui le
+méritera. Tant qu'il entre dans la réserve, une rune annoncée « faisable » peut
+ne l'être **qu'au prix de cette pièce-là**, sans que rien ne le dise. Ce bouton
+retire ces lignes et répond donc à : *« et sans y toucher, qu'est-ce qui reste
+faisable ? »*.
+
+- ⚠️ **Un filtre de la RÉSERVE, pas du calcul.** Les lignes `setKey === null`
+  sont écartées **en amont de `buildCraftStock`**, plutôt que d'ajouter un
+  paramètre à `ownsCraft`/`pickCraft`. Une réserve sans immémoriaux **est** une
+  réserve : la même règle de choix s'y applique, et il ne doit pas exister deux
+  façons de décider ce qui est disponible — c'est déjà la raison d'être de
+  `pickCraft` (voir [crafts.ts](src/lib/crafts.ts)).
+- ⚠️ **Il agit même si « Faisable avec ma réserve » est éteint** : le marquage
+  vert/grisé des marteaux et des gemmes du plan lit la **même** réserve. Le
+  bouton n'est donc pas asservi au précédent — il n'est grisé que si aucune
+  réserve n'a été lue.
+- ⚠️ **Le bouton « Faisable » distingue deux causes de grisement** : réserve
+  jamais lue (« réimporte ton compte ») et réserve **vidée par ce filtre-ci**.
+  Sans la nuance, il accusait l'import d'un choix fait à l'écran deux secondes
+  plus tôt.
+- Le compteur ajoute « · sans immémoriaux » **quand le filtre de réserve est
+  actif** — c'est là seulement que le nombre de runes change.
+- ⚠️ Aucun immémorial **antique** n'existe dans les données observées : le filtre
+  ne change donc jamais rien pour une rune antique.
 
 #### ⚠️ Le filtre change AUSSI le calcul — `noDowngrade`
 

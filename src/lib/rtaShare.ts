@@ -23,6 +23,7 @@ import {
   ElementKey,
   Monster,
   GearSet,
+  RelicUnique,
 } from '../types';
 import { RtaCategory } from '../hooks/useRtaCategories';
 
@@ -507,6 +508,29 @@ function cleanEffect(raw: unknown): { code: number; value: number; grind?: numbe
   };
 }
 
+// Propriété unique d'une relique reçue d'un tiers.
+//
+// ⚠️ **Deux formes acceptées.** Les fichiers exportés jusqu'ici portaient
+// `relic.sub = { code, value }` — où `code` était en réalité le TYPE de la
+// relique et `value` la TRANCHE de stat, le pourcentage étant perdu à
+// l'extraction. On les lit encore, sans pourcentage : la tranche seule
+// s'affiche, plutôt qu'un « +0 % » faux. Les fichiers récents portent
+// `relic.unique = { type, tranche, percent }`.
+function cleanRelicUnique(relic: Record<string, unknown> | undefined): RelicUnique | null {
+  if (!relic) return null;
+  const u = relic.unique as Record<string, unknown> | undefined;
+  if (u && typeof u === 'object') {
+    const type = Number(u.type);
+    const tranche = Number(u.tranche);
+    if (!Number.isFinite(type) || !Number.isFinite(tranche) || type <= 0 || tranche <= 0) return null;
+    const percent = Number(u.percent);
+    return { type, tranche, ...(Number.isFinite(percent) && percent > 0 ? { percent } : {}) };
+  }
+  const ancien = cleanEffect(relic.sub);
+  if (!ancien || ancien.code <= 0 || ancien.value <= 0) return null;
+  return { type: ancien.code, tranche: ancien.value };
+}
+
 const nombre = (v: unknown, defaut = 0): number => {
   const n = Number(v);
   return Number.isFinite(n) ? n : defaut;
@@ -578,7 +602,7 @@ function cleanGear(raw: unknown): GearSet | undefined {
     .filter((a): a is NonNullable<typeof a> => !!a);
 
   const relicMain = cleanEffect((o.relic as Record<string, unknown>)?.main);
-  const relicSub = cleanEffect((o.relic as Record<string, unknown>)?.sub);
+  const relicUnique = cleanRelicUnique(o.relic as Record<string, unknown> | undefined);
 
   // Un équipement entièrement vide ne vaut pas la peine d'être transporté :
   // il ferait apparaître un chevron « voir le détail » qui n'ouvre rien.
@@ -588,7 +612,7 @@ function cleanGear(raw: unknown): GearSet | undefined {
     base,
     runes,
     artifacts,
-    ...(relicMain ? { relic: { main: relicMain, ...(relicSub ? { sub: relicSub } : {}) } } : {}),
+    ...(relicMain ? { relic: { main: relicMain, ...(relicUnique ? { unique: relicUnique } : {}) } } : {}),
   } as GearSet;
 }
 

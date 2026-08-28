@@ -53,14 +53,22 @@ export interface StoredAccount {
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
   crafts: CraftLine[]; // meules & gemmes en réserve
+  // Identifiants (`rune_id`) des runes UTILISÉES : posées sur un monstre d'un
+  // deck (tous contenus) ou en RTA — voir `parseUsedRuneIds`.
+  //
+  // ⚠️ Stocké, et pas recalculé au démarrage : les decks vivent dans l'export
+  // brut, qu'on ne conserve jamais (5 à 8 Mo). Sans cette liste, le filtre
+  // « Runes utilisées » se serait éteint à chaque rechargement.
+  usedRuneIds: number[];
 }
 
-// À incrémenter dès qu'un extracteur produit un champ de plus : un compte
-// enregistré sous l'ancien schéma serait incomplet et donnerait des chiffres
-// faux en silence. À la lecture, un schéma différent est **ignoré** — l'app
+// À incrémenter dès qu'un extracteur produit un champ de plus — ou en produit
+// un AUTREMENT : un compte enregistré sous l'ancien schéma serait incomplet, ou
+// mal lu, et donnerait des chiffres faux en silence. (5 : la propriété unique
+// des reliques, qui remplace un `relic.sub` mal modélisé.) À la lecture, un schéma différent est **ignoré** — l'app
 // retombe sur « aucun compte » et invite à réimporter, comme pour les vieux
 // fichiers de recommandation.
-export const ACCOUNT_SCHEMA = 3;
+export const ACCOUNT_SCHEMA = 5;
 
 const DB_NAME = 'sw-forge';
 const DB_VERSION = 1;
@@ -166,6 +174,7 @@ export function loadAccount(): Promise<StoredAccount | null> {
     if (rec.schema !== ACCOUNT_SCHEMA) return null;
     if (!Array.isArray(rec.box) || !Array.isArray(rec.runes) || !Array.isArray(rec.artifacts)) return null;
     if (!Array.isArray(rec.crafts)) return null;
+    if (!Array.isArray(rec.usedRuneIds)) return null;
     return rec;
   });
 }
@@ -175,7 +184,7 @@ export function loadAccount(): Promise<StoredAccount | null> {
 export function saveAccount(
   data: Pick<
     StoredAccount,
-    'box' | 'runes' | 'artifacts' | 'crafts' | 'exportedAt' | 'wizardName'
+    'box' | 'runes' | 'artifacts' | 'crafts' | 'usedRuneIds' | 'exportedAt' | 'wizardName'
   >
 ): Promise<boolean> {
   return enqueue(async () => {
@@ -188,6 +197,7 @@ export function saveAccount(
       runes: data.runes,
       artifacts: data.artifacts,
       crafts: data.crafts,
+      usedRuneIds: data.usedRuneIds,
     };
     // `put` sur une clé fixe : un nouvel import remplace, il ne s'ajoute pas.
     const res = await tx<IDBValidKey>('readwrite', (s) => s.put(rec, KEY));

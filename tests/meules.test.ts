@@ -98,6 +98,27 @@ export default function testMeules() {
     !q({ kind: 'gem', setKey: 'swift', stat: 8, grade: 5, ancient: false }),
     'un consommable antique ne va pas sur une rune normale'
   );
+
+  // ⚠️ Le filtre « Sans les immémoriaux » de l'Optimisation ne touche NI
+  // `ownsCraft` NI `pickCraft` : il retire les lignes `setKey === null` en amont
+  // de `buildCraftStock` (voir RunesOptim). Ce qui suit vérifie que retirer les
+  // lignes suffit — sinon le filtre mentirait en laissant passer une rune que
+  // seul un immémorial rendait faisable.
+  const sansImmemoriaux = stock(
+    [
+      { kind: 'grind', setKey: 'violent', stat: 8, grade: 4 },
+      { kind: 'grind', setKey: null, stat: 4, grade: 5 },
+    ].filter((l) => l.setKey !== null)
+  );
+  ok(
+    ownsCraft(sansImmemoriaux, { kind: 'grind', setKey: 'violent', stat: 8, grade: 4, ancient: false }),
+    'réserve sans immémoriaux : le stock du set reste disponible'
+  );
+  ok(
+    !ownsCraft(sansImmemoriaux, { kind: 'grind', setKey: 'nemesis', stat: 4, grade: 5, ancient: false }),
+    'réserve sans immémoriaux : ce que seul un immémorial couvrait ne l’est plus'
+  );
+  egal(sansImmemoriaux.total, 1, 'réserve sans immémoriaux : le total suit, il ne les compte plus');
   ok(q({ kind: 'gem', setKey: 'swift', stat: 8, grade: 5, ancient: true }), 'et va bien sur une antique');
 
   egal(craftLabel({ kind: 'grind', stat: 8 }), 'meule VIT', 'le manque se lit sans décoder un code');

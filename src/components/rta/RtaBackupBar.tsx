@@ -4,10 +4,6 @@ import {
   RotateCcw,
   Upload,
   Download,
-  Users,
-  AlertTriangle,
-  XCircle,
-  X,
   Eye,
   EyeOff,
   Gauge,
@@ -25,13 +21,12 @@ import {
   ImportReport,
   NiveauPartage,
   RtaSnapshot,
-  RtaVueAmi,
   toSnapshot,
   validateRtaImport,
-  versVueAmi,
 } from '../../lib/rtaShare';
+import RtaValidationReport from './RtaValidationReport';
 import { ConfirmDialog, Modale } from '../../ui/Dialogs';
-import { Bouton, BoutonIcone, Option } from '../../ui';
+import { Bouton, Option } from '../../ui';
 
 /* --------------------------------------------------------------------------
  * Sauvegarder · Reprendre · Réinitialiser · Exporter · Importer
@@ -43,10 +38,11 @@ import { Bouton, BoutonIcone, Option } from '../../ui';
  * classement sans risquer celui qui marchait. Le libellé et l'infobulle le
  * disent, sinon on croit que sans lui tout est perdu, ce qui est faux.
  *
- * ⚠️ **Consulter n'est pas importer.** La prépa d'un ami s'ouvre EN LECTURE, à
- * côté de la sienne : elle ne remplace rien, ne se compare à rien, et n'entre
- * jamais dans l'état local. C'est ce qui permet de l'ouvrir sans confirmation —
- * il n'y a rien à perdre. Voir RtaFriendView.tsx.
+ * ⚠️ **Consulter n'est pas importer, et ce n'est plus ici.** Ouvrir la prépa
+ * d'un ami a désormais son propre écran (`#/rta/ami`, RtaAmiSection.tsx) : elle
+ * ne remplace rien et n'entre jamais dans l'état local, là où « Importer »
+ * ci-dessous REMPLACE la prépa courante. Les deux boutons lisaient le même
+ * format de fichier côte à côte, et il fallait deviner lequel touchait à quoi.
  *
  * ⚠️ **Trois points de retour, trois portées différentes** :
  *
@@ -66,13 +62,7 @@ interface Props {
   cats: UseRtaCategories;
   backup: UseRtaBackup;
   monsters: Monster[];
-  /** Remonte la prépa consultée : elle s'affiche sous la page, pas ici. */
-  onConsulter: (vue: RtaVueAmi) => void;
-  /**
-   * Recrée un monstre perso à la reprise d'une prépa. ⚠️ Utilisé par « Importer »
-   * seulement : la consultation, elle, se contente d'afficher ceux du fichier
-   * sans rien créer chez le lecteur.
-   */
+  /** Recrée un monstre perso à la reprise d'une prépa. */
   onCreateMonster: (
     name: string,
     element: ElementKey,
@@ -107,7 +97,7 @@ function depuis(iso: string): string {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-// Réglages communs aux six actions de cette barre.
+// Réglages communs aux cinq actions de cette barre.
 //
 // ⚠️ Un PRÉRÉGLAGE, pas un style : ce sont les axes de
 // [Bouton](../../ui/Bouton.tsx) fixés une fois pour six boutons qui doivent
@@ -137,7 +127,6 @@ export default function RtaBackupBar({
   cats,
   backup,
   monsters,
-  onConsulter,
   onCreateMonster,
 }: Props) {
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
@@ -155,10 +144,6 @@ export default function RtaBackupBar({
     perso: number; // monstres perso qui seront recréés
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  // ⚠️ Le MÊME fichier se lit de deux façons : consulté ou repris. L'intention
-  // ne se devine pas, elle est déclarée par le bouton cliqué — mémorisée ici le
-  // temps que le sélecteur de fichier rende la main.
-  const modeRef = useRef<'consulter' | 'importer'>('consulter');
 
   // Message éphémère (même convention que l'import de compte).
   useEffect(() => {
@@ -253,10 +238,10 @@ export default function RtaBackupBar({
     });
   }
 
-  // Un seul lecteur de fichier pour les deux boutons — même format, même
-  // validation. Seul diffère ce qu'on fait du résultat.
+  // Lecture d'un fichier de prépa à REPRENDRE. ⚠️ La lecture d'une prépa d'ami
+  // n'est plus ici : elle a son écran (RtaAmiSection.tsx). Le validateur, lui,
+  // reste commun aux deux — c'est le même format.
   function lireFichier(text: string) {
-    const mode = modeRef.current;
     const rep = validateRtaImport(text);
     setReport(rep);
     if (!rep.snapshot) return; // erreurs bloquantes : rien à faire
@@ -264,46 +249,14 @@ export default function RtaBackupBar({
     // ⚠️ Compté SANS `creerPerso` : appeler `appliquer` ici puis à la
     // confirmation créerait chaque monstre perso deux fois. La création est
     // différée au moment où l'utilisateur valide.
-    const inconnus =
-      mode === 'consulter'
-        ? versVueAmi(rep.snapshot, monsterByCom2us).inconnus
-        : appliquer(rep.snapshot, monsterByCom2us, rta.state).inconnus;
-
+    const { inconnus } = appliquer(rep.snapshot, monsterByCom2us, rta.state);
     if (inconnus.length > 0) {
       rep.warnings.push(
         `${inconnus.length} monstre(s) absent(s) des données chargées (id ${inconnus
           .slice(0, 5)
-          .join(', ')}${inconnus.length > 5 ? '…' : ''}) : ${
-          mode === 'consulter' ? 'non affichés' : 'non repris'
-        }.`
+          .join(', ')}${inconnus.length > 5 ? '…' : ''}) : non repris.`
       );
       setReport({ ...rep });
-    }
-
-    if (mode === 'consulter') {
-      // ⚠️ Rien n'entre dans la prépa locale : il n'y a rien à perdre, donc rien
-      // à confirmer.
-      const vue = versVueAmi(rep.snapshot, monsterByCom2us);
-      if (vue.entries.length === 0) {
-        setMsg({
-          text: "Aucun monstre de ce fichier n'existe dans les données chargées.",
-          error: true,
-        });
-        return;
-      }
-      onConsulter(vue);
-      const auteur = vue.auteur ? ` de ${vue.auteur}` : '';
-      const contenu: Record<NiveauPartage, string> = {
-        complet: ', runes incluses',
-        vitesses: ', ordre de tour et sets',
-        ordre: ', ordre de tour seul',
-      };
-      setMsg({
-        text: `Prépa${auteur} ouverte en consultation · ${vue.entries.length} monstre(s)${
-          contenu[vue.niveau]
-        }. Ta prépa n'a pas bougé.`,
-      });
-      return;
     }
 
     // Reprise d'une prépa : elle REMPLACE la sienne (il n'y en a qu'une), donc
@@ -325,8 +278,7 @@ export default function RtaBackupBar({
     });
   }
 
-  function ouvrirFichier(mode: 'consulter' | 'importer') {
-    modeRef.current = mode;
+  function ouvrirFichier() {
     fileRef.current?.click();
   }
 
@@ -446,25 +398,11 @@ export default function RtaBackupBar({
             alors que l'utilisateur le sait déjà en cliquant. */}
         <Bouton
           {...ACTION}
-          onClick={() => ouvrirFichier('importer')}
+          onClick={ouvrirFichier}
           aria-label="Importer"
           icone={<Download size={14} />}
           libelle="Importer"
           title="Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne."
-        />
-
-        {/* ⚠️ **« Ami » et rien d'autre.** Le libellé complet — « Consulter
-            celle d'un ami » — fait à lui seul près de la moitié d'une largeur de
-            téléphone : dans la grille du panneau il passait sur trois lignes et
-            déformait toute la rangée. Le sens tient dans le mot ; l'infobulle et
-            `aria-label` portent la phrase entière. */}
-        <Bouton
-          {...ACTION}
-          onClick={() => ouvrirFichier('consulter')}
-          aria-label="Consulter la prépa d'un ami"
-          icone={<Users size={14} />}
-          libelle="Ami"
-          title="Ouvrir la prépa d'un ami en lecture (fichier .json). Ta prépa n'est pas touchée."
         />
       </div>
       </div>
@@ -508,7 +446,7 @@ export default function RtaBackupBar({
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
-        <ValidationReport report={report} onClose={() => setReport(null)} />
+        <RtaValidationReport report={report} onClose={() => setReport(null)} />
       )}
 
       {/* Écraser un point existant : c'est une perte, donc on confirme. */}
@@ -626,8 +564,8 @@ export default function RtaBackupBar({
                   est le dernier endroit où le dire — après, c'est remplacé. */}
               <br />
               <span className="text-ink-dim">
-                Pour seulement la regarder sans rien changer, annule et utilise « Consulter celle
-                d'un ami ».
+                Pour seulement la regarder sans rien changer, annule et ouvre-la depuis
+                « RTA · Ami ».
               </span>
             </>
           }
@@ -798,54 +736,3 @@ function ChoixExport({
   );
 }
 
-// Rapport de validation du dernier import. Reste affiché jusqu'à fermeture :
-// contrairement au message de succès, il y a quelque chose à LIRE.
-function ValidationReport({ report, onClose }: { report: ImportReport; onClose: () => void }) {
-  const bloque = report.errors.length > 0;
-  return (
-    <div
-      className={`mt-2 rounded-xl border px-3 py-2.5 ${
-        bloque ? 'border-fire/50 bg-fire/5' : 'border-warn/40 bg-warn/5'
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-1.5">
-        {bloque ? (
-          <XCircle size={15} className="flex-none text-fire" />
-        ) : (
-          <AlertTriangle size={15} className="flex-none text-warn" />
-        )}
-        <span className={`text-xs font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
-          {bloque
-            ? "Import refusé — le contenu n'est pas valide"
-            : `Lu avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
-        </span>
-        <BoutonIcone
-          onClick={onClose}
-          libelle="Fermer le rapport"
-          icone={<X size={14} />}
-          className="ml-auto"
-        />
-      </div>
-
-      <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">
-        {report.errors.map((e, i) => (
-          <li key={`e${i}`} className="text-xs text-fire leading-snug">
-            • {e}
-          </li>
-        ))}
-        {report.warnings.map((w, i) => (
-          <li key={`w${i}`} className="text-xs text-warn/90 leading-snug">
-            • {w}
-          </li>
-        ))}
-      </ul>
-
-      {!bloque && (
-        <p className="mt-1.5 font-mono text-micro text-ink-dim">
-          {report.counts.monstres} monstre(s) · {report.counts.avecRunes} avec runes ·{' '}
-          {report.counts.categories} catégorie(s) lus.
-        </p>
-      )}
-    </div>
-  );
-}

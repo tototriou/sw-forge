@@ -1,10 +1,17 @@
 # RTA · Point de sauvegarde & partage de prépa
 
-Six boutons sous la barre d'actions : **Sauvegarder · Reprendre ·
-Réinitialiser · Exporter · Importer · Consulter celle d'un ami**.
+Cinq boutons sous la barre d'actions de **Ma prépa** : **Sauvegarder ·
+Reprendre · Réinitialiser · Exporter · Importer**.
+
+⚠️ **Consulter la prépa d'un ami n'est plus un de ces boutons** : c'est un
+sous-onglet à part, `#/rta/ami` — voir « La consultation » plus bas et
+[README.md](README.md).
 
 Fichiers : [RtaBackupBar.tsx](src/components/rta/RtaBackupBar.tsx) ·
-[RtaFriendView.tsx](src/components/rta/RtaFriendView.tsx) (la consultation) ·
+[RtaAmiSection.tsx](src/components/rta/RtaAmiSection.tsx) (l'écran de
+consultation) · [RtaFriendView.tsx](src/components/rta/RtaFriendView.tsx) (la
+prépa lue) · [RtaValidationReport.tsx](src/components/rta/RtaValidationReport.tsx)
+(le rapport de lecture, **partagé** par les deux) ·
 [useRtaBackup.ts](src/hooks/useRtaBackup.ts) (le point local) ·
 [rtaShare.ts](src/lib/rtaShare.ts) (format, validation, traduction d'ids) ·
 [rta-partage.test.ts](tests/rta-partage.test.ts).
@@ -115,33 +122,82 @@ Conséquences :
   de monstres perso du lecteur — la confirmation l'annonce, et la création n'a
   lieu **qu'à la validation** : annuler ne laisse rien derrière soi.
 
-### ⚠️ Deux boutons, parce que ce sont deux intentions
+### ⚠️ Deux ÉCRANS, parce que ce sont deux intentions
 
 Le fichier `.json` sert **deux usages** que rien ne distingue dans son contenu :
 
-| Bouton | Intention | Effet |
-|--------|-----------|-------|
-| **Importer** | reprendre une prépa **à moi** — une archive, un autre navigateur, une sauvegarde d'il y a six mois | **remplace** ma prépa (avec confirmation) |
-| **Consulter celle d'un ami** | regarder la prépa **de quelqu'un d'autre** | **n'y touche pas**, ouvre un panneau en lecture |
+| Où | Intention | Effet |
+|----|-----------|-------|
+| **Importer** (Ma prépa) | reprendre une prépa **à moi** — une archive, un autre navigateur, une sauvegarde d'il y a six mois | **remplace** ma prépa (avec confirmation) |
+| **Onglet Ami** (`#/rta/ami`) | regarder la prépa **de quelqu'un d'autre** | **n'y touche pas**, lecture seule |
 
 ⚠️ **L'intention ne se devine pas depuis le fichier** — elle est *déclarée* par
-le bouton cliqué. Un bouton unique obligerait à demander « et maintenant, j'en
-fais quoi ? » après lecture, alors que l'utilisateur le sait déjà en cliquant.
+l'endroit où on l'ouvre. Un point d'entrée unique obligerait à demander « et
+maintenant, j'en fais quoi ? » après lecture, alors que l'utilisateur le sait
+déjà avant de cliquer.
+
+⚠️ **Les deux boutons étaient côte à côte**, dans la même rangée, à lire le même
+format : rien ne disait lequel touchait à ma prépa. Séparer les intentions par
+l'ÉCRAN, et non par deux boutons voisins, est ce qui les distingue vraiment —
+« Importer » vit avec les gestes qui modifient ma prépa, la consultation avec ce
+qui ne la modifie pas.
 
 Une version intermédiaire n'offrait que la consultation : elle rendait impossible
 de **reprendre sa propre sauvegarde**, ce à quoi l'export sert tout autant qu'au
 partage.
 
+### ⚠️ L'onglet Ami accepte DEUX fichiers
+
+C'est le **fichier qui décide**, pas un sélecteur de plus : l'utilisateur sait
+quel fichier il ouvre, pas comment il est fait.
+
+| Fichier | Reconnu à | Ce qu'on en tire |
+|---|---|---|
+| **Export de prépa** (bouton « Exporter ») | `format: "sw-forge/prepa-rta"` | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
+| **Export SWEX complet** du compte | son `unit_list` | sa **box RTA**, pré-classée par set — niveau `complet` |
+
+⚠️ **Tout le monde n'a pas SW Forge.** Demander à un ami de l'installer et d'y
+ranger sa prépa pour qu'on puisse la regarder, c'est demander beaucoup ; son
+export SWEX, lui, existe déjà.
+
+- ⚠️ **Le MÊME chemin que son propre import** (`parseAccountJson` →
+  `mapRtaItems`, dans `mapRtaVueAmi`) : vitesses Swift comprises, meilleur
+  exemplaire retenu, pré-classement par set, « Non classé » sous 6 runes. Une
+  seconde façon de lire une box RTA aurait donné **deux prépas différentes pour
+  un même fichier** selon qu'on l'importe ou qu'on le consulte, et personne
+  n'aurait su laquelle croire.
+- L'auteur affiché est le **nom du joueur** (`wizard_name`).
+- Les monstres absents des données chargées sont **annoncés**, jamais avalés.
+- ⚠️ **Rien du compte lu ne sort de la RTA, et rien n'est conservé** : on en
+  extrait la box RTA, en mémoire, et le reste du fichier est jeté avec lui. Même
+  règle que le compte d'un ami dans la comparaison de courbes de runes — on ne
+  stocke **jamais** le compte de quelqu'un d'autre.
+- Un export de compte ne produit **pas** de rapport de validation : il n'y a rien
+  à corriger dans un fichier que le jeu a écrit. Le rapport reste pour les
+  fichiers de prépa, qui eux se bricolent à la main.
+
 ### La consultation
 
-Elle s'ouvre **en lecture, à côté de la sienne**
+Elle a son **sous-onglet** (`#/rta/ami`,
+[RtaAmiSection](src/components/rta/RtaAmiSection.tsx)), qui porte le bouton
+d'ouverture du fichier et affiche la prépa lue
 ([RtaFriendView](src/components/rta/RtaFriendView.tsx)) :
 
 - rien n'entre dans l'état local — **aucune confirmation** n'est nécessaire,
   puisqu'il n'y a rien à perdre ;
-- l'état vit dans la **page**, non persisté : c'est une lecture de passage.
-  La conserver d'une session à l'autre laisserait la prépa de quelqu'un d'autre à
-  l'écran sans qu'on sache d'où elle vient ;
+- ⚠️ **Un écran, plus un panneau au-dessus de sa prépa.** Elle s'affichait EN
+  TÊTE de sa propre prépa : deux prépas dans la même page, dont celle du haut
+  n'était pas la sienne, et un écran qui doublait de longueur sans prévenir ;
+- **écran vide parlant** tant qu'aucun fichier n'est ouvert : il dit d'où vient
+  le fichier (« Exporter », chez l'ami) et ce qu'on y verra — pas une page
+  blanche ;
+- le bouton reste **le même une fois une prépa ouverte**, seul son libellé change
+  (« Ouvrir une autre prépa ») : en comparer deux est le geste courant, obliger à
+  fermer d'abord ajouterait un clic sans rien protéger ;
+- l'état vit dans la **page**, en mémoire, **jamais sur le disque**
+  (`useStickyState`) : c'est la prépa de quelqu'un d'autre. Elle survit en
+  revanche à la navigation — depuis qu'elle a son onglet, aller vérifier une
+  vitesse sur sa prépa puis revenir ne doit pas obliger à rouvrir le fichier ;
 - les cartes sont **inertes** : ni poignée de glisser-déposer, ni croix, ni
   sélecteur de section — aucun de ces gestes n'a de sens sur la prépa d'autrui.
 
@@ -155,6 +211,17 @@ rappelle que « Consulter » existe si l'intention était seulement de regarder.
 Conformément à la règle générale (voir [../README.md](../README.md)), le défaut
 ne perd rien : « Annuler » est le bouton mis en avant, l'action porte la couleur
 d'alerte.
+
+#### La relique dans un fichier partagé
+
+Le fichier transporte la **propriété unique** de la relique
+(`relic.unique = { type, tranche, percent }`, voir
+[../compte/calcul-runes.md](../compte/calcul-runes.md)).
+
+⚠️ **Les fichiers antérieurs portent `relic.sub = { code, value }`** — en réalité
+le *type* et la *tranche*, le pourcentage n'ayant jamais été extrait. Ils sont
+**relus**, pas jetés : la formule s'affiche alors sans le « +x % », ce qui reste
+vrai. On n'invente pas un pourcentage pour combler le trou.
 
 #### ⚠️ Mon équipement actuel prime sur celui du fichier
 

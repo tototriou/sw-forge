@@ -58,6 +58,63 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.11.0',
+    date: '2026-08-28',
+    title: 'Ne travaille que les runes qui jouent',
+    highlights: [
+      'Deux filtres dans l’optimisation : « Runes utilisées » et « Sans les immémoriaux »',
+      'La prépa d’un ami a son propre onglet, et lit aussi un export SWEX complet',
+      'Le tri de tes listes se retourne d’un bouton',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Nouveau filtre « Runes utilisées » : n’affiche que les runes posées sur un monstre qui joue.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Tous tes contenus comptent : decks d’arène, de donjons, de ToA, de siège, et tes presets RTA.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Nouveau filtre « Sans les immémoriaux » : vois ce qui reste faisable sans dépenser tes pièces rares.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'La prépa d’un ami a son propre onglet : elle ne s’empile plus au-dessus de la tienne.',
+      },
+      {
+        kind: 'feat',
+        scope: 'RTA',
+        text: 'Un ami sans SW Forge ? Ouvre son export SWEX complet : sa box RTA s’affiche pareil.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'La propriété unique d’une relique s’affiche enfin en toutes lettres, au lieu d’un nombre nu.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Un bouton retourne le tri de tes listes de runes et d’artéfacts : les moins bonnes d’abord.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'Les stats d’une reco sont celles de la fiche, runes posées : le total ne gonfle plus du totem et du lead.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Paramètres',
+        text: 'Recliquer sur ⚙ referme les paramètres et te ramène à l’écran d’où tu venais.',
+      },
+    ],
+  },
+  {
     version: '1.10.0',
     date: '2026-08-28',
     title: 'Speed tuning : sais qui joue avant qui, tick par tick',

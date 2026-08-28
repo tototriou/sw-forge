@@ -16,8 +16,9 @@ import RtaSection from '../components/rta/RtaSection';
 import CategoryBar from '../components/rta/CategoryBar';
 import RtaBackupBar from '../components/rta/RtaBackupBar';
 import MobileSheet from '../ui/MobileSheet';
-import RtaFriendView from '../components/rta/RtaFriendView';
+import RtaAmiSection from '../components/rta/RtaAmiSection';
 import { RtaVueAmi } from '../lib/rtaShare';
+import { useStickyState } from '../hooks/useStickyState';
 import { ConfirmDialog } from '../ui/Dialogs';
 import { useRtaCategories } from '../hooks/useRtaCategories';
 import { useRtaBackup } from '../hooks/useRtaBackup';
@@ -29,8 +30,12 @@ import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import { Bouton, Selecteur } from '../ui';
+import type { RtaSub } from '../App';
 
 interface Props {
+  // Sous-onglet courant, déduit du hash (voir App.tsx). « Ma prépa » est la
+  // sienne ; « Ami » consulte celle de quelqu'un d'autre, en lecture.
+  sub: RtaSub;
   rta: UseRtaState;
   monsters: Monster[];
   loadState: LoadState;
@@ -49,6 +54,7 @@ function totalSpeed(it: TurnItem): number | null {
 }
 
 export default function RtaPage({
+  sub,
   rta,
   monsters,
   loadState,
@@ -125,7 +131,12 @@ export default function RtaPage({
   // non persisté : c'est une lecture de passage, pas une donnée de l'utilisateur.
   // La conserver d'une session à l'autre laisserait la prépa de quelqu'un
   // d'autre à l'écran sans qu'on sache d'où elle vient.
-  const [vueAmi, setVueAmi] = useState<RtaVueAmi | null>(null);
+  // ⚠️ **En mémoire, jamais sur le disque** (`useStickyState`) : c'est la prépa
+  // de QUELQU'UN D'AUTRE. La conserver d'une session à l'autre la laisserait à
+  // l'écran sans qu'on sache d'où elle vient. Elle survit en revanche à la
+  // navigation : depuis qu'elle a son propre onglet, aller vérifier une vitesse
+  // sur sa prépa puis revenir ne doit pas obliger à rouvrir le fichier.
+  const [vueAmi, setVueAmi] = useStickyState<RtaVueAmi | null>('rta.ami', null);
   // Monstres réellement présents dans la prépa : ce sont eux qu'on propose dans
   // le panneau d'affectation.
   const pageMonsters = useMemo(
@@ -260,6 +271,22 @@ export default function RtaPage({
     />
   );
 
+  // ⚠️ **Après tous les hooks.** La prépa d'un ami est un ÉCRAN, pas un panneau
+  // posé au-dessus de la sienne : les deux prépas dans la même page doublaient
+  // sa longueur sans prévenir, et celle du haut n'était pas la sienne. La page
+  // reste montée (même route), donc la prépa lue survit à l'aller-retour entre
+  // les deux onglets.
+  if (sub === 'ami') {
+    return (
+      <RtaAmiSection
+        vue={vueAmi}
+        onOuvrir={setVueAmi}
+        onFermer={() => setVueAmi(null)}
+        monsters={monsters}
+      />
+    );
+  }
+
   return (
     <div>
       <div>
@@ -318,7 +345,6 @@ export default function RtaPage({
           cats={cats}
           backup={backup}
           monsters={monsters}
-          onConsulter={setVueAmi}
           onCreateMonster={onCreateMonster}
         />
       </div>
@@ -346,10 +372,6 @@ export default function RtaPage({
               cats={cats}
               backup={backup}
               monsters={monsters}
-              onConsulter={(v) => {
-                setVueAmi(v);
-                onFermerMenu();
-              }}
               onCreateMonster={onCreateMonster}
             />
           </div>
@@ -363,11 +385,6 @@ export default function RtaPage({
           </div>
         )}
       </MobileSheet>
-
-      {/* ⚠️ La prépa consultée s'affiche AVANT la sienne, et encadrée : c'est ce
-          qu'on vient d'ouvrir, on doit la voir sans chercher. Elle se ferme d'un
-          bouton et ne laisse aucune trace. */}
-      {vueAmi && <RtaFriendView vue={vueAmi} onClose={() => setVueAmi(null)} />}
 
       {/* ⚠️ Les catégories descendent AUSSI dans le panneau sous `lg` : deux
           rangées de pastilles plus le bouton de création, soit un tiers d'écran

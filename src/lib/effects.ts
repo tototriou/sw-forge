@@ -1,7 +1,7 @@
 // Mapping des codes d'effets com2us (runes, artéfacts, reliques) → libellés.
 // Aligné sur sw-exporter (app/mapping.js) et vérifié sur des exports réels.
 
-import { ArtifactKind, EffectLine, RuneDetail } from '../types';
+import { ArtifactKind, EffectLine, RelicUnique, RuneDetail } from '../types';
 
 export type StatKey = 'hp' | 'atk' | 'def' | 'spd' | 'cr' | 'cd' | 'res' | 'acc';
 
@@ -110,10 +110,13 @@ export const ARTIFACT_SUB: Record<number, (v: number) => string> = {
 };
 
 // Stat principale de relique (pri_effect) : PV% / ATQ% / DEF%.
+//
+// ⚠️ Le libellé ne porte PAS le « % » : la valeur, elle, s'écrit « +12% ». Le
+// jeu affiche « PV +12% » ; « PV% +12% » doublait le signe.
 export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
-  100: { label: 'PV%', stat: 'hp' },
-  101: { label: 'ATQ%', stat: 'atk' },
-  102: { label: 'DEF%', stat: 'def' },
+  100: { label: 'PV', stat: 'hp' },
+  101: { label: 'ATQ', stat: 'atk' },
+  102: { label: 'DEF', stat: 'def' },
 };
 
 // Rareté → libellé + couleur de texte + fond de bannière (dégradé sombre),
@@ -555,4 +558,106 @@ export function artifactSubsFor(kind: ArtifactKind): { code: number; label: stri
 export function formatRelicMain(e: EffectLine): string {
   const def = RELIC_MAIN[e.code];
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
+}
+
+/* --------------------------------------------------------------------------
+ * Propriétés uniques de relique — les 16 types
+ * -----------------------------------------------------------------------
+ *
+ * ⚠️ **Table OFFICIELLE, pas une déduction.** Com2uS publie les 16 propriétés
+ * exclusives, réparties en 6 groupes selon leur fonction (note de mise à jour
+ * des Reliques, sw.com2us.com). L'ordre du tableau officiel EST la numérotation
+ * du champ `type` de l'export : les six pièces lues en jeu tombent toutes juste,
+ * y compris les deux qui partagent une tranche de 2 500 sur deux stats
+ * différentes (type 1 → ATQ, type 5 → DEF).
+ *
+ *   | Type | Pièce lue en jeu | Vérifie |
+ *   |---|---|---|
+ *   | 1 | +9 Conquête Aiguisé, `sec [1, 1000, 1]` | Conquête · ATQ |
+ *   | 3 | +6 Conquête Robuste, `sec [3, 27000, 1]` | Conquête · max des PV |
+ *   | 5 | Ténacité Inébranlable, `sec [5, 2500, 1]` | Ténacité · DEF |
+ *   | 6 | +7 Ténacité Robuste, `sec [6, 27000, 1]` | Ténacité · max des PV |
+ *   | 7 | +5 Bravoure Agile, `sec [7, 250, 2]` | Bravoure · VIT |
+ *   | 14 | +8 Origine Agile, `sec [14, 200, 2]` | Origine · VIT |
+ *
+ * ⚠️ **Le SENS et la NATURE de l'effet appartiennent au type**, jamais au
+ * fichier : celui-ci écrit `1` pour « +1 % de dégâts infligés » (type 1) comme
+ * pour « −1 % de dégâts reçus » (type 5). Sans cette table, aucun affichage
+ * juste n'était possible — voir spec/compte/calcul-runes.md.
+ *
+ * ⚠️ **La tranche baisse par paliers de 3 niveaux** : 2 500 à +0, 2 000 à +3,
+ * 1 500 à +6, 1 000 à +9, 750 à +12, 500 à +15 (échelle ATQ/DEF ; les échelles
+ * PV et VIT suivent la même courbe à un facteur près). Rien à calculer : le
+ * fichier porte la valeur du moment.
+ * ----------------------------------------------------------------------- */
+
+// La stat de référence, dans les mots du jeu (`phrase`) et en abrégé pour le
+// repli (`court`).
+const R_ATQ = { phrase: "d'ATQ", court: 'ATQ' };
+const R_DEF = { phrase: 'de DEF', court: 'DEF' };
+const R_PV = { phrase: 'du max des PV', court: 'PV' };
+// ⚠️ Le tableau officiel dit « vitesse d'attaque », l'objet en jeu dit « VIT ».
+// C'est l'objet qui fait foi : c'est lui que le joueur a sous les yeux.
+const R_VIT = { phrase: 'de VIT', court: 'VIT' };
+
+type RelicGroupe = (percent: number, tranche: string, stat: string) => string;
+
+// Les six groupes, dans la formulation de la FICHE D'OBJET — relevée sur des
+// pièces réelles pour Conquête, Ténacité, Bravoure et Origine ; Éternité et
+// Régénération suivent le même moule, la fonction venant du tableau officiel.
+//
+// ⚠️ Les crochets sont ceux du jeu : il encadre les gains de stat, pas les
+// modificateurs de dégâts. On recopie, on ne normalise pas.
+const CONQUETE: RelicGroupe = (p, t, s) => `DGTS infligés +${p}% tous les ${t} pts ${s} au début du combat`;
+const TENACITE: RelicGroupe = (p, t, s) => `DGTS reçus -${p}% tous les ${t} pts ${s} au début du combat`;
+const BRAVOURE: RelicGroupe = (p, t, s) => `[ATQ +${p}% tous les ${t} pts ${s}] au début du combat`;
+const ETERNITE: RelicGroupe = (p, t, s) => `[DEF +${p}% tous les ${t} pts ${s}] au début du combat`;
+const ORIGINE: RelicGroupe = (p, t, s) => `[Max des PV +${p}% tous les ${t} pts ${s}] au début du combat`;
+const REGENERATION: RelicGroupe = (p, t, s) =>
+  `[Soins et boucliers accordés +${p}% tous les ${t} pts ${s}] au début du combat`;
+
+export const RELIC_UNIQUE: Record<number, { effet: RelicGroupe; stat: { phrase: string; court: string } }> = {
+  1: { effet: CONQUETE, stat: R_ATQ },
+  2: { effet: CONQUETE, stat: R_DEF },
+  3: { effet: CONQUETE, stat: R_PV },
+  4: { effet: TENACITE, stat: R_ATQ },
+  5: { effet: TENACITE, stat: R_DEF },
+  6: { effet: TENACITE, stat: R_PV },
+  7: { effet: BRAVOURE, stat: R_VIT },
+  8: { effet: BRAVOURE, stat: R_DEF },
+  9: { effet: BRAVOURE, stat: R_PV },
+  10: { effet: ETERNITE, stat: R_ATQ },
+  11: { effet: ETERNITE, stat: R_VIT },
+  12: { effet: ETERNITE, stat: R_PV },
+  13: { effet: ORIGINE, stat: R_ATQ },
+  14: { effet: ORIGINE, stat: R_VIT },
+  15: { effet: ORIGINE, stat: R_DEF },
+  16: { effet: REGENERATION, stat: R_PV },
+};
+
+// Propriété unique d'une relique : la FORMULE, jamais un libellé d'effet.
+//
+// ⚠️ **On n'invente pas ce que l'effet fait.** L'export ne porte qu'un numéro de
+// type, sans aucune table qui dise « type 12 = … ». Une description devinée
+// serait fausse en silence sur un effet de combat — exactement l'erreur que le
+// dépôt s'interdit. Ce qui est CERTAIN, et vérifiable dans le fichier, c'est la
+// mécanique : un pourcentage accordé par tranche de stat (« +1 % par 2 500 »),
+// et c'est cela qu'on affiche.
+//
+// ⚠️ Le pourcentage peut manquer (fichier de prépa exporté par une version
+// antérieure, qui ne transportait que le type et la tranche) : on annonce alors
+// la tranche seule, plutôt qu'un « +0 % » qui serait faux.
+export function formatRelicUnique(u: RelicUnique): string {
+  const nombre = u.tranche.toLocaleString('fr-FR');
+  const def = RELIC_UNIQUE[u.type];
+  // ⚠️ **Sans pourcentage, pas de phrase** — un fichier de prépa partagé par une
+  // version antérieure ne transportait que le type et la tranche. On annonce
+  // alors la tranche et sa stat, plutôt qu'une phrase trouée ou un « +0 % ».
+  // ⚠️ Type inconnu = type AJOUTÉ par une mise à jour du jeu (« d'autres
+  // propriétés pourront être ajoutées ultérieurement », dit la note officielle).
+  // On annonce alors la mécanique sans SIGNE ni stat : les deux appartiennent au
+  // type, et les inventer se tromperait une fois sur deux.
+  if (!def) return u.percent ? `${u.percent}% par tranche de ${nombre}` : `par tranche de ${nombre}`;
+  if (!u.percent) return `par tranche de ${nombre} ${def.stat.court}`;
+  return def.effet(u.percent, nombre, def.stat.phrase);
 }

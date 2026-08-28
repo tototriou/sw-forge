@@ -40,7 +40,7 @@ C'est celui de [README.md](README.md), issu de l'usage : la refonte change la
 **La page ne change qu'au choix d'une destination.** C'est la règle qui
 gouverne les deux gestes de navigation interne :
 
-- **Ouvrir une section** (Siège, Mon compte, Outils) affiche ses sous-sections
+- **Ouvrir une section** (RTA, Siège, Mon compte, Outils) affiche ses sous-sections
   et **ne charge rien**. Cliquer « Siège » ouvrait la page de siège *et* le
   second niveau d'un coup, alors qu'on n'avait pas encore choisi entre Défense,
   Offense et Recommandations.
@@ -210,6 +210,7 @@ endroits où les deux se séparent (voir
 - ⚠️ Sur mobile, à l'inverse, le ⚙ est le **seul accès** aux paramètres : il n'y
   a pas de barre latérale, et aucun des cinq onglets n'y mène. C'est donc la
   déconnexion qui descend, pas lui.
+- ⚠️ **Les deux ⚙ BASCULENT** — voir « Le ⚙ ouvre ET referme » plus bas.
 
 - ⚠️ Sur **mobile**, trois cibles dans 48 px de haut, à côté d'un titre centré
   en absolu, ne laissaient à chacune ni la place ni la marge d'erreur qu'un
@@ -258,8 +259,8 @@ endroits où les deux se séparent (voir
 
 ### ⚠️ Un onglet à sous-sections les FAIT CHOISIR — [MobileNavSheet.tsx](src/components/MobileNavSheet.tsx)
 
-**Toucher « Siège » ou « Compte » n'ouvre pas une page : ça ouvre un panneau où
-l'on choisit la sous-section.** C'est la règle « la barre navigue SEULE » portée
+**Toucher « RTA », « Siège » ou « Compte » n'ouvre pas une page : ça ouvre un
+panneau où l'on choisit la sous-section.** C'est la règle « la barre navigue SEULE » portée
 au tactile — on choisit d'abord **où**, la page ne change qu'ensuite.
 
 Avant, chaque page à sous-sections portait **ses propres rangées d'onglets** sous
@@ -384,6 +385,10 @@ Le reste :
 - ⚠️ **« Outils » OUVRE ses sous-sections** (Optimizer, Speed tuning), comme
   Siège et Compte. Tant qu'il n'y en avait qu'une, il restait un lien direct — un
   panneau pour un seul choix n'ajoutait qu'un geste.
+- ⚠️ **« RTA » aussi, depuis qu'il en a deux** (Ma prépa · Ami). Même règle : la
+  consultation de la prépa d'un ami s'ouvrait par un bouton perdu dans la barre
+  de fichiers de sa propre prépa, et s'affichait par-dessus elle. C'est une
+  destination, elle se choisit comme les autres.
 - ⚠️ **La barre d'onglets RESTE VISIBLE sous le panneau** — l'inverse du panneau
   d'actions, qui la recouvre à dessein (`z-50` contre son `z-40`) parce qu'elle
   mène ailleurs alors qu'on règle la page où l'on est. Ici le panneau **est** la
@@ -538,6 +543,31 @@ Le pied de la barre porte l'avatar et le nom du joueur
 - ⚠️ **Le nom seulement, jamais `wizard_id`** : c'est un numéro de compte, il
   n'apprend rien à qui lit son propre écran.
 
+### ⚠️ Le ⚙ ouvre ET referme — la même bascule aux deux formats
+
+Cliquer le ⚙ ouvre `#/parametres` ; **le recliquer ramène à l'écran d'où l'on
+vient**. Vaut pour le ⚙ de la barre supérieure (mobile) **comme** pour celui du
+pied de la barre latérale (bureau).
+
+- ⚠️ **Un lien ne peut pas défaire ce qu'il vient de faire.** Le ⚙ du bureau
+  était un simple `<a href="#/parametres">` : une fois dans les paramètres, on
+  n'en sortait qu'en **choisissant une autre destination** — or on y était entré
+  pour régler une chose et revenir, pas pour partir ailleurs. Le geste qui ouvre
+  doit pouvoir refermer, exactement comme un onglet mobile qu'on retouche (voir
+  « Un onglet à sous-sections les FAIT CHOISIR »).
+- L'écran de retour est **celui qu'on quittait**, mémorisé au moment d'entrer
+  (`avantParametres` dans [App.tsx](src/App.tsx)) — jamais un `history.back()`,
+  qui rejouerait n'importe quel détour antérieur. Arrivé **directement** sur
+  `#/parametres` (lien, rechargement), le retour se fait sur l'accueil : il n'y
+  a rien d'autre à proposer.
+- ⚠️ **Une seule fonction pour les deux boutons** (`basculerParametres`), pas une
+  logique par barre : c'est ce qui les avait laissés diverger — l'un basculait,
+  l'autre pas.
+- L'engrenage **pivote d'un huitième de tour** quand les paramètres sont ouverts,
+  et le bouton porte `aria-pressed`. Il annonce ainsi qu'il fera l'**inverse** au
+  prochain clic, sans changer d'icône : une croix aurait fait croire à la
+  fermeture de la page entière.
+
 ## Page Paramètres
 
 `#/parametres` — la **même liste** (`SettingsList`) que le popover ⚙, pas une
@@ -686,11 +716,11 @@ ne forment pas une colonne unique. Sur la prépa RTA :
 |--------|-----------------|
 | Création | Créer un monstre |
 | État courant | Sauvegarder · Reprendre · Réinitialiser |
-| Échange de fichier | Exporter · Importer · Ami |
+| Échange de fichier | Exporter · Importer |
 | Organisation | Catégories |
 | *(détaché)* | Tout effacer |
 
-Empilés en une seule colonne, six boutons de nature différente se lisaient comme
+Empilés en une seule colonne, cinq boutons de nature différente se lisaient comme
 une liste indifférenciée où il fallait relire chaque libellé. Groupés, on vise
 la bonne rangée d'abord et le bon bouton ensuite.
 
@@ -723,8 +753,8 @@ groupement par type lisible d'un coup d'œil.
   aux deux tiers vide, ce qui dit justement qu'il n'appartient pas au groupe en
   dessous.
 - **Les rangées SUCCESSIVES d'un même bloc fusionnent** (`data-grille-actions`) :
-  les six boutons de la barre RTA forment une grille unique de six cellules, et
-  non deux grilles de trois. Séparées, celle qui perdait son bouton conditionnel
+  les boutons de la barre RTA forment une grille unique de cellules égales, et
+  non une grille par rangée. Séparées, celle qui perdait son bouton conditionnel
   (« Réinitialiser », absent tant qu'aucun compte n'a été importé) étirait sa
   dernière cellule et plus rien ne s'alignait d'une rangée à l'autre.
 - **Trois colonnes fixes, identiques pour toutes les rangées.** Un
@@ -741,7 +771,7 @@ groupement par type lisible d'un coup d'œil.
   lignes au lieu d'une : l'inverse du but.
 - Une rangée à **un seul bouton est marquée elle aussi** : il occupe UNE cellule,
   pas toute la largeur. Étiré sur trois colonnes, « Créer un monstre » écrasait
-  par sa taille les six boutons en dessous alors qu'il ne vaut pas plus qu'eux.
+  par sa taille les boutons en dessous alors qu'il ne vaut pas plus qu'eux.
 - Le sélecteur vise aussi les boutons **enveloppés** (`> * > button`) :
   `CreateMonster` place le sien dans un `div.relative` qui ancre son popover.
   Sans cela, c'est le div qui remplissait la cellule et le bouton flottait
@@ -755,8 +785,8 @@ DOM : un lecteur d'écran n'a pas la vue d'ensemble qui rend le mot superflu.
 
 ⚠️ **Les libellés longs déclinent une version courte** sous `lg` : un bouton
 dispose d'un tiers de 348 px. « Ajouter une équipe » → « Équipe », « Vérifier mes
-tick ATB » → « Ticks », « Créer une recommandation » → « Créer », « Consulter
-celle d'un ami » → « Ami ». Le sens entier reste dans l'infobulle et dans
+tick ATB » → « Ticks », « Créer une recommandation » → « Créer ». Le sens entier
+reste dans l'infobulle et dans
 `aria-label`, où il ne coûte aucune place. « Créer un monstre » → « Monstre »
 suit la même règle. La règle
 `[data-tiroir] .hidden.lg\:inline { display: none }` empêche que la révélation

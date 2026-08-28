@@ -62,7 +62,7 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 | Écran | Route | Page | Composants propres | Spec |
 |---|---|---|---|---|
 | Accueil | `#/` | `pages/HomePage.tsx` | `ElementIcon`, `data/releases` | `spec/accueil.md` |
-| **RTA** | `#/rta` | `pages/RtaPage.tsx` | tout `components/rta/` | `spec/rta/` |
+| **RTA** | `#/rta`, `#/rta/ami` | `pages/RtaPage.tsx` | tout `components/rta/` | `spec/rta/` |
 | **Siège** | `#/siege/defense`, `/offense`, `/recommandations` | `pages/SiegePage.tsx` | tout `components/siege/` | `spec/siege/` |
 | **Mon compte** | `#/compte`, `/runes`, `/artefacts` | `pages/AccountPage.tsx` | tout `components/account/` | `spec/compte/` |
 | **Outils** | `#/outils/optimizer`, `/speed-tuning` | `pages/OutilsPage.tsx` | tout `components/outils/` | `spec/outils/` |
@@ -85,7 +85,9 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 | `rta/TurnOrder.tsx` | ordre de tour calculé |
 | `rta/RtaSearch.tsx` | ajout d'un monstre à la prépa |
 | `rta/RtaBackupBar.tsx` | sauvegarde / restauration / partage / import |
+| `rta/RtaAmiSection.tsx` | le sous-onglet « Ami » : ouvre le fichier (prépa exportée **ou** export SWEX), ou l'invite |
 | `rta/RtaFriendView.tsx` | lecture d'une prépa partagée |
+| `rta/RtaValidationReport.tsx` | rapport de lecture d'un fichier, **partagé** par la barre de sauvegarde et le sous-onglet Ami |
 | `rta/DesyncBadge.tsx` | la vitesse saisie ≠ les runes importées |
 
 Hooks : `useRtaState`, `useRtaCategories`, `useRtaBackup`, `useRuneMetric`,
@@ -168,7 +170,7 @@ Spec : [`spec/shared/librairie-ui.md`](spec/shared/librairie-ui.md).
 `MonsterAvatar`, `MonsterGear`, `MonsterDetailDialog`, `CreateMonster`,
 `AccordionGrid`, `StatPanel`, `PieceDetail` (⚠️ **la coquille unique** des
 fiches de rune ET d'artéfact), `RuneIcon`, `RuneSlotIcon`, `RuneWheel`,
-`ArtifactIcon`, `ArtifactFrameIcon`, `ArtifactSlots`, `ElementIcon`, `InventaireIcon`,
+`ArtifactIcon`, `ArtifactFrameIcon`, `ArtifactSlots`, `BoutonSensTri`, `ElementIcon`, `InventaireIcon`,
 `CollabPortrait`, `HelpPopover`.
 
 ⚠️ **Frontière UI / jeu** : les composants de `src/ui/` suivent la règle du
@@ -210,6 +212,7 @@ dans un composant.
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
 | Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
 | Runes | `runeOptim.ts`, `runeBuildOptim.ts`, `runeSort.ts`, `runeCurveShare.ts` |
+| Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
 | Monstres | `monsterForms.ts`, `monsterSkills.ts`, `monsterSort.ts`, `collabPairs.ts` |

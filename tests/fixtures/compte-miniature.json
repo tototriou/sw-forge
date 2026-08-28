@@ -74,7 +74,16 @@
           "sec_effects": [[201, 6, 0, 0, 0], [202, 5, 0, 0, 1]]
         }
       ],
-      "relics": []
+      "relics": [
+        {
+          "rid": 7001,
+          "type": 12,
+          "upgrade_curr": 8,
+          "durability": 0,
+          "pri_effect": [100, 11],
+          "sec_effect": [12, 27000, 2]
+        }
+      ]
     },
     {
       "unit_id": 102,

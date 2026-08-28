@@ -9,6 +9,7 @@
 // (notre mesure) et « Slot », qui sert au repérage.
 
 import { RuneDetail } from '../types';
+import { SensTri, signeTri } from './tri';
 
 export type RuneSortMode =
   | 'grade'
@@ -82,40 +83,49 @@ export interface RuneSortable {
 // `premierCode` : la 1ʳᵉ propriété cherchée. Les deux tris « propriété
 // secondaire » portent sur ELLE — sans critère posé ils n'ont rien à classer et
 // retombent sur la mesure.
+// `sens` : `asc` retourne le classement. ⚠️ **Il est passé ICI plutôt
+// qu'appliqué de l'extérieur** (`-cmp(a, b)`) : une rune qui ne PORTE PAS la
+// propriété triée doit rester en dernier **dans les deux sens** — « absent »
+// n'est pas une petite valeur. Une négation globale l'aurait remontée en tête
+// justement là où l'on cherche les plus faibles.
 export function comparateurRunes(
   mode: RuneSortMode,
   metric: 'eff' | 'score',
-  premierCode = 0
+  premierCode = 0,
+  sens: SensTri = 'desc'
 ): (a: RuneSortable, b: RuneSortable) => number {
+  const signe = signeTri(sens);
   const v = (r: RuneSortable) => (metric === 'eff' ? r.eff : r.score);
 
   // ⚠️ Une rune qui NE PORTE PAS la propriété passe derrière toutes celles qui
   // la portent, quelle que soit sa valeur — et non « à 0 », ce qui la mêlerait
   // aux plus faibles. Absent et nul ne sont pas la même chose.
   const parSub = (brut: boolean) => (a: RuneSortable, b: RuneSortable) => {
-    if (!premierCode) return v(b) - v(a);
+    if (!premierCode) return signe * (v(b) - v(a));
     const va = valeurSub(a.rune, premierCode, brut);
     const vb = valeurSub(b.rune, premierCode, brut);
-    if (va == null && vb == null) return v(b) - v(a);
+    if (va == null && vb == null) return signe * (v(b) - v(a));
+    // ⚠️ NON multiplié par `signe` : l'absence reste en queue dans les deux sens.
     if (va == null) return 1;
     if (vb == null) return -1;
-    return vb - va || v(b) - v(a);
+    return signe * (vb - va || v(b) - v(a));
   };
 
   const table: Record<RuneSortMode, (a: RuneSortable, b: RuneSortable) => number> = {
     // Rareté d'abord, puis les étoiles : c'est l'ordre du « Grade » du jeu.
-    grade: (a, b) => b.rune.rarity - a.rune.rarity || b.rune.rank - a.rune.rank || v(b) - v(a),
+    grade: (a, b) => signe * (b.rune.rarity - a.rune.rarity || b.rune.rank - a.rune.rank || v(b) - v(a)),
     sub_desc: parSub(false),
     sub_brut_desc: parSub(true),
-    level_desc: (a, b) => b.rune.level - a.rune.level || v(b) - v(a),
+    level_desc: (a, b) => signe * (b.rune.level - a.rune.level || v(b) - v(a)),
     // ⚠️ « Obtenu » se lit sur le `rune_id` com2us, croissant avec le temps :
     // l'export ne porte AUCUNE date d'obtention. Les plus récentes d'abord,
-    // comme dans le jeu.
-    obtenu: (a, b) => b.rune.id - a.rune.id,
-    subs_total: (a, b) => totalSubs(b.rune) - totalSubs(a.rune) || v(b) - v(a),
-    score: (a, b) => b.score - a.score,
-    eff: (a, b) => b.eff - a.eff,
-    slot_asc: (a, b) => a.rune.slot - b.rune.slot || v(b) - v(a),
+    // comme dans le jeu — et les plus anciennes en `asc`.
+    obtenu: (a, b) => signe * (b.rune.id - a.rune.id),
+    subs_total: (a, b) => signe * (totalSubs(b.rune) - totalSubs(a.rune) || v(b) - v(a)),
+    score: (a, b) => signe * (b.score - a.score),
+    eff: (a, b) => signe * (b.eff - a.eff),
+    // ⚠️ Le seul tri déjà CROISSANT du jeu : « asc » le renverse donc du 6 au 1.
+    slot_asc: (a, b) => signe * (a.rune.slot - b.rune.slot || v(b) - v(a)),
   };
   return table[mode];
 }

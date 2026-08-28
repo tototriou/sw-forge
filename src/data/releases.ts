@@ -95,6 +95,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Un bouton retourne le tri de tes listes de runes et d’artéfacts : les moins bonnes d’abord.',
+      },
+      {
+        kind: 'feat',
         scope: 'Paramètres',
         text: 'Recliquer sur ⚙ referme les paramètres et te ramène à l’écran d’où tu venais.',
       },

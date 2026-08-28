@@ -303,6 +303,33 @@ l'efficience est notre mesure, le slot sert au repérage.
 - Un tri **mémorisé qui n'existe plus** retombe sur le défaut : sans ce
   garde-fou, le comparateur serait `undefined` et la page blanche.
 
+#### Le SENS du tri — un axe à part, un bouton
+
+Un bouton collé au sélecteur retourne le classement
+([BoutonSensTri](src/components/BoutonSensTri.tsx), `SensTri` dans
+[tri.ts](src/lib/tri.ts)). Il vaut pour le **critère courant, quel qu'il soit**.
+
+- ⚠️ **Un AXE, pas deux entrées de plus par critère.** Doubler la liste
+  déroulante (« Score ↓ », « Score ↑ »…) l'aurait allongée de neuf entrées, sans
+  que rien ne dise que ce sont les mêmes classements à l'envers.
+- ⚠️ **Décroissant par défaut**, partout : une liste d'inventaire répond d'abord
+  à « qu'est-ce que j'ai de mieux ? ». L'ordre inverse sert une question précise
+  (« qu'est-ce que je peux nourrir ? »), qu'on pose en la demandant.
+- ⚠️ **L'ABSENCE reste en queue dans les DEUX sens.** Une rune qui ne porte pas
+  la propriété triée n'est pas une petite valeur : la remonter en tête là où l'on
+  cherche justement les plus faibles serait un contresens. C'est pourquoi le sens
+  est passé **dans** `comparateurRunes` plutôt qu'appliqué de l'extérieur
+  (`-cmp(a, b)`), ce qui aurait retourné cette règle avec le reste. Épinglé par
+  [rune-tri.test.ts](tests/rune-tri.test.ts).
+- L'icône dit l'**état courant** (flèche vers le bas = du plus grand au plus
+  petit), comme un tableur ; le `title` annonce l'action.
+- ⚠️ **Dans le panneau mobile, il reste À CÔTÉ du sélecteur** : tout y prend la
+  largeur, ce qui l'aurait renvoyé seul à la ligne suivante. Une règle dédiée
+  rend la largeur au sélecteur et laisse le bouton à sa taille (voir
+  `index.css`, `[data-tri-bloc] select`).
+- Le même bouton sert à l'**Optimisation** et à la **liste d'artéfacts** (voir
+  [artefacts.md](artefacts.md)) : un seul geste à apprendre.
+
 ### Filtre par propriété secondaire — ⚠️ la MODALE du jeu
 
 Le jeu pose la question dans l'autre sens que quatre menus déroulants : au lieu

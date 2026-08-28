@@ -8,6 +8,7 @@
 
 import { RuneDetail } from '../src/types';
 import { comparateurRunes, totalSubs, valeurSub } from '../src/lib/runeSort';
+import { SensTri } from '../src/lib/tri';
 import { egal, ok, titre } from './outils';
 
 // Rune minimale : seuls les champs qui comptent pour le tri sont renseignés.
@@ -31,9 +32,10 @@ const sortable = (r: RuneDetail, eff = 0, score = 0) => ({ rune: r, eff, score }
 function ordre(
   mode: Parameters<typeof comparateurRunes>[0],
   items: { rune: RuneDetail; eff: number; score: number }[],
-  premierCode = 0
+  premierCode = 0,
+  sens: SensTri = 'desc'
 ) {
-  return [...items].sort(comparateurRunes(mode, 'eff', premierCode)).map((i) => i.rune.id);
+  return [...items].sort(comparateurRunes(mode, 'eff', premierCode, sens)).map((i) => i.rune.id);
 }
 
 export default function testRuneTri() {
@@ -114,5 +116,36 @@ export default function testRuneTri() {
     ordre('slot_asc', [sortable(rune({ id: 50, slot: 4 })), sortable(rune({ id: 51, slot: 2 }))]),
     [51, 50],
     'Slot : du 1 au 6'
+  );
+
+  /* --- Sens du tri : le classement se retourne ------------------------- */
+
+  // ⚠️ Le sens vaut pour le critère COURANT, quel qu'il soit : c'est un axe à
+  // part, pas deux entrées de plus dans la liste déroulante.
+  const parEff = [sortable(rune({ id: 1 }), 90), sortable(rune({ id: 2 }), 70), sortable(rune({ id: 3 }), 110)];
+  egal(ordre('eff', parEff), [3, 1, 2], 'Efficience : la meilleure d’abord (défaut)');
+  egal(ordre('eff', parEff, 0, 'asc'), [2, 1, 3], 'Efficience en sens inverse : la plus faible d’abord');
+
+  // Le seul tri déjà croissant du jeu se renverse comme les autres.
+  const parSlot = [sortable(rune({ id: 10, slot: 4 })), sortable(rune({ id: 11, slot: 2 }))];
+  egal(ordre('slot_asc', parSlot, 0, 'asc'), [10, 11], 'Slot en sens inverse : du 6 au 1');
+
+  // ⚠️⚠️ **L'ABSENCE reste en queue dans les DEUX sens.** Une rune qui ne porte
+  // pas la propriété triée n'est pas une petite valeur : la remonter en tête là
+  // où l'on cherche justement les plus faibles serait un contresens, et c'est
+  // exactement ce qu'aurait fait une simple négation du comparateur.
+  const VIT = 8;
+  const porte20 = sortable(rune({ id: 20, subs: [{ code: VIT, value: 20 }] }), 50);
+  const porte5 = sortable(rune({ id: 21, subs: [{ code: VIT, value: 5 }] }), 40);
+  const sansVit = sortable(rune({ id: 22, subs: [{ code: 9, value: 12 }] }), 99);
+  egal(
+    ordre('sub_desc', [porte20, sansVit, porte5], VIT),
+    [20, 21, 22],
+    'Propriété secondaire : celle qui ne la porte pas passe en dernier'
+  );
+  egal(
+    ordre('sub_desc', [porte20, sansVit, porte5], VIT, 'asc'),
+    [21, 20, 22],
+    'et elle y RESTE en sens inverse — absent n’est pas une petite valeur'
   );
 }

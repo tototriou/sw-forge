@@ -99,6 +99,11 @@ export const RELEASES: Release[] = [
         text: 'Un bouton retourne le tri de tes listes de runes et d’artéfacts : les moins bonnes d’abord.',
       },
       {
+        kind: 'fix',
+        scope: 'Siège',
+        text: 'Les stats d’une reco sont celles de la fiche, runes posées : le total ne gonfle plus du totem et du lead.',
+      },
+      {
         kind: 'feat',
         scope: 'Paramètres',
         text: 'Recliquer sur ⚙ referme les paramètres et te ramène à l’écran d’où tu venais.',

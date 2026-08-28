@@ -22,7 +22,7 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Page | Route | Statut | Spec |
 |------|-------|--------|------|
 | Accueil | `#/` | Live | [accueil.md](accueil.md) |
-| RTA — Préparation | `#/rta` | Live | [rta/README.md](rta/README.md) |
+| RTA — Préparation (Ma prépa / Ami) | `#/rta`, `#/rta/ami` | Live | [rta/README.md](rta/README.md) |
 | Siège (Défense / Offense / Recommandations) | `#/siege/defense`, `#/siege/offense`, `#/siege/recommandations` | Live | [siege/README.md](siege/README.md) |
 | Mon compte | `#/compte`, `#/compte/runes`, `#/compte/artefacts` | Live | [compte/README.md](compte/README.md) |
 | Outils (Optimizer / Speed tuning) | `#/outils/optimizer`, `#/outils/speed-tuning` | Live | [outils/README.md](outils/README.md) |

@@ -1,10 +1,17 @@
 # RTA · Point de sauvegarde & partage de prépa
 
-Six boutons sous la barre d'actions : **Sauvegarder · Reprendre ·
-Réinitialiser · Exporter · Importer · Consulter celle d'un ami**.
+Cinq boutons sous la barre d'actions de **Ma prépa** : **Sauvegarder ·
+Reprendre · Réinitialiser · Exporter · Importer**.
+
+⚠️ **Consulter la prépa d'un ami n'est plus un de ces boutons** : c'est un
+sous-onglet à part, `#/rta/ami` — voir « La consultation » plus bas et
+[README.md](README.md).
 
 Fichiers : [RtaBackupBar.tsx](src/components/rta/RtaBackupBar.tsx) ·
-[RtaFriendView.tsx](src/components/rta/RtaFriendView.tsx) (la consultation) ·
+[RtaAmiSection.tsx](src/components/rta/RtaAmiSection.tsx) (l'écran de
+consultation) · [RtaFriendView.tsx](src/components/rta/RtaFriendView.tsx) (la
+prépa lue) · [RtaValidationReport.tsx](src/components/rta/RtaValidationReport.tsx)
+(le rapport de lecture, **partagé** par les deux) ·
 [useRtaBackup.ts](src/hooks/useRtaBackup.ts) (le point local) ·
 [rtaShare.ts](src/lib/rtaShare.ts) (format, validation, traduction d'ids) ·
 [rta-partage.test.ts](tests/rta-partage.test.ts).
@@ -115,18 +122,25 @@ Conséquences :
   de monstres perso du lecteur — la confirmation l'annonce, et la création n'a
   lieu **qu'à la validation** : annuler ne laisse rien derrière soi.
 
-### ⚠️ Deux boutons, parce que ce sont deux intentions
+### ⚠️ Deux ÉCRANS, parce que ce sont deux intentions
 
 Le fichier `.json` sert **deux usages** que rien ne distingue dans son contenu :
 
-| Bouton | Intention | Effet |
-|--------|-----------|-------|
-| **Importer** | reprendre une prépa **à moi** — une archive, un autre navigateur, une sauvegarde d'il y a six mois | **remplace** ma prépa (avec confirmation) |
-| **Consulter celle d'un ami** | regarder la prépa **de quelqu'un d'autre** | **n'y touche pas**, ouvre un panneau en lecture |
+| Où | Intention | Effet |
+|----|-----------|-------|
+| **Importer** (Ma prépa) | reprendre une prépa **à moi** — une archive, un autre navigateur, une sauvegarde d'il y a six mois | **remplace** ma prépa (avec confirmation) |
+| **Onglet Ami** (`#/rta/ami`) | regarder la prépa **de quelqu'un d'autre** | **n'y touche pas**, lecture seule |
 
 ⚠️ **L'intention ne se devine pas depuis le fichier** — elle est *déclarée* par
-le bouton cliqué. Un bouton unique obligerait à demander « et maintenant, j'en
-fais quoi ? » après lecture, alors que l'utilisateur le sait déjà en cliquant.
+l'endroit où on l'ouvre. Un point d'entrée unique obligerait à demander « et
+maintenant, j'en fais quoi ? » après lecture, alors que l'utilisateur le sait
+déjà avant de cliquer.
+
+⚠️ **Les deux boutons étaient côte à côte**, dans la même rangée, à lire le même
+format : rien ne disait lequel touchait à ma prépa. Séparer les intentions par
+l'ÉCRAN, et non par deux boutons voisins, est ce qui les distingue vraiment —
+« Importer » vit avec les gestes qui modifient ma prépa, la consultation avec ce
+qui ne la modifie pas.
 
 Une version intermédiaire n'offrait que la consultation : elle rendait impossible
 de **reprendre sa propre sauvegarde**, ce à quoi l'export sert tout autant qu'au
@@ -134,14 +148,26 @@ partage.
 
 ### La consultation
 
-Elle s'ouvre **en lecture, à côté de la sienne**
+Elle a son **sous-onglet** (`#/rta/ami`,
+[RtaAmiSection](src/components/rta/RtaAmiSection.tsx)), qui porte le bouton
+d'ouverture du fichier et affiche la prépa lue
 ([RtaFriendView](src/components/rta/RtaFriendView.tsx)) :
 
 - rien n'entre dans l'état local — **aucune confirmation** n'est nécessaire,
   puisqu'il n'y a rien à perdre ;
-- l'état vit dans la **page**, non persisté : c'est une lecture de passage.
-  La conserver d'une session à l'autre laisserait la prépa de quelqu'un d'autre à
-  l'écran sans qu'on sache d'où elle vient ;
+- ⚠️ **Un écran, plus un panneau au-dessus de sa prépa.** Elle s'affichait EN
+  TÊTE de sa propre prépa : deux prépas dans la même page, dont celle du haut
+  n'était pas la sienne, et un écran qui doublait de longueur sans prévenir ;
+- **écran vide parlant** tant qu'aucun fichier n'est ouvert : il dit d'où vient
+  le fichier (« Exporter », chez l'ami) et ce qu'on y verra — pas une page
+  blanche ;
+- le bouton reste **le même une fois une prépa ouverte**, seul son libellé change
+  (« Ouvrir une autre prépa ») : en comparer deux est le geste courant, obliger à
+  fermer d'abord ajouterait un clic sans rien protéger ;
+- l'état vit dans la **page**, en mémoire, **jamais sur le disque**
+  (`useStickyState`) : c'est la prépa de quelqu'un d'autre. Elle survit en
+  revanche à la navigation — depuis qu'elle a son onglet, aller vérifier une
+  vitesse sur sa prépa puis revenir ne doit pas obliger à rouvrir le fichier ;
 - les cartes sont **inertes** : ni poignée de glisser-déposer, ni croix, ni
   sélecteur de section — aucun de ces gestes n'a de sens sur la prépa d'autrui.
 

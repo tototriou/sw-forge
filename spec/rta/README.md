@@ -7,17 +7,36 @@ recalculé selon les leads de vitesse.
 Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 [useRtaState.ts](src/hooks/useRtaState.ts) (`localStorage` `sky-arena-rta-v1`).
 
-## Vue d'ensemble de l'écran (de haut en bas)
+## Deux sous-sections
+
+| Sous-section | Route | Ce qu'on y fait |
+|--------------|-------|-----------------|
+| **Ma prépa** | `#/rta` | tout l'écran décrit ci-dessous : sa propre prépa |
+| **Ami** | `#/rta/ami` | consulter la prépa de quelqu'un d'autre, en lecture |
+
+- ⚠️ **« Ma prépa » garde le hash NU `#/rta`** : c'est l'écran historique, et les
+  liens déjà partagés doivent continuer d'y mener. `#/rta/prepa` n'existe pas.
+- ⚠️ **La consultation était un PANNEAU, pas un écran.** Elle s'ouvrait par un
+  bouton de la barre de fichiers et s'affichait AU-DESSUS de sa propre prépa :
+  deux prépas dans la même page, dont celle du haut n'était pas la sienne, et un
+  écran qui doublait de longueur sans prévenir. Rien n'y menait, aucun lien ne
+  s'y partageait. Voir [sauvegarde-partage.md](sauvegarde-partage.md).
+- Le **panneau d'actions** (téléphone) n'existe que sur « Ma prépa » : ses gestes
+  (sauvegarder, exporter, catégories, tout effacer) portent tous sur SA prépa, et
+  aucun n'a de sens en lisant celle d'un ami.
+- Comme Siège, Mon compte et Outils, **RTA ouvre ses sous-sections** dans la
+  barre latérale et dans le panneau de navigation mobile plutôt que de mener
+  droit à l'une d'elles (voir [../shared/navigation.md](../shared/navigation.md)).
+
+## Vue d'ensemble de l'écran « Ma prépa » (de haut en bas)
 
 1. **En-tête** : titre + explication.
 2. **Barre de recherche** pour ajouter un monstre à la prépa.
 3. **Barre d'actions** : compteur, **Importer un compte**, **Créer un monstre**,
    **Tout effacer** ; + disclaimer monstres récents / message d'import.
-3bis. **Sauvegarder · Reprendre · Exporter · Importer · Consulter celle d'un
-   ami** — point de restauration manuel et partage. Voir
+3bis. **Sauvegarder · Reprendre · Réinitialiser · Exporter · Importer** — point
+   de restauration manuel et partage. Voir
    [sauvegarde-partage.md](sauvegarde-partage.md).
-3ter. **Prépa consultée** (si ouverte) : la prépa d'un ami, en lecture seule,
-   au-dessus de la sienne — **avec son propre ordre de tour**, recalculé.
 4. **« Non classé »** : zone tampon où atterrissent les monstres ajoutés.
 5. **Sections par set de runes** (Swift / Violent / Despair / Autre + ajoutables).
 6. **Ajouter une section** (choix d'un set de runes).

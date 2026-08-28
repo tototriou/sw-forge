@@ -28,6 +28,15 @@ export const COULEUR_SECTION = {
   releases: '#C79BFF',
 } as const;
 
+// Sous-sections de RTA, indexées par `RtaSub`.
+// (`prepa` reprend l'accent de la section — c'est l'écran principal ; `ami`
+// prend une teinte voisine, assez proche pour rester de la famille RTA, assez
+// distincte pour qu'on ne confonde pas sa prépa avec celle d'un autre.)
+export const COULEUR_RTA_SUB = {
+  prepa: '#A15FE0',
+  ami: '#D07FD8',
+} as const;
+
 // Sous-sections du Siège, indexées par `SiegeTab`.
 export const COULEUR_SIEGE_SUB = {
   defense: '#E4463A',

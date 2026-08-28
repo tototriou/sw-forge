@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   BookOpen,
   Swords,
+  Users,
   ArrowRight,
   Castle,
   Trophy,
@@ -22,7 +23,12 @@ import {
 import ElementIcon from '../components/ElementIcon';
 import { ElementKey } from '../types';
 import { RELEASES, libelleVersion } from '../data/releases';
-import { COULEUR_SECTION, COULEUR_SIEGE_SUB, COULEUR_COMPTE_SUB } from '../data/couleursSection';
+import {
+  COULEUR_SECTION,
+  COULEUR_RTA_SUB,
+  COULEUR_SIEGE_SUB,
+  COULEUR_COMPTE_SUB,
+} from '../data/couleursSection';
 
 const ELEMENT_ORDER: ElementKey[] = ['fire', 'water', 'wind', 'light', 'dark'];
 const SW_EXPORTER = 'https://github.com/Xzandro/sw-exporter';
@@ -187,7 +193,8 @@ export default function HomePage({ stats, onImport }: Props) {
       <motion.section variants={item} id="features" className="py-12">
         <h2 className="font-display text-[26px] tracking-wide mb-6">Fonctionnalités</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-          <Feature href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer, lis l'ordre de tour recalculé selon les leads, et consulte la prépa de tes amis." />
+          <Feature href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer et lis l'ordre de tour recalculé selon les leads." />
+          <Feature href="#/rta/ami" icon={Users} accent={COULEUR_RTA_SUB.ami} kicker="RTA" title="Prépa d'un ami" body="Ouvre le fichier qu'un ami t'a partagé et regarde son classement, ses vitesses et son ordre de tour. La tienne ne bouge pas." />
           <Feature href="#/siege/defense" icon={Castle} accent={COULEUR_SECTION.siege} kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
           <Feature href="#/siege/recommandations" icon={Lightbulb} accent={COULEUR_SIEGE_SUB.recos} kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
           <Feature href="#/compte/runes" icon={UserRound} accent={COULEUR_COMPTE_SUB.runes} kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />

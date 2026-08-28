@@ -80,6 +80,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'feat',
+        scope: 'RTA',
+        text: 'La prépa d’un ami a son propre onglet : elle ne s’empile plus au-dessus de la tienne.',
+      },
+      {
+        kind: 'feat',
         scope: 'Paramètres',
         text: 'Recliquer sur ⚙ referme les paramètres et te ramène à l’écran d’où tu venais.',
       },

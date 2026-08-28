@@ -735,7 +735,7 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 
 /* ---- Panneau d'actions mobile ------------------------------------------------------ */
 /* ⚠️ Les libellés masqués par `compact:hidden` REDEVIENNENT visibles dans le
-   tiroir. Ils disparaissent dans la page faute de place — six boutons à
+   tiroir. Ils disparaissent dans la page faute de place — cinq boutons à
    libellé complet y remplissaient trois rangées —, mais le tiroir est un
    panneau dédié qui tient toute la largeur : une rangée d'icônes sans mots y
    serait un rébus.
@@ -986,7 +986,7 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 }
 
 /* ⚠️ **UNE SEULE taille de texte dans le panneau : 12 px.** Il en portait trois
-   — 13 px pour les six boutons d'action, 12 pour les pilules de catégorie et les
+   — 13 px pour les boutons d'action, 12 pour les pilules de catégorie et les
    interrupteurs, 11 pour la ligne du point de sauvegarde. Trois tailles à un
    pixel d'écart ne créent aucune hiérarchie : elles se lisent comme un défaut
    d'alignement, et sur un panneau qui n'empile qu'une dizaine de lignes, la
@@ -1080,7 +1080,7 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    perdait un bouton conditionnel (« Réinitialiser » n'existe qu'après un import
    de compte), sa dernière cellule s'étirait et plus rien ne s'alignait d'une
    rangée à l'autre. Le conteneur qui les empile devient la grille, et les
-   rangées s'y effacent — six boutons, six cellules égales.
+   rangées s'y effacent — un bouton, une cellule, toutes égales.
    ⚠️ `display: contents` : la rangée disparaît de la mise en page sans
    disparaître du DOM, donc ses enfants deviennent ceux de la grille.
    ⚠️ Marqué par `data-grille-actions`, jamais déduit de la structure : le
@@ -1118,7 +1118,7 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 /* ⚠️ Les rangées ET les conteneurs qui les enveloppent s'effacent
    (`data-passe-grille`) : `RtaBackupBar` empile ses deux rangées dans un `div`
    de marge, qui restait sinon l'enfant unique de la grille et absorbait à lui
-   seul une cellule — les six boutons s'y retrouvaient empilés, un par écran.
+   seul une cellule — les boutons s'y retrouvaient empilés, un par écran.
    ⚠️ Marqué, jamais déduit : une règle sur « tout div intermédiaire » aurait
    effacé aussi ceux qu'on ajoutera demain pour une autre raison. */
 [data-tiroir] [data-grille-actions] [data-rangee-actions],

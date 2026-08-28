@@ -83,6 +83,7 @@ page hors de l'écran : à 7 entrées, la moitié des sections n'était jamais v
 | Carte | Route | Accent |
 |-------|-------|--------|
 | Préparation RTA | `#/rta` | `#A15FE0` |
+| Prépa d'un ami | `#/rta/ami` | `#D07FD8` |
 | Défenses et offenses | `#/siege/defense` | `#E4463A` |
 | Recommandations | `#/siege/recommandations` | `#5EDB8F` |
 | Analyse de runes | `#/compte/runes` | `#4AD8D8` |

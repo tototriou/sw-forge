@@ -12,6 +12,7 @@ import {
   Tag,
   Sparkles,
   Shield,
+  Users,
   Lightbulb,
   Settings,
   Timer,
@@ -54,6 +55,7 @@ import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
 import InventaireIcon, { InventaireIconKey } from './components/InventaireIcon';
 import {
   COULEUR_SECTION,
+  COULEUR_RTA_SUB,
   COULEUR_SIEGE_SUB,
   COULEUR_COMPTE_SUB,
 } from './data/couleursSection';
@@ -114,6 +116,15 @@ type Route =
   | 'parametres';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
 
+// Sous-sections de RTA. `prepa` = la sienne (tout l'écran historique), `ami` =
+// celle de quelqu'un d'autre, en lecture.
+//
+// ⚠️ **Dans l'URL, pas dans un état local.** La consultation d'une prépa d'ami
+// était un panneau ouvert par un bouton, posé AU-DESSUS de sa propre prépa :
+// rien n'y menait, rien ne s'y liait, et l'écran doublait de longueur sans
+// prévenir. Elle devient une destination — `#/rta/ami`.
+export type RtaSub = 'prepa' | 'ami';
+
 // Vue à l'intérieur d'un inventaire — troisième niveau de navigation.
 //
 // ⚠️ **Dans l'URL, pas dans un état local.** Elles y vivaient
@@ -134,6 +145,7 @@ export type ToolSub = 'optimizer' | 'speed-tuning';
 // + sous-section « Outils » déduites du hash.
 function parseHash(): {
   route: Route;
+  rtaSub: RtaSub;
   siegeTab: SiegeTab;
   accountSub: AccountSub;
   accountView: AccountView;
@@ -141,12 +153,16 @@ function parseHash(): {
 } {
   const h = window.location.hash.replace(/^#\/?/, '');
   const base = {
+    rtaSub: 'prepa' as RtaSub,
     siegeTab: 'defense' as SiegeTab,
     accountSub: 'monstres' as AccountSub,
     accountView: 'resume' as AccountView,
     toolSub: 'optimizer' as ToolSub,
   };
-  if (h === 'rta') return { route: 'rta', ...base };
+  if (h === 'rta' || h.startsWith('rta/')) {
+    const [, sub] = h.split('/');
+    return { route: 'rta', ...base, rtaSub: sub === 'ami' ? 'ami' : 'prepa' };
+  }
   if (h === 'bestiary') return { route: 'bestiary', ...base };
   if (h === 'arene') return { route: 'arene', ...base };
   if (h === 'compte' || h.startsWith('compte/')) {
@@ -156,6 +172,7 @@ function parseHash(): {
       sub === 'runes' ? 'runes' : sub === 'artefacts' ? 'artefacts' : 'monstres';
     return {
       route: 'compte',
+      rtaSub: 'prepa',
       siegeTab: 'defense',
       accountSub,
       // ⚠️ Défaut « resume » : on arrive sur l'état du stock, pas sur 2 000
@@ -198,6 +215,14 @@ const NAV: NavItem[] = [
 ];
 
 const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene', couleur: COULEUR_SECTION.arene };
+
+// Sous-sections de « RTA » (dropdown de nav).
+// ⚠️ `prepa` porte le hash NU `#/rta` : c'est l'écran historique, et les liens
+// déjà partagés doivent continuer d'y mener. `#/rta/prepa` n'existe donc pas.
+const RTA_SUBS: { sub: RtaSub; label: string; icon: typeof Swords; hash: string; couleur: string }[] = [
+  { sub: 'prepa', label: 'Ma prépa', icon: Swords, hash: '#/rta', couleur: COULEUR_RTA_SUB.prepa },
+  { sub: 'ami', label: 'Ami', icon: Users, hash: '#/rta/ami', couleur: COULEUR_RTA_SUB.ami },
+];
 
 // Sous-sections de « Mon compte » (dropdown de nav).
 // ⚠️ Icônes AU TRAIT dans le style de la librairie (voir InventaireIcon) : les
@@ -381,7 +406,7 @@ export default function App() {
   // on compare les runes — et rien ne disait lequel était affiché.
   const [accountName, setAccountName] = useState<string | null>(null);
 
-  const [{ route, siegeTab, accountSub, accountView, toolSub }, setNav] = useState(parseHash);
+  const [{ route, rtaSub, siegeTab, accountSub, accountView, toolSub }, setNav] = useState(parseHash);
 
   // Écran d'où l'on vient, pour que le bouton ⚙ RAMÈNE là où on était.
   //
@@ -429,6 +454,10 @@ export default function App() {
   // ait de quoi remplir la place qu'ils libèrent.**
   const pageAPanneau =
     PAGES_AVEC_MENU.has(route) &&
+    // ⚠️ Le panneau de RTA porte les actions de SA prépa (sauvegarder, exporter,
+    // catégories, tout effacer) : aucune n'a de sens en consultant celle d'un
+    // ami, où l'on ne modifie rien.
+    (route !== 'rta' || rtaSub === 'prepa') &&
     (route !== 'compte' ||
       accountSub === 'monstres' ||
       accountView === 'liste' ||
@@ -817,6 +846,22 @@ export default function App() {
     ],
   };
 
+  const sectionRta: SidebarSection = {
+    titre: 'RTA',
+    icon: <Swords size={17} color={COULEUR_SECTION.rta} />,
+    groupes: [
+      {
+        liens: RTA_SUBS.map((s) => ({
+          key: s.sub,
+          label: s.label,
+          hash: s.hash,
+          icon: <s.icon size={17} color={s.couleur} />,
+          actif: route === 'rta' && rtaSub === s.sub,
+        })),
+      },
+    ],
+  };
+
   const sectionCompte: SidebarSection = {
     titre: 'Mon compte',
     icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />,
@@ -864,7 +909,9 @@ export default function App() {
   // montre les sous-sections du Siège ; la barre peut ensuite en ouvrir une
   // autre à la main, sans naviguer (voir Sidebar).
   const sectionOuverte: SidebarSection | null =
-    route === 'siege'
+    route === 'rta'
+      ? sectionRta
+      : route === 'siege'
       ? sectionSiege
       : route === 'compte'
         ? sectionCompte
@@ -884,9 +931,13 @@ export default function App() {
           key: item.key,
           label: item.label,
           icon: <item.icon size={17} color={item.couleur} />,
-          // ⚠️ Le Siège OUVRE sa section au lieu de naviguer : on choisit
-          // Défense, Offense ou Recommandations avant de charger une page.
-          ...(item.key === 'siege' ? { ouvre: sectionSiege } : { hash: item.hash }),
+          // ⚠️ RTA et Siège OUVRENT leur section au lieu de naviguer : on
+          // choisit sa sous-section avant de charger une page.
+          ...(item.key === 'rta'
+            ? { ouvre: sectionRta }
+            : item.key === 'siege'
+              ? { ouvre: sectionSiege }
+              : { hash: item.hash }),
           actif: route === item.key,
         })),
         {
@@ -938,6 +989,7 @@ export default function App() {
   // souris. Nommer la sous-section apprend où l'on est au lieu de répéter le
   // niveau au-dessus.
   const entreeCourante = [...NAV, ARENE_ITEM, ...RESOURCES].find((i) => i.key === route);
+  const rtaSubItem = route === 'rta' ? RTA_SUBS.find((s) => s.sub === rtaSub) : null;
   const compteSub = route === 'compte' ? ACCOUNT_SUBS.find((s) => s.sub === accountSub) : null;
   const siegeSub = route === 'siege' ? SIEGE_SUBS.find((s) => s.tab === siegeTab) : null;
   // ⚠️ Sur « Mon compte », le titre nomme l'inventaire ET SA VUE
@@ -953,6 +1005,7 @@ export default function App() {
       : null;
   const titreSection =
     (compteSub ? `${compteSub.label}${compteVue ? ` · ${compteVue}` : ''}` : null) ??
+    rtaSubItem?.label ??
     siegeSub?.label ??
     sectionOuverte?.titre ??
     entreeCourante?.label ??
@@ -961,6 +1014,8 @@ export default function App() {
   // reste) et la vue de siège (lucide) n'ont pas la même API — mais le MÊME style.
   const iconeSection = compteSub ? (
     <InventaireIcon name={compteSub.icon} size={16} couleur={compteSub.couleur} />
+  ) : rtaSubItem ? (
+    <rtaSubItem.icon size={16} color={rtaSubItem.couleur} />
   ) : siegeSub ? (
     <siegeSub.icon size={16} color={siegeSub.couleur} />
   ) : (
@@ -985,6 +1040,13 @@ export default function App() {
       label: i.label,
       hash: i.hash,
       icon: <i.icon size={15} color={i.couleur} />,
+    })),
+    ...RTA_SUBS.map((s) => ({
+      key: `rta-${s.sub}`,
+      label: s.label,
+      hash: s.hash,
+      icon: <s.icon size={15} color={s.couleur} />,
+      contexte: 'RTA',
     })),
     ...SIEGE_SUBS.map((t) => ({
       key: `siege-${t.tab}`,
@@ -1052,7 +1114,7 @@ export default function App() {
   // — un panneau pour un seul choix n'ajoutait qu'un geste.)
   const ongletsMobile: OngletMobile[] = [
     { key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} color={COULEUR_SECTION.home} />, actif: route === 'home' },
-    { key: 'rta', label: 'RTA', hash: '#/rta', icon: <Swords size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
+    { key: 'rta', label: 'RTA', ouvre: sectionRta.titre, icon: <Swords size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
     { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <Castle size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
     { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
     { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
@@ -1063,7 +1125,8 @@ export default function App() {
   // clic et son surlignage reste en arrière de la navigation — la barre
   // latérale a déjà payé cette leçon (voir Sidebar, `ouverte`).
   const sectionMobile =
-    [sectionSiege, sectionCompte, sectionOutils].find((s) => s.titre === navMobileOuverte) ?? null;
+    [sectionRta, sectionSiege, sectionCompte, sectionOutils].find((s) => s.titre === navMobileOuverte) ??
+    null;
 
   return (
     // ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent contextuel
@@ -1224,6 +1287,7 @@ export default function App() {
 
         {route === 'rta' ? (
           <RtaPage
+            sub={rtaSub}
             rta={rta}
             monsters={allMonsters}
             loadState={data.loadState}

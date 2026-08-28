@@ -160,9 +160,31 @@ export interface ArtifactDetail {
   subs: EffectLine[]; // effets conditionnels
 }
 
+// Propriété UNIQUE d'une relique (`sec_effect`).
+//
+// ⚠️ **Ce n'est pas une substat**, et surtout pas un `EffectLine` : elle
+// n'ajoute aucune valeur à une stat. Elle déclenche un effet **proportionnel à
+// une stat du monstre** — de la forme « +1 % par tranche de 2 500 ATQ en début
+// de combat ». D'où les trois nombres du fichier : le TYPE de la relique (qui
+// désigne l'effet), la taille de la TRANCHE, et le POURCENTAGE accordé par
+// tranche. La lire comme une substat donnait « Effet secondaire · 27000 », qui
+// ne veut rien dire.
+//
+// ⚠️ **Ce que l'effet FAIT n'est nulle part dans l'export** : `type` est un
+// numéro, et aucune table ne l'accompagne. On affiche donc la formule, jamais
+// un libellé inventé — voir spec/compte/calcul-runes.md § Relique.
+export interface RelicUnique {
+  type: number; // identifiant de la propriété unique (= `type` de la relique)
+  tranche: number; // taille de la tranche de stat (elle DIMINUE quand la relique monte)
+  // ⚠️ Facultatif : un fichier de prépa exporté avant cette version ne porte
+  // que le type et la tranche. On affiche alors la tranche seule plutôt qu'un
+  // « +0 % » faux.
+  percent?: number;
+}
+
 export interface RelicDetail {
   main: EffectLine; // code 100/101/102 → PV%/ATQ%/DEF%
-  sub?: EffectLine;
+  unique?: RelicUnique;
 }
 
 // Stats de base du monstre (lues sur l'unité à l'import : con×15, atk, def…).

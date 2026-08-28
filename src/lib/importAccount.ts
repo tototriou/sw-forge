@@ -301,12 +301,31 @@ function artifactToDetail(a: any): ArtifactDetail {
   return { kind: 'archetype', archetype: ARCHETYPE_BY_STYLE[Number(a?.unit_style)], level, rarity, main, subs };
 }
 
+// `sec_effect` = [type, tranche, pourcentage].
+//
+// ⚠️ **Relevé sur un compte réel** (15 reliques) : le premier nombre vaut
+// TOUJOURS le `type` de la relique — ce n'est donc pas un code d'effet parmi
+// d'autres, c'est la propriété unique de la pièce, fixée à l'obtention. Le
+// deuxième est une TRANCHE de stat, et il DIMINUE quand la relique monte (un
+// type 12 passe de 45 000 à +0 à 27 000 à +8) : plus la relique est forte, plus
+// la tranche est petite, donc plus l'effet se déclenche souvent. Le troisième
+// est le pourcentage accordé par tranche.
+//
+// ⚠️ La lire comme une substat (`{ code, value }`) affichait « Effet secondaire
+// · 27000 » : le pourcentage était purement et simplement perdu, et le nombre
+// affiché n'était pas une valeur mais un diviseur.
 function relicToDetail(r: any): RelicDetail | undefined {
   const main = effLine(r?.pri_effect);
   if (!main) return undefined;
   const sec = r?.sec_effect;
-  const sub = Array.isArray(sec) && Number(sec[0]) ? { code: Number(sec[0]), value: Number(sec[1]) || 0 } : undefined;
-  return { main, sub };
+  if (!Array.isArray(sec)) return { main };
+  // `type` de la pièce s'il est là, sinon le premier nombre — les deux sont
+  // égaux sur tous les exports observés.
+  const type = Number(r?.type) || Number(sec[0]) || 0;
+  const tranche = Number(sec[1]) || 0;
+  if (!type || !tranche) return { main };
+  const percent = Number(sec[2]) || 0;
+  return { main, unique: { type, tranche, ...(percent > 0 ? { percent } : {}) } };
 }
 
 // Stats de base de l'unité (naked, sans runes) : con×15 pour les PV.

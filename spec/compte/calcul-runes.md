@@ -108,7 +108,90 @@ Précision) — soit exactement la différence entre les deux objets du jeu.
 
 ### Relique (`unit.relics[0]`)
 
-`pri_effect` : 100 PV% / 101 ATQ% / 102 DEF% (pourcentages).
+`pri_effect` : 100 PV% / 101 ATQ% / 102 DEF% (pourcentages). C'est la seule part
+de la relique qui entre dans le **calcul des stats** (voir `computeStats`).
+
+#### La propriété unique (`sec_effect`) n'est PAS une substat
+
+`sec_effect` = **`[type, tranche, pourcentage]`**. Elle n'ajoute aucune valeur à
+une stat : elle déclenche un effet **proportionnel à une stat du monstre**, de la
+forme « **+2 % par tranche de 27 000** ».
+
+Relevé sur un compte réel (15 reliques) :
+
+- le **premier nombre vaut toujours le `type` de la relique** — ce n'est donc pas
+  un code d'effet parmi d'autres, c'est **la** propriété unique de la pièce,
+  fixée à l'obtention ;
+- le **deuxième est une tranche de stat**, et il **diminue quand la relique
+  monte** (un type 12 passe de 45 000 à +0 à 27 000 à +8) : plus la relique est
+  forte, plus la tranche est petite, donc plus l'effet se déclenche ;
+- le **troisième est le pourcentage** accordé par tranche (1 ou 2 sur les pièces
+  observées).
+
+⚠️ **Ce que l'effet FAIT n'est nulle part dans l'export** : `type` n'est qu'un
+numéro. La description vient donc de la **table officielle** ci-dessous, et la
+ligne s'écrit dans les mots du jeu — « [DEF +2% tous les 27 000 pts du max des
+PV] au début du combat ». Pas d'intitulé « Propriété unique » devant : la phrase
+se suffit, et la tuile n'a que deux lignes. Le numéro de type reste en infobulle,
+pour retrouver la pièce en jeu.
+
+⚠️ **Bug corrigé** : elle était lue comme un `{ code, value }` de substat et
+affichée « Effet secondaire · 27000 ». Le pourcentage était perdu, et le nombre
+montré n'était pas une valeur mais un **diviseur**.
+
+### Les 16 propriétés uniques — table OFFICIELLE
+
+Com2uS publie les **16 propriétés exclusives, réparties en 6 groupes** selon leur
+fonction (note de mise à jour des Reliques, `sw.com2us.com`). **L'ordre de ce
+tableau EST la numérotation du champ `type`** de l'export :
+
+| Groupe | Effet | Types (par stat de référence) |
+|---|---|---|
+| **Conquête** | DGTS infligés **+**x% | 1 ATQ · 2 DEF · 3 max des PV |
+| **Ténacité** | DGTS reçus **−**x% | 4 ATQ · 5 DEF · 6 max des PV |
+| **Bravoure** | [ATQ +x%] | 7 VIT · 8 DEF · 9 max des PV |
+| **Éternité** | [DEF +x%] | 10 ATQ · 11 VIT · 12 max des PV |
+| **Origine** | [Max des PV +x%] | 13 ATQ · 14 VIT · 15 DEF |
+| **Régénération** | [Soins et boucliers accordés +x%] | 16 max des PV |
+
+*(toutes « au début du combat » ; les crochets sont ceux du jeu — il encadre les
+gains de stat, pas les modificateurs de dégâts)*
+
+⚠️ **Six pièces réelles vérifient cette numérotation**, une par une — c'est ce
+qui autorise à s'y fier plutôt qu'à la deviner :
+
+| Type | Pièce lue en jeu | Vérifie |
+|---|---|---|
+| 1 | +9 Conquête Aiguisé, `sec [1, 1000, 1]` | Conquête · ATQ |
+| 3 | +6 Conquête Robuste, `sec [3, 27000, 1]` | Conquête · max des PV |
+| 5 | Ténacité Inébranlable (+0), `sec [5, 2500, 1]` | Ténacité · DEF |
+| 6 | +7 Ténacité Robuste, `sec [6, 27000, 1]` | Ténacité · max des PV |
+| 7 | +5 Bravoure Agile, `sec [7, 250, 2]` | Bravoure · VIT |
+| 14 | +8 Origine Agile, `sec [14, 200, 2]` | Origine · VIT |
+
+Le **nom** de la relique redit la même chose en deux mots — le groupe, puis la
+stat de référence (« Aiguisé » = ATQ, « Robuste » = PV, « Agile » = VIT,
+« Inébranlable » = DEF). Il n'est **pas** dans l'export : c'est un recoupement,
+jamais une source.
+
+⚠️ **Deux choses que le fichier ne dira jamais**, et que seule cette table donne :
+
+1. **Le sens.** Il écrit `1` pour le type 1 (**+**1% de dégâts infligés) **comme**
+   pour le type 5 (**−**1% de dégâts reçus).
+2. **La stat de référence.** Les types 1 (ATQ) et 5 (DEF) partagent exactement la
+   même échelle de tranches — 2 500 à +0, 2 000 à +3, 1 500 à +6, 1 000 à +9,
+   750 à +12, 500 à +15. **Aucune déduction par magnitude ne peut les séparer**,
+   et une version antérieure de cette spec s'y était trompée.
+
+⚠️ **Un type inconnu reste possible** — la note officielle annonce que d'autres
+propriétés pourront être ajoutées. Il s'affiche alors sans signe ni stat
+(« 1% par tranche de 1 000 »), jamais avec des valeurs devinées.
+
+⚠️ **La tranche baisse par paliers de trois niveaux** et le fichier porte celle
+du moment : rien à recalculer côté app.
+
+⚠️ **Le libellé de la stat principale ne porte pas le « % »** : le jeu affiche
+« PV +12% », et `PV%` + `+12%` doublait le signe.
 
 ### Unité / monstre
 

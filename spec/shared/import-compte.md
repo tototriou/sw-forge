@@ -314,7 +314,9 @@ Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
   l'**export brut**, qu'on ne conserve jamais (5 à 8 Mo) : sans cette liste, le
   filtre « Runes utilisées » s'éteindrait à chaque rechargement d'un compte
   conservé. Quelques milliers d'entiers, négligeable à côté des runes.
-- `schema` (`ACCOUNT_SCHEMA`, **4** depuis l'ajout de `usedRuneIds`) est à
+- `schema` (`ACCOUNT_SCHEMA`, **5** depuis la propriété unique des reliques,
+  qui remplace un `relic.sub` mal modélisé — voir
+  [compte/calcul-runes.md](../compte/calcul-runes.md)) est à
   **incrémenter dès qu'un extracteur produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à la lecture,
   et l'app invite à réimporter — sinon elle affiche des chiffres incomplets en
   silence.

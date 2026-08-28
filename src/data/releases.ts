@@ -58,10 +58,14 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
-    version: '1.10.1',
+    version: '1.11.0',
     date: '2026-08-28',
     title: 'Ne travaille que les runes qui jouent',
-    highlights: ['Un filtre « Runes utilisées » dans l’optimisation de tes runes'],
+    highlights: [
+      'Deux filtres dans l’optimisation : « Runes utilisées » et « Sans les immémoriaux »',
+      'La prépa d’un ami a son propre onglet, et lit aussi un export SWEX complet',
+      'Le tri de tes listes se retourne d’un bouton',
+    ],
     changes: [
       {
         kind: 'feat',

@@ -55,13 +55,16 @@ export default function testImport() {
   // une fois sur deux.
   egal(
     formatRelicUnique(relique!.unique!),
-    `2% par tranche de ${(27000).toLocaleString('fr-FR')} PV`,
-    'relique : la formule affichée porte le pourcentage et l’unité de la tranche, sans signe'
+    `[DEF +2% tous les ${(27000).toLocaleString('fr-FR')} pts du max des PV] au début du combat`,
+    'relique : la propriété unique s’écrit dans les mots du jeu'
   );
+  // ⚠️ Le jeu annonce que d'autres propriétés seront ajoutées : un type inconnu
+  // ne doit ni disparaître ni mentir. On donne la mécanique, sans le SIGNE ni la
+  // stat — qui appartiennent au type.
   egal(
     formatRelicUnique({ type: 999, tranche: 1000, percent: 1 }),
     `1% par tranche de ${(1000).toLocaleString('fr-FR')}`,
-    'relique : un type dont la stat est inconnue s’affiche sans unité, jamais avec une unité devinée'
+    'relique : un type ajouté par une mise à jour s’affiche sans signe ni stat devinés'
   );
   // Deux types sur la MÊME tranche de PV, en sens opposés : 3 augmente les
   // dégâts infligés, 6 réduit les dégâts reçus. Rien dans le fichier ne les
@@ -89,8 +92,8 @@ export default function testImport() {
   );
   egal(
     formatRelicUnique({ type: 2, tranche: 2500, percent: 1 }),
-    `1% par tranche de ${(2500).toLocaleString('fr-FR')}`,
-    'relique : un type de la famille ATQ/DEF non lu en jeu reste sans unité'
+    `DGTS infligés +1% tous les ${(2500).toLocaleString('fr-FR')} pts de DEF au début du combat`,
+    'relique : même effet que le type 1, mais compté en DEF — la tranche seule ne le disait pas'
   );
   // Le type 6 est une RÉDUCTION : le fichier écrit 1, le jeu affiche « -1% ».
   egal(
@@ -98,13 +101,18 @@ export default function testImport() {
     `DGTS reçus -1% tous les ${(27000).toLocaleString('fr-FR')} pts du max des PV au début du combat`,
     'relique : un effet en RÉDUCTION s’affiche avec son signe, qui vient du type et non du fichier'
   );
-  // ⚠️ Quand la phrase du JEU est connue pour ce type, c'est elle qui s'affiche
-  // — pas la formule générique. Relevée sur une pièce réelle : « +9 Relique de
-  // Conquête Aiguisé », PV +12%, sec [1, 1000, 1].
+  // ⚠️ **Les six types lus en jeu vérifient la table officielle**, dont l'ordre
+  // EST la numérotation du champ `type`. Si un jour cet ordre bouge, ce sont ces
+  // six-là qui le diront — chacun a été relevé sur une pièce réelle.
   egal(
     formatRelicUnique({ type: 1, tranche: 1000, percent: 1 }),
     `DGTS infligés +1% tous les ${(1000).toLocaleString('fr-FR')} pts d'ATQ au début du combat`,
-    'relique : la phrase du jeu prime sur la formule générique'
+    'relique : type 1 — Conquête · ATQ (+9 Conquête Aiguisé)'
+  );
+  egal(
+    formatRelicUnique({ type: 7, tranche: 250, percent: 2 }),
+    '[ATQ +2% tous les 250 pts de VIT] au début du combat',
+    'relique : type 7 — Bravoure · VIT (+5 Bravoure Agile)'
   );
   // Sans pourcentage (fichier partagé par une version antérieure), la phrase du
   // jeu serait incomplète : on retombe sur la formule.

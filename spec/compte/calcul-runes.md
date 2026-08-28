@@ -128,83 +128,70 @@ Relevé sur un compte réel (15 reliques) :
 - le **troisième est le pourcentage** accordé par tranche (1 ou 2 sur les pièces
   observées).
 
-⚠️ **Ce que l'effet FAIT n'est nulle part dans l'export** : `type` est un numéro,
-sans table qui dise « type 12 = … ». On affiche donc la **formule seule** —
-« +2 % par tranche de 27 000 PV », le numéro de type en infobulle — et **jamais
-un libellé deviné** : une description fausse sur un effet de combat est l'erreur
-silencieuse type, du même ordre qu'envoyer farmer le mauvais donjon. Pas
-d'intitulé « Propriété unique » non plus : la phrase se suffit, et la tuile n'a
-que deux lignes.
+⚠️ **Ce que l'effet FAIT n'est nulle part dans l'export** : `type` n'est qu'un
+numéro. La description vient donc de la **table officielle** ci-dessous, et la
+ligne s'écrit dans les mots du jeu — « [DEF +2% tous les 27 000 pts du max des
+PV] au début du combat ». Pas d'intitulé « Propriété unique » devant : la phrase
+se suffit, et la tuile n'a que deux lignes. Le numéro de type reste en infobulle,
+pour retrouver la pièce en jeu.
 
-#### Deux tables, deux degrés de précision
+⚠️ **Bug corrigé** : elle était lue comme un `{ code, value }` de substat et
+affichée « Effet secondaire · 27000 ». Le pourcentage était perdu, et le nombre
+montré n'était pas une valeur mais un **diviseur**.
 
-| Table | Contenu | Quand |
+### Les 16 propriétés uniques — table OFFICIELLE
+
+Com2uS publie les **16 propriétés exclusives, réparties en 6 groupes** selon leur
+fonction (note de mise à jour des Reliques, `sw.com2us.com`). **L'ordre de ce
+tableau EST la numérotation du champ `type`** de l'export :
+
+| Groupe | Effet | Types (par stat de référence) |
 |---|---|---|
-| `RELIC_UNIQUE` | la **phrase du jeu**, recopiée telle quelle | dès qu'une pièce a été lue en jeu |
-| `RELIC_UNIQUE_STAT` | l'**unité** de la tranche seule | sinon, avec la formule générique |
+| **Conquête** | DGTS infligés **+**x% | 1 ATQ · 2 DEF · 3 max des PV |
+| **Ténacité** | DGTS reçus **−**x% | 4 ATQ · 5 DEF · 6 max des PV |
+| **Bravoure** | [ATQ +x%] | 7 VIT · 8 DEF · 9 max des PV |
+| **Éternité** | [DEF +x%] | 10 ATQ · 11 VIT · 12 max des PV |
+| **Origine** | [Max des PV +x%] | 13 ATQ · 14 VIT · 15 DEF |
+| **Régénération** | [Soins et boucliers accordés +x%] | 16 max des PV |
 
-⚠️ **La phrase vient de l'écran du jeu, jamais d'une reformulation** (règle des
-libellés). Types relevés à ce jour, chacun sur une pièce lue en jeu :
+*(toutes « au début du combat » ; les crochets sont ceux du jeu — il encadre les
+gains de stat, pas les modificateurs de dégâts)*
 
-| Type | Pièce | Phrase (toutes « au début du combat ») |
+⚠️ **Six pièces réelles vérifient cette numérotation**, une par une — c'est ce
+qui autorise à s'y fier plutôt qu'à la deviner :
+
+| Type | Pièce lue en jeu | Vérifie |
 |---|---|---|
-| 1 | +9 Conquête Aiguisé, `sec [1, 1000, 1]` | DGTS infligés **+**1% tous les 1000 pts d'**ATQ** |
-| 3 | +6 Conquête Robuste, `sec [3, 27000, 1]` | DGTS infligés **+**1% tous les 27000 pts du **max des PV** |
-| 5 | Ténacité Inébranlable (+0), `sec [5, 2500, 1]` | DGTS reçus **−**1% tous les 2500 pts de **DEF** |
-| 6 | +7 Ténacité Robuste, `sec [6, 27000, 1]` | DGTS reçus **−**1% tous les 27000 pts du **max des PV** |
-| 7 | +5 Bravoure Agile, `sec [7, 250, 2]` | [ATQ +2% tous les 250 pts de **VIT**] |
-| 14 | +8 Origine Agile, `sec [14, 200, 2]` | [Max des PV +2% tous les 200 pts de **VIT**] |
+| 1 | +9 Conquête Aiguisé, `sec [1, 1000, 1]` | Conquête · ATQ |
+| 3 | +6 Conquête Robuste, `sec [3, 27000, 1]` | Conquête · max des PV |
+| 5 | Ténacité Inébranlable (+0), `sec [5, 2500, 1]` | Ténacité · DEF |
+| 6 | +7 Ténacité Robuste, `sec [6, 27000, 1]` | Ténacité · max des PV |
+| 7 | +5 Bravoure Agile, `sec [7, 250, 2]` | Bravoure · VIT |
+| 14 | +8 Origine Agile, `sec [14, 200, 2]` | Origine · VIT |
 
-⚠️ **Trois choses que le fichier ne dit PAS**, et qu'aucune pièce ne permet de
-deviner pour les types manquants :
+Le **nom** de la relique redit la même chose en deux mots — le groupe, puis la
+stat de référence (« Aiguisé » = ATQ, « Robuste » = PV, « Agile » = VIT,
+« Inébranlable » = DEF). Il n'est **pas** dans l'export : c'est un recoupement,
+jamais une source.
 
-1. **Le sens.** Le fichier écrit `1` pour le type 1 (**+**1% de dégâts infligés)
-   **comme** pour le type 6 (**−**1% de dégâts reçus). Le repli n'affiche donc
-   **aucun signe**.
-2. **La nature de l'effet** : dégâts pour les uns, **gain de stat** pour les
-   autres (types 7 et 14) — crochets du jeu compris.
-3. **La stat source**, portée par le type seul (voir le piège ci-dessous).
+⚠️ **Deux choses que le fichier ne dira jamais**, et que seule cette table donne :
 
-⚠️ Le **nom** de la relique suit la même grille en deux mots — ce que l'effet
-donne, puis la stat qui l'alimente (« Conquête » = dégâts infligés, « Ténacité »
-= dégâts reçus, « Origine » = max des PV, « Bravoure » = ATQ ; « Aiguisé » = par
-ATQ, « Robuste » = par PV, « Agile » = par VIT, « Inébranlable » = par DEF). Il
-**n'est pas dans l'export** : c'est un recoupement, jamais une source.
+1. **Le sens.** Il écrit `1` pour le type 1 (**+**1% de dégâts infligés) **comme**
+   pour le type 5 (**−**1% de dégâts reçus).
+2. **La stat de référence.** Les types 1 (ATQ) et 5 (DEF) partagent exactement la
+   même échelle de tranches — 2 500 à +0, 2 000 à +3, 1 500 à +6, 1 000 à +9,
+   750 à +12, 500 à +15. **Aucune déduction par magnitude ne peut les séparer**,
+   et une version antérieure de cette spec s'y était trompée.
 
-⚠️ **L'unité du repli est déduite de l'ORDRE DE GRANDEUR**, seul argument
-disponible en l'absence de pièce lue :
+⚠️ **Un type inconnu reste possible** — la note officielle annonce que d'autres
+propriétés pourront être ajoutées. Il s'affiche alors sans signe ni stat
+(« 1% par tranche de 1 000 »), jamais avec des valeurs devinées.
 
-| Tranches observées | Stat | Pourquoi |
-|---|---|---|
-| 45 000 → 27 000 | **PV** | aucune autre stat n'approche ces valeurs |
-| 2 500 → 1 000 | **ATQ ou DEF** | les deux partagent cette échelle : **indécidable** |
-| 250 → 200 | **VIT** | seule stat à cette échelle, la DEF se comptant en milliers |
-
-#### ⚠️ Le piège : la magnitude ne distingue pas l'ATQ de la DEF
-
-Une première version rattachait tout un « palier » de tranches à une même stat :
-le type 1 disant « 1000 pts d'**ATQ** » à +9, les types 2, 5 et 15 — même courbe,
-mêmes paliers — étaient réputés compter en ATQ eux aussi.
-
-**Faux.** Le type 5, lu en jeu, compte « 2500 pts de **DEF** ». Les deux stats
-partagent exactement la même échelle, et rien dans le fichier ne les sépare. Les
-types 2 et 15 ont donc été **retirés** de la table : ils s'affichent sans unité.
-
-Ne restent déduits que les cas d'**impossibilité** (27 000 ne peut être que des
-PV ; 200-250 ne peut être que de la VIT, la DEF se comptant en milliers) —
-jamais l'effet ni son sens. Une tranche sans unité est incomplète mais **vraie** ;
-une unité devinée serait fausse une fois sur deux.
-
-Les deux tables se complètent type par type, à mesure que des pièces sont lues
-en jeu — un seul endroit à toucher.
+⚠️ **La tranche baisse par paliers de trois niveaux** et le fichier porte celle
+du moment : rien à recalculer côté app.
 
 ⚠️ **Le libellé de la stat principale ne porte pas le « % »** : le jeu affiche
 « PV +12% », et `PV%` + `+12%` doublait le signe.
-
-⚠️ **Bug corrigé** : elle était lue comme un `{ code, value }` de substat et
-affichée « Effet secondaire · 27000 ». Le pourcentage était purement perdu, et
-le nombre montré n'était pas une valeur mais un **diviseur** — le lecteur ne
-pouvait qu'en tirer une conclusion fausse.
 
 ### Unité / monstre
 

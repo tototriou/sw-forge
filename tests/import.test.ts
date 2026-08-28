@@ -14,6 +14,7 @@ import {
   parseUsedRuneIds,
   parseWizardId,
 } from '../src/lib/importAccount';
+import { formatRelicUnique } from '../src/lib/effects';
 import { egal, exportReel, exportSynthetique, ignore, ok, titre } from './outils';
 
 export default function testImport() {
@@ -40,6 +41,23 @@ export default function testImport() {
     relique?.unique,
     { type: 12, tranche: 27000, percent: 2 },
     'relique : type, tranche et pourcentage sont tous les trois lus'
+  );
+
+  // La tranche s'affiche AVEC son unité quand le type est connu (27 000 ne peut
+  // être que des PV), et sans unité sinon — jamais avec une unité devinée.
+  // ⚠️ Le séparateur de milliers est celui du FRANÇAIS (`toLocaleString`), une
+  // espace insécable étroite — pas l'espace ordinaire du clavier. L'écrire en
+  // dur dans l'attendu faisait échouer un test dont les deux chaînes
+  // s'affichaient pourtant identiques.
+  egal(
+    formatRelicUnique(relique!.unique!),
+    `+2% par tranche de ${(27000).toLocaleString('fr-FR')} PV`,
+    'relique : la formule affichée porte le pourcentage et l’unité de la tranche'
+  );
+  egal(
+    formatRelicUnique({ type: 999, tranche: 1000, percent: 1 }),
+    `+1% par tranche de ${(1000).toLocaleString('fr-FR')}`,
+    'relique : un type dont la stat est inconnue s’affiche sans unité, jamais avec une unité devinée'
   );
 
   const inv = parseAccountInventory(objet);

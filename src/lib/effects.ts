@@ -557,6 +557,29 @@ export function formatRelicMain(e: EffectLine): string {
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
 }
 
+// Stat à laquelle se rapporte la TRANCHE d'une propriété unique, par type de
+// relique.
+//
+// ⚠️ **Table volontairement INCOMPLÈTE.** L'export ne porte qu'un numéro de
+// type, sans rien qui dise à quelle stat il se rapporte. Le seul argument
+// disponible est l'ORDRE DE GRANDEUR de la tranche, relevé sur un compte réel :
+//
+//   | Types | Tranches observées | Stat |
+//   |---|---|---|
+//   | 3, 6, 12, 16 | 45 000 → 36 000 → 27 000 | **PV** — aucune autre stat du jeu n'approche ces valeurs |
+//   | 1, 2, 5, 15 | 2 500 → 2 000 → 1 000 | ATQ **ou** DEF : ambigu |
+//   | 7, 11, 14 | 250 → 200 | DEF **ou** VIT : ambigu |
+//
+// Les deux familles ambiguës restent DEHORS tant qu'un exemple lu en jeu n'aura
+// pas tranché : la tranche s'affiche alors sans unité, ce qui est incomplet mais
+// vrai — là où une unité devinée serait fausse une fois sur deux.
+export const RELIC_UNIQUE_STAT: Record<number, string> = {
+  3: 'PV',
+  6: 'PV',
+  12: 'PV',
+  16: 'PV',
+};
+
 // Propriété unique d'une relique : la FORMULE, jamais un libellé d'effet.
 //
 // ⚠️ **On n'invente pas ce que l'effet fait.** L'export ne porte qu'un numéro de
@@ -570,6 +593,7 @@ export function formatRelicMain(e: EffectLine): string {
 // antérieure, qui ne transportait que le type et la tranche) : on annonce alors
 // la tranche seule, plutôt qu'un « +0 % » qui serait faux.
 export function formatRelicUnique(u: RelicUnique): string {
-  const tranche = u.tranche.toLocaleString('fr-FR');
+  const stat = RELIC_UNIQUE_STAT[u.type];
+  const tranche = u.tranche.toLocaleString('fr-FR') + (stat ? ` ${stat}` : '');
   return u.percent ? `+${u.percent}% par tranche de ${tranche}` : `par tranche de ${tranche}`;
 }

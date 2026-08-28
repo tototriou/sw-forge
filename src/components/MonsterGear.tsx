@@ -22,18 +22,21 @@ function RelicDetailBox({ relic, encadre = true }: { relic: RelicDetail; encadre
   return (
     <div className={encadre ? 'rounded-lg border border-border bg-panel/70 p-2.5' : ''}>
       <div className="text-xs font-bold text-ink">{formatRelicMain(relic.main)}</div>
-      {/* ⚠️ **La formule, pas un nom d'effet.** La propriété unique déclenche un
-          effet proportionnel à une stat (« +1 % par tranche de 2 500 »), et
-          l'export ne dit NULLE PART ce que l'effet fait — seulement un numéro de
-          type. On affiche donc ce qui est certain ; le numéro reste en infobulle
-          pour retrouver la pièce en jeu. Avant : « Effet secondaire · 27000 »,
-          où le nombre n'était même pas une valeur mais un diviseur. */}
+      {/* ⚠️ **La description seule, sans intitulé.** La propriété unique
+          déclenche un effet proportionnel à une stat (« +2 % par tranche de
+          27 000 PV »), et cette phrase se suffit : la coiffer d'un « Propriété
+          unique · » répétait une catégorie que la ligne dit déjà, sur deux
+          lignes de tuile qui en valent l'or.
+          ⚠️ L'export ne dit NULLE PART ce que l'effet fait — seulement un numéro
+          de type, qui reste en infobulle pour retrouver la pièce en jeu. Avant :
+          « Effet secondaire · 27000 », où le nombre n'était même pas une valeur
+          mais un diviseur. */}
       {relic.unique && (
         <div
           className="text-micro text-ink-dim mt-0.5"
           title={`Propriété unique n° ${relic.unique.type} — l'export ne dit pas ce qu'elle déclenche`}
         >
-          Propriété unique · {formatRelicUnique(relic.unique)}
+          {formatRelicUnique(relic.unique)}
         </div>
       )}
     </div>

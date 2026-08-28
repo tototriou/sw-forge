@@ -129,10 +129,25 @@ Relevé sur un compte réel (15 reliques) :
   observées).
 
 ⚠️ **Ce que l'effet FAIT n'est nulle part dans l'export** : `type` est un numéro,
-sans table qui dise « type 12 = … ». On affiche donc la **formule** — « Propriété
-unique · +2 % par tranche de 27 000 », le numéro de type en infobulle — et
-**jamais un libellé deviné** : une description fausse sur un effet de combat est
-l'erreur silencieuse type, du même ordre qu'envoyer farmer le mauvais donjon.
+sans table qui dise « type 12 = … ». On affiche donc la **formule seule** —
+« +2 % par tranche de 27 000 PV », le numéro de type en infobulle — et **jamais
+un libellé deviné** : une description fausse sur un effet de combat est l'erreur
+silencieuse type, du même ordre qu'envoyer farmer le mauvais donjon. Pas
+d'intitulé « Propriété unique » non plus : la phrase se suffit, et la tuile n'a
+que deux lignes.
+
+⚠️ **L'unité de la tranche est déduite de l'ORDRE DE GRANDEUR**, seul argument
+disponible (`RELIC_UNIQUE_STAT` dans [effects.ts](src/lib/effects.ts)) :
+
+| Types | Tranches observées | Stat |
+|---|---|---|
+| 3, 6, 12, 16 | 45 000 → 36 000 → 27 000 | **PV** — aucune autre stat n'approche ces valeurs |
+| 1, 2, 5, 15 | 2 500 → 2 000 → 1 000 | ATQ **ou** DEF : ambigu, **laissé sans unité** |
+| 7, 11, 14 | 250 → 200 | DEF **ou** VIT : ambigu, **laissé sans unité** |
+
+Une tranche sans unité est incomplète mais **vraie** ; une unité devinée serait
+fausse une fois sur deux. La table se complète type par type, à mesure qu'un
+exemple lu en jeu tranche.
 
 ⚠️ **Bug corrigé** : elle était lue comme un `{ code, value }` de substat et
 affichée « Effet secondaire · 27000 ». Le pourcentage était purement perdu, et

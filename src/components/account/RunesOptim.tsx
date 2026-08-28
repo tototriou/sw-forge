@@ -423,10 +423,20 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
           </Selecteur>
         </div>
 
-        {/* Palier, mesure gemme/meule, filtre antique et « Faisable avec ma
-            réserve » : au BUREAU en ligne ici, sur TÉLÉPHONE dans le panneau
-            « Options » (bouton de la barre de nav, voir la fin du composant). */}
-        <div className="hidden lg:flex lg:items-center lg:gap-4">{optionsControls(false)}</div>
+        {/* Palier, mesure gemme/meule, filtre antique, « Faisable avec ma
+            réserve », « Sans les immémoriaux » et « Runes utilisées » : au
+            BUREAU en ligne ici, sur TÉLÉPHONE dans le panneau « Options »
+            (bouton de la barre de nav, voir la fin du composant).
+
+            ⚠️ **`flex-wrap`, comme la rangée qui le contient.** Ce groupe est
+            UN seul élément de la rangée parente : sans retour à la ligne
+            interne, il ne peut pas se réduire sous la largeur de ses six
+            contrôles et c'est la PAGE qui déborde par la droite — la rangée
+            parente, elle, n'a rien à passer à la ligne, elle ne voit qu'un
+            bloc. Le `gap-y` sépare les lignes ainsi créées. */}
+        <div className="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-x-4 lg:gap-y-2">
+          {optionsControls(false)}
+        </div>
 
         {/* Aide : « ? » sur la même ligne, à droite */}
         <div className="ml-auto">

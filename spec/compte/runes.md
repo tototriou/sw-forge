@@ -918,6 +918,12 @@ six** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
 immémoriaux »** et **« Runes utilisées »**. **Sets, slot, tri et l'aide restent
 dans la page**, à tous les formats.
 
+- ⚠️ **Au bureau, le groupe en ligne passe à la ligne tout seul**
+  (`lg:flex-wrap`). Il est **un seul élément** de la rangée de filtres : sans
+  retour à la ligne interne, il ne peut pas se réduire sous la largeur cumulée
+  de ses six contrôles, et c'est la **page** qui déborde par la droite — la
+  rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Constaté au
+  sixième contrôle, sur un écran de bureau ordinaire.
 - Les six sont écrits **une fois** (`optionsControls`) et posés à deux
   endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
   doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la

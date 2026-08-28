@@ -57,6 +57,21 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
+  // ⚠️ Version EN PRÉPARATION (`version: null`) : le numéro se décide à la
+  // fusion, d'après ce que la branche contient au final. On le remplace au
+  // moment de publier, en même temps que `package.json` et le tag.
+  {
+    version: null,
+    date: '2026-08-28',
+    title: 'Tes sous-sections s’ouvrent au survol',
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Navigation',
+        text: 'Sur ordinateur, survole une section du menu : ses sous-sections s’affichent à côté, en un clic de moins.',
+      },
+    ],
+  },
   {
     version: '1.11.0',
     date: '2026-08-28',

@@ -49,15 +49,54 @@ export default function testImport() {
   // espace insécable étroite — pas l'espace ordinaire du clavier. L'écrire en
   // dur dans l'attendu faisait échouer un test dont les deux chaînes
   // s'affichaient pourtant identiques.
+  // ⚠️ **Aucun signe dans le repli** : le type 1 accorde « +1% de DGTS
+  // infligés », le type 6 retranche « -1% de DGTS reçus », et le fichier écrit
+  // `1` dans les deux cas. Le sens appartient au type ; l'inventer se trompait
+  // une fois sur deux.
   egal(
     formatRelicUnique(relique!.unique!),
-    `+2% par tranche de ${(27000).toLocaleString('fr-FR')} PV`,
-    'relique : la formule affichée porte le pourcentage et l’unité de la tranche'
+    `2% par tranche de ${(27000).toLocaleString('fr-FR')} PV`,
+    'relique : la formule affichée porte le pourcentage et l’unité de la tranche, sans signe'
   );
   egal(
     formatRelicUnique({ type: 999, tranche: 1000, percent: 1 }),
-    `+1% par tranche de ${(1000).toLocaleString('fr-FR')}`,
+    `1% par tranche de ${(1000).toLocaleString('fr-FR')}`,
     'relique : un type dont la stat est inconnue s’affiche sans unité, jamais avec une unité devinée'
+  );
+  // Deux types sur la MÊME tranche de PV, en sens opposés : 3 augmente les
+  // dégâts infligés, 6 réduit les dégâts reçus. Rien dans le fichier ne les
+  // distingue — seule la table le fait.
+  egal(
+    formatRelicUnique({ type: 3, tranche: 27000, percent: 1 }),
+    `DGTS infligés +1% tous les ${(27000).toLocaleString('fr-FR')} pts du max des PV au début du combat`,
+    'relique : le type 3 augmente les dégâts infligés'
+  );
+  // ⚠️ Toutes les propriétés uniques ne sont pas des dégâts : le type 14 accorde
+  // une STAT, crochets du jeu compris.
+  egal(
+    formatRelicUnique({ type: 14, tranche: 200, percent: 2 }),
+    '[Max des PV +2% tous les 200 pts de VIT] au début du combat',
+    'relique : une propriété qui accorde une stat garde la ponctuation du jeu'
+  );
+  // ⚠️ **La magnitude ne distingue PAS l'ATQ de la DEF** : le type 1 compte
+  // « par 1000 pts d'ATQ », le type 5 « par 2500 pts de DEF » — même courbe,
+  // deux stats. C'est pourquoi les types de cette famille jamais lus en jeu
+  // (2, 15) restent SANS unité, au lieu d'hériter de celle de leurs voisins.
+  egal(
+    formatRelicUnique({ type: 5, tranche: 2500, percent: 1 }),
+    `DGTS reçus -1% tous les ${(2500).toLocaleString('fr-FR')} pts de DEF au début du combat`,
+    'relique : le type 5 compte en DEF, pas en ATQ comme son voisin de même échelle'
+  );
+  egal(
+    formatRelicUnique({ type: 2, tranche: 2500, percent: 1 }),
+    `1% par tranche de ${(2500).toLocaleString('fr-FR')}`,
+    'relique : un type de la famille ATQ/DEF non lu en jeu reste sans unité'
+  );
+  // Le type 6 est une RÉDUCTION : le fichier écrit 1, le jeu affiche « -1% ».
+  egal(
+    formatRelicUnique({ type: 6, tranche: 27000, percent: 1 }),
+    `DGTS reçus -1% tous les ${(27000).toLocaleString('fr-FR')} pts du max des PV au début du combat`,
+    'relique : un effet en RÉDUCTION s’affiche avec son signe, qui vient du type et non du fichier'
   );
   // ⚠️ Quand la phrase du JEU est connue pour ce type, c'est elle qui s'affiche
   // — pas la formule générique. Relevée sur une pièce réelle : « +9 Relique de

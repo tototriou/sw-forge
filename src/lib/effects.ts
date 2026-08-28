@@ -570,15 +570,46 @@ export function formatRelicMain(e: EffectLine): string {
 //
 //   type 1 → « +9 Relique de Conquête Aiguisé », PV +12%, `sec [1, 1000, 1]`
 //            « DGTS infligés +1% tous les 1000 pts d'ATQ au début du combat »
+//   type 3 → « +6 Relique de Conquête Robuste », PV +9%, `sec [3, 27000, 1]`
+//            « DGTS infligés +1% tous les 27000 pts du max des PV au début du combat »
+//   type 6 → « +7 Relique de Ténacité Robuste », DEF +10%, `sec [6, 27000, 1]`
+//            « DGTS reçus -1% tous les 27000 pts du max des PV au début du combat »
+//   type 5 → « Relique de Ténacité Inébranlable » (+0), PV +3%, `sec [5, 2500, 1]`
+//            « DGTS reçus -1% tous les 2500 pts de DEF au début du combat »
+//   type 7 → « +5 Relique de Bravoure Agile », ATQ +8%, `sec [7, 250, 2]`
+//            « [ATQ +2% tous les 250 pts de VIT] au début du combat »
+//   type 14 → « +8 Relique de Origine Agile », PV +11%, `sec [14, 200, 2]`
+//            « [Max des PV +2% tous les 200 pts de VIT] au début du combat »
 //
-// Cette seule pièce confirme la mécanique entière : le 3ᵉ nombre est bien le
+// ⚠️ **Toutes les propriétés uniques ne sont pas des dégâts** : le type 14
+// accorde une STAT (« Max des PV +2% »), crochets compris — c'est la ponctuation
+// du jeu, on la recopie.
+//
+// ⚠️ Le NOM du jeu suit la même grille en deux mots — ce que l'effet DONNE puis
+// la stat qui l'ALIMENTE : « Conquête » = dégâts infligés, « Ténacité » = dégâts
+// reçus, « Origine » = max des PV, « Bravoure » = ATQ ; « Aiguisé » = par ATQ,
+// « Robuste » = par PV, « Agile » = par VIT. Il n'est PAS dans l'export (aucun champ de
+// nom), on ne peut donc pas s'en servir pour deviner les types manquants :
+// c'est un recoupement, pas une source.
+//
+// La première pièce confirme la mécanique entière : le 3ᵉ nombre est bien le
 // POURCENTAGE, le 2ᵉ la TRANCHE, et l'unité de la tranche appartient au type.
+//
+// ⚠️ **La SECONDE prouve que le SIGNE appartient au type, lui aussi.** Le
+// fichier écrit `1`, le jeu affiche « **-1%** » : c'est une réduction de dégâts
+// reçus. Rien dans l'export ne distingue les deux cas — d'où une phrase par
+// type, et un repli qui n'affiche AUCUN signe (voir `formatRelicUnique`).
 //
 // ⚠️ Table forcément INCOMPLÈTE (seize types au moins) : un type absent retombe
 // sur la formule générique ci-dessous. On n'invente pas la phrase des autres —
 // une description fausse sur un effet de combat est l'erreur silencieuse type.
 export const RELIC_UNIQUE: Record<number, (percent: number, tranche: string) => string> = {
   1: (p, t) => `DGTS infligés +${p}% tous les ${t} pts d'ATQ au début du combat`,
+  3: (p, t) => `DGTS infligés +${p}% tous les ${t} pts du max des PV au début du combat`,
+  5: (p, t) => `DGTS reçus -${p}% tous les ${t} pts de DEF au début du combat`,
+  6: (p, t) => `DGTS reçus -${p}% tous les ${t} pts du max des PV au début du combat`,
+  7: (p, t) => `[ATQ +${p}% tous les ${t} pts de VIT] au début du combat`,
+  14: (p, t) => `[Max des PV +${p}% tous les ${t} pts de VIT] au début du combat`,
 };
 
 // Stat à laquelle se rapporte la TRANCHE d'une propriété unique, par type de
@@ -588,30 +619,35 @@ export const RELIC_UNIQUE: Record<number, (percent: number, tranche: string) => 
 // type, sans rien qui dise à quelle stat il se rapporte. Le seul argument
 // disponible est l'ORDRE DE GRANDEUR de la tranche, relevé sur un compte réel :
 //
-//   | Types | Tranches observées | Stat |
+//   | Tranches observées | Stat | Pourquoi |
 //   |---|---|---|
-//   | 3, 6, 12, 16 | 45 000 → 36 000 → 27 000 | **PV** — aucune autre stat du jeu n'approche ces valeurs |
-//   | 2, 5, 15 | 2 500 → 2 000 → 1 000 | **ATQ** — même échelle et même courbe que le type 1, lu en jeu |
-//   | 7, 11, 14 | 250 → 200 | DEF **ou** VIT : ambigu, laissé DEHORS |
+//   | 45 000 → 27 000 | **PV** | aucune autre stat du jeu n'approche ces valeurs |
+//   | 2 500 → 1 000 | **ATQ ou DEF** | les deux partagent cette échelle : INDÉCIDABLE |
+//   | 250 → 200 | **VIT** | seule stat à cette échelle, la DEF se comptant en milliers |
 //
-// ⚠️ La famille des milliers a été tranchée par une pièce réelle : le type 1
-// annonce « tous les 1000 pts d'ATQ » à +9, et les types 2, 5 et 15 suivent la
-// MÊME courbe aux mêmes paliers (2 500 à +0, 2 000 à +5, 1 000 à +9/+10). La
-// petite famille, elle, reste dehors tant qu'un exemple ne l'aura pas tranchée :
-// une tranche sans unité est incomplète mais vraie, là où une unité devinée
-// serait fausse une fois sur deux.
+// ⚠️ **PIÈGE, découvert sur une pièce réelle : la magnitude ne distingue PAS
+// l'ATQ de la DEF.** Le type 1 annonce « tous les 1000 pts d'ATQ » (à +9), le
+// type 5 « tous les 2500 pts de DEF » (à +0) — même courbe, deux stats
+// différentes. Les types 2 et 15, jamais lus en jeu, ont donc été RETIRÉS de
+// cette table : ils s'affichent sans unité. La déduction « même famille, même
+// stat » paraissait solide ; elle était fausse.
+//
+// Ne restent déduits que les cas d'IMPOSSIBILITÉ (une tranche de 27 000 ne peut
+// être que des PV) — et **jamais l'effet ni son sens**, propres à chaque type
+// (comparer 3 et 6 : même tranche de PV, sens opposés).
 export const RELIC_UNIQUE_STAT: Record<number, string> = {
   3: 'PV',
   6: 'PV',
   12: 'PV',
   16: 'PV',
-  // ⚠️ Le type 1 est ICI AUSSI, alors que sa phrase complète est connue : le
+  // ⚠️ Les types dont la phrase complète est connue figurent ICI AUSSI : le
   // repli sert quand le pourcentage manque (fichier partagé par une version
   // antérieure), et la phrase du jeu ne s'écrit pas sans lui.
-  1: 'ATQ',
-  2: 'ATQ',
-  5: 'ATQ',
-  15: 'ATQ',
+  1: 'ATQ', // lu en jeu
+  5: 'DEF', // lu en jeu
+  7: 'VIT', // lu en jeu
+  14: 'VIT', // lu en jeu
+  11: 'VIT', // seule stat à cette échelle
 };
 
 // Propriété unique d'une relique : la FORMULE, jamais un libellé d'effet.
@@ -630,11 +666,15 @@ export function formatRelicUnique(u: RelicUnique): string {
   const nombre = u.tranche.toLocaleString('fr-FR');
   // La phrase du jeu quand on la connaît — elle dit l'effet, pas seulement la
   // formule. ⚠️ Elle réclame le pourcentage : sans lui (vieux fichier partagé),
-  // on retombe sur la formule plutôt que d'écrire « +undefined% ».
+  // on retombe sur la formule plutôt que d'écrire « -undefined% ».
   const phrase = RELIC_UNIQUE[u.type];
   if (phrase && u.percent) return phrase(u.percent, nombre);
 
+  // ⚠️ **Repli SANS SIGNE.** Le type 1 accorde « +1% de DGTS infligés », le type
+  // 6 retranche « -1% de DGTS reçus » — et le fichier écrit `1` dans les deux
+  // cas. Le sens appartient au type, qu'on ne connaît pas ici : écrire « +1% »
+  // se trompait une fois sur deux, et sur un effet de combat.
   const stat = RELIC_UNIQUE_STAT[u.type];
   const tranche = nombre + (stat ? ` ${stat}` : '');
-  return u.percent ? `+${u.percent}% par tranche de ${tranche}` : `par tranche de ${tranche}`;
+  return u.percent ? `${u.percent}% par tranche de ${tranche}` : `par tranche de ${tranche}`;
 }

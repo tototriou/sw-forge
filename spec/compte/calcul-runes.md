@@ -144,24 +144,59 @@ que deux lignes.
 | `RELIC_UNIQUE_STAT` | l'**unité** de la tranche seule | sinon, avec la formule générique |
 
 ⚠️ **La phrase vient de l'écran du jeu, jamais d'une reformulation** (règle des
-libellés) : « +9 Relique de Conquête Aiguisé », PV +12%, `sec [1, 1000, 1]` →
-*« DGTS infligés +1% tous les 1000 pts d'ATQ au début du combat »*. Cette seule
-pièce confirme la mécanique entière — 3ᵉ nombre = pourcentage, 2ᵉ = tranche,
-unité portée par le type.
+libellés). Types relevés à ce jour, chacun sur une pièce lue en jeu :
+
+| Type | Pièce | Phrase (toutes « au début du combat ») |
+|---|---|---|
+| 1 | +9 Conquête Aiguisé, `sec [1, 1000, 1]` | DGTS infligés **+**1% tous les 1000 pts d'**ATQ** |
+| 3 | +6 Conquête Robuste, `sec [3, 27000, 1]` | DGTS infligés **+**1% tous les 27000 pts du **max des PV** |
+| 5 | Ténacité Inébranlable (+0), `sec [5, 2500, 1]` | DGTS reçus **−**1% tous les 2500 pts de **DEF** |
+| 6 | +7 Ténacité Robuste, `sec [6, 27000, 1]` | DGTS reçus **−**1% tous les 27000 pts du **max des PV** |
+| 7 | +5 Bravoure Agile, `sec [7, 250, 2]` | [ATQ +2% tous les 250 pts de **VIT**] |
+| 14 | +8 Origine Agile, `sec [14, 200, 2]` | [Max des PV +2% tous les 200 pts de **VIT**] |
+
+⚠️ **Trois choses que le fichier ne dit PAS**, et qu'aucune pièce ne permet de
+deviner pour les types manquants :
+
+1. **Le sens.** Le fichier écrit `1` pour le type 1 (**+**1% de dégâts infligés)
+   **comme** pour le type 6 (**−**1% de dégâts reçus). Le repli n'affiche donc
+   **aucun signe**.
+2. **La nature de l'effet** : dégâts pour les uns, **gain de stat** pour les
+   autres (types 7 et 14) — crochets du jeu compris.
+3. **La stat source**, portée par le type seul (voir le piège ci-dessous).
+
+⚠️ Le **nom** de la relique suit la même grille en deux mots — ce que l'effet
+donne, puis la stat qui l'alimente (« Conquête » = dégâts infligés, « Ténacité »
+= dégâts reçus, « Origine » = max des PV, « Bravoure » = ATQ ; « Aiguisé » = par
+ATQ, « Robuste » = par PV, « Agile » = par VIT, « Inébranlable » = par DEF). Il
+**n'est pas dans l'export** : c'est un recoupement, jamais une source.
 
 ⚠️ **L'unité du repli est déduite de l'ORDRE DE GRANDEUR**, seul argument
 disponible en l'absence de pièce lue :
 
-| Types | Tranches observées | Stat |
+| Tranches observées | Stat | Pourquoi |
 |---|---|---|
-| 3, 6, 12, 16 | 45 000 → 36 000 → 27 000 | **PV** — aucune autre stat n'approche ces valeurs |
-| 1 | 2 500 → 1 000 | **ATQ** — *lu en jeu*, c'est lui qui tranche la famille |
-| 2, 5, 15 | 2 500 → 2 000 → 1 000 | **ATQ** — même courbe, aux mêmes paliers, que le type 1 |
-| 7, 11, 14 | 250 → 200 | DEF **ou** VIT : ambigu, **laissé sans unité** |
+| 45 000 → 27 000 | **PV** | aucune autre stat n'approche ces valeurs |
+| 2 500 → 1 000 | **ATQ ou DEF** | les deux partagent cette échelle : **indécidable** |
+| 250 → 200 | **VIT** | seule stat à cette échelle, la DEF se comptant en milliers |
 
-Une tranche sans unité est incomplète mais **vraie** ; une unité devinée serait
-fausse une fois sur deux. Les deux tables se complètent type par type, à mesure
-que des pièces sont lues en jeu — un seul endroit à toucher.
+#### ⚠️ Le piège : la magnitude ne distingue pas l'ATQ de la DEF
+
+Une première version rattachait tout un « palier » de tranches à une même stat :
+le type 1 disant « 1000 pts d'**ATQ** » à +9, les types 2, 5 et 15 — même courbe,
+mêmes paliers — étaient réputés compter en ATQ eux aussi.
+
+**Faux.** Le type 5, lu en jeu, compte « 2500 pts de **DEF** ». Les deux stats
+partagent exactement la même échelle, et rien dans le fichier ne les sépare. Les
+types 2 et 15 ont donc été **retirés** de la table : ils s'affichent sans unité.
+
+Ne restent déduits que les cas d'**impossibilité** (27 000 ne peut être que des
+PV ; 200-250 ne peut être que de la VIT, la DEF se comptant en milliers) —
+jamais l'effet ni son sens. Une tranche sans unité est incomplète mais **vraie** ;
+une unité devinée serait fausse une fois sur deux.
+
+Les deux tables se complètent type par type, à mesure que des pièces sont lues
+en jeu — un seul endroit à toucher.
 
 ⚠️ **Le libellé de la stat principale ne porte pas le « % »** : le jeu affiche
 « PV +12% », et `PV%` + `+12%` doublait le signe.

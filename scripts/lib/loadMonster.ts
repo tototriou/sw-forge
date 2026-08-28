@@ -29,7 +29,7 @@ import {
   parseSiegeOffense,
 } from '../../src/lib/importAccount';
 import { runeSpeedOf, mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from '../../src/lib/applyAccount';
-import { runeEfficiency } from '../../src/lib/effects';
+import { runeEfficiency, formatRelicUnique } from '../../src/lib/effects';
 import { GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../../src/types';
 import { loadDeckMonster, DeckMonsterArgs } from './deckMonster';
 import { loadMonstersList } from './monstersData';
@@ -71,7 +71,9 @@ function loadAllMonstersByCom2us(): Map<number, Monster> {
 // Imprime TOUJOURS ce qui a été choisi — jamais une hypothèse silencieuse
 // (voir le commentaire de tête). À appeler juste après chaque loader.
 export function printMonsterSummary(label: string, m: LoadedMonster): void {
-  const relic = m.gear.relic ? `main ${JSON.stringify(m.gear.relic.main)}${m.gear.relic.sub ? ` sub ${JSON.stringify(m.gear.relic.sub)}` : ''}` : 'AUCUNE';
+  const relic = m.gear.relic
+    ? `main ${JSON.stringify(m.gear.relic.main)}${m.gear.relic.unique ? ` — ${formatRelicUnique(m.gear.relic.unique)}` : ''}`
+    : 'AUCUNE';
   console.log(
     `[${label}] ${m.monsterName} (unitId ${m.unitId}, com2usId ${m.com2usId}) — ` +
       `base atk=${m.gear.base.atk} spd=${m.gear.base.spd} hp=${m.gear.base.hp} def=${m.gear.base.def} ` +

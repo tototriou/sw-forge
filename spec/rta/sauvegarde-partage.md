@@ -146,6 +146,36 @@ Une version intermédiaire n'offrait que la consultation : elle rendait impossib
 de **reprendre sa propre sauvegarde**, ce à quoi l'export sert tout autant qu'au
 partage.
 
+### ⚠️ L'onglet Ami accepte DEUX fichiers
+
+C'est le **fichier qui décide**, pas un sélecteur de plus : l'utilisateur sait
+quel fichier il ouvre, pas comment il est fait.
+
+| Fichier | Reconnu à | Ce qu'on en tire |
+|---|---|---|
+| **Export de prépa** (bouton « Exporter ») | `format: "sw-forge/prepa-rta"` | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
+| **Export SWEX complet** du compte | son `unit_list` | sa **box RTA**, pré-classée par set — niveau `complet` |
+
+⚠️ **Tout le monde n'a pas SW Forge.** Demander à un ami de l'installer et d'y
+ranger sa prépa pour qu'on puisse la regarder, c'est demander beaucoup ; son
+export SWEX, lui, existe déjà.
+
+- ⚠️ **Le MÊME chemin que son propre import** (`parseAccountJson` →
+  `mapRtaItems`, dans `mapRtaVueAmi`) : vitesses Swift comprises, meilleur
+  exemplaire retenu, pré-classement par set, « Non classé » sous 6 runes. Une
+  seconde façon de lire une box RTA aurait donné **deux prépas différentes pour
+  un même fichier** selon qu'on l'importe ou qu'on le consulte, et personne
+  n'aurait su laquelle croire.
+- L'auteur affiché est le **nom du joueur** (`wizard_name`).
+- Les monstres absents des données chargées sont **annoncés**, jamais avalés.
+- ⚠️ **Rien du compte lu ne sort de la RTA, et rien n'est conservé** : on en
+  extrait la box RTA, en mémoire, et le reste du fichier est jeté avec lui. Même
+  règle que le compte d'un ami dans la comparaison de courbes de runes — on ne
+  stocke **jamais** le compte de quelqu'un d'autre.
+- Un export de compte ne produit **pas** de rapport de validation : il n'y a rien
+  à corriger dans un fichier que le jeu a écrit. Le rapport reste pour les
+  fichiers de prépa, qui eux se bricolent à la main.
+
 ### La consultation
 
 Elle a son **sous-onglet** (`#/rta/ami`,

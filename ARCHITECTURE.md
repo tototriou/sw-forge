@@ -85,7 +85,7 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 | `rta/TurnOrder.tsx` | ordre de tour calculé |
 | `rta/RtaSearch.tsx` | ajout d'un monstre à la prépa |
 | `rta/RtaBackupBar.tsx` | sauvegarde / restauration / partage / import |
-| `rta/RtaAmiSection.tsx` | le sous-onglet « Ami » : ouvre le fichier, ou l'invite |
+| `rta/RtaAmiSection.tsx` | le sous-onglet « Ami » : ouvre le fichier (prépa exportée **ou** export SWEX), ou l'invite |
 | `rta/RtaFriendView.tsx` | lecture d'une prépa partagée |
 | `rta/RtaValidationReport.tsx` | rapport de lecture d'un fichier, **partagé** par la barre de sauvegarde et le sous-onglet Ami |
 | `rta/DesyncBadge.tsx` | la vitesse saisie ≠ les runes importées |

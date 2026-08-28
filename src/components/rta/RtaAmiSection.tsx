@@ -2,6 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Users } from 'lucide-react';
 import { Monster } from '../../types';
 import { ImportReport, RtaVueAmi, validateRtaImport, versVueAmi } from '../../lib/rtaShare';
+import { mapRtaVueAmi } from '../../lib/applyAccount';
+import {
+  parseAccountJson,
+  parseAccountSource,
+  parseAccountWizardName,
+} from '../../lib/importAccount';
 import RtaFriendView from './RtaFriendView';
 import RtaValidationReport from './RtaValidationReport';
 import Bouton from '../../ui/Bouton';
@@ -21,6 +27,24 @@ import Bouton from '../../ui/Bouton';
  * SANS confirmation — il n'y a rien à perdre. Reprendre une prépa (celle qui
  * remplace la sienne) reste dans « Ma prépa », avec les autres gestes de
  * fichier.
+ *
+ * ⚠️ **DEUX fichiers acceptés, et c'est le FICHIER qui décide** — pas un
+ * sélecteur de plus :
+ *
+ *   | Fichier | Ce qu'on en tire |
+ *   |---|---|
+ *   | export de prépa (bouton « Exporter ») | la prépa telle que son auteur l'a classée |
+ *   | export **SWEX complet** du compte | sa box RTA, pré-classée par set comme le ferait son propre import |
+ *
+ * Tout le monde n'a pas SW Forge : demander à un ami de l'installer et d'y
+ * ranger sa prépa pour qu'on puisse la regarder, c'est demander beaucoup. Son
+ * export SWEX, lui, existe déjà. On le reconnaît à son `unit_list`, un champ
+ * qu'un fichier de prépa ne porte pas.
+ *
+ * ⚠️ **Rien du compte lu ne sort de la RTA, et rien n'est conservé** : on en
+ * extrait la box RTA, en mémoire, et le reste du fichier est jeté avec lui.
+ * Même règle que le compte d'un ami dans la comparaison de courbes — on ne
+ * stocke jamais le compte de quelqu'un d'autre.
  */
 
 export default function RtaAmiSection({
@@ -53,7 +77,48 @@ export default function RtaAmiSection({
     return m;
   }, [monsters]);
 
+  // Export SWEX complet : sa box RTA, lue exactement comme le ferait son propre
+  // import de compte (`parseAccountJson` → `mapRtaVueAmi`).
+  function lireCompte(data: any) {
+    setReport(null); // un export de compte ne produit pas de rapport de validation
+    const res = parseAccountJson(data);
+    if (!res.units || res.units.length === 0) {
+      setMsg({
+        text:
+          res.error ??
+          "Cet export de compte ne contient aucun monstre en RTA — son auteur n'a rien runé en arène du monde.",
+        error: true,
+      });
+      return;
+    }
+    const lue = mapRtaVueAmi(res.units, monsterByCom2us, parseAccountWizardName(data));
+    if (lue.entries.length === 0) {
+      setMsg({ text: "Aucun monstre de ce compte n'existe dans les données chargées.", error: true });
+      return;
+    }
+    onOuvrir(lue);
+    const auteur = lue.auteur ? ` de ${lue.auteur}` : '';
+    setMsg({
+      text:
+        `Box RTA${auteur} ouverte · ${lue.entries.length} monstre(s), runes incluses.` +
+        (lue.inconnus.length > 0
+          ? ` ${lue.inconnus.length} monstre(s) absent(s) des données chargées ne sont pas affichés.`
+          : '') +
+        " Ta prépa n'a pas bougé.",
+    });
+  }
+
   function lire(text: string) {
+    // ⚠️ Le TYPE de fichier se déduit du CONTENU, jamais d'un choix demandé à
+    // l'utilisateur : il sait quel fichier il ouvre, pas comment il est fait.
+    // `unit_list` est la racine d'un export SWEX ; un fichier de prépa ne la
+    // porte pas.
+    const compte = parseAccountSource(text);
+    if (compte && Array.isArray(compte.unit_list)) {
+      lireCompte(compte);
+      return;
+    }
+
     const rep = validateRtaImport(text);
     setReport(rep);
     if (!rep.snapshot) return; // erreurs bloquantes : rien à afficher
@@ -98,7 +163,7 @@ export default function RtaAmiSection({
       onClick={() => fichier.current?.click()}
       icone={<Users size={14} />}
       libelle={vue ? 'Ouvrir une autre prépa' : "Ouvrir la prépa d'un ami"}
-      title="Ouvrir un fichier .json de prépa en lecture. Ta prépa n'est pas touchée."
+      title="Ouvrir un .json en lecture : une prépa exportée, ou un export SWEX complet dont on ne lira que la box RTA. Ta prépa n'est pas touchée."
     />
   );
 
@@ -144,10 +209,11 @@ export default function RtaAmiSection({
           <Users size={34} className="mb-3 opacity-70" />
           <p className="text-base font-semibold text-ink">Aucune prépa consultée</p>
           <p className="mt-1 max-w-sm text-sm">
-            Ouvre le fichier <b className="text-ink">.json</b> qu'un ami t'a partagé (il l'obtient
-            avec « Exporter », dans sa prépa) : tu verras son classement, ses vitesses et son ordre
-            de tour. <b className="text-ink">Ta prépa n'est pas touchée</b> et rien n'est comparé à
-            tes monstres.
+            Ouvre le <b className="text-ink">.json</b> qu'un ami t'a partagé : sa prépa exportée
+            (bouton « Exporter », dans « Ma prépa ») <b className="text-ink">ou son export SWEX
+            complet</b>, dont seule la box RTA est lue. Tu verras son classement, ses vitesses et
+            son ordre de tour. <b className="text-ink">Ta prépa n'est pas touchée</b>, rien n'est
+            comparé à tes monstres et rien n'est conservé.
           </p>
           <div className="mt-4">{bouton}</div>
           {msg && (

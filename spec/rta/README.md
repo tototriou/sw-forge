@@ -12,7 +12,7 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 | Sous-section | Route | Ce qu'on y fait |
 |--------------|-------|-----------------|
 | **Ma prépa** | `#/rta` | tout l'écran décrit ci-dessous : sa propre prépa |
-| **Ami** | `#/rta/ami` | consulter la prépa de quelqu'un d'autre, en lecture |
+| **Ami** | `#/rta/ami` | consulter la prépa de quelqu'un d'autre, en lecture — **prépa exportée ou export SWEX complet** |
 
 - ⚠️ **« Ma prépa » garde le hash NU `#/rta`** : c'est l'écran historique, et les
   liens déjà partagés doivent continuer d'y mener. `#/rta/prepa` n'existe pas.

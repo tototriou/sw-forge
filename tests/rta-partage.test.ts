@@ -21,9 +21,11 @@ import {
   validateRtaImport,
   versVueAmi,
 } from '../src/lib/rtaShare';
+import { mapRtaVueAmi } from '../src/lib/applyAccount';
+import { parseAccountJson, parseAccountSource } from '../src/lib/importAccount';
 import { Monster, RtaState, RTA_OTHER, RTA_UNASSIGNED } from '../src/types';
 import { RtaCategory } from '../src/hooks/useRtaCategories';
-import { egal, ok, titre } from './outils';
+import { egal, exportSynthetique, ok, titre } from './outils';
 
 // Deux bestiaires aux ids LOCAUX différents pour le même `com2usId` : c'est la
 // situation réelle entre deux joueurs, et ce que le partage doit absorber.
@@ -479,4 +481,38 @@ export default function testRtaPartage() {
     sectionOrpheline.snapshot!.sections.includes('despair'),
     'une section utilisée par un monstre est recréée — sinon le monstre serait invisible'
   );
+
+  /* ---- Un export SWEX complet devient une prépa consultable -------------- */
+
+  // ⚠️ L'onglet « Ami » accepte DEUX fichiers : une prépa exportée, ou l'export
+  // SWEX complet d'un ami — tout le monde n'a pas SW Forge. Le second passe par
+  // le MÊME chemin que son propre import de compte (`mapRtaItems`), sans quoi un
+  // même fichier donnerait deux prépas différentes selon qu'on l'importe ou
+  // qu'on le consulte.
+  titre('Consultation depuis un export de compte');
+
+  const exportAmi = parseAccountSource(exportSynthetique())!;
+  const unitsAmi = parseAccountJson(exportAmi).units;
+  const bestiaireAmi = [monstre('900', 15105, 'Kaki'), monstre('901', 14314, 'Teon')];
+
+  const vueCompte = mapRtaVueAmi(unitsAmi, parCom2us(bestiaireAmi), 'Thomas');
+  egal(vueCompte.entries.length, 2, 'export de compte : les monstres RTA deviennent des cartes');
+  egal(vueCompte.auteur, 'Thomas', "le nom du joueur devient l'auteur affiché");
+  egal(vueCompte.niveau, 'complet', 'un export de compte porte les runes : niveau complet');
+  ok(
+    vueCompte.entries.every((e) => e.entry.monsterId === String(e.monster.id)),
+    'chaque entrée pointe vers le monstre du bestiaire LOCAL, jamais un com2usId'
+  );
+  // Presets RTA incomplets dans la fixture (4 et 2 runes) : « Non classé », et
+  // donc aucune section de set à afficher — même règle que son propre import.
+  ok(
+    vueCompte.entries.every((e) => e.entry.section === RTA_UNASSIGNED),
+    'un build de moins de 6 runes reste « Non classé »'
+  );
+  egal(vueCompte.sections, [], 'aucune section de set tant qu’aucun build complet ne la peuple');
+
+  // ⚠️ Un monstre absent du bestiaire du LECTEUR est annoncé, jamais avalé.
+  const vuePartielle = mapRtaVueAmi(unitsAmi, parCom2us([bestiaireAmi[0]]), null);
+  egal(vuePartielle.entries.length, 1, 'seul le monstre connu est affiché');
+  egal(vuePartielle.inconnus, [14314], 'et l’autre est annoncé comme inconnu, par com2usId');
 }

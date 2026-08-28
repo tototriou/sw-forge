@@ -58,7 +58,7 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
-    version: null,
+    version: '1.10.1',
     date: '2026-08-28',
     title: 'Ne travaille que les runes qui jouent',
     highlights: ['Un filtre « Runes utilisées » dans l’optimisation de tes runes'],

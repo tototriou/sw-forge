@@ -284,6 +284,20 @@ const CODE_AMPLI_DEF = 205;
 const CODE_AMPLI_VIT = 206;
 const CODE_AMPLI_ATK_DEF = 226;
 
+// « Dgts supp. en prop. de <stat> » — des dégâts BRUTS ajoutés À CHAQUE COUP,
+// proportionnels à une stat de l'attaquant. Ni critiques, ni mitigés par la
+// défense adverse (confirmé par l'utilisateur).
+//
+// ⚠️ Les échelles n'ont RIEN à voir entre elles, et c'est normal : le
+// plafond du 218 est 1,5 (% des PV) quand celui du 221 est 200 (% de la
+// VIT) — parce que 1,5 % de 40 000 PV et 200 % de 200 VIT donnent des
+// ordres de grandeur comparables. Ne jamais « normaliser » ces valeurs entre
+// elles. Voir spec/compte/calcul-artefacts.md.
+const CODE_BRUT_PV = 218;
+const CODE_BRUT_ATK = 219;
+const CODE_BRUT_DEF = 220;
+const CODE_BRUT_VIT = 221;
+
 // Ce qu'une paire d'artéfacts apporte au calcul de dégâts.
 //
 // ⚠️ **Un OBJET plutôt qu'un nombre**, là où le code ne portait que
@@ -296,6 +310,11 @@ export interface ArtifactDamageProfile {
   ampliAtkPct: number;
   ampliDefPct: number;
   ampliVitPct: number;
+  // Dégâts bruts par coup, en % de la stat correspondante (codes 218-221).
+  brutPctPv: number;
+  brutPctAtk: number;
+  brutPctDef: number;
+  brutPctVit: number;
 }
 
 // Aucun artéfact pris en compte — comportement strictement inchangé.
@@ -303,10 +322,14 @@ export const ARTIFACT_DAMAGE_NEUTRE: ArtifactDamageProfile = {
   ampliAtkPct: 0,
   ampliDefPct: 0,
   ampliVitPct: 0,
+  brutPctPv: 0,
+  brutPctAtk: 0,
+  brutPctDef: 0,
+  brutPctVit: 0,
 };
 
 export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDamageProfile {
-  const p: ArtifactDamageProfile = { ampliAtkPct: 0, ampliDefPct: 0, ampliVitPct: 0 };
+  const p: ArtifactDamageProfile = { ...ARTIFACT_DAMAGE_NEUTRE };
   for (const a of artifacts) {
     for (const s of a.subs) {
       if (s.code === CODE_AMPLI_ATK) p.ampliAtkPct += s.value;
@@ -315,7 +338,10 @@ export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDama
       else if (s.code === CODE_AMPLI_ATK_DEF) {
         p.ampliAtkPct += s.value;
         p.ampliDefPct += s.value;
-      }
+      } else if (s.code === CODE_BRUT_PV) p.brutPctPv += s.value;
+      else if (s.code === CODE_BRUT_ATK) p.brutPctAtk += s.value;
+      else if (s.code === CODE_BRUT_DEF) p.brutPctDef += s.value;
+      else if (s.code === CODE_BRUT_VIT) p.brutPctVit += s.value;
     }
   }
   return p;
@@ -2613,7 +2639,20 @@ export function computeSkillDamageDetail(
   // ⚠️ Les deux familles vont EXACTEMENT au même endroit — ne pas rescinder
   // l'accumulateur « au cas où » : c'est ce partage qui avait été pris à tort
   // pour un obstacle.
-  const ajoutBrutParCoup = ajoutMaxHpPropre + ajoutSacrifice;
+  // Artéfacts « Dgts supp. en prop. de <stat> » (218-221) — MÊME nature que
+  // les deux termes ci-dessus : bruts, par coup. Ils rejoignent donc le même
+  // accumulateur, ils n'en méritent pas un second.
+  //
+  // ⚠️ Les stats lues sont celles de `valeurs`, donc **buffées** (buff d'ATQ,
+  // lead, invocateur déjà appliqués) — pas les stats nues. C'est la même
+  // source que le reste de la formule ; faire lire des stats nues à ces
+  // seules lignes créerait deux notions d'« ATQ » dans le même calcul.
+  const ajoutArtefactBrut =
+    (artefacts.brutPctPv / 100) * valeurs['MAX HP'] +
+    (artefacts.brutPctAtk / 100) * valeurs.ATK +
+    (artefacts.brutPctDef / 100) * valeurs.DEF +
+    (artefacts.brutPctVit / 100) * valeurs.SPD;
+  const ajoutBrutParCoup = ajoutMaxHpPropre + ajoutSacrifice + ajoutArtefactBrut;
   // Ce que ce terme vaut par coup, amplificateurs de cible compris.
   const degatsBrutParCoup = ajoutBrutParCoup * horsCoupBrut;
   // Les PV ne peuvent pas descendre sous zéro, et une cible à 0 PV max (cas
@@ -2940,6 +2979,19 @@ export function computeTotalDamage(
  * ⚠️ **`passifs`/`setup` optionnels** : `damageRelevantStats(profile)` seul
  * reste valide (comportement strictement inchangé) pour tout appelant qui
  * n'a pas encore ces deux valeurs sous la main.
+ *
+ * ⚠️ **Les ARTÉFACTS n'entrent volontairement PAS ici**, alors qu'ils
+ * ajoutent bel et bien des dégâts proportionnels aux PV/DEF/VIT (codes
+ * 218-221, voir `ArtifactDamageProfile`). Un artéfact **amplifie** un build,
+ * il n'en déplace pas la cible : un Lushen qui cherche des dégâts vise
+ * toujours ATQ et Dgts CRIT, qu'il porte ou non une ligne proportionnelle à
+ * la DEF. Ces lignes RÉCOLTENT les stats que le build possède déjà, elles ne
+ * justifient jamais d'en chercher d'autres — tranché avec l'utilisateur, voir
+ * spec/outils/degats-reels.md.
+ *
+ * Les y mettre ferait travailler la rétention (`retentionKeys`,
+ * runeBuildOptim.ts) sur des stats hors-sujet, et sortirait des builds que
+ * personne ne veut.
  */
 export function damageRelevantStats(
   profile: SkillDamageProfile | null,

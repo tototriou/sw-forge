@@ -250,6 +250,53 @@ Miriam avant de multiplier la potence de base :
 `potence × (1 + (artéfact + Miriam) / 100)`. Les traiter multiplicativement
 l'un envers l'autre inventerait un empilement que le jeu ne fait pas.
 
+## Dégâts supplémentaires proportionnels à une stat (218-221)
+
+Quatre lignes d'artéfact ajoutent des dégâts **BRUTS** — ni critiques, ni
+mitigés par la défense adverse — **à chaque coup**, proportionnels à une stat
+de l'attaquant :
+
+| Code | Libellé du jeu | Plafond |
+|---|---|---|
+| 218 | `Dgts supp. en prop. des PV : X%` | 1,5 |
+| 219 | `Dgts supp. en prop. de ATQ : X%` | 20 |
+| 220 | `Dgts supp. en prop. de DEF : X%` | 20 |
+| 221 | `Dgts supp. en prop. de VIT : X%` | 200 |
+
+⚠️ **Les échelles n'ont rien à voir entre elles, et c'est normal** : 1,5 % de
+40 000 PV, 20 % de 2 000 ATQ et 200 % de 200 VIT donnent des ordres de
+grandeur comparables (≈ 600, 400, 400). Ne jamais « normaliser » ces valeurs
+l'une par rapport à l'autre. Les quatre cumulées au plafond valent **≈ 1 600
+par coup** — d'où leur intérêt sur les sorts qui frappent beaucoup de fois.
+
+Elles rejoignent le **même accumulateur** que les dégâts bruts de passif
+(voir plus haut) : même nature, même traitement, pas un second mécanisme.
+
+⚠️ **Les stats lues sont BUFFÉES** (buff d'ATQ, lead et invocateur déjà
+appliqués), pas les stats nues — c'est la même source que le reste de la
+formule. Faire lire des stats nues à ces seules lignes créerait deux notions
+d'« ATQ » dans le même calcul.
+
+### ⚠️ Ces lignes n'entrent PAS dans `damageRelevantStats`
+
+Elles ajoutent pourtant de vrais dégâts proportionnels aux PV, à la DEF et à
+la VIT — de quoi croire qu'il faut désormais chercher ces stats-là. **C'est
+faux, et c'est une décision, pas un oubli.**
+
+Un artéfact **amplifie** un build, il n'en déplace pas la cible : un Lushen
+qui cherche des dégâts vise toujours ATQ et Dgts CRIT, qu'il porte ou non une
+ligne proportionnelle à la DEF. Ces lignes **récoltent** les stats que le
+build possède déjà, elles ne justifient jamais d'aller en chercher d'autres.
+
+Les y mettre ferait travailler la rétention de l'optimiseur (`retentionKeys`,
+runeBuildOptim.ts) sur des stats hors-sujet et sortirait des builds que
+personne ne veut.
+
+> Le cas où ces lignes comptent vraiment est l'INVERSE : un monstre dont
+> l'objectif premier n'est pas les dégâts (tank, support) porte déjà de gros
+> PV/DEF/VIT, que ces lignes convertissent en dégâts. Là, le build est déjà
+> figé par un autre objectif — il n'y a rien à réorienter.
+
 ### `ArtifactDamageProfile` — un objet, pas une liste de nombres
 
 `artifactDamageProfile(artifacts)` réduit une paire d'artéfacts à ce qu'elle
@@ -264,10 +311,20 @@ Ajouter chaque ligne d'artéfact comme un paramètre positionnel de plus aurait
 obligé à repasser sur les six à chaque fois ; un champ ajouté à l'objet
 n'oblige plus à toucher aucune signature.
 
-⚠️ **Les deux scripts CLI sont hors `tsconfig.json`** (`include: ["src"]`) :
-`npx tsc --noEmit` ne les voit pas. Un champ oublié là-bas ne se détecte
-qu'à la main — c'est la raison d'être de la discipline
+⚠️ **`tsconfig.json` fait `include: ["src"]`** — `npx tsc --noEmit` ne voit
+**ni `scripts/`, ni `tests/`**. Un champ oublié là-bas ne se détecte qu'à la
+main ; c'est la raison d'être de la discipline
 `optimizer-field-propagation`.
+
+> **Incident, immédiatement après l'introduction du profil** : une vingtaine
+> d'appels de `tests/degats.test.ts` passaient encore `0` (l'ancien
+> `ampliVitPct`) à la place de l'objet. Rien n'a bronché — `(0).ampliVitPct`
+> vaut `undefined`, qui retombait sur le défaut. La suite est restée verte
+> jusqu'à ce que le profil gagne les champs 218-221 : `undefined / 100`
+> donne alors `NaN`, et 42 vérifications ont viré au rouge d'un coup.
+> **Un argument de mauvais TYPE a donc survécu à un commit complet**, parce
+> que ni `tsc` ni les tests ne pouvaient le voir. Corrigé en passant
+> `ARTIFACT_DAMAGE_NEUTRE` partout.
 
 `speedBuffAmpliPct` survit comme extracteur de la seule VIT : `maVitCombat`
 n'a besoin que de celle-là, et la vitesse de combat se calcule dans des

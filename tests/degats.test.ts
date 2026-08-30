@@ -206,7 +206,15 @@ export default function testDegats() {
   egal(bombeDe(19415, 'Bombardment').fixed, false, 'Frigate (Ténèbres) : Bombardment frappe ET pose — pas de dégâts fixes');
   egal(bombeDe(29215, 'Dancing Star').fixed, false, 'Geralt (Ténèbres) : Dancing Star frappe ET pose');
   egal(bombeDe(29615, 'Star of Explosion').fixed, false, 'Valdemar : Star of Explosion frappe ET pose');
-  egal(bombeDe(27205, 'Cursed Apple').fixed, false, 'Puppeteer (Ténèbres) : Cursed Apple frappe ET pose');
+
+  // ⚠️ **`coups` ment sur ce sort-là**, d'où la curation par nom
+  // (`BOMBES_SANS_COUP_DIRECT_CONNUS`) : `Cursed Apple` porte `coups: 1`,
+  // mais sa prose ne décrit aucune attaque (« Installs a bomb … and stuns »)
+  // — le 1 compte l'application de l'étourdissement, pas un coup porté.
+  // ⚠️ Ce test est la SEULE protection de cette curation : `coups === 1` seul
+  // le classerait « frappe et pose », et le sort redeviendrait critable et
+  // mitigé sans que rien d'autre ne le signale.
+  egal(bombeDe(27205, 'Cursed Apple').fixed, true, 'Puppeteer (Ténèbres) : Cursed Apple ne fait que POSER, malgré coups=1');
 
   // Le cas le plus net : UN SEUL monstre porte les deux sortes de bombe.
   egal(bombeDe(18101, 'Time Bomb').fixed, true, 'Kobold Bomber (Eau) : Time Bomb pose sans frapper → fixe');

@@ -248,7 +248,7 @@ D'où `estBombeSansCoupDirect` : un effet nommé `Bomb` **et** `coups === 0`.
 
 ### ⚠️ Le discriminant `coups === 0` — et pourquoi il est indispensable
 
-Marquer fixe *tout* sort portant un effet `Bomb` aurait été faux. Cinq
+Marquer fixe *tout* sort portant un effet `Bomb` aurait été faux. Quatre
 familles **frappent en plus de poser** leur bombe : leur formule décrit le
 **coup direct**, qui crite et se fait mitiger normalement.
 
@@ -258,26 +258,55 @@ nettement :
 
 | | Compétence | Monstres |
 |---|---|---|
-| **Pose seule** (`coups: 0`) → **fixe** | `Fate of Destruction` | Seara, Oracle, Giana |
+| **Pose seule** → **fixe** | `Fate of Destruction` | Seara, Oracle, Giana |
 | | `Surprise Bomb` | Joker, Sian, Jojo, Liebli |
 | | `Time Bomb` | Kobold Bomber, Malaka, Taurus, Dover |
-| **Frappe ET pose** (`coups > 0`) → **pas fixe** | `Firecracker` | Kobold Bomber, Malaka, Zibrolta, Taurus… |
+| | `Cursed Apple` ⚠️ | Puppeteer, Zima, Smicer, Zenisek |
+| **Frappe ET pose** → **pas fixe** | `Firecracker` | Kobold Bomber, Malaka, Zibrolta, Taurus… |
 | | `Bombardment` | Frigate, Pirate Captain, Carrack |
-| | `Cursed Apple` | Puppeteer, Zima, Smicer, Zenisek |
 | | `Dancing Star` | Geralt |
 | | `Star of Explosion` | Valdemar, Henrik, Magic Order Guardian |
 
+(`Camouflage (Passive)` et `Plasma Bomb` portent l'effet sans formule : aucun
+profil n'est construit pour eux, ils ne passent jamais par cette règle.)
+
 ⚠️ **Le balayage a élargi la liste connue** : elle était estimée à trois
-compétences (`Bombardment`, `Dancing Star`, `Star of Explosion`) — il y en a
-**cinq**. `Firecracker` et `Cursed Apple` auraient été faussées sans lui, sur
-une dizaine de formes de monstres. C'est le cas d'école du corpus balayé
-plutôt que supposé.
+compétences qui frappent (`Bombardment`, `Dancing Star`, `Star of
+Explosion`) — `Firecracker` s'y ajoute, sur une dizaine de formes de
+monstres. Cas d'école du corpus balayé plutôt que supposé.
+
+### ⚠️ `Cursed Apple` — quand `coups` ment
+
+`Cursed Apple` porte `coups: 1` mais ne frappe pas : sa prose ne décrit
+aucune attaque (« **Installs** a bomb that detonates after 2 turns on the
+enemy target and stuns the enemy for 1 turn »). Le `1` compte l'application
+de son second effet, l'**étourdissement** — pas un coup porté. Sa formule est
+bien celle de l'explosion.
+
+C'est le même piège que `COUPS_VARIABLES_CONNUS` : `Competence.coups` n'est
+pas toujours fidèle au texte du jeu. D'où `BOMBES_SANS_COUP_DIRECT_CONNUS`,
+curé par nom exact.
+
+⚠️ **Ce n'est PAS généralisable en « d'autres effets ⇒ coups gonflé »** :
+`Fate of Destruction` porte lui aussi deux autres effets (dégâts continus,
+tour supplémentaire) et reste pourtant à `coups: 0`. La donnée est
+incohérente d'un sort à l'autre, donc irréductible à un critère — seule la
+curation tient.
+
+⚠️ **La prose non plus ne ferait pas un discriminant fiable** : `Time Bomb`
+contient « Attack Bar » sans frapper, et `Bombardment` frappe sans jamais
+commencer par « Attacks ». Une expression régulière naïve se tromperait dans
+les deux sens.
+
+⚠️ **La règle générale reste `coups === 0`**, pas une liste blanche de noms :
+c'est elle qui classera correctement un sort de bombe NOUVEAU sans qu'on ait
+à le curer. La table ne rattrape que les données infidèles.
 
 ⚠️ **Kobold Bomber porte LES DEUX** (`Firecracker` qui frappe, `Time Bomb` qui
 pose) : c'est le cas de test le plus net du discriminant, et il est verrouillé
 comme tel.
 
-⚠️ **Les dégâts de l'explosion différée des cinq familles « frappe et pose »
+⚠️ **Les dégâts de l'explosion différée des quatre familles « frappe et pose »
 ne sont NULLE PART dans les données** — aucune formule ne les porte. Ils
 restent donc hors modèle, comme le reste de ce qui ne se calcule pas.
 

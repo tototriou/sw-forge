@@ -1455,30 +1455,60 @@ const RE_FIXED = /\(Fixed\)\s*$/i;
 // `'Ignore DEF'`. D'où cette troisième porte.
 const EFFET_BOMBE = 'Bomb';
 
+// ⚠️ **`Competence.coups` n'est pas fidèle au texte du jeu pour tous les
+// sorts de bombe** — même piège que `COUPS_VARIABLES_CONNUS`. `Cursed Apple`
+// porte `coups: 1` alors que sa prose ne décrit AUCUNE attaque : « Installs a
+// bomb that detonates after 2 turns on the enemy target and stuns the enemy
+// for 1 turn ». Confirmé par l'utilisateur : ce sort ne fait que POSER, sa
+// formule est celle de l'explosion — le `1` compte l'application de son SECOND
+// effet (l'étourdissement), pas un coup porté.
+//
+// ⚠️ Ce n'est PAS une règle généralisable (« d'autres effets ⇒ coups gonflé »)
+// : `Fate of Destruction` porte lui aussi deux autres effets — dégâts continus
+// et tour supplémentaire — et reste pourtant à `coups: 0`. La donnée est
+// incohérente d'un sort à l'autre, donc irréductible à un critère ; d'où une
+// curation par nom exact, même discipline que les autres tables de ce fichier.
+//
+// ⚠️ La prose non plus ne fait pas un discriminant fiable : `Time Bomb`
+// contient « Attack Bar » sans frapper, et `Bombardment` frappe sans jamais
+// commencer par « Attacks ». Une expression régulière naïve se tromperait
+// dans les deux sens (même parti pris que `artifactSubName`, effects.ts).
+const BOMBES_SANS_COUP_DIRECT_CONNUS = new Set(['Cursed Apple']);
+
 // Ce sort EST la bombe (il la pose sans frapper), plutôt que de frapper ET
 // d'en poser une ? Dans ce cas seulement sa formule décrit l'explosion, donc
 // des dégâts fixes.
 //
-// ⚠️ Discriminant `coups === 0`, **vérifié sur le corpus complet** (8 434
-// compétences, 48 portant l'effet) et pas sur le seul cas Seara — les deux
-// familles s'y séparent nettement :
-//   - **pose seule** (`coups: 0`) : `Fate of Destruction` (Seara, Oracle,
-//     Giana), `Surprise Bomb` (Joker, Sian, Jojo, Liebli), `Time Bomb`
-//     (Kobold Bomber, Malaka, Taurus, Dover) ;
-//   - **frappe ET pose** (`coups > 0`) : `Firecracker` (Kobold Bomber…),
-//     `Bombardment` (Frigate, Pirate Captain, Carrack), `Cursed Apple`
-//     (Puppeteer, Zima, Smicer, Zenisek), `Dancing Star` (Geralt),
-//     `Star of Explosion` (Valdemar, Henrik, Magic Order Guardian).
+// ⚠️ **Vérifié sur le corpus complet** (8 434 compétences, 48 portant
+// l'effet), prose du jeu relue une à une, et pas sur le seul cas Seara.
+// Les huit sorts de bombe qui portent une formule se répartissent ainsi :
+//   - **pose seule** → fixe : `Fate of Destruction` (Seara, Oracle, Giana),
+//     `Surprise Bomb` (Joker, Sian, Jojo, Liebli), `Time Bomb` (Kobold
+//     Bomber, Malaka, Taurus, Dover), `Cursed Apple` (Puppeteer, Zima,
+//     Smicer, Zenisek — le cas curé ci-dessus) ;
+//   - **frappe ET pose** → PAS fixe : `Firecracker` (Kobold Bomber…),
+//     `Bombardment` (Frigate, Pirate Captain, Carrack), `Dancing Star`
+//     (Geralt), `Star of Explosion` (Valdemar, Henrik, Magic Order
+//     Guardian).
+// (`Camouflage (Passive)` et `Plasma Bomb` portent l'effet sans formule :
+// aucun profil n'est construit pour eux, ils ne passent jamais ici.)
 //
-// ⚠️ Les marquer TOUS fixes aurait faussé ces cinq familles-là : leur formule
-// décrit le COUP DIRECT, qui crite et se fait mitiger normalement. Les dégâts
-// de leur explosion différée, eux, ne sont **nulle part dans les données** —
-// hors modèle, comme le reste de ce qui ne se calcule pas.
+// ⚠️ Les marquer TOUS fixes aurait faussé les quatre familles qui frappent :
+// leur formule décrit le COUP DIRECT, qui crite et se fait mitiger
+// normalement. Les dégâts de leur explosion différée, eux, ne sont **nulle
+// part dans les données** — hors modèle, comme le reste de ce qui ne se
+// calcule pas.
+//
+// ⚠️ La règle générale reste `coups === 0` plutôt qu'une liste blanche de
+// noms : c'est elle qui classe correctement un sort de bombe NOUVEAU sans
+// qu'on ait à le curer. La table ci-dessus ne rattrape que les données
+// infidèles, elle ne remplace pas le discriminant.
 //
 // ⚠️ `skillupDamagePct` continue de s'appliquer, et c'est vérifié : c'est ce
 // qui fait tomber le relevé Seara sur ~27 000 (`5,0 × 4 150 × 1,30`).
 function estBombeSansCoupDirect(c: Competence): boolean {
-  return c.effets.some((e) => e.nom === EFFET_BOMBE) && !(c.coups && c.coups > 0);
+  if (!c.effets.some((e) => e.nom === EFFET_BOMBE)) return false;
+  return BOMBES_SANS_COUP_DIRECT_CONNUS.has(c.nom) || !(c.coups && c.coups > 0);
 }
 
 // Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à

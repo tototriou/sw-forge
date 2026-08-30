@@ -55,7 +55,7 @@ import {
   resolvedLeaderSkill,
   resolvedStackPct,
   resolvedStackTrigger,
-  speedBuffAmpliPct,
+  artifactDamageProfile,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
@@ -285,8 +285,13 @@ if (recipe.objective === 'degats_reels') {
     // envoyés au moteur (réels, hypothétiques ou aucun selon la recette) —
     // même source que `params.artifacts` (défini plus bas dans ce fichier),
     // recalculée ici pour ne pas réordonner tout le script.
-    const ampli = speedBuffAmpliPct(resolveArtifacts(recipe, loaded));
-    if (ampli > 0) console.log(`Effet aug. VIT (artéfacts) : +${ampli} % — amplifie le buff VIT s'il est actif.`);
+    const artefacts = artifactDamageProfile(resolveArtifacts(recipe, loaded));
+    if (artefacts.ampliVitPct > 0)
+      console.log(`Effet aug. VIT (artéfacts) : +${artefacts.ampliVitPct} % — amplifie le buff VIT s'il est actif.`);
+    if (artefacts.ampliAtkPct > 0)
+      console.log(`Effet renforcement ATQ (artéfacts) : +${artefacts.ampliAtkPct} % — amplifie le buff ATQ s'il est actif.`);
+    if (artefacts.ampliDefPct > 0)
+      console.log(`Effet renforcement DEF (artéfacts) : +${artefacts.ampliDefPct} % — amplifie le buff DEF s'il est actif.`);
     if (monsterCritSiPlusRapide(detail)) {
       console.log(`Ce monstre force le critique quand il est plus rapide que l'adversaire (VIT adverse : ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd}).`);
     }

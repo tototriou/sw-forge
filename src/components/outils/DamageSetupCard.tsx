@@ -7,6 +7,7 @@ import {
   BonusDegatsStackableProfile,
   BonusMonstreParEffetProfile,
   BonusMonstreParEffetPropreProfile,
+  ArtifactDamageProfile,
   BonusSacrificeProfile,
   CRIT_MODE_LABELS,
   CritMode,
@@ -134,10 +135,10 @@ interface Props {
   // de PV actuels avant le sacrifice (`monsterBonusSacrifice`). `null` = pas
   // ce passif.
   bonusSacrifice: BonusSacrificeProfile | null;
-  // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES
-  // (`speedBuffAmpliPct`, damage.ts) — DÉDUIT, jamais saisi ici ; affiché en
-  // clair pour que la VIT calculée ne semble pas sortie de nulle part.
-  ampliVitPct: number;
+  // Ce que les artéfacts pris en compte apportent (`artifactDamageProfile`,
+  // damage.ts) — DÉDUIT, jamais saisi ici ; affiché en clair pour que les
+  // stats calculées ne semblent pas sorties de nulle part.
+  artefacts: ArtifactDamageProfile;
 }
 
 // Ce que le sort — ou le PASSIF (voir plus bas) — nous apprend, en une
@@ -228,7 +229,7 @@ export default function DamageSetupCard({
   bonusParEffetCibleMonstre,
   bonusParEffetPropre,
   bonusSacrifice,
-  ampliVitPct,
+  artefacts,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
 
@@ -810,9 +811,23 @@ export default function DamageSetupCard({
                   dans « Passifs offensifs » ci-dessus (icône + description),
                   plus complet qu'une ligne de texte — les dupliquer ferait
                   redite. */}
-              {ampliVitPct > 0 && (
+              {/* ⚠️ Une ligne par buff amplifié, et seulement ceux qui le
+                  sont réellement : annoncer « ATQ amplifiée » alors que le
+                  buff d'ATQ n'est pas coché ferait chercher un effet qui ne
+                  s'applique pas. */}
+              {artefacts.ampliVitPct > 0 && (
                 <span className="text-xs text-ink-dim">
-                  + artéfact « Effet aug. VIT » : le buff de VIT est amplifié de {ampliVitPct} %
+                  + artéfact « Effet aug. VIT » : le buff de VIT est amplifié de {artefacts.ampliVitPct} %
+                </span>
+              )}
+              {artefacts.ampliAtkPct > 0 && setup.atkBuff && (
+                <span className="text-xs text-ink-dim">
+                  + artéfact « Effet renforcement ATQ » : le buff d'ATQ est amplifié de {artefacts.ampliAtkPct} %
+                </span>
+              )}
+              {artefacts.ampliDefPct > 0 && setup.defBuff && (
+                <span className="text-xs text-ink-dim">
+                  + artéfact « Effet renforcement DEF » : le buff de DEF est amplifié de {artefacts.ampliDefPct} %
                 </span>
               )}
             </>

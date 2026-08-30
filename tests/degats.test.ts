@@ -78,6 +78,8 @@ import {
   resolvedStackPct,
   resolvedStackTrigger,
   skillDamageProfile,
+  ARTIFACT_DAMAGE_NEUTRE,
+  artifactDamageProfile,
   speedBuffAmpliPct,
   summonerSkillBonus,
 } from '../src/lib/damage';
@@ -463,6 +465,69 @@ export default function testDegats() {
   egal(speedBuffAmpliPct([artefactSansVit]), 0, 'un artéfact sans code 206 : aucune amplification');
   egal(speedBuffAmpliPct([artefactVit]), 20, 'le code 206 (Effet aug. VIT) est bien lu, les autres codes ignorés');
   egal(speedBuffAmpliPct([artefactVit, artefactVit]), 40, 'deux artéfacts avec la ligne se CUMULENT, comme en jeu');
+
+  // `artifactDamageProfile` — même mécanique étendue à l'ATQ (204) et à la
+  // DEF (205), plus la ligne 226 qui porte sur LES DEUX.
+  egal(
+    artifactDamageProfile([]),
+    { ampliAtkPct: 0, ampliDefPct: 0, ampliVitPct: 0 },
+    'aucun artéfact : profil neutre, aucun canal alimenté'
+  );
+  const artefactAtk: ArtifactDetail = { ...artefactVit, subs: [{ code: 204, value: 12 }] };
+  const artefactDef: ArtifactDetail = { ...artefactVit, subs: [{ code: 205, value: 8 }] };
+  const artefactAtkDef: ArtifactDetail = { ...artefactVit, subs: [{ code: 226, value: 10 }] };
+  egal(
+    artifactDamageProfile([artefactAtk]),
+    { ampliAtkPct: 12, ampliDefPct: 0, ampliVitPct: 0 },
+    'le code 204 alimente l’ATQ seule'
+  );
+  egal(
+    artifactDamageProfile([artefactDef]),
+    { ampliAtkPct: 0, ampliDefPct: 8, ampliVitPct: 0 },
+    'le code 205 alimente la DEF seule'
+  );
+  // ⚠️ 226 est UNE ligne du jeu qui porte sur les deux stats — elle compte
+  // donc en entier des DEUX côtés, ce n'est pas un partage.
+  egal(
+    artifactDamageProfile([artefactAtkDef]),
+    { ampliAtkPct: 10, ampliDefPct: 10, ampliVitPct: 0 },
+    'le code 226 alimente l’ATQ ET la DEF, en entier des deux côtés'
+  );
+  egal(
+    artifactDamageProfile([artefactAtk, artefactAtkDef, artefactVit]),
+    { ampliAtkPct: 22, ampliDefPct: 10, ampliVitPct: 20 },
+    'les trois canaux se cumulent indépendamment sur une paire d’artéfacts'
+  );
+
+  {
+    // ⚠️ L'amplification ne s'applique qu'à un buff RÉELLEMENT actif — sinon
+    // il n'y a rien à amplifier, exactement comme pour la VIT plus haut.
+    // ⚠️ `neutre` n'est déclaré que bien plus bas dans ce fichier — on
+    // reconstruit ici le même profil (coefficient 1, 1 coup, `(Fixed)` donc
+    // `horsCoup = 1`) plutôt que de déplacer sa déclaration.
+    const profilFixe = profil('1*{ATK} (Fixed)')!;
+    const st = stats({ atk: 2000 });
+    const sansBuff: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', atkBuff: false };
+    const avecBuff: DamageSetup = { ...sansBuff, atkBuff: true };
+    const profilAtk = { ampliAtkPct: 20, ampliDefPct: 0, ampliVitPct: 0 };
+    egal(
+      computeSkillDamageDetail(profilFixe, st, sansBuff, null, undefined, profilAtk).total,
+      computeSkillDamageDetail(profilFixe, st, sansBuff, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
+      'sans buff d’ATQ actif, l’amplification d’artéfact ne change rien'
+    );
+    // Buff d'ATQ = +50 %, amplifié de 20 % → +60 %. Sur 2000 d'ATQ :
+    // 3200 contre 3000.
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe, st, avecBuff, null, undefined, profilAtk).total),
+      3200,
+      'buff d’ATQ amplifié de 20 % : 50 % → 60 %, soit 2000 → 3200'
+    );
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe, st, avecBuff, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total),
+      3000,
+      '… contre 3000 sans artéfact — le buff nu à +50 %'
+    );
+  }
 
   titre('Dégâts réels — leader skill généralisé (PV, ATQ, DEF, VIT, Taux Crit, Dégâts Crit)');
 

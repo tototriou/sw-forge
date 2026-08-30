@@ -270,22 +270,62 @@ const VARIABLE_STAT: Partial<Record<DamageVariable, StatKey>> = {
   'Relative SPD': 'spd',
 };
 
-// Code de substat d'artéfact « Effet aug. VIT +X% » (voir `ARTIFACT_SUB`,
-// effects.ts) — amplifie la MAGNITUDE d'un buff de VIT déjà actif
-// (`DamageSetup.spdBuff`), jamais la VIT plate elle-même. Additionné sur
-// tous les artéfacts ÉQUIPÉS (`SearchParams.artifacts` — fixes pour toute
-// une recherche, l'Optimizer n'optimise que les runes) : plusieurs lignes
-// identiques sur des artéfacts différents se cumulent, comme en jeu.
-const CODE_EFFET_AUG_VIT = 206;
+// ── Contribution des ARTÉFACTS au calcul de dégâts ───────────────────────
+//
+// Codes de substat d'artéfact (voir `ARTIFACT_SUB`, effects.ts) qui
+// amplifient la MAGNITUDE d'un buff déjà actif, jamais la stat plate
+// elle-même. Additionnés sur tous les artéfacts pris en compte : plusieurs
+// lignes identiques sur des artéfacts différents se cumulent, comme en jeu.
+//
+// ⚠️ 226 alimente ATQ **et** DEF — c'est une seule ligne du jeu qui porte sur
+// les deux, pas deux lignes distinctes.
+const CODE_AMPLI_ATK = 204;
+const CODE_AMPLI_DEF = 205;
+const CODE_AMPLI_VIT = 206;
+const CODE_AMPLI_ATK_DEF = 226;
 
-export function speedBuffAmpliPct(artifacts: ArtifactDetail[]): number {
-  let total = 0;
+// Ce qu'une paire d'artéfacts apporte au calcul de dégâts.
+//
+// ⚠️ **Un OBJET plutôt qu'un nombre**, là où le code ne portait que
+// `ampliVitPct` : les artéfacts contribuent par plusieurs canaux
+// indépendants, et les ajouter un à un comme paramètres positionnels aurait
+// multiplié les signatures à rallonge dans les six emplacements qui
+// traversent cette donnée (moteur, écran, deux scripts CLI). Un champ ajouté
+// ici n'oblige plus à toucher aucune signature.
+export interface ArtifactDamageProfile {
+  ampliAtkPct: number;
+  ampliDefPct: number;
+  ampliVitPct: number;
+}
+
+// Aucun artéfact pris en compte — comportement strictement inchangé.
+export const ARTIFACT_DAMAGE_NEUTRE: ArtifactDamageProfile = {
+  ampliAtkPct: 0,
+  ampliDefPct: 0,
+  ampliVitPct: 0,
+};
+
+export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDamageProfile {
+  const p: ArtifactDamageProfile = { ampliAtkPct: 0, ampliDefPct: 0, ampliVitPct: 0 };
   for (const a of artifacts) {
     for (const s of a.subs) {
-      if (s.code === CODE_EFFET_AUG_VIT) total += s.value;
+      if (s.code === CODE_AMPLI_ATK) p.ampliAtkPct += s.value;
+      else if (s.code === CODE_AMPLI_DEF) p.ampliDefPct += s.value;
+      else if (s.code === CODE_AMPLI_VIT) p.ampliVitPct += s.value;
+      else if (s.code === CODE_AMPLI_ATK_DEF) {
+        p.ampliAtkPct += s.value;
+        p.ampliDefPct += s.value;
+      }
     }
   }
-  return total;
+  return p;
+}
+
+// Amplification du seul buff de VIT — `maVitCombat` n'a besoin que de
+// celle-là, et la vitesse de combat se calcule dans des contextes qui
+// n'ont rien à voir avec les dégâts.
+export function speedBuffAmpliPct(artifacts: ArtifactDetail[]): number {
+  return artifactDamageProfile(artifacts).ampliVitPct;
 }
 
 // Passifs qui forcent le coup CRITIQUE quand le monstre est plus rapide que
@@ -2319,10 +2359,10 @@ export function computeSkillDamageDetail(
   // réglage. Sert à enchaîner un passif APRÈS le sort actif, sur une cible
   // déjà entamée (voir `computeTotalDamage`).
   pvCiblePctDepart?: number,
-  // Somme des lignes d'artéfact « Effet aug. VIT » équipées (voir
-  // `speedBuffAmpliPct`) — fixe pour toute une recherche (l'Optimizer
-  // n'optimise que les runes), calculée UNE fois par l'appelant.
-  ampliVitPct = 0,
+  // Ce que les artéfacts apportent (voir `artifactDamageProfile`) — fixe pour
+  // toute une recherche, calculé UNE fois par l'appelant. Le neutre laisse le
+  // comportement strictement inchangé.
+  artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
   // Modificateurs monstre-wide qui touchent directement le Taux Crit/Dgts
   // Crit — DÉDUITS de la fiche (`monsterCritRateSelonVit`/
   // `monsterBonusStatFixe`, plus haut), jamais saisis. Regroupés en UN seul
@@ -2366,7 +2406,7 @@ export function computeSkillDamageDetail(
   const pvMax = Math.max(0, setup.enemyHp);
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
 
-  const maVit = maVitCombat(stats, setup, element, ampliVitPct);
+  const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
   // ⚠️ Bornée à 1 : une VIT adverse ≤ 0 ferait diverger le ratio (division
   // par zéro ou par un nombre négatif), un réglage vidé ne doit jamais casser
   // le calcul plutôt que produire `Infinity`/`NaN`.
@@ -2391,8 +2431,13 @@ export function computeSkillDamageDetail(
   const pctLeaderHpBase = leader?.stat === 'HP' ? leader.pct : 0;
   const atkAvecLead = avecInvocateur('atk', pctLeaderAtkBase);
   const defAvecLead = avecInvocateur('def', pctLeaderDefBase);
-  const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
-  const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
+  // ⚠️ Artéfact et Miriam s'ADDITIONNENT avant de multiplier la potence de
+  // base — exactement comme pour la VIT (`maVitCombat`, seul précédent
+  // jusqu'ici). Les deux « augmentent l'effet d'augmentation » : les traiter
+  // multiplicativement l'un envers l'autre inventerait un empilement que le
+  // jeu ne fait pas.
+  const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + (artefacts.ampliAtkPct + ampliMiriam) / 100) : 0;
+  const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + (artefacts.ampliDefPct + ampliMiriam) / 100) : 0;
   const valeurs: Record<DamageVariable, number> = {
     ATK: (atkAvecLead * (100 + pctAtkBuff)) / 100,
     DEF: (defAvecLead * (100 + pctDefBuff)) / 100,
@@ -2730,9 +2775,9 @@ export function computeTotalDamage(
   stats: StatRow[],
   setup: DamageSetup,
   element: ElementKey | null = null,
-  // Somme des lignes d'artéfact « Effet aug. VIT » équipées — voir
-  // `speedBuffAmpliPct`, fixe pour toute une recherche.
-  ampliVitPct = 0,
+  // Ce que les artéfacts apportent — voir `artifactDamageProfile`, fixe pour
+  // toute une recherche.
+  artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
   critSiPlusRapide = false,
   // Sonia/Battle Angel (« Evasion (Passive) ») — voir
   // `monsterBonusDegatsSelonVit`. `null` = comportement inchangé.
@@ -2776,7 +2821,7 @@ export function computeTotalDamage(
   // inchangé.
   bonusSiAtqSeuil: { seuil: number; pct: number } | null = null
 ): number {
-  const maVit = maVitCombat(stats, setup, element, ampliVitPct);
+  const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
   const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
   const forceCrit = critSiPlusRapide && ecartVit > 0;
   const setupSort = forceCrit ? { ...setup, critMode: 'crit' as const } : setup;
@@ -2784,7 +2829,7 @@ export function computeTotalDamage(
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, ampliVitPct, monsterWide);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, artefacts, monsterWide);
   let total = sort.total;
   let pvCiblePct = sort.pvRestantsPct;
   for (const p of passifs) {
@@ -2805,7 +2850,7 @@ export function computeTotalDamage(
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
     // l'état de la cible au moment où le jeu évalue la condition.
     const seuilAtteint = p.bonusPvCible != null && pvCiblePct <= p.bonusPvCible.seuilPct;
-    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, ampliVitPct, monsterWide);
+    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, artefacts, monsterWide);
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
     if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;

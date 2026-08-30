@@ -65,7 +65,7 @@ import {
   monsterModificateursVit,
   monsterOffensivePassives,
   resolveDamageSkill,
-  speedBuffAmpliPct,
+  artifactDamageProfile,
 } from '../../lib/damage';
 import {
   AUTO_EXCLUSION_SCOPES,
@@ -383,7 +383,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const offensivePassives = useMemo(() => monsterOffensivePassives(skillDetail), [skillDetail]);
   // Modificateurs monstre-wide liés à la VIT (Ciri Eau/Rigna/Magic Order
   // Swordsinger, Sonia/Battle Angel) — ne dépendent que de la fiche, pas des
-  // artéfacts (contrairement à `ampliVitPct`, calculé plus bas après
+  // artéfacts (contrairement à `artefactsDegats`, calculé plus bas après
   // `searchArtifacts`) : ils font travailler la VIT au pré-filtrage même
   // pour un sort dont la formule ne la lit pas (voir `damageRelevantStats`).
   const critSiPlusRapide = useMemo(() => monsterCritSiPlusRapide(skillDetail), [skillDetail]);
@@ -840,9 +840,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
   // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
   // tri « Dégâts réels » (voir `sortOptions`). Après `searchArtifacts` :
-  // `ampliVitPct` en dépend (mêmes artéfacts que ceux réellement envoyés au
-  // moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
-  const ampliVitPct = useMemo(() => speedBuffAmpliPct(searchArtifacts), [searchArtifacts]);
+  // `artefactsDegats` en dépend (mêmes artéfacts que ceux réellement envoyés
+  // au moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
+  const artefactsDegats = useMemo(() => artifactDamageProfile(searchArtifacts), [searchArtifacts]);
   const realDamage = useMemo<RealDamageContext | null>(
     () =>
       resolvedSkill
@@ -851,7 +851,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             setup: damageSetup,
             element: speciesMonster?.element ?? null,
             passifs: offensivePassives,
-            ampliVitPct,
+            artefacts: artefactsDegats,
             critSiPlusRapide,
             bonusDegatsSelonVit,
             bonusDegatsStack,
@@ -867,7 +867,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       damageSetup,
       speciesMonster?.element,
       offensivePassives,
-      ampliVitPct,
+      artefactsDegats,
       critSiPlusRapide,
       bonusDegatsSelonVit,
       bonusDegatsStack,
@@ -2185,7 +2185,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
               bonusParEffetPropre={bonusParEffetPropre}
               bonusSacrifice={bonusSacrifice}
-              ampliVitPct={ampliVitPct}
+              artefacts={artefactsDegats}
             />
           </div>
         )}
@@ -2937,7 +2937,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           c.stats,
                           realDamage.setup,
                           realDamage.element,
-                          realDamage.ampliVitPct,
+                          realDamage.artefacts,
                           realDamage.critSiPlusRapide,
                           realDamage.bonusDegatsSelonVit,
                           realDamage.bonusDegatsStack,

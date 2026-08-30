@@ -50,6 +50,7 @@ import { OptimMetric } from './runeOptim';
 import {
   DEF_FACTOR_CONST,
   DEF_FACTOR_COEF,
+  ArtifactDamageProfile,
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
   DamageSetup,
@@ -343,10 +344,17 @@ export interface RealDamageContext {
   // Vide = comportement strictement inchangé (aucun passif connu, ou fiche
   // absente).
   passifs: PassifOffensifProfile[];
-  // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES (voir
-  // `speedBuffAmpliPct`, damage.ts) — fixe pour toute une recherche
-  // (l'Optimizer n'optimise que les runes). 0 = comportement inchangé.
-  ampliVitPct: number;
+  // Ce que les artéfacts PRIS EN COMPTE apportent au calcul de dégâts (voir
+  // `artifactDamageProfile`, damage.ts) — fixe pour toute une recherche, le
+  // moteur n'optimisant à ce stade que les runes. `ARTIFACT_DAMAGE_NEUTRE` =
+  // comportement inchangé.
+  //
+  // ⚠️ Remplace l'ancien `ampliVitPct: number`. Un OBJET parce que les
+  // artéfacts contribuent par plusieurs canaux : ajouter chaque ligne comme
+  // un champ scalaire de plus aurait obligé à repasser sur les six
+  // emplacements qui traversent cette donnée à chaque nouvelle ligne
+  // modélisée.
+  artefacts: ArtifactDamageProfile;
   // Ce monstre force-t-il le critique quand il est plus rapide que
   // l'adversaire (voir `monsterCritSiPlusRapide`) ? Déduit de la fiche,
   // jamais saisi. `false` = comportement inchangé.
@@ -407,7 +415,7 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       stats,
       realDamage.setup,
       realDamage.element,
-      realDamage.ampliVitPct,
+      realDamage.artefacts,
       realDamage.critSiPlusRapide,
       realDamage.bonusDegatsSelonVit,
       realDamage.bonusDegatsStack,

@@ -44,7 +44,7 @@ import {
   monsterDamageSkills,
   monsterOffensivePassives,
   resolveDamageSkill,
-  speedBuffAmpliPct,
+  artifactDamageProfile,
 } from '../src/lib/damage';
 
 const [exportPath, recipePath, maxMsArg] = process.argv.slice(2);
@@ -94,7 +94,7 @@ const params = recipeToSearchParams(recipe, loaded);
 // alors de toute façon. `params.artifacts` — PAS `loaded.gear.artifacts` —
 // APRÈS `recipeToSearchParams` : ce sont ceux réellement envoyés au moteur
 // (réels, hypothétiques ou aucun selon la recette), même artéfacts que
-// `candidate.stats`, dont `ampliVitPct` doit rester solidaire.
+// `candidate.stats`, dont le profil d'artéfact doit rester solidaire.
 let realDamage: RealDamageContext | null = null;
 if (recipe.objective === 'degats_reels') {
   const detail = loadMonsterSkills(loaded.com2usId);
@@ -106,7 +106,7 @@ if (recipe.objective === 'degats_reels') {
       passifs: monsterOffensivePassives(detail),
       setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
       element,
-      ampliVitPct: speedBuffAmpliPct(params.artifacts),
+      artefacts: artifactDamageProfile(params.artifacts),
       critSiPlusRapide: monsterCritSiPlusRapide(detail),
       bonusDegatsSelonVit: monsterBonusDegatsSelonVit(detail),
       bonusDegatsStack: monsterBonusDegatsStackable(detail),

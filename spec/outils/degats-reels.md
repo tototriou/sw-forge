@@ -228,6 +228,51 @@ L'inventaire des autres termes de dégâts plats a été passé en revue et n'a
 c'est la trace que ces trois-là ont été **vérifiés**, et non pas seulement
 supposés corrects — exactement la distinction qui manquait à `ajoutUneFois`.
 
+## Amplification de buff par artéfact — ATQ, DEF, VIT
+
+Quatre lignes d'artéfact amplifient la **magnitude** d'un buff **déjà actif**,
+jamais la stat plate elle-même, et jamais un buff absent (sans buff, il n'y a
+rien à amplifier) :
+
+| Code | Libellé du jeu | Buff amplifié |
+|---|---|---|
+| 204 | `Effet renforcement ATQ +X%` | `ATK_BUFF_PCT` (50) |
+| 205 | `Effet renforcement DEF +X%` | `DEF_BUFF_PCT` (70) |
+| 206 | `Effet aug. VIT +X%` | `SPD_BUFF_PCT` (30) |
+| 226 | `Effet renforcement ATQ/DEF +X%` | **les deux** |
+
+⚠️ **226 est UNE ligne du jeu qui porte sur deux stats** — elle compte donc
+en entier des deux côtés, ce n'est pas un partage.
+
+Plusieurs lignes identiques sur des artéfacts différents **se cumulent**,
+comme en jeu. Et l'amplification d'artéfact **s'additionne** à celle de
+Miriam avant de multiplier la potence de base :
+`potence × (1 + (artéfact + Miriam) / 100)`. Les traiter multiplicativement
+l'un envers l'autre inventerait un empilement que le jeu ne fait pas.
+
+### `ArtifactDamageProfile` — un objet, pas une liste de nombres
+
+`artifactDamageProfile(artifacts)` réduit une paire d'artéfacts à ce qu'elle
+apporte au calcul. Il **remplace** l'ancien paramètre `ampliVitPct: number`,
+qui ne portait que la VIT.
+
+⚠️ **Un objet plutôt qu'un scalaire de plus, délibérément.** Cette donnée
+traverse **six emplacements** — `damage.ts`, `runeBuildOptim.ts`
+(`RealDamageContext`), `OptimizerSection.tsx`, `DamageSetupCard.tsx`, et les
+deux scripts CLI `optimizer-search.ts` / `optimizer-search-analyze.ts`.
+Ajouter chaque ligne d'artéfact comme un paramètre positionnel de plus aurait
+obligé à repasser sur les six à chaque fois ; un champ ajouté à l'objet
+n'oblige plus à toucher aucune signature.
+
+⚠️ **Les deux scripts CLI sont hors `tsconfig.json`** (`include: ["src"]`) :
+`npx tsc --noEmit` ne les voit pas. Un champ oublié là-bas ne se détecte
+qu'à la main — c'est la raison d'être de la discipline
+`optimizer-field-propagation`.
+
+`speedBuffAmpliPct` survit comme extracteur de la seule VIT : `maVitCombat`
+n'a besoin que de celle-là, et la vitesse de combat se calcule dans des
+contextes qui n'ont rien à voir avec les dégâts.
+
 ## Les bombes — des dégâts fixes, via une TROISIÈME détection
 
 Une bombe **ne peut pas être critique** et **ignore la défense adverse** :
@@ -642,13 +687,11 @@ mécaniques ci-dessus ET pour `{SPD}` lui-même :
 1. **Runes + totem** — déjà comptés (`stats`/`summonerSkillBonus`, +15 % de
    « Combat », voir plus haut).
 2. **Buff de VIT** (`setup.spdBuff`, +30 %) — éventuellement **amplifié**
-   par un artéfact « Effet aug. VIT +X% » (code 206, voir `ARTIFACT_SUB`,
-   effects.ts) : `speedBuffAmpliPct(artifacts)` somme cette ligne sur tous
-   les artéfacts ÉQUIPÉS (`SearchParams.artifacts` — fixes pour toute une
-   recherche, l'Optimizer n'optimise que les runes) et amplifie
-   MULTIPLICATIVEMENT le pourcentage du buff (`30 % × (1 + X/100)`), jamais
-   la VIT plate elle-même. Porte sur le **TOTAL** (base + rune + lead déjà
-   posés) — mécanique différente du lead, voir plus bas.
+   par un artéfact « Effet aug. VIT +X% » (code 206, voir « Amplification de
+   buff par artéfact » plus bas) : le pourcentage du buff est amplifié
+   MULTIPLICATIVEMENT (`30 % × (1 + X/100)`), jamais la VIT plate elle-même.
+   Porte sur le **TOTAL** (base + rune + lead déjà posés) — mécanique
+   différente du lead, voir plus bas.
 3. **Leader skill d'ÉQUIPE** (`setup.leaderSkill`, type VIT — voir « Leader
    skill d'équipe » plus bas) — le sien n'agit jamais sur lui-même,
    contrairement au totem. ⚠️ Porte sur la VIT de **BASE**, pas sur le total

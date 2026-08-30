@@ -29,7 +29,8 @@
 // Sortie (stdout) : un JSON par scénario, une ligne — voir `Row` plus bas.
 
 import { readFileSync } from 'fs';
-import { BaseStats, BuildRequirement, RuneDetail } from '../src/types';
+import { BaseStats, RuneDetail } from '../src/types';
+import { BuildRequirement } from '../src/lib/runeBuildOptim';
 import { SearchParams, searchBuildsSteps } from '../src/lib/runeBuildOptim';
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };

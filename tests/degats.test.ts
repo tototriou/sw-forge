@@ -82,6 +82,7 @@ import {
   artifactDamageProfile,
   speedBuffAmpliPct,
   summonerSkillBonus,
+  type PassifOffensifProfile,
 } from '../src/lib/damage';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -789,7 +790,7 @@ export default function testDegats() {
   ok(zenitsuTenBase !== null, 'Zenitsu (Ténèbres) : un sort de dégâts par défaut est trouvé');
   egal(monsterBonusDegatsSelonCr(zenitsuTen), { ratio: 0.8 }, 'Zenitsu (Ténèbres) : Hidden Sense of Justice, 0,8 %/point de Taux Crit');
   const qilinTen = fiche(32915);
-  egal(monsterBonusDegatsSelonCr(qilinTen)?.nom ?? 'Lethal Intent (Passive)', 'Lethal Intent (Passive)', 'Qilin Slasher (Ténèbres) : même mécanisme, nom différent');
+  egal(monsterBonusDegatsSelonCr(qilinTen) ? 'Lethal Intent (Passive)' : 'absent', 'Lethal Intent (Passive)', 'Qilin Slasher (Ténèbres) : même mécanisme, nom différent');
   egal(monsterBonusDegatsSelonCr(qilinTen), { ratio: 0.8 }, 'Qilin Slasher (Ténèbres) : même ratio');
   ok(!monsterBonusDegatsSelonCr(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
   const crConfig = monsterBonusDegatsSelonCr(zenitsuTen)!;
@@ -2382,7 +2383,21 @@ export default function testDegats() {
   }
   ok(aLeve, '« Dégâts réels » sans contexte lève, plutôt que de retomber sur une autre formule');
   egal(
-    objectiveScore(bidon, 'degats_reels', { profile: s3!, passifs: [], setup: DEFAULT_DAMAGE_SETUP, element: null }),
+    objectiveScore(bidon, 'degats_reels', {
+      profile: s3!,
+      passifs: [],
+      setup: DEFAULT_DAMAGE_SETUP,
+      element: null,
+      artefacts: ARTIFACT_DAMAGE_NEUTRE,
+      critSiPlusRapide: false,
+      bonusDegatsSelonVit: null,
+      bonusDegatsStack: null,
+      monsterWide: {},
+      bonusDegatsConditionnel: null,
+      bonusDegatsSelonCr: null,
+      bonusDegatsSelonDef: null,
+      bonusSiAtqSeuil: null,
+    }),
     computeSkillDamage(s3!, bidon.stats, DEFAULT_DAMAGE_SETUP),
     'avec contexte, le tri utilise exactement la formule du sort'
   );

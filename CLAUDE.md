@@ -37,7 +37,12 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 - **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs**
   (ex. `OptimizerRecipe`/`recipeToSearchParams.ts`). Un champ ajouté ou
   renommé doit être répercuté dans TOUS — `tsc` ne détecte JAMAIS un champ
-  oublié dans l'un d'eux (reste un accès optionnel valide). Avant de
+  oublié dans l'un d'eux (reste un accès optionnel valide). ⚠️ Depuis que
+  `tsconfig.json` couvre aussi `scripts/` et `tests/`, `tsc` attrape en
+  revanche un champ dont le **type change** ou qui devient **obligatoire** —
+  c'est ce qui a révélé une vingtaine d'appels de test périmés d'un coup. La
+  règle ci-dessus ne vaut donc plus que pour les champs **optionnels**, où
+  l'oubli reste parfaitement typé. Avant de
   considérer un champ ajouté/renommé comme terminé : `grep -rn` du nom du
   type/champ sur TOUT le dépôt (`src/` ET `scripts/` ET `tests/`), pas
   seulement le fichier qu'on vient d'éditer. Détail : [spec/README.md](spec/README.md),
@@ -73,7 +78,7 @@ Vérification standard avant de considérer un changement de code terminé,
 dans cet ordre :
 
 ```
-npx tsc --noEmit                  # types
+npx tsc --noEmit                  # types — couvre src/ ET scripts/ ET tests/
 node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
 npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```

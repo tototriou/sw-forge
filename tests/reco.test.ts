@@ -121,6 +121,7 @@ export default function testReco() {
   const deckAvec = (artifacts: Record<'element' | 'archetype', number[]>): RecoDeck => ({
     name: '',
     note: '',
+    counters: [],
     slots: [
       { ...emptyRecoSlot(), com2usId: 111, name: 'Tesarion', artifacts },
       emptyRecoSlot(),

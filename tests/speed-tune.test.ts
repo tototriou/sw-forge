@@ -47,6 +47,7 @@ import {
   oublierCamp,
   plusRapideAllie,
   tuneDe,
+  type Leads,
 } from '../src/lib/speedTuneLignes';
 import {
   analyseAutomatique,
@@ -3070,7 +3071,7 @@ export function testSpeedTuneModele() {
   const monstre = (id: number, nom: string, spd: number): Monster =>
     ({ id, com2usId: id, name: nom, stats: { speed: spd } }) as unknown as Monster;
   const vide: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map() };
-  const leads = { allie: 28, ennemi: 0 };
+  const leads: Leads = { allie: { amount: 28, area: 'General', element: null }, ennemi: null };
 
   // `uid = camp:id` : le même monstre peut tenir les deux camps.
   {
@@ -3087,11 +3088,11 @@ export function testSpeedTuneModele() {
     const a = { ...ligneVierge(monstre(1, 'Premier', 100), 'allie'), runeSpeed: 100 };
     const b = { ...ligneVierge(monstre(2, 'Second', 100), 'allie'), runeSpeed: 100 };
     const face = { ...ligneVierge(monstre(3, 'Face', 60), 'ennemi'), runeSpeed: 0 };
-    const sansLead = { allie: 0, ennemi: 0 };
+    const sansLead: Leads = { allie: null, ennemi: null };
     const qui = (l: Ligne[]) =>
       premiersTours(simuler(tuneDe(l, sansLead, vide, {}))).map((x) => x.id);
 
-    egal(combatDeLigne(a, sansLead, vide), combatDeLigne(b, sansLead, vide), 'les deux ont EXACTEMENT la même vitesse de combat');
+    egal(combatDeLigne(a, null, vide), combatDeLigne(b, null, vide), 'les deux ont EXACTEMENT la même vitesse de combat');
     egal(qui([a, b, face])[0], 'allie:1', 'à vitesse égale, le premier de la liste joue le premier');
 
     const permute = deplacerDansCamp([a, b, face], 'allie:2', -1);
@@ -3300,7 +3301,7 @@ export function testSpeedTuneModele() {
   // Une vitesse de combat inconnue (base absente) ne casse rien.
   {
     const sansBase: Ligne = ligneVierge({ id: 9, com2usId: 9, name: '?', stats: {} } as unknown as Monster, 'allie');
-    egal(combatDeLigne(sansBase, 0, vide), null, 'pas de base → pas de vitesse, et surtout pas 0');
+    egal(combatDeLigne(sansBase, null, vide), null, 'pas de base → pas de vitesse, et surtout pas 0');
     egal(tuneDe([sansBase], leads, vide, {}).length, 0, 'il est écarté du moteur');
   }
 

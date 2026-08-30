@@ -23,7 +23,8 @@
 // Usage : optimum-rank-diag.ts <scenarios.json> <potential|relevance> [maxNodes=20000000]
 
 import { readFileSync } from 'fs';
-import { BaseStats, BuildRequirement, RuneDetail } from '../src/types';
+import { BaseStats, RuneDetail } from '../src/types';
+import { BuildRequirement } from '../src/lib/runeBuildOptim';
 import { SearchParams, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget } from '../src/lib/runeBuildOptim';
 import { drain } from './lib/drain';
 

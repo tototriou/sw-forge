@@ -2026,25 +2026,52 @@ export default function testDegats() {
   }
 
   // Sickle Blade (Bayek Vent)/Sand Blade (Desert Warrior Vent, Shahat) —
-  // `pct/100 × {MAX HP}` propre, UNE SEULE FOIS par sort (pas × coups),
-  // confirmé par l'utilisateur.
+  // `pct/100 × {MAX HP}` propre, dégâts BRUTS (ni critiques, ni mitigés par
+  // la défense) infligés À CHAQUE COUP.
+  //
+  // ⚠️ Ces tests affirmaient l'inverse (« une seule fois par sort »), sur la
+  // foi d'une confirmation qui était une ERREUR. Levée par un relevé EN JEU :
+  // Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF → ~4 500 par coup,
+  // contre 770 à 1 760 que donnait l'ancien calcul. Voir
+  // spec/outils/degats-reels.md, « Corrections identifiées ».
   egal(monsterBonusFixeMaxHpPropre(fiche(27513)), { pct: 7 }, 'Bayek (Vent) : Sickle Blade, +7 % de ses PV max');
   egal(monsterBonusFixeMaxHpPropre(fiche(28013)), { pct: 7 }, 'Shahat : Sand Blade, même mécanisme, nom différent');
   ok(!monsterBonusFixeMaxHpPropre(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
   {
-    // 3 coups : seul moyen de vérifier « une fois, pas par coup ».
+    // 3 coups : seul moyen de vérifier « par coup, pas une fois ».
     const profilTroisCoups: SkillDamageProfile = { ...neutre, hits: 3 };
     const st = stats({ hp: 30000, atk: 2000 });
     const sans = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, {});
     const avec = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, { bonusFixeMaxHpPropre: { pct: 7 } });
     egal(sans.total, 6000, 'profil neutre à 3 coups : ATK × 3, sans ajout');
-    // ajout = 7 % × 30000 = 2100, une seule fois (pas × 3).
-    egal(avec.total, 8100, 'Sickle Blade : +7 % des PV max PROPRES, une seule fois même à 3 coups');
+    // ajout = 7 % × 30000 = 2100, à CHACUN des 3 coups → 6300.
+    egal(avec.total, 12300, 'Sickle Blade : +7 % des PV max PROPRES, à CHAQUE coup (2100 × 3)');
+  }
+  {
+    // ⚠️ **L'AUTRE axe du correctif**, qu'aucun test ne couvrait : le terme
+    // est BRUT. Impossible à voir avec `neutre`, dont la formule porte
+    // `(Fixed)` — `horsCoup` y vaut 1, un terme mitigé y serait donc
+    // indiscernable d'un terme brut. Il faut un sort ORDINAIRE, une cible qui
+    // a de la défense, et le critique forcé.
+    const competenceMitigee: Competence = { ...competenceNeutre, com2usId: 900002, formule: '1*{ATK}' };
+    const mitige = skillDamageProfile(competenceMitigee) as SkillDamageProfile;
+    const setup: DamageSetup = { ...setupNeutre, critMode: 'crit', enemyDef: 1000 };
+    const st = stats({ hp: 30000, atk: 2000 });
+    const sans = computeSkillDamageDetail(mitige, st, setup, null, undefined, 0, {});
+    const avec = computeSkillDamageDetail(mitige, st, setup, null, undefined, 0, { bonusFixeMaxHpPropre: { pct: 7 } });
+    ok(Math.abs(sans.total - 2000) > 1, 'garde-fou : la part du SORT est bien critée et mitigée ici (sinon le test ne prouverait rien)');
+    egal(
+      Math.round(avec.total - sans.total),
+      2100,
+      'Sickle Blade : exactement 7 % × 30000, ni multiplié par le critique, ni réduit par les 1000 de DEF'
+    );
   }
 
-  // Calculated Sacrifice (Onimusha, Fuuki) — dégâts fixes dérivés d'une
+  // Calculated Sacrifice (Onimusha, Fuuki) — dégâts bruts dérivés d'une
   // saisie manuelle (« PV actuels avant le sacrifice de ce tour », défaut
-  // 100 % = premier tour), UNE FOIS par sort comme Sickle Blade.
+  // 100 % = premier tour), À CHAQUE COUP comme Sickle Blade. ⚠️ Même
+  // correction que ci-dessus, et c'est délibérément le MÊME accumulateur :
+  // les deux familles ont exactement le même comportement.
   const fuuki = fiche(25113);
   const sacrificeProfile = monsterBonusSacrifice(fuuki);
   ok(sacrificeProfile != null, 'Fuuki : Calculated Sacrifice détecté');
@@ -2057,8 +2084,8 @@ export default function testDegats() {
     const avecDefaut = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, {
       bonusSacrifice: { skillCom2usId: sacrificeProfile!.skillCom2usId, pctPerte: 20, pctSurPerte: 15 },
     });
-    // 100 % PV actuels (défaut) : perte = 20 % × 30000 = 6000, ajout = 15 % × 6000 = 900.
-    egal(avecDefaut.total, 6900, 'PV actuels 100 % (défaut) : ajout = 15 % × (20 % × 30000) = 900, une fois');
+    // 100 % PV actuels (défaut) : perte = 20 % × 30000 = 6000, ajout = 15 % × 6000 = 900, à CHACUN des 3 coups.
+    egal(avecDefaut.total, 8700, 'PV actuels 100 % (défaut) : ajout = 15 % × (20 % × 30000) = 900, à chaque coup (× 3)');
     const avecMoitie = computeSkillDamageDetail(
       profilTroisCoups,
       st,
@@ -2068,8 +2095,8 @@ export default function testDegats() {
       0,
       { bonusSacrifice: { skillCom2usId: sacrificeProfile!.skillCom2usId, pctPerte: 20, pctSurPerte: 15 } }
     );
-    // 50 % PV actuels : perte = 20 % × 15000 = 3000, ajout = 15 % × 3000 = 450 — exactement la moitié.
-    egal(avecMoitie.total, 6450, 'PV actuels à 50 % : ajout divisé par deux, linéaire');
+    // 50 % PV actuels : perte = 20 % × 15000 = 3000, ajout = 15 % × 3000 = 450 par coup — exactement la moitié.
+    egal(avecMoitie.total, 7350, 'PV actuels à 50 % : ajout divisé par deux, linéaire (450 × 3)');
   }
 
   titre('Dégâts réels — modificateurs MONSTRE-WIDE selon un compte d’effets (Backup Code, Blessing of Curse)');

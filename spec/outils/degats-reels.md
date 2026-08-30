@@ -151,63 +151,90 @@ Absents du résultat, **jamais approximés en silence** :
   (`{Relative SPD}`, `{Alive Enemies}`, PV courants de l'attaquant…) — ces
   sorts-là sont refusés, pas approchés.
 
-## Corrections identifiées, pas encore appliquées
+## Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup
 
-⚠️ **À distinguer de « Volontairement hors modèle » ci-dessus.** Là il s'agit
-de ce qu'on ne calcule pas et qu'on assume ; ici, de ce qu'on calcule **faux**
-et qu'on sait faux. Chaque point ci-dessous a été établi en cadrant un autre
-chantier, et deux d'entre eux s'appuient sur un **relevé en jeu**, pas sur une
-relecture du modèle par lui-même.
+Trois passifs infligent des dégâts **plats dérivés d'une stat**, en plus du
+sort actif : `Sickle Blade` (**Bayek Vent**), `Sand Blade` (**Desert Warrior
+Vent**, **Shahat**) et `Calculated Sacrifice` (**Onimusha**, **Fuuki**).
 
-### 1. `ajoutUneFois` — faux sur deux axes
+⚠️ **Ils sont BRUTS et s'appliquent À CHAQUE COUP** : ni critiques, ni mitigés
+par la défense adverse. Ils passent donc par `horsCoupBrut`, jamais par
+`horsCoup`.
 
-Les trois passifs de cet accumulateur — `Sickle Blade` (**Bayek Vent**),
-`Sand Blade` (**Desert Warrior Vent**, **Shahat**) et `Calculated Sacrifice`
-(**Onimusha**, **Fuuki**) — infligent des dégâts **bruts** (ni critiques, ni
-mitigés par la défense) et s'appliquent **à chaque coup**.
+`horsCoupBrut` conserve délibérément les amplificateurs **côté cible**
+(marque, Mirinae, « Increase Damage ») : ce sont des majorations des dégâts
+subis, quelle qu'en soit la nature — c'est exactement le traitement déjà
+réservé à un sort `profile.fixed`, plutôt qu'une seconde convention
+parallèle. Il exclut en revanche `skillupDamagePct` : les améliorations du
+sort **actif** n'ont aucune raison de majorer le bonus plat d'un **passif**,
+qui n'appartient pas à sa formule.
 
-`computeSkillDamageDetail` fait aujourd'hui l'inverse sur les deux points :
-il les multiplie par `horsCoup` **et** ne les ajoute qu'une seule fois par
-sort.
+### ⚠️ Incident — faux sur DEUX axes, sur la foi d'une confirmation erronée
 
-⚠️ **Le « une fois par sort » actuel s'appuie sur une note du code
-(« confirmé par l'utilisateur ») qui était une ERREUR**, corrigée depuis par
-le relevé ci-dessous. La note est à retirer en même temps que le calcul, pas
-à laisser cohabiter avec lui.
+Ce terme s'appelait `ajoutUneFois` et était doublement faux : multiplié par
+`horsCoup` (donc critique **et** mitigé) et compté **une seule fois par
+sort**.
 
-⚠️ **Ne PAS scinder l'accumulateur** : les deux familles qu'il mélange
-(`ajoutMaxHpPropre`, `ajoutSacrifice`) vont exactement au même endroit.
-`ajoutUneFois` disparaît en tant que concept et devient un terme **brut par
-coup**, ajouté hors de `horsCoup`.
+Le « une fois par sort » s'appuyait sur un commentaire « confirmé par
+l'utilisateur », recopié tel quel dans le test — qui verrouillait donc le bug
+au lieu de le détecter. C'était une **erreur**, levée par un relevé en jeu.
 
-⚠️ **Sur le chemin séquentiel**, ce terme doit être creusé de `pvCourant` **à
-chaque itération**, plus en bloc après la boucle — sous peine de rouvrir le
-bug de `pvRestantsPct` déjà corrigé une fois à cet endroit.
-
-**Relevé en jeu — Shahat.** ~50 000 PV, S2 sur une cible à ~3 000 DEF →
-**~4 500 dégâts par coup**. Le cas est *diagnostique* : à 3 000 de DEF la
-mitigation écrase tout ce qui la subit (`defenseFactor(3000) ≈ 0,0859`), ce
-qui sépare nettement le terme brut du terme mitigé. `Control Sand` (S2) =
+**Relevé — Shahat.** ~50 000 PV, S2 sur une cible à ~3 000 DEF → **~4 500
+dégâts par coup**. Le cas est *diagnostique* : à 3 000 de DEF la mitigation
+écrase tout ce qui la subit (`defenseFactor(3000) ≈ 0,0859`), ce qui sépare
+nettement le terme brut du terme mitigé. `Control Sand` (S2) =
 `1.4*{ATK} + 0.11*{MAX HP}`, 2 coups ; `Sand Blade` = 7 % des PV max.
 
 | | Part du sort (mitigée) | Sand Blade | Total par coup |
 |---|---|---|---|
-| Modèle corrigé, sans critique | ≈ 600 | **3 500** (brut) | **≈ 4 100** |
-| Modèle corrigé, avec critique | ≈ 1 400 | **3 500** (brut) | **≈ 4 900** |
-| Modèle actuel | — | — | ≈ 770 à 1 760 |
+| Corrigé, sans critique | ≈ 600 | **3 500** (brut) | **≈ 4 100** |
+| Corrigé, avec critique | ≈ 1 400 | **3 500** (brut) | **≈ 4 900** |
+| Ancien calcul | — | — | ≈ 770 à 1 760 |
 
 Le relevé tombe **entre les deux lignes du modèle corrigé**, ce qui est
 exactement attendu : Sand Blade ne critant pas, seule la part du sort oscille.
-Le modèle actuel sous-estime d'un facteur 3 à 6. ⚠️ **Le résultat ne dépend
-pas de l'ATQ**, absente du relevé : le terme dominant du sort est
-`0.11*{MAX HP}` (5 500), pas `1.4*{ATK}` — faire varier l'ATQ de 1 000 à
-1 500 déplace le total de 4 093 à 5 002, la conclusion tient sur toute la
-plage.
+⚠️ **Le résultat ne dépend pas de l'ATQ**, absente du relevé : le terme
+dominant du sort est `0.11*{MAX HP}` (5 500), pas `1.4*{ATK}` — faire varier
+l'ATQ de 1 000 à 1 500 déplace le total de 4 093 à 5 002.
 
-**À reprendre tel quel comme test de non-régression** : c'est une mesure de
-jeu, pas une valeur recalculée depuis le modèle qu'on veut corriger.
+⚠️ **Les deux familles partagent le même accumulateur, et c'est voulu.** Ce
+partage avait d'abord été pris pour un obstacle (« impossible de corriger
+l'une sans changer l'autre en silence ») ; elles ont en réalité exactement le
+même comportement. Ne pas le scinder.
 
-### 2. Les bombes ne sont jamais reconnues comme dégâts fixes
+⚠️ **Le terme est creusé de `pvCourant` DANS la boucle**, avec le coup qui le
+porte. L'ancien `ajoutUneFois`, appliqué en bloc après la boucle, avait déjà
+valu un bug de `pvRestantsPct` surestimé (un seuil de passif « si PV restants
+≤ X % », Final Strike/Benedict, pouvait manquer sa cible). Par coup, cette
+classe de bug ne peut plus se reformer.
+
+⚠️ **Le test couvre les DEUX axes**, et le second exige un sort ORDINAIRE : la
+compétence neutre des tests porte `(Fixed)`, donc `horsCoup` y vaut 1 — un
+terme mitigé y serait indiscernable d'un terme brut. Sans cette précaution, on
+ne teste que la cadence.
+
+### Le voisinage, lui, est correct
+
+L'inventaire des autres termes de dégâts plats a été passé en revue et n'a
+**rien à corriger** — `ajoutParCoup` traverse `horsCoup` à juste titre :
+
+| Terme | Passif | Monstres | Critique / mitigé | Cadence |
+|---|---|---|---|---|
+| `ajoutCompteur` | `Rage Charge` (sur `Hammer Punch` S1) | Crawler, Frankenstein | **oui** ✅ | par coup ✅ |
+| `ajoutCiblePvMax` | `Spear of Tenacity` | Centaur Knight, Pholus | **oui** ✅ | par coup ✅ |
+| `ajoutEcartDef` | `Martial Arts Specialist` | Martial Artist, Sin | **oui** ✅ | par coup ✅ |
+
+⚠️ **Ce tableau vaut d'être conservé bien qu'il ne déclenche aucun travail** :
+c'est la trace que ces trois-là ont été **vérifiés**, et non pas seulement
+supposés corrects — exactement la distinction qui manquait à `ajoutUneFois`.
+
+## Corrections identifiées, pas encore appliquées
+
+⚠️ **À distinguer de « Volontairement hors modèle » plus haut.** Là il s'agit
+de ce qu'on ne calcule pas et qu'on assume ; ici, de ce qu'on calcule **faux**
+et qu'on sait faux.
+
+### Les bombes ne sont jamais reconnues comme dégâts fixes
 
 Une bombe (S2 de **Seara**) **ne peut pas être critique** et **ignore la
 défense adverse**. Elle est aujourd'hui calculée comme un sort ordinaire :
@@ -225,7 +252,8 @@ l'attraper échouent, chacune pour sa propre raison :
 
 ⚠️ **Le mécanisme existe déjà** : `SkillDamageProfile.fixed` porte exactement
 la sémantique voulue (ni critique, ni facteur de défense). C'est une affaire
-de **détection**, pas de calcul — contrairement au point 1.
+de **détection**, pas de calcul — contrairement aux dégâts bruts de passif
+ci-dessus, qui exigeaient un vrai nouveau terme.
 
 ⚠️ **La règle ne peut pas être « un effet nommé `Bomb` → `fixed` » tout
 court.** Ça vaut pour un sort dont TOUTE la contribution est la bombe (Seara
@@ -247,22 +275,6 @@ d'équipement**, à additionner à la base et à la compétence d'invocateur :
 | + équipement | +2 800 → **3 601** |
 | + compétence d'invocateur (~15 %) | ≈ **4 150** |
 | `5,0 × 4 150 × 1,30` (3 × `Damage +10%`) | ≈ **27 000** ✅ |
-
-### 3. Le voisinage, lui, est correct
-
-L'inventaire des autres termes de dégâts plats a été passé en revue et n'a
-**rien à corriger** — `ajoutParCoup` traverse `horsCoup` à juste titre :
-
-| Terme | Passif | Monstres | Critique / mitigé | Cadence |
-|---|---|---|---|---|
-| `ajoutCompteur` | `Rage Charge` (sur `Hammer Punch` S1) | Crawler, Frankenstein | **oui** ✅ | par coup ✅ |
-| `ajoutCiblePvMax` | `Spear of Tenacity` | Centaur Knight, Pholus | **oui** ✅ | par coup ✅ |
-| `ajoutEcartDef` | `Martial Arts Specialist` | Martial Artist, Sin | **oui** ✅ | par coup ✅ |
-
-⚠️ **Ce tableau vaut d'être conservé bien qu'il ne déclenche aucun travail** :
-c'est la trace que ces trois-là ont été **vérifiés** et non pas seulement
-supposés corrects — exactement la distinction qui manquait à `ajoutUneFois`.
-
 ## Passifs offensifs — dégâts supplémentaires au-delà du sort choisi
 
 Certains monstres infligent des dégâts **en plus** du sort actif choisi, via

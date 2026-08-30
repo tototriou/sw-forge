@@ -2439,6 +2439,20 @@ export function computeSkillDamageDetail(
 
   const horsCoup =
     critTerm * mitigation * reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
+  // ⚠️ Variante pour les termes BRUTS (voir `ajoutBrutParCoup` plus bas) : ni
+  // `critTerm`, ni `mitigation`. Le reste est CONSERVÉ — ce sont des
+  // amplificateurs côté CIBLE (marque, Mirinae, « Increase Damage »…), qui
+  // majorent les dégâts subis quelle qu'en soit la nature. C'est exactement
+  // le traitement que ce fichier réserve déjà à un sort `profile.fixed`
+  // (`partCrit = 0`, `mitigation = 1`, le reste intact) : un bonus plat de
+  // passif suit donc la même règle qu'un sort fixe, plutôt qu'une seconde
+  // convention parallèle.
+  //
+  // ⚠️ `critTerm` porte AUSSI `skillupDamagePct` — l'exclure est délibéré :
+  // les améliorations du sort ACTIF n'ont aucune raison de majorer le bonus
+  // plat d'un PASSIF, qui n'appartient pas à sa formule.
+  const horsCoupBrut =
+    reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
   const coups = resolvedHits(profile, setup);
   // Crawler/Frankenstein (« Rage Charge ») : `+coeffParPoint × {variable} ×
   // compteur` s'ajoute au MULTIPLICATEUR de la formule (jamais une
@@ -2461,20 +2475,35 @@ export function computeSkillDamageDetail(
     ? monsterWide.bonusEcartDef.coeff * Math.max(0, valeurs.DEF - Math.max(0, setup.enemyDef))
     : 0;
   const ajoutParCoup = ajoutCompteur + ajoutCiblePvMax + ajoutEcartDef;
-  // Sickle Blade/Sand Blade — `pct/100 × {MAX HP}` propre, UNE FOIS par
-  // sort (pas `×coups`, confirmé par l'utilisateur) : additionné APRÈS le
-  // `×coups`, mais toujours multiplié par `horsCoup` (même critique/défense
-  // que le reste de l'attaque).
+  // Sickle Blade/Sand Blade — `pct/100 × {MAX HP}` propre.
   const ajoutMaxHpPropre = monsterWide.bonusFixeMaxHpPropre ? (monsterWide.bonusFixeMaxHpPropre.pct / 100) * valeurs['MAX HP'] : 0;
   // Calculated Sacrifice — dérivé d'une saisie manuelle (`pvActuelsAvantSacrificePct`,
-  // défaut 100 = premier tour), UNE FOIS par sort comme Sickle Blade.
+  // défaut 100 = premier tour), même famille que Sickle Blade.
   const ajoutSacrifice = monsterWide.bonusSacrifice
     ? (monsterWide.bonusSacrifice.pctSurPerte / 100) *
       (monsterWide.bonusSacrifice.pctPerte / 100) *
       (resolvedPvActuelsAvantSacrificePctMonstre(monsterWide.bonusSacrifice.skillCom2usId, setup) / 100) *
       valeurs['MAX HP']
     : 0;
-  const ajoutUneFois = ajoutMaxHpPropre + ajoutSacrifice;
+  // ⚠️ **Dégâts BRUTS, À CHAQUE COUP** — Sickle Blade (Bayek Vent), Sand
+  // Blade (Desert Warrior Vent, Shahat), Calculated Sacrifice (Onimusha,
+  // Fuuki). Ni critiques, ni mitigés par la défense adverse : ils passent
+  // donc par `horsCoupBrut`, jamais par `horsCoup`.
+  //
+  // ⚠️ **Ce terme s'appelait `ajoutUneFois` et était faux sur DEUX axes** :
+  // multiplié par `horsCoup` (donc critique et mitigé) ET compté une seule
+  // fois par sort. L'ancien commentaire invoquait un « confirmé par
+  // l'utilisateur » pour le « une fois par sort » — c'était une ERREUR, levée
+  // par un relevé EN JEU : Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF,
+  // ~4 500 dégâts par coup relevés contre 770 à 1 760 prédits par l'ancien
+  // calcul. Voir spec/outils/degats-reels.md, « Corrections identifiées ».
+  //
+  // ⚠️ Les deux familles vont EXACTEMENT au même endroit — ne pas rescinder
+  // l'accumulateur « au cas où » : c'est ce partage qui avait été pris à tort
+  // pour un obstacle.
+  const ajoutBrutParCoup = ajoutMaxHpPropre + ajoutSacrifice;
+  // Ce que ce terme vaut par coup, amplificateurs de cible compris.
+  const degatsBrutParCoup = ajoutBrutParCoup * horsCoupBrut;
   // Les PV ne peuvent pas descendre sous zéro, et une cible à 0 PV max (cas
   // dégénéré d'un réglage vidé) ne se creuse pas : on renvoie alors le
   // pourcentage de départ inchangé plutôt que de diviser par zéro.
@@ -2484,8 +2513,10 @@ export function computeSkillDamageDetail(
   // évaluation, exactement comme avant l'ajout de la simulation.
   if (!profile.variables.includes('Target Current HP %')) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
-    if (mult <= 0 && ajoutUneFois <= 0) return { total: 0, pvRestantsPct: pctDepart };
-    const totalDegats = (Math.max(0, mult) * coups + ajoutUneFois) * horsCoup;
+    if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, pvRestantsPct: pctDepart };
+    // ⚠️ Le terme brut est DANS le `×coups`, plus ajouté à côté : les deux
+    // parts frappent le même nombre de fois, seule leur mitigation diffère.
+    const totalDegats = (Math.max(0, mult) * horsCoup + degatsBrutParCoup) * coups;
     const pvApres = creuse(totalDegats, (pctDepart / 100) * pvMax);
     return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart };
   }
@@ -2497,24 +2528,24 @@ export function computeSkillDamageDetail(
   for (let i = 0; i < coups; i++) {
     valeurs['Target Current HP %'] = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
-    if (mult <= 0) continue;
-    const degatsCoup = mult * horsCoup;
+    // ⚠️ `Math.max(0, mult)` et non un `continue` sur `mult <= 0` : un
+    // multiplicateur nul n'annule PAS le terme brut, qui ne dépend pas de la
+    // formule du sort. Le coup n'est sauté que s'il ne porte réellement rien.
+    const degatsCoup = Math.max(0, mult) * horsCoup + degatsBrutParCoup;
+    if (degatsCoup <= 0) continue;
     totalDegats += degatsCoup;
+    // ⚠️ Le terme brut est creusé DANS la boucle, avec le coup qui le porte —
+    // c'est ce qui garde `pvRestantsPct` exact pour les passifs à seuil qui
+    // s'évaluent ensuite (le bug corrigé jadis sur l'ancien `ajoutUneFois`,
+    // creusé en bloc après la boucle, ne peut plus se reformer ici).
     pvCourant = creuse(degatsCoup, pvCourant);
   }
-  // ⚠️ **BUG CORRIGÉ** (revue de code externe) : `ajoutUneFois` (Sickle
-  // Blade/Sand Blade, Calculated Sacrifice — voir plus haut) était ajouté à
-  // `totalDegats` (donc au `.total` retourné) mais JAMAIS retranché de
-  // `pvCourant` — contrairement au chemin COURT juste au-dessus, qui
-  // l'inclut dans la même quantité créusée que celle retournée. Résultat :
-  // `pvRestantsPct` (transmis au(x) passif(s) suivant(s) par
-  // `computeTotalDamage`, voir `pvCiblePct`) restait SURESTIMÉ dès qu'un
-  // sort au chemin séquentiel portait aussi un `ajoutUneFois` — un seuil de
-  // passif du type « bonus si PV restants ≤ X % » (Final Strike, Benedict)
-  // pouvait manquer sa cible alors qu'il aurait dû se déclencher.
-  const degatsUneFois = ajoutUneFois * horsCoup;
-  totalDegats += degatsUneFois;
-  pvCourant = creuse(degatsUneFois, pvCourant);
+  // ⚠️ Plus RIEN à ajouter après la boucle. L'ancien `ajoutUneFois` était
+  // appliqué ici en bloc, ce qui avait déjà valu un bug (`pvRestantsPct`
+  // surestimé, corrigé lors d'une revue de code externe : un seuil de passif
+  // « bonus si PV restants ≤ X % », Final Strike/Benedict, pouvait manquer sa
+  // cible). Le terme étant désormais PAR COUP, il est creusé dans la boucle
+  // avec le coup qui le porte — cette classe de bug ne peut plus se reformer.
   return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart };
 }
 

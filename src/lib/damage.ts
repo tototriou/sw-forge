@@ -1444,6 +1444,43 @@ const RE_DAMAGE_UP = /^Damage \+(\d+)%$/i;
 // ⚠️ `(Fixed)` colle au dernier terme (`1500(Fixed)`, `0.3*{MAX HP}(Fixed)`).
 const RE_FIXED = /\(Fixed\)\s*$/i;
 
+// Nom de l'effet com2us qui marque une BOMBE.
+//
+// ⚠️ Une bombe **ne peut pas être critique** et **ignore la défense adverse**
+// — c'est-à-dire exactement `fixed`. Mais les DEUX détections habituelles
+// passent à côté : la formule ne porte aucun marqueur `(Fixed)`
+// (`"5.0*{ATK}"` pour Seara), et l'ignore-défense n'est écrit que dans la
+// PROSE de l'effet (« the bomb explodes to deal damage that ignores
+// Defense »), jamais dans son NOM — que `ignoreDef` compare pourtant à
+// `'Ignore DEF'`. D'où cette troisième porte.
+const EFFET_BOMBE = 'Bomb';
+
+// Ce sort EST la bombe (il la pose sans frapper), plutôt que de frapper ET
+// d'en poser une ? Dans ce cas seulement sa formule décrit l'explosion, donc
+// des dégâts fixes.
+//
+// ⚠️ Discriminant `coups === 0`, **vérifié sur le corpus complet** (8 434
+// compétences, 48 portant l'effet) et pas sur le seul cas Seara — les deux
+// familles s'y séparent nettement :
+//   - **pose seule** (`coups: 0`) : `Fate of Destruction` (Seara, Oracle,
+//     Giana), `Surprise Bomb` (Joker, Sian, Jojo, Liebli), `Time Bomb`
+//     (Kobold Bomber, Malaka, Taurus, Dover) ;
+//   - **frappe ET pose** (`coups > 0`) : `Firecracker` (Kobold Bomber…),
+//     `Bombardment` (Frigate, Pirate Captain, Carrack), `Cursed Apple`
+//     (Puppeteer, Zima, Smicer, Zenisek), `Dancing Star` (Geralt),
+//     `Star of Explosion` (Valdemar, Henrik, Magic Order Guardian).
+//
+// ⚠️ Les marquer TOUS fixes aurait faussé ces cinq familles-là : leur formule
+// décrit le COUP DIRECT, qui crite et se fait mitiger normalement. Les dégâts
+// de leur explosion différée, eux, ne sont **nulle part dans les données** —
+// hors modèle, comme le reste de ce qui ne se calcule pas.
+//
+// ⚠️ `skillupDamagePct` continue de s'appliquer, et c'est vérifié : c'est ce
+// qui fait tomber le relevé Seara sur ~27 000 (`5,0 × 4 150 × 1,30`).
+function estBombeSansCoupDirect(c: Competence): boolean {
+  return c.effets.some((e) => e.nom === EFFET_BOMBE) && !(c.coups && c.coups > 0);
+}
+
 // Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à
 // 5 fois »…) — `Competence.coups` ne porte qu'UN SEUL nombre, pas toujours
 // cohérent avec le texte (ex. Rain of Fire : `coups=6` en donnée, « 3 à 5
@@ -1481,7 +1518,7 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
 export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDamageUnsupported | null {
   if (c.passif || !c.formule || c.com2usId == null) return null;
   const brut = c.formule.trim();
-  const fixed = RE_FIXED.test(brut);
+  const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);
   const analyse = analyser(brut.replace(RE_FIXED, '').trim());
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom };
   if (!analyse) {

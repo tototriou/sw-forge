@@ -228,53 +228,78 @@ L'inventaire des autres termes de dégâts plats a été passé en revue et n'a
 c'est la trace que ces trois-là ont été **vérifiés**, et non pas seulement
 supposés corrects — exactement la distinction qui manquait à `ajoutUneFois`.
 
-## Corrections identifiées, pas encore appliquées
+## Les bombes — des dégâts fixes, via une TROISIÈME détection
 
-⚠️ **À distinguer de « Volontairement hors modèle » plus haut.** Là il s'agit
-de ce qu'on ne calcule pas et qu'on assume ; ici, de ce qu'on calcule **faux**
-et qu'on sait faux.
+Une bombe **ne peut pas être critique** et **ignore la défense adverse** :
+c'est exactement la sémantique de `SkillDamageProfile.fixed`. Le mécanisme
+existait donc déjà — il manquait seulement de quoi le déclencher.
 
-### Les bombes ne sont jamais reconnues comme dégâts fixes
-
-Une bombe (S2 de **Seara**) **ne peut pas être critique** et **ignore la
-défense adverse**. Elle est aujourd'hui calculée comme un sort ordinaire :
-critique et mitigée.
-
-⚠️ **La donnée dit pourtant la vérité.** `public/data/skills/15713.json`,
-effet de `Fate of Destruction` : `"nom": "Bomb"` — « the bomb explodes to deal
-damage that **ignores Defense** ». Les deux détections qui auraient pu
-l'attraper échouent, chacune pour sa propre raison :
+⚠️ **Les deux détections habituelles passent à côté**, chacune pour sa propre
+raison. La donnée dit pourtant la vérité : `public/data/skills/15713.json`,
+effet de `Fate of Destruction` — `"nom": "Bomb"`, « the bomb explodes to deal
+damage that **ignores Defense** ».
 
 | Drapeau | Détection | Pourquoi ça rate |
 |---|---|---|
 | `fixed` | `RE_FIXED` sur la **formule** (marqueur `(Fixed)`) | la formule est `"5.0*{ATK}"`, sans marqueur |
-| `ignoreDef` | un effet **nommé exactement** `'Ignore DEF'` | l'effet s'appelle `'Bomb'` — l'ignore-défense n'est écrit que dans sa **prose** |
+| `ignoreDef` | un effet **nommé exactement** `'Ignore DEF'` | l'effet s'appelle `'Bomb'` — l'ignore-défense n'est écrit que dans sa **PROSE** |
 
-⚠️ **Le mécanisme existe déjà** : `SkillDamageProfile.fixed` porte exactement
-la sémantique voulue (ni critique, ni facteur de défense). C'est une affaire
-de **détection**, pas de calcul — contrairement aux dégâts bruts de passif
-ci-dessus, qui exigeaient un vrai nouveau terme.
+D'où `estBombeSansCoupDirect` : un effet nommé `Bomb` **et** `coups === 0`.
 
-⚠️ **La règle ne peut pas être « un effet nommé `Bomb` → `fixed` » tout
-court.** Ça vaut pour un sort dont TOUTE la contribution est la bombe (Seara
-S2 : `coups: 0`, il ne frappe pas, il pose), mais serait faux pour un sort qui
-**frappe normalement ET pose une bombe** — son coup direct, lui, crite et se
-fait mitiger. Le discriminant est à choisir explicitement (`coups === 0` est
-le candidat naturel) et à vérifier sur **le corpus complet** des sorts portant
-un effet `Bomb`, pas sur Seara seule.
+### ⚠️ Le discriminant `coups === 0` — et pourquoi il est indispensable
 
-**Relevé en jeu — Seara.** Bombes à **~27 000** ; avec **+24 %** de dégâts de
-bombe venant des artéfacts, **~34 000**. Le rapport confirme la nature
-**multiplicative** de ce bonus : `27 000 × 1,24 = 33 480`. La magnitude se
-recale en lisant le relevé correctement — le +2 800 d'ATQ est un **bonus
-d'équipement**, à additionner à la base et à la compétence d'invocateur :
+Marquer fixe *tout* sort portant un effet `Bomb` aurait été faux. Cinq
+familles **frappent en plus de poser** leur bombe : leur formule décrit le
+**coup direct**, qui crite et se fait mitiger normalement.
+
+Vérifié par un **balayage du corpus complet** (8 434 compétences, 48 portant
+l'effet) plutôt que sur le seul cas Seara — les deux familles s'y séparent
+nettement :
+
+| | Compétence | Monstres |
+|---|---|---|
+| **Pose seule** (`coups: 0`) → **fixe** | `Fate of Destruction` | Seara, Oracle, Giana |
+| | `Surprise Bomb` | Joker, Sian, Jojo, Liebli |
+| | `Time Bomb` | Kobold Bomber, Malaka, Taurus, Dover |
+| **Frappe ET pose** (`coups > 0`) → **pas fixe** | `Firecracker` | Kobold Bomber, Malaka, Zibrolta, Taurus… |
+| | `Bombardment` | Frigate, Pirate Captain, Carrack |
+| | `Cursed Apple` | Puppeteer, Zima, Smicer, Zenisek |
+| | `Dancing Star` | Geralt |
+| | `Star of Explosion` | Valdemar, Henrik, Magic Order Guardian |
+
+⚠️ **Le balayage a élargi la liste connue** : elle était estimée à trois
+compétences (`Bombardment`, `Dancing Star`, `Star of Explosion`) — il y en a
+**cinq**. `Firecracker` et `Cursed Apple` auraient été faussées sans lui, sur
+une dizaine de formes de monstres. C'est le cas d'école du corpus balayé
+plutôt que supposé.
+
+⚠️ **Kobold Bomber porte LES DEUX** (`Firecracker` qui frappe, `Time Bomb` qui
+pose) : c'est le cas de test le plus net du discriminant, et il est verrouillé
+comme tel.
+
+⚠️ **Les dégâts de l'explosion différée des cinq familles « frappe et pose »
+ne sont NULLE PART dans les données** — aucune formule ne les porte. Ils
+restent donc hors modèle, comme le reste de ce qui ne se calcule pas.
+
+### `skillupDamagePct` continue de s'appliquer
+
+Une bombe profite bien des améliorations de compétence. C'est ce qui fait
+tomber le relevé en jeu au bon endroit, et c'est verrouillé par un test.
+
+**Relevé — Seara.** Bombes à **~27 000** ; avec **+24 %** de dégâts de bombe
+venant des artéfacts, **~34 000**. Le rapport confirme au passage la nature
+**multiplicative** de ce bonus d'artéfact (code 210) : `27 000 × 1,24 =
+33 480`. La magnitude se recale en lisant le relevé correctement — le +2 800
+d'ATQ est un **bonus d'équipement**, à additionner à la base et à la
+compétence d'invocateur :
 
 | | |
 |---|---|
 | ATQ de base (Seara) | 801 |
 | + équipement | +2 800 → **3 601** |
 | + compétence d'invocateur (~15 %) | ≈ **4 150** |
-| `5,0 × 4 150 × 1,30` (3 × `Damage +10%`) | ≈ **27 000** ✅ |
+| `5,0 × 4 150 × 1,30` (3 × `Damage +10%`) | **26 975** ✅ |
+
 ## Passifs offensifs — dégâts supplémentaires au-delà du sort choisi
 
 Certains monstres infligent des dégâts **en plus** du sort actif choisi, via

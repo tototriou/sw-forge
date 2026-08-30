@@ -181,6 +181,49 @@ export default function testDegats() {
   const s1 = sorts.filter(estPrisEnCharge).find((s) => s.slot === 1);
   egal(s1?.ignoreDef, false, 'la S1 de Lushen, elle, n’ignore PAS la défense');
 
+  titre('Dégâts réels — les bombes sont des dégâts fixes');
+
+  // ⚠️ Une bombe ne peut pas être critique et ignore la défense — donc
+  // `fixed`. Mais AUCUNE des deux détections habituelles ne l'attrape : sa
+  // formule ne porte pas de marqueur `(Fixed)`, et l'ignore-défense n'est
+  // écrit que dans la PROSE de l'effet `Bomb`, jamais dans son NOM (que
+  // `ignoreDef` compare pourtant à `'Ignore DEF'`).
+  const bombeDe = (id: number, nom: string) =>
+    monsterDamageSkills(fiche(id))
+      .filter(estPrisEnCharge)
+      .find((s) => s.nom === nom)!;
+
+  const fateOfDestruction = bombeDe(15713, 'Fate of Destruction'); // Seara
+  ok(fateOfDestruction != null, 'Seara : Fate of Destruction est calculable');
+  egal(fateOfDestruction.fixed, true, 'Seara : la bombe est reconnue comme dégâts fixes');
+  egal(fateOfDestruction.ignoreDef, false, '… et PAS via `ignoreDef` : son effet s’appelle « Bomb », pas « Ignore DEF »');
+  egal(bombeDe(13401, 'Surprise Bomb').fixed, true, 'Joker (Eau) : Surprise Bomb, même famille');
+
+  // ⚠️ **Le discriminant est `coups === 0`, pas « porte un effet Bomb »** —
+  // cinq familles FRAPPENT en plus de poser leur bombe, et leur formule
+  // décrit ce coup direct, qui crite et se fait mitiger normalement. Les
+  // marquer fixes les aurait faussées. Vérifié sur le corpus complet.
+  egal(bombeDe(19415, 'Bombardment').fixed, false, 'Frigate (Ténèbres) : Bombardment frappe ET pose — pas de dégâts fixes');
+  egal(bombeDe(29215, 'Dancing Star').fixed, false, 'Geralt (Ténèbres) : Dancing Star frappe ET pose');
+  egal(bombeDe(29615, 'Star of Explosion').fixed, false, 'Valdemar : Star of Explosion frappe ET pose');
+  egal(bombeDe(27205, 'Cursed Apple').fixed, false, 'Puppeteer (Ténèbres) : Cursed Apple frappe ET pose');
+
+  // Le cas le plus net : UN SEUL monstre porte les deux sortes de bombe.
+  egal(bombeDe(18101, 'Time Bomb').fixed, true, 'Kobold Bomber (Eau) : Time Bomb pose sans frapper → fixe');
+  egal(bombeDe(18101, 'Firecracker').fixed, false, '… et Firecracker, même monstre, frappe ET pose → pas fixe');
+
+  {
+    // Ni la DEF adverse ni le critique ne doivent bouger le résultat.
+    const setupBombe: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', enemyDef: 0 };
+    const st = stats({ atk: 4150 });
+    const nu = computeSkillDamage(fateOfDestruction, st, setupBombe);
+    egal(computeSkillDamage(fateOfDestruction, st, { ...setupBombe, enemyDef: 3000 }), nu, 'la DEF adverse ne change RIEN aux dégâts de bombe');
+    egal(computeSkillDamage(fateOfDestruction, st, { ...setupBombe, critMode: 'crit' }), nu, 'le critique non plus — une bombe ne crite pas');
+    // `5,0 × {ATK} × 1,30` (3 × « Damage +10% »). Recale le relevé EN JEU
+    // (~27 000 à ~4 150 d'ATQ, base + équipement + invocateur de guilde).
+    egal(Math.round(nu), 26975, 'Seara : 5,0 × 4150 × 1,30 — le relevé en jeu se recale');
+  }
+
   titre('Dégâts réels — l’équation');
 
   // Lushen S3 : 0.68 × ATQ, 3 coups, ignore défense, +30 % d’améliorations.

@@ -298,6 +298,22 @@ const CODE_BRUT_ATK = 219;
 const CODE_BRUT_DEF = 220;
 const CODE_BRUT_VIT = 221;
 
+// « Aug. des dgts infl. au <élément> » — un artéfact d'ATTRIBUT majore les
+// dégâts infligés à UN élément précis. Ne compte donc que si l'utilisateur a
+// dit contre quel élément il optimise (`DamageSetup.enemyElement`).
+//
+// ⚠️ Un multiplicateur UNIFORME : contrairement aux lignes conditionnelles,
+// il majore tous les builds à l'identique et ne peut donc jamais changer le
+// classement d'une recherche. C'est la seule famille dont on soit certain
+// qu'elle est sans effet sur le choix des runes.
+const CODE_DEGATS_ELEMENT: Record<number, ElementKey> = {
+  300: 'fire',
+  301: 'water',
+  302: 'wind',
+  303: 'light',
+  304: 'dark',
+};
+
 // Ce qu'une paire d'artéfacts apporte au calcul de dégâts.
 //
 // ⚠️ **Un OBJET plutôt qu'un nombre**, là où le code ne portait que
@@ -315,6 +331,11 @@ export interface ArtifactDamageProfile {
   brutPctAtk: number;
   brutPctDef: number;
   brutPctVit: number;
+  // Majoration des dégâts infligés, PAR ÉLÉMENT de cible (codes 300-304).
+  // ⚠️ La table entière est portée ici, pas un seul nombre déjà résolu : le
+  // profil reste une fonction PURE des artéfacts, et le choix de la cible
+  // (`DamageSetup.enemyElement`) peut changer sans le recalculer.
+  degatsElementPct: Partial<Record<ElementKey, number>>;
 }
 
 // Aucun artéfact pris en compte — comportement strictement inchangé.
@@ -326,10 +347,19 @@ export const ARTIFACT_DAMAGE_NEUTRE: ArtifactDamageProfile = {
   brutPctAtk: 0,
   brutPctDef: 0,
   brutPctVit: 0,
+  degatsElementPct: {},
 };
 
+// Majoration à appliquer contre CETTE cible — 0 si l'utilisateur a choisi
+// d'ignorer l'élément, ou si aucun artéfact ne porte la ligne voulue.
+export function artifactElementBonusPct(p: ArtifactDamageProfile, enemyElement: ElementKey | null | undefined): number {
+  return enemyElement ? (p.degatsElementPct[enemyElement] ?? 0) : 0;
+}
+
 export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDamageProfile {
-  const p: ArtifactDamageProfile = { ...ARTIFACT_DAMAGE_NEUTRE };
+  // ⚠️ `degatsElementPct` est un objet : le spread de la constante neutre le
+  // partagerait entre tous les profils. Réinitialisé explicitement.
+  const p: ArtifactDamageProfile = { ...ARTIFACT_DAMAGE_NEUTRE, degatsElementPct: {} };
   for (const a of artifacts) {
     for (const s of a.subs) {
       if (s.code === CODE_AMPLI_ATK) p.ampliAtkPct += s.value;
@@ -342,6 +372,10 @@ export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDama
       else if (s.code === CODE_BRUT_ATK) p.brutPctAtk += s.value;
       else if (s.code === CODE_BRUT_DEF) p.brutPctDef += s.value;
       else if (s.code === CODE_BRUT_VIT) p.brutPctVit += s.value;
+      else {
+        const el = CODE_DEGATS_ELEMENT[s.code];
+        if (el) p.degatsElementPct[el] = (p.degatsElementPct[el] ?? 0) + s.value;
+      }
     }
   }
   return p;
@@ -2093,6 +2127,24 @@ export interface DamageSetup {
   // : une recette exportée avant ce champ n'en a aucun, `resolvedEnemySpd`
   // retombe alors sur `DEFAULT_DAMAGE_SETUP.enemySpd`.
   enemySpd?: number;
+  // ÉLÉMENT de l'adversaire visé — sert UNIQUEMENT aux lignes d'artéfact
+  // « Aug. des dgts infl. au <élément> » (codes 300-304, voir
+  // `ArtifactDamageProfile`).
+  //
+  // ⚠️ **`null`/absent = « ignorer l'élément »**, et c'est le défaut : ces
+  // lignes comptent alors **0**, et l'artéfact d'attribut se juge sur ses
+  // autres propriétés. C'est un choix EXPLICITE de l'utilisateur, pas un
+  // repli dégradé — optimiser « contre n'importe qui » est un cas d'usage à
+  // part entière, aussi légitime que « contre du Feu ».
+  //
+  // ⚠️ Optionnel : une recette exportée AVANT ce champ n'en a aucun, et
+  // retombe donc sur « ignorer l'élément » — soit exactement le comportement
+  // qu'elle avait quand elle a été exportée.
+  //
+  // ⚠️ À NE PAS confondre avec le paramètre `element` de
+  // `computeSkillDamageDetail`, qui est celui de l'ATTAQUANT (il décide des
+  // compétences d'invocateur). Celui-ci décrit la CIBLE.
+  enemyElement?: ElementKey | null;
   // Leader skill d'ÉQUIPE (pas le sien, qui n'agit jamais sur lui-même) —
   // choisi dans « Effets actifs », voir `LeaderSkillStat`/
   // `LEADER_SKILL_PRESETS` plus haut. Absent = aucun. ⚠️ Généralise
@@ -2540,11 +2592,24 @@ export function computeSkillDamageDetail(
   // avec elle — confirmé par l'utilisateur. Dr. Matteo (« Transmission »)
   // : formulation identique, traité PAR ANALOGIE dans le même terme (non
   // confirmé séparément comme additif, voir la constante plus haut).
+  // Artéfact d'attribut « Aug. des dgts infl. au <élément> » (300-304) —
+  // compté dans CE terme, donc ADDITIF avec la Marque et Mirinae, et non un
+  // multiplicateur à part.
+  //
+  // ⚠️ **Déduit, pas confirmé directement.** L'utilisateur a établi que
+  // Mirinae « stacks additively with -DMG% artifacts » : les lignes de DMG%
+  // d'artéfact vivent donc bien dans ce même sac additif. Le raisonnement
+  // s'étend par symétrie à la famille +DMG% infligés (300-304), sans que ce
+  // cas précis ait été relevé en jeu. À reprendre si une mesure le contredit
+  // — un multiplicateur séparé changerait le résultat dès qu'une Marque ou
+  // Mirinae est active en même temps.
+  const bonusElement = artifactElementBonusPct(artefacts, setup.enemyElement);
   const reductions =
     1 +
     (setup.brand ? BRAND_BONUS_PCT / 100 : 0) +
     (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
-    (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0);
+    (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0) +
+    bonusElement / 100;
 
   // Julie (« Thousand Shots »)/Melissa (« Massacre Dance ») : +pct % par
   // effet SAISI sur la cible — propre à CE sort (`profile.

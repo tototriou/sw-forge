@@ -297,6 +297,60 @@ personne ne veut.
 > PV/DEF/VIT, que ces lignes convertissent en dégâts. Là, le build est déjà
 > figé par un autre objectif — il n'y a rien à réorienter.
 
+## Dégâts infligés par élément (300-304) — et le choix de la cible
+
+`Aug. des dgts infl. au Feu / à l'Eau / au Vent / à la Lum. / aux Tén.`
+(plafond 25) : un artéfact d'**attribut** majore les dégâts infligés à UN
+élément précis.
+
+⚠️ **Ces lignes ne comptent que si l'utilisateur dit contre quel élément il
+optimise** — `DamageSetup.enemyElement`. Deux modes, tous deux légitimes :
+
+- **viser un élément** — la ligne correspondante s'applique pleinement, et
+  l'artéfact d'attribut se juge largement dessus ;
+- **ignorer l'élément** (`null`, le défaut) — ces lignes comptent **0**, et
+  l'artéfact d'attribut se juge sur ses autres propriétés (typiquement
+  204/226).
+
+⚠️ « Ignorer » est un **choix**, pas un repli dégradé : optimiser « contre
+n'importe qui » est un cas d'usage à part entière. L'écran l'expose donc comme
+une option du contrôle à cran, jamais comme une absence de sélection.
+
+⚠️ **Une recette exportée AVANT ce champ n'en porte aucun** → `undefined` →
+« ignorer l'élément », soit exactement le comportement qu'elle avait à
+l'export. Aucune traduction spéciale n'est nécessaire.
+
+⚠️ **Ne pas confondre avec le paramètre `element` de
+`computeSkillDamageDetail`**, qui est celui de l'**attaquant** (il décide des
+compétences d'invocateur). `enemyElement` décrit la **cible**.
+
+### ⚠️ Additif avec la Marque, pas un multiplicateur à part — DÉDUIT
+
+Ces lignes sont comptées dans le terme `reductions`, donc **additivement**
+avec la Marque, Mirinae et Transmission : `1 + 0,25 + 0,12`, et non
+`(1 + 0,25) × (1 + 0,12)`.
+
+Base : l'utilisateur a établi que Mirinae « stacks additively with -DMG%
+artifacts » — les lignes de DMG% d'artéfact vivent donc dans ce sac additif.
+Le raisonnement s'étend **par symétrie** à la famille +DMG% infligés, sans
+que ce cas précis ait été relevé en jeu. ⚠️ **À reprendre si une mesure le
+contredit** : l'écart n'apparaît que lorsqu'une Marque ou Mirinae est active
+en même temps (2 740 en additif contre 2 800 en multiplicatif, sur l'exemple
+du test).
+
+### Uniforme, donc sans effet sur le choix des runes
+
+Contrairement aux lignes conditionnelles, une majoration élémentaire multiplie
+**tous les builds à l'identique**. C'est la seule famille dont on soit certain
+qu'elle ne peut jamais changer le classement d'une recherche.
+
+### L'écran ne montre le réglage que s'il sert
+
+Le contrôle « Élément visé » n'apparaît que si un artéfact **réellement pris
+en compte** porte une de ces lignes. Sinon il ne changerait rien et n'aurait
+aucune raison d'occuper l'écran — même principe que la DEF ennemie (masquée
+sur un sort qui l'ignore) ou que « PV restants ».
+
 ### `ArtifactDamageProfile` — un objet, pas une liste de nombres
 
 `artifactDamageProfile(artifacts)` réduit une paire d'artéfacts à ce qu'elle

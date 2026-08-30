@@ -80,6 +80,7 @@ import {
   skillDamageProfile,
   ARTIFACT_DAMAGE_NEUTRE,
   artifactDamageProfile,
+  artifactElementBonusPct,
   speedBuffAmpliPct,
   summonerSkillBonus,
   type PassifOffensifProfile,
@@ -511,6 +512,72 @@ export default function testDegats() {
     { ...ARTIFACT_DAMAGE_NEUTRE, brutPctPv: 1.5, brutPctAtk: 20, brutPctDef: 20, brutPctVit: 200 },
     'les quatre lignes 218-221 sont lues sur leurs canaux respectifs'
   );
+
+  // « Aug. des dgts infl. au <élément> » (300-304) — une table PAR élément.
+  const artefactElement: ArtifactDetail = {
+    ...artefactVit,
+    subs: [
+      { code: 300, value: 12 }, // au Feu
+      { code: 302, value: 9 }, // au Vent
+    ],
+  };
+  egal(
+    artifactDamageProfile([artefactElement]).degatsElementPct,
+    { fire: 12, wind: 9 },
+    'les codes 300-304 alimentent une entrée par élément visé'
+  );
+  egal(
+    artifactDamageProfile([artefactElement, artefactElement]).degatsElementPct,
+    { fire: 24, wind: 18 },
+    'deux artéfacts portant la même ligne se cumulent, élément par élément'
+  );
+  // ⚠️ Le profil doit rester une fonction PURE : deux appels ne doivent pas
+  // partager la même table (le piège du spread d'une constante d'objet).
+  {
+    const a = artifactDamageProfile([artefactElement]);
+    const b = artifactDamageProfile([]);
+    egal(b.degatsElementPct, {}, 'un profil sans ligne élémentaire reste vide…');
+    ok(a.degatsElementPct !== b.degatsElementPct, '… et deux profils ne partagent JAMAIS la même table');
+    egal(ARTIFACT_DAMAGE_NEUTRE.degatsElementPct, {}, 'la constante neutre n’a pas été polluée au passage');
+  }
+  const profilFeu = artifactDamageProfile([artefactElement]);
+  egal(artifactElementBonusPct(profilFeu, 'fire'), 12, 'contre du Feu, la ligne Feu s’applique');
+  egal(artifactElementBonusPct(profilFeu, 'dark'), 0, 'contre un élément non couvert, rien ne s’applique');
+  egal(artifactElementBonusPct(profilFeu, null), 0, '« ignorer l’élément » : ces lignes comptent 0, jamais un repli sur la meilleure');
+  egal(artifactElementBonusPct(profilFeu, undefined), 0, 'une recette exportée AVANT ce champ se comporte comme « ignorer »');
+
+  {
+    // Effet sur le calcul : additif avec la Marque, pas un multiplicateur à part.
+    const profilFixe2 = profil('1*{ATK} (Fixed)')!;
+    const st = stats({ atk: 2000 });
+    const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal' };
+    const nu = computeSkillDamageDetail(profilFixe2, st, base, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+    egal(Math.round(nu), 2000, 'référence sans artéfact ni marque');
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, enemyElement: 'fire' }, null, undefined, profilFeu).total),
+      2240,
+      'contre du Feu : +12 % (2000 → 2240)'
+    );
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, enemyElement: null }, null, undefined, profilFeu).total),
+      2000,
+      '« ignorer l’élément » : l’artéfact ne change rien, même en le portant'
+    );
+    // Marque (+25 %) seule = 2500 ; avec la ligne Feu, ADDITIF → +37 % = 2740,
+    // là où un multiplicateur séparé donnerait 2500 × 1,12 = 2800.
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, brand: true }, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total),
+      2500,
+      'la Marque seule : +25 %'
+    );
+    egal(
+      Math.round(
+        computeSkillDamageDetail(profilFixe2, st, { ...base, brand: true, enemyElement: 'fire' }, null, undefined, profilFeu).total
+      ),
+      2740,
+      'Marque + ligne élémentaire : ADDITIF (+37 %), pas multiplicatif (qui donnerait 2800)'
+    );
+  }
 
   {
     // ⚠️ L'amplification ne s'applique qu'à un buff RÉELLEMENT actif — sinon

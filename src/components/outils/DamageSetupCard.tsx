@@ -48,6 +48,7 @@ import Jeton from '../../ui/Jeton';
 import NumberField from '../../ui/NumberField';
 import Option from '../../ui/Option';
 import Segmented from '../../ui/Segmented';
+import { ELEMENTS, type ElementKey } from '../../types';
 import Selecteur from '../../ui/Selecteur';
 import Vignette from '../../ui/Vignette';
 import HelpPopover from '../HelpPopover';
@@ -254,6 +255,9 @@ export default function DamageSetupCard({
   // Ce que le sort choisi consomme réellement — pilote l'affichage.
   const utilise = (v: DamageVariable) => resolved.variables.includes(v);
   const montreDefEnnemie = !resolved.ignoreDef && !resolved.fixed;
+  // Un artéfact pris en compte porte-t-il une ligne « Aug. des dgts infl. au
+  // <élément> » ? Si non, le choix de l'élément visé ne changerait rien.
+  const porteLigneElementaire = Object.keys(artefacts.degatsElementPct).length > 0;
   const montreCrit = !resolved.fixed;
   // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
   // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
@@ -740,6 +744,31 @@ export default function DamageSetupCard({
                 suffix="%"
                 boxWidth="w-32"
                 ariaLabel="Pourcentage de PV restants de l'adversaire"
+              />
+            </label>
+          )}
+          {/* Élément de la cible — ne sert QU'AUX lignes d'artéfact « Aug.
+              des dgts infl. au <élément> » (300-304).
+              ⚠️ Affiché SEULEMENT si un artéfact pris en compte en porte une :
+              sans ça, ce réglage ne changerait rien et n'aurait aucune raison
+              d'occuper l'écran — même principe que `montreDefEnnemie` ou que
+              « PV restants » juste au-dessus, qui n'apparaissent que si le
+              calcul les consomme. */}
+          {porteLigneElementaire && (
+            <label className="flex items-center gap-2">
+              <span className="text-xs text-ink-dim">Élément visé</span>
+              {/* ⚠️ « Ignorer » est une OPTION, pas l'absence de choix : le
+                  cadre montre toujours quel cran est posé. Optimiser « contre
+                  n'importe qui » est un cas d'usage à part entière, pas un
+                  repli dégradé — même parti pris que le « Toutes » du filtre
+                  de stat principale (spec/compte/artefacts.md). */}
+              <Segmented<ElementKey | 'aucun'>
+                value={setup.enemyElement ?? 'aucun'}
+                onChange={(v) => maj({ enemyElement: v === 'aucun' ? null : v })}
+                options={[
+                  { key: 'aucun', label: 'Ignorer' },
+                  ...ELEMENTS.filter((e) => e.key !== 'unknown').map((e) => ({ key: e.key, label: e.label })),
+                ]}
               />
             </label>
           )}

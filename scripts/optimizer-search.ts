@@ -292,6 +292,16 @@ if (recipe.objective === 'degats_reels') {
       console.log(`Effet renforcement ATQ (artéfacts) : +${artefacts.ampliAtkPct} % — amplifie le buff ATQ s'il est actif.`);
     if (artefacts.ampliDefPct > 0)
       console.log(`Effet renforcement DEF (artéfacts) : +${artefacts.ampliDefPct} % — amplifie le buff DEF s'il est actif.`);
+    const lignesElement = Object.entries(artefacts.degatsElementPct);
+    if (lignesElement.length > 0) {
+      const vise = recipe.damageSetup?.enemyElement ?? null;
+      const detail = lignesElement.map(([el, pct]) => `${el} +${pct} %`).join(', ');
+      console.log(
+        vise
+          ? `Dgts infl. par élément (artéfacts) : ${detail} — élément visé : ${vise} (+${artefacts.degatsElementPct[vise] ?? 0} % appliqués).`
+          : `Dgts infl. par élément (artéfacts) : ${detail} — AUCUN élément visé, ces lignes comptent 0.`
+      );
+    }
     if (monsterCritSiPlusRapide(detail)) {
       console.log(`Ce monstre force le critique quand il est plus rapide que l'adversaire (VIT adverse : ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd}).`);
     }

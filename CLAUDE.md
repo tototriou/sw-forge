@@ -101,7 +101,8 @@ touche. Ce qui compte avant de fusionner, c'est **tout**.
 (`[&>*]:w-full` ne l'a pas été). Quand un style ne s'applique pas, vérifier dans
 le **CSS construit**, pas dans le composant. Pour un algorithme de
 recherche/optimisation combinatoire, voir en plus la checklist dédiée du skill
-`algo-verify`.
+`algo-verify` ; pour une règle de calcul déduite des données SWARFARM (les
+tables `*_CONNUS` de `damage.ts`), celle de `game-data-curation`.
 
 ## Consignes pour l'agent (Claude Code)
 

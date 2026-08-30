@@ -1,6 +1,6 @@
 ---
 name: optimizer-field-propagation
-description: Checklist à suivre pour tout ajout, renommage ou changement de sémantique/défaut d'un champ dans OptimizerState (useOptimizerState.ts) ou OptimizerRecipe (optimizerRecipe.ts) — l'écran, la recette et les scripts CLI ont chacun leur propre copie de la logique, et la documentation (publique + privée) est éclatée sur 4 fichiers distincts. Un champ oublié dans l'un d'eux ne déclenche aucune erreur tsc (champ optionnel valide) : le seul signal est un script qui diverge silencieusement de l'écran, ou une doc qui ment.
+description: Checklist à suivre pour tout ajout, renommage ou changement de sémantique/défaut d'un champ TRAVERSANT (OptimizerState, OptimizerRecipe, RealDamageContext, ArtifactDamageProfile…) — l'écran, la recette et les scripts CLI ont chacun leur propre copie de la logique, et la documentation (publique + privée) est éclatée sur 4 fichiers distincts. Un champ OPTIONNEL oublié dans l'un d'eux ne déclenche aucune erreur tsc : le seul signal est un script qui diverge silencieusement de l'écran, ou une doc qui ment.
 ---
 
 # Propagation d'un champ Optimizer (SW Forge)
@@ -21,6 +21,16 @@ Née de trois incidents concrets, pas d'une inquiétude théorique :
    par grep, pas par une liste préétablie) plus 4 fichiers de doc — refait
    au jugé alors qu'une checklist aurait évité de devoir grep après coup
    pour vérifier qu'aucun n'avait été oublié.
+4. `RealDamageContext.ampliVitPct` (un `number`) devenu
+   `RealDamageContext.artefacts` (un objet) : les 6 emplacements de PRODUCTION
+   ont été mis à jour, mais une vingtaine d'appels de `tests/` passaient
+   toujours `0`. **Un argument de mauvais TYPE a survécu à un commit
+   entier** — `(0).ampliVitPct` vaut `undefined`, qui retombait sur le
+   défaut, donc la suite est restée verte. Découvert seulement au commit
+   SUIVANT, quand l'objet a gagné des champs dont `undefined / 100` donne
+   `NaN` : 42 vérifications rouges d'un coup. Cause racine :
+   `tsconfig.json` faisait `include: ["src"]` — corrigé depuis (voir
+   ci-dessous).
 
 ## Quand ce skill s'applique
 
@@ -30,13 +40,23 @@ Née de trois incidents concrets, pas d'une inquiétude théorique :
   **sémantique** (ex. inversion booléenne) d'un champ existant de l'un des
   deux.
 - Suppression d'un champ devenu inutile.
+- ⚠️ **Tout autre type TRAVERSANT** — c'est-à-dire dont la valeur est
+  construite à plusieurs endroits indépendants (écran, moteur, scripts CLI,
+  tests) plutôt qu'en un seul. `RealDamageContext` (runeBuildOptim.ts) et
+  `ArtifactDamageProfile` (damage.ts) en sont : ils vivent hors
+  d'`OptimizerState`/`OptimizerRecipe` mais traversent les mêmes six
+  emplacements, avec exactement le même risque (incident 4).
 
-**Hors périmètre** : un changement purement interne au moteur
-(`runeBuildOptim.ts`) qui ne touche ni `OptimizerState` ni
-`OptimizerRecipe` — voir `algo-verify` pour la correction algorithmique,
-`optimizer-perf-testing` pour la méthodologie de mesure. Ce skill-ci ne
-couvre QUE la complétude de la PLOMBERIE (le champ arrive-t-il partout où
-il doit arriver), jamais la justesse de l'algorithme lui-même.
+**Le critère n'est donc PAS « ce champ est-il dans OptimizerState ? »** mais
+**« combien d'endroits INDÉPENDANTS construisent cette valeur ? »**. Un seul
+constructeur → le compilateur suffit. Plusieurs → cette checklist.
+
+**Hors périmètre** : un changement purement interne au moteur qui ne traverse
+rien (une variable locale, une constante de calage) — voir `algo-verify` pour
+la correction algorithmique, `optimizer-perf-testing` pour la méthodologie de
+mesure. Ce skill-ci ne couvre QUE la complétude de la PLOMBERIE (la valeur
+arrive-t-elle partout où elle doit arriver), jamais la justesse de
+l'algorithme lui-même.
 
 ## La checklist — code
 
@@ -73,11 +93,31 @@ compile » :
       champ est renommé/inversé, vérifier qu'aucun test existant ne
       référence encore l'ancien nom (`grep` de l'ancien nom sur `tests/`
       APRÈS le renommage, pas seulement sur `src/`/`scripts/`).
+      ⚠️ **Les tests CONSTRUISENT eux aussi ces valeurs** — ce ne sont pas
+      de simples lecteurs. Un test qui fabrique un contexte à la main est un
+      constructeur de plus, à traiter comme les autres (incident 4).
 
-⚠️ **`tsc --noEmit` ne détecte JAMAIS un champ oublié dans un des fichiers
-ci-dessus** — un champ non lu reste un accès optionnel/ignoré parfaitement
-valide en TypeScript. La seule protection est cette checklist suivie à la
-main, plus une vérification de comportement RÉEL (voir « Vérification »).
+## Ce que `tsc` attrape, et ce qu'il n'attrape toujours pas
+
+⚠️ **Corrigé depuis l'incident 4** : `tsconfig.json` couvre désormais
+`["src", "scripts", "tests"]`, plus seulement `src`. `npx tsc --noEmit`
+type-vérifie donc tout le dépôt.
+
+**Ce qu'il attrape maintenant** — et qu'il laissait passer avant :
+- un champ dont le **type change** (`number` → objet) ;
+- un champ **obligatoire** ajouté à une interface, absent d'un littéral ;
+- un import de type devenu faux, un nom de variante d'union périmé.
+
+**Ce qu'il n'attrape TOUJOURS pas**, et qui reste la raison d'être de la
+checklist :
+- un champ **optionnel** jamais lu par un constructeur — accès parfaitement
+  valide, divergence parfaitement silencieuse ;
+- un champ lu mais **mal interprété** (bon type, mauvaise sémantique) ;
+- une **documentation** qui ment.
+
+Autrement dit : le compilateur couvre désormais la FORME, jamais l'INTENTION.
+La checklist reste obligatoire, plus une vérification de comportement RÉEL
+(voir « Vérification »).
 
 ## Compatibilité arrière (recettes déjà exportées)
 
@@ -127,9 +167,10 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
 
 Après avoir coché les deux checklists ci-dessus :
 
-1. `npx tsc --noEmit`, `npm test`, `npm run build` — propres (ne prouvent
-   RIEN sur l'oubli d'un emplacement, voir l'avertissement plus haut ;
-   prouvent seulement l'absence de régression ailleurs).
+1. `npx tsc --noEmit`, `npm test`, `npm run build` — propres. ⚠️ `tsc` prouve
+   désormais que la FORME est cohérente partout, `tests/` et `scripts/`
+   compris (voir la section dédiée plus haut) ; il ne prouve toujours rien
+   sur un champ **optionnel** oublié ni sur une valeur mal interprétée.
 2. **Fumée sur un compte réel**, si le champ affecte `resolvePool`/le pool
    de runes envoyé au moteur : un script ad hoc (supprimé après usage)
    appelant `resolvePool`/`recipeToSearchParams` directement pour chaque

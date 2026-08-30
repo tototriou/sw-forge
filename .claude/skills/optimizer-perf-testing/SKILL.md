@@ -59,6 +59,36 @@ n'auraient rien pu détecter du bug `BUCKET_CAP` qui a motivé toute cette
 investigation. C'est un test de fumée pour l'itération, jamais un
 remplaçant de `--monotonicity` ni de la batterie complète avant de committer.
 
+## Avant de mesurer : le coût est-il SUBI, ou choisi par l'implémentation ?
+
+⚠️ **Mesurer une implémentation naïve qu'on n'a pas l'intention de livrer ne
+répond à aucune question utile.** Avant de lancer quoi que ce soit, se
+demander si le coût redouté est intrinsèque au changement, ou seulement à la
+première façon de l'écrire.
+
+**Incident vécu** (artéfacts, lignes 222/223 « Dgts CRIT selon les PV de la
+cible ») : le plan validé avec l'utilisateur était « mesurer le coût de
+RECALCULER `horsCoup` à chaque coup », ces lignes rendant les Dgts CRIT
+dépendants des PV de la cible, qui baissent pendant le sort. Une lecture du
+code AVANT de mesurer a montré que `cr`, `cd` et `partCrit` sont tous
+calculés une seule fois — seul `pvPct` varie. Le terme est donc **affine** en
+`pvPct` :
+
+```
+horsCoup(pvPct) = horsCoup_base + partCrit × [a·pvPct + b·(1−pvPct)] × K
+```
+
+`K` (mitigation × réductions × facteurs) étant constant, il n'y a **rien à
+recalculer** : deux constantes précalculées, puis deux multiplications-
+additions par coup. La mesure prévue aurait chiffré le coût d'un code qui
+n'allait jamais exister.
+
+**Règle** : quand un changement semble imposer de refaire un calcul dans une
+boucle chaude, chercher d'abord la **décomposition** (quelle partie est
+réellement variable ?) avant de chercher le chiffre. Le vrai coût résiduel —
+ici forcer le chemin séquentiel là où le chemin court suffisait — est
+souvent tout autre, et c'est LUI qu'il faut mesurer, une fois le code écrit.
+
 ## Le réflexe qui économise le plus de temps
 
 **Vérifier au bon ÉTAGE du pipeline, pas systématiquement de bout en

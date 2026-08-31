@@ -10,6 +10,7 @@ import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testArtefactOptim from './artefact-optim.test';
+import testArtefactFile from './artefact-file.test';
 import testReco, {
   testTrimPartage,
   testDefensesVisees,
@@ -89,6 +90,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],
+  ['testArtefactFile', testArtefactFile],
   ['testRegistre', testRegistre],
   ['testSansDowngrade', testSansDowngrade],
   ['testPalier', testPalier],

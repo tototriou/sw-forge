@@ -24,6 +24,13 @@ export interface Monster {
   com2usId: number | null; // identifiant com2us (= unit_master_id dans les exports SWEX)
   name: string;
   element: ElementKey;
+  // Archétype du monstre (« Type » dans le jeu) — décide quel artéfact de
+  // TYPE il peut porter (voir `artifactFitsMonster`, lib/artifacts.ts).
+  //
+  // ⚠️ Optionnel : `null` pour les monstres de MATÉRIAU (angelmons, rainbowmon
+  // — `archetype: "Material"` chez SWARFARM), qui ne portent aucun artéfact ;
+  // et absent d'un `monsters.json` régénéré AVANT ce champ.
+  archetype?: ArtifactArchetype | null;
   stars: number | null; // grade obtenable (base_stars) — utilisé par le Bestiaire
   naturalStars: number | null; // rareté naturelle réelle (nat 1..5)
   secondAwaken: boolean; // monstre à second éveil (double éveil / 2A)
@@ -150,10 +157,15 @@ export const ARTIFACT_KINDS: { key: ArtifactKind; label: string }[] = [
   { key: 'archetype', label: 'Type' },
 ];
 
+// Archétype (le « Type » du jeu). Porté À LA FOIS par un artéfact de type et
+// par le MONSTRE — c'est leur égalité qui décide de l'éligibilité, voir
+// `artifactFitsMonster` (lib/artifacts.ts).
+export type ArtifactArchetype = 'attack' | 'defense' | 'hp' | 'support';
+
 export interface ArtifactDetail {
   kind: ArtifactKind;
   element?: ElementKey; // si kind === 'element'
-  archetype?: 'attack' | 'defense' | 'hp' | 'support'; // si kind === 'archetype'
+  archetype?: ArtifactArchetype; // si kind === 'archetype'
   level: number;
   rarity: number; // rareté 1..5
   main: EffectLine; // code 100/101/102 → PV/ATQ/DEF plat

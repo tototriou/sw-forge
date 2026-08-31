@@ -192,6 +192,35 @@ et du niveau, pas du hasard : elle est **affichée** mais **hors score** (§3).
 Elle entre en revanche dans les **stats totales du monstre**, comme aujourd'hui
 (voir [calcul-runes.md §5.1](calcul-runes.md)).
 
+## 4 bis. Éligibilité — quel monstre peut porter quel artéfact
+
+Règle du jeu, implémentée par `artifactFitsMonster`
+([artifacts.ts](src/lib/artifacts.ts)) : l'artéfact d'**Attribut** suit
+l'**élément** du monstre, celui de **Type** suit son **archétype**.
+
+⚠️ **C'est cette règle qui rend l'optimisation d'artéfacts abordable.** Sur un
+inventaire réel (~2 000 artéfacts), elle ramène chaque emplacement à ~200
+candidats — plus besoin de meet-in-the-middle ni de plafond de rétention,
+contrairement aux runes.
+
+### L'archétype du monstre a dû être ajouté aux données
+
+`Monster` ne portait **que** l'élément : l'archétype (« Type » dans le jeu)
+n'était nulle part côté monstre, alors qu'il l'est côté artéfact depuis
+toujours (`unit_style` à l'import).
+
+L'API SWARFARM l'expose pourtant (`archetype`) — c'est `fetch-monsters.mjs`
+qui ne l'extrayait pas. Ajouté et régénéré : `attack` / `defense` / `hp` /
+`support`.
+
+⚠️ **`Material` (angelmons, rainbowmons) devient `null`, pas une valeur par
+défaut.** Ces monstres n'ont pas d'archétype de combat et ne portent aucun
+artéfact ; leur en inventer un les rendrait éligibles à des artéfacts qu'ils
+ne peuvent pas équiper. Même logique dans `artifactFitsMonster` : un archétype
+absent n'est éligible à **aucun** artéfact de type — répondre « oui » par
+défaut proposerait l'inéquipable, répondre « non » ne fait que ne rien
+proposer, ce qui se voit.
+
 ## 5. Perf
 
 Même contrainte que les runes : calcul **pur et linéaire**, mémoïsé à l'import,

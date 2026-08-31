@@ -12,8 +12,11 @@ import {
   maxRolls,
   isFullStack,
   ARTIFACT_SUB_MAX,
+  artifactFitsMonster,
+  eligibleArtifacts,
 } from '../src/lib/artifacts';
-import { ArtifactDetail } from '../src/types';
+import { ArtifactArchetype, ArtifactDetail, ElementKey } from '../src/types';
+import { readFileSync } from 'node:fs';
 import { egal, ok, titre, ignore, exportReel } from './outils';
 
 // Artéfact minimal, pour éprouver la formule sans dépendre d'un export.
@@ -103,6 +106,74 @@ export default function testArtefacts() {
     "un héroïque ne peut pas atteindre 4 rolls — d'où le filtre légendaire du panneau"
   );
 
+  titre('Artéfacts — éligibilité : quel monstre peut porter quoi');
+
+  // Règle du jeu : l'artéfact d'ATTRIBUT suit l'élément du monstre, celui de
+  // TYPE suit son archétype. C'est elle qui ramène ~2 000 artéfacts à ~200
+  // candidats par emplacement, et rend l'optimisation abordable.
+  const artAttribut = (element: ElementKey): ArtifactDetail => ({
+    kind: 'element',
+    element,
+    level: 15,
+    rarity: 5,
+    main: { code: 100, value: 300 },
+    subs: [],
+  });
+  const artType = (archetype: ArtifactArchetype): ArtifactDetail => ({
+    kind: 'archetype',
+    archetype,
+    level: 15,
+    rarity: 5,
+    main: { code: 101, value: 300 },
+    subs: [],
+  });
+
+  const lushen = { element: 'dark' as ElementKey, archetype: 'attack' as ArtifactArchetype };
+
+  ok(artifactFitsMonster(artAttribut('dark'), lushen), 'Lushen (Ténèbres) porte un artéfact d’attribut Ténèbres');
+  ok(!artifactFitsMonster(artAttribut('fire'), lushen), '… et jamais un artéfact d’attribut Feu');
+  ok(artifactFitsMonster(artType('attack'), lushen), 'Lushen (type ATQ) porte un artéfact de type ATQ');
+  ok(!artifactFitsMonster(artType('hp'), lushen), '… et jamais un artéfact de type PV');
+
+  // ⚠️ Un archétype ABSENT n'est jamais éligible : c'est le cas des monstres
+  // de matériau (angelmons) et d'un `monsters.json` régénéré avant le champ.
+  // Répondre « oui » par défaut proposerait des artéfacts inéquipables.
+  const sansArchetype = { element: 'dark' as ElementKey };
+  ok(artifactFitsMonster(artAttribut('dark'), sansArchetype), 'sans archétype, l’attribut reste jugeable');
+  ok(!artifactFitsMonster(artType('attack'), sansArchetype), '… mais AUCUN artéfact de type n’est éligible');
+
+  {
+    const inventaire = [
+      artAttribut('dark'),
+      artAttribut('dark'),
+      artAttribut('fire'),
+      artType('attack'),
+      artType('support'),
+    ];
+    egal(eligibleArtifacts(inventaire, lushen, 'element').length, 2, 'filtrage par sorte : 2 attributs Ténèbres retenus');
+    egal(eligibleArtifacts(inventaire, lushen, 'archetype').length, 1, '… et 1 seul type ATQ');
+    // ⚠️ Les deux emplacements sont INDÉPENDANTS : jamais une liste mêlée que
+    // l'appelant devrait re-séparer.
+    ok(
+      eligibleArtifacts(inventaire, lushen, 'element').every((a) => a.kind === 'element'),
+      'aucune sorte ne fuit dans l’autre'
+    );
+  }
+
+  // Sur le VRAI bestiaire : l'archétype est présent et cohérent.
+  {
+    const monstres = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
+    const liste = Array.isArray(monstres) ? monstres : (monstres.monsters ?? []);
+    const parId = (id: number) => liste.find((m: { com2usId?: number }) => m.com2usId === id);
+    egal(parId(19315)?.archetype, 'attack', 'Lushen est bien de type Attaque dans les données');
+    egal(parId(28013)?.archetype, 'hp', 'Shahat est de type PV');
+    // Les monstres de MATÉRIAU n'ont pas d'archétype, et c'est voulu.
+    const angelmon = liste.find((m: { name?: string }) => m.name === 'Angelmon');
+    egal(angelmon?.archetype ?? null, null, 'un Angelmon n’a aucun archétype — il ne porte pas d’artéfact');
+    const avec = liste.filter((m: { archetype?: string | null }) => m.archetype != null).length;
+    ok(avec > 2000, `l’archétype est renseigné sur la grande majorité du bestiaire (${avec}/${liste.length})`);
+  }
+
   /* ---- Sur l'export réel, quand il est là ------------------------------- */
 
   const brut = exportReel();
@@ -152,4 +223,5 @@ export default function testArtefacts() {
     mediane > 40 && mediane < 100,
     `médiane d'efficience plausible (${mediane.toFixed(1)} %)`
   );
+
 }

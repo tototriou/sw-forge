@@ -34,6 +34,24 @@ function normalizeElement(raw) {
   return 'unknown';
 }
 
+// Archétype SWARFARM (« Attack » / « Defense » / « HP » / « Support » /
+// « Material ») → la clé utilisée partout dans l'app, celle des artéfacts de
+// TYPE (`ArtifactArchetype`, types.ts).
+//
+// ⚠️ **`Material` renvoie `null`, pas une valeur par défaut** : angelmons,
+// rainbowmons et consorts n'ont pas d'archétype de combat et ne portent aucun
+// artéfact. Leur inventer un « attack » les rendrait éligibles à des artéfacts
+// qu'ils ne peuvent pas équiper.
+function normalizeArchetype(raw) {
+  if (raw === undefined || raw === null) return null;
+  const s = String(raw).toLowerCase();
+  if (s === 'attack') return 'attack';
+  if (s === 'defense') return 'defense';
+  if (s === 'hp') return 'hp';
+  if (s === 'support') return 'support';
+  return null;
+}
+
 function buildImageUrl(raw) {
   if (raw.image_filename) {
     return `https://swarfarm.com/static/herders/images/monsters/${raw.image_filename}`;
@@ -99,6 +117,7 @@ function normalizeMonster(raw, idx) {
     com2usId: num(raw.com2us_id),
     name: raw.name ?? raw.title ?? 'Inconnu',
     element: normalizeElement(raw.element),
+    archetype: normalizeArchetype(raw.archetype),
     stars: typeof stars === 'number' ? stars : null,
     naturalStars: typeof natural === 'number' ? natural : null,
     secondAwaken: Number(raw.awaken_level) >= 2, // 2ᵉ éveil (double éveil)

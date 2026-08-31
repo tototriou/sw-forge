@@ -21,7 +21,7 @@ import {
   artifactPairAllowed,
   eligibleArtifacts,
 } from './artifacts';
-import { ARTIFACT_SUB, artifactSubKinds } from './effects';
+import { ARTIFACT_SUB, artifactSubKinds, valeurArtefactPropre } from './effects';
 
 // Ce qu'on impose à la stat principale d'un emplacement.
 //
@@ -82,12 +82,27 @@ function valeurLigne(artefacts: ArtifactDetail[], code: number): number {
   return total;
 }
 
+/**
+ * Tolérance de comparaison sur une valeur d'artéfact.
+ *
+ * ⚠️ **Le bruit de virgule flottante vient de com2us**, pas d'un calcul à nous :
+ * l'export contient tel quel `0.8999999999999998` ou `1.4000000000000001` (le
+ * jeu accumule ses rolls en flottant). Sans tolérance, une paire cumulant
+ * 0,8999999999999998 + 0,5 = 1,3999999999999997 serait REJETÉE face à un
+ * minimum de 1,4 — alors que l'écran affiche 1,4 des deux côtés. Un refus
+ * invisible et incompréhensible.
+ *
+ * 1e-6 : très au-dessus du bruit observé (~1e-16), très en dessous du plus
+ * petit écart réel entre deux valeurs (0,1 sur les lignes proportionnelles).
+ */
+const EPSILON_VALEUR = 1e-6;
+
 // Cette paire satisfait-elle TOUTES les lignes verrouillées ?
 export function paireRespecteLignes(artefacts: ArtifactDetail[], lignes: LigneVerrouillee[] | undefined): boolean {
   if (!lignes?.length) return true;
   for (const l of lignes) {
     if (l.min <= 0) continue;
-    if (valeurLigne(artefacts, l.code) < l.min) return false;
+    if (valeurLigne(artefacts, l.code) < l.min - EPSILON_VALEUR) return false;
   }
   return true;
 }
@@ -544,8 +559,11 @@ export function meilleurCumulParLigne(
     }
   }
   return lignes.map((l) => {
-    const v = auMieux.get(l.code) ?? 0;
-    return { code: l.code, min: l.min, auMieux: v, atteint: v >= l.min };
+    // ⚠️ Même tolérance que le filtre, et la valeur ARRONDIE pour l'affichage :
+    // annoncer « 1.3999999999999997 % au mieux » face à « 1.4 % exigé » serait
+    // illisible, et pire, ferait croire à un manque là où il n'y en a pas.
+    const v = valeurArtefactPropre(auMieux.get(l.code) ?? 0);
+    return { code: l.code, min: l.min, auMieux: v, atteint: v >= l.min - EPSILON_VALEUR };
   });
 }
 

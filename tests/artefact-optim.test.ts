@@ -24,6 +24,7 @@ import {
   type ArtifactSearchParams,
 } from '../src/lib/artifactOptim';
 import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
+import { formatArtifactSub, splitArtifactSub, valeurArtefactPropre } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
 
 const attribut = (element: ElementKey, main = 101, sub = 0): ArtifactDetail => ({
@@ -263,6 +264,62 @@ export default function testArtefactOptim() {
     );
     ok(paireRespecteLignes([], [{ code: 219, min: 0 }]), 'un minimum nul n’exige rien');
     ok(paireRespecteLignes([attr219], undefined), 'aucun verrou : tout passe');
+  }
+
+  titre('Lignes verrouillées — le bruit de virgule flottante de com2us');
+
+  // ⚠️ **Le bruit vient de l'export, pas d'un calcul à nous.** Relevé dans le
+  // fichier brut d'un compte réel : le code 218 y prend les valeurs
+  // `0.8999999999999998`, `1.0999999999999999`, `1.4000000000000001`… Le jeu
+  // accumule ses rolls en flottant et sérialise le résultat tel quel ; l'import
+  // le lit sans y toucher.
+  {
+    // ⚠️ **Cas MESURÉ, pas inventé.** Sur l'inventaire réel, 55 couples de
+    // valeurs du code 218 somment sous leur cible arrondie. Celui-ci est le
+    // plus parlant : deux valeurs pourtant PROPRES à l'écran (0,1 et 0,7)
+    // donnent 0.7999999999999999 — donc strictement moins que 0,8.
+    const attr = { ...attribut('dark'), subs: [{ code: 218, value: 0.1 }] };
+    const typ = { ...type('attack'), subs: [{ code: 218, value: 0.7 }] };
+    ok(0.1 + 0.7 < 0.8, 'la situation est bien celle du bruit : 0,1 + 0,7 tombe SOUS 0,8');
+
+    // SANS tolérance, cette paire serait REJETÉE face à un minimum de 0,8 —
+    // alors que l'écran affiche 0,1 et 0,7 des deux côtés. Un refus
+    // incompréhensible et invisible.
+    ok(
+      paireRespecteLignes([attr, typ], [{ code: 218, min: 0.8 }]),
+      'une somme bruitée juste sous le minimum est ACCEPTÉE (tolérance)'
+    );
+    // …mais la tolérance ne laisse rien passer de RÉEL : le plus petit écart
+    // entre deux valeurs de cette ligne est 0,1, cent mille fois l'epsilon.
+    ok(
+      !paireRespecteLignes([attr, typ], [{ code: 218, min: 0.9 }]),
+      '… alors qu’un manque RÉEL (0,1 d’écart) reste refusé'
+    );
+  }
+
+  titre('Affichage — la valeur bruitée est nettoyée, jamais tronquée');
+
+  {
+    // ⚠️ Arrondi à 2 décimales, JAMAIS à l'entier : les lignes
+    // proportionnelles valent des dixièmes (0,1 à 1,4 sur 1 588 artéfacts
+    // réels), et arrondir à l'unité écraserait 1,4 en 1.
+    egal(valeurArtefactPropre(1.4000000000000001), 1.4, 'le bruit disparaît');
+    egal(valeurArtefactPropre(0.8999999999999998), 0.9, '… y compris par en dessous');
+    egal(valeurArtefactPropre(54), 54, 'une valeur entière reste intacte');
+    egal(valeurArtefactPropre(1.4), 1.4, 'une décimale RÉELLE est préservée, pas arrondie à l’unité');
+    // Le libellé complet ne doit plus porter la traîne.
+    ok(
+      !formatArtifactSub({ code: 218, value: 1.4000000000000001 }).includes('0000'),
+      'le libellé affiché ne montre plus « 1.4000000000000001 »'
+    );
+    // ⚠️ Et le découpage autour de la valeur doit suivre : bâti sur la valeur
+    // BRUTE, son motif ne matcherait plus la chaîne nettoyée, et la ligne
+    // perdrait sa teinte de valeur en silence.
+    egal(
+      splitArtifactSub({ code: 218, value: 1.4000000000000001 }).valeur,
+      '1.4%',
+      'le découpage retrouve la valeur nettoyée dans le texte'
+    );
   }
 
   titre('Lignes verrouillées — le plafond NE double pas pour toutes');

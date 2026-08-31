@@ -349,23 +349,44 @@ lui seul 3 192, soit plus que le total observé de 2 250. Impossible.
 > « environ », sur des totaux de ~2 500. La part ADDITIONNELLE, elle, reste
 > serrée autour de la prédiction.
 
-> ⚠️ Au passage : la ligne « Dgts supp. en prop. des PV » du relevé Julie vaut
-> **0,7 %**, pas 7 %. À 7 % elle donnerait 2 307 par coup, plus du triple du
-> total observé — et son plafond est de toute façon 1,5 (voir
-> `ARTIFACT_SUB_MAX`). Chez Jessica, le 2 % dépasse aussi ce plafond : une
-> ligne **gemmée**, ce que la table de plafonds prévoit explicitement.
+> ⚠️ **Le plafond de 1,5 vaut PAR ARTÉFACT, pas par monstre.** Un monstre en
+> porte deux (attribut + type), qui peuvent chacun avoir la ligne : les
+> valeurs de relevé au-delà du plafond (2 % chez Jessica, 2,3 % chez Momo)
+> sont des **cumuls des deux pièces**, pas des lignes gemmées.
+> `artifactDamageProfile` somme bien sur l'ensemble des artéfacts — c'est ce
+> qui rend ces relevés cohérents.
+>
+> Au passage : la ligne du relevé Julie vaut **0,7 %**, pas 7 % comme annoncé
+> d'abord. À 7 % elle donnerait 2 307 par coup, plus du triple du total
+> observé ; le calcul l'avait déduit avant confirmation.
 
-### ❓ Une incohérence restante, assumée
+### Les modificateurs appliqués APRÈS coup ne le touchent pas non plus
 
-Les modificateurs monstre-wide appliqués **après coup** dans
-`computeTotalDamage` (Sonia, Momo, Zenitsu, Gideon, Brita, Velaska…)
-multiplient encore le total, additionnel compris. swcalc les classe pourtant
-« Other » eux aussi, donc dans DMG%.
+Sonia, Momo, Zenitsu, Gideon, Brita, Velaska… : ces bonus multiplient le total
+dans `computeTotalDamage`, après l'accumulation du sort et des passifs. Ils
+sont de type DMG%, donc **le bucket Additionnel leur échappe**.
 
-Les en sortir exige de faire remonter la part additionnelle à travers toute
-l'accumulation (sort **puis** passifs), et **aucune mesure ne le couvre**.
-Documenté plutôt que fait au jugé — c'est exactement le raccourci « par
-symétrie » qui a déjà produit deux erreurs dans ce fichier.
+**Relevé Momo.** 53 545 PV, ligne « Dgts supp. en prop. des PV » à **2,3 %**
+(le cumul des DEUX artéfacts), **sans critique**, contre un Feng Yan très
+défensif :
+
+| Stack | Bonus au sort | Dégâts / coup |
+|---|---|---|
+| aucun | — | ~1 300 |
+| plein | +200 % (×3) | ~1 700 |
+
+Si le stack touchait tout, on lirait **3 900**. En le réservant à la part du
+sort : part du sort ≈ 200, additionnel ≈ 1 100 — le modèle en prédit **1 232**.
+L'écart (~11 %) est plus large que sur Julie ou Jessica : les deux mesures
+sont arrondies à la centaine, ce qui déplace la résolution de plusieurs
+dizaines dans chaque sens.
+
+⚠️ **Ce que ça a coûté en structure** : `computeSkillDamageDetail` remonte
+désormais sa part additionnelle (`additionnel`), et `computeTotalDamage`
+l'accumule — **sur le sort ET sur chaque passif** — puis la met de côté avant
+toute la chaîne de multiplicateurs, pour ne la rendre qu'à la fin. Les
+majorations propres à un passif (`bonusPvCible`, `bonus`) sont traitées pareil,
+sur sa seule part de sort.
 
 ### ⚠️ Ces lignes n'entrent PAS dans `damageRelevantStats`
 

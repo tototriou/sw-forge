@@ -2551,7 +2551,18 @@ export function computeSkillDamageDetail(
     bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
     bonusParEffetPropre?: { skillCom2usId: number; pct: number };
   } = {}
-): { total: number; pvRestantsPct: number } {
+): {
+  total: number;
+  // Part du total qui vient du bucket ADDITIONNEL (dégâts bruts par coup :
+  // artéfacts 218-221, Sickle Blade / Sand Blade, Calculated Sacrifice).
+  //
+  // ⚠️ **Remontée pour que l'appelant puisse l'EXCLURE** de la chaîne de
+  // modificateurs de type DMG% appliquée dans `computeTotalDamage` (Sonia,
+  // Momo, Zenitsu, Gideon, Brita, Velaska…). Sans elle, ces bonus majoraient
+  // aussi les dégâts bruts — mesuré comme faux en jeu.
+  additionnel: number;
+  pvRestantsPct: number;
+} {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
   // total — même modèle que le totem de vitesse déjà en place (voir
@@ -2946,18 +2957,21 @@ export function computeSkillDamageDetail(
 
   if (!formuleLitPvCible && !artefactsVarientParCoup) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
-    if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, pvRestantsPct: pctDepart };
+    if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, additionnel: 0, pvRestantsPct: pctDepart };
     // ⚠️ Le terme brut est DANS le `×coups`, plus ajouté à côté : les deux
     // parts frappent le même nombre de fois, seule leur mitigation diffère.
     const totalDegats = (Math.max(0, mult) * horsCoup + degatsBrutParCoup) * coups;
     const pvApres = creuse(totalDegats, (pctDepart / 100) * pvMax);
-    return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart };
+    return { total: totalDegats, additionnel: degatsBrutParCoup * coups, pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart };
   }
 
   // Chemin SÉQUENTIEL — chaque coup frappe une cible plus basse que le
   // précédent, donc avec un ratio plus élevé.
   let pvCourant = (pctDepart / 100) * pvMax;
   let totalDegats = 0;
+  // Part ADDITIONNELLE réellement portée — comptée coup par coup, car un coup
+  // dont le total tombe à zéro est sauté et ne la porte donc pas.
+  let totalAdditionnel = 0;
   // ⚠️ Si la FORMULE ne lit pas les PV de la cible, son multiplicateur est
   // constant : on l'évalue UNE fois plutôt qu'à chaque tour de boucle. Sans
   // ça, un sort poussé ici par les seules lignes d'artéfact paierait
@@ -2975,6 +2989,7 @@ export function computeSkillDamageDetail(
     const degatsCoup = Math.max(0, mult) * horsCoupIci + degatsBrutParCoup;
     if (degatsCoup <= 0) continue;
     totalDegats += degatsCoup;
+    totalAdditionnel += degatsBrutParCoup;
     // ⚠️ Le terme brut est creusé DANS la boucle, avec le coup qui le porte —
     // c'est ce qui garde `pvRestantsPct` exact pour les passifs à seuil qui
     // s'évaluent ensuite (le bug corrigé jadis sur l'ancien `ajoutUneFois`,
@@ -2987,7 +3002,11 @@ export function computeSkillDamageDetail(
   // « bonus si PV restants ≤ X % », Final Strike/Benedict, pouvait manquer sa
   // cible). Le terme étant désormais PAR COUP, il est creusé dans la boucle
   // avec le coup qui le porte — cette classe de bug ne peut plus se reformer.
-  return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart };
+  return {
+    total: totalDegats,
+    additionnel: totalAdditionnel,
+    pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart,
+  };
 }
 
 /** Dégâts seuls — voir `computeSkillDamageDetail` pour les PV restants. */
@@ -3160,6 +3179,21 @@ export function computeTotalDamage(
   // se déduire tout seul, sans rien demander à l'utilisateur.
   const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, artefacts, monsterWide);
   let total = sort.total;
+  // ⚠️ **Part ADDITIONNELLE mise de côté** — elle traverse la chaîne de
+  // multiplicateurs ci-dessous sans en subir un seul, et n'est rendue qu'à la
+  // fin. Ces modificateurs (Sonia, Momo, Zenitsu, Gideon, Brita, Velaska…)
+  // sont des bonus de type DMG%, dont le bucket Additionnel est exclu.
+  //
+  // **Mesuré en jeu — Momo.** 53 545 PV, ligne « Dgts supp. en prop. des PV »
+  // à 2,3 % (cumul des DEUX artéfacts), sans critique, contre un Feng Yan
+  // très défensif : ~1 300 par coup sans stack, ~1 700 stack plein (+200 %,
+  // donc ×3 sur ce qu'il majore). Si le stack touchait tout, on lirait
+  // **3 900**. En le réservant à la part du sort : part du sort ≈ 200,
+  // additionnel ≈ 1 100 — le modèle en prédit 1 232.
+  //
+  // ⚠️ Accumulée AUSSI sur les passifs offensifs : chacun porte sa propre
+  // part brute, et elle doit échapper à la même chaîne.
+  let totalAdditionnel = sort.additionnel;
   let pvCiblePct = sort.pvRestantsPct;
   // ⚠️ « Dgts CRIT 1re attaque » (411) vaut pour la PREMIÈRE attaque du tour,
   // pas pour le premier coup de chaque contribution : le sort actif l'a déjà
@@ -3193,6 +3227,11 @@ export function computeTotalDamage(
     const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, artefactsPassif, monsterWide);
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
+    // ⚠️ Les majorations propres à CE passif sont elles aussi de type DMG% :
+    // on les applique à sa seule part de SORT, jamais à sa part brute. D'où le
+    // retrait puis la remise, plutôt qu'un `contribution *= …` global.
+    const additionnelPassif = detail.additionnel;
+    contribution -= additionnelPassif;
     if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;
     if (p.categorie.type === 'bonus') {
       const actif = bonusPassifActif(p, setup);
@@ -3205,8 +3244,12 @@ export function computeTotalDamage(
         contribution *= 1 + p.categorie.pct / 100;
       }
     }
-    total += contribution;
+    total += contribution + additionnelPassif;
+    totalAdditionnel += additionnelPassif;
   }
+  // ⚠️ À partir d'ici, la chaîne de modificateurs ne doit voir QUE la part de
+  // sort. On la met de côté et on la rend à la toute fin.
+  total -= totalAdditionnel;
   // ⚠️ Multiplicatif sur le TOTAL (sort actif + tous les passifs), APRÈS
   // coup — « the damage dealt increases », un modificateur sur l'ensemble de
   // ce que le monstre inflige, pas une contribution à part (contrairement à
@@ -3259,7 +3302,8 @@ export function computeTotalDamage(
   if (setup.velaskaActif) {
     total *= 1 + (VELASKA_PCT_PAR_PV_PERDU * (setup.velaskaPvPerduPct ?? 0)) / 100;
   }
-  return total;
+  // La part brute rejoint le total, sans avoir subi un seul de ces facteurs.
+  return total + totalAdditionnel;
 }
 
 /**

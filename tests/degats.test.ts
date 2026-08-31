@@ -772,6 +772,51 @@ export default function testDegats() {
     };
     egal(Math.round(ecartJessica(0)), 2100, 'Blessing of Curse, 0 débuff : les dégâts bruts valent leur valeur nue');
     egal(Math.round(ecartJessica(2)), 2100, '… et 2 débuffs (+40 % sur le sort) ne les majorent toujours PAS');
+
+    // ⚠️ **RELEVÉ MOMO** — même verdict pour les modificateurs appliqués
+    // APRÈS coup sur le total (Sonia, Momo, Zenitsu, Gideon, Brita, Velaska).
+    // Ceux-là traversaient toute l'accumulation et majoraient donc aussi les
+    // dégâts bruts. Momo à 53 545 PV, ligne PV à 2,3 %, sans critique, contre
+    // un Feng Yan très défensif : ~1 300 par coup sans stack, ~1 700 stack
+    // plein (+200 %, donc ×3). Si le stack touchait tout : 3 900.
+    //
+    // ⚠️ Ce test passe par `computeTotalDamage` et NON par
+    // `computeSkillDamageDetail` : c'est là, et là seulement, que cette chaîne
+    // s'applique.
+    const momo = {
+      skillCom2usId: sortSimple.skillCom2usId,
+      nom: 'Secret Book (Passive)',
+      description: null,
+      icone: null,
+      triggerMax: 20,
+      triggerStep: 1,
+      ratio: 10,
+      pctMax: 200,
+      label: 'Attaques alliées',
+      aide: '',
+      suffix: '',
+    };
+    const totalMomo = (attaques: number, avecBrut: boolean) =>
+      computeTotalDamage(
+        sortSimple,
+        [],
+        st,
+        { ...base, stackPersonnalise: { [sortSimple.skillCom2usId]: attaques } },
+        null,
+        ARTIFACT_DAMAGE_NEUTRE,
+        false,
+        null,
+        momo,
+        avecBrut ? shahat : {}
+      );
+    const brutSansStack = totalMomo(0, true) - totalMomo(0, false);
+    const brutStackPlein = totalMomo(20, true) - totalMomo(20, false);
+    egal(Math.round(brutSansStack), 2100, 'sans stack, les dégâts bruts valent leur valeur nue');
+    egal(Math.round(brutStackPlein), 2100, '… et stack PLEIN (+200 %) ne les majore pas d’un point');
+    ok(
+      totalMomo(20, false) > totalMomo(0, false) * 2.9,
+      '… alors que la part du SORT est bien triplée — sinon le test ne prouverait rien'
+    );
     egal(
       Math.round(ecart({ ...base, brand: true })),
       Math.round(2100 * 1.25),

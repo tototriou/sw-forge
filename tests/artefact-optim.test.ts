@@ -9,6 +9,7 @@
 import { ArtifactArchetype, ArtifactDetail, ElementKey } from '../src/types';
 import {
   budgetEmplacements,
+  analyserPertinence,
   candidatsParSorte,
   preFiltrerCandidats,
   chercherPaires,
@@ -162,9 +163,44 @@ export default function testArtefactOptim() {
       inventaire: [...inventaire, joker('element'), joker('archetype')],
     };
     egal(nombreDePaires(avecJokers), meilleuresPairesArtefacts(avecJokers, 9999).length, 'l’ampleur annoncée est celle réellement parcourue');
-    // 4 attributs (2 éligibles + 1 joker + vide) × 3 types (1 + joker + vide)
-    // = 12, moins la paire joker+joker interdite = 11.
-    egal(nombreDePaires(avecJokers), 11, 'et vaut bien 4 × 3 − 1 (la paire de jokers exclue)');
+    // ⚠️ Le compte porte sur les candidats APRÈS élagage, dominance comprise —
+    // c'est bien ce que la boucle parcourt, et l'égalité ci-dessus le
+    // verrouille. Un nombre figé ici mesurerait l'inventaire de ce test, pas le
+    // contrat ; ce qui compte, c'est que la paire de jokers reste exclue.
+    ok(
+      meilleuresPairesArtefacts(avecJokers, 9999).every((p) => !(p.element?.intangible && p.archetype?.intangible)),
+      'et la paire de DEUX intangibles reste exclue du compte'
+    );
+  }
+
+  titre('Dominance — un intangible n’élimine JAMAIS un artéfact ordinaire');
+
+  // ⚠️ Le bug que ce test verrouille : l'intangible traîne une contrainte de
+  // PAIRE qu'aucune dimension du vecteur ne porte. S'il élimine l'ordinaire
+  // qu'il domine, toute paire dont l'AUTRE emplacement est déjà intangible
+  // devient infaisable — un candidat légal perdu en silence. Troisième
+  // occurrence de ce piège dans ce dépôt.
+  {
+    // Le joker d'attribut domine l'ordinaire sur tout : même principale, et
+    // une ligne en plus.
+    const jokerFort: ArtifactDetail = { ...joker('element'), subs: [{ code: 300, value: 50 }] };
+    const ordinaire: ArtifactDetail = { ...attribut('dark'), subs: [{ code: 300, value: 10 }] };
+    const jokerType: ArtifactDetail = { ...joker('archetype'), subs: [{ code: 409, value: 50 }] };
+    const p: ArtifactSearchParams = {
+      porteur: lushen,
+      inventaire: [jokerFort, ordinaire, jokerType],
+      equipes: [],
+      principaleParSorte: {},
+      evaluer: parSubs,
+    };
+    const pert = analyserPertinence(p);
+    const restants = preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', [], pert);
+    ok(restants.includes(ordinaire), 'l’ordinaire survit, bien que dominé sur toutes les dimensions');
+    // …et la meilleure paire l'utilise vraiment : le joker d'attribut serait
+    // meilleur, mais il est incompatible avec le joker de type qui vaut plus.
+    const top = meilleuresPairesArtefacts(p, 1)[0]!;
+    egal(top.archetype, jokerType, 'le joker part du côté où il rapporte le plus');
+    egal(top.element, ordinaire, '… et l’ordinaire, sauvé de l’élagage, prend l’autre emplacement');
   }
 
   titre('Optimisation d’artéfacts — la paire SUPPOSÉE pendant la recherche de runes');
@@ -429,10 +465,20 @@ export default function testArtefactOptim() {
       principaleParSorte: {},
       evaluer: parSubs,
     };
+    // ⚠️ **Sans analyse de pertinence, AUCUNE dominance** — défaut prudent :
+    // comparer sur les seules principales laisserait le premier venu éliminer
+    // un artéfact bien meilleur de même principale.
     egal(
       preFiltrerCandidats(candidatsParSorte(base2, 'element'), 'element').length,
-      3,
-      'deux inertes de MÊME principale n’en laissent qu’un (plus l’autre principale, plus le vide)'
+      4,
+      'sans pertinence fournie, rien n’est élagué : les 3 pièces et le vide restent'
+    );
+    // Avec elle, la dominance fait son travail : le plus fourni des trois les
+    // domine tous (même ligne, valeur supérieure, principale supérieure).
+    egal(
+      preFiltrerCandidats(candidatsParSorte(base2, 'element'), 'element', [], analyserPertinence(base2)).length,
+      2,
+      'avec pertinence, seul le dominant survit (plus l’emplacement vide)'
     );
 
     // ⚠️ Un artéfact qui PÈSE sur les dégâts n'est jamais un doublon, même à
@@ -442,10 +488,13 @@ export default function testArtefactOptim() {
       main: { code: 101, value: 300 },
       subs: [{ code: 219, value: 9 }],
     };
+    // ⚠️ Deux artéfacts qui excellent sur des LIGNES DIFFÉRENTES ne se
+    // dominent pas : aucun n'est ≥ l'autre partout. Les deux survivent.
+    const mixte = { ...base2, inventaire: [inerte(300, 5), utile] };
     egal(
-      preFiltrerCandidats(candidatsParSorte({ ...base2, inventaire: [inerte(300, 5), utile] }, 'element'), 'element').length,
+      preFiltrerCandidats(candidatsParSorte(mixte, 'element'), 'element', [], analyserPertinence(mixte)).length,
       3,
-      'un artéfact utile aux dégâts survit à côté d’un inerte de même principale'
+      'deux artéfacts forts sur des lignes différentes survivent tous les deux'
     );
 
     // ⚠️ Ni un artéfact porteur d'une ligne VERROUILLÉE, même inerte sur les

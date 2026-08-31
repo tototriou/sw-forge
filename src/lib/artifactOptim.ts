@@ -21,8 +21,7 @@ import {
   artifactPairAllowed,
   eligibleArtifacts,
 } from './artifacts';
-import { artifactSubKinds } from './effects';
-import { ARTIFACT_DAMAGE_NEUTRE, artifactDamageProfile } from './damage';
+import { ARTIFACT_SUB, artifactSubKinds } from './effects';
 
 // Ce qu'on impose à la stat principale d'un emplacement.
 //
@@ -218,23 +217,67 @@ function valeurSur(art: ArtifactDetail, code: number): number {
   return total;
 }
 
-// Cet artéfact ne pèse-t-il RIEN sur les dégâts ?
-//
-// ⚠️ Testé par le COMPORTEMENT (`artifactDamageProfile` rend-il le profil
-// neutre ?) plutôt que par une liste de codes recopiée ici. Une liste
-// dériverait au premier code nouvellement pris en charge, et l'écart ne se
-// verrait pas : on écarterait silencieusement des artéfacts devenus utiles.
-function inerteSurLesDegats(art: ArtifactDetail): boolean {
-  const p = artifactDamageProfile([art]);
-  for (const [k, v] of Object.entries(ARTIFACT_DAMAGE_NEUTRE)) {
-    if (typeof v === 'number') {
-      if ((p as unknown as Record<string, number>)[k] !== v) return false;
-    } else if (Object.keys((p as unknown as Record<string, object>)[k]).length > 0) {
-      // `degatsElementPct` / `cdPointsParSlot` : neutres quand ils sont vides.
-      return false;
-    }
+/* --------------------------------------------------------------------------
+ * Pertinence — quelles lignes comptent POUR CE RÉGLAGE
+ * ----------------------------------------------------------------------- */
+
+/**
+ * Les lignes qui font réellement bouger les dégâts, ici et maintenant.
+ *
+ * ⚠️ **La pertinence dépend du RÉGLAGE, pas du code.** Une première version
+ * testait `artifactDamageProfile` hors contexte et se trompait dans les quatre
+ * cas suivants, tous relevés à l'usage :
+ *
+ *  - « Dmg crit Compétence 2 » ne sert à RIEN quand on optimise le S3 ;
+ *  - « Dmg crit cible unique pendant ton tour » ne sert à rien sur une attaque
+ *    de ZONE (le S3 de Lushen) ;
+ *  - les lignes élémentaires ne servent à rien si l'élément visé est ignoré ;
+ *  - en visant le Vent, « dégâts infligés à l'Eau » ne sert toujours à rien.
+ *
+ * ⚠️ **Sondé contre le VRAI calcul**, jamais contre une table de codes. On
+ * évalue un artéfact qui ne porte QUE cette ligne, et on regarde si le score
+ * bouge. Une table recopiée ici dériverait au premier changement du modèle de
+ * dégâts, et l'écart ne se verrait pas : on écarterait silencieusement des
+ * artéfacts devenus utiles. La sonde, elle, suit le modèle par construction.
+ *
+ * Coût : une évaluation par code connu (~57), UNE fois par recherche — contre
+ * des dizaines de milliers de paires. Négligeable.
+ */
+export interface Pertinence {
+  // Codes dont la valeur fait monter les dégâts. Seuls ceux-là servent de
+  // dimension à la dominance.
+  croissants: Set<number>;
+  // ⚠️ Codes qui bougent les dégâts SANS monter (baisse, ou effet non
+  // monotone). Un artéfact qui en porte n'est JAMAIS élagué par dominance :
+  // comparer sur une dimension dont on ignore le sens produirait des
+  // éliminations fausses. Conservateur par choix.
+  ambigus: Set<number>;
+}
+
+const EPSILON_SONDE = 1e-9;
+
+export function analyserPertinence(params: ArtifactSearchParams): Pertinence {
+  const croissants = new Set<number>();
+  const ambigus = new Set<number>();
+  const sonde = (kind: ArtifactKind, subs: { code: number; value: number }[]): ArtifactDetail =>
+    kind === 'element'
+      ? { kind, element: params.porteur.element, level: 15, rarity: 5, main: { code: 101, value: 0 }, subs }
+      : { kind, archetype: params.porteur.archetype ?? undefined, level: 15, rarity: 5, main: { code: 101, value: 0 }, subs };
+
+  for (const brut of Object.keys(ARTIFACT_SUB)) {
+    const code = Number(brut);
+    const plafond = ARTIFACT_SUB_MAX[code];
+    // Une ligne sans fourchette connue (203, 207, 211-213 : inobtenables) n'a
+    // pas de valeur de sonde crédible — laissée hors dominance.
+    if (!plafond) continue;
+    const kind = artifactSubKinds(code)[0]!;
+    // ⚠️ Référence et sonde ne diffèrent QUE par la ligne : même sorte, même
+    // principale à 0. Sans ça, on mesurerait aussi l'effet de la principale.
+    const delta = params.evaluer([sonde(kind, [{ code, value: plafond }])]) - params.evaluer([sonde(kind, [])]);
+    if (delta > EPSILON_SONDE) croissants.add(code);
+    else if (delta < -EPSILON_SONDE) ambigus.add(code);
   }
-  return true;
+  return { croissants, ambigus };
 }
 
 /**
@@ -257,30 +300,98 @@ function inerteSurLesDegats(art: ArtifactDetail): boolean {
 export function preFiltrerCandidats(
   candidats: (ArtifactDetail | null)[],
   kind: ArtifactKind,
-  lignes: LigneVerrouillee[] = []
+  lignes: LigneVerrouillee[] = [],
+  pertinence?: Pertinence
 ): (ArtifactDetail | null)[] {
   const obligatoires = seuilsObligatoires(lignes, kind);
-  const codesVerrouilles = new Set(lignes.filter((l) => l.min > 0).map((l) => l.code));
-  const vus = new Set<string>();
-  const out: (ArtifactDetail | null)[] = [];
+  const verrous = lignes.filter((l) => l.min > 0);
+  const codesVerrouilles = new Set(verrous.map((l) => l.code));
+
+  // ── 1. Obligation : ce qui ne peut plus former de paire faisable.
+  const survivants: ArtifactDetail[] = [];
+  let videPossible = obligatoires.length === 0;
   for (const art of candidats) {
-    if (!art) {
-      // L'emplacement vide ne survit que si rien n'est obligatoire ici.
-      if (obligatoires.length === 0) out.push(null);
+    if (!art) continue;
+    if (obligatoires.some((o) => valeurSur(art, o.code) < o.seuil)) continue;
+    survivants.push(art);
+  }
+
+  // ── 2. Dominance sur les seules dimensions qui comptent.
+  //
+  // ⚠️ Les DIMENSIONS sont le cœur de l'exactitude : les lignes qui font
+  // monter les dégâts POUR CE RÉGLAGE (`pertinence.croissants` — donc pas
+  // « Dmg crit Compétence 2 » quand on optimise le S3, pas les lignes
+  // élémentaires quand l'élément est ignoré), les lignes VERROUILLÉES par
+  // l'utilisateur, et les TROIS stats principales.
+  //
+  // ⚠️ **Les trois principales sont retenues inconditionnellement**, même
+  // celles qui ne pèsent pas sur les dégâts. Un artéfact peut n'être là que
+  // pour satisfaire un minimum de stat demandé à la recherche de runes
+  // (`respecteMinimums`), que ce module ne connaît pas. Les élaguer sur les
+  // seuls dégâts perdrait ces pièces-là sans que rien ne le signale.
+  // ⚠️ **Sans analyse de pertinence, AUCUNE dominance.** Se rabattre sur les
+  // seules principales comparerait deux artéfacts en ignorant toutes leurs
+  // sous-propriétés : le premier venu éliminerait un artéfact bien meilleur de
+  // même principale. Un défaut prudent, pas un défaut « partiel ».
+  const dims = pertinence ? [...new Set([...pertinence.croissants, ...codesVerrouilles])] : null;
+  const MAINS = [100, 101, 102];
+  const vecteur = (a: ArtifactDetail): number[] => [
+    ...(dims ?? []).map((c) => valeurSur(a, c)),
+    ...MAINS.map((m) => (a.main.code === m ? a.main.value : 0)),
+  ];
+  const vecteurs = survivants.map(vecteur);
+  // ⚠️ Un artéfact portant une ligne AMBIGUË (qui bouge les dégâts sans
+  // monter) échappe à la dominance : on ignorerait une dimension dont on ne
+  // connaît pas le sens, et l'élimination serait fausse.
+  const comparable = survivants.map(
+    (a) => pertinence == null || !a.subs.some((s) => pertinence.ambigus.has(s.code))
+  );
+
+  const garde: ArtifactDetail[] = [];
+  for (let i = 0; i < survivants.length; i++) {
+    if (dims == null || !comparable[i]) {
+      garde.push(survivants[i]!);
       continue;
     }
-    if (obligatoires.some((o) => valeurSur(art, o.code) < o.seuil)) continue;
-    // ⚠️ Un artéfact porteur d'une ligne verrouillée n'est JAMAIS un doublon,
-    // même sans effet sur les dégâts : c'est lui qui rend la paire faisable.
-    const porteUnVerrou = art.subs.some((s) => codesVerrouilles.has(s.code));
-    if (!porteUnVerrou && inerteSurLesDegats(art)) {
-      const cle = `${art.main.code}:${art.main.value}`;
-      if (vus.has(cle)) continue;
-      vus.add(cle);
+    let domine = false;
+    for (let j = 0; j < survivants.length && !domine; j++) {
+      if (i === j || !comparable[j]) continue;
+      // ⚠️ **Un INTANGIBLE n'élimine jamais un artéfact ordinaire.** Il est
+      // peut-être meilleur sur toutes les dimensions, mais il traîne une
+      // contrainte de PAIRE qu'aucune d'elles ne porte : on ne peut pas en
+      // équiper deux. Remplacer l'ordinaire par lui rendrait infaisable toute
+      // paire où l'autre emplacement est déjà intangible — un candidat légal
+      // perdu, sans que rien ne le signale.
+      //
+      // ⚠️ L'inverse est SÛR : un intangible dominé par un ordinaire peut
+      // disparaître, puisque substituer un ordinaire ne restreint jamais rien.
+      if (survivants[j]!.intangible && !survivants[i]!.intangible) continue;
+      const vi = vecteurs[i]!;
+      const vj = vecteurs[j]!;
+      let auMoinsEgal = true;
+      let strictementMieux = false;
+      for (let d = 0; d < vi.length; d++) {
+        if (vj[d]! < vi[d]!) {
+          auMoinsEgal = false;
+          break;
+        }
+        if (vj[d]! > vi[d]!) strictementMieux = true;
+      }
+      // ⚠️ **Le piège des ex æquo.** Deux artéfacts au vecteur IDENTIQUE se
+      // dominent l'un l'autre : sans départage, les deux disparaîtraient et
+      // l'emplacement se viderait. À égalité parfaite, seul le plus petit
+      // indice survit — un ordre total, donc jamais deux éliminations
+      // croisées.
+      if (auMoinsEgal && (strictementMieux || j < i)) domine = true;
     }
-    out.push(art);
+    if (!domine) garde.push(survivants[i]!);
   }
-  return out;
+
+  // ⚠️ `null` reste une option tant qu'aucune ligne n'est obligatoire ici — et
+  // il n'est JAMAIS soumis à la dominance : « pas d'artéfact » n'est pas
+  // comparable à « un artéfact », c'est un choix que l'utilisateur peut vouloir
+  // pour des raisons hors de ce module.
+  return videPossible ? [null, ...garde] : garde;
 }
 
 // Candidats d'un emplacement, une fois l'éligibilité ET le filtre de
@@ -321,11 +432,12 @@ export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKi
 // donc l'élagage complet et restent rapides.
 function candidatsPourRecherche(
   params: ArtifactSearchParams,
-  kind: ArtifactKind
+  kind: ArtifactKind,
+  pertinence: Pertinence
 ): (ArtifactDetail | null)[] {
   const complets = candidatsParSorte(params, kind);
   const lignes = params.avecCoutDesVerrous ? [] : (params.lignesVerrouillees ?? []);
-  return preFiltrerCandidats(complets, kind, lignes);
+  return preFiltrerCandidats(complets, kind, lignes, pertinence);
 }
 
 // La meilleure paire, ou les `combien` meilleures.
@@ -362,7 +474,8 @@ export interface ResultatPaires {
 }
 
 export function chercherPaires(params: ArtifactSearchParams, combien = 1): ResultatPaires {
-  const parSorte = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key));
+  const pertinence = analyserPertinence(params);
+  const parSorte = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key, pertinence));
   const [candidatsElement, candidatsArchetype] = parSorte;
   const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   const trouvees: PaireArtefacts[] = [];
@@ -498,7 +611,8 @@ export function respecteMinimums(stats: { key: string; total: number }[], minSta
 // annoncer l'ampleur AVANT de lancer, et pour vérifier que l'éligibilité fait
 // bien son travail d'élagage.
 export function nombreDePaires(params: ArtifactSearchParams): number {
-  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key));
+  const pert = analyserPertinence(params);
+  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key, pert));
   let n = 0;
   for (const x of e) for (const y of a) if (artifactPairAllowed(x, y)) n++;
   return n;
@@ -515,7 +629,8 @@ export function nombreDePaires(params: ArtifactSearchParams): number {
 export function nombreDePairesRetenues(params: ArtifactSearchParams): number {
   const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   if (!verrous.length) return nombreDePaires(params);
-  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key));
+  const pert = analyserPertinence(params);
+  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key, pert));
   const paire: ArtifactDetail[] = [];
   let n = 0;
   for (const x of e) {

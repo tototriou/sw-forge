@@ -86,7 +86,7 @@ npm run build                     # Tailwind n'émet que ce qu'il trouve dans le
 ⚠️ **La suite complète ne se lance qu'avant une fusion sur `main`** :
 
 ```
-npm test                          # les 38 vérifications, rien de moins
+npm test                          # les 45 vérifications, rien de moins
 ```
 
 Le filtre se compare au nom de la vérification, mis à plat (`speed-tune`,

@@ -526,14 +526,47 @@ retour.
    artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
    comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :
    **« Comme équipé »** (défaut, reprend l'artéfact du build de BASE),
-   **ATQ +100**, **DEF +100**, **PV +1500** (les trois valeurs de
-   statistique principale d'artéfact possibles en jeu), ou **« Aucun »**.
-   ⚠️ Un même monstre peut porter des artéfacts DIFFÉRENTS selon le contexte
-   (build de base, RTA, un deck de siège) — le sélecteur de monstre de
-   l'Optimizer n'expose que le build de base ; choisir une statistique
-   explicite permet d'hypothéquer l'artéfact d'un autre contexte sans changer
-   de monstre affiché. Ces stats deviennent le PLANCHER des conditions
-   ci-dessous. **Colonne DROITE** de la carte, avec le point suivant.
+   **« Libre »** (cherche la meilleure pièce parmi TOUS les artéfacts
+   équipables), **ATQ +100**, **DEF +100**, **PV +1500** (les trois
+   statistiques principales d'artéfact du jeu), ou **« Aucun »**.
+   **Colonne DROITE** de la carte, avec le point suivant.
+
+   ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
+   « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant
+   cette principale, avec leurs sous-propriétés. Sans aucun, l'emplacement
+   reste vide — on ne peut pas équiper ce qu'on n'a pas.
+
+   Ce réglage servait à l'origine de « et si j'avais un artéfact PV+1500 ? »
+   et fabriquait pour cela une pièce sans aucune sous-propriété. En
+   « Dégâts réels », cette pièce faisait calculer les dégâts SANS aucune ligne
+   d'effet — ni renforcement d'ATQ, ni dégâts additionnels, ni points de
+   Dgts Crit conditionnels — quand « Comme équipé » les comptait : deux
+   réglages voisins, deux modèles de dégâts, sans que rien ne le signale. Le
+   « et si… » est donc perdu, en connaissance de cause.
+
+   **Lignes verrouillées** — sous les deux listes, jusqu'à **8**
+   sous-propriétés exigées avec un minimum chacune (« Précision Compétence 3
+   ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*
+   garantissant une propriété qui n'y contribue pas.
+
+   - ⚠️ **Le minimum porte sur la PAIRE, pas sur une pièce** : une même ligne
+     peut tomber sur les deux artéfacts et ses valeurs s'additionnent. Le
+     plafond affiché double donc pour une ligne que les deux sortes peuvent
+     porter (200-299), et reste simple pour une ligne réservée à l'attribut
+     (300-309) ou au type (400-411). Le champ est **borné** à ce plafond :
+     au-delà, aucun inventaire ne pourrait satisfaire l'exigence.
+   - ⚠️ **8 = 4 + 4, en deux moitiés qui ne se prêtent rien.** Un artéfact
+     porte 4 sous-propriétés. Verrouiller 5 lignes réservées au type est donc
+     impossible d'avance : un compteur `attribut x/4 · type x/4` le montre
+     pendant la saisie. Et au-delà du plafond d'UNE pièce, une ligne
+     cumulable exige les DEUX, donc un emplacement de chaque côté.
+   - Quand aucune paire ne satisfait les verrous, l'écran rapporte le
+     **meilleur cumul réellement atteignable** ligne par ligne (« 35 % exigé ·
+     28 % au mieux »). ⚠️ **Observé, jamais déduit** : un pré-contrôle
+     théorique pourrait annoncer « impossible » sur une combinaison en fait
+     réalisable, ce qui serait pire que de se taire. Chaque maximum étant pris
+     ligne par ligne, deux lignes atteignables séparément peuvent ne l'être
+     par aucune paire à la fois — l'écran le dit.
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE**,
@@ -704,6 +737,19 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   libérer un build déjà validé demande toujours confirmation (« Ces 6 runes
   redeviendront disponibles pour les recherches des autres monstres de
   cette liste »).
+
+  ⚠️ **Les ARTÉFACTS du build sont réservés eux aussi**, et mémorisés avec
+  lui. Un artéfact physique ne se porte que sur UN monstre à la fois,
+  exactement comme une rune : la paire retenue disparaît donc de l'inventaire
+  proposé aux autres monstres de la MÊME liste, avec la même auto-exemption
+  (relancer une recherche sur un monstre déjà validé ne le prive pas de ses
+  propres pièces) et la même indépendance entre listes.
+
+  Sans cette mémorisation, la fiche d'un build validé rejouait la paire portée
+  AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Les builds validés
+  avant que les artéfacts aient un identifiant n'en portent pas : ils retombent
+  sur les artéfacts réels, et il faut les revalider. Les jeter aurait été une
+  perte de données pour un simple affichage.
 
   ⚠️⚠️ **LA GARDE ANTI-DOUBLE-RÉSERVATION EST SUR LES DEUX CHEMINS.** Elle
   n'existait que sous la **fiche** (`displayedRuneConflicts`) ; la carte de
@@ -1056,6 +1102,62 @@ différent, coopératif (voir « Interruption »).
   complet ». Invisible à l'écran : mêmes garanties (aucun résultat valide
   perdu, vérifié par différentiel), potentiellement plus rapide sur une
   grosse recherche.
+
+### Le choix des artéfacts — un second problème, séparé
+
+⚠️ **Rien à voir avec la recherche de runes, et c'est voulu.** Toute la
+machinerie ci-dessus existe parce que les runes forment un espace de 6
+emplacements sous contraintes de sets. Les artéfacts, eux, sont **deux**
+emplacements, et la règle d'éligibilité (l'attribut suit l'élément du monstre,
+le type suit son archétype) ramène chacun à ~200 candidats sur un inventaire
+réel : une **double boucle exhaustive** suffit, elle est exacte, et il n'y a
+donc aucune heuristique à valider — voir
+[artifactOptim.ts](src/lib/artifactOptim.ts).
+
+- **Le build de runes est FIXE** pendant ce choix. Un artéfact amplifie un
+  build, il n'en déplace pas la cible : chercher les deux ensemble multiplierait
+  l'espace pour un gain que la mesure ne montre pas.
+- ⚠️ **La contrainte de PAIRE n'est pas un détail** : on ne peut pas porter
+  deux artéfacts **intangibles** à la fois, alors que chacun est éligible seul.
+  Choisir le meilleur de chaque côté indépendamment produirait une paire
+  inéquipable.
+- **Élagage exact, jamais heuristique** — vérifié par différentiel contre le
+  balayage complet, optimum identique :
+  - **Pertinence** : une ligne qui ne fait pas bouger les dégâts POUR CE
+    RÉGLAGE n'entre pas en compte. ⚠️ Elle est **sondée contre le vrai calcul**,
+    jamais lue dans une table de codes : « Dgts CRIT Compétence 2 » ne sert à
+    rien quand on optimise le S3, « D.CRIT+ cible unique » ne sert à rien sur
+    une attaque de zone, et les lignes élémentaires ne servent à rien quand
+    l'élément visé est ignoré — ou quand il ne correspond pas.
+  - **Dominance** : un artéfact au moins aussi bon qu'un autre sur toutes les
+    dimensions qui comptent est le seul retenu. ⚠️ Un **intangible** ne peut
+    jamais en éliminer un ordinaire : il traîne la contrainte de paire, et le
+    substituer rendrait infaisable toute paire dont l'autre emplacement est
+    déjà intangible.
+  - **Obligation** : quand une ligne verrouillée ne peut être servie que par
+    une sorte, tout candidat sous son seuil est écarté. ⚠️ Le seuil n'est pas
+    le minimum demandé : il en retranche ce que l'AUTRE pièce peut apporter.
+
+**Quand ce choix a lieu.** La recherche de runes a besoin d'une paire pour
+noter les candidats, avant qu'aucun build n'existe : elle en **suppose** une
+(la meilleure pour l'équipement affiché, sous les mêmes contraintes). Puis,
+**pendant que la recherche tourne**, les meilleurs builds reçoivent chacun
+leur vraie paire, sur le temps d'inactivité — l'ordre d'appariement étant
+piloté par l'objectif, les bons builds sortent en quelques secondes là où la
+recherche s'écoule sur plusieurs minutes.
+
+⚠️ **Un build optimisé peut alors passer devant dans le classement**, et la
+boucle « trier → optimiser → retrier » ne s'emballe pas : optimiser un build ne
+peut que faire MONTER son score (la paire supposée fait partie des paires
+candidates, le maximum lui est toujours ≥). Un build non optimisé ne peut donc
+qu'être repoussé vers le bas, jamais entrer dans les premiers de ce fait —
+l'ensemble à traiter rétrécit.
+
+⚠️ **Les stats de la carte sont recalculées avec sa vraie paire**, pas seulement
+son total : la stat principale d'un artéfact entre dans les stats du monstre.
+Sans ce recalcul, la carte afficherait des stats qui ne correspondent pas aux
+artéfacts montrés juste à côté, et un tri par ATQ porterait sur une valeur
+périmée.
 
 ### Vérification
 

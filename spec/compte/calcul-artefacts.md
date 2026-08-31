@@ -39,6 +39,31 @@ Un artéfact **au +15** a donc épuisé toute sa marge : ce qu'il vaut est
 définitif. Le « potentiel » se limite aux artéfacts **pas encore montés** — et
 c'est une borne haute théorique (le meilleur roll possible), pas une prévision.
 
+## ⚠️ Identité d'un artéfact — le `rid`, longtemps jeté
+
+`ArtifactDetail.id` porte le **`rid`** com2us, exactement comme
+`RuneDetail.id` porte le `rune_id`. Il existait dans l'export et l'import
+s'en servait déjà pour indexer les pièces — mais `artifactToDetail` ne le
+**conservait pas** sur le détail produit.
+
+Sans identité stable, un artéfact n'est pas **référençable** : impossible de
+le mémoriser dans un build validé, impossible de le réserver pour une liste.
+C'est ce qui manquait aux deux fonctionnalités correspondantes de l'Optimizer
+(voir [spec/outils/optimizer.md](../outils/optimizer.md)).
+
+⚠️ **`id: 0` désigne une pièce SYNTHÉTIQUE** — l'artéfact hypothéqué d'un
+repli, la sonde qui mesure si une ligne compte pour un réglage donné. Ces
+pièces n'existent pas dans le compte : toute logique de réservation doit
+ignorer un id non strictement positif, sous peine de bloquer un emplacement
+au nom d'un artéfact que le joueur ne possède pas.
+
+⚠️ **Le compte est stocké DÉJÀ PARSÉ** et l'export brut n'est jamais conservé
+(5 à 8 Mo) : ajouter ce champ a donc exigé d'incrémenter `ACCOUNT_SCHEMA`
+(5 → 6). Sans cette incrémentation, un compte enregistré gardait des artéfacts
+sans identifiant — et la fonctionnalité ne faisait simplement **rien**, sans
+erreur ni signal. C'est exactement le mode de défaillance que le commentaire
+d'`ACCOUNT_SCHEMA` annonce.
+
 ## 1. Rolls — la vraie mesure de qualité
 
 `sec_effects[i] = [code, valeur, rolls, _, enchant]`

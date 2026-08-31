@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
@@ -30,12 +29,15 @@ interface Props {
   // paire supposée, commune. Dit explicitement plutôt que laissé croire.
   paireProvisoire?: boolean;
   metric: RuneMetric;
-  // Identité de la rune actuellement ouverte, PARTAGÉE entre tous les
-  // résultats affichés (pas locale à cette carte) — voir
-  // OptimizerSection.tsx / useOptimizerState.ts. Permet qu'un clic sur une
-  // autre rune, même dans une autre carte, ferme le popover déjà ouvert.
-  openRuneKey: string | null;
-  onToggleRune: (key: string) => void;
+  // Identité de la pièce actuellement ouverte, PARTAGÉE entre tous les
+  // résultats affichés — voir OptimizerSection.tsx / useOptimizerState.ts.
+  // ⚠️ **UNE seule clé pour les runes ET les artéfacts**, partagée entre
+  // TOUTES les cartes : c’est la seule forme qui garantit qu’un seul détail
+  // reste ouvert. Deux états, même bien synchronisés, se désynchronisent au
+  // premier chemin oublié — c’est précisément ce qui laissait un artéfact
+  // ouvert quand on cliquait une rune.
+  openDetailKey: string | null;
+  onToggleDetail: (key: string) => void;
   // Dégâts du sort visé pour CE candidat, quand l'objectif « Dégâts réels »
   // est actif — `undefined` sinon. ⚠️ Calculé par le PARENT (qui détient le
   // sort résolu et l'adversaire) plutôt que reconstruit ici : cette carte
@@ -79,8 +81,8 @@ export default function BuildCandidateCard({
   runeById,
   artifacts,
   metric,
-  openRuneKey,
-  onToggleRune,
+  openDetailKey,
+  onToggleDetail,
   degatsReels,
   gainArtefactsPct,
   paireProvisoire,
@@ -101,18 +103,26 @@ export default function BuildCandidateCard({
   // coup sans relancer — voir runeBuildOptim.ts.
   const liveTotal = candidateMetricTotal(candidate, runeById, metric);
 
-  // Les artéfacts sont IDENTIQUES d'une carte à l'autre (fixes) : contrairement
-  // aux runes, pas besoin d'un état PARTAGÉ entre cartes pour éviter un doublon
-  // de popover — un état local par carte suffit.
-  const [openArtifactKind, setOpenArtifactKind] = useState<string | null>(null);
-  const runeOpenHere = openRuneKey?.startsWith(`${candidateKey}-`) ?? false;
+  // ⚠️ Les artéfacts avaient ici un état LOCAL, au motif qu'ils étaient
+  // « identiques d'une carte à l'autre, donc pas besoin d'un état partagé ».
+  // La prémisse a cessé d'être vraie (chaque build porte SA paire), et elle ne
+  // couvrait de toute façon pas le cas rune↔artéfact, ouvert dès l'origine :
+  // deux états distincts laissaient les DEUX popovers affichés.
+  //
+  // ⚠️ Les deux sortes partagent donc une clé, préfixée pour rester
+  // distinguables : `a<kind>` pour un artéfact, `r<slot>` pour une rune. Sans
+  // préfixe, l'ancien format `<candidateKey>-<slot>` ne se relisait pas.
+  const cleArtefact = (kind: string) => `${candidateKey}-a${kind}`;
+  const cleRune = (slot: number) => `${candidateKey}-r${slot}`;
+  const detailOuvertIci = openDetailKey?.startsWith(`${candidateKey}-`) ?? false;
 
   // ⚠️ Même bascule flottant (souris) / en ligne (doigt) que MonsterGear.tsx —
   // voir sa justification. Le flottant, à taille fixe (260×320), débordait de
   // l'écran sur une carte de résultat déjà compacte en mobile.
   const auDoigt = useMediaQuery(COMPACT);
-  const openArtifact = openArtifactKind ? artifacts.find((a) => a.kind === openArtifactKind) : undefined;
-  const openRuneSlot = runeOpenHere ? Number(openRuneKey!.slice(candidateKey.length + 1)) : null;
+  const suffixe = detailOuvertIci ? openDetailKey!.slice(candidateKey.length + 1) : null;
+  const openArtifact = suffixe?.startsWith('a') ? artifacts.find((a) => a.kind === suffixe.slice(1)) : undefined;
+  const openRuneSlot = suffixe?.startsWith('r') ? Number(suffixe.slice(1)) : null;
   const openRune = openRuneSlot !== null ? runes.find((r) => r.slot === openRuneSlot) : undefined;
 
   return (
@@ -124,7 +134,7 @@ export default function BuildCandidateCard({
       // apparent, l'empilement par défaut suit l'ordre du DOM, pas la
       // position à l'écran.
       className={`rounded-xl border border-border bg-panel p-2.5 ${
-        runeOpenHere || openArtifactKind ? 'relative z-10' : ''
+        detailOuvertIci ? 'relative z-10' : ''
       }`}
     >
       <div className="flex items-center justify-between mb-2">
@@ -189,8 +199,8 @@ export default function BuildCandidateCard({
           <ArtifactSlots
             artifacts={artifacts}
             scale={ARTIFACT_SCALE}
-            isSelected={(a) => openArtifactKind === a.kind}
-            onSelectArtifact={(a) => setOpenArtifactKind((cur) => (cur === a.kind ? null : a.kind))}
+            isSelected={(a) => openDetailKey === cleArtefact(a.kind)}
+            onSelectArtifact={(a) => onToggleDetail(cleArtefact(a.kind))}
             // Mêmes dimensions que pour une rune : les deux cartes partagent la
             // même coquille (voir PieceDetail.tsx), donc le même encombrement.
             // ⚠️ `rembourrage="md"` + `encadre={false}` : le flottant pose déjà
@@ -201,7 +211,7 @@ export default function BuildCandidateCard({
                 ? undefined
                 : (a, _i, anchorRef) => (
                     <FlottantAuto
-                      ouvert={openArtifactKind === a.kind}
+                      ouvert={openDetailKey === cleArtefact(a.kind)}
                       ancre={anchorRef}
                       largeur={260}
                       hauteur={320}
@@ -215,14 +225,14 @@ export default function BuildCandidateCard({
           <RuneWheel
             runes={runes}
             scale={WHEEL_SCALE}
-            isSelected={(r) => openRuneKey === `${candidateKey}-${r.slot}`}
-            onSelectRune={(r) => onToggleRune(`${candidateKey}-${r.slot}`)}
+            isSelected={(r) => openDetailKey === cleRune(r.slot)}
+            onSelectRune={(r) => onToggleDetail(cleRune(r.slot))}
             renderOverlay={
               auDoigt
                 ? undefined
                 : (r, _i, anchorRef) => (
                     <FlottantAuto
-                      ouvert={openRuneKey === `${candidateKey}-${r.slot}`}
+                      ouvert={openDetailKey === cleRune(r.slot)}
                       ancre={anchorRef}
                       largeur={260}
                       hauteur={320}

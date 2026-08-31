@@ -105,7 +105,7 @@ import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
-import MonsterGear from '../MonsterGear';
+import MonsterGear, { type Selected as SelectionGear } from '../MonsterGear';
 import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
 import HelpPopover from '../HelpPopover';
@@ -335,8 +335,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setDiagnoseBlockingEnabled,
     stoppedManually,
     setStoppedManually,
-    openRuneKey,
-    setOpenRuneKey,
+    openDetailKey,
+    setOpenDetailKey,
     search,
     resetSearch,
   } = optimizer;
@@ -548,6 +548,35 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // Jumeau de `runeById` : sert à rejouer la paire d'un build validé, qui n'en
   // mémorise que les identifiants.
   const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
+
+  /**
+   * La sélection de « Équipement actuel », dérivée de la MÊME clé que les
+   * cartes de résultat.
+   *
+   * ⚠️ **Un seul état pour tout l'écran.** La fiche gérait sa propre sélection :
+   * son détail restait donc ouvert en même temps que celui d'une carte. Plutôt
+   * qu'un second état à synchroniser — qui se désynchronise au premier chemin
+   * oublié —, elle est CONTRÔLÉE depuis `openDetailKey`, avec son propre
+   * préfixe `fiche-`.
+   *
+   * ⚠️ Les deux `<MonsterGear>` de cet écran (bureau et téléphone) sont deux
+   * rendus du MÊME contenu : les brancher sur la même clé est ce qui leur évite
+   * de diverger.
+   */
+  const selectionFiche = useMemo((): SelectionGear => {
+    if (!openDetailKey?.startsWith('fiche-')) return null;
+    const reste = openDetailKey.slice('fiche-'.length);
+    if (reste === 'relic') return { kind: 'relic' };
+    if (reste.startsWith('r')) return { kind: 'rune', i: Number(reste.slice(1)) };
+    if (reste.startsWith('a')) return { kind: 'artifact', i: Number(reste.slice(1)) };
+    return null;
+  }, [openDetailKey]);
+
+  const setSelectionFiche = (s: SelectionGear) => {
+    if (!s) return setOpenDetailKey(null);
+    if (s.kind === 'relic') return setOpenDetailKey('fiche-relic');
+    setOpenDetailKey(`fiche-${s.kind === 'rune' ? 'r' : 'a'}${s.i}`);
+  };
 
   // Sert à ramener l'écran sur « Set de runes recherché » quand une
   // recherche est tentée sans set choisi (voir `handleSearch`) — sans ça, le
@@ -2028,7 +2057,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             </div>
             <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
               {validatedBadge}
-              <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+              <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
               {validateBuildButton}
             </div>
           </div>
@@ -2094,7 +2123,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               plus haut (`validatedBadge`/`validateBuildButton`). */}
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
             {validatedBadge}
-            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
             {validateBuildButton}
           </div>
         </div>
@@ -3222,8 +3251,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   !fileArtefacts.parBuild.has(cleBuild(c))
                 }
                 metric={metric}
-                openRuneKey={openRuneKey}
-                onToggleRune={(key) => setOpenRuneKey((cur) => (cur === key ? null : key))}
+                openDetailKey={openDetailKey}
+                onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
                 // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
                 // critère de classement courant (objectif OU tri) — pas
                 // seulement quand `objective` vaut « Dégâts réels » : on peut

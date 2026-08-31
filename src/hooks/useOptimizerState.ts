@@ -159,12 +159,24 @@ export interface OptimizerState {
   setDiagnoseBlockingEnabled: Dispatch<SetStateAction<boolean>>;
   stoppedManually: boolean;
   setStoppedManually: Dispatch<SetStateAction<boolean>>;
-  // Rune actuellement ouverte dans un popover de détail, parmi TOUS les
-  // résultats affichés — voir BuildCandidateCard.tsx. Une seule à la fois,
-  // comme Mon compte → Runes → Optimisation : cliquer une autre rune ferme
-  // celle déjà ouverte plutôt que d'empiler les popovers.
-  openRuneKey: string | null;
-  setOpenRuneKey: Dispatch<SetStateAction<string | null>>;
+  /**
+   * La SEULE pièce d'équipement dont le détail est ouvert, parmi tous les
+   * résultats affichés — rune OU artéfact, voir BuildCandidateCard.tsx.
+   *
+   * ⚠️ **Une seule clé pour les deux**, et c'est le fond du sujet. Les
+   * artéfacts avaient leur propre état, LOCAL à chaque carte, au motif qu'ils
+   * étaient « identiques d'une carte à l'autre, donc pas besoin d'un état
+   * partagé ». Deux conséquences, la première dès l'origine : ouvrir un
+   * artéfact puis une rune laissait les DEUX popovers ouverts, les états étant
+   * distincts. Et depuis que chaque build porte SA paire, deux cartes
+   * différentes pouvaient en ouvrir chacune un — la prémisse « identiques »
+   * ayant cessé d'être vraie.
+   *
+   * Un seul état est la seule forme qui garantit l'exclusivité : deux états,
+   * même bien synchronisés, se désynchronisent au premier chemin oublié.
+   */
+  openDetailKey: string | null;
+  setOpenDetailKey: Dispatch<SetStateAction<string | null>>;
   search: ReturnType<typeof useBuildOptimSearch>;
   // Remet à zéro « Critères de recherche » (set, statistique principale
   // imposée, objectif, artéfacts, conditions min/max) ET « Combinaisons
@@ -207,7 +219,7 @@ export function useOptimizerState(): OptimizerState {
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
-  const [openRuneKey, setOpenRuneKey] = useState<string | null>(null);
+  const [openDetailKey, setOpenDetailKey] = useState<string | null>(null);
   const search = useBuildOptimSearch();
 
   function resetSearch() {
@@ -237,7 +249,7 @@ export function useOptimizerState(): OptimizerState {
     setSortBy('efficience');
     setResultsPage(1);
     setStoppedManually(false);
-    setOpenRuneKey(null);
+    setOpenDetailKey(null);
     search.reset();
   }
 
@@ -290,8 +302,8 @@ export function useOptimizerState(): OptimizerState {
     setDiagnoseBlockingEnabled,
     stoppedManually,
     setStoppedManually,
-    openRuneKey,
-    setOpenRuneKey,
+    openDetailKey,
+    setOpenDetailKey,
     search,
     resetSearch,
   };

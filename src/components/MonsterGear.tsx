@@ -10,7 +10,7 @@ import StatPanel from './StatPanel';
 import { ArtifactDetailBox, RuneDetailBox } from './PieceDetail';
 import { FlottantAuto, ZoneCliquable } from '../ui';
 
-type Selected =
+export type Selected =
   | { kind: 'rune'; i: number }
   | { kind: 'artifact'; i: number }
   | { kind: 'relic' }
@@ -59,11 +59,36 @@ interface Props {
   // (comportement historique inchangé pour RTA/Siège, seuls appelants avant
   // l'Optimizer).
   scale?: number;
+  /**
+   * Pièce ouverte, CONTRÔLÉE par le parent.
+   *
+   * ⚠️ **Sert à n'avoir qu'UN détail ouvert sur tout un écran.** Cette fiche a
+   * son exclusivité interne (runes, artéfacts et relique partagent `sel`), mais
+   * elle ne sait rien de ce qui l'entoure : dans l'Optimiseur, son popover
+   * pouvait rester ouvert en même temps que celui d'une carte de résultat.
+   *
+   * ⚠️ Fournir les DEUX props pour passer en contrôlé. Sans elles, l'état reste
+   * interne — c'est le comportement des quatre autres écrans qui affichent
+   * cette fiche (RTA, siège, speed tuning, sélecteur d'exclusion), et il n'y a
+   * aucune raison de le leur imposer.
+   */
+  selection?: Selected;
+  onSelectionChange?: (s: Selected) => void;
 }
 
-export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
+export default function MonsterGear({ gear, spdCible = null, scale, selection, onSelectionChange }: Props) {
   const stats = computeStats(gear);
-  const [sel, setSel] = useState<Selected>(null);
+  const [selInterne, setSelInterne] = useState<Selected>(null);
+  // ⚠️ `selection !== undefined` distingue « contrôlé » de « non contrôlé »,
+  // JAMAIS une vérité de valeur : `null` est une sélection contrôlée valide
+  // (« rien d'ouvert »), et la confondre avec « pas de prop » rendrait la
+  // fiche non contrôlable dès qu'on ferme son détail.
+  const controle = selection !== undefined;
+  const sel = controle ? selection : selInterne;
+  const setSel = (suivant: Selected) => {
+    if (controle) onSelectionChange?.(suivant);
+    else setSelInterne(suivant);
+  };
   const auDoigt = useMediaQuery(COMPACT);
   // Ancre du détail de la relique. Les runes et les artéfacts fournissent la
   // leur (`renderOverlay`) ; la relique est dessinée ici, elle porte donc sa
@@ -75,7 +100,9 @@ export default function MonsterGear({ gear, spdCible = null, scale }: Props) {
     !!s &&
     sel.kind === s.kind &&
     (sel.kind === 'relic' || (s as { i: number }).i === (sel as { i: number }).i);
-  const toggle = (s: Exclude<Selected, null>) => setSel((cur) => (isSel(s) ? null : s));
+  // ⚠️ Plus de forme « updater » : `setSel` est désormais un simple appel (il
+  // peut router vers le parent), et `isSel` lit déjà la valeur courante.
+  const toggle = (s: Exclude<Selected, null>) => setSel(isSel(s) ? null : s);
 
   // ── Mise à l'échelle du groupe artéfacts + roue + relique ─────────────
   // ⚠️ **Sur la largeur RÉELLEMENT reçue, pas sur le type de pointeur.**

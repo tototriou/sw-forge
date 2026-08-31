@@ -1,0 +1,190 @@
+// Saisie des LIGNES VERROUILLÉES d'artéfact — « je veux au moins X % de cette
+// sous-propriété », quel que soit ce que ça coûte en dégâts.
+//
+// ⚠️ **Une seule liste, pas une par sorte** — contrairement à l'éditeur de
+// propriétés des Recommandations (RecoCard.tsx). Une ligne 200-299 n'appartient
+// à AUCUNE des deux sortes d'avance : c'est l'optimiseur qui décide sur quelle
+// pièce la placer. Demander à l'utilisateur de trancher lui ferait prendre une
+// décision qui n'est pas la sienne, et lui ferait rater des paires.
+//
+// ⚠️ La sorte reste VISIBLE (pastille) parce qu'elle change le plafond : une
+// ligne portable par les deux pièces se cumule jusqu'au double, une ligne
+// exclusive plafonne au simple. Sans ça, saisir 60 % sur une ligne exclusive
+// produirait une exigence que rien ne peut jamais satisfaire.
+
+import { X } from 'lucide-react';
+import { BoutonIcone, NumberField, Selecteur } from '../../ui';
+import { ARTIFACT_KINDS, ArtifactKind, MAX_ARTIFACT_SUBS } from '../../types';
+import { artifactSubName, artifactSubsFor } from '../../lib/effects';
+import { LigneVerrouillee, budgetEmplacements, plafondLigne } from '../../lib/artifactOptim';
+import { ARTIFACT_SUB_MAX } from '../../lib/artifacts';
+
+// Un artéfact porte 4 sous-propriétés, la paire 8.
+const MAX_LIGNES = MAX_ARTIFACT_SUBS * 2;
+
+// Toutes les sous-propriétés proposables, dans l'ordre du JEU (celui de la
+// « Recherche détaillée » en jeu, voir `artifactSubOrder`), sans doublon entre
+// les deux sortes.
+function toutesLesLignes(): { code: number; nom: string; sortes: ArtifactKind[] }[] {
+  const vues = new Map<number, ArtifactKind[]>();
+  for (const { key } of ARTIFACT_KINDS) {
+    for (const o of artifactSubsFor(key)) {
+      const deja = vues.get(o.code);
+      if (deja) deja.push(key);
+      else vues.set(o.code, [key]);
+    }
+  }
+  return [...vues.entries()]
+    // ⚠️ Une ligne sans plafond connu (203, 207, 211-213 : d'anciennes lignes
+    // devenues inobtenables) n'est PAS proposable — on ne saurait pas borner sa
+    // saisie, et exiger une valeur qu'aucun artéfact ne peut porter ne rendrait
+    // que « 0 build » sans explication.
+    .filter(([code]) => plafondLigne(code) > 0)
+    .map(([code, sortes]) => ({ code, nom: artifactSubName(code), sortes }));
+}
+
+function Pastille({ sortes }: { sortes: ArtifactKind[] }) {
+  const deux = sortes.length === 2;
+  const attribut = sortes[0] === 'element';
+  const libelle = deux ? 'les deux' : attribut ? 'attribut' : 'type';
+  const teinte = deux
+    ? 'bg-panel text-ink-dim border-border'
+    : attribut
+      ? 'bg-dark-soft text-dark border-dark/40'
+      : 'bg-accent-soft text-accent border-accent/40';
+  return (
+    <span className={`shrink-0 rounded-full border px-1.5 py-px text-nano font-semibold ${teinte}`}>{libelle}</span>
+  );
+}
+
+export default function ArtifactLinesEditor({
+  lignes,
+  onChange,
+}: {
+  lignes: LigneVerrouillee[];
+  onChange: (l: LigneVerrouillee[]) => void;
+}) {
+  const catalogue = toutesLesLignes();
+  const parCode = new Map(catalogue.map((l) => [l.code, l]));
+  const posees = new Set(lignes.map((l) => l.code));
+  const dispo = catalogue.filter((l) => !posees.has(l.code));
+  const plein = lignes.length >= MAX_LIGNES;
+  const budget = budgetEmplacements(lignes);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="label">Lignes verrouillées</span>
+        <span className="font-mono text-nano text-ink-dim tabular-nums">
+          {lignes.length} / {MAX_LIGNES}
+        </span>
+      </div>
+
+      {lignes.map((ligne) => {
+        const def = parCode.get(ligne.code);
+        const plafond = plafondLigne(ligne.code);
+        const parPiece = ARTIFACT_SUB_MAX[ligne.code] ?? 0;
+        // ⚠️ Au-delà du plafond d'UNE pièce, les DEUX doivent porter la ligne :
+        // ça consomme un emplacement de chaque côté, pas un seul « libre ».
+        const exigeLesDeux = def?.sortes.length === 2 && ligne.min > parPiece;
+        return (
+          <div
+            key={ligne.code}
+            // ⚠️ UN seul contour. Le plafond vit DANS la boîte, en seconde
+            // rangée de la grille — une boîte bordée sous chaque ligne aurait
+            // empilé deux contours de 1 px.
+            className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-2 gap-y-0.5 rounded border border-border-soft bg-panel2 py-1 pl-2 pr-1"
+          >
+            <span className="text-xs leading-tight text-ink">{def?.nom ?? `#${ligne.code}`}</span>
+            {def && <Pastille sortes={def.sortes} />}
+            <NumberField
+              value={ligne.min}
+              onChange={(v) =>
+                onChange(lignes.map((l) => (l.code === ligne.code ? { ...l, min: v ?? 0 } : l)))
+              }
+              min={0}
+              // ⚠️ **Borné au plafond de la PAIRE**, pas d'un avertissement :
+              // une exigence au-delà ne peut être satisfaite par aucun
+              // inventaire, aussi riche soit-il. Le plafond double pour une
+              // ligne portable par les deux pièces, reste simple sinon.
+              max={plafond}
+              sansBoutons
+              width="w-12"
+              suffix="%"
+              ariaLabel={`Minimum pour ${def?.nom ?? ligne.code}`}
+            />
+            <BoutonIcone
+              onClick={() => onChange(lignes.filter((l) => l.code !== ligne.code))}
+              ton="danger"
+              taille="serre"
+              icone={<X size={11} />}
+              libelle={`Retirer ${def?.nom ?? ligne.code}`}
+            />
+            <span
+              className={`col-span-full font-mono text-nano tabular-nums ${exigeLesDeux ? 'text-warn' : 'text-ink-dimmer'}`}
+            >
+              {def?.sortes.length === 2
+                ? exigeLesDeux
+                  ? `max ${plafond} % cumulé — au-delà de ${parPiece} %, les DEUX pièces devront la porter`
+                  : `max ${plafond} % en cumulant les deux pièces`
+                : `max ${plafond} % · une seule pièce peut la porter`}
+            </span>
+          </div>
+        );
+      })}
+
+      {/* `value=""` en permanence : ce menu AJOUTE, il ne porte pas de
+          sélection courante. Même patron que l'éditeur des Recommandations. */}
+      <Selecteur
+        value=""
+        disabled={plein || dispo.length === 0}
+        onChange={(e) => {
+          const code = Number(e.target.value);
+          if (code) onChange([...lignes, { code, min: 0 }]);
+        }}
+        taille="sm"
+        surface="panel2"
+      >
+        <option value="">{plein ? `Les ${MAX_LIGNES} lignes sont prises` : '+ Ligne…'}</option>
+        {dispo.map((l) => (
+          <option key={l.code} value={l.code}>
+            {l.nom}
+          </option>
+        ))}
+      </Selecteur>
+
+      {lignes.length > 0 && (
+        // ⚠️ Le compteur d'EMPLACEMENTS, pas seulement le compte de lignes : un
+        // artéfact porte 4 sous-propriétés, la paire 8, en deux moitiés de 4
+        // qui ne se prêtent rien. Verrouiller 5 lignes réservées au type est
+        // impossible d'avance, quelle que soit la richesse de l'inventaire —
+        // et seul ce découpage le montre PENDANT la saisie.
+        <div className="flex flex-wrap items-center gap-x-3 font-mono text-nano tabular-nums text-ink-dim">
+          <span>
+            emplacements&nbsp;: attribut{' '}
+            <b className={budget.attribut > MAX_ARTIFACT_SUBS ? 'text-bad' : 'text-ink'}>
+              {budget.attribut}/{MAX_ARTIFACT_SUBS}
+            </b>
+          </span>
+          <span>
+            type{' '}
+            <b className={budget.type > MAX_ARTIFACT_SUBS ? 'text-bad' : 'text-ink'}>
+              {budget.type}/{MAX_ARTIFACT_SUBS}
+            </b>
+          </span>
+          {budget.libres > 0 && <span>{budget.libres} à placer</span>}
+        </div>
+      )}
+
+      {budget.impossible && (
+        // ⚠️ Ne prouve QUE le dépassement d'emplacements — jamais que
+        // l'inventaire ne suit pas. Ce diagnostic-là se lit sur le balayage,
+        // pas sur une déduction (voir `meilleurCumulParLigne`).
+        <p className="rounded border border-bad/50 bg-bad-soft/50 px-2 py-1 text-xs text-bad">
+          Ces lignes ne tiennent pas sur deux artéfacts : chacun ne porte que{' '}
+          {MAX_ARTIFACT_SUBS} sous-propriétés.
+        </p>
+      )}
+    </div>
+  );
+}

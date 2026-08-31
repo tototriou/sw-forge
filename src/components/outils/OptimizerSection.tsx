@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
+import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { paireRepresentative, type ChoixPrincipale } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeSetIconFilter } from '../../lib/effects';
@@ -1968,10 +1969,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             <p className="label">Artéfacts</p>
             <HelpPopover title="Artéfacts">
               <b className="text-ink">« Comme équipé »</b> reprend l'artéfact du build de base (celui affiché
-              ci-dessus) porté à cet emplacement. Choisir une statistique l'hypothèque pour la recherche sans avoir
-              besoin de le posséder — utile si ce monstre porte des artéfacts différents en RTA ou dans un deck de
-              siège, puisque ce build de base n'est pas forcément celui que tu cherches à reproduire ;{' '}
+              ci-dessus) porté à cet emplacement — utile de le changer si ce monstre porte des artéfacts différents
+              en RTA ou dans un deck de siège, puisque ce build de base n'est pas forcément celui que tu cherches à
+              reproduire. <b className="text-ink">« Libre »</b> cherche la meilleure pièce parmi tous tes artéfacts
+              équipables ; choisir une statistique restreint cette recherche à tes artéfacts qui la portent.{' '}
               <b className="text-ink">« Aucun »</b> retire l'emplacement même s'il est réellement équipé.
+              <br />
+              <br />
+              Les artéfacts retenus sont toujours des pièces que tu <b className="text-ink">possèdes</b>, avec leurs
+              sous-propriétés : si tu n'en as aucune portant la statistique demandée, l'emplacement reste vide.
             </HelpPopover>
           </div>
           <div className="flex items-center gap-1.5">
@@ -1997,7 +2003,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   value={String(artifactMainByKind[key] ?? 'equipped')}
                   onChange={(e) => {
                     const raw = e.target.value;
-                    const next: ArtifactMainChoice = raw === 'equipped' || raw === 'none' ? raw : (Number(raw) as 100 | 101 | 102);
+                    const next: ArtifactMainChoice =
+                      raw === 'equipped' || raw === 'none' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
                     setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
                   }}
                   taille="sm"
@@ -2005,6 +2012,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   pleineLargeur={false}
                 >
                   <option value="equipped">Comme équipé</option>
+                  {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
+                      été ajouté qu’une fois celle-ci construite, pour ne pas laisser
+                      une option morte dans le sélecteur. */}
+                  <option value="libre">Libre</option>
                   {ARTIFACT_MAIN_OPTIONS.map((o) => (
                     <option key={o.code} value={o.code}>
                       {o.label}
@@ -2014,6 +2025,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 </Selecteur>
               </div>
             ))}
+          </div>
+        )}
+        {/* ⚠️ Sous les sélecteurs, et jamais au-dessus : les lignes
+            verrouillées se lisent comme un raffinement du choix de pièce, pas
+            comme une condition indépendante. Masqué avec le reste quand les
+            artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
+            une saisie sans effet est pire qu'une saisie absente. */}
+        {!ignoreArtifacts && (
+          <div className="mt-3">
+            <ArtifactLinesEditor lignes={lignesVerrouillees} onChange={setLignesVerrouillees} />
           </div>
         )}
       </div>

@@ -255,9 +255,6 @@ export default function DamageSetupCard({
   // Ce que le sort choisi consomme réellement — pilote l'affichage.
   const utilise = (v: DamageVariable) => resolved.variables.includes(v);
   const montreDefEnnemie = !resolved.ignoreDef && !resolved.fixed;
-  // Un artéfact pris en compte porte-t-il une ligne « Aug. des dgts infl. au
-  // <élément> » ? Si non, le choix de l'élément visé ne changerait rien.
-  const porteLigneElementaire = Object.keys(artefacts.degatsElementPct).length > 0;
   const montreCrit = !resolved.fixed;
   // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
   // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
@@ -747,31 +744,36 @@ export default function DamageSetupCard({
               />
             </label>
           )}
-          {/* Élément de la cible — ne sert QU'AUX lignes d'artéfact « Aug.
-              des dgts infl. au <élément> » (300-304).
-              ⚠️ Affiché SEULEMENT si un artéfact pris en compte en porte une :
-              sans ça, ce réglage ne changerait rien et n'aurait aucune raison
-              d'occuper l'écran — même principe que `montreDefEnnemie` ou que
-              « PV restants » juste au-dessus, qui n'apparaissent que si le
-              calcul les consomme. */}
-          {porteLigneElementaire && (
-            <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">Élément visé</span>
-              {/* ⚠️ « Ignorer » est une OPTION, pas l'absence de choix : le
-                  cadre montre toujours quel cran est posé. Optimiser « contre
-                  n'importe qui » est un cas d'usage à part entière, pas un
-                  repli dégradé — même parti pris que le « Toutes » du filtre
-                  de stat principale (spec/compte/artefacts.md). */}
-              <Segmented<ElementKey | 'aucun'>
-                value={setup.enemyElement ?? 'aucun'}
-                onChange={(v) => maj({ enemyElement: v === 'aucun' ? null : v })}
-                options={[
-                  { key: 'aucun', label: 'Ignorer' },
-                  ...ELEMENTS.filter((e) => e.key !== 'unknown').map((e) => ({ key: e.key, label: e.label })),
-                ]}
-              />
-            </label>
-          )}
+          {/* Élément de la cible — décrit l'ADVERSAIRE, au même titre que ses
+              PV et sa DEF, et se pose donc TOUJOURS.
+              ⚠️ **Surtout pas conditionné aux artéfacts qui portent une ligne
+              300-304.** Deux raisons, la seconde décisive :
+              1. la chronologie — on configure l'adversaire AVANT toute
+                 recherche, à un moment où rien ne dit encore quels artéfacts
+                 seront retenus ;
+              2. ce réglage est une ENTRÉE du choix d'artéfact, pas une
+                 conséquence. Le masquer tant qu'aucun artéfact équipé ne
+                 porte la ligne reviendrait à cacher ce qui décide du choix en
+                 attendant que le choix soit fait.
+              C'est la différence avec `montreDefEnnemie` ou « PV restants » :
+              ceux-là sont pilotés par ce que le SORT consomme, connu d'avance
+              et immuable. */}
+          <label className="flex items-center gap-2">
+            <span className="text-xs text-ink-dim">Élément visé</span>
+            {/* ⚠️ « Ignorer » est une OPTION, pas l'absence de choix : le
+                cadre montre toujours quel cran est posé. Optimiser « contre
+                n'importe qui » est un cas d'usage à part entière, pas un
+                repli dégradé — même parti pris que le « Toutes » du filtre
+                de stat principale (spec/compte/artefacts.md). */}
+            <Segmented<ElementKey | 'aucun'>
+              value={setup.enemyElement ?? 'aucun'}
+              onChange={(v) => maj({ enemyElement: v === 'aucun' ? null : v })}
+              options={[
+                { key: 'aucun', label: 'Ignorer' },
+                ...ELEMENTS.filter((e) => e.key !== 'unknown').map((e) => ({ key: e.key, label: e.label })),
+              ]}
+            />
+          </label>
           {/* Julie (« Thousand Shots »)/Melissa (« Massacre Dance ») :
               +pct % par effet PRÉSENT sur la cible — l'app ne simule aucun
               effet réel de l'adversaire, saisi par l'utilisateur, 0 par

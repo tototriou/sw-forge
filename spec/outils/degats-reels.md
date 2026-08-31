@@ -344,12 +344,31 @@ Contrairement aux lignes conditionnelles, une majoration élémentaire multiplie
 **tous les builds à l'identique**. C'est la seule famille dont on soit certain
 qu'elle ne peut jamais changer le classement d'une recherche.
 
-### L'écran ne montre le réglage que s'il sert
+### ⚠️ Le réglage est TOUJOURS affiché — il décrit l'adversaire
 
-Le contrôle « Élément visé » n'apparaît que si un artéfact **réellement pris
-en compte** porte une de ces lignes. Sinon il ne changerait rien et n'aurait
-aucune raison d'occuper l'écran — même principe que la DEF ennemie (masquée
-sur un sort qui l'ignore) ou que « PV restants ».
+« Élément visé » se pose au même titre que les PV et la DEF de la cible, sans
+condition.
+
+⚠️ **Il a d'abord été conditionné à la présence d'une ligne 300-304 sur les
+artéfacts pris en compte. C'était une erreur**, signalée par l'utilisateur, et
+pour deux raisons dont la seconde est décisive :
+
+1. **La chronologie** — on configure l'adversaire AVANT toute recherche, à un
+   moment où rien ne dit encore quels artéfacts seront retenus (et en
+   pratique, il y en aura presque toujours un qui porte la ligne : le
+   « gating » ne filtrait donc quasiment rien, il clignotait).
+2. **Le sens de la dépendance** — ce réglage est une **entrée** du choix
+   d'artéfact, pas une conséquence. Le futur mode « choisir le meilleur
+   artéfact » (voir le cadrage privé) sert précisément à trancher entre un
+   artéfact élémentaire et un autre : masquer le réglage tant qu'aucun
+   artéfact équipé ne porte la ligne reviendrait à cacher ce qui décide du
+   choix en attendant que le choix soit fait.
+
+C'est la différence de fond avec `montreDefEnnemie` ou « PV restants » : ces
+deux-là sont pilotés par ce que le **sort** consomme — connu d'avance,
+immuable, et indépendant de tout ce que la recherche pourrait décider. La
+règle « n'afficher que ce que le calcul consomme » vaut pour les entrées
+DÉDUITES du sort, pas pour celles qui orientent la recherche.
 
 ### `ArtifactDamageProfile` — un objet, pas une liste de nombres
 

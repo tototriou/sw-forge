@@ -27,12 +27,18 @@ import { StatKey } from './effects';
 // ── Facteur de défense ───────────────────────────────────────────────────
 // ⚠️ **Source unique** de la mitigation par la défense pour toute l'app —
 // `objectiveScore('ehp')` (runeBuildOptim.ts) lit ces mêmes constantes plutôt
-// que d'en garder une copie. Aligné wiki fandom ; swcalc.cz affiche
-// `1142 + 3,572 × DEF`, écart jugé négligeable (voir spec/mecaniques.md).
-export const DEF_FACTOR_CONST = 1140;
-export const DEF_FACTOR_COEF = 3.5;
+// que d'en garder une copie.
+//
+// ⚠️ **Alignées sur swcalc.cz** (`1000 / (1142 + 3,572 × DEF)`), et non plus
+// sur les valeurs arrondies du wiki fandom (1140 / 3,5). L'écart avait été
+// jugé négligeable de longue date — il l'est en valeur absolue (~0,3 % à
+// 3 000 de DEF), mais rien ne justifiait de garder un arrondi quand la source
+// de référence donne les vraies constantes. Décision explicite de
+// l'utilisateur.
+export const DEF_FACTOR_CONST = 1142;
+export const DEF_FACTOR_COEF = 3.572;
 
-// ⚠️ Ne vaut JAMAIS 1, même à DEF = 0 : le plancher est 1000/1140 ≈ 0,877 —
+// ⚠️ Ne vaut JAMAIS 1, même à DEF = 0 : le plancher est 1000/1142 ≈ 0,876 —
 // une cible sans la moindre défense mitige quand même un peu.
 export function defenseFactor(def: number): number {
   return 1000 / (DEF_FACTOR_CONST + DEF_FACTOR_COEF * Math.max(0, def));

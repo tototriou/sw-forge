@@ -326,7 +326,7 @@ export function statTotal(stats: StatRow[], key: StatKey): number {
 //    « toujours critique » ni « jamais », ce que le joueur observe en
 //    moyenne sur beaucoup de coups.
 //  - PV effectifs : réutilise le facteur de défense déjà documenté dans
-//    spec/mecaniques.md (1000 / (1140 + 3,5 × DEF)), pas une formule maison.
+//    spec/mecaniques.md (1000 / (1142 + 3,572 × DEF)), pas une formule maison.
 // Contexte supplémentaire exigé par « Dégâts réels » : contrairement aux
 // autres objectifs, son score ne se déduit PAS des seules stats du candidat —
 // il faut le sort visé et l'adversaire configuré. Passé par l'appelant qui

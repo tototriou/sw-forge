@@ -18,9 +18,10 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
 3. **Équation finale des dégâts** — `(Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions`.
    Buffs ATQ/DEF (comme VIT) tronqués vers le bas selon le bonus d'effet ; les dégâts fixes
    (`Additionnel`) ignorent crit **et** FacteurDéf.
-4. **Facteur de défense** — `1000 / (1140 + 3.5 × DEF)` (aligné wiki fandom — swcalc.cz affiche
-   `1142 + 3.572 × DEF`, écart jugé négligeable, formule actuelle conservée), def break ×0.3,
-   ignore def (plancher ≈ 0,877).
+4. **Facteur de défense** — `1000 / (1142 + 3.572 × DEF)`, **aligné sur swcalc.cz**. Les valeurs
+   arrondies du wiki fandom (`1140 + 3.5`) ont été employées un temps, l'écart étant négligeable
+   en valeur absolue (~0,3 % à 3 000 de DEF) ; rien ne justifiait de garder un arrondi quand la
+   source de référence donne les vraies constantes. Def break ×0.3, ignore def (plancher ≈ 0,876).
 5. **Coups critiques** — taux vs dégâts crit ; glancing ne crit pas ; certaines lignes d'artefact
    ont une portée limitée (par compétence, cible primaire seule, etc.).
 6. **Variance** — ±2.8 % (stats), ±2.35 % (PV max), tirage triangulaire.

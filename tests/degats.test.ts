@@ -272,7 +272,7 @@ export default function testDegats() {
   // Coup critique garanti, 2000 ATQ, 200 % de Dgts Crit.
   //   0.68 × 2000            = 1360
   //   × (1 + 0.30 + 1 × 2.0) = 4488
-  //   × 1000/1140            ≈ 3936,84   (plancher d’ignore défense)
+  //   × 1000/1142            ≈ 3929,95   (plancher d’ignore défense)
   //   × 3 coups              ≈ 11810,5
   const build = stats({ atk: 2000, cd: 200, cr: 50 });
   // ⚠️ `summonerSkills: 'aucune'` EXPLICITE — ce test épingle l'équation
@@ -281,7 +281,7 @@ export default function testDegats() {
   // ferait échouer ce test à chaque révision de ce choix produit, alors que
   // l'équation, elle, n'aurait pas bougé.
   const critique: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'aucune' };
-  const attendu = 0.68 * 2000 * (1 + 0.3 + 2.0) * (1000 / 1140) * 3;
+  const attendu = 0.68 * 2000 * (1 + 0.3 + 2.0) * (1000 / 1142) * 3;
   ok(s3 !== null && Math.abs(computeSkillDamage(s3, build, critique) - attendu) < 0.01, 'le total suit l’équation de spec/mecaniques.md');
 
   const normal = computeSkillDamage(s3!, build, { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' });
@@ -336,7 +336,7 @@ export default function testDegats() {
     'le buff de défense ne change rien à un sort qui ne dépend pas de la DEF'
   );
 
-  ok(Math.abs(defenseFactor(0) - 1000 / 1140) < 1e-9, 'à DEF = 0 le facteur vaut ~0,877, jamais 1');
+  ok(Math.abs(defenseFactor(0) - 1000 / 1142) < 1e-9, 'à DEF = 0 le facteur vaut ~0,876, jamais 1');
 
   titre('Dégâts réels — compétences d’invocateur');
 

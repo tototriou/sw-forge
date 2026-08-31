@@ -377,7 +377,7 @@ export default function Sidebar({
                     type="button"
                     onClick={() => setOuverte(null)}
                     title={`${niveauDeux.titre} — revenir à toutes les sections`}
-                    className={`group flex w-full items-center rounded-md py-1.5
+                    className={`group flex w-full items-center rounded-md py-2
                                 transition-colors hoverable:bg-panel2 ${
                                   retractee ? 'justify-center px-0' : 'gap-1.5 px-2'
                                 }`}
@@ -398,7 +398,7 @@ export default function Sidebar({
                   </button>
                 </div>
                 <nav
-                  className={`flex flex-col gap-0.5 border-t border-border-soft pb-2 pt-2 ${
+                  className={`flex flex-col gap-1 border-t border-border-soft pb-2 pt-2 ${
                     retractee ? 'mt-2 px-1.5' : 'px-2.5'
                   }`}
                 >
@@ -409,7 +409,7 @@ export default function Sidebar({
               /* ---- Niveau 1 : les sections ---- */
               <>
                 <nav
-                  className={`flex flex-col gap-0.5 pb-2 ${
+                  className={`flex flex-col gap-1 pb-2 ${
                     retractee ? 'px-1.5' : 'px-2.5'
                   }`}
                 >
@@ -626,16 +626,27 @@ function LienBarre({
       title={retractee ? lien.label : undefined}
       // ⚠️ UN SEUL marqueur de sélection : le fond teinté. Pas de fond +
       // bordure + gras cumulés — la règle du design system.
-      // ⚠️ 32 px de haut, icône 16, texte 14 : les proportions d'une barre
+      // ⚠️ ~37 px de haut, icône 17, texte 15 : les proportions d'une barre
       // d'application (Vercel, Linear) plutôt que d'un menu de site. Une entrée
       // plus serrée fait une liste qu'on parcourt du regard ; à cette taille on
       // vise sans effort, et la colonne respire.
+      //
+      // ⚠️ **`text-base` (15), pas 14.** L'entrée était en `text-sm` (13) et la
+      // colonne se lisait serrée. L'échelle typographique de l'app n'a rien
+      // entre 13 et 15 (spec/shared/design.md) : on ne pose pas un `text-[14px]`
+      // pour adoucir le saut, ce serait une valeur en dur hors échelle — et la
+      // première d'une série, puisque le cran suivant manquerait toujours.
+      //
+      // ⚠️ **La barre est `hidden lg:flex`**, donc ce réglage ne concerne QUE le
+      // bureau. Le panneau de navigation du téléphone (MobileNavSheet) a son
+      // propre rendu et ne partage que les types — une correction destinée à un
+      // format ne doit pas toucher l'autre (spec/shared/deux-applications.md).
       // ⚠️ `w-full` : un `<button>` ne s'étire pas comme un `<a>`. Sans lui, les
       // entrées qui ouvrent une section (Siège, Mon compte, Outils) étaient
       // larges comme leur texte, et leur fond au survol s'arrêtait au milieu de
       // la barre — trois entrées visiblement différentes des six autres.
-      className={`group relative flex w-full items-center rounded-md py-1.5 text-left
-                  text-sm transition-colors ${
+      className={`group relative flex w-full items-center rounded-md py-2 text-left
+                  text-base transition-colors ${
                     retractee ? 'justify-center px-0' : 'gap-2.5 px-2'
                   } ${
                     lien.actif ? 'text-ink' : 'text-ink-dim hoverable:text-ink'

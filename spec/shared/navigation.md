@@ -56,6 +56,24 @@ Ouvrir et remonter sont donc des **`<button>`**, pas des `<a>` : ils ne vont
 nulle part, ils n'ont rien à faire dans l'historique ni dans un « ouvrir dans un
 nouvel onglet ». Le type l'impose — `hash` **ou** `ouvre`, jamais les deux.
 
+### Le gabarit d'une entrée
+
+Environ **37 px de haut**, icône **17**, texte **15** (`text-base`) : les
+proportions d'une barre d'application plutôt que d'un menu de site.
+
+⚠️ **Le texte était à 13 (`text-sm`) et la colonne se lisait serrée.** L'échelle
+typographique de l'app n'a rien entre 13 et 15
+([design.md](design.md)) : on ne pose pas un `text-[14px]` pour adoucir le saut,
+ce serait une valeur en dur hors échelle — et la première d'une série, puisque le
+cran manquant le resterait.
+
+⚠️ **Ce gabarit ne concerne QUE le bureau.** La barre latérale est
+`hidden lg:flex`, et le panneau de navigation du téléphone
+([MobileNavSheet](src/components/MobileNavSheet.tsx)) a son propre rendu — il ne
+partage que les *types* (`SidebarSection`, `SidebarGroupe`). Une correction
+destinée à un format ne touche pas l'autre
+([deux-applications.md](deux-applications.md)).
+
 ⚠️ **`w-full` sur l'entrée** : un `<button>` ne s'étire pas comme un `<a>` — il
 fait `width: auto` même en `display: flex`. Sans lui, les trois entrées à
 sous-section étaient larges comme leur texte et leur fond au survol s'arrêtait au

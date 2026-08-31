@@ -58,6 +58,8 @@ import {
   artifactDamageProfile,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
+import { buildRealDamageContext } from './lib/realDamageCli';
+import { sortCandidates } from '../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -382,7 +384,23 @@ console.log(
     `prep ${result.prepMs.toFixed(0)}ms · construction ${result.buildWallMs.toFixed(0)}ms · ` +
     `appariement ${result.pairingMs.toFixed(0)}ms · total ${(result.totalMs / 1000).toFixed(1)}s`
 );
-for (const c of result.candidates.slice(0, 20)) {
+// ⚠️ **Trier AVANT d'afficher.** `result.candidates` sort dans l'ordre de
+// collecte de l'appariement, pas classé par l'objectif : ce script affichait
+// jusqu'ici 20 candidats ARBITRAIRES en les présentant comme des résultats.
+// Un diagnostic s'y est laissé prendre et a conclu à tort que le moteur
+// manquait un build meilleur — il était là, au rang 6. `sortCandidates` est
+// la même porte que l'écran, pour qu'ils ne puissent plus diverger.
+const realDamage = buildRealDamageContext(recipe, loaded.com2usId, params.artifacts);
+if (recipe.objective === 'degats_reels' && !realDamage) {
+  console.warn(`⚠️ Aucun sort calculable pour ${loaded.monsterName} — le classement reste dans l'ordre de collecte.`);
+}
+const classes = sortCandidates(result.candidates, recipe.objective, {
+  realDamage,
+  runeById: new Map(params.pool.map((r) => [r.id, r])),
+  metric: recipe.metric,
+});
+console.log(`\nLes 20 meilleurs pour l'objectif « ${recipe.objective} » :`);
+for (const c of classes.slice(0, 20)) {
   console.log(`  runes [${c.runeIds.join(',')}]`);
 }
-if (result.candidates.length > 20) console.log(`  … et ${result.candidates.length - 20} de plus.`);
+if (classes.length > 20) console.log(`  … et ${classes.length - 20} de plus.`);

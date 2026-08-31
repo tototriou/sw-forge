@@ -141,6 +141,34 @@ pendant une bonne partie d'une session, alors que `tsc`/les types ne
 pouvaient rien détecter (l'appel était parfaitement valide, juste
 incomplet).
 
+## ⚠️ La fidélité s'arrête rarement à la recherche : elle va jusqu'à l'ÉCRAN
+
+**Incident vécu, et il a coûté trois messages de fausse piste.** Un
+diagnostic a conclu « le moteur MANQUE un build meilleur et faisable » — le
+build en question était présent, au **rang 6**. Le script avait lu
+`result.candidates[0]` en le prenant pour le meilleur.
+
+⚠️ **`SearchResult.candidates` n'est PAS trié par l'objectif.** L'ordre est
+celui de la collecte à l'appariement. C'est **l'écran** qui classe, et le tri
+vivait *inline* dans `OptimizerSection.tsx` — donc invisible pour quiconque
+lisait le moteur. Le vrai CLI (`optimizer-search.ts`) affichait lui aussi
+`slice(0, 20)` en présentant ces vingt comme des résultats : le script ad hoc
+était **fidèle au CLI**, c'est le CLI qui était infidèle à l'écran.
+
+Corrigé depuis par `sortCandidates` (runeBuildOptim.ts), source unique
+partagée. Mais la leçon générale demeure :
+
+**Le « vrai chemin de production » inclut ce que l'ÉCRAN fait du résultat**,
+pas seulement ce que le moteur calcule. Avant de conclure quoi que ce soit
+d'une sortie de moteur, se demander : *l'écran applique-t-il encore un tri,
+un filtre, un repli, un recalcul, après cet appel ?* Chercher dans le
+composant, pas seulement dans la lib.
+
+⚠️ **Et faire d'abord le test le moins cher.** Avant « le moteur manque X »,
+poser `candidates.findIndex(…)` : trois lignes qui distinguent *absent* de
+*mal classé*. Comparer un score au premier élément d'une liste non triée ne
+prouve rien — et ressemble EXACTEMENT à un vrai bug.
+
 **Règle** : avant de faire confiance au résultat d'un script qui appelle les
 internes du moteur (pas l'API publique `searchBuilds`), le DIFFER
 explicitement, ligne par ligne, contre le vrai chemin de production —

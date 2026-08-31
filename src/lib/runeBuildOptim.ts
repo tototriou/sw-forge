@@ -171,6 +171,17 @@ export interface SearchParams {
 }
 
 export interface SearchResult {
+  // ⚠️ **L'ORDRE N'EST PAS CELUI DE L'OBJECTIF.** Les candidats sortent dans
+  // l'ordre où l'appariement les a collectés, pas classés par ce qu'on a
+  // demandé de maximiser. `candidates[0]` n'est donc **pas** le meilleur
+  // build, et `slice(0, 20)` n'est **pas** le top 20.
+  //
+  // ⚠️ Passer par `sortCandidates` avant tout affichage ou toute
+  // comparaison — c'est la SEULE porte. Incident vécu : un diagnostic a
+  // conclu « le moteur manque un build meilleur » en lisant `candidates[0]`,
+  // alors que le build cherché était présent au rang 6. Le vrai CLI
+  // (`optimizer-search.ts`) affichait lui aussi 20 candidats arbitraires en
+  // les présentant comme des résultats.
   candidates: BuildCandidate[];
   explored: number;
   truncated: boolean;
@@ -462,6 +473,56 @@ export function candidateMetricTotal(
     sum += metric === 'eff' ? runeEfficiency(r) : runeScore(r);
   }
   return sum;
+}
+
+/**
+ * Classe les candidats d'une recherche selon un critère. **Source UNIQUE**,
+ * partagée par l'écran et par tout script — même raison que
+ * `damageRelevantStats` : deux tris séparés divergeraient en silence.
+ *
+ * ⚠️ **`SearchResult.candidates` n'est PAS trié par l'objectif** (voir son
+ * commentaire). Sans passer par ici, `candidates[0]` est un build arbitraire.
+ * L'incident qui a motivé cette extraction : un diagnostic a conclu « le
+ * moteur manque un build meilleur et faisable » en comparant au premier
+ * candidat, alors que le build cherché était là, au rang 6. Et
+ * `optimizer-search.ts` affichait 20 candidats arbitraires en les présentant
+ * comme des résultats.
+ *
+ * ⚠️ **Ne mute pas l'entrée** — un tri en place sur le tableau du moteur
+ * rendrait l'ordre dépendant de qui a affiché en premier.
+ */
+export function sortCandidates(
+  candidates: BuildCandidate[],
+  sortBy: StatKey | Objective,
+  opts: {
+    // Nécessaire pour `'degats_reels'`. Absent = l'ordre est laissé tel quel
+    // plutôt que de lever : un `sortBy` hérité d'un monstre précédent peut
+    // porter cet objectif alors que le monstre courant n'a aucun sort
+    // calculable (le tri n'est alors même pas proposé à l'écran).
+    realDamage?: RealDamageContext | null;
+    // Nécessaires pour `'efficience'`. ⚠️ On recalcule depuis les VRAIES runes
+    // dans la mesure COURANTE plutôt que de lire `candidate.effTotal`, figé
+    // dans la mesure active au moment de la recherche — sinon le classement
+    // diverge du popover d'une rune dès que l'utilisateur bascule
+    // Efficience ↔ Score sans relancer.
+    runeById?: Map<number, RuneDetail>;
+    metric?: OptimMetric;
+  } = {}
+): BuildCandidate[] {
+  const list = candidates.slice();
+  if (sortBy === 'efficience') {
+    const { runeById, metric } = opts;
+    if (!runeById || !metric) return list;
+    return list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
+  }
+  if (sortBy === 'degats_reels') {
+    if (!opts.realDamage) return list;
+    return list.sort((a, b) => objectiveScore(b, sortBy, opts.realDamage!) - objectiveScore(a, sortBy, opts.realDamage!));
+  }
+  if (sortBy === 'ehp' || sortBy === 'vitesse') {
+    return list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
+  }
+  return list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
 }
 
 // ⚠️ Historique du budget de paires par défaut, avant qu'il ne devienne

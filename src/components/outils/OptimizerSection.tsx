@@ -33,6 +33,7 @@ import {
   BlockingConditionsDiagnosis,
   statTotal,
   objectiveScore,
+  sortCandidates,
   candidateMetricTotal,
   OBJECTIVE_LABELS,
   RealDamageContext,
@@ -1172,30 +1173,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // cette liste en pages, pour pouvoir visualiser TOUS les builds trouvés
   // (jusqu'à `MAX_COLLECTED`, voir runeBuildOptim.ts), pas seulement les
   // meilleurs 20.
-  const fullSortedCandidates = useMemo(() => {
-    if (!candidatesSource) return [];
-    const list = candidatesSource.slice();
-    if (sortBy === 'efficience') {
-      // ⚠️ PAS `objectiveScore`/`effTotal` ici : ce champ est figé dans la
-      // mesure active AU MOMENT DE LA RECHERCHE, et deviendrait incohérent
-      // avec le popover d'une rune (recalculé en direct) si l'utilisateur
-      // bascule Efficience ↔ Score après coup sans relancer.
-      list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
-    } else if (sortBy === 'degats_reels') {
-      // ⚠️ `realDamage` peut être `null` (aucun sort calculable pour ce
-      // monstre) : ce tri n'est alors même pas proposé (voir `sortOptions`),
-      // mais un `sortBy` hérité d'un monstre précédent pourrait encore le
-      // porter — on laisse l'ordre en place plutôt que de lever.
-      if (realDamage) {
-        list.sort((a, b) => objectiveScore(b, sortBy, realDamage) - objectiveScore(a, sortBy, realDamage));
-      }
-    } else if (sortBy === 'ehp' || sortBy === 'vitesse') {
-      list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
-    } else {
-      list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
-    }
-    return list;
-  }, [candidatesSource, sortBy, runeById, metric, realDamage]);
+  // ⚠️ Le tri vit dans `sortCandidates` (runeBuildOptim.ts), PAS ici — il
+  // était inline, donc invisible et irréutilisable pour tout autre
+  // consommateur. Les scripts CLI prenaient `candidates[0]` ou
+  // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
+  // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
+  const fullSortedCandidates = useMemo(
+    () => (candidatesSource ? sortCandidates(candidatesSource, sortBy, { realDamage, runeById, metric }) : []),
+    [candidatesSource, sortBy, runeById, metric, realDamage]
+  );
 
   const RESULTS_PAGE_SIZE = 20;
   const totalResultsPages = Math.max(1, Math.ceil(fullSortedCandidates.length / RESULTS_PAGE_SIZE));

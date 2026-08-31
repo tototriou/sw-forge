@@ -1,16 +1,18 @@
 ---
 name: game-data-curation
-description: Discipline à suivre pour toute table curée à partir des données de jeu SWARFARM (les ~20 tables `*_CONNUS` de damage.ts, les kits de speedTuneKit.ts, les libellés d'effects.ts) — les champs de données mentent, la prose n'est pas un discriminant, et une liste fournie de mémoire n'est jamais le corpus. Balayer, puis curer les exceptions, jamais l'inverse.
+description: Discipline à suivre pour toute MÉCANIQUE DE JEU modélisée dans SW Forge — tables `*_CONNUS` de damage.ts, règles déduites des données SWARFARM, et tout comportement supposé par ressemblance avec un autre. Les champs de données mentent, la prose n'est pas un discriminant, une liste fournie de mémoire n'est jamais le corpus, et une mécanique voisine ne se déduit jamais par analogie. Contient aussi la recette pour DEMANDER un relevé en jeu exploitable.
 ---
 
-# Curation d'une table à partir des données de jeu (SW Forge)
+# Modéliser une mécanique de jeu (SW Forge)
 
 `damage.ts` porte une vingtaine de tables `*_CONNUS`, curées **par nom exact
-de compétence**, qui décident de mécaniques de calcul. Ce skill dit comment
-en établir une sans se tromper, et comment ne pas faire confiance aux
-données brutes plus qu'elles ne le méritent.
+de compétence**, plus une formule de dégâts en plusieurs termes. Ce skill dit
+comment y établir une règle sans se tromper : ne pas faire confiance aux
+données brutes plus qu'elles ne le méritent, ne rien déduire d'une mécanique
+voisine, et savoir demander la mesure qui tranche.
 
-Né de quatre incidents de la même session (chantier artéfacts / bombes).
+Né de sept incidents de la même session (chantier artéfacts / bombes /
+formule de dégâts).
 
 ## Quand ce skill s'applique
 
@@ -20,6 +22,11 @@ Né de quatre incidents de la même session (chantier artéfacts / bombes).
 - Toute règle déduite de la PROSE d'un sort ou d'un effet.
 - Reprise d'une liste de monstres/sorts fournie de mémoire (par
   l'utilisateur ou par une session précédente).
+- ⚠️ **Tout comportement supposé par RESSEMBLANCE avec un autre** — « cet
+  effet est décrit comme celui-là, donc il fait pareil ». Voir §6 ter : deux
+  fois sur trois, c'était faux.
+- Avant de **demander un relevé en jeu** à l'utilisateur (§6 bis) : une
+  mesure mal cadrée revient inexploitable.
 
 ## 1. Une liste fournie de mémoire n'est jamais le corpus
 
@@ -118,6 +125,66 @@ terme dominant `0.11*{MAX HP}`, donc la conclusion tenait sur toute la plage
 plausible. Le dire explicitement, sinon le relevé semble plus fragile qu'il
 ne l'est.
 
+### 6 bis. Comment DEMANDER un relevé — la recette qui marche
+
+Six mécaniques ont été tranchées en une session avec toujours le même moule.
+Le formuler explicitement à l'utilisateur fait gagner des allers-retours.
+
+**Demander un RAPPORT, jamais un chiffre absolu.** Même monstre, même cible,
+même sort, et on ne change **qu'une seule chose**. Le rapport annule tout ce
+qu'on ne connaît pas : DEF exacte de la cible, ATQ réelle, variance moyennée,
+arrondis d'affichage. C'est ce qui rend un relevé exploitable sans exiger un
+banc d'essai.
+
+**Choisir un montage qui SÉPARE les termes.** Le levier récurrent : une cible
+à très haute DEF écrase la part mitigée et laisse la part brute dominer — à
+3 000 de DEF elle pèse 91 % du total, donc elle devient lisible. Un montage
+où les deux parts sont comparables ne tranche rien.
+
+**Prévoir la règle de décision AVANT la mesure**, et l'annoncer : « si le
+rapport vaut 1,5 c'est A, s'il vaut ~1 c'est B ». Sans elle, on reçoit un
+chiffre qu'on interprète après coup — et on l'interprète dans le sens de ce
+qu'on croyait.
+
+**Le système à deux inconnues fait le reste.** Deux mesures qui ne diffèrent
+que par un bonus connu (`S + A` et `k·S + A`) donnent séparément la part de
+sort et la part brute. Comparer ensuite `A` à ce que le modèle prédit
+**valide la formule en même temps que la question posée** : sur Julie, 640
+mesurés contre 635 prédits — l'isolement du bucket ET sa formule, d'un seul
+relevé.
+
+⚠️ **Dire à quel point le relevé est serré.** Julie tombait à 0,8 %, Jessica à
+2 %, Momo à 11 % — ce dernier parce que ses deux mesures étaient arrondies à
+la centaine. Présenter les trois avec la même assurance donnerait une fausse
+idée de ce qui est établi.
+
+## 6 ter. Une mécanique voisine ne se déduit JAMAIS par analogie
+
+⚠️ **Le piège le plus coûteux de ce dépôt.** Trois fois dans la même session,
+un fait confirmé a été étendu « par symétrie » à une famille voisine. **Deux
+fois sur trois, c'était faux.**
+
+| Extension tentée | Verdict |
+|---|---|
+| Les artéfacts −DMG% sont additifs avec Mirinae → donc les +DMG% aussi | ❌ **FAUX** — deux termes différents de la formule, multiplicatifs entre eux |
+| Mirinae majore les dégâts subis → donc la Marque se comporte pareil | ❌ **FAUX** — la Marque agit sur les bombes et le bucket Additionnel, Mirinae non |
+| Mirinae épargne bombes et Additionnel → donc Dr. Matteo aussi | ✅ vrai, **mais vérifié avant d'être écrit** |
+
+Ce qui rend le piège vicieux : l'analogie est toujours *plausible*, souvent
+appuyée sur un libellé de jeu quasi identique (« +X % de dégâts subis » pour
+la Marque comme pour Mirinae). Et une fois écrite dans un commentaire — pire,
+figée dans un test — elle ne se rejoue plus.
+
+**Règle** : une mécanique voisine se **mesure** ou se **cite** (source
+explicite), jamais ne se déduit. En attendant, le dire dans le code ET dans la
+spec, avec le chiffre que l'autre hypothèse donnerait — c'est ce qui rend
+l'erreur détectable quand la mesure arrive.
+
+**Source de référence pour les dégâts** :
+[swcalc.cz/game-mechanics](https://swcalc.cz/game-mechanics), qui donne la
+formule terme par terme. ⚠️ Elle a corrigé deux des erreurs ci-dessus — la
+consulter AVANT de déduire coûte moins cher que de corriger après.
+
 ## 7. « Confirmé par l'utilisateur » n'est pas une preuve
 
 ⚠️ Ces annotations sont précieuses mais **datées et faillibles**. Une mesure
@@ -128,6 +195,14 @@ sort (pas `×coups`, confirmé par l'utilisateur) » pour Sickle Blade / Sand
 Blade. C'était une erreur — les dégâts s'appliquent à chaque coup, établi par
 le relevé Shahat. **Le test verrouillait donc le bug au lieu de le
 détecter.**
+
+⚠️ **Une DÉDUCTION figée dans un test est aussi dangereuse.** Même session :
+un test affirmait « Marque + ligne élémentaire : ADDITIF (2 740), pas
+multiplicatif (qui donnerait 2 800) ». Le chiffre venait d'une analogie
+(§6 ter), pas d'une mesure — mais une fois vert, il avait l'autorité d'un
+fait. Quand la vraie valeur est arrivée, le test a échoué *contre elle*.
+**Un test qui fige une hypothèse doit le DIRE dans son libellé**, sinon il se
+lit comme une vérité établie au prochain passage.
 
 Quand une mesure contredit une annotation de ce type : le signaler
 explicitement avant de changer quoi que ce soit (c'est une confirmation

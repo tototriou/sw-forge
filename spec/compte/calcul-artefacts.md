@@ -221,6 +221,38 @@ absent n'est éligible à **aucun** artéfact de type — répondre « oui » pa
 défaut proposerait l'inéquipable, répondre « non » ne fait que ne rien
 proposer, ce qui se voit.
 
+### ⚠️ L'INTANGIBLE — le joker, et sa contrainte de paire
+
+Il existe dans les **deux sortes** et se pose sur **n'importe quel monstre**,
+exactement comme le set de runes du même nom.
+
+⚠️ **Un seul intangible à la fois** : on ne peut pas porter un intangible
+d'attribut ET un intangible de type. C'est une contrainte sur la **PAIRE**, pas
+sur l'artéfact — `artifactPairAllowed`. Chaque pièce peut être parfaitement
+éligible et la paire rester interdite : **filtrer emplacement par emplacement
+ne suffit pas**, et un optimiseur qui s'en contenterait proposerait des paires
+inéquipables.
+
+**Marqueur com2us : `98`**, la même valeur pour `attribute` (sorte Attribut) et
+`unit_style` (sorte Type). Relevé sur un compte réel : 17 attributs et 7 types
+sur 1 512 artéfacts.
+
+⚠️ **Sans ce décodage, un intangible retombait sur `element: 'unknown'` /
+`archetype: undefined`** — indistinguable d'une donnée corrompue, et jugé
+éligible à AUCUN monstre. Il aurait donc disparu de toute optimisation en
+silence. Un test verrouille les deux sens : les intangibles sont reconnus, et
+aucun artéfact NON intangible ne traîne d'attribut ou d'archétype inconnu (ce
+qui signalerait une valeur com2us nouvelle).
+
+⚠️ **`artifactFitsMonster` teste le drapeau EN PREMIER**, avant
+`element`/`archetype` : sur un intangible ces champs ne veulent rien dire, les
+lire d'abord le rejetterait systématiquement.
+
+> **Limite connue, pas une régression** : un artéfact intangible n'affiche
+> **aucune icône** (`ArtifactIcon` renvoie `null` faute de nom d'image), et les
+> filtres de l'inventaire ne savent pas le désigner. C'était déjà le cas avant
+> que le drapeau existe ; maintenant que la donnée est là, c'est réparable.
+
 ## 5. Perf
 
 Même contrainte que les runes : calcul **pur et linéaire**, mémoïsé à l'import,

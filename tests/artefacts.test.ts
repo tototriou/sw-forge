@@ -13,6 +13,7 @@ import {
   isFullStack,
   ARTIFACT_SUB_MAX,
   artifactFitsMonster,
+  artifactPairAllowed,
   eligibleArtifacts,
 } from '../src/lib/artifacts';
 import { ArtifactArchetype, ArtifactDetail, ElementKey } from '../src/types';
@@ -160,6 +161,29 @@ export default function testArtefacts() {
     );
   }
 
+  // ⚠️ INTANGIBLE — le joker. Existe dans les DEUX sortes, se pose sur
+  // n'importe quel monstre. Testé AVANT element/archetype, dont les valeurs ne
+  // veulent rien dire sur un intangible (com2us y met 98).
+  {
+    const intangibleAttribut: ArtifactDetail = { ...artAttribut('unknown'), intangible: true };
+    const intangibleType: ArtifactDetail = { ...artType('support'), intangible: true };
+    const eau = { element: 'water' as ElementKey, archetype: 'defense' as ArtifactArchetype };
+    ok(artifactFitsMonster(intangibleAttribut, lushen), 'un intangible d’attribut va sur Lushen (Ténèbres)…');
+    ok(artifactFitsMonster(intangibleAttribut, eau), '… comme sur un monstre Eau : c’est un joker');
+    ok(artifactFitsMonster(intangibleType, lushen), 'idem pour un intangible de TYPE, malgré un archétype qui ne correspond pas');
+    ok(artifactFitsMonster(intangibleType, sansArchetype), '… et même sur un monstre sans archétype connu');
+
+    // ⚠️ La contrainte est sur la PAIRE : chaque artéfact est éligible seul,
+    // et pourtant les deux ensemble sont interdits. Un optimiseur qui filtre
+    // emplacement par emplacement proposerait une paire inéquipable.
+    ok(!artifactPairAllowed(intangibleAttribut, intangibleType), 'DEUX intangibles à la fois : interdit');
+    ok(artifactPairAllowed(intangibleAttribut, artType('attack')), 'un seul intangible (attribut) : permis');
+    ok(artifactPairAllowed(artAttribut('dark'), intangibleType), 'un seul intangible (type) : permis');
+    ok(artifactPairAllowed(artAttribut('dark'), artType('attack')), 'aucun intangible : permis');
+    ok(artifactPairAllowed(intangibleAttribut, null), 'un emplacement vide n’a jamais rien à interdire');
+    ok(artifactPairAllowed(null, null), 'deux emplacements vides non plus');
+  }
+
   // Sur le VRAI bestiaire : l'archétype est présent et cohérent.
   {
     const monstres = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
@@ -217,6 +241,26 @@ export default function testArtefacts() {
   // Garde-fou de calibrage : sur un compte réel, l'efficience doit rester dans
   // une plage plausible. Un dénominateur cassé enverrait la médiane à 5 % ou à
   // 400 % sans qu'aucune autre vérification ne bronche.
+  // ⚠️ Les INTANGIBLES existent réellement dans un compte, et le décodage du
+  // marqueur com2us (98) est la seule chose qui les distingue d'une donnée
+  // corrompue. Sans lui ils retomberaient sur `element: 'unknown'` /
+  // `archetype: undefined` et seraient jugés éligibles à AUCUN monstre —
+  // silencieusement absents de toute optimisation.
+  {
+    const intangibles = artifacts.filter((a) => a.intangible);
+    ok(intangibles.length > 0, `des intangibles sont reconnus dans l'inventaire réel (${intangibles.length})`);
+    ok(
+      intangibles.some((a) => a.kind === 'element') && intangibles.some((a) => a.kind === 'archetype'),
+      'et dans les DEUX sortes — attribut comme type'
+    );
+    // Aucun artéfact NON intangible ne doit avoir d'attribut/archétype inconnu :
+    // ce serait le signe d'un marqueur raté ou d'une valeur com2us nouvelle.
+    const orphelins = artifacts.filter(
+      (a) => !a.intangible && (a.kind === 'element' ? a.element === 'unknown' : a.archetype == null)
+    );
+    egal(orphelins.length, 0, 'aucun artéfact non-intangible sans attribut ni archétype reconnu');
+  }
+
   const effs = artifacts.map(artifactEfficiency).sort((a, b) => a - b);
   const mediane = effs[Math.floor(effs.length / 2)];
   ok(

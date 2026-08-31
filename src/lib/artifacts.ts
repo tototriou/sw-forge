@@ -41,8 +41,30 @@ export interface PorteurArtefact {
 // défaut proposerait des artéfacts qu'aucun de ces monstres ne peut équiper ;
 // répondre « non » ne fait que ne rien proposer, ce qui se voit.
 export function artifactFitsMonster(art: ArtifactDetail, porteur: PorteurArtefact): boolean {
+  // ⚠️ L'INTANGIBLE est un joker : il se pose sur n'importe quel monstre, dans
+  // les deux sortes. Testé EN PREMIER parce que ses champs `element`/
+  // `archetype` ne veulent rien dire (com2us y met 98) — les lire d'abord le
+  // rejetterait systématiquement.
+  //
+  // ⚠️ Sa contrepartie est une contrainte de PAIRE, invisible ici : on ne peut
+  // pas porter deux intangibles à la fois. Voir `artifactPairAllowed` — filtrer
+  // chaque emplacement séparément ne suffit donc PAS.
+  if (art.intangible) return true;
   if (art.kind === 'element') return art.element != null && art.element === porteur.element;
   return art.archetype != null && art.archetype === porteur.archetype;
+}
+
+// Cette PAIRE est-elle portable ensemble ? Les deux emplacements sont par
+// ailleurs indépendants — c'est la seule règle qui les relie.
+//
+// ⚠️ **Un seul intangible à la fois.** Chaque artéfact pris isolément peut être
+// parfaitement éligible et la paire rester interdite : un optimiseur qui se
+// contenterait de `eligibleArtifacts` par emplacement proposerait des paires
+// impossibles à équiper.
+//
+// `null` = emplacement laissé vide, toujours permis.
+export function artifactPairAllowed(attribut: ArtifactDetail | null, type: ArtifactDetail | null): boolean {
+  return !(attribut?.intangible && type?.intangible);
 }
 
 // Les artéfacts de l'inventaire que CE monstre peut porter, pour UNE sorte.

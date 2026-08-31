@@ -80,6 +80,7 @@ import {
   skillDamageProfile,
   ARTIFACT_DAMAGE_NEUTRE,
   artifactDamageProfile,
+  artifactCritDamagePoints,
   artifactElementBonusPct,
   speedBuffAmpliPct,
   summonerSkillBonus,
@@ -223,6 +224,35 @@ export default function testDegats() {
   // Le cas le plus net : UN SEUL monstre porte les deux sortes de bombe.
   egal(bombeDe(18101, 'Time Bomb').fixed, true, 'Kobold Bomber (Eau) : Time Bomb pose sans frapper → fixe');
   egal(bombeDe(18101, 'Firecracker').fixed, false, '… et Firecracker, même monstre, frappe ET pose → pas fixe');
+
+  // ⚠️ `bombe` est DISTINCT de `fixed` : un sort ordinaire marqué `(Fixed)`
+  // est fixe sans être une bombe, et ne doit donc PAS profiter de la ligne
+  // d'artéfact « Dgts de bombe ».
+  egal(bombeDe(18101, 'Time Bomb').bombe, true, 'Time Bomb est bien marquée comme bombe');
+  egal(bombeDe(18101, 'Firecracker').bombe, false, 'Firecracker frappe : pas une bombe au sens du calcul');
+  egal(profil('1*{ATK} (Fixed)')!.bombe, false, 'un sort ordinaire marqué (Fixed) est fixe SANS être une bombe');
+  {
+    // +24 % de dégâts de bombe ne s'appliquent qu'au sort de bombe.
+    const artefactBombe = artifactDamageProfile([
+      { kind: 'element', element: 'water', level: 1, rarity: 5, main: { code: 100, value: 300 }, subs: [{ code: 210, value: 24 }] },
+    ]);
+    const st = stats({ atk: 4150 });
+    const setupB: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', enemyDef: 0 };
+    const seara = bombeDe(15713, 'Fate of Destruction');
+    const nu = computeSkillDamage(seara, st, setupB);
+    egal(
+      Math.round(computeSkillDamageDetail(seara, st, setupB, null, undefined, artefactBombe).total),
+      Math.round(nu * 1.24),
+      'Seara : +24 % de dégâts de bombe — recale le second relevé en jeu (~34 000)'
+    );
+    // Le MÊME artéfact sur un sort qui n'est pas une bombe : aucun effet.
+    const ordinaire = profil('1*{ATK} (Fixed)')!;
+    egal(
+      computeSkillDamageDetail(ordinaire, st, setupB, null, undefined, artefactBombe).total,
+      computeSkillDamageDetail(ordinaire, st, setupB, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
+      '… et rien du tout sur un sort qui n’est pas une bombe'
+    );
+  }
 
   {
     // Ni la DEF adverse ni le critique ne doivent bouger le résultat.
@@ -540,6 +570,34 @@ export default function testDegats() {
     ok(a.degatsElementPct !== b.degatsElementPct, '… et deux profils ne partagent JAMAIS la même table');
     egal(ARTIFACT_DAMAGE_NEUTRE.degatsElementPct, {}, 'la constante neutre n’a pas été polluée au passage');
   }
+  // Dgts CRIT par compétence (400-403, 410), mono-cible (224), bombe (210).
+  const artefactType: ArtifactDetail = {
+    ...artefactVit,
+    subs: [
+      { code: 400, value: 10 }, // Comp.1
+      { code: 410, value: 6 }, // Comp.3 ET Comp.4
+      { code: 224, value: 5 }, // mono-cible pendant ton tour
+      { code: 210, value: 24 }, // dégâts de bombe
+    ],
+  };
+  const profilType = artifactDamageProfile([artefactType]);
+  // ⚠️ 410 compte EN ENTIER pour les slots 3 et 4 — ce n'est pas un partage,
+  // même logique que le code 226 pour ATQ/DEF.
+  egal(profilType.cdPointsParSlot, { 1: 10, 3: 6, 4: 6 }, '410 alimente les slots 3 ET 4, en entier');
+  egal(profilType.cdPointsMonoCible, 5, 'le code 224 a son propre canal');
+  egal(profilType.degatsBombePct, 24, 'le code 210 aussi');
+  {
+    const monoS1 = { ...profil('1*{ATK}')!, slot: 1, aoe: false };
+    const zoneS1 = { ...monoS1, aoe: true };
+    const monoS3 = { ...monoS1, slot: 3 };
+    const monoS2 = { ...monoS1, slot: 2 };
+    egal(artifactCritDamagePoints(profilType, monoS1), 15, 'S1 mono-cible : 10 (Comp.1) + 5 (mono-cible)');
+    egal(artifactCritDamagePoints(profilType, zoneS1), 10, 'le MÊME sort en zone perd les 5 points mono-cible');
+    egal(artifactCritDamagePoints(profilType, monoS3), 11, 'S3 mono-cible : 6 (Comp.3/4) + 5');
+    egal(artifactCritDamagePoints(profilType, monoS2), 5, 'S2 : aucune ligne par compétence ici, seuls les 5 restent');
+    egal(artifactCritDamagePoints(ARTIFACT_DAMAGE_NEUTRE, monoS1), 0, 'sans artéfact, aucun point');
+  }
+
   const profilFeu = artifactDamageProfile([artefactElement]);
   egal(artifactElementBonusPct(profilFeu, 'fire'), 12, 'contre du Feu, la ligne Feu s’applique');
   egal(artifactElementBonusPct(profilFeu, 'dark'), 0, 'contre un élément non couvert, rien ne s’applique');

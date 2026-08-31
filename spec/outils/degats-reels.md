@@ -297,6 +297,39 @@ personne ne veut.
 > PV/DEF/VIT, que ces lignes convertissent en dégâts. Là, le build est déjà
 > figé par un autre objectif — il n'y a rien à réorienter.
 
+## Dgts CRIT conditionnels au SORT (400-403, 410, 224)
+
+Ces lignes ajoutent des **POINTS** de Dgts Crit — comme les compétences
+d'invocateur ou Euldong, jamais un pourcentage de la stat — mais **seulement
+quand le sort calculé est celui qu'elles visent**.
+
+| Code | Libellé du jeu | S'applique à |
+|---|---|---|
+| 400 / 401 / 402 / 403 | `[Comp.N] Aug. Dgts CRIT` | le sort du slot N |
+| 410 | `Dgts CRIT [compétence 3/4]` | les slots **3 ET 4** |
+| 224 | `D.CRIT+ comp cib uniq pdt tour` | les sorts **mono-cible** (`aoe === false`) |
+
+⚠️ **410 compte EN ENTIER pour les deux slots**, ce n'est pas un partage —
+même logique que le code 226 pour ATQ/DEF.
+
+⚠️ **402/403 existent mais ne sont pas dans la recherche détaillée du jeu**,
+qui ne propose que 400, 401, 410 et 411 (voir `SUB_ORDER`, effects.ts) : les
+deux formes sont gérées, un inventaire ancien pouvant porter les secondes.
+
+Tout est **déduit du profil du sort** (`slot`, `aoe`), rien n'est saisi —
+`artifactCritDamagePoints()` est la seule porte d'entrée.
+
+## Dégâts de bombe (210)
+
+⚠️ **`SkillDamageProfile.bombe` est DISTINCT de `fixed`.** Toute bombe est
+fixe, mais un sort ordinaire marqué `(Fixed)` est fixe **sans être une
+bombe** — et ne doit donc pas profiter de cette ligne. Les confondre
+majorerait des sorts qui n'ont rien d'une bombe.
+
+Le relevé Seara le vérifie dans les deux sens : +24 % appliqués à
+`Fate of Destruction` (ce qui recale le second relevé, ~34 000), et
+strictement aucun effet sur un sort fixe ordinaire.
+
 ## Dégâts infligés par élément (300-304) — et le choix de la cible
 
 `Aug. des dgts infl. au Feu / à l'Eau / au Vent / à la Lum. / aux Tén.`

@@ -314,6 +314,29 @@ const CODE_DEGATS_ELEMENT: Record<number, ElementKey> = {
   304: 'dark',
 };
 
+// « [Comp.N] Aug. Dgts CRIT » — des POINTS de Dgts Crit, mais SEULEMENT quand
+// le sort calculé est celui visé. `profile.slot` donne le numéro.
+//
+// ⚠️ 410 (« Dgts CRIT [compétence 3/4] ») porte sur DEUX sorts à la fois :
+// c'est la ligne que le jeu propose réellement dans sa recherche détaillée,
+// là où 402/403 (Comp.3 et Comp.4 séparées) tombent sous « Autres
+// sous-propriétés » — voir `SUB_ORDER`, effects.ts. Les deux formes sont
+// gérées : un inventaire ancien peut porter les secondes.
+const CODE_CD_PAR_SLOT: Record<number, number[]> = {
+  400: [1],
+  401: [2],
+  402: [3],
+  403: [4],
+  410: [3, 4],
+};
+
+// « D.CRIT+ comp cib uniq pdt tour » — ne vaut que pour un sort MONO-CIBLE.
+// La portée vient des données (`aoe`), jamais d'une saisie.
+const CODE_CD_MONO_CIBLE = 224;
+
+// « Dgts de bombe » — ne vaut que pour un sort de bombe.
+const CODE_DEGATS_BOMBE = 210;
+
 // Ce qu'une paire d'artéfacts apporte au calcul de dégâts.
 //
 // ⚠️ **Un OBJET plutôt qu'un nombre**, là où le code ne portait que
@@ -336,6 +359,12 @@ export interface ArtifactDamageProfile {
   // profil reste une fonction PURE des artéfacts, et le choix de la cible
   // (`DamageSetup.enemyElement`) peut changer sans le recalculer.
   degatsElementPct: Partial<Record<ElementKey, number>>;
+  // POINTS de Dgts Crit accordés à un slot de sort précis (codes 400-403, 410).
+  cdPointsParSlot: Partial<Record<number, number>>;
+  // POINTS de Dgts Crit, sorts MONO-CIBLE seulement (code 224).
+  cdPointsMonoCible: number;
+  // Majoration des dégâts de bombe (code 210).
+  degatsBombePct: number;
 }
 
 // Aucun artéfact pris en compte — comportement strictement inchangé.
@@ -348,6 +377,9 @@ export const ARTIFACT_DAMAGE_NEUTRE: ArtifactDamageProfile = {
   brutPctDef: 0,
   brutPctVit: 0,
   degatsElementPct: {},
+  cdPointsParSlot: {},
+  cdPointsMonoCible: 0,
+  degatsBombePct: 0,
 };
 
 // Majoration à appliquer contre CETTE cible — 0 si l'utilisateur a choisi
@@ -356,10 +388,17 @@ export function artifactElementBonusPct(p: ArtifactDamageProfile, enemyElement: 
   return enemyElement ? (p.degatsElementPct[enemyElement] ?? 0) : 0;
 }
 
+// POINTS de Dgts Crit apportés par les artéfacts POUR CE SORT précis —
+// somme des lignes par compétence et, si le sort est mono-cible, de la ligne
+// 224. Tout est déduit du profil du sort, rien n'est saisi.
+export function artifactCritDamagePoints(p: ArtifactDamageProfile, profile: SkillDamageProfile): number {
+  return (p.cdPointsParSlot[profile.slot] ?? 0) + (profile.aoe ? 0 : p.cdPointsMonoCible);
+}
+
 export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDamageProfile {
   // ⚠️ `degatsElementPct` est un objet : le spread de la constante neutre le
   // partagerait entre tous les profils. Réinitialisé explicitement.
-  const p: ArtifactDamageProfile = { ...ARTIFACT_DAMAGE_NEUTRE, degatsElementPct: {} };
+  const p: ArtifactDamageProfile = { ...ARTIFACT_DAMAGE_NEUTRE, degatsElementPct: {}, cdPointsParSlot: {} };
   for (const a of artifacts) {
     for (const s of a.subs) {
       if (s.code === CODE_AMPLI_ATK) p.ampliAtkPct += s.value;
@@ -372,9 +411,17 @@ export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDama
       else if (s.code === CODE_BRUT_ATK) p.brutPctAtk += s.value;
       else if (s.code === CODE_BRUT_DEF) p.brutPctDef += s.value;
       else if (s.code === CODE_BRUT_VIT) p.brutPctVit += s.value;
+      else if (s.code === CODE_CD_MONO_CIBLE) p.cdPointsMonoCible += s.value;
+      else if (s.code === CODE_DEGATS_BOMBE) p.degatsBombePct += s.value;
       else {
         const el = CODE_DEGATS_ELEMENT[s.code];
         if (el) p.degatsElementPct[el] = (p.degatsElementPct[el] ?? 0) + s.value;
+        // ⚠️ Une même ligne peut alimenter PLUSIEURS slots (410 → 3 et 4) :
+        // elle compte en entier pour chacun, ce n'est pas un partage — même
+        // logique que le code 226 pour ATQ/DEF.
+        for (const slot of CODE_CD_PAR_SLOT[s.code] ?? []) {
+          p.cdPointsParSlot[slot] = (p.cdPointsParSlot[slot] ?? 0) + s.value;
+        }
       }
     }
   }
@@ -1403,6 +1450,13 @@ export interface SkillDamageProfile {
   // critiques et ne passent PAS par le facteur de défense (voir
   // spec/mecaniques.md, terme « Additionnel »).
   fixed: boolean;
+  // Ce sort EST une bombe (voir `estBombeSansCoupDirect`).
+  //
+  // ⚠️ **Distinct de `fixed`**, même si toute bombe est fixe : `fixed` est
+  // aussi vrai pour un sort ordinaire marqué `(Fixed)`, qui ne profite PAS de
+  // la ligne d'artéfact « Dgts de bombe ». Les confondre majorerait des sorts
+  // qui n'ont rien d'une bombe.
+  bombe: boolean;
   // Ignore une FRACTION de la DEF adverse, proportionnelle à l'écart de VIT
   // avec elle — distinct d'`ignoreDef` (tout ou rien). `ecartMax` = l'écart
   // de VIT (points) au-delà duquel l'ignore atteint 100 % ; 0 % si la cible
@@ -1701,6 +1755,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     ignoreDefSelonVit,
     appliqueDefBreak: c.effets.some((e) => e.nom === 'Decrease DEF' && !e.surSoi),
     fixed,
+    bombe: estBombeSansCoupDirect(c),
     skillupDamagePct,
     bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
     bonusConditionnelPropre: BONUS_CONDITIONNEL_PROPRE_CONNUS[c.nom],
@@ -2035,6 +2090,11 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         // décider de l'affichage du réglage, qui porte sur le sort ACTIF.
         appliqueDefBreak: false,
         fixed,
+        // ⚠️ Aucun passif du corpus ne pose de bombe AVEC une formule (le
+        // seul, « Camouflage », n'en a pas) : jamais vrai ici en pratique.
+        // Calculé de la même façon plutôt que figé à `false` par hypothèse —
+        // le jour où le jeu en ajoute un, il sera traité correctement.
+        bombe: estBombeSansCoupDirect(c),
         skillupDamagePct,
         variables: analyse.variables,
         noeud: analyse.noeud,
@@ -2565,7 +2625,16 @@ export function computeSkillDamageDetail(
       (setup.euldongActif ? EULDONG_CD_POINTS : 0) +
       pctLeaderCd +
       (monsterWide.bonusStatFixe?.cd ?? 0) +
-      overflowVersCd) /
+      overflowVersCd +
+      // Artéfacts de type : « [Comp.N] Aug. Dgts CRIT » (400-403, 410) et
+      // « D.CRIT+ comp cib uniq pdt tour » (224). Des POINTS ajoutés à la
+      // stat, comme les compétences d'invocateur et Euldong — pas un
+      // pourcentage de celle-ci.
+      //
+      // ⚠️ Le SORT décide : la ligne par compétence ne compte que pour son
+      // slot, celle mono-cible que si `aoe` est faux. Tout est déduit du
+      // profil, rien n'est saisi.
+      artifactCritDamagePoints(artefacts, profile)) /
     100;
   const partCrit = profile.fixed ? 0 : setup.critMode === 'crit' ? 1 : setup.critMode === 'normal' ? 0 : cr;
   const critTerm = 1 + profile.skillupDamagePct / 100 + partCrit * cd;
@@ -2604,12 +2673,17 @@ export function computeSkillDamageDetail(
   // — un multiplicateur séparé changerait le résultat dès qu'une Marque ou
   // Mirinae est active en même temps.
   const bonusElement = artifactElementBonusPct(artefacts, setup.enemyElement);
+  // « Dgts de bombe » (210) — même sac additif, et pour la même raison. Ne
+  // compte QUE si le sort est réellement une bombe (`profile.bombe`, distinct
+  // de `fixed` : un sort ordinaire marqué `(Fixed)` n'en profite pas).
+  const bonusBombe = profile.bombe ? artefacts.degatsBombePct : 0;
   const reductions =
     1 +
     (setup.brand ? BRAND_BONUS_PCT / 100 : 0) +
     (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
     (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0) +
-    bonusElement / 100;
+    bonusElement / 100 +
+    bonusBombe / 100;
 
   // Julie (« Thousand Shots »)/Melissa (« Massacre Dance ») : +pct % par
   // effet SAISI sur la cible — propre à CE sort (`profile.

@@ -550,7 +550,14 @@ deux brackets sont additifs *en interne* et **multiplicatifs entre eux** :
 |---|---|---|
 | Artéfact élémentaire | ❌ | ❌ |
 | Mirinae | ❌ | ❌ |
+| Dr. Matteo (Transmission) | ❌ | ❌ |
 | **Marque** | ✅ | ✅ |
+
+⚠️ **Dr. Matteo a été MESURÉ, pas déduit de Mirinae.** Sa formulation en jeu
+est quasi identique, et il aurait été tentant de reconduire l'analogie — mais
+les deux analogies précédentes de ce fichier (les artéfacts −DMG%, puis le
+placement des lignes élémentaires) se sont révélées **fausses**. Celle-ci a
+donc été vérifiée avant d'être écrite.
 
 ⚠️ **La Marque et Mirinae ne sont donc PAS de la même famille**, malgré des
 libellés quasi identiques (« +X % de dégâts subis »). Les traiter ensemble —

@@ -2697,13 +2697,11 @@ export function computeSkillDamageDetail(
   const defEff = profile.ignoreDef ? 0 : Math.max(0, setup.enemyDef) * facteurDefBreak * (1 - fractionIgnoree);
   const mitigation = profile.fixed ? 1 : defenseFactor(defEff);
 
-  // Mirinae (S3 « Cursed Music ») : même famille que la Marque, additive
-  // avec elle — confirmé par l'utilisateur. Dr. Matteo (« Transmission »)
-  // : formulation identique, traité PAR ANALOGIE dans le même terme (non
-  // confirmé séparément comme additif, voir la constante plus haut).
-  // Artéfact d'attribut « Aug. des dgts infl. au <élément> » (300-304) —
-  // compté dans CE terme, donc ADDITIF avec la Marque et Mirinae, et non un
-  // multiplicateur à part.
+  // Mirinae (S3 « Cursed Music ») et Dr. Matteo (« Transmission ») : même
+  // famille, additifs avec la Marque DANS le terme Réductions — mais tous deux
+  // sans effet sur les bombes et sur le bucket Additionnel, là où la Marque, si
+  // (voir `horsPorteeMirinae` et `reductionsUniverselles` plus bas). Les deux
+  // sont mesurés en jeu, aucun n'est déduit de l'autre.
   //
   // ⚠️ **Déduit, pas confirmé directement.** L'utilisateur a établi que
   // Mirinae « stacks additively with -DMG% artifacts » : les lignes de DMG%
@@ -2738,6 +2736,11 @@ export function computeSkillDamageDetail(
   // Les traiter ensemble — ce que faisait ce terme — majorait donc à tort les
   // bombes et tout le bucket Additionnel.
   //
+  // ⚠️ **Dr. Matteo suit Mirinae, et c'est MESURÉ** — pas une analogie. Relevé
+  // en jeu : son passif ne change ni les dégâts des bombes, ni ceux du passif
+  // de Shahat. Les deux analogies précédentes de ce fichier s'étant révélées
+  // fausses (les −DMG% et le placement des lignes élémentaires), celle-ci a
+  // été vérifiée plutôt que reconduite.
   // `TRANSMISSION_BONUS_PCT` (Dr. Matteo) suit Mirinae : même formulation dans
   // le jeu, jamais mesuré séparément — l'analogie est assumée et signalée.
   const reductionsUniverselles = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);

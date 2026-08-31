@@ -699,6 +699,14 @@ export default function testDegats() {
       nuBombe,
       'Mirinae : aucun effet sur une bombe non plus'
     );
+    // ⚠️ Dr. Matteo suit Mirinae, et c'est MESURÉ — pas déduit de lui. Les
+    // deux analogies précédentes de ce fichier s'étant révélées fausses, celle
+    // -ci a été vérifiée en jeu avant d'être reconduite.
+    egal(
+      computeSkillDamage(bombe, st, { ...base, transmissionActif: true }),
+      nuBombe,
+      'Dr. Matteo : aucun effet sur une bombe (mesuré, pas déduit de Mirinae)'
+    );
     egal(
       Math.round(computeSkillDamage(bombe, st, { ...base, brand: true })),
       Math.round(nuBombe * 1.25),
@@ -718,6 +726,7 @@ export default function testDegats() {
       'artéfact élémentaire : aucun effet sur le passif de Shahat'
     );
     egal(Math.round(ecart({ ...base, mirinaeActif: true })), 2100, 'Mirinae non plus');
+    egal(Math.round(ecart({ ...base, transmissionActif: true })), 2100, 'Dr. Matteo non plus (mesuré)');
 
     // ⚠️ **RELEVÉ JULIE** — un bonus de sort « +X % par effet » ne touche pas
     // non plus le bucket Additionnel. S3 « Thousand Shots » : +50 % par effet

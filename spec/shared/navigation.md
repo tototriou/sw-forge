@@ -58,14 +58,14 @@ nouvel onglet ». Le type l'impose — `hash` **ou** `ouvre`, jamais les deux.
 
 ### Le gabarit d'une entrée
 
-Environ **37 px de haut**, icône **17**, texte **15** (`text-base`) : les
+Environ **35 px de haut**, icône **17**, texte **14** (`text-md`) : les
 proportions d'une barre d'application plutôt que d'un menu de site.
 
-⚠️ **Le texte était à 13 (`text-sm`) et la colonne se lisait serrée.** L'échelle
-typographique de l'app n'a rien entre 13 et 15
-([design.md](design.md)) : on ne pose pas un `text-[14px]` pour adoucir le saut,
-ce serait une valeur en dur hors échelle — et la première d'une série, puisque le
-cran manquant le resterait.
+⚠️ **Le texte était à 13 (`text-sm`) et la colonne se lisait serrée** ; 15
+l'appuyait trop. L'échelle n'avait rien entre les deux : le palier `md` a donc
+été **ajouté à l'échelle** ([design.md](design.md)), pas posé en `text-[14px]`
+sur place — une valeur en dur aurait été hors système, et la première d'une
+série. C'est le seul emploi de ce palier.
 
 ⚠️ **Ce gabarit ne concerne QUE le bureau.** La barre latérale est
 `hidden lg:flex`, et le panneau de navigation du téléphone

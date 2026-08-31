@@ -626,16 +626,16 @@ function LienBarre({
       title={retractee ? lien.label : undefined}
       // ⚠️ UN SEUL marqueur de sélection : le fond teinté. Pas de fond +
       // bordure + gras cumulés — la règle du design system.
-      // ⚠️ ~37 px de haut, icône 17, texte 15 : les proportions d'une barre
+      // ⚠️ ~35 px de haut, icône 17, texte 14 : les proportions d'une barre
       // d'application (Vercel, Linear) plutôt que d'un menu de site. Une entrée
       // plus serrée fait une liste qu'on parcourt du regard ; à cette taille on
       // vise sans effort, et la colonne respire.
       //
-      // ⚠️ **`text-base` (15), pas 14.** L'entrée était en `text-sm` (13) et la
-      // colonne se lisait serrée. L'échelle typographique de l'app n'a rien
-      // entre 13 et 15 (spec/shared/design.md) : on ne pose pas un `text-[14px]`
-      // pour adoucir le saut, ce serait une valeur en dur hors échelle — et la
-      // première d'une série, puisque le cran suivant manquerait toujours.
+      // ⚠️ **`text-md` (14), le palier ajouté pour ça.** L'entrée était à 13 et
+      // la colonne se lisait serrée ; 15 l'appuyait trop. L'échelle n'avait rien
+      // entre les deux — le cran a donc été AJOUTÉ à l'échelle
+      // (tailwind.config.js), pas posé en dur ici. Un `text-[14px]` local aurait
+      // été une valeur hors système, et la première d'une série.
       //
       // ⚠️ **La barre est `hidden lg:flex`**, donc ce réglage ne concerne QUE le
       // bureau. Le panneau de navigation du téléphone (MobileNavSheet) a son
@@ -646,7 +646,7 @@ function LienBarre({
       // larges comme leur texte, et leur fond au survol s'arrêtait au milieu de
       // la barre — trois entrées visiblement différentes des six autres.
       className={`group relative flex w-full items-center rounded-md py-2 text-left
-                  text-base transition-colors ${
+                  text-md transition-colors ${
                     retractee ? 'justify-center px-0' : 'gap-2.5 px-2'
                   } ${
                     lien.actif ? 'text-ink' : 'text-ink-dim hoverable:text-ink'

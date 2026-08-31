@@ -92,6 +92,20 @@ export default {
         micro: ['11px', { lineHeight: '1.45' }],
         xs: ['12px', { lineHeight: '1.5' }],
         sm: ['13px', { lineHeight: '1.5' }],
+        // ⚠️ **`md` est un palier de NAVIGATION, pas un cran de plus dans
+        // l'échelle générale.** L'échelle en compte volontairement peu : deux
+        // valeurs trop voisines ne créent pas de hiérarchie, elles créent du
+        // flou (voir spec/shared/design.md). Il existe parce que la barre
+        // latérale du BUREAU se lisait serrée à 13 et trop appuyée à 15 — une
+        // colonne de neuf entrées qu'on parcourt du regard, pas du texte de
+        // lecture. Un `text-[14px]` posé sur place aurait été une valeur en dur,
+        // et la première d'une série : le cran manquant le serait resté.
+        //
+        // ⚠️ **Ne pas s'en servir pour du CORPS de texte.** Entre `sm` et
+        // `base`, il ne sert qu'à caler une densité, jamais à marquer un niveau
+        // d'information — deux blocs voisins en `sm` et `md` se liraient comme
+        // une hésitation, pas comme une hiérarchie.
+        md: ['14px', { lineHeight: '1.5' }],
         base: ['15px', { lineHeight: '1.6' }],
         lg: ['17px', { lineHeight: '1.4' }],
         xl: ['clamp(22px, 3vw, 30px)', { lineHeight: '1.15' }],

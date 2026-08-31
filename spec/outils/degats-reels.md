@@ -297,6 +297,65 @@ personne ne veut.
 > PV/DEF/VIT, que ces lignes convertissent en dégâts. Là, le build est déjà
 > figé par un autre objectif — il n'y a rien à réorienter.
 
+## Dgts CRIT qui VARIENT d'un coup à l'autre (411, 222, 223)
+
+Trois lignes d'artéfact ne valent pas la même chose sur tous les coups d'un
+même sort — les seules dans ce cas.
+
+| Code | Libellé du jeu | Variation |
+|---|---|---|
+| 411 | `Dgts CRIT 1re attaque` | **premier coup seulement** |
+| 222 | `D.CRIT+ selon bon état PV enn.` | **rampe linéaire** : plein à 100 % des PV de la cible, rien à 0 % |
+| 223 | `D.CRIT+ sel. mauv. étt PV enn.` | **rampe inverse** : rien à 100 %, plein à 0 % |
+
+Aucun palier : à 50 % de PV, chaque rampe vaut exactement la moitié. Un test
+le vérifie explicitement, parce que c'est le seul point qui distingue une
+rampe d'un seuil.
+
+### Rien n'est « recalculé » — le terme est AFFINE
+
+On pourrait croire qu'il faut refaire tout `horsCoup` à chaque coup, puisque
+ces lignes changent les Dgts Crit et que les PV de la cible baissent en cours
+de sort. **Non** : `cr`, `cd` et `partCrit` sont calculés une seule fois, seul
+`pvFrac` varie. D'où :
+
+```
+horsCoup(coup i) = horsCoup + coefCdParCoup × deltaCdPoints(i, pvFrac)
+      avec  coefCdParCoup = partCrit × K / 100     (K invariant)
+```
+
+Deux constantes précalculées, puis une multiplication-addition par coup.
+
+⚠️ **Le vrai coût n'est donc pas là**, mais dans le fait de **forcer le chemin
+séquentiel** sur des sorts qui prenaient le chemin court. Deux garde-fous :
+
+- **`partCrit === 0` court-circuite tout** (sort `fixed`, ou mode « jamais
+  critique ») : ces lignes ne peuvent alors rien changer, et le chemin court
+  est conservé. Un build non-critique ne paie rien.
+- **Le multiplicateur de la formule est évalué UNE fois** quand elle ne lit
+  pas les PV de la cible. Sans ça, un sort poussé dans la boucle par les
+  seules lignes d'artéfact paierait `coups` évaluations d'arbre pour rien.
+
+**Mesuré** (`computeTotalDamage` seul, 1 M d'évaluations, Lushen S3) :
+
+| Coups | Chemin court | Séquentiel forcé | Surcoût |
+|---|---|---|---|
+| 1 | 213 ns | 250 ns | ×1,17 |
+| 3 | 235 ns | 281 ns | ×1,20 |
+| 6 | 200 ns | 270 ns | ×1,35 |
+
+⚠️ C'est le coût de `computeTotalDamage` **seul** — une fraction de
+l'évaluation d'un candidat dans l'optimiseur, qui construit aussi les stats et
+vérifie les contraintes. Et il n'est payé que si les artéfacts portent
+réellement une de ces trois lignes ET que le build peut critiquer.
+
+### ⚠️ 411 vaut pour la première attaque DU TOUR, pas de chaque contribution
+
+`computeTotalDamage` calcule le sort actif, puis chaque passif offensif. Le
+sort a déjà consommé « la première attaque » : les passifs reçoivent donc un
+profil dont `cdPointsPremiereAttaque` est remis à zéro. Sans ça, un monstre à
+trois passifs encaisserait le bonus quatre fois.
+
 ## Dgts CRIT conditionnels au SORT (400-403, 410, 224)
 
 Ces lignes ajoutent des **POINTS** de Dgts Crit — comme les compétences

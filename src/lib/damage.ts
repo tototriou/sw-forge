@@ -334,6 +334,16 @@ const CODE_CD_PAR_SLOT: Record<number, number[]> = {
 // La portée vient des données (`aoe`), jamais d'une saisie.
 const CODE_CD_MONO_CIBLE = 224;
 
+// « Dgts CRIT 1re attaque » — SEULEMENT le premier coup du sort. Sur un S3 de
+// Lushen (3 coups), les deux suivants n'en profitent pas.
+const CODE_CD_PREMIERE_ATTAQUE = 411;
+
+// « D.CRIT+ selon bon / mauvais état des PV ennemis » — des POINTS de Dgts
+// Crit modulés LINÉAIREMENT par les PV restants de la cible : 222 vaut plein
+// à 100 % de PV et rien à 0 %, 223 l'inverse. Aucun palier.
+const CODE_CD_PV_CIBLE_HAUTS = 222;
+const CODE_CD_PV_CIBLE_BAS = 223;
+
 // « Dgts de bombe » — ne vaut que pour un sort de bombe.
 const CODE_DEGATS_BOMBE = 210;
 
@@ -363,6 +373,13 @@ export interface ArtifactDamageProfile {
   cdPointsParSlot: Partial<Record<number, number>>;
   // POINTS de Dgts Crit, sorts MONO-CIBLE seulement (code 224).
   cdPointsMonoCible: number;
+  // POINTS de Dgts Crit sur le PREMIER COUP seulement (code 411).
+  cdPointsPremiereAttaque: number;
+  // POINTS de Dgts Crit modulés par les PV restants de la cible (222/223).
+  // ⚠️ Ces trois-là sont les SEULES lignes d'artéfact qui varient d'un coup à
+  // l'autre — voir `coefCdParCoup` dans `computeSkillDamageDetail`.
+  cdPointsPvCibleHauts: number;
+  cdPointsPvCibleBas: number;
   // Majoration des dégâts de bombe (code 210).
   degatsBombePct: number;
 }
@@ -379,6 +396,9 @@ export const ARTIFACT_DAMAGE_NEUTRE: ArtifactDamageProfile = {
   degatsElementPct: {},
   cdPointsParSlot: {},
   cdPointsMonoCible: 0,
+  cdPointsPremiereAttaque: 0,
+  cdPointsPvCibleHauts: 0,
+  cdPointsPvCibleBas: 0,
   degatsBombePct: 0,
 };
 
@@ -412,6 +432,9 @@ export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDama
       else if (s.code === CODE_BRUT_DEF) p.brutPctDef += s.value;
       else if (s.code === CODE_BRUT_VIT) p.brutPctVit += s.value;
       else if (s.code === CODE_CD_MONO_CIBLE) p.cdPointsMonoCible += s.value;
+      else if (s.code === CODE_CD_PREMIERE_ATTAQUE) p.cdPointsPremiereAttaque += s.value;
+      else if (s.code === CODE_CD_PV_CIBLE_HAUTS) p.cdPointsPvCibleHauts += s.value;
+      else if (s.code === CODE_CD_PV_CIBLE_BAS) p.cdPointsPvCibleBas += s.value;
       else if (s.code === CODE_DEGATS_BOMBE) p.degatsBombePct += s.value;
       else {
         const el = CODE_DEGATS_ELEMENT[s.code];
@@ -2730,6 +2753,35 @@ export function computeSkillDamageDetail(
   // plat d'un PASSIF, qui n'appartient pas à sa formule.
   const horsCoupBrut =
     reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
+  // ── Lignes d'artéfact qui VARIENT d'un coup à l'autre (411, 222, 223) ──
+  //
+  // ⚠️ **Rien à recalculer, malgré les apparences.** On pourrait croire qu'il
+  // faut refaire tout `horsCoup` à chaque coup, puisque ces lignes changent
+  // les Dgts Crit et que les PV de la cible baissent en cours de sort. Non :
+  // `cr`, `cd` et `partCrit` sont calculés UNE fois, seul `pvFrac` varie. Le
+  // terme est donc AFFINE en `pvFrac` :
+  //
+  //   horsCoup(coup i) = horsCoup + coefCdParCoup × deltaCdPoints(i, pvFrac)
+  //
+  // avec `coefCdParCoup = partCrit × K / 100` (K = tout ce qui multiplie
+  // `critTerm`, invariant). Deux constantes précalculées, puis une
+  // multiplication-addition par coup — pas un recalcul.
+  const kHorsCrit = mitigation * reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
+  const coefCdParCoup = (partCrit * kHorsCrit) / 100;
+  const deltaCdPoints = (premierCoup: boolean, pvFrac: number) =>
+    (premierCoup ? artefacts.cdPointsPremiereAttaque : 0) +
+    artefacts.cdPointsPvCibleHauts * pvFrac +
+    artefacts.cdPointsPvCibleBas * (1 - pvFrac);
+
+  // ⚠️ **Garde-fou de coût** : `partCrit === 0` (sort `fixed`, ou mode « jamais
+  // critique ») rend `coefCdParCoup` nul — ces lignes ne peuvent alors RIEN
+  // changer, et il n'y a aucune raison de payer la boucle séquentielle. Un
+  // build non-critique ne subit donc pas le coût de lignes qui ne le
+  // concernent pas.
+  const artefactsVarientParCoup =
+    coefCdParCoup > 0 &&
+    (artefacts.cdPointsPremiereAttaque > 0 || artefacts.cdPointsPvCibleHauts > 0 || artefacts.cdPointsPvCibleBas > 0);
+
   const coups = resolvedHits(profile, setup);
   // Crawler/Frankenstein (« Rage Charge ») : `+coeffParPoint × {variable} ×
   // compteur` s'ajoute au MULTIPLICATEUR de la formule (jamais une
@@ -2801,7 +2853,9 @@ export function computeSkillDamageDetail(
 
   // Chemin COURT — le ratio ne dépend pas des PV de la cible : une seule
   // évaluation, exactement comme avant l'ajout de la simulation.
-  if (!profile.variables.includes('Target Current HP %')) {
+  const formuleLitPvCible = profile.variables.includes('Target Current HP %');
+
+  if (!formuleLitPvCible && !artefactsVarientParCoup) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
     if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, pvRestantsPct: pctDepart };
     // ⚠️ Le terme brut est DANS le `×coups`, plus ajouté à côté : les deux
@@ -2815,13 +2869,21 @@ export function computeSkillDamageDetail(
   // précédent, donc avec un ratio plus élevé.
   let pvCourant = (pctDepart / 100) * pvMax;
   let totalDegats = 0;
+  // ⚠️ Si la FORMULE ne lit pas les PV de la cible, son multiplicateur est
+  // constant : on l'évalue UNE fois plutôt qu'à chaque tour de boucle. Sans
+  // ça, un sort poussé ici par les seules lignes d'artéfact paierait
+  // `coups` évaluations d'arbre pour rien.
+  const multFixe = formuleLitPvCible ? 0 : evaluer(profile.noeud, valeurs);
   for (let i = 0; i < coups; i++) {
-    valeurs['Target Current HP %'] = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
-    const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
+    const pvFrac = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
+    if (formuleLitPvCible) valeurs['Target Current HP %'] = pvFrac;
+    const mult = (formuleLitPvCible ? evaluer(profile.noeud, valeurs) : multFixe) + ajoutParCoup;
+    // La seule part variable de `horsCoup` — voir `coefCdParCoup`.
+    const horsCoupIci = horsCoup + coefCdParCoup * deltaCdPoints(i === 0, pvFrac);
     // ⚠️ `Math.max(0, mult)` et non un `continue` sur `mult <= 0` : un
     // multiplicateur nul n'annule PAS le terme brut, qui ne dépend pas de la
     // formule du sort. Le coup n'est sauté que s'il ne porte réellement rien.
-    const degatsCoup = Math.max(0, mult) * horsCoup + degatsBrutParCoup;
+    const degatsCoup = Math.max(0, mult) * horsCoupIci + degatsBrutParCoup;
     if (degatsCoup <= 0) continue;
     totalDegats += degatsCoup;
     // ⚠️ Le terme brut est creusé DANS la boucle, avec le coup qui le porte —
@@ -3010,6 +3072,17 @@ export function computeTotalDamage(
   const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, artefacts, monsterWide);
   let total = sort.total;
   let pvCiblePct = sort.pvRestantsPct;
+  // ⚠️ « Dgts CRIT 1re attaque » (411) vaut pour la PREMIÈRE attaque du tour,
+  // pas pour le premier coup de chaque contribution : le sort actif l'a déjà
+  // consommée ci-dessus. Sans cette neutralisation, chaque passif offensif se
+  // verrait accorder le bonus à son tour — un monstre à trois passifs
+  // l'encaisserait quatre fois.
+  //
+  // ⚠️ Construit UNE fois hors de la boucle : dans la boucle interne de
+  // l'optimiseur, un objet par passif et par candidat serait de la pression
+  // GC pure. Le reste du profil est partagé tel quel.
+  const artefactsPassif: ArtifactDamageProfile =
+    artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
   for (const p of passifs) {
     if (!passifActif(p, setup)) continue;
     // `hitsRange: undefined` : `hits` est déjà la valeur RÉSOLUE du sort
@@ -3028,7 +3101,7 @@ export function computeTotalDamage(
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
     // l'état de la cible au moment où le jeu évalue la condition.
     const seuilAtteint = p.bonusPvCible != null && pvCiblePct <= p.bonusPvCible.seuilPct;
-    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, artefacts, monsterWide);
+    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, artefactsPassif, monsterWide);
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
     if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;

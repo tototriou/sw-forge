@@ -598,6 +598,82 @@ export default function testDegats() {
     egal(artifactCritDamagePoints(ARTIFACT_DAMAGE_NEUTRE, monoS1), 0, 'sans artéfact, aucun point');
   }
 
+  {
+    // ── 411 (1re attaque) et 222/223 (rampes sur les PV de la cible) ──
+    // Les seules lignes qui VARIENT d'un coup à l'autre.
+    const art = (subs: { code: number; value: number }[]) =>
+      artifactDamageProfile([{ ...artefactVit, subs }]);
+    egal(art([{ code: 411, value: 8 }]).cdPointsPremiereAttaque, 8, '411 a son propre canal');
+    egal(art([{ code: 222, value: 6 }]).cdPointsPvCibleHauts, 6, '222 aussi');
+    egal(art([{ code: 223, value: 12 }]).cdPointsPvCibleBas, 12, '223 aussi');
+
+    // Sort à 3 coups, critique forcé, cible immense pour qu'elle ne se creuse
+    // presque pas : les PV restent ~100 %, donc 222 vaut plein et 223 rien.
+    const troisCoups = { ...profil('1*{ATK}')!, hits: 3, slot: 3, aoe: false };
+    const st = stats({ atk: 2000, cd: 100 });
+    const cible: DamageSetup = {
+      ...DEFAULT_DAMAGE_SETUP,
+      summonerSkills: 'aucune',
+      critMode: 'crit',
+      enemyDef: 0,
+      enemyHp: 100_000_000,
+      enemyHpPct: 100,
+    };
+    const nu = computeSkillDamageDetail(troisCoups, st, cible, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+    // ⚠️ 411 ne majore QUE le premier des 3 coups : son apport doit valoir le
+    // TIERS de celui d'une ligne équivalente qui vaudrait pour tous les coups.
+    const avec411 = computeSkillDamageDetail(troisCoups, st, cible, null, undefined, art([{ code: 411, value: 30 }])).total;
+    const avec224 = computeSkillDamageDetail(troisCoups, st, cible, null, undefined, art([{ code: 224, value: 30 }])).total;
+    ok(avec411 > nu, '411 majore bien quelque chose');
+    ok(
+      Math.abs((avec411 - nu) * 3 - (avec224 - nu)) < 1e-6,
+      '411 (1er coup seul) apporte exactement le TIERS de 224 (les 3 coups), à valeur égale'
+    );
+
+    // ⚠️ Les rampes se vérifient sur UN SEUL coup : à plusieurs coups la
+    // cible se creuse entre les coups, donc `pvFrac` dérive légèrement et
+    // aucune égalité EXACTE n'est possible. Un coup unique fige la fraction.
+    const unCoup = { ...troisCoups, hits: 1 };
+    const aPvPct = (pct: number, subs: { code: number; value: number }[]) =>
+      computeSkillDamageDetail(unCoup, st, { ...cible, enemyHpPct: pct }, null, undefined, art(subs)).total;
+    const nuAPvPct = (pct: number) =>
+      computeSkillDamageDetail(unCoup, st, { ...cible, enemyHpPct: pct }, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+
+    const nu1 = nuAPvPct(100);
+    const plein = aPvPct(100, [{ code: 224, value: 30 }]) - nu1; // référence : 30 points, inconditionnels
+    // ⚠️ Comparaison à TOLÉRANCE, pas à l'identique : une rampe passe par
+    // `coefCdParCoup` (appliqué APRÈS `critTerm`) là où une ligne
+    // inconditionnelle entre dans `cd` AVANT lui. Même quantité, ordre des
+    // opérations différent — les derniers bits divergent, et c'est sans
+    // conséquence. Même raison que la note de `objectiveScore('ehp')` sur
+    // `hp / defenseFactor(def)`.
+    ok(Math.abs(aPvPct(100, [{ code: 222, value: 30 }]) - nu1 - plein) < 1e-9, 'à 100 % de PV, 222 vaut PLEIN');
+    egal(aPvPct(100, [{ code: 223, value: 30 }]), nu1, '… et 223 ne vaut RIEN');
+    egal(aPvPct(0, [{ code: 222, value: 30 }]), nuAPvPct(0), 'à 0 % de PV, 222 ne vaut plus rien…');
+    ok(
+      Math.abs(aPvPct(0, [{ code: 223, value: 30 }]) - nuAPvPct(0) - plein) < 1e-9,
+      '… et 223 vaut PLEIN — la rampe est bien inversée'
+    );
+    // Le point qui distingue une RAMPE d'un palier : à mi-chemin, moitié.
+    ok(
+      Math.abs((aPvPct(50, [{ code: 222, value: 30 }]) - nuAPvPct(50)) * 2 - plein) < 1e-9,
+      'à 50 % de PV, 222 vaut exactement la MOITIÉ — rampe linéaire, jamais un palier'
+    );
+    ok(
+      Math.abs((aPvPct(50, [{ code: 223, value: 30 }]) - nuAPvPct(50)) * 2 - plein) < 1e-9,
+      'et 223 aussi : à 50 %, les deux rampes se croisent'
+    );
+
+    // ⚠️ Garde-fou de coût : sans critique, ces lignes ne peuvent rien
+    // changer, et le calcul ne doit pas basculer sur le chemin séquentiel.
+    const sansCrit: DamageSetup = { ...cible, critMode: 'normal' };
+    egal(
+      computeSkillDamageDetail(troisCoups, st, sansCrit, null, undefined, art([{ code: 222, value: 30 }])).total,
+      computeSkillDamageDetail(troisCoups, st, sansCrit, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
+      'sans critique, une ligne de Dgts CRIT ne change RIEN (et ne coûte pas la boucle)'
+    );
+  }
+
   const profilFeu = artifactDamageProfile([artefactElement]);
   egal(artifactElementBonusPct(profilFeu, 'fire'), 12, 'contre du Feu, la ligne Feu s’applique');
   egal(artifactElementBonusPct(profilFeu, 'dark'), 0, 'contre un élément non couvert, rien ne s’applique');

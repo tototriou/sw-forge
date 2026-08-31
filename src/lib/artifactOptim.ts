@@ -101,6 +101,52 @@ export function meilleuresPairesArtefacts(params: ArtifactSearchParams, combien 
   return trouvees.slice(0, Math.max(1, combien));
 }
 
+/**
+ * La paire à SUPPOSER pendant une recherche de RUNES, quand les artéfacts
+ * seront choisis après coup.
+ *
+ * ⚠️ **Corrige une asymétrie qui faussait le classement.** Un artéfact
+ * « hypothéqué » par le sélecteur de stat principale était fabriqué avec
+ * `subs: []` — donc AUCUNE ligne d'effet. Choisir « ATQ » faisait calculer
+ * les dégâts sans les +30 % de renforcement d'ATQ ni les points de Dgts Crit
+ * conditionnels, alors que « Comme équipé » les comptait. Deux réglages
+ * voisins, deux modèles de dégâts différents, sans que rien ne le signale.
+ *
+ * Ici, la paire supposée est celle que le Mode A choisirait **pour le build
+ * courant**, sous la même contrainte de principale : de vrais artéfacts, avec
+ * leurs vraies lignes. Ce n'est pas la paire finale (elle dépend du build que
+ * la recherche va trouver), mais c'est un représentant honnête plutôt qu'une
+ * coquille vide.
+ *
+ * ⚠️ La paire finale peut différer — d'où `respecteMinimums`, à repasser sur
+ * le build trouvé une fois ses vrais artéfacts choisis.
+ */
+export function paireRepresentative(params: ArtifactSearchParams): ArtifactDetail[] {
+  const meilleure = meilleuresPairesArtefacts(params)[0];
+  if (!meilleure) return [];
+  return [meilleure.element, meilleure.archetype].filter((a): a is ArtifactDetail => a != null);
+}
+
+/**
+ * Un build satisfait-il encore ses minimums, une fois sa VRAIE paire choisie ?
+ *
+ * ⚠️ **Indispensable dès que les artéfacts sont cherchés après les runes.** La
+ * recherche de runes valide les minimums avec la paire SUPPOSÉE ; si la paire
+ * finale porte une autre stat principale, un minimum peut être franchi à la
+ * baisse sans que rien ne le dise. Un build affiché qui viole la condition
+ * demandée est pire qu'un build manquant : l'utilisateur ne le vérifie pas.
+ *
+ * `stats` = celles du build AVEC sa paire finale.
+ */
+export function respecteMinimums(stats: { key: string; total: number }[], minStats: Record<string, number | undefined>): boolean {
+  for (const [k, min] of Object.entries(minStats)) {
+    if (min == null || min <= 0) continue;
+    const s = stats.find((x) => x.key === k);
+    if (!s || s.total < min) return false;
+  }
+  return true;
+}
+
 // Nombre de paires que la recherche va réellement parcourir — utile pour
 // annoncer l'ampleur AVANT de lancer, et pour vérifier que l'éligibilité fait
 // bien son travail d'élagage.

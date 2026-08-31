@@ -7,7 +7,14 @@
 // le maximum ».
 
 import { ArtifactArchetype, ArtifactDetail, ElementKey } from '../src/types';
-import { candidatsParSorte, meilleuresPairesArtefacts, nombreDePaires, type ArtifactSearchParams } from '../src/lib/artifactOptim';
+import {
+  candidatsParSorte,
+  meilleuresPairesArtefacts,
+  nombreDePaires,
+  paireRepresentative,
+  respecteMinimums,
+  type ArtifactSearchParams,
+} from '../src/lib/artifactOptim';
 import { egal, ok, titre } from './outils';
 
 const attribut = (element: ElementKey, main = 101, sub = 0): ArtifactDetail => ({
@@ -150,5 +157,47 @@ export default function testArtefactOptim() {
     // 4 attributs (2 éligibles + 1 joker + vide) × 3 types (1 + joker + vide)
     // = 12, moins la paire joker+joker interdite = 11.
     egal(nombreDePaires(avecJokers), 11, 'et vaut bien 4 × 3 − 1 (la paire de jokers exclue)');
+  }
+
+  titre('Optimisation d’artéfacts — la paire SUPPOSÉE pendant la recherche de runes');
+
+  // ⚠️ Le sélecteur de stat principale fabriquait un artéfact SANS substats :
+  // choisir « ATQ » faisait calculer les dégâts SANS aucune ligne d'effet,
+  // là où « Comme équipé » les comptait. Deux réglages voisins, deux modèles
+  // de dégâts, sans que rien ne le signale.
+  {
+    const avecLignes = { ...attribut('dark', 101, 30), subs: [{ code: 204, value: 20 }] };
+    const p: ArtifactSearchParams = {
+      porteur: lushen,
+      inventaire: [avecLignes, attribut('dark', 100, 5), type('attack', 101, 7)],
+      equipes: [],
+      principaleParSorte: { element: 101 },
+      evaluer: parSubs,
+    };
+    const supposee = paireRepresentative(p);
+    const attributSuppose = supposee.find((a) => a.kind === 'element');
+    ok(attributSuppose != null, 'une paire représentative est bien proposée');
+    ok(
+      (attributSuppose?.subs.length ?? 0) > 0,
+      'l’artéfact supposé porte ses VRAIES lignes d’effet, jamais une coquille vide'
+    );
+    egal(attributSuppose?.main.code, 101, '… tout en respectant la principale demandée');
+  }
+
+  titre('Optimisation d’artéfacts — les minimums se revérifient APRÈS le choix');
+
+  // ⚠️ La recherche de runes valide les minimums avec la paire SUPPOSÉE. Si la
+  // paire finale porte une autre principale, un minimum peut être franchi à la
+  // baisse en silence — un build affiché qui viole la condition demandée est
+  // pire qu'un build manquant, personne ne le revérifie.
+  {
+    const stats = [
+      { key: 'atk', total: 3400 },
+      { key: 'cr', total: 100 },
+    ];
+    ok(respecteMinimums(stats, { atk: 3000, cr: 100 }), 'tous les minimums atteints');
+    ok(!respecteMinimums(stats, { atk: 3600 }), 'un minimum franchi à la baisse est bien détecté');
+    ok(respecteMinimums(stats, { atk: 0, def: undefined }), 'un minimum nul ou absent n’exige rien');
+    ok(!respecteMinimums(stats, { spd: 100 }), 'une stat ABSENTE des stats compte comme non satisfaite');
   }
 }

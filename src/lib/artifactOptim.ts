@@ -261,8 +261,8 @@ export function analyserPertinence(params: ArtifactSearchParams): Pertinence {
   const ambigus = new Set<number>();
   const sonde = (kind: ArtifactKind, subs: { code: number; value: number }[]): ArtifactDetail =>
     kind === 'element'
-      ? { kind, element: params.porteur.element, level: 15, rarity: 5, main: { code: 101, value: 0 }, subs }
-      : { kind, archetype: params.porteur.archetype ?? undefined, level: 15, rarity: 5, main: { code: 101, value: 0 }, subs };
+      ? { id: 0, kind, element: params.porteur.element, level: 15, rarity: 5, main: { code: 101, value: 0 }, subs }
+      : { id: 0, kind, archetype: params.porteur.archetype ?? undefined, level: 15, rarity: 5, main: { code: 101, value: 0 }, subs };
 
   for (const brut of Object.keys(ARTIFACT_SUB)) {
     const code = Number(brut);

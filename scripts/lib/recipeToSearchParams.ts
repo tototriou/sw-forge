@@ -87,7 +87,9 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
       if (real) out.push(real);
       continue;
     }
-    out.push({ kind, level: 1, rarity: 5, main: { code: choice, value: ARTIFACT_MAIN_VALUE[choice] }, subs: [] });
+    // ⚠️ id 0 : pièce SYNTHÉTIQUE, elle n’existe pas dans le compte et ne doit
+    // jamais être prise pour un artéfact réservable.
+    out.push({ id: 0, kind, level: 1, rarity: 5, main: { code: choice, value: ARTIFACT_MAIN_VALUE[choice] }, subs: [] });
   }
   return out;
 }

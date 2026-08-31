@@ -27,7 +27,7 @@ import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
 import { egal, ok, titre } from './outils';
 
 const attribut = (element: ElementKey, main = 101, sub = 0): ArtifactDetail => ({
-  kind: 'element',
+  id: 0, kind: 'element',
   element,
   level: 15,
   rarity: 5,
@@ -35,7 +35,7 @@ const attribut = (element: ElementKey, main = 101, sub = 0): ArtifactDetail => (
   subs: sub ? [{ code: 300, value: sub }] : [],
 });
 const type = (archetype: ArtifactArchetype, main = 101, sub = 0): ArtifactDetail => ({
-  kind: 'archetype',
+  id: 0, kind: 'archetype',
   archetype,
   level: 15,
   rarity: 5,

@@ -75,11 +75,21 @@ function load(): StoredState {
     if (Array.isArray(parsed.validated)) {
       for (const item of parsed.validated) {
         if (!item || typeof item !== 'object') continue;
-        const { listId, selector, runeIds } = item as { listId?: unknown; selector?: unknown; runeIds?: unknown };
+        const { listId, selector, runeIds, artifactIds } = item as {
+          listId?: unknown;
+          selector?: unknown;
+          runeIds?: unknown;
+          artifactIds?: unknown;
+        };
         if (typeof listId !== 'string' || !listIds.has(listId)) continue;
         if (!isSelector(selector)) continue;
         if (!Array.isArray(runeIds) || !runeIds.every((id) => typeof id === 'number')) continue;
-        validated.push({ listId, selector, runeIds });
+        // ⚠️ `artifactIds` ABSENT d'un build validé avant ce champ : on garde
+        // le build sans paire plutôt que de le jeter. Le perdre pour ça serait
+        // une perte de données pure — la même faute qu'une revérification trop
+        // stricte a déjà commise ici (voir `revalidateBuilds`).
+        const arts = Array.isArray(artifactIds) && artifactIds.every((id) => typeof id === 'number') ? artifactIds : undefined;
+        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}) });
       }
     }
     const activeListId = typeof parsed.activeListId === 'string' && listIds.has(parsed.activeListId) ? parsed.activeListId : null;
@@ -110,7 +120,7 @@ export interface UseOptimizerLists {
   removeMember: (listId: string, selector: ExclusionSelector) => void;
   validated: ValidatedBuild[];
   /** Valide un build pour cet exemplaire DANS cette liste — REMPLACE l'entrée existante pour la même paire (liste, sélecteur) s'il y en a une. */
-  validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[]) => void;
+  validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[]) => void;
   releaseBuild: (listId: string, selector: ExclusionSelector) => void;
   releaseAllInList: (listId: string) => void;
   /** Remplace membres + validés — utilisé UNIQUEMENT par App.tsx pour purger les entrées invalides après un réimport de compte (voir revalidateBuilds/revalidateMembers, optimizerExclusion.ts). */
@@ -166,7 +176,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     }));
   }, []);
 
-  const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[]) => {
+  const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[] = []) => {
     const key = exclusionSelectorKey(selector);
     setState((s) => ({
       ...s,
@@ -177,7 +187,10 @@ export function useOptimizerLists(): UseOptimizerLists {
         : [...s.members, { listId, selector }],
       validated: [
         ...s.validated.filter((v) => !(v.listId === listId && exclusionSelectorKey(v.selector) === key)),
-        { listId, selector, runeIds },
+        // ⚠️ Les ids ≤ 0 désignent une pièce SYNTHÉTIQUE, absente du compte :
+        // la mémoriser ferait croire à un artéfact qu'on ne possède pas, et la
+        // réserverait pour rien.
+        { listId, selector, runeIds, artifactIds: artifactIds.filter((id) => id > 0) },
       ],
     }));
   }, []);

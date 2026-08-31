@@ -40,8 +40,8 @@ const sonia = loadBoxMonster(exportPath, 'Sonia');
 const pool = sonia.allRunes;
 
 const artifacts: ArtifactDetail[] = [
-  { kind: 'element', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
-  { kind: 'archetype', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
+  { id: 0, kind: 'element', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
+  { id: 0, kind: 'archetype', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
 ];
 const baseAtk = sonia.gear.base.atk;
 const baseSpd = sonia.gear.base.spd;

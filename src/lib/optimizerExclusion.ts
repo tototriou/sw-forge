@@ -341,6 +341,46 @@ export interface ValidatedBuild {
   // pour les AUTRES recherches sans dépendre de ce que porte CET exemplaire
   // dans le compte en ce moment (il n'a pas été réellement réruné en jeu).
   runeIds: number[];
+  /**
+   * La PAIRE D'ARTÉFACTS du build validé, même instantané que les runes.
+   *
+   * ⚠️ **Sans elle, un build validé montrait les ANCIENS artéfacts** : seules
+   * les runes étaient mémorisées, donc la fiche rejouait ce que le monstre
+   * porte aujourd'hui plutôt que la paire retenue par la recherche. Signalé à
+   * l'usage.
+   *
+   * ⚠️ Un artéfact physique ne se porte que sur UN monstre à la fois, comme une
+   * rune : ces ids bloquent donc aussi les autres recherches de la MÊME liste
+   * (voir `otherValidatedArtifactIds`).
+   *
+   * ⚠️ **Optionnel, et il doit le rester** : les builds validés AVANT ce champ
+   * n'en ont pas. Tout lecteur applique `?? []`.
+   */
+  artifactIds?: number[];
+}
+
+// Artéfacts validés de TOUS LES AUTRES exemplaires de LA MÊME LISTE.
+//
+// ⚠️ Strictement le même modèle que `otherValidatedRuneIds` — auto-exemption
+// comprise, sans quoi relancer une recherche sur un monstre déjà validé
+// s'auto-bloquerait avec ses propres artéfacts.
+//
+// ⚠️ Les ids ≤ 0 sont IGNORÉS : ils désignent une pièce SYNTHÉTIQUE (artéfact
+// hypothéqué d'un repli, sonde de pertinence), qui n'existe pas dans le compte
+// et ne peut donc rien réserver. Voir `ArtifactDetail.id`.
+export function otherValidatedArtifactIds(
+  validated: ValidatedBuild[],
+  listId: string | null,
+  ownSelectorKey: string | null
+): Set<number> {
+  const out = new Set<number>();
+  if (listId == null) return out;
+  for (const v of validated) {
+    if (v.listId !== listId) continue;
+    if (ownSelectorKey != null && exclusionSelectorKey(v.selector) === ownSelectorKey) continue;
+    for (const id of v.artifactIds ?? []) if (id > 0) out.add(id);
+  }
+  return out;
 }
 
 // Runes validées de TOUS LES AUTRES exemplaires de LA MÊME LISTE — jamais

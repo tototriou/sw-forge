@@ -109,6 +109,7 @@ export default function testReco() {
       base: { hp: 0, atk: 0, def: 0, spd: 0, cr: 0, cd: 0, res: 0, acc: 0 },
       runes: [],
       artifacts: subs.map((s) => ({
+        id: 0,
         kind: s.kind,
         level: 15,
         rarity: 5,

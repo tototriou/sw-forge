@@ -284,6 +284,9 @@ function runeToDetail(rune: any): RuneDetail {
 
 function artifactToDetail(a: any): ArtifactDetail {
   const main = effLine(a?.pri_effect) ?? { code: 0, value: 0 };
+  // ⚠️ `rid` était LU pour indexer les artéfacts (voir `artById`) mais jamais
+  // conservé sur le détail. Sans lui, un artéfact ne peut être ni mémorisé
+  // dans un build validé ni réservé pour une liste — voir `ArtifactDetail.id`.
   // sec_effect = [type, value, rolls, i3, i4]. Le substat « rollé » (amélioré/
   // converti) est celui dont i4 > 0.
   //
@@ -308,6 +311,8 @@ function artifactToDetail(a: any): ArtifactDetail {
   if (Number(a?.type) === 1) {
     const intangible = Number(a?.attribute) === ARTIFACT_INTANGIBLE;
     return {
+      id: Number(a?.rid) || 0,
+
       kind: 'element',
       element: ELEMENT_BY_ATTR[Number(a?.attribute)] ?? 'unknown',
       ...(intangible ? { intangible } : {}),
@@ -319,6 +324,8 @@ function artifactToDetail(a: any): ArtifactDetail {
   }
   const intangible = Number(a?.unit_style) === ARTIFACT_INTANGIBLE;
   return {
+    id: Number(a?.rid) || 0,
+
     kind: 'archetype',
     archetype: ARCHETYPE_BY_STYLE[Number(a?.unit_style)],
     ...(intangible ? { intangible } : {}),

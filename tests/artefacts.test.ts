@@ -22,7 +22,7 @@ import { egal, ok, titre, ignore, exportReel } from './outils';
 
 // Artéfact minimal, pour éprouver la formule sans dépendre d'un export.
 const art = (subs: [number, number][], rarity = 5): ArtifactDetail => ({
-  kind: 'element',
+  id: 0, kind: 'element',
   element: 'light',
   level: 15,
   rarity,
@@ -113,7 +113,7 @@ export default function testArtefacts() {
   // TYPE suit son archétype. C'est elle qui ramène ~2 000 artéfacts à ~200
   // candidats par emplacement, et rend l'optimisation abordable.
   const artAttribut = (element: ElementKey): ArtifactDetail => ({
-    kind: 'element',
+    id: 0, kind: 'element',
     element,
     level: 15,
     rarity: 5,
@@ -121,7 +121,7 @@ export default function testArtefacts() {
     subs: [],
   });
   const artType = (archetype: ArtifactArchetype): ArtifactDetail => ({
-    kind: 'archetype',
+    id: 0, kind: 'archetype',
     archetype,
     level: 15,
     rarity: 5,

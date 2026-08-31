@@ -163,6 +163,20 @@ export const ARTIFACT_KINDS: { key: ArtifactKind; label: string }[] = [
 export type ArtifactArchetype = 'attack' | 'defense' | 'hp' | 'support';
 
 export interface ArtifactDetail {
+  /**
+   * Identifiant com2us (`rid`), comme `RuneDetail.id`.
+   *
+   * ⚠️ **Sans lui, un artéfact n'est pas RÉFÉRENÇABLE** : ni mémorisable dans
+   * un build validé, ni réservable pour une liste. Il existait dans l'export
+   * (`artifactToDetail` l'ignorait) — l'ajouter ne coûte donc aucune donnée
+   * nouvelle.
+   *
+   * ⚠️ **`0` pour un artéfact SYNTHÉTIQUE** — la pièce hypothéquée d'un repli,
+   * la sonde de `analyserPertinence`. Ces artéfacts n'existent pas dans le
+   * compte : toute logique de réservation doit ignorer un id non strictement
+   * positif plutôt que de croire à une pièce qu'on ne possède pas.
+   */
+  id: number;
   kind: ArtifactKind;
   element?: ElementKey; // si kind === 'element'
   archetype?: ArtifactArchetype; // si kind === 'archetype'

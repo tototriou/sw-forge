@@ -234,7 +234,7 @@ export default function testDegats() {
   {
     // +24 % de dégâts de bombe ne s'appliquent qu'au sort de bombe.
     const artefactBombe = artifactDamageProfile([
-      { kind: 'element', element: 'water', level: 1, rarity: 5, main: { code: 100, value: 300 }, subs: [{ code: 210, value: 24 }] },
+      { id: 0, kind: 'element', element: 'water', level: 1, rarity: 5, main: { code: 100, value: 300 }, subs: [{ code: 210, value: 24 }] },
     ]);
     const st = stats({ atk: 4150 });
     const setupB: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', enemyDef: 0 };
@@ -482,7 +482,7 @@ export default function testDegats() {
   // `speedBuffAmpliPct` : somme le code 206 (« Effet aug. VIT ») sur tous les
   // artéfacts équipés, ignore les autres codes, cumule s'il y en a plusieurs.
   const artefactVit: ArtifactDetail = {
-    kind: 'element',
+    id: 0, kind: 'element',
     element: 'water',
     level: 1,
     rarity: 5,

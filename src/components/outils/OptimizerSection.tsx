@@ -93,6 +93,7 @@ import {
   exclusionCandidatesFor,
   exclusionSelectorKey,
   findValidatedBuild,
+  otherValidatedArtifactIds,
   otherValidatedRuneIds,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
@@ -544,6 +545,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const HARD_TIMEOUT_MS = 10 * 60 * 1000;
 
   const runeById = useMemo(() => new Map(runes.map((r) => [r.id, r])), [runes]);
+  // Jumeau de `runeById` : sert à rejouer la paire d'un build validé, qui n'en
+  // mémorise que les identifiants.
+  const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
 
   // Sert à ramener l'écran sur « Set de runes recherché » quand une
   // recherche est tentée sans set choisi (voir `handleSearch`) — sans ça, le
@@ -746,14 +750,32 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           const validatedRunes = ownValidatedBuild.runeIds
             .map((id) => runeById.get(id))
             .filter((r): r is RuneDetail => !!r);
-          return { monster: resolved.monster, gear: { ...resolved.gear, runes: validatedRunes } };
+          // ⚠️ **Les ARTÉFACTS aussi, pas seulement les runes.** Ne substituer
+          // que les runes rejouait la paire que le monstre porte AUJOURD'HUI,
+          // alors que la recherche en avait retenu une autre — défaut signalé à
+          // l'usage. Un build validé est un instantané complet.
+          //
+          // ⚠️ Repli sur les artéfacts réels quand le build validé n'en porte
+          // pas : c'est le cas des builds validés AVANT que ce champ existe.
+          // Mieux vaut la paire réelle que pas d'artéfact du tout.
+          const validatedArts = (ownValidatedBuild.artifactIds ?? [])
+            .map((id) => artifactById.get(id))
+            .filter((a): a is ArtifactDetail => !!a);
+          return {
+            monster: resolved.monster,
+            gear: {
+              ...resolved.gear,
+              runes: validatedRunes,
+              artifacts: validatedArts.length > 0 ? validatedArts : resolved.gear.artifacts,
+            },
+          };
         }
         return resolved;
       }
     }
     if (!speciesMonster) return null;
     return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
-  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, showRealGear]);
+  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, artifactById, showRealGear]);
 
   // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
   // seulement quand l'exemplaire RÉELLEMENT résolu est un exemplaire Box
@@ -786,6 +808,18 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     if (auto.size === 0 && manual.size === 0 && reserved.size === 0) return runes;
     return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id) && !reserved.has(r.id));
   }, [selected, selectedUnitKey, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes, lists.validated, lists.activeListId, ownSelectorKey]);
+
+  // Artéfacts déjà réservés par les AUTRES builds validés de la liste active.
+  //
+  // ⚠️ Pendant symétrique de `reserved` ci-dessus, et pour la même raison : un
+  // artéfact physique ne se porte que sur UN monstre à la fois. Il n'a en
+  // revanche PAS d'équivalent des exclusions automatique et manuelle — celles-là
+  // portent sur des périmètres de runes (RTA / défenses de siège / box) et sur
+  // des sélecteurs de runes, sans notion d'artéfact.
+  const artefactsReserves = useMemo(
+    () => otherValidatedArtifactIds(lists.validated, lists.activeListId, ownSelectorKey),
+    [lists.validated, lists.activeListId, ownSelectorKey]
+  );
 
   // ⚠️ Purge les sélecteurs d'exclusion manuelle devenus AUTO-exclusion
   // depuis un changement de monstre recherché — `resolveExcludedRuneIds`
@@ -884,7 +918,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
     return {
       porteur: { element: espece.element, archetype: espece.archetype },
-      inventaire: artifacts,
+      // ⚠️ **Amputé des artéfacts RÉSERVÉS** par les autres builds validés de
+      // la liste active : un artéfact physique ne se porte que sur un monstre à
+      // la fois, exactement comme une rune. Sans ça, deux monstres d'une même
+      // liste se verraient proposer la même pièce, et le plan serait
+      // inapplicable en jeu.
+      //
+      // ⚠️ Les artéfacts que CE monstre a lui-même réservés restent
+      // disponibles (auto-exemption dans `otherValidatedArtifactIds`) : sans
+      // elle, relancer une recherche sur un monstre déjà validé se
+      // priverait de ses propres pièces.
+      inventaire: artefactsReserves.size === 0 ? artifacts : artifacts.filter((a) => !artefactsReserves.has(a.id)),
       equipes: selected.gear.artifacts,
       principaleParSorte: artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
       lignesVerrouillees,
@@ -1550,6 +1594,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // runes) le bouton affiche « Validé » (identique à `BuildCandidateCard`)
   // plutôt que de re-valider inutilement les mêmes runes.
   const displayedRuneIds = selected?.gear.runes.map((r) => r.id) ?? [];
+  // Jumeau de `displayedRuneIds` : la paire réellement affichée sur la fiche.
+  // ⚠️ Nécessaire pour qu’un build validé rejoue SES artéfacts et non ceux que
+  // le monstre porte aujourd’hui — le défaut signalé à l’usage.
+  const displayedArtifactIds = selected?.gear.artifacts.map((a) => a.id) ?? [];
   // Les runes AFFICHÉES sont-elles EXACTEMENT le build validé ? Presque
   // toujours équivalent à `!!ownValidatedBuild` (la substitution dans
   // `selected` le garantit dès que `showRealGear` est `false`) — mais PAS
@@ -1597,7 +1645,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       setAddListPromptOpen('validate');
       return;
     }
-    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds);
+    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds);
   }
 
   // Bandeau « build validé », devenu une BASCULE — demande explicite : en
@@ -3248,7 +3296,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                         // ⚠️ Garde de DERNIÈRE minute en plus du bouton
                         // désactivé : le clic peut partir d'un rendu périmé.
                         if (conflitsDeRunes(c.runeIds).length > 0) return;
-                        lists.validateBuild(lists.activeListId!, sourceSelector, c.runeIds);
+                        // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
+                        // affiché : c’est elle que la carte montre et qui a
+                        // servi à calculer ses stats.
+                        lists.validateBuild(
+                          lists.activeListId!,
+                          sourceSelector,
+                          c.runeIds,
+                          (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
+                        );
                       }
                     : undefined
                 }
@@ -3378,7 +3434,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             if (!nom || !sourceSelector) return;
             const id = lists.createList(nom);
             if (intent === 'validate') {
-              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds);
+              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds);
             } else {
               lists.addMember(id, sourceSelector);
             }

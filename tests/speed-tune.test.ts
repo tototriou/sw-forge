@@ -122,11 +122,41 @@ export default function testSpeedTune() {
     egal(pt[0].camp, 'allie', 'et c’est bien ton camp qui ouvre');
   }
   {
+    // ⚠️ **LE cas qui distingue la règle** : barres ÉGALES, vitesses
+    // DIFFÉRENTES. La condition est l'égalité des BARRES, pas des vitesses —
+    // ton monstre passe donc même s'il est plus lent.
+    //
+    // Montage : l'adverse à 150 gagne 10,5 %/tick et atteint 105 au tick 10 ;
+    // l'allié à 100 en gagne 7, soit 70 au tick 10, plus 35 posés à la main —
+    // 105 exactement, lui aussi. Deux barres identiques, 50 points de vitesse
+    // d'écart, l'adverse placé en premier.
+    const pt = premiersTours(
+      simuler([
+        { id: 'adverse', combat: 150, camp: 'ennemi' },
+        { id: 'moi', combat: 100, camp: 'allie', atbMod: { 10: 35 } },
+      ])
+    );
+    egal(pt[0].id, 'moi', 'à barre égale, ton monstre passe même 50 points plus lent');
+    egal(pt[0].tick, 10, 'et il joue bien au tick où les deux barres se rejoignent');
+  }
+  {
     // ⚠️ Le contrôle qui empêche la règle de tout emporter : le camp départage
-    // l'ÉGALITÉ, il ne passe jamais devant la vitesse. Un adverse plus rapide
-    // d'un seul point joue toujours en premier.
+    // l'égalité des BARRES, il ne passe jamais devant la barre elle-même. Un
+    // point de barre en moins, et l'adverse reprend la main.
+    const pt = premiersTours(
+      simuler([
+        { id: 'adverse', combat: 150, camp: 'ennemi' },
+        { id: 'moi', combat: 100, camp: 'allie', atbMod: { 10: 34 } },
+      ])
+    );
+    egal(pt[0].id, 'adverse', 'une barre adverse plus haute l’emporte, attaquant ou non');
+  }
+  {
+    // La barre départage AVANT le camp : deux vitesses différentes sans
+    // intervention donnent deux barres différentes, donc aucune égalité à
+    // trancher.
     const pt = premiersTours(simuler([camp(150), camp(151, 'ennemi')]));
-    egal(pt[0].id, '151-ennemi', 'un adverse plus rapide d’un point passe devant');
+    egal(pt[0].id, '151-ennemi', 'sans égalité de barre, le plus rapide passe');
   }
 
   // Boost de barre d'attaque : +30 % au tick 3 → agit plus tôt (tick 10 vs 15).

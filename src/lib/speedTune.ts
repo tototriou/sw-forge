@@ -183,8 +183,8 @@ export interface Simulation {
 // modificateurs par tick. Contrairement à une lecture « premier tour », le
 // monstre qui agit NE SORT PAS : sa barre **repart de 0** (le surplus au-dessus
 // de 100 n'est pas conservé) et se remplit à nouveau — il peut donc rejouer.
-// ⚠️ Départage des égalités PARFAITES : l'attaquant d'abord. Voir le tri dans
-// `simuler` — c'est le seul endroit où le camp entre dans l'ordre de jeu.
+// ⚠️ Départage à BARRE ÉGALE : l'attaquant d'abord. Voir le tri dans `simuler`
+// — c'est le seul endroit où le camp entre dans l'ordre de jeu.
 const rangCamp = (c: Camp): number => (c === 'allie' ? 0 : 1);
 
 // Cela donne l'enchaînement des tours sur toute la durée. Voir
@@ -193,8 +193,8 @@ const rangCamp = (c: Camp): number => (c === 'allie' ? 0 : 1);
 // À chaque tick : chaque monstre gagne `atbParTick(combat × (1 + buffActif))`,
 // puis reçoit sa modification de barre (`atbMod`), sans jamais descendre sous 0.
 // Si au moins un a atteint 100, UN SEUL prend le tour — barre la plus haute,
-// départagée par la vitesse de combat de base, puis par le CAMP (à égalité
-// parfaite, l'attaquant joue en premier), puis par l'ordre de placement.
+// départagée par le CAMP (à barre égale, l'attaquant joue en premier), puis par
+// la vitesse de combat, puis par l'ordre de placement.
 //
 // ⚠️ Ce N'EST PAS un tri par vitesse : trois monstres pleins au même tick jouent
 // aux ticks n, n+1, n+2. Un boost d'ATB ou un buff de vitesse posé tôt peut
@@ -298,16 +298,18 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
 
     const prets = etat.filter((m) => m.atb >= 100);
     if (prets.length === 0) continue;
-    // ⚠️ **À ÉGALITÉ PARFAITE, L'ATTAQUANT PASSE DEVANT** — c'est la règle du
-    // jeu, et elle manquait. Le départage s'arrêtait à l'ordre de placement :
-    // deux monstres à la même vitesse et à la même barre étaient donc tranchés
-    // par leur position dans le tableau. Le tour partait à l'adverse dès qu'il
-    // se trouvait placé avant, et le défaut n'apparaissait qu'une fois sur deux
-    // — d'où un bug « pas reproductible à chaque fois ».
+    // ⚠️ **À BARRE ÉGALE, L'ATTAQUANT PASSE DEVANT** — c'est la règle du jeu, et
+    // elle manquait. Le départage s'arrêtait à l'ordre de placement : deux
+    // monstres à la même barre étaient donc tranchés par leur position dans le
+    // tableau. Le tour partait à l'adverse dès qu'il se trouvait placé avant, et
+    // le défaut n'apparaissait qu'une fois sur deux — d'où un bug « pas
+    // reproductible à chaque fois ».
     //
-    // ⚠️ **Le camp passe AVANT le placement, jamais avant la vitesse** : plus
-    // rapide reste plus rapide, quel que soit le camp. Ce critère ne départage
-    // que l'égalité exacte.
+    // ⚠️ **Le camp passe avant la VITESSE, jamais avant la BARRE.** La condition
+    // de la règle est l'égalité des barres, et elle seule : à barre égale ton
+    // monstre passe même s'il est plus LENT, mais une barre adverse plus haute
+    // l'emporte toujours. La vitesse ne départage donc plus qu'entre monstres du
+    // même camp.
     //
     // ⚠️ **« Ton équipe » est tenue pour l'ATTAQUANT.** C'est le cadre de
     // l'outil — on y prépare son attaque. Modéliser une défense demanderait de
@@ -316,8 +318,8 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
     prets.sort(
       (a, b) =>
         b.atb - a.atb ||
-        b.combat - a.combat ||
         rangCamp(a.camp) - rangCamp(b.camp) ||
+        b.combat - a.combat ||
         a.placement - b.placement
     );
     const gagnant = prets[0];

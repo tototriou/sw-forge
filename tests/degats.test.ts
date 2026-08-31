@@ -674,6 +674,57 @@ export default function testDegats() {
     );
   }
 
+  {
+    // ⚠️ **La Marque et Mirinae ne sont PAS de la même famille**, malgré des
+    // libellés quasi identiques. MESURÉ EN JEU par l'utilisateur :
+    //   - la Marque agit sur les bombes ET sur le passif de Shahat ;
+    //   - Mirinae n'agit NI sur l'une NI sur l'autre ;
+    //   - les artéfacts élémentaires non plus.
+    // Les traiter ensemble majorait à tort les bombes et tout le bucket
+    // Additionnel.
+    const st = stats({ atk: 4150, hp: 30000 });
+    const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', enemyDef: 0 };
+    const artFeu = artifactDamageProfile([{ ...artefactVit, subs: [{ code: 300, value: 12 }] }]);
+
+    // ── Sur une BOMBE ────────────────────────────────────────────────────
+    const bombe = bombeDe(15713, 'Fate of Destruction');
+    const nuBombe = computeSkillDamage(bombe, st, { ...base, enemyElement: 'fire' });
+    egal(
+      computeSkillDamageDetail(bombe, st, { ...base, enemyElement: 'fire' }, null, undefined, artFeu).total,
+      nuBombe,
+      'artéfact élémentaire : AUCUN effet sur une bombe'
+    );
+    egal(
+      computeSkillDamage(bombe, st, { ...base, mirinaeActif: true }),
+      nuBombe,
+      'Mirinae : aucun effet sur une bombe non plus'
+    );
+    egal(
+      Math.round(computeSkillDamage(bombe, st, { ...base, brand: true })),
+      Math.round(nuBombe * 1.25),
+      '… mais la Marque, elle, s’applique bien à une bombe'
+    );
+
+    // ── Sur le bucket ADDITIONNEL (passif de Shahat) ─────────────────────
+    const sortSimple = { ...profil('1*{ATK}')!, hits: 1 };
+    const shahat = { bonusFixeMaxHpPropre: { pct: 7 } }; // 7 % de 30000 = 2100 bruts
+    const ecart = (setup: DamageSetup, art = ARTIFACT_DAMAGE_NEUTRE) =>
+      computeSkillDamageDetail(sortSimple, st, setup, null, undefined, art, shahat).total -
+      computeSkillDamageDetail(sortSimple, st, setup, null, undefined, art).total;
+    egal(Math.round(ecart(base)), 2100, 'référence : le passif de Shahat vaut 2100 bruts');
+    egal(
+      Math.round(ecart({ ...base, enemyElement: 'fire' }, artFeu)),
+      2100,
+      'artéfact élémentaire : aucun effet sur le passif de Shahat'
+    );
+    egal(Math.round(ecart({ ...base, mirinaeActif: true })), 2100, 'Mirinae non plus');
+    egal(
+      Math.round(ecart({ ...base, brand: true })),
+      Math.round(2100 * 1.25),
+      '… mais la Marque majore bien le passif de Shahat'
+    );
+  }
+
   const profilFeu = artifactDamageProfile([artefactElement]);
   egal(artifactElementBonusPct(profilFeu, 'fire'), 12, 'contre du Feu, la ligne Feu s’applique');
   egal(artifactElementBonusPct(profilFeu, 'dark'), 0, 'contre un élément non couvert, rien ne s’applique');
@@ -697,8 +748,13 @@ export default function testDegats() {
       2000,
       '« ignorer l’élément » : l’artéfact ne change rien, même en le portant'
     );
-    // Marque (+25 %) seule = 2500 ; avec la ligne Feu, ADDITIF → +37 % = 2740,
-    // là où un multiplicateur séparé donnerait 2500 × 1,12 = 2800.
+    // ⚠️ **DEUX BRACKETS, donc MULTIPLICATIFS entre eux.** La ligne élémentaire
+    // est dans le terme DMG%, la Marque dans Réductions : 2000 × 1,12 × 1,25 =
+    // 2800, et non 2000 × (1 + 0,12 + 0,25) = 2740.
+    //
+    // ⚠️ Ce test figeait 2740 — une DÉDUCTION faite « par symétrie » avec les
+    // artéfacts −DMG% (305-309), qui sont bien dans Réductions. La symétrie
+    // n'existait pas. Corrigé d'après swcalc.cz/game-mechanics.
     egal(
       Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, brand: true }, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total),
       2500,
@@ -708,8 +764,8 @@ export default function testDegats() {
       Math.round(
         computeSkillDamageDetail(profilFixe2, st, { ...base, brand: true, enemyElement: 'fire' }, null, undefined, profilFeu).total
       ),
-      2740,
-      'Marque + ligne élémentaire : ADDITIF (+37 %), pas multiplicatif (qui donnerait 2800)'
+      2800,
+      'Marque × ligne élémentaire : MULTIPLICATIF (2 brackets), pas additif (qui donnerait 2740)'
     );
   }
 

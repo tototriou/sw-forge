@@ -65,6 +65,30 @@ Un sort dont la formule ne dépend d'**aucune** statistique de l'attaquant
 optimiser des runes dessus n'a aucun sens — toutes les combinaisons
 donneraient le même nombre.
 
+## L'équation de référence (swcalc)
+
+```
+Dégâts = (Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions
+```
+
+Source : [swcalc.cz/game-mechanics](https://swcalc.cz/game-mechanics). Ce
+découpage en **brackets** est ce qui décide de tout : chaque terme est additif
+**en interne**, jamais avec les autres.
+
+| Terme | Contenu | Dans ce fichier |
+|---|---|---|
+| **Crit** | `1 + Skillups + CDrune + CDarti + CDbonus − CDtaken` | `critTerm` — les Dgts CRIT d'artéfact (400-403, 410, 411, 222-224) y entrent, confirmé |
+| **DMG%** | `1 + ArtifactOnElement + ArtifactCoOp + Other` | `dmgPct` |
+| **FacteurDéf** | `1000 / (1142 + 3,572 × DEF)` | `defenseFactor` — ⚠️ le dépôt garde **1140 / 3,5**, écart assumé de longue date |
+| **Additionnel** | dégâts fixes de sort, et « + N % d'une stat » | `ajoutBrutParCoup` — ne crite pas, ignore la défense |
+| **Réductions** | `Artefact + Passif − Mirinae/Marque`, puis un bucket multiplicatif | `reductions` |
+| **Variance** | ±2,8 % | volontairement hors modèle |
+
+⚠️ **Le piège de cette formule est de confondre « additif » et « dans le même
+bracket ».** Deux effets peuvent être chacun additifs et pourtant se
+multiplier entre eux — c'est exactement l'erreur commise sur les lignes
+élémentaires (voir plus bas).
+
 ## L'équation
 
 Reprend celle de [../mecaniques.md](../mecaniques.md) :
@@ -416,19 +440,42 @@ l'export. Aucune traduction spéciale n'est nécessaire.
 `computeSkillDamageDetail`**, qui est celui de l'**attaquant** (il décide des
 compétences d'invocateur). `enemyElement` décrit la **cible**.
 
-### ⚠️ Additif avec la Marque, pas un multiplicateur à part — DÉDUIT
+### ⚠️ MULTIPLICATIF avec la Marque — deux brackets distincts
 
-Ces lignes sont comptées dans le terme `reductions`, donc **additivement**
-avec la Marque, Mirinae et Transmission : `1 + 0,25 + 0,12`, et non
-`(1 + 0,25) × (1 + 0,12)`.
+Ces lignes vivent dans le terme **DMG%**, la Marque dans **Réductions**. Les
+deux brackets sont additifs *en interne* et **multiplicatifs entre eux** :
+`× 1,12 × 1,25`, et non `× (1 + 0,12 + 0,25)`.
 
-Base : l'utilisateur a établi que Mirinae « stacks additively with -DMG%
-artifacts » — les lignes de DMG% d'artéfact vivent donc dans ce sac additif.
-Le raisonnement s'étend **par symétrie** à la famille +DMG% infligés, sans
-que ce cas précis ait été relevé en jeu. ⚠️ **À reprendre si une mesure le
-contredit** : l'écart n'apparaît que lorsqu'une Marque ou Mirinae est active
-en même temps (2 740 en additif contre 2 800 en multiplicatif, sur l'exemple
-du test).
+> **Incident — une déduction fausse figée par un test.** Ces lignes étaient
+> d'abord comptées dans `reductions`, donc additives avec la Marque, sur ce
+> raisonnement : l'utilisateur avait établi que Mirinae « stacks additively
+> with **-DMG%** artifacts », donc les lignes de DMG% d'artéfact seraient dans
+> ce sac. **La symétrie n'existait pas** : les artéfacts −DMG% (codes 305-309,
+> dégâts *subis*) sont bien dans Réductions, mais la famille +DMG% *infligés*
+> est un terme entièrement différent. Le test figeait 2 740 ; la bonne valeur
+> est 2 800. Corrigé d'après [swcalc.cz/game-mechanics](https://swcalc.cz/game-mechanics).
+
+### ⚠️ Jamais sur une bombe, jamais sur le bucket Additionnel
+
+**Mesuré en jeu par l'utilisateur** :
+
+| | Bombe | Passif de Shahat (bucket Additionnel) |
+|---|---|---|
+| Artéfact élémentaire | ❌ | ❌ |
+| Mirinae | ❌ | ❌ |
+| **Marque** | ✅ | ✅ |
+
+⚠️ **La Marque et Mirinae ne sont donc PAS de la même famille**, malgré des
+libellés quasi identiques (« +X % de dégâts subis »). Les traiter ensemble —
+ce que faisait le terme `reductions` — majorait à tort les bombes et tout le
+bucket Additionnel. D'où `reductionsUniverselles` (la Marque seule, valable
+partout) distinct de `reductions` (Mirinae en plus, hors bombe et hors
+`fixed`).
+
+⚠️ Un sort ordinaire marqué `(Fixed)` profite en revanche du DMG%
+(swcalc : « skill-based fixed damage … is still multiplied by (1 + DMG%) ») —
+c'est exactement ce que le drapeau `bombe`, **distinct de `fixed`**, permet
+d'exprimer.
 
 ### Uniforme, donc sans effet sur le choix des runes
 

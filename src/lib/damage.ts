@@ -2695,18 +2695,51 @@ export function computeSkillDamageDetail(
   // cas précis ait été relevé en jeu. À reprendre si une mesure le contredit
   // — un multiplicateur séparé changerait le résultat dès qu'une Marque ou
   // Mirinae est active en même temps.
+  // ── Termes « DMG% » et « Réductions » — DEUX BRACKETS DISTINCTS ─────────
+  //
+  // ⚠️ **Ils ne s'additionnent pas entre eux, ils se MULTIPLIENT.** La formule
+  // de référence (swcalc.cz/game-mechanics) est :
+  //
+  //   Dégâts = (Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions
+  //
+  // avec `DMG% = 1 + ArtifactOnElement + …` et `Réductions = Artefact + Passif
+  // − Mirinae/Marque`. Chaque bracket est additif EN INTERNE, jamais avec
+  // l'autre.
+  //
+  // ⚠️ **Correctif** : les lignes élémentaires étaient comptées ici, dans
+  // Réductions — donc additives avec la Marque. C'était une déduction, faite
+  // « par symétrie » avec les artéfacts −DMG% (codes 305-309) qui, eux, sont
+  // bien dans Réductions. La symétrie n'existait pas : +dégâts infligés et
+  // −dégâts subis sont deux termes différents. Avec une Marque active,
+  // l'écart est réel (×1,40 contre ×1,37).
   const bonusElement = artifactElementBonusPct(artefacts, setup.enemyElement);
-  // « Dgts de bombe » (210) — même sac additif, et pour la même raison. Ne
-  // compte QUE si le sort est réellement une bombe (`profile.bombe`, distinct
-  // de `fixed` : un sort ordinaire marqué `(Fixed)` n'en profite pas).
-  const bonusBombe = profile.bombe ? artefacts.degatsBombePct : 0;
+
+  // ⚠️ **La Marque et Mirinae ne sont PAS de la même famille**, malgré des
+  // descriptions quasi identiques. Mesuré en jeu par l'utilisateur :
+  //   - la Marque s'applique aux bombes ET au passif de Shahat ;
+  //   - Mirinae ne s'applique NI aux bombes, NI au passif de Shahat.
+  // Les traiter ensemble — ce que faisait ce terme — majorait donc à tort les
+  // bombes et tout le bucket Additionnel.
+  //
+  // `TRANSMISSION_BONUS_PCT` (Dr. Matteo) suit Mirinae : même formulation dans
+  // le jeu, jamais mesuré séparément — l'analogie est assumée et signalée.
+  const reductionsUniverselles = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);
+  const horsPorteeMirinae = profile.bombe || profile.fixed;
   const reductions =
-    1 +
-    (setup.brand ? BRAND_BONUS_PCT / 100 : 0) +
-    (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
-    (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0) +
-    bonusElement / 100 +
-    bonusBombe / 100;
+    reductionsUniverselles +
+    (horsPorteeMirinae
+      ? 0
+      : (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
+        (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0));
+
+  // Terme DMG%, propre au sort. ⚠️ **Jamais sur une bombe** (mesuré) ; un sort
+  // ordinaire marqué `(Fixed)`, lui, en profite bien (swcalc : « skill-based
+  // fixed damage … is still multiplied by (1 + DMG%) »). C'est exactement ce
+  // que `bombe`, distinct de `fixed`, permet d'exprimer.
+  const dmgPct = profile.bombe ? 1 : 1 + bonusElement / 100;
+  // « Dgts de bombe » (210) — sa propre majoration, réservée aux bombes. Elle
+  // ne peut pas vivre dans DMG%, dont les bombes sont justement exclues.
+  const facteurBombe = profile.bombe ? 1 + artefacts.degatsBombePct / 100 : 1;
 
   // Julie (« Thousand Shots »)/Melissa (« Massacre Dance ») : +pct % par
   // effet SAISI sur la cible — propre à CE sort (`profile.
@@ -2738,21 +2771,43 @@ export function computeSkillDamageDetail(
     : 1;
 
   const horsCoup =
-    critTerm * mitigation * reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
-  // ⚠️ Variante pour les termes BRUTS (voir `ajoutBrutParCoup` plus bas) : ni
-  // `critTerm`, ni `mitigation`. Le reste est CONSERVÉ — ce sont des
-  // amplificateurs côté CIBLE (marque, Mirinae, « Increase Damage »…), qui
-  // majorent les dégâts subis quelle qu'en soit la nature. C'est exactement
-  // le traitement que ce fichier réserve déjà à un sort `profile.fixed`
-  // (`partCrit = 0`, `mitigation = 1`, le reste intact) : un bonus plat de
-  // passif suit donc la même règle qu'un sort fixe, plutôt qu'une seconde
-  // convention parallèle.
+    critTerm *
+    mitigation *
+    dmgPct *
+    facteurBombe *
+    reductions *
+    facteurEffetCible *
+    facteurEffetCibleMonstre *
+    facteurEffetPropre *
+    facteurConditionnelPropre;
+  // ⚠️ Variante pour le bucket ADDITIONNEL (voir `ajoutBrutParCoup` plus bas) —
+  // les dégâts bruts par coup : lignes d'artéfact 218-221, Sickle Blade / Sand
+  // Blade, Calculated Sacrifice.
+  //
+  // Ce que ce terme EXCLUT, et pourquoi :
+  //   - `critTerm` et `mitigation` : ces dégâts ne critent pas et ignorent la
+  //     défense (mesuré ; swcalc, terme « Additional » : « cannot crit,
+  //     bypasses DefenseFactor »).
+  //   - `dmgPct` : swcalc est explicite — « does not benefit from DMG dealt on
+  //     Element ». Confirmé en jeu : les artéfacts élémentaires ne marchent pas
+  //     sur le passif de Shahat.
+  //   - **Mirinae** : mesuré en jeu, sans effet sur le passif de Shahat non
+  //     plus. D'où `reductionsUniverselles` et non `reductions`.
+  //   - `facteurBombe` : réservé aux bombes, sans objet ici.
+  //
+  // Ce qu'il CONSERVE : la **Marque**, mesurée comme agissant sur le passif de
+  // Shahat — c'est précisément ce qui la sépare de Mirinae.
   //
   // ⚠️ `critTerm` porte AUSSI `skillupDamagePct` — l'exclure est délibéré :
   // les améliorations du sort ACTIF n'ont aucune raison de majorer le bonus
   // plat d'un PASSIF, qui n'appartient pas à sa formule.
+  //
+  // ❓ Les quatre `facteur*` restants (Julie, Backup Code, Blessing of Curse,
+  // Emergency Drive) sont classés « Other » DANS le terme DMG% par swcalc, ce
+  // qui les exclurait aussi de ce bucket. Non tranché faute de mesure — les
+  // retirer changerait les chiffres d'une douzaine de monstres sans preuve.
   const horsCoupBrut =
-    reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
+    reductionsUniverselles * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
   // ── Lignes d'artéfact qui VARIENT d'un coup à l'autre (411, 222, 223) ──
   //
   // ⚠️ **Rien à recalculer, malgré les apparences.** On pourrait croire qu'il
@@ -2766,7 +2821,18 @@ export function computeSkillDamageDetail(
   // avec `coefCdParCoup = partCrit × K / 100` (K = tout ce qui multiplie
   // `critTerm`, invariant). Deux constantes précalculées, puis une
   // multiplication-addition par coup — pas un recalcul.
-  const kHorsCrit = mitigation * reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
+  // ⚠️ **Doit rester EXACTEMENT `horsCoup / critTerm`** — tout ce qui multiplie
+  // le terme de critique, `dmgPct` et `facteurBombe` compris. En oublier un
+  // ferait mal doser la correction affine par coup, d'un facteur silencieux.
+  const kHorsCrit =
+    mitigation *
+    dmgPct *
+    facteurBombe *
+    reductions *
+    facteurEffetCible *
+    facteurEffetCibleMonstre *
+    facteurEffetPropre *
+    facteurConditionnelPropre;
   const coefCdParCoup = (partCrit * kHorsCrit) / 100;
   const deltaCdPoints = (premierCoup: boolean, pvFrac: number) =>
     (premierCoup ? artefacts.cdPointsPremiereAttaque : 0) +

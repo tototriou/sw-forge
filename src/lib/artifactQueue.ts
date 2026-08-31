@@ -64,10 +64,17 @@ export function prochainsATraiter(
   for (let i = 0; i < triees.length && i < K; i++) {
     const c = triees[i]!;
     const cle = cleBuild(c);
-    // ⚠️ `vusDansCeLot` en plus de `deja` : un même build peut figurer deux
-    // fois dans l'aperçu accumulé (deltas successifs d'un Worker relancé après
-    // escalade). Sans cette garde, il serait mis en file deux fois et le
-    // travail refait.
+    // `vusDansCeLot` en plus de `deja` : garde DÉFENSIVE, sans chemin connu
+    // qui la déclenche aujourd'hui.
+    //
+    // ⚠️ Vérifié plutôt que supposé — l'aperçu accumulé ne contient PAS de
+    // doublon : `maybeEscalateNodeBudget` relève le plafond du générateur EN
+    // COURS sans rien relancer, les deltas sont découpés par un curseur
+    // strictement monotone (`allCandidates.slice(candidatesSent)`,
+    // runeBuildOptim.worker.ts), les tranches de `bucketsA` sont disjointes, et
+    // la réception est un pur `concat`. La garde reste parce qu'elle coûte O(1)
+    // et que ce module ne contrôle pas ce flux — pas parce qu'un doublon est
+    // attendu.
     if (deja.has(cle) || vusDansCeLot.has(cle)) continue;
     vusDansCeLot.add(cle);
     out.push(c);

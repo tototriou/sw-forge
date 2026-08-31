@@ -48,9 +48,11 @@ export default function testArtefactFile() {
   }
 
   {
-    // ⚠️ Le même build peut figurer DEUX FOIS dans l'aperçu accumulé : les
-    // deltas d'un Worker relancé après escalade peuvent le renvoyer. Sans
-    // garde, il partirait deux fois en file et le travail serait refait.
+    // Garde DÉFENSIVE : aucun chemin connu ne produit ce doublon aujourd'hui
+    // (curseur monotone sur les deltas, tranches de `bucketsA` disjointes,
+    // escalade qui ne relance rien — vérifié dans runeBuildOptim.worker.ts).
+    // Ce test fixe le comportement au cas où ce flux changerait, puisque ce
+    // module ne le contrôle pas.
     const avecDoublon = [build(1), build(1), build(2)];
     egal(
       prochainsATraiter(avecDoublon, new Set(), 5).map(cleBuild),

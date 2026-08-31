@@ -324,9 +324,36 @@ sort, le système `S + A = 700` / `1,5·S + A = 730` donne **S = 60, A = 640**.
 1 % d'écart. Le même relevé confirme donc **l'isolement** du bucket ET la
 **formule** des lignes 218-221 (par coup, brutes, sur les stats buffées).
 
-> ⚠️ Au passage : la ligne « Dgts supp. en prop. des PV » vaut **0,7 %**, pas
-> 7 %. À 7 % elle donnerait 2 307 par coup, plus du triple du total observé —
-> et son plafond est de toute façon 1,5 (voir `ARTIFACT_SUB_MAX`).
+**Relevé Jessica — le même verdict par l'autre porte.** « Blessing of Curse »
+majore de +20 % par effet **néfaste sur soi**, là où Julie compte les buffs de
+la **cible** : deux membres différents de la famille, tous deux mesurés.
+Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV + 6 % DEF + 102 %
+VIT, contre un Xiong Fei très défensif, **en coup critique** :
+
+| Débuffs sur elle | Bonus au sort | Dégâts |
+|---|---|---|
+| 0 | — | ~2 250 |
+| 1 | +20 % | ~2 450 |
+| 2 | +40 % | ~2 600 |
+
+Si le +20 % touchait tout, 2 débuffs donneraient **3 150**. Le modèle prédit
+un additionnel de **1 277** (`0,02 × 53 050 + 0,06 × 827 + 1,02 × 163`) ; la
+résolution du système en donne **1 250**.
+
+⚠️ **Et ce relevé prouve, indépendamment, que le bucket ne CRITE pas.** Les
+trois mesures sont des critiques : un additionnel critique (×2,5) vaudrait à
+lui seul 3 192, soit plus que le total observé de 2 250. Impossible.
+
+> Les trois paires de mesures donnent des parts de sort un peu différentes
+> (1 000 / 875 / 750) : c'est la variance (±2,8 %) plus l'arrondi des
+> « environ », sur des totaux de ~2 500. La part ADDITIONNELLE, elle, reste
+> serrée autour de la prédiction.
+
+> ⚠️ Au passage : la ligne « Dgts supp. en prop. des PV » du relevé Julie vaut
+> **0,7 %**, pas 7 %. À 7 % elle donnerait 2 307 par coup, plus du triple du
+> total observé — et son plafond est de toute façon 1,5 (voir
+> `ARTIFACT_SUB_MAX`). Chez Jessica, le 2 % dépasse aussi ce plafond : une
+> ligne **gemmée**, ce que la table de plafonds prévoit explicitement.
 
 ### ❓ Une incohérence restante, assumée
 

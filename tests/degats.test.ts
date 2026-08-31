@@ -741,6 +741,37 @@ export default function testDegats() {
         computeSkillDamageDetail(julie, st, base, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
       '… alors qu’il majore bien la part du SORT — sinon le test ne prouverait rien'
     );
+
+    // ⚠️ **RELEVÉ JESSICA** — deuxième membre de la famille mesuré, et par
+    // l'autre porte : « Blessing of Curse » majore de +20 % par effet néfaste
+    // sur SOI (`bonusParEffetPropre`), là où Julie compte les buffs de la
+    // CIBLE. Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV + 6 %
+    // DEF + 102 % VIT, contre un Xiong Fei très défensif, en COUP CRITIQUE :
+    //   0 débuff → ~2 250 · 1 débuff → ~2 450 · 2 débuffs → ~2 600.
+    // Si le +20 % touchait tout, 2 débuffs donneraient 3 150. Le modèle prédit
+    // un additionnel de 1 277 ; la résolution du système en donne 1 250.
+    //
+    // ⚠️ Ce relevé prouve AUSSI, indépendamment, que le bucket ne CRITE pas :
+    // les trois mesures sont des critiques, et un additionnel critique (×2,5)
+    // vaudrait à lui seul 3 192 — plus que le total observé de 2 250.
+    const jessica = {
+      ...sortSimple,
+      bonusParEffetPropre: { skillCom2usId: sortSimple.skillCom2usId, pct: 20 },
+    };
+    const ecartJessica = (nbDebuffs: number) => {
+      const s: DamageSetup = { ...base, effetsPropresCount: { [sortSimple.skillCom2usId]: nbDebuffs } };
+      return (
+        computeSkillDamageDetail(sortSimple, st, s, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {
+          ...shahat,
+          bonusParEffetPropre: jessica.bonusParEffetPropre,
+        }).total -
+        computeSkillDamageDetail(sortSimple, st, s, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {
+          bonusParEffetPropre: jessica.bonusParEffetPropre,
+        }).total
+      );
+    };
+    egal(Math.round(ecartJessica(0)), 2100, 'Blessing of Curse, 0 débuff : les dégâts bruts valent leur valeur nue');
+    egal(Math.round(ecartJessica(2)), 2100, '… et 2 débuffs (+40 % sur le sort) ne les majorent toujours PAS');
     egal(
       Math.round(ecart({ ...base, brand: true })),
       Math.round(2100 * 1.25),

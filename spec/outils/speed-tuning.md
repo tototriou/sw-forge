@@ -700,8 +700,26 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
   personnelle (elle protège son porteur), le Bouclier ne l'est pas — un seul
   monstre en Bouclier dans l'équipe, et **tout le monde** en porte un.
   Chilling avec la Volonté dans une équipe qui pose un bouclier et un buff de
-  vitesse porte donc **3 buffs → +60 de vitesse**. ⚠️ **L'outil le pose tout
-  seul** dans la case « cumuls » d'une ligne jamais touchée — sans quoi une
+  vitesse porte donc **3 buffs → +60 de vitesse**.
+- ⚠️ **SUR QUI les buffs se comptent dépend du passif**, et le jeu le dit mot
+  pour mot :
+
+  | Monstre | Texte du jeu | Ce qu'on compte |
+  |---|---|---|
+  | Chilling | « … according to the number of beneficial effects currently **on you** » | les buffs de **ce monstre** |
+  | Elsharion | « increases your Attack Speed by 5 for each beneficial effect granted **on the allies** » | les buffs de **toute l'équipe** |
+
+  Le gain reste **propre** au monstre dans les deux cas — c'est sa vitesse à lui
+  qui monte. Ce qui change, c'est le périmètre de ce qu'on compte, porté par
+  `GainVitesse.cumulEquipe` et lu dans le texte du passif. Confondre les deux
+  sous-comptait Elsharion de tous les buffs de ses alliés.
+
+  Et c'est là que la différence Volonté / Bouclier se voit vraiment : une équipe
+  de 3 avec **un** set Bouclier et **deux** sets Volonté porte
+  **3 + 2 = 5 buffs** — un bouclier sur chacun, plus deux immunités —, soit
+  **+25 de vitesse** pour Elsharion. Compté comme pour Chilling, on en trouvait
+  2, et il manquait 15 de vitesse.
+- ⚠️ **L'outil le pose tout seul** dans la case « cumuls » d'une ligne jamais touchée — sans quoi une
   équipe arrivée du siège affichait une vitesse ici et une autre là-bas. C'est une **estimation**, pas
   une vérité : elle suppose ces buffs posés au moment où le passif compte, et un
   chiffre **saisi n'est jamais écrasé**.

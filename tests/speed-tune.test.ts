@@ -51,6 +51,7 @@ import {
 import {
   analyseAutomatique,
   combatAuto,
+  cumulsEquipe,
   cumulsEstimes,
   noterChoix,
   sortRetenu,
@@ -2329,6 +2330,48 @@ export function testSpeedTuneAuto() {
       }).cibleIndecise,
       'et une cible DÉSIGNÉE lève l’indécision — c’est le joueur qui a tranché'
     );
+  }
+
+  // ⚠️ **SUR QUI les buffs se comptent — Chilling contre Elsharion.**
+  //
+  // Les deux passifs gagnent de la vitesse « par buff », et le jeu les distingue
+  // mot pour mot :
+  //
+  //   Chilling  — « … according to the number of beneficial effects currently
+  //                ON YOU. »
+  //   Elsharion — « increases your Attack Speed by 5 for each beneficial effect
+  //                granted ON THE ALLIES, up to 100. »
+  //
+  // L'estimation ne comptait que les buffs du monstre lui-même : Elsharion était
+  // sous-compté de tous ceux de ses alliés.
+  {
+    const perso = (id: number, sets: string[]): EntreeAuto => ({
+      id: String(id),
+      monster: monstre(id, 'M' + id, 100),
+      runeSpeed: 0,
+      sets,
+    });
+    const vide: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map() };
+
+    // Une équipe de 3 : UN set Bouclier, DEUX sets Volonté.
+    const equipe = [perso(1, ['shield']), perso(2, ['will']), perso(3, ['will'])];
+
+    // ⚠️ Le Bouclier se pose sur TOUT LE MONDE : chacun des trois en porte un.
+    // La Volonté ne protège que son porteur.
+    egal(cumulsEstimes(equipe[0], equipe, vide), 1, 'le porteur du Bouclier ne porte que son bouclier');
+    egal(cumulsEstimes(equipe[1], equipe, vide), 2, 'un porteur de Volonté porte aussi le bouclier de l’équipe');
+
+    // 3 boucliers + 2 immunités = 5. C'est le total que compte Elsharion.
+    egal(cumulsEquipe(equipe, vide), 5, 'l’équipe porte 5 buffs : un bouclier chacun, plus deux Volonté');
+
+    // ⚠️ Le contrôle qui empêche la correction d'être un simple ×3 : sans aucun
+    // Bouclier, le total retombe au nombre de porteurs de Volonté.
+    const sansBouclier = [perso(1, []), perso(2, ['will']), perso(3, ['will'])];
+    egal(cumulsEquipe(sansBouclier, vide), 2, 'sans Bouclier, seules les Volonté comptent');
+
+    // Et un seul Bouclier, sans Volonté, vaut bien un buff PAR MONSTRE.
+    const boucliersSeuls = [perso(1, ['shield']), perso(2, []), perso(3, [])];
+    egal(cumulsEquipe(boucliersSeuls, vide), 3, 'un seul set Bouclier pose un buff sur chacun des trois');
   }
 
   // ⚠️ **UN COMBO : le même monstre joue DEUX FOIS, et lance autre chose.**

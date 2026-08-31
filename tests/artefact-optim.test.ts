@@ -8,13 +8,20 @@
 
 import { ArtifactArchetype, ArtifactDetail, ElementKey } from '../src/types';
 import {
+  budgetEmplacements,
   candidatsParSorte,
+  chercherPaires,
+  meilleurCumulParLigne,
   meilleuresPairesArtefacts,
   nombreDePaires,
+  nombreDePairesRetenues,
   paireRepresentative,
+  paireRespecteLignes,
+  plafondLigne,
   respecteMinimums,
   type ArtifactSearchParams,
 } from '../src/lib/artifactOptim';
+import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
 import { egal, ok, titre } from './outils';
 
 const attribut = (element: ElementKey, main = 101, sub = 0): ArtifactDetail => ({
@@ -199,5 +206,144 @@ export default function testArtefactOptim() {
     ok(!respecteMinimums(stats, { atk: 3600 }), 'un minimum franchi à la baisse est bien détecté');
     ok(respecteMinimums(stats, { atk: 0, def: undefined }), 'un minimum nul ou absent n’exige rien');
     ok(!respecteMinimums(stats, { spd: 100 }), 'une stat ABSENTE des stats compte comme non satisfaite');
+  }
+
+  titre('Lignes verrouillées — le minimum se lit sur la PAIRE');
+
+  // ⚠️ 219 (« Dégâts add. par % de l'ATQ ») est en 200-299 : les DEUX sortes
+  // peuvent la porter, donc ses valeurs se cumulent. C'est le relevé en jeu de
+  // Jessica (2 % de PV = cumul type + attribut, alors qu'une pièce plafonne à
+  // 1,5 %) qui a établi cette règle.
+  {
+    const attr219 = { ...attribut('dark'), subs: [{ code: 219, value: 12 }] };
+    const type219 = { ...type('attack'), subs: [{ code: 219, value: 9 }] };
+
+    ok(paireRespecteLignes([attr219, type219], [{ code: 219, min: 21 }]), '12 + 9 satisfait un minimum de 21');
+    ok(!paireRespecteLignes([attr219, type219], [{ code: 219, min: 22 }]), '… mais pas de 22');
+    ok(
+      !paireRespecteLignes([attr219], [{ code: 219, min: 21 }]),
+      'une seule pièce ne suffit pas quand le minimum dépasse ce qu’elle porte'
+    );
+    ok(paireRespecteLignes([], [{ code: 219, min: 0 }]), 'un minimum nul n’exige rien');
+    ok(paireRespecteLignes([attr219], undefined), 'aucun verrou : tout passe');
+  }
+
+  titre('Lignes verrouillées — le plafond NE double pas pour toutes');
+
+  // ⚠️ LE piège de cette fonctionnalité. Doubler le plafond « par symétrie »
+  // laisserait saisir 60 % sur une ligne qu'une seule pièce peut porter —
+  // une exigence que RIEN ne peut jamais satisfaire, sans que rien ne le dise.
+  {
+    // 219 : plage 200-299, les deux sortes → cumulable.
+    egal(plafondLigne(219), ARTIFACT_SUB_MAX[219] * 2, 'une ligne des DEUX sortes double son plafond');
+    // 307 (« Dégâts reçus du Vent ») : plage 300-399, attribut SEUL.
+    egal(plafondLigne(307), ARTIFACT_SUB_MAX[307], 'une ligne d’ATTRIBUT garde son plafond simple');
+    // 409 (« Précision Compétence 3 ») : plage 400-499, type SEUL.
+    egal(plafondLigne(409), ARTIFACT_SUB_MAX[409], 'une ligne de TYPE garde son plafond simple');
+    // 203 : ancienne ligne, sans fourchette connue.
+    egal(plafondLigne(203), 0, 'une ligne sans fourchette connue rend 0, jamais un plafond deviné');
+  }
+
+  titre('Lignes verrouillées — arithmétique des emplacements');
+
+  // ⚠️ Un artéfact porte 4 sous-propriétés, la paire 8, en DEUX MOITIÉS DE 4
+  // qui ne communiquent pas. Cette arithmétique-là a déjà été fausse deux fois
+  // dans ce dépôt en la généralisant par analogie — chaque cas est donc testé,
+  // y compris ceux qui « devraient » découler des autres.
+  {
+    const typeOnly = (code: number) => ({ code, min: 1 });
+    // 4 lignes de type : tient tout juste.
+    const b4 = budgetEmplacements([404, 405, 406, 409].map(typeOnly));
+    egal(b4.type, 4, '4 lignes réservées au type occupent 4 emplacements');
+    ok(!b4.impossible, '… ce qui tient exactement dans la moitié « type »');
+    // 5 : impossible, quelle que soit la richesse de l'inventaire.
+    const b5 = budgetEmplacements([404, 405, 406, 409, 400].map(typeOnly));
+    ok(b5.impossible, '5 lignes réservées au type sont impossibles d’avance');
+    // Les deux moitiés ne se prêtent RIEN : 4 type + 4 attribut = 8, valide.
+    const plein = budgetEmplacements([
+      ...[404, 405, 406, 409].map(typeOnly),
+      ...[300, 301, 302, 303].map(typeOnly),
+    ]);
+    egal([plein.attribut, plein.type], [4, 4], '4 + 4 se répartissent bien dans les deux moitiés');
+    ok(!plein.impossible, '… et remplissent les 8 emplacements sans déborder');
+    // ⚠️ Le cas que la seule somme raterait : une ligne cumulable dont le
+    // minimum dépasse le plafond d'UNE pièce exige les DEUX, donc un
+    // emplacement de CHAQUE côté — pas un seul « libre ».
+    const surPlafond = budgetEmplacements([{ code: 219, min: ARTIFACT_SUB_MAX[219] + 1 }]);
+    egal([surPlafond.attribut, surPlafond.type, surPlafond.libres], [1, 1, 0], 'au-delà du plafond d’une pièce, la ligne occupe les DEUX moitiés');
+    const sousPlafond = budgetEmplacements([{ code: 219, min: ARTIFACT_SUB_MAX[219] }]);
+    egal([sousPlafond.attribut, sousPlafond.type, sousPlafond.libres], [0, 0, 1], '… alors qu’à hauteur du plafond, une seule pièce suffit');
+    // ⚠️ La 3ᵉ condition n'est PAS impliquée par les deux premières : 3 lignes
+    // par moitié (6) + 3 libres = 9 > 8, alors qu'aucune moitié ne dépasse 4.
+    const troisTrois = budgetEmplacements([
+      ...[404, 405, 406].map(typeOnly),
+      ...[300, 301, 302].map(typeOnly),
+      ...[219, 220, 221].map(typeOnly),
+    ]);
+    egal([troisTrois.attribut, troisTrois.type, troisTrois.libres], [3, 3, 3], '3 + 3 réservées, 3 libres');
+    ok(troisTrois.impossible, '… soit 9 lignes pour 8 emplacements : impossible, bien qu’aucune moitié ne déborde');
+    // Et le cas limite juste en dessous : 3 + 3 + 2 = 8, valide.
+    ok(
+      !budgetEmplacements([
+        ...[404, 405, 406].map(typeOnly),
+        ...[300, 301, 302].map(typeOnly),
+        ...[219, 220].map(typeOnly),
+      ]).impossible,
+      'à 8 pile, ça passe encore'
+    );
+    egal(budgetEmplacements([{ code: 219, min: 0 }]).libres, 0, 'un minimum nul ne réserve aucun emplacement');
+  }
+
+  titre('Lignes verrouillées — le filtre, et le coût qu’il chiffre');
+
+  {
+    // Le meilleur sur le papier ne porte PAS la ligne exigée : c'est tout
+    // l'intérêt du verrou, et ce qu'un filtre oublié laisserait gagner.
+    const gros = { ...attribut('dark'), subs: [{ code: 300, value: 40 }] };
+    const conforme = { ...attribut('dark'), subs: [{ code: 300, value: 10 }, { code: 307, value: 25 }] };
+    // ⚠️ Code 409 (« Précision Compétence 3 »), pas 300 : les 300-399 ne
+    // tombent QUE sur un artéfact d'attribut. Un artéfact de type porteur d'une
+    // ligne élémentaire n'existe pas en jeu — et une donnée de test impossible
+    // fait passer un test pour la mauvaise raison.
+    const piece = { ...type('attack'), subs: [{ code: 409, value: 5 }] };
+    const p: ArtifactSearchParams = {
+      porteur: lushen,
+      inventaire: [gros, conforme, piece],
+      equipes: [],
+      principaleParSorte: {},
+      evaluer: parSubs,
+    };
+
+    const sans = chercherPaires(p);
+    egal(sans.paires[0]?.element?.subs[0]?.value, 40, 'sans verrou, le plus gros score gagne');
+    egal(sans.meilleurSansVerrous, null, '… et il n’y a aucun coût à chiffrer');
+
+    const avec = chercherPaires({ ...p, lignesVerrouillees: [{ code: 307, min: 20 }] });
+    egal(avec.paires[0]?.element, conforme, 'avec verrou, seule la paire conforme est retenue');
+    // ⚠️ Le coût se chiffre dans le MÊME balayage : 45 (gros + type) contre
+    // 40 (conforme + type) une fois le verrou posé.
+    egal(avec.meilleurSansVerrous, 45, 'le meilleur SANS verrou est rapporté par le même parcours');
+    egal(avec.paires[0]?.score, 40, '… face au meilleur AVEC verrou');
+
+    // ⚠️ Aucune paire ne passe → tableau VIDE, jamais un repli sur une paire
+    // qui viole l'exigence : elle s'afficherait sans que rien ne le signale.
+    const impossible = chercherPaires({ ...p, lignesVerrouillees: [{ code: 307, min: 99 }] });
+    egal(impossible.paires, [], 'aucune paire conforme : rien n’est retenu, pas un repli silencieux');
+    egal(impossible.meilleurSansVerrous, 45, '… mais le coût reste chiffrable');
+
+    egal(nombreDePairesRetenues({ ...p, lignesVerrouillees: [{ code: 307, min: 20 }] }), 2, 'le compte des paires RETENUES suit le verrou');
+    egal(nombreDePaires(p), 6, '… alors que le compte des paires PARCOURUES ne bouge pas');
+
+    titre('Lignes verrouillées — diagnostiquer depuis l’inventaire, jamais depuis la théorie');
+
+    // ⚠️ Le « au mieux » est OBSERVÉ : c'est ce que l'inventaire a réellement
+    // produit, pas une déduction. Une déduction pourrait annoncer
+    // « impossible » sur une combinaison réalisable — bien pire que se taire.
+    const diag = meilleurCumulParLigne(p, [
+      { code: 307, min: 20 },
+      { code: 300, min: 99 },
+    ]);
+    egal(diag[0], { code: 307, min: 20, auMieux: 25, atteint: true }, 'la ligne atteignable est rapportée comme telle');
+    egal(diag[1], { code: 300, min: 99, auMieux: 40, atteint: false }, 'et la ligne bloquante dit de COMBIEN elle bloque');
   }
 }

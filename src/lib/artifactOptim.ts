@@ -13,8 +13,15 @@
 // spec/outils/degats-reels.md, « Ces lignes n'entrent PAS dans
 // `damageRelevantStats` »).
 
-import { ARTIFACT_KINDS, ArtifactDetail, ArtifactKind } from '../types';
-import { PorteurArtefact, artifactFitsMonster, artifactPairAllowed, eligibleArtifacts } from './artifacts';
+import { ARTIFACT_KINDS, ArtifactDetail, ArtifactKind, MAX_ARTIFACT_SUBS } from '../types';
+import {
+  ARTIFACT_SUB_MAX,
+  PorteurArtefact,
+  artifactFitsMonster,
+  artifactPairAllowed,
+  eligibleArtifacts,
+} from './artifacts';
+import { artifactSubKinds } from './effects';
 
 // Ce qu'on impose à la stat principale d'un emplacement.
 //
@@ -30,6 +37,113 @@ export type ChoixPrincipale =
   | 101 // … ATQ
   | 102; // … DEF
 
+/* --------------------------------------------------------------------------
+ * Lignes VERROUILLÉES — « je veux au moins X % de cette sous-propriété »
+ * ----------------------------------------------------------------------- */
+
+/**
+ * Une sous-propriété exigée, avec son minimum.
+ *
+ * ⚠️ **Le minimum se lit sur la PAIRE, pas sur une pièce.** Une même ligne peut
+ * tomber sur les deux artéfacts et ses valeurs s'additionnent — relevé en jeu
+ * (les 2 % de PV de Jessica étaient le cumul du type et de l'attribut, alors
+ * que 1,5 % est le maximum d'UNE pièce). Exiger 35 % d'une ligne plafonnée à
+ * 30 % est donc satisfiable, mais seulement si les deux pièces la portent.
+ */
+export interface LigneVerrouillee {
+  code: number;
+  min: number;
+}
+
+/**
+ * Plafond de la ligne **sur la paire** — la borne haute du champ de saisie.
+ *
+ * ⚠️ **Le doublement ne vaut PAS pour toutes les lignes.** Les codes 300-399
+ * n'existent que sur l'artéfact d'ATTRIBUT et les 400-499 que sur celui de
+ * TYPE : une seule pièce peut les porter, leur plafond reste simple. Seuls les
+ * 200-299, communs aux deux sortes, se cumulent. Les plages viennent
+ * d'`artifactSubKinds` (effects.ts), vérifiées sur 2 120 artéfacts d'un compte
+ * réel — aucune ne débordait.
+ *
+ * Rend `0` pour un code sans fourchette connue (203, 207, 211-213 : d'anciennes
+ * lignes devenues inobtenables). Zéro plutôt qu'un plafond deviné — un maximum
+ * inventé laisserait saisir une exigence que rien ne peut satisfaire.
+ */
+export function plafondLigne(code: number): number {
+  const parPiece = ARTIFACT_SUB_MAX[code];
+  if (!parPiece) return 0;
+  return artifactSubKinds(code).length === 2 ? parPiece * 2 : parPiece;
+}
+
+// Valeur CUMULÉE d'une ligne sur la paire.
+function valeurLigne(artefacts: ArtifactDetail[], code: number): number {
+  let total = 0;
+  for (const art of artefacts) for (const sub of art.subs) if (sub.code === code) total += sub.value;
+  return total;
+}
+
+// Cette paire satisfait-elle TOUTES les lignes verrouillées ?
+export function paireRespecteLignes(artefacts: ArtifactDetail[], lignes: LigneVerrouillee[] | undefined): boolean {
+  if (!lignes?.length) return true;
+  for (const l of lignes) {
+    if (l.min <= 0) continue;
+    if (valeurLigne(artefacts, l.code) < l.min) return false;
+  }
+  return true;
+}
+
+/**
+ * Combien d'emplacements de sous-propriété les verrous réservent, par sorte.
+ *
+ * ⚠️ **Un artéfact ne porte que 4 sous-propriétés**, soit 8 sur la paire, en
+ * deux moitiés de 4 qui ne communiquent pas. Verrouiller 5 lignes réservées au
+ * type est donc impossible d'avance, quelle que soit la richesse de
+ * l'inventaire.
+ *
+ * ⚠️ Une ligne cumulable dont le minimum dépasse le plafond d'UNE pièce exige
+ * la ligne sur les DEUX : elle consomme un emplacement de chaque côté, pas un
+ * seul « libre ». C'est le cas qu'une simple somme raterait.
+ *
+ * ⚠️ **`impossible` ne prouve QUE le dépassement d'emplacements.** Il ne dit
+ * rien de ce que l'inventaire contient : une combinaison qui tient dans les 8
+ * emplacements peut parfaitement n'être satisfaite par aucune paire réelle.
+ * Ce diagnostic-là se lit sur le balayage, jamais sur une déduction — voir
+ * `meilleurCumulParLigne`.
+ */
+export interface BudgetEmplacements {
+  attribut: number; // emplacements réservés côté attribut
+  type: number; // … côté type
+  libres: number; // lignes plaçables indifféremment d'un côté ou de l'autre
+  impossible: boolean;
+}
+
+export function budgetEmplacements(lignes: LigneVerrouillee[]): BudgetEmplacements {
+  let attribut = 0;
+  let type = 0;
+  let libres = 0;
+  for (const l of lignes) {
+    if (l.min <= 0) continue;
+    const sortes = artifactSubKinds(l.code);
+    if (sortes.length === 1) {
+      if (sortes[0] === 'element') attribut++;
+      else type++;
+    } else if (l.min > (ARTIFACT_SUB_MAX[l.code] ?? 0)) {
+      // Au-delà du plafond d'une pièce : les DEUX doivent la porter.
+      attribut++;
+      type++;
+    } else {
+      libres++;
+    }
+  }
+  // Les `libres` se répartissent dans ce qui reste des deux moitiés — d'où la
+  // troisième condition, qui n'est PAS impliquée par les deux premières.
+  const impossible =
+    attribut > MAX_ARTIFACT_SUBS ||
+    type > MAX_ARTIFACT_SUBS ||
+    attribut + type + libres > MAX_ARTIFACT_SUBS * 2;
+  return { attribut, type, libres, impossible };
+}
+
 export interface ArtifactSearchParams {
   porteur: PorteurArtefact;
   // L'inventaire COMPLET : le filtrage d'éligibilité se fait ici, pas chez
@@ -39,6 +153,8 @@ export interface ArtifactSearchParams {
   equipes: ArtifactDetail[];
   // Par sorte ; une sorte absente vaut `'libre'`.
   principaleParSorte: Partial<Record<ArtifactKind, ChoixPrincipale>>;
+  // Sous-propriétés exigées, avec leur minimum CUMULÉ sur la paire.
+  lignesVerrouillees?: LigneVerrouillee[];
   // Score d'une paire. ⚠️ L'appelant recalcule les stats DEDANS : la stat
   // principale d'un artéfact entre dans les stats du monstre, donc changer
   // d'artéfact change le build. Un score qui l'ignorerait comparerait des
@@ -80,9 +196,38 @@ export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKi
 // Filtrer emplacement par emplacement puis prendre le meilleur de chaque côté
 // produirait une paire inéquipable.
 export function meilleuresPairesArtefacts(params: ArtifactSearchParams, combien = 1): PaireArtefacts[] {
+  return chercherPaires(params, combien).paires;
+}
+
+export interface ResultatPaires {
+  // Les meilleures paires RESPECTANT les lignes verrouillées. Vide si aucune
+  // n'y parvient — un tableau vide, jamais un repli sur une paire qui viole
+  // l'exigence : elle serait affichée sans que rien ne le signale.
+  paires: PaireArtefacts[];
+  /**
+   * Le meilleur score TOUTES paires confondues, verrous ignorés.
+   *
+   * ⚠️ C'est ce qui chiffre **le coût des verrous sur ce build** : le même
+   * balayage tient deux accumulateurs au lieu d'un, une comparaison de plus par
+   * paire, pas un second parcours.
+   *
+   * ⚠️ **Coût SUR CE BUILD, jamais coût global.** La recherche de runes ayant
+   * elle-même tourné sous le modèle contraint (les verrous s'appliquent aussi à
+   * la paire supposée, voir `paireRepresentative`), d'autres builds auraient pu
+   * émerger sans eux. Le chiffrer exigerait de relancer toute la recherche.
+   * Un libellé qui laisserait croire au contrefactuel global serait faux.
+   *
+   * `null` quand aucun verrou n'est posé — il n'y a alors rien à comparer.
+   */
+  meilleurSansVerrous: number | null;
+}
+
+export function chercherPaires(params: ArtifactSearchParams, combien = 1): ResultatPaires {
   const parSorte = ARTIFACT_KINDS.map(({ key }) => candidatsParSorte(params, key));
   const [candidatsElement, candidatsArchetype] = parSorte;
+  const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   const trouvees: PaireArtefacts[] = [];
+  let meilleurSansVerrous = verrous.length ? Number.NEGATIVE_INFINITY : null;
   // Réutilisé d'un tour à l'autre : à ~50 000 paires, une allocation par
   // itération se verrait.
   const paire: ArtifactDetail[] = [];
@@ -92,13 +237,59 @@ export function meilleuresPairesArtefacts(params: ArtifactSearchParams, combien 
       paire.length = 0;
       if (element) paire.push(element);
       if (archetype) paire.push(archetype);
-      trouvees.push({ element, archetype, score: params.evaluer(paire) });
+      const score = params.evaluer(paire);
+      if (meilleurSansVerrous !== null && score > meilleurSansVerrous) meilleurSansVerrous = score;
+      if (!paireRespecteLignes(paire, verrous)) continue;
+      trouvees.push({ element, archetype, score });
     }
   }
   // ⚠️ Tri DÉCROISSANT stable : à score égal, l'ordre de l'inventaire départage.
   // Un tri instable rendrait le résultat dépendant du moteur JS.
   trouvees.sort((a, b) => b.score - a.score);
-  return trouvees.slice(0, Math.max(1, combien));
+  return {
+    paires: trouvees.slice(0, Math.max(1, combien)),
+    meilleurSansVerrous:
+      meilleurSansVerrous === null || meilleurSansVerrous === Number.NEGATIVE_INFINITY
+        ? null
+        : meilleurSansVerrous,
+  };
+}
+
+/**
+ * Le meilleur cumul RÉELLEMENT atteignable pour chaque ligne verrouillée.
+ *
+ * ⚠️ **Observé, jamais déduit.** Quand aucune paire ne passe, il faut dire
+ * laquelle bloque et de combien. Un pré-contrôle théorique pourrait annoncer
+ * « impossible » sur une combinaison en fait réalisable — bien pire que de se
+ * taire. On rapporte donc ce que l'inventaire a réellement produit.
+ *
+ * ⚠️ Le maximum se prend ligne par ligne, INDÉPENDAMMENT : deux lignes peuvent
+ * chacune être atteignable sans qu'aucune paire ne les serve ensemble. C'est un
+ * diagnostic pour orienter, pas une preuve de faisabilité conjointe.
+ */
+export function meilleurCumulParLigne(
+  params: ArtifactSearchParams,
+  lignes: LigneVerrouillee[]
+): { code: number; min: number; auMieux: number; atteint: boolean }[] {
+  const [candidatsElement, candidatsArchetype] = ARTIFACT_KINDS.map(({ key }) => candidatsParSorte(params, key));
+  const paire: ArtifactDetail[] = [];
+  const auMieux = new Map<number, number>(lignes.map((l) => [l.code, 0]));
+  for (const element of candidatsElement) {
+    for (const archetype of candidatsArchetype) {
+      if (!artifactPairAllowed(element, archetype)) continue;
+      paire.length = 0;
+      if (element) paire.push(element);
+      if (archetype) paire.push(archetype);
+      for (const l of lignes) {
+        const v = valeurLigne(paire, l.code);
+        if (v > (auMieux.get(l.code) ?? 0)) auMieux.set(l.code, v);
+      }
+    }
+  }
+  return lignes.map((l) => {
+    const v = auMieux.get(l.code) ?? 0;
+    return { code: l.code, min: l.min, auMieux: v, atteint: v >= l.min };
+  });
 }
 
 /**
@@ -120,6 +311,18 @@ export function meilleuresPairesArtefacts(params: ArtifactSearchParams, combien 
  *
  * ⚠️ La paire finale peut différer — d'où `respecteMinimums`, à repasser sur
  * le build trouvé une fois ses vrais artéfacts choisis.
+ *
+ * ⚠️ **Les lignes verrouillées s'appliquent ICI aussi**, et c'est délibéré.
+ * Chaque verrou mange un emplacement de sous-propriété qui aurait pu porter une
+ * ligne de dégâts — jusqu'à 8 sur 8. Une paire supposée qui les ignorerait
+ * serait OPTIMISTE : elle noterait les 100 000 builds sur un potentiel que la
+ * paire finale ne pourra jamais atteindre, et le classement retomberait dans
+ * l'asymétrie que cette fonction existe pour corriger.
+ *
+ * ⚠️ Rend un tableau VIDE si aucune paire ne satisfait les verrous. L'appelant
+ * doit alors REFUSER de lancer la recherche et montrer le diagnostic
+ * (`meilleurCumulParLigne`) : chercher quand même noterait tous les builds sans
+ * aucun artéfact, ce qui est précisément le bug `subs: []`.
  */
 export function paireRepresentative(params: ArtifactSearchParams): ArtifactDetail[] {
   const meilleure = meilleuresPairesArtefacts(params)[0];
@@ -154,5 +357,31 @@ export function nombreDePaires(params: ArtifactSearchParams): number {
   const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsParSorte(params, key));
   let n = 0;
   for (const x of e) for (const y of a) if (artifactPairAllowed(x, y)) n++;
+  return n;
+}
+
+/**
+ * Combien de paires SURVIVENT aux lignes verrouillées.
+ *
+ * ⚠️ Distinct de `nombreDePaires`, qui compte ce que la boucle PARCOURT : les
+ * verrous n'élaguent pas le parcours, ils écartent au moment de retenir. La
+ * carte affiche les deux — « 412 paires éligibles · 38 retenues » — parce que
+ * l'écart est précisément ce qui dit si l'exigence est serrée.
+ */
+export function nombreDePairesRetenues(params: ArtifactSearchParams): number {
+  const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
+  if (!verrous.length) return nombreDePaires(params);
+  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsParSorte(params, key));
+  const paire: ArtifactDetail[] = [];
+  let n = 0;
+  for (const x of e) {
+    for (const y of a) {
+      if (!artifactPairAllowed(x, y)) continue;
+      paire.length = 0;
+      if (x) paire.push(x);
+      if (y) paire.push(y);
+      if (paireRespecteLignes(paire, verrous)) n++;
+    }
+  }
   return n;
 }

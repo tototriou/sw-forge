@@ -10,12 +10,21 @@ interface Props {
 }
 
 export default function ArtifactIcon({ artifact, size = 22, className = '' }: Props) {
-  const name =
-    artifact.kind === 'element'
+  // ⚠️ L'INTANGIBLE passe AVANT `element`/`archetype`, qui ne veulent rien dire
+  // sur lui (com2us y met 98) : les lire d'abord donnait `null`, donc AUCUNE
+  // icône — 34 artéfacts blancs dans un inventaire réel. Même ordre de test
+  // que `artifactFitsMonster` (lib/artifacts.ts), et pour la même raison.
+  //
+  // Le glyphe est le « X » du jeu, SEUL — la gemme (orange en légendaire,
+  // violette en héroïque) et le cadre appartiennent à la tuile et à la rareté,
+  // pas au symbole, exactement comme pour les neuf autres icônes.
+  const name = artifact.intangible
+    ? 'intangible'
+    : artifact.kind === 'element'
       ? artifact.element && artifact.element !== 'unknown'
         ? artifact.element
         : null
-      : artifact.archetype ?? null;
+      : (artifact.archetype ?? null);
   if (!name) return null;
   return <ArtifactGlyph name={name} size={size} className={className} />;
 }

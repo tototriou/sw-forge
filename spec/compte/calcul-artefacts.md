@@ -248,10 +248,28 @@ qui signalerait une valeur com2us nouvelle).
 `element`/`archetype` : sur un intangible ces champs ne veulent rien dire, les
 lire d'abord le rejetterait systématiquement.
 
-> **Limite connue, pas une régression** : un artéfact intangible n'affiche
-> **aucune icône** (`ArtifactIcon` renvoie `null` faute de nom d'image), et les
-> filtres de l'inventaire ne savent pas le désigner. C'était déjà le cas avant
-> que le drapeau existe ; maintenant que la donnée est là, c'est réparable.
+### Son icône : le « X », seul
+
+`public/artifacts/intangible.png` — même format que les neuf autres (PNG RGBA
+36×36, fond transparent, **symbole seul**).
+
+⚠️ **La gemme et le cadre n'en font PAS partie.** Sur les captures du jeu, la
+gemme est orange en légendaire et violette en héroïque : c'est la **rareté**,
+pas le symbole. Le cadre doré, lui, est commun à toutes les tuiles. Découper la
+tuile entière aurait donné une icône visiblement étrangère aux neuf autres,
+qui sont des glyphes nus.
+
+⚠️ **`ArtifactIcon` teste `intangible` AVANT `element`/`archetype`**, pour la
+même raison que `artifactFitsMonster` : ces champs ne veulent rien dire sur un
+intangible, les lire d'abord renvoyait `null` — donc **aucune icône**, soit 34
+tuiles blanches dans un inventaire réel.
+
+> **Limite restante** : les filtres de l'inventaire ne savent pas **désigner**
+> un intangible. Il apparaît bien sous « Tous » et sous sa catégorie
+> (Attribut/Type), mais aucune pastille ne permet de l'isoler — la rangée
+> d'éléments en a cinq, celle des archétypes quatre, et l'intangible n'est ni
+> l'un ni l'autre. Ajouter une pastille change la grammaire de ces deux
+> rangées : à trancher séparément.
 
 ## 5. Perf
 

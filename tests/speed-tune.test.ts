@@ -104,11 +104,29 @@ export default function testSpeedTune() {
     egal(pt[1].camp, 'ennemi', 'le camp est conservé');
   }
 
-  // Égalité parfaite : l'ordre de placement départage, échelonné d'un tick.
+  // ⚠️ **Égalité parfaite : l'ATTAQUANT passe devant.** C'est la règle du jeu, et
+  // elle manquait — le départage s'arrêtait à l'ordre de placement, si bien que
+  // le tour partait à l'adverse dès qu'il se trouvait placé avant. Le défaut ne
+  // se voyait qu'une fois sur deux, selon l'ordre des lignes à l'écran.
   {
     const pt = premiersTours(simuler([camp(150), camp(150, 'ennemi')]));
-    egal(pt[0].id, '150-allie', 'à vitesse égale, le premier placé passe');
+    egal(pt[0].id, '150-allie', 'à vitesse égale, ton équipe passe');
     egal(pt[0].tick + 1, pt[1].tick, 'un par tick : le second attend le tick suivant');
+  }
+  {
+    // ⚠️ **Le MÊME cas, l'adverse placé EN PREMIER** — celui que l'ancien test
+    // ne couvrait pas : avec l'allié en tête, il passait quel que soit le
+    // comportement du moteur. C'est ce test-ci qui tient la règle.
+    const pt = premiersTours(simuler([camp(150, 'ennemi'), camp(150)]));
+    egal(pt[0].id, '150-allie', 'même placé après, l’attaquant garde la priorité');
+    egal(pt[0].camp, 'allie', 'et c’est bien ton camp qui ouvre');
+  }
+  {
+    // ⚠️ Le contrôle qui empêche la règle de tout emporter : le camp départage
+    // l'ÉGALITÉ, il ne passe jamais devant la vitesse. Un adverse plus rapide
+    // d'un seul point joue toujours en premier.
+    const pt = premiersTours(simuler([camp(150), camp(151, 'ennemi')]));
+    egal(pt[0].id, '151-ennemi', 'un adverse plus rapide d’un point passe devant');
   }
 
   // Boost de barre d'attaque : +30 % au tick 3 → agit plus tôt (tick 10 vs 15).

@@ -923,6 +923,29 @@ Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
 
 ## Les deux camps se voient
 
+### ⚠️ À égalité parfaite, l'attaquant passe devant
+
+Quand deux monstres atteignent 100 % de barre au même tick, un seul prend le
+tour. Le départage se fait dans cet ordre :
+
+1. la **barre** la plus haute ;
+2. la **vitesse de combat** la plus haute ;
+3. le **camp** — à égalité parfaite, **ton équipe passe devant** ;
+4. l'**ordre de placement**.
+
+⚠️ **Le camp passe avant le placement, jamais avant la vitesse.** Plus rapide
+reste plus rapide, quel que soit le camp : un adverse plus rapide d'un seul point
+joue toujours en premier. Ce critère ne tranche que l'égalité exacte.
+
+⚠️ **Ce critère manquait**, et le défaut ne se voyait qu'une fois sur deux : le
+départage s'arrêtait à l'ordre de placement, donc le tour partait à l'adverse dès
+qu'il se trouvait placé avant dans le tableau. Deux Elsharion à la même vitesse,
+et l'ordre de jeu dépendait de l'ordre des lignes à l'écran.
+
+⚠️ **« Ton équipe » est tenue pour l'ATTAQUANT** : c'est le cadre de l'outil, où
+l'on prépare son attaque. Modéliser une défense demanderait de rendre ce rôle
+réglable — le point de branchement serait le tri de `simuler`, et lui seul.
+
 ⚠️ **Ton équipe et « En face » se distinguent à la COULEUR, pas à la position.**
 `good` pour le tien, `bad` pour l'adverse — la sémantique de l'app, où `bad` dit
 déjà « ce qui te coupe ». ⚠️ **Pas `accent`** : il dit « ceci est actif ou

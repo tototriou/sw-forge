@@ -18,6 +18,7 @@ import { DamageSetup } from './damage';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { ArtifactMainChoice, SlotFilterPresetKey } from '../hooks/useOptimizerState';
+import { LigneVerrouillee } from './artifactOptim';
 import { RuneMetric } from '../hooks/useRuneMetric';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
@@ -67,6 +68,16 @@ export interface OptimizerRecipe {
   excludedSelectors: ExclusionSelector[];
   ignoreArtifacts: boolean;
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
+  // Sous-propriétés d'artéfact exigées, minimum lu sur la PAIRE.
+  //
+  // ⚠️ **OPTIONNEL, et il doit le rester** : une recette exportée avant ce
+  // champ ne le porte pas. Tout lecteur applique `?? []` — voir
+  // « Compatibilité arrière » dans le skill `optimizer-field-propagation`.
+  //
+  // ⚠️ Purement de la saisie (un code de sous-propriété du jeu et un nombre) :
+  // rien à re-résoudre contre le compte de qui importe, contrairement à
+  // `excludedSelectors`. La règle de tête de ce fichier tient.
+  lignesVerrouillees?: LigneVerrouillee[];
 }
 
 export function buildOptimizerRecipe(input: Omit<OptimizerRecipe, 'version'>): OptimizerRecipe {

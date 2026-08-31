@@ -25,6 +25,7 @@ import {
   printMonsterSummary,
 } from './lib/loadMonster';
 import { recipeToSearchParams, resolveArtifacts } from './lib/recipeToSearchParams';
+import { artifactSubName } from '../src/lib/effects';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
@@ -288,6 +289,12 @@ if (recipe.objective === 'degats_reels') {
     // même source que `params.artifacts` (défini plus bas dans ce fichier),
     // recalculée ici pour ne pas réordonner tout le script.
     const artefacts = artifactDamageProfile(resolveArtifacts(recipe, loaded));
+    // ⚠️ Annoncé AVANT les effets : un verrou peut à lui seul expliquer que la
+    // paire retenue soit plus faible qu'attendu, ou qu'il n'y en ait aucune.
+    // Le taire ferait chercher la cause ailleurs.
+    for (const l of recipe.lignesVerrouillees ?? []) {
+      if (l.min > 0) console.log(`Ligne verrouillée : ${artifactSubName(l.code)} ≥ ${l.min} (cumulé sur la paire).`);
+    }
     if (artefacts.ampliVitPct > 0)
       console.log(`Effet aug. VIT (artéfacts) : +${artefacts.ampliVitPct} % — amplifie le buff VIT s'il est actif.`);
     if (artefacts.ampliAtkPct > 0)

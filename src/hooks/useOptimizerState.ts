@@ -4,17 +4,24 @@ import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup, DEFAULT_DAMAGE_SETUP } from '../lib/damage';
 import { AutoExclusionScope, ExclusionSelector } from '../lib/optimizerExclusion';
 import { ArtifactKind } from '../types';
+import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
 export type { SlotFilterPresetKey };
 export type OptimizerSortKey = StatKey | Objective;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
-// 101=ATQ, 102=DEF), plus deux cas hors de cette table : `'equipped'`
-// (défaut — reprend l'artéfact RÉELLEMENT équipé de ce type, comportement
-// historique inchangé) et `'none'` (aucun artéfact supposé dans cet
-// emplacement, même si un est réellement équipé).
-export type ArtifactMainChoice = 'equipped' | 'none' | 100 | 101 | 102;
+// 101=ATQ, 102=DEF), plus trois cas hors de cette table : `'equipped'`
+// (défaut — reprend l'artéfact RÉELLEMENT équipé de ce type), `'none'` (aucun
+// artéfact dans cet emplacement, même si un est réellement équipé) et
+// `'libre'` (chercher parmi TOUS les éligibles, quelle que soit la
+// principale).
+//
+// ⚠️ `'libre'` n'a de sens qu'avec une recherche d'artéfacts : il n'a été
+// ajouté qu'une fois celle-ci construite, pour ne pas laisser une option morte
+// dans le sélecteur. Il aligne ce type sur `ChoixPrincipale`
+// (artifactOptim.ts), dont il était jusque-là le sous-ensemble.
+export type ArtifactMainChoice = 'equipped' | 'none' | 'libre' | 100 | 101 | 102;
 
 // Toute la SAISIE de l'écran Outils → Optimizer, remontée ici (instancié dans
 // App.tsx, jamais démonté) pour survivre à un changement d'onglet : comme les
@@ -44,15 +51,34 @@ export interface OptimizerState {
   // équipés comptent toujours, comme avant l'ajout de cette bascule).
   ignoreArtifacts: boolean;
   setIgnoreArtifacts: Dispatch<SetStateAction<boolean>>;
-  // Statistique principale supposée pour chacun des deux emplacements
-  // d'artéfact (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a
-  // d'effet que si `ignoreArtifacts` est décoché. Clé absente = `'equipped'`
-  // (défaut, voir ArtifactMainChoice) : permet d'hypothéquer un artéfact
-  // différent de celui réellement possédé, SANS avoir à le posséder pour de
-  // vrai (ex. « et si j'avais un artéfact PV+1500 au lieu de mon DEF+100
-  // actuel ? »).
+  // Statistique principale EXIGÉE pour chacun des deux emplacements d'artéfact
+  // (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a d'effet que si
+  // `ignoreArtifacts` est décoché. Clé absente = `'equipped'` (défaut, voir
+  // ArtifactMainChoice).
+  //
+  // ⚠️ **C'est un FILTRE sur l'inventaire, plus une hypothèse.** Ce réglage a
+  // d'abord servi de « et si j'avais un artéfact PV+1500 ? » et fabriquait pour
+  // cela une pièce à `subs: []`. En « Dégâts réels », cette pièce faisait
+  // calculer les dégâts SANS aucune ligne d'effet, quand « Comme équipé » les
+  // comptait : deux réglages voisins, deux modèles de dégâts, sans que rien ne
+  // le signale. Le cran désigne donc désormais les artéfacts RÉELLEMENT
+  // possédés portant cette principale — et sans aucun, l'emplacement reste
+  // vide. Le « et si… » est perdu, en connaissance de cause.
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
   setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
+  // Sous-propriétés d'artéfact EXIGÉES, avec leur minimum.
+  //
+  // ⚠️ Le minimum porte sur la PAIRE, pas sur une pièce : une même ligne peut
+  // tomber sur les deux artéfacts et ses valeurs s'additionnent. D'où un
+  // plafond doublé pour les lignes communes aux deux sortes (200-299) et
+  // simple pour les autres — voir `plafondLigne` (artifactOptim.ts), qui borne
+  // la saisie.
+  //
+  // ⚠️ Au plus 8 lignes : un artéfact porte 4 sous-propriétés, la paire 8, en
+  // deux moitiés de 4 qui ne se prêtent rien. `budgetEmplacements` dit laquelle
+  // des deux déborde.
+  lignesVerrouillees: LigneVerrouillee[];
+  setLignesVerrouillees: Dispatch<SetStateAction<LigneVerrouillee[]>>;
   mainStatsBySlot: Partial<Record<2 | 4 | 6, number[]>>;
   setMainStatsBySlot: Dispatch<SetStateAction<Partial<Record<2 | 4 | 6, number[]>>>>;
   // Runes IMPOSÉES par emplacement (1..6) — `lockedRunes[slot] = runeId`.
@@ -165,6 +191,7 @@ export function useOptimizerState(): OptimizerState {
   const [excludeBase, setExcludeBase] = useState(true);
   const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
+  const [lignesVerrouillees, setLignesVerrouillees] = useState<LigneVerrouillee[]>([]);
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
@@ -191,6 +218,12 @@ export function useOptimizerState(): OptimizerState {
     setExcludeBase(true);
     setIgnoreArtifacts(false);
     setArtifactMainByKind({});
+    // ⚠️ Remis à zéro au changement de monstre, comme les runes imposées : une
+    // ligne verrouillée exclusive à une sorte (« Précision Compétence 3 »)
+    // n'a de sens que pour le monstre pour lequel on l'a choisie, et une
+    // exigence oubliée d'un monstre précédent rendrait « 0 build » sans que
+    // rien ne rappelle d'où elle vient.
+    setLignesVerrouillees([]);
     setMainStatsBySlot({});
     // ⚠️ Une rune imposée référence un `runeId` PRÉCIS, choisi pour l'ancien
     // monstre — le garder verrouillerait la recherche du nouveau sur une
@@ -225,6 +258,8 @@ export function useOptimizerState(): OptimizerState {
     setIgnoreArtifacts,
     artifactMainByKind,
     setArtifactMainByKind,
+    lignesVerrouillees,
+    setLignesVerrouillees,
     mainStatsBySlot,
     setMainStatsBySlot,
     lockedRunes,

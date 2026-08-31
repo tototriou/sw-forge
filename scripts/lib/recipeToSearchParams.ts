@@ -44,39 +44,45 @@ export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
 /**
  * La paire d'artéfacts SUPPOSÉE pendant la recherche de runes.
  *
- * ⚠️ **Deux régimes, et c'est voulu** — ce n'est pas une inconséquence :
+ * ⚠️ **Le sélecteur de stat principale FILTRE l'inventaire, il n'hypothèque
+ * plus.** Il servait à l'origine de « et si j'avais un artéfact PV+1500 ? » et
+ * fabriquait pour cela une pièce à `subs: []`. En « Dégâts réels », cette
+ * pièce faisait calculer les dégâts SANS aucune ligne d'effet — ni
+ * renforcement d'ATQ, ni dégâts additionnels, ni points de Dgts Crit
+ * conditionnels — quand « Comme équipé » les comptait : deux réglages voisins,
+ * deux modèles de dégâts, sans que rien ne le signale.
  *
- *  - **Objectif autre que « Dégâts réels »** : un artéfact HYPOTHÉQUÉ, réduit à
- *    sa stat principale, reste parfaitement fidèle. `computeStats` (stats.ts)
- *    ne lit QUE la principale d'un artéfact, jamais ses sous-propriétés :
- *    efficience, VIT et PV effectifs ne peuvent donc pas voir ce qu'on omet.
- *  - **« Dégâts réels »** : là, les sous-propriétés comptent — renforcement
- *    d'ATQ, dégâts additionnels, points de Dgts Crit conditionnels. Un
- *    artéfact à `subs: []` faisait alors calculer les dégâts SANS aucune ligne
- *    d'effet, quand « Comme équipé » les comptait : deux réglages voisins, deux
- *    modèles de dégâts, sans que rien ne le signale. On prend donc une paire
- *    RÉELLE de l'inventaire, celle que le Mode A choisirait pour l'équipement
- *    actuel sous la même contrainte de principale.
+ * Le cran désigne donc désormais **vos artéfacts réels portant cette
+ * principale**, avec leurs lignes. Décision explicite de l'utilisateur, prise
+ * en connaissance du « et si… » perdu.
  *
- * ⚠️ Conséquence assumée du second régime : si l'inventaire ne contient AUCUN
- * artéfact éligible portant la principale demandée, l'emplacement reste vide au
- * lieu d'être hypothéqué. C'est le comportement honnête — on ne peut pas
- * équiper ce qu'on ne possède pas — et il est cohérent avec le sélecteur, qui
- * FILTRE une recherche réelle plutôt que d'énoncer une hypothèse.
+ * ⚠️ Conséquence assumée : sans aucun artéfact éligible portant la principale
+ * demandée, l'emplacement reste VIDE au lieu d'être hypothéqué. On ne peut pas
+ * équiper ce qu'on ne possède pas.
+ *
+ * ⚠️ **Le score dépend de l'objectif, et le raccourci est légitime.**
+ * `computeStats` (stats.ts:69) ne lit que la stat PRINCIPALE d'un artéfact,
+ * jamais ses sous-propriétés : hors « Dégâts réels », deux artéfacts de même
+ * principale ne se distinguent que par sa VALEUR, et prendre la plus haute est
+ * exact — inutile de dérouler un modèle de dégâts qui n'entre pas dans le
+ * score.
  */
 export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDetail[] {
   if (recipe.ignoreArtifacts) return [];
-  if (recipe.objective === 'degats_reels') {
-    const reelle = paireReellePourDegats(recipe, loaded);
-    if (reelle) return reelle;
-    // Pas de sort calculable : on ne sait pas noter une paire, donc on retombe
-    // sur l'hypothèque ci-dessous plutôt que de rendre une paire arbitraire.
-  }
+  const reelle = paireReelle(recipe, loaded);
+  if (reelle) return reelle;
+  // Espèce introuvable, ou objectif « Dégâts réels » sans sort calculable : on
+  // ne sait pas noter une paire. Repli sur l'ancien comportement plutôt que sur
+  // une paire arbitraire.
   const out: ArtifactDetail[] = [];
   for (const kind of Object.keys(recipe.artifactMainByKind) as ArtifactKind[]) {
     const choice = recipe.artifactMainByKind[kind] ?? 'equipped';
     if (choice === 'none') continue;
-    if (choice === 'equipped') {
+    // ⚠️ `'libre'` n'a AUCUNE stat à hypothéquer — c'est « cherche parmi tous
+    // les éligibles », ce que ce repli ne sait précisément pas faire. On garde
+    // donc la pièce portée : la seule réponse défendable sans inventaire
+    // exploitable, jamais une principale choisie arbitrairement.
+    if (choice === 'equipped' || choice === 'libre') {
       const real = loaded.gear.artifacts.find((a) => a.kind === kind);
       if (real) out.push(real);
       continue;
@@ -102,21 +108,19 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
  * Rend `null` si aucun sort n'est calculable — l'appelant retombe alors sur
  * l'hypothèque.
  */
-function paireReellePourDegats(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDetail[] | null {
+function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDetail[] | null {
   const espece = loadMonstersList().find((m) => m.com2usId === loaded.com2usId);
   if (!espece) return null;
-  // ⚠️ Contexte construit avec l'équipement PORTÉ, uniquement pour obtenir le
-  // profil de sort et les passifs — `artefacts` y est recalculé par paire dans
-  // `evaluer`, donc la valeur passée ici n'influence pas le choix.
-  const ctx = buildRealDamageContext(recipe, loaded.com2usId, loaded.gear.artifacts);
-  if (!ctx) return null;
-  const setup = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
-  const paire = paireRepresentative({
-    porteur: { element: espece.element, archetype: espece.archetype },
-    inventaire: loaded.allArtifacts,
-    equipes: loaded.gear.artifacts,
-    principaleParSorte: recipe.artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
-    evaluer: (arts) =>
+
+  let evaluer: (arts: ArtifactDetail[]) => number;
+  if (recipe.objective === 'degats_reels') {
+    // ⚠️ Contexte construit avec l'équipement PORTÉ, uniquement pour obtenir le
+    // profil de sort et les passifs — `artefacts` est recalculé par paire dans
+    // `evaluer`, donc la valeur passée ici n'influence pas le choix.
+    const ctx = buildRealDamageContext(recipe, loaded.com2usId, loaded.gear.artifacts);
+    if (!ctx) return null;
+    const setup = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+    evaluer = (arts) =>
       computeTotalDamage(
         ctx.profile,
         ctx.passifs,
@@ -124,9 +128,32 @@ function paireReellePourDegats(recipe: OptimizerRecipe, loaded: LoadedMonster): 
         setup,
         espece.element,
         artifactDamageProfile(arts)
-      ),
+      );
+  } else {
+    // ⚠️ Hors « Dégâts réels », la somme des principales SUFFIT et reste
+    // exacte : les sous-propriétés d'artéfact n'entrent pas dans
+    // `computeStats`, donc deux pièces de même principale ne se distinguent que
+    // par sa valeur, et une valeur plus haute n'est jamais pire pour aucun de
+    // ces objectifs. Dérouler un modèle de dégâts ici noterait sur un critère
+    // qui n'est pas celui de la recherche.
+    evaluer = (arts) => arts.reduce((n, a) => n + a.main.value, 0);
+  }
+
+  return paireRepresentative({
+    porteur: { element: espece.element, archetype: espece.archetype },
+    inventaire: loaded.allArtifacts,
+    equipes: loaded.gear.artifacts,
+    principaleParSorte: recipe.artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
+    // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas.
+    //
+    // ⚠️ Les verrous s'appliquent DÈS ICI, sur la paire supposée : chaque
+    // ligne verrouillée mange un emplacement de sous-propriété qui aurait pu
+    // porter une ligne de dégâts. Une paire supposée qui les ignorerait
+    // noterait tous les candidats sur un potentiel que la paire finale ne
+    // pourra pas atteindre.
+    lignesVerrouillees: recipe.lignesVerrouillees ?? [],
+    evaluer,
   });
-  return paire;
 }
 
 // Même logique que `pool` (OptimizerSection.tsx) : `excludeUsedRunes` coché

@@ -1354,6 +1354,7 @@ export default function App() {
             sub={toolSub}
             box={box}
             runes={runes}
+            artifacts={artifacts}
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}

@@ -19,7 +19,9 @@ import {
   Trash2,
   Eye,
 } from 'lucide-react';
-import { ArtifactDetail, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { computeStats } from '../../lib/stats';
+import { paireRepresentative, type ChoixPrincipale } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeSetIconFilter } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
@@ -122,6 +124,10 @@ import DamageSetupCard from './DamageSetupCard';
 interface Props {
   box: BoxItem[];
   runes: RuneDetail[];
+  // Inventaire COMPLET d’artéfacts, pas seulement ceux du monstre affiché :
+  // le sélecteur de stat principale FILTRE désormais cet inventaire au lieu
+  // d’hypothéquer une pièce sans lignes d’effet (voir `searchArtifacts`).
+  artifacts: ArtifactDetail[];
   // Remontée dans App.tsx (voir useOptimizerState) : la page est démontée à
   // chaque changement d'onglet, comme les autres pages de l'app — sans cette
   // remontée, toute la saisie (monstre, conditions, résultats…) serait
@@ -261,7 +267,7 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
-export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, menuOuvert, onFermerMenu }: Props) {
+export default function OptimizerSection({ box, runes, artifacts, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -286,6 +292,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setIgnoreArtifacts,
     artifactMainByKind,
     setArtifactMainByKind,
+    lignesVerrouillees,
+    setLignesVerrouillees,
     mainStatsBySlot,
     setMainStatsBySlot,
     lockedRunes,
@@ -809,10 +817,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // jamais modifiée par ces réglages). `ignoreArtifacts` coché = aucun
   // artéfact compté. Sinon, chaque emplacement (Attribut/Type, voir
   // ARTIFACT_KINDS) suit son propre choix : `'equipped'` (défaut) reprend
-  // l'artéfact réellement porté à cet emplacement DU BUILD DE BASE —
-  // comportement historique inchangé tant que rien n'est touché — un code
-  // de stat HYPOTHÈQUE un artéfact différent (même sans le posséder),
-  // `'none'` retire cet emplacement même s'il est réellement équipé.
+  // l'artéfact réellement porté à cet emplacement DU BUILD DE BASE,
+  // `'none'` retire cet emplacement même s'il est réellement équipé, et un
+  // code de stat FILTRE l'inventaire sur cette principale.
+  //
+  // ⚠️ **Un code de stat n'hypothèque plus une pièce.** Il fabriquait avant un
+  // artéfact `subs: []` : en « Dégâts réels », choisir « ATQ » faisait alors
+  // calculer les dégâts SANS aucune ligne d'effet, quand « Comme équipé » les
+  // comptait — deux réglages voisins, deux modèles de dégâts, sans que rien ne
+  // le signale. On prend donc la paire RÉELLE que le choix d'artéfacts
+  // retiendrait pour l'équipement affiché (`paireRepresentative`).
+  //
+  // ⚠️ Ce `useMemo` doit rester le JUMEAU EXACT de `resolveArtifacts`
+  // (scripts/lib/recipeToSearchParams.ts) — deux constructeurs pour un même
+  // contrat, dont `tsc` ne verra jamais la divergence.
   // ⚠️ **`selected.gear` suit l'EXEMPLAIRE choisi par les 4 puces**
   // (`sourceSelector` — Box/RTA/Défenses siège/Offenses siège), pas
   // forcément un build Box : RTA et un deck de siège peuvent porter des
@@ -824,19 +842,40 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // artéfact différent sans avoir à changer de monstre.
   const searchArtifacts = useMemo<ArtifactDetail[]>(() => {
     if (!selected || ignoreArtifacts) return [];
-    const out: ArtifactDetail[] = [];
-    for (const { key } of ARTIFACT_KINDS) {
-      const choice = artifactMainByKind[key] ?? 'equipped';
-      if (choice === 'none') continue;
-      if (choice === 'equipped') {
-        const real = selected.gear.artifacts.find((a) => a.kind === key);
-        if (real) out.push(real);
-        continue;
-      }
-      out.push({ kind: key, level: 1, rarity: 5, main: { code: choice, value: ARTIFACT_MAIN_VALUE[choice] }, subs: [] });
-    }
-    return out;
-  }, [selected, ignoreArtifacts, artifactMainByKind]);
+    const espece = selected.monster;
+    // ⚠️ Le score de la paire dépend de l'OBJECTIF. Hors « Dégâts réels », la
+    // somme des principales suffit et reste EXACTE : `computeStats` ne lit que
+    // la principale d'un artéfact, jamais ses sous-propriétés — deux pièces de
+    // même principale ne se distinguent donc que par sa valeur, et une valeur
+    // plus haute n'est jamais pire pour l'efficience, la VIT ou les PV
+    // effectifs. Dérouler un modèle de dégâts ici noterait sur un critère qui
+    // n'est pas celui de la recherche.
+    //
+    // ⚠️ `resolvedSkill`/`offensivePassives` (plus haut) ne dépendent QUE de la
+    // fiche du monstre, jamais des artéfacts — c'est ce qui évite la
+    // circularité avec `realDamage`, qui est construit APRÈS ce bloc et lit
+    // `searchArtifacts`.
+    const evaluer =
+      objective === 'degats_reels' && resolvedSkill
+        ? (arts: ArtifactDetail[]) =>
+            computeTotalDamage(
+              resolvedSkill,
+              offensivePassives,
+              computeStats({ ...selected.gear, artifacts: arts }),
+              damageSetup,
+              espece.element,
+              artifactDamageProfile(arts)
+            )
+        : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+    return paireRepresentative({
+      porteur: { element: espece.element, archetype: espece.archetype },
+      inventaire: artifacts,
+      equipes: selected.gear.artifacts,
+      principaleParSorte: artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
+      lignesVerrouillees,
+      evaluer,
+    });
+  }, [selected, ignoreArtifacts, artifactMainByKind, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
 
   // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
   // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
@@ -1003,6 +1042,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       excludedSelectors,
       ignoreArtifacts,
       artifactMainByKind,
+      lignesVerrouillees,
     });
     const jour = new Date().toISOString().slice(0, 10);
     const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
@@ -1120,6 +1160,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       setExcludedSelectors(recipe.excludedSelectors ?? []);
       setIgnoreArtifacts(recipe.ignoreArtifacts);
       setArtifactMainByKind(recipe.artifactMainByKind);
+      // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas (voir
+      // `OptimizerRecipe.lignesVerrouillees`, optionnel exprès).
+      setLignesVerrouillees(recipe.lignesVerrouillees ?? []);
 
       // Les runes imposées ignorées (voir plus haut) sont signalées en
       // SUFFIXE du message d'import — un verrou perdu change réellement le

@@ -1514,6 +1514,79 @@ export function testSpeedTuneKit() {
     );
   }
 
+  // ⚠️ **UN BOOST SOUS CONDITION NE SE COMPTE PAS.** Le S2 de Sylvia augmente la
+  // barre de tout le camp — mais seulement si le retrait de buffs en a enlevé au
+  // moins deux. Un speed tune est ce qui tient SANS rien attendre de l'adverse :
+  // l'annoncer, c'est promettre un tick qu'on n'aura pas toujours.
+  {
+    const avecTexte = (nom: string, texte: string | null) =>
+      ({ ...comp(nom, [effet('Increase ATB', 20, true)]), description: texte }) as Competence;
+
+    egal(
+      kitVitesse(
+        detail([
+          avecTexte(
+            'Cutting Magic',
+            'Attacks an enemy and then removes all beneficial effects on the target. If there are 2 or more beneficial effects removed, the Attack Bar of all allies will be increased by 20% each.'
+          ),
+        ])
+      ).atb,
+      0,
+      'le boost conditionnel du S2 de Sylvia n’est pas annoncé'
+    );
+
+    // ⚠️ Le contrôle qui empêche la règle de tout emporter : le MÊME effet, sans
+    // condition, reste bien détecté.
+    egal(
+      kitVitesse(
+        detail([
+          avecTexte('Sans condition', 'Increases the Attack Bar of all allies by 20%.'),
+        ])
+      ).atb,
+      20,
+      'le même effet sans condition reste annoncé'
+    );
+
+    // ⚠️ Un « if » qui gouverne une AUTRE phrase ne condamne pas le boost : seule
+    // la phrase qui porte l'augmentation fait foi. Mesuré sur le corpus, 145
+    // compétences contiennent un « if », dont la plupart ailleurs.
+    egal(
+      kitVitesse(
+        detail([
+          avecTexte(
+            'Ailleurs',
+            'Attacks the enemy and stuns for 1 turn if the attack lands as a Critical Hit. Increases the Attack Bar of all allies by 20%.'
+          ),
+        ])
+      ).atb,
+      20,
+      'un « if » sur une autre phrase ne condamne pas le boost'
+    );
+
+    // ⚠️ Une action IRRÉSISTIBLE se produit toujours : la condition qu'elle porte
+    // est acquise. Aucun cas dans le corpus d'aujourd'hui — la règle garde
+    // l'avenir.
+    egal(
+      kitVitesse(
+        detail([
+          avecTexte(
+            'Irrésistible',
+            'Attacks and inflicts an irresistible provoke. If the provoke lands, the Attack Bar of all allies will be increased by 20%.'
+          ),
+        ])
+      ).atb,
+      20,
+      'une action irrésistible rend sa condition acquise'
+    );
+
+    // Sans texte du tout (fiche incomplète), on ne suppose rien : le boost passe.
+    egal(
+      kitVitesse(detail([avecTexte('Sans texte', null)])).atb,
+      20,
+      'sans description, aucune condition ne peut être lue — le boost reste'
+    );
+  }
+
   // Plusieurs compétences qui remplissent la barre : la plus forte l'emporte.
   {
     const k = kitVitesse(

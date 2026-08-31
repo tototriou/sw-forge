@@ -923,6 +923,39 @@ Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
 
 ## Les deux camps se voient
 
+### ⚠️ Un boost de barre SOUS CONDITION ne se compte pas
+
+Le S2 de Sylvia augmente la barre de tout le camp — mais seulement **si** le
+retrait de buffs en a enlevé au moins deux :
+
+> « … removes all beneficial effects on the target. **If** there are 2 or more
+> beneficial effects removed, the Attack Bar of all allies will be increased by
+> 20% each. »
+
+Un speed tune est ce qui tient **sans rien attendre de l'adverse** : annoncer ce
+boost, c'est promettre un tick qu'on n'aura pas toujours. Il n'est donc pas
+détecté.
+
+⚠️ **Ni la `chance` ni un « if » quelque part dans le texte ne suffisent à le
+dire.** Mesuré sur les 498 effets « Increase ATB » du corpus :
+
+- **269** portent `chance: 0`, dont **220 sans aucune condition** — le champ ne
+  veut rien dire ici ;
+- **145** compétences contiennent un « if », qui gouverne le plus souvent une
+  **autre** phrase que celle du boost.
+
+Seule la **phrase qui porte l'augmentation** fait foi. Et on n'écarte que si
+**toutes** ses phrases d'augmentation sont conditionnelles : deux compétences du
+corpus (Mega Impulse Gun) en mêlent une conditionnelle et une qui ne l'est pas,
+leur boost reste annoncé. **112 compétences** sont concernées.
+
+⚠️ **Exception : une action IRRÉSISTIBLE se produit toujours**, donc la condition
+qu'elle porte est acquise et le boost compte. Aucun cas aujourd'hui — 64
+compétences emploient le mot, aucune n'est parmi les 112. La règle garde l'avenir.
+
+⚠️ Sans description (fiche incomplète), aucune condition ne peut être lue : le
+boost reste annoncé. On ne suppose pas une condition qu'on n'a pas vue.
+
 ### ⚠️ À barre égale, l'attaquant passe devant
 
 Quand plusieurs monstres atteignent 100 % de barre au même tick, un seul prend le

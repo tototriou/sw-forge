@@ -10,6 +10,7 @@ import { ArtifactArchetype, ArtifactDetail, ElementKey } from '../src/types';
 import {
   budgetEmplacements,
   candidatsParSorte,
+  preFiltrerCandidats,
   chercherPaires,
   meilleurCumulParLigne,
   meilleuresPairesArtefacts,
@@ -318,7 +319,7 @@ export default function testArtefactOptim() {
     egal(sans.paires[0]?.element?.subs[0]?.value, 40, 'sans verrou, le plus gros score gagne');
     egal(sans.meilleurSansVerrous, null, '… et il n’y a aucun coût à chiffrer');
 
-    const avec = chercherPaires({ ...p, lignesVerrouillees: [{ code: 307, min: 20 }] });
+    const avec = chercherPaires({ ...p, lignesVerrouillees: [{ code: 307, min: 20 }], avecCoutDesVerrous: true });
     egal(avec.paires[0]?.element, conforme, 'avec verrou, seule la paire conforme est retenue');
     // ⚠️ Le coût se chiffre dans le MÊME balayage : 45 (gros + type) contre
     // 40 (conforme + type) une fois le verrou posé.
@@ -327,7 +328,7 @@ export default function testArtefactOptim() {
 
     // ⚠️ Aucune paire ne passe → tableau VIDE, jamais un repli sur une paire
     // qui viole l'exigence : elle s'afficherait sans que rien ne le signale.
-    const impossible = chercherPaires({ ...p, lignesVerrouillees: [{ code: 307, min: 99 }] });
+    const impossible = chercherPaires({ ...p, lignesVerrouillees: [{ code: 307, min: 99 }], avecCoutDesVerrous: true });
     egal(impossible.paires, [], 'aucune paire conforme : rien n’est retenu, pas un repli silencieux');
     egal(impossible.meilleurSansVerrous, 45, '… mais le coût reste chiffrable');
 
@@ -345,5 +346,121 @@ export default function testArtefactOptim() {
     ]);
     egal(diag[0], { code: 307, min: 20, auMieux: 25, atteint: true }, 'la ligne atteignable est rapportée comme telle');
     egal(diag[1], { code: 300, min: 99, auMieux: 40, atteint: false }, 'et la ligne bloquante dit de COMBIEN elle bloque');
+  }
+
+  titre('Pré-filtrage — le seuil obligatoire n’est PAS le minimum demandé');
+
+  // ⚠️ Le piège : pour une ligne CUMULABLE, la pièce n'a pas à porter le
+  // minimum entier — l'autre peut en apporter jusqu'à un plafond. Exiger `min`
+  // des deux côtés écarterait des paires parfaitement valides.
+  {
+    const capA = ARTIFACT_SUB_MAX[219]; // ligne cumulable (200-299)
+    // Chaque pièce porte la moitié : ni l'une ni l'autre n'atteint `min`.
+    const moitie = () => [{ code: 219, value: capA }];
+    const attrMoitie = { ...attribut('dark'), subs: moitie() };
+    const typeMoitie = { ...type('attack'), subs: moitie() };
+    const p: ArtifactSearchParams = {
+      porteur: lushen,
+      inventaire: [attrMoitie, typeMoitie],
+      equipes: [],
+      principaleParSorte: {},
+      evaluer: parSubs,
+      lignesVerrouillees: [{ code: 219, min: capA * 2 }],
+    };
+    egal(
+      chercherPaires(p).paires[0]?.score,
+      capA * 2,
+      'deux demi-contributions satisfont un minimum qu’AUCUNE pièce n’atteint seule'
+    );
+    // ⚠️ …et l'emplacement vide est bien écarté : au-delà du plafond d'une
+    // pièce, les DEUX doivent porter la ligne.
+    ok(
+      !preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', p.lignesVerrouillees!).includes(null),
+      'l’emplacement VIDE tombe quand la ligne exige les deux pièces'
+    );
+
+    // Une ligne EXCLUSIVE, elle, doit être portée en entier par sa sorte.
+    const q: ArtifactSearchParams = {
+      ...p,
+      inventaire: [{ ...attribut('dark'), subs: [{ code: 307, value: 10 }] }, type('attack')],
+      lignesVerrouillees: [{ code: 307, min: 25 }],
+    };
+    egal(
+      preFiltrerCandidats(candidatsParSorte(q, 'element'), 'element', q.lignesVerrouillees!),
+      [],
+      'une pièce sous le seuil d’une ligne EXCLUSIVE est écartée'
+    );
+    egal(chercherPaires(q).paires, [], '… donc aucune paire ne peut se former');
+
+    // ⚠️ **L'INVARIANT qui protège le diagnostic.** Le pré-filtrage a d'abord
+    // été posé dans `candidatsParSorte`, et il y était faux :
+    // `meilleurCumulParLigne` serait parti des candidats déjà élagués et aurait
+    // annoncé « au mieux 10 % » sur un inventaire qui monte à 10 % — en ayant
+    // écarté la pièce même qu'il devait rapporter. La vue complète doit rester
+    // complète.
+    egal(
+      candidatsParSorte(q, 'element').length,
+      2,
+      'la vue COMPLÈTE ignore les verrous : le diagnostic doit voir tout l’inventaire'
+    );
+    egal(
+      meilleurCumulParLigne(q, q.lignesVerrouillees!),
+      [{ code: 307, min: 25, auMieux: 10, atteint: false }],
+      '… et rapporte donc bien la pièce que l’élagage aurait fait disparaître'
+    );
+  }
+
+  titre('Pré-filtrage — les doublons inertes, et ceux qui n’en sont pas');
+
+  {
+    // Trois artéfacts sans le moindre effet sur les dégâts (code 215, « Vol de
+    // vie » : absent d'`artifactDamageProfile`). Deux partagent la même
+    // principale — ils sont interchangeables, `computeStats` ne lisant que
+    // celle-ci.
+    const inerte = (mainValue: number, v: number): ArtifactDetail => ({
+      ...attribut('dark'),
+      main: { code: 101, value: mainValue },
+      subs: [{ code: 215, value: v }],
+    });
+    const base2: ArtifactSearchParams = {
+      porteur: lushen,
+      inventaire: [inerte(300, 5), inerte(300, 8), inerte(220, 5)],
+      equipes: [],
+      principaleParSorte: {},
+      evaluer: parSubs,
+    };
+    egal(
+      preFiltrerCandidats(candidatsParSorte(base2, 'element'), 'element').length,
+      3,
+      'deux inertes de MÊME principale n’en laissent qu’un (plus l’autre principale, plus le vide)'
+    );
+
+    // ⚠️ Un artéfact qui PÈSE sur les dégâts n'est jamais un doublon, même à
+    // principale identique — c'est tout l'enjeu du filtre.
+    const utile: ArtifactDetail = {
+      ...attribut('dark'),
+      main: { code: 101, value: 300 },
+      subs: [{ code: 219, value: 9 }],
+    };
+    egal(
+      preFiltrerCandidats(candidatsParSorte({ ...base2, inventaire: [inerte(300, 5), utile] }, 'element'), 'element').length,
+      3,
+      'un artéfact utile aux dégâts survit à côté d’un inerte de même principale'
+    );
+
+    // ⚠️ Ni un artéfact porteur d'une ligne VERROUILLÉE, même inerte sur les
+    // dégâts : c'est lui qui rend la paire faisable.
+    const porteurVerrou: ArtifactDetail = {
+      ...attribut('dark'),
+      main: { code: 101, value: 300 },
+      subs: [{ code: 215, value: 9 }, { code: 307, value: 25 }],
+    };
+    const verrou = [{ code: 307, min: 20 }];
+    const avecVerrou = preFiltrerCandidats(
+      candidatsParSorte({ ...base2, inventaire: [inerte(300, 5), porteurVerrou], lignesVerrouillees: verrou }, 'element'),
+      'element',
+      verrou
+    );
+    egal(avecVerrou, [porteurVerrou], 'le porteur du verrou reste, l’inerte de même principale tombe sur le seuil');
   }
 }

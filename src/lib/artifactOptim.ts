@@ -22,6 +22,7 @@ import {
   eligibleArtifacts,
 } from './artifacts';
 import { artifactSubKinds } from './effects';
+import { ARTIFACT_DAMAGE_NEUTRE, artifactDamageProfile } from './damage';
 
 // Ce qu'on impose à la stat principale d'un emplacement.
 //
@@ -155,6 +156,18 @@ export interface ArtifactSearchParams {
   principaleParSorte: Partial<Record<ArtifactKind, ChoixPrincipale>>;
   // Sous-propriétés exigées, avec leur minimum CUMULÉ sur la paire.
   lignesVerrouillees?: LigneVerrouillee[];
+  /**
+   * Chiffrer aussi ce que les verrous coûtent SUR CE BUILD.
+   *
+   * ⚠️ **Ce n'est pas gratuit, et ça ne peut pas l'être** : on ne peut pas à la
+   * fois écarter une paire sans l'évaluer et connaître son score. L'activer
+   * désactive donc l'élagage par obligation (la déduplication, elle, reste :
+   * un doublon inerte ne peut pas être le meilleur non plus).
+   *
+   * À n'activer que pour les builds réellement AFFICHÉS. Les appels internes
+   * (`paireRepresentative`) n'en ont que faire et gardent l'élagage complet.
+   */
+  avecCoutDesVerrous?: boolean;
   // Score d'une paire. ⚠️ L'appelant recalcule les stats DEDANS : la stat
   // principale d'un artéfact entre dans les stats du monstre, donc changer
   // d'artéfact change le build. Un score qui l'ignorerait comparerait des
@@ -166,6 +179,108 @@ export interface PaireArtefacts {
   element: ArtifactDetail | null;
   archetype: ArtifactDetail | null;
   score: number;
+}
+
+/* --------------------------------------------------------------------------
+ * Pré-filtrage — écarter ce qui ne peut PAS gagner
+ * ----------------------------------------------------------------------- */
+
+/**
+ * Ce que CETTE sorte doit obligatoirement porter, et à partir de quelle valeur.
+ *
+ * ⚠️ **Le seuil n'est pas le minimum demandé.** Il en retranche ce que l'AUTRE
+ * pièce peut apporter au mieux : une ligne exclusive à une sorte ne reçoit rien
+ * d'en face (seuil = `min`), une ligne cumulable peut compter sur un plafond
+ * complet (seuil = `min − plafond d'une pièce`). Prendre `min` dans les deux cas
+ * écarterait des paires parfaitement valides.
+ *
+ * Un seuil ≤ 0 signifie « rien d'obligatoire de ce côté » et n'est pas rendu.
+ */
+function seuilsObligatoires(lignes: LigneVerrouillee[], kind: ArtifactKind): { code: number; seuil: number }[] {
+  const out: { code: number; seuil: number }[] = [];
+  for (const l of lignes) {
+    if (l.min <= 0) continue;
+    const sortes = artifactSubKinds(l.code);
+    if (!sortes.includes(kind)) continue;
+    // Ce que l'AUTRE pièce peut apporter au maximum : rien si la ligne est
+    // exclusive à cette sorte, un plafond entier si elle est cumulable.
+    const apportAutre = sortes.length === 2 ? (ARTIFACT_SUB_MAX[l.code] ?? 0) : 0;
+    const seuil = l.min - apportAutre;
+    if (seuil > 0) out.push({ code: l.code, seuil });
+  }
+  return out;
+}
+
+// Valeur d'une ligne sur UNE pièce.
+function valeurSur(art: ArtifactDetail, code: number): number {
+  let total = 0;
+  for (const s of art.subs) if (s.code === code) total += s.value;
+  return total;
+}
+
+// Cet artéfact ne pèse-t-il RIEN sur les dégâts ?
+//
+// ⚠️ Testé par le COMPORTEMENT (`artifactDamageProfile` rend-il le profil
+// neutre ?) plutôt que par une liste de codes recopiée ici. Une liste
+// dériverait au premier code nouvellement pris en charge, et l'écart ne se
+// verrait pas : on écarterait silencieusement des artéfacts devenus utiles.
+function inerteSurLesDegats(art: ArtifactDetail): boolean {
+  const p = artifactDamageProfile([art]);
+  for (const [k, v] of Object.entries(ARTIFACT_DAMAGE_NEUTRE)) {
+    if (typeof v === 'number') {
+      if ((p as unknown as Record<string, number>)[k] !== v) return false;
+    } else if (Object.keys((p as unknown as Record<string, object>)[k]).length > 0) {
+      // `degatsElementPct` / `cdPointsParSlot` : neutres quand ils sont vides.
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Réduit les candidats d'un emplacement à ceux qui peuvent encore gagner.
+ *
+ * ⚠️ **Exact, jamais heuristique.** Deux élagages, chacun prouvé :
+ *
+ * 1. **Obligation.** Si une ligne verrouillée ne peut être servie que par cette
+ *    sorte (ou exige les deux pièces), tout candidat qui n'atteint pas son
+ *    seuil rend la paire infaisable, quel que soit le vis-à-vis. L'emplacement
+ *    VIDE tombe avec eux — il ne porte rien.
+ * 2. **Doublon inerte.** `computeStats` ne lit que la stat PRINCIPALE d'un
+ *    artéfact (stats.ts), jamais ses sous-propriétés. Deux artéfacts sans aucun
+ *    effet sur les dégâts et de même principale `(code, valeur)` produisent donc
+ *    exactement le même score : en garder un seul ne peut rien coûter.
+ *    ⚠️ La déduplication porte sur `(code, valeur)`, PAS sur le seul code : on
+ *    ne suppose nulle part que le score croît avec la principale. Garder « la
+ *    plus grosse » exigerait cette monotonie, que rien ne garantit.
+ */
+export function preFiltrerCandidats(
+  candidats: (ArtifactDetail | null)[],
+  kind: ArtifactKind,
+  lignes: LigneVerrouillee[] = []
+): (ArtifactDetail | null)[] {
+  const obligatoires = seuilsObligatoires(lignes, kind);
+  const codesVerrouilles = new Set(lignes.filter((l) => l.min > 0).map((l) => l.code));
+  const vus = new Set<string>();
+  const out: (ArtifactDetail | null)[] = [];
+  for (const art of candidats) {
+    if (!art) {
+      // L'emplacement vide ne survit que si rien n'est obligatoire ici.
+      if (obligatoires.length === 0) out.push(null);
+      continue;
+    }
+    if (obligatoires.some((o) => valeurSur(art, o.code) < o.seuil)) continue;
+    // ⚠️ Un artéfact porteur d'une ligne verrouillée n'est JAMAIS un doublon,
+    // même sans effet sur les dégâts : c'est lui qui rend la paire faisable.
+    const porteUnVerrou = art.subs.some((s) => codesVerrouilles.has(s.code));
+    if (!porteUnVerrou && inerteSurLesDegats(art)) {
+      const cle = `${art.main.code}:${art.main.value}`;
+      if (vus.has(cle)) continue;
+      vus.add(cle);
+    }
+    out.push(art);
+  }
+  return out;
 }
 
 // Candidats d'un emplacement, une fois l'éligibilité ET le filtre de
@@ -186,7 +301,31 @@ export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKi
   // ⚠️ `null` TOUJOURS proposé : un emplacement vide reste une option valide,
   // et c'est parfois la seule (aucun candidat éligible). Sans lui, un monstre
   // sans artéfact d'attribut ne produirait aucune paire du tout.
+  //
+  // ⚠️ **Aucun pré-filtrage ici.** Il a d'abord été posé à cet endroit, et il y
+  // était FAUX : `meilleurCumulParLigne` serait alors parti des candidats déjà
+  // élagués et aurait rapporté « au mieux 24 % » sur un inventaire qui monte à
+  // 40 %. Un diagnostic qui ment est pire que pas de diagnostic. Cette fonction
+  // reste donc la vue COMPLÈTE ; l'élagage vit dans `candidatsPourRecherche`,
+  // que seule la boucle de recherche emprunte.
   return [null, ...filtres];
+}
+
+// Les candidats effectivement PARCOURUS par la recherche : la vue complète,
+// une fois élaguée de ce qui ne peut pas gagner.
+//
+// ⚠️ `avecCoutDesVerrous` désactive l'élagage par OBLIGATION (pas la
+// déduplication, toujours sûre). C'est le prix exact du chiffrage : on ne peut
+// pas à la fois écarter une paire sans l'évaluer et connaître son score. Les
+// appels internes qui n'ont que faire du coût (`paireRepresentative`) gardent
+// donc l'élagage complet et restent rapides.
+function candidatsPourRecherche(
+  params: ArtifactSearchParams,
+  kind: ArtifactKind
+): (ArtifactDetail | null)[] {
+  const complets = candidatsParSorte(params, kind);
+  const lignes = params.avecCoutDesVerrous ? [] : (params.lignesVerrouillees ?? []);
+  return preFiltrerCandidats(complets, kind, lignes);
 }
 
 // La meilleure paire, ou les `combien` meilleures.
@@ -223,11 +362,16 @@ export interface ResultatPaires {
 }
 
 export function chercherPaires(params: ArtifactSearchParams, combien = 1): ResultatPaires {
-  const parSorte = ARTIFACT_KINDS.map(({ key }) => candidatsParSorte(params, key));
+  const parSorte = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key));
   const [candidatsElement, candidatsArchetype] = parSorte;
   const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   const trouvees: PaireArtefacts[] = [];
-  let meilleurSansVerrous = verrous.length ? Number.NEGATIVE_INFINITY : null;
+  // ⚠️ Chiffré SEULEMENT si l'appelant l'a demandé : sans ça, l'élagage par
+  // obligation a déjà retiré les paires non conformes, et le « meilleur sans
+  // verrous » calculé sur ce qui reste serait FAUX — égal au meilleur
+  // conforme, donc un coût de 0 % systématique. Un nombre faux vaut moins que
+  // pas de nombre.
+  let meilleurSansVerrous = verrous.length && params.avecCoutDesVerrous ? Number.NEGATIVE_INFINITY : null;
   // Réutilisé d'un tour à l'autre : à ~50 000 paires, une allocation par
   // itération se verrait.
   const paire: ArtifactDetail[] = [];
@@ -354,7 +498,7 @@ export function respecteMinimums(stats: { key: string; total: number }[], minSta
 // annoncer l'ampleur AVANT de lancer, et pour vérifier que l'éligibilité fait
 // bien son travail d'élagage.
 export function nombreDePaires(params: ArtifactSearchParams): number {
-  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsParSorte(params, key));
+  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key));
   let n = 0;
   for (const x of e) for (const y of a) if (artifactPairAllowed(x, y)) n++;
   return n;
@@ -371,7 +515,7 @@ export function nombreDePaires(params: ArtifactSearchParams): number {
 export function nombreDePairesRetenues(params: ArtifactSearchParams): number {
   const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   if (!verrous.length) return nombreDePaires(params);
-  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsParSorte(params, key));
+  const [e, a] = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key));
   const paire: ArtifactDetail[] = [];
   let n = 0;
   for (const x of e) {

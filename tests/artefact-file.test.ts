@@ -64,23 +64,48 @@ export default function testArtefactFile() {
   titre('File d’artéfacts — ce qui invalide le cache');
 
   {
+    const setup = {
+      skillCom2usId: 4713,
+      enemyElement: null,
+      atkBuff: false,
+      enemyHpPct: 100,
+      enemyDef: 1000,
+      critMode: 'crit',
+    };
     const base = {
       monstreCom2usId: 14311,
-      skillCom2usId: 4713,
-      elementVise: null,
+      damageSetup: setup,
+      objective: 'degats_reels',
+      ignoreArtifacts: false,
       principaleParSorte: { element: 101 },
       lignesVerrouillees: [] as { code: number; min: number }[],
+      relique: { main: { code: 101, value: 12 } } as unknown,
       nbArtefacts: 2518,
     };
     const s = signatureReglages(base);
     // ⚠️ Tout ce qui change quelles LIGNES comptent change la paire gagnante
     // (`analyserPertinence`). Garder le cache afficherait des paires optimales
     // pour un réglage que l'utilisateur a quitté.
-    ok(signatureReglages({ ...base, elementVise: 'wind' }) !== s, 'changer l’élément visé invalide le cache');
-    ok(signatureReglages({ ...base, skillCom2usId: 4712 }) !== s, 'changer de sort aussi');
+    ok(signatureReglages({ ...base, damageSetup: { ...setup, enemyElement: 'wind' } }) !== s, 'changer l’élément visé invalide le cache');
+    ok(signatureReglages({ ...base, damageSetup: { ...setup, skillCom2usId: 4712 } }) !== s, 'changer de sort aussi');
     ok(signatureReglages({ ...base, principaleParSorte: { element: 100 } }) !== s, '… et la stat principale exigée');
     ok(signatureReglages({ ...base, lignesVerrouillees: [{ code: 409, min: 15 }] }) !== s, '… et une ligne verrouillée');
     ok(signatureReglages({ ...base, nbArtefacts: 2519 }) !== s, '… et l’arrivée d’un artéfact en inventaire');
+    ok(signatureReglages({ ...base, objective: 'efficience' }) !== s, '… et le changement d’objectif');
+    ok(signatureReglages({ ...base, ignoreArtifacts: true }) !== s, '… et « ignorer les artéfacts »');
+    ok(signatureReglages({ ...base, relique: { main: { code: 101, value: 15 } } }) !== s, '… et un changement de relique (elle entre dans les stats)');
+
+    // ⚠️ **LE test — bug rapporté à l'usage.** La signature ne listait que
+    // `skillCom2usId` et l'élément visé : changer le buff ATQ, les PV restants
+    // de la cible ou sa défense laissait le cache INTACT. L'écran affichait des
+    // paires optimisées pour un réglage abandonné, et le « gain » comparait un
+    // score d'avant à un total d'après — d'où un « +52,8 % » identique sur
+    // toutes les cartes. Toucher au sélecteur de stat principale « réparait »
+    // l'affichage, ce qui a mis sur la piste.
+    ok(signatureReglages({ ...base, damageSetup: { ...setup, atkBuff: true } }) !== s, 'ACTIVER LE BUFF ATQ invalide le cache');
+    ok(signatureReglages({ ...base, damageSetup: { ...setup, enemyHpPct: 30 } }) !== s, '… les PV restants de la cible aussi');
+    ok(signatureReglages({ ...base, damageSetup: { ...setup, enemyDef: 1500 } }) !== s, '… sa défense aussi');
+    ok(signatureReglages({ ...base, damageSetup: { ...setup, critMode: 'moyen' } }) !== s, '… et le mode de critique');
 
     // ⚠️ Un minimum à 0 n'exige RIEN : il ne doit pas invalider un cache
     // parfaitement valable, sinon taper puis effacer une valeur relancerait

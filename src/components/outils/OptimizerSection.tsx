@@ -1301,13 +1301,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     () =>
       signatureReglages({
         monstreCom2usId: selected?.monster.com2usId ?? -1,
-        skillCom2usId: damageSetup.skillCom2usId ?? null,
-        elementVise: damageSetup.enemyElement ?? null,
+        // ⚠️ Le réglage ENTIER : n'en prendre que quelques champs laissait le
+        // cache intact quand on changeait le buff ATQ ou les PV de la cible.
+        damageSetup,
+        objective,
+        ignoreArtifacts,
         principaleParSorte: artifactMainByKind,
         lignesVerrouillees,
+        relique: selected?.gear.relic ?? null,
         nbArtefacts: artifacts.length,
-      }) + (objective === 'degats_reels' ? '§d' : '§s') + (ignoreArtifacts ? '§x' : ''),
-    [selected?.monster.com2usId, damageSetup.skillCom2usId, damageSetup.enemyElement, artifactMainByKind, lignesVerrouillees, artifacts.length, objective, ignoreArtifacts]
+      }),
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, objective, ignoreArtifacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
   );
 
   const faireParamsArtefacts = useMemo(() => {

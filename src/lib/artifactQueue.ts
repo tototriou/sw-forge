@@ -94,12 +94,31 @@ export function prochainsATraiter(
  */
 export function signatureReglages(parts: {
   monstreCom2usId: number;
-  skillCom2usId: number | null;
-  elementVise: string | null;
+  // ⚠️ **Le réglage de dégâts ENTIER, jamais quelques champs choisis à la
+  // main.** Une première version ne prenait que `skillCom2usId` et l'élément
+  // visé : changer le buff ATQ, les PV restants de la cible ou sa défense
+  // laissait alors la signature IDENTIQUE, donc le cache intact — l'écran
+  // affichait des paires optimisées pour un réglage abandonné, et le « gain »
+  // comparait un score d'avant à un total d'après. Bug rapporté à l'usage.
+  //
+  // ⚠️ Choisir les champs un par un est ici la même faute que la règle des
+  // « plusieurs constructeurs » (CLAUDE.md) : `tsc` ne signalera JAMAIS un
+  // champ oublié dans une clé de cache. On sérialise donc tout l'objet, ce qui
+  // reste juste quand `DamageSetup` gagne un champ.
+  damageSetup: unknown;
+  objective: string;
+  ignoreArtifacts: boolean;
   principaleParSorte: Record<string, unknown>;
   lignesVerrouillees: { code: number; min: number }[];
+  // Ce que l'ÉQUIPEMENT apporte hors runes et hors artéfacts — la relique
+  // entre dans les stats, donc dans le score d'une paire. Change quand
+  // l'utilisateur bascule d'exemplaire (box / RTA / deck de siège).
+  relique: unknown;
   nbArtefacts: number;
 }): string {
+  // ⚠️ Un minimum à 0 n'exige RIEN : le retenir ferait relancer 100
+  // optimisations pour rien dès qu'on tape puis efface une valeur. L'ordre de
+  // saisie non plus ne change rien.
   const lignes = [...parts.lignesVerrouillees]
     .filter((l) => l.min > 0)
     .sort((a, b) => a.code - b.code)
@@ -107,10 +126,12 @@ export function signatureReglages(parts: {
     .join('|');
   return [
     parts.monstreCom2usId,
-    parts.skillCom2usId ?? '-',
-    parts.elementVise ?? '-',
+    JSON.stringify(parts.damageSetup),
+    parts.objective,
+    parts.ignoreArtifacts ? 'x' : '-',
     JSON.stringify(parts.principaleParSorte),
     lignes,
+    JSON.stringify(parts.relique ?? null),
     parts.nbArtefacts,
   ].join('§');
 }

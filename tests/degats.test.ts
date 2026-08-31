@@ -718,6 +718,29 @@ export default function testDegats() {
       'artéfact élémentaire : aucun effet sur le passif de Shahat'
     );
     egal(Math.round(ecart({ ...base, mirinaeActif: true })), 2100, 'Mirinae non plus');
+
+    // ⚠️ **RELEVÉ JULIE** — un bonus de sort « +X % par effet » ne touche pas
+    // non plus le bucket Additionnel. S3 « Thousand Shots » : +50 % par effet
+    // BÉNÉFIQUE sur la cible. Mesuré en jeu : ~700 par coup sans Will (0 buff)
+    // contre ~730 avec Will (1 buff). Si le +50 % touchait tout, on lirait
+    // 1 050. Le système donne part du sort = 60, additionnel = 640 — le modèle
+    // en prédit 635 (0,21 × 2 139 DEF + 0,007 × 26 545 PV), moins de 1 %
+    // d'écart.
+    const julie = { ...sortSimple, bonusParEffetCible: { pct: 50, source: 'buffs' as const } };
+    const ecartJulie = (setup: DamageSetup) =>
+      computeSkillDamageDetail(julie, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, shahat).total -
+      computeSkillDamageDetail(julie, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+    const setupUnBuff: DamageSetup = { ...base, effetsCibleCount: { [julie.skillCom2usId]: 1 } };
+    egal(
+      Math.round(ecartJulie(setupUnBuff)),
+      2100,
+      '« +50 % par effet sur la cible » ne majore PAS les dégâts bruts (relevé Julie)'
+    );
+    ok(
+      computeSkillDamageDetail(julie, st, setupUnBuff, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total >
+        computeSkillDamageDetail(julie, st, base, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
+      '… alors qu’il majore bien la part du SORT — sinon le test ne prouverait rien'
+    );
     egal(
       Math.round(ecart({ ...base, brand: true })),
       Math.round(2100 * 1.25),

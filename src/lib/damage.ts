@@ -2800,20 +2800,37 @@ export function computeSkillDamageDetail(
   //   - **Mirinae** : mesuré en jeu, sans effet sur le passif de Shahat non
   //     plus. D'où `reductionsUniverselles` et non `reductions`.
   //   - `facteurBombe` : réservé aux bombes, sans objet ici.
+  //   - **les quatre `facteur*`** (Julie, Backup Code, Blessing of Curse,
+  //     Emergency Drive) : swcalc les classe « Other » DANS le terme DMG%,
+  //     dont ce bucket est exclu. **MESURÉ** — voir ci-dessous.
   //
-  // Ce qu'il CONSERVE : la **Marque**, mesurée comme agissant sur le passif de
-  // Shahat — c'est précisément ce qui la sépare de Mirinae.
+  // Ce qu'il CONSERVE : la **Marque** seule, mesurée comme agissant sur le
+  // passif de Shahat — c'est précisément ce qui la sépare de Mirinae.
+  //
+  // ⚠️ **Relevé Julie, qui tranche le cas `facteurEffetCible`.** S3 « Thousand
+  // Shots » : +50 % par effet BÉNÉFIQUE sur la cible. Julie montée en DEF/PV
+  // (2 139 DEF, 26 545 PV) avec deux lignes d'artéfact (21 % de la DEF, 0,7 %
+  // des PV), contre un Feng Yan très défensif :
+  //   - sans Will (0 buff) : ~700 par coup ;
+  //   - avec Will (1 buff, donc +50 %) : ~730 par coup.
+  // Si le +50 % touchait tout, on lirait 1 050. En le réservant à la part du
+  // SORT, le système donne part du sort = 60 et additionnel = 640 — à comparer
+  // aux **635** que prédit le modèle (0,21 × 2 139 + 0,007 × 26 545). Moins de
+  // 1 % d'écart : le bucket Additionnel est confirmé quantitativement en même
+  // temps que son isolement.
   //
   // ⚠️ `critTerm` porte AUSSI `skillupDamagePct` — l'exclure est délibéré :
   // les améliorations du sort ACTIF n'ont aucune raison de majorer le bonus
   // plat d'un PASSIF, qui n'appartient pas à sa formule.
   //
-  // ❓ Les quatre `facteur*` restants (Julie, Backup Code, Blessing of Curse,
-  // Emergency Drive) sont classés « Other » DANS le terme DMG% par swcalc, ce
-  // qui les exclurait aussi de ce bucket. Non tranché faute de mesure — les
-  // retirer changerait les chiffres d'une douzaine de monstres sans preuve.
-  const horsCoupBrut =
-    reductionsUniverselles * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
+  // ❓ **Reste incohérent, et c'est assumé** : les modificateurs monstre-wide
+  // appliqués APRÈS coup dans `computeTotalDamage` (Sonia, Momo, Zenitsu,
+  // Gideon, Brita, Velaska…) multiplient encore le total, additionnel compris.
+  // swcalc les classe pourtant « Other » eux aussi — mais les en sortir exige
+  // de faire remonter la part additionnelle à travers toute l'accumulation
+  // (sort PUIS passifs), et aucune mesure ne le couvre encore. Documenté
+  // plutôt que fait au jugé.
+  const horsCoupBrut = reductionsUniverselles;
   // ── Lignes d'artéfact qui VARIENT d'un coup à l'autre (411, 222, 223) ──
   //
   // ⚠️ **Rien à recalculer, malgré les apparences.** On pourrait croire qu'il

@@ -301,6 +301,45 @@ appliqués), pas les stats nues — c'est la même source que le reste de la
 formule. Faire lire des stats nues à ces seules lignes créerait deux notions
 d'« ATQ » dans le même calcul.
 
+### ⚠️ Le bucket Additionnel ne reçoit AUCUN bonus de type DMG%
+
+Ni les lignes élémentaires, ni Mirinae, ni les bonus « +X % par effet » d'un
+sort. **Seule la Marque le majore.**
+
+**Relevé Julie — il tranche et il calibre en même temps.** S3 « Thousand
+Shots » : +50 % par effet **bénéfique** sur la cible. Julie montée en DEF/PV
+(2 139 DEF, 26 545 PV) avec deux lignes d'artéfact (21 % de la DEF, 0,7 % des
+PV), contre un Feng Yan très défensif — la haute DEF écrase la part du sort et
+laisse la part brute dominer :
+
+| Cible | Buffs sur elle | Dégâts / coup |
+|---|---|---|
+| Feng Yan **sans** Will | 0 | ~700 |
+| Feng Yan **en** Will (Immunité) | 1 → +50 % | ~730 |
+
+Si le +50 % touchait tout, on lirait **1 050**. En le réservant à la part du
+sort, le système `S + A = 700` / `1,5·S + A = 730` donne **S = 60, A = 640**.
+
+⚠️ **Et le modèle prédit A = 635** (`0,21 × 2 139 + 0,007 × 26 545`) — moins de
+1 % d'écart. Le même relevé confirme donc **l'isolement** du bucket ET la
+**formule** des lignes 218-221 (par coup, brutes, sur les stats buffées).
+
+> ⚠️ Au passage : la ligne « Dgts supp. en prop. des PV » vaut **0,7 %**, pas
+> 7 %. À 7 % elle donnerait 2 307 par coup, plus du triple du total observé —
+> et son plafond est de toute façon 1,5 (voir `ARTIFACT_SUB_MAX`).
+
+### ❓ Une incohérence restante, assumée
+
+Les modificateurs monstre-wide appliqués **après coup** dans
+`computeTotalDamage` (Sonia, Momo, Zenitsu, Gideon, Brita, Velaska…)
+multiplient encore le total, additionnel compris. swcalc les classe pourtant
+« Other » eux aussi, donc dans DMG%.
+
+Les en sortir exige de faire remonter la part additionnelle à travers toute
+l'accumulation (sort **puis** passifs), et **aucune mesure ne le couvre**.
+Documenté plutôt que fait au jugé — c'est exactement le raccourci « par
+symétrie » qui a déjà produit deux erreurs dans ce fichier.
+
 ### ⚠️ Ces lignes n'entrent PAS dans `damageRelevantStats`
 
 Elles ajoutent pourtant de vrais dégâts proportionnels aux PV, à la DEF et à

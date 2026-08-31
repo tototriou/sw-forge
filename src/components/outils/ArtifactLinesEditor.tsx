@@ -60,9 +60,13 @@ function Pastille({ sortes }: { sortes: ArtifactKind[] }) {
 export default function ArtifactLinesEditor({
   lignes,
   onChange,
+  diagnostic,
 }: {
   lignes: LigneVerrouillee[];
   onChange: (l: LigneVerrouillee[]) => void;
+  // Le meilleur cumul RÉELLEMENT atteignable par ligne, quand aucune paire ne
+  // passe. `null` le reste du temps — ce bloc n'a rien à dire quand ça marche.
+  diagnostic?: { code: number; min: number; auMieux: number; atteint: boolean }[] | null;
 }) {
   const catalogue = toutesLesLignes();
   const parCode = new Map(catalogue.map((l) => [l.code, l]));
@@ -173,6 +177,40 @@ export default function ArtifactLinesEditor({
             </b>
           </span>
           {budget.libres > 0 && <span>{budget.libres} à placer</span>}
+        </div>
+      )}
+
+      {diagnostic && diagnostic.length > 0 && (
+        // ⚠️ **Observé, jamais déduit.** On ne dit pas « c'est impossible » : on
+        // rapporte ce que l'inventaire a réellement produit, ligne par ligne.
+        // Un pré-contrôle théorique pourrait annoncer l'impossible sur une
+        // combinaison réalisable — bien pire que de se taire. L'utilisateur
+        // voit laquelle bloque, et de combien.
+        <div className="flex flex-col gap-1 rounded border border-bad/50 bg-bad-soft/50 px-2 py-1.5">
+          <span className="text-xs font-semibold text-bad">
+            Aucune paire d’artéfacts ne satisfait ces lignes
+          </span>
+          {diagnostic.map((d) => (
+            <div key={d.code} className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="text-ink">{parCode.get(d.code)?.nom ?? `#${d.code}`}</span>
+              <span className="flex items-baseline gap-1.5 shrink-0">
+                <span className="font-mono text-nano tabular-nums text-ink-dim">
+                  {d.min} % exigé · {d.auMieux} % au mieux
+                </span>
+                <span className={`font-semibold ${d.atteint ? 'text-good' : 'text-bad'}`}>
+                  {d.atteint ? '✓' : '✗'}
+                </span>
+              </span>
+            </div>
+          ))}
+          {/* ⚠️ Le maximum est pris ligne par ligne, INDÉPENDAMMENT : deux
+              lignes peuvent chacune être atteignables sans qu'aucune paire ne
+              les serve ensemble. Le dire, plutôt que laisser croire qu'un « ✓ »
+              partout serait contradictoire avec l'échec. */}
+          <span className="text-nano text-ink-dimmer">
+            Chaque maximum est mesuré ligne par ligne : deux lignes atteignables séparément peuvent ne
+            l’être par aucune paire à la fois.
+          </span>
         </div>
       )}
 

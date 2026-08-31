@@ -22,7 +22,12 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { paireRepresentative, type ChoixPrincipale } from '../../lib/artifactOptim';
+import {
+  meilleurCumulParLigne,
+  nombreDePairesRetenues,
+  paireRepresentative,
+  type ChoixPrincipale,
+} from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeSetIconFilter } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
@@ -841,8 +846,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // une garantie que ça matche le build qu'un joueur cherche réellement à
   // reproduire — d'où l'intérêt des deux autres choix pour hypothéquer un
   // artéfact différent sans avoir à changer de monstre.
-  const searchArtifacts = useMemo<ArtifactDetail[]>(() => {
-    if (!selected || ignoreArtifacts) return [];
+  //
+  // ⚠️ Les paramètres sont extraits dans leur PROPRE memo : la paire retenue et
+  // le diagnostic « pourquoi aucune ne passe » doivent partager EXACTEMENT la
+  // même définition. Deux constructions parallèles finiraient par diverger, et
+  // le diagnostic expliquerait alors une recherche qui n'a pas eu lieu.
+  const artifactParams = useMemo(() => {
+    if (!selected || ignoreArtifacts) return null;
     const espece = selected.monster;
     // ⚠️ Le score de la paire dépend de l'OBJECTIF. Hors « Dégâts réels », la
     // somme des principales suffit et reste EXACTE : `computeStats` ne lit que
@@ -868,15 +878,40 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               artifactDamageProfile(arts)
             )
         : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
-    return paireRepresentative({
+    return {
       porteur: { element: espece.element, archetype: espece.archetype },
       inventaire: artifacts,
       equipes: selected.gear.artifacts,
       principaleParSorte: artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
       lignesVerrouillees,
       evaluer,
-    });
+    };
   }, [selected, ignoreArtifacts, artifactMainByKind, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
+
+  const searchArtifacts = useMemo<ArtifactDetail[]>(
+    () => (artifactParams ? paireRepresentative(artifactParams) : []),
+    [artifactParams]
+  );
+
+  /**
+   * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
+   *
+   * ⚠️ On ne pré-calcule pas la faisabilité : un contrôle théorique pourrait
+   * annoncer « impossible » sur une combinaison en fait réalisable, ce qui est
+   * bien pire que de se taire. Le balayage étant exhaustif, il sait exactement
+   * ce que l'inventaire permet — on rapporte donc le meilleur cumul RÉELLEMENT
+   * atteignable, ligne par ligne, et l'utilisateur voit laquelle bloque et de
+   * combien.
+   *
+   * `null` tant qu'au moins une paire passe : ce bloc n'apparaît qu'en cas
+   * d'échec, il n'a rien à dire le reste du temps.
+   */
+  const diagnosticVerrous = useMemo(() => {
+    const verrous = lignesVerrouillees.filter((l) => l.min > 0);
+    if (!artifactParams || verrous.length === 0) return null;
+    if (nombreDePairesRetenues(artifactParams) > 0) return null;
+    return meilleurCumulParLigne(artifactParams, verrous);
+  }, [artifactParams, lignesVerrouillees]);
 
   // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
   // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
@@ -2034,7 +2069,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             une saisie sans effet est pire qu'une saisie absente. */}
         {!ignoreArtifacts && (
           <div className="mt-3">
-            <ArtifactLinesEditor lignes={lignesVerrouillees} onChange={setLignesVerrouillees} />
+            <ArtifactLinesEditor
+              lignes={lignesVerrouillees}
+              onChange={setLignesVerrouillees}
+              diagnostic={diagnosticVerrous}
+            />
           </div>
         )}
       </div>

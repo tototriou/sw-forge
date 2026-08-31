@@ -507,6 +507,19 @@ export function sortCandidates(
     // Efficience ↔ Score sans relancer.
     runeById?: Map<number, RuneDetail>;
     metric?: OptimMetric;
+    /**
+     * Le profil d'artéfacts PROPRE à un candidat, quand il en a un.
+     *
+     * ⚠️ **Indispensable dès que les artéfacts sont optimisés par build.**
+     * `realDamage.artefacts` porte le profil de la paire SUPPOSÉE, commune à
+     * tous. Si les stats d'un candidat ont été recalculées avec SA paire mais
+     * que son profil de dégâts reste celui de la paire supposée, on note des
+     * stats issues d'un modèle avec les lignes d'effet d'un autre — exactement
+     * l'asymétrie que ce module passe son temps à traquer.
+     *
+     * Absent, ou rendant `null` : on retombe sur `realDamage.artefacts`.
+     */
+    artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
   } = {}
 ): BuildCandidate[] {
   const list = candidates.slice();
@@ -517,7 +530,11 @@ export function sortCandidates(
   }
   if (sortBy === 'degats_reels') {
     if (!opts.realDamage) return list;
-    return list.sort((a, b) => objectiveScore(b, sortBy, opts.realDamage!) - objectiveScore(a, sortBy, opts.realDamage!));
+    const ctxDe = (c: BuildCandidate): RealDamageContext => {
+      const propre = opts.artefactsDuBuild?.(c);
+      return propre ? { ...opts.realDamage!, artefacts: propre } : opts.realDamage!;
+    };
+    return list.sort((a, b) => objectiveScore(b, sortBy, ctxDe(b)) - objectiveScore(a, sortBy, ctxDe(a)));
   }
   if (sortBy === 'ehp' || sortBy === 'vitesse') {
     return list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));

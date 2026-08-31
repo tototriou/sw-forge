@@ -16,7 +16,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { BuildCandidate } from '../lib/runeBuildOptim';
+import { StatRow } from '../lib/stats';
 import { ArtifactSearchParams, chercherPaires } from '../lib/artifactOptim';
+import { ArtifactDetail } from '../types';
 import { ResultatArtefacts, cleBuild, prochainsATraiter } from '../lib/artifactQueue';
 
 // Combien de builds on optimise au maximum. Mesuré : le vainqueur final venait
@@ -56,11 +58,17 @@ export function useArtifactOptimQueue(opts: {
   // `null` quand l'optimisation n'a pas lieu d'être (artéfacts ignorés, pas
   // d'objectif de dégâts, inventaire absent).
   faireParams: ((c: BuildCandidate) => ArtifactSearchParams) | null;
+  // Recalcule les stats du build avec la paire retenue. ⚠️ Indispensable : les
+  // stats du candidat ont été calculées avec la paire SUPPOSÉE, et la stat
+  // principale d'un artéfact entre dedans. Sans ce recalcul, la carte
+  // afficherait des stats qui ne correspondent pas aux artéfacts montrés juste
+  // à côté, et un tri par ATQ porterait sur une valeur périmée.
+  calculerStats: (c: BuildCandidate, artefacts: ArtifactDetail[]) => StatRow[];
   // Change dès qu'un réglage modifie le score d'une paire — vide le cache.
   signature: string;
   K?: number;
 }): UseArtifactOptimQueue {
-  const { triees, faireParams, signature, K = K_BUILDS_OPTIMISES } = opts;
+  const { triees, faireParams, calculerStats, signature, K = K_BUILDS_OPTIMISES } = opts;
   const [parBuild, setParBuild] = useState<ReadonlyMap<string, ResultatArtefacts>>(new Map());
   const [enAttente, setEnAttente] = useState(0);
 
@@ -70,8 +78,10 @@ export function useArtifactOptimQueue(opts: {
   // recréé à chaque rendu relancerait l'effet en boucle).
   const trieesRef = useRef(triees);
   const paramsRef = useRef(faireParams);
+  const statsRef = useRef(calculerStats);
   trieesRef.current = triees;
   paramsRef.current = faireParams;
+  statsRef.current = calculerStats;
 
   // Le cache vit dans une ref ET dans l'état : la ref pour que la boucle le
   // lise sans re-rendu, l'état pour que l'écran se rafraîchisse.
@@ -102,11 +112,17 @@ export function useArtifactOptimQueue(opts: {
       // reviendrait exactement là où `requestIdleCallback` devait l'éviter.
       const r = chercherPaires(faire(suivant));
       const meilleure = r.paires[0] ?? null;
+      const artefactsRetenus = meilleure
+        ? [meilleure.element, meilleure.archetype].filter((a): a is NonNullable<typeof a> => a != null)
+        : [];
       cacheRef.current.set(cleBuild(suivant), {
         paire: meilleure,
-        artefacts: meilleure
-          ? [meilleure.element, meilleure.archetype].filter((a): a is NonNullable<typeof a> => a != null)
-          : [],
+        artefacts: artefactsRetenus,
+        // ⚠️ Recalculées avec la paire RETENUE : la stat principale d'un
+        // artéfact entre dans les stats du monstre. Sans ça, la carte
+        // afficherait des stats issues de la paire supposée à côté des
+        // artéfacts réellement choisis.
+        stats: statsRef.current(suivant, artefactsRetenus),
         meilleurSansVerrous: r.meilleurSansVerrous,
       });
       setParBuild(new Map(cacheRef.current));

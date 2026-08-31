@@ -6,7 +6,7 @@
 // qui a besoin d'un navigateur) ni sur le choix de la paire (artefact-optim).
 
 import { BuildCandidate } from '../src/lib/runeBuildOptim';
-import { cleBuild, prochainsATraiter, signatureReglages } from '../src/lib/artifactQueue';
+import { candidatAvecSaPaire, cleBuild, prochainsATraiter, signatureReglages } from '../src/lib/artifactQueue';
 import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
@@ -58,6 +58,39 @@ export default function testArtefactFile() {
       prochainsATraiter(avecDoublon, new Set(), 5).map(cleBuild),
       ['1', '2'],
       'un build présent deux fois n’est mis en file qu’une seule fois'
+    );
+  }
+
+  titre('File d’artéfacts — un build optimisé passe devant, sans emballement');
+
+  // ⚠️ **La propriété qui rend le reclassement SÛR** : optimiser un build ne
+  // peut que faire MONTER son score, jamais descendre — la paire supposée fait
+  // partie des paires candidates, le maximum lui est donc toujours ≥.
+  //
+  // Conséquence : un build optimisé monte ou reste, un build non optimisé ne
+  // peut qu'être repoussé vers le bas, et AUCUN ne peut entrer dans les K
+  // premiers de ce fait. L'ensemble à traiter rétrécit — la boucle
+  // « trier → optimiser → retrier » converge donc, elle ne s'emballe pas.
+  // C'est ce qui autorise à laisser un build passer devant plutôt que
+  // d'afficher un total supérieur à un rang inférieur.
+  {
+    const stat = (atk: number) => [{ key: 'atk', base: 0, bonus: atk, total: atk }] as unknown as BuildCandidate['stats'];
+    const c1 = { runeIds: [1], stats: stat(100) } as unknown as BuildCandidate;
+    const c2 = { runeIds: [2], stats: stat(90) } as unknown as BuildCandidate;
+    const cache = new Map([
+      // c2 optimisé : sa paire lui apporte de quoi dépasser c1.
+      [cleBuild(c2), { paire: null, artefacts: [], stats: stat(110), meilleurSansVerrous: null }],
+    ]);
+    egal(candidatAvecSaPaire(c2, cache).stats, stat(110), 'un build optimisé porte ses stats RECALCULÉES');
+    egal(candidatAvecSaPaire(c1, cache).stats, stat(100), '… et un build non optimisé garde les siennes');
+
+    // ⚠️ Le cache ne fait JAMAIS baisser un build : une entrée qui rendrait des
+    // stats INFÉRIEURES casserait la convergence démontrée ci-dessus. On ne
+    // peut pas l'empêcher par le type, mais ce test dit que ce n'est pas prévu.
+    const apres = [c1, c2].map((c) => candidatAvecSaPaire(c, cache));
+    ok(
+      apres.every((c, i) => (c.stats[0]!.total ?? 0) >= ([c1, c2][i]!.stats[0]!.total ?? 0)),
+      'aucun build ne voit son score BAISSER en étant optimisé'
     );
   }
 

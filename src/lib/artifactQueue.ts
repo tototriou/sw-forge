@@ -18,6 +18,7 @@
 // séparées, dont celle-ci est la seule testable sans navigateur.
 
 import { BuildCandidate } from './runeBuildOptim';
+import { StatRow } from './stats';
 import { ArtifactDetail } from '../types';
 import { PaireArtefacts } from './artifactOptim';
 
@@ -36,8 +37,38 @@ export function cleBuild(c: BuildCandidate): string {
 export interface ResultatArtefacts {
   paire: PaireArtefacts | null;
   artefacts: ArtifactDetail[];
+  /**
+   * Les stats du build RECALCULÉES avec sa vraie paire.
+   *
+   * ⚠️ **Pas seulement le total.** `BuildCandidate.stats` a été calculé avec la
+   * paire SUPPOSÉE ; si la paire retenue porte une autre stat principale — cas
+   * courant avec le cran « Libre » —, les stats affichées ne correspondent plus
+   * aux artéfacts affichés à côté d'elles. Et un tri par ATQ porterait alors sur
+   * une valeur périmée.
+   */
+  stats: StatRow[];
   // `null` quand le coût n'a pas été demandé — voir `avecCoutDesVerrous`.
   meilleurSansVerrous: number | null;
+}
+
+/**
+ * Un candidat vu à travers sa VRAIE paire, quand elle est connue.
+ *
+ * ⚠️ **L'ordre peut s'en trouver changé, et c'est voulu.** Optimiser un build
+ * ne peut que faire MONTER son score : la paire supposée fait partie des paires
+ * candidates, donc le maximum sur cet ensemble lui est toujours supérieur ou
+ * égal. Conséquence : un build optimisé monte ou reste, un build non optimisé
+ * ne peut qu'être repoussé vers le bas — aucun ne peut ENTRER dans les K
+ * premiers du fait de ce mécanisme. L'ensemble à traiter ne s'élargit jamais,
+ * il rétrécit ; la boucle « trier → optimiser → retrier » converge donc en au
+ * plus K étapes, sans emballement.
+ *
+ * C'est ce qui autorise à laisser un build passer devant dans l'ordre plutôt
+ * que d'afficher une inversion visible entre le rang et le total.
+ */
+export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string, ResultatArtefacts>): BuildCandidate {
+  const r = cache.get(cleBuild(c));
+  return r ? { ...c, stats: r.stats } : c;
 }
 
 /**

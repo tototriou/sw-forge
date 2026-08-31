@@ -22,7 +22,7 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { cleBuild, signatureReglages } from '../../lib/artifactQueue';
+import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
   meilleurCumulParLigne,
@@ -1279,10 +1279,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
   }, [totalResultsPages, setResultsPage]);
 
-  const pageCandidates = useMemo(
-    () => fullSortedCandidates.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
-    [fullSortedCandidates, resultsPage]
-  );
+  // ⚠️ `pageCandidates` est défini PLUS BAS, après la file d'optimisation
+  // d'artéfacts : la page affichée dépend du classement corrigé par les paires
+  // trouvées, qui n'existe qu'une fois la file déclarée.
 
   /**
    * Optimisation d'artéfacts des meilleurs builds, EN TEMPS MASQUÉ pendant que
@@ -1346,6 +1345,19 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // donc la file.
     triees: fullSortedCandidates,
     faireParams: faireParamsArtefacts,
+    // ⚠️ Les stats du candidat ont été calculées avec la paire SUPPOSÉE. La
+    // principale d'un artéfact entrant dans les stats, il faut les refaire avec
+    // la paire retenue — sinon la carte montre des stats qui ne vont pas avec
+    // les artéfacts affichés juste à côté, et un tri par ATQ porte sur une
+    // valeur périmée.
+    calculerStats: (c, arts) =>
+      selected
+        ? computeStats({
+            ...selected.gear,
+            runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
+            artifacts: arts,
+          })
+        : c.stats,
     signature: signatureArtefacts,
   });
 
@@ -1366,6 +1378,64 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     if (opt == null || totalSuppose <= 0) return undefined;
     return (opt / totalSuppose - 1) * 100;
   };
+
+  /**
+   * Le profil de dégâts des artéfacts DE CE BUILD, quand sa paire est connue.
+   *
+   * ⚠️ Doit accompagner partout le remplacement des stats : noter des stats
+   * recalculées avec la vraie paire en gardant les lignes d'effet de la paire
+   * supposée mélangerait deux modèles.
+   *
+   * Mémoïsé sur le cache : `artifactDamageProfile` est appelé à chaque
+   * comparaison de tri, soit O(n log n) fois sur des dizaines de milliers de
+   * candidats.
+   */
+  const profilsParBuild = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof artifactDamageProfile>>();
+    for (const [cle, r] of fileArtefacts.parBuild) m.set(cle, artifactDamageProfile(r.artefacts));
+    return m;
+  }, [fileArtefacts.parBuild]);
+  const profilArtefactsDuBuild = (c: BuildCandidate) => profilsParBuild.get(cleBuild(c)) ?? null;
+
+  /**
+   * Le classement RÉEL : chaque build vu à travers sa vraie paire dès qu'elle
+   * est connue, puis retrié.
+   *
+   * ⚠️ **Un build optimisé peut donc passer devant, et c'est le comportement
+   * voulu** — plutôt qu'afficher un total supérieur à un rang inférieur, ce qui
+   * se lirait comme un défaut.
+   *
+   * ⚠️ Cette boucle « trier → optimiser → retrier » CONVERGE, elle ne
+   * s'emballe pas : optimiser un build ne peut que faire MONTER son score (la
+   * paire supposée fait partie des paires candidates, le maximum lui est donc
+   * toujours ≥). Un build optimisé monte ou reste ; un build non optimisé ne
+   * peut qu'être repoussé vers le bas. Aucun ne peut ENTRER dans les K premiers
+   * de ce fait — l'ensemble à traiter rétrécit, il ne s'élargit jamais.
+   *
+   * ⚠️ La file, elle, lit `fullSortedCandidates` (l'ordre de BASE) et non ce
+   * classement-ci : c'est ce qui borne le nombre de re-tris, et c'est ce qui
+   * fait que changer le tri d'affichage repriorise la file sans rien invalider
+   * (le cache est indexé par build).
+   */
+  const affichees = useMemo(() => {
+    if (fileArtefacts.parBuild.size === 0) return fullSortedCandidates;
+    const avecPaire = fullSortedCandidates.map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
+    return sortCandidates(avecPaire, sortBy, {
+      realDamage,
+      runeById,
+      metric,
+      // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
+      // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
+      // doivent suivre. Sinon on note les stats d'un modèle avec les effets
+      // d'un autre.
+      artefactsDuBuild: (c) => profilArtefactsDuBuild(c),
+    });
+  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, realDamage, runeById, metric]);
+
+  const pageCandidates = useMemo(
+    () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
+    [affichees, resultsPage]
+  );
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
@@ -3121,7 +3191,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                           c.stats,
                           realDamage.setup,
                           realDamage.element,
-                          realDamage.artefacts,
+                          profilArtefactsDuBuild(c) ?? realDamage.artefacts,
                           realDamage.critSiPlusRapide,
                           realDamage.bonusDegatsSelonVit,
                           realDamage.bonusDegatsStack,
@@ -3145,7 +3215,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                           c.stats,
                           realDamage.setup,
                           realDamage.element,
-                          realDamage.artefacts,
+                          profilArtefactsDuBuild(c) ?? realDamage.artefacts,
                           realDamage.critSiPlusRapide,
                           realDamage.bonusDegatsSelonVit,
                           realDamage.bonusDegatsStack,

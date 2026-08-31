@@ -15,12 +15,20 @@ interface Props {
   rank: number;
   candidate: BuildCandidate;
   runeById: Map<number, RuneDetail>;
-  // Artéfacts ACTUELLEMENT équipés sur le monstre optimisé — fixes, jamais
-  // modifiés par la recherche (voir spec/outils/optimizer/ « Algorithme »).
-  // Identiques d'une carte de résultat à l'autre : affichés pour la même
-  // raison que « Équipement actuel » les affiche déjà, pas parce qu'ils
-  // varient selon le candidat.
+  // La paire d'artéfacts retenue POUR CE BUILD.
+  //
+  // ⚠️ **Elle varie désormais d'une carte à l'autre**, contrairement à ce que
+  // ce champ portait à l'origine (les artéfacts équipés, identiques partout).
+  // Deux builds voisins n'appellent pas les mêmes artéfacts, et ce sont ces
+  // pièces-là qui ont servi à calculer `candidate.stats` — montrer autre chose
+  // afficherait des stats et un équipement qui ne vont pas ensemble.
   artifacts: ArtifactDetail[];
+  // Ce que les artéfacts apportent à ce build, en %. `undefined` quand rien
+  // n'est comparable (objectif hors dégâts, ou paire pas encore optimisée).
+  gainArtefactsPct?: number;
+  // La paire de CE build n'a pas encore été calculée : celle affichée est la
+  // paire supposée, commune. Dit explicitement plutôt que laissé croire.
+  paireProvisoire?: boolean;
   metric: RuneMetric;
   // Identité de la rune actuellement ouverte, PARTAGÉE entre tous les
   // résultats affichés (pas locale à cette carte) — voir
@@ -74,6 +82,8 @@ export default function BuildCandidateCard({
   openRuneKey,
   onToggleRune,
   degatsReels,
+  gainArtefactsPct,
+  paireProvisoire,
   onValidate,
   conflit,
   validated,
@@ -138,6 +148,22 @@ export default function BuildCandidateCard({
               {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
             </span>
           </span>
+          {/* ⚠️ Le TOTAL en gros, le gain en petit : c'est le total qui classe
+              les builds entre eux, le gain n'explique que d'où il vient.
+              Afficher deux totaux côte à côte doublerait la largeur de la
+              ligne la plus importante pour un nombre qui ne décide rien. */}
+          {gainArtefactsPct != null && gainArtefactsPct > 0 && (
+            <span className="w-full text-right font-mono text-micro text-good">
+              +{gainArtefactsPct.toFixed(1)} % grâce aux artéfacts
+            </span>
+          )}
+          {paireProvisoire && (
+            // ⚠️ Dit explicitement que la paire de CE build n'est pas encore
+            // calculée. Sans ça, deux cartes voisines montreraient des
+            // artéfacts issus de deux modèles différents sans que rien ne le
+            // signale — le défaut qu'on passe cette session à traquer.
+            <span className="w-full text-right text-micro text-ink-dimmer">artéfacts pas encore optimisés</span>
+          )}
         </p>
       )}
 

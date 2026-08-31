@@ -22,8 +22,11 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
+import { cleBuild, signatureReglages } from '../../lib/artifactQueue';
+import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
   meilleurCumulParLigne,
+  type ArtifactSearchParams,
   nombreDePairesRetenues,
   paireRepresentative,
   type ChoixPrincipale,
@@ -48,6 +51,7 @@ import {
   SLOT_FILTER_PRESETS,
   ARTIFACT_MAIN_VALUE,
   ARTIFACT_MAIN_OPTIONS,
+  type BuildCandidate,
 } from '../../lib/runeBuildOptim';
 import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
 import { monsterBaseStats } from '../../lib/stats';
@@ -1279,6 +1283,85 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     () => fullSortedCandidates.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
     [fullSortedCandidates, resultsPage]
   );
+
+  /**
+   * Optimisation d'artéfacts des meilleurs builds, EN TEMPS MASQUÉ pendant que
+   * les Workers cherchent encore.
+   *
+   * ⚠️ Chaque build a SA paire : deux builds voisins n'appellent pas les mêmes
+   * artéfacts. `searchArtifacts` (la paire supposée, commune) ne sert plus qu'à
+   * noter les candidats pendant la recherche et de repli d'affichage tant que
+   * le vrai calcul n'a pas atteint ce build.
+   *
+   * ⚠️ La signature vide le cache dès qu'un réglage change QUELLES LIGNES
+   * COMPTENT — pas seulement l'inventaire : `analyserPertinence` en dépend,
+   * donc la paire gagnante aussi.
+   */
+  const signatureArtefacts = useMemo(
+    () =>
+      signatureReglages({
+        monstreCom2usId: selected?.monster.com2usId ?? -1,
+        skillCom2usId: damageSetup.skillCom2usId ?? null,
+        elementVise: damageSetup.enemyElement ?? null,
+        principaleParSorte: artifactMainByKind,
+        lignesVerrouillees,
+        nbArtefacts: artifacts.length,
+      }) + (objective === 'degats_reels' ? '§d' : '§s') + (ignoreArtifacts ? '§x' : ''),
+    [selected?.monster.com2usId, damageSetup.skillCom2usId, damageSetup.enemyElement, artifactMainByKind, lignesVerrouillees, artifacts.length, objective, ignoreArtifacts]
+  );
+
+  const faireParamsArtefacts = useMemo(() => {
+    if (!artifactParams || !selected) return null;
+    return (c: BuildCandidate): ArtifactSearchParams => {
+      // ⚠️ Les stats sont recalculées avec LES RUNES DE CE CANDIDAT, pas celles
+      // de l'équipement affiché : la stat principale d'un artéfact entre dans
+      // les stats du monstre, donc comparer des paires sur un autre build
+      // comparerait des scores faux.
+      const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
+      const espece = selected.monster;
+      const evaluer =
+        objective === 'degats_reels' && resolvedSkill
+          ? (arts: ArtifactDetail[]) =>
+              computeTotalDamage(
+                resolvedSkill,
+                offensivePassives,
+                computeStats({ ...gear, artifacts: arts }),
+                damageSetup,
+                espece.element,
+                artifactDamageProfile(arts)
+              )
+          : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+      return { ...artifactParams, evaluer };
+    };
+  }, [artifactParams, selected, runeById, objective, resolvedSkill, offensivePassives, damageSetup]);
+
+  const fileArtefacts = useArtifactOptimQueue({
+    // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
+    // corrigé par ses propres résultats : se nourrir de sa sortie créerait une
+    // boucle — chaque paire trouvée changerait le classement, donc le top K,
+    // donc la file.
+    triees: fullSortedCandidates,
+    faireParams: faireParamsArtefacts,
+    signature: signatureArtefacts,
+  });
+
+  /**
+   * Ce que les artéfacts apportent à CE build, en %.
+   *
+   * ⚠️ Comparé au total SUPPOSÉ du même build, jamais à « sans artéfact » : la
+   * paire supposée est le point de référence sur lequel la recherche a classé
+   * les candidats, c'est donc l'écart qui a un sens ici.
+   *
+   * `undefined` tant que la file n'a pas atteint ce build, ou hors « Dégâts
+   * réels » — où le score d'une paire est une somme de stats principales, pas
+   * un total comparable.
+   */
+  const gainArtefacts = (c: BuildCandidate, totalSuppose: number): number | undefined => {
+    if (objective !== 'degats_reels') return undefined;
+    const opt = fileArtefacts.parBuild.get(cleBuild(c))?.paire?.score;
+    if (opt == null || totalSuppose <= 0) return undefined;
+    return (opt / totalSuppose - 1) * 100;
+  };
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
@@ -3001,13 +3084,21 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 rank={(resultsPage - 1) * RESULTS_PAGE_SIZE + i + 1}
                 candidate={c}
                 runeById={runeById}
-                // ⚠️ `searchArtifacts`, PAS `selected.gear.artifacts` : les
-                // stats affichées sur chaque carte (candidate.stats) ont été
-                // calculées avec CES artéfacts (réels, hypothétiques ou
-                // aucun selon les réglages ci-dessus) — montrer les VRAIS
-                // artéfacts ici serait incohérent dès qu'ils diffèrent
-                // (`ignoreArtifacts`, ou une hypothèse choisie).
-                artifacts={searchArtifacts}
+                // ⚠️ La paire de CE build, jamais une paire commune : deux
+                // builds voisins n'appellent pas les mêmes artéfacts, et ce
+                // sont ces pièces-là qui ont servi à calculer ses stats.
+                // Repli sur la paire SUPPOSÉE tant que la file ne l'a pas
+                // atteint — et la carte le DIT (`paireProvisoire`) plutôt que
+                // de laisser croire que c'est le résultat final.
+                artifacts={fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts}
+                // ⚠️ Signalé SEULEMENT quand la file tourne pour de bon : hors
+                // « Dégâts réels » ou file inactive, il n'y a rien à attendre,
+                // et annoncer une optimisation qui n'aura pas lieu serait faux.
+                paireProvisoire={
+                  faireParamsArtefacts != null &&
+                  objective === 'degats_reels' &&
+                  !fileArtefacts.parBuild.has(cleBuild(c))
+                }
                 metric={metric}
                 openRuneKey={openRuneKey}
                 onToggleRune={(key) => setOpenRuneKey((cur) => (cur === key ? null : key))}
@@ -3038,6 +3129,29 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                         );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()
+                    : undefined
+                }
+                gainArtefactsPct={
+                  realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
+                    ? gainArtefacts(
+                        c,
+                        computeTotalDamage(
+                          realDamage.profile,
+                          realDamage.passifs,
+                          c.stats,
+                          realDamage.setup,
+                          realDamage.element,
+                          realDamage.artefacts,
+                          realDamage.critSiPlusRapide,
+                          realDamage.bonusDegatsSelonVit,
+                          realDamage.bonusDegatsStack,
+                          realDamage.monsterWide,
+                          realDamage.bonusDegatsConditionnel,
+                          realDamage.bonusDegatsSelonCr,
+                          realDamage.bonusDegatsSelonDef,
+                          realDamage.bonusSiAtqSeuil
+                        )
+                      )
                     : undefined
                 }
                 // « Valider » (Lot 2) — réserve les 6 runes RÉELLES de CE

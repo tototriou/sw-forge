@@ -1146,6 +1146,12 @@ leur vraie paire, sur le temps d'inactivité — l'ordre d'appariement étant
 piloté par l'objectif, les bons builds sortent en quelques secondes là où la
 recherche s'écoule sur plusieurs minutes.
 
+⚠️ **Ce travail concurrent ne ralentit pas la recherche** — mesuré, pas
+supposé : +0,3 % sur une recherche de 25 secondes et −1,6 % sur une de 8, les
+deux sous le plancher de bruit de la mesure. Seule une recherche d'environ une
+seconde montre ~3 %, dont une charge de calcul *pure* explique la
+quasi-totalité : c'est du partage de cœurs, pas un coût propre à ce calcul.
+
 ⚠️ **Un build optimisé peut alors passer devant dans le classement**, et la
 boucle « trier → optimiser → retrier » ne s'emballe pas : optimiser un build ne
 peut que faire MONTER son score (la paire supposée fait partie des paires

@@ -248,16 +248,18 @@ qui signalerait une valeur com2us nouvelle).
 `element`/`archetype` : sur un intangible ces champs ne veulent rien dire, les
 lire d'abord le rejetterait systématiquement.
 
-### Son icône : le « X », seul
+### Son icône : celle du set de runes intangible, RÉUTILISÉE
 
-`public/artifacts/intangible.png` — même format que les neuf autres (PNG RGBA
-36×36, fond transparent, **symbole seul**).
+⚠️ **Le jeu emploie le MÊME symbole pour l'artéfact intangible et le set de
+runes du même nom.** L'icône n'est donc pas dupliquée sous `artifacts/` : le
+composant pointe `public/runes/intangible.png` via `DOSSIER_GLYPHE`
+([ArtifactIcon.tsx](src/components/ArtifactIcon.tsx)). Deux copies pourraient
+diverger le jour où l'image est remplacée, alors que le jeu n'en a qu'une.
 
 ⚠️ **La gemme et le cadre n'en font PAS partie.** Sur les captures du jeu, la
 gemme est orange en légendaire et violette en héroïque : c'est la **rareté**,
-pas le symbole. Le cadre doré, lui, est commun à toutes les tuiles. Découper la
-tuile entière aurait donné une icône visiblement étrangère aux neuf autres,
-qui sont des glyphes nus.
+pas le symbole. Le cadre doré, lui, est commun à toutes les tuiles — les neuf
+autres icônes sont des glyphes nus, celle-ci aussi.
 
 ⚠️ **`ArtifactIcon` teste `intangible` AVANT `element`/`archetype`**, pour la
 même raison que `artifactFitsMonster` : ces champs ne veulent rien dire sur un

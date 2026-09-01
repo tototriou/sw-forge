@@ -18,7 +18,7 @@ import { ARTIFACT_KINDS, ArtifactKind, MAX_ARTIFACT_SUBS } from '../../types';
 import { artifactSubName, artifactSubsFor } from '../../lib/effects';
 import { LigneVerrouillee, budgetEmplacements, plafondLigne } from '../../lib/artifactOptim';
 import { ARTIFACT_SUB_MAX } from '../../lib/artifacts';
-import { codesCdSlotVoisins } from '../../lib/damage';
+import { codesEquivalentsAuVerrou } from '../../lib/damage';
 
 // Un artéfact porte 4 sous-propriétés, la paire 8.
 const MAX_LIGNES = MAX_ARTIFACT_SUBS * 2;
@@ -96,9 +96,11 @@ export default function ArtifactLinesEditor({
         // ⚠️ Au-delà du plafond d'UNE pièce, les DEUX doivent porter la ligne :
         // ça consomme un emplacement de chaque côté, pas un seul « libre ».
         const exigeLesDeux = def?.sortes.length === 2 && ligne.min > parPiece;
-        // Les autres formes de « Dgts CRIT par compétence » qui couvrent un
-        // sort en commun — équivalentes au CALCUL, étrangères au VERROU.
-        const voisins = codesCdSlotVoisins(ligne.code);
+        // Les autres formes qui recouvrent celle-ci — équivalentes au CALCUL,
+        // étrangères au VERROU. Deux familles : les Dgts CRIT par compétence
+        // (3/4 recouvre Comp.3 et Comp.4) et les amplifications de buff
+        // (ATQ/DEF recouvre ATQ et DEF).
+        const voisins = codesEquivalentsAuVerrou(ligne.code);
         return (
           <div
             key={ligne.code}
@@ -141,13 +143,14 @@ export default function ArtifactLinesEditor({
                   : `max ${plafond} % en cumulant les deux artéfacts`
                 : `max ${plafond} % · un seul artéfact peut la porter`}
             </span>
-            {/* ⚠️ **Le verrou somme STRICTEMENT par code.** Au calcul des
-                dégâts, « [Comp.3] Aug. Dgts CRIT » et « Dgts CRIT
-                [compétence 3/4] » font la même chose sur un S3 ; au
-                verrouillage, non — exiger l'une ignore l'autre. Sur un
-                inventaire mixte (les anciennes pièces portent la forme par
-                compétence unique, les récentes la forme 3/4), le verrou
-                écarte donc la moitié de l'inventaire sans rien dire.
+            {/* ⚠️ **Le verrou somme STRICTEMENT par code.** Deux familles du
+                jeu ont une forme GROUPÉE qui recouvre des formes simples :
+                « Dgts CRIT [compétence 3/4] » face à « [Comp.3] » et
+                « [Comp.4] », et « Effet renforcement ATQ/DEF » face aux deux
+                renforcements séparés. Au calcul des dégâts elles font la même
+                chose ; au verrouillage, non — exiger l'une ignore l'autre. Sur
+                un inventaire mixte, le verrou écarte donc une partie des
+                pièces sans rien dire.
                 Signalé par l'utilisateur, qui a préféré l'AVERTISSEMENT à un
                 cumul groupé : celui-ci introduirait la première ligne dont la
                 valeur ne se lit plus sur un seul code, avec un plafond et une

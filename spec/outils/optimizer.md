@@ -793,20 +793,28 @@ retour.
    libellés de test gardent « pièce »/« ligne », qui n'atteignent aucun
    joueur.
 
-   - ⚠️ **Un verrou somme STRICTEMENT par code — d'où un avertissement.**
-     « [Comp.3] Aug. Dgts CRIT » (ancienne forme) et « Dgts CRIT [compétence
-     3/4] » (celle des artéfacts récents) font **exactement la même chose au
-     calcul des dégâts** sur un S3. Au verrouillage, non : exiger l'une ignore
-     l'autre. Sur un inventaire mixte, le verrou écarterait donc la moitié des
-     pièces sans rien dire. Une ligne d'avertissement le signale désormais sous
-     la sous-propriété concernée, en nommant la ou les formes équivalentes.
-     - La relation est **symétrique** : verrouiller la forme 3/4 avertit aussi
-       qu'elle ignore les deux anciennes.
-     - ⚠️ **Comp.1 et Comp.2 n'ont aucun voisin**, et n'affichent donc rien :
-       aucune forme moderne ne les recouvre. La relation est **déduite** des
-       sorts que chaque code couvre (`codesCdSlotVoisins`,
-       [damage.ts](src/lib/damage.ts)), jamais d'une liste écrite à la main
-       qui divergerait.
+   - ⚠️ **Un verrou somme STRICTEMENT par code — d'où un avertissement.** Le
+     jeu a **deux familles** où une forme GROUPÉE recouvre des formes simples :
+
+     | Forme groupée | Recouvre |
+     |---|---|
+     | Dgts CRIT [compétence 3/4] | [Comp.3] Aug. Dgts CRIT · [Comp.4] Aug. Dgts CRIT |
+     | Effet renforcement ATQ/DEF | Effet renforcement ATQ · Effet renforcement DEF |
+
+     Au **calcul des dégâts**, elles font la même chose (sur un S3 pour la
+     première, sur le buff concerné pour la seconde). Au **verrouillage**,
+     non : exiger l'une ignore l'autre. Sur un inventaire mixte, le verrou
+     écarterait donc une partie des pièces sans rien dire. Une ligne
+     d'avertissement le signale sous la sous-propriété concernée, en nommant
+     la ou les formes équivalentes.
+     - La relation est **symétrique** : verrouiller la forme groupée avertit
+       aussi qu'elle ignore les formes simples.
+     - ⚠️ **Comp.1, Comp.2 et le renforcement de VIT n'ont aucun voisin**, et
+       n'affichent donc rien : aucune forme groupée ne les recouvre. La
+       relation est **déduite** de ce que chaque code couvre — les sorts pour
+       les Dgts CRIT, les buffs pour les renforcements
+       (`codesEquivalentsAuVerrou`, [damage.ts](src/lib/damage.ts)) — jamais
+       d'une liste écrite à la main qui divergerait.
      - ⚠️ Choix **assumé de ne PAS cumuler** les formes : un verrou groupé
        serait la première ligne dont la valeur ne se lit plus sur un seul
        code, avec un plafond et une arithmétique d'emplacements à repenser.

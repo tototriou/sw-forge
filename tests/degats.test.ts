@@ -71,7 +71,7 @@ import {
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
-  codesCdSlotVoisins,
+  codesEquivalentsAuVerrou,
   resolvedCompteurPersonnalise,
   resolvedEffetsCibleCount,
   resolvedEffetsPropresCount,
@@ -2907,20 +2907,35 @@ export default function testDegats() {
 //
 // ⚠️ Dérivé de CODE_CD_PAR_SLOT, jamais d'une seconde table : c'est ce que ce
 // test protège. Une table parallèle divergerait au premier code ajouté.
-export function testCdSlotVoisins() {
-  titre('Dgts CRIT par compétence — formes qui se recouvrent');
+export function testFormesEquivalentes() {
+  titre('Formes GROUPÉES contre formes simples — équivalentes au calcul, étrangères au verrou');
 
-  egal(codesCdSlotVoisins(402).sort(), [410], '[Comp.3] est recouverte par la forme 3/4');
-  egal(codesCdSlotVoisins(403).sort(), [410], '[Comp.4] aussi');
-  egal(codesCdSlotVoisins(410).sort(), [402, 403], '… et la forme 3/4 recouvre les deux — la relation est SYMÉTRIQUE');
+  egal(codesEquivalentsAuVerrou(402).sort(), [410], '[Comp.3] est recouverte par la forme 3/4');
+  egal(codesEquivalentsAuVerrou(403).sort(), [410], '[Comp.4] aussi');
+  egal(codesEquivalentsAuVerrou(410).sort(), [402, 403], '… et la forme 3/4 recouvre les deux — la relation est SYMÉTRIQUE');
 
   // ⚠️ Comp.1 et Comp.2 n'ont AUCUN voisin : aucune ligne moderne ne les
   // recouvre. Un avertissement y serait faux, et c'est ce qui distingue une
   // relation dérivée d'une liste écrite à la main.
-  egal(codesCdSlotVoisins(400), [], 'Comp.1 n’a aucune forme équivalente');
-  egal(codesCdSlotVoisins(401), [], 'Comp.2 non plus');
+  egal(codesEquivalentsAuVerrou(400), [], 'Comp.1 n’a aucune forme équivalente');
+  egal(codesEquivalentsAuVerrou(401), [], 'Comp.2 non plus');
 
   // Un code qui n'est pas de cette famille n'a évidemment aucun voisin.
-  egal(codesCdSlotVoisins(206), [], 'une ligne hors de cette famille n’a aucun voisin');
-  egal(codesCdSlotVoisins(411), [], '« Dgts CRIT 1re attaque » n’est pas indexée par sort');
+  egal(codesEquivalentsAuVerrou(411), [], '« Dgts CRIT 1re attaque » n’est pas indexée par sort');
+
+  // ⚠️ SECONDE FAMILLE, exactement le même piège : « Effet renforcement
+  // ATQ/DEF » (226) recouvre les deux renforcements séparés. Signalé par
+  // l'utilisateur après le cas des Dgts CRIT.
+  egal(codesEquivalentsAuVerrou(204).sort(), [226], 'renforcement ATQ recouvert par la forme ATQ/DEF');
+  egal(codesEquivalentsAuVerrou(205).sort(), [226], 'renforcement DEF aussi');
+  egal(codesEquivalentsAuVerrou(226).sort(), [204, 205], '… et la forme ATQ/DEF recouvre les deux');
+
+  // ⚠️ Le renforcement de VIT n'a AUCUN voisin : aucune forme groupée ne
+  // l'inclut, le 226 ne porte que l'ATQ et la DEF. Un avertissement y serait
+  // faux — c'est ce que la dérivation garantit et qu'une liste écrite à la
+  // main aurait raté.
+  egal(codesEquivalentsAuVerrou(206), [], 'le renforcement de VIT n’est groupé avec rien');
+
+  // Un code d'aucune des deux familles.
+  egal(codesEquivalentsAuVerrou(300), [], 'une ligne hors de ces familles n’a aucun voisin');
 }

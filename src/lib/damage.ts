@@ -312,6 +312,25 @@ const VARIABLE_STAT: Partial<Record<DamageVariable, StatKey>> = {
 // les deux, pas deux lignes distinctes.
 const CODE_AMPLI_ATK = 204;
 const CODE_AMPLI_DEF = 205;
+/**
+ * Quels BUFFS chaque ligne d'amplification renforce.
+ *
+ * ⚠️ **Source unique** : cette table alimente le calcul lui-même
+ * (`artifactDamageProfile`), la liste des codes à protéger de la dominance
+ * (`codesAmplificationActifs`) ET l'avertissement de verrouillage
+ * (`codesEquivalentsAuVerrou`). Une chaîne de `if` la dupliquait auparavant.
+ *
+ * ⚠️ **226 couvre ATQ ET DEF** : c'est une seule ligne du jeu qui renforce
+ * les deux buffs, exactement comme 410 couvre deux compétences côté Dgts
+ * CRIT. Même conséquence, donc : au CALCUL, un 226 vaut un 204 quand seul le
+ * buff d'ATQ est actif ; au VERROUILLAGE, les deux codes sont étrangers.
+ */
+const CODE_AMPLI_PAR_BUFF: Record<number, ('atk' | 'def' | 'spd')[]> = {
+  204: ['atk'],
+  205: ['def'],
+  206: ['spd'],
+  226: ['atk', 'def'],
+};
 // ⚠️ Exporté : `ampliVitMaxAtteignable` (artifactOptim.ts) en a besoin pour
 // lire l'amplification d'un artéfact. Une seconde constante « 206 » là-bas
 // serait un nombre magique de plus à tenir à jour.
@@ -342,12 +361,12 @@ const CODE_AMPLI_ATK_DEF = 226;
  * l'autre est actif.
  */
 export function codesAmplificationActifs(setup: DamageSetup): number[] {
-  const codes: number[] = [];
-  if (setup.atkBuff) codes.push(CODE_AMPLI_ATK);
-  if (setup.defBuff) codes.push(CODE_AMPLI_DEF);
-  if (setup.spdBuff) codes.push(CODE_AMPLI_VIT);
-  if (setup.atkBuff || setup.defBuff) codes.push(CODE_AMPLI_ATK_DEF);
-  return codes;
+  const actif = { atk: setup.atkBuff, def: setup.defBuff, spd: setup.spdBuff };
+  // Dérivé de `CODE_AMPLI_PAR_BUFF` : un code compte dès qu'AU MOINS un des
+  // buffs qu'il renforce est levé — d'où 226 présent avec l'ATQ seule.
+  return Object.entries(CODE_AMPLI_PAR_BUFF)
+    .filter(([, buffs]) => buffs.some((b) => actif[b]))
+    .map(([code]) => Number(code));
 }
 
 // « Dgts supp. en prop. de <stat> » — des dégâts BRUTS ajoutés À CHAQUE COUP,
@@ -413,12 +432,18 @@ const CODE_CD_PAR_SLOT: Record<number, number[]> = {
  * (Comp.1 et Comp.2) n'ont donc aucun voisin, ce qui est juste — aucune
  * ligne moderne ne les recouvre.
  */
-export function codesCdSlotVoisins(code: number): number[] {
-  const miens = CODE_CD_PAR_SLOT[code];
-  if (!miens) return [];
-  return Object.entries(CODE_CD_PAR_SLOT)
-    .filter(([autre, slots]) => Number(autre) !== code && slots.some((s) => miens.includes(s)))
-    .map(([autre]) => Number(autre));
+export function codesEquivalentsAuVerrou(code: number): number[] {
+  // ⚠️ DEUX familles à ce jour, même piège : les Dgts CRIT par compétence
+  // (410 recouvre 402 et 403) et les amplifications de buff (226 recouvre 204
+  // et 205). Une troisième n'aurait qu'à ajouter sa table ici.
+  for (const table of [CODE_CD_PAR_SLOT, CODE_AMPLI_PAR_BUFF] as Record<number, readonly unknown[]>[]) {
+    const miens = table[code];
+    if (!miens) continue;
+    return Object.entries(table)
+      .filter(([autre, couvre]) => Number(autre) !== code && couvre.some((c) => miens.includes(c)))
+      .map(([autre]) => Number(autre));
+  }
+  return [];
 }
 
 // « D.CRIT+ comp cib uniq pdt tour » — ne vaut que pour un sort MONO-CIBLE.
@@ -512,12 +537,17 @@ export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDama
   const p: ArtifactDamageProfile = { ...ARTIFACT_DAMAGE_NEUTRE, degatsElementPct: {}, cdPointsParSlot: {} };
   for (const a of artifacts) {
     for (const s of a.subs) {
-      if (s.code === CODE_AMPLI_ATK) p.ampliAtkPct += s.value;
-      else if (s.code === CODE_AMPLI_DEF) p.ampliDefPct += s.value;
-      else if (s.code === CODE_AMPLI_VIT) p.ampliVitPct += s.value;
-      else if (s.code === CODE_AMPLI_ATK_DEF) {
-        p.ampliAtkPct += s.value;
-        p.ampliDefPct += s.value;
+      // ⚠️ Via `CODE_AMPLI_PAR_BUFF` et non quatre `if` : la même table dit au
+      // verrouillage quelles formes se recouvrent (voir
+      // `codesEquivalentsAuVerrou`). Deux écritures de la même règle auraient
+      // divergé — c'est déjà arrivé sur les libellés.
+      const buffs = CODE_AMPLI_PAR_BUFF[s.code];
+      if (buffs) {
+        for (const b of buffs) {
+          if (b === 'atk') p.ampliAtkPct += s.value;
+          else if (b === 'def') p.ampliDefPct += s.value;
+          else p.ampliVitPct += s.value;
+        }
       } else if (s.code === CODE_BRUT_PV) p.brutPctPv += s.value;
       else if (s.code === CODE_BRUT_ATK) p.brutPctAtk += s.value;
       else if (s.code === CODE_BRUT_DEF) p.brutPctDef += s.value;

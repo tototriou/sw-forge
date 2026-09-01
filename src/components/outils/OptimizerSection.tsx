@@ -90,6 +90,7 @@ import {
   monsterModificateursVit,
   monsterOffensivePassives,
   resolveDamageSkill,
+  champsDuCombat,
   CRIT_MODE_LABELS,
   SUMMONER_SKILLS_LABELS,
   type DamageSetup,
@@ -480,14 +481,20 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     bouts.push(resolvedSkill ? `S${resolvedSkill.slot} ${resolvedSkill.nom}` : 'Aucun sort exploitable');
     const cible = ELEMENTS.find((e) => e.key === damageSetup.enemyElement);
     bouts.push(cible ? `vs ${cible.label}` : 'élément ignoré');
-    bouts.push(`DEF ${damageSetup.enemyDef.toLocaleString('fr-FR')}`);
-    bouts.push(CRIT_MODE_LABELS.find((c) => c.key === damageSetup.critMode)?.label ?? damageSetup.critMode);
-    const buffs = [
-      damageSetup.atkBuff && 'ATQ',
-      damageSetup.defBuff && 'DEF',
-      damageSetup.spdBuff && 'VIT',
-    ].filter(Boolean);
-    if (buffs.length > 0) bouts.push(`buff ${buffs.join('/')}`);
+    bouts.push(`PV ${damageSetup.enemyHp.toLocaleString('fr-FR')}`);
+    // ⚠️ **La DEF et le critique seulement si le sort les CONSOMME**, via le
+    // même prédicat que la fenêtre (`champsDuCombat`). Cette ligne affichait
+    // « DEF 1000 » en dur — donc sur un S3 qui ignore la défense, où le champ
+    // n'existe même pas dans la fenêtre qu'elle résume. Signalé à l'usage.
+    const champs = champsDuCombat(resolvedSkill);
+    if (champs.defEnnemie) bouts.push(`DEF ${damageSetup.enemyDef.toLocaleString('fr-FR')}`);
+    if (champs.crit) {
+      bouts.push(CRIT_MODE_LABELS.find((c) => c.key === damageSetup.critMode)?.label ?? damageSetup.critMode);
+    }
+    // ⚠️ **Plus de buffs ici.** Cette ligne résume la FENÊTRE qu'elle rouvre,
+    // et les buffs n'y sont plus — ils ont leurs propres contrôles, toujours
+    // visibles, dans « État de mon monstre ». Les répéter en texte alors qu'ils
+    // sont réglables trois cartes plus haut ne fait que du bruit.
     return bouts.join(' · ');
   }, [resolvedSkill, damageSetup]);
   // Passifs offensifs de CE monstre (Feng Yan, Sia, Roid… — voir

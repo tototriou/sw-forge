@@ -1,6 +1,7 @@
 import { Dispatch, ReactNode, SetStateAction } from 'react';
 import {
   BRAND_ICON,
+  champsDuCombat,
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
   BonusMonstreParEffetProfile,
@@ -244,8 +245,11 @@ export default function DamageSetupCard({
 
   // Ce que le sort choisi consomme réellement — pilote l'affichage.
   const utilise = (v: DamageVariable) => resolved.variables.includes(v);
-  const montreDefEnnemie = !resolved.ignoreDef && !resolved.fixed;
-  const montreCrit = !resolved.fixed;
+  // ⚠️ Via `champsDuCombat` (damage.ts) et non recalculés ici : la ligne de
+  // résumé qui rouvre cette fenêtre doit dire EXACTEMENT ce qu'elle contient.
+  // Deux copies de ces prédicats ont déjà divergé — « DEF 1000 » s'affichait
+  // dans le résumé sur un sort qui ignore la défense.
+  const { defEnnemie: montreDefEnnemie, crit: montreCrit } = champsDuCombat(resolved);
   // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
   // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
   // passif, ou si le sort ne pose pas de réduction de défense.

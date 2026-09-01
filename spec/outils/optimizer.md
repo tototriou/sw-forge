@@ -455,14 +455,25 @@ retour.
      ([DamageSetupModale.tsx](src/components/outils/DamageSetupModale.tsx),
      qui porte la même carte qu'avant) — et rien ailleurs à l'écran ne
      change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
-     place sous l'objectif : `S3 Tempête de flèches · vs Vent · DEF 1 000 ·
-     Critique · buff ATQ`. On la clique pour rouvrir.
+     place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 30 000 ·
+     DEF 1 000 · Critique`. On la clique pour rouvrir.
      - ⚠️ **Le résumé dit le sort RÉELLEMENT utilisé**, pas celui qu'on
        avait choisi. Un sort appartient à un monstre : après un changement
        de monstre, le calcul retombe sur le sort par défaut du nouveau. Tant
        que le réglage était déplié on le voyait ; derrière une fenêtre
        fermée, afficher l'ancien choix ferait croire à un calcul qui n'a pas
        lieu.
+     - ⚠️ **Le résumé ne montre QUE ce que le sort consomme**, exactement
+       comme la fenêtre. Sur un sort qui **ignore la défense**, le champ DEF
+       n'existe pas dans la fenêtre — et il disparaît donc du résumé : `S3
+       Amputation Magic · élément ignoré · PV 30 000 · Critique`. Une
+       première version l'affichait en dur, donnant « DEF 1 000 » sur un sort
+       qui n'en tient aucun compte, signalé à l'usage. Les deux lectures
+       viennent désormais d'un seul prédicat (`champsDuCombat`,
+       [damage.ts](src/lib/damage.ts)) : deux copies avaient déjà divergé.
+     - **Pas de buffs dans ce résumé** : ils ne sont plus dans la fenêtre
+       qu'il rouvre, et ont leurs propres contrôles toujours visibles dans
+       « État de mon monstre ».
      - ⚠️ **Choisir l'objectif ouvre la fenêtre, il ne fait pas que la
        révéler.** Auparavant le réglage se dépliait sous l'objectif et rien
        n'obligeait à le regarder : on pouvait classer des milliers de builds

@@ -2170,6 +2170,27 @@ export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsu
  * `monsterCom2usId` d'une recette, qui se re-résout lui aussi contre la box
  * de qui l'importe.
  */
+/**
+ * Quels réglages de combat le sort retenu CONSOMME réellement.
+ *
+ * ⚠️ **Source unique**, comme `resolveDamageSkill` pour la résolution du sort.
+ * Ces deux prédicats vivaient en variables locales de `DamageSetupCard`, qui
+ * les appliquait correctement ; la ligne de résumé qui rouvre la fenêtre, elle,
+ * affichait la DEF adverse EN DUR — donc « DEF 1000 » sur un sort qui ignore
+ * la défense, signalé à l'usage. C'est le défaut que le commentaire d'en-tête
+ * de cette carte proscrit : « un champ visible mais sans effet est pire qu'un
+ * champ absent — il fait croire à une action ».
+ *
+ * `null` (aucun sort calculable) : rien n'est consommé.
+ */
+export function champsDuCombat(resolved: SkillDamageProfile | null): {
+  defEnnemie: boolean;
+  crit: boolean;
+} {
+  if (!resolved) return { defEnnemie: false, crit: false };
+  return { defEnnemie: !resolved.ignoreDef && !resolved.fixed, crit: !resolved.fixed };
+}
+
 export function resolveDamageSkill(
   skills: (SkillDamageProfile | SkillDamageUnsupported)[],
   skillCom2usId: number | null

@@ -295,6 +295,16 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
+// Les deux crans de « Meilleurs artéfacts pour ce build ».
+//
+// ⚠️ Défini ici et non dans `runeBuildOptim.ts` avec `OBJECTIVE_LABELS` : ce
+// n'est PAS un objectif de recherche de runes — il ne change rien aux builds
+// trouvés, seulement la paire d'artéfacts proposée par-dessus l'un d'eux.
+const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
+  { key: 'brut', label: 'Dégâts supplémentaires' },
+  { key: 'reel', label: 'Dégâts réels' },
+];
+
 export default function OptimizerSection({ box, runes, artifacts, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
@@ -417,6 +427,19 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // La description du combat sort du flux (voir DamageSetupModale.tsx) : cet
   // état dit seulement si elle est ouverte.
   const [setupOuvert, setSetupOuvert] = useState(false);
+  /**
+   * Sur quoi « Meilleurs artéfacts pour ce build » optimise.
+   *
+   * ⚠️ **Un segmenté, PAS un bouton qui déclenche.** La qualité première de ce
+   * bloc est d'apparaître sans qu'on l'ait demandé : un bouton le ferait
+   * disparaître par défaut. Le cran « Dégâts supplémentaires » est donc
+   * calculé en permanence — il est bon marché (ni sort, ni cible, ni
+   * critique) ; « Dégâts réels » ne coûte que quand on le choisit.
+   *
+   * ⚠️ Défaut sur le brut, et il le REDEVIENT à chaque changement de monstre
+   * (voir `pickSpecies`) : un sort appartient à un monstre.
+   */
+  const [critereArtefacts, setCritereArtefacts] = useState<'brut' | 'reel'>('brut');
   // `EtatMonstre` écrit un PATCH, là où `DamageSetupCard` reçoit le `setState`
   // entier — même état, deux vues (voir EtatMonstre.tsx).
   const majDamageSetup = (patch: Partial<DamageSetup>) => setDamageSetup((s) => ({ ...s, ...patch }));
@@ -1091,13 +1114,49 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
      * ⚠️ Le nombre de coups n'entre pas : il multiplie toutes les paires
      * pareil et ne change donc aucun classement.
      */
-    const evaluerDegats = (arts: ArtifactDetail[]) =>
+    const evaluerBrut = (arts: ArtifactDetail[]) =>
       degatsBrutsArtefactsParCoup(
         computeStats({ ...selected.gear, artifacts: arts }),
         damageSetup,
         espece.element,
         artifactDamageProfile(arts)
       );
+    /**
+     * ⚠️ **Le cran « Dégâts réels » choisit une AUTRE paire**, il ne réaffiche
+     * pas la même autrement — décision explicite. Il maximise les dégâts
+     * TOTAUX du sort visé contre l'adversaire décrit, quand `evaluerBrut`
+     * maximise les seuls dégâts supplémentaires. Les deux optima diffèrent :
+     * une paire chargée en Dgts CRIT bat une paire chargée en 218-221 sur le
+     * total, et perd sur le brut.
+     *
+     * ⚠️ **Ce que la fenêtre a rendu légitime.** Cette optimisation avait été
+     * RETIRÉE (voir §10 bis du cadrage) parce qu'elle reposait sur un sort,
+     * une cible et un mode de critique jamais choisis — « un classement qui a
+     * l'air juste et repose sur des hypothèses invisibles ». Choisir ce cran
+     * OUVRE la fenêtre : les hypothèses sont désormais vues et posées.
+     *
+     * ⚠️ Mêmes arguments que l'évaluateur de la file (voir `faireParams`) :
+     * les modificateurs monstre-wide (`critSiPlusRapide`,
+     * `bonusDegatsSelonVit`…) n'y sont pas passés là-bas non plus. Deux
+     * traitements différents pour la même question — « quelle paire ? » —
+     * auraient été pires qu'une omission partagée.
+     */
+    const evaluerReel =
+      resolvedSkill &&
+      ((arts: ArtifactDetail[]) =>
+        computeTotalDamage(
+          resolvedSkill,
+          offensivePassives,
+          computeStats({ ...selected.gear, artifacts: arts }),
+          damageSetup,
+          espece.element,
+          artifactDamageProfile(arts)
+        ));
+    // ⚠️ Repli sur le brut si aucun sort n'est calculable pour ce monstre —
+    // jamais un bloc vide : le cran resterait sur « Dégâts réels » sans que
+    // rien n'explique le silence.
+    const surLeReel = critereArtefacts === 'reel' && evaluerReel != null;
+    const evaluerDegats = surLeReel ? evaluerReel : evaluerBrut;
     const paramsDegats: ArtifactSearchParams = { ...artifactParams, evaluer: evaluerDegats };
     // ⚠️ Et donc une PAIRE propre : celle que la recherche a supposée maximise
     // l'objectif de recherche, pas les dégâts. Les deux coïncident en « Dégâts
@@ -1142,10 +1201,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // pas, voilà ce que tu gagnerais ». Un pourcentage y serait infini ou
       // masquerait le bloc.
       gainBrutParCoup: scoreRetenu - scoreActuel,
+      // Ce que le chiffre MESURE, pour que l'écran n'ait pas à le redéduire :
+      // des dégâts bruts par coup, ou les dégâts totaux du sort visé.
+      surLeReel,
+      // ⚠️ Le cran demandé n'a pas pu être servi (aucun sort calculable pour
+      // ce monstre) : l'écran le DIT, plutôt que d'afficher un chiffre brut
+      // sous un libellé « Dégâts réels ».
+      reelIndisponible: critereArtefacts === 'reel' && evaluerReel == null,
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, damageSetup, lignesVerrouillees]);
+  }, [artifactParams, selected, damageSetup, lignesVerrouillees, critereArtefacts, resolvedSkill, offensivePassives]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -1887,25 +1953,42 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const blocArtefactsSeuls = modeArtefactsSeuls && (
     <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        {/* ⚠️ Le libellé DIT ce qu'il maximise dès que l'objectif de recherche
-            est autre chose : sur une recherche d'efficience, « meilleurs
-            artéfacts » tout court laisserait croire qu'ils servent CET
-            objectif-là, alors qu'on propose ceux qui font le plus de dégâts. */}
-        {/* ⚠️ « offensifs », et non « meilleurs » : ces artéfacts maximisent
-            les DÉGÂTS BRUTS, quel que soit l'objectif de la recherche.
-            « Meilleurs » laisserait croire qu'ils servent l'objectif choisi. */}
-        <span className="label">Artéfacts les plus offensifs pour ce build</span>
+        {/* ⚠️ « Meilleurs », et non plus « les plus offensifs ». Ce dernier
+            existait pour DIRE ce que le bloc maximisait quand rien d'autre ne
+            le disait — le segmenté ci-dessous le dit maintenant explicitement,
+            et « offensifs » deviendrait faux à cheval sur les deux crans. */}
+        <span className="label">Meilleurs artéfacts pour ce build</span>
         {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
           <span className="font-mono text-micro text-good">
-            +{Math.round(modeArtefactsSeuls.gainBrutParCoup).toLocaleString('fr-FR')} / coup
+            +{Math.round(modeArtefactsSeuls.gainBrutParCoup).toLocaleString('fr-FR')}
+            {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
           </span>
         )}
       </div>
+      {/* ⚠️ Choisir « Dégâts réels » OUVRE la fenêtre du combat, comme le cran
+          homonyme de l'objectif de recherche : sans ce geste, le classement
+          reposerait sur un sort, une cible et un critique jamais choisis —
+          exactement ce qui avait fait RETIRER cette optimisation. */}
+      <Segmented<'brut' | 'reel'>
+        options={CRITERE_ARTEFACTS_LABELS}
+        value={critereArtefacts}
+        onChange={(v) => {
+          setCritereArtefacts(v);
+          if (v === 'reel') setSetupOuvert(true);
+        }}
+        size="sm"
+        className="mt-1"
+      />
+      {modeArtefactsSeuls.reelIndisponible && (
+        <p className="mt-1 text-micro text-warn">
+          Aucun sort de ce monstre n’est calculable : classement sur les dégâts supplémentaires.
+        </p>
+      )}
       {modeArtefactsSeuls.dejaPorte ? (
         // ⚠️ Le dire plutôt que d'afficher « +0 » : « tu portes déjà les
         // meilleurs » est une réponse, un zéro ressemble à une panne.
         <p className="mt-0.5 text-micro text-ink-dim">
-          Tu portes déjà la paire la plus offensive disponible.
+          Tu portes déjà la meilleure paire disponible pour ce critère.
         </p>
       ) : modeArtefactsSeuls.paire.length === 0 ? (
         <p className="mt-0.5 text-micro text-ink-dim">Aucun artéfact équipable ne correspond aux critères.</p>
@@ -1928,8 +2011,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           choisir de sort ni décrire d'adversaire. */}
       {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
         <p className="mt-1 text-nano text-ink-dimmer">
-          Dégâts supplémentaires bruts, à chaque coup — ils ne peuvent pas être critiques et ignorent la
-          défense adverse, donc ce gain ne dépend ni du sort utilisé ni de la cible.
+          {modeArtefactsSeuls.surLeReel
+            ? `Dégâts totaux de ${resolvedSkill ? `« ${resolvedSkill.nom} »` : 'ce sort'} contre l’adversaire décrit — ouvre « Dégâts réels » pour changer le sort, la cible ou le traitement du critique.`
+            : 'Dégâts supplémentaires bruts, à chaque coup — ils ne peuvent pas être critiques et ignorent la défense adverse, donc ce gain ne dépend ni du sort utilisé ni de la cible.'}
         </p>
       )}
       {modeArtefactsSeuls.coutVerrousPct != null && (

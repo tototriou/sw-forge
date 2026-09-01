@@ -263,6 +263,28 @@ retour.
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
    ajoutent des dégâts par-dessus.
 
+   **Deux crans**, à choisir — un `Segmented`, jamais un bouton qui déclenche :
+   - **Dégâts supplémentaires** (défaut) — les dégâts bruts par coup des
+     sous-propriétés 218-221. **Calculé en permanence** : la qualité première
+     de ce bloc est d'apparaître sans qu'on l'ait demandé, et ce calcul est
+     bon marché (ni sort, ni cible, ni critique). Affiché `+X / coup`.
+   - **Dégâts réels** — les dégâts **totaux** du sort visé contre l'adversaire
+     décrit. ⚠️ **Le moteur choisit une AUTRE paire**, il ne réaffiche pas la
+     même autrement : une paire chargée en Dgts CRIT bat une paire chargée en
+     218-221 sur le total, et perd sur le brut. Mesuré sur Lushen :
+     +737 / coup en brut, **+1 831 dégâts** en réel, avec **deux paires
+     différentes**. Affiché `+X dégâts`.
+
+   ⚠️ **Choisir « Dégâts réels » ouvre la fenêtre du combat**, comme le cran
+   homonyme de l'objectif de recherche. C'est ce qui rend ce cran légitime :
+   cette optimisation avait été **retirée** parce qu'elle reposait sur un sort,
+   une cible et un mode de critique jamais choisis. La fenêtre les rend vus et
+   posés.
+
+   ⚠️ Si **aucun sort du monstre n'est calculable**, le cran retombe sur les
+   dégâts supplémentaires **en le disant** — jamais un bloc vide ni un chiffre
+   brut sous un libellé « Dégâts réels ».
+
    ⚠️ **Jamais à la place des artéfacts de la fiche** : celle-ci montre
    l'équipement RÉEL, et y substituer une proposition ferait croire à un
    équipement qu'on ne porte pas. Cette règle était d'abord satisfaite en

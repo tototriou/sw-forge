@@ -78,7 +78,7 @@ export default function ArtifactLinesEditor({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="label">Lignes verrouillées</span>
+        <span className="label">Sous-propriétés verrouillées</span>
         <span className="font-mono text-nano text-ink-dim tabular-nums">
           {lignes.length} / {MAX_LIGNES}
         </span>

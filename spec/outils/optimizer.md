@@ -624,7 +624,7 @@ retour.
    réglages voisins, deux modèles de dégâts, sans que rien ne le signale. Le
    « et si… » est donc perdu, en connaissance de cause.
 
-   **Lignes verrouillées** — sous les deux listes, jusqu'à **8**
+   **Sous-propriétés verrouillées** — sous les deux listes, jusqu'à **8**
    sous-propriétés exigées avec un minimum chacune (« Précision Compétence 3
    ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*
    garantissant une propriété qui n'y contribue pas.

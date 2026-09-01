@@ -112,7 +112,7 @@ await bloc.screenshot({ path: shot('mode-a.png') });
 ```
 
 ⚠️ **4. Un bloc VIDE ne démontre rien** — et il sort sans erreur. Première
-capture des « Lignes verrouillées » livrée à `0 / 8` : le
+capture des « Sous-propriétés verrouillées » livrée à `0 / 8` : le
 `selectOption({ label: /regex/ })` n'avait rien matché et l'échec était
 avalé. Deux réflexes :
 
@@ -126,11 +126,17 @@ avalé. Deux réflexes :
   await menu.selectOption({ label: exact });
   ```
 - **Peupler le bloc avec un cas qui montre la règle**, pas juste « deux
-  lignes ». Pour les lignes verrouillées : une sorte exclusive au type
-  (plafond simple) ET une portable par les deux (plafond doublé, dont un
-  minimum au-delà de la moitié force les DEUX pièces) — c'est là que le
-  compteur d'emplacements et les plafonds deviennent lisibles. Deux lignes
-  de la même sorte n'auraient rien montré.
+  entrées ». Pour les sous-propriétés verrouillées : une sorte exclusive au
+  type (plafond simple) ET une portable par les deux (plafond doublé, dont
+  un minimum au-delà de la moitié force les DEUX artéfacts) — c'est là que
+  le compteur et les plafonds deviennent lisibles. Deux sous-propriétés de
+  la même sorte n'auraient rien montré.
+- ⚠️ **Les sélecteurs Playwright bâtis sur un libellé sont fragiles.** Ce
+  bloc s'est appelé « Lignes verrouillées » jusqu'au 2026-09-01, et le
+  compteur « emplacements : » avant de devenir « sous-propriétés : ». Un
+  `filter({ hasText: /^Sous-propriétés verrouillées/ })` qui ne matche plus
+  ne lève PAS d'erreur : il produit une capture vide. Vérifier le libellé
+  dans le composant avant d'accuser le script.
 
 ## Invocation directe (changements côté moteur, pas côté écran)
 

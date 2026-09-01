@@ -253,6 +253,30 @@ retour.
    **Importer un nouveau compte** déclenche la réinitialisation complète,
    pour la même raison (autre box, autre pool de runes possible) — même en
    étant sur un autre onglet au moment de l'import.
+2 bis. **« Meilleurs artéfacts pour ce build »** — sous la fiche, la meilleure
+   paire d'artéfacts pour l'équipement **affiché**, avec ce qu'elle apporte face
+   à celle qui est portée. Optimise les artéfacts **seuls**, sans lancer de
+   recherche de runes : le cas visé est un monstre runé pour un autre objectif
+   (un tank fait pour survivre) à qui les artéfacts ajoutent des dégâts
+   par-dessus.
+
+   ⚠️ Affiché **à côté** de la fiche, jamais à la place de ses artéfacts : la
+   fiche montre l'équipement RÉEL, et y substituer une proposition ferait croire
+   à un équipement qu'on ne porte pas.
+
+   Quand la paire portée est déjà la meilleure, l'écran le **dit** au lieu
+   d'afficher « +0,0 % » — un zéro ressemble à une panne, la phrase est une
+   réponse. Et si des lignes sont verrouillées, ce qu'elles coûtent est chiffré
+   là aussi (« vos lignes verrouillées coûtent −3,6 % **sur ce build** »).
+   ⚠️ « sur ce build » n'est pas une précaution de langage : la recherche de
+   runes tourne elle aussi sous le modèle contraint, donc sans les verrous
+   d'AUTRES builds auraient pu émerger. Le chiffrer exigerait de relancer toute
+   la recherche.
+
+   N'apparaît qu'avec l'objectif « Dégâts réels » : ailleurs, le score d'une
+   paire est une somme de statistiques principales, dont un pourcentage ne
+   voudrait rien dire.
+
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
@@ -1151,6 +1175,17 @@ supposé : +0,3 % sur une recherche de 25 secondes et −1,6 % sur une de 8, les
 deux sous le plancher de bruit de la mesure. Seule une recherche d'environ une
 seconde montre ~3 %, dont une charge de calcul *pure* explique la
 quasi-totalité : c'est du partage de cœurs, pas un coût propre à ce calcul.
+
+**La page que vous consultez passe en premier.** Les cent meilleurs builds sont
+traités en avance de fond, mais c'est la page affichée qui est servie d'abord —
+sans quoi aucune page au-delà de la centième position n'aurait jamais sa paire.
+Changer de page ou de tri repriorise immédiatement, sans rien recalculer de ce
+qui est déjà connu.
+
+Une carte dont la paire n'est pas encore calculée le **dit** (« artéfacts pas
+encore optimisés ») plutôt que de laisser croire à un résultat définitif. ⚠️ La
+place de cette mention est réservée d'avance : sans ça, chaque paire trouvée
+changeait la hauteur d'une carte et réorganisait toute la grille.
 
 ⚠️ **Un build optimisé peut alors passer devant dans le classement**, et la
 boucle « trier → optimiser → retrier » ne s'emballe pas : optimiser un build ne

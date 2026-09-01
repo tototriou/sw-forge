@@ -715,9 +715,19 @@ export default function SpeedTuningSection({
                   <>
                     {ordreVoulu.length > 0 && !sequence.ok ? (
                       <>
+                        {/* ⚠️ **L'ordre respecté et l'équipe coupée sont DEUX
+                            problèmes**, et le titre les confondait. Quand tous
+                            les ennuis sont des `apres-adverse`, les alliés
+                            jouent bel et bien dans l'ordre demandé — ils se font
+                            simplement couper. Annoncer « tes vitesses ne
+                            permettent pas de jouer dans l'ordre demandé »
+                            envoyait alors corriger un ordre qui n'avait rien à
+                            se reprocher, et laissait chercher longtemps. */}
                         <p className="flex items-center gap-2 text-sm font-semibold text-bad">
                           <Scissors size={16} className="flex-none" />
-                          Les vitesses de tes monstres ne permettent pas de jouer dans l'ordre demandé.
+                          {sequence.problemes.every((p) => p.raison === 'apres-adverse')
+                            ? 'Ton équipe joue dans l’ordre demandé, mais elle se fait couper.'
+                            : "Les vitesses de tes monstres ne permettent pas de jouer dans l'ordre demandé."}
                         </p>
                         <ul className="flex flex-col gap-y-1.5">
                           {ordreVoulu.map((cle) => {
@@ -741,14 +751,22 @@ export default function SpeedTuningSection({
                             // tout : ce n'est pas un rang raté de peu, et
                             // envoyer corriger une vitesse serait un faux
                             // conseil.
+                            // ⚠️ « se fait couper » plutôt que « est trop lent »
+                            // pour un `apres-adverse` : le monstre peut très bien
+                            // tenir son rang parmi les alliés — ce qu'il rate,
+                            // c'est de passer avant l'adverse. Le même mot que
+                            // l'autre branche (« pour ne pas se faire cut »),
+                            // pour que le même défaut se dise pareil partout.
                             const verdict =
                               p.raison === 'nagit-pas'
                                 ? rang > 1
                                   ? `ne joue pas une ${rang}ᵉ fois`
                                   : "n'agit pas"
-                                : p.raison === 'trop-tot'
-                                  ? 'est trop rapide'
-                                  : 'est trop lent';
+                                : p.raison === 'apres-adverse'
+                                  ? 'se fait couper'
+                                  : p.raison === 'trop-tot'
+                                    ? 'est trop rapide'
+                                    : 'est trop lent';
                             const peutCalculer = runes != null || arte != null;
                             return (
                               <li key={cle} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">

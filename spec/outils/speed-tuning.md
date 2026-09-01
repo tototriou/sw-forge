@@ -923,6 +923,27 @@ Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
 
 ## Les deux camps se voient
 
+### ⚠️ « Ordre raté » et « équipe coupée » sont deux problèmes
+
+L'analyse d'ordre annonçait toujours la même chose : « Les vitesses de tes
+monstres ne permettent pas de jouer dans l'ordre demandé. » Or `diagnostiquerSequence`
+distingue déjà les raisons, et deux d'entre elles ne disent pas la même chose :
+
+| Raison | Ce qui se passe |
+|---|---|
+| `trop-tot` / `trop-tard` | l'ordre **entre alliés** n'est pas celui demandé |
+| `apres-adverse` | l'ordre est **bon**, mais un adverse s'intercale — l'équipe se fait **couper** |
+
+⚠️ Quand **tous** les ennuis sont des `apres-adverse`, les alliés jouent bel et
+bien dans l'ordre demandé. Le titre le dit désormais : « Ton équipe joue dans
+l'ordre demandé, mais elle se fait couper. » L'ancien message envoyait corriger
+un ordre qui n'avait rien à se reprocher.
+
+Et le monstre concerné **se fait couper** plutôt qu'il n'« est trop lent » : il
+peut parfaitement tenir son rang parmi les alliés — ce qu'il rate, c'est de
+passer avant l'adverse. C'est le même mot que l'autre branche de l'écran
+(« pour ne pas se faire cut ») : un même défaut doit se dire pareil partout.
+
 ### ⚠️ Le plus rapide se juge GAIN DE PASSIF COMPRIS
 
 L'adversaire de référence est une **copie du plus rapide allié**. Encore

@@ -1694,6 +1694,40 @@ export function testSpeedTuneSequence() {
     egal(d.problemes.find((p) => p.id === 'lent')?.raison, 'apres-adverse', "coupé par l'adverse d'abord");
   }
 
+  // ⚠️ **L'ORDRE RESPECTÉ ET L'ÉQUIPE COUPÉE SONT DEUX PROBLÈMES.** Quand les
+  // alliés jouent bien dans l'ordre demandé mais qu'un adverse s'intercale, le
+  // SEUL ennui est `apres-adverse` — aucun `trop-tot` ni `trop-tard`. C'est
+  // cette propriété que l'écran lit pour choisir son message : annoncer « tes
+  // vitesses ne permettent pas de jouer dans l'ordre demandé » envoyait corriger
+  // un ordre qui n'avait rien à se reprocher.
+  {
+    // a joue au tick 4, b au 5, l'adverse au 6, c au 10.
+    const monstres = [
+      m('a', 400, 'allie'),
+      m('b', 300, 'allie'),
+      m('c', 150, 'allie'),
+      m('e', 250, 'ennemi'),
+    ];
+    const d = diagnostiquerSequence(monstres, ['a', 'b', 'c']);
+    ok(!d.ok, 'une équipe coupée n’est pas tenue');
+    egal(d.problemes.length, 1, 'un seul monstre pose problème : celui qui passe après');
+    ok(
+      d.problemes.every((p) => p.raison === 'apres-adverse'),
+      'et le seul reproche est d’être coupé, jamais un ordre raté'
+    );
+    egal(d.problemes[0].id, 'c', 'c’est bien le dernier qui se fait couper');
+  }
+
+  // Le contraste : un ordre RÉELLEMENT raté ne se dit pas « coupé ».
+  {
+    const monstres = [m('a', 300, 'allie'), m('b', 200, 'allie'), m('e', 100, 'ennemi')];
+    const d = diagnostiquerSequence(monstres, ['b', 'a']);
+    ok(
+      !d.problemes.every((p) => p.raison === 'apres-adverse'),
+      'un ordre inversé garde ses raisons d’ordre — le message général reste'
+    );
+  }
+
   // ⚠️⚠️ **DEUX MONSTRES TROP LENTS À LA SUITE : les deux doivent avoir un
   // chiffre.** Calculées indépendamment (« toutes choses égales par ailleurs »),
   // la fenêtre du dernier sort VIDE — il ne doit pas passer devant son

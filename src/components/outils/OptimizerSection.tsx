@@ -2041,7 +2041,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           if (v === 'reel') setSetupOuvert(true);
         }}
         size="sm"
-        className="mt-1"
+        // ⚠️ `w-fit` : le `flex-none` que `Segmented` pose en taille `sm` ne
+        // vaut que s'il est ENFANT d'un conteneur flex. Ici le parent est en
+        // flux de bloc, donc sa propre boîte flex prenait toute la largeur —
+        // deux crans étirés sur 700 px. Même piège que la grille Conditions,
+        // qui porte déjà ce `w-fit` pour la même raison.
+        className="mt-1 w-fit"
       />
       {modeArtefactsSeuls.reelIndisponible && (
         <p className="mt-1 text-micro text-warn">

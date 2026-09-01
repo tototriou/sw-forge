@@ -734,6 +734,12 @@ retour.
    jeu) et **compétences d'invocateur**. Ce qui rend le monstre plus fort,
    quel que soit l'adversaire.
 
+   Les trois groupes tiennent sur **une seule rangée** (demande explicite) :
+   empilés, ils donnaient à la carte une hauteur sans rapport avec le peu
+   qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt ou
+   dans une colonne étroite, ils repassent à la ligne plutôt que de comprimer
+   les contrôles sous leur taille de cible.
+
    ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
    atteignables sous ce seul objectif — alors qu'ils changent les
    statistiques du monstre, donc les **dégâts supplémentaires** que lui

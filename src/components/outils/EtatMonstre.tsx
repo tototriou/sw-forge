@@ -58,6 +58,16 @@ export default function EtatMonstre({
         </HelpPopover>
       </div>
 
+      {/* ⚠️ **Les trois groupes sur UNE rangée** (demande explicite) : buffs,
+          leader skill et invocateur décrivent la même chose — l'état du
+          monstre — et les empiler sur trois lignes donnait à la carte une
+          hauteur sans rapport avec le peu qu'elle contient.
+          ⚠️ `flex-wrap` et non une rangée rigide : au doigt, ou dans une
+          colonne étroite, ils repassent à la ligne d'eux-mêmes plutôt que de
+          comprimer les contrôles sous leur taille de cible. `gap-x-4` sépare
+          les groupes plus franchement que `gap-y-2` ne sépare les lignes, pour
+          qu'on lise trois groupes et non une file de contrôles. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       {/* Mêmes vignettes qu'avant, même composant : l'ICÔNE est le contrôle. */}
       <div className="flex flex-wrap gap-1.5">
         <EffetVignette
@@ -104,6 +114,7 @@ export default function EtatMonstre({
           onChange={(v) => maj({ summonerSkills: v })}
           size="sm"
         />
+      </div>
       </div>
     </div>
   );

@@ -152,11 +152,13 @@ npx tsc --noEmit && npm test && npm run build
   `getByPlaceholder('Rechercher un monstre...')` (trois points ASCII) ne
   matche RIEN — le composant utilise `'Rechercher un monstre…'` (U+2026).
   Pareil pour tout texte de l'app affichant une ellipse.
-- **Deux champs "Rechercher un monstre" sur l'écran Optimizer.** Le
-  sélecteur du monstre à optimiser ET le picker d'exclusion de runes («
-  Rechercher un monstre à exclure… ») partagent un placeholder qui
-  commence pareil — `getByPlaceholder(..., { exact: true })` obligatoire,
-  un match approximatif lève une erreur « strict mode violation ».
+- **Deux champs « Rechercher un monstre » sur l'écran Optimizer, au
+  placeholder DÉSORMAIS IDENTIQUE.** Le sélecteur du monstre à optimiser et
+  le picker d'exclusion de runes portaient des libellés distincts (« …à
+  exclure… ») ; ce n'est plus le cas. ⚠️ **`exact: true` ne les départage donc
+  PLUS** — il lève « strict mode violation » sur les deux. Le driver prend
+  `.first()` : le champ du monstre à optimiser vient en premier dans le DOM.
+  Piège vécu APRÈS coup, ce skill affirmait le contraire.
 - **La recherche prend plusieurs secondes une fois lancée** (~4-10 s sur un
   compte de plusieurs milliers de runes, budget adaptatif — voir
   `algo-verify`/`optimizer-perf-testing`). Attendre le texte

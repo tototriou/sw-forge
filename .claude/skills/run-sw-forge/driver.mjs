@@ -69,7 +69,11 @@ await page.waitForTimeout(800);
 await page.screenshot({ path: shot('01-optimizer.png') });
 
 console.log(`→ choisir ${monsterName}`);
-await page.getByPlaceholder('Rechercher un monstre…', { exact: true }).fill(monsterName);
+// ⚠️ `exact: true` NE SUFFIT PLUS : les deux champs de l'écran (le monstre à
+// optimiser et le picker d'exclusion de runes) portent désormais un
+// placeholder IDENTIQUE — l'exclusion ne dit plus « … à exclure ». Le premier
+// dans l'ordre du DOM est celui du monstre à optimiser.
+await page.getByPlaceholder('Rechercher un monstre…').first().fill(monsterName);
 await page.waitForTimeout(300);
 const firstOption = page.getByRole('option').first();
 if (!(await firstOption.isVisible().catch(() => false))) {

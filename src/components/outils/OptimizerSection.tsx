@@ -20,7 +20,6 @@ import {
   Eye,
   Swords,
   Pencil,
-  Gauge,
 } from 'lucide-react';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
@@ -28,7 +27,6 @@ import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
-  ampliVitMaxAtteignable,
   chercherPaires,
   meilleurCumulParLigne,
   type ArtifactSearchParams,
@@ -93,7 +91,6 @@ import {
   resolveDamageSkill,
   champsDuCombat,
   codesAmplificationActifs,
-  vitTotalePourVitesseFinale,
   CRIT_MODE_LABELS,
   SUMMONER_SKILLS_LABELS,
   type DamageSetup,
@@ -341,8 +338,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setArtifactMainByKind,
     lignesVerrouillees,
     setLignesVerrouillees,
-    vitesseFinaleCible,
-    setVitesseFinaleCible,
     mainStatsBySlot,
     setMainStatsBySlot,
     lockedRunes,
@@ -1120,30 +1115,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     };
   }, [selected, ignoreArtifacts, artifactMainByKind, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
 
-  /**
-   * La vitesse FINALE visée, traduite en minimum de VIT runée.
-   *
-   * ⚠️ **Mémoïsé, et ce n'est pas du confort** : `ampliVitMaxAtteignable`
-   * lance une VRAIE recherche de paires (~80 ms sur un inventaire réel) pour
-   * respecter l'éligibilité, la contrainte de l'intangible et les
-   * sous-propriétés verrouillées. Recalculée à chaque frappe dans le champ,
-   * elle rendrait la saisie collante.
-   *
-   * ⚠️ La cible ne dépend PAS de `vitesseFinaleCible` pour l'amplification —
-   * seule la conversion finale en dépend. On sépare donc les deux mémos : le
-   * coûteux ne se refait qu'au changement d'inventaire ou de contraintes.
-   */
-  const ampliVitMax = useMemo(
-    () => (artifactParams ? ampliVitMaxAtteignable(artifactParams) : 0),
-    [artifactParams]
-  );
-  const conversionVitesse = useMemo(() => {
-    if (vitesseFinaleCible == null || !selected) return null;
-    const spdBase = selected.monster.stats.speed ?? 0;
-    const requis = vitTotalePourVitesseFinale(vitesseFinaleCible, spdBase, damageSetup, selected.monster.element, ampliVitMax);
-    return { requis, ampli: ampliVitMax, spdBase };
-  }, [vitesseFinaleCible, selected, damageSetup, ampliVitMax]);
-
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
     [artifactParams]
@@ -1365,27 +1336,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       const codes = mainStatsBySlot[slot];
       if (codes && codes.length > 0) mainStatsReq[slot] = codes;
     }
-    /**
-     * ⚠️ **La vitesse FINALE visée devient un minimum de VIT runée, ici et
-     * nulle part ailleurs.** C'est tout le principe : le moteur ne connaît
-     * que des minimums de statistique, il n'a rien à apprendre sur les buffs
-     * ni sur les artéfacts. `relevance()`, `filterSlot` et `buildBuckets`
-     * continuent de travailler comme avant — simplement sur un seuil plus
-     * bas, puisqu'une partie de la vitesse viendra du buff amplifié.
-     *
-     * ⚠️ **Borne ADMISSIBLE** : `ampliVitMax` étant le maximum réellement
-     * atteignable sur ce compte, aucun build capable de tenir la cible n'est
-     * écarté. La contrainte EXACTE se vérifiera à l'étage des artéfacts —
-     * sinon un build gardé grâce aux meilleurs artéfacts de vitesse se
-     * verrait proposer une paire offensive et retomberait sous la cible.
-     *
-     * ⚠️ **Écrase un minimum de VIT saisi à la main**, et c'est voulu : les
-     * deux répondent à la même question, l'écran n'affiche d'ailleurs qu'un
-     * seul champ à la fois.
-     */
-    const mins = conversionVitesse ? { ...minStats, spd: conversionVitesse.requis } : minStats;
-    return { sets: comboSets, minStats: mins, maxStats, mainStats: mainStatsReq, lockedRunes };
-  }, [comboSets, minStats, maxStats, mainStatsBySlot, lockedRunes, conversionVitesse]);
+    return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq, lockedRunes };
+  }, [comboSets, minStats, maxStats, mainStatsBySlot, lockedRunes]);
 
   // Indication du nombre de builds qui vont être testés — un ORDRE DE
   // GRANDEUR (le produit des pools filtrés par emplacement), pas le nombre
@@ -2760,28 +2712,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             const maxTotalVal = maxStats[st.key] ?? null;
             const maxDisplayed = maxTotalVal == null ? null : bonusMode ? maxTotalVal - base : maxTotalVal;
 
-            // ⚠️ La VIT seule peut viser une vitesse FINALE — les sept autres
-            // statistiques n'ont pas d'équivalent « en combat » qu'un buff et
-            // des artéfacts viendraient compléter.
-            const estVit = st.key === 'spd';
-            const modeFinal = estVit && vitesseFinaleCible != null;
             return (
               <Fragment key={st.key}>
                 <span className="text-xs text-ink">{st.label}</span>
                 <div className="flex items-center gap-1.5">
-                  {modeFinal ? (
-                    <NumberField
-                      value={vitesseFinaleCible}
-                      onChange={(v) => setVitesseFinaleCible(v)}
-                      allowEmpty
-                      // ⚠️ Plancher = la VIT de base : une vitesse finale sous
-                      // la base nue n'existe pas, le buff ne retire rien.
-                      min={selected?.monster.stats.speed ?? 0}
-                      boxWidth="w-24"
-                      ariaLabel="Vitesse finale visée"
-                      title="Vitesse finale visée (buff et artéfacts compris)"
-                    />
-                  ) : (
                   <NumberField
                     value={minDisplayed}
                     onChange={(v) =>
@@ -2805,37 +2739,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                     ariaLabel={`${st.label} minimum`}
                     title="Minimum"
                   />
-                  )}
-                  {/* ⚠️ Le bouton vit sur la rangée VIT, pas dans l'en-tête de
-                      « Conditions » : il ne concerne QUE cette statistique, et
-                      le poser à côté de « Stats de base exclues » (qui, elle,
-                      porte sur quatre stats) aurait laissé croire à une
-                      portée équivalente.
-                      ⚠️ **Désactivé sans buff de VIT, jamais caché** : sans
-                      buff, aucun artéfact n'intervient et tout l'arbitrage
-                      runes ↔ artéfacts disparaît. Le cacher rendrait la
-                      fonctionnalité invisible à qui ignore son existence —
-                      et l'interrupteur « Buff VIT » est juste à côté, dans
-                      « État de mon monstre ». */}
-                  {estVit && (
-                    <BoutonIcone
-                      cadre
-                      libelle={
-                        !damageSetup.spdBuff
-                          ? 'Viser une vitesse finale — demande un buff de VIT sur le monstre'
-                          : modeFinal
-                            ? 'Revenir à un minimum de VIT runée'
-                            : 'Viser une vitesse finale (buff et artéfacts compris)'
-                      }
-                      icone={<Gauge size={13} />}
-                      disabled={!damageSetup.spdBuff}
-                      onClick={() =>
-                        setVitesseFinaleCible((v) => (v == null ? (selected?.monster.stats.speed ?? 0) + 100 : null))
-                      }
-                      className={`h-6 w-6 flex-none ${modeFinal ? 'text-accent' : 'text-ink-dim'}`}
-                    />
-                  )}
-                  <span className="hidden sm:inline text-ink-dim text-micro">{modeFinal ? 'Finale' : 'Min'}</span>
+                  <span className="hidden sm:inline text-ink-dim text-micro">Min</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <NumberField
@@ -2856,32 +2760,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                     boxWidth="w-24"
                     ariaLabel={`${st.label} maximum`}
                     title="Maximum"
-                    // ⚠️ Un maximum de VIT RUNÉE en même temps qu'un minimum
-                    // de vitesse FINALE se raisonne mal : les deux nombres ne
-                    // parlent pas de la même grandeur. Désactivé plutôt que
-                    // masqué, pour que la rangée ne change pas de forme.
-                    disabled={modeFinal}
                   />
                   <span className="hidden sm:inline text-ink-dim text-micro">Max</span>
                 </div>
-                {/* ⚠️ **La conversion, en clair.** Sans elle, la mécanique est
-                    magique : on saisit 220 et on ne voit pas ce que la
-                    recherche exige réellement des runes. Elle montre aussi,
-                    immédiatement, l'effet d'un verrou qui écarterait les bons
-                    artéfacts de vitesse — le nombre d'amplification chute. */}
-                {modeFinal && conversionVitesse && (
-                  <p className="col-span-full font-mono text-nano leading-tight text-ink-dim">
-                    ⇒ au moins <b className="text-ink">{conversionVitesse.requis}</b> de VIT totale
-                    {conversionVitesse.ampli > 0 ? (
-                      <>
-                        {' '}(base {conversionVitesse.spdBase}, buff amplifié de{' '}
-                        <b className="text-ink">+{conversionVitesse.ampli}&nbsp;%</b> — ton meilleur couple d’artéfacts)
-                      </>
-                    ) : (
-                      <> (base {conversionVitesse.spdBase}, aucun artéfact d’amplification disponible)</>
-                    )}
-                  </p>
-                )}
               </Fragment>
             );
           })}

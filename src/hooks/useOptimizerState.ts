@@ -40,11 +40,6 @@ export interface OptimizerState {
   setSetPickerInvalid: Dispatch<SetStateAction<boolean>>;
   minStats: Partial<Record<StatKey, number>>;
   setMinStats: Dispatch<SetStateAction<Partial<Record<StatKey, number>>>>;
-  // Vitesse FINALE visée (buff et amplification d'artéfact compris) — `null`
-  // = la condition de VIT porte sur la statistique runée. Voir la déclaration
-  // du `useState` plus bas pour le pourquoi.
-  vitesseFinaleCible: number | null;
-  setVitesseFinaleCible: Dispatch<SetStateAction<number | null>>;
   maxStats: Partial<Record<StatKey, number>>;
   setMaxStats: Dispatch<SetStateAction<Partial<Record<StatKey, number>>>>;
   excludeBase: boolean;
@@ -209,20 +204,6 @@ export function useOptimizerState(): OptimizerState {
   const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [lignesVerrouillees, setLignesVerrouillees] = useState<LigneVerrouillee[]>([]);
-  /**
-   * Vitesse FINALE visée — `null` = mode inactif, la condition de VIT porte
-   * alors sur la statistique runée comme les sept autres.
-   *
-   * ⚠️ **Vitesse FINALE, pas vitesse de combat** : celle-ci inclut le buff de
-   * vitesse ET son amplification par les artéfacts, là où la « vitesse de
-   * combat » de l'outil Speed tuning s'arrête au lead et au totem. Voir
-   * spec/outils/optimizer/vitesse-finale.md, §0.
-   *
-   * ⚠️ N'a de sens qu'avec un buff de VIT actif : sans lui, aucun artéfact
-   * n'intervient et tout l'arbitrage runes ↔ artéfacts disparaît. L'écran
-   * désactive le bouton dans ce cas, il ne le cache pas.
-   */
-  const [vitesseFinaleCible, setVitesseFinaleCible] = useState<number | null>(null);
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
@@ -246,11 +227,6 @@ export function useOptimizerState(): OptimizerState {
     setSetPickerInvalid(false);
     setMinStats({});
     setMaxStats({});
-    // ⚠️ Remise à zéro comme les autres conditions : une vitesse finale visée
-    // dépend de la VIT de BASE du monstre pour lequel on l'a posée. Gardée
-    // d'un monstre à l'autre, elle produirait une exigence de VIT runée
-    // silencieusement différente de celle qu'on croyait poser.
-    setVitesseFinaleCible(null);
     setExcludeBase(true);
     setIgnoreArtifacts(false);
     setArtifactMainByKind({});
@@ -296,8 +272,6 @@ export function useOptimizerState(): OptimizerState {
     setArtifactMainByKind,
     lignesVerrouillees,
     setLignesVerrouillees,
-    vitesseFinaleCible,
-    setVitesseFinaleCible,
     mainStatsBySlot,
     setMainStatsBySlot,
     lockedRunes,

@@ -632,9 +632,11 @@ retour.
    Vocabulaire de cette section, **aligné sur celui du jeu** (demande
    explicite) : on parle d'**artéfact**, jamais de « pièce », et de
    **sous-propriété**, jamais de « ligne » ni d'« emplacement » — d'où
-   « + Sous-propriétés… » pour ajouter, et un compteur préfixé
-   `sous-propriétés :`. Les commentaires de code et les libellés de test
-   gardent « pièce »/« ligne », qui n'atteignent aucun joueur.
+   « + Sous-propriété… » pour ajouter (**au singulier** : le menu en ajoute
+   une à la fois), un compteur préfixé `sous-propriétés :`, et le même mot
+   dans les deux diagnostics d'échec. Les commentaires de code et les
+   libellés de test gardent « pièce »/« ligne », qui n'atteignent aucun
+   joueur.
 
    - ⚠️ **Le minimum porte sur la PAIRE, pas sur un artéfact** : une même ligne
      peut tomber sur les deux artéfacts et ses valeurs s'additionnent. Le

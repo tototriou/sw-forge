@@ -149,7 +149,9 @@ export default function ArtifactLinesEditor({
         taille="sm"
         surface="panel2"
       >
-        <option value="">{plein ? `Les ${MAX_LIGNES} lignes sont prises` : '+ Sous-propriétés…'}</option>
+        <option value="">
+          {plein ? `Les ${MAX_LIGNES} sous-propriétés sont prises` : '+ Sous-propriété…'}
+        </option>
         {dispo.map((l) => (
           <option key={l.code} value={l.code}>
             {l.nom}
@@ -188,7 +190,7 @@ export default function ArtifactLinesEditor({
         // voit laquelle bloque, et de combien.
         <div className="flex flex-col gap-1 rounded border border-bad/50 bg-bad-soft/50 px-2 py-1.5">
           <span className="text-xs font-semibold text-bad">
-            Aucune paire d’artéfacts ne satisfait ces lignes
+            Aucune paire d’artéfacts ne satisfait ces sous-propriétés
           </span>
           {diagnostic.map((d) => (
             <div key={d.code} className="flex items-baseline justify-between gap-2 text-xs">
@@ -208,8 +210,8 @@ export default function ArtifactLinesEditor({
               les serve ensemble. Le dire, plutôt que laisser croire qu'un « ✓ »
               partout serait contradictoire avec l'échec. */}
           <span className="text-nano text-ink-dimmer">
-            Chaque maximum est mesuré ligne par ligne : deux lignes atteignables séparément peuvent ne
-            l’être par aucune paire à la fois.
+            Chaque maximum est mesuré sous-propriété par sous-propriété : deux sous-propriétés
+            atteignables séparément peuvent ne l’être par aucune paire à la fois.
           </span>
         </div>
       )}
@@ -219,8 +221,8 @@ export default function ArtifactLinesEditor({
         // l'inventaire ne suit pas. Ce diagnostic-là se lit sur le balayage,
         // pas sur une déduction (voir `meilleurCumulParLigne`).
         <p className="rounded border border-bad/50 bg-bad-soft/50 px-2 py-1 text-xs text-bad">
-          Ces lignes ne tiennent pas sur deux artéfacts : chacun ne porte que{' '}
-          {MAX_ARTIFACT_SUBS} sous-propriétés.
+          Ces sous-propriétés ne tiennent pas sur deux artéfacts : chacun n’en porte que{' '}
+          {MAX_ARTIFACT_SUBS}.
         </p>
       )}
     </div>

@@ -2060,7 +2060,14 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // `ArtifactSubLigne` est désormais PARTAGÉ avec la tuile d'inventaire :
         // une ligne par propriété, la pastille de procs, la valeur en gras, le
         // marqueur des propriétés modifiées.
-        <div className="mt-1.5 flex flex-col gap-2">
+        // ⚠️ **Côte à côte, pas empilés** : une PAIRE se lit d'un coup d'œil,
+        // et l'empilement doublait la hauteur du bloc dans une carte déjà
+        // longue. `sm:` et non une largeur de conteneur : sous ce seuil la
+        // carte est pleine largeur mais étroite (téléphone), où deux colonnes
+        // couperaient les libellés longs — ils repassent alors l'un sous
+        // l'autre. `items-start` : l'artéfact qui a la principale la plus
+        // courte ne s'étire pas à la hauteur de l'autre.
+        <div className="mt-1.5 grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2">
           {modeArtefactsSeuls.paire.map((a) => (
             <div key={`${a.kind}-${a.id}`} className="flex items-start gap-2">
               <ArtifactFrameIcon artifact={a} size={24} />

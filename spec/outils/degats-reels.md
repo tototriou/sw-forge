@@ -1740,6 +1740,16 @@ recette importée) reste affichée telle quelle dans le menu plutôt que
 remplacée en silence — changer un chiffre sans prévenir serait pire que le
 défaut corrigé. Elle disparaît dès qu'on choisit autre chose.
 
+⚠️ **Le menu de la valeur se déplie EN DESSOUS du type, sur une rangée dont
+la place est réservée d'avance.** À droite, le groupe s'élargissait au clic
+et poussait « Compétences d'invocateur » à côté ; en dessous sans réserver la
+place, il ferait grandir la carte. La colonne a donc une hauteur fixe — le
+libellé et le choix du type sont remontés d'autant, et rien ne bouge qu'un
+lead soit choisi ou non. Un menu figurant, désactivé et `aria-hidden`, tient
+la seconde rangée quand il n'y a pas de lead : sans lui elle serait plate, et
+la carte grandirait quand même au premier choix. Même parade que le champ de
+Velaska.
+
 ⚠️ **Trois précisions confirmées par l'utilisateur**, à ne pas re-questionner :
 
 - **La portée n'entre PAS dans la table, délibérément.** En jeu, une valeur de

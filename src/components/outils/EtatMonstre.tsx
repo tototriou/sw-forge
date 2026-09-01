@@ -140,7 +140,17 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
   const valeurs = lead ? LEADER_SKILL_VALEURS[lead.stat] : [];
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    /* ⚠️ **DEUX rangées, la seconde toujours réservée.** La valeur se dépliait
+        à DROITE du type : le groupe s'élargissait au moment du clic et poussait
+        « Invocateur » à côté. En dessous, elle ne pousse plus rien
+        horizontalement — mais elle ferait grandir la carte en hauteur si sa
+        place n'était pas tenue d'avance. D'où une colonne de hauteur FIXE : le
+        libellé et le choix du type sont remontés d'autant, et rien ne bouge
+        qu'on ait un lead ou non. Même parade que le champ de Velaska, et même
+        règle : un clic ne déplace jamais ce qu'on vient de cliquer
+        (spec/shared/design.md). */
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
       <span className="text-xs text-ink-dim">Leader skill</span>
       {icone && <img src={icone} alt="" className="h-6 w-6" loading="lazy" />}
       <Selecteur
@@ -163,7 +173,13 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
           </option>
         ))}
       </Selecteur>
-      {lead && (
+      </div>
+
+      {/* ⚠️ `invisible` et non un rendu conditionnel : l'élément tient sa place
+          sans se voir. `aria-hidden` et `disabled` avec, sinon on tabulerait
+          dans un menu invisible. */}
+      <div className={lead ? '' : 'invisible'} aria-hidden={!lead}>
+      {lead ? (
         /* ⚠️ **Un seul menu, plus de saisie libre.** Il y avait avant un menu
             de « paliers courants » ET un champ numérique, parce que la table
             ne prétendait pas être complète. `LEADER_SKILL_VALEURS` est
@@ -195,7 +211,16 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
               chose. */}
           {!valeurs.includes(lead.pct) && <option value={lead.pct}>{lead.pct} %</option>}
         </Selecteur>
+      ) : (
+        /* ⚠️ Un menu FIGURANT, désactivé : il ne sert qu'à tenir la hauteur
+            quand aucun lead n'est choisi. Sans lui, la rangée réservée serait
+            vide et donc plate — la carte grandirait quand même au premier
+            choix, ce que toute cette structure existe pour éviter. */
+        <Selecteur value="" onChange={() => {}} taille="sm" pleineLargeur={false} disabled aria-hidden tabIndex={-1}>
+          <option value="">—</option>
+        </Selecteur>
       )}
+      </div>
     </div>
   );
 }

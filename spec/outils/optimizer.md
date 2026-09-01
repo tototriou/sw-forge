@@ -273,9 +273,23 @@ retour.
    d'AUTRES builds auraient pu émerger. Le chiffrer exigerait de relancer toute
    la recherche.
 
-   N'apparaît qu'avec l'objectif « Dégâts réels » : ailleurs, le score d'une
-   paire est une somme de statistiques principales, dont un pourcentage ne
-   voudrait rien dire.
+   ⚠️ **Il vaut pour TOUS les objectifs de recherche, et c'est son cas
+   principal.** Un monstre optimisé en efficience, en PV effectifs ou en
+   vitesse porte de gros PV/DEF/VIT — que les lignes « Dégâts supp. en
+   proportion de… » convertissent en dégâts. Son build de runes est déjà figé
+   par un autre objectif, et les artéfacts se posent par-dessus sans y toucher.
+   C'est exactement la situation que cette fonctionnalité vise.
+
+   Le libellé le dit alors : « Artéfacts les plus **offensifs** pour ce build »
+   — sur une recherche d'efficience, « meilleurs artéfacts » tout court
+   laisserait croire qu'ils servent cet objectif-là.
+
+   ⚠️ La paire proposée n'est donc PAS celle que la recherche de runes suppose :
+   celle-là maximise l'objectif de recherche, celle-ci maximise les dégâts. Les
+   deux coïncident en « Dégâts réels » et divergent partout ailleurs.
+
+   La statistique principale exigée et les lignes verrouillées sont respectées
+   dans les deux cas — une contrainte posée reste une contrainte.
 
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :

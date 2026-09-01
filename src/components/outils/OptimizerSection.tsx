@@ -1003,17 +1003,45 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    * comparable.
    */
   const modeArtefactsSeuls = useMemo(() => {
-    if (!artifactParams || !selected || objective !== 'degats_reels' || !resolvedSkill) return null;
+    // ⚠️ **PAS de condition sur l'objectif — c'est tout l'intérêt.** Ce bloc
+    // était limité à « Dégâts réels », ce qui le rendait inutile exactement là
+    // où il sert le plus : un monstre runé pour SURVIVRE (efficience, PV
+    // effectifs, vitesse) porte de gros PV/DEF/VIT, que les lignes 218-221
+    // convertissent en dégâts — son build est déjà figé par un autre objectif,
+    // et les artéfacts se posent par-dessus. C'est le cas fondateur du cadrage
+    // (spec/outils/optimizer/artefacts.md, §1), et je l'avais exclu.
+    if (!artifactParams || !selected || !resolvedSkill) return null;
+    const espece = selected.monster;
+    // ⚠️ Un évaluateur PROPRE à ce bloc, jamais celui d'`artifactParams`.
+    // Celui-là suit l'OBJECTIF DE RECHERCHE : hors « Dégâts réels » il somme
+    // les stats principales, ce qui est juste pour choisir la paire supposée
+    // d'une recherche d'efficience — et sans aucun rapport avec la question
+    // posée ici, qui est toujours « quels artéfacts font le plus de DÉGÂTS sur
+    // ce build ».
+    const evaluerDegats = (arts: ArtifactDetail[]) =>
+      computeTotalDamage(
+        resolvedSkill,
+        offensivePassives,
+        computeStats({ ...selected.gear, artifacts: arts }),
+        damageSetup,
+        espece.element,
+        artifactDamageProfile(arts)
+      );
+    const paramsDegats: ArtifactSearchParams = { ...artifactParams, evaluer: evaluerDegats };
+    // ⚠️ Et donc une PAIRE propre : celle que la recherche a supposée maximise
+    // l'objectif de recherche, pas les dégâts. Les deux coïncident en « Dégâts
+    // réels » et divergent partout ailleurs.
+    const retenue = paireRepresentative(paramsDegats);
     const actuels = selected.gear.artifacts;
-    const scoreActuel = artifactParams.evaluer(actuels);
-    const scoreRetenu = artifactParams.evaluer(searchArtifacts);
+    const scoreActuel = evaluerDegats(actuels);
+    const scoreRetenu = evaluerDegats(retenue);
     if (scoreActuel <= 0) return null;
     // ⚠️ Comparaison par IDENTIFIANT, jamais par référence : les pièces
     // retenues viennent de l'inventaire, celles portées du `gear` — deux
     // objets distincts peuvent désigner le même artéfact.
     const memesPieces =
-      actuels.length === searchArtifacts.length &&
-      actuels.every((a) => searchArtifacts.some((b) => b.id === a.id && a.id > 0));
+      actuels.length === retenue.length &&
+      actuels.every((a) => retenue.some((b) => b.id === a.id && a.id > 0));
     // ⚠️ **Ce que les VERROUS coûtent, chiffré ici et nulle part ailleurs.**
     // Le calcul exige de désactiver l'élagage par obligation — on ne peut pas à
     // la fois écarter une paire sans l'évaluer et connaître son score. C'est
@@ -1030,16 +1058,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     const verrous = lignesVerrouillees.filter((l) => l.min > 0);
     let coutVerrousPct: number | null = null;
     if (verrous.length > 0) {
-      const sans = chercherPaires({ ...artifactParams, avecCoutDesVerrous: true }).meilleurSansVerrous;
+      const sans = chercherPaires({ ...paramsDegats, avecCoutDesVerrous: true }).meilleurSansVerrous;
       if (sans != null && sans > scoreRetenu) coutVerrousPct = (1 - scoreRetenu / sans) * 100;
     }
     return {
-      paire: searchArtifacts,
+      paire: retenue,
       gainPct: (scoreRetenu / scoreActuel - 1) * 100,
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, objective, resolvedSkill, searchArtifacts, lignesVerrouillees]);
+  }, [artifactParams, selected, resolvedSkill, offensivePassives, damageSetup, lignesVerrouillees]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -1781,7 +1809,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const blocArtefactsSeuls = modeArtefactsSeuls && (
     <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="label">Meilleurs artéfacts pour ce build</span>
+        {/* ⚠️ Le libellé DIT ce qu'il maximise dès que l'objectif de recherche
+            est autre chose : sur une recherche d'efficience, « meilleurs
+            artéfacts » tout court laisserait croire qu'ils servent CET
+            objectif-là, alors qu'on propose ceux qui font le plus de dégâts. */}
+        <span className="label">
+          {objective === 'degats_reels'
+            ? 'Meilleurs artéfacts pour ce build'
+            : 'Artéfacts les plus offensifs pour ce build'}
+        </span>
         {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainPct > 0 && (
           <span className="font-mono text-micro text-good">+{modeArtefactsSeuls.gainPct.toFixed(1)} %</span>
         )}

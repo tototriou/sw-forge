@@ -95,8 +95,13 @@ l'ordre d'usage 1-2-3 ci-dessus) :
    « un clic ne déplace jamais ce qu'on vient de cliquer »). Juste en
    dessous des puces de source : **zone C**, « Monstres de la liste » — voir
    « Listes de travail et réservation de runes ».
-2. **Rangée 2 : Critères de recherche (colonne 1, `row-span-3` — occupe
-   aussi les rangées 3 et 4).** ⚠️ « Objectif de recherche » occupait la
+2. **Rangée 2 : Critères de recherche (colonne 1, `row-span-4` — occupe
+   aussi les rangées 3, 4 et 5).** ⚠️ Ce nombre suit la colonne d'EN FACE
+   (Artéfacts, État de mon monstre, Exclusion de runes, Réglages avancés),
+   il ne décrit pas le contenu de cette carte-ci : toute carte ajoutée ou
+   retirée à droite se répercute ici **et** sur la rangée de la ligne
+   d'estimation, qui reste toujours la dernière.
+   ⚠️ « Objectif de recherche » occupait la
    colonne 2 de cette rangée ; **il a rejoint la carte du bouton
    Rechercher**, en bas. Il était une carte à part parce qu'il portait
    AUSSI la description du combat de « Dégâts réels », qui réclamait de la
@@ -125,13 +130,16 @@ l'ordre d'usage 1-2-3 ci-dessus) :
    principal** (4 pièces) s'affiche sur **deux lignes de trois** en
    permanence (comme au doigt), pour laisser plus de largeur au set
    secondaire.
-3. **Rangée 3, colonne 2 : Exclusion de runes** (carte à bordure
+2 ter. **Rangée 2, colonne 2 : Artéfacts** (voir §6) — sous « Exemplaire »,
+   le bloc se lisant « ces artéfacts, sur CE build ». **Rangée 3, colonne 2 :
+   État de mon monstre** (voir §6 bis).
+3. **Rangée 4, colonne 2 : Exclusion de runes** (carte à bordure
    accentuée, fonctionnalité vedette — regroupe aussi **Runes imposées**,
    voir plus bas).
-4. **Rangée 4, colonne 2 : Réglages avancés** — SOUS Exclusion de runes,
+4. **Rangée 5, colonne 2 : Réglages avancés** — SOUS Exclusion de runes,
    pas au-dessus (ordre inversé sur demande explicite après une première
    disposition).
-5. **Rangée 5, pleine largeur : ligne d'estimation** — ni dans la colonne
+5. **Rangée 6, pleine largeur : ligne d'estimation** — ni dans la colonne
    1 ni dans la colonne 2, cette ligne n'a pas sa place dans une cellule
    précise.
 
@@ -271,8 +279,11 @@ retour.
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
    plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
    le combat déjà décrit. Seuls les deux **sélecteurs** retombent au défaut.
-2 bis. **« Meilleurs artéfacts pour ce build »** — en bas de la carte
-   **Artéfacts**, la meilleure paire pour l'équipement **affiché**, avec ce
+2 bis. **« Meilleurs artéfacts pour ce build »** — dans la carte
+   **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
+   résultat suit immédiatement les réglages qui le produisent, sans qu'un
+   autre sujet ne s'intercale. La meilleure paire pour l'équipement
+   **affiché**, avec ce
    qu'elle apporte face à celle qui est portée. Optimise les artéfacts
    **seuls**, sans lancer de recherche de runes : le cas visé est un monstre
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
@@ -713,8 +724,12 @@ retour.
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigeait.
 
-6 bis. **État de mon monstre** — en bas de la carte Artéfacts, séparé des
-   réglages ci-dessus par un trait : **buff ATQ**, **buff DEF**, **buff
+6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
+   juste sous « Artéfacts ». Elle a d'abord vécu en bas de cette carte, séparée
+   par un simple trait : ça laissait croire que ces réglages servaient les
+   artéfacts, alors qu'ils décrivent le **monstre** et valent pour tout calcul.
+   Le trait ne suffisait pas à dire « autre métier » — une carte, si.
+   Contenu : **buff ATQ**, **buff DEF**, **buff
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
    jeu) et **compétences d'invocateur**. Ce qui rend le monstre plus fort,
    quel que soit l'adversaire.

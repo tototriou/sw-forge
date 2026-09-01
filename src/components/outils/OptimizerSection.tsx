@@ -2530,15 +2530,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         </div>
       </div>
 
-      {/* Étape 3. ⚠️ **`w-fit` RETIRÉ, `xl:row-span-3`** (demande explicite) :
-          la carte occupe maintenant TOUTE la hauteur de la colonne 2
-          (Objectif/Exclusion/Réglages avancés empilés sur 3 rangées, voir
-          plus bas) — même patron que l'ancien `row-span-2` de « Monstre &
-          équipement » avant le Lot 3 (carte haute à gauche, PLEINE LARGEUR
-          de sa colonne, cartes plus courtes empilées à sa droite) : sans
-          `w-fit`, elle profite de toute la largeur de la colonne 1 comme
-          Monstre le faisait, plutôt que de se serrer sur son contenu. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-3">
+      {/* Étape 3. ⚠️ **`w-fit` RETIRÉ** (demande explicite) : sans lui, la
+          carte profite de toute la largeur de la colonne 1 plutôt que de se
+          serrer sur son contenu — même patron que « Monstre & équipement »
+          (carte haute à gauche, cartes plus courtes empilées à sa droite).
+          ⚠️ **`xl:row-span-4`** : la colonne 2 empile QUATRE cartes —
+          Artéfacts (2), État de mon monstre (3), Exclusion de runes (4),
+          Réglages avancés (5). Ce nombre suit la colonne d'EN FACE, il ne
+          décrit pas le contenu de celle-ci : toute carte ajoutée ou retirée à
+          droite se répercute ici, et sur la rangée de la ligne d'estimation
+          (pleine largeur, toujours en dernier). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-4">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -2894,19 +2896,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             />
           </div>
         )}
-        {/* ⚠️ **Toujours visible, indépendamment de l'objectif de recherche.**
-            Ces cinq réglages changent les statistiques du monstre, donc les
-            dégâts supplémentaires bruts affichés juste en dessous — les
-            laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
-            qui optimise l'efficience, alors qu'ils s'appliquaient quand même.
-            ⚠️ Séparé par un trait des réglages au-dessus : ceux-là contraignent
-            la RECHERCHE de runes (pour des milliers de builds), celui-ci
-            décrit l'état du monstre. Deux métiers dans une carte, il faut que
-            ça se voie — sinon on croit que les sous-propriétés verrouillées ne
-            servent qu'au bloc ci-dessous. */}
-        <div className="mt-3 border-t border-border-soft pt-3">
-          <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} />
-        </div>
         {/* ⚠️ **Le résultat rejoint ses commandes.** « Meilleurs artéfacts pour
             ce build » vivait sous la fiche d'équipement, avec une raison qui
             TIENT TOUJOURS : la fiche montre l'équipement RÉEL, on n'y
@@ -2920,6 +2909,23 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             alors qu'un grep de son libellé n'en montrait qu'une — cette carte
             n'a pas de jumelle masquée. */}
         {blocArtefactsSeuls}
+      </div>
+
+      {/* ⚠️ **Carte à part, sous « Artéfacts »** — ces cinq réglages ne sont
+          PAS des réglages d'artéfact. Ils décrivent le monstre : buffs reçus,
+          leader skill d'équipe, compétences d'invocateur. Ils vivaient en bas
+          de la carte Artéfacts, séparés par un simple trait, ce qui laissait
+          croire qu'ils la servaient — alors qu'ils changent les statistiques
+          du monstre tout court, donc aussi bien les dégâts supplémentaires que
+          n'importe quel calcul de dégâts réels.
+          ⚠️ **Toujours visible, indépendamment de l'objectif de recherche** :
+          les laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
+          qui optimise l'efficience, alors qu'ils s'appliquaient quand même.
+          ⚠️ `xl:col-start-2 xl:row-start-3` — la colonne 2 passe donc à QUATRE
+          cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
+          le décalage d'une rangée de tout ce qui suit. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
+        <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} />
       </div>
 
       {/* ⚠️ « Objectif de recherche » N'EST PLUS ICI — il a rejoint la carte
@@ -3258,7 +3264,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 en flux normal. */}
             <div
               ref={avancesRef}
-              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-4"
+              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-5"
             >
               <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
@@ -3287,7 +3293,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 commentaire) — ordre inversé avec « Réglages avancés » sur
                 demande explicite. Masquée au doigt (voir le panneau plus
                 bas). */}
-            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-3">
+            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4">
               <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
               {exclusionRunesInner(false)}
             </div>
@@ -3300,7 +3306,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 dépliement de Réglages avancés, désormais un flottant hors
                 flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
             {estimate && (
-              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-5">
+              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-6">
                 {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
                 (pool par emplacement : {estimate.perSlot.join(' + ')})
               </p>

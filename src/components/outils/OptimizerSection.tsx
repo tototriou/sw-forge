@@ -18,8 +18,10 @@ import {
   Unlock,
   Trash2,
   Eye,
+  Swords,
+  Pencil,
 } from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
@@ -88,6 +90,7 @@ import {
   monsterModificateursVit,
   monsterOffensivePassives,
   resolveDamageSkill,
+  CRIT_MODE_LABELS,
   artifactDamageProfile,
 } from '../../lib/damage';
 import {
@@ -141,7 +144,7 @@ import ExclusionCandidateRow from './ExclusionCandidateRow';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
-import DamageSetupCard from './DamageSetupCard';
+import DamageSetupModale from './DamageSetupModale';
 
 interface Props {
   box: BoxItem[];
@@ -408,6 +411,36 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     () => resolveDamageSkill(damageSkills, damageSetup.skillCom2usId),
     [damageSkills, damageSetup.skillCom2usId]
   );
+  // La description du combat sort du flux (voir DamageSetupModale.tsx) : cet
+  // état dit seulement si elle est ouverte.
+  const [setupOuvert, setSetupOuvert] = useState(false);
+  /**
+   * Ce que l'objectif « Dégâts réels » suppose, en une ligne — le résumé qui
+   * remplace la carte dans le flux, et la rouvre au clic.
+   *
+   * ⚠️ **Des valeurs RÉSOLUES, jamais celles stockées.** `skillCom2usId`
+   * désigne un sort d'un monstre DONNÉ : après un changement de monstre,
+   * `resolveDamageSkill` retombe silencieusement sur le sort par défaut du
+   * nouveau. Tant que la carte était affichée, on voyait le sort revenir au
+   * défaut ; derrière une modale fermée, afficher l'identifiant stocké ferait
+   * croire à un réglage qui n'est pas celui du calcul. On lit donc
+   * `resolvedSkill`, la même source que le calcul lui-même.
+   */
+  const resumeCombat = useMemo(() => {
+    const bouts: string[] = [];
+    bouts.push(resolvedSkill ? `S${resolvedSkill.slot} ${resolvedSkill.nom}` : 'Aucun sort exploitable');
+    const cible = ELEMENTS.find((e) => e.key === damageSetup.enemyElement);
+    bouts.push(cible ? `vs ${cible.label}` : 'élément ignoré');
+    bouts.push(`DEF ${damageSetup.enemyDef.toLocaleString('fr-FR')}`);
+    bouts.push(CRIT_MODE_LABELS.find((c) => c.key === damageSetup.critMode)?.label ?? damageSetup.critMode);
+    const buffs = [
+      damageSetup.atkBuff && 'ATQ',
+      damageSetup.defBuff && 'DEF',
+      damageSetup.spdBuff && 'VIT',
+    ].filter(Boolean);
+    if (buffs.length > 0) bouts.push(`buff ${buffs.join('/')}`);
+    return bouts.join(' · ');
+  }, [resolvedSkill, damageSetup]);
   // Passifs offensifs de CE monstre (Feng Yan, Sia, Roid… — voir
   // spec/outils/degats-reels.md) — indépendants du sort choisi, calculés dès
   // qu'une fiche est chargée, comme `damageSkills`.
@@ -2661,34 +2694,34 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             configuré.
           </HelpPopover>
         </div>
-        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
-        {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
-            section séparée plus bas : c'est le choix « Dégâts réels » qui
-            rend ces champs pertinents, et rien d'autre à l'écran ne les
-            concerne. Un panneau permanent à moitié grisé aurait alourdi les
-            trois autres objectifs pour rien. */}
+        {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne
+            fait pas que la révéler. La carte apparaissait auparavant sous
+            l'objectif, et rien n'obligeait à la regarder : on pouvait classer
+            des milliers de builds sur un sort, une cible et un mode de
+            critique jamais choisis. Le geste devient explicite — cet objectif
+            ne se choisit plus sans voir ses hypothèses. */}
+        <Segmented
+          options={OBJECTIVE_LABELS}
+          value={objective}
+          onChange={(o) => {
+            setObjective(o);
+            if (o === 'degats_reels') setSetupOuvert(true);
+          }}
+          size="lg"
+        />
+        {/* Le résumé remplace la carte dans le flux ET sert de porte de
+            réouverture : sans lui, une modale fermée rendrait les hypothèses
+            inatteignables autant qu'invisibles. */}
         {objective === 'degats_reels' && (
-          <div className="mt-2.5">
-            <DamageSetupCard
-              skills={damageSkills}
-              resolved={resolvedSkill}
-              passifs={offensivePassives}
-              modificateursVit={modificateursVit}
-              setup={damageSetup}
-              setSetup={setDamageSetup}
-              chargement={skillLoading}
-              etroit={etroit}
-              critSiPlusRapide={critSiPlusRapide}
-              bonusDegatsSelonVit={bonusDegatsSelonVit}
-              bonusDegatsStack={bonusDegatsStack}
-              critRateSelonVit={critRateSelonVit}
-              bonusDegatsConditionnel={bonusDegatsConditionnel}
-              bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
-              bonusParEffetPropre={bonusParEffetPropre}
-              bonusSacrifice={bonusSacrifice}
-              artefacts={artefactsDegats}
-            />
-          </div>
+          <ZoneCliquable
+            onClick={() => setSetupOuvert(true)}
+            className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left"
+            aria-label="Modifier la description du combat"
+          >
+            <Swords size={13} className="flex-none text-ink-dim" />
+            <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
+            <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
+          </ZoneCliquable>
         )}
       </div>
 
@@ -3104,6 +3137,32 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           largeur : la barre d'actions, la progression et les résultats
           (une grille de cartes qui, elle, PROFITE de la largeur). */}
       </div>
+
+      {/* ⚠️ Rendue HORS de la grille de réglages : un enfant direct de la
+          grille compterait comme une cellule à part entière. Elle n'a de toute
+          façon aucune place à prendre dans le flux — c'est tout son objet. */}
+      {setupOuvert && (
+        <DamageSetupModale
+          onClose={() => setSetupOuvert(false)}
+          skills={damageSkills}
+          resolved={resolvedSkill}
+          passifs={offensivePassives}
+          modificateursVit={modificateursVit}
+          setup={damageSetup}
+          setSetup={setDamageSetup}
+          chargement={skillLoading}
+          etroit={etroit}
+          critSiPlusRapide={critSiPlusRapide}
+          bonusDegatsSelonVit={bonusDegatsSelonVit}
+          bonusDegatsStack={bonusDegatsStack}
+          critRateSelonVit={critRateSelonVit}
+          bonusDegatsConditionnel={bonusDegatsConditionnel}
+          bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
+          bonusParEffetPropre={bonusParEffetPropre}
+          bonusSacrifice={bonusSacrifice}
+          artefacts={artefactsDegats}
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-3 shadow-lg">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton

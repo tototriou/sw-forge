@@ -402,9 +402,25 @@ retour.
    - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
      adversaire configuré, pas une espérance générique. Modèle de calcul
      détaillé : [degats-reels.md](degats-reels.md). Choisir cet objectif
-     déplie, **juste en dessous**, son propre réglage
-     ([DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx)) —
-     et rien ailleurs à l'écran ne change :
+     **ouvre** son réglage, dans une fenêtre par-dessus l'écran
+     ([DamageSetupModale.tsx](src/components/outils/DamageSetupModale.tsx),
+     qui porte la même carte qu'avant) — et rien ailleurs à l'écran ne
+     change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
+     place sous l'objectif : `S3 Tempête de flèches · vs Vent · DEF 1 000 ·
+     Critique · buff ATQ`. On la clique pour rouvrir.
+     - ⚠️ **Le résumé dit le sort RÉELLEMENT utilisé**, pas celui qu'on
+       avait choisi. Un sort appartient à un monstre : après un changement
+       de monstre, le calcul retombe sur le sort par défaut du nouveau. Tant
+       que le réglage était déplié on le voyait ; derrière une fenêtre
+       fermée, afficher l'ancien choix ferait croire à un calcul qui n'a pas
+       lieu.
+     - ⚠️ **Choisir l'objectif ouvre la fenêtre, il ne fait pas que la
+       révéler.** Auparavant le réglage se dépliait sous l'objectif et rien
+       n'obligeait à le regarder : on pouvait classer des milliers de builds
+       sur un sort, une cible et un mode de critique jamais choisis. Le
+       geste est désormais explicite.
+
+     Ce que contient ce réglage :
      - **Compétence utilisée** — les sorts offensifs du monstre, chacun
        accompagné de ce que ses données disent déjà (« 3 coups · Zone ·
        Ignore la DEF · +30 % (compétence maxée) »). ⚠️ **Rien de tout cela

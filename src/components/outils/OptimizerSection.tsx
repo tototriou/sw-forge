@@ -32,7 +32,15 @@ import {
   type ChoixPrincipale,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
-import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeSetIconFilter } from '../../lib/effects';
+import {
+  ARTIFACT_MAIN,
+  CAPPED_STATS,
+  RUNE_EFFECT,
+  StatKey,
+  artifactSubLabel,
+  runeSetIconFilter,
+  valeurArtefactPropre,
+} from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
 import {
   BuildRequirement,
@@ -106,6 +114,7 @@ import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear, { type Selected as SelectionGear } from '../MonsterGear';
+import ArtifactFrameIcon from '../ArtifactFrameIcon';
 import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
 import HelpPopover from '../HelpPopover';
@@ -976,6 +985,42 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   );
 
   /**
+   * « Meilleurs artéfacts pour ce build » — l'optimisation d'artéfacts SEULE,
+   * sans recherche de runes.
+   *
+   * ⚠️ **Le calcul existe déjà** : `searchArtifacts` EST la meilleure paire
+   * pour l'équipement affiché, sous les contraintes courantes. Ce mode ne
+   * calcule donc rien de neuf — il MONTRE ce qui était jusqu'ici invisible, et
+   * le chiffre contre la paire réellement portée.
+   *
+   * Sert au cas qui a motivé la fonctionnalité : un monstre dont le build est
+   * figé par un autre objectif (un tank runé pour survivre) et à qui les
+   * artéfacts ajoutent des dégâts par-dessus, sans toucher aux runes.
+   *
+   * `null` quand la comparaison n'aurait pas de sens : hors « Dégâts réels »
+   * le score d'une paire est une somme de stats principales, pas un total
+   * comparable.
+   */
+  const modeArtefactsSeuls = useMemo(() => {
+    if (!artifactParams || !selected || objective !== 'degats_reels' || !resolvedSkill) return null;
+    const actuels = selected.gear.artifacts;
+    const scoreActuel = artifactParams.evaluer(actuels);
+    const scoreRetenu = artifactParams.evaluer(searchArtifacts);
+    if (scoreActuel <= 0) return null;
+    // ⚠️ Comparaison par IDENTIFIANT, jamais par référence : les pièces
+    // retenues viennent de l'inventaire, celles portées du `gear` — deux
+    // objets distincts peuvent désigner le même artéfact.
+    const memesPieces =
+      actuels.length === searchArtifacts.length &&
+      actuels.every((a) => searchArtifacts.some((b) => b.id === a.id && a.id > 0));
+    return {
+      paire: searchArtifacts,
+      gainPct: (scoreRetenu / scoreActuel - 1) * 100,
+      dejaPorte: memesPieces,
+    };
+  }, [artifactParams, selected, objective, resolvedSkill, searchArtifacts]);
+
+  /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
    *
    * ⚠️ On ne pré-calcule pas la faisabilité : un contrôle théorique pourrait
@@ -1722,6 +1767,43 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // `displayedRuneConflicts`) OU que c'est déjà EXACTEMENT le build validé
   // (`matchesValidatedBuild` — PAS `ownValidatedBuild` seul, qui reste vrai
   // même en vue « runage réellement porté », voir son commentaire).
+  /**
+   * Le bloc « Meilleurs artéfacts pour ce build », sous la fiche.
+   *
+   * ⚠️ Rendu à CÔTÉ de la fiche et jamais À LA PLACE de ses artéfacts : la
+   * fiche montre l'équipement RÉEL, c'est son rôle. Y substituer une
+   * proposition ferait croire à un équipement qu'on ne porte pas — le défaut
+   * exact qu'on vient de corriger pour les builds validés.
+   */
+  const blocArtefactsSeuls = modeArtefactsSeuls && (
+    <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="label">Meilleurs artéfacts pour ce build</span>
+        {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainPct > 0 && (
+          <span className="font-mono text-micro text-good">+{modeArtefactsSeuls.gainPct.toFixed(1)} %</span>
+        )}
+      </div>
+      {modeArtefactsSeuls.dejaPorte ? (
+        // ⚠️ Le dire plutôt que d'afficher « +0,0 % » : « tu portes déjà les
+        // meilleurs » est une réponse, un zéro ressemble à une panne.
+        <p className="mt-0.5 text-micro text-ink-dim">Tu portes déjà la meilleure paire disponible.</p>
+      ) : modeArtefactsSeuls.paire.length === 0 ? (
+        <p className="mt-0.5 text-micro text-ink-dim">Aucun artéfact équipable ne correspond aux critères.</p>
+      ) : (
+        <div className="mt-1 flex flex-col gap-1">
+          {modeArtefactsSeuls.paire.map((a) => (
+            <div key={`${a.kind}-${a.id}`} className="flex items-start gap-1.5">
+              <ArtifactFrameIcon artifact={a} size={20} />
+              <span className="text-micro leading-tight text-ink-dim">
+                {a.subs.map((s) => artifactSubLabel(s.code).replace('X', String(valeurArtefactPropre(s.value)))).join(' · ')}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const validateBuildButton = (
     <>
       <Bouton
@@ -2070,6 +2152,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
               {validatedBadge}
               <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
+              {blocArtefactsSeuls}
               {validateBuildButton}
             </div>
           </div>
@@ -2136,7 +2219,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
             {validatedBadge}
             <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
-            {validateBuildButton}
+            {blocArtefactsSeuls}
+              {validateBuildButton}
           </div>
         </div>
       </div>

@@ -487,29 +487,41 @@ export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKi
  * maximum sous-estimé, donc une borne NON admissible — elle écarterait des
  * builds pourtant réalisables.
  *
- * ⚠️ **Borne OPTIMISTE, et c'est voulu.** On prend le meilleur 206 de chaque
- * sorte indépendamment, sans vérifier que la paire ainsi formée respecte les
- * sous-propriétés verrouillées. Une paire réelle pourrait ne pas atteindre ce
- * cumul. C'est sans danger au PRÉ-FILTRAGE — une borne trop haute garde des
- * builds en trop, jamais l'inverse — et la contrainte réelle est vérifiée à
- * l'étage des artéfacts, sur la paire effectivement retenue. L'inverse (une
- * borne trop basse) écarterait silencieusement des builds valables.
+ * ⚠️⚠️ **Passe par `chercherPaires`, le VRAI chemin — jamais une boucle
+ * maison.** Une première version prenait le meilleur 206 de chaque sorte
+ * INDÉPENDAMMENT. Elle respectait bien l'éligibilité et la stat principale
+ * (`candidatsParSorte` s'en charge), mais ratait deux règles, signalées à la
+ * relecture :
  *
- * ⚠️ Le 206 est portable par les DEUX sortes : le cumul sur la paire est
- * donc bien la somme des deux, pas un maximum.
+ * 1. **La contrainte de paire de l'intangible** — un monstre ne peut porter
+ *    qu'UN intangible. Si le meilleur 206 de chaque côté était un intangible,
+ *    la somme annonçait un cumul que le jeu interdit.
+ * 2. **Les sous-propriétés verrouillées** — la paire qui maximise le 206 peut
+ *    ne pas les respecter, et n'est alors jamais jouable.
+ *
+ * Les deux erreurs allaient dans le sens OPTIMISTE, donc sans danger pour
+ * l'admissibilité du pré-filtrage. Mais ce nombre est aussi **affiché à
+ * l'utilisateur** (« ⇒ au moins N de VIT runée ») : une borne trop haute y
+ * devient un chiffre FAUX, qui sous-estime l'effort demandé aux runes.
+ *
+ * En empruntant `chercherPaires` avec un évaluateur qui somme le 206, on
+ * hérite de TOUTES ses règles d'un coup — éligibilité, `artifactPairAllowed`,
+ * `paireRespecteLignes`, stat principale — et on ne peut plus en oublier une
+ * au prochain ajout. C'est la discipline du dépôt : ne jamais réimplémenter à
+ * côté du chemin de production.
+ *
+ * ⚠️ Le 206 est portable par les DEUX sortes : le cumul sur la paire est donc
+ * bien la SOMME des deux, pas un maximum — d'où l'évaluateur qui somme.
  */
 export function ampliVitMaxAtteignable(params: ArtifactSearchParams): number {
-  let total = 0;
-  for (const kind of ['element', 'archetype'] as const) {
-    let meilleur = 0;
-    for (const c of candidatsParSorte(params, kind)) {
-      if (!c) continue; // l'emplacement vide n'amplifie rien
-      const v = c.subs.find((s) => s.code === CODE_AMPLI_VIT)?.value ?? 0;
-      if (v > meilleur) meilleur = v;
-    }
-    total += meilleur;
-  }
-  return total;
+  const cumul206 = (arts: ArtifactDetail[]) =>
+    arts.reduce((n, a) => n + (a.subs.find((s) => s.code === CODE_AMPLI_VIT)?.value ?? 0), 0);
+  // ⚠️ `evaluer` REMPLACÉ, pas complété : on cherche ici le maximum
+  // d'amplification, pas le meilleur compromis de dégâts. L'élagage se
+  // recalcule donc contre CET objectif — `analyserPertinence` classera le 206
+  // comme croissant, ce qui est exactement ce qu'on veut.
+  const { paires } = chercherPaires({ ...params, evaluer: cumul206 }, 1);
+  return paires[0]?.score ?? 0;
 }
 
 // Les candidats effectivement PARCOURUS par la recherche : la vue complète,

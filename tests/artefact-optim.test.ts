@@ -809,4 +809,56 @@ export function testAmpliMaxAtteignable() {
     0,
     'inventaire vide : aucune amplification atteignable'
   );
+
+  // ⚠️ ÉLIGIBILITÉ — un artéfact d'un autre élément n'est pas équipable, si
+  // gros soit son 206. Signalé à la relecture.
+  {
+    const eau: ArtifactDetail = { ...att(9, 99), element: 'water' };
+    egal(
+      ampliVitMaxAtteignable({ ...base, inventaire: [eau, typ(3, 25)] }),
+      25,
+      'un artéfact d’un autre élément est ignoré, même avec le meilleur 206'
+    );
+  }
+
+  // ⚠️ CONTRAINTE DE PAIRE DE L'INTANGIBLE — un monstre n'en porte qu'UN.
+  // Deux intangibles à 40 ne peuvent donc PAS cumuler à 80 : le meilleur
+  // couple jouable est un intangible plus un artéfact ordinaire.
+  {
+    const jokerAtt: ArtifactDetail = { ...att(10, 40), element: 'unknown', intangible: true };
+    const jokerTyp: ArtifactDetail = { ...typ(11, 40), archetype: 'support', intangible: true };
+    egal(
+      ampliVitMaxAtteignable({ ...base, inventaire: [jokerAtt, jokerTyp, typ(3, 25)] }),
+      65,
+      'deux intangibles ne cumulent JAMAIS : 40 + 25, pas 40 + 40'
+    );
+    // Sans partenaire ordinaire, un seul intangible reste jouable — l'autre
+    // emplacement tombe simplement à vide.
+    egal(
+      ampliVitMaxAtteignable({ ...base, inventaire: [jokerAtt, jokerTyp] }),
+      40,
+      '… et seuls, ils ne valent qu’un intangible'
+    );
+  }
+
+  // ⚠️ SOUS-PROPRIÉTÉS VERROUILLÉES — la paire qui maximise le 206 doit
+  // rester JOUABLE. Ici le gros porteur de 206 ne sert pas le verrou, donc le
+  // maximum atteignable tombe sur la paire qui le respecte.
+  {
+    const gros206: ArtifactDetail = att(12, 40); // que du 206
+    const porteVerrou: ArtifactDetail = {
+      ...att(13, 5),
+      subs: [{ code: 206, value: 5 }, { code: 300, value: 30 }],
+    };
+    const avecVerrou = {
+      ...base,
+      inventaire: [gros206, porteVerrou, typ(3, 25)],
+      lignesVerrouillees: [{ code: 300, min: 25 }],
+    };
+    egal(
+      ampliVitMaxAtteignable(avecVerrou),
+      30,
+      'un verrou écarte la paire au plus gros 206 : 5 + 25, pas 40 + 25'
+    );
+  }
 }

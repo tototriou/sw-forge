@@ -81,6 +81,57 @@ précis) :
 node .claude/skills/run-sw-forge/driver.mjs tototriou-12889591.json Veromos Violent
 ```
 
+## Cadrer une capture sur un bloc précis
+
+Quand l'utilisateur demande à voir **un bloc** (« montre-moi le nouveau
+bloc », « cadre mieux »), une capture pleine page est illisible : le bloc y
+occupe un dixième de la hauteur et son chiffre-clé peut être hors champ.
+
+Le driver ne fait pas ça — c'est un script jetable, à supprimer une fois la
+capture livrée (ne PAS le committer : il fige un cas de démo qui périmera).
+Recette, en 4 points qui se sont TOUS révélés nécessaires :
+
+```js
+// 1. Fenêtre LARGE — surtout pas étroite pour « mieux cadrer » (gotcha
+//    ci-dessous : sous ~1100 px l'écran bascule en mobile et déplace des
+//    contrôles). 2. deviceScaleFactor: 2 — sinon le texte des libellés
+//    de l'app est illisible une fois la capture réduite.
+const page = await browser.newPage({
+  viewport: { width: 1800, height: 1100 },
+  deviceScaleFactor: 2,
+});
+
+// 3. Capture d'ÉLÉMENT : Playwright fait défiler jusqu'au bloc et le prend
+//    ENTIER, même s'il dépasse du viewport. `.first()` obligatoire — voir
+//    la gotcha « rendu en double ».
+const bloc = page
+  .locator('div')
+  .filter({ hasText: /^Artéfacts les plus offensifs pour ce build/ })
+  .first();
+await bloc.screenshot({ path: shot('mode-a.png') });
+```
+
+⚠️ **4. Un bloc VIDE ne démontre rien** — et il sort sans erreur. Première
+capture des « Lignes verrouillées » livrée à `0 / 8` : le
+`selectOption({ label: /regex/ })` n'avait rien matché et l'échec était
+avalé. Deux réflexes :
+
+- `selectOption` veut un libellé **exact**. Lire d'abord les options
+  réelles, choisir dedans, et **dire** si rien ne matche plutôt que de
+  continuer :
+  ```js
+  const exact = (await menu.locator('option').allTextContents())
+    .find((t) => t.includes(libelle));
+  if (!exact) { console.log('libellé introuvable :', libelle); continue; }
+  await menu.selectOption({ label: exact });
+  ```
+- **Peupler le bloc avec un cas qui montre la règle**, pas juste « deux
+  lignes ». Pour les lignes verrouillées : une sorte exclusive au type
+  (plafond simple) ET une portable par les deux (plafond doublé, dont un
+  minimum au-delà de la moitié force les DEUX pièces) — c'est là que le
+  compteur d'emplacements et les plafonds deviennent lisibles. Deux lignes
+  de la même sorte n'auraient rien montré.
+
 ## Invocation directe (changements côté moteur, pas côté écran)
 
 La plupart des changements dans `src/lib/runeBuildOptim.ts` (l'algorithme
@@ -112,8 +163,12 @@ headless — c'est le chemin agent (`driver.mjs`) qui s'applique ici.
 npx tsc --noEmit && npm test && npm run build
 ```
 
-855 vérifications passées au moment de la dernière relecture de ce skill
-(voir `CLAUDE.md` à la racine — triade de vérification standard).
+⚠️ Voir `CLAUDE.md` à la racine : pendant le travail on ne lance QUE la zone
+touchée (`node tests/run.mjs <filtre>`), la suite complète uniquement avant
+une fusion sur `main`. Ce skill portait un compte de vérifications figé
+(« 855 ») périmé depuis longtemps — un tel nombre se démode à chaque
+commit et a déjà produit des messages de commit faux. Ne pas le recopier
+ici : le lire dans la sortie de `npm test` du jour.
 
 ---
 
@@ -152,13 +207,43 @@ npx tsc --noEmit && npm test && npm run build
   `getByPlaceholder('Rechercher un monstre...')` (trois points ASCII) ne
   matche RIEN — le composant utilise `'Rechercher un monstre…'` (U+2026).
   Pareil pour tout texte de l'app affichant une ellipse.
-- **Deux champs « Rechercher un monstre » sur l'écran Optimizer, au
-  placeholder DÉSORMAIS IDENTIQUE.** Le sélecteur du monstre à optimiser et
-  le picker d'exclusion de runes portaient des libellés distincts (« …à
-  exclure… ») ; ce n'est plus le cas. ⚠️ **`exact: true` ne les départage donc
-  PLUS** — il lève « strict mode violation » sur les deux. Le driver prend
-  `.first()` : le champ du monstre à optimiser vient en premier dans le DOM.
-  Piège vécu APRÈS coup, ce skill affirmait le contraire.
+- ⚠️ **L'écran Optimizer rend une bonne partie de son contenu DEUX FOIS —
+  une copie bureau et une copie téléphone, la seconde masquée par CSS.**
+  Pas un accident : bureau et mobile sont deux dispositions de premier rang
+  (voir `CLAUDE.md`), écrites en deux blocs `hidden lg:*` / `lg:hidden`
+  distincts, pas l'une déclinée de l'autre — le commentaire d'en-tête de
+  `OptimizerSection.tsx` (~l. 2138) le dit explicitement. C'est la vraie
+  cause du doublon de placeholders, et elle vaut pour **tout** sélecteur sur
+  cet écran, pas seulement le champ de recherche :
+  - `getByPlaceholder('Rechercher un monstre…')` matche **2 nœuds** — le
+    MÊME `MonsterSourcePicker mode="bestiary"`, rendu en
+    `OptimizerSection.tsx` l. 2172 (bloc bureau) **et** l. 2251 (bloc
+    mobile) — et lève « strict mode violation ». ⚠️ `{ exact: true }` n'y
+    change RIEN : c'est deux fois le même littéral, pas un préfixe commun.
+  - ⚠️ Ce n'est **PAS** un conflit avec le picker d'exclusion de runes, qui
+    porte toujours un placeholder distinct (« Rechercher un monstre à
+    exclure… », `RuneExclusionPicker.tsx` l. 103 — vérifié par grep le
+    2026-09-01). Deux versions successives de cette gotcha ont attribué le
+    doublon à l'exclusion : la première envoyait vers un remède qui ne
+    marche pas (`exact: true`), la seconde donnait le bon remède pour une
+    mauvaise raison — donc inapplicable au cas suivant, puisque la vraie
+    règle (« tout est en double ») ne s'en déduisait pas.
+  - **`.first()`, jamais `.last()`** : la copie bureau vient en premier dans
+    le DOM. `.last()` vise l'INVISIBLE — `fill`/`click` partent alors en
+    timeout, et une capture d'élément sort vide ou tronquée **sans lever
+    d'erreur**. Piège vécu sur les captures cadrées ci-dessus.
+  - `.first()` n'est correct que parce qu'on ouvre une fenêtre LARGE (voir
+    la gotcha suivante). Pour un sélecteur qui doit tenir aux deux formats,
+    viser la visibilité plutôt que la position :
+    `page.getByPlaceholder('Rechercher un monstre…').filter({ visible: true })`
+    (Playwright ≥ 1.51 ; 1.62.1 installée ici).
+- ⚠️ **Fenêtre étroite = disposition mobile, où des contrôles sont
+  DÉPLACÉS, pas seulement rétrécis.** Sous ~1 100 px de large, le champ de
+  recherche du monstre passe derrière le panneau « Options » et devient
+  inatteignable pour le driver. Rétrécir le viewport pour « mieux cadrer »
+  une capture est donc contre-productif : ça change l'écran testé. La bonne
+  manœuvre est l'inverse — fenêtre large + capture d'ÉLÉMENT (voir
+  « Cadrer une capture sur un bloc précis »).
 - **La recherche prend plusieurs secondes une fois lancée** (~4-10 s sur un
   compte de plusieurs milliers de runes, budget adaptatif — voir
   `algo-verify`/`optimizer-perf-testing`). Attendre le texte

@@ -188,6 +188,23 @@ de la fenêtre.
   existe. La surestimer biaise le placement vers le haut, sans conséquence ;
   la sous-estimer ouvre du mauvais côté.
 
+⚠️ **« Réglages avancés » se pose sur DEUX colonnes dès que la place le
+permet** (demande explicite) : le **pré-filtrage** avec ses puces et son
+avertissement d'un côté, les **trois interrupteurs** de l'autre.
+- ⚠️ `grid-cols-[repeat(auto-fit,minmax(260px,1fr))]` et **non** un point de
+  rupture d'écran (`sm:`/`xl:`) : ce qui décide ici est la largeur du
+  **panneau**, pas celle de la fenêtre. Le panneau prend la largeur de sa
+  carte, qui dépend de la colonne de grille — une même fenêtre peut donc
+  donner un panneau large ou étroit. Sous ~520 px, une colonne ; au-delà,
+  deux. Ça vaut aussi pour le panneau « Options » au doigt, **sans une seule
+  classe conditionnelle**.
+- ⚠️ Les séparateurs des interrupteurs passent en **`divide-y` sur leur
+  conteneur**, plus en `border-t` individuel : un trait ne se pose alors
+  qu'ENTRE deux voisins, jamais au-dessus du premier. Avec des bordures
+  individuelles, le premier interrupteur portait un trait en tête de colonne —
+  anodin quand tout était empilé sous le pré-filtrage, lu comme une ligne
+  perdue une fois le groupe posé à côté.
+
 ⚠️ Son état d'ouverture est **local à l'écran**, pas remonté dans
 `useOptimizerState` : c'est de l'ouverture/fermeture, pas un critère de
 recherche — rien à exporter dans une recette, rien à remettre à zéro au

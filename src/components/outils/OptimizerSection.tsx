@@ -2986,7 +2986,19 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // le voile : sans ce doublon local, aucun moyen de voir l'effet du
         // réglage qu'on vient de toucher sans d'abord refermer le panneau.
         const reglagesAvancesInner = (dansPanneau: boolean) => (
-          <>
+          /* ⚠️ **DEUX colonnes dès que la place le permet** (demande explicite)
+              — le pré-filtrage et son avertissement d'un côté, les trois
+              interrupteurs de l'autre.
+              ⚠️ `auto-fit`/`minmax` et NON un point de rupture d'écran
+              (`sm:`/`xl:`) : ce qui décide ici est la largeur du PANNEAU, pas
+              celle de la fenêtre. Le panneau prend la largeur de sa carte
+              (`largeurAncre`), qui dépend elle-même de la colonne de grille —
+              une même fenêtre peut donc donner un panneau large ou étroit. En
+              dessous de ~520 px, une seule colonne ; au-delà, deux. Ça vaut
+              aussi pour le panneau « Options » au doigt, sans une seule classe
+              conditionnelle. */
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-x-6 gap-y-3">
+          <div>
             <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
             <div className="flex flex-wrap items-center gap-2">
               <Segmented
@@ -3007,12 +3019,20 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             <p className="mt-1 text-micro text-warn max-w-[280px]">
               ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
             </p>
+          </div>
 
+          {/* ⚠️ `divide-y` et non un `border-t` par interrupteur : un trait ne
+              se pose qu'ENTRE deux voisins, jamais au-dessus du premier. Avec
+              des bordures individuelles, le premier interrupteur portait un
+              trait en tête de colonne — anodin quand tout était empilé sous le
+              pré-filtrage, mais lu comme une ligne perdue une fois le groupe
+              posé en colonne à côté. */}
+          <div className="divide-y divide-border">
             {/* Toggle, même patron que « Prioriser les stats les plus
                 difficiles » : désactivé par défaut, lu par `handleSearch` au
                 clic sur « Rechercher », jamais un bouton qui lance sa propre
                 recherche. */}
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-2 py-3 first:pt-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
                 <HelpPopover title="Rechercher jusqu'à épuisement complet">
@@ -3029,7 +3049,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               />
             </div>
 
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-2 py-3">
               <div className="flex items-center gap-1.5">
                 <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
                 <HelpPopover title="Diagnostic approfondi sur 0 résultat">
@@ -3048,7 +3068,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             {/* Déplacé depuis son ancien emplacement (juste avant les
                 boutons d'action) — même toggle, même logique, regroupé ici
                 avec les autres réglages secondaires. */}
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
               <div className="flex items-center gap-1.5">
                 <Target size={15} className="text-ink-dim" />
                 <span className="text-[11.5px] text-ink-dim">Prioriser les stats les plus difficiles</span>
@@ -3066,7 +3086,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 aria-label="Prioriser les stats les plus difficiles"
               />
             </div>
-          </>
+          </div>
+          </div>
         );
 
         const reglagesAvancesTitre = (

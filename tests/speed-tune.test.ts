@@ -30,6 +30,7 @@ import {
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { LeadInfo, leadsDeVitesse } from '../src/lib/speed';
 import { kitVitesse, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { PassifVitesse } from '../src/lib/speedTunePassif';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import {
   Ligne,
@@ -3354,6 +3355,66 @@ export function testSpeedTuneModele() {
     egal(ref.runeSpeed, 150, 'elle copie la vitesse de runes');
     egal(ref.artefactBuff, 12, "l'artéfact");
     egal(JSON.stringify(ref.sets), '["swift","will"]', 'et les sets — sans quoi elle serait plus lente que son modèle');
+  }
+
+  // ⚠️ **LE PLUS RAPIDE SE JUGE GAIN DE PASSIF COMPRIS**, même quand le compte
+  // de buffs n'est pas encore écrit.
+  //
+  // Cas réel : Chilling 404 (364 + 40 de passif, 2 buffs portés) et Ciri 375.
+  // `gainPassifDe` lit `cumulsPassif ?? 0` : tant que le compte n'est pas posé,
+  // Chilling se lisait 364 et Ciri lui passait devant — la référence copiait le
+  // mauvais monstre.
+  //
+  // ⚠️ Et le compte s'écrit par un EFFET, donc au rendu SUIVANT, alors que
+  // l'analyse part dans le même rendu : le résultat dépendait de l'ordre
+  // d'arrivée des données. Bonne référence quand les kits étaient déjà en cache,
+  // mauvaise à la première ouverture — un défaut « une fois sur deux » qui n'a
+  // rien d'aléatoire.
+  {
+    const passifChilling: PassifVitesse = {
+      nom: 'The Cunning',
+      texte: '',
+      amplifieBuff: null,
+      gain: { valeur: 20, pourcent: false, plafond: null, parCumul: true, releve: true },
+      buff: false,
+      barre: null,
+      tourSupp: false,
+      inconnu: false,
+    };
+    const chilling = monstre(101, 'Chilling', 101);
+    const ciri = monstre(102, 'Ciri', 121);
+    const avecPassif: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map(),
+      passifs: new Map([[101, [passifChilling]]]),
+    };
+    // Deux buffs portés : Volonté sur lui, et le Bouclier de l'équipe.
+    const lignes: Ligne[] = [
+      { ...ligneVierge(chilling, 'allie'), runeSpeed: 220, sets: ['will'] },
+      { ...ligneVierge(ciri, 'allie'), runeSpeed: 202, sets: ['shield'] },
+    ];
+
+    // Sans le passif, Chilling est bien le plus lent des deux.
+    ok(
+      combatDeLigne(lignes[0], null, vide)! < combatDeLigne(lignes[1], null, vide)!,
+      'sans son passif, Chilling est plus lent que Ciri'
+    );
+    // Avec, il repasse devant — et c'est lui que la référence doit copier.
+    egal(
+      plusRapideAllie(lignes, leads, avecPassif)?.uid,
+      lignes[0].uid,
+      'le plus rapide est jugé gain de passif compris, cumuls non encore écrits'
+    );
+
+    // ⚠️ Le contrôle qui empêche la correction de tout renverser : une case
+    // VIDÉE À LA MAIN (`null`) est un choix, l'estimation ne repasse pas dessus.
+    // Chilling redevient alors le plus lent, et Ciri reprend la référence.
+    const cumulsEfface: Ligne[] = [{ ...lignes[0], cumulsPassif: null }, lignes[1]];
+    egal(
+      plusRapideAllie(cumulsEfface, leads, avecPassif)?.uid,
+      lignes[1].uid,
+      'un compte vidé à la main reste vide — le passif ne compte plus'
+    );
   }
 
   // ⚠️ **La référence court EXACTEMENT aussi vite que le monstre qu'elle copie**,

@@ -301,9 +301,27 @@ export function leadPresent(lignes: Ligne[], camp: Camp): LeadInfo | null {
 
 // Le monstre le plus rapide de l'équipe : le modèle de l'adversaire de référence.
 export function plusRapideAllie(lignes: Ligne[], leads: Leads, d: DonneesKit): Ligne | null {
+  // ⚠️ **On compare sur les lignes DONT LES CUMULS SONT ESTIMÉS**, pas sur les
+  // lignes telles quelles.
+  //
+  // `gainPassifDe` lit `cumulsPassif ?? 0` : tant que le compte de buffs n'est
+  // pas écrit, un monstre à passif de vitesse vaut sa vitesse SANS son gain.
+  // Chilling à 404 se lisait donc 364, et Ciri à 375 lui passait devant — la
+  // référence copiait le mauvais monstre.
+  //
+  // ⚠️ Et le compte s'écrit par un EFFET (`estimerCumuls`), donc au rendu
+  // SUIVANT : l'analyse, elle, part dans le même rendu. Le résultat dépendait
+  // alors de l'ordre d'arrivée des données — bonne référence quand les kits
+  // étaient déjà en cache, mauvaise à la première ouverture. Un bug « une fois
+  // sur deux » qui n'était pas aléatoire du tout.
+  //
+  // ⚠️ **`estimerCumuls`, pas un calcul recopié** : c'est lui qui porte la règle
+  // (une case JAMAIS touchée s'estime, une case vidée à la main reste vide). Deux
+  // écritures de cette règle, et le modèle cesserait de suivre l'écran.
+  const avecCumuls = estimerCumuls(lignes, d);
   let meilleur: Ligne | null = null;
   let vitesse = 0;
-  for (const l of duCamp(lignes, 'allie')) {
+  for (const l of duCamp(avecCumuls, 'allie')) {
     const c = combatDe(l, leadDe(leads, 'allie'), d);
     if (c != null && c > vitesse) {
       vitesse = c;

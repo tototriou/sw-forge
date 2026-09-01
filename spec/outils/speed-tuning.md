@@ -923,6 +923,28 @@ Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
 
 ## Les deux camps se voient
 
+### ⚠️ Le plus rapide se juge GAIN DE PASSIF COMPRIS
+
+L'adversaire de référence est une **copie du plus rapide allié**. Encore
+faut-il désigner le bon.
+
+`gainPassifDe` lit `cumulsPassif ?? 0` : tant que le **compte de buffs** n'est
+pas écrit, un monstre à passif de vitesse vaut sa vitesse **sans son gain**.
+Chilling à 404 (364 + 40 pour 2 buffs portés) se lisait donc 364, et Ciri à 375
+lui passait devant — la référence copiait le mauvais monstre.
+
+⚠️ **Et le compte s'écrit par un EFFET** (`estimerCumuls`), donc au rendu
+**suivant**, alors que l'analyse part dans le même rendu. Le résultat dépendait
+de l'ordre d'arrivée des données : bonne référence quand les kits étaient déjà
+en cache, mauvaise à la **première ouverture** de la modale. Un défaut « une fois
+sur deux » qui n'avait rien d'aléatoire.
+
+`plusRapideAllie` compare donc sur les lignes **dont les cumuls sont estimés**
+— en réutilisant `estimerCumuls`, jamais un calcul recopié : c'est lui qui porte
+la règle (une case **jamais touchée** s'estime, une case **vidée à la main**
+reste vide). Deux écritures de cette règle, et le modèle cesserait de suivre
+l'écran.
+
 ### ⚠️ Un boost de barre SOUS CONDITION ne se compte pas
 
 Le S2 de Sylvia augmente la barre de tout le camp — mais seulement **si** le

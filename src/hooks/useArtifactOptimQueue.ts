@@ -77,12 +77,12 @@ export function useArtifactOptimQueue(opts: {
    * ⚠️ **Sans elle, aucune page au-delà de la K-ième n'aurait jamais sa
    * paire**, quelle que soit la valeur de K. Le top-K est une avance de fond
    * pour les premières pages ; ce qu'on regarde doit passer devant.
+   *
+   * ⚠️ Un ACCESSEUR, pas une valeur : la page affichée se calcule APRÈS la
+   * file (elle dépend de son résultat), donc elle n'existe pas encore au
+   * moment où ce hook est appelé. Lu au moment de traiter, il voit toujours
+   * l'état courant.
    */
-  //
-  // ⚠️ Un ACCESSEUR, pas une valeur : la page affichée se calcule APRÈS la
-  // file (elle dépend de son résultat), donc elle n’existe pas encore au
-  // moment où ce hook est appelé. Lu au moment de traiter, il voit toujours
-  // l’état courant.
   pageAffichee: () => readonly BuildCandidate[];
   // Construit les paramètres de recherche d'artéfacts pour UN build.
   // `null` quand l'optimisation n'a pas lieu d'être (artéfacts ignorés, pas
@@ -119,6 +119,10 @@ export function useArtifactOptimQueue(opts: {
   // lise sans re-rendu, l'état pour que l'écran se rafraîchisse.
   const cacheRef = useRef(new Map<string, ResultatArtefacts>());
 
+  // Relance la boucle endormie. Posée par l’effet principal, lue par l’effet
+  // de réveil — qui tourne à chaque rendu et ne connaît donc pas sa portée.
+  const reveillerRef = useRef<(() => void) | null>(null);
+
   // ⚠️ Un changement de réglage VIDE le cache. Garder les résultats d'avant
   // afficherait des paires optimales pour un réglage quitté.
   useEffect(() => {
@@ -130,6 +134,22 @@ export function useArtifactOptimQueue(opts: {
     if (!faireParams) return;
     let vivant = true;
     let planifie: Inactif | null = null;
+
+    /**
+     * Programme une tranche, si aucune ne l'est déjà.
+     *
+     * ⚠️ **IDEMPOTENT, et c'est indispensable** : `reveiller` est appelé à
+     * chaque rendu. Sans la garde `planifie`, chaque rendu empilerait un rappel
+     * de plus — et pendant une recherche, les rendus s'enchaînent toutes les
+     * ~150 ms.
+     */
+    const reveiller = () => {
+      if (!vivant || planifie) return;
+      planifie = planifierInactif(() => {
+        planifie = null;
+        tranche();
+      });
+    };
 
     let dernierePublication = 0;
     const publier = (forcer: boolean) => {
@@ -146,8 +166,11 @@ export function useArtifactOptimQueue(opts: {
       const restants = prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K, pageRef.current());
       setEnAttente(restants.length);
       const suivant = restants[0];
-      // ⚠️ Publication FORCÉE avant de s'arrêter : sans elle, les derniers
-      // builds resteraient dans le cache sans jamais atteindre l'écran.
+      // Plus rien à traiter : on S'ENDORT sans se reprogrammer. C'est
+      // `reveiller` qui relancera quand de nouveaux candidats arriveront ou que
+      // la page changera.
+      // ⚠️ Publication FORCÉE avant de dormir : sans elle, les derniers builds
+      // resteraient dans le cache sans jamais atteindre l'écran.
       if (!suivant) return publier(true);
       // ⚠️ UN SEUL build par tranche. Une boucle « tant qu'il reste du temps »
       // garderait le fil au-delà de ce que le navigateur a accordé, et le jank
@@ -170,19 +193,41 @@ export function useArtifactOptimQueue(opts: {
         meilleurSansVerrous: r.meilleurSansVerrous,
       });
       publier(false);
-      planifie = planifierInactif(tranche);
+      reveiller();
     };
 
-    planifie = planifierInactif(tranche);
+    reveiller();
+    reveillerRef.current = reveiller;
     return () => {
       vivant = false;
       planifie?.annuler();
+      planifie = null;
+      reveillerRef.current = null;
     };
-    // `triees` volontairement ABSENT des dépendances : il change à chaque
-    // message de progression (~150 ms) et relancerait l'effet en permanence.
-    // La boucle lit `trieesRef`, donc elle voit toujours le dernier état.
+    // ⚠️ **`triees.length` a été RETIRÉ des dépendances, et c'est un
+    // correctif, pas une optimisation.** Il change à chaque message de
+    // progression (~150 ms), donc l'effet se démontait et se remontait à ce
+    // rythme — et son nettoyage ANNULAIT le rappel d'inactivité en attente.
+    // `requestIdleCallback` ne se déclenchant que quand le fil est libre (au
+    // plus tard après son `timeout` d'une seconde), il était annulé avant
+    // d'avoir jamais tourné : la file n'avançait pas de toute la recherche.
+    // Signalé à l'usage — une page restée non optimisée plusieurs minutes.
+    //
+    // La boucle lit `trieesRef` et `pageRef`, donc elle voit toujours l'état
+    // frais ; c'est `reveiller` (effet ci-dessous) qui la relance quand elle
+    // s'est endormie faute de travail.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [faireParams, signature, K, triees.length]);
+  }, [faireParams, signature, K]);
+
+  // ⚠️ **Le réveil, à chaque rendu.** La boucle s'endort dès qu'elle n'a plus
+  // rien à traiter ; il faut donc la relancer quand de nouveaux candidats
+  // arrivent, quand l'utilisateur change de page, ou quand il change de tri.
+  // Plutôt que d'énumérer ces déclencheurs — et d'en oublier un —, on réveille
+  // systématiquement : `reveiller` est idempotent et ne coûte qu'une garde
+  // quand une tranche est déjà programmée.
+  useEffect(() => {
+    reveillerRef.current?.();
+  });
 
   return { parBuild, enAttente };
 }

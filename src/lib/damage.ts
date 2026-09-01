@@ -287,7 +287,10 @@ const VARIABLE_STAT: Partial<Record<DamageVariable, StatKey>> = {
 // les deux, pas deux lignes distinctes.
 const CODE_AMPLI_ATK = 204;
 const CODE_AMPLI_DEF = 205;
-const CODE_AMPLI_VIT = 206;
+// ⚠️ Exporté : `ampliVitMaxAtteignable` (artifactOptim.ts) en a besoin pour
+// lire l'amplification d'un artéfact. Une seconde constante « 206 » là-bas
+// serait un nombre magique de plus à tenir à jour.
+export const CODE_AMPLI_VIT = 206;
 const CODE_AMPLI_ATK_DEF = 226;
 
 /**
@@ -2512,6 +2515,58 @@ export function maVitCombat(stats: StatRow[], setup: DamageSetup, element: Eleme
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctBuff = setup.spdBuff ? SPD_BUFF_PCT * (1 + (ampliVitPct + ampliMiriam) / 100) : 0;
   return (base * (100 + pctBuff)) / 100;
+}
+
+/**
+ * L'INVERSE de `maVitCombat` : la VIT totale (base + runes + bonus de set)
+ * nécessaire pour atteindre une vitesse FINALE visée.
+ *
+ * ⚠️ **Vocabulaire.** « Vitesse de combat » = base + runes + lead +
+ * invocateur (`combatSpeed`, speed.ts) ; « vitesse FINALE » = celle-là **plus
+ * le buff de vitesse et son amplification par les artéfacts**, ce que calcule
+ * `maVitCombat` — dont le nom est donc trompeur, hérité d'avant que la
+ * distinction soit posée.
+ *
+ * ⚠️ **Écrit ICI, collé à `maVitCombat`**, et pas ailleurs : c'est son
+ * inverse exact, terme pour terme. Toute correction de l'une doit sauter aux
+ * yeux sur l'autre.
+ *
+ * ⚠️ **NE PAS confondre avec `runeSpeedForTarget`** (speed.ts), qui inverse
+ * `combatSpeed` — donc SANS buff ni amplification — et dont les entrées
+ * suivent une autre convention : son paramètre `rune` EXCLUT le bonus de set
+ * et traite le Swift à part (`swiftFlat`), là où la VIT totale d'ici l'inclut
+ * déjà (`computeStats` applique les bonus de set). Deux fonctions qui se
+ * ressemblent sans être interchangeables — sur du speed tuning, où un point
+ * décide d'un tick, la confusion serait invisible et grave.
+ *
+ * @param cible vitesse FINALE visée
+ * @param spdBase VIT de base du monstre (jamais la runée)
+ * @param ampliVitPct amplification du buff supposée — pour le pré-filtrage,
+ *   le MAXIMUM atteignable sur le compte (`ampliVitMaxAtteignable`,
+ *   artifactOptim.ts) : une borne optimiste, donc admissible, qui n'écarte
+ *   aucun build réalisable.
+ */
+export function vitTotalePourVitesseFinale(
+  cible: number,
+  spdBase: number,
+  setup: DamageSetup,
+  element: ElementKey | null = null,
+  ampliVitPct = 0
+): number {
+  // Mêmes termes que `maVitCombat`, dans le même ordre — toute divergence
+  // ici est un bug.
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  const leader = resolvedLeaderSkill(setup);
+  const pctLeaderBase = leader?.stat === 'Attack Speed' ? leader.pct : 0;
+  const apportBase = Math.ceil((spdBase * (bonus.pct.spd + pctLeaderBase)) / 100);
+  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
+  const pctBuff = setup.spdBuff ? SPD_BUFF_PCT * (1 + (ampliVitPct + ampliMiriam) / 100) : 0;
+  // ⚠️ `ceil` : on cherche le SEUIL à atteindre, pas une valeur moyenne. Un
+  // `round` laisserait passer un build un demi-point sous la cible.
+  const baseEffMin = Math.ceil((cible * 100) / (100 + pctBuff));
+  // ⚠️ Jamais négatif : une cible déjà atteinte par la base seule ne doit pas
+  // produire un minimum négatif, qui se lirait comme une contrainte absurde.
+  return Math.max(0, baseEffMin - apportBase);
 }
 
 // DEF de combat (base + rune + lead, PUIS le buff de combat sur le total) —

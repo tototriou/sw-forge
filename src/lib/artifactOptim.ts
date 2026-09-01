@@ -22,6 +22,10 @@ import {
   eligibleArtifacts,
 } from './artifacts';
 import { ARTIFACT_SUB, artifactSubKinds, valeurArtefactPropre } from './effects';
+// ⚠️ Seule dépendance de ce module vers `damage` : le CODE de l'amplification
+// de VIT, pour ne pas en faire une seconde constante à tenir à jour. Aucune
+// logique de dégâts n'entre ici — l'évaluateur reste fourni par l'appelant.
+import { CODE_AMPLI_VIT } from './damage';
 
 // Ce qu'on impose à la stat principale d'un emplacement.
 //
@@ -466,6 +470,46 @@ export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKi
   // reste donc la vue COMPLÈTE ; l'élagage vit dans `candidatsPourRecherche`,
   // que seule la boucle de recherche emprunte.
   return [null, ...filtres];
+}
+
+/**
+ * L'amplification du buff de VIT (code 206) la plus haute que la PAIRE puisse
+ * atteindre, sur cet inventaire et sous les contraintes posées.
+ *
+ * Sert à convertir une vitesse FINALE visée en minimum de VIT runée
+ * (`vitTotalePourVitesseFinale`, damage.ts) : c'est la borne qui rend la
+ * conversion admissible.
+ *
+ * ⚠️ **Lit `candidatsParSorte`, la vue COMPLÈTE, jamais les candidats
+ * élagués.** L'élagage écarte ce qui ne peut pas gagner sur les DÉGÂTS ; un
+ * artéfact qui n'existe que pour son 206 doit compter ici. Même raison que
+ * pour `meilleurCumulParLigne` : partir des candidats élagués rapporterait un
+ * maximum sous-estimé, donc une borne NON admissible — elle écarterait des
+ * builds pourtant réalisables.
+ *
+ * ⚠️ **Borne OPTIMISTE, et c'est voulu.** On prend le meilleur 206 de chaque
+ * sorte indépendamment, sans vérifier que la paire ainsi formée respecte les
+ * sous-propriétés verrouillées. Une paire réelle pourrait ne pas atteindre ce
+ * cumul. C'est sans danger au PRÉ-FILTRAGE — une borne trop haute garde des
+ * builds en trop, jamais l'inverse — et la contrainte réelle est vérifiée à
+ * l'étage des artéfacts, sur la paire effectivement retenue. L'inverse (une
+ * borne trop basse) écarterait silencieusement des builds valables.
+ *
+ * ⚠️ Le 206 est portable par les DEUX sortes : le cumul sur la paire est
+ * donc bien la somme des deux, pas un maximum.
+ */
+export function ampliVitMaxAtteignable(params: ArtifactSearchParams): number {
+  let total = 0;
+  for (const kind of ['element', 'archetype'] as const) {
+    let meilleur = 0;
+    for (const c of candidatsParSorte(params, kind)) {
+      if (!c) continue; // l'emplacement vide n'amplifie rien
+      const v = c.subs.find((s) => s.code === CODE_AMPLI_VIT)?.value ?? 0;
+      if (v > meilleur) meilleur = v;
+    }
+    total += meilleur;
+  }
+  return total;
 }
 
 // Les candidats effectivement PARCOURUS par la recherche : la vue complète,

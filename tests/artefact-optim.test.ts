@@ -21,10 +21,18 @@ import {
   paireRespecteLignes,
   plafondLigne,
   respecteMinimums,
+  ampliVitMaxAtteignable,
   type ArtifactSearchParams,
 } from '../src/lib/artifactOptim';
 import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
-import { codesAmplificationActifs, DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
+import {
+  codesAmplificationActifs,
+  DEFAULT_DAMAGE_SETUP,
+  maVitCombat,
+  vitTotalePourVitesseFinale,
+  type DamageSetup,
+} from '../src/lib/damage';
+import type { StatRow } from '../src/lib/stats';
 import { mainsPourCeCompte } from '../src/lib/optimizerRecipe';
 import { formatArtifactSub, splitArtifactSub, valeurArtefactPropre } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
@@ -683,4 +691,122 @@ export function testAmplificationSurvitDominance() {
       '226 compte pour les deux buffs, mais n’apparaît qu’une fois'
     );
   }
+}
+
+// La conversion « vitesse FINALE visée → VIT totale nécessaire » est-elle
+// l'inverse EXACT de `maVitCombat` ?
+//
+// ⚠️ Test en ALLER-RETOUR, pas sur des valeurs figées : on vérifie que le
+// minimum rendu atteint la cible ET qu'un point de moins ne l'atteint pas.
+// Une formule approximative passerait un test de valeurs choisies ; elle ne
+// passe pas celui-ci. Sur du speed tuning, un point décide d'un tick.
+export function testConversionVitesseFinale() {
+  const lignesSpd = (base: number, total: number): StatRow[] => [
+    { key: 'spd', label: 'VIT', base, bonus: total - base, total, suffix: '' },
+  ];
+
+  const CAS: { nom: string; setup: DamageSetup; ampli: number }[] = [
+    { nom: 'buff seul', setup: { ...DEFAULT_DAMAGE_SETUP, spdBuff: true }, ampli: 0 },
+    { nom: 'buff + amplification 42 %', setup: { ...DEFAULT_DAMAGE_SETUP, spdBuff: true }, ampli: 42 },
+    { nom: 'buff + Miriam', setup: { ...DEFAULT_DAMAGE_SETUP, spdBuff: true, miriamActif: true }, ampli: 10 },
+    { nom: 'buff + lead VIT 33 %', setup: { ...DEFAULT_DAMAGE_SETUP, spdBuff: true, leaderSkill: { stat: 'Attack Speed', pct: 33 } }, ampli: 20 },
+    // ⚠️ Sans buff : l'amplification ne doit RIEN changer — un artéfact
+    // d'amplification n'amplifie rien s'il n'y a pas de buff à amplifier.
+    { nom: 'sans buff', setup: { ...DEFAULT_DAMAGE_SETUP, spdBuff: false }, ampli: 42 },
+  ];
+
+  let allers = 0;
+  for (const { nom, setup, ampli } of CAS) {
+    for (const base of [103, 120]) {
+      for (const cible of [150, 180, 218, 220, 251]) {
+        const requis = vitTotalePourVitesseFinale(cible, base, setup, 'dark', ampli);
+        const atteint = maVitCombat(lignesSpd(base, requis), setup, 'dark', ampli);
+        ok(atteint >= cible, `${nom} · base ${base} · cible ${cible} : ${requis} de VIT totale atteint bien la cible`);
+        if (requis > 0) {
+          const juste = maVitCombat(lignesSpd(base, requis - 1), setup, 'dark', ampli);
+          ok(juste < cible, `… et un point de moins ne l’atteint pas (${juste.toFixed(2)} < ${cible})`);
+        }
+        allers++;
+      }
+    }
+  }
+  ok(allers === 50, `${allers} allers-retours vérifiés`);
+
+  // Sans buff, l'amplification est inerte : même exigence à 0 % et à 42 %.
+  {
+    const nu = { ...DEFAULT_DAMAGE_SETUP, spdBuff: false };
+    egal(
+      vitTotalePourVitesseFinale(200, 103, nu, 'dark', 0),
+      vitTotalePourVitesseFinale(200, 103, nu, 'dark', 42),
+      'sans buff, l’amplification ne change rien à l’exigence'
+    );
+  }
+
+  // Plus d'amplification ⇒ moins de VIT runée exigée. Monotonie : si elle
+  // s'inversait, l'arbitrage runes ↔ artéfacts serait à l'envers.
+  {
+    const avec = { ...DEFAULT_DAMAGE_SETUP, spdBuff: true };
+    const a0 = vitTotalePourVitesseFinale(220, 103, avec, 'dark', 0);
+    const a40 = vitTotalePourVitesseFinale(220, 103, avec, 'dark', 40);
+    ok(a40 < a0, `plus d’amplification exige moins de VIT runée (${a40} < ${a0})`);
+  }
+
+  // ⚠️ Une cible déjà atteinte sans aucune rune ne doit pas produire un
+  // minimum NÉGATIF, qui se lirait comme une contrainte absurde en aval.
+  {
+    const avec = { ...DEFAULT_DAMAGE_SETUP, spdBuff: true };
+    egal(vitTotalePourVitesseFinale(1, 103, avec, 'dark', 0), 0, 'une cible triviale donne 0, jamais un négatif');
+  }
+}
+
+// L'amplification maximale atteignable sur un inventaire, sous contraintes.
+export function testAmpliMaxAtteignable() {
+  const porteur = { element: 'dark' as ElementKey, archetype: 'attack' as ArtifactArchetype };
+  const att = (id: number, ampli: number): ArtifactDetail => ({
+    id, kind: 'element', element: 'dark', level: 15, rarity: 5,
+    main: { code: 101, value: 100 }, subs: [{ code: 206, value: ampli }],
+  });
+  const typ = (id: number, ampli: number): ArtifactDetail => ({
+    id, kind: 'archetype', archetype: 'attack', level: 15, rarity: 5,
+    main: { code: 101, value: 100 }, subs: [{ code: 206, value: ampli }],
+  });
+
+  const base: ArtifactSearchParams = {
+    porteur,
+    inventaire: [att(1, 12), att(2, 30), typ(3, 25), typ(4, 8)],
+    equipes: [],
+    principaleParSorte: {},
+    evaluer: () => 0,
+  };
+
+  // ⚠️ Le 206 est portable par les DEUX sortes : le cumul est la SOMME des
+  // meilleurs de chaque côté, pas leur maximum.
+  egal(ampliVitMaxAtteignable(base), 55, 'le meilleur de chaque sorte se cumule (30 + 25)');
+
+  egal(
+    ampliVitMaxAtteignable({ ...base, principaleParSorte: { element: 'none' } }),
+    25,
+    '« Aucun » sur une sorte retire toute sa contribution'
+  );
+
+  egal(
+    ampliVitMaxAtteignable({ ...base, equipes: [att(1, 12)], principaleParSorte: { element: 'equipped' } }),
+    37,
+    '« Garder l’artéfact équipé » borne cette sorte à la pièce portée (12 + 25)'
+  );
+
+  // ⚠️ L'évaluateur rend 0 partout : tous les candidats sont donc « inutiles »
+  // aux yeux de l'élagage. Le maximum doit RESTER correct — c'est la preuve
+  // qu'on lit bien la vue complète et pas les candidats élagués.
+  egal(
+    ampliVitMaxAtteignable({ ...base, evaluer: () => 0 }),
+    55,
+    'un évaluateur aveugle n’écrase pas le maximum : la vue COMPLÈTE est lue'
+  );
+
+  egal(
+    ampliVitMaxAtteignable({ ...base, inventaire: [] }),
+    0,
+    'inventaire vide : aucune amplification atteignable'
+  );
 }

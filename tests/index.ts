@@ -9,7 +9,12 @@ import testImport from './import.test';
 import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
-import testArtefactOptim, { testRecettePartagee, testAmplificationSurvitDominance } from './artefact-optim.test';
+import testArtefactOptim, {
+  testRecettePartagee,
+  testAmplificationSurvitDominance,
+  testConversionVitesseFinale,
+  testAmpliMaxAtteignable,
+} from './artefact-optim.test';
 import testArtefactFile from './artefact-file.test';
 import testReco, {
   testTrimPartage,
@@ -92,6 +97,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtefactOptim', testArtefactOptim],
   ['testRecettePartagee', testRecettePartagee],
   ['testAmplificationSurvitDominance', testAmplificationSurvitDominance],
+  ['testConversionVitesseFinale', testConversionVitesseFinale],
+  ['testAmpliMaxAtteignable', testAmpliMaxAtteignable],
   ['testArtefactFile', testArtefactFile],
   ['testRegistre', testRegistre],
   ['testSansDowngrade', testSansDowngrade],

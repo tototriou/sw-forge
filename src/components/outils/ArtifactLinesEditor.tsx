@@ -18,6 +18,7 @@ import { ARTIFACT_KINDS, ArtifactKind, MAX_ARTIFACT_SUBS } from '../../types';
 import { artifactSubName, artifactSubsFor } from '../../lib/effects';
 import { LigneVerrouillee, budgetEmplacements, plafondLigne } from '../../lib/artifactOptim';
 import { ARTIFACT_SUB_MAX } from '../../lib/artifacts';
+import { codesCdSlotVoisins } from '../../lib/damage';
 
 // Un artéfact porte 4 sous-propriétés, la paire 8.
 const MAX_LIGNES = MAX_ARTIFACT_SUBS * 2;
@@ -70,6 +71,10 @@ export default function ArtifactLinesEditor({
 }) {
   const catalogue = toutesLesLignes();
   const parCode = new Map(catalogue.map((l) => [l.code, l]));
+  // Nom lisible d'un code, pour nommer les formes voisines dans
+  // l'avertissement — le catalogue ne couvre que les lignes CHOISISSABLES ici,
+  // d'où le repli sur le numéro.
+  const nomDe = (code: number) => parCode.get(code)?.nom ?? `#${code}`;
   const posees = new Set(lignes.map((l) => l.code));
   const dispo = catalogue.filter((l) => !posees.has(l.code));
   const plein = lignes.length >= MAX_LIGNES;
@@ -91,6 +96,9 @@ export default function ArtifactLinesEditor({
         // ⚠️ Au-delà du plafond d'UNE pièce, les DEUX doivent porter la ligne :
         // ça consomme un emplacement de chaque côté, pas un seul « libre ».
         const exigeLesDeux = def?.sortes.length === 2 && ligne.min > parPiece;
+        // Les autres formes de « Dgts CRIT par compétence » qui couvrent un
+        // sort en commun — équivalentes au CALCUL, étrangères au VERROU.
+        const voisins = codesCdSlotVoisins(ligne.code);
         return (
           <div
             key={ligne.code}
@@ -133,6 +141,24 @@ export default function ArtifactLinesEditor({
                   : `max ${plafond} % en cumulant les deux artéfacts`
                 : `max ${plafond} % · un seul artéfact peut la porter`}
             </span>
+            {/* ⚠️ **Le verrou somme STRICTEMENT par code.** Au calcul des
+                dégâts, « [Comp.3] Aug. Dgts CRIT » et « Dgts CRIT
+                [compétence 3/4] » font la même chose sur un S3 ; au
+                verrouillage, non — exiger l'une ignore l'autre. Sur un
+                inventaire mixte (les anciennes pièces portent la forme par
+                compétence unique, les récentes la forme 3/4), le verrou
+                écarte donc la moitié de l'inventaire sans rien dire.
+                Signalé par l'utilisateur, qui a préféré l'AVERTISSEMENT à un
+                cumul groupé : celui-ci introduirait la première ligne dont la
+                valeur ne se lit plus sur un seul code, avec un plafond et une
+                arithmétique d'emplacements à repenser. */}
+            {voisins.length > 0 && (
+              <span className="col-span-full text-nano leading-tight text-warn">
+                Compte uniquement cette forme. {voisins.map((c) => `« ${nomDe(c)} »`).join(' et ')}{' '}
+                {voisins.length > 1 ? 'valent' : 'vaut'} pareil au calcul des dégâts, mais
+                {voisins.length > 1 ? ' ne seront pas comptées' : ' ne sera pas comptée'} par ce verrou.
+              </span>
+            )}
           </div>
         );
       })}

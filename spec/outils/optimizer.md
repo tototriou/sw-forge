@@ -793,6 +793,24 @@ retour.
    libellés de test gardent « pièce »/« ligne », qui n'atteignent aucun
    joueur.
 
+   - ⚠️ **Un verrou somme STRICTEMENT par code — d'où un avertissement.**
+     « [Comp.3] Aug. Dgts CRIT » (ancienne forme) et « Dgts CRIT [compétence
+     3/4] » (celle des artéfacts récents) font **exactement la même chose au
+     calcul des dégâts** sur un S3. Au verrouillage, non : exiger l'une ignore
+     l'autre. Sur un inventaire mixte, le verrou écarterait donc la moitié des
+     pièces sans rien dire. Une ligne d'avertissement le signale désormais sous
+     la sous-propriété concernée, en nommant la ou les formes équivalentes.
+     - La relation est **symétrique** : verrouiller la forme 3/4 avertit aussi
+       qu'elle ignore les deux anciennes.
+     - ⚠️ **Comp.1 et Comp.2 n'ont aucun voisin**, et n'affichent donc rien :
+       aucune forme moderne ne les recouvre. La relation est **déduite** des
+       sorts que chaque code couvre (`codesCdSlotVoisins`,
+       [damage.ts](src/lib/damage.ts)), jamais d'une liste écrite à la main
+       qui divergerait.
+     - ⚠️ Choix **assumé de ne PAS cumuler** les formes : un verrou groupé
+       serait la première ligne dont la valeur ne se lit plus sur un seul
+       code, avec un plafond et une arithmétique d'emplacements à repenser.
+       Dire vaut mieux que compliquer.
    - ⚠️ **Le minimum porte sur la PAIRE, pas sur un artéfact** : une même ligne
      peut tomber sur les deux artéfacts et ses valeurs s'additionnent. Le
      plafond affiché double donc pour une ligne que les deux sortes peuvent

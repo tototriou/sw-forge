@@ -71,6 +71,7 @@ import {
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
+  codesCdSlotVoisins,
   resolvedCompteurPersonnalise,
   resolvedEffetsCibleCount,
   resolvedEffetsPropresCount,
@@ -2899,4 +2900,27 @@ export default function testDegats() {
       'sans buff ATQ actif, son amplification ne change rien'
     );
   }
+}
+
+// Les formes de « Dgts CRIT par compétence » qui se recouvrent — équivalentes
+// au CALCUL, étrangères au VERROU (d'où l'avertissement dans l'éditeur).
+//
+// ⚠️ Dérivé de CODE_CD_PAR_SLOT, jamais d'une seconde table : c'est ce que ce
+// test protège. Une table parallèle divergerait au premier code ajouté.
+export function testCdSlotVoisins() {
+  titre('Dgts CRIT par compétence — formes qui se recouvrent');
+
+  egal(codesCdSlotVoisins(402).sort(), [410], '[Comp.3] est recouverte par la forme 3/4');
+  egal(codesCdSlotVoisins(403).sort(), [410], '[Comp.4] aussi');
+  egal(codesCdSlotVoisins(410).sort(), [402, 403], '… et la forme 3/4 recouvre les deux — la relation est SYMÉTRIQUE');
+
+  // ⚠️ Comp.1 et Comp.2 n'ont AUCUN voisin : aucune ligne moderne ne les
+  // recouvre. Un avertissement y serait faux, et c'est ce qui distingue une
+  // relation dérivée d'une liste écrite à la main.
+  egal(codesCdSlotVoisins(400), [], 'Comp.1 n’a aucune forme équivalente');
+  egal(codesCdSlotVoisins(401), [], 'Comp.2 non plus');
+
+  // Un code qui n'est pas de cette famille n'a évidemment aucun voisin.
+  egal(codesCdSlotVoisins(206), [], 'une ligne hors de cette famille n’a aucun voisin');
+  egal(codesCdSlotVoisins(411), [], '« Dgts CRIT 1re attaque » n’est pas indexée par sort');
 }

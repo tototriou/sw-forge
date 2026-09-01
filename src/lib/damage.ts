@@ -396,6 +396,31 @@ const CODE_CD_PAR_SLOT: Record<number, number[]> = {
   410: [3, 4],
 };
 
+/**
+ * Les autres lignes de « Dgts CRIT par compétence » qui couvrent au moins un
+ * sort en COMMUN avec celle-ci.
+ *
+ * ⚠️ **Sert à AVERTIR au verrouillage, jamais à cumuler.** Au calcul des
+ * dégâts, 402 (« [Comp.3] ») et 410 (« [compétence 3/4] ») font exactement la
+ * même chose sur un S3. Mais un verrou somme **strictement par code**
+ * (`valeurLigne`, artifactOptim.ts) : exiger 410 ignore un artéfact qui porte
+ * 402, et réciproquement. Sur un inventaire mixte — les anciennes pièces
+ * portent 402/403, les récentes 410 — le verrou écarte donc la moitié de
+ * l'inventaire sans le dire. Signalé par l'utilisateur.
+ *
+ * ⚠️ **Dérivé de `CODE_CD_PAR_SLOT`**, jamais d'une seconde table : deux
+ * codes sont voisins si leurs listes de sorts se croisent. 400 et 401
+ * (Comp.1 et Comp.2) n'ont donc aucun voisin, ce qui est juste — aucune
+ * ligne moderne ne les recouvre.
+ */
+export function codesCdSlotVoisins(code: number): number[] {
+  const miens = CODE_CD_PAR_SLOT[code];
+  if (!miens) return [];
+  return Object.entries(CODE_CD_PAR_SLOT)
+    .filter(([autre, slots]) => Number(autre) !== code && slots.some((s) => miens.includes(s)))
+    .map(([autre]) => Number(autre));
+}
+
 // « D.CRIT+ comp cib uniq pdt tour » — ne vaut que pour un sort MONO-CIBLE.
 // La portée vient des données (`aoe`), jamais d'une saisie.
 const CODE_CD_MONO_CIBLE = 224;

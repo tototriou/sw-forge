@@ -43,6 +43,7 @@ import {
   setPieces,
   setsCost,
   canAddSet,
+  INTANGIBLE_SET,
   MAX_SET_PIECES,
 } from '../../lib/effects';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
@@ -2030,6 +2031,24 @@ function NoteBlock({ text, label, compact }: { text: string; label: string; comp
 // Les sets ajoutés vont toujours dans la DERNIÈRE possibilité : on construit
 // une combinaison, on clique « + Possibilité », et les clics suivants
 // alimentent la nouvelle. Pas de notion de « possibilité sélectionnée » à gérer.
+/**
+ * ⚠️ **L'INTANGIBLE n'est pas un set qu'on recommande.**
+ *
+ * Joker à UNE pièce (`SET_INFO.intangible = { pieces: 1 }`, effects.ts) qui
+ * complète n'importe quel set : on recommande « Violent + Will », jamais
+ * « Intangible ». Le proposer revenait à réclamer un set de 2 pièces qui
+ * n'existe pas.
+ *
+ * ⚠️ Même défaut, corrigé en même temps, dans le picker de l'Optimizer
+ * (`outils/SetComboPicker.tsx`) — c'est là qu'il a été signalé. Les deux
+ * grilles partaient de `RUNE_SETS` entier.
+ *
+ * ⚠️ Le rendu des sets DÉJÀ posés continue de lire `RUNE_SETS` : une reco
+ * enregistrée avant ce correctif peut en contenir un, et il doit rester
+ * affichable et retirable.
+ */
+const SETS_CHOISISSABLES = RUNE_SETS.filter((s) => s.key !== INTANGIBLE_SET);
+
 function SetEditor({
   options,
   onAdd,
@@ -2051,7 +2070,7 @@ function SetEditor({
   const target = focus != null && focus <= last ? focus : last;
   const current = options[target] ?? [];
   const used = setsCost(current);
-  const full = !RUNE_SETS.some((st) => canAddSet(current, st.key)); // plus rien ne rentre
+  const full = !SETS_CHOISISSABLES.some((st) => canAddSet(current, st.key)); // plus rien ne rentre
   const [open, setOpen] = useState(false);
 
   // Le panneau se referme dès qu'il n'y a plus de set possible, sinon on
@@ -2192,7 +2211,7 @@ function SetEditor({
       {open && !full && (
         <div className="mt-1 rounded-lg border border-border bg-panel p-1.5">
           <div className="flex flex-wrap gap-1">
-            {RUNE_SETS.map((st) => {
+            {SETS_CHOISISSABLES.map((st) => {
               const fits = canAddSet(current, st.key);
               return (
                 <button

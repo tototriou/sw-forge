@@ -300,6 +300,15 @@ retour.
    dégâts supplémentaires **en le disant** — jamais un bloc vide ni un chiffre
    brut sous un libellé « Dégâts réels ».
 
+   **Chaque artéfact proposé s'affiche comme dans le jeu** : sa statistique
+   principale en tête, puis **une ligne par sous-propriété** avec le nombre de
+   procs à gauche, la valeur en gras et le marqueur des propriétés modifiées.
+   ⚠️ Le rendu est **partagé avec la tuile d'inventaire**
+   ([ArtifactSubLigne.tsx](src/components/ArtifactSubLigne.tsx)) : ce bloc
+   avait le sien, qui aplatissait les quatre propriétés sur une seule ligne
+   séparée par des « · » et se repliait n'importe où. Deux rendus de la même
+   donnée, dont un seul ressemblait au jeu.
+
    ⚠️ **Jamais à la place des artéfacts de la fiche** : celle-ci montre
    l'équipement RÉEL, et y substituer une proposition ferait croire à un
    équipement qu'on ne porte pas. Cette règle était d'abord satisfaite en

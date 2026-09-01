@@ -1,9 +1,8 @@
 import { memo, useMemo, useState } from 'react';
-import { X, RotateCw } from 'lucide-react';
+import { X } from 'lucide-react';
 import { ARTIFACT_KINDS, ArtifactDetail, ElementKey, MAX_ARTIFACT_SUBS } from '../../types';
 import {
   formatArtifactMain,
-  splitArtifactSub,
   artifactSubName,
   artifactSubKinds,
   artifactSubOrder,
@@ -13,6 +12,7 @@ import {
 import { artifactScore, artifactEfficiency } from '../../lib/artifacts';
 import { ArtifactGlyph } from '../ArtifactIcon';
 import ArtifactFrameIcon from '../ArtifactFrameIcon';
+import ArtifactSubLigne from '../ArtifactSubLigne';
 import ElementIcon from '../ElementIcon';
 import Segmented from '../../ui/Segmented';
 import MobileSheet from '../../ui/MobileSheet';
@@ -608,62 +608,14 @@ const ArtTile = memo(function ArtTile({
             liste inutilisable. Le popover garde le rendu complet (rareté,
             type, substat modifié). */}
         <div className="w-full space-y-[3px] border-t border-border/40 pt-1.5">
-          {art.subs.map((s, j) => {
-            const procs = s.rolls ?? 0;
-            const { avant, valeur, apres } = splitArtifactSub(s);
-            // Ligne RECHERCHÉE : c'est celle qu'on est venu voir.
-            //
-            // ⚠️ Un liseré d'accent + un fond à 8 %, rien de plus. L'œil balaie
-            // 60 tuiles de 4 lignes : il faut savoir OÙ regarder sans que la
-            // ligne se mette à crier. Colorer le texte lui-même le rendrait
-            // moins lisible que les trois autres, alors que ce n'est pas un
-            // état de la donnée mais un écho du filtre — d'où l'accent, la même
-            // couleur que le critère posé au-dessus, et non `good`/`warn` qui
-            // disent quelque chose des valeurs.
-            const vise = cherches.has(s.code);
-            return (
-              <div
-                key={j}
-                // ⚠️ Marges négatives + `pl-[2px]`, et AUCUNE marge verticale :
-                // le liseré de 2 px et le fond débordent dans la gouttière de la
-                // tuile, la pastille de procs reste sur LA MÊME colonne, et les
-                // 4 lignes gardent leur `space-y-[3px]`. Toute compensation
-                // oubliée — largeur ou hauteur — décale la ligne visée par
-                // rapport aux trois autres, et c'est ce décalage qu'on voit en
-                // premier au lieu de la propriété.
-                className={`flex items-start gap-1.5 text-micro leading-tight ${
-                  vise ? '-mx-1 rounded border-l-2 border-accent bg-accent/[0.08] pl-[2px] pr-1' : ''
-                }`}
-              >
-                {/* ⚠️ Largeur FIXE : sans elle, la pastille se dimensionnait sur
-                    son contenu et les libellés démarraient à deux colonnes
-                    différentes selon que la ligne portait 0 ou 4 procs. */}
-                <span
-                  className={`mt-px w-[14px] flex-none rounded text-center font-mono text-micro font-bold tabular-nums ${
-                    procs > 0 ? 'bg-good/20 text-good' : 'bg-ink-dim/15 text-ink-dim'
-                  }`}
-                >
-                  {procs}
-                </span>
-                {/* Deux lignes au plus : les libellés longs (« Dgts supp. en
-                    prop. de ATQ ») ne doivent pas faire grandir la tuile au
-                    point de casser l'alignement de la grille. */}
-                <span className="flex-1 text-ink-dim line-clamp-2">
-                  {avant}
-                  <b className="text-ink">{valeur}</b>
-                  {apres}
-                </span>
-                {/* Substat MODIFIÉ (converti dans le jeu). Récupéré du popover
-                    supprimé : c'est la seule information qu'il portait et que
-                    la tuile n'avait pas. */}
-                {s.enchant && (
-                  <span className="mt-0.5 flex-none" title="Propriété modifiée">
-                    <RotateCw size={9} className="text-orange-400" />
-                  </span>
-                )}
-              </div>
-            );
-          })}
+          {/* ⚠️ Rendu PARTAGÉ avec le bloc « Meilleurs artéfacts pour ce
+              build » de l'Optimizer — voir `ArtifactSubLigne.tsx`. Celui-ci en
+              avait écrit un second, aplati sur une ligne à coups de « · », avec
+              son propre formatage : deux rendus de la même donnée, dont un seul
+              ressemblait au jeu. */}
+          {art.subs.map((s, j) => (
+            <ArtifactSubLigne key={j} sub={s} vise={cherches.has(s.code)} />
+          ))}
         </div>
       </div>
     </div>

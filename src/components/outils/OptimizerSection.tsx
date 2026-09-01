@@ -40,9 +40,8 @@ import {
   CAPPED_STATS,
   RUNE_EFFECT,
   StatKey,
-  artifactSubLabel,
+  formatArtifactMain,
   runeSetIconFilter,
-  valeurArtefactPropre,
 } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
 import {
@@ -123,6 +122,7 @@ import GameIcon from '../GameIcon';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear, { type Selected as SelectionGear } from '../MonsterGear';
 import ArtifactFrameIcon from '../ArtifactFrameIcon';
+import ArtifactSubLigne from '../ArtifactSubLigne';
 import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
 import HelpPopover from '../HelpPopover';
@@ -2052,13 +2052,29 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       ) : modeArtefactsSeuls.paire.length === 0 ? (
         <p className="mt-0.5 text-micro text-ink-dim">Aucun artéfact équipable ne correspond aux critères.</p>
       ) : (
-        <div className="mt-1 flex flex-col gap-1">
+        // ⚠️ **Le rendu du JEU, pas une ligne aplatie.** Les quatre
+        // sous-propriétés étaient jointes par des « · » sur une seule ligne qui
+        // repassait à la ligne n'importe où, avec un formatage maison
+        // (`artifactSubLabel(...).replace('X', …)`) — un second rendu de la
+        // même donnée, que rien ne rapprochait de l'inventaire ni du jeu.
+        // `ArtifactSubLigne` est désormais PARTAGÉ avec la tuile d'inventaire :
+        // une ligne par propriété, la pastille de procs, la valeur en gras, le
+        // marqueur des propriétés modifiées.
+        <div className="mt-1.5 flex flex-col gap-2">
           {modeArtefactsSeuls.paire.map((a) => (
-            <div key={`${a.kind}-${a.id}`} className="flex items-start gap-1.5">
-              <ArtifactFrameIcon artifact={a} size={20} />
-              <span className="text-micro leading-tight text-ink-dim">
-                {a.subs.map((s) => artifactSubLabel(s.code).replace('X', String(valeurArtefactPropre(s.value)))).join(' · ')}
-              </span>
+            <div key={`${a.kind}-${a.id}`} className="flex items-start gap-2">
+              <ArtifactFrameIcon artifact={a} size={24} />
+              <div className="min-w-0 flex-1">
+                {/* La principale en tête, comme sur une pièce en jeu : sans
+                    elle, on lisait quatre sous-propriétés sans savoir ce que
+                    l'artéfact apporte d'abord. */}
+                <p className="text-micro font-semibold leading-tight text-ink">{formatArtifactMain(a.main)}</p>
+                <div className="mt-1 space-y-[3px]">
+                  {a.subs.map((s, i) => (
+                    <ArtifactSubLigne key={i} sub={s} />
+                  ))}
+                </div>
+              </div>
             </div>
           ))}
         </div>

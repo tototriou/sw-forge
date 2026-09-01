@@ -96,10 +96,13 @@ l'ordre d'usage 1-2-3 ci-dessus) :
    dessous des puces de source : **zone C**, « Monstres de la liste » — voir
    « Listes de travail et réservation de runes ».
 2. **Rangée 2 : Critères de recherche (colonne 1, `row-span-3` — occupe
-   aussi les rangées 3 et 4), à côté d'Objectif de recherche (colonne 2).**
-   « Objectif de recherche » à la **droite** de « Critères de recherche »
-   (demande explicite : l'objectif se choisit avant même de composer le
-   set, ce n'est pas un critère de plus). Le contenu de « Critères de
+   aussi les rangées 3 et 4).** ⚠️ « Objectif de recherche » occupait la
+   colonne 2 de cette rangée ; **il a rejoint la carte du bouton
+   Rechercher**, en bas. Il était une carte à part parce qu'il portait
+   AUSSI la description du combat de « Dégâts réels », qui réclamait de la
+   place ; celle-ci sortie en fenêtre, il ne reste qu'un bouton à choix
+   unique — et *quoi* chercher se lit mieux juste au-dessus de *chercher*
+   qu'au milieu des critères. Le contenu de « Critères de
    recherche », en **DEUX colonnes internes** (demande explicite) : à
    **gauche**, **Set de runes recherché** puis **Statistique principale
    imposée** (les deux contraintes qui portent sur les runes elles-mêmes) ;
@@ -328,11 +331,15 @@ retour.
    d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des
    lignes à zéro, et `ArtifactSlots`/`RuneWheel` gèrent nativement un
    tableau vide.
-3. **Objectif de recherche** — une **carte à part**, entre « Monstre &amp;
-   équipement » et « Critères de recherche » (pas un champ dans cette
-   dernière) : demande explicite de l'utilisateur pour que l'ordre d'usage
-   soit clair — l'objectif se choisit avant même de composer le set
-   recherché, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
+3. **Objectif de recherche** — en tête de la **carte du bouton
+   Rechercher**, au-dessus de la rangée Rechercher / Exporter / Importer.
+   ⚠️ Il a longtemps été une carte à part, à droite de « Critères de
+   recherche » : c'était nécessaire tant qu'il portait la description du
+   combat de « Dégâts réels », qui a besoin de place. Celle-ci ouverte en
+   fenêtre, il ne reste qu'un bouton à choix unique, et il rejoint le geste
+   qu'il qualifie. Ce qui n'a pas changé : ce n'est **pas** un champ de
+   « Critères de recherche » — l'objectif se choisit avant même de composer
+   le set, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
    choix unique** (`<Segmented
    size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
    après coup :

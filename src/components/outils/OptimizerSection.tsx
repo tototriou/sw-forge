@@ -2665,65 +2665,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         </div>
       </div>
 
-      {/* Étape 2 de l'ordre d'usage voulu — une carte À PART, PAS un bloc
-          DANS « Critères de recherche » : l'objectif se choisit avant même
-          de composer le set recherché, ce n'est pas un critère de plus
-          parmi d'autres. Aux côtés de « Critères de recherche » : demande
-          explicite — « à droite des critères de recherche ». ⚠️
-          Repositionnée en DEUXIÈME rangée avec elle (`xl:row-start-2`, plus
-          `row-start-3` — voir le commentaire de « Critères de recherche »)
-          : reste à sa droite, seule la rangée commune a changé. `1fr`,
-          colonne large : contrairement à Critères (compactée au maximum),
-          Objectif profite de tout l'espace restant — utile une fois
-          « Dégâts réels » choisi (`DamageSetupCard` a besoin de place pour
-          ses vignettes d'effet). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
-        {/* ⚠️ Point d'interrogation JUSTE À DROITE du titre (demande
-            explicite) — même rangée que l'icône et le texte, pas sur sa
-            propre ligne en dessous. */}
-        <div className="mb-3 flex items-center gap-1.5">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-            <Target size={13} className="text-accent" />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Objectif de recherche</p>
-          <HelpPopover title="Objectif de recherche">
-            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
-            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
-            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts réels</b>{' '}
-            va plus loin que les autres : la vraie formule d&apos;un sort précis contre un adversaire
-            configuré.
-          </HelpPopover>
-        </div>
-        {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne
-            fait pas que la révéler. La carte apparaissait auparavant sous
-            l'objectif, et rien n'obligeait à la regarder : on pouvait classer
-            des milliers de builds sur un sort, une cible et un mode de
-            critique jamais choisis. Le geste devient explicite — cet objectif
-            ne se choisit plus sans voir ses hypothèses. */}
-        <Segmented
-          options={OBJECTIVE_LABELS}
-          value={objective}
-          onChange={(o) => {
-            setObjective(o);
-            if (o === 'degats_reels') setSetupOuvert(true);
-          }}
-          size="lg"
-        />
-        {/* Le résumé remplace la carte dans le flux ET sert de porte de
-            réouverture : sans lui, une modale fermée rendrait les hypothèses
-            inatteignables autant qu'invisibles. */}
-        {objective === 'degats_reels' && (
-          <ZoneCliquable
-            onClick={() => setSetupOuvert(true)}
-            className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left"
-            aria-label="Modifier la description du combat"
-          >
-            <Swords size={13} className="flex-none text-ink-dim" />
-            <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
-            <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
-          </ZoneCliquable>
-        )}
-      </div>
+      {/* ⚠️ « Objectif de recherche » N'EST PLUS ICI — il a rejoint la carte
+          du bouton Rechercher, plus bas : *quoi* chercher et *chercher* vont
+          ensemble, et il n'avait plus de raison d'occuper une cellule de
+          grille depuis que sa description de combat est sortie en fenêtre
+          (voir DamageSetupModale.tsx). La colonne 2 rangée 2 ainsi libérée
+          revient à la carte « Artéfacts ». */}
 
       {/* ── Réglages avancés + Exclusion de runes ──────────────────────
           Contenu factorisé une fois, affiché deux fois : en cartes en
@@ -3164,7 +3111,65 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         />
       )}
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-3 shadow-lg">
+      <div className="rounded-xl border border-border bg-panel p-3 shadow-lg">
+        {/* ⚠️ **L'objectif vit avec le bouton qui lance la recherche**, plus
+            dans une cellule de la grille de réglages. Il y était « une carte
+            À PART » parce qu'il portait AUSSI la description du combat, qui
+            réclamait de la place ; celle-ci partie en fenêtre, il ne reste
+            qu'un segmenté à quatre crans — et *quoi* chercher se lit mieux
+            juste au-dessus de *chercher* que parmi les critères.
+            ⚠️ Titre en `label`, sans le carré d'icône accentué qu'il portait
+            comme en-tête de carte : ce n'en est plus une, c'est une section
+            dans celle des actions — même traitement que « Set de runes
+            recherché » ou « Conditions ». */}
+        <div className="mb-3">
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <p className="label">Objectif de recherche</p>
+            <HelpPopover title="Objectif de recherche">
+              Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
+              lancer la recherche — les minimums posés plus haut (Conditions) restent ce qui décide quels
+              demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts réels</b>{' '}
+              va plus loin que les autres : la vraie formule d&apos;un sort précis contre un adversaire
+              configuré.
+            </HelpPopover>
+          </div>
+          {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne
+              fait pas que la révéler. La carte apparaissait auparavant sous
+              l'objectif, et rien n'obligeait à la regarder : on pouvait classer
+              des milliers de builds sur un sort, une cible et un mode de
+              critique jamais choisis. Le geste devient explicite — cet objectif
+              ne se choisit plus sans voir ses hypothèses. */}
+          <Segmented
+            options={OBJECTIVE_LABELS}
+            value={objective}
+            onChange={(o) => {
+              setObjective(o);
+              if (o === 'degats_reels') setSetupOuvert(true);
+            }}
+            size="lg"
+          />
+          {/* Le résumé remplace la carte dans le flux ET sert de porte de
+              réouverture : sans lui, une fenêtre fermée rendrait les
+              hypothèses inatteignables autant qu'invisibles. */}
+          {objective === 'degats_reels' && (
+            <ZoneCliquable
+              onClick={() => setSetupOuvert(true)}
+              className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left"
+              aria-label="Modifier la description du combat"
+            >
+              <Swords size={13} className="flex-none text-ink-dim" />
+              <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
+              <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
+            </ZoneCliquable>
+          )}
+        </div>
+
+        {/* ⚠️ Rangée d'actions inchangée — mêmes classes qu'avant que
+            l'objectif ne la rejoigne : elle était la carte entière, elle en
+            devient la seconde moitié. Une rangée à part, et non un `flex-wrap`
+            commun avec l'objectif : le segmenté et les boutons se seraient
+            réarrangés l'un autour de l'autre au gré de la largeur. */}
+        <div className="flex flex-wrap items-center gap-3">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
             HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
             DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
@@ -3235,6 +3240,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             libelle="Arrêter"
           />
         )}
+        </div>
       </div>
 
       {importMsg && (

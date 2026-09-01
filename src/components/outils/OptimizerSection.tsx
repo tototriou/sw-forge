@@ -68,6 +68,7 @@ import {
   DEFAULT_DAMAGE_SETUP,
   computeTotalDamage,
   damageRelevantStats,
+  degatsBrutsArtefactsParCoup,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
@@ -1010,18 +1011,29 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // convertissent en dégâts — son build est déjà figé par un autre objectif,
     // et les artéfacts se posent par-dessus. C'est le cas fondateur du cadrage
     // (spec/outils/optimizer/artefacts.md, §1), et je l'avais exclu.
-    if (!artifactParams || !selected || !resolvedSkill) return null;
+    if (!artifactParams || !selected) return null;
     const espece = selected.monster;
-    // ⚠️ Un évaluateur PROPRE à ce bloc, jamais celui d'`artifactParams`.
-    // Celui-là suit l'OBJECTIF DE RECHERCHE : hors « Dégâts réels » il somme
-    // les stats principales, ce qui est juste pour choisir la paire supposée
-    // d'une recherche d'efficience — et sans aucun rapport avec la question
-    // posée ici, qui est toujours « quels artéfacts font le plus de DÉGÂTS sur
-    // ce build ».
+    /**
+     * ⚠️ **Les dégâts BRUTS des artéfacts (218-221), et rien d'autre.**
+     *
+     * Une première version notait avec `computeTotalDamage`, donc avec un
+     * SORT, une CIBLE et un mode de CRITIQUE. Trois choix que l'utilisateur n'a
+     * jamais faits quand son objectif de recherche n'est pas les dégâts : le
+     * sort tombait sur un défaut arbitraire, l'adversaire et le taux critique
+     * sur ceux d'un réglage jamais ouvert. Un classement bâti là-dessus a l'air
+     * juste et repose sur des hypothèses invisibles.
+     *
+     * Les lignes 218-221 ne critent pas et ignorent la défense adverse : elles
+     * se chiffrent donc **entièrement** à partir des stats du build et des
+     * buffs — base, runes, artéfacts, compétences d'invocateur, leader skill,
+     * et l'amplification des buffs par les artéfacts eux-mêmes. Aucun sort,
+     * aucune cible, aucun critique.
+     *
+     * ⚠️ Le nombre de coups n'entre pas : il multiplie toutes les paires
+     * pareil et ne change donc aucun classement.
+     */
     const evaluerDegats = (arts: ArtifactDetail[]) =>
-      computeTotalDamage(
-        resolvedSkill,
-        offensivePassives,
+      degatsBrutsArtefactsParCoup(
         computeStats({ ...selected.gear, artifacts: arts }),
         damageSetup,
         espece.element,
@@ -1035,7 +1047,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     const actuels = selected.gear.artifacts;
     const scoreActuel = evaluerDegats(actuels);
     const scoreRetenu = evaluerDegats(retenue);
-    if (scoreActuel <= 0) return null;
+    // ⚠️ Rien à proposer : aucune paire éligible n’apporte de dégâts bruts.
+    // Ce n’est PAS la même chose que « la paire portée est déjà la meilleure ».
+    if (scoreRetenu <= 0) return null;
     // ⚠️ Comparaison par IDENTIFIANT, jamais par référence : les pièces
     // retenues viennent de l'inventaire, celles portées du `gear` — deux
     // objets distincts peuvent désigner le même artéfact.
@@ -1063,11 +1077,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     }
     return {
       paire: retenue,
-      gainPct: (scoreRetenu / scoreActuel - 1) * 100,
+      // ⚠️ Un DELTA ABSOLU, pas un pourcentage. La référence — les dégâts
+      // bruts des artéfacts portés — vaut ZÉRO dès que le monstre n’a aucune
+      // ligne 218-221, ce qui est le cas le plus intéressant : « tu n’en as
+      // pas, voilà ce que tu gagnerais ». Un pourcentage y serait infini ou
+      // masquerait le bloc.
+      gainBrutParCoup: scoreRetenu - scoreActuel,
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, resolvedSkill, offensivePassives, damageSetup, lignesVerrouillees]);
+  }, [artifactParams, selected, damageSetup, lignesVerrouillees]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -1813,19 +1832,22 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             est autre chose : sur une recherche d'efficience, « meilleurs
             artéfacts » tout court laisserait croire qu'ils servent CET
             objectif-là, alors qu'on propose ceux qui font le plus de dégâts. */}
-        <span className="label">
-          {objective === 'degats_reels'
-            ? 'Meilleurs artéfacts pour ce build'
-            : 'Artéfacts les plus offensifs pour ce build'}
-        </span>
-        {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainPct > 0 && (
-          <span className="font-mono text-micro text-good">+{modeArtefactsSeuls.gainPct.toFixed(1)} %</span>
+        {/* ⚠️ « offensifs », et non « meilleurs » : ces artéfacts maximisent
+            les DÉGÂTS BRUTS, quel que soit l'objectif de la recherche.
+            « Meilleurs » laisserait croire qu'ils servent l'objectif choisi. */}
+        <span className="label">Artéfacts les plus offensifs pour ce build</span>
+        {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
+          <span className="font-mono text-micro text-good">
+            +{Math.round(modeArtefactsSeuls.gainBrutParCoup).toLocaleString('fr-FR')} / coup
+          </span>
         )}
       </div>
       {modeArtefactsSeuls.dejaPorte ? (
-        // ⚠️ Le dire plutôt que d'afficher « +0,0 % » : « tu portes déjà les
+        // ⚠️ Le dire plutôt que d'afficher « +0 » : « tu portes déjà les
         // meilleurs » est une réponse, un zéro ressemble à une panne.
-        <p className="mt-0.5 text-micro text-ink-dim">Tu portes déjà la meilleure paire disponible.</p>
+        <p className="mt-0.5 text-micro text-ink-dim">
+          Tu portes déjà la paire la plus offensive disponible.
+        </p>
       ) : modeArtefactsSeuls.paire.length === 0 ? (
         <p className="mt-0.5 text-micro text-ink-dim">Aucun artéfact équipable ne correspond aux critères.</p>
       ) : (
@@ -1839,6 +1861,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             </div>
           ))}
         </div>
+      )}
+      {/* ⚠️ **Dire ce que le chiffre EST.** Le « +X % grâce aux artéfacts » des
+          cartes de résultat a été retiré précisément parce que personne ne
+          pouvait le nommer. Celui-ci se nomme : des dégâts BRUTS, par coup,
+          qui ne critent pas et ignorent la défense — donc calculables sans
+          choisir de sort ni décrire d'adversaire. */}
+      {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
+        <p className="mt-1 text-nano text-ink-dimmer">
+          Dégâts supplémentaires bruts, à chaque coup — ils ne peuvent pas être critiques et ignorent la
+          défense adverse, donc ce gain ne dépend ni du sort utilisé ni de la cible.
+        </p>
       )}
       {modeArtefactsSeuls.coutVerrousPct != null && (
         // ⚠️ « sur ce build » n'est PAS une précaution de langage : la recherche

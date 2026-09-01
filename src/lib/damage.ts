@@ -2514,6 +2514,81 @@ function crBrutEffectif(
   return total(stats, 'cr') + (monsterWide.bonusStatFixe?.cr ?? 0) + pctLeaderCr + crDepuisVit;
 }
 
+/**
+ * Les stats de COMBAT — celles qu'un sort lit vraiment : base + runes +
+ * artéfacts, puis compétences d'invocateur, leader skill, et enfin les buffs
+ * ATQ/DEF/VIT avec leur amplification par artéfact.
+ *
+ * ⚠️ **Extraite de `computeSkillDamageDetail`, pas recopiée.** Cette
+ * arithmétique porte plusieurs règles qu'un second chemin trahirait à coup
+ * sûr : un `ceil` UNIQUE sur la somme invocateur+lead (jamais deux arrondis
+ * séparés, l'écart d'un point avait déjà été corrigé une fois dans
+ * `pctSpeedBonus`), le lead qui porte sur la BASE quand le buff porte sur le
+ * TOTAL, et l'amplification artéfact+Miriam qui s'ADDITIONNE avant de
+ * multiplier la potence.
+ *
+ * ⚠️ Ne dépend NI du sort, NI de l'adversaire, NI du taux critique — d'où son
+ * intérêt : elle suffit à chiffrer les dégâts BRUTS des artéfacts (218-221),
+ * qui ne critent pas et ignorent la défense.
+ */
+export function statsDeCombat(
+  stats: StatRow[],
+  setup: DamageSetup,
+  element: ElementKey | null = null,
+  artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE
+): { atk: number; def: number; hp: number; spd: number } {
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
+    const row = stats.find((s) => s.key === key);
+    if (!row) return 0;
+    return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
+  };
+  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
+  const leader = resolvedLeaderSkill(setup);
+  const atkAvecLead = avecInvocateur('atk', leader?.stat === 'Attack Power' ? leader.pct : 0);
+  const defAvecLead = avecInvocateur('def', leader?.stat === 'Defense' ? leader.pct : 0);
+  const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + (artefacts.ampliAtkPct + ampliMiriam) / 100) : 0;
+  const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + (artefacts.ampliDefPct + ampliMiriam) / 100) : 0;
+  return {
+    atk: (atkAvecLead * (100 + pctAtkBuff)) / 100,
+    def: (defAvecLead * (100 + pctDefBuff)) / 100,
+    hp: avecInvocateur('hp', leader?.stat === 'HP' ? leader.pct : 0),
+    spd: maVitCombat(stats, setup, element, artefacts.ampliVitPct),
+  };
+}
+
+/**
+ * Les dégâts BRUTS que les artéfacts ajoutent **par coup** (lignes 218-221).
+ *
+ * ⚠️ **Ne dépend ni du sort, ni de l'adversaire, ni du taux critique.** Ces
+ * dégâts ne critent pas et ignorent la défense adverse (mesuré en jeu ;
+ * swcalc, terme « Additional »). Ils se calculent donc entièrement à partir des
+ * stats du build et des buffs — sans qu'il faille choisir une compétence ni
+ * décrire une cible.
+ *
+ * C'est ce qui permet de classer des paires d'artéfacts pour un monstre dont
+ * l'objectif de recherche n'est PAS les dégâts : on ne lui invente ni sort ni
+ * adversaire, on chiffre ce que les artéfacts ajoutent, point.
+ *
+ * ⚠️ Le nombre de COUPS n'entre pas : il multiplie tout le monde pareil et ne
+ * change donc aucun classement. C'est aussi ce qui rend le chiffre utilisable
+ * sans connaître le sort.
+ */
+export function degatsBrutsArtefactsParCoup(
+  stats: StatRow[],
+  setup: DamageSetup,
+  element: ElementKey | null,
+  artefacts: ArtifactDamageProfile
+): number {
+  const v = statsDeCombat(stats, setup, element, artefacts);
+  return (
+    (artefacts.brutPctPv / 100) * v.hp +
+    (artefacts.brutPctAtk / 100) * v.atk +
+    (artefacts.brutPctDef / 100) * v.def +
+    (artefacts.brutPctVit / 100) * v.spd
+  );
+}
+
 export function computeSkillDamageDetail(
   profile: SkillDamageProfile,
   stats: StatRow[],
@@ -2614,13 +2689,16 @@ export function computeSkillDamageDetail(
   // jusqu'ici). Les deux « augmentent l'effet d'augmentation » : les traiter
   // multiplicativement l'un envers l'autre inventerait un empilement que le
   // jeu ne fait pas.
-  const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + (artefacts.ampliAtkPct + ampliMiriam) / 100) : 0;
-  const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + (artefacts.ampliDefPct + ampliMiriam) / 100) : 0;
+  // ⚠️ SOURCE UNIQUE — `statsDeCombat` porte toute l'arithmétique des buffs, du
+  // leader skill et des compétences d'invocateur, y compris le `ceil` unique et
+  // l'addition artéfact+Miriam. La recopier ici en ferait un second chemin, qui
+  // divergerait au premier ajustement.
+  const combat = statsDeCombat(stats, setup, element, artefacts);
   const valeurs: Record<DamageVariable, number> = {
-    ATK: (atkAvecLead * (100 + pctAtkBuff)) / 100,
-    DEF: (defAvecLead * (100 + pctDefBuff)) / 100,
+    ATK: combat.atk,
+    DEF: combat.def,
     SPD: maVit,
-    'MAX HP': avecInvocateur('hp', pctLeaderHpBase),
+    'MAX HP': combat.hp,
     'Target MAX HP': pvMax,
     // `(Ta VIT − VIT cible) / VIT cible` — confirmé par l'utilisateur.
     'Relative SPD': (maVit - vitEnnemie) / vitEnnemie,

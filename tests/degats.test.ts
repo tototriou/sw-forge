@@ -79,6 +79,7 @@ import {
   resolvedStackTrigger,
   skillDamageProfile,
   ARTIFACT_DAMAGE_NEUTRE,
+  degatsBrutsArtefactsParCoup,
   artifactDamageProfile,
   artifactCritDamagePoints,
   artifactElementBonusPct,
@@ -2819,4 +2820,57 @@ export default function testDegats() {
   // Filet de non-régression : si un changement du parseur faisait chuter la
   // couverture, on veut le voir. Marge large, ce n'est pas un objectif chiffré.
   ok(lus > 4000, `couverture du corpus conservée (${lus} sorts calculables)`);
+
+  titre('Dégâts BRUTS des artéfacts — sans sort, sans cible, sans critique');
+
+  // ⚠️ **La promesse de cette fonction**, et ce qui la rend utilisable pour un
+  // monstre dont l’objectif de recherche n’est PAS les dégâts : elle ne demande
+  // ni compétence, ni adversaire, ni mode de critique. Les lignes 218-221 ne
+  // critent pas et ignorent la défense adverse — leur contribution ne dépend
+  // donc que des stats et des buffs.
+  {
+    const build = stats({ hp: 40000, atk: 2000, def: 1000, spd: 200, cr: 15, cd: 50 });
+    const profil = { ...ARTIFACT_DAMAGE_NEUTRE, brutPctPv: 1.5, brutPctAtk: 20, brutPctDef: 20, brutPctVit: 200 };
+
+    const nu = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune' as const };
+    const attendu = 0.015 * 40000 + 0.2 * 2000 + 0.2 * 1000 + 2 * 200;
+    egal(
+      Math.round(degatsBrutsArtefactsParCoup(build, nu, null, profil)),
+      Math.round(attendu),
+      'somme des quatre lignes sur les stats du build'
+    );
+
+    // ⚠️ Ni la CIBLE ni le CRITIQUE ne doivent bouger le résultat : si l’un des
+    // deux entrait, le chiffre cesserait d’être calculable sans réglage.
+    const autreCible = { ...nu, enemyDef: 5000, enemyHp: 999999, enemyHpPct: 10, critMode: 'normal' as const };
+    egal(
+      degatsBrutsArtefactsParCoup(build, autreCible, null, profil),
+      degatsBrutsArtefactsParCoup(build, nu, null, profil),
+      'la cible et le mode de critique n’ont AUCUN effet'
+    );
+
+    // …mais les BUFFS, si : ils changent les stats que ces lignes récoltent.
+    const avecBuffs = { ...nu, atkBuff: true, defBuff: true };
+    ok(
+      degatsBrutsArtefactsParCoup(build, avecBuffs, null, profil) >
+        degatsBrutsArtefactsParCoup(build, nu, null, profil),
+      'les buffs ATQ/DEF augmentent bien les dégâts bruts récoltés'
+    );
+
+    // ⚠️ Et l’AMPLIFICATION du buff par les artéfacts entre aussi : c’est une
+    // ligne d’artéfact (204/205/226) qui agit sur une AUTRE ligne d’artéfact.
+    const avecAmpli = { ...profil, ampliAtkPct: 25 };
+    ok(
+      degatsBrutsArtefactsParCoup(build, avecBuffs, null, avecAmpli) >
+        degatsBrutsArtefactsParCoup(build, avecBuffs, null, profil),
+      'l’amplification du buff ATQ augmente ce que la ligne « prop. ATQ » récolte'
+    );
+    // …et reste SANS effet quand le buff n’est pas actif — elle amplifie une
+    // magnitude, elle ne crée pas le buff.
+    egal(
+      degatsBrutsArtefactsParCoup(build, nu, null, avecAmpli),
+      degatsBrutsArtefactsParCoup(build, nu, null, profil),
+      'sans buff ATQ actif, son amplification ne change rien'
+    );
+  }
 }

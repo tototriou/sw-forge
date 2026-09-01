@@ -33,7 +33,8 @@ import {
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
   EULDONG_CD_POINTS,
-  LEADER_SKILL_PRESETS,
+  LEADER_SKILL_VALEURS,
+  type LeaderSkillStat,
   MIRIAM_AMPLIFY_PCT,
   MIRINAE_BONUS_PCT,
   SPD_BUFF_PCT,
@@ -1051,15 +1052,40 @@ export default function testDegats() {
     'un lead Dégâts Crit ajoute 25 POINTS à la stat, même famille qu’Euldong'
   );
 
-  // Paliers réels du jeu, confirmés par l'utilisateur — jamais une formule
-  // générique, ces paliers ne suivent pas une progression régulière d'une
-  // stat à l'autre.
-  egal(LEADER_SKILL_PRESETS.HP, [28, 33, 38, 40, 44, 50], 'paliers PV');
-  egal(LEADER_SKILL_PRESETS['Attack Power'], [28, 33, 38, 40, 44, 50], 'paliers ATQ');
-  egal(LEADER_SKILL_PRESETS.Defense, [28, 33, 38, 40, 44, 50], 'paliers DEF');
-  egal(LEADER_SKILL_PRESETS['Attack Speed'], [21, 24, 28, 30, 33], 'paliers VIT');
-  egal(LEADER_SKILL_PRESETS['Critical Rate'], [21, 24, 28, 33, 38], 'paliers Taux Crit');
-  egal(LEADER_SKILL_PRESETS['Critical DMG'], [25], 'palier Dégâts Crit — un seul connu');
+  // Valeurs de lead RÉELLES du jeu, liste EXHAUSTIVE fournie par
+  // l'utilisateur — jamais une formule générique, elles ne suivent aucune
+  // progression régulière et diffèrent d'une statistique à l'autre.
+  egal(LEADER_SKILL_VALEURS.HP, [15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50], 'valeurs PV');
+  egal(LEADER_SKILL_VALEURS['Attack Power'], [15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50], 'valeurs ATQ');
+  egal(LEADER_SKILL_VALEURS.Defense, [20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50], 'valeurs DEF');
+  egal(LEADER_SKILL_VALEURS['Attack Speed'], [10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33], 'valeurs VIT');
+  egal(LEADER_SKILL_VALEURS['Critical Rate'], [10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38], 'valeurs Taux Crit');
+  egal(LEADER_SKILL_VALEURS['Critical DMG'], [25], 'Dégâts Crit — une seule valeur, un seul monstre la porte');
+
+  // ⚠️ **Garde-fou de TRANSCRIPTION**, pas de mécanique : une liste de valeurs
+  // recopiée à la main peut porter un doublon ou une valeur hors d'ordre, et
+  // ni `tsc` ni aucun test de dégâts ne s'en apercevrait — le menu afficherait
+  // simplement une liste bancale. Chaque liste doit être STRICTEMENT
+  // croissante.
+  for (const [stat, valeurs] of Object.entries(LEADER_SKILL_VALEURS)) {
+    const croissante = valeurs.every((v, i) => i === 0 || v > valeurs[i - 1]!);
+    ok(croissante, `${stat} : valeurs strictement croissantes, sans doublon`);
+    ok(valeurs.every((v) => Number.isInteger(v) && v > 0 && v <= 100), `${stat} : pourcentages entiers plausibles`);
+  }
+
+  // ⚠️ Toutes les valeurs de l'ANCIENNE table (partielle) survivent dans la
+  // nouvelle : un réglage enregistré avant cette mise à jour reste choisissable
+  // dans le menu, sans se faire remplacer en silence.
+  for (const [stat, anciennes] of [
+    ['HP', [28, 33, 38, 40, 44, 50]],
+    ['Attack Power', [28, 33, 38, 40, 44, 50]],
+    ['Defense', [28, 33, 38, 40, 44, 50]],
+    ['Attack Speed', [21, 24, 28, 30, 33]],
+    ['Critical Rate', [21, 24, 28, 33, 38]],
+  ] as [LeaderSkillStat, number[]][]) {
+    const manquantes = anciennes.filter((v) => !LEADER_SKILL_VALEURS[stat].includes(v));
+    egal(manquantes, [], `${stat} : aucun ancien palier perdu`);
+  }
 
   // `monsterCritSiPlusRapide` : Rigna/Ciri Eau/Magic Order Swordsinger
   // portent un passif SANS formule ni dégâts propres qui force le critique —

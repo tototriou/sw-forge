@@ -180,12 +180,23 @@ export type LeaderSkillStat = 'HP' | 'Attack Power' | 'Defense' | 'Attack Speed'
 // ⚠️ **Les leads de RES et de Précision existent et sont volontairement
 // ABSENTS** : ils n'ont aucun effet sur les dégâts, seule question à laquelle
 // ce réglage sert. Ne pas les ajouter en croyant combler un oubli.
-export const LEADER_SKILL_PRESETS: Record<LeaderSkillStat, number[]> = {
-  HP: [28, 33, 38, 40, 44, 50],
-  'Attack Power': [28, 33, 38, 40, 44, 50],
-  Defense: [28, 33, 38, 40, 44, 50],
-  'Attack Speed': [21, 24, 28, 30, 33],
-  'Critical Rate': [21, 24, 28, 33, 38],
+// ⚠️ **EXHAUSTIVE, et c'est ce qui change tout.** Cette table listait
+// auparavant quelques paliers courants — d'où un champ de saisie LIBRE à côté
+// du menu, pour les valeurs manquantes. Ce champ a disparu : la liste fournie
+// par l'utilisateur couvre toutes les valeurs du jeu, un simple menu suffit.
+// N'y ajouter une valeur qu'avec une source, jamais « au cas où ».
+//
+// ⚠️ **PV, ATQ et DEF ne partagent PLUS la même liste.** L'ancienne table les
+// traitait comme identiques (`28, 33, 38, 40, 44, 50`) ; c'était le résultat
+// d'un relevé partiel. ATQ monte à 50 avec un 35 que PV n'a pas, PV a un 17 et
+// un 18 que DEF n'a pas, DEF ne descend pas sous 20. Ne pas les refactoriser
+// en une seule ligne « parce qu'elles se ressemblent ».
+export const LEADER_SKILL_VALEURS: Record<LeaderSkillStat, number[]> = {
+  HP: [15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50],
+  'Attack Power': [15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50],
+  Defense: [20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50],
+  'Attack Speed': [10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33],
+  'Critical Rate': [10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38],
   'Critical DMG': [25],
 };
 

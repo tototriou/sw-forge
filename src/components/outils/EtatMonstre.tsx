@@ -1,6 +1,6 @@
-import { DamageSetup, LEADER_SKILL_PRESETS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills } from '../../lib/damage';
+import { DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
-import { Segmented, Selecteur, NumberField } from '../../ui';
+import { Segmented, Selecteur } from '../../ui';
 import HelpPopover from '../HelpPopover';
 import EffetVignette from './EffetVignette';
 import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON } from '../../lib/damage';
@@ -126,7 +126,7 @@ const LEADER_SKILL_STATS: LeaderSkillStat[] = ['HP', 'Attack Power', 'Defense', 
 function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
   const lead = setup.leaderSkill;
   const icone = lead ? leadIconUrl({ stat: lead.stat, amount: lead.pct, area: 'General', element: null }) : null;
-  const presets = lead ? LEADER_SKILL_PRESETS[lead.stat] : [];
+  const valeurs = lead ? LEADER_SKILL_VALEURS[lead.stat] : [];
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -139,7 +139,7 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
           // Type changé : repart sur le premier palier connu de CE type —
           // jamais garder l'ancien pourcentage, qui n'a de sens que pour
           // l'ancien type (44 % ATQ n'est pas un palier de Taux Crit).
-          maj({ leaderSkill: stat ? { stat, pct: LEADER_SKILL_PRESETS[stat][0] } : undefined });
+          maj({ leaderSkill: stat ? { stat, pct: LEADER_SKILL_VALEURS[stat][0] } : undefined });
         }}
         taille="sm"
         pleineLargeur={false}
@@ -153,37 +153,37 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
         ))}
       </Selecteur>
       {lead && (
-        <>
-          <Selecteur
-            value={presets.includes(lead.pct) ? String(lead.pct) : 'autre'}
-            onChange={(e) => {
-              if (e.target.value === 'autre') return; // le champ numérique prend le relais
-              maj({ leaderSkill: { stat: lead.stat, pct: Number(e.target.value) } });
-            }}
-            taille="sm"
-            pleineLargeur={false}
-            aria-label="Palier de leader skill"
-          >
-            {presets.map((v) => (
-              <option key={v} value={v}>
-                {v} %
-              </option>
-            ))}
-            {!presets.includes(lead.pct) && <option value="autre">{lead.pct} % (personnalisé)</option>}
-          </Selecteur>
-          {/* Saisie libre TOUJOURS disponible, pas seulement derrière
-              « personnalisé » — demande explicite : « l'utilisateur doit
-              pouvoir rentrer manuellement une autre valeur ». */}
-          <NumberField
-            value={lead.pct}
-            onChange={(v) => maj({ leaderSkill: { stat: lead.stat, pct: v ?? 0 } })}
-            min={0}
-            max={100}
-            suffix="%"
-            boxWidth="w-20"
-            ariaLabel="Pourcentage du leader skill"
-          />
-        </>
+        /* ⚠️ **Un seul menu, plus de saisie libre.** Il y avait avant un menu
+            de « paliers courants » ET un champ numérique, parce que la table
+            ne prétendait pas être complète. `LEADER_SKILL_VALEURS` est
+            désormais EXHAUSTIVE (liste fournie par l'utilisateur) : le champ
+            libre n'a plus rien à rattraper.
+            ⚠️ Ça corrige aussi un défaut signalé : l'ancien menu gagnait une
+            option « 44 % (personnalisé) » dès que la valeur quittait un
+            palier, et un `<select>` natif se dimensionne sur le texte de
+            l'option SÉLECTIONNÉE — il s'élargissait donc d'un coup et poussait
+            le champ voisin. Un clic qui déplace ce qu'on vient de cliquer,
+            interdit par spec/shared/design.md. */
+        <Selecteur
+          value={String(lead.pct)}
+          onChange={(e) => maj({ leaderSkill: { stat: lead.stat, pct: Number(e.target.value) } })}
+          taille="sm"
+          pleineLargeur={false}
+          aria-label="Valeur du leader skill"
+        >
+          {valeurs.map((v) => (
+            <option key={v} value={v}>
+              {v} %
+            </option>
+          ))}
+          {/* ⚠️ Une valeur HORS liste ne peut venir que d'une saisie faite à
+              l'époque du champ libre (session en cours, recette importée). On
+              l'affiche telle quelle plutôt que de la remplacer en silence :
+              changer un chiffre sans prévenir serait pire que le défaut qu'on
+              corrige. Elle disparaît dès que l'utilisateur choisit autre
+              chose. */}
+          {!valeurs.includes(lead.pct) && <option value={lead.pct}>{lead.pct} %</option>}
+        </Selecteur>
       )}
     </div>
   );

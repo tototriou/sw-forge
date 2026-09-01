@@ -1707,20 +1707,38 @@ lead — demande explicite de l'utilisateur : « choisir un leader skill…
 implémenter les leader skill de PV, d'ATQ, de DEF, de VIT, de Taux Crit et
 de dégâts crit ». Sélection dans « Effets actifs » : un type d'abord (avec
 l'icône OFFICIELLE du jeu, réutilisée depuis `siege/LeadPill.tsx` —
-`leadIconUrl`/`STAT_LABEL`, jamais dupliquée), puis une valeur — un palier
-réel du jeu proposé dans une liste déroulante, ou une saisie libre
-(`DamageSetup.leaderSkill: { stat, pct }`).
+`leadIconUrl`/`STAT_LABEL`, jamais dupliquée), puis une valeur — **une seule
+liste déroulante** (`DamageSetup.leaderSkill: { stat, pct }`).
 
-Paliers réels, confirmés par l'utilisateur (`LEADER_SKILL_PRESETS`,
-damage.ts) — jamais une progression régulière déduite d'une stat à
-l'autre :
+⚠️ **Plus de saisie libre.** L'écran proposait un menu de « paliers courants »
+**et** un champ numérique, parce que la table ne prétendait pas être complète.
+`LEADER_SKILL_VALEURS` (damage.ts) est désormais **EXHAUSTIVE** — liste
+fournie par l'utilisateur — donc le champ libre n'a plus rien à rattraper.
+Ça corrige au passage un défaut signalé : l'ancien menu gagnait une option
+« 44 % (personnalisé) » dès que la valeur quittait un palier, et un `<select>`
+natif se dimensionnant sur l'option SÉLECTIONNÉE, il s'élargissait d'un coup
+et poussait le champ voisin — un clic qui déplace ce qu'on vient de cliquer.
 
-| Stat | Paliers |
+| Stat | Valeurs |
 |---|---|
-| PV / ATQ / DEF | 28, 33, 38, 40, 44, 50 % |
-| VIT | 21, 24, 28, 30, 33 % |
-| Taux Crit | 21, 24, 28, 33, 38 % |
-| Dégâts Crit | 25 % (un seul palier connu) |
+| PV | 15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50 % |
+| ATQ | 15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50 % |
+| DEF | 20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50 % |
+| VIT | 10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33 % |
+| Taux Crit | 10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38 % |
+| Dégâts Crit | 25 % — un seul monstre du jeu porte ce lead |
+
+⚠️ **PV, ATQ et DEF ne partagent PLUS la même liste.** L'ancienne table les
+donnait identiques (`28, 33, 38, 40, 44, 50`) : c'était un relevé partiel.
+ATQ a un 35 que PV n'a pas, PV a un 17 et un 18 absents de DEF, et DEF ne
+descend pas sous 20. Ne pas les refactoriser en une ligne « parce qu'elles se
+ressemblent ». Les maximums diffèrent aussi : **33 % en VIT contre 50 % en
+ATQ**.
+
+⚠️ Une valeur enregistrée HORS liste (saisie du temps du champ libre, ou
+recette importée) reste affichée telle quelle dans le menu plutôt que
+remplacée en silence — changer un chiffre sans prévenir serait pire que le
+défaut corrigé. Elle disparaît dès qu'on choisit autre chose.
 
 ⚠️ **Trois précisions confirmées par l'utilisateur**, à ne pas re-questionner :
 

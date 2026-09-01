@@ -127,6 +127,32 @@ seule fois pour la conversation). À appliquer au moment précis où une action
 qualifie pour un skill déjà invoqué ou non (nouveau script, nouvelle
 vérification, nouveau rendu visuel…), écrit AVANT l'action elle-même.
 
+### Jamais de code entre guillemets doubles dans une commande shell
+
+Les messages de commit de ce dépôt citent du code entre backticks, et les
+scripts de diagnostic manipulent du JSX ou des gabarits. En bash, un backtick
+ou un `${}` dans une chaîne à **guillemets doubles** est EXÉCUTÉ, pas écrit :
+un `git commit -m "… en \`label\` …"` a lancé le `label` de Windows, resté
+bloqué sur une invite jusqu'au délai d'attente.
+
+⚠️ **La contre-mesure n'est PAS « faire attention aux backticks ».** Une règle
+qui exige de repérer le danger échoue précisément quand on ne le repère pas —
+ce piège s'est reproduit alors qu'il était déjà connu. D'où deux défauts
+**mécaniques**, à appliquer sans examiner le contenu :
+
+- **Un message de commit passe toujours par un heredoc**, jamais par `-m` :
+  ```bash
+  git commit -F - <<'FIN'
+  … message, backticks compris …
+  FIN
+  ```
+  `<<'FIN'` entre apostrophes = aucune expansion. En PowerShell, l'équivalent
+  est le here-string `@'…'@` (voir la description de l'outil PowerShell).
+- **Un script ne se lance jamais en ligne** (`node -e "…"`) : il s'écrit dans
+  un fichier du scratchpad et se lance par son chemin. Vaut aussi pour un
+  fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`
+  ou un `node -e` qui transporte le remplacement dans une chaîne shell.
+
 ### Windows : `TaskStop` ne tue pas le vrai process
 
 Pour libérer un port (ex. le serveur de dev bloqué par un process

@@ -1162,7 +1162,15 @@ function CampPanneau({
             return (
               <div
                 key={l.uid}
-                className="relative rounded-lg border border-border bg-panel2 px-3 py-2 pr-24"
+                // ⚠️ **Le rembourrage droit RÉSERVE la place de la rangée de
+                // boutons**, qui est en `absolute` : c'est lui, et lui seul, qui
+                // empêche les icônes de recouvrir la vitesse de combat alignée à
+                // droite. Cinq boutons `serre` de 20 px avec `gap-0.5` font
+                // 108 px, plus les 4 px de `right-1` : 112, soit `pr-28`. Il
+                // valait `pr-24` (96) du temps où ils étaient quatre — ajouter
+                // le bouton « copier » sans toucher à cette valeur les faisait
+                // mordre sur le nombre.
+                className="relative rounded-lg border border-border bg-panel2 px-3 py-2 pr-28"
               >
                 {/* Cluster en haut à droite de la card : monter/descendre,
                     masquer, supprimer — la croix à sa place habituelle dans

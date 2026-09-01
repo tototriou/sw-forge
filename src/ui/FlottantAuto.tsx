@@ -36,6 +36,21 @@ export interface FlottantAutoProps {
   // surface existe — on ne peut pas mesurer ce qui n'est pas encore rendu.
   largeur?: number;
   hauteur?: number;
+  /**
+   * La surface prend EXACTEMENT la largeur de son ancre, à chaque instant.
+   *
+   * ⚠️ **Pas une mesure, du CSS** : la surface est déjà `position: absolute`
+   * dans l'ancre (qui porte `position: relative`), donc un `width: 100%` la
+   * cale dessus — et la SUIT au redimensionnement de la fenêtre, ce qu'une
+   * largeur mesurée à l'ouverture ne ferait pas. `largeur` est alors ignorée.
+   *
+   * ⚠️ Le placement horizontal en devient trivial : une surface aussi large
+   * que son ancre ne peut pas déborder d'un côté sans déborder de l'ancre,
+   * donc elle se pose à `gauche: 0`. C'est le cas d'un panneau dépliant
+   * ancré à une CARTE, par opposition à un menu ancré à une petite tuile —
+   * pour celui-là, une largeur propre reste la bonne réponse.
+   */
+  largeurAncre?: boolean;
   rembourrage?: 'aucun' | 'sm' | 'md';
   // Sert surtout à teinter la BORDURE quand le flottant porte un sens (une
   // alerte). ⚠️ Le contenu ne doit pas poser son propre cadre : deux traits
@@ -53,6 +68,7 @@ export default function FlottantAuto({
   ancre,
   largeur = 260,
   hauteur = 320,
+  largeurAncre = false,
   rembourrage = 'aucun',
   className = '',
   children,
@@ -76,12 +92,19 @@ export default function FlottantAuto({
     // compris. Un flottant de 340 px ancré à une tuile de ~170 px de la grille à
     // deux colonnes du téléphone débordait sinon hors de l'écran, coupé par
     // `html { overflow-x: hidden }` : le détail devenait invisible au doigt.
-    const w = boiteRef.current?.offsetWidth ?? Math.min(largeur, vw - 2 * MARGE);
+    // ⚠️ En mode `largeurAncre`, la largeur voulue EST celle de l'ancre : on la
+    // mesure sur `r`, jamais sur l'estimation, qui ne veut plus rien dire.
+    const voulue = largeurAncre ? r.width : largeur;
+    const w = boiteRef.current?.offsetWidth ?? Math.min(voulue, vw - 2 * MARGE);
     const h = boiteRef.current?.offsetHeight ?? hauteur;
 
     // Côté préféré — celui d'où la surface s'ouvre (sert l'ancrage visuel ET le
     // sens de l'animation). À droite si l'ancre est trop près du bord droit.
-    const cote = r.left + largeur > vw - MARGE ? 'droite' : 'gauche';
+    // ⚠️ En `largeurAncre`, `r.left + r.width === r.right` : le test est donc
+    // toujours faux et la surface s'ouvre à gauche, alignée sur l'ancre. C'est
+    // le comportement voulu, pas un cas dégénéré — elle recouvre exactement la
+    // carte, elle ne déborde d'aucun côté.
+    const cote = r.left + voulue > vw - MARGE ? 'droite' : 'gauche';
     // Position absolue voulue selon le côté, PUIS bornée à l'écran : la surface
     // reste ancrée à la tuile, mais ne sort jamais du viewport (ce que le choix
     // binaire gauche/droite seul ne garantissait pas — près d'un bord, aligner
@@ -98,7 +121,7 @@ export default function FlottantAuto({
       ancrage: r.bottom + h > vh - MARGE && r.top - h > MARGE ? 'dessus' : 'dessous',
       gauche: al - r.left,
     });
-  }, [ouvert, largeur, hauteur, ancre]);
+  }, [ouvert, largeur, hauteur, largeurAncre, ancre]);
 
   if (!ouvert) return null;
 
@@ -115,7 +138,15 @@ export default function FlottantAuto({
       // que `cote` pose sur la classe. On neutralise donc `right` pour que seul
       // notre `left` compte, quel que soit le côté choisi pour l'animation.
       largeur=""
-      style={{ width: largeur, maxWidth: '90vw', left: place.gauche, right: 'auto' }}
+      // ⚠️ `'100%'` et non une valeur mesurée : la surface étant `absolute`
+      // dans l'ancre `relative`, le pourcentage la cale dessus ET l'y garde au
+      // redimensionnement, sans effet ni recalcul.
+      style={{
+        width: largeurAncre ? '100%' : largeur,
+        maxWidth: '90vw',
+        left: place.gauche,
+        right: 'auto',
+      }}
       className={className}
     >
       {children}

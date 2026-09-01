@@ -167,24 +167,26 @@ avec chevron, `FlottantAuto`, fermeture au clic extérieur. Le patron est
 voisins auraient divergé, et celui-là avait déjà dû être corrigé une fois
 pour exactement la raison qu'il traite.
 
-⚠️ **Les deux panneaux font la MÊME largeur** (`LARGEUR_PANNEAU`, demande
-explicite : « qu'ils profitent de toute la largeur disponible »). Ils
-recopiaient auparavant la largeur de la carte qui les ancre (340 et 420 px),
-ce qui n'avait aucune raison d'être : un panneau qui **flotte** n'est tenu
-par aucune colonne de la grille. Deux largeurs différentes, à une rangée
-d'écart et au même endroit, se liraient d'ailleurs comme deux mécanismes
-distincts.
-- ⚠️ Dans `FlottantAuto`, `largeur` est la largeur **réelle**
-  (`style={{ width }}`), pas seulement une estimation de placement. C'est
-  `hauteur` qui n'est qu'une estimation, et elle reste **volontairement
-  généreuse** (560 pour l'exclusion, 420 pour les avancés) : elle ne sert
-  qu'à choisir le côté AVANT que le contenu existe. La surestimer biaise le
-  placement vers le haut, sans conséquence ; la sous-estimer ouvre du
-  mauvais côté.
-- ⚠️ **Un nombre choisi, pas mesuré.** `FlottantAuto` le clampe déjà à
-  `90vw`, donc rien ne déborde sur une fenêtre étroite. Mesurer la place
-  réellement libre à droite de l'ancre demanderait de toucher au composant
-  partagé pour un seul appelant.
+⚠️ **Les deux panneaux prennent EXACTEMENT la largeur de la carte qui les
+ancre** (`largeurAncre`, demande explicite), et la **suivent** quand l'écran
+change de taille. Ils en faisaient à peu près la moitié (340 et 420 px en
+dur) : une largeur figée ne peut pas suivre une carte dont la largeur dépend
+de la fenêtre.
+- ⚠️ **Du CSS, pas une mesure.** La surface est déjà `position: absolute`
+  dans l'ancre `relative` : un `width: 100%` la cale dessus et l'y garde au
+  redimensionnement, sans effet ni recalcul. Une largeur mesurée à
+  l'ouverture, elle, serait périmée au premier redimensionnement.
+- Le placement horizontal en devient trivial : une surface aussi large que
+  son ancre ne peut pas déborder d'un côté sans déborder de l'ancre — elle
+  se pose donc à `gauche: 0`, exactement sur la carte.
+- ⚠️ `largeurAncre` est un **axe ajouté à `FlottantAuto`**, pas une variante :
+  « la surface suit son ancre » est le cas d'un panneau dépliant ancré à une
+  CARTE, par opposition à un menu ancré à une petite tuile — pour celui-là,
+  une largeur propre reste la bonne réponse, et `largeur` la sert toujours.
+- ⚠️ `hauteur` n'est et reste qu'une **estimation** (560 pour l'exclusion,
+  420 pour les avancés) : elle sert à choisir le côté AVANT que le contenu
+  existe. La surestimer biaise le placement vers le haut, sans conséquence ;
+  la sous-estimer ouvre du mauvais côté.
 
 ⚠️ Son état d'ouverture est **local à l'écran**, pas remonté dans
 `useOptimizerState` : c'est de l'ouverture/fermeture, pas un critère de

@@ -648,6 +648,27 @@ retour.
    candidat**, l'exemplaire réellement porté (ou rien, s'il n'est pas
    éligible pour ce monstre). Rien n'est cherché.
 
+   ⚠️ **Ce choix ne se PARTAGE pas.** Importer une recette exportée par
+   **quelqu'un d'autre** bascule automatiquement « Garder l'artéfact équipé »
+   sur **« Libre »**, et le dit dans le message d'import. Raison : ce réglage
+   garde l'artéfact porté par **celui qui lit**, pas par l'auteur — chez un
+   autre joueur il ne transporte aucune intention, il impose une pièce
+   arbitraire, parfois sans rapport avec la recherche décrite. Tout le reste
+   d'une recette se re-résout contre le compte du lecteur (le monstre par son
+   `com2usId`, les runes par la recherche elle-même) ; celui-ci était le seul
+   à transporter en douce une hypothèse locale. « Libre » est l'intention la
+   plus proche : cherche le meilleur artéfact **parmi les tiens**.
+   - La comparaison se fait sur le **nom du joueur** (`wizard_name`), écrit
+     dans la recette à l'export.
+   - ⚠️ **Provenance inconnue = on ne touche à rien** : une recette exportée
+     avant ce champ, ou un compte local sans nom, ne permettent aucune
+     comparaison. Agir sur une provenance devinée serait pire que de
+     transporter la donnée telle quelle.
+   - ⚠️ **Le script CLI (`optimizer-search.ts`) ne bascule PAS**, exprès :
+     l'appelant y désigne le compte explicitement, presque toujours pour
+     rejouer un cas signalé avec l'export de celui qui l'a signalé. Basculer
+     rendrait la reproduction moins fidèle.
+
    ⚠️ Ce choix s'appelait **« Comme équipé »**, et le mot « principale »
    n'apparaissait nulle part. Posé au milieu de trois statistiques
    principales, il se lisait « la principale, comme équipé » — une liste se

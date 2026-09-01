@@ -67,6 +67,20 @@ export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
  * exact — inutile de dérouler un modèle de dégâts qui n'entre pas dans le
  * score.
  */
+/**
+ * ⚠️ **Ce chemin NE bascule PAS « equipped » → « libre » sur un compte
+ * différent, contrairement à l'écran — et c'est délibéré.**
+ *
+ * `importRecipe` le fait parce qu'un joueur qui reçoit une recette veut
+ * reproduire une INTENTION sur son propre inventaire : « garde ce que tu
+ * portes » n'y transporte rien d'utile. Ici, l'appelant désigne
+ * EXPLICITEMENT le compte sur la ligne de commande, presque toujours pour
+ * rejouer un cas signalé — avec l'export de celui qui l'a signalé. Basculer
+ * rendrait la reproduction moins fidèle, pas plus.
+ *
+ * `recipe.wizardName` est donc volontairement ignoré ici. Ne pas « corriger »
+ * en croyant à un oubli de propagation.
+ */
 export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDetail[] {
   if (recipe.ignoreArtifacts) return [];
   const reelle = paireReelle(recipe, loaded);

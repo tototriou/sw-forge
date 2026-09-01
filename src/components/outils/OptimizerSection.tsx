@@ -114,7 +114,7 @@ import {
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
-import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
+import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
@@ -173,6 +173,10 @@ interface Props {
   // useOptimizerLists.ts), ce qu'`optimizer` lui-même ne fait délibérément
   // pas.
   lists: UseOptimizerLists;
+  // Nom du joueur dont le compte est chargé — écrit dans la recette exportée,
+  // et comparé à l'import pour reconnaître une recette venue d'AILLEURS (voir
+  // `OptimizerRecipe.wizardName`). `null` quand le compte n'en porte pas.
+  accountName: string | null;
   // Panneau d'actions mobile « Options » — piloté par le bouton de la barre
   // de nav (voir App.tsx), même patron que RunesOptim.tsx. Réglages avancés
   // et Exclusion de runes y vivent au doigt ; en ligne (cartes) au bureau.
@@ -306,7 +310,7 @@ const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
   { key: 'reel', label: 'Dégâts réels' },
 ];
 
-export default function OptimizerSection({ box, runes, artifacts, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, menuOuvert, onFermerMenu }: Props) {
+export default function OptimizerSection({ box, runes, artifacts, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -1429,6 +1433,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     const recipe = buildOptimizerRecipe({
       monsterCom2usId: selected.monster.com2usId,
       monsterName: selected.monster.name,
+      // Sert au lecteur à savoir si la recette vient de SON compte — voir
+      // `OptimizerRecipe.wizardName` et le repli de `importRecipe`.
+      wizardName: accountName,
       requirement,
       objective,
       damageSetup,
@@ -1558,7 +1565,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // ts) — un monstre absent ici est silencieusement ignoré, pas une erreur.
       setExcludedSelectors(recipe.excludedSelectors ?? []);
       setIgnoreArtifacts(recipe.ignoreArtifacts);
-      setArtifactMainByKind(recipe.artifactMainByKind);
+      // ⚠️ « Garder l'artéfact équipé » ne se partage pas — la règle, son
+      // pourquoi et le repli sur une provenance inconnue vivent dans
+      // `mainsPourCeCompte` (optimizerRecipe.ts), fonction pure et testée.
+      const { mains, bascules } = mainsPourCeCompte(recipe, accountName);
+      setArtifactMainByKind(mains);
       // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas (voir
       // `OptimizerRecipe.lignesVerrouillees`, optionnel exprès).
       setLignesVerrouillees(recipe.lignesVerrouillees ?? []);
@@ -1566,7 +1577,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // Les runes imposées ignorées (voir plus haut) sont signalées en
       // SUFFIXE du message d'import — un verrou perdu change réellement le
       // résultat, contrairement à un sélecteur d'exclusion introuvable.
-      const suffixeLocks = locksIgnores > 0 ? ` ${locksIgnores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.` : '';
+      const suffixeLocks = locksIgnores > 0 ? ` ${locksIgnores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.` : ''
+        // ⚠️ La bascule « Garder l'artéfact équipé » → « Libre » se DIT : elle
+        // change ce que la recherche va renvoyer, exactement comme un verrou
+        // perdu. Une recette qui se comporte autrement que chez son auteur,
+        // sans un mot, serait pire que la donnée transportée telle quelle.
+        + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '');
       // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
       // monstres possédés — la recherche « Monstre à optimiser » couvre
       // désormais tout le bestiaire (voir Question 1 du cadrage), donc une

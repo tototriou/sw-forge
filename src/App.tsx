@@ -1363,6 +1363,7 @@ export default function App() {
             siegeDefenseTeams={siegeDef.state.teams}
             siegeOffenseTeams={siegeOff.state.teams}
             lists={optimizerLists}
+            accountName={accountName}
             menuOuvert={menuPageOuvert}
             onFermerMenu={() => setMenuPageOuvert(false)}
           />

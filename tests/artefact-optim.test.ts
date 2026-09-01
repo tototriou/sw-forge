@@ -24,6 +24,7 @@ import {
   type ArtifactSearchParams,
 } from '../src/lib/artifactOptim';
 import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
+import { mainsPourCeCompte } from '../src/lib/optimizerRecipe';
 import { formatArtifactSub, splitArtifactSub, valeurArtefactPropre } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
 
@@ -568,5 +569,49 @@ export default function testArtefactOptim() {
       verrou
     );
     egal(avecVerrou, [porteurVerrou], 'le porteur du verrou reste, l’inerte de même principale tombe sur le seuil');
+  }
+}
+
+// « Garder l'artéfact équipé » ne se partage pas — une recette importée depuis
+// un AUTRE compte doit basculer ce choix sur « Libre ».
+//
+// ⚠️ Testé ici parce que la règle vivait dans une closure de `importRecipe`,
+// qu'aucun test ne pouvait atteindre : elle est désormais une fonction pure
+// (`mainsPourCeCompte`), et c'est précisément ce que ce test protège.
+export function testRecettePartagee() {
+  const mains = { element: 'equipped', archetype: 101 } as const;
+
+  {
+    const r = { artifactMainByKind: mains, wizardName: 'Alice' };
+    const { mains: sortie, bascules } = mainsPourCeCompte(r, 'Bob');
+    egal(sortie.element, 'libre', 'compte différent : « Garder l’artéfact équipé » passe sur « Libre »');
+    egal(sortie.archetype, 101, '… et une principale explicite n’est PAS touchée');
+    egal(bascules, true, '… et la bascule est signalée, pour que le message d’import le dise');
+  }
+
+  {
+    const r = { artifactMainByKind: mains, wizardName: 'Alice' };
+    const { mains: sortie, bascules } = mainsPourCeCompte(r, 'Alice');
+    egal(sortie.element, 'equipped', 'même compte : rien ne bouge');
+    egal(bascules, false, '… et rien à signaler');
+  }
+
+  // ⚠️ Provenance INCONNUE — recette exportée avant le champ, ou compte local
+  // sans nom. On ne bascule pas : agir sur une provenance devinée serait pire
+  // que de transporter la donnée telle quelle.
+  {
+    const sansNom = mainsPourCeCompte({ artifactMainByKind: mains, wizardName: undefined }, 'Bob');
+    egal(sansNom.mains.element, 'equipped', 'recette sans wizardName : provenance inconnue, on ne touche à rien');
+    egal(sansNom.bascules, false, '… et rien n’est annoncé');
+
+    const compteSansNom = mainsPourCeCompte({ artifactMainByKind: mains, wizardName: 'Alice' }, null);
+    egal(compteSansNom.mains.element, 'equipped', 'compte local sans nom : aucune comparaison possible, idem');
+  }
+
+  // Une recette sans aucun « equipped » ne déclenche aucune annonce, même
+  // venue d'ailleurs — sinon le message d'import mentirait.
+  {
+    const r = { artifactMainByKind: { element: 102, archetype: 'libre' } as const, wizardName: 'Alice' };
+    egal(mainsPourCeCompte(r, 'Bob').bascules, false, 'rien à basculer : aucune annonce');
   }
 }

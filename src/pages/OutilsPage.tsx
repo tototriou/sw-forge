@@ -23,6 +23,10 @@ interface Props {
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
   lists: UseOptimizerLists;
+  // Nom du joueur dont le compte est chargé (`wizard_info.wizard_name`,
+  // persisté dans `StoredAccount`). Simple relais : sert à l'Optimizer pour
+  // reconnaître une recette venue d'un AUTRE compte — voir `importRecipe`.
+  accountName: string | null;
   // Panneau « Options » mobile — voir App.tsx (pageAPanneau) et
   // OptimizerSection.tsx. Simple relais : ce shell ne connaît pas son
   // contenu, seul l'outil actif (Optimizer aujourd'hui) le remplit.
@@ -33,7 +37,7 @@ interface Props {
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, artifacts, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, menuOuvert, onFermerMenu }: Props) {
+export default function OutilsPage({ sub, box, runes, artifacts, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
   // Speed tuning ne dépend PAS d'un compte importé : on ajoute n'importe quel
   // monstre du bestiaire et on saisit sa vitesse de runes à la main. Il passe
   // donc AVANT la garde « aucune donnée de compte » (propre à l'Optimizer).
@@ -85,6 +89,7 @@ export default function OutilsPage({ sub, box, runes, artifacts, loadState, hydr
           siegeDefenseTeams={siegeDefenseTeams}
           siegeOffenseTeams={siegeOffenseTeams}
           lists={lists}
+          accountName={accountName}
           menuOuvert={menuOuvert}
           onFermerMenu={onFermerMenu}
         />

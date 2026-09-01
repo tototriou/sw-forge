@@ -1,5 +1,5 @@
 import { RUNE_SETS } from '../../types';
-import { canAddSet, setsCost, FOUR_PIECE_SETS, runeSetIconFilter } from '../../lib/effects';
+import { canAddSet, setsCost, FOUR_PIECE_SETS, INTANGIBLE_SET, runeSetIconFilter } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
 import { Jeton, BoutonIcone } from '../../ui';
 
@@ -8,12 +8,30 @@ interface Props {
   onChange: (sets: string[]) => void;
 }
 
+/**
+ * ⚠️ **L'INTANGIBLE n'est pas un set qu'on demande** — il est retiré des deux
+ * groupes.
+ *
+ * C'est un **joker à UNE pièce** (`SET_INFO.intangible = { pieces: 1 }`,
+ * effects.ts) : il complète n'importe quel set, on ne le vise jamais pour
+ * lui-même. Il apparaissait pourtant sous « Set secondaire », parce que ce
+ * groupe se définissait par la NÉGATION (« tout ce qui n'est pas un set de
+ * 4 ») — or l'intangible n'est ni l'un ni l'autre. Le demander revenait à
+ * réclamer un set de 2 pièces qui n'existe pas, et la recherche ne pouvait
+ * rien en faire. Signalé à l'usage.
+ *
+ * ⚠️ Il reste évidemment UTILISABLE par la recherche, qui s'en sert pour
+ * compléter les sets demandés — c'est seulement le fait de le CHOISIR comme
+ * objectif qui n'a pas de sens.
+ */
+const CHOISISSABLES = RUNE_SETS.filter((s) => s.key !== INTANGIBLE_SET);
+
 // Deux groupes affichés séparément — pas un simple filtre visuel, un rappel
 // utile pendant la composition d'un combo (« il me reste 2 emplacements,
 // seul un set 2 pièces peut encore rentrer »). Même source de vérité que le
 // coût réel (`setPieces`/`FOUR_PIECE_SETS`, effects.ts), jamais dupliquée.
-const FOUR_PIECE = RUNE_SETS.filter((s) => FOUR_PIECE_SETS.has(s.key));
-const TWO_PIECE = RUNE_SETS.filter((s) => !FOUR_PIECE_SETS.has(s.key));
+const FOUR_PIECE = CHOISISSABLES.filter((s) => FOUR_PIECE_SETS.has(s.key));
+const TWO_PIECE = CHOISISSABLES.filter((s) => !FOUR_PIECE_SETS.has(s.key));
 
 // Sélecteur du combo de sets recherché — UN SEUL combo (contrairement aux
 // recommandations de siège, qui proposent plusieurs possibilités au choix).
@@ -27,7 +45,12 @@ const TWO_PIECE = RUNE_SETS.filter((s) => !FOUR_PIECE_SETS.has(s.key));
 // sans jamais rien cacher d'utile.
 export default function SetComboPicker({ sets, onChange }: Props) {
   const used = setsCost(sets);
-  const full = !RUNE_SETS.some((s) => canAddSet(sets, s.key));
+  // ⚠️ « Plein » se juge sur ce qu'on peut CHOISIR : compter l'intangible ici
+  // laisserait le picker se dire non plein alors qu'aucun set proposé ne
+  // rentre plus. ⚠️ En revanche, le rendu du combo courant (juste en dessous)
+  // lit bien `RUNE_SETS` entier — une recette ancienne peut en contenir un, et
+  // il doit rester affichable et retirable.
+  const full = !CHOISISSABLES.some((s) => canAddSet(sets, s.key));
 
   return (
     <div>

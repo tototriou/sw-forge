@@ -625,7 +625,20 @@ retour.
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
    grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
    même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
-   Compteur `N/6 runes`, sets qui ne rentrent plus grisés. ⚠️ **Obligatoire** :
+   Compteur `N/6 runes`, sets qui ne rentrent plus grisés.
+
+   ⚠️ **L'Intangible ne figure PAS dans la grille.** C'est un **joker à une
+   pièce** qui complète n'importe quel set : on ne le vise jamais pour
+   lui-même, et le demander revenait à réclamer un set de 2 pièces qui
+   n'existe pas. Il apparaissait sous « Set secondaire » parce que ce groupe
+   se définissait par la négation — « tout ce qui n'est pas un set de 4 » —
+   or l'Intangible n'est ni l'un ni l'autre. Signalé à l'usage. Il reste
+   évidemment **utilisable par la recherche**, qui s'en sert pour compléter
+   les sets demandés ; c'est seulement le CHOISIR comme objectif qui n'avait
+   pas de sens. Un combo ancien qui en contiendrait un reste affiché et
+   retirable.
+
+   ⚠️ **Obligatoire** :
    tenter de lancer une recherche sans set sélectionné met cette zone en
    **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté. **Colonne

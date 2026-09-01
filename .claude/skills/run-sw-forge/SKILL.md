@@ -232,6 +232,13 @@ ici : le lire dans la sortie de `npm test` du jour.
     le DOM. `.last()` vise l'INVISIBLE — `fill`/`click` partent alors en
     timeout, et une capture d'élément sort vide ou tronquée **sans lever
     d'erreur**. Piège vécu sur les captures cadrées ci-dessus.
+  - ⚠️ **Un grep du libellé ne révèle PAS le doublon.** Les blocs partagés
+    sont écrits une seule fois dans une variable JSX, puis interpolés dans
+    les DEUX branches de disposition — `blocArtefactsSeuls` est déclaré en
+    `OptimizerSection.tsx` l. 1828 et utilisé l. 2237 (bureau) **et** l. 2304
+    (mobile). Chercher « Artéfacts les plus offensifs » ne sort qu'UNE ligne,
+    et laisse conclure à tort que le bloc est unique. Pour trancher : grep du
+    **nom de la variable**, pas du texte affiché.
   - `.first()` n'est correct que parce qu'on ouvre une fenêtre LARGE (voir
     la gotcha suivante). Pour un sélecteur qui doit tenir aux deux formats,
     viser la visibilité plutôt que la position :

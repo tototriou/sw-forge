@@ -175,8 +175,12 @@ export interface ArtifactSearchParams {
    *
    * ⚠️ **Ce n'est pas gratuit, et ça ne peut pas l'être** : on ne peut pas à la
    * fois écarter une paire sans l'évaluer et connaître son score. L'activer
-   * désactive donc l'élagage par obligation (la déduplication, elle, reste :
-   * un doublon inerte ne peut pas être le meilleur non plus).
+   * désactive donc l'élagage par OBLIGATION — celui-là seul.
+   *
+   * ⚠️ La pertinence et la dominance, elles, RESTENT actives : elles n'écartent
+   * que des paires qui ne peuvent pas gagner, ce qui vaut avec ou sans verrou.
+   * L'ordre de grandeur est donc celui d'une recherche sans verrou (~80 ms sur
+   * un inventaire réel), pas celui d'un balayage complet (~340 ms).
    *
    * À n'activer que pour les builds réellement AFFICHÉS. Les appels internes
    * (`paireRepresentative`) n'en ont que faire et gardent l'élagage complet.

@@ -25,6 +25,7 @@ import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
+  chercherPaires,
   meilleurCumulParLigne,
   type ArtifactSearchParams,
   nombreDePairesRetenues,
@@ -1013,12 +1014,32 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     const memesPieces =
       actuels.length === searchArtifacts.length &&
       actuels.every((a) => searchArtifacts.some((b) => b.id === a.id && a.id > 0));
+    // ⚠️ **Ce que les VERROUS coûtent, chiffré ici et nulle part ailleurs.**
+    // Le calcul exige de désactiver l'élagage par obligation — on ne peut pas à
+    // la fois écarter une paire sans l'évaluer et connaître son score. C'est
+    // donc fait pour UN build, celui qu'on regarde, jamais pour les K de la
+    // file. L'élagage par pertinence et dominance reste actif : l'ordre de
+    // grandeur est celui d'une recherche sans verrou (~80 ms), pas d'un
+    // balayage complet.
+    //
+    // ⚠️ **Coût SUR CE BUILD, jamais coût global.** La recherche de runes
+    // tourne elle aussi sous le modèle contraint (les verrous s'appliquent à la
+    // paire supposée) : sans eux, d'autres builds auraient pu émerger. Le
+    // chiffrer exigerait de relancer toute la recherche — d'où le libellé, qui
+    // dit « sur ce build » et ne laisse pas croire au contrefactuel global.
+    const verrous = lignesVerrouillees.filter((l) => l.min > 0);
+    let coutVerrousPct: number | null = null;
+    if (verrous.length > 0) {
+      const sans = chercherPaires({ ...artifactParams, avecCoutDesVerrous: true }).meilleurSansVerrous;
+      if (sans != null && sans > scoreRetenu) coutVerrousPct = (1 - scoreRetenu / sans) * 100;
+    }
     return {
       paire: searchArtifacts,
       gainPct: (scoreRetenu / scoreActuel - 1) * 100,
       dejaPorte: memesPieces,
+      coutVerrousPct,
     };
-  }, [artifactParams, selected, objective, resolvedSkill, searchArtifacts]);
+  }, [artifactParams, selected, objective, resolvedSkill, searchArtifacts, lignesVerrouillees]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -1800,6 +1821,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             </div>
           ))}
         </div>
+      )}
+      {modeArtefactsSeuls.coutVerrousPct != null && (
+        // ⚠️ « sur ce build » n'est PAS une précaution de langage : la recherche
+        // de runes a elle aussi tourné sous le modèle contraint, donc sans les
+        // verrous d'AUTRES builds auraient pu émerger. Un libellé sans cette
+        // précision laisserait croire à un contrefactuel global qu'on ne
+        // calcule pas.
+        <p className="mt-1 text-micro text-warn">
+          Vos lignes verrouillées coûtent −{modeArtefactsSeuls.coutVerrousPct.toFixed(1)} % sur ce build.
+        </p>
       )}
     </div>
   );

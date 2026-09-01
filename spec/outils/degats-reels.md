@@ -1722,6 +1722,23 @@ l'autre :
 | Taux Crit | 21, 24, 28, 33, 38 % |
 | Dégâts Crit | 25 % (un seul palier connu) |
 
+⚠️ **Trois précisions confirmées par l'utilisateur**, à ne pas re-questionner :
+
+- **La portée n'entre PAS dans la table, délibérément.** En jeu, une valeur de
+  lead dépend de sa portée (33 % réservés à un contenu — guilde, arène —,
+  24 % universels, 30 % élémentaires…), du monstre qui la porte et de son
+  nombre d'étoiles naturel. Rien de tout ça n'a d'importance **ici** : c'est
+  l'utilisateur qui choisit le lead qu'il veut poser sur son équipe, pas l'app
+  qui le déduit d'un monstre. La table reste donc à UNE dimension — une liste
+  de valeurs possibles par statistique. ⚠️ Les valeurs ne sont pas les mêmes
+  d'une statistique à l'autre : le maximum est **33 % en VIT** contre **50 %
+  en ATQ**, et aucune formule ne relie les deux.
+- **Un seul palier en Dégâts Crit est CORRECT**, pas un trou : un seul monstre
+  du jeu porte un leader skill de dégâts critiques.
+- **Les leads de RES et de Précision existent** et sont **volontairement
+  ignorés** : ils n'ont aucun effet sur les dégâts, seule question à laquelle
+  ce réglage sert. Leur absence n'est pas un oubli.
+
 ⚠️ **Deux familles de mécaniques, jamais confondues** :
 - **PV/ATQ/DEF/VIT** — un pourcentage MULTIPLICATIF de la stat de **BASE**
   (voir l'incident ci-dessous), ajouté comme des points FLATS au total

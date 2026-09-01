@@ -162,10 +162,24 @@ export const VELASKA_ICON = 'https://swarfarm.com/static/herders/images/monsters
 // objet `LeaderSkill` minimal côté écran (voir DamageSetupCard.tsx).
 export type LeaderSkillStat = 'HP' | 'Attack Power' | 'Defense' | 'Attack Speed' | 'Critical Rate' | 'Critical DMG';
 
-// Valeurs de palier RÉELLES du jeu (nat 3 → nat 5+2A), confirmées par
-// l'utilisateur — jamais une formule générique, ces paliers ne suivent pas
-// une progression régulière d'une stat à l'autre. Dégâts Crit n'a qu'un
-// seul palier connu.
+// Valeurs de palier RÉELLES du jeu, confirmées par l'utilisateur — jamais une
+// formule générique : ces paliers ne suivent aucune progression régulière, et
+// le maximum diffère d'une statistique à l'autre (33 % en VIT contre 50 % en
+// ATQ).
+//
+// ⚠️ **La PORTÉE n'entre pas dans cette table, délibérément.** En jeu, une
+// valeur de lead dépend de sa portée (33 % réservés à un contenu — guilde,
+// arène —, 24 % universels, 30 % élémentaires…), du monstre qui la porte et
+// de son nombre d'étoiles naturel. Sans importance ici : c'est l'utilisateur
+// qui choisit le lead posé sur son équipe, l'app ne le déduit d'aucun
+// monstre. Une seule dimension, donc — une liste de valeurs par statistique.
+//
+// ⚠️ **Un seul palier en Dégâts Crit est CORRECT**, pas un trou de la table :
+// un seul monstre du jeu porte ce leader skill.
+//
+// ⚠️ **Les leads de RES et de Précision existent et sont volontairement
+// ABSENTS** : ils n'ont aucun effet sur les dégâts, seule question à laquelle
+// ce réglage sert. Ne pas les ajouter en croyant combler un oubli.
 export const LEADER_SKILL_PRESETS: Record<LeaderSkillStat, number[]> = {
   HP: [28, 33, 38, 40, 44, 50],
   'Attack Power': [28, 33, 38, 40, 44, 50],

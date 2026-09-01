@@ -40,6 +40,7 @@ import {
   deplacerDansCamp,
   estimerCumuls,
   leadPresent,
+  ligneCopiee,
   ligneReference,
   uidReference,
   ligneVierge,
@@ -3449,6 +3450,63 @@ export function testSpeedTuneModele() {
       lignes[1].uid,
       'un compte vidé à la main reste vide — le passif ne compte plus'
     );
+  }
+
+  // ⚠️ **COPIER UN MONSTRE EN FACE** — pour se mesurer à lui.
+  {
+    const chilling = monstre(201, 'Chilling', 101);
+    const passif: PassifVitesse = {
+      nom: 'The Cunning',
+      texte: '',
+      amplifieBuff: null,
+      gain: { valeur: 20, pourcent: false, plafond: null, parCumul: true, releve: true },
+      buff: false,
+      barre: null,
+      tourSupp: false,
+      inconnu: false,
+    };
+    const d: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map([[201, [passif]]]) };
+    const modele: Ligne = {
+      ...ligneVierge(chilling, 'allie'),
+      runeSpeed: 220,
+      swift: true,
+      sets: ['swift', 'will'],
+      artefactBuff: 11,
+      atbMod: { 3: 30 },
+      speedMod: { 4: 30 },
+    };
+    const bouclier: Ligne = { ...ligneVierge(monstre(202, 'Autre', 100), 'allie'), sets: ['shield'] };
+    const copie = ligneCopiee(modele, [modele, bouclier], d);
+
+    egal(copie.camp, 'ennemi', 'la copie part dans le camp d’en face');
+    egal(copie.reference, undefined, 'ce n’est PAS un repère : elle ne suit pas l’équipe');
+    egal(copie.runeSpeed, 220, 'elle emporte la vitesse de runes');
+    egal(copie.swift, true, 'le Swift');
+    egal(copie.artefactBuff, 11, 'l’artéfact');
+    egal(JSON.stringify(copie.sets), '["swift","will"]', 'et les sets');
+
+    // ⚠️ Le compte de buffs est ESTIMÉ DEPUIS LE CAMP D'ORIGINE : Volonté sur
+    // lui + le Bouclier de son équipe = 2. Estimé dans son nouveau camp, il n'y
+    // aurait vu que sa Volonté — la copie serait plus lente que son modèle et la
+    // comparaison ne voudrait plus rien dire.
+    egal(copie.cumulsPassif, 2, 'le compte de buffs vient du camp d’ORIGINE');
+
+    // ⚠️ Les grilles ne suivent pas : elles décrivent ce qu'un sort a posé sur ce
+    // monstre DANS SON CAMP. Transportées, elles annonceraient des boosts que
+    // personne n'a lancés en face.
+    egal(JSON.stringify(copie.atbMod), '{}', 'la grille de barre repart vide');
+    egal(JSON.stringify(copie.speedMod), '{}', 'celle de vitesse aussi');
+
+    // La copie court EXACTEMENT aussi vite que son modèle — c'est tout l'objet
+    // du geste.
+    egal(
+      combatDeLigne(copie, null, d),
+      combatDeLigne({ ...modele, cumulsPassif: 2 }, null, d),
+      'et elle court aussi vite que le monstre qu’elle copie'
+    );
+
+    // Depuis le camp adverse, la copie revient dans le tien.
+    egal(ligneCopiee({ ...modele, camp: 'ennemi' }, [modele], d).camp, 'allie', 'et le geste marche dans les deux sens');
   }
 
   // ⚠️ **La référence court EXACTEMENT aussi vite que le monstre qu'elle copie**,

@@ -33,6 +33,7 @@ import {
   deplacerDansCamp,
   leadPour,
   leadPresent,
+  ligneCopiee,
   ligneReference as ligneReferenceDe,
   ligneVierge,
   lignesDeDeck,
@@ -365,6 +366,26 @@ export function useSpeedTune({
     }
     const ref = { ...ligneReference(modele), ...(mods ?? {}) };
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
+  }
+
+  // Copier un monstre dans le camp d'en face — pour se mesurer à lui.
+  //
+  // ⚠️ **Elle REMPLACE une ligne du même monstre déjà présente en face.** Ne
+  // rien faire dans ce cas aurait donné un bouton qui, parfois, ne produit rien
+  // à l'écran : le geste est explicite, sa réponse doit l'être aussi. Et la
+  // copie repart des valeurs du modèle, ce que l'utilisateur vient justement de
+  // demander.
+  //
+  // ⚠️ **La référence automatique est retirée au passage** : elle n'existe que
+  // faute d'adversaire (voir `analyseAuto`). La laisser aurait mis DEUX
+  // adversaires en face, dont un que personne n'a posé.
+  function copierEnFace(uid: string) {
+    setLignes((prev) => {
+      const modele = prev.find((l) => l.uid === uid);
+      if (!modele) return prev;
+      const copie = ligneCopiee(modele, prev, donneesKit);
+      return [...prev.filter((l) => l.uid !== copie.uid && !l.reference), copie];
+    });
   }
 
   function retirer(uid: string) {
@@ -922,6 +943,7 @@ export function useSpeedTune({
     requisParUid,
     deplacerLigne,
     retirer,
+    copierEnFace,
     sequence,
     setArtefact,
     setAuto,

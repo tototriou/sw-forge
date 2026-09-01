@@ -354,6 +354,40 @@ export function ligneReference(modele: Ligne, lignes: Ligne[], d: DonneesKit): L
   };
 }
 
+// La COPIE d'une ligne dans le camp d'en face — un adversaire à part entière,
+// pas un repère.
+//
+// ⚠️ **Elle recopie tout ce qui fait sa VITESSE**, comme `ligneReference` :
+// runes, Swift, artéfact, sets et compte de buffs effectif. Ce dernier est
+// ESTIMÉ depuis le camp d'origine quand il n'est pas déjà posé — dans son
+// nouveau camp, l'estimation ne verrait que lui, il serait donc plus lent que le
+// monstre qu'il copie et la comparaison ne voudrait plus rien dire. C'est
+// exactement le piège que la référence documente.
+//
+// ⚠️ **Les GRILLES ne se recopient pas** (`atbMod`, `speedMod`). Elles disent ce
+// qu'un sort a posé sur ce monstre DANS SON CAMP, tick par tick : transportées
+// telles quelles, elles décriraient des boosts que personne n'a lancés en face.
+// La copie repart donc de grilles vides, et l'analyse écrira les siennes.
+//
+// ⚠️ **Ce n'est PAS une référence** : elle ne suit pas l'équipe et n'est pas
+// remplacée à chaque analyse. Poser un vrai adversaire fait d'ailleurs
+// disparaître le repère automatique — c'est voulu : on ne compare plus à un
+// étalon, on affronte quelqu'un.
+export function ligneCopiee(modele: Ligne, lignes: Ligne[], d: DonneesKit): Ligne {
+  const cible: Camp = modele.camp === 'allie' ? 'ennemi' : 'allie';
+  return {
+    ...ligneVierge(modele.monster, cible),
+    runeSpeed: modele.runeSpeed,
+    artefactBuff: modele.artefactBuff,
+    swift: modele.swift,
+    sets: modele.sets,
+    cumulsPassif:
+      modele.cumulsPassif ??
+      cumulsEstimes(entreeDe(modele), duCamp(lignes, modele.camp).map(entreeDe), d),
+    passifActif: modele.passifActif,
+  };
+}
+
 // ⚠️ Toute saisie sur une ligne lui retire le drapeau « référence » : dès qu'on
 // la règle, ce n'est plus une copie qui suit l'équipe mais un adversaire à part
 // entière, et l'écraser serait une perte de travail.

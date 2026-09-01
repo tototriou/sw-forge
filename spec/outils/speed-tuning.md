@@ -944,6 +944,35 @@ peut parfaitement tenir son rang parmi les alliés — ce qu'il rate, c'est de
 passer avant l'adverse. C'est le même mot que l'autre branche de l'écran
 (« pour ne pas se faire cut ») : un même défaut doit se dire pareil partout.
 
+### Copier un monstre en face
+
+Chaque ligne porte un bouton **« Copier en face »** (« Copier dans ton équipe »
+depuis le camp adverse) : il duplique le monstre dans l'autre camp, pour se
+mesurer à lui. Le monstre **reste** dans le sien — le déplacer viderait l'équipe
+qu'on est en train de régler.
+
+La copie emporte **tout ce qui fait sa vitesse** : runes, Swift, artéfact, sets
+et compte de buffs. Elle court donc exactement aussi vite que son modèle, ce qui
+est tout l'objet du geste.
+
+⚠️ **Le compte de buffs est estimé depuis le camp d'ORIGINE.** Estimé dans son
+nouveau camp, il n'y verrait que lui : la copie serait plus lente que le monstre
+qu'elle copie, et la comparaison ne voudrait plus rien dire. C'est le même piège
+que celui documenté pour l'adversaire de référence.
+
+⚠️ **Les grilles ne suivent pas** (`atbMod`, `speedMod`) : elles disent ce qu'un
+sort a posé sur ce monstre **dans son camp**, tick par tick. Transportées telles
+quelles, elles annonceraient des boosts que personne n'a lancés en face.
+
+⚠️ **Ce n'est pas un repère** : contrairement à l'adversaire de référence, la
+copie ne suit pas l'équipe et n'est pas remplacée à chaque analyse. Poser un vrai
+adversaire fait d'ailleurs disparaître le repère automatique — on ne compare plus
+à un étalon, on affronte quelqu'un.
+
+⚠️ Une ligne du **même monstre déjà présente** en face est **remplacée**. Ne rien
+faire aurait donné un bouton qui, parfois, ne produit rien à l'écran : le geste
+est explicite, sa réponse doit l'être aussi.
+
 ### ⚠️ Le plus rapide se juge GAIN DE PASSIF COMPRIS
 
 L'adversaire de référence est une **copie du plus rapide allié**. Encore

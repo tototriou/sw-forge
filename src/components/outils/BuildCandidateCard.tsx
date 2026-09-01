@@ -158,22 +158,32 @@ export default function BuildCandidateCard({
               {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
             </span>
           </span>
-          {/* ⚠️ Le TOTAL en gros, le gain en petit : c'est le total qui classe
-              les builds entre eux, le gain n'explique que d'où il vient.
-              Afficher deux totaux côte à côte doublerait la largeur de la
-              ligne la plus importante pour un nombre qui ne décide rien. */}
-          {gainArtefactsPct != null && gainArtefactsPct > 0 && (
-            <span className="w-full text-right font-mono text-micro text-good">
-              +{gainArtefactsPct.toFixed(1)} % grâce aux artéfacts
-            </span>
-          )}
-          {paireProvisoire && (
-            // ⚠️ Dit explicitement que la paire de CE build n'est pas encore
-            // calculée. Sans ça, deux cartes voisines montreraient des
-            // artéfacts issus de deux modèles différents sans que rien ne le
-            // signale — le défaut qu'on passe cette session à traquer.
-            <span className="w-full text-right text-micro text-ink-dimmer">artéfacts pas encore optimisés</span>
-          )}
+          {/* ⚠️ **UNE SEULE ligne, TOUJOURS présente** — la place est réservée
+              d'avance (spec/shared/design.md). Ces deux mentions étaient rendues
+              conditionnellement, chacune sur sa propre ligne : la hauteur de la
+              carte variait donc de 0, 1 ou 2 rangées, et comme la file sert les
+              builds au fil de l'eau, TOUTE la grille se réorganisait à chaque
+              paire trouvée. Signalé à l'usage.
+
+              ⚠️ Les deux états sont EXCLUSIFS — « pas encore optimisé » veut
+              dire qu'aucun gain n'est connu, et un gain connu veut dire que la
+              paire l'est —, donc une seule rangée suffit. L'espace insécable
+              tient la hauteur quand il n'y a rien à dire, plutôt qu'un
+              `min-height` en dur qui devrait suivre la taille de police.
+
+              ⚠️ Le TOTAL en gros, le gain en petit : c'est le total qui classe
+              les builds entre eux, le gain n'explique que d'où il vient. */}
+          <span
+            className={`w-full text-right text-micro ${
+              paireProvisoire ? 'text-ink-dimmer' : 'font-mono text-good'
+            }`}
+          >
+            {paireProvisoire
+              ? 'artéfacts pas encore optimisés'
+              : gainArtefactsPct != null && gainArtefactsPct > 0
+                ? `+${gainArtefactsPct.toFixed(1)} % grâce aux artéfacts`
+                : ' '}
+          </span>
         </p>
       )}
 

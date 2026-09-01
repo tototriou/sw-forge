@@ -1510,24 +1510,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   });
 
   /**
-   * Ce que les artéfacts apportent à CE build, en %.
-   *
-   * ⚠️ Comparé au total SUPPOSÉ du même build, jamais à « sans artéfact » : la
-   * paire supposée est le point de référence sur lequel la recherche a classé
-   * les candidats, c'est donc l'écart qui a un sens ici.
-   *
-   * `undefined` tant que la file n'a pas atteint ce build, ou hors « Dégâts
-   * réels » — où le score d'une paire est une somme de stats principales, pas
-   * un total comparable.
-   */
-  const gainArtefacts = (c: BuildCandidate, totalSuppose: number): number | undefined => {
-    if (objective !== 'degats_reels') return undefined;
-    const opt = fileArtefacts.parBuild.get(cleBuild(c))?.paire?.score;
-    if (opt == null || totalSuppose <= 0) return undefined;
-    return (opt / totalSuppose - 1) * 100;
-  };
-
-  /**
    * Le profil de dégâts des artéfacts DE CE BUILD, quand sa paire est connue.
    *
    * ⚠️ Doit accompagner partout le remplacement des stats : noter des stats
@@ -3407,29 +3389,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                         );
                         return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
                       })()
-                    : undefined
-                }
-                gainArtefactsPct={
-                  realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
-                    ? gainArtefacts(
-                        c,
-                        computeTotalDamage(
-                          realDamage.profile,
-                          realDamage.passifs,
-                          c.stats,
-                          realDamage.setup,
-                          realDamage.element,
-                          profilArtefactsDuBuild(c) ?? realDamage.artefacts,
-                          realDamage.critSiPlusRapide,
-                          realDamage.bonusDegatsSelonVit,
-                          realDamage.bonusDegatsStack,
-                          realDamage.monsterWide,
-                          realDamage.bonusDegatsConditionnel,
-                          realDamage.bonusDegatsSelonCr,
-                          realDamage.bonusDegatsSelonDef,
-                          realDamage.bonusSiAtqSeuil
-                        )
-                      )
                     : undefined
                 }
                 // « Valider » (Lot 2) — réserve les 6 runes RÉELLES de CE

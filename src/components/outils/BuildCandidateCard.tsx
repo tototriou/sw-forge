@@ -22,9 +22,6 @@ interface Props {
   // pièces-là qui ont servi à calculer `candidate.stats` — montrer autre chose
   // afficherait des stats et un équipement qui ne vont pas ensemble.
   artifacts: ArtifactDetail[];
-  // Ce que les artéfacts apportent à ce build, en %. `undefined` quand rien
-  // n'est comparable (objectif hors dégâts, ou paire pas encore optimisée).
-  gainArtefactsPct?: number;
   // La paire de CE build n'a pas encore été calculée : celle affichée est la
   // paire supposée, commune. Dit explicitement plutôt que laissé croire.
   paireProvisoire?: boolean;
@@ -84,7 +81,6 @@ export default function BuildCandidateCard({
   openDetailKey,
   onToggleDetail,
   degatsReels,
-  gainArtefactsPct,
   paireProvisoire,
   onValidate,
   conflit,
@@ -158,31 +154,30 @@ export default function BuildCandidateCard({
               {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
             </span>
           </span>
-          {/* ⚠️ **UNE SEULE ligne, TOUJOURS présente** — la place est réservée
-              d'avance (spec/shared/design.md). Ces deux mentions étaient rendues
-              conditionnellement, chacune sur sa propre ligne : la hauteur de la
-              carte variait donc de 0, 1 ou 2 rangées, et comme la file sert les
-              builds au fil de l'eau, TOUTE la grille se réorganisait à chaque
-              paire trouvée. Signalé à l'usage.
+          {/* ⚠️ **Rangée TOUJOURS présente** — la place est réservée d’avance
+              (spec/shared/design.md). Rendue conditionnellement, elle faisait
+              varier la hauteur de la carte, et comme la file sert les builds au
+              fil de l’eau, TOUTE la grille se réorganisait à chaque paire
+              trouvée. L’espace insécable tient la hauteur quand il n’y a rien à
+              dire — un espace ordinaire s’effondrerait.
 
-              ⚠️ Les deux états sont EXCLUSIFS — « pas encore optimisé » veut
-              dire qu'aucun gain n'est connu, et un gain connu veut dire que la
-              paire l'est —, donc une seule rangée suffit. L'espace insécable
-              tient la hauteur quand il n'y a rien à dire, plutôt qu'un
-              `min-height` en dur qui devrait suivre la taille de police.
+              ⚠️ **Il y avait ici un « +X % grâce aux artéfacts ». RETIRÉ, et
+              pas réparé.** Il comparait la paire retenue à la paire SUPPOSÉE —
+              celle que le moteur postule pendant qu’il classe les builds. C’est
+              un détail d’implémentation : personne n’a de raison de savoir
+              qu’elle existe, encore moins d’en vouloir un pourcentage.
+              Signalé à l’usage (« je ne sais pas ce qu’il est censé
+              représenter »), et c’était le bon diagnostic — le corriger aurait
+              donné un nombre exact et toujours incompréhensible.
 
-              ⚠️ Le TOTAL en gros, le gain en petit : c'est le total qui classe
-              les builds entre eux, le gain n'explique que d'où il vient. */}
-          <span
-            className={`w-full text-right text-micro ${
-              paireProvisoire ? 'text-ink-dimmer' : 'font-mono text-good'
-            }`}
-          >
-            {paireProvisoire
-              ? 'artéfacts pas encore optimisés'
-              : gainArtefactsPct != null && gainArtefactsPct > 0
-                ? `+${gainArtefactsPct.toFixed(1)} % grâce aux artéfacts`
-                : ' '}
+              ⚠️ Une comparaison n’a de sens que si sa RÉFÉRENCE se nomme.
+              Celle qui se nomme — « par rapport aux artéfacts que ce monstre
+              porte aujourd’hui » — vit dans « Meilleurs artéfacts pour ce
+              build » (OptimizerSection.tsx), où les deux termes partagent le
+              même build. Ici, le total affiché inclut DÉJÀ la paire retenue, et
+              cette paire est montrée juste à côté : la carte se suffit. */}
+          <span className="w-full text-right text-micro text-ink-dimmer">
+            {paireProvisoire ? 'artéfacts pas encore optimisés' : ' '}
           </span>
         </p>
       )}

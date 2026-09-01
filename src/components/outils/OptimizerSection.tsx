@@ -1253,6 +1253,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // pas, voilà ce que tu gagnerais ». Un pourcentage y serait infini ou
       // masquerait le bloc.
       gainBrutParCoup: scoreRetenu - scoreActuel,
+      /**
+       * Ce que la paire retenue apporte EN ABSOLU, pas seulement l'écart avec
+       * celle qui est portée (demande explicite).
+       *
+       * ⚠️ Les deux répondent à des questions différentes, et le delta seul
+       * laissait la première sans réponse : « combien cette paire me
+       * rapporte-t-elle ? » contre « combien j'y gagne par rapport à
+       * maintenant ? ». Un gros gain sur une base nulle et un petit gain sur
+       * une grosse base affichaient le même nombre.
+       */
+      degatsParCoup: scoreRetenu,
       // Ce que le chiffre MESURE, pour que l'écran n'ait pas à le redéduire :
       // des dégâts bruts par coup, ou les dégâts totaux du sort visé.
       surLeReel,
@@ -2041,12 +2052,25 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             le disait — le segmenté ci-dessous le dit maintenant explicitement,
             et « offensifs » deviendrait faux à cheval sur les deux crans. */}
         <span className="label">Meilleurs artéfacts pour ce build</span>
-        {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
-          <span className="font-mono text-micro text-good">
-            +{Math.round(modeArtefactsSeuls.gainBrutParCoup).toLocaleString('fr-FR')}
+        {/* ⚠️ **L'ABSOLU d'abord, l'écart ensuite** (demande explicite). Le
+            delta seul laissait sans réponse « combien cette paire me
+            rapporte-t-elle ? » : un gros gain sur une base nulle et un petit
+            gain sur une grosse base affichaient le même nombre.
+            ⚠️ L'absolu s'affiche TOUJOURS, même quand on porte déjà la
+            meilleure paire — c'est justement là qu'il est seul à dire quelque
+            chose, l'écart valant zéro. L'écart, lui, ne s'affiche que s'il y a
+            quelque chose à gagner. */}
+        <span className="flex items-baseline gap-1.5 font-mono text-micro">
+          <span className="text-ink">
+            {Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}
             {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
           </span>
-        )}
+          {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
+            <span className="text-good">
+              +{Math.round(modeArtefactsSeuls.gainBrutParCoup).toLocaleString('fr-FR')}
+            </span>
+          )}
+        </span>
       </div>
       {/* ⚠️ Choisir « Dégâts réels » OUVRE la fenêtre du combat, comme le cran
           homonyme de l'objectif de recherche : sans ce geste, le classement
@@ -2120,7 +2144,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           pouvait le nommer. Celui-ci se nomme : des dégâts BRUTS, par coup,
           qui ne critent pas et ignorent la défense — donc calculables sans
           choisir de sort ni décrire d'adversaire. */}
-      {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
+      {/* ⚠️ Affichée dès qu'un chiffre l'est — donc AUSSI quand on porte déjà
+          la meilleure paire, puisque l'absolu s'affiche dans ce cas-là. Un
+          nombre sans sa légende serait exactement le défaut du « +X % grâce
+          aux artéfacts » qu'on a retiré. */}
+      {modeArtefactsSeuls.paire.length > 0 && (
         <p className="mt-1 text-nano text-ink-dimmer">
           {modeArtefactsSeuls.surLeReel
             ? `Dégâts totaux de ${resolvedSkill ? `« ${resolvedSkill.nom} »` : 'ce sort'} contre l’adversaire décrit — ouvre « Dégâts réels » pour changer le sort, la cible ou le traitement du critique.`

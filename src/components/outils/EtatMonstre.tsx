@@ -122,7 +122,9 @@ export default function EtatMonstre({
           du lead — l'invocateur se contente de remplir la place qui existait
           déjà. */}
       <div className="flex flex-col gap-1 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-        <div className="flex items-center gap-1.5">
+        {/* `justify-center` : le libellé se centre sur le segmenté en dessous,
+            qui est plus large que lui (demande explicite). */}
+        <div className="flex items-center justify-center gap-1.5">
         <span className="text-xs text-ink-dim">Invocateur</span>
         <HelpPopover title="Compétences d'invocateur">
           Remplacent les anciens <b className="text-ink">totems</b> (onglet Combat) et{' '}

@@ -116,7 +116,10 @@ export default function ArtifactLinesEditor({
               onChange={(v) =>
                 onChange(lignes.map((l) => (l.code === ligne.code ? { ...l, min: v ?? 0 } : l)))
               }
-              min={0}
+              // ⚠️ Plancher à 1 pour la même raison que la valeur initiale :
+              // un verrou à 0 s'afficherait comme une exigence sans en être
+              // une. On retire la ligne, on ne la met pas à zéro.
+              min={1}
               // ⚠️ **Borné au plafond de la PAIRE**, pas d'un avertissement :
               // une exigence au-delà ne peut être satisfaite par aucun
               // inventaire, aussi riche soit-il. Le plafond double pour une
@@ -173,7 +176,13 @@ export default function ArtifactLinesEditor({
         disabled={plein || dispo.length === 0}
         onChange={(e) => {
           const code = Number(e.target.value);
-          if (code) onChange([...lignes, { code, min: 0 }]);
+          // ⚠️ **1 % et non 0** (demande explicite). Un verrou à 0 est INERTE :
+          // `paireRespecteLignes` passe les lignes à `min <= 0`. La ligne
+          // s'affichait donc comme une contrainte tout en n'en étant pas une —
+          // le pire des deux mondes, puisqu'elle occupe un des 8 emplacements
+          // à l'écran sans rien exiger. Pour retirer une exigence, on retire
+          // la ligne : la croix est là pour ça.
+          if (code) onChange([...lignes, { code, min: 1 }]);
         }}
         taille="sm"
         surface="panel2"

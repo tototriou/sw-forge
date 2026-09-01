@@ -348,7 +348,22 @@ retour.
    - **Dégâts supplémentaires** (défaut) — les dégâts bruts par coup des
      sous-propriétés 218-221. **Calculé en permanence** : la qualité première
      de ce bloc est d'apparaître sans qu'on l'ait demandé, et ce calcul est
-     bon marché (ni sort, ni cible, ni critique). Affiché `+X / coup`.
+     bon marché (ni sort, ni cible, ni critique).
+
+   ⚠️ **Deux nombres, pas un** (demande explicite) : ce que la paire retenue
+   apporte **en absolu** (`2 145 / coup`), puis l'**écart** avec la paire
+   portée (`+737`). Ils répondent à des questions différentes — « combien
+   cette paire me rapporte-t-elle ? » contre « combien j'y gagne par rapport à
+   maintenant ? » — et l'écart seul laissait la première sans réponse : un gros
+   gain sur une base nulle et un petit gain sur une grosse base affichaient le
+   même nombre.
+   - L'**absolu s'affiche toujours**, y compris quand on porte déjà la
+     meilleure paire — c'est justement là qu'il est seul à dire quelque chose,
+     l'écart valant zéro.
+   - L'**écart** ne s'affiche que s'il y a quelque chose à gagner.
+   - La phrase qui NOMME le chiffre suit la même règle : présente dès qu'un
+     nombre l'est. Un nombre sans sa légende serait exactement le défaut du
+     « +X % grâce aux artéfacts » qu'on a retiré faute de pouvoir le nommer.
    - **Dégâts réels** — les dégâts **totaux** du sort visé contre l'adversaire
      décrit. ⚠️ **Le moteur choisit une AUTRE paire**, il ne réaffiche pas la
      même autrement : une paire chargée en Dgts CRIT bat une paire chargée en
@@ -862,6 +877,13 @@ retour.
    sous-propriétés exigées avec un minimum chacune (« Précision Compétence 3
    ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*
    garantissant une propriété qui n'y contribue pas.
+
+   ⚠️ **Le minimum vaut 1 % à la pose, et ne peut pas descendre à 0**
+   (demande explicite). Un verrou à 0 est **inerte** — `paireRespecteLignes`
+   passe les lignes à `min <= 0` : la ligne s'affichait donc comme une
+   contrainte tout en n'en étant pas une, et occupait pour rien l'un des 8
+   emplacements de l'écran. Pour retirer une exigence, on retire la ligne —
+   la croix est là pour ça.
 
    Vocabulaire de cette section, **aligné sur celui du jeu** (demande
    explicite) : on parle d'**artéfact**, jamais de « pièce », et de

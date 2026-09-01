@@ -153,6 +153,20 @@ ce piège s'est reproduit alors qu'il était déjà connu. D'où deux défauts
   fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`
   ou un `node -e` qui transporte le remplacement dans une chaîne shell.
 
+⚠️ **La première puce est appliquée par un hook**, `PreToolUse` sur `Bash` :
+[.claude/hooks/refuse-commit-m.mjs](.claude/hooks/refuse-commit-m.mjs) refuse
+`git commit -m`/`--amend -m` et rappelle la forme heredoc. Raison d'être :
+cette consigne, pourtant écrite, a été enfreinte plusieurs fois **dans la même
+session** — après des dizaines d'exemples réussis de la forme interdite,
+l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de
+l'action ne dépend d'aucune vigilance.
+⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
+(ignoré, propre à chaque machine) : à recopier pour en bénéficier.
+⚠️ Portée **étroite et assumée** : ni `node -e` (ses usages sans backtick sont
+sûrs et fréquents), ni `gh pr create --body`, ni `sed -i`. Couvrir la classe
+entière demanderait une analyse de quoting bash aux faux positifs permanents,
+`$(…)` étant une construction légitime.
+
 ### Windows : `TaskStop` ne tue pas le vrai process
 
 Pour libérer un port (ex. le serveur de dev bloqué par un process

@@ -629,7 +629,14 @@ retour.
    ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*
    garantissant une propriété qui n'y contribue pas.
 
-   - ⚠️ **Le minimum porte sur la PAIRE, pas sur une pièce** : une même ligne
+   Vocabulaire de cette section, **aligné sur celui du jeu** (demande
+   explicite) : on parle d'**artéfact**, jamais de « pièce », et de
+   **sous-propriété**, jamais de « ligne » ni d'« emplacement » — d'où
+   « + Sous-propriétés… » pour ajouter, et un compteur préfixé
+   `sous-propriétés :`. Les commentaires de code et les libellés de test
+   gardent « pièce »/« ligne », qui n'atteignent aucun joueur.
+
+   - ⚠️ **Le minimum porte sur la PAIRE, pas sur un artéfact** : une même ligne
      peut tomber sur les deux artéfacts et ses valeurs s'additionnent. Le
      plafond affiché double donc pour une ligne que les deux sortes peuvent
      porter (200-299), et reste simple pour une ligne réservée à l'attribut
@@ -637,7 +644,8 @@ retour.
      au-delà, aucun inventaire ne pourrait satisfaire l'exigence.
    - ⚠️ **8 = 4 + 4, en deux moitiés qui ne se prêtent rien.** Un artéfact
      porte 4 sous-propriétés. Verrouiller 5 lignes réservées au type est donc
-     impossible d'avance : un compteur `attribut x/4 · type x/4` le montre
+     impossible d'avance : un compteur `sous-propriétés : attribut x/4 ·
+     type x/4` le montre
      pendant la saisie. Et au-delà du plafond d'UNE pièce, une ligne
      cumulable exige les DEUX, donc un emplacement de chaque côté.
    - Quand aucune paire ne satisfait les verrous, l'écran rapporte le

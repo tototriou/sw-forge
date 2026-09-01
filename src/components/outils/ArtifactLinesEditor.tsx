@@ -129,9 +129,9 @@ export default function ArtifactLinesEditor({
             >
               {def?.sortes.length === 2
                 ? exigeLesDeux
-                  ? `max ${plafond} % cumulé — au-delà de ${parPiece} %, les DEUX pièces devront la porter`
-                  : `max ${plafond} % en cumulant les deux pièces`
-                : `max ${plafond} % · une seule pièce peut la porter`}
+                  ? `max ${plafond} % cumulé — au-delà de ${parPiece} %, les DEUX artéfacts devront la porter`
+                  : `max ${plafond} % en cumulant les deux artéfacts`
+                : `max ${plafond} % · un seul artéfact peut la porter`}
             </span>
           </div>
         );
@@ -149,7 +149,7 @@ export default function ArtifactLinesEditor({
         taille="sm"
         surface="panel2"
       >
-        <option value="">{plein ? `Les ${MAX_LIGNES} lignes sont prises` : '+ Ligne…'}</option>
+        <option value="">{plein ? `Les ${MAX_LIGNES} lignes sont prises` : '+ Sous-propriétés…'}</option>
         {dispo.map((l) => (
           <option key={l.code} value={l.code}>
             {l.nom}
@@ -158,14 +158,14 @@ export default function ArtifactLinesEditor({
       </Selecteur>
 
       {lignes.length > 0 && (
-        // ⚠️ Le compteur d'EMPLACEMENTS, pas seulement le compte de lignes : un
-        // artéfact porte 4 sous-propriétés, la paire 8, en deux moitiés de 4
-        // qui ne se prêtent rien. Verrouiller 5 lignes réservées au type est
-        // impossible d'avance, quelle que soit la richesse de l'inventaire —
-        // et seul ce découpage le montre PENDANT la saisie.
+        // ⚠️ Le compteur de SOUS-PROPRIÉTÉS OCCUPÉES, pas le compte de lignes :
+        // un artéfact en porte 4, la paire 8, en deux moitiés de 4 qui ne se
+        // prêtent rien. Verrouiller 5 lignes réservées au type est impossible
+        // d'avance, quelle que soit la richesse de l'inventaire — et seul ce
+        // découpage le montre PENDANT la saisie.
         <div className="flex flex-wrap items-center gap-x-3 font-mono text-nano tabular-nums text-ink-dim">
           <span>
-            emplacements&nbsp;: attribut{' '}
+            sous-propriétés&nbsp;: attribut{' '}
             <b className={budget.attribut > MAX_ARTIFACT_SUBS ? 'text-bad' : 'text-ink'}>
               {budget.attribut}/{MAX_ARTIFACT_SUBS}
             </b>

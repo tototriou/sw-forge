@@ -2620,12 +2620,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             <b className="text-ink">« Comme équipé »</b> reprend l'artéfact du build de base (celui affiché
             ci-dessus) porté à cet emplacement — utile de le changer si ce monstre porte des artéfacts différents
             en RTA ou dans un deck de siège, puisque ce build de base n'est pas forcément celui que tu cherches à
-            reproduire. <b className="text-ink">« Libre »</b> cherche la meilleure pièce parmi tous tes artéfacts
+            reproduire. <b className="text-ink">« Libre »</b> cherche le meilleur artéfact parmi tous tes artéfacts
             équipables ; choisir une statistique restreint cette recherche à tes artéfacts qui la portent.{' '}
             <b className="text-ink">« Aucun »</b> retire l'emplacement même s'il est réellement équipé.
             <br />
             <br />
-            Les artéfacts retenus sont toujours des pièces que tu <b className="text-ink">possèdes</b>, avec leurs
+            Les artéfacts retenus sont toujours des artéfacts que tu <b className="text-ink">possèdes</b>, avec leurs
             sous-propriétés : si tu n'en as aucune portant la statistique demandée, l'emplacement reste vide.
           </HelpPopover>
           {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre

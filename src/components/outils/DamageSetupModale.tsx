@@ -21,14 +21,29 @@ import DamageSetupCard from './DamageSetupCard';
 // Ici il n'y a pas d'autre page — on sort une carte de son flux, rien de plus.
 export default function DamageSetupModale({
   onClose,
+  echoEtatMonstre,
   ...card
-}: { onClose: () => void } & ComponentProps<typeof DamageSetupCard>) {
+}: {
+  onClose: () => void;
+  /**
+   * ⚠️ Un ÉCHO en lecture seule de « État de mon monstre », pas des contrôles.
+   * Les buffs, le lead et les compétences d'invocateur ont quitté cette
+   * fenêtre pour la carte Artéfacts (voir EtatMonstre.tsx) : les rendre aussi
+   * ici ferait deux exemplaires VIVANTS du même interrupteur, visibles en même
+   * temps. Mais qui ouvre cette fenêtre pour décrire un combat doit savoir
+   * sous quelles hypothèses il travaille — d'où cette phrase, posée dans le
+   * `sousTitre`, l'emplacement que `SpeedTuneModale` utilise déjà pour sa
+   * règle des ticks. Pour les changer : fermer, ils sont juste derrière et
+   * toujours visibles.
+   */
+  echoEtatMonstre: string;
+} & ComponentProps<typeof DamageSetupCard>) {
   return (
     <Modale
       onClose={onClose}
       labelledBy="damage-setup-modale"
       titre="Dégâts réels"
-      sousTitre="Décris le coup à évaluer : le sort, l'adversaire, et comment traiter le critique."
+      sousTitre={`Décris le coup à évaluer : le sort, l'adversaire, et comment traiter le critique. — ${echoEtatMonstre}`}
       croix
       // ⚠️ Les 400 px du défaut réduiraient la grille d'effets à une colonne :
       // « Effets actifs » aligne une douzaine de vignettes, et « Adversaire »

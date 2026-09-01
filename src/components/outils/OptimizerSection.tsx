@@ -91,6 +91,8 @@ import {
   monsterOffensivePassives,
   resolveDamageSkill,
   CRIT_MODE_LABELS,
+  SUMMONER_SKILLS_LABELS,
+  type DamageSetup,
   artifactDamageProfile,
 } from '../../lib/damage';
 import {
@@ -145,6 +147,7 @@ import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
+import EtatMonstre from './EtatMonstre';
 
 interface Props {
   box: BoxItem[];
@@ -414,6 +417,29 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // La description du combat sort du flux (voir DamageSetupModale.tsx) : cet
   // état dit seulement si elle est ouverte.
   const [setupOuvert, setSetupOuvert] = useState(false);
+  // `EtatMonstre` écrit un PATCH, là où `DamageSetupCard` reçoit le `setState`
+  // entier — même état, deux vues (voir EtatMonstre.tsx).
+  const majDamageSetup = (patch: Partial<DamageSetup>) => setDamageSetup((s) => ({ ...s, ...patch }));
+  /**
+   * Ce que l'état du monstre suppose, en une ligne — l'écho posé dans le
+   * sous-titre de la fenêtre « Dégâts réels ».
+   *
+   * ⚠️ **En lecture seule, jamais des contrôles.** Ces cinq réglages vivent
+   * désormais dans la carte Artéfacts ; les rendre AUSSI dans la fenêtre en
+   * ferait deux exemplaires vivants du même interrupteur, visibles en même
+   * temps. Qui ouvre la fenêtre pour décrire un combat doit néanmoins savoir
+   * sous quelles hypothèses il travaille — d'où la phrase, et rien de plus.
+   */
+  const echoEtatMonstre = useMemo(() => {
+    const bouts = [
+      damageSetup.atkBuff && 'buff ATQ',
+      damageSetup.defBuff && 'buff DEF',
+      damageSetup.spdBuff && 'buff VIT',
+      damageSetup.leaderSkill && `lead ${damageSetup.leaderSkill.stat} +${damageSetup.leaderSkill.pct} %`,
+      SUMMONER_SKILLS_LABELS.find((s) => s.key === damageSetup.summonerSkills)?.label,
+    ].filter(Boolean);
+    return `État du monstre : ${bouts.length > 0 ? bouts.join(' · ') : 'aucun buff, aucun lead'}`;
+  }, [damageSetup]);
   /**
    * Ce que l'objectif « Dégâts réels » suppose, en une ligne — le résumé qui
    * remplace la carte dans le flux, et la rouvre au clic.
@@ -2692,6 +2718,19 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             />
           </div>
         )}
+        {/* ⚠️ **Toujours visible, indépendamment de l'objectif de recherche.**
+            Ces cinq réglages changent les statistiques du monstre, donc les
+            dégâts supplémentaires bruts affichés juste en dessous — les
+            laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
+            qui optimise l'efficience, alors qu'ils s'appliquaient quand même.
+            ⚠️ Séparé par un trait des réglages au-dessus : ceux-là contraignent
+            la RECHERCHE de runes (pour des milliers de builds), celui-ci
+            décrit l'état du monstre. Deux métiers dans une carte, il faut que
+            ça se voie — sinon on croit que les sous-propriétés verrouillées ne
+            servent qu'au bloc ci-dessous. */}
+        <div className="mt-3 border-t border-border-soft pt-3">
+          <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} />
+        </div>
         {/* ⚠️ **Le résultat rejoint ses commandes.** « Meilleurs artéfacts pour
             ce build » vivait sous la fiche d'équipement, avec une raison qui
             TIENT TOUJOURS : la fiche montre l'équipement RÉEL, on n'y
@@ -3133,6 +3172,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       {setupOuvert && (
         <DamageSetupModale
           onClose={() => setSetupOuvert(false)}
+          echoEtatMonstre={echoEtatMonstre}
           skills={damageSkills}
           resolved={resolvedSkill}
           passifs={offensivePassives}

@@ -494,11 +494,11 @@ retour.
        artéfact « Effet aug. VIT » équipé et un éventuel critique/bonus de
        dégâts garanti sont, eux, **déduits et affichés**, jamais redemandés.
        Détail : [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
-     - **Effets actifs** — buffs du monstre (ATQ +50 %, DEF +70 %, VIT
-       +30 %) et effets subis par la cible (réduction de défense ×0,3,
-       marque +25 %, « ce sort pose le def break » — distingue « attaque une
-       cible déjà réduite » de « réduit puis frappe », les deux mitigations
-       ne sont pas identiques), chacun son **icône de jeu cliquable**, pas
+     - **Effets actifs** — effets subis par la cible (réduction de défense
+       ×0,3, marque +25 %, « ce sort pose le def break » — distingue
+       « attaque une cible déjà réduite » de « réduit puis frappe », les
+       deux mitigations ne sont pas identiques), chacun son **icône de jeu
+       cliquable**, pas
        une case à cocher séparée. ⚠️ **Grisée au repos, en couleurs + coche
        une fois
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
@@ -509,19 +509,18 @@ retour.
        icône de buff générique. ⚠️ Velaska porte en plus un **champ
        numérique** (% de PV perdus, 0 par défaut) qui n'apparaît que si son
        effet est activé. Détail des mécaniques :
-       [degats-reels.md](degats-reels.md), « Effets d'équipe ». **Leader
-       skill d'équipe** — type (PV/ATQ/DEF/VIT/Taux Crit/Dégâts Crit, icône
-       officielle du jeu réutilisée depuis le Siège) puis valeur (paliers
-       réels du jeu ou saisie libre) ; remplace l'ancien champ VIT-only.
-       Détail : [degats-reels.md](degats-reels.md), « Leader skill
-       d'équipe ».
-     - **Compétences d'invocateur** — **Aucune** / **Combat** (défaut) /
-       **Combat + Guilde**. Remplacent les anciens totems et drapeaux,
-       toujours supposées maxées. ⚠️ **Un choix unique, pas deux cases** :
-       l'onglet Guilde ne s'applique qu'en contenu de guilde, où Combat
-       compte aussi — « Guilde » implique donc toujours « Combat ». La
-       compétence « Puis. d'att. de <élément> » suit l'élément du monstre,
-       sans rien demander. Détail des valeurs :
+       [degats-reels.md](degats-reels.md), « Effets d'équipe ».
+
+       ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont plus** — voir
+       « État de mon monstre » ci-dessous.
+     - ⚠️ **Compétences d'invocateur : parties ailleurs**, voir « État de mon
+       monstre ». Rappel de ce qu'elles font : **Aucune** / **Combat**
+       (défaut) / **Combat + Guilde**, remplaçant les anciens totems et
+       drapeaux, toujours supposées maxées. **Un choix unique, pas deux
+       cases** : l'onglet Guilde ne s'applique qu'en contenu de guilde, où
+       Combat compte aussi — « Guilde » implique donc toujours « Combat ».
+       La compétence « Puis. d'att. de <élément> » suit l'élément du
+       monstre, sans rien demander. Détail des valeurs :
        [degats-reels.md](degats-reels.md).
      - **Coup critique** — Critique (défaut, le plafond d'un coup isolé) /
        Non critique (le plancher) / Moyenne (espérance sur le Taux Crit
@@ -610,6 +609,38 @@ retour.
    ~1 400 px de leur libellé — une saccade d'un bout à l'autre de l'écran
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigeait.
+
+6 bis. **État de mon monstre** — en bas de la carte Artéfacts, séparé des
+   réglages ci-dessus par un trait : **buff ATQ**, **buff DEF**, **buff
+   VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
+   jeu) et **compétences d'invocateur**. Ce qui rend le monstre plus fort,
+   quel que soit l'adversaire.
+
+   ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
+   atteignables sous ce seul objectif — alors qu'ils changent les
+   statistiques du monstre, donc les **dégâts supplémentaires** que lui
+   apportent les artéfacts proportionnels aux PV/ATQ/DEF/VIT, affichés quel
+   que soit l'objectif. Qui optimisait l'efficience les subissait sans
+   pouvoir ni les voir ni les régler. Aucun réglage n'est dupliqué : c'est
+   le même état, montré à un endroit toujours visible.
+
+   ⚠️ **La coupe se vérifie, elle ne s'interprète pas.** Sortent de la
+   fenêtre EXACTEMENT les réglages qui modifient les statistiques propres du
+   monstre ; ce qui reste (cible, sort, critique, réduction de DEF, marque,
+   effets d'alliés) n'y touche pas. Test : changer un réglage d'« État de
+   mon monstre » DOIT faire bouger le « +X / coup ». Mesuré sur Lushen —
+   buff ATQ activé : **+737 → +1 068 / coup**.
+
+   ⚠️ **Rendus sans condition**, contrairement à leur ancienne place où ils
+   n'apparaissaient que si la formule du sort lisait la statistique. C'était
+   la bonne question tant qu'ils décrivaient un coup ; un buff change les
+   stats du monstre même sans sort du tout.
+
+   ⚠️ **La fenêtre « Dégâts réels » en garde un écho en lecture seule**,
+   dans son sous-titre — jamais les contrôles eux-mêmes, qui feraient deux
+   exemplaires vivants du même interrupteur visibles en même temps. Qui
+   ouvre la fenêtre voit sous quelles hypothèses il travaille ; pour les
+   changer, il ferme.
 
    ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
    « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant

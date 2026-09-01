@@ -1,7 +1,5 @@
 import { Dispatch, ReactNode, SetStateAction } from 'react';
-import { Check } from 'lucide-react';
 import {
-  ATK_BUFF_ICON,
   BRAND_ICON,
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
@@ -16,19 +14,13 @@ import {
   DEFAULT_DAMAGE_SETUP,
   DEBORAH_ICON,
   DEF_BREAK_ICON,
-  DEF_BUFF_ICON,
   EULDONG_ICON,
-  LEADER_SKILL_PRESETS,
-  LeaderSkillStat,
   MIRIAM_ICON,
   MIRINAE_ICON,
   ModificateurVitAffichage,
   PassifOffensifProfile,
-  SPD_BUFF_ICON,
-  SUMMONER_SKILLS_LABELS,
   SkillDamageProfile,
   SkillDamageUnsupported,
-  SummonerSkills,
   TRANSMISSION_ICON,
   VELASKA_ICON,
   bonusConditionnelPropreActif,
@@ -42,15 +34,13 @@ import {
   resolvedStackTrigger,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
-import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
+import EffetVignette from './EffetVignette';
 import Interrupteur from '../../ui/Interrupteur';
 import Jeton from '../../ui/Jeton';
 import NumberField from '../../ui/NumberField';
 import Option from '../../ui/Option';
 import Segmented from '../../ui/Segmented';
 import { ELEMENTS, type ElementKey } from '../../types';
-import Selecteur from '../../ui/Selecteur';
-import Vignette from '../../ui/Vignette';
 import HelpPopover from '../HelpPopover';
 
 // Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md
@@ -894,24 +884,24 @@ export default function DamageSetupCard({
             de couleurs RTA) : sur des icônes déjà très colorées, le
             liseré/fond seuls se voient mal — la coche est le signal qui
             reste net quelle que soit la couleur dessous. */}
+        {/* ⚠️ **Les buffs ATQ/DEF/VIT ne sont PLUS ici** — ils ont rejoint
+            « État de mon monstre » (EtatMonstre.tsx), toujours visible dans la
+            carte Artéfacts. Raison : ils changent les statistiques du monstre,
+            donc les dégâts supplémentaires bruts des artéfacts (218-221),
+            affichés quel que soit l'objectif de recherche — alors que cette
+            fenêtre-ci ne s'ouvre que pour « Dégâts réels ». Un joueur
+            optimisant l'efficience les subissait sans pouvoir les régler.
+            ⚠️ Ils étaient rendus SOUS CONDITION (`utilise('ATK')`, ou pour la
+            VIT `utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide
+            || bonusDegatsSelonVit || critRateSelonVit`) : la bonne question
+            tant qu'ils décrivaient un coup. Elle ne l'est plus — un buff
+            change les stats du monstre même sans sort du tout — d'où un rendu
+            inconditionnel à leur nouvelle place.
+            ⚠️ Ce qui RESTE dans cette rangée ne touche pas aux dégâts bruts :
+            Réduction de DEF et Marque décrivent la CIBLE, les six effets
+            d'alliés sont des multiplicateurs de dégâts (voir 7798557 et
+            e26118c). La coupe se vérifie donc, elle ne s'interprète pas. */}
         <div className="flex flex-wrap gap-1.5">
-          {utilise('ATK') && (
-            <EffetVignette icone={ATK_BUFF_ICON} libelle="Buff ATQ" onClick={() => maj({ atkBuff: !setup.atkBuff })} actif={setup.atkBuff} etroit={etroit} />
-          )}
-          {utilise('DEF') && (
-            <EffetVignette icone={DEF_BUFF_ICON} libelle="Buff DEF" onClick={() => maj({ defBuff: !setup.defBuff })} actif={setup.defBuff} etroit={etroit} />
-          )}
-          {/* ⚠️ PAS seulement `utilise('SPD')` : `{Relative SPD}` (Beast
-              Rider, Concentrated Stab…) et le modificateur monstre-wide
-              `critSiPlusRapide` (Ciri Eau, Rigna, Magic Order Swordsinger)
-              dépendent EUX AUSSI de `maVitCombat`, qui inclut ce buff — même
-              quand la formule du sort choisi ne lit ni {SPD} ni
-              {Relative SPD} directement (Rigna S1 « Double Gash » en lit
-              une, mais un monstre à `critSiPlusRapide` pourrait très bien
-              n'avoir AUCUN sort qui en dépend). */}
-          {(utilise('SPD') || utilise('Relative SPD') || critSiPlusRapide || bonusDegatsSelonVit || critRateSelonVit) && (
-            <EffetVignette icone={SPD_BUFF_ICON} libelle="Buff VIT" onClick={() => maj({ spdBuff: !setup.spdBuff })} actif={setup.spdBuff} etroit={etroit} />
-          )}
           {montreDefEnnemie && (
             <EffetVignette
               icone={DEF_BREAK_ICON}
@@ -1021,29 +1011,16 @@ export default function DamageSetupCard({
             />
           </div>
         )}
-        <LeaderSkillPicker setup={setup} maj={maj} />
+        {/* ⚠️ Le choix du leader skill est parti dans « État de mon monstre »
+            (EtatMonstre.tsx) avec les buffs, et pour la même raison : il
+            modifie une statistique du monstre. */}
       </div>
 
-      <div>
-        <div className="mb-2 flex items-center gap-1.5">
-          <p className="label">Compétences d&apos;invocateur</p>
-          <HelpPopover title="Compétences d'invocateur">
-            Remplacent les anciens <b className="text-ink">totems</b> (onglet Combat) et{' '}
-            <b className="text-ink">drapeaux</b> de Guerre de Guilde (onglet Guilde), toujours supposées{' '}
-            <b className="text-ink">maxées</b>. <b className="text-ink">Combat</b> s&apos;applique partout ;{' '}
-            <b className="text-ink">Combat + Guilde</b> n&apos;a de sens qu&apos;en contenu de guilde, où les
-            compétences de Combat comptent aussi — d&apos;où un choix unique plutôt que deux cases. La
-            compétence <b className="text-ink">« Puis. d&apos;att. de {'<'}élément{'>'} »</b> est appliquée
-            selon l&apos;élément du monstre, sans rien demander.
-          </HelpPopover>
-        </div>
-        <Segmented<SummonerSkills>
-          options={SUMMONER_SKILLS_LABELS}
-          value={setup.summonerSkills}
-          onChange={(v) => maj({ summonerSkills: v })}
-          size="lg"
-        />
-      </div>
+      {/* ⚠️ « Compétences d'invocateur » est partie ENTIÈRE dans « État de mon
+          monstre » (EtatMonstre.tsx) : elle majore les statistiques de base du
+          monstre, elle ne décrit pas le combat. Elle valait `'combat'` par
+          défaut — donc le calcul des dégâts d'artéfact la supposait déjà, sans
+          que rien ne le dise à qui n'ouvrait jamais cette carte. */}
 
       {montreCrit && (
         <div>
@@ -1101,129 +1078,6 @@ export default function DamageSetupCard({
 // Résultat : à l'ouverture du panneau, TOUT est grisé — on voit d'un coup
 // d'œil qu'aucun effet n'est encore choisi, sans avoir à cliquer pour
 // comprendre la légende.
-function EffetVignette({
-  icone,
-  libelle,
-  actif,
-  onClick,
-  etroit,
-}: {
-  icone: string;
-  libelle: string;
-  actif: boolean;
-  onClick: () => void;
-  etroit: boolean;
-}) {
-  return (
-    <Vignette
-      choisi={actif}
-      onClick={onClick}
-      largeur="w-16"
-      aria-label={`${libelle} — ${actif ? 'actif' : 'inactif'}`}
-      // ⚠️ `libelle` est tronqué (`truncate`, `Vignette.tsx`) à cette largeur
-      // fixe — « Ce sort pose le def break » devient « Ce sort... », illisible
-      // sans un moyen de retrouver le texte complet. `title` affiche le
-      // libellé ENTIER au survol, natif, sans changer la mise en page.
-      title={libelle}
-      contenu={<img src={icone} alt="" className={`h-7 w-7 transition ${actif ? '' : 'grayscale'}`} loading="lazy" />}
-      libelle={libelle}
-      // ⚠️ Coche masquée au DOIGT (même raison que CategoryBar) : à cette
-      // taille de vignette, un médaillon de plus dans le coin serait une
-      // cible de trop à côté de la cible déjà fine du bouton lui-même — le
-      // fond renforcé (`fondAppuye`) y porte seul l'état.
-      fondAppuye={etroit}
-      coin={
-        actif && !etroit ? (
-          <span className="absolute right-0.5 top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent">
-            <Check size={9} className="text-bg" />
-          </span>
-        ) : undefined
-      }
-    />
-  );
-}
-
-const LEADER_SKILL_STATS: LeaderSkillStat[] = ['HP', 'Attack Power', 'Defense', 'Attack Speed', 'Critical Rate', 'Critical DMG'];
-
-// Leader skill d'ÉQUIPE — demande explicite : « choisir un leader skill…
-// PV, ATQ, DEF, VIT, Taux Crit, Dégâts Crit. Il choisira d'abord le TYPE
-// (avec actualisation de l'icône), puis la VALEUR ». Un CHOIX de
-// l'utilisateur, comme les quatre effets d'équipe ci-dessus — jamais déduit
-// d'un monstre chargé ici (le lead vient d'un AUTRE monstre de l'équipe).
-//
-// ⚠️ Icône et libellés RÉUTILISÉS depuis `siege/LeadPill.tsx`
-// (`leadIconUrl`/`STAT_LABEL`, déjà l'icône OFFICIELLE du jeu pour un lead
-// de monstre) plutôt que dupliqués — la mise en garde de ce fichier
-// (« deux tables de libellés auraient divergé ») s'applique aussi ici.
-// `leadIconUrl` attend un objet `LeaderSkill` complet (portée/élément) que
-// ce choix utilisateur n'a pas : traité comme portée `'General'`, sans
-// élément, pour obtenir l'icône DE BASE (non déclinée par portée).
-function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
-  const lead = setup.leaderSkill;
-  const icone = lead ? leadIconUrl({ stat: lead.stat, amount: lead.pct, area: 'General', element: null }) : null;
-  const presets = lead ? LEADER_SKILL_PRESETS[lead.stat] : [];
-
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <span className="text-xs text-ink-dim">Leader skill</span>
-      {icone && <img src={icone} alt="" className="h-6 w-6" loading="lazy" />}
-      <Selecteur
-        value={lead?.stat ?? ''}
-        onChange={(e) => {
-          const stat = e.target.value as LeaderSkillStat | '';
-          // Type changé : repart sur le premier palier connu de CE type —
-          // jamais garder l'ancien pourcentage, qui n'a de sens que pour
-          // l'ancien type (44 % ATQ n'est pas un palier de Taux Crit).
-          maj({ leaderSkill: stat ? { stat, pct: LEADER_SKILL_PRESETS[stat][0] } : undefined });
-        }}
-        taille="sm"
-        pleineLargeur={false}
-        aria-label="Type de leader skill"
-      >
-        <option value="">Aucun</option>
-        {LEADER_SKILL_STATS.map((stat) => (
-          <option key={stat} value={stat}>
-            {STAT_LABEL[stat] ?? stat}
-          </option>
-        ))}
-      </Selecteur>
-      {lead && (
-        <>
-          <Selecteur
-            value={presets.includes(lead.pct) ? String(lead.pct) : 'autre'}
-            onChange={(e) => {
-              if (e.target.value === 'autre') return; // le champ numérique prend le relais
-              maj({ leaderSkill: { stat: lead.stat, pct: Number(e.target.value) } });
-            }}
-            taille="sm"
-            pleineLargeur={false}
-            aria-label="Palier de leader skill"
-          >
-            {presets.map((v) => (
-              <option key={v} value={v}>
-                {v} %
-              </option>
-            ))}
-            {!presets.includes(lead.pct) && <option value="autre">{lead.pct} % (personnalisé)</option>}
-          </Selecteur>
-          {/* Saisie libre TOUJOURS disponible, pas seulement derrière
-              « personnalisé » — demande explicite : « l'utilisateur doit
-              pouvoir rentrer manuellement une autre valeur ». */}
-          <NumberField
-            value={lead.pct}
-            onChange={(v) => maj({ leaderSkill: { stat: lead.stat, pct: v ?? 0 } })}
-            min={0}
-            max={100}
-            suffix="%"
-            boxWidth="w-20"
-            ariaLabel="Pourcentage du leader skill"
-          />
-        </>
-      )}
-    </div>
-  );
-}
-
 // Le bouton d'un passif `bonus`/`conditionnel` (Dominic, Ezio, Evan…) ou
 // d'un modificateur conditionnel sans formule propre (Jin Kazama, Cyborg,
 // Astar, Jean…) — un INTERRUPTEUR (`Interrupteur`, même composant que

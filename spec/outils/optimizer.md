@@ -165,10 +165,26 @@ explicite) et déplie **le même mécanisme** — ancre `ref`, `ZoneCliquable`
 avec chevron, `FlottantAuto`, fermeture au clic extérieur. Le patron est
 **réutilisé tel quel**, jamais réécrit : deux mécanismes de dépliement
 voisins auraient divergé, et celui-là avait déjà dû être corrigé une fois
-pour exactement la raison qu'il traite. Sa fenêtre est estimée plus haute
-(560 contre 420) — elle porte deux réglages d'exclusion, le picker de
-monstre et les runes imposées ; `FlottantAuto` choisit son côté AVANT que le
-contenu existe, une estimation trop courte l'ouvrirait du mauvais côté.
+pour exactement la raison qu'il traite.
+
+⚠️ **Les deux panneaux font la MÊME largeur** (`LARGEUR_PANNEAU`, demande
+explicite : « qu'ils profitent de toute la largeur disponible »). Ils
+recopiaient auparavant la largeur de la carte qui les ancre (340 et 420 px),
+ce qui n'avait aucune raison d'être : un panneau qui **flotte** n'est tenu
+par aucune colonne de la grille. Deux largeurs différentes, à une rangée
+d'écart et au même endroit, se liraient d'ailleurs comme deux mécanismes
+distincts.
+- ⚠️ Dans `FlottantAuto`, `largeur` est la largeur **réelle**
+  (`style={{ width }}`), pas seulement une estimation de placement. C'est
+  `hauteur` qui n'est qu'une estimation, et elle reste **volontairement
+  généreuse** (560 pour l'exclusion, 420 pour les avancés) : elle ne sert
+  qu'à choisir le côté AVANT que le contenu existe. La surestimer biaise le
+  placement vers le haut, sans conséquence ; la sous-estimer ouvre du
+  mauvais côté.
+- ⚠️ **Un nombre choisi, pas mesuré.** `FlottantAuto` le clampe déjà à
+  `90vw`, donc rien ne déborde sur une fenêtre étroite. Mesurer la place
+  réellement libre à droite de l'ancre demanderait de toucher au composant
+  partagé pour un seul appelant.
 
 ⚠️ Son état d'ouverture est **local à l'écran**, pas remonté dans
 `useOptimizerState` : c'est de l'ouverture/fermeture, pas un critère de

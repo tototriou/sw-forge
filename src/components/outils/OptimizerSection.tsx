@@ -301,6 +301,29 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
+/**
+ * Largeur des panneaux dépliants « Exclusion de runes » et « Réglages
+ * avancés » (demande explicite : « qu'ils profitent de toute la largeur
+ * disponible »).
+ *
+ * ⚠️ **Une largeur RÉELLE, pas une estimation** — `FlottantAuto` la pose en
+ * `style={{ width }}`. Les 340/420 px d'origine recopiaient la largeur des
+ * cartes qui les ancrent, ce qui n'avait aucune raison d'être : le panneau
+ * FLOTTE, il n'est tenu par aucune colonne de la grille.
+ *
+ * ⚠️ **Un nombre choisi, pas mesuré.** `FlottantAuto` le clampe déjà à
+ * `90vw`, donc une fenêtre étroite ou un téléphone ne débordent jamais. Aller
+ * plus loin — mesurer la place réellement libre à droite de l'ancre —
+ * demanderait de toucher au composant partagé pour un seul appelant, et
+ * rendrait la largeur dépendante du côté choisi. À relever ici, en un seul
+ * endroit, si ça reste trop serré.
+ *
+ * ⚠️ **La MÊME pour les deux** : ces panneaux s'ouvrent au même endroit, à une
+ * rangée d'écart. Deux largeurs différentes se liraient comme deux mécanismes
+ * différents.
+ */
+const LARGEUR_PANNEAU = 720;
+
 // Les deux crans de « Meilleurs artéfacts pour ce build ».
 //
 // ⚠️ Défini ici et non dans `runeBuildOptim.ts` avec `OBJECTIVE_LABELS` : ce
@@ -3306,13 +3329,19 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
                 />
               </ZoneCliquable>
-              {/* ⚠️ Dimensions ESTIMÉES (`largeur`/`hauteur`) pour que
-                  `FlottantAuto` choisisse son côté AVANT que le contenu
-                  existe — la carte elle-même fait ~320px de large, le
-                  contenu (presets + 3 réglages) tient sur ~420px de haut ;
-                  `max-h-[70vh] overflow-y-auto` en garde-fou si jamais ça ne
-                  suffit pas sur une fenêtre basse. */}
-              <FlottantAuto ouvert={showAdvanced} ancre={avancesRef} largeur={340} hauteur={420} rembourrage="md">
+              {/* ⚠️ `largeur` n'est PAS qu'une estimation de placement : c'est
+                  la largeur RÉELLE du panneau (`style={{ width }}`,
+                  FlottantAuto.tsx). Portée à `LARGEUR_PANNEAU` — les 340 px
+                  d'origine reproduisaient la largeur de la carte ancre, et
+                  serraient le contenu bien plus que nécessaire alors que le
+                  panneau flotte et n'est tenu par aucune colonne.
+                  ⚠️ `hauteur` reste une ESTIMATION, elle, et volontairement
+                  généreuse : elle ne sert qu'à choisir le côté AVANT que le
+                  contenu existe. La surestimer biaise le placement vers le
+                  haut, ce qui est sans conséquence ; la sous-estimer ouvre du
+                  mauvais côté. `max-h-[70vh] overflow-y-auto` reste le
+                  garde-fou sur une fenêtre basse. */}
+              <FlottantAuto ouvert={showAdvanced} ancre={avancesRef} largeur={LARGEUR_PANNEAU} hauteur={420} rembourrage="md">
                 <div className="max-h-[70vh] overflow-y-auto">{reglagesAvancesInner(false)}</div>
               </FlottantAuto>
             </div>
@@ -3349,12 +3378,14 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   className={`ml-auto text-ink-dim transition-transform ${showExclusion ? 'rotate-180' : ''}`}
                 />
               </ZoneCliquable>
-              {/* ⚠️ Plus HAUT que « Réglages avancés » (~560 contre 420) : ce
-                  contenu porte deux réglages d'exclusion, le picker de
-                  monstre et la liste des runes imposées. `FlottantAuto`
-                  choisit son côté AVANT que le contenu existe, une estimation
-                  trop courte le ferait ouvrir du mauvais côté. */}
-              <FlottantAuto ouvert={showExclusion} ancre={exclusionRef} largeur={420} hauteur={560} rembourrage="md">
+              {/* Même largeur que « Réglages avancés » : deux panneaux voisins
+                  qui s'ouvrent au même endroit et n'ont pas la même largeur se
+                  lisent comme deux mécanismes différents.
+                  ⚠️ `hauteur` plus généreuse (560) : ce contenu porte deux
+                  réglages d'exclusion, le picker de monstre et la liste des
+                  runes imposées. Estimation seulement — voir le commentaire de
+                  « Réglages avancés » juste au-dessus. */}
+              <FlottantAuto ouvert={showExclusion} ancre={exclusionRef} largeur={LARGEUR_PANNEAU} hauteur={560} rembourrage="md">
                 <div className="max-h-[70vh] overflow-y-auto">{exclusionRunesInner(false)}</div>
               </FlottantAuto>
             </div>

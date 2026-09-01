@@ -1740,15 +1740,25 @@ recette importée) reste affichée telle quelle dans le menu plutôt que
 remplacée en silence — changer un chiffre sans prévenir serait pire que le
 défaut corrigé. Elle disparaît dès qu'on choisit autre chose.
 
-⚠️ **Le menu de la valeur se déplie EN DESSOUS du type, sur une rangée dont
-la place est réservée d'avance.** À droite, le groupe s'élargissait au clic
-et poussait « Compétences d'invocateur » à côté ; en dessous sans réserver la
-place, il ferait grandir la carte. La colonne a donc une hauteur fixe — le
-libellé et le choix du type sont remontés d'autant, et rien ne bouge qu'un
-lead soit choisi ou non. Un menu figurant, désactivé et `aria-hidden`, tient
-la seconde rangée quand il n'y a pas de lead : sans lui elle serait plate, et
-la carte grandirait quand même au premier choix. Même parade que le champ de
-Velaska.
+⚠️ **Une GRILLE dont toutes les places sont tenues d'avance** — libellé
+(« Lead », abrégé pour la largeur), icône, menus. Trois choses y bougeaient au
+moindre clic, et c'est le même défaut trois fois
+([../shared/design.md](../shared/design.md), « un clic ne déplace jamais ce
+qu'on vient de cliquer ») :
+
+1. le menu de la **valeur** se dépliait **à droite** du type, élargissant le
+   groupe et poussant « Compétences d'invocateur » ;
+2. passé **en dessous**, il ferait grandir la carte si sa rangée n'était pas
+   réservée ;
+3. l'**icône** du lead, rendue sous condition, poussait le menu de type dès
+   qu'un lead était choisi.
+
+La colonne de l'icône existe donc même vide, la seconde rangée existe même
+sans lead (un menu figurant, désactivé et `aria-hidden`, la tient — sans lui
+elle serait plate et la carte grandirait quand même), et la valeur se pose en
+`col-start-3`, donc exactement sous le type. ⚠️ L'alignement se **déduit des
+colonnes** ; il n'est pas reproduit à coups de marges qui dériveraient au
+prochain changement de libellé. Même parade que le champ de Velaska.
 
 ⚠️ **Trois précisions confirmées par l'utilisateur**, à ne pas re-questionner :
 

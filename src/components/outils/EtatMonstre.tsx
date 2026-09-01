@@ -140,19 +140,38 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
   const valeurs = lead ? LEADER_SKILL_VALEURS[lead.stat] : [];
 
   return (
-    /* ⚠️ **DEUX rangées, la seconde toujours réservée.** La valeur se dépliait
-        à DROITE du type : le groupe s'élargissait au moment du clic et poussait
-        « Invocateur » à côté. En dessous, elle ne pousse plus rien
-        horizontalement — mais elle ferait grandir la carte en hauteur si sa
-        place n'était pas tenue d'avance. D'où une colonne de hauteur FIXE : le
-        libellé et le choix du type sont remontés d'autant, et rien ne bouge
-        qu'on ait un lead ou non. Même parade que le champ de Velaska, et même
-        règle : un clic ne déplace jamais ce qu'on vient de cliquer
-        (spec/shared/design.md). */
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-      <span className="text-xs text-ink-dim">Leader skill</span>
-      {icone && <img src={icone} alt="" className="h-6 w-6" loading="lazy" />}
+    /* ⚠️ **Une GRILLE de trois colonnes — libellé, icône, menus — dont TOUTES
+        les places sont tenues d'avance.**
+        Trois choses bougeaient ici au moindre clic, et c'est le même défaut
+        trois fois (spec/shared/design.md, « un clic ne déplace jamais ce qu'on
+        vient de cliquer ») :
+        1. le menu de la valeur se dépliait À DROITE du type, élargissant le
+           groupe et poussant « Invocateur » ;
+        2. il ferait grandir la carte en hauteur une fois passé en dessous, si
+           sa rangée n'était pas réservée ;
+        3. l'icône du lead, rendue sous condition, poussait le menu de type
+           dès qu'un lead était choisi.
+        D'où une grille : la colonne de l'icône existe même vide, la seconde
+        rangée existe même sans lead, et la valeur se pose en `col-start-3`,
+        donc exactement sous le type. L'alignement se DÉDUIT des colonnes — il
+        n'est pas reproduit à coups de marges qui dériveraient au prochain
+        changement de libellé. */
+    <div className="grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-2 gap-y-1">
+      {/* « Lead » et non « Leader skill » : le libellé long mangeait la
+          largeur d'une carte en colonne étroite, pour un mot que tout joueur
+          abrège de toute façon. */}
+      <span className="text-xs text-ink-dim">Lead</span>
+      {/* ⚠️ **La place de l'icône est TENUE, elle aussi.** Rendue sous
+          condition, elle poussait le menu de type à droite dès qu'un lead
+          était choisi — le même défaut que celui qu'on vient de corriger sur
+          la valeur, une colonne plus loin. */}
+      <img
+        src={icone ?? undefined}
+        alt=""
+        className={`h-6 w-6 ${icone ? '' : 'invisible'}`}
+        loading="lazy"
+        aria-hidden
+      />
       <Selecteur
         value={lead?.stat ?? ''}
         onChange={(e) => {
@@ -173,12 +192,12 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
           </option>
         ))}
       </Selecteur>
-      </div>
 
-      {/* ⚠️ `invisible` et non un rendu conditionnel : l'élément tient sa place
-          sans se voir. `aria-hidden` et `disabled` avec, sinon on tabulerait
-          dans un menu invisible. */}
-      <div className={lead ? '' : 'invisible'} aria-hidden={!lead}>
+      {/* ⚠️ `col-start-3` : sous le TYPE, pas sous le libellé. `invisible` et
+          non un rendu conditionnel — l'élément tient sa place sans se voir,
+          avec `aria-hidden` et `disabled`, sinon on tabulerait dans un menu
+          invisible. */}
+      <div className={`col-start-3 ${lead ? '' : 'invisible'}`} aria-hidden={!lead}>
       {lead ? (
         /* ⚠️ **Un seul menu, plus de saisie libre.** Il y avait avant un menu
             de « paliers courants » ET un champ numérique, parce que la table

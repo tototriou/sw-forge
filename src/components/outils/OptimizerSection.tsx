@@ -774,7 +774,43 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // seules (demande explicite, voir ExclusionSelector « unowned »).
   function pickSpecies(monster: Monster) {
     const id = String(monster.id);
-    if (id !== selectedId) resetSearch();
+    if (id !== selectedId) {
+      resetSearch();
+      /**
+       * ⚠️ **Un sort appartient à un MONSTRE.** `skillCom2usId` désigne un
+       * sort précis ; après un changement de monstre, `resolveDamageSkill`
+       * retombe silencieusement sur le sort par défaut du nouveau. Tant que
+       * la carte de combat était dépliée sous l'objectif on voyait le sort
+       * revenir au défaut ; derrière une fenêtre fermée, ce repli devient
+       * invisible et l'on croirait calculer sur un sort qu'on a choisi.
+       *
+       * Remettre les deux sélecteurs au défaut rend ce repli IMPOSSIBLE
+       * plutôt que visible. Réoptimiser en dégâts demande alors de recliquer
+       * « Dégâts réels » et de rechoisir le sort — le geste qui manquait.
+       *
+       * ⚠️ **`damageSetup` n'est PAS remis à zéro pour autant.** La défense,
+       * les PV et l'élément de l'adversaire, les buffs, le lead : rien de
+       * tout cela n'est propre au monstre, et c'est le plus long à
+       * ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec le
+       * combat déjà décrit, seul le sort restant à choisir. Seul
+       * `skillCom2usId` est vidé, pour que la valeur STOCKÉE soit celle
+       * réellement utilisée — sinon un identifiant périmé traîne, inerte
+       * tant que le cran est au défaut, et ressort au prochain « Dégâts
+       * réels ».
+       *
+       * ⚠️ **Ici et surtout PAS dans un `useEffect` sur le monstre
+       * sélectionné** : `importRecipe` pose le monstre ET l'objectif
+       * directement, sans passer par cette fonction — un effet se
+       * déclencherait APRÈS l'import et écraserait l'objectif de la recette
+       * qu'on vient de charger.
+       *
+       * ⚠️ Granularité : l'ESPÈCE. Passer de Box à RTA ne passe pas par ici,
+       * et c'est voulu — les sorts restent les mêmes.
+       */
+      setObjective('efficience');
+      setCritereArtefacts('brut');
+      setDamageSetup((s) => ({ ...s, skillCom2usId: null }));
+    }
     setSelectedId(id);
     setGearSource('box');
     const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;

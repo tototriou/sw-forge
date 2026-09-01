@@ -256,6 +256,21 @@ retour.
    **Importer un nouveau compte** déclenche la réinitialisation complète,
    pour la même raison (autre box, autre pool de runes possible) — même en
    étant sur un autre onglet au moment de l'import.
+
+   ⚠️ **Changer d'espèce ramène l'objectif à « Efficience » et le cran des
+   artéfacts à « Dégâts supplémentaires »**, et vide le sort choisi. Un sort
+   appartient à un monstre : après un changement, le calcul retomberait
+   silencieusement sur le sort par défaut du nouveau. Tant que le réglage de
+   combat se dépliait sous l'objectif on voyait le sort revenir au défaut ;
+   derrière une fenêtre fermée, ce repli devient invisible et l'on croirait
+   calculer sur un sort qu'on a choisi. Remettre les deux sélecteurs au défaut
+   rend ce repli **impossible** plutôt que visible — réoptimiser en dégâts
+   demande de recliquer « Dégâts réels » et de rechoisir le sort.
+
+   ⚠️ **La description du combat, elle, SURVIT** : défense, PV et élément de
+   l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
+   plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
+   le combat déjà décrit. Seuls les deux **sélecteurs** retombent au défaut.
 2 bis. **« Meilleurs artéfacts pour ce build »** — en bas de la carte
    **Artéfacts**, la meilleure paire pour l'équipement **affiché**, avec ce
    qu'elle apporte face à celle qui est portée. Optimise les artéfacts

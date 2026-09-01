@@ -740,6 +740,22 @@ retour.
    dans une colonne étroite, ils repassent à la ligne plutôt que de comprimer
    les contrôles sous leur taille de cible.
 
+   Chacun porte son **contour** (demande explicite : « barres verticales ou
+   contours »). ⚠️ **Des boîtes et non des barres**, alors qu'une barre aurait
+   été plus légère et que c'est le patron des deux colonnes de « Critères de
+   recherche » : ces groupes-ci peuvent passer à la ligne, et une barre
+   verticale se retrouverait alors à pendre dans le vide au bout d'une rangée.
+   Un contour ferme le groupe où qu'il aille. Un **seul** contour, jamais deux
+   superposés ([shared/design.md](shared/design.md)) — ces boîtes vivent à
+   l'intérieur de la carte, elles ne longent pas son bord. `items-stretch` les
+   met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
+   au milieu d'une boîte de deux et l'œil lirait un décalage.
+
+   Dans le groupe **Lead**, les deux menus (type et valeur) ont la **même
+   largeur** : ils occupent la même colonne de grille, en `w-full`. La largeur
+   se déduit donc du plus large des deux — aucune valeur en dur à tenir à jour
+   quand un libellé change.
+
    ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
    atteignables sous ce seul objectif — alors qu'ils changent les
    statistiques du monstre, donc les **dégâts supplémentaires** que lui

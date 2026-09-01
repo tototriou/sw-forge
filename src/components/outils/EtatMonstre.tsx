@@ -67,9 +67,21 @@ export default function EtatMonstre({
           comprimer les contrôles sous leur taille de cible. `gap-x-4` sépare
           les groupes plus franchement que `gap-y-2` ne sépare les lignes, pour
           qu'on lise trois groupes et non une file de contrôles. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      {/* ⚠️ **Trois BOÎTES, pas des barres verticales.** Une barre (`border-r`
+          sur les deux premiers groupes) aurait été plus légère — c'est le
+          patron des deux colonnes de « Critères de recherche ». Mais ces
+          groupes-ci sont en `flex-wrap` : dès qu'un passe à la ligne, sa barre
+          se retrouve à pendre dans le vide au bout d'une rangée. Un contour
+          ferme le groupe où qu'il aille.
+          ⚠️ Un SEUL contour, jamais deux superposés (spec/shared/design.md) :
+          ces boîtes sont à l'intérieur de la carte, elles ne longent pas son
+          bord. Même patron que les groupes du panneau « Options » mobile.
+          ⚠️ `items-stretch` : les trois boîtes prennent la hauteur de la plus
+          haute. Sans lui, une boîte d'une rangée flottait au milieu d'une
+          boîte de deux, et l'œil lisait un décalage plutôt qu'un groupe. */}
+      <div className="flex flex-wrap items-stretch gap-2">
       {/* Mêmes vignettes qu'avant, même composant : l'ICÔNE est le contrôle. */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
         <EffetVignette
           icone={ATK_BUFF_ICON}
           libelle="Buff ATQ"
@@ -93,9 +105,13 @@ export default function EtatMonstre({
         />
       </div>
 
-      <LeaderSkillPicker setup={setup} maj={maj} />
+      {/* La boîte est posée ICI et non dans le composant : les trois contours
+          se lisent alors d'un coup dans ce fichier, et se corrigent ensemble. */}
+      <div className="flex items-center rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+        <LeaderSkillPicker setup={setup} maj={maj} />
+      </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
         <span className="text-xs text-ink-dim">Invocateur</span>
         <HelpPopover title="Compétences d'invocateur">
           Remplacent les anciens <b className="text-ink">totems</b> (onglet Combat) et{' '}
@@ -182,7 +198,6 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
           maj({ leaderSkill: stat ? { stat, pct: LEADER_SKILL_VALEURS[stat][0] } : undefined });
         }}
         taille="sm"
-        pleineLargeur={false}
         aria-label="Type de leader skill"
       >
         <option value="">Aucun</option>
@@ -214,7 +229,6 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
           value={String(lead.pct)}
           onChange={(e) => maj({ leaderSkill: { stat: lead.stat, pct: Number(e.target.value) } })}
           taille="sm"
-          pleineLargeur={false}
           aria-label="Valeur du leader skill"
         >
           {valeurs.map((v) => (
@@ -235,7 +249,7 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
             quand aucun lead n'est choisi. Sans lui, la rangée réservée serait
             vide et donc plate — la carte grandirait quand même au premier
             choix, ce que toute cette structure existe pour éviter. */
-        <Selecteur value="" onChange={() => {}} taille="sm" pleineLargeur={false} disabled aria-hidden tabIndex={-1}>
+        <Selecteur value="" onChange={() => {}} taille="sm" disabled aria-hidden tabIndex={-1}>
           <option value="">—</option>
         </Selecteur>
       )}

@@ -71,6 +71,19 @@ export interface UseArtifactOptimQueue {
 export function useArtifactOptimQueue(opts: {
   // Candidats DÉJÀ TRIÉS par l'objectif (via `sortCandidates`).
   triees: readonly BuildCandidate[];
+  /**
+   * La page RÉELLEMENT affichée — traitée EN PRIORITÉ sur le top-K.
+   *
+   * ⚠️ **Sans elle, aucune page au-delà de la K-ième n'aurait jamais sa
+   * paire**, quelle que soit la valeur de K. Le top-K est une avance de fond
+   * pour les premières pages ; ce qu'on regarde doit passer devant.
+   */
+  //
+  // ⚠️ Un ACCESSEUR, pas une valeur : la page affichée se calcule APRÈS la
+  // file (elle dépend de son résultat), donc elle n’existe pas encore au
+  // moment où ce hook est appelé. Lu au moment de traiter, il voit toujours
+  // l’état courant.
+  pageAffichee: () => readonly BuildCandidate[];
   // Construit les paramètres de recherche d'artéfacts pour UN build.
   // `null` quand l'optimisation n'a pas lieu d'être (artéfacts ignorés, pas
   // d'objectif de dégâts, inventaire absent).
@@ -85,7 +98,7 @@ export function useArtifactOptimQueue(opts: {
   signature: string;
   K?: number;
 }): UseArtifactOptimQueue {
-  const { triees, faireParams, calculerStats, signature, K = K_BUILDS_OPTIMISES } = opts;
+  const { triees, pageAffichee, faireParams, calculerStats, signature, K = K_BUILDS_OPTIMISES } = opts;
   const [parBuild, setParBuild] = useState<ReadonlyMap<string, ResultatArtefacts>>(new Map());
   const [enAttente, setEnAttente] = useState(0);
 
@@ -94,9 +107,11 @@ export function useArtifactOptimQueue(opts: {
   // reprogrammation dépende de l'identité des props (un tableau `triees`
   // recréé à chaque rendu relancerait l'effet en boucle).
   const trieesRef = useRef(triees);
+  const pageRef = useRef(pageAffichee);
   const paramsRef = useRef(faireParams);
   const statsRef = useRef(calculerStats);
   trieesRef.current = triees;
+  pageRef.current = pageAffichee;
   paramsRef.current = faireParams;
   statsRef.current = calculerStats;
 
@@ -128,7 +143,7 @@ export function useArtifactOptimQueue(opts: {
       if (!vivant) return;
       const faire = paramsRef.current;
       if (!faire) return;
-      const restants = prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K);
+      const restants = prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K, pageRef.current());
       setEnAttente(restants.length);
       const suivant = restants[0];
       // ⚠️ Publication FORCÉE avant de s'arrêter : sans elle, les derniers

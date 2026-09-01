@@ -549,6 +549,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // mémorise que les identifiants.
   const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
 
+  // ⚠️ La page affichée, exposée à la file d’optimisation d’artéfacts. Elle est
+  // remplie APRÈS `pageCandidates` (plus bas) : une ref, parce que la file est
+  // déclarée AVANT lui et ne peut donc pas recevoir sa valeur.
+  const pageAfficheeRef = useRef<BuildCandidate[]>([]);
+
   /**
    * La sélection de « Équipement actuel », dérivée de la MÊME clé que les
    * cartes de résultat.
@@ -1417,6 +1422,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // boucle — chaque paire trouvée changerait le classement, donc le top K,
     // donc la file.
     triees: fullSortedCandidates,
+    // ⚠️ Accesseur : `pageCandidates` se calcule PLUS BAS (il dépend du
+    // classement corrigé par cette file). Lu au moment de traiter, il voit
+    // toujours la page réellement à l’écran.
+    pageAffichee: () => pageAfficheeRef.current,
     faireParams: faireParamsArtefacts,
     // ⚠️ Les stats du candidat ont été calculées avec la paire SUPPOSÉE. La
     // principale d'un artéfact entrant dans les stats, il faut les refaire avec
@@ -1509,6 +1518,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
     [affichees, resultsPage]
   );
+  // ⚠️ Renseignée à CHAQUE rendu : c’est ce qui fait qu’un changement de page
+  // repriorise la file sans rien relancer ni invalider.
+  pageAfficheeRef.current = pageCandidates;
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode

@@ -61,6 +61,42 @@ export default function testArtefactFile() {
     );
   }
 
+  titre('File d’artéfacts — la page consultée passe AVANT le top K');
+
+  // ⚠️ **Sans ça, aucune page au-delà de la K-ième n'aurait jamais sa paire**,
+  // quelle que soit la valeur de K. Le top K est une avance de fond pour les
+  // premières pages ; ce que l'utilisateur REGARDE doit passer devant.
+  {
+    const triees = [build(1), build(2), build(3), build(4), build(5)];
+    // L'utilisateur est sur une page profonde : ces builds sont hors du top K.
+    const page = [build(40), build(41)];
+    egal(
+      prochainsATraiter(triees, new Set(), 2, page).map(cleBuild),
+      ['40', '41', '1', '2'],
+      'la page consultée est traitée EN PREMIER, puis le top K'
+    );
+    // ⚠️ Sans la page, ces builds ne seraient JAMAIS servis — c'est le défaut
+    // que ce paramètre corrige.
+    egal(
+      prochainsATraiter(triees, new Set(), 2).map(cleBuild),
+      ['1', '2'],
+      'sans page fournie, seul le top K est traité (comportement d’origine)'
+    );
+    // ⚠️ Un build de la page figure PRESQUE TOUJOURS aussi dans le top K : la
+    // déduplication n'est donc plus défensive, elle est nécessaire.
+    egal(
+      prochainsATraiter(triees, new Set(), 3, [build(2)]).map(cleBuild),
+      ['2', '1', '3'],
+      'un build à la fois dans la page ET dans le top K n’est mis en file qu’UNE fois'
+    );
+    // Et le cache prime toujours : rien n’est refait, même sur la page.
+    egal(
+      prochainsATraiter(triees, new Set(['40']), 1, page).map(cleBuild),
+      ['41', '1'],
+      'un build déjà optimisé n’est pas repris, même s’il est à l’écran'
+    );
+  }
+
   titre('File d’artéfacts — un build optimisé passe devant, sans emballement');
 
   // ⚠️ **La propriété qui rend le reclassement SÛR** : optimiser un build ne

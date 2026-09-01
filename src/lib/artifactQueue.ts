@@ -103,24 +103,42 @@ export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string
 export function prochainsATraiter(
   triees: readonly BuildCandidate[],
   deja: ReadonlySet<string>,
-  K: number
+  K: number,
+  /**
+   * La page RÉELLEMENT affichée, traitée EN PRIORITÉ sur le top-K.
+   *
+   * ⚠️ **Sans elle, aucune page au-delà de la K-ième n'aurait jamais sa
+   * paire** — quelle que soit la valeur de K. Le top-K est une avance de fond
+   * pour les premières pages ; c'est celle qu'on regarde qui doit être servie
+   * d'abord, parce qu'elle est sous les yeux.
+   *
+   * ⚠️ Passer la page AFFICHÉE (et non la page de l'ordre de base) crée bien
+   * une dépendance de la file envers sa propre sortie. Elle CONVERGE, par le
+   * même argument que le reclassement : optimiser ne peut que faire monter un
+   * build, donc l'ensemble à traiter rétrécit. Et le cache n'étant
+   * qu'accumulé, aucun travail n'est refait.
+   */
+  pageAffichee: readonly BuildCandidate[] = []
 ): BuildCandidate[] {
   const out: BuildCandidate[] = [];
   const vusDansCeLot = new Set<string>();
-  for (let i = 0; i < triees.length && i < K; i++) {
-    const c = triees[i]!;
+  // La page d'abord, puis le top-K — sans dépasser K au total : la file reste
+  // bornée, et une page profonde ne déclenche pas un travail illimité.
+  const aParcourir = [...pageAffichee, ...triees.slice(0, K)];
+  for (let i = 0; i < aParcourir.length; i++) {
+    const c = aParcourir[i]!;
     const cle = cleBuild(c);
-    // `vusDansCeLot` en plus de `deja` : garde DÉFENSIVE, sans chemin connu
-    // qui la déclenche aujourd'hui.
+    // ⚠️ `vusDansCeLot` en plus de `deja` — et ce n'est PLUS une garde
+    // défensive depuis que la page affichée précède le top-K : un build de la
+    // page figure presque toujours AUSSI dans le top-K, donc deux fois dans
+    // `aParcourir`. Sans cette garde, il partirait deux fois en file.
     //
-    // ⚠️ Vérifié plutôt que supposé — l'aperçu accumulé ne contient PAS de
-    // doublon : `maybeEscalateNodeBudget` relève le plafond du générateur EN
+    // ⚠️ Le flux de candidats, lui, n'en produit pas : vérifié plutôt que
+    // supposé — `maybeEscalateNodeBudget` relève le plafond du générateur EN
     // COURS sans rien relancer, les deltas sont découpés par un curseur
     // strictement monotone (`allCandidates.slice(candidatesSent)`,
     // runeBuildOptim.worker.ts), les tranches de `bucketsA` sont disjointes, et
-    // la réception est un pur `concat`. La garde reste parce qu'elle coûte O(1)
-    // et que ce module ne contrôle pas ce flux — pas parce qu'un doublon est
-    // attendu.
+    // la réception est un pur `concat`.
     if (deja.has(cle) || vusDansCeLot.has(cle)) continue;
     vusDansCeLot.add(cle);
     out.push(c);

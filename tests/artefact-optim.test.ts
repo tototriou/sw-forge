@@ -24,6 +24,7 @@ import {
   type ArtifactSearchParams,
 } from '../src/lib/artifactOptim';
 import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
+import { codesAmplificationActifs, DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { mainsPourCeCompte } from '../src/lib/optimizerRecipe';
 import { formatArtifactSub, splitArtifactSub, valeurArtefactPropre } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
@@ -613,5 +614,73 @@ export function testRecettePartagee() {
   {
     const r = { artifactMainByKind: { element: 102, archetype: 'libre' } as const, wizardName: 'Alice' };
     egal(mainsPourCeCompte(r, 'Bob').bascules, false, 'rien à basculer : aucune annonce');
+  }
+}
+
+// Une AMPLIFICATION de buff survit à la dominance quand son buff est actif.
+//
+// ⚠️ Ce test protège un défaut que la sonde de pertinence ne peut PAS voir :
+// elle mesure chaque sous-propriété SEULE, or une amplification n'agit qu'en
+// combinaison avec une ligne de dégâts bruts de la même statistique. Sondée
+// isolément elle donne un delta nul, donc « non pertinente », donc éliminable
+// par dominance — alors qu'elle vaut des dégâts. Signalé par l'utilisateur.
+export function testAmplificationSurvitDominance() {
+  const porteur = { element: 'dark' as ElementKey, archetype: 'attack' as ArtifactArchetype };
+  const art = (id: number, subs: { code: number; value: number }[]): ArtifactDetail => ({
+    id, kind: 'element', element: 'dark', level: 15, rarity: 5,
+    main: { code: 101, value: 100 }, subs,
+  });
+
+  // Le porteur d'amplification (206) est STRICTEMENT moins bon sur tout le
+  // reste : sans protection, il est dominé et disparaît.
+  const ampli = art(1, [{ code: 206, value: 30 }]);
+  const gros = art(2, [{ code: 219, value: 20 }]);
+
+  const base = {
+    porteur,
+    inventaire: [ampli, gros],
+    equipes: [],
+    principaleParSorte: {},
+    // Évaluateur MINIMAL : ne voit que la ligne 219 (dégâts bruts en prop. de
+    // ATQ). Il ignore 206, exactement comme la sonde — c'est le point.
+    evaluer: (arts: ArtifactDetail[]) =>
+      arts.reduce((n, a) => n + (a.subs.find((s) => s.code === 219)?.value ?? 0), 0),
+  };
+
+  {
+    const sans = preFiltrerCandidats(candidatsParSorte(base, 'element'), 'element', [], analyserPertinence(base));
+    egal(sans.includes(ampli), false, 'sans le correctif, l’amplification est bien éliminée par dominance');
+  }
+
+  {
+    const avec = { ...base, codesAmplification: [206] };
+    const gardes = preFiltrerCandidats(candidatsParSorte(avec, 'element'), 'element', [], analyserPertinence(avec));
+    egal(gardes.includes(ampli), true, 'déclarée pertinente, elle survit à la dominance');
+    egal(gardes.includes(gros), true, '… et le gros porteur de dégâts reste évidemment');
+  }
+
+  // ⚠️ Ajouter un code ne peut RIEN écarter à tort : la dominance en devient
+  // plus stricte, jamais plus permissive. Un code inactif ne change donc rien.
+  {
+    const inactif = { ...base, codesAmplification: [] };
+    egal(
+      preFiltrerCandidats(candidatsParSorte(inactif, 'element'), 'element', [], analyserPertinence(inactif)).includes(ampli),
+      false,
+      'liste vide : comportement d’origine, aucun effet de bord'
+    );
+  }
+
+  // La correspondance code ↔ buff vit dans damage.ts, pas ici.
+  {
+    const nu = { ...DEFAULT_DAMAGE_SETUP, atkBuff: false, defBuff: false, spdBuff: false };
+    egal(codesAmplificationActifs(nu).length, 0, 'aucun buff : aucun code protégé');
+    egal(codesAmplificationActifs({ ...nu, spdBuff: true }), [206], 'buff VIT : le 206 seul');
+    egal(codesAmplificationActifs({ ...nu, atkBuff: true }), [204, 226], 'buff ATQ : 204 ET 226');
+    egal(codesAmplificationActifs({ ...nu, defBuff: true }), [205, 226], 'buff DEF : 205 ET 226');
+    egal(
+      codesAmplificationActifs({ ...nu, atkBuff: true, defBuff: true }).filter((c) => c === 226).length,
+      1,
+      '226 compte pour les deux buffs, mais n’apparaît qu’une fois'
+    );
   }
 }

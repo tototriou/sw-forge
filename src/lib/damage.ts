@@ -290,6 +290,38 @@ const CODE_AMPLI_DEF = 205;
 const CODE_AMPLI_VIT = 206;
 const CODE_AMPLI_ATK_DEF = 226;
 
+/**
+ * Les codes d'amplification de buff qui augmentent RÉELLEMENT les dégâts,
+ * compte tenu des buffs actifs sur le monstre.
+ *
+ * ⚠️ **Existe parce qu'une sonde ligne-par-ligne ne peut pas les voir.**
+ * `analyserPertinence` (artifactOptim.ts) mesure l'effet de CHAQUE
+ * sous-propriété **seule** sur un artéfact synthétique. Or une amplification
+ * de buff n'agit qu'en **combinaison** : le code 206 augmente les dégâts
+ * bruts « en prop. de VIT » parce que `statsDeCombat` renvoie
+ * `spd: maVitCombat(…, ampliVitPct)` — mais sondé seul, sans aucune ligne
+ * 218-221, il donne des dégâts nuls avec comme sans. Delta zéro, donc classé
+ * non pertinent, donc **éliminable par dominance** alors qu'il vaut des
+ * dégâts. Signalé par l'utilisateur.
+ *
+ * ⚠️ **Indépendant du scaling du sort.** Les dégâts bruts ne passent pas par
+ * la formule du sort : un monstre qui ne scale pas sur la DEF gagne quand
+ * même d'un code 205 s'il a un buff de DEF et une ligne « Dgts supp. en prop.
+ * de DEF ».
+ *
+ * ⚠️ **226 compte pour les DEUX** : c'est une seule ligne du jeu qui
+ * amplifie le buff d'ATQ et celui de DEF, d'où sa présence dès que l'un ou
+ * l'autre est actif.
+ */
+export function codesAmplificationActifs(setup: DamageSetup): number[] {
+  const codes: number[] = [];
+  if (setup.atkBuff) codes.push(CODE_AMPLI_ATK);
+  if (setup.defBuff) codes.push(CODE_AMPLI_DEF);
+  if (setup.spdBuff) codes.push(CODE_AMPLI_VIT);
+  if (setup.atkBuff || setup.defBuff) codes.push(CODE_AMPLI_ATK_DEF);
+  return codes;
+}
+
 // « Dgts supp. en prop. de <stat> » — des dégâts BRUTS ajoutés À CHAQUE COUP,
 // proportionnels à une stat de l'attaquant. Ni critiques, ni mitigés par la
 // défense adverse (confirmé par l'utilisateur).

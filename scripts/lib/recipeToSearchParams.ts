@@ -26,7 +26,7 @@ import {
   resolveDamageSkill,
 } from '../../src/lib/damage';
 import { computeStats } from '../../src/lib/stats';
-import { artifactDamageProfile, computeTotalDamage } from '../../src/lib/damage';
+import { artifactDamageProfile, codesAmplificationActifs, computeTotalDamage } from '../../src/lib/damage';
 import { paireRepresentative, type ChoixPrincipale } from '../../src/lib/artifactOptim';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
@@ -168,6 +168,12 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
     // noterait tous les candidats sur un potentiel que la paire finale ne
     // pourra pas atteindre.
     lignesVerrouillees: recipe.lignesVerrouillees ?? [],
+    // ⚠️ **Second constructeur d'`ArtifactSearchParams`** (l'autre est
+    // `artifactParams`, OptimizerSection.tsx) : sans cette ligne, le CLI
+    // élaguerait des artéfacts que l'écran garde, et ne reproduirait donc pas
+    // la même paire supposée. Une amplification de buff est invisible à la
+    // sonde de pertinence — voir `codesAmplificationActifs` (damage.ts).
+    codesAmplification: codesAmplificationActifs(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP),
     evaluer,
   });
 }

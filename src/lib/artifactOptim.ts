@@ -171,6 +171,22 @@ export interface ArtifactSearchParams {
   // Sous-propriétés exigées, avec leur minimum CUMULÉ sur la paire.
   lignesVerrouillees?: LigneVerrouillee[];
   /**
+   * Codes d'amplification de buff à considérer comme PERTINENTS d'office —
+   * `codesAmplificationActifs(damageSetup)` (damage.ts), qui possède la
+   * correspondance code ↔ buff.
+   *
+   * ⚠️ **La sonde de `analyserPertinence` ne peut pas les découvrir.** Elle
+   * mesure chaque sous-propriété SEULE : une amplification de buff n'agit
+   * qu'en combinaison avec une ligne de dégâts bruts de la même statistique,
+   * et donne donc un delta NUL sondée isolément. Elle serait classée non
+   * pertinente, donc éliminable par dominance, alors qu'elle vaut des dégâts.
+   *
+   * ⚠️ Les ajouter ne peut RIEN écarter à tort : la dominance en devient plus
+   * stricte, jamais plus permissive. Le seul coût est un élagage moins
+   * agressif.
+   */
+  codesAmplification?: number[];
+  /**
    * Chiffrer aussi ce que les verrous coûtent SUR CE BUILD.
    *
    * ⚠️ **Ce n'est pas gratuit, et ça ne peut pas l'être** : on ne peut pas à la
@@ -295,6 +311,17 @@ export function analyserPertinence(params: ArtifactSearchParams): Pertinence {
     const delta = params.evaluer([sonde(kind, [{ code, value: plafond }])]) - params.evaluer([sonde(kind, [])]);
     if (delta > EPSILON_SONDE) croissants.add(code);
     else if (delta < -EPSILON_SONDE) ambigus.add(code);
+  }
+  // ⚠️ **Ajoutés SANS sonde, et c'est le seul moyen.** Une amplification de
+  // buff n'agit qu'en COMBINAISON avec une ligne de dégâts bruts de la même
+  // statistique ; sondée seule, elle donne un delta nul et serait classée non
+  // pertinente — donc éliminable par dominance alors qu'elle vaut des dégâts.
+  // Voir `codesAmplificationActifs` (damage.ts) pour le détail du mécanisme.
+  // ⚠️ Retirés d'`ambigus` au passage : une sonde isolée a pu les y mettre sur
+  // du bruit de flottant, et un code ambigu est traité différemment.
+  for (const code of params.codesAmplification ?? []) {
+    ambigus.delete(code);
+    croissants.add(code);
   }
   return { croissants, ambigus };
 }

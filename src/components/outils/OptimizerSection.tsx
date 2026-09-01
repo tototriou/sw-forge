@@ -90,6 +90,7 @@ import {
   monsterOffensivePassives,
   resolveDamageSkill,
   champsDuCombat,
+  codesAmplificationActifs,
   CRIT_MODE_LABELS,
   SUMMONER_SKILLS_LABELS,
   type DamageSetup,
@@ -1106,6 +1107,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       equipes: selected.gear.artifacts,
       principaleParSorte: artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
       lignesVerrouillees,
+      // ⚠️ Sans ça, une amplification de buff est éliminée par dominance alors
+      // qu'elle vaut des dégâts — la sonde de pertinence ne peut pas la voir
+      // (voir `codesAmplificationActifs`, damage.ts).
+      codesAmplification: codesAmplificationActifs(damageSetup),
       evaluer,
     };
   }, [selected, ignoreArtifacts, artifactMainByKind, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);

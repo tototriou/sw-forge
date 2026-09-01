@@ -638,10 +638,22 @@ retour.
 6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
    artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
    comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :
-   **« Comme équipé »** (défaut, reprend l'artéfact du build de BASE),
-   **« Libre »** (cherche la meilleure pièce parmi TOUS les artéfacts
-   équipables), **ATQ +100**, **DEF +100**, **PV +1500** (les trois
+   **« Garder l'artéfact équipé »** (défaut), **« Libre »** (cherche le
+   meilleur artéfact parmi TOUS les artéfacts équipables), **Principale
+   ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
    statistiques principales d'artéfact du jeu), ou **« Aucun »**.
+
+   ⚠️ **« Garder l'artéfact équipé » conserve la PIÈCE ENTIÈRE**, ses quatre
+   sous-propriétés comprises : le pool de cet emplacement tombe à **un seul
+   candidat**, l'exemplaire réellement porté (ou rien, s'il n'est pas
+   éligible pour ce monstre). Rien n'est cherché.
+
+   ⚠️ Ce choix s'appelait **« Comme équipé »**, et le mot « principale »
+   n'apparaissait nulle part. Posé au milieu de trois statistiques
+   principales, il se lisait « la principale, comme équipé » — une liste se
+   lit comme homogène. Signalé à l'usage. Le qualificatif a donc été ajouté
+   aux entrées qui filtrent **réellement** par stat principale, et le choix
+   qui garde la pièce dit maintenant qu'il la garde.
 
    ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », plus dans
    la colonne droite de « Critères de recherche ». L'interrupteur

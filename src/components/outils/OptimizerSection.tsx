@@ -2770,12 +2770,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           </div>
           <p className="text-[13.5px] font-bold text-ink">Artéfacts</p>
           <HelpPopover title="Artéfacts">
-            <b className="text-ink">« Comme équipé »</b> reprend l'artéfact du build de base (celui affiché
-            ci-dessus) porté à cet emplacement — utile de le changer si ce monstre porte des artéfacts différents
-            en RTA ou dans un deck de siège, puisque ce build de base n'est pas forcément celui que tu cherches à
-            reproduire. <b className="text-ink">« Libre »</b> cherche le meilleur artéfact parmi tous tes artéfacts
-            équipables ; choisir une statistique restreint cette recherche à tes artéfacts qui la portent.{' '}
-            <b className="text-ink">« Aucun »</b> retire l'emplacement même s'il est réellement équipé.
+            <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce
+            <b className="text-ink"> entière</b> portée à cet emplacement sur le build de base (celui affiché
+            ci-dessus), avec ses quatre sous-propriétés : rien n&apos;est cherché ici. Utile de le changer si ce
+            monstre porte des artéfacts différents en RTA ou dans un deck de siège, puisque ce build de base
+            n&apos;est pas forcément celui que tu cherches à reproduire.{' '}
+            <b className="text-ink">« Libre »</b> cherche le meilleur artéfact parmi tous tes artéfacts
+            équipables ; une <b className="text-ink">principale</b> restreint cette recherche à tes artéfacts qui
+            la portent. <b className="text-ink">« Aucun »</b> retire l&apos;emplacement même s&apos;il est
+            réellement équipé.
             <br />
             <br />
             Les artéfacts retenus sont toujours des artéfacts que tu <b className="text-ink">possèdes</b>, avec leurs
@@ -2815,7 +2818,14 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   surface="panel2"
                   pleineLargeur={false}
                 >
-                  <option value="equipped">Comme équipé</option>
+                  {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
+                      ce choix conserve la PIÈCE entière — le pool tombe à un
+                      seul candidat, l'exemplaire porté avec ses quatre
+                      sous-propriétés (voir `candidatsParSorte`,
+                      artifactOptim.ts). L'ancien libellé, posé au milieu de
+                      trois statistiques principales, se lisait « la
+                      principale, comme équipé ». Signalé à l'usage. */}
+                  <option value="equipped">Garder l&apos;artéfact équipé</option>
                   {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
                       été ajouté qu’une fois celle-ci construite, pour ne pas laisser
                       une option morte dans le sélecteur. */}

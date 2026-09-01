@@ -265,10 +265,17 @@ export const SLOT_FILTER_PRESETS: { key: SlotFilterPresetKey; label: string; cap
 // (codes 100/101/102 = PV/ATQ/DEF, voir ARTIFACT_MAIN dans effects.ts) — la
 // valeur elle-même n'est jamais un choix libre, seule la STAT l'est.
 export const ARTIFACT_MAIN_VALUE: Record<100 | 101 | 102, number> = { 100: 1500, 101: 100, 102: 100 };
+// ⚠️ **« Principale » explicite dans le libellé.** Ces trois entrées côtoient
+// « Garder l'artéfact équipé », « Libre » et « Aucun » dans le même sélecteur,
+// et une liste se lit comme homogène : sans ce mot, « Comme équipé » (l'ancien
+// libellé) se lisait « la principale, comme équipé » — alors que ce choix
+// conserve la PIÈCE entière, sous-propriétés comprises. Signalé à l'usage. Le
+// qualificatif atterrit donc sur les entrées qui filtrent RÉELLEMENT par stat
+// principale, jamais sur celle qui garde l'artéfact.
 export const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
-  { code: 101, label: 'ATQ +100' },
-  { code: 102, label: 'DEF +100' },
-  { code: 100, label: 'PV +1500' },
+  { code: 101, label: 'Principale ATQ +100' },
+  { code: 102, label: 'Principale DEF +100' },
+  { code: 100, label: 'Principale PV +1500' },
 ];
 
 // Stats individuellement pertinentes pour chaque objectif — sert à élargir

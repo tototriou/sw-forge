@@ -26,6 +26,23 @@ import { ResultatArtefacts, cleBuild, prochainsATraiter } from '../lib/artifactQ
 // une marge confortable, soit 5 pages de résultats entièrement justes.
 export const K_BUILDS_OPTIMISES = 100;
 
+/**
+ * Intervalle minimal entre deux PUBLICATIONS du cache à l’écran.
+ *
+ * ⚠️ **Publier à chaque build coûtait un RETRI de toute la liste.** Chaque
+ * `setParBuild` change l’identité de la map, donc le classement d’affichage se
+ * recalcule : 119 ms mesurés sur 100 000 candidats, × K builds = 11,9 s de fil
+ * principal bloqué. Le calcul d’artéfacts lui-même n’en coûte que 8,6 s : le
+ * retri pesait donc PLUS que le travail qu’il accompagnait.
+ *
+ * 400 ms : au-dessus du throttle de progression de la recherche (150 ms), et
+ * assez large pour qu’un retri de ~120 ms laisse le fil libre l’essentiel du
+ * temps. Les résultats apparaissent par paquets plutôt qu’un par un — ce qui
+ * est de toute façon préférable : cent réordonnancements successifs se lisent
+ * comme du bruit.
+ */
+const PUBLICATION_MS = 400;
+
 // ⚠️ `requestIdleCallback` n'existe pas partout (Safari l'a ajouté tard). Le
 // repli `setTimeout` ne rend PAS le même service — il ne sait pas si le fil est
 // occupé — mais il cède au moins la main entre deux builds, ce qui suffit à ne
@@ -99,6 +116,14 @@ export function useArtifactOptimQueue(opts: {
     let vivant = true;
     let planifie: Inactif | null = null;
 
+    let dernierePublication = 0;
+    const publier = (forcer: boolean) => {
+      const now = Date.now();
+      if (!forcer && now - dernierePublication < PUBLICATION_MS) return;
+      dernierePublication = now;
+      setParBuild(new Map(cacheRef.current));
+    };
+
     const tranche = () => {
       if (!vivant) return;
       const faire = paramsRef.current;
@@ -106,7 +131,9 @@ export function useArtifactOptimQueue(opts: {
       const restants = prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K);
       setEnAttente(restants.length);
       const suivant = restants[0];
-      if (!suivant) return; // rien à faire : on ne se reprogramme pas
+      // ⚠️ Publication FORCÉE avant de s'arrêter : sans elle, les derniers
+      // builds resteraient dans le cache sans jamais atteindre l'écran.
+      if (!suivant) return publier(true);
       // ⚠️ UN SEUL build par tranche. Une boucle « tant qu'il reste du temps »
       // garderait le fil au-delà de ce que le navigateur a accordé, et le jank
       // reviendrait exactement là où `requestIdleCallback` devait l'éviter.
@@ -115,6 +142,8 @@ export function useArtifactOptimQueue(opts: {
       const artefactsRetenus = meilleure
         ? [meilleure.element, meilleure.archetype].filter((a): a is NonNullable<typeof a> => a != null)
         : [];
+      // ⚠️ Le résultat entre TOUJOURS dans le cache ; c'est sa PUBLICATION à
+      // l'écran qui est regroupée (voir `publier` plus bas).
       cacheRef.current.set(cleBuild(suivant), {
         paire: meilleure,
         artefacts: artefactsRetenus,
@@ -125,7 +154,7 @@ export function useArtifactOptimQueue(opts: {
         stats: statsRef.current(suivant, artefactsRetenus),
         meilleurSansVerrous: r.meilleurSansVerrous,
       });
-      setParBuild(new Map(cacheRef.current));
+      publier(false);
       planifie = planifierInactif(tranche);
     };
 

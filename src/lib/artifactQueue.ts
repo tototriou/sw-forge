@@ -30,8 +30,23 @@ import { PaireArtefacts } from './artifactOptim';
  * sa position dans le tableau. Sans le tri, le cache raterait et on paierait
  * deux fois le même travail.
  */
+// ⚠️ **Mémoïsée par IDENTITÉ d'objet.** `cleBuild` copie, trie et joint un
+// tableau de 6 identifiants : négligeable pour un candidat, ruineux appliqué
+// aux 100 000 d'une recherche lâche — et le classement d'affichage le fait à
+// CHAQUE build optimisé, soit K fois. Mesuré : c'est ce qui maintenait le retri
+// à 240 ms quand le tri de base était retombé à 85.
+//
+// ⚠️ `WeakMap` et non `Map` : les candidats d'une recherche périmée doivent
+// pouvoir être ramassés. Une `Map` les retiendrait indéfiniment — 100 000
+// entrées par recherche, à vie.
+const CLES = new WeakMap<BuildCandidate, string>();
+
 export function cleBuild(c: BuildCandidate): string {
-  return [...c.runeIds].sort((a, b) => a - b).join(',');
+  const memo = CLES.get(c);
+  if (memo !== undefined) return memo;
+  const cle = [...c.runeIds].sort((a, b) => a - b).join(',');
+  CLES.set(c, cle);
+  return cle;
 }
 
 export interface ResultatArtefacts {

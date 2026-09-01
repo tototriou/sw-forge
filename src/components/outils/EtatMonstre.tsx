@@ -111,7 +111,18 @@ export default function EtatMonstre({
         <LeaderSkillPicker setup={setup} maj={maj} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+      {/* ⚠️ **Libellé AU-DESSUS des crans, pas à leur gauche** (demande
+          explicite) : côte à côte, « Invocateur » et ses trois crans
+          formaient le groupe le plus large des trois et poussaient la rangée
+          à se replier plus tôt. Empilé, le groupe ne fait plus que la largeur
+          du segmenté.
+          ⚠️ **Sans changer la hauteur de la carte** : le groupe passe à deux
+          rangées, mais le voisin « Lead » en fait déjà deux et `items-stretch`
+          aligne les trois boîtes sur la plus haute. Celle-ci reste donc celle
+          du lead — l'invocateur se contente de remplir la place qui existait
+          déjà. */}
+      <div className="flex flex-col gap-1 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+        <div className="flex items-center gap-1.5">
         <span className="text-xs text-ink-dim">Invocateur</span>
         <HelpPopover title="Compétences d'invocateur">
           Remplacent les anciens <b className="text-ink">totems</b> (onglet Combat) et{' '}
@@ -122,6 +133,7 @@ export default function EtatMonstre({
           compétence <b className="text-ink">« Puis. d&apos;att. de {'<'}élément{'>'} »</b> est appliquée selon
           l&apos;élément du monstre, sans rien demander.
         </HelpPopover>
+        </div>
         {/* `size="sm"` et non `lg` : sur trois crans dans une carte étroite,
             la taille d'origine (héritée d'une carte pleine largeur) débordait. */}
         <Segmented<SummonerSkills>

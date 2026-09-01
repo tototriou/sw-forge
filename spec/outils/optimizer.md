@@ -204,6 +204,9 @@ avertissement d'un côté, les **trois interrupteurs** de l'autre.
   individuelles, le premier interrupteur portait un trait en tête de colonne —
   anodin quand tout était empilé sous le pré-filtrage, lu comme une ligne
   perdue une fois le groupe posé à côté.
+- Chacune des deux parties porte son **contour**, aux **mêmes classes** que
+  les trois groupes d'« État de mon monstre » : deux façons de cadrer un
+  groupe dans le même écran se liraient comme deux natures différentes.
 
 ⚠️ Son état d'ouverture est **local à l'écran**, pas remonté dans
 `useOptimizerState` : c'est de l'ouverture/fermeture, pas un critère de
@@ -791,6 +794,14 @@ retour.
    qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt ou
    dans une colonne étroite, ils repassent à la ligne plutôt que de comprimer
    les contrôles sous leur taille de cible.
+
+   Dans le groupe **Invocateur**, le libellé et son aide sont **au-dessus**
+   des trois crans, pas à leur gauche (demande explicite) : côte à côte, ils
+   formaient le groupe le plus large des trois et faisaient replier la rangée
+   plus tôt. ⚠️ **Sans changer la hauteur de la carte** — le groupe passe à
+   deux rangées, mais « Lead » en fait déjà deux et `items-stretch` aligne les
+   trois boîtes sur la plus haute : l'invocateur ne fait que remplir une place
+   qui existait déjà.
 
    Chacun porte son **contour** (demande explicite : « barres verticales ou
    contours »). ⚠️ **Des boîtes et non des barres**, alors qu'une barre aurait

@@ -2997,8 +2997,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               dessous de ~520 px, une seule colonne ; au-delà, deux. Ça vaut
               aussi pour le panneau « Options » au doigt, sans une seule classe
               conditionnelle. */
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-x-6 gap-y-3">
-          <div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
+          {/* ⚠️ Mêmes classes de boîte que les trois groupes d'« État de mon
+              monstre » (EtatMonstre.tsx) : deux façons de cadrer un groupe
+              dans cet écran se liraient comme deux natures différentes. */}
+          <div className="rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
             <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
             <div className="flex flex-wrap items-center gap-2">
               <Segmented
@@ -3027,7 +3030,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               trait en tête de colonne — anodin quand tout était empilé sous le
               pré-filtrage, mais lu comme une ligne perdue une fois le groupe
               posé en colonne à côté. */}
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
             {/* Toggle, même patron que « Prioriser les stats les plus
                 difficiles » : désactivé par défaut, lu par `handleSearch` au
                 clic sur « Rechercher », jamais un bouton qui lance sa propre

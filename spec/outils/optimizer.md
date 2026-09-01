@@ -256,16 +256,21 @@ retour.
    **Importer un nouveau compte** déclenche la réinitialisation complète,
    pour la même raison (autre box, autre pool de runes possible) — même en
    étant sur un autre onglet au moment de l'import.
-2 bis. **« Meilleurs artéfacts pour ce build »** — sous la fiche, la meilleure
-   paire d'artéfacts pour l'équipement **affiché**, avec ce qu'elle apporte face
-   à celle qui est portée. Optimise les artéfacts **seuls**, sans lancer de
-   recherche de runes : le cas visé est un monstre runé pour un autre objectif
-   (un tank fait pour survivre) à qui les artéfacts ajoutent des dégâts
-   par-dessus.
+2 bis. **« Meilleurs artéfacts pour ce build »** — en bas de la carte
+   **Artéfacts**, la meilleure paire pour l'équipement **affiché**, avec ce
+   qu'elle apporte face à celle qui est portée. Optimise les artéfacts
+   **seuls**, sans lancer de recherche de runes : le cas visé est un monstre
+   runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
+   ajoutent des dégâts par-dessus.
 
-   ⚠️ Affiché **à côté** de la fiche, jamais à la place de ses artéfacts : la
-   fiche montre l'équipement RÉEL, et y substituer une proposition ferait croire
-   à un équipement qu'on ne porte pas.
+   ⚠️ **Jamais à la place des artéfacts de la fiche** : celle-ci montre
+   l'équipement RÉEL, et y substituer une proposition ferait croire à un
+   équipement qu'on ne porte pas. Cette règle était d'abord satisfaite en
+   affichant le bloc **sous** la fiche ; elle l'est désormais en le mettant
+   dans la carte **voisine**, sous « Exemplaire » — la fiche dit ce qu'on
+   PORTE, la carte Artéfacts ce qu'on DEVRAIT porter, et elles se touchent.
+   Le bloc rejoint ainsi les réglages qui le pilotent, au lieu d'en être
+   séparé par une carte entière.
 
    Quand la paire portée est déjà la meilleure, l'écran le **dit** au lieu
    d'afficher « +0,0 % » — un zéro ressemble à une panne, la phrase est une
@@ -590,7 +595,21 @@ retour.
    **« Libre »** (cherche la meilleure pièce parmi TOUS les artéfacts
    équipables), **ATQ +100**, **DEF +100**, **PV +1500** (les trois
    statistiques principales d'artéfact du jeu), ou **« Aucun »**.
-   **Colonne DROITE** de la carte, avec le point suivant.
+
+   ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », plus dans
+   la colonne droite de « Critères de recherche ». L'interrupteur
+   « Ignorer les statistiques » masque d'un coup les deux listes ET les
+   lignes verrouillées : tant que le bloc vivait en tête de cette colonne,
+   ce clic faisait REMONTER « Conditions », soit un clic qui déplace ce qui
+   le suit ([shared/design.md](shared/design.md)). Le trait qui séparait
+   Artéfacts de Conditions a disparu avec lui — un trait en tête de colonne
+   ne sépare plus rien.
+
+   ⚠️ **Pas en pleine largeur** : essayé et rejeté sur capture. La pleine
+   largeur projette la puce de sorte, le champ de minimum et la croix à
+   ~1 400 px de leur libellé — une saccade d'un bout à l'autre de l'écran
+   pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
+   corrigeait.
 
    ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
    « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant

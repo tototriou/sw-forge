@@ -2267,7 +2267,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
               {validatedBadge}
               <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
-              {blocArtefactsSeuls}
               {validateBuildButton}
             </div>
           </div>
@@ -2334,7 +2333,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
             {validatedBadge}
             <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
-            {blocArtefactsSeuls}
               {validateBuildButton}
           </div>
         </div>
@@ -2443,90 +2441,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         </div>
 
         <div>
+      {/* ⚠️ Le bloc « Artéfacts » vivait ICI, en tête de cette colonne, au-
+          dessus de Conditions. Déplacé dans sa PROPRE carte (colonne 2,
+          rangée 2 — voir plus bas) : son interrupteur « Ignorer les
+          statistiques » masquait sélecteurs et lignes verrouillées d'un coup,
+          ce qui faisait REMONTER Conditions sous le doigt. Cette colonne ne
+          porte donc plus que Conditions, et le trait qui les séparait a
+          disparu avec lui — un trait en TÊTE de colonne, sans rien au-dessus,
+          ne sépare plus rien. */}
       <div>
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <div className="flex items-center gap-1.5">
-            <p className="label">Artéfacts</p>
-            <HelpPopover title="Artéfacts">
-              <b className="text-ink">« Comme équipé »</b> reprend l'artéfact du build de base (celui affiché
-              ci-dessus) porté à cet emplacement — utile de le changer si ce monstre porte des artéfacts différents
-              en RTA ou dans un deck de siège, puisque ce build de base n'est pas forcément celui que tu cherches à
-              reproduire. <b className="text-ink">« Libre »</b> cherche la meilleure pièce parmi tous tes artéfacts
-              équipables ; choisir une statistique restreint cette recherche à tes artéfacts qui la portent.{' '}
-              <b className="text-ink">« Aucun »</b> retire l'emplacement même s'il est réellement équipé.
-              <br />
-              <br />
-              Les artéfacts retenus sont toujours des pièces que tu <b className="text-ink">possèdes</b>, avec leurs
-              sous-propriétés : si tu n'en as aucune portant la statistique demandée, l'emplacement reste vide.
-            </HelpPopover>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
-            <HelpPopover title="Ignorer les statistiques des artéfacts">
-              Activé, la recherche ne compte <b className="text-ink">aucune</b> statistique d'artéfact (comme si le
-              monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque
-              emplacement ci-dessous.
-            </HelpPopover>
-            <Interrupteur
-              actif={ignoreArtifacts}
-              onChange={setIgnoreArtifacts}
-              aria-label="Ignorer les statistiques des artéfacts"
-            />
-          </div>
-        </div>
-        {!ignoreArtifacts && (
-          <div className="flex flex-wrap gap-3">
-            {ARTIFACT_KINDS.map(({ key, label }) => (
-              <div key={key} className="flex items-center gap-1.5">
-                <span className="text-xs text-ink w-14">{label}</span>
-                <Selecteur
-                  value={String(artifactMainByKind[key] ?? 'equipped')}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const next: ArtifactMainChoice =
-                      raw === 'equipped' || raw === 'none' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
-                    setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                >
-                  <option value="equipped">Comme équipé</option>
-                  {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
-                      été ajouté qu’une fois celle-ci construite, pour ne pas laisser
-                      une option morte dans le sélecteur. */}
-                  <option value="libre">Libre</option>
-                  {ARTIFACT_MAIN_OPTIONS.map((o) => (
-                    <option key={o.code} value={o.code}>
-                      {o.label}
-                    </option>
-                  ))}
-                  <option value="none">Aucun</option>
-                </Selecteur>
-              </div>
-            ))}
-          </div>
-        )}
-        {/* ⚠️ Sous les sélecteurs, et jamais au-dessus : les lignes
-            verrouillées se lisent comme un raffinement du choix de pièce, pas
-            comme une condition indépendante. Masqué avec le reste quand les
-            artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
-            une saisie sans effet est pire qu'une saisie absente. */}
-        {!ignoreArtifacts && (
-          <div className="mt-3">
-            <ArtifactLinesEditor
-              lignes={lignesVerrouillees}
-              onChange={setLignesVerrouillees}
-              diagnostic={diagnosticVerrous}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Trait horizontal entre Artéfacts et Conditions (demande explicite)
-          — même patron que celui entre Set de runes recherché et
-          Statistique principale imposée, colonne de gauche. */}
-      <div className="mt-4 border-t border-border-soft pt-4">
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
@@ -2663,6 +2586,125 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
 
         </div>
         </div>
+      </div>
+
+      {/* Carte À PART, PAS un bloc dans « Critères de recherche » (tranché au
+          cadrage du chantier artéfacts : « une carte dédiée Artéfacts »).
+          ⚠️ 1. L'interrupteur « Ignorer les statistiques » masque d'un coup
+          les sélecteurs ET les lignes verrouillées. Tant que le bloc vivait
+          en tête de la colonne de droite de « Critères de recherche », ce
+          clic faisait REMONTER « Conditions » — un clic qui déplace ce qui le
+          suit, interdit par spec/shared/design.md. Isolé ici, il ne déplace
+          plus que ce qui suit la carte entière.
+          2. `xl:col-start-2 xl:row-start-2` — SOUS « Exemplaire », à la place
+          libérée par « Objectif de recherche » (parti rejoindre le bouton
+          Rechercher) : le bloc se lit « ces artéfacts, sur CE build », il doit
+          toucher l'exemplaire qui fixe les runes.
+          ⚠️ **Pas en pleine largeur** : essayé, capturé, rejeté — la pleine
+          largeur projette la puce de sorte, le champ de minimum et la croix à
+          ~1 400 px de leur propre libellé, soit une saccade d'un bout à
+          l'autre de l'écran pour lire UNE ligne verrouillée.
+          ⚠️ Le placement de grille est en `xl:` UNIQUEMENT : au doigt, l'ordre
+          est celui du DOM, d'où cette carte déclarée juste après « Critères de
+          recherche ». Les deux formats sont servis par le même JSX. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {/* Même gabarit d'en-tête que les autres cartes (icône encadrée 6×6
+              + titre 13,5 px) : `GameIcon name="artifact"` existait déjà et
+              n'était pas utilisé ici — pas une icône de plus à inventer. */}
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <GameIcon name="artifact" size={15} />
+          </div>
+          <p className="text-[13.5px] font-bold text-ink">Artéfacts</p>
+          <HelpPopover title="Artéfacts">
+            <b className="text-ink">« Comme équipé »</b> reprend l'artéfact du build de base (celui affiché
+            ci-dessus) porté à cet emplacement — utile de le changer si ce monstre porte des artéfacts différents
+            en RTA ou dans un deck de siège, puisque ce build de base n'est pas forcément celui que tu cherches à
+            reproduire. <b className="text-ink">« Libre »</b> cherche la meilleure pièce parmi tous tes artéfacts
+            équipables ; choisir une statistique restreint cette recherche à tes artéfacts qui la portent.{' '}
+            <b className="text-ink">« Aucun »</b> retire l'emplacement même s'il est réellement équipé.
+            <br />
+            <br />
+            Les artéfacts retenus sont toujours des pièces que tu <b className="text-ink">possèdes</b>, avec leurs
+            sous-propriétés : si tu n'en as aucune portant la statistique demandée, l'emplacement reste vide.
+          </HelpPopover>
+          {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
+              et son aide restent collés, l'interrupteur part à droite — même
+              lecture qu'avant, dans le gabarit d'en-tête de carte. */}
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
+            <HelpPopover title="Ignorer les statistiques des artéfacts">
+              Activé, la recherche ne compte <b className="text-ink">aucune</b> statistique d'artéfact (comme si le
+              monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque
+              emplacement ci-dessous.
+            </HelpPopover>
+            <Interrupteur
+              actif={ignoreArtifacts}
+              onChange={setIgnoreArtifacts}
+              aria-label="Ignorer les statistiques des artéfacts"
+            />
+          </div>
+        </div>
+        {!ignoreArtifacts && (
+          <div className="flex flex-wrap gap-3">
+            {ARTIFACT_KINDS.map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-1.5">
+                <span className="text-xs text-ink w-14">{label}</span>
+                <Selecteur
+                  value={String(artifactMainByKind[key] ?? 'equipped')}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const next: ArtifactMainChoice =
+                      raw === 'equipped' || raw === 'none' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
+                    setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
+                  }}
+                  taille="sm"
+                  surface="panel2"
+                  pleineLargeur={false}
+                >
+                  <option value="equipped">Comme équipé</option>
+                  {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
+                      été ajouté qu’une fois celle-ci construite, pour ne pas laisser
+                      une option morte dans le sélecteur. */}
+                  <option value="libre">Libre</option>
+                  {ARTIFACT_MAIN_OPTIONS.map((o) => (
+                    <option key={o.code} value={o.code}>
+                      {o.label}
+                    </option>
+                  ))}
+                  <option value="none">Aucun</option>
+                </Selecteur>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* ⚠️ Sous les sélecteurs, et jamais au-dessus : les lignes
+            verrouillées se lisent comme un raffinement du choix de pièce, pas
+            comme une condition indépendante. Masqué avec le reste quand les
+            artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
+            une saisie sans effet est pire qu'une saisie absente. */}
+        {!ignoreArtifacts && (
+          <div className="mt-3">
+            <ArtifactLinesEditor
+              lignes={lignesVerrouillees}
+              onChange={setLignesVerrouillees}
+              diagnostic={diagnosticVerrous}
+            />
+          </div>
+        )}
+        {/* ⚠️ **Le résultat rejoint ses commandes.** « Meilleurs artéfacts pour
+            ce build » vivait sous la fiche d'équipement, avec une raison qui
+            TIENT TOUJOURS : la fiche montre l'équipement RÉEL, on n'y
+            substitue pas une proposition. Elle est satisfaite autrement — la
+            fiche dit ce qu'on PORTE, cette carte voisine ce qu'on DEVRAIT
+            porter, et elles restent côte à côte sous « Exemplaire ». Laisser
+            les réglages ici et le résultat là-bas aurait séparé la cause de
+            son effet.
+            ⚠️ Rendu UNE seule fois désormais : il était interpolé deux fois
+            (branche bureau et branche téléphone de « Monstre & équipement »),
+            alors qu'un grep de son libellé n'en montrait qu'une — cette carte
+            n'a pas de jumelle masquée. */}
+        {blocArtefactsSeuls}
       </div>
 
       {/* ⚠️ « Objectif de recherche » N'EST PLUS ICI — il a rejoint la carte

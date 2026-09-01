@@ -1000,21 +1000,33 @@ export default function DamageSetupCard({
             monstre optimisé, contrairement aux quatre autres effets
             d'équipe (un simple oui/non suffit). Même discipline que le
             stack de Momo : un champ à part, 0 % par défaut. */}
-        {setup.velaskaActif && (
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-ink-dim">Passif de Velaska — % de PV perdus</span>
-            <NumberField
-              value={setup.velaskaPvPerduPct ?? 0}
-              onChange={(v) => maj({ velaskaPvPerduPct: v ?? 0 })}
-              min={0}
-              max={100}
-              suffix="%"
-              boxWidth="w-24"
-              title="Ce que l'app ne peut pas savoir (les PV réellement perdus par le monstre optimisé) — à toi de le renseigner, 0 % par défaut"
-              ariaLabel="Pourcentage de PV perdus pour l'effet de Velaska"
-            />
-          </div>
-        )}
+        {/* ⚠️ **La place est RÉSERVÉE D'AVANCE, le champ n'apparaît pas.**
+            Rendu sous condition, il poussait toute la rangée de vignettes vers
+            le bas au moment même où on cliquait Velaska — un clic qui déplace
+            ce qu'on vient de cliquer, interdit par spec/shared/design.md.
+            Signalé à l'usage.
+            La rangée existe donc en permanence et garde sa hauteur ; seul son
+            CONTENU apparaît. `invisible` plutôt que `hidden` : l'élément
+            occupe sa place mais sort de l'ordre de tabulation et des lecteurs
+            d'écran (`aria-hidden`), sinon on tabulerait dans un champ qu'on ne
+            voit pas. */}
+        <div
+          className={`mt-2 flex items-center gap-2 ${setup.velaskaActif ? '' : 'invisible'}`}
+          aria-hidden={!setup.velaskaActif}
+        >
+          <span className="text-xs text-ink-dim">Passif de Velaska — % de PV perdus</span>
+          <NumberField
+            value={setup.velaskaPvPerduPct ?? 0}
+            onChange={(v) => maj({ velaskaPvPerduPct: v ?? 0 })}
+            min={0}
+            max={100}
+            suffix="%"
+            boxWidth="w-24"
+            disabled={!setup.velaskaActif}
+            title="Ce que l'app ne peut pas savoir (les PV réellement perdus par le monstre optimisé) — à toi de le renseigner, 0 % par défaut"
+            ariaLabel="Pourcentage de PV perdus pour l'effet de Velaska"
+          />
+        </div>
         {/* ⚠️ Le choix du leader skill est parti dans « État de mon monstre »
             (EtatMonstre.tsx) avec les buffs, et pour la même raison : il
             modifie une statistique du monstre. */}

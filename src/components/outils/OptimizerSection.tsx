@@ -1503,6 +1503,25 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     return () => document.removeEventListener('mousedown', onDown);
   }, [showAdvanced, setShowAdvanced]);
 
+  // « Exclusion de runes » (bureau) : même patron, mêmes raisons — repliée par
+  // défaut (demande explicite), donc dépliée hors flux pour ne pousser ni
+  // « Réglages avancés » en dessous ni la ligne d'estimation.
+  //
+  // ⚠️ État LOCAL et non remonté dans `useOptimizerState`, contrairement à
+  // `showAdvanced` : c'est de l'ouverture/fermeture d'écran, pas un critère de
+  // recherche. Rien à exporter dans une recette, rien à remettre à zéro au
+  // changement de monstre.
+  const exclusionRef = useRef<HTMLDivElement>(null);
+  const [showExclusion, setShowExclusion] = useState(false);
+  useEffect(() => {
+    if (!showExclusion) return;
+    const onDown = (e: MouseEvent) => {
+      if (exclusionRef.current && !exclusionRef.current.contains(e.target as Node)) setShowExclusion(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [showExclusion]);
+
   function importRecipe(file: File) {
     file.text().then((text) => {
       const { recipe, error } = parseOptimizerRecipe(text);
@@ -3303,9 +3322,41 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 commentaire) — ordre inversé avec « Réglages avancés » sur
                 demande explicite. Masquée au doigt (voir le panneau plus
                 bas). */}
-            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4">
-              <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
-              {exclusionRunesInner(false)}
+            {/* ⚠️ **Repliée par défaut** (demande explicite), et dépliée en
+                FLOTTANT hors flux — jamais un bloc qui s'ajoute.
+                C'est la contrainte de spec/shared/design.md : la carte
+                elle-même ne change JAMAIS de hauteur, donc « Réglages
+                avancés » juste en dessous et la ligne d'estimation ne
+                bougent pas d'un pixel quand on l'ouvre. Un dépliement en
+                flux les aurait poussés au moment précis du clic.
+                ⚠️ Patron RÉUTILISÉ tel quel de « Réglages avancés » (ancre
+                `ref` + `ZoneCliquable` + `FlottantAuto` + fermeture au clic
+                extérieur) plutôt que réécrit : deux mécanismes de dépliement
+                voisins auraient divergé, et celui-là avait déjà été corrigé
+                une fois pour cette même raison. */}
+            <div
+              ref={exclusionRef}
+              className="hidden lg:block relative rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4"
+            >
+              <ZoneCliquable
+                onClick={() => setShowExclusion((v) => !v)}
+                aria-expanded={showExclusion}
+                className="flex w-full items-center gap-2 text-sm font-bold text-ink"
+              >
+                {exclusionRunesTitre}
+                <ChevronDown
+                  size={14}
+                  className={`ml-auto text-ink-dim transition-transform ${showExclusion ? 'rotate-180' : ''}`}
+                />
+              </ZoneCliquable>
+              {/* ⚠️ Plus HAUT que « Réglages avancés » (~560 contre 420) : ce
+                  contenu porte deux réglages d'exclusion, le picker de
+                  monstre et la liste des runes imposées. `FlottantAuto`
+                  choisit son côté AVANT que le contenu existe, une estimation
+                  trop courte le ferait ouvrir du mauvais côté. */}
+              <FlottantAuto ouvert={showExclusion} ancre={exclusionRef} largeur={420} hauteur={560} rembourrage="md">
+                <div className="max-h-[70vh] overflow-y-auto">{exclusionRunesInner(false)}</div>
+              </FlottantAuto>
             </div>
 
             {/* ⚠️ Placée en rangée 5 (`xl:col-span-2`, pleine largeur) : ni

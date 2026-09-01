@@ -160,6 +160,23 @@ l'avance sans perdre l'intérêt d'être replié — il sort donc du flux
 qu'on vient de cliquer ». Ferme au clic extérieur, même patron que
 `HelpPopover.tsx`.
 
+⚠️ **« Exclusion de runes » est elle aussi REPLIÉE par défaut** (demande
+explicite) et déplie **le même mécanisme** — ancre `ref`, `ZoneCliquable`
+avec chevron, `FlottantAuto`, fermeture au clic extérieur. Le patron est
+**réutilisé tel quel**, jamais réécrit : deux mécanismes de dépliement
+voisins auraient divergé, et celui-là avait déjà dû être corrigé une fois
+pour exactement la raison qu'il traite. Sa fenêtre est estimée plus haute
+(560 contre 420) — elle porte deux réglages d'exclusion, le picker de
+monstre et les runes imposées ; `FlottantAuto` choisit son côté AVANT que le
+contenu existe, une estimation trop courte l'ouvrirait du mauvais côté.
+
+⚠️ Son état d'ouverture est **local à l'écran**, pas remonté dans
+`useOptimizerState` : c'est de l'ouverture/fermeture, pas un critère de
+recherche — rien à exporter dans une recette, rien à remettre à zéro au
+changement de monstre. ⚠️ **Au doigt, rien ne se replie** : le panneau
+« Options » reste tel quel, l'ouvrir EST déjà le geste « je veux voir les
+options ».
+
 ⚠️ **Placement explicite (`col-start`/`row-start`) sur CHAQUE bloc, jamais
 un réordonnancement de la source** : l'ordre du DOM reste celui de l'ordre
 d'USAGE (1. monstre, 2. objectif, 3. critères, puis optionnellement

@@ -27,7 +27,7 @@ import {
 } from '../../src/lib/damage';
 import { computeStats } from '../../src/lib/stats';
 import { artifactDamageProfile, codesAmplificationActifs, computeTotalDamage } from '../../src/lib/damage';
-import { bornesArtefacts, paireRepresentative, type ChoixPrincipale } from '../../src/lib/artifactOptim';
+import { bornesArtefacts, paireRepresentative, type BornesArtefacts, type ChoixPrincipale } from '../../src/lib/artifactOptim';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { StatKey } from '../../src/lib/effects';
@@ -215,7 +215,7 @@ function paramsArtefacts(
 export function resolveArtifactBounds(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster
-): { max: Record<string, number>; min: Record<string, number> } | undefined {
+): BornesArtefacts | undefined {
   if (recipe.ignoreArtifacts) return undefined;
   const espece = loadMonstersList().find((m) => m.com2usId === loaded.com2usId);
   if (!espece) return undefined;

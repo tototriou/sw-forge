@@ -318,6 +318,76 @@ export default function testArtefactOptim() {
       bVit.max.spd === undefined && bVit.min.spd === undefined,
       'la VIT n’est portée par aucune principale d’artéfact : jamais balayée'
     );
+
+    // ── Le test CONJOINT : `possibles` ne contient que de VRAIES paires.
+    //
+    // ⚠️ C'est lui qui règle la limite de `max` : celui-ci annonce
+    // `{hp: 3000, def: 200}`, ce qu'AUCUNE paire ne fournit — deux
+    // emplacements ne portent que deux principales.
+    const vus = b.possibles.map((v) => `${v.hp ?? 0}/${v.def ?? 0}`).sort();
+    ok(
+      !vus.includes('3000/200'),
+      'le maximum conjoint PV+DEF n’est PAS proposé — aucune paire ne le fournit'
+    );
+    ok(vus.includes('3000/0'), 'deux PV+1500 : une vraie paire, proposée');
+    ok(vus.includes('0/200'), 'deux DEF+100 : une vraie paire, proposée');
+    ok(vus.includes('1500/100'), 'un de chaque : une vraie paire, proposée');
+    ok(
+      b.possibles.every((v) => (v.hp ?? 0) + (v.def ?? 0) * 15 <= 3000),
+      'aucun apport proposé ne dépasse ce que deux emplacements peuvent porter'
+    );
+
+    // ⚠️ L'ensemble est réduit à sa FRONTIÈRE DE PARETO sur les stats suivies :
+    // un apport dont un autre est ≥ partout ne peut jamais rendre faisable un
+    // build que celui-là ne rendrait pas. `{hp:1500}` seul en est donc absent —
+    // `{hp:1500, def:100}` le domine. C'est ce qui garde l'ensemble à une
+    // poignée d'entrées, testables à chaque candidat retenu sans coût.
+    ok(
+      !b.possibles.some(
+        (v, i) =>
+          b.possibles.some(
+            (w, j) => j !== i && (w.hp ?? 0) >= (v.hp ?? 0) && (w.def ?? 0) >= (v.def ?? 0) &&
+              ((w.hp ?? 0) > (v.hp ?? 0) || (w.def ?? 0) > (v.def ?? 0))
+          )
+      ),
+      'aucun apport proposé n’en domine un autre — l’ensemble est réduit à sa frontière'
+    );
+    ok(b.possibles.length <= 8, `l’ensemble reste minuscule (${b.possibles.length} apports)`);
+  }
+
+  titre('Test conjoint — deux Intangibles ne se portent pas ensemble');
+
+  // ⚠️ La réduction « un représentant par code » serait FAUSSE si elle ne
+  // gardait que le meilleur absolu : si le meilleur PV des deux sortes est
+  // Intangible, la paire est interdite (une seule Intangible par monstre) et
+  // l'apport serait perdu alors qu'une autre paire l'atteint. D'où le second
+  // représentant, le meilleur NON Intangible.
+  {
+    const pvElementIntangible: ArtifactDetail = {
+      ...attribut('unknown', 100), intangible: true, main: { code: 100, value: 1500 },
+    };
+    const pvElementNormal: ArtifactDetail = { ...attribut('dark', 100), main: { code: 100, value: 1400 } };
+    const pvTypeIntangible: ArtifactDetail = {
+      ...type('support', 100), intangible: true, main: { code: 100, value: 1500 },
+    };
+    const p: ArtifactSearchParams = {
+      porteur: lushen,
+      inventaire: [pvElementIntangible, pvElementNormal, pvTypeIntangible],
+      equipes: [],
+      principaleParSorte: {},
+      evaluer: (arts) => arts.reduce((n, a) => n + a.main.value, 0),
+    };
+    const b = bornesArtefacts(p, ['hp'], []);
+    const maxPossible = Math.max(...b.possibles.map((v) => v.hp ?? 0));
+    egal(
+      maxPossible,
+      2900,
+      'le meilleur apport CONJOINT est 1400 + 1500, jamais 1500 + 1500 (deux Intangibles)'
+    );
+    ok(
+      b.possibles.every((v) => (v.hp ?? 0) !== 3000),
+      'la paire de deux Intangibles n’est jamais proposée'
+    );
   }
 
   titre('Lignes verrouillées — le minimum se lit sur la PAIRE');

@@ -1483,10 +1483,18 @@ différent, coopératif (voir « Interruption »).
     donc n'apporter aucune DEF alors que l'inventaire en contenait.
   - ⚠️ **Cette borne est calculée stat par stat**, donc plus optimiste que ce
     qu'une paire réelle peut fournir : deux emplacements ne portent que deux
-    statistiques principales. Un build retenu grâce à elle est donc
-    **revérifié avec sa vraie paire** avant d'être affiché, et écarté si
-    aucune paire possédée ne lui fait tenir ses minimums. Un résultat affiché
-    respecte toujours les conditions demandées.
+    statistiques principales. Elle sert au pré-filtrage, où être large ne
+    coûte que du travail en trop. **La décision finale, elle, se prend sur de
+    VRAIES paires** : un build n'est retenu que si l'une des combinaisons
+    réellement équipables lui fait tenir *toutes* ses conditions à la fois.
+    Un résultat affiché respecte donc toujours les conditions demandées.
+  - **La meilleure paire d'artéfacts d'un build suit le critère de tri
+    affiché.** Trier par PV effectifs choisit les artéfacts qui maximisent les
+    PV effectifs, trier par Dégâts réels ceux qui maximisent les dégâts — deux
+    réponses différentes pour le même build, et c'est normal : un artéfact
+    change les statistiques du monstre, donc le meilleur dépend de ce qu'on
+    cherche. Sur Efficience et Vitesse, aucun artéfact n'entre dans le score :
+    il n'y a rien à y maximiser, seule compte la faisabilité.
   - **Faisabilité de SET, précoce** (pendant la génération d'une moitié, pas
     seulement à l'appariement) : pour chaque set demandé, si même le
     meilleur cas ne peut plus atteindre le compte requis, la branche est

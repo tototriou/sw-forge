@@ -733,6 +733,112 @@ export interface BornesArtefacts {
   max: Record<string, number>;
   // Apport incompressible, par stat. Pour les branches MAXIMUM.
   min: Record<string, number>;
+  /**
+   * Les apports plats RÉELLEMENT atteignables par une paire — au plus une
+   * poignée après réduction.
+   *
+   * ⚠️ **C'est le test de faisabilité EXACT**, là où `max`/`min` ne sont que
+   * des bornes par stat. `max` peut annoncer `{hp: 3000, atk: 200, def: 200}`,
+   * ce qu'aucune paire ne fournit : deux emplacements ne portent que deux
+   * principales. Ici, chaque entrée EST une paire équipable — un build est
+   * faisable si et seulement si l'une d'elles lui fait tenir ses conditions.
+   *
+   * ⚠️ **Réservé aux endroits où le coût est amorti** (validation finale, une
+   * fois par candidat RETENU). Les pré-filtres chauds gardent `max`/`min` :
+   * ils tournent des milliards de fois, et une borne large y est admissible
+   * par construction — elle retient trop, jamais trop peu.
+   *
+   * ⚠️ **Ne dépend QUE des stats principales.** `computeStats` (stats.ts) ne
+   * lit jamais les sous-propriétés d'un artéfact pour les 8 statistiques —
+   * elles ne portent que des effets conditionnels. Sans ligne verrouillée, cet
+   * ensemble se calcule donc par simple arithmétique sur les principales, sans
+   * balayer l'inventaire.
+   */
+  possibles: Record<string, number>[];
+}
+
+/**
+ * Les apports plats atteignables par une paire, réduits au strict nécessaire.
+ *
+ * Sans ligne verrouillée : seule la principale compte, donc un seul
+ * représentant par (sorte, code) suffit — celui de plus haute valeur, qui
+ * domine tous les autres du même code.
+ *
+ * ⚠️ **Deux représentants par code, pas un.** Le meilleur d'un code peut être
+ * Intangible ; si celui d'en face l'est aussi, la paire est INTERDITE (une
+ * seule Intangible par monstre) et on perdrait un apport pourtant atteignable.
+ * On garde donc aussi le meilleur NON Intangible : pour toute paire réelle, il
+ * existe alors une paire retenue au moins aussi bonne sur chaque stat, ET
+ * équipable.
+ *
+ * ⚠️ Avec des lignes verrouillées, la réduction est IMPOSSIBLE : le meilleur
+ * artéfact d'un code peut violer le verrou. On repasse alors par l'inventaire
+ * complet, filtré par `paireRespecteLignes` — le coût d'un balayage, une fois
+ * par recherche.
+ */
+function apportsAtteignables(params: ArtifactSearchParams, statsSuivies: StatKey[]): Record<string, number>[] {
+  const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
+  const parSorte = ARTIFACT_KINDS.map(({ key }) => {
+    const complets = candidatsParSorte(params, key);
+    if (verrous.length > 0) return complets;
+    const meilleurs = new Map<string, ArtifactDetail>();
+    let vide = false;
+    for (const a of complets) {
+      if (!a) {
+        vide = true;
+        continue;
+      }
+      // Deux clés par code : le meilleur absolu, et le meilleur non Intangible.
+      const cles = a.intangible ? [`${a.main.code}`] : [`${a.main.code}`, `${a.main.code}!`];
+      for (const cle of cles) {
+        const p = meilleurs.get(cle);
+        if (!p || a.main.value > p.main.value) meilleurs.set(cle, a);
+      }
+    }
+    const out: (ArtifactDetail | null)[] = [...meilleurs.values()];
+    if (vide) out.push(null);
+    return out;
+  });
+
+  const paire: ArtifactDetail[] = [];
+  const vus = new Map<string, Record<string, number>>();
+  for (const x of parSorte[0]!) {
+    for (const y of parSorte[1]!) {
+      if (!artifactPairAllowed(x, y)) continue;
+      paire.length = 0;
+      if (x) paire.push(x);
+      if (y) paire.push(y);
+      if (verrous.length > 0 && !paireRespecteLignes(paire, verrous)) continue;
+      const apport: Record<string, number> = {};
+      for (const a of paire) {
+        const def = ARTIFACT_MAIN[a.main.code];
+        if (def) apport[def.stat] = (apport[def.stat] ?? 0) + a.main.value;
+      }
+      // Dédoublonné sur les seules stats SUIVIES : deux paires qui ne diffèrent
+      // que sur une stat non contrainte sont interchangeables ici.
+      const cle = statsSuivies.map((k) => apport[k] ?? 0).join('/');
+      const dejaVu = vus.get(cle);
+      if (!dejaVu) vus.set(cle, apport);
+    }
+  }
+
+  // Réduction de Pareto sur les stats suivies : un apport dominé sur TOUTES
+  // ne peut jamais rendre faisable un build que le dominant ne rendrait pas.
+  // ⚠️ Valable pour des MINIMUMS seulement — c'est bien l'usage (`possibles`
+  // sert au test conjoint, où les maximums sont vérifiés avec la MÊME paire,
+  // donc jamais écartés par cette réduction : on ne retire qu'un apport dont
+  // un autre est ≥ partout, et un maximum se vérifie sur l'apport RETENU.
+  const tous = [...vus.values()];
+  if (statsSuivies.length === 0) return tous.slice(0, 1);
+  return tous.filter(
+    (v, i) =>
+      !tous.some(
+        (w, j) =>
+          j !== i &&
+          statsSuivies.every((k) => (w[k] ?? 0) >= (v[k] ?? 0)) &&
+          (statsSuivies.some((k) => (w[k] ?? 0) > (v[k] ?? 0)) || j < i)
+      )
+  );
 }
 
 // Les statistiques qu'une stat principale d'artéfact peut porter — déduites
@@ -768,7 +874,11 @@ export function bornesArtefacts(
     const pire = chercherPaires({ ...sansCout, evaluer: (a) => -apport(a) }).paires[0];
     if (pire) min[k] = -pire.score;
   }
-  return { max, min };
+  // Les apports RÉELLEMENT atteignables — le test conjoint exact, réservé à la
+  // validation finale. Suivis sur toutes les stats contraintes, min ou max :
+  // le test vérifie les deux avec LA MÊME paire.
+  const suivies = [...new Set([...statsAvecMinimum, ...statsAvecMaximum])].filter((k) => STATS_PORTABLES.has(k));
+  return { max, min, possibles: apportsAtteignables(sansCout, suivies) };
 }
 
 /**

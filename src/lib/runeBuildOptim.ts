@@ -148,7 +148,21 @@ export interface SearchParams {
    * `respecteMinimums`, OBLIGATOIRE en aval (§12.5). Mesuré sur un cas réel :
    * 99 builds sur 105 dans ce cas.
    */
-  artifactBounds?: { max: Record<string, number>; min: Record<string, number> };
+  artifactBounds?: {
+    max: Record<string, number>;
+    min: Record<string, number>;
+    /**
+     * Les apports plats RÉELLEMENT atteignables par une paire — le test
+     * conjoint EXACT, appliqué à la validation finale.
+     *
+     * ⚠️ C'est lui qui règle la limite de `max`/`min` : ces deux-là sont des
+     * bornes PAR STAT, donc plus permissives que ce qu'une paire peut donner
+     * (deux emplacements = deux principales). Ils restent la bonne réponse
+     * dans les pré-filtres, qui tournent des milliards de fois ; ici, une fois
+     * par candidat retenu, on peut être exact.
+     */
+    possibles: Record<string, number>[];
+  };
   relic?: RelicDetail; // fixe
   pool: RuneDetail[]; // runes candidates (déjà filtrées par exclusion en amont)
   requirement: BuildRequirement;
@@ -2512,6 +2526,26 @@ interface MinMaxContext {
   // Apport d'artéfact INCOMPRESSIBLE — pour les vérifications de MAXIMUM.
   // `0` dès que l'emplacement vide est candidat.
   artFlatMin: Record<string, number>;
+  /**
+   * Les apports plats RÉELLEMENT atteignables par une paire (`bornesArtefacts`).
+   *
+   * ⚠️ **Le test conjoint EXACT**, à n'utiliser qu'à la validation finale —
+   * une fois par candidat RETENU, jamais dans les pré-filtres qui tournent des
+   * milliards de fois. `artFlatMax` y reste la bonne réponse : large, donc
+   * admissible, et à coût constant.
+   *
+   * Vide → aucun test conjoint, on retombe sur la paire figée.
+   */
+  artPossibles: Record<string, number>[];
+  /**
+   * L'apport de la paire FIGÉE — celle avec laquelle `computeStats` calcule les
+   * stats d'un candidat.
+   *
+   * ⚠️ Sert à retrouver les stats de N'IMPORTE QUELLE autre paire sans second
+   * `computeStats` : l'apport d'un artéfact est PLAT, donc ajouté après le
+   * calcul des pourcentages. `total − figée[k] + autre[k]` est exact.
+   */
+  artFlatFige: Record<string, number>;
   relPct: Record<string, number>;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
 }
@@ -2528,7 +2562,7 @@ function deriveMinMaxContext(
   // la dissymétrie. Ce repli est SÛR mais pas juste : il fige le choix
   // d'artéfact avant la recherche (voir spec/outils/optimizer/artefacts.md,
   // §12). Il n'existe que pour les scripts de diagnostic sans inventaire.
-  artifactBounds?: { max: Record<string, number>; min: Record<string, number> }
+  artifactBounds?: SearchParams['artifactBounds']
 ): MinMaxContext {
   const minEntries = ALL_STAT_KEYS
     .map((k) => ({ k, min: requirement.minStats[k] }))
@@ -2548,13 +2582,14 @@ function deriveMinMaxContext(
   const figee = artifactFlatBonus(artifacts);
   const artFlatMax = artifactBounds?.max ?? figee;
   const artFlatMin = artifactBounds?.min ?? figee;
+  const artPossibles = artifactBounds?.possibles ?? [];
   const relPct = relicPctBonus(relic);
   const baseRec = base as unknown as Record<string, number>;
   function totalOf(k: StatKey, pct: number, flat: number): number {
     const b = baseRec[k] ?? 0;
     return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
   }
-  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, relPct, totalOf };
+  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige: figee, relPct, totalOf };
 }
 
 // Verdict de faisabilité, PAR STAT PRISE ISOLÉMENT — pour une condition (min
@@ -2881,6 +2916,10 @@ export interface PreparedSearch {
   // pour les MINIMUMS, `artFlatMin` pour les MAXIMUMS. Voir `MinMaxContext`.
   artFlatMax: Record<string, number>;
   artFlatMin: Record<string, number>;
+  // Le test conjoint EXACT et l'apport de la paire figée qui sert de référence
+  // — voir `MinMaxContext`.
+  artPossibles: Record<string, number>[];
+  artFlatFige: Record<string, number>;
   relPct: Record<string, number>;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
   filtered: RuneDetail[][];
@@ -2900,7 +2939,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   const startedAt = Date.now();
 
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
-  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, relPct, totalOf } = ctx;
+  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -2956,7 +2995,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
     base, artifacts, relic, requirement, metric,
     maxNodes, maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
-    guaranteed, guaranteedMin, artFlatMax, artFlatMin, relPct, totalOf,
+    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
   };
 }
@@ -3041,7 +3080,7 @@ export function* pairBuckets(
 ): Generator<PairingProgress, SearchResult, void> {
   const {
     base, artifacts, relic, requirement, metric, maxCollected, maxMs, startedAt,
-    minEntries, maxEntries, guaranteed, guaranteedMin, artFlatMax, artFlatMin, relPct, totalOf, distinctKeys,
+    minEntries, maxEntries, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf, distinctKeys,
   } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
 
@@ -3137,21 +3176,48 @@ export function* pairBuckets(
 
           const gear: GearSet = { base, runes, artifacts, relic };
           const stats = computeStats(gear);
-          let ok = true;
-          for (const { k, min } of minEntries) {
-            const row = stats.find((r) => r.key === k);
-            if (!row || row.total < min) {
-              ok = false;
-              break;
-            }
-          }
-          if (ok) {
-            for (const { k, max } of maxEntries) {
+          /**
+           * ⚠️ **Test de faisabilité CONJOINT, et exact.** Les bornes en amont
+           * sont calculées PAR STAT ISOLÉE : avec des minimums sur PV, ATQ et
+           * DEF à la fois, elles supposent les trois maxima réunis, alors
+           * qu'une paire ne porte que DEUX principales. Ici on teste les
+           * apports RÉELLEMENT atteignables (`artPossibles`, au plus une
+           * poignée) : le build est retenu si et seulement si l'UNE d'elles lui
+           * fait tenir toutes ses conditions — minimums ET maximums avec la
+           * MÊME paire.
+           *
+           * ⚠️ **Aucun `computeStats` supplémentaire.** L'apport d'un artéfact
+           * est PLAT, donc ajouté après le calcul des pourcentages : on retire
+           * celui de la paire figée et on ajoute l'autre. De l'arithmétique,
+           * sur les seules stats contraintes.
+           *
+           * Sans `artPossibles` (repli, ou aucune condition posée) : on vérifie
+           * la paire figée, comportement d'avant.
+           */
+          const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
+          let ok = false;
+          for (const apport of apports) {
+            const decalage = (k: StatKey) => (apport[k] ?? 0) - (artFlatFige[k] ?? 0);
+            let tout = true;
+            for (const { k, min } of minEntries) {
               const row = stats.find((r) => r.key === k);
-              if (row && row.total > max) {
-                ok = false;
+              if (!row || row.total + decalage(k) < min) {
+                tout = false;
                 break;
               }
+            }
+            if (tout) {
+              for (const { k, max } of maxEntries) {
+                const row = stats.find((r) => r.key === k);
+                if (row && row.total + decalage(k) > max) {
+                  tout = false;
+                  break;
+                }
+              }
+            }
+            if (tout) {
+              ok = true;
+              break;
             }
           }
           if (!ok) continue;

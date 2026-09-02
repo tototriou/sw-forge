@@ -1803,14 +1803,21 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // ⚠️ Le réglage ENTIER : n'en prendre que quelques champs laissait le
         // cache intact quand on changeait le buff ATQ ou les PV de la cible.
         damageSetup,
-        objective,
+        // ⚠️ Le TRI, pas l'objectif : c'est lui qui décide désormais du critère
+        // de choix de la paire (voir `faireParamsArtefacts`). Changer de tri
+        // entre Dégâts réels et PV effectifs change donc la meilleure paire, et
+        // doit vider le cache. Entre Efficience et Vitesse, rien ne change —
+        // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
+        // quand même, le cache est refait pour rien : coût borné (K builds en
+        // temps masqué), contre le risque d'afficher une paire périmée.
+        objective: sortBy,
         ignoreArtifacts,
         principaleParSorte: artifactMainByKind,
         lignesVerrouillees,
         relique: selected?.gear.relic ?? null,
         nbArtefacts: artifacts.length,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, objective, ignoreArtifacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, sortBy, ignoreArtifacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
   );
 
   const faireParamsArtefacts = useMemo(() => {
@@ -1822,8 +1829,30 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // comparerait des scores faux.
       const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
       const espece = selected.monster;
+      /**
+       * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`),
+       * pas sur une somme de statistiques principales.
+       *
+       * L'ancien évaluateur hors « Dégâts réels » additionnait des PV plats
+       * (jusqu'à 1500) à des DEF plates (jusqu'à 100) — deux unités sans
+       * commune mesure. Sur un objectif de PV effectifs, il retenait donc deux
+       * PV+1500 (score 3000) alors qu'une paire DEF+100 / PV+1500 (score 1600)
+       * donne PLUS de PV effectifs : un ordre faux, pas une approximation.
+       * Voir spec/outils/optimizer/artefacts.md, §12.7 (défaut n° 2).
+       *
+       * ⚠️ **Et c'est `sortBy`, pas `objective`.** L'objectif fige le critère au
+       * lancement ; le tri, lui, peut changer après coup. Une paire optimisée
+       * pour les dégâts affichée dans une liste triée par PV effectifs
+       * montrerait une valeur qui n'est pas la meilleure atteignable.
+       *
+       * ⚠️ Sur Efficience et Vitesse, il n'y a RIEN à maximiser :
+       * `runeEfficiency` ne lit que les runes, et aucun artéfact ne donne de
+       * VIT. Deux paires valides y laissent le score identique — on garde donc
+       * la somme des principales, qui départage au moins sur la valeur brute,
+       * et le seul travail qui compte est la faisabilité (§12.6).
+       */
       const evaluer =
-        objective === 'degats_reels' && resolvedSkill
+        sortBy === 'degats_reels' && resolvedSkill
           ? (arts: ArtifactDetail[]) =>
               computeTotalDamage(
                 resolvedSkill,
@@ -1833,10 +1862,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 espece.element,
                 artifactDamageProfile(arts)
               )
-          : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+          : sortBy === 'ehp'
+            ? (arts: ArtifactDetail[]) => pvEffectifs(computeStats({ ...gear, artifacts: arts }))
+            : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
       return { ...artifactParams, evaluer };
     };
-  }, [artifactParams, selected, runeById, objective, resolvedSkill, offensivePassives, damageSetup]);
+  }, [artifactParams, selected, runeById, sortBy, resolvedSkill, offensivePassives, damageSetup]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà

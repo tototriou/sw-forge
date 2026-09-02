@@ -1343,9 +1343,28 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     const actuels = selected.gear.artifacts;
     const scoreActuel = evaluerDegats(actuels);
     const scoreRetenu = evaluerDegats(retenue);
-    // ⚠️ Rien à proposer : aucune paire éligible n’apporte de dégâts bruts.
-    // Ce n’est PAS la même chose que « la paire portée est déjà la meilleure ».
-    if (scoreRetenu <= 0) return null;
+    /**
+     * Pourquoi il n'y a rien à proposer — une PHRASE, jamais un bloc qui
+     * s'efface.
+     *
+     * ⚠️ **Le bloc disparaissait en silence** (`return null` sur
+     * `scoreRetenu <= 0`), et c'était la cause réelle du « il est affiché,
+     * sinon il disparaît » signalé à l'usage. Avec un emplacement figé il n'y a
+     * qu'une paire candidate — celle qui est portée : le bloc apparaissait ou
+     * non selon qu'elle porte des lignes de dégâts bruts. Un bloc qui va et
+     * vient sans raison visible se lit comme une panne.
+     *
+     * ⚠️ **Le figeage passe DEVANT « tu portes déjà la meilleure ».** Cette
+     * phrase-là serait vraie, mais uniquement parce qu'on a interdit de
+     * chercher : elle ferait passer une contrainte posée par l'utilisateur pour
+     * un verdict sur son inventaire.
+     */
+    const explication =
+      sortesFigees.length >= ARTIFACT_KINDS.length
+        ? 'Les deux emplacements sont sur « Garder l’artéfact équipé » : la paire est déjà décidée, il n’y a rien à chercher.'
+        : scoreRetenu <= 0
+          ? 'Aucun artéfact équipable n’apporte de dégâts supplémentaires pour ce critère.'
+          : null;
     // ⚠️ Comparaison par IDENTIFIANT, jamais par référence : les pièces
     // retenues viennent de l'inventaire, celles portées du `gear` — deux
     // objets distincts peuvent désigner le même artéfact.
@@ -1367,11 +1386,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // dit « sur ce build » et ne laisse pas croire au contrefactuel global.
     const verrous = lignesVerrouillees.filter((l) => l.min > 0);
     let coutVerrousPct: number | null = null;
-    if (verrous.length > 0) {
+    // ⚠️ Pas de balayage supplémentaire quand il n'y a rien à proposer : ce
+    // calcul coûte une recherche de paires (~80 ms) pour un chiffre qu'on
+    // n'affichera pas.
+    if (explication == null && verrous.length > 0) {
       const sans = chercherPaires({ ...paramsDegats, avecCoutDesVerrous: true }).meilleurSansVerrous;
       if (sans != null && sans > scoreRetenu) coutVerrousPct = (1 - scoreRetenu / sans) * 100;
     }
     return {
+      // `null` = il y a bien une proposition à montrer. Sinon, la raison.
+      explication,
       paire: retenue,
       // ⚠️ Un DELTA ABSOLU, pas un pourcentage. La référence — les dégâts
       // bruts des artéfacts portés — vaut ZÉRO dès que le monstre n’a aucune
@@ -1400,7 +1424,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, optimiserArtefacts, damageSetup, lignesVerrouillees, critereArtefacts, resolvedSkill, offensivePassives]);
+  }, [artifactParams, selected, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, resolvedSkill, offensivePassives]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -2313,17 +2337,21 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             meilleure paire — c'est justement là qu'il est seul à dire quelque
             chose, l'écart valant zéro. L'écart, lui, ne s'affiche que s'il y a
             quelque chose à gagner. */}
-        <span className="flex items-baseline gap-1.5 font-mono text-micro">
-          <span className="text-ink">
-            {Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}
-            {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
-          </span>
-          {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
-            <span className="text-good">
-              +{Math.round(modeArtefactsSeuls.gainBrutParCoup).toLocaleString('fr-FR')}
+        {/* ⚠️ Aucun chiffre quand il n'y a rien à proposer : un « 0 / coup »
+            se lirait comme un résultat, alors que rien n'a été cherché. */}
+        {modeArtefactsSeuls.explication == null && (
+          <span className="flex items-baseline gap-1.5 font-mono text-micro">
+            <span className="text-ink">
+              {Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}
+              {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
             </span>
-          )}
-        </span>
+            {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
+              <span className="text-good">
+                +{Math.round(modeArtefactsSeuls.gainBrutParCoup).toLocaleString('fr-FR')}
+              </span>
+            )}
+          </span>
+        )}
       </div>
       {/* ⚠️ Choisir « Dégâts réels » OUVRE la fenêtre du combat, comme le cran
           homonyme de l'objectif de recherche : sans ce geste, le classement
@@ -2349,7 +2377,24 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           Aucun sort de ce monstre n’est calculable : classement sur les dégâts supplémentaires.
         </p>
       )}
-      {modeArtefactsSeuls.dejaPorte ? (
+      {/* ⚠️ **Un seul emplacement figé : la proposition reste valable, mais
+          CONTRAINTE.** Sans cette ligne, « le meilleur » se lirait comme « le
+          meilleur de ton inventaire », alors qu'une moitié était imposée. La
+          question reste bonne — « à artéfact d'attribut donné, quel type ? » —
+          il faut juste dire qu'on y répond. */}
+      {modeArtefactsSeuls.explication == null && sortesFigees.length === 1 && (
+        <p className="mt-1 text-micro leading-tight text-ink-dimmer">
+          L’emplacement {sortesFigees[0] === 'element' ? 'attribut' : 'type'} est sur « Garder l’artéfact équipé » :
+          seul l’autre est cherché.
+        </p>
+      )}
+      {/* ⚠️ **La raison passe DEVANT tout le reste.** Elle dit ce que
+          l'utilisateur a lui-même posé (un emplacement figé) ou ce que
+          l'inventaire ne peut pas donner — dans les deux cas, afficher une
+          proposition ou un « déjà porté » serait trompeur. */}
+      {modeArtefactsSeuls.explication != null ? (
+        <p className="mt-0.5 text-micro leading-tight text-ink-dim">{modeArtefactsSeuls.explication}</p>
+      ) : modeArtefactsSeuls.dejaPorte ? (
         // ⚠️ Le dire plutôt que d'afficher « +0 » : « tu portes déjà les
         // meilleurs » est une réponse, un zéro ressemble à une panne.
         <p className="mt-0.5 text-micro text-ink-dim">

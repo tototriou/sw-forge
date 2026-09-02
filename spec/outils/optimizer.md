@@ -344,6 +344,26 @@ retour.
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
    ajoutent des dégâts par-dessus.
 
+   ⚠️ **Ce bloc RESPECTE les réglages de la carte, et le DIT** — il ne cherche
+   pas dans son coin. La question « quels sont mes meilleurs artéfacts » et la
+   question « quelle paire supposer pendant la recherche de runes » partagent
+   donc une seule réponse : deux blocs qui se contrediraient à l'écran
+   coûteraient plus cher qu'un bloc parfois muet. Concrètement :
+   - **un** emplacement sur « Garder l'artéfact équipé » → la proposition
+     reste faite, et une ligne rappelle que seule l'autre moitié est cherchée.
+     La question garde tout son sens : « à artéfact d'attribut donné, quel
+     type ? » ;
+   - **les deux** figés → le bloc explique qu'il n'y a rien à chercher, au
+     lieu d'annoncer « tu portes déjà la meilleure paire » — ce qui serait
+     vrai, mais uniquement parce qu'on lui a interdit de chercher.
+
+   ⚠️ **Le bloc ne DISPARAÎT plus en silence.** Il s'effaçait entièrement
+   quand la paire retenue n'apportait aucun dégât brut : avec un emplacement
+   figé il n'y a qu'une paire candidate, donc le bloc allait et venait selon
+   qu'elle porte ou non ces lignes. Signalé à l'usage — « il est affiché,
+   sinon il disparaît ». Il affiche désormais la raison, et aucun chiffre :
+   un « 0 / coup » se lirait comme un résultat alors que rien n'a été cherché.
+
    **Deux crans**, à choisir — un `Segmented`, jamais un bouton qui déclenche :
    - **Dégâts supplémentaires** (défaut) — les dégâts bruts par coup des
      sous-propriétés 218-221. **Calculé en permanence** : la qualité première

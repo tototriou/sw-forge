@@ -1138,6 +1138,15 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   (relancer une recherche sur un monstre déjà validé ne le prive pas de ses
   propres pièces) et la même indépendance entre listes.
 
+  ⚠️ **« Valider les artéfacts » — mêmes runes, autre paire.** Un build peut
+  s'afficher avec les runes déjà réservées mais une AUTRE paire d'artéfacts :
+  ses statistiques ne sont alors pas celles qui sont réservées. Le bouton
+  passe dans un troisième état, actif, qui met à jour la seule paire sans
+  toucher aux runes. Sans lui, la carte disait « Validé » et n'offrait plus
+  rien alors que ce qu'elle montrait n'était pas ce qui était réservé.
+  Le cas est courant : la meilleure paire dépend du critère de tri affiché,
+  donc changer de tri change la paire à runes identiques.
+
   Sans cette mémorisation, la fiche d'un build validé rejouait la paire portée
   AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Les builds validés
   avant que les artéfacts aient un identifiant n'en portent pas : ils retombent

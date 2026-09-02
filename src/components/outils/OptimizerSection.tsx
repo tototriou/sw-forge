@@ -265,7 +265,27 @@ function unownedSelectorIfNoneOwned(monster: Monster, box: BoxItem[], exclusionD
 // build déjà validé pour ce monstre (Lot 2) — un simple `===` sur les
 // tableaux ne suffirait pas, `runeIds` n'est jamais garanti dans le même
 // ordre d'un calcul à l'autre.
-function sameRuneIds(a: number[], b: number[]): boolean {
+/**
+ * L'état de validation d'un build affiché, vis-à-vis de celui qui est réservé.
+ *
+ * ⚠️ **Trois états, pas deux.** Comparer les seules runes rendait invalidable
+ * un build aux MÊMES runes mais aux artéfacts DIFFÉRENTS : l'utilisateur
+ * voyait des stats qui ne sont pas celles réservées, et le bouton disait
+ * « Validé » sans rien offrir. Le cas est devenu courant depuis que la paire
+ * suit le critère de tri (voir spec/outils/optimizer/artefacts.md, §12.16) :
+ * changer de tri change la paire, donc les stats, à runes identiques.
+ *
+ * Un artéfact entre dans les statistiques du monstre — deux paires
+ * différentes, ce sont deux builds différents.
+ */
+type EtatValidation = 'non' | 'oui' | 'artefacts';
+
+/**
+ * Même ensemble d'ids ? Sert aux runes ET aux artéfacts — c'est la même
+ * question, et un build validé mémorise les deux (`ValidatedBuild.runeIds`,
+ * `ValidatedBuild.artifactIds`).
+ */
+function memesIds(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
   const sa = [...a].sort((x, y) => x - y);
   const sb = [...b].sort((x, y) => x - y);
@@ -2114,7 +2134,30 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // RÉEL, qui peut différer du build validé (c'est justement le but du
   // bouton). Sert à distinguer « un build validé EXISTE pour cet
   // exemplaire » de « ce qui est affiché EN CE MOMENT est ce build ».
-  const matchesValidatedBuild = !!ownValidatedBuild && sameRuneIds(ownValidatedBuild.runeIds, displayedRuneIds);
+  /**
+   * L'état de validation d'un build donné (ses runes, sa paire) face à celui
+   * qui est réservé pour cet exemplaire.
+   *
+   * ⚠️ `?? []` sur `artifactIds` : les builds validés AVANT ce champ n'en ont
+   * pas (voir `ValidatedBuild`). On les traite comme « artéfacts à valider »
+   * dès que la paire affichée n'est pas vide — c'est vrai, et ça permet de
+   * les compléter au lieu de les laisser figés sans recours.
+   */
+  const etatValidation = (runeIds: number[], artifactIds: number[]): EtatValidation => {
+    if (!ownValidatedBuild || !memesIds(ownValidatedBuild.runeIds, runeIds)) return 'non';
+    // ⚠️ **Le MÊME filtre que `validateBuild`** (useOptimizerLists.ts) : les
+    // ids ≤ 0 désignent une pièce SYNTHÉTIQUE, absente du compte, et ne sont
+    // jamais mémorisés. Comparer sans ce filtre laisserait le bouton bloqué
+    // sur « Valider les artéfacts » à l'infini — on validerait, puis on
+    // comparerait la paire affichée à une paire stockée forcément plus courte.
+    const reels = artifactIds.filter((id) => id > 0);
+    return memesIds(ownValidatedBuild.artifactIds ?? [], reels) ? 'oui' : 'artefacts';
+  };
+  const etatFiche = etatValidation(displayedRuneIds, displayedArtifactIds);
+  // ⚠️ « Déjà réservé À L'IDENTIQUE » — donc plus rien à faire. Un build aux
+  // mêmes runes mais à une autre paire N'EN FAIT PAS partie : il reste à
+  // valider, sur ses artéfacts.
+  const matchesValidatedBuild = etatFiche === 'oui';
   // ⚠️ Jamais valider une rune déjà réservée pour un AUTRE monstre de LA
   // MÊME liste active — demande explicite. Contrairement à un résultat de
   // recherche (dont le pool exclut déjà `otherValidatedRuneIds`, voir
@@ -2332,7 +2375,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         taille="sm"
         pleineLargeur
         icone={matchesValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
-        libelle={matchesValidatedBuild ? 'Validé' : 'Valider ce build'}
+        // ⚠️ Trois libellés, pas deux : mêmes runes + autre paire, il reste
+        // quelque chose à valider — les artéfacts. Voir `EtatValidation`.
+        libelle={etatFiche === 'oui' ? 'Validé' : etatFiche === 'artefacts' ? 'Valider les artéfacts' : 'Valider ce build'}
         className="mt-2.5"
       />
       {/* Message listant les runes déjà utilisées — demande explicite,
@@ -4187,7 +4232,14 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                       }
                     : undefined
                 }
-                validated={ownValidatedBuild ? sameRuneIds(ownValidatedBuild.runeIds, c.runeIds) : false}
+                // ⚠️ La paire QUE CETTE CARTE MONTRE — celle de la file si
+                // elle l'a trouvée, la représentative sinon. Exactement la
+                // même expression que `onValidate` ci-dessus : comparer autre
+                // chose que ce qu'on validerait rendrait le libellé menteur.
+                validated={etatValidation(
+                  c.runeIds,
+                  (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
+                )}
                 conflit={(() => {
                   const conflits = conflitsDeRunes(c.runeIds);
                   if (conflits.length === 0) return null;

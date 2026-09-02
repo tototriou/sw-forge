@@ -59,10 +59,22 @@ interface Props {
   // (repli stats de base, voir OptimizerSection.tsx), rien à réserver sur un
   // exemplaire qui n'existe pas dans le compte.
   onValidate?: () => void;
-  // Ce candidat EST le build ACTUELLEMENT validé pour ce monstre (mêmes 6
-  // runeIds, comparaison faite par le parent) — bouton désactivé, libellé
-  // « Validé » plutôt que « Valider ».
-  validated?: boolean;
+  /**
+   * Ce candidat est-il DÉJÀ le build validé pour ce monstre ? Comparaison
+   * faite par le parent (voir `EtatValidation`, OptimizerSection.tsx).
+   *
+   * - `'non'` — rien de réservé pour ces runes : « Valider ce build ».
+   * - `'oui'` — mêmes runes ET même paire : bouton désactivé, « Validé ».
+   * - `'artefacts'` — mêmes runes, PAIRE DIFFÉRENTE : bouton ACTIF,
+   *   « Valider les artéfacts ».
+   *
+   * ⚠️ **Le troisième état n'est pas un raffinement.** Sans lui, un candidat
+   * aux mêmes runes mais aux artéfacts différents affichait « Validé » et
+   * n'offrait plus rien : l'utilisateur voyait des stats qui ne sont pas
+   * celles réservées, sans aucun moyen de les valider. Un artéfact entre dans
+   * les statistiques du monstre — deux paires, deux builds.
+   */
+  validated?: 'non' | 'oui' | 'artefacts';
   // ⚠️ **Une rune de ce build est DÉJÀ RÉSERVÉE** pour un autre monstre de la
   // liste active : le bouton reste AFFICHÉ mais désactivé, et dit pourquoi.
   // Le retirer laisserait croire que ce build n'est pas validable du tout,
@@ -367,13 +379,26 @@ export default function BuildCandidateCard({
           {onValidate && (
             <Bouton
               onClick={onValidate}
-              disabled={validated || !!conflit}
+              // ⚠️ Seul `'oui'` désactive. `'artefacts'` reste ACTIF : c'est
+              // précisément l'état où il reste quelque chose à valider.
+              disabled={validated === 'oui' || !!conflit}
               title={conflit ?? undefined}
-              ton={validated ? 'accent' : 'neutre'}
-              fond={validated ? 'doux' : 'plein'}
+              // Le ton « déjà réservé » ne vaut que pour l'identité complète —
+              // sinon la carte se lirait comme terminée alors qu'elle attend
+              // une action.
+              ton={validated === 'oui' ? 'accent' : 'neutre'}
+              fond={validated === 'oui' ? 'doux' : 'plein'}
               taille="sm"
-              icone={validated ? <CheckCircle2 size={14} /> : undefined}
-              libelle={validated ? 'Validé' : conflit ? 'Rune déjà réservée' : 'Valider ce build'}
+              icone={validated === 'oui' ? <CheckCircle2 size={14} /> : undefined}
+              libelle={
+                validated === 'oui'
+                  ? 'Validé'
+                  : conflit
+                    ? 'Rune déjà réservée'
+                    : validated === 'artefacts'
+                      ? 'Valider les artéfacts'
+                      : 'Valider ce build'
+              }
               className="flex-1"
             />
           )}

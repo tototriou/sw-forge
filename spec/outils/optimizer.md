@@ -752,9 +752,17 @@ retour.
    filtre s'applique **avant** tout le reste, dans la construction même du
    pool par slot — il réduit donc le nombre de candidats réellement
    considérés dès le départ.
-6. **Artéfacts** — interrupteur **« Ignorer l'optimisation d'artéfacts »**,
-   **décoché par défaut** (les artéfacts réellement équipés comptent).
-   Décoché, deux listes déroulantes (Attribut, Type) proposent :
+6. **Artéfacts** — interrupteur **« Activer l'optimisation d'artéfacts »**,
+   **ACTIVÉ par défaut**.
+
+   ⚠️ **Désactivé ne veut PAS dire « sans artéfact ».** Le monstre garde les
+   pièces qu'il porte réellement, statistiques comprises : on cesse simplement
+   d'en chercher d'autres. Sert à composer un runage autour des artéfacts déjà
+   en place. Le réglage retirait auparavant TOUTE contribution d'artéfact, ce
+   que son libellé ne disait pas et qui rendait les conditions minimales plus
+   dures à franchir sans raison.
+
+   Activé, deux listes déroulantes (Attribut, Type) proposent :
    **« Garder l'artéfact équipé »** (défaut), **« Libre »** (cherche le
    meilleur artéfact parmi TOUS les artéfacts équipables), **Principale
    ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
@@ -804,7 +812,7 @@ retour.
 
    ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », plus dans
    la colonne droite de « Critères de recherche ». L'interrupteur
-   « Ignorer l'optimisation d'artéfacts » masque d'un coup les deux listes ET les
+   « Activer l'optimisation d'artéfacts » masque d'un coup les deux listes ET les
    lignes verrouillées : tant que le bloc vivait en tête de cette colonne,
    ce clic faisait REMONTER « Conditions », soit un clic qui déplace ce qui
    le suit ([shared/design.md](shared/design.md)). Le trait qui séparait

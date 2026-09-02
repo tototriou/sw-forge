@@ -357,8 +357,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setMaxStats,
     excludeBase,
     setExcludeBase,
-    ignoreArtifacts,
-    setIgnoreArtifacts,
+    optimiserArtefacts,
+    setOptimiserArtefacts,
     artifactMainByKind,
     setArtifactMainByKind,
     lignesVerrouillees,
@@ -1108,8 +1108,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
 
   // Artéfacts RÉELLEMENT transmis au moteur — indépendants de ceux affichés
   // dans « Équipement actuel » (toujours les VRAIS, une photo de l'existant,
-  // jamais modifiée par ces réglages). `ignoreArtifacts` coché = aucun
-  // artéfact compté. Sinon, chaque emplacement (Attribut/Type, voir
+  // jamais modifiée par ces réglages). Optimisation COUPÉE = on garde les
+  // pièces réellement portées, avec leurs statistiques — on cesse seulement
+  // d'en chercher d'autres. Activée, chaque emplacement (Attribut/Type, voir
   // ARTIFACT_KINDS) suit son propre choix : `'equipped'` (défaut) reprend
   // l'artéfact réellement porté à cet emplacement DU BUILD DE BASE, `'libre'`
   // cherche parmi tous les éligibles, et un code de stat FILTRE l'inventaire
@@ -1117,7 +1118,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   //
   // ⚠️ **Il n'existe plus de cran « Aucun ».** Vider UN emplacement pendant que
   // l'autre cherche ne correspond à rien en jeu ; ne pas compter les artéfacts
-  // est une décision GLOBALE, portée par `ignoreArtifacts`. L'emplacement peut
+  // est une décision GLOBALE, portée par `optimiserArtefacts`. L'emplacement peut
   // toujours rester vide si la recherche n'a rien de mieux à y mettre —
   // `candidatsParSorte` propose `null` quel que soit le réglage.
   //
@@ -1146,7 +1147,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // même définition. Deux constructions parallèles finiraient par diverger, et
   // le diagnostic expliquerait alors une recherche qui n'a pas eu lieu.
   const artifactParams = useMemo(() => {
-    if (!selected || ignoreArtifacts) return null;
+    // ⚠️ **Optimisation désactivée ≠ sans artéfact.** Les paramètres restent
+    // construits, avec « Garder l'artéfact équipé » IMPOSÉ des deux côtés : le
+    // monstre conserve les pièces qu'il porte réellement et leurs statistiques,
+    // on cesse seulement d'en chercher d'autres. Le réglage retirait avant
+    // TOUTE contribution d'artéfact, ce qui rendait les conditions minimales
+    // plus dures à franchir sans que rien ne le dise.
+    if (!selected) return null;
     const espece = selected.monster;
     // ⚠️ Le score de la paire dépend de l'OBJECTIF. Hors « Dégâts réels », la
     // somme des principales suffit et reste EXACTE : `computeStats` ne lit que
@@ -1186,15 +1193,24 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // priverait de ses propres pièces.
       inventaire: artefactsReserves.size === 0 ? artifacts : artifacts.filter((a) => !artefactsReserves.has(a.id)),
       equipes: selected.gear.artifacts,
-      principaleParSorte: artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
-      lignesVerrouillees,
+      principaleParSorte: (optimiserArtefacts
+        ? artifactMainByKind
+        : // ⚠️ Optimisation coupée : on GARDE ce qui est porté, des deux
+          // côtés. `candidatsParSorte` ne propose alors qu'un seul candidat
+          // par emplacement — la pièce réelle, avec ses sous-propriétés —, donc
+          // rien n'est cherché mais tout est compté.
+          { element: 'equipped', archetype: 'equipped' }) as Partial<Record<ArtifactKind, ChoixPrincipale>>,
+      // ⚠️ Un verrou n'a aucun sens sans recherche : il n'y a qu'une paire
+      // possible, et l'écarter parce qu'elle ne tient pas une ligne ne
+      // laisserait aucune solution de rechange.
+      lignesVerrouillees: optimiserArtefacts ? lignesVerrouillees : [],
       // ⚠️ Sans ça, une amplification de buff est éliminée par dominance alors
       // qu'elle vaut des dégâts — la sonde de pertinence ne peut pas la voir
       // (voir `codesAmplificationActifs`, damage.ts).
       codesAmplification: codesAmplificationActifs(damageSetup),
       evaluer,
     };
-  }, [selected, ignoreArtifacts, artifactMainByKind, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
+  }, [selected, optimiserArtefacts, artifactMainByKind, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -1226,7 +1242,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // convertissent en dégâts — son build est déjà figé par un autre objectif,
     // et les artéfacts se posent par-dessus. C'est le cas fondateur du cadrage
     // (spec/outils/optimizer/artefacts.md, §1), et je l'avais exclu.
-    if (!artifactParams || !selected) return null;
+    // ⚠️ Rien à montrer sans optimisation : ce bloc EST une optimisation
+    // d'artéfacts, et il répondrait « la meilleure paire est celle que tu
+    // portes » — vrai, mais uniquement parce qu'on lui a interdit d'en
+    // chercher une autre. Une réponse qui n'est vraie que par construction.
+    if (!artifactParams || !selected || !optimiserArtefacts) return null;
     const espece = selected.monster;
     /**
      * ⚠️ **Les dégâts BRUTS des artéfacts (218-221), et rien d'autre.**
@@ -1355,7 +1375,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, damageSetup, lignesVerrouillees, critereArtefacts, resolvedSkill, offensivePassives]);
+  }, [artifactParams, selected, optimiserArtefacts, damageSetup, lignesVerrouillees, critereArtefacts, resolvedSkill, offensivePassives]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -1578,7 +1598,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       excludeUsedRunes,
       excludeUsedScope,
       excludedSelectors,
-      ignoreArtifacts,
+      ignoreArtifacts: !optimiserArtefacts,
       artifactMainByKind,
       lignesVerrouillees,
     });
@@ -1715,7 +1735,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // contre CE compte au moment de la recherche (voir optimizerExclusion.
       // ts) — un monstre absent ici est silencieusement ignoré, pas une erreur.
       setExcludedSelectors(recipe.excludedSelectors ?? []);
-      setIgnoreArtifacts(recipe.ignoreArtifacts);
+      setOptimiserArtefacts(!recipe.ignoreArtifacts);
       // ⚠️ « Garder l'artéfact équipé » ne se partage pas — la règle, son
       // pourquoi et le repli sur une provenance inconnue vivent dans
       // `mainsPourCeCompte` (optimizerRecipe.ts), fonction pure et testée.
@@ -1837,17 +1857,22 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // quand même, le cache est refait pour rien : coût borné (K builds en
         // temps masqué), contre le risque d'afficher une paire périmée.
         objective: sortBy,
-        ignoreArtifacts,
+        ignoreArtifacts: !optimiserArtefacts,
         principaleParSorte: artifactMainByKind,
         lignesVerrouillees,
         relique: selected?.gear.relic ?? null,
         nbArtefacts: artifacts.length,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, sortBy, ignoreArtifacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, sortBy, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
   );
 
   const faireParamsArtefacts = useMemo(() => {
-    if (!artifactParams || !selected) return null;
+    // ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
+    // possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
+    // faire passer par la file lui ferait « choisir » entre un seul candidat,
+    // pour un résultat identique et cent tranches de temps masqué en pure
+    // perte.
+    if (!artifactParams || !selected || !optimiserArtefacts) return null;
     return (c: BuildCandidate): ArtifactSearchParams => {
       // ⚠️ Les stats sont recalculées avec LES RUNES DE CE CANDIDAT, pas celles
       // de l'équipement affiché : la stat principale d'un artéfact entre dans
@@ -1893,7 +1918,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
       return { ...artifactParams, evaluer };
     };
-  }, [artifactParams, selected, runeById, sortBy, resolvedSkill, offensivePassives, damageSetup]);
+  }, [artifactParams, selected, optimiserArtefacts, runeById, sortBy, resolvedSkill, offensivePassives, damageSetup]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
@@ -2029,7 +2054,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   }
 
   // Contribution des artéfacts EFFECTIVEMENT comptés (voir searchArtifacts)
-  // à une stat donnée — 0 si `ignoreArtifacts` ou si aucun artéfact n'est
+  // à une stat donnée — 0 si aucun artéfact n'est
   // supposé sur cette stat. Sert de PLANCHER pour les conditions ci-dessous :
   // avec zéro rune, un monstre a déjà AU MOINS ce bonus en jeu (voir
   // `baseOf`) — le champ ne doit jamais laisser demander moins. N'affecte
@@ -3102,57 +3127,42 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           </div>
           <p className="text-[13.5px] font-bold text-ink">Artéfacts</p>
           <HelpPopover title="Artéfacts">
-            <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce
-            <b className="text-ink"> entière</b> portée à cet emplacement sur le build de base (celui affiché
-            ci-dessus), avec ses quatre sous-propriétés : rien n&apos;est cherché ici. Utile de le changer si ce
-            monstre porte des artéfacts différents en RTA ou dans un deck de siège, puisque ce build de base
-            n&apos;est pas forcément celui que tu cherches à reproduire.{' '}
-            <b className="text-ink">« Libre »</b> cherche le meilleur artéfact parmi tous tes artéfacts
-            équipables ; une <b className="text-ink">principale</b> restreint cette recherche à tes artéfacts qui
-            la portent.
+            <b className="text-ink">« Libre »</b> cherche parmi tous tes artéfacts équipables ; une{' '}
+            <b className="text-ink">principale</b> restreint la recherche à ceux qui la portent.{' '}
+            <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce entière portée sur le
+            build affiché ci-dessus, sans rien chercher.
             <br />
             <br />
-            Les artéfacts retenus sont toujours des artéfacts que tu <b className="text-ink">possèdes</b>, avec leurs
-            sous-propriétés : si tu n&apos;en as aucun portant la statistique demandée, l&apos;emplacement reste vide.
+            <b className="text-ink">« Libre » ne donne jamais moins de résultats</b> qu&apos;une principale
+            imposée : un build n&apos;est retenu que s&apos;il existe vraiment, chez toi, une paire qui lui fait
+            tenir toutes tes conditions.
             <br />
             <br />
-            <b className="text-ink">« Libre » ne peut pas donner moins de résultats</b> qu&apos;une principale
-            imposée : les conditions minimales sont jugées sur ce que ton inventaire entier peut apporter, pas sur
-            une paire choisie d&apos;avance. Un build n&apos;est retenu que s&apos;il existe vraiment une paire, chez
-            toi, qui lui fait tenir toutes tes conditions.
-            <br />
-            <br />
-            La paire retenue pour chaque résultat est celle qui maximise le <b className="text-ink">critère de
-            tri</b> affiché : trier par PV effectifs ne choisit pas les mêmes artéfacts que trier par dégâts. Sur
-            Efficience et Vitesse, aucun artéfact n&apos;entre dans le score — il n&apos;y a rien à y maximiser.
+            La paire retenue suit le <b className="text-ink">tri</b> affiché — trier par PV effectifs ne choisit
+            pas les mêmes artéfacts que trier par dégâts.
           </HelpPopover>
           {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
               et son aide restent collés, l'interrupteur part à droite — même
               lecture qu'avant, dans le gabarit d'en-tête de carte. */}
           <div className="ml-auto flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Ignorer l&apos;optimisation d&apos;artéfacts</span>
-            <HelpPopover title="Ignorer l&apos;optimisation d&apos;artéfacts">
-              Activé, la recherche ne cherche aucun artéfact et n&apos;en compte <b className="text-ink">aucune</b>{' '}
-              statistique — comme si le monstre n&apos;en portait pas. Les conditions minimales doivent donc être
-              franchies par les <b className="text-ink">runes seules</b>, ce qui rend la recherche plus stricte.
+            <span className="text-xs font-semibold text-ink-dim">Activer l&apos;optimisation d&apos;artéfacts</span>
+            <HelpPopover title="Activer l&apos;optimisation d&apos;artéfacts">
+              Activé (défaut), chaque build reçoit la meilleure paire parmi tes artéfacts, selon les réglages
+              ci-dessous.
               <br />
               <br />
-              Désactivé, la recherche choisit pour chaque build la meilleure paire parmi tes artéfacts, en
-              respectant le réglage de chaque emplacement ci-dessous.
-              <br />
-              <br />
-              À activer pour composer un runage qui tienne <b className="text-ink">sans</b> l&apos;appoint des
-              artéfacts — pas pour « aller plus vite » : les artéfacts sont cherchés pendant que la recherche de
-              runes tourne, ils ne la ralentissent pas.
+              Désactivé, le monstre <b className="text-ink">garde les artéfacts qu&apos;il porte</b>, statistiques
+              comprises — on cesse simplement d&apos;en chercher d&apos;autres. Utile pour composer un runage autour
+              des pièces déjà en place.
             </HelpPopover>
             <Interrupteur
-              actif={ignoreArtifacts}
-              onChange={setIgnoreArtifacts}
-              aria-label="Ignorer l'optimisation d'artéfacts"
+              actif={optimiserArtefacts}
+              onChange={setOptimiserArtefacts}
+              aria-label="Activer l'optimisation d'artéfacts"
             />
           </div>
         </div>
-        {!ignoreArtifacts && (
+        {optimiserArtefacts && (
           <div className="flex flex-wrap gap-3">
             {ARTIFACT_KINDS.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1.5">
@@ -3203,7 +3213,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             comme une condition indépendante. Masqué avec le reste quand les
             artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
             une saisie sans effet est pire qu'une saisie absente. */}
-        {!ignoreArtifacts && (
+        {optimiserArtefacts && (
           <div className="mt-3">
             <ArtifactLinesEditor
               lignes={lignesVerrouillees}

@@ -83,7 +83,13 @@ export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
  * en croyant à un oubli de propagation.
  */
 export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDetail[] {
-  if (recipe.ignoreArtifacts) return [];
+  // ⚠️ **`ignoreArtifacts` coupe la RECHERCHE, pas les artéfacts.** Le monstre
+  // garde les pièces qu'il porte réellement et leurs statistiques : ce drapeau
+  // retirait avant TOUTE contribution d'artéfact, ce qui rendait les conditions
+  // minimales plus dures à franchir sans que rien ne le dise. Le champ garde
+  // son nom (format de recette stable) ; c'est l'écran qui l'expose désormais
+  // à l'endroit, « Activer l'optimisation d'artéfacts ».
+  if (recipe.ignoreArtifacts) return loaded.gear.artifacts;
   const reelle = paireReelle(recipe, loaded);
   if (reelle) return reelle;
   // Espèce introuvable, ou objectif « Dégâts réels » sans sort calculable : on
@@ -215,6 +221,9 @@ export function resolveArtifactBounds(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster
 ): BornesArtefacts | undefined {
+  // ⚠️ Sans recherche, il n'y a qu'UNE paire possible : celle qui est portée.
+  // `undefined` fait retomber le moteur sur son apport, des deux côtés — c'est
+  // exactement la borne juste, et il n'y a rien à balayer.
   if (recipe.ignoreArtifacts) return undefined;
   const espece = loadMonstersList().find((m) => m.com2usId === loaded.com2usId);
   if (!espece) return undefined;

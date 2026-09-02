@@ -49,16 +49,27 @@ export interface OptimizerState {
   setMaxStats: Dispatch<SetStateAction<Partial<Record<StatKey, number>>>>;
   excludeBase: boolean;
   setExcludeBase: Dispatch<SetStateAction<boolean>>;
-  // Même principe qu'`excludeBase`, un étage plus tôt : ignorer entièrement
-  // la contribution des artéfacts (PV/ATQ/DEF plats, voir ARTIFACT_MAIN dans
-  // effects.ts) dans le calcul — pas seulement dans son AFFICHAGE. Décoché
-  // par défaut : comportement historique inchangé (les artéfacts RÉELLEMENT
-  // équipés comptent toujours, comme avant l'ajout de cette bascule).
-  ignoreArtifacts: boolean;
-  setIgnoreArtifacts: Dispatch<SetStateAction<boolean>>;
+  /**
+   * Chercher la meilleure paire d'artéfacts pour chaque build — **activé par
+   * défaut**.
+   *
+   * ⚠️ **Désactivé ne veut PAS dire « sans artéfact ».** Le monstre garde les
+   * pièces qu'il porte RÉELLEMENT, avec leurs statistiques : on cesse
+   * simplement d'en chercher d'autres. C'est le sens du réglage — « je
+   * compose un runage autour des artéfacts que j'ai déjà dessus ».
+   *
+   * ⚠️ Ce drapeau a été INVERSÉ (il s'appelait `ignoreArtifacts`) et son
+   * comportement corrigé : il retirait auparavant TOUTE statistique
+   * d'artéfact, ce que son libellé ne disait pas et qui rendait la recherche
+   * plus stricte sans raison. La recette exportée garde, elle, le champ
+   * `ignoreArtifacts` (format stable) — la conversion se fait à la frontière,
+   * voir `exportRecipe`/`importRecipe` (OptimizerSection.tsx).
+   */
+  optimiserArtefacts: boolean;
+  setOptimiserArtefacts: Dispatch<SetStateAction<boolean>>;
   // Statistique principale EXIGÉE pour chacun des deux emplacements d'artéfact
   // (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a d'effet que si
-  // `ignoreArtifacts` est décoché. Clé absente = `'equipped'` (défaut, voir
+  // `optimiserArtefacts` est activé. Clé absente = `'equipped'` (défaut, voir
   // ArtifactMainChoice).
   //
   // ⚠️ **C'est un FILTRE sur l'inventaire, plus une hypothèse.** Ce réglage a
@@ -206,7 +217,9 @@ export function useOptimizerState(): OptimizerState {
   // ⚠️ Coché par défaut : demande reconfirmée après un premier aller-retour
   // (décoché par défaut, puis revenu sur cochée) — voir spec/outils/optimizer/.
   const [excludeBase, setExcludeBase] = useState(true);
-  const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
+  // Activee par defaut : chercher les artefacts est le comportement utile,
+  // et il ne coute rien a la recherche de runes (temps masque).
+  const [optimiserArtefacts, setOptimiserArtefacts] = useState(true);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [lignesVerrouillees, setLignesVerrouillees] = useState<LigneVerrouillee[]>([]);
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
@@ -233,7 +246,7 @@ export function useOptimizerState(): OptimizerState {
     setMinStats({});
     setMaxStats({});
     setExcludeBase(true);
-    setIgnoreArtifacts(false);
+    setOptimiserArtefacts(true);
     setArtifactMainByKind({});
     // ⚠️ Remis à zéro au changement de monstre, comme les runes imposées : une
     // ligne verrouillée exclusive à une sorte (« Précision Compétence 3 »)
@@ -271,8 +284,8 @@ export function useOptimizerState(): OptimizerState {
     setMaxStats,
     excludeBase,
     setExcludeBase,
-    ignoreArtifacts,
-    setIgnoreArtifacts,
+    optimiserArtefacts,
+    setOptimiserArtefacts,
     artifactMainByKind,
     setArtifactMainByKind,
     lignesVerrouillees,

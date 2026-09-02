@@ -58,9 +58,19 @@ export function mainsPourCeCompte(
   recipe: Pick<OptimizerRecipe, 'artifactMainByKind' | 'wizardName'>,
   accountName: string | null
 ): { mains: OptimizerRecipe['artifactMainByKind']; bascules: boolean } {
+  // ⚠️ **`'none'` a été RETIRÉ du sélecteur** — laisser un emplacement vide
+  // pendant que l'autre cherche n'a aucun sens en jeu, et « ne pas compter les
+  // artéfacts » se dit avec l'interrupteur, pour les DEUX emplacements à la
+  // fois. Une recette exportée avant ce retrait peut encore le porter : on le
+  // ramène sur « Libre », l'intention la plus proche (cherche le meilleur
+  // parmi les tiens). ⚠️ TOUJOURS, avant même la question du compte : une
+  // valeur qui n'existe plus ne doit atteindre aucun appelant.
+  const normalisees = Object.fromEntries(
+    Object.entries(recipe.artifactMainByKind).map(([k, v]) => [k, v === ('none' as unknown) ? 'libre' : v])
+  ) as OptimizerRecipe['artifactMainByKind'];
   const memeCompte = recipe.wizardName == null || accountName == null || recipe.wizardName === accountName;
-  if (memeCompte) return { mains: recipe.artifactMainByKind, bascules: false };
-  const entrees = Object.entries(recipe.artifactMainByKind);
+  if (memeCompte) return { mains: normalisees, bascules: false };
+  const entrees = Object.entries(normalisees);
   return {
     mains: Object.fromEntries(
       entrees.map(([k, v]) => [k, v === 'equipped' ? 'libre' : v])

@@ -752,13 +752,22 @@ retour.
    filtre s'applique **avant** tout le reste, dans la construction même du
    pool par slot — il réduit donc le nombre de candidats réellement
    considérés dès le départ.
-6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
-   artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
-   comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :
+6. **Artéfacts** — interrupteur **« Ignorer l'optimisation d'artéfacts »**,
+   **décoché par défaut** (les artéfacts réellement équipés comptent).
+   Décoché, deux listes déroulantes (Attribut, Type) proposent :
    **« Garder l'artéfact équipé »** (défaut), **« Libre »** (cherche le
    meilleur artéfact parmi TOUS les artéfacts équipables), **Principale
    ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
-   statistiques principales d'artéfact du jeu), ou **« Aucun »**.
+   statistiques principales d'artéfact du jeu).
+
+   ⚠️ **Il n'y a PAS de cran « Aucun »** — il a existé, il a été retiré.
+   Imposer l'emplacement vide pour UNE sorte pendant que l'autre cherche ne
+   correspond à rien en jeu : un monstre porte deux artéfacts, ou n'en porte
+   pas. Ne pas les compter est une décision **globale**, et l'interrupteur la
+   prend d'un seul geste pour les deux emplacements. L'emplacement peut
+   toujours rester **vide** si la recherche n'a rien de mieux à y mettre —
+   c'est l'imposer par sorte qui n'avait pas de sens. Une recette exportée
+   avant ce retrait voit son « Aucun » ramené sur **« Libre »** à l'import.
 
    ⚠️ **« Garder l'artéfact équipé » conserve la PIÈCE ENTIÈRE**, ses quatre
    sous-propriétés comprises : le pool de cet emplacement tombe à **un seul
@@ -795,7 +804,7 @@ retour.
 
    ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », plus dans
    la colonne droite de « Critères de recherche ». L'interrupteur
-   « Ignorer les statistiques » masque d'un coup les deux listes ET les
+   « Ignorer l'optimisation d'artéfacts » masque d'un coup les deux listes ET les
    lignes verrouillées : tant que le bloc vivait en tête de cette colonne,
    ce clic faisait REMONTER « Conditions », soit un clic qui déplace ce qui
    le suit ([shared/design.md](shared/design.md)). Le trait qui séparait

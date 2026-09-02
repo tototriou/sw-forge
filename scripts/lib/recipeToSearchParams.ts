@@ -92,7 +92,6 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
   const out: ArtifactDetail[] = [];
   for (const kind of Object.keys(recipe.artifactMainByKind) as ArtifactKind[]) {
     const choice = recipe.artifactMainByKind[kind] ?? 'equipped';
-    if (choice === 'none') continue;
     // ⚠️ `'libre'` n'a AUCUNE stat à hypothéquer — c'est « cherche parmi tous
     // les éligibles », ce que ce repli ne sait précisément pas faire. On garde
     // donc la pièce portée : la seule réponse défendable sans inventaire

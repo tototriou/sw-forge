@@ -71,7 +71,7 @@ const setup: DamageSetup = {
 };
 
 const choix = (v: string | undefined): ChoixPrincipale =>
-  v === 'equipped' || v === 'none' || v === 'libre' ? v : v ? (Number(v) as 100 | 101 | 102) : 'libre';
+  v === 'equipped' || v === 'libre' ? v : v ? (Number(v) as 100 | 101 | 102) : 'libre';
 
 const passifs = monsterOffensivePassives(fiche);
 

@@ -103,10 +103,14 @@ export default function testArtefactOptim() {
     2,
     '« principale = PV » ne laisse que l’artéfact PV (plus l’emplacement vide)'
   );
-  egal(
-    candidatsParSorte({ ...base, principaleParSorte: { element: 'none' } }, 'element'),
-    [null],
-    '« aucun » ne laisse QUE l’emplacement vide'
+  // ⚠️ Il n'existe PLUS de cran « Aucun » : imposer l'emplacement vide pour UNE
+  // sorte pendant que l'autre cherche ne correspond à rien en jeu. Mais
+  // l'emplacement vide reste TOUJOURS proposé comme candidat — c'est ce qui
+  // permet à la recherche de le laisser vide d'elle-même, et parfois la seule
+  // option (aucun artéfact éligible).
+  ok(
+    candidatsParSorte({ ...base, principaleParSorte: { element: 'libre' } }, 'element').includes(null),
+    'l’emplacement vide reste toujours un candidat, quel que soit le réglage'
   );
   egal(
     candidatsParSorte({ ...base, principaleParSorte: { element: 'libre' } }, 'element').length,
@@ -751,6 +755,25 @@ export function testRecettePartagee() {
     egal(compteSansNom.mains.element, 'equipped', 'compte local sans nom : aucune comparaison possible, idem');
   }
 
+  // ⚠️ **`'none'` n'existe plus dans le sélecteur**, mais une recette exportée
+  // AVANT son retrait le porte encore. Sans normalisation, cette valeur
+  // atteindrait `candidatsParSorte`, qui n'a plus de branche pour elle : elle
+  // serait alors traitée comme une principale inconnue, donc silencieusement
+  // ignorée. On la ramène sur « Libre » — l'intention la plus proche.
+  //
+  // ⚠️ TOUJOURS, y compris sur le MÊME compte : la question « d'où vient cette
+  // recette » ne change rien au fait que la valeur n'existe plus.
+  {
+    const ancienne = { element: 'none', archetype: 100 } as unknown as typeof mains;
+    const memeCompte = mainsPourCeCompte({ artifactMainByKind: ancienne, wizardName: 'Alice' }, 'Alice');
+    egal(memeCompte.mains.element, 'libre', 'recette d’avant le retrait : « Aucun » devient « Libre »');
+    egal(memeCompte.mains.archetype, 100, '… et le reste n’est pas touché');
+    egal(memeCompte.bascules, false, '… sans rien annoncer : ce n’est pas la bascule « équipé »');
+
+    const autreCompte = mainsPourCeCompte({ artifactMainByKind: ancienne, wizardName: 'Alice' }, 'Bob');
+    egal(autreCompte.mains.element, 'libre', '… et depuis un autre compte aussi');
+  }
+
   // Une recette sans aucun « equipped » ne déclenche aucune annonce, même
   // venue d'ailleurs — sinon le message d'import mentirait.
   {
@@ -916,12 +939,6 @@ export function testAmpliMaxAtteignable() {
   // ⚠️ Le 206 est portable par les DEUX sortes : le cumul est la SOMME des
   // meilleurs de chaque côté, pas leur maximum.
   egal(ampliVitMaxAtteignable(base), 55, 'le meilleur de chaque sorte se cumule (30 + 25)');
-
-  egal(
-    ampliVitMaxAtteignable({ ...base, principaleParSorte: { element: 'none' } }),
-    25,
-    '« Aucun » sur une sorte retire toute sa contribution'
-  );
 
   egal(
     ampliVitMaxAtteignable({ ...base, equipes: [att(1, 12)], principaleParSorte: { element: 'equipped' } }),

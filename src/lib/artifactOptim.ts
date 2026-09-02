@@ -33,9 +33,16 @@ import { CODE_AMPLI_VIT } from './damage';
 // encore `'libre'` : cette valeur n'a de sens QU'AVEC une recherche
 // d'artéfacts, et l'ajouter au sélecteur avant que celle-ci existe y poserait
 // une option morte.
+// ⚠️ **Pas de « laisser l'emplacement vide ».** Ce cran a existé et a été
+// retiré : un monstre porte deux artéfacts ou n'en porte pas, vider UN
+// emplacement pendant que l'autre cherche ne correspond à rien en jeu. Ne pas
+// compter les artéfacts est une décision GLOBALE, prise par l'appelant (voir
+// `ignoreArtifacts`, OptimizerSection.tsx), qui n'appelle alors simplement pas
+// ce module. ⚠️ L'emplacement vide reste une OPTION que la recherche peut
+// retenir d'elle-même (`candidatsParSorte` propose toujours `null`) — c'est
+// l'IMPOSER pour une seule sorte qui n'avait pas de sens.
 export type ChoixPrincipale =
   | 'equipped' // ne PAS chercher cet emplacement : garder ce qui est porté
-  | 'none' // laisser l'emplacement vide
   | 'libre' // chercher parmi TOUS les éligibles
   | 100 // … ou seulement ceux dont la principale est PV
   | 101 // … ATQ
@@ -448,7 +455,6 @@ export function preFiltrerCandidats(
 // principale appliqués. `null` y figure quand l'emplacement peut rester vide.
 export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKind): (ArtifactDetail | null)[] {
   const choix = params.principaleParSorte[kind] ?? 'libre';
-  if (choix === 'none') return [null];
   if (choix === 'equipped') {
     const porte = params.equipes.find((a) => a.kind === kind) ?? null;
     // ⚠️ Même en `'equipped'`, on vérifie l'éligibilité : un exemplaire dont

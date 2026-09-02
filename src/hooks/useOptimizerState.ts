@@ -12,16 +12,21 @@ export type OptimizerSortKey = StatKey | Objective;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
 // 101=ATQ, 102=DEF), plus trois cas hors de cette table : `'equipped'`
-// (défaut — reprend l'artéfact RÉELLEMENT équipé de ce type), `'none'` (aucun
-// artéfact dans cet emplacement, même si un est réellement équipé) et
-// `'libre'` (chercher parmi TOUS les éligibles, quelle que soit la
-// principale).
+// (défaut — reprend l'artéfact RÉELLEMENT équipé de ce type) et `'libre'`
+// (chercher parmi TOUS les éligibles, quelle que soit la principale).
 //
 // ⚠️ `'libre'` n'a de sens qu'avec une recherche d'artéfacts : il n'a été
 // ajouté qu'une fois celle-ci construite, pour ne pas laisser une option morte
 // dans le sélecteur. Il aligne ce type sur `ChoixPrincipale`
 // (artifactOptim.ts), dont il était jusque-là le sous-ensemble.
-export type ArtifactMainChoice = 'equipped' | 'none' | 'libre' | 100 | 101 | 102;
+//
+// ⚠️ **`'none'` (laisser l'emplacement vide) a été RETIRÉ.** Un monstre porte
+// deux artéfacts ou n'en porte pas : vider UN emplacement pendant que l'autre
+// cherche ne correspond à rien en jeu. Et « ne pas compter les artéfacts » se
+// dit déjà d'un seul geste avec l'interrupteur, pour les deux emplacements à
+// la fois. Les recettes exportées avant ce retrait sont ramenées sur `'libre'`
+// à l'import (voir `mainsPourCeCompte`, optimizerRecipe.ts).
+export type ArtifactMainChoice = 'equipped' | 'libre' | 100 | 101 | 102;
 
 // Toute la SAISIE de l'écran Outils → Optimizer, remontée ici (instancié dans
 // App.tsx, jamais démonté) pour survivre à un changement d'onglet : comme les

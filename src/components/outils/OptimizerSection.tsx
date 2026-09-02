@@ -1111,9 +1111,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // jamais modifiée par ces réglages). `ignoreArtifacts` coché = aucun
   // artéfact compté. Sinon, chaque emplacement (Attribut/Type, voir
   // ARTIFACT_KINDS) suit son propre choix : `'equipped'` (défaut) reprend
-  // l'artéfact réellement porté à cet emplacement DU BUILD DE BASE,
-  // `'none'` retire cet emplacement même s'il est réellement équipé, et un
-  // code de stat FILTRE l'inventaire sur cette principale.
+  // l'artéfact réellement porté à cet emplacement DU BUILD DE BASE, `'libre'`
+  // cherche parmi tous les éligibles, et un code de stat FILTRE l'inventaire
+  // sur cette principale.
+  //
+  // ⚠️ **Il n'existe plus de cran « Aucun ».** Vider UN emplacement pendant que
+  // l'autre cherche ne correspond à rien en jeu ; ne pas compter les artéfacts
+  // est une décision GLOBALE, portée par `ignoreArtifacts`. L'emplacement peut
+  // toujours rester vide si la recherche n'a rien de mieux à y mettre —
+  // `candidatsParSorte` propose `null` quel que soit le réglage.
   //
   // ⚠️ **Un code de stat n'hypothèque plus une pièce.** Il fabriquait avant un
   // artéfact `subs: []` : en « Dégâts réels », choisir « ATQ » faisait alors
@@ -3103,27 +3109,46 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             n&apos;est pas forcément celui que tu cherches à reproduire.{' '}
             <b className="text-ink">« Libre »</b> cherche le meilleur artéfact parmi tous tes artéfacts
             équipables ; une <b className="text-ink">principale</b> restreint cette recherche à tes artéfacts qui
-            la portent. <b className="text-ink">« Aucun »</b> retire l&apos;emplacement même s&apos;il est
-            réellement équipé.
+            la portent.
             <br />
             <br />
             Les artéfacts retenus sont toujours des artéfacts que tu <b className="text-ink">possèdes</b>, avec leurs
-            sous-propriétés : si tu n'en as aucune portant la statistique demandée, l'emplacement reste vide.
+            sous-propriétés : si tu n&apos;en as aucun portant la statistique demandée, l&apos;emplacement reste vide.
+            <br />
+            <br />
+            <b className="text-ink">« Libre » ne peut pas donner moins de résultats</b> qu&apos;une principale
+            imposée : les conditions minimales sont jugées sur ce que ton inventaire entier peut apporter, pas sur
+            une paire choisie d&apos;avance. Un build n&apos;est retenu que s&apos;il existe vraiment une paire, chez
+            toi, qui lui fait tenir toutes tes conditions.
+            <br />
+            <br />
+            La paire retenue pour chaque résultat est celle qui maximise le <b className="text-ink">critère de
+            tri</b> affiché : trier par PV effectifs ne choisit pas les mêmes artéfacts que trier par dégâts. Sur
+            Efficience et Vitesse, aucun artéfact n&apos;entre dans le score — il n&apos;y a rien à y maximiser.
           </HelpPopover>
           {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
               et son aide restent collés, l'interrupteur part à droite — même
               lecture qu'avant, dans le gabarit d'en-tête de carte. */}
           <div className="ml-auto flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
-            <HelpPopover title="Ignorer les statistiques des artéfacts">
-              Activé, la recherche ne compte <b className="text-ink">aucune</b> statistique d'artéfact (comme si le
-              monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque
-              emplacement ci-dessous.
+            <span className="text-xs font-semibold text-ink-dim">Ignorer l&apos;optimisation d&apos;artéfacts</span>
+            <HelpPopover title="Ignorer l&apos;optimisation d&apos;artéfacts">
+              Activé, la recherche ne cherche aucun artéfact et n&apos;en compte <b className="text-ink">aucune</b>{' '}
+              statistique — comme si le monstre n&apos;en portait pas. Les conditions minimales doivent donc être
+              franchies par les <b className="text-ink">runes seules</b>, ce qui rend la recherche plus stricte.
+              <br />
+              <br />
+              Désactivé, la recherche choisit pour chaque build la meilleure paire parmi tes artéfacts, en
+              respectant le réglage de chaque emplacement ci-dessous.
+              <br />
+              <br />
+              À activer pour composer un runage qui tienne <b className="text-ink">sans</b> l&apos;appoint des
+              artéfacts — pas pour « aller plus vite » : les artéfacts sont cherchés pendant que la recherche de
+              runes tourne, ils ne la ralentissent pas.
             </HelpPopover>
             <Interrupteur
               actif={ignoreArtifacts}
               onChange={setIgnoreArtifacts}
-              aria-label="Ignorer les statistiques des artéfacts"
+              aria-label="Ignorer l'optimisation d'artéfacts"
             />
           </div>
         </div>
@@ -3137,7 +3162,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   onChange={(e) => {
                     const raw = e.target.value;
                     const next: ArtifactMainChoice =
-                      raw === 'equipped' || raw === 'none' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
+                      raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
                     setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
                   }}
                   taille="sm"
@@ -3161,7 +3186,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                       {o.label}
                     </option>
                   ))}
-                  <option value="none">Aucun</option>
+                  {/* ⚠️ Pas de « Aucun ». Retiré : vider UN emplacement pendant
+                      que l'autre cherche ne correspond à rien en jeu, et « ne
+                      pas compter les artéfacts » se dit d'un seul geste avec
+                      l'interrupteur ci-dessus, pour les deux à la fois.
+                      L'emplacement peut toujours RESTER vide si la recherche
+                      n'a rien de mieux à y mettre — c'est l'imposer par sorte
+                      qui n'avait pas de sens. */}
                 </Selecteur>
               </div>
             ))}

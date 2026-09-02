@@ -334,7 +334,7 @@ retour.
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
    plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
    le combat déjà décrit. Seuls les deux **sélecteurs** retombent au défaut.
-2 bis. **« Meilleurs artéfacts pour ce build »** — dans la carte
+2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte
    **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
    résultat suit immédiatement les réglages qui le produisent, sans qu'un
    autre sujet ne s'intercale. La meilleure paire pour l'équipement
@@ -350,9 +350,23 @@ retour.
    donc une seule réponse : deux blocs qui se contrediraient à l'écran
    coûteraient plus cher qu'un bloc parfois muet. Concrètement :
    - **un** emplacement sur « Garder l'artéfact équipé » → la proposition
-     reste faite, et une ligne rappelle que seule l'autre moitié est cherchée.
+     reste faite, et **deux signaux** disent qu’une moitié est imposée :
+     un **bandeau au-dessus de la paire** (« Emplacement attribut figé — il
+     est gardé tel que porté, pas optimisé ») et un **marqueur « figé » sur
+     la pièce concernée**. Les deux répondent à des questions différentes —
+     le bandeau dit *ce qui se passe*, le marqueur dit *laquelle* — et sans
+     le second il fallait retraduire « attribut » en « celle de gauche ».
      La question garde tout son sens : « à artéfact d'attribut donné, quel
      type ? » ;
+
+     ⚠️ **Le bandeau est NEUTRE APPUYÉ, pas ambre** (décision explicite).
+     Un réglage que l’utilisateur a lui-même posé n’est pas un
+     avertissement : l’ambre reste réservé à ce qui réclame une action
+     (« Valider les artéfacts »), et deux ambres de sens différents dans la
+     même carte auraient dévalué les deux. Le contraste vient du contour
+     (plein, là où le bloc porte un contour atténué) et de l’encre pleine.
+     La mention vivait auparavant en petit texte grisé sous le titre, loin
+     du regard : on lisait la paire en croyant à deux propositions.
    - **les deux** figés → le bloc explique qu'il n'y a rien à chercher, au
      lieu d'annoncer « tu portes déjà la meilleure paire » — ce qui serait
      vrai, mais uniquement parce qu'on lui a interdit de chercher.

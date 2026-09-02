@@ -7,7 +7,7 @@ import { splitArtifactSub } from '../lib/effects';
 // modifiées.
 //
 // ⚠️ **Extrait de `account/ArtifactsList.tsx`, où il était écrit en ligne.**
-// Le bloc « Meilleurs artéfacts pour ce build » de l'Optimizer aplatissait les
+// Le bloc « Meilleurs artéfacts offensifs pour ce build » de l'Optimizer aplatissait les
 // quatre propriétés sur UNE ligne séparée par des « · », avec son propre
 // formatage (`artifactSubLabel(...).replace('X', …)`) — deux rendus de la même
 // donnée, dont un seul ressemblait au jeu. Un seul composant désormais : c'est

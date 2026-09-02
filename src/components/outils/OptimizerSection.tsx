@@ -326,7 +326,7 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
-// Les deux crans de « Meilleurs artéfacts pour ce build ».
+// Les deux crans de « Meilleurs artéfacts offensifs pour ce build ».
 //
 // ⚠️ Défini ici et non dans `runeBuildOptim.ts` avec `OBJECTIVE_LABELS` : ce
 // n'est PAS un objectif de recherche de runes — il ne change rien aux builds
@@ -472,7 +472,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // état dit seulement si elle est ouverte.
   const [setupOuvert, setSetupOuvert] = useState(false);
   /**
-   * Sur quoi « Meilleurs artéfacts pour ce build » optimise.
+   * Sur quoi « Meilleurs artéfacts offensifs pour ce build » optimise.
    *
    * ⚠️ **Un segmenté, PAS un bouton qui déclenche.** La qualité première de ce
    * bloc est d'apparaître sans qu'on l'ait demandé : un bouton le ferait
@@ -1243,7 +1243,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   );
 
   /**
-   * « Meilleurs artéfacts pour ce build » — l'optimisation d'artéfacts SEULE,
+   * « Meilleurs artéfacts offensifs pour ce build » — l'optimisation d'artéfacts SEULE,
    * sans recherche de runes.
    *
    * ⚠️ **Le calcul existe déjà** : `searchArtifacts` EST la meilleure paire
@@ -2314,7 +2314,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // (`matchesValidatedBuild` — PAS `ownValidatedBuild` seul, qui reste vrai
   // même en vue « runage réellement porté », voir son commentaire).
   /**
-   * Le bloc « Meilleurs artéfacts pour ce build », sous la fiche.
+   * Le bloc « Meilleurs artéfacts offensifs pour ce build », sous la fiche.
    *
    * ⚠️ Rendu à CÔTÉ de la fiche et jamais À LA PLACE de ses artéfacts : la
    * fiche montre l'équipement RÉEL, c'est son rôle. Y substituer une
@@ -2324,11 +2324,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const blocArtefactsSeuls = modeArtefactsSeuls && (
     <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        {/* ⚠️ « Meilleurs », et non plus « les plus offensifs ». Ce dernier
-            existait pour DIRE ce que le bloc maximisait quand rien d'autre ne
-            le disait — le segmenté ci-dessous le dit maintenant explicitement,
-            et « offensifs » deviendrait faux à cheval sur les deux crans. */}
-        <span className="label">Meilleurs artéfacts pour ce build</span>
+        {/* ⚠️ **« offensifs » est REVENU dans le titre**, après avoir été
+            retiré. Le retrait visait « les plus offensifs », qui disait
+            vaguement ce que le bloc maximisait à un moment où rien d'autre ne
+            le disait ; le segmenté ci-dessous le dit maintenant précisément.
+            Mais le mot manquait pour la question d'AVANT celle-là : ce bloc ne
+            cherche pas la meilleure paire dans l'absolu, il cherche la plus
+            offensive — et ses deux crans (dégâts bruts, dégâts du sort) sont
+            offensifs l'un comme l'autre. Sans lui, « meilleurs » se lisait
+            comme un verdict général, alors qu'un tank peut parfaitement
+            vouloir tout autre chose. */}
+        <span className="label">Meilleurs artéfacts offensifs pour ce build</span>
         {/* ⚠️ **L'ABSOLU d'abord, l'écart ensuite** (demande explicite). Le
             delta seul laissait sans réponse « combien cette paire me
             rapporte-t-elle ? » : un gros gain sur une base nulle et un petit
@@ -2383,9 +2389,27 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           question reste bonne — « à artéfact d'attribut donné, quel type ? » —
           il faut juste dire qu'on y répond. */}
       {modeArtefactsSeuls.explication == null && sortesFigees.length === 1 && (
-        <p className="mt-1 text-micro leading-tight text-ink-dimmer">
-          L’emplacement {sortesFigees[0] === 'element' ? 'attribut' : 'type'} est sur « Garder l’artéfact équipé » :
-          seul l’autre est cherché.
+        // ⚠️ **Un BANDEAU, pas une phrase de bas de bloc.** La mention
+        // vivait en `text-ink-dimmer` sous le titre, loin du regard : on
+        // lisait la paire en croyant à deux propositions. Elle passe donc
+        // AU-DESSUS des pièces, dans une boîte qui se détache du bloc.
+        //
+        // ⚠️ **Neutre appuyé, pas `alerte`** (décision explicite) : un
+        // réglage que l’utilisateur a lui-même posé n’est pas un
+        // avertissement. L’ambre reste réservé à ce qui réclame une action
+        // (« Valider les artéfacts ») — deux ambres de sens différents dans
+        // la même carte auraient dévalué les deux. Le contraste vient donc
+        // du contour (`border` plein là où le bloc porte `border-soft`) et
+        // de l’encre pleine, pas de la couleur.
+        //
+        // ⚠️ UN seul contour : ce bandeau est un FRÈRE des pièces, jamais
+        // une boîte posée sur une autre boîte déjà bordée.
+        <p className="mt-1.5 rounded border border-border bg-panel px-2 py-1 text-micro leading-tight text-ink">
+          <b className="font-semibold">
+            Emplacement {sortesFigees[0] === 'element' ? 'attribut' : 'type'} figé
+          </b>{' — '}
+          il est gardé tel que porté, pas optimisé. Seul l’emplacement{' '}
+          {sortesFigees[0] === 'element' ? 'type' : 'attribut'} est cherché ici.
         </p>
       )}
       {/* ⚠️ **La raison passe DEVANT tout le reste.** Elle dit ce que
@@ -2426,7 +2450,19 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 {/* La principale en tête, comme sur une pièce en jeu : sans
                     elle, on lisait quatre sous-propriétés sans savoir ce que
                     l'artéfact apporte d'abord. */}
-                <p className="text-micro font-semibold leading-tight text-ink">{formatArtifactMain(a.main)}</p>
+                {/* ⚠️ **Le marqueur désigne LAQUELLE.** Le bandeau dit ce
+                    qui se passe, ce jeton dit sur quelle pièce — sans lui,
+                    il fallait retraduire « attribut » en « celle de
+                    gauche ». Même gabarit que la pastille de sorte de
+                    ArtifactLinesEditor : rien de nouveau dans la librairie. */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="text-micro font-semibold leading-tight text-ink">{formatArtifactMain(a.main)}</p>
+                  {sortesFigees.includes(a.kind) && (
+                    <span className="shrink-0 rounded-full border border-border bg-panel px-1.5 py-px text-nano font-semibold text-ink-dim">
+                      figé
+                    </span>
+                  )}
+                </div>
                 <div className="mt-1 space-y-[3px]">
                   {a.subs.map((s, i) => (
                     <ArtifactSubLigne key={i} sub={s} />

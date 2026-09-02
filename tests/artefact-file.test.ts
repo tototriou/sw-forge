@@ -115,7 +115,7 @@ export default function testArtefactFile() {
     const c2 = { runeIds: [2], stats: stat(90) } as unknown as BuildCandidate;
     const cache = new Map([
       // c2 optimisé : sa paire lui apporte de quoi dépasser c1.
-      [cleBuild(c2), { paire: null, artefacts: [], stats: stat(110), meilleurSansVerrous: null }],
+      [cleBuild(c2), { paire: null, artefacts: [], stats: stat(110), meilleurSansVerrous: null, conforme: true }],
     ]);
     egal(candidatAvecSaPaire(c2, cache).stats, stat(110), 'un build optimisé porte ses stats RECALCULÉES');
     egal(candidatAvecSaPaire(c1, cache).stats, stat(100), '… et un build non optimisé garde les siennes');

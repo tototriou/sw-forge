@@ -94,11 +94,23 @@ export function useArtifactOptimQueue(opts: {
   // afficherait des stats qui ne correspondent pas aux artéfacts montrés juste
   // à côté, et un tri par ATQ porterait sur une valeur périmée.
   calculerStats: (c: BuildCandidate, artefacts: ArtifactDetail[]) => StatRow[];
+  /**
+   * Ce build TIENT-IL encore ses minimums avec cette paire précise ?
+   *
+   * ⚠️ **Obligatoire depuis que la faisabilité passe par `artifactBounds`**
+   * (voir `ResultatArtefacts.conforme` et spec/outils/optimizer/artefacts.md,
+   * §12.5) : la borne du moteur est calculée par stat isolée, donc des builds
+   * la franchissent sans qu'aucune paire réelle ne les rende équipables.
+   *
+   * `null`/absent = aucune vérification (aucun minimum posé) : toute paire
+   * convient, et `conforme` vaut alors `true` d'office.
+   */
+  respecteConditions?: ((c: BuildCandidate, artefacts: ArtifactDetail[]) => boolean) | null;
   // Change dès qu'un réglage modifie le score d'une paire — vide le cache.
   signature: string;
   K?: number;
 }): UseArtifactOptimQueue {
-  const { triees, pageAffichee, faireParams, calculerStats, signature, K = K_BUILDS_OPTIMISES } = opts;
+  const { triees, pageAffichee, faireParams, calculerStats, respecteConditions = null, signature, K = K_BUILDS_OPTIMISES } = opts;
   const [parBuild, setParBuild] = useState<ReadonlyMap<string, ResultatArtefacts>>(new Map());
   const [enAttente, setEnAttente] = useState(0);
 
@@ -110,10 +122,12 @@ export function useArtifactOptimQueue(opts: {
   const pageRef = useRef(pageAffichee);
   const paramsRef = useRef(faireParams);
   const statsRef = useRef(calculerStats);
+  const conformeRef = useRef(respecteConditions);
   trieesRef.current = triees;
   pageRef.current = pageAffichee;
   paramsRef.current = faireParams;
   statsRef.current = calculerStats;
+  conformeRef.current = respecteConditions;
 
   // Le cache vit dans une ref ET dans l'état : la ref pour que la boucle le
   // lise sans re-rendu, l'état pour que l'écran se rafraîchisse.
@@ -175,11 +189,34 @@ export function useArtifactOptimQueue(opts: {
       // ⚠️ UN SEUL build par tranche. Une boucle « tant qu'il reste du temps »
       // garderait le fil au-delà de ce que le navigateur a accordé, et le jank
       // reviendrait exactement là où `requestIdleCallback` devait l'éviter.
-      const r = chercherPaires(faire(suivant));
-      const meilleure = r.paires[0] ?? null;
-      const artefactsRetenus = meilleure
-        ? [meilleure.element, meilleure.archetype].filter((a): a is NonNullable<typeof a> => a != null)
-        : [];
+      // ⚠️ TOUTES les paires, pas seulement la meilleure — il faut la
+      // meilleure QUI TIENT LES MINIMUMS, pas la meilleure tout court.
+      // `chercherPaires` accumule et trie déjà l'ensemble ; `combien` ne fait
+      // que trancher à la fin, demander la liste complète ne coûte donc rien.
+      const r = chercherPaires(faire(suivant), Number.MAX_SAFE_INTEGER);
+      // Parcours par score DÉCROISSANT, arrêt à la première conforme : dans le
+      // cas courant c'est la première, et on ne recalcule les stats que pour
+      // les paires réellement examinées.
+      let meilleure: (typeof r.paires)[number] | null = null;
+      let artefactsRetenus: ArtifactDetail[] = [];
+      let conforme = false;
+      for (const p of r.paires) {
+        const arts = [p.element, p.archetype].filter((a): a is ArtifactDetail => a != null);
+        // Premier tour : on retient la meilleure au score, qu'elle soit
+        // conforme ou non — c'est elle qu'on montrera si AUCUNE ne l'est, pour
+        // que le diagnostic reste lisible plutôt que d'afficher un build sans
+        // artéfacts.
+        if (!meilleure) {
+          meilleure = p;
+          artefactsRetenus = arts;
+        }
+        if (!conformeRef.current || conformeRef.current(suivant, arts)) {
+          meilleure = p;
+          artefactsRetenus = arts;
+          conforme = true;
+          break;
+        }
+      }
       // ⚠️ Le résultat entre TOUJOURS dans le cache ; c'est sa PUBLICATION à
       // l'écran qui est regroupée (voir `publier` plus bas).
       cacheRef.current.set(cleBuild(suivant), {
@@ -191,6 +228,7 @@ export function useArtifactOptimQueue(opts: {
         // artéfacts réellement choisis.
         stats: statsRef.current(suivant, artefactsRetenus),
         meilleurSansVerrous: r.meilleurSansVerrous,
+        conforme,
       });
       publier(false);
       reveiller();

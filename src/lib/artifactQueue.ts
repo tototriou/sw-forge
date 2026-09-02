@@ -64,6 +64,22 @@ export interface ResultatArtefacts {
   stats: StatRow[];
   // `null` quand le coût n'a pas été demandé — voir `avecCoutDesVerrous`.
   meilleurSansVerrous: number | null;
+  /**
+   * Ce build tient-il encore ses minimums avec une VRAIE paire ?
+   *
+   * ⚠️ **Ce n'est pas une précaution, c'est la moitié d'une correction.** La
+   * recherche de runes valide désormais les minimums contre `artifactBounds`,
+   * une borne calculée PAR STAT ISOLÉE (voir `bornesArtefacts`). Avec des
+   * minimums sur PV, ATQ et DEF à la fois, elle suppose les trois maxima
+   * réunis — alors qu'une paire ne porte que deux principales. Des builds
+   * survivent donc sans qu'aucune paire réelle ne les rende équipables :
+   * mesuré sur un cas réel, 99 sur 105.
+   *
+   * `false` = à ne PAS afficher. Un build affiché qui viole la condition
+   * demandée est pire qu'un build manquant : l'utilisateur ne le vérifie pas.
+   * Voir spec/outils/optimizer/artefacts.md, §12.5.
+   */
+  conforme: boolean;
 }
 
 /**

@@ -27,11 +27,13 @@ import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
+  bornesArtefacts,
   chercherPaires,
   meilleurCumulParLigne,
   type ArtifactSearchParams,
   nombreDePairesRetenues,
   paireRepresentative,
+  respecteMinimums,
   type ChoixPrincipale,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
@@ -1403,6 +1405,38 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq, lockedRunes };
   }, [comboSets, minStats, maxStats, mainStatsBySlot, lockedRunes]);
 
+  /**
+   * Ce que l'INVENTAIRE d'artéfacts peut apporter, borné des deux côtés —
+   * ce qui décide de la FAISABILITÉ, là où `searchArtifacts` ne décide plus
+   * que de la NOTATION.
+   *
+   * ⚠️ **La paire représentative ne pouvait pas tenir ce rôle.** Elle est
+   * choisie pour son score ; en « Libre », `evaluer` somme les stats
+   * principales et retient donc deux PV+1500, apportant `+0 DEF` alors que
+   * l'inventaire contient des artéfacts DEF. Un minimum de DEF devait alors
+   * être franchi par les runes seules, sans raison — au point que forcer la
+   * principale sur DEF rendait PLUS de résultats que « Libre », qui autorise
+   * pourtant strictement plus de paires. Voir
+   * spec/outils/optimizer/artefacts.md, §12.
+   *
+   * ⚠️ **La borne est calculée PAR STAT ISOLÉE, donc pas conjointement
+   * atteignable** : avec des minimums sur PV, ATQ et DEF à la fois, le vecteur
+   * porte les trois maxima, alors qu'une paire ne compte que deux
+   * emplacements. C'est assumé — une borne optimiste ne peut que retenir trop.
+   * La vérification conjointe est faite en aval par `respecteMinimums`, qui
+   * n'est donc PAS optionnelle.
+   *
+   * ⚠️ Ne balaie que les stats réellement contraintes, dans le sens qui l'est
+   * (voir `bornesArtefacts`) — sans minimum ni maximum posé, aucun balayage.
+   */
+  const searchArtifactBounds = useMemo(() => {
+    if (!artifactParams) return undefined;
+    const avecMinimum = (Object.keys(requirement.minStats) as StatKey[]).filter((k) => (requirement.minStats[k] ?? 0) > 0);
+    const avecMaximum = (Object.keys(requirement.maxStats ?? {}) as StatKey[]).filter((k) => (requirement.maxStats?.[k] ?? 0) > 0);
+    if (avecMinimum.length === 0 && avecMaximum.length === 0) return undefined;
+    return bornesArtefacts(artifactParams, avecMinimum, avecMaximum);
+  }, [artifactParams, requirement]);
+
   // Indication du nombre de builds qui vont être testés — un ORDRE DE
   // GRANDEUR (le produit des pools filtrés par emplacement), pas le nombre
   // réellement exploré : le meet-in-the-middle n'énumère jamais ce produit en
@@ -1424,8 +1458,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // ce que « satisfiable » garantit et ne garantit PAS.
   const feasibilityDiagnosis = useMemo<StatFeasibility[]>(() => {
     if (!selected) return [];
-    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, relic: selected.gear.relic, pool, requirement, metric });
-  }, [selected, searchArtifacts, pool, requirement, metric]);
+    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement, metric });
+  }, [selected, searchArtifacts, searchArtifactBounds, pool, requirement, metric]);
   const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
 
   // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
@@ -1437,8 +1471,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
     if (!result || result.candidates.length > 0) return null;
-    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, relic: selected.gear.relic, pool, requirement, metric });
-  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, pool, requirement, metric]);
+    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement, metric });
+  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirement, metric]);
 
   // `adaptiveTrancheWeighting` (toggle « Prioriser les stats les plus
   // difficiles », voir SearchParams dans runeBuildOptim.ts) — réalloue le
@@ -1474,6 +1508,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     run({
       base: selected.gear.base,
       artifacts: searchArtifacts,
+      // ⚠️ La FAISABILITÉ se décide ici, plus sur `artifacts` — voir
+      // `searchArtifactBounds` et SearchParams.artifactBounds.
+      artifactBounds: searchArtifactBounds,
       relic: selected.gear.relic,
       pool,
       requirement,
@@ -1825,6 +1862,30 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             artifacts: arts,
           })
         : c.stats,
+    /**
+     * ⚠️ **Le filtre final du §12.5 — obligatoire, pas facultatif.** Depuis
+     * que la faisabilité passe par `searchArtifactBounds`, la recherche valide
+     * les minimums contre une borne calculée PAR STAT ISOLÉE : avec des
+     * minimums sur PV, ATQ et DEF à la fois, elle suppose les trois maxima
+     * réunis, alors qu'une paire ne porte que deux principales. Des builds
+     * arrivent donc ici sans qu'aucune paire réelle ne les rende équipables —
+     * mesuré sur un cas réel, 99 sur 105. Sans ce prédicat, la borne élargie
+     * AFFICHERAIT ces builds : pire que de les manquer.
+     *
+     * `null` quand aucun minimum n'est posé — il n'y a alors rien à vérifier.
+     */
+    respecteConditions:
+      Object.values(requirement.minStats).some((v) => (v ?? 0) > 0) && selected
+        ? (c, arts) =>
+            respecteMinimums(
+              computeStats({
+                ...selected.gear,
+                runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
+                artifacts: arts,
+              }),
+              requirement.minStats
+            )
+        : null,
     signature: signatureArtefacts,
   });
 
@@ -1868,7 +1929,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    */
   const affichees = useMemo(() => {
     if (fileArtefacts.parBuild.size === 0) return fullSortedCandidates;
-    const avecPaire = fullSortedCandidates.map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
+    // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
+    // ICI** (§12.5). Ils ont franchi la borne du moteur, calculée par stat
+    // isolée, sans qu'une paire puisse fournir les appoints simultanément.
+    // Un build non conforme reste AFFICHÉ tant que sa paire n'a pas été
+    // cherchée (absent du cache) : c'est le seul état honnête — on ne sait pas
+    // encore. La file traite la page affichée en priorité, donc le verdict
+    // arrive vite sur ce qu'on regarde.
+    const avecPaire = fullSortedCandidates
+      .filter((c) => fileArtefacts.parBuild.get(cleBuild(c))?.conforme !== false)
+      .map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
     return sortCandidates(avecPaire, sortBy, {
       realDamage,
       runeById,

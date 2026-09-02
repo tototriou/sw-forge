@@ -21,7 +21,7 @@ import {
   artifactPairAllowed,
   eligibleArtifacts,
 } from './artifacts';
-import { ARTIFACT_SUB, artifactSubKinds, valeurArtefactPropre } from './effects';
+import { ARTIFACT_MAIN, ARTIFACT_SUB, StatKey, artifactSubKinds, valeurArtefactPropre } from './effects';
 // ⚠️ Seule dépendance de ce module vers `damage` : le CODE de l'amplification
 // de VIT, pour ne pas en faire une seconde constante à tenir à jour. Aucune
 // logique de dégâts n'entre ici — l'évaluateur reste fourni par l'appelant.
@@ -690,6 +690,85 @@ export function paireRepresentative(params: ArtifactSearchParams): ArtifactDetai
   const meilleure = meilleuresPairesArtefacts(params)[0];
   if (!meilleure) return [];
   return [meilleure.element, meilleure.archetype].filter((a): a is ArtifactDetail => a != null);
+}
+
+/**
+ * Les deux bornes de l'apport d'artéfact, par statistique contrainte.
+ *
+ * ⚠️ **Remplace le scalaire unique qui servait des DEUX côtés.** Le moteur de
+ * runes distingue déjà un vecteur optimiste (`guaranteedMin`, réservé aux
+ * minimums) d'un vecteur pessimiste (`guaranteed`, pour les maximums), avec un
+ * commentaire qui interdit de les confondre. Les artéfacts, eux, passaient
+ * l'apport de la paire REPRÉSENTATIVE aux deux — donc décidaient avant la
+ * recherche quels builds sont seulement *faisables*, sur une paire choisie
+ * pour son score, pas pour sa capacité à franchir les conditions.
+ *
+ * - `max[k]` — le meilleur apport atteignable en `k` : borne OPTIMISTE, pour
+ *   les branches minimum. Elle peut retenir trop, jamais trop peu.
+ * - `min[k]` — l'apport incompressible : borne PESSIMISTE, pour les branches
+ *   maximum. Vaut `0` dès que l'emplacement vide est candidat.
+ *
+ * ⚠️ **Calculées sur le VRAI chemin (`chercherPaires`), jamais « max par
+ * emplacement puis somme ».** Cette seconde forme est plus simple et reste
+ * sûre, mais elle ignore la contrainte de paire : si les deux maxima sont
+ * intangibles, leur somme n'est atteignable par aucune paire réelle et la
+ * borne s'élargit sans raison — or chaque point de borne inutile coûte de
+ * l'élagage perdu. Passer par `chercherPaires` hérite gratuitement de
+ * l'éligibilité, d'`artifactPairAllowed`, du filtre de principale, des lignes
+ * verrouillées et de l'emplacement vide.
+ *
+ * ⚠️ **On ne balaie que ce qui est réellement contraint, DANS LE SENS qui
+ * l'est** : `max` ne sert qu'aux minimums, `min` qu'aux maximums. Une recette
+ * sans `maxStats` ne paie donc aucun balayage pour `min`. Les statistiques
+ * qu'aucune principale d'artéfact ne porte (VIT, TC, DCC, RES, PRE) sont
+ * ignorées : leur apport est nul des deux côtés, et l'absence de clé se lit
+ * `?? 0` chez l'appelant.
+ *
+ * ⚠️ Rend des vecteurs VIDES pour une stat dont aucune paire ne satisfait les
+ * verrous — même situation que `paireRepresentative`, où l'appelant doit
+ * refuser de lancer la recherche plutôt que de chercher sans artéfacts.
+ */
+export interface BornesArtefacts {
+  // Meilleur apport atteignable, par stat. Pour les branches MINIMUM.
+  max: Record<string, number>;
+  // Apport incompressible, par stat. Pour les branches MAXIMUM.
+  min: Record<string, number>;
+}
+
+// Les statistiques qu'une stat principale d'artéfact peut porter — déduites
+// d'`ARTIFACT_MAIN` (effects.ts), jamais réécrites : les codes 100/101/102 ne
+// doivent pas exister en double dans la codebase.
+const STATS_PORTABLES = new Set<StatKey>(Object.values(ARTIFACT_MAIN).map((d) => d.stat));
+
+export function bornesArtefacts(
+  params: ArtifactSearchParams,
+  statsAvecMinimum: StatKey[],
+  statsAvecMaximum: StatKey[]
+): BornesArtefacts {
+  const max: Record<string, number> = {};
+  const min: Record<string, number> = {};
+  // ⚠️ `avecCoutDesVerrous` explicitement retiré : il DÉSACTIVE l'élagage par
+  // obligation (voir son commentaire). Une borne n'a que faire du coût des
+  // verrous, et le payer ici multiplierait le balayage par ~4.
+  const sansCout = { ...params, avecCoutDesVerrous: false };
+  const apportEn = (k: StatKey) => (artefacts: ArtifactDetail[]) =>
+    artefacts.reduce((n, a) => n + (ARTIFACT_MAIN[a.main.code]?.stat === k ? a.main.value : 0), 0);
+
+  for (const k of new Set(statsAvecMinimum)) {
+    if (!STATS_PORTABLES.has(k)) continue;
+    const meilleure = chercherPaires({ ...sansCout, evaluer: apportEn(k) }).paires[0];
+    if (meilleure) max[k] = meilleure.score;
+  }
+  for (const k of new Set(statsAvecMaximum)) {
+    if (!STATS_PORTABLES.has(k)) continue;
+    // `chercherPaires` MAXIMISE : on minimise en évaluant l'opposé, puis on
+    // rétablit le signe. Une seconde fonction « chercher le pire » n'aurait
+    // fait que dupliquer le même balayage.
+    const apport = apportEn(k);
+    const pire = chercherPaires({ ...sansCout, evaluer: (a) => -apport(a) }).paires[0];
+    if (pire) min[k] = -pire.score;
+  }
+  return { max, min };
 }
 
 /**

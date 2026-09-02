@@ -1472,6 +1472,21 @@ différent, coopératif (voir « Interruption »).
     même avec le meilleur trouvé dans le pool réellement possédé de chacun
     des 5 autres emplacements, un minimum demandé reste hors de portée — ou
     si elle dépasse déjà, à elle seule, un maximum demandé.
+    ⚠️ **L'apport des artéfacts y compte pour ce que l'INVENTAIRE peut
+    donner, jamais pour ce qu'une paire choisie d'avance apporte.** Deux
+    bornes distinctes : le meilleur apport atteignable pour juger d'un
+    minimum, l'apport incompressible (zéro dès qu'un emplacement peut rester
+    vide) pour juger d'un maximum. Sans cette distinction, laisser la stat
+    principale sur **Libre** pouvait rendre MOINS de résultats que la forcer
+    sur une stat précise — alors que « Libre » autorise strictement plus
+    d'artéfacts : la paire supposée était choisie pour son score, et pouvait
+    donc n'apporter aucune DEF alors que l'inventaire en contenait.
+  - ⚠️ **Cette borne est calculée stat par stat**, donc plus optimiste que ce
+    qu'une paire réelle peut fournir : deux emplacements ne portent que deux
+    statistiques principales. Un build retenu grâce à elle est donc
+    **revérifié avec sa vraie paire** avant d'être affiché, et écarté si
+    aucune paire possédée ne lui fait tenir ses minimums. Un résultat affiché
+    respecte toujours les conditions demandées.
   - **Faisabilité de SET, précoce** (pendant la génération d'une moitié, pas
     seulement à l'appariement) : pour chaque set demandé, si même le
     meilleur cas ne peut plus atteindre le compte requis, la branche est

@@ -8,6 +8,7 @@
 
 import { ArtifactArchetype, ArtifactDetail, ElementKey } from '../src/types';
 import {
+  bornesArtefacts,
   budgetEmplacements,
   analyserPertinence,
   candidatsParSorte,
@@ -254,6 +255,69 @@ export default function testArtefactOptim() {
     ok(!respecteMinimums(stats, { atk: 3600 }), 'un minimum franchi à la baisse est bien détecté');
     ok(respecteMinimums(stats, { atk: 0, def: undefined }), 'un minimum nul ou absent n’exige rien');
     ok(!respecteMinimums(stats, { spd: 100 }), 'une stat ABSENTE des stats compte comme non satisfaite');
+  }
+
+  titre('Bornes d’artéfact — deux vecteurs, jamais un seul');
+
+  // ⚠️ Le défaut corrigé (spec/outils/optimizer/artefacts.md, §12) : l'apport
+  // de la paire REPRÉSENTATIVE servait de borne des DEUX côtés. Elle est
+  // choisie pour son SCORE — en « Libre », deux PV+1500 —, donc elle apporte
+  // `+0 DEF` alors que l'inventaire contient des artéfacts DEF. Un minimum de
+  // DEF devenait infranchissable sans raison.
+  {
+    const inv: ArtifactDetail[] = [
+      { ...attribut('dark', 100), main: { code: 100, value: 1500 } }, // PV +1500
+      { ...attribut('dark', 102), main: { code: 102, value: 100 } }, // DEF +100
+      { ...type('attack', 100), main: { code: 100, value: 1500 } }, // PV +1500
+      { ...type('attack', 102), main: { code: 102, value: 100 } }, // DEF +100
+    ];
+    const p: ArtifactSearchParams = {
+      porteur: lushen,
+      inventaire: inv,
+      equipes: [],
+      principaleParSorte: {},
+      // L'évaluateur de l'écran hors « Dégâts réels » : la somme des principales.
+      evaluer: (arts) => arts.reduce((n, a) => n + a.main.value, 0),
+    };
+
+    const figee = paireRepresentative(p);
+    egal(
+      figee.reduce((n, a) => n + (a.main.code === 102 ? a.main.value : 0), 0),
+      0,
+      'la paire représentative apporte 0 DEF — c’est tout le défaut'
+    );
+
+    const b = bornesArtefacts(p, ['hp', 'def'], []);
+    egal(b.max.hp, 3000, 'artFlatMax[hp] = les deux PV+1500');
+    egal(b.max.def, 200, 'artFlatMax[def] = les deux DEF+100, que la paire figée ignorait');
+
+    // ⚠️ La borne est calculée PAR STAT ISOLÉE : `{hp: 3000, def: 200}` n'est
+    // atteignable par AUCUNE paire (deux emplacements = deux principales).
+    // C'est assumé — une borne optimiste ne peut que retenir trop — et c'est
+    // exactement pourquoi `respecteMinimums` reste obligatoire en aval (§12.5).
+    ok(
+      b.max.hp + b.max.def > 3000 + 0 && b.max.hp + b.max.def > 0 + 200,
+      'les deux maxima ne sont PAS conjointement atteignables — d’où le filtre final'
+    );
+
+    // Sans minimum posé sur une stat, aucun balayage : la clé reste absente,
+    // et l'appelant la lit `?? 0`.
+    const partiel = bornesArtefacts(p, ['hp'], []);
+    ok(partiel.max.def === undefined, 'une stat non contrainte n’est pas balayée');
+    ok(Object.keys(partiel.min).length === 0, 'sans maximum posé, aucun balayage pour la borne pessimiste');
+
+    // La borne pessimiste tombe à 0 dès que l'emplacement vide est candidat —
+    // rien n'oblige à équiper un artéfact.
+    const bMin = bornesArtefacts(p, [], ['hp']);
+    egal(bMin.min.hp, 0, 'artFlatMin[hp] = 0, l’emplacement vide est toujours candidat');
+
+    // Une stat qu'aucune principale d'artéfact ne porte est ignorée des deux
+    // côtés — inutile de payer un balayage pour un apport toujours nul.
+    const bVit = bornesArtefacts(p, ['spd'], ['spd']);
+    ok(
+      bVit.max.spd === undefined && bVit.min.spd === undefined,
+      'la VIT n’est portée par aucune principale d’artéfact : jamais balayée'
+    );
   }
 
   titre('Lignes verrouillées — le minimum se lit sur la PAIRE');

@@ -27,11 +27,12 @@ import {
 } from '../../src/lib/damage';
 import { computeStats } from '../../src/lib/stats';
 import { artifactDamageProfile, codesAmplificationActifs, computeTotalDamage } from '../../src/lib/damage';
-import { paireRepresentative, type ChoixPrincipale } from '../../src/lib/artifactOptim';
+import { bornesArtefacts, paireRepresentative, type ChoixPrincipale } from '../../src/lib/artifactOptim';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { StatKey } from '../../src/lib/effects';
 import { ArtifactDetail, ArtifactKind, RuneDetail } from '../../src/types';
+import { PorteurArtefact } from '../../src/lib/artifacts';
 import { LoadedMonster } from './loadMonster';
 import { loadMonsterSkills } from './skillsData';
 
@@ -155,8 +156,29 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
     evaluer = (arts) => arts.reduce((n, a) => n + a.main.value, 0);
   }
 
-  return paireRepresentative({
-    porteur: { element: espece.element, archetype: espece.archetype },
+  return paireRepresentative(
+    paramsArtefacts(recipe, loaded, { element: espece.element, archetype: espece.archetype }, evaluer)
+  );
+}
+
+/**
+ * L'`ArtifactSearchParams` du CLI — factorisé pour que la paire supposée
+ * (`paireReelle`) et les bornes de faisabilité (`resolveArtifactBounds`)
+ * partent EXACTEMENT du même contexte.
+ *
+ * ⚠️ **Second constructeur d'`ArtifactSearchParams`** (l'autre est
+ * `artifactParams`, OptimizerSection.tsx). Un champ ajouté là-bas doit l'être
+ * ici — `tsc` ne le dira pas tant qu'il reste optionnel (voir CLAUDE.md,
+ * « un type partagé a PLUSIEURS constructeurs »).
+ */
+function paramsArtefacts(
+  recipe: OptimizerRecipe,
+  loaded: LoadedMonster,
+  porteur: PorteurArtefact,
+  evaluer: (arts: ArtifactDetail[]) => number
+): Parameters<typeof paireRepresentative>[0] {
+  return {
+    porteur,
     inventaire: loaded.allArtifacts,
     equipes: loaded.gear.artifacts,
     principaleParSorte: recipe.artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
@@ -168,14 +190,52 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
     // noterait tous les candidats sur un potentiel que la paire finale ne
     // pourra pas atteindre.
     lignesVerrouillees: recipe.lignesVerrouillees ?? [],
-    // ⚠️ **Second constructeur d'`ArtifactSearchParams`** (l'autre est
-    // `artifactParams`, OptimizerSection.tsx) : sans cette ligne, le CLI
-    // élaguerait des artéfacts que l'écran garde, et ne reproduirait donc pas
-    // la même paire supposée. Une amplification de buff est invisible à la
-    // sonde de pertinence — voir `codesAmplificationActifs` (damage.ts).
+    // ⚠️ Sans cette ligne, le CLI élaguerait des artéfacts que l'écran garde,
+    // et ne reproduirait donc pas la même paire supposée. Une amplification de
+    // buff est invisible à la sonde de pertinence — voir
+    // `codesAmplificationActifs` (damage.ts).
     codesAmplification: codesAmplificationActifs(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP),
     evaluer,
-  });
+  };
+}
+
+/**
+ * Ce que l'INVENTAIRE d'artéfacts peut apporter, borné des deux côtés — ce qui
+ * décide désormais de la FAISABILITÉ (voir `SearchParams.artifactBounds`).
+ *
+ * ⚠️ Pendant EXACT de `searchArtifactBounds` (OptimizerSection.tsx). Le CLI
+ * doit produire les mêmes bornes que l'écran, sinon il rejouerait un moteur
+ * plus contraint que celui qui tourne réellement — exactement le genre de
+ * divergence silencieuse que ce fichier existe pour empêcher.
+ *
+ * `undefined` quand la recette ignore les artéfacts, quand l'espèce est
+ * introuvable, ou quand aucune condition n'est posée : le moteur retombe alors
+ * sur l'apport de la paire représentative, comportement d'avant le §12.
+ */
+export function resolveArtifactBounds(
+  recipe: OptimizerRecipe,
+  loaded: LoadedMonster
+): { max: Record<string, number>; min: Record<string, number> } | undefined {
+  if (recipe.ignoreArtifacts) return undefined;
+  const espece = loadMonstersList().find((m) => m.com2usId === loaded.com2usId);
+  if (!espece) return undefined;
+  const avecMinimum = (Object.keys(recipe.requirement.minStats) as StatKey[]).filter(
+    (k) => (recipe.requirement.minStats[k] ?? 0) > 0
+  );
+  const avecMaximum = (Object.keys(recipe.requirement.maxStats ?? {}) as StatKey[]).filter(
+    (k) => (recipe.requirement.maxStats?.[k] ?? 0) > 0
+  );
+  if (avecMinimum.length === 0 && avecMaximum.length === 0) return undefined;
+  // ⚠️ L'`evaluer` passé ici n'a aucune importance : `bornesArtefacts` le
+  // remplace par l'apport de chaque stat. Seuls comptent les AUTRES champs
+  // (éligibilité, filtre de principale, verrous, amplifications).
+  const params = paramsArtefacts(
+    recipe,
+    loaded,
+    { element: espece.element, archetype: espece.archetype },
+    (arts) => arts.reduce((n, a) => n + a.main.value, 0)
+  );
+  return bornesArtefacts(params, avecMinimum, avecMaximum);
 }
 
 // Même logique que `pool` (OptimizerSection.tsx) : `excludeUsedRunes` coché
@@ -269,6 +329,12 @@ export function recipeToSearchParams(
   return {
     base: loaded.gear.base,
     artifacts: resolveArtifacts(recipe, loaded),
+    // ⚠️ **Troisième constructeur de `artifactBounds`** (les autres :
+    // `searchArtifactBounds` dans OptimizerSection.tsx, et le repli du moteur
+    // quand il est absent). Sans cette ligne, le CLI figerait le choix
+    // d'artéfact avant la recherche là où l'écran ne le fige plus — il
+    // rejouerait donc un moteur qui n'existe plus, en silence.
+    artifactBounds: resolveArtifactBounds(recipe, loaded),
     relic: loaded.gear.relic,
     pool: resolvePool(recipe, loaded, exclusionData),
     requirement: recipe.requirement,

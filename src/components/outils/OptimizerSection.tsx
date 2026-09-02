@@ -1157,7 +1157,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    */
   const sortesFigees = useMemo<ArtifactKind[]>(
     () =>
-      ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (artifactMainByKind[key] ?? 'equipped') === 'equipped'),
+      ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (artifactMainByKind[key] ?? 'libre') === 'equipped'),
     [artifactMainByKind]
   );
 
@@ -3192,8 +3192,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             {ARTIFACT_KINDS.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1.5">
                 <span className="text-xs text-ink w-14">{label}</span>
+                {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
+                    d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
+                    Ce sélecteur affichait « Garder l'artéfact équipé » tant
+                    qu'aucun choix n'avait été fait, pendant que la recherche
+                    cherchait librement : l'écran annonçait le contraire de ce
+                    qui se passait, et tout ce qui se fiait à cet affichage
+                    (les emplacements « figés », donc l'éditeur de verrous)
+                    raisonnait sur un état faux. Le défaut se lit désormais au
+                    même endroit pour tout le monde. */}
                 <Selecteur
-                  value={String(artifactMainByKind[key] ?? 'equipped')}
+                  value={String(artifactMainByKind[key] ?? 'libre')}
                   onChange={(e) => {
                     const raw = e.target.value;
                     const next: ArtifactMainChoice =

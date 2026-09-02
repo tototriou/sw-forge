@@ -69,8 +69,14 @@ export interface OptimizerState {
   setOptimiserArtefacts: Dispatch<SetStateAction<boolean>>;
   // Statistique principale EXIGÉE pour chacun des deux emplacements d'artéfact
   // (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a d'effet que si
-  // `optimiserArtefacts` est activé. Clé absente = `'equipped'` (défaut, voir
-  // ArtifactMainChoice).
+  // `optimiserArtefacts` est activé.
+  //
+  // ⚠️ **Clé absente = `'libre'`**, et c'est la SEULE réponse valable : c'est
+  // ce que `candidatsParSorte` (artifactOptim.ts) fait d'une clé absente, et
+  // le moteur a le dernier mot. Ce commentaire disait `'equipped'`, le
+  // sélecteur l'affichait, et la recherche cherchait pourtant librement —
+  // trois sources, deux réponses. Tout ce qui se fiait à l'affichage
+  // raisonnait donc sur un état faux.
   //
   // ⚠️ **C'est un FILTRE sur l'inventaire, plus une hypothèse.** Ce réglage a
   // d'abord servi de « et si j'avais un artéfact PV+1500 ? » et fabriquait pour

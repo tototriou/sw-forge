@@ -97,7 +97,12 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
   // une paire arbitraire.
   const out: ArtifactDetail[] = [];
   for (const kind of Object.keys(recipe.artifactMainByKind) as ArtifactKind[]) {
-    const choice = recipe.artifactMainByKind[kind] ?? 'equipped';
+    // ⚠️ `'libre'` : le MÊME défaut que `candidatsParSorte` (artifactOptim.ts)
+    // et que le sélecteur de l'écran. Sans effet sur CE repli — les deux crans
+    // y gardent la pièce portée, faute d'inventaire exploitable — mais un
+    // défaut qui diverge d'un fichier à l'autre finit toujours par être lu
+    // quelque part où il compte.
+    const choice = recipe.artifactMainByKind[kind] ?? 'libre';
     // ⚠️ `'libre'` n'a AUCUNE stat à hypothéquer — c'est « cherche parmi tous
     // les éligibles », ce que ce repli ne sait précisément pas faire. On garde
     // donc la pièce portée : la seule réponse défendable sans inventaire

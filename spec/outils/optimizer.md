@@ -763,10 +763,19 @@ retour.
    dures à franchir sans raison.
 
    Activé, deux listes déroulantes (Attribut, Type) proposent :
-   **« Garder l'artéfact équipé »** (défaut), **« Libre »** (cherche le
-   meilleur artéfact parmi TOUS les artéfacts équipables), **Principale
+   **« Libre »** (**défaut** — cherche le meilleur artéfact parmi TOUS les
+   artéfacts équipables), **« Garder l'artéfact équipé »**, **Principale
    ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
    statistiques principales d'artéfact du jeu).
+
+   ⚠️ **Le défaut affiché était FAUX** : la liste montrait « Garder l'artéfact
+   équipé » tant qu'aucun choix n'avait été fait, pendant que la recherche
+   cherchait librement — le moteur traite une absence de choix comme
+   « Libre ». L'écran annonçait donc le contraire de ce qui se passait, et
+   tout ce qui se fiait à cet affichage (les emplacements considérés comme
+   figés, donc l'éditeur de sous-propriétés verrouillées) raisonnait sur un
+   état faux. Le comportement n'a pas changé — seul l'affichage a été mis
+   d'accord avec lui.
 
    ⚠️ **Il n'y a PAS de cran « Aucun »** — il a existé, il a été retiré.
    Imposer l'emplacement vide pour UNE sorte pendant que l'autre cherche ne

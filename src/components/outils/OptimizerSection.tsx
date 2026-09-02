@@ -1146,6 +1146,21 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // le diagnostic « pourquoi aucune ne passe » doivent partager EXACTEMENT la
   // même définition. Deux constructions parallèles finiraient par diverger, et
   // le diagnostic expliquerait alors une recherche qui n'a pas eu lieu.
+  /**
+   * Les emplacements d'artéfact dont la pièce est DÉJÀ décidée — « Garder
+   * l'artéfact équipé », donc un seul candidat, rien à chercher.
+   *
+   * ⚠️ **C'est le défaut**, pour les deux sortes : à l'ouverture, aucun
+   * emplacement ne cherche. Un verrou de sous-propriété y est alors sans
+   * effet — au mieux la pièce portée le tient déjà, au pire plus aucune paire
+   * ne passe et la recherche refuse de partir.
+   */
+  const sortesFigees = useMemo<ArtifactKind[]>(
+    () =>
+      ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (artifactMainByKind[key] ?? 'equipped') === 'equipped'),
+    [artifactMainByKind]
+  );
+
   const artifactParams = useMemo(() => {
     // ⚠️ **Optimisation désactivée ≠ sans artéfact.** Les paramètres restent
     // construits, avec « Garder l'artéfact équipé » IMPOSÉ des deux côtés : le
@@ -1200,17 +1215,27 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           // par emplacement — la pièce réelle, avec ses sous-propriétés —, donc
           // rien n'est cherché mais tout est compté.
           { element: 'equipped', archetype: 'equipped' }) as Partial<Record<ArtifactKind, ChoixPrincipale>>,
-      // ⚠️ Un verrou n'a aucun sens sans recherche : il n'y a qu'une paire
-      // possible, et l'écarter parce qu'elle ne tient pas une ligne ne
-      // laisserait aucune solution de rechange.
-      lignesVerrouillees: optimiserArtefacts ? lignesVerrouillees : [],
+      // ⚠️ **Un verrou n'a aucun sens sans recherche.** Sans optimisation, ou
+      // avec les DEUX emplacements sur « Garder l'artéfact équipé », il n'y a
+      // qu'une paire possible : l'écarter parce qu'elle ne tient pas une ligne
+      // ne laisse aucune solution de rechange — `paireRepresentative` rend un
+      // tableau vide et la recherche refuse de partir. On les neutralise donc
+      // ici, en plus de les griser dans l'éditeur (voir `sortesFigees`).
+      //
+      // ⚠️ Les verrous restants ne sont PAS filtrés ligne par ligne : une ligne
+      // exclusive à une sorte figée est déjà retirée du choix par l'éditeur, et
+      // en garder une posée avant le changement reste FIDÈLE — elle exprime une
+      // exigence que la pièce figée doit satisfaire, ce que `paireRespecteLignes`
+      // vérifie correctement.
+      lignesVerrouillees:
+        optimiserArtefacts && sortesFigees.length < ARTIFACT_KINDS.length ? lignesVerrouillees : [],
       // ⚠️ Sans ça, une amplification de buff est éliminée par dominance alors
       // qu'elle vaut des dégâts — la sonde de pertinence ne peut pas la voir
       // (voir `codesAmplificationActifs`, damage.ts).
       codesAmplification: codesAmplificationActifs(damageSetup),
       evaluer,
     };
-  }, [selected, optimiserArtefacts, artifactMainByKind, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
+  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -3219,6 +3244,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               lignes={lignesVerrouillees}
               onChange={setLignesVerrouillees}
               diagnostic={diagnosticVerrous}
+              figees={sortesFigees}
             />
           </div>
         )}

@@ -62,15 +62,40 @@ export default function ArtifactLinesEditor({
   lignes,
   onChange,
   diagnostic,
+  figees = [],
 }: {
   lignes: LigneVerrouillee[];
   onChange: (l: LigneVerrouillee[]) => void;
+  /**
+   * Les sortes dont l'emplacement est FIGÉ — « Garder l'artéfact équipé »,
+   * donc une seule pièce possible, déjà choisie.
+   *
+   * ⚠️ **Un verrou n'a de sens que sur un emplacement CHERCHÉ.** Sur une sorte
+   * figée, exiger une ligne ne fait pas apparaître une meilleure pièce : soit
+   * celle qui est portée la porte déjà, soit plus aucune paire ne passe et la
+   * recherche refuse de partir. Les lignes EXCLUSIVES à une sorte figée sont
+   * donc retirées du choix ; les lignes portables par les deux (200-299)
+   * restent proposables tant qu'un emplacement cherche encore.
+   *
+   * ⚠️ Le défaut de chaque sélecteur étant « Garder l'artéfact équipé », les
+   * DEUX sortes sont figées à l'ouverture : l'éditeur y était donc déjà inerte,
+   * mais proposé quand même — une saisie sans effet, pire qu'une saisie absente.
+   */
+  figees?: ArtifactKind[];
   // Le meilleur cumul RÉELLEMENT atteignable par ligne, quand aucune paire ne
   // passe. `null` le reste du temps — ce bloc n'a rien à dire quand ça marche.
   diagnostic?: { code: number; min: number; auMieux: number; atteint: boolean }[] | null;
 }) {
-  const catalogue = toutesLesLignes();
-  const parCode = new Map(catalogue.map((l) => [l.code, l]));
+  const toutFige = figees.length >= ARTIFACT_KINDS.length;
+  // ⚠️ `parCode` part du catalogue COMPLET, jamais du filtré : une ligne déjà
+  // posée doit garder son nom, sa pastille et son plafond même si sa sorte
+  // vient d'être figée — sinon elle s'afficherait « #308 » sans plus rien dire,
+  // au moment précis où l'utilisateur doit décider de la retirer.
+  const catalogueComplet = toutesLesLignes();
+  const parCode = new Map(catalogueComplet.map((l) => [l.code, l]));
+  // Proposable seulement si AU MOINS une des sortes qui peuvent la porter
+  // cherche encore.
+  const catalogue = catalogueComplet.filter((l) => l.sortes.some((k) => !figees.includes(k)));
   // Nom lisible d'un code, pour nommer les formes voisines dans
   // l'avertissement — le catalogue ne couvre que les lignes CHOISISSABLES ici,
   // d'où le repli sur le numéro.
@@ -83,11 +108,20 @@ export default function ArtifactLinesEditor({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="label">Sous-propriétés verrouillées</span>
+        <span className={`label ${toutFige ? 'text-ink-dimmer' : ''}`}>Sous-propriétés verrouillées</span>
         <span className="font-mono text-nano text-ink-dim tabular-nums">
           {lignes.length} / {MAX_LIGNES}
         </span>
       </div>
+
+      {/* ⚠️ Dit POURQUOI c'est inerte, plutôt que de laisser un menu vide.
+          Un contrôle grisé sans raison se lit comme une panne. */}
+      {toutFige && (
+        <p className="text-nano leading-tight text-ink-dimmer">
+          Les deux emplacements sont sur « Garder l&apos;artéfact équipé » : la paire est déjà décidée, un verrou
+          n&apos;a plus rien à chercher. Mets un emplacement sur « Libre » ou sur une principale pour en poser.
+        </p>
+      )}
 
       {lignes.map((ligne) => {
         const def = parCode.get(ligne.code);
@@ -101,6 +135,12 @@ export default function ArtifactLinesEditor({
         // (3/4 recouvre Comp.3 et Comp.4) et les amplifications de buff
         // (ATQ/DEF recouvre ATQ et DEF).
         const voisins = codesEquivalentsAuVerrou(ligne.code);
+        // ⚠️ Cette ligne est-elle devenue SANS EFFET ? C'est le cas dès que
+        // TOUTES les sortes capables de la porter sont figées — les deux
+        // emplacements sur « Garder l'artéfact équipé », ou bien une ligne
+        // exclusive à l'attribut alors que l'attribut est figé. On grise sa
+        // valeur mais on garde la croix : c'est le seul geste qui reste utile.
+        const inerte = !!def && def.sortes.every((k) => figees.includes(k));
         return (
           <div
             key={ligne.code}
@@ -109,9 +149,12 @@ export default function ArtifactLinesEditor({
             // empilé deux contours de 1 px.
             className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-2 gap-y-0.5 rounded border border-border-soft bg-panel2 py-1 pl-2 pr-1"
           >
-            <span className="text-xs leading-tight text-ink">{def?.nom ?? `#${ligne.code}`}</span>
+            <span className={`text-xs leading-tight ${inerte ? 'text-ink-dimmer line-through' : 'text-ink'}`}>
+              {def?.nom ?? `#${ligne.code}`}
+            </span>
             {def && <Pastille sortes={def.sortes} />}
             <NumberField
+              disabled={inerte}
               value={ligne.min}
               onChange={(v) =>
                 onChange(lignes.map((l) => (l.code === ligne.code ? { ...l, min: v ?? 0 } : l)))
@@ -137,6 +180,15 @@ export default function ArtifactLinesEditor({
               icone={<X size={11} />}
               libelle={`Retirer ${def?.nom ?? ligne.code}`}
             />
+            {/* ⚠️ Une ligne devenue sans effet le DIT, et dit quoi en faire.
+                La barrer sans un mot laisserait croire à un bug. */}
+            {inerte && (
+              <span className="col-span-full text-nano leading-tight text-ink-dimmer">
+                Sans effet : {def?.sortes.length === 2 ? 'les deux emplacements sont figés' : `l’emplacement ${
+                  def?.sortes[0] === 'element' ? 'attribut' : 'type'
+                } est figé`} sur « Garder l’artéfact équipé ». À retirer, ou remets cet emplacement sur « Libre ».
+              </span>
+            )}
             <span
               className={`col-span-full font-mono text-nano tabular-nums ${exigeLesDeux ? 'text-warn' : 'text-ink-dimmer'}`}
             >

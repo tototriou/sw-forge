@@ -909,6 +909,21 @@ retour.
    ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*
    garantissant une propriété qui n'y contribue pas.
 
+   ⚠️ **Un verrou n'a de sens que sur un emplacement CHERCHÉ.** Sur une sorte
+   laissée sur « Garder l'artéfact équipé », la pièce est déjà décidée :
+   exiger une sous-propriété n'en fait pas apparaître une meilleure — soit
+   celle qui est portée la porte déjà, soit plus aucune paire ne passe et la
+   recherche refuse de partir. Donc :
+   - les sous-propriétés **exclusives** à une sorte figée disparaissent du
+     menu (une ligne portable par les deux reste proposée tant qu'un
+     emplacement cherche) ;
+   - les **deux** emplacements figés — ce qui est le **défaut** — rendent la
+     section entièrement inerte, et elle **dit pourquoi** plutôt que de
+     présenter un menu vide ;
+   - une ligne déjà posée qui devient sans effet est **barrée et grisée**,
+     avec la raison et la conduite à tenir ; sa **croix reste active**, parce
+     que la retirer est le seul geste qui serve encore.
+
    ⚠️ **Le minimum vaut 1 % à la pose, et ne peut pas descendre à 0**
    (demande explicite). Un verrou à 0 est **inerte** — `paireRespecteLignes`
    passe les lignes à `min <= 0` : la ligne s'affichait donc comme une

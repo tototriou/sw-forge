@@ -2370,8 +2370,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       <Bouton
         onClick={handleValidateDisplayed}
         disabled={!canValidateDisplayed || matchesValidatedBuild}
-        ton={matchesValidatedBuild ? 'accent' : 'neutre'}
-        fond={matchesValidatedBuild ? 'doux' : 'plein'}
+        // ⚠️ Même code couleur que les cartes de résultat (BuildCandidateCard) :
+        // `alerte` sur « Valider les artéfacts », parce qu'il signale un état
+        // des DONNÉES — ce qui est affiché n'est pas ce qui est réservé.
+        ton={etatFiche === 'oui' ? 'accent' : etatFiche === 'artefacts' ? 'alerte' : 'neutre'}
+        fond={etatFiche === 'non' ? 'plein' : 'doux'}
         taille="sm"
         pleineLargeur
         icone={matchesValidatedBuild ? <CheckCircle2 size={14} /> : undefined}

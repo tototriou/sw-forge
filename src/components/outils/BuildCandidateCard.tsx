@@ -386,8 +386,20 @@ export default function BuildCandidateCard({
               // Le ton « déjà réservé » ne vaut que pour l'identité complète —
               // sinon la carte se lirait comme terminée alors qu'elle attend
               // une action.
-              ton={validated === 'oui' ? 'accent' : 'neutre'}
-              fond={validated === 'oui' ? 'doux' : 'plein'}
+              //
+              // ⚠️ **`alerte` pour « Valider les artéfacts », et c'est son sens
+              // exact** : ce ton « ne dit rien de l'ACTION, il signale l'état
+              // des DONNÉES » (voir Bouton.tsx). Ici la donnée signalée est
+              // « ce que cette carte montre n'est pas ce qui est réservé ».
+              // Sans lui, la carte se confondait avec toutes les autres cartes
+              // non validées, alors que c'est la seule où il reste un écart à
+              // combler.
+              //
+              // ⚠️ Un SEUL contour : `trait` vaut `plein` par défaut, donc le
+              // bouton en porte déjà un — le ton en change la couleur, il n'en
+              // superpose pas un second.
+              ton={validated === 'oui' ? 'accent' : validated === 'artefacts' ? 'alerte' : 'neutre'}
+              fond={validated === 'oui' || validated === 'artefacts' ? 'doux' : 'plein'}
               taille="sm"
               icone={validated === 'oui' ? <CheckCircle2 size={14} /> : undefined}
               libelle={

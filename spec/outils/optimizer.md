@@ -731,6 +731,20 @@ retour.
    - slot 2 : PV% · ATQ% · DEF% · VIT
    - slot 4 : PV% · ATQ% · DEF% · Taux Crit · Dmg Crit
    - slot 6 : PV% · ATQ% · DEF% · RES · Précision
+   ⚠️ **Un maximum saisi SOUS le minimum retombe au défaut de la case**
+   (demande explicite) : la condition serait insatisfaisable par construction,
+   et la recherche renverrait « 0 build » sans que rien ne dise pourquoi.
+   - À la **sortie du champ**, jamais à la frappe : on ne saurait pas
+     distinguer un « 5 » définitif d'un « 50 » en cours d'écriture. C'est le
+     même piège que celui que `NumberField` documente déjà pour le bornage par
+     `min` — d'où un axe `onBlur` ajouté au composant, réservé aux règles qui
+     lient DEUX champs (borner celui-ci reste le travail de `min`/`max`).
+   - Le champ est **effacé**, pas remonté à la valeur du minimum : il retrouve
+     ainsi son placeholder, donc son défaut (le plafond pour une stat bornée à
+     100, « aucun maximum » sinon). Le corriger en « max = min » poserait une
+     contrainte que personne n'a demandée, et qui ne laisse passer qu'une
+     seule valeur.
+
    Multi-sélection ; **aucune coche = pas de contrainte** sur ce slot. Exemple
    donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. **Colonne
    GAUCHE**, sous Set de runes recherché (demande explicite : les deux

@@ -2810,6 +2810,32 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                     placeholder={capped ? String(ceiling) : '—'}
                     suffix={st.suffix || undefined}
                     boxWidth="w-24"
+                    // ⚠️ **Un maximum sous le minimum retombe au défaut**
+                    // (demande explicite) : la condition serait insatisfaisable
+                    // par construction, et la recherche renverrait « 0 build »
+                    // sans que rien ne dise pourquoi.
+                    //
+                    // ⚠️ À la SORTIE du champ, jamais à la frappe : on ne
+                    // saurait pas distinguer un « 5 » définitif d'un « 50 » en
+                    // cours d'écriture — c'est le même piège que celui que
+                    // `NumberField` documente déjà pour le bornage par `min`.
+                    //
+                    // ⚠️ On EFFACE plutôt que de remonter à la valeur du
+                    // minimum : le champ retrouve alors son placeholder, donc
+                    // son défaut (le plafond pour une stat bornée à 100,
+                    // « aucun maximum » sinon). Le corriger silencieusement en
+                    // « max = min » poserait une contrainte que l'utilisateur
+                    // n'a pas demandée, et qui ne laisse passer qu'une valeur.
+                    onBlur={() => {
+                      const mn = minStats[st.key];
+                      const mx = maxStats[st.key];
+                      if (mn == null || mx == null || mx >= mn) return;
+                      setMaxStats((prev) => {
+                        const next = { ...prev };
+                        delete next[st.key];
+                        return next;
+                      });
+                    }}
                     ariaLabel={`${st.label} maximum`}
                     title="Maximum"
                   />

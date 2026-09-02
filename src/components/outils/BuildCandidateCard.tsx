@@ -1,4 +1,4 @@
-import { CheckCircle2 } from 'lucide-react';
+import { ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
@@ -57,6 +57,21 @@ interface Props {
   // alors qu'il le redeviendra dès qu'on libère la rune. `null` = aucun
   // conflit. Le texte nomme le monstre concerné, comme le fait la fiche.
   conflit?: string | null;
+  /**
+   * Ouvre/ferme la comparaison de CE build avec la référence. `undefined` :
+   * pas de bouton — aucun monstre résolu, donc aucune référence à comparer.
+   */
+  onCompare?: () => void;
+  /**
+   * L'écart, statistique par statistique, entre ce build et la référence —
+   * fourni SEULEMENT quand cette carte est celle qu'on compare.
+   *
+   * ⚠️ **Calculé par le PARENT**, comme `degatsReels` juste au-dessus et pour
+   * la même raison : la référence est la fiche affichée, donc le build validé
+   * quand il en existe un, et cette carte n'a aucune raison de savoir
+   * comment cette résolution se fait.
+   */
+  comparaison?: { key: string; label: string; suffix: string; delta: number }[];
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -85,6 +100,8 @@ export default function BuildCandidateCard({
   onValidate,
   conflit,
   validated,
+  onCompare,
+  comparaison,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -266,19 +283,64 @@ export default function BuildCandidateCard({
           voir OptimizerSection.tsx). Absent (`onValidate` non fourni) pour
           un monstre non réellement possédé — rien à réserver sur un
           exemplaire qui n'existe pas dans le compte. */}
-      {onValidate && (
-        <Bouton
-          onClick={onValidate}
-          disabled={validated || !!conflit}
-          title={conflit ?? undefined}
-          ton={validated ? 'accent' : 'neutre'}
-          fond={validated ? 'doux' : 'plein'}
-          taille="sm"
-          pleineLargeur
-          icone={validated ? <CheckCircle2 size={14} /> : undefined}
-          libelle={validated ? 'Validé' : conflit ? 'Rune déjà réservée' : 'Valider ce build'}
-          className="mt-2.5"
-        />
+      {(onValidate || onCompare) && (
+        // ⚠️ Les deux boutons SE PARTAGENT la largeur (demande explicite) :
+        // `flex` + `flex-1` sur chacun, plutôt que deux `pleineLargeur`
+        // empilés. La carte garde ainsi la même hauteur qu'avec un seul
+        // bouton — une rangée de plus par carte se paie sur toute la grille
+        // de résultats.
+        <div className="mt-2.5 flex items-stretch gap-2">
+          {onCompare && (
+            <Bouton
+              onClick={onCompare}
+              ton={comparaison ? 'accent' : 'neutre'}
+              fond={comparaison ? 'doux' : 'vide'}
+              taille="sm"
+              icone={<ArrowLeftRight size={14} />}
+              libelle="Comparer"
+              className="flex-1"
+            />
+          )}
+          {onValidate && (
+            <Bouton
+              onClick={onValidate}
+              disabled={validated || !!conflit}
+              title={conflit ?? undefined}
+              ton={validated ? 'accent' : 'neutre'}
+              fond={validated ? 'doux' : 'plein'}
+              taille="sm"
+              icone={validated ? <CheckCircle2 size={14} /> : undefined}
+              libelle={validated ? 'Validé' : conflit ? 'Rune déjà réservée' : 'Valider ce build'}
+              className="flex-1"
+            />
+          )}
+        </div>
+      )}
+
+      {/* ⚠️ L'écart contre le build de RÉFÉRENCE — la fiche affichée, donc le
+          build validé quand il en existe un. S'affiche SOUS les boutons : au
+          clic, rien de ce qui précède ne bouge (spec/shared/design.md).
+          ⚠️ Les écarts NULS sont montrés aussi, en gris. Ne garder que les
+          stats qui changent ferait une liste dont la longueur varie d'une
+          carte à l'autre, et laisserait croire qu'une stat absente n'a pas été
+          comparée. */}
+      {comparaison && (
+        <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] gap-x-2 gap-y-0.5 rounded border border-border-soft bg-panel2 px-2 py-1.5">
+          {comparaison.map((s) => (
+            <div key={s.key} className="flex items-baseline justify-between gap-1">
+              <span className="text-nano text-ink-dim">{s.label}</span>
+              <span
+                className={`font-mono text-nano tabular-nums ${
+                  s.delta > 0 ? 'text-good' : s.delta < 0 ? 'text-bad' : 'text-ink-dimmer'
+                }`}
+              >
+                {s.delta > 0 ? '+' : ''}
+                {Math.round(s.delta).toLocaleString('fr-FR')}
+                {s.suffix}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

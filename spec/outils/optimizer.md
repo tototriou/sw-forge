@@ -1209,6 +1209,29 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
   changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
   build validé par défaut.
+- **« Comparer », à côté de « Valider ce build »** sur chaque carte de
+  résultat (demande explicite) : les deux boutons **se partagent la largeur**
+  de la carte, plutôt que d'être empilés — une rangée de plus par carte se
+  paierait sur toute la grille de résultats. Au clic, l'**écart statistique
+  par statistique** entre ce build et la référence apparaît **sous** les
+  boutons, donc sans rien déplacer de ce qui précède.
+  - ⚠️ **La référence est la fiche affichée**, ce qui couvre les deux cas
+    demandés *sans les distinguer* : « le build validé s'il y en a un, sinon
+    le build actuel ». `selected.gear` **est** déjà le build validé quand il
+    en existe un — runes ET artéfacts substitués — et l'équipement réel
+    sinon. Refaire cette résolution côté comparaison l'aurait dupliquée, et
+    aurait raté « Voir le runage réellement porté », qui la désactive exprès.
+  - Un seul build comparé à la fois : ils partagent la même référence, deux
+    comparaisons ouvertes ne diraient rien de plus.
+  - ⚠️ Les écarts **nuls sont affichés**, en gris. Ne montrer que les stats
+    qui changent ferait une liste de longueur variable d'une carte à l'autre,
+    et laisserait croire qu'une stat absente n'a pas été comparée.
+  - L'écart est calculé **par le parent**, comme les dégâts réels de la carte
+    et pour la même raison : la carte n'a aucune raison de savoir comment la
+    référence se résout. Il n'est calculé que pour la carte comparée — le
+    faire pour les 20 de la page coûterait vingt fois plus pour dix-neuf
+    valeurs jamais affichées.
+
 - **« Valider ce build » sous la fiche**, sans passer par une recherche
   (demande explicite) — un second bouton, identique à celui d'une carte de
   résultat, juste sous la fiche stats/artéfacts/runes/relique : valide

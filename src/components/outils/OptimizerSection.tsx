@@ -430,6 +430,19 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     () => resolveDamageSkill(damageSkills, damageSetup.skillCom2usId),
     [damageSkills, damageSetup.skillCom2usId]
   );
+  /**
+   * Quel build de résultat est actuellement COMPARÉ à la référence — sa clé
+   * de runes, ou `null`. Un seul à la fois : deux comparaisons ouvertes
+   * n'auraient pas de sens, elles partagent la même référence.
+   *
+   * ⚠️ **La référence, c'est la fiche affichée**, et ça suffit à couvrir les
+   * deux cas demandés. `selected.gear` EST déjà le build validé quand il en
+   * existe un (substitution des runes ET des artéfacts, voir le `useMemo` de
+   * `selected`), et l'équipement réel sinon. Recalculer ici « validé sinon
+   * courant » aurait dupliqué cette résolution — et raté le cas « Voir le
+   * runage réellement porté », qui la désactive exprès.
+   */
+  const [compareKey, setCompareKey] = useState<string | null>(null);
   // La description du combat sort du flux (voir DamageSetupModale.tsx) : cet
   // état dit seulement si elle est ouverte.
   const [setupOuvert, setSetupOuvert] = useState(false);
@@ -951,6 +964,22 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     if (!speciesMonster) return null;
     return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
   }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, artifactById, showRealGear]);
+
+  /**
+   * Les stats de RÉFÉRENCE du bouton « Comparer » — celles de la fiche.
+   *
+   * ⚠️ Déclarées ICI, juste après `selected`, et pas à côté de `compareKey`
+   * plus haut : `selected` est un `useMemo` déclaré à cette ligne, et le lire
+   * avant produit un « used before its declaration » que seul `tsc` attrape —
+   * `npm run build` passait sans broncher.
+   *
+   * ⚠️ **Rien à recalculer pour couvrir « validé sinon courant »** :
+   * `selected.gear` EST déjà le build validé quand il en existe un (runes ET
+   * artéfacts substitués, voir juste au-dessus), et l'équipement réel sinon.
+   * Refaire cette résolution ici l'aurait dupliquée, et aurait raté « Voir le
+   * runage réellement porté », qui la désactive exprès.
+   */
+  const statsReference = useMemo(() => (selected ? computeStats(selected.gear) : null), [selected]);
 
   // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
   // seulement quand l'exemplaire RÉELLEMENT résolu est un exemplaire Box
@@ -3904,6 +3933,28 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 metric={metric}
                 openDetailKey={openDetailKey}
                 onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
+                {...(() => {
+                  // ⚠️ Comparaison contre les stats de la FICHE — donc contre
+                  // le build validé quand il en existe un, sans avoir à le
+                  // redemander ici (voir `statsReference`).
+                  const cle = c.runeIds.join('-');
+                  return {
+                    onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
+                    // ⚠️ Le delta est calculé PAR STAT contre la référence, et
+                    // seulement pour la carte comparée : le faire pour les 20
+                    // cartes de la page coûterait 20 fois plus pour 19 valeurs
+                    // qu'on n'affiche pas.
+                    comparaison:
+                      compareKey === cle && statsReference
+                        ? c.stats.map((ligne) => ({
+                            key: ligne.key,
+                            label: ligne.label,
+                            suffix: ligne.suffix,
+                            delta: ligne.total - (statsReference.find((r) => r.key === ligne.key)?.total ?? 0),
+                          }))
+                        : undefined,
+                  };
+                })()}
                 // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
                 // critère de classement courant (objectif OU tri) — pas
                 // seulement quand `objective` vaut « Dégâts réels » : on peut

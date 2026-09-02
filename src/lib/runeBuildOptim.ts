@@ -451,6 +451,18 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
   if (objective !== 'ehp') {
     throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
   }
+  return pvEffectifs(stats);
+}
+
+/**
+ * Les PV EFFECTIFS d'un jeu de statistiques — PV pondérés par la défense.
+ *
+ * ⚠️ Extraite d'`objectiveScore` pour que l'ÉCRAN puisse afficher la même
+ * valeur que celle qui classe : le bouton « Comparer » et la ligne « PV
+ * effectifs » d'une carte de résultat en ont besoin, et recopier la formule
+ * là-bas aurait donné deux nombres qui divergent au premier ajustement.
+ */
+export function pvEffectifs(stats: StatRow[]): number {
   const hp = statTotal(stats, 'hp');
   const def = statTotal(stats, 'def');
   // ⚠️ Constantes importées de damage.ts, seule source du facteur de défense

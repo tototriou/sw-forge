@@ -40,7 +40,19 @@ interface Props {
   // sort résolu et l'adversaire) plutôt que reconstruit ici : cette carte
   // n'a aucune raison de connaître le modèle de dégâts, et le parent trie
   // déjà sur exactement la même valeur.
-  degatsReels?: { total: number; partPvCible: number };
+  // ⚠️ `delta` : l'écart avec le build de référence, fourni SEULEMENT quand
+  // cette carte est celle qu'on compare. Sur la même prop que la valeur qu'il
+  // qualifie, pour qu'on ne puisse pas afficher l'un sans l'autre.
+  degatsReels?: { total: number; partPvCible: number; delta?: number };
+  // Les PV EFFECTIFS de ce candidat — la valeur qui l'a classé quand
+  // l'objectif ou le tri courant est « PV effectifs ». `undefined` sinon.
+  // ⚠️ Même raison que `degatsReels` d'être calculée par le PARENT : c'est le
+  // chiffre qui ORDONNE les cartes, il doit venir de la même source que le
+  // tri, jamais d'une formule recopiée ici.
+  pvEffectifs?: { total: number; delta?: number };
+  // Écart d'efficience/score total avec la référence — la ligne de mesure en
+  // tête de carte est toujours affichée, donc son écart aussi quand on compare.
+  metricDelta?: number;
   // Bouton « Valider » (Lot 2 — réservation des 6 runes de CE build, voir
   // spec/outils/optimizer/historique-import-monstres-a-optimiser.md).
   // `undefined` : aucun bouton — cas d'un monstre non réellement possédé
@@ -80,6 +92,30 @@ interface Props {
 // une échelle réduite pour tenir dans une carte de résultat sans l'alourdir.
 // ⚠️ Calibrée pour que DEUX cartes tiennent par ligne dans le conteneur
 // `max-w-3xl` (768px) de OptimizerSection.tsx — voir le `minmax` du grid.
+/**
+ * Un écart avec le build de référence, sous la valeur qu'il qualifie.
+ *
+ * ⚠️ Un seul composant pour les trois (dégâts, PV effectifs, efficience) :
+ * trois rendus séparés auraient divergé de couleur ou de format au premier
+ * ajustement, et c'est précisément la comparaison entre eux qui compte.
+ * ⚠️ Un écart NUL s'affiche, en gris — même raison que dans la grille de
+ * comparaison des stats : une valeur absente se lirait « non comparée ».
+ */
+function Delta({ valeur, suffixe = '' }: { valeur: number; suffixe?: string }) {
+  const arrondi = Math.round(valeur * 10) / 10;
+  return (
+    <span
+      className={`font-mono text-nano tabular-nums ${
+        arrondi > 0 ? 'text-good' : arrondi < 0 ? 'text-bad' : 'text-ink-dimmer'
+      }`}
+    >
+      {arrondi > 0 ? '+' : ''}
+      {arrondi.toLocaleString('fr-FR')}
+      {suffixe}
+    </span>
+  );
+}
+
 const WHEEL_SCALE = 0.45;
 const ARTIFACT_SCALE = 0.45;
 
@@ -102,6 +138,8 @@ export default function BuildCandidateCard({
   validated,
   onCompare,
   comparaison,
+  pvEffectifs,
+  metricDelta,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -150,12 +188,34 @@ export default function BuildCandidateCard({
         detailOuvertIci ? 'relative z-10' : ''
       }`}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-start justify-between mb-2">
         <span className="font-mono text-xs font-bold text-star">#{rank}</span>
-        <span className="font-mono text-xs text-ink-dim">
-          {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
+        <span className="flex flex-col items-end">
+          <span className="font-mono text-xs text-ink-dim">
+            {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
+          </span>
+          {/* L'écart avec la référence, SOUS la valeur qu'il qualifie
+              (demande explicite) — jamais à côté, où il se lirait comme une
+              seconde mesure. */}
+          {metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />}
         </span>
       </div>
+
+      {/* ⚠️ Même traitement que les dégâts, et pour la même raison : c'est le
+          chiffre qui a CLASSÉ ce candidat quand on optimise la survie. Sans
+          lui, on triait par PV effectifs sans jamais voir la valeur triée —
+          signalé à l'usage. */}
+      {pvEffectifs && (
+        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
+          <span className="text-micro text-ink-dim">PV effectifs</span>
+          <span className="flex flex-col items-end">
+            <span className="font-mono text-sm font-bold text-star">
+              {Math.round(pvEffectifs.total).toLocaleString('fr-FR')}
+            </span>
+            {pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}
+          </span>
+        </p>
+      )}
 
       {/* ⚠️ Le chiffre qui a servi à CLASSER ce candidat passe devant la
           mesure par rune : quand on optimise des dégâts, c'est lui qu'on
@@ -165,11 +225,14 @@ export default function BuildCandidateCard({
       {degatsReels && (
         <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
           <span className="text-micro text-ink-dim">Dégâts</span>
-          <span className="font-mono text-sm font-bold text-star">
-            {Math.round(degatsReels.total).toLocaleString('fr-FR')}
-            <span className="ml-1.5 font-normal text-micro text-ink-dim">
-              {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
+          <span className="flex flex-col items-end">
+            <span className="font-mono text-sm font-bold text-star">
+              {Math.round(degatsReels.total).toLocaleString('fr-FR')}
+              <span className="ml-1.5 font-normal text-micro text-ink-dim">
+                {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
+              </span>
             </span>
+            {degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}
           </span>
           {/* ⚠️ **Rangée TOUJOURS présente** — la place est réservée d’avance
               (spec/shared/design.md). Rendue conditionnellement, elle faisait

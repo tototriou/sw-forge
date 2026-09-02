@@ -42,6 +42,8 @@ import {
   StatKey,
   formatArtifactMain,
   runeSetIconFilter,
+  runeEfficiency,
+  runeScore,
 } from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
 import {
@@ -56,6 +58,7 @@ import {
   objectiveScore,
   sortCandidates,
   candidateMetricTotal,
+  pvEffectifs,
   OBJECTIVE_LABELS,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
@@ -980,6 +983,27 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    * runage réellement porté », qui la désactive exprès.
    */
   const statsReference = useMemo(() => (selected ? computeStats(selected.gear) : null), [selected]);
+  /**
+   * Les deux autres valeurs de référence du bouton « Comparer » : les PV
+   * effectifs et l'efficience/score total de la fiche.
+   *
+   * ⚠️ `pvEffectifs` vient de `runeBuildOptim`, la même fonction que celle qui
+   * CLASSE les candidats — recopier sa formule ici aurait donné deux nombres
+   * qui divergent au premier ajustement du facteur de défense.
+   *
+   * ⚠️ L'efficience se somme sur les runes de la fiche dans la mesure
+   * COURANTE, comme `candidateMetricTotal` le fait pour un candidat : figer la
+   * mesure de la recherche donnerait un écart faux dès qu'on bascule
+   * Efficience ↔ Score sans relancer.
+   */
+  const refEhp = useMemo(() => (statsReference ? pvEffectifs(statsReference) : null), [statsReference]);
+  const refMetric = useMemo(
+    () =>
+      selected
+        ? selected.gear.runes.reduce((n, r) => n + (metric === 'eff' ? runeEfficiency(r) : runeScore(r)), 0)
+        : null,
+    [selected, metric]
+  );
 
   // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
   // seulement quand l'exemplaire RÉELLEMENT résolu est un exemplaire Box
@@ -3938,8 +3962,25 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   // le build validé quand il en existe un, sans avoir à le
                   // redemander ici (voir `statsReference`).
                   const cle = c.runeIds.join('-');
+                  const compare = compareKey === cle && statsReference != null;
                   return {
                     onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
+                    // ⚠️ Affichée dès que les PV effectifs sont le critère de
+                    // CLASSEMENT — objectif OU tri —, exactement comme les
+                    // dégâts réels : on peut avoir cherché sur un objectif puis
+                    // re-trié par PV effectifs, auquel cas le chiffre qui
+                    // ordonne les cartes doit être visible dessus.
+                    pvEffectifs:
+                      objective === 'ehp' || sortBy === 'ehp'
+                        ? {
+                            total: pvEffectifs(c.stats),
+                            delta: compare && refEhp != null ? pvEffectifs(c.stats) - refEhp : undefined,
+                          }
+                        : undefined,
+                    metricDelta:
+                      compare && refMetric != null
+                        ? candidateMetricTotal(c, runeById, metric) - refMetric
+                        : undefined,
                     // ⚠️ Le delta est calculé PAR STAT contre la référence, et
                     // seulement pour la carte comparée : le faire pour les 20
                     // cartes de la page coûterait 20 fois plus pour 19 valeurs
@@ -3980,7 +4021,36 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                           realDamage.bonusDegatsSelonDef,
                           realDamage.bonusSiAtqSeuil
                         );
-                        return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
+                        return {
+                          total,
+                          partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
+                          // ⚠️ L'écart se calcule contre les dégâts de la
+                          // RÉFÉRENCE, recalculés avec ses propres stats et sa
+                          // propre paire d'artéfacts — jamais contre le total
+                          // d'un autre candidat. `realDamage.artefacts` est la
+                          // paire de la fiche, celle qui accompagne
+                          // `statsReference`.
+                          delta:
+                            compareKey === c.runeIds.join('-') && statsReference
+                              ? total -
+                                computeTotalDamage(
+                                  realDamage.profile,
+                                  realDamage.passifs,
+                                  statsReference,
+                                  realDamage.setup,
+                                  realDamage.element,
+                                  realDamage.artefacts,
+                                  realDamage.critSiPlusRapide,
+                                  realDamage.bonusDegatsSelonVit,
+                                  realDamage.bonusDegatsStack,
+                                  realDamage.monsterWide,
+                                  realDamage.bonusDegatsConditionnel,
+                                  realDamage.bonusDegatsSelonCr,
+                                  realDamage.bonusDegatsSelonDef,
+                                  realDamage.bonusSiAtqSeuil
+                                )
+                              : undefined,
+                        };
                       })()
                     : undefined
                 }

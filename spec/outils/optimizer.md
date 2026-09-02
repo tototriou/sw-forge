@@ -1078,6 +1078,13 @@ retour.
     cible qu'il emporte (« tue la cible » au-delà de 100 %). Visible dès que
     ce critère ordonne la liste — que ce soit l'objectif de la recherche ou
     un tri choisi après coup.
+    ⚠️ **Objectif « PV effectifs »** : même traitement, et pour la même
+    raison — chaque carte affiche la valeur de PV effectifs qui l'a classée.
+    Elle manquait : on triait par PV effectifs sans jamais voir la valeur
+    triée. Le chiffre vient de `pvEffectifs` (runeBuildOptim.ts), **la même
+    fonction que celle qui classe** — extraite d'`objectiveScore` pour ça,
+    plutôt que recopiée côté écran où elle aurait divergé au premier
+    ajustement du facteur de défense.
     ⚠️ **« Valider ce build »**, sur chaque carte — réserve les 6 runes de CE
     résultat (elles n'apparaissent plus dans les recherches suivantes de la
     même liste de travail), jusqu'à libération explicite : voir « Listes de
@@ -1223,6 +1230,15 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     aurait raté « Voir le runage réellement porté », qui la désactive exprès.
   - Un seul build comparé à la fois : ils partagent la même référence, deux
     comparaisons ouvertes ne diraient rien de plus.
+  - ⚠️ **L'écart porte aussi sur la valeur de TÊTE**, pas seulement sur les
+    huit statistiques (demande explicite) : dégâts, PV effectifs et
+    efficience/score selon ce qui est affiché. Il se pose **sous** la valeur
+    qu'il qualifie, jamais à côté, où il se lirait comme une seconde mesure.
+    Un seul composant les rend tous les trois — trois rendus séparés auraient
+    divergé de couleur ou de format, alors que c'est précisément leur
+    comparaison qui compte.
+  - ⚠️ L'écart de **dégâts** est recalculé contre les stats ET la paire
+    d'artéfacts de la référence, jamais contre le total d'un autre candidat.
   - ⚠️ Les écarts **nuls sont affichés**, en gris. Ne montrer que les stats
     qui changent ferait une liste de longueur variable d'une carte à l'autre,
     et laisserait croire qu'une stat absente n'a pas été comparée.

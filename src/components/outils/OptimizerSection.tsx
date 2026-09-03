@@ -2444,7 +2444,18 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // courte ne s'étire pas à la hauteur de l'autre.
         <div className="mt-1.5 grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2">
           {modeArtefactsSeuls.paire.map((a) => (
-            <div key={`${a.kind}-${a.id}`} className="flex items-start gap-2">
+            /* ⚠️ **Atténuation LÉGÈRE sur la pièce figée** — elle
+                n’est pas une proposition, elle est un fait. Le bandeau et le
+                marqueur le disent déjà ; ceci ne fait qu’établir la
+                hiérarchie, pour que l’œil tombe d’abord sur la moitié
+                réellement cherchée.
+
+                ⚠️ **75 %, et surtout PAS moins.** Le vocabulaire
+                « désactivé » de ce dépôt vit à 30-40 % (`Bouton`,
+                `NumberField`) : descendre là ferait lire « indisponible »
+                une pièce qui est justement celle qu’on portera. Rester
+                nettement au-dessus garde le sens « secondaire ». */
+            <div key={`${a.kind}-${a.id}`} className={`flex items-start gap-2 ${sortesFigees.includes(a.kind) ? 'opacity-75' : ''}`}>
               <ArtifactFrameIcon artifact={a} size={24} />
               <div className="min-w-0 flex-1">
                 {/* La principale en tête, comme sur une pièce en jeu : sans

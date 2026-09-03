@@ -1180,7 +1180,7 @@ retour.
     (« Dégâts réels » n'y figure que si un sort est réellement calculable
     pour ce monstre).
 
-    ⚠️ **Interrupteur « Adapter les artéfacts au tri »**, à côté de ce
+    ⚠️ **Interrupteur « Adapter les artéfacts au tri »**, collé à GAUCHE de ce
     sélecteur, **activé par défaut**. Le tri est une **vue**, l’optimisation
     d’artéfacts une **décision** : les coupler d’office imposait un arbitrage.
     - **Activé** — chaque build reçoit les artéfacts qui maximisent le critère

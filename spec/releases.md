@@ -152,6 +152,21 @@ alors qu'un numéro devenait faux au premier `feat`.
    - l'écrire dans `version` de [`package.json`](package.json) **et** dans
      l'entrée de `releases.ts`, à la place du `null` ;
    - vérifier `npx tsc --noEmit`, `npm test` et `npm run build`.
+
+   ⚠️ **ENTIÈREMENT avant d’ouvrir la PR, et l’ordre n’est pas indicatif.**
+   Tout commit poussé après l’ouverture fait TOMBER les approbations déjà
+   données : la revue repart de zéro, et il faut redemander à quelqu’un. Vécu
+   le 2026-09-03 sur la v1.12.0 — PR ouverte, approuvée par un autre
+   contributeur, puis le commit du numéro de version poussé par-dessus a
+   annulé cette approbation. Le merge est alors resté bloqué, pour un commit
+   d’une seule ligne que l’étape 4 demandait de faire AVANT.
+
+   ⚠️ Le coût ne se voit pas sur soi : il tombe sur la personne à qui il faut
+   redemander une revue déjà faite.
+
+   ⚠️ Rien ne doit rester à pousser après cette étape — voir l’avertissement
+   ci-dessus.
+
 5. **Ouvrir la PR**, la faire approuver, fusionner en **merge commit**, taguer,
    publier :
    ```bash

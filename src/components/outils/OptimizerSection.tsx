@@ -4311,6 +4311,40 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                     'fr-FR'
                   )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
             </p>
+            {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
+                DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
+                changeait de tri pour explorer — alors qu’on veut souvent
+                garder celle qui maximise les PV effectifs tout en regardant
+                les builds classés par une stat.
+
+                ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors
+                qu’une paire possible, celle qui est portée. Une saisie sans
+                effet est pire qu’une saisie absente — même règle que les
+                sélecteurs de principale et les sous-propriétés verrouillées. */}
+            {optimiserArtefacts && (result ? result.candidates.length > 0 : true) && (
+              <div className="ml-auto flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts au tri</span>
+                <HelpPopover title="Adapter les artéfacts au tri">
+                  Activé (défaut), chaque build reçoit les artéfacts qui maximisent le{' '}
+                  <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
+                  pièces que trier par PV effectifs.
+                  <br />
+                  <br />
+                  Désactivé, les artéfacts restent ceux qui servent l’<b className="text-ink">objectif de la
+                  recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
+                  que la paire bouge — et « Valider les artéfacts » propose alors toujours la même.
+                  <br />
+                  <br />
+                  Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
+                  artéfact n’entre dans ces classements.
+                </HelpPopover>
+                <Interrupteur
+                  actif={adapterArtefactsAuTri}
+                  onChange={setAdapterArtefactsAuTri}
+                  aria-label="Adapter les artéfacts au tri"
+                />
+              </div>
+            )}
             {(result ? result.candidates.length > 0 : true) && (
               <Selecteur
                 value={sortBy}
@@ -4343,40 +4377,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   ))}
                 </optgroup>
               </Selecteur>
-            )}
-            {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
-                DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
-                changeait de tri pour explorer — alors qu’on veut souvent
-                garder celle qui maximise les PV effectifs tout en regardant
-                les builds classés par une stat.
-
-                ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors
-                qu’une paire possible, celle qui est portée. Une saisie sans
-                effet est pire qu’une saisie absente — même règle que les
-                sélecteurs de principale et les sous-propriétés verrouillées. */}
-            {optimiserArtefacts && (result ? result.candidates.length > 0 : true) && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts au tri</span>
-                <HelpPopover title="Adapter les artéfacts au tri">
-                  Activé (défaut), chaque build reçoit les artéfacts qui maximisent le{' '}
-                  <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
-                  pièces que trier par PV effectifs.
-                  <br />
-                  <br />
-                  Désactivé, les artéfacts restent ceux qui servent l’<b className="text-ink">objectif de la
-                  recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
-                  que la paire bouge — et « Valider les artéfacts » propose alors toujours la même.
-                  <br />
-                  <br />
-                  Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
-                  artéfact n’entre dans ces classements.
-                </HelpPopover>
-                <Interrupteur
-                  actif={adapterArtefactsAuTri}
-                  onChange={setAdapterArtefactsAuTri}
-                  aria-label="Adapter les artéfacts au tri"
-                />
-              </div>
             )}
           </div>
 

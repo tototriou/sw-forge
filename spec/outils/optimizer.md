@@ -356,12 +356,12 @@ retour.
      la pièce concernée**. Les deux répondent à des questions différentes —
      le bandeau dit *ce qui se passe*, le marqueur dit *laquelle* — et sans
      le second il fallait retraduire « attribut » en « celle de gauche ».
-     La pièce figée est en outre **légèrement atténuée** (75 %), pour que
+     La pièce figée est en outre **légèrement atténuée** (80 %), pour que
      l’œil tombe d’abord sur la moitié réellement cherchée.
      La question garde tout son sens : « à artéfact d'attribut donné, quel
      type ? » ;
 
-     ⚠️ **75 %, et surtout pas moins.** Le vocabulaire « désactivé » de
+     ⚠️ **80 %, et surtout pas moins.** Le vocabulaire « désactivé » de
      l’application vit à 30-40 % : descendre là ferait lire
      « indisponible » une pièce qui est justement celle qu’on portera.
      L’atténuation établit une hiérarchie, elle ne retire rien.

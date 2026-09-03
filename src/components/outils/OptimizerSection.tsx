@@ -2450,12 +2450,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 hiérarchie, pour que l’œil tombe d’abord sur la moitié
                 réellement cherchée.
 
-                ⚠️ **75 %, et surtout PAS moins.** Le vocabulaire
+                ⚠️ **80 %, et surtout PAS moins.** Le vocabulaire
                 « désactivé » de ce dépôt vit à 30-40 % (`Bouton`,
                 `NumberField`) : descendre là ferait lire « indisponible »
                 une pièce qui est justement celle qu’on portera. Rester
                 nettement au-dessus garde le sens « secondaire ». */
-            <div key={`${a.kind}-${a.id}`} className={`flex items-start gap-2 ${sortesFigees.includes(a.kind) ? 'opacity-75' : ''}`}>
+            <div key={`${a.kind}-${a.id}`} className={`flex items-start gap-2 ${sortesFigees.includes(a.kind) ? 'opacity-80' : ''}`}>
               <ArtifactFrameIcon artifact={a} size={24} />
               <div className="min-w-0 flex-1">
                 {/* La principale en tête, comme sur une pièce en jeu : sans

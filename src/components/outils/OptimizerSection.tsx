@@ -21,7 +21,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
-import { computeStats } from '../../lib/stats';
+import { computeStats, statsParPaire } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
@@ -1280,6 +1280,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // chercher une autre. Une réponse qui n'est vraie que par construction.
     if (!artifactParams || !selected || !optimiserArtefacts) return null;
     const espece = selected.monster;
+    // ⚠️ Un seul `computeStats` pour toutes les paires : l’apport d’un artefact
+    // est PLAT, donc les stats sans artefact se calculent une fois et chaque
+    // paire ne coute plus que trois additions (voir `statsParPaire`).
+    const statsAvecAffiche = statsParPaire(selected.gear);
     /**
      * ⚠️ **Les dégâts BRUTS des artéfacts (218-221), et rien d'autre.**
      *
@@ -1301,7 +1305,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
      */
     const evaluerBrut = (arts: ArtifactDetail[]) =>
       degatsBrutsArtefactsParCoup(
-        computeStats({ ...selected.gear, artifacts: arts }),
+        statsAvecAffiche(arts),
         damageSetup,
         espece.element,
         artifactDamageProfile(arts)
@@ -1332,7 +1336,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         computeTotalDamage(
           resolvedSkill,
           offensivePassives,
-          computeStats({ ...selected.gear, artifacts: arts }),
+          statsAvecAffiche(arts),
           damageSetup,
           espece.element,
           artifactDamageProfile(arts)
@@ -1942,6 +1946,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // les stats du monstre, donc comparer des paires sur un autre build
       // comparerait des scores faux.
       const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
+      // ⚠️ **UN seul `computeStats` par build, pas un par paire.** L’évaluateur
+      // tourne pour CHAQUE paire autorisée — quelques milliers en « Dégâts
+      // réels », où la dominance n’élague plus rien. L’apport d’un artéfact
+      // étant PLAT, les stats sans artéfact se calculent une fois et chaque
+      // paire ne coûte plus que trois additions (voir `statsParPaire`).
+      const statsAvec = statsParPaire(gear);
       const espece = selected.monster;
       /**
        * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`),
@@ -1971,13 +1981,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               computeTotalDamage(
                 resolvedSkill,
                 offensivePassives,
-                computeStats({ ...gear, artifacts: arts }),
+                statsAvec(arts),
                 damageSetup,
                 espece.element,
                 artifactDamageProfile(arts)
               )
           : sortBy === 'ehp'
-            ? (arts: ArtifactDetail[]) => pvEffectifs(computeStats({ ...gear, artifacts: arts }))
+            ? (arts: ArtifactDetail[]) => pvEffectifs(statsAvec(arts))
             : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
       return { ...artifactParams, evaluer };
     };

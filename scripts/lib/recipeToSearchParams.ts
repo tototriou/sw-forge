@@ -25,7 +25,7 @@ import {
   monsterOffensivePassives,
   resolveDamageSkill,
 } from '../../src/lib/damage';
-import { computeStats } from '../../src/lib/stats';
+import { computeStats, statsParPaire } from '../../src/lib/stats';
 import { artifactDamageProfile, codesAmplificationActifs, computeTotalDamage } from '../../src/lib/damage';
 import { bornesArtefacts, paireRepresentative, type BornesArtefacts, type ChoixPrincipale } from '../../src/lib/artifactOptim';
 import { buildRealDamageContext } from './realDamageCli';
@@ -147,11 +147,13 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
     const ctx = buildRealDamageContext(recipe, loaded.com2usId, loaded.gear.artifacts);
     if (!ctx) return null;
     const setup = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+    // ⚠️ Un seul `computeStats` pour toutes les paires — voir `statsParPaire`.
+    const statsAvec = statsParPaire(loaded.gear);
     evaluer = (arts) =>
       computeTotalDamage(
         ctx.profile,
         ctx.passifs,
-        computeStats({ ...loaded.gear, artifacts: arts }),
+        statsAvec(arts),
         setup,
         espece.element,
         artifactDamageProfile(arts)

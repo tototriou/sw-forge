@@ -33,7 +33,7 @@ import {
   vitTotalePourVitesseFinale,
   type DamageSetup,
 } from '../src/lib/damage';
-import type { StatRow } from '../src/lib/stats';
+import { computeStats, statsParPaire, type StatRow } from '../src/lib/stats';
 import { mainsPourCeCompte } from '../src/lib/optimizerRecipe';
 import { formatArtifactSub, splitArtifactSub, valeurArtefactPropre } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
@@ -392,6 +392,66 @@ export default function testArtefactOptim() {
       b.possibles.every((v) => (v.hp ?? 0) !== 3000),
       'la paire de deux Intangibles n’est jamais proposée'
     );
+  }
+
+  titre('statsParPaire — le raccourci rend EXACTEMENT ce que computeStats rendrait');
+
+  // ⚠️ **Une optimisation ne vaut que si elle ne change RIEN.** `statsParPaire`
+  // évite un `computeStats` par paire en exploitant le fait que l’apport d’un
+  // artéfact est PLAT. Ce test compare les deux chemins sur TOUTES les
+  // combinaisons de principales, `bonus` compris — un `bonus` faux ne se
+  // verrait nulle part aujourd’hui (les appelants ne lisent que `total`) et
+  // exploserait chez le prochain.
+  {
+    const base = { hp: 9000, atk: 600, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
+    // Une rune par emplacement, avec du PLAT et du POURCENTAGE sur les trois
+    // stats concernées : c’est l’interaction des deux que le raccourci doit
+    // respecter (le plat s’ajoute APRÈS le pourcentage).
+    const runes = [1, 2, 3, 4, 5, 6].map((slot) => ({
+      id: slot,
+      slot,
+      set: 'energy',
+      grade: 6,
+      stars: 6,
+      level: 15,
+      main: { code: slot === 1 ? 3 : slot === 3 ? 5 : 1, value: 100 },
+      innate: undefined,
+      subs: [
+        { code: 2, value: 20 },
+        { code: 4, value: 15 },
+        { code: 6, value: 12 },
+        { code: 8, value: 9 },
+      ],
+    })) as never[];
+    const gear = { base, runes, artifacts: [], relic: undefined } as never;
+    const avec = statsParPaire(gear);
+
+    const piece = (kind: 'element' | 'archetype', code: number, value: number) =>
+      ({ id: code, kind, element: 'dark', archetype: 'attack', level: 15, rarity: 5, main: { code, value }, subs: [] }) as never;
+
+    // Toutes les combinaisons : rien, une pièce, deux pièces de chaque
+    // principale — plus le cas « deux fois la même stat », qui est celui où
+    // l’addition pourrait déraper.
+    const cas: { nom: string; arts: never[] }[] = [
+      { nom: 'aucun artéfact', arts: [] },
+      { nom: 'PV seul', arts: [piece('element', 100, 1500)] },
+      { nom: 'ATQ seul', arts: [piece('element', 101, 100)] },
+      { nom: 'DEF seule', arts: [piece('element', 102, 100)] },
+      { nom: 'PV + DEF', arts: [piece('element', 100, 1500), piece('archetype', 102, 100)] },
+      { nom: 'deux fois PV', arts: [piece('element', 100, 1500), piece('archetype', 100, 1500)] },
+      { nom: 'ATQ + DEF', arts: [piece('element', 101, 100), piece('archetype', 102, 100)] },
+    ];
+
+    for (const { nom, arts } of cas) {
+      const attendu = computeStats({ ...(gear as never as { base: unknown }), artifacts: arts } as never);
+      const obtenu = avec(arts);
+      const memeTotal = (attendu as StatRow[]).every(
+        (r, i) => (obtenu as StatRow[])[i]!.total === r.total && (obtenu as StatRow[])[i]!.key === r.key
+      );
+      const memeBonus = (attendu as StatRow[]).every((r, i) => (obtenu as StatRow[])[i]!.bonus === r.bonus);
+      ok(memeTotal, `${nom} : mêmes totaux que computeStats`);
+      ok(memeBonus, `${nom} : même bonus (pas seulement le total)`);
+    }
   }
 
   titre('Lignes verrouillées — le minimum se lit sur la PAIRE');

@@ -1179,6 +1179,31 @@ retour.
     d'options — les 8 stats brutes, et les mêmes objectifs qu'à l'étape 3
     (« Dégâts réels » n'y figure que si un sort est réellement calculable
     pour ce monstre).
+
+    ⚠️ **Interrupteur « Adapter les artéfacts au tri »**, à côté de ce
+    sélecteur, **activé par défaut**. Le tri est une **vue**, l’optimisation
+    d’artéfacts une **décision** : les coupler d’office imposait un arbitrage.
+    - **Activé** — chaque build reçoit les artéfacts qui maximisent le critère
+      affiché : « les meilleurs artéfacts pour ce que je regarde ».
+    - **Désactivé** — ils restent ceux qui servent l’**objectif de la
+      recherche**, quel que soit le tri : « les meilleurs artéfacts pour ce que
+      j’ai cherché ». Utile pour parcourir les résultats classés autrement sans
+      que la paire bouge — par exemple garder celle qui maximise les PV
+      effectifs tout en regardant les builds triés par une stat.
+
+    ⚠️ **Désactivé ne veut PAS dire « pas d’optimisation »** — c’est
+    « Activer l’optimisation d’artéfacts » qui le fait. Sans référence de
+    repli définie, « ne pas recalculer » ne voudrait rien dire : il faut savoir
+    par rapport à quoi, d’où l’objectif de recherche, seule référence stable.
+
+    ⚠️ **Masqué quand l’optimisation d’artéfacts est désactivée** : il n’y a
+    alors qu’une paire possible, celle qui est portée. Même règle que les
+    sélecteurs de principale et les sous-propriétés verrouillées — une saisie
+    sans effet est pire qu’une saisie absente.
+
+    ⚠️ Désactivé, la paire est **stable pendant toute l’exploration** : le
+    bouton « Valider les artéfacts » propose donc la même chose quel que soit
+    le tri, ce qui rend prévisible une action qui réserve des pièces.
     ⚠️ **Objectif « Dégâts réels »** : chaque carte affiche en tête le
     **nombre de dégâts** qui a servi à la classer, et la part des PV de la
     cible qu'il emporte (« tue la cible » au-delà de 100 %). Visible dès que
@@ -1250,8 +1275,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   passe dans un troisième état, actif, qui met à jour la seule paire sans
   toucher aux runes. Sans lui, la carte disait « Validé » et n'offrait plus
   rien alors que ce qu'elle montrait n'était pas ce qui était réservé.
-  Le cas est courant : la meilleure paire dépend du critère de tri affiché,
-  donc changer de tri change la paire à runes identiques.
+  Le cas se présente dès que « Adapter les artéfacts au tri » est activé (le
+  défaut) : la paire suit alors le critère affiché, donc changer de tri peut
+  la changer à runes identiques. Interrupteur désactivé, elle reste stable et
+  ce bouton n’apparaît plus au fil de l’exploration.
 
   Sans cette mémorisation, la fiche d'un build validé rejouait la paire portée
   AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Les builds validés
@@ -1624,13 +1651,25 @@ différent, coopératif (voir « Interruption »).
     VRAIES paires** : un build n'est retenu que si l'une des combinaisons
     réellement équipables lui fait tenir *toutes* ses conditions à la fois.
     Un résultat affiché respecte donc toujours les conditions demandées.
-  - **La meilleure paire d'artéfacts d'un build suit le critère de tri
-    affiché.** Trier par PV effectifs choisit les artéfacts qui maximisent les
-    PV effectifs, trier par Dégâts réels ceux qui maximisent les dégâts — deux
-    réponses différentes pour le même build, et c'est normal : un artéfact
-    change les statistiques du monstre, donc le meilleur dépend de ce qu'on
-    cherche. Sur Efficience et Vitesse, aucun artéfact n'entre dans le score :
-    il n'y a rien à y maximiser, seule compte la faisabilité.
+  - **La meilleure paire d'artéfacts d'un build suit le critère de
+    classement**, et l’interrupteur « Adapter les artéfacts au tri » décide
+    duquel : le **tri affiché** (défaut) ou l’**objectif de la recherche**.
+    Trier par PV effectifs ne retient pas les mêmes pièces que trier par
+    Dégâts réels — deux réponses différentes pour le même build, et c’est
+    normal : un artéfact change les statistiques du monstre, donc le meilleur
+    dépend de ce qu’on cherche.
+
+    ⚠️ **Un artéfact ne peut bouger que PV, ATQ et DEF** (sa stat principale
+    est plate). D’où quatre régimes seulement :
+    - **PV, ATQ ou DEF** — la paire maximise CETTE stat. Auparavant elle
+      maximisait la somme des principales : trier par ATQ classait donc sur
+      une ATQ qu’une autre paire aurait dépassée (PV+1500 × 2 vaut 3000 en
+      somme, ATQ+100 × 2 seulement 200).
+    - **PV effectifs** et **Dégâts réels** — la paire maximise l’objectif.
+    - **Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance, Précision** —
+      aucun artéfact n’entre dans ces classements : rien à y maximiser, seule
+      compte la faisabilité. Basculer de l’un à l’autre ne recalcule donc
+      **rien**.
   - **Faisabilité de SET, précoce** (pendant la génération d'une moitié, pas
     seulement à l'appariement) : pour chaque set demandé, si même le
     meilleur cas ne peut plus atteindre le compte requis, la branche est

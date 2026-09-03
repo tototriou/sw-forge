@@ -385,6 +385,22 @@ retour.
    sinon il disparaît ». Il affiche désormais la raison, et aucun chiffre :
    un « 0 / coup » se lirait comme un résultat alors que rien n'a été cherché.
 
+   ⚠️ **La proposition est ACTIONNABLE.** Un bouton en pied de bloc réserve
+   la paire proposée — sans lui, il fallait la retrouver à la main dans
+   l’inventaire. Deux gestes derrière un seul bouton, que le libellé
+   distingue :
+   - sur un exemplaire **déjà validé** — « Valider ces artéfacts » : seule la
+     paire change, les runes réservées ne bougent pas ;
+   - sur un exemplaire **pas encore validé** — « Valider ce build avec ces
+     artéfacts » : réserver une paire seule fabriquerait une entrée sans
+     runage, que tout le reste lit comme « 6 runes ». Le bouton annonce donc
+     ce qu’il réserve en plus.
+
+   Une fois la paire réservée, le bouton passe à **« Artéfacts validés »**,
+   désactivé — même grammaire que « Valider ce build ». Il n’apparaît
+   qu’avec une **liste active** : une réservation appartient toujours à une
+   liste.
+
    **Deux crans**, à choisir — un `Segmented`, jamais un bouton qui déclenche :
    - **Dégâts supplémentaires** (défaut) — les dégâts bruts par coup des
      sous-propriétés 218-221. **Calculé en permanence** : la qualité première
@@ -1262,6 +1278,27 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   du nom) ET y ajoute le monstre dans le même geste. Bouton **« Libérer
   toutes les runes de cette liste »** (visible dès qu'au moins un build y
   est validé), avec sa propre confirmation dédiée.
+
+  ⚠️ **DEUX libérations, pas une.** Chaque ligne de monstre validé porte :
+  - **« Libérer ce build »** — rend les 6 runes ET la paire d’artéfacts.
+    C’est un tout : la réservation existe POUR ce runage.
+  - **« Libérer les artéfacts »** — rend la seule paire, le runage restant
+    réservé. Un artéfact physique ne se porte que sur un monstre à la fois :
+    on veut souvent le récupérer pour un autre sans renoncer au runage déjà
+    planifié. Affiché seulement s’il y a une paire à rendre.
+
+  ⚠️ **Pas de « libérer les runes seules », et c’est délibéré.** Un build
+  validé porte TOUJOURS 6 runes : sans elles il n’y a plus de build à qui
+  les artéfacts appartiendraient, et l’entrée résiduelle serait lue comme
+  « 6 runes » par tout le reste (badge « Validé », exclusion, revalidation
+  après réimport). L’asymétrie est donc dans le modèle, pas un oubli.
+
+  ⚠️ **Les icônes disaient le contraire de l’action.** Le bouton de
+  libération portait la coche de validation — le même pictogramme que le
+  badge « Validé » posé juste à sa gauche. Il porte désormais la **roue
+  barrée d’une interdiction**, celle d’« Exclure les runes déjà utilisées » :
+  du point de vue du monstre, libérer, c’est lui retirer ses runes. Le second
+  bouton reprend le même montage avec l’icône d’**artéfact**.
 - ⚠️ **Ajouter un monstre qu'on ne possède PAS** — demande explicite : « le
   joueur a obtenu le monstre et veut essayer des runages de teams sans
   avoir mis à jour son json ». Une ESPÈCE choisie via la recherche

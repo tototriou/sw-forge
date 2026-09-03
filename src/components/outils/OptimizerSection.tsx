@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Ban,
   SlidersHorizontal,
   Wrench,
   Plus,
@@ -125,6 +124,7 @@ import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
+import IconeInterdite from '../IconeInterdite';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterGear, { type Selected as SelectionGear } from '../MonsterGear';
 import ArtifactFrameIcon from '../ArtifactFrameIcon';
@@ -899,6 +899,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const [releaseConfirm, setReleaseConfirm] = useState<{ listId: string; selector: ExclusionSelector } | null>(null);
   // Confirmation avant de libérer TOUTES les runes validées d'une liste
   // d'un coup (Lot 3) — porte l'id de la liste concernée.
+  // Confirmation avant de rendre la PAIRE d’artéfacts d’un build validé,
+  // ses runes restant réservées — destructif comme `releaseConfirm`, donc
+  // confirmé de la même façon.
+  const [releaseArtifactsConfirm, setReleaseArtifactsConfirm] = useState<{
+    listId: string;
+    selector: ExclusionSelector;
+  } | null>(null);
   const [releaseAllConfirm, setReleaseAllConfirm] = useState<string | null>(null);
   // Confirmation avant de retirer un monstre DÉJÀ VALIDÉ de la liste — le
   // retrait libère aussi ses runes (voir `removeMember`), donc destructif
@@ -2238,6 +2245,21 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // mêmes runes mais à une autre paire N'EN FAIT PAS partie : il reste à
   // valider, sur ses artéfacts.
   const matchesValidatedBuild = etatFiche === 'oui';
+  /**
+   * La paire proposée par « Meilleurs artéfacts offensifs » est-elle déjà
+   * celle qui est réservée ?
+   *
+   * ⚠️ Même filtre `id > 0` que `validateBuild`/`validateArtifacts` : les
+   * pièces SYNTHÉTIQUES ne sont jamais mémorisées, et comparer sans ce filtre
+   * laisserait le bouton indéfiniment sur « Valider ces artéfacts ».
+   */
+  const artefactsProposesDejaReserves =
+    !!ownValidatedBuild &&
+    !!modeArtefactsSeuls &&
+    memesIds(
+      ownValidatedBuild.artifactIds ?? [],
+      modeArtefactsSeuls.paire.map((a) => a.id).filter((id) => id > 0)
+    );
   // ⚠️ Jamais valider une rune déjà réservée pour un AUTRE monstre de LA
   // MÊME liste active — demande explicite. Contrairement à un résultat de
   // recherche (dont le pool exclut déjà `otherValidatedRuneIds`, voir
@@ -2271,6 +2293,23 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       .filter((c): c is { slot: number | null; monsterName: string } => c != null);
   const displayedRuneConflicts = conflitsDeRunes(displayedRuneIds);
   const canValidateDisplayed = !!sourceSelector && displayedRuneIds.length === 6 && displayedRuneConflicts.length === 0;
+  /**
+   * Réserve la paire proposée par « Meilleurs artéfacts offensifs ».
+   *
+   * ⚠️ **Deux gestes derrière un seul bouton, et le libellé les
+   * distingue.** Sur un exemplaire DÉJÀ validé, seule la paire change — les
+   * runes réservées ne bougent pas. Sur un exemplaire qui ne l’est pas
+   * encore, réserver une paire seule fabriquerait une entrée sans runage,
+   * que tout le reste du code lit comme « 6 runes » : on valide donc le
+   * build affiché AVEC cette paire, ce que le bouton annonce.
+   */
+  function handleValidateArtefacts() {
+    if (!sourceSelector || !lists.activeListId || !modeArtefactsSeuls) return;
+    const ids = modeArtefactsSeuls.paire.map((a) => a.id);
+    if (ownValidatedBuild) lists.validateArtifacts(lists.activeListId, sourceSelector, ids);
+    else if (canValidateDisplayed) lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids);
+  }
+
   function handleValidateDisplayed() {
     if (!sourceSelector || !canValidateDisplayed) return;
     if (!lists.activeListId) {
@@ -2510,6 +2549,38 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           Vos lignes verrouillées coûtent −{modeArtefactsSeuls.coutVerrousPct.toFixed(1)} % sur ce build.
         </p>
       )}
+      {/* ⚠️ **La proposition devient actionnable.** Le bloc calculait la
+          meilleure paire sans qu’on puisse la prendre : il fallait la
+          retrouver à la main dans l’inventaire. Le bouton n’apparaît qu’avec
+          une liste active — une réservation appartient toujours à une liste
+          — et jamais sur une pièce figée ou une absence de proposition. */}
+      {modeArtefactsSeuls.explication == null &&
+        modeArtefactsSeuls.paire.length > 0 &&
+        sourceSelector &&
+        lists.activeListId &&
+        (ownValidatedBuild || canValidateDisplayed) && (
+          <Bouton
+            onClick={handleValidateArtefacts}
+            disabled={artefactsProposesDejaReserves}
+            // ⚠️ Même code couleur que « Valider les artéfacts » des cartes
+            // de résultat : `alerte` signale un état des DONNÉES — ce qui est
+            // montré n’est pas ce qui est réservé. Une fois réservée, la
+            // paire repasse en `accent`, comme tout ce qui est validé.
+            ton={artefactsProposesDejaReserves ? 'accent' : 'alerte'}
+            fond="doux"
+            taille="sm"
+            pleineLargeur
+            icone={artefactsProposesDejaReserves ? <CheckCircle2 size={14} /> : undefined}
+            libelle={
+              artefactsProposesDejaReserves
+                ? 'Artéfacts validés'
+                : ownValidatedBuild
+                  ? 'Valider ces artéfacts'
+                  : 'Valider ce build avec ces artéfacts'
+            }
+            className="mt-2"
+          />
+        )}
     </div>
   );
 
@@ -2614,13 +2685,43 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                       <CheckCircle2 size={12} />
                       Validé
                     </span>
+                    {/* ⚠️ **L’icône disait le contraire de l’action.** Ce
+                        bouton LIBÈRE, et portait le `CheckCircle2` de la
+                        validation — le même pictogramme que le badge
+                        « Validé » posé juste à sa gauche. Il porte désormais
+                        la roue barrée d’une interdiction, celle d’« Exclure
+                        les runes déjà utilisées » : du point de vue du
+                        monstre, libérer, c’est lui retirer ses runes. */}
                     <BoutonIcone
                       cadre
-                      libelle="Libérer ces runes"
-                      icone={<CheckCircle2 size={14} className="text-accent" />}
+                      libelle="Libérer ce build (runes et artéfacts)"
+                      icone={
+                        <IconeInterdite cadre={false} taille={16}>
+                          <img src={WHEEL_IMG} alt="" className="h-3.5 w-3.5 object-contain" />
+                        </IconeInterdite>
+                      }
                       onClick={() => setReleaseConfirm({ listId: m.listId, selector: m.selector })}
                       className="h-6 w-6 flex-none"
                     />
+                    {/* ⚠️ **Rendre la PAIRE sans défaire le runage.** Un
+                        artéfact physique ne se porte que sur un monstre à la
+                        fois : on veut souvent le récupérer pour un autre sans
+                        renoncer au runage déjà planifié. Affiché seulement
+                        s’il y a quelque chose à rendre — un bouton qui ne
+                        ferait rien serait pire qu’un bouton absent. */}
+                    {(build.artifactIds ?? []).length > 0 && (
+                      <BoutonIcone
+                        cadre
+                        libelle="Libérer les artéfacts (le runage reste réservé)"
+                        icone={
+                          <IconeInterdite cadre={false} taille={16}>
+                            <GameIcon name="artifact" size={13} />
+                          </IconeInterdite>
+                        }
+                        onClick={() => setReleaseArtifactsConfirm({ listId: m.listId, selector: m.selector })}
+                        className="h-6 w-6 flex-none"
+                      />
+                    )}
                   </>
                 ) : (
                   <span className="flex-none text-[10.5px] text-ink-dimmer">pas encore validé</span>
@@ -3536,10 +3637,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   build, RuneWheel.tsx), barrée du symbole « interdit » —
                   même traitement que l'icône « Exclusion de runes » : ce
                   réglage retire des runes DÉJÀ PORTÉES de la recherche. */}
-              <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+              <IconeInterdite>
                 <img src={WHEEL_IMG} alt="" className="h-4 w-4 object-contain" />
-                <Ban size={20} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
-              </div>
+              </IconeInterdite>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
               <HelpPopover title="Exclure les runes déjà utilisées">
                 Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
@@ -3577,14 +3677,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   "monster"), barrée du symbole « interdit » — même
                   traitement que l'icône « Exclusion de runes » plus bas :
                   cette action RETIRE le monstre choisi du pool de runes. */}
-              <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+              <IconeInterdite>
                 {/* ⚠️ L'artwork du monstre n'est pas parfaitement centré dans
                     son canevas — invisible seul, ça se voit à côté du cercle
                     « interdit », lui parfaitement centré par positionnement
                     absolu. Léger recalage manuel, propre à cet usage précis. */}
                 <GameIcon name="monster" size={13} className="-translate-x-[1.5px]" />
-                <Ban size={20} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
-              </div>
+              </IconeInterdite>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
               <HelpPopover title="Exclure les runes d'un monstre">
                 Choisis un monstre (box, RTA, défenses ou offenses de siège) pour retirer SES runes actuellement
@@ -3721,10 +3820,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 barrée du vrai symbole « interdit » (cercle barré, comme le
                 curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
                 RETIRE des runes de la recherche. */}
-            <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <IconeInterdite taille={22}>
               <GameIcon name="rune" size={13} />
-              <Ban size={22} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
-            </div>
+            </IconeInterdite>
             <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
           </>
         );
@@ -4488,14 +4586,26 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           d'importance pour son rendu. */}
       {releaseConfirm && (
         <ConfirmDialog
-          titre="Libérer les runes validées ?"
-          message="Ces 6 runes redeviendront disponibles pour les recherches des autres monstres de cette liste."
+          titre="Libérer ce build validé ?"
+          message="Ces 6 runes ET la paire d’artéfacts redeviendront disponibles pour les autres monstres de cette liste."
           libelleAction="Libérer"
           onConfirm={() => {
             lists.releaseBuild(releaseConfirm.listId, releaseConfirm.selector);
             setReleaseConfirm(null);
           }}
           onCancel={() => setReleaseConfirm(null)}
+        />
+      )}
+      {releaseArtifactsConfirm && (
+        <ConfirmDialog
+          titre="Libérer les artéfacts validés ?"
+          message="Cette paire redeviendra disponible pour les autres monstres de cette liste. Les 6 runes du build restent réservées."
+          libelleAction="Libérer"
+          onConfirm={() => {
+            lists.releaseArtifacts(releaseArtifactsConfirm.listId, releaseArtifactsConfirm.selector);
+            setReleaseArtifactsConfirm(null);
+          }}
+          onCancel={() => setReleaseArtifactsConfirm(null)}
         />
       )}
       {releaseAllConfirm && (

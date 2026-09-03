@@ -24,6 +24,13 @@ export interface Monster {
   com2usId: number | null; // identifiant com2us (= unit_master_id dans les exports SWEX)
   name: string;
   element: ElementKey;
+  // Archétype du monstre (« Type » dans le jeu) — décide quel artéfact de
+  // TYPE il peut porter (voir `artifactFitsMonster`, lib/artifacts.ts).
+  //
+  // ⚠️ Optionnel : `null` pour les monstres de MATÉRIAU (angelmons, rainbowmon
+  // — `archetype: "Material"` chez SWARFARM), qui ne portent aucun artéfact ;
+  // et absent d'un `monsters.json` régénéré AVANT ce champ.
+  archetype?: ArtifactArchetype | null;
   stars: number | null; // grade obtenable (base_stars) — utilisé par le Bestiaire
   naturalStars: number | null; // rareté naturelle réelle (nat 1..5)
   secondAwaken: boolean; // monstre à second éveil (double éveil / 2A)
@@ -150,10 +157,42 @@ export const ARTIFACT_KINDS: { key: ArtifactKind; label: string }[] = [
   { key: 'archetype', label: 'Type' },
 ];
 
+// Archétype (le « Type » du jeu). Porté À LA FOIS par un artéfact de type et
+// par le MONSTRE — c'est leur égalité qui décide de l'éligibilité, voir
+// `artifactFitsMonster` (lib/artifacts.ts).
+export type ArtifactArchetype = 'attack' | 'defense' | 'hp' | 'support';
+
 export interface ArtifactDetail {
+  /**
+   * Identifiant com2us (`rid`), comme `RuneDetail.id`.
+   *
+   * ⚠️ **Sans lui, un artéfact n'est pas RÉFÉRENÇABLE** : ni mémorisable dans
+   * un build validé, ni réservable pour une liste. Il existait dans l'export
+   * (`artifactToDetail` l'ignorait) — l'ajouter ne coûte donc aucune donnée
+   * nouvelle.
+   *
+   * ⚠️ **`0` pour un artéfact SYNTHÉTIQUE** — la pièce hypothéquée d'un repli,
+   * la sonde de `analyserPertinence`. Ces artéfacts n'existent pas dans le
+   * compte : toute logique de réservation doit ignorer un id non strictement
+   * positif plutôt que de croire à une pièce qu'on ne possède pas.
+   */
+  id: number;
   kind: ArtifactKind;
   element?: ElementKey; // si kind === 'element'
-  archetype?: 'attack' | 'defense' | 'hp' | 'support'; // si kind === 'archetype'
+  archetype?: ArtifactArchetype; // si kind === 'archetype'
+  // Artéfact **INTANGIBLE** — le joker, exactement comme le set de runes du
+  // même nom. Il existe dans les DEUX sortes et se pose sur n'importe quel
+  // monstre, quels que soient son élément et son archétype.
+  //
+  // ⚠️ **Un seul intangible à la fois sur un monstre** : on ne peut pas porter
+  // un intangible d'attribut ET un intangible de type. C'est une contrainte
+  // sur la PAIRE, pas sur l'artéfact — voir `artifactPairAllowed`
+  // (lib/artifacts.ts).
+  //
+  // ⚠️ Quand il est vrai, `element`/`archetype` ne veulent rien dire (com2us
+  // envoie 98, hors des tables de correspondance) : ne jamais s'en servir pour
+  // juger l'éligibilité sans avoir testé ce drapeau d'abord.
+  intangible?: boolean;
   level: number;
   rarity: number; // rareté 1..5
   main: EffectLine; // code 100/101/102 → PV/ATQ/DEF plat

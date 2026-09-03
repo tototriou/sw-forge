@@ -33,7 +33,8 @@ import {
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
   EULDONG_CD_POINTS,
-  LEADER_SKILL_PRESETS,
+  LEADER_SKILL_VALEURS,
+  type LeaderSkillStat,
   MIRIAM_AMPLIFY_PCT,
   MIRINAE_BONUS_PCT,
   SPD_BUFF_PCT,
@@ -70,6 +71,7 @@ import {
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
+  codesEquivalentsAuVerrou,
   resolvedCompteurPersonnalise,
   resolvedEffetsCibleCount,
   resolvedEffetsPropresCount,
@@ -78,8 +80,14 @@ import {
   resolvedStackPct,
   resolvedStackTrigger,
   skillDamageProfile,
+  ARTIFACT_DAMAGE_NEUTRE,
+  degatsBrutsArtefactsParCoup,
+  artifactDamageProfile,
+  artifactCritDamagePoints,
+  artifactElementBonusPct,
   speedBuffAmpliPct,
   summonerSkillBonus,
+  type PassifOffensifProfile,
 } from '../src/lib/damage';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -181,13 +189,93 @@ export default function testDegats() {
   const s1 = sorts.filter(estPrisEnCharge).find((s) => s.slot === 1);
   egal(s1?.ignoreDef, false, 'la S1 de Lushen, elle, n’ignore PAS la défense');
 
+  titre('Dégâts réels — les bombes sont des dégâts fixes');
+
+  // ⚠️ Une bombe ne peut pas être critique et ignore la défense — donc
+  // `fixed`. Mais AUCUNE des deux détections habituelles ne l'attrape : sa
+  // formule ne porte pas de marqueur `(Fixed)`, et l'ignore-défense n'est
+  // écrit que dans la PROSE de l'effet `Bomb`, jamais dans son NOM (que
+  // `ignoreDef` compare pourtant à `'Ignore DEF'`).
+  const bombeDe = (id: number, nom: string) =>
+    monsterDamageSkills(fiche(id))
+      .filter(estPrisEnCharge)
+      .find((s) => s.nom === nom)!;
+
+  const fateOfDestruction = bombeDe(15713, 'Fate of Destruction'); // Seara
+  ok(fateOfDestruction != null, 'Seara : Fate of Destruction est calculable');
+  egal(fateOfDestruction.fixed, true, 'Seara : la bombe est reconnue comme dégâts fixes');
+  egal(fateOfDestruction.ignoreDef, false, '… et PAS via `ignoreDef` : son effet s’appelle « Bomb », pas « Ignore DEF »');
+  egal(bombeDe(13401, 'Surprise Bomb').fixed, true, 'Joker (Eau) : Surprise Bomb, même famille');
+
+  // ⚠️ **Le discriminant est `coups === 0`, pas « porte un effet Bomb »** —
+  // cinq familles FRAPPENT en plus de poser leur bombe, et leur formule
+  // décrit ce coup direct, qui crite et se fait mitiger normalement. Les
+  // marquer fixes les aurait faussées. Vérifié sur le corpus complet.
+  egal(bombeDe(19415, 'Bombardment').fixed, false, 'Frigate (Ténèbres) : Bombardment frappe ET pose — pas de dégâts fixes');
+  egal(bombeDe(29215, 'Dancing Star').fixed, false, 'Geralt (Ténèbres) : Dancing Star frappe ET pose');
+  egal(bombeDe(29615, 'Star of Explosion').fixed, false, 'Valdemar : Star of Explosion frappe ET pose');
+
+  // ⚠️ **`coups` ment sur ce sort-là**, d'où la curation par nom
+  // (`BOMBES_SANS_COUP_DIRECT_CONNUS`) : `Cursed Apple` porte `coups: 1`,
+  // mais sa prose ne décrit aucune attaque (« Installs a bomb … and stuns »)
+  // — le 1 compte l'application de l'étourdissement, pas un coup porté.
+  // ⚠️ Ce test est la SEULE protection de cette curation : `coups === 1` seul
+  // le classerait « frappe et pose », et le sort redeviendrait critable et
+  // mitigé sans que rien d'autre ne le signale.
+  egal(bombeDe(27205, 'Cursed Apple').fixed, true, 'Puppeteer (Ténèbres) : Cursed Apple ne fait que POSER, malgré coups=1');
+
+  // Le cas le plus net : UN SEUL monstre porte les deux sortes de bombe.
+  egal(bombeDe(18101, 'Time Bomb').fixed, true, 'Kobold Bomber (Eau) : Time Bomb pose sans frapper → fixe');
+  egal(bombeDe(18101, 'Firecracker').fixed, false, '… et Firecracker, même monstre, frappe ET pose → pas fixe');
+
+  // ⚠️ `bombe` est DISTINCT de `fixed` : un sort ordinaire marqué `(Fixed)`
+  // est fixe sans être une bombe, et ne doit donc PAS profiter de la ligne
+  // d'artéfact « Dgts de bombe ».
+  egal(bombeDe(18101, 'Time Bomb').bombe, true, 'Time Bomb est bien marquée comme bombe');
+  egal(bombeDe(18101, 'Firecracker').bombe, false, 'Firecracker frappe : pas une bombe au sens du calcul');
+  egal(profil('1*{ATK} (Fixed)')!.bombe, false, 'un sort ordinaire marqué (Fixed) est fixe SANS être une bombe');
+  {
+    // +24 % de dégâts de bombe ne s'appliquent qu'au sort de bombe.
+    const artefactBombe = artifactDamageProfile([
+      { id: 0, kind: 'element', element: 'water', level: 1, rarity: 5, main: { code: 100, value: 300 }, subs: [{ code: 210, value: 24 }] },
+    ]);
+    const st = stats({ atk: 4150 });
+    const setupB: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', enemyDef: 0 };
+    const seara = bombeDe(15713, 'Fate of Destruction');
+    const nu = computeSkillDamage(seara, st, setupB);
+    egal(
+      Math.round(computeSkillDamageDetail(seara, st, setupB, null, undefined, artefactBombe).total),
+      Math.round(nu * 1.24),
+      'Seara : +24 % de dégâts de bombe — recale le second relevé en jeu (~34 000)'
+    );
+    // Le MÊME artéfact sur un sort qui n'est pas une bombe : aucun effet.
+    const ordinaire = profil('1*{ATK} (Fixed)')!;
+    egal(
+      computeSkillDamageDetail(ordinaire, st, setupB, null, undefined, artefactBombe).total,
+      computeSkillDamageDetail(ordinaire, st, setupB, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
+      '… et rien du tout sur un sort qui n’est pas une bombe'
+    );
+  }
+
+  {
+    // Ni la DEF adverse ni le critique ne doivent bouger le résultat.
+    const setupBombe: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', enemyDef: 0 };
+    const st = stats({ atk: 4150 });
+    const nu = computeSkillDamage(fateOfDestruction, st, setupBombe);
+    egal(computeSkillDamage(fateOfDestruction, st, { ...setupBombe, enemyDef: 3000 }), nu, 'la DEF adverse ne change RIEN aux dégâts de bombe');
+    egal(computeSkillDamage(fateOfDestruction, st, { ...setupBombe, critMode: 'crit' }), nu, 'le critique non plus — une bombe ne crite pas');
+    // `5,0 × {ATK} × 1,30` (3 × « Damage +10% »). Recale le relevé EN JEU
+    // (~27 000 à ~4 150 d'ATQ, base + équipement + invocateur de guilde).
+    egal(Math.round(nu), 26975, 'Seara : 5,0 × 4150 × 1,30 — le relevé en jeu se recale');
+  }
+
   titre('Dégâts réels — l’équation');
 
   // Lushen S3 : 0.68 × ATQ, 3 coups, ignore défense, +30 % d’améliorations.
   // Coup critique garanti, 2000 ATQ, 200 % de Dgts Crit.
   //   0.68 × 2000            = 1360
   //   × (1 + 0.30 + 1 × 2.0) = 4488
-  //   × 1000/1140            ≈ 3936,84   (plancher d’ignore défense)
+  //   × 1000/1142            ≈ 3929,95   (plancher d’ignore défense)
   //   × 3 coups              ≈ 11810,5
   const build = stats({ atk: 2000, cd: 200, cr: 50 });
   // ⚠️ `summonerSkills: 'aucune'` EXPLICITE — ce test épingle l'équation
@@ -196,7 +284,7 @@ export default function testDegats() {
   // ferait échouer ce test à chaque révision de ce choix produit, alors que
   // l'équation, elle, n'aurait pas bougé.
   const critique: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'aucune' };
-  const attendu = 0.68 * 2000 * (1 + 0.3 + 2.0) * (1000 / 1140) * 3;
+  const attendu = 0.68 * 2000 * (1 + 0.3 + 2.0) * (1000 / 1142) * 3;
   ok(s3 !== null && Math.abs(computeSkillDamage(s3, build, critique) - attendu) < 0.01, 'le total suit l’équation de spec/mecaniques.md');
 
   const normal = computeSkillDamage(s3!, build, { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' });
@@ -251,7 +339,7 @@ export default function testDegats() {
     'le buff de défense ne change rien à un sort qui ne dépend pas de la DEF'
   );
 
-  ok(Math.abs(defenseFactor(0) - 1000 / 1140) < 1e-9, 'à DEF = 0 le facteur vaut ~0,877, jamais 1');
+  ok(Math.abs(defenseFactor(0) - 1000 / 1142) < 1e-9, 'à DEF = 0 le facteur vaut ~0,876, jamais 1');
 
   titre('Dégâts réels — compétences d’invocateur');
 
@@ -397,7 +485,7 @@ export default function testDegats() {
   // `speedBuffAmpliPct` : somme le code 206 (« Effet aug. VIT ») sur tous les
   // artéfacts équipés, ignore les autres codes, cumule s'il y en a plusieurs.
   const artefactVit: ArtifactDetail = {
-    kind: 'element',
+    id: 0, kind: 'element',
     element: 'water',
     level: 1,
     rarity: 5,
@@ -412,6 +500,455 @@ export default function testDegats() {
   egal(speedBuffAmpliPct([artefactSansVit]), 0, 'un artéfact sans code 206 : aucune amplification');
   egal(speedBuffAmpliPct([artefactVit]), 20, 'le code 206 (Effet aug. VIT) est bien lu, les autres codes ignorés');
   egal(speedBuffAmpliPct([artefactVit, artefactVit]), 40, 'deux artéfacts avec la ligne se CUMULENT, comme en jeu');
+
+  // `artifactDamageProfile` — même mécanique étendue à l'ATQ (204) et à la
+  // DEF (205), plus la ligne 226 qui porte sur LES DEUX.
+  egal(artifactDamageProfile([]), ARTIFACT_DAMAGE_NEUTRE, 'aucun artéfact : profil neutre, aucun canal alimenté');
+  const artefactAtk: ArtifactDetail = { ...artefactVit, subs: [{ code: 204, value: 12 }] };
+  const artefactDef: ArtifactDetail = { ...artefactVit, subs: [{ code: 205, value: 8 }] };
+  const artefactAtkDef: ArtifactDetail = { ...artefactVit, subs: [{ code: 226, value: 10 }] };
+  egal(
+    artifactDamageProfile([artefactAtk]),
+    { ...ARTIFACT_DAMAGE_NEUTRE, ampliAtkPct: 12 },
+    'le code 204 alimente l’ATQ seule'
+  );
+  egal(
+    artifactDamageProfile([artefactDef]),
+    { ...ARTIFACT_DAMAGE_NEUTRE, ampliDefPct: 8 },
+    'le code 205 alimente la DEF seule'
+  );
+  // ⚠️ 226 est UNE ligne du jeu qui porte sur les deux stats — elle compte
+  // donc en entier des DEUX côtés, ce n'est pas un partage.
+  egal(
+    artifactDamageProfile([artefactAtkDef]),
+    { ...ARTIFACT_DAMAGE_NEUTRE, ampliAtkPct: 10, ampliDefPct: 10 },
+    'le code 226 alimente l’ATQ ET la DEF, en entier des deux côtés'
+  );
+  egal(
+    artifactDamageProfile([artefactAtk, artefactAtkDef, artefactVit]),
+    { ...ARTIFACT_DAMAGE_NEUTRE, ampliAtkPct: 22, ampliDefPct: 10, ampliVitPct: 20 },
+    'les canaux se cumulent indépendamment sur une paire d’artéfacts'
+  );
+
+  // « Dgts supp. en prop. de <stat> » (218-221) — dégâts BRUTS par coup.
+  const artefactBrut: ArtifactDetail = {
+    ...artefactVit,
+    subs: [
+      { code: 218, value: 1.5 }, // % des PV
+      { code: 219, value: 20 }, // % de l'ATQ
+      { code: 220, value: 20 }, // % de la DEF
+      { code: 221, value: 200 }, // % de la VIT
+    ],
+  };
+  egal(
+    artifactDamageProfile([artefactBrut]),
+    { ...ARTIFACT_DAMAGE_NEUTRE, brutPctPv: 1.5, brutPctAtk: 20, brutPctDef: 20, brutPctVit: 200 },
+    'les quatre lignes 218-221 sont lues sur leurs canaux respectifs'
+  );
+
+  // « Aug. des dgts infl. au <élément> » (300-304) — une table PAR élément.
+  const artefactElement: ArtifactDetail = {
+    ...artefactVit,
+    subs: [
+      { code: 300, value: 12 }, // au Feu
+      { code: 302, value: 9 }, // au Vent
+    ],
+  };
+  egal(
+    artifactDamageProfile([artefactElement]).degatsElementPct,
+    { fire: 12, wind: 9 },
+    'les codes 300-304 alimentent une entrée par élément visé'
+  );
+  egal(
+    artifactDamageProfile([artefactElement, artefactElement]).degatsElementPct,
+    { fire: 24, wind: 18 },
+    'deux artéfacts portant la même ligne se cumulent, élément par élément'
+  );
+  // ⚠️ Le profil doit rester une fonction PURE : deux appels ne doivent pas
+  // partager la même table (le piège du spread d'une constante d'objet).
+  {
+    const a = artifactDamageProfile([artefactElement]);
+    const b = artifactDamageProfile([]);
+    egal(b.degatsElementPct, {}, 'un profil sans ligne élémentaire reste vide…');
+    ok(a.degatsElementPct !== b.degatsElementPct, '… et deux profils ne partagent JAMAIS la même table');
+    egal(ARTIFACT_DAMAGE_NEUTRE.degatsElementPct, {}, 'la constante neutre n’a pas été polluée au passage');
+  }
+  // Dgts CRIT par compétence (400-403, 410), mono-cible (224), bombe (210).
+  const artefactType: ArtifactDetail = {
+    ...artefactVit,
+    subs: [
+      { code: 400, value: 10 }, // Comp.1
+      { code: 410, value: 6 }, // Comp.3 ET Comp.4
+      { code: 224, value: 5 }, // mono-cible pendant ton tour
+      { code: 210, value: 24 }, // dégâts de bombe
+    ],
+  };
+  const profilType = artifactDamageProfile([artefactType]);
+  // ⚠️ 410 compte EN ENTIER pour les slots 3 et 4 — ce n'est pas un partage,
+  // même logique que le code 226 pour ATQ/DEF.
+  egal(profilType.cdPointsParSlot, { 1: 10, 3: 6, 4: 6 }, '410 alimente les slots 3 ET 4, en entier');
+  egal(profilType.cdPointsMonoCible, 5, 'le code 224 a son propre canal');
+  egal(profilType.degatsBombePct, 24, 'le code 210 aussi');
+  {
+    const monoS1 = { ...profil('1*{ATK}')!, slot: 1, aoe: false };
+    const zoneS1 = { ...monoS1, aoe: true };
+    const monoS3 = { ...monoS1, slot: 3 };
+    const monoS2 = { ...monoS1, slot: 2 };
+    egal(artifactCritDamagePoints(profilType, monoS1), 15, 'S1 mono-cible : 10 (Comp.1) + 5 (mono-cible)');
+    egal(artifactCritDamagePoints(profilType, zoneS1), 10, 'le MÊME sort en zone perd les 5 points mono-cible');
+    egal(artifactCritDamagePoints(profilType, monoS3), 11, 'S3 mono-cible : 6 (Comp.3/4) + 5');
+    egal(artifactCritDamagePoints(profilType, monoS2), 5, 'S2 : aucune ligne par compétence ici, seuls les 5 restent');
+    egal(artifactCritDamagePoints(ARTIFACT_DAMAGE_NEUTRE, monoS1), 0, 'sans artéfact, aucun point');
+  }
+
+  {
+    // ── 411 (1re attaque) et 222/223 (rampes sur les PV de la cible) ──
+    // Les seules lignes qui VARIENT d'un coup à l'autre.
+    const art = (subs: { code: number; value: number }[]) =>
+      artifactDamageProfile([{ ...artefactVit, subs }]);
+    egal(art([{ code: 411, value: 8 }]).cdPointsPremiereAttaque, 8, '411 a son propre canal');
+    egal(art([{ code: 222, value: 6 }]).cdPointsPvCibleHauts, 6, '222 aussi');
+    egal(art([{ code: 223, value: 12 }]).cdPointsPvCibleBas, 12, '223 aussi');
+
+    // Sort à 3 coups, critique forcé, cible immense pour qu'elle ne se creuse
+    // presque pas : les PV restent ~100 %, donc 222 vaut plein et 223 rien.
+    const troisCoups = { ...profil('1*{ATK}')!, hits: 3, slot: 3, aoe: false };
+    const st = stats({ atk: 2000, cd: 100 });
+    const cible: DamageSetup = {
+      ...DEFAULT_DAMAGE_SETUP,
+      summonerSkills: 'aucune',
+      critMode: 'crit',
+      enemyDef: 0,
+      enemyHp: 100_000_000,
+      enemyHpPct: 100,
+    };
+    const nu = computeSkillDamageDetail(troisCoups, st, cible, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+    // ⚠️ 411 ne majore QUE le premier des 3 coups : son apport doit valoir le
+    // TIERS de celui d'une ligne équivalente qui vaudrait pour tous les coups.
+    const avec411 = computeSkillDamageDetail(troisCoups, st, cible, null, undefined, art([{ code: 411, value: 30 }])).total;
+    const avec224 = computeSkillDamageDetail(troisCoups, st, cible, null, undefined, art([{ code: 224, value: 30 }])).total;
+    ok(avec411 > nu, '411 majore bien quelque chose');
+    ok(
+      Math.abs((avec411 - nu) * 3 - (avec224 - nu)) < 1e-6,
+      '411 (1er coup seul) apporte exactement le TIERS de 224 (les 3 coups), à valeur égale'
+    );
+
+    // ⚠️ Les rampes se vérifient sur UN SEUL coup : à plusieurs coups la
+    // cible se creuse entre les coups, donc `pvFrac` dérive légèrement et
+    // aucune égalité EXACTE n'est possible. Un coup unique fige la fraction.
+    const unCoup = { ...troisCoups, hits: 1 };
+    const aPvPct = (pct: number, subs: { code: number; value: number }[]) =>
+      computeSkillDamageDetail(unCoup, st, { ...cible, enemyHpPct: pct }, null, undefined, art(subs)).total;
+    const nuAPvPct = (pct: number) =>
+      computeSkillDamageDetail(unCoup, st, { ...cible, enemyHpPct: pct }, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+
+    const nu1 = nuAPvPct(100);
+    const plein = aPvPct(100, [{ code: 224, value: 30 }]) - nu1; // référence : 30 points, inconditionnels
+    // ⚠️ Comparaison à TOLÉRANCE, pas à l'identique : une rampe passe par
+    // `coefCdParCoup` (appliqué APRÈS `critTerm`) là où une ligne
+    // inconditionnelle entre dans `cd` AVANT lui. Même quantité, ordre des
+    // opérations différent — les derniers bits divergent, et c'est sans
+    // conséquence. Même raison que la note de `objectiveScore('ehp')` sur
+    // `hp / defenseFactor(def)`.
+    ok(Math.abs(aPvPct(100, [{ code: 222, value: 30 }]) - nu1 - plein) < 1e-9, 'à 100 % de PV, 222 vaut PLEIN');
+    egal(aPvPct(100, [{ code: 223, value: 30 }]), nu1, '… et 223 ne vaut RIEN');
+    egal(aPvPct(0, [{ code: 222, value: 30 }]), nuAPvPct(0), 'à 0 % de PV, 222 ne vaut plus rien…');
+    ok(
+      Math.abs(aPvPct(0, [{ code: 223, value: 30 }]) - nuAPvPct(0) - plein) < 1e-9,
+      '… et 223 vaut PLEIN — la rampe est bien inversée'
+    );
+    // Le point qui distingue une RAMPE d'un palier : à mi-chemin, moitié.
+    ok(
+      Math.abs((aPvPct(50, [{ code: 222, value: 30 }]) - nuAPvPct(50)) * 2 - plein) < 1e-9,
+      'à 50 % de PV, 222 vaut exactement la MOITIÉ — rampe linéaire, jamais un palier'
+    );
+    ok(
+      Math.abs((aPvPct(50, [{ code: 223, value: 30 }]) - nuAPvPct(50)) * 2 - plein) < 1e-9,
+      'et 223 aussi : à 50 %, les deux rampes se croisent'
+    );
+
+    // ⚠️ Garde-fou de coût : sans critique, ces lignes ne peuvent rien
+    // changer, et le calcul ne doit pas basculer sur le chemin séquentiel.
+    const sansCrit: DamageSetup = { ...cible, critMode: 'normal' };
+    egal(
+      computeSkillDamageDetail(troisCoups, st, sansCrit, null, undefined, art([{ code: 222, value: 30 }])).total,
+      computeSkillDamageDetail(troisCoups, st, sansCrit, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
+      'sans critique, une ligne de Dgts CRIT ne change RIEN (et ne coûte pas la boucle)'
+    );
+  }
+
+  {
+    // ⚠️ **La Marque et Mirinae ne sont PAS de la même famille**, malgré des
+    // libellés quasi identiques. MESURÉ EN JEU par l'utilisateur :
+    //   - la Marque agit sur les bombes ET sur le passif de Shahat ;
+    //   - Mirinae n'agit NI sur l'une NI sur l'autre ;
+    //   - les artéfacts élémentaires non plus.
+    // Les traiter ensemble majorait à tort les bombes et tout le bucket
+    // Additionnel.
+    const st = stats({ atk: 4150, hp: 30000 });
+    const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', enemyDef: 0 };
+    const artFeu = artifactDamageProfile([{ ...artefactVit, subs: [{ code: 300, value: 12 }] }]);
+
+    // ── Sur une BOMBE ────────────────────────────────────────────────────
+    const bombe = bombeDe(15713, 'Fate of Destruction');
+    const nuBombe = computeSkillDamage(bombe, st, { ...base, enemyElement: 'fire' });
+    egal(
+      computeSkillDamageDetail(bombe, st, { ...base, enemyElement: 'fire' }, null, undefined, artFeu).total,
+      nuBombe,
+      'artéfact élémentaire : AUCUN effet sur une bombe'
+    );
+    egal(
+      computeSkillDamage(bombe, st, { ...base, mirinaeActif: true }),
+      nuBombe,
+      'Mirinae : aucun effet sur une bombe non plus'
+    );
+    // ⚠️ Dr. Matteo suit Mirinae, et c'est MESURÉ — pas déduit de lui. Les
+    // deux analogies précédentes de ce fichier s'étant révélées fausses, celle
+    // -ci a été vérifiée en jeu avant d'être reconduite.
+    egal(
+      computeSkillDamage(bombe, st, { ...base, transmissionActif: true }),
+      nuBombe,
+      'Dr. Matteo : aucun effet sur une bombe (mesuré, pas déduit de Mirinae)'
+    );
+    egal(
+      Math.round(computeSkillDamage(bombe, st, { ...base, brand: true })),
+      Math.round(nuBombe * 1.25),
+      '… mais la Marque, elle, s’applique bien à une bombe'
+    );
+
+    // ── Sur le bucket ADDITIONNEL (passif de Shahat) ─────────────────────
+    const sortSimple = { ...profil('1*{ATK}')!, hits: 1 };
+    const shahat = { bonusFixeMaxHpPropre: { pct: 7 } }; // 7 % de 30000 = 2100 bruts
+    const ecart = (setup: DamageSetup, art = ARTIFACT_DAMAGE_NEUTRE) =>
+      computeSkillDamageDetail(sortSimple, st, setup, null, undefined, art, shahat).total -
+      computeSkillDamageDetail(sortSimple, st, setup, null, undefined, art).total;
+    egal(Math.round(ecart(base)), 2100, 'référence : le passif de Shahat vaut 2100 bruts');
+    egal(
+      Math.round(ecart({ ...base, enemyElement: 'fire' }, artFeu)),
+      2100,
+      'artéfact élémentaire : aucun effet sur le passif de Shahat'
+    );
+    egal(Math.round(ecart({ ...base, mirinaeActif: true })), 2100, 'Mirinae non plus');
+    egal(Math.round(ecart({ ...base, transmissionActif: true })), 2100, 'Dr. Matteo non plus (mesuré)');
+
+    // ⚠️ **RELEVÉ JULIE** — un bonus de sort « +X % par effet » ne touche pas
+    // non plus le bucket Additionnel. S3 « Thousand Shots » : +50 % par effet
+    // BÉNÉFIQUE sur la cible. Mesuré en jeu : ~700 par coup sans Will (0 buff)
+    // contre ~730 avec Will (1 buff). Si le +50 % touchait tout, on lirait
+    // 1 050. Le système donne part du sort = 60, additionnel = 640 — le modèle
+    // en prédit 635 (0,21 × 2 139 DEF + 0,007 × 26 545 PV), moins de 1 %
+    // d'écart.
+    const julie = { ...sortSimple, bonusParEffetCible: { pct: 50, source: 'buffs' as const } };
+    const ecartJulie = (setup: DamageSetup) =>
+      computeSkillDamageDetail(julie, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, shahat).total -
+      computeSkillDamageDetail(julie, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+    const setupUnBuff: DamageSetup = { ...base, effetsCibleCount: { [julie.skillCom2usId]: 1 } };
+    egal(
+      Math.round(ecartJulie(setupUnBuff)),
+      2100,
+      '« +50 % par effet sur la cible » ne majore PAS les dégâts bruts (relevé Julie)'
+    );
+    ok(
+      computeSkillDamageDetail(julie, st, setupUnBuff, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total >
+        computeSkillDamageDetail(julie, st, base, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
+      '… alors qu’il majore bien la part du SORT — sinon le test ne prouverait rien'
+    );
+
+    // ⚠️ **RELEVÉ JESSICA** — deuxième membre de la famille mesuré, et par
+    // l'autre porte : « Blessing of Curse » majore de +20 % par effet néfaste
+    // sur SOI (`bonusParEffetPropre`), là où Julie compte les buffs de la
+    // CIBLE. Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV + 6 %
+    // DEF + 102 % VIT, contre un Xiong Fei très défensif, en COUP CRITIQUE :
+    //   0 débuff → ~2 250 · 1 débuff → ~2 450 · 2 débuffs → ~2 600.
+    // Si le +20 % touchait tout, 2 débuffs donneraient 3 150. Le modèle prédit
+    // un additionnel de 1 277 ; la résolution du système en donne 1 250.
+    //
+    // ⚠️ Ce relevé prouve AUSSI, indépendamment, que le bucket ne CRITE pas :
+    // les trois mesures sont des critiques, et un additionnel critique (×2,5)
+    // vaudrait à lui seul 3 192 — plus que le total observé de 2 250.
+    const jessica = {
+      ...sortSimple,
+      bonusParEffetPropre: { skillCom2usId: sortSimple.skillCom2usId, pct: 20 },
+    };
+    const ecartJessica = (nbDebuffs: number) => {
+      const s: DamageSetup = { ...base, effetsPropresCount: { [sortSimple.skillCom2usId]: nbDebuffs } };
+      return (
+        computeSkillDamageDetail(sortSimple, st, s, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {
+          ...shahat,
+          bonusParEffetPropre: jessica.bonusParEffetPropre,
+        }).total -
+        computeSkillDamageDetail(sortSimple, st, s, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {
+          bonusParEffetPropre: jessica.bonusParEffetPropre,
+        }).total
+      );
+    };
+    egal(Math.round(ecartJessica(0)), 2100, 'Blessing of Curse, 0 débuff : les dégâts bruts valent leur valeur nue');
+    egal(Math.round(ecartJessica(2)), 2100, '… et 2 débuffs (+40 % sur le sort) ne les majorent toujours PAS');
+
+    // ⚠️ **RELEVÉ MOMO** — même verdict pour les modificateurs appliqués
+    // APRÈS coup sur le total (Sonia, Momo, Zenitsu, Gideon, Brita, Velaska).
+    // Ceux-là traversaient toute l'accumulation et majoraient donc aussi les
+    // dégâts bruts. Momo à 53 545 PV, ligne PV à 2,3 %, sans critique, contre
+    // un Feng Yan très défensif : ~1 300 par coup sans stack, ~1 700 stack
+    // plein (+200 %, donc ×3). Si le stack touchait tout : 3 900.
+    //
+    // ⚠️ Ce test passe par `computeTotalDamage` et NON par
+    // `computeSkillDamageDetail` : c'est là, et là seulement, que cette chaîne
+    // s'applique.
+    const momo = {
+      skillCom2usId: sortSimple.skillCom2usId,
+      nom: 'Secret Book (Passive)',
+      description: null,
+      icone: null,
+      triggerMax: 20,
+      triggerStep: 1,
+      ratio: 10,
+      pctMax: 200,
+      label: 'Attaques alliées',
+      aide: '',
+      suffix: '',
+    };
+    const totalMomo = (attaques: number, avecBrut: boolean) =>
+      computeTotalDamage(
+        sortSimple,
+        [],
+        st,
+        { ...base, stackPersonnalise: { [sortSimple.skillCom2usId]: attaques } },
+        null,
+        ARTIFACT_DAMAGE_NEUTRE,
+        false,
+        null,
+        momo,
+        avecBrut ? shahat : {}
+      );
+    const brutSansStack = totalMomo(0, true) - totalMomo(0, false);
+    const brutStackPlein = totalMomo(20, true) - totalMomo(20, false);
+    egal(Math.round(brutSansStack), 2100, 'sans stack, les dégâts bruts valent leur valeur nue');
+    egal(Math.round(brutStackPlein), 2100, '… et stack PLEIN (+200 %) ne les majore pas d’un point');
+    ok(
+      totalMomo(20, false) > totalMomo(0, false) * 2.9,
+      '… alors que la part du SORT est bien triplée — sinon le test ne prouverait rien'
+    );
+    egal(
+      Math.round(ecart({ ...base, brand: true })),
+      Math.round(2100 * 1.25),
+      '… mais la Marque majore bien le passif de Shahat'
+    );
+  }
+
+  const profilFeu = artifactDamageProfile([artefactElement]);
+  egal(artifactElementBonusPct(profilFeu, 'fire'), 12, 'contre du Feu, la ligne Feu s’applique');
+  egal(artifactElementBonusPct(profilFeu, 'dark'), 0, 'contre un élément non couvert, rien ne s’applique');
+  egal(artifactElementBonusPct(profilFeu, null), 0, '« ignorer l’élément » : ces lignes comptent 0, jamais un repli sur la meilleure');
+  egal(artifactElementBonusPct(profilFeu, undefined), 0, 'une recette exportée AVANT ce champ se comporte comme « ignorer »');
+
+  {
+    // Effet sur le calcul : additif avec la Marque, pas un multiplicateur à part.
+    const profilFixe2 = profil('1*{ATK} (Fixed)')!;
+    const st = stats({ atk: 2000 });
+    const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal' };
+    const nu = computeSkillDamageDetail(profilFixe2, st, base, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+    egal(Math.round(nu), 2000, 'référence sans artéfact ni marque');
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, enemyElement: 'fire' }, null, undefined, profilFeu).total),
+      2240,
+      'contre du Feu : +12 % (2000 → 2240)'
+    );
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, enemyElement: null }, null, undefined, profilFeu).total),
+      2000,
+      '« ignorer l’élément » : l’artéfact ne change rien, même en le portant'
+    );
+    // ⚠️ **DEUX BRACKETS, donc MULTIPLICATIFS entre eux.** La ligne élémentaire
+    // est dans le terme DMG%, la Marque dans Réductions : 2000 × 1,12 × 1,25 =
+    // 2800, et non 2000 × (1 + 0,12 + 0,25) = 2740.
+    //
+    // ⚠️ Ce test figeait 2740 — une DÉDUCTION faite « par symétrie » avec les
+    // artéfacts −DMG% (305-309), qui sont bien dans Réductions. La symétrie
+    // n'existait pas. Corrigé d'après swcalc.cz/game-mechanics.
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, brand: true }, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total),
+      2500,
+      'la Marque seule : +25 %'
+    );
+    egal(
+      Math.round(
+        computeSkillDamageDetail(profilFixe2, st, { ...base, brand: true, enemyElement: 'fire' }, null, undefined, profilFeu).total
+      ),
+      2800,
+      'Marque × ligne élémentaire : MULTIPLICATIF (2 brackets), pas additif (qui donnerait 2740)'
+    );
+  }
+
+  {
+    // ⚠️ L'amplification ne s'applique qu'à un buff RÉELLEMENT actif — sinon
+    // il n'y a rien à amplifier, exactement comme pour la VIT plus haut.
+    // ⚠️ `neutre` n'est déclaré que bien plus bas dans ce fichier — on
+    // reconstruit ici le même profil (coefficient 1, 1 coup, `(Fixed)` donc
+    // `horsCoup = 1`) plutôt que de déplacer sa déclaration.
+    const profilFixe = profil('1*{ATK} (Fixed)')!;
+    const st = stats({ atk: 2000 });
+    const sansBuff: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal', atkBuff: false };
+    const avecBuff: DamageSetup = { ...sansBuff, atkBuff: true };
+    const profilAtk = { ...ARTIFACT_DAMAGE_NEUTRE, ampliAtkPct: 20 };
+    egal(
+      computeSkillDamageDetail(profilFixe, st, sansBuff, null, undefined, profilAtk).total,
+      computeSkillDamageDetail(profilFixe, st, sansBuff, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total,
+      'sans buff d’ATQ actif, l’amplification d’artéfact ne change rien'
+    );
+    // Buff d'ATQ = +50 %, amplifié de 20 % → +60 %. Sur 2000 d'ATQ :
+    // 3200 contre 3000.
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe, st, avecBuff, null, undefined, profilAtk).total),
+      3200,
+      'buff d’ATQ amplifié de 20 % : 50 % → 60 %, soit 2000 → 3200'
+    );
+    egal(
+      Math.round(computeSkillDamageDetail(profilFixe, st, avecBuff, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total),
+      3000,
+      '… contre 3000 sans artéfact — le buff nu à +50 %'
+    );
+  }
+
+  {
+    // ⚠️ Lignes 218-221 : dégâts BRUTS, À CHAQUE COUP. Le sort est ORDINAIRE
+    // (pas `(Fixed)`) et la cible a de la défense — sans quoi « brut » serait
+    // indiscernable de « mitigé », comme pour les passifs plus bas.
+    const profilTroisCoups: SkillDamageProfile = { ...profil('1*{ATK}')!, hits: 3 };
+    const st = stats({ hp: 40000, atk: 2000, def: 1000, spd: 200 });
+    const base: DamageSetup = {
+      ...DEFAULT_DAMAGE_SETUP,
+      summonerSkills: 'aucune',
+      critMode: 'crit',
+      enemyDef: 3000,
+    };
+    const brut = { ...ARTIFACT_DAMAGE_NEUTRE, brutPctPv: 1.5, brutPctAtk: 20, brutPctDef: 20, brutPctVit: 200 };
+    // 1,5 % × 40000 = 600 | 20 % × 2000 = 400 | 20 % × 1000 = 200
+    // | 200 % × 200 VIT = 400  →  1600 par coup, × 3 coups = 4800.
+    const ecart = (setup: DamageSetup) =>
+      computeSkillDamageDetail(profilTroisCoups, st, setup, null, undefined, brut).total -
+      computeSkillDamageDetail(profilTroisCoups, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+    egal(Math.round(ecart(base)), 4800, '218-221 : 1600 bruts par coup, appliqués aux 3 coups');
+    // ⚠️ Les deux invariants qui font tout l'intérêt de ces lignes : l'écart
+    // ne bouge NI avec la défense adverse, NI avec le critique.
+    egal(
+      Math.round(ecart({ ...base, enemyDef: 0 })),
+      Math.round(ecart({ ...base, enemyDef: 12000 })),
+      'l’écart est le même à 0 et à 12000 de DEF adverse — ces dégâts ne sont pas mitigés'
+    );
+    egal(
+      Math.round(ecart({ ...base, critMode: 'normal' })),
+      Math.round(ecart({ ...base, critMode: 'crit' })),
+      'l’écart est le même avec et sans critique — ces dégâts ne critent pas'
+    );
+    // Garde-fou : la part du SORT, elle, DOIT réagir à la défense.
+    ok(
+      computeSkillDamageDetail(profilTroisCoups, st, { ...base, enemyDef: 0 }, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total >
+        computeSkillDamageDetail(profilTroisCoups, st, { ...base, enemyDef: 12000 }, null, undefined, ARTIFACT_DAMAGE_NEUTRE)
+          .total,
+      'sinon le test ne prouverait rien : la part du sort est bien mitigée par la DEF'
+    );
+  }
 
   titre('Dégâts réels — leader skill généralisé (PV, ATQ, DEF, VIT, Taux Crit, Dégâts Crit)');
 
@@ -516,15 +1053,40 @@ export default function testDegats() {
     'un lead Dégâts Crit ajoute 25 POINTS à la stat, même famille qu’Euldong'
   );
 
-  // Paliers réels du jeu, confirmés par l'utilisateur — jamais une formule
-  // générique, ces paliers ne suivent pas une progression régulière d'une
-  // stat à l'autre.
-  egal(LEADER_SKILL_PRESETS.HP, [28, 33, 38, 40, 44, 50], 'paliers PV');
-  egal(LEADER_SKILL_PRESETS['Attack Power'], [28, 33, 38, 40, 44, 50], 'paliers ATQ');
-  egal(LEADER_SKILL_PRESETS.Defense, [28, 33, 38, 40, 44, 50], 'paliers DEF');
-  egal(LEADER_SKILL_PRESETS['Attack Speed'], [21, 24, 28, 30, 33], 'paliers VIT');
-  egal(LEADER_SKILL_PRESETS['Critical Rate'], [21, 24, 28, 33, 38], 'paliers Taux Crit');
-  egal(LEADER_SKILL_PRESETS['Critical DMG'], [25], 'palier Dégâts Crit — un seul connu');
+  // Valeurs de lead RÉELLES du jeu, liste EXHAUSTIVE fournie par
+  // l'utilisateur — jamais une formule générique, elles ne suivent aucune
+  // progression régulière et diffèrent d'une statistique à l'autre.
+  egal(LEADER_SKILL_VALEURS.HP, [15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50], 'valeurs PV');
+  egal(LEADER_SKILL_VALEURS['Attack Power'], [15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50], 'valeurs ATQ');
+  egal(LEADER_SKILL_VALEURS.Defense, [20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50], 'valeurs DEF');
+  egal(LEADER_SKILL_VALEURS['Attack Speed'], [10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33], 'valeurs VIT');
+  egal(LEADER_SKILL_VALEURS['Critical Rate'], [10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38], 'valeurs Taux Crit');
+  egal(LEADER_SKILL_VALEURS['Critical DMG'], [25], 'Dégâts Crit — une seule valeur, un seul monstre la porte');
+
+  // ⚠️ **Garde-fou de TRANSCRIPTION**, pas de mécanique : une liste de valeurs
+  // recopiée à la main peut porter un doublon ou une valeur hors d'ordre, et
+  // ni `tsc` ni aucun test de dégâts ne s'en apercevrait — le menu afficherait
+  // simplement une liste bancale. Chaque liste doit être STRICTEMENT
+  // croissante.
+  for (const [stat, valeurs] of Object.entries(LEADER_SKILL_VALEURS)) {
+    const croissante = valeurs.every((v, i) => i === 0 || v > valeurs[i - 1]!);
+    ok(croissante, `${stat} : valeurs strictement croissantes, sans doublon`);
+    ok(valeurs.every((v) => Number.isInteger(v) && v > 0 && v <= 100), `${stat} : pourcentages entiers plausibles`);
+  }
+
+  // ⚠️ Toutes les valeurs de l'ANCIENNE table (partielle) survivent dans la
+  // nouvelle : un réglage enregistré avant cette mise à jour reste choisissable
+  // dans le menu, sans se faire remplacer en silence.
+  for (const [stat, anciennes] of [
+    ['HP', [28, 33, 38, 40, 44, 50]],
+    ['Attack Power', [28, 33, 38, 40, 44, 50]],
+    ['Defense', [28, 33, 38, 40, 44, 50]],
+    ['Attack Speed', [21, 24, 28, 30, 33]],
+    ['Critical Rate', [21, 24, 28, 33, 38]],
+  ] as [LeaderSkillStat, number[]][]) {
+    const manquantes = anciennes.filter((v) => !LEADER_SKILL_VALEURS[stat].includes(v));
+    egal(manquantes, [], `${stat} : aucun ancien palier perdu`);
+  }
 
   // `monsterCritSiPlusRapide` : Rigna/Ciri Eau/Magic Order Swordsinger
   // portent un passif SANS formule ni dégâts propres qui force le critique —
@@ -542,15 +1104,15 @@ export default function testDegats() {
   // actif (et sur un passif qui SUIT le réglage) uniquement quand Rigna est
   // RÉELLEMENT plus rapide que la cible configurée.
   const rignaSetupNonCrit: DamageSetup = { ...rignaSetup, critMode: 'normal' };
-  const totalPlusRapide = computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null, 0, true);
-  const totalMemeVit = computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 200 }, null, 0, true);
+  const totalPlusRapide = computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null, ARTIFACT_DAMAGE_NEUTRE, true);
+  const totalMemeVit = computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 200 }, null, ARTIFACT_DAMAGE_NEUTRE, true);
   const critForce = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetupNonCrit, critMode: 'crit', enemySpd: 100 }, null);
   const sansCrit100 = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null);
   const sansCrit200 = computeSkillDamage(concentratedStab, rignaStats, { ...rignaSetupNonCrit, enemySpd: 200 }, null);
   egal(totalPlusRapide, critForce, 'plus rapide que la cible : le critique est forcé, quel que soit le mode choisi');
   egal(totalMemeVit, sansCrit200, 'aussi rapide (ou plus lent) que la cible : le mécanisme ne se déclenche pas');
   ok(
-    computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null, 0, false) === sansCrit100,
+    computeTotalDamage(concentratedStab, [], rignaStats, { ...rignaSetupNonCrit, enemySpd: 100 }, null, ARTIFACT_DAMAGE_NEUTRE, false) === sansCrit100,
     '`critSiPlusRapide=false` (monstre sans ce passif) : aucun effet, même VIT identique'
   );
 
@@ -580,18 +1142,18 @@ export default function testDegats() {
   };
   const soniaConfig = monsterBonusDegatsSelonVit(sonia)!;
   const soniaSansEcart = computeSkillDamage(soniaBase!, soniaStats, { ...soniaSetup, enemySpd: 200 }, null);
-  const totalMemeVitSonia = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 200 }, null, 0, false, soniaConfig);
-  const total25 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 175 }, null, 0, false, soniaConfig);
-  const total50 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 150 }, null, 0, false, soniaConfig);
-  const total100 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 100 }, null, 0, false, soniaConfig);
-  const totalPlusLente = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 260 }, null, 0, false, soniaConfig);
+  const totalMemeVitSonia = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 200 }, null, ARTIFACT_DAMAGE_NEUTRE, false, soniaConfig);
+  const total25 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 175 }, null, ARTIFACT_DAMAGE_NEUTRE, false, soniaConfig);
+  const total50 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 150 }, null, ARTIFACT_DAMAGE_NEUTRE, false, soniaConfig);
+  const total100 = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 100 }, null, ARTIFACT_DAMAGE_NEUTRE, false, soniaConfig);
+  const totalPlusLente = computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 260 }, null, ARTIFACT_DAMAGE_NEUTRE, false, soniaConfig);
   egal(totalMemeVitSonia, soniaSansEcart, 'aussi rapide que la cible : aucun bonus');
   ok(Math.abs(total25 / soniaSansEcart - 1.25) < 1e-9, '25 points d’écart : exactement +25 %');
   ok(Math.abs(total50 / soniaSansEcart - 1.5) < 1e-9, '50 points d’écart : exactement +50 % (le plafond)');
   ok(Math.abs(total100 / soniaSansEcart - 1.5) < 1e-9, '100 points d’écart : plafonné à +50 %, jamais plus');
   egal(totalPlusLente, soniaSansEcart, 'cible plus rapide que Sonia : le bonus tombe à 0 %, jamais négatif');
   ok(
-    computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 100 }, null, 0, false, null) === soniaSansEcart,
+    computeTotalDamage(soniaBase!, [], soniaStats, { ...soniaSetup, enemySpd: 100 }, null, ARTIFACT_DAMAGE_NEUTRE, false, null) === soniaSansEcart,
     'bonusDegatsSelonVit=null (monstre sans ce passif) : aucun effet, même VIT identique'
   );
   ok(
@@ -621,7 +1183,7 @@ export default function testDegats() {
   ok(zenitsuTenBase !== null, 'Zenitsu (Ténèbres) : un sort de dégâts par défaut est trouvé');
   egal(monsterBonusDegatsSelonCr(zenitsuTen), { ratio: 0.8 }, 'Zenitsu (Ténèbres) : Hidden Sense of Justice, 0,8 %/point de Taux Crit');
   const qilinTen = fiche(32915);
-  egal(monsterBonusDegatsSelonCr(qilinTen)?.nom ?? 'Lethal Intent (Passive)', 'Lethal Intent (Passive)', 'Qilin Slasher (Ténèbres) : même mécanisme, nom différent');
+  egal(monsterBonusDegatsSelonCr(qilinTen) ? 'Lethal Intent (Passive)' : 'absent', 'Lethal Intent (Passive)', 'Qilin Slasher (Ténèbres) : même mécanisme, nom différent');
   egal(monsterBonusDegatsSelonCr(qilinTen), { ratio: 0.8 }, 'Qilin Slasher (Ténèbres) : même ratio');
   ok(!monsterBonusDegatsSelonCr(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
   const crConfig = monsterBonusDegatsSelonCr(zenitsuTen)!;
@@ -633,11 +1195,11 @@ export default function testDegats() {
     critMode: 'normal',
   };
   const zenitsuSans = computeSkillDamage(zenitsuTenBase!, zenitsuStats, zenitsuSetup);
-  const zenitsuAvec = computeTotalDamage(zenitsuTenBase!, [], zenitsuStats, zenitsuSetup, null, 0, false, null, null, {}, null, crConfig);
+  const zenitsuAvec = computeTotalDamage(zenitsuTenBase!, [], zenitsuStats, zenitsuSetup, null, ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, null, crConfig);
   // 60 % de Taux Crit × 0,8 = +48 %.
   ok(Math.abs(zenitsuAvec / zenitsuSans - 1.48) < 1e-9, '60 % de Taux Crit : exactement +48 % (60 × 0,8)');
   ok(
-    computeTotalDamage(zenitsuTenBase!, [], zenitsuStats, zenitsuSetup, null, 0, false, null, null, {}, null, null) === zenitsuSans,
+    computeTotalDamage(zenitsuTenBase!, [], zenitsuStats, zenitsuSetup, null, ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, null, null) === zenitsuSans,
     'bonusDegatsSelonCr=null (monstre sans ce passif) : aucun effet'
   );
   ok(
@@ -663,7 +1225,7 @@ export default function testDegats() {
     critMode: 'normal',
   };
   const gideonSans = computeSkillDamage(gideonBase!, gideonStats, gideonSetup);
-  const gideonAvec2500 = computeTotalDamage(gideonBase!, [], gideonStats, gideonSetup, null, 0, false, null, null, {}, null, null, gideonConfig);
+  const gideonAvec2500 = computeTotalDamage(gideonBase!, [], gideonStats, gideonSetup, null, ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, null, null, gideonConfig);
   // 2500 DEF = la moitié de 5000 → la moitié du plafond (50 %).
   ok(Math.abs(gideonAvec2500 / gideonSans - 1.5) < 1e-9, '2 500 DEF (la moitié de 5 000) : exactement +50 % (la moitié du plafond)');
   const gideonAvec10000 = computeTotalDamage(
@@ -672,7 +1234,7 @@ export default function testDegats() {
     stats({ atk: 2000, def: 10000, cd: 200, cr: 100 }),
     gideonSetup,
     null,
-    0,
+    ARTIFACT_DAMAGE_NEUTRE,
     false,
     null,
     null,
@@ -728,8 +1290,8 @@ export default function testDegats() {
   // seuil : isoler le ×2 exige de garder les stats identiques des deux
   // côtés de la comparaison.
   const britaSansPile = computeSkillDamage(britaBase!, britaStatsPile, britaSetup, 'water');
-  const britaJusteSous = computeTotalDamage(britaBase!, [], britaStatsJusteSous, britaSetup, 'water', 0, false, null, null, {}, null, null, null, britaConfig);
-  const britaPile = computeTotalDamage(britaBase!, [], britaStatsPile, britaSetup, 'water', 0, false, null, null, {}, null, null, null, britaConfig);
+  const britaJusteSous = computeTotalDamage(britaBase!, [], britaStatsJusteSous, britaSetup, 'water', ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, null, null, null, britaConfig);
+  const britaPile = computeTotalDamage(britaBase!, [], britaStatsPile, britaSetup, 'water', ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, null, null, null, britaConfig);
   egal(britaJusteSous, britaSansJusteSous, '632 points de runes ATQ : un point sous le seuil, aucun bonus');
   ok(Math.abs(britaPile / britaSansPile - 2) < 1e-9, '633 points de runes ATQ : le seuil est atteint pile, +100 % (×2)');
   // Un lead ATQ DOIT maintenant aider à atteindre ce seuil (« toute source
@@ -742,7 +1304,7 @@ export default function testDegats() {
     britaStatsJusteSous,
     { ...britaSetup, leaderSkill: { stat: 'Attack Power', pct: 15 } },
     'water',
-    0,
+    ARTIFACT_DAMAGE_NEUTRE,
     false,
     null,
     null,
@@ -758,7 +1320,7 @@ export default function testDegats() {
     britaStatsJusteSous,
     { ...britaSetup, leaderSkill: { stat: 'Attack Power', pct: 15 } },
     'water',
-    0,
+    ARTIFACT_DAMAGE_NEUTRE,
     false,
     null,
     null,
@@ -793,14 +1355,14 @@ export default function testDegats() {
   const chunliSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: chunliBase!.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
   const chunliConfig = monsterBonusDegatsSelonVit(chunli)!;
   const chunliSansEcart = computeSkillDamage(chunliBase!, chunliStats, { ...chunliSetup, enemySpd: 200 });
-  const chunliAvec150 = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 50 }, null, 0, false, chunliConfig);
+  const chunliAvec150 = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 50 }, null, ARTIFACT_DAMAGE_NEUTRE, false, chunliConfig);
   ok(Math.abs(chunliAvec150 / chunliSansEcart - 3) < 1e-9, 'Chun-Li : 150 pts d’écart = +200 % (le plafond), soit ×3');
   // ⚠️ RÉGRESSION trouvée en implémentant Gideon (point 30a), PAS signalée
   // par l'utilisateur : le plafond clampait `ecartVit` sur `pctMax` (200) au
   // lieu de `ecartMax` (150) — invisible sur Sonia (50 % = 50 pts,
   // coïncidence), mais un écart de VIT > 150 donnait ~267 % au lieu de
   // rester à 200 %. `enemySpd` très bas pour dépasser largement les 150 pts.
-  const chunliAvecEcartEnorme = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 1 }, null, 0, false, chunliConfig);
+  const chunliAvecEcartEnorme = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 1 }, null, ARTIFACT_DAMAGE_NEUTRE, false, chunliConfig);
   ok(
     Math.abs(chunliAvecEcartEnorme / chunliSansEcart - 3) < 1e-9,
     'Chun-Li : BIEN AU-DELÀ de 150 pts d’écart, toujours plafonné à +200 % (×3), jamais ~267 %'
@@ -820,8 +1382,8 @@ export default function testDegats() {
   const critVitStatsSansOverflow = stats({ atk: 2000, cd: 100, cr: 40, spd: 240 });
   const critVitSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'aucune' };
   const skillupS3 = s3!.skillupDamagePct / 100;
-  const detailAvecVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, null, undefined, 0, critVitConfig);
-  const detailSansVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, null, undefined, 0, {});
+  const detailAvecVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, critVitConfig);
+  const detailSansVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
   ok(
     Math.abs(detailAvecVit.total / detailSansVit.total - (1 + skillupS3 + 0.6 * 1.0) / (1 + skillupS3 + 0.4 * 1.0)) < 1e-9,
     '20 pts de Taux Crit ajoutés par la VIT (40 % → 60 %), sans dépasser 100 % : aucun reversement en Dgts Crit'
@@ -829,8 +1391,8 @@ export default function testDegats() {
   // Même stats mais cr=90 : crBrut = 90+20 = 110 → 10 pts de surplus
   // reversés en Dgts Crit, cr plafonné à 100 %.
   const critVitStatsOverflow = stats({ atk: 2000, cd: 100, cr: 90, spd: 240 });
-  const detailOverflow = computeSkillDamageDetail(s3!, critVitStatsOverflow, critVitSetup, null, undefined, 0, critVitConfig);
-  const detailOverflowSansPassif = computeSkillDamageDetail(s3!, critVitStatsOverflow, critVitSetup, null, undefined, 0, {});
+  const detailOverflow = computeSkillDamageDetail(s3!, critVitStatsOverflow, critVitSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, critVitConfig);
+  const detailOverflowSansPassif = computeSkillDamageDetail(s3!, critVitStatsOverflow, critVitSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
   ok(
     Math.abs(
       detailOverflow.total / detailOverflowSansPassif.total -
@@ -840,8 +1402,8 @@ export default function testDegats() {
   );
   // ⚠️ Régression ciblée : SANS le passif, un Taux Crit BRUT > 100 % (runes
   // très généreuses) doit rester simplement plafonné, jamais reversé.
-  const sansVitCr130 = computeSkillDamageDetail(s3!, stats({ atk: 2000, cd: 100, cr: 130, spd: 240 }), critVitSetup, null, undefined, 0, {});
-  const sansVitCr100 = computeSkillDamageDetail(s3!, stats({ atk: 2000, cd: 100, cr: 100, spd: 240 }), critVitSetup, null, undefined, 0, {});
+  const sansVitCr130 = computeSkillDamageDetail(s3!, stats({ atk: 2000, cd: 100, cr: 130, spd: 240 }), critVitSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
+  const sansVitCr100 = computeSkillDamageDetail(s3!, stats({ atk: 2000, cd: 100, cr: 100, spd: 240 }), critVitSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
   egal(sansVitCr130.total, sansVitCr100.total, 'un monstre SANS ce passif reste simplement plafonné à 100 %, aucun reversement');
 
   // Lizardman (Lumière)/Glinodon — « Detect Weakspot » : +20 pts de Taux
@@ -851,8 +1413,8 @@ export default function testDegats() {
   ok(!monsterBonusStatFixe(fiche(17801)), 'Lizardman (Eau) porte un passif différent (Bloody Skin), pas Detect Weakspot');
   ok(!monsterBonusStatFixe(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
   const fixeStats = stats({ atk: 2000, cd: 100, cr: 50, spd: 100 });
-  const detailAvecFixe = computeSkillDamageDetail(s3!, fixeStats, critVitSetup, null, undefined, 0, { bonusStatFixe: { cr: 20, cd: 20 } });
-  const detailSansFixe = computeSkillDamageDetail(s3!, fixeStats, critVitSetup, null, undefined, 0, {});
+  const detailAvecFixe = computeSkillDamageDetail(s3!, fixeStats, critVitSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, { bonusStatFixe: { cr: 20, cd: 20 } });
+  const detailSansFixe = computeSkillDamageDetail(s3!, fixeStats, critVitSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
   ok(
     Math.abs(
       detailAvecFixe.total / detailSansFixe.total - (1 + skillupS3 + 0.7 * 1.2) / (1 + skillupS3 + 0.5 * 1.0)
@@ -904,14 +1466,14 @@ export default function testDegats() {
   const jkSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: jkBase!.skillCom2usId, summonerSkills: 'aucune' };
   const jkConfig = monsterBonusDegatsConditionnel(jinKazama)!;
   egal(bonusDegatsConditionnelActif(jkConfig, jkSetup), false, 'désactivé par défaut, jamais deviné actif');
-  const jkSansToggle = computeTotalDamage(jkBase!, [], jkStats, jkSetup, null, 0, false, null, null, {}, jkConfig);
+  const jkSansToggle = computeTotalDamage(jkBase!, [], jkStats, jkSetup, null, ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, jkConfig);
   const jkAvecToggle = computeTotalDamage(
     jkBase!,
     [],
     jkStats,
     { ...jkSetup, passifsOffensifs: { [jkConfig.skillCom2usId]: true } },
     null,
-    0,
+    ARTIFACT_DAMAGE_NEUTRE,
     false,
     null,
     null,
@@ -920,7 +1482,7 @@ export default function testDegats() {
   );
   ok(Math.abs(jkAvecToggle / jkSansToggle - 2) < 1e-9, 'Indomitable Will activé : exactement +100 % (×2)');
   egal(
-    computeTotalDamage(jkBase!, [], jkStats, jkSetup, null, 0, false, null, null, {}, null),
+    computeTotalDamage(jkBase!, [], jkStats, jkSetup, null, ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, null),
     jkSansToggle,
     'bonusDegatsConditionnel=null (monstre sans ce passif) : aucun effet, même réglages identiques'
   );
@@ -953,7 +1515,7 @@ export default function testDegats() {
   egal(resolvedStackTrigger(stackMomo, momoSetupSansStack), 0, 'sans réglage utilisateur, le déclencheur retombe sur 0 — jamais deviné actif');
   egal(resolvedStackPct(stackMomo, momoSetupSansStack), 0, 'donc 0 % de dégâts');
   const momoSansStack = computeSkillDamage(momoBase!, momoStats, momoSetupSansStack, null);
-  const totalSansStack = computeTotalDamage(momoBase!, [], momoStats, momoSetupSansStack, null, 0, false, null, stackMomo);
+  const totalSansStack = computeTotalDamage(momoBase!, [], momoStats, momoSetupSansStack, null, ARTIFACT_DAMAGE_NEUTRE, false, null, stackMomo);
   egal(totalSansStack, momoSansStack, 'déclencheur à 0 : aucun effet sur les dégâts');
 
   // ⚠️ Le DÉCLENCHEUR (nombre d'attaques alliées, ici 5) et le BONUS DE
@@ -966,7 +1528,7 @@ export default function testDegats() {
   };
   egal(resolvedStackTrigger(stackMomo, momoSetup5Attaques), 5, 'le déclencheur saisi (5 attaques) est bien repris');
   egal(resolvedStackPct(stackMomo, momoSetup5Attaques), 50, '5 attaques × 10 % = exactement 50 % de dégâts, jamais le déclencheur brut');
-  const momoTotal50 = computeTotalDamage(momoBase!, [], momoStats, momoSetup5Attaques, null, 0, false, null, stackMomo);
+  const momoTotal50 = computeTotalDamage(momoBase!, [], momoStats, momoSetup5Attaques, null, ARTIFACT_DAMAGE_NEUTRE, false, null, stackMomo);
   ok(Math.abs(momoTotal50 / momoSansStack - 1.5) < 1e-9, '5 attaques : exactement +50 % de dégâts');
 
   // Hors plage — jamais laissé tel quel (recette écrite pour une autre
@@ -979,14 +1541,14 @@ export default function testDegats() {
   };
   egal(resolvedStackTrigger(stackMomo, momoSetupTropHaut), 20, 'un déclencheur saisi AU-DELÀ de 20 attaques est borné à 20, jamais plus');
   egal(resolvedStackPct(stackMomo, momoSetupTropHaut), 200, 'donc 200 % de dégâts, jamais plus');
-  const totalTropHaut = computeTotalDamage(momoBase!, [], momoStats, momoSetupTropHaut, null, 0, false, null, stackMomo);
+  const totalTropHaut = computeTotalDamage(momoBase!, [], momoStats, momoSetupTropHaut, null, ARTIFACT_DAMAGE_NEUTRE, false, null, stackMomo);
   const total20 = computeTotalDamage(
     momoBase!,
     [],
     momoStats,
     { ...momoSetupSansStack, stackPersonnalise: { [stackMomo.skillCom2usId]: 20 } },
     null,
-    0,
+    ARTIFACT_DAMAGE_NEUTRE,
     false,
     null,
     stackMomo
@@ -994,7 +1556,7 @@ export default function testDegats() {
   egal(totalTropHaut, total20, '35 attaques saisies ou 20 pile : même résultat, le plafond du déclencheur fait foi');
 
   ok(
-    computeTotalDamage(momoBase!, [], momoStats, momoSetup5Attaques, null, 0, false, null, null) === momoSansStack,
+    computeTotalDamage(momoBase!, [], momoStats, momoSetup5Attaques, null, ARTIFACT_DAMAGE_NEUTRE, false, null, null) === momoSansStack,
     'bonusDegatsStack=null (monstre sans ce passif) : le champ stackPersonnalise de la recette est ignoré'
   );
 
@@ -1719,8 +2281,8 @@ export default function testDegats() {
   // `ajoutUneFois`, faussant tout seuil de passif suivant basé sur les PV
   // restants (Final Strike/Benedict). ──
   const wStatsAvecHp = stats({ atk: 2000, cd: 200, cr: 100, hp: 10000 });
-  const sansAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, null, undefined, 0, {});
-  const avecAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, null, undefined, 0, {
+  const sansAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
+  const avecAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {
     bonusFixeMaxHpPropre: { pct: 50 },
   });
   ok(
@@ -1936,7 +2498,7 @@ export default function testDegats() {
   egal(resolvedStackTrigger(stackBorgnine, borgnineSetup), 40, 'Borgnine : le déclencheur saisi (40 % de PV détruits) est repris tel quel');
   egal(resolvedStackPct(stackBorgnine, borgnineSetup), 20, 'Borgnine : 40 % × 0,5 = 20 % de dégâts, JAMAIS 40 % (l’ancienne confusion)');
   const borgnineSans = computeSkillDamage(borgnineBase!, borgnineStats, { ...borgnineSetup, stackPersonnalise: {} });
-  const borgnineAvec = computeTotalDamage(borgnineBase!, [], borgnineStats, borgnineSetup, null, 0, false, null, stackBorgnine);
+  const borgnineAvec = computeTotalDamage(borgnineBase!, [], borgnineStats, borgnineSetup, null, ARTIFACT_DAMAGE_NEUTRE, false, null, stackBorgnine);
   ok(Math.abs(borgnineAvec / borgnineSans - 1.2) < 1e-9, 'Borgnine : 40 % de PV détruits → exactement +20 % de dégâts (×1,2)');
 
   // ⚠️ Signalé par l'utilisateur (PREMIÈRE incohérence, sur le texte) : le
@@ -2002,8 +2564,8 @@ export default function testDegats() {
   {
     const setup: DamageSetup = { ...setupNeutre, enemyHp: 40000 };
     const st = stats({ atk: 2000 });
-    const sans = computeSkillDamageDetail(neutre, st, setup, null, undefined, 0, {});
-    const avec = computeSkillDamageDetail(neutre, st, setup, null, undefined, 0, { bonusFixeCiblePvMax: { pct: 2 } });
+    const sans = computeSkillDamageDetail(neutre, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
+    const avec = computeSkillDamageDetail(neutre, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, { bonusFixeCiblePvMax: { pct: 2 } });
     egal(sans.total, 2000, 'profil neutre : sans ajout, exactement ATK (coefficient 1, 1 coup)');
     // ajout = 2 % × 40000 = 800.
     egal(avec.total, 2800, 'Pholus : +2 % des PV max de la cible (800) ajoutés au multiplicateur');
@@ -2016,35 +2578,62 @@ export default function testDegats() {
   {
     const setup: DamageSetup = { ...setupNeutre, enemyDef: 400 };
     const st = stats({ atk: 2000, def: 1000 });
-    const avec = computeSkillDamageDetail(neutre, st, setup, null, undefined, 0, { bonusEcartDef: { coeff: 0.5 } });
+    const avec = computeSkillDamageDetail(neutre, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, { bonusEcartDef: { coeff: 0.5 } });
     // ajout = 0,5 × (1000 − 400) = 300.
     egal(avec.total, 2300, 'Sin : +300 (50 % de l’écart de DEF, 1000 − 400) ajoutés au multiplicateur');
     // Écart de DEF nul ou négatif (DEF cible plus haute) : aucun bonus.
     const setupInverse: DamageSetup = { ...setup, enemyDef: 5000 };
-    const avecInverse = computeSkillDamageDetail(neutre, st, setupInverse, null, undefined, 0, { bonusEcartDef: { coeff: 0.5 } });
+    const avecInverse = computeSkillDamageDetail(neutre, st, setupInverse, null, undefined, ARTIFACT_DAMAGE_NEUTRE, { bonusEcartDef: { coeff: 0.5 } });
     egal(avecInverse.total, 2000, 'DEF cible plus haute que la sienne : aucun bonus, jamais une pénalité (max(0, …))');
   }
 
   // Sickle Blade (Bayek Vent)/Sand Blade (Desert Warrior Vent, Shahat) —
-  // `pct/100 × {MAX HP}` propre, UNE SEULE FOIS par sort (pas × coups),
-  // confirmé par l'utilisateur.
+  // `pct/100 × {MAX HP}` propre, dégâts BRUTS (ni critiques, ni mitigés par
+  // la défense) infligés À CHAQUE COUP.
+  //
+  // ⚠️ Ces tests affirmaient l'inverse (« une seule fois par sort »), sur la
+  // foi d'une confirmation qui était une ERREUR. Levée par un relevé EN JEU :
+  // Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF → ~4 500 par coup,
+  // contre 770 à 1 760 que donnait l'ancien calcul. Voir
+  // spec/outils/degats-reels.md, « Corrections identifiées ».
   egal(monsterBonusFixeMaxHpPropre(fiche(27513)), { pct: 7 }, 'Bayek (Vent) : Sickle Blade, +7 % de ses PV max');
   egal(monsterBonusFixeMaxHpPropre(fiche(28013)), { pct: 7 }, 'Shahat : Sand Blade, même mécanisme, nom différent');
   ok(!monsterBonusFixeMaxHpPropre(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
   {
-    // 3 coups : seul moyen de vérifier « une fois, pas par coup ».
+    // 3 coups : seul moyen de vérifier « par coup, pas une fois ».
     const profilTroisCoups: SkillDamageProfile = { ...neutre, hits: 3 };
     const st = stats({ hp: 30000, atk: 2000 });
-    const sans = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, {});
-    const avec = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, { bonusFixeMaxHpPropre: { pct: 7 } });
+    const sans = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
+    const avec = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, ARTIFACT_DAMAGE_NEUTRE, { bonusFixeMaxHpPropre: { pct: 7 } });
     egal(sans.total, 6000, 'profil neutre à 3 coups : ATK × 3, sans ajout');
-    // ajout = 7 % × 30000 = 2100, une seule fois (pas × 3).
-    egal(avec.total, 8100, 'Sickle Blade : +7 % des PV max PROPRES, une seule fois même à 3 coups');
+    // ajout = 7 % × 30000 = 2100, à CHACUN des 3 coups → 6300.
+    egal(avec.total, 12300, 'Sickle Blade : +7 % des PV max PROPRES, à CHAQUE coup (2100 × 3)');
+  }
+  {
+    // ⚠️ **L'AUTRE axe du correctif**, qu'aucun test ne couvrait : le terme
+    // est BRUT. Impossible à voir avec `neutre`, dont la formule porte
+    // `(Fixed)` — `horsCoup` y vaut 1, un terme mitigé y serait donc
+    // indiscernable d'un terme brut. Il faut un sort ORDINAIRE, une cible qui
+    // a de la défense, et le critique forcé.
+    const competenceMitigee: Competence = { ...competenceNeutre, com2usId: 900002, formule: '1*{ATK}' };
+    const mitige = skillDamageProfile(competenceMitigee) as SkillDamageProfile;
+    const setup: DamageSetup = { ...setupNeutre, critMode: 'crit', enemyDef: 1000 };
+    const st = stats({ hp: 30000, atk: 2000 });
+    const sans = computeSkillDamageDetail(mitige, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
+    const avec = computeSkillDamageDetail(mitige, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, { bonusFixeMaxHpPropre: { pct: 7 } });
+    ok(Math.abs(sans.total - 2000) > 1, 'garde-fou : la part du SORT est bien critée et mitigée ici (sinon le test ne prouverait rien)');
+    egal(
+      Math.round(avec.total - sans.total),
+      2100,
+      'Sickle Blade : exactement 7 % × 30000, ni multiplié par le critique, ni réduit par les 1000 de DEF'
+    );
   }
 
-  // Calculated Sacrifice (Onimusha, Fuuki) — dégâts fixes dérivés d'une
+  // Calculated Sacrifice (Onimusha, Fuuki) — dégâts bruts dérivés d'une
   // saisie manuelle (« PV actuels avant le sacrifice de ce tour », défaut
-  // 100 % = premier tour), UNE FOIS par sort comme Sickle Blade.
+  // 100 % = premier tour), À CHAQUE COUP comme Sickle Blade. ⚠️ Même
+  // correction que ci-dessus, et c'est délibérément le MÊME accumulateur :
+  // les deux familles ont exactement le même comportement.
   const fuuki = fiche(25113);
   const sacrificeProfile = monsterBonusSacrifice(fuuki);
   ok(sacrificeProfile != null, 'Fuuki : Calculated Sacrifice détecté');
@@ -2054,22 +2643,22 @@ export default function testDegats() {
   {
     const profilTroisCoups: SkillDamageProfile = { ...neutre, hits: 3 };
     const st = stats({ hp: 30000, atk: 2000 });
-    const avecDefaut = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, 0, {
+    const avecDefaut = computeSkillDamageDetail(profilTroisCoups, st, setupNeutre, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {
       bonusSacrifice: { skillCom2usId: sacrificeProfile!.skillCom2usId, pctPerte: 20, pctSurPerte: 15 },
     });
-    // 100 % PV actuels (défaut) : perte = 20 % × 30000 = 6000, ajout = 15 % × 6000 = 900.
-    egal(avecDefaut.total, 6900, 'PV actuels 100 % (défaut) : ajout = 15 % × (20 % × 30000) = 900, une fois');
+    // 100 % PV actuels (défaut) : perte = 20 % × 30000 = 6000, ajout = 15 % × 6000 = 900, à CHACUN des 3 coups.
+    egal(avecDefaut.total, 8700, 'PV actuels 100 % (défaut) : ajout = 15 % × (20 % × 30000) = 900, à chaque coup (× 3)');
     const avecMoitie = computeSkillDamageDetail(
       profilTroisCoups,
       st,
       { ...setupNeutre, pvActuelsAvantSacrificePct: { [sacrificeProfile!.skillCom2usId]: 50 } },
       null,
       undefined,
-      0,
+      ARTIFACT_DAMAGE_NEUTRE,
       { bonusSacrifice: { skillCom2usId: sacrificeProfile!.skillCom2usId, pctPerte: 20, pctSurPerte: 15 } }
     );
-    // 50 % PV actuels : perte = 20 % × 15000 = 3000, ajout = 15 % × 3000 = 450 — exactement la moitié.
-    egal(avecMoitie.total, 6450, 'PV actuels à 50 % : ajout divisé par deux, linéaire');
+    // 50 % PV actuels : perte = 20 % × 15000 = 3000, ajout = 15 % × 3000 = 450 par coup — exactement la moitié.
+    egal(avecMoitie.total, 7350, 'PV actuels à 50 % : ajout divisé par deux, linéaire (450 × 3)');
   }
 
   titre('Dégâts réels — modificateurs MONSTRE-WIDE selon un compte d’effets (Backup Code, Blessing of Curse)');
@@ -2085,14 +2674,14 @@ export default function testDegats() {
   {
     const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal' };
     const st = stats({ atk: 2000 });
-    const sans = computeSkillDamageDetail(s3!, st, setup, null, undefined, 0, {});
+    const sans = computeSkillDamageDetail(s3!, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
     const avec2 = computeSkillDamageDetail(
       s3!,
       st,
       { ...setup, effetsCibleCount: { [backupCode!.skillCom2usId]: 2 } },
       null,
       undefined,
-      0,
+      ARTIFACT_DAMAGE_NEUTRE,
       { bonusParEffetCible: { skillCom2usId: backupCode!.skillCom2usId, pct: 20, source: 'debuffs' } }
     );
     ok(Math.abs(avec2.total / sans.total - 1.4) < 1e-9, '2 débuffs sur la cible : exactement +40 % (20 % × 2)');
@@ -2108,14 +2697,14 @@ export default function testDegats() {
   {
     const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune', critMode: 'normal' };
     const st = stats({ atk: 2000 });
-    const sans = computeSkillDamageDetail(s3!, st, setup, null, undefined, 0, {});
+    const sans = computeSkillDamageDetail(s3!, st, setup, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
     const avec3 = computeSkillDamageDetail(
       s3!,
       st,
       { ...setup, effetsPropresCount: { [blessingOfCurse!.skillCom2usId]: 3 } },
       null,
       undefined,
-      0,
+      ARTIFACT_DAMAGE_NEUTRE,
       { bonusParEffetPropre: { skillCom2usId: blessingOfCurse!.skillCom2usId, pct: 20 } }
     );
     ok(Math.abs(avec3.total / sans.total - 1.6) < 1e-9, '3 débuffs sur soi : exactement +60 % (20 % × 3)');
@@ -2187,7 +2776,21 @@ export default function testDegats() {
   }
   ok(aLeve, '« Dégâts réels » sans contexte lève, plutôt que de retomber sur une autre formule');
   egal(
-    objectiveScore(bidon, 'degats_reels', { profile: s3!, passifs: [], setup: DEFAULT_DAMAGE_SETUP, element: null }),
+    objectiveScore(bidon, 'degats_reels', {
+      profile: s3!,
+      passifs: [],
+      setup: DEFAULT_DAMAGE_SETUP,
+      element: null,
+      artefacts: ARTIFACT_DAMAGE_NEUTRE,
+      critSiPlusRapide: false,
+      bonusDegatsSelonVit: null,
+      bonusDegatsStack: null,
+      monsterWide: {},
+      bonusDegatsConditionnel: null,
+      bonusDegatsSelonCr: null,
+      bonusDegatsSelonDef: null,
+      bonusSiAtqSeuil: null,
+    }),
     computeSkillDamage(s3!, bidon.stats, DEFAULT_DAMAGE_SETUP),
     'avec contexte, le tri utilise exactement la formule du sort'
   );
@@ -2244,4 +2847,95 @@ export default function testDegats() {
   // Filet de non-régression : si un changement du parseur faisait chuter la
   // couverture, on veut le voir. Marge large, ce n'est pas un objectif chiffré.
   ok(lus > 4000, `couverture du corpus conservée (${lus} sorts calculables)`);
+
+  titre('Dégâts BRUTS des artéfacts — sans sort, sans cible, sans critique');
+
+  // ⚠️ **La promesse de cette fonction**, et ce qui la rend utilisable pour un
+  // monstre dont l’objectif de recherche n’est PAS les dégâts : elle ne demande
+  // ni compétence, ni adversaire, ni mode de critique. Les lignes 218-221 ne
+  // critent pas et ignorent la défense adverse — leur contribution ne dépend
+  // donc que des stats et des buffs.
+  {
+    const build = stats({ hp: 40000, atk: 2000, def: 1000, spd: 200, cr: 15, cd: 50 });
+    const profil = { ...ARTIFACT_DAMAGE_NEUTRE, brutPctPv: 1.5, brutPctAtk: 20, brutPctDef: 20, brutPctVit: 200 };
+
+    const nu = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'aucune' as const };
+    const attendu = 0.015 * 40000 + 0.2 * 2000 + 0.2 * 1000 + 2 * 200;
+    egal(
+      Math.round(degatsBrutsArtefactsParCoup(build, nu, null, profil)),
+      Math.round(attendu),
+      'somme des quatre lignes sur les stats du build'
+    );
+
+    // ⚠️ Ni la CIBLE ni le CRITIQUE ne doivent bouger le résultat : si l’un des
+    // deux entrait, le chiffre cesserait d’être calculable sans réglage.
+    const autreCible = { ...nu, enemyDef: 5000, enemyHp: 999999, enemyHpPct: 10, critMode: 'normal' as const };
+    egal(
+      degatsBrutsArtefactsParCoup(build, autreCible, null, profil),
+      degatsBrutsArtefactsParCoup(build, nu, null, profil),
+      'la cible et le mode de critique n’ont AUCUN effet'
+    );
+
+    // …mais les BUFFS, si : ils changent les stats que ces lignes récoltent.
+    const avecBuffs = { ...nu, atkBuff: true, defBuff: true };
+    ok(
+      degatsBrutsArtefactsParCoup(build, avecBuffs, null, profil) >
+        degatsBrutsArtefactsParCoup(build, nu, null, profil),
+      'les buffs ATQ/DEF augmentent bien les dégâts bruts récoltés'
+    );
+
+    // ⚠️ Et l’AMPLIFICATION du buff par les artéfacts entre aussi : c’est une
+    // ligne d’artéfact (204/205/226) qui agit sur une AUTRE ligne d’artéfact.
+    const avecAmpli = { ...profil, ampliAtkPct: 25 };
+    ok(
+      degatsBrutsArtefactsParCoup(build, avecBuffs, null, avecAmpli) >
+        degatsBrutsArtefactsParCoup(build, avecBuffs, null, profil),
+      'l’amplification du buff ATQ augmente ce que la ligne « prop. ATQ » récolte'
+    );
+    // …et reste SANS effet quand le buff n’est pas actif — elle amplifie une
+    // magnitude, elle ne crée pas le buff.
+    egal(
+      degatsBrutsArtefactsParCoup(build, nu, null, avecAmpli),
+      degatsBrutsArtefactsParCoup(build, nu, null, profil),
+      'sans buff ATQ actif, son amplification ne change rien'
+    );
+  }
+}
+
+// Les formes de « Dgts CRIT par compétence » qui se recouvrent — équivalentes
+// au CALCUL, étrangères au VERROU (d'où l'avertissement dans l'éditeur).
+//
+// ⚠️ Dérivé de CODE_CD_PAR_SLOT, jamais d'une seconde table : c'est ce que ce
+// test protège. Une table parallèle divergerait au premier code ajouté.
+export function testFormesEquivalentes() {
+  titre('Formes GROUPÉES contre formes simples — équivalentes au calcul, étrangères au verrou');
+
+  egal(codesEquivalentsAuVerrou(402).sort(), [410], '[Comp.3] est recouverte par la forme 3/4');
+  egal(codesEquivalentsAuVerrou(403).sort(), [410], '[Comp.4] aussi');
+  egal(codesEquivalentsAuVerrou(410).sort(), [402, 403], '… et la forme 3/4 recouvre les deux — la relation est SYMÉTRIQUE');
+
+  // ⚠️ Comp.1 et Comp.2 n'ont AUCUN voisin : aucune ligne moderne ne les
+  // recouvre. Un avertissement y serait faux, et c'est ce qui distingue une
+  // relation dérivée d'une liste écrite à la main.
+  egal(codesEquivalentsAuVerrou(400), [], 'Comp.1 n’a aucune forme équivalente');
+  egal(codesEquivalentsAuVerrou(401), [], 'Comp.2 non plus');
+
+  // Un code qui n'est pas de cette famille n'a évidemment aucun voisin.
+  egal(codesEquivalentsAuVerrou(411), [], '« Dgts CRIT 1re attaque » n’est pas indexée par sort');
+
+  // ⚠️ SECONDE FAMILLE, exactement le même piège : « Effet renforcement
+  // ATQ/DEF » (226) recouvre les deux renforcements séparés. Signalé par
+  // l'utilisateur après le cas des Dgts CRIT.
+  egal(codesEquivalentsAuVerrou(204).sort(), [226], 'renforcement ATQ recouvert par la forme ATQ/DEF');
+  egal(codesEquivalentsAuVerrou(205).sort(), [226], 'renforcement DEF aussi');
+  egal(codesEquivalentsAuVerrou(226).sort(), [204, 205], '… et la forme ATQ/DEF recouvre les deux');
+
+  // ⚠️ Le renforcement de VIT n'a AUCUN voisin : aucune forme groupée ne
+  // l'inclut, le 226 ne porte que l'ATQ et la DEF. Un avertissement y serait
+  // faux — c'est ce que la dérivation garantit et qu'une liste écrite à la
+  // main aurait raté.
+  egal(codesEquivalentsAuVerrou(206), [], 'le renforcement de VIT n’est groupé avec rien');
+
+  // Un code d'aucune des deux familles.
+  egal(codesEquivalentsAuVerrou(300), [], 'une ligne hors de ces familles n’a aucun voisin');
 }

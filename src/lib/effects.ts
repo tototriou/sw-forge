@@ -419,10 +419,30 @@ export function formatArtifactMain(e: EffectLine): string {
   return def ? `${def.label} +${e.value}` : `#${e.code} +${e.value}`;
 }
 
+/**
+ * Nettoie le bruit de virgule flottante d'une valeur d'artéfact.
+ *
+ * ⚠️ **Le bruit vient de com2us, pas de nous.** L'export contient tel quel
+ * `1.4000000000000001`, `0.6000000000000001`, `0.8999999999999998` : le jeu
+ * accumule les rolls en virgule flottante et sérialise le résultat. L'import
+ * lit la valeur sans y toucher (`Number(e[1])`), donc l'écran affichait
+ * « Dgts supp. en prop. des PV : 1.4000000000000001% ».
+ *
+ * ⚠️ **Arrondi à 2 décimales, jamais à l'entier.** Les lignes proportionnelles
+ * (218 « en prop. des PV ») valent des DIXIÈMES — relevé sur 1 588 artéfacts
+ * d'un compte réel : 0,1 à 1,4, aucune autre granularité. Arrondir à l'unité
+ * écraserait 1,4 en 1. Deux décimales absorbent le bruit sans rien perdre de
+ * ce que les données contiennent réellement.
+ */
+export function valeurArtefactPropre(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
 // Affichage d'un substat d'artéfact (conditionnel).
 export function formatArtifactSub(e: EffectLine): string {
   const fn = ARTIFACT_SUB[e.code];
-  return fn ? fn(e.value) : `#${e.code} +${e.value}`;
+  const v = valeurArtefactPropre(e.value);
+  return fn ? fn(v) : `#${e.code} +${v}`;
 }
 
 // Le même libellé, **découpé autour de sa valeur** — pour que la fiche puisse
@@ -437,7 +457,12 @@ export function splitArtifactSub(e: EffectLine): { avant: string; valeur: string
   const texte = formatArtifactSub(e);
   // La valeur telle qu'elle a été écrite (décimales comprises : « 0.3 »),
   // avec le signe qui la précède et le % qui la suit s'il y en a un.
-  const motif = new RegExp(`[+-]?${String(e.value).replace('.', '\\.')}\\s*%?`);
+  //
+  // ⚠️ **La valeur NETTOYÉE**, la même que celle réellement écrite dans
+  // `texte` : bâtir le motif sur `e.value` brute chercherait
+  // « 1.4000000000000001 » dans une chaîne qui affiche « 1.4 », le motif ne
+  // matcherait pas, et la ligne perdrait sa teinte de valeur en silence.
+  const motif = new RegExp(`[+-]?${String(valeurArtefactPropre(e.value)).replace('.', '\\.')}\\s*%?`);
   const m = motif.exec(texte);
   if (!m) return { avant: texte, valeur: '', apres: '' };
   return {

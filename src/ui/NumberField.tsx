@@ -67,6 +67,19 @@ interface Props {
   // monstre agit). `neutre` par défaut — l'écrasante majorité des champs de
   // l'app n'ont rien à dire de leur valeur.
   ton?: 'neutre' | 'good' | 'bad';
+  /**
+   * Appelé quand le champ perd le focus, APRÈS le bornage interne.
+   *
+   * ⚠️ **Pour les règles qui lient DEUX champs**, jamais pour borner celui-ci
+   * — `min`/`max` s'en chargent. Le cas qui l'a motivé : dans la grille de
+   * Conditions de l'Optimizer, un maximum saisi sous le minimum de la même
+   * statistique n'a aucun sens, mais on ne peut pas le refuser à la frappe (on
+   * ne saurait pas distinguer « 5 » d'un « 50 » en cours d'écriture — voir le
+   * commentaire du `onChange` plus bas, qui interdit déjà de borner chaque
+   * touche). La vérification appartient donc à la sortie de champ, et à
+   * l'appelant qui SEUL connaît l'autre champ.
+   */
+  onBlur?: () => void;
 }
 
 export default function NumberField({
@@ -78,6 +91,7 @@ export default function NumberField({
   width = 'w-16',
   boxWidth,
   ton = 'neutre',
+  onBlur,
   placeholder = '0',
   allowEmpty = false,
   title,
@@ -262,9 +276,13 @@ export default function NumberField({
         }}
         onBlur={() => {
           setBrouillon(null); // un « - » resté seul disparaît, le champ suit la valeur
-          if (value == null) return; // vide autorisé : rien à borner
+          // ⚠️ `onBlur` de l'appelant APRÈS le bornage, et même sur un champ
+          // vide : une règle qui lie deux champs peut avoir à réagir à
+          // l'effacement de celui-ci.
+          if (value == null) return void onBlur?.();
           const b = borne(value);
           if (b !== value) onChange(b);
+          onBlur?.();
         }}
         // ⚠️ Un cran plus bas au doigt : 13 px, ce champ pesait plus lourd que
         // le nom du monstre à côté duquel il vit.

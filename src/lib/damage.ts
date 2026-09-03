@@ -27,12 +27,18 @@ import { StatKey } from './effects';
 // ── Facteur de défense ───────────────────────────────────────────────────
 // ⚠️ **Source unique** de la mitigation par la défense pour toute l'app —
 // `objectiveScore('ehp')` (runeBuildOptim.ts) lit ces mêmes constantes plutôt
-// que d'en garder une copie. Aligné wiki fandom ; swcalc.cz affiche
-// `1142 + 3,572 × DEF`, écart jugé négligeable (voir spec/mecaniques.md).
-export const DEF_FACTOR_CONST = 1140;
-export const DEF_FACTOR_COEF = 3.5;
+// que d'en garder une copie.
+//
+// ⚠️ **Alignées sur swcalc.cz** (`1000 / (1142 + 3,572 × DEF)`), et non plus
+// sur les valeurs arrondies du wiki fandom (1140 / 3,5). L'écart avait été
+// jugé négligeable de longue date — il l'est en valeur absolue (~0,3 % à
+// 3 000 de DEF), mais rien ne justifiait de garder un arrondi quand la source
+// de référence donne les vraies constantes. Décision explicite de
+// l'utilisateur.
+export const DEF_FACTOR_CONST = 1142;
+export const DEF_FACTOR_COEF = 3.572;
 
-// ⚠️ Ne vaut JAMAIS 1, même à DEF = 0 : le plancher est 1000/1140 ≈ 0,877 —
+// ⚠️ Ne vaut JAMAIS 1, même à DEF = 0 : le plancher est 1000/1142 ≈ 0,876 —
 // une cible sans la moindre défense mitige quand même un peu.
 export function defenseFactor(def: number): number {
   return 1000 / (DEF_FACTOR_CONST + DEF_FACTOR_COEF * Math.max(0, def));
@@ -156,16 +162,41 @@ export const VELASKA_ICON = 'https://swarfarm.com/static/herders/images/monsters
 // objet `LeaderSkill` minimal côté écran (voir DamageSetupCard.tsx).
 export type LeaderSkillStat = 'HP' | 'Attack Power' | 'Defense' | 'Attack Speed' | 'Critical Rate' | 'Critical DMG';
 
-// Valeurs de palier RÉELLES du jeu (nat 3 → nat 5+2A), confirmées par
-// l'utilisateur — jamais une formule générique, ces paliers ne suivent pas
-// une progression régulière d'une stat à l'autre. Dégâts Crit n'a qu'un
-// seul palier connu.
-export const LEADER_SKILL_PRESETS: Record<LeaderSkillStat, number[]> = {
-  HP: [28, 33, 38, 40, 44, 50],
-  'Attack Power': [28, 33, 38, 40, 44, 50],
-  Defense: [28, 33, 38, 40, 44, 50],
-  'Attack Speed': [21, 24, 28, 30, 33],
-  'Critical Rate': [21, 24, 28, 33, 38],
+// Valeurs de palier RÉELLES du jeu, confirmées par l'utilisateur — jamais une
+// formule générique : ces paliers ne suivent aucune progression régulière, et
+// le maximum diffère d'une statistique à l'autre (33 % en VIT contre 50 % en
+// ATQ).
+//
+// ⚠️ **La PORTÉE n'entre pas dans cette table, délibérément.** En jeu, une
+// valeur de lead dépend de sa portée (33 % réservés à un contenu — guilde,
+// arène —, 24 % universels, 30 % élémentaires…), du monstre qui la porte et
+// de son nombre d'étoiles naturel. Sans importance ici : c'est l'utilisateur
+// qui choisit le lead posé sur son équipe, l'app ne le déduit d'aucun
+// monstre. Une seule dimension, donc — une liste de valeurs par statistique.
+//
+// ⚠️ **Un seul palier en Dégâts Crit est CORRECT**, pas un trou de la table :
+// un seul monstre du jeu porte ce leader skill.
+//
+// ⚠️ **Les leads de RES et de Précision existent et sont volontairement
+// ABSENTS** : ils n'ont aucun effet sur les dégâts, seule question à laquelle
+// ce réglage sert. Ne pas les ajouter en croyant combler un oubli.
+// ⚠️ **EXHAUSTIVE, et c'est ce qui change tout.** Cette table listait
+// auparavant quelques paliers courants — d'où un champ de saisie LIBRE à côté
+// du menu, pour les valeurs manquantes. Ce champ a disparu : la liste fournie
+// par l'utilisateur couvre toutes les valeurs du jeu, un simple menu suffit.
+// N'y ajouter une valeur qu'avec une source, jamais « au cas où ».
+//
+// ⚠️ **PV, ATQ et DEF ne partagent PLUS la même liste.** L'ancienne table les
+// traitait comme identiques (`28, 33, 38, 40, 44, 50`) ; c'était le résultat
+// d'un relevé partiel. ATQ monte à 50 avec un 35 que PV n'a pas, PV a un 17 et
+// un 18 que DEF n'a pas, DEF ne descend pas sous 20. Ne pas les refactoriser
+// en une seule ligne « parce qu'elles se ressemblent ».
+export const LEADER_SKILL_VALEURS: Record<LeaderSkillStat, number[]> = {
+  HP: [15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50],
+  'Attack Power': [15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50],
+  Defense: [20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50],
+  'Attack Speed': [10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33],
+  'Critical Rate': [10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38],
   'Critical DMG': [25],
 };
 
@@ -270,22 +301,282 @@ const VARIABLE_STAT: Partial<Record<DamageVariable, StatKey>> = {
   'Relative SPD': 'spd',
 };
 
-// Code de substat d'artéfact « Effet aug. VIT +X% » (voir `ARTIFACT_SUB`,
-// effects.ts) — amplifie la MAGNITUDE d'un buff de VIT déjà actif
-// (`DamageSetup.spdBuff`), jamais la VIT plate elle-même. Additionné sur
-// tous les artéfacts ÉQUIPÉS (`SearchParams.artifacts` — fixes pour toute
-// une recherche, l'Optimizer n'optimise que les runes) : plusieurs lignes
-// identiques sur des artéfacts différents se cumulent, comme en jeu.
-const CODE_EFFET_AUG_VIT = 206;
+// ── Contribution des ARTÉFACTS au calcul de dégâts ───────────────────────
+//
+// Codes de substat d'artéfact (voir `ARTIFACT_SUB`, effects.ts) qui
+// amplifient la MAGNITUDE d'un buff déjà actif, jamais la stat plate
+// elle-même. Additionnés sur tous les artéfacts pris en compte : plusieurs
+// lignes identiques sur des artéfacts différents se cumulent, comme en jeu.
+//
+// ⚠️ 226 alimente ATQ **et** DEF — c'est une seule ligne du jeu qui porte sur
+// les deux, pas deux lignes distinctes.
+const CODE_AMPLI_ATK = 204;
+const CODE_AMPLI_DEF = 205;
+/**
+ * Quels BUFFS chaque ligne d'amplification renforce.
+ *
+ * ⚠️ **Source unique** : cette table alimente le calcul lui-même
+ * (`artifactDamageProfile`), la liste des codes à protéger de la dominance
+ * (`codesAmplificationActifs`) ET l'avertissement de verrouillage
+ * (`codesEquivalentsAuVerrou`). Une chaîne de `if` la dupliquait auparavant.
+ *
+ * ⚠️ **226 couvre ATQ ET DEF** : c'est une seule ligne du jeu qui renforce
+ * les deux buffs, exactement comme 410 couvre deux compétences côté Dgts
+ * CRIT. Même conséquence, donc : au CALCUL, un 226 vaut un 204 quand seul le
+ * buff d'ATQ est actif ; au VERROUILLAGE, les deux codes sont étrangers.
+ */
+const CODE_AMPLI_PAR_BUFF: Record<number, ('atk' | 'def' | 'spd')[]> = {
+  204: ['atk'],
+  205: ['def'],
+  206: ['spd'],
+  226: ['atk', 'def'],
+};
+// ⚠️ Exporté : `ampliVitMaxAtteignable` (artifactOptim.ts) en a besoin pour
+// lire l'amplification d'un artéfact. Une seconde constante « 206 » là-bas
+// serait un nombre magique de plus à tenir à jour.
+export const CODE_AMPLI_VIT = 206;
+const CODE_AMPLI_ATK_DEF = 226;
 
-export function speedBuffAmpliPct(artifacts: ArtifactDetail[]): number {
-  let total = 0;
+/**
+ * Les codes d'amplification de buff qui augmentent RÉELLEMENT les dégâts,
+ * compte tenu des buffs actifs sur le monstre.
+ *
+ * ⚠️ **Existe parce qu'une sonde ligne-par-ligne ne peut pas les voir.**
+ * `analyserPertinence` (artifactOptim.ts) mesure l'effet de CHAQUE
+ * sous-propriété **seule** sur un artéfact synthétique. Or une amplification
+ * de buff n'agit qu'en **combinaison** : le code 206 augmente les dégâts
+ * bruts « en prop. de VIT » parce que `statsDeCombat` renvoie
+ * `spd: maVitCombat(…, ampliVitPct)` — mais sondé seul, sans aucune ligne
+ * 218-221, il donne des dégâts nuls avec comme sans. Delta zéro, donc classé
+ * non pertinent, donc **éliminable par dominance** alors qu'il vaut des
+ * dégâts. Signalé par l'utilisateur.
+ *
+ * ⚠️ **Indépendant du scaling du sort.** Les dégâts bruts ne passent pas par
+ * la formule du sort : un monstre qui ne scale pas sur la DEF gagne quand
+ * même d'un code 205 s'il a un buff de DEF et une ligne « Dgts supp. en prop.
+ * de DEF ».
+ *
+ * ⚠️ **226 compte pour les DEUX** : c'est une seule ligne du jeu qui
+ * amplifie le buff d'ATQ et celui de DEF, d'où sa présence dès que l'un ou
+ * l'autre est actif.
+ */
+export function codesAmplificationActifs(setup: DamageSetup): number[] {
+  const actif = { atk: setup.atkBuff, def: setup.defBuff, spd: setup.spdBuff };
+  // Dérivé de `CODE_AMPLI_PAR_BUFF` : un code compte dès qu'AU MOINS un des
+  // buffs qu'il renforce est levé — d'où 226 présent avec l'ATQ seule.
+  return Object.entries(CODE_AMPLI_PAR_BUFF)
+    .filter(([, buffs]) => buffs.some((b) => actif[b]))
+    .map(([code]) => Number(code));
+}
+
+// « Dgts supp. en prop. de <stat> » — des dégâts BRUTS ajoutés À CHAQUE COUP,
+// proportionnels à une stat de l'attaquant. Ni critiques, ni mitigés par la
+// défense adverse (confirmé par l'utilisateur).
+//
+// ⚠️ Les échelles n'ont RIEN à voir entre elles, et c'est normal : le
+// plafond du 218 est 1,5 (% des PV) quand celui du 221 est 200 (% de la
+// VIT) — parce que 1,5 % de 40 000 PV et 200 % de 200 VIT donnent des
+// ordres de grandeur comparables. Ne jamais « normaliser » ces valeurs entre
+// elles. Voir spec/compte/calcul-artefacts.md.
+const CODE_BRUT_PV = 218;
+const CODE_BRUT_ATK = 219;
+const CODE_BRUT_DEF = 220;
+const CODE_BRUT_VIT = 221;
+
+// « Aug. des dgts infl. au <élément> » — un artéfact d'ATTRIBUT majore les
+// dégâts infligés à UN élément précis. Ne compte donc que si l'utilisateur a
+// dit contre quel élément il optimise (`DamageSetup.enemyElement`).
+//
+// ⚠️ Un multiplicateur UNIFORME : contrairement aux lignes conditionnelles,
+// il majore tous les builds à l'identique et ne peut donc jamais changer le
+// classement d'une recherche. C'est la seule famille dont on soit certain
+// qu'elle est sans effet sur le choix des runes.
+const CODE_DEGATS_ELEMENT: Record<number, ElementKey> = {
+  300: 'fire',
+  301: 'water',
+  302: 'wind',
+  303: 'light',
+  304: 'dark',
+};
+
+// « [Comp.N] Aug. Dgts CRIT » — des POINTS de Dgts Crit, mais SEULEMENT quand
+// le sort calculé est celui visé. `profile.slot` donne le numéro.
+//
+// ⚠️ 410 (« Dgts CRIT [compétence 3/4] ») porte sur DEUX sorts à la fois :
+// c'est la ligne que le jeu propose réellement dans sa recherche détaillée,
+// là où 402/403 (Comp.3 et Comp.4 séparées) tombent sous « Autres
+// sous-propriétés » — voir `SUB_ORDER`, effects.ts. Les deux formes sont
+// gérées : un inventaire ancien peut porter les secondes.
+const CODE_CD_PAR_SLOT: Record<number, number[]> = {
+  400: [1],
+  401: [2],
+  402: [3],
+  403: [4],
+  410: [3, 4],
+};
+
+/**
+ * Les autres lignes de « Dgts CRIT par compétence » qui couvrent au moins un
+ * sort en COMMUN avec celle-ci.
+ *
+ * ⚠️ **Sert à AVERTIR au verrouillage, jamais à cumuler.** Au calcul des
+ * dégâts, 402 (« [Comp.3] ») et 410 (« [compétence 3/4] ») font exactement la
+ * même chose sur un S3. Mais un verrou somme **strictement par code**
+ * (`valeurLigne`, artifactOptim.ts) : exiger 410 ignore un artéfact qui porte
+ * 402, et réciproquement. Sur un inventaire mixte — les anciennes pièces
+ * portent 402/403, les récentes 410 — le verrou écarte donc la moitié de
+ * l'inventaire sans le dire. Signalé par l'utilisateur.
+ *
+ * ⚠️ **Dérivé de `CODE_CD_PAR_SLOT`**, jamais d'une seconde table : deux
+ * codes sont voisins si leurs listes de sorts se croisent. 400 et 401
+ * (Comp.1 et Comp.2) n'ont donc aucun voisin, ce qui est juste — aucune
+ * ligne moderne ne les recouvre.
+ */
+export function codesEquivalentsAuVerrou(code: number): number[] {
+  // ⚠️ DEUX familles à ce jour, même piège : les Dgts CRIT par compétence
+  // (410 recouvre 402 et 403) et les amplifications de buff (226 recouvre 204
+  // et 205). Une troisième n'aurait qu'à ajouter sa table ici.
+  for (const table of [CODE_CD_PAR_SLOT, CODE_AMPLI_PAR_BUFF] as Record<number, readonly unknown[]>[]) {
+    const miens = table[code];
+    if (!miens) continue;
+    return Object.entries(table)
+      .filter(([autre, couvre]) => Number(autre) !== code && couvre.some((c) => miens.includes(c)))
+      .map(([autre]) => Number(autre));
+  }
+  return [];
+}
+
+// « D.CRIT+ comp cib uniq pdt tour » — ne vaut que pour un sort MONO-CIBLE.
+// La portée vient des données (`aoe`), jamais d'une saisie.
+const CODE_CD_MONO_CIBLE = 224;
+
+// « Dgts CRIT 1re attaque » — SEULEMENT le premier coup du sort. Sur un S3 de
+// Lushen (3 coups), les deux suivants n'en profitent pas.
+const CODE_CD_PREMIERE_ATTAQUE = 411;
+
+// « D.CRIT+ selon bon / mauvais état des PV ennemis » — des POINTS de Dgts
+// Crit modulés LINÉAIREMENT par les PV restants de la cible : 222 vaut plein
+// à 100 % de PV et rien à 0 %, 223 l'inverse. Aucun palier.
+const CODE_CD_PV_CIBLE_HAUTS = 222;
+const CODE_CD_PV_CIBLE_BAS = 223;
+
+// « Dgts de bombe » — ne vaut que pour un sort de bombe.
+const CODE_DEGATS_BOMBE = 210;
+
+// Ce qu'une paire d'artéfacts apporte au calcul de dégâts.
+//
+// ⚠️ **Un OBJET plutôt qu'un nombre**, là où le code ne portait que
+// `ampliVitPct` : les artéfacts contribuent par plusieurs canaux
+// indépendants, et les ajouter un à un comme paramètres positionnels aurait
+// multiplié les signatures à rallonge dans les six emplacements qui
+// traversent cette donnée (moteur, écran, deux scripts CLI). Un champ ajouté
+// ici n'oblige plus à toucher aucune signature.
+export interface ArtifactDamageProfile {
+  ampliAtkPct: number;
+  ampliDefPct: number;
+  ampliVitPct: number;
+  // Dégâts bruts par coup, en % de la stat correspondante (codes 218-221).
+  brutPctPv: number;
+  brutPctAtk: number;
+  brutPctDef: number;
+  brutPctVit: number;
+  // Majoration des dégâts infligés, PAR ÉLÉMENT de cible (codes 300-304).
+  // ⚠️ La table entière est portée ici, pas un seul nombre déjà résolu : le
+  // profil reste une fonction PURE des artéfacts, et le choix de la cible
+  // (`DamageSetup.enemyElement`) peut changer sans le recalculer.
+  degatsElementPct: Partial<Record<ElementKey, number>>;
+  // POINTS de Dgts Crit accordés à un slot de sort précis (codes 400-403, 410).
+  cdPointsParSlot: Partial<Record<number, number>>;
+  // POINTS de Dgts Crit, sorts MONO-CIBLE seulement (code 224).
+  cdPointsMonoCible: number;
+  // POINTS de Dgts Crit sur le PREMIER COUP seulement (code 411).
+  cdPointsPremiereAttaque: number;
+  // POINTS de Dgts Crit modulés par les PV restants de la cible (222/223).
+  // ⚠️ Ces trois-là sont les SEULES lignes d'artéfact qui varient d'un coup à
+  // l'autre — voir `coefCdParCoup` dans `computeSkillDamageDetail`.
+  cdPointsPvCibleHauts: number;
+  cdPointsPvCibleBas: number;
+  // Majoration des dégâts de bombe (code 210).
+  degatsBombePct: number;
+}
+
+// Aucun artéfact pris en compte — comportement strictement inchangé.
+export const ARTIFACT_DAMAGE_NEUTRE: ArtifactDamageProfile = {
+  ampliAtkPct: 0,
+  ampliDefPct: 0,
+  ampliVitPct: 0,
+  brutPctPv: 0,
+  brutPctAtk: 0,
+  brutPctDef: 0,
+  brutPctVit: 0,
+  degatsElementPct: {},
+  cdPointsParSlot: {},
+  cdPointsMonoCible: 0,
+  cdPointsPremiereAttaque: 0,
+  cdPointsPvCibleHauts: 0,
+  cdPointsPvCibleBas: 0,
+  degatsBombePct: 0,
+};
+
+// Majoration à appliquer contre CETTE cible — 0 si l'utilisateur a choisi
+// d'ignorer l'élément, ou si aucun artéfact ne porte la ligne voulue.
+export function artifactElementBonusPct(p: ArtifactDamageProfile, enemyElement: ElementKey | null | undefined): number {
+  return enemyElement ? (p.degatsElementPct[enemyElement] ?? 0) : 0;
+}
+
+// POINTS de Dgts Crit apportés par les artéfacts POUR CE SORT précis —
+// somme des lignes par compétence et, si le sort est mono-cible, de la ligne
+// 224. Tout est déduit du profil du sort, rien n'est saisi.
+export function artifactCritDamagePoints(p: ArtifactDamageProfile, profile: SkillDamageProfile): number {
+  return (p.cdPointsParSlot[profile.slot] ?? 0) + (profile.aoe ? 0 : p.cdPointsMonoCible);
+}
+
+export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDamageProfile {
+  // ⚠️ `degatsElementPct` est un objet : le spread de la constante neutre le
+  // partagerait entre tous les profils. Réinitialisé explicitement.
+  const p: ArtifactDamageProfile = { ...ARTIFACT_DAMAGE_NEUTRE, degatsElementPct: {}, cdPointsParSlot: {} };
   for (const a of artifacts) {
     for (const s of a.subs) {
-      if (s.code === CODE_EFFET_AUG_VIT) total += s.value;
+      // ⚠️ Via `CODE_AMPLI_PAR_BUFF` et non quatre `if` : la même table dit au
+      // verrouillage quelles formes se recouvrent (voir
+      // `codesEquivalentsAuVerrou`). Deux écritures de la même règle auraient
+      // divergé — c'est déjà arrivé sur les libellés.
+      const buffs = CODE_AMPLI_PAR_BUFF[s.code];
+      if (buffs) {
+        for (const b of buffs) {
+          if (b === 'atk') p.ampliAtkPct += s.value;
+          else if (b === 'def') p.ampliDefPct += s.value;
+          else p.ampliVitPct += s.value;
+        }
+      } else if (s.code === CODE_BRUT_PV) p.brutPctPv += s.value;
+      else if (s.code === CODE_BRUT_ATK) p.brutPctAtk += s.value;
+      else if (s.code === CODE_BRUT_DEF) p.brutPctDef += s.value;
+      else if (s.code === CODE_BRUT_VIT) p.brutPctVit += s.value;
+      else if (s.code === CODE_CD_MONO_CIBLE) p.cdPointsMonoCible += s.value;
+      else if (s.code === CODE_CD_PREMIERE_ATTAQUE) p.cdPointsPremiereAttaque += s.value;
+      else if (s.code === CODE_CD_PV_CIBLE_HAUTS) p.cdPointsPvCibleHauts += s.value;
+      else if (s.code === CODE_CD_PV_CIBLE_BAS) p.cdPointsPvCibleBas += s.value;
+      else if (s.code === CODE_DEGATS_BOMBE) p.degatsBombePct += s.value;
+      else {
+        const el = CODE_DEGATS_ELEMENT[s.code];
+        if (el) p.degatsElementPct[el] = (p.degatsElementPct[el] ?? 0) + s.value;
+        // ⚠️ Une même ligne peut alimenter PLUSIEURS slots (410 → 3 et 4) :
+        // elle compte en entier pour chacun, ce n'est pas un partage — même
+        // logique que le code 226 pour ATQ/DEF.
+        for (const slot of CODE_CD_PAR_SLOT[s.code] ?? []) {
+          p.cdPointsParSlot[slot] = (p.cdPointsParSlot[slot] ?? 0) + s.value;
+        }
+      }
     }
   }
-  return total;
+  return p;
+}
+
+// Amplification du seul buff de VIT — `maVitCombat` n'a besoin que de
+// celle-là, et la vitesse de combat se calcule dans des contextes qui
+// n'ont rien à voir avec les dégâts.
+export function speedBuffAmpliPct(artifacts: ArtifactDetail[]): number {
+  return artifactDamageProfile(artifacts).ampliVitPct;
 }
 
 // Passifs qui forcent le coup CRITIQUE quand le monstre est plus rapide que
@@ -1303,6 +1594,13 @@ export interface SkillDamageProfile {
   // critiques et ne passent PAS par le facteur de défense (voir
   // spec/mecaniques.md, terme « Additionnel »).
   fixed: boolean;
+  // Ce sort EST une bombe (voir `estBombeSansCoupDirect`).
+  //
+  // ⚠️ **Distinct de `fixed`**, même si toute bombe est fixe : `fixed` est
+  // aussi vrai pour un sort ordinaire marqué `(Fixed)`, qui ne profite PAS de
+  // la ligne d'artéfact « Dgts de bombe ». Les confondre majorerait des sorts
+  // qui n'ont rien d'une bombe.
+  bombe: boolean;
   // Ignore une FRACTION de la DEF adverse, proportionnelle à l'écart de VIT
   // avec elle — distinct d'`ignoreDef` (tout ou rien). `ecartMax` = l'écart
   // de VIT (points) au-delà duquel l'ignore atteint 100 % ; 0 % si la cible
@@ -1444,6 +1742,73 @@ const RE_DAMAGE_UP = /^Damage \+(\d+)%$/i;
 // ⚠️ `(Fixed)` colle au dernier terme (`1500(Fixed)`, `0.3*{MAX HP}(Fixed)`).
 const RE_FIXED = /\(Fixed\)\s*$/i;
 
+// Nom de l'effet com2us qui marque une BOMBE.
+//
+// ⚠️ Une bombe **ne peut pas être critique** et **ignore la défense adverse**
+// — c'est-à-dire exactement `fixed`. Mais les DEUX détections habituelles
+// passent à côté : la formule ne porte aucun marqueur `(Fixed)`
+// (`"5.0*{ATK}"` pour Seara), et l'ignore-défense n'est écrit que dans la
+// PROSE de l'effet (« the bomb explodes to deal damage that ignores
+// Defense »), jamais dans son NOM — que `ignoreDef` compare pourtant à
+// `'Ignore DEF'`. D'où cette troisième porte.
+const EFFET_BOMBE = 'Bomb';
+
+// ⚠️ **`Competence.coups` n'est pas fidèle au texte du jeu pour tous les
+// sorts de bombe** — même piège que `COUPS_VARIABLES_CONNUS`. `Cursed Apple`
+// porte `coups: 1` alors que sa prose ne décrit AUCUNE attaque : « Installs a
+// bomb that detonates after 2 turns on the enemy target and stuns the enemy
+// for 1 turn ». Confirmé par l'utilisateur : ce sort ne fait que POSER, sa
+// formule est celle de l'explosion — le `1` compte l'application de son SECOND
+// effet (l'étourdissement), pas un coup porté.
+//
+// ⚠️ Ce n'est PAS une règle généralisable (« d'autres effets ⇒ coups gonflé »)
+// : `Fate of Destruction` porte lui aussi deux autres effets — dégâts continus
+// et tour supplémentaire — et reste pourtant à `coups: 0`. La donnée est
+// incohérente d'un sort à l'autre, donc irréductible à un critère ; d'où une
+// curation par nom exact, même discipline que les autres tables de ce fichier.
+//
+// ⚠️ La prose non plus ne fait pas un discriminant fiable : `Time Bomb`
+// contient « Attack Bar » sans frapper, et `Bombardment` frappe sans jamais
+// commencer par « Attacks ». Une expression régulière naïve se tromperait
+// dans les deux sens (même parti pris que `artifactSubName`, effects.ts).
+const BOMBES_SANS_COUP_DIRECT_CONNUS = new Set(['Cursed Apple']);
+
+// Ce sort EST la bombe (il la pose sans frapper), plutôt que de frapper ET
+// d'en poser une ? Dans ce cas seulement sa formule décrit l'explosion, donc
+// des dégâts fixes.
+//
+// ⚠️ **Vérifié sur le corpus complet** (8 434 compétences, 48 portant
+// l'effet), prose du jeu relue une à une, et pas sur le seul cas Seara.
+// Les huit sorts de bombe qui portent une formule se répartissent ainsi :
+//   - **pose seule** → fixe : `Fate of Destruction` (Seara, Oracle, Giana),
+//     `Surprise Bomb` (Joker, Sian, Jojo, Liebli), `Time Bomb` (Kobold
+//     Bomber, Malaka, Taurus, Dover), `Cursed Apple` (Puppeteer, Zima,
+//     Smicer, Zenisek — le cas curé ci-dessus) ;
+//   - **frappe ET pose** → PAS fixe : `Firecracker` (Kobold Bomber…),
+//     `Bombardment` (Frigate, Pirate Captain, Carrack), `Dancing Star`
+//     (Geralt), `Star of Explosion` (Valdemar, Henrik, Magic Order
+//     Guardian).
+// (`Camouflage (Passive)` et `Plasma Bomb` portent l'effet sans formule :
+// aucun profil n'est construit pour eux, ils ne passent jamais ici.)
+//
+// ⚠️ Les marquer TOUS fixes aurait faussé les quatre familles qui frappent :
+// leur formule décrit le COUP DIRECT, qui crite et se fait mitiger
+// normalement. Les dégâts de leur explosion différée, eux, ne sont **nulle
+// part dans les données** — hors modèle, comme le reste de ce qui ne se
+// calcule pas.
+//
+// ⚠️ La règle générale reste `coups === 0` plutôt qu'une liste blanche de
+// noms : c'est elle qui classe correctement un sort de bombe NOUVEAU sans
+// qu'on ait à le curer. La table ci-dessus ne rattrape que les données
+// infidèles, elle ne remplace pas le discriminant.
+//
+// ⚠️ `skillupDamagePct` continue de s'appliquer, et c'est vérifié : c'est ce
+// qui fait tomber le relevé Seara sur ~27 000 (`5,0 × 4 150 × 1,30`).
+function estBombeSansCoupDirect(c: Competence): boolean {
+  if (!c.effets.some((e) => e.nom === EFFET_BOMBE)) return false;
+  return BOMBES_SANS_COUP_DIRECT_CONNUS.has(c.nom) || !(c.coups && c.coups > 0);
+}
+
 // Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à
 // 5 fois »…) — `Competence.coups` ne porte qu'UN SEUL nombre, pas toujours
 // cohérent avec le texte (ex. Rain of Fire : `coups=6` en donnée, « 3 à 5
@@ -1481,7 +1846,7 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
 export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDamageUnsupported | null {
   if (c.passif || !c.formule || c.com2usId == null) return null;
   const brut = c.formule.trim();
-  const fixed = RE_FIXED.test(brut);
+  const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);
   const analyse = analyser(brut.replace(RE_FIXED, '').trim());
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom };
   if (!analyse) {
@@ -1534,6 +1899,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     ignoreDefSelonVit,
     appliqueDefBreak: c.effets.some((e) => e.nom === 'Decrease DEF' && !e.surSoi),
     fixed,
+    bombe: estBombeSansCoupDirect(c),
     skillupDamagePct,
     bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
     bonusConditionnelPropre: BONUS_CONDITIONNEL_PROPRE_CONNUS[c.nom],
@@ -1868,6 +2234,11 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         // décider de l'affichage du réglage, qui porte sur le sort ACTIF.
         appliqueDefBreak: false,
         fixed,
+        // ⚠️ Aucun passif du corpus ne pose de bombe AVEC une formule (le
+        // seul, « Camouflage », n'en a pas) : jamais vrai ici en pratique.
+        // Calculé de la même façon plutôt que figé à `false` par hypothèse —
+        // le jour où le jeu en ajoute un, il sera traité correctement.
+        bombe: estBombeSansCoupDirect(c),
         skillupDamagePct,
         variables: analyse.variables,
         noeud: analyse.noeud,
@@ -1914,6 +2285,27 @@ export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsu
  * `monsterCom2usId` d'une recette, qui se re-résout lui aussi contre la box
  * de qui l'importe.
  */
+/**
+ * Quels réglages de combat le sort retenu CONSOMME réellement.
+ *
+ * ⚠️ **Source unique**, comme `resolveDamageSkill` pour la résolution du sort.
+ * Ces deux prédicats vivaient en variables locales de `DamageSetupCard`, qui
+ * les appliquait correctement ; la ligne de résumé qui rouvre la fenêtre, elle,
+ * affichait la DEF adverse EN DUR — donc « DEF 1000 » sur un sort qui ignore
+ * la défense, signalé à l'usage. C'est le défaut que le commentaire d'en-tête
+ * de cette carte proscrit : « un champ visible mais sans effet est pire qu'un
+ * champ absent — il fait croire à une action ».
+ *
+ * `null` (aucun sort calculable) : rien n'est consommé.
+ */
+export function champsDuCombat(resolved: SkillDamageProfile | null): {
+  defEnnemie: boolean;
+  crit: boolean;
+} {
+  if (!resolved) return { defEnnemie: false, crit: false };
+  return { defEnnemie: !resolved.ignoreDef && !resolved.fixed, crit: !resolved.fixed };
+}
+
 export function resolveDamageSkill(
   skills: (SkillDamageProfile | SkillDamageUnsupported)[],
   skillCom2usId: number | null
@@ -1960,6 +2352,24 @@ export interface DamageSetup {
   // : une recette exportée avant ce champ n'en a aucun, `resolvedEnemySpd`
   // retombe alors sur `DEFAULT_DAMAGE_SETUP.enemySpd`.
   enemySpd?: number;
+  // ÉLÉMENT de l'adversaire visé — sert UNIQUEMENT aux lignes d'artéfact
+  // « Aug. des dgts infl. au <élément> » (codes 300-304, voir
+  // `ArtifactDamageProfile`).
+  //
+  // ⚠️ **`null`/absent = « ignorer l'élément »**, et c'est le défaut : ces
+  // lignes comptent alors **0**, et l'artéfact d'attribut se juge sur ses
+  // autres propriétés. C'est un choix EXPLICITE de l'utilisateur, pas un
+  // repli dégradé — optimiser « contre n'importe qui » est un cas d'usage à
+  // part entière, aussi légitime que « contre du Feu ».
+  //
+  // ⚠️ Optionnel : une recette exportée AVANT ce champ n'en a aucun, et
+  // retombe donc sur « ignorer l'élément » — soit exactement le comportement
+  // qu'elle avait quand elle a été exportée.
+  //
+  // ⚠️ À NE PAS confondre avec le paramètre `element` de
+  // `computeSkillDamageDetail`, qui est celui de l'ATTAQUANT (il décide des
+  // compétences d'invocateur). Celui-ci décrit la CIBLE.
+  enemyElement?: ElementKey | null;
   // Leader skill d'ÉQUIPE (pas le sien, qui n'agit jamais sur lui-même) —
   // choisi dans « Effets actifs », voir `LeaderSkillStat`/
   // `LEADER_SKILL_PRESETS` plus haut. Absent = aucun. ⚠️ Généralise
@@ -2187,6 +2597,58 @@ export function maVitCombat(stats: StatRow[], setup: DamageSetup, element: Eleme
   return (base * (100 + pctBuff)) / 100;
 }
 
+/**
+ * L'INVERSE de `maVitCombat` : la VIT totale (base + runes + bonus de set)
+ * nécessaire pour atteindre une vitesse FINALE visée.
+ *
+ * ⚠️ **Vocabulaire.** « Vitesse de combat » = base + runes + lead +
+ * invocateur (`combatSpeed`, speed.ts) ; « vitesse FINALE » = celle-là **plus
+ * le buff de vitesse et son amplification par les artéfacts**, ce que calcule
+ * `maVitCombat` — dont le nom est donc trompeur, hérité d'avant que la
+ * distinction soit posée.
+ *
+ * ⚠️ **Écrit ICI, collé à `maVitCombat`**, et pas ailleurs : c'est son
+ * inverse exact, terme pour terme. Toute correction de l'une doit sauter aux
+ * yeux sur l'autre.
+ *
+ * ⚠️ **NE PAS confondre avec `runeSpeedForTarget`** (speed.ts), qui inverse
+ * `combatSpeed` — donc SANS buff ni amplification — et dont les entrées
+ * suivent une autre convention : son paramètre `rune` EXCLUT le bonus de set
+ * et traite le Swift à part (`swiftFlat`), là où la VIT totale d'ici l'inclut
+ * déjà (`computeStats` applique les bonus de set). Deux fonctions qui se
+ * ressemblent sans être interchangeables — sur du speed tuning, où un point
+ * décide d'un tick, la confusion serait invisible et grave.
+ *
+ * @param cible vitesse FINALE visée
+ * @param spdBase VIT de base du monstre (jamais la runée)
+ * @param ampliVitPct amplification du buff supposée — pour le pré-filtrage,
+ *   le MAXIMUM atteignable sur le compte (`ampliVitMaxAtteignable`,
+ *   artifactOptim.ts) : une borne optimiste, donc admissible, qui n'écarte
+ *   aucun build réalisable.
+ */
+export function vitTotalePourVitesseFinale(
+  cible: number,
+  spdBase: number,
+  setup: DamageSetup,
+  element: ElementKey | null = null,
+  ampliVitPct = 0
+): number {
+  // Mêmes termes que `maVitCombat`, dans le même ordre — toute divergence
+  // ici est un bug.
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  const leader = resolvedLeaderSkill(setup);
+  const pctLeaderBase = leader?.stat === 'Attack Speed' ? leader.pct : 0;
+  const apportBase = Math.ceil((spdBase * (bonus.pct.spd + pctLeaderBase)) / 100);
+  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
+  const pctBuff = setup.spdBuff ? SPD_BUFF_PCT * (1 + (ampliVitPct + ampliMiriam) / 100) : 0;
+  // ⚠️ `ceil` : on cherche le SEUIL à atteindre, pas une valeur moyenne. Un
+  // `round` laisserait passer un build un demi-point sous la cible.
+  const baseEffMin = Math.ceil((cible * 100) / (100 + pctBuff));
+  // ⚠️ Jamais négatif : une cible déjà atteinte par la base seule ne doit pas
+  // produire un minimum négatif, qui se lirait comme une contrainte absurde.
+  return Math.max(0, baseEffMin - apportBase);
+}
+
 // DEF de combat (base + rune + lead, PUIS le buff de combat sur le total) —
 // même structure que `maVitCombat`, pour DEF plutôt que VIT. ⚠️ Réplique
 // SANS LA PARTAGER la portion DEF du calcul déjà fait dans
@@ -2240,6 +2702,81 @@ function crBrutEffectif(
   return total(stats, 'cr') + (monsterWide.bonusStatFixe?.cr ?? 0) + pctLeaderCr + crDepuisVit;
 }
 
+/**
+ * Les stats de COMBAT — celles qu'un sort lit vraiment : base + runes +
+ * artéfacts, puis compétences d'invocateur, leader skill, et enfin les buffs
+ * ATQ/DEF/VIT avec leur amplification par artéfact.
+ *
+ * ⚠️ **Extraite de `computeSkillDamageDetail`, pas recopiée.** Cette
+ * arithmétique porte plusieurs règles qu'un second chemin trahirait à coup
+ * sûr : un `ceil` UNIQUE sur la somme invocateur+lead (jamais deux arrondis
+ * séparés, l'écart d'un point avait déjà été corrigé une fois dans
+ * `pctSpeedBonus`), le lead qui porte sur la BASE quand le buff porte sur le
+ * TOTAL, et l'amplification artéfact+Miriam qui s'ADDITIONNE avant de
+ * multiplier la potence.
+ *
+ * ⚠️ Ne dépend NI du sort, NI de l'adversaire, NI du taux critique — d'où son
+ * intérêt : elle suffit à chiffrer les dégâts BRUTS des artéfacts (218-221),
+ * qui ne critent pas et ignorent la défense.
+ */
+export function statsDeCombat(
+  stats: StatRow[],
+  setup: DamageSetup,
+  element: ElementKey | null = null,
+  artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE
+): { atk: number; def: number; hp: number; spd: number } {
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
+    const row = stats.find((s) => s.key === key);
+    if (!row) return 0;
+    return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
+  };
+  const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
+  const leader = resolvedLeaderSkill(setup);
+  const atkAvecLead = avecInvocateur('atk', leader?.stat === 'Attack Power' ? leader.pct : 0);
+  const defAvecLead = avecInvocateur('def', leader?.stat === 'Defense' ? leader.pct : 0);
+  const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + (artefacts.ampliAtkPct + ampliMiriam) / 100) : 0;
+  const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + (artefacts.ampliDefPct + ampliMiriam) / 100) : 0;
+  return {
+    atk: (atkAvecLead * (100 + pctAtkBuff)) / 100,
+    def: (defAvecLead * (100 + pctDefBuff)) / 100,
+    hp: avecInvocateur('hp', leader?.stat === 'HP' ? leader.pct : 0),
+    spd: maVitCombat(stats, setup, element, artefacts.ampliVitPct),
+  };
+}
+
+/**
+ * Les dégâts BRUTS que les artéfacts ajoutent **par coup** (lignes 218-221).
+ *
+ * ⚠️ **Ne dépend ni du sort, ni de l'adversaire, ni du taux critique.** Ces
+ * dégâts ne critent pas et ignorent la défense adverse (mesuré en jeu ;
+ * swcalc, terme « Additional »). Ils se calculent donc entièrement à partir des
+ * stats du build et des buffs — sans qu'il faille choisir une compétence ni
+ * décrire une cible.
+ *
+ * C'est ce qui permet de classer des paires d'artéfacts pour un monstre dont
+ * l'objectif de recherche n'est PAS les dégâts : on ne lui invente ni sort ni
+ * adversaire, on chiffre ce que les artéfacts ajoutent, point.
+ *
+ * ⚠️ Le nombre de COUPS n'entre pas : il multiplie tout le monde pareil et ne
+ * change donc aucun classement. C'est aussi ce qui rend le chiffre utilisable
+ * sans connaître le sort.
+ */
+export function degatsBrutsArtefactsParCoup(
+  stats: StatRow[],
+  setup: DamageSetup,
+  element: ElementKey | null,
+  artefacts: ArtifactDamageProfile
+): number {
+  const v = statsDeCombat(stats, setup, element, artefacts);
+  return (
+    (artefacts.brutPctPv / 100) * v.hp +
+    (artefacts.brutPctAtk / 100) * v.atk +
+    (artefacts.brutPctDef / 100) * v.def +
+    (artefacts.brutPctVit / 100) * v.spd
+  );
+}
+
 export function computeSkillDamageDetail(
   profile: SkillDamageProfile,
   stats: StatRow[],
@@ -2252,10 +2789,10 @@ export function computeSkillDamageDetail(
   // réglage. Sert à enchaîner un passif APRÈS le sort actif, sur une cible
   // déjà entamée (voir `computeTotalDamage`).
   pvCiblePctDepart?: number,
-  // Somme des lignes d'artéfact « Effet aug. VIT » équipées (voir
-  // `speedBuffAmpliPct`) — fixe pour toute une recherche (l'Optimizer
-  // n'optimise que les runes), calculée UNE fois par l'appelant.
-  ampliVitPct = 0,
+  // Ce que les artéfacts apportent (voir `artifactDamageProfile`) — fixe pour
+  // toute une recherche, calculé UNE fois par l'appelant. Le neutre laisse le
+  // comportement strictement inchangé.
+  artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
   // Modificateurs monstre-wide qui touchent directement le Taux Crit/Dgts
   // Crit — DÉDUITS de la fiche (`monsterCritRateSelonVit`/
   // `monsterBonusStatFixe`, plus haut), jamais saisis. Regroupés en UN seul
@@ -2277,7 +2814,18 @@ export function computeSkillDamageDetail(
     bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
     bonusParEffetPropre?: { skillCom2usId: number; pct: number };
   } = {}
-): { total: number; pvRestantsPct: number } {
+): {
+  total: number;
+  // Part du total qui vient du bucket ADDITIONNEL (dégâts bruts par coup :
+  // artéfacts 218-221, Sickle Blade / Sand Blade, Calculated Sacrifice).
+  //
+  // ⚠️ **Remontée pour que l'appelant puisse l'EXCLURE** de la chaîne de
+  // modificateurs de type DMG% appliquée dans `computeTotalDamage` (Sonia,
+  // Momo, Zenitsu, Gideon, Brita, Velaska…). Sans elle, ces bonus majoraient
+  // aussi les dégâts bruts — mesuré comme faux en jeu.
+  additionnel: number;
+  pvRestantsPct: number;
+} {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
   // total — même modèle que le totem de vitesse déjà en place (voir
@@ -2299,7 +2847,7 @@ export function computeSkillDamageDetail(
   const pvMax = Math.max(0, setup.enemyHp);
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
 
-  const maVit = maVitCombat(stats, setup, element, ampliVitPct);
+  const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
   // ⚠️ Bornée à 1 : une VIT adverse ≤ 0 ferait diverger le ratio (division
   // par zéro ou par un nombre négatif), un réglage vidé ne doit jamais casser
   // le calcul plutôt que produire `Infinity`/`NaN`.
@@ -2324,13 +2872,21 @@ export function computeSkillDamageDetail(
   const pctLeaderHpBase = leader?.stat === 'HP' ? leader.pct : 0;
   const atkAvecLead = avecInvocateur('atk', pctLeaderAtkBase);
   const defAvecLead = avecInvocateur('def', pctLeaderDefBase);
-  const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
-  const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
+  // ⚠️ Artéfact et Miriam s'ADDITIONNENT avant de multiplier la potence de
+  // base — exactement comme pour la VIT (`maVitCombat`, seul précédent
+  // jusqu'ici). Les deux « augmentent l'effet d'augmentation » : les traiter
+  // multiplicativement l'un envers l'autre inventerait un empilement que le
+  // jeu ne fait pas.
+  // ⚠️ SOURCE UNIQUE — `statsDeCombat` porte toute l'arithmétique des buffs, du
+  // leader skill et des compétences d'invocateur, y compris le `ceil` unique et
+  // l'addition artéfact+Miriam. La recopier ici en ferait un second chemin, qui
+  // divergerait au premier ajustement.
+  const combat = statsDeCombat(stats, setup, element, artefacts);
   const valeurs: Record<DamageVariable, number> = {
-    ATK: (atkAvecLead * (100 + pctAtkBuff)) / 100,
-    DEF: (defAvecLead * (100 + pctDefBuff)) / 100,
+    ATK: combat.atk,
+    DEF: combat.def,
     SPD: maVit,
-    'MAX HP': avecInvocateur('hp', pctLeaderHpBase),
+    'MAX HP': combat.hp,
     'Target MAX HP': pvMax,
     // `(Ta VIT − VIT cible) / VIT cible` — confirmé par l'utilisateur.
     'Relative SPD': (maVit - vitEnnemie) / vitEnnemie,
@@ -2375,7 +2931,16 @@ export function computeSkillDamageDetail(
       (setup.euldongActif ? EULDONG_CD_POINTS : 0) +
       pctLeaderCd +
       (monsterWide.bonusStatFixe?.cd ?? 0) +
-      overflowVersCd) /
+      overflowVersCd +
+      // Artéfacts de type : « [Comp.N] Aug. Dgts CRIT » (400-403, 410) et
+      // « D.CRIT+ comp cib uniq pdt tour » (224). Des POINTS ajoutés à la
+      // stat, comme les compétences d'invocateur et Euldong — pas un
+      // pourcentage de celle-ci.
+      //
+      // ⚠️ Le SORT décide : la ligne par compétence ne compte que pour son
+      // slot, celle mono-cible que si `aoe` est faux. Tout est déduit du
+      // profil, rien n'est saisi.
+      artifactCritDamagePoints(artefacts, profile)) /
     100;
   const partCrit = profile.fixed ? 0 : setup.critMode === 'crit' ? 1 : setup.critMode === 'normal' ? 0 : cr;
   const critTerm = 1 + profile.skillupDamagePct / 100 + partCrit * cd;
@@ -2398,15 +2963,69 @@ export function computeSkillDamageDetail(
   const defEff = profile.ignoreDef ? 0 : Math.max(0, setup.enemyDef) * facteurDefBreak * (1 - fractionIgnoree);
   const mitigation = profile.fixed ? 1 : defenseFactor(defEff);
 
-  // Mirinae (S3 « Cursed Music ») : même famille que la Marque, additive
-  // avec elle — confirmé par l'utilisateur. Dr. Matteo (« Transmission »)
-  // : formulation identique, traité PAR ANALOGIE dans le même terme (non
-  // confirmé séparément comme additif, voir la constante plus haut).
+  // Mirinae (S3 « Cursed Music ») et Dr. Matteo (« Transmission ») : même
+  // famille, additifs avec la Marque DANS le terme Réductions — mais tous deux
+  // sans effet sur les bombes et sur le bucket Additionnel, là où la Marque, si
+  // (voir `horsPorteeMirinae` et `reductionsUniverselles` plus bas). Les deux
+  // sont mesurés en jeu, aucun n'est déduit de l'autre.
+  //
+  // ⚠️ **Déduit, pas confirmé directement.** L'utilisateur a établi que
+  // Mirinae « stacks additively with -DMG% artifacts » : les lignes de DMG%
+  // d'artéfact vivent donc bien dans ce même sac additif. Le raisonnement
+  // s'étend par symétrie à la famille +DMG% infligés (300-304), sans que ce
+  // cas précis ait été relevé en jeu. À reprendre si une mesure le contredit
+  // — un multiplicateur séparé changerait le résultat dès qu'une Marque ou
+  // Mirinae est active en même temps.
+  // ── Termes « DMG% » et « Réductions » — DEUX BRACKETS DISTINCTS ─────────
+  //
+  // ⚠️ **Ils ne s'additionnent pas entre eux, ils se MULTIPLIENT.** La formule
+  // de référence (swcalc.cz/game-mechanics) est :
+  //
+  //   Dégâts = (Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions
+  //
+  // avec `DMG% = 1 + ArtifactOnElement + …` et `Réductions = Artefact + Passif
+  // − Mirinae/Marque`. Chaque bracket est additif EN INTERNE, jamais avec
+  // l'autre.
+  //
+  // ⚠️ **Correctif** : les lignes élémentaires étaient comptées ici, dans
+  // Réductions — donc additives avec la Marque. C'était une déduction, faite
+  // « par symétrie » avec les artéfacts −DMG% (codes 305-309) qui, eux, sont
+  // bien dans Réductions. La symétrie n'existait pas : +dégâts infligés et
+  // −dégâts subis sont deux termes différents. Avec une Marque active,
+  // l'écart est réel (×1,40 contre ×1,37).
+  const bonusElement = artifactElementBonusPct(artefacts, setup.enemyElement);
+
+  // ⚠️ **La Marque et Mirinae ne sont PAS de la même famille**, malgré des
+  // descriptions quasi identiques. Mesuré en jeu par l'utilisateur :
+  //   - la Marque s'applique aux bombes ET au passif de Shahat ;
+  //   - Mirinae ne s'applique NI aux bombes, NI au passif de Shahat.
+  // Les traiter ensemble — ce que faisait ce terme — majorait donc à tort les
+  // bombes et tout le bucket Additionnel.
+  //
+  // ⚠️ **Dr. Matteo suit Mirinae, et c'est MESURÉ** — pas une analogie. Relevé
+  // en jeu : son passif ne change ni les dégâts des bombes, ni ceux du passif
+  // de Shahat. Les deux analogies précédentes de ce fichier s'étant révélées
+  // fausses (les −DMG% et le placement des lignes élémentaires), celle-ci a
+  // été vérifiée plutôt que reconduite.
+  // `TRANSMISSION_BONUS_PCT` (Dr. Matteo) suit Mirinae : même formulation dans
+  // le jeu, jamais mesuré séparément — l'analogie est assumée et signalée.
+  const reductionsUniverselles = 1 + (setup.brand ? BRAND_BONUS_PCT / 100 : 0);
+  const horsPorteeMirinae = profile.bombe || profile.fixed;
   const reductions =
-    1 +
-    (setup.brand ? BRAND_BONUS_PCT / 100 : 0) +
-    (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
-    (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0);
+    reductionsUniverselles +
+    (horsPorteeMirinae
+      ? 0
+      : (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
+        (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0));
+
+  // Terme DMG%, propre au sort. ⚠️ **Jamais sur une bombe** (mesuré) ; un sort
+  // ordinaire marqué `(Fixed)`, lui, en profite bien (swcalc : « skill-based
+  // fixed damage … is still multiplied by (1 + DMG%) »). C'est exactement ce
+  // que `bombe`, distinct de `fixed`, permet d'exprimer.
+  const dmgPct = profile.bombe ? 1 : 1 + bonusElement / 100;
+  // « Dgts de bombe » (210) — sa propre majoration, réservée aux bombes. Elle
+  // ne peut pas vivre dans DMG%, dont les bombes sont justement exclues.
+  const facteurBombe = profile.bombe ? 1 + artefacts.degatsBombePct / 100 : 1;
 
   // Julie (« Thousand Shots »)/Melissa (« Massacre Dance ») : +pct % par
   // effet SAISI sur la cible — propre à CE sort (`profile.
@@ -2438,7 +3057,100 @@ export function computeSkillDamageDetail(
     : 1;
 
   const horsCoup =
-    critTerm * mitigation * reductions * facteurEffetCible * facteurEffetCibleMonstre * facteurEffetPropre * facteurConditionnelPropre;
+    critTerm *
+    mitigation *
+    dmgPct *
+    facteurBombe *
+    reductions *
+    facteurEffetCible *
+    facteurEffetCibleMonstre *
+    facteurEffetPropre *
+    facteurConditionnelPropre;
+  // ⚠️ Variante pour le bucket ADDITIONNEL (voir `ajoutBrutParCoup` plus bas) —
+  // les dégâts bruts par coup : lignes d'artéfact 218-221, Sickle Blade / Sand
+  // Blade, Calculated Sacrifice.
+  //
+  // Ce que ce terme EXCLUT, et pourquoi :
+  //   - `critTerm` et `mitigation` : ces dégâts ne critent pas et ignorent la
+  //     défense (mesuré ; swcalc, terme « Additional » : « cannot crit,
+  //     bypasses DefenseFactor »).
+  //   - `dmgPct` : swcalc est explicite — « does not benefit from DMG dealt on
+  //     Element ». Confirmé en jeu : les artéfacts élémentaires ne marchent pas
+  //     sur le passif de Shahat.
+  //   - **Mirinae** : mesuré en jeu, sans effet sur le passif de Shahat non
+  //     plus. D'où `reductionsUniverselles` et non `reductions`.
+  //   - `facteurBombe` : réservé aux bombes, sans objet ici.
+  //   - **les quatre `facteur*`** (Julie, Backup Code, Blessing of Curse,
+  //     Emergency Drive) : swcalc les classe « Other » DANS le terme DMG%,
+  //     dont ce bucket est exclu. **MESURÉ** — voir ci-dessous.
+  //
+  // Ce qu'il CONSERVE : la **Marque** seule, mesurée comme agissant sur le
+  // passif de Shahat — c'est précisément ce qui la sépare de Mirinae.
+  //
+  // ⚠️ **Relevé Julie, qui tranche le cas `facteurEffetCible`.** S3 « Thousand
+  // Shots » : +50 % par effet BÉNÉFIQUE sur la cible. Julie montée en DEF/PV
+  // (2 139 DEF, 26 545 PV) avec deux lignes d'artéfact (21 % de la DEF, 0,7 %
+  // des PV), contre un Feng Yan très défensif :
+  //   - sans Will (0 buff) : ~700 par coup ;
+  //   - avec Will (1 buff, donc +50 %) : ~730 par coup.
+  // Si le +50 % touchait tout, on lirait 1 050. En le réservant à la part du
+  // SORT, le système donne part du sort = 60 et additionnel = 640 — à comparer
+  // aux **635** que prédit le modèle (0,21 × 2 139 + 0,007 × 26 545). Moins de
+  // 1 % d'écart : le bucket Additionnel est confirmé quantitativement en même
+  // temps que son isolement.
+  //
+  // ⚠️ `critTerm` porte AUSSI `skillupDamagePct` — l'exclure est délibéré :
+  // les améliorations du sort ACTIF n'ont aucune raison de majorer le bonus
+  // plat d'un PASSIF, qui n'appartient pas à sa formule.
+  //
+  // ❓ **Reste incohérent, et c'est assumé** : les modificateurs monstre-wide
+  // appliqués APRÈS coup dans `computeTotalDamage` (Sonia, Momo, Zenitsu,
+  // Gideon, Brita, Velaska…) multiplient encore le total, additionnel compris.
+  // swcalc les classe pourtant « Other » eux aussi — mais les en sortir exige
+  // de faire remonter la part additionnelle à travers toute l'accumulation
+  // (sort PUIS passifs), et aucune mesure ne le couvre encore. Documenté
+  // plutôt que fait au jugé.
+  const horsCoupBrut = reductionsUniverselles;
+  // ── Lignes d'artéfact qui VARIENT d'un coup à l'autre (411, 222, 223) ──
+  //
+  // ⚠️ **Rien à recalculer, malgré les apparences.** On pourrait croire qu'il
+  // faut refaire tout `horsCoup` à chaque coup, puisque ces lignes changent
+  // les Dgts Crit et que les PV de la cible baissent en cours de sort. Non :
+  // `cr`, `cd` et `partCrit` sont calculés UNE fois, seul `pvFrac` varie. Le
+  // terme est donc AFFINE en `pvFrac` :
+  //
+  //   horsCoup(coup i) = horsCoup + coefCdParCoup × deltaCdPoints(i, pvFrac)
+  //
+  // avec `coefCdParCoup = partCrit × K / 100` (K = tout ce qui multiplie
+  // `critTerm`, invariant). Deux constantes précalculées, puis une
+  // multiplication-addition par coup — pas un recalcul.
+  // ⚠️ **Doit rester EXACTEMENT `horsCoup / critTerm`** — tout ce qui multiplie
+  // le terme de critique, `dmgPct` et `facteurBombe` compris. En oublier un
+  // ferait mal doser la correction affine par coup, d'un facteur silencieux.
+  const kHorsCrit =
+    mitigation *
+    dmgPct *
+    facteurBombe *
+    reductions *
+    facteurEffetCible *
+    facteurEffetCibleMonstre *
+    facteurEffetPropre *
+    facteurConditionnelPropre;
+  const coefCdParCoup = (partCrit * kHorsCrit) / 100;
+  const deltaCdPoints = (premierCoup: boolean, pvFrac: number) =>
+    (premierCoup ? artefacts.cdPointsPremiereAttaque : 0) +
+    artefacts.cdPointsPvCibleHauts * pvFrac +
+    artefacts.cdPointsPvCibleBas * (1 - pvFrac);
+
+  // ⚠️ **Garde-fou de coût** : `partCrit === 0` (sort `fixed`, ou mode « jamais
+  // critique ») rend `coefCdParCoup` nul — ces lignes ne peuvent alors RIEN
+  // changer, et il n'y a aucune raison de payer la boucle séquentielle. Un
+  // build non-critique ne subit donc pas le coût de lignes qui ne le
+  // concernent pas.
+  const artefactsVarientParCoup =
+    coefCdParCoup > 0 &&
+    (artefacts.cdPointsPremiereAttaque > 0 || artefacts.cdPointsPvCibleHauts > 0 || artefacts.cdPointsPvCibleBas > 0);
+
   const coups = resolvedHits(profile, setup);
   // Crawler/Frankenstein (« Rage Charge ») : `+coeffParPoint × {variable} ×
   // compteur` s'ajoute au MULTIPLICATEUR de la formule (jamais une
@@ -2461,20 +3173,48 @@ export function computeSkillDamageDetail(
     ? monsterWide.bonusEcartDef.coeff * Math.max(0, valeurs.DEF - Math.max(0, setup.enemyDef))
     : 0;
   const ajoutParCoup = ajoutCompteur + ajoutCiblePvMax + ajoutEcartDef;
-  // Sickle Blade/Sand Blade — `pct/100 × {MAX HP}` propre, UNE FOIS par
-  // sort (pas `×coups`, confirmé par l'utilisateur) : additionné APRÈS le
-  // `×coups`, mais toujours multiplié par `horsCoup` (même critique/défense
-  // que le reste de l'attaque).
+  // Sickle Blade/Sand Blade — `pct/100 × {MAX HP}` propre.
   const ajoutMaxHpPropre = monsterWide.bonusFixeMaxHpPropre ? (monsterWide.bonusFixeMaxHpPropre.pct / 100) * valeurs['MAX HP'] : 0;
   // Calculated Sacrifice — dérivé d'une saisie manuelle (`pvActuelsAvantSacrificePct`,
-  // défaut 100 = premier tour), UNE FOIS par sort comme Sickle Blade.
+  // défaut 100 = premier tour), même famille que Sickle Blade.
   const ajoutSacrifice = monsterWide.bonusSacrifice
     ? (monsterWide.bonusSacrifice.pctSurPerte / 100) *
       (monsterWide.bonusSacrifice.pctPerte / 100) *
       (resolvedPvActuelsAvantSacrificePctMonstre(monsterWide.bonusSacrifice.skillCom2usId, setup) / 100) *
       valeurs['MAX HP']
     : 0;
-  const ajoutUneFois = ajoutMaxHpPropre + ajoutSacrifice;
+  // ⚠️ **Dégâts BRUTS, À CHAQUE COUP** — Sickle Blade (Bayek Vent), Sand
+  // Blade (Desert Warrior Vent, Shahat), Calculated Sacrifice (Onimusha,
+  // Fuuki). Ni critiques, ni mitigés par la défense adverse : ils passent
+  // donc par `horsCoupBrut`, jamais par `horsCoup`.
+  //
+  // ⚠️ **Ce terme s'appelait `ajoutUneFois` et était faux sur DEUX axes** :
+  // multiplié par `horsCoup` (donc critique et mitigé) ET compté une seule
+  // fois par sort. L'ancien commentaire invoquait un « confirmé par
+  // l'utilisateur » pour le « une fois par sort » — c'était une ERREUR, levée
+  // par un relevé EN JEU : Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF,
+  // ~4 500 dégâts par coup relevés contre 770 à 1 760 prédits par l'ancien
+  // calcul. Voir spec/outils/degats-reels.md, « Corrections identifiées ».
+  //
+  // ⚠️ Les deux familles vont EXACTEMENT au même endroit — ne pas rescinder
+  // l'accumulateur « au cas où » : c'est ce partage qui avait été pris à tort
+  // pour un obstacle.
+  // Artéfacts « Dgts supp. en prop. de <stat> » (218-221) — MÊME nature que
+  // les deux termes ci-dessus : bruts, par coup. Ils rejoignent donc le même
+  // accumulateur, ils n'en méritent pas un second.
+  //
+  // ⚠️ Les stats lues sont celles de `valeurs`, donc **buffées** (buff d'ATQ,
+  // lead, invocateur déjà appliqués) — pas les stats nues. C'est la même
+  // source que le reste de la formule ; faire lire des stats nues à ces
+  // seules lignes créerait deux notions d'« ATQ » dans le même calcul.
+  const ajoutArtefactBrut =
+    (artefacts.brutPctPv / 100) * valeurs['MAX HP'] +
+    (artefacts.brutPctAtk / 100) * valeurs.ATK +
+    (artefacts.brutPctDef / 100) * valeurs.DEF +
+    (artefacts.brutPctVit / 100) * valeurs.SPD;
+  const ajoutBrutParCoup = ajoutMaxHpPropre + ajoutSacrifice + ajoutArtefactBrut;
+  // Ce que ce terme vaut par coup, amplificateurs de cible compris.
+  const degatsBrutParCoup = ajoutBrutParCoup * horsCoupBrut;
   // Les PV ne peuvent pas descendre sous zéro, et une cible à 0 PV max (cas
   // dégénéré d'un réglage vidé) ne se creuse pas : on renvoie alors le
   // pourcentage de départ inchangé plutôt que de diviser par zéro.
@@ -2482,40 +3222,60 @@ export function computeSkillDamageDetail(
 
   // Chemin COURT — le ratio ne dépend pas des PV de la cible : une seule
   // évaluation, exactement comme avant l'ajout de la simulation.
-  if (!profile.variables.includes('Target Current HP %')) {
+  const formuleLitPvCible = profile.variables.includes('Target Current HP %');
+
+  if (!formuleLitPvCible && !artefactsVarientParCoup) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
-    if (mult <= 0 && ajoutUneFois <= 0) return { total: 0, pvRestantsPct: pctDepart };
-    const totalDegats = (Math.max(0, mult) * coups + ajoutUneFois) * horsCoup;
+    if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, additionnel: 0, pvRestantsPct: pctDepart };
+    // ⚠️ Le terme brut est DANS le `×coups`, plus ajouté à côté : les deux
+    // parts frappent le même nombre de fois, seule leur mitigation diffère.
+    const totalDegats = (Math.max(0, mult) * horsCoup + degatsBrutParCoup) * coups;
     const pvApres = creuse(totalDegats, (pctDepart / 100) * pvMax);
-    return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart };
+    return { total: totalDegats, additionnel: degatsBrutParCoup * coups, pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart };
   }
 
   // Chemin SÉQUENTIEL — chaque coup frappe une cible plus basse que le
   // précédent, donc avec un ratio plus élevé.
   let pvCourant = (pctDepart / 100) * pvMax;
   let totalDegats = 0;
+  // Part ADDITIONNELLE réellement portée — comptée coup par coup, car un coup
+  // dont le total tombe à zéro est sauté et ne la porte donc pas.
+  let totalAdditionnel = 0;
+  // ⚠️ Si la FORMULE ne lit pas les PV de la cible, son multiplicateur est
+  // constant : on l'évalue UNE fois plutôt qu'à chaque tour de boucle. Sans
+  // ça, un sort poussé ici par les seules lignes d'artéfact paierait
+  // `coups` évaluations d'arbre pour rien.
+  const multFixe = formuleLitPvCible ? 0 : evaluer(profile.noeud, valeurs);
   for (let i = 0; i < coups; i++) {
-    valeurs['Target Current HP %'] = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
-    const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
-    if (mult <= 0) continue;
-    const degatsCoup = mult * horsCoup;
+    const pvFrac = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
+    if (formuleLitPvCible) valeurs['Target Current HP %'] = pvFrac;
+    const mult = (formuleLitPvCible ? evaluer(profile.noeud, valeurs) : multFixe) + ajoutParCoup;
+    // La seule part variable de `horsCoup` — voir `coefCdParCoup`.
+    const horsCoupIci = horsCoup + coefCdParCoup * deltaCdPoints(i === 0, pvFrac);
+    // ⚠️ `Math.max(0, mult)` et non un `continue` sur `mult <= 0` : un
+    // multiplicateur nul n'annule PAS le terme brut, qui ne dépend pas de la
+    // formule du sort. Le coup n'est sauté que s'il ne porte réellement rien.
+    const degatsCoup = Math.max(0, mult) * horsCoupIci + degatsBrutParCoup;
+    if (degatsCoup <= 0) continue;
     totalDegats += degatsCoup;
+    totalAdditionnel += degatsBrutParCoup;
+    // ⚠️ Le terme brut est creusé DANS la boucle, avec le coup qui le porte —
+    // c'est ce qui garde `pvRestantsPct` exact pour les passifs à seuil qui
+    // s'évaluent ensuite (le bug corrigé jadis sur l'ancien `ajoutUneFois`,
+    // creusé en bloc après la boucle, ne peut plus se reformer ici).
     pvCourant = creuse(degatsCoup, pvCourant);
   }
-  // ⚠️ **BUG CORRIGÉ** (revue de code externe) : `ajoutUneFois` (Sickle
-  // Blade/Sand Blade, Calculated Sacrifice — voir plus haut) était ajouté à
-  // `totalDegats` (donc au `.total` retourné) mais JAMAIS retranché de
-  // `pvCourant` — contrairement au chemin COURT juste au-dessus, qui
-  // l'inclut dans la même quantité créusée que celle retournée. Résultat :
-  // `pvRestantsPct` (transmis au(x) passif(s) suivant(s) par
-  // `computeTotalDamage`, voir `pvCiblePct`) restait SURESTIMÉ dès qu'un
-  // sort au chemin séquentiel portait aussi un `ajoutUneFois` — un seuil de
-  // passif du type « bonus si PV restants ≤ X % » (Final Strike, Benedict)
-  // pouvait manquer sa cible alors qu'il aurait dû se déclencher.
-  const degatsUneFois = ajoutUneFois * horsCoup;
-  totalDegats += degatsUneFois;
-  pvCourant = creuse(degatsUneFois, pvCourant);
-  return { total: totalDegats, pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart };
+  // ⚠️ Plus RIEN à ajouter après la boucle. L'ancien `ajoutUneFois` était
+  // appliqué ici en bloc, ce qui avait déjà valu un bug (`pvRestantsPct`
+  // surestimé, corrigé lors d'une revue de code externe : un seuil de passif
+  // « bonus si PV restants ≤ X % », Final Strike/Benedict, pouvait manquer sa
+  // cible). Le terme étant désormais PAR COUP, il est creusé dans la boucle
+  // avec le coup qui le porte — cette classe de bug ne peut plus se reformer.
+  return {
+    total: totalDegats,
+    additionnel: totalAdditionnel,
+    pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart,
+  };
 }
 
 /** Dégâts seuls — voir `computeSkillDamageDetail` pour les PV restants. */
@@ -2632,9 +3392,9 @@ export function computeTotalDamage(
   stats: StatRow[],
   setup: DamageSetup,
   element: ElementKey | null = null,
-  // Somme des lignes d'artéfact « Effet aug. VIT » équipées — voir
-  // `speedBuffAmpliPct`, fixe pour toute une recherche.
-  ampliVitPct = 0,
+  // Ce que les artéfacts apportent — voir `artifactDamageProfile`, fixe pour
+  // toute une recherche.
+  artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
   critSiPlusRapide = false,
   // Sonia/Battle Angel (« Evasion (Passive) ») — voir
   // `monsterBonusDegatsSelonVit`. `null` = comportement inchangé.
@@ -2678,7 +3438,7 @@ export function computeTotalDamage(
   // inchangé.
   bonusSiAtqSeuil: { seuil: number; pct: number } | null = null
 ): number {
-  const maVit = maVitCombat(stats, setup, element, ampliVitPct);
+  const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
   const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
   const forceCrit = critSiPlusRapide && ecartVit > 0;
   const setupSort = forceCrit ? { ...setup, critMode: 'crit' as const } : setup;
@@ -2686,9 +3446,35 @@ export function computeTotalDamage(
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, ampliVitPct, monsterWide);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, artefacts, monsterWide);
   let total = sort.total;
+  // ⚠️ **Part ADDITIONNELLE mise de côté** — elle traverse la chaîne de
+  // multiplicateurs ci-dessous sans en subir un seul, et n'est rendue qu'à la
+  // fin. Ces modificateurs (Sonia, Momo, Zenitsu, Gideon, Brita, Velaska…)
+  // sont des bonus de type DMG%, dont le bucket Additionnel est exclu.
+  //
+  // **Mesuré en jeu — Momo.** 53 545 PV, ligne « Dgts supp. en prop. des PV »
+  // à 2,3 % (cumul des DEUX artéfacts), sans critique, contre un Feng Yan
+  // très défensif : ~1 300 par coup sans stack, ~1 700 stack plein (+200 %,
+  // donc ×3 sur ce qu'il majore). Si le stack touchait tout, on lirait
+  // **3 900**. En le réservant à la part du sort : part du sort ≈ 200,
+  // additionnel ≈ 1 100 — le modèle en prédit 1 232.
+  //
+  // ⚠️ Accumulée AUSSI sur les passifs offensifs : chacun porte sa propre
+  // part brute, et elle doit échapper à la même chaîne.
+  let totalAdditionnel = sort.additionnel;
   let pvCiblePct = sort.pvRestantsPct;
+  // ⚠️ « Dgts CRIT 1re attaque » (411) vaut pour la PREMIÈRE attaque du tour,
+  // pas pour le premier coup de chaque contribution : le sort actif l'a déjà
+  // consommée ci-dessus. Sans cette neutralisation, chaque passif offensif se
+  // verrait accorder le bonus à son tour — un monstre à trois passifs
+  // l'encaisserait quatre fois.
+  //
+  // ⚠️ Construit UNE fois hors de la boucle : dans la boucle interne de
+  // l'optimiseur, un objet par passif et par candidat serait de la pression
+  // GC pure. Le reste du profil est partagé tel quel.
+  const artefactsPassif: ArtifactDamageProfile =
+    artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
   for (const p of passifs) {
     if (!passifActif(p, setup)) continue;
     // `hitsRange: undefined` : `hits` est déjà la valeur RÉSOLUE du sort
@@ -2707,9 +3493,14 @@ export function computeTotalDamage(
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
     // l'état de la cible au moment où le jeu évalue la condition.
     const seuilAtteint = p.bonusPvCible != null && pvCiblePct <= p.bonusPvCible.seuilPct;
-    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, ampliVitPct, monsterWide);
+    const detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, artefactsPassif, monsterWide);
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
+    // ⚠️ Les majorations propres à CE passif sont elles aussi de type DMG% :
+    // on les applique à sa seule part de SORT, jamais à sa part brute. D'où le
+    // retrait puis la remise, plutôt qu'un `contribution *= …` global.
+    const additionnelPassif = detail.additionnel;
+    contribution -= additionnelPassif;
     if (seuilAtteint && p.bonusPvCible) contribution *= 1 + p.bonusPvCible.pct / 100;
     if (p.categorie.type === 'bonus') {
       const actif = bonusPassifActif(p, setup);
@@ -2722,8 +3513,12 @@ export function computeTotalDamage(
         contribution *= 1 + p.categorie.pct / 100;
       }
     }
-    total += contribution;
+    total += contribution + additionnelPassif;
+    totalAdditionnel += additionnelPassif;
   }
+  // ⚠️ À partir d'ici, la chaîne de modificateurs ne doit voir QUE la part de
+  // sort. On la met de côté et on la rend à la toute fin.
+  total -= totalAdditionnel;
   // ⚠️ Multiplicatif sur le TOTAL (sort actif + tous les passifs), APRÈS
   // coup — « the damage dealt increases », un modificateur sur l'ensemble de
   // ce que le monstre inflige, pas une contribution à part (contrairement à
@@ -2776,7 +3571,8 @@ export function computeTotalDamage(
   if (setup.velaskaActif) {
     total *= 1 + (VELASKA_PCT_PAR_PV_PERDU * (setup.velaskaPvPerduPct ?? 0)) / 100;
   }
-  return total;
+  // La part brute rejoint le total, sans avoir subi un seul de ces facteurs.
+  return total + totalAdditionnel;
 }
 
 /**
@@ -2797,6 +3593,19 @@ export function computeTotalDamage(
  * ⚠️ **`passifs`/`setup` optionnels** : `damageRelevantStats(profile)` seul
  * reste valide (comportement strictement inchangé) pour tout appelant qui
  * n'a pas encore ces deux valeurs sous la main.
+ *
+ * ⚠️ **Les ARTÉFACTS n'entrent volontairement PAS ici**, alors qu'ils
+ * ajoutent bel et bien des dégâts proportionnels aux PV/DEF/VIT (codes
+ * 218-221, voir `ArtifactDamageProfile`). Un artéfact **amplifie** un build,
+ * il n'en déplace pas la cible : un Lushen qui cherche des dégâts vise
+ * toujours ATQ et Dgts CRIT, qu'il porte ou non une ligne proportionnelle à
+ * la DEF. Ces lignes RÉCOLTENT les stats que le build possède déjà, elles ne
+ * justifient jamais d'en chercher d'autres — tranché avec l'utilisateur, voir
+ * spec/outils/degats-reels.md.
+ *
+ * Les y mettre ferait travailler la rétention (`retentionKeys`,
+ * runeBuildOptim.ts) sur des stats hors-sujet, et sortirait des builds que
+ * personne ne veut.
  */
 export function damageRelevantStats(
   profile: SkillDamageProfile | null,

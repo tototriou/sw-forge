@@ -51,6 +51,7 @@ vérifier vite et sans se faire piéger par la mécanique de mesure elle-même.
 | Je veux figer une référence de temps suivie dans le temps (avant de committer un changement accepté) | `perf-battery.ts --save` | plusieurs minutes (7 cas séquentiels, exprès) |
 | Un demi-build/une rune survit-il à la rétention, sans lancer une recherche complète ? | `prepareSearch` + `buildBuckets` SEUL (jamais `pairBuckets`) | quelques secondes, même à grande échelle |
 | Un changement de PARALLÉLISATION de l'appariement perd-il des candidats (pas une question de temps) ? | `tests/rune-optim-parallel-pairing.test.ts` — différentiel à `maxMs` RÉALISTE (30 s, jamais un budget court juste assez long pour déclencher le chemin de code, voir `algo-verify` méthode point 2) | quelques secondes à quelques minutes selon le nombre de scénarios |
+| Une charge concurrente sur le fil PRINCIPAL (optimisation d'artéfacts au fil de l'eau) ralentit-elle la recherche ? | `scripts/artifact-contention-diag.ts` — vrais `worker_threads` pour l'appariement, répétitions ENTRELACÉES, charge témoin en calcul pur pour séparer cœurs et mémoire | quelques minutes par cas (N répétitions × 3 conditions) |
 | Un mécanisme de COORDINATION EN DIRECT entre workers (quota partagé, arrêt anticipé signalé…) respecte-t-il sa garantie sous une VRAIE latence de messages ? | ⚠️ JAMAIS une simulation séquentielle (voir piège dédié plus bas) — de VRAIS `worker_threads` Node concurrents, bundlés via esbuild : `scripts/lib/pairing-quota-worker.ts` + `scripts/parallel-pairing-real-diag.ts` (patron réutilisable, déjà utilisé pour la décision initiale de paralléliser l'appariement via `scripts/lib/pairing-worker.ts`/`scripts/pairing-parallel-diag.ts`) | quelques secondes par cas (bundling + spawn réel) |
 
 ⚠️ **`--quick` n'est PAS une preuve de justesse.** Ses 2 cas canari (voir
@@ -58,6 +59,36 @@ vérifier vite et sans se faire piéger par la mécanique de mesure elle-même.
 n'auraient rien pu détecter du bug `BUCKET_CAP` qui a motivé toute cette
 investigation. C'est un test de fumée pour l'itération, jamais un
 remplaçant de `--monotonicity` ni de la batterie complète avant de committer.
+
+## Avant de mesurer : le coût est-il SUBI, ou choisi par l'implémentation ?
+
+⚠️ **Mesurer une implémentation naïve qu'on n'a pas l'intention de livrer ne
+répond à aucune question utile.** Avant de lancer quoi que ce soit, se
+demander si le coût redouté est intrinsèque au changement, ou seulement à la
+première façon de l'écrire.
+
+**Incident vécu** (artéfacts, lignes 222/223 « Dgts CRIT selon les PV de la
+cible ») : le plan validé avec l'utilisateur était « mesurer le coût de
+RECALCULER `horsCoup` à chaque coup », ces lignes rendant les Dgts CRIT
+dépendants des PV de la cible, qui baissent pendant le sort. Une lecture du
+code AVANT de mesurer a montré que `cr`, `cd` et `partCrit` sont tous
+calculés une seule fois — seul `pvPct` varie. Le terme est donc **affine** en
+`pvPct` :
+
+```
+horsCoup(pvPct) = horsCoup_base + partCrit × [a·pvPct + b·(1−pvPct)] × K
+```
+
+`K` (mitigation × réductions × facteurs) étant constant, il n'y a **rien à
+recalculer** : deux constantes précalculées, puis deux multiplications-
+additions par coup. La mesure prévue aurait chiffré le coût d'un code qui
+n'allait jamais exister.
+
+**Règle** : quand un changement semble imposer de refaire un calcul dans une
+boucle chaude, chercher d'abord la **décomposition** (quelle partie est
+réellement variable ?) avant de chercher le chiffre. Le vrai coût résiduel —
+ici forcer le chemin séquentiel là où le chemin court suffisait — est
+souvent tout autre, et c'est LUI qu'il faut mesurer, une fois le code écrit.
 
 ## Le réflexe qui économise le plus de temps
 
@@ -221,6 +252,95 @@ Contre-mesure : accumuler dans un `Set`/tableau via une boucle
 élément-par-élément (`for (const c of nouveauxCandidats) déjà.add(c)`),
 jamais un spread sur un tableau dont la taille n'est pas bornée
 explicitement.
+
+### Protocole en BLOCS — un biais qui se REPRODUIT, donc qui passe pour un signal
+
+⚠️ **Le piège le plus coûteux de la série artéfacts** : trois conclusions
+successives, toutes fausses, avant d'obtenir la bonne. Les données n'étaient
+jamais en cause — le protocole l'était à chaque fois.
+
+**Le protocole fautif**, qui paraît pourtant rigoureux :
+
+```
+échauffement → témoin → essai CHARGÉ → témoin (après)
+```
+
+Le second témoin est censé attraper une dérive de la machine. Il n'attrape
+qu'une dérive **LENTE** : une perturbation transitoire tombée pendant l'essai
+chargé passe entière dans le résultat, et les deux témoins la ratent
+complètement. Mesuré : « +20,1 % de ralentissement, 0,2 % de dérive entre
+témoins » — donc apparemment un signal net — puis **−2,5 %** à la reprise du
+même cas.
+
+⚠️⚠️ **ET LE BIAIS SE REPRODUIT.** L'essai chargé occupe TOUJOURS la même
+position dans la séquence : tout effet lié à cette position (échauffement
+thermique, état du GC, montée en fréquence) revient identique à chaque
+exécution. Un cas a ainsi donné **+4,8 % deux fois de suite** — ce que j'ai pris
+pour une preuve de reproductibilité. Au protocole entrelacé : **+0,3 %**.
+
+**C'est la leçon principale : une lecture répétée sous un protocole biaisé
+n'est PAS une reproductibilité.** Elle en a l'apparence exacte, et elle est
+d'autant plus convaincante qu'on la retrouve. Répéter ne corrige que le bruit
+ALÉATOIRE, jamais un biais systématique.
+
+**La contre-mesure — entrelacer, pas grouper :**
+
+```
+témoin, A, B, témoin, A, B, témoin, A, B…    (N fois)
+```
+
+Une perturbation frappe alors une répétition de CHAQUE condition, pas une
+condition entière.
+
+**Et les bons estimateurs :**
+
+- Le **MINIMUM** sur N répétitions est l'estimateur le plus propre du coût
+  réel : une interférence ne peut qu'AJOUTER du temps, jamais en retirer.
+- La **médiane** à côté, pour voir si la série est stable ou dispersée.
+- La **DISPERSION** de chaque série AFFICHÉE — c'est elle qui dit si l'écart
+  mesuré veut dire quelque chose. Sur les cas artéfacts, le plancher de bruit
+  valait 2 à 4,5 % : tout écart en dessous ne signifie rien, et il faut le
+  montrer plutôt que le laisser deviner.
+
+⚠️ Corollaire : **ne jamais conclure sur un écart plus petit que la dispersion
+observée**. Un essai chargé « plus rapide que le témoin » (vu : −1,6 %) n'est
+pas un résultat, c'est la preuve qu'on mesure sous le plancher.
+
+Exemple complet : `scripts/artifact-contention-diag.ts`.
+
+### Une charge de test peut s'EFFONDRER sans rien dire
+
+⚠️ Distinct de la fidélité de l'ALGORITHME (voir `algo-verify`) : ici c'est la
+**charge** opposée au système mesuré qui diverge de la production.
+
+Vécu sur `artifact-contention-diag.ts`. La charge devait rejouer
+`chercherPaires` pendant que l'appariement tourne. Son évaluateur sommait les
+stats — donc ne lisait **aucune sous-propriété d'artéfact**. Cascade :
+`analyserPertinence` n'a trouvé aucune ligne croissante → la dominance n'a plus
+comparé que les trois stats principales → l'inventaire s'est effondré à ~3
+candidats par côté → la « charge » coûtait **0,4 ms au lieu de 86 ms**.
+
+La mesure a alors annoncé « aucun ralentissement » — ce qui était vrai, et
+totalement dénué de sens : il n'y avait **aucune charge**. Seul le compteur de
+builds l'a trahi, et seulement parce qu'il figurait dans la sortie.
+
+**Contre-mesure : faire dire au script sa PROPRE fidélité, avant de mesurer.**
+
+```
+Charge par build : 86 ms sur 12 315 paires parcourues.
+(attendu ~75-85 ms sur ~12 000 paires — bien moins signale une charge effondrée)
+```
+
+Deux nombres, affichés AVANT les résultats, avec leur fourchette attendue. Une
+charge effondrée se voit alors à la première ligne au lieu de se déduire après
+coup. ⚠️ La fourchette doit venir d'une mesure INDÉPENDANTE et citer le bon
+régime : « ~340 ms » (espace NON élagué) aurait été un repère faux, la
+production élaguant aussi.
+
+⚠️ Et pour une charge de calcul pur : accumuler le résultat dans un puits que
+le programme lit ensuite. Une boucle dont le résultat ne sert à rien peut être
+supprimée entièrement par le JIT — on mesurerait de nouveau l'absence de
+charge.
 
 ## Voir aussi
 

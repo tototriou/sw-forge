@@ -16,6 +16,7 @@ import {
   exclusionCandidatesFor,
   exclusionSelectorKey,
   findValidatedBuild,
+  otherValidatedArtifactIds,
   otherValidatedRuneIds,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
@@ -396,6 +397,44 @@ export default function testOptimizerExclusion() {
       'runes validées : deck-b ignore totalement ce qui est validé dans deck-a — pools indépendants'
     );
     egal([...otherValidatedRuneIds(validated, null, null)], [], 'runes validées : aucune liste active → rien à bloquer');
+
+    // ── ARTÉFACTS validés : même modèle, même portée par liste, même
+    // auto-exemption. Un artéfact physique ne se porte que sur UN monstre à la
+    // fois, exactement comme une rune.
+    {
+      const avecArts: ValidatedBuild[] = [
+        { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1], artifactIds: [7001, 7002] },
+        { listId: 'deck-a', selector: { source: 'rta', monsterId: String(lushen.id) }, runeIds: [2], artifactIds: [7003, 7004] },
+        { listId: 'deck-b', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [3], artifactIds: [7005] },
+        // ⚠️ Build validé AVANT l'existence du champ : pas de paire mémorisée.
+        // Il ne doit ni planter ni réserver quoi que ce soit.
+        { listId: 'deck-a', selector: { source: 'unowned', monsterId: 'x' }, runeIds: [4] },
+      ];
+      egal(
+        [...otherValidatedArtifactIds(avecArts, 'deck-a', ownKey)].sort((a, b) => a - b),
+        [7003, 7004],
+        'artéfacts validés : les AUTRES de la même liste bloquent, jamais les siens (auto-exemption), jamais une autre liste'
+      );
+      egal(
+        [...otherValidatedArtifactIds(avecArts, 'deck-b', null)].sort((a, b) => a - b),
+        [7005],
+        'artéfacts validés : pools indépendants entre listes, comme pour les runes'
+      );
+      egal([...otherValidatedArtifactIds(avecArts, null, null)], [], 'artéfacts validés : aucune liste active → rien à bloquer');
+
+      // ⚠️ **Un id ≤ 0 désigne une pièce SYNTHÉTIQUE** (artéfact hypothéqué
+      // d'un repli, sonde de pertinence) : elle n'existe pas dans le compte et
+      // ne peut donc rien réserver. La compter bloquerait un emplacement au
+      // nom d'un artéfact que le joueur ne possède pas.
+      const avecSynthetique: ValidatedBuild[] = [
+        { listId: 'deck-a', selector: { source: 'rta', monsterId: 'z' }, runeIds: [1], artifactIds: [0, -1, 7100] },
+      ];
+      egal(
+        [...otherValidatedArtifactIds(avecSynthetique, 'deck-a', null)],
+        [7100],
+        'artéfacts validés : une pièce SYNTHÉTIQUE (id ≤ 0) ne réserve rien'
+      );
+    }
 
     egal(
       findValidatedBuild(validated, 'deck-a', ownKey)?.runeIds,

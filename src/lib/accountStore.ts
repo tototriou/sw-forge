@@ -65,10 +65,20 @@ export interface StoredAccount {
 // À incrémenter dès qu'un extracteur produit un champ de plus — ou en produit
 // un AUTREMENT : un compte enregistré sous l'ancien schéma serait incomplet, ou
 // mal lu, et donnerait des chiffres faux en silence. (5 : la propriété unique
-// des reliques, qui remplace un `relic.sub` mal modélisé.) À la lecture, un schéma différent est **ignoré** — l'app
+// des reliques, qui remplace un `relic.sub` mal modélisé. 6 :
+// `ArtifactDetail.id`, le `rid` com2us que `artifactToDetail` lisait sans le
+// conserver.) À la lecture, un schéma différent est **ignoré** — l'app
 // retombe sur « aucun compte » et invite à réimporter, comme pour les vieux
 // fichiers de recommandation.
-export const ACCOUNT_SCHEMA = 5;
+//
+// ⚠️ **Le compte est stocké DÉJÀ PARSÉ**, et l'export brut n'est jamais
+// conservé (5 à 8 Mo) : un champ ajouté à l'extraction ne peut donc PAS être
+// retrouvé sur un compte existant, seulement au réimport. Oublier
+// d'incrémenter ici ne casse rien visiblement — ça produit un manque
+// silencieux. Vécu avec `ArtifactDetail.id` : les artéfacts stockés n'avaient
+// pas d'identifiant, donc un build validé ne mémorisait aucune paire et
+// retombait sur les artéfacts réellement portés, sans le moindre signal.
+export const ACCOUNT_SCHEMA = 6;
 
 const DB_NAME = 'sw-forge';
 const DB_VERSION = 1;

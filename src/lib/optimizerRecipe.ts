@@ -18,6 +18,7 @@ import { DamageSetup } from './damage';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { ArtifactMainChoice, SlotFilterPresetKey } from '../hooks/useOptimizerState';
+import { LigneVerrouillee } from './artifactOptim';
 import { RuneMetric } from '../hooks/useRuneMetric';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
@@ -33,6 +34,51 @@ export const OPTIMIZER_RECIPE_VERSION = 1;
 //    (l'écran, source de vérité).
 // 2. `scripts/lib/recipeToSearchParams.ts` — `recipeToSearchParams` (rejoue
 //    une recette depuis un script, utilisé par `scripts/optimizer-search.ts`).
+/**
+ * Les choix de principale d'une recette, adaptés au compte qui la LIT.
+ *
+ * ⚠️ **« Garder l'artéfact équipé » ne se partage pas.** Ce choix garde
+ * l'artéfact porté par le LECTEUR, pas par l'auteur : chez quelqu'un d'autre,
+ * il n'exporte aucune intention — il impose une pièce arbitraire, parfois sans
+ * rapport avec la recherche décrite. Tout le reste d'une recette se re-résout
+ * contre le compte du lecteur (le monstre par son `com2usId`, les runes par la
+ * recherche) ; ce réglage était le seul à transporter silencieusement une
+ * hypothèse locale. On bascule donc sur « Libre » — l'intention la plus
+ * proche : cherche le meilleur artéfact parmi les tiens.
+ *
+ * ⚠️ **Uniquement quand on SAIT que les comptes diffèrent.** Recette sans
+ * `wizardName` (exportée avant ce champ) ou compte local sans nom : aucune
+ * comparaison possible, on ne touche à rien. Agir sur une provenance devinée
+ * serait pire que de transporter la donnée telle quelle.
+ *
+ * Fonction PURE et exportée exprès : la logique vivait dans `importRecipe`,
+ * une closure de composant qu'aucun test ne pouvait atteindre.
+ */
+export function mainsPourCeCompte(
+  recipe: Pick<OptimizerRecipe, 'artifactMainByKind' | 'wizardName'>,
+  accountName: string | null
+): { mains: OptimizerRecipe['artifactMainByKind']; bascules: boolean } {
+  // ⚠️ **`'none'` a été RETIRÉ du sélecteur** — laisser un emplacement vide
+  // pendant que l'autre cherche n'a aucun sens en jeu, et « ne pas compter les
+  // artéfacts » se dit avec l'interrupteur, pour les DEUX emplacements à la
+  // fois. Une recette exportée avant ce retrait peut encore le porter : on le
+  // ramène sur « Libre », l'intention la plus proche (cherche le meilleur
+  // parmi les tiens). ⚠️ TOUJOURS, avant même la question du compte : une
+  // valeur qui n'existe plus ne doit atteindre aucun appelant.
+  const normalisees = Object.fromEntries(
+    Object.entries(recipe.artifactMainByKind).map(([k, v]) => [k, v === ('none' as unknown) ? 'libre' : v])
+  ) as OptimizerRecipe['artifactMainByKind'];
+  const memeCompte = recipe.wizardName == null || accountName == null || recipe.wizardName === accountName;
+  if (memeCompte) return { mains: normalisees, bascules: false };
+  const entrees = Object.entries(normalisees);
+  return {
+    mains: Object.fromEntries(
+      entrees.map(([k, v]) => [k, v === 'equipped' ? 'libre' : v])
+    ) as OptimizerRecipe['artifactMainByKind'],
+    bascules: entrees.some(([, v]) => v === 'equipped'),
+  };
+}
+
 export interface OptimizerRecipe {
   version: typeof OPTIMIZER_RECIPE_VERSION;
   // Pour readabilité humaine et pour retrouver le monstre à l'import — le
@@ -40,6 +86,22 @@ export interface OptimizerRecipe {
   // est la clé stable côté données du jeu.
   monsterCom2usId: number;
   monsterName: string;
+  /**
+   * Nom du joueur qui a exporté (`wizard_info.wizard_name`) — sert
+   * UNIQUEMENT à reconnaître, à l'import, qu'une recette vient d'un AUTRE
+   * compte.
+   *
+   * ⚠️ **Pourquoi c'est nécessaire** : « Garder l'artéfact équipé » garde
+   * l'artéfact porté **par le lecteur**, pas par l'auteur. Chez quelqu'un
+   * d'autre, ce réglage ne reproduit donc pas l'intention exportée — il
+   * impose une pièce arbitraire, éventuellement sans rapport. `importRecipe`
+   * bascule ce choix sur « Libre » quand les comptes diffèrent.
+   *
+   * ⚠️ Optionnel : une recette exportée AVANT ce champ n'en a pas. On ne
+   * peut alors PAS savoir d'où elle vient, et on ne bascule rien — préserver
+   * le comportement connu vaut mieux qu'agir sur une provenance devinée.
+   */
+  wizardName?: string | null;
   requirement: BuildRequirement;
   objective: Objective;
   // Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md.
@@ -67,6 +129,16 @@ export interface OptimizerRecipe {
   excludedSelectors: ExclusionSelector[];
   ignoreArtifacts: boolean;
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
+  // Sous-propriétés d'artéfact exigées, minimum lu sur la PAIRE.
+  //
+  // ⚠️ **OPTIONNEL, et il doit le rester** : une recette exportée avant ce
+  // champ ne le porte pas. Tout lecteur applique `?? []` — voir
+  // « Compatibilité arrière » dans le skill `optimizer-field-propagation`.
+  //
+  // ⚠️ Purement de la saisie (un code de sous-propriété du jeu et un nombre) :
+  // rien à re-résoudre contre le compte de qui importe, contrairement à
+  // `excludedSelectors`. La règle de tête de ce fichier tient.
+  lignesVerrouillees?: LigneVerrouillee[];
 }
 
 export function buildOptimizerRecipe(input: Omit<OptimizerRecipe, 'version'>): OptimizerRecipe {

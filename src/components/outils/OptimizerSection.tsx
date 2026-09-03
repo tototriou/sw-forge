@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Ban,
   SlidersHorizontal,
   Wrench,
   Plus,
@@ -18,10 +17,35 @@ import {
   Unlock,
   Trash2,
   Eye,
+  Swords,
+  Pencil,
 } from 'lucide-react';
-import { ArtifactDetail, ARTIFACT_KINDS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { computeStats, statsParPaire } from '../../lib/stats';
+import ArtifactLinesEditor from './ArtifactLinesEditor';
+import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
+import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
+import {
+  bornesArtefacts,
+  chercherPaires,
+  meilleurCumulParLigne,
+  type ArtifactSearchParams,
+  nombreDePairesRetenues,
+  paireRepresentative,
+  respecteMinimums,
+  type ChoixPrincipale,
+} from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
-import { ARTIFACT_MAIN, CAPPED_STATS, RUNE_EFFECT, StatKey, runeSetIconFilter } from '../../lib/effects';
+import {
+  ARTIFACT_MAIN,
+  CAPPED_STATS,
+  RUNE_EFFECT,
+  StatKey,
+  formatArtifactMain,
+  runeSetIconFilter,
+  runeEfficiency,
+  runeScore,
+} from '../../lib/effects';
 import RuneIcon from '../RuneIcon';
 import {
   BuildRequirement,
@@ -33,12 +57,15 @@ import {
   BlockingConditionsDiagnosis,
   statTotal,
   objectiveScore,
+  sortCandidates,
   candidateMetricTotal,
+  pvEffectifs,
   OBJECTIVE_LABELS,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
   ARTIFACT_MAIN_VALUE,
   ARTIFACT_MAIN_OPTIONS,
+  type BuildCandidate,
 } from '../../lib/runeBuildOptim';
 import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
 import { monsterBaseStats } from '../../lib/stats';
@@ -46,6 +73,7 @@ import {
   DEFAULT_DAMAGE_SETUP,
   computeTotalDamage,
   damageRelevantStats,
+  degatsBrutsArtefactsParCoup,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
@@ -65,7 +93,12 @@ import {
   monsterModificateursVit,
   monsterOffensivePassives,
   resolveDamageSkill,
-  speedBuffAmpliPct,
+  champsDuCombat,
+  codesAmplificationActifs,
+  CRIT_MODE_LABELS,
+  SUMMONER_SKILLS_LABELS,
+  type DamageSetup,
+  artifactDamageProfile,
 } from '../../lib/damage';
 import {
   AUTO_EXCLUSION_SCOPES,
@@ -80,18 +113,22 @@ import {
   exclusionCandidatesFor,
   exclusionSelectorKey,
   findValidatedBuild,
+  otherValidatedArtifactIds,
   otherValidatedRuneIds,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
-import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
+import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
+import IconeInterdite from '../IconeInterdite';
 import MonsterAvatar from '../MonsterAvatar';
-import MonsterGear from '../MonsterGear';
+import MonsterGear, { type Selected as SelectionGear } from '../MonsterGear';
+import ArtifactFrameIcon from '../ArtifactFrameIcon';
+import ArtifactSubLigne from '../ArtifactSubLigne';
 import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
 import HelpPopover from '../HelpPopover';
@@ -116,11 +153,16 @@ import ExclusionCandidateRow from './ExclusionCandidateRow';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
-import DamageSetupCard from './DamageSetupCard';
+import DamageSetupModale from './DamageSetupModale';
+import EtatMonstre from './EtatMonstre';
 
 interface Props {
   box: BoxItem[];
   runes: RuneDetail[];
+  // Inventaire COMPLET d’artéfacts, pas seulement ceux du monstre affiché :
+  // le sélecteur de stat principale FILTRE désormais cet inventaire au lieu
+  // d’hypothéquer une pièce sans lignes d’effet (voir `searchArtifacts`).
+  artifacts: ArtifactDetail[];
   // Remontée dans App.tsx (voir useOptimizerState) : la page est démontée à
   // chaque changement d'onglet, comme les autres pages de l'app — sans cette
   // remontée, toute la saisie (monstre, conditions, résultats…) serait
@@ -137,6 +179,10 @@ interface Props {
   // useOptimizerLists.ts), ce qu'`optimizer` lui-même ne fait délibérément
   // pas.
   lists: UseOptimizerLists;
+  // Nom du joueur dont le compte est chargé — écrit dans la recette exportée,
+  // et comparé à l'import pour reconnaître une recette venue d'AILLEURS (voir
+  // `OptimizerRecipe.wizardName`). `null` quand le compte n'en porte pas.
+  accountName: string | null;
   // Panneau d'actions mobile « Options » — piloté par le bouton de la barre
   // de nav (voir App.tsx), même patron que RunesOptim.tsx. Réglages avancés
   // et Exclusion de runes y vivent au doigt ; en ligne (cartes) au bureau.
@@ -219,7 +265,55 @@ function unownedSelectorIfNoneOwned(monster: Monster, box: BoxItem[], exclusionD
 // build déjà validé pour ce monstre (Lot 2) — un simple `===` sur les
 // tableaux ne suffirait pas, `runeIds` n'est jamais garanti dans le même
 // ordre d'un calcul à l'autre.
-function sameRuneIds(a: number[], b: number[]): boolean {
+/**
+ * L'état de validation d'un build affiché, vis-à-vis de celui qui est réservé.
+ *
+ * ⚠️ **Trois états, pas deux.** Comparer les seules runes rendait invalidable
+ * un build aux MÊMES runes mais aux artéfacts DIFFÉRENTS : l'utilisateur
+ * voyait des stats qui ne sont pas celles réservées, et le bouton disait
+ * « Validé » sans rien offrir. Le cas est devenu courant depuis que la paire
+ * suit le critère de tri (voir spec/outils/optimizer/artefacts.md, §12.16) :
+ * changer de tri change la paire, donc les stats, à runes identiques.
+ *
+ * Un artéfact entre dans les statistiques du monstre — deux paires
+ * différentes, ce sont deux builds différents.
+ */
+type EtatValidation = 'non' | 'oui' | 'artefacts';
+
+/**
+ * Même ensemble d'ids ? Sert aux runes ET aux artéfacts — c'est la même
+ * question, et un build validé mémorise les deux (`ValidatedBuild.runeIds`,
+ * `ValidatedBuild.artifactIds`).
+ */
+/**
+ * Sur QUOI la paire d’artéfacts doit-elle être optimisée, pour un critère de
+ * classement donné ?
+ *
+ * ⚠️ **Un artéfact ne peut bouger que PV, ATQ et DEF** — sa stat principale
+ * est plate et ne porte rien d’autre (`ARTIFACT_MAIN`, effects.ts). Tous les
+ * autres critères (efficience, VIT, TC, DCC, RES, PRE) sont donc INSENSIBLES
+ * à la paire : ils partagent un seul régime, `'aucun'`, et basculer de l’un à
+ * l’autre ne doit RIEN recalculer.
+ *
+ * ⚠️ **Les stats plates sont un régime à part entière, et c’était un défaut.**
+ * Trier par ATQ classait sur une ATQ dont la paire avait été choisie par la
+ * somme des principales : PV+1500 × 2 (somme 3000) gagnait contre ATQ+100 × 2
+ * (somme 200), alors que c’est la seconde qui maximise la valeur affichée.
+ * Même défaut d’ordre que le §12.0, transposé au tri.
+ *
+ * ⚠️ Le régime sert AUSSI de clé de cache (`signatureArtefacts`) : deux
+ * critères ne la partagent que si la paire optimale est démontrablement la
+ * même. Trop regrouper afficherait une paire périmée.
+ */
+type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
+
+function regimeArtefacts(critere: OptimizerSortKey): RegimeArtefacts {
+  if (critere === 'degats_reels' || critere === 'ehp') return critere;
+  if (critere === 'hp' || critere === 'atk' || critere === 'def') return critere;
+  return 'aucun';
+}
+
+function memesIds(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
   const sa = [...a].sort((x, y) => x - y);
   const sb = [...b].sort((x, y) => x - y);
@@ -260,7 +354,17 @@ function download(filename: string, text: string) {
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir spec/outils/optimizer/.
-export default function OptimizerSection({ box, runes, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, menuOuvert, onFermerMenu }: Props) {
+// Les deux crans de « Meilleurs artéfacts offensifs pour ce build ».
+//
+// ⚠️ Défini ici et non dans `runeBuildOptim.ts` avec `OBJECTIVE_LABELS` : ce
+// n'est PAS un objectif de recherche de runes — il ne change rien aux builds
+// trouvés, seulement la paire d'artéfacts proposée par-dessus l'un d'eux.
+const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
+  { key: 'brut', label: 'Dégâts supplémentaires' },
+  { key: 'reel', label: 'Dégâts réels' },
+];
+
+export default function OptimizerSection({ box, runes, artifacts, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -281,10 +385,14 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setMaxStats,
     excludeBase,
     setExcludeBase,
-    ignoreArtifacts,
-    setIgnoreArtifacts,
+    optimiserArtefacts,
+    setOptimiserArtefacts,
+    adapterArtefactsAuTri,
+    setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
+    lignesVerrouillees,
+    setLignesVerrouillees,
     mainStatsBySlot,
     setMainStatsBySlot,
     lockedRunes,
@@ -315,8 +423,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setDiagnoseBlockingEnabled,
     stoppedManually,
     setStoppedManually,
-    openRuneKey,
-    setOpenRuneKey,
+    openDetailKey,
+    setOpenDetailKey,
     search,
     resetSearch,
   } = optimizer;
@@ -377,13 +485,98 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     () => resolveDamageSkill(damageSkills, damageSetup.skillCom2usId),
     [damageSkills, damageSetup.skillCom2usId]
   );
+  /**
+   * Quel build de résultat est actuellement COMPARÉ à la référence — sa clé
+   * de runes, ou `null`. Un seul à la fois : deux comparaisons ouvertes
+   * n'auraient pas de sens, elles partagent la même référence.
+   *
+   * ⚠️ **La référence, c'est la fiche affichée**, et ça suffit à couvrir les
+   * deux cas demandés. `selected.gear` EST déjà le build validé quand il en
+   * existe un (substitution des runes ET des artéfacts, voir le `useMemo` de
+   * `selected`), et l'équipement réel sinon. Recalculer ici « validé sinon
+   * courant » aurait dupliqué cette résolution — et raté le cas « Voir le
+   * runage réellement porté », qui la désactive exprès.
+   */
+  const [compareKey, setCompareKey] = useState<string | null>(null);
+  // La description du combat sort du flux (voir DamageSetupModale.tsx) : cet
+  // état dit seulement si elle est ouverte.
+  const [setupOuvert, setSetupOuvert] = useState(false);
+  /**
+   * Sur quoi « Meilleurs artéfacts offensifs pour ce build » optimise.
+   *
+   * ⚠️ **Un segmenté, PAS un bouton qui déclenche.** La qualité première de ce
+   * bloc est d'apparaître sans qu'on l'ait demandé : un bouton le ferait
+   * disparaître par défaut. Le cran « Dégâts supplémentaires » est donc
+   * calculé en permanence — il est bon marché (ni sort, ni cible, ni
+   * critique) ; « Dégâts réels » ne coûte que quand on le choisit.
+   *
+   * ⚠️ Défaut sur le brut, et il le REDEVIENT à chaque changement de monstre
+   * (voir `pickSpecies`) : un sort appartient à un monstre.
+   */
+  const [critereArtefacts, setCritereArtefacts] = useState<'brut' | 'reel'>('brut');
+  // `EtatMonstre` écrit un PATCH, là où `DamageSetupCard` reçoit le `setState`
+  // entier — même état, deux vues (voir EtatMonstre.tsx).
+  const majDamageSetup = (patch: Partial<DamageSetup>) => setDamageSetup((s) => ({ ...s, ...patch }));
+  /**
+   * Ce que l'état du monstre suppose, en une ligne — l'écho posé dans le
+   * sous-titre de la fenêtre « Dégâts réels ».
+   *
+   * ⚠️ **En lecture seule, jamais des contrôles.** Ces cinq réglages vivent
+   * désormais dans la carte Artéfacts ; les rendre AUSSI dans la fenêtre en
+   * ferait deux exemplaires vivants du même interrupteur, visibles en même
+   * temps. Qui ouvre la fenêtre pour décrire un combat doit néanmoins savoir
+   * sous quelles hypothèses il travaille — d'où la phrase, et rien de plus.
+   */
+  const echoEtatMonstre = useMemo(() => {
+    const bouts = [
+      damageSetup.atkBuff && 'buff ATQ',
+      damageSetup.defBuff && 'buff DEF',
+      damageSetup.spdBuff && 'buff VIT',
+      damageSetup.leaderSkill && `lead ${damageSetup.leaderSkill.stat} +${damageSetup.leaderSkill.pct} %`,
+      SUMMONER_SKILLS_LABELS.find((s) => s.key === damageSetup.summonerSkills)?.label,
+    ].filter(Boolean);
+    return `État du monstre : ${bouts.length > 0 ? bouts.join(' · ') : 'aucun buff, aucun lead'}`;
+  }, [damageSetup]);
+  /**
+   * Ce que l'objectif « Dégâts réels » suppose, en une ligne — le résumé qui
+   * remplace la carte dans le flux, et la rouvre au clic.
+   *
+   * ⚠️ **Des valeurs RÉSOLUES, jamais celles stockées.** `skillCom2usId`
+   * désigne un sort d'un monstre DONNÉ : après un changement de monstre,
+   * `resolveDamageSkill` retombe silencieusement sur le sort par défaut du
+   * nouveau. Tant que la carte était affichée, on voyait le sort revenir au
+   * défaut ; derrière une modale fermée, afficher l'identifiant stocké ferait
+   * croire à un réglage qui n'est pas celui du calcul. On lit donc
+   * `resolvedSkill`, la même source que le calcul lui-même.
+   */
+  const resumeCombat = useMemo(() => {
+    const bouts: string[] = [];
+    bouts.push(resolvedSkill ? `S${resolvedSkill.slot} ${resolvedSkill.nom}` : 'Aucun sort exploitable');
+    const cible = ELEMENTS.find((e) => e.key === damageSetup.enemyElement);
+    bouts.push(cible ? `vs ${cible.label}` : 'élément ignoré');
+    bouts.push(`PV ${damageSetup.enemyHp.toLocaleString('fr-FR')}`);
+    // ⚠️ **La DEF et le critique seulement si le sort les CONSOMME**, via le
+    // même prédicat que la fenêtre (`champsDuCombat`). Cette ligne affichait
+    // « DEF 1000 » en dur — donc sur un S3 qui ignore la défense, où le champ
+    // n'existe même pas dans la fenêtre qu'elle résume. Signalé à l'usage.
+    const champs = champsDuCombat(resolvedSkill);
+    if (champs.defEnnemie) bouts.push(`DEF ${damageSetup.enemyDef.toLocaleString('fr-FR')}`);
+    if (champs.crit) {
+      bouts.push(CRIT_MODE_LABELS.find((c) => c.key === damageSetup.critMode)?.label ?? damageSetup.critMode);
+    }
+    // ⚠️ **Plus de buffs ici.** Cette ligne résume la FENÊTRE qu'elle rouvre,
+    // et les buffs n'y sont plus — ils ont leurs propres contrôles, toujours
+    // visibles, dans « État de mon monstre ». Les répéter en texte alors qu'ils
+    // sont réglables trois cartes plus haut ne fait que du bruit.
+    return bouts.join(' · ');
+  }, [resolvedSkill, damageSetup]);
   // Passifs offensifs de CE monstre (Feng Yan, Sia, Roid… — voir
   // spec/outils/degats-reels.md) — indépendants du sort choisi, calculés dès
   // qu'une fiche est chargée, comme `damageSkills`.
   const offensivePassives = useMemo(() => monsterOffensivePassives(skillDetail), [skillDetail]);
   // Modificateurs monstre-wide liés à la VIT (Ciri Eau/Rigna/Magic Order
   // Swordsinger, Sonia/Battle Angel) — ne dépendent que de la fiche, pas des
-  // artéfacts (contrairement à `ampliVitPct`, calculé plus bas après
+  // artéfacts (contrairement à `artefactsDegats`, calculé plus bas après
   // `searchArtifacts`) : ils font travailler la VIT au pré-filtrage même
   // pour un sort dont la formule ne la lit pas (voir `damageRelevantStats`).
   const critSiPlusRapide = useMemo(() => monsterCritSiPlusRapide(skillDetail), [skillDetail]);
@@ -525,6 +718,43 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const HARD_TIMEOUT_MS = 10 * 60 * 1000;
 
   const runeById = useMemo(() => new Map(runes.map((r) => [r.id, r])), [runes]);
+  // Jumeau de `runeById` : sert à rejouer la paire d'un build validé, qui n'en
+  // mémorise que les identifiants.
+  const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
+
+  // ⚠️ La page affichée, exposée à la file d’optimisation d’artéfacts. Elle est
+  // remplie APRÈS `pageCandidates` (plus bas) : une ref, parce que la file est
+  // déclarée AVANT lui et ne peut donc pas recevoir sa valeur.
+  const pageAfficheeRef = useRef<BuildCandidate[]>([]);
+
+  /**
+   * La sélection de « Équipement actuel », dérivée de la MÊME clé que les
+   * cartes de résultat.
+   *
+   * ⚠️ **Un seul état pour tout l'écran.** La fiche gérait sa propre sélection :
+   * son détail restait donc ouvert en même temps que celui d'une carte. Plutôt
+   * qu'un second état à synchroniser — qui se désynchronise au premier chemin
+   * oublié —, elle est CONTRÔLÉE depuis `openDetailKey`, avec son propre
+   * préfixe `fiche-`.
+   *
+   * ⚠️ Les deux `<MonsterGear>` de cet écran (bureau et téléphone) sont deux
+   * rendus du MÊME contenu : les brancher sur la même clé est ce qui leur évite
+   * de diverger.
+   */
+  const selectionFiche = useMemo((): SelectionGear => {
+    if (!openDetailKey?.startsWith('fiche-')) return null;
+    const reste = openDetailKey.slice('fiche-'.length);
+    if (reste === 'relic') return { kind: 'relic' };
+    if (reste.startsWith('r')) return { kind: 'rune', i: Number(reste.slice(1)) };
+    if (reste.startsWith('a')) return { kind: 'artifact', i: Number(reste.slice(1)) };
+    return null;
+  }, [openDetailKey]);
+
+  const setSelectionFiche = (s: SelectionGear) => {
+    if (!s) return setOpenDetailKey(null);
+    if (s.kind === 'relic') return setOpenDetailKey('fiche-relic');
+    setOpenDetailKey(`fiche-${s.kind === 'rune' ? 'r' : 'a'}${s.i}`);
+  };
 
   // Sert à ramener l'écran sur « Set de runes recherché » quand une
   // recherche est tentée sans set choisi (voir `handleSearch`) — sans ça, le
@@ -624,7 +854,43 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // seules (demande explicite, voir ExclusionSelector « unowned »).
   function pickSpecies(monster: Monster) {
     const id = String(monster.id);
-    if (id !== selectedId) resetSearch();
+    if (id !== selectedId) {
+      resetSearch();
+      /**
+       * ⚠️ **Un sort appartient à un MONSTRE.** `skillCom2usId` désigne un
+       * sort précis ; après un changement de monstre, `resolveDamageSkill`
+       * retombe silencieusement sur le sort par défaut du nouveau. Tant que
+       * la carte de combat était dépliée sous l'objectif on voyait le sort
+       * revenir au défaut ; derrière une fenêtre fermée, ce repli devient
+       * invisible et l'on croirait calculer sur un sort qu'on a choisi.
+       *
+       * Remettre les deux sélecteurs au défaut rend ce repli IMPOSSIBLE
+       * plutôt que visible. Réoptimiser en dégâts demande alors de recliquer
+       * « Dégâts réels » et de rechoisir le sort — le geste qui manquait.
+       *
+       * ⚠️ **`damageSetup` n'est PAS remis à zéro pour autant.** La défense,
+       * les PV et l'élément de l'adversaire, les buffs, le lead : rien de
+       * tout cela n'est propre au monstre, et c'est le plus long à
+       * ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec le
+       * combat déjà décrit, seul le sort restant à choisir. Seul
+       * `skillCom2usId` est vidé, pour que la valeur STOCKÉE soit celle
+       * réellement utilisée — sinon un identifiant périmé traîne, inerte
+       * tant que le cran est au défaut, et ressort au prochain « Dégâts
+       * réels ».
+       *
+       * ⚠️ **Ici et surtout PAS dans un `useEffect` sur le monstre
+       * sélectionné** : `importRecipe` pose le monstre ET l'objectif
+       * directement, sans passer par cette fonction — un effet se
+       * déclencherait APRÈS l'import et écraserait l'objectif de la recette
+       * qu'on vient de charger.
+       *
+       * ⚠️ Granularité : l'ESPÈCE. Passer de Box à RTA ne passe pas par ici,
+       * et c'est voulu — les sorts restent les mêmes.
+       */
+      setObjective('efficience');
+      setCritereArtefacts('brut');
+      setDamageSetup((s) => ({ ...s, skillCom2usId: null }));
+    }
     setSelectedId(id);
     setGearSource('box');
     const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
@@ -663,6 +929,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const [releaseConfirm, setReleaseConfirm] = useState<{ listId: string; selector: ExclusionSelector } | null>(null);
   // Confirmation avant de libérer TOUTES les runes validées d'une liste
   // d'un coup (Lot 3) — porte l'id de la liste concernée.
+  // Confirmation avant de rendre la PAIRE d’artéfacts d’un build validé,
+  // ses runes restant réservées — destructif comme `releaseConfirm`, donc
+  // confirmé de la même façon.
+  const [releaseArtifactsConfirm, setReleaseArtifactsConfirm] = useState<{
+    listId: string;
+    selector: ExclusionSelector;
+  } | null>(null);
   const [releaseAllConfirm, setReleaseAllConfirm] = useState<string | null>(null);
   // Confirmation avant de retirer un monstre DÉJÀ VALIDÉ de la liste — le
   // retrait libère aussi ses runes (voir `removeMember`), donc destructif
@@ -727,14 +1000,69 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           const validatedRunes = ownValidatedBuild.runeIds
             .map((id) => runeById.get(id))
             .filter((r): r is RuneDetail => !!r);
-          return { monster: resolved.monster, gear: { ...resolved.gear, runes: validatedRunes } };
+          // ⚠️ **Les ARTÉFACTS aussi, pas seulement les runes.** Ne substituer
+          // que les runes rejouait la paire que le monstre porte AUJOURD'HUI,
+          // alors que la recherche en avait retenu une autre — défaut signalé à
+          // l'usage. Un build validé est un instantané complet.
+          //
+          // ⚠️ Repli sur les artéfacts réels quand le build validé n'en porte
+          // pas : c'est le cas des builds validés AVANT que ce champ existe.
+          // Mieux vaut la paire réelle que pas d'artéfact du tout.
+          const validatedArts = (ownValidatedBuild.artifactIds ?? [])
+            .map((id) => artifactById.get(id))
+            .filter((a): a is ArtifactDetail => !!a);
+          return {
+            monster: resolved.monster,
+            gear: {
+              ...resolved.gear,
+              runes: validatedRunes,
+              artifacts: validatedArts.length > 0 ? validatedArts : resolved.gear.artifacts,
+            },
+          };
         }
         return resolved;
       }
     }
     if (!speciesMonster) return null;
     return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
-  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, showRealGear]);
+  }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, artifactById, showRealGear]);
+
+  /**
+   * Les stats de RÉFÉRENCE du bouton « Comparer » — celles de la fiche.
+   *
+   * ⚠️ Déclarées ICI, juste après `selected`, et pas à côté de `compareKey`
+   * plus haut : `selected` est un `useMemo` déclaré à cette ligne, et le lire
+   * avant produit un « used before its declaration » que seul `tsc` attrape —
+   * `npm run build` passait sans broncher.
+   *
+   * ⚠️ **Rien à recalculer pour couvrir « validé sinon courant »** :
+   * `selected.gear` EST déjà le build validé quand il en existe un (runes ET
+   * artéfacts substitués, voir juste au-dessus), et l'équipement réel sinon.
+   * Refaire cette résolution ici l'aurait dupliquée, et aurait raté « Voir le
+   * runage réellement porté », qui la désactive exprès.
+   */
+  const statsReference = useMemo(() => (selected ? computeStats(selected.gear) : null), [selected]);
+  /**
+   * Les deux autres valeurs de référence du bouton « Comparer » : les PV
+   * effectifs et l'efficience/score total de la fiche.
+   *
+   * ⚠️ `pvEffectifs` vient de `runeBuildOptim`, la même fonction que celle qui
+   * CLASSE les candidats — recopier sa formule ici aurait donné deux nombres
+   * qui divergent au premier ajustement du facteur de défense.
+   *
+   * ⚠️ L'efficience se somme sur les runes de la fiche dans la mesure
+   * COURANTE, comme `candidateMetricTotal` le fait pour un candidat : figer la
+   * mesure de la recherche donnerait un écart faux dès qu'on bascule
+   * Efficience ↔ Score sans relancer.
+   */
+  const refEhp = useMemo(() => (statsReference ? pvEffectifs(statsReference) : null), [statsReference]);
+  const refMetric = useMemo(
+    () =>
+      selected
+        ? selected.gear.runes.reduce((n, r) => n + (metric === 'eff' ? runeEfficiency(r) : runeScore(r)), 0)
+        : null,
+    [selected, metric]
+  );
 
   // `unitKey` (box) de l'entrée à protéger contre sa propre exclusion —
   // seulement quand l'exemplaire RÉELLEMENT résolu est un exemplaire Box
@@ -767,6 +1095,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     if (auto.size === 0 && manual.size === 0 && reserved.size === 0) return runes;
     return runes.filter((r) => !auto.has(r.id) && !manual.has(r.id) && !reserved.has(r.id));
   }, [selected, selectedUnitKey, excludeUsedRunes, excludeUsedScope, excludedSelectors, exclusionData, runes, lists.validated, lists.activeListId, ownSelectorKey]);
+
+  // Artéfacts déjà réservés par les AUTRES builds validés de la liste active.
+  //
+  // ⚠️ Pendant symétrique de `reserved` ci-dessus, et pour la même raison : un
+  // artéfact physique ne se porte que sur UN monstre à la fois. Il n'a en
+  // revanche PAS d'équivalent des exclusions automatique et manuelle — celles-là
+  // portent sur des périmètres de runes (RTA / défenses de siège / box) et sur
+  // des sélecteurs de runes, sans notion d'artéfact.
+  const artefactsReserves = useMemo(
+    () => otherValidatedArtifactIds(lists.validated, lists.activeListId, ownSelectorKey),
+    [lists.validated, lists.activeListId, ownSelectorKey]
+  );
 
   // ⚠️ Purge les sélecteurs d'exclusion manuelle devenus AUTO-exclusion
   // depuis un changement de monstre recherché — `resolveExcludedRuneIds`
@@ -805,13 +1145,30 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
 
   // Artéfacts RÉELLEMENT transmis au moteur — indépendants de ceux affichés
   // dans « Équipement actuel » (toujours les VRAIS, une photo de l'existant,
-  // jamais modifiée par ces réglages). `ignoreArtifacts` coché = aucun
-  // artéfact compté. Sinon, chaque emplacement (Attribut/Type, voir
+  // jamais modifiée par ces réglages). Optimisation COUPÉE = on garde les
+  // pièces réellement portées, avec leurs statistiques — on cesse seulement
+  // d'en chercher d'autres. Activée, chaque emplacement (Attribut/Type, voir
   // ARTIFACT_KINDS) suit son propre choix : `'equipped'` (défaut) reprend
-  // l'artéfact réellement porté à cet emplacement DU BUILD DE BASE —
-  // comportement historique inchangé tant que rien n'est touché — un code
-  // de stat HYPOTHÈQUE un artéfact différent (même sans le posséder),
-  // `'none'` retire cet emplacement même s'il est réellement équipé.
+  // l'artéfact réellement porté à cet emplacement DU BUILD DE BASE, `'libre'`
+  // cherche parmi tous les éligibles, et un code de stat FILTRE l'inventaire
+  // sur cette principale.
+  //
+  // ⚠️ **Il n'existe plus de cran « Aucun ».** Vider UN emplacement pendant que
+  // l'autre cherche ne correspond à rien en jeu ; ne pas compter les artéfacts
+  // est une décision GLOBALE, portée par `optimiserArtefacts`. L'emplacement peut
+  // toujours rester vide si la recherche n'a rien de mieux à y mettre —
+  // `candidatsParSorte` propose `null` quel que soit le réglage.
+  //
+  // ⚠️ **Un code de stat n'hypothèque plus une pièce.** Il fabriquait avant un
+  // artéfact `subs: []` : en « Dégâts réels », choisir « ATQ » faisait alors
+  // calculer les dégâts SANS aucune ligne d'effet, quand « Comme équipé » les
+  // comptait — deux réglages voisins, deux modèles de dégâts, sans que rien ne
+  // le signale. On prend donc la paire RÉELLE que le choix d'artéfacts
+  // retiendrait pour l'équipement affiché (`paireRepresentative`).
+  //
+  // ⚠️ Ce `useMemo` doit rester le JUMEAU EXACT de `resolveArtifacts`
+  // (scripts/lib/recipeToSearchParams.ts) — deux constructeurs pour un même
+  // contrat, dont `tsc` ne verra jamais la divergence.
   // ⚠️ **`selected.gear` suit l'EXEMPLAIRE choisi par les 4 puces**
   // (`sourceSelector` — Box/RTA/Défenses siège/Offenses siège), pas
   // forcément un build Box : RTA et un deck de siège peuvent porter des
@@ -821,28 +1178,339 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // une garantie que ça matche le build qu'un joueur cherche réellement à
   // reproduire — d'où l'intérêt des deux autres choix pour hypothéquer un
   // artéfact différent sans avoir à changer de monstre.
-  const searchArtifacts = useMemo<ArtifactDetail[]>(() => {
-    if (!selected || ignoreArtifacts) return [];
-    const out: ArtifactDetail[] = [];
-    for (const { key } of ARTIFACT_KINDS) {
-      const choice = artifactMainByKind[key] ?? 'equipped';
-      if (choice === 'none') continue;
-      if (choice === 'equipped') {
-        const real = selected.gear.artifacts.find((a) => a.kind === key);
-        if (real) out.push(real);
-        continue;
-      }
-      out.push({ kind: key, level: 1, rarity: 5, main: { code: choice, value: ARTIFACT_MAIN_VALUE[choice] }, subs: [] });
+  //
+  // ⚠️ Les paramètres sont extraits dans leur PROPRE memo : la paire retenue et
+  // le diagnostic « pourquoi aucune ne passe » doivent partager EXACTEMENT la
+  // même définition. Deux constructions parallèles finiraient par diverger, et
+  // le diagnostic expliquerait alors une recherche qui n'a pas eu lieu.
+  /**
+   * Les emplacements d'artéfact dont la pièce est DÉJÀ décidée — « Garder
+   * l'artéfact équipé », donc un seul candidat, rien à chercher.
+   *
+   * ⚠️ **C'est le défaut**, pour les deux sortes : à l'ouverture, aucun
+   * emplacement ne cherche. Un verrou de sous-propriété y est alors sans
+   * effet — au mieux la pièce portée le tient déjà, au pire plus aucune paire
+   * ne passe et la recherche refuse de partir.
+   */
+  /**
+   * Le critère sur lequel la paire d’artéfacts est optimisée.
+   *
+   * ⚠️ **Le TRI si l’utilisateur le demande, l’OBJECTIF sinon.** Le tri est
+   * une VUE, l’optimisation une DÉCISION : les coupler d’office déplaçait la
+   * paire dès qu’on changeait de tri pour explorer. Voir
+   * `adapterArtefactsAuTri`.
+   */
+  const critereArtefactsPaire = adapterArtefactsAuTri ? sortBy : objective;
+  const regimePaire = regimeArtefacts(critereArtefactsPaire);
+
+  const sortesFigees = useMemo<ArtifactKind[]>(
+    () =>
+      ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (artifactMainByKind[key] ?? 'libre') === 'equipped'),
+    [artifactMainByKind]
+  );
+
+  const artifactParams = useMemo(() => {
+    // ⚠️ **Optimisation désactivée ≠ sans artéfact.** Les paramètres restent
+    // construits, avec « Garder l'artéfact équipé » IMPOSÉ des deux côtés : le
+    // monstre conserve les pièces qu'il porte réellement et leurs statistiques,
+    // on cesse seulement d'en chercher d'autres. Le réglage retirait avant
+    // TOUTE contribution d'artéfact, ce qui rendait les conditions minimales
+    // plus dures à franchir sans que rien ne le dise.
+    if (!selected) return null;
+    const espece = selected.monster;
+    // ⚠️ Le score de la paire dépend de l'OBJECTIF. Hors « Dégâts réels », la
+    // somme des principales suffit et reste EXACTE : `computeStats` ne lit que
+    // la principale d'un artéfact, jamais ses sous-propriétés — deux pièces de
+    // même principale ne se distinguent donc que par sa valeur, et une valeur
+    // plus haute n'est jamais pire pour l'efficience, la VIT ou les PV
+    // effectifs. Dérouler un modèle de dégâts ici noterait sur un critère qui
+    // n'est pas celui de la recherche.
+    //
+    // ⚠️ `resolvedSkill`/`offensivePassives` (plus haut) ne dépendent QUE de la
+    // fiche du monstre, jamais des artéfacts — c'est ce qui évite la
+    // circularité avec `realDamage`, qui est construit APRÈS ce bloc et lit
+    // `searchArtifacts`.
+    const evaluer =
+      objective === 'degats_reels' && resolvedSkill
+        ? (arts: ArtifactDetail[]) =>
+            computeTotalDamage(
+              resolvedSkill,
+              offensivePassives,
+              computeStats({ ...selected.gear, artifacts: arts }),
+              damageSetup,
+              espece.element,
+              artifactDamageProfile(arts)
+            )
+        : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+    return {
+      porteur: { element: espece.element, archetype: espece.archetype },
+      // ⚠️ **Amputé des artéfacts RÉSERVÉS** par les autres builds validés de
+      // la liste active : un artéfact physique ne se porte que sur un monstre à
+      // la fois, exactement comme une rune. Sans ça, deux monstres d'une même
+      // liste se verraient proposer la même pièce, et le plan serait
+      // inapplicable en jeu.
+      //
+      // ⚠️ Les artéfacts que CE monstre a lui-même réservés restent
+      // disponibles (auto-exemption dans `otherValidatedArtifactIds`) : sans
+      // elle, relancer une recherche sur un monstre déjà validé se
+      // priverait de ses propres pièces.
+      inventaire: artefactsReserves.size === 0 ? artifacts : artifacts.filter((a) => !artefactsReserves.has(a.id)),
+      equipes: selected.gear.artifacts,
+      principaleParSorte: (optimiserArtefacts
+        ? artifactMainByKind
+        : // ⚠️ Optimisation coupée : on GARDE ce qui est porté, des deux
+          // côtés. `candidatsParSorte` ne propose alors qu'un seul candidat
+          // par emplacement — la pièce réelle, avec ses sous-propriétés —, donc
+          // rien n'est cherché mais tout est compté.
+          { element: 'equipped', archetype: 'equipped' }) as Partial<Record<ArtifactKind, ChoixPrincipale>>,
+      // ⚠️ **Un verrou n'a aucun sens sans recherche.** Sans optimisation, ou
+      // avec les DEUX emplacements sur « Garder l'artéfact équipé », il n'y a
+      // qu'une paire possible : l'écarter parce qu'elle ne tient pas une ligne
+      // ne laisse aucune solution de rechange — `paireRepresentative` rend un
+      // tableau vide et la recherche refuse de partir. On les neutralise donc
+      // ici, en plus de les griser dans l'éditeur (voir `sortesFigees`).
+      //
+      // ⚠️ Les verrous restants ne sont PAS filtrés ligne par ligne : une ligne
+      // exclusive à une sorte figée est déjà retirée du choix par l'éditeur, et
+      // en garder une posée avant le changement reste FIDÈLE — elle exprime une
+      // exigence que la pièce figée doit satisfaire, ce que `paireRespecteLignes`
+      // vérifie correctement.
+      lignesVerrouillees:
+        optimiserArtefacts && sortesFigees.length < ARTIFACT_KINDS.length ? lignesVerrouillees : [],
+      // ⚠️ Sans ça, une amplification de buff est éliminée par dominance alors
+      // qu'elle vaut des dégâts — la sonde de pertinence ne peut pas la voir
+      // (voir `codesAmplificationActifs`, damage.ts).
+      codesAmplification: codesAmplificationActifs(damageSetup),
+      evaluer,
+    };
+  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
+
+  const searchArtifacts = useMemo<ArtifactDetail[]>(
+    () => (artifactParams ? paireRepresentative(artifactParams) : []),
+    [artifactParams]
+  );
+
+  /**
+   * « Meilleurs artéfacts offensifs pour ce build » — l'optimisation d'artéfacts SEULE,
+   * sans recherche de runes.
+   *
+   * ⚠️ **Le calcul existe déjà** : `searchArtifacts` EST la meilleure paire
+   * pour l'équipement affiché, sous les contraintes courantes. Ce mode ne
+   * calcule donc rien de neuf — il MONTRE ce qui était jusqu'ici invisible, et
+   * le chiffre contre la paire réellement portée.
+   *
+   * Sert au cas qui a motivé la fonctionnalité : un monstre dont le build est
+   * figé par un autre objectif (un tank runé pour survivre) et à qui les
+   * artéfacts ajoutent des dégâts par-dessus, sans toucher aux runes.
+   *
+   * `null` quand la comparaison n'aurait pas de sens : hors « Dégâts réels »
+   * le score d'une paire est une somme de stats principales, pas un total
+   * comparable.
+   */
+  const modeArtefactsSeuls = useMemo(() => {
+    // ⚠️ **PAS de condition sur l'objectif — c'est tout l'intérêt.** Ce bloc
+    // était limité à « Dégâts réels », ce qui le rendait inutile exactement là
+    // où il sert le plus : un monstre runé pour SURVIVRE (efficience, PV
+    // effectifs, vitesse) porte de gros PV/DEF/VIT, que les lignes 218-221
+    // convertissent en dégâts — son build est déjà figé par un autre objectif,
+    // et les artéfacts se posent par-dessus. C'est le cas fondateur du cadrage
+    // (spec/outils/optimizer/artefacts.md, §1), et je l'avais exclu.
+    // ⚠️ Rien à montrer sans optimisation : ce bloc EST une optimisation
+    // d'artéfacts, et il répondrait « la meilleure paire est celle que tu
+    // portes » — vrai, mais uniquement parce qu'on lui a interdit d'en
+    // chercher une autre. Une réponse qui n'est vraie que par construction.
+    if (!artifactParams || !selected || !optimiserArtefacts) return null;
+    const espece = selected.monster;
+    // ⚠️ Un seul `computeStats` pour toutes les paires : l’apport d’un artefact
+    // est PLAT, donc les stats sans artefact se calculent une fois et chaque
+    // paire ne coute plus que trois additions (voir `statsParPaire`).
+    const statsAvecAffiche = statsParPaire(selected.gear);
+    /**
+     * ⚠️ **Les dégâts BRUTS des artéfacts (218-221), et rien d'autre.**
+     *
+     * Une première version notait avec `computeTotalDamage`, donc avec un
+     * SORT, une CIBLE et un mode de CRITIQUE. Trois choix que l'utilisateur n'a
+     * jamais faits quand son objectif de recherche n'est pas les dégâts : le
+     * sort tombait sur un défaut arbitraire, l'adversaire et le taux critique
+     * sur ceux d'un réglage jamais ouvert. Un classement bâti là-dessus a l'air
+     * juste et repose sur des hypothèses invisibles.
+     *
+     * Les lignes 218-221 ne critent pas et ignorent la défense adverse : elles
+     * se chiffrent donc **entièrement** à partir des stats du build et des
+     * buffs — base, runes, artéfacts, compétences d'invocateur, leader skill,
+     * et l'amplification des buffs par les artéfacts eux-mêmes. Aucun sort,
+     * aucune cible, aucun critique.
+     *
+     * ⚠️ Le nombre de coups n'entre pas : il multiplie toutes les paires
+     * pareil et ne change donc aucun classement.
+     */
+    const evaluerBrut = (arts: ArtifactDetail[]) =>
+      degatsBrutsArtefactsParCoup(
+        statsAvecAffiche(arts),
+        damageSetup,
+        espece.element,
+        artifactDamageProfile(arts)
+      );
+    /**
+     * ⚠️ **Le cran « Dégâts réels » choisit une AUTRE paire**, il ne réaffiche
+     * pas la même autrement — décision explicite. Il maximise les dégâts
+     * TOTAUX du sort visé contre l'adversaire décrit, quand `evaluerBrut`
+     * maximise les seuls dégâts supplémentaires. Les deux optima diffèrent :
+     * une paire chargée en Dgts CRIT bat une paire chargée en 218-221 sur le
+     * total, et perd sur le brut.
+     *
+     * ⚠️ **Ce que la fenêtre a rendu légitime.** Cette optimisation avait été
+     * RETIRÉE (voir §10 bis du cadrage) parce qu'elle reposait sur un sort,
+     * une cible et un mode de critique jamais choisis — « un classement qui a
+     * l'air juste et repose sur des hypothèses invisibles ». Choisir ce cran
+     * OUVRE la fenêtre : les hypothèses sont désormais vues et posées.
+     *
+     * ⚠️ Mêmes arguments que l'évaluateur de la file (voir `faireParams`) :
+     * les modificateurs monstre-wide (`critSiPlusRapide`,
+     * `bonusDegatsSelonVit`…) n'y sont pas passés là-bas non plus. Deux
+     * traitements différents pour la même question — « quelle paire ? » —
+     * auraient été pires qu'une omission partagée.
+     */
+    const evaluerReel =
+      resolvedSkill &&
+      ((arts: ArtifactDetail[]) =>
+        computeTotalDamage(
+          resolvedSkill,
+          offensivePassives,
+          statsAvecAffiche(arts),
+          damageSetup,
+          espece.element,
+          artifactDamageProfile(arts)
+        ));
+    // ⚠️ Repli sur le brut si aucun sort n'est calculable pour ce monstre —
+    // jamais un bloc vide : le cran resterait sur « Dégâts réels » sans que
+    // rien n'explique le silence.
+    const surLeReel = critereArtefacts === 'reel' && evaluerReel != null;
+    const evaluerDegats = surLeReel ? evaluerReel : evaluerBrut;
+    const paramsDegats: ArtifactSearchParams = { ...artifactParams, evaluer: evaluerDegats };
+    // ⚠️ Et donc une PAIRE propre : celle que la recherche a supposée maximise
+    // l'objectif de recherche, pas les dégâts. Les deux coïncident en « Dégâts
+    // réels » et divergent partout ailleurs.
+    const retenue = paireRepresentative(paramsDegats);
+    const actuels = selected.gear.artifacts;
+    const scoreActuel = evaluerDegats(actuels);
+    const scoreRetenu = evaluerDegats(retenue);
+    /**
+     * Pourquoi il n'y a rien à proposer — une PHRASE, jamais un bloc qui
+     * s'efface.
+     *
+     * ⚠️ **Le bloc disparaissait en silence** (`return null` sur
+     * `scoreRetenu <= 0`), et c'était la cause réelle du « il est affiché,
+     * sinon il disparaît » signalé à l'usage. Avec un emplacement figé il n'y a
+     * qu'une paire candidate — celle qui est portée : le bloc apparaissait ou
+     * non selon qu'elle porte des lignes de dégâts bruts. Un bloc qui va et
+     * vient sans raison visible se lit comme une panne.
+     *
+     * ⚠️ **Le figeage passe DEVANT « tu portes déjà la meilleure ».** Cette
+     * phrase-là serait vraie, mais uniquement parce qu'on a interdit de
+     * chercher : elle ferait passer une contrainte posée par l'utilisateur pour
+     * un verdict sur son inventaire.
+     */
+    const explication =
+      sortesFigees.length >= ARTIFACT_KINDS.length
+        ? 'Les deux emplacements sont sur « Garder l’artéfact équipé » : la paire est déjà décidée, il n’y a rien à chercher.'
+        : scoreRetenu <= 0
+          ? 'Aucun artéfact équipable n’apporte de dégâts supplémentaires pour ce critère.'
+          : null;
+    // ⚠️ Comparaison par IDENTIFIANT, jamais par référence : les pièces
+    // retenues viennent de l'inventaire, celles portées du `gear` — deux
+    // objets distincts peuvent désigner le même artéfact.
+    const memesPieces =
+      actuels.length === retenue.length &&
+      actuels.every((a) => retenue.some((b) => b.id === a.id && a.id > 0));
+    // ⚠️ **Ce que les VERROUS coûtent, chiffré ici et nulle part ailleurs.**
+    // Le calcul exige de désactiver l'élagage par obligation — on ne peut pas à
+    // la fois écarter une paire sans l'évaluer et connaître son score. C'est
+    // donc fait pour UN build, celui qu'on regarde, jamais pour les K de la
+    // file. L'élagage par pertinence et dominance reste actif : l'ordre de
+    // grandeur est celui d'une recherche sans verrou (~80 ms), pas d'un
+    // balayage complet.
+    //
+    // ⚠️ **Coût SUR CE BUILD, jamais coût global.** La recherche de runes
+    // tourne elle aussi sous le modèle contraint (les verrous s'appliquent à la
+    // paire supposée) : sans eux, d'autres builds auraient pu émerger. Le
+    // chiffrer exigerait de relancer toute la recherche — d'où le libellé, qui
+    // dit « sur ce build » et ne laisse pas croire au contrefactuel global.
+    const verrous = lignesVerrouillees.filter((l) => l.min > 0);
+    let coutVerrousPct: number | null = null;
+    // ⚠️ Pas de balayage supplémentaire quand il n'y a rien à proposer : ce
+    // calcul coûte une recherche de paires (~80 ms) pour un chiffre qu'on
+    // n'affichera pas.
+    if (explication == null && verrous.length > 0) {
+      const sans = chercherPaires({ ...paramsDegats, avecCoutDesVerrous: true }).meilleurSansVerrous;
+      if (sans != null && sans > scoreRetenu) coutVerrousPct = (1 - scoreRetenu / sans) * 100;
     }
-    return out;
-  }, [selected, ignoreArtifacts, artifactMainByKind]);
+    return {
+      // `null` = il y a bien une proposition à montrer. Sinon, la raison.
+      explication,
+      paire: retenue,
+      // ⚠️ Un DELTA ABSOLU, pas un pourcentage. La référence — les dégâts
+      // bruts des artéfacts portés — vaut ZÉRO dès que le monstre n’a aucune
+      // ligne 218-221, ce qui est le cas le plus intéressant : « tu n’en as
+      // pas, voilà ce que tu gagnerais ». Un pourcentage y serait infini ou
+      // masquerait le bloc.
+      //
+      // ⚠️ **Il peut être NÉGATIF, et ce n’est pas une anomalie.** La paire
+      // portée n’est candidate que si RIEN ne l’exclut : une principale
+      // imposée, une ligne verrouillée ou une pièce déjà réservée par un
+      // autre monstre de la liste la sortent du jeu. Le meilleur atteignable
+      // passe alors SOUS ce qu’on porte, et l’écart chiffre ce que la
+      // contrainte coûte — l’écran l’affiche donc dans les deux sens.
+      gainBrutParCoup: scoreRetenu - scoreActuel,
+      /**
+       * Ce que la paire retenue apporte EN ABSOLU, pas seulement l'écart avec
+       * celle qui est portée (demande explicite).
+       *
+       * ⚠️ Les deux répondent à des questions différentes, et le delta seul
+       * laissait la première sans réponse : « combien cette paire me
+       * rapporte-t-elle ? » contre « combien j'y gagne par rapport à
+       * maintenant ? ». Un gros gain sur une base nulle et un petit gain sur
+       * une grosse base affichaient le même nombre.
+       */
+      degatsParCoup: scoreRetenu,
+      // Ce que le chiffre MESURE, pour que l'écran n'ait pas à le redéduire :
+      // des dégâts bruts par coup, ou les dégâts totaux du sort visé.
+      surLeReel,
+      // ⚠️ Le cran demandé n'a pas pu être servi (aucun sort calculable pour
+      // ce monstre) : l'écran le DIT, plutôt que d'afficher un chiffre brut
+      // sous un libellé « Dégâts réels ».
+      reelIndisponible: critereArtefacts === 'reel' && evaluerReel == null,
+      dejaPorte: memesPieces,
+      coutVerrousPct,
+    };
+  }, [artifactParams, selected, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, resolvedSkill, offensivePassives]);
+
+  /**
+   * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
+   *
+   * ⚠️ On ne pré-calcule pas la faisabilité : un contrôle théorique pourrait
+   * annoncer « impossible » sur une combinaison en fait réalisable, ce qui est
+   * bien pire que de se taire. Le balayage étant exhaustif, il sait exactement
+   * ce que l'inventaire permet — on rapporte donc le meilleur cumul RÉELLEMENT
+   * atteignable, ligne par ligne, et l'utilisateur voit laquelle bloque et de
+   * combien.
+   *
+   * `null` tant qu'au moins une paire passe : ce bloc n'apparaît qu'en cas
+   * d'échec, il n'a rien à dire le reste du temps.
+   */
+  const diagnosticVerrous = useMemo(() => {
+    const verrous = lignesVerrouillees.filter((l) => l.min > 0);
+    if (!artifactParams || verrous.length === 0) return null;
+    if (nombreDePairesRetenues(artifactParams) > 0) return null;
+    return meilleurCumulParLigne(artifactParams, verrous);
+  }, [artifactParams, lignesVerrouillees]);
 
   // Contexte de score, exigé par `objectiveScore` pour cet objectif — `null`
   // si aucun sort n'est calculable, auquel cas l'écran ne propose jamais le
   // tri « Dégâts réels » (voir `sortOptions`). Après `searchArtifacts` :
-  // `ampliVitPct` en dépend (mêmes artéfacts que ceux réellement envoyés au
-  // moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
-  const ampliVitPct = useMemo(() => speedBuffAmpliPct(searchArtifacts), [searchArtifacts]);
+  // `artefactsDegats` en dépend (mêmes artéfacts que ceux réellement envoyés
+  // au moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
+  const artefactsDegats = useMemo(() => artifactDamageProfile(searchArtifacts), [searchArtifacts]);
   const realDamage = useMemo<RealDamageContext | null>(
     () =>
       resolvedSkill
@@ -851,7 +1519,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             setup: damageSetup,
             element: speciesMonster?.element ?? null,
             passifs: offensivePassives,
-            ampliVitPct,
+            artefacts: artefactsDegats,
             critSiPlusRapide,
             bonusDegatsSelonVit,
             bonusDegatsStack,
@@ -867,7 +1535,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       damageSetup,
       speciesMonster?.element,
       offensivePassives,
-      ampliVitPct,
+      artefactsDegats,
       critSiPlusRapide,
       bonusDegatsSelonVit,
       bonusDegatsStack,
@@ -891,6 +1559,38 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq, lockedRunes };
   }, [comboSets, minStats, maxStats, mainStatsBySlot, lockedRunes]);
 
+  /**
+   * Ce que l'INVENTAIRE d'artéfacts peut apporter, borné des deux côtés —
+   * ce qui décide de la FAISABILITÉ, là où `searchArtifacts` ne décide plus
+   * que de la NOTATION.
+   *
+   * ⚠️ **La paire représentative ne pouvait pas tenir ce rôle.** Elle est
+   * choisie pour son score ; en « Libre », `evaluer` somme les stats
+   * principales et retient donc deux PV+1500, apportant `+0 DEF` alors que
+   * l'inventaire contient des artéfacts DEF. Un minimum de DEF devait alors
+   * être franchi par les runes seules, sans raison — au point que forcer la
+   * principale sur DEF rendait PLUS de résultats que « Libre », qui autorise
+   * pourtant strictement plus de paires. Voir
+   * spec/outils/optimizer/artefacts.md, §12.
+   *
+   * ⚠️ **La borne est calculée PAR STAT ISOLÉE, donc pas conjointement
+   * atteignable** : avec des minimums sur PV, ATQ et DEF à la fois, le vecteur
+   * porte les trois maxima, alors qu'une paire ne compte que deux
+   * emplacements. C'est assumé — une borne optimiste ne peut que retenir trop.
+   * La vérification conjointe est faite en aval par `respecteMinimums`, qui
+   * n'est donc PAS optionnelle.
+   *
+   * ⚠️ Ne balaie que les stats réellement contraintes, dans le sens qui l'est
+   * (voir `bornesArtefacts`) — sans minimum ni maximum posé, aucun balayage.
+   */
+  const searchArtifactBounds = useMemo(() => {
+    if (!artifactParams) return undefined;
+    const avecMinimum = (Object.keys(requirement.minStats) as StatKey[]).filter((k) => (requirement.minStats[k] ?? 0) > 0);
+    const avecMaximum = (Object.keys(requirement.maxStats ?? {}) as StatKey[]).filter((k) => (requirement.maxStats?.[k] ?? 0) > 0);
+    if (avecMinimum.length === 0 && avecMaximum.length === 0) return undefined;
+    return bornesArtefacts(artifactParams, avecMinimum, avecMaximum);
+  }, [artifactParams, requirement]);
+
   // Indication du nombre de builds qui vont être testés — un ORDRE DE
   // GRANDEUR (le produit des pools filtrés par emplacement), pas le nombre
   // réellement exploré : le meet-in-the-middle n'énumère jamais ce produit en
@@ -912,8 +1612,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // ce que « satisfiable » garantit et ne garantit PAS.
   const feasibilityDiagnosis = useMemo<StatFeasibility[]>(() => {
     if (!selected) return [];
-    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, relic: selected.gear.relic, pool, requirement, metric });
-  }, [selected, searchArtifacts, pool, requirement, metric]);
+    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement, metric });
+  }, [selected, searchArtifacts, searchArtifactBounds, pool, requirement, metric]);
   const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
 
   // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
@@ -925,8 +1625,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
     if (!result || result.candidates.length > 0) return null;
-    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, relic: selected.gear.relic, pool, requirement, metric });
-  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, pool, requirement, metric]);
+    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement, metric });
+  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirement, metric]);
 
   // `adaptiveTrancheWeighting` (toggle « Prioriser les stats les plus
   // difficiles », voir SearchParams dans runeBuildOptim.ts) — réalloue le
@@ -962,6 +1662,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     run({
       base: selected.gear.base,
       artifacts: searchArtifacts,
+      // ⚠️ La FAISABILITÉ se décide ici, plus sur `artifacts` — voir
+      // `searchArtifactBounds` et SearchParams.artifactBounds.
+      artifactBounds: searchArtifactBounds,
       relic: selected.gear.relic,
       pool,
       requirement,
@@ -990,6 +1693,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     const recipe = buildOptimizerRecipe({
       monsterCom2usId: selected.monster.com2usId,
       monsterName: selected.monster.name,
+      // Sert au lecteur à savoir si la recette vient de SON compte — voir
+      // `OptimizerRecipe.wizardName` et le repli de `importRecipe`.
+      wizardName: accountName,
       requirement,
       objective,
       damageSetup,
@@ -1000,8 +1706,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       excludeUsedRunes,
       excludeUsedScope,
       excludedSelectors,
-      ignoreArtifacts,
+      ignoreArtifacts: !optimiserArtefacts,
       artifactMainByKind,
+      lignesVerrouillees,
     });
     const jour = new Date().toISOString().slice(0, 10);
     const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
@@ -1050,6 +1757,25 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [showAdvanced, setShowAdvanced]);
+
+  // « Exclusion de runes » (bureau) : même patron, mêmes raisons — repliée par
+  // défaut (demande explicite), donc dépliée hors flux pour ne pousser ni
+  // « Réglages avancés » en dessous ni la ligne d'estimation.
+  //
+  // ⚠️ État LOCAL et non remonté dans `useOptimizerState`, contrairement à
+  // `showAdvanced` : c'est de l'ouverture/fermeture d'écran, pas un critère de
+  // recherche. Rien à exporter dans une recette, rien à remettre à zéro au
+  // changement de monstre.
+  const exclusionRef = useRef<HTMLDivElement>(null);
+  const [showExclusion, setShowExclusion] = useState(false);
+  useEffect(() => {
+    if (!showExclusion) return;
+    const onDown = (e: MouseEvent) => {
+      if (exclusionRef.current && !exclusionRef.current.contains(e.target as Node)) setShowExclusion(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [showExclusion]);
 
   function importRecipe(file: File) {
     file.text().then((text) => {
@@ -1117,13 +1843,25 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       // contre CE compte au moment de la recherche (voir optimizerExclusion.
       // ts) — un monstre absent ici est silencieusement ignoré, pas une erreur.
       setExcludedSelectors(recipe.excludedSelectors ?? []);
-      setIgnoreArtifacts(recipe.ignoreArtifacts);
-      setArtifactMainByKind(recipe.artifactMainByKind);
+      setOptimiserArtefacts(!recipe.ignoreArtifacts);
+      // ⚠️ « Garder l'artéfact équipé » ne se partage pas — la règle, son
+      // pourquoi et le repli sur une provenance inconnue vivent dans
+      // `mainsPourCeCompte` (optimizerRecipe.ts), fonction pure et testée.
+      const { mains, bascules } = mainsPourCeCompte(recipe, accountName);
+      setArtifactMainByKind(mains);
+      // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas (voir
+      // `OptimizerRecipe.lignesVerrouillees`, optionnel exprès).
+      setLignesVerrouillees(recipe.lignesVerrouillees ?? []);
 
       // Les runes imposées ignorées (voir plus haut) sont signalées en
       // SUFFIXE du message d'import — un verrou perdu change réellement le
       // résultat, contrairement à un sélecteur d'exclusion introuvable.
-      const suffixeLocks = locksIgnores > 0 ? ` ${locksIgnores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.` : '';
+      const suffixeLocks = locksIgnores > 0 ? ` ${locksIgnores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.` : ''
+        // ⚠️ La bascule « Garder l'artéfact équipé » → « Libre » se DIT : elle
+        // change ce que la recherche va renvoyer, exactement comme un verrou
+        // perdu. Une recette qui se comporte autrement que chez son auteur,
+        // sans un mot, serait pire que la donnée transportée telle quelle.
+        + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '');
       // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
       // monstres possédés — la recherche « Monstre à optimiser » couvre
       // désormais tout le bestiaire (voir Question 1 du cadrage), donc une
@@ -1172,30 +1910,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // cette liste en pages, pour pouvoir visualiser TOUS les builds trouvés
   // (jusqu'à `MAX_COLLECTED`, voir runeBuildOptim.ts), pas seulement les
   // meilleurs 20.
-  const fullSortedCandidates = useMemo(() => {
-    if (!candidatesSource) return [];
-    const list = candidatesSource.slice();
-    if (sortBy === 'efficience') {
-      // ⚠️ PAS `objectiveScore`/`effTotal` ici : ce champ est figé dans la
-      // mesure active AU MOMENT DE LA RECHERCHE, et deviendrait incohérent
-      // avec le popover d'une rune (recalculé en direct) si l'utilisateur
-      // bascule Efficience ↔ Score après coup sans relancer.
-      list.sort((a, b) => candidateMetricTotal(b, runeById, metric) - candidateMetricTotal(a, runeById, metric));
-    } else if (sortBy === 'degats_reels') {
-      // ⚠️ `realDamage` peut être `null` (aucun sort calculable pour ce
-      // monstre) : ce tri n'est alors même pas proposé (voir `sortOptions`),
-      // mais un `sortBy` hérité d'un monstre précédent pourrait encore le
-      // porter — on laisse l'ordre en place plutôt que de lever.
-      if (realDamage) {
-        list.sort((a, b) => objectiveScore(b, sortBy, realDamage) - objectiveScore(a, sortBy, realDamage));
-      }
-    } else if (sortBy === 'ehp' || sortBy === 'vitesse') {
-      list.sort((a, b) => objectiveScore(b, sortBy) - objectiveScore(a, sortBy));
-    } else {
-      list.sort((a, b) => statTotal(b.stats, sortBy) - statTotal(a.stats, sortBy));
-    }
-    return list;
-  }, [candidatesSource, sortBy, runeById, metric, realDamage]);
+  // ⚠️ Le tri vit dans `sortCandidates` (runeBuildOptim.ts), PAS ici — il
+  // était inline, donc invisible et irréutilisable pour tout autre
+  // consommateur. Les scripts CLI prenaient `candidates[0]` ou
+  // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
+  // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
+  const fullSortedCandidates = useMemo(
+    () => (candidatesSource ? sortCandidates(candidatesSource, sortBy, { realDamage, runeById, metric }) : []),
+    [candidatesSource, sortBy, runeById, metric, realDamage]
+  );
 
   const RESULTS_PAGE_SIZE = 20;
   const totalResultsPages = Math.max(1, Math.ceil(fullSortedCandidates.length / RESULTS_PAGE_SIZE));
@@ -1210,10 +1933,247 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
     setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
   }, [totalResultsPages, setResultsPage]);
 
-  const pageCandidates = useMemo(
-    () => fullSortedCandidates.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
-    [fullSortedCandidates, resultsPage]
+  // ⚠️ `pageCandidates` est défini PLUS BAS, après la file d'optimisation
+  // d'artéfacts : la page affichée dépend du classement corrigé par les paires
+  // trouvées, qui n'existe qu'une fois la file déclarée.
+
+  /**
+   * Optimisation d'artéfacts des meilleurs builds, EN TEMPS MASQUÉ pendant que
+   * les Workers cherchent encore.
+   *
+   * ⚠️ Chaque build a SA paire : deux builds voisins n'appellent pas les mêmes
+   * artéfacts. `searchArtifacts` (la paire supposée, commune) ne sert plus qu'à
+   * noter les candidats pendant la recherche et de repli d'affichage tant que
+   * le vrai calcul n'a pas atteint ce build.
+   *
+   * ⚠️ La signature vide le cache dès qu'un réglage change QUELLES LIGNES
+   * COMPTENT — pas seulement l'inventaire : `analyserPertinence` en dépend,
+   * donc la paire gagnante aussi.
+   */
+  const signatureArtefacts = useMemo(
+    () =>
+      signatureReglages({
+        monstreCom2usId: selected?.monster.com2usId ?? -1,
+        // ⚠️ Le réglage ENTIER : n'en prendre que quelques champs laissait le
+        // cache intact quand on changeait le buff ATQ ou les PV de la cible.
+        damageSetup,
+        // ⚠️ Le TRI, pas l'objectif : c'est lui qui décide désormais du critère
+        // de choix de la paire (voir `faireParamsArtefacts`). Changer de tri
+        // entre Dégâts réels et PV effectifs change donc la meilleure paire, et
+        // doit vider le cache. Entre Efficience et Vitesse, rien ne change —
+        // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
+        // quand même, le cache est refait pour rien : coût borné (K builds en
+        // temps masqué), contre le risque d'afficher une paire périmée.
+        // ⚠️ **Le RÉGIME, pas le tri brut.** Deux critères ne partagent cette
+        // clé que si la paire optimale est démontrablement la même : c’est le
+        // cas de tous ceux qu’aucun artéfact ne touche (efficience, VIT, TC,
+        // DCC, RES, PRE), regroupés sous `'aucun'`. Basculer entre eux ne
+        // recalcule donc plus 100 builds pour retrouver la même paire.
+        // ⚠️ Trop regrouper afficherait une paire périmée — le régime est
+        // établi sur ce qu’un artéfact peut bouger, jamais sur une intuition.
+        objective: regimePaire,
+        ignoreArtifacts: !optimiserArtefacts,
+        principaleParSorte: artifactMainByKind,
+        lignesVerrouillees,
+        relique: selected?.gear.relic ?? null,
+        nbArtefacts: artifacts.length,
+      }),
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimePaire, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
   );
+
+  const faireParamsArtefacts = useMemo(() => {
+    // ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
+    // possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
+    // faire passer par la file lui ferait « choisir » entre un seul candidat,
+    // pour un résultat identique et cent tranches de temps masqué en pure
+    // perte.
+    if (!artifactParams || !selected || !optimiserArtefacts) return null;
+    return (c: BuildCandidate): ArtifactSearchParams => {
+      // ⚠️ Les stats sont recalculées avec LES RUNES DE CE CANDIDAT, pas celles
+      // de l'équipement affiché : la stat principale d'un artéfact entre dans
+      // les stats du monstre, donc comparer des paires sur un autre build
+      // comparerait des scores faux.
+      const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
+      // ⚠️ **UN seul `computeStats` par build, pas un par paire.** L’évaluateur
+      // tourne pour CHAQUE paire autorisée — quelques milliers en « Dégâts
+      // réels », où la dominance n’élague plus rien. L’apport d’un artéfact
+      // étant PLAT, les stats sans artéfact se calculent une fois et chaque
+      // paire ne coûte plus que trois additions (voir `statsParPaire`).
+      const statsAvec = statsParPaire(gear);
+      const espece = selected.monster;
+      /**
+       * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`),
+       * pas sur une somme de statistiques principales.
+       *
+       * L'ancien évaluateur hors « Dégâts réels » additionnait des PV plats
+       * (jusqu'à 1500) à des DEF plates (jusqu'à 100) — deux unités sans
+       * commune mesure. Sur un objectif de PV effectifs, il retenait donc deux
+       * PV+1500 (score 3000) alors qu'une paire DEF+100 / PV+1500 (score 1600)
+       * donne PLUS de PV effectifs : un ordre faux, pas une approximation.
+       * Voir spec/outils/optimizer/artefacts.md, §12.7 (défaut n° 2).
+       *
+       * ⚠️ **Et c'est `sortBy`, pas `objective`.** L'objectif fige le critère au
+       * lancement ; le tri, lui, peut changer après coup. Une paire optimisée
+       * pour les dégâts affichée dans une liste triée par PV effectifs
+       * montrerait une valeur qui n'est pas la meilleure atteignable.
+       *
+       * ⚠️ Sur Efficience et Vitesse, il n'y a RIEN à maximiser :
+       * `runeEfficiency` ne lit que les runes, et aucun artéfact ne donne de
+       * VIT. Deux paires valides y laissent le score identique — on garde donc
+       * la somme des principales, qui départage au moins sur la valeur brute,
+       * et le seul travail qui compte est la faisabilité (§12.6).
+       */
+      // ⚠️ **Quatre régimes, pas deux.** Les stats plates (PV/ATQ/DEF) sont un
+      // cas à part entière : trier par ATQ doit retenir la paire qui maximise
+      // l’ATQ, pas celle qui maximise la somme des principales — PV+1500 × 2
+      // (somme 3000) battait ATQ+100 × 2 (somme 200) sur un classement par ATQ.
+      //
+      // ⚠️ Sur le régime `'aucun'` (efficience, VIT, TC, DCC, RES, PRE), aucun
+      // artéfact n’entre dans le critère : deux paires valides y laissent le
+      // classement identique. La somme des principales n’y départage donc rien
+      // d’important — elle sert seulement à ne pas rendre une paire arbitraire.
+      const evaluer =
+        regimePaire === 'degats_reels' && resolvedSkill
+          ? (arts: ArtifactDetail[]) =>
+              computeTotalDamage(
+                resolvedSkill,
+                offensivePassives,
+                statsAvec(arts),
+                damageSetup,
+                espece.element,
+                artifactDamageProfile(arts)
+              )
+          : regimePaire === 'ehp'
+            ? (arts: ArtifactDetail[]) => pvEffectifs(statsAvec(arts))
+            : regimePaire !== 'aucun'
+              ? // Une stat PLATE : on maximise cette stat, et rien d’autre.
+                (arts: ArtifactDetail[]) =>
+                  statsAvec(arts).find((r) => r.key === regimePaire)?.total ?? 0
+              : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+      return { ...artifactParams, evaluer };
+    };
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, resolvedSkill, offensivePassives, damageSetup]);
+
+  const fileArtefacts = useArtifactOptimQueue({
+    // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
+    // corrigé par ses propres résultats : se nourrir de sa sortie créerait une
+    // boucle — chaque paire trouvée changerait le classement, donc le top K,
+    // donc la file.
+    triees: fullSortedCandidates,
+    // ⚠️ Accesseur : `pageCandidates` se calcule PLUS BAS (il dépend du
+    // classement corrigé par cette file). Lu au moment de traiter, il voit
+    // toujours la page réellement à l’écran.
+    pageAffichee: () => pageAfficheeRef.current,
+    faireParams: faireParamsArtefacts,
+    // ⚠️ Les stats du candidat ont été calculées avec la paire SUPPOSÉE. La
+    // principale d'un artéfact entrant dans les stats, il faut les refaire avec
+    // la paire retenue — sinon la carte montre des stats qui ne vont pas avec
+    // les artéfacts affichés juste à côté, et un tri par ATQ porte sur une
+    // valeur périmée.
+    calculerStats: (c, arts) =>
+      selected
+        ? computeStats({
+            ...selected.gear,
+            runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
+            artifacts: arts,
+          })
+        : c.stats,
+    /**
+     * ⚠️ **Le filtre final du §12.5 — obligatoire, pas facultatif.** Depuis
+     * que la faisabilité passe par `searchArtifactBounds`, la recherche valide
+     * les minimums contre une borne calculée PAR STAT ISOLÉE : avec des
+     * minimums sur PV, ATQ et DEF à la fois, elle suppose les trois maxima
+     * réunis, alors qu'une paire ne porte que deux principales. Des builds
+     * arrivent donc ici sans qu'aucune paire réelle ne les rende équipables —
+     * mesuré sur un cas réel, 99 sur 105. Sans ce prédicat, la borne élargie
+     * AFFICHERAIT ces builds : pire que de les manquer.
+     *
+     * `null` quand aucun minimum n'est posé — il n'y a alors rien à vérifier.
+     */
+    respecteConditions:
+      Object.values(requirement.minStats).some((v) => (v ?? 0) > 0) && selected
+        ? (c, arts) =>
+            respecteMinimums(
+              computeStats({
+                ...selected.gear,
+                runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
+                artifacts: arts,
+              }),
+              requirement.minStats
+            )
+        : null,
+    signature: signatureArtefacts,
+  });
+
+  /**
+   * Le profil de dégâts des artéfacts DE CE BUILD, quand sa paire est connue.
+   *
+   * ⚠️ Doit accompagner partout le remplacement des stats : noter des stats
+   * recalculées avec la vraie paire en gardant les lignes d'effet de la paire
+   * supposée mélangerait deux modèles.
+   *
+   * Mémoïsé sur le cache : `artifactDamageProfile` est appelé à chaque
+   * comparaison de tri, soit O(n log n) fois sur des dizaines de milliers de
+   * candidats.
+   */
+  const profilsParBuild = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof artifactDamageProfile>>();
+    for (const [cle, r] of fileArtefacts.parBuild) m.set(cle, artifactDamageProfile(r.artefacts));
+    return m;
+  }, [fileArtefacts.parBuild]);
+  const profilArtefactsDuBuild = (c: BuildCandidate) => profilsParBuild.get(cleBuild(c)) ?? null;
+
+  /**
+   * Le classement RÉEL : chaque build vu à travers sa vraie paire dès qu'elle
+   * est connue, puis retrié.
+   *
+   * ⚠️ **Un build optimisé peut donc passer devant, et c'est le comportement
+   * voulu** — plutôt qu'afficher un total supérieur à un rang inférieur, ce qui
+   * se lirait comme un défaut.
+   *
+   * ⚠️ Cette boucle « trier → optimiser → retrier » CONVERGE, elle ne
+   * s'emballe pas : optimiser un build ne peut que faire MONTER son score (la
+   * paire supposée fait partie des paires candidates, le maximum lui est donc
+   * toujours ≥). Un build optimisé monte ou reste ; un build non optimisé ne
+   * peut qu'être repoussé vers le bas. Aucun ne peut ENTRER dans les K premiers
+   * de ce fait — l'ensemble à traiter rétrécit, il ne s'élargit jamais.
+   *
+   * ⚠️ La file, elle, lit `fullSortedCandidates` (l'ordre de BASE) et non ce
+   * classement-ci : c'est ce qui borne le nombre de re-tris, et c'est ce qui
+   * fait que changer le tri d'affichage repriorise la file sans rien invalider
+   * (le cache est indexé par build).
+   */
+  const affichees = useMemo(() => {
+    if (fileArtefacts.parBuild.size === 0) return fullSortedCandidates;
+    // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
+    // ICI** (§12.5). Ils ont franchi la borne du moteur, calculée par stat
+    // isolée, sans qu'une paire puisse fournir les appoints simultanément.
+    // Un build non conforme reste AFFICHÉ tant que sa paire n'a pas été
+    // cherchée (absent du cache) : c'est le seul état honnête — on ne sait pas
+    // encore. La file traite la page affichée en priorité, donc le verdict
+    // arrive vite sur ce qu'on regarde.
+    const avecPaire = fullSortedCandidates
+      .filter((c) => fileArtefacts.parBuild.get(cleBuild(c))?.conforme !== false)
+      .map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
+    return sortCandidates(avecPaire, sortBy, {
+      realDamage,
+      runeById,
+      metric,
+      // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
+      // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
+      // doivent suivre. Sinon on note les stats d'un modèle avec les effets
+      // d'un autre.
+      artefactsDuBuild: (c) => profilArtefactsDuBuild(c),
+    });
+  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, realDamage, runeById, metric]);
+
+  const pageCandidates = useMemo(
+    () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
+    [affichees, resultsPage]
+  );
+  // ⚠️ Renseignée à CHAQUE rendu : c’est ce qui fait qu’un changement de page
+  // repriorise la file sans rien relancer ni invalider.
+  pageAfficheeRef.current = pageCandidates;
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
@@ -1228,7 +2188,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   }
 
   // Contribution des artéfacts EFFECTIVEMENT comptés (voir searchArtifacts)
-  // à une stat donnée — 0 si `ignoreArtifacts` ou si aucun artéfact n'est
+  // à une stat donnée — 0 si aucun artéfact n'est
   // supposé sur cette stat. Sert de PLANCHER pour les conditions ci-dessous :
   // avec zéro rune, un monstre a déjà AU MOINS ce bonus en jeu (voir
   // `baseOf`) — le champ ne doit jamais laisser demander moins. N'affecte
@@ -1328,6 +2288,10 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // runes) le bouton affiche « Validé » (identique à `BuildCandidateCard`)
   // plutôt que de re-valider inutilement les mêmes runes.
   const displayedRuneIds = selected?.gear.runes.map((r) => r.id) ?? [];
+  // Jumeau de `displayedRuneIds` : la paire réellement affichée sur la fiche.
+  // ⚠️ Nécessaire pour qu’un build validé rejoue SES artéfacts et non ceux que
+  // le monstre porte aujourd’hui — le défaut signalé à l’usage.
+  const displayedArtifactIds = selected?.gear.artifacts.map((a) => a.id) ?? [];
   // Les runes AFFICHÉES sont-elles EXACTEMENT le build validé ? Presque
   // toujours équivalent à `!!ownValidatedBuild` (la substitution dans
   // `selected` le garantit dès que `showRealGear` est `false`) — mais PAS
@@ -1335,7 +2299,45 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // RÉEL, qui peut différer du build validé (c'est justement le but du
   // bouton). Sert à distinguer « un build validé EXISTE pour cet
   // exemplaire » de « ce qui est affiché EN CE MOMENT est ce build ».
-  const matchesValidatedBuild = !!ownValidatedBuild && sameRuneIds(ownValidatedBuild.runeIds, displayedRuneIds);
+  /**
+   * L'état de validation d'un build donné (ses runes, sa paire) face à celui
+   * qui est réservé pour cet exemplaire.
+   *
+   * ⚠️ `?? []` sur `artifactIds` : les builds validés AVANT ce champ n'en ont
+   * pas (voir `ValidatedBuild`). On les traite comme « artéfacts à valider »
+   * dès que la paire affichée n'est pas vide — c'est vrai, et ça permet de
+   * les compléter au lieu de les laisser figés sans recours.
+   */
+  const etatValidation = (runeIds: number[], artifactIds: number[]): EtatValidation => {
+    if (!ownValidatedBuild || !memesIds(ownValidatedBuild.runeIds, runeIds)) return 'non';
+    // ⚠️ **Le MÊME filtre que `validateBuild`** (useOptimizerLists.ts) : les
+    // ids ≤ 0 désignent une pièce SYNTHÉTIQUE, absente du compte, et ne sont
+    // jamais mémorisés. Comparer sans ce filtre laisserait le bouton bloqué
+    // sur « Valider les artéfacts » à l'infini — on validerait, puis on
+    // comparerait la paire affichée à une paire stockée forcément plus courte.
+    const reels = artifactIds.filter((id) => id > 0);
+    return memesIds(ownValidatedBuild.artifactIds ?? [], reels) ? 'oui' : 'artefacts';
+  };
+  const etatFiche = etatValidation(displayedRuneIds, displayedArtifactIds);
+  // ⚠️ « Déjà réservé À L'IDENTIQUE » — donc plus rien à faire. Un build aux
+  // mêmes runes mais à une autre paire N'EN FAIT PAS partie : il reste à
+  // valider, sur ses artéfacts.
+  const matchesValidatedBuild = etatFiche === 'oui';
+  /**
+   * La paire proposée par « Meilleurs artéfacts offensifs » est-elle déjà
+   * celle qui est réservée ?
+   *
+   * ⚠️ Même filtre `id > 0` que `validateBuild`/`validateArtifacts` : les
+   * pièces SYNTHÉTIQUES ne sont jamais mémorisées, et comparer sans ce filtre
+   * laisserait le bouton indéfiniment sur « Valider ces artéfacts ».
+   */
+  const artefactsProposesDejaReserves =
+    !!ownValidatedBuild &&
+    !!modeArtefactsSeuls &&
+    memesIds(
+      ownValidatedBuild.artifactIds ?? [],
+      modeArtefactsSeuls.paire.map((a) => a.id).filter((id) => id > 0)
+    );
   // ⚠️ Jamais valider une rune déjà réservée pour un AUTRE monstre de LA
   // MÊME liste active — demande explicite. Contrairement à un résultat de
   // recherche (dont le pool exclut déjà `otherValidatedRuneIds`, voir
@@ -1369,13 +2371,30 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
       .filter((c): c is { slot: number | null; monsterName: string } => c != null);
   const displayedRuneConflicts = conflitsDeRunes(displayedRuneIds);
   const canValidateDisplayed = !!sourceSelector && displayedRuneIds.length === 6 && displayedRuneConflicts.length === 0;
+  /**
+   * Réserve la paire proposée par « Meilleurs artéfacts offensifs ».
+   *
+   * ⚠️ **Deux gestes derrière un seul bouton, et le libellé les
+   * distingue.** Sur un exemplaire DÉJÀ validé, seule la paire change — les
+   * runes réservées ne bougent pas. Sur un exemplaire qui ne l’est pas
+   * encore, réserver une paire seule fabriquerait une entrée sans runage,
+   * que tout le reste du code lit comme « 6 runes » : on valide donc le
+   * build affiché AVEC cette paire, ce que le bouton annonce.
+   */
+  function handleValidateArtefacts() {
+    if (!sourceSelector || !lists.activeListId || !modeArtefactsSeuls) return;
+    const ids = modeArtefactsSeuls.paire.map((a) => a.id);
+    if (ownValidatedBuild) lists.validateArtifacts(lists.activeListId, sourceSelector, ids);
+    else if (canValidateDisplayed) lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids);
+  }
+
   function handleValidateDisplayed() {
     if (!sourceSelector || !canValidateDisplayed) return;
     if (!lists.activeListId) {
       setAddListPromptOpen('validate');
       return;
     }
-    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds);
+    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds);
   }
 
   // Bandeau « build validé », devenu une BASCULE — demande explicite : en
@@ -1411,17 +2430,269 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
   // `displayedRuneConflicts`) OU que c'est déjà EXACTEMENT le build validé
   // (`matchesValidatedBuild` — PAS `ownValidatedBuild` seul, qui reste vrai
   // même en vue « runage réellement porté », voir son commentaire).
+  /**
+   * Le bloc « Meilleurs artéfacts offensifs pour ce build », sous la fiche.
+   *
+   * ⚠️ Rendu à CÔTÉ de la fiche et jamais À LA PLACE de ses artéfacts : la
+   * fiche montre l'équipement RÉEL, c'est son rôle. Y substituer une
+   * proposition ferait croire à un équipement qu'on ne porte pas — le défaut
+   * exact qu'on vient de corriger pour les builds validés.
+   */
+  const blocArtefactsSeuls = modeArtefactsSeuls && (
+    <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        {/* ⚠️ **« offensifs » est REVENU dans le titre**, après avoir été
+            retiré. Le retrait visait « les plus offensifs », qui disait
+            vaguement ce que le bloc maximisait à un moment où rien d'autre ne
+            le disait ; le segmenté ci-dessous le dit maintenant précisément.
+            Mais le mot manquait pour la question d'AVANT celle-là : ce bloc ne
+            cherche pas la meilleure paire dans l'absolu, il cherche la plus
+            offensive — et ses deux crans (dégâts bruts, dégâts du sort) sont
+            offensifs l'un comme l'autre. Sans lui, « meilleurs » se lisait
+            comme un verdict général, alors qu'un tank peut parfaitement
+            vouloir tout autre chose. */}
+        <span className="label">Meilleurs artéfacts offensifs pour ce build</span>
+        {/* ⚠️ **L'ABSOLU d'abord, l'écart ensuite** (demande explicite). Le
+            delta seul laissait sans réponse « combien cette paire me
+            rapporte-t-elle ? » : un gros gain sur une base nulle et un petit
+            gain sur une grosse base affichaient le même nombre.
+            ⚠️ L'absolu s'affiche TOUJOURS, même quand on porte déjà la
+            meilleure paire — c'est justement là qu'il est seul à dire quelque
+            chose, l'écart valant zéro. L'écart, lui, ne s'affiche que s'il y a
+            quelque chose à gagner. */}
+        {/* ⚠️ Aucun chiffre quand il n'y a rien à proposer : un « 0 / coup »
+            se lirait comme un résultat, alors que rien n'a été cherché. */}
+        {modeArtefactsSeuls.explication == null && (
+          <span className="flex items-baseline gap-1.5 font-mono text-micro">
+            <span className="text-ink">
+              {Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}
+              {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
+            </span>
+            {/* ⚠️ **L’écart s’affiche AUSSI quand il est négatif.** Il ne
+                l’était que s’il était positif : on cachait donc exactement
+                l’information défavorable, en laissant un absolu qui avait
+                l’air d’un gain.
+
+                ⚠️ Un écart négatif n’est PAS une anomalie : la paire
+                portée sort des candidates dès qu’une contrainte l’exclut —
+                une principale imposée, une ligne verrouillée, ou une pièce
+                déjà réservée par un autre monstre de la liste. Le nombre dit
+                alors ce que cette contrainte coûte, ce qui est précisément
+                ce qu’on veut savoir.
+
+                ⚠️ Test sur l’ARRONDI, pas sur la valeur brute : un écart
+                de 0,4 aurait affiché « +0 ». */}
+            {!modeArtefactsSeuls.dejaPorte && Math.round(modeArtefactsSeuls.gainBrutParCoup) !== 0 && (
+              <span className={modeArtefactsSeuls.gainBrutParCoup > 0 ? 'text-good' : 'text-bad'}>
+                {modeArtefactsSeuls.gainBrutParCoup > 0 ? '+' : '−'}
+                {Math.abs(Math.round(modeArtefactsSeuls.gainBrutParCoup)).toLocaleString('fr-FR')}
+              </span>
+            )}
+          </span>
+        )}
+      </div>
+      {/* ⚠️ Choisir « Dégâts réels » OUVRE la fenêtre du combat, comme le cran
+          homonyme de l'objectif de recherche : sans ce geste, le classement
+          reposerait sur un sort, une cible et un critique jamais choisis —
+          exactement ce qui avait fait RETIRER cette optimisation. */}
+      <Segmented<'brut' | 'reel'>
+        options={CRITERE_ARTEFACTS_LABELS}
+        value={critereArtefacts}
+        onChange={(v) => {
+          setCritereArtefacts(v);
+          if (v === 'reel') setSetupOuvert(true);
+        }}
+        size="sm"
+        // ⚠️ `w-fit` : le `flex-none` que `Segmented` pose en taille `sm` ne
+        // vaut que s'il est ENFANT d'un conteneur flex. Ici le parent est en
+        // flux de bloc, donc sa propre boîte flex prenait toute la largeur —
+        // deux crans étirés sur 700 px. Même piège que la grille Conditions,
+        // qui porte déjà ce `w-fit` pour la même raison.
+        className="mt-1 w-fit"
+      />
+      {modeArtefactsSeuls.reelIndisponible && (
+        <p className="mt-1 text-micro text-warn">
+          Aucun sort de ce monstre n’est calculable : classement sur les dégâts supplémentaires.
+        </p>
+      )}
+      {/* ⚠️ **Un seul emplacement figé : la proposition reste valable, mais
+          CONTRAINTE.** Sans cette ligne, « le meilleur » se lirait comme « le
+          meilleur de ton inventaire », alors qu'une moitié était imposée. La
+          question reste bonne — « à artéfact d'attribut donné, quel type ? » —
+          il faut juste dire qu'on y répond. */}
+      {modeArtefactsSeuls.explication == null && sortesFigees.length === 1 && (
+        // ⚠️ **Un BANDEAU, pas une phrase de bas de bloc.** La mention
+        // vivait en `text-ink-dimmer` sous le titre, loin du regard : on
+        // lisait la paire en croyant à deux propositions. Elle passe donc
+        // AU-DESSUS des pièces, dans une boîte qui se détache du bloc.
+        //
+        // ⚠️ **Neutre appuyé, pas `alerte`** (décision explicite) : un
+        // réglage que l’utilisateur a lui-même posé n’est pas un
+        // avertissement. L’ambre reste réservé à ce qui réclame une action
+        // (« Valider les artéfacts ») — deux ambres de sens différents dans
+        // la même carte auraient dévalué les deux. Le contraste vient donc
+        // du contour (`border` plein là où le bloc porte `border-soft`) et
+        // de l’encre pleine, pas de la couleur.
+        //
+        // ⚠️ UN seul contour : ce bandeau est un FRÈRE des pièces, jamais
+        // une boîte posée sur une autre boîte déjà bordée.
+        <p className="mt-1.5 rounded border border-border bg-panel px-2 py-1 text-micro leading-tight text-ink">
+          <b className="font-semibold">
+            Emplacement {sortesFigees[0] === 'element' ? 'attribut' : 'type'} figé
+          </b>{' — '}
+          il est gardé tel que porté, pas optimisé. Seul l’emplacement{' '}
+          {sortesFigees[0] === 'element' ? 'type' : 'attribut'} est cherché ici.
+        </p>
+      )}
+      {/* ⚠️ **La raison passe DEVANT tout le reste.** Elle dit ce que
+          l'utilisateur a lui-même posé (un emplacement figé) ou ce que
+          l'inventaire ne peut pas donner — dans les deux cas, afficher une
+          proposition ou un « déjà porté » serait trompeur. */}
+      {modeArtefactsSeuls.explication != null ? (
+        <p className="mt-0.5 text-micro leading-tight text-ink-dim">{modeArtefactsSeuls.explication}</p>
+      ) : modeArtefactsSeuls.dejaPorte ? (
+        // ⚠️ Le dire plutôt que d'afficher « +0 » : « tu portes déjà les
+        // meilleurs » est une réponse, un zéro ressemble à une panne.
+        <p className="mt-0.5 text-micro text-ink-dim">
+          Tu portes déjà la meilleure paire disponible pour ce critère.
+        </p>
+      ) : modeArtefactsSeuls.paire.length === 0 ? (
+        <p className="mt-0.5 text-micro text-ink-dim">Aucun artéfact équipable ne correspond aux critères.</p>
+      ) : (
+        // ⚠️ **Le rendu du JEU, pas une ligne aplatie.** Les quatre
+        // sous-propriétés étaient jointes par des « · » sur une seule ligne qui
+        // repassait à la ligne n'importe où, avec un formatage maison
+        // (`artifactSubLabel(...).replace('X', …)`) — un second rendu de la
+        // même donnée, que rien ne rapprochait de l'inventaire ni du jeu.
+        // `ArtifactSubLigne` est désormais PARTAGÉ avec la tuile d'inventaire :
+        // une ligne par propriété, la pastille de procs, la valeur en gras, le
+        // marqueur des propriétés modifiées.
+        // ⚠️ **Côte à côte, pas empilés** : une PAIRE se lit d'un coup d'œil,
+        // et l'empilement doublait la hauteur du bloc dans une carte déjà
+        // longue. `sm:` et non une largeur de conteneur : sous ce seuil la
+        // carte est pleine largeur mais étroite (téléphone), où deux colonnes
+        // couperaient les libellés longs — ils repassent alors l'un sous
+        // l'autre. `items-start` : l'artéfact qui a la principale la plus
+        // courte ne s'étire pas à la hauteur de l'autre.
+        <div className="mt-1.5 grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2">
+          {modeArtefactsSeuls.paire.map((a) => (
+            /* ⚠️ **Atténuation LÉGÈRE sur la pièce figée** — elle
+                n’est pas une proposition, elle est un fait. Le bandeau et le
+                marqueur le disent déjà ; ceci ne fait qu’établir la
+                hiérarchie, pour que l’œil tombe d’abord sur la moitié
+                réellement cherchée.
+
+                ⚠️ **80 %, et surtout PAS moins.** Le vocabulaire
+                « désactivé » de ce dépôt vit à 30-40 % (`Bouton`,
+                `NumberField`) : descendre là ferait lire « indisponible »
+                une pièce qui est justement celle qu’on portera. Rester
+                nettement au-dessus garde le sens « secondaire ». */
+            <div key={`${a.kind}-${a.id}`} className={`flex items-start gap-2 ${sortesFigees.includes(a.kind) ? 'opacity-80' : ''}`}>
+              <ArtifactFrameIcon artifact={a} size={24} />
+              <div className="min-w-0 flex-1">
+                {/* La principale en tête, comme sur une pièce en jeu : sans
+                    elle, on lisait quatre sous-propriétés sans savoir ce que
+                    l'artéfact apporte d'abord. */}
+                {/* ⚠️ **Le marqueur désigne LAQUELLE.** Le bandeau dit ce
+                    qui se passe, ce jeton dit sur quelle pièce — sans lui,
+                    il fallait retraduire « attribut » en « celle de
+                    gauche ». Même gabarit que la pastille de sorte de
+                    ArtifactLinesEditor : rien de nouveau dans la librairie. */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="text-micro font-semibold leading-tight text-ink">{formatArtifactMain(a.main)}</p>
+                  {sortesFigees.includes(a.kind) && (
+                    <span className="shrink-0 rounded-full border border-border bg-panel px-1.5 py-px text-nano font-semibold text-ink-dim">
+                      figé
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 space-y-[3px]">
+                  {a.subs.map((s, i) => (
+                    <ArtifactSubLigne key={i} sub={s} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* ⚠️ **Dire ce que le chiffre EST.** Le « +X % grâce aux artéfacts » des
+          cartes de résultat a été retiré précisément parce que personne ne
+          pouvait le nommer. Celui-ci se nomme : des dégâts BRUTS, par coup,
+          qui ne critent pas et ignorent la défense — donc calculables sans
+          choisir de sort ni décrire d'adversaire. */}
+      {/* ⚠️ Affichée dès qu'un chiffre l'est — donc AUSSI quand on porte déjà
+          la meilleure paire, puisque l'absolu s'affiche dans ce cas-là. Un
+          nombre sans sa légende serait exactement le défaut du « +X % grâce
+          aux artéfacts » qu'on a retiré. */}
+      {modeArtefactsSeuls.paire.length > 0 && (
+        <p className="mt-1 text-nano text-ink-dimmer">
+          {modeArtefactsSeuls.surLeReel
+            ? `Dégâts totaux de ${resolvedSkill ? `« ${resolvedSkill.nom} »` : 'ce sort'} contre l’adversaire décrit — ouvre « Dégâts réels » pour changer le sort, la cible ou le traitement du critique.`
+            : 'Dégâts supplémentaires bruts, à chaque coup — ils ne peuvent pas être critiques et ignorent la défense adverse, donc ce gain ne dépend ni du sort utilisé ni de la cible.'}
+        </p>
+      )}
+      {modeArtefactsSeuls.coutVerrousPct != null && (
+        // ⚠️ « sur ce build » n'est PAS une précaution de langage : la recherche
+        // de runes a elle aussi tourné sous le modèle contraint, donc sans les
+        // verrous d'AUTRES builds auraient pu émerger. Un libellé sans cette
+        // précision laisserait croire à un contrefactuel global qu'on ne
+        // calcule pas.
+        <p className="mt-1 text-micro text-warn">
+          Vos lignes verrouillées coûtent −{modeArtefactsSeuls.coutVerrousPct.toFixed(1)} % sur ce build.
+        </p>
+      )}
+      {/* ⚠️ **La proposition devient actionnable.** Le bloc calculait la
+          meilleure paire sans qu’on puisse la prendre : il fallait la
+          retrouver à la main dans l’inventaire. Le bouton n’apparaît qu’avec
+          une liste active — une réservation appartient toujours à une liste
+          — et jamais sur une pièce figée ou une absence de proposition. */}
+      {modeArtefactsSeuls.explication == null &&
+        modeArtefactsSeuls.paire.length > 0 &&
+        sourceSelector &&
+        lists.activeListId &&
+        (ownValidatedBuild || canValidateDisplayed) && (
+          <Bouton
+            onClick={handleValidateArtefacts}
+            disabled={artefactsProposesDejaReserves}
+            // ⚠️ Même code couleur que « Valider les artéfacts » des cartes
+            // de résultat : `alerte` signale un état des DONNÉES — ce qui est
+            // montré n’est pas ce qui est réservé. Une fois réservée, la
+            // paire repasse en `accent`, comme tout ce qui est validé.
+            ton={artefactsProposesDejaReserves ? 'accent' : 'alerte'}
+            fond="doux"
+            taille="sm"
+            pleineLargeur
+            icone={artefactsProposesDejaReserves ? <CheckCircle2 size={14} /> : undefined}
+            libelle={
+              artefactsProposesDejaReserves
+                ? 'Artéfacts validés'
+                : ownValidatedBuild
+                  ? 'Valider ces artéfacts'
+                  : 'Valider ce build avec ces artéfacts'
+            }
+            className="mt-2"
+          />
+        )}
+    </div>
+  );
+
   const validateBuildButton = (
     <>
       <Bouton
         onClick={handleValidateDisplayed}
         disabled={!canValidateDisplayed || matchesValidatedBuild}
-        ton={matchesValidatedBuild ? 'accent' : 'neutre'}
-        fond={matchesValidatedBuild ? 'doux' : 'plein'}
+        // ⚠️ Même code couleur que les cartes de résultat (BuildCandidateCard) :
+        // `alerte` sur « Valider les artéfacts », parce qu'il signale un état
+        // des DONNÉES — ce qui est affiché n'est pas ce qui est réservé.
+        ton={etatFiche === 'oui' ? 'accent' : etatFiche === 'artefacts' ? 'alerte' : 'neutre'}
+        fond={etatFiche === 'non' ? 'plein' : 'doux'}
         taille="sm"
         pleineLargeur
         icone={matchesValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
-        libelle={matchesValidatedBuild ? 'Validé' : 'Valider ce build'}
+        // ⚠️ Trois libellés, pas deux : mêmes runes + autre paire, il reste
+        // quelque chose à valider — les artéfacts. Voir `EtatValidation`.
+        libelle={etatFiche === 'oui' ? 'Validé' : etatFiche === 'artefacts' ? 'Valider les artéfacts' : 'Valider ce build'}
         className="mt-2.5"
       />
       {/* Message listant les runes déjà utilisées — demande explicite,
@@ -1507,13 +2778,43 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                       <CheckCircle2 size={12} />
                       Validé
                     </span>
+                    {/* ⚠️ **L’icône disait le contraire de l’action.** Ce
+                        bouton LIBÈRE, et portait le `CheckCircle2` de la
+                        validation — le même pictogramme que le badge
+                        « Validé » posé juste à sa gauche. Il porte désormais
+                        la roue barrée d’une interdiction, celle d’« Exclure
+                        les runes déjà utilisées » : du point de vue du
+                        monstre, libérer, c’est lui retirer ses runes. */}
                     <BoutonIcone
                       cadre
-                      libelle="Libérer ces runes"
-                      icone={<CheckCircle2 size={14} className="text-accent" />}
+                      libelle="Libérer ce build (runes et artéfacts)"
+                      icone={
+                        <IconeInterdite cadre={false} taille={16}>
+                          <img src={WHEEL_IMG} alt="" className="h-3.5 w-3.5 object-contain" />
+                        </IconeInterdite>
+                      }
                       onClick={() => setReleaseConfirm({ listId: m.listId, selector: m.selector })}
                       className="h-6 w-6 flex-none"
                     />
+                    {/* ⚠️ **Rendre la PAIRE sans défaire le runage.** Un
+                        artéfact physique ne se porte que sur un monstre à la
+                        fois : on veut souvent le récupérer pour un autre sans
+                        renoncer au runage déjà planifié. Affiché seulement
+                        s’il y a quelque chose à rendre — un bouton qui ne
+                        ferait rien serait pire qu’un bouton absent. */}
+                    {(build.artifactIds ?? []).length > 0 && (
+                      <BoutonIcone
+                        cadre
+                        libelle="Libérer les artéfacts (le runage reste réservé)"
+                        icone={
+                          <IconeInterdite cadre={false} taille={16}>
+                            <GameIcon name="artifact" size={13} />
+                          </IconeInterdite>
+                        }
+                        onClick={() => setReleaseArtifactsConfirm({ listId: m.listId, selector: m.selector })}
+                        className="h-6 w-6 flex-none"
+                      />
+                    )}
                   </>
                 ) : (
                   <span className="flex-none text-[10.5px] text-ink-dimmer">pas encore validé</span>
@@ -1758,7 +3059,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             </div>
             <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
               {validatedBadge}
-              <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
+              <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
               {validateBuildButton}
             </div>
           </div>
@@ -1824,21 +3125,23 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               plus haut (`validatedBadge`/`validateBuildButton`). */}
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
             {validatedBadge}
-            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} />
-            {validateBuildButton}
+            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
+              {validateBuildButton}
           </div>
         </div>
       </div>
 
-      {/* Étape 3. ⚠️ **`w-fit` RETIRÉ, `xl:row-span-3`** (demande explicite) :
-          la carte occupe maintenant TOUTE la hauteur de la colonne 2
-          (Objectif/Exclusion/Réglages avancés empilés sur 3 rangées, voir
-          plus bas) — même patron que l'ancien `row-span-2` de « Monstre &
-          équipement » avant le Lot 3 (carte haute à gauche, PLEINE LARGEUR
-          de sa colonne, cartes plus courtes empilées à sa droite) : sans
-          `w-fit`, elle profite de toute la largeur de la colonne 1 comme
-          Monstre le faisait, plutôt que de se serrer sur son contenu. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-3">
+      {/* Étape 3. ⚠️ **`w-fit` RETIRÉ** (demande explicite) : sans lui, la
+          carte profite de toute la largeur de la colonne 1 plutôt que de se
+          serrer sur son contenu — même patron que « Monstre & équipement »
+          (carte haute à gauche, cartes plus courtes empilées à sa droite).
+          ⚠️ **`xl:row-span-4`** : la colonne 2 empile QUATRE cartes —
+          Artéfacts (2), État de mon monstre (3), Exclusion de runes (4),
+          Réglages avancés (5). Ce nombre suit la colonne d'EN FACE, il ne
+          décrit pas le contenu de celle-ci : toute carte ajoutée ou retirée à
+          droite se répercute ici, et sur la rangée de la ligne d'estimation
+          (pleine largeur, toujours en dernier). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-4">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -1933,66 +3236,15 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </div>
 
         <div>
+      {/* ⚠️ Le bloc « Artéfacts » vivait ICI, en tête de cette colonne, au-
+          dessus de Conditions. Déplacé dans sa PROPRE carte (colonne 2,
+          rangée 2 — voir plus bas) : son interrupteur « Ignorer les
+          statistiques » masquait sélecteurs et lignes verrouillées d'un coup,
+          ce qui faisait REMONTER Conditions sous le doigt. Cette colonne ne
+          porte donc plus que Conditions, et le trait qui les séparait a
+          disparu avec lui — un trait en TÊTE de colonne, sans rien au-dessus,
+          ne sépare plus rien. */}
       <div>
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <div className="flex items-center gap-1.5">
-            <p className="label">Artéfacts</p>
-            <HelpPopover title="Artéfacts">
-              <b className="text-ink">« Comme équipé »</b> reprend l'artéfact du build de base (celui affiché
-              ci-dessus) porté à cet emplacement. Choisir une statistique l'hypothèque pour la recherche sans avoir
-              besoin de le posséder — utile si ce monstre porte des artéfacts différents en RTA ou dans un deck de
-              siège, puisque ce build de base n'est pas forcément celui que tu cherches à reproduire ;{' '}
-              <b className="text-ink">« Aucun »</b> retire l'emplacement même s'il est réellement équipé.
-            </HelpPopover>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Ignorer les statistiques des artéfacts</span>
-            <HelpPopover title="Ignorer les statistiques des artéfacts">
-              Activé, la recherche ne compte <b className="text-ink">aucune</b> statistique d'artéfact (comme si le
-              monstre n'en portait pas). Désactivé, choisis la statistique principale à supposer pour chaque
-              emplacement ci-dessous.
-            </HelpPopover>
-            <Interrupteur
-              actif={ignoreArtifacts}
-              onChange={setIgnoreArtifacts}
-              aria-label="Ignorer les statistiques des artéfacts"
-            />
-          </div>
-        </div>
-        {!ignoreArtifacts && (
-          <div className="flex flex-wrap gap-3">
-            {ARTIFACT_KINDS.map(({ key, label }) => (
-              <div key={key} className="flex items-center gap-1.5">
-                <span className="text-xs text-ink w-14">{label}</span>
-                <Selecteur
-                  value={String(artifactMainByKind[key] ?? 'equipped')}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const next: ArtifactMainChoice = raw === 'equipped' || raw === 'none' ? raw : (Number(raw) as 100 | 101 | 102);
-                    setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                >
-                  <option value="equipped">Comme équipé</option>
-                  {ARTIFACT_MAIN_OPTIONS.map((o) => (
-                    <option key={o.code} value={o.code}>
-                      {o.label}
-                    </option>
-                  ))}
-                  <option value="none">Aucun</option>
-                </Selecteur>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Trait horizontal entre Artéfacts et Conditions (demande explicite)
-          — même patron que celui entre Set de runes recherché et
-          Statistique principale imposée, colonne de gauche. */}
-      <div className="mt-4 border-t border-border-soft pt-4">
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <p className="label">Conditions</p>
           <div className="flex items-center gap-1.5">
@@ -2102,6 +3354,32 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     placeholder={capped ? String(ceiling) : '—'}
                     suffix={st.suffix || undefined}
                     boxWidth="w-24"
+                    // ⚠️ **Un maximum sous le minimum retombe au défaut**
+                    // (demande explicite) : la condition serait insatisfaisable
+                    // par construction, et la recherche renverrait « 0 build »
+                    // sans que rien ne dise pourquoi.
+                    //
+                    // ⚠️ À la SORTIE du champ, jamais à la frappe : on ne
+                    // saurait pas distinguer un « 5 » définitif d'un « 50 » en
+                    // cours d'écriture — c'est le même piège que celui que
+                    // `NumberField` documente déjà pour le bornage par `min`.
+                    //
+                    // ⚠️ On EFFACE plutôt que de remonter à la valeur du
+                    // minimum : le champ retrouve alors son placeholder, donc
+                    // son défaut (le plafond pour une stat bornée à 100,
+                    // « aucun maximum » sinon). Le corriger silencieusement en
+                    // « max = min » poserait une contrainte que l'utilisateur
+                    // n'a pas demandée, et qui ne laisse passer qu'une valeur.
+                    onBlur={() => {
+                      const mn = minStats[st.key];
+                      const mx = maxStats[st.key];
+                      if (mn == null || mx == null || mx >= mn) return;
+                      setMaxStats((prev) => {
+                        const next = { ...prev };
+                        delete next[st.key];
+                        return next;
+                      });
+                    }}
                     ariaLabel={`${st.label} maximum`}
                     title="Maximum"
                   />
@@ -2131,65 +3409,178 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         </div>
       </div>
 
-      {/* Étape 2 de l'ordre d'usage voulu — une carte À PART, PAS un bloc
-          DANS « Critères de recherche » : l'objectif se choisit avant même
-          de composer le set recherché, ce n'est pas un critère de plus
-          parmi d'autres. Aux côtés de « Critères de recherche » : demande
-          explicite — « à droite des critères de recherche ». ⚠️
-          Repositionnée en DEUXIÈME rangée avec elle (`xl:row-start-2`, plus
-          `row-start-3` — voir le commentaire de « Critères de recherche »)
-          : reste à sa droite, seule la rangée commune a changé. `1fr`,
-          colonne large : contrairement à Critères (compactée au maximum),
-          Objectif profite de tout l'espace restant — utile une fois
-          « Dégâts réels » choisi (`DamageSetupCard` a besoin de place pour
-          ses vignettes d'effet). */}
+      {/* Carte À PART, PAS un bloc dans « Critères de recherche » (tranché au
+          cadrage du chantier artéfacts : « une carte dédiée Artéfacts »).
+          ⚠️ 1. L'interrupteur « Ignorer les statistiques » masque d'un coup
+          les sélecteurs ET les lignes verrouillées. Tant que le bloc vivait
+          en tête de la colonne de droite de « Critères de recherche », ce
+          clic faisait REMONTER « Conditions » — un clic qui déplace ce qui le
+          suit, interdit par spec/shared/design.md. Isolé ici, il ne déplace
+          plus que ce qui suit la carte entière.
+          2. `xl:col-start-2 xl:row-start-2` — SOUS « Exemplaire », à la place
+          libérée par « Objectif de recherche » (parti rejoindre le bouton
+          Rechercher) : le bloc se lit « ces artéfacts, sur CE build », il doit
+          toucher l'exemplaire qui fixe les runes.
+          ⚠️ **Pas en pleine largeur** : essayé, capturé, rejeté — la pleine
+          largeur projette la puce de sorte, le champ de minimum et la croix à
+          ~1 400 px de leur propre libellé, soit une saccade d'un bout à
+          l'autre de l'écran pour lire UNE ligne verrouillée.
+          ⚠️ Le placement de grille est en `xl:` UNIQUEMENT : au doigt, l'ordre
+          est celui du DOM, d'où cette carte déclarée juste après « Critères de
+          recherche ». Les deux formats sont servis par le même JSX. */}
       <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
-        {/* ⚠️ Point d'interrogation JUSTE À DROITE du titre (demande
-            explicite) — même rangée que l'icône et le texte, pas sur sa
-            propre ligne en dessous. */}
-        <div className="mb-3 flex items-center gap-1.5">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-            <Target size={13} className="text-accent" />
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {/* Même gabarit d'en-tête que les autres cartes (icône encadrée 6×6
+              + titre 13,5 px) : `GameIcon name="artifact"` existait déjà et
+              n'était pas utilisé ici — pas une icône de plus à inventer. */}
+          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <GameIcon name="artifact" size={15} />
           </div>
-          <p className="text-[13.5px] font-bold text-ink">Objectif de recherche</p>
-          <HelpPopover title="Objectif de recherche">
-            Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
-            lancer la recherche — les minimums posés plus bas (Conditions) restent ce qui décide quels
-            demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts réels</b>{' '}
-            va plus loin que les autres : la vraie formule d&apos;un sort précis contre un adversaire
-            configuré.
+          <p className="text-[13.5px] font-bold text-ink">Artéfacts</p>
+          <HelpPopover title="Artéfacts">
+            <b className="text-ink">« Libre »</b> cherche parmi tous tes artéfacts équipables ; une{' '}
+            <b className="text-ink">principale</b> restreint la recherche à ceux qui la portent.{' '}
+            <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce entière portée sur le
+            build affiché ci-dessus, sans rien chercher.
+            <br />
+            <br />
+            <b className="text-ink">« Libre » ne donne jamais moins de résultats</b> qu&apos;une principale
+            imposée : un build n&apos;est retenu que s&apos;il existe vraiment, chez toi, une paire qui lui fait
+            tenir toutes tes conditions.
+            <br />
+            <br />
+            La paire retenue suit le <b className="text-ink">tri</b> affiché — trier par PV effectifs ne choisit
+            pas les mêmes artéfacts que trier par dégâts.
           </HelpPopover>
+          {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
+              et son aide restent collés, l'interrupteur part à droite — même
+              lecture qu'avant, dans le gabarit d'en-tête de carte. */}
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-ink-dim">Activer l&apos;optimisation d&apos;artéfacts</span>
+            <HelpPopover title="Activer l&apos;optimisation d&apos;artéfacts">
+              Activé (défaut), chaque build reçoit la meilleure paire parmi tes artéfacts, selon les réglages
+              ci-dessous.
+              <br />
+              <br />
+              Désactivé, le monstre <b className="text-ink">garde les artéfacts qu&apos;il porte</b>, statistiques
+              comprises — on cesse simplement d&apos;en chercher d&apos;autres. Utile pour composer un runage autour
+              des pièces déjà en place.
+            </HelpPopover>
+            <Interrupteur
+              actif={optimiserArtefacts}
+              onChange={setOptimiserArtefacts}
+              aria-label="Activer l'optimisation d'artéfacts"
+            />
+          </div>
         </div>
-        <Segmented options={OBJECTIVE_LABELS} value={objective} onChange={setObjective} size="lg" />
-        {/* ⚠️ Le réglage vit SOUS l'objectif qui l'active, pas dans une
-            section séparée plus bas : c'est le choix « Dégâts réels » qui
-            rend ces champs pertinents, et rien d'autre à l'écran ne les
-            concerne. Un panneau permanent à moitié grisé aurait alourdi les
-            trois autres objectifs pour rien. */}
-        {objective === 'degats_reels' && (
-          <div className="mt-2.5">
-            <DamageSetupCard
-              skills={damageSkills}
-              resolved={resolvedSkill}
-              passifs={offensivePassives}
-              modificateursVit={modificateursVit}
-              setup={damageSetup}
-              setSetup={setDamageSetup}
-              chargement={skillLoading}
-              etroit={etroit}
-              critSiPlusRapide={critSiPlusRapide}
-              bonusDegatsSelonVit={bonusDegatsSelonVit}
-              bonusDegatsStack={bonusDegatsStack}
-              critRateSelonVit={critRateSelonVit}
-              bonusDegatsConditionnel={bonusDegatsConditionnel}
-              bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
-              bonusParEffetPropre={bonusParEffetPropre}
-              bonusSacrifice={bonusSacrifice}
-              ampliVitPct={ampliVitPct}
+        {optimiserArtefacts && (
+          <div className="flex flex-wrap gap-3">
+            {ARTIFACT_KINDS.map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-1.5">
+                <span className="text-xs text-ink w-14">{label}</span>
+                {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
+                    d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
+                    Ce sélecteur affichait « Garder l'artéfact équipé » tant
+                    qu'aucun choix n'avait été fait, pendant que la recherche
+                    cherchait librement : l'écran annonçait le contraire de ce
+                    qui se passait, et tout ce qui se fiait à cet affichage
+                    (les emplacements « figés », donc l'éditeur de verrous)
+                    raisonnait sur un état faux. Le défaut se lit désormais au
+                    même endroit pour tout le monde. */}
+                <Selecteur
+                  value={String(artifactMainByKind[key] ?? 'libre')}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const next: ArtifactMainChoice =
+                      raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
+                    setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
+                  }}
+                  taille="sm"
+                  surface="panel2"
+                  pleineLargeur={false}
+                >
+                  {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
+                      ce choix conserve la PIÈCE entière — le pool tombe à un
+                      seul candidat, l'exemplaire porté avec ses quatre
+                      sous-propriétés (voir `candidatsParSorte`,
+                      artifactOptim.ts). L'ancien libellé, posé au milieu de
+                      trois statistiques principales, se lisait « la
+                      principale, comme équipé ». Signalé à l'usage. */}
+                  <option value="equipped">Garder l&apos;artéfact équipé</option>
+                  {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
+                      été ajouté qu’une fois celle-ci construite, pour ne pas laisser
+                      une option morte dans le sélecteur. */}
+                  <option value="libre">Libre</option>
+                  {ARTIFACT_MAIN_OPTIONS.map((o) => (
+                    <option key={o.code} value={o.code}>
+                      {o.label}
+                    </option>
+                  ))}
+                  {/* ⚠️ Pas de « Aucun ». Retiré : vider UN emplacement pendant
+                      que l'autre cherche ne correspond à rien en jeu, et « ne
+                      pas compter les artéfacts » se dit d'un seul geste avec
+                      l'interrupteur ci-dessus, pour les deux à la fois.
+                      L'emplacement peut toujours RESTER vide si la recherche
+                      n'a rien de mieux à y mettre — c'est l'imposer par sorte
+                      qui n'avait pas de sens. */}
+                </Selecteur>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* ⚠️ Sous les sélecteurs, et jamais au-dessus : les lignes
+            verrouillées se lisent comme un raffinement du choix de pièce, pas
+            comme une condition indépendante. Masqué avec le reste quand les
+            artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
+            une saisie sans effet est pire qu'une saisie absente. */}
+        {optimiserArtefacts && (
+          <div className="mt-3">
+            <ArtifactLinesEditor
+              lignes={lignesVerrouillees}
+              onChange={setLignesVerrouillees}
+              diagnostic={diagnosticVerrous}
+              figees={sortesFigees}
             />
           </div>
         )}
+        {/* ⚠️ **Le résultat rejoint ses commandes.** « Meilleurs artéfacts pour
+            ce build » vivait sous la fiche d'équipement, avec une raison qui
+            TIENT TOUJOURS : la fiche montre l'équipement RÉEL, on n'y
+            substitue pas une proposition. Elle est satisfaite autrement — la
+            fiche dit ce qu'on PORTE, cette carte voisine ce qu'on DEVRAIT
+            porter, et elles restent côte à côte sous « Exemplaire ». Laisser
+            les réglages ici et le résultat là-bas aurait séparé la cause de
+            son effet.
+            ⚠️ Rendu UNE seule fois désormais : il était interpolé deux fois
+            (branche bureau et branche téléphone de « Monstre & équipement »),
+            alors qu'un grep de son libellé n'en montrait qu'une — cette carte
+            n'a pas de jumelle masquée. */}
+        {blocArtefactsSeuls}
       </div>
+
+      {/* ⚠️ **Carte à part, sous « Artéfacts »** — ces cinq réglages ne sont
+          PAS des réglages d'artéfact. Ils décrivent le monstre : buffs reçus,
+          leader skill d'équipe, compétences d'invocateur. Ils vivaient en bas
+          de la carte Artéfacts, séparés par un simple trait, ce qui laissait
+          croire qu'ils la servaient — alors qu'ils changent les statistiques
+          du monstre tout court, donc aussi bien les dégâts supplémentaires que
+          n'importe quel calcul de dégâts réels.
+          ⚠️ **Toujours visible, indépendamment de l'objectif de recherche** :
+          les laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
+          qui optimise l'efficience, alors qu'ils s'appliquaient quand même.
+          ⚠️ `xl:col-start-2 xl:row-start-3` — la colonne 2 passe donc à QUATRE
+          cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
+          le décalage d'une rangée de tout ce qui suit. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
+        <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} />
+      </div>
+
+      {/* ⚠️ « Objectif de recherche » N'EST PLUS ICI — il a rejoint la carte
+          du bouton Rechercher, plus bas : *quoi* chercher et *chercher* vont
+          ensemble, et il n'avait plus de raison d'occuper une cellule de
+          grille depuis que sa description de combat est sortie en fenêtre
+          (voir DamageSetupModale.tsx). La colonne 2 rangée 2 ainsi libérée
+          revient à la carte « Artéfacts ». */}
 
       {/* ── Réglages avancés + Exclusion de runes ──────────────────────
           Contenu factorisé une fois, affiché deux fois : en cartes en
@@ -2213,7 +3604,22 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
         // le voile : sans ce doublon local, aucun moyen de voir l'effet du
         // réglage qu'on vient de toucher sans d'abord refermer le panneau.
         const reglagesAvancesInner = (dansPanneau: boolean) => (
-          <>
+          /* ⚠️ **DEUX colonnes dès que la place le permet** (demande explicite)
+              — le pré-filtrage et son avertissement d'un côté, les trois
+              interrupteurs de l'autre.
+              ⚠️ `auto-fit`/`minmax` et NON un point de rupture d'écran
+              (`sm:`/`xl:`) : ce qui décide ici est la largeur du PANNEAU, pas
+              celle de la fenêtre. Le panneau prend la largeur de sa carte
+              (`largeurAncre`), qui dépend elle-même de la colonne de grille —
+              une même fenêtre peut donc donner un panneau large ou étroit. En
+              dessous de ~520 px, une seule colonne ; au-delà, deux. Ça vaut
+              aussi pour le panneau « Options » au doigt, sans une seule classe
+              conditionnelle. */
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
+          {/* ⚠️ Mêmes classes de boîte que les trois groupes d'« État de mon
+              monstre » (EtatMonstre.tsx) : deux façons de cadrer un groupe
+              dans cet écran se liraient comme deux natures différentes. */}
+          <div className="rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
             <p className="text-[11.5px] text-ink-dim mb-1">Pré-filtrage par emplacement</p>
             <div className="flex flex-wrap items-center gap-2">
               <Segmented
@@ -2234,12 +3640,20 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             <p className="mt-1 text-micro text-warn max-w-[280px]">
               ⚠️ {SLOT_FILTER_PRESETS.find((p) => p.key === slotFilterPreset)?.hint}
             </p>
+          </div>
 
+          {/* ⚠️ `divide-y` et non un `border-t` par interrupteur : un trait ne
+              se pose qu'ENTRE deux voisins, jamais au-dessus du premier. Avec
+              des bordures individuelles, le premier interrupteur portait un
+              trait en tête de colonne — anodin quand tout était empilé sous le
+              pré-filtrage, mais lu comme une ligne perdue une fois le groupe
+              posé en colonne à côté. */}
+          <div className="divide-y divide-border rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
             {/* Toggle, même patron que « Prioriser les stats les plus
                 difficiles » : désactivé par défaut, lu par `handleSearch` au
                 clic sur « Rechercher », jamais un bouton qui lance sa propre
                 recherche. */}
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-2 py-3 first:pt-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-[11.5px] text-ink-dim">Rechercher jusqu'à épuisement complet</span>
                 <HelpPopover title="Rechercher jusqu'à épuisement complet">
@@ -2256,7 +3670,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
               />
             </div>
 
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-2 py-3">
               <div className="flex items-center gap-1.5">
                 <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
                 <HelpPopover title="Diagnostic approfondi sur 0 résultat">
@@ -2275,7 +3689,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             {/* Déplacé depuis son ancien emplacement (juste avant les
                 boutons d'action) — même toggle, même logique, regroupé ici
                 avec les autres réglages secondaires. */}
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
               <div className="flex items-center gap-1.5">
                 <Target size={15} className="text-ink-dim" />
                 <span className="text-[11.5px] text-ink-dim">Prioriser les stats les plus difficiles</span>
@@ -2293,7 +3707,8 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 aria-label="Prioriser les stats les plus difficiles"
               />
             </div>
-          </>
+          </div>
+          </div>
         );
 
         const reglagesAvancesTitre = (
@@ -2315,10 +3730,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   build, RuneWheel.tsx), barrée du symbole « interdit » —
                   même traitement que l'icône « Exclusion de runes » : ce
                   réglage retire des runes DÉJÀ PORTÉES de la recherche. */}
-              <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+              <IconeInterdite>
                 <img src={WHEEL_IMG} alt="" className="h-4 w-4 object-contain" />
-                <Ban size={20} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
-              </div>
+              </IconeInterdite>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
               <HelpPopover title="Exclure les runes déjà utilisées">
                 Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
@@ -2356,14 +3770,13 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   "monster"), barrée du symbole « interdit » — même
                   traitement que l'icône « Exclusion de runes » plus bas :
                   cette action RETIRE le monstre choisi du pool de runes. */}
-              <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+              <IconeInterdite>
                 {/* ⚠️ L'artwork du monstre n'est pas parfaitement centré dans
                     son canevas — invisible seul, ça se voit à côté du cercle
                     « interdit », lui parfaitement centré par positionnement
                     absolu. Léger recalage manuel, propre à cet usage précis. */}
                 <GameIcon name="monster" size={13} className="-translate-x-[1.5px]" />
-                <Ban size={20} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
-              </div>
+              </IconeInterdite>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
               <HelpPopover title="Exclure les runes d'un monstre">
                 Choisis un monstre (box, RTA, défenses ou offenses de siège) pour retirer SES runes actuellement
@@ -2500,10 +3913,9 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 barrée du vrai symbole « interdit » (cercle barré, comme le
                 curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
                 RETIRE des runes de la recherche. */}
-            <div className="relative flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
+            <IconeInterdite taille={22}>
               <GameIcon name="rune" size={13} />
-              <Ban size={22} strokeWidth={1.75} className="pointer-events-none absolute text-bad/85" />
-            </div>
+            </IconeInterdite>
             <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
           </>
         );
@@ -2520,7 +3932,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 en flux normal. */}
             <div
               ref={avancesRef}
-              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-4"
+              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-5"
             >
               <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
@@ -2533,13 +3945,18 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                   className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
                 />
               </ZoneCliquable>
-              {/* ⚠️ Dimensions ESTIMÉES (`largeur`/`hauteur`) pour que
-                  `FlottantAuto` choisisse son côté AVANT que le contenu
-                  existe — la carte elle-même fait ~320px de large, le
-                  contenu (presets + 3 réglages) tient sur ~420px de haut ;
-                  `max-h-[70vh] overflow-y-auto` en garde-fou si jamais ça ne
-                  suffit pas sur une fenêtre basse. */}
-              <FlottantAuto ouvert={showAdvanced} ancre={avancesRef} largeur={340} hauteur={420} rembourrage="md">
+              {/* ⚠️ `largeurAncre` : le panneau prend EXACTEMENT la largeur de
+                  la carte qui l'ancre, et la suit quand l'écran change de
+                  taille. Les 340 px d'origine en faisaient à peu près la
+                  moitié — une largeur en dur ne peut pas suivre une carte dont
+                  la largeur dépend de la fenêtre.
+                  ⚠️ `hauteur` reste une ESTIMATION, et volontairement
+                  généreuse : elle ne sert qu'à choisir le côté AVANT que le
+                  contenu existe. La surestimer biaise le placement vers le
+                  haut, sans conséquence ; la sous-estimer ouvre du mauvais
+                  côté. `max-h-[70vh] overflow-y-auto` reste le garde-fou sur
+                  une fenêtre basse. */}
+              <FlottantAuto ouvert={showAdvanced} ancre={avancesRef} largeurAncre hauteur={420} rembourrage="md">
                 <div className="max-h-[70vh] overflow-y-auto">{reglagesAvancesInner(false)}</div>
               </FlottantAuto>
             </div>
@@ -2549,9 +3966,41 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 commentaire) — ordre inversé avec « Réglages avancés » sur
                 demande explicite. Masquée au doigt (voir le panneau plus
                 bas). */}
-            <div className="hidden lg:block rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-3">
-              <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
-              {exclusionRunesInner(false)}
+            {/* ⚠️ **Repliée par défaut** (demande explicite), et dépliée en
+                FLOTTANT hors flux — jamais un bloc qui s'ajoute.
+                C'est la contrainte de spec/shared/design.md : la carte
+                elle-même ne change JAMAIS de hauteur, donc « Réglages
+                avancés » juste en dessous et la ligne d'estimation ne
+                bougent pas d'un pixel quand on l'ouvre. Un dépliement en
+                flux les aurait poussés au moment précis du clic.
+                ⚠️ Patron RÉUTILISÉ tel quel de « Réglages avancés » (ancre
+                `ref` + `ZoneCliquable` + `FlottantAuto` + fermeture au clic
+                extérieur) plutôt que réécrit : deux mécanismes de dépliement
+                voisins auraient divergé, et celui-là avait déjà été corrigé
+                une fois pour cette même raison. */}
+            <div
+              ref={exclusionRef}
+              className="hidden lg:block relative rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4"
+            >
+              <ZoneCliquable
+                onClick={() => setShowExclusion((v) => !v)}
+                aria-expanded={showExclusion}
+                className="flex w-full items-center gap-2 text-sm font-bold text-ink"
+              >
+                {exclusionRunesTitre}
+                <ChevronDown
+                  size={14}
+                  className={`ml-auto text-ink-dim transition-transform ${showExclusion ? 'rotate-180' : ''}`}
+                />
+              </ZoneCliquable>
+              {/* `largeurAncre` comme « Réglages avancés » — voir son
+                  commentaire juste au-dessus.
+                  ⚠️ `hauteur` plus généreuse (560) : ce contenu porte deux
+                  réglages d'exclusion, le picker de monstre et la liste des
+                  runes imposées. Estimation seulement. */}
+              <FlottantAuto ouvert={showExclusion} ancre={exclusionRef} largeurAncre hauteur={560} rembourrage="md">
+                <div className="max-h-[70vh] overflow-y-auto">{exclusionRunesInner(false)}</div>
+              </FlottantAuto>
             </div>
 
             {/* ⚠️ Placée en rangée 5 (`xl:col-span-2`, pleine largeur) : ni
@@ -2562,7 +4011,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 dépliement de Réglages avancés, désormais un flottant hors
                 flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
             {estimate && (
-              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-5">
+              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-6">
                 {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
                 (pool par emplacement : {estimate.perSlot.join(' + ')})
               </p>
@@ -2604,7 +4053,92 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           (une grille de cartes qui, elle, PROFITE de la largeur). */}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-3 shadow-lg">
+      {/* ⚠️ Rendue HORS de la grille de réglages : un enfant direct de la
+          grille compterait comme une cellule à part entière. Elle n'a de toute
+          façon aucune place à prendre dans le flux — c'est tout son objet. */}
+      {setupOuvert && (
+        <DamageSetupModale
+          onClose={() => setSetupOuvert(false)}
+          echoEtatMonstre={echoEtatMonstre}
+          skills={damageSkills}
+          resolved={resolvedSkill}
+          passifs={offensivePassives}
+          modificateursVit={modificateursVit}
+          setup={damageSetup}
+          setSetup={setDamageSetup}
+          chargement={skillLoading}
+          etroit={etroit}
+          critSiPlusRapide={critSiPlusRapide}
+          bonusDegatsSelonVit={bonusDegatsSelonVit}
+          bonusDegatsStack={bonusDegatsStack}
+          critRateSelonVit={critRateSelonVit}
+          bonusDegatsConditionnel={bonusDegatsConditionnel}
+          bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
+          bonusParEffetPropre={bonusParEffetPropre}
+          bonusSacrifice={bonusSacrifice}
+          artefacts={artefactsDegats}
+        />
+      )}
+
+      <div className="rounded-xl border border-border bg-panel p-3 shadow-lg">
+        {/* ⚠️ **L'objectif vit avec le bouton qui lance la recherche**, plus
+            dans une cellule de la grille de réglages. Il y était « une carte
+            À PART » parce qu'il portait AUSSI la description du combat, qui
+            réclamait de la place ; celle-ci partie en fenêtre, il ne reste
+            qu'un segmenté à quatre crans — et *quoi* chercher se lit mieux
+            juste au-dessus de *chercher* que parmi les critères.
+            ⚠️ Titre en `label`, sans le carré d'icône accentué qu'il portait
+            comme en-tête de carte : ce n'en est plus une, c'est une section
+            dans celle des actions — même traitement que « Set de runes
+            recherché » ou « Conditions ». */}
+        <div className="mb-3">
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <p className="label">Objectif de recherche</p>
+            <HelpPopover title="Objectif de recherche">
+              Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
+              lancer la recherche — les minimums posés plus haut (Conditions) restent ce qui décide quels
+              demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts réels</b>{' '}
+              va plus loin que les autres : la vraie formule d&apos;un sort précis contre un adversaire
+              configuré.
+            </HelpPopover>
+          </div>
+          {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne
+              fait pas que la révéler. La carte apparaissait auparavant sous
+              l'objectif, et rien n'obligeait à la regarder : on pouvait classer
+              des milliers de builds sur un sort, une cible et un mode de
+              critique jamais choisis. Le geste devient explicite — cet objectif
+              ne se choisit plus sans voir ses hypothèses. */}
+          <Segmented
+            options={OBJECTIVE_LABELS}
+            value={objective}
+            onChange={(o) => {
+              setObjective(o);
+              if (o === 'degats_reels') setSetupOuvert(true);
+            }}
+            size="lg"
+          />
+          {/* Le résumé remplace la carte dans le flux ET sert de porte de
+              réouverture : sans lui, une fenêtre fermée rendrait les
+              hypothèses inatteignables autant qu'invisibles. */}
+          {objective === 'degats_reels' && (
+            <ZoneCliquable
+              onClick={() => setSetupOuvert(true)}
+              className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left"
+              aria-label="Modifier la description du combat"
+            >
+              <Swords size={13} className="flex-none text-ink-dim" />
+              <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
+              <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
+            </ZoneCliquable>
+          )}
+        </div>
+
+        {/* ⚠️ Rangée d'actions inchangée — mêmes classes qu'avant que
+            l'objectif ne la rejoigne : elle était la carte entière, elle en
+            devient la seconde moitié. Une rangée à part, et non un `flex-wrap`
+            commun avec l'objectif : le segmenté et les boutons se seraient
+            réarrangés l'un autour de l'autre au gré de la largeur. */}
+        <div className="flex flex-wrap items-center gap-3">
         {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
             HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
             DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
@@ -2675,6 +4209,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             libelle="Arrêter"
           />
         )}
+        </div>
       </div>
 
       {importMsg && (
@@ -2776,6 +4311,40 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                     'fr-FR'
                   )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
             </p>
+            {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
+                DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
+                changeait de tri pour explorer — alors qu’on veut souvent
+                garder celle qui maximise les PV effectifs tout en regardant
+                les builds classés par une stat.
+
+                ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors
+                qu’une paire possible, celle qui est portée. Une saisie sans
+                effet est pire qu’une saisie absente — même règle que les
+                sélecteurs de principale et les sous-propriétés verrouillées. */}
+            {optimiserArtefacts && (result ? result.candidates.length > 0 : true) && (
+              <div className="ml-auto flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts au tri</span>
+                <HelpPopover title="Adapter les artéfacts au tri">
+                  Activé (défaut), chaque build reçoit les artéfacts qui maximisent le{' '}
+                  <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
+                  pièces que trier par PV effectifs.
+                  <br />
+                  <br />
+                  Désactivé, les artéfacts restent ceux qui servent l’<b className="text-ink">objectif de la
+                  recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
+                  que la paire bouge — et « Valider les artéfacts » propose alors toujours la même.
+                  <br />
+                  <br />
+                  Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
+                  artéfact n’entre dans ces classements.
+                </HelpPopover>
+                <Interrupteur
+                  actif={adapterArtefactsAuTri}
+                  onChange={setAdapterArtefactsAuTri}
+                  aria-label="Adapter les artéfacts au tri"
+                />
+              </div>
+            )}
             {(result ? result.candidates.length > 0 : true) && (
               <Selecteur
                 value={sortBy}
@@ -2912,16 +4481,63 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                 rank={(resultsPage - 1) * RESULTS_PAGE_SIZE + i + 1}
                 candidate={c}
                 runeById={runeById}
-                // ⚠️ `searchArtifacts`, PAS `selected.gear.artifacts` : les
-                // stats affichées sur chaque carte (candidate.stats) ont été
-                // calculées avec CES artéfacts (réels, hypothétiques ou
-                // aucun selon les réglages ci-dessus) — montrer les VRAIS
-                // artéfacts ici serait incohérent dès qu'ils diffèrent
-                // (`ignoreArtifacts`, ou une hypothèse choisie).
-                artifacts={searchArtifacts}
+                // ⚠️ La paire de CE build, jamais une paire commune : deux
+                // builds voisins n'appellent pas les mêmes artéfacts, et ce
+                // sont ces pièces-là qui ont servi à calculer ses stats.
+                // Repli sur la paire SUPPOSÉE tant que la file ne l'a pas
+                // atteint — et la carte le DIT (`paireProvisoire`) plutôt que
+                // de laisser croire que c'est le résultat final.
+                artifacts={fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts}
+                // ⚠️ Signalé SEULEMENT quand la file tourne pour de bon : hors
+                // « Dégâts réels » ou file inactive, il n'y a rien à attendre,
+                // et annoncer une optimisation qui n'aura pas lieu serait faux.
+                paireProvisoire={
+                  faireParamsArtefacts != null &&
+                  objective === 'degats_reels' &&
+                  !fileArtefacts.parBuild.has(cleBuild(c))
+                }
                 metric={metric}
-                openRuneKey={openRuneKey}
-                onToggleRune={(key) => setOpenRuneKey((cur) => (cur === key ? null : key))}
+                openDetailKey={openDetailKey}
+                onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
+                {...(() => {
+                  // ⚠️ Comparaison contre les stats de la FICHE — donc contre
+                  // le build validé quand il en existe un, sans avoir à le
+                  // redemander ici (voir `statsReference`).
+                  const cle = c.runeIds.join('-');
+                  const compare = compareKey === cle && statsReference != null;
+                  return {
+                    onCompare: statsReference ? () => setCompareKey((k) => (k === cle ? null : cle)) : undefined,
+                    // ⚠️ Affichée dès que les PV effectifs sont le critère de
+                    // CLASSEMENT — objectif OU tri —, exactement comme les
+                    // dégâts réels : on peut avoir cherché sur un objectif puis
+                    // re-trié par PV effectifs, auquel cas le chiffre qui
+                    // ordonne les cartes doit être visible dessus.
+                    pvEffectifs:
+                      objective === 'ehp' || sortBy === 'ehp'
+                        ? {
+                            total: pvEffectifs(c.stats),
+                            delta: compare && refEhp != null ? pvEffectifs(c.stats) - refEhp : undefined,
+                          }
+                        : undefined,
+                    metricDelta:
+                      compare && refMetric != null
+                        ? candidateMetricTotal(c, runeById, metric) - refMetric
+                        : undefined,
+                    // ⚠️ Le delta est calculé PAR STAT contre la référence, et
+                    // seulement pour la carte comparée : le faire pour les 20
+                    // cartes de la page coûterait 20 fois plus pour 19 valeurs
+                    // qu'on n'affiche pas.
+                    comparaison:
+                      compareKey === cle && statsReference
+                        ? c.stats.map((ligne) => ({
+                            key: ligne.key,
+                            label: ligne.label,
+                            suffix: ligne.suffix,
+                            delta: ligne.total - (statsReference.find((r) => r.key === ligne.key)?.total ?? 0),
+                          }))
+                        : undefined,
+                  };
+                })()}
                 // ⚠️ Affiché dès qu'un sort est résolu ET que c'est bien le
                 // critère de classement courant (objectif OU tri) — pas
                 // seulement quand `objective` vaut « Dégâts réels » : on peut
@@ -2937,7 +4553,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           c.stats,
                           realDamage.setup,
                           realDamage.element,
-                          realDamage.ampliVitPct,
+                          profilArtefactsDuBuild(c) ?? realDamage.artefacts,
                           realDamage.critSiPlusRapide,
                           realDamage.bonusDegatsSelonVit,
                           realDamage.bonusDegatsStack,
@@ -2947,7 +4563,36 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                           realDamage.bonusDegatsSelonDef,
                           realDamage.bonusSiAtqSeuil
                         );
-                        return { total, partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0 };
+                        return {
+                          total,
+                          partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
+                          // ⚠️ L'écart se calcule contre les dégâts de la
+                          // RÉFÉRENCE, recalculés avec ses propres stats et sa
+                          // propre paire d'artéfacts — jamais contre le total
+                          // d'un autre candidat. `realDamage.artefacts` est la
+                          // paire de la fiche, celle qui accompagne
+                          // `statsReference`.
+                          delta:
+                            compareKey === c.runeIds.join('-') && statsReference
+                              ? total -
+                                computeTotalDamage(
+                                  realDamage.profile,
+                                  realDamage.passifs,
+                                  statsReference,
+                                  realDamage.setup,
+                                  realDamage.element,
+                                  realDamage.artefacts,
+                                  realDamage.critSiPlusRapide,
+                                  realDamage.bonusDegatsSelonVit,
+                                  realDamage.bonusDegatsStack,
+                                  realDamage.monsterWide,
+                                  realDamage.bonusDegatsConditionnel,
+                                  realDamage.bonusDegatsSelonCr,
+                                  realDamage.bonusDegatsSelonDef,
+                                  realDamage.bonusSiAtqSeuil
+                                )
+                              : undefined,
+                        };
                       })()
                     : undefined
                 }
@@ -2971,11 +4616,26 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
                         // ⚠️ Garde de DERNIÈRE minute en plus du bouton
                         // désactivé : le clic peut partir d'un rendu périmé.
                         if (conflitsDeRunes(c.runeIds).length > 0) return;
-                        lists.validateBuild(lists.activeListId!, sourceSelector, c.runeIds);
+                        // ⚠️ La paire DE CE CANDIDAT, pas celle du monstre
+                        // affiché : c’est elle que la carte montre et qui a
+                        // servi à calculer ses stats.
+                        lists.validateBuild(
+                          lists.activeListId!,
+                          sourceSelector,
+                          c.runeIds,
+                          (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
+                        );
                       }
                     : undefined
                 }
-                validated={ownValidatedBuild ? sameRuneIds(ownValidatedBuild.runeIds, c.runeIds) : false}
+                // ⚠️ La paire QUE CETTE CARTE MONTRE — celle de la file si
+                // elle l'a trouvée, la représentative sinon. Exactement la
+                // même expression que `onValidate` ci-dessus : comparer autre
+                // chose que ce qu'on validerait rendrait le libellé menteur.
+                validated={etatValidation(
+                  c.runeIds,
+                  (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
+                )}
                 conflit={(() => {
                   const conflits = conflitsDeRunes(c.runeIds);
                   if (conflits.length === 0) return null;
@@ -3053,14 +4713,26 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
           d'importance pour son rendu. */}
       {releaseConfirm && (
         <ConfirmDialog
-          titre="Libérer les runes validées ?"
-          message="Ces 6 runes redeviendront disponibles pour les recherches des autres monstres de cette liste."
+          titre="Libérer ce build validé ?"
+          message="Ces 6 runes ET la paire d’artéfacts redeviendront disponibles pour les autres monstres de cette liste."
           libelleAction="Libérer"
           onConfirm={() => {
             lists.releaseBuild(releaseConfirm.listId, releaseConfirm.selector);
             setReleaseConfirm(null);
           }}
           onCancel={() => setReleaseConfirm(null)}
+        />
+      )}
+      {releaseArtifactsConfirm && (
+        <ConfirmDialog
+          titre="Libérer les artéfacts validés ?"
+          message="Cette paire redeviendra disponible pour les autres monstres de cette liste. Les 6 runes du build restent réservées."
+          libelleAction="Libérer"
+          onConfirm={() => {
+            lists.releaseArtifacts(releaseArtifactsConfirm.listId, releaseArtifactsConfirm.selector);
+            setReleaseArtifactsConfirm(null);
+          }}
+          onCancel={() => setReleaseArtifactsConfirm(null)}
         />
       )}
       {releaseAllConfirm && (
@@ -3101,7 +4773,7 @@ export default function OptimizerSection({ box, runes, optimizer, allMonsters, r
             if (!nom || !sourceSelector) return;
             const id = lists.createList(nom);
             if (intent === 'validate') {
-              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds);
+              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds);
             } else {
               lists.addMember(id, sourceSelector);
             }

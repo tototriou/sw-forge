@@ -65,6 +65,30 @@ Un sort dont la formule ne dépend d'**aucune** statistique de l'attaquant
 optimiser des runes dessus n'a aucun sens — toutes les combinaisons
 donneraient le même nombre.
 
+## L'équation de référence (swcalc)
+
+```
+Dégâts = (Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions
+```
+
+Source : [swcalc.cz/game-mechanics](https://swcalc.cz/game-mechanics). Ce
+découpage en **brackets** est ce qui décide de tout : chaque terme est additif
+**en interne**, jamais avec les autres.
+
+| Terme | Contenu | Dans ce fichier |
+|---|---|---|
+| **Crit** | `1 + Skillups + CDrune + CDarti + CDbonus − CDtaken` | `critTerm` — les Dgts CRIT d'artéfact (400-403, 410, 411, 222-224) y entrent, confirmé |
+| **DMG%** | `1 + ArtifactOnElement + ArtifactCoOp + Other` | `dmgPct` |
+| **FacteurDéf** | `1000 / (1142 + 3,572 × DEF)` | `defenseFactor` — ⚠️ le dépôt garde **1140 / 3,5**, écart assumé de longue date |
+| **Additionnel** | dégâts fixes de sort, et « + N % d'une stat » | `ajoutBrutParCoup` — ne crite pas, ignore la défense |
+| **Réductions** | `Artefact + Passif − Mirinae/Marque`, puis un bucket multiplicatif | `reductions` |
+| **Variance** | ±2,8 % | volontairement hors modèle |
+
+⚠️ **Le piège de cette formule est de confondre « additif » et « dans le même
+bracket ».** Deux effets peuvent être chacun additifs et pourtant se
+multiplier entre eux — c'est exactement l'erreur commise sur les lignes
+élémentaires (voir plus bas).
+
 ## L'équation
 
 Reprend celle de [../mecaniques.md](../mecaniques.md) :
@@ -150,6 +174,568 @@ Absents du résultat, **jamais approximés en silence** :
 - les sorts qui dépendent de l'**état de combat** au-delà des PV de la cible
   (`{Relative SPD}`, `{Alive Enemies}`, PV courants de l'attaquant…) — ces
   sorts-là sont refusés, pas approchés.
+
+## Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup
+
+Trois passifs infligent des dégâts **plats dérivés d'une stat**, en plus du
+sort actif : `Sickle Blade` (**Bayek Vent**), `Sand Blade` (**Desert Warrior
+Vent**, **Shahat**) et `Calculated Sacrifice` (**Onimusha**, **Fuuki**).
+
+⚠️ **Ils sont BRUTS et s'appliquent À CHAQUE COUP** : ni critiques, ni mitigés
+par la défense adverse. Ils passent donc par `horsCoupBrut`, jamais par
+`horsCoup`.
+
+`horsCoupBrut` conserve délibérément les amplificateurs **côté cible**
+(marque, Mirinae, « Increase Damage ») : ce sont des majorations des dégâts
+subis, quelle qu'en soit la nature — c'est exactement le traitement déjà
+réservé à un sort `profile.fixed`, plutôt qu'une seconde convention
+parallèle. Il exclut en revanche `skillupDamagePct` : les améliorations du
+sort **actif** n'ont aucune raison de majorer le bonus plat d'un **passif**,
+qui n'appartient pas à sa formule.
+
+### ⚠️ Incident — faux sur DEUX axes, sur la foi d'une confirmation erronée
+
+Ce terme s'appelait `ajoutUneFois` et était doublement faux : multiplié par
+`horsCoup` (donc critique **et** mitigé) et compté **une seule fois par
+sort**.
+
+Le « une fois par sort » s'appuyait sur un commentaire « confirmé par
+l'utilisateur », recopié tel quel dans le test — qui verrouillait donc le bug
+au lieu de le détecter. C'était une **erreur**, levée par un relevé en jeu.
+
+**Relevé — Shahat.** ~50 000 PV, S2 sur une cible à ~3 000 DEF → **~4 500
+dégâts par coup**. Le cas est *diagnostique* : à 3 000 de DEF la mitigation
+écrase tout ce qui la subit (`defenseFactor(3000) ≈ 0,0859`), ce qui sépare
+nettement le terme brut du terme mitigé. `Control Sand` (S2) =
+`1.4*{ATK} + 0.11*{MAX HP}`, 2 coups ; `Sand Blade` = 7 % des PV max.
+
+| | Part du sort (mitigée) | Sand Blade | Total par coup |
+|---|---|---|---|
+| Corrigé, sans critique | ≈ 600 | **3 500** (brut) | **≈ 4 100** |
+| Corrigé, avec critique | ≈ 1 400 | **3 500** (brut) | **≈ 4 900** |
+| Ancien calcul | — | — | ≈ 770 à 1 760 |
+
+Le relevé tombe **entre les deux lignes du modèle corrigé**, ce qui est
+exactement attendu : Sand Blade ne critant pas, seule la part du sort oscille.
+⚠️ **Le résultat ne dépend pas de l'ATQ**, absente du relevé : le terme
+dominant du sort est `0.11*{MAX HP}` (5 500), pas `1.4*{ATK}` — faire varier
+l'ATQ de 1 000 à 1 500 déplace le total de 4 093 à 5 002.
+
+⚠️ **Les deux familles partagent le même accumulateur, et c'est voulu.** Ce
+partage avait d'abord été pris pour un obstacle (« impossible de corriger
+l'une sans changer l'autre en silence ») ; elles ont en réalité exactement le
+même comportement. Ne pas le scinder.
+
+⚠️ **Le terme est creusé de `pvCourant` DANS la boucle**, avec le coup qui le
+porte. L'ancien `ajoutUneFois`, appliqué en bloc après la boucle, avait déjà
+valu un bug de `pvRestantsPct` surestimé (un seuil de passif « si PV restants
+≤ X % », Final Strike/Benedict, pouvait manquer sa cible). Par coup, cette
+classe de bug ne peut plus se reformer.
+
+⚠️ **Le test couvre les DEUX axes**, et le second exige un sort ORDINAIRE : la
+compétence neutre des tests porte `(Fixed)`, donc `horsCoup` y vaut 1 — un
+terme mitigé y serait indiscernable d'un terme brut. Sans cette précaution, on
+ne teste que la cadence.
+
+### Le voisinage, lui, est correct
+
+L'inventaire des autres termes de dégâts plats a été passé en revue et n'a
+**rien à corriger** — `ajoutParCoup` traverse `horsCoup` à juste titre :
+
+| Terme | Passif | Monstres | Critique / mitigé | Cadence |
+|---|---|---|---|---|
+| `ajoutCompteur` | `Rage Charge` (sur `Hammer Punch` S1) | Crawler, Frankenstein | **oui** ✅ | par coup ✅ |
+| `ajoutCiblePvMax` | `Spear of Tenacity` | Centaur Knight, Pholus | **oui** ✅ | par coup ✅ |
+| `ajoutEcartDef` | `Martial Arts Specialist` | Martial Artist, Sin | **oui** ✅ | par coup ✅ |
+
+⚠️ **Ce tableau vaut d'être conservé bien qu'il ne déclenche aucun travail** :
+c'est la trace que ces trois-là ont été **vérifiés**, et non pas seulement
+supposés corrects — exactement la distinction qui manquait à `ajoutUneFois`.
+
+## Amplification de buff par artéfact — ATQ, DEF, VIT
+
+Quatre lignes d'artéfact amplifient la **magnitude** d'un buff **déjà actif**,
+jamais la stat plate elle-même, et jamais un buff absent (sans buff, il n'y a
+rien à amplifier) :
+
+| Code | Libellé du jeu | Buff amplifié |
+|---|---|---|
+| 204 | `Effet renforcement ATQ +X%` | `ATK_BUFF_PCT` (50) |
+| 205 | `Effet renforcement DEF +X%` | `DEF_BUFF_PCT` (70) |
+| 206 | `Effet aug. VIT +X%` | `SPD_BUFF_PCT` (30) |
+| 226 | `Effet renforcement ATQ/DEF +X%` | **les deux** |
+
+⚠️ **226 est UNE ligne du jeu qui porte sur deux stats** — elle compte donc
+en entier des deux côtés, ce n'est pas un partage.
+
+Plusieurs lignes identiques sur des artéfacts différents **se cumulent**,
+comme en jeu. Et l'amplification d'artéfact **s'additionne** à celle de
+Miriam avant de multiplier la potence de base :
+`potence × (1 + (artéfact + Miriam) / 100)`. Les traiter multiplicativement
+l'un envers l'autre inventerait un empilement que le jeu ne fait pas.
+
+## Dégâts supplémentaires proportionnels à une stat (218-221)
+
+Quatre lignes d'artéfact ajoutent des dégâts **BRUTS** — ni critiques, ni
+mitigés par la défense adverse — **à chaque coup**, proportionnels à une stat
+de l'attaquant :
+
+| Code | Libellé du jeu | Plafond |
+|---|---|---|
+| 218 | `Dgts supp. en prop. des PV : X%` | 1,5 |
+| 219 | `Dgts supp. en prop. de ATQ : X%` | 20 |
+| 220 | `Dgts supp. en prop. de DEF : X%` | 20 |
+| 221 | `Dgts supp. en prop. de VIT : X%` | 200 |
+
+⚠️ **Les échelles n'ont rien à voir entre elles, et c'est normal** : 1,5 % de
+40 000 PV, 20 % de 2 000 ATQ et 200 % de 200 VIT donnent des ordres de
+grandeur comparables (≈ 600, 400, 400). Ne jamais « normaliser » ces valeurs
+l'une par rapport à l'autre. Les quatre cumulées au plafond valent **≈ 1 600
+par coup** — d'où leur intérêt sur les sorts qui frappent beaucoup de fois.
+
+Elles rejoignent le **même accumulateur** que les dégâts bruts de passif
+(voir plus haut) : même nature, même traitement, pas un second mécanisme.
+
+⚠️ **Les stats lues sont BUFFÉES** (buff d'ATQ, lead et invocateur déjà
+appliqués), pas les stats nues — c'est la même source que le reste de la
+formule. Faire lire des stats nues à ces seules lignes créerait deux notions
+d'« ATQ » dans le même calcul.
+
+### ⚠️ Le bucket Additionnel ne reçoit AUCUN bonus de type DMG%
+
+Ni les lignes élémentaires, ni Mirinae, ni les bonus « +X % par effet » d'un
+sort. **Seule la Marque le majore.**
+
+**Relevé Julie — il tranche et il calibre en même temps.** S3 « Thousand
+Shots » : +50 % par effet **bénéfique** sur la cible. Julie montée en DEF/PV
+(2 139 DEF, 26 545 PV) avec deux lignes d'artéfact (21 % de la DEF, 0,7 % des
+PV), contre un Feng Yan très défensif — la haute DEF écrase la part du sort et
+laisse la part brute dominer :
+
+| Cible | Buffs sur elle | Dégâts / coup |
+|---|---|---|
+| Feng Yan **sans** Will | 0 | ~700 |
+| Feng Yan **en** Will (Immunité) | 1 → +50 % | ~730 |
+
+Si le +50 % touchait tout, on lirait **1 050**. En le réservant à la part du
+sort, le système `S + A = 700` / `1,5·S + A = 730` donne **S = 60, A = 640**.
+
+⚠️ **Et le modèle prédit A = 635** (`0,21 × 2 139 + 0,007 × 26 545`) — moins de
+1 % d'écart. Le même relevé confirme donc **l'isolement** du bucket ET la
+**formule** des lignes 218-221 (par coup, brutes, sur les stats buffées).
+
+**Relevé Jessica — le même verdict par l'autre porte.** « Blessing of Curse »
+majore de +20 % par effet **néfaste sur soi**, là où Julie compte les buffs de
+la **cible** : deux membres différents de la famille, tous deux mesurés.
+Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV + 6 % DEF + 102 %
+VIT, contre un Xiong Fei très défensif, **en coup critique** :
+
+| Débuffs sur elle | Bonus au sort | Dégâts |
+|---|---|---|
+| 0 | — | ~2 250 |
+| 1 | +20 % | ~2 450 |
+| 2 | +40 % | ~2 600 |
+
+Si le +20 % touchait tout, 2 débuffs donneraient **3 150**. Le modèle prédit
+un additionnel de **1 277** (`0,02 × 53 050 + 0,06 × 827 + 1,02 × 163`) ; la
+résolution du système en donne **1 250**.
+
+⚠️ **Et ce relevé prouve, indépendamment, que le bucket ne CRITE pas.** Les
+trois mesures sont des critiques : un additionnel critique (×2,5) vaudrait à
+lui seul 3 192, soit plus que le total observé de 2 250. Impossible.
+
+> Les trois paires de mesures donnent des parts de sort un peu différentes
+> (1 000 / 875 / 750) : c'est la variance (±2,8 %) plus l'arrondi des
+> « environ », sur des totaux de ~2 500. La part ADDITIONNELLE, elle, reste
+> serrée autour de la prédiction.
+
+> ⚠️ **Le plafond de 1,5 vaut PAR ARTÉFACT, pas par monstre.** Un monstre en
+> porte deux (attribut + type), qui peuvent chacun avoir la ligne : les
+> valeurs de relevé au-delà du plafond (2 % chez Jessica, 2,3 % chez Momo)
+> sont des **cumuls des deux pièces**, pas des lignes gemmées.
+> `artifactDamageProfile` somme bien sur l'ensemble des artéfacts — c'est ce
+> qui rend ces relevés cohérents.
+>
+> Au passage : la ligne du relevé Julie vaut **0,7 %**, pas 7 % comme annoncé
+> d'abord. À 7 % elle donnerait 2 307 par coup, plus du triple du total
+> observé ; le calcul l'avait déduit avant confirmation.
+
+### Les modificateurs appliqués APRÈS coup ne le touchent pas non plus
+
+Sonia, Momo, Zenitsu, Gideon, Brita, Velaska… : ces bonus multiplient le total
+dans `computeTotalDamage`, après l'accumulation du sort et des passifs. Ils
+sont de type DMG%, donc **le bucket Additionnel leur échappe**.
+
+**Relevé Momo.** 53 545 PV, ligne « Dgts supp. en prop. des PV » à **2,3 %**
+(le cumul des DEUX artéfacts), **sans critique**, contre un Feng Yan très
+défensif :
+
+| Stack | Bonus au sort | Dégâts / coup |
+|---|---|---|
+| aucun | — | ~1 300 |
+| plein | +200 % (×3) | ~1 700 |
+
+Si le stack touchait tout, on lirait **3 900**. En le réservant à la part du
+sort : part du sort ≈ 200, additionnel ≈ 1 100 — le modèle en prédit **1 232**.
+L'écart (~11 %) est plus large que sur Julie ou Jessica : les deux mesures
+sont arrondies à la centaine, ce qui déplace la résolution de plusieurs
+dizaines dans chaque sens.
+
+⚠️ **Ce que ça a coûté en structure** : `computeSkillDamageDetail` remonte
+désormais sa part additionnelle (`additionnel`), et `computeTotalDamage`
+l'accumule — **sur le sort ET sur chaque passif** — puis la met de côté avant
+toute la chaîne de multiplicateurs, pour ne la rendre qu'à la fin. Les
+majorations propres à un passif (`bonusPvCible`, `bonus`) sont traitées pareil,
+sur sa seule part de sort.
+
+### ⚠️ Ces lignes n'entrent PAS dans `damageRelevantStats`
+
+Elles ajoutent pourtant de vrais dégâts proportionnels aux PV, à la DEF et à
+la VIT — de quoi croire qu'il faut désormais chercher ces stats-là. **C'est
+faux, et c'est une décision, pas un oubli.**
+
+Un artéfact **amplifie** un build, il n'en déplace pas la cible : un Lushen
+qui cherche des dégâts vise toujours ATQ et Dgts CRIT, qu'il porte ou non une
+ligne proportionnelle à la DEF. Ces lignes **récoltent** les stats que le
+build possède déjà, elles ne justifient jamais d'aller en chercher d'autres.
+
+Les y mettre ferait travailler la rétention de l'optimiseur (`retentionKeys`,
+runeBuildOptim.ts) sur des stats hors-sujet et sortirait des builds que
+personne ne veut.
+
+> Le cas où ces lignes comptent vraiment est l'INVERSE : un monstre dont
+> l'objectif premier n'est pas les dégâts (tank, support) porte déjà de gros
+> PV/DEF/VIT, que ces lignes convertissent en dégâts. Là, le build est déjà
+> figé par un autre objectif — il n'y a rien à réorienter.
+
+## Dgts CRIT qui VARIENT d'un coup à l'autre (411, 222, 223)
+
+Trois lignes d'artéfact ne valent pas la même chose sur tous les coups d'un
+même sort — les seules dans ce cas.
+
+| Code | Libellé du jeu | Variation |
+|---|---|---|
+| 411 | `Dgts CRIT 1re attaque` | **premier coup seulement** |
+| 222 | `D.CRIT+ selon bon état PV enn.` | **rampe linéaire** : plein à 100 % des PV de la cible, rien à 0 % |
+| 223 | `D.CRIT+ sel. mauv. étt PV enn.` | **rampe inverse** : rien à 100 %, plein à 0 % |
+
+Aucun palier : à 50 % de PV, chaque rampe vaut exactement la moitié. Un test
+le vérifie explicitement, parce que c'est le seul point qui distingue une
+rampe d'un seuil.
+
+### Rien n'est « recalculé » — le terme est AFFINE
+
+On pourrait croire qu'il faut refaire tout `horsCoup` à chaque coup, puisque
+ces lignes changent les Dgts Crit et que les PV de la cible baissent en cours
+de sort. **Non** : `cr`, `cd` et `partCrit` sont calculés une seule fois, seul
+`pvFrac` varie. D'où :
+
+```
+horsCoup(coup i) = horsCoup + coefCdParCoup × deltaCdPoints(i, pvFrac)
+      avec  coefCdParCoup = partCrit × K / 100     (K invariant)
+```
+
+Deux constantes précalculées, puis une multiplication-addition par coup.
+
+⚠️ **Le vrai coût n'est donc pas là**, mais dans le fait de **forcer le chemin
+séquentiel** sur des sorts qui prenaient le chemin court. Deux garde-fous :
+
+- **`partCrit === 0` court-circuite tout** (sort `fixed`, ou mode « jamais
+  critique ») : ces lignes ne peuvent alors rien changer, et le chemin court
+  est conservé. Un build non-critique ne paie rien.
+- **Le multiplicateur de la formule est évalué UNE fois** quand elle ne lit
+  pas les PV de la cible. Sans ça, un sort poussé dans la boucle par les
+  seules lignes d'artéfact paierait `coups` évaluations d'arbre pour rien.
+
+**Mesuré** (`computeTotalDamage` seul, 1 M d'évaluations, Lushen S3) :
+
+| Coups | Chemin court | Séquentiel forcé | Surcoût |
+|---|---|---|---|
+| 1 | 213 ns | 250 ns | ×1,17 |
+| 3 | 235 ns | 281 ns | ×1,20 |
+| 6 | 200 ns | 270 ns | ×1,35 |
+
+⚠️ C'est le coût de `computeTotalDamage` **seul** — une fraction de
+l'évaluation d'un candidat dans l'optimiseur, qui construit aussi les stats et
+vérifie les contraintes. Et il n'est payé que si les artéfacts portent
+réellement une de ces trois lignes ET que le build peut critiquer.
+
+### ⚠️ 411 vaut pour la première attaque DU TOUR, pas de chaque contribution
+
+`computeTotalDamage` calcule le sort actif, puis chaque passif offensif. Le
+sort a déjà consommé « la première attaque » : les passifs reçoivent donc un
+profil dont `cdPointsPremiereAttaque` est remis à zéro. Sans ça, un monstre à
+trois passifs encaisserait le bonus quatre fois.
+
+## Dgts CRIT conditionnels au SORT (400-403, 410, 224)
+
+Ces lignes ajoutent des **POINTS** de Dgts Crit — comme les compétences
+d'invocateur ou Euldong, jamais un pourcentage de la stat — mais **seulement
+quand le sort calculé est celui qu'elles visent**.
+
+| Code | Libellé du jeu | S'applique à |
+|---|---|---|
+| 400 / 401 / 402 / 403 | `[Comp.N] Aug. Dgts CRIT` | le sort du slot N |
+| 410 | `Dgts CRIT [compétence 3/4]` | les slots **3 ET 4** |
+| 224 | `D.CRIT+ comp cib uniq pdt tour` | les sorts **mono-cible** (`aoe === false`) |
+
+⚠️ **410 compte EN ENTIER pour les deux slots**, ce n'est pas un partage —
+même logique que le code 226 pour ATQ/DEF.
+
+⚠️ **402/403 existent mais ne sont pas dans la recherche détaillée du jeu**,
+qui ne propose que 400, 401, 410 et 411 (voir `SUB_ORDER`, effects.ts) : les
+deux formes sont gérées, un inventaire ancien pouvant porter les secondes.
+
+Tout est **déduit du profil du sort** (`slot`, `aoe`), rien n'est saisi —
+`artifactCritDamagePoints()` est la seule porte d'entrée.
+
+## Dégâts de bombe (210)
+
+⚠️ **`SkillDamageProfile.bombe` est DISTINCT de `fixed`.** Toute bombe est
+fixe, mais un sort ordinaire marqué `(Fixed)` est fixe **sans être une
+bombe** — et ne doit donc pas profiter de cette ligne. Les confondre
+majorerait des sorts qui n'ont rien d'une bombe.
+
+Le relevé Seara le vérifie dans les deux sens : +24 % appliqués à
+`Fate of Destruction` (ce qui recale le second relevé, ~34 000), et
+strictement aucun effet sur un sort fixe ordinaire.
+
+## Dégâts infligés par élément (300-304) — et le choix de la cible
+
+`Aug. des dgts infl. au Feu / à l'Eau / au Vent / à la Lum. / aux Tén.`
+(plafond 25) : un artéfact d'**attribut** majore les dégâts infligés à UN
+élément précis.
+
+⚠️ **Ces lignes ne comptent que si l'utilisateur dit contre quel élément il
+optimise** — `DamageSetup.enemyElement`. Deux modes, tous deux légitimes :
+
+- **viser un élément** — la ligne correspondante s'applique pleinement, et
+  l'artéfact d'attribut se juge largement dessus ;
+- **ignorer l'élément** (`null`, le défaut) — ces lignes comptent **0**, et
+  l'artéfact d'attribut se juge sur ses autres propriétés (typiquement
+  204/226).
+
+⚠️ « Ignorer » est un **choix**, pas un repli dégradé : optimiser « contre
+n'importe qui » est un cas d'usage à part entière. L'écran l'expose donc comme
+une option du contrôle à cran, jamais comme une absence de sélection.
+
+⚠️ **Une recette exportée AVANT ce champ n'en porte aucun** → `undefined` →
+« ignorer l'élément », soit exactement le comportement qu'elle avait à
+l'export. Aucune traduction spéciale n'est nécessaire.
+
+⚠️ **Ne pas confondre avec le paramètre `element` de
+`computeSkillDamageDetail`**, qui est celui de l'**attaquant** (il décide des
+compétences d'invocateur). `enemyElement` décrit la **cible**.
+
+### ⚠️ MULTIPLICATIF avec la Marque — deux brackets distincts
+
+Ces lignes vivent dans le terme **DMG%**, la Marque dans **Réductions**. Les
+deux brackets sont additifs *en interne* et **multiplicatifs entre eux** :
+`× 1,12 × 1,25`, et non `× (1 + 0,12 + 0,25)`.
+
+> **Incident — une déduction fausse figée par un test.** Ces lignes étaient
+> d'abord comptées dans `reductions`, donc additives avec la Marque, sur ce
+> raisonnement : l'utilisateur avait établi que Mirinae « stacks additively
+> with **-DMG%** artifacts », donc les lignes de DMG% d'artéfact seraient dans
+> ce sac. **La symétrie n'existait pas** : les artéfacts −DMG% (codes 305-309,
+> dégâts *subis*) sont bien dans Réductions, mais la famille +DMG% *infligés*
+> est un terme entièrement différent. Le test figeait 2 740 ; la bonne valeur
+> est 2 800. Corrigé d'après [swcalc.cz/game-mechanics](https://swcalc.cz/game-mechanics).
+
+### ⚠️ Jamais sur une bombe, jamais sur le bucket Additionnel
+
+**Mesuré en jeu par l'utilisateur** :
+
+| | Bombe | Passif de Shahat (bucket Additionnel) |
+|---|---|---|
+| Artéfact élémentaire | ❌ | ❌ |
+| Mirinae | ❌ | ❌ |
+| Dr. Matteo (Transmission) | ❌ | ❌ |
+| **Marque** | ✅ | ✅ |
+
+⚠️ **Dr. Matteo a été MESURÉ, pas déduit de Mirinae.** Sa formulation en jeu
+est quasi identique, et il aurait été tentant de reconduire l'analogie — mais
+les deux analogies précédentes de ce fichier (les artéfacts −DMG%, puis le
+placement des lignes élémentaires) se sont révélées **fausses**. Celle-ci a
+donc été vérifiée avant d'être écrite.
+
+⚠️ **La Marque et Mirinae ne sont donc PAS de la même famille**, malgré des
+libellés quasi identiques (« +X % de dégâts subis »). Les traiter ensemble —
+ce que faisait le terme `reductions` — majorait à tort les bombes et tout le
+bucket Additionnel. D'où `reductionsUniverselles` (la Marque seule, valable
+partout) distinct de `reductions` (Mirinae en plus, hors bombe et hors
+`fixed`).
+
+⚠️ Un sort ordinaire marqué `(Fixed)` profite en revanche du DMG%
+(swcalc : « skill-based fixed damage … is still multiplied by (1 + DMG%) ») —
+c'est exactement ce que le drapeau `bombe`, **distinct de `fixed`**, permet
+d'exprimer.
+
+### Uniforme, donc sans effet sur le choix des runes
+
+Contrairement aux lignes conditionnelles, une majoration élémentaire multiplie
+**tous les builds à l'identique**. C'est la seule famille dont on soit certain
+qu'elle ne peut jamais changer le classement d'une recherche.
+
+### ⚠️ Le réglage est TOUJOURS affiché — il décrit l'adversaire
+
+« Élément visé » se pose au même titre que les PV et la DEF de la cible, sans
+condition.
+
+⚠️ **Il a d'abord été conditionné à la présence d'une ligne 300-304 sur les
+artéfacts pris en compte. C'était une erreur**, signalée par l'utilisateur, et
+pour deux raisons dont la seconde est décisive :
+
+1. **La chronologie** — on configure l'adversaire AVANT toute recherche, à un
+   moment où rien ne dit encore quels artéfacts seront retenus (et en
+   pratique, il y en aura presque toujours un qui porte la ligne : le
+   « gating » ne filtrait donc quasiment rien, il clignotait).
+2. **Le sens de la dépendance** — ce réglage est une **entrée** du choix
+   d'artéfact, pas une conséquence. Le futur mode « choisir le meilleur
+   artéfact » (voir le cadrage privé) sert précisément à trancher entre un
+   artéfact élémentaire et un autre : masquer le réglage tant qu'aucun
+   artéfact équipé ne porte la ligne reviendrait à cacher ce qui décide du
+   choix en attendant que le choix soit fait.
+
+C'est la différence de fond avec `montreDefEnnemie` ou « PV restants » : ces
+deux-là sont pilotés par ce que le **sort** consomme — connu d'avance,
+immuable, et indépendant de tout ce que la recherche pourrait décider. La
+règle « n'afficher que ce que le calcul consomme » vaut pour les entrées
+DÉDUITES du sort, pas pour celles qui orientent la recherche.
+
+### `ArtifactDamageProfile` — un objet, pas une liste de nombres
+
+`artifactDamageProfile(artifacts)` réduit une paire d'artéfacts à ce qu'elle
+apporte au calcul. Il **remplace** l'ancien paramètre `ampliVitPct: number`,
+qui ne portait que la VIT.
+
+⚠️ **Un objet plutôt qu'un scalaire de plus, délibérément.** Cette donnée
+traverse **six emplacements** — `damage.ts`, `runeBuildOptim.ts`
+(`RealDamageContext`), `OptimizerSection.tsx`, `DamageSetupCard.tsx`, et les
+deux scripts CLI `optimizer-search.ts` / `optimizer-search-analyze.ts`.
+Ajouter chaque ligne d'artéfact comme un paramètre positionnel de plus aurait
+obligé à repasser sur les six à chaque fois ; un champ ajouté à l'objet
+n'oblige plus à toucher aucune signature.
+
+⚠️ **`tsconfig.json` fait `include: ["src"]`** — `npx tsc --noEmit` ne voit
+**ni `scripts/`, ni `tests/`**. Un champ oublié là-bas ne se détecte qu'à la
+main ; c'est la raison d'être de la discipline
+`optimizer-field-propagation`.
+
+> **Incident, immédiatement après l'introduction du profil** : une vingtaine
+> d'appels de `tests/degats.test.ts` passaient encore `0` (l'ancien
+> `ampliVitPct`) à la place de l'objet. Rien n'a bronché — `(0).ampliVitPct`
+> vaut `undefined`, qui retombait sur le défaut. La suite est restée verte
+> jusqu'à ce que le profil gagne les champs 218-221 : `undefined / 100`
+> donne alors `NaN`, et 42 vérifications ont viré au rouge d'un coup.
+> **Un argument de mauvais TYPE a donc survécu à un commit complet**, parce
+> que ni `tsc` ni les tests ne pouvaient le voir. Corrigé en passant
+> `ARTIFACT_DAMAGE_NEUTRE` partout.
+
+`speedBuffAmpliPct` survit comme extracteur de la seule VIT : `maVitCombat`
+n'a besoin que de celle-là, et la vitesse de combat se calcule dans des
+contextes qui n'ont rien à voir avec les dégâts.
+
+## Les bombes — des dégâts fixes, via une TROISIÈME détection
+
+Une bombe **ne peut pas être critique** et **ignore la défense adverse** :
+c'est exactement la sémantique de `SkillDamageProfile.fixed`. Le mécanisme
+existait donc déjà — il manquait seulement de quoi le déclencher.
+
+⚠️ **Les deux détections habituelles passent à côté**, chacune pour sa propre
+raison. La donnée dit pourtant la vérité : `public/data/skills/15713.json`,
+effet de `Fate of Destruction` — `"nom": "Bomb"`, « the bomb explodes to deal
+damage that **ignores Defense** ».
+
+| Drapeau | Détection | Pourquoi ça rate |
+|---|---|---|
+| `fixed` | `RE_FIXED` sur la **formule** (marqueur `(Fixed)`) | la formule est `"5.0*{ATK}"`, sans marqueur |
+| `ignoreDef` | un effet **nommé exactement** `'Ignore DEF'` | l'effet s'appelle `'Bomb'` — l'ignore-défense n'est écrit que dans sa **PROSE** |
+
+D'où `estBombeSansCoupDirect` : un effet nommé `Bomb` **et** `coups === 0`.
+
+### ⚠️ Le discriminant `coups === 0` — et pourquoi il est indispensable
+
+Marquer fixe *tout* sort portant un effet `Bomb` aurait été faux. Quatre
+familles **frappent en plus de poser** leur bombe : leur formule décrit le
+**coup direct**, qui crite et se fait mitiger normalement.
+
+Vérifié par un **balayage du corpus complet** (8 434 compétences, 48 portant
+l'effet) plutôt que sur le seul cas Seara — les deux familles s'y séparent
+nettement :
+
+| | Compétence | Monstres |
+|---|---|---|
+| **Pose seule** → **fixe** | `Fate of Destruction` | Seara, Oracle, Giana |
+| | `Surprise Bomb` | Joker, Sian, Jojo, Liebli |
+| | `Time Bomb` | Kobold Bomber, Malaka, Taurus, Dover |
+| | `Cursed Apple` ⚠️ | Puppeteer, Zima, Smicer, Zenisek |
+| **Frappe ET pose** → **pas fixe** | `Firecracker` | Kobold Bomber, Malaka, Zibrolta, Taurus… |
+| | `Bombardment` | Frigate, Pirate Captain, Carrack |
+| | `Dancing Star` | Geralt |
+| | `Star of Explosion` | Valdemar, Henrik, Magic Order Guardian |
+
+(`Camouflage (Passive)` et `Plasma Bomb` portent l'effet sans formule : aucun
+profil n'est construit pour eux, ils ne passent jamais par cette règle.)
+
+⚠️ **Le balayage a élargi la liste connue** : elle était estimée à trois
+compétences qui frappent (`Bombardment`, `Dancing Star`, `Star of
+Explosion`) — `Firecracker` s'y ajoute, sur une dizaine de formes de
+monstres. Cas d'école du corpus balayé plutôt que supposé.
+
+### ⚠️ `Cursed Apple` — quand `coups` ment
+
+`Cursed Apple` porte `coups: 1` mais ne frappe pas : sa prose ne décrit
+aucune attaque (« **Installs** a bomb that detonates after 2 turns on the
+enemy target and stuns the enemy for 1 turn »). Le `1` compte l'application
+de son second effet, l'**étourdissement** — pas un coup porté. Sa formule est
+bien celle de l'explosion.
+
+C'est le même piège que `COUPS_VARIABLES_CONNUS` : `Competence.coups` n'est
+pas toujours fidèle au texte du jeu. D'où `BOMBES_SANS_COUP_DIRECT_CONNUS`,
+curé par nom exact.
+
+⚠️ **Ce n'est PAS généralisable en « d'autres effets ⇒ coups gonflé »** :
+`Fate of Destruction` porte lui aussi deux autres effets (dégâts continus,
+tour supplémentaire) et reste pourtant à `coups: 0`. La donnée est
+incohérente d'un sort à l'autre, donc irréductible à un critère — seule la
+curation tient.
+
+⚠️ **La prose non plus ne ferait pas un discriminant fiable** : `Time Bomb`
+contient « Attack Bar » sans frapper, et `Bombardment` frappe sans jamais
+commencer par « Attacks ». Une expression régulière naïve se tromperait dans
+les deux sens.
+
+⚠️ **La règle générale reste `coups === 0`**, pas une liste blanche de noms :
+c'est elle qui classera correctement un sort de bombe NOUVEAU sans qu'on ait
+à le curer. La table ne rattrape que les données infidèles.
+
+⚠️ **Kobold Bomber porte LES DEUX** (`Firecracker` qui frappe, `Time Bomb` qui
+pose) : c'est le cas de test le plus net du discriminant, et il est verrouillé
+comme tel.
+
+⚠️ **Les dégâts de l'explosion différée des quatre familles « frappe et pose »
+ne sont NULLE PART dans les données** — aucune formule ne les porte. Ils
+restent donc hors modèle, comme le reste de ce qui ne se calcule pas.
+
+### `skillupDamagePct` continue de s'appliquer
+
+Une bombe profite bien des améliorations de compétence. C'est ce qui fait
+tomber le relevé en jeu au bon endroit, et c'est verrouillé par un test.
+
+**Relevé — Seara.** Bombes à **~27 000** ; avec **+24 %** de dégâts de bombe
+venant des artéfacts, **~34 000**. Le rapport confirme au passage la nature
+**multiplicative** de ce bonus d'artéfact (code 210) : `27 000 × 1,24 =
+33 480`. La magnitude se recale en lisant le relevé correctement — le +2 800
+d'ATQ est un **bonus d'équipement**, à additionner à la base et à la
+compétence d'invocateur :
+
+| | |
+|---|---|
+| ATQ de base (Seara) | 801 |
+| + équipement | +2 800 → **3 601** |
+| + compétence d'invocateur (~15 %) | ≈ **4 150** |
+| `5,0 × 4 150 × 1,30` (3 × `Damage +10%`) | **26 975** ✅ |
 
 ## Passifs offensifs — dégâts supplémentaires au-delà du sort choisi
 
@@ -464,13 +1050,11 @@ mécaniques ci-dessus ET pour `{SPD}` lui-même :
 1. **Runes + totem** — déjà comptés (`stats`/`summonerSkillBonus`, +15 % de
    « Combat », voir plus haut).
 2. **Buff de VIT** (`setup.spdBuff`, +30 %) — éventuellement **amplifié**
-   par un artéfact « Effet aug. VIT +X% » (code 206, voir `ARTIFACT_SUB`,
-   effects.ts) : `speedBuffAmpliPct(artifacts)` somme cette ligne sur tous
-   les artéfacts ÉQUIPÉS (`SearchParams.artifacts` — fixes pour toute une
-   recherche, l'Optimizer n'optimise que les runes) et amplifie
-   MULTIPLICATIVEMENT le pourcentage du buff (`30 % × (1 + X/100)`), jamais
-   la VIT plate elle-même. Porte sur le **TOTAL** (base + rune + lead déjà
-   posés) — mécanique différente du lead, voir plus bas.
+   par un artéfact « Effet aug. VIT +X% » (code 206, voir « Amplification de
+   buff par artéfact » plus bas) : le pourcentage du buff est amplifié
+   MULTIPLICATIVEMENT (`30 % × (1 + X/100)`), jamais la VIT plate elle-même.
+   Porte sur le **TOTAL** (base + rune + lead déjà posés) — mécanique
+   différente du lead, voir plus bas.
 3. **Leader skill d'ÉQUIPE** (`setup.leaderSkill`, type VIT — voir « Leader
    skill d'équipe » plus bas) — le sien n'agit jamais sur lui-même,
    contrairement au totem. ⚠️ Porte sur la VIT de **BASE**, pas sur le total
@@ -1103,9 +1687,18 @@ monstre, aucun `RealDamageContext` supplémentaire.
   (`VELASKA_PCT_PAR_PV_PERDU = 0.5`). ⚠️ **Seul effet d'équipe à porter une
   DEUXIÈME donnée** en plus du toggle : l'app ne simule pas les PV réels du
   monstre optimisé (`setup.velaskaPvPerduPct`, 0-100, 0 par défaut = aucun
-  bonus). Un champ numérique dédié apparaît sous la grille d'icônes
-  UNIQUEMENT quand `velaskaActif` est coché — même discipline que le champ
-  « Stack actuel » de Momo, jamais un état deviné.
+  bonus). Un champ numérique dédié sous la grille d'icônes ne devient
+  utilisable que quand `velaskaActif` est coché — même discipline que le
+  champ « Stack actuel » de Momo, jamais un état deviné.
+
+  ⚠️ **Sa place est RÉSERVÉE d'avance, il n'APPARAÎT pas.** Rendu sous
+  condition, il poussait toute la rangée de vignettes vers le bas au moment
+  même où on cliquait Velaska — un clic qui déplace ce qu'on vient de
+  cliquer, interdit par [../shared/design.md](../shared/design.md). Signalé
+  à l'usage. La rangée existe donc en permanence et garde sa hauteur ; seul
+  son contenu se révèle. `invisible` et non `hidden`, avec `aria-hidden` et
+  le champ désactivé : la place est tenue sans qu'on puisse tabuler dans un
+  champ qu'on ne voit pas.
 
 ## Leader skill d'équipe
 
@@ -1114,20 +1707,75 @@ lead — demande explicite de l'utilisateur : « choisir un leader skill…
 implémenter les leader skill de PV, d'ATQ, de DEF, de VIT, de Taux Crit et
 de dégâts crit ». Sélection dans « Effets actifs » : un type d'abord (avec
 l'icône OFFICIELLE du jeu, réutilisée depuis `siege/LeadPill.tsx` —
-`leadIconUrl`/`STAT_LABEL`, jamais dupliquée), puis une valeur — un palier
-réel du jeu proposé dans une liste déroulante, ou une saisie libre
-(`DamageSetup.leaderSkill: { stat, pct }`).
+`leadIconUrl`/`STAT_LABEL`, jamais dupliquée), puis une valeur — **une seule
+liste déroulante** (`DamageSetup.leaderSkill: { stat, pct }`).
 
-Paliers réels, confirmés par l'utilisateur (`LEADER_SKILL_PRESETS`,
-damage.ts) — jamais une progression régulière déduite d'une stat à
-l'autre :
+⚠️ **Plus de saisie libre.** L'écran proposait un menu de « paliers courants »
+**et** un champ numérique, parce que la table ne prétendait pas être complète.
+`LEADER_SKILL_VALEURS` (damage.ts) est désormais **EXHAUSTIVE** — liste
+fournie par l'utilisateur — donc le champ libre n'a plus rien à rattraper.
+Ça corrige au passage un défaut signalé : l'ancien menu gagnait une option
+« 44 % (personnalisé) » dès que la valeur quittait un palier, et un `<select>`
+natif se dimensionnant sur l'option SÉLECTIONNÉE, il s'élargissait d'un coup
+et poussait le champ voisin — un clic qui déplace ce qu'on vient de cliquer.
 
-| Stat | Paliers |
+| Stat | Valeurs |
 |---|---|
-| PV / ATQ / DEF | 28, 33, 38, 40, 44, 50 % |
-| VIT | 21, 24, 28, 30, 33 % |
-| Taux Crit | 21, 24, 28, 33, 38 % |
-| Dégâts Crit | 25 % (un seul palier connu) |
+| PV | 15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50 % |
+| ATQ | 15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50 % |
+| DEF | 20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50 % |
+| VIT | 10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33 % |
+| Taux Crit | 10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38 % |
+| Dégâts Crit | 25 % — un seul monstre du jeu porte ce lead |
+
+⚠️ **PV, ATQ et DEF ne partagent PLUS la même liste.** L'ancienne table les
+donnait identiques (`28, 33, 38, 40, 44, 50`) : c'était un relevé partiel.
+ATQ a un 35 que PV n'a pas, PV a un 17 et un 18 absents de DEF, et DEF ne
+descend pas sous 20. Ne pas les refactoriser en une ligne « parce qu'elles se
+ressemblent ». Les maximums diffèrent aussi : **33 % en VIT contre 50 % en
+ATQ**.
+
+⚠️ Une valeur enregistrée HORS liste (saisie du temps du champ libre, ou
+recette importée) reste affichée telle quelle dans le menu plutôt que
+remplacée en silence — changer un chiffre sans prévenir serait pire que le
+défaut corrigé. Elle disparaît dès qu'on choisit autre chose.
+
+⚠️ **Une GRILLE dont toutes les places sont tenues d'avance** — libellé
+(« Lead », abrégé pour la largeur), icône, menus. Trois choses y bougeaient au
+moindre clic, et c'est le même défaut trois fois
+([../shared/design.md](../shared/design.md), « un clic ne déplace jamais ce
+qu'on vient de cliquer ») :
+
+1. le menu de la **valeur** se dépliait **à droite** du type, élargissant le
+   groupe et poussant « Compétences d'invocateur » ;
+2. passé **en dessous**, il ferait grandir la carte si sa rangée n'était pas
+   réservée ;
+3. l'**icône** du lead, rendue sous condition, poussait le menu de type dès
+   qu'un lead était choisi.
+
+La colonne de l'icône existe donc même vide, la seconde rangée existe même
+sans lead (un menu figurant, désactivé et `aria-hidden`, la tient — sans lui
+elle serait plate et la carte grandirait quand même), et la valeur se pose en
+`col-start-3`, donc exactement sous le type. ⚠️ L'alignement se **déduit des
+colonnes** ; il n'est pas reproduit à coups de marges qui dériveraient au
+prochain changement de libellé. Même parade que le champ de Velaska.
+
+⚠️ **Trois précisions confirmées par l'utilisateur**, à ne pas re-questionner :
+
+- **La portée n'entre PAS dans la table, délibérément.** En jeu, une valeur de
+  lead dépend de sa portée (33 % réservés à un contenu — guilde, arène —,
+  24 % universels, 30 % élémentaires…), du monstre qui la porte et de son
+  nombre d'étoiles naturel. Rien de tout ça n'a d'importance **ici** : c'est
+  l'utilisateur qui choisit le lead qu'il veut poser sur son équipe, pas l'app
+  qui le déduit d'un monstre. La table reste donc à UNE dimension — une liste
+  de valeurs possibles par statistique. ⚠️ Les valeurs ne sont pas les mêmes
+  d'une statistique à l'autre : le maximum est **33 % en VIT** contre **50 %
+  en ATQ**, et aucune formule ne relie les deux.
+- **Un seul palier en Dégâts Crit est CORRECT**, pas un trou : un seul monstre
+  du jeu porte un leader skill de dégâts critiques.
+- **Les leads de RES et de Précision existent** et sont **volontairement
+  ignorés** : ils n'ont aucun effet sur les dégâts, seule question à laquelle
+  ce réglage sert. Leur absence n'est pas un oubli.
 
 ⚠️ **Deux familles de mécaniques, jamais confondues** :
 - **PV/ATQ/DEF/VIT** — un pourcentage MULTIPLICATIF de la stat de **BASE**

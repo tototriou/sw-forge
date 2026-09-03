@@ -137,13 +137,17 @@ function rankInBucket(slotIdxs: [number, number, number], targetIds: number[]) {
     console.log(`  ⚠️ demi-build cible INTROUVABLE parmi les ${scored.length} combos générés.`);
     return;
   }
+  // ⚠️ Alias APRÈS la garde : le rétrécissement de type de `targetCombo` ne
+  // traverse pas la déclaration de fonction `rankBy` plus bas (hoistée, donc
+  // TypeScript la suppose appelable avant la garde).
+  const cible = targetCombo;
   const sameBucket = scored.filter((s) => s.counts.join(',') === targetCombo.counts.join(',') && s.jokers === targetCombo.jokers);
   console.log(`  compartiment (counts=[${targetCombo.counts}], jokers=${targetCombo.jokers}) : ${sameBucket.length} demi-builds au total`);
 
   function rankBy(scoreOf: (s: Scored) => number, label: string) {
     const sorted = sameBucket.slice().sort((a, b) => scoreOf(b) - scoreOf(a));
     const rank = sorted.findIndex((s) => s.ids.every((id) => targetIds.includes(id))) + 1;
-    console.log(`    ${label.padEnd(22)} rang #${rank} / ${sameBucket.length} (score cible=${scoreOf(targetCombo).toFixed(3)}, meilleur=${scoreOf(sorted[0]).toFixed(3)})`);
+    console.log(`    ${label.padEnd(22)} rang #${rank} / ${sameBucket.length} (score cible=${scoreOf(cible).toFixed(3)}, meilleur=${sorted[0] ? scoreOf(sorted[0]).toFixed(3) : 'n/a'})`);
   }
   rankBy((s) => s.generic, 'générique (efficience)');
   if (minEntries.length > 0) rankBy((s) => s.combined, 'combinée (minEntries)');

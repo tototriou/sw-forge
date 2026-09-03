@@ -12,13 +12,17 @@ import {
   maxRolls,
   isFullStack,
   ARTIFACT_SUB_MAX,
+  artifactFitsMonster,
+  artifactPairAllowed,
+  eligibleArtifacts,
 } from '../src/lib/artifacts';
-import { ArtifactDetail } from '../src/types';
+import { ArtifactArchetype, ArtifactDetail, ElementKey } from '../src/types';
+import { readFileSync } from 'node:fs';
 import { egal, ok, titre, ignore, exportReel } from './outils';
 
 // Artéfact minimal, pour éprouver la formule sans dépendre d'un export.
 const art = (subs: [number, number][], rarity = 5): ArtifactDetail => ({
-  kind: 'element',
+  id: 0, kind: 'element',
   element: 'light',
   level: 15,
   rarity,
@@ -103,6 +107,97 @@ export default function testArtefacts() {
     "un héroïque ne peut pas atteindre 4 rolls — d'où le filtre légendaire du panneau"
   );
 
+  titre('Artéfacts — éligibilité : quel monstre peut porter quoi');
+
+  // Règle du jeu : l'artéfact d'ATTRIBUT suit l'élément du monstre, celui de
+  // TYPE suit son archétype. C'est elle qui ramène ~2 000 artéfacts à ~200
+  // candidats par emplacement, et rend l'optimisation abordable.
+  const artAttribut = (element: ElementKey): ArtifactDetail => ({
+    id: 0, kind: 'element',
+    element,
+    level: 15,
+    rarity: 5,
+    main: { code: 100, value: 300 },
+    subs: [],
+  });
+  const artType = (archetype: ArtifactArchetype): ArtifactDetail => ({
+    id: 0, kind: 'archetype',
+    archetype,
+    level: 15,
+    rarity: 5,
+    main: { code: 101, value: 300 },
+    subs: [],
+  });
+
+  const lushen = { element: 'dark' as ElementKey, archetype: 'attack' as ArtifactArchetype };
+
+  ok(artifactFitsMonster(artAttribut('dark'), lushen), 'Lushen (Ténèbres) porte un artéfact d’attribut Ténèbres');
+  ok(!artifactFitsMonster(artAttribut('fire'), lushen), '… et jamais un artéfact d’attribut Feu');
+  ok(artifactFitsMonster(artType('attack'), lushen), 'Lushen (type ATQ) porte un artéfact de type ATQ');
+  ok(!artifactFitsMonster(artType('hp'), lushen), '… et jamais un artéfact de type PV');
+
+  // ⚠️ Un archétype ABSENT n'est jamais éligible : c'est le cas des monstres
+  // de matériau (angelmons) et d'un `monsters.json` régénéré avant le champ.
+  // Répondre « oui » par défaut proposerait des artéfacts inéquipables.
+  const sansArchetype = { element: 'dark' as ElementKey };
+  ok(artifactFitsMonster(artAttribut('dark'), sansArchetype), 'sans archétype, l’attribut reste jugeable');
+  ok(!artifactFitsMonster(artType('attack'), sansArchetype), '… mais AUCUN artéfact de type n’est éligible');
+
+  {
+    const inventaire = [
+      artAttribut('dark'),
+      artAttribut('dark'),
+      artAttribut('fire'),
+      artType('attack'),
+      artType('support'),
+    ];
+    egal(eligibleArtifacts(inventaire, lushen, 'element').length, 2, 'filtrage par sorte : 2 attributs Ténèbres retenus');
+    egal(eligibleArtifacts(inventaire, lushen, 'archetype').length, 1, '… et 1 seul type ATQ');
+    // ⚠️ Les deux emplacements sont INDÉPENDANTS : jamais une liste mêlée que
+    // l'appelant devrait re-séparer.
+    ok(
+      eligibleArtifacts(inventaire, lushen, 'element').every((a) => a.kind === 'element'),
+      'aucune sorte ne fuit dans l’autre'
+    );
+  }
+
+  // ⚠️ INTANGIBLE — le joker. Existe dans les DEUX sortes, se pose sur
+  // n'importe quel monstre. Testé AVANT element/archetype, dont les valeurs ne
+  // veulent rien dire sur un intangible (com2us y met 98).
+  {
+    const intangibleAttribut: ArtifactDetail = { ...artAttribut('unknown'), intangible: true };
+    const intangibleType: ArtifactDetail = { ...artType('support'), intangible: true };
+    const eau = { element: 'water' as ElementKey, archetype: 'defense' as ArtifactArchetype };
+    ok(artifactFitsMonster(intangibleAttribut, lushen), 'un intangible d’attribut va sur Lushen (Ténèbres)…');
+    ok(artifactFitsMonster(intangibleAttribut, eau), '… comme sur un monstre Eau : c’est un joker');
+    ok(artifactFitsMonster(intangibleType, lushen), 'idem pour un intangible de TYPE, malgré un archétype qui ne correspond pas');
+    ok(artifactFitsMonster(intangibleType, sansArchetype), '… et même sur un monstre sans archétype connu');
+
+    // ⚠️ La contrainte est sur la PAIRE : chaque artéfact est éligible seul,
+    // et pourtant les deux ensemble sont interdits. Un optimiseur qui filtre
+    // emplacement par emplacement proposerait une paire inéquipable.
+    ok(!artifactPairAllowed(intangibleAttribut, intangibleType), 'DEUX intangibles à la fois : interdit');
+    ok(artifactPairAllowed(intangibleAttribut, artType('attack')), 'un seul intangible (attribut) : permis');
+    ok(artifactPairAllowed(artAttribut('dark'), intangibleType), 'un seul intangible (type) : permis');
+    ok(artifactPairAllowed(artAttribut('dark'), artType('attack')), 'aucun intangible : permis');
+    ok(artifactPairAllowed(intangibleAttribut, null), 'un emplacement vide n’a jamais rien à interdire');
+    ok(artifactPairAllowed(null, null), 'deux emplacements vides non plus');
+  }
+
+  // Sur le VRAI bestiaire : l'archétype est présent et cohérent.
+  {
+    const monstres = JSON.parse(readFileSync('public/data/monsters.json', 'utf8'));
+    const liste = Array.isArray(monstres) ? monstres : (monstres.monsters ?? []);
+    const parId = (id: number) => liste.find((m: { com2usId?: number }) => m.com2usId === id);
+    egal(parId(19315)?.archetype, 'attack', 'Lushen est bien de type Attaque dans les données');
+    egal(parId(28013)?.archetype, 'hp', 'Shahat est de type PV');
+    // Les monstres de MATÉRIAU n'ont pas d'archétype, et c'est voulu.
+    const angelmon = liste.find((m: { name?: string }) => m.name === 'Angelmon');
+    egal(angelmon?.archetype ?? null, null, 'un Angelmon n’a aucun archétype — il ne porte pas d’artéfact');
+    const avec = liste.filter((m: { archetype?: string | null }) => m.archetype != null).length;
+    ok(avec > 2000, `l’archétype est renseigné sur la grande majorité du bestiaire (${avec}/${liste.length})`);
+  }
+
   /* ---- Sur l'export réel, quand il est là ------------------------------- */
 
   const brut = exportReel();
@@ -146,10 +241,31 @@ export default function testArtefacts() {
   // Garde-fou de calibrage : sur un compte réel, l'efficience doit rester dans
   // une plage plausible. Un dénominateur cassé enverrait la médiane à 5 % ou à
   // 400 % sans qu'aucune autre vérification ne bronche.
+  // ⚠️ Les INTANGIBLES existent réellement dans un compte, et le décodage du
+  // marqueur com2us (98) est la seule chose qui les distingue d'une donnée
+  // corrompue. Sans lui ils retomberaient sur `element: 'unknown'` /
+  // `archetype: undefined` et seraient jugés éligibles à AUCUN monstre —
+  // silencieusement absents de toute optimisation.
+  {
+    const intangibles = artifacts.filter((a) => a.intangible);
+    ok(intangibles.length > 0, `des intangibles sont reconnus dans l'inventaire réel (${intangibles.length})`);
+    ok(
+      intangibles.some((a) => a.kind === 'element') && intangibles.some((a) => a.kind === 'archetype'),
+      'et dans les DEUX sortes — attribut comme type'
+    );
+    // Aucun artéfact NON intangible ne doit avoir d'attribut/archétype inconnu :
+    // ce serait le signe d'un marqueur raté ou d'une valeur com2us nouvelle.
+    const orphelins = artifacts.filter(
+      (a) => !a.intangible && (a.kind === 'element' ? a.element === 'unknown' : a.archetype == null)
+    );
+    egal(orphelins.length, 0, 'aucun artéfact non-intangible sans attribut ni archétype reconnu');
+  }
+
   const effs = artifacts.map(artifactEfficiency).sort((a, b) => a - b);
   const mediane = effs[Math.floor(effs.length / 2)];
   ok(
     mediane > 40 && mediane < 100,
     `médiane d'efficience plausible (${mediane.toFixed(1)} %)`
   );
+
 }

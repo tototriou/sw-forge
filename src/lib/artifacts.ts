@@ -12,7 +12,71 @@
 // définitif — d'où l'absence de tout `artifactPotential` ici, contrairement à
 // runeOptim.ts.
 
-import { ArtifactDetail } from '../types';
+import { ArtifactArchetype, ArtifactDetail, ArtifactKind, ElementKey } from '../types';
+
+/* --------------------------------------------------------------------------
+ * Éligibilité — quel artéfact CE monstre peut-il porter
+ * ----------------------------------------------------------------------- */
+
+// Ce qu'il faut savoir d'un monstre pour trancher. Volontairement RÉDUIT au
+// strict nécessaire plutôt que `Monster` entier : la règle ne dépend de rien
+// d'autre, et un type minimal la rend appelable depuis un contexte qui n'a pas
+// de fiche complète sous la main (un exemplaire importé, un test).
+export interface PorteurArtefact {
+  element: ElementKey;
+  archetype?: ArtifactArchetype | null;
+}
+
+// Règle du jeu : un monstre ne porte qu'UN artéfact de chaque sorte, et chacun
+// doit correspondre — l'attribut à son élément, le type à son archétype.
+//
+// ⚠️ **C'est ce qui rend l'optimisation d'artéfacts abordable.** Sur un
+// inventaire réel (~2 000 artéfacts), elle ramène chaque emplacement à ~200
+// candidats : plus besoin de meet-in-the-middle ni de plafond de rétention,
+// une double boucle exhaustive suffit et reste exacte.
+//
+// ⚠️ **Un archétype ABSENT ou `null` n'est jamais éligible** à un artéfact de
+// type — c'est le cas des monstres de matériau (angelmons), et celui d'un
+// `monsters.json` régénéré avant que le champ n'existe. Répondre « oui » par
+// défaut proposerait des artéfacts qu'aucun de ces monstres ne peut équiper ;
+// répondre « non » ne fait que ne rien proposer, ce qui se voit.
+export function artifactFitsMonster(art: ArtifactDetail, porteur: PorteurArtefact): boolean {
+  // ⚠️ L'INTANGIBLE est un joker : il se pose sur n'importe quel monstre, dans
+  // les deux sortes. Testé EN PREMIER parce que ses champs `element`/
+  // `archetype` ne veulent rien dire (com2us y met 98) — les lire d'abord le
+  // rejetterait systématiquement.
+  //
+  // ⚠️ Sa contrepartie est une contrainte de PAIRE, invisible ici : on ne peut
+  // pas porter deux intangibles à la fois. Voir `artifactPairAllowed` — filtrer
+  // chaque emplacement séparément ne suffit donc PAS.
+  if (art.intangible) return true;
+  if (art.kind === 'element') return art.element != null && art.element === porteur.element;
+  return art.archetype != null && art.archetype === porteur.archetype;
+}
+
+// Cette PAIRE est-elle portable ensemble ? Les deux emplacements sont par
+// ailleurs indépendants — c'est la seule règle qui les relie.
+//
+// ⚠️ **Un seul intangible à la fois.** Chaque artéfact pris isolément peut être
+// parfaitement éligible et la paire rester interdite : un optimiseur qui se
+// contenterait de `eligibleArtifacts` par emplacement proposerait des paires
+// impossibles à équiper.
+//
+// `null` = emplacement laissé vide, toujours permis.
+export function artifactPairAllowed(attribut: ArtifactDetail | null, type: ArtifactDetail | null): boolean {
+  return !(attribut?.intangible && type?.intangible);
+}
+
+// Les artéfacts de l'inventaire que CE monstre peut porter, pour UNE sorte.
+// ⚠️ Deux emplacements indépendants : on filtre par sorte plutôt que de rendre
+// une liste mêlée que l'appelant devrait re-séparer.
+export function eligibleArtifacts(
+  inventaire: ArtifactDetail[],
+  porteur: PorteurArtefact,
+  kind: ArtifactKind
+): ArtifactDetail[] {
+  return inventaire.filter((a) => a.kind === kind && artifactFitsMonster(a, porteur));
+}
 
 // Fourchette de **proc** d'une propriété : ce qu'un tirage lui ajoute, du moins
 // bon au meilleur. Valeurs du jeu, relevées à la main.

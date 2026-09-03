@@ -9,6 +9,13 @@ import testImport from './import.test';
 import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
+import testArtefactOptim, {
+  testRecettePartagee,
+  testAmplificationSurvitDominance,
+  testConversionVitesseFinale,
+  testAmpliMaxAtteignable,
+} from './artefact-optim.test';
+import testArtefactFile from './artefact-file.test';
 import testReco, {
   testTrimPartage,
   testDefensesVisees,
@@ -21,7 +28,7 @@ import testRtaPartage from './rta-partage.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
-import testDegats from './degats.test';
+import testDegats, { testFormesEquivalentes } from './degats.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
@@ -77,6 +84,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRechargement', testRechargement],
   ['testCollabPaires', testCollabPaires],
   ['testDegats', testDegats],
+  ['testFormesEquivalentes', testFormesEquivalentes],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],
@@ -87,6 +95,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerExclusion', testOptimizerExclusion],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
+  ['testArtefactOptim', testArtefactOptim],
+  ['testRecettePartagee', testRecettePartagee],
+  ['testAmplificationSurvitDominance', testAmplificationSurvitDominance],
+  ['testConversionVitesseFinale', testConversionVitesseFinale],
+  ['testAmpliMaxAtteignable', testAmpliMaxAtteignable],
+  ['testArtefactFile', testArtefactFile],
   ['testRegistre', testRegistre],
   ['testSansDowngrade', testSansDowngrade],
   ['testPalier', testPalier],

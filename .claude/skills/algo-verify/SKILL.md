@@ -141,6 +141,79 @@ pendant une bonne partie d'une session, alors que `tsc`/les types ne
 pouvaient rien détecter (l'appel était parfaitement valide, juste
 incomplet).
 
+## ⚠️ La fidélité s'arrête rarement à la recherche : elle va jusqu'à l'ÉCRAN
+
+**Incident vécu, et il a coûté trois messages de fausse piste.** Un
+diagnostic a conclu « le moteur MANQUE un build meilleur et faisable » — le
+build en question était présent, au **rang 6**. Le script avait lu
+`result.candidates[0]` en le prenant pour le meilleur.
+
+⚠️ **`SearchResult.candidates` n'est PAS trié par l'objectif.** L'ordre est
+celui de la collecte à l'appariement. C'est **l'écran** qui classe, et le tri
+vivait *inline* dans `OptimizerSection.tsx` — donc invisible pour quiconque
+lisait le moteur. Le vrai CLI (`optimizer-search.ts`) affichait lui aussi
+`slice(0, 20)` en présentant ces vingt comme des résultats : le script ad hoc
+était **fidèle au CLI**, c'est le CLI qui était infidèle à l'écran.
+
+Corrigé depuis par `sortCandidates` (runeBuildOptim.ts), source unique
+partagée. Mais la leçon générale demeure :
+
+**Le « vrai chemin de production » inclut ce que l'ÉCRAN fait du résultat**,
+pas seulement ce que le moteur calcule. Avant de conclure quoi que ce soit
+d'une sortie de moteur, se demander : *l'écran applique-t-il encore un tri,
+un filtre, un repli, un recalcul, après cet appel ?* Chercher dans le
+composant, pas seulement dans la lib.
+
+⚠️ **Et faire d'abord le test le moins cher.** Avant « le moteur manque X »,
+poser `candidates.findIndex(…)` : trois lignes qui distinguent *absent* de
+*mal classé*. Comparer un score au premier élément d'une liste non triée ne
+prouve rien — et ressemble EXACTEMENT à un vrai bug.
+
+### La CHARGE opposée au système est un chemin de production, elle aussi
+
+⚠️ Tout ce qui précède porte sur l'appel au MOTEUR. Ce piège-ci porte sur la
+**charge** qu'un script de mesure oppose au système — et elle se vérifie
+exactement pareil.
+
+**Incident vécu** (`artifact-contention-diag.ts`). Le script devait mesurer si
+l'optimisation d'artéfacts, exécutée pendant que l'appariement tourne, ralentit
+la recherche. Sa charge rejouait bien `chercherPaires`, le vrai point d'entrée
+— mais son `evaluer` sommait les stats au lieu de dérouler le calcul de dégâts.
+Il ne lisait donc **aucune sous-propriété d'artéfact**.
+
+La cascade, invisible à la lecture du script :
+
+1. `analyserPertinence` sonde chaque code contre `evaluer` → aucune ligne ne
+   fait bouger le score → **zéro ligne « croissante »** ;
+2. sans dimensions, la dominance ne compare plus que les 3 stats principales ;
+3. l'inventaire s'effondre de ~12 000 paires parcourues à **une poignée** ;
+4. la « charge » coûte **0,4 ms au lieu de 86 ms**.
+
+La mesure a annoncé « aucun ralentissement ». C'était vrai, et vide de sens :
+il n'y avait aucune charge. ⚠️ **Rien dans le script ne le disait** — seul le
+compteur de builds, présent par chance dans la sortie, était incohérent
+(20 213 builds en 8,6 s).
+
+**Contre-mesure : faire dire au script sa PROPRE fidélité, avant de mesurer.**
+Deux nombres en tête de sortie, avec leur fourchette attendue :
+
+```
+Charge par build : 86 ms sur 12 315 paires parcourues.
+(attendu ~75-85 ms sur ~12 000 paires — bien moins signale une charge effondrée)
+```
+
+Une charge effondrée se voit alors à la première ligne, au lieu de se déduire
+après coup en relisant des compteurs. ⚠️ La fourchette doit venir d'une mesure
+INDÉPENDANTE et citer le bon régime : « ~340 ms » (l'espace NON élagué) aurait
+été un repère faux ici, la production élaguant elle aussi.
+
+⚠️ **Un évaluateur simplifié n'est jamais anodin quand l'algorithme s'en sert
+pour DÉCIDER.** Ici il ne servait pas qu'à noter : `analyserPertinence` et la
+dominance en dérivent leur comportement. Remplacer un score par « quelque chose
+de moins cher » change alors la STRUCTURE de ce qui est exécuté, pas seulement
+sa valeur.
+
+
 **Règle** : avant de faire confiance au résultat d'un script qui appelle les
 internes du moteur (pas l'API publique `searchBuilds`), le DIFFER
 explicitement, ligne par ligne, contre le vrai chemin de production —

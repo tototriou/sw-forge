@@ -4,17 +4,29 @@ import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup, DEFAULT_DAMAGE_SETUP } from '../lib/damage';
 import { AutoExclusionScope, ExclusionSelector } from '../lib/optimizerExclusion';
 import { ArtifactKind } from '../types';
+import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
 export type { SlotFilterPresetKey };
 export type OptimizerSortKey = StatKey | Objective;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
-// 101=ATQ, 102=DEF), plus deux cas hors de cette table : `'equipped'`
-// (défaut — reprend l'artéfact RÉELLEMENT équipé de ce type, comportement
-// historique inchangé) et `'none'` (aucun artéfact supposé dans cet
-// emplacement, même si un est réellement équipé).
-export type ArtifactMainChoice = 'equipped' | 'none' | 100 | 101 | 102;
+// 101=ATQ, 102=DEF), plus trois cas hors de cette table : `'equipped'`
+// (défaut — reprend l'artéfact RÉELLEMENT équipé de ce type) et `'libre'`
+// (chercher parmi TOUS les éligibles, quelle que soit la principale).
+//
+// ⚠️ `'libre'` n'a de sens qu'avec une recherche d'artéfacts : il n'a été
+// ajouté qu'une fois celle-ci construite, pour ne pas laisser une option morte
+// dans le sélecteur. Il aligne ce type sur `ChoixPrincipale`
+// (artifactOptim.ts), dont il était jusque-là le sous-ensemble.
+//
+// ⚠️ **`'none'` (laisser l'emplacement vide) a été RETIRÉ.** Un monstre porte
+// deux artéfacts ou n'en porte pas : vider UN emplacement pendant que l'autre
+// cherche ne correspond à rien en jeu. Et « ne pas compter les artéfacts » se
+// dit déjà d'un seul geste avec l'interrupteur, pour les deux emplacements à
+// la fois. Les recettes exportées avant ce retrait sont ramenées sur `'libre'`
+// à l'import (voir `mainsPourCeCompte`, optimizerRecipe.ts).
+export type ArtifactMainChoice = 'equipped' | 'libre' | 100 | 101 | 102;
 
 // Toute la SAISIE de l'écran Outils → Optimizer, remontée ici (instancié dans
 // App.tsx, jamais démonté) pour survivre à un changement d'onglet : comme les
@@ -37,22 +49,80 @@ export interface OptimizerState {
   setMaxStats: Dispatch<SetStateAction<Partial<Record<StatKey, number>>>>;
   excludeBase: boolean;
   setExcludeBase: Dispatch<SetStateAction<boolean>>;
-  // Même principe qu'`excludeBase`, un étage plus tôt : ignorer entièrement
-  // la contribution des artéfacts (PV/ATQ/DEF plats, voir ARTIFACT_MAIN dans
-  // effects.ts) dans le calcul — pas seulement dans son AFFICHAGE. Décoché
-  // par défaut : comportement historique inchangé (les artéfacts RÉELLEMENT
-  // équipés comptent toujours, comme avant l'ajout de cette bascule).
-  ignoreArtifacts: boolean;
-  setIgnoreArtifacts: Dispatch<SetStateAction<boolean>>;
-  // Statistique principale supposée pour chacun des deux emplacements
-  // d'artéfact (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a
-  // d'effet que si `ignoreArtifacts` est décoché. Clé absente = `'equipped'`
-  // (défaut, voir ArtifactMainChoice) : permet d'hypothéquer un artéfact
-  // différent de celui réellement possédé, SANS avoir à le posséder pour de
-  // vrai (ex. « et si j'avais un artéfact PV+1500 au lieu de mon DEF+100
-  // actuel ? »).
+  /**
+   * Chercher la meilleure paire d'artéfacts pour chaque build — **activé par
+   * défaut**.
+   *
+   * ⚠️ **Désactivé ne veut PAS dire « sans artéfact ».** Le monstre garde les
+   * pièces qu'il porte RÉELLEMENT, avec leurs statistiques : on cesse
+   * simplement d'en chercher d'autres. C'est le sens du réglage — « je
+   * compose un runage autour des artéfacts que j'ai déjà dessus ».
+   *
+   * ⚠️ Ce drapeau a été INVERSÉ (il s'appelait `ignoreArtifacts`) et son
+   * comportement corrigé : il retirait auparavant TOUTE statistique
+   * d'artéfact, ce que son libellé ne disait pas et qui rendait la recherche
+   * plus stricte sans raison. La recette exportée garde, elle, le champ
+   * `ignoreArtifacts` (format stable) — la conversion se fait à la frontière,
+   * voir `exportRecipe`/`importRecipe` (OptimizerSection.tsx).
+   */
+  optimiserArtefacts: boolean;
+  setOptimiserArtefacts: Dispatch<SetStateAction<boolean>>;
+  /**
+   * La paire retenue suit-elle le TRI affiché, ou l’OBJECTIF de la recherche ?
+   * Activé par défaut.
+   *
+   * ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une DÉCISION.** Les
+   * coupler d’office impose un arbitrage : trier par ATQ pour explorer
+   * déplaçait la paire, alors qu’on voulait parfois garder celle qui
+   * maximise les PV effectifs. Ce réglage rend l’arbitrage à l’utilisateur.
+   *
+   * - `true` — la paire suit `sortBy` : « les meilleurs artéfacts pour ce
+   *   que je regarde ».
+   * - `false` — la paire suit `objective` : « les meilleurs artéfacts pour
+   *   ce que j’ai cherché ». La référence est stable pendant toute
+   *   l’exploration, donc « Valider les artéfacts » propose la même chose
+   *   quel que soit le tri.
+   *
+   * ⚠️ **Ne désactive PAS l’optimisation** — c’est `optimiserArtefacts` qui
+   * le fait. Sans objectif de repli défini, « ne pas recalculer » ne
+   * voudrait rien dire : il faut savoir par rapport à QUOI.
+   */
+  adapterArtefactsAuTri: boolean;
+  setAdapterArtefactsAuTri: Dispatch<SetStateAction<boolean>>;
+  // Statistique principale EXIGÉE pour chacun des deux emplacements d'artéfact
+  // (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a d'effet que si
+  // `optimiserArtefacts` est activé.
+  //
+  // ⚠️ **Clé absente = `'libre'`**, et c'est la SEULE réponse valable : c'est
+  // ce que `candidatsParSorte` (artifactOptim.ts) fait d'une clé absente, et
+  // le moteur a le dernier mot. Ce commentaire disait `'equipped'`, le
+  // sélecteur l'affichait, et la recherche cherchait pourtant librement —
+  // trois sources, deux réponses. Tout ce qui se fiait à l'affichage
+  // raisonnait donc sur un état faux.
+  //
+  // ⚠️ **C'est un FILTRE sur l'inventaire, plus une hypothèse.** Ce réglage a
+  // d'abord servi de « et si j'avais un artéfact PV+1500 ? » et fabriquait pour
+  // cela une pièce à `subs: []`. En « Dégâts réels », cette pièce faisait
+  // calculer les dégâts SANS aucune ligne d'effet, quand « Comme équipé » les
+  // comptait : deux réglages voisins, deux modèles de dégâts, sans que rien ne
+  // le signale. Le cran désigne donc désormais les artéfacts RÉELLEMENT
+  // possédés portant cette principale — et sans aucun, l'emplacement reste
+  // vide. Le « et si… » est perdu, en connaissance de cause.
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
   setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
+  // Sous-propriétés d'artéfact EXIGÉES, avec leur minimum.
+  //
+  // ⚠️ Le minimum porte sur la PAIRE, pas sur une pièce : une même ligne peut
+  // tomber sur les deux artéfacts et ses valeurs s'additionnent. D'où un
+  // plafond doublé pour les lignes communes aux deux sortes (200-299) et
+  // simple pour les autres — voir `plafondLigne` (artifactOptim.ts), qui borne
+  // la saisie.
+  //
+  // ⚠️ Au plus 8 lignes : un artéfact porte 4 sous-propriétés, la paire 8, en
+  // deux moitiés de 4 qui ne se prêtent rien. `budgetEmplacements` dit laquelle
+  // des deux déborde.
+  lignesVerrouillees: LigneVerrouillee[];
+  setLignesVerrouillees: Dispatch<SetStateAction<LigneVerrouillee[]>>;
   mainStatsBySlot: Partial<Record<2 | 4 | 6, number[]>>;
   setMainStatsBySlot: Dispatch<SetStateAction<Partial<Record<2 | 4 | 6, number[]>>>>;
   // Runes IMPOSÉES par emplacement (1..6) — `lockedRunes[slot] = runeId`.
@@ -133,12 +203,24 @@ export interface OptimizerState {
   setDiagnoseBlockingEnabled: Dispatch<SetStateAction<boolean>>;
   stoppedManually: boolean;
   setStoppedManually: Dispatch<SetStateAction<boolean>>;
-  // Rune actuellement ouverte dans un popover de détail, parmi TOUS les
-  // résultats affichés — voir BuildCandidateCard.tsx. Une seule à la fois,
-  // comme Mon compte → Runes → Optimisation : cliquer une autre rune ferme
-  // celle déjà ouverte plutôt que d'empiler les popovers.
-  openRuneKey: string | null;
-  setOpenRuneKey: Dispatch<SetStateAction<string | null>>;
+  /**
+   * La SEULE pièce d'équipement dont le détail est ouvert, parmi tous les
+   * résultats affichés — rune OU artéfact, voir BuildCandidateCard.tsx.
+   *
+   * ⚠️ **Une seule clé pour les deux**, et c'est le fond du sujet. Les
+   * artéfacts avaient leur propre état, LOCAL à chaque carte, au motif qu'ils
+   * étaient « identiques d'une carte à l'autre, donc pas besoin d'un état
+   * partagé ». Deux conséquences, la première dès l'origine : ouvrir un
+   * artéfact puis une rune laissait les DEUX popovers ouverts, les états étant
+   * distincts. Et depuis que chaque build porte SA paire, deux cartes
+   * différentes pouvaient en ouvrir chacune un — la prémisse « identiques »
+   * ayant cessé d'être vraie.
+   *
+   * Un seul état est la seule forme qui garantit l'exclusivité : deux états,
+   * même bien synchronisés, se désynchronisent au premier chemin oublié.
+   */
+  openDetailKey: string | null;
+  setOpenDetailKey: Dispatch<SetStateAction<string | null>>;
   search: ReturnType<typeof useBuildOptimSearch>;
   // Remet à zéro « Critères de recherche » (set, statistique principale
   // imposée, objectif, artéfacts, conditions min/max) ET « Combinaisons
@@ -163,8 +245,15 @@ export function useOptimizerState(): OptimizerState {
   // ⚠️ Coché par défaut : demande reconfirmée après un premier aller-retour
   // (décoché par défaut, puis revenu sur cochée) — voir spec/outils/optimizer/.
   const [excludeBase, setExcludeBase] = useState(true);
-  const [ignoreArtifacts, setIgnoreArtifacts] = useState(false);
+  // Activee par defaut : chercher les artefacts est le comportement utile,
+  // et il ne coute rien a la recherche de runes (temps masque).
+  const [optimiserArtefacts, setOptimiserArtefacts] = useState(true);
+  // Activé par défaut : ce qu’on affiche reste le meilleur pour ce qu’on
+  // regarde. Ne coûte rien sur les tris qu’aucun artéfact ne touche
+  // (efficience, VIT, TC, DCC, RES, PRE) — voir `regimeArtefacts`.
+  const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(true);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
+  const [lignesVerrouillees, setLignesVerrouillees] = useState<LigneVerrouillee[]>([]);
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
@@ -180,7 +269,7 @@ export function useOptimizerState(): OptimizerState {
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
-  const [openRuneKey, setOpenRuneKey] = useState<string | null>(null);
+  const [openDetailKey, setOpenDetailKey] = useState<string | null>(null);
   const search = useBuildOptimSearch();
 
   function resetSearch() {
@@ -189,8 +278,15 @@ export function useOptimizerState(): OptimizerState {
     setMinStats({});
     setMaxStats({});
     setExcludeBase(true);
-    setIgnoreArtifacts(false);
+    setOptimiserArtefacts(true);
+    setAdapterArtefactsAuTri(true);
     setArtifactMainByKind({});
+    // ⚠️ Remis à zéro au changement de monstre, comme les runes imposées : une
+    // ligne verrouillée exclusive à une sorte (« Précision Compétence 3 »)
+    // n'a de sens que pour le monstre pour lequel on l'a choisie, et une
+    // exigence oubliée d'un monstre précédent rendrait « 0 build » sans que
+    // rien ne rappelle d'où elle vient.
+    setLignesVerrouillees([]);
     setMainStatsBySlot({});
     // ⚠️ Une rune imposée référence un `runeId` PRÉCIS, choisi pour l'ancien
     // monstre — le garder verrouillerait la recherche du nouveau sur une
@@ -204,7 +300,7 @@ export function useOptimizerState(): OptimizerState {
     setSortBy('efficience');
     setResultsPage(1);
     setStoppedManually(false);
-    setOpenRuneKey(null);
+    setOpenDetailKey(null);
     search.reset();
   }
 
@@ -221,10 +317,14 @@ export function useOptimizerState(): OptimizerState {
     setMaxStats,
     excludeBase,
     setExcludeBase,
-    ignoreArtifacts,
-    setIgnoreArtifacts,
+    optimiserArtefacts,
+    setOptimiserArtefacts,
+    adapterArtefactsAuTri,
+    setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
+    lignesVerrouillees,
+    setLignesVerrouillees,
     mainStatsBySlot,
     setMainStatsBySlot,
     lockedRunes,
@@ -255,8 +355,8 @@ export function useOptimizerState(): OptimizerState {
     setDiagnoseBlockingEnabled,
     stoppedManually,
     setStoppedManually,
-    openRuneKey,
-    setOpenRuneKey,
+    openDetailKey,
+    setOpenDetailKey,
     search,
     resetSearch,
   };

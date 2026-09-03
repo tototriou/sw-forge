@@ -180,6 +180,32 @@ export function Modale({
     };
   }, [children]);
 
+  /**
+   * ⚠️ **`onClose` tenu dans une `ref`, et retiré des dépendances de l'effet
+   * ci-dessous.**
+   *
+   * Cet effet pose le piège à focus : il focalise la boîte à l'ouverture et
+   * rend le focus à l'ouvreur au démontage. Tant qu'il dépendait de
+   * `onClose`, un appelant passant une lambda — `onClose={() => setX(false)}`,
+   * la forme la plus naturelle — lui donnait une identité NEUVE à chaque
+   * rendu : l'effet se nettoyait et se rejouait, donc **refocalisait la boîte
+   * après chaque frappe**.
+   *
+   * Symptôme vécu : dans la fenêtre « Dégâts réels », impossible de saisir les
+   * PV ou la VIT de l'adversaire — chaque caractère modifiait le réglage, donc
+   * rerendait le parent, donc volait le focus au champ. Seuls les boutons ±
+   * survivaient, un clic redonnant le focus à chaque fois : d'où l'impression
+   * trompeuse d'un champ « qui ne marche que par paliers ».
+   *
+   * ⚠️ Corrigé ICI et pas seulement chez l'appelant : mémoïser la lambda côté
+   * appelant marcherait, mais laisserait le piège armé pour le prochain — et
+   * une lambda inline est la façon normale d'écrire un `onClose`.
+   */
+  const fermerRef = useRef(onClose);
+  useEffect(() => {
+    fermerRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     const ouvreur = document.activeElement as HTMLElement | null;
 
@@ -207,7 +233,9 @@ export function Modale({
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        // Via la `ref` : l'effet ne se rejoue plus quand `onClose` change
+        // d'identité, il doit donc lire la version courante au moment du clic.
+        fermerRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -231,7 +259,12 @@ export function Modale({
       document.removeEventListener('keydown', onKey);
       ouvreur?.focus?.();
     };
-  }, [onClose]);
+    // ⚠️ **Aucune dépendance, volontairement** : cet effet doit tourner UNE
+    // fois, à l'ouverture, et se défaire au démontage. Le remettre en marche
+    // parce qu'une prop a changé d'identité vole le focus au champ en cours de
+    // saisie (voir `fermerRef` plus haut).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!cible) return null;
 

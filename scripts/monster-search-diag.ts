@@ -30,7 +30,7 @@ const requirement: BuildRequirement = {
 };
 
 for (const lr of gear.runes) {
-  const allowed = requirement.mainStats?.[lr.slot];
+  const allowed = requirement.mainStats?.[lr.slot as 2 | 4 | 6];
   const raw = bySlot[lr.slot - 1];
   const pool = allowed ? raw.filter((r) => allowed.includes(r.main.code)) : raw;
   const filtered = filterSlot(pool, requirement, gear.base, cap, cap);

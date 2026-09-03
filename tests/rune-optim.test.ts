@@ -20,7 +20,10 @@ import {
   excludedRuneIds,
   searchBuilds,
   totalPairCount,
+  sortCandidates,
+  statTotal,
 } from '../src/lib/runeBuildOptim';
+import type { StatRow } from '../src/lib/stats';
 import { StatKey, runeEfficiency, runeScore } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
 
@@ -957,5 +960,120 @@ export default function testRuneOptim() {
       const total = totalPairCount(prepared, bucketsA, bucketsB);
       egal(total, resultFull.explored, "totalPairCount : sur un pool sans minimum ni set demandé (aucun élagage combo par combo au-delà de satisfiesSets), l'espace annoncé correspond EXACTEMENT au nombre de paires réellement explorées par une recherche exhaustive");
     }
+  }
+
+  titre('Optimiseur — l’ordre des candidats n’est PAS celui de l’objectif');
+
+  // ⚠️ **Incident.** `SearchResult.candidates` sort dans l'ordre de collecte
+  // de l'appariement, jamais classé par ce qu'on a demandé de maximiser. Un
+  // diagnostic a conclu « le moteur manque un build meilleur et faisable » en
+  // lisant `candidates[0]` — le build cherché était là, au RANG 6. Et le vrai
+  // CLI affichait `slice(0, 20)` en présentant ces 20 comme des résultats.
+  //
+  // `sortCandidates` est désormais la SEULE porte, partagée par l'écran et
+  // les scripts. Ce test verrouille son contrat.
+  {
+    const st = (spd: number, hp: number): StatRow[] => [
+      { key: 'spd', label: 'VIT', base: 0, bonus: spd, total: spd, suffix: '' },
+      { key: 'hp', label: 'PV', base: 0, bonus: hp, total: hp, suffix: '' },
+      { key: 'def', label: 'DEF', base: 0, bonus: 0, total: 0, suffix: '' },
+    ];
+    // Volontairement dans le DÉSORDRE : c'est l'état réel d'une sortie moteur.
+    const bruts = [
+      { runeIds: [1], stats: st(100, 5000), effTotal: 0 },
+      { runeIds: [2], stats: st(250, 1000), effTotal: 0 },
+      { runeIds: [3], stats: st(180, 9000), effTotal: 0 },
+    ] as unknown as Parameters<typeof sortCandidates>[0];
+
+    const parVitesse = sortCandidates(bruts, 'vitesse');
+    egal(
+      parVitesse.map((c) => c.runeIds[0]),
+      [2, 3, 1],
+      'trié par « Vitesse » : le plus rapide d’abord, quel que soit l’ordre d’entrée'
+    );
+    // ⚠️ Le premier candidat BRUT n'est pas le meilleur — c'est tout le sujet.
+    ok(bruts[0]!.runeIds[0] !== parVitesse[0]!.runeIds[0], 'candidates[0] n’est PAS le meilleur : il faut trier');
+
+    // ⚠️ Ne mute pas l'entrée : un tri en place rendrait l'ordre dépendant de
+    // qui a affiché en premier.
+    egal(bruts.map((c) => c.runeIds[0]), [1, 2, 3], 'le tableau d’origine n’est jamais réordonné');
+
+    // Un tri par stat brute passe par le même point d'entrée.
+    egal(
+      sortCandidates(bruts, 'hp').map((c) => c.runeIds[0]),
+      [3, 1, 2],
+      'trié par une STAT : même porte, même contrat'
+    );
+
+    // ⚠️ « Dégâts réels » sans contexte : on laisse l'ordre en place plutôt
+    // que de lever — un `sortBy` hérité d'un monstre précédent peut porter
+    // cet objectif alors que le monstre courant n'a aucun sort calculable.
+    egal(
+      sortCandidates(bruts, 'degats_reels').map((c) => c.runeIds[0]),
+      [1, 2, 3],
+      '« Dégâts réels » sans contexte : ordre inchangé, jamais une exception'
+    );
+    // Idem pour « Efficience » sans les runes ni la mesure.
+    egal(
+      sortCandidates(bruts, 'efficience').map((c) => c.runeIds[0]),
+      [1, 2, 3],
+      '« Efficience » sans runeById/metric : ordre inchangé'
+    );
+  }
+
+  titre('sortCandidates — le score PRÉ-CALCULÉ donne le même ordre que le comparateur');
+
+  // ⚠️ **Ce que ce test protège.** `sortCandidates` calculait le score DANS le
+  // comparateur, donc ~2 n log n fois — pour « Dégâts réels », autant d'appels
+  // à `computeTotalDamage` : ~3,4 millions pour 100 000 candidats, mesurés à
+  // 1 084 ms par tri sur le FIL PRINCIPAL. Il le calcule désormais UNE fois par
+  // candidat, puis trie sur des nombres.
+  //
+  // ⚠️ C'est censé être EXACTEMENT équivalent, parce que le score est une
+  // fonction PURE des stats du candidat. Ce test le vérifie contre une
+  // référence naïve — la forme d'avant — au lieu de s'en remettre à
+  // l'argument. Vérifié en plus par différentiel sur 5 monstres réels ×
+  // 100 000 candidats (Sonia/VIT, Shahat/PV propres, Momo et Trevor/bonus
+  // accumulable) : ordre strictement identique.
+  {
+    const st = (spd: number, hp: number, def: number): StatRow[] => [
+      { key: 'spd', label: 'VIT', base: 0, bonus: spd, total: spd, suffix: '' },
+      { key: 'hp', label: 'PV', base: 0, bonus: hp, total: hp, suffix: '' },
+      { key: 'def', label: 'DEF', base: 0, bonus: def, total: def, suffix: '' },
+    ];
+    // ⚠️ Des ÉGALITÉS volontaires (deux candidats à 180 de VIT) : c'est là que
+    // la stabilité du tri se joue, et une régression y serait invisible sur un
+    // jeu à valeurs toutes distinctes.
+    const lot = [
+      { runeIds: [1], stats: st(180, 5000, 700), effTotal: 0 },
+      { runeIds: [2], stats: st(250, 1000, 300), effTotal: 0 },
+      { runeIds: [3], stats: st(180, 9000, 500), effTotal: 0 },
+      { runeIds: [4], stats: st(120, 9000, 900), effTotal: 0 },
+      { runeIds: [5], stats: st(250, 4000, 100), effTotal: 0 },
+    ] as unknown as Parameters<typeof sortCandidates>[0];
+
+    // La RÉFÉRENCE : la forme d'avant, score recalculé à chaque comparaison.
+    const referenceNaive = (cs: typeof lot, cle: 'spd' | 'hp' | 'def') =>
+      cs.slice().sort((a, b) => statTotal(b.stats, cle) - statTotal(a.stats, cle));
+
+    for (const cle of ['spd', 'hp', 'def'] as const) {
+      egal(
+        sortCandidates(lot, cle).map((c) => c.runeIds[0]),
+        referenceNaive(lot, cle).map((c) => c.runeIds[0]),
+        `tri par ${cle} : le pré-calcul rend le MÊME ordre que le comparateur naïf, ex æquo compris`
+      );
+    }
+
+    // ⚠️ La STABILITÉ explicitement : à VIT égale, l'ordre d'entrée tient.
+    // Sans elle, deux builds équivalents changeraient de rang d'un rendu à
+    // l'autre, sans que rien n'ait bougé à l'écran.
+    egal(
+      sortCandidates(lot, 'spd').map((c) => c.runeIds[0]),
+      [2, 5, 1, 3, 4],
+      'à score ÉGAL, l’ordre d’entrée est préservé (tri stable)'
+    );
+
+    // Et l'entrée reste intacte, comme pour les autres branches.
+    egal(lot.map((c) => c.runeIds[0]), [1, 2, 3, 4, 5], 'le pré-calcul ne mute pas davantage l’entrée');
   }
 }

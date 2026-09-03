@@ -95,11 +95,19 @@ l'ordre d'usage 1-2-3 ci-dessus) :
    « un clic ne déplace jamais ce qu'on vient de cliquer »). Juste en
    dessous des puces de source : **zone C**, « Monstres de la liste » — voir
    « Listes de travail et réservation de runes ».
-2. **Rangée 2 : Critères de recherche (colonne 1, `row-span-3` — occupe
-   aussi les rangées 3 et 4), à côté d'Objectif de recherche (colonne 2).**
-   « Objectif de recherche » à la **droite** de « Critères de recherche »
-   (demande explicite : l'objectif se choisit avant même de composer le
-   set, ce n'est pas un critère de plus). Le contenu de « Critères de
+2. **Rangée 2 : Critères de recherche (colonne 1, `row-span-4` — occupe
+   aussi les rangées 3, 4 et 5).** ⚠️ Ce nombre suit la colonne d'EN FACE
+   (Artéfacts, État de mon monstre, Exclusion de runes, Réglages avancés),
+   il ne décrit pas le contenu de cette carte-ci : toute carte ajoutée ou
+   retirée à droite se répercute ici **et** sur la rangée de la ligne
+   d'estimation, qui reste toujours la dernière.
+   ⚠️ « Objectif de recherche » occupait la
+   colonne 2 de cette rangée ; **il a rejoint la carte du bouton
+   Rechercher**, en bas. Il était une carte à part parce qu'il portait
+   AUSSI la description du combat de « Dégâts réels », qui réclamait de la
+   place ; celle-ci sortie en fenêtre, il ne reste qu'un bouton à choix
+   unique — et *quoi* chercher se lit mieux juste au-dessus de *chercher*
+   qu'au milieu des critères. Le contenu de « Critères de
    recherche », en **DEUX colonnes internes** (demande explicite) : à
    **gauche**, **Set de runes recherché** puis **Statistique principale
    imposée** (les deux contraintes qui portent sur les runes elles-mêmes) ;
@@ -122,13 +130,16 @@ l'ordre d'usage 1-2-3 ci-dessus) :
    principal** (4 pièces) s'affiche sur **deux lignes de trois** en
    permanence (comme au doigt), pour laisser plus de largeur au set
    secondaire.
-3. **Rangée 3, colonne 2 : Exclusion de runes** (carte à bordure
+2 ter. **Rangée 2, colonne 2 : Artéfacts** (voir §6) — sous « Exemplaire »,
+   le bloc se lisant « ces artéfacts, sur CE build ». **Rangée 3, colonne 2 :
+   État de mon monstre** (voir §6 bis).
+3. **Rangée 4, colonne 2 : Exclusion de runes** (carte à bordure
    accentuée, fonctionnalité vedette — regroupe aussi **Runes imposées**,
    voir plus bas).
-4. **Rangée 4, colonne 2 : Réglages avancés** — SOUS Exclusion de runes,
+4. **Rangée 5, colonne 2 : Réglages avancés** — SOUS Exclusion de runes,
    pas au-dessus (ordre inversé sur demande explicite après une première
    disposition).
-5. **Rangée 5, pleine largeur : ligne d'estimation** — ni dans la colonne
+5. **Rangée 6, pleine largeur : ligne d'estimation** — ni dans la colonne
    1 ni dans la colonne 2, cette ligne n'a pas sa place dans une cellule
    précise.
 
@@ -148,6 +159,61 @@ l'avance sans perdre l'intérêt d'être replié — il sort donc du flux
 [shared/design.md](shared/design.md), « un clic ne déplace jamais ce
 qu'on vient de cliquer ». Ferme au clic extérieur, même patron que
 `HelpPopover.tsx`.
+
+⚠️ **« Exclusion de runes » est elle aussi REPLIÉE par défaut** (demande
+explicite) et déplie **le même mécanisme** — ancre `ref`, `ZoneCliquable`
+avec chevron, `FlottantAuto`, fermeture au clic extérieur. Le patron est
+**réutilisé tel quel**, jamais réécrit : deux mécanismes de dépliement
+voisins auraient divergé, et celui-là avait déjà dû être corrigé une fois
+pour exactement la raison qu'il traite.
+
+⚠️ **Les deux panneaux prennent EXACTEMENT la largeur de la carte qui les
+ancre** (`largeurAncre`, demande explicite), et la **suivent** quand l'écran
+change de taille. Ils en faisaient à peu près la moitié (340 et 420 px en
+dur) : une largeur figée ne peut pas suivre une carte dont la largeur dépend
+de la fenêtre.
+- ⚠️ **Du CSS, pas une mesure.** La surface est déjà `position: absolute`
+  dans l'ancre `relative` : un `width: 100%` la cale dessus et l'y garde au
+  redimensionnement, sans effet ni recalcul. Une largeur mesurée à
+  l'ouverture, elle, serait périmée au premier redimensionnement.
+- Le placement horizontal en devient trivial : une surface aussi large que
+  son ancre ne peut pas déborder d'un côté sans déborder de l'ancre — elle
+  se pose donc à `gauche: 0`, exactement sur la carte.
+- ⚠️ `largeurAncre` est un **axe ajouté à `FlottantAuto`**, pas une variante :
+  « la surface suit son ancre » est le cas d'un panneau dépliant ancré à une
+  CARTE, par opposition à un menu ancré à une petite tuile — pour celui-là,
+  une largeur propre reste la bonne réponse, et `largeur` la sert toujours.
+- ⚠️ `hauteur` n'est et reste qu'une **estimation** (560 pour l'exclusion,
+  420 pour les avancés) : elle sert à choisir le côté AVANT que le contenu
+  existe. La surestimer biaise le placement vers le haut, sans conséquence ;
+  la sous-estimer ouvre du mauvais côté.
+
+⚠️ **« Réglages avancés » se pose sur DEUX colonnes dès que la place le
+permet** (demande explicite) : le **pré-filtrage** avec ses puces et son
+avertissement d'un côté, les **trois interrupteurs** de l'autre.
+- ⚠️ `grid-cols-[repeat(auto-fit,minmax(260px,1fr))]` et **non** un point de
+  rupture d'écran (`sm:`/`xl:`) : ce qui décide ici est la largeur du
+  **panneau**, pas celle de la fenêtre. Le panneau prend la largeur de sa
+  carte, qui dépend de la colonne de grille — une même fenêtre peut donc
+  donner un panneau large ou étroit. Sous ~520 px, une colonne ; au-delà,
+  deux. Ça vaut aussi pour le panneau « Options » au doigt, **sans une seule
+  classe conditionnelle**.
+- ⚠️ Les séparateurs des interrupteurs passent en **`divide-y` sur leur
+  conteneur**, plus en `border-t` individuel : un trait ne se pose alors
+  qu'ENTRE deux voisins, jamais au-dessus du premier. Avec des bordures
+  individuelles, le premier interrupteur portait un trait en tête de colonne —
+  anodin quand tout était empilé sous le pré-filtrage, lu comme une ligne
+  perdue une fois le groupe posé à côté.
+- Chacune des deux parties porte son **contour**, aux **mêmes classes** que
+  les trois groupes d'« État de mon monstre » : deux façons de cadrer un
+  groupe dans le même écran se liraient comme deux natures différentes.
+
+⚠️ Son état d'ouverture est **local à l'écran**, pas remonté dans
+`useOptimizerState` : c'est de l'ouverture/fermeture, pas un critère de
+recherche — rien à exporter dans une recette, rien à remettre à zéro au
+changement de monstre. ⚠️ **Au doigt, rien ne se replie** : le panneau
+« Options » reste tel quel, l'ouvrir EST déjà le geste « je veux voir les
+options ».
 
 ⚠️ **Placement explicite (`col-start`/`row-start`) sur CHAQUE bloc, jamais
 un réordonnancement de la source** : l'ordre du DOM reste celui de l'ordre
@@ -253,6 +319,178 @@ retour.
    **Importer un nouveau compte** déclenche la réinitialisation complète,
    pour la même raison (autre box, autre pool de runes possible) — même en
    étant sur un autre onglet au moment de l'import.
+
+   ⚠️ **Changer d'espèce ramène l'objectif à « Efficience » et le cran des
+   artéfacts à « Dégâts supplémentaires »**, et vide le sort choisi. Un sort
+   appartient à un monstre : après un changement, le calcul retomberait
+   silencieusement sur le sort par défaut du nouveau. Tant que le réglage de
+   combat se dépliait sous l'objectif on voyait le sort revenir au défaut ;
+   derrière une fenêtre fermée, ce repli devient invisible et l'on croirait
+   calculer sur un sort qu'on a choisi. Remettre les deux sélecteurs au défaut
+   rend ce repli **impossible** plutôt que visible — réoptimiser en dégâts
+   demande de recliquer « Dégâts réels » et de rechoisir le sort.
+
+   ⚠️ **La description du combat, elle, SURVIT** : défense, PV et élément de
+   l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
+   plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
+   le combat déjà décrit. Seuls les deux **sélecteurs** retombent au défaut.
+2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte
+   **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
+   résultat suit immédiatement les réglages qui le produisent, sans qu'un
+   autre sujet ne s'intercale. La meilleure paire pour l'équipement
+   **affiché**, avec ce
+   qu'elle apporte face à celle qui est portée. Optimise les artéfacts
+   **seuls**, sans lancer de recherche de runes : le cas visé est un monstre
+   runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
+   ajoutent des dégâts par-dessus.
+
+   ⚠️ **Ce bloc RESPECTE les réglages de la carte, et le DIT** — il ne cherche
+   pas dans son coin. La question « quels sont mes meilleurs artéfacts » et la
+   question « quelle paire supposer pendant la recherche de runes » partagent
+   donc une seule réponse : deux blocs qui se contrediraient à l'écran
+   coûteraient plus cher qu'un bloc parfois muet. Concrètement :
+   - **un** emplacement sur « Garder l'artéfact équipé » → la proposition
+     reste faite, et **deux signaux** disent qu’une moitié est imposée :
+     un **bandeau au-dessus de la paire** (« Emplacement attribut figé — il
+     est gardé tel que porté, pas optimisé ») et un **marqueur « figé » sur
+     la pièce concernée**. Les deux répondent à des questions différentes —
+     le bandeau dit *ce qui se passe*, le marqueur dit *laquelle* — et sans
+     le second il fallait retraduire « attribut » en « celle de gauche ».
+     La pièce figée est en outre **légèrement atténuée** (80 %), pour que
+     l’œil tombe d’abord sur la moitié réellement cherchée.
+     La question garde tout son sens : « à artéfact d'attribut donné, quel
+     type ? » ;
+
+     ⚠️ **80 %, et surtout pas moins.** Le vocabulaire « désactivé » de
+     l’application vit à 30-40 % : descendre là ferait lire
+     « indisponible » une pièce qui est justement celle qu’on portera.
+     L’atténuation établit une hiérarchie, elle ne retire rien.
+
+     ⚠️ **Le bandeau est NEUTRE APPUYÉ, pas ambre** (décision explicite).
+     Un réglage que l’utilisateur a lui-même posé n’est pas un
+     avertissement : l’ambre reste réservé à ce qui réclame une action
+     (« Valider les artéfacts »), et deux ambres de sens différents dans la
+     même carte auraient dévalué les deux. Le contraste vient du contour
+     (plein, là où le bloc porte un contour atténué) et de l’encre pleine.
+     La mention vivait auparavant en petit texte grisé sous le titre, loin
+     du regard : on lisait la paire en croyant à deux propositions.
+   - **les deux** figés → le bloc explique qu'il n'y a rien à chercher, au
+     lieu d'annoncer « tu portes déjà la meilleure paire » — ce qui serait
+     vrai, mais uniquement parce qu'on lui a interdit de chercher.
+
+   ⚠️ **Le bloc ne DISPARAÎT plus en silence.** Il s'effaçait entièrement
+   quand la paire retenue n'apportait aucun dégât brut : avec un emplacement
+   figé il n'y a qu'une paire candidate, donc le bloc allait et venait selon
+   qu'elle porte ou non ces lignes. Signalé à l'usage — « il est affiché,
+   sinon il disparaît ». Il affiche désormais la raison, et aucun chiffre :
+   un « 0 / coup » se lirait comme un résultat alors que rien n'a été cherché.
+
+   ⚠️ **L’écart s’affiche dans les DEUX sens.** Il ne l’était que s’il
+   était positif : on cachait donc exactement l’information défavorable, en
+   laissant un absolu qui avait l’air d’un gain. Un écart négatif n’est pas
+   une anomalie — la paire portée sort des candidates dès qu’une contrainte
+   l’exclut (principale imposée, ligne verrouillée, ou pièce déjà réservée
+   par un autre monstre de la liste). Le nombre dit alors ce que cette
+   contrainte coûte, ce qui est précisément ce qu’on veut savoir.
+
+   ⚠️ **La proposition est ACTIONNABLE.** Un bouton en pied de bloc réserve
+   la paire proposée — sans lui, il fallait la retrouver à la main dans
+   l’inventaire. Deux gestes derrière un seul bouton, que le libellé
+   distingue :
+   - sur un exemplaire **déjà validé** — « Valider ces artéfacts » : seule la
+     paire change, les runes réservées ne bougent pas ;
+   - sur un exemplaire **pas encore validé** — « Valider ce build avec ces
+     artéfacts » : réserver une paire seule fabriquerait une entrée sans
+     runage, que tout le reste lit comme « 6 runes ». Le bouton annonce donc
+     ce qu’il réserve en plus.
+
+   Une fois la paire réservée, le bouton passe à **« Artéfacts validés »**,
+   désactivé — même grammaire que « Valider ce build ». Il n’apparaît
+   qu’avec une **liste active** : une réservation appartient toujours à une
+   liste.
+
+   **Deux crans**, à choisir — un `Segmented`, jamais un bouton qui déclenche :
+   - **Dégâts supplémentaires** (défaut) — les dégâts bruts par coup des
+     sous-propriétés 218-221. **Calculé en permanence** : la qualité première
+     de ce bloc est d'apparaître sans qu'on l'ait demandé, et ce calcul est
+     bon marché (ni sort, ni cible, ni critique).
+
+   ⚠️ **Deux nombres, pas un** (demande explicite) : ce que la paire retenue
+   apporte **en absolu** (`2 145 / coup`), puis l'**écart** avec la paire
+   portée (`+737`). Ils répondent à des questions différentes — « combien
+   cette paire me rapporte-t-elle ? » contre « combien j'y gagne par rapport à
+   maintenant ? » — et l'écart seul laissait la première sans réponse : un gros
+   gain sur une base nulle et un petit gain sur une grosse base affichaient le
+   même nombre.
+   - L'**absolu s'affiche toujours**, y compris quand on porte déjà la
+     meilleure paire — c'est justement là qu'il est seul à dire quelque chose,
+     l'écart valant zéro.
+   - L'**écart** ne s'affiche que s'il y a quelque chose à gagner.
+   - La phrase qui NOMME le chiffre suit la même règle : présente dès qu'un
+     nombre l'est. Un nombre sans sa légende serait exactement le défaut du
+     « +X % grâce aux artéfacts » qu'on a retiré faute de pouvoir le nommer.
+   - **Dégâts réels** — les dégâts **totaux** du sort visé contre l'adversaire
+     décrit. ⚠️ **Le moteur choisit une AUTRE paire**, il ne réaffiche pas la
+     même autrement : une paire chargée en Dgts CRIT bat une paire chargée en
+     218-221 sur le total, et perd sur le brut. Mesuré sur Lushen :
+     +737 / coup en brut, **+1 831 dégâts** en réel, avec **deux paires
+     différentes**. Affiché `+X dégâts`.
+
+   ⚠️ **Choisir « Dégâts réels » ouvre la fenêtre du combat**, comme le cran
+   homonyme de l'objectif de recherche. C'est ce qui rend ce cran légitime :
+   cette optimisation avait été **retirée** parce qu'elle reposait sur un sort,
+   une cible et un mode de critique jamais choisis. La fenêtre les rend vus et
+   posés.
+
+   ⚠️ Si **aucun sort du monstre n'est calculable**, le cran retombe sur les
+   dégâts supplémentaires **en le disant** — jamais un bloc vide ni un chiffre
+   brut sous un libellé « Dégâts réels ».
+
+   **Chaque artéfact proposé s'affiche comme dans le jeu** : sa statistique
+   principale en tête, puis **une ligne par sous-propriété** avec le nombre de
+   procs à gauche, la valeur en gras et le marqueur des propriétés modifiées.
+   ⚠️ Le rendu est **partagé avec la tuile d'inventaire**
+   ([ArtifactSubLigne.tsx](src/components/ArtifactSubLigne.tsx)) : ce bloc
+   avait le sien, qui aplatissait les quatre propriétés sur une seule ligne
+   séparée par des « · » et se repliait n'importe où. Deux rendus de la même
+   donnée, dont un seul ressemblait au jeu.
+
+   ⚠️ **Jamais à la place des artéfacts de la fiche** : celle-ci montre
+   l'équipement RÉEL, et y substituer une proposition ferait croire à un
+   équipement qu'on ne porte pas. Cette règle était d'abord satisfaite en
+   affichant le bloc **sous** la fiche ; elle l'est désormais en le mettant
+   dans la carte **voisine**, sous « Exemplaire » — la fiche dit ce qu'on
+   PORTE, la carte Artéfacts ce qu'on DEVRAIT porter, et elles se touchent.
+   Le bloc rejoint ainsi les réglages qui le pilotent, au lieu d'en être
+   séparé par une carte entière.
+
+   Quand la paire portée est déjà la meilleure, l'écran le **dit** au lieu
+   d'afficher « +0,0 % » — un zéro ressemble à une panne, la phrase est une
+   réponse. Et si des lignes sont verrouillées, ce qu'elles coûtent est chiffré
+   là aussi (« vos lignes verrouillées coûtent −3,6 % **sur ce build** »).
+   ⚠️ « sur ce build » n'est pas une précaution de langage : la recherche de
+   runes tourne elle aussi sous le modèle contraint, donc sans les verrous
+   d'AUTRES builds auraient pu émerger. Le chiffrer exigerait de relancer toute
+   la recherche.
+
+   ⚠️ **Il vaut pour TOUS les objectifs de recherche, et c'est son cas
+   principal.** Un monstre optimisé en efficience, en PV effectifs ou en
+   vitesse porte de gros PV/DEF/VIT — que les lignes « Dégâts supp. en
+   proportion de… » convertissent en dégâts. Son build de runes est déjà figé
+   par un autre objectif, et les artéfacts se posent par-dessus sans y toucher.
+   C'est exactement la situation que cette fonctionnalité vise.
+
+   Le libellé le dit alors : « Artéfacts les plus **offensifs** pour ce build »
+   — sur une recherche d'efficience, « meilleurs artéfacts » tout court
+   laisserait croire qu'ils servent cet objectif-là.
+
+   ⚠️ La paire proposée n'est donc PAS celle que la recherche de runes suppose :
+   celle-là maximise l'objectif de recherche, celle-ci maximise les dégâts. Les
+   deux coïncident en « Dégâts réels » et divergent partout ailleurs.
+
+   La statistique principale exigée et les lignes verrouillées sont respectées
+   dans les deux cas — une contrainte posée reste une contrainte.
+
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
@@ -290,11 +528,15 @@ retour.
    d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des
    lignes à zéro, et `ArtifactSlots`/`RuneWheel` gèrent nativement un
    tableau vide.
-3. **Objectif de recherche** — une **carte à part**, entre « Monstre &amp;
-   équipement » et « Critères de recherche » (pas un champ dans cette
-   dernière) : demande explicite de l'utilisateur pour que l'ordre d'usage
-   soit clair — l'objectif se choisit avant même de composer le set
-   recherché, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
+3. **Objectif de recherche** — en tête de la **carte du bouton
+   Rechercher**, au-dessus de la rangée Rechercher / Exporter / Importer.
+   ⚠️ Il a longtemps été une carte à part, à droite de « Critères de
+   recherche » : c'était nécessaire tant qu'il portait la description du
+   combat de « Dégâts réels », qui a besoin de place. Celle-ci ouverte en
+   fenêtre, il ne reste qu'un bouton à choix unique, et il rejoint le geste
+   qu'il qualifie. Ce qui n'a pas changé : ce n'est **pas** un champ de
+   « Critères de recherche » — l'objectif se choisit avant même de composer
+   le set, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
    choix unique** (`<Segmented
    size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
    après coup :
@@ -364,9 +606,36 @@ retour.
    - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
      adversaire configuré, pas une espérance générique. Modèle de calcul
      détaillé : [degats-reels.md](degats-reels.md). Choisir cet objectif
-     déplie, **juste en dessous**, son propre réglage
-     ([DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx)) —
-     et rien ailleurs à l'écran ne change :
+     **ouvre** son réglage, dans une fenêtre par-dessus l'écran
+     ([DamageSetupModale.tsx](src/components/outils/DamageSetupModale.tsx),
+     qui porte la même carte qu'avant) — et rien ailleurs à l'écran ne
+     change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
+     place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 30 000 ·
+     DEF 1 000 · Critique`. On la clique pour rouvrir.
+     - ⚠️ **Le résumé dit le sort RÉELLEMENT utilisé**, pas celui qu'on
+       avait choisi. Un sort appartient à un monstre : après un changement
+       de monstre, le calcul retombe sur le sort par défaut du nouveau. Tant
+       que le réglage était déplié on le voyait ; derrière une fenêtre
+       fermée, afficher l'ancien choix ferait croire à un calcul qui n'a pas
+       lieu.
+     - ⚠️ **Le résumé ne montre QUE ce que le sort consomme**, exactement
+       comme la fenêtre. Sur un sort qui **ignore la défense**, le champ DEF
+       n'existe pas dans la fenêtre — et il disparaît donc du résumé : `S3
+       Amputation Magic · élément ignoré · PV 30 000 · Critique`. Une
+       première version l'affichait en dur, donnant « DEF 1 000 » sur un sort
+       qui n'en tient aucun compte, signalé à l'usage. Les deux lectures
+       viennent désormais d'un seul prédicat (`champsDuCombat`,
+       [damage.ts](src/lib/damage.ts)) : deux copies avaient déjà divergé.
+     - **Pas de buffs dans ce résumé** : ils ne sont plus dans la fenêtre
+       qu'il rouvre, et ont leurs propres contrôles toujours visibles dans
+       « État de mon monstre ».
+     - ⚠️ **Choisir l'objectif ouvre la fenêtre, il ne fait pas que la
+       révéler.** Auparavant le réglage se dépliait sous l'objectif et rien
+       n'obligeait à le regarder : on pouvait classer des milliers de builds
+       sur un sort, une cible et un mode de critique jamais choisis. Le
+       geste est désormais explicite.
+
+     Ce que contient ce réglage :
      - **Compétence utilisée** — les sorts offensifs du monstre, chacun
        accompagné de ce que ses données disent déjà (« 3 coups · Zone ·
        Ignore la DEF · +30 % (compétence maxée) »). ⚠️ **Rien de tout cela
@@ -428,11 +697,11 @@ retour.
        artéfact « Effet aug. VIT » équipé et un éventuel critique/bonus de
        dégâts garanti sont, eux, **déduits et affichés**, jamais redemandés.
        Détail : [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
-     - **Effets actifs** — buffs du monstre (ATQ +50 %, DEF +70 %, VIT
-       +30 %) et effets subis par la cible (réduction de défense ×0,3,
-       marque +25 %, « ce sort pose le def break » — distingue « attaque une
-       cible déjà réduite » de « réduit puis frappe », les deux mitigations
-       ne sont pas identiques), chacun son **icône de jeu cliquable**, pas
+     - **Effets actifs** — effets subis par la cible (réduction de défense
+       ×0,3, marque +25 %, « ce sort pose le def break » — distingue
+       « attaque une cible déjà réduite » de « réduit puis frappe », les
+       deux mitigations ne sont pas identiques), chacun son **icône de jeu
+       cliquable**, pas
        une case à cocher séparée. ⚠️ **Grisée au repos, en couleurs + coche
        une fois
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
@@ -443,19 +712,18 @@ retour.
        icône de buff générique. ⚠️ Velaska porte en plus un **champ
        numérique** (% de PV perdus, 0 par défaut) qui n'apparaît que si son
        effet est activé. Détail des mécaniques :
-       [degats-reels.md](degats-reels.md), « Effets d'équipe ». **Leader
-       skill d'équipe** — type (PV/ATQ/DEF/VIT/Taux Crit/Dégâts Crit, icône
-       officielle du jeu réutilisée depuis le Siège) puis valeur (paliers
-       réels du jeu ou saisie libre) ; remplace l'ancien champ VIT-only.
-       Détail : [degats-reels.md](degats-reels.md), « Leader skill
-       d'équipe ».
-     - **Compétences d'invocateur** — **Aucune** / **Combat** (défaut) /
-       **Combat + Guilde**. Remplacent les anciens totems et drapeaux,
-       toujours supposées maxées. ⚠️ **Un choix unique, pas deux cases** :
-       l'onglet Guilde ne s'applique qu'en contenu de guilde, où Combat
-       compte aussi — « Guilde » implique donc toujours « Combat ». La
-       compétence « Puis. d'att. de <élément> » suit l'élément du monstre,
-       sans rien demander. Détail des valeurs :
+       [degats-reels.md](degats-reels.md), « Effets d'équipe ».
+
+       ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont plus** — voir
+       « État de mon monstre » ci-dessous.
+     - ⚠️ **Compétences d'invocateur : parties ailleurs**, voir « État de mon
+       monstre ». Rappel de ce qu'elles font : **Aucune** / **Combat**
+       (défaut) / **Combat + Guilde**, remplaçant les anciens totems et
+       drapeaux, toujours supposées maxées. **Un choix unique, pas deux
+       cases** : l'onglet Guilde ne s'applique qu'en contenu de guilde, où
+       Combat compte aussi — « Guilde » implique donc toujours « Combat ».
+       La compétence « Puis. d'att. de <élément> » suit l'élément du
+       monstre, sans rien demander. Détail des valeurs :
        [degats-reels.md](degats-reels.md).
      - **Coup critique** — Critique (défaut, le plafond d'un coup isolé) /
        Non critique (le plancher) / Moyenne (espérance sur le Taux Crit
@@ -503,7 +771,20 @@ retour.
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
    grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
    même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
-   Compteur `N/6 runes`, sets qui ne rentrent plus grisés. ⚠️ **Obligatoire** :
+   Compteur `N/6 runes`, sets qui ne rentrent plus grisés.
+
+   ⚠️ **L'Intangible ne figure PAS dans la grille.** C'est un **joker à une
+   pièce** qui complète n'importe quel set : on ne le vise jamais pour
+   lui-même, et le demander revenait à réclamer un set de 2 pièces qui
+   n'existe pas. Il apparaissait sous « Set secondaire » parce que ce groupe
+   se définissait par la négation — « tout ce qui n'est pas un set de 4 » —
+   or l'Intangible n'est ni l'un ni l'autre. Signalé à l'usage. Il reste
+   évidemment **utilisable par la recherche**, qui s'en sert pour compléter
+   les sets demandés ; c'est seulement le CHOISIR comme objectif qui n'avait
+   pas de sens. Un combo ancien qui en contiendrait un reste affiché et
+   retirable.
+
+   ⚠️ **Obligatoire** :
    tenter de lancer une recherche sans set sélectionné met cette zone en
    **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté. **Colonne
@@ -515,6 +796,20 @@ retour.
    - slot 2 : PV% · ATQ% · DEF% · VIT
    - slot 4 : PV% · ATQ% · DEF% · Taux Crit · Dmg Crit
    - slot 6 : PV% · ATQ% · DEF% · RES · Précision
+   ⚠️ **Un maximum saisi SOUS le minimum retombe au défaut de la case**
+   (demande explicite) : la condition serait insatisfaisable par construction,
+   et la recherche renverrait « 0 build » sans que rien ne dise pourquoi.
+   - À la **sortie du champ**, jamais à la frappe : on ne saurait pas
+     distinguer un « 5 » définitif d'un « 50 » en cours d'écriture. C'est le
+     même piège que celui que `NumberField` documente déjà pour le bornage par
+     `min` — d'où un axe `onBlur` ajouté au composant, réservé aux règles qui
+     lient DEUX champs (borner celui-ci reste le travail de `min`/`max`).
+   - Le champ est **effacé**, pas remonté à la valeur du minimum : il retrouve
+     ainsi son placeholder, donc son défaut (le plafond pour une stat bornée à
+     100, « aucun maximum » sinon). Le corriger en « max = min » poserait une
+     contrainte que personne n'a demandée, et qui ne laisse passer qu'une
+     seule valeur.
+
    Multi-sélection ; **aucune coche = pas de contrainte** sur ce slot. Exemple
    donné pour un Lushen : ATQ% en 2, Dmg Crit en 4, ATQ% en 6. **Colonne
    GAUCHE**, sous Set de runes recherché (demande explicite : les deux
@@ -522,18 +817,248 @@ retour.
    filtre s'applique **avant** tout le reste, dans la construction même du
    pool par slot — il réduit donc le nombre de candidats réellement
    considérés dès le départ.
-6. **Artéfacts** — interrupteur **« Ignorer les statistiques des
-   artéfacts »**, **décoché par défaut** (les artéfacts réellement équipés
-   comptent). Décoché, deux listes déroulantes (Attribut, Type) proposent :
-   **« Comme équipé »** (défaut, reprend l'artéfact du build de BASE),
-   **ATQ +100**, **DEF +100**, **PV +1500** (les trois valeurs de
-   statistique principale d'artéfact possibles en jeu), ou **« Aucun »**.
-   ⚠️ Un même monstre peut porter des artéfacts DIFFÉRENTS selon le contexte
-   (build de base, RTA, un deck de siège) — le sélecteur de monstre de
-   l'Optimizer n'expose que le build de base ; choisir une statistique
-   explicite permet d'hypothéquer l'artéfact d'un autre contexte sans changer
-   de monstre affiché. Ces stats deviennent le PLANCHER des conditions
-   ci-dessous. **Colonne DROITE** de la carte, avec le point suivant.
+6. **Artéfacts** — interrupteur **« Activer l'optimisation d'artéfacts »**,
+   **ACTIVÉ par défaut**.
+
+   ⚠️ **Désactivé ne veut PAS dire « sans artéfact ».** Le monstre garde les
+   pièces qu'il porte réellement, statistiques comprises : on cesse simplement
+   d'en chercher d'autres. Sert à composer un runage autour des artéfacts déjà
+   en place. Le réglage retirait auparavant TOUTE contribution d'artéfact, ce
+   que son libellé ne disait pas et qui rendait les conditions minimales plus
+   dures à franchir sans raison.
+
+   Activé, deux listes déroulantes (Attribut, Type) proposent :
+   **« Libre »** (**défaut** — cherche le meilleur artéfact parmi TOUS les
+   artéfacts équipables), **« Garder l'artéfact équipé »**, **Principale
+   ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
+   statistiques principales d'artéfact du jeu).
+
+   ⚠️ **Le défaut affiché était FAUX** : la liste montrait « Garder l'artéfact
+   équipé » tant qu'aucun choix n'avait été fait, pendant que la recherche
+   cherchait librement — le moteur traite une absence de choix comme
+   « Libre ». L'écran annonçait donc le contraire de ce qui se passait, et
+   tout ce qui se fiait à cet affichage (les emplacements considérés comme
+   figés, donc l'éditeur de sous-propriétés verrouillées) raisonnait sur un
+   état faux. Le comportement n'a pas changé — seul l'affichage a été mis
+   d'accord avec lui.
+
+   ⚠️ **Il n'y a PAS de cran « Aucun »** — il a existé, il a été retiré.
+   Imposer l'emplacement vide pour UNE sorte pendant que l'autre cherche ne
+   correspond à rien en jeu : un monstre porte deux artéfacts, ou n'en porte
+   pas. Ne pas les compter est une décision **globale**, et l'interrupteur la
+   prend d'un seul geste pour les deux emplacements. L'emplacement peut
+   toujours rester **vide** si la recherche n'a rien de mieux à y mettre —
+   c'est l'imposer par sorte qui n'avait pas de sens. Une recette exportée
+   avant ce retrait voit son « Aucun » ramené sur **« Libre »** à l'import.
+
+   ⚠️ **« Garder l'artéfact équipé » conserve la PIÈCE ENTIÈRE**, ses quatre
+   sous-propriétés comprises : le pool de cet emplacement tombe à **un seul
+   candidat**, l'exemplaire réellement porté (ou rien, s'il n'est pas
+   éligible pour ce monstre). Rien n'est cherché.
+
+   ⚠️ **Ce choix ne se PARTAGE pas.** Importer une recette exportée par
+   **quelqu'un d'autre** bascule automatiquement « Garder l'artéfact équipé »
+   sur **« Libre »**, et le dit dans le message d'import. Raison : ce réglage
+   garde l'artéfact porté par **celui qui lit**, pas par l'auteur — chez un
+   autre joueur il ne transporte aucune intention, il impose une pièce
+   arbitraire, parfois sans rapport avec la recherche décrite. Tout le reste
+   d'une recette se re-résout contre le compte du lecteur (le monstre par son
+   `com2usId`, les runes par la recherche elle-même) ; celui-ci était le seul
+   à transporter en douce une hypothèse locale. « Libre » est l'intention la
+   plus proche : cherche le meilleur artéfact **parmi les tiens**.
+   - La comparaison se fait sur le **nom du joueur** (`wizard_name`), écrit
+     dans la recette à l'export.
+   - ⚠️ **Provenance inconnue = on ne touche à rien** : une recette exportée
+     avant ce champ, ou un compte local sans nom, ne permettent aucune
+     comparaison. Agir sur une provenance devinée serait pire que de
+     transporter la donnée telle quelle.
+   - ⚠️ **Le script CLI (`optimizer-search.ts`) ne bascule PAS**, exprès :
+     l'appelant y désigne le compte explicitement, presque toujours pour
+     rejouer un cas signalé avec l'export de celui qui l'a signalé. Basculer
+     rendrait la reproduction moins fidèle.
+
+   ⚠️ Ce choix s'appelait **« Comme équipé »**, et le mot « principale »
+   n'apparaissait nulle part. Posé au milieu de trois statistiques
+   principales, il se lisait « la principale, comme équipé » — une liste se
+   lit comme homogène. Signalé à l'usage. Le qualificatif a donc été ajouté
+   aux entrées qui filtrent **réellement** par stat principale, et le choix
+   qui garde la pièce dit maintenant qu'il la garde.
+
+   ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », plus dans
+   la colonne droite de « Critères de recherche ». L'interrupteur
+   « Activer l'optimisation d'artéfacts » masque d'un coup les deux listes ET les
+   lignes verrouillées : tant que le bloc vivait en tête de cette colonne,
+   ce clic faisait REMONTER « Conditions », soit un clic qui déplace ce qui
+   le suit ([shared/design.md](shared/design.md)). Le trait qui séparait
+   Artéfacts de Conditions a disparu avec lui — un trait en tête de colonne
+   ne sépare plus rien.
+
+   ⚠️ **Pas en pleine largeur** : essayé et rejeté sur capture. La pleine
+   largeur projette la puce de sorte, le champ de minimum et la croix à
+   ~1 400 px de leur libellé — une saccade d'un bout à l'autre de l'écran
+   pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
+   corrigeait.
+
+6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
+   juste sous « Artéfacts ». Elle a d'abord vécu en bas de cette carte, séparée
+   par un simple trait : ça laissait croire que ces réglages servaient les
+   artéfacts, alors qu'ils décrivent le **monstre** et valent pour tout calcul.
+   Le trait ne suffisait pas à dire « autre métier » — une carte, si.
+   Contenu : **buff ATQ**, **buff DEF**, **buff
+   VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
+   jeu) et **compétences d'invocateur**. Ce qui rend le monstre plus fort,
+   quel que soit l'adversaire.
+
+   Les trois groupes tiennent sur **une seule rangée** (demande explicite) :
+   empilés, ils donnaient à la carte une hauteur sans rapport avec le peu
+   qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt ou
+   dans une colonne étroite, ils repassent à la ligne plutôt que de comprimer
+   les contrôles sous leur taille de cible.
+
+   Dans le groupe **Invocateur**, le libellé et son aide sont **au-dessus**
+   des trois crans, pas à leur gauche (demande explicite) : côte à côte, ils
+   formaient le groupe le plus large des trois et faisaient replier la rangée
+   plus tôt. ⚠️ **Sans changer la hauteur de la carte** — le groupe passe à
+   deux rangées, mais « Lead » en fait déjà deux et `items-stretch` aligne les
+   trois boîtes sur la plus haute : l'invocateur ne fait que remplir une place
+   qui existait déjà.
+
+   Chacun porte son **contour** (demande explicite : « barres verticales ou
+   contours »). ⚠️ **Des boîtes et non des barres**, alors qu'une barre aurait
+   été plus légère et que c'est le patron des deux colonnes de « Critères de
+   recherche » : ces groupes-ci peuvent passer à la ligne, et une barre
+   verticale se retrouverait alors à pendre dans le vide au bout d'une rangée.
+   Un contour ferme le groupe où qu'il aille. Un **seul** contour, jamais deux
+   superposés ([shared/design.md](shared/design.md)) — ces boîtes vivent à
+   l'intérieur de la carte, elles ne longent pas son bord. `items-stretch` les
+   met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
+   au milieu d'une boîte de deux et l'œil lirait un décalage.
+
+   Dans le groupe **Lead**, les deux menus (type et valeur) ont la **même
+   largeur** : ils occupent la même colonne de grille, en `w-full`. La largeur
+   se déduit donc du plus large des deux — aucune valeur en dur à tenir à jour
+   quand un libellé change.
+
+   ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
+   atteignables sous ce seul objectif — alors qu'ils changent les
+   statistiques du monstre, donc les **dégâts supplémentaires** que lui
+   apportent les artéfacts proportionnels aux PV/ATQ/DEF/VIT, affichés quel
+   que soit l'objectif. Qui optimisait l'efficience les subissait sans
+   pouvoir ni les voir ni les régler. Aucun réglage n'est dupliqué : c'est
+   le même état, montré à un endroit toujours visible.
+
+   ⚠️ **La coupe se vérifie, elle ne s'interprète pas.** Sortent de la
+   fenêtre EXACTEMENT les réglages qui modifient les statistiques propres du
+   monstre ; ce qui reste (cible, sort, critique, réduction de DEF, marque,
+   effets d'alliés) n'y touche pas. Test : changer un réglage d'« État de
+   mon monstre » DOIT faire bouger le « +X / coup ». Mesuré sur Lushen —
+   buff ATQ activé : **+737 → +1 068 / coup**.
+
+   ⚠️ **Rendus sans condition**, contrairement à leur ancienne place où ils
+   n'apparaissaient que si la formule du sort lisait la statistique. C'était
+   la bonne question tant qu'ils décrivaient un coup ; un buff change les
+   stats du monstre même sans sort du tout.
+
+   ⚠️ **La fenêtre « Dégâts réels » en garde un écho en lecture seule**,
+   dans son sous-titre — jamais les contrôles eux-mêmes, qui feraient deux
+   exemplaires vivants du même interrupteur visibles en même temps. Qui
+   ouvre la fenêtre voit sous quelles hypothèses il travaille ; pour les
+   changer, il ferme.
+
+   ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
+   « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant
+   cette principale, avec leurs sous-propriétés. Sans aucun, l'emplacement
+   reste vide — on ne peut pas équiper ce qu'on n'a pas.
+
+   Ce réglage servait à l'origine de « et si j'avais un artéfact PV+1500 ? »
+   et fabriquait pour cela une pièce sans aucune sous-propriété. En
+   « Dégâts réels », cette pièce faisait calculer les dégâts SANS aucune ligne
+   d'effet — ni renforcement d'ATQ, ni dégâts additionnels, ni points de
+   Dgts Crit conditionnels — quand « Comme équipé » les comptait : deux
+   réglages voisins, deux modèles de dégâts, sans que rien ne le signale. Le
+   « et si… » est donc perdu, en connaissance de cause.
+
+   **Sous-propriétés verrouillées** — sous les deux listes, jusqu'à **8**
+   sous-propriétés exigées avec un minimum chacune (« Précision Compétence 3
+   ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*
+   garantissant une propriété qui n'y contribue pas.
+
+   ⚠️ **Un verrou n'a de sens que sur un emplacement CHERCHÉ.** Sur une sorte
+   laissée sur « Garder l'artéfact équipé », la pièce est déjà décidée :
+   exiger une sous-propriété n'en fait pas apparaître une meilleure — soit
+   celle qui est portée la porte déjà, soit plus aucune paire ne passe et la
+   recherche refuse de partir. Donc :
+   - les sous-propriétés **exclusives** à une sorte figée disparaissent du
+     menu (une ligne portable par les deux reste proposée tant qu'un
+     emplacement cherche) ;
+   - les **deux** emplacements figés — ce qui est le **défaut** — rendent la
+     section entièrement inerte, et elle **dit pourquoi** plutôt que de
+     présenter un menu vide ;
+   - une ligne déjà posée qui devient sans effet est **barrée et grisée**,
+     avec la raison et la conduite à tenir ; sa **croix reste active**, parce
+     que la retirer est le seul geste qui serve encore.
+
+   ⚠️ **Le minimum vaut 1 % à la pose, et ne peut pas descendre à 0**
+   (demande explicite). Un verrou à 0 est **inerte** — `paireRespecteLignes`
+   passe les lignes à `min <= 0` : la ligne s'affichait donc comme une
+   contrainte tout en n'en étant pas une, et occupait pour rien l'un des 8
+   emplacements de l'écran. Pour retirer une exigence, on retire la ligne —
+   la croix est là pour ça.
+
+   Vocabulaire de cette section, **aligné sur celui du jeu** (demande
+   explicite) : on parle d'**artéfact**, jamais de « pièce », et de
+   **sous-propriété**, jamais de « ligne » ni d'« emplacement » — d'où
+   « + Sous-propriété… » pour ajouter (**au singulier** : le menu en ajoute
+   une à la fois), un compteur préfixé `sous-propriétés :`, et le même mot
+   dans les deux diagnostics d'échec. Les commentaires de code et les
+   libellés de test gardent « pièce »/« ligne », qui n'atteignent aucun
+   joueur.
+
+   - ⚠️ **Un verrou somme STRICTEMENT par code — d'où un avertissement.** Le
+     jeu a **deux familles** où une forme GROUPÉE recouvre des formes simples :
+
+     | Forme groupée | Recouvre |
+     |---|---|
+     | Dgts CRIT [compétence 3/4] | [Comp.3] Aug. Dgts CRIT · [Comp.4] Aug. Dgts CRIT |
+     | Effet renforcement ATQ/DEF | Effet renforcement ATQ · Effet renforcement DEF |
+
+     Au **calcul des dégâts**, elles font la même chose (sur un S3 pour la
+     première, sur le buff concerné pour la seconde). Au **verrouillage**,
+     non : exiger l'une ignore l'autre. Sur un inventaire mixte, le verrou
+     écarterait donc une partie des pièces sans rien dire. Une ligne
+     d'avertissement le signale sous la sous-propriété concernée, en nommant
+     la ou les formes équivalentes.
+     - La relation est **symétrique** : verrouiller la forme groupée avertit
+       aussi qu'elle ignore les formes simples.
+     - ⚠️ **Comp.1, Comp.2 et le renforcement de VIT n'ont aucun voisin**, et
+       n'affichent donc rien : aucune forme groupée ne les recouvre. La
+       relation est **déduite** de ce que chaque code couvre — les sorts pour
+       les Dgts CRIT, les buffs pour les renforcements
+       (`codesEquivalentsAuVerrou`, [damage.ts](src/lib/damage.ts)) — jamais
+       d'une liste écrite à la main qui divergerait.
+     - ⚠️ Choix **assumé de ne PAS cumuler** les formes : un verrou groupé
+       serait la première ligne dont la valeur ne se lit plus sur un seul
+       code, avec un plafond et une arithmétique d'emplacements à repenser.
+       Dire vaut mieux que compliquer.
+   - ⚠️ **Le minimum porte sur la PAIRE, pas sur un artéfact** : une même ligne
+     peut tomber sur les deux artéfacts et ses valeurs s'additionnent. Le
+     plafond affiché double donc pour une ligne que les deux sortes peuvent
+     porter (200-299), et reste simple pour une ligne réservée à l'attribut
+     (300-309) ou au type (400-411). Le champ est **borné** à ce plafond :
+     au-delà, aucun inventaire ne pourrait satisfaire l'exigence.
+   - ⚠️ **8 = 4 + 4, en deux moitiés qui ne se prêtent rien.** Un artéfact
+     porte 4 sous-propriétés. Verrouiller 5 lignes réservées au type est donc
+     impossible d'avance : un compteur `sous-propriétés : attribut x/4 ·
+     type x/4` le montre
+     pendant la saisie. Et au-delà du plafond d'UNE pièce, une ligne
+     cumulable exige les DEUX, donc un emplacement de chaque côté.
+   - Quand aucune paire ne satisfait les verrous, l'écran rapporte le
+     **meilleur cumul réellement atteignable** ligne par ligne (« 35 % exigé ·
+     28 % au mieux »). ⚠️ **Observé, jamais déduit** : un pré-contrôle
+     théorique pourrait annoncer « impossible » sur une combinaison en fait
+     réalisable, ce qui serait pire que de se taire. Chaque maximum étant pris
+     ligne par ligne, deux lignes atteignables séparément peuvent ne l'être
+     par aucune paire à la fois — l'écran le dit.
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE**,
@@ -654,11 +1179,43 @@ retour.
     d'options — les 8 stats brutes, et les mêmes objectifs qu'à l'étape 3
     (« Dégâts réels » n'y figure que si un sort est réellement calculable
     pour ce monstre).
+
+    ⚠️ **Interrupteur « Adapter les artéfacts au tri »**, collé à GAUCHE de ce
+    sélecteur, **activé par défaut**. Le tri est une **vue**, l’optimisation
+    d’artéfacts une **décision** : les coupler d’office imposait un arbitrage.
+    - **Activé** — chaque build reçoit les artéfacts qui maximisent le critère
+      affiché : « les meilleurs artéfacts pour ce que je regarde ».
+    - **Désactivé** — ils restent ceux qui servent l’**objectif de la
+      recherche**, quel que soit le tri : « les meilleurs artéfacts pour ce que
+      j’ai cherché ». Utile pour parcourir les résultats classés autrement sans
+      que la paire bouge — par exemple garder celle qui maximise les PV
+      effectifs tout en regardant les builds triés par une stat.
+
+    ⚠️ **Désactivé ne veut PAS dire « pas d’optimisation »** — c’est
+    « Activer l’optimisation d’artéfacts » qui le fait. Sans référence de
+    repli définie, « ne pas recalculer » ne voudrait rien dire : il faut savoir
+    par rapport à quoi, d’où l’objectif de recherche, seule référence stable.
+
+    ⚠️ **Masqué quand l’optimisation d’artéfacts est désactivée** : il n’y a
+    alors qu’une paire possible, celle qui est portée. Même règle que les
+    sélecteurs de principale et les sous-propriétés verrouillées — une saisie
+    sans effet est pire qu’une saisie absente.
+
+    ⚠️ Désactivé, la paire est **stable pendant toute l’exploration** : le
+    bouton « Valider les artéfacts » propose donc la même chose quel que soit
+    le tri, ce qui rend prévisible une action qui réserve des pièces.
     ⚠️ **Objectif « Dégâts réels »** : chaque carte affiche en tête le
     **nombre de dégâts** qui a servi à la classer, et la part des PV de la
     cible qu'il emporte (« tue la cible » au-delà de 100 %). Visible dès que
     ce critère ordonne la liste — que ce soit l'objectif de la recherche ou
     un tri choisi après coup.
+    ⚠️ **Objectif « PV effectifs »** : même traitement, et pour la même
+    raison — chaque carte affiche la valeur de PV effectifs qui l'a classée.
+    Elle manquait : on triait par PV effectifs sans jamais voir la valeur
+    triée. Le chiffre vient de `pvEffectifs` (runeBuildOptim.ts), **la même
+    fonction que celle qui classe** — extraite d'`objectiveScore` pour ça,
+    plutôt que recopiée côté écran où elle aurait divergé au premier
+    ajustement du facteur de défense.
     ⚠️ **« Valider ce build »**, sur chaque carte — réserve les 6 runes de CE
     résultat (elles n'apparaissent plus dans les recherches suivantes de la
     même liste de travail), jusqu'à libération explicite : voir « Listes de
@@ -705,6 +1262,30 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   redeviendront disponibles pour les recherches des autres monstres de
   cette liste »).
 
+  ⚠️ **Les ARTÉFACTS du build sont réservés eux aussi**, et mémorisés avec
+  lui. Un artéfact physique ne se porte que sur UN monstre à la fois,
+  exactement comme une rune : la paire retenue disparaît donc de l'inventaire
+  proposé aux autres monstres de la MÊME liste, avec la même auto-exemption
+  (relancer une recherche sur un monstre déjà validé ne le prive pas de ses
+  propres pièces) et la même indépendance entre listes.
+
+  ⚠️ **« Valider les artéfacts » — mêmes runes, autre paire.** Un build peut
+  s'afficher avec les runes déjà réservées mais une AUTRE paire d'artéfacts :
+  ses statistiques ne sont alors pas celles qui sont réservées. Le bouton
+  passe dans un troisième état, actif, qui met à jour la seule paire sans
+  toucher aux runes. Sans lui, la carte disait « Validé » et n'offrait plus
+  rien alors que ce qu'elle montrait n'était pas ce qui était réservé.
+  Le cas se présente dès que « Adapter les artéfacts au tri » est activé (le
+  défaut) : la paire suit alors le critère affiché, donc changer de tri peut
+  la changer à runes identiques. Interrupteur désactivé, elle reste stable et
+  ce bouton n’apparaît plus au fil de l’exploration.
+
+  Sans cette mémorisation, la fiche d'un build validé rejouait la paire portée
+  AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Les builds validés
+  avant que les artéfacts aient un identifiant n'en portent pas : ils retombent
+  sur les artéfacts réels, et il faut les revalider. Les jeter aurait été une
+  perte de données pour un simple affichage.
+
   ⚠️⚠️ **LA GARDE ANTI-DOUBLE-RÉSERVATION EST SUR LES DEUX CHEMINS.** Elle
   n'existait que sous la **fiche** (`displayedRuneConflicts`) ; la carte de
   résultat, elle, ne vérifiait rien — au motif que le pool de recherche exclut
@@ -732,6 +1313,27 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   du nom) ET y ajoute le monstre dans le même geste. Bouton **« Libérer
   toutes les runes de cette liste »** (visible dès qu'au moins un build y
   est validé), avec sa propre confirmation dédiée.
+
+  ⚠️ **DEUX libérations, pas une.** Chaque ligne de monstre validé porte :
+  - **« Libérer ce build »** — rend les 6 runes ET la paire d’artéfacts.
+    C’est un tout : la réservation existe POUR ce runage.
+  - **« Libérer les artéfacts »** — rend la seule paire, le runage restant
+    réservé. Un artéfact physique ne se porte que sur un monstre à la fois :
+    on veut souvent le récupérer pour un autre sans renoncer au runage déjà
+    planifié. Affiché seulement s’il y a une paire à rendre.
+
+  ⚠️ **Pas de « libérer les runes seules », et c’est délibéré.** Un build
+  validé porte TOUJOURS 6 runes : sans elles il n’y a plus de build à qui
+  les artéfacts appartiendraient, et l’entrée résiduelle serait lue comme
+  « 6 runes » par tout le reste (badge « Validé », exclusion, revalidation
+  après réimport). L’asymétrie est donc dans le modèle, pas un oubli.
+
+  ⚠️ **Les icônes disaient le contraire de l’action.** Le bouton de
+  libération portait la coche de validation — le même pictogramme que le
+  badge « Validé » posé juste à sa gauche. Il porte désormais la **roue
+  barrée d’une interdiction**, celle d’« Exclure les runes déjà utilisées » :
+  du point de vue du monstre, libérer, c’est lui retirer ses runes. Le second
+  bouton reprend le même montage avec l’icône d’**artéfact**.
 - ⚠️ **Ajouter un monstre qu'on ne possède PAS** — demande explicite : « le
   joueur a obtenu le monstre et veut essayer des runages de teams sans
   avoir mis à jour son json ». Une ESPÈCE choisie via la recherche
@@ -777,6 +1379,38 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
   changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
   build validé par défaut.
+- **« Comparer », à côté de « Valider ce build »** sur chaque carte de
+  résultat (demande explicite) : les deux boutons **se partagent la largeur**
+  de la carte, plutôt que d'être empilés — une rangée de plus par carte se
+  paierait sur toute la grille de résultats. Au clic, l'**écart statistique
+  par statistique** entre ce build et la référence apparaît **sous** les
+  boutons, donc sans rien déplacer de ce qui précède.
+  - ⚠️ **La référence est la fiche affichée**, ce qui couvre les deux cas
+    demandés *sans les distinguer* : « le build validé s'il y en a un, sinon
+    le build actuel ». `selected.gear` **est** déjà le build validé quand il
+    en existe un — runes ET artéfacts substitués — et l'équipement réel
+    sinon. Refaire cette résolution côté comparaison l'aurait dupliquée, et
+    aurait raté « Voir le runage réellement porté », qui la désactive exprès.
+  - Un seul build comparé à la fois : ils partagent la même référence, deux
+    comparaisons ouvertes ne diraient rien de plus.
+  - ⚠️ **L'écart porte aussi sur la valeur de TÊTE**, pas seulement sur les
+    huit statistiques (demande explicite) : dégâts, PV effectifs et
+    efficience/score selon ce qui est affiché. Il se pose **sous** la valeur
+    qu'il qualifie, jamais à côté, où il se lirait comme une seconde mesure.
+    Un seul composant les rend tous les trois — trois rendus séparés auraient
+    divergé de couleur ou de format, alors que c'est précisément leur
+    comparaison qui compte.
+  - ⚠️ L'écart de **dégâts** est recalculé contre les stats ET la paire
+    d'artéfacts de la référence, jamais contre le total d'un autre candidat.
+  - ⚠️ Les écarts **nuls sont affichés**, en gris. Ne montrer que les stats
+    qui changent ferait une liste de longueur variable d'une carte à l'autre,
+    et laisserait croire qu'une stat absente n'a pas été comparée.
+  - L'écart est calculé **par le parent**, comme les dégâts réels de la carte
+    et pour la même raison : la carte n'a aucune raison de savoir comment la
+    référence se résout. Il n'est calculé que pour la carte comparée — le
+    faire pour les 20 de la page coûterait vingt fois plus pour dix-neuf
+    valeurs jamais affichées.
+
 - **« Valider ce build » sous la fiche**, sans passer par une recherche
   (demande explicite) — un second bouton, identique à celui d'une carte de
   résultat, juste sous la fiche stats/artéfacts/runes/relique : valide
@@ -1001,6 +1635,41 @@ différent, coopératif (voir « Interruption »).
     même avec le meilleur trouvé dans le pool réellement possédé de chacun
     des 5 autres emplacements, un minimum demandé reste hors de portée — ou
     si elle dépasse déjà, à elle seule, un maximum demandé.
+    ⚠️ **L'apport des artéfacts y compte pour ce que l'INVENTAIRE peut
+    donner, jamais pour ce qu'une paire choisie d'avance apporte.** Deux
+    bornes distinctes : le meilleur apport atteignable pour juger d'un
+    minimum, l'apport incompressible (zéro dès qu'un emplacement peut rester
+    vide) pour juger d'un maximum. Sans cette distinction, laisser la stat
+    principale sur **Libre** pouvait rendre MOINS de résultats que la forcer
+    sur une stat précise — alors que « Libre » autorise strictement plus
+    d'artéfacts : la paire supposée était choisie pour son score, et pouvait
+    donc n'apporter aucune DEF alors que l'inventaire en contenait.
+  - ⚠️ **Cette borne est calculée stat par stat**, donc plus optimiste que ce
+    qu'une paire réelle peut fournir : deux emplacements ne portent que deux
+    statistiques principales. Elle sert au pré-filtrage, où être large ne
+    coûte que du travail en trop. **La décision finale, elle, se prend sur de
+    VRAIES paires** : un build n'est retenu que si l'une des combinaisons
+    réellement équipables lui fait tenir *toutes* ses conditions à la fois.
+    Un résultat affiché respecte donc toujours les conditions demandées.
+  - **La meilleure paire d'artéfacts d'un build suit le critère de
+    classement**, et l’interrupteur « Adapter les artéfacts au tri » décide
+    duquel : le **tri affiché** (défaut) ou l’**objectif de la recherche**.
+    Trier par PV effectifs ne retient pas les mêmes pièces que trier par
+    Dégâts réels — deux réponses différentes pour le même build, et c’est
+    normal : un artéfact change les statistiques du monstre, donc le meilleur
+    dépend de ce qu’on cherche.
+
+    ⚠️ **Un artéfact ne peut bouger que PV, ATQ et DEF** (sa stat principale
+    est plate). D’où quatre régimes seulement :
+    - **PV, ATQ ou DEF** — la paire maximise CETTE stat. Auparavant elle
+      maximisait la somme des principales : trier par ATQ classait donc sur
+      une ATQ qu’une autre paire aurait dépassée (PV+1500 × 2 vaut 3000 en
+      somme, ATQ+100 × 2 seulement 200).
+    - **PV effectifs** et **Dégâts réels** — la paire maximise l’objectif.
+    - **Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance, Précision** —
+      aucun artéfact n’entre dans ces classements : rien à y maximiser, seule
+      compte la faisabilité. Basculer de l’un à l’autre ne recalcule donc
+      **rien**.
   - **Faisabilité de SET, précoce** (pendant la génération d'une moitié, pas
     seulement à l'appariement) : pour chaque set demandé, si même le
     meilleur cas ne peut plus atteindre le compte requis, la branche est
@@ -1056,6 +1725,79 @@ différent, coopératif (voir « Interruption »).
   complet ». Invisible à l'écran : mêmes garanties (aucun résultat valide
   perdu, vérifié par différentiel), potentiellement plus rapide sur une
   grosse recherche.
+
+### Le choix des artéfacts — un second problème, séparé
+
+⚠️ **Rien à voir avec la recherche de runes, et c'est voulu.** Toute la
+machinerie ci-dessus existe parce que les runes forment un espace de 6
+emplacements sous contraintes de sets. Les artéfacts, eux, sont **deux**
+emplacements, et la règle d'éligibilité (l'attribut suit l'élément du monstre,
+le type suit son archétype) ramène chacun à ~200 candidats sur un inventaire
+réel : une **double boucle exhaustive** suffit, elle est exacte, et il n'y a
+donc aucune heuristique à valider — voir
+[artifactOptim.ts](src/lib/artifactOptim.ts).
+
+- **Le build de runes est FIXE** pendant ce choix. Un artéfact amplifie un
+  build, il n'en déplace pas la cible : chercher les deux ensemble multiplierait
+  l'espace pour un gain que la mesure ne montre pas.
+- ⚠️ **La contrainte de PAIRE n'est pas un détail** : on ne peut pas porter
+  deux artéfacts **intangibles** à la fois, alors que chacun est éligible seul.
+  Choisir le meilleur de chaque côté indépendamment produirait une paire
+  inéquipable.
+- **Élagage exact, jamais heuristique** — vérifié par différentiel contre le
+  balayage complet, optimum identique :
+  - **Pertinence** : une ligne qui ne fait pas bouger les dégâts POUR CE
+    RÉGLAGE n'entre pas en compte. ⚠️ Elle est **sondée contre le vrai calcul**,
+    jamais lue dans une table de codes : « Dgts CRIT Compétence 2 » ne sert à
+    rien quand on optimise le S3, « D.CRIT+ cible unique » ne sert à rien sur
+    une attaque de zone, et les lignes élémentaires ne servent à rien quand
+    l'élément visé est ignoré — ou quand il ne correspond pas.
+  - **Dominance** : un artéfact au moins aussi bon qu'un autre sur toutes les
+    dimensions qui comptent est le seul retenu. ⚠️ Un **intangible** ne peut
+    jamais en éliminer un ordinaire : il traîne la contrainte de paire, et le
+    substituer rendrait infaisable toute paire dont l'autre emplacement est
+    déjà intangible.
+  - **Obligation** : quand une ligne verrouillée ne peut être servie que par
+    une sorte, tout candidat sous son seuil est écarté. ⚠️ Le seuil n'est pas
+    le minimum demandé : il en retranche ce que l'AUTRE pièce peut apporter.
+
+**Quand ce choix a lieu.** La recherche de runes a besoin d'une paire pour
+noter les candidats, avant qu'aucun build n'existe : elle en **suppose** une
+(la meilleure pour l'équipement affiché, sous les mêmes contraintes). Puis,
+**pendant que la recherche tourne**, les meilleurs builds reçoivent chacun
+leur vraie paire, sur le temps d'inactivité — l'ordre d'appariement étant
+piloté par l'objectif, les bons builds sortent en quelques secondes là où la
+recherche s'écoule sur plusieurs minutes.
+
+⚠️ **Ce travail concurrent ne ralentit pas la recherche** — mesuré, pas
+supposé : +0,3 % sur une recherche de 25 secondes et −1,6 % sur une de 8, les
+deux sous le plancher de bruit de la mesure. Seule une recherche d'environ une
+seconde montre ~3 %, dont une charge de calcul *pure* explique la
+quasi-totalité : c'est du partage de cœurs, pas un coût propre à ce calcul.
+
+**La page que vous consultez passe en premier.** Les cent meilleurs builds sont
+traités en avance de fond, mais c'est la page affichée qui est servie d'abord —
+sans quoi aucune page au-delà de la centième position n'aurait jamais sa paire.
+Changer de page ou de tri repriorise immédiatement, sans rien recalculer de ce
+qui est déjà connu.
+
+Une carte dont la paire n'est pas encore calculée le **dit** (« artéfacts pas
+encore optimisés ») plutôt que de laisser croire à un résultat définitif. ⚠️ La
+place de cette mention est réservée d'avance : sans ça, chaque paire trouvée
+changeait la hauteur d'une carte et réorganisait toute la grille.
+
+⚠️ **Un build optimisé peut alors passer devant dans le classement**, et la
+boucle « trier → optimiser → retrier » ne s'emballe pas : optimiser un build ne
+peut que faire MONTER son score (la paire supposée fait partie des paires
+candidates, le maximum lui est toujours ≥). Un build non optimisé ne peut donc
+qu'être repoussé vers le bas, jamais entrer dans les premiers de ce fait —
+l'ensemble à traiter rétrécit.
+
+⚠️ **Les stats de la carte sont recalculées avec sa vraie paire**, pas seulement
+son total : la stat principale d'un artéfact entre dans les stats du monstre.
+Sans ce recalcul, la carte afficherait des stats qui ne correspondent pas aux
+artéfacts montrés juste à côté, et un tri par ATQ porterait sur une valeur
+périmée.
 
 ### Vérification
 

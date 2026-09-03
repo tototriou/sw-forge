@@ -52,7 +52,7 @@ export default function testMeules() {
   egal(lignes.length, 4, 'lot vide et famille inconnue écartés');
   egal(
     lignes[0],
-    { kind: 'grind', setKey: 'violent', stat: 8, grade: 4, ancient: false, amount: 3 },
+    { kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 4, ancient: false, amount: 3 },
     'type pair → meule ; set, stat et grade décodés'
   );
   egal(lignes[1].kind, 'gem', 'type impair → gemme');
@@ -61,7 +61,7 @@ export default function testMeules() {
   // ⚠️ Le grade antique est décalé de 10 dans les données, comme le rank d'une
   // rune antique. Le garder tel quel comparerait 15 à 5 et rendrait tout
   // infaisable en silence.
-  egal(lignes[3], { kind: 'grind', setKey: 'swift', stat: 8, grade: 5, ancient: true, amount: 1 },
+  egal(lignes[3], { kind: 'grind' as const, setKey: 'swift', stat: 8, grade: 5, ancient: true, amount: 1 },
     'consommable antique : grade ramené sur l’échelle 1-5');
 
   egal(parseCrafts({ unit_list: [] }), [], 'export sans réserve → liste vide, pas une erreur');
@@ -69,33 +69,33 @@ export default function testMeules() {
   titre('Disponibilité d’un consommable');
 
   const s = stock([
-    { kind: 'grind', setKey: 'violent', stat: 8, grade: 4 },
-    { kind: 'grind', setKey: null, stat: 4, grade: 5 },
-    { kind: 'gem', setKey: 'swift', stat: 8, grade: 5, ancient: true },
+    { kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 4 },
+    { kind: 'grind' as const, setKey: null, stat: 4, grade: 5 },
+    { kind: 'gem' as const, setKey: 'swift', stat: 8, grade: 5, ancient: true },
   ]);
   const q = (o: Parameters<typeof ownsCraft>[1]) => ownsCraft(s, o);
 
-  ok(q({ kind: 'grind', setKey: 'violent', stat: 8, grade: 4, ancient: false }), 'le grade exact convient');
-  ok(q({ kind: 'grind', setKey: 'violent', stat: 8, grade: 3, ancient: false }), 'un grade supérieur convient');
+  ok(q({ kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 4, ancient: false }), 'le grade exact convient');
+  ok(q({ kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 3, ancient: false }), 'un grade supérieur convient');
   ok(
-    !q({ kind: 'grind', setKey: 'violent', stat: 8, grade: 5, ancient: false }),
+    !q({ kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 5, ancient: false }),
     'un grade inférieur ne convient PAS : une meule héroïque n’atteint pas le max légendaire'
   );
-  ok(!q({ kind: 'grind', setKey: 'will', stat: 8, grade: 4, ancient: false }), 'meule d’un autre set → non');
-  ok(!q({ kind: 'gem', setKey: 'violent', stat: 8, grade: 4, ancient: false }), 'une meule ne fait pas gemme');
+  ok(!q({ kind: 'grind' as const, setKey: 'will', stat: 8, grade: 4, ancient: false }), 'meule d’un autre set → non');
+  ok(!q({ kind: 'gem' as const, setKey: 'violent', stat: 8, grade: 4, ancient: false }), 'une meule ne fait pas gemme');
 
   // ⚠️ Sans la seconde consultation, l'immémorial serait invisible et des
   // chantiers réels passeraient pour bloqués.
   ok(
-    q({ kind: 'grind', setKey: 'nemesis', stat: 4, grade: 5, ancient: false }),
+    q({ kind: 'grind' as const, setKey: 'nemesis', stat: 4, grade: 5, ancient: false }),
     'un immémorial couvre n’importe quel set'
   );
   ok(
-    !q({ kind: 'grind', setKey: 'nemesis', stat: 4, grade: 5, ancient: true }),
+    !q({ kind: 'grind' as const, setKey: 'nemesis', stat: 4, grade: 5, ancient: true }),
     'mais pas une rune antique : l’immémorial n’existe pas en antique'
   );
   ok(
-    !q({ kind: 'gem', setKey: 'swift', stat: 8, grade: 5, ancient: false }),
+    !q({ kind: 'gem' as const, setKey: 'swift', stat: 8, grade: 5, ancient: false }),
     'un consommable antique ne va pas sur une rune normale'
   );
 
@@ -106,22 +106,22 @@ export default function testMeules() {
   // seul un immémorial rendait faisable.
   const sansImmemoriaux = stock(
     [
-      { kind: 'grind', setKey: 'violent', stat: 8, grade: 4 },
-      { kind: 'grind', setKey: null, stat: 4, grade: 5 },
+      { kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 4 },
+      { kind: 'grind' as const, setKey: null, stat: 4, grade: 5 },
     ].filter((l) => l.setKey !== null)
   );
   ok(
-    ownsCraft(sansImmemoriaux, { kind: 'grind', setKey: 'violent', stat: 8, grade: 4, ancient: false }),
+    ownsCraft(sansImmemoriaux, { kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 4, ancient: false }),
     'réserve sans immémoriaux : le stock du set reste disponible'
   );
   ok(
-    !ownsCraft(sansImmemoriaux, { kind: 'grind', setKey: 'nemesis', stat: 4, grade: 5, ancient: false }),
+    !ownsCraft(sansImmemoriaux, { kind: 'grind' as const, setKey: 'nemesis', stat: 4, grade: 5, ancient: false }),
     'réserve sans immémoriaux : ce que seul un immémorial couvrait ne l’est plus'
   );
   egal(sansImmemoriaux.total, 1, 'réserve sans immémoriaux : le total suit, il ne les compte plus');
-  ok(q({ kind: 'gem', setKey: 'swift', stat: 8, grade: 5, ancient: true }), 'et va bien sur une antique');
+  ok(q({ kind: 'gem' as const, setKey: 'swift', stat: 8, grade: 5, ancient: true }), 'et va bien sur une antique');
 
-  egal(craftLabel({ kind: 'grind', stat: 8 }), 'meule VIT', 'le manque se lit sans décoder un code');
+  egal(craftLabel({ kind: 'grind' as const, stat: 8 }), 'meule VIT', 'le manque se lit sans décoder un code');
 
   titre('Ce qu’un plan réclame, confronté à la réserve');
 
@@ -143,9 +143,9 @@ export default function testMeules() {
     ],
   };
   const besoins = planNeeds(runePlan(rune, 'legend', false, 'eff'));
-  egal(besoins, [{ kind: 'grind', stat: 8 }], 'meule seule → une meule VIT, TC/RES/PRE non meulables');
+  egal(besoins, [{ kind: 'grind' as const, stat: 8 }], 'meule seule → une meule VIT, TC/RES/PRE non meulables');
 
-  const avec = stock([{ kind: 'grind', setKey: 'violent', stat: 8, grade: 5 }]);
+  const avec = stock([{ kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 5 }]);
   egal(missingCrafts(besoins, rune, GRADE_SCENARIO.legend, avec), [], 'réserve suffisante → rien ne manque');
   egal(
     missingCrafts(besoins, rune, GRADE_SCENARIO.legend, stock([{ stat: 4 }])).map(craftLabel),
@@ -159,7 +159,7 @@ export default function testMeules() {
       planNeeds(runePlan(rune, 'hero', false, 'eff')),
       rune,
       GRADE_SCENARIO.hero,
-      stock([{ kind: 'grind', setKey: 'violent', stat: 8, grade: 4 }])
+      stock([{ kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 4 }])
     ),
     [],
     'une meule héroïque suffit au plan héroïque'
@@ -220,8 +220,8 @@ export function testRegistre() {
   titre('Réserve moins les dépenses déclarées');
 
   const lignes: CraftLine[] = [
-    { kind: 'grind', setKey: 'violent', stat: 8, grade: 4, ancient: false, amount: 1 },
-    { kind: 'grind', setKey: 'violent', stat: 8, grade: 5, ancient: false, amount: 2 },
+    { kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 4, ancient: false, amount: 1 },
+    { kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 5, ancient: false, amount: 2 },
   ];
   const q = { kind: 'grind' as const, setKey: 'violent', stat: 8, grade: 4, ancient: false };
 

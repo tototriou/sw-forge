@@ -69,7 +69,14 @@ await page.waitForTimeout(800);
 await page.screenshot({ path: shot('01-optimizer.png') });
 
 console.log(`→ choisir ${monsterName}`);
-await page.getByPlaceholder('Rechercher un monstre…', { exact: true }).fill(monsterName);
+// ⚠️ `exact: true` NE SUFFIT PAS, et le picker d'exclusion n'y est pour rien
+// (il dit toujours « … à exclure »). Ce placeholder existe en DOUBLE parce que
+// l'écran rend le MÊME champ deux fois — bloc bureau (`hidden lg:grid`) et
+// bloc mobile (`lg:hidden`), deux dispositions de premier rang, voir
+// OptimizerSection.tsx ~l. 2138. `.first()` = la copie bureau, la seule
+// visible à ce viewport ; `.last()` viserait l'invisible. Détail et forme
+// robuste aux deux formats : SKILL.md, gotcha « rendu DEUX FOIS ».
+await page.getByPlaceholder('Rechercher un monstre…').first().fill(monsterName);
 await page.waitForTimeout(300);
 const firstOption = page.getByRole('option').first();
 if (!(await firstOption.isVisible().catch(() => false))) {

@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
@@ -15,41 +14,88 @@ interface Props {
   rank: number;
   candidate: BuildCandidate;
   runeById: Map<number, RuneDetail>;
-  // Artéfacts ACTUELLEMENT équipés sur le monstre optimisé — fixes, jamais
-  // modifiés par la recherche (voir spec/outils/optimizer/ « Algorithme »).
-  // Identiques d'une carte de résultat à l'autre : affichés pour la même
-  // raison que « Équipement actuel » les affiche déjà, pas parce qu'ils
-  // varient selon le candidat.
+  // La paire d'artéfacts retenue POUR CE BUILD.
+  //
+  // ⚠️ **Elle varie désormais d'une carte à l'autre**, contrairement à ce que
+  // ce champ portait à l'origine (les artéfacts équipés, identiques partout).
+  // Deux builds voisins n'appellent pas les mêmes artéfacts, et ce sont ces
+  // pièces-là qui ont servi à calculer `candidate.stats` — montrer autre chose
+  // afficherait des stats et un équipement qui ne vont pas ensemble.
   artifacts: ArtifactDetail[];
+  // La paire de CE build n'a pas encore été calculée : celle affichée est la
+  // paire supposée, commune. Dit explicitement plutôt que laissé croire.
+  paireProvisoire?: boolean;
   metric: RuneMetric;
-  // Identité de la rune actuellement ouverte, PARTAGÉE entre tous les
-  // résultats affichés (pas locale à cette carte) — voir
-  // OptimizerSection.tsx / useOptimizerState.ts. Permet qu'un clic sur une
-  // autre rune, même dans une autre carte, ferme le popover déjà ouvert.
-  openRuneKey: string | null;
-  onToggleRune: (key: string) => void;
+  // Identité de la pièce actuellement ouverte, PARTAGÉE entre tous les
+  // résultats affichés — voir OptimizerSection.tsx / useOptimizerState.ts.
+  // ⚠️ **UNE seule clé pour les runes ET les artéfacts**, partagée entre
+  // TOUTES les cartes : c’est la seule forme qui garantit qu’un seul détail
+  // reste ouvert. Deux états, même bien synchronisés, se désynchronisent au
+  // premier chemin oublié — c’est précisément ce qui laissait un artéfact
+  // ouvert quand on cliquait une rune.
+  openDetailKey: string | null;
+  onToggleDetail: (key: string) => void;
   // Dégâts du sort visé pour CE candidat, quand l'objectif « Dégâts réels »
   // est actif — `undefined` sinon. ⚠️ Calculé par le PARENT (qui détient le
   // sort résolu et l'adversaire) plutôt que reconstruit ici : cette carte
   // n'a aucune raison de connaître le modèle de dégâts, et le parent trie
   // déjà sur exactement la même valeur.
-  degatsReels?: { total: number; partPvCible: number };
+  // ⚠️ `delta` : l'écart avec le build de référence, fourni SEULEMENT quand
+  // cette carte est celle qu'on compare. Sur la même prop que la valeur qu'il
+  // qualifie, pour qu'on ne puisse pas afficher l'un sans l'autre.
+  degatsReels?: { total: number; partPvCible: number; delta?: number };
+  // Les PV EFFECTIFS de ce candidat — la valeur qui l'a classé quand
+  // l'objectif ou le tri courant est « PV effectifs ». `undefined` sinon.
+  // ⚠️ Même raison que `degatsReels` d'être calculée par le PARENT : c'est le
+  // chiffre qui ORDONNE les cartes, il doit venir de la même source que le
+  // tri, jamais d'une formule recopiée ici.
+  pvEffectifs?: { total: number; delta?: number };
+  // Écart d'efficience/score total avec la référence — la ligne de mesure en
+  // tête de carte est toujours affichée, donc son écart aussi quand on compare.
+  metricDelta?: number;
   // Bouton « Valider » (Lot 2 — réservation des 6 runes de CE build, voir
   // spec/outils/optimizer/historique-import-monstres-a-optimiser.md).
   // `undefined` : aucun bouton — cas d'un monstre non réellement possédé
   // (repli stats de base, voir OptimizerSection.tsx), rien à réserver sur un
   // exemplaire qui n'existe pas dans le compte.
   onValidate?: () => void;
-  // Ce candidat EST le build ACTUELLEMENT validé pour ce monstre (mêmes 6
-  // runeIds, comparaison faite par le parent) — bouton désactivé, libellé
-  // « Validé » plutôt que « Valider ».
-  validated?: boolean;
+  /**
+   * Ce candidat est-il DÉJÀ le build validé pour ce monstre ? Comparaison
+   * faite par le parent (voir `EtatValidation`, OptimizerSection.tsx).
+   *
+   * - `'non'` — rien de réservé pour ces runes : « Valider ce build ».
+   * - `'oui'` — mêmes runes ET même paire : bouton désactivé, « Validé ».
+   * - `'artefacts'` — mêmes runes, PAIRE DIFFÉRENTE : bouton ACTIF,
+   *   « Valider les artéfacts ».
+   *
+   * ⚠️ **Le troisième état n'est pas un raffinement.** Sans lui, un candidat
+   * aux mêmes runes mais aux artéfacts différents affichait « Validé » et
+   * n'offrait plus rien : l'utilisateur voyait des stats qui ne sont pas
+   * celles réservées, sans aucun moyen de les valider. Un artéfact entre dans
+   * les statistiques du monstre — deux paires, deux builds.
+   */
+  validated?: 'non' | 'oui' | 'artefacts';
   // ⚠️ **Une rune de ce build est DÉJÀ RÉSERVÉE** pour un autre monstre de la
   // liste active : le bouton reste AFFICHÉ mais désactivé, et dit pourquoi.
   // Le retirer laisserait croire que ce build n'est pas validable du tout,
   // alors qu'il le redeviendra dès qu'on libère la rune. `null` = aucun
   // conflit. Le texte nomme le monstre concerné, comme le fait la fiche.
   conflit?: string | null;
+  /**
+   * Ouvre/ferme la comparaison de CE build avec la référence. `undefined` :
+   * pas de bouton — aucun monstre résolu, donc aucune référence à comparer.
+   */
+  onCompare?: () => void;
+  /**
+   * L'écart, statistique par statistique, entre ce build et la référence —
+   * fourni SEULEMENT quand cette carte est celle qu'on compare.
+   *
+   * ⚠️ **Calculé par le PARENT**, comme `degatsReels` juste au-dessus et pour
+   * la même raison : la référence est la fiche affichée, donc le build validé
+   * quand il en existe un, et cette carte n'a aucune raison de savoir
+   * comment cette résolution se fait.
+   */
+  comparaison?: { key: string; label: string; suffix: string; delta: number }[];
 }
 
 // ⚠️ Même FORME que l'affichage de l'équipement actuellement équipé (RTA/
@@ -58,6 +104,30 @@ interface Props {
 // une échelle réduite pour tenir dans une carte de résultat sans l'alourdir.
 // ⚠️ Calibrée pour que DEUX cartes tiennent par ligne dans le conteneur
 // `max-w-3xl` (768px) de OptimizerSection.tsx — voir le `minmax` du grid.
+/**
+ * Un écart avec le build de référence, sous la valeur qu'il qualifie.
+ *
+ * ⚠️ Un seul composant pour les trois (dégâts, PV effectifs, efficience) :
+ * trois rendus séparés auraient divergé de couleur ou de format au premier
+ * ajustement, et c'est précisément la comparaison entre eux qui compte.
+ * ⚠️ Un écart NUL s'affiche, en gris — même raison que dans la grille de
+ * comparaison des stats : une valeur absente se lirait « non comparée ».
+ */
+function Delta({ valeur, suffixe = '' }: { valeur: number; suffixe?: string }) {
+  const arrondi = Math.round(valeur * 10) / 10;
+  return (
+    <span
+      className={`font-mono text-nano tabular-nums ${
+        arrondi > 0 ? 'text-good' : arrondi < 0 ? 'text-bad' : 'text-ink-dimmer'
+      }`}
+    >
+      {arrondi > 0 ? '+' : ''}
+      {arrondi.toLocaleString('fr-FR')}
+      {suffixe}
+    </span>
+  );
+}
+
 const WHEEL_SCALE = 0.45;
 const ARTIFACT_SCALE = 0.45;
 
@@ -71,12 +141,17 @@ export default function BuildCandidateCard({
   runeById,
   artifacts,
   metric,
-  openRuneKey,
-  onToggleRune,
+  openDetailKey,
+  onToggleDetail,
   degatsReels,
+  paireProvisoire,
   onValidate,
   conflit,
   validated,
+  onCompare,
+  comparaison,
+  pvEffectifs,
+  metricDelta,
 }: Props) {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => !!r);
   const sets = activeSets(runes.map((r) => r.set));
@@ -91,18 +166,26 @@ export default function BuildCandidateCard({
   // coup sans relancer — voir runeBuildOptim.ts.
   const liveTotal = candidateMetricTotal(candidate, runeById, metric);
 
-  // Les artéfacts sont IDENTIQUES d'une carte à l'autre (fixes) : contrairement
-  // aux runes, pas besoin d'un état PARTAGÉ entre cartes pour éviter un doublon
-  // de popover — un état local par carte suffit.
-  const [openArtifactKind, setOpenArtifactKind] = useState<string | null>(null);
-  const runeOpenHere = openRuneKey?.startsWith(`${candidateKey}-`) ?? false;
+  // ⚠️ Les artéfacts avaient ici un état LOCAL, au motif qu'ils étaient
+  // « identiques d'une carte à l'autre, donc pas besoin d'un état partagé ».
+  // La prémisse a cessé d'être vraie (chaque build porte SA paire), et elle ne
+  // couvrait de toute façon pas le cas rune↔artéfact, ouvert dès l'origine :
+  // deux états distincts laissaient les DEUX popovers affichés.
+  //
+  // ⚠️ Les deux sortes partagent donc une clé, préfixée pour rester
+  // distinguables : `a<kind>` pour un artéfact, `r<slot>` pour une rune. Sans
+  // préfixe, l'ancien format `<candidateKey>-<slot>` ne se relisait pas.
+  const cleArtefact = (kind: string) => `${candidateKey}-a${kind}`;
+  const cleRune = (slot: number) => `${candidateKey}-r${slot}`;
+  const detailOuvertIci = openDetailKey?.startsWith(`${candidateKey}-`) ?? false;
 
   // ⚠️ Même bascule flottant (souris) / en ligne (doigt) que MonsterGear.tsx —
   // voir sa justification. Le flottant, à taille fixe (260×320), débordait de
   // l'écran sur une carte de résultat déjà compacte en mobile.
   const auDoigt = useMediaQuery(COMPACT);
-  const openArtifact = openArtifactKind ? artifacts.find((a) => a.kind === openArtifactKind) : undefined;
-  const openRuneSlot = runeOpenHere ? Number(openRuneKey!.slice(candidateKey.length + 1)) : null;
+  const suffixe = detailOuvertIci ? openDetailKey!.slice(candidateKey.length + 1) : null;
+  const openArtifact = suffixe?.startsWith('a') ? artifacts.find((a) => a.kind === suffixe.slice(1)) : undefined;
+  const openRuneSlot = suffixe?.startsWith('r') ? Number(suffixe.slice(1)) : null;
   const openRune = openRuneSlot !== null ? runes.find((r) => r.slot === openRuneSlot) : undefined;
 
   return (
@@ -114,15 +197,37 @@ export default function BuildCandidateCard({
       // apparent, l'empilement par défaut suit l'ordre du DOM, pas la
       // position à l'écran.
       className={`rounded-xl border border-border bg-panel p-2.5 ${
-        runeOpenHere || openArtifactKind ? 'relative z-10' : ''
+        detailOuvertIci ? 'relative z-10' : ''
       }`}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-start justify-between mb-2">
         <span className="font-mono text-xs font-bold text-star">#{rank}</span>
-        <span className="font-mono text-xs text-ink-dim">
-          {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
+        <span className="flex flex-col items-end">
+          <span className="font-mono text-xs text-ink-dim">
+            {metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} : {formatRuneMetric(liveTotal / 6, metric)}
+          </span>
+          {/* L'écart avec la référence, SOUS la valeur qu'il qualifie
+              (demande explicite) — jamais à côté, où il se lirait comme une
+              seconde mesure. */}
+          {metricDelta != null && <Delta valeur={metricDelta / 6} suffixe={metric === 'eff' ? ' %' : ''} />}
         </span>
       </div>
+
+      {/* ⚠️ Même traitement que les dégâts, et pour la même raison : c'est le
+          chiffre qui a CLASSÉ ce candidat quand on optimise la survie. Sans
+          lui, on triait par PV effectifs sans jamais voir la valeur triée —
+          signalé à l'usage. */}
+      {pvEffectifs && (
+        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
+          <span className="text-micro text-ink-dim">PV effectifs</span>
+          <span className="flex flex-col items-end">
+            <span className="font-mono text-sm font-bold text-star">
+              {Math.round(pvEffectifs.total).toLocaleString('fr-FR')}
+            </span>
+            {pvEffectifs.delta != null && <Delta valeur={pvEffectifs.delta} />}
+          </span>
+        </p>
+      )}
 
       {/* ⚠️ Le chiffre qui a servi à CLASSER ce candidat passe devant la
           mesure par rune : quand on optimise des dégâts, c'est lui qu'on
@@ -132,11 +237,39 @@ export default function BuildCandidateCard({
       {degatsReels && (
         <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
           <span className="text-micro text-ink-dim">Dégâts</span>
-          <span className="font-mono text-sm font-bold text-star">
-            {Math.round(degatsReels.total).toLocaleString('fr-FR')}
-            <span className="ml-1.5 font-normal text-micro text-ink-dim">
-              {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
+          <span className="flex flex-col items-end">
+            <span className="font-mono text-sm font-bold text-star">
+              {Math.round(degatsReels.total).toLocaleString('fr-FR')}
+              <span className="ml-1.5 font-normal text-micro text-ink-dim">
+                {degatsReels.partPvCible >= 100 ? 'tue la cible' : `${Math.round(degatsReels.partPvCible)} % des PV`}
+              </span>
             </span>
+            {degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}
+          </span>
+          {/* ⚠️ **Rangée TOUJOURS présente** — la place est réservée d’avance
+              (spec/shared/design.md). Rendue conditionnellement, elle faisait
+              varier la hauteur de la carte, et comme la file sert les builds au
+              fil de l’eau, TOUTE la grille se réorganisait à chaque paire
+              trouvée. L’espace insécable tient la hauteur quand il n’y a rien à
+              dire — un espace ordinaire s’effondrerait.
+
+              ⚠️ **Il y avait ici un « +X % grâce aux artéfacts ». RETIRÉ, et
+              pas réparé.** Il comparait la paire retenue à la paire SUPPOSÉE —
+              celle que le moteur postule pendant qu’il classe les builds. C’est
+              un détail d’implémentation : personne n’a de raison de savoir
+              qu’elle existe, encore moins d’en vouloir un pourcentage.
+              Signalé à l’usage (« je ne sais pas ce qu’il est censé
+              représenter »), et c’était le bon diagnostic — le corriger aurait
+              donné un nombre exact et toujours incompréhensible.
+
+              ⚠️ Une comparaison n’a de sens que si sa RÉFÉRENCE se nomme.
+              Celle qui se nomme — « par rapport aux artéfacts que ce monstre
+              porte aujourd’hui » — vit dans « Meilleurs artéfacts pour ce
+              build » (OptimizerSection.tsx), où les deux termes partagent le
+              même build. Ici, le total affiché inclut DÉJÀ la paire retenue, et
+              cette paire est montrée juste à côté : la carte se suffit. */}
+          <span className="w-full text-right text-micro text-ink-dimmer">
+            {paireProvisoire ? 'artéfacts pas encore optimisés' : ' '}
           </span>
         </p>
       )}
@@ -163,8 +296,8 @@ export default function BuildCandidateCard({
           <ArtifactSlots
             artifacts={artifacts}
             scale={ARTIFACT_SCALE}
-            isSelected={(a) => openArtifactKind === a.kind}
-            onSelectArtifact={(a) => setOpenArtifactKind((cur) => (cur === a.kind ? null : a.kind))}
+            isSelected={(a) => openDetailKey === cleArtefact(a.kind)}
+            onSelectArtifact={(a) => onToggleDetail(cleArtefact(a.kind))}
             // Mêmes dimensions que pour une rune : les deux cartes partagent la
             // même coquille (voir PieceDetail.tsx), donc le même encombrement.
             // ⚠️ `rembourrage="md"` + `encadre={false}` : le flottant pose déjà
@@ -175,7 +308,7 @@ export default function BuildCandidateCard({
                 ? undefined
                 : (a, _i, anchorRef) => (
                     <FlottantAuto
-                      ouvert={openArtifactKind === a.kind}
+                      ouvert={openDetailKey === cleArtefact(a.kind)}
                       ancre={anchorRef}
                       largeur={260}
                       hauteur={320}
@@ -189,14 +322,14 @@ export default function BuildCandidateCard({
           <RuneWheel
             runes={runes}
             scale={WHEEL_SCALE}
-            isSelected={(r) => openRuneKey === `${candidateKey}-${r.slot}`}
-            onSelectRune={(r) => onToggleRune(`${candidateKey}-${r.slot}`)}
+            isSelected={(r) => openDetailKey === cleRune(r.slot)}
+            onSelectRune={(r) => onToggleDetail(cleRune(r.slot))}
             renderOverlay={
               auDoigt
                 ? undefined
                 : (r, _i, anchorRef) => (
                     <FlottantAuto
-                      ouvert={openRuneKey === `${candidateKey}-${r.slot}`}
+                      ouvert={openDetailKey === cleRune(r.slot)}
                       ancre={anchorRef}
                       largeur={260}
                       hauteur={320}
@@ -225,19 +358,89 @@ export default function BuildCandidateCard({
           voir OptimizerSection.tsx). Absent (`onValidate` non fourni) pour
           un monstre non réellement possédé — rien à réserver sur un
           exemplaire qui n'existe pas dans le compte. */}
-      {onValidate && (
-        <Bouton
-          onClick={onValidate}
-          disabled={validated || !!conflit}
-          title={conflit ?? undefined}
-          ton={validated ? 'accent' : 'neutre'}
-          fond={validated ? 'doux' : 'plein'}
-          taille="sm"
-          pleineLargeur
-          icone={validated ? <CheckCircle2 size={14} /> : undefined}
-          libelle={validated ? 'Validé' : conflit ? 'Rune déjà réservée' : 'Valider ce build'}
-          className="mt-2.5"
-        />
+      {(onValidate || onCompare) && (
+        // ⚠️ Les deux boutons SE PARTAGENT la largeur (demande explicite) :
+        // `flex` + `flex-1` sur chacun, plutôt que deux `pleineLargeur`
+        // empilés. La carte garde ainsi la même hauteur qu'avec un seul
+        // bouton — une rangée de plus par carte se paie sur toute la grille
+        // de résultats.
+        <div className="mt-2.5 flex items-stretch gap-2">
+          {onCompare && (
+            <Bouton
+              onClick={onCompare}
+              ton={comparaison ? 'accent' : 'neutre'}
+              fond={comparaison ? 'doux' : 'vide'}
+              taille="sm"
+              icone={<ArrowLeftRight size={14} />}
+              libelle="Comparer"
+              className="flex-1"
+            />
+          )}
+          {onValidate && (
+            <Bouton
+              onClick={onValidate}
+              // ⚠️ Seul `'oui'` désactive. `'artefacts'` reste ACTIF : c'est
+              // précisément l'état où il reste quelque chose à valider.
+              disabled={validated === 'oui' || !!conflit}
+              title={conflit ?? undefined}
+              // Le ton « déjà réservé » ne vaut que pour l'identité complète —
+              // sinon la carte se lirait comme terminée alors qu'elle attend
+              // une action.
+              //
+              // ⚠️ **`alerte` pour « Valider les artéfacts », et c'est son sens
+              // exact** : ce ton « ne dit rien de l'ACTION, il signale l'état
+              // des DONNÉES » (voir Bouton.tsx). Ici la donnée signalée est
+              // « ce que cette carte montre n'est pas ce qui est réservé ».
+              // Sans lui, la carte se confondait avec toutes les autres cartes
+              // non validées, alors que c'est la seule où il reste un écart à
+              // combler.
+              //
+              // ⚠️ Un SEUL contour : `trait` vaut `plein` par défaut, donc le
+              // bouton en porte déjà un — le ton en change la couleur, il n'en
+              // superpose pas un second.
+              ton={validated === 'oui' ? 'accent' : validated === 'artefacts' ? 'alerte' : 'neutre'}
+              fond={validated === 'oui' || validated === 'artefacts' ? 'doux' : 'plein'}
+              taille="sm"
+              icone={validated === 'oui' ? <CheckCircle2 size={14} /> : undefined}
+              libelle={
+                validated === 'oui'
+                  ? 'Validé'
+                  : conflit
+                    ? 'Rune déjà réservée'
+                    : validated === 'artefacts'
+                      ? 'Valider les artéfacts'
+                      : 'Valider ce build'
+              }
+              className="flex-1"
+            />
+          )}
+        </div>
+      )}
+
+      {/* ⚠️ L'écart contre le build de RÉFÉRENCE — la fiche affichée, donc le
+          build validé quand il en existe un. S'affiche SOUS les boutons : au
+          clic, rien de ce qui précède ne bouge (spec/shared/design.md).
+          ⚠️ Les écarts NULS sont montrés aussi, en gris. Ne garder que les
+          stats qui changent ferait une liste dont la longueur varie d'une
+          carte à l'autre, et laisserait croire qu'une stat absente n'a pas été
+          comparée. */}
+      {comparaison && (
+        <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(72px,1fr))] gap-x-2 gap-y-0.5 rounded border border-border-soft bg-panel2 px-2 py-1.5">
+          {comparaison.map((s) => (
+            <div key={s.key} className="flex items-baseline justify-between gap-1">
+              <span className="text-nano text-ink-dim">{s.label}</span>
+              <span
+                className={`font-mono text-nano tabular-nums ${
+                  s.delta > 0 ? 'text-good' : s.delta < 0 ? 'text-bad' : 'text-ink-dimmer'
+                }`}
+              >
+                {s.delta > 0 ? '+' : ''}
+                {Math.round(s.delta).toLocaleString('fr-FR')}
+                {s.suffix}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -50,6 +50,7 @@ import { OptimMetric } from './runeOptim';
 import {
   DEF_FACTOR_CONST,
   DEF_FACTOR_COEF,
+  ArtifactDamageProfile,
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
   DamageSetup,
@@ -119,7 +120,49 @@ export interface BuildCandidate {
 
 export interface SearchParams {
   base: BaseStats;
-  artifacts: ArtifactDetail[]; // fixes : ceux actuellement équipés
+  // La paire REPRÉSENTATIVE — celle qui NOTE les candidats pendant la
+  // recherche (`objectiveScore` lit `gear.artifacts`).
+  //
+  // ⚠️ **Ce n'est PLUS une hypothèse de faisabilité.** Elle est choisie pour
+  // son score, pas pour sa capacité à franchir les conditions : s'en servir
+  // comme borne décidait à l'avance quels builds sont seulement possibles.
+  // C'est `artifactBounds` qui porte désormais la faisabilité.
+  artifacts: ArtifactDetail[];
+  /**
+   * Ce que l'INVENTAIRE d'artéfacts peut apporter, borné des deux côtés —
+   * produit par `bornesArtefacts` (artifactOptim.ts).
+   *
+   * ⚠️ **Deux vecteurs, jamais un.** `max` (le meilleur apport atteignable)
+   * sert les branches MINIMUM, `min` (l'apport incompressible) les branches
+   * MAXIMUM — même dissymétrie que `guaranteedMin`/`guaranteed` pour les sets.
+   * Un scalaire unique des deux côtés est précisément le défaut corrigé ici
+   * (spec/outils/optimizer/artefacts.md, §12).
+   *
+   * ⚠️ Absent → repli sur l'apport de la paire représentative des deux côtés,
+   * c'est-à-dire le comportement d'AVANT la correction. Sûr, mais il refige le
+   * choix d'artéfact avant la recherche : réservé aux appelants sans
+   * inventaire (scripts de diagnostic).
+   *
+   * ⚠️ La borne étant calculée PAR STAT ISOLÉE, des builds survivent sans
+   * qu'aucune paire réelle ne satisfasse leurs minimums — d'où
+   * `respecteMinimums`, OBLIGATOIRE en aval (§12.5). Mesuré sur un cas réel :
+   * 99 builds sur 105 dans ce cas.
+   */
+  artifactBounds?: {
+    max: Record<string, number>;
+    min: Record<string, number>;
+    /**
+     * Les apports plats RÉELLEMENT atteignables par une paire — le test
+     * conjoint EXACT, appliqué à la validation finale.
+     *
+     * ⚠️ C'est lui qui règle la limite de `max`/`min` : ces deux-là sont des
+     * bornes PAR STAT, donc plus permissives que ce qu'une paire peut donner
+     * (deux emplacements = deux principales). Ils restent la bonne réponse
+     * dans les pré-filtres, qui tournent des milliards de fois ; ici, une fois
+     * par candidat retenu, on peut être exact.
+     */
+    possibles: Record<string, number>[];
+  };
   relic?: RelicDetail; // fixe
   pool: RuneDetail[]; // runes candidates (déjà filtrées par exclusion en amont)
   requirement: BuildRequirement;
@@ -170,6 +213,17 @@ export interface SearchParams {
 }
 
 export interface SearchResult {
+  // ⚠️ **L'ORDRE N'EST PAS CELUI DE L'OBJECTIF.** Les candidats sortent dans
+  // l'ordre où l'appariement les a collectés, pas classés par ce qu'on a
+  // demandé de maximiser. `candidates[0]` n'est donc **pas** le meilleur
+  // build, et `slice(0, 20)` n'est **pas** le top 20.
+  //
+  // ⚠️ Passer par `sortCandidates` avant tout affichage ou toute
+  // comparaison — c'est la SEULE porte. Incident vécu : un diagnostic a
+  // conclu « le moteur manque un build meilleur » en lisant `candidates[0]`,
+  // alors que le build cherché était présent au rang 6. Le vrai CLI
+  // (`optimizer-search.ts`) affichait lui aussi 20 candidats arbitraires en
+  // les présentant comme des résultats.
   candidates: BuildCandidate[];
   explored: number;
   truncated: boolean;
@@ -253,10 +307,17 @@ export const SLOT_FILTER_PRESETS: { key: SlotFilterPresetKey; label: string; cap
 // (codes 100/101/102 = PV/ATQ/DEF, voir ARTIFACT_MAIN dans effects.ts) — la
 // valeur elle-même n'est jamais un choix libre, seule la STAT l'est.
 export const ARTIFACT_MAIN_VALUE: Record<100 | 101 | 102, number> = { 100: 1500, 101: 100, 102: 100 };
+// ⚠️ **« Principale » explicite dans le libellé.** Ces trois entrées côtoient
+// « Garder l'artéfact équipé », « Libre » et « Aucun » dans le même sélecteur,
+// et une liste se lit comme homogène : sans ce mot, « Comme équipé » (l'ancien
+// libellé) se lisait « la principale, comme équipé » — alors que ce choix
+// conserve la PIÈCE entière, sous-propriétés comprises. Signalé à l'usage. Le
+// qualificatif atterrit donc sur les entrées qui filtrent RÉELLEMENT par stat
+// principale, jamais sur celle qui garde l'artéfact.
 export const ARTIFACT_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
-  { code: 101, label: 'ATQ +100' },
-  { code: 102, label: 'DEF +100' },
-  { code: 100, label: 'PV +1500' },
+  { code: 101, label: 'Principale ATQ +100' },
+  { code: 102, label: 'Principale DEF +100' },
+  { code: 100, label: 'Principale PV +1500' },
 ];
 
 // Stats individuellement pertinentes pour chaque objectif — sert à élargir
@@ -325,7 +386,7 @@ export function statTotal(stats: StatRow[], key: StatKey): number {
 //    « toujours critique » ni « jamais », ce que le joueur observe en
 //    moyenne sur beaucoup de coups.
 //  - PV effectifs : réutilise le facteur de défense déjà documenté dans
-//    spec/mecaniques.md (1000 / (1140 + 3,5 × DEF)), pas une formule maison.
+//    spec/mecaniques.md (1000 / (1142 + 3,572 × DEF)), pas une formule maison.
 // Contexte supplémentaire exigé par « Dégâts réels » : contrairement aux
 // autres objectifs, son score ne se déduit PAS des seules stats du candidat —
 // il faut le sort visé et l'adversaire configuré. Passé par l'appelant qui
@@ -343,10 +404,17 @@ export interface RealDamageContext {
   // Vide = comportement strictement inchangé (aucun passif connu, ou fiche
   // absente).
   passifs: PassifOffensifProfile[];
-  // Somme des lignes d'artéfact « Effet aug. VIT » ÉQUIPÉES (voir
-  // `speedBuffAmpliPct`, damage.ts) — fixe pour toute une recherche
-  // (l'Optimizer n'optimise que les runes). 0 = comportement inchangé.
-  ampliVitPct: number;
+  // Ce que les artéfacts PRIS EN COMPTE apportent au calcul de dégâts (voir
+  // `artifactDamageProfile`, damage.ts) — fixe pour toute une recherche, le
+  // moteur n'optimisant à ce stade que les runes. `ARTIFACT_DAMAGE_NEUTRE` =
+  // comportement inchangé.
+  //
+  // ⚠️ Remplace l'ancien `ampliVitPct: number`. Un OBJET parce que les
+  // artéfacts contribuent par plusieurs canaux : ajouter chaque ligne comme
+  // un champ scalaire de plus aurait obligé à repasser sur les six
+  // emplacements qui traversent cette donnée à chaque nouvelle ligne
+  // modélisée.
+  artefacts: ArtifactDamageProfile;
   // Ce monstre force-t-il le critique quand il est plus rapide que
   // l'adversaire (voir `monsterCritSiPlusRapide`) ? Déduit de la fiche,
   // jamais saisi. `false` = comportement inchangé.
@@ -407,7 +475,7 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       stats,
       realDamage.setup,
       realDamage.element,
-      realDamage.ampliVitPct,
+      realDamage.artefacts,
       realDamage.critSiPlusRapide,
       realDamage.bonusDegatsSelonVit,
       realDamage.bonusDegatsStack,
@@ -425,6 +493,18 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
   if (objective !== 'ehp') {
     throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
   }
+  return pvEffectifs(stats);
+}
+
+/**
+ * Les PV EFFECTIFS d'un jeu de statistiques — PV pondérés par la défense.
+ *
+ * ⚠️ Extraite d'`objectiveScore` pour que l'ÉCRAN puisse afficher la même
+ * valeur que celle qui classe : le bouton « Comparer » et la ligne « PV
+ * effectifs » d'une carte de résultat en ont besoin, et recopier la formule
+ * là-bas aurait donné deux nombres qui divergent au premier ajustement.
+ */
+export function pvEffectifs(stats: StatRow[]): number {
   const hp = statTotal(stats, 'hp');
   const def = statTotal(stats, 'def');
   // ⚠️ Constantes importées de damage.ts, seule source du facteur de défense
@@ -454,6 +534,114 @@ export function candidateMetricTotal(
     sum += metric === 'eff' ? runeEfficiency(r) : runeScore(r);
   }
   return sum;
+}
+
+/**
+ * Classe les candidats d'une recherche selon un critère. **Source UNIQUE**,
+ * partagée par l'écran et par tout script — même raison que
+ * `damageRelevantStats` : deux tris séparés divergeraient en silence.
+ *
+ * ⚠️ **`SearchResult.candidates` n'est PAS trié par l'objectif** (voir son
+ * commentaire). Sans passer par ici, `candidates[0]` est un build arbitraire.
+ * L'incident qui a motivé cette extraction : un diagnostic a conclu « le
+ * moteur manque un build meilleur et faisable » en comparant au premier
+ * candidat, alors que le build cherché était là, au rang 6. Et
+ * `optimizer-search.ts` affichait 20 candidats arbitraires en les présentant
+ * comme des résultats.
+ *
+ * ⚠️ **Ne mute pas l'entrée** — un tri en place sur le tableau du moteur
+ * rendrait l'ordre dépendant de qui a affiché en premier.
+ */
+export function sortCandidates(
+  candidates: BuildCandidate[],
+  sortBy: StatKey | Objective,
+  opts: {
+    // Nécessaire pour `'degats_reels'`. Absent = l'ordre est laissé tel quel
+    // plutôt que de lever : un `sortBy` hérité d'un monstre précédent peut
+    // porter cet objectif alors que le monstre courant n'a aucun sort
+    // calculable (le tri n'est alors même pas proposé à l'écran).
+    realDamage?: RealDamageContext | null;
+    // Nécessaires pour `'efficience'`. ⚠️ On recalcule depuis les VRAIES runes
+    // dans la mesure COURANTE plutôt que de lire `candidate.effTotal`, figé
+    // dans la mesure active au moment de la recherche — sinon le classement
+    // diverge du popover d'une rune dès que l'utilisateur bascule
+    // Efficience ↔ Score sans relancer.
+    runeById?: Map<number, RuneDetail>;
+    metric?: OptimMetric;
+    /**
+     * Le profil d'artéfacts PROPRE à un candidat, quand il en a un.
+     *
+     * ⚠️ **Indispensable dès que les artéfacts sont optimisés par build.**
+     * `realDamage.artefacts` porte le profil de la paire SUPPOSÉE, commune à
+     * tous. Si les stats d'un candidat ont été recalculées avec SA paire mais
+     * que son profil de dégâts reste celui de la paire supposée, on note des
+     * stats issues d'un modèle avec les lignes d'effet d'un autre — exactement
+     * l'asymétrie que ce module passe son temps à traquer.
+     *
+     * Absent, ou rendant `null` : on retombe sur `realDamage.artefacts`.
+     */
+    artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
+  } = {}
+): BuildCandidate[] {
+  const score = scorerPour(sortBy, opts);
+  // Contexte manquant (« Dégâts réels » sans sort calculable, « Efficience »
+  // sans runeById/metric) : ordre laissé en place, jamais une exception.
+  if (!score) return candidates.slice();
+
+  // ⚠️ **DÉCORER / TRIER / DÉDÉCORER — le score calculé UNE FOIS par candidat.**
+  //
+  // Le comparateur appelait `objectiveScore` sur ses DEUX arguments, à chaque
+  // comparaison : pour « Dégâts réels », cela déroulait `computeTotalDamage`
+  // ~2 n log n fois, soit ~3,4 MILLIONS de calculs de dégâts pour 100 000
+  // candidats — alors qu'il n'y a que 100 000 scores distincts à connaître.
+  // Mesuré : 1 084 ms par tri sur un compte réel, sur le FIL PRINCIPAL.
+  //
+  // ⚠️ **Exactement équivalent, pas une approximation.** Le score est une
+  // fonction PURE des stats du candidat : tout le reste (profil de sort,
+  // passifs, adversaire, modificateurs monstre-wide) est figé pendant un tri.
+  // Vérifié par différentiel sur 5 monstres × 100 000 candidats, dont les cas
+  // qui mobilisent le scaling sur la VIT (Sonia), les dégâts fixes sur PV
+  // propres (Shahat) et un bonus ACCUMULABLE (Momo, Trevor) : ordre strictement
+  // identique, élément par élément.
+  //
+  // ⚠️ Et c'est plus ROBUSTE, pas seulement plus rapide : un comparateur qui
+  // recalcule ses deux opérandes à chaque appel produirait un ordre arbitraire
+  // — sans rien signaler — si le score n'était pas parfaitement déterministe.
+  // Ici chaque candidat porte un score unique et figé.
+  //
+  // ⚠️ Le tri reste STABLE (garanti par la spec depuis ES2019) : à score égal,
+  // l'ordre d'entrée est préservé, comme avant.
+  const decore = candidates.map((c) => ({ c, s: score(c) }));
+  decore.sort((x, y) => y.s - x.s);
+  return decore.map((d) => d.c);
+}
+
+// Le score d'UN candidat pour ce critère — `null` quand le contexte nécessaire
+// manque, auquel cas l'appelant laisse l'ordre en place.
+function scorerPour(
+  sortBy: StatKey | Objective,
+  opts: {
+    realDamage?: RealDamageContext | null;
+    runeById?: Map<number, RuneDetail>;
+    metric?: OptimMetric;
+    artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
+  }
+): ((c: BuildCandidate) => number) | null {
+  if (sortBy === 'efficience') {
+    const { runeById, metric } = opts;
+    if (!runeById || !metric) return null;
+    return (c) => candidateMetricTotal(c, runeById, metric);
+  }
+  if (sortBy === 'degats_reels') {
+    const ctx = opts.realDamage;
+    if (!ctx) return null;
+    return (c) => {
+      const propre = opts.artefactsDuBuild?.(c);
+      return objectiveScore(c, sortBy, propre ? { ...ctx, artefacts: propre } : ctx);
+    };
+  }
+  if (sortBy === 'ehp' || sortBy === 'vitesse') return (c) => objectiveScore(c, sortBy);
+  return (c) => statTotal(c.stats, sortBy);
 }
 
 // ⚠️ Historique du budget de paires par défaut, avant qu'il ne devienne
@@ -1039,7 +1227,7 @@ export function eliminateInfeasible(
   maxEntries: { k: StatKey; max: number }[],
   constrainedKeys: StatKey[],
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
-  artFlat: Record<string, number>,
+  artFlatMax: Record<string, number>,
   relPct: Record<string, number>,
   totalOf: (k: StatKey, pct: number, flat: number) => number,
   // ⚠️ Réservé aux vérifications de MINIMUM (`bestPct`/`bestFlat` plus bas) —
@@ -1047,7 +1235,12 @@ export function eliminateInfeasible(
   // `worstFlat`), voir `additionalSetActivationHeadroom`. Par défaut = `guaranteed`
   // (comportement inchangé) pour les quelques appelants qui n'ont pas encore
   // ce contexte (scripts de mesure).
-  guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> } = guaranteed
+  guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> } = guaranteed,
+  // ⚠️ Même dissymétrie, côté artéfacts : `artFlatMax` (optimiste) ne vaut que
+  // pour les MINIMUMS, `artFlatMin` (pessimiste) que pour les MAXIMUMS. Par
+  // défaut = `artFlatMax` (comportement d'avant le §12) pour les appelants qui
+  // n'ont pas d'inventaire d'artéfacts sous la main — scripts de diagnostic.
+  artFlatMin: Record<string, number> = artFlatMax
 ): RuneDetail[][] {
   if (minEntries.length === 0 && maxEntries.length === 0) return bySlot;
 
@@ -1072,7 +1265,7 @@ export function eliminateInfeasible(
         const otherPct = totalMaxPct[k] - (slotMax[i][k]?.pct ?? 0);
         const otherFlat = totalMaxFlat[k] - (slotMax[i][k]?.flat ?? 0);
         const bestPct = c.pct + otherPct + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
-        const bestFlat = c.flat + otherFlat + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
+        const bestFlat = c.flat + otherFlat + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
         if (totalOf(k, bestPct, bestFlat) < min) return false;
       }
       for (const { k, max } of maxEntries) {
@@ -1080,7 +1273,7 @@ export function eliminateInfeasible(
         // Pire cas pour un MAXIMUM : les autres emplacements à zéro (toujours
         // atteignable — rien n'oblige un slot à contribuer à cette stat).
         const worstPct = c.pct + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
-        const worstFlat = c.flat + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+        const worstFlat = c.flat + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
         if (totalOf(k, worstPct, worstFlat) > max) return false;
       }
       return true;
@@ -2032,12 +2225,14 @@ function bucketPairFeasibleMin(
   minEntries: { k: StatKey; min: number }[],
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> },
   relPct: Record<string, number>,
-  artFlat: Record<string, number>,
+  // ⚠️ Cette fonction ne vérifie QUE des minimums — d'où `artFlatMax` seul,
+  // sans pendant pessimiste : il n'y a aucune branche maximum à servir ici.
+  artFlatMax: Record<string, number>,
   totalOf: (k: StatKey, pct: number, flat: number) => number
 ): boolean {
   for (const { k, min } of minEntries) {
     const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
-    const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
+    const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
     if (totalOf(k, optPct, optFlat) < min) return false;
   }
   return true;
@@ -2059,17 +2254,20 @@ function comboAFeasible(
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> },
   relPct: Record<string, number>,
-  artFlat: Record<string, number>,
-  totalOf: (k: StatKey, pct: number, flat: number) => number
+  artFlatMax: Record<string, number>,
+  totalOf: (k: StatKey, pct: number, flat: number) => number,
+  // Même repli que `guaranteedMin = guaranteed` ci-dessus : voir
+  // `eliminateInfeasible`.
+  artFlatMin: Record<string, number> = artFlatMax
 ): boolean {
   for (const { k, min } of minEntries) {
     const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
-    const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
+    const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
     if (totalOf(k, p, f) < min) return false;
   }
   for (const { k, max } of maxEntries) {
     const p = (comboA.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
-    const f = (comboA.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+    const f = (comboA.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
     if (totalOf(k, p, f) > max) return false;
   }
   return true;
@@ -2131,15 +2329,15 @@ export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): B
 }
 
 export function totalPairCount(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): number {
-  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlat, totalOf } = prepared;
+  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, artFlatMin, totalOf } = prepared;
   let total = 0;
   for (const bA of bucketsA) {
     for (const bB of bucketsB) {
       if (bA.jokers + bB.jokers > 1) continue;
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
-      if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlat, totalOf)) continue;
+      if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf)) continue;
       for (const comboA of bA.combos) {
-        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlat, totalOf)) continue;
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) continue;
         total += bB.combos.length;
       }
     }
@@ -2316,7 +2514,38 @@ interface MinMaxContext {
   // pourrait apporter (voir `additionalSetActivationHeadroom`). Ne JAMAIS
   // utiliser pour un maximum : voir son commentaire.
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
-  artFlat: Record<string, number>;
+  /**
+   * Apport d'artéfact retenu pour les vérifications de MINIMUM — le meilleur
+   * atteignable parmi les paires autorisées (`bornesArtefacts`, artifactOptim).
+   *
+   * ⚠️ **Ne JAMAIS l'utiliser pour un maximum**, exactement comme
+   * `guaranteedMin` : une borne optimiste employée du mauvais côté écarterait
+   * des builds valides. Le pendant pessimiste est `artFlatMin`.
+   */
+  artFlatMax: Record<string, number>;
+  // Apport d'artéfact INCOMPRESSIBLE — pour les vérifications de MAXIMUM.
+  // `0` dès que l'emplacement vide est candidat.
+  artFlatMin: Record<string, number>;
+  /**
+   * Les apports plats RÉELLEMENT atteignables par une paire (`bornesArtefacts`).
+   *
+   * ⚠️ **Le test conjoint EXACT**, à n'utiliser qu'à la validation finale —
+   * une fois par candidat RETENU, jamais dans les pré-filtres qui tournent des
+   * milliards de fois. `artFlatMax` y reste la bonne réponse : large, donc
+   * admissible, et à coût constant.
+   *
+   * Vide → aucun test conjoint, on retombe sur la paire figée.
+   */
+  artPossibles: Record<string, number>[];
+  /**
+   * L'apport de la paire FIGÉE — celle avec laquelle `computeStats` calcule les
+   * stats d'un candidat.
+   *
+   * ⚠️ Sert à retrouver les stats de N'IMPORTE QUELLE autre paire sans second
+   * `computeStats` : l'apport d'un artéfact est PLAT, donc ajouté après le
+   * calcul des pourcentages. `total − figée[k] + autre[k]` est exact.
+   */
+  artFlatFige: Record<string, number>;
   relPct: Record<string, number>;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
 }
@@ -2326,7 +2555,14 @@ function deriveMinMaxContext(
   artifacts: ArtifactDetail[],
   relic: RelicDetail | undefined,
   requirement: BuildRequirement,
-  pool: RuneDetail[]
+  pool: RuneDetail[],
+  // Les deux bornes calculées sur l'INVENTAIRE d'artéfacts
+  // (`bornesArtefacts`, artifactOptim.ts). Absentes → repli sur l'apport de la
+  // paire représentative des DEUX côtés, c'est-à-dire le comportement d'avant
+  // la dissymétrie. Ce repli est SÛR mais pas juste : il fige le choix
+  // d'artéfact avant la recherche (voir spec/outils/optimizer/artefacts.md,
+  // §12). Il n'existe que pour les scripts de diagnostic sans inventaire.
+  artifactBounds?: SearchParams['artifactBounds']
 ): MinMaxContext {
   const minEntries = ALL_STAT_KEYS
     .map((k) => ({ k, min: requirement.minStats[k] }))
@@ -2339,14 +2575,21 @@ function deriveMinMaxContext(
   const maxKeys = new Set(maxEntries.map((e) => e.k));
   const guaranteed = guaranteedSetBonus(requirement, base);
   const guaranteedMin = mergeBonus(guaranteed, additionalSetActivationHeadroom(pool, requirement, base));
-  const artFlat = artifactFlatBonus(artifacts);
+  // ⚠️ L'apport de la paire REPRÉSENTATIVE ne vaut plus que comme repli. Elle
+  // est choisie pour son SCORE, pas pour sa capacité à franchir les
+  // conditions : s'en servir comme borne de faisabilité décide avant la
+  // recherche quels builds sont seulement possibles (§12).
+  const figee = artifactFlatBonus(artifacts);
+  const artFlatMax = artifactBounds?.max ?? figee;
+  const artFlatMin = artifactBounds?.min ?? figee;
+  const artPossibles = artifactBounds?.possibles ?? [];
   const relPct = relicPctBonus(relic);
   const baseRec = base as unknown as Record<string, number>;
   function totalOf(k: StatKey, pct: number, flat: number): number {
     const b = baseRec[k] ?? 0;
     return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
   }
-  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlat, relPct, totalOf };
+  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige: figee, relPct, totalOf };
 }
 
 // Verdict de faisabilité, PAR STAT PRISE ISOLÉMENT — pour une condition (min
@@ -2392,7 +2635,7 @@ export interface StatFeasibility {
 // sans recherche complète.
 export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
   const { base, artifacts, relic, pool, requirement } = params;
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return [];
 
   const bySlot = mainStatFilteredBySlot(pool, requirement);
@@ -2401,7 +2644,7 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
   const out: StatFeasibility[] = [];
   for (const { k, min } of ctx.minEntries) {
     const bestPct = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
-    const bestFlat = slotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteedMin.flat[k] ?? 0) + (ctx.artFlat[k] ?? 0);
+    const bestFlat = slotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteedMin.flat[k] ?? 0) + (ctx.artFlatMax[k] ?? 0);
     const bound = ctx.totalOf(k, bestPct, bestFlat);
     out.push({ key: k, kind: 'min', requested: min, bound, satisfiable: bound >= min });
   }
@@ -2410,7 +2653,7 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
     // pire cas le plus favorable pour un maximum) — base, bonus de set
     // garanti, artéfacts et relique restent, eux, incontournables.
     const floorPct = (ctx.guaranteed.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
-    const floorFlat = (ctx.guaranteed.flat[k] ?? 0) + (ctx.artFlat[k] ?? 0);
+    const floorFlat = (ctx.guaranteed.flat[k] ?? 0) + (ctx.artFlatMin[k] ?? 0);
     const bound = ctx.totalOf(k, floorPct, floorFlat);
     out.push({ key: k, kind: 'max', requested: max, bound, satisfiable: bound <= max });
   }
@@ -2457,11 +2700,11 @@ export interface BlockingConditionsDiagnosis {
 }
 export function rankBlockingConditions(params: SearchParams): BlockingConditionsDiagnosis {
   const { base, artifacts, relic, pool, requirement } = params;
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return { baselineMinSlot: 0, impacts: [] };
 
   function poolMinSlot(req: BuildRequirement): number {
-    const reqCtx = deriveMinMaxContext(base, artifacts, relic, req, pool);
+    const reqCtx = deriveMinMaxContext(base, artifacts, relic, req, pool, params.artifactBounds);
     let bySlot = mainStatFilteredBySlot(pool, req);
     bySlot = bySlot.map((list) => pruneDominated(list, reqCtx.requiredKeys, reqCtx.maxKeys));
     bySlot = eliminateInfeasible(
@@ -2470,10 +2713,11 @@ export function rankBlockingConditions(params: SearchParams): BlockingConditions
       reqCtx.maxEntries,
       reqCtx.constrainedKeys,
       reqCtx.guaranteed,
-      reqCtx.artFlat,
+      reqCtx.artFlatMax,
       reqCtx.relPct,
       reqCtx.totalOf,
-      reqCtx.guaranteedMin
+      reqCtx.guaranteedMin,
+      reqCtx.artFlatMin
     );
     return Math.min(...bySlot.map((l) => l.length));
   }
@@ -2668,7 +2912,14 @@ export interface PreparedSearch {
   distinctKeys: string[];
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
-  artFlat: Record<string, number>;
+  // ⚠️ Les deux bornes d'artéfact, jamais un scalaire unique : `artFlatMax`
+  // pour les MINIMUMS, `artFlatMin` pour les MAXIMUMS. Voir `MinMaxContext`.
+  artFlatMax: Record<string, number>;
+  artFlatMin: Record<string, number>;
+  // Le test conjoint EXACT et l'apport de la paire figée qui sert de référence
+  // — voir `MinMaxContext`.
+  artPossibles: Record<string, number>[];
+  artFlatFige: Record<string, number>;
   relPct: Record<string, number>;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
   filtered: RuneDetail[][];
@@ -2687,8 +2938,8 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
   const startedAt = Date.now();
 
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool);
-  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlat, relPct, totalOf } = ctx;
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
+  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -2725,7 +2976,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   // spec/outils/optimizer/.
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
-  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlat, relPct, totalOf, guaranteedMin);
+  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlatMax, relPct, totalOf, guaranteedMin, artFlatMin);
   const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective, params.objectiveStats));
   if (filtered.some((list) => list.length === 0)) {
     return null;
@@ -2744,7 +2995,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
     base, artifacts, relic, requirement, metric,
     maxNodes, maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
-    guaranteed, guaranteedMin, artFlat, relPct, totalOf,
+    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
   };
 }
@@ -2829,7 +3080,7 @@ export function* pairBuckets(
 ): Generator<PairingProgress, SearchResult, void> {
   const {
     base, artifacts, relic, requirement, metric, maxCollected, maxMs, startedAt,
-    minEntries, maxEntries, guaranteed, guaranteedMin, artFlat, relPct, totalOf, distinctKeys,
+    minEntries, maxEntries, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf, distinctKeys,
   } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
 
@@ -2837,7 +3088,7 @@ export function* pairBuckets(
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,
   // appliqué ici au niveau d'une paire de compartiments de 3 runes.
   function pairFeasibleMin(bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> }, bB: typeof bA): boolean {
-    return bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlat, totalOf);
+    return bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf);
   }
 
   const candidates: BuildCandidate[] = [];
@@ -2861,7 +3112,7 @@ export function* pairBuckets(
         // Repli rapide côté MINIMUM ET MAXIMUM pour ce comboA précis, avant
         // d'ouvrir la boucle B en entier — voir `comboAFeasible` (factorisée
         // pour être réutilisée à l'identique par `totalPairCount`).
-        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlat, totalOf)) continue;
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) continue;
 
         for (const comboB of bB.combos) {
           explored++;
@@ -2898,7 +3149,7 @@ export function* pairBuckets(
           let quickOk = true;
           for (const { k, min } of minEntries) {
             const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
-            const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlat[k] ?? 0);
+            const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
             if (totalOf(k, p, f) < min) {
               quickOk = false;
               break;
@@ -2907,7 +3158,7 @@ export function* pairBuckets(
           if (quickOk) {
             for (const { k, max } of maxEntries) {
               const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
-              const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlat[k] ?? 0);
+              const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
               if (totalOf(k, p, f) > max) {
                 quickOk = false;
                 break;
@@ -2925,21 +3176,48 @@ export function* pairBuckets(
 
           const gear: GearSet = { base, runes, artifacts, relic };
           const stats = computeStats(gear);
-          let ok = true;
-          for (const { k, min } of minEntries) {
-            const row = stats.find((r) => r.key === k);
-            if (!row || row.total < min) {
-              ok = false;
-              break;
-            }
-          }
-          if (ok) {
-            for (const { k, max } of maxEntries) {
+          /**
+           * ⚠️ **Test de faisabilité CONJOINT, et exact.** Les bornes en amont
+           * sont calculées PAR STAT ISOLÉE : avec des minimums sur PV, ATQ et
+           * DEF à la fois, elles supposent les trois maxima réunis, alors
+           * qu'une paire ne porte que DEUX principales. Ici on teste les
+           * apports RÉELLEMENT atteignables (`artPossibles`, au plus une
+           * poignée) : le build est retenu si et seulement si l'UNE d'elles lui
+           * fait tenir toutes ses conditions — minimums ET maximums avec la
+           * MÊME paire.
+           *
+           * ⚠️ **Aucun `computeStats` supplémentaire.** L'apport d'un artéfact
+           * est PLAT, donc ajouté après le calcul des pourcentages : on retire
+           * celui de la paire figée et on ajoute l'autre. De l'arithmétique,
+           * sur les seules stats contraintes.
+           *
+           * Sans `artPossibles` (repli, ou aucune condition posée) : on vérifie
+           * la paire figée, comportement d'avant.
+           */
+          const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
+          let ok = false;
+          for (const apport of apports) {
+            const decalage = (k: StatKey) => (apport[k] ?? 0) - (artFlatFige[k] ?? 0);
+            let tout = true;
+            for (const { k, min } of minEntries) {
               const row = stats.find((r) => r.key === k);
-              if (row && row.total > max) {
-                ok = false;
+              if (!row || row.total + decalage(k) < min) {
+                tout = false;
                 break;
               }
+            }
+            if (tout) {
+              for (const { k, max } of maxEntries) {
+                const row = stats.find((r) => r.key === k);
+                if (row && row.total + decalage(k) > max) {
+                  tout = false;
+                  break;
+                }
+              }
+            }
+            if (tout) {
+              ok = true;
+              break;
             }
           }
           if (!ok) continue;

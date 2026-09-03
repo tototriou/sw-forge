@@ -39,6 +39,31 @@ Un artéfact **au +15** a donc épuisé toute sa marge : ce qu'il vaut est
 définitif. Le « potentiel » se limite aux artéfacts **pas encore montés** — et
 c'est une borne haute théorique (le meilleur roll possible), pas une prévision.
 
+## ⚠️ Identité d'un artéfact — le `rid`, longtemps jeté
+
+`ArtifactDetail.id` porte le **`rid`** com2us, exactement comme
+`RuneDetail.id` porte le `rune_id`. Il existait dans l'export et l'import
+s'en servait déjà pour indexer les pièces — mais `artifactToDetail` ne le
+**conservait pas** sur le détail produit.
+
+Sans identité stable, un artéfact n'est pas **référençable** : impossible de
+le mémoriser dans un build validé, impossible de le réserver pour une liste.
+C'est ce qui manquait aux deux fonctionnalités correspondantes de l'Optimizer
+(voir [spec/outils/optimizer.md](../outils/optimizer.md)).
+
+⚠️ **`id: 0` désigne une pièce SYNTHÉTIQUE** — l'artéfact hypothéqué d'un
+repli, la sonde qui mesure si une ligne compte pour un réglage donné. Ces
+pièces n'existent pas dans le compte : toute logique de réservation doit
+ignorer un id non strictement positif, sous peine de bloquer un emplacement
+au nom d'un artéfact que le joueur ne possède pas.
+
+⚠️ **Le compte est stocké DÉJÀ PARSÉ** et l'export brut n'est jamais conservé
+(5 à 8 Mo) : ajouter ce champ a donc exigé d'incrémenter `ACCOUNT_SCHEMA`
+(5 → 6). Sans cette incrémentation, un compte enregistré gardait des artéfacts
+sans identifiant — et la fonctionnalité ne faisait simplement **rien**, sans
+erreur ni signal. C'est exactement le mode de défaillance que le commentaire
+d'`ACCOUNT_SCHEMA` annonce.
+
 ## 1. Rolls — la vraie mesure de qualité
 
 `sec_effects[i] = [code, valeur, rolls, _, enchant]`
@@ -191,6 +216,87 @@ et du niveau, pas du hasard : elle est **affichée** mais **hors score** (§3).
 
 Elle entre en revanche dans les **stats totales du monstre**, comme aujourd'hui
 (voir [calcul-runes.md §5.1](calcul-runes.md)).
+
+## 4 bis. Éligibilité — quel monstre peut porter quel artéfact
+
+Règle du jeu, implémentée par `artifactFitsMonster`
+([artifacts.ts](src/lib/artifacts.ts)) : l'artéfact d'**Attribut** suit
+l'**élément** du monstre, celui de **Type** suit son **archétype**.
+
+⚠️ **C'est cette règle qui rend l'optimisation d'artéfacts abordable.** Sur un
+inventaire réel (~2 000 artéfacts), elle ramène chaque emplacement à ~200
+candidats — plus besoin de meet-in-the-middle ni de plafond de rétention,
+contrairement aux runes.
+
+### L'archétype du monstre a dû être ajouté aux données
+
+`Monster` ne portait **que** l'élément : l'archétype (« Type » dans le jeu)
+n'était nulle part côté monstre, alors qu'il l'est côté artéfact depuis
+toujours (`unit_style` à l'import).
+
+L'API SWARFARM l'expose pourtant (`archetype`) — c'est `fetch-monsters.mjs`
+qui ne l'extrayait pas. Ajouté et régénéré : `attack` / `defense` / `hp` /
+`support`.
+
+⚠️ **`Material` (angelmons, rainbowmons) devient `null`, pas une valeur par
+défaut.** Ces monstres n'ont pas d'archétype de combat et ne portent aucun
+artéfact ; leur en inventer un les rendrait éligibles à des artéfacts qu'ils
+ne peuvent pas équiper. Même logique dans `artifactFitsMonster` : un archétype
+absent n'est éligible à **aucun** artéfact de type — répondre « oui » par
+défaut proposerait l'inéquipable, répondre « non » ne fait que ne rien
+proposer, ce qui se voit.
+
+### ⚠️ L'INTANGIBLE — le joker, et sa contrainte de paire
+
+Il existe dans les **deux sortes** et se pose sur **n'importe quel monstre**,
+exactement comme le set de runes du même nom.
+
+⚠️ **Un seul intangible à la fois** : on ne peut pas porter un intangible
+d'attribut ET un intangible de type. C'est une contrainte sur la **PAIRE**, pas
+sur l'artéfact — `artifactPairAllowed`. Chaque pièce peut être parfaitement
+éligible et la paire rester interdite : **filtrer emplacement par emplacement
+ne suffit pas**, et un optimiseur qui s'en contenterait proposerait des paires
+inéquipables.
+
+**Marqueur com2us : `98`**, la même valeur pour `attribute` (sorte Attribut) et
+`unit_style` (sorte Type). Relevé sur un compte réel : 17 attributs et 7 types
+sur 1 512 artéfacts.
+
+⚠️ **Sans ce décodage, un intangible retombait sur `element: 'unknown'` /
+`archetype: undefined`** — indistinguable d'une donnée corrompue, et jugé
+éligible à AUCUN monstre. Il aurait donc disparu de toute optimisation en
+silence. Un test verrouille les deux sens : les intangibles sont reconnus, et
+aucun artéfact NON intangible ne traîne d'attribut ou d'archétype inconnu (ce
+qui signalerait une valeur com2us nouvelle).
+
+⚠️ **`artifactFitsMonster` teste le drapeau EN PREMIER**, avant
+`element`/`archetype` : sur un intangible ces champs ne veulent rien dire, les
+lire d'abord le rejetterait systématiquement.
+
+### Son icône : celle du set de runes intangible, RÉUTILISÉE
+
+⚠️ **Le jeu emploie le MÊME symbole pour l'artéfact intangible et le set de
+runes du même nom.** L'icône n'est donc pas dupliquée sous `artifacts/` : le
+composant pointe `public/runes/intangible.png` via `DOSSIER_GLYPHE`
+([ArtifactIcon.tsx](src/components/ArtifactIcon.tsx)). Deux copies pourraient
+diverger le jour où l'image est remplacée, alors que le jeu n'en a qu'une.
+
+⚠️ **La gemme et le cadre n'en font PAS partie.** Sur les captures du jeu, la
+gemme est orange en légendaire et violette en héroïque : c'est la **rareté**,
+pas le symbole. Le cadre doré, lui, est commun à toutes les tuiles — les neuf
+autres icônes sont des glyphes nus, celle-ci aussi.
+
+⚠️ **`ArtifactIcon` teste `intangible` AVANT `element`/`archetype`**, pour la
+même raison que `artifactFitsMonster` : ces champs ne veulent rien dire sur un
+intangible, les lire d'abord renvoyait `null` — donc **aucune icône**, soit 34
+tuiles blanches dans un inventaire réel.
+
+> **Limite restante** : les filtres de l'inventaire ne savent pas **désigner**
+> un intangible. Il apparaît bien sous « Tous » et sous sa catégorie
+> (Attribut/Type), mais aucune pastille ne permet de l'isoler — la rangée
+> d'éléments en a cinq, celle des archétypes quatre, et l'intangible n'est ni
+> l'un ni l'autre. Ajouter une pastille change la grammaire de ces deux
+> rangées : à trancher séparément.
 
 ## 5. Perf
 

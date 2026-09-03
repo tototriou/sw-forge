@@ -29,7 +29,8 @@
 // sélection top-K reste correcte en valeur, peu importe laquelle des runes
 // à égalité est choisie.
 
-import { EffectLine, RuneDetail, StatKey } from '../src/types';
+import { EffectLine, RuneDetail } from '../src/types';
+import { StatKey } from '../src/lib/effects';
 import { ScoredEntry, heapPush, runeContribution } from '../src/lib/runeBuildOptim';
 import { egal, ok, titre } from './outils';
 

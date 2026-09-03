@@ -23,7 +23,7 @@
 //    conditionnels et n'entrent pas dans les stats de base ;
 //  - relique : stat principale en % (PV%/ATQ%/DEF%).
 
-import { BaseStats, GearSet, Monster } from '../types';
+import { ArtifactDetail, BaseStats, GearSet, Monster } from '../types';
 import { RUNE_EFFECT, ARTIFACT_MAIN, RELIC_MAIN, StatKey, SET_STAT_BONUS, activeSets } from './effects';
 
 export interface StatRow {
@@ -130,5 +130,60 @@ export function monsterBaseStats(monster: Monster): BaseStats {
     cd: s.critDamage ?? 0,
     res: s.resistance ?? 0,
     acc: s.accuracy ?? 0,
+  };
+}
+
+/**
+ * Les stats d’un build pour CHAQUE paire d’artéfacts, sans refaire le calcul.
+ *
+ * Rend une fonction : les stats du build SANS artéfact sont calculées une
+ * fois, chaque paire ne coûte plus que trois additions.
+ *
+ * ⚠️ **Exact, et voici les trois raisons** — aucune n’est une approximation :
+ * 1. Un artéfact ne touche que le terme PLAT, et seulement PV/ATQ/DEF (voir
+ *    la boucle `gear.artifacts` plus haut : `flat[def.stat] += a.main.value`).
+ * 2. Le plat s’ajoute APRÈS les pourcentages
+ *    (`base + ceil(base × pct/100) + flat`), donc
+ *    `total_avec = total_sans + apport` au bit près. L’arrondi porte sur le
+ *    terme en pourcentage, que les artéfacts ne touchent pas.
+ * 3. Aucun plafond n’intervient : `CAPPED_STATS` ne contient que `cr`, `res`
+ *    et `acc`, qu’aucune principale d’artéfact ne porte.
+ *
+ * ⚠️ **Toutes les autres stats sont INCHANGÉES** d’une paire à l’autre — VIT,
+ * TC, DCC, RES, PRE ne reçoivent jamais rien d’un artéfact. C’est ce qui rend
+ * ce raccourci utilisable AUSSI pour « Dégâts réels », pas seulement pour les
+ * objectifs qui ne lisent que PV et DEF.
+ *
+ * ⚠️ **Pourquoi ça compte** : `chercherPaires` évalue CHAQUE paire autorisée.
+ * Hors « Dégâts réels » la dominance effondre l’inventaire à ~16 paires et le
+ * coût est invisible ; en « Dégâts réels » l’évaluateur lit les
+ * sous-propriétés, plus rien n’est élagué, et on retombe sur des milliers de
+ * paires. Mesuré : 1,34 µs avec `computeStats`, 0,04 µs ici — ×30.
+ *
+ * ⚠️ **Le `StatRow` est reconstruit ENTIER**, `bonus` compris, pas seulement
+ * `total`. Les appelants d’aujourd’hui ne lisent que `total`, mais un
+ * `bonus` laissé faux serait une bombe silencieuse pour le prochain.
+ *
+ * ⚠️ Sans apport, le MÊME tableau est rendu (aucune allocation). Il est donc
+ * partagé entre appels : à lire, jamais à muter — comme tout ce que rend
+ * `computeStats`.
+ */
+export function statsParPaire(gear: GearSet): (artefacts: ArtifactDetail[]) => StatRow[] {
+  const sans = computeStats({ ...gear, artifacts: [] });
+  return (artefacts) => {
+    let dHp = 0;
+    let dAtk = 0;
+    let dDef = 0;
+    for (const a of artefacts) {
+      const def = ARTIFACT_MAIN[a.main.code];
+      if (def?.stat === 'hp') dHp += a.main.value;
+      else if (def?.stat === 'atk') dAtk += a.main.value;
+      else if (def?.stat === 'def') dDef += a.main.value;
+    }
+    if (dHp === 0 && dAtk === 0 && dDef === 0) return sans;
+    return sans.map((r) => {
+      const d = r.key === 'hp' ? dHp : r.key === 'atk' ? dAtk : r.key === 'def' ? dDef : 0;
+      return d === 0 ? r : { ...r, bonus: r.bonus + d, total: r.total + d };
+    });
   };
 }

@@ -25,6 +25,7 @@ import {
   printMonsterSummary,
 } from './lib/loadMonster';
 import { recipeToSearchParams, resolveArtifacts } from './lib/recipeToSearchParams';
+import { artifactSubName } from '../src/lib/effects';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
@@ -55,9 +56,11 @@ import {
   resolvedLeaderSkill,
   resolvedStackPct,
   resolvedStackTrigger,
-  speedBuffAmpliPct,
+  artifactDamageProfile,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
+import { buildRealDamageContext } from './lib/realDamageCli';
+import { sortCandidates } from '../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -285,8 +288,29 @@ if (recipe.objective === 'degats_reels') {
     // envoyés au moteur (réels, hypothétiques ou aucun selon la recette) —
     // même source que `params.artifacts` (défini plus bas dans ce fichier),
     // recalculée ici pour ne pas réordonner tout le script.
-    const ampli = speedBuffAmpliPct(resolveArtifacts(recipe, loaded));
-    if (ampli > 0) console.log(`Effet aug. VIT (artéfacts) : +${ampli} % — amplifie le buff VIT s'il est actif.`);
+    const artefacts = artifactDamageProfile(resolveArtifacts(recipe, loaded));
+    // ⚠️ Annoncé AVANT les effets : un verrou peut à lui seul expliquer que la
+    // paire retenue soit plus faible qu'attendu, ou qu'il n'y en ait aucune.
+    // Le taire ferait chercher la cause ailleurs.
+    for (const l of recipe.lignesVerrouillees ?? []) {
+      if (l.min > 0) console.log(`Ligne verrouillée : ${artifactSubName(l.code)} ≥ ${l.min} (cumulé sur la paire).`);
+    }
+    if (artefacts.ampliVitPct > 0)
+      console.log(`Effet aug. VIT (artéfacts) : +${artefacts.ampliVitPct} % — amplifie le buff VIT s'il est actif.`);
+    if (artefacts.ampliAtkPct > 0)
+      console.log(`Effet renforcement ATQ (artéfacts) : +${artefacts.ampliAtkPct} % — amplifie le buff ATQ s'il est actif.`);
+    if (artefacts.ampliDefPct > 0)
+      console.log(`Effet renforcement DEF (artéfacts) : +${artefacts.ampliDefPct} % — amplifie le buff DEF s'il est actif.`);
+    const lignesElement = Object.entries(artefacts.degatsElementPct);
+    if (lignesElement.length > 0) {
+      const vise = recipe.damageSetup?.enemyElement ?? null;
+      const detail = lignesElement.map(([el, pct]) => `${el} +${pct} %`).join(', ');
+      console.log(
+        vise
+          ? `Dgts infl. par élément (artéfacts) : ${detail} — élément visé : ${vise} (+${artefacts.degatsElementPct[vise] ?? 0} % appliqués).`
+          : `Dgts infl. par élément (artéfacts) : ${detail} — AUCUN élément visé, ces lignes comptent 0.`
+      );
+    }
     if (monsterCritSiPlusRapide(detail)) {
       console.log(`Ce monstre force le critique quand il est plus rapide que l'adversaire (VIT adverse : ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd}).`);
     }
@@ -367,7 +391,23 @@ console.log(
     `prep ${result.prepMs.toFixed(0)}ms · construction ${result.buildWallMs.toFixed(0)}ms · ` +
     `appariement ${result.pairingMs.toFixed(0)}ms · total ${(result.totalMs / 1000).toFixed(1)}s`
 );
-for (const c of result.candidates.slice(0, 20)) {
+// ⚠️ **Trier AVANT d'afficher.** `result.candidates` sort dans l'ordre de
+// collecte de l'appariement, pas classé par l'objectif : ce script affichait
+// jusqu'ici 20 candidats ARBITRAIRES en les présentant comme des résultats.
+// Un diagnostic s'y est laissé prendre et a conclu à tort que le moteur
+// manquait un build meilleur — il était là, au rang 6. `sortCandidates` est
+// la même porte que l'écran, pour qu'ils ne puissent plus diverger.
+const realDamage = buildRealDamageContext(recipe, loaded.com2usId, params.artifacts);
+if (recipe.objective === 'degats_reels' && !realDamage) {
+  console.warn(`⚠️ Aucun sort calculable pour ${loaded.monsterName} — le classement reste dans l'ordre de collecte.`);
+}
+const classes = sortCandidates(result.candidates, recipe.objective, {
+  realDamage,
+  runeById: new Map(params.pool.map((r) => [r.id, r])),
+  metric: recipe.metric,
+});
+console.log(`\nLes 20 meilleurs pour l'objectif « ${recipe.objective} » :`);
+for (const c of classes.slice(0, 20)) {
   console.log(`  runes [${c.runeIds.join(',')}]`);
 }
-if (result.candidates.length > 20) console.log(`  … et ${result.candidates.length - 20} de plus.`);
+if (classes.length > 20) console.log(`  … et ${classes.length - 20} de plus.`);

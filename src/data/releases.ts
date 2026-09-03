@@ -58,6 +58,78 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.12.0',
+    date: '2026-09-03',
+    title: 'Tes artéfacts se choisissent tout seuls',
+    highlights: [
+      'L’optimiseur choisit la meilleure paire d’artéfacts pour chaque build trouvé',
+      'Verrouille une sous-propriété d’artéfact, ou vise une vitesse finale',
+      'Compare n’importe quel résultat à ton équipement actuel',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Chaque build proposé vient avec la meilleure paire d’artéfacts que tu possèdes.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Les artéfacts retenus suivent le tri affiché, ou l’objectif de recherche : à toi de choisir.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Exige un minimum sur une sous-propriété d’artéfact, et vois ce que cette exigence te coûte.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Vise une vitesse de combat FINALE : la vitesse à runer est calculée pour toi.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Un bouton « Comparer » sur chaque résultat, face à ce que ton monstre porte aujourd’hui.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Valider un build réserve aussi ses artéfacts : ils ne seront plus proposés ailleurs.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Le bloc « Meilleurs artéfacts offensifs » propose une paire sans relancer de recherche.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'La description du combat et l’état de ton monstre ont chacun leur place, hors du flux.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Laisser un artéfact sur « Libre » ne donne plus MOINS de résultats que d’imposer une stat.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Un résultat affiché respecte toujours tes conditions, artéfacts compris.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Le tri par statistique retient enfin les artéfacts qui maximisent CETTE statistique.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Le choix d’artéfact affichait « Garder l’équipé » alors que la recherche cherchait librement.',
+      },
+    ],
+  },
+  {
     version: '1.11.0',
     date: '2026-08-28',
     title: 'Ne travaille que les runes qui jouent',

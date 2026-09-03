@@ -37,7 +37,12 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 - **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs**
   (ex. `OptimizerRecipe`/`recipeToSearchParams.ts`). Un champ ajouté ou
   renommé doit être répercuté dans TOUS — `tsc` ne détecte JAMAIS un champ
-  oublié dans l'un d'eux (reste un accès optionnel valide). Avant de
+  oublié dans l'un d'eux (reste un accès optionnel valide). ⚠️ Depuis que
+  `tsconfig.json` couvre aussi `scripts/` et `tests/`, `tsc` attrape en
+  revanche un champ dont le **type change** ou qui devient **obligatoire** —
+  c'est ce qui a révélé une vingtaine d'appels de test périmés d'un coup. La
+  règle ci-dessus ne vaut donc plus que pour les champs **optionnels**, où
+  l'oubli reste parfaitement typé. Avant de
   considérer un champ ajouté/renommé comme terminé : `grep -rn` du nom du
   type/champ sur TOUT le dépôt (`src/` ET `scripts/` ET `tests/`), pas
   seulement le fichier qu'on vient d'éditer. Détail : [spec/README.md](spec/README.md),
@@ -73,7 +78,7 @@ Vérification standard avant de considérer un changement de code terminé,
 dans cet ordre :
 
 ```
-npx tsc --noEmit                  # types
+npx tsc --noEmit                  # types — couvre src/ ET scripts/ ET tests/
 node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
 npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```
@@ -81,7 +86,7 @@ npm run build                     # Tailwind n'émet que ce qu'il trouve dans le
 ⚠️ **La suite complète ne se lance qu'avant une fusion sur `main`** :
 
 ```
-npm test                          # les 38 vérifications, rien de moins
+npm test                          # les 45 vérifications, rien de moins
 ```
 
 Le filtre se compare au nom de la vérification, mis à plat (`speed-tune`,
@@ -96,7 +101,10 @@ touche. Ce qui compte avant de fusionner, c'est **tout**.
 (`[&>*]:w-full` ne l'a pas été). Quand un style ne s'applique pas, vérifier dans
 le **CSS construit**, pas dans le composant. Pour un algorithme de
 recherche/optimisation combinatoire, voir en plus la checklist dédiée du skill
-`algo-verify`.
+`algo-verify` ; pour toute **mécanique de jeu** modélisée — règle déduite des
+données SWARFARM, table `*_CONNUS`, ou comportement supposé par ressemblance
+avec un autre effet — celle de `game-data-curation`, qui contient aussi la
+recette pour demander un relevé en jeu exploitable.
 
 ## Consignes pour l'agent (Claude Code)
 
@@ -118,6 +126,46 @@ redéclenche à CHAQUE script ad hoc qui touche `runeBuildOptim.ts`, pas une
 seule fois pour la conversation). À appliquer au moment précis où une action
 qualifie pour un skill déjà invoqué ou non (nouveau script, nouvelle
 vérification, nouveau rendu visuel…), écrit AVANT l'action elle-même.
+
+### Jamais de code entre guillemets doubles dans une commande shell
+
+Les messages de commit de ce dépôt citent du code entre backticks, et les
+scripts de diagnostic manipulent du JSX ou des gabarits. En bash, un backtick
+ou un `${}` dans une chaîne à **guillemets doubles** est EXÉCUTÉ, pas écrit :
+un `git commit -m "… en \`label\` …"` a lancé le `label` de Windows, resté
+bloqué sur une invite jusqu'au délai d'attente.
+
+⚠️ **La contre-mesure n'est PAS « faire attention aux backticks ».** Une règle
+qui exige de repérer le danger échoue précisément quand on ne le repère pas —
+ce piège s'est reproduit alors qu'il était déjà connu. D'où deux défauts
+**mécaniques**, à appliquer sans examiner le contenu :
+
+- **Un message de commit passe toujours par un heredoc**, jamais par `-m` :
+  ```bash
+  git commit -F - <<'FIN'
+  … message, backticks compris …
+  FIN
+  ```
+  `<<'FIN'` entre apostrophes = aucune expansion. En PowerShell, l'équivalent
+  est le here-string `@'…'@` (voir la description de l'outil PowerShell).
+- **Un script ne se lance jamais en ligne** (`node -e "…"`) : il s'écrit dans
+  un fichier du scratchpad et se lance par son chemin. Vaut aussi pour un
+  fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`
+  ou un `node -e` qui transporte le remplacement dans une chaîne shell.
+
+⚠️ **La première puce est appliquée par un hook**, `PreToolUse` sur `Bash` :
+[.claude/hooks/refuse-commit-m.mjs](.claude/hooks/refuse-commit-m.mjs) refuse
+`git commit -m`/`--amend -m` et rappelle la forme heredoc. Raison d'être :
+cette consigne, pourtant écrite, a été enfreinte plusieurs fois **dans la même
+session** — après des dizaines d'exemples réussis de la forme interdite,
+l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de
+l'action ne dépend d'aucune vigilance.
+⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
+(ignoré, propre à chaque machine) : à recopier pour en bénéficier.
+⚠️ Portée **étroite et assumée** : ni `node -e` (ses usages sans backtick sont
+sûrs et fréquents), ni `gh pr create --body`, ni `sed -i`. Couvrir la classe
+entière demanderait une analyse de quoting bash aux faux positifs permanents,
+`$(…)` étant une construction légitime.
 
 ### Windows : `TaskStop` ne tue pas le vrai process
 

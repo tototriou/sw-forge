@@ -42,8 +42,8 @@ const pool = sonia.allRunes;
 console.log(`\n=== ${monsterName} (com2usId ${sonia.com2usId}) — pool (aucune exclusion, défaut) : ${pool.length} runes ===`);
 
 const artifacts: ArtifactDetail[] = [
-  { kind: 'element', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
-  { kind: 'archetype', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
+  { id: 0, kind: 'element', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
+  { id: 0, kind: 'archetype', level: 1, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
 ];
 
 // ⚠️ « Stats de base exclues » (coché par défaut à l'écran) : les valeurs

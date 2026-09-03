@@ -27,8 +27,14 @@ sw-account*.json
 # `!.claude/skills/`) : git ne redescend jamais dans un répertoire déjà
 # exclu pour y appliquer une règle d'inclusion — exclure `.claude/` tout
 # entier rendrait `!.claude/skills/` inopérant.
+# ⚠️ `hooks/` suit la MÊME logique que `skills/` : le script y applique une
+# consigne de CLAUDE.md (« un message de commit passe par un heredoc »), donc
+# il vaut pour quiconque travaille sur ce dépôt. Son CÂBLAGE, lui, reste dans
+# `settings.json` et donc ignoré — c'est un réglage de machine, et le rendre
+# suivi entraînerait la liste de permissions personnelles avec lui.
 .claude/*
 !.claude/skills/
+!.claude/hooks/
 
 # Historique/méthodologie détaillée de l'Optimizer — PRIVÉ, protection
 # compétitive : ce dossier contient le journal chronologique complet du

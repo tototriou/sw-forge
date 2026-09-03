@@ -67,6 +67,28 @@ export interface OptimizerState {
    */
   optimiserArtefacts: boolean;
   setOptimiserArtefacts: Dispatch<SetStateAction<boolean>>;
+  /**
+   * La paire retenue suit-elle le TRI affiché, ou l’OBJECTIF de la recherche ?
+   * Activé par défaut.
+   *
+   * ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une DÉCISION.** Les
+   * coupler d’office impose un arbitrage : trier par ATQ pour explorer
+   * déplaçait la paire, alors qu’on voulait parfois garder celle qui
+   * maximise les PV effectifs. Ce réglage rend l’arbitrage à l’utilisateur.
+   *
+   * - `true` — la paire suit `sortBy` : « les meilleurs artéfacts pour ce
+   *   que je regarde ».
+   * - `false` — la paire suit `objective` : « les meilleurs artéfacts pour
+   *   ce que j’ai cherché ». La référence est stable pendant toute
+   *   l’exploration, donc « Valider les artéfacts » propose la même chose
+   *   quel que soit le tri.
+   *
+   * ⚠️ **Ne désactive PAS l’optimisation** — c’est `optimiserArtefacts` qui
+   * le fait. Sans objectif de repli défini, « ne pas recalculer » ne
+   * voudrait rien dire : il faut savoir par rapport à QUOI.
+   */
+  adapterArtefactsAuTri: boolean;
+  setAdapterArtefactsAuTri: Dispatch<SetStateAction<boolean>>;
   // Statistique principale EXIGÉE pour chacun des deux emplacements d'artéfact
   // (Attribut/Type, voir ARTIFACT_KINDS dans types.ts) — n'a d'effet que si
   // `optimiserArtefacts` est activé.
@@ -226,6 +248,10 @@ export function useOptimizerState(): OptimizerState {
   // Activee par defaut : chercher les artefacts est le comportement utile,
   // et il ne coute rien a la recherche de runes (temps masque).
   const [optimiserArtefacts, setOptimiserArtefacts] = useState(true);
+  // Activé par défaut : ce qu’on affiche reste le meilleur pour ce qu’on
+  // regarde. Ne coûte rien sur les tris qu’aucun artéfact ne touche
+  // (efficience, VIT, TC, DCC, RES, PRE) — voir `regimeArtefacts`.
+  const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(true);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   const [lignesVerrouillees, setLignesVerrouillees] = useState<LigneVerrouillee[]>([]);
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
@@ -253,6 +279,7 @@ export function useOptimizerState(): OptimizerState {
     setMaxStats({});
     setExcludeBase(true);
     setOptimiserArtefacts(true);
+    setAdapterArtefactsAuTri(true);
     setArtifactMainByKind({});
     // ⚠️ Remis à zéro au changement de monstre, comme les runes imposées : une
     // ligne verrouillée exclusive à une sorte (« Précision Compétence 3 »)
@@ -292,6 +319,8 @@ export function useOptimizerState(): OptimizerState {
     setExcludeBase,
     optimiserArtefacts,
     setOptimiserArtefacts,
+    adapterArtefactsAuTri,
+    setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
     lignesVerrouillees,

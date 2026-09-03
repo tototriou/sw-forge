@@ -285,6 +285,34 @@ type EtatValidation = 'non' | 'oui' | 'artefacts';
  * question, et un build validé mémorise les deux (`ValidatedBuild.runeIds`,
  * `ValidatedBuild.artifactIds`).
  */
+/**
+ * Sur QUOI la paire d’artéfacts doit-elle être optimisée, pour un critère de
+ * classement donné ?
+ *
+ * ⚠️ **Un artéfact ne peut bouger que PV, ATQ et DEF** — sa stat principale
+ * est plate et ne porte rien d’autre (`ARTIFACT_MAIN`, effects.ts). Tous les
+ * autres critères (efficience, VIT, TC, DCC, RES, PRE) sont donc INSENSIBLES
+ * à la paire : ils partagent un seul régime, `'aucun'`, et basculer de l’un à
+ * l’autre ne doit RIEN recalculer.
+ *
+ * ⚠️ **Les stats plates sont un régime à part entière, et c’était un défaut.**
+ * Trier par ATQ classait sur une ATQ dont la paire avait été choisie par la
+ * somme des principales : PV+1500 × 2 (somme 3000) gagnait contre ATQ+100 × 2
+ * (somme 200), alors que c’est la seconde qui maximise la valeur affichée.
+ * Même défaut d’ordre que le §12.0, transposé au tri.
+ *
+ * ⚠️ Le régime sert AUSSI de clé de cache (`signatureArtefacts`) : deux
+ * critères ne la partagent que si la paire optimale est démontrablement la
+ * même. Trop regrouper afficherait une paire périmée.
+ */
+type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
+
+function regimeArtefacts(critere: OptimizerSortKey): RegimeArtefacts {
+  if (critere === 'degats_reels' || critere === 'ehp') return critere;
+  if (critere === 'hp' || critere === 'atk' || critere === 'def') return critere;
+  return 'aucun';
+}
+
 function memesIds(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
   const sa = [...a].sort((x, y) => x - y);
@@ -359,6 +387,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setExcludeBase,
     optimiserArtefacts,
     setOptimiserArtefacts,
+    adapterArtefactsAuTri,
+    setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
     lignesVerrouillees,
@@ -1162,6 +1192,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    * effet — au mieux la pièce portée le tient déjà, au pire plus aucune paire
    * ne passe et la recherche refuse de partir.
    */
+  /**
+   * Le critère sur lequel la paire d’artéfacts est optimisée.
+   *
+   * ⚠️ **Le TRI si l’utilisateur le demande, l’OBJECTIF sinon.** Le tri est
+   * une VUE, l’optimisation une DÉCISION : les coupler d’office déplaçait la
+   * paire dès qu’on changeait de tri pour explorer. Voir
+   * `adapterArtefactsAuTri`.
+   */
+  const critereArtefactsPaire = adapterArtefactsAuTri ? sortBy : objective;
+  const regimePaire = regimeArtefacts(critereArtefactsPaire);
+
   const sortesFigees = useMemo<ArtifactKind[]>(
     () =>
       ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (artifactMainByKind[key] ?? 'libre') === 'equipped'),
@@ -1923,14 +1964,21 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
         // quand même, le cache est refait pour rien : coût borné (K builds en
         // temps masqué), contre le risque d'afficher une paire périmée.
-        objective: sortBy,
+        // ⚠️ **Le RÉGIME, pas le tri brut.** Deux critères ne partagent cette
+        // clé que si la paire optimale est démontrablement la même : c’est le
+        // cas de tous ceux qu’aucun artéfact ne touche (efficience, VIT, TC,
+        // DCC, RES, PRE), regroupés sous `'aucun'`. Basculer entre eux ne
+        // recalcule donc plus 100 builds pour retrouver la même paire.
+        // ⚠️ Trop regrouper afficherait une paire périmée — le régime est
+        // établi sur ce qu’un artéfact peut bouger, jamais sur une intuition.
+        objective: regimePaire,
         ignoreArtifacts: !optimiserArtefacts,
         principaleParSorte: artifactMainByKind,
         lignesVerrouillees,
         relique: selected?.gear.relic ?? null,
         nbArtefacts: artifacts.length,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, sortBy, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimePaire, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
   );
 
   const faireParamsArtefacts = useMemo(() => {
@@ -1975,8 +2023,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
        * la somme des principales, qui départage au moins sur la valeur brute,
        * et le seul travail qui compte est la faisabilité (§12.6).
        */
+      // ⚠️ **Quatre régimes, pas deux.** Les stats plates (PV/ATQ/DEF) sont un
+      // cas à part entière : trier par ATQ doit retenir la paire qui maximise
+      // l’ATQ, pas celle qui maximise la somme des principales — PV+1500 × 2
+      // (somme 3000) battait ATQ+100 × 2 (somme 200) sur un classement par ATQ.
+      //
+      // ⚠️ Sur le régime `'aucun'` (efficience, VIT, TC, DCC, RES, PRE), aucun
+      // artéfact n’entre dans le critère : deux paires valides y laissent le
+      // classement identique. La somme des principales n’y départage donc rien
+      // d’important — elle sert seulement à ne pas rendre une paire arbitraire.
       const evaluer =
-        sortBy === 'degats_reels' && resolvedSkill
+        regimePaire === 'degats_reels' && resolvedSkill
           ? (arts: ArtifactDetail[]) =>
               computeTotalDamage(
                 resolvedSkill,
@@ -1986,12 +2043,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 espece.element,
                 artifactDamageProfile(arts)
               )
-          : sortBy === 'ehp'
+          : regimePaire === 'ehp'
             ? (arts: ArtifactDetail[]) => pvEffectifs(statsAvec(arts))
-            : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+            : regimePaire !== 'aucun'
+              ? // Une stat PLATE : on maximise cette stat, et rien d’autre.
+                (arts: ArtifactDetail[]) =>
+                  statsAvec(arts).find((r) => r.key === regimePaire)?.total ?? 0
+              : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
       return { ...artifactParams, evaluer };
     };
-  }, [artifactParams, selected, optimiserArtefacts, runeById, sortBy, resolvedSkill, offensivePassives, damageSetup]);
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, resolvedSkill, offensivePassives, damageSetup]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
@@ -4282,6 +4343,40 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   ))}
                 </optgroup>
               </Selecteur>
+            )}
+            {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
+                DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
+                changeait de tri pour explorer — alors qu’on veut souvent
+                garder celle qui maximise les PV effectifs tout en regardant
+                les builds classés par une stat.
+
+                ⚠️ MASQUÉ quand l’optimisation est désactivée : il n’y a alors
+                qu’une paire possible, celle qui est portée. Une saisie sans
+                effet est pire qu’une saisie absente — même règle que les
+                sélecteurs de principale et les sous-propriétés verrouillées. */}
+            {optimiserArtefacts && (result ? result.candidates.length > 0 : true) && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts au tri</span>
+                <HelpPopover title="Adapter les artéfacts au tri">
+                  Activé (défaut), chaque build reçoit les artéfacts qui maximisent le{' '}
+                  <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
+                  pièces que trier par PV effectifs.
+                  <br />
+                  <br />
+                  Désactivé, les artéfacts restent ceux qui servent l’<b className="text-ink">objectif de la
+                  recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
+                  que la paire bouge — et « Valider les artéfacts » propose alors toujours la même.
+                  <br />
+                  <br />
+                  Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
+                  artéfact n’entre dans ces classements.
+                </HelpPopover>
+                <Interrupteur
+                  actif={adapterArtefactsAuTri}
+                  onChange={setAdapterArtefactsAuTri}
+                  aria-label="Adapter les artéfacts au tri"
+                />
+              </div>
             )}
           </div>
 

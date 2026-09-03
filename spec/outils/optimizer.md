@@ -385,6 +385,14 @@ retour.
    sinon il disparaît ». Il affiche désormais la raison, et aucun chiffre :
    un « 0 / coup » se lirait comme un résultat alors que rien n'a été cherché.
 
+   ⚠️ **L’écart s’affiche dans les DEUX sens.** Il ne l’était que s’il
+   était positif : on cachait donc exactement l’information défavorable, en
+   laissant un absolu qui avait l’air d’un gain. Un écart négatif n’est pas
+   une anomalie — la paire portée sort des candidates dès qu’une contrainte
+   l’exclut (principale imposée, ligne verrouillée, ou pièce déjà réservée
+   par un autre monstre de la liste). Le nombre dit alors ce que cette
+   contrainte coûte, ce qui est précisément ce qu’on veut savoir.
+
    ⚠️ **La proposition est ACTIONNABLE.** Un bouton en pied de bloc réserve
    la paire proposée — sans lui, il fallait la retrouver à la main dans
    l’inventaire. Deux gestes derrière un seul bouton, que le libellé

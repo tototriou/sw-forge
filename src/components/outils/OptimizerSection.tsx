@@ -1409,6 +1409,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // ligne 218-221, ce qui est le cas le plus intéressant : « tu n’en as
       // pas, voilà ce que tu gagnerais ». Un pourcentage y serait infini ou
       // masquerait le bloc.
+      //
+      // ⚠️ **Il peut être NÉGATIF, et ce n’est pas une anomalie.** La paire
+      // portée n’est candidate que si RIEN ne l’exclut : une principale
+      // imposée, une ligne verrouillée ou une pièce déjà réservée par un
+      // autre monstre de la liste la sortent du jeu. Le meilleur atteignable
+      // passe alors SOUS ce qu’on porte, et l’écart chiffre ce que la
+      // contrainte coûte — l’écran l’affiche donc dans les deux sens.
       gainBrutParCoup: scoreRetenu - scoreActuel,
       /**
        * Ce que la paire retenue apporte EN ABSOLU, pas seulement l'écart avec
@@ -2390,9 +2397,24 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               {Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}
               {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
             </span>
-            {!modeArtefactsSeuls.dejaPorte && modeArtefactsSeuls.gainBrutParCoup > 0 && (
-              <span className="text-good">
-                +{Math.round(modeArtefactsSeuls.gainBrutParCoup).toLocaleString('fr-FR')}
+            {/* ⚠️ **L’écart s’affiche AUSSI quand il est négatif.** Il ne
+                l’était que s’il était positif : on cachait donc exactement
+                l’information défavorable, en laissant un absolu qui avait
+                l’air d’un gain.
+
+                ⚠️ Un écart négatif n’est PAS une anomalie : la paire
+                portée sort des candidates dès qu’une contrainte l’exclut —
+                une principale imposée, une ligne verrouillée, ou une pièce
+                déjà réservée par un autre monstre de la liste. Le nombre dit
+                alors ce que cette contrainte coûte, ce qui est précisément
+                ce qu’on veut savoir.
+
+                ⚠️ Test sur l’ARRONDI, pas sur la valeur brute : un écart
+                de 0,4 aurait affiché « +0 ». */}
+            {!modeArtefactsSeuls.dejaPorte && Math.round(modeArtefactsSeuls.gainBrutParCoup) !== 0 && (
+              <span className={modeArtefactsSeuls.gainBrutParCoup > 0 ? 'text-good' : 'text-bad'}>
+                {modeArtefactsSeuls.gainBrutParCoup > 0 ? '+' : '−'}
+                {Math.abs(Math.round(modeArtefactsSeuls.gainBrutParCoup)).toLocaleString('fr-FR')}
               </span>
             )}
           </span>

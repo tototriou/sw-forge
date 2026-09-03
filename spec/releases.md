@@ -108,6 +108,12 @@ c'est le même geste, dans la même branche de release.
 `main` est **toujours la version stable en ligne**. On n'y développe pas
 directement.
 
+⚠️ **Et on n’y pousse pas non plus.** Une règle du dépôt refuse tout push
+direct sur `main` (« at least 1 approving review by reviewers with write
+access ») : le passage obligé est une **pull request approuvée**. Ce n’est pas
+une convention d’équipe qu’on pourrait contourner — c’est le serveur qui
+refuse, avec `GH013`.
+
 ```
 main ──●─────────────────────────●──────────► (stable, déployée sur Vercel)
         \                       /
@@ -146,20 +152,55 @@ alors qu'un numéro devenait faux au premier `feat`.
    - l'écrire dans `version` de [`package.json`](package.json) **et** dans
      l'entrée de `releases.ts`, à la place du `null` ;
    - vérifier `npx tsc --noEmit`, `npm test` et `npm run build`.
-5. **Fusionner dans `main` en `--no-ff`**, taguer, publier :
+5. **Ouvrir la PR**, la faire approuver, fusionner en **merge commit**, taguer,
+   publier :
    ```bash
-   git switch main && git merge --no-ff forge/prepa-rta -m "Merge forge/prepa-rta — v1.5.0 …"
-   git tag -a v1.5.0 -m "…" && git push origin main --tags
+   gh pr create --base main --head forge/prepa-rta --title "…" --body-file …
+   # … puis, une fois approuvée par QUELQU’UN D’AUTRE (voir ci-dessous) :
+   gh pr merge <n> --merge --subject "Merge forge/prepa-rta — v1.5.0 …"
+   git fetch origin && git switch main && git merge --ff-only origin/main
+   git tag -a v1.5.0 <commit de merge> -m "…" && git push origin v1.5.0
    gh release create v1.5.0 --title "v1.5.0 — …" --notes "…"
-   git push origin forge/prepa-rta   # la branche est conservée
+   # la branche est conservée : elle reste sur origin, rien à supprimer
    ```
+
+   ⚠️ **Le push direct sur `main` est REFUSÉ par le dépôt.** Une règle exige
+   « at least 1 approving review by reviewers with write access » : un
+   `git push origin main` échoue sur `GH013: Repository rule violations`,
+   même après un `merge --no-ff` local parfaitement valide. Cette étape
+   décrivait exactement cette manœuvre — elle a échoué en conditions réelles
+   le 2026-09-03, sur la v1.12.0. On passe donc par la PR, qui est le seul
+   chemin que la règle laisse ouvert.
+
+   ⚠️ **L’émetteur de la PR ne peut pas l’approuver.** Quand elle est ouverte
+   depuis le compte du propriétaire (ce que fait `gh pr create`), c’est un
+   **autre contributeur disposant du droit d’écriture** qui doit approuver —
+   l’approbation de l’émetteur ne compte pas et apparaît `DISMISSED`. Sans
+   cela, `gh pr view` rend `reviewDecision: REVIEW_REQUIRED` et
+   `mergeStateStatus: BLOCKED`, et le merge reste impossible.
+
+   ⚠️ **Le tag se pose sur le commit de merge produit par GitHub**, pas sur un
+   merge local. Un merge local jamais poussé ne sera jamais sur `main` : un
+   tag posé dessus part quand même sur le dépôt (le push d’un tag emporte ses
+   objets) et désigne alors un commit hors de toute branche — `gh release`
+   publierait une version pointant vers du code absent de `main`. Vérifier
+   avant de publier :
+   ```bash
+   git rev-list -n1 v1.5.0        # doit égaler…
+   git rev-parse origin/main      # …ceci
+   ```
+
+   ⚠️ **`--merge`, jamais `--squash`** — voir la note ci-dessous : la raison
+   vaut à l’identique pour le bouton de l’interface GitHub.
 
 ⚠️ **Le message de merge fait le lien** entre le sujet et le numéro : c'est la
 seule trace qui relie `forge/prepa-rta` à `v1.5.0`. Sans lui, retrouver la
 branche d'une version demande de fouiller les dates.
 
-⚠️ **`--no-ff`, jamais `--squash`.** Un squash **recopie le contenu sans
-enregistrer la parenté** : Git ignore alors que la branche a été fusionnée. Elle
+⚠️ **Un MERGE COMMIT, jamais un squash** — `gh pr merge --merge`, ou « Create a
+merge commit » dans l’interface, jamais « Squash and merge ». Un squash
+**recopie le contenu sans enregistrer la parenté** : Git ignore alors que la
+branche a été fusionnée. Elle
 n'apparaît pas dans `git branch --merged`, et `git log main..forge/<sujet>`
 ressort ses commits comme s'ils manquaient — alors que tout est bien dans `main`.
 On ne peut plus distinguer une branche publiée d'une branche oubliée. Le merge

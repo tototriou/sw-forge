@@ -2257,6 +2257,54 @@ export function testSpeedTuneAuto() {
     egal(ecarts, 0, `aller-retour exact sur ${total} combinaisons${exemple ? ` (ex. ${exemple})` : ''}`);
   }
 
+  // ⚠️ **LE GAIN DE PASSIF SE RETIRE DE LA CIBLE.** La vitesse que le solveur
+  // vise est celle que la card affiche — gain compris (`combatDe` = vitesse de
+  // combat + `gainPassifDe`). Les runes, elles, ne portent que la première part.
+  // Viser la cible ENTIÈRE revenait à demander en runes ce que le passif donne
+  // déjà : +40 de trop sur un Chilling à deux buffs.
+  {
+    const base = 101;
+    const lead = 28;
+    const swift = true;
+    const rune = 220;
+    const gain = 40; // Chilling, +20 par buff, 2 buffs portés
+    const combatAffiche = combatSpeed(base, rune, lead, swift)! + gain;
+    const cible = combatAffiche + 6; // le solveur en réclame six de plus
+
+    const conseil = runeSpeedForTarget(base, lead, cible - gain, swift)! - rune;
+    egal(conseil, 6, 'le conseil vaut l’écart réel, pas l’écart plus le passif');
+
+    const apres = combatSpeed(base, rune + conseil, lead, swift)! + gain;
+    egal(apres, cible, 'et l’appliquer atteint exactement la cible');
+
+    // Ce que donnait l'ancien calcul : le gain demandé une seconde fois.
+    const ancien = runeSpeedForTarget(base, lead, cible, swift)! - rune;
+    egal(ancien, 46, 'sans le retrait, on réclamait 46 au lieu de 6');
+  }
+
+  // ⚠️ **« IL MANQUE 0 » EST UNE CONTRADICTION.** Le solveur ne réclame qu'une
+  // vitesse STRICTEMENT supérieure à l'actuelle : le conseil est donc toujours
+  // d'au moins 1. On le vérifie sur toute la plage plutôt que de faire confiance
+  // au plancher, qui n'est qu'un filet.
+  {
+    let zeros = 0;
+    let total = 0;
+    for (let base = 85; base <= 135; base++) {
+      for (const lead of [0, 19, 21, 24, 28, 33]) {
+        for (const swift of [false, true]) {
+          for (let rune = 100; rune <= 260; rune += 7) {
+            const combat = combatSpeed(base, rune, lead, swift)!;
+            // La plus petite cible que le solveur puisse réclamer : un de plus.
+            const conseil = runeSpeedForTarget(base, lead, combat + 1, swift)! - rune;
+            total++;
+            if (conseil <= 0) zeros++;
+          }
+        }
+      }
+    }
+    egal(zeros, 0, `aucun conseil nul sur ${total} combinaisons — « +0 SPD » ne peut plus s’afficher`);
+  }
+
   // ⚠️ **LE SWIFT DOIT VOYAGER JUSQU'À LA CONVERSION.** L'invariant ci-dessus ne
   // tient que si l'APPELANT passe le bon drapeau — et c'est là qu'était le
   // défaut : `runesPour` appelait `runeSpeedForTarget(..., false)` en dur, alors
@@ -2272,6 +2320,10 @@ export function testSpeedTuneAuto() {
     ok(
       /l\.swift/.test(appel),
       'elle transmet le Swift de la ligne, jamais une valeur en dur'
+    );
+    ok(
+      /gainPassifDe\(l\)/.test(appel),
+      'et elle retire le gain de passif de la cible visée'
     );
   }
 

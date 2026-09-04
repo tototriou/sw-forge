@@ -878,13 +878,27 @@ export function useSpeedTune({
   // restait à 1 du compte, et l'outil réclamait ce dernier point — d'où
   // l'impression d'un « il manque 1 de SPD » qui ne s'en va jamais.
   const runesPour = (l: Ligne, combatCible: number): number | null => {
+    // ⚠️ **Le GAIN DE PASSIF se retire de la cible.** La vitesse que le solveur
+    // vise est celle que la card affiche, gain compris (`combatDe` = vitesse de
+    // combat + `gainPassifDe`). Les runes, elles, ne portent que la première
+    // part : viser la cible ENTIÈRE revenait à demander en runes ce que le
+    // passif donne déjà — +40 de trop sur un Chilling à 2 buffs.
     const besoin = runeSpeedForTarget(
       l.monster.stats.speed,
       leadPour(leadDe(l.camp), l),
-      combatCible,
+      combatCible - gainPassifDe(l),
       l.swift ?? false
     );
-    return besoin == null ? null : besoin - (l.runeSpeed ?? 0);
+    if (besoin == null) return null;
+    const manque = besoin - (l.runeSpeed ?? 0);
+    // ⚠️ **« Il manque 0 » est une CONTRADICTION** : si ce monstre doit aller
+    // plus vite, le plus petit conseil qu'on puisse donner est +1. Le calcul ne
+    // devrait plus jamais rendre 0 — le solveur ne réclame une vitesse que
+    // strictement supérieure à l'actuelle, et l'aller-retour est exact depuis
+    // que le Swift et le passif y entrent. Ce plancher est un FILET, pas le
+    // correctif : il empêche qu'un arrondi futur affiche « +0 SPD », ce qui
+    // enverrait chercher une correction qu'on a déjà.
+    return Math.max(1, manque);
   };
 
 

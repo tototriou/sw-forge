@@ -993,9 +993,24 @@ Mesuré sur les cas réalistes (base 85→135, leads du jeu, cibles 200→420) :
 à 1 du compte, et l'outil réclamait ce dernier point — d'où l'impression d'un
 « il manque 1 de SPD » qui ne s'en va jamais.
 
-Deux vérifications tiennent la règle : l'**aller-retour exact** sur les 135 252
-combinaisons, et un **contrôle de source** sur l'appelant — l'invariant ne vaut
-que si le drapeau lui est transmis, et c'est justement là qu'était le défaut.
+⚠️ **Le GAIN DE PASSIF se retire de la cible.** La vitesse que le solveur vise
+est celle que la card affiche, gain compris (`combatDe` = vitesse de combat +
+`gainPassifDe`) ; les runes, elles, ne portent que la première part. Viser la
+cible entière revenait à demander en runes ce que le passif donne déjà — **+40
+de trop** sur un Chilling à deux buffs.
+
+⚠️ **« Il manque 0 » est une contradiction** : si un monstre doit aller plus
+vite, le plus petit conseil possible est **+1**. Le calcul ne peut plus rendre 0
+— le solveur ne réclame qu'une vitesse strictement supérieure à l'actuelle, et
+l'aller-retour est exact depuis que le Swift et le passif y entrent. Un plancher
+à 1 reste posé en **filet**, pas comme correctif : il empêche qu'un arrondi futur
+affiche « +0 SPD », ce qui enverrait chercher une correction déjà faite.
+
+Quatre vérifications tiennent la règle : l'**aller-retour exact** sur les 135 252
+combinaisons, l'**absence de conseil nul** sur toute la plage, le **retrait du
+gain de passif**, et deux **contrôles de source** sur l'appelant — les invariants
+ne valent que si le Swift et le passif lui sont transmis, et c'est justement là
+qu'étaient les deux défauts.
 
 ### ⚠️ Le plus rapide se juge GAIN DE PASSIF COMPRIS
 

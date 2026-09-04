@@ -33,6 +33,7 @@ import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimOnStage from './rune-optim-onstage.test';
 import testRandomPool from './random-pool.test';
+import testDiagnosticHarness from './diagnostic-harness.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
 import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
 import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test';
@@ -91,6 +92,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimDifferential', testRuneOptimDifferential],
   ['testRuneOptimOnStage', testRuneOptimOnStage],
   ['testRandomPool', testRandomPool],
+  ['testDiagnosticHarness', async () => { await testDiagnosticHarness(); }],
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],
   ['testRuneOptimParallelPairing', async () => { await testRuneOptimParallelPairing(); }],
   ['testRuneOptimParallelTruncated', testRuneOptimParallelTruncated],

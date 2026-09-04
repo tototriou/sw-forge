@@ -851,7 +851,13 @@ const BUCKET_CAP = 3000;
 // « constructeurs »).
 const BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP = MAX_PER_SLOT_MATCH;
 
-function bucketCapFor(slotFilterCap: number): number {
+// ⚠️ Exportée pour que le harnais de diagnostic puisse ANNONCER le `bucketCap`
+// effectif d'un run AVANT de l'exécuter (son palier 1, voir
+// spec/outils/optimizer/harnais-diagnostic.md §5) — et surtout rendre visible
+// que surcharger `slotFilterCap` déplace AUSSI `bucketCap`. Recopier la
+// formule ailleurs la laisserait diverger de celle-ci en silence, ce qui est
+// exactement le piège que ce harnais existe pour supprimer.
+export function bucketCapFor(slotFilterCap: number): number {
   return Math.round(BUCKET_CAP * (slotFilterCap / BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP));
 }
 

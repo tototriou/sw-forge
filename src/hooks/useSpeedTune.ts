@@ -863,12 +863,26 @@ export function useSpeedTune({
 
   const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
   // Vitesse de runes qu'il MANQUE pour atteindre une vitesse de combat cible.
+  // Ce qu'il faut AJOUTER en vitesse de runes pour atteindre une vitesse de
+  // combat cible.
+  //
+  // ⚠️ **Le Swift entre dans le calcul**, et il y était codé en dur à `false`.
+  // La vitesse de combat de la ligne, elle, se calcule avec `l.swift` : les deux
+  // formules décrivaient donc le même monstre différemment. Comme la Rapidité
+  // apporte 25 % de la base et que `combatSpeed` la retire à plat avant de la
+  // remettre dans la somme des pourcentages, l'écart tombe sur un arrondi — il
+  // vaut 0 ou 1 selon la base et le lead.
+  //
+  // ⚠️ **Mesuré : 40 % des cas réalistes** (base 85→135, leads du jeu, cibles
+  // 200→420) demandaient **un point de trop peu**. On appliquait « +18 SPD », on
+  // restait à 1 du compte, et l'outil réclamait ce dernier point — d'où
+  // l'impression d'un « il manque 1 de SPD » qui ne s'en va jamais.
   const runesPour = (l: Ligne, combatCible: number): number | null => {
     const besoin = runeSpeedForTarget(
       l.monster.stats.speed,
       leadPour(leadDe(l.camp), l),
       combatCible,
-      false
+      l.swift ?? false
     );
     return besoin == null ? null : besoin - (l.runeSpeed ?? 0);
   };

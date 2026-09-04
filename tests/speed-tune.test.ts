@@ -67,7 +67,7 @@ import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSk
 import { readFileSync } from 'fs';
 import { PREFIXE_SPEED_TUNE } from '../src/hooks/useSpeedTune';
 import { Monster, SiegeTeam } from '../src/types';
-import { combatSpeed } from '../src/lib/speed';
+import { combatSpeed, runeSpeedForTarget } from '../src/lib/speed';
 import { egal, ok, titre } from './outils';
 
 export default function testSpeedTune() {
@@ -2227,6 +2227,51 @@ export function testSpeedTuneAuto() {
       horsPrefixe.join(', '),
       '',
       `toutes portent le préfixe « ${PREFIXE_SPEED_TUNE} » — sinon elles survivraient au changement de compte`
+    );
+  }
+
+  // ⚠️⚠️ **LA VITESSE DE RUNES ANNONCÉE DOIT ATTEINDRE LA CIBLE.** C'est
+  // l'invariant qui relie les deux sens du calcul : `runeSpeedForTarget` dit
+  // combien il en faut, `combatSpeed` dit ce qu'on obtient. Ils doivent se
+  // répondre exactement, sinon l'écran conseille une vitesse qui ne suffit pas —
+  // et redemande le point manquant après qu'on l'a appliquée.
+  {
+    let ecarts = 0;
+    let total = 0;
+    let exemple = '';
+    for (let base = 85; base <= 135; base++) {
+      for (const lead of [0, 19, 21, 24, 28, 33]) {
+        for (const swift of [false, true]) {
+          for (let cible = 200; cible <= 420; cible++) {
+            const r = runeSpeedForTarget(base, lead, cible, swift)!;
+            const obtenu = combatSpeed(base, r, lead, swift)!;
+            total++;
+            if (obtenu !== cible) {
+              ecarts++;
+              if (!exemple) exemple = `base ${base}, lead ${lead}, swift ${swift}, cible ${cible} → ${obtenu}`;
+            }
+          }
+        }
+      }
+    }
+    egal(ecarts, 0, `aller-retour exact sur ${total} combinaisons${exemple ? ` (ex. ${exemple})` : ''}`);
+  }
+
+  // ⚠️ **LE SWIFT DOIT VOYAGER JUSQU'À LA CONVERSION.** L'invariant ci-dessus ne
+  // tient que si l'APPELANT passe le bon drapeau — et c'est là qu'était le
+  // défaut : `runesPour` appelait `runeSpeedForTarget(..., false)` en dur, alors
+  // que la vitesse de combat de la même ligne se calcule avec `l.swift`. Deux
+  // descriptions du même monstre, un point d'écart sur 40 % des cas réalistes.
+  //
+  // Le contrôle lit le SOURCE : un test qui appellerait la fonction ne verrait
+  // pas ce que l'appelant lui transmet.
+  {
+    const source = readFileSync('src/hooks/useSpeedTune.ts', 'utf8');
+    const appel = /runeSpeedForTarget\(([\s\S]*?)\);/.exec(source)?.[1] ?? '';
+    ok(appel.length > 0, 'la conversion vitesse de combat → vitesse de runes est bien là');
+    ok(
+      /l\.swift/.test(appel),
+      'elle transmet le Swift de la ligne, jamais une valeur en dur'
     );
   }
 

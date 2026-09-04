@@ -973,6 +973,30 @@ adversaire fait d'ailleurs disparaître le repère automatique — on ne compare
 faire aurait donné un bouton qui, parfois, ne produit rien à l'écran : le geste
 est explicite, sa réponse doit l'être aussi.
 
+### ⚠️ La vitesse de runes annoncée doit atteindre la cible
+
+Le solveur cherche une **vitesse de combat** ; l'écran, lui, affiche une
+**vitesse de runes** (« +18 SPD »). Deux sens du même calcul, qui doivent se
+répondre exactement :
+
+`combatSpeed(base, runeSpeedForTarget(base, lead, T, swift), lead, swift) === T`
+
+⚠️ **Le Swift doit voyager jusqu'à la conversion**, et il y était codé en dur à
+`false` (`runesPour`), alors que la vitesse de combat de la même ligne se calcule
+avec le Swift de la ligne. Deux descriptions du même monstre : comme la Rapidité
+apporte 25 % de la base et que `combatSpeed` la retire à plat avant de la
+remettre dans la somme des pourcentages, l'écart tombe sur un arrondi et vaut
+**0 ou 1**.
+
+Mesuré sur les cas réalistes (base 85→135, leads du jeu, cibles 200→420) :
+**40 % demandaient un point de trop peu**. On appliquait « +18 SPD », on restait
+à 1 du compte, et l'outil réclamait ce dernier point — d'où l'impression d'un
+« il manque 1 de SPD » qui ne s'en va jamais.
+
+Deux vérifications tiennent la règle : l'**aller-retour exact** sur les 135 252
+combinaisons, et un **contrôle de source** sur l'appelant — l'invariant ne vaut
+que si le drapeau lui est transmis, et c'est justement là qu'était le défaut.
+
 ### ⚠️ Le plus rapide se juge GAIN DE PASSIF COMPRIS
 
 L'adversaire de référence est une **copie du plus rapide allié**. Encore

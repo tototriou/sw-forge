@@ -3015,14 +3015,13 @@ function* orderedCompartmentPairs(bucketsA: Bucket[], bucketsB: Bucket[]): Gener
 // compris le temps passé à construire les moitiés — sinon paralléliser leur
 // construction reculerait silencieusement l'échéance du filet de sécurité.
 //
-// ⚠️ **Aucun plafond de PAIRES** — ni paramètre, ni défaut, ni escalade (voir
-// le bloc au-dessus de `CHECKPOINT_EVERY`). Cette boucle s'arrête sur trois
-// choses et trois seulement : le temps (`overBudget`), les candidats
-// (`maxCollected`), ou l'épuisement de l'espace lui-même — dont la taille
-// EXACTE est `totalPairCount(prepared, bucketsA, bucketsB)`. Un appelant qui
-// veut malgré tout limiter l'exploration (script de mesure) le fait dans SA
-// boucle de pilotage, sur `step.value.explored`, sans que le moteur ait à
-// connaître cette notion.
+// ⚠️ **Trois arrêts, et trois seulement** : le temps (`overBudget`), les
+// candidats (`maxCollected`), ou l'épuisement de l'espace — dont la taille
+// EXACTE est `totalPairCount(prepared, bucketsA, bucketsB)`. Il n'existe aucun
+// plafond de paires, et il ne faut pas en réintroduire un : voir le bloc
+// au-dessus de `CHECKPOINT_EVERY`. Un appelant qui veut limiter son
+// exploration (script de mesure) le fait dans SA boucle de pilotage, sur
+// `step.value.explored`, sans que le moteur ait à connaître cette notion.
 export function* pairBuckets(
   prepared: PreparedSearch,
   bucketsA: Bucket[],

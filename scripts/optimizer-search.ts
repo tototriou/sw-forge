@@ -13,18 +13,9 @@
 //             défaut, `--siege=15:defense` pour un deck de défense.
 // Un seul mode à la fois : sans `--rta` ni `--siege`, box (« Mon compte »).
 
-import { readFileSync } from 'fs';
-import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import {
-  loadBoxMonster,
-  loadRtaMonster,
-  loadSiegeMonster,
-  loadBoxItemsForExclusion,
-  loadRtaEntriesForExclusion,
-  loadSiegeTeamsForExclusion,
-  printMonsterSummary,
-} from './lib/loadMonster';
-import { recipeToSearchParams, resolveArtifacts } from './lib/recipeToSearchParams';
+import { printMonsterSummary } from './lib/loadMonster';
+import { resolveArtifacts } from './lib/recipeToSearchParams';
+import { chargerRecette } from './lib/chargerRecette';
 import { artifactSubName } from '../src/lib/effects';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
@@ -61,7 +52,7 @@ import {
 import { runSearchToCompletion } from './lib/runSearch';
 import { buildRealDamageContext } from './lib/realDamageCli';
 import { sortCandidates } from '../src/lib/runeBuildOptim';
-import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
+import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const rtaMode = process.argv.includes('--rta');
@@ -75,22 +66,37 @@ if (rtaMode && siegeArg != null) {
   process.exit(1);
 }
 
-const { recipe, error } = parseOptimizerRecipe(readFileSync(recipePath, 'utf8'));
-if (!recipe) {
-  console.error(`Recette invalide : ${error}`);
+// ⚠️ Toute la séquence « recette + compte → SearchParams » vit dans
+// `chargerRecette` (scripts/lib/chargerRecette.ts) : repli d'un objectif
+// retiré, choix du chargeur, contrôle du com2usId, données d'exclusion,
+// `recipeToSearchParams`. Elle est PARTAGÉE avec le harnais de diagnostic —
+// la refaire ici la ferait diverger, exactement la classe d'erreur que ce
+// script a été écrit pour ne pas commettre.
+let chargee;
+try {
+  chargee = chargerRecette(
+    exportPath,
+    recipePath,
+    rtaMode
+      ? { type: 'rta' }
+      : siegeArg != null
+        ? (() => {
+            const [deckIdRaw, variant] = siegeArg.split(':');
+            const deckId = Number(deckIdRaw);
+            if (!Number.isFinite(deckId)) {
+              console.error(`--siege=<deckId>[:defense] : deckId invalide (${deckIdRaw}).`);
+              process.exit(1);
+            }
+            return { type: 'siege' as const, deckId, defense: variant === 'defense' };
+          })()
+        : { type: 'box' }
+  );
+} catch (e) {
+  console.error(e instanceof Error ? e.message : String(e));
   process.exit(1);
 }
-
-// ⚠️ Un objectif retiré (`speed_nuker`, `degats`) peut encore apparaître dans
-// une recette exportée avant son retrait (`parseOptimizerRecipe` ne valide
-// pas `objective` contre le type) — même repli que l'écran
-// (`OptimizerSection.tsx`, `importRecipe`), pour ne jamais faire diverger ce
-// script du chemin de prod sur une recette ancienne.
-const legacyObjective = recipe.objective as unknown as string;
-if (legacyObjective === 'speed_nuker' || legacyObjective === 'degats') {
-  console.warn(`⚠️ Objectif retiré « ${legacyObjective} » dans la recette — repli sur « efficience » (comme l'écran).`);
-  recipe.objective = 'efficience';
-}
+const { recipe, loaded, exclusionData, params, modeLabel } = chargee;
+for (const a of chargee.avertissements) console.warn(`⚠️ ${a}`);
 
 console.log(
   `Recette : ${recipe.monsterName} — sets ${recipe.requirement.sets.join('+')} — objectif ${recipe.objective} — ` +
@@ -104,44 +110,7 @@ if (recipe.requirement.maxStats && Object.keys(recipe.requirement.maxStats).leng
   console.log(`maxStats : ${JSON.stringify(recipe.requirement.maxStats)}`);
 }
 
-const loaded = rtaMode
-  ? loadRtaMonster(exportPath, recipe.monsterName)
-  : siegeArg != null
-    ? (() => {
-        const [deckIdRaw, variant] = siegeArg.split(':');
-        const deckId = Number(deckIdRaw);
-        if (!Number.isFinite(deckId)) {
-          console.error(`--siege=<deckId>[:defense] : deckId invalide (${deckIdRaw}).`);
-          process.exit(1);
-        }
-        return loadSiegeMonster({ exportPath, deckId, monsterName: recipe.monsterName, defense: variant === 'defense', rest: [] });
-      })()
-    : loadBoxMonster(exportPath, recipe.monsterName);
-const modeLabel = rtaMode ? 'RTA' : siegeArg != null ? 'siège' : 'box';
 printMonsterSummary(modeLabel, loaded);
-
-if (loaded.com2usId !== recipe.monsterCom2usId) {
-  console.warn(
-    `⚠️ com2usId chargé (${loaded.com2usId}) ≠ com2usId de la recette (${recipe.monsterCom2usId}) — ` +
-      `même nom, mais peut-être pas le même monstre (homonyme de données ?). Vérifie avant de faire confiance au résultat.`
-  );
-}
-
-// `exclusionData` (box + RTA + siège + monsterById) : chargée seulement si
-// la recette en a besoin (automatique ET/OU manuelle) — coûte 3 lectures/
-// parsages supplémentaires (box, RTA, les 2 siège) qu'une recette sans
-// aucune exclusion n'a aucune raison de payer.
-let exclusionData: ExclusionSourceData | undefined;
-if (recipe.excludeUsedRunes || (recipe.excludedSelectors && recipe.excludedSelectors.length > 0)) {
-  const monsterById = new Map(loadBoxItemsForExclusion(exportPath).map((b) => [String(b.monster.id), b.monster]));
-  exclusionData = {
-    box: loadBoxItemsForExclusion(exportPath),
-    rtaEntries: loadRtaEntriesForExclusion(exportPath),
-    siegeDefenseTeams: loadSiegeTeamsForExclusion(exportPath, true),
-    siegeOffenseTeams: loadSiegeTeamsForExclusion(exportPath, false),
-    monsterById,
-  };
-}
 
 // Exclusion AUTOMATIQUE (« Exclure les runes déjà utilisées ») : ⚠️ contrairement
 // à l'exclusion MANUELLE ci-dessous, le périmètre « Défenses siège » ne
@@ -155,18 +124,10 @@ if (recipe.excludeUsedRunes && exclusionData) {
 
 // Exclusion MANUELLE (voir optimizerExclusion.ts).
 if (recipe.excludedSelectors && recipe.excludedSelectors.length > 0 && exclusionData) {
-  // ⚠️ `SiegeTeam.id` est régénéré ALÉATOIREMENT à chaque chargement (voir
-  // loadMonster.ts, `loadSiegeTeamsForExclusion`) — un SÉLECTEUR siège
-  // exporté depuis l'écran (qui porte ce `teamId`) ne matchera JAMAIS un id
-  // généré ici. Prévenir explicitement plutôt que laisser
-  // `resolveExcludedRuneIds` l'ignorer en silence sans que personne ne
-  // comprenne pourquoi.
-  const siegeSelectors = recipe.excludedSelectors.filter((s) => s.source === 'siege-defense' || s.source === 'siege-offense');
-  if (siegeSelectors.length > 0) {
-    console.warn(
-      `⚠️ ${siegeSelectors.length} exclusion(s) manuelle(s) de la recette viennent du Siège — ce script régénère des identifiants d'équipe DIFFÉRENTS à chaque exécution (voir loadMonster.ts) et ne peut donc PAS les résoudre fidèlement. Elles seront silencieusement ignorées ci-dessous (pool plus large que sur l'écran).`
-    );
-  }
+  // ⚠️ Les sélecteurs venant du Siège ne sont pas résolubles hors de l'écran
+  // (identifiants d'équipe régénérés à chaque chargement) — l'avertissement
+  // est produit par `chargerRecette`, il n'est pas répété ici.
+  //
   // ⚠️ Garde anti-auto-exclusion (Phase C, voir optimizerExclusion.ts) :
   // `ownUnitKey` (box, PAR ENTRÉE — `String(unitId)`, même format que
   // `BoxItem.key`/`mapBoxMonsters`) et `ownCom2usId` (RTA/siège, PAR
@@ -380,9 +341,9 @@ if (recipe.objective === 'degats_reels') {
   }
 }
 
-const params = recipeToSearchParams(recipe, loaded, exclusionData);
 
-console.log('\nRecherche en cours (avec escalade du budget, comme l\'app réelle — peut prendre plusieurs minutes)…');
+
+console.log('\nRecherche en cours (chemin de prod complet, séquentiel — peut prendre plusieurs minutes)…');
 const result = runSearchToCompletion(params);
 
 console.log(

@@ -189,6 +189,22 @@ export default async function testDiagnosticHarness() {
   egal(repete.temps!.total.repetitions, 3, 'et le nombre de répétitions est réglable');
   ok(repete.temps!.total.avertissement == null, '3 répétitions : la dispersion devient exploitable');
 
+  /* ── Les bornes de faisabilité sont RENDUES ──────────────────────── */
+  // ⚠️ Sans elles, « aucune rune éliminée » est indistinguable de « la
+  // correction guaranteedMin/artifactBounds n'est pas active » — deux
+  // situations qui produisent exactement le même nombre.
+  egal(
+    complet.bornesFaisabilite.map((b) => b.stat),
+    ['spd'],
+    'les bornes sont rendues pour chaque stat CONTRAINTE (ici le seul minimum posé)'
+  );
+  const borne = complet.bornesFaisabilite[0];
+  ok(
+    borne.guaranteedMin.pct >= borne.guaranteed.pct,
+    'guaranteedMin est au moins aussi généreux que guaranteed (il inclut la marge d’activation)'
+  );
+  ok(borne.artFlatMax >= borne.artFlatMin, 'la borne HAUTE d’artéfact est au moins la borne basse');
+
   /* ── §4.2 : la provenance du pool figure TOUJOURS dans le résultat ── */
   egal(complet.source, 'synthetique', 'la source du pool est rendue');
   ok(complet.descriptionSource.includes('seed'), 'et sa description permet de rejouer le run à l’identique');

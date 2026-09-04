@@ -279,6 +279,30 @@ export interface ResultatHarnais {
   /** Palier 2 — tailles de pool par emplacement à chaque étage. */
   preparation: TaillesParEtage[];
   suivi: TraceSurvie[];
+  /**
+   * Les bornes RÉELLEMENT utilisées par l'étage de faisabilité, stat
+   * contrainte par stat contrainte.
+   *
+   * ⚠️ **Sans elles, « aucune rune éliminée » est indistinguable de « la
+   * correction n'est pas active ».** Les 6 scripts historiques appelaient
+   * `eliminateInfeasible` sans `guaranteedMin` ni `artFlatMin`, et bornaient
+   * l'apport d'artéfact à la paire FIGÉE du monstre au lieu de ce que
+   * l'inventaire peut donner. Un diagnostic qui ne montre pas ses bornes ne
+   * permet pas de savoir laquelle des deux versions il exécute — c'est
+   * exactement le genre de silence qui a coûté cher.
+   */
+  bornesFaisabilite: {
+    stat: string;
+    /** Apport de sets GARANTI (sert les maximums). */
+    guaranteed: { pct: number; flat: number };
+    /** Apport de sets garanti côté MINIMUM — inclut la marge d'activation
+     *  supplémentaire, donc ≥ `guaranteed`. Absent des 6 scripts. */
+    guaranteedMin: { pct: number; flat: number };
+    /** Meilleur apport d'artéfact ATTEIGNABLE (sert les minimums). */
+    artFlatMax: number;
+    /** Apport d'artéfact INCOMPRESSIBLE (sert les maximums). */
+    artFlatMin: number;
+  }[];
 
   /** Absents si l'arrêt a eu lieu avant leur phase. */
   demiBuilds?: { compartimentsA: number; compartimentsB: number; combosA: number; combosB: number };

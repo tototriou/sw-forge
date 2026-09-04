@@ -127,6 +127,7 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
     arretApres,
     preparation: dernier.taillesParEtage,
     suivi: (config.suivre ?? []).map((id) => suivrePiece(id, resolue.poolInitial, dernier.etages)),
+    bornesFaisabilite: bornes(dernier.prepared),
   };
 
   if (dernier.prepared == null) {
@@ -282,6 +283,25 @@ async function apparierEnParallele(
     },
     prepared.startedAt
   );
+}
+
+/**
+ * Les bornes que l'étage de faisabilité a réellement appliquées.
+ *
+ * ⚠️ Lues sur le `PreparedSearch` de production, jamais recalculées : les
+ * recalculer ici serait précisément la reconstruction qu'on supprime. Elles
+ * servent à distinguer « aucune rune n'était à la marge » de « la correction
+ * n'est pas active » — deux situations qui produisent le MÊME nombre.
+ */
+function bornes(prepared: PreparedSearch | null): ResultatHarnais['bornesFaisabilite'] {
+  if (!prepared) return [];
+  return prepared.constrainedKeys.map((k) => ({
+    stat: k,
+    guaranteed: { pct: prepared.guaranteed.pct[k] ?? 0, flat: prepared.guaranteed.flat[k] ?? 0 },
+    guaranteedMin: { pct: prepared.guaranteedMin.pct[k] ?? 0, flat: prepared.guaranteedMin.flat[k] ?? 0 },
+    artFlatMax: prepared.artFlatMax[k] ?? 0,
+    artFlatMin: prepared.artFlatMin[k] ?? 0,
+  }));
 }
 
 /* --------------------------------------------------------------------------

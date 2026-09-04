@@ -15,65 +15,15 @@
 // ⚠️ Mesure, ne vérifie rien : pas d'assertions, pas dans `npm test`. Lancé à
 // la demande via `npm run benchmark:bucket-retention`.
 
-import { BaseStats, EffectLine, RuneDetail } from '../src/types';
+import { BaseStats, RuneDetail } from '../src/types';
 import { BuildRequirement, SearchParams, searchBuilds } from '../src/lib/runeBuildOptim';
+// Pool synthétique PARTAGÉ — voir scripts/lib/randomPool.ts.
+import { SETS_VARIES, mulberry32, randomPool } from './lib/randomPool';
 
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// Même palette de sets que benchmark-optim.ts — assez de sets DIFFÉRENTS
-// pour que le regroupement par compte de pièces (le mécanisme dont
-// BUCKET_CAP borne la mémoire) produise de vrais compartiments concurrents,
-// pas un seul compartiment géant.
-const SET_KEYS = ['violent', 'swift', 'despair', 'will', 'shield', 'fight', 'focus', 'endure', 'intangible'];
-const STAT_CODES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
-
-function randomRune(id: number, slot: number, rng: () => number): RuneDetail {
-  const set = SET_KEYS[Math.floor(rng() * SET_KEYS.length)];
-  const mainCode = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-  const used = new Set([mainCode]);
-  const subs: EffectLine[] = [];
-  for (let i = 0; i < 4; i++) {
-    let code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-    let tries = 0;
-    while (used.has(code) && tries < 10) {
-      code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-      tries++;
-    }
-    used.add(code);
-    subs.push({ code, value: 5 + Math.floor(rng() * 40) });
-  }
-  return {
-    id,
-    slot,
-    set,
-    rank: 6,
-    rarity: 5,
-    level: 15,
-    main: { code: mainCode, value: 10 + Math.floor(rng() * 100) },
-    subs,
-  };
-}
-
-// Un pool par SLOT (perSlot runes dans chacun des 6 slots), comme un vrai
-// inventaire filtré par emplacement.
-function randomPool(perSlot: number, seed: number): RuneDetail[] {
-  const rng = mulberry32(seed);
-  const out: RuneDetail[] = [];
-  let id = 1;
-  for (let slot = 1; slot <= 6; slot++) {
-    for (let i = 0; i < perSlot; i++) out.push(randomRune(id++, slot, rng));
-  }
-  return out;
-}
+// `perSlot` runes par emplacement, seed explicite — l'assortiment LARGE
+// (9 sets) est celui qui met le plus de compartiments en compétition.
+const poolDeBenchmark = (perSlot: number, seed: number): RuneDetail[] =>
+  randomPool(mulberry32(seed), perSlot, SETS_VARIES);
 
 const BASE: BaseStats = { hp: 10000, atk: 600, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
@@ -121,7 +71,7 @@ async function runExperiment(title: string, extra: Partial<SearchParams>) {
   console.log(`\n${'═'.repeat(90)}\n${title}\n${'═'.repeat(90)}`);
 
   for (const perSlot of POOL_SIZES_PER_SLOT) {
-    const pool = randomPool(perSlot, perSlot);
+    const pool = poolDeBenchmark(perSlot, perSlot);
     for (const scenario of SCENARIOS) {
       console.log(`\n${'─'.repeat(90)}`);
       console.log(`pool: ${perSlot}/slot · scénario: ${scenario.label}`);

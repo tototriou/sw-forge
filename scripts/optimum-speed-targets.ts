@@ -18,52 +18,17 @@
 // Usage : optimum-speed-targets.ts <sortie.json> [scenarios=60] [perSlot=35] [seed=7000]
 
 import { writeFileSync } from 'fs';
-import { BaseStats, EffectLine, RuneDetail } from '../src/types';
+import { BaseStats, RuneDetail } from '../src/types';
 import { StatKey, activeSets, runeEfficiency } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import { missingSets } from '../src/lib/recoMatch';
 import { BuildRequirement, SearchParams, SLOT_FILTER_PRESETS, prepareSearch, buildBuckets, Bucket, HalfCombo } from '../src/lib/runeBuildOptim';
 import { drain } from './lib/drain';
+// Pool synthétique PARTAGÉ — voir scripts/lib/randomPool.ts.
+import { SETS_SANS_JOKER, mulberry32, randomPool } from './lib/randomPool';
 
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const SET_KEYS = ['violent', 'swift', 'will', 'shield', 'fight'];
-const STAT_CODES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
 const STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 
-function randomRune(id: number, slot: number, rng: () => number): RuneDetail {
-  const set = SET_KEYS[Math.floor(rng() * SET_KEYS.length)];
-  const mainCode = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-  const used = new Set([mainCode]);
-  const subs: EffectLine[] = [];
-  for (let i = 0; i < 4; i++) {
-    let code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-    let tries = 0;
-    while (used.has(code) && tries < 10) {
-      code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-      tries++;
-    }
-    used.add(code);
-    subs.push({ code, value: 5 + Math.floor(rng() * 40) });
-  }
-  return { id, slot, set, rank: 6, rarity: 5, level: 15, main: { code: mainCode, value: 10 + Math.floor(rng() * 100) }, subs };
-}
-
-function randomPool(rng: () => number, perSlot: number): RuneDetail[] {
-  const out: RuneDetail[] = [];
-  let id = 1;
-  for (let slot = 1; slot <= 6; slot++) for (let i = 0; i < perSlot; i++) out.push(randomRune(id++, slot, rng));
-  return out;
-}
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
@@ -206,7 +171,7 @@ console.log(`Calcul des cibles exactes — ${SCENARIOS} scénario(s), ${PER_SLOT
 
 for (let s = 0; s < SCENARIOS; s++) {
   const rng = mulberry32(SEED_BASE + s);
-  const pool = randomPool(rng, PER_SLOT);
+  const pool = randomPool(rng, PER_SLOT, SETS_SANS_JOKER);
 
   const nMin = 2 + Math.floor(rng() * 3);
   const shuffledStats = [...STAT_KEYS].sort(() => rng() - 0.5).slice(0, nMin);
@@ -222,7 +187,7 @@ for (let s = 0; s < SCENARIOS; s++) {
     else minStats[k] = 55 + Math.floor(rng() * 30);
   }
   const hasSets = rng() < 0.6;
-  const sets = hasSets ? [SET_KEYS[Math.floor(rng() * SET_KEYS.length)], SET_KEYS[Math.floor(rng() * SET_KEYS.length)]] : [];
+  const sets = hasSets ? [SETS_SANS_JOKER[Math.floor(rng() * SETS_SANS_JOKER.length)], SETS_SANS_JOKER[Math.floor(rng() * SETS_SANS_JOKER.length)]] : [];
   const requirement: BuildRequirement = { sets, minStats };
 
   const prepared = prepareSearch({ base: BASE, artifacts: [], pool, requirement, metric: 'eff', slotFilterCap: SLOT_FILTER_PRESETS[0].cap });

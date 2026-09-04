@@ -55,7 +55,7 @@ import { build } from 'esbuild';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mkdirSync, rmSync, existsSync } from 'node:fs';
-import { BaseStats, EffectLine, RuneDetail } from '../src/types';
+import { BaseStats, RuneDetail } from '../src/types';
 import {
   BuildRequirement,
   buildBuckets,
@@ -67,59 +67,9 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { PairingQuotaWorkerData, PairingQuotaWorkerMessage } from '../scripts/lib/pairing-quota-worker';
 import { egal, ok, titre } from './outils';
+// Pool synthétique PARTAGÉ — voir scripts/lib/randomPool.ts.
+import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 
-// Même PRNG déterministe que rune-optim-differential.test.ts (mulberry32,
-// pas de dépendance) — seed distincte pour rester indépendant de cet autre
-// fichier.
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const SET_KEYS = ['violent', 'swift', 'will', 'shield', 'fight', 'intangible'];
-const STAT_CODES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
-
-function randomRune(id: number, slot: number, rng: () => number): RuneDetail {
-  const set = SET_KEYS[Math.floor(rng() * SET_KEYS.length)];
-  const mainCode = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-  const used = new Set([mainCode]);
-  const subs: EffectLine[] = [];
-  for (let i = 0; i < 4; i++) {
-    let code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-    let tries = 0;
-    while (used.has(code) && tries < 10) {
-      code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-      tries++;
-    }
-    used.add(code);
-    subs.push({ code, value: 5 + Math.floor(rng() * 40) });
-  }
-  return {
-    id,
-    slot,
-    set,
-    rank: 6,
-    rarity: 5,
-    level: 15,
-    main: { code: mainCode, value: 10 + Math.floor(rng() * 100) },
-    subs,
-  };
-}
-
-function randomPool(rng: () => number, perSlot: number): RuneDetail[] {
-  const out: RuneDetail[] = [];
-  let id = 1;
-  for (let slot = 1; slot <= 6; slot++) {
-    for (let i = 0; i < perSlot; i++) out.push(randomRune(id++, slot, rng));
-  }
-  return out;
-}
 
 function drain<T>(gen: Generator<unknown, T, void>): T {
   let step = gen.next();
@@ -180,7 +130,7 @@ export default async function testRuneOptimParallelPairing() {
 
     const wantSets = rng() < 0.7;
     const sets = wantSets
-      ? [SET_KEYS[Math.floor(rng() * (SET_KEYS.length - 1))], SET_KEYS[Math.floor(rng() * (SET_KEYS.length - 1))]]
+      ? [SETS_JOKER[Math.floor(rng() * (SETS_JOKER.length - 1))], SETS_JOKER[Math.floor(rng() * (SETS_JOKER.length - 1))]]
       : [];
     const minStats: BuildRequirement['minStats'] = {};
     if (rng() < 0.5) minStats.spd = 100 + Math.floor(rng() * 60);
@@ -266,7 +216,7 @@ export default async function testRuneOptimParallelPairing() {
 
       const wantSets = rng() < 0.7;
       const sets = wantSets
-        ? [SET_KEYS[Math.floor(rng() * (SET_KEYS.length - 1))], SET_KEYS[Math.floor(rng() * (SET_KEYS.length - 1))]]
+        ? [SETS_JOKER[Math.floor(rng() * (SETS_JOKER.length - 1))], SETS_JOKER[Math.floor(rng() * (SETS_JOKER.length - 1))]]
         : [];
       const minStats: BuildRequirement['minStats'] = {};
       if (rng() < 0.5) minStats.spd = 100 + Math.floor(rng() * 60);

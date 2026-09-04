@@ -35,10 +35,18 @@ remonté correctement par un utilisateur. C'est ce qui justifie de les figer ici
   question se reposera.
 - **esbuild**, déjà présent comme dépendance de Vite, bundle `index.ts` ; Node
   exécute le résultat. C'est tout ce que fait [run.mjs](run.mjs).
-- ⚠️ **Les tests ne passent pas par `tsc`** : `tsconfig.json` ne couvre que
-  `src`, et les inclure demanderait `@types/node`. esbuild se contente de retirer
-  les types. Une erreur de type dans un test se manifeste donc à l'exécution —
-  acceptable, puisqu'on lance les tests précisément à ce moment-là.
+- ✅ **Les tests passent par `tsc`** : `tsconfig.json` couvre `src`, `scripts`
+  ET `tests`. Ça n'a pas toujours été le cas — l'élargissement a révélé d'un
+  coup une vingtaine d'appels de test périmés. ⚠️ Ce filet reste partiel :
+  `tsc` ne voit jamais un champ OPTIONNEL oublié dans l'un des constructeurs
+  d'un type partagé (l'accès reste valide), seulement un champ dont le type
+  change ou qui devient obligatoire. Voir CLAUDE.md.
+- ⚠️ **Le pool de runes synthétique est PARTAGÉ**, dans
+  [../scripts/lib/randomPool.ts](../scripts/lib/randomPool.ts) — il vivait
+  auparavant en 13 copies. Sa séquence de tirage est un **contrat** : la
+  changer décalerait silencieusement tous les scénarios à seed fixe, sans
+  qu'un seul test n'échoue de façon lisible. [random-pool.test.ts](random-pool.test.ts)
+  fige pour cette raison des empreintes relevées AVANT la consolidation.
 - **`fake-indexeddb`** en dépendance de développement : les vraies sémantiques
   d'IndexedDB (transactions, ordre, structured clone), pas un faux maison qui
   validerait ce qu'on croit avoir écrit.

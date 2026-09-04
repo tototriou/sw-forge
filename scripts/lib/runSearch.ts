@@ -1,10 +1,15 @@
 // Exécute une recherche JUSQU'AU BOUT, avec la MÊME fidélité que l'app réelle
 // (runeBuildOptim.worker.ts) et scripts/perf-battery.ts : prepareSearch →
-// buildBuckets ×2 → pairBuckets AVEC escalade du budget de paires
-// (`maybeEscalateNodeBudget`). Un script qui pilote `pairBuckets` sans cette
-// escalade explore une fraction dérisoire de l'espace réel — voir le skill
-// `algo-verify`, section « Fidélité des scripts diagnostics », pour
-// l'incident qui a motivé cette factorisation.
+// buildBuckets ×2 → pairBuckets.
+//
+// ⚠️ Cette factorisation existe à cause d'un incident : un script pilotait
+// `pairBuckets` sans reproduire l'escalade du budget de paires du chemin de
+// production, et n'explorait donc qu'une fraction dérisoire de l'espace réel
+// (voir le skill `algo-verify`, section « Fidélité des scripts
+// diagnostics »). Ce budget a depuis été supprimé du moteur (piste 8) : il
+// n'y a plus rien à reproduire de ce côté-là, mais la raison d'être de ce
+// module tient toujours — c'est ici, et pas dans chaque script, que vit la
+// séquence fidèle au chemin de prod.
 //
 // ⚠️ Écart de fidélité CONNU depuis l'extension de la parallélisation de
 // l'appariement au mode normal (voir pistes.md, point 9) : ce script reste
@@ -24,11 +29,9 @@
 import {
   SearchParams,
   SearchResult,
-  NodeBudget,
   prepareSearch,
   buildBuckets,
   pairBuckets,
-  maybeEscalateNodeBudget,
 } from '../../src/lib/runeBuildOptim';
 import { drain } from './drain';
 
@@ -37,7 +40,6 @@ export interface TimedSearchResult extends SearchResult {
   buildWallMs: number;
   pairingMs: number;
   totalMs: number;
-  escalations: number;
 }
 
 export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
@@ -47,7 +49,7 @@ export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
   if (!prepared) {
     return {
       candidates: [], explored: 0, truncated: false,
-      prepMs: tPrepared - t0, buildWallMs: 0, pairingMs: 0, totalMs: tPrepared - t0, escalations: 0,
+      prepMs: tPrepared - t0, buildWallMs: 0, pairingMs: 0, totalMs: tPrepared - t0,
     };
   }
 
@@ -63,17 +65,7 @@ export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
   );
   const tBuild = performance.now();
 
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
-  let step = gen.next();
-  let escalations = 0;
-  while (!step.done) {
-    const before = nodeBudget.max;
-    maybeEscalateNodeBudget(nodeBudget, prepared, step.value, Date.now());
-    if (nodeBudget.max !== before) escalations++;
-    step = gen.next();
-  }
-  const result = step.value;
+  const result = drain(pairBuckets(prepared, bucketsA, bucketsB));
   const tEnd = performance.now();
 
   return {
@@ -82,6 +74,5 @@ export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
     buildWallMs: tBuild - tPrepared,
     pairingMs: tEnd - tBuild,
     totalMs: tEnd - t0,
-    escalations,
   };
 }

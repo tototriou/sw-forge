@@ -14,8 +14,6 @@ import {
   BuildRequirement,
   SearchParams,
   Objective,
-  NodeBudget,
-  maybeEscalateNodeBudget,
   prepareSearch,
   buildBuckets,
   pairBuckets,
@@ -114,28 +112,16 @@ function runOnce(slotFilterCap: number, adaptiveTrancheWeighting: boolean, metri
     )
   );
   const tBuild = performance.now();
-  // ⚠️ REPRODUIT L'ESCALADE RÉELLE via `maybeEscalateNodeBudget` (partagée
-  // avec runeBuildOptim.worker.ts et perf-battery.ts — voir son commentaire
-  // dans runeBuildOptim.ts) : `pairBuckets` avec le budget par défaut (figé
-  // à prepared.maxNodes) s'arrête à truncated=true sans jamais élargir, ce
-  // n'est PAS ce que fait l'app. Un script qui l'oublie explore <0,0001 %
-  // de l'espace réellement couvert — cause du faux "0 build trouvé" qui a
-  // fait perdre du temps avant que cette factorisation existe.
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+  // ⚠️ Ce script reproduisait ICI l'escalade du budget de paires, sans
+  // laquelle `pairBuckets` s'arrêtait à `truncated=true` sur <0,0001 % de
+  // l'espace réellement couvert par l'app — cause du faux « 0 build trouvé »
+  // qui a fait perdre du temps. Le budget a été supprimé (piste 8) : un appel
+  // nu explore désormais tout ce que l'app explore.
+  const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
-  let escalations = 0;
-  while (!step.done) {
-    const progress = step.value;
-    const now = Date.now();
-    const before = nodeBudget.max;
-    maybeEscalateNodeBudget(nodeBudget, prepared, progress, now);
-    if (nodeBudget.max !== before) escalations++;
-    step = gen.next();
-  }
+  while (!step.done) step = gen.next();
   const result = step.value;
   const tEnd = performance.now();
-  if (escalations > 0) console.log(`    [escalade x${escalations}, budget final ${nodeBudget.max.toLocaleString('fr-FR')}]`);
 
   return {
     count: result.candidates.length,

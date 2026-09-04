@@ -387,7 +387,7 @@ const result = runSearchToCompletion(params);
 
 console.log(
   `\n${result.candidates.length} build(s) trouvé(s) — tronqué : ${result.truncated} — ` +
-    `${result.explored.toLocaleString('fr-FR')} paires explorées (escalade x${result.escalations}) — ` +
+    `${result.explored.toLocaleString('fr-FR')} paires explorées — ` +
     `prep ${result.prepMs.toFixed(0)}ms · construction ${result.buildWallMs.toFixed(0)}ms · ` +
     `appariement ${result.pairingMs.toFixed(0)}ms · total ${(result.totalMs / 1000).toFixed(1)}s`
 );

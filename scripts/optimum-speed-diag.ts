@@ -67,7 +67,7 @@ function sameIds(a: number[], b: number[]): boolean {
 
 const rows: Row[] = [];
 for (const sc of scenarios) {
-  // ⚠️ AUCUNE surcharge de `bucketCap`/`slotFilterCap`/`maxNodes`/`maxMs` —
+  // ⚠️ AUCUNE surcharge de `bucketCap`/`slotFilterCap`/`maxMs` —
   // c'est précisément ce qu'on compare : le comportement RÉEL par défaut de
   // CHAQUE version, pas un réglage égalisé artificiellement.
   const params: SearchParams = { base: BASE, artifacts: [], pool: sc.pool, requirement: sc.requirement, metric: 'eff', combosOrderMode };

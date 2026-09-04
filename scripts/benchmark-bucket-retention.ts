@@ -169,16 +169,15 @@ async function main() {
   console.log('Phase 0 — BUCKET_CAP perd-il de bons candidats ? (moteur réel, bucketCap variable)');
 
   await runExperiment(
-    'Budget LÂCHE (isole bucketCap : maxCollected/maxNodes très larges, slotFilterCap=300)',
-    { slotFilterCap: 300, maxCollected: 500_000, maxNodes: 2_000_000, maxMs: 30_000 }
+    'Budget LÂCHE (isole bucketCap : maxCollected très large, slotFilterCap=300)',
+    { slotFilterCap: 300, maxCollected: 500_000, maxMs: 30_000 }
   );
 
   // ⚠️ Deuxième passe, SANS AUCUNE surcharge de budget — les vrais défauts de
-  // production (DEFAULT_MAX_NODES=400 000, MAX_COLLECTED=5000,
-  // DEFAULT_MAX_MS=15 000, slotFilterCap « Moyen »=80) : ce que vivrait
-  // réellement un joueur aujourd'hui à différents bucketCap. La première
-  // passe dit « bucketCap seul, budget illimité » ; celle-ci dit « bucketCap
-  // dans les conditions réelles où maxCollected/maxNodes entrent aussi en
+  // production (MAX_COLLECTED, DEFAULT_MAX_MS, slotFilterCap « Moyen »=80) :
+  // ce que vivrait réellement un joueur aujourd'hui à différents bucketCap.
+  // La première passe dit « bucketCap seul, budget illimité » ; celle-ci dit
+  // « bucketCap dans les conditions réelles où maxCollected entre aussi en
   // jeu ».
   await runExperiment('Budget de PRODUCTION (défauts réels de searchBuilds, slotFilterCap=80)', { slotFilterCap: 80 });
 }

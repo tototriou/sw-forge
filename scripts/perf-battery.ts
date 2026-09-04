@@ -77,7 +77,7 @@
 //            aucun temps précis). Un signal « rien d'évidemment cassé » en
 //            quelques secondes, PAS un remplaçant de la batterie complète
 //            ni de `--monotonicity` : ces deux cas sont les plus LÉGERS de
-//            la batterie (jamais besoin de beaucoup d'escalade) et
+//            la batterie et
 //            n'auraient rien pu détecter du bug BUCKET_CAP, qui ne se
 //            manifeste que sur des cas plus volumineux ou via
 //            `--monotonicity`. Choisis pour l'itération rapide pendant le
@@ -94,8 +94,6 @@ import {
   SearchParams,
   prepareSearch,
   pairBuckets,
-  maybeEscalateNodeBudget,
-  NodeBudget,
   Bucket,
 } from '../src/lib/runeBuildOptim';
 import { Case, CASES, loadCase } from './lib/perfShared';
@@ -112,10 +110,11 @@ export { CASES };
 const REPEATS = Number(process.argv.find((a) => a.startsWith('--repeats='))?.split('=')[1] ?? 2);
 const SAVE = process.argv.includes('--save');
 // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (OptimizerSection.tsx) — le vrai filet de
-// temps que l'écran utilise, pas une valeur arbitraire plus courte : un
-// budget plus court changerait le comportement de l'escalade (moins de
-// paliers avant `overBudget()`) et rendrait cette mesure infidèle à ce
-// qu'un utilisateur réel obtient.
+// temps que l'écran utilise, pas une valeur arbitraire plus courte. C'est
+// d'autant plus vrai depuis la suppression du budget de paires (piste 8) :
+// `maxMs` est désormais la SEULE borne, avec `maxCollected`, qui puisse
+// arrêter une recherche avant l'épuisement de l'espace — le raccourcir
+// rendrait la mesure directement infidèle à ce qu'un utilisateur obtient.
 const MAX_MS = 10 * 60 * 1000;
 const BASELINE_PATH = 'scripts/perf-baseline.json';
 
@@ -168,7 +167,6 @@ interface RunParams {
   slotFilterCap: number;
   maxMsConfigured: number;
   bucketCap: number;
-  maxNodesInitial: number;
   objective: string | undefined;
   sets: string[];
   minStats: BuildRequirement['minStats'];
@@ -310,7 +308,6 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
     slotFilterCap: params.slotFilterCap!,
     maxMsConfigured: maxMs,
     bucketCap: prepared.bucketCap,
-    maxNodesInitial: prepared.maxNodes,
     objective: c.objective,
     sets: requirement.sets,
     minStats: requirement.minStats,
@@ -358,13 +355,17 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   const buildBMs = outB.ms;
   const buildWallMs = tBuildB - tBuildStart;
 
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
   let foundMs: number | null = null;
   let foundExplored: number | null = null;
   let pairingFoundMs: number | null = null;
   const isTarget = (ids: number[]) => ids.length === 6 && ids.every((id) => targetRuneIds.has(id));
 
-  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+  // ⚠️ Pilotage pas à pas, PAS un `drain()` : c'est ici qu'on repère l'instant
+  // EXACT où le build cible apparaît (`foundMs`/`foundExplored`), ce qu'un
+  // résultat final ne dit pas. Ce fut aussi l'endroit où l'escalade du budget
+  // de paires devait être reproduite, sous peine de mesurer une recherche
+  // tronquée ; ce budget n'existe plus (piste 8).
+  const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
   while (!step.done) {
     const progress = step.value;
@@ -373,8 +374,6 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
       pairingFoundMs = performance.now() - tBuildB;
       foundExplored = progress.explored;
     }
-    const now = Date.now();
-    maybeEscalateNodeBudget(nodeBudget, prepared, progress, now);
     step = gen.next();
   }
   const res = step.value;

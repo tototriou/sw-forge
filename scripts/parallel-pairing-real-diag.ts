@@ -21,8 +21,8 @@ import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { loadBoxMonster, printMonsterSummary } from './lib/loadMonster';
 import { recipeToSearchParams } from './lib/recipeToSearchParams';
 import {
-  prepareSearch, buildBuckets, pairBuckets, maybeEscalateNodeBudget,
-  partitionBucketsALPT, totalPairCount, NodeBudget, Bucket, SearchParams,
+  prepareSearch, buildBuckets, pairBuckets,
+  partitionBucketsALPT, totalPairCount, Bucket, SearchParams,
 } from '../src/lib/runeBuildOptim';
 import { PairingQuotaWorkerData, PairingQuotaWorkerMessage } from './lib/pairing-quota-worker';
 import { drain } from './lib/drain';
@@ -125,17 +125,10 @@ async function main() {
 
     const globalMaxCollected = params.maxCollected ?? 100_000;
 
-    // ── 1. Séquentiel (référence, thread principal, vraie escalade) ──
+    // ── 1. Séquentiel (référence, thread principal) ──
     const preparedSeq = prepareSearch(params)!;
-    const seqBudget: NodeBudget = { max: preparedSeq.maxNodes };
     const t1 = performance.now();
-    const seqGen = pairBuckets(preparedSeq, bucketsA, bucketsB, seqBudget);
-    let seqStep = seqGen.next();
-    while (!seqStep.done) {
-      maybeEscalateNodeBudget(seqBudget, preparedSeq, seqStep.value, Date.now());
-      seqStep = seqGen.next();
-    }
-    const seqResult = seqStep.value;
+    const seqResult = drain(pairBuckets(preparedSeq, bucketsA, bucketsB));
     const seqMs = performance.now() - t1;
     console.log(`\n1. SÉQUENTIEL (référence) — ${seqResult.candidates.length} candidats, ${seqResult.explored.toLocaleString('fr-FR')} explorés, ${seqMs.toFixed(0)}ms`);
 

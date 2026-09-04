@@ -139,7 +139,7 @@ console.log('\nRecherche en cours…');
 const result = runSearchToCompletion(params);
 console.log(
   `${result.candidates.length} build(s) trouvé(s) — tronqué : ${result.truncated} — ` +
-    `${result.explored.toLocaleString('fr-FR')} paires explorées (escalade x${result.escalations}) — ` +
+    `${result.explored.toLocaleString('fr-FR')} paires explorées — ` +
     `total ${(result.totalMs / 1000).toFixed(1)}s`
 );
 

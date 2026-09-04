@@ -12,7 +12,7 @@
 import { resolveObjectifCli } from './lib/objectifCli';
 import { computeStats } from '../src/lib/stats';
 import { activeSets } from '../src/lib/effects';
-import { searchBuilds, excludedRuneIds, BuildRequirement, SearchParams, adaptiveMaxNodes, Objective, prepareSearch, buildBuckets, totalPairCount } from '../src/lib/runeBuildOptim';
+import { searchBuilds, excludedRuneIds, BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, totalPairCount } from '../src/lib/runeBuildOptim';
 import { parseAccountSource, parseAccountBox, parseSiegeDefense, parseSiegeOffense } from '../src/lib/importAccount';
 import { BaseStats } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
@@ -30,11 +30,10 @@ const { objective, objectiveStats } = resolveObjectifCli(objectiveArg);
 // (MAX_PER_SLOT_MATCH, le défaut interne du moteur QUAND l'appelant ne
 // précise rien) ni 300 — voir monster-search-pipeline-diag.ts.
 const slotFilterCap = args.rest[2] ? Number(args.rest[2]) : 80;
-// ⚠️ Surcharge EXPLICITE de maxNodes — jamais exposée dans l'UI, réservée à
-// la mesure : répond à « le budget adaptatif est-il trop CONSERVATEUR pour
-// CE cas précis (temps réellement écoulé très inférieur au filet de 10 min),
-// ou le vrai obstacle est ailleurs (ordre d'exploration) ? ».
-const maxNodesOverride = args.rest[3] ? Number(args.rest[3]) : undefined;
+// ⚠️ Un 4ᵉ argument surchargeait `maxNodes` pour répondre à « le budget
+// adaptatif est-il trop CONSERVATEUR pour CE cas précis ? » — question sans
+// objet depuis que le budget de paires a disparu (piste 8) : la recherche va
+// désormais au bout de `totalPairs` sauf épuisement du temps.
 const { gear, allRunes } = loadDeckMonster(args);
 
 // Le com2usId RÉEL de Sonia dans ce deck (pas simplement le nom) — nécessaire
@@ -94,10 +93,9 @@ if (manquantes.length > 0) {
 // courte que ce que l'app réelle laisse tourner, qui fausserait la mesure.
 const params: SearchParams = {
   base, artifacts: gear.artifacts, relic: gear.relic, pool, requirement, metric: 'eff', slotFilterCap, objective,
-  maxMs: 10 * 60 * 1000, maxNodes: maxNodesOverride,
+  maxMs: 10 * 60 * 1000,
 };
 console.log(`objective=${objective ?? '(aucun)'} slotFilterCap=${slotFilterCap}`);
-console.log('maxNodes adaptatif utilisé :', adaptiveMaxNodes(params).toLocaleString('fr-FR'));
 
 // ⚠️ totalPairCount, calculé À PART de searchBuilds (qui ne l'expose pas) —
 // même prepareSearch/buildBuckets que la vraie recherche, pour comparer

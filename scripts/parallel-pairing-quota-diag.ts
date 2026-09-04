@@ -8,9 +8,10 @@
 // tests (sets/minStats/maxStats).
 //
 // Fidélité : réutilise le VRAI pipeline (prepareSearch → buildBuckets ×2 →
-// partitionBucketsALPT → pairBuckets avec maybeEscalateNodeBudget), jamais
-// une réimplémentation — voir le skill algo-verify, section « Fidélité des
-// scripts diagnostics ». Chaque tranche simulée reconstruit sa PROPRE
+// partitionBucketsALPT → pairBuckets), jamais une réimplémentation — voir le
+// skill algo-verify, section « Fidélité des scripts diagnostics ». (Il a
+// aussi longtemps fallu y reproduire l'escalade du budget de paires ;
+// supprimée du moteur, piste 8.) Chaque tranche simulée reconstruit sa PROPRE
 // PreparedSearch (piège déjà documenté dans optimizer-perf-testing : un
 // `prepared` partagé entre tranches traitées séquentiellement fausse
 // `overBudget()`).
@@ -44,10 +45,8 @@ import {
   prepareSearch,
   partitionBucketsALPT,
   pairBuckets,
-  maybeEscalateNodeBudget,
   Bucket,
   BuildCandidate,
-  NodeBudget,
 } from '../src/lib/runeBuildOptim';
 import { drain } from './lib/drain';
 
@@ -163,13 +162,9 @@ for (const bA of bucketsA) {
 // même fraîcheur (filtrage déterministe, donc rejouer prepareSearch produit
 // les MÊMES compartiments, seul `startedAt` change).
 const preparedSeq = prepareSearch(params)!;
-const seqBudget: NodeBudget = { max: preparedSeq.maxNodes };
-const seqGen = pairBuckets(preparedSeq, bucketsA, bucketsB, seqBudget);
+const seqGen = pairBuckets(preparedSeq, bucketsA, bucketsB);
 let seqStep = seqGen.next();
-while (!seqStep.done) {
-  maybeEscalateNodeBudget(seqBudget, preparedSeq, seqStep.value, Date.now());
-  seqStep = seqGen.next();
-}
+while (!seqStep.done) seqStep = seqGen.next();
 const seqResult = seqStep.value;
 console.log(`\n1. SÉQUENTIEL (référence) — ${seqResult.candidates.length} candidats, ${seqResult.explored.toLocaleString('fr-FR')} explorés, truncated=${seqResult.truncated}`);
 
@@ -184,13 +179,9 @@ function runSlice(bucketASlice: Bucket[], maxCollectedForSlice: number): { candi
   // tranches traitées séquentiellement fausse le budget-temps).
   const sliceParams: SearchParams = { ...params, maxCollected: maxCollectedForSlice };
   const prepared = prepareSearch(sliceParams)!;
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-  const gen = pairBuckets(prepared, bucketASlice, bucketsB, nodeBudget);
+  const gen = pairBuckets(prepared, bucketASlice, bucketsB);
   let step = gen.next();
-  while (!step.done) {
-    maybeEscalateNodeBudget(nodeBudget, prepared, step.value, Date.now());
-    step = gen.next();
-  }
+  while (!step.done) step = gen.next();
   return step.value;
 }
 
@@ -206,8 +197,7 @@ function runSlicesSharedQuota(bucketSlices: Bucket[][], globalMaxCollected: numb
   const gens = bucketSlices.map((slice) => {
     const sliceParams: SearchParams = { ...params, maxCollected: globalMaxCollected }; // plafond INDIVIDUEL généreux, le vrai arrêt vient du total partagé
     const prepared = prepareSearch(sliceParams)!;
-    const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-    return { gen: pairBuckets(prepared, slice, bucketsB, nodeBudget), prepared, nodeBudget, done: false, count: 0, truncated: false };
+    return { gen: pairBuckets(prepared, slice, bucketsB), prepared, done: false, count: 0, truncated: false };
   });
   let cumulative = 0;
   while (cumulative < globalMaxCollected && gens.some((g) => !g.done)) {
@@ -220,7 +210,6 @@ function runSlicesSharedQuota(bucketSlices: Bucket[][], globalMaxCollected: numb
         g.truncated = step.value.truncated;
         continue;
       }
-      maybeEscalateNodeBudget(g.nodeBudget, g.prepared, step.value, Date.now());
       g.count = step.value.candidates.length;
       cumulative = gens.reduce((s, x) => s + x.count, 0);
       if (cumulative >= globalMaxCollected) break;

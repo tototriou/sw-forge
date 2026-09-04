@@ -4264,11 +4264,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             />
           </div>
           {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
-              PAS `nodeBudgetMax` (le plafond de nœuds, qui grandit avec
-              l'escalade — voir « Suite — escalade automatique du budget de
-              nœuds ») : les deux racontent des choses différentes, et
-              `nodeBudgetMax` grandissant en cours de route ferait reculer la
-              barre au lieu d'avancer. */}
+              la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
+              longtemps coexisté avec lui, écarté d'ici parce qu'il
+              grandissait en cours de route et aurait fait RECULER la barre.
+              C'est ce choix de l'interface qui a fini par emporter sa
+              suppression du moteur (spec/outils/optimizer/pistes.md,
+              piste 8). */}
           <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'

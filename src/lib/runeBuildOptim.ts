@@ -167,7 +167,6 @@ export interface SearchParams {
   pool: RuneDetail[]; // runes candidates (déjà filtrées par exclusion en amont)
   requirement: BuildRequirement;
   metric: OptimMetric;
-  maxNodes?: number; // budget de PAIRES (moitié+moitié) évaluées, pas de nœuds d'arbre
   maxCollected?: number; // plafond de candidats retenus avant arrêt (défaut MAX_COLLECTED)
   maxMs?: number; // budget de TEMPS écoulé, en ms (défaut DEFAULT_MAX_MS)
   slotFilterCap?: number; // candidats retenus par slot et par paquet (défaut MAX_PER_SLOT_MATCH/FILL)
@@ -644,15 +643,13 @@ function scorerPour(
   return (c) => statTotal(c.stats, sortBy);
 }
 
-// ⚠️ Historique du budget de paires par défaut, avant qu'il ne devienne
-// ADAPTATIF (voir `adaptiveMaxNodes` plus bas, qui remplace ce qui était ici
-// une constante fixe `DEFAULT_MAX_NODES`) : 4 000 000 → 20 000 000 (×5, en
-// même temps que `BUCKET_CAP` — les deux doivent grandir ENSEMBLE, voir son
-// commentaire ; relever seulement `BUCKET_CAP` peut faire RECULER un
-// résultat déjà trouvé, mesuré sur deck 10 Lushen) → 20 000 000 →
-// 32 000 000 (×1,6, Sonia deck 14, 4 minimums à la fois). Cette dernière
-// valeur (32 000 000) sert maintenant d'ANCRE au calcul adaptatif, pas de
-// plafond fixe universel — voir `adaptiveMaxNodes`.
+// ⚠️ **Il n'existe PLUS de budget de PAIRES** (`DEFAULT_MAX_NODES`, puis
+// `adaptiveMaxNodes` + escalade) : supprimé au profit de la borne exacte
+// `totalPairCount` — voir spec/outils/optimizer/pistes.md, piste 8, pour la
+// démonstration et l'historique de ses calibrages successifs. Ne subsistent
+// que les DEUX bornes ci-dessous (candidats collectés, temps écoulé), plus
+// la taille de l'espace lui-même. Toute lecture de ce fichier qui suppose
+// encore un plafond de nœuds est périmée.
 // ⚠️ Relevé de 5000 à 100 000 (×20) — demande explicite : trouver le
 // meilleur build importe plus que la vitesse, une recherche allant jusqu'à
 // ~1 minute est acceptable. Mesuré avant de relever
@@ -665,11 +662,12 @@ function scorerPour(
 // (~22-55 s, dominés par la construction des compartiments — un coût FIXE
 // de `slotFilterCap`, indépendant de `maxCollected`) : ce plafond n'y était
 // déjà pas le facteur limitant, donc le relever n'y coûte quasiment rien de
-// plus. `DEFAULT_MAX_NODES` relevé dans la même proportion (×10, plus
-// prudent) pour ne jamais redevenir, lui, le facteur limitant à la place.
+// plus. (Le budget de paires d'alors avait été relevé dans la même
+// proportion pour ne pas redevenir, lui, le facteur limitant à la place —
+// il n'existe plus, voir ci-dessus.)
 // Surchargeable via SearchParams.maxCollected.
 export const MAX_COLLECTED = 100_000;
-// Filet de sécurité indépendant de maxNodes/maxCollected : sur les scénarios
+// Filet de sécurité indépendant de `maxCollected` : sur les scénarios
 // mesurés (500 à 5000 runes, scripts/benchmark-optim.ts), le pire cas était
 // sous ~4 s — 15 s laisse une marge large avant de considérer qu'une
 // recherche est anormalement lente, sans jamais bloquer l'interface
@@ -744,9 +742,11 @@ const PER_STAT_KEEP_OBJECTIVE = 24;
 // recalibration : les quatre retrouvent leur build exact, entre 35 et 107 s,
 // toujours sous la barre des 2 minutes. `bucketCap (par tranche)=2000`
 // testé aussi : plus de marge sur le rang, mais un compartiment plus gros
-// épuise `maxNodes` sur MOINS de paires de compartiments explorées (même
-// piège que d'habitude) — a fait RECULER deck 10 Lushen (retrouvé à 1500,
-// plus retrouvé à 2000 avec le même `maxNodes`), écarté pour cette raison.
+// épuisait le BUDGET DE PAIRES d'alors sur MOINS de paires de compartiments
+// explorées (même piège que d'habitude) — a fait RECULER deck 10 Lushen
+// (retrouvé à 1500, plus retrouvé à 2000 à budget égal), écarté pour cette
+// raison. ⚠️ Ce budget n'existe plus (voir `MAX_COLLECTED` plus haut) :
+// c'est le paragraphe suivant qui vaut aujourd'hui.
 // ⚠️ Un cas encore plus extrême (8 conditions à la fois) échoue toujours,
 // mais pour une raison DIFFÉRENTE et hors de portée de cette constante : une
 // des runes réelles ne survit déjà plus à `filterSlot` (le pré-filtrage PAR
@@ -756,11 +756,17 @@ const PER_STAT_KEEP_OBJECTIVE = 24;
 // en pratique contrairement aux cas à 3-5 qui ont motivé cette recalibration.
 //
 // ⚠️ **Relevé une quatrième fois, 1500 → 3000, une fois l'escalade de budget
-// de nœuds en place** (voir `adaptiveMaxNodes`/`NodeBudget` plus haut) —
-// « Phase 0 » de spec/outils/optimizer/. Le rejet de `bucketCap=2000`
-// ci-dessus supposait un budget de paires FIXE : un compartiment plus gros
-// épuise ce budget sur MOINS de paires, faisant reculer un résultat déjà
-// trouvé. Cette hypothèse ne tient plus depuis l'escalade — REMESURÉ sur
+// de nœuds en place** — « Phase 0 » de spec/outils/optimizer/. Le rejet de
+// `bucketCap=2000` ci-dessus supposait un budget de paires FIXE : un
+// compartiment plus gros épuise ce budget sur MOINS de paires, faisant
+// reculer un résultat déjà trouvé. Cette hypothèse ne tient plus depuis
+// l'escalade — ni, désormais, depuis sa SUPPRESSION (piste 8) : le seul
+// arbitre restant est le budget-TEMPS, sous lequel un compartiment plus gros
+// coûte plus cher par paire de compartiments sans jamais raccourcir
+// l'exploration d'un plafond de nœuds. C'est bien à ce régime-là que le
+// relèvement a été validé (l'escalade rendait déjà le budget équivalent à
+// « tout ce que le temps permet »), donc aucune recalibration n'est due —
+// REMESURÉ sur
 // TOUTE la batterie de cas réels connus (deck 10 ET deck 11 Lushen, Sonia
 // deck 6, Sonia deck 14, Ciri défense équipe 3), aucune régression : chacun
 // reste trouvé EXACTEMENT, en 1,7 s à 130 s selon le cas, largement sous les
@@ -825,7 +831,7 @@ const BUCKET_CAP = 3000;
 // `--monotonicity` désormais disponible pour vérifier ça directement).
 // ⚠️ À Extrême, `bucketCap=22 500` fait ATTEINDRE le filet de temps de 10
 // min (`HARD_TIMEOUT_MS`) sur des cas volumineux — resserrer à une valeur
-// juste suffisante (9000, mesurée) N'ÉVITE PAS la troncature (l'escalade
+// juste suffisante (9000, mesurée) N'ÉVITE PAS la troncature (la recherche
 // consomme de toute façon tout le budget-temps disponible) et trouve
 // MOINS de builds en prime — conservé tel quel après mesure, pas par
 // défaut. Détails complets, y compris la piste « objectif de recherche
@@ -2144,8 +2150,8 @@ export function* buildBuckets(
   // une stat plafonnée type Taux Crit/Dmg Crit n'est jamais poussée vers son
   // max via une meule, contrairement à PV/ATQ/DEF) mais forts sur une stat
   // protégée par une tranche dédiée n'est plus exploré en dernier par
-  // défaut, dès que `maxCollected`/`maxNodes` interrompt la recherche avant
-  // de tout explorer (le cas courant, voir « Suite — augmenter le budget de
+  // défaut, dès que `maxCollected`/`maxMs` interrompt la recherche avant de
+  // tout explorer (le cas courant, voir « Suite — augmenter le budget de
   // recherche » dans spec/outils/optimizer/).
   // PROTOTYPE (ordre d'appariement) — calculé UNE FOIS par compartiment ici
   // (au lieu d'être recalculé à chaque comparaison puis jeté) et conservé sur
@@ -2205,14 +2211,13 @@ function satisfiesSets(
 // au plus un joker à eux deux, et le combo de sets demandé atteignable) —
 // une paire de compartiments incompatible ne contribue jamais une seule
 // paire de combos au total, aussi grands soient ses deux compartiments.
-// ⚠️ Reste une borne SUPÉRIEURE, pas le compte exact de paires réellement
-// visitées : `pairFeasibleMin`/`comboAOk`/`quickOk` (voir `pairBuckets`)
-// élaguent ENCORE, combo par combo, une fois DANS une paire de
-// compartiments compatible — les recalculer ici referait le travail de la
-// boucle elle-même. « Taille de l'espace à épuiser » au sens où l'entend
-// cette fonction : ce que l'algorithme visiterait AU PIRE, pas ce qu'il
-// visite RÉELLEMENT en pratique (presque toujours bien moins, voir le
-// budget de nœuds qui suffit largement dans les cas mesurés).
+// ⚠️ **Ce paragraphe décrivait une borne SUPÉRIEURE** (« ce que l'algorithme
+// visiterait AU PIRE ») — c'était vrai avant que `pairFeasibleMin` puis
+// `comboAOk` n'y soient ajoutés. Depuis, le compte est EXACT : voir le
+// commentaire de `totalPairCount` lui-même, plus bas, et le test différentiel
+// (`rune-optim-differential.test.ts`) qui vérifie l'égalité stricte avec les
+// paires réellement explorées. C'est cette exactitude qui a permis de
+// supprimer le budget de nœuds (piste 8).
 // Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
 // compartiments — factorisée pour être réutilisée à l'IDENTIQUE par
 // `pairBuckets` (élagage réel pendant l'appariement) ET `totalPairCount`
@@ -2328,6 +2333,16 @@ export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): B
   return sliceEntries.map((entries) => entries.map((e) => e.b));
 }
 
+// ⚠️ **C'est LA borne du moteur** — la seule, depuis la suppression du budget
+// de nœuds (piste 8). Elle vaut EXACTEMENT le nombre de paires que
+// `pairBuckets` incrémente sur les mêmes compartiments : mêmes prédicats,
+// dans le même ordre (joker, `satisfiesSets`, `bucketPairFeasibleMin`,
+// `comboAFeasible`), et `explored` s'incrémente AVANT tout élagage
+// supplémentaire (`quickOk`). ⚠️ **Cette égalité n'est pas un détail
+// d'affichage** : ajouter ici un filtre absent de `pairBuckets` (ou
+// l'inverse) casse le test différentiel `rune-optim-differential.test.ts`,
+// qui la vérifie strictement sur 15 scénarios aléatoires. Ne jamais toucher
+// à l'une des deux boucles sans l'autre.
 export function totalPairCount(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): number {
   const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, artFlatMin, totalOf } = prepared;
   let total = 0;
@@ -2774,63 +2789,25 @@ export type SearchProgress = BuildingProgress | PairingProgress;
 // limite ou un arrêt manuel réagissent vite (quelques centaines de ms au
 // pire, voir scripts/benchmark-optim.ts), assez rare pour ne pas payer le
 // coût d'un `yield` de générateur à chaque paire évaluée.
-// ⚠️ Exportée : l'orchestrateur d'une escalade de budget (voir `NodeBudget`
-// ci-dessous et runeBuildOptim.worker.ts) doit relever `nodeBudget.max`
-// avec une marge d'AU MOINS un point de passage, pour être sûr d'agir avant
-// que la boucle ne s'arrête d'elle-même.
+// ⚠️ Exportée : c'est la granularité à laquelle un appelant qui pilote
+// `pairBuckets` pas à pas peut agir (arrêt coopératif, message de
+// progression, coupure propre à un script de mesure) — aucun de ces
+// comportements ne peut réagir plus finement qu'un point de passage.
 export const CHECKPOINT_EVERY = 500;
 
-// ⚠️ Objet MUTABLE, pas un simple nombre — c'est ce qui permet d'ESCALADER
-// le budget de nœuds SANS relancer `pairBuckets` depuis le début. Le budget
-// « figé » historique (`prepared.maxNodes`, toujours calculé une fois par
-// `prepareSearch`/`adaptiveMaxNodes`) reste la valeur INITIALE — un appelant
-// qui n'a pas besoin d'escalade (recherche simple, tests, scripts) construit
-// un `NodeBudget` qu'il ne mute jamais, comportement STRICTEMENT identique à
-// avant. Un appelant qui PEUT surveiller la progression ENTRE deux points de
-// passage (le Worker, voir runeBuildOptim.worker.ts) peut à tout moment
-// augmenter `.max` avant que la boucle n'atteigne ce plafond — le générateur
-// continue alors EXACTEMENT là où il en était (même compartiments, mêmes
-// combos, `explored` jamais remis à zéro), sans jamais revisiter une paire
-// déjà explorée.
-export interface NodeBudget {
-  max: number;
-}
-
-// ⚠️ Escalade automatique du budget de nœuds, factorisée ici plutôt que
-// dupliquée par chaque appelant qui pilote `pairBuckets` pas à pas
-// (runeBuildOptim.worker.ts, scripts/perf-battery.ts, et tout script
-// diagnostic à venir) — trois copies indépendantes de cette même condition
-// existaient avant cette factorisation, et un script diagnostic écrit sans
-// elle a silencieusement exploré <0,0001 % de l'espace réel (38,4M paires
-// au lieu de 600M+ sur 10 min), produisant un faux « 0 résultat » pris pour
-// un bug du moteur — voir le skill `algo-verify`, section « Fidélité des
-// scripts diagnostics ». `adaptiveMaxNodes` (le plafond INITIAL) est
-// calibré pour le cas TYPIQUE ; sans cette escalade, un compte avec
-// beaucoup de runes peut épuiser ce plafond en quelques secondes alors que
-// le vrai budget-temps (`maxMs`, 10 min à l'écran) reste très largement
-// inutilisé.
-export const ESCALATION_FACTOR = 2;
-// Marge de sécurité sous `maxMs` : inutile d'escalader dans les toutes
-// dernières secondes, `overBudget()` (déjà vérifié par `pairBuckets`
-// lui-même) va de toute façon arrêter la recherche au prochain point de
-// passage — le budget-temps reste l'arbitre final, jamais contourné.
-export const ESCALATION_TIME_SAFETY = 0.95;
-
-// Mute `nodeBudget.max` EN PLACE si les trois conditions d'escalade sont
-// réunies (budget de paires presque épuisé, du temps encore disponible,
-// pas encore assez de candidats collectés) — sinon ne fait rien. À appeler
-// à CHAQUE point de passage (`step.value`) entre deux `gen.next()` d'un
-// générateur `pairBuckets`, avec une marge d'au moins `CHECKPOINT_EVERY`
-// pour être sûr d'agir avant que la boucle ne s'arrête d'elle-même.
-export function maybeEscalateNodeBudget(nodeBudget: NodeBudget, prepared: PreparedSearch, progress: PairingProgress, now: number): void {
-  if (
-    nodeBudget.max - progress.explored <= CHECKPOINT_EVERY &&
-    now - prepared.startedAt < prepared.maxMs * ESCALATION_TIME_SAFETY &&
-    progress.candidates.length < prepared.maxCollected
-  ) {
-    nodeBudget.max *= ESCALATION_FACTOR;
-  }
-}
+// ⚠️ **`NodeBudget`/`maybeEscalateNodeBudget`/`ESCALATION_FACTOR` ont été
+// SUPPRIMÉS ici** (piste 8, voir spec/outils/optimizer/pistes.md). Résumé,
+// pour qui viendrait les chercher : le budget de paires était doublé dès
+// qu'on l'approchait, tant qu'il restait du temps et pas assez de candidats
+// — sa valeur finale était donc, par construction, « tout ce que le temps
+// permet », et il n'a jamais arrêté une recherche que `maxMs` ou
+// `maxCollected` n'allaient arrêter. La borne exacte de l'espace est
+// `totalPairCount` (voir sa définition) ; l'y comparer donnerait un test
+// STRUCTURELLEMENT inatteignable (`explored` ne peut pas dépasser ce que
+// `totalPairCount` compte, les prédicats étant les mêmes), c'est pourquoi
+// il ne reste aucun plafond de paires du tout. Ne pas en réintroduire un
+// sans relire cette piste : un plafond exact ne protège de rien et
+// convertirait une future divergence de comptage en troncature silencieuse.
 
 /**
  * Cœur du moteur, sous forme de GÉNÉRATEUR : produit un {@link SearchProgress}
@@ -2843,44 +2820,14 @@ export function maybeEscalateNodeBudget(nodeBudget: NodeBudget, prepared: Prepar
  * d'arrêt pendant que la recherche tourne (voir
  * src/workers/runeBuildOptim.worker.ts).
  */
-// ⚠️ Budget de paires ADAPTATIF, plus une constante fixe dimensionnée pour le
-// pire cas — sans ça, TOUTE recherche paie le coût du cas le plus exigeant,
-// même une recherche LÂCHE (peu de conditions) qui trouve déjà des milliers
-// de bons candidats en quelques millions de paires (vérifié : un seul
-// minimum posé, ~2500-3500 candidats trouvés dès 4-12M paires, sans que ça
-// change quoi que ce soit d'y consacrer les 32M par défaut — pur gaspillage
-// de temps, signalé en usage réel après le calibrage précédent). Ancré sur
-// `sliceCount` (même quantité que `buildBuckets`, voir son commentaire) :
-// PROPORTIONNEL, avec un plancher bas (recherches lâches) et pas de plafond
-// haut (continue de croître au-delà de l'ancre, plutôt que de rester bloqué
-// à une valeur qui s'est déjà montrée insuffisante pour un cas encore plus
-// exigeant — voir « Limites connues » pour le cas à 7 conditions où même
-// cette croissance ne suffit pas encore). Ancre choisie sur MESURE, pas
-// devinée : deck 10 Lushen (3 minimums, 5 tranches) a besoin d'AU MOINS
-// ~28M paires pour être retrouvé exactement (échoue à 24M) — 32M à
-// `sliceCount=5` garde une marge raisonnable, cohérent avec le calibrage
-// validé pour Sonia deck 14 (4 minimums, 6 tranches, MOINS que ce que la
-// proportionnalité donnerait ici : 38,4M contre 32M testés — marge
-// supplémentaire, pas un recul).
-// ⚠️ Exportée (pas juste locale à `searchBuildsSteps`) : le Worker en a
-// besoin pour estimer une progression cohérente (`explored`/`maxNodes`) sans
-// deviner une constante fixe qui ne correspondrait plus à la vraie valeur
-// utilisée par CETTE recherche précise — voir `estimatePct` dans
-// runeBuildOptim.worker.ts.
-export function adaptiveMaxNodes(params: SearchParams): number {
-  if (params.maxNodes != null) return params.maxNodes;
-  const minEntries = ALL_STAT_KEYS
-    .map((k) => ({ k, min: params.requirement.minStats[k] }))
-    .filter((e): e is { k: StatKey; min: number } => e.min != null && e.min > 0);
-  const retentionKeys = Array.from(
-    new Set<StatKey>([...minEntries.map((e) => e.k), ...objectiveKeysOf(params.objective, params.objectiveStats)])
-  );
-  const sliceCount = 1 + (minEntries.length > 0 ? 1 : 0) + retentionKeys.length;
-  const ADAPTIVE_ANCHOR_SLICE_COUNT = 5;
-  const ADAPTIVE_ANCHOR_MAX_NODES = 32_000_000;
-  const ADAPTIVE_MIN_MAX_NODES = 8_000_000;
-  return Math.max(ADAPTIVE_MIN_MAX_NODES, Math.round((ADAPTIVE_ANCHOR_MAX_NODES * sliceCount) / ADAPTIVE_ANCHOR_SLICE_COUNT));
-}
+// ⚠️ `adaptiveMaxNodes` (budget de paires PROPORTIONNEL au nombre de
+// tranches, ancré à 32M pour 5 tranches, plancher 8M) a été SUPPRIMÉ avec le
+// reste de la machinerie de budget — voir le bloc ⚠️ au-dessus de
+// `CHECKPOINT_EVERY` et spec/outils/optimizer/pistes.md, piste 8. Les
+// mesures qui l'avaient calibré (deck 10 Lushen : au moins ~28M paires pour
+// être retrouvé exactement, échoue à 24M) restent des faits utiles sur le
+// COÛT des cas réels, pas sur un plafond : la recherche les explore
+// désormais toutes tant que `maxMs` le permet.
 
 // Tout ce que `buildBuckets` (les DEUX moitiés) ET la phase d'appariement
 // (`pairBuckets`) doivent partager — factorisé pour que les deux moitiés
@@ -2897,7 +2844,6 @@ export interface PreparedSearch {
   relic?: RelicDetail;
   requirement: BuildRequirement;
   metric: OptimMetric;
-  maxNodes: number;
   maxCollected: number;
   maxMs: number;
   startedAt: number;
@@ -2932,7 +2878,6 @@ export interface PreparedSearch {
 
 export function prepareSearch(params: SearchParams): PreparedSearch | null {
   const { base, artifacts, relic, pool, requirement, metric } = params;
-  const maxNodes = adaptiveMaxNodes(params);
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
   const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
@@ -2993,7 +2938,7 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
 
   return {
     base, artifacts, relic, requirement, metric,
-    maxNodes, maxCollected, maxMs, startedAt,
+    maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
     guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
@@ -3069,14 +3014,19 @@ function* orderedCompartmentPairs(bucketsA: Bucket[], bucketsB: Bucket[]): Gener
 // (`overBudget`) doit courir depuis le tout début de la recherche, y
 // compris le temps passé à construire les moitiés — sinon paralléliser leur
 // construction reculerait silencieusement l'échéance du filet de sécurité.
+//
+// ⚠️ **Aucun plafond de PAIRES** — ni paramètre, ni défaut, ni escalade (voir
+// le bloc au-dessus de `CHECKPOINT_EVERY`). Cette boucle s'arrête sur trois
+// choses et trois seulement : le temps (`overBudget`), les candidats
+// (`maxCollected`), ou l'épuisement de l'espace lui-même — dont la taille
+// EXACTE est `totalPairCount(prepared, bucketsA, bucketsB)`. Un appelant qui
+// veut malgré tout limiter l'exploration (script de mesure) le fait dans SA
+// boucle de pilotage, sur `step.value.explored`, sans que le moteur ait à
+// connaître cette notion.
 export function* pairBuckets(
   prepared: PreparedSearch,
   bucketsA: Bucket[],
-  bucketsB: Bucket[],
-  // ⚠️ Optionnel : par défaut, un budget FIGÉ à `prepared.maxNodes` — le
-  // comportement historique exact, pour tout appelant qui n'a pas besoin
-  // d'escalade (voir `NodeBudget`).
-  nodeBudget: NodeBudget = { max: prepared.maxNodes }
+  bucketsB: Bucket[]
 ): Generator<PairingProgress, SearchResult, void> {
   const {
     base, artifacts, relic, requirement, metric, maxCollected, maxMs, startedAt,
@@ -3119,7 +3069,7 @@ export function* pairBuckets(
           if (explored % CHECKPOINT_EVERY === 0) {
             yield { phase: 'pairing', candidates, explored };
           }
-          if (explored > nodeBudget.max || overBudget()) {
+          if (overBudget()) {
             truncated = true;
             break outer;
           }
@@ -3247,7 +3197,7 @@ export function* pairBuckets(
 // DEUX raisons distinctes, jamais distinguées avant ce correctif : (a) ce
 // worker a rempli SON PROPRE `perWorkerMaxCollected` (une tranche riche,
 // pas forcément le signe que la recherche GLOBALE est incomplète) ou (b)
-// il a épuisé son budget de nœuds/temps (`overBudget()`) AVANT même
+// il a épuisé son budget-TEMPS (`overBudget()`) AVANT même
 // d'atteindre son quota (une vraie troncature — de l'exploration
 // planifiée n'a jamais eu lieu). Un simple `results.some(r => r.truncated)`
 // (l'ancien comportement) confondait les deux : un worker sur une tranche
@@ -3257,7 +3207,7 @@ export function* pairBuckets(
 // au complet. Trouvé par une revue de code externe (2026-08-19, point 4).
 //
 // Distinction FIABLE (pas une heuristique) : `pairBuckets` vérifie
-// toujours le budget nœuds/temps AVANT de pousser un candidat, et ne
+// toujours le budget-temps AVANT de pousser un candidat, et ne
 // tronque par quota qu'APRÈS un push — au moment où `truncated` sort
 // `true`, `candidates.length` vaut EXACTEMENT `perWorkerMaxCollected` si
 // la cause est (a), et STRICTEMENT MOINS si la cause est (b) (sinon la

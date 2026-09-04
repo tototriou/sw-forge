@@ -13,16 +13,16 @@
 // Même méthode que optimum-rank-diag.ts (rang relatif + courbe de
 // rendement), rejouée sur des scénarios réels au lieu de synthétiques.
 //
-// ⚠️ Budget-TEMPS réaliste + escalade RÉELLE (maybeEscalateNodeBudget),
-// jamais un plafond de nœuds FIXE deviné — voir le skill algo-verify,
-// méthode point 2 : un budget artificiellement court (ou ici, un plafond de
-// nœuds qui se révèle trop court pour les plus gros de ces 7 cas réels,
-// jusqu'à ~700M paires d'après scripts/perf-baseline.json) ferait diverger
-// la mesure sans être représentatif d'un usage réel. `maxMs` par défaut
-// (60 s) reste dans l'ordre de grandeur d'une attente utilisateur réelle
-// (voir la même leçon dans rune-optim-parallel-pairing.test.ts, maxMs=30s
-// retenu comme plancher vérifié) ; l'escalade fait le reste, EXACTEMENT
-// comme runeBuildOptim.worker.ts en production.
+// ⚠️ Budget-TEMPS réaliste, jamais un plafond artificiel — voir le skill
+// algo-verify, méthode point 2 : un budget artificiellement court ferait
+// diverger la mesure sans être représentatif d'un usage réel. `maxMs` par
+// défaut (60 s) reste dans l'ordre de grandeur d'une attente utilisateur
+// réelle (voir la même leçon dans rune-optim-parallel-pairing.test.ts,
+// maxMs=30s retenu comme plancher vérifié). ⚠️ Ce script devait aussi
+// reproduire l'escalade du budget de PAIRES, sans quoi il se serait arrêté
+// bien avant les ~700M paires des plus gros de ces 7 cas réels
+// (scripts/perf-baseline.json) : ce budget n'existe plus (piste 8), le
+// pilotage nu ci-dessous est donc désormais fidèle par construction.
 //
 // Usage : combos-order-mode-real-account-diag.ts [maxMs=60000] [filtres]
 //   filtres — sous-chaînes (insensibles à la casse), séparées par des
@@ -32,7 +32,7 @@
 //   repayer les 7. Exemple : "sonia d6,lushen d10,rage seul".
 
 import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
-import { SearchParams, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, maybeEscalateNodeBudget } from '../src/lib/runeBuildOptim';
+import { SearchParams, prepareSearch, buildBuckets, pairBuckets, totalPairCount } from '../src/lib/runeBuildOptim';
 import { CASES, loadCase } from './lib/perfShared';
 import { drain } from './lib/drain';
 
@@ -67,11 +67,7 @@ function measure(base: BaseStats, artifacts: ArtifactDetail[], relic: RelicDetai
   );
   const total = totalPairCount(prepared, bucketsA, bucketsB);
 
-  // Budget INITIAL adaptatif réel (prepared.maxNodes, pas un plafond fixe
-  // deviné) + escalade RÉELLE (maybeEscalateNodeBudget) à chaque point de
-  // passage, EXACTEMENT comme runeBuildOptim.worker.ts en production.
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+  const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
   let foundExplored: number | null = null;
   let nextCheckpointIdx = 0;
@@ -89,7 +85,6 @@ function measure(base: BaseStats, artifacts: ArtifactDetail[], relic: RelicDetai
       yieldCurve[nextCheckpointIdx] = progress.candidates.length;
       nextCheckpointIdx++;
     }
-    maybeEscalateNodeBudget(nodeBudget, prepared, progress, Date.now());
     step = gen.next();
   }
   const result = step.value;

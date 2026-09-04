@@ -1,10 +1,12 @@
-// Fil `worker_threads` FIDÈLE au Chantier D — contrairement à
-// `pairing-worker.ts` (débit brut, budget FIXE, pas d'escalade), celui-ci
-// reproduit EXACTEMENT le mécanisme réel de `pairSlice.worker.ts` :
-// `prepareSearch` reconstruit localement (postMessage ne clone pas
-// `totalOf`), `startedAt` VRAI partagé écrasant celui de `prepareSearch`
-// (voir le correctif B1, historique-acceleration-et-outillage.md),
-// escalade réelle (`maybeEscalateNodeBudget`) à chaque checkpoint.
+// Fil `worker_threads` FIDÈLE au Chantier D — reproduit le mécanisme réel de
+// `pairSlice.worker.ts` : `prepareSearch` reconstruit localement (postMessage
+// ne clone pas `totalOf`) et `startedAt` VRAI partagé écrasant celui de
+// `prepareSearch` (voir le correctif B1,
+// historique-acceleration-et-outillage.md).
+// ⚠️ Sa troisième fidélité, l'escalade du budget de paires à chaque
+// checkpoint, n'a plus d'objet : ce budget a été supprimé du moteur
+// (piste 8), donc la distinction d'avec `pairing-worker.ts` ne tient plus
+// que sur la coordination de quota ci-dessous.
 //
 // Deux modes, MÊME code de recherche, seule la coordination diffère :
 //  - `fixed` : `params.maxCollected` est déjà la part ÉGALE de ce worker
@@ -23,7 +25,7 @@
 
 import { parentPort, workerData } from 'worker_threads';
 import { setImmediate } from 'node:timers/promises';
-import { SearchParams, Bucket, BuildCandidate, NodeBudget, prepareSearch, pairBuckets, maybeEscalateNodeBudget } from '../../src/lib/runeBuildOptim';
+import { SearchParams, Bucket, BuildCandidate, prepareSearch, pairBuckets } from '../../src/lib/runeBuildOptim';
 
 export interface PairingQuotaWorkerData {
   params: SearchParams;
@@ -58,11 +60,9 @@ async function run() {
     return;
   }
   prepared.startedAt = data.startedAt;
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-  const gen = pairBuckets(prepared, data.bucketASlice, data.bucketsB, nodeBudget);
+  const gen = pairBuckets(prepared, data.bucketASlice, data.bucketsB);
   let step = gen.next();
   while (!step.done) {
-    maybeEscalateNodeBudget(nodeBudget, prepared, step.value, Date.now());
     if (data.mode === 'shared') {
       const progress: PairingQuotaWorkerMessage = { type: 'progress', explored: step.value.explored, foundCount: step.value.candidates.length };
       parentPort!.postMessage(progress);

@@ -18,14 +18,20 @@
 // Budget volontairement GÉNÉREUX mais BORNÉ (pas littéralement infini,
 // impraticable sur certains scénarios) : assez grand pour couvrir la
 // quasi-totalité des 51 scénarios sans tronquer avant la cible, voir
-// MAX_NODES ci-dessous — calibré empiriquement, pas deviné.
+// MAX_PAIRES ci-dessous — calibré empiriquement, pas deviné.
+// ⚠️ Ce plafond est un INSTRUMENT DE MESURE propre à ce script, plus un
+// paramètre du moteur : `pairBuckets` n'a plus aucun plafond de paires
+// (piste 8). La coupure est donc appliquée ICI, dans la boucle de pilotage —
+// `break` dès que `step.value.explored` dépasse MAX_PAIRES, avec les
+// candidats déjà trouvés à cet instant, exactement ce que faisait l'ancien
+// 4ᵉ argument.
 //
-// Usage : optimum-rank-diag.ts <scenarios.json> <potential|relevance> [maxNodes=20000000]
+// Usage : optimum-rank-diag.ts <scenarios.json> <potential|relevance> [maxPaires=20000000]
 
 import { readFileSync } from 'fs';
 import { BaseStats, RuneDetail } from '../src/types';
 import { BuildRequirement } from '../src/lib/runeBuildOptim';
-import { SearchParams, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget } from '../src/lib/runeBuildOptim';
+import { SearchParams, prepareSearch, buildBuckets, pairBuckets, totalPairCount, BuildCandidate } from '../src/lib/runeBuildOptim';
 import { drain } from './lib/drain';
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -44,9 +50,9 @@ function sameIds(a: number[], b: number[]): boolean {
   return [...a].sort((x, y) => x - y).every((v, i) => v === sb[i]);
 }
 
-const [scenarioFile, modeArg, maxNodesArg] = process.argv.slice(2);
+const [scenarioFile, modeArg, maxPairesArg] = process.argv.slice(2);
 if (!scenarioFile || (modeArg !== 'potential' && modeArg !== 'relevance')) {
-  console.error('Usage: optimum-rank-diag.ts <scenarios.json> <potential|relevance> [maxNodes=20000000]');
+  console.error('Usage: optimum-rank-diag.ts <scenarios.json> <potential|relevance> [maxPaires=20000000]');
   process.exit(1);
 }
 // ⚠️ Toujours un littéral EXPLICITE ('potential' ou 'relevance'), jamais
@@ -54,7 +60,7 @@ if (!scenarioFile || (modeArg !== 'potential' && modeArg !== 'relevance')) {
 // interne de `buildBuckets` (`'relevance'` depuis le 2026-08-18) au lieu de
 // vraiment forcer l'ancien comportement demandé par l'appelant.
 const combosOrderMode = modeArg === 'relevance' ? ('relevance' as const) : ('potential' as const);
-const MAX_NODES = maxNodesArg ? Number(maxNodesArg) : 20_000_000;
+const MAX_PAIRES = maxPairesArg ? Number(maxPairesArg) : 20_000_000;
 const scenarios: ScenarioIn[] = JSON.parse(readFileSync(scenarioFile, 'utf8'));
 
 interface Row {
@@ -73,7 +79,7 @@ for (const sc of scenarios) {
   // ⚠️ `maxCollected` explicitement ÉLARGI (défaut de production 100 000) :
   // sans ça, une recherche lâche s'arrête dès 100 000 candidats VALIDES
   // trouvés, bien avant d'avoir exploré assez de l'espace pour que le nœud
-  // budget (`MAX_NODES`) devienne la vraie limite — un plafond DIFFÉRENT de
+  // plafond de mesure (`MAX_PAIRES`) devienne la vraie limite — un plafond DIFFÉRENT de
   // celui qu'on veut isoler ici (le rang RELATIF sur l'espace total, pas le
   // volume de candidats retenus).
   const params: SearchParams = { base: BASE, artifacts: [], pool: sc.pool, requirement: sc.requirement, metric: 'eff', combosOrderMode, maxCollected: 1_500_000 };
@@ -88,18 +94,22 @@ for (const sc of scenarios) {
   );
   const total = totalPairCount(prepared, bucketsA, bucketsB);
 
-  const nodeBudget: NodeBudget = { max: MAX_NODES };
-  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+  const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
   let foundExplored: number | null = null;
   let nextCheckpointIdx = 0;
   const yieldCurve: (number | null)[] = CHECKPOINTS.map(() => null);
   let lastExplored = 0;
   let lastCandidates = 0;
+  // Candidats connus au moment où la boucle s'arrête — le `return` du
+  // générateur si elle va au bout, la dernière progression vue si c'est
+  // MAX_PAIRES qui coupe.
+  let derniersCandidats: BuildCandidate[] = [];
   while (!step.done) {
     const progress = step.value;
     lastExplored = progress.explored;
     lastCandidates = progress.candidates.length;
+    derniersCandidats = progress.candidates;
     if (foundExplored === null && progress.candidates.some((c) => sameIds(c.runeIds, sc.targetRuneIds))) {
       foundExplored = progress.explored;
     }
@@ -107,10 +117,11 @@ for (const sc of scenarios) {
       yieldCurve[nextCheckpointIdx] = progress.candidates.length;
       nextCheckpointIdx++;
     }
+    if (progress.explored > MAX_PAIRES) break; // plafond de MESURE, voir l'en-tête
     step = gen.next();
   }
-  const result = step.value;
-  if (foundExplored === null && result.candidates.some((c) => sameIds(c.runeIds, sc.targetRuneIds))) {
+  if (step.done) derniersCandidats = step.value.candidates;
+  if (foundExplored === null && derniersCandidats.some((c) => sameIds(c.runeIds, sc.targetRuneIds))) {
     foundExplored = lastExplored;
   }
   while (nextCheckpointIdx < CHECKPOINTS.length) {
@@ -131,7 +142,7 @@ for (const sc of scenarios) {
 }
 
 const found = rows.filter((r) => r.foundRank != null);
-console.error(`\n[bilan ${modeArg}] ${found.length}/${rows.length} cible(s) trouvée(s) dans le budget (maxNodes=${MAX_NODES}).`);
+console.error(`\n[bilan ${modeArg}] ${found.length}/${rows.length} cible(s) trouvée(s) dans le budget (plafond de mesure=${MAX_PAIRES} paires).`);
 if (found.length > 0) {
   const ranks = found.map((r) => r.foundRank!).sort((a, b) => a - b);
   console.error(`  rang relatif (0=début, 1=fin) — médiane=${ranks[Math.floor(ranks.length / 2)].toFixed(4)} p90=${ranks[Math.floor(ranks.length * 0.9)].toFixed(4)} max=${ranks[ranks.length - 1].toFixed(4)}`);

@@ -9,15 +9,18 @@
 //    l'ordre d'exécution), prouvée à petite échelle. Une simulation
 //    séquentielle est valide ici SANS RÉSERVE : le résultat ne peut,
 //    par construction, dépendre ni du temps ni de la concurrence.
-// 2. Budget ADAPTATIF + escalade (mode normal, VRAI mécanisme de
-//    production — `maybeEscalateNodeBudget`, voir pairSlice.worker.ts),
-//    plafonné par un vrai `maxMs` COURT pour forcer une troncature réelle.
+// 2. Recherche NORMALE (tronquée), plafonnée par un vrai `maxMs` COURT pour
+//    forcer une troncature réelle. ⚠️ Ce régime reposait à l'origine sur le
+//    budget ADAPTATIF + escalade (`maybeEscalateNodeBudget`) ; ce budget a
+//    été supprimé (pistes.md, piste 8), mais la dépendance au TEMPS RÉEL
+//    demeure — c'est désormais `maxMs` seul qui tronque, ce qui ne change
+//    rien aux deux raisons ci-dessous.
 //    ⚠️ De VRAIS `worker_threads` Node concurrents (PAS une simulation
 //    séquentielle) — deux raisons distinctes, trouvées après une objection
 //    justifiée de l'utilisateur qui questionnait l'intérêt même d'une
 //    simulation séquentielle ici :
-//    (a) ce régime dépend du TEMPS RÉEL écoulé (`maybeEscalateNodeBudget`
-//        compare `Date.now()` à `startedAt`) — une ancienne version
+//    (a) ce régime dépend du TEMPS RÉEL écoulé (`overBudget()` compare
+//        `Date.now()` à `startedAt`) — une ancienne version
 //        simulait les tranches séquentiellement avec un chrono FRAIS par
 //        tranche, un choix qui évite un artefact de perte (voir
 //        l'historique git) mais reste plus généreux en temps que la vraie
@@ -59,10 +62,8 @@ import {
   prepareSearch,
   partitionBucketsALPT,
   pairBuckets,
-  maybeEscalateNodeBudget,
   Bucket,
   BuildCandidate,
-  NodeBudget,
 } from '../src/lib/runeBuildOptim';
 import { PairingQuotaWorkerData, PairingQuotaWorkerMessage } from '../scripts/lib/pairing-quota-worker';
 import { egal, ok, titre } from './outils';
@@ -191,6 +192,10 @@ export default async function testRuneOptimParallelPairing() {
     // régime où le découpage est prouvé sans perte (voir l'en-tête de ce
     // fichier). Comparer sous troncature reproduirait le régime déjà connu
     // comme cassé (pistes.md, point 9), pas celui que ce code active.
+    // ⚠️ « Budget infini » ne concerne plus que `maxMs`/`maxCollected` : le
+    // plafond de PAIRES, qu'il fallait aussi neutraliser explicitement ici
+    // (`{ max: Number.POSITIVE_INFINITY }` passé à `pairBuckets`), n'existe
+    // plus du tout (pistes.md, piste 8).
     const params = { base: BASE, artifacts: [], pool, requirement, metric: 'eff' as const, maxMs: Number.POSITIVE_INFINITY, maxCollected: Number.MAX_SAFE_INTEGER };
     const prepared = prepareSearch(params);
     if (!prepared) continue; // pool vide après filtrage — rien à comparer sur ce scénario
@@ -198,7 +203,7 @@ export default async function testRuneOptimParallelPairing() {
     const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
     const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
 
-    const reference = drain(pairBuckets(prepared, bucketsA, bucketsB, { max: Number.POSITIVE_INFINITY }));
+    const reference = drain(pairBuckets(prepared, bucketsA, bucketsB));
     const refKeys = new Set(reference.candidates.map(candidateKey));
 
     for (const workerCount of [1, 2, 3, 4]) {
@@ -206,7 +211,7 @@ export default async function testRuneOptimParallelPairing() {
       let explored = 0;
       const candidates: BuildCandidate[] = [];
       for (const slice of slices) {
-        const r = drain(pairBuckets(prepared, slice, bucketsB, { max: Number.POSITIVE_INFINITY }));
+        const r = drain(pairBuckets(prepared, slice, bucketsB));
         explored += r.explored;
         candidates.push(...r.candidates);
       }
@@ -228,8 +233,8 @@ export default async function testRuneOptimParallelPairing() {
     }
   }
 
-  // ── Régime 2 : budget ADAPTATIF + escalade, maxMs RÉALISTE (mode normal,
-  // troncature réelle forcée) — voir l'en-tête de ce fichier pour la
+  // ── Régime 2 : maxMs RÉALISTE (mode normal, troncature réelle
+  // forcée) — voir l'en-tête de ce fichier pour la
   // propriété vérifiée (absence de perte, pas égalité stricte). Pool plus
   // dense (12 runes/slot, pas 4) pour que l'espace de paires soit assez
   // grand pour qu'un maxMs de 30 s tronque RÉELLEMENT quelque chose — sur
@@ -241,10 +246,13 @@ export default async function testRuneOptimParallelPairing() {
   // RÉELLEMENT des candidats (jusqu'à 7311). Remonté à 15 s puis confirmé à
   // 30 s (proche d'un arrêt manuel réel, jamais plus tôt en pratique) : LES
   // MÊMES scénarios ne perdent plus RIEN, le parallèle trouve même
-  // largement plus que le séquentiel. Le mécanisme d'escalade a besoin d'un
-  // minimum de temps RÉEL pour corriger un déséquilibre de charge initial
-  // entre workers — en dessous de ce minimum (jamais atteint en usage réel,
-  // voir la discussion qui a mené à cette valeur), la perte reste possible.
+  // largement plus que le séquentiel. Il faut un minimum de temps RÉEL pour
+  // qu'un déséquilibre de charge initial entre workers se corrige — en
+  // dessous de ce minimum (jamais atteint en usage réel, voir la discussion
+  // qui a mené à cette valeur), la perte reste possible. ⚠️ Ce minimum était
+  // attribué au mécanisme d'ESCALADE du budget de paires, depuis supprimé
+  // (piste 8) : la valeur de 30 s reste vérifiée telle quelle ci-dessous,
+  // sans plus dépendre de lui.
   // Documenté aussi dans spec/outils/optimizer/pistes.md, point 9. ──
   {
     let scenariosTronques = 0;
@@ -297,21 +305,23 @@ export default async function testRuneOptimParallelPairing() {
       // bug à détecter mais une conséquence attendue de la division
       // (Chantier D reste ouvert pour ça, voir
       // spec/outils/optimizer/pistes.md).
-      function runWithEscalation(bA: Bucket[], bB: Bucket[], maxCollectedOverride: number | undefined, sharedStartedAt: number | undefined) {
+      // ⚠️ S'appelait `runWithEscalation` : elle reproduisait à la main
+      // l'escalade de budget du chemin de production, sans laquelle un
+      // pilotage pas à pas explorait une fraction dérisoire de l'espace. Le
+      // budget de paires ayant été supprimé (pistes.md, piste 8), il ne reste
+      // RIEN à reproduire ici — mais la fonction est conservée parce que le
+      // reste de sa fidélité compte toujours : `maxCollected` divisé comme en
+      // production, et surtout le `startedAt` PARTAGÉ (sans lui, chaque
+      // `prepareSearch` repartirait avec son propre chrono, repoussant
+      // silencieusement l'échéance `maxMs` — voir `PairSliceRequest`).
+      function runSlice(bA: Bucket[], bB: Bucket[], maxCollectedOverride: number | undefined, sharedStartedAt: number | undefined) {
         const p2 = { ...params, maxCollected: maxCollectedOverride };
         const prepared = prepareSearch(p2)!;
         if (sharedStartedAt != null) prepared.startedAt = sharedStartedAt;
-        const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-        const gen = pairBuckets(prepared, bA, bB, nodeBudget);
-        let step = gen.next();
-        while (!step.done) {
-          maybeEscalateNodeBudget(nodeBudget, prepared, step.value, Date.now());
-          step = gen.next();
-        }
-        return step.value;
+        return drain(pairBuckets(prepared, bA, bB));
       }
 
-      const reference = runWithEscalation(bucketsA, bucketsB, undefined, startedAt);
+      const reference = runSlice(bucketsA, bucketsB, undefined, startedAt);
       if (reference.truncated) scenariosTronques++;
 
       const workerCount = Math.min(4, bucketsA.length);
@@ -361,7 +371,7 @@ export default async function testRuneOptimParallelPairing() {
         // si le vrai worker n'a été limité NI par le temps NI par son
         // plafond (truncated=false) — le temps déjà écoulé pendant la phase
         // des vrais workers, ci-dessus, ne doit donc jamais entrer en jeu.
-        const genereux = runWithEscalation(slices[i], bucketsB, Number.MAX_SAFE_INTEGER, undefined);
+        const genereux = runSlice(slices[i], bucketsB, Number.MAX_SAFE_INTEGER, undefined);
         const genereuxKeys = new Set(genereux.candidates.map(candidateKey));
         const gotKeys = new Set(r.candidates.map(candidateKey));
         let manquants = 0;

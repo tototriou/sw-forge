@@ -81,9 +81,9 @@ async function main(): Promise<void> {
     const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
     const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
 
-    // ── Référence : le chemin séquentiel, budget infini.
+    // ── Référence : le chemin séquentiel, aucun plafond.
     const tRef = performance.now();
-    const reference = drain(pairBuckets(prepared, bucketsA, bucketsB, { max: Number.POSITIVE_INFINITY }));
+    const reference = drain(pairBuckets(prepared, bucketsA, bucketsB));
     const refMs = performance.now() - tRef;
     const refKeys = new Set(reference.candidates.map(candidateKey));
 

@@ -105,8 +105,7 @@ souvent tout autre, et c'est LUI qu'il faut mesurer, une fois le code écrit.
 **Vérifier au bon ÉTAGE du pipeline, pas systématiquement de bout en
 bout** — voir `algo-verify`, méthode point 6. `buildBuckets` seul répond en
 secondes à « ce demi-build survit-il à la rétention ? », contre plusieurs
-minutes (avec l'escalade de budget) pour la même question posée via une
-recherche complète. Avant de relancer un pipeline complet, se demander
+minutes pour la même question posée via une recherche complète. Avant de relancer un pipeline complet, se demander
 quelle phase le changement touche réellement.
 
 ## Pièges déjà rencontrés, avec leurs contre-mesures

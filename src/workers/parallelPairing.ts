@@ -51,7 +51,7 @@ export interface SliceHandle {
 
 export type SpawnSlice = (
   request: PairSliceRequest,
-  onProgress: (explored: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => void
+  onProgress: (explored: number, newCandidates: BuildCandidate[]) => void
 ) => SliceHandle;
 
 // Découpe `bucketsA` en au plus `PARALLEL_PAIRING_WORKERS` tranches (jamais
@@ -84,7 +84,7 @@ export async function driveParallelPairing(
   prepared: PreparedSearch,
   bucketsA: Bucket[],
   bucketsB: Bucket[],
-  postProgress: (explored: number, found: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => void,
+  postProgress: (explored: number, found: number, newCandidates: BuildCandidate[]) => void,
   startedAt: number,
   onHandles?: (handles: SliceHandle[]) => void
 ): Promise<SearchResult> {
@@ -93,13 +93,6 @@ export async function driveParallelPairing(
   const perWorkerMaxCollected = Math.max(1, Math.ceil(prepared.maxCollected / workerCount));
 
   const exploredByWorker: number[] = new Array(workerCount).fill(0);
-  // Chaque worker escalade son PROPRE plafond (voir pairSliceBody.ts) —
-  // additionnés pour un total honnête, plutôt qu'une valeur inventée
-  // (Infinity n'est plus vrai depuis que ce chemin s'applique aussi en
-  // recherche normale). Champ non affiché tel quel dans l'UI (débogage/
-  // évolution future, voir useBuildOptimSearch.ts) : l'honnêteté du chiffre
-  // compte plus que sa précision exacte.
-  const nodeBudgetMaxByWorker: number[] = new Array(workerCount).fill(0);
   const allCandidates: BuildCandidate[] = [];
   let candidatesSent = 0;
   let lastProgressPost = 0;
@@ -111,15 +104,13 @@ export async function driveParallelPairing(
     const newCandidatesSlice = allCandidates.slice(candidatesSent);
     candidatesSent = allCandidates.length;
     const explored = exploredByWorker.reduce((s, v) => s + v, 0);
-    const nodeBudgetMax = nodeBudgetMaxByWorker.reduce((s, v) => s + v, 0);
-    postProgress(explored, allCandidates.length, newCandidatesSlice, nodeBudgetMax);
+    postProgress(explored, allCandidates.length, newCandidatesSlice);
   };
 
   const handles = slices.map((bucketASlice, i) => {
     const sliceParams: SearchParams = { ...params, maxCollected: perWorkerMaxCollected };
-    return spawnSlice({ params: sliceParams, bucketASlice, bucketsB, startedAt }, (explored, newCandidates, nodeBudgetMax) => {
+    return spawnSlice({ params: sliceParams, bucketASlice, bucketsB, startedAt }, (explored, newCandidates) => {
       exploredByWorker[i] = explored;
-      nodeBudgetMaxByWorker[i] = nodeBudgetMax;
       if (newCandidates.length > 0) allCandidates.push(...newCandidates);
       flushProgress();
     });

@@ -11,7 +11,7 @@ import { readFileSync } from 'fs';
 import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { loadSiegeMonster, printMonsterSummary } from './lib/loadMonster';
 import { recipeToSearchParams } from './lib/recipeToSearchParams';
-import { prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, maybeEscalateNodeBudget } from '../src/lib/runeBuildOptim';
+import { prepareSearch, buildBuckets, pairBuckets, totalPairCount } from '../src/lib/runeBuildOptim';
 import { drain } from './lib/drain';
 
 const [exportPath, recipePath, deckIdArg, maxMsArg] = process.argv.slice(2);
@@ -60,8 +60,7 @@ function measure(combosOrderMode: 'potential' | 'relevance' | 'combined' | 'obje
   const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, false, combosOrderMode));
   const total = totalPairCount(prepared, bucketsA, bucketsB);
 
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+  const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
   let foundExplored: number | null = null;
   let nextCheckpointIdx = 0;
@@ -79,7 +78,6 @@ function measure(combosOrderMode: 'potential' | 'relevance' | 'combined' | 'obje
       yieldCurve[nextCheckpointIdx] = progress.candidates.length;
       nextCheckpointIdx++;
     }
-    maybeEscalateNodeBudget(nodeBudget, prepared, progress, Date.now());
     step = gen.next();
   }
   const result = step.value;

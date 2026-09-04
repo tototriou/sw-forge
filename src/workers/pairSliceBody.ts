@@ -36,7 +36,7 @@
 // SA tranche, exactement comme le comportement séquentiel existant (bouton
 // « Arrêter » qui garde le meilleur trouvé jusque-là).
 
-import { prepareSearch, pairBuckets, SearchParams, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, SearchParams, Bucket, BuildCandidate } from '../lib/runeBuildOptim';
 import { drivePairing } from './pairingDriver';
 
 export interface PairSliceRequest {
@@ -65,11 +65,6 @@ export interface PairSliceProgressMessage {
   type: 'progress';
   explored: number;
   newCandidates: BuildCandidate[];
-  // Plafond de nœuds ACTUEL de CE worker (grandit avec l'escalade, voir
-  // plus bas) — l'orchestrateur (`runeBuildOptim.worker.ts`) additionne
-  // celui de chaque worker pour un total honnête, plutôt que d'afficher
-  // une valeur inventée (voir son commentaire sur `WorkerPairingMessage`).
-  nodeBudgetMax: number;
 }
 export interface PairSliceResultMessage {
   type: 'result';
@@ -104,22 +99,23 @@ export async function runPairSlice(
   // utilisation du budget-temps ci-dessous.
   prepared.startedAt = startedAt;
 
-  // ⚠️ Budget ADAPTATIF + escalade — EXACTEMENT le mécanisme réel du
-  // chemin séquentiel (voir runeBuildOptim.worker.ts, même appel à
-  // `maybeEscalateNodeBudget`), pas un budget figé. C'est CE mécanisme,
-  // vérifié à grande échelle (49 essais réels sous contention volontaire,
-  // 0 perte — voir spec/outils/optimizer/pistes.md, point 9), qui rend la
-  // parallélisation sûre aussi en recherche NORMALE (tronquée par défaut) :
-  // chaque worker démarre avec `prepared.maxNodes` (PAS divisé entre
-  // workers, chacun a sa PROPRE trajectoire d'escalade) et grandit tant
-  // qu'il reste du temps sous le même `prepared.maxMs` que le séquentiel
-  // aurait respecté — en mode exhaustif, `maxMs=Infinity` fait que cette
-  // escalade ne s'arrête jamais avant épuisement complet, retrouvant
-  // exactement le comportement déjà prouvé sans perte de ce mode-là.
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-  const gen = pairBuckets(prepared, bucketASlice, bucketsB, nodeBudget);
-  const result = await drivePairing(gen, prepared, nodeBudget, isStopped, (explored, newCandidates, nodeBudgetMax) => {
-    onProgress({ type: 'progress', explored, newCandidates, nodeBudgetMax });
+  // ⚠️ **Aucun budget de paires ici — et il n'y en a plus nulle part** (voir
+  // `totalPairCount` dans runeBuildOptim.ts, piste 8). Ce worker parcourt SA
+  // tranche en entier, et ne s'arrête que sur les DEUX bornes qui restent :
+  // sa part de plafond de candidats (`params.maxCollected`, déjà divisée par
+  // le parent) et le même `prepared.maxMs` que le séquentiel aurait respecté,
+  // couru depuis le `startedAt` GLOBAL ci-dessus.
+  // ⚠️ Ce que ça préserve : la sûreté de la parallélisation en recherche
+  // NORMALE (tronquée) reposait jusqu'ici sur le fait que chaque worker
+  // ESCALADAIT son propre budget au lieu d'en recevoir un figé — vérifié à
+  // grande échelle (49 essais réels sous contention volontaire, 0 perte, voir
+  // spec/outils/optimizer/pistes.md, point 9). Ne plus avoir de budget du
+  // tout est le cas LIMITE de cette escalade (elle convergeait vers « tout ce
+  // que le temps permet »), donc strictement au moins aussi sûr : aucun
+  // worker ne peut plus s'arrêter avant l'heure sur un plafond de paires.
+  const gen = pairBuckets(prepared, bucketASlice, bucketsB);
+  const result = await drivePairing(gen, isStopped, (explored, newCandidates) => {
+    onProgress({ type: 'progress', explored, newCandidates });
   });
   return { type: 'result', ...result };
 }

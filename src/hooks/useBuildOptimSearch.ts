@@ -40,22 +40,18 @@ export interface HalfBuildProgress {
 // gros).
 export type BuildOptimProgress =
   | { phase: 'building'; halves: { A: HalfBuildProgress | null; B: HalfBuildProgress | null } }
-  // `totalPairs` : la taille RÉELLE de l'espace à épuiser (voir
-  // `totalPairCount`), constante pour toute la phase — c'est CE
-  // dénominateur que l'écran affiche (`X / totalPairs`), pas
-  // `nodeBudgetMax` (le plafond de nœuds ACTUEL, qui grandit avec
-  // l'escalade — voir « Suite — escalade automatique du budget de
-  // nœuds ») : les deux racontent des choses différentes, et seul
-  // `totalPairs` correspond à la ligne « Espace de recherche à épuiser »
-  // affichée juste en dessous. `nodeBudgetMax` reste transmis (utile pour
-  // du débogage/une évolution future), simplement plus affiché tel quel
-  // dans cette ligne.
+  // `totalPairs` : la taille RÉELLE — et EXACTE — de l'espace à épuiser (voir
+  // `totalPairCount`), constante pour toute la phase. C'est CE dénominateur
+  // que l'écran affiche (`X / totalPairs`), cohérent avec la ligne « Espace
+  // de recherche à épuiser » juste en dessous. ⚠️ Un second champ
+  // (`nodeBudgetMax`, le plafond de nœuds ACTUEL, qui grandissait en cours de
+  // recherche) transitait ici sans jamais être affiché : supprimé avec le
+  // budget lui-même (piste 8).
   | {
       phase: 'pairing';
       explored: number;
       found: number;
       pct: number;
-      nodeBudgetMax: number;
       totalPairs: number;
       // Aperçu EN DIRECT, accumulé message après message à partir des
       // deltas envoyés par le Worker (voir `WorkerPairingMessage.
@@ -144,7 +140,6 @@ export function useBuildOptimSearch() {
                 explored: data.explored,
                 found: data.found,
                 pct: data.pct,
-                nodeBudgetMax: data.nodeBudgetMax,
                 totalPairs: data.totalPairs,
                 candidates,
               };

@@ -10,8 +10,8 @@
 // bucketCap et slotFilterCap restent FIXES aux valeurs de production
 // (5000 et 80, le preset « Moyen » — bucketCap relevé une seconde fois
 // depuis, voir spec/outils/optimizer/) — seul le budget de collecte
-// (`maxCollected`/`maxNodes`) varie, avec un temps de mur mesuré à chaque
-// palier pour vérifier qu'on reste bien dans l'ordre de grandeur annoncé.
+// (`maxCollected`) varie, avec un temps de mur mesuré à chaque palier pour
+// vérifier qu'on reste bien dans l'ordre de grandeur annoncé.
 //
 // ⚠️ Mesure, ne vérifie rien : pas d'assertions, pas dans `npm test`. Lancé à
 // la demande via `npm run benchmark:search-budget`.
@@ -94,8 +94,10 @@ const SCENARIOS: Scenario[] = [
 ];
 
 // bucketCap et slotFilterCap FIXES aux valeurs de production — seul le budget
-// de collecte change ici. maxNodes suit largement au-dessus de maxCollected
-// à chaque palier pour ne jamais devenir le facteur limitant à sa place.
+// de collecte change ici. ⚠️ Un `maxNodes` très large était posé à chaque
+// palier pour ne jamais devenir le facteur limitant à la place de
+// `maxCollected` : il n'y a plus de plafond de paires du tout (piste 8), la
+// précaution est sans objet.
 const PRODUCTION_BUCKET_CAP = 3000; // valeur de production réelle (BUCKET_CAP, par tranche depuis la 4e recalibration — Phase 0)
 // ⚠️ Testé aux DEUX presets réels, pas seulement « Moyen » : à 300/slot
 // (« Extrême »), la construction des compartiments (O(slotFilterCap³), fixe
@@ -138,7 +140,6 @@ async function main() {
         bucketCap: PRODUCTION_BUCKET_CAP,
         slotFilterCap: PRODUCTION_SLOT_FILTER_CAP,
         maxCollected: cap,
-        maxNodes: Math.max(cap * 50, 5_000_000), // très large, pour que ce ne soit jamais lui le facteur limitant
         maxMs: 90_000, // marge au-delà de la minute « acceptable » annoncée
       };
       const t0 = performance.now();

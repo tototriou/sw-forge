@@ -7,18 +7,18 @@
 // plusieurs stratégies d'algorithme, ce qui n'est PAS le but ici. Générique :
 // monstre/deck/stats viennent des arguments, rien n'est en dur.
 //
-// Usage : monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes] [maxMs=180000]
+// Usage : monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxMs=180000]
 
 import { resolveObjectifCli } from './lib/objectifCli';
 import { computeStats } from '../src/lib/stats';
 import { activeSets, StatKey } from '../src/lib/effects';
-import { BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, pairBuckets, totalPairCount, NodeBudget, CHECKPOINT_EVERY } from '../src/lib/runeBuildOptim';
+import { BuildRequirement, SearchParams, Objective, prepareSearch, buildBuckets, pairBuckets, totalPairCount } from '../src/lib/runeBuildOptim';
 import { ArtifactDetail, BaseStats, RelicDetail } from '../src/types';
 import { loadDeckMonster, parseDeckMonsterArgs } from './lib/deckMonster';
 import { drain } from './lib/drain';
 
 const USAGE =
-  'Usage: monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxNodes] [maxMs=180000]';
+  'Usage: monster-search-validate.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80] [bucketCap] [maxMs=180000]';
 const args = parseDeckMonsterArgs(process.argv.slice(2), USAGE);
 const statKeysArg = args.rest[0] ?? 'atk,cr,cd';
 const statKeys = statKeysArg.split(',').map((s) => s.trim()) as StatKey[];
@@ -73,19 +73,19 @@ const params: SearchParams = {
   objective,
   objectiveStats,
   slotFilterCap,
-  maxMs: args.rest[5] ? Number(args.rest[5]) : 180_000,
+  maxMs: args.rest[4] ? Number(args.rest[4]) : 180_000,
   bucketCap: args.rest[3] ? Number(args.rest[3]) : undefined,
-  maxNodes: args.rest[4] ? Number(args.rest[4]) : undefined,
 };
 
 console.log('\nRecherche en cours (peut prendre jusqu\'à quelques dizaines de secondes)...');
 
-// ⚠️ Phase 0 (spec/outils/optimizer/) : rejoue l'escalade automatique du
-// budget de nœuds (voir runeBuildOptim.worker.ts) plutôt que d'appeler
-// `searchBuilds` (budget FIXE) — sans quoi un `bucketCap` plus élevé
-// reproduirait à tort le rejet historique (budget fixe pénalisé par des
-// compartiments plus coûteux à parcourir), sans refléter ce que l'écran fait
-// réellement aujourd'hui.
+// ⚠️ Phase 0 (spec/outils/optimizer/) : ce script rejouait ici l'escalade
+// automatique du budget de nœuds plutôt que d'appeler `searchBuilds` (budget
+// FIXE) — sans quoi un `bucketCap` plus élevé reproduisait à tort le rejet
+// historique (budget fixe pénalisé par des compartiments plus coûteux à
+// parcourir). Le budget de paires ayant disparu (piste 8), cette précaution
+// n'a plus lieu d'être ; le pilotage pas à pas est conservé pour l'affichage
+// détaillé (compartiments, `totalPairCount`) que `searchBuilds` n'expose pas.
 const prepared = prepareSearch(params);
 if (!prepared) {
   console.log('prepareSearch = null (au moins un emplacement vide après pré-filtrage)');
@@ -102,30 +102,12 @@ console.log(`bucketsA : ${bucketsA.length} compartiment(s), tailles = [${buckets
 console.log(`bucketsB : ${bucketsB.length} compartiment(s), tailles = [${bucketsB.map((b) => b.combos.length).join(', ')}]`);
 console.log(`totalPairCount : ${totalPairCount(prepared, bucketsA, bucketsB).toLocaleString('fr-FR')}`);
 
-const ESCALATION_FACTOR = 2;
-const ESCALATION_TIME_SAFETY = 0.95;
-const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-console.log(`nodeBudget initial : ${nodeBudget.max.toLocaleString('fr-FR')}`);
-let escalations = 0;
 const t0 = performance.now();
-const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+const gen = pairBuckets(prepared, bucketsA, bucketsB);
 let step = gen.next();
-while (!step.done) {
-  const progress = step.value;
-  const now = Date.now();
-  if (
-    nodeBudget.max - progress.explored <= CHECKPOINT_EVERY &&
-    now - prepared.startedAt < prepared.maxMs * ESCALATION_TIME_SAFETY &&
-    progress.candidates.length < prepared.maxCollected
-  ) {
-    nodeBudget.max *= ESCALATION_FACTOR;
-    escalations++;
-  }
-  step = gen.next();
-}
+while (!step.done) step = gen.next();
 const ms = performance.now() - t0;
 const res = step.value;
-console.log(`escalades : ${escalations} (nodeBudget final ${nodeBudget.max.toLocaleString('fr-FR')})`);
 
 console.log(
   `\n=== Résultat (${(ms / 1000).toFixed(1)} s, ${res.explored.toLocaleString('fr-FR')} paires explorées, ` +

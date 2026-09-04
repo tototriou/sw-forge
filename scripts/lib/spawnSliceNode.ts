@@ -54,7 +54,7 @@ export function makeSpawnSliceNode(workerBundlePath: string): SpawnSlice {
     const done = new Promise<SearchResult>((resolve, reject) => {
       worker.on('message', (msg: PairSliceResponse) => {
         if (msg.type === 'progress') {
-          onProgress(msg.explored, msg.newCandidates, msg.nodeBudgetMax);
+          onProgress(msg.explored, msg.newCandidates);
           return;
         }
         resolve({ candidates: msg.candidates, explored: msg.explored, truncated: msg.truncated });

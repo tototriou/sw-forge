@@ -150,11 +150,11 @@ export function prochainsATraiter(
     // `aParcourir`. Sans cette garde, il partirait deux fois en file.
     //
     // ⚠️ Le flux de candidats, lui, n'en produit pas : vérifié plutôt que
-    // supposé — `maybeEscalateNodeBudget` relève le plafond du générateur EN
-    // COURS sans rien relancer, les deltas sont découpés par un curseur
-    // strictement monotone (`allCandidates.slice(candidatesSent)`,
-    // runeBuildOptim.worker.ts), les tranches de `bucketsA` sont disjointes, et
-    // la réception est un pur `concat`.
+    // supposé — le générateur d'appariement n'est jamais relancé en cours de
+    // route, les deltas sont découpés par un curseur strictement monotone
+    // (`allCandidates.slice(candidatesSent)`, runeBuildOptim.worker.ts), les
+    // tranches de `bucketsA` sont disjointes, et la réception est un pur
+    // `concat`.
     if (deja.has(cle) || vusDansCeLot.has(cle)) continue;
     vusDansCeLot.add(cle);
     out.push(c);

@@ -41,6 +41,38 @@ vérifier vite et sans se faire piéger par la mécanique de mesure elle-même.
   séquentielle d'une COORDINATION EN DIRECT… » ci-dessous — piège distinct
   de la simple simulation séquentielle de workers indépendants.
 
+## ⚠️ Le premier réflexe : le harnais, pas un script ad hoc
+
+`scripts/diagnostic-harness.ts` (cœur dans `scripts/lib/diagnostic*.ts`)
+orchestre les fonctions de production et observe ce qu'elles font. **Avant
+d'écrire un script de diagnostic, vérifier qu'il ne répond pas déjà à la
+question** — c'est presque toujours le cas pour « pourquoi ce cas donne-t-il
+ça ? », « cette rune survit-elle, et à quel étage ? », « qu'est-ce que ce run
+applique vraiment ? », « la recherche était-elle complète, et sinon
+pourquoi ? ».
+
+Ce qu'il apporte, et qu'un script ad hoc doit sinon refaire à la main —
+c'est-à-dire rater :
+
+- l'**origine** de chaque paramètre effectif, dont le `bucketCap` **DÉRIVÉ**
+  de `slotFilterCap` (surcharger l'un déplace l'autre) ;
+- le **marquage de fidélité** : un run surchargé annonce « DIVERGE DE LA
+  PROD », et la marque voyage avec le résultat — un nombre collé dans une
+  conversation ne peut plus se faire passer pour du comportement de prod ;
+- le **régime** d'appariement choisi comme la production le choisirait
+  (seuil contre `totalPairCount`), jamais un séquentiel implicite ;
+- la **complétude** avec son motif (`maxMs` ou `maxCollected`) et
+  l'autodiagnostic `explored` contre `totalPairs` ;
+- la distinction **élagage sûr / rétention heuristique** — `filterSlot` est
+  MIXTE, une disparition n'y est pas un verdict ;
+- les temps **par phase** avec min / médiane / dispersion, et une mesure à
+  une seule répétition marquée comme non comparative.
+
+Écrire un script ad hoc reste légitime pour une question que le harnais ne
+couvre pas (l'intérieur de `buildBuckets`, une charge concurrente, un
+prototype d'algorithme) — dans ce cas, `algo-verify` s'applique
+intégralement.
+
 ## La boîte à outils — quel outil pour quelle question
 
 | Question posée | Outil | Coût typique |
@@ -49,7 +81,9 @@ vérifier vite et sans se faire piéger par la mécanique de mesure elle-même.
 | La justesse tient-elle à TOUS les préréglages (bas/moyen/haut/extrême), pas seulement Moyen ? | `perf-battery.ts --monotonicity` | ~2-3 min (parallélisé) |
 | Quel est l'impact RÉEL en temps d'un changement, comparé de façon fiable ? | `perf-battery-compare.ts <ref-ancien>` | quelques min par cas (dos-à-dos simultané) |
 | Je veux figer une référence de temps suivie dans le temps (avant de committer un changement accepté) | `perf-battery.ts --save` | plusieurs minutes (7 cas séquentiels, exprès) |
-| Un demi-build/une rune survit-il à la rétention, sans lancer une recherche complète ? | `prepareSearch` + `buildBuckets` SEUL (jamais `pairBuckets`) | quelques secondes, même à grande échelle |
+| Une rune survit-elle à la préparation, et à quel étage disparaît-elle ? | `scripts/diagnostic-harness.ts --arret=filterslot --suivre=<id>` | ~2 s, même sur un compte réel |
+| Qu'est-ce que ce run va RÉELLEMENT appliquer, avant de le lancer ? | `scripts/diagnostic-harness.ts --apercu` — configuration effective, ORIGINE de chaque paramètre, drapeau de fidélité, **rien n'est exécuté** | instantané |
+| Un demi-build survit-il à la rétention, sans lancer l'appariement ? | `scripts/diagnostic-harness.ts --arret=demi-builds` (ou `prepareSearch` + `buildBuckets` SEUL si on a besoin des `HalfCombo` eux-mêmes) | quelques secondes, même à grande échelle |
 | Un changement de PARALLÉLISATION de l'appariement perd-il des candidats (pas une question de temps) ? | `tests/rune-optim-parallel-pairing.test.ts` — différentiel à `maxMs` RÉALISTE (30 s, jamais un budget court juste assez long pour déclencher le chemin de code, voir `algo-verify` méthode point 2) | quelques secondes à quelques minutes selon le nombre de scénarios |
 | Une charge concurrente sur le fil PRINCIPAL (optimisation d'artéfacts au fil de l'eau) ralentit-elle la recherche ? | `scripts/artifact-contention-diag.ts` — vrais `worker_threads` pour l'appariement, répétitions ENTRELACÉES, charge témoin en calcul pur pour séparer cœurs et mémoire | quelques minutes par cas (N répétitions × 3 conditions) |
 | Un mécanisme de COORDINATION EN DIRECT entre workers (quota partagé, arrêt anticipé signalé…) respecte-t-il sa garantie sous une VRAIE latence de messages ? | ⚠️ JAMAIS une simulation séquentielle (voir piège dédié plus bas) — de VRAIS `worker_threads` Node concurrents, bundlés via esbuild : `scripts/lib/pairing-quota-worker.ts` + `scripts/parallel-pairing-real-diag.ts` (patron réutilisable, déjà utilisé pour la décision initiale de paralléliser l'appariement via `scripts/lib/pairing-worker.ts`/`scripts/pairing-parallel-diag.ts`) | quelques secondes par cas (bundling + spawn réel) |
@@ -107,6 +141,14 @@ bout** — voir `algo-verify`, méthode point 6. `buildBuckets` seul répond en
 secondes à « ce demi-build survit-il à la rétention ? », contre plusieurs
 minutes pour la même question posée via une recherche complète. Avant de relancer un pipeline complet, se demander
 quelle phase le changement touche réellement.
+
+⚠️ C'est exactement ce qu'expose `--arret=` du harnais (`mainstat`,
+`dominance`, `feasibility`, `filterslot`, `demi-builds`, `appariement`,
+`classement`) : le point d'arrêt devient un argument au lieu d'un script
+à écrire. ⚠️ S'arrêter à un étage de PRÉPARATION n'interrompt pas
+`prepareSearch` en son milieu — les quatre étages s'exécutent d'un bloc
+(~2 s au total) ; ce qui est évité, c'est la construction des demi-builds
+et l'appariement, où est le vrai coût.
 
 ## Pièges déjà rencontrés, avec leurs contre-mesures
 

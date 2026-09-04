@@ -121,7 +121,7 @@ export interface ConfigHarnais {
  * `slotFilterCap` déplace AUSSI `bucketCap`. Deux paramètres bougent, un
  * seul a été touché.
  */
-export type OrigineParametre = 'recette' | 'défaut moteur' | 'dérivé' | 'override';
+export type OrigineParametre = 'recette' | 'config synthétique' | 'défaut moteur' | 'dérivé' | 'override';
 
 export interface ParametreEffectif {
   nom: string;

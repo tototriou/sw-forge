@@ -143,7 +143,11 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
           `PAS le défaut du moteur (${DEFAULT_MAX_MS / 1000} s) — sinon le run mesurerait une recherche 40× plus courte que celle de l'utilisateur.`
       );
     }
-    origineCap = 'recette';
+    // ⚠️ PAS « recette » : il n'y en a pas. Et PAS « défaut moteur » non
+    // plus — c'est la configuration synthétique qui a dû fournir la valeur,
+    // le moteur en aurait pris une autre. Un libellé approximatif ici
+    // rendrait indéchiffrable ce que le run mesure réellement.
+    origineCap = 'config synthétique';
   }
 
   // ── Les paramètres effectifs, chacun avec son ORIGINE.
@@ -183,7 +187,7 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
   parametres.push({
     nom: 'maxMs',
     valeur: Number.isFinite(maxMsEffectif) ? maxMsEffectif : 'infini (exhaustif)',
-    origine: overrides.maxMs != null ? 'override' : source === 'recette' ? 'recette' : 'défaut moteur',
+    origine: overrides.maxMs != null ? 'override' : source === 'recette' ? 'recette' : 'config synthétique',
     valeurProd: Number.isFinite(maxMsProd) ? maxMsProd : 'infini (exhaustif)',
   });
 

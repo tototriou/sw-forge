@@ -32,6 +32,10 @@ vérification** avant de considérer une implémentation comme fiable.
   appelle les fonctions internes du moteur directement** (`prepareSearch`,
   `buildBuckets`, `pairBuckets`…) plutôt que l'API publique (`searchBuilds`/
   `searchBuildsSteps`) — voir « Fidélité des scripts diagnostics » ci-dessous.
+  ⚠️ **Et d'abord se demander si ce script doit exister** :
+  `scripts/diagnostic-harness.ts` couvre déjà la plupart de ces questions, en
+  étant fidèle par construction (voir la section ci-dessous). Ce déclencheur
+  vaut pour CHAQUE script écrit, pas une fois par tâche.
 
 **Hors périmètre** : filtres, tris simples, ou calculs qui ne cherchent pas
 « la meilleure combinaison parmi énormément de possibilités » — un `Array.sort`
@@ -124,6 +128,30 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    lui-même, le reste est hors du périmètre de ce skill-ci.
 
 ## Fidélité des scripts diagnostics
+
+### ⚠️ D'abord : ne pas écrire le script
+
+`scripts/diagnostic-harness.ts` existe précisément pour ça. Il **orchestre et
+observe** les fonctions de production — il ne réimplémente aucune étape — et
+il rend d'office ce qu'un script ad hoc doit sinon penser à faire :
+l'ORIGINE de chaque paramètre effectif (dont le `bucketCap` **dérivé** de
+`slotFilterCap`), le marquage « DIVERGE DE LA PROD » dès qu'un override est
+posé, le régime d'appariement choisi comme la production le choisirait, la
+complétude avec son motif, l'autodiagnostic `explored` contre `totalPairs`,
+et la distinction élagage SÛR / rétention HEURISTIQUE.
+
+**Avant d'écrire un script qui appelle `prepareSearch`/`buildBuckets`/
+`pairBuckets`, vérifier que le harnais ne répond pas déjà à la question.**
+C'est le cas pour l'écrasante majorité des diagnostics passés — les 6 qui
+avaient dérivé (contexte min/max reconstruit à la main, `guaranteedMin` et
+les bornes d'artéfact manquants) sont exactement ceux qu'il remplace.
+
+Le diff ligne à ligne décrit plus bas garde tout son sens pour ce que le
+harnais ne couvre PAS : l'intérieur de `buildBuckets`, une charge concurrente
+opposée au moteur, un prototype d'algorithme. Dans ces cas-là, tout ce qui
+suit s'applique intégralement.
+
+### Quand le script est nécessaire quand même
 
 ⚠️ **Incident vécu** : un script écrit pour reproduire un cas signalé par
 l'utilisateur (builds Sonia qui diminuent quand `slotFilterCap` augmente)
@@ -332,4 +360,8 @@ ce calcul concret à chaque fois.
       volumes réels du projet, pas seulement sur un petit jeu de test.
 - [ ] Les limites connues (heuristique, non-exhaustivité au-delà d'un budget…)
       sont écrites dans le fichier `spec/` correspondant.
+- [ ] Aucun script de diagnostic n'a été écrit pour une question à laquelle
+      `scripts/diagnostic-harness.ts` répond déjà — et si un script était
+      quand même nécessaire, sa fidélité au chemin de prod a été diffée
+      explicitement.
 - [ ] `npx tsc --noEmit`, `npm test` et `npm run build` passent.

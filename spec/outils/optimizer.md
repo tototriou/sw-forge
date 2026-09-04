@@ -1832,6 +1832,17 @@ muter ce qu'il reçoit.
 [tests/rune-optim-onstage.test.ts](tests/rune-optim-onstage.test.ts) le
 vérifie, en comparant le résultat produit avec et sans observateur.
 
+Cet observateur est ce sur quoi repose le **harnais de diagnostic**
+([scripts/diagnostic-harness.ts](scripts/diagnostic-harness.ts)) : un outil de
+développement — pas une fonctionnalité de l'app — qui rejoue une recherche à
+partir d'une recette exportée ou d'un pool synthétique reproductible, et
+restitue en deux paliers la configuration réellement appliquée (avec
+l'ORIGINE de chaque paramètre), la survie d'une rune étage par étage, le
+régime d'appariement choisi comme la production le choisirait, et la
+complétude avec son motif d'arrêt. Il remplace l'écriture de scripts de
+diagnostic ponctuels, dont plusieurs avaient dérivé du moteur réel sans que
+rien ne le signale.
+
 Le moteur a par ailleurs été validé
 « grandeur nature » : retrouver exactement le runage d'un monstre réel
 existant, à partir de ses propres stats comme critères, sur un compte de

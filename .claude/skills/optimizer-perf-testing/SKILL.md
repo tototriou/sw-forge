@@ -53,6 +53,16 @@ vérifier vite et sans se faire piéger par la mécanique de mesure elle-même.
 | Un changement de PARALLÉLISATION de l'appariement perd-il des candidats (pas une question de temps) ? | `tests/rune-optim-parallel-pairing.test.ts` — différentiel à `maxMs` RÉALISTE (30 s, jamais un budget court juste assez long pour déclencher le chemin de code, voir `algo-verify` méthode point 2) | quelques secondes à quelques minutes selon le nombre de scénarios |
 | Une charge concurrente sur le fil PRINCIPAL (optimisation d'artéfacts au fil de l'eau) ralentit-elle la recherche ? | `scripts/artifact-contention-diag.ts` — vrais `worker_threads` pour l'appariement, répétitions ENTRELACÉES, charge témoin en calcul pur pour séparer cœurs et mémoire | quelques minutes par cas (N répétitions × 3 conditions) |
 | Un mécanisme de COORDINATION EN DIRECT entre workers (quota partagé, arrêt anticipé signalé…) respecte-t-il sa garantie sous une VRAIE latence de messages ? | ⚠️ JAMAIS une simulation séquentielle (voir piège dédié plus bas) — de VRAIS `worker_threads` Node concurrents, bundlés via esbuild : `scripts/lib/pairing-quota-worker.ts` + `scripts/parallel-pairing-real-diag.ts` (patron réutilisable, déjà utilisé pour la décision initiale de paralléliser l'appariement via `scripts/lib/pairing-worker.ts`/`scripts/pairing-parallel-diag.ts`) | quelques secondes par cas (bundling + spawn réel) |
+| L'appariement PARALLÈLE de production donne-t-il le même résultat qu'un changement le laisse croire ? | `scripts/parallel-pairing-extraction-diff.ts` — de VRAIS `worker_threads` exécutant le **code de production lui-même** (`runPairSlice` + `driveParallelPairing`, partagés avec le navigateur), comparés au chemin séquentiel sur les 7 cas connus | quelques minutes par cas (budget INFINI des deux côtés) |
+
+⚠️ **Trois façons de faire tourner l'appariement parallèle en Node, à ne pas
+confondre** — elles n'ont ni la même fidélité ni le même usage :
+
+| Fichier | Ce que c'est | Quand s'en servir |
+|---|---|---|
+| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir spec/outils/optimizer/parallelisation-partagee.md) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
+| `scripts/lib/pairing-quota-worker.ts` | Une REPRODUCTION fidèle du mécanisme, plus un mode `shared` **qui n'est pas en production** (prototype du quota partagé, écarté) | Uniquement pour explorer la question du quota partagé |
+| `scripts/lib/pairing-worker.ts` | Un PROTOTYPE de mesure de débit brut — **budget figé, aucune escalade**, son en-tête le dit | Rien de fidèle : ne jamais en tirer une conclusion sur la prod |
 
 ⚠️ **`--quick` n'est PAS une preuve de justesse.** Ses 2 cas canari (voir
 `scripts/perf-battery.ts`) sont les plus LÉGERS de la batterie — ils

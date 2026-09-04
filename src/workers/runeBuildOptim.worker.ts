@@ -18,9 +18,10 @@
 // single-threaded : un message ne peut être livré que quand le code en
 // cours d'exécution le permet).
 
-import { prepareSearch, pairBuckets, totalPairCount, partitionBucketsALPT, combineParallelPairingResults, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 import { PairSliceRequest, PairSliceResponse } from './pairSlice.worker';
+import { driveParallelPairing, SliceHandle } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
 
 export type WorkerRequest = SearchParams | { stop: true };
@@ -111,7 +112,7 @@ let stopBuildReject: (() => void) | null = null;
 // chaque worker répond avec les candidats déjà trouvés sur SA tranche, pour
 // garder le même comportement qu'un arrêt en phase séquentielle (« garde le
 // meilleur trouvé jusque-là »).
-let activePairingWorkers: Worker[] = [];
+let activePairingWorkers: SliceHandle[] = [];
 
 // ⚠️ Parallélisation de l'APPARIEMENT — voir spec/outils/optimizer/
 // pistes.md, point 9. Historique en deux temps :
@@ -143,24 +144,22 @@ let activePairingWorkers: Worker[] = [];
 // bon seuil de RENTABILITÉ quand la recherche peut aussi s'arrêter par
 // `maxMs`/`maxCollected` avant `totalPairs`.
 //
-// PARALLEL_PAIRING_WORKERS : fixé à 4, délibérément PAS dérivé de
-// `navigator.hardwareConcurrency`. Mesuré NON monotone : sur 3 des 4 plus
-// gros cas connus, N=8 fait PIRE que N=4 (overhead croissant sans gain de
-// calcul supplémentaire) — un réglage automatique basé sur les cœurs
-// disponibles aurait été FAUX dans les deux sens (trop de workers sur un
-// petit cas, pas forcément mieux sur un gros). Voir pistes.md, point 9,
-// troisième mesure, pour le détail des 7 cas.
+// PARALLEL_PAIRING_WORKERS a déménagé dans `parallelPairing.ts`, avec
+// l'orchestration qui l'utilise — pour que le navigateur et Node en emploient
+// forcément la MÊME valeur.
 const PARALLEL_PAIRING_THRESHOLD = 100_000_000;
-const PARALLEL_PAIRING_WORKERS = 4;
 
 // Répartition GLOUTONNE par charge réelle (LPT) — voir `partitionBucketsALPT`
 // dans runeBuildOptim.ts (déplacée là pour être testable en Node, voir
 // tests/rune-optim-parallel-pairing.test.ts) pour la stratégie et sa preuve.
 
+// Adaptateur de plateforme passé à `driveParallelPairing` — la SEULE partie
+// du chemin parallèle qui reste liée à Vite/navigateur (`new Worker(new
+// URL(...))`). Son pendant Node vit dans `scripts/lib/`.
 function pairSliceInWorker(
   request: PairSliceRequest,
   onProgress: (explored: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => void
-): { worker: Worker; done: Promise<SearchResult> } {
+): SliceHandle {
   const worker = new Worker(new URL('./pairSlice.worker.ts', import.meta.url), { type: 'module' });
   const done = new Promise<SearchResult>((resolve, reject) => {
     worker.onmessage = (e: MessageEvent<PairSliceResponse>) => {
@@ -174,79 +173,11 @@ function pairSliceInWorker(
     worker.onerror = reject;
   });
   worker.postMessage(request);
-  return { worker, done };
-}
-
-// Découpe `bucketsA` en au plus `PARALLEL_PAIRING_WORKERS` tranches (jamais
-// plus que `bucketsA.length`, sinon des workers recevraient une tranche
-// vide pour rien), donne à CHAQUE worker une part ÉGALE du plafond GLOBAL
-// de candidats collectés (`prepared.maxCollected`, 100 000 par défaut,
-// INCHANGÉ par le mode exhaustif ET le mode normal — décision actée) pour
-// que la somme des N workers ne dépasse jamais significativement ce
-// plafond, et fusionne les résultats finaux (pas l'accumulateur de
-// progression, qui ne sert qu'à l'affichage EN DIRECT) via
-// `combineParallelPairingResults` — union simple pour `candidates` (sans
-// dédoublonnage nécessaire, les tranches de bucketsA sont disjointes : un
-// candidat donné ne peut exister que dans LA tranche qui contient son
-// comboA) mais PAS un simple OR pour `truncated` : voir le commentaire de
-// `combineParallelPairingResults` (runeBuildOptim.ts) — un worker sur une
-// tranche riche qui remplit SON PROPRE quota n'est pas forcément le signe
-// d'une recherche globalement incomplète.
-async function runParallelPairing(
-  params: SearchParams,
-  prepared: PreparedSearch,
-  bucketsA: Bucket[],
-  bucketsB: Bucket[],
-  postProgress: (explored: number, found: number, newCandidates: BuildCandidate[], nodeBudgetMax: number) => void,
-  startedAt: number
-): Promise<SearchResult> {
-  const workerCount = Math.min(PARALLEL_PAIRING_WORKERS, bucketsA.length);
-  const slices = partitionBucketsALPT(bucketsA, workerCount);
-  const perWorkerMaxCollected = Math.max(1, Math.ceil(prepared.maxCollected / workerCount));
-
-  const exploredByWorker: number[] = new Array(workerCount).fill(0);
-  // Chaque worker escalade son PROPRE plafond (voir pairSlice.worker.ts) —
-  // additionnés pour un total honnête, plutôt qu'une valeur inventée
-  // (Infinity n'est plus vrai depuis que ce chemin s'applique aussi en
-  // recherche normale). Champ non affiché tel quel dans l'UI (débogage/
-  // évolution future, voir useBuildOptimSearch.ts) : l'honnêteté du chiffre
-  // compte plus que sa précision exacte.
-  const nodeBudgetMaxByWorker: number[] = new Array(workerCount).fill(0);
-  const allCandidates: BuildCandidate[] = [];
-  let candidatesSent = 0;
-  let lastProgressPost = 0;
-
-  const flushProgress = () => {
-    const now = Date.now();
-    if (now - lastProgressPost <= PROGRESS_THROTTLE_MS) return;
-    lastProgressPost = now;
-    const newCandidatesSlice = allCandidates.slice(candidatesSent);
-    candidatesSent = allCandidates.length;
-    const explored = exploredByWorker.reduce((s, v) => s + v, 0);
-    const nodeBudgetMax = nodeBudgetMaxByWorker.reduce((s, v) => s + v, 0);
-    postProgress(explored, allCandidates.length, newCandidatesSlice, nodeBudgetMax);
+  return {
+    done,
+    stop: () => worker.postMessage({ stop: true }),
+    terminate: () => worker.terminate(),
   };
-
-  const handles = slices.map((bucketASlice, i) => {
-    const sliceParams: SearchParams = { ...params, maxCollected: perWorkerMaxCollected };
-    return pairSliceInWorker({ params: sliceParams, bucketASlice, bucketsB, startedAt }, (explored, newCandidates, nodeBudgetMax) => {
-      exploredByWorker[i] = explored;
-      nodeBudgetMaxByWorker[i] = nodeBudgetMax;
-      if (newCandidates.length > 0) allCandidates.push(...newCandidates);
-      flushProgress();
-    });
-  });
-  activePairingWorkers = handles.map((h) => h.worker);
-
-  // Arrêt manuel pendant cette phase : géré par le handler `stop` global
-  // (`self.onmessage`), qui poste `{stop:true}` à chaque worker actif —
-  // chacun répond gracieusement (voir pairSlice.worker.ts), donc `Promise.
-  // all` se résout normalement, juste plus tôt et avec `truncated: true`.
-  const results = await Promise.all(handles.map((h) => h.done));
-  for (const w of activePairingWorkers) w.terminate();
-  activePairingWorkers = [];
-
-  return combineParallelPairingResults(results, perWorkerMaxCollected, prepared.maxCollected);
 }
 
 function buildHalfInWorker(request: BuildHalfRequest, onProgress: (scanned: number, total: number) => void): Promise<Bucket[]> {
@@ -280,7 +211,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     for (const w of activeHalfWorkers) w.terminate();
     activeHalfWorkers = [];
     if (stopBuildReject) stopBuildReject();
-    for (const w of activePairingWorkers) w.postMessage({ stop: true });
+    for (const h of activePairingWorkers) h.stop();
     return;
   }
   stopped = false;
@@ -400,14 +331,17 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // fuyaient (le code qui les termine, juste après `Promise.all` dans
     // `runParallelPairing`, n'était jamais atteint).
     try {
-      const finalResult = await runParallelPairing(params, prepared, bucketsA, bucketsB, postProgress, startedAt);
+      const finalResult = await driveParallelPairing(
+        pairSliceInWorker, params, prepared, bucketsA, bucketsB, postProgress, startedAt,
+        (handles) => { activePairingWorkers = handles; }
+      );
       const result: WorkerResultMessage = { type: 'result', ...finalResult };
       (self as unknown as Worker).postMessage(result);
     } catch {
       // `runParallelPairing` a pu être interrompue avant son propre nettoyage
       // (juste après `Promise.all`, voir son commentaire) — les workers
       // enfants encore listés ici n'ont alors jamais été terminés.
-      for (const w of activePairingWorkers) w.terminate();
+      for (const h of activePairingWorkers) h.terminate();
       activePairingWorkers = [];
       const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true };
       (self as unknown as Worker).postMessage(result);

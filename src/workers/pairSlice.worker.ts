@@ -14,19 +14,11 @@
 // expédié).
 //
 // ⚠️ Les types du protocole (`PairSliceRequest`, `PairSliceResponse`…) vivent
-// désormais dans `pairSliceBody.ts` — ils sont réexportés ci-dessous pour que
-// les importateurs existants (`runeBuildOptim.worker.ts`) et la coquille Node
-// partent de la même source.
+// dans `pairSliceBody.ts`, avec la logique — les DEUX coquilles (celle-ci et
+// `scripts/lib/pair-slice-worker.ts`) les importent de là, jamais l'une de
+// l'autre.
 
 import { runPairSlice, PairSliceInbound } from './pairSliceBody';
-
-export type {
-  PairSliceRequest,
-  PairSliceInbound,
-  PairSliceProgressMessage,
-  PairSliceResultMessage,
-  PairSliceResponse,
-} from './pairSliceBody';
 
 let stopped = false;
 

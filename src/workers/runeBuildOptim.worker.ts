@@ -20,7 +20,7 @@
 
 import { prepareSearch, pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, NodeBudget, BuildCandidate } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
-import { PairSliceRequest, PairSliceResponse } from './pairSlice.worker';
+import { PairSliceRequest, PairSliceResponse } from './pairSliceBody';
 import { driveParallelPairing, SliceHandle } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
 

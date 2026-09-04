@@ -210,14 +210,27 @@ export default function testRuneOptimDifferential() {
     }
 
     // ⚠️ `totalPairCount` (affiché à l'écran comme « espace de recherche à
-    // épuiser ») doit rester une borne SÛRE : jamais en dessous du nombre de
-    // paires RÉELLEMENT visitées par une recherche exhaustive (`!truncated`)
-    // sur ce même scénario, sous peine d'annoncer moins de travail qu'il n'y
-    // en a en réalité — voir spec/outils/optimizer/, « Suite — espace de
-    // recherche affiné (pairFeasibleMin) ». Balayé sur les 15 scénarios
-    // aléatoires (sets et minStats variés, contrairement au pool synthétique
-    // à un seul compartiment de tests/rune-optim.test.ts) plutôt que sur un
-    // seul cas choisi à la main.
+    // épuiser ») doit valoir EXACTEMENT le nombre de paires visitées par une
+    // recherche exhaustive (`!truncated`) sur ce même scénario — pas
+    // seulement « au moins autant ». Voir spec/outils/optimizer/, « Suite —
+    // espace de recherche affiné (pairFeasibleMin) ». Balayé sur les 15
+    // scénarios aléatoires (sets et minStats variés, contrairement au pool
+    // synthétique à un seul compartiment de tests/rune-optim.test.ts) plutôt
+    // que sur un seul cas choisi à la main.
+    //
+    // ⚠️ **L'ÉGALITÉ, et plus l'inégalité, est l'invariant qui compte.** Tant
+    // que `totalPairCount` ne servait qu'à la barre de progression et à la
+    // décision de paralléliser, seule l'honnêteté de l'affichage était en jeu
+    // (« ne jamais annoncer moins de travail qu'il n'y en a », la formulation
+    // d'origine de cette assertion). Ce n'est plus le seul enjeu : c'est cette
+    // exactitude qui autorise à SUPPRIMER le budget de nœuds et son escalade
+    // (spec/outils/optimizer/pistes.md, piste 8), donc à laisser `pairBuckets`
+    // parcourir son espace sans aucun plafond de paires. Elle tient parce que
+    // les deux fonctions appliquent LITTÉRALEMENT les mêmes prédicats
+    // factorisés (`satisfiesSets`, joker, `bucketPairFeasibleMin`,
+    // `comboAFeasible`) et que `explored` s'incrémente AVANT tout élagage
+    // supplémentaire (`quickOk`). Un filtre ajouté dans l'une sans l'autre
+    // casse ici, au lieu de fausser silencieusement l'espace annoncé.
     if (!res.truncated) {
       const prepared = prepareSearch({ base: BASE, artifacts: [], pool, requirement, metric: 'eff' });
       if (prepared) {
@@ -233,7 +246,7 @@ export default function testRuneOptimDifferential() {
           buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
         );
         const total = totalPairCount(prepared, bucketsA, bucketsB);
-        ok(total >= res.explored, `scénario ${s} : totalPairCount (${total}) reste une borne sûre — jamais en dessous des paires réellement explorées par une recherche exhaustive (${res.explored})`);
+        egal(total, res.explored, `scénario ${s} : totalPairCount (${total}) vaut EXACTEMENT le nombre de paires explorées par une recherche exhaustive (${res.explored})`);
 
         // ⚠️ `estimatePairBound` (affiché à l'écran AVANT `buildBuckets`, donc
         // sans connaître les vrais compartiments) doit rester un MAJORANT de

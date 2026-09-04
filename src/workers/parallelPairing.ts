@@ -34,6 +34,29 @@ import { PROGRESS_THROTTLE_MS } from './pairingDriver';
 // son propre nombre de fils ne mesurerait plus la production.
 export const PARALLEL_PAIRING_WORKERS = 4;
 
+// PARALLEL_PAIRING_THRESHOLD : la taille d'espace (`totalPairCount`) à partir
+// de laquelle paralléliser vaut son coût de coordination. C'est le SEUL
+// critère de déclenchement — plus de condition sur le mode (exhaustif ou
+// normal) depuis la vérification à grande échelle (49 essais, 0 perte).
+//
+// Calibré en mode EXHAUSTIF (sous ~46M paires réelles, perte nette mesurée
+// jusqu'à ×0,32 — le coût de copie/démarrage des workers dépasse le gain de
+// calcul ; gain réel au-delà d'environ 250M, ×1,4 à ×2,3 mesuré). 100M est
+// choisi DANS cet intervalle, qui n'a PAS été finement calibré (rien mesuré
+// entre 46M et 250M) — à resserrer si un usage réel montre un cas proche de
+// cette frontière qui se comporte mal.
+// ⚠️ PAS reconfirmé spécifiquement en recherche NORMALE : la calibration du
+// SEUIL vient du mode exhaustif ; la vérification de NON-PERTE couvre les
+// deux modes mais ne re-teste pas si 100M reste le bon seuil de RENTABILITÉ
+// quand la recherche peut aussi s'arrêter par `maxMs`/`maxCollected` avant
+// `totalPairs`.
+//
+// ⚠️ Vit ICI pour la même raison que `PARALLEL_PAIRING_WORKERS` : un outil
+// Node qui recoderait ce seuil en dur cesserait de reproduire le régime que
+// la production choisirait pour le même cas — et ce n'est pas théorique, un
+// script du dépôt écrivait déjà `100_000_000` à la main.
+export const PARALLEL_PAIRING_THRESHOLD = 100_000_000;
+
 /**
  * Une tranche lancée, vue par l'orchestrateur — sans rien savoir de la
  * plateforme qui l'exécute.

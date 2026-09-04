@@ -23,7 +23,7 @@
 import { drain } from './lib/drain';
 import { CASES, loadCase } from './lib/perfShared';
 import { ensurePairSliceBundle, makeSpawnSliceNode } from './lib/spawnSliceNode';
-import { driveParallelPairing } from '../src/workers/parallelPairing';
+import { driveParallelPairing, PARALLEL_PAIRING_THRESHOLD } from '../src/workers/parallelPairing';
 import {
   SearchParams,
   BuildCandidate,
@@ -108,7 +108,7 @@ async function main(): Promise<void> {
     if (!ok) echecs++;
 
     console.log(`${cas}. ${c.label}`);
-    console.log(`   totalPairs=${totalPairs.toLocaleString('fr-FR')} (seuil prod 100M : ${totalPairs >= 100_000_000 ? 'PARALLÈLE' : 'séquentiel'})`);
+    console.log(`   totalPairs=${totalPairs.toLocaleString('fr-FR')} (seuil prod ${(PARALLEL_PAIRING_THRESHOLD / 1_000_000).toFixed(0)}M : ${totalPairs >= PARALLEL_PAIRING_THRESHOLD ? 'PARALLÈLE' : 'séquentiel'})`);
     console.log(`   référence  : ${refKeys.size} candidats uniques, explored=${reference.explored}, ${refMs.toFixed(0)}ms`);
     console.log(`   extraction : ${parKeys.size} candidats uniques, explored=${parallele.explored}, ${parMs.toFixed(0)}ms`);
     console.log(`   ${ok ? 'OK — ensembles IDENTIQUES' : `ÉCHEC — ${manquants.length} manquant(s), ${enTrop.length} en trop, ${doublons} doublon(s)`}`);

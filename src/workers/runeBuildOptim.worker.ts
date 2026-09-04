@@ -21,7 +21,7 @@
 import { prepareSearch, pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, BuildCandidate } from '../lib/runeBuildOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 import { PairSliceRequest, PairSliceResponse } from './pairSliceBody';
-import { driveParallelPairing, SliceHandle } from './parallelPairing';
+import { driveParallelPairing, PARALLEL_PAIRING_THRESHOLD, SliceHandle } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
 
 export type WorkerRequest = SearchParams | { stop: true };
@@ -125,7 +125,8 @@ let activePairingWorkers: SliceHandle[] = [];
 //    durcir le test — skill `optimizer-perf-testing`) : **0 perte
 //    détectée**, y compris en recherche NORMALE. La parallélisation
 //    s'applique donc depuis aux DEUX modes — seul le seuil de taille
-//    ci-dessous décide si ça vaut le coût de coordination.
+//    (`PARALLEL_PAIRING_THRESHOLD`, parallelPairing.ts) décide si ça vaut
+//    le coût de coordination.
 // 3. Le budget de paires a fini par être supprimé tout court (piste 8, voir
 //    `totalPairCount`) : chaque worker parcourt sa tranche ENTIÈRE sous les
 //    seules bornes `maxMs`/quota de candidats. C'est le cas LIMITE du
@@ -133,22 +134,10 @@ let activePairingWorkers: SliceHandle[] = [];
 //    permet » —, donc la vérification ci-dessus reste valable, et le
 //    découpage du point 1 n'a plus de « budget figé » possible du tout.
 //
-// PARALLEL_PAIRING_THRESHOLD : calibré en mode EXHAUSTIF (sous ~46M paires
-// réelles, perte nette mesurée jusqu'à ×0,32 — le coût de copie/démarrage
-// des Workers dépasse le gain de calcul ; gain réel au-delà d'environ 250M,
-// ×1,4 à ×2,3 mesuré). 100M est choisi DANS cet intervalle, qui n'a PAS été
-// finement calibré (rien mesuré entre 46M et 250M) — à resserrer si un
-// usage réel montre un cas proche de cette frontière qui se comporte mal.
-// ⚠️ PAS reconfirmé spécifiquement en recherche NORMALE : la calibration du
-// SEUIL vient du mode exhaustif, la vérification de NON-PERTE (point 2
-// ci-dessus) couvre les deux modes mais ne re-teste pas si 100M reste le
-// bon seuil de RENTABILITÉ quand la recherche peut aussi s'arrêter par
-// `maxMs`/`maxCollected` avant `totalPairs`.
-//
-// PARALLEL_PAIRING_WORKERS a déménagé dans `parallelPairing.ts`, avec
-// l'orchestration qui l'utilise — pour que le navigateur et Node en emploient
-// forcément la MÊME valeur.
-const PARALLEL_PAIRING_THRESHOLD = 100_000_000;
+// PARALLEL_PAIRING_THRESHOLD et PARALLEL_PAIRING_WORKERS ont tous deux
+// déménagé dans `parallelPairing.ts`, avec l'orchestration qui les utilise —
+// pour que le navigateur et Node emploient forcément les MÊMES valeurs. Voir
+// leurs commentaires là-bas pour la calibration.
 
 // Répartition GLOUTONNE par charge réelle (LPT) — voir `partitionBucketsALPT`
 // dans runeBuildOptim.ts (déplacée là pour être testable en Node, voir
@@ -296,8 +285,8 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // poignée de compartiments de chaque côté, jamais les combos eux-mêmes.
   const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
 
-  // Voir la définition de `runParallelPairing` et le commentaire de
-  // `PARALLEL_PAIRING_THRESHOLD` plus haut : depuis la vérification à
+  // Voir la définition de `driveParallelPairing` et le commentaire de
+  // `PARALLEL_PAIRING_THRESHOLD` (parallelPairing.ts) : depuis la vérification à
   // grande échelle (budget adaptatif par worker, 0 perte sur 49 essais),
   // le SEUL critère de déclenchement est la taille de l'espace à explorer —
   // plus de condition sur le mode (exhaustif ou normal).

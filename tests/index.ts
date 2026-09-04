@@ -31,6 +31,7 @@ import testCollabPaires from './collab-paires.test';
 import testDegats, { testFormesEquivalentes } from './degats.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
+import testRuneOptimOnStage from './rune-optim-onstage.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
 import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
 import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test';
@@ -87,6 +88,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
+  ['testRuneOptimOnStage', testRuneOptimOnStage],
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],
   ['testRuneOptimParallelPairing', async () => { await testRuneOptimParallelPairing(); }],
   ['testRuneOptimParallelTruncated', testRuneOptimParallelTruncated],

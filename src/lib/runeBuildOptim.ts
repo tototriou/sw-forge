@@ -2876,7 +2876,47 @@ export interface PreparedSearch {
   bucketCap: number;
 }
 
-export function prepareSearch(params: SearchParams): PreparedSearch | null {
+/**
+ * Les quatre étages de la préparation, dans l'ordre où `prepareSearch` les
+ * applique — voir `onStage`.
+ *
+ * ⚠️ Union FERMÉE, jamais un `string` : un observateur qui compare à une
+ * étape mal orthographiée doit échouer à la COMPILATION, pas se taire à
+ * l'exécution en n'observant jamais rien.
+ */
+export type PrepareStage = 'mainstat' | 'dominance' | 'feasibility' | 'filterslot';
+
+/**
+ * Observateur OPTIONNEL des états intermédiaires de la préparation.
+ *
+ * ⚠️ **Pourquoi il existe** : les quatre étages réassignent `bySlot`, et seul
+ * le dernier (`filtered`) sort dans `PreparedSearch` — les états après
+ * mainStat, après dominance et après faisabilité n'existent NULLE PART en
+ * sortie. Sans ce point d'observation, un outil de diagnostic qui veut
+ * distinguer « prouvée impossible » (faisabilité, élagage SÛR) de
+ * « seulement écartée » (filterSlot, rétention heuristique) n'a d'autre
+ * choix que de rappeler les fonctions une par une et de reconstruire le
+ * contexte à la main — exactement le second pipeline qu'on ne veut pas.
+ * Voir spec/outils/optimizer/harnais-diagnostic.md, §2.
+ *
+ * ⚠️ **L'observateur ne doit JAMAIS muter ce qu'il reçoit.** Il reçoit la
+ * référence réelle utilisée par l'étage suivant. Chaque étage produit des
+ * tableaux neufs (`.map()`, `pruneDominated` et `filterSlot` retournent de
+ * nouvelles listes), donc passer la référence est sûr — à condition que le
+ * lecteur reste un lecteur.
+ *
+ * ⚠️ **Omis = comportement strictement inchangé** : quatre tests de branche
+ * par appel de `prepareSearch`, rien d'autre. Y compris dans
+ * `pairSlice.worker.ts`, qui rappelle `prepareSearch` une fois par worker.
+ */
+export type PrepareStageObserver = (stage: PrepareStage, bySlot: RuneDetail[][]) => void;
+
+// ⚠️ `onStage` est un SECOND ARGUMENT, délibérément PAS un champ de
+// `SearchParams` : ce type traverse `postMessage`/`workerData` pour atteindre
+// les Workers (voir pairSliceBody.ts), et une fonction n'est pas
+// sérialisable — l'y placer casserait le chemin parallèle au lieu d'échouer
+// à la compilation.
+export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserver): PreparedSearch | null {
   const { base, artifacts, relic, pool, requirement, metric } = params;
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
   const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
@@ -2919,10 +2959,21 @@ export function prepareSearch(params: SearchParams): PreparedSearch | null {
   // le cas échéant. Cet ordre réduit le pool réel dès le départ, ce qui
   // atténue aussi le coût mémoire/temps de tout ce qui suit — voir
   // spec/outils/optimizer/.
+  //
+  // ⚠️ `onStage` (voir son type) observe chacun de ces quatre états — le seul
+  // endroit du moteur où les trois premiers existent encore.
   let bySlot = mainStatFilteredBySlot(pool, requirement);
+  onStage?.('mainstat', bySlot);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
+  onStage?.('dominance', bySlot);
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlatMax, relPct, totalOf, guaranteedMin, artFlatMin);
+  onStage?.('feasibility', bySlot);
   const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective, params.objectiveStats));
+  onStage?.('filterslot', filtered);
+  // ⚠️ L'observateur voit `filterslot` AVANT ce retour anticipé : un
+  // emplacement vidé par le pré-filtrage est précisément ce qu'un diagnostic
+  // cherche à localiser, et `prepareSearch` renvoie alors `null` — sans le
+  // signal ci-dessus, il n'y aurait AUCUNE trace de l'étage fautif.
   if (filtered.some((list) => list.length === 0)) {
     return null;
   }

@@ -1816,8 +1816,23 @@ les petits jeux du test différentiel.
 [tests/rune-optim-parallel-pairing.test.ts](tests/rune-optim-parallel-pairing.test.ts)
 vérifie spécifiquement que découper l'appariement sur plusieurs Workers
 retrouve EXACTEMENT le même ensemble de candidats que l'appariement
-séquentiel, sur des jeux aléatoires balayés à 1/2/3/4 tranches. Le moteur a
-par ailleurs été validé
+séquentiel, sur des jeux aléatoires balayés à 1/2/3/4 tranches.
+
+⚠️ **Les quatre étages de préparation sont OBSERVABLES, sans les rejouer.**
+`prepareSearch` accepte un observateur optionnel (`onStage`) appelé après
+chacun d'eux — statistique principale, dominance, faisabilité, pré-filtrage.
+Raison d'être : ces états sont écrasés l'un après l'autre et seul le dernier
+sort de la fonction, si bien qu'un outil de diagnostic voulant distinguer
+« rune **prouvée** impossible » (dominance, faisabilité) de « rune seulement
+**écartée** » (pré-filtrage heuristique) devait jusqu'ici rappeler les
+fonctions une par une et reconstruire le contexte à la main — une seconde
+implémentation du pipeline, qui a effectivement dérivé du vrai moteur.
+Observateur **omis = comportement strictement inchangé** ; il ne doit jamais
+muter ce qu'il reçoit.
+[tests/rune-optim-onstage.test.ts](tests/rune-optim-onstage.test.ts) le
+vérifie, en comparant le résultat produit avec et sans observateur.
+
+Le moteur a par ailleurs été validé
 « grandeur nature » : retrouver exactement le runage d'un monstre réel
 existant, à partir de ses propres stats comme critères, sur un compte de
 plusieurs milliers de runes.
@@ -1840,10 +1855,10 @@ plusieurs milliers de runes.
   construit, ni un workflow qui enchaîne automatiquement au monstre suivant
   après validation.
 - Le preset de pré-filtrage par emplacement et le filet de temps (« Réglages
-  avancés ») sont réglables ; le plafond de candidats collectés et le
-  budget de paires restent des paramètres internes du moteur, non exposés
-  dans l'UI — **« Rechercher jusqu'à épuisement complet » ne les retire
-  pas**. Sur une recherche assez large pour atteindre le plafond de
+  avancés ») sont réglables ; le plafond de candidats collectés reste un
+  paramètre interne du moteur, non exposé dans l'UI — **« Rechercher
+  jusqu'à épuisement complet » ne le retire pas**. Sur une recherche assez
+  large pour atteindre le plafond de
   candidats collectés avant d'avoir tout exploré, la recherche s'arrête
   quand même — en pratique sans conséquence sur la qualité du résultat, ce
   plafond étant largement au-delà de ce qu'affiche l'écran.

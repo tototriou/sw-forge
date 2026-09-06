@@ -212,7 +212,20 @@ export interface SerieTemps {
  */
 export interface TempsParPhase {
   preparation: SerieTemps;
+  /**
+   * Le temps RÉEL de la phase de construction — les deux moitiés étant
+   * bâties EN PARALLÈLE sur deux fils, comme en production. C'est donc le
+   * plus lent des deux, pas leur somme.
+   */
   demiBuilds: SerieTemps;
+  /**
+   * Le coût interne de chaque fil. ⚠️ Sans eux, une construction « lente
+   * malgré la parallélisation » est inexplicable : paralléliser ne fait
+   * jamais mieux que la moitié la plus lourde, et le déséquilibre A/B est
+   * réel (5,5 s contre 2,9 s sur un cas de la baseline).
+   */
+  demiBuildA: SerieTemps;
+  demiBuildB: SerieTemps;
   appariement: SerieTemps;
   total: SerieTemps;
 }

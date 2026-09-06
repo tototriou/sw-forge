@@ -2,7 +2,8 @@
 // ce qu'elles font. Il ne réimplémente AUCUNE étape algorithmique.
 //
 // La séquence exécutée ici est celle de `runeBuildOptim.worker.ts`, c'est-à-
-// dire du chemin de production : `prepareSearch` → `buildBuckets` ×2 →
+// dire du chemin de production : `prepareSearch` → `buildBuckets` ×2 EN
+// PARALLÈLE (deux fils, comme les deux Web Workers de l'app) →
 // `totalPairCount` (qui décide du régime) → `pairBuckets` séquentiel OU
 // `driveParallelPairing` → `sortCandidates`.
 //
@@ -28,7 +29,6 @@ import {
   PreparedSearch,
   SearchParams,
   SearchResult,
-  buildBuckets,
   candidateMetricTotal,
   pairBuckets,
   prepareSearch,
@@ -41,6 +41,7 @@ import { RuneDetail } from '../../src/types';
 import { drain } from './drain';
 import { ConfigResolue, resoudreConfig } from './diagnosticConfig';
 import { ensurePairSliceBundle, makeSpawnSliceNode } from './spawnSliceNode';
+import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
 import {
   ArretApres,
   Completude,
@@ -91,7 +92,11 @@ interface Passage {
   regime?: RegimeAppariement;
   resultat?: SearchResult;
   msPreparation: number;
+  /** Le temps RÉEL de la phase — le maximum des deux fils, pas leur somme. */
   msDemiBuilds: number;
+  /** Coût interne à chaque fil : diagnostic du DÉSÉQUILIBRE entre moitiés. */
+  msDemiBuildA?: number;
+  msDemiBuildB?: number;
   msAppariement: number;
   msTotal: number;
 }
@@ -102,14 +107,16 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
   const repetitions = Math.max(1, config.repetitions ?? 1);
   const avertissements = [...resolue.avertissements];
 
-  // ⚠️ Bundlé UNE FOIS, AVANT la première mesure : le coût d'esbuild ne doit
-  // jamais entrer dans un temps d'appariement. Préparé même si le régime
-  // s'avère séquentiel — quelques centaines de ms, hors chrono.
-  const cheminBundle = doitPouvoirParalleliser(arretApres) ? await ensurePairSliceBundle() : null;
+  // ⚠️ Les DEUX bundles sont produits UNE FOIS, AVANT la première mesure : le
+  // coût d'esbuild ne doit jamais entrer dans un temps mesuré. Celui des
+  // moitiés est préparé dès qu'on ira au-delà de la préparation ; celui des
+  // tranches d'appariement seulement si l'appariement aura lieu.
+  const bundleMoities = irAuDelaDeLaPreparation(arretApres) ? await ensureBuildHalfBundle() : null;
+  const bundleTranches = doitPouvoirParalleliser(arretApres) ? await ensurePairSliceBundle() : null;
 
   const passages: Passage[] = [];
   for (let i = 0; i < repetitions; i++) {
-    passages.push(await unPassage(resolue, arretApres, cheminBundle));
+    passages.push(await unPassage(resolue, arretApres, bundleMoities, bundleTranches));
   }
   // ⚠️ Le DERNIER passage sert de source aux résultats non temporels. Tous
   // sont identiques par construction (mêmes paramètres, même pool) SAUF
@@ -194,7 +201,8 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
 async function unPassage(
   resolue: ConfigResolue,
   arretApres: ArretApres,
-  cheminBundle: string | null
+  cheminBundleMoities: string | null,
+  cheminBundleTranches: string | null
 ): Promise<Passage> {
   const params = resolue.params;
   const t0 = performance.now();
@@ -224,17 +232,24 @@ async function unPassage(
   };
   if (prepared == null || estEtagePreparation(arretApres)) return passage;
 
-  // ── Phase B : les deux moitiés.
-  const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode)
-  );
-  const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode)
-  );
+  // ── Phase B : les deux moitiés, construites EN PARALLÈLE sur deux fils —
+  // comme la production, qui les confie à deux Web Workers.
+  //
+  // ⚠️ **Pas seulement pour que le temps affiché soit juste.** Le budget
+  // `maxMs` court depuis `prepared.startedAt`, construction comprise : une
+  // construction séquentielle vole ce budget à l'appariement, donc sur un run
+  // tronqué par le temps le harnais trouverait MOINS de candidats que la
+  // prod. Surcoût mesuré sur la baseline : +0,2 % du run là où l'appariement
+  // domine, mais +7 % à +32 % sur les cas où il ne domine pas.
+  const moities = await construireMoitiesEnParallele(prepared, params, cheminBundleMoities!);
+  const bucketsA = moities.bucketsA;
+  const bucketsB = moities.bucketsB;
   const tBuild = performance.now();
   passage.bucketsA = bucketsA;
   passage.bucketsB = bucketsB;
   passage.msDemiBuilds = tBuild - tPrepare;
+  passage.msDemiBuildA = moities.msA;
+  passage.msDemiBuildB = moities.msB;
   passage.msTotal = tBuild - t0;
 
   // ── Le régime, décidé comme la production le déciderait.
@@ -249,7 +264,7 @@ async function unPassage(
   // ── Phase C : appariement, par le chemin que la production emprunterait.
   const resultat =
     regime === 'parallele'
-      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, cheminBundle!)
+      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, cheminBundleTranches!)
       : drain(pairBuckets(prepared, bucketsA, bucketsB));
   const tPair = performance.now();
   passage.resultat = resultat;
@@ -392,6 +407,14 @@ function agregerTemps(passages: Passage[]) {
   return {
     preparation: serie(passages.map((p) => p.msPreparation)),
     demiBuilds: serie(passages.map((p) => p.msDemiBuilds)),
+    // ⚠️ Le coût INTERNE de chaque fil, à côté du temps réel de la phase :
+    // c'est le seul moyen de voir le DÉSÉQUILIBRE entre moitiés. Paralléliser
+    // ne fait jamais mieux que le fil le plus lent — un cas où A coûte 5,5 s
+    // et B 2,9 s (Lushen d15, baseline) ne gagne pas ×2, il gagne ce que
+    // porte la moitié la plus légère. Sans ces deux nombres, une phase de
+    // construction « lente malgré la parallélisation » reste inexplicable.
+    demiBuildA: serie(passages.map((p) => p.msDemiBuildA ?? 0)),
+    demiBuildB: serie(passages.map((p) => p.msDemiBuildB ?? 0)),
     appariement: serie(passages.map((p) => p.msAppariement)),
     total: serie(passages.map((p) => p.msTotal)),
   };
@@ -419,6 +442,10 @@ function classer(candidats: BuildCandidate[], resolue: ConfigResolue) {
 
 function estEtagePreparation(arret: ArretApres): arret is PrepareStage {
   return (ORDRE_ETAGES as string[]).includes(arret);
+}
+
+function irAuDelaDeLaPreparation(arret: ArretApres): boolean {
+  return !estEtagePreparation(arret);
 }
 
 function doitPouvoirParalleliser(arret: ArretApres): boolean {

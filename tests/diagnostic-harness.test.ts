@@ -205,6 +205,76 @@ export default async function testDiagnosticHarness() {
   );
   ok(borne.artFlatMax >= borne.artFlatMin, 'la borne HAUTE d’artéfact est au moins la borne basse');
 
+  /* ── §6.3 : preuve et indice, jamais confondus ─────────────────────── */
+  // Une preuve est rendue pour chaque condition posée, même quand tout va
+  // bien — c'est ce qui permet de lire un « 0 candidat » sans deviner.
+  egal(
+    complet.faisabilite.preuves.map((p) => [p.stat, p.borne]),
+    [['spd', 'min']],
+    'une PREUVE de faisabilité est rendue pour chaque condition posée'
+  );
+  ok(complet.faisabilite.preuves[0].satisfiable, 'ici rien ne prouve l’impossibilité');
+  // ⚠️ Économie assumée : les blocages coûtent un pré-filtrage PAR condition.
+  ok(complet.faisabilite.blocages == null, 'les blocages ne sont PAS calculés quand la recherche a abouti');
+
+  // Condition mathématiquement hors de portée : la preuve doit le DIRE, et
+  // les blocages doivent alors être calculés d’office.
+  const impossible = await executerHarnais(
+    configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 4242,
+        runesParEmplacement: 8,
+        requirement: { sets: [], minStats: { spd: 9999 } },
+        slotFilterCap: 40,
+      },
+    })
+  );
+  const preuve = impossible.faisabilite.preuves.find((p) => p.stat === 'spd')!;
+  ok(!preuve.satisfiable, 'une condition hors de portée est PROUVÉE impossible');
+  ok(preuve.atteignable < preuve.demande, 'et la borne atteignable est rendue, pas seulement le verdict');
+  ok(impossible.faisabilite.blocages != null, 'une configuration sans issue déclenche le classement des blocages');
+  ok(
+    impossible.faisabilite.blocages!.coutMs >= 0,
+    'dont le COÛT est rendu — un diagnostic dont on ignore le prix finit lancé au mauvais moment'
+  );
+
+  /* ── §6.2 : une configuration invalide NOMME sa cause ──────────────── */
+  const verrouAbsent = await executerHarnais(
+    configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 4242,
+        runesParEmplacement: 8,
+        requirement: { sets: [], minStats: {}, lockedRunes: { 2: 999999 } },
+        slotFilterCap: 40,
+      },
+    })
+  );
+  ok(
+    (verrouAbsent.completude!.configurationInvalide ?? "").includes('IMPOSÉE #999999 est absente du pool'),
+    'une rune imposée introuvable est nommée comme la cause — jamais « emplacement vide » tout court'
+  );
+
+  // ⚠️ Le piège voisin : la rune existe, mais à un AUTRE emplacement. Un
+  // verrou ne déplace pas une rune, il vide l’emplacement.
+  const verrouMauvaisSlot = await executerHarnais(
+    configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 4242,
+        runesParEmplacement: 8,
+        requirement: { sets: [], minStats: {}, lockedRunes: { 2: 1 } },
+        slotFilterCap: 40,
+      },
+    })
+  );
+  ok(
+    (verrouMauvaisSlot.completude!.configurationInvalide ?? "").includes('en réalité à l’emplacement 1') ||
+      (verrouMauvaisSlot.completude!.configurationInvalide ?? "").includes("en réalité à l'emplacement 1"),
+    'une rune imposée au mauvais emplacement est distinguée d’une rune absente'
+  );
+
   /* ── §4.2 : la provenance du pool figure TOUJOURS dans le résultat ── */
   egal(complet.source, 'synthetique', 'la source du pool est rendue');
   ok(complet.descriptionSource.includes('seed'), 'et sa description permet de rejouer le run à l’identique');

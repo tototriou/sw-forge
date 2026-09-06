@@ -104,6 +104,14 @@ export interface ConfigHarnais {
    */
   suivre?: number[];
   /**
+   * Force le classement des conditions bloquantes (`rankBlockingConditions`).
+   *
+   * ⚠️ COÛTEUX — le pré-filtrage est relancé une fois par condition. Sans ce
+   * drapeau, il n'est calculé QUE si la recherche n'a rendu aucun candidat,
+   * c'est-à-dire au seul moment où on en a besoin.
+   */
+  blocages?: boolean;
+  /**
    * Répétitions de la mesure de temps (§6.4 bis). Défaut 1.
    * ⚠️ À 1, AUCUNE dispersion n'est disponible : la mesure est marquée comme
    * n'autorisant aucune conclusion comparative.
@@ -180,8 +188,69 @@ export interface Completude {
    * ⚠️ Une configuration invalide (un emplacement vidé, une condition prouvée
    * infaisable) n'est PAS un verdict algorithmique sur le build. Renseigné,
    * ce champ dit que le « 0 candidat » ne conclut rien.
+   *
+   * ⚠️ Il NOMME la cause quand elle est identifiable — en particulier une
+   * rune IMPOSÉE introuvable ou posée au mauvais emplacement, qui vide
+   * l'emplacement *exprès* (comportement documenté du moteur : mieux vaut
+   * zéro build qu'un build qui ignore le verrou). Dire « emplacement 3
+   * vide » sans dire « parce que la rune imposée #X n'existe pas dans ce
+   * pool » laisserait lire une limite de l'algorithme là où il n'y a qu'une
+   * configuration impossible.
    */
   configurationInvalide?: string;
+}
+
+/* --------------------------------------------------------------------------
+ * Faisabilité — §6.3 du cadrage
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **PREUVE, pas indice.** `diagnoseFeasibility` isole UNE stat et
+ * calcule sa borne atteignable : `satisfiable: false` est une impossibilité
+ * MATHÉMATIQUE — aucune recherche, aussi longue soit-elle, ne satisfera
+ * jamais cette condition. L'inverse n'est PAS vrai : `true` ne dit pas
+ * qu'un build existe, seulement que rien ne prouve le contraire sur cette
+ * stat prise seule (les contraintes conjuguées peuvent rester infaisables).
+ * Confondre les deux sens est exactement ce que le harnais doit empêcher.
+ */
+export interface PreuveFaisabilite {
+  stat: string;
+  borne: 'min' | 'max';
+  demande: number;
+  /** Minimum : meilleur total ATTEIGNABLE. Maximum : plancher INCOMPRESSIBLE. */
+  atteignable: number;
+  /** `false` = preuve d'impossibilité. `true` = absence de preuve, rien de plus. */
+  satisfiable: boolean;
+}
+
+/**
+ * ⚠️ **INDICE, pas preuve.** `rankBlockingConditions` retire chaque condition
+ * ENTIÈREMENT et regarde ce que le pool le plus restreint devient. Ça classe
+ * les conditions par impact — ça ne démontre rien, et ça ne dit pas DE
+ * COMBIEN relâcher (limite connue, consignée dans pistes.md).
+ *
+ * ⚠️ **Coûteux** : relance le pré-filtrage N+1 fois, une par condition. D'où
+ * `coutMs`, rendu avec le résultat — un diagnostic dont on ignore le prix
+ * finit par être lancé au mauvais moment.
+ */
+export interface IndiceBlocage {
+  stat: string;
+  borne: 'min' | 'max';
+  demande: number;
+  /** Taille du pool le plus restreint SI cette condition était retirée. */
+  poolMinSansElle: number;
+}
+
+export interface Faisabilite {
+  /** Toujours calculé : une seule passe sur le pool. */
+  preuves: PreuveFaisabilite[];
+  /** ⚠️ Renseigné SEULEMENT si demandé ou si la recherche n'a rien rendu. */
+  blocages?: {
+    /** Le repère : le pool le plus restreint avec TOUTES les conditions. */
+    poolMinActuel: number;
+    impacts: IndiceBlocage[];
+    coutMs: number;
+  };
 }
 
 /* --------------------------------------------------------------------------
@@ -292,6 +361,12 @@ export interface ResultatHarnais {
   /** Palier 2 — tailles de pool par emplacement à chaque étage. */
   preparation: TaillesParEtage[];
   suivi: TraceSurvie[];
+  /**
+   * §6.3 — ce qui est PROUVÉ impossible, et ce qui n'est qu'un indice.
+   * ⚠️ Calculé HORS des chronos de phase : c'est un diagnostic, il n'a
+   * aucune raison d'entrer dans le temps qu'on attribue à la préparation.
+   */
+  faisabilite: Faisabilite;
   /**
    * Les bornes RÉELLEMENT utilisées par l'étage de faisabilité, stat
    * contrainte par stat contrainte.

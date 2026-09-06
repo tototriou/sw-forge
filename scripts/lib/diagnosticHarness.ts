@@ -30,8 +30,10 @@ import {
   SearchParams,
   SearchResult,
   candidateMetricTotal,
+  diagnoseFeasibility,
   pairBuckets,
   prepareSearch,
+  rankBlockingConditions,
   sortCandidates,
   totalPairCount,
 } from '../../src/lib/runeBuildOptim';
@@ -47,7 +49,9 @@ import {
   Completude,
   ConfigHarnais,
   EtagePopulation,
+  Faisabilite,
   NatureEtage,
+  PreuveFaisabilite,
   RegimeAppariement,
   ResultatHarnais,
   SerieTemps,
@@ -135,24 +139,25 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
     preparation: dernier.taillesParEtage,
     suivi: (config.suivre ?? []).map((id) => suivrePiece(id, resolue.poolInitial, dernier.etages)),
     bornesFaisabilite: bornes(dernier.prepared),
+    faisabilite: evaluerFaisabilite(resolue.params),
   };
+  // ⚠️ Les blocages sont calculés soit sur demande, soit quand la
+  // configuration n'a AUCUNE issue — c'est-à-dire au seul moment où ils
+  // servent, et jamais « au cas où » sur une recherche qui a bien abouti.
+  if ((config.blocages ?? false) || dernier.prepared == null) {
+    resultat.faisabilite.blocages = evaluerBlocages(resolue.params);
+  }
 
   if (dernier.prepared == null) {
     // ⚠️ `prepareSearch` renvoie `null` quand un emplacement est VIDE après
     // filtrage. Ce n'est pas un verdict sur le build : c'est une
-    // configuration qui ne peut rien produire, et le dire est tout l'objet
-    // du §6.2 (« jamais un 0 candidat nu »).
-    const vides = dernier.taillesParEtage
-      .find((t) => t.etage === 'filterslot')!
-      .parEmplacement.map((n, i) => (n === 0 ? i + 1 : 0))
-      .filter((n) => n > 0);
+    // configuration qui ne peut rien produire, et le dire — avec sa CAUSE —
+    // est tout l'objet du §6.2 (« jamais un 0 candidat nu »).
     resultat.completude = {
       complet: false,
       explored: 0,
       totalPairs: 0,
-      configurationInvalide:
-        `Préparation impossible : emplacement(s) ${vides.join(', ')} vide(s) après pré-filtrage. ` +
-        `Aucune combinaison n'existe — ce n'est PAS une conclusion sur la qualité des builds.`,
+      configurationInvalide: causeConfigurationInvalide(resolue.params, dernier.taillesParEtage),
     };
     return resultat;
   }
@@ -191,6 +196,16 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
   // a déjà conclu « le moteur manque un build meilleur » en lisant ce
   // premier élément — le build cherché était au rang 6.
   resultat.meilleurs = classer(dernier.resultat!.candidates, resolue);
+
+  // ⚠️ **Une recherche qui aboutit à ZÉRO candidat est l'autre moment où les
+  // blocages servent** — et le plus trompeur : la configuration était valide,
+  // la recherche est allée au bout, et pourtant rien. Sans ce classement,
+  // l'utilisateur n'a aucune prise sur ce qu'il faudrait relâcher. ⚠️ Les
+  // PREUVES (au-dessus) restent la première chose à lire : si l'une d'elles
+  // dit « impossible », le classement des blocages ne fait que confirmer.
+  if (resultat.meilleurs.length === 0 && resultat.faisabilite.blocages == null) {
+    resultat.faisabilite.blocages = evaluerBlocages(resolue.params);
+  }
   return resultat;
 }
 
@@ -297,6 +312,109 @@ async function apparierEnParallele(
       /* progression : sans objet pour un harnais qui ne rend rien en direct */
     },
     prepared.startedAt
+  );
+}
+
+/**
+ * §6.3 — ce que le moteur PROUVE impossible.
+ *
+ * ⚠️ **Réutiliser, jamais recopier**, et surtout conserver la sémantique des
+ * deux fonctions : `diagnoseFeasibility` produit une PREUVE sur une stat
+ * isolée (`satisfiable: false` = mathématiquement hors de portée, aucune
+ * recherche n'y changera rien), `rankBlockingConditions` un simple INDICE de
+ * classement. Un libellé qui les confondrait ferait exactement le dégât que
+ * ce harnais existe pour empêcher : présenter une heuristique comme un
+ * verdict.
+ *
+ * ⚠️ Appelé UNE fois, hors des chronos de phase — un diagnostic n'a pas à
+ * entrer dans le temps attribué à la préparation.
+ */
+function evaluerFaisabilite(params: SearchParams): Faisabilite {
+  return {
+    preuves: diagnoseFeasibility(params).map((f) => ({
+      stat: f.key,
+      borne: f.kind,
+      demande: f.requested,
+      atteignable: f.bound,
+      satisfiable: f.satisfiable,
+    })),
+  };
+}
+
+/**
+ * ⚠️ **Séparé des preuves, et pour une raison de fond** : c'est un INDICE, il
+ * est COÛTEUX (le pré-filtrage relancé une fois par condition), et il n'a
+ * d'intérêt qu'au moment où la recherche n'a rien rendu. Le fondre dans la
+ * fonction ci-dessus obligerait soit à le payer toujours, soit à recalculer
+ * les preuves pour l'obtenir après coup.
+ *
+ * Le prix est mesuré et rendu : un diagnostic dont on ignore le coût finit
+ * lancé au mauvais moment.
+ */
+function evaluerBlocages(params: SearchParams): NonNullable<Faisabilite['blocages']> {
+  const t0 = performance.now();
+  const classement = rankBlockingConditions(params);
+  return {
+    poolMinActuel: classement.baselineMinSlot,
+    impacts: classement.impacts.map((i) => ({
+      stat: i.key,
+      borne: i.kind,
+      demande: i.requested,
+      poolMinSansElle: i.poolMinSlotWithout,
+    })),
+    coutMs: performance.now() - t0,
+  };
+}
+
+/**
+ * §6.2 — POURQUOI la configuration ne peut rien produire.
+ *
+ * ⚠️ « Emplacement 3 vide » n'est pas un diagnostic : ça se lit comme une
+ * limite de l'algorithme. La cause la plus fréquente ne l'est pas du tout —
+ * une rune IMPOSÉE absente du pool, ou posée à un autre emplacement que celui
+ * qu'on lui assigne, vide l'emplacement **exprès** (le moteur le documente :
+ * mieux vaut zéro build qu'un build qui ignore le verrou). On lit donc le
+ * verrou et le pool, sans rien recalculer, pour nommer la cause.
+ */
+function causeConfigurationInvalide(params: SearchParams, taillesParEtage: TaillesParEtage[]): string {
+  const apresMainstat = taillesParEtage.find((t) => t.etage === 'mainstat')!.parEmplacement;
+  const apresFiltrage = taillesParEtage.find((t) => t.etage === 'filterslot')!.parEmplacement;
+  const vides = apresFiltrage.map((n, i) => ({ slot: i + 1, vide: n === 0 })).filter((e) => e.vide);
+  const verrous = params.requirement.lockedRunes ?? {};
+  const raisons: string[] = [];
+
+  for (const { slot } of vides) {
+    const idVerrouille = verrous[slot];
+    if (idVerrouille != null) {
+      const rune = params.pool.find((r) => r.id === idVerrouille);
+      if (!rune) {
+        raisons.push(
+          `emplacement ${slot} : la rune IMPOSÉE #${idVerrouille} est absente du pool ` +
+            `(exclue par ailleurs, ou venue d'un autre compte) — l'emplacement est vidé exprès, ce n'est pas un verdict sur les builds`
+        );
+        continue;
+      }
+      if (rune.slot !== slot) {
+        raisons.push(
+          `emplacement ${slot} : la rune IMPOSÉE #${idVerrouille} est en réalité à l'emplacement ${rune.slot} — ` +
+            `un verrou ne déplace pas une rune, il vide l'emplacement`
+        );
+        continue;
+      }
+      raisons.push(`emplacement ${slot} : la rune imposée #${idVerrouille} existe bien, mais n'a survécu à aucun étage`);
+      continue;
+    }
+    // Pas de verrou : l'étage fautif suffit à orienter.
+    raisons.push(
+      apresMainstat[slot - 1] === 0
+        ? `emplacement ${slot} : aucune rune ne peut porter la statistique principale imposée`
+        : `emplacement ${slot} : vidé après la statistique principale — dominance, faisabilité ou pré-filtrage`
+    );
+  }
+
+  return (
+    `Préparation impossible — aucune combinaison n'existe. ⚠️ Ce n'est PAS une conclusion sur la qualité des builds.\n` +
+    raisons.map((r) => `  · ${r}`).join('\n')
   );
 }
 

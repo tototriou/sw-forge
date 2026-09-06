@@ -26,12 +26,16 @@
 //   diagnostic-harness.ts --synthetique --seed=42 --runes=20 --cap=80
 //                         [--sets=violent,will] [--min=spd:130,cr:40]
 //                         [--max=res:60] [--assortiment=joker|sans-joker|varies]
+//                         [--verrous=<slot:runeId,…>]  runes IMPOSÉES
 //
 // Options communes :
 //   --apercu               palier 1 seulement — n'exécute RIEN
 //   --arret=<étape>        mainstat | dominance | feasibility | filterslot
 //                          | demi-builds | appariement | classement (défaut)
 //   --suivre=<id,id,…>     suit ces runes d'étage en étage
+//   --blocages             classe les conditions par impact (⚠️ COÛTEUX : le
+//                          pré-filtrage est relancé une fois par condition ;
+//                          calculé d'office si la recherche ne rend rien)
 //   --repetitions=<n>      répétitions de la mesure de temps (défaut 1)
 //   --json                 sort le résultat brut, sans mise en forme
 // Overrides (⚠️ chacun MARQUE le run comme divergent de la prod) :
@@ -111,14 +115,30 @@ function construireConfig(): ConfigHarnais {
     overrides,
     arretApres: arret,
     suivre: valeur('suivre')?.split(',').map((s) => Number(s.trim())),
+    blocages: drapeau('blocages'),
     repetitions: nombre('repetitions'),
   };
 
   if (drapeau('synthetique')) {
+    // ⚠️ Les runes IMPOSÉES sont exposées ici parce qu'elles sont la cause
+    // n° 1 d'un « 0 build » qui n'a rien d'algorithmique : un verrou dont la
+    // rune n'existe pas dans le pool vide l'emplacement EXPRÈS. Le mode
+    // recette les porte déjà (`recipe.requirement.lockedRunes`) ; sans
+    // équivalent ici, ce cas ne serait pas reproductible sans compte réel.
+    const verrous: Partial<Record<number, number>> = {};
+    for (const paire of valeur('verrous')?.split(',') ?? []) {
+      const [slot, id] = paire.split(':').map(Number);
+      if (!Number.isFinite(slot) || !Number.isFinite(id)) {
+        console.error(`--verrous : format « slot:runeId », reçu « ${paire} ».`);
+        process.exit(1);
+      }
+      verrous[slot] = id;
+    }
     const requirement: SyntheticRequirement = {
       sets: valeur('sets')?.split(',').map((s) => s.trim()) ?? [],
       minStats: lireStats(valeur('min')),
       maxStats: lireStats(valeur('max')),
+      ...(Object.keys(verrous).length > 0 ? { lockedRunes: verrous } : {}),
     };
     const assortiment = valeur('assortiment') ?? 'joker';
     const sets =
@@ -194,6 +214,46 @@ function rendreResultat(r: ResultatHarnais): string {
         l.push('    → survit à toute la préparation.');
       }
     }
+  }
+
+  // ⚠️ La faisabilité vient AVANT tout le reste : si une condition est
+  // PROUVÉE hors de portée, aucun chiffre plus bas ne veut dire quoi que ce
+  // soit sur la qualité de la recherche.
+  const impossibles = r.faisabilite.preuves.filter((p) => !p.satisfiable);
+  if (r.faisabilite.preuves.length > 0) {
+    l.push('', 'Faisabilité — PREUVES (stat par stat, isolément)', '─'.repeat(72));
+    for (const p of r.faisabilite.preuves) {
+      const verdict = p.satisfiable
+        ? 'rien ne prouve que ce soit impossible'
+        : '❌ IMPOSSIBLE — preuve mathématique, aucune recherche n’y changera rien';
+      l.push(
+        `  ${p.stat.padEnd(5)} ${p.borne === 'min' ? '≥' : '≤'} ${String(p.demande).padStart(7)}   ` +
+          `atteignable ${String(Math.round(p.atteignable)).padStart(7)}   ${verdict}`
+      );
+    }
+    if (impossibles.length === 0) {
+      l.push(
+        '  ⚠️ Aucune preuve d’impossibilité ne veut PAS dire qu’un build existe : ces bornes',
+        '     isolent chaque stat, les contraintes prises ENSEMBLE peuvent rester infaisables.'
+      );
+    }
+  }
+
+  if (r.faisabilite.blocages) {
+    const b = r.faisabilite.blocages;
+    l.push('', `Conditions bloquantes — INDICE, pas une preuve (calculé en ${ms(b.coutMs)})`, '─'.repeat(72));
+    l.push(`  pool le plus restreint, toutes conditions posées : ${nb(b.poolMinActuel)}`);
+    for (const i of b.impacts) {
+      l.push(
+        `  sans ${i.stat.padEnd(5)} ${i.borne === 'min' ? '≥' : '≤'} ${String(i.demande).padStart(7)} → ${nb(i.poolMinSansElle).padStart(7)}` +
+          `   (${i.poolMinSansElle > b.poolMinActuel ? `+${nb(i.poolMinSansElle - b.poolMinActuel)}` : 'aucun gain'})`
+      );
+    }
+    l.push(
+      '  ⚠️ Chaque condition est retirée ENTIÈREMENT : ça classe par impact, ça ne dit pas',
+      '     DE COMBIEN relâcher. Deux conditions peuvent donner le même chiffre sans être',
+      '     équivalentes.'
+    );
   }
 
   if (r.demiBuilds) {

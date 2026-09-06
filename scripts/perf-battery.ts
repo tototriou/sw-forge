@@ -181,8 +181,8 @@ interface CaseOutcome {
 }
 
 // Bundle un script worker en .cjs (un worker_threads a besoin de JS pur, pas
-// de TypeScript transpilé à la volée) — même patron que les lanceurs .mjs
-// existants (voir monster-search-validate.mjs). Mis en cache sur un chemin
+// de TypeScript transpilé à la volée) — même patron que
+// scripts/lib/spawnSliceNode.ts et scripts/lib/buildHalvesNode.ts. Mis en cache sur un chemin
 // PROPRE À CETTE EXÉCUTION (dérivé du PID de l'orchestrateur, passé aux
 // enfants via `--bundle-dir=`), pas un chemin fixe partagé entre invocations
 // séparées : chaque cas de la batterie tourne dans son propre processus Node

@@ -32,7 +32,12 @@
 //   --apercu               palier 1 seulement — n'exécute RIEN
 //   --arret=<étape>        mainstat | dominance | feasibility | filterslot
 //                          | demi-builds | appariement | classement (défaut)
-//   --suivre=<id,id,…>     suit ces runes d'étage en étage
+//   --suivre=<id,id,…>     suit ces runes d'étage en étage — pour une rune
+//                          qui atteint filterSlot, rend aussi son rang
+//                          exact (relevance() + par stat) ; si les 3 ids
+//                          d'une même moitié (1-3 ou 4-6) y sont TOUS, rend
+//                          en plus le rang du demi-build dans son
+//                          compartiment et les mieux classés à côté de lui
 //   --blocages             classe les conditions par impact (⚠️ COÛTEUX : le
 //                          pré-filtrage est relancé une fois par condition ;
 //                          calculé d'office si la recherche ne rend rien)
@@ -212,6 +217,41 @@ function rendreResultat(r: ResultatHarnais): string {
         l.push(`      ${s.premiereDisparition.signification}`);
       } else {
         l.push('    → survit à toute la préparation.');
+      }
+      if (s.detailFiltrage) {
+        const d = s.detailFiltrage;
+        l.push(
+          `    filterSlot — relevance() : rang #${d.relevance.rang} / ${d.relevance.total}` +
+            ` (cible=${d.relevance.score.toFixed(3)}, meilleur=${d.relevance.meilleur.toFixed(3)})`
+        );
+        if (d.relevanceParmiSet) {
+          l.push(`      parmi le set demandé seulement : rang #${d.relevanceParmiSet.rang} / ${d.relevanceParmiSet.total}`);
+        }
+        for (const p of d.parStat) {
+          l.push(
+            `      ${p.stat.padEnd(4)} (garde ${p.keepN}) : rang #${p.rang} / ${p.total} ` +
+              `${p.retenue ? '✅ retenue' : '❌ hors budget'} (cible=${p.valeur}, meilleur=${p.meilleure})`
+          );
+        }
+      }
+    }
+  }
+
+  if (r.detailDemiBuilds && r.detailDemiBuilds.length > 0) {
+    l.push('', 'Détail du demi-build suivi', '─'.repeat(72));
+    for (const d of r.detailDemiBuilds) {
+      l.push(`  Moitié ${d.moitie} — runes [${d.runeIds.join(', ')}]`);
+      if (d.absent) {
+        l.push(`    ⚠️ ${d.absent}`);
+        continue;
+      }
+      l.push(`    compartiment : rang #${d.compartimentRang} / ${d.compartimentTotal}`);
+      l.push(`    demi-build   : rang #${d.comboRang} / ${d.comboTotal} dans son compartiment`);
+      l.push(`    meilleurs classés du compartiment (cible marquée ⭐) :`);
+      for (const c of d.meilleurs!) {
+        const cible = c.runeIds.length === d.runeIds.length && c.runeIds.every((id) => d.runeIds.includes(id));
+        const statsStr = c.parStat.map((p) => `${p.stat}: pct=${p.pct.toFixed(1)} flat=${p.flat.toFixed(1)}`).join('  ');
+        l.push(`      ${cible ? '⭐' : '  '} relevanceScore=${c.relevanceScore.toFixed(3)}  runes=[${c.runeIds.join(', ')}]  ${statsStr}`);
       }
     }
   }

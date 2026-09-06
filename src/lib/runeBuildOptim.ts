@@ -699,13 +699,17 @@ export const MAX_PER_SLOT_FILL = 40;
 // de runes globalement plus « pertinentes » pour d'autres critères. Le tri
 // après coup (voir OptimizerSection.tsx) ne peut être honnête que si le pool
 // pré-filtré garde une chance à chacun des 9 critères de tri proposés.
-const PER_STAT_KEEP = 6;
+// ⚠️ Les deux constantes ci-dessous sont exportées pour le harnais de
+// diagnostic, qui doit dire — pour une rune précise — si elle est retenue
+// par le budget top-K PAR STAT, sans dupliquer ces valeurs (voir
+// spec/outils/optimizer/harnais-diagnostic.md).
+export const PER_STAT_KEEP = 6;
 // Budget élargi pour les stats de l'OBJECTIF choisi (voir OBJECTIVE_RELEVANT_
 // STATS) : l'utilisateur a explicitement dit « je cherche des dégâts » (ou
 // « des PV effectifs ») avant même de lancer la recherche — le pré-filtrage
 // doit lui laisser une vraie chance d'en trouver, pas juste une place parmi
 // six comme les autres stats.
-const PER_STAT_KEEP_OBJECTIVE = 24;
+export const PER_STAT_KEEP_OBJECTIVE = 24;
 // Combinaisons retenues PAR TRANCHE, DANS un compartiment (pas par slot,
 // voir l'en-tête du fichier) — depuis la 3ᵉ recalibration ci-dessous, CHAQUE
 // tranche (générique, combinée, une par stat de `retentionKeys`) reçoit ce
@@ -861,7 +865,11 @@ export function bucketCapFor(slotFilterCap: number): number {
   return Math.round(BUCKET_CAP * (slotFilterCap / BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP));
 }
 
-const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
+// ⚠️ Exportée pour le harnais de diagnostic (scripts/lib/diagnosticHarness.ts) :
+// il a besoin de reproduire le classement par stat de `filterSlot` pour
+// expliquer pourquoi une rune précise survit ou non — RÉUTILISER cette
+// liste, jamais la recopier (voir spec/outils/optimizer/harnais-diagnostic.md).
+export const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 
 /* --------------------------------------------------------------------------
  * Contribution d'une rune à une stat donnée (pct/flat), réutilisant la même
@@ -962,7 +970,10 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 // `isDominated` (comparaison composante par composante) — seul son propre
 // commentaire n'avait pas essaimé jusqu'à `relevance`/`retentionScore`/
 // `combinedRetentionScore`.
-function weightedContribution(base: BaseStats, key: StatKey, pct: number, flat: number): number {
+// ⚠️ Exportée pour le harnais de diagnostic — même raison que `ALL_STAT_KEYS`
+// juste au-dessus : reproduire le classement par stat de `filterSlot` sans
+// dupliquer sa formule.
+export function weightedContribution(base: BaseStats, key: StatKey, pct: number, flat: number): number {
   const b = (base as unknown as Record<string, number>)[key] ?? 0;
   return key === 'hp' || key === 'atk' || key === 'def' ? Math.ceil((b * pct) / 100) + flat : flat;
 }

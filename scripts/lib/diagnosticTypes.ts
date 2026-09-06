@@ -342,6 +342,31 @@ export interface EtagePopulation {
   presents: Set<number>;
 }
 
+/**
+ * ⚠️ **Remplace `monster-search-filterslot-diag.ts`.** Le rang exact d'une
+ * rune SUIVIE dans le classement interne de `filterSlot` — sur `relevance()`
+ * (le score combiné qui alimente `matchCap`/`fillCap`) et sur chaque stat
+ * individuelle (budgets `PER_STAT_KEEP`/`PER_STAT_KEEP_OBJECTIVE`). Calculé
+ * sur le pool RÉEL en entrée de `filterSlot` (la sortie de l'étage
+ * `feasibility`, jamais reconstruit) — seulement pour une rune qui a survécu
+ * jusque-là : le rang n'a aucun sens pour une rune déjà écartée avant.
+ */
+export interface DetailFiltrage {
+  relevance: { rang: number; total: number; score: number; meilleur: number };
+  /** `null` si la rune n'appartient à aucun set demandé (hors « matches »). */
+  relevanceParmiSet: { rang: number; total: number } | null;
+  parStat: {
+    stat: string;
+    rang: number;
+    total: number;
+    /** Le budget de rétention pour cette stat — 24 si stat de l'objectif, 6 sinon. */
+    keepN: number;
+    retenue: boolean;
+    valeur: number;
+    meilleure: number;
+  }[];
+}
+
 export interface TraceSurvie {
   id: number;
   /** `false` = jamais entrée dans le pool — pas « écartée au premier étage ». */
@@ -349,6 +374,40 @@ export interface TraceSurvie {
   parEtage: { etage: string; nature: NatureEtage; present: boolean }[];
   /** Le premier étage qui l'a fait disparaître, avec ce que ça signifie. */
   premiereDisparition?: { etage: string; nature: NatureEtage; signification: string };
+  /** Présent seulement si la rune a survécu à `feasibility` (entrée réelle de `filterSlot`). */
+  detailFiltrage?: DetailFiltrage;
+}
+
+/* --------------------------------------------------------------------------
+ * Détail d'un demi-build suivi — remplace `half-build-rank-diag.ts` et
+ * `monster-search-buildbuckets-diag.ts`
+ * ----------------------------------------------------------------------- */
+
+/** Une entrée de `Bucket.combos`, restituée sans recalcul (déjà produite par `buildBuckets`). */
+export interface DemiBuildCombo {
+  runeIds: number[];
+  relevanceScore: number;
+  parStat: { stat: string; pct: number; flat: number }[];
+}
+
+/**
+ * ⚠️ Déclenché automatiquement quand `--suivre` porte EXACTEMENT les 3 runes
+ * d'une même moitié (3 emplacements distincts, 1-3 ou 4-6) — aucune option
+ * séparée : le principe de suivi générique (§6.1 bis du cadrage) s'étend
+ * naturellement à un demi-build dès que ses 3 pièces sont suivies ensemble.
+ */
+export interface DetailDemiBuild {
+  moitie: 'A' | 'B';
+  runeIds: number[];
+  /** Renseigné seulement si le demi-build cible est ABSENT de tous les compartiments retenus. */
+  absent?: string;
+  compartimentRang?: number;
+  compartimentTotal?: number;
+  comboRang?: number;
+  comboTotal?: number;
+  cible?: DemiBuildCombo;
+  /** Les mieux classés de son compartiment — jamais recalculés, lus sur `Bucket.combos`. */
+  meilleurs?: DemiBuildCombo[];
 }
 
 /* --------------------------------------------------------------------------
@@ -408,6 +467,12 @@ export interface ResultatHarnais {
 
   /** Absents si l'arrêt a eu lieu avant leur phase. */
   demiBuilds?: { compartimentsA: number; compartimentsB: number; combosA: number; combosB: number };
+  /**
+   * Rang et voisinage d'un demi-build suivi dans son compartiment — voir
+   * `DetailDemiBuild`. Absent si aucun trio de `--suivre` ne forme une moitié
+   * complète, ou si l'arrêt a eu lieu avant la construction des demi-builds.
+   */
+  detailDemiBuilds?: DetailDemiBuild[];
   regime?: { applique: RegimeAppariement; totalPairs: number; seuil: number; force: boolean; explication: string };
   completude?: Completude;
   /**

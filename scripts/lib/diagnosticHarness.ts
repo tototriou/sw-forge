@@ -23,19 +23,27 @@
 // un régime reste possible — c'est un override, marqué comme tel.
 
 import {
+  ALL_STAT_KEYS,
   Bucket,
   BuildCandidate,
+  HalfCombo,
+  PER_STAT_KEEP,
+  PER_STAT_KEEP_OBJECTIVE,
   PrepareStage,
   PreparedSearch,
   SearchParams,
   SearchResult,
   candidateMetricTotal,
   diagnoseFeasibility,
+  objectiveKeysOf,
   pairBuckets,
   prepareSearch,
   rankBlockingConditions,
+  relevance,
+  runeContribution,
   sortCandidates,
   totalPairCount,
+  weightedContribution,
 } from '../../src/lib/runeBuildOptim';
 import { PARALLEL_PAIRING_THRESHOLD } from '../../src/workers/parallelPairing';
 import { driveParallelPairing } from '../../src/workers/parallelPairing';
@@ -48,6 +56,9 @@ import {
   ArretApres,
   Completude,
   ConfigHarnais,
+  DemiBuildCombo,
+  DetailDemiBuild,
+  DetailFiltrage,
   EtagePopulation,
   Faisabilite,
   NatureEtage,
@@ -90,6 +101,11 @@ interface Passage {
   prepared: PreparedSearch | null;
   etages: EtagePopulation[];
   taillesParEtage: TaillesParEtage[];
+  /**
+   * Le pool RÉEL en entrée de `filterSlot` (sortie de l'étage `feasibility`),
+   * conservé pour `detailFiltrage` — jamais recalculé, lu depuis `onStage`.
+   */
+  feasibilityBySlot?: RuneDetail[][];
   bucketsA?: Bucket[];
   bucketsB?: Bucket[];
   totalPairs?: number;
@@ -137,7 +153,17 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
     avertissements,
     arretApres,
     preparation: dernier.taillesParEtage,
-    suivi: (config.suivre ?? []).map((id) => suivrePiece(id, resolue.poolInitial, dernier.etages)),
+    suivi: (config.suivre ?? []).map((id) => {
+      const trace = suivrePiece(id, resolue.poolInitial, dernier.etages);
+      // ⚠️ Le rang dans `filterSlot` n'a de sens QUE pour une rune qui a
+      // atteint son entrée réelle (sortie de `feasibility`) — pas pour une
+      // rune déjà écartée avant.
+      if (dernier.feasibilityBySlot && trace.parEtage.find((e) => e.etage === 'feasibility')?.present) {
+        const slot = resolue.poolInitial.find((r) => r.id === id)?.slot;
+        if (slot != null) trace.detailFiltrage = detailFiltrage(id, dernier.feasibilityBySlot[slot - 1], resolue.params);
+      }
+      return trace;
+    }),
     bornesFaisabilite: bornes(dernier.prepared),
     faisabilite: evaluerFaisabilite(resolue.params),
   };
@@ -170,6 +196,23 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
     combosA: dernier.bucketsA!.reduce((s, b) => s + b.combos.length, 0),
     combosB: dernier.bucketsB!.reduce((s, b) => s + b.combos.length, 0),
   };
+  // ⚠️ Déclenché AUTOMATIQUEMENT, sans option séparée : dès que `--suivre`
+  // porte exactement les 3 runes d'UNE moitié (3 emplacements distincts,
+  // 1-3 ou 4-6), c'est un demi-build suivi — extension naturelle du suivi
+  // générique (§6.1 bis) plutôt qu'une deuxième surface de configuration.
+  {
+    const suivies = (config.suivre ?? []).map((id) => resolue.poolInitial.find((r) => r.id === id)).filter((r): r is RuneDetail => r != null);
+    const groupeA = suivies.filter((r) => r.slot <= 3);
+    const groupeB = suivies.filter((r) => r.slot >= 4);
+    const detail: DetailDemiBuild[] = [];
+    if (groupeA.length === 3 && new Set(groupeA.map((r) => r.slot)).size === 3) {
+      detail.push(detailDemiBuild('A', groupeA.map((r) => r.id), dernier.bucketsA!, dernier.prepared!.retentionKeys));
+    }
+    if (groupeB.length === 3 && new Set(groupeB.map((r) => r.slot)).size === 3) {
+      detail.push(detailDemiBuild('B', groupeB.map((r) => r.id), dernier.bucketsB!, dernier.prepared!.retentionKeys));
+    }
+    if (detail.length > 0) resultat.detailDemiBuilds = detail;
+  }
   resultat.regime = {
     applique: dernier.regime!,
     totalPairs: dernier.totalPairs!,
@@ -225,6 +268,7 @@ async function unPassage(
   // ── Phase A : préparation, observée étage par étage.
   const etages: EtagePopulation[] = [];
   const taillesParEtage: TaillesParEtage[] = [];
+  let feasibilityBySlot: RuneDetail[][] | undefined;
   const prepared = prepareSearch(params, (stage, bySlot) => {
     etages.push({ nom: stage, nature: NATURE_ETAGE[stage], presents: new Set(bySlot.flat().map((r) => r.id)) });
     taillesParEtage.push({
@@ -233,6 +277,7 @@ async function unPassage(
       parEmplacement: bySlot.map((l) => l.length),
       total: bySlot.reduce((s, l) => s + l.length, 0),
     });
+    if (stage === 'feasibility') feasibilityBySlot = bySlot;
   });
   const tPrepare = performance.now();
 
@@ -240,6 +285,7 @@ async function unPassage(
     prepared,
     etages,
     taillesParEtage,
+    feasibilityBySlot,
     msPreparation: tPrepare - t0,
     msDemiBuilds: 0,
     msAppariement: 0,
@@ -435,6 +481,87 @@ function bornes(prepared: PreparedSearch | null): ResultatHarnais['bornesFaisabi
     artFlatMax: prepared.artFlatMax[k] ?? 0,
     artFlatMin: prepared.artFlatMin[k] ?? 0,
   }));
+}
+
+/**
+ * ⚠️ **Remplace `monster-search-filterslot-diag.ts`.** Le rang exact d'une
+ * rune sur `relevance()` (le score combiné qui alimente `matchCap`/
+ * `fillCap`) et sur chaque stat individuelle (budgets `PER_STAT_KEEP`/
+ * `PER_STAT_KEEP_OBJECTIVE`) — RÉUTILISE `relevance`/`runeContribution`/
+ * `weightedContribution`, jamais une reformulation de `filterSlot`. Le
+ * `matchCap`/`fillCap` réel de la production sont TOUJOURS égaux à
+ * `slotFilterCap` (voir `prepareSearch`, `slotCap` passé deux fois à
+ * `filterSlot`) — aucune valeur à redériver.
+ */
+function detailFiltrage(id: number, pool: RuneDetail[], params: SearchParams): DetailFiltrage | undefined {
+  const rune = pool.find((r) => r.id === id);
+  if (!rune) return undefined;
+  const { requirement, base } = params;
+  const requiredKeys = new Set(requirement.sets);
+
+  const scored = pool.map((r) => ({ r, s: relevance(r, requirement, base) })).sort((a, b) => b.s - a.s);
+  const rang = scored.findIndex((s) => s.r.id === id) + 1;
+  const matches = scored.filter(({ r }) => requiredKeys.has(r.set) || r.set === 'intangible');
+  const rangMatch = matches.findIndex((s) => s.r.id === id) + 1;
+
+  const objectiveKeys = objectiveKeysOf(params.objective, params.objectiveStats);
+  const parStat = ALL_STAT_KEYS.map((k) => {
+    const keepN = objectiveKeys.includes(k) ? PER_STAT_KEEP_OBJECTIVE : PER_STAT_KEEP;
+    const classes = pool
+      .map((r) => {
+        const c = runeContribution(r, k);
+        return { r, v: weightedContribution(base, k, c.pct, c.flat) };
+      })
+      .sort((a, b) => b.v - a.v);
+    const rangStat = classes.findIndex((c) => c.r.id === id) + 1;
+    return {
+      stat: k,
+      rang: rangStat,
+      total: pool.length,
+      keepN,
+      retenue: rangStat > 0 && rangStat <= keepN,
+      valeur: classes[rangStat - 1]?.v ?? 0,
+      meilleure: classes[0]?.v ?? 0,
+    };
+  });
+
+  return {
+    relevance: { rang, total: pool.length, score: scored[rang - 1]?.s ?? 0, meilleur: scored[0]?.s ?? 0 },
+    relevanceParmiSet: rangMatch > 0 ? { rang: rangMatch, total: matches.length } : null,
+    parStat,
+  };
+}
+
+/**
+ * ⚠️ **Remplace `half-build-rank-diag.ts` et
+ * `monster-search-buildbuckets-diag.ts`.** Le rang du demi-build CIBLE dans
+ * son compartiment, et les mieux classés à côté de lui — lu directement sur
+ * `Bucket.combos` (déjà fusionné, dédupliqué, trié par potentiel), jamais
+ * recalculé.
+ */
+function detailDemiBuild(moitie: 'A' | 'B', runeIds: number[], buckets: Bucket[], retentionKeys: string[], top = 10): DetailDemiBuild {
+  const toDto = (c: HalfCombo): DemiBuildCombo => ({
+    runeIds: c.runes.map((r) => r.id),
+    relevanceScore: c.relevanceScore,
+    parStat: retentionKeys.map((k) => ({ stat: k, pct: c.pct[k] ?? 0, flat: c.flat[k] ?? 0 })),
+  });
+  for (let bi = 0; bi < buckets.length; bi++) {
+    const b = buckets[bi];
+    const idx = b.combos.findIndex((c) => c.runes.length === runeIds.length && c.runes.every((r) => runeIds.includes(r.id)));
+    if (idx >= 0) {
+      return {
+        moitie,
+        runeIds,
+        compartimentRang: bi + 1,
+        compartimentTotal: buckets.length,
+        comboRang: idx + 1,
+        comboTotal: b.combos.length,
+        cible: toDto(b.combos[idx]),
+        meilleurs: b.combos.slice(0, top).map(toDto),
+      };
+    }
+  }
+  return { moitie, runeIds, absent: 'ABSENT de tous les compartiments retenus — éliminé par bucketCap, ou en amont de la construction.' };
 }
 
 /* --------------------------------------------------------------------------

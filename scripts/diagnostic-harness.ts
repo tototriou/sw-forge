@@ -282,7 +282,12 @@ function rendreResultat(r: ResultatHarnais): string {
 
   if (r.temps) {
     l.push('', 'Temps par phase', '─'.repeat(72));
-    for (const [nom, s] of Object.entries(r.temps)) {
+    // ⚠️ Liste EXPLICITE, jamais `Object.entries` : `temps` porte aussi du
+    // texte (l'avertissement de comparaison), qu'une itération générique
+    // rendrait comme une phase nommée « avertissementComparaison ».
+    const phases = ['preparation', 'demiBuilds', 'demiBuildA', 'demiBuildB', 'appariement', 'total'] as const;
+    for (const nom of phases) {
+      const s = r.temps[nom];
       l.push(
         `  ${nom.padEnd(12)} min ${ms(s.min).padStart(10)}   médiane ${ms(s.mediane).padStart(10)}   ` +
           `dispersion ${s.dispersionPct.toFixed(1)} %   (${s.repetitions} rép.)`
@@ -290,6 +295,7 @@ function rendreResultat(r: ResultatHarnais): string {
       if (s.avertissement) l.push(`    ${s.avertissement}`);
     }
     l.push(`  ⚠️ ${r.fidelite.noteNavigateur}`);
+    l.push('', `  ${r.temps.avertissementComparaison}`);
   }
 
   if (r.meilleurs) {

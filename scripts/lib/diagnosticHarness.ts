@@ -535,6 +535,15 @@ function agregerTemps(passages: Passage[]) {
     demiBuildB: serie(passages.map((p) => p.msDemiBuildB ?? 0)),
     appariement: serie(passages.map((p) => p.msAppariement)),
     total: serie(passages.map((p) => p.msTotal)),
+    avertissementComparaison:
+      '⚠️ COMPARER DEUX CONFIGURATIONS : ne pas lancer deux runs séparés et soustraire. ' +
+      'C’est le protocole en BLOCS — chaque condition occupe toujours la même position dans la ' +
+      'séquence, donc tout effet lié à cette position (échauffement, GC, montée en fréquence) ' +
+      'revient identique à chaque exécution et RESSEMBLE à un résultat reproductible. Vécu : ' +
+      '+4,8 % obtenu deux fois de suite, +0,3 % au protocole entrelacé. Le harnais sait répéter ' +
+      'UNE condition, il ne sait pas encore ENTRELACER deux conditions (témoin, A, B, témoin, A, B…) : ' +
+      'pour un dos-à-dos fiable, passer par scripts/perf-battery-compare.ts. ' +
+      '⚠️ Et ne jamais conclure sur un écart PLUS PETIT que la dispersion affichée ci-dessus.',
   };
 }
 

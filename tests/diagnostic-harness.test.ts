@@ -183,6 +183,15 @@ export default async function testDiagnosticHarness() {
   egal(Math.round(plusieurs.dispersionPct), 300, 'et la DISPERSION, qui dit si un écart veut dire quelque chose');
   ok(plusieurs.avertissement == null, 'au-delà d’une répétition, plus d’avertissement');
 
+  // ⚠️ §6.4 bis niveau 2 : le harnais ne sait pas entrelacer deux conditions.
+  // Il doit donc DIRE que comparer deux runs séparés est le protocole en
+  // blocs — un biais qui se reproduit, donc qui passe pour un signal.
+  ok(
+    complet.temps!.avertissementComparaison.includes('BLOCS') &&
+      complet.temps!.avertissementComparaison.includes('perf-battery-compare'),
+    'toute mesure de temps porte le garde-fou contre la comparaison entre deux runs séparés'
+  );
+
   ok(complet.temps != null, 'un run rend ses temps PAR PHASE (le budget maxMs court depuis la préparation)');
   egal(complet.temps!.preparation.repetitions, 1, 'une répétition par défaut');
   const repete = await executerHarnais(configSynthetique({ repetitions: 3 }));

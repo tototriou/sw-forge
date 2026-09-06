@@ -297,6 +297,20 @@ export interface TempsParPhase {
   demiBuildB: SerieTemps;
   appariement: SerieTemps;
   total: SerieTemps;
+  /**
+   * ⚠️ **Le garde-fou du niveau 2** (§6.4 bis). Le harnais sait répéter UNE
+   * condition ; il ne sait pas ENTRELACER deux conditions. Quelqu'un qui veut
+   * comparer deux configurations lancera donc deux runs séparés — c'est-à-dire
+   * exactement le protocole en BLOCS dont le biais est documenté : chaque
+   * condition occupe toujours la même position dans la séquence, donc tout
+   * effet lié à cette position (échauffement thermique, état du GC, montée en
+   * fréquence) revient identique à chaque exécution. Vécu : +4,8 % obtenu
+   * DEUX FOIS de suite, pris pour une reproductibilité ; +0,3 % au protocole
+   * entrelacé. **Répéter ne corrige que le bruit aléatoire, jamais un biais
+   * systématique.** Ce texte accompagne donc toute mesure de temps, plutôt
+   * que de laisser la limite se découvrir après une conclusion fausse.
+   */
+  avertissementComparaison: string;
 }
 
 /* --------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 // demi-builds MORTS pour un set demandé À PLUS DE 3 PIÈCES (ex. Violent,
 // 4 pièces) — voir src/lib/runeBuildOptim.ts, buildBuckets, juste après le
 // calcul de `counts`/`jokers`. Trouvé sur un compte réel (Camilla, voir
-// spec/outils/optimizer/historique-acceleration-et-outillage.md, « Chantier
+// spec/outils/optimizer/historique/historique-acceleration-et-outillage.md, « Chantier
 // D ») : une tranche entière de compartiments à 0 pièce d'un set 4 pièces,
 // aucun n'ayant de joker propre, gaspillait tout son quota de candidats en
 // pairing parallèle faute de pouvoir s'apparier avec quoi que ce soit.

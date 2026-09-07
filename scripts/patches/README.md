@@ -2,7 +2,7 @@
 
 Implémentations retirées du code de production mais gardées pour pouvoir
 être réappliquées sans tout retaper — voir la doc en prose dans
-[spec/outils/optimizer/historique-ponderation-adaptative.md](../../spec/outils/optimizer/historique-ponderation-adaptative.md)
+[spec/outils/optimizer/historique/historique-ponderation-adaptative.md](../../spec/outils/optimizer/historique/historique-ponderation-adaptative.md)
 pour le contexte complet de chacune.
 
 ## `piste-a-tranche-weighting.patch`

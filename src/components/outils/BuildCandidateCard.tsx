@@ -54,7 +54,7 @@ interface Props {
   // tête de carte est toujours affichée, donc son écart aussi quand on compare.
   metricDelta?: number;
   // Bouton « Valider » (Lot 2 — réservation des 6 runes de CE build, voir
-  // spec/outils/optimizer/historique-import-monstres-a-optimiser.md).
+  // spec/outils/optimizer/historique/historique-import-monstres-a-optimiser.md).
   // `undefined` : aucun bouton — cas d'un monstre non réellement possédé
   // (repli stats de base, voir OptimizerSection.tsx), rien à réserver sur un
   // exemplaire qui n'existe pas dans le compte.

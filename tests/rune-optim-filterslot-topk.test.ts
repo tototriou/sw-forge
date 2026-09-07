@@ -6,7 +6,7 @@
 // filterSlot : top-K via le tas ».
 //
 // ⚠️ **Version corrigée après une revue de code externe** (voir
-// spec/outils/optimizer/historique-dimensionnement.md, « revue de code
+// spec/outils/optimizer/historique/historique-dimensionnement.md, « revue de code
 // externe : le défaut 'relevance' invalidé », point 3) : la version
 // précédente définissait SA PROPRE réimplémentation locale de `heapPush`
 // (array + tri complet à chaque insertion) au lieu d'appeler le vrai

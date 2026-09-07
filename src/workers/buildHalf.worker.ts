@@ -45,7 +45,7 @@ export interface BuildHalfRequest {
   // le vrai chemin de production (Web Workers) : `buildBuckets` recevait
   // toujours `undefined` ici, retombant sur son défaut interne quel que
   // soit ce que l'appelant avait demandé — trouvé par une revue de code
-  // externe, voir spec/outils/optimizer/historique-dimensionnement.md,
+  // externe, voir spec/outils/optimizer/historique/historique-dimensionnement.md,
   // « revue de code externe ».
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
 }

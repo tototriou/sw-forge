@@ -203,7 +203,7 @@ export interface SearchParams {
   // `'relevance'` (défaut depuis le 2026-08-18, tous les appels de
   // production) : tri des demi-builds par `relevanceScore` au sein d'un
   // compartiment (mesuré ~2× plus rapide, 0 régression — voir
-  // historique-dimensionnement.md). `'potential'` : ancien comportement,
+  // historique/historique-dimensionnement.md). `'potential'` : ancien comportement,
   // conservé comme échappatoire de mesure/comparaison. `'combined'` :
   // PROTOTYPE (forge/order-as-weight-contrib) — trie uniquement par
   // combinedRetentionScore, repli sur relevanceScore si aucun minimum posé.
@@ -538,7 +538,7 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
   }
   // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
   // échoue bruyamment plutôt que de retomber silencieusement sur EHP (voir
-  // historique-acceleration-et-outillage.md, « revue de code externe » —
+  // historique/historique-acceleration-et-outillage.md, « revue de code externe » —
   // c'est ce garde-fou qui a justement rendu visible le trou comblé ici).
   if (objective !== 'ehp') {
     throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
@@ -739,7 +739,7 @@ export const MAX_PER_SLOT_MATCH = 40;
 // production plutôt que de les dupliquer localement — incident vécu : une
 // copie locale à 80/40 (asymétrique, jamais vraie en production) a produit
 // une mesure de divergence qui ne caractérisait pas le vrai comportement de
-// filterSlot (voir historique-dimensionnement.md, « revue de code
+// filterSlot (voir historique/historique-dimensionnement.md, « revue de code
 // externe »).
 export const MAX_PER_SLOT_FILL = 40;
 // ⚠️ En plus des deux paquets ci-dessus : le meilleur d'un slot sur CHAQUE
@@ -1015,7 +1015,7 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 // flat=0` traité comme égal à `pct=0,flat=10`) mélange deux échelles —
 // mesuré : sur le pool réel d'un slot, jusqu'à ~47 % du top-40 par
 // `relevance()` change entre l'ancien classement et celui-ci (Lushen deck 10,
-// slot 2 — voir spec/outils/optimizer/historique-dimensionnement.md, « Suite
+// slot 2 — voir spec/outils/optimizer/historique/historique-dimensionnement.md, « Suite
 // — pct/flat pondérés par base »). Même principe que `totalOf` (résultat
 // EXACT, avec le terme `base` additif en plus) et déjà appliqué par
 // `isDominated` (comparaison composante par composante) — seul son propre
@@ -1595,7 +1595,7 @@ export function insertIntoSkyline(skyline: HalfCombo[], combo: HalfCombo, keys: 
 // rune-optim-filterslot-topk.test.ts) puissent appeler `heapPush` RÉELLEMENT
 // utilisé par `filterSlot`/`buildBuckets`, plutôt qu'une réimplémentation
 // locale qui ne détecterait jamais une régression du vrai code (incident
-// vécu : voir historique-dimensionnement.md, « revue de code externe »).
+// vécu : voir historique/historique-dimensionnement.md, « revue de code externe »).
 export interface ScoredEntry<T> {
   item: T;
   score: number;
@@ -1765,7 +1765,7 @@ export interface BuildBucketsContext {
   // pct/flat, voir `weightedContribution`) — absent avant, ces deux
   // fonctions mélangeaient les deux échelles. Propagé à TOUS les chemins
   // structurellement compatibles (`BuildHalfRequest`, `BuildHalfWorkerData`)
-  // — voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
+  // — voir spec/outils/optimizer/historique/historique-dimensionnement.md, « Suite —
   // pct/flat pondérés par base ».
   base: BaseStats;
   // PROTOTYPE (combosOrderMode='objective') — voir son commentaire dans
@@ -1807,7 +1807,7 @@ export function* buildBuckets(
   // déjà validé (Sonia deck 6, cas de stress atteignable) contre un coût de
   // construction non démontré meilleur que la piste A.
   adaptiveTrancheWeighting = false,
-  // Voir spec/outils/optimizer/historique-dimensionnement.md, « Suite —
+  // Voir spec/outils/optimizer/historique/historique-dimensionnement.md, « Suite —
   // vitesse de convergence : ordre au sein d'un compartiment » et « Suite —
   // rétention re-vérifiée EMPIRIQUEMENT avec le prototype ». Quatre valeurs,
   // toutes INTERNES — jamais exposées dans l'UI, aucun appel de production
@@ -2017,7 +2017,7 @@ export function* buildBuckets(
       // Mesuré sur un compte réel (Lushen deck 10, Rage/Rage+Blade/Energy+
       // Shield+Guard) : ~11 % des demi-builds construits tombaient dans ce
       // cas, pour 0 effet sur `pairBuckets` (déjà écarté au niveau du
-      // compartiment) — voir spec/outils/optimizer/historique-dimensionnement.md,
+      // compartiment) — voir spec/outils/optimizer/historique/historique-dimensionnement.md,
       // « Suite — élagage jokers≥2 ».
       if (jokersR01 >= 2) continue;
       const mustRescue = hasFourPieceRequirement && jokersR01 === 0 && fourPieceKeys.some((is4p, k) => is4p && haveR01[k] === 0);
@@ -2054,7 +2054,7 @@ export function* buildBuckets(
         // 0 pièce violent, aucun n'ayant de joker propre, gaspillait tout
         // son quota de candidats en pairing parallèle faute de pouvoir
         // s'apparier avec QUOI QUE CE SOIT (voir spec/outils/optimizer/
-        // historique-acceleration-et-outillage.md, « Chantier D »).
+        // historique/historique-acceleration-et-outillage.md, « Chantier D »).
         let demiBuildMort = false;
         for (let k = 0; k < distinctKeys.length; k++) {
           if (requiredPieces[k] > 3 && counts[k] === 0 && jokers === 0) {
@@ -2758,7 +2758,7 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
 // O(pool³). Un ordre de grandeur de plus que la version binaire d'origine
 // (qui ne relançait le pré-filtrage qu'une fois par condition — voir
 // spec/outils/optimizer/pistes.md, « `rankBlockingConditions` répond à la
-// mauvaise question », et historique-diagnostics-et-robustesse.md pour le
+// mauvaise question », et historique/historique-diagnostics-et-robustesse.md pour le
 // coût mesuré), mais reste sans commune mesure avec une recherche complète
 // — d'où le réglage dédié dans l'écran (« Options avancées ») pour le
 // rendre optionnel plutôt que systématique.

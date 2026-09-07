@@ -156,7 +156,7 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
       pistes ; ajouter/mettre à jour la ligne « Implémentées » avec un
       pointeur vers la section « Suite — » du fichier historique
       correspondant.
-- [ ] **`spec/outils/optimizer/historique-*.md`** (PRIVÉE, plusieurs
+- [ ] **`spec/outils/optimizer/historique/historique-*.md`** (PRIVÉE, plusieurs
       fichiers thématiques) — narration chronologique complète : append une
       section `## Suite — <titre>` au fichier historique le plus proche du
       sujet (ne PAS créer un nouveau fichier historique sauf si aucun

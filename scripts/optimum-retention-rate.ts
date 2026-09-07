@@ -39,7 +39,7 @@
 //     EXACT sont-ils PRÉSENTS dans les compartiments retenus réels ? À quel
 //     rang (position dans `bucket.combos`, 0 = meilleur) ?
 //
-// ⚠️ CALIBRÉ — voir spec/outils/optimizer/historique-dimensionnement.md,
+// ⚠️ CALIBRÉ — voir spec/outils/optimizer/historique/historique-dimensionnement.md,
 // « Suite — mesure P(optimum conservé | BUCKET_CAP)… » pour le résultat de
 // référence : `npx tsx scripts/optimum-retention-rate.ts 200 35 5000` →
 // 696/696 mesures (174 scénarios × 4 préréglages), 100 % de survie, rang
@@ -253,7 +253,7 @@ for (let s = 0; s < SCENARIOS; s++) {
 
   // Seuils calibrés pour forcer une tension comparable ou supérieure aux
   // pires cas réels connus (Sonia deck 14, 4 conditions simultanées) — voir
-  // spec/outils/optimizer/historique-dimensionnement.md, « Suite — mesure
+  // spec/outils/optimizer/historique/historique-dimensionnement.md, « Suite — mesure
   // P(optimum conservé | BUCKET_CAP)… » pour le calibrage complet (un
   // premier jet plus doux n'avait déjà rien perdu ; celui-ci vérifie que ce
   // n'était pas juste un signal trop faible). 2-4 conditions simultanées

@@ -9,7 +9,7 @@ import {
 import { saveLocal, usePersistence } from './usePersistence';
 
 // « Listes de travail » de l'Optimizer (Lot 3, voir spec/outils/optimizer/
-// historique-import-monstres-a-optimiser.md) — remplace useOptimizerValidatedBuilds
+// historique/historique-import-monstres-a-optimiser.md) — remplace useOptimizerValidatedBuilds
 // (Lot 2), qui ne portait qu'un tableau plat de runes validées, sans notion
 // de liste. Trois pièces d'état, une seule persistance : les listes
 // elles-mêmes (créées/renommées/supprimées par l'utilisateur, AUCUNE fixe —

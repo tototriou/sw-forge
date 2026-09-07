@@ -169,7 +169,7 @@ incomplet).
 ⚠️⚠️ **Ce piège PRÉCIS n'existe plus, la LEÇON reste entière.** Le budget de
 paires et son escalade ont été supprimés du moteur (voir
 `spec/outils/optimizer/pistes.md`, piste 8, et
-`historique-diagnostics-et-robustesse.md`, « Suite — suppression du budget de
+`historique/historique-diagnostics-et-robustesse.md`, « Suite — suppression du budget de
 nœuds ») : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
 il n'y a plus de 4ᵉ à oublier, et un appel nu explore désormais exactement ce
 que la production explore. Ne pas chercher à « reproduire l'escalade » dans un

@@ -97,7 +97,7 @@ const FILTER_SLOT_WIDENING_PER_CONDITION = 20;
 // (pas dupliqués localement) — un ancien copié-collé à 80/40 (asymétrique,
 // jamais vrai en production, où les deux valent 40) avait faussé la mesure
 // de divergence de ce script sans qu'aucune erreur tsc ne le détecte (voir
-// historique-dimensionnement.md, « revue de code externe »).
+// historique/historique-dimensionnement.md, « revue de code externe »).
 
 // Synthétique mais réaliste (mêmes ordres de grandeur qu'un vrai monstre) —
 // ce script ne teste PAS la pondération pct/flat par base (sujet d'un autre

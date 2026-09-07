@@ -39,7 +39,7 @@ export interface BuildHalfWorkerData {
   // TOUJOURS sur le défaut interne de buildBuckets quel que soit ce que
   // SearchParams portait — trouvé en corrigeant le même trou côté
   // src/workers/buildHalf.worker.ts (voir spec/outils/optimizer/
-  // historique-dimensionnement.md, « revue de code externe »).
+  // historique/historique-dimensionnement.md, « revue de code externe »).
   adaptiveTrancheWeighting?: boolean;
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
 }

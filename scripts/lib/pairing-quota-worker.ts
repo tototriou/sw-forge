@@ -2,7 +2,7 @@
 // `pairSlice.worker.ts` : `prepareSearch` reconstruit localement (postMessage
 // ne clone pas `totalOf`) et `startedAt` VRAI partagé écrasant celui de
 // `prepareSearch` (voir le correctif B1,
-// historique-acceleration-et-outillage.md).
+// historique/historique-acceleration-et-outillage.md).
 // ⚠️ Sa troisième fidélité, l'escalade du budget de paires à chaque
 // checkpoint, n'a plus d'objet : ce budget a été supprimé du moteur
 // (piste 8), donc la distinction d'avec `pairing-worker.ts` ne tient plus

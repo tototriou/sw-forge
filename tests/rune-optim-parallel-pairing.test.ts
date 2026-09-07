@@ -32,7 +32,7 @@
 //        plafond GLOBAL entier, non divisé — un écart de fidélité qui
 //        aurait empêché ce test de détecter le genre de perte par famine
 //        de quota confirmée sur un cas réel (Camilla, voir
-//        spec/outils/optimizer/historique-acceleration-et-outillage.md,
+//        spec/outils/optimizer/historique/historique-acceleration-et-outillage.md,
 //        « Chantier D »). Avec de vrais workers ET la vraie division du
 //        plafond, l'égalité stricte n'est PAS attendue (le parallèle peut
 //        trouver PLUS ou MOINS que le séquentiel selon la répartition

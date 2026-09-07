@@ -2,7 +2,7 @@
 // tient aussi en RANG RELATIF sur l'espace de recherche total, et si le
 // prototype `combosOrderMode:'relevance'` ne fait pas payer plus tard, à
 // l'appariement, ce qu'il gagne à la construction — voir spec/outils/
-// optimizer/historique-dimensionnement.md, « Suite — rang relatif et courbe
+// optimizer/historique/historique-dimensionnement.md, « Suite — rang relatif et courbe
 // de rendement ». Deux questions distinctes du script précédent :
 //   1. Le gain en `explored` ABSOLU tient-il une fois RAPPORTÉ à la taille
 //      RÉELLE de l'espace de recherche de CE scénario (`totalPairCount`,

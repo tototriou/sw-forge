@@ -10,7 +10,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
 
 // ⚠️ **Deux modes, UN SEUL composant** (voir spec/outils/optimizer/
-// historique-import-monstres-a-optimiser.md, Question 8) — plutôt que de
+// historique/historique-import-monstres-a-optimiser.md, Question 8) — plutôt que de
 // dupliquer un second picker pour la recherche bestiaire.
 interface AccountModeProps {
   // Mode « compte réel » (défaut, comportement historique inchangé) —

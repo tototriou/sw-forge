@@ -57,7 +57,7 @@ export interface PairSliceRequest {
   // fixe SON PROPRE `startedAt` interne — mesuré APRÈS la construction déjà
   // écoulée (jusqu'à ~1 min sur un gros compte), repoussant silencieusement
   // l'échéance du filet de sécurité `maxMs`. Trouvé par une revue de code
-  // externe — voir spec/outils/optimizer/historique-dimensionnement.md.
+  // externe — voir spec/outils/optimizer/historique/historique-dimensionnement.md.
   startedAt: number;
 }
 export type PairSliceInbound = PairSliceRequest | { stop: true };

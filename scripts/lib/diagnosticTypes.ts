@@ -149,14 +149,31 @@ export interface ParametreEffectif {
  * contexte.
  */
 export interface Fidelite {
+  /**
+   * ⚠️ **Porte sur les paramètres de la table `parametres`, et sur eux
+   * seuls.** Le libellé rendu dit donc « fidélité des paramètres SUIVIS »,
+   * jamais « conforme à la production » tout court : la phrase que le code
+   * démontre est *« les paramètres que le harnais compare sont
+   * conformes »*, ce qui n'est pas la même proposition.
+   */
   divergeDeLaProd: boolean;
   ecarts: { nom: string; valeur: number | string | boolean; valeurProd: number | string | boolean }[];
   /**
+   * Ce que la comparaison des paramètres ne peut PAS prouver, quelle que
+   * soit l'étendue de la table — à imprimer avec le verdict, plutôt que de
+   * laisser lire le drapeau comme une garantie générale.
+   */
+  horsPerimetre: string[];
+  /**
    * ⚠️ Un écart que même la parallélisation partagée ne comble pas : le
-   * navigateur rend la main toutes les 50 ms et les navigateurs plafonnent à
-   * ~4 ms un `setTimeout(0)` enchaîné — ~7 % de surcoût que Node ne paie
-   * pas. Un temps mesuré ici est donc un PLANCHER pour le navigateur.
-   * Arithmétique, pas mesuré.
+   * navigateur rend la main toutes les 50 ms et plafonne à ~4 ms un
+   * `setTimeout(0)` enchaîné — ~7 % de surcoût que Node ne paie pas.
+   *
+   * ⚠️ **Le mot « plancher » a été RETIRÉ** (2026-09-07) : c'était une
+   * affirmation de DIRECTION, et la direction n'est pas établie. La taxe de
+   * `setTimeout(0)` est bien un terme à sens unique, mais ce n'est pas le
+   * seul écart entre les deux plateformes (JIT, démarrage des workers,
+   * sérialisation). Chiffre ARITHMÉTIQUE, jamais mesuré.
    */
   noteNavigateur: string;
 }

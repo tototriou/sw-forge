@@ -78,9 +78,27 @@ export default async function testDiagnosticHarness() {
     surcharge.fidelite.ecarts.some((e) => e.nom === 'bucketCap' && e.valeur === 500),
     'et l’écart nomme le paramètre, sa valeur ET celle de la prod'
   );
+  // ⚠️ §3.4 — le mot « PLANCHER » a été RETIRÉ : c'était une affirmation de
+  // DIRECTION, et la direction n'est pas établie (la taxe setTimeout(0) va
+  // dans un seul sens, mais JIT, démarrage des workers et sérialisation ne
+  // sont pas comptés). Le test le VERROUILLE plutôt que de le laisser
+  // revenir à la prochaine réécriture de la note.
   ok(
-    surcharge.fidelite.noteNavigateur.includes('PLANCHER'),
-    'la note « temps Node = plancher pour le navigateur » voyage avec le résultat'
+    !surcharge.fidelite.noteNavigateur.includes('PLANCHER'),
+    'la note de plateforme n’affirme plus une DIRECTION (« plancher pour le navigateur »)'
+  );
+  ok(
+    surcharge.fidelite.noteNavigateur.includes('NON MESURÉ') &&
+      surcharge.fidelite.noteNavigateur.includes('pas directement transposables'),
+    'elle dit ce qu’elle est : un ordre de grandeur arithmétique, non mesuré, non transposable'
+  );
+
+  // ⚠️ §3.4 — la fidélité porte sur les paramètres SUIVIS, pas sur « la
+  // production ». Ce que la comparaison ne prouve pas voyage avec elle.
+  ok(
+    sansOverride.fidelite.horsPerimetre.some((h) => h.includes('COMPOSITION du pool')) &&
+      sansOverride.fidelite.horsPerimetre.some((h) => h.includes('ABSENT de la table')),
+    'le périmètre de la preuve est rendu : ce que la comparaison des paramètres ne couvre pas'
   );
 
   /* ── §3 : les points d'arrêt ───────────────────────────────────────── */

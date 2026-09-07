@@ -228,6 +228,19 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
  * « ce que fait la prod » s'il ne l'est pas — y compris une fois collé dans
  * une conversation, détaché de son contexte.
  */
+/**
+ * ⚠️ **Ce que la comparaison ne peut PAS prouver**, quelle que soit
+ * l'étendue de la table des paramètres — donc à imprimer avec le verdict.
+ * Cette liste est STRUCTURELLE : élargir la table (§6 des extensions) n'en
+ * retire aucune ligne, parce qu'aucune de ces choses n'est un paramètre.
+ */
+const HORS_PERIMETRE_FIDELITE = [
+  'la COMPOSITION du pool — runes exclues, verrous, inventaire d’artéfacts, relique, monstre : ' +
+    'elle vient de la recette ou du tirage, jamais comparée à un run de référence',
+  'tout paramètre ABSENT de la table ci-dessus : la preuve porte sur ce qui y figure, et sur rien d’autre',
+  'la coquille d’exécution — Node contre navigateur (voir la note de plateforme)',
+];
+
 export function evaluerFidelite(parametres: ParametreEffectif[]): Fidelite {
   const ecarts = parametres
     .filter((p) => p.valeurProd != null && p.valeur !== p.valeurProd)
@@ -235,10 +248,17 @@ export function evaluerFidelite(parametres: ParametreEffectif[]): Fidelite {
   return {
     divergeDeLaProd: ecarts.length > 0,
     ecarts,
+    horsPerimetre: HORS_PERIMETRE_FIDELITE,
+    // ⚠️ Le mot « PLANCHER » a été RETIRÉ (2026-09-07) : c'était une
+    // affirmation de DIRECTION, et la direction n'est pas établie. La taxe
+    // de `setTimeout(0)` est bien un terme à sens unique, mais elle n'est
+    // pas le seul écart entre les deux plateformes.
     noteNavigateur:
-      'Temps mesurés en Node : PLANCHER pour le navigateur (~7 % de moins). ' +
-      'Le navigateur rend la main toutes les 50 ms et plafonne à ~4 ms un setTimeout(0) enchaîné — ' +
-      'surcoût de plateforme, non corrigeable côté harnais. Chiffre ARITHMÉTIQUE, pas mesuré.',
+      'Temps mesurés en Node : surcoût attendu d’ordre ~7 % dans le modèle actuel, NON MESURÉ — ' +
+      'les temps Node ne sont pas directement transposables au navigateur. Le navigateur rend la main ' +
+      'toutes les 50 ms et plafonne à ~4 ms un setTimeout(0) enchaîné : ce terme-là va bien dans un seul ' +
+      'sens, mais ce n’est pas le seul écart entre les deux plateformes (JIT, démarrage des workers, ' +
+      'sérialisation). Chiffre ARITHMÉTIQUE, pas mesuré.',
   };
 }
 
@@ -259,14 +279,23 @@ export function rendreParametres(resolue: ConfigResolue): string {
     lignes.push(`  ${p.nom.padEnd(22)} ${String(p.valeur).padStart(12)}   ${origine}${prod}`);
   }
   lignes.push('');
+  // ⚠️ **« FIDÉLITÉ DES PARAMÈTRES SUIVIS », jamais « conforme à la
+  // production » tout court.** `evaluerFidelite` ne compare que la table
+  // ci-dessus ; la phrase que le code démontre est « les paramètres que le
+  // harnais compare sont conformes », ce qui n'est pas la même proposition.
+  // D'où le périmètre de la preuve, imprimé avec elle — et dans les DEUX
+  // branches : un run divergent n'est pas dispensé de dire ce que la
+  // comparaison ne couvre pas.
   if (resolue.fidelite.divergeDeLaProd) {
-    lignes.push('⚠️ FIDÉLITÉ : DIVERGE DE LA PROD');
+    lignes.push('⚠️ FIDÉLITÉ DES PARAMÈTRES SUIVIS : DIVERGE DE LA PROD');
     for (const e of resolue.fidelite.ecarts) {
       lignes.push(`   ${e.nom} = ${e.valeur}  (prod : ${e.valeurProd})`);
     }
   } else {
-    lignes.push('✅ FIDÉLITÉ : conforme à la production pour ce cas.');
+    lignes.push('✅ FIDÉLITÉ DES PARAMÈTRES SUIVIS : conforme à la production pour ce cas.');
   }
+  lignes.push('   ⚠️ Ce que cette comparaison NE prouve PAS :');
+  for (const h of resolue.fidelite.horsPerimetre) lignes.push(`     · ${h}`);
   for (const a of resolue.avertissements) lignes.push(`⚠️ ${a}`);
   return lignes.join('\n');
 }

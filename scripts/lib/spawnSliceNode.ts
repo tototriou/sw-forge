@@ -57,7 +57,16 @@ export function makeSpawnSliceNode(workerBundlePath: string): SpawnSlice {
           onProgress(msg.explored, msg.newCandidates);
           return;
         }
-        resolve({ candidates: msg.candidates, explored: msg.explored, truncated: msg.truncated });
+        // ⚠️ Reconstruction EXPLICITE, pas un spread de `msg` — jumeau Node
+        // de `pairSliceInWorker` (runeBuildOptim.worker.ts), MÊME piège :
+        // voir spec/outils/optimizer/near-miss-appariement.md, §5.
+        resolve({
+          candidates: msg.candidates,
+          explored: msg.explored,
+          truncated: msg.truncated,
+          nearMissByCondition: msg.nearMissByCondition,
+          globalNearMiss: msg.globalNearMiss,
+        });
       });
       worker.on('error', reject);
     });

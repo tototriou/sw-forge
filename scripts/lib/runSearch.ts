@@ -48,7 +48,7 @@ export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
   const tPrepared = performance.now();
   if (!prepared) {
     return {
-      candidates: [], explored: 0, truncated: false,
+      candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null,
       prepMs: tPrepared - t0, buildWallMs: 0, pairingMs: 0, totalMs: tPrepared - t0,
     };
   }

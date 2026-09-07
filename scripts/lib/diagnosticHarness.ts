@@ -27,6 +27,7 @@ import {
   Bucket,
   BuildCandidate,
   HalfCombo,
+  NearMiss,
   PER_STAT_KEEP,
   PER_STAT_KEEP_OBJECTIVE,
   PrepareStage,
@@ -63,6 +64,7 @@ import {
   Faisabilite,
   NatureEtage,
   PreuveFaisabilite,
+  QuasiSucces,
   RegimeAppariement,
   ResultatHarnais,
   SerieTemps,
@@ -249,7 +251,27 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
   if (resultat.meilleurs.length === 0 && resultat.faisabilite.blocages == null) {
     resultat.faisabilite.blocages = evaluerBlocages(resolue.params);
   }
+  // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
+  // near-miss-appariement.md) — jamais recalculé, seulement mis en forme.
+  // Rendu SEULEMENT quand `meilleurs` est vide : sinon rien à chercher.
+  if (resultat.meilleurs.length === 0) {
+    resultat.quasiSucces = evaluerQuasiSucces(dernier.resultat!, resolue);
+  }
   return resultat;
+}
+
+function evaluerQuasiSucces(resultat: SearchResult, resolue: ConfigResolue): NonNullable<ResultatHarnais['quasiSucces']> {
+  const runeById = new Map(resolue.poolInitial.map((r) => [r.id, r]));
+  const metric = resolue.params.metric;
+  const versQuasiSucces = (miss: NearMiss): QuasiSucces => ({
+    runeIds: miss.runeIds,
+    total: candidateMetricTotal(miss, runeById, metric),
+    manques: miss.shortfalls.map((s) => ({ stat: s.key, borne: s.kind, demande: s.requested, atteint: s.actual, manque: s.shortfall })),
+  });
+  return {
+    parCondition: resultat.nearMissByCondition.map((e) => ({ stat: e.key, borne: e.kind, quasiSucces: versQuasiSucces(e.miss) })),
+    global: resultat.globalNearMiss ? versQuasiSucces(resultat.globalNearMiss) : null,
+  };
 }
 
 /* --------------------------------------------------------------------------

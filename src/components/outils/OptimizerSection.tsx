@@ -55,6 +55,8 @@ import {
   StatFeasibility,
   rankBlockingConditions,
   BlockingConditionsDiagnosis,
+  NearMiss,
+  StatShortfall,
   statTotal,
   objectiveScore,
   sortCandidates,
@@ -121,7 +123,7 @@ import {
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
-import { useRuneMetric } from '../../hooks/useRuneMetric';
+import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import IconeInterdite from '../IconeInterdite';
@@ -4471,6 +4473,81 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 </p>
               )
             ))}
+
+          {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
+              vraie recherche (`pairBuckets`, jamais recalculé), affiché
+              SYSTÉMATIQUEMENT (contrairement au palier 2 ci-dessus, dont le
+              coût réel justifie un réglage) : voir spec/outils/optimizer/
+              near-miss-appariement.md. Ne voit que ce que la recherche a
+              RÉELLEMENT exploré avant troncature — une paire encore plus
+              proche, jamais atteinte, resterait invisible. */}
+          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (() => {
+            // ⚠️ Même vocabulaire que le palier 2 ci-dessus (« −15 suffit ») —
+            // décision explicite (2026-09-07) : un seul réflexe de lecture
+            // pour tout l'écran diagnostic, plutôt que deux formulations
+            // (« manque »/« suffit ») pour la même idée de desserrage.
+            // ⚠️ Le score affiché doit être celui que l'utilisateur reconnaît
+            // des cartes de résultat (`BuildCandidateCard.tsx`) : la moyenne
+            // PAR RUNE (pas la somme brute), formatée par `formatRuneMetric`
+            // (« 140.2% », jamais un nombre nu) ; « PV effectifs » en plus
+            // quand c'est l'objectif choisi — sinon un nombre sans légende
+            // reconnaissable ressemble à une erreur, pas à un score (incident
+            // signalé à l'usage : « 1309.0 » affiché pour une recherche PV
+            // effectifs, sans rapport avec ce qui est cherché).
+            const nearMissScoreText = (miss: NearMiss): string => {
+              const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
+              const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
+              if (objective !== 'ehp') return base;
+              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats)).toLocaleString('fr-FR')}`;
+            };
+            const suffiraitText = (s: StatShortfall) => {
+              const st = RECO_STATS.find((r) => r.key === s.key)!;
+              const nouveauSeuil = s.kind === 'min' ? s.requested - s.shortfall : s.requested + s.shortfall;
+              return (
+                <span key={`${s.key}-${s.kind}`}>
+                  <span className="font-semibold text-ink">{st.label}</span> {s.kind === 'min' ? '−' : '+'}
+                  {s.shortfall}
+                  {st.suffix} suffirait ({s.kind === 'min' ? '≥' : '≤'} {nouveauSeuil}
+                  {st.suffix})
+                </span>
+              );
+            };
+            return (
+              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
+                <p className="mb-1.5 text-xs font-semibold text-ink">Quoi ajuster pour trouver des builds</p>
+                {result.globalNearMiss && (
+                  <p className="mb-1.5 text-xs text-ink-dim">
+                    Build le plus proche, toutes conditions confondues :{' '}
+                    {result.globalNearMiss.shortfalls.map((s, i) => (
+                      <span key={`${s.key}-${s.kind}`}>
+                        {i > 0 ? ', ' : ''}
+                        {suffiraitText(s)}
+                      </span>
+                    ))}{' '}
+                    — {nearMissScoreText(result.globalNearMiss)}.
+                  </p>
+                )}
+                {result.nearMissByCondition.length > 0 && (
+                  <>
+                    <p className="mb-1 text-xs text-ink-dim">
+                      Par condition (satisfait tout le reste, ne manque que celle-ci) :
+                    </p>
+                    <ul className="space-y-1">
+                      {result.nearMissByCondition.map(({ key, kind, miss }: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }) => (
+                        <li key={`${key}-${kind}`} className="text-xs text-ink-dim">
+                          {suffiraitText(miss.shortfalls[0])} — {nearMissScoreText(miss)}.
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <p className="mt-1.5 text-micro text-ink-dim">
+                  Ne voit que ce que la recherche a réellement exploré avant troncature — une paire encore
+                  plus proche, jamais atteinte, resterait invisible.
+                </p>
+              </div>
+            );
+          })()}
 
           {result?.truncated && (
             <p className="mb-2 text-micro text-warn">

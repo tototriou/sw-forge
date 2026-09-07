@@ -51,7 +51,7 @@ import {
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { buildRealDamageContext } from './lib/realDamageCli';
-import { sortCandidates } from '../src/lib/runeBuildOptim';
+import { NearMiss, candidateMetricTotal, sortCandidates } from '../src/lib/runeBuildOptim';
 import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -372,3 +372,33 @@ for (const c of classes.slice(0, 20)) {
   console.log(`  runes [${c.runeIds.join(',')}]`);
 }
 if (classes.length > 20) console.log(`  … et ${classes.length - 20} de plus.`);
+
+// ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
+// near-miss-appariement.md) — jamais recalculé, seulement mis en forme.
+// Rendu SEULEMENT quand rien n'a été trouvé : sinon rien à chercher.
+if (result.candidates.length === 0) {
+  const runeById = new Map(params.pool.map((r) => [r.id, r]));
+  // ⚠️ Même vocabulaire que le bloc de blocages du harnais (« −15 suffit »)
+  // — décision explicite (2026-09-07) : un seul réflexe de lecture pour
+  // tout le diagnostic.
+  const describe = (m: NearMiss) =>
+    m.shortfalls
+      .map((s) => {
+        const seuil = s.kind === 'min' ? s.requested - s.shortfall : s.requested + s.shortfall;
+        const signe = s.kind === 'min' ? '−' : '+';
+        return `${s.key} ${signe}${s.shortfall} suffirait (${s.kind === 'min' ? '≥' : '≤'} ${seuil})`;
+      })
+      .join(', ') + ` — ${candidateMetricTotal(m, runeById, recipe.metric).toFixed(1)}`;
+  console.log('\nQuasi-succès à l’appariement — sous-produit gratuit de la vraie recherche :');
+  if (result.globalNearMiss) {
+    console.log(`  le plus proche, toutes conditions confondues : ${describe(result.globalNearMiss)}`);
+  } else {
+    console.log('  aucune paire explorée n’a jamais atteint le test conjoint exact (rejetée plus tôt)');
+  }
+  if (result.nearMissByCondition.length > 0) {
+    console.log('  par condition (satisfait TOUT le reste, ne manque QUE celle-ci) :');
+    for (const e of result.nearMissByCondition) {
+      console.log(`    ${e.key} (${e.kind}) : ${describe(e.miss)}`);
+    }
+  }
+}

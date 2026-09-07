@@ -36,7 +36,8 @@
 // SA tranche, exactement comme le comportement séquentiel existant (bouton
 // « Arrêter » qui garde le meilleur trouvé jusque-là).
 
-import { prepareSearch, pairBuckets, SearchParams, Bucket, BuildCandidate } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, SearchParams, Bucket, BuildCandidate, NearMiss } from '../lib/runeBuildOptim';
+import { StatKey } from '../lib/effects';
 import { drivePairing } from './pairingDriver';
 
 export interface PairSliceRequest {
@@ -71,6 +72,8 @@ export interface PairSliceResultMessage {
   explored: number;
   candidates: BuildCandidate[];
   truncated: boolean;
+  nearMissByCondition: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }[];
+  globalNearMiss: NearMiss | null;
 }
 export type PairSliceResponse = PairSliceProgressMessage | PairSliceResultMessage;
 
@@ -89,7 +92,7 @@ export async function runPairSlice(
   const { params, bucketASlice, bucketsB, startedAt } = request;
   const prepared = prepareSearch(params);
   if (!prepared) {
-    return { type: 'result', explored: 0, candidates: [], truncated: false };
+    return { type: 'result', explored: 0, candidates: [], truncated: false, nearMissByCondition: [], globalNearMiss: null };
   }
   // ⚠️ Écrase le `startedAt` interne que `prepareSearch` vient de fixer
   // (Date.now() APPELÉ ICI, après la construction déjà écoulée) par le VRAI

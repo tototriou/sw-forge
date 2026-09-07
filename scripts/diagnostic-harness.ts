@@ -301,6 +301,39 @@ function rendreResultat(r: ResultatHarnais): string {
     );
   }
 
+  if (r.quasiSucces) {
+    const qs = r.quasiSucces;
+    l.push('', 'Quasi-succès à l’appariement — sous-produit GRATUIT de la vraie recherche', '─'.repeat(72));
+    // ⚠️ Même vocabulaire que le bloc « Conditions bloquantes » plus haut
+    // (« −15 suffit ») — décision explicite (2026-09-07) : un seul réflexe
+    // de lecture pour tout le diagnostic, plutôt que « manque »/« suffit »
+    // pour la même idée de desserrage.
+    const suffirait = (m: { stat: string; borne: 'min' | 'max'; demande: number; manque: number }) => {
+      const seuil = m.borne === 'min' ? m.demande - m.manque : m.demande + m.manque;
+      const signe = m.borne === 'min' ? '−' : '+';
+      return `${m.stat} ${signe}${nb(m.manque)} suffirait (${m.borne === 'min' ? '≥' : '≤'} ${nb(seuil)})`;
+    };
+    if (qs.global) {
+      const manques = qs.global.manques.map(suffirait).join(', ');
+      l.push(`  le plus proche, toutes conditions confondues : ${manques} — ${nb(qs.global.total)}`);
+    } else {
+      l.push('  aucune paire explorée n’a jamais atteint le test conjoint exact (rejetée plus tôt)');
+    }
+    if (qs.parCondition.length > 0) {
+      l.push('  par condition (satisfait TOUT le reste, ne manque QUE celle-ci) :');
+      for (const p of qs.parCondition) {
+        const m = p.quasiSucces.manques[0];
+        l.push(`    ${p.stat.padEnd(5)} : ${suffirait(m)} — atteint ${nb(m.atteint)} — ${nb(p.quasiSucces.total)}`);
+      }
+    } else {
+      l.push('  aucune condition n’a de quasi-succès ISOLÉ (jamais en échec seule parmi les paires explorées)');
+    }
+    l.push(
+      '  ⚠️ Ne voit que ce que la recherche a RÉELLEMENT exploré avant troncature — une paire',
+      '     encore plus proche, jamais atteinte, resterait invisible.'
+    );
+  }
+
   if (r.demiBuilds) {
     l.push('', 'Demi-builds', '─'.repeat(72));
     l.push(`  moitié A : ${nb(r.demiBuilds.compartimentsA)} compartiment(s), ${nb(r.demiBuilds.combosA)} demi-build(s)`);

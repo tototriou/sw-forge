@@ -1170,10 +1170,28 @@ retour.
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la
     carte**, sur sa propre ligne. Un flottant à taille fixe débordait de
     l'écran sur une carte de résultat déjà compacte en mobile.
-    ⚠️ **Sur 0 résultat**, un encadré diagnostic apparaît : soit une liste de
-    conditions mathématiquement hors de portée (avec leur borne exacte), soit
-    un message neutre orientant vers la conjonction des contraintes ou un
-    pré-filtrage plus large. Un sélecteur **« Trier par »** re-trie **côté
+    ⚠️ **Sur 0 résultat**, jusqu'à trois encadrés diagnostic apparaissent, à la
+    suite :
+    - **Toujours** : une liste de conditions mathématiquement hors de portée
+      (avec leur borne exacte), ou un message neutre orientant vers la
+      conjonction des contraintes ou un pré-filtrage plus large.
+    - **Si « Diagnostic approfondi sur 0 résultat » est coché** (décoché par
+      défaut, plus coûteux — voir le réglage plus haut) : pour chaque
+      condition posée, DE COMBIEN la desserrer suffit à faire grandir le pool
+      pré-filtré (« VIT −15 suffit (≥ 160) »), ou « aucun gain, même
+      desserrée entièrement » si ce n'est pas la stat qui bloque à ce stade.
+      Décoché, une simple invitation discrète à l'activer.
+    - **« Quoi ajuster pour trouver des builds »**, systématique (coût nul,
+      sans réglage) : contrairement au point précédent, qui ne regarde que le
+      pré-filtrage, celui-ci vient de la recherche RÉELLE — la meilleure
+      combinaison de runes déjà examinée qui échoue de peu. Pour chaque
+      condition posée, si une combinaison satisfait tout le reste et ne
+      manque QUE celle-ci, son écart (« VIT −5 suffirait (≥ 105) »), plus la
+      combinaison la plus proche toutes conditions confondues. N'apparaît que
+      s'il existe au moins un tel résultat parmi ce que la recherche a
+      réellement exploré — un near-miss encore plus proche, jamais atteint
+      avant l'arrêt de la recherche, resterait invisible.
+    Un sélecteur **« Trier par »** re-trie **côté
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes
     d'options — les 8 stats brutes, et les mêmes objectifs qu'à l'étape 3

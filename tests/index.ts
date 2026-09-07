@@ -37,6 +37,7 @@ import testDiagnosticHarness from './diagnostic-harness.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
 import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
 import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test';
+import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
@@ -97,6 +98,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],
   ['testRuneOptimParallelPairing', async () => { await testRuneOptimParallelPairing(); }],
   ['testRuneOptimParallelTruncated', testRuneOptimParallelTruncated],
+  ['testRuneOptimNearMiss', async () => { await testRuneOptimNearMiss(); }],
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testOptimizerExclusion', testOptimizerExclusion],

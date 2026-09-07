@@ -126,11 +126,11 @@ export default async function testDiagnosticHarness() {
   // `combineParallelPairingResults` : le temps est testé AVANT le push, le
   // quota APRÈS.
   const paramsFictifs = { maxCollected: 100 } as SearchParams;
-  const parQuota: SearchResult = { candidates: new Array(100).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true };
-  const parTemps: SearchResult = { candidates: new Array(37).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true };
+  const parQuota: SearchResult = { candidates: new Array(100).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
+  const parTemps: SearchResult = { candidates: new Array(37).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
   egal(evaluerCompletude(parQuota, 1000, paramsFictifs).motif, 'maxCollected', 'plafond de candidats ATTEINT ⇒ motif maxCollected');
   egal(evaluerCompletude(parTemps, 1000, paramsFictifs).motif, 'maxMs', 'plafond NON atteint alors que tronqué ⇒ motif maxMs (le temps)');
-  const completSansTout: SearchResult = { candidates: [], explored: 900, truncated: false };
+  const completSansTout: SearchResult = { candidates: [], explored: 900, truncated: false, nearMissByCondition: [], globalNearMiss: null };
   ok(
     evaluerCompletude(completSansTout, 1000, paramsFictifs).incoherence != null,
     'annoncé complet mais 900 < 1000 paires : l’incohérence est dite'

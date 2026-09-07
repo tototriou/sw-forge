@@ -158,7 +158,17 @@ function pairSliceInWorker(
         onProgress(msg.explored, msg.newCandidates);
         return;
       }
-      resolve({ candidates: msg.candidates, explored: msg.explored, truncated: msg.truncated });
+      // ⚠️ Reconstruction EXPLICITE, pas un spread de `msg` — un champ ajouté
+      // à `SearchResult` sans être listé ICI serait perdu en silence. Voir
+      // spec/outils/optimizer/near-miss-appariement.md, §5 : un des deux
+      // points identifiés à l'avance pour cette raison précise.
+      resolve({
+        candidates: msg.candidates,
+        explored: msg.explored,
+        truncated: msg.truncated,
+        nearMissByCondition: msg.nearMissByCondition,
+        globalNearMiss: msg.globalNearMiss,
+      });
     };
     worker.onerror = reject;
   });
@@ -211,7 +221,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
   const prepared = prepareSearch(params);
   if (!prepared) {
-    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: false };
+    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null };
     (self as unknown as Worker).postMessage(result);
     return;
   }
@@ -266,14 +276,14 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // (aucune paire n'a pu être évaluée) — un résultat vide, tronqué, est le
     // seul choix honnête, même comportement que l'ancien code pour
     // `phase: 'building'`.
-    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true };
+    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
     (self as unknown as Worker).postMessage(result);
     return;
   } finally {
     stopBuildReject = null;
   }
   if (stopped) {
-    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true };
+    const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
     (self as unknown as Worker).postMessage(result);
     return;
   }
@@ -332,7 +342,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       // enfants encore listés ici n'ont alors jamais été terminés.
       for (const h of activePairingWorkers) h.terminate();
       activePairingWorkers = [];
-      const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true };
+      const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null };
       (self as unknown as Worker).postMessage(result);
     }
     return;

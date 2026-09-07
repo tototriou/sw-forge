@@ -211,6 +211,32 @@ export interface SearchParams {
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
 }
 
+// Diagnostic « quasi-succès » — voir spec/outils/optimizer/
+// near-miss-appariement.md pour le cadrage complet. Sous-produit GRATUIT de
+// l'appariement réel (`pairBuckets`) : les stats EXACTES (`computeStats`)
+// d'une paire (comboA, comboB) sont déjà calculées au moment où elle est
+// rejetée faute de satisfaire toutes les conditions — ce type capture
+// laquelle retenir plutôt que la jeter.
+export interface StatShortfall {
+  key: StatKey;
+  kind: 'min' | 'max';
+  requested: number;
+  actual: number;
+  // requested − actual (min) ou actual − requested (max) — toujours > 0
+  // (une entrée n'existe que pour une condition EFFECTIVEMENT en échec).
+  shortfall: number;
+}
+export interface NearMiss {
+  runeIds: number[];
+  stats: StatRow[];
+  effTotal: number;
+  // Le résultat COMPLET du test conjoint pour cette paire — pas seulement la
+  // condition qui a motivé sa conservation — pour pouvoir lire d'où vient
+  // l'échec. Une seule entrée par condition EN ÉCHEC (les autres, satisfaites,
+  // n'y figurent pas).
+  shortfalls: StatShortfall[];
+}
+
 export interface SearchResult {
   // ⚠️ **L'ORDRE N'EST PAS CELUI DE L'OBJECTIF.** Les candidats sortent dans
   // l'ordre où l'appariement les a collectés, pas classés par ce qu'on a
@@ -226,6 +252,31 @@ export interface SearchResult {
   candidates: BuildCandidate[];
   explored: number;
   truncated: boolean;
+  /**
+   * Pour chaque condition posée où AU MOINS une paire explorée a satisfait
+   * TOUTES LES AUTRES conditions : la MEILLEURE (le plus petit manque sur
+   * CETTE condition) parmi ces paires. Une condition qu'aucune paire
+   * explorée n'a jamais laissée seule en échec (toujours accompagnée d'au
+   * moins une autre condition ratée, ou déjà systématiquement satisfaite)
+   * n'a PAS d'entrée ici — absence, jamais une valeur `null` noyée dans le
+   * tableau.
+   *
+   * ⚠️ Champs `SearchResult` NON optionnels, délibérément : voir
+   * spec/outils/optimizer/near-miss-appariement.md, §4 — `tsc` doit
+   * échouer sur tout site qui construit un `SearchResult` sans eux, plutôt
+   * que de laisser un near-miss silencieusement vide passer inaperçu.
+   */
+  nearMissByCondition: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }[];
+  /**
+   * La paire la plus proche explorée, TOUTES conditions confondues (aucune
+   * n'a besoin d'être satisfaite) — distance = le plus grand écart RELATIF
+   * parmi les conditions en échec (`shortfall / requested`), pour rester
+   * comparable entre stats d'échelles différentes (PV en milliers,
+   * Précision en dizaines). `null` si aucune paire n'a jamais atteint le
+   * test conjoint (rejetée plus tôt par `quickOk`/les bornes optimistes),
+   * ou si aucune paire n'a jamais échoué (candidates déjà non vide).
+   */
+  globalNearMiss: NearMiss | null;
 }
 
 // Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
@@ -2903,6 +2954,13 @@ export interface PairingProgress {
   phase: 'pairing';
   candidates: BuildCandidate[];
   explored: number;
+  // Snapshot du near-miss ACCUMULÉ jusqu'à ce point — voir `SearchResult`
+  // pour la sémantique exacte. Porté ici, pas seulement sur le résultat
+  // final, pour qu'un arrêt manuel EN COURS D'APPARIEMENT (`drivePairing`,
+  // `isStopped()`) puisse le récupérer plutôt que le perdre — voir
+  // spec/outils/optimizer/near-miss-appariement.md, §5.
+  nearMissByCondition: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }[];
+  globalNearMiss: NearMiss | null;
 }
 export type SearchProgress = BuildingProgress | PairingProgress;
 
@@ -3216,6 +3274,49 @@ export function* pairBuckets(
   let explored = 0;
   let truncated = false;
 
+  // Diagnostic « quasi-succès » — voir spec/outils/optimizer/
+  // near-miss-appariement.md. Sous-produit gratuit : alimenté UNIQUEMENT à
+  // partir de paires qui ont déjà atteint `computeStats` (donc déjà passé
+  // `quickOk`/`comboAFeasible`, la minorité) et qui échouent sur le test
+  // CONJOINT exact — aucun calcul supplémentaire, seulement des comparaisons
+  // sur des totaux déjà connus.
+  const nearMissByCondition = new Map<string, { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }>();
+  let globalNearMiss: NearMiss | null = null;
+  let globalNearMissDistance = Infinity;
+
+  function relativeShortfall(s: StatShortfall): number {
+    return s.shortfall / s.requested;
+  }
+
+  // Enregistre une TENTATIVE (une paire, avec UN apport d'artéfact précis)
+  // qui a échoué le test conjoint — `shortfalls` non vide, garanti par
+  // l'appelant.
+  function considerNearMiss(runeIds: number[], statsRow: StatRow[], effTotal: number, shortfalls: StatShortfall[]): void {
+    // Par condition : seulement si CETTE tentative échoue sur UNE SEULE
+    // condition — sinon desserrer cette condition seule ne suffirait pas à
+    // rendre CETTE paire valide (décision explicite, voir le cadrage).
+    if (shortfalls.length === 1) {
+      const s = shortfalls[0];
+      const mapKey = `${s.key}-${s.kind}`;
+      const existing = nearMissByCondition.get(mapKey);
+      if (!existing || s.shortfall < existing.miss.shortfalls[0].shortfall) {
+        nearMissByCondition.set(mapKey, { key: s.key, kind: s.kind, miss: { runeIds, stats: statsRow, effTotal, shortfalls } });
+      }
+    }
+    // Global : n'importe quel nombre d'échecs, classé par le plus grand
+    // écart RELATIF parmi eux (normalise des échelles hétérogènes — PV en
+    // milliers, Précision en dizaines).
+    const distance = Math.max(...shortfalls.map(relativeShortfall));
+    if (distance < globalNearMissDistance) {
+      globalNearMissDistance = distance;
+      globalNearMiss = { runeIds, stats: statsRow, effTotal, shortfalls };
+    }
+  }
+
+  function nearMissSnapshot(): { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }[] {
+    return Array.from(nearMissByCondition.values());
+  }
+
   outer: for (const [bA, bB] of orderedCompartmentPairs(bucketsA, bucketsB)) {
     {
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
@@ -3238,7 +3339,7 @@ export function* pairBuckets(
         for (const comboB of bB.combos) {
           explored++;
           if (explored % CHECKPOINT_EVERY === 0) {
-            yield { phase: 'pairing', candidates, explored };
+            yield { phase: 'pairing', candidates, explored, nearMissByCondition: nearMissSnapshot(), globalNearMiss };
           }
           if (overBudget()) {
             truncated = true;
@@ -3316,35 +3417,37 @@ export function* pairBuckets(
            * la paire figée, comportement d'avant.
            */
           const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
+          const runeIds = runes.map((r) => r.id);
+          const effTotal = runes.reduce((sum, r) => sum + valueOf(r, metric), 0);
           let ok = false;
           for (const apport of apports) {
             const decalage = (k: StatKey) => (apport[k] ?? 0) - (artFlatFige[k] ?? 0);
-            let tout = true;
+            // ⚠️ Contrairement à l'ancien `tout`/`break` au premier échec :
+            // ici on liste TOUTES les conditions en échec pour cet apport
+            // (jamais un early-break), condition du near-miss « satisfait
+            // tout SAUF k » — nécessaire pour savoir s'il n'y en a qu'UNE
+            // seule. `minEntries`/`maxEntries` restent petits (une poignée
+            // de conditions posées), le surcoût est négligeable.
+            const shortfalls: StatShortfall[] = [];
             for (const { k, min } of minEntries) {
               const row = stats.find((r) => r.key === k);
-              if (!row || row.total + decalage(k) < min) {
-                tout = false;
-                break;
-              }
+              const actual = (row?.total ?? 0) + decalage(k);
+              if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
             }
-            if (tout) {
-              for (const { k, max } of maxEntries) {
-                const row = stats.find((r) => r.key === k);
-                if (row && row.total + decalage(k) > max) {
-                  tout = false;
-                  break;
-                }
-              }
+            for (const { k, max } of maxEntries) {
+              const row = stats.find((r) => r.key === k);
+              const actual = (row?.total ?? 0) + decalage(k);
+              if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
             }
-            if (tout) {
+            if (shortfalls.length === 0) {
               ok = true;
               break;
             }
+            considerNearMiss(runeIds, stats, effTotal, shortfalls);
           }
           if (!ok) continue;
 
-          const effTotal = runes.reduce((sum, r) => sum + valueOf(r, metric), 0);
-          candidates.push({ runeIds: runes.map((r) => r.id), stats, effTotal });
+          candidates.push({ runeIds, stats, effTotal });
           if (candidates.length >= maxCollected) {
             truncated = true;
             break outer;
@@ -3354,7 +3457,7 @@ export function* pairBuckets(
     }
   }
 
-  return { candidates, explored, truncated };
+  return { candidates, explored, truncated, nearMissByCondition: nearMissSnapshot(), globalNearMiss };
 }
 
 // Fusionne les résultats des N workers de l'appariement PARALLÈLE
@@ -3383,6 +3486,16 @@ export function* pairBuckets(
 // `true`, `candidates.length` vaut EXACTEMENT `perWorkerMaxCollected` si
 // la cause est (a), et STRICTEMENT MOINS si la cause est (b) (sinon la
 // troncature par quota aurait déjà eu lieu à une itération précédente).
+// ⚠️ Chaque worker calcule son near-miss sur SA SEULE tranche de `bucketsA`
+// (voir `PairSliceRequest`) — fusionner, c'est garder le MEILLEUR entre
+// tranches, exactement comme `pairBuckets` garde le meilleur entre paires
+// au sein d'une seule tranche. Même métrique des deux côtés (voir
+// `pairBuckets`, `considerNearMiss`) : jamais recalculée ici, seulement
+// comparée.
+function betterNearMiss(a: NearMiss, b: NearMiss, distanceOf: (m: NearMiss) => number): NearMiss {
+  return distanceOf(b) < distanceOf(a) ? b : a;
+}
+
 export function combineParallelPairingResults(
   results: SearchResult[],
   perWorkerMaxCollected: number,
@@ -3392,7 +3505,26 @@ export function combineParallelPairingResults(
   const explored = results.reduce((s, r) => s + r.explored, 0);
   const realBudgetExhausted = results.some((r) => r.truncated && r.candidates.length < perWorkerMaxCollected);
   const truncated = candidates.length >= globalMaxCollected || realBudgetExhausted;
-  return { candidates, explored, truncated };
+
+  const nearMissByCondition = new Map<string, { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }>();
+  for (const r of results) {
+    for (const entry of r.nearMissByCondition) {
+      const mapKey = `${entry.key}-${entry.kind}`;
+      const existing = nearMissByCondition.get(mapKey);
+      if (!existing || entry.miss.shortfalls[0].shortfall < existing.miss.shortfalls[0].shortfall) {
+        nearMissByCondition.set(mapKey, entry);
+      }
+    }
+  }
+
+  let globalNearMiss: NearMiss | null = null;
+  const globalDistance = (m: NearMiss) => Math.max(...m.shortfalls.map((s) => s.shortfall / s.requested));
+  for (const r of results) {
+    if (!r.globalNearMiss) continue;
+    globalNearMiss = globalNearMiss ? betterNearMiss(globalNearMiss, r.globalNearMiss, globalDistance) : r.globalNearMiss;
+  }
+
+  return { candidates, explored, truncated, nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss };
 }
 
 // ⚠️ Simple ORCHESTRATION de `prepareSearch` → `buildBuckets` (×2) →
@@ -3407,7 +3539,7 @@ export function combineParallelPairingResults(
 export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
   const prepared = prepareSearch(params);
   if (!prepared) {
-    return { candidates: [], explored: 0, truncated: false };
+    return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null };
   }
   const bucketsA = yield* buildBuckets(
     'A', [0, 1, 2], prepared, prepared.maxSetsForA,

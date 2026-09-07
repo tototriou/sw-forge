@@ -52,7 +52,18 @@ export async function drivePairing(
   while (!step.done) {
     if (isStopped()) {
       const progress = step.value;
-      return { candidates: progress.candidates, explored: progress.explored, truncated: true };
+      // ⚠️ Le near-miss accumulé jusqu'à cet instant DOIT survivre à l'arrêt
+      // — sans ces deux champs, un arrêt manuel perdrait silencieusement ce
+      // que `pairBuckets` avait déjà trouvé (voir spec/outils/optimizer/
+      // near-miss-appariement.md, §5 : ce site est un des deux points
+      // identifiés qui reconstruisent `SearchResult` à la main).
+      return {
+        candidates: progress.candidates,
+        explored: progress.explored,
+        truncated: true,
+        nearMissByCondition: progress.nearMissByCondition,
+        globalNearMiss: progress.globalNearMiss,
+      };
     }
     const now = Date.now();
     const progress = step.value;

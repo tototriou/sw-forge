@@ -497,4 +497,26 @@ export interface ResultatHarnais {
    */
   meilleurs?: { runeIds: number[]; total: number }[];
   temps?: TempsParPhase;
+  /**
+   * Diagnostic « quasi-succès » — voir spec/outils/optimizer/
+   * near-miss-appariement.md. Sous-produit GRATUIT de l'appariement réel
+   * (`pairBuckets`), jamais recalculé : les paires EXPLORÉES qui échouent
+   * le test conjoint exact, mais s'en approchent le plus. Absent si
+   * `meilleurs` n'est PAS vide (rien à chercher), ou si l'arrêt a eu lieu
+   * avant la phase d'appariement.
+   */
+  quasiSucces?: {
+    /** Une entrée par condition où une paire explorée échoue SEULEMENT sur elle. */
+    parCondition: { stat: string; borne: 'min' | 'max'; quasiSucces: QuasiSucces }[];
+    /** La paire la plus proche toutes conditions confondues. `null` si aucune paire n'a jamais atteint le test conjoint. */
+    global: QuasiSucces | null;
+  };
+}
+
+export interface QuasiSucces {
+  runeIds: number[];
+  /** Recalculé (`candidateMetricTotal`), jamais `effTotal` figé — même
+   *  convention que `meilleurs` ci-dessus. */
+  total: number;
+  manques: { stat: string; borne: 'min' | 'max'; demande: number; atteint: number; manque: number }[];
 }

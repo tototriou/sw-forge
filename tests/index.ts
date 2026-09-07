@@ -16,6 +16,7 @@ import testArtefactOptim, {
   testAmpliMaxAtteignable,
 } from './artefact-optim.test';
 import testArtefactFile from './artefact-file.test';
+import testArtifactEvaluation, { testArtifactPaireReelleEhp } from './artifact-evaluation.test';
 import testReco, {
   testTrimPartage,
   testDefensesVisees,
@@ -111,6 +112,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testConversionVitesseFinale', testConversionVitesseFinale],
   ['testAmpliMaxAtteignable', testAmpliMaxAtteignable],
   ['testArtefactFile', testArtefactFile],
+  ['testArtifactEvaluation', testArtifactEvaluation],
+  ['testArtifactPaireReelleEhp', testArtifactPaireReelleEhp],
   ['testRegistre', testRegistre],
   ['testSansDowngrade', testSansDowngrade],
   ['testPalier', testPalier],

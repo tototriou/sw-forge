@@ -26,8 +26,9 @@ import {
   resolveDamageSkill,
 } from '../../src/lib/damage';
 import { computeStats, statsParPaire } from '../../src/lib/stats';
-import { artifactDamageProfile, codesAmplificationActifs, computeTotalDamage } from '../../src/lib/damage';
+import { codesAmplificationActifs } from '../../src/lib/damage';
 import { bornesArtefacts, paireRepresentative, type BornesArtefacts, type ChoixPrincipale } from '../../src/lib/artifactOptim';
+import { evaluerPourRegime, regimeArtefacts } from '../../src/lib/artifactEvaluation';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { StatKey } from '../../src/lib/effects';
@@ -61,12 +62,15 @@ export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
  * demandée, l'emplacement reste VIDE au lieu d'être hypothéqué. On ne peut pas
  * équiper ce qu'on ne possède pas.
  *
- * ⚠️ **Le score dépend de l'objectif, et le raccourci est légitime.**
+ * ⚠️ **Le score dépend de l'objectif — et pas de la même façon pour tous.**
  * `computeStats` (stats.ts:69) ne lit que la stat PRINCIPALE d'un artéfact,
- * jamais ses sous-propriétés : hors « Dégâts réels », deux artéfacts de même
- * principale ne se distinguent que par sa VALEUR, et prendre la plus haute est
- * exact — inutile de dérouler un modèle de dégâts qui n'entre pas dans le
- * score.
+ * jamais ses sous-propriétés — vrai pour tous les objectifs. Mais additionner
+ * les deux principales pour CHOISIR la paire n'est exact que pour l'efficience
+ * et la VIT (aucun artéfact n'y entre) : pour les PV effectifs, `pvEffectifs`
+ * n'est PAS une somme de PV et de DEF, voir
+ * spec/outils/optimizer/cadrage-score-artefacts-ehp.md. `evaluerPourRegime`
+ * (`src/lib/artifactEvaluation.ts`) note donc chaque régime sur son critère
+ * réel, jamais sur une somme incommensurable.
  */
 /**
  * ⚠️ **Ce chemin NE bascule PAS « equipped » → « libre » sur un compte
@@ -139,33 +143,35 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
   const espece = loadMonstersList().find((m) => m.com2usId === loaded.com2usId);
   if (!espece) return null;
 
+  // ⚠️ Un seul `computeStats` pour toutes les paires — voir `statsParPaire`.
+  const statsAvec = statsParPaire(loaded.gear);
+  // ⚠️ Le score dépend du RÉGIME, pas juste de « Dégâts réels » vs le reste :
+  // `pvEffectifs` (PV effectifs) n'est PAS une somme des deux principales,
+  // contrairement à l'efficience/la VIT. `evaluerPourRegime`
+  // (`src/lib/artifactEvaluation.ts`) centralise ce contrat, partagé avec
+  // les deux sites de OptimizerSection.tsx (spec/outils/optimizer/
+  // cadrage-score-artefacts-ehp.md).
+  const regime = regimeArtefacts(recipe.objective);
+
   let evaluer: (arts: ArtifactDetail[]) => number;
-  if (recipe.objective === 'degats_reels') {
+  if (regime === 'degats_reels') {
     // ⚠️ Contexte construit avec l'équipement PORTÉ, uniquement pour obtenir le
     // profil de sort et les passifs — `artefacts` est recalculé par paire dans
     // `evaluer`, donc la valeur passée ici n'influence pas le choix.
     const ctx = buildRealDamageContext(recipe, loaded.com2usId, loaded.gear.artifacts);
+    // Sort non calculable : on ne sait pas noter une paire. Repli sur
+    // l'ancien comportement (voir `resolveArtifacts`) plutôt qu'une paire
+    // arbitraire — comportement inchangé, `paireReelle` bail out ENTIÈREMENT
+    // plutôt que de rabattre le régime sur `'aucun'` comme le fait l'écran.
     if (!ctx) return null;
-    const setup = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
-    // ⚠️ Un seul `computeStats` pour toutes les paires — voir `statsParPaire`.
-    const statsAvec = statsParPaire(loaded.gear);
-    evaluer = (arts) =>
-      computeTotalDamage(
-        ctx.profile,
-        ctx.passifs,
-        statsAvec(arts),
-        setup,
-        espece.element,
-        artifactDamageProfile(arts)
-      );
+    evaluer = evaluerPourRegime(regime, statsAvec, {
+      profile: ctx.profile,
+      passifs: ctx.passifs,
+      setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+      element: espece.element,
+    });
   } else {
-    // ⚠️ Hors « Dégâts réels », la somme des principales SUFFIT et reste
-    // exacte : les sous-propriétés d'artéfact n'entrent pas dans
-    // `computeStats`, donc deux pièces de même principale ne se distinguent que
-    // par sa valeur, et une valeur plus haute n'est jamais pire pour aucun de
-    // ces objectifs. Dérouler un modèle de dégâts ici noterait sur un critère
-    // qui n'est pas celui de la recherche.
-    evaluer = (arts) => arts.reduce((n, a) => n + a.main.value, 0);
+    evaluer = evaluerPourRegime(regime, statsAvec);
   }
 
   return paireRepresentative(

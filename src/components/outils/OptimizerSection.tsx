@@ -36,6 +36,7 @@ import {
   type ChoixPrincipale,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
+import { evaluerPourRegime, regimeArtefacts, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import {
   ARTIFACT_MAIN,
   CAPPED_STATS,
@@ -306,14 +307,13 @@ type EtatValidation = 'non' | 'oui' | 'artefacts';
  * ⚠️ Le régime sert AUSSI de clé de cache (`signatureArtefacts`) : deux
  * critères ne la partagent que si la paire optimale est démontrablement la
  * même. Trop regrouper afficherait une paire périmée.
+ *
+ * `RegimeArtefacts`/`regimeArtefacts`/`evaluerPourRegime` vivent dans
+ * `artifactEvaluation.ts` — UNE seule définition, partagée avec le CLI
+ * (`scripts/lib/recipeToSearchParams.ts`), pour que les deux ne puissent
+ * plus diverger silencieusement (spec/outils/optimizer/
+ * cadrage-score-artefacts-ehp.md).
  */
-type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
-
-function regimeArtefacts(critere: OptimizerSortKey): RegimeArtefacts {
-  if (critere === 'degats_reels' || critere === 'ehp') return critere;
-  if (critere === 'hp' || critere === 'atk' || critere === 'def') return critere;
-  return 'aucun';
-}
 
 function memesIds(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
@@ -1221,30 +1221,38 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // plus dures à franchir sans que rien ne le dise.
     if (!selected) return null;
     const espece = selected.monster;
-    // ⚠️ Le score de la paire dépend de l'OBJECTIF. Hors « Dégâts réels », la
-    // somme des principales suffit et reste EXACTE : `computeStats` ne lit que
-    // la principale d'un artéfact, jamais ses sous-propriétés — deux pièces de
-    // même principale ne se distinguent donc que par sa valeur, et une valeur
-    // plus haute n'est jamais pire pour l'efficience, la VIT ou les PV
-    // effectifs. Dérouler un modèle de dégâts ici noterait sur un critère qui
-    // n'est pas celui de la recherche.
+    // ⚠️ Le score de la paire dépend de l'OBJECTIF, et PAS de la même façon
+    // pour tous : `pvEffectifs` (PV effectifs) n'est PAS une somme des deux
+    // principales, contrairement à l'efficience/la VIT (voir
+    // spec/outils/optimizer/cadrage-score-artefacts-ehp.md).
+    // `evaluerPourRegime` centralise ce contrat, partagé avec le site « au
+    // fil de l'eau » plus bas et le CLI (`recipeToSearchParams.ts`).
+    //
+    // ⚠️ **Le RÉGIME suit `objective`, jamais `regimePaire`/`sortBy`** : cette
+    // paire sert à LANCER/BORNER la recherche avant qu'aucun résultat
+    // n'existe, alors que `regimePaire` répond à « qu'est-ce que je REGARDE
+    // en ce moment » (§12.16 d'artefacts.md). `objective` (`Objective`,
+    // runeBuildOptim.ts) ne peut jamais valoir `'hp'`/`'atk'`/`'def'` : seuls
+    // `degats_reels`/`ehp`/`aucun` sont possibles ici.
     //
     // ⚠️ `resolvedSkill`/`offensivePassives` (plus haut) ne dépendent QUE de la
     // fiche du monstre, jamais des artéfacts — c'est ce qui évite la
     // circularité avec `realDamage`, qui est construit APRÈS ce bloc et lit
     // `searchArtifacts`.
+    const statsAvec = statsParPaire(selected.gear);
+    const regimeBrut = regimeArtefacts(objective);
+    // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
+    // paramètre `degats` optionnel silencieusement absorbé par le helper.
+    const regimeRepresentatif: RegimeArtefacts = regimeBrut === 'degats_reels' && !resolvedSkill ? 'aucun' : regimeBrut;
     const evaluer =
-      objective === 'degats_reels' && resolvedSkill
-        ? (arts: ArtifactDetail[]) =>
-            computeTotalDamage(
-              resolvedSkill,
-              offensivePassives,
-              computeStats({ ...selected.gear, artifacts: arts }),
-              damageSetup,
-              espece.element,
-              artifactDamageProfile(arts)
-            )
-        : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+      regimeRepresentatif === 'degats_reels'
+        ? evaluerPourRegime(regimeRepresentatif, statsAvec, {
+            profile: resolvedSkill!,
+            passifs: offensivePassives,
+            setup: damageSetup,
+            element: espece.element,
+          })
+        : evaluerPourRegime(regimeRepresentatif, statsAvec);
     return {
       porteur: { element: espece.element, archetype: espece.archetype },
       // ⚠️ **Amputé des artéfacts RÉSERVÉS** par les autres builds validés de
@@ -2005,54 +2013,35 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       const statsAvec = statsParPaire(gear);
       const espece = selected.monster;
       /**
-       * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`),
-       * pas sur une somme de statistiques principales.
-       *
-       * L'ancien évaluateur hors « Dégâts réels » additionnait des PV plats
-       * (jusqu'à 1500) à des DEF plates (jusqu'à 100) — deux unités sans
-       * commune mesure. Sur un objectif de PV effectifs, il retenait donc deux
-       * PV+1500 (score 3000) alors qu'une paire DEF+100 / PV+1500 (score 1600)
-       * donne PLUS de PV effectifs : un ordre faux, pas une approximation.
-       * Voir spec/outils/optimizer/artefacts.md, §12.7 (défaut n° 2).
+       * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`,
+       * via `regimePaire`), pas sur une somme de statistiques principales —
+       * voir `evaluerPourRegime` (`artifactEvaluation.ts`) pour le contrat
+       * partagé avec la paire représentative plus haut et le CLI.
        *
        * ⚠️ **Et c'est `sortBy`, pas `objective`.** L'objectif fige le critère au
        * lancement ; le tri, lui, peut changer après coup. Une paire optimisée
        * pour les dégâts affichée dans une liste triée par PV effectifs
        * montrerait une valeur qui n'est pas la meilleure atteignable.
        *
-       * ⚠️ Sur Efficience et Vitesse, il n'y a RIEN à maximiser :
-       * `runeEfficiency` ne lit que les runes, et aucun artéfact ne donne de
-       * VIT. Deux paires valides y laissent le score identique — on garde donc
-       * la somme des principales, qui départage au moins sur la valeur brute,
-       * et le seul travail qui compte est la faisabilité (§12.6).
+       * ⚠️ Sur Efficience et Vitesse (régime `'aucun'`), il n'y a RIEN à
+       * maximiser : `runeEfficiency` ne lit que les runes, et aucun artéfact
+       * ne donne de VIT. Deux paires valides y laissent le score identique —
+       * on garde donc la somme des principales, qui départage au moins sur la
+       * valeur brute, et le seul travail qui compte est la faisabilité
+       * (§12.6 d'artefacts.md).
        */
-      // ⚠️ **Quatre régimes, pas deux.** Les stats plates (PV/ATQ/DEF) sont un
-      // cas à part entière : trier par ATQ doit retenir la paire qui maximise
-      // l’ATQ, pas celle qui maximise la somme des principales — PV+1500 × 2
-      // (somme 3000) battait ATQ+100 × 2 (somme 200) sur un classement par ATQ.
-      //
-      // ⚠️ Sur le régime `'aucun'` (efficience, VIT, TC, DCC, RES, PRE), aucun
-      // artéfact n’entre dans le critère : deux paires valides y laissent le
-      // classement identique. La somme des principales n’y départage donc rien
-      // d’important — elle sert seulement à ne pas rendre une paire arbitraire.
+      // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
+      // paramètre `degats` optionnel silencieusement absorbé par le helper.
+      const regime: RegimeArtefacts = regimePaire === 'degats_reels' && !resolvedSkill ? 'aucun' : regimePaire;
       const evaluer =
-        regimePaire === 'degats_reels' && resolvedSkill
-          ? (arts: ArtifactDetail[]) =>
-              computeTotalDamage(
-                resolvedSkill,
-                offensivePassives,
-                statsAvec(arts),
-                damageSetup,
-                espece.element,
-                artifactDamageProfile(arts)
-              )
-          : regimePaire === 'ehp'
-            ? (arts: ArtifactDetail[]) => pvEffectifs(statsAvec(arts))
-            : regimePaire !== 'aucun'
-              ? // Une stat PLATE : on maximise cette stat, et rien d’autre.
-                (arts: ArtifactDetail[]) =>
-                  statsAvec(arts).find((r) => r.key === regimePaire)?.total ?? 0
-              : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+        regime === 'degats_reels'
+          ? evaluerPourRegime(regime, statsAvec, {
+              profile: resolvedSkill!,
+              passifs: offensivePassives,
+              setup: damageSetup,
+              element: espece.element,
+            })
+          : evaluerPourRegime(regime, statsAvec);
       return { ...artifactParams, evaluer };
     };
   }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, resolvedSkill, offensivePassives, damageSetup]);

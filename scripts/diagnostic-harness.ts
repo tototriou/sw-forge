@@ -60,68 +60,140 @@ import {
 } from './lib/diagnosticTypes';
 import { ModeChargement } from './lib/chargerRecette';
 import { StatKey } from '../src/lib/effects';
+import { ALL_STAT_KEYS } from '../src/lib/runeBuildOptim';
 
 const args = process.argv.slice(2);
 const drapeau = (nom: string) => args.includes(`--${nom}`);
 const valeur = (nom: string): string | undefined =>
   args.find((a) => a.startsWith(`--${nom}=`))?.slice(nom.length + 3);
-const nombre = (nom: string): number | undefined => {
+
+/* --------------------------------------------------------------------------
+ * Lecture des arguments — ⚠️ **« aucun repli silencieux » (§4.4 règle 4)
+ * vaut AUSSI pour la ligne de commande.**
+ *
+ * C'est la règle que ce module existe pour tenir, et elle était enfreinte
+ * ici même : `--combos=foobar` traversait le CLI par un simple `as`,
+ * atteignait `buildBuckets` et changeait le PARCOURS de construction en
+ * silence ; `--assortiment=foobar` retombait sur `SETS_JOKER` sans le dire ;
+ * `--suivre=abc` produisait `NaN` ; `--siege=abc` un `deckId` `NaN`. Un
+ * harnais qui accepte une valeur qu'il n'a pas comprise mesure autre chose
+ * que ce qui a été demandé — avec l'autorité d'un diagnostic.
+ *
+ * D'où des lecteurs TYPÉS et bornés, sur le modèle déjà écrit pour
+ * `--regime` : rien ne se lit sans une liste de valeurs admises ou une
+ * borne métier, et un refus nomme toujours ce qui était attendu.
+ * ----------------------------------------------------------------------- */
+
+function refuser(message: string): never {
+  console.error(message);
+  process.exit(1);
+}
+
+/** Une valeur d'un ensemble FERMÉ — jamais un `as` sur une chaîne libre. */
+function lireEnum<T extends string>(nom: string, admises: readonly T[]): T | undefined {
+  const v = valeur(nom);
+  if (v == null) return undefined;
+  if (!(admises as readonly string[]).includes(v)) {
+    refuser(`--${nom} : ${admises.join(' | ')} — reçu « ${v} ».`);
+  }
+  return v as T;
+}
+
+/**
+ * Un entier BORNÉ. ⚠️ La borne est métier, pas décorative : un
+ * `--repetitions=0` ne répète rien, un `--cap=-3` ne veut rien dire, un
+ * `--seed=1.5` ne rejoue pas le même pool.
+ */
+function lireEntier(nom: string, min: number, max = Number.MAX_SAFE_INTEGER): number | undefined {
   const v = valeur(nom);
   if (v == null) return undefined;
   const n = Number(v);
-  if (!Number.isFinite(n)) {
-    console.error(`--${nom} : nombre attendu, reçu « ${v} ».`);
-    process.exit(1);
+  if (!Number.isInteger(n) || n < min || n > max) {
+    const attendu = max === Number.MAX_SAFE_INTEGER ? `entier ≥ ${min}` : `entier entre ${min} et ${max}`;
+    refuser(`--${nom} : ${attendu} attendu — reçu « ${v} ».`);
   }
   return n;
-};
+}
+
+/** Un réel strictement positif — pour `--maxMs`, qui n'a pas à être entier. */
+function lireReelPositif(nom: string): number | undefined {
+  const v = valeur(nom);
+  if (v == null) return undefined;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) {
+    refuser(`--${nom} : nombre strictement positif attendu — reçu « ${v} ».`);
+  }
+  return n;
+}
+
+/** Une liste d'identifiants — ⚠️ `--suivre=abc` produisait `NaN` en silence. */
+function lireListeEntiers(nom: string): number[] | undefined {
+  const v = valeur(nom);
+  if (v == null) return undefined;
+  return v.split(',').map((brut) => {
+    const n = Number(brut.trim());
+    if (brut.trim() === '' || !Number.isInteger(n) || n <= 0) {
+      refuser(`--${nom} : entiers positifs séparés par des virgules — reçu « ${brut} ».`);
+    }
+    return n;
+  });
+}
 
 const ARRETS: ArretApres[] = ['mainstat', 'dominance', 'feasibility', 'filterslot', 'demi-builds', 'appariement', 'classement'];
+const REGIMES: RegimeAppariement[] = ['sequentiel', 'parallele'];
+const COMBOS: NonNullable<OverridesHarnais['combosOrderMode']>[] = ['potential', 'relevance', 'combined', 'objective'];
+const ASSORTIMENTS = ['joker', 'sans-joker', 'varies'] as const;
 
-function lireStats(brut: string | undefined): Partial<Record<StatKey, number>> {
+/**
+ * ⚠️ La CLÉ est validée, pas seulement la valeur : `--min=foobar:130`
+ * posait une condition sur une statistique qui n'existe pas, donc une
+ * condition que rien ne pouvait satisfaire — et le harnais l'aurait
+ * diagnostiquée comme un « 0 build » du moteur.
+ */
+function lireStats(nom: string): Partial<Record<StatKey, number>> {
+  const brut = valeur(nom);
   if (!brut) return {};
   const out: Partial<Record<StatKey, number>> = {};
   for (const paire of brut.split(',')) {
     const [k, v] = paire.split(':');
+    const cle = k?.trim();
     const n = Number(v);
-    if (!k || !Number.isFinite(n)) {
-      console.error(`Format attendu « stat:valeur » séparé par des virgules — reçu « ${paire} ».`);
-      process.exit(1);
+    if (!cle || !Number.isFinite(n)) {
+      refuser(`--${nom} : format « stat:valeur » séparé par des virgules — reçu « ${paire} ».`);
     }
-    out[k.trim() as StatKey] = n;
+    if (!(ALL_STAT_KEYS as string[]).includes(cle)) {
+      refuser(`--${nom} : statistique inconnue « ${cle} » — attendu ${ALL_STAT_KEYS.join(' | ')}.`);
+    }
+    out[cle as StatKey] = n;
   }
   return out;
 }
 
 function construireConfig(): ConfigHarnais {
   const overrides: OverridesHarnais = {};
-  if (nombre('slotFilterCap') != null) overrides.slotFilterCap = nombre('slotFilterCap');
-  if (nombre('bucketCap') != null) overrides.bucketCap = nombre('bucketCap');
-  if (nombre('maxCollected') != null) overrides.maxCollected = nombre('maxCollected');
-  if (nombre('maxMs') != null) overrides.maxMs = nombre('maxMs');
-  const regime = valeur('regime');
-  if (regime != null) {
-    if (regime !== 'sequentiel' && regime !== 'parallele') {
-      console.error(`--regime : « sequentiel » ou « parallele », reçu « ${regime} ».`);
-      process.exit(1);
-    }
-    overrides.regime = regime as RegimeAppariement;
-  }
-  const combos = valeur('combos');
-  if (combos != null) overrides.combosOrderMode = combos as OverridesHarnais['combosOrderMode'];
+  const slotFilterCap = lireEntier('slotFilterCap', 1);
+  if (slotFilterCap != null) overrides.slotFilterCap = slotFilterCap;
+  const bucketCap = lireEntier('bucketCap', 1);
+  if (bucketCap != null) overrides.bucketCap = bucketCap;
+  const maxCollected = lireEntier('maxCollected', 1);
+  if (maxCollected != null) overrides.maxCollected = maxCollected;
+  const maxMs = lireReelPositif('maxMs');
+  if (maxMs != null) overrides.maxMs = maxMs;
+  const regime = lireEnum('regime', REGIMES);
+  if (regime != null) overrides.regime = regime;
+  // ⚠️ Le `as` qui vivait ici laissait `--combos=foobar` atteindre
+  // `buildBuckets` et changer le parcours de construction en silence.
+  const combos = lireEnum('combos', COMBOS);
+  if (combos != null) overrides.combosOrderMode = combos;
 
-  const arret = (valeur('arret') ?? 'classement') as ArretApres;
-  if (!ARRETS.includes(arret)) {
-    console.error(`--arret : ${ARRETS.join(' | ')} — reçu « ${arret} ».`);
-    process.exit(1);
-  }
+  const arret = lireEnum('arret', ARRETS) ?? 'classement';
 
   const commun = {
     overrides,
     arretApres: arret,
-    suivre: valeur('suivre')?.split(',').map((s) => Number(s.trim())),
+    suivre: lireListeEntiers('suivre'),
     blocages: drapeau('blocages'),
-    repetitions: nombre('repetitions'),
+    repetitions: lireEntier('repetitions', 1),
   };
 
   if (drapeau('synthetique')) {
@@ -132,33 +204,39 @@ function construireConfig(): ConfigHarnais {
     // équivalent ici, ce cas ne serait pas reproductible sans compte réel.
     const verrous: Partial<Record<number, number>> = {};
     for (const paire of valeur('verrous')?.split(',') ?? []) {
-      const [slot, id] = paire.split(':').map(Number);
-      if (!Number.isFinite(slot) || !Number.isFinite(id)) {
-        console.error(`--verrous : format « slot:runeId », reçu « ${paire} ».`);
-        process.exit(1);
+      const [slot, id] = paire.split(':').map((s) => Number(s.trim()));
+      // ⚠️ L'emplacement est borné à 1-6 : un `--verrous=7:123` posait un
+      // verrou sur un emplacement inexistant, donc silencieusement ignoré.
+      if (!Number.isInteger(slot) || slot < 1 || slot > 6 || !Number.isInteger(id) || id <= 0) {
+        refuser(`--verrous : format « slot:runeId » (emplacement 1-6, identifiant entier positif) — reçu « ${paire} ».`);
       }
       verrous[slot] = id;
     }
     const requirement: SyntheticRequirement = {
       sets: valeur('sets')?.split(',').map((s) => s.trim()) ?? [],
-      minStats: lireStats(valeur('min')),
-      maxStats: lireStats(valeur('max')),
+      minStats: lireStats('min'),
+      maxStats: lireStats('max'),
       ...(Object.keys(verrous).length > 0 ? { lockedRunes: verrous } : {}),
     };
-    const assortiment = valeur('assortiment') ?? 'joker';
+    // ⚠️ Validé, jamais replié : `--assortiment=foobar` retombait sur
+    // `SETS_JOKER` en silence, donc mesurait un autre pool que celui demandé.
+    const assortiment = lireEnum('assortiment', ASSORTIMENTS) ?? 'joker';
     const sets =
       assortiment === 'sans-joker' ? SETS_SANS_JOKER : assortiment === 'varies' ? SETS_VARIES : SETS_JOKER;
     // ⚠️ `--cap` n'a PAS de défaut, volontairement : voir la règle « aucun
     // repli silencieux » dans diagnosticConfig.ts. Le laisser vide ferait
-    // mesurer la moitié de la rétention de production, en silence.
+    // mesurer la moitié de la rétention de production, en silence — et
+    // c'est `resoudreConfig` qui le refuse, avec le détail des deux axes.
     return {
       source: {
         type: 'synthetique',
-        seed: nombre('seed') ?? 1,
-        runesParEmplacement: nombre('runes') ?? 20,
+        // ⚠️ La graine accepte 0 (valeur légitime de `mulberry32`), pas un
+        // réel : `--seed=1.5` ne rejoue pas le même pool.
+        seed: lireEntier('seed', 0) ?? 1,
+        runesParEmplacement: lireEntier('runes', 1) ?? 20,
         sets,
         requirement,
-        slotFilterCap: nombre('cap')!,
+        slotFilterCap: lireEntier('cap', 1)!,
       },
       ...commun,
     };
@@ -179,7 +257,17 @@ function construireConfig(): ConfigHarnais {
     : siege != null
       ? (() => {
           const [id, variante] = siege.split(':');
-          return { type: 'siege' as const, deckId: Number(id), defense: variante === 'defense' };
+          const deckId = Number(id);
+          // ⚠️ `--siege=abc` donnait un `deckId` NaN, et `--siege=3:attaque`
+          // basculait en attaque sans le dire (tout ce qui n'était pas
+          // « defense » valait « pas défense »).
+          if (!Number.isInteger(deckId) || deckId <= 0) {
+            refuser(`--siege : format « deckId[:defense] », deckId entier positif — reçu « ${siege} ».`);
+          }
+          if (variante != null && variante !== 'defense') {
+            refuser(`--siege : la seule variante admise est « defense » — reçu « ${variante} ».`);
+          }
+          return { type: 'siege' as const, deckId, defense: variante === 'defense' };
         })()
       : { type: 'box' };
   return { source: { type: 'recette', cheminCompte: compte, cheminRecette: recette, mode }, ...commun };

@@ -70,6 +70,32 @@ export default async function testDiagnosticHarness() {
     'surcharger slotFilterCap déplace AUSSI bucketCap — deux paramètres bougent, un seul a été touché'
   );
 
+  /* ── §6 : la table liste les paramètres EFFECTIFS, pas surchargeables ─
+   *
+   * ⚠️ Le §4.4 règle 2 dit « chaque paramètre EFFECTIF affiche son
+   * origine » ; `resoudreConfig` implémentait « chaque paramètre
+   * SURCHARGEABLE ». Un run lancé avec `adaptiveTrancheWeighting` sans le
+   * savoir mesure une autre rétention, et l'aperçu n'en montrait rien. */
+  const nomsParametres = sansOverride.parametres.map((p) => p.nom);
+  for (const attendu of ['objective', 'adaptiveTrancheWeighting', 'metric', 'recherche exhaustive', 'pool (runes)']) {
+    ok(nomsParametres.includes(attendu), `le paramètre EFFECTIF « ${attendu} » figure dans l’aperçu`);
+  }
+  ok(
+    nomsParametres.some((n) => n.startsWith('stats d’objectif')),
+    'les stats d’objectif aussi — le levier de rétention ×4 de filterSlot (24 gardées au lieu de 6)'
+  );
+  // ⚠️ `combosOrderMode` est toujours EFFECTIF (défaut « relevance »), il
+  // n'était listé que lorsqu'il était surchargé.
+  ok(nomsParametres.includes('combosOrderMode'), 'combosOrderMode est listé même sans override — il est toujours effectif');
+
+  // ⚠️ **Ce n'est PAS une infidélité, c'est un angle mort de l'aperçu** :
+  // la valeur appliquée EST celle de la production. Élargir la table ne doit
+  // donc faire basculer aucun verdict de fidélité.
+  ok(
+    !sansOverride.fidelite.divergeDeLaProd,
+    'élargir la table ne fait basculer AUCUN verdict : ces paramètres sont effectifs, pas surchargés'
+  );
+
   /* ── §4.4 règle 3 : un run surchargé est MARQUÉ ────────────────────── */
   ok(!sansOverride.fidelite.divergeDeLaProd, 'sans override : la fidélité annonce « conforme à la production »');
   const surcharge = resoudreConfig(configSynthetique({ overrides: { bucketCap: 500 } }));

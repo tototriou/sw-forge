@@ -29,9 +29,12 @@ import {
   DEFAULT_MAX_MS,
   MAX_COLLECTED,
   MAX_PER_SLOT_MATCH,
+  PER_STAT_KEEP,
+  PER_STAT_KEEP_OBJECTIVE,
   SLOT_FILTER_PRESETS,
   SearchParams,
   bucketCapFor,
+  objectiveKeysOf,
 } from '../../src/lib/runeBuildOptim';
 import { PARALLEL_PAIRING_THRESHOLD } from '../../src/workers/parallelPairing';
 import { chargerRecette } from './chargerRecette';
@@ -191,15 +194,16 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
     valeurProd: Number.isFinite(maxMsProd) ? maxMsProd : 'infini (exhaustif)',
   });
 
-  if (overrides.combosOrderMode != null) {
-    params.combosOrderMode = overrides.combosOrderMode;
-    parametres.push({
-      nom: 'combosOrderMode',
-      valeur: overrides.combosOrderMode,
-      origine: 'override',
-      valeurProd: 'relevance',
-    });
-  }
+  // ⚠️ Listé TOUJOURS, plus seulement quand il est surchargé : il est
+  // toujours EFFECTIF (défaut `'relevance'` sur tous les appels de prod), et
+  // c'est lui qui décide de l'ordre des demi-builds dans un compartiment.
+  if (overrides.combosOrderMode != null) params.combosOrderMode = overrides.combosOrderMode;
+  parametres.push({
+    nom: 'combosOrderMode',
+    valeur: params.combosOrderMode ?? 'relevance (défaut)',
+    origine: overrides.combosOrderMode != null ? 'override' : 'défaut moteur',
+    valeurProd: 'relevance (défaut)',
+  });
 
   parametres.push({
     nom: 'régime d’appariement',
@@ -207,6 +211,8 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
     origine: overrides.regime != null ? 'override' : 'défaut moteur',
     valeurProd: `seuil de prod (${(PARALLEL_PAIRING_THRESHOLD / 1_000_000).toFixed(0)}M paires)`,
   });
+
+  parametres.push(...parametresNonSurchargeables(params, source, recette));
 
   return {
     params,
@@ -229,14 +235,88 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
  * une conversation, détaché de son contexte.
  */
 /**
+ * §6 des extensions — **les paramètres EFFECTIFS que le harnais ne sait pas
+ * surcharger**, et qui n'apparaissaient donc nulle part.
+ *
+ * ⚠️ `resoudreConfig` implémentait « chaque paramètre SURCHARGEABLE affiche
+ * son origine » là où le §4.4 règle 2 dit « chaque paramètre EFFECTIF ».
+ * L'écart n'est pas cosmétique : un run lancé avec `adaptiveTrancheWeighting`
+ * sans le savoir mesure une autre rétention, et l'aperçu annonçait
+ * « conforme à la production » sans jamais montrer le réglage.
+ *
+ * ⚠️ **Ce n'est PAS une infidélité** — la valeur appliquée est bien celle de
+ * la production. C'est un ANGLE MORT de l'aperçu : `valeurProd` vaut donc
+ * `valeur` pour chacune de ces lignes, et le drapeau de fidélité ne change
+ * pas de verdict à cause d'elles. La seule exception est voulue : si un
+ * `--maxMs` surcharge une recette exhaustive, la ligne `maxMs` signale déjà
+ * la divergence, et la ligne « recherche exhaustive » ci-dessous montre
+ * QUOI a été contredit.
+ *
+ * ⚠️ Les stats d'objectif passent par `objectiveKeysOf`, la fonction de
+ * PRODUCTION — jamais une table recopiée : c'est elle qui décide quelles
+ * stats reçoivent `PER_STAT_KEEP_OBJECTIVE` (24) au lieu de `PER_STAT_KEEP`
+ * (6) dans `filterSlot`, soit un levier de rétention ×4.
+ */
+function parametresNonSurchargeables(
+  params: SearchParams,
+  source: 'recette' | 'synthetique',
+  recette: ConfigResolue['recette']
+): ParametreEffectif[] {
+  const origine: ParametreEffectif['origine'] = source === 'recette' ? 'recette (non surchargeable)' : 'config synthétique';
+  /** ⚠️ `valeurProd === valeur` : effectif, pas surchargé, donc aucun écart. */
+  const effectif = (nom: string, valeur: number | string | boolean): ParametreEffectif => ({
+    nom,
+    valeur,
+    origine,
+    valeurProd: valeur,
+  });
+
+  const clesObjectif = objectiveKeysOf(params.objective, params.objectiveStats);
+  const verrous = Object.keys(params.requirement.lockedRunes ?? {}).length;
+
+  const lignes: ParametreEffectif[] = [
+    effectif('objective', params.objective ?? 'aucun (efficience générale)'),
+    effectif(
+      `stats d’objectif (garde ${PER_STAT_KEEP_OBJECTIVE}, sinon ${PER_STAT_KEEP})`,
+      clesObjectif.length > 0 ? clesObjectif.join(', ') : 'aucune'
+    ),
+    effectif('adaptiveTrancheWeighting', params.adaptiveTrancheWeighting ?? false),
+    effectif('metric', params.metric),
+    // La recherche exhaustive ne se lit PAS ailleurs : elle se manifeste
+    // uniquement par `maxMs = Infinity`, ce qu'aucun lecteur n'a de raison de
+    // rattacher au bouton de l'écran.
+    effectif('recherche exhaustive', !Number.isFinite(params.maxMs)),
+    // ── La composition du pool. ⚠️ Un pool amputé produit un « 0 build » qui
+    // n'a RIEN d'algorithmique — c'est la première chose à écarter avant
+    // d'accuser le moteur.
+    effectif('pool (runes)', params.pool.length),
+    effectif('runes verrouillées', verrous),
+    effectif('artéfacts (paire représentative)', params.artifacts.length),
+    effectif('bornes d’artéfact', params.artifactBounds != null ? 'inventaire' : 'repli sur la paire figée'),
+    effectif('relique', params.relic != null ? 'présente' : 'absente'),
+  ];
+
+  if (recette) {
+    lignes.push(
+      effectif(
+        'exclusions déclarées',
+        `${recette.excludeUsedRunes ? `auto (${recette.excludeUsedScope})` : 'aucune auto'}, ` +
+          `${recette.excludedSelectors.length} sélecteur(s)`
+      )
+    );
+  }
+  return lignes;
+}
+
+/**
  * ⚠️ **Ce que la comparaison ne peut PAS prouver**, quelle que soit
  * l'étendue de la table des paramètres — donc à imprimer avec le verdict.
  * Cette liste est STRUCTURELLE : élargir la table (§6 des extensions) n'en
  * retire aucune ligne, parce qu'aucune de ces choses n'est un paramètre.
  */
 const HORS_PERIMETRE_FIDELITE = [
-  'la COMPOSITION du pool — runes exclues, verrous, inventaire d’artéfacts, relique, monstre : ' +
-    'elle vient de la recette ou du tirage, jamais comparée à un run de référence',
+  'la COMPOSITION du pool — runes, verrous, exclusions, artéfacts, relique : elle est AFFICHÉE ' +
+    'ci-dessus, jamais COMPARÉE à un run de référence (le harnais n’en a aucun à lui opposer)',
   'tout paramètre ABSENT de la table ci-dessus : la preuve porte sur ce qui y figure, et sur rien d’autre',
   'la coquille d’exécution — Node contre navigateur (voir la note de plateforme)',
 ];
@@ -272,11 +352,17 @@ export function rendreParametres(resolue: ConfigResolue): string {
   lignes.push('');
   lignes.push('Paramètres effectifs (valeur — origine)');
   lignes.push('---------------------------------------');
+  // ⚠️ Largeurs calculées sur les DONNÉES, jamais figées : la table s'est
+  // élargie (§6) et des noms/valeurs plus longs que les anciens gabarits
+  // cassaient l'alignement — donc la lisibilité de l'aperçu qu'on relit
+  // avant de lancer un run de vingt minutes.
+  const largeurNom = Math.max(...resolue.parametres.map((p) => p.nom.length));
+  const largeurValeur = Math.max(...resolue.parametres.map((p) => String(p.valeur).length));
   for (const p of resolue.parametres) {
     const origine =
       p.origine === 'dérivé' ? `DÉRIVÉ de ${p.derivéDe}` : p.origine === 'override' ? 'OVERRIDE' : p.origine;
     const prod = p.valeurProd != null && p.valeur !== p.valeurProd ? `   (prod : ${p.valeurProd})` : '';
-    lignes.push(`  ${p.nom.padEnd(22)} ${String(p.valeur).padStart(12)}   ${origine}${prod}`);
+    lignes.push(`  ${p.nom.padEnd(largeurNom)}   ${String(p.valeur).padStart(largeurValeur)}   ${origine}${prod}`);
   }
   lignes.push('');
   // ⚠️ **« FIDÉLITÉ DES PARAMÈTRES SUIVIS », jamais « conforme à la

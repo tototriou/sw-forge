@@ -130,7 +130,27 @@ export interface ConfigHarnais {
  * `slotFilterCap` déplace AUSSI `bucketCap`. Deux paramètres bougent, un
  * seul a été touché.
  */
-export type OrigineParametre = 'recette' | 'config synthétique' | 'défaut moteur' | 'dérivé' | 'override';
+export type OrigineParametre =
+  | 'recette'
+  | 'config synthétique'
+  | 'défaut moteur'
+  | 'dérivé'
+  | 'override'
+  /**
+   * ⚠️ **Un paramètre EFFECTIF que le harnais ne sait pas surcharger.**
+   * `resoudreConfig` listait la surface d'OVERRIDE, pas la surface
+   * EFFECTIVE — alors que le §4.4 règle 2 dit « chaque paramètre EFFECTIF
+   * affiche son origine ». Manquaient `objective`/`objectiveStats` (un
+   * levier de rétention ×4 : `PER_STAT_KEEP` 6 contre
+   * `PER_STAT_KEEP_OBJECTIVE` 24), `adaptiveTrancheWeighting`, `metric`,
+   * la recherche exhaustive et la composition du pool.
+   *
+   * ⚠️ **Ce n'est PAS une infidélité** : la valeur appliquée est bien celle
+   * de la production. C'était un ANGLE MORT de l'aperçu — le drapeau de
+   * fidélité ne change donc pas de verdict pour ces lignes (leur
+   * `valeurProd` est leur valeur), seulement de libellé (§3.4).
+   */
+  | 'recette (non surchargeable)';
 
 export interface ParametreEffectif {
   nom: string;

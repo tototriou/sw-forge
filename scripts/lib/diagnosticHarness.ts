@@ -413,6 +413,7 @@ function progressionConstruction(
     B: moitieRendue(brutB, [filterslot[4], filterslot[5]]),
     avertissementPortee: AVERTISSEMENT_PORTEE_A2,
     perimetreHorloge: PERIMETRE_HORLOGE_A2,
+    coutInstrumentation: COUT_INSTRUMENTATION_A2,
   };
 }
 
@@ -509,6 +510,30 @@ const PERIMETRE_HORLOGE_A2 =
   'intervalle = le corps d’UNE rune extérieure — c’est la seule sur laquelle une distribution a un sens), ' +
   'et le DERNIER next(), qui exécute la dernière rune PLUS l’épilogue (tri des combos de chaque ' +
   'compartiment, puis tri des compartiments).';
+
+/**
+ * ⚠️ **A₂ est AUTO-VÉRIFIANT — le coût ne s'argumente pas, il se mesure.**
+ * Mesuré le 2026-09-08 sur les 7 cas réels de `perfShared.ts`, préréglage
+ * « Moyen » (80), `--arret=demi-builds`, protocole ENTRELACÉ (témoin, A₂,
+ * témoin, A₂…) × 5, estimateur = MINIMUM. Détail : §4.6 des extensions.
+ *
+ * ⚠️ **Le différentiel ne conclut RIEN, et c'est le résultat.** Les 14
+ * écarts (7 cas × 2 moitiés) vont de −9,6 % à +11,0 %, 7 négatifs et 7
+ * positifs, et CHACUN tombe sous son propre plancher de bruit (2,3 % à
+ * 46,9 %). Un écart NÉGATIF est la preuve qu'on mesure sous le plancher :
+ * une instrumentation ne peut pas accélérer ce qu'elle observe. D'où la
+ * borne arithmétique, qui elle tranche.
+ */
+const COUT_INSTRUMENTATION_A2 =
+  '⚠️ COÛT DE L’INSTRUMENTATION, MESURÉ (2026-09-08) — pas argumenté. Différentiel entrelacé sur les 7 cas ' +
+  'réels (préréglage « Moyen », 5 répétitions, estimateur = minimum) : les 14 écarts vont de −9,6 % à ' +
+  '+11,0 %, moyenne −0,4 %, et CHACUN tombe sous son propre plancher de bruit (2,3 % à 46,9 %) — sept ' +
+  'd’entre eux sont NÉGATIFS, ce qui prouve qu’on mesure sous le plancher plutôt que de démontrer un coût ' +
+  'nul. ⚠️ « Invisible sous le bruit » ne veut pas dire « nul » : la borne, elle, est ARITHMÉTIQUE — un ' +
+  '`performance.now()` coûte ≈ 47 ns (mesuré à part, boucle témoin déduite), et la moitié la plus lourde ' +
+  'des 7 cas compte 196 runes extérieures, soit ≈ 9 µs d’horodatage pour une phase de 4 720 ms : ' +
+  '≈ 0,0002 %. C’est trois ordres de grandeur sous le plancher de bruit, ce qui explique qu’aucun ' +
+  'protocole différentiel ne puisse le voir.';
 
 /**
  * ⚠️ **Le vocabulaire est IMPOSÉ, et ce libellé est la garde.** Jamais

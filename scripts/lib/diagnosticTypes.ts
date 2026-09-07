@@ -639,6 +639,13 @@ export interface ProgressionConstruction {
    * `buildBuckets` », et le laisser lire ainsi serait une infidélité.
    */
   perimetreHorloge: string;
+  /**
+   * ⚠️ **A₂ EST AUTO-VÉRIFIANT : son coût ne s'argumente pas, il se MESURE**
+   * — et le chiffre part avec la fonctionnalité, pas dans un commentaire que
+   * personne ne relira. C'est le seul instrument A-INSTRUMENTÉ du harnais ;
+   * dire « ça devrait être invisible » n'aurait pas suffi.
+   */
+  coutInstrumentation: string;
 }
 
 export interface RetentionConstruction {

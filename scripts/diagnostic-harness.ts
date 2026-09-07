@@ -484,6 +484,9 @@ function rendreResultat(r: ResultatHarnais): string {
       l.push('', 'Cartographie de l’ÉLAGAGE — intervalles entre BuildingProgress (A₂)', '─'.repeat(72));
       l.push(`  ${prog.avertissementPortee}`);
       l.push(`  ${prog.perimetreHorloge}`);
+      // ⚠️ A₂ est le seul instrument du harnais qui se paie : son prix est
+      // affiché AVEC lui, mesuré, jamais laissé à l'estimation du lecteur.
+      l.push(`  ${prog.coutInstrumentation}`);
       for (const [moitie, m] of [['A', prog.A], ['B', prog.B]] as const) {
         const d = m.distribution;
         l.push(

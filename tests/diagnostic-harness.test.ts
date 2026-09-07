@@ -270,6 +270,20 @@ export default async function testDiagnosticHarness() {
       prog.perimetreHorloge.includes('PROLOGUE') && prog.perimetreHorloge.includes('épilogue'),
       'et il nomme les trois périmètres séparés, pour qu’aucun ne soit relu comme les autres'
     );
+    /* ⚠️ **A₂ est AUTO-VÉRIFIANT** : son coût ne s'argumente pas, il se
+     * mesure — et le chiffre voyage AVEC la fonctionnalité. Le test verrouille
+     * les deux moitiés du résultat : le différentiel (qui ne conclut rien,
+     * sept écarts sur quatorze étant NÉGATIFS, donc sous le plancher de
+     * bruit) ET la borne arithmétique (qui, elle, tranche). */
+    ok(
+      prog.coutInstrumentation.includes('MESURÉ') && prog.coutInstrumentation.includes('plancher de bruit'),
+      'le COÛT de l’instrumentation voyage avec elle, mesuré — A₂ est le seul instrument du harnais qui se paie'
+    );
+    ok(
+      prog.coutInstrumentation.includes('ARITHMÉTIQUE') && prog.coutInstrumentation.includes('47 ns'),
+      'et « invisible sous le bruit » ne passe pas pour « nul » : la borne arithmétique est donnée avec son coût unitaire'
+    );
+
     // ⚠️ Vocabulaire IMPOSÉ, verrouillé comme celui du taux de rétention :
     // « temps par triplet énumérable » ne doit servir qu'à être ÉCARTÉ.
     // Le compteur d'A₂ ne mesure AUCUNE itération interne.

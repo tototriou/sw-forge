@@ -108,6 +108,14 @@ recette pour demander un relevé en jeu exploitable.
 
 ## Consignes pour l'agent (Claude Code)
 
+### Un ledger de suivi et le fichier qu'il référence se mettent à jour ensemble
+
+**Un ledger de suivi (`pistes.md` et équivalents) et le fichier qu'il
+référence ne se mettent jamais à jour l'un sans l'autre.** Fermer une
+entrée dans le ledger sans corriger le statut dans le fichier source (ou
+l'inverse) laisse deux sources qui se contredisent — un bug de ce type a
+déjà été trouvé et corrigé dans `spec/outils/optimizer/`.
+
 ### Déclarer l'application d'un skill avant d'agir
 
 Quand un skill (`.claude/skills/*` ou un skill intégré, ex. `artifact-design`)

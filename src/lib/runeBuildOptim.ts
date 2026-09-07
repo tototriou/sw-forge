@@ -2695,80 +2695,184 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
 // Palier 2 du diagnostic (voir `diagnoseFeasibility` pour le palier 1,
 // gratuit mais limité à une preuve d'impossibilité PAR STAT ISOLÉE) : quand
 // AUCUNE stat n'est individuellement hors de portée mais que la recherche
-// trouve quand même 0 résultat, identifie laquelle des conditions posées
-// libère le PLUS de candidats si on la retire — un indice, pas une preuve
-// (voir plus bas). ⚠️ **Jamais une recherche complète** — proposé par un
-// avis externe comme « retirer une condition et recompter » ; retenu sous
-// cette forme précise pour rester bon marché : on ne relance QUE le
-// pré-filtrage SÛR (`mainStatFilteredBySlot` → `pruneDominated` →
-// `eliminateInfeasible`), jamais `filterSlot`/`buildBuckets`/l'appariement
-// (le vrai coût combinatoire) — coût O(N × pool), N = nombre de conditions
-// posées, jamais O(pool³). Coûte donc un ordre de grandeur de plus que le
-// palier 1 (N passes au lieu d'une seule), mais reste sans commune mesure
-// avec une recherche — d'où le réglage dédié dans l'écran (« Options
-// avancées ») pour le rendre optionnel plutôt que systématique.
+// trouve quand même 0 résultat, cherche, pour chaque condition posée, DE
+// COMBIEN la desserrer suffit à faire grandir le pool le plus restreint —
+// un indice, pas une preuve (voir plus bas). ⚠️ **Jamais une recherche
+// complète** — proposé par un avis externe comme « retirer une condition et
+// recompter » ; retenu sous cette forme précise pour rester bon marché : on
+// ne relance QUE le pré-filtrage SÛR (`mainStatFilteredBySlot` →
+// `pruneDominated` → `eliminateInfeasible`), jamais
+// `filterSlot`/`buildBuckets`/l'appariement (le vrai coût combinatoire) —
+// coût O(N × log(plage) × pool), N = nombre de conditions posées, jamais
+// O(pool³). Un ordre de grandeur de plus que la version binaire d'origine
+// (qui ne relançait le pré-filtrage qu'une fois par condition — voir
+// spec/outils/optimizer/pistes.md, « `rankBlockingConditions` répond à la
+// mauvaise question », et historique-diagnostics-et-robustesse.md pour le
+// coût mesuré), mais reste sans commune mesure avec une recherche complète
+// — d'où le réglage dédié dans l'écran (« Options avancées ») pour le
+// rendre optionnel plutôt que systématique.
 // ⚠️ **Un INDICE, pas une preuve** : contrairement à `diagnoseFeasibility`,
 // ce palier ne s'appuie que sur le pré-filtrage SÛR, pas sur une recherche —
-// une condition qui libère peu de candidats ICI peut quand même être, une
-// fois combinée aux autres via `filterSlot`/`buildBuckets`, la vraie
-// responsable (ou l'inverse). Un signal utile pour orienter où desserrer en
-// premier, pas un verdict définitif.
+// un seuil qui libère peu de candidats ICI peut quand même être, une fois
+// combiné aux autres via `filterSlot`/`buildBuckets`, différent en pratique
+// (ou l'inverse). Un signal utile pour orienter où desserrer en premier, pas
+// un verdict définitif.
 export interface BlockingConditionImpact {
   key: StatKey;
   kind: 'min' | 'max';
   requested: number;
-  // Taille du pool le plus restreint (le minimum des 6 tailles de slot,
-  // après pré-filtrage SÛR) EN RETIRANT UNIQUEMENT cette condition — toutes
-  // les autres conditions posées restent en place.
-  poolMinSlotWithout: number;
+  /**
+   * Nouveau seuil (minimum abaissé, ou maximum relevé) à partir duquel le
+   * pool le plus restreint dépasse `baselineMinSlot` — TOUTES les AUTRES
+   * conditions posées restent à leur valeur actuelle. `null` : même desserré
+   * jusqu'à l'extrême praticable (0 pour un minimum ; le plus grand total
+   * atteignable pour cette stat, pour un maximum — voir `achievableCeiling`
+   * plus bas), le pool le plus restreint ne dépasse jamais `baselineMinSlot`
+   * — cette condition n'est déjà pas la responsable, seule.
+   */
+  threshold: number | null;
+  /**
+   * `requested - threshold` (minimum) ou `threshold - requested` (maximum)
+   * — DE COMBIEN desserrer, dans l'unité de la stat. `null` ssi `threshold`
+   * l'est.
+   */
+  delta: number | null;
+  // Taille du pool le plus restreint À `threshold`. `null` ssi `threshold`
+  // l'est.
+  poolMinSlotAtThreshold: number | null;
 }
 export interface BlockingConditionsDiagnosis {
   // Même mesure, avec TOUTES les conditions actuellement posées — le repère
-  // auquel chaque `poolMinSlotWithout` doit être comparé.
+  // auquel chaque `poolMinSlotAtThreshold` doit être comparé.
   baselineMinSlot: number;
-  // Triés par IMPACT décroissant (`poolMinSlotWithout`) — la condition dont
-  // le retrait libère le plus de candidats apparaît en premier.
+  // Triés par DESSERRAGE croissant (`delta`) — la condition la MOINS
+  // coûteuse à desserrer apparaît en premier. Les conditions sans gain
+  // (`delta: null`) sont reléguées en fin de liste.
   impacts: BlockingConditionImpact[];
 }
+// Taille du pool le plus restreint (le minimum des 6 tailles de slot) après
+// pré-filtrage SÛR (`mainStatFilteredBySlot` → `pruneDominated` →
+// `eliminateInfeasible`) pour UNE `requirement` donnée — jamais
+// `filterSlot`/`buildBuckets`/l'appariement. Factorisée hors de
+// `rankBlockingConditions` pour être réutilisée telle quelle par ses tests
+// (oracle de balayage exhaustif contre lequel la dichotomie est vérifiée,
+// voir tests/rune-optim.test.ts) — jamais une seconde implémentation qui
+// pourrait diverger.
+export function poolMinSlotSafe(
+  base: BaseStats,
+  artifacts: ArtifactDetail[],
+  relic: RelicDetail | undefined,
+  pool: RuneDetail[],
+  requirement: BuildRequirement,
+  artifactBounds?: SearchParams['artifactBounds']
+): number {
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds);
+  let bySlot = mainStatFilteredBySlot(pool, requirement);
+  bySlot = bySlot.map((list) => pruneDominated(list, ctx.requiredKeys, ctx.maxKeys));
+  bySlot = eliminateInfeasible(
+    bySlot,
+    ctx.minEntries,
+    ctx.maxEntries,
+    ctx.constrainedKeys,
+    ctx.guaranteed,
+    ctx.artFlatMax,
+    ctx.relPct,
+    ctx.totalOf,
+    ctx.guaranteedMin,
+    ctx.artFlatMin
+  );
+  return Math.min(...bySlot.map((l) => l.length));
+}
+
 export function rankBlockingConditions(params: SearchParams): BlockingConditionsDiagnosis {
   const { base, artifacts, relic, pool, requirement } = params;
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return { baselineMinSlot: 0, impacts: [] };
 
   function poolMinSlot(req: BuildRequirement): number {
-    const reqCtx = deriveMinMaxContext(base, artifacts, relic, req, pool, params.artifactBounds);
-    let bySlot = mainStatFilteredBySlot(pool, req);
-    bySlot = bySlot.map((list) => pruneDominated(list, reqCtx.requiredKeys, reqCtx.maxKeys));
-    bySlot = eliminateInfeasible(
-      bySlot,
-      reqCtx.minEntries,
-      reqCtx.maxEntries,
-      reqCtx.constrainedKeys,
-      reqCtx.guaranteed,
-      reqCtx.artFlatMax,
-      reqCtx.relPct,
-      reqCtx.totalOf,
-      reqCtx.guaranteedMin,
-      reqCtx.artFlatMin
-    );
-    return Math.min(...bySlot.map((l) => l.length));
+    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.artifactBounds);
+  }
+
+  // Borne pour la recherche côté MAXIMUM : le plus grand total qu'un pool
+  // puisse jamais atteindre pour cette stat (même formule que le `bound`
+  // minimum de `diagnoseFeasibility` — le meilleur pct/flat par slot,
+  // agrégé sur les 6 emplacements, + bonus de set garanti + artéfacts +
+  // relique). Au-delà, un maximum n'écarte plus AUCUNE rune du pool
+  // (`eliminateInfeasible` compare le pire cas d'UNE rune, toujours ≤ cette
+  // somme optimiste sur SIX) : desserrer plus loin ne peut rien changer.
+  // ⚠️ Calculée sur `mainStatFilteredBySlot(pool, requirement)` seul — ne
+  // dépend QUE de `mainStats`/`lockedRunes` (jamais de `minStats`/
+  // `maxStats`), donc valable pour TOUTE valeur de seuil essayée plus bas :
+  // calculée une seule fois, hors boucle.
+  const fullBySlot = mainStatFilteredBySlot(pool, requirement);
+  const fullSlotMax = computeSlotMaxBounds(fullBySlot, ctx.constrainedKeys);
+  function achievableCeiling(k: StatKey): number {
+    const bestPct = fullSlotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const bestFlat = fullSlotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteedMin.flat[k] ?? 0) + (ctx.artFlatMax[k] ?? 0);
+    return ctx.totalOf(k, bestPct, bestFlat);
+  }
+
+  // Dichotomie générique : `predicate(delta)` est FAUX puis VRAI à mesure
+  // que `delta` grandit (monotonicité vérifiée par test différentiel — voir
+  // tests/rune-optim.test.ts — jamais supposée ici). Retourne le plus petit
+  // `delta` dans `[1, maxDelta]` qui satisfait `predicate`, en s'appuyant
+  // sur `predicate(maxDelta)` déjà connu vrai par l'appelant.
+  function smallestDelta(maxDelta: number, predicate: (delta: number) => boolean): number {
+    let lo = 1;
+    let hi = maxDelta;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (predicate(mid)) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo;
   }
 
   const baselineMinSlot = poolMinSlot(requirement);
   const impacts: BlockingConditionImpact[] = [];
+  const NO_GAIN = { threshold: null, delta: null, poolMinSlotAtThreshold: null } as const;
+
   for (const { k, min } of ctx.minEntries) {
-    const nextMinStats = { ...requirement.minStats };
-    delete nextMinStats[k];
-    const poolMinSlotWithout = poolMinSlot({ ...requirement, minStats: nextMinStats });
-    impacts.push({ key: k, kind: 'min', requested: min, poolMinSlotWithout });
+    const poolAtZero = poolMinSlot({ ...requirement, minStats: { ...requirement.minStats, [k]: 0 } });
+    if (poolAtZero <= baselineMinSlot) {
+      impacts.push({ key: k, kind: 'min', requested: min, ...NO_GAIN });
+      continue;
+    }
+    const delta = smallestDelta(
+      min,
+      (d) => poolMinSlot({ ...requirement, minStats: { ...requirement.minStats, [k]: min - d } }) > baselineMinSlot
+    );
+    const threshold = min - delta;
+    const poolMinSlotAtThreshold = threshold === 0 ? poolAtZero : poolMinSlot({ ...requirement, minStats: { ...requirement.minStats, [k]: threshold } });
+    impacts.push({ key: k, kind: 'min', requested: min, threshold, delta, poolMinSlotAtThreshold });
   }
   for (const { k, max } of ctx.maxEntries) {
-    const nextMaxStats = { ...requirement.maxStats };
-    delete nextMaxStats[k];
-    const poolMinSlotWithout = poolMinSlot({ ...requirement, maxStats: nextMaxStats });
-    impacts.push({ key: k, kind: 'max', requested: max, poolMinSlotWithout });
+    const ceiling = Math.ceil(achievableCeiling(k));
+    if (ceiling <= max) {
+      impacts.push({ key: k, kind: 'max', requested: max, ...NO_GAIN });
+      continue;
+    }
+    const maxDelta = ceiling - max;
+    const poolAtCeiling = poolMinSlot({ ...requirement, maxStats: { ...requirement.maxStats, [k]: ceiling } });
+    if (poolAtCeiling <= baselineMinSlot) {
+      impacts.push({ key: k, kind: 'max', requested: max, ...NO_GAIN });
+      continue;
+    }
+    const delta = smallestDelta(
+      maxDelta,
+      (d) => poolMinSlot({ ...requirement, maxStats: { ...requirement.maxStats, [k]: max + d } }) > baselineMinSlot
+    );
+    const threshold = max + delta;
+    const poolMinSlotAtThreshold = threshold === ceiling ? poolAtCeiling : poolMinSlot({ ...requirement, maxStats: { ...requirement.maxStats, [k]: threshold } });
+    impacts.push({ key: k, kind: 'max', requested: max, threshold, delta, poolMinSlotAtThreshold });
   }
-  impacts.sort((a, b) => b.poolMinSlotWithout - a.poolMinSlotWithout);
+
+  impacts.sort((a, b) => {
+    if (a.delta == null && b.delta == null) return 0;
+    if (a.delta == null) return 1;
+    if (b.delta == null) return -1;
+    return a.delta - b.delta;
+  });
   return { baselineMinSlot, impacts };
 }
 

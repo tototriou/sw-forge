@@ -13,6 +13,7 @@ import {
   dominatesHalfCombo,
   insertIntoSkyline,
   pairBuckets,
+  poolMinSlotSafe,
   prepareSearch,
   rankBlockingConditions,
   excludedRuneIds,
@@ -544,7 +545,7 @@ export default function testRuneOptim() {
     egal(diag.length, 0, 'sans minStats ni maxStats posés, rien à diagnostiquer');
   }
 
-  titre('Optimizer · palier 2 — condition la plus bloquante (rankBlockingConditions)');
+  titre('Optimizer · palier 2 — DE COMBIEN desserrer (rankBlockingConditions)');
 
   // `poolViolentWill()` : 1 rune/slot, VIT 10 chacune (défaut de `rune()`) —
   // maximum TOTAL de VIT atteignable = 100 (base) + 6×10 = 160. Poser
@@ -552,7 +553,7 @@ export default function testRuneOptim() {
   // `diagnoseFeasibility` plus haut pour ce type de preuve) : TOUS les slots
   // se vident, pas seulement un. atk=50 reste TOUJOURS trivialement
   // satisfait (base ATQ = 100 ≥ 50 sans la moindre contribution de rune) —
-  // jamais bloquant, quel que soit le pool.
+  // jamais bloquant, quel que soit le pool : même desserrée à 0, aucun gain.
   {
     const diag = rankBlockingConditions({
       base: ZERO_BASE,
@@ -563,14 +564,14 @@ export default function testRuneOptim() {
     });
     egal(diag.baselineMinSlot, 0, 'spd=175 dépasse le maximum total atteignable (160) → tous les slots vidés');
     egal(diag.impacts.length, 2, 'deux conditions posées → deux verdicts');
-    egal(diag.impacts[0]?.key, 'spd', 'retirer VIT est le plus impactant → classé en premier');
-    egal(diag.impacts[0]?.poolMinSlotWithout, 1, 'sans la contrainte VIT, le pool complet (1 rune/slot) redevient valide');
-    egal(diag.impacts[1]?.key, 'atk', 'retirer ATQ est classé en second, jamais devant un vrai gain');
-    egal(
-      diag.impacts[1]?.poolMinSlotWithout,
-      0,
-      'ATQ n’était déjà pas bloquant (base 100 ≥ 50 sans la moindre rune) → aucun gain à le retirer'
-    );
+    egal(diag.impacts[0]?.key, 'spd', 'VIT est la moins coûteuse à desserrer → classée en premier');
+    egal(diag.impacts[0]?.threshold, 160, 'seuil : pile le maximum total atteignable (100 base + 6×10)');
+    egal(diag.impacts[0]?.delta, 15, '175 − 160 = 15 : desserrer VIT de 15 suffit');
+    egal(diag.impacts[0]?.poolMinSlotAtThreshold, 1, 'à ce seuil, le pool complet (1 rune/slot) redevient valide');
+    egal(diag.impacts[1]?.key, 'atk', 'ATQ classée en second, sans gain');
+    egal(diag.impacts[1]?.threshold, null, 'ATQ n’était déjà pas bloquant → aucun seuil ne change quoi que ce soit');
+    egal(diag.impacts[1]?.delta, null, 'delta null ssi threshold l’est');
+    egal(diag.impacts[1]?.poolMinSlotAtThreshold, null, 'poolMinSlotAtThreshold null ssi threshold l’est');
   }
 
   // Sans condition posée, rien à classer — un tableau vide, pas une liste
@@ -584,6 +585,129 @@ export default function testRuneOptim() {
       metric: 'eff',
     });
     egal(diag.impacts.length, 0, 'sans condition posée, rien à classer');
+  }
+
+  // ⚠️ algo-verify — dichotomie sur un seuil : oracle indépendant (balayage
+  // exhaustif de CHAQUE valeur entière du domaine via `poolMinSlotSafe`, la
+  // même fonction de pré-filtrage que `rankBlockingConditions` réutilise en
+  // interne — voir son commentaire) pour vérifier DEUX choses séparément :
+  // 1) la monotonicité que la dichotomie SUPPOSE (jamais présumée) tient
+  //    réellement sur ce pool ; 2) le seuil qu'elle trouve est bien le plus
+  //    PROCHE de la valeur demandée parmi tous ceux qui font grandir le pool
+  //    — pas seulement UN seuil qui marche.
+  //
+  // Pool en escalier : 5 variantes par emplacement, VIT ∈ {0,5,10,15,20} —
+  // à minStats.spd = t, une variante v survient au pré-filtrage ssi
+  // 100 (base) + v + 5×20 (les 5 AUTRES emplacements à leur maximum
+  // observé, 20 chacun) ≥ t, soit v ≥ t − 200. Le pool le plus restreint
+  // (identique sur les 6 emplacements) DÉCROÎT par paliers de 5 en 5 à
+  // mesure que t grandit : 5 variantes passent pour t ≤ 200, jusqu'à 0 pour
+  // t > 220 — jamais un seul saut, un vrai test pour une dichotomie.
+  // ⚠️ Chaque variante porte aussi une sous-stat PV anti-corrélée à sa VIT
+  // (v=0 → PV le plus haut, v=20 → PV le plus bas) — sans ça, `pruneDominated`
+  // (même set 'violent' pour les 5, donc comparables) éliminerait purement et
+  // simplement les variantes les moins rapides, qui n'auraient plus rien de
+  // « meilleur » sur AUCUN axe : plus de palier à mesurer, juste un binaire.
+  // PV n'entre dans AUCUN calcul ci-dessous (hors `constrainedKeys`, qui ne
+  // contient que `spd`) — un simple leurre pour rester sur la frontière de
+  // Pareto.
+  {
+    const spdStaircase: RuneDetail[] = [];
+    let id = 1000;
+    for (let slot = 1; slot <= 6; slot++) {
+      for (const v of [0, 5, 10, 15, 20]) {
+        spdStaircase.push({
+          id: id++,
+          slot,
+          set: 'violent',
+          rank: 6,
+          rarity: 5,
+          level: 15,
+          main: main(8, v),
+          subs: [{ code: 1, value: 1000 - v * 10 }],
+        });
+      }
+    }
+    const requirement: BuildRequirement = { sets: ['violent'], minStats: { spd: 225 } };
+
+    // 1) Monotonicité RÉELLEMENT vérifiée sur tout le domaine [0, 225], pas
+    // supposée : chaque pas ne doit jamais faire DÉCROÎTRE le pool quand le
+    // minimum demandé DIMINUE.
+    let previous = -1;
+    for (let t = 225; t >= 0; t--) {
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: t } });
+      ok(size >= previous, `poolMinSlot ne doit jamais décroître quand minStats.spd diminue (t=${t} → ${size}, précédent ${previous})`);
+      previous = size;
+    }
+
+    // 2) Oracle par balayage exhaustif : le plus petit delta (le seuil le
+    // plus PROCHE de 225) qui fait grandir le pool au-delà de la baseline.
+    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, requirement);
+    egal(baseline, 0, 'à spd=225, aucune variante (max 220) ne passe → pool vide');
+    let oracleDelta: number | null = null;
+    for (let delta = 1; delta <= 225; delta++) {
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: 225 - delta } });
+      if (size > baseline) {
+        oracleDelta = delta;
+        break;
+      }
+    }
+    egal(oracleDelta, 5, 'oracle exhaustif : desserrer de 5 (seuil 220) est le premier à faire grandir le pool');
+
+    const diag = rankBlockingConditions({ base: ZERO_BASE, artifacts: [], pool: spdStaircase, requirement, metric: 'eff' });
+    egal(diag.impacts[0]?.delta, oracleDelta, 'la dichotomie trouve EXACTEMENT le même delta que le balayage exhaustif');
+    egal(diag.impacts[0]?.threshold, 220, 'seuil correspondant : 225 − 5');
+    egal(diag.impacts[0]?.poolMinSlotAtThreshold, 1, 'à seuil=220, seule la variante VIT=20 passe sur les 6 emplacements');
+  }
+
+  // Même vérification côté MAXIMUM (ATQ%, code 4 — pourcentage, pas plat) :
+  // à maxStats.atk = t, une variante avec ATQ%=p survit au pré-filtrage ssi
+  // 100 (base) + p (aucun autre emplacement ne peut RETIRER, le pire cas
+  // d'un maximum ignore les 5 autres) ≤ t, soit p ≤ t − 100. Même leurre PV
+  // anti-corrélé que ci-dessus, même raison (rester sur la frontière de
+  // Pareto malgré le même set pour les 5 variantes).
+  {
+    const atkStaircase: RuneDetail[] = [];
+    let id = 2000;
+    for (let slot = 1; slot <= 6; slot++) {
+      for (const p of [0, 5, 10, 15, 20]) {
+        atkStaircase.push({
+          id: id++,
+          slot,
+          set: 'violent',
+          rank: 6,
+          rarity: 5,
+          level: 15,
+          main: main(4, p),
+          subs: [{ code: 1, value: 1000 - p * 10 }],
+        });
+      }
+    }
+    const requirement: BuildRequirement = { sets: ['violent'], minStats: {}, maxStats: { atk: 95 } };
+
+    let previous = -1;
+    for (let t = 95; t <= 200; t++) {
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: t } });
+      ok(size >= previous, `poolMinSlot ne doit jamais décroître quand maxStats.atk augmente (t=${t} → ${size}, précédent ${previous})`);
+      previous = size;
+    }
+
+    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, requirement);
+    egal(baseline, 0, 'à atk≤95, même la variante ATQ%=0 (total 100) dépasse déjà le plafond → pool vide');
+    let oracleDelta: number | null = null;
+    for (let delta = 1; delta <= 105; delta++) {
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: 95 + delta } });
+      if (size > baseline) {
+        oracleDelta = delta;
+        break;
+      }
+    }
+    egal(oracleDelta, 5, 'oracle exhaustif : relever le plafond de 5 (seuil 100) est le premier à faire grandir le pool');
+
+    const diag = rankBlockingConditions({ base: ZERO_BASE, artifacts: [], pool: atkStaircase, requirement, metric: 'eff' });
+    egal(diag.impacts[0]?.delta, oracleDelta, 'la dichotomie trouve EXACTEMENT le même delta que le balayage exhaustif');
+    egal(diag.impacts[0]?.threshold, 100, 'seuil correspondant : 95 + 5');
+    egal(diag.impacts[0]?.poolMinSlotAtThreshold, 1, 'à seuil=100, seule la variante ATQ%=0 passe sur les 6 emplacements');
   }
 
   titre('Optimizer · élagage sûr — faisabilité de set (précoce, avec joker)');

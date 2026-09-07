@@ -1618,11 +1618,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
 
   // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
-  // plus coûteux que le palier 1 ci-dessus (N passes de pré-filtrage, N =
-  // nombre de conditions posées, contre une seule) : calculé UNIQUEMENT
-  // quand il sera réellement affiché — activé (`diagnoseBlockingEnabled`,
-  // « Réglages avancés ») ET une recherche vient de renvoyer 0 résultat —
-  // jamais à chaque frappe comme le palier 1.
+  // plus coûteux que le palier 1 ci-dessus (une dichotomie par condition
+  // posée, O(N × log(plage)) passes de pré-filtrage contre une seule) :
+  // calculé UNIQUEMENT quand il sera réellement affiché — activé
+  // (`diagnoseBlockingEnabled`, « Réglages avancés ») ET une recherche vient
+  // de renvoyer 0 résultat — jamais à chaque frappe comme le palier 1.
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
     if (!result || result.candidates.length > 0) return null;
@@ -4439,12 +4439,22 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 <ul className="space-y-1">
                   {blockingDiagnosis.impacts.map((imp) => {
                     const st = RECO_STATS.find((s) => s.key === imp.key)!;
-                    const gain = imp.poolMinSlotWithout - blockingDiagnosis.baselineMinSlot;
                     return (
                       <li key={`${imp.key}-${imp.kind}`} className="text-xs text-ink-dim">
-                        Retirer <span className="font-semibold text-ink">{st.label}</span> (
-                        {imp.kind === 'min' ? '≥' : '≤'} {imp.requested}
-                        {st.suffix}) : {imp.poolMinSlotWithout} candidat(s){gain > 0 ? ` (+${gain})` : ' (aucun gain)'}.
+                        {imp.delta == null ? (
+                          <>
+                            <span className="font-semibold text-ink">{st.label}</span> ({imp.kind === 'min' ? '≥' : '≤'}{' '}
+                            {imp.requested}
+                            {st.suffix}) : aucun gain, même desserrée entièrement.
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-ink">{st.label}</span>{' '}
+                            {imp.kind === 'min' ? `−${imp.delta}` : `+${imp.delta}`}
+                            {st.suffix} suffit ({imp.kind === 'min' ? '≥' : '≤'} {imp.threshold}
+                            {st.suffix}) : {imp.poolMinSlotAtThreshold} candidat(s).
+                          </>
+                        )}
                       </li>
                     );
                   })}

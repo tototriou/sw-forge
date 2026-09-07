@@ -106,9 +106,10 @@ export interface ConfigHarnais {
   /**
    * Force le classement des conditions bloquantes (`rankBlockingConditions`).
    *
-   * ⚠️ COÛTEUX — le pré-filtrage est relancé une fois par condition. Sans ce
-   * drapeau, il n'est calculé QUE si la recherche n'a rendu aucun candidat,
-   * c'est-à-dire au seul moment où on en a besoin.
+   * ⚠️ COÛTEUX — une dichotomie PAR condition, chacune relançant le
+   * pré-filtrage plusieurs fois. Sans ce drapeau, il n'est calculé QUE si la
+   * recherche n'a rendu aucun candidat, c'est-à-dire au seul moment où on en
+   * a besoin.
    */
   blocages?: boolean;
   /**
@@ -224,21 +225,33 @@ export interface PreuveFaisabilite {
 }
 
 /**
- * ⚠️ **INDICE, pas preuve.** `rankBlockingConditions` retire chaque condition
- * ENTIÈREMENT et regarde ce que le pool le plus restreint devient. Ça classe
- * les conditions par impact — ça ne démontre rien, et ça ne dit pas DE
- * COMBIEN relâcher (limite connue, consignée dans pistes.md).
+ * ⚠️ **INDICE, pas preuve.** `rankBlockingConditions` cherche par dichotomie,
+ * pour chaque condition posée, DE COMBIEN la desserrer suffit à faire
+ * grandir le pool le plus restreint (toutes les AUTRES conditions restent en
+ * l'état). Ça classe les conditions par effort de desserrage — ça ne
+ * démontre rien : un seuil qui libère peu de candidats ICI peut quand même,
+ * une fois combiné aux autres via `filterSlot`/`buildBuckets`, se comporter
+ * différemment en pratique.
  *
- * ⚠️ **Coûteux** : relance le pré-filtrage N+1 fois, une par condition. D'où
- * `coutMs`, rendu avec le résultat — un diagnostic dont on ignore le prix
- * finit par être lancé au mauvais moment.
+ * ⚠️ **Coûteux** : une dichotomie par condition, chacune relançant le
+ * pré-filtrage O(log(plage)) fois. D'où `coutMs`, rendu avec le résultat —
+ * un diagnostic dont on ignore le prix finit par être lancé au mauvais
+ * moment.
  */
 export interface IndiceBlocage {
   stat: string;
   borne: 'min' | 'max';
   demande: number;
-  /** Taille du pool le plus restreint SI cette condition était retirée. */
-  poolMinSansElle: number;
+  /**
+   * Nouveau seuil (min abaissé, ou max relevé) à partir duquel le pool le
+   * plus restreint dépasse `poolMinActuel`. `null` : aucun gain, même
+   * desserrée jusqu'à l'extrême praticable.
+   */
+  seuil: number | null;
+  /** `demande - seuil` (min) ou `seuil - demande` (max). `null` ssi `seuil` l'est. */
+  ecart: number | null;
+  /** Taille du pool le plus restreint À `seuil`. `null` ssi `seuil` l'est. */
+  poolAuSeuil: number | null;
 }
 
 export interface Faisabilite {

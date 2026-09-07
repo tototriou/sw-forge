@@ -38,8 +38,8 @@
 //                          d'une même moitié (1-3 ou 4-6) y sont TOUS, rend
 //                          en plus le rang du demi-build dans son
 //                          compartiment et les mieux classés à côté de lui
-//   --blocages             classe les conditions par impact (⚠️ COÛTEUX : le
-//                          pré-filtrage est relancé une fois par condition ;
+//   --blocages             cherche, par condition, DE COMBIEN la desserrer
+//                          suffit (⚠️ COÛTEUX : une dichotomie par condition ;
 //                          calculé d'office si la recherche ne rend rien)
 //   --repetitions=<n>      répétitions de la mesure de temps (défaut 1)
 //   --json                 sort le résultat brut, sans mise en forme
@@ -284,15 +284,20 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push('', `Conditions bloquantes — INDICE, pas une preuve (calculé en ${ms(b.coutMs)})`, '─'.repeat(72));
     l.push(`  pool le plus restreint, toutes conditions posées : ${nb(b.poolMinActuel)}`);
     for (const i of b.impacts) {
-      l.push(
-        `  sans ${i.stat.padEnd(5)} ${i.borne === 'min' ? '≥' : '≤'} ${String(i.demande).padStart(7)} → ${nb(i.poolMinSansElle).padStart(7)}` +
-          `   (${i.poolMinSansElle > b.poolMinActuel ? `+${nb(i.poolMinSansElle - b.poolMinActuel)}` : 'aucun gain'})`
-      );
+      const borne = i.borne === 'min' ? '≥' : '≤';
+      if (i.seuil == null) {
+        l.push(`  ${i.stat.padEnd(5)} ${borne} ${String(i.demande).padStart(7)} → aucun gain, même desserrée entièrement`);
+      } else {
+        const signe = i.borne === 'min' ? '−' : '+';
+        l.push(
+          `  ${i.stat.padEnd(5)} ${signe}${i.ecart} suffit (${borne} ${String(i.seuil).padStart(7)}) →` +
+            ` ${nb(i.poolAuSeuil!).padStart(7)} candidat(s)`
+        );
+      }
     }
     l.push(
-      '  ⚠️ Chaque condition est retirée ENTIÈREMENT : ça classe par impact, ça ne dit pas',
-      '     DE COMBIEN relâcher. Deux conditions peuvent donner le même chiffre sans être',
-      '     équivalentes.'
+      '  ⚠️ Toutes les AUTRES conditions restent posées : desserrer PLUSIEURS conditions à la',
+      '     fois peut faire mieux que la somme de leurs écarts pris séparément.'
     );
   }
 

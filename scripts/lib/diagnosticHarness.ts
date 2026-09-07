@@ -389,10 +389,11 @@ function evaluerFaisabilite(params: SearchParams): Faisabilite {
 
 /**
  * ⚠️ **Séparé des preuves, et pour une raison de fond** : c'est un INDICE, il
- * est COÛTEUX (le pré-filtrage relancé une fois par condition), et il n'a
- * d'intérêt qu'au moment où la recherche n'a rien rendu. Le fondre dans la
- * fonction ci-dessus obligerait soit à le payer toujours, soit à recalculer
- * les preuves pour l'obtenir après coup.
+ * est COÛTEUX (une dichotomie par condition, chacune relançant le
+ * pré-filtrage plusieurs fois), et il n'a d'intérêt qu'au moment où la
+ * recherche n'a rien rendu. Le fondre dans la fonction ci-dessus obligerait
+ * soit à le payer toujours, soit à recalculer les preuves pour l'obtenir
+ * après coup.
  *
  * Le prix est mesuré et rendu : un diagnostic dont on ignore le coût finit
  * lancé au mauvais moment.
@@ -406,7 +407,9 @@ function evaluerBlocages(params: SearchParams): NonNullable<Faisabilite['blocage
       stat: i.key,
       borne: i.kind,
       demande: i.requested,
-      poolMinSansElle: i.poolMinSlotWithout,
+      seuil: i.threshold,
+      ecart: i.delta,
+      poolAuSeuil: i.poolMinSlotAtThreshold,
     })),
     coutMs: performance.now() - t0,
   };

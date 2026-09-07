@@ -172,6 +172,32 @@ export default async function testDiagnosticHarness() {
       'ni « rendement » ni « efficacité » ne servent à NOMMER ce taux (seulement à les écarter explicitement)'
     );
   }
+
+  /* ── §4.1 bis : le pic de tas par moitié (A₁ bis, palier LÉGER) ─────
+   *
+   * ⚠️ La TROISIÈME hypothèse de l'asymétrie A/B — A alloue peut-être
+   * davantage et paie plus de ramassage de miettes. Elle manquait aux deux
+   * premières rédactions du cadrage : « deux hypothèses » n'était pas une
+   * énumération close, mais celles auxquelles on avait pensé. */
+  {
+    const mem = arretDemiBuilds.demiBuilds!.memoire;
+    ok(mem.A.heapUsed > 0 && mem.B.heapUsed > 0, 'chaque moitié rend son relevé mémoire de fin de fil');
+    ok(
+      mem.A.heapTotal >= mem.A.heapUsed && mem.B.heapTotal >= mem.B.heapUsed,
+      'heapTotal englobe heapUsed — le relevé vient bien de process.memoryUsage()'
+    );
+    // ⚠️ Le caveat est de la même classe que la note de plateforme sur les
+    // temps : un chiffre de mémoire détaché de cette phrase se relit comme
+    // une prédiction de ce que vit l'utilisateur, ce qu'il n'est pas.
+    ok(
+      mem.caveat.includes('N’EST PAS celui du navigateur') && mem.caveat.includes('DANS LE MÊME PROCESSUS'),
+      'le caveat voyage AVEC la mesure : valable pour comparer A à B ici, jamais comme prédiction navigateur'
+    );
+    ok(
+      mem.caveat.includes('PerformanceObserver'),
+      'et il dit pourquoi le palier COMPLET reste écarté — son coût s’insère dans la phase qu’il mesurerait'
+    );
+  }
   ok(arretDemiBuilds.regime != null, 'et le régime est déjà connu — il dépend de totalPairs, donc de la phase B');
   ok(arretDemiBuilds.completude == null, 'mais aucun appariement n’a eu lieu');
 

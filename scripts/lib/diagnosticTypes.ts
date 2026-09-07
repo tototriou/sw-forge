@@ -509,6 +509,34 @@ export interface RetentionMoitie {
   taux: number;
 }
 
+/* --------------------------------------------------------------------------
+ * Pic de tas par moitié — §4.1 bis des extensions (palier LÉGER)
+ * ----------------------------------------------------------------------- */
+
+/**
+ * La **TROISIÈME hypothèse** de l'asymétrie A/B : A pourrait énumérer
+ * autant, retenir autant, et être plus lent parce qu'il **alloue davantage
+ * et paie plus de ramassage de miettes**. Aucun instrument ne la mesurait —
+ * et son absence est le signe que « deux hypothèses » n'était pas une
+ * énumération close, mais celles auxquelles on avait pensé.
+ *
+ * ⚠️ La mesure est propre parce que **chaque moitié tourne dans son propre
+ * `worker_threads`**, donc dans son propre tas : aucune confusion possible
+ * entre A et B.
+ */
+export interface MemoireConstruction {
+  A: import('./build-half-worker').MemoireMoitie;
+  B: import('./build-half-worker').MemoireMoitie;
+  /**
+   * ⚠️ **Caveat OBLIGATOIRE, de la même classe que la taxe navigateur** : le
+   * ramasse-miettes de Node n'est pas celui du navigateur. Le chiffre vaut
+   * pour comparer A à B **dans le même processus**, jamais comme prédiction
+   * de ce que vit l'utilisateur. Imprimé avec la mesure, jamais laissé à la
+   * prose du cadrage.
+   */
+  caveat: string;
+}
+
 export interface RetentionConstruction {
   A: RetentionMoitie;
   B: RetentionMoitie;
@@ -585,6 +613,13 @@ export interface ResultatHarnais {
     combosA: number;
     combosB: number;
     retention: RetentionConstruction;
+    /**
+     * ⚠️ Relevé du DERNIER passage — avec `--repetitions`, ce n'est pas une
+     * série : le palier léger rend un chiffre par moitié, pas une
+     * distribution. Le dire ici vaut mieux que de laisser croire à une
+     * mesure agrégée.
+     */
+    memoire: MemoireConstruction;
   };
   /**
    * Rang et voisinage d'un demi-build suivi dans son compartiment — voir

@@ -43,9 +43,31 @@ export interface BuildHalfWorkerData {
   adaptiveTrancheWeighting?: boolean;
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
 }
+/**
+ * Relevé mémoire de FIN de moitié — §4.1 bis de spec/outils/optimizer/
+ * harnais-diagnostic-extensions.md, palier **LÉGER**.
+ *
+ * ⚠️ **Pourquoi la mesure est propre ici et nulle part ailleurs** : chaque
+ * moitié tourne dans son PROPRE `worker_threads`, donc dans son propre tas.
+ * Un relevé par fil ne peut pas confondre A et B.
+ *
+ * ⚠️ **Palier LÉGER, et c'est un arbitrage** : trois lignes après la
+ * construction, donc aucune perturbation de la phase mesurée. Le palier
+ * complet — un `PerformanceObserver` sur les événements `gc`, pour compter
+ * les pauses et leur durée — est ÉCARTÉ tant que le relevé léger ne montre
+ * pas d'écart A/B : l'observateur a son propre coût et s'insère dans la
+ * phase qu'on mesure.
+ */
+export interface MemoireMoitie {
+  heapUsed: number;
+  heapTotal: number;
+  rss: number;
+}
+
 export interface BuildHalfWorkerResult {
   buckets: Bucket[];
   ms: number;
+  memoire: MemoireMoitie;
 }
 
 const data = workerData as BuildHalfWorkerData;
@@ -62,5 +84,13 @@ const buckets = drain(
   )
 );
 const ms = performance.now() - t0;
-const result: BuildHalfWorkerResult = { buckets, ms };
+// ⚠️ APRÈS le chronomètre : le relevé ne doit entrer dans aucun temps
+// mesuré, et il est pris avant que quoi que ce soit ne soit sérialisé vers
+// le fil parent — donc sur l'état laissé par la construction elle-même.
+const usage = process.memoryUsage();
+const result: BuildHalfWorkerResult = {
+  buckets,
+  ms,
+  memoire: { heapUsed: usage.heapUsed, heapTotal: usage.heapTotal, rss: usage.rss },
+};
 parentPort!.postMessage(result);

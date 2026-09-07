@@ -279,6 +279,7 @@ function construireConfig(): ConfigHarnais {
 
 const ms = (n: number) => `${n.toFixed(0)} ms`;
 const nb = (n: number) => n.toLocaleString('fr-FR');
+const mo = (octets: number) => `${(octets / 1024 / 1024).toFixed(1)} Mo`;
 
 function rendreResultat(r: ResultatHarnais): string {
   const l: string[] = [];
@@ -443,6 +444,21 @@ function rendreResultat(r: ResultatHarnais): string {
     const rapport = ret.B.taux > 0 ? ret.A.taux / ret.B.taux : 0;
     l.push(`  rapport des taux A/B : ×${rapport.toFixed(2)}`);
     l.push(`  ${ret.regleInterpretation}`);
+
+    // ⚠️ §4.1 bis — la TROISIÈME hypothèse de l'asymétrie A/B : A pourrait
+    // énumérer autant, retenir autant, et être plus lent parce qu'il alloue
+    // davantage. Chaque moitié ayant son propre worker_threads, donc son
+    // propre tas, les deux chiffres ne peuvent pas se confondre.
+    const mem = r.demiBuilds.memoire;
+    l.push('', 'Mémoire en fin de construction, par moitié (palier LÉGER)', '─'.repeat(72));
+    for (const [moitie, m] of [['A', mem.A], ['B', mem.B]] as const) {
+      l.push(
+        `  moitié ${moitie} : heapUsed ${mo(m.heapUsed)}   heapTotal ${mo(m.heapTotal)}   rss ${mo(m.rss)}`
+      );
+    }
+    const ecart = mem.B.heapUsed > 0 ? mem.A.heapUsed / mem.B.heapUsed : 0;
+    l.push(`  rapport heapUsed A/B : ×${ecart.toFixed(2)}`);
+    l.push(`  ${mem.caveat}`);
   }
 
   if (r.regime) {

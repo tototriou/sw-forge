@@ -45,7 +45,10 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { build } from 'esbuild';
 import { Bucket, PreparedSearch, SearchParams } from '../../src/lib/runeBuildOptim';
-import { BuildHalfWorkerData, BuildHalfWorkerResult } from './build-half-worker';
+// ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
+// chargement (`workerData`, `parentPort!`) — c'est un point d'entrée de fil,
+// jamais un module à importer. Même précaution que perf-battery.ts.
+import type { BuildHalfWorkerData, BuildHalfWorkerResult, MemoireMoitie } from './build-half-worker';
 
 // Bundlé UNE FOIS par exécution, réutilisé par les deux fils — le coût
 // d'esbuild ne doit jamais entrer dans un temps de construction mesuré.
@@ -84,6 +87,15 @@ export interface MoitiesConstruites {
   /** Coût INTERNE à chaque fil — diagnostic, jamais la durée de la phase. */
   msA: number;
   msB: number;
+  /**
+   * Relevé mémoire de fin de fil (§4.1 bis) — chaque moitié ayant son propre
+   * `worker_threads`, donc son propre tas, les deux chiffres ne peuvent pas
+   * se confondre. ⚠️ Vaut pour comparer A à B DANS CE PROCESSUS Node,
+   * jamais comme prédiction de ce que vit l'utilisateur : le ramasse-miettes
+   * de Node n'est pas celui du navigateur.
+   */
+  memoireA: MemoireMoitie;
+  memoireB: MemoireMoitie;
   /** Le temps RÉELLEMENT écoulé pour la phase : c'est lui qui compte. */
   wallMs: number;
 }
@@ -121,5 +133,13 @@ export async function construireMoitiesEnParallele(
     lancerFil(chemin, { ...commun, half: 'A', slotIdxs: [0, 1, 2], otherHalfMaxSets: prepared.maxSetsForA }),
     lancerFil(chemin, { ...commun, half: 'B', slotIdxs: [3, 4, 5], otherHalfMaxSets: prepared.maxSetsForB }),
   ]);
-  return { bucketsA: a.buckets, bucketsB: b.buckets, msA: a.ms, msB: b.ms, wallMs: performance.now() - t0 };
+  return {
+    bucketsA: a.buckets,
+    bucketsB: b.buckets,
+    msA: a.ms,
+    msB: b.ms,
+    memoireA: a.memoire,
+    memoireB: b.memoire,
+    wallMs: performance.now() - t0,
+  };
 }

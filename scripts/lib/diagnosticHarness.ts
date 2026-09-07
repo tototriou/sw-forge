@@ -53,6 +53,10 @@ import { drain } from './drain';
 import { ConfigResolue, resoudreConfig } from './diagnosticConfig';
 import { ensurePairSliceBundle, makeSpawnSliceNode } from './spawnSliceNode';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
+// ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
+// chargement (`workerData`, `parentPort!`). Un import de valeur le ferait
+// tourner dans le fil principal — même précaution que perf-battery.ts.
+import type { MemoireMoitie } from './build-half-worker';
 import {
   ArretApres,
   Completude,
@@ -121,6 +125,9 @@ interface Passage {
   /** Coût interne à chaque fil : diagnostic du DÉSÉQUILIBRE entre moitiés. */
   msDemiBuildA?: number;
   msDemiBuildB?: number;
+  /** §4.1 bis — relevé mémoire de fin de fil, un tas par moitié. */
+  memoireA?: MemoireMoitie;
+  memoireB?: MemoireMoitie;
   msAppariement: number;
   msTotal: number;
 }
@@ -233,6 +240,7 @@ export async function executerHarnaisResolu(
     combosA,
     combosB,
     retention: retentionConstruction(dernier.taillesParEtage, combosA, combosB),
+    memoire: { A: dernier.memoireA!, B: dernier.memoireB!, caveat: CAVEAT_MEMOIRE },
   };
   // ⚠️ Déclenché AUTOMATIQUEMENT, sans option séparée : dès que `--suivre`
   // porte exactement les 3 runes d'UNE moitié (3 emplacements distincts,
@@ -360,6 +368,19 @@ const REGLE_INTERPRETATION_RETENTION =
   '⚠️ Et ce n’est pas un « rendement » ni une « efficacité » : le ratio ne dit RIEN de la qualité des ' +
   'demi-builds retenus, ni de la probabilité que l’optimum survive.';
 
+/**
+ * §4.1 bis — ⚠️ **Caveat OBLIGATOIRE, imprimé AVEC la mesure**, de la même
+ * classe que la note de plateforme sur les temps. Un chiffre de mémoire
+ * détaché de cette phrase se relit comme une prédiction de ce que vit
+ * l'utilisateur, ce qu'il n'est pas.
+ */
+const CAVEAT_MEMOIRE =
+  '⚠️ Le ramasse-miettes de Node N’EST PAS celui du navigateur : ces chiffres valent pour comparer A à B ' +
+  'DANS LE MÊME PROCESSUS, jamais comme prédiction de ce que vit l’utilisateur. ⚠️ Relevé de FIN de fil ' +
+  '(palier LÉGER) : il dit ce que la moitié laisse derrière elle, pas son pic instantané, et ne compte ni ' +
+  'les pauses de ramassage ni leur durée — le PerformanceObserver sur gc reste ÉCARTÉ tant que ce relevé ' +
+  'ne montre pas d’écart, son propre coût s’insérant dans la phase qu’il mesurerait.';
+
 function evaluerQuasiSucces(resultat: SearchResult, resolue: ConfigResolue): NonNullable<ResultatHarnais['quasiSucces']> {
   const runeById = new Map(resolue.poolInitial.map((r) => [r.id, r]));
   const metric = resolue.params.metric;
@@ -433,6 +454,8 @@ async function unPassage(
   passage.msDemiBuilds = tBuild - tPrepare;
   passage.msDemiBuildA = moities.msA;
   passage.msDemiBuildB = moities.msB;
+  passage.memoireA = moities.memoireA;
+  passage.memoireB = moities.memoireB;
   passage.msTotal = tBuild - t0;
 
   // ── Le régime, décidé comme la production le déciderait.

@@ -440,7 +440,12 @@ function rendreResultat(r: ResultatHarnais): string {
     if (c.configurationInvalide) {
       l.push(`  ⚠️ CONFIGURATION INVALIDE — ${c.configurationInvalide}`);
     } else {
-      l.push(`  ${c.complet ? 'complet' : `incomplet — raison : ${c.motif}`}`);
+      // ⚠️ L'incohérence est un verdict À PART, pas une note en bas d'un
+      // « complet » : le moteur annonce une recherche non tronquée qui n'a
+      // pourtant pas parcouru tout l'espace, donc la cause n'est pas
+      // déductible. Écrire « incomplet — raison : undefined » revenait à
+      // présenter une absence de motif comme un motif.
+      l.push(`  ${c.incoherence ? 'INCOHÉRENT — incomplet, motif NON déductible' : c.complet ? 'complet' : `incomplet — raison : ${c.motif}`}`);
       l.push(`  explored ${nb(c.explored)} / totalPairs ${nb(c.totalPairs)}`);
       if (c.incoherence) l.push(`  ⚠️ ${c.incoherence}`);
     }

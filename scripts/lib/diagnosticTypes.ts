@@ -172,7 +172,20 @@ export interface Fidelite {
 export type MotifTroncature = 'maxMs' | 'maxCollected';
 
 export interface Completude {
+  /**
+   * ⚠️ **Jamais `true` en même temps qu'une `incoherence`.** Le harnais a
+   * porté cette contradiction : il annonçait dans le même objet « la
+   * recherche est complète » ET « elle n'a pas exploré tout l'espace ». Un
+   * lecteur JSON qui teste ce booléen était trompé — et un outil de
+   * diagnostic se trompe avec l'autorité d'un diagnostic.
+   */
   complet: boolean;
+  /**
+   * ⚠️ **`undefined` quand la cause n'est pas DÉDUCTIBLE**, jamais un motif
+   * par défaut. La déduction quota/temps ne vaut que là où `truncated` sort
+   * vrai (voir `evaluerCompletude`) ; dans le cas incohérent ci-dessous, on
+   * sait que la recherche est incomplète et on ne sait PAS pourquoi.
+   */
   motif?: MotifTroncature;
   explored: number;
   /** La borne EXACTE de l'espace (`totalPairCount`). */
@@ -182,7 +195,8 @@ export interface Completude {
    * `pairBuckets` explore sur une recherche non tronquée (égalité vérifiée
    * sur 15 scénarios par `rune-optim-differential.test.ts`). Un run annoncé
    * complet dont `explored < totalPairs` a donc été tronqué malgré tout —
-   * on le DIT, on ne le laisse pas déduire.
+   * on le DIT, on ne le laisse pas déduire, et le verdict public bascule
+   * en INCOMPLET SANS MOTIF plutôt que de rester « complet ».
    */
   incoherence?: string;
   /**

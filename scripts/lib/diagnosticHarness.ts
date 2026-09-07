@@ -652,23 +652,34 @@ function detailDemiBuild(moitie: 'A' | 'B', runeIds: number[], buckets: Bucket[]
  */
 export function evaluerCompletude(resultat: SearchResult, totalPairs: number, params: SearchParams): Completude {
   const plafond = params.maxCollected!;
-  const complet = !resultat.truncated;
-  const completude: Completude = {
-    complet,
-    motif: complet ? undefined : resultat.candidates.length >= plafond ? 'maxCollected' : 'maxMs',
-    explored: resultat.explored,
-    totalPairs,
-  };
+  const annonceComplet = !resultat.truncated;
   // ⚠️ L'autodiagnostic gratuit : `totalPairCount` est la borne EXACTE de
   // l'espace (mêmes prédicats que `pairBuckets`, égalité stricte vérifiée sur
   // 15 scénarios par le test différentiel). Un run annoncé complet qui n'a
   // pas exploré tout l'espace a donc été tronqué sans le dire — ou l'un des
   // deux comptages a divergé de l'autre, ce qui est tout aussi grave.
-  if (complet && resultat.explored < totalPairs) {
+  const incoherent = annonceComplet && resultat.explored < totalPairs;
+  const completude: Completude = {
+    // ⚠️ **`complet` et `incoherence` ne peuvent PLUS être vrais ensemble.**
+    // Le harnais disait auparavant, dans le même objet, « la recherche est
+    // complète » ET « elle n'a pas exploré tout l'espace » : un lecteur JSON
+    // qui teste `complet` était trompé, et c'est le genre de contradiction
+    // qu'un outil de diagnostic commet avec l'autorité d'un diagnostic.
+    complet: annonceComplet && !incoherent,
+    // ⚠️ **Aucun motif FABRIQUÉ dans le cas incohérent.** On sait que la
+    // recherche n'est pas complète ; on ne sait PAS pourquoi — la déduction
+    // quota/temps ne vaut que quand `truncated` sort vrai, et il est faux
+    // ici. Inventer `maxMs` par défaut serait un diagnostic inventé.
+    motif: annonceComplet ? undefined : resultat.candidates.length >= plafond ? 'maxCollected' : 'maxMs',
+    explored: resultat.explored,
+    totalPairs,
+  };
+  if (incoherent) {
     completude.incoherence =
       `Run annoncé COMPLET mais explored (${resultat.explored.toLocaleString('fr-FR')}) < totalPairs ` +
       `(${totalPairs.toLocaleString('fr-FR')}) — il a été tronqué, ou totalPairCount et pairBuckets ` +
-      'ne comptent plus la même chose (voir rune-optim-differential.test.ts, qui vérifie leur égalité stricte).';
+      'ne comptent plus la même chose (voir rune-optim-differential.test.ts, qui vérifie leur égalité stricte). ' +
+      'Le verdict rendu est donc INCOMPLET SANS MOTIF : la cause n’est pas déductible ici.';
   }
   return completude;
 }

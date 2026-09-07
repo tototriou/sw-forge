@@ -18,7 +18,7 @@ import { executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scrip
 import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
 import { ConfigHarnais, EtagePopulation } from '../scripts/lib/diagnosticTypes';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
-import { MAX_COLLECTED, SearchParams, SearchResult, bucketCapFor } from '../src/lib/runeBuildOptim';
+import { MAX_COLLECTED, SearchParams, SearchResult, bucketCapFor, combineParallelPairingResults } from '../src/lib/runeBuildOptim';
 
 function configSynthetique(surcharges: Partial<ConfigHarnais> = {}): ConfigHarnais {
   return {
@@ -130,11 +130,58 @@ export default async function testDiagnosticHarness() {
   const parTemps: SearchResult = { candidates: new Array(37).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
   egal(evaluerCompletude(parQuota, 1000, paramsFictifs).motif, 'maxCollected', 'plafond de candidats ATTEINT ⇒ motif maxCollected');
   egal(evaluerCompletude(parTemps, 1000, paramsFictifs).motif, 'maxMs', 'plafond NON atteint alors que tronqué ⇒ motif maxMs (le temps)');
+  // ⚠️ **Régression §3.3** — le harnais rendait `complet: true` EN MÊME
+  // TEMPS qu'une `incoherence` : « la recherche est complète » et « elle n'a
+  // pas exploré tout l'espace » dans le même objet. Un lecteur JSON qui
+  // teste `complet` était trompé. Le verdict PUBLIC doit basculer, pas
+  // seulement porter une note.
   const completSansTout: SearchResult = { candidates: [], explored: 900, truncated: false, nearMissByCondition: [], globalNearMiss: null };
-  ok(
-    evaluerCompletude(completSansTout, 1000, paramsFictifs).incoherence != null,
-    'annoncé complet mais 900 < 1000 paires : l’incohérence est dite'
+  const incoherent = evaluerCompletude(completSansTout, 1000, paramsFictifs);
+  ok(incoherent.incoherence != null, 'annoncé complet mais 900 < 1000 paires : l’incohérence est dite');
+  ok(!incoherent.complet, 'et le VERDICT PUBLIC bascule : jamais `complet: true` en même temps qu’une incohérence');
+  egal(
+    incoherent.motif,
+    undefined,
+    'sans motif FABRIQUÉ : `truncated` est faux, donc la déduction quota/temps ne s’applique pas — on ne sait pas pourquoi'
   );
+
+  /* ── §3.5 : le quota LOCAL d'un worker n'est pas une troncature ─────
+   *
+   * ⚠️ **Ce cas verrouille une réfutation que DEUX revues externes
+   * consécutives ont attaquée, par deux raisonnements différents** (§9.2 et
+   * §9.3 de harnais-diagnostic-extensions.md) : « le motif de troncature
+   * serait faux en régime parallèle ». Il est correct, parce que
+   * `combineParallelPairingResults` exclut du budget épuisé tout worker dont
+   * `candidates.length === perWorkerMaxCollected`.
+   *
+   * ⚠️ Ce qui est épinglé ici, c'est la **COMPOSITION** — le maillon que les
+   * deux revues visaient. `rune-optim-parallel-truncated.test.ts` (cas 1)
+   * couvre déjà `combineParallelPairingResults` seule ; ce qu'aucun test ne
+   * couvrait, c'est que le résultat fusionné, passé à `evaluerCompletude`,
+   * ne fabrique AUCUN motif `maxMs`. C'est là que la revue plaçait le bug. */
+  {
+    const PAR_WORKER = 25_000;
+    const GLOBAL = 100_000;
+    const candidats = (n: number) => new Array(n).fill({ runeIds: [], stats: [], effTotal: 0 });
+    const parWorker: SearchResult[] = [
+      // Le worker « riche » : quota LOCAL rempli PILE — `pairBuckets` sort
+      // toujours `truncated: true` dans ce cas, ce n'est pas un signe de
+      // recherche globalement incomplète.
+      { candidates: candidats(PAR_WORKER), explored: 500_000, truncated: true, nearMissByCondition: [], globalNearMiss: null },
+      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
+      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
+      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
+    ];
+    const fusionne = combineParallelPairingResults(parWorker, PAR_WORKER, GLOBAL);
+    egal(fusionne.candidates.length, 40_000, 'le total (40 000) reste très en-deçà du plafond GLOBAL (100 000)');
+    egal(fusionne.truncated, false, 'un worker qui remplit son quota LOCAL ne rend pas la recherche globale tronquée');
+
+    // `explored` égale l'espace : la recherche a tout parcouru.
+    const verdict = evaluerCompletude(fusionne, fusionne.explored, { maxCollected: GLOBAL } as SearchParams);
+    ok(verdict.complet, 'et le harnais la déclare COMPLÈTE — c’est le scénario que deux revues ont cru faux');
+    egal(verdict.motif, undefined, 'AUCUN motif n’est fabriqué : ni maxMs (l’erreur annoncée par la revue), ni maxCollected');
+    ok(verdict.incoherence == null, 'et aucune incohérence : explored couvre tout l’espace');
+  }
 
   /* ── §6.1 : suivi d'une rune, et ce qu'une disparition SIGNIFIE ────── */
   const pool = randomPool(mulberry32(7), 5, SETS_JOKER);

@@ -426,6 +426,23 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push('', 'Demi-builds', '─'.repeat(72));
     l.push(`  moitié A : ${nb(r.demiBuilds.compartimentsA)} compartiment(s), ${nb(r.demiBuilds.combosA)} demi-build(s)`);
     l.push(`  moitié B : ${nb(r.demiBuilds.compartimentsB)} compartiment(s), ${nb(r.demiBuilds.combosB)} demi-build(s)`);
+
+    // ⚠️ « Taux de rétention de la CONSTRUCTION » — jamais « du
+    // pré-filtrage » (ce serait `filterSlot`, un étage plus haut), jamais un
+    // « rendement » ni une « efficacité » (le ratio ne dit rien de la
+    // QUALITÉ des demi-builds retenus).
+    const ret = r.demiBuilds.retention;
+    l.push('', 'Taux de rétention de la CONSTRUCTION (buildBuckets sous bucketCap)', '─'.repeat(72));
+    for (const [moitie, m] of [['A', ret.A], ['B', ret.B]] as const) {
+      const pourcent = m.taux === 0 ? '0' : (m.taux * 100).toPrecision(3);
+      l.push(
+        `  moitié ${moitie} : ${m.parEmplacement.join(' × ')} = ${nb(m.produitBrut)} triplets énumérables au plus` +
+          `   →   ${nb(m.retenus)} retenus   (${pourcent} %)`
+      );
+    }
+    const rapport = ret.B.taux > 0 ? ret.A.taux / ret.B.taux : 0;
+    l.push(`  rapport des taux A/B : ×${rapport.toFixed(2)}`);
+    l.push(`  ${ret.regleInterpretation}`);
   }
 
   if (r.regime) {

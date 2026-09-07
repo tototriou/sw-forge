@@ -67,6 +67,8 @@ import {
   QuasiSucces,
   RegimeAppariement,
   ResultatHarnais,
+  RetentionConstruction,
+  RetentionMoitie,
   SerieTemps,
   TaillesParEtage,
   TraceSurvie,
@@ -223,11 +225,14 @@ export async function executerHarnaisResolu(
 
   if (estEtagePreparation(arretApres)) return resultat;
 
+  const combosA = dernier.bucketsA!.reduce((s, b) => s + b.combos.length, 0);
+  const combosB = dernier.bucketsB!.reduce((s, b) => s + b.combos.length, 0);
   resultat.demiBuilds = {
     compartimentsA: dernier.bucketsA!.length,
     compartimentsB: dernier.bucketsB!.length,
-    combosA: dernier.bucketsA!.reduce((s, b) => s + b.combos.length, 0),
-    combosB: dernier.bucketsB!.reduce((s, b) => s + b.combos.length, 0),
+    combosA,
+    combosB,
+    retention: retentionConstruction(dernier.taillesParEtage, combosA, combosB),
   };
   // ⚠️ Déclenché AUTOMATIQUEMENT, sans option séparée : dès que `--suivre`
   // porte exactement les 3 runes d'UNE moitié (3 emplacements distincts,
@@ -307,6 +312,53 @@ export async function executerHarnaisResolu(
 export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHarnais> {
   return executerHarnaisResolu(resoudreConfig(config), config);
 }
+
+/* --------------------------------------------------------------------------
+ * Taux de rétention de la CONSTRUCTION — §4.1 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **Niveau A-passif : les deux nombres sont DÉJÀ rendus.** Le produit des
+ * trois longueurs de `filtered` par moitié vient de l'étage `filterslot`
+ * observé par `onStage` — et c'est EXACTEMENT le tableau que
+ * `prepareSearch` renvoie comme `prepared.filtered`, donc celui que
+ * `construireMoitiesEnParallele` passe aux deux fils (`slotIdxs` [0,1,2] et
+ * [3,4,5]). Rien n'est reconstruit, rien ne peut diverger.
+ *
+ * ⚠️ Ce que ça TRANCHE : si A a trois fois le produit brut de B et retient
+ * autant, l'hypothèse « plafonnement par `bucketCap` » est étayée — sans
+ * aucune instrumentation. Ce que ça ne tranche PAS : voir la règle
+ * d'interprétation ci-dessous, qui part AVEC le résultat.
+ */
+function retentionConstruction(taillesParEtage: TaillesParEtage[], combosA: number, combosB: number): RetentionConstruction {
+  const filterslot = taillesParEtage.find((t) => t.etage === 'filterslot')!.parEmplacement;
+  const moitie = (idx: number[], retenus: number): RetentionMoitie => {
+    const parEmplacement = idx.map((i) => filterslot[i]);
+    const produitBrut = parEmplacement.reduce((p, n) => p * n, 1);
+    return { produitBrut, parEmplacement, retenus, taux: produitBrut > 0 ? retenus / produitBrut : 0 };
+  };
+  return {
+    A: moitie([0, 1, 2], combosA),
+    B: moitie([3, 4, 5], combosB),
+    regleInterpretation: REGLE_INTERPRETATION_RETENTION,
+  };
+}
+
+/**
+ * ⚠️ **La règle du §4.4, imprimée AVEC le résultat** — pas laissée à la
+ * prose du cadrage, au même titre que l'`avertissementComparaison` qui
+ * accompagne déjà toute mesure de temps. « Resserre sans démontrer » est
+ * une formulation trop faible : ce taux peut produire une causalité FAUSSE.
+ */
+const REGLE_INTERPRETATION_RETENTION =
+  '⚠️ UNE CORRÉLATION ENTRE RÉTENTION ET TEMPS NE PROUVE PAS QUE LA RÉTENTION EXPLIQUE LE TEMPS. ' +
+  'Lire « A retient moins · A est plus lent · donc A est lent parce qu’il travaille plus » est autorisé ' +
+  'par la corrélation, jamais démontré par elle. Deux raisons de fond : (1) le produit brut est le ' +
+  'MAJORANT de l’énumération, pas l’énumération — les continue de faisabilité et de jokers coupent des ' +
+  'sous-arbres entiers sans laisser de trace ; (2) d’autres explications restent ouvertes — distribution ' +
+  'des pools, coût des prédicats de faisabilité, profondeur des branches coupées, composition en sets. ' +
+  '⚠️ Et ce n’est pas un « rendement » ni une « efficacité » : le ratio ne dit RIEN de la qualité des ' +
+  'demi-builds retenus, ni de la probabilité que l’optimum survive.';
 
 function evaluerQuasiSucces(resultat: SearchResult, resolue: ConfigResolue): NonNullable<ResultatHarnais['quasiSucces']> {
   const runeById = new Map(resolue.poolInitial.map((r) => [r.id, r]));

@@ -139,6 +139,39 @@ export default async function testDiagnosticHarness() {
 
   const arretDemiBuilds = await executerHarnais(configSynthetique({ arretApres: 'demi-builds' }));
   ok(arretDemiBuilds.demiBuilds != null, 'arrêt après les demi-builds : les deux moitiés sont là');
+
+  /* ── §4.1 : le taux de rétention de la CONSTRUCTION (A₁) ───────────── */
+  {
+    const ret = arretDemiBuilds.demiBuilds!.retention;
+    const tailles = arretDemiBuilds.preparation.find((t) => t.etage === 'filterslot')!.parEmplacement;
+    // ⚠️ Le produit brut doit venir du pool RÉELLEMENT passé à buildBuckets
+    // — `onStage('filterslot')` reçoit le tableau qui devient
+    // `prepared.filtered`, et les fils reçoivent les slots [0,1,2]/[3,4,5].
+    egal(ret.A.produitBrut, tailles[0] * tailles[1] * tailles[2], 'produit brut A = |f₀|×|f₁|×|f₂| du pool qui entre dans buildBuckets');
+    egal(ret.B.produitBrut, tailles[3] * tailles[4] * tailles[5], 'produit brut B = |f₃|×|f₄|×|f₅|, l’autre moitié');
+    egal(ret.A.retenus, arretDemiBuilds.demiBuilds!.combosA, 'les retenus sont les demi-builds déjà rendus, jamais recomptés');
+    ok(ret.A.taux > 0 && ret.A.taux <= 1, 'le taux est un ratio des deux nombres déjà rendus');
+    ok(
+      ret.A.retenus <= ret.A.produitBrut,
+      'le produit brut est bien un MAJORANT : on ne retient jamais plus de triplets qu’il n’en existe'
+    );
+
+    // ⚠️ **La règle d'interprétation du §4.4 doit être IMPRIMÉE avec le
+    // résultat**, pas seulement écrite dans la spec — sinon un taux voyage
+    // seul et autorise la causalité fausse qu'il ne démontre pas.
+    ok(
+      ret.regleInterpretation.includes('NE PROUVE PAS QUE LA RÉTENTION EXPLIQUE LE TEMPS') &&
+        ret.regleInterpretation.includes('MAJORANT'),
+      'la règle d’interprétation voyage AVEC le taux : corrélation ≠ causalité, et le produit brut est un majorant'
+    );
+    // ⚠️ Vocabulaire IMPOSÉ : ces deux mots suggèrent un jugement que le
+    // nombre ne porte pas. Le test les interdit plutôt que de compter sur
+    // la relecture.
+    ok(
+      !/rendement|efficacité/i.test(ret.regleInterpretation.replace(/« rendement »|« efficacité »/g, '')),
+      'ni « rendement » ni « efficacité » ne servent à NOMMER ce taux (seulement à les écarter explicitement)'
+    );
+  }
   ok(arretDemiBuilds.regime != null, 'et le régime est déjà connu — il dépend de totalPairs, donc de la phase B');
   ok(arretDemiBuilds.completude == null, 'mais aucun appariement n’a eu lieu');
 

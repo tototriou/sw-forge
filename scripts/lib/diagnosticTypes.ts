@@ -475,6 +475,55 @@ export interface DetailDemiBuild {
 }
 
 /* --------------------------------------------------------------------------
+ * Taux de rétention de la CONSTRUCTION — §4.1 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **Le nom compte, et il est IMPOSÉ.** C'est le taux de rétention **de la
+ * CONSTRUCTION** (`buildBuckets` sous `bucketCap`) :
+ *
+ * - **jamais « du pré-filtrage »** — celui-là serait `filterSlot`, un étage
+ *   PLUS HAUT. Le ratio est pris à la sortie de la construction, pas à son
+ *   entrée ;
+ * - **jamais un « rendement » ni une « efficacité »** — le ratio ne dit RIEN
+ *   de la qualité des demi-builds retenus, ni de la probabilité que
+ *   l'optimum survive. Ces deux mots suggèrent un jugement que le nombre ne
+ *   porte pas.
+ *
+ * ⚠️ Les deux nombres sont **déjà rendus** par le harnais — le produit des
+ * trois longueurs de `filtered` par moitié (majorant EXACT des triplets
+ * énumérables) et `combosA`/`combosB`. Aucune mesure n'est ajoutée, aucun
+ * fichier de `src/` n'est touché : niveau **A-passif**.
+ */
+export interface RetentionMoitie {
+  /**
+   * `|f₀|×|f₁|×|f₂|` — le **MAJORANT EXACT** des triplets énumérables de
+   * cette moitié. ⚠️ Ce n'est PAS ce qui a été énuméré : les `continue` de
+   * faisabilité et de jokers coupent des sous-arbres entiers.
+   */
+  produitBrut: number;
+  parEmplacement: number[];
+  /** Les demi-builds RETENUS — `Bucket.combos` sommés. */
+  retenus: number;
+  /** `retenus / produitBrut`. Sans unité. */
+  taux: number;
+}
+
+export interface RetentionConstruction {
+  A: RetentionMoitie;
+  B: RetentionMoitie;
+  /**
+   * ⚠️ **La règle d'interprétation du §4.4, IMPRIMÉE avec le résultat** —
+   * pas seulement écrite dans la spec. Ni ce taux ni aucun autre signal ne
+   * DÉMONTRE quoi que ce soit ; ils peuvent produire une causalité fausse
+   * (« A retient moins, A est plus lent, donc A est lent parce qu'il
+   * travaille plus »). La corrélation autorise cette lecture, rien ne la
+   * démontre.
+   */
+  regleInterpretation: string;
+}
+
+/* --------------------------------------------------------------------------
  * Le résultat complet
  * ----------------------------------------------------------------------- */
 
@@ -530,7 +579,13 @@ export interface ResultatHarnais {
   }[];
 
   /** Absents si l'arrêt a eu lieu avant leur phase. */
-  demiBuilds?: { compartimentsA: number; compartimentsB: number; combosA: number; combosB: number };
+  demiBuilds?: {
+    compartimentsA: number;
+    compartimentsB: number;
+    combosA: number;
+    combosB: number;
+    retention: RetentionConstruction;
+  };
   /**
    * Rang et voisinage d'un demi-build suivi dans son compartiment — voir
    * `DetailDemiBuild`. Absent si aucun trio de `--suivre` ne forme une moitié

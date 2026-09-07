@@ -798,21 +798,22 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // commentaire dans useOptimizerState.ts), donc hors recette exportée/
   // scripts CLI pour l'instant (limite connue, voir spec).
   const [gearSource, setGearSource] = useState<ExclusionSource>('box');
-  // ⚠️ Choix EXPLICITE de l'utilisateur (via `pickSource`, plus bas), sauf
-  // dans un seul cas NON ambigu : un seul exemplaire existe dans la source
-  // active pour cette espèce — jamais un « meilleur » deviné en silence dès
-  // qu'il y a un choix réel à faire (voir Question 1 du cadrage : le retour
-  // explicite qui a fait supprimer l'ancien `ownGearForSource` à la 5ᵉ
-  // révision reste valable ici). Initialisé PARESSEUSEMENT pour la
-  // continuité au montage (retour sur l'onglet Optimizer après un
-  // aller-retour ailleurs — cet état LOCAL ne survit pas au démontage) :
-  // résout la même règle pour l'espèce déjà persistée (`selectedId`).
+  // ⚠️ Choix EXPLICITE de l'utilisateur (via `pickSource`, plus bas) pour
+  // changer d'exemplaire ensuite ; l'exemplaire affiché au départ est le
+  // premier de la box (`boxCandidates[0]`, PAS un « meilleur » deviné —
+  // voir Question 1 du cadrage : le retour explicite qui a fait supprimer
+  // l'ancien `ownGearForSource` à la 5ᵉ révision reste valable ici), même
+  // règle que `pickSpecies` plus bas — repli sur `unowned` seulement si la
+  // box n'en compte AUCUN. Initialisé PARESSEUSEMENT pour la continuité au
+  // montage (retour sur l'onglet Optimizer après un aller-retour ailleurs —
+  // cet état LOCAL ne survit pas au démontage) : résout la même règle pour
+  // l'espèce déjà persistée (`selectedId`).
   const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(() => {
     if (!selectedId) return null;
     const species = monsterById.get(selectedId);
     if (!species) return null;
     const boxCandidates = speciesCandidatesBySource(species.com2usId, box, exclusionData).box;
-    return boxCandidates.length === 1 ? boxCandidates[0].selector : unownedSelectorIfNoneOwned(species, box, exclusionData);
+    return boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(species, box, exclusionData);
   });
   // Zone D — désambiguïsation d'exemplaire (plusieurs candidats dans la
   // source active pour l'espèce choisie, ex. 2 équipes de siège) : un
@@ -1873,12 +1874,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // ⚠️ Une recette ne porte que l'ESPÈCE (`monsterCom2usId`), jamais un
         // exemplaire précis (voir le commentaire de `gearSource` plus haut) —
         // repli sur Box, comme si l'utilisateur venait de le choisir dans
-        // cette source (résolution automatique si un seul exemplaire, sinon
-        // stats de base seules — même règle que `pickSource`) ; possédée
-        // NULLE PART → sélecteur `unowned`, même règle que `pickSpecies`.
+        // cette source (même règle que `pickSpecies` : premier exemplaire de
+        // la box, PAS un repli sur « non possédé » dès que la box en compte
+        // plusieurs) ; possédée NULLE PART → sélecteur `unowned`.
         setGearSource('box');
         const boxCandidates = speciesCandidatesBySource(match.com2usId, box, exclusionData).box;
-        setSourceSelector(boxCandidates.length === 1 ? boxCandidates[0].selector : unownedSelectorIfNoneOwned(match, box, exclusionData));
+        setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(match, box, exclusionData));
         setZoneDOpen(false);
         setSelectedId(String(match.id));
         setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}` });

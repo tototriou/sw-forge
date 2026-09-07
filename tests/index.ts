@@ -40,6 +40,7 @@ import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
+import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
@@ -99,6 +100,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testOptimizerExclusion', testOptimizerExclusion],
+  ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

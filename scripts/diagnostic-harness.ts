@@ -47,7 +47,7 @@
 //   --slotFilterCap=<n>  --bucketCap=<n>  --maxCollected=<n>  --maxMs=<n>
 //   --regime=sequentiel|parallele  --combos=potential|relevance|combined|objective
 
-import { executerHarnais } from './lib/diagnosticHarness';
+import { executerHarnaisResolu } from './lib/diagnosticHarness';
 import { rendreParametres, resoudreConfig } from './lib/diagnosticConfig';
 import { SETS_JOKER, SETS_SANS_JOKER, SETS_VARIES } from './lib/randomPool';
 import {
@@ -501,7 +501,11 @@ async function main() {
   }
 
   // ── PALIERS SUIVANTS — la préparation réelle, puis les phases demandées.
-  const resultat = await executerHarnais(config);
+  // ⚠️ **Sur la configuration DÉJÀ résolue ci-dessus**, jamais une seconde
+  // résolution : en mode recette celle-ci relirait l'export de compte et la
+  // recette sur le disque, qui ont pu changer entre les deux — le palier 1
+  // décrirait alors une configuration qui n'est PAS celle qui s'exécute.
+  const resultat = await executerHarnaisResolu(resolue, config);
   if (drapeau('json')) {
     console.log(JSON.stringify(resultat, (_, v) => (v instanceof Set ? [...v] : v), 2));
     return;

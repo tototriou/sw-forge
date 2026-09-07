@@ -123,10 +123,41 @@ interface Passage {
   msTotal: number;
 }
 
-export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHarnais> {
-  const resolue = resoudreConfig(config);
-  const arretApres: ArretApres = config.arretApres ?? 'classement';
-  const repetitions = Math.max(1, config.repetitions ?? 1);
+/**
+ * Ce qu'une `ConfigHarnais` porte EN PLUS de ce que `resoudreConfig`
+ * consomme — l'orchestration, pas la configuration du moteur.
+ *
+ * ⚠️ `ConfigHarnais` satisfait ce type par construction : c'est ce qui
+ * permet à `executerHarnais` de relayer sa config telle quelle.
+ */
+export interface OptionsHarnais {
+  arretApres?: ArretApres;
+  suivre?: number[];
+  blocages?: boolean;
+  repetitions?: number;
+}
+
+/**
+ * ⚠️ **La configuration est résolue UNE SEULE FOIS, par l'appelant.**
+ *
+ * `executerHarnais(config)` la résolvait à son tour alors que le CLI venait
+ * de le faire pour afficher le palier 1 — donc DEUX résolutions par run. Ce
+ * n'était pas qu'un coût : en mode recette, la seconde relit l'export de
+ * compte et la recette sur le disque, qui ont pu changer entre-temps. Le
+ * palier 1 pouvait alors décrire une configuration qui n'est PAS celle qui
+ * s'exécute, sans que rien ne le dise — c'est-à-dire exactement la garantie
+ * que le §5 du cadrage existe pour donner (« challenger la configuration
+ * d'un run AVANT de le laisser tourner vingt minutes »).
+ *
+ * En mode synthétique le pool était reconstruit une seconde fois ; la seed
+ * le rend identique, mais le défaut conceptuel était le même.
+ */
+export async function executerHarnaisResolu(
+  resolue: ConfigResolue,
+  options: OptionsHarnais = {}
+): Promise<ResultatHarnais> {
+  const arretApres: ArretApres = options.arretApres ?? 'classement';
+  const repetitions = Math.max(1, options.repetitions ?? 1);
   const avertissements = [...resolue.avertissements];
 
   // ⚠️ Les DEUX bundles sont produits UNE FOIS, AVANT la première mesure : le
@@ -155,7 +186,7 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
     avertissements,
     arretApres,
     preparation: dernier.taillesParEtage,
-    suivi: (config.suivre ?? []).map((id) => {
+    suivi: (options.suivre ?? []).map((id) => {
       const trace = suivrePiece(id, resolue.poolInitial, dernier.etages);
       // ⚠️ Le rang dans `filterSlot` n'a de sens QUE pour une rune qui a
       // atteint son entrée réelle (sortie de `feasibility`) — pas pour une
@@ -172,7 +203,7 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
   // ⚠️ Les blocages sont calculés soit sur demande, soit quand la
   // configuration n'a AUCUNE issue — c'est-à-dire au seul moment où ils
   // servent, et jamais « au cas où » sur une recherche qui a bien abouti.
-  if ((config.blocages ?? false) || dernier.prepared == null) {
+  if ((options.blocages ?? false) || dernier.prepared == null) {
     resultat.faisabilite.blocages = evaluerBlocages(resolue.params);
   }
 
@@ -203,7 +234,7 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
   // 1-3 ou 4-6), c'est un demi-build suivi — extension naturelle du suivi
   // générique (§6.1 bis) plutôt qu'une deuxième surface de configuration.
   {
-    const suivies = (config.suivre ?? []).map((id) => resolue.poolInitial.find((r) => r.id === id)).filter((r): r is RuneDetail => r != null);
+    const suivies = (options.suivre ?? []).map((id) => resolue.poolInitial.find((r) => r.id === id)).filter((r): r is RuneDetail => r != null);
     const groupeA = suivies.filter((r) => r.slot <= 3);
     const groupeB = suivies.filter((r) => r.slot >= 4);
     const detail: DetailDemiBuild[] = [];
@@ -219,9 +250,12 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
     applique: dernier.regime!,
     totalPairs: dernier.totalPairs!,
     seuil: PARALLEL_PAIRING_THRESHOLD,
-    force: config.overrides?.regime != null,
+    // ⚠️ Lu sur la config RÉSOLUE, jamais re-dérivé des overrides bruts :
+    // c'est `resoudreConfig` qui décide si un régime a été forcé, et le
+    // harnais ne doit pas pouvoir répondre autrement qu'elle.
+    force: resolue.regimeForce != null,
     explication:
-      config.overrides?.regime != null
+      resolue.regimeForce != null
         ? `régime FORCÉ (${dernier.regime}) — ⚠️ ne décrit la production que par coïncidence`
         : dernier.totalPairs! >= PARALLEL_PAIRING_THRESHOLD
           ? `totalPairs ≥ seuil → PARALLÈLE (4 workers), comme la production pour ce cas`
@@ -258,6 +292,20 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
     resultat.quasiSucces = evaluerQuasiSucces(dernier.resultat!, resolue);
   }
   return resultat;
+}
+
+/**
+ * La signature historique — CONSERVÉE. Elle résout la configuration puis
+ * délègue, ce qui reste correct pour tout appelant qui n'a pas déjà besoin
+ * de la configuration résolue (les tests, notamment : ils la passent en
+ * déclaratif et ne rendent aucun palier 1).
+ *
+ * ⚠️ `ConfigHarnais` satisfait `OptionsHarnais` par construction — elle est
+ * donc relayée telle quelle, sans recopie champ à champ, qui serait
+ * exactement le genre d'endroit où un champ ajouté plus tard s'oublierait.
+ */
+export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHarnais> {
+  return executerHarnaisResolu(resoudreConfig(config), config);
 }
 
 function evaluerQuasiSucces(resultat: SearchResult, resolue: ConfigResolue): NonNullable<ResultatHarnais['quasiSucces']> {

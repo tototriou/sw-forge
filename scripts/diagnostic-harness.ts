@@ -41,6 +41,10 @@
 //   --blocages             cherche, par condition, DE COMBIEN la desserrer
 //                          suffit (⚠️ COÛTEUX : une dichotomie par condition ;
 //                          calculé d'office si la recherche ne rend rien)
+//   --progression          A₂ : horodate les BuildingProgress de buildBuckets
+//                          et rend la DISTRIBUTION des intervalles par moitié
+//                          — cartographie de l'ÉLAGAGE (⚠️ ne départage PAS
+//                          l'asymétrie A/B : voir l'avertissement imprimé)
 //   --repetitions=<n>      répétitions de la mesure de temps (défaut 1)
 //   --json                 sort le résultat brut, sans mise en forme
 // Overrides (⚠️ chacun MARQUE le run comme divergent de la prod) :
@@ -193,6 +197,10 @@ function construireConfig(): ConfigHarnais {
     arretApres: arret,
     suivre: lireListeEntiers('suivre'),
     blocages: drapeau('blocages'),
+    // ⚠️ OPT-IN jusqu'ici : le worker de construction est PARTAGÉ avec
+    // `perf-battery.ts`, l'outil de mesure de référence, qui ne doit rien
+    // payer. Un défaut à `true` le ferait payer par ricochet.
+    horodaterProgression: drapeau('progression'),
     repetitions: lireEntier('repetitions', 1),
   };
 
@@ -280,6 +288,13 @@ function construireConfig(): ConfigHarnais {
 const ms = (n: number) => `${n.toFixed(0)} ms`;
 const nb = (n: number) => n.toLocaleString('fr-FR');
 const mo = (octets: number) => `${(octets / 1024 / 1024).toFixed(1)} Mo`;
+/**
+ * Un intervalle d'A₂. ⚠️ Format à part : `ms()` arrondit à l'unité, ce qui
+ * afficherait « 0 ms » sur la quasi-totalité d'une série par rune extérieure
+ * — donc une distribution entièrement plate, exactement le contraire de ce
+ * que cet instrument existe pour montrer.
+ */
+const msFin = (n: number) => (n >= 1 ? `${n.toFixed(1)} ms` : `${(n * 1000).toFixed(0)} µs`);
 
 function rendreResultat(r: ResultatHarnais): string {
   const l: string[] = [];
@@ -459,6 +474,40 @@ function rendreResultat(r: ResultatHarnais): string {
     const ecart = mem.B.heapUsed > 0 ? mem.A.heapUsed / mem.B.heapUsed : 0;
     l.push(`  rapport heapUsed A/B : ×${ecart.toFixed(2)}`);
     l.push(`  ${mem.caveat}`);
+
+    // ⚠️ §4.2 (A₂) — la CARTOGRAPHIE DE L'ÉLAGAGE, et rien d'autre. La
+    // distribution est rendue entière (quantiles ET forme) : c'est la
+    // dispersion qui porte l'information, une moyenne écraserait une série
+    // bimodale — le cas qu'on vient précisément chercher.
+    const prog = r.demiBuilds.progression;
+    if (prog) {
+      l.push('', 'Cartographie de l’ÉLAGAGE — intervalles entre BuildingProgress (A₂)', '─'.repeat(72));
+      l.push(`  ${prog.avertissementPortee}`);
+      l.push(`  ${prog.perimetreHorloge}`);
+      for (const [moitie, m] of [['A', prog.A], ['B', prog.B]] as const) {
+        const d = m.distribution;
+        l.push(
+          '',
+          `  moitié ${moitie} : ${nb(m.runesExterieures)} rune(s) extérieure(s)` +
+            `   prologue ${msFin(m.prologueMs)}   dernière rune + épilogue ${msFin(m.derniereEtEpilogueMs)}`,
+          `    série homogène (${nb(d.n)} intervalles, ${msFin(d.totalMs)} au total) :` +
+            `   min ${msFin(d.minMs)}   médiane ${msFin(d.medianeMs)}   p90 ${msFin(d.p90Ms)}   max ${msFin(d.maxMs)}`
+        );
+        // La FORME, pas seulement l'étalement : deux bosses ne se voient
+        // dans aucun jeu de quantiles.
+        const plafond = Math.max(1, ...d.histogramme.map((c) => c.effectif));
+        for (const c of d.histogramme) {
+          const barre = '█'.repeat(Math.round((c.effectif / plafond) * 32));
+          l.push(`      ${msFin(c.basseMs).padStart(9)} – ${msFin(c.hauteMs).padEnd(9)} ${barre} ${c.effectif}`);
+        }
+        const div = m.divisionParPairesInterieures;
+        l.push(
+          `    médiane ÷ (${div.parEmplacementInterieurs.join(' × ')} = ${nb(div.diviseur)}) = ` +
+            `${div.medianeNs.toFixed(1)} ns`,
+          `    ${div.libelle}`
+        );
+      }
+    }
   }
 
   if (r.regime) {

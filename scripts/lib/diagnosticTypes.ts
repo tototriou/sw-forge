@@ -113,6 +113,20 @@ export interface ConfigHarnais {
    */
   blocages?: boolean;
   /**
+   * §4.2 des extensions (A₂) — horodater les `BuildingProgress` que
+   * `buildBuckets` émet déjà, pour CARTOGRAPHIER SON ÉLAGAGE.
+   *
+   * ⚠️ **Ce qu'A₂ ne fait PAS, et c'est le point le plus important de cette
+   * option** : il ne départage PAS l'asymétrie A/B. Le temps par rune
+   * extérieure MÉLANGE vitesse d'exécution et taux d'élagage — lire un temps
+   * élevé côté A comme « A est plus lent » est exactement l'erreur que cet
+   * instrument doit empêcher, pas produire.
+   *
+   * ⚠️ OPT-IN : le worker est PARTAGÉ avec `perf-battery.ts`, l'outil de
+   * mesure de référence, qui ne doit rien payer ni rien voir changer.
+   */
+  horodaterProgression?: boolean;
+  /**
    * Répétitions de la mesure de temps (§6.4 bis). Défaut 1.
    * ⚠️ À 1, AUCUNE dispersion n'est disponible : la mesure est marquée comme
    * n'autorisant aucune conclusion comparative.
@@ -537,6 +551,96 @@ export interface MemoireConstruction {
   caveat: string;
 }
 
+/* --------------------------------------------------------------------------
+ * Cartographie de l'ÉLAGAGE — §4.2 des extensions (A₂, **A-INSTRUMENTÉ**)
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **A₂ EST DE NIVEAU A-INSTRUMENTÉ, ET CE N'EST PAS GRATUIT.** Contrairement
+ * à A₁ et A₁ bis (A-passif : de l'arithmétique sur des valeurs déjà rendues),
+ * A₂ ASSOCIE une information externe — un `performance.now()` par émission —
+ * à des événements que la production émet déjà. Le principe fondateur tient
+ * (aucune étape algorithmique n'est réimplémentée, aucun `yield` n'est ajouté,
+ * rien de `src/` n'est touché), mais « A » ne veut pas dire « sans coût » :
+ * ce que l'horloge couvre doit être ÉCRIT avec la mesure, et le coût de
+ * l'instrumentation MESURÉ plutôt qu'argumenté.
+ *
+ * La distribution des intervalles entre `BuildingProgress`, sur la seule
+ * série homogène du relevé (voir `ProgressionMoitie` côté worker).
+ *
+ * ⚠️ **JAMAIS un scalaire.** Une moyenne écraserait une série possiblement
+ * BIMODALE — une rune extérieure dont l'élagage coupe tout au premier test,
+ * une autre qui force une exploration profonde. C'est cette DISPERSION qui
+ * porte l'information : c'est elle qui dit *où* `buildBuckets` coupe. Réduite
+ * à un nombre, elle accuserait un problème de performance là où il n'y a
+ * qu'une asymétrie de topologie du pool.
+ */
+export interface DistributionIntervalles {
+  /** Le nombre d'intervalles de la série homogène — jamais le nombre de runes. */
+  n: number;
+  minMs: number;
+  medianeMs: number;
+  p90Ms: number;
+  maxMs: number;
+  totalMs: number;
+  /**
+   * Classes linéaires de `minMs` à `maxMs` — de quoi VOIR la forme, donc
+   * distinguer une série concentrée d'une série à deux bosses. Un seul
+   * quantile de plus ne le montrerait pas.
+   */
+  histogramme: { basseMs: number; hauteMs: number; effectif: number }[];
+}
+
+/**
+ * ⚠️ **DIVISION ARITHMÉTIQUE, présentée comme telle** — et surtout PAS un
+ * « temps par triplet énumérable ». Le compteur d'A₂ ne mesure AUCUNE
+ * itération interne : diviser un intervalle par `|f₁|×|f₂|` divise par le
+ * MAJORANT des paires intérieures, pas par ce qui a été parcouru. Les
+ * `continue` de faisabilité et de jokers coupent des sous-arbres entiers
+ * sans laisser de trace dans ce compteur.
+ */
+export interface DivisionParPairesInterieures {
+  /** `|f₁|×|f₂|` — les deux emplacements INTÉRIEURS de la moitié. */
+  diviseur: number;
+  parEmplacementInterieurs: number[];
+  /** `medianeMs / diviseur`, exprimé en nanosecondes pour rester lisible. */
+  medianeNs: number;
+  libelle: string;
+}
+
+export interface ProgressionMoitieRendue {
+  /** Annoncé par le moteur (`BuildingProgress.total`), jamais recompté. */
+  runesExterieures: number;
+  /** 1ᵉʳ `next()` : le prologue SEUL, aucune rune extérieure traitée. */
+  prologueMs: number;
+  /** Dernier `next()` : dernière rune extérieure **+ épilogue** (les tris). */
+  derniereEtEpilogueMs: number;
+  /** Sur la série HOMOGÈNE seule — ni le prologue, ni l'intervalle mixte. */
+  distribution: DistributionIntervalles;
+  divisionParPairesInterieures: DivisionParPairesInterieures;
+}
+
+export interface ProgressionConstruction {
+  A: ProgressionMoitieRendue;
+  B: ProgressionMoitieRendue;
+  /**
+   * ⚠️ **CE QU'A₂ N'EST PAS — imprimé avec la mesure, pas seulement écrit
+   * dans la spec.** A₂ ne départage PAS l'asymétrie A/B : il en est
+   * INCAPABLE, le temps par rune extérieure mélangeant vitesse d'exécution
+   * et taux d'élagage. Quelqu'un qui le lirait comme un arbitre de l'A/B
+   * conclurait « A est plus lent » d'un temps élevé côté A — faux, et
+   * exactement la classe d'erreur que cet instrument existe pour empêcher.
+   */
+  avertissementPortee: string;
+  /**
+   * ⚠️ **LE PÉRIMÈTRE DE L'HORLOGE, imprimé AVEC la mesure.** L'intervalle
+   * entre deux `yield` inclut la suspension/reprise du générateur et ce que
+   * la coquille fait entre-temps — ce n'est donc pas « le temps passé dans
+   * `buildBuckets` », et le laisser lire ainsi serait une infidélité.
+   */
+  perimetreHorloge: string;
+}
+
 export interface RetentionConstruction {
   A: RetentionMoitie;
   B: RetentionMoitie;
@@ -620,6 +724,15 @@ export interface ResultatHarnais {
      * mesure agrégée.
      */
     memoire: MemoireConstruction;
+    /**
+     * §4.2 (A₂) — la cartographie de l'ÉLAGAGE. ⚠️ Absente sauf si
+     * `horodaterProgression` a été demandé : c'est le seul instrument
+     * A-INSTRUMENTÉ du harnais, donc le seul qui se paie.
+     *
+     * ⚠️ Comme `memoire`, c'est le relevé du DERNIER passage — avec
+     * `--repetitions`, ce n'est pas une série de séries.
+     */
+    progression?: ProgressionConstruction;
   };
   /**
    * Rang et voisinage d'un demi-build suivi dans son compartiment — voir

@@ -198,6 +198,92 @@ export default async function testDiagnosticHarness() {
       'et il dit pourquoi le palier COMPLET reste écarté — son coût s’insère dans la phase qu’il mesurerait'
     );
   }
+  /* ── §4.2 : la cartographie de l'ÉLAGAGE (A₂, A-INSTRUMENTÉ) ────────
+   *
+   * ⚠️ A₂ est le SEUL instrument du harnais qui se paie : il associe un
+   * horodatage à des événements que la production émet déjà. D'où le
+   * caractère OPT-IN, vérifié en premier — le worker de construction est
+   * PARTAGÉ avec `perf-battery.ts`, l'outil de mesure de référence. */
+  {
+    ok(
+      arretDemiBuilds.demiBuilds!.progression == null,
+      'A₂ est OPT-IN : sans le demander, AUCUN horodatage — perf-battery.ts partage ce worker'
+    );
+
+    const avecA2 = await executerHarnais(configSynthetique({ arretApres: 'demi-builds', horodaterProgression: true }));
+    const prog = avecA2.demiBuilds!.progression!;
+    ok(prog != null, 'demandé, A₂ rend la progression des deux moitiés');
+
+    for (const [moitie, m] of [['A', prog.A], ['B', prog.B]] as const) {
+      const d = m.distribution;
+      // ⚠️ La série homogène compte UN intervalle de moins qu'il n'y a de
+      // runes extérieures : le prologue et le dernier `next()` (dernière
+      // rune + épilogue) sont sortis de la série, jamais versés dedans.
+      egal(
+        d.n,
+        Math.max(0, m.runesExterieures - 1),
+        `moitié ${moitie} : la série homogène exclut le prologue ET l’intervalle « dernière rune + épilogue »`
+      );
+      ok(
+        d.minMs <= d.medianeMs && d.medianeMs <= d.p90Ms && d.p90Ms <= d.maxMs,
+        `moitié ${moitie} : la DISTRIBUTION est rendue entière et ordonnée (min ≤ médiane ≤ p90 ≤ max)`
+      );
+      // ⚠️ L'histogramme n'est pas décoratif : une série BIMODALE ne se voit
+      // dans aucun jeu de quantiles, et c'est elle qui dit *où* l'élagage
+      // coupe. Il doit donc contenir TOUTE la série, sans perte.
+      egal(
+        d.histogramme.reduce((s, c) => s + c.effectif, 0),
+        d.n,
+        `moitié ${moitie} : l’histogramme porte toute la série — c’est la FORME qui porte l’information`
+      );
+    }
+
+    // ⚠️ Le diviseur vient du MÊME tableau `filtered` que le taux de
+    // rétention, donc du pool réellement entré dans `buildBuckets` :
+    // `buildBuckets` boucle sur `slotIdxs[0]` et parcourt [1] et [2].
+    const tailles = avecA2.preparation.find((t) => t.etage === 'filterslot')!.parEmplacement;
+    egal(prog.A.divisionParPairesInterieures.diviseur, tailles[1] * tailles[2], 'le diviseur de A est |f₁|×|f₂|, les emplacements INTÉRIEURS');
+    egal(prog.B.divisionParPairesInterieures.diviseur, tailles[4] * tailles[5], 'le diviseur de B est |f₄|×|f₅|, l’autre moitié');
+
+    /* ⚠️ **Le cœur d'A₂ : ce qu'il N'EST PAS doit finir DANS LA SORTIE.**
+     * L'instrument a été conservé (option b) alors qu'il ne répond pas à la
+     * question qui l'avait fait proposer. Sans cette phrase, un temps élevé
+     * côté A se lit « A est plus lent » — conclusion que ces chiffres
+     * n'autorisent pas. */
+    ok(
+      prog.avertissementPortee.includes('NE DÉPARTAGE PAS L’ASYMÉTRIE A/B') &&
+        prog.avertissementPortee.includes('MÉLANGE'),
+      'A₂ dit lui-même qu’il ne départage PAS l’asymétrie A/B, et pourquoi : le temps par rune MÉLANGE vitesse et élagage'
+    );
+    ok(
+      prog.avertissementPortee.includes('OÙ `buildBuckets` coupe'),
+      'et il dit pour quoi il est là : cartographier l’ÉLAGAGE — une information sur la topologie du pool'
+    );
+    // ⚠️ Le PÉRIMÈTRE DE L'HORLOGE voyage avec la mesure, sans quoi ces
+    // intervalles se relisent comme « le temps passé dans buildBuckets ».
+    ok(
+      prog.perimetreHorloge.includes('suspension et la reprise du générateur') &&
+        prog.perimetreHorloge.includes('n’est donc pas « le temps passé dans buildBuckets »'),
+      'le périmètre de l’horloge est imprimé AVEC la mesure : elle inclut la suspension/reprise du générateur'
+    );
+    ok(
+      prog.perimetreHorloge.includes('PROLOGUE') && prog.perimetreHorloge.includes('épilogue'),
+      'et il nomme les trois périmètres séparés, pour qu’aucun ne soit relu comme les autres'
+    );
+    // ⚠️ Vocabulaire IMPOSÉ, verrouillé comme celui du taux de rétention :
+    // « temps par triplet énumérable » ne doit servir qu'à être ÉCARTÉ.
+    // Le compteur d'A₂ ne mesure AUCUNE itération interne.
+    const libelle = prog.A.divisionParPairesInterieures.libelle;
+    ok(
+      libelle.includes('DIVISION ARITHMÉTIQUE') && libelle.includes('PAS un temps par triplet énumérable'),
+      'la normalisation par |f₁|×|f₂| est présentée comme une DIVISION, jamais comme un temps par triplet énumérable'
+    );
+    ok(
+      !/temps par triplet énumérable/.test(libelle.replace(/PAS un temps par triplet énumérable/g, '')),
+      'et cette expression ne sert JAMAIS à nommer la valeur — seulement à l’écarter'
+    );
+  }
+
   ok(arretDemiBuilds.regime != null, 'et le régime est déjà connu — il dépend de totalPairs, donc de la phase B');
   ok(arretDemiBuilds.completude == null, 'mais aucun appariement n’a eu lieu');
 

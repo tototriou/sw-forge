@@ -48,7 +48,7 @@ import { Bucket, PreparedSearch, SearchParams } from '../../src/lib/runeBuildOpt
 // ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
 // chargement (`workerData`, `parentPort!`) — c'est un point d'entrée de fil,
 // jamais un module à importer. Même précaution que perf-battery.ts.
-import type { BuildHalfWorkerData, BuildHalfWorkerResult, MemoireMoitie } from './build-half-worker';
+import type { BuildHalfWorkerData, BuildHalfWorkerResult, MemoireMoitie, ProgressionMoitie } from './build-half-worker';
 
 // Bundlé UNE FOIS par exécution, réutilisé par les deux fils — le coût
 // d'esbuild ne doit jamais entrer dans un temps de construction mesuré.
@@ -96,6 +96,13 @@ export interface MoitiesConstruites {
    */
   memoireA: MemoireMoitie;
   memoireB: MemoireMoitie;
+  /**
+   * §4.2 (A₂) — les intervalles entre `BuildingProgress`, par moitié.
+   * ⚠️ `undefined` quand l'horodatage n'a pas été demandé : c'est un
+   * instrument OPT-IN, et son absence est le cas normal.
+   */
+  progressionA?: ProgressionMoitie;
+  progressionB?: ProgressionMoitie;
   /** Le temps RÉELLEMENT écoulé pour la phase : c'est lui qui compte. */
   wallMs: number;
 }
@@ -109,7 +116,13 @@ export interface MoitiesConstruites {
 export async function construireMoitiesEnParallele(
   prepared: PreparedSearch,
   params: SearchParams,
-  chemin: string
+  chemin: string,
+  /**
+   * §4.2 (A₂). ⚠️ Par défaut `false` : `perf-battery.ts` n'appelle pas cette
+   * coquille, mais le worker qu'elle lance lui est COMMUN — le défaut doit
+   * donc être « rien de plus qu'avant », jamais l'inverse.
+   */
+  horodaterProgression = false
 ): Promise<MoitiesConstruites> {
   const commun = {
     filtered: prepared.filtered,
@@ -127,6 +140,7 @@ export async function construireMoitiesEnParallele(
     // la recette demandait — trou déjà rencontré côté navigateur.
     adaptiveTrancheWeighting: params.adaptiveTrancheWeighting,
     combosOrderMode: params.combosOrderMode,
+    horodaterProgression,
   };
   const t0 = performance.now();
   const [a, b] = await Promise.all([
@@ -140,6 +154,8 @@ export async function construireMoitiesEnParallele(
     msB: b.ms,
     memoireA: a.memoire,
     memoireB: b.memoire,
+    progressionA: a.progression,
+    progressionB: b.progression,
     wallMs: performance.now() - t0,
   };
 }

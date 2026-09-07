@@ -56,7 +56,7 @@ import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalv
 // ⚠️ `import type` IMPÉRATIF : `build-half-worker.ts` exécute du code au
 // chargement (`workerData`, `parentPort!`). Un import de valeur le ferait
 // tourner dans le fil principal — même précaution que perf-battery.ts.
-import type { MemoireMoitie } from './build-half-worker';
+import type { MemoireMoitie, ProgressionMoitie } from './build-half-worker';
 import {
   ArretApres,
   Completude,
@@ -64,10 +64,13 @@ import {
   DemiBuildCombo,
   DetailDemiBuild,
   DetailFiltrage,
+  DistributionIntervalles,
   EtagePopulation,
   Faisabilite,
   NatureEtage,
   PreuveFaisabilite,
+  ProgressionConstruction,
+  ProgressionMoitieRendue,
   QuasiSucces,
   RegimeAppariement,
   ResultatHarnais,
@@ -128,6 +131,9 @@ interface Passage {
   /** §4.1 bis — relevé mémoire de fin de fil, un tas par moitié. */
   memoireA?: MemoireMoitie;
   memoireB?: MemoireMoitie;
+  /** §4.2 (A₂) — les intervalles bruts entre `BuildingProgress`. OPT-IN. */
+  progressionA?: ProgressionMoitie;
+  progressionB?: ProgressionMoitie;
   msAppariement: number;
   msTotal: number;
 }
@@ -143,6 +149,8 @@ export interface OptionsHarnais {
   arretApres?: ArretApres;
   suivre?: number[];
   blocages?: boolean;
+  /** §4.2 (A₂) — OPT-IN, voir `ConfigHarnais.horodaterProgression`. */
+  horodaterProgression?: boolean;
   repetitions?: number;
 }
 
@@ -178,7 +186,9 @@ export async function executerHarnaisResolu(
 
   const passages: Passage[] = [];
   for (let i = 0; i < repetitions; i++) {
-    passages.push(await unPassage(resolue, arretApres, bundleMoities, bundleTranches));
+    passages.push(
+      await unPassage(resolue, arretApres, bundleMoities, bundleTranches, options.horodaterProgression ?? false)
+    );
   }
   // ⚠️ Le DERNIER passage sert de source aux résultats non temporels. Tous
   // sont identiques par construction (mêmes paramètres, même pool) SAUF
@@ -241,6 +251,17 @@ export async function executerHarnaisResolu(
     combosB,
     retention: retentionConstruction(dernier.taillesParEtage, combosA, combosB),
     memoire: { A: dernier.memoireA!, B: dernier.memoireB!, caveat: CAVEAT_MEMOIRE },
+    // ⚠️ Absent quand l'horodatage n'a pas été demandé — A₂ est le seul
+    // instrument A-INSTRUMENTÉ du harnais, donc le seul qui se paie.
+    ...(dernier.progressionA != null && dernier.progressionB != null
+      ? {
+          progression: progressionConstruction(
+            dernier.taillesParEtage,
+            dernier.progressionA,
+            dernier.progressionB
+          ),
+        }
+      : {}),
   };
   // ⚠️ Déclenché AUTOMATIQUEMENT, sans option séparée : dès que `--suivre`
   // porte exactement les 3 runes d'UNE moitié (3 emplacements distincts,
@@ -358,6 +379,148 @@ function retentionConstruction(taillesParEtage: TaillesParEtage[], combosA: numb
  * accompagne déjà toute mesure de temps. « Resserre sans démontrer » est
  * une formulation trop faible : ce taux peut produire une causalité FAUSSE.
  */
+/* --------------------------------------------------------------------------
+ * Cartographie de l'ÉLAGAGE — §4.2 des extensions (A₂, A-INSTRUMENTÉ)
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **Niveau A-INSTRUMENTÉ, et ce que ça coûte est dit.** A₁ et A₁ bis
+ * combinent des valeurs DÉJÀ rendues ; A₂, lui, ASSOCIE un horodatage à des
+ * événements que la production émet déjà. Le principe fondateur tient — le
+ * harnais orchestre et observe, il ne réimplémente aucune étape, aucun
+ * `yield` n'est ajouté, rien de `src/` n'est touché — mais « A » ne veut pas
+ * dire « sans coût » : il y a un `performance.now()` par rune extérieure
+ * dans le worker, le périmètre exact de l'horloge doit voyager avec les
+ * chiffres, et le surcoût doit être MESURÉ (§4.6), jamais argumenté.
+ *
+ * ⚠️ **Rien n'est recalculé** : les intervalles viennent du fil qui a
+ * réellement construit la moitié, `runesExterieures` est le `total` annoncé
+ * par `BuildingProgress`, et le diviseur arithmétique est pris sur le MÊME
+ * tableau `filtered` que le taux de rétention (§4.1) — donc sur le pool qui
+ * est réellement entré dans `buildBuckets`.
+ */
+function progressionConstruction(
+  taillesParEtage: TaillesParEtage[],
+  brutA: ProgressionMoitie,
+  brutB: ProgressionMoitie
+): ProgressionConstruction {
+  const filterslot = taillesParEtage.find((t) => t.etage === 'filterslot')!.parEmplacement;
+  // ⚠️ `buildBuckets` boucle sur `slotIdxs[0]` (l'emplacement EXTÉRIEUR) et
+  // parcourt `slotIdxs[1]`/`slotIdxs[2]` à l'intérieur — les fils reçoivent
+  // [0,1,2] et [3,4,5], d'où les deux paires d'indices ci-dessous.
+  return {
+    A: moitieRendue(brutA, [filterslot[1], filterslot[2]]),
+    B: moitieRendue(brutB, [filterslot[4], filterslot[5]]),
+    avertissementPortee: AVERTISSEMENT_PORTEE_A2,
+    perimetreHorloge: PERIMETRE_HORLOGE_A2,
+  };
+}
+
+function moitieRendue(brut: ProgressionMoitie, interieurs: number[]): ProgressionMoitieRendue {
+  const distribution = distributionIntervalles(brut.intervallesMs);
+  const diviseur = interieurs.reduce((p, n) => p * n, 1);
+  return {
+    runesExterieures: brut.runesExterieures,
+    prologueMs: brut.prologueMs,
+    derniereEtEpilogueMs: brut.derniereEtEpilogueMs,
+    distribution,
+    divisionParPairesInterieures: {
+      diviseur,
+      parEmplacementInterieurs: interieurs,
+      medianeNs: diviseur > 0 ? (distribution.medianeMs * 1e6) / diviseur : 0,
+      libelle: LIBELLE_DIVISION_A2,
+    },
+  };
+}
+
+/**
+ * ⚠️ **JAMAIS un scalaire** — c'est la raison d'être d'A₂ depuis l'option (b).
+ * Une moyenne écraserait une série possiblement BIMODALE (une rune extérieure
+ * dont l'élagage coupe tout au premier test, une autre qui force une
+ * exploration profonde) ; c'est cette dispersion qui dit *où* `buildBuckets`
+ * coupe. D'où min/médiane/p90/max ET un histogramme : quatre quantiles disent
+ * l'étalement, seule la forme dit s'il y a deux bosses.
+ */
+function distributionIntervalles(intervalles: number[], classes = 12): DistributionIntervalles {
+  const n = intervalles.length;
+  if (n === 0) {
+    return { n: 0, minMs: 0, medianeMs: 0, p90Ms: 0, maxMs: 0, totalMs: 0, histogramme: [] };
+  }
+  const tries = [...intervalles].sort((x, y) => x - y);
+  const quantile = (q: number) => tries[Math.min(n - 1, Math.max(0, Math.ceil(q * n) - 1))];
+  const minMs = tries[0];
+  const maxMs = tries[n - 1];
+  // ⚠️ Médiane vraie (moyenne des deux valeurs centrales sur un effectif
+  // pair), pas `tries[n>>1]` — sur une série bimodale à deux effectifs
+  // proches, l'approximation bascule d'un mode à l'autre selon la parité.
+  const medianeMs = n % 2 === 1 ? tries[(n - 1) / 2] : (tries[n / 2 - 1] + tries[n / 2]) / 2;
+  const largeur = (maxMs - minMs) / classes;
+  const histogramme =
+    largeur > 0
+      ? Array.from({ length: classes }, (_, k) => ({
+          basseMs: minMs + k * largeur,
+          hauteMs: minMs + (k + 1) * largeur,
+          effectif: 0,
+        }))
+      : [{ basseMs: minMs, hauteMs: maxMs, effectif: n }];
+  if (largeur > 0) {
+    for (const v of tries) {
+      histogramme[Math.min(classes - 1, Math.floor((v - minMs) / largeur))].effectif++;
+    }
+  }
+  return {
+    n,
+    minMs,
+    medianeMs,
+    p90Ms: quantile(0.9),
+    maxMs,
+    totalMs: intervalles.reduce((s, v) => s + v, 0),
+    histogramme,
+  };
+}
+
+/**
+ * ⚠️ **La phrase la plus importante d'A₂, et elle part DANS LA SORTIE.**
+ * L'instrument a été CONSERVÉ (option b, tranchée le 2026-09-08) alors qu'il
+ * ne répond PAS à la question qui l'avait fait proposer. Sans cette phrase,
+ * quelqu'un lira un temps par rune élevé côté A comme « A est plus lent » —
+ * conclusion que ces chiffres n'autorisent pas, et classe d'erreur que tout
+ * ce chantier existe pour empêcher.
+ */
+const AVERTISSEMENT_PORTEE_A2 =
+  '⚠️ A₂ NE DÉPARTAGE PAS L’ASYMÉTRIE A/B — IL EN EST INCAPABLE. Le temps par rune extérieure MÉLANGE ' +
+  'vitesse d’exécution et taux d’élagage : un temps élevé côté A reste compatible avec « A énumère plus » ' +
+  'ET avec « A énumère plus lentement », donc il ne tranche entre aucune des deux. Ce que cette ' +
+  'distribution dit, et pour quoi elle est ici : OÙ `buildBuckets` coupe — une série à deux bosses ' +
+  'signale des runes extérieures dont l’élagage tombe au premier test à côté d’autres qui forcent une ' +
+  'exploration profonde. C’est une information sur la TOPOLOGIE du pool, jamais un verdict de performance. ' +
+  'Ce qui trancherait l’asymétrie A/B reste le compteur exact d’énumération (niveau C, §4.3).';
+
+/**
+ * ⚠️ **Le périmètre de l'horloge, imprimé avec la mesure** — sans quoi ces
+ * intervalles se relisent comme « le temps passé dans `buildBuckets` », ce
+ * qu'ils ne sont pas.
+ */
+const PERIMETRE_HORLOGE_A2 =
+  '⚠️ PÉRIMÈTRE DE L’HORLOGE : un intervalle est mesuré entre deux `gen.next()` du CONSOMMATEUR — il ' +
+  'couvre le corps de la boucle extérieure, mais AUSSI la suspension et la reprise du générateur et ce que ' +
+  'la coquille fait entre-temps. Ce n’est donc pas « le temps passé dans buildBuckets ». Trois périmètres ' +
+  'sont séparés, jamais mélangés : le PROLOGUE (1ᵉʳ next(), aucune rune traitée), la série HOMOGÈNE (un ' +
+  'intervalle = le corps d’UNE rune extérieure — c’est la seule sur laquelle une distribution a un sens), ' +
+  'et le DERNIER next(), qui exécute la dernière rune PLUS l’épilogue (tri des combos de chaque ' +
+  'compartiment, puis tri des compartiments).';
+
+/**
+ * ⚠️ **Le vocabulaire est IMPOSÉ, et ce libellé est la garde.** Jamais
+ * « temps par triplet énumérable » : le compteur d'A₂ ne mesure AUCUNE
+ * itération interne.
+ */
+const LIBELLE_DIVISION_A2 =
+  '⚠️ DIVISION ARITHMÉTIQUE, pas une mesure : la médiane des intervalles divisée par |f₁|×|f₂|, le ' +
+  'MAJORANT des paires intérieures. Ce n’est PAS un temps par triplet énumérable — aucune itération ' +
+  'interne n’est comptée, et les continue de faisabilité et de jokers coupent des sous-arbres entiers ' +
+  'sans laisser de trace dans ce compteur.';
+
 const REGLE_INTERPRETATION_RETENTION =
   '⚠️ UNE CORRÉLATION ENTRE RÉTENTION ET TEMPS NE PROUVE PAS QUE LA RÉTENTION EXPLIQUE LE TEMPS. ' +
   'Lire « A retient moins · A est plus lent · donc A est lent parce qu’il travaille plus » est autorisé ' +
@@ -403,7 +566,9 @@ async function unPassage(
   resolue: ConfigResolue,
   arretApres: ArretApres,
   cheminBundleMoities: string | null,
-  cheminBundleTranches: string | null
+  cheminBundleTranches: string | null,
+  /** §4.2 (A₂). ⚠️ `false` par défaut : l'instrument se paie, il s'assume. */
+  horodaterProgression = false
 ): Promise<Passage> {
   const params = resolue.params;
   const t0 = performance.now();
@@ -445,7 +610,7 @@ async function unPassage(
   // tronqué par le temps le harnais trouverait MOINS de candidats que la
   // prod. Surcoût mesuré sur la baseline : +0,2 % du run là où l'appariement
   // domine, mais +7 % à +32 % sur les cas où il ne domine pas.
-  const moities = await construireMoitiesEnParallele(prepared, params, cheminBundleMoities!);
+  const moities = await construireMoitiesEnParallele(prepared, params, cheminBundleMoities!, horodaterProgression);
   const bucketsA = moities.bucketsA;
   const bucketsB = moities.bucketsB;
   const tBuild = performance.now();
@@ -456,6 +621,8 @@ async function unPassage(
   passage.msDemiBuildB = moities.msB;
   passage.memoireA = moities.memoireA;
   passage.memoireB = moities.memoireB;
+  passage.progressionA = moities.progressionA;
+  passage.progressionB = moities.progressionB;
   passage.msTotal = tBuild - t0;
 
   // ── Le régime, décidé comme la production le déciderait.

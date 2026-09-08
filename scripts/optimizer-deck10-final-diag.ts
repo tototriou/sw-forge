@@ -6,6 +6,30 @@
 // combos-order-mode-real-account-diag.ts.
 //
 // Usage : optimizer-deck10-final-diag.ts <export.json> <recipe.json> <deckId> [maxMs=300000]
+//
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
+// des extensions). `--combos=potential|relevance|combined|objective` EST un
+// override du harnais : les quatre conditions sont relançables une par une.
+// Mais la grandeur que ce script mesure n'est PAS dans le harnais — et c'est
+// elle, pas la comparaison, qui le sauve :
+//
+//  · **La COURBE DE RENDEMENT de l'appariement** : le nombre de candidats
+//    collectés à 1 / 5 / 10 / 25 / 50 / 75 / 100 % d'`explored`. Elle dit si
+//    un mode d'ordre trouve TÔT ou TARD, ce qui est toute la question quand
+//    un run réel sera tronqué.
+//  · **L'INSTANT DE DÉCOUVERTE de la cible** (`foundExplored` / `foundRank`,
+//    la fraction d'`explored` au moment où elle apparaît).
+//
+// ⚠️ Le RANG que rend le harnais (`appariementBuildCible.rang`) est une tout
+// autre chose : c'est le rang par `sortCandidates`, donc la QUALITÉ du build
+// dans le classement final — jamais son ORDRE DE DÉCOUVERTE. Les confondre
+// mènerait exactement à la classe d'erreur que le §5.1 existe pour empêcher.
+// Le harnais ne porte aucun champ de progression de l'appariement : il rend
+// un état FINAL (`RangBuildCible` : rang, population, top rendu), pas la
+// trajectoire qui y mène.
+//
+// ⚠️ Ne pas le supprimer « parce que `--combos` existe » : l'override rejoue
+// les conditions, il ne fabrique pas la courbe.
 
 import { readFileSync } from 'fs';
 import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';

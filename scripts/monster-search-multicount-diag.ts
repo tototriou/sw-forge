@@ -8,6 +8,34 @@
 // suivre à chaque préréglage — pas juste « trouvé/pas trouvé ».
 //
 // Usage : monster-search-multicount-diag.ts <export.json> <nomMonstre> [objective=degats]
+//
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
+// des extensions). Il ne pose pas une question sur UN run : il compare SEIZE
+// CONFIGURATIONS (4 préréglages × 2 métriques × `adaptiveTrancheWeighting`
+// on/off). ⚠️ Au sens de la table du §5, c'est donc un **G2** (« comparer
+// deux configurations ») rangé en G1 — mais ce n'est PAS la raison de sa
+// survie : la raison, ce sont les deux grandeurs ci-dessous, que le harnais
+// ne produit pas, condition par condition.
+//
+// Deux grandeurs qu'il porte et que le harnais NE PRODUIT PAS :
+//
+//  1. **L'ENSEMBLE des builds trouvés, pas un top-N.** Le harnais suit UN
+//     build cible (`--suivre` = six ids) et rend `meilleurs`, qui est un
+//     `slice(0, TAILLE_TOP_RENDU)`. La preuve de dilution de ce script prend
+//     TOUS les `result.candidates` du préréglage « moyen » et vérifie, un par
+//     un, qu'ils restent atteignables à « extrême » — avec le harnais il
+//     faudrait un run par build trouvé, et connaître ces builds d'avance.
+//  2. **`metric` et `adaptiveTrancheWeighting` ne sont pas surchargeables.**
+//     Vérifié sur la sortie réelle du harnais : tous deux s'affichent
+//     « recette (non surchargeable) ». Les faire varier demande autant de
+//     recettes que de conditions, là où ce script les fait varier en un
+//     appel — et un lot du harnais fait varier le CAS, jamais la CONDITION
+//     (`AVERTISSEMENT_LOT`).
+//
+// ⚠️ Ne pas le supprimer « parce que le harnais rend un verdict de build
+// cible » : le verdict porte sur UNE cible connue d'avance, la question
+// d'ici porte sur le NOMBRE de builds et sur ceux qu'on ne connaît pas
+// encore.
 
 import { resolveObjectifCli } from './lib/objectifCli';
 import {

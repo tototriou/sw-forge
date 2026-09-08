@@ -25,7 +25,7 @@
 // paraphrasé ne prouve rien. Ne pas la « corriger » — sa fausseté est le
 // sujet.
 //
-// Usage : diagnostic-harness-parite.ts [--cas=<n>]   (défaut : tous)
+// Usage : diagnostic-harness-parite.ts [--cas=<index|nom|tous>]   (défaut : tous ; le nom accepte un fragment sans distinction de casse, d'accents ni de ponctuation)
 
 import { unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
@@ -47,6 +47,7 @@ import { BaseStats, RuneDetail } from '../src/types';
 import { CASES, loadCase } from './lib/perfShared';
 import { loadDeckMonster } from './lib/deckMonster';
 import { executerHarnais } from './lib/diagnosticHarness';
+import { resoudreSelectionCas, verifierComptesDisponibles } from './lib/diagnosticLot';
 
 /* --------------------------------------------------------------------------
  * L'ORACLE HISTORIQUE — copie littérale de monster-search-pipeline-diag.ts.
@@ -230,7 +231,13 @@ async function comparerCas(index: number): Promise<boolean> {
 
 async function main() {
   const cible = process.argv.find((a) => a.startsWith('--cas='))?.slice('--cas='.length);
-  const indices = cible != null ? [Number(cible)] : CASES.map((_, i) => i);
+  let indices: number[];
+  try {
+    indices = cible != null ? resoudreSelectionCas(cible) : CASES.map((_, i) => i);
+    verifierComptesDisponibles(indices);
+  } catch (erreur) {
+    refuser(erreur instanceof Error ? erreur.message : String(erreur));
+  }
   console.log('Parité harnais ↔ pipeline historique (les 6 scripts à reconstruction complète)');
   console.log('⚠️ Une parité PARFAITE serait un échec : l’ancien chemin est faux sur la faisabilité.');
 
@@ -245,6 +252,11 @@ async function main() {
       : `${echecs} CAS EN ÉCHEC — divergence inattendue, ne pas supprimer les anciens scripts.`
   );
   process.exit(echecs === 0 ? 0 : 1);
+}
+
+function refuser(message: string): never {
+  console.error(message);
+  process.exit(1);
 }
 
 main();

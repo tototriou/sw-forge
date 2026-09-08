@@ -65,6 +65,7 @@ import {
   OptionsLot,
   annoncerLot,
   executerLot,
+  rendreRecapLot,
   resoudreCas,
   resoudreSelectionCas,
   verifierComptesDisponibles,
@@ -665,7 +666,11 @@ async function mainLot(brut: string): Promise<void> {
       if (!drapeau('json')) console.log(rendreResultat(ligne.resultat));
     },
   });
-  if (drapeau('json')) console.log(JSON.stringify(lot, (_, v) => (v instanceof Set ? [...v] : v), 2));
+  if (drapeau('json')) {
+    console.log(JSON.stringify(lot, (_, v) => (v instanceof Set ? [...v] : v), 2));
+    return;
+  }
+  console.log(rendreRecapLot(lot));
 }
 
 async function main() {

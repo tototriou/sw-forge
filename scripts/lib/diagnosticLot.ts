@@ -98,6 +98,12 @@ export interface ResultatLot {
     horodaterProgression: boolean;
   };
   lignes: LigneLot[];
+  /**
+   * Voir `AVERTISSEMENT_LOT`. ⚠️ Porté par le RÉSULTAT, pas seulement imprimé
+   * par la mise en forme : un lecteur de `--json` qui recolle les sept lignes
+   * dans un tableau court exactement le même risque qu'un lecteur du texte.
+   */
+  avertissementLot: string;
 }
 
 /** Ce que l'appelant veut afficher AU FIL du lot, plutôt qu'à la fin. */
@@ -277,9 +283,8 @@ export function resoudreCas(index: number, commun: OptionsLot): { config: Config
  * ⚠️ **N runs INDÉPENDANTS, l'un après l'autre.** Aucun entrelacement, aucun
  * état partagé, aucune agrégation entre cas : ce que rend `executerLot` est
  * littéralement ce que rendraient N invocations successives du CLI. C'est ce
- * qui permettra de dire, quand la restitution du lot arrivera, qu'il ne
- * fabrique aucune comparaison — la propriété est structurelle, pas une
- * promesse.
+ * qui autorise à dire, dans `AVERTISSEMENT_LOT`, que le lot ne fabrique
+ * aucune comparaison — la propriété est structurelle, pas une promesse.
  */
 export async function executerLot(
   indices: number[],
@@ -304,6 +309,7 @@ export async function executerLot(
       horodaterProgression: commun.horodaterProgression ?? false,
     },
     lignes,
+    avertissementLot: AVERTISSEMENT_LOT,
   };
 }
 
@@ -340,11 +346,168 @@ export function annoncerLot(indices: number[], commun: OptionsLot): string {
   // sait pas prédire la durée d'une recherche (c'est même la raison d'être du
   // §6.2, « jamais un 0 candidat nu »). Ce qu'il peut dire honnêtement, c'est
   // que le coût est MULTIPLIÉ, et où se trouve le point d'arrêt gratuit.
+  l.push(`  ${AVERTISSEMENT_LOT_COURT}`);
   l.push(
     arret === 'classement' || arret === 'appariement'
       ? `  ⚠️ COÛT : ${indices.length} recherche${pluriel} COMPLÈTE${pluriel.toUpperCase()} à la suite — des dizaines de minutes. ` +
           `Relire les paliers 1 ci-dessous avant de laisser tourner ; --apercu s'y arrête sans rien exécuter.`
       : `  ⚠️ COÛT : ${indices.length} run${pluriel} arrêté${pluriel} après « ${arret} » — l'appariement, qui domine, n'est PAS payé.`
   );
+  return l.join('\n');
+}
+
+/* --------------------------------------------------------------------------
+ * La RESTITUTION — et le garde-fou qui va avec
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **Le piège propre au lot, et ce n'est PAS celui du run unique.**
+ *
+ * Une sortie qui aligne sept cas en colonnes RESSEMBLE à une comparaison. Le
+ * harnais porte déjà `avertissementComparaison` (§6.4 bis), qui dit de ne pas
+ * lancer deux runs séparés et soustraire — il part avec CHAQUE mesure de
+ * temps, donc autant de fois qu'il y a de cas, et il n'est ici ni affaibli,
+ * ni remplacé, ni remonté une seule fois en tête comme s'il ne valait que
+ * pour le premier cas.
+ *
+ * Mais il ne suffit pas, parce qu'il répond à une AUTRE question. Comparer un
+ * CAS à un autre CAS n'est pas comparer deux CONDITIONS : le premier est
+ * légitime — c'est même tout ce pour quoi le lot existe, et c'est ainsi que
+ * les §4.5 et §4.6 se lisent ; le second demande l'entrelacement, que le
+ * harnais ne sait pas faire (niveau 2 du §6.4 bis, non implémenté ; n° 11c du
+ * tableau du §10, dont l'ordre 11a → 11b → 11c est strict). **Si la sortie ne
+ * dit pas laquelle des deux elle autorise, elle sera lue comme autorisant
+ * l'autre** — d'où ce texte, imprimé AVANT le tableau récapitulatif et non
+ * après, pour tomber sur le chemin d'un lecteur pressé plutôt que sous sa
+ * dernière ligne.
+ */
+export const AVERTISSEMENT_LOT =
+  '⚠️ CE QU’UN LOT AUTORISE, ET CE QU’IL N’AUTORISE PAS. Les lignes ci-dessous sont des runs ' +
+  'INDÉPENDANTS d’UNE SEULE condition, chacun sur un pool, une exigence et un monstre DIFFÉRENTS. ' +
+  'Lire une différence entre deux lignes, c’est donc lire une différence entre deux CAS — topologie ' +
+  'du pool, volume, sets demandés : c’est légitime, et c’est ce pour quoi ce lot existe. Ce n’est ' +
+  'JAMAIS l’effet d’un paramètre. Comparer deux CONDITIONS (deux bucketCap, deux modes de combos, ' +
+  'avec et sans un correctif) demanderait de les ENTRELACER dans une même séquence (témoin, A, B, ' +
+  'témoin, A, B…) : lancer deux lots et les soustraire ligne à ligne est le protocole en BLOCS, dont ' +
+  'le biais se REPRODUIT (+4,8 % obtenu deux fois de suite, +0,3 % une fois entrelacé) et passe donc ' +
+  'pour un résultat. Le harnais ne sait pas entrelacer ; pour un dos-à-dos fiable, ' +
+  'scripts/perf-battery-compare.ts.';
+
+/**
+ * La même distinction en une ligne, pour l'ANNONCE — jamais À LA PLACE de
+ * l'autre : l'annonce précède le run, le récapitulatif le suit, et c'est au
+ * moment de LIRE le tableau que la confusion se produit.
+ */
+export const AVERTISSEMENT_LOT_COURT =
+  '⚠️ Un lot fait varier le CAS, jamais la CONDITION : il ne compare pas deux réglages (avertissement complet avec le récapitulatif).';
+
+const ms = (n: number) => `${n.toFixed(0)} ms`;
+const nb = (n: number) => n.toLocaleString('fr-FR');
+
+/**
+ * Le récapitulatif — une ligne par cas, et seulement les colonnes que le point
+ * d'arrêt demandé rend réellement disponibles.
+ *
+ * ⚠️ **Les colonnes SUIVENT le point d'arrêt**, elles ne sont pas figées : un
+ * lot arrêté dans la préparation n'a ni rétention, ni régime, ni complétude, et
+ * quatre colonnes de tirets seraient une invitation à les lire comme des zéros.
+ */
+export function rendreRecapLot(lot: ResultatLot): string {
+  const l: string[] = [];
+  const c = lot.condition;
+  const surcharges = Object.entries(c.overrides).map(([k, v]) => `${k}=${v}`);
+
+  l.push('', '═'.repeat(78));
+  l.push(`RÉCAPITULATIF DU LOT — ${lot.lignes.length} cas`);
+  l.push('═'.repeat(78));
+  // ⚠️ La condition COMMUNE en tête, avant toute colonne : c'est elle qui rend
+  // l'avertissement ci-dessous VÉRIFIABLE plutôt que déclaratif — le lecteur
+  // voit de ses yeux que rien d'autre que le cas ne varie d'une ligne à
+  // l'autre.
+  l.push(
+    `Condition unique : préréglage « ${c.preset} », arrêt après « ${c.arretApres} », ` +
+      `${c.repetitions} répétition(s), overrides ${surcharges.length > 0 ? surcharges.join(', ') : 'aucun'}` +
+      (c.horodaterProgression ? ', progression A₂ activée' : '')
+  );
+  l.push('', lot.avertissementLot, '');
+
+  const avecTemps = lot.lignes.some((x) => x.resultat.temps != null);
+  const avecDemiBuilds = lot.lignes.some((x) => x.resultat.demiBuilds != null);
+  const avecCompletude = lot.lignes.some((x) => x.resultat.completude != null);
+  const avecMeilleurs = lot.lignes.some((x) => x.resultat.meilleurs != null);
+
+  const largeurLibelle = Math.max(...lot.lignes.map((x) => x.libelle.length));
+  const cellulesEntete = [
+    'n°',
+    'Cas'.padEnd(largeurLibelle),
+    'filterSlot'.padStart(11),
+    ...(avecTemps ? ['préparation'.padStart(12)] : []),
+    ...(avecDemiBuilds ? ['constr. (mur)'.padStart(13), 'fil A'.padStart(10), 'fil B'.padStart(10), 'rétention A/B'.padStart(17)] : []),
+    ...(avecCompletude ? ['complétude'.padEnd(18)] : []),
+    ...(avecMeilleurs ? ['builds'.padStart(7)] : []),
+  ];
+  const entete = cellulesEntete.join('  ');
+  l.push(entete);
+  l.push('─'.repeat(entete.length));
+
+  for (const ligne of lot.lignes) {
+    const r = ligne.resultat;
+    // ⚠️ La taille du pool APRÈS `filterSlot`, disponible quel que soit le
+    // point d'arrêt : sans elle une ligne « 0 build » n'a aucun contexte, et
+    // c'est la première chose à écarter avant d'accuser le moteur.
+    const filterslot = r.preparation.find((t) => t.etage === 'filterslot');
+    const cellules = [
+      String(ligne.index).padStart(2),
+      ligne.libelle.padEnd(largeurLibelle),
+      (filterslot ? nb(filterslot.total) : '—').padStart(11),
+    ];
+    if (avecTemps) cellules.push((r.temps ? ms(r.temps.preparation.min) : '—').padStart(12));
+    if (avecDemiBuilds) {
+      const d = r.demiBuilds;
+      cellules.push(
+        (r.temps && d ? ms(r.temps.demiBuilds.min) : '—').padStart(13),
+        (r.temps && d ? ms(r.temps.demiBuildA.min) : '—').padStart(10),
+        (r.temps && d ? ms(r.temps.demiBuildB.min) : '—').padStart(10),
+        (d ? `${(d.retention.A.taux * 100).toPrecision(3)} / ${(d.retention.B.taux * 100).toPrecision(3)} %` : '—').padStart(17)
+      );
+    }
+    if (avecCompletude) {
+      const co = r.completude;
+      // ⚠️ Même hiérarchie de verdicts que le bloc « Complétude » d'un run
+      // unique, et dans le même ordre : une configuration invalide n'est pas
+      // un verdict algorithmique, et l'incohérence est un verdict À PART, pas
+      // une note en bas d'un « complet ».
+      const verdict =
+        co == null
+          ? '—'
+          : co.configurationInvalide != null
+            ? '⚠️ CONFIG INVALIDE'
+            : co.incoherence
+              ? 'INCOHÉRENT'
+              : co.complet
+                ? 'complet'
+                : `tronqué (${co.motif})`;
+      cellules.push(verdict.padEnd(18));
+    }
+    if (avecMeilleurs) cellules.push((r.meilleurs ? nb(r.meilleurs.length) : '—').padStart(7));
+    l.push(cellules.join('  '));
+  }
+
+  l.push('');
+  if (avecTemps) {
+    // ⚠️ Les temps de ce tableau sont des MINIMUMS (§6.4 bis) — l'estimateur
+    // du harnais, et le seul qui ait un sens. La DISPERSION, elle, ne se
+    // résume pas en une colonne : elle vit dans le bloc de chaque cas, et
+    // c'est là qu'il faut aller AVANT de faire quoi que ce soit d'un écart.
+    l.push(
+      `  Temps = MINIMUM sur ${c.repetitions} répétition(s), l’estimateur du §6.4 bis. La dispersion de chaque`,
+      '  série est dans le bloc du cas correspondant, plus haut — un écart plus petit qu’elle ne veut rien dire.'
+    );
+  } else {
+    // ⚠️ Un arrêt DANS la préparation ne rend aucun temps (voir
+    // `executerHarnaisResolu`) : le dire vaut mieux qu'une colonne absente
+    // qu'on mettrait sur le compte d'un oubli.
+    l.push('  Aucun temps : le harnais n’en rend pas sur un arrêt situé DANS la préparation.');
+  }
   return l.join('\n');
 }

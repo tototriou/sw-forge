@@ -18,7 +18,14 @@ import { executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scrip
 import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
 import { ConfigHarnais, EtagePopulation } from '../scripts/lib/diagnosticTypes';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
-import { PRESET_LOT, annoncerLot, resoudreSelectionCas } from '../scripts/lib/diagnosticLot';
+import {
+  AVERTISSEMENT_LOT,
+  PRESET_LOT,
+  ResultatLot,
+  annoncerLot,
+  rendreRecapLot,
+  resoudreSelectionCas,
+} from '../scripts/lib/diagnosticLot';
 import { CASES } from '../scripts/lib/perfShared';
 import { MAX_COLLECTED, SearchParams, SearchResult, bucketCapFor, combineParallelPairingResults } from '../src/lib/runeBuildOptim';
 
@@ -601,5 +608,60 @@ export default async function testDiagnosticHarness() {
   ok(
     annoncerLot([0], { arretApres: 'classement' }).includes('COÛT'),
     'un arrêt à « classement » annonce son coût — c’est le run complet, des minutes par cas'
+  );
+
+  /* ── §5.3 : la RESTITUTION du lot, et son garde-fou ────────────────
+   *
+   * ⚠️ Le lot est monté À LA MAIN à partir de deux runs SYNTHÉTIQUES : ce
+   * qui est vérifié ici est la mise en forme et le garde-fou, pas
+   * l'orchestration — cette dernière lirait les exports de compte, qui sont
+   * gitignorés. `rendreRecapLot` ne regarde de toute façon que des
+   * `ResultatHarnais`, quelle que soit leur provenance. */
+  const lotFactice: ResultatLot = {
+    condition: {
+      arretApres: 'classement',
+      repetitions: 1,
+      preset: PRESET_LOT,
+      overrides: {},
+      horodaterProgression: false,
+    },
+    lignes: [
+      { index: 0, libelle: 'Cas factice A', resultat: complet },
+      { index: 1, libelle: 'Cas factice B', resultat: repete },
+    ],
+    avertissementLot: AVERTISSEMENT_LOT,
+  };
+  const recap = rendreRecapLot(lotFactice);
+
+  // ⚠️ LE point du chantier. Une sortie qui aligne des cas en colonnes
+  // RESSEMBLE à une comparaison ; si elle ne dit pas laquelle des deux choses
+  // elle autorise (comparer deux CAS, oui — comparer deux CONDITIONS, non),
+  // elle sera lue comme autorisant l'autre.
+  ok(recap.includes('N’AUTORISE PAS'), 'le récapitulatif dit ce qu’un lot n’autorise PAS');
+  ok(
+    recap.includes('deux CAS') && recap.includes('deux CONDITIONS'),
+    'et il distingue explicitement comparer deux CAS (légitime) de comparer deux CONDITIONS (non)'
+  );
+  ok(recap.includes('ENTRELACER'), 'en nommant ce qui manquerait pour l’autre : l’entrelacement (niveau 2 du §6.4 bis)');
+  ok(
+    recap.indexOf(AVERTISSEMENT_LOT) < recap.indexOf('Cas factice A'),
+    'le garde-fou est AVANT le tableau, pas sous sa dernière ligne — sur le chemin d’un lecteur pressé'
+  );
+  ok(
+    recap.includes('Condition unique'),
+    'et la condition COMMUNE est affichée : c’est elle qui rend l’avertissement vérifiable plutôt que déclaratif'
+  );
+
+  // ⚠️ `avertissementComparaison` n'est NI affaibli, NI mutualisé : il reste
+  // porté par CHAQUE run, donc imprimé autant de fois qu'il y a de cas. Le
+  // remonter une seule fois en tête du lot le ferait lire comme ne valant que
+  // pour le premier cas.
+  ok(
+    lotFactice.lignes.every((x) => (x.resultat.temps?.avertissementComparaison ?? '').includes('BLOCS')),
+    'chaque cas du lot porte son PROPRE avertissement de comparaison, jamais un seul mutualisé'
+  );
+  ok(
+    !recap.includes('perf-battery-compare.ts.\n') || !recap.includes(complet.temps!.avertissementComparaison),
+    'le récapitulatif ne REMPLACE pas cet avertissement par le sien — les deux répondent à des questions différentes'
   );
 }

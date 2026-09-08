@@ -8,6 +8,15 @@
 // de ×6 à ×300 000 000 selon le cas — le majorant n'est PAS affiché à
 // l'écran. Script conservé pour rejouer la mesure si le calcul est affiné un
 // jour (voir spec/outils/optimizer/pistes.md).
+//
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, en même
+// temps que `--cas=<index|nom|tous>`). Il est le seul porteur
+// d'`estimatePairBound`, dont l'intégration au palier 1 du harnais a été
+// ÉCARTÉE (§8.1 des extensions) : la borne est sûre mais lâche de ×6 à
+// ×300 000 000, et son seul usage exact — « borne < 100M ⇒ régime séquentiel
+// certain » — ne se déclencherait sur AUCUN des 7 cas connus. Le harnais ne
+// calcule donc pas cette borne du tout : il n'y a rien à périmer ici, et
+// `--cas=tous` n'y change rien.
 import { CASES, loadCase } from './lib/perfShared';
 import { prepareSearch, buildBuckets, totalPairCount, estimatePairBound, SLOT_FILTER_PRESETS } from '../src/lib/runeBuildOptim';
 import { drain } from './lib/drain';

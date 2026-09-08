@@ -11,6 +11,27 @@
 // testé — voir spec/outils/optimizer/historique/historique-acceleration-et-outillage.md,
 // « Chantier D ».
 //
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, en même
+// temps que `--cas=<index|nom|tous>`). `diagnostic-harness.ts --cas=tous
+// --arret=demi-builds` rend `demiBuildA`/`demiBuildB` sur les mêmes 7 cas —
+// mais ce ne sont PAS les mêmes grandeurs : le harnais construit les deux
+// moitiés dans deux `worker_threads` SIMULTANÉS, parce que la production
+// parallélise toujours et qu'un harnais qui choisirait autrement cesserait de
+// mesurer la production (spec/outils/optimizer/harnais-diagnostic.md §7.2).
+// Ses deux nombres sont donc le coût de chaque moitié SOUS CONCURRENCE de
+// l'autre. Ce script-ci mesure le coût ISOLÉ d'une moitié, un fil à la fois.
+// Le harnais ne peut pas produire cette seconde grandeur sans adopter un
+// régime que sa doctrine lui interdit : ce script est le seul endroit où elle
+// existe. ⚠️ Ne pas le supprimer « parce que le harnais couvre ».
+//
+// ⚠️ Ce qu'il PARTAGE avec le script `prepare-search-time-diag.ts` supprimé,
+// et qui a été MESURÉ plutôt que supposé : le `SearchParams` monté à la main
+// ci-dessous (sans `artifactBounds` ni exclusions, là où le harnais passe par
+// `recipeToSearchParams`) donne, sur ces 7 cas, EXACTEMENT les mêmes pools
+// filtrés que le chemin de production — comparés emplacement par emplacement.
+// Son `prepared` est donc bien celui de la prod, et le coût qu'il mesure est
+// celui de la vraie construction.
+//
 // Usage : construction-time-diag.ts
 
 import { SearchParams, SLOT_FILTER_PRESETS, prepareSearch, buildBuckets } from '../src/lib/runeBuildOptim';

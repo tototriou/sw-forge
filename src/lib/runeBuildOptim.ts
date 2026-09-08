@@ -2251,7 +2251,18 @@ export function* buildBuckets(
 // permet d'écarter une paire de compartiments sans jamais en écarter une à
 // tort. La décision d'ACCEPTER, elle, repasse toujours par le calcul réel sur
 // les runes effectivement choisies (voir `searchBuilds`).
-function satisfiesSets(
+// ⚠️ **EXPORTÉE pour le harnais de diagnostic, et pour rien d'autre** (avec
+// `bucketPairFeasibleMin` et `comboAFeasible` ci-dessous) : trois mots-clés,
+// zéro logique déplacée. Sans elles, un observateur extérieur ne peut pas
+// dire à quel étage la paire de compartiments d'un build cible a été coupée —
+// il ne peut que constater que le build est absent, et « paire structurellement
+// infaisable » devient indistinguable de « test conjoint échoué ». Les
+// retaper côté harnais ferait mesurer la COPIE, ce qui est exactement
+// l'incident fondateur de la discipline « fidélité des scripts de
+// diagnostic ». ⚠️ Ces trois prédicats sont déjà partagés à l'identique par
+// `pairBuckets` et `totalPairCount`, dont l'égalité stricte est vérifiée par
+// `rune-optim-differential.test.ts` : les exporter n'ajoute aucun chemin.
+export function satisfiesSets(
   countsA: number[],
   jokersA: number,
   countsB: number[],
@@ -2292,7 +2303,8 @@ function satisfiesSets(
 // (estimation de la taille de l'espace, voir plus bas) : les deux doivent
 // appliquer EXACTEMENT le même filtre, sous peine de désaccord entre ce qui
 // est annoncé et ce qui est réellement visité.
-function bucketPairFeasibleMin(
+// ⚠️ EXPORTÉE pour le harnais — voir `satisfiesSets` ci-dessus.
+export function bucketPairFeasibleMin(
   bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
   bB: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
   minEntries: { k: StatKey; min: number }[],
@@ -2319,7 +2331,8 @@ function bucketPairFeasibleMin(
 // suffit-il encore ? MAXIMUM : comboA seul (le contexte fixe) dépasse-t-il
 // déjà — un comboB ne peut jamais RETIRER, donc B n'a pas besoin d'être
 // consulté ici.
-function comboAFeasible(
+// ⚠️ EXPORTÉE pour le harnais — voir `satisfiesSets` ci-dessus.
+export function comboAFeasible(
   comboA: HalfCombo,
   bB: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
   minEntries: { k: StatKey; min: number }[],

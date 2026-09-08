@@ -766,6 +766,69 @@ export interface AdmissibiliteBuild {
 }
 
 /* --------------------------------------------------------------------------
+ * ÉTAGES 4-5 du build cible — la PAIRE et le RANG — §5.1 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * L'étage auquel la paire de compartiments du build cible s'est arrêtée —
+ * ⚠️ **dans l'ordre exact de `pairBuckets`**, pas celui de `totalPairCount`
+ * (les deux appliquent les mêmes prédicats, mais pas dans le même ordre, et
+ * c'est la boucle d'appariement qui décide vraiment).
+ *
+ * ⚠️ Chacun de ces étages est un élagage SÛR au sens du moteur — ils
+ * n'écartent jamais une paire à tort. Une paire coupée ici n'est donc PAS
+ * « perdue par une heuristique » : elle ne pouvait rien produire.
+ */
+export type EtapeAppariement =
+  | 'sets-compartiment'
+  | 'joker'
+  | 'borne-compartiment'
+  | 'borne-comboA'
+  | 'explorée';
+
+/**
+ * ⚠️ **Le rang vient de `sortCandidates` sur la liste ENTIÈRE**, jamais d'un
+ * top-20 déjà tronqué et jamais de `candidates[0]`. C'est le cœur de l'oracle :
+ * sur 100 000 candidats collectés, un build au rang 250 est autrement
+ * indistinguable d'un build ABSENT — l'incident fondateur d'`algo-verify`,
+ * où le build cherché était au rang 6.
+ */
+export interface RangBuildCible {
+  /** 1 = le meilleur. */
+  rang: number;
+  /**
+   * ⚠️ La population du CLASSEMENT, c'est-à-dire les candidats COLLECTÉS —
+   * jamais l'espace de recherche. Sur un run tronqué elle est plus petite que
+   * ce que le moteur aurait rendu, et le rang avec elle.
+   */
+  population: number;
+  tailleTopRendu: number;
+  dansLeTopRendu: boolean;
+  /** Recalculé par `candidateMetricTotal`, jamais `effTotal` figé. */
+  totalMetrique: number;
+}
+
+export interface AppariementBuildCible {
+  /**
+   * Le rang (1-based) du compartiment de chaque moitié dans `bucketsA` /
+   * `bucketsB`. `null` = la moitié n'est dans AUCUN compartiment retenu,
+   * auquel cas il n'y a pas de paire à évaluer.
+   */
+  compartimentA: number | null;
+  compartimentB: number | null;
+  /** `null` quand une moitié manque : l'étage 4 ne se pose alors pas. */
+  arreteA: EtapeAppariement | null;
+  explication: string;
+  /**
+   * La cible figure-t-elle parmi les candidats RÉELLEMENT collectés par la
+   * recherche ? ⚠️ Lu sur `SearchResult.candidates`, le résultat du moteur —
+   * aucun test n'est rejoué ici.
+   */
+  presenteDansLesCandidats: boolean;
+  rang?: RangBuildCible;
+}
+
+/* --------------------------------------------------------------------------
  * Le résultat complet
  * ----------------------------------------------------------------------- */
 
@@ -864,6 +927,14 @@ export interface ResultatHarnais {
    * complète, ou si l'arrêt a eu lieu avant la construction des demi-builds.
    */
   detailDemiBuilds?: DetailDemiBuild[];
+  /**
+   * ÉTAGES 4-5 du build cible (§5.1 des extensions) — la paire de
+   * compartiments a-t-elle été explorée, et à quel RANG la cible sort-elle ?
+   *
+   * ⚠️ Absent si l'arrêt a eu lieu avant l'appariement : c'est alors une
+   * question qui ne s'est pas posée, jamais une réponse négative.
+   */
+  appariementBuildCible?: AppariementBuildCible;
   regime?: { applique: RegimeAppariement; totalPairs: number; seuil: number; force: boolean; explication: string };
   completude?: Completude;
   /**

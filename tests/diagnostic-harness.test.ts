@@ -700,6 +700,76 @@ export default async function testDiagnosticHarness() {
     );
   }
 
+  /* ── §5.1, ÉTAGES 4-5 : la PAIRE a-t-elle été explorée, et à quel RANG ?
+   *
+   * ⚠️ C'est ici que se joue l'incident fondateur d'`algo-verify` : un
+   * diagnostic avait conclu « le moteur manque un build meilleur » en lisant
+   * `candidates[0]`, le build cherché étant au rang 6. Ce qui est vérifié :
+   * le rang vient du classement ENTIER, jamais du top rendu. */
+  {
+    const base = configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 4242,
+        runesParEmplacement: 8,
+        requirement: { sets: [], minStats: { spd: 100 } },
+        slotFilterCap: 40,
+      },
+    });
+    const sansCible = await executerHarnais(base);
+    ok(sansCible.meilleurs!.length > 2, 'le run de référence rend bien un classement');
+    ok(sansCible.appariementBuildCible == null, 'sans build cible suivi, aucun étage 4-5 n’est produit');
+
+    // La cible : le 3ᵉ du classement — un build dont on SAIT le rang.
+    const troisieme = sansCible.meilleurs![2].runeIds;
+    const avecCible = await executerHarnais({ ...base, suivre: troisieme });
+    const ap = avecCible.appariementBuildCible!;
+    ok(ap != null, 'six runes suivies formant les deux moitiés déclenchent les étages 4-5');
+    egal(ap.arreteA, 'explorée', 'aucun prédicat d’élagage n’écarte la paire d’un build que la recherche a trouvé');
+    ok(ap.presenteDansLesCandidats, 'et la cible est bien parmi les candidats collectés');
+    egal(ap.rang!.rang, 3, 'son RANG est exactement celui qu’elle occupe dans le classement');
+    ok(ap.rang!.dansLeTopRendu, 'un rang 3 est dans le top rendu');
+    // ⚠️ LA vérification qui compte : si le rang était pris sur le top rendu
+    // (déjà coupé), la population VAUDRAIT la taille du top. Un build au
+    // rang 250 serait alors indistinguable d'un build ABSENT.
+    ok(
+      ap.rang!.population > ap.rang!.tailleTopRendu,
+      'le rang porte sur le classement ENTIER — la population dépasse largement le top rendu'
+    );
+    ok(
+      ap.rang!.population > avecCible.meilleurs!.length,
+      'et elle dépasse le nombre de builds effectivement affichés'
+    );
+    egal(
+      ap.rang!.dansLeTopRendu,
+      ap.rang!.rang <= ap.rang!.tailleTopRendu,
+      '« dans le top rendu » se déduit du rang et de la taille du top, jamais d’un second comptage'
+    );
+    ok(ap.compartimentA != null && ap.compartimentB != null, 'les deux compartiments de la paire sont nommés');
+
+    // ⚠️ Le cas où la paire est coupée AVANT d'être explorée. Ce build-ci
+    // (seed 4242, 8 runes/emplacement) porte une rune Intangible à
+    // l'emplacement 3 ET une à l'emplacement 6 : deux jokers ne sont pas
+    // sertissables ensemble sur un monstre. ⚠️ La cible est DURE, jamais
+    // cherchée par un filtre sous condition — un test qui ne s'exécute que
+    // si le pool s'y prête ne vérifie rien les jours où il ne s'y prête pas.
+    //
+    // ⚠️ Cette distinction n'existe QUE grâce aux trois primitives exportées
+    // (§11.2) : sans elles, ce build serait « perdu à l'appariement » sans
+    // qu'on puisse dire pourquoi — alors que la paire n'a JAMAIS pu produire
+    // quoi que ce soit.
+    const surJoker = await executerHarnais({ ...base, suivre: [1, 9, 17, 25, 33, 41] });
+    const apJoker = surJoker.appariementBuildCible!;
+    ok(apJoker.compartimentA != null && apJoker.compartimentB != null, 'les deux moitiés du build à deux jokers sont bien dans des compartiments');
+    egal(apJoker.arreteA, 'joker', 'et la paire est coupée à la règle du joker, avant toute exploration');
+    ok(
+      apJoker.explication.includes('SÛR'),
+      'l’étage est annoncé comme un élagage SÛR — la paire ne pouvait rien produire, ce n’est PAS une perte'
+    );
+    ok(!apJoker.presenteDansLesCandidats, 'un build non équipable en jeu n’est évidemment pas dans les candidats');
+    ok(apJoker.rang == null, 'et il n’a aucun rang — rien n’est fabriqué pour un build que la recherche n’a pas rendu');
+  }
+
   /* ── §4.2 : la provenance du pool figure TOUJOURS dans le résultat ── */
   egal(complet.source, 'synthetique', 'la source du pool est rendue');
   ok(complet.descriptionSource.includes('seed'), 'et sa description permet de rejouer le run à l’identique');

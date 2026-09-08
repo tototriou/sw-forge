@@ -571,6 +571,34 @@ function rendreResultat(r: ResultatHarnais): string {
     }
   }
 
+  // ⚠️ §5.1, ÉTAGES 4-5 — le cœur de l'oracle : à quel étage la paire de
+  // compartiments du build cible a été coupée, et si elle a survécu, à quel
+  // RANG la cible sort dans le classement ENTIER (jamais dans un top-20 déjà
+  // coupé, jamais `candidates[0]`).
+  if (r.appariementBuildCible) {
+    const a = r.appariementBuildCible;
+    l.push('', 'Build cible — PAIRE DE COMPARTIMENTS et RANG (étages 4-5)', '─'.repeat(72));
+    l.push(
+      `  compartiment A : ${a.compartimentA == null ? 'ABSENT des compartiments retenus' : `#${a.compartimentA}`}` +
+        `   ·   compartiment B : ${a.compartimentB == null ? 'ABSENT des compartiments retenus' : `#${a.compartimentB}`}`
+    );
+    l.push(`  ${a.arreteA == null ? 'paire' : `étage atteint : ${a.arreteA}`}`);
+    l.push(`    ${a.explication}`);
+    if (a.rang) {
+      l.push(
+        `  RANG de la cible : #${nb(a.rang.rang)} / ${nb(a.rang.population)} candidat(s) collecté(s)   ` +
+          `(${a.rang.dansLeTopRendu ? `dans le top ${a.rang.tailleTopRendu} rendu` : `HORS du top ${a.rang.tailleTopRendu} rendu`})` +
+          `   total ${a.rang.totalMetrique.toFixed(2)}`
+      );
+      l.push(
+        '    ⚠️ Rang pris sur le classement ENTIER par sortCandidates, pas sur le top rendu — et la POPULATION est',
+        '       celle des candidats COLLECTÉS, pas l’espace de recherche : sur un run tronqué, elle est plus petite.'
+      );
+    } else {
+      l.push('  RANG : la cible n’est PAS parmi les candidats collectés — ⚠️ lire la Complétude ci-dessous AVANT d’en conclure quoi que ce soit.');
+    }
+  }
+
   if (r.regime) {
     l.push('', 'Régime d’appariement', '─'.repeat(72));
     l.push(`  totalPairs = ${nb(r.regime.totalPairs)}   seuil ${nb(r.regime.seuil)}`);

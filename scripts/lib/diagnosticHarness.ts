@@ -35,7 +35,9 @@ import {
   PreparedSearch,
   SearchParams,
   SearchResult,
+  bucketPairFeasibleMin,
   candidateMetricTotal,
+  comboAFeasible,
   diagnoseFeasibility,
   mainStatFilteredBySlot,
   objectiveKeysOf,
@@ -44,6 +46,7 @@ import {
   rankBlockingConditions,
   relevance,
   runeContribution,
+  satisfiesSets,
   sortCandidates,
   totalPairCount,
   weightedContribution,
@@ -67,6 +70,7 @@ import type { MemoireMoitie, ProgressionMoitie } from './build-half-worker';
 import {
   AdmissibiliteBuild,
   AdmissibiliteRune,
+  AppariementBuildCible,
   ArretApres,
   Completude,
   ConfigHarnais,
@@ -301,17 +305,14 @@ export async function executerHarnaisResolu(
   // porte exactement les 3 runes d'UNE moitié (3 emplacements distincts,
   // 1-3 ou 4-6), c'est un demi-build suivi — extension naturelle du suivi
   // générique (§6.1 bis) plutôt qu'une deuxième surface de configuration.
+  // ⚠️ Les deux moitiés sont résolues UNE fois : `detailDemiBuilds` (le rang
+  // lisible) et l'étage 4 (la paire de compartiments à évaluer) doivent
+  // parler des mêmes trios, sans quoi ils pourraient se contredire.
+  const moities = moitiesSuivies(options.suivre ?? [], resolue.poolInitial);
   {
-    const suivies = (options.suivre ?? []).map((id) => resolue.poolInitial.find((r) => r.id === id)).filter((r): r is RuneDetail => r != null);
-    const groupeA = suivies.filter((r) => r.slot <= 3);
-    const groupeB = suivies.filter((r) => r.slot >= 4);
     const detail: DetailDemiBuild[] = [];
-    if (groupeA.length === 3 && new Set(groupeA.map((r) => r.slot)).size === 3) {
-      detail.push(detailDemiBuild('A', groupeA.map((r) => r.id), dernier.bucketsA!, dernier.prepared!.retentionKeys));
-    }
-    if (groupeB.length === 3 && new Set(groupeB.map((r) => r.slot)).size === 3) {
-      detail.push(detailDemiBuild('B', groupeB.map((r) => r.id), dernier.bucketsB!, dernier.prepared!.retentionKeys));
-    }
+    if (moities.A) detail.push(detailDemiBuild('A', moities.A, dernier.bucketsA!, dernier.prepared!.retentionKeys));
+    if (moities.B) detail.push(detailDemiBuild('B', moities.B, dernier.bucketsB!, dernier.prepared!.retentionKeys));
     if (detail.length > 0) resultat.detailDemiBuilds = detail;
   }
   resultat.regime = {
@@ -335,14 +336,35 @@ export async function executerHarnaisResolu(
 
   resultat.completude = evaluerCompletude(dernier.resultat!, dernier.totalPairs!, resolue.params);
 
-  if (arretApres === 'appariement') return resultat;
+  // ⚠️ Le classement complet n'est payé que s'il sert : un `--arret=appariement`
+  // sans build cible n'a rien à classer.
+  if (arretApres === 'appariement' && !(moities.A && moities.B)) return resultat;
 
   // ⚠️ **Phase D : TOUJOURS par `sortCandidates`.** `SearchResult.candidates`
   // sort dans l'ordre de COLLECTE de l'appariement, pas classé par
   // l'objectif : `candidates[0]` n'est pas le meilleur build. Un diagnostic
   // a déjà conclu « le moteur manque un build meilleur » en lisant ce
   // premier élément — le build cherché était au rang 6.
-  resultat.meilleurs = classer(dernier.resultat!.candidates, resolue);
+  const { classes, total } = classer(dernier.resultat!.candidates, resolue);
+
+  // ── ÉTAGES 4-5 du build cible : la paire a-t-elle été explorée, et à quel
+  // RANG la cible sort-elle ? ⚠️ Le rang est pris sur `classes`, la liste
+  // ENTIÈRE — jamais sur le top rendu ci-dessous, qui est déjà coupé.
+  if (moities.A && moities.B) {
+    resultat.appariementBuildCible = appariementBuildCible(
+      moities.A,
+      moities.B,
+      dernier.prepared!,
+      dernier.bucketsA!,
+      dernier.bucketsB!,
+      classes,
+      total
+    );
+  }
+
+  if (arretApres === 'appariement') return resultat;
+
+  resultat.meilleurs = classes.slice(0, TAILLE_TOP_RENDU).map((c) => ({ runeIds: c.runeIds, total: total(c) }));
 
   // ⚠️ **Une recherche qui aboutit à ZÉRO candidat est l'autre moment où les
   // blocages servent** — et le plus trompeur : la configuration était valide,
@@ -961,23 +983,175 @@ function detailDemiBuild(moitie: 'A' | 'B', runeIds: number[], buckets: Bucket[]
     relevanceScore: c.relevanceScore,
     parStat: retentionKeys.map((k) => ({ stat: k, pct: c.pct[k] ?? 0, flat: c.flat[k] ?? 0 })),
   });
-  for (let bi = 0; bi < buckets.length; bi++) {
-    const b = buckets[bi];
-    const idx = b.combos.findIndex((c) => c.runes.length === runeIds.length && c.runes.every((r) => runeIds.includes(r.id)));
-    if (idx >= 0) {
-      return {
-        moitie,
-        runeIds,
-        compartimentRang: bi + 1,
-        compartimentTotal: buckets.length,
-        comboRang: idx + 1,
-        comboTotal: b.combos.length,
-        cible: toDto(b.combos[idx]),
-        meilleurs: b.combos.slice(0, top).map(toDto),
-      };
-    }
+  const place = localiserDemiBuild(runeIds, buckets);
+  if (place) {
+    const b = buckets[place.compartiment];
+    return {
+      moitie,
+      runeIds,
+      compartimentRang: place.compartiment + 1,
+      compartimentTotal: buckets.length,
+      comboRang: place.combo + 1,
+      comboTotal: b.combos.length,
+      cible: toDto(b.combos[place.combo]),
+      meilleurs: b.combos.slice(0, top).map(toDto),
+    };
   }
   return { moitie, runeIds, absent: 'ABSENT de tous les compartiments retenus — éliminé par bucketCap, ou en amont de la construction.' };
+}
+
+/**
+ * Les moitiés COMPLÈTES parmi les runes suivies — un trio de 3 emplacements
+ * DISTINCTS du même côté, sinon `null`.
+ *
+ * ⚠️ Extrait pour être appelé UNE fois : `detailDemiBuilds` et l'étage 4 ont
+ * besoin des mêmes trios, et deux résolutions écrites séparément pourraient
+ * diverger sur le même `--suivre`.
+ */
+function moitiesSuivies(suivre: number[], pool: RuneDetail[]): { A: number[] | null; B: number[] | null } {
+  const suivies = suivre.map((id) => pool.find((r) => r.id === id)).filter((r): r is RuneDetail => r != null);
+  const complet = (g: RuneDetail[]) =>
+    g.length === 3 && new Set(g.map((r) => r.slot)).size === 3 ? g.map((r) => r.id) : null;
+  return { A: complet(suivies.filter((r) => r.slot <= 3)), B: complet(suivies.filter((r) => r.slot >= 4)) };
+}
+
+/**
+ * Où se trouve un demi-build dans les compartiments retenus — indices BRUTS,
+ * `null` s'il n'y est pas.
+ *
+ * ⚠️ **Factorisée, pas dupliquée** : `detailDemiBuild` (le rang lisible) et
+ * l'étage 4 (la paire de compartiments à évaluer) ont besoin de la MÊME
+ * localisation. Deux recherches écrites séparément pourraient répondre
+ * différemment sur le même demi-build — le harnais dirait alors « rang #3 »
+ * d'un côté et « absent des compartiments » de l'autre, avec l'autorité d'un
+ * diagnostic.
+ */
+function localiserDemiBuild(runeIds: number[], buckets: Bucket[]): { compartiment: number; combo: number } | null {
+  for (let bi = 0; bi < buckets.length; bi++) {
+    const idx = buckets[bi].combos.findIndex(
+      (c) => c.runes.length === runeIds.length && c.runes.every((r) => runeIds.includes(r.id))
+    );
+    if (idx >= 0) return { compartiment: bi, combo: idx };
+  }
+  return null;
+}
+
+/* --------------------------------------------------------------------------
+ * ÉTAGES 4-5 du build cible — la PAIRE et le RANG — §5.1 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **Les prédicats sont ceux du moteur, appelés — jamais retapés.**
+ * `satisfiesSets`, `bucketPairFeasibleMin` et `comboAFeasible` ont été
+ * EXPORTÉS pour ce seul usage (§11.2 des extensions, tranché ici) : les
+ * réécrire côté harnais aurait mesuré la copie, et une copie qui diverge du
+ * moteur ressemble EXACTEMENT à un vrai bug du moteur.
+ *
+ * ⚠️ **L'ordre est celui de `pairBuckets`**, pas celui de `totalPairCount` :
+ * les deux appliquent les mêmes prédicats, mais `pairBuckets` teste
+ * `satisfiesSets` avant le joker. C'est la boucle d'appariement qui décide
+ * réellement, donc c'est son ordre qui nomme le PREMIER point de divergence.
+ *
+ * ⚠️ « Explorée » veut dire « aucun prédicat d'élagage ne l'écarte », donc
+ * « la boucle l'aurait visitée » — pas « la boucle l'a effectivement
+ * visitée » : une troncature (temps ou quota) peut l'avoir coupée avant.
+ * C'est `completude` qui porte cette réserve, et c'est pour ça que le verdict
+ * ne se lit jamais sans elle.
+ */
+function appariementBuildCible(
+  idsA: number[],
+  idsB: number[],
+  prepared: PreparedSearch,
+  bucketsA: Bucket[],
+  bucketsB: Bucket[],
+  classement: BuildCandidate[],
+  totalMetrique: (c: BuildCandidate) => number
+): AppariementBuildCible {
+  const placeA = localiserDemiBuild(idsA, bucketsA);
+  const placeB = localiserDemiBuild(idsB, bucketsB);
+  const cibles = [...idsA, ...idsB];
+  const indice = classement.findIndex(
+    (c) => c.runeIds.length === cibles.length && c.runeIds.every((id) => cibles.includes(id))
+  );
+  const commun = {
+    compartimentA: placeA ? placeA.compartiment + 1 : null,
+    compartimentB: placeB ? placeB.compartiment + 1 : null,
+    presenteDansLesCandidats: indice >= 0,
+    ...(indice >= 0
+      ? {
+          rang: {
+            rang: indice + 1,
+            population: classement.length,
+            tailleTopRendu: TAILLE_TOP_RENDU,
+            dansLeTopRendu: indice < TAILLE_TOP_RENDU,
+            totalMetrique: totalMetrique(classement[indice]),
+          },
+        }
+      : {}),
+  };
+
+  if (!placeA || !placeB) {
+    return {
+      ...commun,
+      arreteA: null,
+      explication:
+        `la moitié ${!placeA ? 'A' : 'B'} n’est dans aucun compartiment retenu — il n’y a pas de paire à apparier, ` +
+        'la question de l’appariement ne se pose donc pas.',
+    };
+  }
+
+  const bA = bucketsA[placeA.compartiment];
+  const bB = bucketsB[placeB.compartiment];
+  const comboA = bA.combos[placeA.combo];
+  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, artFlatMin, totalOf } = prepared;
+
+  if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) {
+    return {
+      ...commun,
+      arreteA: 'sets-compartiment',
+      explication:
+        'paire de compartiments écartée par `satisfiesSets` : les comptes de sets des deux moitiés réunies ne peuvent ' +
+        'PAS atteindre le combo demandé. ⚠️ Élagage SÛR (le pré-filtre est plus optimiste que la réalité, donc un refus ' +
+        'ici garantit un refus réel) — la paire n’a jamais pu produire un build valide.',
+    };
+  }
+  if (bA.jokers + bB.jokers > 1) {
+    return {
+      ...commun,
+      arreteA: 'joker',
+      explication:
+        `paire écartée par la règle du joker : ${bA.jokers} + ${bB.jokers} runes Intangible, or une seule est ` +
+        'sertissable par monstre. ⚠️ Élagage SÛR — ce build n’est pas équipable en jeu.',
+    };
+  }
+  if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf)) {
+    return {
+      ...commun,
+      arreteA: 'borne-compartiment',
+      explication:
+        'paire écartée par `bucketPairFeasibleMin` : même en réunissant les bornes MAXIMALES des deux compartiments, ' +
+        'un minimum posé reste hors d’atteinte. ⚠️ Élagage SÛR, et il porte sur les COMPARTIMENTS entiers, pas sur ce ' +
+        'demi-build en particulier.',
+    };
+  }
+  if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) {
+    return {
+      ...commun,
+      arreteA: 'borne-comboA',
+      explication:
+        'paire écartée par `comboAFeasible` : la moitié A CIBLE, complétée par le meilleur cas du compartiment B, ne ' +
+        'peut pas tenir les minimums — ou dépasse déjà un maximum à elle seule. ⚠️ Élagage SÛR, et cette fois il porte ' +
+        'bien sur le demi-build A cible.',
+    };
+  }
+  return {
+    ...commun,
+    arreteA: 'explorée',
+    explication:
+      'aucun prédicat d’élagage n’écarte cette paire : la boucle d’appariement l’aurait VISITÉE. ⚠️ « Aurait » et non ' +
+      '« a » — une troncature (temps ou quota) peut l’avoir coupée avant de l’atteindre. Lire `completude` avant de ' +
+      'conclure quoi que ce soit d’une absence.',
+  };
 }
 
 /* --------------------------------------------------------------------------
@@ -1254,16 +1428,33 @@ function agregerTemps(passages: Passage[], arretApres: ArretApres, construite: b
  * Classement — §3, phase D
  * ----------------------------------------------------------------------- */
 
-function classer(candidats: BuildCandidate[], resolue: ConfigResolue) {
+/**
+ * Le nombre de candidats que la sortie rend. ⚠️ **Une seule constante** :
+ * l'étage 5 doit pouvoir dire « rang #250, donc HORS du top rendu » avec
+ * exactement la taille que la sortie utilise, sinon les deux se
+ * contrediraient sur le même run.
+ */
+export const TAILLE_TOP_RENDU = 20;
+
+/**
+ * Le classement COMPLET par `sortCandidates` — ⚠️ **jamais tronqué ici**.
+ * C'est la liste ENTIÈRE qui porte le rang de la cible : sur 100 000
+ * candidats collectés, un build au rang 250 lu dans un top-20 déjà coupé
+ * serait indistinguable d'un build ABSENT. La troncature à `TAILLE_TOP_RENDU`
+ * est le fait de l'AFFICHAGE, pas du classement.
+ */
+function classer(
+  candidats: BuildCandidate[],
+  resolue: ConfigResolue
+): { classes: BuildCandidate[]; total: (c: BuildCandidate) => number } {
   const runeById = new Map(resolue.poolInitial.map((r) => [r.id, r]));
   const objectif = resolue.recette?.objective ?? resolue.params.objective ?? 'efficience';
   const classes = sortCandidates(candidats, objectif, { runeById, metric: resolue.params.metric });
-  return classes.slice(0, 20).map((c) => ({
-    runeIds: c.runeIds,
-    // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
-    // mesure courante — jamais `effTotal`, figé au moment de la recherche.
-    total: candidateMetricTotal(c, runeById, resolue.params.metric),
-  }));
+  // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
+  // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
+  // est appliqué à la DEMANDE, pas à toute la liste : le classement peut
+  // compter des dizaines de milliers d'entrées dont on n'affiche que vingt.
+  return { classes, total: (c) => candidateMetricTotal(c, runeById, resolue.params.metric) };
 }
 
 /* --------------------------------------------------------------------------

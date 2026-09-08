@@ -31,7 +31,7 @@
 // d'abord le rang réel sans plafond. Relancé tel quel aujourd'hui, il rend la
 // cible **ABSENTE des DEUX moitiés** (36 989 et 38 308 demi-builds retenus) —
 // donc MOINS atteignable que le prédécesseur qu'il corrigeait, dont la moitié
-// A survivait au moins jusqu'au rang #6701/13098. Le moteur a bougé depuis
+// A était au moins RETENUE (#6701 sur 13 098 retenus). Le moteur a bougé depuis
 // (rétention par tranches, `filterSlot` top-K par tas, élagage
 // `hasFreeSlots`). ⚠️ Recalibrer est un chantier à part : une calibration
 // périmée est un résultat écrit, pas un travail enchaîné (§5.4). D'ici là,

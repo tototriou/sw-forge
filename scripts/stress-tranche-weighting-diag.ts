@@ -42,11 +42,19 @@
 //      PV+ en 5. Son successeur `stress-tranche-weighting-attainable-diag.ts`
 //      nomme explicitement cette erreur et la corrige. Le pool mesuré ici ne
 //      peut donc pas exister en jeu ;
-//   2. **sa cible est hors de portée**, ce que l'exécution confirme : moitié A
-//      au rang **#6701/13098** pour un `bucketCap` de 6000 (donc PERDUE), et
-//      moitié B **ABSENTE** des 38 687 demi-builds retenus. Il ne démontre
-//      donc PAS l'arbitrage de tranches qu'il voulait démontrer — c'est
-//      pourquoi le script `attainable` existe.
+//   2. **sa cible est hors de portée comme BUILD COMPLET**, ce que l'exécution
+//      confirme : moitié A **RETENUE** (rang #6701 sur 13 098 demi-builds
+//      retenus), moitié B **ABSENTE** des 38 687. Une moitié survivante ne
+//      sert à rien si l'autre a disparu. Il ne démontre donc PAS l'arbitrage
+//      de tranches qu'il voulait démontrer — c'est pourquoi le script
+//      `attainable` existe.
+//      ⚠️ **Et son rang ne dit PAS ce qu'il a l'air de dire** : `combosA` est
+//      la liste des demi-builds DÉJÀ RETENUS, et `findRank` classe sur TOUS
+//      les compartiments aplatis, alors que `buildBuckets` retient
+//      `bucketCap` places **PAR COMPARTIMENT** (`genericCap = bucketCap`,
+//      un tas par tranche et par compartiment). Comparer ce rang global à
+//      `bucketCap` pour conclure « perdue » est une erreur de lecture : le
+//      seul verdict de survie que ce script rende est la PRÉSENCE (`ABSENT`).
 // ⚠️ Il est conservé pour les deux grandeurs nommées plus haut, PAS pour sa
 // calibration. Pour un relevé exploitable, préférer le successeur — même
 // régime de spécialistes par `npx tsx scripts/stress-tranche-weighting-

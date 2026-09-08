@@ -28,6 +28,14 @@
 //                         [--max=res:60] [--assortiment=joker|sans-joker|varies]
 //                         [--verrous=<slot:runeId,…>]  runes IMPOSÉES
 //
+// Usage — LOT sur les cas connus de `perfShared.ts` (§5.3 des extensions) :
+//   diagnostic-harness.ts --cas=tous          les 7 cas, l'un après l'autre
+//   diagnostic-harness.ts --cas=3             par indice
+//   diagnostic-harness.ts --cas=ciri          par fragment de libellé
+// ⚠️ N runs INDÉPENDANTS d'UNE condition, jamais un différentiel — le lot
+// fait varier le CAS, pas le réglage. Le coût est ANNONCÉ avant d'être payé,
+// et `--apercu` reste utile : il rend les N paliers 1 sans rien exécuter.
+//
 // Options communes :
 //   --apercu               palier 1 seulement — n'exécute RIEN
 //   --arret=<étape>        mainstat | dominance | feasibility | filterslot
@@ -53,6 +61,14 @@
 
 import { executerHarnaisResolu } from './lib/diagnosticHarness';
 import { rendreParametres, resoudreConfig } from './lib/diagnosticConfig';
+import {
+  OptionsLot,
+  annoncerLot,
+  executerLot,
+  resoudreCas,
+  resoudreSelectionCas,
+  verifierComptesDisponibles,
+} from './lib/diagnosticLot';
 import { SETS_JOKER, SETS_SANS_JOKER, SETS_VARIES } from './lib/randomPool';
 import {
   ArretApres,
@@ -173,7 +189,15 @@ function lireStats(nom: string): Partial<Record<StatKey, number>> {
   return out;
 }
 
-function construireConfig(): ConfigHarnais {
+/**
+ * Tout ce qu'une `ConfigHarnais` porte EN PLUS de sa source — c'est-à-dire
+ * exactement ce qu'un LOT garde constant d'un cas à l'autre.
+ *
+ * ⚠️ Extrait de `construireConfig` plutôt que recopié dans le chemin du lot :
+ * une option ajoutée au CLI (comme `--progression` l'a été pour A₂) doit
+ * atteindre les deux chemins par construction, pas parce qu'on y a pensé.
+ */
+function construireCommun(): OptionsLot {
   const overrides: OverridesHarnais = {};
   const slotFilterCap = lireEntier('slotFilterCap', 1);
   if (slotFilterCap != null) overrides.slotFilterCap = slotFilterCap;
@@ -190,11 +214,9 @@ function construireConfig(): ConfigHarnais {
   const combos = lireEnum('combos', COMBOS);
   if (combos != null) overrides.combosOrderMode = combos;
 
-  const arret = lireEnum('arret', ARRETS) ?? 'classement';
-
-  const commun = {
+  return {
     overrides,
-    arretApres: arret,
+    arretApres: lireEnum('arret', ARRETS) ?? 'classement',
     suivre: lireListeEntiers('suivre'),
     blocages: drapeau('blocages'),
     // ⚠️ OPT-IN jusqu'ici : le worker de construction est PARTAGÉ avec
@@ -203,6 +225,10 @@ function construireConfig(): ConfigHarnais {
     horodaterProgression: drapeau('progression'),
     repetitions: lireEntier('repetitions', 1),
   };
+}
+
+function construireConfig(): ConfigHarnais {
+  const commun = construireCommun();
 
   if (drapeau('synthetique')) {
     // ⚠️ Les runes IMPOSÉES sont exposées ici parce qu'elles sont la cause
@@ -568,7 +594,84 @@ function rendreResultat(r: ResultatHarnais): string {
  * Exécution
  * ----------------------------------------------------------------------- */
 
+/**
+ * Le LOT — §5.3 des extensions. ⚠️ **Une boucle, et rien de plus** : chaque
+ * cas produit exactement la sortie qu'il produirait lancé seul, palier 1
+ * compris. Rien n'est agrégé, rien n'est comparé, aucun texte n'est
+ * mutualisé — en particulier l'avertissement de comparaison, qui part avec
+ * CHAQUE mesure de temps et doit donc apparaître autant de fois qu'il y a de
+ * cas, jamais une seule fois en tête comme s'il ne valait que pour le
+ * premier.
+ */
+async function mainLot(brut: string): Promise<void> {
+  // ⚠️ Trois sources qui s'EXCLUENT — aucune préséance silencieuse. Un
+  // `--cas=tous --synthetique` ne doit pas exécuter l'une des deux sans dire
+  // laquelle il a ignorée.
+  if (drapeau('synthetique') || valeur('compte') != null || valeur('recette') != null) {
+    refuser(
+      '--cas est une source à lui seul (les cas connus de scripts/lib/perfShared.ts) : ' +
+        'il ne se combine ni avec --synthetique, ni avec --compte/--recette.'
+    );
+  }
+
+  let indices: number[];
+  try {
+    indices = resoudreSelectionCas(brut);
+    // ⚠️ AVANT l'annonce : les deux exports de compte sont gitignorés, et un
+    // cas dont le fichier manque est refusé en le NOMMANT — jamais sauté en
+    // silence, jamais remplacé par un pool synthétique.
+    verifierComptesDisponibles(indices);
+  } catch (e) {
+    refuser(e instanceof Error ? e.message : String(e));
+  }
+
+  const commun = construireCommun();
+  // ⚠️ Le coût se dit AVANT d'être payé : le palier 1 existe pour challenger
+  // une configuration avant de laisser tourner vingt minutes, et un lot
+  // multiplie ce temps par le nombre de cas.
+  if (!drapeau('json')) console.log(annoncerLot(indices, commun));
+
+  if (drapeau('apercu')) {
+    // ⚠️ `--apercu` reste UTILE en lot, et c'est même là qu'il sert le plus :
+    // il rend les N paliers 1 — donc les N drapeaux de fidélité — pour le
+    // prix de N lectures d'export, sans exécuter la moindre recherche.
+    const apercus = indices.map((i) => resoudreCas(i, commun).resolue);
+    if (drapeau('json')) {
+      console.log(
+        JSON.stringify(
+          indices.map((i, k) => ({ cas: i, parametres: apercus[k].parametres, fidelite: apercus[k].fidelite })),
+          null,
+          2
+        )
+      );
+      return;
+    }
+    for (const [k, i] of indices.entries()) {
+      console.log(`\n${'━'.repeat(78)}\nCas ${i} — ${apercus[k].descriptionSource}\n${'━'.repeat(78)}`);
+      console.log(rendreParametres(apercus[k]));
+    }
+    console.log('\n(--apercu : rien n’a été exécuté.)');
+    return;
+  }
+
+  const lot = await executerLot(indices, commun, {
+    avant: (info, resolue) => {
+      if (drapeau('json')) return;
+      console.log(`\n${'━'.repeat(78)}\nCas ${info.index} (${info.position}/${info.total}) — ${info.libelle}\n${'━'.repeat(78)}`);
+      console.log(rendreParametres(resolue));
+      console.log(`\nArrêt après : ${commun.arretApres ?? 'classement'}`);
+    },
+    apres: (ligne) => {
+      if (!drapeau('json')) console.log(rendreResultat(ligne.resultat));
+    },
+  });
+  if (drapeau('json')) console.log(JSON.stringify(lot, (_, v) => (v instanceof Set ? [...v] : v), 2));
+}
+
 async function main() {
+  const brutCas = valeur('cas');
+  if (brutCas != null) return mainLot(brutCas);
+
   const config = construireConfig();
 
   // ── PALIER 1 — instantané, aucune exécution. Toujours affiché en premier :

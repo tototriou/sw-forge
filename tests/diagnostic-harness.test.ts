@@ -18,6 +18,8 @@ import { executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scrip
 import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
 import { ConfigHarnais, EtagePopulation } from '../scripts/lib/diagnosticTypes';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
+import { PRESET_LOT, annoncerLot, resoudreSelectionCas } from '../scripts/lib/diagnosticLot';
+import { CASES } from '../scripts/lib/perfShared';
 import { MAX_COLLECTED, SearchParams, SearchResult, bucketCapFor, combineParallelPairingResults } from '../src/lib/runeBuildOptim';
 
 function configSynthetique(surcharges: Partial<ConfigHarnais> = {}): ConfigHarnais {
@@ -537,4 +539,67 @@ export default async function testDiagnosticHarness() {
   /* ── §4.2 : la provenance du pool figure TOUJOURS dans le résultat ── */
   egal(complet.source, 'synthetique', 'la source du pool est rendue');
   ok(complet.descriptionSource.includes('seed'), 'et sa description permet de rejouer le run à l’identique');
+
+  /* ── §5.3 : la SÉLECTION de cas d'un lot ───────────────────────────
+   *
+   * ⚠️ Ce qui est vérifié ici est la SÉLECTION, jamais l'exécution : les
+   * deux exports de compte sont gitignorés, donc absents des autres
+   * machines, et un test qui les lirait échouerait ailleurs pour une raison
+   * qui n'a rien à voir avec le harnais. `resoudreSelectionCas` ne touche
+   * qu'aux LIBELLÉS de `CASES` — elle est donc testable partout. */
+  egal(resoudreSelectionCas('tous'), CASES.map((_, i) => i), '--cas=tous rend les 7 cas connus');
+  egal(resoudreSelectionCas('3'), [3], 'un nombre est un INDICE');
+  egal(
+    resoudreSelectionCas('ciri'),
+    [CASES.findIndex((c) => c.label.startsWith('Ciri'))],
+    'un fragment de libellé désigne un cas — la correspondance par nom est TOLÉRANTE'
+  );
+  egal(
+    resoudreSelectionCas('RAGE+BLADE'),
+    [CASES.findIndex((c) => c.label.includes('Rage+Blade'))],
+    'casse et ponctuation sont mises à plat : « RAGE+BLADE » trouve « Rage+Blade »'
+  );
+
+  // ⚠️ Trois refus, et chacun NOMME ce qui était attendu (§4.4 règle 4).
+  // Le plus important est l'AMBIGUÏTÉ : « lushen » désigne quatre cas, et en
+  // choisir un serait exactement le repli silencieux qu'on interdit.
+  const refuse = (brut: string): string => {
+    try {
+      resoudreSelectionCas(brut);
+      return '';
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  };
+  ok(refuse('lushen').includes('AMBIGU'), 'un nom qui désigne PLUSIEURS cas est refusé, jamais résolu au premier');
+  ok(
+    CASES.filter((c) => c.label.toLowerCase().includes('lushen')).every((c) => refuse('lushen').includes(c.label)),
+    'et le refus liste les cas concernés, pour que la levée d’ambiguïté soit immédiate'
+  );
+  const inconnu = refuse('camilla');
+  ok(inconnu.includes('aucun cas connu'), 'un nom inconnu est refusé');
+  ok(
+    CASES.every((c) => inconnu.includes(c.label)),
+    'et il liste les 7 libellés — un refus qui ne dit pas ce qui existe oblige à aller lire le code'
+  );
+  ok(refuse('7').includes('indice entre 0 et 6'), 'un indice hors bornes est refusé AVANT de produire un CASES[7] indéfini');
+  // ⚠️ Le piège : « -1 » mis à plat devient « 1 », fragment de cinq libellés
+  // (d15, d10, d11…). Sans reconnaissance du SIGNE, il aurait été refusé
+  // pour AMBIGUÏTÉ — un motif qui n’a rien à voir avec ce qui a été tapé.
+  ok(refuse('-1').includes('indice entre 0 et 6'), '« -1 » est refusé comme INDICE hors bornes, pas comme nom ambigu');
+
+  /* ── Le coût d'un lot se dit AVANT d'être payé ───────────────────── */
+  const annonce = annoncerLot([0, 1, 2], { arretApres: 'demi-builds', repetitions: 2 });
+  ok(annonce.includes('3 cas sur 7'), 'l’annonce dit COMBIEN de cas vont tourner');
+  ok(annonce.includes('demi-builds'), 'et jusqu’où chacun ira');
+  ok(annonce.includes('6 recherche(s) au total'), 'et le total effectif, répétitions comprises');
+  ok(annonce.includes(PRESET_LOT), 'et sous quel préréglage — « moyen », le défaut de l’écran, jamais un choix caché');
+  ok(
+    CASES.slice(0, 3).every((c) => annonce.includes(c.label)),
+    'les cas sont NOMMÉS : un lot qu’on relit avant de le lancer doit dire lesquels, pas seulement combien'
+  );
+  ok(
+    annoncerLot([0], { arretApres: 'classement' }).includes('COÛT'),
+    'un arrêt à « classement » annonce son coût — c’est le run complet, des minutes par cas'
+  );
 }

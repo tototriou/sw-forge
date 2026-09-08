@@ -28,6 +28,15 @@
 //                         [--max=res:60] [--assortiment=joker|sans-joker|varies]
 //                         [--verrous=<slot:runeId,…>]  runes IMPOSÉES
 //
+// Usage — PROFIL nommé (§7 des extensions, piste 11b) :
+//   diagnostic-harness.ts --profils            liste les profils et ce qu'ils promettent
+//   diagnostic-harness.ts --profil=<nom>       exécute ce profil, cible comprise
+// ⚠️ Un profil porte SA cible dans `--suivre` par construction, et ses
+// grandeurs sont MESURÉES (complétude, motif, régime, totalPairs, rang,
+// population). Ce sont les seules configurations où l'oracle du différentiel
+// est comparable : un cas réel tronque par le TEMPS, ce qui rend
+// NON_COMPARABLES le verdict, la population et le classement.
+//
 // Usage — LOT sur les cas connus de `perfShared.ts` (§5.3 des extensions) :
 //   diagnostic-harness.ts --cas=tous          les 7 cas, l'un après l'autre
 //   diagnostic-harness.ts --cas=3             par indice
@@ -74,6 +83,7 @@ import {
   verifierComptesDisponibles,
 } from './lib/diagnosticLot';
 import { SETS_JOKER, SETS_SANS_JOKER, SETS_VARIES } from './lib/randomPool';
+import { configDuProfil, rendreProfils, trouverProfil } from './lib/diagnosticProfils';
 import {
   ArretApres,
   ConfigHarnais,
@@ -233,6 +243,36 @@ function construireCommun(): OptionsLot {
 
 function construireConfig(): ConfigHarnais {
   const commun = construireCommun();
+
+  const nomProfil = valeur('profil');
+  if (nomProfil != null) {
+    // ⚠️ Trois sources qui s'EXCLUENT, même règle que `--cas` : un
+    // `--profil=… --synthetique` ne doit pas exécuter l'une des deux sans
+    // dire laquelle il a ignorée.
+    if (drapeau('synthetique') || valeur('compte') != null || valeur('recette') != null) {
+      refuser(
+        '--profil est une source à lui seul (les profils de scripts/lib/diagnosticProfils.ts) : ' +
+          'il ne se combine ni avec --synthetique, ni avec --compte/--recette.'
+      );
+    }
+    // ⚠️ Un profil porte SA cible. L'écraser par un `--suivre` de la ligne
+    // de commande ferait mesurer le rang d'un AUTRE build que celui dont
+    // les grandeurs sont figées — donc un profil qui promet ce qu'il ne
+    // tient pas. On refuse plutôt que de choisir en silence.
+    if (valeur('suivre') != null) {
+      refuser(
+        `--profil=${nomProfil} porte déjà son build cible : --suivre le remplacerait, et les grandeurs ` +
+          'mesurées du profil (rang, population) ne décriraient plus le build suivi.'
+      );
+    }
+    let profil;
+    try {
+      profil = trouverProfil(nomProfil);
+    } catch (e) {
+      refuser(e instanceof Error ? e.message : String(e));
+    }
+    return configDuProfil(profil, commun);
+  }
 
   if (drapeau('synthetique')) {
     // ⚠️ Les runes IMPOSÉES sont exposées ici parce qu'elles sont la cause
@@ -757,6 +797,14 @@ async function mainLot(brut: string): Promise<void> {
 }
 
 async function main() {
+  // ⚠️ Avant tout le reste : `--profils` n'exécute RIEN, il dit ce qui
+  // existe et ce que chaque profil promet — c'est la même intention que
+  // `--apercu`, à l'échelle du catalogue.
+  if (drapeau('profils')) {
+    console.log(rendreProfils());
+    return;
+  }
+
   const brutCas = valeur('cas');
   if (brutCas != null) return mainLot(brutCas);
 

@@ -24,6 +24,36 @@
 // (scripts/perf-baseline.json) : ce budget n'existe plus (piste 8), le
 // pilotage nu ci-dessous est donc désormais fidèle par construction.
 //
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
+// des extensions — le sort des sept scripts G2, tranché après que 11c ait
+// tourné). `--combos=potential|relevance|combined|objective` EST un override
+// du harnais, et `--differentiel=combosOrderMode:a,b` compare deux de ces
+// valeurs proprement. Mais la GRANDEUR mesurée ici n'est dans aucun champ du
+// harnais, et c'est elle qui le sauve :
+//   · `foundExplored` est l'**INSTANT DE DÉCOUVERTE** — le nombre de paires
+//     explorées quand la cible APPARAÎT dans le flux. Le `RangBuildCible` du
+//     harnais est celui de `sortCandidates` : la QUALITÉ du build dans le
+//     classement FINAL, jamais son ordre d'apparition ;
+//   · la **COURBE DE RENDEMENT** (candidats cumulés à 1/5/10/25/50/75/100 %
+//     d'`explored`) décrit la TRAJECTOIRE de l'appariement ; le harnais rend
+//     un état final, jamais une trajectoire.
+// C'est exactement la grandeur qui a fait CONSERVER `optimizer-deck10-final-
+// diag` au §5.4, ici sur les 7 cas réels et les QUATRE modes au lieu de deux.
+// ⚠️ Ne pas le supprimer « parce que le harnais couvre `--combos` » : il
+// couvre l'AXE, pas la grandeur.
+//
+// ⚠️ **CE QUE SON PROTOCOLE NE VAUT PAS, mesuré et non supposé** (2026-09-09).
+// Deux défauts connus, écrits ici pour qu'ils voyagent avec les chiffres :
+//   1. son oracle est fait de COMPTES mais il tronque à `maxMs` — donc lu sur
+//      un préfixe BRUITÉ (l'instant de coupe varie de 3,65 % à 32 %, mesures
+//      E/G/H de 11a). Un écart de `foundExplored` plus petit que ça ne
+//      signifie rien. Corrigeable par un quota, PAS corrigé : ouvrir ce
+//      chantier pour sauver un script est exactement ce que le §5.4 interdit ;
+//   2. il appelle `pairBuckets` directement, donc apparie en SÉQUENTIEL,
+//      là où la production bascule en parallèle au-delà de 100 M paires — ce
+//      que les plus gros de ces 7 cas dépassent largement. Même écart que
+//      celui relevé sur `set-relax-diag` au §5.4.
+//
 // Usage : combos-order-mode-real-account-diag.ts [maxMs=60000] [filtres]
 //   filtres — sous-chaînes (insensibles à la casse), séparées par des
 //   virgules, filtrant CASES par label (un cas retenu s'il matche AU MOINS

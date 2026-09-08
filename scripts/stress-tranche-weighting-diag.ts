@@ -15,6 +15,43 @@
 // de leur plafond (preuve qu'il y a du budget à redistribuer sans leur
 // nuire).
 //
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
+// des extensions). 11a l'annonçait « le cas d'usage le plus pur du
+// différentiel » ; la relecture du CODE le contredit, et pour une raison
+// structurelle qui vaut aussi pour son successeur `attainable` :
+//   · **son POOL n'est pas exprimable par le harnais.** Une source
+//     synthétique tire toujours par `randomPool` (`scripts/lib/randomPool.ts`),
+//     qui ne force AUCUNE principale par emplacement, n'injecte pas de vague
+//     de spécialistes, et n'accepte pas de runes cibles fabriquées à la main.
+//     `randomPool.ts` nomme d'ailleurs ce script dans sa liste des variantes
+//     délibérément NON migrées, pour ce motif exact ;
+//   · **deux de ses quatre grandeurs n'existent nulle part dans le harnais** :
+//     le rang du demi-build cible **par `acc` SEUL** (une contribution de
+//     stat unique, pas `relevanceScore`), et le **CV de `retentionScore` par
+//     `retentionKey`** — même absence qu'à `retention-dispersion-diag`.
+// Les deux autres (rang par `relevanceScore`, `totalPairCount`) sont bien
+// rendues par le harnais — mais sur un pool qu'il ne sait pas construire, ce
+// qui ne fait pas une commande de remplacement. ⚠️ Ne pas le supprimer
+// « parce que le différentiel compare deux bucketCap » : l'axe est le même,
+// le POOL et l'ORACLE ne le sont pas.
+//
+// ⚠️⚠️ **CE SCRIPT EST UN RELEVÉ NÉGATIF, et son pool est ILLÉGAL EN JEU** —
+// deux défauts relevés le 2026-09-09, à lire avant de s'en servir :
+//   1. **Principales tirées au hasard aux emplacements 1/3/5** (`[1,3,5]`
+//      juste en dessous), alors que le jeu impose ATQ+ en 1, DEF+ en 3 et
+//      PV+ en 5. Son successeur `stress-tranche-weighting-attainable-diag.ts`
+//      nomme explicitement cette erreur et la corrige. Le pool mesuré ici ne
+//      peut donc pas exister en jeu ;
+//   2. **sa cible est hors de portée**, ce que l'exécution confirme : moitié A
+//      au rang **#6701/13098** pour un `bucketCap` de 6000 (donc PERDUE), et
+//      moitié B **ABSENTE** des 38 687 demi-builds retenus. Il ne démontre
+//      donc PAS l'arbitrage de tranches qu'il voulait démontrer — c'est
+//      pourquoi le script `attainable` existe.
+// ⚠️ Il est conservé pour les deux grandeurs nommées plus haut, PAS pour sa
+// calibration. Pour un relevé exploitable, préférer le successeur — même
+// régime de spécialistes par `npx tsx scripts/stress-tranche-weighting-
+// attainable-diag.ts 150 3000 40`.
+//
 // Usage : stress-tranche-weighting-diag.ts [poolPerSlot=150] [bucketCapOverride=3000] [accSpecialistPerSlot=40]
 
 import { EffectLine, RuneDetail, BaseStats } from '../src/types';

@@ -12,6 +12,32 @@
 // (mesuré) et la rendait structurellement hors de portée quel que soit le
 // nombre de spécialistes injectés.
 //
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
+// des extensions). Même raison que son prédécesseur, et elle est
+// structurelle : son **POOL n'est pas exprimable par le harnais** (une source
+// synthétique tire par `randomPool`, qui ne force aucune principale par
+// emplacement et n'injecte ni vague de spécialistes ni runes cibles
+// fabriquées — `randomPool.ts` nomme ce script dans ses variantes
+// délibérément non migrées), et **deux de ses quatre grandeurs n'existent
+// nulle part dans le harnais** : le rang du demi-build cible **par `acc`
+// SEUL** et le **CV de `retentionScore` par `retentionKey`**.
+// ⚠️ C'est ce script-ci qu'il faut préférer des deux : son pool respecte les
+// principales réelles du jeu (ATQ+ en 1, DEF+ en 3, PV+ en 5), que le
+// prédécesseur tirait au hasard. Ne pas le supprimer « parce que le
+// différentiel compare deux bucketCap ».
+//
+// ⚠️⚠️ **SA CALIBRATION NE REPRODUIT PLUS — relevé le 2026-09-09.** Son
+// en-tête ci-dessus promet un cas « plus ATTEIGNABLE », calibré en mesurant
+// d'abord le rang réel sans plafond. Relancé tel quel aujourd'hui, il rend la
+// cible **ABSENTE des DEUX moitiés** (36 989 et 38 308 demi-builds retenus) —
+// donc MOINS atteignable que le prédécesseur qu'il corrigeait, dont la moitié
+// A survivait au moins jusqu'au rang #6701/13098. Le moteur a bougé depuis
+// (rétention par tranches, `filterSlot` top-K par tas, élagage
+// `hasFreeSlots`). ⚠️ Recalibrer est un chantier à part : une calibration
+// périmée est un résultat écrit, pas un travail enchaîné (§5.4). D'ici là,
+// ses CV restent lisibles — ils portent sur la population retenue, pas sur la
+// cible — mais ses quatre lignes de RANG ne démontrent plus rien.
+//
 // Usage : stress-tranche-weighting-attainable-diag.ts [poolPerSlot=150] [bucketCapOverride=3000] [accSpecialistPerSlot=5]
 
 import { EffectLine, RuneDetail, BaseStats } from '../src/types';

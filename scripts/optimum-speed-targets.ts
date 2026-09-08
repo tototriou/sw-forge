@@ -15,6 +15,22 @@
 // « k plus grandes sommes » pour l'optimum exact sans produit cartésien
 // complet (a fait OOM en premier jet sur cette même piste).
 //
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
+// des extensions). Il ne compare rien : il **PRODUIT une VÉRITÉ TERRAIN** —
+// l'optimum EXACT de chaque scénario, calculé indépendamment du mécanisme de
+// rétention qu'on cherche à évaluer. Le harnais ne calcule aucun optimum
+// exact : il observe le pipeline, il ne le contourne pas. Il n'y a donc rien
+// à périmer ici, exactement comme `pair-bound-diag` au §5.3 (seul porteur
+// d'`estimatePairBound`, dont l'intégration a été ÉCARTÉE).
+// ⚠️ Et c'est un **précédent à reprendre**, pas seulement un script à garder :
+// son `exactOptimum` REFUSE d'écrire un résultat dès qu'UN SEUL couple de
+// compartiments a épuisé `HEAP_BUDGET` (`'budget-exceeded'`, plus bas) — un
+// oracle qui s'abstient plutôt que de livrer un optimum sous-optimal avec
+// l'autorité d'une référence. C'est la même culture que `NON_OBSERVABLE`
+// (§5.1) et `NON_COMPARABLE` (11c), trouvée ici avant eux.
+// ⚠️ Ne pas le supprimer avec `optimum-speed-diag` : ils forment une chaîne
+// en deux étapes, mais leurs raisons de survivre sont DIFFÉRENTES.
+//
 // Usage : optimum-speed-targets.ts <sortie.json> [scenarios=60] [perSlot=35] [seed=7000]
 
 import { writeFileSync } from 'fs';

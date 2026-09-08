@@ -22,6 +22,45 @@
 // AUCUN préréglage, sur AUCUN des deux cas — pas la plus généreuse par
 // prudence, le coût mémoire/temps grandit avec bucketCap.
 //
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
+// des extensions). 11a l'annonçait « absorbable tel quel à `--arret=demi-
+// builds` » ; la relecture du CODE le contredit sur trois points, dont deux
+// sont structurels et non ergonomiques :
+//   · `adaptiveTrancheWeighting` (le cas « Vitesse, piste B ON ») n'est PAS
+//     dans `OverridesHarnais` et PAS dans `SourceHarnais.synthetique` — il
+//     s'affiche « recette (non surchargeable) ». Le faire varier demande
+//     autant de recettes que de conditions ;
+//   · `objectiveStats: ['atk','cd']` (par `resolveObjectifCli('degats')`)
+//     n'existe pas non plus sur une source synthétique, qui ne porte
+//     qu'`objective` ;
+//   · la paire d'artéfacts REPRÉSENTATIVE est montée à la main ici ; une
+//     source synthétique a `artifacts: []`, une recette prend l'inventaire
+//     réel du compte. Ni l'une ni l'autre ne reproduit ce `SearchParams`,
+//     donc aucune commande de remplacement ne reproduit ces chiffres.
+// S'y ajoute la forme : ce script rend **UNE TABLE de 15 configurations**
+// (5 préréglages × 3 formules) par cas, quand le harnais rend UN run — et
+// 11c a tranché que 5 demi-builds suivis = 5 invocations. Le remplacement
+// coûterait ~150 runs pour 30. ⚠️ Il est aussi cité par la PRODUCTION comme
+// le script de calibration réutilisable de `bucketCapFor`
+// (`src/lib/runeBuildOptim.ts`). Ne pas le supprimer « parce que le harnais
+// couvre la survie d'un demi-build » : il couvre la survie, pas le BALAYAGE.
+//
+// ⚠️⚠️ **SA RÉFÉRENCE NE REPRODUIT PLUS — relevé le 2026-09-09, à lire AVANT
+// de se fier à sa sortie.** Relancé tel quel sur le compte d'origine, le cas
+// « Vitesse » ne retrouve plus ce que l'en-tête ci-dessus annonce :
+//   · en-tête : « 5 demi-builds trouvés à Bas (slotFilterCap=40) » →
+//     l'exécution rend **3/5** en moitié A dès `bas`/3000 ;
+//   · le critère écrit de la formule retenue (« n'en perd AUCUN à AUCUN
+//     préréglage ») n'est plus satisfait : la formule linéaire perd des
+//     demi-builds aux QUATRE préréglages du cas Vitesse (3/5, 3/5, 3/5, 4/5).
+// Le cas « Dégâts » reste conforme (3/3 dès `moyen`). Le moteur a bougé
+// depuis la calibration (rétention par tranches, `filterSlot` top-K par tas,
+// élagage `hasFreeSlots`, défaut `combosOrderMode`) et les 5 demi-builds de
+// référence ont été relevés AVANT. ⚠️ Ils ne sont donc PLUS une vérité
+// terrain : les recalibrer est un chantier à part, pas un préalable à ce
+// constat — une grandeur périmée est un résultat écrit, pas un travail
+// enchaîné (§5.4).
+//
 // Usage : bucket-cap-scaling-diag.ts <export.json>
 
 import { resolveObjectifCli } from './lib/objectifCli';

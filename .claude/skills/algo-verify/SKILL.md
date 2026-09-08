@@ -140,6 +140,39 @@ posé, le régime d'appariement choisi comme la production le choisirait, la
 complétude avec son motif, l'autodiagnostic `explored` contre `totalPairs`,
 et la distinction élagage SÛR / rétention HEURISTIQUE.
 
+⚠️ **Il répond en particulier à la question de l'INCIDENT FONDATEUR de ce
+skill** — *« ce build de 6 runes est-il dans le résultat, et sinon, QUI l'a
+perdu ? »* :
+
+```
+diagnostic-harness.ts … --suivre=<les 6 ids du build>
+```
+
+Six identifiants dans `--suivre` (pas d'option de plus) et il rend un
+**verdict structuré**, qui cherche le PREMIER POINT DE DIVERGENCE au lieu de
+constater l'absence finale : `ENTRÉE_INADMISSIBLE` · `MOITIÉ_A_ÉCARTÉE` ·
+`MOITIÉ_B_ÉCARTÉE` · `ABSENT_DES_COMPARTIMENTS` · `PERDUE_À_L_APPARIEMENT`
+(avec l'ÉTAGE d'appariement qui a coupé la paire) · `PRÉSENT_DANS_LE_TOP_N` ·
+`PRÉSENT_HORS_TOP_N` **avec son rang** · `NON_OBSERVABLE`.
+
+C'est exactement le diagnostic qui manquait le jour où l'on a conclu « le
+moteur manque un build meilleur » en lisant `candidates[0]`, le build cherché
+étant au rang 6. **Le rang vient du classement ENTIER**, jamais d'un top-N
+déjà coupé.
+
+⚠️ **Deux valeurs à ne jamais contourner en les remplaçant par une cause
+plausible** :
+- `NON_OBSERVABLE` n'est pas un aveu de faiblesse — c'est ce qui EMPÊCHE
+  l'outil de fabriquer une cause quand il n'en connaît pas.
+- `PERDUE_À_L_APPARIEMENT` nomme l'ÉTAGE, pas une perte : il recouvre une
+  paire écartée par un élagage SÛR (elle ne pouvait rien produire) ET une
+  paire visitée dont le build échoue le test conjoint (il ne satisfait pas les
+  conditions posées). L'`explication` distingue les deux.
+
+⚠️ **Et il ne se lit JAMAIS sans sa complétude**, qui voyage dans le verdict
+lui-même : sur un run TRONQUÉ, « la cible n'est pas dans le classement » ne
+veut pas dire « le moteur ne la trouve pas ».
+
 **Avant d'écrire un script qui appelle `prepareSearch`/`buildBuckets`/
 `pairBuckets`, vérifier que le harnais ne répond pas déjà à la question.**
 C'est le cas pour l'écrasante majorité des diagnostics passés — les 6 qui

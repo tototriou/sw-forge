@@ -1,7 +1,18 @@
 // Le pool de runes SYNTHÉTIQUE — un PRNG à seed, des runes plausibles, et
 // rien d'autre. Consolidation d'un patron qui existait, quasi identique, dans
-// 13 fichiers (4 tests + 9 scripts) : même corps au caractère près dans 8
+// 14 fichiers (5 tests + 9 scripts) : même corps au caractère près dans 8
 // d'entre eux, seule la liste des sets changeait.
+//
+// ⚠️ **Décompte CORRIGÉ le 2026-09-08** (compté, pas recopié) : l'en-tête
+// annonçait 13 fichiers et « cinq variantes non migrées ». Il y en a **six**,
+// la sixième étant `tests/rune-optim-onstage.test.ts` — absent de la liste
+// d'origine. ⚠️ Ce n'est PAS une sixième variante biaisée : son générateur
+// est ÉQUIVALENT à celui-ci, et c'est prouvé — `mulberry32` et `randomRune`
+// ont un corps identique, `randomPool` ne diffère que par le passage
+// explicite de `setKeys` (la copie s'appuie sur le défaut), et son
+// `SET_KEYS` vaut `SETS_JOKER` dans le MÊME ORDRE. C'est une copie oubliée à
+// la consolidation, migrable sans changer son tirage — contrairement aux
+// cinq ci-dessous, dont le biais est le sujet même de ce qu'elles mesurent.
 //
 // ⚠️ **La séquence de tirage est un CONTRAT, pas un détail
 // d'implémentation.** Chaque appel à `rng()` se fait dans un ordre précis
@@ -20,7 +31,8 @@
 // Une question qui dépend du réalisme des runes se pose sur un compte réel
 // (voir `scripts/lib/loadMonster.ts`), jamais ici.
 //
-// ⚠️ **Cinq variantes du dépôt ne passent PAS par ce module, délibérément** :
+// ⚠️ **Cinq variantes du dépôt ne passent PAS par ce module, délibérément**
+// (plus la copie oubliée signalée en tête, qui n'en est pas une) :
 // elles biaisent le tirage pour provoquer une situation précise, donc leur
 // séquence diffère et les migrer changerait leurs pools —
 // `rune-optim-filterslot-topk.test.ts` et `filterslot-topk-diag.ts` (mode

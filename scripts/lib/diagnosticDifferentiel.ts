@@ -220,6 +220,33 @@ export interface ParametreDivergent {
   demande: boolean;
 }
 
+/**
+ * Les deux séries d'`explored`, avec **l'estimateur retenu par bras et sa
+ * raison** — jamais un chiffre nu.
+ *
+ * ⚠️ **Correction interne au §5.2 bis, et elle porte.** Celui-ci écrit
+ * « MINIMUM, comme pour les temps » en donnant la justification qui conduit
+ * à l'inverse : *« une interférence ne peut qu'ajouter du temps, donc que
+ * RETIRER des paires dans un budget fixe »*. Le raisonnement est juste, la
+ * conclusion était un lapsus : le bon estimateur est toujours **le run le
+ * MOINS PERTURBÉ**, ce qui donne le MINIMUM pour un temps (à travail fixe)
+ * et le MAXIMUM pour un `explored` (à budget de temps fixe). Aucune décision
+ * de 11a ne change — c'est son propre argument, mené jusqu'au bout.
+ *
+ * ⚠️ Et ça ne mord QUE sous `maxMs`. Sur un run complet ou tronqué par quota,
+ * `explored` est déterministe (min = max), donc les deux estimateurs
+ * coïncident : le distinguer n'en est pas moins nécessaire, puisque `maxMs`
+ * reste un override légitime (§7.1).
+ */
+export interface ExploredCompare {
+  temoin: SerieTemps;
+  compare: SerieTemps;
+  estimateurTemoin: number;
+  estimateurCompare: number;
+  estimateur: 'maximum' | 'déterministe';
+  explication: string;
+}
+
 export interface Admissibilite {
   /** Le PORTIER — motif de troncature, complétude, incohérence, config invalide. */
   portier: 'OUVERT' | 'FERMÉ';
@@ -252,7 +279,7 @@ export interface ResultatDifferentiel {
    */
   sensibilite: { axeDeclareSensible: boolean; limitesDuProfil: string };
   temps: { temoin: Record<string, SerieTemps>; compare: Record<string, SerieTemps> };
-  explored: { temoin: SerieTemps; compare: SerieTemps } | null;
+  explored: ExploredCompare | null;
   avertissement: string;
 }
 
@@ -474,11 +501,25 @@ function agregerTemps(runs: ResultatHarnais[]): Record<string, SerieTemps> {
  * **sur les répétitions du bras lui-même**, jamais sur un plancher importé
  * d'une autre grandeur.
  */
-function serieExplored(a: BrasDifferentiel, b: BrasDifferentiel): { temoin: SerieTemps; compare: SerieTemps } | null {
+function serieExplored(a: BrasDifferentiel, b: BrasDifferentiel): ExploredCompare | null {
   const va = a.runs.map((r) => r.completude?.explored).filter((v): v is number => v != null);
   const vb = b.runs.map((r) => r.completude?.explored).filter((v): v is number => v != null);
   if (va.length !== a.runs.length || vb.length !== b.runs.length || va.length === 0) return null;
-  return { temoin: serie(va), compare: serie(vb) };
+  const sousMaxMs = [a, b].some((bras) => bras.dernier.completude?.motif === 'maxMs');
+  return {
+    temoin: serie(va),
+    compare: serie(vb),
+    estimateurTemoin: sousMaxMs ? Math.max(...va) : Math.min(...va),
+    estimateurCompare: sousMaxMs ? Math.max(...vb) : Math.min(...vb),
+    estimateur: sousMaxMs ? 'maximum' : 'déterministe',
+    explication: sousMaxMs
+      ? 'estimateur = MAXIMUM, parce qu’un bras au moins tronque par `maxMs` : dans un budget de TEMPS, une ' +
+        'interférence ne peut que RETIRER des paires, donc le run le MOINS PERTURBÉ est celui qui en a exploré ' +
+        'le PLUS. ⚠️ C’est l’inverse d’un temps, où le run le moins perturbé est le plus COURT.'
+      : 'estimateur = la valeur elle-même : hors `maxMs`, `explored` est DÉTERMINISTE (identique à l’unité sur ' +
+        'un run complet comme sous quota — mesures A, D, F de 11a). Une dispersion non nulle ici serait donc ' +
+        'un signal en soi, pas du bruit à moyenner.',
+  };
 }
 
 /* --------------------------------------------------------------------------
@@ -515,7 +556,7 @@ function signatureTroncature(r: ResultatHarnais): string {
 function evaluerAdmissibilite(
   a: BrasDifferentiel,
   b: BrasDifferentiel,
-  explored: { temoin: SerieTemps; compare: SerieTemps } | null
+  explored: ExploredCompare | null
 ): Admissibilite {
   const sa = signatureTroncature(a.dernier);
   const sb = signatureTroncature(b.dernier);
@@ -561,18 +602,18 @@ function evaluerAdmissibilite(
     };
   }
   const plancher = Math.max(explored.temoin.dispersionPct, explored.compare.dispersionPct);
-  const base = Math.min(explored.temoin.min, explored.compare.min);
-  const ecartPct = base > 0 ? (Math.abs(explored.temoin.min - explored.compare.min) / base) * 100 : 0;
+  const base = Math.min(explored.estimateurTemoin, explored.estimateurCompare);
+  const ecartPct = base > 0 ? (Math.abs(explored.estimateurTemoin - explored.estimateurCompare) / base) * 100 : 0;
 
   if (explored.temoin.repetitions === 1) {
     return {
       portier: 'OUVERT',
       motifPortier: `les deux bras se sont arrêtés de la même façon : ${sa}.`,
-      prefixe: explored.temoin.min === explored.compare.min ? 'COMPARABLE' : 'NON_COMPARABLE',
+      prefixe: explored.estimateurTemoin === explored.estimateurCompare ? 'COMPARABLE' : 'NON_COMPARABLE',
       motifPrefixe:
-        explored.temoin.min === explored.compare.min
-          ? `préfixes identiques à l’unité (${nb(explored.temoin.min)} paires des deux côtés) sur UNE répétition.`
-          : `${nb(explored.temoin.min)} contre ${nb(explored.compare.min)} paires (${ecartPct.toFixed(2)} %), et ` +
+        explored.estimateurTemoin === explored.estimateurCompare
+          ? `préfixes identiques à l’unité (${nb(explored.estimateurTemoin)} paires des deux côtés) sur UNE répétition.`
+          : `${nb(explored.estimateurTemoin)} contre ${nb(explored.estimateurCompare)} paires (${ecartPct.toFixed(2)} %), et ` +
             '⚠️ AUCUNE dispersion mesurée (1 répétition) : impossible de dire si cet écart est du bruit de ' +
             'troncature ou l’effet du paramètre. Le plancher se mesure sur les RÉPÉTITIONS DU BRAS lui-même — ' +
             'relancer avec --repetitions=2 au moins, jamais importer les 2 à 4,5 % des temps.',
@@ -594,7 +635,7 @@ function evaluerAdmissibilite(
     prefixe: 'NON_COMPARABLE',
     motifPrefixe:
       `écart de préfixe ${ecartPct.toFixed(2)} % > plancher ${plancher.toFixed(2)} % (mesuré sur les répétitions ` +
-      `des bras eux-mêmes) : ${nb(explored.temoin.min)} contre ${nb(explored.compare.min)} paires explorées. Le ` +
+      `des bras eux-mêmes) : ${nb(explored.estimateurTemoin)} contre ${nb(explored.estimateurCompare)} paires explorées. Le ` +
       'verdict, la population, le classement et le near-miss sont des fonctions de ce préfixe — ils ne se ' +
       'comparent pas. L’étage de perte, lui, reste lisible : il est en amont de la troncature.',
   };
@@ -650,7 +691,7 @@ function lireOracle(
   a: BrasDifferentiel,
   b: BrasDifferentiel,
   adm: Admissibilite,
-  explored: { temoin: SerieTemps; compare: SerieTemps } | null
+  explored: ExploredCompare | null
 ): LectureElement[] {
   const portierFerme = adm.portier === 'FERMÉ';
   const prefixeRefuse = adm.prefixe === 'NON_COMPARABLE';
@@ -1051,7 +1092,7 @@ function lireNearMiss(a: BrasDifferentiel, b: BrasDifferentiel, barrage: string 
 function lireExplored(
   a: BrasDifferentiel,
   b: BrasDifferentiel,
-  explored: { temoin: SerieTemps; compare: SerieTemps } | null,
+  explored: ExploredCompare | null,
   portierFerme: boolean,
   plancherMesure: boolean
 ): LectureElement {
@@ -1059,34 +1100,39 @@ function lireExplored(
     element: 'explored',
     etat: 'IDENTIQUE',
     ou: 'completude.explored',
-    temoin: explored ? `${nb(explored.temoin.min)} … ${nb(Math.max(...explored.temoin.valeurs))} paires` : 'indisponible',
-    compare: explored ? `${nb(explored.compare.min)} … ${nb(Math.max(...explored.compare.valeurs))} paires` : 'indisponible',
+    // ⚠️ La série ENTIÈRE, puis l'estimateur retenu — jamais l'estimateur seul :
+    // c'est l'étalement qui dit si l'estimateur veut dire quelque chose.
+    temoin: explored
+      ? `${nb(explored.estimateurTemoin)} paires (retenu) · série ${nb(explored.temoin.min)} … ${nb(Math.max(...explored.temoin.valeurs))}`
+      : 'indisponible',
+    compare: explored
+      ? `${nb(explored.estimateurCompare)} paires (retenu) · série ${nb(explored.compare.min)} … ${nb(Math.max(...explored.compare.valeurs))}`
+      : 'indisponible',
     combien: 'aucun',
     surCombien: explored ? `${explored.temoin.repetitions} passage(s) par bras` : '—',
     autorise: 'les deux bras explorent le même nombre de paires.',
     piege:
       '⚠️ `explored` sous `maxMs` MÉLANGE deux causes : la vitesse du moteur et le coût par paire. Un `explored` ' +
       'plus bas côté comparé est compatible avec « le comparé est plus lent » ET avec « le comparé explore des ' +
-      'paires plus chères » — il ne tranche donc rien seul. ⚠️ L’estimateur du bras est le run le MOINS ' +
-      'PERTURBÉ : sous un budget de TEMPS c’est le MAXIMUM (une interférence ne peut que RETIRER des paires), ' +
-      'à l’inverse d’un temps où c’est le minimum.',
+      'paires plus chères » — il ne tranche donc rien seul.' +
+      (explored ? ` ⚠️ ${explored.explication}` : ''),
   };
   if (!explored) {
     return { ...base, etat: 'INDISPONIBLE', combien: '—', autorise: 'aucun `explored` rendu (arrêt avant l’appariement).' };
   }
   if (portierFerme) return { ...base, etat: 'NON_COMPARABLE', combien: '—', autorise: 'le PORTIER a fermé : les deux bras ne se sont pas arrêtés pour la même raison.' };
-  if (explored.temoin.min === explored.compare.min && explored.temoin.dispersionPct === 0 && explored.compare.dispersionPct === 0) {
+  if (explored.estimateurTemoin === explored.estimateurCompare && explored.temoin.dispersionPct === 0 && explored.compare.dispersionPct === 0) {
     return base;
   }
-  const ecart = explored.compare.min - explored.temoin.min;
-  const ecartPct = explored.temoin.min > 0 ? (ecart / explored.temoin.min) * 100 : 0;
+  const ecart = explored.estimateurCompare - explored.estimateurTemoin;
+  const ecartPct = explored.estimateurTemoin > 0 ? (ecart / explored.estimateurTemoin) * 100 : 0;
   const plancher = Math.max(explored.temoin.dispersionPct, explored.compare.dispersionPct);
   if (!plancherMesure) {
     return {
       ...base,
       etat: 'NON_COMPARABLE',
       combien: `${ecart > 0 ? '+' : ''}${nb(ecart)} paires (${ecartPct.toFixed(2)} %) — mais AUCUN plancher`,
-      surCombien: `${nb(explored.temoin.min)} paires (témoin), UN seul passage par bras`,
+      surCombien: `${nb(explored.estimateurTemoin)} paires (témoin), UN seul passage par bras`,
       autorise:
         'RIEN. Les deux bras sont TRONQUÉS et un seul passage a été fait : la dispersion affichée « 0,00 % » ne ' +
         'dit pas « stable », elle dit « non mesurée ». Un écart d’`explored` sur des bras tronqués ne se ' +
@@ -1100,7 +1146,7 @@ function lireExplored(
       ...base,
       etat: 'IDENTIQUE',
       combien: `${ecart > 0 ? '+' : ''}${nb(ecart)} paires (${ecartPct.toFixed(2)} %) — SOUS le plancher ${plancher.toFixed(2)} %`,
-      surCombien: `${nb(explored.temoin.min)} paires (témoin, minimum sur ${explored.temoin.repetitions})`,
+      surCombien: `${nb(explored.estimateurTemoin)} paires (témoin, ${explored.estimateur} sur ${explored.temoin.repetitions})`,
       autorise:
         'l’écart est plus petit que la dispersion des bras eux-mêmes : il ne veut rien dire. ⚠️ Ce n’est pas ' +
         '« aucune différence », c’est « aucune différence MESURABLE avec ce nombre de répétitions ».',
@@ -1110,7 +1156,7 @@ function lireExplored(
     ...base,
     etat: 'DIVERGENT',
     combien: `${ecart > 0 ? '+' : ''}${nb(ecart)} paires (${ecartPct.toFixed(2)} %), plancher ${plancher.toFixed(2)} %`,
-    surCombien: `${nb(explored.temoin.min)} paires (témoin) · dispersions ${explored.temoin.dispersionPct.toFixed(2)} % et ${explored.compare.dispersionPct.toFixed(2)} %`,
+    surCombien: `${nb(explored.estimateurTemoin)} paires (témoin) · dispersions ${explored.temoin.dispersionPct.toFixed(2)} % et ${explored.compare.dispersionPct.toFixed(2)} %`,
     autorise:
       'le comparé n’explore pas le même nombre de paires que le témoin, au-delà du bruit de chaque bras — le ' +
       'rendement de l’appariement diffère. ⚠️ Sur des bras COMPLETS, cela veut dire que la configuration a changé ' +

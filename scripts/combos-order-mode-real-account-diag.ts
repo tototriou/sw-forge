@@ -128,7 +128,14 @@ function measure(base: BaseStats, artifacts: ArtifactDetail[], relic: RelicDetai
   return { foundExplored, foundRank: foundExplored != null && total > 0 ? foundExplored / total : null, totalPairCount: total, yieldCurve };
 }
 
-console.log(`combosOrderMode 'potential' vs 'relevance' — ${SELECTED_CASES.length}/${CASES.length} cas réel(s)${FILTERS ? ` (filtre: ${FILTERS.join(', ')})` : ''}, objective réel, maxMs=${MAX_MS}ms (budget de nœuds adaptatif + escalade réelle, comme en production).\n`);
+// ⚠️ La mention « budget de nœuds adaptatif + escalade réelle, comme en
+// production » a été RETIRÉE de cette ligne le 2026-09-09 : ce budget
+// n'existe plus (piste 8), ce que l'en-tête de ce fichier dit déjà. Elle
+// survivait dans la SORTIE, où elle affirmait une fidélité que le run ne peut
+// plus avoir — un script conservé n'imprime pas une phrase que son propre
+// en-tête dément. Remplacée par ce qui LIMITE réellement sa lecture : la
+// troncature par temps et son plancher de bruit.
+console.log(`combosOrderMode 'potential' vs 'relevance' — ${SELECTED_CASES.length}/${CASES.length} cas réel(s)${FILTERS ? ` (filtre: ${FILTERS.join(', ')})` : ''}, objective réel, maxMs=${MAX_MS}ms — ⚠️ troncature par TEMPS : l'instant de coupe varie de 3,65 % à 32 %, tout écart de foundExplored sous ce plancher est du bruit.\n`);
 
 for (const c of SELECTED_CASES) {
   const { gear, allRunes, requirement, targetRuneIds } = loadCase(c);

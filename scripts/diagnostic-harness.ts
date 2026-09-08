@@ -45,7 +45,10 @@
 //                          exact (relevance() + par stat) ; si les 3 ids
 //                          d'une même moitié (1-3 ou 4-6) y sont TOUS, rend
 //                          en plus le rang du demi-build dans son
-//                          compartiment et les mieux classés à côté de lui
+//                          compartiment et les mieux classés à côté de lui ;
+//                          si les SIX ids d'un build y sont, rend en plus son
+//                          ADMISSIBILITÉ à l'entrée (étage 0 du §5.1) — même
+//                          surface, jamais une deuxième option
 //   --blocages             cherche, par condition, DE COMBIEN la desserrer
 //                          suffit (⚠️ COÛTEUX : une dichotomie par condition ;
 //                          calculé d'office si la recherche ne rend rien)
@@ -330,6 +333,34 @@ function rendreResultat(r: ResultatHarnais): string {
   l.push('', 'Préparation — runes restantes par emplacement', '─'.repeat(72));
   for (const t of r.preparation) {
     l.push(`  ${t.etage.padEnd(12)} [${t.nature.padEnd(10)}] ${t.parEmplacement.map((n) => String(n).padStart(5)).join(' ')}   total ${nb(t.total)}`);
+  }
+
+  // ⚠️ **L'ÉTAGE 0 s'imprime AVANT le suivi**, et pas seulement dans le
+  // JSON : l'ordre de lecture est l'ordre du raisonnement. Un lecteur qui
+  // verrait d'abord « la rune a disparu à filterSlot » attribuerait au moteur
+  // une absence que l'entrée explique déjà.
+  if (r.admissibiliteBuildCible) {
+    const a = r.admissibiliteBuildCible;
+    l.push('', 'Build cible — ADMISSIBILITÉ À L’ENTRÉE (étage 0, avant toute accusation d’élagage)', '─'.repeat(72));
+    l.push(`  runes [${a.runeIds.join(', ')}]`);
+    for (const rune of a.parRune) {
+      const etat = !rune.presenteDansLePool ? '❌ hors pool' : rune.admiseAuDepart ? '✅ admise' : '❌ écartée';
+      l.push(`    #${String(rune.id).padStart(8)} emplacement ${rune.slot ?? '?'}  ${etat}`);
+      if (rune.motif) l.push(`      ${rune.motif}`);
+    }
+    if (a.structure) l.push(`    ⚠️ ${a.structure.motif}`);
+    if (a.sets) {
+      const verdictSets = a.sets.manquants.length === 0 ? '✅' : `❌ manque ${a.sets.manquants.join(', ')}`;
+      l.push(
+        `    sets demandés [${a.sets.demandes.join(', ') || 'aucun'}] — activés par les six runes ` +
+          `[${a.sets.actifs.join(', ') || 'aucun'}] ${verdictSets}`
+      );
+    }
+    l.push(
+      a.admissible
+        ? '  → ADMISSIBLE à l’entrée : une absence du résultat ne peut PAS être imputée à la configuration.'
+        : '  → INADMISSIBLE à l’entrée : l’absence du résultat s’explique ICI, pas par l’élagage du moteur.'
+    );
   }
 
   if (r.suivi.length > 0) {

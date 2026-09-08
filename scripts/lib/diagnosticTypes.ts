@@ -699,6 +699,73 @@ export interface RetentionConstruction {
 }
 
 /* --------------------------------------------------------------------------
+ * ÉTAGE 0 du build cible — l'ADMISSIBILITÉ À L'ENTRÉE — §5.1 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **L'étage 0 se fait AVANT d'accuser l'élagage.** Sans lui, une absence
+ * causée par l'ENTRÉE — une rune qui n'est pas dans le pool, un emplacement
+ * en double, une principale imposée que la rune ne porte pas, un combo de
+ * sets que les six runes n'activent pas — serait attribuée au moteur. C'est
+ * exactement la classe d'erreur commise avec l'autorité d'un diagnostic que
+ * ce chantier existe pour empêcher.
+ *
+ * ⚠️ **Aucune règle de compatibilité n'est RECOPIÉE ici** (§6.3 du cadrage :
+ * « réutiliser, jamais recopier »). L'admissibilité par emplacement est lue
+ * sur `mainStatFilteredBySlot`, la fonction de production qui applique les
+ * verrous ET la statistique principale imposée — « le point le plus AMONT du
+ * pipeline, traversé par TOUS les chemins ». Le combo de sets est lu par
+ * `activeSets` + `missingSets`, c'est-à-dire l'appel EXACT que `pairBuckets`
+ * fait pour accepter une paire. Le harnais ne sait donc pas répondre
+ * autrement que le moteur.
+ */
+export interface AdmissibiliteRune {
+  id: number;
+  /**
+   * ⚠️ `false` ne veut PAS dire « écartée par un étage » : le pool d'entrée
+   * est DÉJÀ purgé des runes exclues (portées par un autre monstre, voir
+   * `excludedRuneIds`) en amont du moteur. Une rune absente est donc exclue,
+   * ou venue d'un autre compte — jamais un verdict sur les builds.
+   */
+  presenteDansLePool: boolean;
+  /** `null` quand la rune est absente du pool : son emplacement est inconnu. */
+  slot: number | null;
+  /**
+   * Présente dans `mainStatFilteredBySlot(pool, requirement)[slot-1]` — donc
+   * survivante au verrou de son emplacement ET à la statistique principale
+   * imposée. `null` si la question ne se pose pas (rune absente du pool).
+   */
+  admiseAuDepart: boolean | null;
+  /** Renseigné SEULEMENT en cas de refus, et il NOMME la cause. */
+  motif?: string;
+}
+
+export interface AdmissibiliteBuild {
+  runeIds: number[];
+  /** Le verdict d'étage 0, et lui seul : rien n'y est déduit de l'élagage. */
+  admissible: boolean;
+  parRune: AdmissibiliteRune[];
+  /**
+   * La structure du build lui-même : six identifiants distincts, couvrant les
+   * six emplacements. ⚠️ Vérifiée AVANT tout le reste — deux runes du même
+   * emplacement ne forment pas un build, et le dire vaut mieux que de rendre
+   * un verdict sur un objet qui n'en est pas un.
+   */
+  structure: { motif: string } | null;
+  /**
+   * Le combo de sets demandé, évalué sur les SIX vraies runes — `null` quand
+   * la structure ne permet pas de le calculer (une rune manquante).
+   *
+   * ⚠️ C'est le test RÉEL et EXACT, pas le pré-filtre optimiste au niveau des
+   * compartiments (`satisfiesSets`, qui ignore la concurrence des jokers avec
+   * des sets hors combo). Même appel que la décision finale de `pairBuckets`.
+   */
+  sets: { demandes: string[]; actifs: string[]; manquants: string[] } | null;
+  /** Vide si admissible. Chaque motif est autonome et nomme sa cause. */
+  motifs: string[];
+}
+
+/* --------------------------------------------------------------------------
  * Le résultat complet
  * ----------------------------------------------------------------------- */
 
@@ -722,6 +789,20 @@ export interface ResultatHarnais {
   /** Palier 2 — tailles de pool par emplacement à chaque étage. */
   preparation: TaillesParEtage[];
   suivi: TraceSurvie[];
+  /**
+   * ÉTAGE 0 du build cible (§5.1 des extensions) — l'admissibilité des SIX
+   * runes suivies, prise à l'ENTRÉE.
+   *
+   * ⚠️ Déclenché quand `--suivre` porte exactement SIX identifiants — aucune
+   * option séparée, même raison que `detailDemiBuilds` pour trois : le suivi
+   * générique (§6.1 bis) s'étend naturellement à un build complet dès que ses
+   * six pièces sont suivies ensemble, et une seconde surface de configuration
+   * porterait exactement la même information.
+   *
+   * ⚠️ **Rendu même sur un arrêt précoce**, et c'est le but : l'étage 0 ne
+   * coûte rien et il passe AVANT toute accusation d'élagage.
+   */
+  admissibiliteBuildCible?: AdmissibiliteBuild;
   /**
    * §6.3 — ce qui est PROUVÉ impossible, et ce qui n'est qu'un indice.
    * ⚠️ Calculé HORS des chronos de phase : c'est un diagnostic, il n'a

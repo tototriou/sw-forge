@@ -14,7 +14,7 @@
 // avec l'autorité d'un diagnostic.
 
 import { egal, ok, titre } from './outils';
-import { executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scripts/lib/diagnosticHarness';
+import { admissibiliteBuild, executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scripts/lib/diagnosticHarness';
 import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
 import { ConfigHarnais, EtagePopulation } from '../scripts/lib/diagnosticTypes';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
@@ -579,6 +579,126 @@ export default async function testDiagnosticHarness() {
       (verrouMauvaisSlot.completude!.configurationInvalide ?? "").includes("en réalité à l'emplacement 1"),
     'une rune imposée au mauvais emplacement est distinguée d’une rune absente'
   );
+
+  /* ── §5.1, ÉTAGE 0 : l'ADMISSIBILITÉ d'un BUILD COMPLET à l'entrée ──
+   *
+   * ⚠️ C'est l'étage qui empêche d'attribuer au moteur une absence causée
+   * par l'ENTRÉE. Ce qui est vérifié ici : chaque refus NOMME sa cause, et
+   * aucune règle de compatibilité n'est recopiée (l'admissibilité par
+   * emplacement vient de `mainStatFilteredBySlot`, les sets d'`activeSets` +
+   * `missingSets` — les fonctions de production elles-mêmes). */
+  {
+    const sansConditions = resoudreConfig(
+      configSynthetique({
+        source: {
+          type: 'synthetique',
+          seed: 4242,
+          runesParEmplacement: 8,
+          requirement: { sets: [], minStats: {} },
+          slotFilterCap: 40,
+        },
+      })
+    );
+    const poolCible = sansConditions.params.pool;
+    // Un build STRUCTURELLEMENT valide : une rune par emplacement.
+    const build = [1, 2, 3, 4, 5, 6].map((slot) => poolCible.find((r) => r.slot === slot)!.id);
+
+    const admis = admissibiliteBuild(build, sansConditions.params);
+    ok(admis.admissible, 'un build d’une rune par emplacement, sans contrainte, est ADMISSIBLE à l’entrée');
+    egal(admis.motifs, [], 'et il ne porte AUCUN motif de refus');
+    egal(admis.parRune.length, 6, 'chaque rune est jugée individuellement, pas le build en bloc');
+
+    // Une rune qui n'existe pas : ce n'est PAS « écartée par un étage ».
+    const inconnue = admissibiliteBuild([999999, ...build.slice(1)], sansConditions.params);
+    ok(!inconnue.admissible, 'une rune absente du pool rend le build inadmissible');
+    egal(inconnue.parRune[0].presenteDansLePool, false, 'et elle est marquée comme absente du POOL');
+    egal(inconnue.parRune[0].admiseAuDepart, null, 'son admissibilité par emplacement ne se pose même pas');
+    ok(
+      inconnue.motifs.some((m) => m.includes('exclue par ailleurs')),
+      'le motif dit qu’elle est exclue ou venue d’un autre compte — jamais un verdict sur les builds'
+    );
+
+    // Deux runes du même emplacement ne forment pas un build.
+    const deuxFoisSlot1 = poolCible.filter((r) => r.slot === 1).slice(0, 2).map((r) => r.id);
+    const casse = admissibiliteBuild([...deuxFoisSlot1, ...build.slice(2)], sansConditions.params);
+    ok(!casse.admissible, 'deux runes du même emplacement rendent le build inadmissible');
+    ok(casse.structure != null, 'et c’est la STRUCTURE qui est mise en cause, pas un étage d’élagage');
+    ok(
+      casse.structure!.motif.includes('six emplacements'),
+      'le motif nomme la règle enfreinte — six runes, six emplacements'
+    );
+
+    // ⚠️ Un VERROU qui impose une AUTRE rune : la cause n'est pas la rune
+    // cible, c'est celle qu'on lui a préférée. Les deux se disent
+    // différemment.
+    const autreSlot2 = poolCible.find((r) => r.slot === 2 && r.id !== build[1])!;
+    const avecVerrou = resoudreConfig(
+      configSynthetique({
+        source: {
+          type: 'synthetique',
+          seed: 4242,
+          runesParEmplacement: 8,
+          requirement: { sets: [], minStats: {}, lockedRunes: { 2: autreSlot2.id } },
+          slotFilterCap: 40,
+        },
+      })
+    );
+    const verrouille = admissibiliteBuild(build, avecVerrou.params);
+    ok(!verrouille.admissible, 'une rune écartée par le verrou de son emplacement rend le build inadmissible');
+    ok(
+      verrouille.parRune[1].motif!.includes('VERROU'),
+      'et le motif nomme le VERROU, pas « la statistique principale » — deux règles distinctes'
+    );
+    ok(
+      verrouille.parRune[1].motif!.includes(`#${autreSlot2.id}`),
+      'en nommant la rune que le verrou impose à sa place'
+    );
+
+    // ⚠️ La statistique principale IMPOSÉE : l'autre règle que
+    // `mainStatFilteredBySlot` applique, et elle ne se confond pas avec la
+    // précédente.
+    const rune2 = poolCible.find((r) => r.id === build[1])!;
+    const autreCode = rune2.main.code === 8 ? 9 : 8;
+    const avecPrincipale = resoudreConfig(
+      configSynthetique({
+        source: {
+          type: 'synthetique',
+          seed: 4242,
+          runesParEmplacement: 8,
+          requirement: { sets: [], minStats: {}, mainStats: { 2: [autreCode] } },
+          slotFilterCap: 40,
+        },
+      })
+    );
+    const horsPrincipale = admissibiliteBuild(build, avecPrincipale.params);
+    ok(!horsPrincipale.admissible, 'une rune qui ne porte pas la principale imposée rend le build inadmissible');
+    ok(
+      horsPrincipale.parRune[1].motif!.includes('principale IMPOSÉE'),
+      'et le motif nomme la principale imposée, avec celle que la rune porte réellement'
+    );
+
+    // ⚠️ Le combo de SETS, sur les SIX vraies runes — le test exact de
+    // `pairBuckets`, jamais le pré-filtre optimiste des compartiments.
+    const avecSets = resoudreConfig(
+      configSynthetique({
+        source: {
+          type: 'synthetique',
+          seed: 4242,
+          runesParEmplacement: 8,
+          requirement: { sets: ['violent'], minStats: {} },
+          slotFilterCap: 40,
+        },
+      })
+    );
+    const surSets = admissibiliteBuild(build, avecSets.params);
+    egal(surSets.sets!.demandes, ['violent'], 'le combo DEMANDÉ est rendu');
+    ok(surSets.sets!.actifs != null, 'à côté des sets que les six runes activent RÉELLEMENT');
+    egal(
+      surSets.admissible,
+      surSets.sets!.manquants.length === 0,
+      'et le verdict d’admissibilité suit exactement ce que missingSets répond'
+    );
+  }
 
   /* ── §4.2 : la provenance du pool figure TOUJOURS dans le résultat ── */
   egal(complet.source, 'synthetique', 'la source du pool est rendue');

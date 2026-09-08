@@ -37,6 +37,7 @@ import {
   SearchResult,
   candidateMetricTotal,
   diagnoseFeasibility,
+  mainStatFilteredBySlot,
   objectiveKeysOf,
   pairBuckets,
   prepareSearch,
@@ -47,6 +48,11 @@ import {
   totalPairCount,
   weightedContribution,
 } from '../../src/lib/runeBuildOptim';
+// ⚠️ Les DEUX fonctions que `pairBuckets` appelle pour décider d'accepter une
+// paire, prises TELLES QUELLES — l'étage 0 du build cible ne recopie aucune
+// règle de compatibilité de sets (§6.3 du cadrage).
+import { activeSets } from '../../src/lib/effects';
+import { missingSets } from '../../src/lib/recoMatch';
 import { PARALLEL_PAIRING_THRESHOLD } from '../../src/workers/parallelPairing';
 import { driveParallelPairing } from '../../src/workers/parallelPairing';
 import { RuneDetail } from '../../src/types';
@@ -59,6 +65,8 @@ import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalv
 // tourner dans le fil principal — même précaution que perf-battery.ts.
 import type { MemoireMoitie, ProgressionMoitie } from './build-half-worker';
 import {
+  AdmissibiliteBuild,
+  AdmissibiliteRune,
   ArretApres,
   Completude,
   ConfigHarnais,
@@ -221,6 +229,16 @@ export async function executerHarnaisResolu(
     bornesFaisabilite: bornes(dernier.prepared),
     faisabilite: evaluerFaisabilite(resolue.params),
   };
+  // ⚠️ **ÉTAGE 0 — placé ICI, c'est-à-dire AVANT tous les retours anticipés.**
+  // L'admissibilité à l'entrée ne dépend d'aucune phase, elle ne coûte rien,
+  // et elle doit être rendue même sur une configuration invalide ou un arrêt
+  // dans la préparation : c'est elle qui empêche d'attribuer au moteur une
+  // absence causée par l'ENTRÉE. Déclenchée par SIX identifiants suivis,
+  // sans option séparée — même extension du suivi générique (§6.1 bis) que
+  // `detailDemiBuilds` pour trois.
+  if ((options.suivre ?? []).length === 6) {
+    resultat.admissibiliteBuildCible = admissibiliteBuild(options.suivre!, resolue.params);
+  }
   // ⚠️ Les blocages sont calculés soit sur demande, soit quand la
   // configuration n'a AUCUNE issue — c'est-à-dire au seul moment où ils
   // servent, et jamais « au cas où » sur une recherche qui a bien abouti.
@@ -960,6 +978,108 @@ function detailDemiBuild(moitie: 'A' | 'B', runeIds: number[], buckets: Bucket[]
     }
   }
   return { moitie, runeIds, absent: 'ABSENT de tous les compartiments retenus — éliminé par bucketCap, ou en amont de la construction.' };
+}
+
+/* --------------------------------------------------------------------------
+ * ÉTAGE 0 du build cible — l'ADMISSIBILITÉ À L'ENTRÉE — §5.1 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **Se fait AVANT d'accuser l'élagage.** Un build cible peut être absent
+ * du résultat pour une raison qui n'a rien d'algorithmique : une rune exclue
+ * du pool, deux runes du même emplacement, une principale imposée que la rune
+ * ne porte pas, un combo de sets que les six runes n'activent pas. Sans cet
+ * étage, le harnais attribuerait au moteur une absence causée par l'ENTRÉE —
+ * exactement l'erreur commise avec l'autorité d'un diagnostic que le n° 6
+ * existe pour empêcher.
+ *
+ * ⚠️ **Aucune règle recopiée** (§6.3, « réutiliser, jamais recopier ») :
+ * - l'admissibilité par emplacement est LUE sur `mainStatFilteredBySlot`, la
+ *   fonction de production qui applique le verrou de rune ET la statistique
+ *   principale imposée — et qui documente être « le point le plus AMONT du
+ *   pipeline, traversé par TOUS les chemins » ;
+ * - le combo de sets est LU par `activeSets` + `missingSets`, c'est-à-dire
+ *   l'appel exact que `pairBuckets` fait pour accepter une paire, jamais le
+ *   pré-filtre optimiste `satisfiesSets` du niveau compartiment.
+ *
+ * Le harnais ne peut donc pas répondre autrement que le moteur.
+ */
+export function admissibiliteBuild(runeIds: number[], params: SearchParams): AdmissibiliteBuild {
+  const { pool, requirement } = params;
+  const motifs: string[] = [];
+
+  // ── Structure : six identifiants DISTINCTS. Vérifiée en premier — deux
+  // fois le même identifiant ne forme pas un build, et rendre un verdict
+  // d'admissibilité sur un objet qui n'en est pas un serait un diagnostic
+  // inventé.
+  let structure: AdmissibiliteBuild['structure'] = null;
+  const distincts = new Set(runeIds);
+  if (distincts.size !== runeIds.length) {
+    structure = { motif: `identifiant(s) en double : [${runeIds.join(', ')}] ne compte que ${distincts.size} rune(s) distincte(s)` };
+  }
+
+  // ── Par rune : présence dans le pool, puis admissibilité à son emplacement.
+  // ⚠️ `mainStatFilteredBySlot` est appelée UNE fois, sur les paramètres du
+  // run — c'est le pool que le moteur voit, pas une reconstruction.
+  const admisBySlot = mainStatFilteredBySlot(pool, requirement);
+  const parRune: AdmissibiliteRune[] = runeIds.map((id) => {
+    const rune = pool.find((r) => r.id === id);
+    if (!rune) {
+      return {
+        id,
+        presenteDansLePool: false,
+        slot: null,
+        admiseAuDepart: null,
+        motif:
+          `rune #${id} ABSENTE du pool d’entrée — exclue par ailleurs (portée par un autre monstre), ` +
+          'ou venue d’un autre compte. Ce n’est PAS un verdict sur les builds.',
+      };
+    }
+    const admise = admisBySlot[rune.slot - 1].some((r) => r.id === id);
+    if (admise) return { id, presenteDansLePool: true, slot: rune.slot, admiseAuDepart: true };
+    // ⚠️ La cause est NOMMÉE, jamais « écartée par mainStatFilteredBySlot » :
+    // les deux règles que cette fonction applique sont distinctes, et l'une
+    // (le verrou) n'est pas une contrainte sur la rune cible mais sur une
+    // AUTRE rune qu'on lui a préférée.
+    const verrou = requirement.lockedRunes?.[rune.slot];
+    const motif =
+      verrou != null && verrou !== id
+        ? `rune #${id} (emplacement ${rune.slot}) écartée par le VERROU de cet emplacement, qui impose la rune #${verrou}`
+        : `rune #${id} (emplacement ${rune.slot}) ne porte pas la statistique principale IMPOSÉE ` +
+          `(${(requirement.mainStats?.[rune.slot as 2 | 4 | 6] ?? []).join(' | ')}) — la sienne est « ${rune.main.code} »`;
+    return { id, presenteDansLePool: true, slot: rune.slot, admiseAuDepart: false, motif };
+  });
+
+  // ── Structure, suite : les six emplacements, une fois les runes résolues.
+  const runes = parRune.map((a, i) => (a.presenteDansLePool ? pool.find((r) => r.id === runeIds[i])! : null));
+  if (structure == null && runeIds.length !== 6) {
+    structure = { motif: `un build cible compte SIX runes — ${runeIds.length} identifiant(s) fourni(s)` };
+  }
+  if (structure == null && runes.every((r) => r != null)) {
+    const slots = runes.map((r) => r!.slot).sort((a, b) => a - b);
+    if (slots.join(',') !== '1,2,3,4,5,6') {
+      structure = { motif: `les six runes doivent couvrir les six emplacements — reçu [${slots.join(', ')}]` };
+    }
+  }
+  if (structure) motifs.push(structure.motif);
+  for (const a of parRune) if (a.motif) motifs.push(a.motif);
+
+  // ── Sets : le test RÉEL sur les six vraies runes, jamais le pré-filtre
+  // optimiste au niveau des compartiments.
+  let sets: AdmissibiliteBuild['sets'] = null;
+  if (runes.every((r) => r != null)) {
+    const actifs = activeSets(runes.map((r) => r!.set));
+    const manquants = missingSets(requirement.sets, actifs);
+    sets = { demandes: requirement.sets, actifs, manquants };
+    if (manquants.length > 0) {
+      motifs.push(
+        `les six runes n’activent PAS le combo demandé — manque ${manquants.join(', ')} ` +
+          `(actifs : ${actifs.length > 0 ? actifs.join(', ') : 'aucun'})`
+      );
+    }
+  }
+
+  return { runeIds, admissible: motifs.length === 0, parRune, structure, sets, motifs };
 }
 
 /* --------------------------------------------------------------------------

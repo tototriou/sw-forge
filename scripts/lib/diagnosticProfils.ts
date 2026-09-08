@@ -139,6 +139,24 @@ export interface ProfilSynthetique {
    */
   axesVerifies: string[];
   /**
+   * Les axes sur lesquels une divergence de l'ORACLE a été **MESURÉE** sur
+   * ce profil — jamais supposée, jamais déduite de la rétention affichée.
+   *
+   * ⚠️ **Ajouté par 11c, et c'est le constat n° 1 de 11b tenu en code.** Un
+   * profil COMPLET peut être totalement INSENSIBLE à la configuration, et
+   * `limites` le dit — mais en PROSE, que rien ne peut lire. Sans ce champ,
+   * un différentiel rendrait « aucune divergence » sur un profil incapable
+   * d'en produire une, c'est-à-dire un silence livré avec l'autorité d'un
+   * résultat. Il ne fait PAS refuser l'exécution : il QUALIFIE l'absence de
+   * divergence, ce qui n'est pas la même chose.
+   *
+   * ⚠️ Un axe absent d'ici n'est pas « insensible » : il est **non mesuré**.
+   * La distinction est celle de `NON_OBSERVABLE` au §5.1, et elle vaut d'être
+   * tenue — remplacer « je n'ai pas mesuré » par « il ne se passe rien »
+   * serait exactement l'erreur que tout ce chantier combat.
+   */
+  axesSensibles: (keyof import('./diagnosticTypes').OverridesHarnais)[];
+  /**
    * ⚠️ Ce que le profil NE permet PAS de détecter. Écrit noir sur blanc
    * plutôt que laissé à découvrir : un profil employé hors de son domaine
    * rendrait « aucune divergence » avec l'autorité d'un résultat.
@@ -175,6 +193,10 @@ export const PROFILS: ProfilSynthetique[] = [
     axesVerifies: [
       'nominal : complet, 4 096 / 4 096 paires, cible #11 / 4 096 — l’ancrage A mesuré par 11a',
     ],
+    // ⚠️ VIDE — et c'est le résultat le plus utile de ce profil : 11b a mesuré
+    // qu'AUCUN axe n'y change quoi que ce soit. Un différentiel lancé ici rend
+    // donc « sensibilité non établie », jamais « aucune divergence ».
+    axesSensibles: [],
     limites:
       '⚠️ AUCUN plafond ne mord ici : 4 runes/emplacement passent sous `slotFilterCap`, et les 64 demi-builds par moitié sont très en dessous de `bucketCap`. Faire varier `slotFilterCap`, `bucketCap` ou `combosOrderMode` sur ce profil ne change RIEN — ni les paires, ni la population, ni le rang. Il ne peut donc RIEN détecter : c’est un test de fumée pour la mécanique de 11c, jamais un instrument de mesure. ⚠️ Sa rétention de construction affichée (100 %) ne dit pas le contraire — le produit brut est un MAJORANT de l’énumération, pas l’énumération.',
   },
@@ -211,6 +233,14 @@ export const PROFILS: ProfilSynthetique[] = [
       'slotFilterCap 40 : COMPLET, 6 747 981 paires, cible #1424 / 27 449',
       'régime : 6,7 M paires, soit ×15 SOUS le seuil de 100 M — et ×27 sous, même à bucketCap 500. Aucun bras ne peut basculer',
     ],
+    // ⚠️ `bucketCap` SEUL — et `slotFilterCap` en est ABSENT sur une mesure de
+    // 11c, pas par prudence. Le bras `slotFilterCap 40` de la calibration 11b
+    // rendait 6 747 981 paires au lieu de 6 752 131, ce qui ressemblait à un
+    // effet propre du pré-filtrage : c'était la CASCADE (`bucketCap` dérivé
+    // tombant de 6000 à 3000, piège A du §4.3). À `bucketCap` FIGÉ des deux
+    // côtés, `slotFilterCap` 80 → 40 laisse l'oracle IDENTIQUE élément par
+    // élément, `explored` compris.
+    axesSensibles: ['bucketCap'],
     limites:
       '⚠️ Le RANG de la cible ne bouge pas sous `bucketCap` (#1424 sur les quatre bras) — seule la POPULATION bouge (27 449 → 24 108). C’est cohérent : `bucketCap` élague des demi-builds moins pertinents, donc des candidats classés APRÈS la cible, qui ne peuvent pas la déplacer. Un différentiel qui ne lirait que le rang ne verrait rien sur ce profil ; c’est exactement pourquoi l’oracle de 11a est multi-éléments. ⚠️ `combosOrderMode` y est INERTE, faute d’objectif : les quatre valeurs rendent le même résultat (voir l’en-tête).',
   },
@@ -247,6 +277,16 @@ export const PROFILS: ProfilSynthetique[] = [
       'bucketCap 12000 : quota, 2 240 624 849 paires (×22 le seuil), cible #179 / 2 000',
       'reproductibilité : 5 runs successifs, `explored` = 60 806 les 5 fois, top-1 et top-20 identiques',
     ],
+    // ⚠️ Les deux axes mesurés par 11b l'ont été CONJOINTEMENT (bucketCap 3000
+    // + slotFilterCap 40, cible #178) : ça ne permettait d'attribuer la
+    // divergence à aucun des deux pris seul. 11c a tranché en isolant
+    // `bucketCap` — 6000 → 3000, sur 3 passages ENTRELACÉS : `explored` tombe
+    // de 60 806 à 39 846 (−34,47 %) avec un plancher MESURÉ à 0,00 % des deux
+    // côtés. ⚠️ Et c'est le SEUL élément lisible : le quota fixant la
+    // population à 2 000 et le rang à #179 des deux côtés, ces valeurs sont
+    // égales sur des PRÉFIXES différents — donc `NON_COMPARABLE`, jamais
+    // « identique ».
+    axesSensibles: ['bucketCap'],
     limites:
       '⚠️ La marge de régime tient parce que ce profil a SIX compartiments par moitié, pas parce que son pool est gros. `totalPairs` croît comme le CARRÉ de `bucketCap` (≈ (k × bucketCap)²) : à deux compartiments, un pool même trois fois plus gros SATURE et retombe sous les 100 M dès que `bucketCap` est divisé par deux — mesuré (assortiment `varies`, 150 runes/emplacement : 104 M au pire cas, soit +4 % seulement). ⚠️ Corollaire général : AUCUN profil ne peut être robuste à une variation arbitraire de `bucketCap`, puisque `bucketCap = 1` ramène toujours sous le seuil. Un profil porte une marge MESURÉE sur un axe NOMMÉ, jamais une garantie universelle.',
   },

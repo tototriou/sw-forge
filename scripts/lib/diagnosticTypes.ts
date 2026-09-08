@@ -362,8 +362,22 @@ export interface TempsParPhase {
    * ⚠️ **Toujours présente**, y compris sur un arrêt situé DANS la
    * préparation et sur une configuration invalide : la préparation est la
    * seule phase qui tourne dans TOUS les cas.
+   *
+   * ⚠️ Sa fenêtre enclot l'observateur `onStage` du harnais — voir
+   * `perimetrePreparation`, imprimé avec elle.
    */
   preparation: SerieTemps;
+  /**
+   * ⚠️ **Ce que la fenêtre de `preparation` contient EN PLUS de la
+   * production**, imprimé avec la mesure plutôt que rangé dans une spec où il
+   * vivrait loin du nombre qu'il qualifie — même doctrine que
+   * `coutInstrumentation` pour A₂ : la marque voyage avec le résultat.
+   *
+   * Le harnais observe la préparation étage par étage (`releverPreparation`),
+   * et ce travail tombe DANS le chronomètre. `temps.preparation` n'est donc
+   * pas un `prepareSearch` pur. L'écart a été MESURÉ, pas argumenté.
+   */
+  perimetrePreparation: string;
   /**
    * Le temps RÉEL de la phase de construction — les deux moitiés étant
    * bâties EN PARALLÈLE sur deux fils, comme en production. C'est donc le

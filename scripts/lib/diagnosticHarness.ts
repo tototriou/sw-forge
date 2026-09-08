@@ -31,6 +31,7 @@ import {
   PER_STAT_KEEP,
   PER_STAT_KEEP_OBJECTIVE,
   PrepareStage,
+  PrepareStageObserver,
   PreparedSearch,
   SearchParams,
   SearchResult,
@@ -602,6 +603,57 @@ function evaluerQuasiSucces(resultat: SearchResult, resolue: ConfigResolue): Non
  * Un passage complet
  * ----------------------------------------------------------------------- */
 
+/**
+ * Le relevé d'un passage de préparation — ce que l'observateur `onStage`
+ * accumule, étage par étage.
+ *
+ * ⚠️ **Extrait de `unPassage` pour une raison précise, pas par goût du
+ * découpage.** Ce corps est le SEUL travail que le harnais ajoute à l'intérieur
+ * de la fenêtre chronométrée de `prepareSearch` : `temps.preparation` n'est donc
+ * pas un temps de `prepareSearch` PUR, et personne ne savait de combien. Le
+ * mesurer depuis un script demandait de pouvoir appeler **exactement ce
+ * corps-là** — retaper une copie aurait mesuré la copie, l'incident fondateur
+ * de la discipline « fidélité des scripts de diagnostic ». Inline et non
+ * exporté, c'était impossible ; nommé, ça devient une mesure honnête.
+ */
+export interface RelevePreparation {
+  etages: EtagePopulation[];
+  taillesParEtage: TaillesParEtage[];
+  /**
+   * Le pool RÉEL en entrée de `filterSlot` (sortie de l'étage `feasibility`),
+   * conservé pour `detailFiltrage` — jamais recalculé, lu depuis `onStage`.
+   */
+  feasibilityBySlot?: RuneDetail[][];
+  observateur: PrepareStageObserver;
+}
+
+/**
+ * ⚠️ Le corps est rigoureusement celui qui vivait dans `unPassage` — un
+ * `Set` d'identifiants par étage, plus les longueurs par emplacement. C'est
+ * O(taille du pool) sur 4 étages, contre une préparation dominée par le O(n²)
+ * de `pruneDominated` : le raisonnement dit « négligeable », et c'est
+ * précisément ce que cette extraction permet enfin de VÉRIFIER au lieu de
+ * l'affirmer.
+ */
+export function releverPreparation(): RelevePreparation {
+  const releve: RelevePreparation = {
+    etages: [],
+    taillesParEtage: [],
+    observateur: () => {},
+  };
+  releve.observateur = (stage, bySlot) => {
+    releve.etages.push({ nom: stage, nature: NATURE_ETAGE[stage], presents: new Set(bySlot.flat().map((r) => r.id)) });
+    releve.taillesParEtage.push({
+      etage: stage,
+      nature: NATURE_ETAGE[stage],
+      parEmplacement: bySlot.map((l) => l.length),
+      total: bySlot.reduce((s, l) => s + l.length, 0),
+    });
+    if (stage === 'feasibility') releve.feasibilityBySlot = bySlot;
+  };
+  return releve;
+}
+
 async function unPassage(
   resolue: ConfigResolue,
   arretApres: ArretApres,
@@ -614,20 +666,11 @@ async function unPassage(
   const t0 = performance.now();
 
   // ── Phase A : préparation, observée étage par étage.
-  const etages: EtagePopulation[] = [];
-  const taillesParEtage: TaillesParEtage[] = [];
-  let feasibilityBySlot: RuneDetail[][] | undefined;
-  const prepared = prepareSearch(params, (stage, bySlot) => {
-    etages.push({ nom: stage, nature: NATURE_ETAGE[stage], presents: new Set(bySlot.flat().map((r) => r.id)) });
-    taillesParEtage.push({
-      etage: stage,
-      nature: NATURE_ETAGE[stage],
-      parEmplacement: bySlot.map((l) => l.length),
-      total: bySlot.reduce((s, l) => s + l.length, 0),
-    });
-    if (stage === 'feasibility') feasibilityBySlot = bySlot;
-  });
+  const releve = releverPreparation();
+  const prepared = prepareSearch(params, releve.observateur);
   const tPrepare = performance.now();
+  const { etages, taillesParEtage } = releve;
+  const feasibilityBySlot = releve.feasibilityBySlot;
 
   const passage: Passage = {
     prepared,
@@ -1025,10 +1068,40 @@ export function serie(valeurs: number[]): SerieTemps {
  * préparation il est donc égal à `preparation`, ce qui est exact et non une
  * approximation.
  */
+/**
+ * ⚠️ **Le périmètre de la fenêtre `preparation`, imprimé avec elle.**
+ *
+ * Le harnais observe la préparation étage par étage, et ce travail tombe DANS
+ * son chronomètre : `temps.preparation` n'est pas un `prepareSearch` pur. Le
+ * dire sans le chiffrer aurait laissé le lecteur estimer l'écart lui-même —
+ * exactement ce que le §4.6 refuse pour A₂. Il est donc MESURÉ.
+ *
+ * Protocole (2026-09-08, 7 cas connus, préréglage « moyen ») : différentiel
+ * ENTRELACÉ témoin/observé × 7, estimateur minimum, PLUS un chronométrage
+ * direct de `releverPreparation().observateur` — la fonction de production du
+ * harnais elle-même, jamais une copie — sur les vrais `bySlot` capturés,
+ * 300 passages, boucle témoin déduite, puits lu pour que le JIT ne supprime
+ * rien.
+ *
+ * ⚠️ Le chronométrage direct rejoue le même tableau 300 fois, caches chauds :
+ * c'est donc plutôt une SOUS-estimation. Il reste vingt fois sous le plancher
+ * de bruit, ce qui explique pourquoi le différentiel ne le voit pas — et un
+ * écart négatif y est la PREUVE qu'on mesure sous le plancher, jamais la
+ * démonstration d'un coût nul.
+ */
+const PERIMETRE_PREPARATION =
+  '⚠️ PÉRIMÈTRE DE `preparation` : cette fenêtre enclot l’observateur `onStage` du harnais (un `Set` ' +
+  'd’identifiants et les longueurs par emplacement, à chacun des 4 étages), qui n’existe PAS en production — ' +
+  'ce n’est donc pas un temps de `prepareSearch` pur. MESURÉ sur les 7 cas connus : 312 à 573 µs par ' +
+  'préparation, soit 0,20 % à 0,40 % du temps rendu ici (~46 à 71 ns par rune observée). Le différentiel ' +
+  'entrelacé ne le voit pas (écarts −0,6 % à +2,2 % pour des planchers de bruit de 5,0 % à 10,8 %), et c’est ' +
+  'cohérent : 0,3 % est vingt fois sous le plancher. L’écart est donc BORNÉ et CONNU, pas nul.';
+
 function agregerTemps(passages: Passage[], arretApres: ArretApres, construite: boolean): TempsParPhase {
   const apparie = arretApres === 'appariement' || arretApres === 'classement';
   return {
     preparation: serie(passages.map((p) => p.msPreparation)),
+    perimetrePreparation: PERIMETRE_PREPARATION,
     ...(construite
       ? {
           demiBuilds: serie(passages.map((p) => p.msDemiBuilds)),

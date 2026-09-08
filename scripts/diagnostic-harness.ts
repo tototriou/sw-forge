@@ -581,6 +581,10 @@ function rendreResultat(r: ResultatHarnais): string {
       );
       if (s.avertissement) l.push(`    ${s.avertissement}`);
     }
+    // ⚠️ Collé à la série qu'il qualifie, jamais relégué en bas du bloc : la
+    // fenêtre `preparation` enclot l'observateur du harnais, et son coût est
+    // MESURÉ (§5.3) — même doctrine que `coutInstrumentation` pour A₂.
+    l.push(`  ${r.temps.perimetrePreparation}`);
     l.push(`  ⚠️ ${r.fidelite.noteNavigateur}`);
     l.push('', `  ${r.temps.avertissementComparaison}`);
   }

@@ -170,6 +170,19 @@ export default async function testDiagnosticHarness() {
     'sur un arrêt de préparation, le TOTAL vaut la préparation — exact, pas une approximation'
   );
 
+  // ⚠️ Le PÉRIMÈTRE de la fenêtre `preparation` part avec elle, chiffré. Sans
+  // ce texte, `temps.preparation` se relit comme un `prepareSearch` pur, ce
+  // qu'il n'est pas : le harnais observe la préparation étage par étage et ce
+  // travail tombe DANS son chronomètre. Le dire sans le chiffrer aurait laissé
+  // le lecteur estimer l'écart — ce que le §4.6 refuse déjà pour A₂.
+  const perimetre = arretFilterslot.temps!.perimetrePreparation;
+  ok(perimetre.includes('onStage'), 'la fenêtre `preparation` dit ce qu’elle enclot EN PLUS de la production');
+  ok(perimetre.includes('MESURÉ') && perimetre.includes('%'), 'et l’écart est CHIFFRÉ, jamais laissé à l’estimation du lecteur');
+  ok(
+    perimetre.includes('pas nul') || perimetre.includes('BORNÉ'),
+    'sans jamais conclure « coût nul » : un écart sous le plancher de bruit n’est pas un écart démontré nul'
+  );
+
   ok(arretDemiBuilds.temps!.demiBuilds != null, 'un arrêt après la construction rend bien, lui, le temps des demi-builds');
   ok(arretDemiBuilds.temps!.appariement == null, 'mais toujours pas celui de l’appariement, qui n’a pas eu lieu');
 

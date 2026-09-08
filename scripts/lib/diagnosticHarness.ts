@@ -77,6 +77,7 @@ import {
   RetentionConstruction,
   RetentionMoitie,
   SerieTemps,
+  TempsParPhase,
   TaillesParEtage,
   TraceSurvie,
 } from './diagnosticTypes';
@@ -237,10 +238,24 @@ export async function executerHarnaisResolu(
       totalPairs: 0,
       configurationInvalide: causeConfigurationInvalide(resolue.params, dernier.taillesParEtage),
     };
+    // ⚠️ La préparation a bel et bien TOURNÉ, et son temps est mesuré : le
+    // jeter ici recréerait le défaut corrigé juste en dessous, à un second
+    // endroit. Une configuration invalide n'est pas une raison de taire ce
+    // qu'elle a coûté.
+    resultat.temps = agregerTemps(passages, arretApres, false);
     return resultat;
   }
 
-  if (estEtagePreparation(arretApres)) return resultat;
+  // ⚠️ **Les temps sont rendus AUSSI sur un arrêt DANS la préparation.** Ce
+  // retour tombait auparavant AVANT l'agrégation : le harnais mesurait la
+  // préparation — N fois si `--repetitions` le demandait — puis JETAIT les N
+  // relevés. `--arret=filterslot`, qui est le point d'arrêt naturel de la
+  // question « que produit la préparation, et à quel prix ? », ne répondait
+  // qu'à la première moitié.
+  if (estEtagePreparation(arretApres)) {
+    resultat.temps = agregerTemps(passages, arretApres, false);
+    return resultat;
+  }
 
   const combosA = dernier.bucketsA!.reduce((s, b) => s + b.combos.length, 0);
   const combosB = dernier.bucketsB!.reduce((s, b) => s + b.combos.length, 0);
@@ -295,7 +310,7 @@ export async function executerHarnaisResolu(
           ? `totalPairs ≥ seuil → PARALLÈLE (4 workers), comme la production pour ce cas`
           : `totalPairs < seuil → SÉQUENTIEL, comme la production pour ce cas`,
   };
-  resultat.temps = agregerTemps(passages);
+  resultat.temps = agregerTemps(passages, arretApres, true);
 
   if (arretApres === 'demi-builds') return resultat;
 
@@ -999,19 +1014,36 @@ export function serie(valeurs: number[]): SerieTemps {
   };
 }
 
-function agregerTemps(passages: Passage[]) {
+/**
+ * ⚠️ **Seules les phases qui ont RÉELLEMENT tourné sont agrégées.** Un arrêt
+ * dans la préparation mesure la préparation (N fois si `--repetitions` le
+ * demande) et rien d'autre : rendre `demiBuilds`/`appariement` en séries à
+ * zéro ferait lire « la construction a coûté 0 ms » à un lecteur de `--json`,
+ * sur un run qui n'a rien construit. `undefined` dit « pas exécutée ».
+ *
+ * ⚠️ `total` est TOUJOURS rendu et vaut ce qui a tourné — sur un arrêt de
+ * préparation il est donc égal à `preparation`, ce qui est exact et non une
+ * approximation.
+ */
+function agregerTemps(passages: Passage[], arretApres: ArretApres, construite: boolean): TempsParPhase {
+  const apparie = arretApres === 'appariement' || arretApres === 'classement';
   return {
     preparation: serie(passages.map((p) => p.msPreparation)),
-    demiBuilds: serie(passages.map((p) => p.msDemiBuilds)),
-    // ⚠️ Le coût INTERNE de chaque fil, à côté du temps réel de la phase :
-    // c'est le seul moyen de voir le DÉSÉQUILIBRE entre moitiés. Paralléliser
-    // ne fait jamais mieux que le fil le plus lent — un cas où A coûte 5,5 s
-    // et B 2,9 s (Lushen d15, baseline) ne gagne pas ×2, il gagne ce que
-    // porte la moitié la plus légère. Sans ces deux nombres, une phase de
-    // construction « lente malgré la parallélisation » reste inexplicable.
-    demiBuildA: serie(passages.map((p) => p.msDemiBuildA ?? 0)),
-    demiBuildB: serie(passages.map((p) => p.msDemiBuildB ?? 0)),
-    appariement: serie(passages.map((p) => p.msAppariement)),
+    ...(construite
+      ? {
+          demiBuilds: serie(passages.map((p) => p.msDemiBuilds)),
+          // ⚠️ Le coût INTERNE de chaque fil, à côté du temps réel de la
+          // phase : c'est le seul moyen de voir le DÉSÉQUILIBRE entre
+          // moitiés. Paralléliser ne fait jamais mieux que le fil le plus
+          // lent — un cas où A coûte 5,5 s et B 2,9 s (Lushen d15, baseline)
+          // ne gagne pas ×2, il gagne ce que porte la moitié la plus légère.
+          // Sans ces deux nombres, une phase de construction « lente malgré
+          // la parallélisation » reste inexplicable.
+          demiBuildA: serie(passages.map((p) => p.msDemiBuildA ?? 0)),
+          demiBuildB: serie(passages.map((p) => p.msDemiBuildB ?? 0)),
+        }
+      : {}),
+    ...(apparie ? { appariement: serie(passages.map((p) => p.msAppariement)) } : {}),
     total: serie(passages.map((p) => p.msTotal)),
     avertissementComparaison:
       '⚠️ COMPARER DEUX CONFIGURATIONS : ne pas lancer deux runs séparés et soustraire. ' +

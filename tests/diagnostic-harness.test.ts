@@ -149,6 +149,30 @@ export default async function testDiagnosticHarness() {
   const arretDemiBuilds = await executerHarnais(configSynthetique({ arretApres: 'demi-builds' }));
   ok(arretDemiBuilds.demiBuilds != null, 'arrêt après les demi-builds : les deux moitiés sont là');
 
+  /* ── Les temps SUIVENT le point d'arrêt ────────────────────────────────
+   *
+   * ⚠️ Le harnais rendait `temps` en bloc ou pas du tout, et le retour
+   * anticipé d'un arrêt de préparation tombait AVANT l'agrégation : il
+   * mesurait la préparation — N fois si `--repetitions` le demandait — puis
+   * JETAIT les N relevés. Le nombre existait, il était simplement perdu. */
+  const arretFilterslot = await executerHarnais(configSynthetique({ arretApres: 'filterslot', repetitions: 2 }));
+  ok(arretFilterslot.temps != null, 'un arrêt DANS la préparation rend quand même ses temps');
+  egal(arretFilterslot.temps!.preparation.repetitions, 2, 'et les répétitions demandées y sont honorées, plus jetées');
+  // ⚠️ ABSENTES, jamais des séries à ZÉRO : un lecteur de `--json` lirait
+  // « la construction a coûté 0 ms » sur un run qui n'a rien construit —
+  // un silence remplacé par un mensonge.
+  ok(arretFilterslot.temps!.demiBuilds == null, 'les phases qui n’ont PAS tourné sont absentes, jamais à zéro');
+  ok(arretFilterslot.temps!.demiBuildA == null && arretFilterslot.temps!.demiBuildB == null, 'y compris le coût par fil');
+  ok(arretFilterslot.temps!.appariement == null, 'et l’appariement, qui n’a pas eu lieu non plus');
+  egal(
+    arretFilterslot.temps!.total.min,
+    arretFilterslot.temps!.preparation.min,
+    'sur un arrêt de préparation, le TOTAL vaut la préparation — exact, pas une approximation'
+  );
+
+  ok(arretDemiBuilds.temps!.demiBuilds != null, 'un arrêt après la construction rend bien, lui, le temps des demi-builds');
+  ok(arretDemiBuilds.temps!.appariement == null, 'mais toujours pas celui de l’appariement, qui n’a pas eu lieu');
+
   /* ── §4.1 : le taux de rétention de la CONSTRUCTION (A₁) ───────────── */
   {
     const ret = arretDemiBuilds.demiBuilds!.retention;

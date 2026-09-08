@@ -464,10 +464,11 @@ export function rendreRecapLot(lot: ResultatLot): string {
     if (avecTemps) cellules.push((r.temps ? ms(r.temps.preparation.min) : '—').padStart(12));
     if (avecDemiBuilds) {
       const d = r.demiBuilds;
+      const t = r.temps;
       cellules.push(
-        (r.temps && d ? ms(r.temps.demiBuilds.min) : '—').padStart(13),
-        (r.temps && d ? ms(r.temps.demiBuildA.min) : '—').padStart(10),
-        (r.temps && d ? ms(r.temps.demiBuildB.min) : '—').padStart(10),
+        (t?.demiBuilds ? ms(t.demiBuilds.min) : '—').padStart(13),
+        (t?.demiBuildA ? ms(t.demiBuildA.min) : '—').padStart(10),
+        (t?.demiBuildB ? ms(t.demiBuildB.min) : '—').padStart(10),
         (d ? `${(d.retention.A.taux * 100).toPrecision(3)} / ${(d.retention.B.taux * 100).toPrecision(3)} %` : '—').padStart(17)
       );
     }

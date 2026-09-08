@@ -358,22 +358,44 @@ export interface SerieTemps {
  * présenté comme la durée du run.
  */
 export interface TempsParPhase {
+  /**
+   * ⚠️ **Toujours présente**, y compris sur un arrêt situé DANS la
+   * préparation et sur une configuration invalide : la préparation est la
+   * seule phase qui tourne dans TOUS les cas.
+   */
   preparation: SerieTemps;
   /**
    * Le temps RÉEL de la phase de construction — les deux moitiés étant
    * bâties EN PARALLÈLE sur deux fils, comme en production. C'est donc le
    * plus lent des deux, pas leur somme.
+   *
+   * ⚠️ **ABSENT quand la phase n'a pas tourné**, jamais une série à zéro.
+   * Le harnais rendait auparavant `temps` en bloc ou pas du tout : un arrêt
+   * dans la préparation mesurait la préparation N fois puis JETAIT les N
+   * relevés. Les rendre en remplissant les autres phases de zéros aurait
+   * remplacé un silence par un mensonge — un lecteur de `--json` aurait lu
+   * « la construction a coûté 0 ms » sur un run qui n'a rien construit.
+   * D'où l'optionalité : `undefined` dit « pas exécutée », et `tsc` force
+   * chaque lecteur à en tenir compte.
    */
-  demiBuilds: SerieTemps;
+  demiBuilds?: SerieTemps;
   /**
    * Le coût interne de chaque fil. ⚠️ Sans eux, une construction « lente
    * malgré la parallélisation » est inexplicable : paralléliser ne fait
    * jamais mieux que la moitié la plus lourde, et le déséquilibre A/B est
    * réel (5,5 s contre 2,9 s sur un cas de la baseline).
+   *
+   * ⚠️ Absents avec `demiBuilds`, pour la même raison.
    */
-  demiBuildA: SerieTemps;
-  demiBuildB: SerieTemps;
-  appariement: SerieTemps;
+  demiBuildA?: SerieTemps;
+  demiBuildB?: SerieTemps;
+  /** ⚠️ Absent si l'arrêt a eu lieu avant l'appariement. */
+  appariement?: SerieTemps;
+  /**
+   * ⚠️ **Toujours présent**, et il vaut ce qui a RÉELLEMENT tourné : sur un
+   * arrêt de préparation, il est donc égal à `preparation`. Ce n'est pas une
+   * approximation — c'est exactement le temps du run tel qu'il a été demandé.
+   */
   total: SerieTemps;
   /**
    * ⚠️ **Le garde-fou du niveau 2** (§6.4 bis). Le harnais sait répéter UNE

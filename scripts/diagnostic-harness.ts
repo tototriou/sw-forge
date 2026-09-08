@@ -571,6 +571,10 @@ function rendreResultat(r: ResultatHarnais): string {
     const phases = ['preparation', 'demiBuilds', 'demiBuildA', 'demiBuildB', 'appariement', 'total'] as const;
     for (const nom of phases) {
       const s = r.temps[nom];
+      // ⚠️ Une phase ABSENTE n'a pas tourné (arrêt avant elle) — on ne
+      // l'affiche pas plutôt que d'écrire « 0 ms », qui se lirait comme une
+      // phase instantanée au lieu d'une phase jamais exécutée.
+      if (s == null) continue;
       l.push(
         `  ${nom.padEnd(12)} min ${ms(s.min).padStart(10)}   médiane ${ms(s.mediane).padStart(10)}   ` +
           `dispersion ${s.dispersionPct.toFixed(1)} %   (${s.repetitions} rép.)`

@@ -37,6 +37,18 @@
 // est comparable : un cas réel tronque par le TEMPS, ce qui rend
 // NON_COMPARABLES le verdict, la population et le classement.
 //
+// Usage — DIFFÉRENTIEL entrelacé (§5.2 bis des extensions, piste 11c) :
+//   diagnostic-harness.ts --profil=<nom> --differentiel=<axe>:<témoin>,<comparé>
+//                         [--repetitions=<n>] [--arret=…]
+//   ex. --profil=complet-sensible --differentiel=bucketCap:6000,500
+// ⚠️ DEUX bras du MÊME cas, exécutés en ALTERNANCE (témoin, comparé, témoin,
+// comparé…) — jamais en blocs, dont le biais se REPRODUIT. C'est l'INVERSE de
+// `--cas` : un lot fait varier le CAS, un différentiel fait varier la
+// CONDITION ; les deux modes s'excluent.
+// ⚠️ Il exige un PROFIL : sur un cas réel la recherche tronque par le TEMPS,
+// ce qui rend NON_COMPARABLES le verdict, la population, le classement et le
+// near-miss — un différentiel y serait payé pour rien.
+//
 // Usage — LOT sur les cas connus de `perfShared.ts` (§5.3 des extensions) :
 //   diagnostic-harness.ts --cas=tous          les 7 cas, l'un après l'autre
 //   diagnostic-harness.ts --cas=3             par indice
@@ -83,7 +95,14 @@ import {
   verifierComptesDisponibles,
 } from './lib/diagnosticLot';
 import { SETS_JOKER, SETS_SANS_JOKER, SETS_VARIES } from './lib/randomPool';
-import { configDuProfil, rendreProfils, trouverProfil } from './lib/diagnosticProfils';
+import { ProfilSynthetique, configDuProfil, rendreProfils, trouverProfil } from './lib/diagnosticProfils';
+import {
+  AxeDifferentiel,
+  ValeurAxe,
+  annoncerDifferentiel,
+  executerDifferentiel,
+  rendreDifferentiel,
+} from './lib/diagnosticDifferentiel';
 import {
   ArretApres,
   ConfigHarnais,
@@ -201,6 +220,67 @@ function lireStats(nom: string): Partial<Record<StatKey, number>> {
     out[cle as StatKey] = n;
   }
   return out;
+}
+
+/**
+ * `--differentiel=<axe>:<témoin>,<comparé>` — piste 11c.
+ *
+ * ⚠️ **La table est un `Record` sur `AxeDifferentiel`, pas une liste** : si
+ * un override est ajouté à `OverridesHarnais`, `tsc` refuse de compiler tant
+ * que personne n'a dit COMMENT le lire. C'est la propagation par
+ * construction, pas par vigilance — exactement ce que la consigne « un type
+ * partagé a plusieurs constructeurs » demande.
+ *
+ * ⚠️ Et chaque valeur est lue avec la MÊME sévérité que son option
+ * homonyme : « aucun repli silencieux » (§4.4 règle 4) ne s'affaiblit pas
+ * parce que la valeur arrive par un autre argument.
+ */
+const LECTEURS_AXE: Record<AxeDifferentiel, (brut: string, axe: string) => ValeurAxe> = {
+  bucketCap: (v, axe) => entierBorne(v, axe, 1),
+  slotFilterCap: (v, axe) => entierBorne(v, axe, 1),
+  maxCollected: (v, axe) => entierBorne(v, axe, 1),
+  maxMs: (v, axe) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) refuser(`--differentiel : ${axe} attend un nombre strictement positif — reçu « ${v} ».`);
+    return n;
+  },
+  combosOrderMode: (v, axe) => {
+    if (!(COMBOS as string[]).includes(v)) refuser(`--differentiel : ${axe} attend ${COMBOS.join(' | ')} — reçu « ${v} ».`);
+    return v as NonNullable<OverridesHarnais['combosOrderMode']>;
+  },
+  regime: (v, axe) => {
+    if (!(REGIMES as string[]).includes(v)) refuser(`--differentiel : ${axe} attend ${REGIMES.join(' | ')} — reçu « ${v} ».`);
+    return v as RegimeAppariement;
+  },
+};
+
+function entierBorne(brut: string, axe: string, min: number): number {
+  const n = Number(brut);
+  if (!Number.isInteger(n) || n < min) refuser(`--differentiel : ${axe} attend un entier ≥ ${min} — reçu « ${brut} ».`);
+  return n;
+}
+
+const AXES = Object.keys(LECTEURS_AXE) as AxeDifferentiel[];
+
+function lireDifferentiel(brut: string): { axe: AxeDifferentiel; temoin: ValeurAxe; compare: ValeurAxe } {
+  const sep = brut.indexOf(':');
+  if (sep < 0) refuser(`--differentiel : format « <axe>:<témoin>,<comparé> » — reçu « ${brut} ». Axes : ${AXES.join(' | ')}.`);
+  const axe = brut.slice(0, sep) as AxeDifferentiel;
+  if (!AXES.includes(axe)) refuser(`--differentiel : axe inconnu « ${axe} » — attendu ${AXES.join(' | ')}.`);
+  const valeurs = brut.slice(sep + 1).split(',');
+  if (valeurs.length !== 2) {
+    refuser(`--differentiel : DEUX valeurs séparées par une virgule (témoin, comparé) — reçu « ${brut.slice(sep + 1)} ».`);
+  }
+  const lire = LECTEURS_AXE[axe];
+  const temoin = lire(valeurs[0].trim(), axe);
+  const compare = lire(valeurs[1].trim(), axe);
+  // ⚠️ Deux bras identiques ne comparent RIEN — et rendraient « aucune
+  // divergence » avec l'autorité d'un résultat, ce que tout ce chantier
+  // existe pour empêcher. Refus, jamais un run payé pour rien.
+  if (temoin === compare) {
+    refuser(`--differentiel : le témoin et le comparé valent tous deux « ${temoin} » — il n’y a rien à comparer.`);
+  }
+  return { axe, temoin, compare };
 }
 
 /**
@@ -796,6 +876,83 @@ async function mainLot(brut: string): Promise<void> {
   console.log(rendreRecapLot(lot));
 }
 
+/**
+ * Le DIFFÉRENTIEL — §5.2 bis, piste 11c. ⚠️ **L'inverse exact du lot** : il
+ * garde le CAS constant et fait varier la CONDITION, là où le lot garde la
+ * condition et fait varier le cas. D'où deux modes qui s'excluent, et deux
+ * avertissements distincts — « si la sortie ne dit pas laquelle des deux
+ * lectures elle autorise, elle sera lue comme autorisant l'autre ».
+ */
+async function mainDifferentiel(brut: string): Promise<void> {
+  // ⚠️ Les sources s'EXCLUENT, sans préséance silencieuse — même règle que
+  // `--cas` et `--profil`.
+  if (valeur('cas') != null) {
+    refuser(
+      '--differentiel et --cas s’excluent : un LOT fait varier le CAS en gardant la condition constante, ' +
+        'un DIFFÉRENTIEL fait varier la CONDITION en gardant le cas constant. Les combiner ferait varier les deux.'
+    );
+  }
+  if (drapeau('synthetique') || valeur('compte') != null || valeur('recette') != null) {
+    refuser('--differentiel exige --profil : il ne se combine ni avec --synthetique, ni avec --compte/--recette.');
+  }
+  const nomProfil = valeur('profil');
+  if (nomProfil == null) {
+    // ⚠️ Le refus NOMME la raison : sur un cas réel la recherche tronque, et
+    // elle tronque par le TEMPS — l'instant de coupe y varie de 3,65 % à 32 %
+    // d'un run à l'autre, ce qui rend NON_COMPARABLES le verdict, la
+    // population, le classement et le near-miss. Un différentiel y serait un
+    // run payé pour rien, pas un diagnostic moins précis.
+    refuser(
+      '--differentiel exige --profil=<nom> (voir --profils).\n' +
+        'Raison : un profil est la SEULE configuration où l’oracle est comparable. Un cas réel tronque par le ' +
+        'TEMPS, ce qui rend NON_COMPARABLES le verdict, la population, le classement et le near-miss — la ' +
+        'vitesse n’est pas le critère, la NATURE de la troncature l’est.'
+    );
+  }
+  let profil: ProfilSynthetique;
+  try {
+    profil = trouverProfil(nomProfil);
+  } catch (e) {
+    refuser(e instanceof Error ? e.message : String(e));
+  }
+  const { axe, temoin, compare } = lireDifferentiel(brut);
+  // ⚠️ **Refus EN AMONT, avant de payer deux runs** : sans `objective`, les
+  // modes `objective` et `combined` REPLIENT sur `relevanceScore` (tri de
+  // `buildBuckets`), donc les quatre valeurs de `combosOrderMode` rendent le
+  // même résultat — mesuré par 11b. Ce n'est pas une insensibilité du profil,
+  // c'est une inertie PROUVÉE par le code du moteur : la refuser vaut mieux
+  // que de la mesurer.
+  if (axe === 'combosOrderMode' && profil.source.objective == null) {
+    refuser(
+      `--differentiel : l’axe combosOrderMode est INERTE sur « ${profil.nom} », qui ne porte pas d’objective. ` +
+        'Les modes `objective` et `combined` replient sur `relevanceScore` faute d’objectif choisi : les quatre ' +
+        'valeurs rendent le même résultat. Un profil PORTANT un objectif est nécessaire — le TYPE l’expose ' +
+        '(`SourceHarnais.synthetique.objective`), le CLI non.'
+    );
+  }
+  // ⚠️ Un profil porte SA cible : `--suivre` la remplacerait, et les grandeurs
+  // mesurées ne décriraient plus le build suivi. Même refus que `--profil`.
+  if (valeur('suivre') != null) {
+    refuser(`--profil=${profil.nom} porte déjà son build cible : --suivre le remplacerait dans les DEUX bras.`);
+  }
+
+  const commun = construireCommun();
+  // ⚠️ Le coût se dit AVANT d'être payé — et `2N` recherches, c'est le double
+  // d'un lot d'un cas.
+  if (!drapeau('json')) console.log(annoncerDifferentiel(profil, axe, temoin, compare, commun));
+  if (drapeau('apercu')) {
+    if (!drapeau('json')) console.log('\n(--apercu : rien n’a été exécuté.)');
+    return;
+  }
+
+  const resultat = await executerDifferentiel(profil, axe, temoin, compare, commun);
+  if (drapeau('json')) {
+    console.log(JSON.stringify(resultat, (_, v) => (v instanceof Set ? [...v] : v), 2));
+    return;
+  }
+  console.log(rendreDifferentiel(resultat));
+}
+
 async function main() {
   // ⚠️ Avant tout le reste : `--profils` n'exécute RIEN, il dit ce qui
   // existe et ce que chaque profil promet — c'est la même intention que
@@ -804,6 +961,9 @@ async function main() {
     console.log(rendreProfils());
     return;
   }
+
+  const brutDifferentiel = valeur('differentiel');
+  if (brutDifferentiel != null) return mainDifferentiel(brutDifferentiel);
 
   const brutCas = valeur('cas');
   if (brutCas != null) return mainLot(brutCas);

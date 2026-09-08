@@ -93,6 +93,8 @@ import {
   TempsParPhase,
   TaillesParEtage,
   TraceSurvie,
+  Verdict,
+  VerdictBuildCible,
 } from './diagnosticTypes';
 
 /**
@@ -184,6 +186,23 @@ export interface OptionsHarnais {
  * le rend identique, mais le défaut conceptuel était le même.
  */
 export async function executerHarnaisResolu(
+  resolue: ConfigResolue,
+  options: OptionsHarnais = {}
+): Promise<ResultatHarnais> {
+  const resultat = await deroulerHarnais(resolue, options);
+  // ⚠️ **Le verdict est assemblé à UN SEUL endroit, après TOUS les points
+  // d'arrêt.** Le calculer à chaque retour anticipé aurait multiplié les
+  // versions d'un raisonnement qui doit rester unique — et un arrêt qui
+  // l'oublierait ne se verrait pas. Il ne calcule rien : il ORDONNE les
+  // étages déjà observés, et rend `NON_OBSERVABLE` partout où l'observation
+  // s'est arrêtée avant la réponse.
+  if ((options.suivre ?? []).length === 6) {
+    resultat.verdictBuildCible = verdictBuildCible(resultat, options.suivre!, resolue);
+  }
+  return resultat;
+}
+
+async function deroulerHarnais(
   resolue: ConfigResolue,
   options: OptionsHarnais = {}
 ): Promise<ResultatHarnais> {
@@ -1254,6 +1273,216 @@ export function admissibiliteBuild(runeIds: number[], params: SearchParams): Adm
   }
 
   return { runeIds, admissible: motifs.length === 0, parRune, structure, sets, motifs };
+}
+
+/* --------------------------------------------------------------------------
+ * LE VERDICT du build cible — §5.1 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * L'ÉTAT FACTUEL de la complétude — motif, `explored / totalPairs`,
+ * incohérence. ⚠️ **Il part avec CHAQUE verdict, sans exception et sans
+ * condition** : c'est la moitié non négociable du garde-fou du §5.1.
+ *
+ * ⚠️ La CONSÉQUENCE, elle, n'est pas ici : elle dépend du verdict rendu, et
+ * chaque branche écrit la sienne (voir `Divergence.consequence`). Une phrase
+ * unique du genre « la cible n'est peut-être pas absente » collée sous un
+ * verdict `PRÉSENT_DANS_LE_TOP_N` se lirait de travers — et un avertissement
+ * qu'on lit de travers finit par ne plus être lu du tout. Constaté sur la
+ * sortie réelle avant d'être corrigé ici.
+ */
+function etatCompletude(completude: Completude | null): string {
+  if (completude == null) {
+    return '⚠️ Aucune phase d’appariement n’a tourné (arrêt précoce) : ce run ne dit RIEN sur la présence ou l’absence de la cible dans le résultat.';
+  }
+  const compte = `explored ${completude.explored.toLocaleString('fr-FR')} / totalPairs ${completude.totalPairs.toLocaleString('fr-FR')}`;
+  if (completude.configurationInvalide) return `⚠️ Configuration INVALIDE (${compte}) : la recherche n’a jamais eu lieu.`;
+  if (completude.incoherence) {
+    return `⚠️ Run INCOHÉRENT (${compte}) — annoncé complet sans avoir parcouru tout l’espace, motif NON déductible.`;
+  }
+  if (!completude.complet) return `⚠️ Run TRONQUÉ (motif : ${completude.motif}, ${compte}).`;
+  return `✅ Run COMPLET (${compte}) : tout l’espace a été parcouru.`;
+}
+
+/**
+ * Un point de divergence : le verdict, ce qui s'est passé, et ⚠️ **ce que la
+ * complétude autorise à en conclure DANS CE CAS-LÀ**. La `consequence` est
+ * écrite par la branche qui connaît sa propre situation — une paire coupée
+ * par un élagage SÛR ne craint pas la troncature, une cible absente d'un run
+ * tronqué ne prouve rien du tout, et une cible trouvée garde un rang relatif
+ * aux seuls candidats collectés.
+ */
+interface Divergence {
+  verdict: Verdict;
+  explication: string;
+  consequence: string;
+}
+
+/** Pour tout verdict qui se joue AVANT la phase d'appariement. */
+const AVANT_APPARIEMENT =
+  'Ce verdict se joue AVANT la phase d’appariement : la troncature n’y change rien, quel que soit l’état ci-dessus.';
+
+/**
+ * Le PREMIER POINT DE DIVERGENCE, jamais le constat de l'absence finale.
+ *
+ * ⚠️ **Cette fonction ne calcule RIEN** : elle ORDONNE les étages déjà
+ * observés (admissibilité, survie des runes, présence dans les compartiments,
+ * paire, rang) et rend `NON_OBSERVABLE` partout où l'observation s'est
+ * arrêtée avant la réponse. C'est ce qui garantit qu'elle ne peut pas
+ * FABRIQUER une cause : elle n'a accès à aucune information que les étages
+ * n'aient déjà établie.
+ *
+ * ⚠️ L'ordre des tests EST le verdict. L'étage 0 passe avant tout le reste —
+ * sans quoi une absence causée par l'ENTRÉE serait imputée à l'élagage.
+ */
+function verdictBuildCible(resultat: ResultatHarnais, ids: number[], resolue: ConfigResolue): VerdictBuildCible {
+  const completude = resultat.completude ?? null;
+  const d = divergence(resultat, ids, resolue, completude);
+  return {
+    runeIds: ids,
+    verdict: d.verdict,
+    explication: d.explication,
+    // ⚠️ COPIE de la complétude DANS le verdict : un lecteur de `--json` qui
+    // extrait le seul champ `verdictBuildCible` doit emporter la troncature
+    // avec lui, sinon cette fonctionnalité recrée l'erreur qu'elle existe
+    // pour empêcher.
+    completude,
+    avertissementTroncature: `${etatCompletude(completude)} ${d.consequence}`,
+  };
+}
+
+function divergence(
+  resultat: ResultatHarnais,
+  ids: number[],
+  resolue: ConfigResolue,
+  completude: Completude | null
+): Divergence {
+  // ── ÉTAGE 0 : l'entrée, AVANT toute accusation d'élagage.
+  const adm = resultat.admissibiliteBuildCible!;
+  if (!adm.admissible) {
+    return {
+      verdict: 'ENTRÉE_INADMISSIBLE',
+      explication: `le build ne peut pas être une réponse de cette recherche : ${adm.motifs.join(' · ')}`,
+      consequence:
+        'La cause est dans l’ENTRÉE, pas dans le moteur : aucune troncature, aucun réglage d’élagage n’y changerait quoi que ce soit.',
+    };
+  }
+
+  // ── Une configuration sans issue n'est pas un verdict sur le build.
+  if (completude?.configurationInvalide) {
+    return {
+      verdict: 'NON_OBSERVABLE',
+      explication:
+        'la configuration ne peut rien produire, la recherche n’a jamais eu lieu — le sort de la cible est ' +
+        `inobservable, et ce n’est PAS une conclusion sur le build. ${completude.configurationInvalide.split('\n')[0]}`,
+      consequence: 'Corriger la configuration avant toute lecture algorithmique de ce run.',
+    };
+  }
+
+  // ── ÉTAGES 1-3 : la survie des runes, moitié par moitié.
+  const disparues = ids
+    .map((id) => ({ id, rune: resolue.poolInitial.find((r) => r.id === id), trace: resultat.suivi.find((s) => s.id === id) }))
+    .filter((e) => e.trace?.premiereDisparition != null);
+  if (disparues.length > 0) {
+    const detail = (e: (typeof disparues)[number]) =>
+      `#${e.id} (emplacement ${e.rune?.slot}) à l’étage ${e.trace!.premiereDisparition!.etage} ` +
+      `[${e.trace!.premiereDisparition!.nature}]`;
+    // ⚠️ La moitié A est nommée en premier quand les deux ont perdu une rune,
+    // mais l'explication LISTE les deux : les deux moitiés se construisent en
+    // parallèle, il n'y a aucune antériorité réelle entre elles.
+    const cote: 'A' | 'B' = disparues.some((e) => (e.rune?.slot ?? 9) <= 3) ? 'A' : 'B';
+    return {
+      verdict: cote === 'A' ? 'MOITIÉ_A_ÉCARTÉE' : 'MOITIÉ_B_ÉCARTÉE',
+      explication:
+        `${disparues.length} rune(s) de la cible n’ont pas survécu à la préparation : ${disparues.map(detail).join(', ')}. ` +
+        `⚠️ La NATURE de l’étage décide de ce que ça signifie : ${disparues[0].trace!.premiereDisparition!.signification}`,
+      consequence: AVANT_APPARIEMENT,
+    };
+  }
+
+  // ── Au-delà, il faut que la construction ait tourné.
+  if (resultat.detailDemiBuilds == null) {
+    return {
+      verdict: 'NON_OBSERVABLE',
+      explication:
+        'les six runes survivent à toute la préparation OBSERVÉE, mais la construction des demi-builds n’a pas ' +
+        'tourné (arrêt anticipé) : la suite est inobservable. Relancer sans `--arret`, ou avec `--arret=classement`.',
+      consequence: 'Rien ne peut être imputé au moteur tant que la recherche n’est pas allée jusqu’au bout.',
+    };
+  }
+  const absents = resultat.detailDemiBuilds.filter((d) => d.absent != null);
+  if (absents.length > 0) {
+    return {
+      verdict: 'ABSENT_DES_COMPARTIMENTS',
+      explication:
+        `les six runes survivent à la préparation, mais le demi-build ${absents.map((d) => d.moitie).join(' et ')} ` +
+        'n’est dans AUCUN compartiment retenu : il a été coupé par `bucketCap` pendant la construction. ' +
+        '⚠️ C’est une rétention HEURISTIQUE, pas un élagage prouvé — relancer avec un `--bucketCap` plus haut le dirait.',
+      consequence: AVANT_APPARIEMENT,
+    };
+  }
+
+  // ── ÉTAGES 4-5 : la paire, puis le rang.
+  const ap = resultat.appariementBuildCible;
+  if (ap == null || ap.arreteA == null) {
+    return {
+      verdict: 'NON_OBSERVABLE',
+      explication:
+        'les deux demi-builds sont retenus, mais la phase d’appariement n’a pas tourné (arrêt anticipé) : ' +
+        'la suite est inobservable.',
+      consequence: 'Rien ne peut être imputé au moteur tant que l’appariement n’a pas eu lieu.',
+    };
+  }
+  const sain = completude != null && completude.complet;
+  if (ap.rang) {
+    const rg = ap.rang;
+    return {
+      verdict: rg.dansLeTopRendu ? 'PRÉSENT_DANS_LE_TOP_N' : 'PRÉSENT_HORS_TOP_N',
+      explication:
+        `la cible EST dans le résultat, au rang #${rg.rang.toLocaleString('fr-FR')} sur ` +
+        `${rg.population.toLocaleString('fr-FR')} candidat(s) collecté(s)` +
+        (rg.dansLeTopRendu
+          ? `, donc dans les ${rg.tailleTopRendu} rendus.`
+          : `, donc HORS des ${rg.tailleTopRendu} rendus. ⚠️ Elle serait invisible dans un top-N — ` +
+            'exactement la situation où un diagnostic conclut à tort que « le moteur manque le build ».'),
+      consequence: sain
+        ? 'La cible est trouvée, et le rang porte sur la population COMPLÈTE des builds valides.'
+        : '⚠️ La cible est TROUVÉE, donc la troncature ne menace pas ce constat — mais le RANG, lui, est relatif aux ' +
+          'seuls candidats COLLECTÉS : il peut bouger avec un plafond plus haut ou un maxMs plus long.',
+    };
+  }
+  if (ap.arreteA !== 'explorée') {
+    return {
+      verdict: 'PERDUE_À_L_APPARIEMENT',
+      explication: `paire de compartiments écartée à l’étage « ${ap.arreteA} ». ${ap.explication}`,
+      consequence:
+        '⚠️ Cet étage est un élagage SÛR du moteur, appliqué AVANT toute troncature : l’état ci-dessus n’y change ' +
+        'rien, et « perdue » nomme l’ÉTAGE, pas une perte — la paire ne pouvait rien produire.',
+    };
+  }
+  // ── Explorée, et pourtant absente. ⚠️ La déduction n'est SÛRE que sur un
+  // run complet : c'est là que la complétude cesse d'être un ornement.
+  if (sain) {
+    return {
+      verdict: 'PERDUE_À_L_APPARIEMENT',
+      explication:
+        'la paire a été VISITÉE (aucun prédicat d’élagage ne l’écarte) et le run est COMPLET — le moteur a donc ' +
+        'testé ces six runes, et le build a échoué le test conjoint exact : il ne satisfait pas les conditions posées. ' +
+        '⚠️ Ce n’est PAS une perte du moteur. Voir le quasi-succès pour savoir de combien.',
+      consequence:
+        'C’est la complétude qui rend cette déduction possible : sur un run tronqué, la même observation ne dirait rien du tout.',
+    };
+  }
+  return {
+    verdict: 'NON_OBSERVABLE',
+    explication:
+      'la paire aurait été visitée, la cible n’est pas dans les candidats — mais le run n’est pas complet, donc la ' +
+      'boucle a pu s’arrêter AVANT de l’atteindre.',
+    consequence:
+      '⚠️ C’EST EXACTEMENT LE PIÈGE : « la cible n’est pas dans le classement » ne veut pas dire « le moteur ne la ' +
+      'trouve pas ». Attribuer cette absence au moteur serait fabriquer une cause. Relancer avec un plafond plus haut ' +
+      'ou un maxMs plus long, puis relire le verdict.',
+  };
 }
 
 /* --------------------------------------------------------------------------

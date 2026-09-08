@@ -829,6 +829,72 @@ export interface AppariementBuildCible {
 }
 
 /* --------------------------------------------------------------------------
+ * LE VERDICT du build cible — §5.1 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * ⚠️ **Un verdict STRUCTURÉ, jamais un booléen** : on cherche le PREMIER
+ * POINT DE DIVERGENCE, on ne constate jamais l'absence finale. « Le build
+ * n'est pas dans le résultat » est un constat inutilisable ; « la moitié A a
+ * perdu la rune #123 au pré-filtrage » est actionnable.
+ *
+ * ⚠️ **`NON_OBSERVABLE` N'EST PAS UN AVEU DE FAIBLESSE.** C'est la valeur qui
+ * EMPÊCHE le harnais de FABRIQUER une cause quand il n'en connaît pas — même
+ * culture que les limites assumées du §9 du cadrage. La remplacer par une
+ * cause plausible recréerait exactement le défaut que ce chantier corrige.
+ *
+ * ⚠️ **`PERDUE_À_L_APPARIEMENT` dit OÙ, pas si c'est une perte.** Le
+ * vocabulaire est celui du §5.1, et il recouvre deux situations que seule
+ * l'`explication` distingue : une paire écartée par un élagage SÛR (elle ne
+ * pouvait rien produire — ce n'est PAS une perte) et une paire visitée dont
+ * le build a échoué le test conjoint exact (le build ne satisfait pas les
+ * conditions posées — ce n'en est pas une non plus). Le mot « perdue »
+ * nomme l'étage, l'explication dit la vérité.
+ *
+ * ⚠️ `PRÉSENT_DANS_LE_TOP_N` est la valeur que la liste du §5.1 laisse
+ * implicite : sans elle, « trouvé et affiché » et « trouvé mais hors du top »
+ * partageraient une étiquette, ce qui est précisément la confusion que
+ * `PRÉSENT_HORS_TOP_N` existe pour lever.
+ */
+export type Verdict =
+  | 'ENTRÉE_INADMISSIBLE'
+  | 'MOITIÉ_A_ÉCARTÉE'
+  | 'MOITIÉ_B_ÉCARTÉE'
+  | 'ABSENT_DES_COMPARTIMENTS'
+  | 'PERDUE_À_L_APPARIEMENT'
+  | 'PRÉSENT_DANS_LE_TOP_N'
+  | 'PRÉSENT_HORS_TOP_N'
+  | 'NON_OBSERVABLE';
+
+export interface VerdictBuildCible {
+  runeIds: number[];
+  verdict: Verdict;
+  /** Le premier point de divergence, en une phrase autonome. */
+  explication: string;
+  /**
+   * ⚠️ **LA COMPLÉTUDE VOYAGE AVEC LE VERDICT — c'est le point le plus
+   * important de tout le n° 6.** Sur un run TRONQUÉ, « la cible n'est pas
+   * dans le classement » ne veut PAS dire « le moteur ne la trouve pas » :
+   * une troncature par `maxCollected` peut écarter une cible pourtant
+   * explorée, et ce n'est pas `PERDUE_À_L_APPARIEMENT`. Rendre le verdict
+   * seul recréerait l'erreur que cette fonctionnalité existe pour empêcher —
+   * d'où la COPIE ici, et non un renvoi vers `ResultatHarnais.completude` :
+   * un lecteur de `--json` qui extrait le seul champ `verdictBuildCible`
+   * doit emporter la troncature avec lui.
+   *
+   * `null` quand l'appariement n'a pas tourné (arrêt précoce) — le verdict
+   * vaut alors `NON_OBSERVABLE`, et la question ne se pose pas.
+   */
+  completude: Completude | null;
+  /**
+   * ⚠️ **Toujours présent**, et il porte le motif, `explored / totalPairs` et
+   * l'incohérence si elle existe. Il dit en toutes lettres ce qu'une absence
+   * autorise à conclure sur CE run-ci — jamais une formule générique.
+   */
+  avertissementTroncature: string;
+}
+
+/* --------------------------------------------------------------------------
  * Le résultat complet
  * ----------------------------------------------------------------------- */
 
@@ -935,6 +1001,15 @@ export interface ResultatHarnais {
    * question qui ne s'est pas posée, jamais une réponse négative.
    */
   appariementBuildCible?: AppariementBuildCible;
+  /**
+   * LE VERDICT du build cible (§5.1 des extensions) — le premier point de
+   * divergence, avec la complétude qui dit ce qu'on a le droit d'en conclure.
+   *
+   * ⚠️ Assemblé APRÈS tous les points d'arrêt, à partir des étages ci-dessus :
+   * il ne calcule rien, il ORDONNE ce qui a été observé. Un arrêt anticipé
+   * donne `NON_OBSERVABLE`, jamais une cause plausible.
+   */
+  verdictBuildCible?: VerdictBuildCible;
   regime?: { applique: RegimeAppariement; totalPairs: number; seuil: number; force: boolean; explication: string };
   completude?: Completude;
   /**

@@ -768,6 +768,119 @@ export default async function testDiagnosticHarness() {
     );
     ok(!apJoker.presenteDansLesCandidats, 'un build non équipable en jeu n’est évidemment pas dans les candidats');
     ok(apJoker.rang == null, 'et il n’a aucun rang — rien n’est fabriqué pour un build que la recherche n’a pas rendu');
+
+    /* ── §5.1 : LE VERDICT STRUCTURÉ, et il ne se lit JAMAIS sans la
+     * complétude ─────────────────────────────────────────────────────── */
+    const vPresent = avecCible.verdictBuildCible!;
+    egal(vPresent.verdict, 'PRÉSENT_DANS_LE_TOP_N', 'un build trouvé au rang 3 est PRÉSENT_DANS_LE_TOP_N');
+    ok(vPresent.explication.includes('rang'), 'le verdict dit à quel RANG, pas seulement « présent »');
+
+    const vJoker = surJoker.verdictBuildCible!;
+    egal(vJoker.verdict, 'PERDUE_À_L_APPARIEMENT', 'une paire coupée à un étage d’appariement rend PERDUE_À_L_APPARIEMENT');
+    ok(
+      vJoker.explication.includes('joker'),
+      '⚠️ et l’ÉTAGE est nommé — c’est exactement la distinction que les trois exports du §11.2 rendent possible'
+    );
+    ok(
+      vJoker.avertissementTroncature.includes('élagage SÛR'),
+      'la conséquence est celle du verdict rendu : un élagage sûr ne craint pas la troncature'
+    );
+
+    // ⚠️ **LE PIÈGE, VERROUILLÉ.** Le verdict ne doit JAMAIS voyager sans sa
+    // complétude : un lecteur de `--json` qui extrait le seul champ
+    // `verdictBuildCible` doit emporter la troncature avec lui, sinon cette
+    // fonctionnalité recrée l’erreur qu’elle existe pour empêcher.
+    for (const [nom, v] of [['présent', vPresent], ['joker', vJoker]] as const) {
+      ok(v.completude != null, `le verdict « ${nom} » porte sa COMPLÉTUDE, jamais rendu seul`);
+      ok(v.avertissementTroncature.length > 0, `et un avertissement de troncature non vide (« ${nom} »)`);
+      ok(
+        v.avertissementTroncature.includes('explored') && v.avertissementTroncature.includes('totalPairs'),
+        `les chiffres explored / totalPairs partent AVEC le verdict « ${nom} », pas seulement dans une section plus bas`
+      );
+      egal(v.completude!.complet, avecCible.completude!.complet, `et c’est bien la complétude DU RUN (« ${nom} »)`);
+    }
+  }
+
+  /* ── §5.1 : PRÉSENT_HORS_TOP_N sur un run COMPLET — l'incident fondateur
+   *
+   * ⚠️ C'est LE cas que le n° 6 existe pour rendre lisible : la cible sort au
+   * rang 2 915 sur 4 096, donc INVISIBLE dans un top-20. Un diagnostic qui
+   * lirait `candidates[0]` — ou même les vingt premiers — conclurait que « le
+   * moteur manque le build ». Et le run étant COMPLET, aucune troncature ne
+   * peut servir d'excuse : le verdict est un résultat, pas une hypothèse. */
+  {
+    const petit = configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 7,
+        runesParEmplacement: 4,
+        requirement: { sets: [], minStats: { spd: 80 } },
+        slotFilterCap: 40,
+      },
+      suivre: [1, 5, 9, 13, 17, 21],
+    });
+    const r = await executerHarnais(petit);
+    const v = r.verdictBuildCible!;
+    ok(r.completude!.complet, 'le run de référence est COMPLET — c’est ce qui rend le verdict concluant');
+    egal(v.verdict, 'PRÉSENT_HORS_TOP_N', 'une cible trouvée au-delà du top rendu est PRÉSENT_HORS_TOP_N, jamais « absente »');
+    const rang = r.appariementBuildCible!.rang!;
+    ok(!rang.dansLeTopRendu, 'et son rang est bien hors du top rendu');
+    ok(
+      rang.rang > rang.tailleTopRendu && rang.rang < rang.population,
+      'le rang est strictement entre la taille du top et la population — la cible EST là, simplement pas affichée'
+    );
+    ok(
+      v.explication.includes('invisible dans un top-N'),
+      'l’explication NOMME le piège : c’est la situation où un diagnostic conclut à tort à un build manquant'
+    );
+    ok(
+      v.avertissementTroncature.startsWith('✅ Run COMPLET'),
+      'et sur un run complet, la complétude le DIT — le rang porte sur la population entière'
+    );
+
+    // ⚠️ NON_OBSERVABLE n'est pas un aveu de faiblesse : c'est la valeur qui
+    // EMPÊCHE le harnais de fabriquer une cause. Un arrêt avant la
+    // construction ne doit produire aucune autre valeur.
+    const arrete = await executerHarnais({ ...petit, arretApres: 'filterslot' });
+    egal(
+      arrete.verdictBuildCible!.verdict,
+      'NON_OBSERVABLE',
+      'un arrêt avant la construction rend NON_OBSERVABLE — jamais une cause plausible à la place'
+    );
+    ok(
+      arrete.verdictBuildCible!.completude == null,
+      'sans appariement, il n’y a pas de complétude — et rien n’en est inventé'
+    );
+    ok(
+      arrete.verdictBuildCible!.avertissementTroncature.includes('ne dit RIEN'),
+      'l’avertissement le dit en toutes lettres plutôt que de laisser le champ vide'
+    );
+
+    // ⚠️ L'étage 0 passe AVANT tout le reste : un build inadmissible à
+    // l'entrée ne se voit jamais attribuer une cause algorithmique.
+    const inadmissible = await executerHarnais({
+      ...petit,
+      source: {
+        type: 'synthetique',
+        seed: 7,
+        runesParEmplacement: 4,
+        requirement: { sets: ['violent'], minStats: {} },
+        slotFilterCap: 40,
+      },
+    });
+    // ⚠️ Assertion INCONDITIONNELLE : ce build (seed 7, 4 runes/emplacement)
+    // active « fight » et jamais « violent ». Un test sous condition ne
+    // vérifierait rien les jours où la condition est fausse.
+    const vi = inadmissible.verdictBuildCible!;
+    egal(vi.verdict, 'ENTRÉE_INADMISSIBLE', 'l’étage 0 l’emporte sur tous les étages d’élagage');
+    ok(
+      vi.explication.includes('manque violent'),
+      'et il nomme le combo que les six runes n’activent pas — jamais un « inadmissible » nu'
+    );
+    ok(
+      vi.avertissementTroncature.includes('dans l’ENTRÉE, pas dans le moteur'),
+      'la conséquence le dit : aucun réglage d’élagage n’y changerait quoi que ce soit'
+    );
   }
 
   /* ── §4.2 : la provenance du pool figure TOUJOURS dans le résultat ── */

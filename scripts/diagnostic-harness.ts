@@ -329,6 +329,22 @@ const msFin = (n: number) => (n >= 1 ? `${n.toFixed(1)} ms` : `${(n * 1000).toFi
 function rendreResultat(r: ResultatHarnais): string {
   const l: string[] = [];
 
+  // ── LE VERDICT, EN TÊTE — §5.1. ⚠️ Il est imprimé AVANT tout le reste
+  // parce que c'est la réponse à la question posée, et parce qu'un lecteur
+  // pressé lit le haut. ⚠️ Et il est imprimé AVEC sa complétude, dans le même
+  // bloc, jamais renvoyé à la section « Complétude » trente lignes plus bas :
+  // sur un run TRONQUÉ, « la cible n'est pas dans le classement » ne veut pas
+  // dire « le moteur ne la trouve pas », et un verdict lu seul recrée
+  // exactement l'erreur que cette fonctionnalité existe pour empêcher.
+  if (r.verdictBuildCible) {
+    const v = r.verdictBuildCible;
+    l.push('', '═'.repeat(72));
+    l.push(`VERDICT du build cible [${v.runeIds.join(', ')}] : ${v.verdict}`);
+    l.push('═'.repeat(72));
+    l.push(`  ${v.explication}`);
+    l.push(`  ${v.avertissementTroncature}`);
+  }
+
   // ── Palier 2 : la préparation, étage par étage.
   l.push('', 'Préparation — runes restantes par emplacement', '─'.repeat(72));
   for (const t of r.preparation) {

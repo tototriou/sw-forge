@@ -356,13 +356,14 @@ les changements ouverts.
 | `ouvrir` | ✅ registre, worktree documentaire **verrouillé**, copie à une révision notée |
 | `livrer` | ✅ report (ajouts/modifications/**suppressions**), contrôle d'égalité, commit, reçu |
 | `verifier` | ✅ six contrôles, tous devant tenir **ensemble** |
-| `installer` | ❌ non écrit — l'installation commune (§2.4) n'existe pas encore |
-| `fermer` | ❌ non écrit |
+| `installer` | ✅ copie hors arbre de travail + **manifeste de version**, câblage préexistant signalé et jamais écrasé |
+| `fermer` | ✅ reçu valide **et** sauvegarde distante effective **et** code intégré ou archivé |
 
-> ⚠️ **Le défaut nommé au §4 est donc ENCORE OUVERT** : `scripts/chantier.mjs`
-> vit dans le dépôt de code, son contenu dépend de la branche checkoutée, et un
-> agent peut le modifier dans son propre worktree. Tant qu'`installer` n'existe
-> pas, la garantie se contourne sans même le vouloir.
+> ✅ **Le défaut nommé au §4 est refermé** — à condition d'installer. Tant que
+> `installer` n'a pas tourné sur une machine, l'outil y tourne depuis
+> `scripts/`, donc depuis la branche checkoutée. `verifier` le **dit** au lieu
+> de le taire : une absence d'installation n'est pas un échec (un clone neuf
+> n'en a pas), une installation **altérée** en est un.
 
 **Un défaut trouvé par l'essai, pas par relecture** : `commitDoc` prenait la
 tête de la branche documentaire, qui inclut le commit du reçu — chaque
@@ -373,22 +374,29 @@ commit qui **touche les notes**.
 ### 6.3 Tester le cycle sur des dépôts jetables
 
 Les tests portent sur **les pertes possibles**, pas sur le cas nominal.
-`tests/chantier.test.ts` (20 assertions, enregistré sous `testChantier`) crée
-lui-même ses dépôts jetables. **6 scénarios sur 10 sont couverts** :
+`tests/chantier.test.ts` (**37 assertions**, enregistré sous `testChantier`)
+crée lui-même ses dépôts jetables — y compris un distant nu pour éprouver la
+sauvegarde. **9 scénarios sur 11 sont couverts** :
 
 | Scénario | État |
 |---|---|
 | ajout, modification et **suppression** de notes | ✅ |
 | **dossier absent** (≠ dossier vidé) | ✅ — et rien n'est supprimé côté documentaire |
-| modification documentaire indépendante **commitée** | ✅ |
+| modification documentaire indépendante, **commitée** et **non commitée** | ✅ |
+| **interruption après le commit documentaire, avant le reçu** | ✅ le chantier se rejoue sans perte |
 | seconde livraison identique (idempotence) | ✅ |
-| reçu périmé | ✅ |
-| code non commité | ✅ |
-| modification documentaire indépendante **non commitée** | ❌ le refus existe dans le code, il n'est pas testé |
-| **interruption après le commit documentaire, avant le reçu** | ❌ |
-| sauvegarde indisponible · fermeture refusée sans perte | ❌ dépend de `fermer`, non écrit |
+| reçu périmé · code non commité | ✅ |
+| installation **altérée** détectée, réinstallation réparatrice | ✅ |
+| sauvegarde indisponible | ✅ `fermer` refuse et laisse le chantier ouvert |
+| fermeture refusée **sans perte** (code ni intégré ni archivé) | ✅ le worktree documentaire survit au refus |
 | deux chantiers issus de la même base, intégrés successivement | ❌ |
 | **clone neuf** (§0) : `npm ci`, `tsc`, `tests/run.mjs`, `build`, un commit | ❌ le test est autonome par construction, mais rien ne le vérifie |
+
+> ⚠️ **Un piège de méthode rencontré ici** : monté sur `main`, le commit de
+> travail est trivialement un ancêtre de `main`, donc « intégré » — et le refus
+> de `fermer` ne pouvait pas être mis à l'épreuve. Le test monte donc le
+> chantier sur une **branche**, comme dans la vraie vie. Un scénario qui ne peut
+> pas échouer ne vérifie rien.
 
 ⚠️ **Les tests utilisent de fausses notes, jamais les documents privés réels.**
 

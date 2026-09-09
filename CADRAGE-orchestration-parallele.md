@@ -390,8 +390,37 @@ sauvegarde. **9 scénarios sur 11 sont couverts** :
 | sauvegarde indisponible | ✅ `fermer` refuse et laisse le chantier ouvert |
 | fermeture refusée **sans perte** (code ni intégré ni archivé) | ✅ le worktree documentaire survit au refus |
 | le **hook** : `main`, chemin privé, fichier démesuré, et la spec produit qui passe | ✅ éprouvé **tel qu'il s'exécute** (installé et câblé), pas le fichier source |
-| deux chantiers issus de la même base, intégrés successivement | ❌ |
-| **clone neuf** (§0) : `npm ci`, `tsc`, `tests/run.mjs`, `build`, un commit | ❌ le test est autonome par construction, mais rien ne le vérifie |
+| deux chantiers issus de la même base, intégrés successivement | ✅ `testChantierDeuxChantiers`, second chantier dans un **worktree secondaire** |
+| **clone neuf** (§0) | ✅ **vérifié pour de vrai**, voir ci-dessous |
+
+**Les 11 scénarios sont couverts.**
+
+> ⚠️ **Le point décisif du scénario à deux chantiers** : B part de la même base
+> documentaire que A et ne voit pas son travail. Sans branche documentaire
+> séparée, la livraison de B ramènerait la note de A à la base — une perte
+> **sans conflit ni message**. Le test vérifie aussi que le second chantier
+> fonctionne depuis un **worktree secondaire**, où `.git` est un FICHIER : un
+> `.git` supposé dossier dupliquerait le registre par worktree, en silence.
+
+### Le critère §0, vérifié pour de vrai
+
+Clone réel dans un dossier temporaire, sans installation ni dépôt documentaire :
+
+| Étape | Résultat |
+|---|---|
+| `core.hooksPath` hérité | ✅ absent |
+| installation / notes privées héritées | ✅ absentes |
+| `npm ci` | ✅ 8,1 s |
+| `npx tsc --noEmit` | ✅ 8,5 s |
+| **suite complète** (`node tests/run.mjs`) | ✅ **90,2 s** |
+| `npm run build` | ✅ 9,2 s |
+| un commit | ✅ passe (aucun hook, puisqu'aucun câblage) |
+
+> ⚠️ **Deux faux échecs avant celui-là, tous deux dus au harnais et non au
+> dépôt** : sous Windows `npm` est `npm.cmd`, qu'`execFile` ne trouve pas
+> (ENOENT), puis Node 24 **refuse** de lancer un `.cmd` sans `shell: true`
+> (EINVAL, durcissement CVE-2024-27980). Quatre étapes échouaient pour cette
+> seule raison. Un outil de mesure se vérifie avant de croire ce qu'il mesure.
 
 > ⚠️ **Un piège de méthode rencontré ici** : monté sur `main`, le commit de
 > travail est trivialement un ancêtre de `main`, donc « intégré » — et le refus
@@ -440,11 +469,32 @@ contournable au cas par cas (`git commit --no-verify`).
 toute seule — c'est délibéré (§2.4) — et `verifier` signale une installation
 **altérée**, pas une installation **périmée** par rapport à une branche.
 
-### 6.5 Un chantier pilote, puis généraliser
+### 6.5 Un chantier pilote — ✅ **fait sur les vraies notes**
 
-Une petite modification réelle avec une note privée. Vérifier livraison,
-sauvegarde, intégration et fermeture **avant** d'appliquer le dispositif aux
-chantiers Optimizer en cours.
+Chantier `orchestration-parallele`, sur les 41 fichiers réels :
+
+| Étape | Résultat |
+|---|---|
+| `ouvrir` | worktree documentaire créé et **verrouillé** ; notes locales reconnues identiques à la base |
+| `livrer` | reçu `recus/orchestration-parallele.json`, code `f3b41f9` ↔ notes `a1254d0` |
+| `verifier` | **8 contrôles ok**, dont l'intégrité de l'installation `@ 86be996` |
+| sauvegarde | branche poussée, présence sur le distant **contrôlée** par `ls-remote` |
+| `fermer` | ❌ **refuse** — le code n'est ni intégré dans `main`, ni archivé |
+
+Le refus de `fermer` est le comportement voulu, éprouvé ici sur des données
+réelles : le worktree documentaire est resté intact (21 entrées), et le chantier
+reste ouvert tant que le travail de code n'est pas conservé quelque part.
+
+> ⚠️ **Ce que le pilote n'a PAS exercé, et pourquoi.** Le scénario prévoyait
+> « une petite modification réelle avec une note privée ». Il n'y avait aucune
+> note privée légitime à écrire — ce chantier-ci est public, il vit dans ce
+> document. Inventer une note pour cocher la case aurait été exactement le genre
+> de vérification de façade contre lequel tout ce dispositif est construit. La
+> modification d'une note reste donc couverte par le test sur dépôts jetables,
+> pas par le pilote.
+
+**Reste à faire** : appliquer le dispositif à un chantier Optimizer réel, celui
+où des notes privées sont effectivement écrites.
 
 ## 7. Local History (extension VS Code) — testé, hors sujet, mais une fuite
 

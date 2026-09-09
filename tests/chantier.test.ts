@@ -173,6 +173,7 @@ export function testChantierDeuxChantiers() {
     writeFileSync(join(docDir, NOTES, 'note-b.md'), 'base b\n');
     depotJetable(docDir);
     commiter(docDir, 'notes initiales\n');
+    const baseInitiale = git(docDir, 'rev-parse', 'HEAD');
 
     mkdirSync(join(codeA, 'scripts'), { recursive: true });
     cpSync(OUTIL, join(codeA, 'scripts', 'chantier.mjs'));
@@ -225,13 +226,70 @@ export function testChantierDeuxChantiers() {
       'le travail de A survit à la livraison de B'
     );
 
-    // Intégration successive : les deux branches documentaires se rejoignent.
-    git(wtA, 'merge', '--no-ff', '-m', 'integration de B', 'chantier/b');
+    /* -------------------------------- intégration : le `main` documentaire */
+    // ⚠️ `integrer` exige une sauvegarde JOIGNABLE avant de fusionner : sans
+    // distant, la référence avancerait localement et nulle part ailleurs.
+    const distantDoc = join(bac, 'docs-distant.git');
+    execFileSync('git', ['init', '--bare', '-b', 'main', distantDoc], { encoding: 'utf8' });
+    git(docDir, 'remote', 'add', 'origin', distantDoc);
+    git(docDir, 'push', '-u', 'origin', 'main');
+
+    r = chantier(codeA, 'integrer', '--chantier', 'a');
+    ok(r.code === 0, 'integrer avance le `main` DOCUMENTAIRE');
     ok(
-      lire(join(wtA, NOTES, 'note-a.md')) === 'travail de A\n' &&
-        lire(join(wtA, NOTES, 'note-b.md')) === 'travail de B\n',
-      'après intégration, les DEUX travaux sont présents'
+      lire(join(docDir, NOTES, 'note-a.md')) === 'travail de A\n',
+      'la référence porte désormais le travail de A'
     );
+    ok(
+      git(docDir, 'rev-parse', 'HEAD') === git(docDir, 'rev-parse', 'origin/main'),
+      'et elle est poussée — « intégré » implique « sauvegardé »'
+    );
+
+    /* ---------------------------------------------------- CAPITALISATION */
+    // Le point pour lequel `integrer` existe : un chantier ouvert PLUS TARD
+    // doit voir le travail déjà intégré, sans attendre que le CODE rejoigne
+    // `main` — ce qui arrive rarement et par lots.
+    const codeC = join(bac, 'code-c');
+    git(codeA, 'worktree', 'add', '-b', 'forge/c', codeC, 'main');
+    r = chantier(codeC, 'ouvrir', '--chantier', 'c');
+    ok(r.code === 0, 'ouvrir un chantier plus tard');
+    ok(
+      lire(join(codeC, NOTES, 'note-a.md')) === 'travail de A\n',
+      'et il PART du travail de A — la capitalisation fonctionne'
+    );
+
+    // Intégration successive : la seconde branche rejoint la première.
+    r = chantier(codeB, 'integrer', '--chantier', 'b');
+    ok(r.code === 0, 'integrer le second chantier');
+    ok(
+      lire(join(docDir, NOTES, 'note-a.md')) === 'travail de A\n' &&
+        lire(join(docDir, NOTES, 'note-b.md')) === 'travail de B\n',
+      'après deux intégrations successives, les DEUX travaux sont présents'
+    );
+
+    /* ------------------------------------------------------- le CONFLIT */
+    // ⚠️ Un conflit exige deux branches parties de la MÊME base et touchant le
+    // MÊME passage. C, ouvert après l'intégration de A, part d'une base qui
+    // contient déjà A : sa modification de `note-a.md` fusionne proprement —
+    // ce n'est pas un défaut, c'est le cas fréquent que la commande doit
+    // servir. D remonte donc à la base INITIALE pour produire le vrai cas.
+    const refAvantConflit = git(docDir, 'rev-parse', 'HEAD');
+    const codeD = join(bac, 'code-d');
+    git(codeA, 'worktree', 'add', '-b', 'forge/d', codeD, 'main');
+    r = chantier(codeD, 'ouvrir', '--chantier', 'd', '--base', baseInitiale);
+    ok(r.code === 0, 'ouvrir un chantier sur la base INITIALE');
+    writeFileSync(join(codeD, NOTES, 'note-a.md'), 'travail de D sur le meme passage\n');
+    writeFileSync(join(codeD, 'src-d.txt'), 'd\n');
+    commiter(codeD, 'travail D\n');
+    r = chantier(codeD, 'livrer', '--chantier', 'd');
+    ok(r.code === 0, 'D livre');
+    r = chantier(codeD, 'integrer', '--chantier', 'd');
+    ok(r.code !== 0, 'integrer REFUSE une fusion en conflit');
+    ok(
+      git(docDir, 'rev-parse', 'HEAD') === refAvantConflit,
+      'et la référence n’a pas bougé — la fusion est ANNULÉE, pas laissée à moitié'
+    );
+    ok(git(docDir, 'status', '--porcelain') === '', 'le dépôt documentaire reste propre');
 
     /* ------------------------------- l'identité du chantier est contrôlée */
     // ⚠️ Le registre est COMMUN aux worktrees : rien n'empêche B de nommer le
@@ -253,11 +311,14 @@ export function testChantierDeuxChantiers() {
     ok(r.code !== 0, 'livrer après un changement de branche est refusé');
     git(codeB, 'checkout', 'forge/b');
 
-    // Le reçu de A est désormais périmé : la branche documentaire a avancé.
-    // C'est voulu — l'intégrateur produit une NOUVELLE livraison du résultat
-    // combiné, les reçus individuels ne prouvant rien sur le tout.
+    // ⚠️ Le reçu de A reste VALIDE après l'intégration : c'est le `main`
+    // documentaire qui a avancé, pas la branche du chantier. La propriété est
+    // voulue — intégrer les notes d'un chantier ne doit pas invalider ceux des
+    // autres, sinon le rythme de l'un imposerait le sien à tous.
+    // Ce que ce reçu ne dit toujours pas, c'est ce que vaut le RÉSULTAT
+    // COMBINÉ : ça, seule une livraison de l'ensemble le dirait.
     r = chantier(codeA, 'verifier', '--chantier', 'a');
-    ok(r.code !== 0, 'et le reçu individuel de A devient périmé, comme prévu');
+    ok(r.code === 0, 'le reçu de A reste valide : sa branche n’a pas bougé');
   } finally {
     rmSync(bac, { recursive: true, force: true });
   }

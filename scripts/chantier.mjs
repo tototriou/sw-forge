@@ -968,6 +968,124 @@ function fermer(nom, options) {
 }
 
 /* --------------------------------------------------------------------------
+ * integrer
+ *
+ * ⚠️ **Découple deux rythmes que rien n'obligeait à coupler.** Le code rejoint
+ * `main` rarement, par lots de plusieurs chantiers, avec un numéro de version
+ * décidé. Les notes d'un chantier, elles, sont valides dès qu'elles sont
+ * livrées et que le reçu passe. Faire attendre les secondes sur le premier les
+ * fige pour des semaines — et un chantier suivant repartirait alors d'un état
+ * de référence périmé, sans voir le travail du précédent.
+ *
+ * `integrer` avance donc le `main` DOCUMENTAIRE seul, et laisse le chantier
+ * OUVERT : `fermer` garde sa condition stricte sur la conservation du code,
+ * qui est un autre sujet.
+ * ----------------------------------------------------------------------- */
+
+function integrer(nom, options) {
+  const depotCode = racineCode();
+  const chantier = lireChantier(depotCode, nom);
+  controlerIdentite(depotCode, chantier);
+
+  // La livraison doit tenir AVANT d'avancer la référence.
+  verifier(nom, { silencieux: true });
+
+  const { depotDoc, brancheDoc, worktreeDoc } = chantier;
+  const cible = options['integrer-dans'] || 'main';
+
+  const branche = git(depotDoc, 'rev-parse', '--abbrev-ref', 'HEAD');
+  if (branche !== cible) {
+    refuser(
+      `le dépôt documentaire n’est pas sur ${cible}`,
+      `Chemin : ${depotDoc}`,
+      `Trouvé : ${branche}`,
+      "C'est le répertoire de référence : il doit rester sur sa branche."
+    );
+  }
+  if (!estPropre(depotDoc)) {
+    refuser(
+      `le dépôt documentaire porte des modifications non commitées`,
+      `Chemin : ${depotDoc}`,
+      "⚠️ Ce répertoire n'est pas un espace de travail : rien n'a à y être édité",
+      'à la main. Trancher ces modifications avant de continuer.'
+    );
+  }
+
+  // ⚠️ Joignabilité contrôlée AVANT la fusion, pas après. L'invariant qu'on
+  // veut est « intégré ⇒ sauvegardé » : fusionner puis découvrir qu'on ne peut
+  // pas pousser laisserait la référence avancée localement et nulle part
+  // ailleurs — exactement l'état que tout ce dispositif existe pour éviter.
+  if (gitOuNull(depotDoc, 'ls-remote', 'origin', `refs/heads/${cible}`) === null) {
+    refuser(
+      'la sauvegarde distante est injoignable',
+      `Dépôt documentaire : ${depotDoc}`,
+      '',
+      "Rien n'a été fusionné. Réessayer une fois la connexion revenue."
+    );
+  }
+
+  const avant = git(depotDoc, 'rev-parse', 'HEAD');
+  const teteChantier = git(worktreeDoc, 'rev-parse', 'HEAD');
+
+  if (gitOuNull(depotDoc, 'merge-base', '--is-ancestor', teteChantier, avant) !== null) {
+    dire(`${JAUNE}Déjà intégré${FIN} — ${cible} contient ${teteChantier.slice(0, 7)}.`);
+    return;
+  }
+
+  // ⚠️ `git merge` n'accepte PAS `-F -` : contrairement à `commit`, il ne lit
+  // pas l'entrée standard (« could not read file '-' »). D'où un fichier de
+  // message — et non un `-m`, que ce dépôt proscrit.
+  const cheminMessage = join(resolve(depotDoc, git(depotDoc, 'rev-parse', '--git-dir')), 'MERGE_MSG_CHANTIER');
+  writeFileSync(
+    cheminMessage,
+    `Intégration des notes du chantier ${nom}\n\n` +
+      `${brancheDoc} → ${cible}\n` +
+      `code ${chantier.dernierRecu?.commitCode?.slice(0, 7) ?? '?'}\n`
+  );
+
+  try {
+    git(depotDoc, 'merge', '--no-ff', '-F', cheminMessage, brancheDoc);
+  } catch {
+    // ⚠️ On tente la fusion et on ne refuse QUE si git échoue : sur des notes
+    // Markdown modifiées à des endroits différents, un merge git est fiable, et
+    // refuser d'office rendrait la commande inutile dans le cas fréquent.
+    const conflits = (gitOuNull(depotDoc, 'diff', '--name-only', '--diff-filter=U') || '')
+      .split('\n')
+      .filter(Boolean);
+    gitOuNull(depotDoc, 'merge', '--abort');
+    refuser(
+      'la fusion des notes est en CONFLIT',
+      ...(conflits.length ? ['Fichiers en conflit :', ...conflits.map((f) => `  · ${f}`)] : []),
+      '',
+      `⚠️ La fusion a été ANNULÉE : ${cible} est resté à ${avant.slice(0, 7)}.`,
+      'Deux chantiers ont touché le même passage — ça se tranche à la main, pas',
+      'par un outil qui choisirait un côté.',
+      '',
+      `  git -C "${depotDoc}" merge ${brancheDoc}     # puis résoudre, puis relancer`
+    );
+  }
+
+  rmSync(cheminMessage, { force: true });
+  const apres = git(depotDoc, 'rev-parse', 'HEAD');
+  git(depotDoc, 'push', 'origin', cible);
+
+  chantier.integrations = [
+    ...(chantier.integrations ?? []),
+    { cible, avant, apres, teteChantier, le: new Date().toISOString() },
+  ];
+  ecrireChantier(depotCode, nom, chantier);
+
+  dire(`${VERT}Notes intégrées.${FIN}`);
+  dire(`  ${brancheDoc} → ${cible} : ${avant.slice(0, 7)} → ${apres.slice(0, 7)}`);
+  dire(`  poussé sur origin/${cible}`);
+  dire('');
+  dire(
+    `Le chantier reste OUVERT — l'intégration des NOTES ne dit rien du sort du` +
+      ` CODE, qui est la condition de \`fermer\`.`
+  );
+}
+
+/* --------------------------------------------------------------------------
  * Entrée
  * ----------------------------------------------------------------------- */
 
@@ -1035,6 +1153,7 @@ if (!commande || options.aide || options.help) {
   node scripts/chantier.mjs ouvrir    --chantier <nom> [--depot-doc <chemin>]
   node scripts/chantier.mjs livrer    --chantier <nom>
   node scripts/chantier.mjs verifier  --chantier <nom>
+  node scripts/chantier.mjs integrer  --chantier <nom> [--integrer-dans <branche doc>]
   node scripts/chantier.mjs fermer    --chantier <nom> [--integre-dans <ref>] [--archive]
   node scripts/chantier.mjs installer [--sans-cablage] [--codex-hooks <hooks.json personnel>]
   node scripts/chantier.mjs contexte-hooks
@@ -1062,12 +1181,15 @@ switch (commande) {
   case 'verifier':
     verifier(nom);
     break;
+  case 'integrer':
+    integrer(nom, options);
+    break;
   case 'fermer':
     fermer(nom, options);
     break;
   default:
     refuser(
       `commande inconnue : ${commande}`,
-      'Connues : ouvrir, livrer, verifier, fermer, installer.'
+      'Connues : ouvrir, livrer, verifier, integrer, fermer, installer.'
     );
 }

@@ -258,7 +258,52 @@ function notesDuCode(depotCode) {
   return chemin;
 }
 
-function controlerWorktreeDoc(chantier) {
+/**
+ * L'appelant est-il BIEN le chantier qu'il prétend être ?
+ *
+ * ⚠️ **Sans ce contrôle, le registre étant COMMUN à tous les worktrees, un
+ * `livrer --chantier a` lancé depuis le worktree de B reporte les notes de B
+ * dans la branche documentaire de A.** Aucun garde-fou existant ne l'attrape :
+ * le worktree documentaire est le bon, il est propre, il est à la révision
+ * attendue — tout est cohérent, sauf la provenance des notes.
+ */
+function controlerIdentite(depotCode, chantier) {
+  const normaliser = (x) => {
+    const p = resolve(x).replace(/[\\/]+$/, '');
+    // Windows : la casse d'un chemin ne le distingue pas.
+    return process.platform === 'win32' ? p.toLowerCase() : p;
+  };
+
+  if (chantier.depotCode && normaliser(depotCode) !== normaliser(chantier.depotCode)) {
+    refuser(
+      `ce chantier n’appartient pas à ce worktree`,
+      `Chantier « ${chantier.nom} » enregistré pour : ${chantier.depotCode}`,
+      `Commande lancée depuis          : ${depotCode}`,
+      '',
+      '⚠️ Le registre est COMMUN à tous les worktrees : rien n’empêche de nommer',
+      "le chantier d'un autre. Reporter d'ici enverrait LES NOTES D'ICI dans la",
+      "branche documentaire de là-bas — tout serait cohérent sauf la provenance.",
+      '',
+      'Se placer dans le bon worktree, ou ouvrir un chantier pour celui-ci.'
+    );
+  }
+
+  const branche = git(depotCode, 'rev-parse', '--abbrev-ref', 'HEAD');
+  if (chantier.brancheCode && branche !== chantier.brancheCode) {
+    refuser(
+      'la branche de code a changé depuis l’ouverture du chantier',
+      `Enregistrée : ${chantier.brancheCode}`,
+      `Actuelle    : ${branche}`,
+      '',
+      'Un reçu lie des notes à un commit de code précis. Livrer depuis une autre',
+      "branche associerait le journal a un travail qui n'est pas le sien.",
+      '',
+      'Revenir sur la branche du chantier, ou en ouvrir un nouveau.'
+    );
+  }
+}
+
+function controlerWorktreeDoc(depotCode, chantier) {
   const { worktreeDoc, brancheDoc, revisionDocAttendue } = chantier;
   if (!existsSync(worktreeDoc)) {
     refuser(
@@ -284,6 +329,35 @@ function controlerWorktreeDoc(chantier) {
   }
   const tete = git(worktreeDoc, 'rev-parse', 'HEAD');
   if (revisionDocAttendue && tete !== revisionDocAttendue) {
+    // ⚠️ **Reprise après interruption, et elle doit se PROUVER.** Une coupure
+    // entre le commit des notes et l'écriture du registre laisse une révision
+    // attendue en retard : refuser là serait bloquer le chantier sur un commit
+    // que l'outil a fait lui-même. On n'adopte la tête que si les trois
+    // conditions tiennent — un marqueur de livraison en cours, une avance
+    // linéaire depuis la révision attendue, et des commits qui ne touchent
+    // QUE les notes et les reçus. Tout le reste reste un refus.
+    const marqueur = chantier.livraisonEnCours;
+    const descend =
+      gitOuNull(worktreeDoc, 'merge-base', '--is-ancestor', revisionDocAttendue, tete) !== null;
+    const touches = descend
+      ? (gitOuNull(worktreeDoc, 'diff', '--name-only', `${revisionDocAttendue}..${tete}`) || '')
+          .split('\n')
+          .filter(Boolean)
+      : [];
+    const seulementNotres =
+      touches.length > 0 &&
+      touches.every((f) => f.startsWith(`${CHEMIN_NOTES}/`) || f.startsWith(`${DOSSIER_RECUS}/`));
+
+    if (marqueur && descend && seulementNotres && marqueur.depuis === revisionDocAttendue) {
+      dire(
+        `${JAUNE}Reprise d'une livraison interrompue${FIN} : la branche documentaire porte` +
+          ` ${touches.length} fichier(s) déjà reportés (${revisionDocAttendue.slice(0, 7)} → ${tete.slice(0, 7)}).`
+      );
+      chantier.revisionDocAttendue = tete;
+      ecrireChantier(depotCode, chantier.nom, chantier);
+      return tete;
+    }
+
     refuser(
       'la branche documentaire a avancé indépendamment',
       `Attendue : ${revisionDocAttendue}`,
@@ -291,7 +365,12 @@ function controlerWorktreeDoc(chantier) {
       '',
       "⚠️ Le répertoire est propre, et c'est justement le piège : un commit fait",
       "de l'autre côté ne laisse aucune trace dans le répertoire de travail. Sans",
-      'cette vérification, le report écraserait ce travail en silence.'
+      'cette vérification, le report écraserait ce travail en silence.',
+      '',
+      marqueur
+        ? "Une livraison interrompue est enregistrée, mais l'avance ne lui correspond pas"
+        : "Aucune livraison interrompue enregistrée : cette avance vient d'ailleurs.",
+      touches.length ? `Fichiers touchés : ${touches.slice(0, 5).join(', ')}` : ''
     );
   }
   return tete;
@@ -388,6 +467,7 @@ function nom_depot(chemin) {
 function livrer(nom) {
   const depotCode = racineCode();
   const chantier = lireChantier(depotCode, nom);
+  controlerIdentite(depotCode, chantier);
 
   if (!estPropre(depotCode)) {
     refuser(
@@ -400,7 +480,7 @@ function livrer(nom) {
   }
 
   const notesCode = notesDuCode(depotCode);
-  controlerWorktreeDoc(chantier);
+  controlerWorktreeDoc(depotCode, chantier);
 
   const { worktreeDoc } = chantier;
   const notesDoc = join(worktreeDoc, ...CHEMIN_NOTES.split('/'));
@@ -423,6 +503,11 @@ function livrer(nom) {
 
   git(worktreeDoc, 'add', '-A', CHEMIN_NOTES);
   if (git(worktreeDoc, 'status', '--porcelain') !== '') {
+    // ⚠️ Marqueur écrit AVANT le commit : c'est lui qui permettra de PROUVER,
+    // après une coupure, que l'avance de la branche documentaire vient de nous.
+    chantier.livraisonEnCours = { depuis: git(worktreeDoc, 'rev-parse', 'HEAD') };
+    ecrireChantier(depotCode, nom, chantier);
+
     gitAvecEntree(
       worktreeDoc,
       ['commit', '-F', '-'],
@@ -436,6 +521,16 @@ function livrer(nom) {
     // retard sur la branche, et le `livrer` suivant refuserait à tort pour
     // « branche avancée indépendamment » — un chantier bloqué par sa propre
     // sécurité. L'étape déjà accomplie doit être enregistrée dès qu'elle l'est.
+    // ⚠️ Point d'arrêt RÉSERVÉ AUX TESTS, placé ICI et pas ailleurs : la
+    // fenêtre dangereuse est celle qui sépare le commit des notes de la mise à
+    // jour du registre juste en dessous. S'arrêter après cette mise à jour ne
+    // reproduirait rien. On passe par le VRAI chemin de code — un registre
+    // bricolé à la main ne prouve pas qu'on sait revenir de l'état réel.
+    if (process.env.CHANTIER_ARRET_TEST === 'apres-commit-notes') {
+      dire(`${JAUNE}[test] arrêt volontaire entre le commit des notes et le registre${FIN}`);
+      process.exit(70);
+    }
+
     chantier.revisionDocAttendue = git(worktreeDoc, 'rev-parse', 'HEAD');
     ecrireChantier(depotCode, nom, chantier);
     dire('Notes reportées et commitées.');
@@ -481,6 +576,9 @@ function livrer(nom) {
 
   chantier.revisionDocAttendue = git(worktreeDoc, 'rev-parse', 'HEAD');
   chantier.dernierRecu = recu;
+  // La livraison est allée à son terme : le marqueur de reprise n'a plus de
+  // raison d'être, et le laisser autoriserait une adoption qu'on ne veut plus.
+  delete chantier.livraisonEnCours;
   ecrireChantier(depotCode, nom, chantier);
 
   dire(`${VERT}Livré.${FIN}`);
@@ -522,6 +620,7 @@ function verifier(nom, optionsVerif = {}) {
   const silencieux = optionsVerif.silencieux === true;
   const depotCode = racineCode();
   const chantier = lireChantier(depotCode, nom);
+  controlerIdentite(depotCode, chantier);
   const { worktreeDoc } = chantier;
 
   const controles = [];
@@ -764,6 +863,7 @@ function etatInstallation(depotCode) {
 function fermer(nom, options) {
   const depotCode = racineCode();
   const chantier = lireChantier(depotCode, nom);
+  controlerIdentite(depotCode, chantier);
   const { worktreeDoc, depotDoc, brancheDoc } = chantier;
 
   // 1. La livraison tient-elle ? On réutilise `verifier`, qui sort en 1 si non.

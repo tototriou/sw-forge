@@ -33,10 +33,19 @@ function git(depot: string, ...args: string[]): string {
 // L'outil REFUSE plus souvent qu'il n'agit : on a besoin du code de sortie ET
 // du texte, pas d'une exception.
 function chantier(cwd: string, ...args: string[]): { code: number; sortie: string } {
+  return chantierAvecEnv(cwd, {}, ...args);
+}
+
+function chantierAvecEnv(
+  cwd: string,
+  env: Record<string, string>,
+  ...args: string[]
+): { code: number; sortie: string } {
   try {
     const sortie = execFileSync('node', [OUTIL, ...args], {
       cwd,
       encoding: 'utf8',
+      env: { ...process.env, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     return { code: 0, sortie };
@@ -153,6 +162,26 @@ export function testChantierDeuxChantiers() {
         lire(join(wtA, NOTES, 'note-b.md')) === 'travail de B\n',
       'après intégration, les DEUX travaux sont présents'
     );
+
+    /* ------------------------------- l'identité du chantier est contrôlée */
+    // ⚠️ Le registre est COMMUN aux worktrees : rien n'empêche B de nommer le
+    // chantier de A. Sans contrôle, `livrer` reporterait LES NOTES DE B dans la
+    // branche documentaire de A — worktree documentaire correct, propre, à la
+    // bonne révision : tout cohérent sauf la provenance.
+    const noteADansDoc = lire(join(wtA, NOTES, 'note-a.md'));
+    r = chantier(codeB, 'livrer', '--chantier', 'a');
+    ok(r.code !== 0, 'livrer depuis le worktree de B avec le nom du chantier de A est REFUSÉ');
+    ok(/n’appartient pas à ce worktree|n'appartient pas à ce worktree/.test(r.sortie), 'et la raison est nommée');
+    ok(lire(join(wtA, NOTES, 'note-a.md')) === noteADansDoc, 'les notes de A sont intactes');
+    r = chantier(codeB, 'verifier', '--chantier', 'a');
+    ok(r.code !== 0, 'verifier depuis le mauvais worktree est refusé aussi');
+
+    // Même worktree, mais branche changée : le reçu lierait le journal à un
+    // travail qui n'est pas le sien.
+    git(codeB, 'checkout', '-b', 'forge/b-bis');
+    r = chantier(codeB, 'livrer', '--chantier', 'b');
+    ok(r.code !== 0, 'livrer après un changement de branche est refusé');
+    git(codeB, 'checkout', 'forge/b');
 
     // Le reçu de A est désormais périmé : la branche documentaire a avancé.
     // C'est voulu — l'intégrateur produit une NOUVELLE livraison du résultat
@@ -298,26 +327,36 @@ export default function testChantier() {
     commiter(codeDir, 'suite du code\n');
 
     /* ------------------ interruption entre le commit des notes et le reçu */
-    // Simule un arrêt brutal : les notes sont commitées, le reçu ne l'est pas.
-    // Le chantier doit rester REJOUABLE — sinon il se bloque sur sa propre
-    // sécurité « branche avancée », alors que c'est lui qui a fait le commit.
+    // ⚠️ Coupure PROVOQUÉE dans le vrai chemin de code, exactement dans la
+    // fenêtre dangereuse : entre le commit des notes et la mise à jour du
+    // registre. Un registre bricolé à la main ne prouverait pas qu'on sait
+    // revenir de l'état réel — il prouverait qu'on sait revenir de l'état
+    // qu'on a soi-même écrit.
     writeFileSync(join(codeDir, NOTES, 'apres-panne.md'), 'ecrit avant la panne\n');
-    cpSync(join(codeDir, NOTES), join(wt, NOTES), { recursive: true });
-    commiter(wt, 'notes commitees, recu jamais ecrit\n');
-    const registreApres = JSON.parse(
+    const revAvant = git(wt, 'rev-parse', 'HEAD');
+    r = chantierAvecEnv(
+      codeDir,
+      { CHANTIER_ARRET_TEST: 'apres-commit-notes' },
+      'livrer',
+      '--chantier',
+      'essai'
+    );
+    ok(r.code === 70, 'la livraison s’interrompt bien après le commit des notes');
+    ok(git(wt, 'rev-parse', 'HEAD') !== revAvant, 'la branche documentaire a AVANCÉ');
+    const registrePendant = JSON.parse(
       readFileSync(join(codeDir, '.git', 'forge', 'etat', 'chantiers', 'essai.json'), 'utf8')
     ) as { revisionDocAttendue: string };
-    writeFileSync(
-      join(codeDir, '.git', 'forge', 'etat', 'chantiers', 'essai.json'),
-      JSON.stringify(
-        { ...registreApres, revisionDocAttendue: git(wt, 'rev-parse', 'HEAD') },
-        null,
-        2
-      ) + '\n'
+    ok(
+      registrePendant.revisionDocAttendue === revAvant,
+      'et le registre est resté EN RETARD — c’est exactement l’état qui bloquait'
     );
+
     r = chantier(codeDir, 'livrer', '--chantier', 'essai');
-    ok(r.code === 0, 'une livraison interrompue avant le reçu se rejoue sans perte');
-    ok(existsSync(join(wt, NOTES, 'apres-panne.md')), 'et les notes déjà commitées restent');
+    ok(r.code === 0, 'la livraison interrompue se rejoue et va à son terme');
+    ok(/[Rr]eprise/.test(r.sortie), 'et la reprise est annoncée, pas subie en silence');
+    ok(existsSync(join(wt, NOTES, 'apres-panne.md')), 'les notes déjà commitées restent');
+    r = chantier(codeDir, 'verifier', '--chantier', 'essai');
+    ok(r.code === 0, 'le reçu est valide après reprise');
 
     /* ------------------------------------------------------- installation */
     r = chantier(codeDir, 'installer');

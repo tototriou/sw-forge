@@ -46,6 +46,15 @@ function chantier(cwd: string, ...args: string[]): { code: number; sortie: strin
   }
 }
 
+// ⚠️ Lecture INSENSIBLE aux fins de ligne. L'outil copie les octets tels quels,
+// mais `git merge`/`checkout` réécrit le répertoire de travail selon
+// `core.autocrlf` — sous Windows, un fichier passé par git revient en CRLF.
+// Comparer des octets bruts après une opération git fait échouer un test que
+// rien ne justifie.
+function lire(chemin: string): string {
+  return readFileSync(chemin, 'utf8').replace(/\r\n/g, '\n');
+}
+
 function depotJetable(chemin: string) {
   mkdirSync(chemin, { recursive: true });
   git(chemin, 'init', '-b', 'main');
@@ -56,6 +65,103 @@ function depotJetable(chemin: string) {
 function commiter(depot: string, message: string) {
   git(depot, 'add', '-A');
   execFileSync('git', ['-C', depot, 'commit', '-F', '-'], { input: message, encoding: 'utf8' });
+}
+
+// Deux chantiers issus de la MÊME base documentaire, livrés puis intégrés l'un
+// après l'autre — le cas pour lequel tout ce dispositif existe.
+//
+// ⚠️ Le second chantier vit dans un **worktree secondaire**, où `.git` est un
+// FICHIER et non un dossier. C'est le chemin de code que l'outil doit prendre
+// via `git rev-parse --git-common-dir` : un `.git` supposé dossier casserait
+// silencieusement le registre, en le dupliquant par worktree.
+export function testChantierDeuxChantiers() {
+  titre('Chantier — deux chantiers sur la même base, intégrés successivement');
+
+  try {
+    execFileSync('git', ['--version'], { stdio: 'ignore' });
+  } catch {
+    ignore('deux chantiers sur la même base', 'git introuvable');
+    return;
+  }
+
+  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-chantiers2-'));
+  const codeA = join(bac, 'code-a');
+  const codeB = join(bac, 'code-b');
+  const docDir = join(bac, 'docs');
+
+  try {
+    mkdirSync(join(docDir, NOTES), { recursive: true });
+    writeFileSync(join(docDir, NOTES, 'note-a.md'), 'base a\n');
+    writeFileSync(join(docDir, NOTES, 'note-b.md'), 'base b\n');
+    depotJetable(docDir);
+    commiter(docDir, 'notes initiales\n');
+
+    mkdirSync(join(codeA, 'scripts'), { recursive: true });
+    cpSync(OUTIL, join(codeA, 'scripts', 'chantier.mjs'));
+    writeFileSync(join(codeA, '.gitignore'), `${NOTES}/\n`);
+    depotJetable(codeA);
+    commiter(codeA, 'code initial\n');
+    git(codeA, 'checkout', '-b', 'forge/a');
+
+    // Le second chantier : un worktree, pas un clone.
+    git(codeA, 'worktree', 'add', '-b', 'forge/b', codeB, 'main');
+    ok(
+      readFileSync(join(codeB, '.git'), 'utf8').startsWith('gitdir:'),
+      'dans le worktree secondaire, `.git` est bien un FICHIER'
+    );
+
+    let r = chantier(codeA, 'ouvrir', '--chantier', 'a', '--depot-doc', docDir);
+    ok(r.code === 0, 'ouvrir le chantier A');
+    r = chantier(codeB, 'ouvrir', '--chantier', 'b');
+    ok(r.code === 0, 'ouvrir le chantier B depuis le worktree secondaire');
+    ok(
+      existsSync(join(codeA, '.git', 'forge', 'etat', 'chantiers', 'b.json')),
+      'et son registre atterrit dans le répertoire git COMMUN, pas ailleurs'
+    );
+
+    // Chacun touche SON fichier — la découpe disjointe du cadrage.
+    writeFileSync(join(codeA, NOTES, 'note-a.md'), 'travail de A\n');
+    writeFileSync(join(codeA, 'src-a.txt'), 'a\n');
+    commiter(codeA, 'travail A\n');
+    r = chantier(codeA, 'livrer', '--chantier', 'a');
+    ok(r.code === 0, 'A livre');
+
+    writeFileSync(join(codeB, NOTES, 'note-b.md'), 'travail de B\n');
+    writeFileSync(join(codeB, 'src-b.txt'), 'b\n');
+    commiter(codeB, 'travail B\n');
+    r = chantier(codeB, 'livrer', '--chantier', 'b');
+    ok(r.code === 0, 'B livre, sans rien savoir de A');
+
+    // ⚠️ Le point décisif : B est parti de la MÊME base que A et ne voit pas
+    // son travail. Sans branche documentaire séparée, la livraison de B
+    // écraserait `note-a.md` en la ramenant à la base.
+    const wtA = (
+      JSON.parse(
+        readFileSync(join(codeA, '.git', 'forge', 'etat', 'chantiers', 'a.json'), 'utf8')
+      ) as { worktreeDoc: string }
+    ).worktreeDoc;
+
+    ok(
+      lire(join(wtA, NOTES, 'note-a.md')) === 'travail de A\n',
+      'le travail de A survit à la livraison de B'
+    );
+
+    // Intégration successive : les deux branches documentaires se rejoignent.
+    git(wtA, 'merge', '--no-ff', '-m', 'integration de B', 'chantier/b');
+    ok(
+      lire(join(wtA, NOTES, 'note-a.md')) === 'travail de A\n' &&
+        lire(join(wtA, NOTES, 'note-b.md')) === 'travail de B\n',
+      'après intégration, les DEUX travaux sont présents'
+    );
+
+    // Le reçu de A est désormais périmé : la branche documentaire a avancé.
+    // C'est voulu — l'intégrateur produit une NOUVELLE livraison du résultat
+    // combiné, les reçus individuels ne prouvant rien sur le tout.
+    r = chantier(codeA, 'verifier', '--chantier', 'a');
+    ok(r.code !== 0, 'et le reçu individuel de A devient périmé, comme prévu');
+  } finally {
+    rmSync(bac, { recursive: true, force: true });
+  }
 }
 
 export default function testChantier() {
@@ -128,7 +234,7 @@ export default function testChantier() {
 
     ok(existsSync(join(wt, NOTES, 'nouvelle.md')), 'l’ajout est reporté');
     ok(
-      readFileSync(join(wt, NOTES, 'pistes.md'), 'utf8') === 'piste 1 modifiee\n',
+      lire(join(wt, NOTES, 'pistes.md')) === 'piste 1 modifiee\n',
       'la modification est reportée'
     );
     // Le cas qu'un simple `copy` récursif rate toujours.
@@ -180,7 +286,7 @@ export default function testChantier() {
     r = chantier(codeDir, 'livrer', '--chantier', 'essai');
     ok(r.code !== 0, 'livrer refuse une modification documentaire NON commitée');
     ok(
-      readFileSync(join(wt, NOTES, 'pistes.md'), 'utf8') === 'ecrit a la main, pas commite\n',
+      lire(join(wt, NOTES, 'pistes.md')) === 'ecrit a la main, pas commite\n',
       'et la modification en cours survit'
     );
     git(wt, 'checkout', '--', '.');

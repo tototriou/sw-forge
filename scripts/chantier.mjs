@@ -73,6 +73,17 @@ function git(depot, ...args) {
   }).trim();
 }
 
+// Renvoie `null` quand git échoue, la sortie (souvent vide) quand il réussit.
+// ⚠️ La distinction porte tout `fermer` : `merge-base --is-ancestor` réussit en
+// ne disant RIEN, donc `''` signifie « oui » et `null` signifie « non ».
+function gitOuNull(depot, ...args) {
+  try {
+    return git(depot, ...args);
+  } catch {
+    return null;
+  }
+}
+
 // ⚠️ Le message de commit passe par l'ENTRÉE STANDARD (`-F -`), jamais par
 // `-m` : ces messages citent des chemins et des empreintes, et un backtick dans
 // une chaîne shell serait exécuté. Voir CLAUDE.md.
@@ -420,6 +431,13 @@ function livrer(nom) {
         `Empreinte des notes : ${apres.empreinte}\n` +
         `${apres.fichiers.length} fichiers.\n`
     );
+    // ⚠️ Le registre est mis à jour AVANT d'écrire le reçu, pas après. Une
+    // interruption entre les deux laisserait sinon la révision attendue en
+    // retard sur la branche, et le `livrer` suivant refuserait à tort pour
+    // « branche avancée indépendamment » — un chantier bloqué par sa propre
+    // sécurité. L'étape déjà accomplie doit être enregistrée dès qu'elle l'est.
+    chantier.revisionDocAttendue = git(worktreeDoc, 'rev-parse', 'HEAD');
+    ecrireChantier(depotCode, nom, chantier);
     dire('Notes reportées et commitées.');
   } else {
     dire('Notes déjà à jour côté documentaire — aucun nouveau commit.');
@@ -500,7 +518,8 @@ function lireRecuBrut(chemin, champsIgnores) {
  * que si tous ses critères tiennent ENSEMBLE au moment où on le lit.
  * ----------------------------------------------------------------------- */
 
-function verifier(nom) {
+function verifier(nom, optionsVerif = {}) {
+  const silencieux = optionsVerif.silencieux === true;
   const depotCode = racineCode();
   const chantier = lireChantier(depotCode, nom);
   const { worktreeDoc } = chantier;
@@ -557,13 +576,39 @@ function verifier(nom) {
     ''
   );
 
-  dire(`${GRAS}Chantier « ${nom} »${FIN}`);
-  for (const c of controles) {
-    const marque = c.ok ? `${VERT}ok${FIN}` : `${ROUGE}KO${FIN}`;
-    dire(`  ${marque}   ${c.libelle}${c.detail ? ` — ${c.detail}` : ''}`);
+  // ⚠️ L'intégrité de l'INSTALLATION, pas sa conformité à la branche courante.
+  // Comparer l'installé au source de la branche checkoutée ferait échouer toute
+  // branche antérieure à la dernière version de l'outil — l'incompatibilité
+  // entre branches qu'on cherche justement à éliminer.
+  const inst = etatInstallation(depotCode);
+  if (inst.presente) {
+    ajouter(
+      'l’installation commune est intègre',
+      inst.alterations.length === 0,
+      inst.alterations.length ? `altérés : ${inst.alterations.join(', ')}` : `@ ${inst.manifeste.commitSource.slice(0, 7)}`
+    );
+  }
+
+  if (!silencieux) {
+    dire(`${GRAS}Chantier « ${nom} »${FIN}`);
+    for (const c of controles) {
+      const marque = c.ok ? `${VERT}ok${FIN}` : `${ROUGE}KO${FIN}`;
+      dire(`  ${marque}   ${c.libelle}${c.detail ? ` — ${c.detail}` : ''}`);
+    }
+    if (!inst.presente) {
+      dire(
+        `  ${JAUNE}--${FIN}   aucune installation commune — l'outil tourne depuis le` +
+          ' dépôt, donc depuis la branche checkoutée (voir `installer`)'
+      );
+    }
   }
 
   const echecs = controles.filter((c) => !c.ok);
+  if (echecs.length > 0 && silencieux) {
+    dire(`${ROUGE}Livraison invalide — ${echecs.length} contrôle(s) en échec :${FIN}`);
+    for (const c of echecs) dire(`  · ${c.libelle}${c.detail ? ` — ${c.detail}` : ''}`);
+    process.exit(1);
+  }
   if (echecs.length > 0) {
     dire('');
     dire(`${ROUGE}Reçu PÉRIMÉ ou incohérent — ${echecs.length} contrôle(s) en échec.${FIN}`);
@@ -576,12 +621,229 @@ function verifier(nom) {
     process.exit(1);
   }
 
+  if (silencieux) return;
   dire('');
   dire(`${VERT}Reçu valide.${FIN} code ${recu.commitCode.slice(0, 7)} ↔ notes ${recu.commitDoc.slice(0, 7)}`);
   dire(
     `${JAUNE}Ce que ce reçu NE dit PAS${FIN} : que toutes les notes utiles ont été` +
       ' écrites. Seulement que celles qui existent sont conservées et associées au bon code.'
   );
+}
+
+/* --------------------------------------------------------------------------
+ * installer
+ *
+ * ⚠️ **Le script SOURCE et son INSTALLATION sont deux objets distincts.** Le
+ * source est versionné et relu en revue ; l'installation est propre à la
+ * machine et **commune à tous les worktrees**. Confondre les deux a produit
+ * deux erreurs successives dans le cadrage :
+ *
+ *   - `core.hooksPath` RELATIF se résout à l'exécution : chaque worktree
+ *     prendrait SON `.githooks`, tel que checkouté sur sa branche ;
+ *   - un chemin absolu vers le `.githooks` du worktree principal ne résout
+ *     rien non plus — son contenu dépend encore de la branche qui y est
+ *     checkoutée.
+ *
+ * D'où une copie hors arbre de travail, sous le répertoire Git COMMUN, avec
+ * son propre manifeste de version. `verifier` contrôle CETTE version installée,
+ * jamais le source de la branche courante : comparer à la branche recréerait
+ * exactement l'incompatibilité entre anciennes et nouvelles branches qu'on
+ * cherche à éliminer.
+ * ----------------------------------------------------------------------- */
+
+function dossierInstallation(depotCode) {
+  const commun = resolve(depotCode, git(depotCode, 'rev-parse', '--git-common-dir'));
+  return join(commun, 'forge', 'installation');
+}
+
+const FICHIERS_INSTALLES = ['scripts/chantier.mjs'];
+const HOOKS_INSTALLES = ['pre-commit'];
+
+function empreinteFichier(chemin) {
+  return createHash('sha256').update(readFileSync(chemin)).digest('hex');
+}
+
+function installer(options) {
+  const depotCode = racineCode();
+  const installation = dossierInstallation(depotCode);
+  const manifeste = {
+    commitSource: git(depotCode, 'rev-parse', 'HEAD'),
+    brancheSource: git(depotCode, 'rev-parse', '--abbrev-ref', 'HEAD'),
+    installeLe: new Date().toISOString(),
+    fichiers: {},
+  };
+
+  if (!estPropre(depotCode)) {
+    dire(
+      `${JAUNE}⚠️ Le dépôt porte des modifications non commitées${FIN} : le manifeste` +
+        ' enregistrera un commit qui ne décrit pas exactement ce qui est installé.'
+    );
+  }
+
+  mkdirSync(join(installation, 'scripts'), { recursive: true });
+  for (const rel of FICHIERS_INSTALLES) {
+    const source = join(depotCode, ...rel.split('/'));
+    if (!existsSync(source)) refuser(`fichier source absent : ${rel}`);
+    const dest = join(installation, ...rel.split('/'));
+    mkdirSync(dirname(dest), { recursive: true });
+    copyFileSync(source, dest);
+    manifeste.fichiers[rel] = empreinteFichier(dest);
+  }
+
+  const hooksInstalles = [];
+  mkdirSync(join(installation, 'hooks'), { recursive: true });
+  for (const nomHook of HOOKS_INSTALLES) {
+    const source = join(depotCode, '.githooks', nomHook);
+    if (!existsSync(source)) continue;
+    const dest = join(installation, 'hooks', nomHook);
+    copyFileSync(source, dest);
+    manifeste.fichiers[`.githooks/${nomHook}`] = empreinteFichier(dest);
+    hooksInstalles.push(nomHook);
+  }
+
+  writeFileSync(join(installation, 'manifeste.json'), JSON.stringify(manifeste, null, 2) + '\n');
+
+  dire(`${VERT}Installé.${FIN} ${installation}`);
+  dire(`  source : ${manifeste.brancheSource} @ ${manifeste.commitSource.slice(0, 7)}`);
+  for (const rel of Object.keys(manifeste.fichiers)) dire(`  · ${rel}`);
+
+  /* ------------------------------------------------------- câblage du hook */
+  if (hooksInstalles.length === 0) {
+    dire(`${JAUNE}Aucun hook à installer${FIN} — `.concat('`.githooks/` est absent ou vide.'));
+    return;
+  }
+  const cheminHooks = join(installation, 'hooks');
+  const actuel = gitOuNull(depotCode, 'config', 'core.hooksPath');
+
+  if (actuel && resolve(depotCode, actuel) !== cheminHooks) {
+    // ⚠️ Signalé, jamais écrasé en silence : un câblage préexistant peut porter
+    // des hooks qui ne viennent pas d'ici.
+    dire('');
+    dire(`${JAUNE}⚠️ Un câblage de hooks existe déjà et n'a PAS été remplacé.${FIN}`);
+    dire(`  actuel  : ${actuel}`);
+    dire(`  proposé : ${cheminHooks}`);
+    dire('  Pour basculer explicitement :');
+    dire(`    git config core.hooksPath "${cheminHooks}"`);
+    return;
+  }
+  if (!actuel) {
+    if (options['cabler'] === false || options['sans-cablage'] !== undefined) {
+      dire(`${JAUNE}Hooks installés mais NON câblés${FIN} (--sans-cablage).`);
+      return;
+    }
+    git(depotCode, 'config', 'core.hooksPath', cheminHooks);
+  }
+  dire(`  hooks câblés : ${cheminHooks}`);
+}
+
+function etatInstallation(depotCode) {
+  const installation = dossierInstallation(depotCode);
+  const cheminManifeste = join(installation, 'manifeste.json');
+  if (!existsSync(cheminManifeste)) return { presente: false };
+  const manifeste = JSON.parse(readFileSync(cheminManifeste, 'utf8'));
+  const alterations = [];
+  for (const [rel, empreinte] of Object.entries(manifeste.fichiers)) {
+    const installe =
+      rel.startsWith('.githooks/')
+        ? join(installation, 'hooks', rel.slice('.githooks/'.length))
+        : join(installation, ...rel.split('/'));
+    if (!existsSync(installe) || empreinteFichier(installe) !== empreinte) alterations.push(rel);
+  }
+  return { presente: true, manifeste, alterations, installation };
+}
+
+/* --------------------------------------------------------------------------
+ * fermer
+ *
+ * ⚠️ **« Livré » ne veut PAS dire « intégré ».** Une branche documentaire
+ * sauvegardée n'autorise pas la disparition du seul exemplaire du travail de
+ * CODE. `fermer` exige donc les trois à la fois : reçu valide, sauvegarde
+ * distante effective, et code soit intégré soit archivé explicitement.
+ * ----------------------------------------------------------------------- */
+
+function fermer(nom, options) {
+  const depotCode = racineCode();
+  const chantier = lireChantier(depotCode, nom);
+  const { worktreeDoc, depotDoc, brancheDoc } = chantier;
+
+  // 1. La livraison tient-elle ? On réutilise `verifier`, qui sort en 1 si non.
+  verifier(nom, { silencieux: true });
+
+  // 2. La sauvegarde distante porte-t-elle la branche documentaire ?
+  const teteDoc = git(worktreeDoc, 'rev-parse', 'HEAD');
+  const distant = gitOuNull(depotDoc, 'ls-remote', 'origin', `refs/heads/${brancheDoc}`);
+  if (distant === null) {
+    refuser(
+      'la sauvegarde distante est injoignable',
+      `Dépôt documentaire : ${depotDoc}`,
+      '',
+      "⚠️ Le chantier reste OUVERT, sans exception. Fermer hors ligne reviendrait",
+      "à faire confiance a une sauvegarde qu'on n'a pas pu contrôler.",
+      '',
+      `Réessayer, ou pousser : git -C "${worktreeDoc}" push -u origin ${brancheDoc}`
+    );
+  }
+  const shaDistant = distant.split(/\s+/)[0] ?? '';
+  if (shaDistant !== teteDoc) {
+    refuser(
+      'la branche documentaire n’est pas sauvegardée',
+      `locale   : ${teteDoc.slice(0, 7)}`,
+      `distante : ${shaDistant ? shaDistant.slice(0, 7) : '(absente)'}`,
+      '',
+      `git -C "${worktreeDoc}" push -u origin ${brancheDoc}`
+    );
+  }
+
+  // 3. Le CODE est-il conservé ? Intégré, ou archivé explicitement.
+  const commitCode = chantier.dernierRecu?.commitCode ?? git(depotCode, 'rev-parse', 'HEAD');
+  const cible = options['integre-dans'] || 'main';
+  const integre =
+    gitOuNull(depotCode, 'merge-base', '--is-ancestor', commitCode, cible) !== null;
+
+  if (!integre) {
+    const surUnDistant = (gitOuNull(depotCode, 'branch', '-r', '--contains', commitCode) || '').trim();
+    if (!options.archive) {
+      refuser(
+        `le code n’est ni intégré dans ${cible}, ni archivé`,
+        `Commit : ${commitCode.slice(0, 7)}`,
+        '',
+        "⚠️ Une branche documentaire sauvegardée n'autorise pas la disparition du",
+        'SEUL exemplaire du travail de code.',
+        '',
+        `Intégrer dans ${cible}, ou archiver explicitement :`,
+        '  (pousser la branche de code, puis relancer avec --archive)'
+      );
+    }
+    if (!surUnDistant) {
+      refuser(
+        'archivage demandé, mais le commit de code n’est sur AUCUN distant',
+        `Commit : ${commitCode.slice(0, 7)}`,
+        "Archiver ne peut pas vouloir dire « nulle part ». Pousser la branche d'abord."
+      );
+    }
+    dire(`${JAUNE}Code archivé${FIN} (non intégré dans ${cible}) : ${surUnDistant.split('\n')[0].trim()}`);
+  }
+
+  // 4. Nettoyage — le worktree DOCUMENTAIRE seulement.
+  // ⚠️ Le worktree principal ne se supprime pas par `git worktree remove` ; ce
+  // n'est pas non plus le rôle de cette commande.
+  git(depotDoc, 'worktree', 'unlock', worktreeDoc);
+  git(depotDoc, 'worktree', 'remove', worktreeDoc);
+
+  const ferme = {
+    ...chantier,
+    fermeLe: new Date().toISOString(),
+    revisionDocFinale: teteDoc,
+    commitCodeFinal: commitCode,
+    integreDans: integre ? cible : null,
+    worktreeDoc: null,
+  };
+  ecrireChantier(depotCode, nom, ferme);
+
+  dire(`${VERT}Chantier « ${nom} » fermé.${FIN}`);
+  dire(`  code  : ${commitCode.slice(0, 7)}${integre ? ` (intégré dans ${cible})` : ' (archivé)'}`);
+  dire(`  notes : ${teteDoc.slice(0, 7)} sur ${brancheDoc}, sauvegardé`);
+  dire(`  worktree documentaire retiré ; les références restent dans le registre.`);
 }
 
 /* --------------------------------------------------------------------------
@@ -610,12 +872,21 @@ const nom = options.chantier;
 if (!commande || options.aide || options.help) {
   dire(`${GRAS}chantier${FIN} — livraison vérifiée des notes privées
 
-  node scripts/chantier.mjs ouvrir   --chantier <nom> [--depot-doc <chemin>]
-  node scripts/chantier.mjs livrer   --chantier <nom>
-  node scripts/chantier.mjs verifier --chantier <nom>
+  node scripts/chantier.mjs ouvrir    --chantier <nom> [--depot-doc <chemin>]
+  node scripts/chantier.mjs livrer    --chantier <nom>
+  node scripts/chantier.mjs verifier  --chantier <nom>
+  node scripts/chantier.mjs fermer    --chantier <nom> [--integre-dans <ref>] [--archive]
+  node scripts/chantier.mjs installer [--sans-cablage]
 
-Voir CADRAGE-orchestration-parallele.md, §4.`);
+⚠️ Les commandes courantes s'appellent depuis l'INSTALLATION commune, jamais
+depuis scripts/ du worktree — sinon leur contenu dépend de la branche
+checkoutée. Voir CADRAGE-orchestration-parallele.md, §2.4 et §4.`);
   process.exit(commande ? 0 : 1);
+}
+
+if (commande === 'installer') {
+  installer(options);
+  process.exit(0);
 }
 
 if (!nom) refuser('aucun chantier désigné', 'Ajouter --chantier <nom>.');
@@ -630,6 +901,12 @@ switch (commande) {
   case 'verifier':
     verifier(nom);
     break;
+  case 'fermer':
+    fermer(nom, options);
+    break;
   default:
-    refuser(`commande inconnue : ${commande}`, 'Connues : ouvrir, livrer, verifier.');
+    refuser(
+      `commande inconnue : ${commande}`,
+      'Connues : ouvrir, livrer, verifier, fermer, installer.'
+    );
 }

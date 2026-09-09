@@ -84,8 +84,16 @@ export default function testChantier() {
     mkdirSync(join(codeDir, 'src'), { recursive: true });
     writeFileSync(join(codeDir, 'src', 'app.ts'), 'export const x = 1;\n');
     writeFileSync(join(codeDir, '.gitignore'), `${NOTES}/\n`);
+    // `installer` copie l'outil DEPUIS le dépôt où il tourne : le dépôt
+    // jetable doit donc le porter, comme le vrai.
+    mkdirSync(join(codeDir, 'scripts'), { recursive: true });
+    cpSync(OUTIL, join(codeDir, 'scripts', 'chantier.mjs'));
     depotJetable(codeDir);
     commiter(codeDir, 'code initial\n');
+    // Le chantier vit sur sa branche, comme dans le vrai dépôt : sinon le
+    // commit de travail est trivialement un ancêtre de `main`, donc « intégré »,
+    // et le refus de `fermer` ne peut pas être mis à l'épreuve.
+    git(codeDir, 'checkout', '-b', 'forge/essai');
 
     /* ------------------------------------------------------ le refus n°1 */
     // Sans base enregistrée, on ne peut pas distinguer « pas encore copié »
@@ -163,10 +171,96 @@ export default function testChantier() {
     ok(existsSync(join(wt, NOTES, 'ailleurs.md')), 'et le travail fait de l’autre côté survit');
     git(wt, 'reset', '--hard', 'HEAD~1');
 
+    /* ------------------------- modification documentaire NON commitée */
+    // Variante du refus n°2 : rien n'est commité de l'autre côté, mais le
+    // report écraserait quand même un travail en cours.
+    writeFileSync(join(wt, NOTES, 'pistes.md'), 'ecrit a la main, pas commite\n');
+    r = chantier(codeDir, 'livrer', '--chantier', 'essai');
+    ok(r.code !== 0, 'livrer refuse une modification documentaire NON commitée');
+    ok(
+      readFileSync(join(wt, NOTES, 'pistes.md'), 'utf8') === 'ecrit a la main, pas commite\n',
+      'et la modification en cours survit'
+    );
+    git(wt, 'checkout', '--', '.');
+
     /* -------------------------------------------------- code non commité */
     writeFileSync(join(codeDir, 'src', 'app.ts'), 'export const x = 2;\n');
     r = chantier(codeDir, 'livrer', '--chantier', 'essai');
     ok(r.code !== 0, 'livrer refuse tant que le code n’est pas commité');
+    commiter(codeDir, 'suite du code\n');
+
+    /* ------------------ interruption entre le commit des notes et le reçu */
+    // Simule un arrêt brutal : les notes sont commitées, le reçu ne l'est pas.
+    // Le chantier doit rester REJOUABLE — sinon il se bloque sur sa propre
+    // sécurité « branche avancée », alors que c'est lui qui a fait le commit.
+    writeFileSync(join(codeDir, NOTES, 'apres-panne.md'), 'ecrit avant la panne\n');
+    cpSync(join(codeDir, NOTES), join(wt, NOTES), { recursive: true });
+    commiter(wt, 'notes commitees, recu jamais ecrit\n');
+    const registreApres = JSON.parse(
+      readFileSync(join(codeDir, '.git', 'forge', 'etat', 'chantiers', 'essai.json'), 'utf8')
+    ) as { revisionDocAttendue: string };
+    writeFileSync(
+      join(codeDir, '.git', 'forge', 'etat', 'chantiers', 'essai.json'),
+      JSON.stringify(
+        { ...registreApres, revisionDocAttendue: git(wt, 'rev-parse', 'HEAD') },
+        null,
+        2
+      ) + '\n'
+    );
+    r = chantier(codeDir, 'livrer', '--chantier', 'essai');
+    ok(r.code === 0, 'une livraison interrompue avant le reçu se rejoue sans perte');
+    ok(existsSync(join(wt, NOTES, 'apres-panne.md')), 'et les notes déjà commitées restent');
+
+    /* ------------------------------------------------------- installation */
+    r = chantier(codeDir, 'installer');
+    ok(r.code === 0, 'installer réussit');
+    const manifeste = join(codeDir, '.git', 'forge', 'installation', 'manifeste.json');
+    ok(existsSync(manifeste), 'un manifeste de version est écrit');
+    ok(
+      existsSync(join(codeDir, '.git', 'forge', 'installation', 'scripts', 'chantier.mjs')),
+      'l’outil est copié HORS de l’arbre de travail'
+    );
+    // L'altération de l'installé doit se voir : c'est tout l'intérêt du
+    // manifeste, sinon une installation modifiée à la main dormirait.
+    writeFileSync(
+      join(codeDir, '.git', 'forge', 'installation', 'scripts', 'chantier.mjs'),
+      '// altere\n'
+    );
+    r = chantier(codeDir, 'verifier', '--chantier', 'essai');
+    ok(r.code !== 0, 'verifier détecte une installation ALTÉRÉE');
+    ok(/intègre|integre/i.test(r.sortie), 'et nomme le contrôle en échec');
+    r = chantier(codeDir, 'installer');
+    ok(r.code === 0, 'réinstaller répare');
+
+    /* ------------------------------------------------------------ fermer */
+    r = chantier(codeDir, 'fermer', '--chantier', 'essai');
+    ok(r.code !== 0, 'fermer refuse sans sauvegarde distante');
+
+    const distant = join(bac, 'docs-distant.git');
+    execFileSync('git', ['init', '--bare', '-b', 'main', distant], { encoding: 'utf8' });
+    git(docDir, 'remote', 'add', 'origin', distant);
+    git(wt, 'push', '-u', 'origin', 'chantier/essai');
+
+    r = chantier(codeDir, 'fermer', '--chantier', 'essai');
+    ok(r.code !== 0, 'fermer refuse tant que le code n’est ni intégré ni archivé');
+    ok(
+      /seul exemplaire/i.test(r.sortie),
+      'et dit pourquoi : une branche documentaire sauvegardée ne suffit pas'
+    );
+    ok(existsSync(wt), 'le worktree documentaire n’est pas supprimé sur un refus');
+
+    // Le code rejoint `main` : la condition de conservation est remplie.
+    git(codeDir, 'branch', '-f', 'main-integre', 'HEAD');
+    r = chantier(codeDir, 'fermer', '--chantier', 'essai', '--integre-dans', 'main-integre');
+    ok(r.code === 0, 'fermer réussit une fois le code intégré et les notes sauvegardées');
+    ok(!existsSync(wt), 'le worktree documentaire est retiré');
+    const registreFerme = JSON.parse(
+      readFileSync(join(codeDir, '.git', 'forge', 'etat', 'chantiers', 'essai.json'), 'utf8')
+    ) as { revisionDocFinale?: string; commitCodeFinal?: string };
+    ok(
+      Boolean(registreFerme.revisionDocFinale && registreFerme.commitCodeFinal),
+      'et les références des deux commits sont CONSERVÉES dans le registre'
+    );
   } finally {
     // Le worktree documentaire est VERROUILLÉ par `ouvrir` : `rmSync` suffit
     // pour du jetable, git n'a pas son mot à dire sur un dossier temporaire.

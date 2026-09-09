@@ -589,6 +589,12 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
   const premier = ordre[0];
   const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
 
+  // ⚠️⚠️ **La contrainte ne vaut QUE sur l'axe VITESSE.** La référence figeait le
+  // premier sur les deux axes — donc elle partageait l'angle mort du solveur et
+  // ne pouvait pas le dénoncer. Un artéfact SE CHANGE : sur cet axe-là, celui qui
+  // ouvre est une inconnue comme les autres.
+  const figerLePremier = axe === 'combat';
+
   const essayer = (vals: Map<string, number>): boolean => {
     const essai = monstres.map((m) => ({ ...m }));
     for (const m of essai) {
@@ -603,9 +609,18 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
   // forme de contrôle qui ne suppose RIEN du modèle — ni « un allié par tick »,
   // ni des valeurs remarquables. Elle a valeur de preuve.
   if (ordre.length === 2) {
-    const cible = ordre[1];
-    const dep = lireAxe(monstres.find((m) => m.id === cible)!, axe);
-    for (let v = dep; v <= plafond; v++) if (essayer(new Map([[cible, v]]))) return true;
+    const dep = (id: string) => lireAxe(monstres.find((m) => m.id === id)!, axe);
+    if (figerLePremier) {
+      const cible = ordre[1];
+      for (let v = dep(cible); v <= plafond; v++) if (essayer(new Map([[cible, v]]))) return true;
+      return false;
+    }
+    // Deux inconnues : le produit complet, qui reste minuscule sur l'axe artéfact.
+    for (let v0 = dep(ordre[0]); v0 <= plafond; v0++) {
+      for (let v1 = dep(ordre[1]); v1 <= plafond; v1++) {
+        if (essayer(new Map([[ordre[0], v0], [ordre[1], v1]]))) return true;
+      }
+    }
     return false;
   }
 
@@ -640,7 +655,7 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
               : t <= 1
                 ? COMBAT_MAX
                 : Math.min(COMBAT_MAX, speedForTick(t - 1) - 1);
-        if (id === premier && brut > src) interdit = true;
+        if (figerLePremier && id === premier && brut > src) interdit = true;
         vals.set(id, Math.max(src, brut));
       });
       if (!interdit && essayer(vals)) return true;
@@ -872,6 +887,44 @@ export function testSpeedTuneChaine() {
       ok(
         !diagnostiquerChaine(avec(arte.artefactRequis! - 1)).ok,
         "un point d'artéfact de moins et elle est coupée : c'est bien le minimum"
+      );
+    }
+
+    // ⚠️⚠️ **SUR L'AXE ARTÉFACT, CELUI QUI OUVRE EST POUSSABLE.** « Le premier ne
+    // bouge pas » vaut pour la VITESSE — il porte le meilleur Swift du compte —
+    // et le code l'excluait des DEUX axes. Un artéfact, lui, se change : sur
+    // 1 283 plateaux, 291 étaient rendus « hors de portée » alors qu'un artéfact
+    // sur l'ouvreur les sauvait.
+    {
+      const buff: Record<number, number> = {};
+      for (let t = 1; t <= 12; t++) buff[t] = 30;
+      const plateau: TuneMonstre[] = [
+        { id: 'a1', combat: 150, camp: 'allie', speedMod: buff },
+        { id: 'a2', combat: 139, camp: 'allie', speedMod: buff },
+        { id: 'adv', combat: 195, camp: 'ennemi' },
+      ];
+      ok(!diagnostiquerChaine(plateau).ok, "au départ, l'adverse coupe toute l'équipe");
+      const r = artefactsRequis(plateau);
+      const parId = new Map(r.map((x) => [x.id, x.artefactRequis]));
+      // Avant : `a1` n'était même pas listé et `a2` sortait `null` — « hors de
+      // portée » sur une équipe que 4 points d'artéfact sur l'ouvreur débloquent.
+      egal(parId.get('a1'), 4, "un artéfact est proposé à CELUI QUI OUVRE");
+      egal(parId.get('a2'), 37, "et au second, que l'ouvreur seul ne sauvait pas");
+      const corrige = plateau.map((m) => {
+        const v = parId.get(m.id);
+        return v != null ? { ...m, artefactBuff: v } : m;
+      });
+      ok(diagnostiquerChaine(corrige).ok, 'aux artéfacts proposés, la chaîne tient');
+      // ⚠️ **Le minimum se lit sur la CONTRAINTE COMPLÈTE**, pas sur la seule
+      // chaîne : à 3 d'artéfact, tout le monde passe encore avant l'adverse,
+      // mais le second DOUBLE l'ouvreur — les monstres qu'il booste joueraient
+      // avant le boost. C'est ce que le solveur refuse, et c'est ce qui fait de
+      // 4 le vrai minimum.
+      const moins = corrige.map((m) => (m.id === 'a1' ? { ...m, artefactBuff: 3 } : m));
+      egal(
+        ordreAlliesRef(moins)[0],
+        'a2',
+        "un point de moins sur l'ouvreur et son second le double : 4 est bien le minimum"
       );
     }
   }

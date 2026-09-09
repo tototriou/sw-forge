@@ -710,13 +710,20 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
       if (m) poser(m, v);
     }
   };
-  // ⚠️ **Le premier n'est jamais du lot** (indice 0) : il porte le meilleur Swift
-  // du compte, on ne peut rien lui trouver de plus.
-  const poussables = ordre.slice(1);
+  // ⚠️ **Sur l'axe VITESSE, le premier n'est jamais du lot** (indice 0) : il porte
+  // le meilleur Swift du compte, on ne peut rien lui trouver de plus.
+  //
+  // ⚠️⚠️ **Sur l'axe ARTÉFACT, il en est** — c'est ce que dit la règle plus haut
+  // (« la contrainte ne vaut QUE sur l'axe vitesse ») et ce que le code faisait
+  // le contraire : `slice(1)` était inconditionnel. Un artéfact SE CHANGE ; sur
+  // 1 283 plateaux, 291 (22,7 %) étaient déclarés « hors de portée » alors qu'un
+  // artéfact posé sur celui qui ouvre les sauvait.
+  const decalage = axe === 'combat' ? 1 : 0;
+  const poussables = ordre.slice(decalage);
   const sousEnsembles: number[][] = [];
   for (let masque = 0; masque < 1 << poussables.length; masque++) {
     const sous: number[] = [];
-    for (let i = 0; i < poussables.length; i++) if ((masque >> i) & 1) sous.push(i + 1);
+    for (let i = 0; i < poussables.length; i++) if ((masque >> i) & 1) sous.push(i + decalage);
     sousEnsembles.push(sous);
   }
   // ⚠️ **Du PLUS GRAND au plus petit** : la méthode à la main pousse TOUT le

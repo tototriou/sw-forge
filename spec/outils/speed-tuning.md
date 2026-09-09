@@ -266,6 +266,11 @@ La recherche se fait en deux temps, sur chacun des deux leviers :
   artéfact, amplifier le buff de celui qui remplit la barre avance son **second**
   tour et fait passer l'adverse ; « tout le monde au maximum » faisait déclarer
   « rien à proposer » un artéfact qui suffisait.
+  ⚠️⚠️ **LE PREMIER N'EST HORS DU LOT QUE SUR L'AXE VITESSE** — il porte le
+  meilleur Swift du compte, on ne peut rien lui trouver de plus. Sur l'axe
+  **artéfact**, il en est : un artéfact se change. Le code l'excluait des deux
+  (`slice(1)` inconditionnel), et rendait « hors de portée » 291 plateaux sur
+  1 283 (22,7 %) qu'un artéfact posé sur l'ouvreur suffisait à sauver.
   ⚠️ Une version précédente énumérait des affectations allié → tick strictement
   croissantes. Elle **ignorait la file d'attente** et déclarait « hors de portée »
   des équipes réglables : le bon chiffre est parfois celui qui rend un allié prêt
@@ -322,9 +327,12 @@ chiffres EXACTS dans les tests (« figé — … »), et chaque chiffre figé es
 re-vérifié : appliqué, le tune doit tenir. Toute évolution qui les déplace doit
 échouer là et être justifiée — c'est un contrat, pas une photo.
 
-⚠️ **La référence de P3 n'est complète que sur les équipes de DEUX alliés** — le
-premier étant figé, il ne reste qu'une inconnue, et elle balaie alors **tous** les
-points un par un : ça vaut preuve, sans rien supposer du modèle. Au-delà, le
+⚠️ **La référence de P3 n'est complète que sur les équipes de DEUX alliés** — sur
+l'axe vitesse le premier est figé, il ne reste qu'une inconnue ; sur l'axe
+artéfact les deux sont inconnues et le produit complet reste minuscule. Elle
+balaie alors **tous** les points un par un : ça vaut preuve, sans rien supposer du
+modèle. ⚠️ Elle figeait le premier sur les DEUX axes — elle partageait donc
+l'angle mort qu'elle devait dénoncer. Au-delà, le
 produit cartésien est hors d'atteinte ; elle balaie les affectations allié → tick
 (non décroissantes, aux deux bords de chaque palier). **Contrôle incomplet,
 assumé** : il peut rater une solution, jamais en inventer une — un échec est donc

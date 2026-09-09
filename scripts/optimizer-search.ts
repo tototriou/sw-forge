@@ -38,7 +38,9 @@ import {
   monsterBonusSacrifice,
   monsterBonusStatFixe,
   monsterCritRateSelonVit,
+  monsterCritInterdit,
   monsterCritSiPlusRapide,
+  monsterConditionsCombat,
   monsterDamageSkills,
   monsterOffensivePassives,
   passifActif,
@@ -174,6 +176,8 @@ if (recipe.objective === 'degats_reels') {
     const bonusSelonCr = monsterBonusDegatsSelonCr(detail);
     const bonusSelonDef = monsterBonusDegatsSelonDef(detail);
     const bonusAtqSeuil = monsterBonusSiAtqSeuil(detail);
+    const critInterdit = monsterCritInterdit(detail);
+    const scenarioEntreCoups = s.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
     console.log(
       `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
         `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
@@ -181,7 +185,7 @@ if (recipe.objective === 'degats_reels') {
         `${profile.ignoreDefSelonVit ? `, ignore la DEF selon l'écart de VIT (100 % à ${profile.ignoreDefSelonVit.ecartMax}+ pts)` : ''}` +
         `${profile.skillupDamagePct ? `, +${profile.skillupDamagePct} % d'améliorations` : ''}) — ` +
         `cible ${s.enemyHp} PV / ${s.enemyDef} DEF` +
-        `${profile.variables.includes('Relative SPD') ? ` / ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd} VIT` : ''} — crit ${s.critMode}` +
+        `${profile.variables.some((v) => v === 'Relative SPD' || v === 'Target SPD') ? ` / ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd} VIT` : ''} — ${critInterdit ? 'critique impossible' : `crit ${s.critMode}`}` +
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
         `${s.defBreak ? ' — def break avant' : ''}${s.defBreakParLeSort ? ' — def break posé par le sort' : ''}` +
         `${s.brand ? ' — marque' : ''}` +
@@ -202,9 +206,23 @@ if (recipe.objective === 'degats_reels') {
           bonusFixeMaxHpPropre != null || bonusSacrifice != null,
           bonusSelonCr,
           bonusSelonDef,
-          bonusAtqSeuil
+          bonusAtqSeuil,
+          {
+            bonusParEffetCible: monsterBonusParEffetCible(detail) ?? undefined,
+            conditionsCombat: monsterConditionsCombat(detail),
+            critInterdit,
+          }
         ).join(', ')}]`
     );
+    if (scenarioEntreCoups?.actif) {
+      const poses = Object.entries(scenarioEntreCoups.apresCoup ?? {})
+        .filter(([, hit]) => hit != null)
+        .map(([effet, hit]) => `${effet} après le coup ${hit}`);
+      console.log(
+        `Scénario entre les coups : ${poses.length > 0 ? poses.join(', ') : 'aucune pose réussie'}` +
+          `${scenarioEntreCoups.presentsInitialement?.length ? ` — déjà présents : ${scenarioEntreCoups.presentsInitialement.join(', ')}` : ''}.`
+      );
+    }
     if (bonusStatFixe) {
       console.log(`Ce monstre ajoute +${bonusStatFixe.cr} pts de Taux Crit et +${bonusStatFixe.cd} pts de Dgts Crit, toujours (Detect Weakspot).`);
     }

@@ -10,11 +10,11 @@
 // dégâts »). `computeTotalDamage`/`pvEffectifs`/`statsParPaire` casseraient
 // cette frontière.
 
-import { ArtifactDetail, ElementKey } from '../types';
+import { ArtifactDetail } from '../types';
 import { StatKey } from './effects';
-import { Objective, pvEffectifs } from './runeBuildOptim';
+import { Objective, pvEffectifs, type RealDamageContext } from './runeBuildOptim';
 import { StatRow } from './stats';
-import { DamageSetup, PassifOffensifProfile, SkillDamageProfile, artifactDamageProfile, computeTotalDamage } from './damage';
+import { artifactDamageProfile, computeTotalDamage } from './damage';
 
 export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
 
@@ -33,12 +33,11 @@ export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
   return 'aucun';
 }
 
-export type DegatsContext = {
-  profile: SkillDamageProfile;
-  passifs: PassifOffensifProfile[];
-  setup: DamageSetup;
-  element: ElementKey;
-};
+// Le choix de paire recalcule SON profil d'artéfacts, mais doit recevoir tout
+// le reste du même contexte que `objectiveScore`. Le dériver du type moteur
+// rend toute future extension de `RealDamageContext` obligatoire ici aussi :
+// une omission ne peut plus rester silencieuse comme avant cet audit.
+export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
 
 // Surcharge 1 : `degats_reels` EXIGE le contexte de dégâts — omission =
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
@@ -70,7 +69,22 @@ export function evaluerPourRegime(
       );
     }
     return (arts) =>
-      computeTotalDamage(degats.profile, degats.passifs, statsAvec(arts), degats.setup, degats.element, artifactDamageProfile(arts));
+      computeTotalDamage(
+        degats.profile,
+        degats.passifs,
+        statsAvec(arts),
+        degats.setup,
+        degats.element,
+        artifactDamageProfile(arts),
+        degats.critSiPlusRapide,
+        degats.bonusDegatsSelonVit,
+        degats.bonusDegatsStack,
+        degats.monsterWide,
+        degats.bonusDegatsConditionnel,
+        degats.bonusDegatsSelonCr,
+        degats.bonusDegatsSelonDef,
+        degats.bonusSiAtqSeuil
+      );
   }
   if (regime === 'ehp') return (arts) => pvEffectifs(statsAvec(arts));
   if (regime === 'hp' || regime === 'atk' || regime === 'def') {

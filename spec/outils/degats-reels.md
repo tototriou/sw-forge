@@ -1831,3 +1831,47 @@ l'objectif « Dégâts » : plafonné à 100 % en jeu, c'est une **condition** �
 atteindre (via un minimum posé), pas une cible à maximiser indéfiniment. L'y
 mettre pousserait la rétention à garder des demi-builds pour un potentiel de
 crit qui ne sert plus à rien.
+
+## Audit des dégâts conditionnels — partie 1
+
+La livraison du 9 septembre 2026 ajoute les clauses recensées dans le
+[suivi d’audit](optimizer/audit-degats-conditionnels-2026-09-08/suivi-implementation.md).
+Les nouvelles saisies de `DamageSetup` restent optionnelles pour préserver les
+anciennes recettes : nombres de buffs sur la cible et sur soi, puis scénario
+de poses réussies entre les coups. Un scénario absent ou inactif ne suppose
+aucune réussite.
+
+Pour un sort multi-coups éligible, chaque coup lit l’état qui le précède. Les
+effets choisis sont appliqués après ce coup, puis les coups suivants utilisent
+le compteur de débuffs, la Marque et la DEF actualisés. Une Marque, un DEF
+break ou un autre effet non cumulable déjà présent est identifié et ne
+réaugmente pas le compteur ; un DoT reste cumulable. Les profils concernés
+sont curés par identifiant quand leur nom possède un homonyme différent.
+
+Les conditions déductibles du contexte — nombre de buffs, débuffs propres,
+PV et élément de la cible — sont recalculées pour chaque build candidat. Les
+états non déductibles restent des interrupteurs désactivés par défaut. Les
+critiques garantis de Naomi, Kassandra/Kalantatze eau, Storm of Midnight et
+Bella sont intégrés au score. Les cinq Onimusha ne critent jamais, mais leurs
+dégâts restent ordinaires et soumis à la DEF.
+
+Le choix des artéfacts, leur réévaluation dans la file et le score final
+consomment le même contexte complet : sort, passifs, conditions, interdiction
+de critique et modificateurs monstre-wide. Ce contrat est dérivé de
+`RealDamageContext` ; ajouter un champ au moteur sans le propager à
+l'évaluation des artéfacts fait désormais échouer le typage. Un test
+différentiel sur Guillaume vérifie notamment que ses +100 points de Dgts Crit
+produisent le même score dans l'écran, le moteur et le chemin CLI.
+
+À l'import, une recette antérieure sans les nouveaux champs reste valide et
+conserve les défauts ci-dessus. En revanche, un champ présent mais mal typé
+est refusé avec son chemin précis : objectif, métrique, sets, contraintes,
+principales de runes, paramètres d'artéfacts, compteurs conditionnels et
+scénarios inter-coups imbriqués sont contrôlés avant d'atteindre l'état de
+l'écran.
+
+Deux exclusions sont volontaires. Le constat 308 de Trasar attend le nombre
+d’ennemis nécessaire à Atlas Stone en étape 2 et ne crée aucun bonus global.
+Arsenal of Sacrifice de Lamiella/Velaska est refusé tant que sa formule PV max
+et réserve de Sacrifice n’est pas curée ; la formule ATQ importée n’est plus
+présentée comme un calcul valide.

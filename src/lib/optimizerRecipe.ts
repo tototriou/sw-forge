@@ -13,13 +13,14 @@
 // saisie) — un fichier qui stockait l'affiché obligerait quiconque le relit
 // à connaître la base du monstre pour le réinterpréter, une source d'erreur
 // de plus, pas de moins.
-import { BuildRequirement, Objective } from './runeBuildOptim';
+import { BuildRequirement, Objective, SLOT_FILTER_PRESETS, SLOT_MAIN_OPTIONS } from './runeBuildOptim';
 import { DamageSetup } from './damage';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
-import { ArtifactKind } from '../types';
+import { ArtifactKind, RUNE_SETS } from '../types';
 import { ArtifactMainChoice, SlotFilterPresetKey } from '../hooks/useOptimizerState';
 import { LigneVerrouillee } from './artifactOptim';
 import { RuneMetric } from '../hooks/useRuneMetric';
+import { setsCost } from './effects';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
 
@@ -150,6 +151,132 @@ export interface RecipeValidationResult {
   error?: string;
 }
 
+const OBJECTIFS_ACCEPTES = new Set(['efficience', 'ehp', 'vitesse', 'degats_reels', 'speed_nuker', 'degats']);
+const METRIQUES_ACCEPTEES = new Set(['eff', 'score']);
+const PRESETS_ACCEPTES = new Set<string>(SLOT_FILTER_PRESETS.map((p) => p.key));
+const SETS_ACCEPTES = new Set(RUNE_SETS.map((s) => s.key));
+const STATS_ACCEPTEES = new Set(['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc']);
+const CHOIX_ARTEFACT_ACCEPTES = new Set<unknown>(['equipped', 'libre', 'none', 100, 101, 102]);
+
+function estObjet(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function erreur(path: string, attente: string): string {
+  return `Fichier invalide : ${path} ${attente}.`;
+}
+
+function validerNombre(value: unknown, path: string, entier = false): string | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || (entier && !Number.isInteger(value))) {
+    return erreur(path, entier ? 'doit être un nombre entier fini' : 'doit être un nombre fini');
+  }
+  return null;
+}
+
+function validerRecordNumerique(value: unknown, path: string, entier = false): string | null {
+  if (value === undefined) return null;
+  if (!estObjet(value)) return erreur(path, 'doit être un objet indexé par identifiant de compétence');
+  for (const [id, n] of Object.entries(value)) {
+    if (!/^\d+$/.test(id) || Number(id) <= 0) return erreur(`${path}.${id}`, "utilise un identifiant de compétence invalide");
+    const e = validerNombre(n, `${path}.${id}`, entier);
+    if (e) return e;
+    if ((n as number) < 0) return erreur(`${path}.${id}`, 'doit être positif ou nul');
+  }
+  return null;
+}
+
+function validerRecordBooleen(value: unknown, path: string): string | null {
+  if (value === undefined) return null;
+  if (!estObjet(value)) return erreur(path, 'doit être un objet indexé par identifiant de compétence');
+  for (const [id, actif] of Object.entries(value)) {
+    if (!/^\d+$/.test(id) || Number(id) <= 0) return erreur(`${path}.${id}`, "utilise un identifiant de compétence invalide");
+    if (typeof actif !== 'boolean') return erreur(`${path}.${id}`, 'doit être un booléen');
+  }
+  return null;
+}
+
+function validerStats(value: unknown, path: string): string | null {
+  if (!estObjet(value)) return erreur(path, 'doit être un objet de statistiques');
+  for (const [stat, n] of Object.entries(value)) {
+    if (!STATS_ACCEPTEES.has(stat)) return erreur(`${path}.${stat}`, 'désigne une statistique inconnue');
+    const e = validerNombre(n, `${path}.${stat}`);
+    if (e) return e;
+    if ((n as number) < 0) return erreur(`${path}.${stat}`, 'doit être positif ou nul');
+  }
+  return null;
+}
+
+function validerDamageSetup(value: unknown): string | null {
+  if (value === undefined) return null; // compatibilité : recettes antérieures aux dégâts réels
+  if (!estObjet(value)) return erreur('damageSetup', 'doit être un objet');
+
+  const setup = value;
+  if (setup.skillCom2usId !== undefined && setup.skillCom2usId !== null) {
+    const e = validerNombre(setup.skillCom2usId, 'damageSetup.skillCom2usId', true);
+    if (e) return e;
+  }
+  for (const champ of ['enemyDef', 'enemyHp', 'enemyHpPct', 'enemySpd', 'leaderSpeedPct', 'velaskaPvPerduPct']) {
+    if (setup[champ] !== undefined) {
+      const e = validerNombre(setup[champ], `damageSetup.${champ}`);
+      if (e) return e;
+    }
+  }
+  for (const champ of [
+    'atkBuff', 'defBuff', 'spdBuff', 'defBreak', 'defBreakParLeSort', 'brand', 'euldongActif', 'mirinaeActif',
+    'deborahActif', 'miriamActif', 'transmissionActif', 'velaskaActif',
+  ]) {
+    if (setup[champ] !== undefined && typeof setup[champ] !== 'boolean') return erreur(`damageSetup.${champ}`, 'doit être un booléen');
+  }
+  if (setup.critMode !== undefined && !['moyenne', 'crit', 'normal'].includes(String(setup.critMode))) {
+    return erreur('damageSetup.critMode', 'contient un mode de critique inconnu');
+  }
+  if (setup.summonerSkills !== undefined && !['aucune', 'combat', 'guilde'].includes(String(setup.summonerSkills))) {
+    return erreur('damageSetup.summonerSkills', "contient un mode de compétences d'invocateur inconnu");
+  }
+  if (setup.enemyElement !== undefined && setup.enemyElement !== null && !['fire', 'water', 'wind', 'light', 'dark'].includes(String(setup.enemyElement))) {
+    return erreur('damageSetup.enemyElement', 'contient un élément inconnu');
+  }
+
+  for (const champ of ['coupsPersonnalises', 'effetsCibleCount', 'buffsCibleCount', 'buffsPropresCount', 'compteurPersonnalise', 'effetsPropresCount']) {
+    const e = validerRecordNumerique(setup[champ], `damageSetup.${champ}`, true);
+    if (e) return e;
+  }
+  for (const champ of ['stackPersonnalise', 'pvActuelsAvantSacrificePct']) {
+    const e = validerRecordNumerique(setup[champ], `damageSetup.${champ}`);
+    if (e) return e;
+  }
+  const ePassifs = validerRecordBooleen(setup.passifsOffensifs, 'damageSetup.passifsOffensifs');
+  if (ePassifs) return ePassifs;
+
+  if (setup.scenariosEffetsEntreCoups !== undefined) {
+    if (!estObjet(setup.scenariosEffetsEntreCoups)) {
+      return erreur('damageSetup.scenariosEffetsEntreCoups', 'doit être un objet indexé par identifiant de compétence');
+    }
+    for (const [skillId, scenarioBrut] of Object.entries(setup.scenariosEffetsEntreCoups)) {
+      const path = `damageSetup.scenariosEffetsEntreCoups.${skillId}`;
+      if (!/^\d+$/.test(skillId) || Number(skillId) <= 0) return erreur(path, "utilise un identifiant de compétence invalide");
+      if (!estObjet(scenarioBrut)) return erreur(path, 'doit être un objet');
+      if (scenarioBrut.actif !== undefined && typeof scenarioBrut.actif !== 'boolean') return erreur(`${path}.actif`, 'doit être un booléen');
+      if (
+        scenarioBrut.presentsInitialement !== undefined &&
+        (!Array.isArray(scenarioBrut.presentsInitialement) || scenarioBrut.presentsInitialement.some((effet) => typeof effet !== 'string'))
+      ) {
+        return erreur(`${path}.presentsInitialement`, 'doit être une liste de noms d’effets');
+      }
+      if (scenarioBrut.apresCoup !== undefined) {
+        if (!estObjet(scenarioBrut.apresCoup)) return erreur(`${path}.apresCoup`, 'doit être un objet indexé par effet');
+        for (const [effet, coup] of Object.entries(scenarioBrut.apresCoup)) {
+          if (coup === null) continue;
+          const e = validerNombre(coup, `${path}.apresCoup.${effet}`, true);
+          if (e) return e;
+          if ((coup as number) < 1) return erreur(`${path}.apresCoup.${effet}`, 'doit être supérieur ou égal à 1');
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // Lecture défensive : un fichier édité à la main ou corrompu ne doit jamais
 // planter, seulement échouer proprement — même esprit que validateRtaImport
 // (rtaShare.ts), une discipline déjà établie ailleurs dans l'app pour tout
@@ -161,15 +288,82 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   } catch {
     return { recipe: null, error: "Fichier illisible : ce n'est pas du JSON valide." };
   }
-  if (typeof data !== 'object' || data === null) {
+  if (!estObjet(data)) {
     return { recipe: null, error: 'Fichier invalide : objet JSON attendu.' };
   }
-  const d = data as Record<string, unknown>;
+  const d = data;
   if (d.version !== OPTIMIZER_RECIPE_VERSION) {
     return { recipe: null, error: `Version de recette non prise en charge : ${String(d.version)}.` };
   }
-  if (typeof d.monsterCom2usId !== 'number' || typeof d.requirement !== 'object' || d.requirement === null) {
+  if (typeof d.monsterCom2usId !== 'number' || !Number.isInteger(d.monsterCom2usId) || !estObjet(d.requirement)) {
     return { recipe: null, error: 'Fichier invalide : champs obligatoires manquants.' };
   }
+  if (!OBJECTIFS_ACCEPTES.has(String(d.objective))) return { recipe: null, error: erreur('objective', 'contient une valeur inconnue') };
+  if (!METRIQUES_ACCEPTEES.has(String(d.metric))) return { recipe: null, error: erreur('metric', 'contient une valeur inconnue') };
+  if (!PRESETS_ACCEPTES.has(String(d.slotFilterPreset))) {
+    return { recipe: null, error: erreur('slotFilterPreset', 'contient une valeur inconnue') };
+  }
+
+  const requirement = d.requirement;
+  if (!Array.isArray(requirement.sets) || requirement.sets.some((set) => typeof set !== 'string' || !SETS_ACCEPTES.has(set))) {
+    return { recipe: null, error: erreur('requirement.sets', 'doit être une liste de sets connus') };
+  }
+  if (setsCost(requirement.sets as string[]) > 6) {
+    return { recipe: null, error: erreur('requirement.sets', 'demande plus de six runes') };
+  }
+  const minStatsErreur = validerStats(requirement.minStats, 'requirement.minStats');
+  if (minStatsErreur) return { recipe: null, error: minStatsErreur };
+  if (requirement.maxStats !== undefined) {
+    const maxStatsErreur = validerStats(requirement.maxStats, 'requirement.maxStats');
+    if (maxStatsErreur) return { recipe: null, error: maxStatsErreur };
+  }
+  if (requirement.mainStats !== undefined) {
+    if (!estObjet(requirement.mainStats)) return { recipe: null, error: erreur('requirement.mainStats', 'doit être un objet') };
+    for (const [slot, codes] of Object.entries(requirement.mainStats)) {
+      if (!['2', '4', '6'].includes(slot) || !Array.isArray(codes) || codes.some((code) => typeof code !== 'number' || !SLOT_MAIN_OPTIONS[Number(slot) as 2 | 4 | 6].includes(code))) {
+        return { recipe: null, error: erreur(`requirement.mainStats.${slot}`, 'contient une statistique principale invalide') };
+      }
+    }
+  }
+  if (requirement.lockedRunes !== undefined) {
+    if (!estObjet(requirement.lockedRunes)) return { recipe: null, error: erreur('requirement.lockedRunes', 'doit être un objet') };
+    for (const [slot, runeId] of Object.entries(requirement.lockedRunes)) {
+      if (!/^[1-6]$/.test(slot) || typeof runeId !== 'number' || !Number.isInteger(runeId) || runeId <= 0) {
+        return { recipe: null, error: erreur(`requirement.lockedRunes.${slot}`, 'contient un identifiant de rune invalide') };
+      }
+    }
+  }
+
+  for (const champ of ['adaptiveTrancheWeighting', 'exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts']) {
+    if (d[champ] !== undefined && typeof d[champ] !== 'boolean') return { recipe: null, error: erreur(champ, 'doit être un booléen') };
+  }
+  if (d.excludeUsedScope !== undefined && !['rta', 'siege-defense', 'box'].includes(String(d.excludeUsedScope))) {
+    return { recipe: null, error: erreur('excludeUsedScope', "contient un périmètre d'exclusion inconnu") };
+  }
+  if (d.excludedSelectors !== undefined && !Array.isArray(d.excludedSelectors)) {
+    return { recipe: null, error: erreur('excludedSelectors', 'doit être une liste') };
+  }
+  if (!estObjet(d.artifactMainByKind)) return { recipe: null, error: erreur('artifactMainByKind', 'doit être un objet') };
+  for (const [kind, choix] of Object.entries(d.artifactMainByKind)) {
+    if (!['element', 'archetype'].includes(kind) || !CHOIX_ARTEFACT_ACCEPTES.has(choix)) {
+      return { recipe: null, error: erreur(`artifactMainByKind.${kind}`, "contient un choix d'artéfact invalide") };
+    }
+  }
+  if (d.lignesVerrouillees !== undefined) {
+    if (!Array.isArray(d.lignesVerrouillees)) return { recipe: null, error: erreur('lignesVerrouillees', 'doit être une liste') };
+    for (const [index, ligne] of d.lignesVerrouillees.entries()) {
+      if (
+        !estObjet(ligne) ||
+        validerNombre(ligne.code, `lignesVerrouillees.${index}.code`, true) ||
+        validerNombre(ligne.min, `lignesVerrouillees.${index}.min`) ||
+        (ligne.code as number) <= 0 ||
+        (ligne.min as number) < 0
+      ) {
+        return { recipe: null, error: erreur(`lignesVerrouillees.${index}`, 'doit contenir un code entier et un minimum numérique') };
+      }
+    }
+  }
+  const damageSetupErreur = validerDamageSetup(d.damageSetup);
+  if (damageSetupErreur) return { recipe: null, error: damageSetupErreur };
   return { recipe: d as unknown as OptimizerRecipe };
 }

@@ -26,7 +26,8 @@ de runes ») ·
 [BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx) ·
 [DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx) +
 [damage.ts](src/lib/damage.ts) (objectif « Dégâts réels », voir
-[degats-reels.md](degats-reels.md)) ·
+[degats-reels.md](degats-reels.md) et le
+[suivi de l’audit conditionnel](optimizer/audit-degats-conditionnels-2026-09-08/suivi-implementation.md)) ·
 [StatPanel.tsx](src/components/StatPanel.tsx) ·
 [ArtifactSlots.tsx](src/components/ArtifactSlots.tsx) ·
 [RuneWheel.tsx](src/components/RuneWheel.tsx) — ces trois derniers

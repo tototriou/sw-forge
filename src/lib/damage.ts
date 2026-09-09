@@ -276,7 +276,15 @@ export function summonerSkillBonus(
 // l'ADVERSAIRE (`DamageSetup.enemySpd`, saisie manuelle comme `enemyDef`),
 // pas seulement de la sienne — d'où sa présence ici plutôt qu'un simple
 // alias de `SPD`.
-export type DamageVariable = 'ATK' | 'DEF' | 'SPD' | 'MAX HP' | 'Target MAX HP' | 'Target Current HP %' | 'Relative SPD';
+export type DamageVariable =
+  | 'ATK'
+  | 'DEF'
+  | 'SPD'
+  | 'MAX HP'
+  | 'Target MAX HP'
+  | 'Target Current HP %'
+  | 'Target SPD'
+  | 'Relative SPD';
 
 const SUPPORTED_VARIABLES: DamageVariable[] = [
   'ATK',
@@ -285,6 +293,7 @@ const SUPPORTED_VARIABLES: DamageVariable[] = [
   'MAX HP',
   'Target MAX HP',
   'Target Current HP %',
+  'Target SPD',
   'Relative SPD',
 ];
 
@@ -678,6 +687,9 @@ export function monsterCritRateSelonVit(detail: DetailMonstre | null): { ptsParV
 // aucun bouton.
 const BONUS_STAT_FIXE_CONNUS: Record<string, { cr: number; cd: number }> = {
   'Detect Weakspot (Passive)': { cr: 20, cd: 20 }, // Lizardman, Glinodon
+  'Deathblow (Passive)': { cr: 0, cd: 50 }, // Bremis
+  'Elaborate Plan (Passive)': { cr: 0, cd: 100 }, // Guillaume
+  'Charge (Passive)': { cr: 20, cd: 0 }, // Gorgo
 };
 
 export function monsterBonusStatFixe(detail: DetailMonstre | null): { cr: number; cd: number } | null {
@@ -1032,6 +1044,42 @@ const BONUS_DEGATS_STACKABLE_CONNUS: Record<
     aide: 'le pourcentage de TES PROPRES PV max déjà perdus (pas ceux détruits sur la cible)',
     suffix: '%',
   }, // Neostone Fighter, Trevor
+  'Demonic Being (Passive)': {
+    triggerMax: 60,
+    triggerStep: 1,
+    ratio: 0.5,
+    pctMax: 30,
+    label: 'PV cible détruits',
+    aide: 'le pourcentage de PV max de la cible déjà DÉTRUITS par ce passif',
+    suffix: '%',
+  }, // M. BISON Eau — alias exact de Borgnine
+  'Coy Revenge (Passive)': {
+    triggerMax: 5,
+    triggerStep: 1,
+    ratio: 15,
+    pctMax: 75,
+    label: 'Alliés attaqués',
+    aide: 'le nombre de charges obtenues quand un allié a été attaqué',
+    suffix: '',
+  }, // Christina
+  'Soul Stealer (Passive)': {
+    triggerMax: 5,
+    triggerStep: 1,
+    ratio: 20,
+    pctMax: 100,
+    label: 'Morts sur le terrain',
+    aide: 'le nombre d’alliés ou ennemis déjà morts',
+    suffix: '',
+  }, // Mephisto
+  'Overcharge (Passive)': {
+    triggerMax: 5,
+    triggerStep: 1,
+    ratio: 10,
+    pctMax: 50,
+    label: 'Coups reçus',
+    aide: 'le nombre de charges obtenues en recevant des dégâts',
+    suffix: '',
+  }, // Devaraja
 };
 
 export interface BonusDegatsStackableProfile {
@@ -1109,6 +1157,102 @@ export function resolvedCompteurPersonnalise(profile: SkillDamageProfile, setup:
 // rattaché à un sort actif précis (voir plus bas dans ce fichier).
 export function resolvedEffetsPropresCount(skillCom2usId: number, setup: DamageSetup): number {
   return Math.max(0, setup.effetsPropresCount?.[skillCom2usId] ?? 0);
+}
+
+function resolvedBonusEffetCount(profile: BonusParEffetProfile, brut: number): number {
+  return Math.min(profile.maxCount ?? Number.POSITIVE_INFINITY, Math.max(0, brut));
+}
+
+function bonusPctParEffet(profile: BonusParEffetProfile, brut: number): number {
+  const count = resolvedBonusEffetCount(profile, brut);
+  if (count === 1 && profile.exactementUnPct != null) return profile.exactementUnPct;
+  return profile.pct * count;
+}
+
+function countEffetsCiblePourProfile(profile: SkillDamageProfile, setup: DamageSetup): number {
+  return Math.max(0, setup.effetsCibleCount?.[profile.skillCom2usId] ?? 0);
+}
+
+function countEffetsCiblePourMonstre(
+  profile: Pick<BonusMonstreParEffetProfile, 'skillCom2usId'>,
+  setup: DamageSetup
+): number {
+  return Math.max(0, setup.effetsCibleCount?.[profile.skillCom2usId] ?? 0);
+}
+
+function conditionCombatActive(
+  condition: ConditionCombatProfile,
+  setup: DamageSetup,
+  key: number,
+  elementAttaquant: ElementKey | null,
+  pvCiblePct: number
+): boolean {
+  switch (condition.type) {
+    case 'buffCiblePresent':
+      return (setup.buffsCibleCount?.[key] ?? 0) > 0;
+    case 'aucunBuffCible':
+      return (setup.buffsCibleCount?.[key] ?? 0) === 0;
+    case 'aucunDebuffPropre':
+      return (setup.effetsPropresCount?.[key] ?? 0) === 0;
+    case 'debuffsPropresMax':
+      return Math.max(0, setup.effetsPropresCount?.[key] ?? 0) <= condition.max;
+    case 'elementCible':
+      return setup.enemyElement === condition.element;
+    case 'elementCibleOppose': {
+      const oppose: Partial<Record<ElementKey, ElementKey>> = { light: 'dark', dark: 'light' };
+      return !!elementAttaquant && setup.enemyElement === oppose[elementAttaquant];
+    }
+    case 'pvCibleMax':
+      return pvCiblePct <= condition.seuilPct;
+  }
+}
+
+function bonusPctConditions(
+  conditions: ConditionCombatProfile[] | undefined,
+  setup: DamageSetup,
+  key: number,
+  elementAttaquant: ElementKey | null,
+  pvCiblePct: number
+): number {
+  let pct = 0;
+  for (const condition of conditions ?? []) {
+    if (conditionCombatActive(condition, setup, key, elementAttaquant, pvCiblePct)) pct += condition.pct ?? 0;
+  }
+  return pct;
+}
+
+function conditionForceCrit(
+  conditions: ConditionCombatProfile[] | undefined,
+  setup: DamageSetup,
+  key: number,
+  elementAttaquant: ElementKey | null,
+  pvCiblePct: number
+): boolean {
+  return !!conditions?.some(
+    (condition) =>
+      'critiqueGaranti' in condition &&
+      condition.critiqueGaranti &&
+      conditionCombatActive(condition, setup, key, elementAttaquant, pvCiblePct)
+  );
+}
+
+function conditionCrPoints(
+  conditions: ConditionCombatProfile[] | undefined,
+  setup: DamageSetup,
+  key: number,
+  elementAttaquant: ElementKey | null,
+  pvCiblePct: number
+): number {
+  let points = 0;
+  for (const condition of conditions ?? []) {
+    if (
+      'crPoints' in condition &&
+      conditionCombatActive(condition, setup, key, elementAttaquant, pvCiblePct)
+    ) {
+      points += condition.crPoints ?? 0;
+    }
+  }
+  return points;
 }
 
 // Le bouton de `bonusConditionnelPropre` est-il activé ? Même stockage que
@@ -1280,16 +1424,38 @@ export interface BonusMonstreParEffetProfile {
   description: string | null;
   icone: string | null;
   pct: number;
-  source: 'buffs' | 'debuffs' | 'buffsEtDebuffs';
+  source: SourceEffetCible;
+  maxCount?: number;
+  exactementUnPct?: number;
+  critiqueGarantiSiPresent?: boolean;
 }
 
-const BONUS_MONSTRE_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' }> = {
+// Les cinq Onimusha ne peuvent jamais critiquer. On détecte leur passif
+// propre (noms exacts du corpus), pas le nom traduit du monstre ni un flag
+// `fixed` : leurs attaques restent des dégâts ordinaires soumis à la DEF.
+const CRIT_INTERDIT_PASSIFS_CONNUS = new Set([
+  'Undergo Hardship (Passive)',
+  'Forestall (Passive)',
+  'Calculated Sacrifice (Passive)',
+  'Banging Head Against A Brick Wall (Passive)',
+  'Indomitable (Passive)',
+]);
+
+export function monsterCritInterdit(detail: DetailMonstre | null): boolean {
+  return !!detail?.competences.some((c) => c.passif && CRIT_INTERDIT_PASSIFS_CONNUS.has(c.nom));
+}
+
+const BONUS_MONSTRE_PAR_EFFET_CIBLE_CONNUS: Record<string, BonusParEffetProfile> = {
   // « damage increases by 20% for each harmful effect granted on target
   // whenever you attack the enemy. » `quantite: 20` confirmé en données.
   // Passif sans formule (`Backup Code (Passive)`) — majore le sort ACTIF
   // choisi, quel qu'il soit, contrairement à Touch of Mercy/Brandia
   // (`BONUS_PAR_EFFET_CIBLE_CONNUS`, un sort actif précis).
   'Backup Code (Passive)': { pct: 20, source: 'debuffs' }, // Hacker, 570RM
+  "Spirit's Wrath (Passive)": { pct: 30, source: 'debuffs' }, // Aeilene
+  "Tiger's Appearance (Passive)": { pct: 20, source: 'debuffs', critiqueGarantiSiPresent: true }, // Naomi
+  'Ancient Power (Passive)': { pct: 30, source: 'debuffs', maxCount: 1 }, // Tesarion
+  'King of the Ruins(Passive)': { pct: 100, source: 'debuffs', maxCount: 1 }, // Manannan
 };
 
 export function monsterBonusParEffetCible(detail: DetailMonstre | null): BonusMonstreParEffetProfile | null {
@@ -1329,6 +1495,39 @@ export function monsterBonusParEffetPropre(detail: DetailMonstre | null): BonusM
   return null;
 }
 
+export interface ConditionMonstreProfile {
+  skillCom2usId: number;
+  nom: string;
+  description: string | null;
+  icone: string | null;
+  condition: ConditionCombatProfile;
+}
+
+const CONDITIONS_MONSTRE_CONNUS: Record<string, ConditionCombatProfile[]> = {
+  'King of the Mountain (Passive)': [{ type: 'debuffsPropresMax', max: 1, pct: 30 }],
+  'Mountain Lord (Passive)': [{ type: 'debuffsPropresMax', max: 1, pct: 30 }],
+  'Guardian Angel (Passive)': [{ type: 'elementCible', element: 'dark', pct: 100 }],
+  'Cruel Whip (Passive)': [{ type: 'pvCibleMax', seuilPct: 50, pct: 30 }],
+};
+
+export function monsterConditionsCombat(detail: DetailMonstre | null): ConditionMonstreProfile[] {
+  if (!detail) return [];
+  const out: ConditionMonstreProfile[] = [];
+  for (const c of detail.competences) {
+    if (c.com2usId == null) continue;
+    for (const condition of CONDITIONS_MONSTRE_CONNUS[c.nom] ?? []) {
+      out.push({
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        condition,
+      });
+    }
+  }
+  return out;
+}
+
 // Passifs qui majorent TOUS les dégâts du monstre d'un pourcentage FIXE
 // sous une condition que l'app ne peut PAS déduire (état de PV propre au
 // monstre, comparaison avec la cible, état d'un allié, tour précédent…) —
@@ -1345,7 +1544,7 @@ export function monsterBonusParEffetPropre(detail: DetailMonstre | null): BonusM
 //
 // ⚠️ Texte du jeu vérifié un par un (pas la paraphrase d'une recherche
 // automatisée) avant d'ajouter chaque entrée ci-dessous :
-const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition: string }> = {
+const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition: string; exclutLeSortDetecteur?: boolean }> = {
   // « Decreases the damage taken by 50% and increases the damage dealt by
   // 100% when your HP is at 23.5% or below. » — seule la partie DÉGÂTS est
   // modélisée (la réduction de dégâts subis est hors du modèle, comme
@@ -1423,6 +1622,17 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   // forme Feu — même correction de méthode qu'Idunn's Heart ci-dessus.
   'Cold Brew (Passive)': { pct: 200, condition: 'la cible est gelée' }, // Espresso Cookie (Eau)
   'Iced Tea (Passive)': { pct: 200, condition: 'la cible est gelée' }, // Black Tea Bunny (Eau), Rosemary — texte identique mot pour mot
+  Cover: { pct: 100, condition: 'tu es sous Dissimulation' }, // Gollum — état posé par le S2, bonus sur les attaques
+  Permeate: { pct: 100, condition: 'tu es sous Dissimulation' }, // Lob Ear — collaboration équivalente
+  "The Night's Comfort (Passive)": { pct: 50, condition: 'tu as un bouclier actif' }, // Dusky
+  'Indomitable (Passive)': { pct: 50, condition: 'tes incapacités ont été dissipées au début de ce tour' }, // Ongyouki
+  'Magic Power Explosion (Passive)': { pct: 30, condition: 'tu es en état Magic Power Explosion' }, // Homunculus Attaque
+  'Anatman (Passive)': { pct: 100, condition: "tu n'as pas été attaqué depuis ton dernier tour" }, // DHALSIM Eau
+  'Endless Death': {
+    pct: 50,
+    condition: 'Endless Death (S3) est en recharge',
+    exclutLeSortDetecteur: true,
+  }, // Isabelle — jamais sur S3 elle-même
 };
 
 export interface BonusDegatsConditionnelProfile {
@@ -1432,6 +1642,7 @@ export interface BonusDegatsConditionnelProfile {
   icone: string | null;
   pct: number;
   condition: string;
+  excludeSkillCom2usId?: number;
 }
 
 export function monsterBonusDegatsConditionnel(detail: DetailMonstre | null): BonusDegatsConditionnelProfile | null {
@@ -1445,7 +1656,17 @@ export function monsterBonusDegatsConditionnel(detail: DetailMonstre | null): Bo
     // curé et de son `skillCom2usId` pour l'affichage/le stockage.
     if (c.com2usId == null) continue;
     const config = BONUS_DEGATS_CONDITIONNEL_CONNUS[c.nom];
-    if (config) return { skillCom2usId: c.com2usId, nom: c.nom, description: c.description, icone: c.icone, ...config };
+    if (config) {
+      const { exclutLeSortDetecteur, ...rest } = config;
+      return {
+        skillCom2usId: c.com2usId,
+        nom: c.nom,
+        description: c.description,
+        icone: c.icone,
+        ...rest,
+        ...(exclutLeSortDetecteur ? { excludeSkillCom2usId: c.com2usId } : {}),
+      };
+    }
   }
   return null;
 }
@@ -1462,6 +1683,59 @@ type Noeud =
   | { type: 'nombre'; valeur: number }
   | { type: 'variable'; nom: DamageVariable }
   | { type: 'binaire'; op: '+' | '-' | '*' | '/'; gauche: Noeud; droite: Noeud };
+
+export type SourceEffetCible = 'buffs' | 'debuffs' | 'buffsEtDebuffs';
+
+export interface BonusParEffetProfile {
+  pct: number;
+  source: SourceEffetCible;
+  /** Un bonus binaire « si la cible a un débuff » compte au plus un effet. */
+  maxCount?: number;
+  /** Exception d'Akhamamir : un seul débuff vaut +50 %, sinon +30 % par débuff. */
+  exactementUnPct?: number;
+  /** Naomi : la présence d'au moins un débuff force aussi le critique. */
+  critiqueGarantiSiPresent?: boolean;
+}
+
+export type ConditionCombatProfile =
+  | { type: 'buffCiblePresent'; pct?: number; critiqueGaranti?: boolean }
+  | { type: 'aucunBuffCible'; pct?: number; crPoints?: number; critiqueGaranti?: boolean }
+  | { type: 'aucunDebuffPropre'; pct: number }
+  | { type: 'debuffsPropresMax'; max: number; pct: number }
+  | { type: 'elementCible'; element: ElementKey; pct?: number; critiqueGaranti?: boolean }
+  | { type: 'elementCibleOppose'; pct: number }
+  | { type: 'pvCibleMax'; seuilPct: number; pct: number };
+
+export interface EffetEntreCoupsProfile {
+  id: string;
+  label: string;
+  cumulable: boolean;
+  effetCombat?: 'brand' | 'defBreak';
+}
+
+export interface ScenarioEffetsEntreCoups {
+  actif?: boolean;
+  /** Effets non cumulables déjà présents ; ils font déjà partie du compteur saisi. */
+  presentsInitialement?: string[];
+  /** Numéro du coup APRÈS lequel la pose réussit ; absent/null = aucune réussite. */
+  apresCoup?: Record<string, number | null>;
+}
+
+export interface MonsterWideDamageModifiers {
+  critRateSelonVit?: { ptsParVit: number };
+  bonusStatFixe?: { cr: number; cd: number };
+  bonusFixeCiblePvMax?: { pct: number };
+  bonusEcartDef?: { coeff: number };
+  bonusFixeMaxHpPropre?: { pct: number };
+  bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
+  bonusParEffetCible?: Pick<
+    BonusMonstreParEffetProfile,
+    'skillCom2usId' | 'pct' | 'source' | 'maxCount' | 'exactementUnPct' | 'critiqueGarantiSiPresent'
+  >;
+  bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+  conditionsCombat?: ConditionMonstreProfile[];
+  critInterdit?: boolean;
+}
 
 // Analyse descendante récursive sur une grammaire minuscule :
 //   expr   := terme (('+'|'-') terme)*
@@ -1626,7 +1900,33 @@ export interface SkillDamageProfile {
   // aucun effet réel sur l'adversaire — `DamageSetup.effetsCibleCount` porte
   // le compte saisi par l'utilisateur, même famille que
   // `coupsPersonnalises`/`stackPersonnalise` (0 par défaut, jamais deviné).
-  bonusParEffetCible?: { pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
+  bonusParEffetCible?: BonusParEffetProfile;
+  // Même famille, mais effets présents sur l'ATTAQUANT. Les buffs et les
+  // débuffs ont deux compteurs séparés dans `DamageSetup` : jamais de
+  // déduction depuis les interrupteurs ATQ/DEF/VIT, qui ne représentent pas
+  // nécessairement tous les buffs actifs.
+  bonusParEffetPropre?: { pct: number; source: 'buffs' | 'debuffs' };
+  // Conditions entièrement déductibles du contexte saisi. Les états que
+  // l'app ne connaît pas restent dans `bonusConditionnelPropre` (bouton).
+  conditionsCombat?: ConditionCombatProfile[];
+  // Points propres à CE sort, distincts des bonus monstre-wide.
+  critRatePoints?: number;
+  critDamagePoints?: number;
+  // Stack propre à CE sort (Bella S4, Altaïr/Frederic S3).
+  bonusStackPropre?: {
+    triggerMax: number;
+    triggerStep: number;
+    ratio: number;
+    pctMax: number;
+    label: string;
+    aide: string;
+    suffix: string;
+    critiqueGarantiAuMax?: boolean;
+  };
+  // Débuffs que ce sort multi-coups peut poser entre ses coups. Leur réussite
+  // n'est jamais supposée : `DamageSetup.scenariosEffetsEntreCoups` doit
+  // l'activer et choisir l'instant de chaque pose.
+  effetsEntreCoups?: EffetEntreCoupsProfile[];
   // Bonus à bouton comme `BONUS_DEGATS_CONDITIONNEL_CONNUS`, mais restreint
   // à CE SORT plutôt qu'au TOTAL — Emergency Drive (Cynthia/Arcane Weapon) :
   // « deal 50% increased damage » UNIQUEMENT « While in the mechanical frame
@@ -1671,7 +1971,7 @@ export interface SkillDamageProfile {
 // Julie/Melissa sont directement dans les données SWARFARM (`quantite` des
 // effets `Buff Bonus Damage`/`Debuff Bonus Damage`), pas seulement dans la
 // prose libre — vérifiés avant d'être curés ici.
-const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' }> = {
+const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, BonusParEffetProfile> = {
   'Thousand Shots': { pct: 50, source: 'buffs' }, // Julie, Pierrette — « for each beneficial effect »
   'Massacre Dance': { pct: 10, source: 'buffsEtDebuffs' }, // Melissa, Chakram Dancer — « beneficial AND harmful »
   // « Removes all beneficial effects granted on the enemy target with a
@@ -1699,6 +1999,163 @@ const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, { pct: number; source: 'buffs
   // flag « Debuff Bonus Damage », jamais examinés — catalogue séparé
   // préparé pour l'utilisateur, PAS implémentés à l'aveugle ici.
   'Touch of Mercy': { pct: 40, source: 'buffsEtDebuffs' }, // Brandia
+  // Audit exhaustif 2026-09-08 — bonus propres au sort, noms exacts du
+  // corpus. Les clauses binaires réutilisent le même compteur avec
+  // `maxCount: 1`; Akhamamir garde son exception à exactement un débuff.
+  Scar: { pct: 50, source: 'debuffs' },
+  'Magic Arrow': { pct: 15, source: 'debuffs' },
+  'Fire Bolt': { pct: 10, source: 'debuffs' },
+  'Aim Head': { pct: 15, source: 'debuffs' },
+  'Poisonous Whirlwind': { pct: 30, source: 'debuffs' },
+  'Death Blow': { pct: 25, source: 'debuffs' },
+  'Water Dragon Attack': { pct: 15, source: 'debuffs' },
+  Shinryuken: { pct: 15, source: 'debuffs' },
+  'Shadow Blade': { pct: 15, source: 'debuffs' },
+  'Burning Swing': { pct: 15, source: 'debuffs' },
+  'Panda Supremacy': { pct: 20, source: 'debuffs' },
+  'Full Burst': { pct: 10, source: 'debuffs' },
+  'Magic Power Burst': { pct: 20, source: 'debuffs' },
+  'Arcane Burst': { pct: 15, source: 'debuffs' },
+  'Dragonfire Blast': { pct: 15, source: 'debuffs' },
+  'Tempest Demon God Fist': { pct: 15, source: 'debuffs' },
+  'Sweet Talk': { pct: 50, source: 'debuffs', maxCount: 1 },
+  'Light Slash': { pct: 25, source: 'debuffs', maxCount: 1 },
+  'Dark Slash': { pct: 25, source: 'debuffs', maxCount: 1 },
+  Gouge: { pct: 50, source: 'debuffs', maxCount: 1 },
+  'Rain of Stones': { pct: 50, source: 'debuffs', maxCount: 1 },
+  '1080º Spinning Kick': { pct: 50, source: 'debuffs', maxCount: 1 },
+  'Power Charge': { pct: 15, source: 'debuffs' },
+  'Flying Strike': { pct: 15, source: 'debuffs' },
+};
+
+// Certains noms ci-dessus ne sont PAS des discriminants fiables : une autre
+// compétence du corpus porte le même nom avec une mécanique différente.
+// Ces entrées restent donc attachées à l'identifiant Com2us exact du sort.
+const BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS: Record<number, BonusParEffetProfile> = {
+  2060: { pct: 20, source: 'debuffs' }, // Kro 2A — Team Up
+  2075: { pct: 20, source: 'debuffs' }, // collaboration équivalente, texte identique
+  10013: { pct: 30, source: 'debuffs', exactementUnPct: 50 }, // Akhamamir 2A — Mach Crush
+  2561: { pct: 15, source: 'debuffs' }, // Kahn 2A — Pursuit
+  2576: { pct: 15, source: 'debuffs' }, // collaboration équivalente, texte identique
+  1556: { pct: 30, source: 'debuffs' }, // Tarq 2A — Ambush
+  1571: { pct: 30, source: 'debuffs' }, // collaboration équivalente, texte identique
+};
+
+const BONUS_PAR_EFFET_PROPRE_CONNUS: Record<string, { pct: number; source: 'buffs' | 'debuffs' }> = {
+  'Hero Strike': { pct: 5, source: 'buffs' },
+  'Strike of Fighter': { pct: 5, source: 'buffs' },
+  'Power Charge': { pct: 15, source: 'buffs' },
+  'Flying Strike': { pct: 15, source: 'buffs' },
+};
+
+const CONDITIONS_COMBAT_CONNUS: Record<string, ConditionCombatProfile[]> = {
+  Airbender: [{ type: 'aucunBuffCible', pct: 30 }],
+  'Magic Surge': [{ type: 'aucunBuffCible', pct: 30 }],
+  'Power Surge': [{ type: 'aucunDebuffPropre', pct: 15 }],
+  'Raptor Combo': [{ type: 'buffCiblePresent', pct: 50 }],
+  'Flying Kick Combo': [{ type: 'buffCiblePresent', pct: 50 }],
+  'Chow Down': [{ type: 'pvCibleMax', seuilPct: 30, pct: 100 }],
+  'Deadly Dance': [{ type: 'pvCibleMax', seuilPct: 50, pct: 50 }],
+  'Fire Strike': [{ type: 'elementCible', element: 'wind', pct: 100, critiqueGaranti: true }],
+  'Flame Strike': [{ type: 'elementCible', element: 'wind', pct: 100, critiqueGaranti: true }],
+  'Storm of Midnight': [{ type: 'aucunBuffCible', critiqueGaranti: true }],
+  'Light Slash': [{ type: 'elementCible', element: 'dark', pct: 30 }],
+  'Dark Slash': [{ type: 'elementCible', element: 'light', pct: 30 }],
+};
+
+const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> = {
+  2759: [{ type: 'aucunBuffCible', pct: 50 }], // Eludain — le Flash Pierce 2709 n'a pas cette clause
+};
+
+const BONUS_CONDITIONNEL_AUDIT_CONNUS: Record<string, { pct: number; condition: string }> = {
+  'Arrow of Water': { pct: 50, condition: 'la cible est sous un effet d’incapacité' },
+  'Steady Shot': { pct: 50, condition: 'la cible est sous un effet d’incapacité' },
+  'Strike of Rejection': { pct: 50, condition: 'la cible est endormie' },
+  'Phantom Crush': { pct: 30, condition: 'la cible est immunisée à l’étourdissement' },
+  Dance: { pct: 50, condition: 'tous tes autres sorts sont en recharge' },
+  'Dragon Slash': { pct: 50, condition: 'tous tes autres sorts sont en recharge' },
+};
+
+const BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS: Record<number, { pct: number; condition: string }> = {
+  2910: { pct: 50, condition: 'la cible est sous un effet d’incapacité' }, // Grogen uniquement
+  7752: { pct: 50, condition: 'la cible est immunisée à l’étourdissement' }, // Iron
+  7767: { pct: 50, condition: 'la cible est immunisée à l’étourdissement' }, // collaboration équivalente
+};
+
+const CRIT_RATE_PROPRE_CONNUS: Record<string, number> = {
+  'Flash Pierce': 50,
+  'Ice Pierce': 50,
+};
+
+const CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS: Record<number, number> = {
+  2756: 50, // Purian — le Ice Pierce 2706 n'ajoute que du Taux Critique
+};
+
+const CRIT_DAMAGE_PROPRE_CONNUS: Record<string, number> = {
+  "Devil's Bullet": 50,
+  'Dark Bolt': 20,
+  Decimate: 150,
+  'Fire Wall': 100,
+  'Flame Eruption': 100,
+};
+
+const BONUS_STACK_PROPRE_CONNUS: Record<string, NonNullable<SkillDamageProfile['bonusStackPropre']>> = {
+  'Burst Cannon': {
+    triggerMax: 10,
+    triggerStep: 1,
+    ratio: 10,
+    pctMax: 100,
+    label: 'Charges de Burst Cannon',
+    aide: 'le nombre d’attaques déjà portées sur tes tours avant ce S4',
+    suffix: '',
+    critiqueGarantiAuMax: true,
+  },
+  'Hidden Blade': {
+    triggerMax: 4,
+    triggerStep: 1,
+    ratio: 25,
+    pctMax: 100,
+    label: 'Tours sans utiliser ce sort',
+    aide: 'le nombre de tours écoulés sans utiliser ce S3',
+    suffix: '',
+  },
+  'Cross Cutter': {
+    triggerMax: 4,
+    triggerStep: 1,
+    ratio: 25,
+    pctMax: 100,
+    label: 'Tours sans utiliser ce sort',
+    aide: 'le nombre de tours écoulés sans utiliser ce S3',
+    suffix: '',
+  },
+};
+
+const EFFETS_ENTRE_COUPS_CONNUS: Record<string, EffetEntreCoupsProfile[]> = {
+  'Arcane Burst': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  'Death Blow': [
+    { id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' },
+    { id: 'beneficial-effects-blocked', label: 'Blocage des effets bénéfiques', cumulable: false },
+  ],
+  'Full Burst': [{ id: 'continuous-damage', label: 'Dégâts continus', cumulable: true }],
+  Gouge: [{ id: 'continuous-damage', label: 'Dégâts continus', cumulable: true }],
+  Gust: [{ id: 'stun', label: 'Étourdissement', cumulable: false }],
+  'Panda Supremacy': [
+    { id: 'increase-glancing', label: 'Chances de coup glancing augmentées', cumulable: false },
+    { id: 'decrease-atk', label: 'Réduction d’ATQ', cumulable: false },
+    { id: 'decrease-spd', label: 'Réduction de VIT', cumulable: false },
+    { id: 'unrecoverable', label: 'Irrécupérable', cumulable: false },
+  ],
+  'Rain of Stones': [{ id: 'stun', label: 'Étourdissement', cumulable: false }],
+  Shinryuken: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
+  'Shadow Blade': [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
+  'Triple Crush': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  'Water Dragon Attack': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+};
+
+const EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: Record<number, EffetEntreCoupsProfile[]> = {
+  6158: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Naomi 2A
+  6173: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // collaboration équivalente
+  10013: [{ id: 'unrecoverable', label: 'Irrécupérable', cumulable: false }], // Akhamamir 2A
 };
 
 // Formule exacte confirmée par l'utilisateur, avec démonstration algébrique :
@@ -1773,6 +2230,14 @@ const EFFET_BOMBE = 'Bomb';
 // dans les deux sens (même parti pris que `artifactSubName`, effects.ts).
 const BOMBES_SANS_COUP_DIRECT_CONNUS = new Set(['Cursed Apple']);
 
+// La formule importée d'Arsenal of Sacrifice (`1.2*{ATK}`) contredit le
+// texte du jeu : les dégâts dépendent des PV max, de la réserve de Sacrifice
+// et du nombre d'ennemis. Tant que ces trois termes ne sont pas curés en
+// étape 2, afficher un score ATQ serait une fausse précision. Les deux IDs
+// couvrent Lamiella et Velaska (formes éveillées et non éveillées partagent
+// le même identifiant de compétence).
+const SORTS_FORMULE_IMPORTEE_INADAPTEE = new Set([21006, 21010]);
+
 // Ce sort EST la bombe (il la pose sans frapper), plutôt que de frapper ET
 // d'en poser une ? Dans ce cas seulement sa formule décrit l'explosion, donc
 // des dégâts fixes.
@@ -1837,6 +2302,23 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
   // exactement le piège que cette table existe pour corriger. `defaut: 6`
   // (le MAXIMUM, pas le minimum) : demande explicite de l'utilisateur.
   'Thousand Shots': { min: 4, max: 6, defaut: 6 }, // Julie, Pierrette
+  'Rain of Fire': { min: 3, max: 5 },
+  'Soul Summoning': { min: 2, max: 3 },
+  'Fire Storm': { min: 2, max: 4 },
+  'Spiritual Thunder': { min: 2, max: 4 },
+  'Cursed Technique Lapse: Blue': { min: 2, max: 3 },
+  'Explosive Power': { min: 2, max: 3 },
+  'Comet Summoning': { min: 3, max: 4 },
+  Vollzanbel: { min: 2, max: 3 },
+  'Arrow Attack': { min: 4, max: 6 },
+};
+
+const IGNORE_DEF_COMPLET_CONNUS = new Set(['Hero Strike', 'Strike of Fighter']);
+
+// Le champ `coups` du corpus vaut 1 alors que le texte propre au sort en
+// annonce quatre. Ce n'est pas une plage : pas de commande utilisateur.
+const COUPS_FIXES_CORRIGES: Record<string, number> = {
+  'Pitch-Black Chain Attack': 4,
 };
 
 /**
@@ -1846,9 +2328,15 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
 export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDamageUnsupported | null {
   if (c.passif || !c.formule || c.com2usId == null) return null;
   const brut = c.formule.trim();
+  const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom };
+  if (SORTS_FORMULE_IMPORTEE_INADAPTEE.has(c.com2usId)) {
+    return {
+      ...entete,
+      raison: 'Formule importée inadaptée : calcul selon PV max, réserve de Sacrifice et ennemis à curer.',
+    };
+  }
   const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);
   const analyse = analyser(brut.replace(RE_FIXED, '').trim());
-  const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom };
   if (!analyse) {
     return { ...entete, raison: 'Formule non prise en charge par le calcul de dégâts.' };
   }
@@ -1887,7 +2375,9 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     // retombe sur son minimum — jamais une surestimation par défaut, comme
     // partout ailleurs dans ce module — SAUF `defaut` explicitement curé
     // (Julie : voir `COUPS_VARIABLES_CONNUS`).
-    hits: coupsVariables ? coupsVariables.defaut ?? coupsVariables.min : c.coups && c.coups > 0 ? c.coups : 1,
+    hits: coupsVariables
+      ? coupsVariables.defaut ?? coupsVariables.min
+      : COUPS_FIXES_CORRIGES[c.nom] ?? (c.coups && c.coups > 0 ? c.coups : 1),
     hitsRange: coupsVariables,
     aoe: c.aoe,
     // ⚠️ `ignoreDefSelonVit` prévaut : SWARFARM tague Concentrated Stab d'un
@@ -1895,14 +2385,23 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     // de VIT » vivant uniquement dans son champ `note` en texte libre, jamais
     // lu ailleurs. Sans ce garde-fou, ce booléen aurait fait ignorer 100 % de
     // la DEF EN PERMANENCE, y compris face à une cible plus rapide.
-    ignoreDef: !ignoreDefSelonVit && c.effets.some((e) => e.nom === 'Ignore DEF'),
+    ignoreDef: !ignoreDefSelonVit && (c.effets.some((e) => e.nom === 'Ignore DEF') || IGNORE_DEF_COMPLET_CONNUS.has(c.nom)),
     ignoreDefSelonVit,
     appliqueDefBreak: c.effets.some((e) => e.nom === 'Decrease DEF' && !e.surSoi),
     fixed,
     bombe: estBombeSansCoupDirect(c),
     skillupDamagePct,
-    bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
-    bonusConditionnelPropre: BONUS_CONDITIONNEL_PROPRE_CONNUS[c.nom],
+    bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS[c.com2usId] ?? BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
+    bonusParEffetPropre: BONUS_PAR_EFFET_PROPRE_CONNUS[c.nom],
+    conditionsCombat: CONDITIONS_COMBAT_PAR_ID_CONNUS[c.com2usId] ?? CONDITIONS_COMBAT_CONNUS[c.nom],
+    critRatePoints: CRIT_RATE_PROPRE_CONNUS[c.nom],
+    critDamagePoints: CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS[c.com2usId] ?? CRIT_DAMAGE_PROPRE_CONNUS[c.nom],
+    bonusStackPropre: BONUS_STACK_PROPRE_CONNUS[c.nom],
+    effetsEntreCoups: EFFETS_ENTRE_COUPS_PAR_ID_CONNUS[c.com2usId] ?? EFFETS_ENTRE_COUPS_CONNUS[c.nom],
+    bonusConditionnelPropre:
+      BONUS_CONDITIONNEL_PROPRE_CONNUS[c.nom] ??
+      BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS[c.com2usId] ??
+      BONUS_CONDITIONNEL_AUDIT_CONNUS[c.nom],
     bonusCoefficientParCompteur: BONUS_COEFFICIENT_PAR_COMPTEUR_CONNUS[c.nom],
     variables,
     noeud: analyse.noeud,
@@ -2449,6 +2948,11 @@ export interface DamageSetup {
   // réel sur l'adversaire (contrairement à ses PV) : absent = 0, jamais
   // deviné.
   effetsCibleCount?: Record<number, number>;
+  // Compteurs séparés quand le sort lit uniquement les buffs : les fusionner
+  // avec `effetsCibleCount` ferait compter un débuff dans une clause qui ne
+  // parle que d'effets bénéfiques (et inversement).
+  buffsCibleCount?: Record<number, number>;
+  buffsPropresCount?: Record<number, number>;
   // Compteur saisi par l'utilisateur pour un sort à `bonusCoefficientParCompteur`
   // (Crawler/Frankenstein — nombre d'attaques reçues avant de lancer ce
   // sort), clé = `skillCom2usId` DU SORT, même espace de clés que
@@ -2459,6 +2963,9 @@ export interface DamageSetup {
   // `bonusParEffetPropre`), clé = `skillCom2usId` DU SORT, même espace de
   // clés que les autres compteurs. Absent = 0, jamais deviné.
   effetsPropresCount?: Record<number, number>;
+  // Scénario explicite de poses réussies entre les coups. Absent/inactif =
+  // ancien comportement, aucune réussite implicite.
+  scenariosEffetsEntreCoups?: Record<number, ScenarioEffetsEntreCoups>;
   // PV ACTUELS (%) juste avant le déclenchement d'un sacrifice (Calculated
   // Sacrifice — `bonusSacrifice`), clé = `skillCom2usId` DU SORT. Absent =
   // 100 (premier tour) — voir `resolvedPvActuelsAvantSacrificePct`, SEUL
@@ -2506,6 +3013,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   summonerSkills: 'combat',
   passifsOffensifs: {},
   coupsPersonnalises: {},
+  scenariosEffetsEntreCoups: {},
 };
 
 // ── Le calcul ────────────────────────────────────────────────────────────
@@ -2694,7 +3202,7 @@ function crBrutEffectif(
   stats: StatRow[],
   setup: DamageSetup,
   maVit: number,
-  monsterWide: { critRateSelonVit?: { ptsParVit: number }; bonusStatFixe?: { cr: number; cd: number } }
+  monsterWide: Pick<MonsterWideDamageModifiers, 'critRateSelonVit' | 'bonusStatFixe'>
 ): number {
   const leader = resolvedLeaderSkill(setup);
   const pctLeaderCr = leader?.stat === 'Critical Rate' ? leader.pct : 0;
@@ -2811,8 +3319,10 @@ export function computeSkillDamageDetail(
     bonusEcartDef?: { coeff: number };
     bonusFixeMaxHpPropre?: { pct: number };
     bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
-    bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
+    bonusParEffetCible?: MonsterWideDamageModifiers['bonusParEffetCible'];
     bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+    conditionsCombat?: ConditionMonstreProfile[];
+    critInterdit?: boolean;
   } = {}
 ): {
   total: number;
@@ -2826,6 +3336,61 @@ export function computeSkillDamageDetail(
   additionnel: number;
   pvRestantsPct: number;
 } {
+  const scenario = setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
+  const coupsScenario = resolvedHits(profile, setup);
+  if (scenario?.actif && profile.effetsEntreCoups?.length && coupsScenario > 1) {
+    const presents = new Set(scenario.presentsInitialement ?? []);
+    if (setup.brand) presents.add('brand');
+    if (setup.defBreak) presents.add('decrease-def');
+
+    let setupCoup: DamageSetup = { ...setup };
+    const clesDebuffs = [
+      ...(profile.bonusParEffetCible && profile.bonusParEffetCible.source !== 'buffs' ? [profile.skillCom2usId] : []),
+      ...(monsterWide.bonusParEffetCible && monsterWide.bonusParEffetCible.source !== 'buffs'
+        ? [monsterWide.bonusParEffetCible.skillCom2usId]
+        : []),
+    ];
+    if (clesDebuffs.length > 0 && presents.size > 0) {
+      const comptes = { ...(setupCoup.effetsCibleCount ?? {}) };
+      for (const key of clesDebuffs) comptes[key] = Math.max(comptes[key] ?? 0, presents.size);
+      setupCoup = { ...setupCoup, effetsCibleCount: comptes };
+    }
+
+    const profilUnCoup: SkillDamageProfile = {
+      ...profile,
+      hits: 1,
+      hitsRange: undefined,
+      effetsEntreCoups: undefined,
+    };
+    let totalScenario = 0;
+    let additionnelScenario = 0;
+    let pvScenario = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
+    for (let i = 1; i <= coupsScenario; i++) {
+      const artefactsCoup =
+        i === 1 || artefacts.cdPointsPremiereAttaque === 0
+          ? artefacts
+          : { ...artefacts, cdPointsPremiereAttaque: 0 };
+      const detail = computeSkillDamageDetail(profilUnCoup, stats, setupCoup, element, pvScenario, artefactsCoup, monsterWide);
+      totalScenario += detail.total;
+      additionnelScenario += detail.additionnel;
+      pvScenario = detail.pvRestantsPct;
+
+      for (const effet of profile.effetsEntreCoups) {
+        if (scenario.apresCoup?.[effet.id] !== i) continue;
+        const dejaPresent = presents.has(effet.id);
+        if (effet.cumulable || !dejaPresent) {
+          const comptes = { ...(setupCoup.effetsCibleCount ?? {}) };
+          for (const key of clesDebuffs) comptes[key] = Math.max(0, comptes[key] ?? 0) + 1;
+          setupCoup = { ...setupCoup, effetsCibleCount: comptes };
+        }
+        presents.add(effet.id);
+        if (effet.effetCombat === 'brand') setupCoup = { ...setupCoup, brand: true };
+        if (effet.effetCombat === 'defBreak') setupCoup = { ...setupCoup, defBreak: true };
+      }
+    }
+    return { total: totalScenario, additionnel: additionnelScenario, pvRestantsPct: pvScenario };
+  }
+
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
   // total — même modèle que le totem de vitesse déjà en place (voir
@@ -2888,6 +3453,7 @@ export function computeSkillDamageDetail(
     SPD: maVit,
     'MAX HP': combat.hp,
     'Target MAX HP': pvMax,
+    'Target SPD': vitEnnemie,
     // `(Ta VIT − VIT cible) / VIT cible` — confirmé par l'utilisateur.
     'Relative SPD': (maVit - vitEnnemie) / vitEnnemie,
     // Exprimé en FRACTION (0-1) : le corpus l'écrit toujours multiplié par un
@@ -2922,7 +3488,16 @@ export function computeSkillDamageDetail(
   // Taux Crit (runes très généreuses) est plafonné, un point c'est tout,
   // exactement comme avant cette fonctionnalité. Voir `crBrutEffectif`
   // (factorisée, réutilisée aussi par `monsterBonusDegatsSelonCr`).
-  const crBrut = crBrutEffectif(stats, setup, maVit, monsterWide);
+  const crConditionsMonstre = (monsterWide.conditionsCombat ?? []).reduce(
+    (somme, p) =>
+      somme + conditionCrPoints([p.condition], setup, p.skillCom2usId, element, pctDepart),
+    0
+  );
+  const crBrut =
+    crBrutEffectif(stats, setup, maVit, monsterWide) +
+    (profile.critRatePoints ?? 0) +
+    conditionCrPoints(profile.conditionsCombat, setup, profile.skillCom2usId, element, pctDepart) +
+    crConditionsMonstre;
   const overflowVersCd = monsterWide.critRateSelonVit ? Math.max(0, crBrut - 100) : 0;
   const cr = Math.min(crBrut, 100) / 100;
   const cd =
@@ -2931,6 +3506,7 @@ export function computeSkillDamageDetail(
       (setup.euldongActif ? EULDONG_CD_POINTS : 0) +
       pctLeaderCd +
       (monsterWide.bonusStatFixe?.cd ?? 0) +
+      (profile.critDamagePoints ?? 0) +
       overflowVersCd +
       // Artéfacts de type : « [Comp.N] Aug. Dgts CRIT » (400-403, 410) et
       // « D.CRIT+ comp cib uniq pdt tour » (224). Des POINTS ajoutés à la
@@ -2942,7 +3518,29 @@ export function computeSkillDamageDetail(
       // profil, rien n'est saisi.
       artifactCritDamagePoints(artefacts, profile)) /
     100;
-  const partCrit = profile.fixed ? 0 : setup.critMode === 'crit' ? 1 : setup.critMode === 'normal' ? 0 : cr;
+  const compteEffetsDirect = profile.bonusParEffetCible ? countEffetsCiblePourProfile(profile, setup) : 0;
+  const compteEffetsMonstre = monsterWide.bonusParEffetCible
+    ? countEffetsCiblePourMonstre(monsterWide.bonusParEffetCible, setup)
+    : 0;
+  const stackPropre = profile.bonusStackPropre
+    ? Math.min(profile.bonusStackPropre.triggerMax, Math.max(0, setup.stackPersonnalise?.[profile.skillCom2usId] ?? 0))
+    : 0;
+  const critiqueConditionnel =
+    conditionForceCrit(profile.conditionsCombat, setup, profile.skillCom2usId, element, pctDepart) ||
+    (profile.bonusParEffetCible?.critiqueGarantiSiPresent === true && compteEffetsDirect > 0) ||
+    (monsterWide.bonusParEffetCible?.critiqueGarantiSiPresent === true && compteEffetsMonstre > 0) ||
+    (profile.bonusStackPropre?.critiqueGarantiAuMax === true && stackPropre >= profile.bonusStackPropre.triggerMax) ||
+    (monsterWide.conditionsCombat ?? []).some((p) =>
+      conditionForceCrit([p.condition], setup, p.skillCom2usId, element, pctDepart)
+    );
+  const partCrit =
+    profile.fixed || monsterWide.critInterdit
+      ? 0
+      : critiqueConditionnel || setup.critMode === 'crit'
+        ? 1
+        : setup.critMode === 'normal'
+          ? 0
+          : cr;
   const critTerm = 1 + profile.skillupDamagePct / 100 + partCrit * cd;
 
   // Ignore une fraction de la DEF, proportionnelle à l'écart de VIT — 0 % si
@@ -3031,17 +3629,26 @@ export function computeSkillDamageDetail(
   // effet SAISI sur la cible — propre à CE sort (`profile.
   // bonusParEffetCible`), pas un modificateur monstre-wide comme les
   // termes ci-dessus.
-  const facteurEffetCible = profile.bonusParEffetCible
-    ? 1 + (profile.bonusParEffetCible.pct * resolvedEffetsCibleCount(profile, setup)) / 100
-    : 1;
+  const pctEffetsCible = profile.bonusParEffetCible
+    ? bonusPctParEffet(profile.bonusParEffetCible, compteEffetsDirect)
+    : 0;
+  const pctEffetsPropres = profile.bonusParEffetPropre
+    ? profile.bonusParEffetPropre.pct *
+      Math.max(
+        0,
+        profile.bonusParEffetPropre.source === 'buffs'
+          ? setup.buffsPropresCount?.[profile.skillCom2usId] ?? 0
+          : setup.effetsPropresCount?.[profile.skillCom2usId] ?? 0
+      )
+    : 0;
+  // Nina/Shasha additionnent les deux comptes dans une même clause : un seul
+  // facteur, pas deux multiplicateurs qui créeraient un terme croisé.
+  const facteurEffetCible = 1 + (pctEffetsCible + pctEffetsPropres) / 100;
   // Backup Code (« Increase Damage », débuffs sur la CIBLE) — MONSTRE-WIDE,
   // majore le sort ACTIF choisi quel qu'il soit (voir `monsterBonusParEffetCible`,
   // distinct de `bonusParEffetCible`, propre à un sort précis type Julie).
   const facteurEffetCibleMonstre = monsterWide.bonusParEffetCible
-    ? 1 +
-      (monsterWide.bonusParEffetCible.pct *
-        Math.max(0, setup.effetsCibleCount?.[monsterWide.bonusParEffetCible.skillCom2usId] ?? 0)) /
-        100
+    ? 1 + bonusPctParEffet(monsterWide.bonusParEffetCible, compteEffetsMonstre) / 100
     : 1;
   // Blessing of Curse (« Increase Damage », débuffs sur SOI) — même famille,
   // stockage séparé (`effetsPropresCount`).
@@ -3055,6 +3662,16 @@ export function computeSkillDamageDetail(
   const facteurConditionnelPropre = profile.bonusConditionnelPropre && bonusConditionnelPropreActif(profile, setup)
     ? 1 + profile.bonusConditionnelPropre.pct / 100
     : 1;
+  const facteurConditionsCombat =
+    1 + bonusPctConditions(profile.conditionsCombat, setup, profile.skillCom2usId, element, pctDepart) / 100;
+  const facteurConditionsMonstre = (monsterWide.conditionsCombat ?? []).reduce(
+    (facteur, p) =>
+      facteur * (1 + bonusPctConditions([p.condition], setup, p.skillCom2usId, element, pctDepart) / 100),
+    1
+  );
+  const facteurStackPropre = profile.bonusStackPropre
+    ? 1 + Math.min(profile.bonusStackPropre.pctMax, stackPropre * profile.bonusStackPropre.ratio) / 100
+    : 1;
 
   const horsCoup =
     critTerm *
@@ -3065,7 +3682,10 @@ export function computeSkillDamageDetail(
     facteurEffetCible *
     facteurEffetCibleMonstre *
     facteurEffetPropre *
-    facteurConditionnelPropre;
+    facteurConditionnelPropre *
+    facteurConditionsCombat *
+    facteurConditionsMonstre *
+    facteurStackPropre;
   // ⚠️ Variante pour le bucket ADDITIONNEL (voir `ajoutBrutParCoup` plus bas) —
   // les dégâts bruts par coup : lignes d'artéfact 218-221, Sickle Blade / Sand
   // Blade, Calculated Sacrifice.
@@ -3135,7 +3755,10 @@ export function computeSkillDamageDetail(
     facteurEffetCible *
     facteurEffetCibleMonstre *
     facteurEffetPropre *
-    facteurConditionnelPropre;
+    facteurConditionnelPropre *
+    facteurConditionsCombat *
+    facteurConditionsMonstre *
+    facteurStackPropre;
   const coefCdParCoup = (partCrit * kHorsCrit) / 100;
   const deltaCdPoints = (premierCoup: boolean, pvFrac: number) =>
     (premierCoup ? artefacts.cdPointsPremiereAttaque : 0) +
@@ -3416,8 +4039,10 @@ export function computeTotalDamage(
     bonusEcartDef?: { coeff: number };
     bonusFixeMaxHpPropre?: { pct: number };
     bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
-    bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
+    bonusParEffetCible?: MonsterWideDamageModifiers['bonusParEffetCible'];
     bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+    conditionsCombat?: ConditionMonstreProfile[];
+    critInterdit?: boolean;
   } = {},
   // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
   // Astar, Jean, Kyle, Satoru Gojo, Werner, Zenitsu, Qilin Slasher, Panda
@@ -3561,7 +4186,11 @@ export function computeTotalDamage(
   // (`bonusDegatsConditionnelActif`) plutôt qu'une valeur saisie ou déduite
   // de la VIT, pour une condition que l'app ne peut pas connaître (PV
   // propres, état d'un allié, tour précédent…).
-  if (bonusDegatsConditionnel && bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup)) {
+  if (
+    bonusDegatsConditionnel &&
+    bonusDegatsConditionnel.excludeSkillCom2usId !== profile.skillCom2usId &&
+    bonusDegatsConditionnelActif(bonusDegatsConditionnel, setup)
+  ) {
     total *= 1 + bonusDegatsConditionnel.pct / 100;
   }
   // Velaska (« Price of Pain ») — effet d'ÉQUIPE, encore la même famille :
@@ -3642,7 +4271,8 @@ export function damageRelevantStats(
   // l'ATQ même pour un sort qui ne la lit pas directement (rare : la
   // plupart des sorts en dépendent déjà, mais un sort à `{DEF}` seul ne la
   // privilégierait pas sinon).
-  bonusSiAtqSeuil: { seuil: number; pct: number } | null = null
+  bonusSiAtqSeuil: { seuil: number; pct: number } | null = null,
+  monsterWide: MonsterWideDamageModifiers = {}
 ): StatKey[] {
   // Sans sort résolu (fiche absente, sort non pris en charge), on retombe sur
   // ATQ + Dgts Crit (même repli que l'ancien objectif « Dégâts », retiré —
@@ -3685,7 +4315,18 @@ export function damageRelevantStats(
   // Le critique forcé change la donne — mais SEULEMENT lui : le bonus continu
   // de Sonia multiplie le total quel que soit son mode de critique, il ne le
   // FORCE pas.
-  if (critSiPlusRapide) peutCriter = true;
+  const critGarantiParCondition =
+    conditionForceCrit(profile.conditionsCombat, setup, profile.skillCom2usId, null, setup.enemyHpPct) ||
+    (profile.bonusParEffetCible?.critiqueGarantiSiPresent === true &&
+      countEffetsCiblePourProfile(profile, setup) > 0) ||
+    (profile.bonusStackPropre?.critiqueGarantiAuMax === true &&
+      (setup.stackPersonnalise?.[profile.skillCom2usId] ?? 0) >= profile.bonusStackPropre.triggerMax) ||
+    (monsterWide.bonusParEffetCible?.critiqueGarantiSiPresent === true &&
+      countEffetsCiblePourMonstre(monsterWide.bonusParEffetCible, setup) > 0) ||
+    (monsterWide.conditionsCombat ?? []).some((p) =>
+      conditionForceCrit([p.condition], setup, p.skillCom2usId, null, setup.enemyHpPct)
+    );
+  if (critSiPlusRapide || critGarantiParCondition) peutCriter = true;
   // ⚠️ **BUG CORRIGÉ** (revue de code externe, perf) : le mode « Non
   // critique » (`setup.critMode === 'normal'`) annule TOUJOURS la part
   // critique dans `computeSkillDamageDetail` (`partCrit` vaut 0, quel que
@@ -3703,7 +4344,8 @@ export function damageRelevantStats(
   // pour sa propre contribution, quel que soit le mode choisi. N'excepter que
   // le premier retirait les Dgts Crit à un monstre dont un composant crit
   // pourtant à coup sûr — le remède devenait pire que le mal qu'il corrige.
-  if (setup.critMode === 'normal' && !critSiPlusRapide && !critGarantiParPassif) peutCriter = false;
+  if (setup.critMode === 'normal' && !critSiPlusRapide && !critGarantiParPassif && !critGarantiParCondition) peutCriter = false;
+  if (monsterWide.critInterdit) peutCriter = false;
   if (peutCriter) keys.push('cd');
   return keys;
 }

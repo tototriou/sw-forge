@@ -389,6 +389,7 @@ sauvegarde. **9 scénarios sur 11 sont couverts** :
 | installation **altérée** détectée, réinstallation réparatrice | ✅ |
 | sauvegarde indisponible | ✅ `fermer` refuse et laisse le chantier ouvert |
 | fermeture refusée **sans perte** (code ni intégré ni archivé) | ✅ le worktree documentaire survit au refus |
+| le **hook** : `main`, chemin privé, fichier démesuré, et la spec produit qui passe | ✅ éprouvé **tel qu'il s'exécute** (installé et câblé), pas le fichier source |
 | deux chantiers issus de la même base, intégrés successivement | ❌ |
 | **clone neuf** (§0) : `npm ci`, `tsc`, `tests/run.mjs`, `build`, un commit | ❌ le test est autonome par construction, mais rien ne le vérifie |
 
@@ -412,7 +413,7 @@ responsable désigné du chantier.
 > qui casse `npm test` sur une machine sans orchestration viole le critère
 > d'acceptation aussi sûrement qu'un hook obligatoire.
 
-### 6.4 Installer une version validée, puis activer les hooks
+### 6.4 Installer une version validée, puis activer les hooks — ✅ **FAIT**
 
 ```
 sw-forge/.git/forge/
@@ -420,7 +421,24 @@ sw-forge/.git/forge/
   etat/             registre local des chantiers
 ```
 
-Chemin calculé depuis `git rev-parse --git-common-dir`.
+Chemin calculé depuis `git rev-parse --git-common-dir` — jamais d'un `.git`
+supposé être un dossier dans chaque worktree, ce qu'il n'est pas dans un
+worktree secondaire.
+
+Installé sur cette machine depuis `forge/orchestration-parallele @ 86be996` :
+
+```
+core.hooksPath = C:\Users\Enzo\Desktop\sw-forge\.git\forge\installation\hooks
+```
+
+⚠️ **Réversible en une commande** : `git config --unset core.hooksPath` rend le
+dépôt à son comportement d'origine, sans rien perdre. Et le hook reste
+contournable au cas par cas (`git commit --no-verify`).
+
+⚠️ **À refaire après toute modification du hook ou de l'outil** :
+`node scripts/chantier.mjs installer`. L'installation ne se met pas à jour
+toute seule — c'est délibéré (§2.4) — et `verifier` signale une installation
+**altérée**, pas une installation **périmée** par rapport à une branche.
 
 ### 6.5 Un chantier pilote, puis généraliser
 

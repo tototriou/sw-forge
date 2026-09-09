@@ -41,6 +41,8 @@ import {
   diagnoseFeasibility,
   mainStatFilteredBySlot,
   objectiveKeysOf,
+  CHECKPOINT_EVERY,
+  SearchProgress,
   pairBuckets,
   prepareSearch,
   rankBlockingConditions,
@@ -75,7 +77,9 @@ import {
   Completude,
   ConfigHarnais,
   DemiBuildCombo,
+  DecouverteBuildCible,
   DetailDemiBuild,
+  JalonRendement,
   DetailFiltrage,
   DistributionIntervalles,
   EtagePopulation,
@@ -151,6 +155,8 @@ interface Passage {
   progressionA?: ProgressionMoitie;
   progressionB?: ProgressionMoitie;
   msAppariement: number;
+  /** §5.6 — l'instant de découverte et la courbe. Absent sans cible complète. */
+  decouverte?: ObservateurDecouverte;
   msTotal: number;
 }
 
@@ -220,7 +226,16 @@ async function deroulerHarnais(
   const passages: Passage[] = [];
   for (let i = 0; i < repetitions; i++) {
     passages.push(
-      await unPassage(resolue, arretApres, bundleMoities, bundleTranches, options.horodaterProgression ?? false)
+      await unPassage(
+        resolue,
+        arretApres,
+        bundleMoities,
+        bundleTranches,
+        options.horodaterProgression ?? false,
+        // §5.6 — la découverte n'a de sens qu'avec les SIX identifiants, la
+        // même condition d'entrée que `verdictBuildCible` juste en dessous.
+        (options.suivre ?? []).length === 6 ? options.suivre! : null
+      )
     );
   }
   // ⚠️ Le DERNIER passage sert de source aux résultats non temporels. Tous
@@ -369,6 +384,18 @@ async function deroulerHarnais(
   // ── ÉTAGES 4-5 du build cible : la paire a-t-elle été explorée, et à quel
   // RANG la cible sort-elle ? ⚠️ Le rang est pris sur `classes`, la liste
   // ENTIÈRE — jamais sur le top rendu ci-dessous, qui est déjà coupé.
+  // ── §5.6 : QUAND la cible est apparue, et à quel rythme les candidats se
+  // sont accumulés. ⚠️ Lu sur le DERNIER passage, comme tout le reste des
+  // grandeurs non temporelles — et rendu avec ses trois marques, jamais nu.
+  if (dernier.decouverte && dernier.totalPairs != null) {
+    resultat.decouverteBuildCible = rendreDecouverte(
+      dernier.decouverte,
+      dernier.totalPairs,
+      dernier.regime!,
+      resultat.completude
+    );
+  }
+
   if (moities.A && moities.B) {
     resultat.appariementBuildCible = appariementBuildCible(
       moities.A,
@@ -713,13 +740,185 @@ export function releverPreparation(): RelevePreparation {
   return releve;
 }
 
+/**
+ * Met l'observateur en forme — et lui attache ses TROIS marques, qui ne se
+ * déduisent pas de la valeur : la granularité, la reproductibilité selon le
+ * régime, et ce qu'une absence autorise à conclure sur un run tronqué.
+ *
+ * ⚠️ **La marque voyage avec le chiffre.** Même doctrine que
+ * `coutInstrumentation` pour A₂ et `perimetrePreparation` pour les temps :
+ * rangée dans une spec, elle serait lue une fois et perdue ; portée par la
+ * valeur, elle part avec chaque `--json` collé dans une conversation.
+ */
+function rendreDecouverte(
+  obs: ObservateurDecouverte,
+  totalPairs: number,
+  regime: RegimeAppariement,
+  completude: Completude | undefined
+): DecouverteBuildCible {
+  const sequentiel = regime === 'sequentiel';
+  const trouvee = obs.exploredALaDecouverte !== null;
+  const tronque = completude ? !completude.complet : false;
+  return {
+    exploredALaDecouverte: obs.exploredALaDecouverte,
+    fractionExploree: trouvee && totalPairs > 0 ? obs.exploredALaDecouverte! / totalPairs : null,
+    jalons: obs.jalons,
+    regime,
+    granularitePaires: sequentiel ? CHECKPOINT_EVERY : null,
+    reproductible: sequentiel,
+    ...(trouvee
+      ? {}
+      : {
+          absente: tronque
+            ? `JAMAIS VUE AVANT LA COUPE (${completude!.motif}) — ⚠️ ce n’est PAS « le moteur ne la trouve pas ». ` +
+              'Sur un run tronqué une absence ne prouve rien, alors qu’une présence est monotone et solide : ' +
+              'aucune exploration supplémentaire ne peut retirer un candidat déjà collecté. Relancer complet, ou par quota.'
+            : 'JAMAIS VUE, sur un run COMPLET — la cible n’a été produite à aucun moment de l’appariement. ' +
+              'Là, et seulement là, l’absence est un résultat.',
+        }),
+    avertissement:
+      `⚠️ CE QUE CET INSTANT EST, ET CE QU’IL N’EST PAS. Il dit QUAND la cible est apparue dans le flux de ` +
+      `collecte, en PAIRES explorées — jamais son rang, qui vient de \`sortCandidates\` et décrit un état FINAL. ` +
+      `Les deux sont indépendants : une cible peut sortir #1 au classement après avoir été découverte en toute fin ` +
+      `d’appariement. ⚠️ C’est un MAJORANT, jamais la paire exacte : ` +
+      (sequentiel
+        ? `l’appariement séquentiel n’émet un point de passage que toutes les ${CHECKPOINT_EVERY} paires, donc la cible ` +
+          'était déjà là quelque part dans les 500 précédentes. ✅ Reproductible : deux runs identiques rendent le même instant.'
+        : '⚠️⚠️ le régime PARALLÈLE relève sa progression à intervalle de TEMPS, et `explored` y est la SOMME des ' +
+          'workers à cet instant. L’ordre d’arrivée des candidats dépend de l’ordonnancement des fils : ' +
+          'DEUX RUNS IDENTIQUES PEUVENT RENDRE DEUX INSTANTS DIFFÉRENTS. Ne comparer deux configurations sur cette ' +
+          'grandeur qu’en régime séquentiel, ou en répétant et en mesurant d’abord la dispersion.'),
+  };
+}
+
+/**
+ * ⚠️ **LE prédicat de reconnaissance de la cible, et il n'en existe qu'UN.**
+ * Extrait de `appariementBuildCible`, où il vivait en ligne, au moment où
+ * l'observateur de découverte a eu besoin de la même question. Deux copies
+ * auraient pu diverger sans qu'aucune erreur `tsc` ne le dise — et le harnais
+ * aurait alors trouvé la cible par une règle à lui, pas par celle qui décide
+ * du rang. C'est l'incident fondateur de la discipline « fidélité des scripts
+ * de diagnostic », appliqué au harnais lui-même.
+ *
+ * L'ordre des identifiants est indifférent : `pairBuckets` assemble une moitié
+ * A et une moitié B, l'ordre dans `runeIds` suit les emplacements, jamais
+ * l'ordre dans lequel l'utilisateur les a écrits.
+ */
+export function estLeBuildCible(candidat: { runeIds: number[] }, cibles: number[]): boolean {
+  return candidat.runeIds.length === cibles.length && candidat.runeIds.every((id) => cibles.includes(id));
+}
+
+/**
+ * Les jalons de la courbe de rendement, en % de `totalPairs`.
+ *
+ * ⚠️ **Les mêmes que ceux de `combos-order-mode-real-account-diag`**, dont
+ * cette extension reprend la grandeur (§5.6) : garder les jalons identiques
+ * est ce qui permet de comparer un relevé du harnais à ceux déjà consignés
+ * dans l'historique, au lieu de repartir de zéro.
+ */
+export const JALONS_RENDEMENT = [1, 5, 10, 25, 50, 75, 100];
+
+/**
+ * L'observateur de DÉCOUVERTE — §5.6.
+ *
+ * ⚠️ **Niveau A-passif au sens strict** : il lit les `PairingProgress` que
+ * `pairBuckets` émet DÉJÀ, n'ajoute aucun `yield`, n'appelle aucune fonction
+ * du moteur et ne touche pas à `src/`. Le seul coût est un `findIndex` sur les
+ * candidats NOUVEAUX de chaque point de passage — et il s'arrête dès que la
+ * cible est vue.
+ */
+class ObservateurDecouverte {
+  exploredALaDecouverte: number | null = null;
+  readonly jalons: JalonRendement[] = [];
+  private prochainJalon = 0;
+  private dernierExplored = 0;
+  private derniersCandidats = 0;
+
+  constructor(
+    private readonly cibles: number[],
+    private readonly totalPairs: number
+  ) {}
+
+  /** À appeler à CHAQUE point de passage de l'appariement, quel que soit le régime. */
+  observer(explored: number, candidats: { runeIds: number[] }[], cumul: number): void {
+    this.dernierExplored = explored;
+    this.derniersCandidats = cumul;
+    if (this.exploredALaDecouverte === null && candidats.some((c) => estLeBuildCible(c, this.cibles))) {
+      this.exploredALaDecouverte = explored;
+    }
+    this.avancerJalons(explored, cumul);
+  }
+
+  /**
+   * Vide tous les jalons que cet `explored` franchit.
+   *
+   * ⚠️ Un seul point de passage peut en franchir PLUSIEURS d'un coup (500
+   * paires sur un espace de 4 096) : la boucle les vide tous, sinon la courbe
+   * aurait des trous qu'on lirait comme « rien collecté ».
+   *
+   * ⚠️ **Appelée AUSSI à la clôture**, et c'est ce qui rend le dernier jalon
+   * juste : le jalon 100 % n'est jamais franchi par un `yield` — le générateur
+   * rend son `explored` final dans sa valeur de RETOUR, pas dans un point de
+   * passage. Sans ce second appel, un run parfaitement COMPLET déclarait son
+   * jalon 100 % « jamais atteint ». Trouvé par le test, pas à la relecture.
+   */
+  private avancerJalons(explored: number, cumul: number): void {
+    while (
+      this.prochainJalon < JALONS_RENDEMENT.length &&
+      this.totalPairs > 0 &&
+      explored >= (JALONS_RENDEMENT[this.prochainJalon] / 100) * this.totalPairs
+    ) {
+      this.jalons.push({ jalonPct: JALONS_RENDEMENT[this.prochainJalon], explored, candidats: cumul, atteint: true });
+      this.prochainJalon++;
+    }
+  }
+
+  /**
+   * ⚠️ **La dernière chance, et elle n'est pas une commodité.** Le premier
+   * point de passage peut tomber APRÈS que la cible soit entrée dans les
+   * candidats : sans ce rattrapage sur le résultat FINAL, une cible trouvée
+   * entre deux points de passage serait rendue « jamais vue » — une absence
+   * fabriquée, exactement ce que le §5.1 interdit.
+   */
+  cloturer(resultat: SearchResult): void {
+    // ⚠️ L'`explored` FINAL vient du résultat, jamais du dernier point de
+    // passage vu : en parallèle les relevés sont throttlés dans le TEMPS, donc
+    // le dernier reçu peut être très en deçà de ce qui a réellement été
+    // parcouru (mesuré : 2 000 au dernier relevé contre 60 806 au total).
+    // S'en tenir au dernier relevé ferait annoncer une recherche vingt fois
+    // plus courte qu'elle ne l'a été.
+    this.dernierExplored = Math.max(this.dernierExplored, resultat.explored);
+    this.derniersCandidats = Math.max(this.derniersCandidats, resultat.candidates.length);
+    if (this.exploredALaDecouverte === null && resultat.candidates.some((c) => estLeBuildCible(c, this.cibles))) {
+      this.exploredALaDecouverte = this.dernierExplored;
+    }
+    // ── D'abord les jalons que l'`explored` FINAL franchit réellement.
+    this.avancerJalons(this.dernierExplored, this.derniersCandidats);
+    // ⚠️ ENSUITE seulement, les jalons restants sont marqués NON ATTEINTS,
+    // jamais remplis en silence avec le dernier état : sur un run tronqué à
+    // 0,006 % de son espace, les recopier donnerait une courbe plate qu'on
+    // lirait « la collecte a saturé » alors qu'elle n'a pas commencé.
+    while (this.prochainJalon < JALONS_RENDEMENT.length) {
+      this.jalons.push({
+        jalonPct: JALONS_RENDEMENT[this.prochainJalon],
+        explored: this.dernierExplored,
+        candidats: this.derniersCandidats,
+        atteint: false,
+      });
+      this.prochainJalon++;
+    }
+  }
+}
+
 async function unPassage(
   resolue: ConfigResolue,
   arretApres: ArretApres,
   cheminBundleMoities: string | null,
   cheminBundleTranches: string | null,
   /** §4.2 (A₂). ⚠️ `false` par défaut : l'instrument se paie, il s'assume. */
-  horodaterProgression = false
+  horodaterProgression = false,
+  /** §5.6 — les SIX identifiants du build cible, ou `null` : sans cible, rien à découvrir. */
+  cibleComplete: number[] | null = null
 ): Promise<Passage> {
   const params = resolue.params;
   const t0 = performance.now();
@@ -777,10 +976,20 @@ async function unPassage(
   if (arretApres === 'demi-builds') return passage;
 
   // ── Phase C : appariement, par le chemin que la production emprunterait.
+  // ⚠️ L'observateur de découverte (§5.6) n'existe que si une cible COMPLÈTE
+  // est suivie : `null` sinon, et le chemin repasse par `drain`, strictement
+  // inchangé — l'instrument ne se paie que quand il sert.
+  const observateur = cibleComplete ? new ObservateurDecouverte(cibleComplete, totalPairs) : null;
   const resultat =
     regime === 'parallele'
-      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, cheminBundleTranches!)
-      : drain(pairBuckets(prepared, bucketsA, bucketsB));
+      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, cheminBundleTranches!, observateur)
+      : observateur
+        ? drainEnObservant(pairBuckets(prepared, bucketsA, bucketsB), observateur)
+        : drain(pairBuckets(prepared, bucketsA, bucketsB));
+  if (observateur) {
+    observateur.cloturer(resultat);
+    passage.decouverte = observateur;
+  }
   const tPair = performance.now();
   passage.resultat = resultat;
   passage.msAppariement = tPair - tBuild;
@@ -799,20 +1008,56 @@ async function apparierEnParallele(
   prepared: PreparedSearch,
   bucketsA: Bucket[],
   bucketsB: Bucket[],
-  cheminBundle: string
+  cheminBundle: string,
+  observateur: ObservateurDecouverte | null
 ): Promise<SearchResult> {
   const spawn = makeSpawnSliceNode(cheminBundle);
+  // ⚠️ `postProgress` reçoit `newCandidates` — les candidats NOUVEAUX depuis
+  // le dernier relevé, pas le cumul — plus `found`, qui EST le cumul. On passe
+  // donc les deux : la découverte se cherche dans les nouveaux, la courbe se
+  // trace sur le cumul. Les confondre gonflerait la courbe ou raterait la
+  // cible.
+  // ⚠️⚠️ Et ce relevé est TEMPOREL (throttle en ms côté `driveParallelPairing`),
+  // pas tous les `CHECKPOINT_EVERY` paires comme en séquentiel : c'est la
+  // raison pour laquelle l'instant de découverte parallèle est marqué NON
+  // REPRODUCTIBLE, et non une imprécision qu'on pourrait resserrer.
+  let cumul = 0;
   return driveParallelPairing(
     spawn,
     params,
     prepared,
     bucketsA,
     bucketsB,
-    () => {
-      /* progression : sans objet pour un harnais qui ne rend rien en direct */
+    (explored, found, newCandidates) => {
+      cumul = found;
+      observateur?.observer(explored, newCandidates, cumul);
     },
     prepared.startedAt
   );
+}
+
+/**
+ * `drain`, mais en laissant l'observateur voir chaque point de passage.
+ *
+ * ⚠️ **Il ne remplace PAS `drain` partout** : le chemin sans cible garde
+ * `drain` tel quel, pour que le harnais ne paie rien quand personne ne
+ * regarde. Deux chemins, une seule raison de diverger — la présence d'une
+ * cible.
+ */
+function drainEnObservant(
+  gen: Generator<SearchProgress, SearchResult, void>,
+  observateur: ObservateurDecouverte
+): SearchResult {
+  let step = gen.next();
+  while (!step.done) {
+    const p = step.value;
+    // ⚠️ `buildBuckets` n'est pas dans ce générateur, mais `SearchProgress`
+    // est une union : le garde sur la phase est ce qui rend la lecture sûre
+    // si `pairBuckets` venait un jour à émettre autre chose.
+    if (p.phase === 'pairing') observateur.observer(p.explored, p.candidates, p.candidates.length);
+    step = gen.next();
+  }
+  return step.value;
 }
 
 /**
@@ -1089,9 +1334,7 @@ function appariementBuildCible(
   const placeA = localiserDemiBuild(idsA, bucketsA);
   const placeB = localiserDemiBuild(idsB, bucketsB);
   const cibles = [...idsA, ...idsB];
-  const indice = classement.findIndex(
-    (c) => c.runeIds.length === cibles.length && c.runeIds.every((id) => cibles.includes(id))
-  );
+  const indice = classement.findIndex((c) => estLeBuildCible(c, cibles));
   const commun = {
     compartimentA: placeA ? placeA.compartiment + 1 : null,
     compartimentB: placeB ? placeB.compartiment + 1 : null,

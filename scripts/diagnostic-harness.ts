@@ -465,6 +465,43 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  ${v.avertissementTroncature}`);
   }
 
+  // ── §5.6 : l'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT.
+  // ⚠️ Imprimé JUSTE APRÈS le verdict, et jamais avant : le verdict dit si la
+  // cible est là, celui-ci dit QUAND elle est arrivée. Dans l'autre ordre, un
+  // instant de découverte lu en premier se prendrait pour un rang — la
+  // confusion exacte que cette grandeur existe pour lever.
+  if (r.decouverteBuildCible) {
+    const d = r.decouverteBuildCible;
+    l.push('', 'Build cible — INSTANT DE DÉCOUVERTE et COURBE DE RENDEMENT', '─'.repeat(72));
+    if (d.exploredALaDecouverte != null) {
+      const pct = d.fractionExploree != null ? ` — ${(d.fractionExploree * 100).toFixed(2)} % de l’espace` : '';
+      l.push(`  découverte à ${nb(d.exploredALaDecouverte)} paires explorées${pct}`);
+    } else {
+      l.push(`  ⚠️ ${d.absente}`);
+    }
+    const marque = d.reproductible
+      ? `pas de ${nb(d.granularitePaires!)} paires, REPRODUCTIBLE`
+      : 'relevé TEMPOREL, ⚠️ NON REPRODUCTIBLE';
+    l.push(`  régime ${d.regime} — ${marque}`);
+    if (d.jalons.length > 0) {
+      l.push('  courbe de rendement — candidats cumulés par fraction de l’espace parcourue :');
+      l.push(`    ${d.jalons.map((j) => `${j.jalonPct}%`.padStart(7)).join('')}`);
+      // ⚠️ `—` pour un jalon JAMAIS ATTEINT, jamais la dernière valeur connue :
+      // une courbe plate se lirait « la collecte a saturé » là où la recherche
+      // s'est simplement arrêtée avant d'y arriver.
+      l.push(`    ${d.jalons.map((j) => (j.atteint ? String(j.candidats) : '—').padStart(7)).join('')}`);
+      const jamais = d.jalons.filter((j) => !j.atteint);
+      if (jamais.length > 0) {
+        l.push(
+          `    ⚠️ ${jamais.length} jalon(s) JAMAIS ATTEINT(S) (${jamais.map((j) => `${j.jalonPct} %`).join(', ')}) — ` +
+            `la recherche s’est arrêtée à ${nb(jamais[jamais.length - 1].explored)} paires. Un « — » n’est pas un zéro : c’est un ` +
+            'point de l’espace que ce run n’a jamais vu.'
+        );
+      }
+    }
+    l.push(`  ${d.avertissement}`);
+  }
+
   // ── Palier 2 : la préparation, étage par étage.
   l.push('', 'Préparation — runes restantes par emplacement', '─'.repeat(72));
   for (const t of r.preparation) {

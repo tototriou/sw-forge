@@ -808,6 +808,87 @@ export interface RangBuildCible {
   totalMetrique: number;
 }
 
+/* --------------------------------------------------------------------------
+ * L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT — §5.6 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * Un jalon de la courbe de rendement : combien de candidats étaient collectés
+ * quand l'appariement avait parcouru X % de son espace.
+ *
+ * ⚠️ `explored` est l'`explored` RÉELLEMENT atteint au point de passage qui a
+ * franchi le jalon, jamais le jalon théorique — les points de passage sont
+ * discrets, et arrondir masquerait leur granularité.
+ */
+export interface JalonRendement {
+  jalonPct: number;
+  explored: number;
+  /** Candidats CUMULÉS à cet instant, pas l'incrément. */
+  candidats: number;
+  /**
+   * ⚠️ **`false` = le jalon n'a JAMAIS été atteint** — la recherche s'est
+   * arrêtée avant (quota ou temps). Le couple `explored`/`candidats` y vaut
+   * alors le DERNIER état connu, pas l'état à ce pourcentage de l'espace.
+   *
+   * Sans ce drapeau, un run tronqué à 0,006 % de son espace afficherait
+   * « 165 candidats à 100 % » — une ligne parfaitement plate qui se lirait
+   * « la collecte a saturé », alors qu'elle n'a jamais commencé. Même
+   * discipline que `NON_COMPARABLE` : ce qui n'a pas été observé se DIT, il
+   * ne se remplit pas avec la dernière valeur en date.
+   */
+  atteint: boolean;
+}
+
+/**
+ * ⚠️ **L'INSTANT DE DÉCOUVERTE — la grandeur que `RangBuildCible` N'EST PAS,
+ * et la confusion coûte cher.** `RangBuildCible.rang` vient de
+ * `sortCandidates` : c'est la QUALITÉ du build dans le classement final, un
+ * état terminal. Celle-ci dit QUAND il est apparu dans le flux de collecte.
+ * Les deux sont indépendantes — un build peut sortir premier au classement
+ * après avoir été découvert en toute fin d'appariement, et l'inverse.
+ *
+ * Elle répond à la seule question qui départage deux ORDRES d'énumération
+ * (`combosOrderMode`, tri des demi-builds, pondération par tranches) : « cette
+ * version converge-t-elle plus tôt ? » — et elle y répond en TRAVAIL (des
+ * paires), pas en temps, donc insensible à la dérive machine et à la
+ * contention, contrairement à tout `foundMs`.
+ *
+ * ⚠️ **Trois limites, portées par la valeur elle-même et jamais laissées à la
+ * prose** :
+ *
+ * 1. **Granularité.** L'appariement n'émet un point de passage que tous les
+ *    `CHECKPOINT_EVERY` (500) paires en séquentiel, et toutes les
+ *    `PROGRESS_THROTTLE_MS` en parallèle. `exploredALaDecouverte` est donc le
+ *    premier point de passage OÙ LA CIBLE ÉTAIT DÉJÀ LÀ, jamais la paire
+ *    exacte : c'est un MAJORANT, et `granularitePaires` le dit.
+ * 2. **Le régime parallèle n'est PAS reproductible sur cette grandeur.**
+ *    `explored` y est la SOMME des workers à l'instant du relevé, et l'ordre
+ *    d'arrivée des candidats dépend de l'ordonnancement des fils. Deux runs
+ *    identiques peuvent rendre deux instants de découverte différents —
+ *    `reproductible: false` le marque. ⚠️ Ce n'est pas un défaut du harnais :
+ *    c'est une propriété du régime, et la masquer serait le mensonge que tout
+ *    ce chantier combat.
+ * 3. **Sur un run TRONQUÉ, une absence ne conclut rien.** « Jamais vue » veut
+ *    dire « pas avant la coupe », pas « le moteur ne la trouve pas » — même
+ *    asymétrie qu'au §5.1 : une PRÉSENCE est monotone et solide, une absence
+ *    n'est jamais une preuve. `absente` porte le motif.
+ */
+export interface DecouverteBuildCible {
+  /** `explored` au premier point de passage portant la cible. `null` = jamais vue. */
+  exploredALaDecouverte: number | null;
+  /** Rapporté à `totalPairs` — la seule forme comparable entre cas de tailles différentes. */
+  fractionExploree: number | null;
+  /** La courbe de rendement, aux jalons de `JALONS_RENDEMENT`. */
+  jalons: JalonRendement[];
+  regime: RegimeAppariement;
+  /** Le pas des points de passage : un nombre de paires en séquentiel, `null` en parallèle (il est TEMPOREL). */
+  granularitePaires: number | null;
+  reproductible: boolean;
+  /** Renseigné SEULEMENT si la cible n'est jamais apparue — avec ce que ça autorise à conclure. */
+  absente?: string;
+  avertissement: string;
+}
+
 export interface AppariementBuildCible {
   /**
    * Le rang (1-based) du compartiment de chaque moitié dans `bucketsA` /
@@ -1001,6 +1082,18 @@ export interface ResultatHarnais {
    * question qui ne s'est pas posée, jamais une réponse négative.
    */
   appariementBuildCible?: AppariementBuildCible;
+  /**
+   * L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT (§5.6 des extensions) —
+   * QUAND la cible est apparue dans le flux, et à quel rythme les candidats
+   * se sont accumulés.
+   *
+   * ⚠️ À ne JAMAIS confondre avec `appariementBuildCible.rang`, qui est un
+   * état FINAL par `sortCandidates`. Voir `DecouverteBuildCible`.
+   *
+   * ⚠️ Absent si l'arrêt a eu lieu avant l'appariement, ou si `--suivre` ne
+   * porte pas les SIX identifiants : sans cible, il n'y a rien à découvrir.
+   */
+  decouverteBuildCible?: DecouverteBuildCible;
   /**
    * LE VERDICT du build cible (§5.1 des extensions) — le premier point de
    * divergence, avec la complétude qui dit ce qu'on a le droit d'en conclure.

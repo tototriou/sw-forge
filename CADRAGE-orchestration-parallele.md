@@ -312,24 +312,37 @@ Trois règles permanentes :
 dépôts jetables. Les hooks et la suppression automatique viennent ensuite : ils
 doivent s'appuyer sur une conservation de données déjà démontrée.*
 
-### 6.1 Préserver l'existant, créer le dépôt documentaire
+### 6.1 Préserver l'existant, créer le dépôt documentaire — ✅ **FAIT**
 
-⚠️ **Cette étape exige une pause des écritures sur les notes** — donc que
-l'autre agent soit à l'arrêt. C'est le seul moment du dispositif où l'exclusion
-mutuelle est réellement nécessaire, et elle est humaine.
+⚠️ Cette étape exigeait une pause des écritures sur les notes — le seul moment
+du dispositif où l'exclusion mutuelle est réellement nécessaire, et elle est
+humaine.
 
-⚠️ **Prérequis** : les modifications ouvertes du dépôt (`tests/degats.test.ts`,
-`.gitignore`, ce document) sont tranchées avant de commencer.
+| Étape | Résultat |
+|---|---|
+| Inventorier les notes dans **les deux espaces de travail** | **un seul exemplaire** (41 fichiers, 2,8 Mo) — le worktree secondaire n'en avait aucun, donc aucune divergence à réconcilier |
+| Sauvegarder avant rapprochement | copie de sûreté hors des deux dépôts, `diff -rq` identique |
+| Créer `sw-forge-docs` + première révision | `287169c` |
+| Remote **privé** | `enzoputzulu/sw-forge-docs`, visibilité **contrôlée après création** (`isPrivate: true`) |
+| **Vérifier la restauration** | ❌ **échouée d'abord**, puis ✅ après correction (ci-dessous) |
+| Junction `node_modules` de `sw-forge-pair-order` | retirée **en tant que lien** après vérification de sa cible ; les 185 Mo du dépôt principal recomptés intacts ; worktree et branche supprimés (fusionnés dans `main`, vérifié) |
 
-1. Inventorier les notes présentes dans **les deux espaces de travail**.
-2. **Sauvegarder chaque exemplaire avant rapprochement** — ils peuvent avoir
-   divergé.
-3. Créer `C:\Users\Enzo\Desktop\sw-forge-docs`.
-4. Importer les notes, créer leur première révision.
-5. Configurer le **remote privé**, et **vérifier une restauration** dans un
-   dossier temporaire. Une sauvegarde non restaurée n'est pas une sauvegarde.
-6. Retirer la junction `node_modules` de `sw-forge-pair-order` **en tant que
-   lien**, après vérification de sa cible, puis `npm ci`.
+> ⚠️ **Ce que la vérification par restauration a attrapé — et que rien d'autre
+> n'aurait vu.** Le premier import a été commité **avant** le `.gitattributes` :
+> `core.autocrlf=true` a normalisé en LF **dix fichiers qui portaient des
+> CRLF**. Le clone de contrôle rendait un contenu *logiquement* identique, mais
+> pas **octet pour octet**.
+>
+> Corrigé par `* -text` puis `git add --renormalize` (`a1254d0`), sur un
+> répertoire de travail vérifié intact au préalable. Deuxième restauration :
+> `diff -rq` vide et **même empreinte agrégée** des 41 fichiers.
+>
+> **Une sauvegarde qu'on n'a jamais restaurée n'est pas une sauvegarde** —
+> celle-ci était fausse pendant quelques minutes, sans le moindre signe.
+
+⚠️ **Reste à faire sur ce point** : le dépôt documentaire n'a **pas encore de
+worktree par chantier** (§2.2), et les notes vivent toujours dans le dépôt de
+code comme avant. La migration vers le fonctionnement cible commence à §6.2.
 
 ### 6.2 Construire l'outil dans un chantier dédié
 

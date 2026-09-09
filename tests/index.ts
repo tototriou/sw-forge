@@ -30,6 +30,7 @@ import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
 import testDegats, { testFormesEquivalentes } from './degats.test';
+import testAuditDegatsConditionnels from './audit-degats-conditionnels.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimOnStage from './rune-optim-onstage.test';
@@ -90,6 +91,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRechargement', testRechargement],
   ['testCollabPaires', testCollabPaires],
   ['testDegats', testDegats],
+  ['testAuditDegatsConditionnels', testAuditDegatsConditionnels],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],

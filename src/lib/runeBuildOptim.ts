@@ -54,6 +54,7 @@ import {
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
   DamageSetup,
+  MonsterWideDamageModifiers,
   PassifOffensifProfile,
   SkillDamageProfile,
   computeTotalDamage,
@@ -481,16 +482,7 @@ export interface RealDamageContext {
   // Ciri (Feu)/MOS (Feu)/Reyka et Lizardman/Glinodon — voir
   // `monsterCritRateSelonVit`/`monsterBonusStatFixe`. `{}` = comportement
   // inchangé.
-  monsterWide: {
-    critRateSelonVit?: { ptsParVit: number };
-    bonusStatFixe?: { cr: number; cd: number };
-    bonusFixeCiblePvMax?: { pct: number };
-    bonusEcartDef?: { coeff: number };
-    bonusFixeMaxHpPropre?: { pct: number };
-    bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
-    bonusParEffetCible?: { skillCom2usId: number; pct: number; source: 'buffs' | 'debuffs' | 'buffsEtDebuffs' };
-    bonusParEffetPropre?: { skillCom2usId: number; pct: number };
-  };
+  monsterWide: MonsterWideDamageModifiers;
   // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician…) —
   // voir `monsterBonusDegatsConditionnel`. `null` = comportement inchangé.
   bonusDegatsConditionnel: BonusDegatsConditionnelProfile | null;

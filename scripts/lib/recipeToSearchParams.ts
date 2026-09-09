@@ -19,6 +19,9 @@ import {
   monsterBonusEcartDef,
   monsterBonusFixeMaxHpPropre,
   monsterBonusSacrifice,
+  monsterBonusParEffetCible,
+  monsterConditionsCombat,
+  monsterCritInterdit,
   monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
   monsterDamageSkills,
@@ -164,12 +167,8 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
     // arbitraire — comportement inchangé, `paireReelle` bail out ENTIÈREMENT
     // plutôt que de rabattre le régime sur `'aucun'` comme le fait l'écran.
     if (!ctx) return null;
-    evaluer = evaluerPourRegime(regime, statsAvec, {
-      profile: ctx.profile,
-      passifs: ctx.passifs,
-      setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
-      element: espece.element,
-    });
+    const { artefacts: _artefacts, ...contexteSansArtefacts } = ctx;
+    evaluer = evaluerPourRegime(regime, statsAvec, contexteSansArtefacts);
   } else {
     evaluer = evaluerPourRegime(regime, statsAvec);
   }
@@ -336,7 +335,12 @@ export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMon
     monsterBonusFixeMaxHpPropre(detail) != null || monsterBonusSacrifice(detail) != null,
     monsterBonusDegatsSelonCr(detail),
     monsterBonusDegatsSelonDef(detail),
-    monsterBonusSiAtqSeuil(detail)
+    monsterBonusSiAtqSeuil(detail),
+    {
+      bonusParEffetCible: monsterBonusParEffetCible(detail) ?? undefined,
+      conditionsCombat: monsterConditionsCombat(detail),
+      critInterdit: monsterCritInterdit(detail),
+    }
   );
 }
 

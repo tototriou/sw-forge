@@ -91,7 +91,9 @@ import {
   monsterBonusSacrifice,
   monsterBonusStatFixe,
   monsterCritRateSelonVit,
+  monsterCritInterdit,
   monsterCritSiPlusRapide,
+  monsterConditionsCombat,
   monsterDamageSkills,
   monsterModificateursVit,
   monsterOffensivePassives,
@@ -540,6 +542,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     ].filter(Boolean);
     return `État du monstre : ${bouts.length > 0 ? bouts.join(' · ') : 'aucun buff, aucun lead'}`;
   }, [damageSetup]);
+  const critInterdit = useMemo(() => monsterCritInterdit(skillDetail), [skillDetail]);
   /**
    * Ce que l'objectif « Dégâts réels » suppose, en une ligne — le résumé qui
    * remplace la carte dans le flux, et la rouvre au clic.
@@ -564,15 +567,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // n'existe même pas dans la fenêtre qu'elle résume. Signalé à l'usage.
     const champs = champsDuCombat(resolvedSkill);
     if (champs.defEnnemie) bouts.push(`DEF ${damageSetup.enemyDef.toLocaleString('fr-FR')}`);
-    if (champs.crit) {
+    if (champs.crit && !critInterdit) {
       bouts.push(CRIT_MODE_LABELS.find((c) => c.key === damageSetup.critMode)?.label ?? damageSetup.critMode);
     }
+    if (critInterdit) bouts.push('critique impossible');
     // ⚠️ **Plus de buffs ici.** Cette ligne résume la FENÊTRE qu'elle rouvre,
     // et les buffs n'y sont plus — ils ont leurs propres contrôles, toujours
     // visibles, dans « État de mon monstre ». Les répéter en texte alors qu'ils
     // sont réglables trois cartes plus haut ne fait que du bruit.
     return bouts.join(' · ');
-  }, [resolvedSkill, damageSetup]);
+  }, [resolvedSkill, damageSetup, critInterdit]);
   // Passifs offensifs de CE monstre (Feng Yan, Sia, Roid… — voir
   // spec/outils/degats-reels.md) — indépendants du sort choisi, calculés dès
   // qu'une fiche est chargée, comme `damageSkills`.
@@ -607,6 +611,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const bonusSacrifice = useMemo(() => monsterBonusSacrifice(skillDetail), [skillDetail]);
   const bonusParEffetCibleMonstre = useMemo(() => monsterBonusParEffetCible(skillDetail), [skillDetail]);
   const bonusParEffetPropre = useMemo(() => monsterBonusParEffetPropre(skillDetail), [skillDetail]);
+  const conditionsCombatMonstre = useMemo(() => monsterConditionsCombat(skillDetail), [skillDetail]);
   const monsterWide = useMemo(
     () => ({
       critRateSelonVit: critRateSelonVit ?? undefined,
@@ -617,6 +622,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       bonusSacrifice: bonusSacrifice ?? undefined,
       bonusParEffetCible: bonusParEffetCibleMonstre ?? undefined,
       bonusParEffetPropre: bonusParEffetPropre ?? undefined,
+      conditionsCombat: conditionsCombatMonstre,
+      critInterdit,
     }),
     [
       critRateSelonVit,
@@ -627,6 +634,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       bonusSacrifice,
       bonusParEffetCibleMonstre,
       bonusParEffetPropre,
+      conditionsCombatMonstre,
+      critInterdit,
     ]
   );
   // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
@@ -646,6 +655,43 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // (entièrement déduit, aucun bouton), mais un SEUIL d'ATQ plutôt qu'un
   // écart de VIT (voir `monsterBonusSiAtqSeuil`).
   const bonusSiAtqSeuil = useMemo(() => monsterBonusSiAtqSeuil(skillDetail), [skillDetail]);
+  // Contexte commun aux TROIS évaluations de dégâts d'artéfacts de l'écran.
+  // Il est volontairement typé depuis `RealDamageContext` : si le moteur gagne
+  // un modificateur monstre-wide, ces chemins ne peuvent plus l'oublier sans
+  // faire échouer `tsc`.
+  const contexteDegatsArtefacts = useMemo<Omit<RealDamageContext, 'artefacts'> | null>(
+    () =>
+      resolvedSkill
+        ? {
+            profile: resolvedSkill,
+            setup: damageSetup,
+            element: speciesMonster?.element ?? null,
+            passifs: offensivePassives,
+            critSiPlusRapide,
+            bonusDegatsSelonVit,
+            bonusDegatsStack,
+            monsterWide,
+            bonusDegatsConditionnel,
+            bonusDegatsSelonCr,
+            bonusDegatsSelonDef,
+            bonusSiAtqSeuil,
+          }
+        : null,
+    [
+      resolvedSkill,
+      damageSetup,
+      speciesMonster?.element,
+      offensivePassives,
+      critSiPlusRapide,
+      bonusDegatsSelonVit,
+      bonusDegatsStack,
+      monsterWide,
+      bonusDegatsConditionnel,
+      bonusDegatsSelonCr,
+      bonusDegatsSelonDef,
+      bonusSiAtqSeuil,
+    ]
+  );
   // Affichage seul (icône/nom/description) des deux modificateurs VIT
   // ci-dessus, pour « Passifs offensifs » — voir `DamageSetupCard.tsx`.
   const modificateursVit = useMemo(() => monsterModificateursVit(skillDetail), [skillDetail]);
@@ -666,7 +712,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             bonusFixeMaxHpPropre != null || bonusSacrifice != null,
             bonusDegatsSelonCr,
             bonusDegatsSelonDef,
-            bonusSiAtqSeuil
+            bonusSiAtqSeuil,
+            monsterWide
           )
         : undefined,
     [
@@ -683,6 +730,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       bonusDegatsSelonCr,
       bonusDegatsSelonDef,
       bonusSiAtqSeuil,
+      monsterWide,
     ]
   );
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
@@ -1244,15 +1292,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     const regimeBrut = regimeArtefacts(objective);
     // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
     // paramètre `degats` optionnel silencieusement absorbé par le helper.
-    const regimeRepresentatif: RegimeArtefacts = regimeBrut === 'degats_reels' && !resolvedSkill ? 'aucun' : regimeBrut;
+    const regimeRepresentatif: RegimeArtefacts = regimeBrut === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimeBrut;
     const evaluer =
       regimeRepresentatif === 'degats_reels'
-        ? evaluerPourRegime(regimeRepresentatif, statsAvec, {
-            profile: resolvedSkill!,
-            passifs: offensivePassives,
-            setup: damageSetup,
-            element: espece.element,
-          })
+        ? evaluerPourRegime(regimeRepresentatif, statsAvec, contexteDegatsArtefacts!)
         : evaluerPourRegime(regimeRepresentatif, statsAvec);
     return {
       porteur: { element: espece.element, archetype: espece.archetype },
@@ -1295,7 +1338,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       codesAmplification: codesAmplificationActifs(damageSetup),
       evaluer,
     };
-  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
+  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, contexteDegatsArtefacts]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -1377,23 +1420,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
      * l'air juste et repose sur des hypothèses invisibles ». Choisir ce cran
      * OUVRE la fenêtre : les hypothèses sont désormais vues et posées.
      *
-     * ⚠️ Mêmes arguments que l'évaluateur de la file (voir `faireParams`) :
-     * les modificateurs monstre-wide (`critSiPlusRapide`,
-     * `bonusDegatsSelonVit`…) n'y sont pas passés là-bas non plus. Deux
-     * traitements différents pour la même question — « quelle paire ? » —
-     * auraient été pires qu'une omission partagée.
+     * ⚠️ Le contexte complet est le même que celui du moteur et de la file
+     * (voir `contexteDegatsArtefacts`) : modificateurs monstre-wide compris.
      */
     const evaluerReel =
-      resolvedSkill &&
-      ((arts: ArtifactDetail[]) =>
-        computeTotalDamage(
-          resolvedSkill,
-          offensivePassives,
-          statsAvecAffiche(arts),
-          damageSetup,
-          espece.element,
-          artifactDamageProfile(arts)
-        ));
+      contexteDegatsArtefacts && evaluerPourRegime('degats_reels', statsAvecAffiche, contexteDegatsArtefacts);
     // ⚠️ Repli sur le brut si aucun sort n'est calculable pour ce monstre —
     // jamais un bloc vide : le cran resterait sur « Dégâts réels » sans que
     // rien n'explique le silence.
@@ -1495,7 +1526,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, resolvedSkill, offensivePassives]);
+  }, [artifactParams, selected, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, contexteDegatsArtefacts]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -1524,39 +1555,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // au moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
   const artefactsDegats = useMemo(() => artifactDamageProfile(searchArtifacts), [searchArtifacts]);
   const realDamage = useMemo<RealDamageContext | null>(
-    () =>
-      resolvedSkill
-        ? {
-            profile: resolvedSkill,
-            setup: damageSetup,
-            element: speciesMonster?.element ?? null,
-            passifs: offensivePassives,
-            artefacts: artefactsDegats,
-            critSiPlusRapide,
-            bonusDegatsSelonVit,
-            bonusDegatsStack,
-            monsterWide,
-            bonusDegatsConditionnel,
-            bonusDegatsSelonCr,
-            bonusDegatsSelonDef,
-            bonusSiAtqSeuil,
-          }
-        : null,
-    [
-      resolvedSkill,
-      damageSetup,
-      speciesMonster?.element,
-      offensivePassives,
-      artefactsDegats,
-      critSiPlusRapide,
-      bonusDegatsSelonVit,
-      bonusDegatsStack,
-      monsterWide,
-      bonusDegatsConditionnel,
-      bonusDegatsSelonCr,
-      bonusDegatsSelonDef,
-      bonusSiAtqSeuil,
-    ]
+    () => (contexteDegatsArtefacts ? { ...contexteDegatsArtefacts, artefacts: artefactsDegats } : null),
+    [contexteDegatsArtefacts, artefactsDegats]
   );
 
   // Ce que le moteur reçoit réellement — partagé entre la recherche et
@@ -1821,8 +1821,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // (formule générique sans sort ni adversaire, retirée le 2026-08-27 —
       // approximation strictement inférieure de « Dégâts réels » une fois
       // celle-ci mature). Une recette exportée avant l'un ou l'autre retrait
-      // porte encore ces valeurs — `parseOptimizerRecipe` ne valide pas
-      // `objective` contre le type, donc sans ce repli l'état affiché
+      // porte encore ces valeurs — `parseOptimizerRecipe` les accepte
+      // explicitement pour cette compatibilité, donc sans ce repli l'état affiché
       // porterait une valeur qu'aucun bouton ne peut représenter. « Efficience »,
       // pas « Dégâts réels » : celle-ci EXIGE un sort/adversaire résolus
       // (`objectiveScore` lève sans contexte, voir runeBuildOptim.ts) — une
@@ -2033,19 +2033,14 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
        */
       // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
       // paramètre `degats` optionnel silencieusement absorbé par le helper.
-      const regime: RegimeArtefacts = regimePaire === 'degats_reels' && !resolvedSkill ? 'aucun' : regimePaire;
+      const regime: RegimeArtefacts = regimePaire === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimePaire;
       const evaluer =
         regime === 'degats_reels'
-          ? evaluerPourRegime(regime, statsAvec, {
-              profile: resolvedSkill!,
-              passifs: offensivePassives,
-              setup: damageSetup,
-              element: espece.element,
-            })
+          ? evaluerPourRegime(regime, statsAvec, contexteDegatsArtefacts!)
           : evaluerPourRegime(regime, statsAvec);
       return { ...artifactParams, evaluer };
     };
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, resolvedSkill, offensivePassives, damageSetup]);
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, contexteDegatsArtefacts]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
@@ -4070,6 +4065,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
           bonusParEffetPropre={bonusParEffetPropre}
           bonusSacrifice={bonusSacrifice}
+          conditionsCombatMonstre={conditionsCombatMonstre}
+          critInterdit={critInterdit}
           artefacts={artefactsDegats}
         />
       )}

@@ -276,8 +276,15 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       // alors que le calcul décimal disait que 9 suffisait. On TRONQUE (et non
       // arrondit) : arrondir donnerait 33 % à 9 d'artéfact, ce que le jeu
       // dément.
+      //
+      // ⚠️⚠️ **ON MULTIPLIE AVANT DE DIVISER.** `buffBase * (1 + arte / 100)`
+      // passe par un flottant qui tombe JUSTE EN DESSOUS de l'entier : à buff 25
+      // et artéfact 16, `25 * 1.16` vaut 28,999999999999996 et se tronque en
+      // **28** au lieu de 29. Les deux facteurs étant entiers,
+      // `(buffBase * (100 + arte)) / 100` est exact — même troncature, sans le
+      // faux pas. 12 couples sur 10 100 étaient touchés, tous SOUS-ÉVALUÉS.
       const buff =
-        buffBase > 0 ? Math.floor(buffBase * (1 + (m.artefactBuff ?? 0) / 100)) : buffBase;
+        buffBase > 0 ? Math.floor((buffBase * (100 + (m.artefactBuff ?? 0))) / 100) : buffBase;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
       if (m.atb < 0) m.atb = 0;
       // On enregistre AVANT la remise à zéro : la case du tour montre la barre

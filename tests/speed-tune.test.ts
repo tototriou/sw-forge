@@ -223,6 +223,43 @@ export default function testSpeedTune() {
       { id: 'wiki', combat: 100, camp: 'allie', speedMod: { 1: 30 }, artefactBuff: 10 },
     ]);
     egal(wiki.lignes[0].trajectoire[0].toFixed(3), '9.310', "10 % d'artéfact → buff 33 % (9,31 au tick 1)");
+
+    // ⚠️⚠️ **LA TRONCATURE SE FAIT EN ENTIERS, PAS SUR UN FLOTTANT.** Écrite
+    // `buff * (1 + arte / 100)`, elle tombait juste EN DESSOUS de l'entier sur
+    // 12 couples : à buff 25 et artéfact 16, `25 * 1.16` vaut
+    // 28,999999999999996 et se tronquait en 28 au lieu de 29. Un point de buff
+    // perdu, toujours dans le sens du MOINS — donc un outil qui réclame de la
+    // vitesse là où le jeu n'en demande pas.
+    //
+    // ⚠️ La référence de contrôle n'emprunte rien au code testé : c'est une
+    // division ENTIÈRE exacte (`BigInt`), qui ne peut pas se tromper de côté.
+    {
+      // Le buff que le moteur a réellement appliqué, relu dans la barre : à
+      // combat 100, `trajectoire[0]` vaut exactement (100 + buff) × 7 / 100.
+      const buffApplique = (buff: number, arte: number): number => {
+        const t = simuler([
+          { id: 'x', combat: 100, camp: 'allie', speedMod: { 1: buff }, artefactBuff: arte },
+        ]).lignes[0].trajectoire[0];
+        return Math.round((t * 100) / 7) - 100;
+      };
+      const exact = (buff: number, arte: number): number =>
+        Number((BigInt(buff) * BigInt(100 + arte)) / 100n);
+
+      let ecarts = 0;
+      let pire = '';
+      for (let buff = 1; buff <= 60; buff++) {
+        for (let arte = 0; arte <= ARTE_MAX; arte++) {
+          if (buffApplique(buff, arte) !== exact(buff, arte)) {
+            if (ecarts === 0) pire = `buff ${buff} + artéfact ${arte} → ${buffApplique(buff, arte)} au lieu de ${exact(buff, arte)}`;
+            ecarts++;
+          }
+        }
+      }
+      egal(ecarts, 0, `aucun écart de troncature sur les 60 × 61 couples buff/artéfact${pire ? ` (ex. ${pire})` : ''}`);
+      // Le cas le plus petit qui échouait, nommé pour qu'un retour en arrière se
+      // lise tout de suite.
+      egal(buffApplique(25, 16), 29, 'buff 25 + artéfact 16 → 29 (et non 28 : 25 × 1,16 flotte sous l’entier)');
+    }
   }
   {
     // Sans buff ce tick-là, l'artéfact ne fait RIEN (vitesse de base).

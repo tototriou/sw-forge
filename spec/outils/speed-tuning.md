@@ -62,6 +62,11 @@ posent** pour ce monstre et ce tick — **0 annule** l'effet du sort, une case
   Arrondir au lieu de tronquer donnerait 33 % dès 9, ce que le jeu dément.
   Conséquence utile : l'artéfact avance **par paliers**, et l'outil propose le
   premier palier qui change quelque chose.
+  ⚠️⚠️ **La troncature se calcule EN ENTIERS** — `(buff × (100 + artéfact)) / 100`,
+  jamais `buff × (1 + artéfact / 100)` : le second passe par un flottant qui
+  tombe juste sous l'entier (buff 25 + artéfact 16 → 28,999999999999996, tronqué
+  en **28** au lieu de 29). Toujours dans le sens du MOINS, donc un outil qui
+  réclame de la vitesse là où le jeu n'en demande pas.
   > « Increase SPD Effect +N% | Multiplicative | The buff value | 10% artifact
   > makes SPD buff being 33% instead of 30% » —
   > [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/artifacts/)

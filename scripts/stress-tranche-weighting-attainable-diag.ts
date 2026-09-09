@@ -1,37 +1,61 @@
-// Point 4 — DEUXIÈME cas de stress synthétique, plus ATTEIGNABLE que
-// stress-tranche-weighting-diag.ts (qui reste hors de portée même à ×8 le
-// budget de production — trop poussé lors de son calibrage). Même principe
-// (une condition tendue noyée parmi des conditions molles), mais calibré en
-// mesurant D'ABORD le rang RÉEL de la cible (sans aucun plafond) avant de
-// choisir les paramètres, plutôt qu'en ajustant à l'aveugle.
+// Point 4 — cas de stress SYNTHÉTIQUE : une condition TENDUE (Précision, rare
+// dans le pool, qu'aucune principale ne couvre) noyée parmi des conditions
+// MOLLES — VIT couverte par principale garantie, PV/ATQ/DEF abondants en
+// sous-stats. But : vérifier, avant de se fier à la pondération adaptative,
+// que (a) la tranche Précision peut perdre la cible là où les tranches molles
+// la gardent, et (b) les tranches molles restent loin sous leur plafond,
+// donc qu'il y a du budget à redistribuer sans leur nuire.
 //
-// Différence clé avec le premier cas : les DEUX moitiés ont ici une
-// principale imposée sur leur slot 2/4/6 (VIT/TC/RES) — le premier cas ne
-// contraignait QUE le slot 2, laissant les slots 4/5/6 totalement libres,
-// ce qui donnait à la moitié B un pool ~74× plus grand qu'à la moitié A
-// (mesuré) et la rendait structurellement hors de portée quel que soit le
-// nombre de spécialistes injectés.
+// Calibré en mesurant D'ABORD le rang RÉEL de la cible sans aucun plafond,
+// puis en choisissant les paramètres — jamais en ajustant à l'aveugle.
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
-// des extensions). Même raison que son prédécesseur, et elle est
-// structurelle : son **POOL n'est pas exprimable par le harnais** (une source
-// synthétique tire par `randomPool`, qui ne force aucune principale par
-// emplacement et n'injecte ni vague de spécialistes ni runes cibles
-// fabriquées — `randomPool.ts` nomme ce script dans ses variantes
-// délibérément non migrées), et **deux de ses quatre grandeurs n'existent
-// nulle part dans le harnais** : le rang du demi-build cible **par `acc`
-// SEUL** et le **CV de `retentionScore` par `retentionKey`**.
-// ⚠️ C'est ce script-ci qu'il faut préférer des deux : son pool respecte les
-// principales réelles du jeu (ATQ+ en 1, DEF+ en 3, PV+ en 5), que le
-// prédécesseur tirait au hasard. Ne pas le supprimer « parce que le
-// différentiel compare deux bucketCap ».
+// ⚠️ **Il a eu un PRÉDÉCESSEUR, `stress-tranche-weighting-diag.ts`, SUPPRIMÉ
+// le 2026-09-09** (§5.5 bis des extensions) — et ce qui l'a fait supprimer
+// vaut d'être gardé ici, parce que c'est ce que ce fichier-ci corrige :
+//   · **son pool ne pouvait pas exister en jeu** : il tirait au hasard les
+//     principales des emplacements 1/3/5, alors que le jeu impose ATQ+ en 1,
+//     DEF+ en 3 et PV+ en 5. D'où les principales FIXES ci-dessous ;
+//   · **il ne contraignait que l'emplacement 2**, laissant 4/5/6 libres — sa
+//     moitié B avait un pool ~74× plus grand que sa moitié A (mesuré), ce qui
+//     rendait sa cible structurellement hors de portée quel que soit le
+//     nombre de spécialistes injectés. D'où les principales imposées sur les
+//     DEUX moitiés (2/4/6 = VIT/TC/RES), qui bornent les deux pools à une
+//     taille comparable. ⚠️ Aucune de ces trois ne recoupe les 5 stats
+//     suivies : la mollesse et la tension voulues sont intactes ;
+//   · il portait les MÊMES grandeurs que ce script — rang par `acc` seul, CV
+//     par `retentionKey` — donc rien n'a été perdu à le supprimer, seulement
+//     un pool illégal et une calibration qui n'a jamais fonctionné.
+//
+// ⚠️ **CE QUI LE FAIT SURVIVRE, ET CE QUI NE LE FERAIT PAS** (vérifié le
+// 2026-09-09, §5.5 bis des extensions). Une seule chose : son **POOL n'est
+// pas exprimable par le harnais** — une source synthétique tire par
+// `randomPool`, qui ne force aucune principale par emplacement et n'injecte
+// ni vague de spécialistes ni runes cibles fabriquées.
+//
+// ⚠️⚠️ **Mais ce n'est PAS un motif suffisant en soi, et c'est la leçon du
+// §5.5 bis.** Les deux autres grandeurs qu'on lui attribuait sont désormais
+// couvertes, et mieux :
+//   · le **CV par `retentionKey`** vient du harnais depuis le §5.7
+//     (`dispersionTranches`), LU sur `trancheReallocation` que `buildBuckets`
+//     appelle lui-même. Celui calculé ici est un AUTRE nombre — principale
+//     COMPRISE, sur les demi-builds retenus tous compartiments aplatis, là où
+//     le moteur mesure HORS PRINCIPALE sur le pool filtré ;
+//   · les **principales imposées** sont un réglage UTILISATEUR (`mainStats`
+//     des emplacements pairs) : reproductibles sur un compte RÉEL, donc sans
+//     pool fabriqué ;
+//   · la **contribution d'une stat seule** s'obtient en ne posant qu'UNE
+//     condition, ce qui réduit `retentionKeys` à cette stat.
+// ⚠️ Conserver un script parce que le harnais ne sait pas fabriquer son pool
+// ARTIFICIEL, c'est préserver un écart à la production sous couvert de
+// rigueur. Ce fichier ne survit donc que pour l'injection de runes précises —
+// et calibrer un paramètre de production dessus resterait une mauvaise idée.
 //
 // ⚠️⚠️ **SA CALIBRATION NE REPRODUIT PLUS — relevé le 2026-09-09.** Son
 // en-tête ci-dessus promet un cas « plus ATTEIGNABLE », calibré en mesurant
 // d'abord le rang réel sans plafond. Relancé tel quel aujourd'hui, il rend la
 // cible **ABSENTE des DEUX moitiés** (36 989 et 38 308 demi-builds retenus) —
-// donc MOINS atteignable que le prédécesseur qu'il corrigeait, dont la moitié
-// A était au moins RETENUE (#6701 sur 13 098 retenus). Le moteur a bougé depuis
+// donc MOINS atteignable que le prédécesseur supprimé, dont la moitié A était
+// au moins RETENUE (#6701 sur 13 098 retenus). Le moteur a bougé depuis
 // (rétention par tranches, `filterSlot` top-K par tas, élagage
 // `hasFreeSlots`). ⚠️ Recalibrer est un chantier à part : une calibration
 // périmée est un résultat écrit, pas un travail enchaîné (§5.4). D'ici là,

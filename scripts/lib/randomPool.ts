@@ -31,15 +31,24 @@
 // Une question qui dépend du réalisme des runes se pose sur un compte réel
 // (voir `scripts/lib/loadMonster.ts`), jamais ici.
 //
-// ⚠️ **Cinq variantes du dépôt ne passent PAS par ce module, délibérément**
+// ⚠️ **QUATRE variantes du dépôt ne passent PAS par ce module, délibérément**
 // (plus la copie oubliée signalée en tête, qui n'en est pas une) :
 // elles biaisent le tirage pour provoquer une situation précise, donc leur
 // séquence diffère et les migrer changerait leurs pools —
 // `rune-optim-filterslot-topk.test.ts` et `filterslot-topk-diag.ts` (mode
 // `sparse`), `parallel-pairing-quota-diag.ts` (sets rapides vs lents, pour
-// déséquilibrer les tranches), `stress-tranche-weighting-diag.ts` et
+// déséquilibrer les tranches), et
 // `stress-tranche-weighting-attainable-diag.ts` (principales FORCÉES par
 // emplacement). Leur biais est le sujet même de ce qu'elles mesurent.
+//
+// ⚠️ **CINQ auparavant — `stress-tranche-weighting-diag.ts` a été SUPPRIMÉ le
+// 2026-09-09** (§5.5 bis des extensions). Sa variante n'était pas un biais
+// assumé mais une ERREUR : elle tirait au hasard les principales des
+// emplacements 1/3/5, alors que le jeu impose ATQ+ en 1, DEF+ en 3 et PV+ en
+// 5 — son pool ne pouvait donc pas exister en jeu. Son successeur
+// `attainable` corrige exactement ça et porte les mêmes grandeurs. ⚠️ Le
+// compte est repassé de cinq à quatre : ne pas le relire comme une variante
+// oubliée à retrouver.
 
 import { RuneDetail, EffectLine } from '../../src/types';
 

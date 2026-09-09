@@ -143,6 +143,13 @@ changerait ce qu'on mesure. Détail : cadrage §2.1.
   node "$(git rev-parse --git-common-dir)/forge/installation/scripts/chantier.mjs" \
     verifier --chantier <sujet>
   ```
+- **`integrer` fait avancer la référence des notes**, et il ne dépend PAS du
+  sort du code : `chantier integrer --chantier <sujet>` fusionne la branche du
+  chantier dans le `main` documentaire dès que le reçu passe, puis pousse. À
+  faire **dès qu'un lot de notes est bon**, sans attendre que le code rejoigne
+  `main` — sinon un chantier ouvert plus tard repart d'un état périmé et ne
+  voit pas le travail du précédent. Le chantier reste ouvert : `fermer` est un
+  autre sujet, celui de la conservation du code.
 - **Les fichiers transverses ont un responsable désigné par chantier**, pas
   d'interdit général : `App.tsx`, `package.json`, `tsconfig.json`,
   `tailwind.config.js`, `ARCHITECTURE.md`, `CLAUDE.md`. Si deux chantiers ont

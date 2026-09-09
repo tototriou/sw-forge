@@ -224,6 +224,7 @@ qu'un autre agent build ne veut rien dire. Incident déjà vécu.
 | `ouvrir` | enregistrer le chantier, créer son worktree documentaire, copier une révision précise |
 | `livrer` | reporter, vérifier, committer les notes, écrire le reçu |
 | `verifier` | contrôler une contribution **explicitement désignée** et ses révisions |
+| `integrer` | avancer le `main` **documentaire** — indépendamment du sort du code |
 | `installer` | installer une version précise de l'outil et des hooks |
 | `fermer` | vérifier conservation, sauvegarde et état local avant nettoyage |
 
@@ -281,6 +282,42 @@ sans effet de bord.
 > **Ce que ça ne garantit pas** : que l'agent ait écrit *toutes* les notes
 > nécessaires. Seulement que **les notes écrites sont conservées et associées
 > au bon code**. La complétude éditoriale reste une revue humaine.
+
+### `integrer` — deux rythmes qu'il ne fallait pas coupler
+
+⚠️ **Défaut de conception de la v5, relevé à l'usage** : rien n'avançait jamais
+le `main` documentaire. `fermer` retire le worktree sans rien fusionner, et
+`ouvrir` part de `HEAD` du dépôt documentaire. Un chantier ouvert **après** la
+livraison d'un autre repartait donc de l'import, sans voir son travail — **la
+capitalisation ne marchait pas.**
+
+La cause : deux rythmes couplés sans raison.
+
+| | Rythme réel |
+|---|---|
+| Le **code** rejoint `main` | rarement, par lots de plusieurs chantiers, avec un numéro de version décidé |
+| Les **notes** d'un chantier sont valides | dès que le reçu passe |
+
+Faire attendre les secondes sur le premier les fige pour des semaines.
+`integrer` avance donc le `main` **documentaire seul**, exige un reçu valide, et
+**laisse le chantier ouvert** — `fermer` garde sa condition stricte sur la
+conservation du code, qui est un autre sujet.
+
+- **Joignabilité du distant contrôlée AVANT la fusion**, jamais après :
+  l'invariant visé est « intégré ⇒ sauvegardé ». Fusionner puis découvrir qu'on
+  ne peut pas pousser laisserait la référence avancée localement et nulle part
+  ailleurs.
+- **En conflit, la fusion est ANNULÉE** et la référence ne bouge pas. On tente
+  la fusion et on ne refuse **que si git échoue** : un merge Markdown sur des
+  passages différents est fiable, et refuser d'office rendrait la commande
+  inutile dans le cas fréquent.
+- **Le reçu des autres chantiers reste valide** : c'est le `main` documentaire
+  qui avance, pas leur branche. Sinon le rythme de l'un imposerait le sien à
+  tous.
+
+> ⚠️ `git merge` n'accepte **pas** `-F -` — contrairement à `commit`, il ne lit
+> pas l'entrée standard (« could not read file '-' »). D'où un fichier de
+> message, et non un `-m` que ce dépôt proscrit.
 
 ### `fermer` — « livré » ne veut pas dire « intégré »
 

@@ -88,6 +88,8 @@ export default function testChantier() {
     // jetable doit donc le porter, comme le vrai.
     mkdirSync(join(codeDir, 'scripts'), { recursive: true });
     cpSync(OUTIL, join(codeDir, 'scripts', 'chantier.mjs'));
+    mkdirSync(join(codeDir, '.githooks'), { recursive: true });
+    cpSync(join(RACINE, '.githooks', 'pre-commit'), join(codeDir, '.githooks', 'pre-commit'));
     depotJetable(codeDir);
     commiter(codeDir, 'code initial\n');
     // Le chantier vit sur sa branche, comme dans le vrai dépôt : sinon le
@@ -261,6 +263,64 @@ export default function testChantier() {
       Boolean(registreFerme.revisionDocFinale && registreFerme.commitCodeFinal),
       'et les références des deux commits sont CONSERVÉES dans le registre'
     );
+
+    /* --------------------------------------------------------- le hook */
+    // `installer` a câblé `core.hooksPath` sur l'installation commune : ce qui
+    // suit éprouve le hook TEL QU'IL S'EXÉCUTE, pas le fichier source.
+    const commitAvorte = (depot: string, message: string) => {
+      git(depot, 'add', '-A');
+      try {
+        execFileSync('git', ['-C', depot, 'commit', '-F', '-'], {
+          input: message,
+          encoding: 'utf8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        return { code: 0, sortie: '' };
+      } catch (e) {
+        const err = e as { status?: number; stdout?: string; stderr?: string };
+        return { code: err.status ?? 1, sortie: (err.stdout ?? '') + (err.stderr ?? '') };
+      }
+    };
+
+    ok(
+      git(codeDir, 'config', 'core.hooksPath').includes('installation'),
+      'le hook est câblé sur l’INSTALLATION, pas sur `.githooks` du worktree'
+    );
+
+    // Un commit ordinaire sur une branche de chantier passe : un garde-fou qui
+    // bloque le travail normal finit désactivé.
+    writeFileSync(join(codeDir, 'src', 'app.ts'), 'export const x = 3;\n');
+    let h = commitAvorte(codeDir, 'travail ordinaire\n');
+    ok(h.code === 0, 'un commit ordinaire sur `forge/…` passe');
+
+    // Chemin privé forcé dans l'index.
+    writeFileSync(join(codeDir, NOTES, 'fuite.md'), 'ne doit jamais etre committe\n');
+    git(codeDir, 'add', '-f', `${NOTES}/fuite.md`);
+    h = commitAvorte(codeDir, 'fuite\n');
+    ok(h.code !== 0, 'le hook REFUSE un chemin privé dans l’index');
+    ok(/journal privé/i.test(h.sortie), 'et nomme la nature du fichier');
+    git(codeDir, 'restore', '--staged', `${NOTES}/fuite.md`);
+
+    // La spec PRODUIT porte presque le même chemin et doit passer : un motif
+    // sans la barre finale interdirait de committer la spec publique.
+    mkdirSync(join(codeDir, 'spec', 'outils'), { recursive: true });
+    writeFileSync(join(codeDir, 'spec', 'outils', 'optimizer.md'), 'spec publique\n');
+    h = commitAvorte(codeDir, 'spec produit\n');
+    ok(h.code === 0, 'mais `spec/outils/optimizer.md` (spec produit) passe');
+
+    // Fichier démesuré : la cible est l'export de compte.
+    writeFileSync(join(codeDir, 'export.json'), 'x'.repeat(6 * 1024 * 1024));
+    h = commitAvorte(codeDir, 'export\n');
+    ok(h.code !== 0, 'le hook REFUSE un fichier démesuré');
+    git(codeDir, 'restore', '--staged', 'export.json');
+    rmSync(join(codeDir, 'export.json'));
+
+    // Sur `main`, rien ne passe.
+    git(codeDir, 'checkout', 'main');
+    writeFileSync(join(codeDir, 'src', 'app.ts'), 'export const x = 4;\n');
+    h = commitAvorte(codeDir, 'commit sur main\n');
+    ok(h.code !== 0, 'le hook REFUSE un commit direct sur `main`');
+    ok(/trois incidents/i.test(h.sortie), 'et rappelle pourquoi la règle existe');
   } finally {
     // Le worktree documentaire est VERROUILLÉ par `ouvrir` : `rmSync` suffit
     // pour du jetable, git n'a pas son mot à dire sur un dossier temporaire.

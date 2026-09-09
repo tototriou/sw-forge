@@ -73,10 +73,30 @@ des commandes finira par échouer — c'est la logique déjà écrite dans CLAUD
 
 **`npm ci` par worktree : 185 Mo et deux minutes, une fois.**
 
-⚠️ Le worktree `sw-forge-pair-order` porte **aujourd'hui** cette junction
+⚠️ Le worktree `sw-forge-pair-order` portait cette junction
 (`node_modules -> /c/Users/Enzo/Desktop/sw-forge/node_modules`, vérifié). Elle
-se retire **en tant que lien**, après vérification de sa cible — jamais par un
-nettoyage récursif improvisé (§6.1).
+s'est retirée **en tant que lien**, après vérification de sa cible — jamais par
+un nettoyage récursif improvisé (§6.1).
+
+> ⚠️ **Deux sortes de worktree, et la règle n'est PAS la même.** Le mot est le
+> même, l'objet ne l'est pas — et le skill `optimizer-perf-testing` prescrit
+> l'inverse de ce qui précède, à juste titre.
+>
+> | | Worktree de **chantier** | Worktree de **mesure** |
+> |---|---|---|
+> | Durée de vie | le chantier | quelques secondes, créé et détruit par un script |
+> | Commit visé | une branche vivante | un **vieux commit** repère |
+> | `node_modules` | **`npm ci`** | **junction** vers celui du dépôt principal |
+> | Nettoyage | `chantier fermer` | `unlinkSync` de chaque lien dans un `finally`, AVANT `worktree remove` |
+>
+> Pourquoi la junction est correcte pour la mesure : `npm ci` sur un vieux
+> commit installerait les dépendances **de l'époque**, ce qui change ce qu'on
+> mesure — on veut compiler l'ancien source avec l'outillage courant. Et le
+> danger du lien (un nettoyage qui suit la cible) est ici tenu par un script qui
+> délie explicitement, pas par la vigilance d'un humain.
+>
+> Pourquoi `npm ci` est correct pour le chantier : personne ne le délie jamais,
+> il vit des jours, et il finit supprimé par une commande tapée à la main.
 
 ### 2.2 Les notes privées : un dépôt documentaire séparé
 

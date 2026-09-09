@@ -116,6 +116,14 @@ worktree** et sur **sa branche** `forge/<sujet>`. Cadrage complet :
 Sinon `chantier`, le hook source et cette section-ci n'existent pas dans
 l'arbre de travail, et un agent qui démarre ne sait rien de ce qui suit.
 
+⚠️ **Deux sortes de worktree, deux règles opposées sur `node_modules`** — un
+worktree de **chantier** (durable, on y travaille) prend un `npm ci` ; un
+worktree de **mesure** (éphémère, créé et détruit par un script sur un vieux
+commit) prend une **junction**, déliée dans un `finally`. Le skill
+`optimizer-perf-testing` prescrit la seconde et a raison pour son objet : sur
+un vieux commit, `npm ci` installerait les dépendances de l'époque et
+changerait ce qu'on mesure. Détail : cadrage §2.1.
+
 - **Un hook `pre-commit` refuse trois choses** : un commit sur `main`, un
   chemin privé dans l'index (`spec/outils/optimizer/`, `.history/`,
   `.vscode/`), un fichier de plus de 5 Mo (un export de compte). Il est

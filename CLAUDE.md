@@ -106,6 +106,48 @@ données SWARFARM, table `*_CONNUS`, ou comportement supposé par ressemblance
 avec un autre effet — celle de `game-data-curation`, qui contient aussi la
 recette pour demander un relevé en jeu exploitable.
 
+## Deux agents en parallèle
+
+Claude Code et Codex peuvent travailler en même temps, chacun dans **son
+worktree** et sur **sa branche** `forge/<sujet>`. Cadrage complet :
+[CADRAGE-orchestration-parallele.md](CADRAGE-orchestration-parallele.md).
+
+⚠️ **Toute nouvelle branche part d'une branche qui porte ce dispositif.**
+Sinon `chantier`, le hook source et cette section-ci n'existent pas dans
+l'arbre de travail, et un agent qui démarre ne sait rien de ce qui suit.
+
+- **Un hook `pre-commit` refuse trois choses** : un commit sur `main`, un
+  chemin privé dans l'index (`spec/outils/optimizer/`, `.history/`,
+  `.vscode/`), un fichier de plus de 5 Mo (un export de compte). Il est
+  **installé par machine**, donc actif quelle que soit la branche — mais
+  jamais requis : un clone neuf n'en a pas et commite normalement. Après
+  toute modification du hook ou de l'outil :
+  `node scripts/chantier.mjs installer`.
+- **Les notes privées se LIVRENT, elles ne se copient pas.**
+  `spec/outils/optimizer/` est gitignoré : ni historique, ni merge, ni conflit
+  détecté. Un chantier qui y touche n'est **pas fini** tant que
+  `chantier livrer` n'a pas été lancé et que `chantier verifier` ne passe pas.
+  ⚠️ **S'invoque depuis l'INSTALLATION**, jamais depuis `scripts/` du
+  worktree — sinon son contenu dépend de la branche checkoutée. Le chemin se
+  CALCULE, il ne s'écrit pas en dur : dans un worktree secondaire, `.git` est
+  un **fichier**, pas un dossier.
+  ```bash
+  node "$(git rev-parse --git-common-dir)/forge/installation/scripts/chantier.mjs" \
+    verifier --chantier <sujet>
+  ```
+- **Les fichiers transverses ont un responsable désigné par chantier**, pas
+  d'interdit général : `App.tsx`, `package.json`, `tsconfig.json`,
+  `tailwind.config.js`, `ARCHITECTURE.md`, `CLAUDE.md`. Si deux chantiers ont
+  besoin du même changement transverse, il se fait **avant** de les séparer.
+  Un chevauchement découvert se **signale et se redécoupe**, il ne se force pas.
+- **Une contribution ne s'intègre pas sans son reçu.** L'intégrateur —
+  désigné au lancement, pas « celui qui finit en second » — lance
+  `chantier verifier` avant d'accepter chaque contribution, puis produit une
+  **nouvelle livraison** du résultat combiné : les reçus individuels ne
+  prouvent rien sur le tout.
+- **Pas de mesure de perf pendant que l'autre agent tourne** : une mesure
+  faite pendant un build ne veut rien dire.
+
 ## Consignes pour l'agent (Claude Code)
 
 ### Un ledger de suivi et le fichier qu'il référence se mettent à jour ensemble

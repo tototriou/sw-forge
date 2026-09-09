@@ -561,6 +561,16 @@ Les questions ouvertes des versions précédentes sont tranchées :
 - **Intégrateur : désigné au lancement**, selon sa connaissance des interfaces
   concernées — pas celui qui termine en second.
 - **Ordre de construction : §6**, dépôt documentaire d'abord, hooks en dernier.
+- **Diffusion des consignes : par la branche, pas par une fusion dans `main`.**
+  Le dispositif est résumé dans [CLAUDE.md](CLAUDE.md), chargé à chaque
+  session — et `AGENTS.md` y renvoie, donc Codex l'a aussi. **Toute nouvelle
+  branche part d'une branche qui le porte.** Sans ça, un agent qui démarre
+  ailleurs ne voit ni la consigne, ni `chantier`, ni le hook source — seul le
+  hook *installé* continue de le protéger, sans qu'il sache pourquoi.
+  ⚠️ Le chemin de l'outil se **calcule** (`git rev-parse --git-common-dir`),
+  il ne s'écrit pas en dur : dans un worktree secondaire, `.git` est un
+  fichier. Écrit en dur une première fois dans `CLAUDE.md`, cette commande
+  était fausse — et le vrai chemin porte `scripts/`.
 
 Reste une seule question, qui n'est pas technique : **le parallélisme
 justifie-t-il ce coût, maintenant qu'il inclut la construction de

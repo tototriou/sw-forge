@@ -24,6 +24,15 @@
 // (scripts/perf-baseline.json) : ce budget n'existe plus (piste 8), le
 // pilotage nu ci-dessous est donc désormais fidèle par construction.
 //
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est désormais ABSORBABLE** (§5.5 bis
+// des extensions, 2026-09-09). Le harnais rend `decouverteBuildCible` :
+// `foundExplored` ET la courbe de rendement, aux SEPT MÊMES jalons, par
+// `diagnostic-harness.ts --cas=<n> --suivre=<les 6 ids>`. Et il le fait sans
+// les deux écarts de fidélité listés plus bas — il apparie dans le RÉGIME de
+// production (parallèle au-delà de 100 M paires) au lieu du séquentiel forcé
+// ici. La justification ci-dessous est conservée pour la trace : elle
+// explique ce que le harnais n'avait pas, et qu'il a maintenant.
+//
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
 // des extensions — le sort des sept scripts G2, tranché après que 11c ait
 // tourné). `--combos=potential|relevance|combined|objective` EST un override

@@ -7,6 +7,18 @@
 //
 // Usage : optimizer-deck10-final-diag.ts <export.json> <recipe.json> <deckId> [maxMs=300000]
 //
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ DEPUIS LE 2026-09-09 — la grandeur qui sauvait ce
+// script EST DÉSORMAIS DANS LE HARNAIS** (§5.6 des extensions). Il rend
+// `decouverteBuildCible` : l'INSTANT DE DÉCOUVERTE (`explored` à la première
+// apparition de la cible) ET la courbe de rendement, aux SEPT MÊMES jalons
+// que ci-dessous — et la distinction avec le rang, écrite plus bas comme une
+// mise en garde, est désormais tenue EN CODE : chaque valeur part avec un
+// avertissement qui dit qu'elle n'est pas un rang, et un test la verrouille.
+// ⚠️ Ce script est donc **ABSORBABLE**. La justification ci-dessous reste pour
+// la trace : c'est elle qui a NOMMÉ la grandeur manquante au §5.4, et c'est
+// ce qui a fini par la faire construire — l'ordre correct, une grandeur
+// manquante étant un résultat écrit avant d'être un chantier.
+//
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
 // des extensions). `--combos=potential|relevance|combined|objective` EST un
 // override du harnais : les quatre conditions sont relançables une par une.

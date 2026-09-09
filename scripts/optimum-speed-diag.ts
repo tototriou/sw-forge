@@ -29,6 +29,15 @@
 // chercher à le faire passer par le différentiel serait une erreur de
 // catégorie.
 //
+// ⚠️ **MISE À JOUR DU 2026-09-09 (§5.6, §5.8)** : le harnais rend désormais
+// `foundExplored` lui-même (`decouverteBuildCible`). Ce script ne survit donc
+// plus QUE par sa portée inter-versions — et elle est **BORNÉE, mesure encore
+// OUVERTE** : `diagnosticHarness.ts` importe des symboles récents du moteur,
+// il ne compile donc dans le worktree d'un ancien commit que jusqu'à un
+// certain horizon. Au-delà, ce fichier-ci reste le seul outil, parce qu'il
+// n'importe QUE l'API stable (`searchBuildsSteps`/`SearchParams`). En deçà,
+// il est ABSORBABLE. La mesure 1 du §5.8 tranche laquelle des deux.
+//
 // ⚠️ **POURQUOI IL SURVIT À `perf-battery-compare`**, qui occupe pourtant le
 // même domaine — vérifié, pas supposé : `perf-battery-compare` ne rend que
 // des TEMPS et des comptes de builds (`foundMs`, `totalMs`, `buildWallMs`,

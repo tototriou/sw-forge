@@ -15,6 +15,18 @@
 // EXACTEMENT la métrique utilisée par le vrai classement par tranche (voir
 // `retentionScore` dans runeBuildOptim.ts), pas une reformulation.
 //
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est désormais ABSORBABLE** (§5.5 bis
+// des extensions, 2026-09-09), et le harnais rend MIEUX que ce qu'il calcule.
+// `dispersionTranches` (§5.7) donne le CV par `retentionKey` lu sur
+// `trancheReallocation`, la fonction que `buildBuckets` appelle lui-même.
+// ⚠️ **Ce n'est pas « la même chose en plus fiable », c'est un AUTRE nombre —
+// et c'est celui-ci qui était le mauvais** : le moteur mesure la dispersion
+// HORS PRINCIPALE sur le pool FILTRÉ de chaque emplacement ; ce script la
+// mesure principale COMPRISE sur les demi-builds RETENUS, tous compartiments
+// aplatis. L'exclusion de la principale est délibérée — une principale
+// garantie noie sinon la vraie dispersion et fait passer une stat TENDUE
+// pour MOLLE, soit l'inverse de ce que la mesure cherche.
+//
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
 // des extensions). La grandeur qu'il rend est le **COEFFICIENT DE VARIATION
 // de `retentionScore`, par `retentionKey`, sur la population générique** —

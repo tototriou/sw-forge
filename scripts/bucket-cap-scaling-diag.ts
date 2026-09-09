@@ -22,6 +22,18 @@
 // AUCUN préréglage, sur AUCUN des deux cas — pas la plus généreuse par
 // prudence, le coût mémoire/temps grandit avec bucketCap.
 //
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est désormais ABSORBABLE** (§5.5 bis
+// des extensions, 2026-09-09), et pour une raison que la première relecture
+// avait simplement MANQUÉE : `perf-battery.ts --monotonicity` faisait déjà le
+// balayage. `checkMonotonicityForCase` (scripts/lib/perfShared.ts) parcourt
+// les 5 préréglages et rend `halfARetained`/`halfBRetained` — l'oracle exact
+// de survie ci-dessous — sur les 7 cas RÉELS, en parallèle (aucun temps
+// n'étant mesuré, la contention ne corrompt pas ce verdict).
+// ⚠️ Et le remplacement est PLUS FIDÈLE : ce script calibre une constante de
+// PRODUCTION sur une paire d'artéfacts fabriquée et un `requirement` monté à
+// la main. Le seul résidu — balayer 3 formules candidates — se dit
+// `--slotFilterCap=<p> --bucketCap=<formule(p)>`, un run par couple.
+//
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
 // des extensions). 11a l'annonçait « absorbable tel quel à `--arret=demi-
 // builds` » ; la relecture du CODE le contredit sur trois points, dont deux

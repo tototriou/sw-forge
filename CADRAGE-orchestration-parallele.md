@@ -344,28 +344,51 @@ humaine.
 worktree par chantier** (§2.2), et les notes vivent toujours dans le dépôt de
 code comme avant. La migration vers le fonctionnement cible commence à §6.2.
 
-### 6.2 Construire l'outil dans un chantier dédié
+### 6.2 Construire l'outil — premier lot ✅ **FAIT**
 
-Branche `forge/orchestration-parallele` dans un **nouveau worktree**, depuis
-une base explicitement choisie, **sans déplacer les changements actuellement
-ouverts**. Premier lot : les cinq commandes du §4.
+Branche `forge/orchestration-parallele`. **Pas de worktree séparé** : sa raison
+d'être est le travail à deux agents, et un seul travaillait — 185 Mo et deux
+minutes pour zéro bénéfice. La branche part de la base courante, sans déplacer
+les changements ouverts.
+
+| Commande | État |
+|---|---|
+| `ouvrir` | ✅ registre, worktree documentaire **verrouillé**, copie à une révision notée |
+| `livrer` | ✅ report (ajouts/modifications/**suppressions**), contrôle d'égalité, commit, reçu |
+| `verifier` | ✅ six contrôles, tous devant tenir **ensemble** |
+| `installer` | ❌ non écrit — l'installation commune (§2.4) n'existe pas encore |
+| `fermer` | ❌ non écrit |
+
+> ⚠️ **Le défaut nommé au §4 est donc ENCORE OUVERT** : `scripts/chantier.mjs`
+> vit dans le dépôt de code, son contenu dépend de la branche checkoutée, et un
+> agent peut le modifier dans son propre worktree. Tant qu'`installer` n'existe
+> pas, la garantie se contourne sans même le vouloir.
+
+**Un défaut trouvé par l'essai, pas par relecture** : `commitDoc` prenait la
+tête de la branche documentaire, qui inclut le commit du reçu — chaque
+livraison différait donc de la précédente et créait un commit de plus.
+L'idempotence annoncée était fausse. `commitDoc` est désormais le dernier
+commit qui **touche les notes**.
 
 ### 6.3 Tester le cycle sur des dépôts jetables
 
-Les tests portent sur **les pertes possibles**, pas sur le cas nominal :
+Les tests portent sur **les pertes possibles**, pas sur le cas nominal.
+`tests/chantier.test.ts` (20 assertions, enregistré sous `testChantier`) crée
+lui-même ses dépôts jetables. **6 scénarios sur 10 sont couverts** :
 
-- ajout, modification et **suppression** de notes ;
-- **dossier absent** (≠ dossier vidé) ;
-- modification documentaire indépendante, **commitée ou non** ;
-- **interruption après le commit documentaire mais avant le reçu** ;
-- seconde livraison identique (idempotence) ;
-- reçu périmé ;
-- sauvegarde indisponible ;
-- fermeture refusée **sans perte de fichiers** ;
-- deux chantiers issus de la même base, livrés puis intégrés successivement ;
-- **clone neuf** : `npm ci`, `npx tsc --noEmit`, `node tests/run.mjs`,
-  `npm run build` et un commit réussissent **sans installation ni dépôt
-  documentaire** (§0).
+| Scénario | État |
+|---|---|
+| ajout, modification et **suppression** de notes | ✅ |
+| **dossier absent** (≠ dossier vidé) | ✅ — et rien n'est supprimé côté documentaire |
+| modification documentaire indépendante **commitée** | ✅ |
+| seconde livraison identique (idempotence) | ✅ |
+| reçu périmé | ✅ |
+| code non commité | ✅ |
+| modification documentaire indépendante **non commitée** | ❌ le refus existe dans le code, il n'est pas testé |
+| **interruption après le commit documentaire, avant le reçu** | ❌ |
+| sauvegarde indisponible · fermeture refusée sans perte | ❌ dépend de `fermer`, non écrit |
+| deux chantiers issus de la même base, intégrés successivement | ❌ |
+| **clone neuf** (§0) : `npm ci`, `tsc`, `tests/run.mjs`, `build`, un commit | ❌ le test est autonome par construction, mais rien ne le vérifie |
 
 ⚠️ **Les tests utilisent de fausses notes, jamais les documents privés réels.**
 

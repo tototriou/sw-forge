@@ -16,7 +16,7 @@
 // `node`, et se déclare `ignore()` si `git` manque plutôt que d'échouer.
 
 import { execFileSync } from 'child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -234,7 +234,24 @@ export function testChantierDeuxChantiers() {
     git(docDir, 'remote', 'add', 'origin', distantDoc);
     git(docDir, 'push', '-u', 'origin', 'main');
 
+    const refusPush = join(distantDoc, 'hooks', 'pre-receive');
+    writeFileSync(refusPush, '#!/bin/sh\nexit 1\n');
+    chmodSync(refusPush, 0o755);
+    const avantRefus = git(docDir, 'rev-parse', 'HEAD');
     r = chantier(codeA, 'integrer', '--chantier', 'a');
+    ok(r.code !== 0 && /sauvegarde NON confirmée/.test(r.sortie), 'distant joignable mais push refusé : aucun faux succès');
+    const fusionLocale = git(docDir, 'rev-parse', 'HEAD');
+    ok(fusionLocale !== avantRefus && git(distantDoc, 'rev-parse', 'main') === avantRefus,
+      'la fusion locale est conservée, le distant reste inchangé');
+    rmSync(refusPush);
+    r = chantier(codeA, 'integrer', '--chantier', 'a');
+    ok(r.code === 0 && git(docDir, 'rev-parse', 'HEAD') === fusionLocale,
+      'la reprise pousse la fusion existante sans nouveau commit');
+    const registreA = join(codeA, '.git', 'forge', 'etat', 'chantiers', 'a.json');
+    const integrations = JSON.parse(readFileSync(registreA, 'utf8')).integrations.length;
+    r = chantier(codeA, 'integrer', '--chantier', 'a');
+    ok(r.code === 0 && JSON.parse(readFileSync(registreA, 'utf8')).integrations.length === integrations,
+      'une intégration déjà sauvegardée ne duplique pas son historique');
     ok(r.code === 0, 'integrer avance le `main` DOCUMENTAIRE');
     ok(
       lire(join(docDir, NOTES, 'note-a.md')) === 'travail de A\n',

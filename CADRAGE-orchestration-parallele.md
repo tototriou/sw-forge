@@ -303,10 +303,14 @@ Faire attendre les secondes sur le premier les fige pour des semaines.
 **laisse le chantier ouvert** — `fermer` garde sa condition stricte sur la
 conservation du code, qui est un autre sujet.
 
-- **Joignabilité du distant contrôlée AVANT la fusion**, jamais après :
-  l'invariant visé est « intégré ⇒ sauvegardé ». Fusionner puis découvrir qu'on
-  ne peut pas pousser laisserait la référence avancée localement et nulle part
-  ailleurs.
+- **Joignabilité contrôlée avant la fusion, sauvegarde confirmée après le push.**
+  Un `ls-remote` réussi ne garantit ni les droits d'écriture ni la disponibilité
+  future. Un refus du push conserve la fusion locale, signale une sauvegarde
+  non confirmée et n'enregistre aucun succès. Relancer `integrer` retente le push
+  même si le chantier est déjà fusionné localement, sans refaire la fusion.
+  Seul le succès complet signifie « intégré et sauvegardé ». La référence locale
+  peut avancer avant ce succès : il n'y a pas de transaction locale/distante.
+  La répétition d'un succès ne duplique pas l'historique des intégrations.
 - **En conflit, la fusion est ANNULÉE** et la référence ne bouge pas. On tente
   la fusion et on ne refuse **que si git échoue** : un merge Markdown sur des
   passages différents est fiable, et refuser d'office rendrait la commande
@@ -648,7 +652,8 @@ hooks tiers ni dupliquer une installation identique. Le fichier préexistant
 est sauvegardé à côté. Aucun hook n'est installé par `npm ci` ; aucun fichier
 de configuration Codex n'est imposé au clone d'un contributeur.
 
-- `SessionStart` injecte l'identité du chantier et les commandes de livraison.
+- `SessionStart` injecte l'identité, les commandes de livraison et `integrer`
+  pour un lot de notes validé, indépendamment du rythme d'intégration du code.
 - `UserPromptSubmit` enregistre la base du tour et lève la pause du tour précédent.
 - `PreToolUse` (Bash et apply_patch) appelle `chantier contexte-hooks` : identité,
   intégrité de l'installation, câblage Git, accès documentaire en lecture.

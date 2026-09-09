@@ -47,6 +47,7 @@ function executer(entree) {
   if (evenement === 'SessionStart') return { hookSpecificOutput: { hookEventName: evenement,
     additionalContext: `Chantier ${c.nom}, branche ${c.branche}, worktree ${c.depotCode}. ` +
       `Après les modifications : ${commande} livrer --chantier ${c.nom}, puis verifier. ` +
+      `Dès qu’un lot de notes est validé, lancer integrer --chantier ${c.nom} pour avancer et sauvegarder le main documentaire, sans attendre le main du code. ` +
       `Respecter les responsabilités et le créneau de benchmark convenus. ` +
       `Pour une pause ou un blocage réel : node "${fileURLToPath(import.meta.url)}" pause ${entree.session_id} "motif".`,
   } };
@@ -71,6 +72,7 @@ function executer(entree) {
       enregistrer(chemin, etat);
       return { decision: 'block', reason: `Le chantier ${c.nom} a changé pendant ce tour et sa livraison n’est pas valide. ` +
         `Terminer les vérifications et la livraison autorisées (${commande} livrer --chantier ${c.nom}, puis verifier). ` +
+        `Pour un lot de notes validé, lancer ensuite integrer --chantier ${c.nom}. ` +
         `Ne pas committer de travail étranger pour satisfaire le hook. Si une pause ou une intervention est nécessaire, ` +
         `l’annoncer explicitement et utiliser la commande pause du hook.\n${e.message}` };
     }

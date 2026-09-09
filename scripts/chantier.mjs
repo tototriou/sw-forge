@@ -1011,10 +1011,8 @@ function integrer(nom, options) {
     );
   }
 
-  // ⚠️ Joignabilité contrôlée AVANT la fusion, pas après. L'invariant qu'on
-  // veut est « intégré ⇒ sauvegardé » : fusionner puis découvrir qu'on ne peut
-  // pas pousser laisserait la référence avancée localement et nulle part
-  // ailleurs — exactement l'état que tout ce dispositif existe pour éviter.
+  // Précontrôle seulement : un distant joignable peut encore refuser le push.
+  // Le succès exige une confirmation APRÈS le push, y compris à la reprise.
   if (gitOuNull(depotDoc, 'ls-remote', 'origin', `refs/heads/${cible}`) === null) {
     refuser(
       'la sauvegarde distante est injoignable',
@@ -1027,10 +1025,7 @@ function integrer(nom, options) {
   const avant = git(depotDoc, 'rev-parse', 'HEAD');
   const teteChantier = git(worktreeDoc, 'rev-parse', 'HEAD');
 
-  if (gitOuNull(depotDoc, 'merge-base', '--is-ancestor', teteChantier, avant) !== null) {
-    dire(`${JAUNE}Déjà intégré${FIN} — ${cible} contient ${teteChantier.slice(0, 7)}.`);
-    return;
-  }
+  const dejaIntegre = gitOuNull(depotDoc, 'merge-base', '--is-ancestor', teteChantier, avant) !== null;
 
   // ⚠️ `git merge` n'accepte PAS `-F -` : contrairement à `commit`, il ne lit
   // pas l'entrée standard (« could not read file '-' »). D'où un fichier de
@@ -1044,7 +1039,7 @@ function integrer(nom, options) {
   );
 
   try {
-    git(depotDoc, 'merge', '--no-ff', '-F', cheminMessage, brancheDoc);
+    if (!dejaIntegre) git(depotDoc, 'merge', '--no-ff', '-F', cheminMessage, teteChantier);
   } catch {
     // ⚠️ On tente la fusion et on ne refuse QUE si git échoue : sur des notes
     // Markdown modifiées à des endroits différents, un merge git est fiable, et
@@ -1067,9 +1062,20 @@ function integrer(nom, options) {
 
   rmSync(cheminMessage, { force: true });
   const apres = git(depotDoc, 'rev-parse', 'HEAD');
-  git(depotDoc, 'push', 'origin', cible);
+  if (gitOuNull(depotDoc, 'push', 'origin', `${apres}:refs/heads/${cible}`) === null) {
+    refuser('fusion locale conservée, sauvegarde NON confirmée',
+      `La référence locale ${cible} est à ${apres}. Aucun succès d’intégration n’est enregistré.`,
+      'Corriger le refus distant puis relancer integrer : la sauvegarde sera retentée sans refaire la fusion.');
+  }
+  const confirmation = gitOuNull(depotDoc, 'ls-remote', 'origin', `refs/heads/${cible}`);
+  if (confirmation === null || confirmation.split(/\s+/)[0] !== apres) {
+    refuser('confirmation distante impossible ou référence distante différente',
+      'La fusion locale est conservée. Relancer integrer après vérification du distant.');
+  }
 
-  chantier.integrations = [
+  const dejaEnregistre = (chantier.integrations ?? []).some(i =>
+    i.cible === cible && i.apres === apres && i.teteChantier === teteChantier);
+  if (!dejaEnregistre) chantier.integrations = [
     ...(chantier.integrations ?? []),
     { cible, avant, apres, teteChantier, le: new Date().toISOString() },
   ];

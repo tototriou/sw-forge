@@ -151,7 +151,8 @@ l'incompatibilité entre anciennes et nouvelles branches qu'on cherche à
 **l'installation**, jamais `scripts/chantier.mjs` du worktree.
 
 ```powershell
-$outil = 'C:\Users\Enzo\Desktop\sw-forge\.git\forge\installation\chantier.mjs'
+$gitCommun = git rev-parse --path-format=absolute --git-common-dir
+$outil = Join-Path $gitCommun 'forge/installation/scripts/chantier.mjs'
 node $outil verifier --chantier <sujet>
 ```
 
@@ -556,11 +557,12 @@ les copies périmées sortent aussi des recherches.
 | Refus d'un chemin privé, d'un fichier > 5 Mo | ✅ **imposée** — hook installé |
 | Chantier lancé depuis le mauvais worktree ou la mauvaise branche | ✅ **imposée** — contrôle d'identité |
 | Conservation des notes, validité du reçu | ⚠️ imposée **quand la commande est appelée** |
-| Vérifier avant d'intégrer | ❌ **consigne** |
+| Vérifier avant d'intégrer | ✅ pour les formes Git usuelles détectées par le hook Codex approuvé ; consigne pour les chemins indirects |
 | Responsable des transverses, créneau de benchmark | ❌ **consigne** |
 
-**Ce qui manque est la liaison automatique entre les consignes et les actions
-des agents.** Deux pistes, dans cet ordre :
+**La liaison automatique Codex est implémentée** dans `scripts/hooks-codex.mjs`.
+Elle nécessite une installation personnelle et l'approbation des définitions
+dans `/hooks`. Le hook Git reste indépendant. Principes :
 
 1. **Des hooks d'agent** — Claude Code (`PreToolUse`) et Codex
    (`SessionStart`, `PreToolUse`, `Stop`) en ont chacun. Trois contrôles, actifs
@@ -578,7 +580,50 @@ des agents.** Deux pistes, dans cet ordre :
 hooks » était **faux**, et l'écrire a orienté tout l'étage 1 vers le hook git.
 Le hook git reste justifié — c'est le seul point commun sans configuration
 partagée — mais il n'était pas le seul choix possible. L'activation des hooks
-Codex reste à vérifier dans le client installé.
+Codex est disponible dans le client local 0.153.0 (`hooks`, stable, activé).
+La confiance dans les nouvelles définitions reste une action de l'utilisateur.
+
+### Hooks Codex : contrat et installation
+
+`chantier installer --codex-hooks <hooks.json personnel>` copie l'adaptateur
+dans l'installation commune et ajoute quatre événements sans supprimer les
+hooks tiers ni dupliquer une installation identique. Le fichier préexistant
+est sauvegardé à côté. Aucun hook n'est installé par `npm ci` ; aucun fichier
+de configuration Codex n'est imposé au clone d'un contributeur.
+
+- `SessionStart` injecte l'identité du chantier et les commandes de livraison.
+- `UserPromptSubmit` enregistre la base du tour et lève la pause du tour précédent.
+- `PreToolUse` (Bash et apply_patch) appelle `chantier contexte-hooks` : identité,
+  intégrité de l'installation, câblage Git, accès documentaire en lecture.
+  Un contrôle impossible est explicitement distingué d'un reçu invalide.
+- `Stop` compare l'état du chantier à la base du tour. S'il a changé, il appelle
+  le vrai `chantier verifier`. Une livraison manquante provoque au plus une
+  continuation ; si le problème persiste, un avertissement conserve le chantier
+  ouvert. Une pause avec motif est possible et n'autorise aucune intégration.
+
+Les reçus, comparaisons d'identité et empreintes restent dans `chantier.mjs`.
+L'adaptateur utilise des sous-processus, afin d'isoler les refus CLI et de
+renvoyer du JSON Codex valide. Il ne copie ni ne commite aucune note.
+
+Pour une commande reconnue `git merge`, `git rebase` ou `git cherry-pick`
+(avec éventuellement `git -C`), le hook vérifie **toutes les autres contributions
+ouvertes** depuis leurs worktrees respectifs. C'est conservateur : un chantier
+non livré peut bloquer une intégration sans rapport. Les alias, scripts,
+commandes construites et autres formes indirectes ne sont pas analysés. Ce
+contrôle ne prétend ni parser tout shell ni fournir une exclusion mutuelle.
+Les contributions doivent rester stables pendant leur intégration.
+
+Le hook personnel ne s'applique qu'au dépôt dont il est l'installation et aux
+worktrees enregistrés. L'état par session (identifiant haché) vit dans
+`.git/forge/etat/sessions-codex/`. Il ne contient pas les textes des notes.
+Les droits d'écriture documentaires ne sont pas testés par une écriture de
+sonde ; la sandbox doit toujours être configurée séparément.
+
+Tests : `node tests/run.mjs chantier hookscodex`. Ils utilisent uniquement des
+dépôts jetables et des événements JSON : contexte, absence d'effet hors chantier,
+conservation de hooks tiers, pause, anti-boucle, changement de branche,
+intégration avec/sans reçu et installation altérée. Le déclenchement dans une
+vraie session Codex nécessite l'approbation utilisateur dans `/hooks`.
 
 ## 8. Ce qui reste faible
 
@@ -588,14 +633,14 @@ Codex reste à vérifier dans le client installé.
 2. **Aucune atomicité entre les deux dépôts.** Le reçu est vérifiable, pas
    transactionnel : une interruption laisse le chantier **ouvert** —
    rejouable, mais ouvert.
-3. **Une installation absente n'est détectée par rien** — `verifier` détecte
-   une installation *périmée*, pas son absence sur une machine neuve.
+3. **Un hook non installé ou non approuvé ne s'exécute pas.** Le contrôle
+   de contexte détecte une installation absente ou altérée quand il est appelé ;
+   l'approbation des hooks reste une étape explicite.
 4. **Aucun mécanisme n'empêche le conflit sémantique** : deux agents sur des
    fichiers disjoints peuvent produire deux moitiés incohérentes. Seules la
    découpe et l'intégration protègent, et elles sont humaines.
-5. **Le coût de construction de `chantier` n'est pas chiffré**, et c'est la
-   pièce maîtresse. Tant qu'il n'existe pas (**vérifié absent**), le dispositif
-   décrit repose sur un outil qui n'est pas là.
+5. **L'outil et les hooks existent**, mais les formes d'intégration indirectes
+   et la coordination des benchmarks restent hors des contrôles automatiques.
 
 ## 9. Journal des arbitrages
 

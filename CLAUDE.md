@@ -147,6 +147,17 @@ l'arbre de travail, et un agent qui démarre ne sait rien de ce qui suit.
   prouvent rien sur le tout.
 - **Pas de mesure de perf pendant que l'autre agent tourne** : une mesure
   faite pendant un build ne veut rien dire.
+- **Hooks Codex personnels (opt-in)** : l'installation commune fournit
+  `scripts/hooks-codex.mjs`. Installation explicite :
+  `node scripts/chantier.mjs installer --codex-hooks <chemin-personnel/hooks.json>`.
+  Les définitions doivent ensuite être approuvées dans `/hooks` de Codex.
+  Un worktree sans chantier enregistré et les autres dépôts restent sans effet.
+  Le hook contrôle le contexte avant les outils ; les formes Git usuelles
+  `merge`, `rebase`, `cherry-pick` vérifient les autres contributions ouvertes.
+  Après un tour ayant modifié le chantier, `Stop` demande une livraison valide,
+  au plus une relance. Une pause explicite avec motif conserve le chantier
+  ouvert : `node <installation>/scripts/hooks-codex.mjs pause <session_id> "motif"`.
+  Le prochain tour utilisateur réactive le contrôle. Aucun commit automatique.
 
 ## Consignes pour l'agent (Claude Code)
 

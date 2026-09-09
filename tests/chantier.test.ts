@@ -26,6 +26,75 @@ const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTIL = join(RACINE, 'scripts', 'chantier.mjs');
 const NOTES = 'spec/outils/optimizer';
 
+export function testHooksCodex() {
+  titre('Hooks Codex — événements réels et isolation des sessions');
+  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-hooks-'));
+  const code = join(bac, 'code');
+  const doc = join(bac, 'doc');
+  try {
+    depotJetable(code);
+    depotJetable(doc);
+    mkdirSync(join(doc, NOTES), { recursive: true });
+    writeFileSync(join(doc, NOTES, 'note.md'), 'base\n');
+    commiter(doc, 'Base documentaire\n');
+    mkdirSync(join(code, 'scripts'));
+    mkdirSync(join(code, '.githooks'));
+    for (const fichier of ['chantier.mjs', 'hooks-codex.mjs']) {
+      cpSync(join(RACINE, 'scripts', fichier), join(code, 'scripts', fichier));
+    }
+    cpSync(join(RACINE, '.githooks', 'pre-commit'), join(code, '.githooks', 'pre-commit'));
+    writeFileSync(join(code, '.gitignore'), `${NOTES}/\n`);
+    commiter(code, 'Base code\n');
+    git(code, 'checkout', '-b', 'forge/hooks');
+    const config = join(bac, 'hooks.json');
+    writeFileSync(config, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: 'command', command: 'echo autre' }] }] } }));
+    ok(chantier(code, 'installer', '--codex-hooks', config).code === 0, 'installation explicite des hooks');
+    const installe = join(code, '.git', 'forge', 'installation', 'scripts', 'hooks-codex.mjs');
+    const outilInstalle = join(dirname(installe), 'chantier.mjs');
+    function evenement(nom: string, autres: Record<string, unknown> = {}) {
+      return JSON.parse(execFileSync(process.execPath, [installe], { cwd: code, encoding: 'utf8',
+        input: JSON.stringify({ cwd: code, session_id: 'session-a', hook_event_name: nom, ...autres }) }));
+    }
+    ok(Object.keys(evenement('SessionStart')).length === 0, 'worktree non enregistré : aucun effet');
+    chantier(code, 'installer', '--codex-hooks', config);
+    const groupes = JSON.parse(readFileSync(config, 'utf8')).hooks.Stop;
+    ok(groupes.length === 2 && groupes[0].hooks[0].command === 'echo autre', 'réinstallation sans doublon, hook tiers conservé');
+    ok(chantier(code, 'ouvrir', '--chantier', 'hooks', '--depot-doc', doc).code === 0, 'ouverture du chantier');
+    ok(evenement('SessionStart').hookSpecificOutput.additionalContext.includes('forge/hooks'), 'contexte injecté au démarrage');
+    ok(Object.keys(evenement('Stop')).length === 0, 'tour sans modification : pas de livraison forcée');
+    writeFileSync(join(code, NOTES, 'note.md'), 'modification\n');
+    ok(evenement('Stop').decision === 'block', 'notes modifiées sans reçu : continuation');
+    ok(!evenement('Stop', { stop_hook_active: true }).decision, 'la continuation ne boucle pas');
+    execFileSync(process.execPath, [installe, 'pause', 'session-a', 'Attente de réponse'], { cwd: code });
+    ok(!evenement('Stop').decision, 'pause explicite respectée');
+    evenement('UserPromptSubmit');
+    writeFileSync(join(code, NOTES, 'note.md'), 'seconde modification\n');
+    ok(evenement('Stop').decision === 'block', 'la pause ne désactive pas le tour suivant');
+    execFileSync(process.execPath, [outilInstalle, 'livrer', '--chantier', 'hooks'], { cwd: code });
+    ok(!evenement('Stop').decision, 'livraison valide : fin autorisée');
+    git(code, 'checkout', '-b', 'forge/autre');
+    ok(evenement('PreToolUse', { tool_input: { command: 'git status' } }).hookSpecificOutput.permissionDecision === 'deny',
+      'branche modifiée : refus avant outil');
+    git(code, 'checkout', 'forge/hooks');
+    const second = join(bac, 'second');
+    git(code, 'worktree', 'add', '-b', 'forge/second', second);
+    ok(chantier(second, 'ouvrir', '--chantier', 'second').code === 0, 'second chantier dans le registre commun');
+    const integration = { tool_input: { command: 'git merge forge/second' } };
+    ok(evenement('PreToolUse', integration).hookSpecificOutput.permissionDecision === 'deny', 'intégration sans reçu refusée');
+    execFileSync(process.execPath, [outilInstalle, 'livrer', '--chantier', 'second'], { cwd: second });
+    ok(!evenement('PreToolUse', integration).hookSpecificOutput, 'intégration avec contribution vérifiée autorisée');
+    const ailleurs = evenement('SessionStart', { cwd: doc });
+    ok(Object.keys(ailleurs).length === 0, 'autre dépôt : aucun effet du hook personnel');
+    // Altération : le contrôle réutilisé détecte une installation endommagée.
+    writeFileSync(join(dirname(installe), '..', 'hooks', 'pre-commit'), 'altéré');
+    ok(evenement('PreToolUse', { tool_input: { command: 'git status' } }).hookSpecificOutput.permissionDecision === 'deny',
+      'installation altérée : refus explicite');
+  } finally {
+    // bac provient exclusivement de mkdtempSync sous tmpdir, jamais d'une entrée utilisateur.
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
 function git(depot: string, ...args: string[]): string {
   return execFileSync('git', ['-C', depot, ...args], { encoding: 'utf8' }).trim();
 }
@@ -107,6 +176,7 @@ export function testChantierDeuxChantiers() {
 
     mkdirSync(join(codeA, 'scripts'), { recursive: true });
     cpSync(OUTIL, join(codeA, 'scripts', 'chantier.mjs'));
+    cpSync(join(RACINE, 'scripts', 'hooks-codex.mjs'), join(codeA, 'scripts', 'hooks-codex.mjs'));
     writeFileSync(join(codeA, '.gitignore'), `${NOTES}/\n`);
     depotJetable(codeA);
     commiter(codeA, 'code initial\n');
@@ -223,6 +293,7 @@ export default function testChantier() {
     // jetable doit donc le porter, comme le vrai.
     mkdirSync(join(codeDir, 'scripts'), { recursive: true });
     cpSync(OUTIL, join(codeDir, 'scripts', 'chantier.mjs'));
+    cpSync(join(RACINE, 'scripts', 'hooks-codex.mjs'), join(codeDir, 'scripts', 'hooks-codex.mjs'));
     mkdirSync(join(codeDir, '.githooks'), { recursive: true });
     cpSync(join(RACINE, '.githooks', 'pre-commit'), join(codeDir, '.githooks', 'pre-commit'));
     depotJetable(codeDir);

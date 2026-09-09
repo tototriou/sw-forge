@@ -755,7 +755,7 @@ function dossierInstallation(depotCode) {
   return join(commun, 'forge', 'installation');
 }
 
-const FICHIERS_INSTALLES = ['scripts/chantier.mjs'];
+const FICHIERS_INSTALLES = ['scripts/chantier.mjs', 'scripts/hooks-codex.mjs'];
 const HOOKS_INSTALLES = ['pre-commit'];
 
 function empreinteFichier(chemin) {
@@ -833,6 +833,27 @@ function installer(options) {
     git(depotCode, 'config', 'core.hooksPath', cheminHooks);
   }
   dire(`  hooks câblés : ${cheminHooks}`);
+  if (options['codex-hooks']) installerHooksCodex(resolve(options['codex-hooks']), installation);
+}
+
+function installerHooksCodex(chemin, installation) {
+  // Opt-in personnel : aucun fichier .codex imposé aux autres contributeurs.
+  const config = existsSync(chemin) ? JSON.parse(readFileSync(chemin, 'utf8')) : {};
+  config.hooks ??= {};
+  const commande = `node "${join(installation, 'scripts', 'hooks-codex.mjs')}"`;
+  for (const evenement of ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'Stop']) {
+    const groupes = config.hooks[evenement] ?? [];
+    if (groupes.some(g => g.hooks?.some(h => h.command === commande))) continue;
+    groupes.push({ ...(evenement === 'PreToolUse' ? { matcher: 'Bash|apply_patch|Edit|Write' } : {}),
+      hooks: [{ type: 'command', command: commande, timeout: 60,
+        statusMessage: 'SW Forge : contrôle du chantier' }] });
+    config.hooks[evenement] = groupes;
+  }
+  mkdirSync(dirname(chemin), { recursive: true });
+  // Préserver les hooks existants et une copie avant le changement.
+  if (existsSync(chemin)) copyFileSync(chemin, `${chemin}.avant-sw-forge`);
+  writeFileSync(chemin, JSON.stringify(config, null, 2) + '\n');
+  dire(`Hooks Codex configurés : ${chemin}. Les approuver dans /hooks avant utilisation.`);
 }
 
 function etatInstallation(depotCode) {
@@ -950,6 +971,40 @@ function fermer(nom, options) {
  * Entrée
  * ----------------------------------------------------------------------- */
 
+// Lecture seule pour les hooks : les règles métier restent dans cet outil.
+function contexteHooks() {
+  const depotCode = racineCode();
+  const commun = resolve(depotCode, git(depotCode, 'rev-parse', '--git-common-dir'));
+  const registre = join(commun, 'forge', 'etat', 'chantiers');
+  const normaliser = (p) => process.platform === 'win32' ? resolve(p).toLowerCase() : resolve(p);
+  const ouverts = existsSync(registre) ? readdirSync(registre).filter(n => n.endsWith('.json'))
+    .map(n => JSON.parse(readFileSync(join(registre, n), 'utf8'))).filter(c => !c.fermeLe) : [];
+  const candidats = ouverts.filter(c => normaliser(c.depotCode) === normaliser(depotCode));
+  if (candidats.length > 1) refuser('plusieurs chantiers ouverts dans le même worktree');
+  if (!candidats.length) { dire(JSON.stringify({ actif: false })); return; }
+  const chantier = candidats[0];
+  controlerIdentite(depotCode, chantier);
+  const inst = etatInstallation(depotCode);
+  if (!inst.presente || inst.alterations.length) refuser('installation commune absente ou altérée');
+  const hooks = gitOuNull(depotCode, 'config', 'core.hooksPath');
+  if (!hooks || normaliser(resolve(depotCode, hooks)) !== normaliser(join(inst.installation, 'hooks'))) {
+    refuser('le hook Git commun n’est pas câblé');
+  }
+  // Un contrôle d'accès en lecture, sans exiger un reçu ou un arbre propre en cours de travail.
+  git(chantier.worktreeDoc, 'rev-parse', 'HEAD');
+  const notes = empreinteArbre(notesDuCode(depotCode)).empreinte;
+  const empreinte = createHash('sha256').update(JSON.stringify([
+    git(depotCode, 'rev-parse', 'HEAD'), git(depotCode, 'status', '--porcelain'),
+    git(depotCode, 'diff', 'HEAD', '--binary'), notes,
+    git(depotCode, 'ls-files', '--others', '--exclude-standard', '-z').split('\0').filter(Boolean)
+      .map(p => [p, empreinteFichier(join(depotCode, p))]),
+  ])).digest('hex');
+  dire(JSON.stringify({ actif: true, nom: chantier.nom, depotCode, branche: chantier.brancheCode,
+    empreinte, propre: estPropre(depotCode), commun,
+    contributions: ouverts.filter(c => c.nom !== chantier.nom).map(c => ({ nom: c.nom, depotCode: c.depotCode })),
+  }));
+}
+
 function lireOptions(argv) {
   const options = {};
   const restes = [];
@@ -969,6 +1024,11 @@ const { options, restes } = lireOptions(process.argv.slice(2));
 const commande = restes[0];
 const nom = options.chantier;
 
+if (commande === 'contexte-hooks') {
+  contexteHooks();
+  process.exit(0);
+}
+
 if (!commande || options.aide || options.help) {
   dire(`${GRAS}chantier${FIN} — livraison vérifiée des notes privées
 
@@ -976,7 +1036,8 @@ if (!commande || options.aide || options.help) {
   node scripts/chantier.mjs livrer    --chantier <nom>
   node scripts/chantier.mjs verifier  --chantier <nom>
   node scripts/chantier.mjs fermer    --chantier <nom> [--integre-dans <ref>] [--archive]
-  node scripts/chantier.mjs installer [--sans-cablage]
+  node scripts/chantier.mjs installer [--sans-cablage] [--codex-hooks <hooks.json personnel>]
+  node scripts/chantier.mjs contexte-hooks
 
 ⚠️ Les commandes courantes s'appellent depuis l'INSTALLATION commune, jamais
 depuis scripts/ du worktree — sinon leur contenu dépend de la branche

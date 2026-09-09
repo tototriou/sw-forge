@@ -465,6 +465,20 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  ${v.avertissementTroncature}`);
   }
 
+  // ── §5.7 : la DISPERSION PAR TRANCHE, telle que le moteur la calcule.
+  if (r.dispersionTranches && r.dispersionTranches.length > 0) {
+    l.push('', 'Rétention — DISPERSION PAR TRANCHE (le CV du moteur, piste B)', '─'.repeat(72));
+    for (const d of r.dispersionTranches) {
+      l.push(`  Moitié ${d.moitie} — ${d.applique ? 'RÉALLOCATION APPLIQUÉE' : 'parts égales appliquées'} (${nb(d.capEgal)} places par tranche)`);
+      l.push('    stat     CV      places   contre part égale');
+      for (const t of d.tranches) {
+        const fl = t.facteur >= 1 ? `×${t.facteur.toFixed(2)}` : `×${t.facteur.toFixed(2)}`;
+        l.push(`    ${t.stat.padEnd(6)} ${t.cv.toFixed(3).padStart(6)}  ${String(t.capRealloue).padStart(7)}   ${fl.padStart(6)}`);
+      }
+      l.push(`    ${d.avertissement}`);
+    }
+  }
+
   // ── §5.6 : l'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT.
   // ⚠️ Imprimé JUSTE APRÈS le verdict, et jamais avant : le verdict dit si la
   // cible est là, celui-ci dit QUAND elle est arrivée. Dans l'autre ordre, un

@@ -51,6 +51,7 @@ import {
   satisfiesSets,
   sortCandidates,
   totalPairCount,
+  trancheReallocation,
   weightedContribution,
 } from '../../src/lib/runeBuildOptim';
 // ⚠️ Les DEUX fonctions que `pairBuckets` appelle pour décider d'accepter une
@@ -78,8 +79,10 @@ import {
   ConfigHarnais,
   DemiBuildCombo,
   DecouverteBuildCible,
+  DispersionTranches,
   DetailDemiBuild,
   JalonRendement,
+  TrancheDispersion,
   DetailFiltrage,
   DistributionIntervalles,
   EtagePopulation,
@@ -384,6 +387,13 @@ async function deroulerHarnais(
   // ── ÉTAGES 4-5 du build cible : la paire a-t-elle été explorée, et à quel
   // RANG la cible sort-elle ? ⚠️ Le rang est pris sur `classes`, la liste
   // ENTIÈRE — jamais sur le top rendu ci-dessous, qui est déjà coupé.
+  // ── §5.7 : la dispersion par tranche, LUE sur la fonction du moteur.
+  if (dernier.prepared && dernier.prepared.retentionKeys.length > 0 && dernier.bucketsA) {
+    resultat.dispersionTranches = (['A', 'B'] as const).map((moitie) =>
+      dispersionTranches(moitie, dernier.prepared!, resolue.params.adaptiveTrancheWeighting === true)
+    );
+  }
+
   // ── §5.6 : QUAND la cible est apparue, et à quel rythme les candidats se
   // sont accumulés. ⚠️ Lu sur le DERNIER passage, comme tout le reste des
   // grandeurs non temporelles — et rendu avec ses trois marques, jamais nu.
@@ -738,6 +748,61 @@ export function releverPreparation(): RelevePreparation {
     if (stage === 'feasibility') releve.feasibilityBySlot = bySlot;
   };
   return releve;
+}
+
+/**
+ * §5.7 — la dispersion par tranche d'une moitié.
+ *
+ * ⚠️ **Aucun calcul ici.** Tout vient de `trancheReallocation`, la fonction
+ * que `buildBuckets` appelle lui-même : le harnais rend LE nombre du moteur,
+ * jamais une reconstitution. C'est la différence exacte avec
+ * `retention-dispersion-diag`, qui recalcule un CV sur les demi-builds
+ * RETENUS, principale COMPRISE et compartiments aplatis — un autre nombre,
+ * qui ne pilote rien.
+ *
+ * ⚠️ Les indices d'emplacement sont ceux de la moitié, dans l'ordre exact que
+ * `buildBuckets` reçoit — jamais redevinés.
+ */
+function dispersionTranches(
+  moitie: 'A' | 'B',
+  prepared: PreparedSearch,
+  applique: boolean
+): DispersionTranches {
+  const slotIdxs = moitie === 'A' ? ([0, 1, 2] as const) : ([3, 4, 5] as const);
+  const capEgal = prepared.bucketCap;
+  const { cv, reallocatedCap } = trancheReallocation(
+    prepared.filtered,
+    slotIdxs,
+    prepared.retentionKeys,
+    prepared.base,
+    capEgal
+  );
+  const tranches: TrancheDispersion[] = prepared.retentionKeys
+    .map((stat) => ({
+      stat,
+      cv: cv[stat] ?? 0,
+      capRealloue: reallocatedCap[stat] ?? capEgal,
+      capEgal,
+      facteur: capEgal > 0 ? (reallocatedCap[stat] ?? capEgal) / capEgal : 1,
+    }))
+    // ⚠️ Trié par CV DÉCROISSANT : la tranche la plus DISPERSÉE en tête, parce
+    // que c'est elle que la réallocation privilégie — l'ordre de lecture suit
+    // la décision, il ne suit pas l'ordre des clés.
+    .sort((x, y) => y.cv - x.cv);
+  return {
+    moitie,
+    applique,
+    capEgal,
+    tranches,
+    avertissement: applique
+      ? '✅ APPLIQUÉE sur ce run (`adaptiveTrancheWeighting` actif) : ces places sont celles que la construction a ' +
+        'réellement utilisées. ⚠️ Un CV élevé dit que la stat DIFFÉRENCIE les demi-builds du pool filtré — jamais ' +
+        'qu’elle est difficile à satisfaire, ni que la cible y survivra.'
+      : '⚠️ NON APPLIQUÉE sur ce run — `adaptiveTrancheWeighting` est INACTIF, chaque tranche a donc reçu ' +
+        `${capEgal} places à parts égales. Ce tableau dit ce que la réallocation FERAIT, pas ce qu’elle a fait : ` +
+        'c’est une simulation, et la présenter autrement serait un résultat fabriqué. ⚠️ Le CV, lui, est bien réel — ' +
+        'il ne dépend que du pool FILTRÉ, pas du réglage.',
+  };
 }
 
 /**

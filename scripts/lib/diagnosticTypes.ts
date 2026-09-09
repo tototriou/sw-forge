@@ -809,6 +809,53 @@ export interface RangBuildCible {
 }
 
 /* --------------------------------------------------------------------------
+ * La DISPERSION PAR TRANCHE — §5.7 des extensions
+ * ----------------------------------------------------------------------- */
+
+/**
+ * Une tranche de rétention, avec la dispersion qui décide de sa taille.
+ *
+ * ⚠️ **`cv` est LE nombre du moteur, pas une reconstitution.** Il vient de
+ * `trancheReallocation`, la fonction que `buildBuckets` appelle lui-même —
+ * il n'existe pas deux versions. C'est ce qui sépare cette grandeur d'un CV
+ * recalculé par un script : la dispersion de `retentionScore` sur les
+ * demi-builds RETENUS (principale comprise, compartiments aplatis) n'est pas
+ * une approximation de celle-ci, c'est un autre nombre, qui ne pilote rien.
+ */
+export interface TrancheDispersion {
+  stat: string;
+  /** Coefficient de variation de la contribution HORS PRINCIPALE, sur le pool FILTRÉ. */
+  cv: number;
+  /** Les places que la réallocation donnerait à cette tranche. */
+  capRealloue: number;
+  /** Les places qu'elle recevrait sans réallocation — la part ÉGALE. */
+  capEgal: number;
+  /** `capRealloue / capEgal`. > 1 = cette tranche GAGNE du budget. */
+  facteur: number;
+}
+
+/**
+ * La répartition du budget de rétention entre tranches, pour une moitié.
+ *
+ * ⚠️ **Rendue MÊME quand `adaptiveTrancheWeighting` est OFF**, et c'est
+ * délibéré : le CV est une propriété du POOL, pas du réglage. Le lire sans
+ * activer la piste B répond à « qu'est-ce que la réallocation ferait ici ? »
+ * — la question qu'on se pose AVANT de décider d'activer quoi que ce soit.
+ * ⚠️ Mais `applique` dit alors NON : rendre une répartition sans dire qu'elle
+ * n'a pas été appliquée serait présenter une simulation comme un fait.
+ */
+export interface DispersionTranches {
+  moitie: 'A' | 'B';
+  /** `true` seulement si `adaptiveTrancheWeighting` était actif sur CE run. */
+  applique: boolean;
+  /** Le budget de base par tranche (`bucketCap`). */
+  capEgal: number;
+  /** Une entrée par `retentionKey`, triée par CV DÉCROISSANT — la plus tendue en tête. */
+  tranches: TrancheDispersion[];
+  avertissement: string;
+}
+
+/* --------------------------------------------------------------------------
  * L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT — §5.6 des extensions
  * ----------------------------------------------------------------------- */
 
@@ -1094,6 +1141,16 @@ export interface ResultatHarnais {
    * porte pas les SIX identifiants : sans cible, il n'y a rien à découvrir.
    */
   decouverteBuildCible?: DecouverteBuildCible;
+  /**
+   * La DISPERSION PAR TRANCHE (§5.7 des extensions) — le CV que la piste B
+   * calcule, et la répartition du budget de rétention qu'il produit, par
+   * moitié.
+   *
+   * ⚠️ Rendue dès que la construction a tourné et qu'il existe au moins une
+   * `retentionKey`, que `adaptiveTrancheWeighting` soit actif ou non — le CV
+   * est une propriété du POOL. `applique` dit si ce run l'a réellement suivie.
+   */
+  dispersionTranches?: DispersionTranches[];
   /**
    * LE VERDICT du build cible (§5.1 des extensions) — le premier point de
    * divergence, avec la complétude qui dit ce qu'on a le droit d'en conclure.

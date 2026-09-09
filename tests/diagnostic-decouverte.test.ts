@@ -1,4 +1,6 @@
-// L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT — §5.6 des extensions.
+// L’INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT (§5.6), puis la
+// DISPERSION PAR TRANCHE (§5.7) — les deux extensions qui absorbent les
+// grandeurs du groupe G2.
 //
 // ⚠️ **Ce que ce test défend n'est pas une valeur, c'est une DISTINCTION.**
 // L'instant de découverte (quand la cible est apparue dans le flux) et le
@@ -107,6 +109,66 @@ export default async function testDiagnosticDecouverte() {
     ok(
       v.avertissement.includes('jamais son rang'),
       `${nom} — l’avertissement dit explicitement que ce n’est PAS un rang`
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // §5.7 — la DISPERSION PAR TRANCHE, le CV que le moteur calcule lui-même.
+  // ═══════════════════════════════════════════════════════════════════════
+  titre('Harnais — dispersion par tranche, le CV du moteur (§5.7)');
+
+  const disp = r.dispersionTranches;
+  ok(disp != null && disp.length === 2, 'la dispersion est rendue pour les DEUX moitiés');
+  if (!disp) return;
+
+  for (const m of disp) {
+    egal(
+      m.tranches.length,
+      3,
+      `moitié ${m.moitie} — une entrée par retentionKey (spd, cr, cd sur ce profil)`
+    );
+
+    // ⚠️ L'ORDRE est le sujet : la tranche la plus DISPERSÉE en tête, parce
+    // que c'est elle que la réallocation privilégie. L'ordre de lecture suit
+    // la décision, pas l'ordre des clés.
+    for (let i = 1; i < m.tranches.length; i++) {
+      ok(
+        m.tranches[i].cv <= m.tranches[i - 1].cv,
+        `moitié ${m.moitie} — trié par CV DÉCROISSANT (${m.tranches[i - 1].stat} ≥ ${m.tranches[i].stat})`
+      );
+    }
+    ok(
+      m.tranches.every((t) => t.cv >= 0 && Number.isFinite(t.cv)),
+      `moitié ${m.moitie} — tout CV est fini et positif`
+    );
+
+    // ⚠️ Le budget TOTAL est inchangé par la réallocation — c'est ce qui la
+    // distingue d'un surprovisionnement : elle DÉPLACE des places, elle n'en
+    // ajoute pas. Tolérance d'un arrondi par tranche, plus le plancher.
+    const totalRealloue = m.tranches.reduce((s, t) => s + t.capRealloue, 0);
+    const totalEgal = m.tranches.length * m.capEgal;
+    ok(
+      Math.abs(totalRealloue - totalEgal) <= m.tranches.length,
+      `moitié ${m.moitie} — budget total CONSERVÉ (${totalRealloue} contre ${totalEgal}), la réallocation déplace sans ajouter`
+    );
+
+    // ⚠️ Le plancher à 10 % de la part égale : aucune tranche ne peut être
+    // affamée, même avec un CV nul.
+    const plancher = Math.max(1, Math.round(m.capEgal * 0.1));
+    ok(
+      m.tranches.every((t) => t.capRealloue >= plancher),
+      `moitié ${m.moitie} — aucune tranche sous le plancher de ${plancher} places`
+    );
+
+    // ⚠️ **L'honnêteté du drapeau.** Un profil ne peut pas activer
+    // `adaptiveTrancheWeighting` (il n'est ni dans `OverridesHarnais` ni dans
+    // la source synthétique) : ce tableau est donc une SIMULATION, et il doit
+    // le dire. Le rendre sans cette marque présenterait « ce que la
+    // réallocation ferait » comme « ce qu'elle a fait ».
+    ok(!m.applique, `moitié ${m.moitie} — `.concat('la réallocation n’est PAS appliquée sur un profil'));
+    ok(
+      m.avertissement.includes('NON APPLIQUÉE'),
+      `moitié ${m.moitie} — la sortie DIT qu’elle n’a pas été appliquée`
     );
   }
 }

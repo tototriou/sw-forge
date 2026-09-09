@@ -1784,6 +1784,83 @@ export interface BuildBucketsContext {
 // spec/outils/optimizer/, « Suite — la phase de préparation restait
 // muette »). `half` sert uniquement à étiqueter la progression émise (A ou
 // B), aucun effet sur le calcul lui-même.
+/**
+ * Le CV par tranche et la réallocation qu'il produit — piste B.
+ *
+ * ⚠️ **EXTRAITE de `buildBuckets`, pas recopiée, et c'est toute la raison
+ * d'être de cette fonction.** Son corps vivait en ligne, non exporté : un
+ * diagnostic qui aurait voulu rendre ce CV n'avait d'autre choix que de le
+ * retaper — et aurait alors mesuré SA copie, pas la valeur qui pilote
+ * réellement la répartition. C'est l'incident fondateur de la discipline
+ * « fidélité des scripts de diagnostic », et le précédent exact de
+ * `releverPreparation` (spec/outils/optimizer/, §5.3, résidu 1) : extraire
+ * est la condition de possibilité de la mesure, pas un découpage de confort.
+ * `buildBuckets` l'appelle lui-même — il ne peut donc pas y avoir deux
+ * versions.
+ *
+ * ⚠️ **Ce que le CV mesure, et sur quoi.** Pour chaque `retentionKey`, la
+ * dispersion de la contribution HORS PRINCIPALE
+ * (`runeSubOnlyContribution`) sur le pool DÉJÀ FILTRÉ de chacun des trois
+ * emplacements de la moitié — donc APRÈS `filterSlot`, sur une population
+ * stable, jamais sur des demi-builds en cours de construction.
+ * ⚠️ L'exclusion de la principale est DÉLIBÉRÉE : une principale garantie
+ * (la VIT d'un emplacement 2, par exemple) noie sinon la vraie dispersion et
+ * fait passer une stat tendue pour une stat molle. Un CV calculé principale
+ * COMPRISE n'est pas une approximation de celui-ci — c'est un autre nombre.
+ *
+ * ⚠️ Variance d'une somme = somme des variances : l'indépendance entre les
+ * trois emplacements est une HYPOTHÈSE, approximative et assumée comme telle
+ * (premier ordre défendable), pas une identité.
+ */
+export interface RepartitionTranches {
+  /** Le coefficient de variation par `retentionKey`. */
+  cv: Record<string, number>;
+  /** Les places allouées à chaque tranche — budget total inchangé, plancher à 10 % de la part égale. */
+  reallocatedCap: Record<string, number>;
+}
+
+export function trancheReallocation(
+  filtered: RuneDetail[][],
+  slotIdxs: readonly [number, number, number],
+  retentionKeys: string[],
+  base: BaseStats,
+  perOtherSliceCap: number
+): RepartitionTranches {
+  const cv: Record<string, number> = {};
+  for (const k of retentionKeys) {
+    let sumMean = 0;
+    let sumVariance = 0;
+    for (const i of slotIdxs) {
+      const slotPool = filtered[i];
+      if (slotPool.length === 0) continue;
+      let sum = 0;
+      let sumSq = 0;
+      for (const r of slotPool) {
+        const c = runeSubOnlyContribution(r, k as StatKey);
+        const v = weightedContribution(base, k as StatKey, c.pct, c.flat);
+        sum += v;
+        sumSq += v * v;
+      }
+      const mean = sum / slotPool.length;
+      const variance = Math.max(0, sumSq / slotPool.length - mean * mean);
+      sumMean += mean;
+      sumVariance += variance;
+    }
+    cv[k] = sumMean > 0 ? Math.sqrt(sumVariance) / sumMean : 0;
+  }
+  const cv2: Record<string, number> = {};
+  for (const k of retentionKeys) cv2[k] = cv[k] * cv[k];
+  const totalCv2 = retentionKeys.reduce((s, k) => s + cv2[k], 0);
+  const totalBudget = retentionKeys.length * perOtherSliceCap;
+  const floorCap = Math.max(1, Math.round(perOtherSliceCap * 0.1));
+  const reallocatedCap: Record<string, number> = {};
+  for (const k of retentionKeys) {
+    const share = totalCv2 > 0 ? cv2[k] / totalCv2 : 1 / retentionKeys.length;
+    reallocatedCap[k] = Math.max(floorCap, Math.round(share * totalBudget));
+  }
+  return { cv, reallocatedCap };
+}
+
 export function* buildBuckets(
   half: 'A' | 'B',
   slotIdxs: readonly [number, number, number],
@@ -1893,40 +1970,10 @@ export function* buildBuckets(
   // la majorité des cas réels, même quand la réallocation ne change rien à
   // l'issue) ne devrait structurellement pas exister ici — à VÉRIFIER par
   // la même batterie de mesure, pas à présumer.
-  const reallocatedCap: Record<string, number> = {};
-  if (adaptiveTrancheWeighting && retentionKeys.length > 0) {
-    const cv: Record<string, number> = {};
-    for (const k of retentionKeys) {
-      let sumMean = 0;
-      let sumVariance = 0;
-      for (const i of [i0, i1, i2]) {
-        const slotPool = filtered[i];
-        if (slotPool.length === 0) continue;
-        let sum = 0;
-        let sumSq = 0;
-        for (const r of slotPool) {
-          const c = runeSubOnlyContribution(r, k as StatKey);
-          const v = weightedContribution(base, k as StatKey, c.pct, c.flat);
-          sum += v;
-          sumSq += v * v;
-        }
-        const mean = sum / slotPool.length;
-        const variance = Math.max(0, sumSq / slotPool.length - mean * mean);
-        sumMean += mean;
-        sumVariance += variance;
-      }
-      cv[k] = sumMean > 0 ? Math.sqrt(sumVariance) / sumMean : 0;
-    }
-    const cv2: Record<string, number> = {};
-    for (const k of retentionKeys) cv2[k] = cv[k] * cv[k];
-    const totalCv2 = retentionKeys.reduce((s, k) => s + cv2[k], 0);
-    const totalBudget = retentionKeys.length * perOtherSliceCap;
-    const floorCap = Math.max(1, Math.round(perOtherSliceCap * 0.1));
-    for (const k of retentionKeys) {
-      const share = totalCv2 > 0 ? cv2[k] / totalCv2 : 1 / retentionKeys.length;
-      reallocatedCap[k] = Math.max(floorCap, Math.round(share * totalBudget));
-    }
-  }
+  const reallocatedCap: Record<string, number> =
+    adaptiveTrancheWeighting && retentionKeys.length > 0
+      ? trancheReallocation(filtered, [i0, i1, i2], retentionKeys, base, perOtherSliceCap).reallocatedCap
+      : {};
 
   // Meilleur cas atteignable par CHAQUE slot de cette moitié, pour chaque set
   // demandé — calculé une fois, réutilisé à chaque étape du triple flux.

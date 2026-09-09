@@ -2,9 +2,14 @@
 // Garde-fou de commit, commun aux deux agents — voir
 // CADRAGE-orchestration-parallele.md, §2.4.
 //
-// ⚠️ **Pourquoi un hook GIT et pas un hook d'agent.** Un `PreToolUse` ne vaut
-// que pour Claude Code ; Codex n'a pas ce système. Le seul point que les deux
-// traversent, quel que soit le CLI, c'est `git commit`.
+// ⚠️ **Pourquoi un hook GIT et pas un hook d'agent.** Un `PreToolUse` de Claude
+// Code ne vaut que pour Claude Code. Codex a **aussi** un système de hooks
+// (`SessionStart`, `PreToolUse`, `Stop`) — l'affirmation contraire, écrite ici
+// dans une première version, était fausse — mais ce sont deux dispositifs
+// distincts, à configurer et à maintenir séparément. Le seul point que les deux
+// agents traversent sans configuration commune, quel que soit le CLI, reste
+// `git commit`. Des hooks d'agent VIENDRAIENT EN PLUS de celui-ci, pas à sa
+// place : eux contrôlent au moment de l'action, lui au moment du commit.
 //
 // ⚠️ **Portée volontairement ÉTROITE, et ce n'est pas une exclusion mutuelle.**
 // Ce hook n'empêche pas d'éditer, seulement de committer ; il se contourne

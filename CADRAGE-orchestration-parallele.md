@@ -292,6 +292,35 @@ contournable : le bon niveau.
 
 ## 5. Contrat de travail entre les deux agents
 
+### Ouvrir un chantier — la séquence complète
+
+⚠️ **Créer le worktree ne suffit pas** : sans `ouvrir`, le chantier n'est pas
+enregistré et les notes privées ne sont pas copiées. Une première version de
+cette séquence s'arrêtait à `npm ci` — elle était incomplète.
+
+```powershell
+git worktree add ../sw-forge-codex -b forge/<sujet> forge/orchestration-parallele
+Set-Location ../sw-forge-codex
+npm ci
+
+$gitCommun = git rev-parse --path-format=absolute --git-common-dir
+$outil = Join-Path $gitCommun 'forge/installation/scripts/chantier.mjs'
+node $outil ouvrir --chantier <sujet>
+```
+
+Puis ouvrir la session de l'agent **dans ce dossier**, attribuer un chantier
+distinct à chacun, et désigner l'intégrateur.
+
+> ⚠️ **Prérequis à valider pour Codex : les droits sur les dépôts hors
+> workspace.** Un appel réel à `verifier` depuis la sandbox Codex a échoué sur
+> `dubious ownership` — le dépôt documentaire appartient à l'utilisateur, tandis
+> que l'exécution se fait sous un autre compte. **Ce n'est pas un reçu invalide,
+> c'est un blocage git**, et la distinction compte : un outil qui échoue pour une
+> raison d'environnement ne dit rien sur la validité de la livraison. À traiter
+> par un `safe.directory` explicite pour le dépôt documentaire et ses worktrees,
+> plus les droits d'écriture correspondants. **Non fait** : c'est un réglage de
+> l'environnement de l'utilisateur, pas du dépôt.
+
 | | Claude Code | Codex |
 |---|---|---|
 | Dossier | `sw-forge/` | `sw-forge-codex/` |
@@ -515,6 +544,41 @@ par `git check-ignore`. Second effet voulu : ripgrep respectant `.gitignore`,
 les copies périmées sortent aussi des recherches.
 
 *C'est précisément la règle n°2 du hook (§2.4).*
+
+## 7 bis. Ce qui est IMPOSÉ, et ce qui reste une consigne
+
+*La distinction décide de ce à quoi on peut se fier sans surveiller.*
+
+| Protection | Aujourd'hui |
+|---|---|
+| Séparation des fichiers de code | ✅ **imposée** — worktrees |
+| Refus d'un commit sur `main`/`master` | ✅ **imposée** — hook installé |
+| Refus d'un chemin privé, d'un fichier > 5 Mo | ✅ **imposée** — hook installé |
+| Chantier lancé depuis le mauvais worktree ou la mauvaise branche | ✅ **imposée** — contrôle d'identité |
+| Conservation des notes, validité du reçu | ⚠️ imposée **quand la commande est appelée** |
+| Vérifier avant d'intégrer | ❌ **consigne** |
+| Responsable des transverses, créneau de benchmark | ❌ **consigne** |
+
+**Ce qui manque est la liaison automatique entre les consignes et les actions
+des agents.** Deux pistes, dans cet ordre :
+
+1. **Des hooks d'agent** — Claude Code (`PreToolUse`) et Codex
+   (`SessionStart`, `PreToolUse`, `Stop`) en ont chacun. Trois contrôles, actifs
+   pour les seules sessions orchestrées : au démarrage, vérifier l'installation,
+   les accès documentaires et l'association session → worktree → branche →
+   chantier ; avant l'action, refuser une intégration sans reçu valide ; en fin
+   de livraison, réclamer ce qui manque — **avec une sortie explicite**, sous
+   peine de boucle. ⚠️ Ces hooks doivent **réutiliser la logique de `chantier`**,
+   jamais en réimplémenter une seconde qui divergera.
+2. **Rien de plus.** Un hook d'agent reste un garde-fou, pas une frontière : il
+   se contourne. Ce qu'il apporte, c'est un contrôle **au moment de l'action**,
+   qui ne dépend pas de la mémoire qu'un agent a des consignes.
+
+⚠️ **Correction d'une affirmation antérieure** : « Codex n'a pas de système de
+hooks » était **faux**, et l'écrire a orienté tout l'étage 1 vers le hook git.
+Le hook git reste justifié — c'est le seul point commun sans configuration
+partagée — mais il n'était pas le seul choix possible. L'activation des hooks
+Codex reste à vérifier dans le client installé.
 
 ## 8. Ce qui reste faible
 

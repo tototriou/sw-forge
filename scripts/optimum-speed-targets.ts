@@ -15,18 +15,25 @@
 // « k plus grandes sommes » pour l'optimum exact sans produit cartésien
 // complet (a fait OOM en premier jet sur cette même piste).
 //
-// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est désormais ABSORBABLE** (§5.5 bis
-// et §5.8 mesure 2, 2026-09-09), et la MESURE l'a établi contre ce que le
-// papier annonçait. Un run du harnais à `--bucketCap=9007199254740991` avec
-// `--maxCollected` relevé revient **COMPLET** : 1 642 970 000 paires
-// explorées INTÉGRALEMENT en ~299 s, sans OOM. Le top-1 par `sortCandidates`
-// est alors l'optimum exact.
-// ⚠️ **Et sa garantie est PLUS FORTE que celle de ce script** : `exactOptimum`
-// plus bas s'arrête à `HEAP_BUDGET` = 20 000 paires examinées et REFUSE
-// au-delà ; le harnais les examine toutes, donc il ne peut pas manquer un
-// optimum que le tri par `relevanceScore` aurait relégué au 20 001ᵉ rang.
-// ⚠️ Coût : ~5 min par scénario contre quelques secondes ici — c'est une
-// décision de coût, pas une impossibilité, et c'est ce qui reste à trancher.
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ SOUS CONDITION — ce script est ABSORBABLE, mais
+// PAS sur tous ses scénarios** (§5.5 bis et §5.8 mesure 2, 2026-09-09). La
+// condition est le **COÛT DU SET DEMANDÉ**, donc le nombre d'emplacements
+// laissés libres :
+//   · set de **4 pièces** (2 libres — la forme courante en production) : un
+//     run du harnais à `--bucketCap=9007199254740991` revient **COMPLET sur
+//     23 014 530 paires en 11,8 s**, et son top-1 par `sortCandidates` EST
+//     l'optimum exact. ⚠️ Sa garantie est même **PLUS FORTE que celle de ce
+//     script** : `exactOptimum` plus bas s'arrête à `HEAP_BUDGET` = 20 000
+//     paires examinées et REFUSE au-delà, quand le harnais les examine
+//     TOUTES — il ne peut donc pas manquer un optimum que le tri par
+//     `relevanceScore` aurait relégué au 20 001ᵉ rang ;
+//   · set de **2 pièces** (4 libres) : le processus Node **PLANTE**.
+//
+// ⚠️ **Et ce script n'est pas exempt de reproche sur ce point** : son
+// générateur (plus bas) tire DEUX sets AU HASARD dans `SETS_SANS_JOKER`. Il
+// produit donc des combos à 2 pièces — ceux qui font planter le remplacement —
+// et des combos à **8 pièces pour 6 emplacements** (`violent`+`swift`),
+// structurellement impossibles, qui partent en `skippedInfeasible`.
 //
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
 // des extensions). Il ne compare rien : il **PRODUIT une VÉRITÉ TERRAIN** —

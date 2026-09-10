@@ -357,6 +357,17 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 > `overflow-hidden` — sans lui, les coins carrés du contenu dépassent de
 > l'arrondi du cadre, en quatre petits ergots aux angles.
 
+> ⚠️ **`ancrage="cote"` est un AXE, pas une variante de plus.** Les deux
+> ancrages d'origine (`dessous`, `dessus`) placent la surface **au-dessus ou en
+> dessous** de son ancre ; `cote:` ne fait que choisir de quel bord elle
+> s'aligne. Une surface qui sort sur le **flanc** — les sous-sections au survol
+> d'une entrée de la barre latérale ([navigation.md](navigation.md)) — ne
+> s'exprime par aucune combinaison des deux : elle s'aligne sur le **haut** de
+> l'ancre et se pose à sa **droite**. D'où la troisième valeur, plutôt qu'un
+> composant de plus. Elle ignore `cote:`, qui n'a plus de sens quand c'est
+> l'axe horizontal lui-même qui porte l'ancrage, et son animation part de
+> `origin-top-left` — du bord par lequel elle sort.
+
 **`FlottantAuto`** — le même, mais qui **choisit son côté** en mesurant la place
 autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
 haut si elle est près du bas. Puis il **borne sa position au viewport**, en

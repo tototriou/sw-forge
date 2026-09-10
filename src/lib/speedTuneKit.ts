@@ -123,6 +123,46 @@ export const KIT_VIDE: KitVitesse = {
 // allié…), que la simulation ne modélise pas.
 //
 // ⚠️ **Le plus FORT l'emporte** quand plusieurs compétences remplissent la barre :
+/* --------------------------------------------------------------------------
+ * Boosts de barre CONDITIONNELS
+ *
+ * ⚠️ **Un boost sous condition ne se compte pas dans un speed tune.** Le S2 de
+ * Sylvia dit : « … removes all beneficial effects on the target. **If** there
+ * are 2 or more beneficial effects removed, the Attack Bar of all allies will be
+ * increased by 20% each. » L'action a lieu, mais le boost ne suit que si la
+ * condition tombe — et un speed tune est ce qui tient SANS rien attendre de
+ * l'adverse. L'annoncer, c'est promettre un tick qu'on n'aura pas toujours.
+ *
+ * ⚠️ **Ni la `chance` ni un « if » quelque part dans le texte ne suffisent.**
+ * Mesuré sur les 498 effets « Increase ATB » du corpus : 269 portent
+ * `chance: 0` alors que 220 d'entre eux n'ont aucune condition — le champ ne
+ * veut rien dire ici. Et 145 compétences contiennent un « if » qui gouverne le
+ * plus souvent une AUTRE phrase que celle du boost. Seule la phrase qui porte
+ * l'augmentation fait foi.
+ *
+ * ⚠️ **On n'écarte que si TOUTES les phrases d'augmentation sont conditionnelles.**
+ * Deux compétences du corpus (Mega Impulse Gun) mêlent une phrase conditionnelle
+ * et une autre qui ne l'est pas : leur boost reste annoncé. Écarter au premier
+ * « if » les aurait fait disparaître à tort.
+ * ----------------------------------------------------------------------- */
+
+const PHRASES = (t: string) => t.split(/(?<=\.)\s+/).filter(Boolean);
+const PARLE_DE_BARRE = /attack bar/i;
+const AUGMENTE = /increas|recover|fill|restor/i;
+const CONDITION = /\bif\b/i;
+// ⚠️ Une action déclarée IRRÉSISTIBLE se produit toujours : la condition qu'elle
+// porte est donc toujours remplie, et le boost qui en dépend est acquis.
+// Aucun cas dans le corpus actuel — 64 compétences emploient le mot, aucune
+// n'est parmi les 112 boosts conditionnels. La règle est là pour le jour où.
+const IRRESISTIBLE = /irresistible|can(not|'t) be resisted/i;
+
+function boostAtbConditionnel(c: Competence): boolean {
+  const texte = (c.description ?? '').replace(/\s+/g, ' ');
+  if (!texte || IRRESISTIBLE.test(texte)) return false;
+  const ph = PHRASES(texte).filter((p) => PARLE_DE_BARRE.test(p) && AUGMENTE.test(p));
+  return ph.length > 0 && ph.every((p) => CONDITION.test(p));
+}
+
 // c'est celle qu'on joue pour lancer le combo. Les champs restent modifiables à
 // la main — la détection propose, elle n'impose pas.
 export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
@@ -131,9 +171,12 @@ export function kitVitesse(detail: DetailMonstre | null): KitVitesse {
   for (const c of detail.competences) {
     if (c.passif) continue;
     const rejoue = c.effets.some((e) => e.nom === EFFET_REJOUE);
+    // Un boost sous condition ne se propose pas (voir `boostAtbConditionnel`).
+    const atbSousCondition = boostAtbConditionnel(c);
     for (const e of c.effets) {
       if (!e.aoe) continue;
       if (e.nom === EFFET_ATB) {
+        if (atbSousCondition) continue;
         const niveau1 = e.quantite ?? 0;
         const skillUp = bonusSkillUp(c);
         if (niveau1 + skillUp > out.atb) {
@@ -159,11 +202,15 @@ function lireEffet(c: Competence): { effet: EffetSort; atbNiveau1: number; atbSk
   let atbNiveau1 = 0;
   let chance: number | null = null;
   const skillUp = bonusSkillUp(c);
+  // Un boost sous condition n'entre pas dans la simulation : un speed tune est
+  // ce qui tient sans rien attendre (voir `boostAtbConditionnel`).
+  const atbSousCondition = boostAtbConditionnel(c);
 
   for (const e of c.effets) {
     const q = e.quantite ?? 0;
     switch (e.nom) {
       case EFFET_ATB: {
+        if (atbSousCondition) break;
         // ⚠️ Trois cibles bien différentes : tout le camp, UN allié (Breeze de
         // Kroa : celui dont la barre est la plus basse), ou soi-même.
         //

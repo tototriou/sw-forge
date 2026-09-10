@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
 import { ELEMENTS, Monster, SiegeTeam } from '../../types';
 import { LeadInfo, combatSpeed, leadsDeVitesse, runeSpeedForTarget, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -241,6 +241,7 @@ export default function SpeedTuningSection({
     arteRequis,
     auto,
     basculerMasque,
+    copierEnFace,
     basculerPassif,
     basculerSwift,
     chaine,
@@ -440,6 +441,7 @@ export default function SpeedTuningSection({
           onAjouter={(id) => ajouter('allie', id)}
           onRetirer={retirer}
           onMasquer={basculerMasque}
+          onCopier={copierEnFace}
           onDeplacer={deplacerLigne}
           onRuneSpeed={setRuneSpeed}
           onSwift={basculerSwift}
@@ -465,6 +467,7 @@ export default function SpeedTuningSection({
           onAjouter={(id) => ajouter('ennemi', id)}
           onRetirer={retirer}
           onMasquer={basculerMasque}
+          onCopier={copierEnFace}
           onDeplacer={deplacerLigne}
           onRuneSpeed={setRuneSpeed}
           onSwift={basculerSwift}
@@ -715,9 +718,19 @@ export default function SpeedTuningSection({
                   <>
                     {ordreVoulu.length > 0 && !sequence.ok ? (
                       <>
+                        {/* ⚠️ **L'ordre respecté et l'équipe coupée sont DEUX
+                            problèmes**, et le titre les confondait. Quand tous
+                            les ennuis sont des `apres-adverse`, les alliés
+                            jouent bel et bien dans l'ordre demandé — ils se font
+                            simplement couper. Annoncer « tes vitesses ne
+                            permettent pas de jouer dans l'ordre demandé »
+                            envoyait alors corriger un ordre qui n'avait rien à
+                            se reprocher, et laissait chercher longtemps. */}
                         <p className="flex items-center gap-2 text-sm font-semibold text-bad">
                           <Scissors size={16} className="flex-none" />
-                          Les vitesses de tes monstres ne permettent pas de jouer dans l'ordre demandé.
+                          {sequence.problemes.every((p) => p.raison === 'apres-adverse')
+                            ? 'Ton équipe joue dans l’ordre demandé, mais elle se fait couper.'
+                            : "Les vitesses de tes monstres ne permettent pas de jouer dans l'ordre demandé."}
                         </p>
                         <ul className="flex flex-col gap-y-1.5">
                           {ordreVoulu.map((cle) => {
@@ -741,14 +754,22 @@ export default function SpeedTuningSection({
                             // tout : ce n'est pas un rang raté de peu, et
                             // envoyer corriger une vitesse serait un faux
                             // conseil.
+                            // ⚠️ « se fait couper » plutôt que « est trop lent »
+                            // pour un `apres-adverse` : le monstre peut très bien
+                            // tenir son rang parmi les alliés — ce qu'il rate,
+                            // c'est de passer avant l'adverse. Le même mot que
+                            // l'autre branche (« pour ne pas se faire cut »),
+                            // pour que le même défaut se dise pareil partout.
                             const verdict =
                               p.raison === 'nagit-pas'
                                 ? rang > 1
                                   ? `ne joue pas une ${rang}ᵉ fois`
                                   : "n'agit pas"
-                                : p.raison === 'trop-tot'
-                                  ? 'est trop rapide'
-                                  : 'est trop lent';
+                                : p.raison === 'apres-adverse'
+                                  ? 'se fait couper'
+                                  : p.raison === 'trop-tot'
+                                    ? 'est trop rapide'
+                                    : 'est trop lent';
                             const peutCalculer = runes != null || arte != null;
                             return (
                               <li key={cle} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
@@ -985,6 +1006,7 @@ interface CampProps {
   onAjouter: (id: string) => void;
   onRetirer: (uid: string) => void;
   onMasquer: (uid: string) => void;
+  onCopier: (uid: string) => void;
   onDeplacer: (uid: string, sens: -1 | 1) => void;
   onRuneSpeed: (uid: string, v: number | null) => void;
   onSwift: (uid: string) => void;
@@ -1023,6 +1045,7 @@ function CampPanneau({
   onAjouter,
   onRetirer,
   onMasquer,
+  onCopier,
   onDeplacer,
   onRuneSpeed,
   onSwift,
@@ -1139,7 +1162,15 @@ function CampPanneau({
             return (
               <div
                 key={l.uid}
-                className="relative rounded-lg border border-border bg-panel2 px-3 py-2 pr-24"
+                // ⚠️ **Le rembourrage droit RÉSERVE la place de la rangée de
+                // boutons**, qui est en `absolute` : c'est lui, et lui seul, qui
+                // empêche les icônes de recouvrir la vitesse de combat alignée à
+                // droite. Cinq boutons `serre` de 20 px avec `gap-0.5` font
+                // 108 px, plus les 4 px de `right-1` : 112, soit `pr-28`. Il
+                // valait `pr-24` (96) du temps où ils étaient quatre — ajouter
+                // le bouton « copier » sans toucher à cette valeur les faisait
+                // mordre sur le nombre.
+                className="relative rounded-lg border border-border bg-panel2 px-3 py-2 pr-28"
               >
                 {/* Cluster en haut à droite de la card : monter/descendre,
                     masquer, supprimer — la croix à sa place habituelle dans
@@ -1181,6 +1212,23 @@ function CampPanneau({
                     onClick={() => onMasquer(l.uid)}
                     libelle={masque ? `Afficher ${l.monster.name}` : `Masquer ${l.monster.name}`}
                     icone={masque ? <Eye size={13} /> : <EyeOff size={13} />}
+                  />
+                  {/* ⚠️ **Copier en face, pas déplacer** : le monstre reste dans
+                      son camp. On se mesure à une copie de soi — « est-ce que je
+                      passe devant un monstre aussi rapide que le mien ? » — et
+                      le déplacer viderait l'équipe qu'on est en train de régler.
+                      ⚠️ Le libellé nomme le camp d'ARRIVÉE : la même icône sert
+                      des deux côtés, et « copier en face » depuis le camp adverse
+                      voudrait dire l'inverse. */}
+                  <BoutonIcone
+                    taille="serre"
+                    onClick={() => onCopier(l.uid)}
+                    libelle={
+                      l.camp === 'allie'
+                        ? `Copier ${l.monster.name} en face`
+                        : `Copier ${l.monster.name} dans ton équipe`
+                    }
+                    icone={<CopyPlus size={13} />}
                   />
                   <BoutonIcone
                     taille="serre"

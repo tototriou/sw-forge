@@ -140,6 +140,17 @@ export interface TuneMonstre {
   // l'artéfact TROIS À QUATRE FOIS trop fort — signalé par l'utilisateur sur un
   // deck où 10 d'artéfact valent ~3 de vitesse, pas ~20.
   artefactBuff?: number;
+  // La part de `artefactBuff` qui vient de l'AMPLIFICATION DE CAMP (Miriam
+  // +35 %), et non des artéfacts portés.
+  //
+  // ⚠️ **Elle ne sert QU'AU PLAFOND.** Le moteur n'en fait rien : les deux
+  // sources s'additionnent avant d'amplifier le buff, et `artefactBuff` les
+  // porte déjà toutes les deux. Mais ce qu'on PROPOSE au joueur, c'est un
+  // artéfact — plafonné à 60 (`ARTE_MAX`) — pas l'amplification, qu'il ne
+  // choisit pas. Sans ce champ, le plafond mordait sur la part de Miriam : avec
+  // elle, un monstre à 25 d'artéfact réel était déjà « au maximum » et l'outil
+  // répondait « hors de portée » sur près d'un cas sur deux.
+  ampliBuff?: number;
 }
 
 // Un tour pris : quel monstre, à quel tick, et son rang dans la séquence GLOBALE
@@ -183,13 +194,18 @@ export interface Simulation {
 // modificateurs par tick. Contrairement à une lecture « premier tour », le
 // monstre qui agit NE SORT PAS : sa barre **repart de 0** (le surplus au-dessus
 // de 100 n'est pas conservé) et se remplit à nouveau — il peut donc rejouer.
+// ⚠️ Départage à BARRE ÉGALE : l'attaquant d'abord. Voir le tri dans `simuler`
+// — c'est le seul endroit où le camp entre dans l'ordre de jeu.
+const rangCamp = (c: Camp): number => (c === 'allie' ? 0 : 1);
+
 // Cela donne l'enchaînement des tours sur toute la durée. Voir
 // spec/outils/speed-tuning.md.
 //
 // À chaque tick : chaque monstre gagne `atbParTick(combat × (1 + buffActif))`,
 // puis reçoit sa modification de barre (`atbMod`), sans jamais descendre sous 0.
 // Si au moins un a atteint 100, UN SEUL prend le tour — barre la plus haute,
-// départagée par la vitesse de combat de base puis par l'ordre de placement.
+// départagée par le CAMP (à barre égale, l'attaquant joue en premier), puis par
+// la vitesse de combat, puis par l'ordre de placement.
 //
 // ⚠️ Ce N'EST PAS un tri par vitesse : trois monstres pleins au même tick jouent
 // aux ticks n, n+1, n+2. Un boost d'ATB ou un buff de vitesse posé tôt peut
@@ -271,8 +287,15 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
       // alors que le calcul décimal disait que 9 suffisait. On TRONQUE (et non
       // arrondit) : arrondir donnerait 33 % à 9 d'artéfact, ce que le jeu
       // dément.
+      //
+      // ⚠️⚠️ **ON MULTIPLIE AVANT DE DIVISER.** `buffBase * (1 + arte / 100)`
+      // passe par un flottant qui tombe JUSTE EN DESSOUS de l'entier : à buff 25
+      // et artéfact 16, `25 * 1.16` vaut 28,999999999999996 et se tronque en
+      // **28** au lieu de 29. Les deux facteurs étant entiers,
+      // `(buffBase * (100 + arte)) / 100` est exact — même troncature, sans le
+      // faux pas. 12 couples sur 10 100 étaient touchés, tous SOUS-ÉVALUÉS.
       const buff =
-        buffBase > 0 ? Math.floor(buffBase * (1 + (m.artefactBuff ?? 0) / 100)) : buffBase;
+        buffBase > 0 ? Math.floor((buffBase * (100 + (m.artefactBuff ?? 0))) / 100) : buffBase;
       m.atb += atbParTick((m.combat * (100 + buff)) / 100);
       if (m.atb < 0) m.atb = 0;
       // On enregistre AVANT la remise à zéro : la case du tour montre la barre
@@ -293,7 +316,30 @@ export function simuler(monstres: TuneMonstre[], horizon = HORIZON_TICKS): Simul
 
     const prets = etat.filter((m) => m.atb >= 100);
     if (prets.length === 0) continue;
-    prets.sort((a, b) => b.atb - a.atb || b.combat - a.combat || a.placement - b.placement);
+    // ⚠️ **À BARRE ÉGALE, L'ATTAQUANT PASSE DEVANT** — c'est la règle du jeu, et
+    // elle manquait. Le départage s'arrêtait à l'ordre de placement : deux
+    // monstres à la même barre étaient donc tranchés par leur position dans le
+    // tableau. Le tour partait à l'adverse dès qu'il se trouvait placé avant, et
+    // le défaut n'apparaissait qu'une fois sur deux — d'où un bug « pas
+    // reproductible à chaque fois ».
+    //
+    // ⚠️ **Le camp passe avant la VITESSE, jamais avant la BARRE.** La condition
+    // de la règle est l'égalité des barres, et elle seule : à barre égale ton
+    // monstre passe même s'il est plus LENT, mais une barre adverse plus haute
+    // l'emporte toujours. La vitesse ne départage donc plus qu'entre monstres du
+    // même camp.
+    //
+    // ⚠️ **« Ton équipe » est tenue pour l'ATTAQUANT.** C'est le cadre de
+    // l'outil — on y prépare son attaque. Modéliser une défense demanderait de
+    // rendre ce rôle réglable ; c'est ici, et nulle part ailleurs, qu'il faudrait
+    // le brancher.
+    prets.sort(
+      (a, b) =>
+        b.atb - a.atb ||
+        rangCamp(a.camp) - rangCamp(b.camp) ||
+        b.combat - a.combat ||
+        a.placement - b.placement
+    );
     const gagnant = prets[0];
     actions.push({ id: gagnant.id, camp: gagnant.camp, tick, ordre: actions.length + 1 });
     gagnant.atb = 0; // tour pris : la barre repart de 0 au tick suivant
@@ -433,6 +479,10 @@ export const COMBAT_MAX = speedForTick(1);
 // 6 % (voir PROC dans artifacts.ts), une ligne encaisse au plus 5 procs (le
 // tirage initial + les 4 améliorations d'un artéfact +15), et un monstre porte
 // DEUX artéfacts → 2 × 30 = 60 %. Au-delà, ce n'est plus une piste à proposer.
+//
+// ⚠️ **Il borne L'ARTÉFACT, pas `artefactBuff`.** Ce champ-là porte aussi
+// l'amplification de camp (Miriam +35 %), que le joueur ne choisit pas : c'est
+// `plafondDe` qui fait la part des choses.
 export const ARTE_MAX = 60;
 
 export interface Coupure {
@@ -535,7 +585,15 @@ export interface VitesseRequise {
 // buff de vitesse qu'on reçoit déjà.
 type Axe = 'combat' | 'artefactBuff';
 
-const PLAFOND: Record<Axe, number> = { combat: COMBAT_MAX, artefactBuff: ARTE_MAX };
+// ⚠️ **Le plafond de l'axe artéfact est PROPRE À CHAQUE MONSTRE.** `artefactBuff`
+// porte l'artéfact ET l'amplification de camp (voir `ampliBuff`) ; seul le
+// premier se choisit, et c'est lui que `ARTE_MAX` borne. Un plafond fixe à 60
+// rendait donc « hors de portée » un monstre à 25 d'artéfact réel dès qu'un
+// Miriam (+35 %) courait sur son camp — 271 plateaux sur 568 (47,7 %).
+function plafondDe(axe: Axe, m: TuneMonstre | undefined): number {
+  if (axe === 'combat') return COMBAT_MAX;
+  return ARTE_MAX + (m?.ampliBuff ?? 0);
+}
 
 interface Resolution {
   id: string;
@@ -660,7 +718,7 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
   const auPlusTot = (m: TuneMonstre) => {
     const min = source.get(m.id) ?? valeur(m);
     let a = min;
-    let b = PLAFOND[axe];
+    let b = plafondDe(axe, m);
     while (a < b) {
       const mi = Math.ceil((a + b) / 2);
       poser(m, mi);
@@ -675,13 +733,20 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
       if (m) poser(m, v);
     }
   };
-  // ⚠️ **Le premier n'est jamais du lot** (indice 0) : il porte le meilleur Swift
-  // du compte, on ne peut rien lui trouver de plus.
-  const poussables = ordre.slice(1);
+  // ⚠️ **Sur l'axe VITESSE, le premier n'est jamais du lot** (indice 0) : il porte
+  // le meilleur Swift du compte, on ne peut rien lui trouver de plus.
+  //
+  // ⚠️⚠️ **Sur l'axe ARTÉFACT, il en est** — c'est ce que dit la règle plus haut
+  // (« la contrainte ne vaut QUE sur l'axe vitesse ») et ce que le code faisait
+  // le contraire : `slice(1)` était inconditionnel. Un artéfact SE CHANGE ; sur
+  // 1 283 plateaux, 291 (22,7 %) étaient déclarés « hors de portée » alors qu'un
+  // artéfact posé sur celui qui ouvre les sauvait.
+  const decalage = axe === 'combat' ? 1 : 0;
+  const poussables = ordre.slice(decalage);
   const sousEnsembles: number[][] = [];
   for (let masque = 0; masque < 1 << poussables.length; masque++) {
     const sous: number[] = [];
-    for (let i = 0; i < poussables.length; i++) if ((masque >> i) & 1) sous.push(i + 1);
+    for (let i = 0; i < poussables.length; i++) if ((masque >> i) & 1) sous.push(i + decalage);
     sousEnsembles.push(sous);
   }
   // ⚠️ **Du PLUS GRAND au plus petit** : la méthode à la main pousse TOUT le
@@ -837,7 +902,11 @@ export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICK
 
 // L'autre levier : l'artéfact « Effet aug. VIT », qui AMPLIFIE le buff de
 // vitesse reçu. `artefactRequis: null` = rien à en attendre pour cet allié —
-// soit il ne reçoit aucun buff, soit même 60 % n'y suffiraient pas.
+// soit il ne reçoit aucun buff, soit même 60 % d'artéfact n'y suffiraient pas.
+//
+// ⚠️ **Les deux valeurs comptent L'AMPLIFICATION DE CAMP** (`ampliBuff`), comme
+// `artefactBuff` : c'est leur DIFFÉRENCE qu'affiche l'écran, et l'amplification
+// s'y annule. Ce que le joueur lit est bien un nombre de points d'artéfact.
 export interface ArtefactRequis {
   id: string;
   artefactActuel: number;
@@ -1073,7 +1142,10 @@ export function fenetresRequises(
   enchainer = false
 ): Fenetre[] {
   const out: Fenetre[] = [];
-  const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
+  // ⚠️ Le plafond dépend du MONSTRE sur l'axe artéfact (voir `plafondDe`) : il se
+  // relit à chaque monstre examiné, jamais une fois pour toutes.
+  const plafondPour = (cle: string): number =>
+    plafondDe(axe, monstres.find((m) => m.id === litOccurrence(cle).id));
   // ⚠️ **La chaîne se résout PAR LA FIN.** Corriger d'abord le 2ᵉ, puis lire le
   // 3ᵉ, ne marche pas : posé à SON minimum, le 2ᵉ ne laisse plus la place au
   // 3ᵉ, qui doit être à la fois plus lent que lui et assez rapide pour couper
@@ -1109,7 +1181,7 @@ export function fenetresRequises(
       if (d.ok) break;
       const enDefaut = ordre.find((cle) => d.problemes.some((p) => p.id === cle));
       if (enDefaut == null) break;
-      const v = borneBasse(plateau, ordre, enDefaut, horizon, axe, plafond);
+      const v = borneBasse(plateau, ordre, enDefaut, horizon, axe, plafondPour(enDefaut));
       if (v == null) break;
       const actuel = valeurDe(plateau.find((m) => m.id === litOccurrence(enDefaut).id), axe);
       // Rien à gagner : sa borne ne le fait pas monter, on ne bouclera pas.
@@ -1130,6 +1202,7 @@ export function fenetresRequises(
     // ⚠️ La vitesse RÉELLE, jamais la corrigée : « combatActuel » dit ce que
     // l'utilisateur a aujourd'hui, sinon l'écart affiché serait faux.
     const depart = axe === 'combat' ? original.combat : (original.artefactBuff ?? 0);
+    const plafond = plafondPour(id);
 
     // Copie de travail : on ne bouge QUE lui.
     const essai = base.map((m) => ({ ...m }));

@@ -313,7 +313,24 @@ fixe, dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts) :
 | **P1 justesse** | la proposition, appliquée, fait tenir le tune **sans changer l'ordre de jeu** |
 | **P2 minimalité** | un seul point de moins sur n'importe quelle valeur proposée et le tune tombe |
 | **P3 complétude** | « hors de portée » n'est prononcé que si la référence n'en trouve pas non plus |
+| **P1–P3 artéfact** | les trois mêmes, sur l'axe **artéfact**, à deux alliés (référence exhaustive) |
 | **P4 méthode à la main** | à **trois ET quatre** alliés, le solveur fait **aussi bien ou mieux** que le joueur qui règle à la main, et n'est jamais bredouille là où la main trouve |
+
+⚠️ **P1–P3 tournent sur LES DEUX AXES.** Elles ne couvraient que la vitesse, et
+c'est ce qui a laissé passer d'un coup l'ouvreur exclu de la recherche et le
+plafond qui bornait l'amplification de camp : les deux ne rendaient QUE des
+« hors de portée », donc un axe qui ne proposait rien avait l'air de ne rien
+casser. Sur l'axe artéfact, le contrôle se fait **à deux alliés**, là où la
+référence est EXHAUSTIVE (tous les couples de valeurs, un par un) et vaut donc
+preuve ; au-delà elle ne saurait qu'essayer « tout le monde au maximum ».
+
+⚠️⚠️ **L'ADVERSE SE TIRE PAR RAPPORT AUX ALLIÉS.** Tiré indépendamment, il est
+presque toujours hors de portée ou déjà battu, et le bloc passait ENCORE en
+remettant les deux défauts qu'il devait dénoncer — une vérification qui ne peut
+pas échouer. La zone qui discrimine est étroite : l'adverse un peu plus rapide
+que le plus lent des alliés, là où quelques points d'artéfact font la bascule.
+**Toute propriété ajoutée ici se contrôle en réintroduisant le défaut**, jamais
+sur la seule foi du vert.
 
 ⚠️ **P4 est la référence qui vaut le plus** : elle ne vient pas du code mais du
 terrain — la façon dont un joueur règle un tune, rejouée par balayage linéaire.

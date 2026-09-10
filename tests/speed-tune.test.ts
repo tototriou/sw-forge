@@ -1303,6 +1303,100 @@ export function testSpeedTuneChaine() {
     );
   }
 
+  // ⚠️⚠️ **LES MÊMES TROIS PROPRIÉTÉS SUR L'AXE ARTÉFACT.** Elles n'y étaient pas,
+  // et c'est ce qui a laissé passer deux défauts d'un coup : l'ouvreur exclu de
+  // la recherche, et un plafond qui bornait l'amplification de camp au lieu du
+  // seul artéfact. Les deux ne rendaient QUE des « hors de portée » — un axe qui
+  // ne proposait rien avait l'air de ne rien casser.
+  //
+  // ⚠️ **À DEUX ALLIÉS**, là où la référence est EXHAUSTIVE (tous les couples de
+  // valeurs, un par un) : elle a valeur de preuve. Au-delà, elle ne saurait
+  // qu'essayer « tout le monde au maximum » — un contrôle qui ne dénoncerait rien.
+  {
+    let justesse = 0;
+    let minimalite = 0;
+    let complets = 0;
+    let solubles = 0;
+    let horsPortee = 0;
+    let joues = 0;
+    const scenarios = 200;
+    for (let s = 0; s < scenarios; s++) {
+      const rng = mulberry32(31000 + s * 131);
+      // Un buff de vitesse court sur le camp allié — sans lui, l'artéfact
+      // n'amplifie rien et l'axe n'a rien à proposer.
+      const buff: ModParTick = {};
+      for (let t = 1; t <= 12; t++) buff[t] = 30;
+      // Une fois sur deux, un Miriam sur le camp : c'est le cas où le plafond
+      // doit s'ouvrir (60 d'artéfact PLUS l'amplification).
+      const ampli = rng() < 0.5 ? 35 : 0;
+      const allie = (i: number): TuneMonstre => ({
+        id: `allie${i}`,
+        combat: 110 + Math.floor(rng() * 200),
+        camp: 'allie',
+        speedMod: buff,
+        artefactBuff: ampli,
+        ampliBuff: ampli,
+      });
+      const allies = [allie(0), allie(1)];
+      // ⚠️ **L'ADVERSE SE TIRE PAR RAPPORT AUX ALLIÉS**, pas indépendamment. Tiré
+      // dans le vide, il est presque toujours hors de portée ou déjà battu : le
+      // tirage produisait des plateaux sans intérêt, et le bloc passait ENCORE
+      // en remettant les deux défauts qu'il est censé dénoncer. La zone qui
+      // discrimine est étroite — l'adverse un peu plus rapide que le plus lent
+      // des alliés, là où quelques points d'artéfact font la bascule.
+      const lent = Math.min(...allies.map((m) => m.combat));
+      const monstres: TuneMonstre[] = [
+        ...allies,
+        { id: 'ennemi0', combat: Math.round(lent * (1.05 + rng() * 0.45)), camp: 'ennemi' },
+      ];
+      if (diagnostiquerChaine(monstres).ok) continue;
+      joues++;
+
+      const ordre = ordreAlliesRef(monstres);
+      const req = artefactsRequis(monstres).map((r) => ({ id: r.id, requis: r.artefactRequis }));
+      const bloque = req.length === 0 || req.some((r) => r.requis === null);
+
+      if (bloque) {
+        horsPortee++;
+        if (!solutionExisteRef(monstres, 'artefactBuff')) complets++;
+        else ok(false, `scénario artéfact ${s} : « hors de portée » alors qu'une solution existe`);
+        continue;
+      }
+      solubles++;
+
+      const corrige = appliquer(monstres, 'artefactBuff', req);
+      if (tuneTient(corrige, ordre)) justesse++;
+      else ok(false, `scénario artéfact ${s} : ${JSON.stringify(req)} ne fait pas tenir le tune`);
+
+      let serre = true;
+      for (const r of req) {
+        if (r.requis == null) continue;
+        const moins = appliquer(monstres, 'artefactBuff', [
+          ...req.filter((x) => x.id !== r.id),
+          { id: r.id, requis: r.requis - 1 },
+        ]);
+        if (tuneTient(moins, ordre)) {
+          serre = false;
+          ok(false, `scénario artéfact ${s} : ${r.id} tient encore à ${r.requis - 1}`);
+        }
+      }
+      if (serre) minimalite++;
+    }
+    ok(joues > 0, `${joues} plateaux coupés tirés sur l'axe artéfact`);
+    ok(
+      justesse === solubles,
+      `P1 artéfact — l'artéfact proposé fait tenir le tune (${justesse} scénarios)`
+    );
+    ok(
+      minimalite === solubles,
+      `P2 artéfact — aucune valeur proposée n'est surévaluée d'un point (${minimalite} scénarios)`
+    );
+    ok(
+      complets === horsPortee,
+      `P3 artéfact — « hors de portée » confirmé par le balayage EXHAUSTIF des couples (${horsPortee} scénarios)`
+    );
+  }
+
   // ⚠️ **LE SOLVEUR EST FIGÉ À TROIS ALLIÉS.** Ce cas-là est validé : la méthode
   // à la main et le solveur tombent d'accord (P4), et ces cinq compos en
   // rendent les chiffres EXACTS. Toute évolution qui les déplace doit échouer

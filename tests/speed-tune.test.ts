@@ -587,7 +587,15 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
   // meilleur Swift du compte. La référence doit résoudre LE MÊME problème que le
   // solveur, contrainte comprise — sinon elle réclame des solutions injouables.
   const premier = ordre[0];
-  const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
+  // ⚠️ **Le plafond de l'axe artéfact est PROPRE À CHAQUE MONSTRE** :
+  // `artefactBuff` porte l'artéfact ET l'amplification de camp (Miriam +35 %),
+  // et seul l'artéfact se choisit — c'est lui que `ARTE_MAX` borne. Un plafond
+  // fixe ferait chercher la référence moins loin que le solveur, et elle
+  // confirmerait des « hors de portée » qui n'en sont pas.
+  const plafond = (id: string): number =>
+    axe === 'combat'
+      ? COMBAT_MAX
+      : ARTE_MAX + (monstres.find((m) => m.id === id)?.ampliBuff ?? 0);
 
   // ⚠️⚠️ **La contrainte ne vaut QUE sur l'axe VITESSE.** La référence figeait le
   // premier sur les deux axes — donc elle partageait l'angle mort du solveur et
@@ -612,12 +620,12 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
     const dep = (id: string) => lireAxe(monstres.find((m) => m.id === id)!, axe);
     if (figerLePremier) {
       const cible = ordre[1];
-      for (let v = dep(cible); v <= plafond; v++) if (essayer(new Map([[cible, v]]))) return true;
+      for (let v = dep(cible); v <= plafond(cible); v++) if (essayer(new Map([[cible, v]]))) return true;
       return false;
     }
     // Deux inconnues : le produit complet, qui reste minuscule sur l'axe artéfact.
-    for (let v0 = dep(ordre[0]); v0 <= plafond; v0++) {
-      for (let v1 = dep(ordre[1]); v1 <= plafond; v1++) {
+    for (let v0 = dep(ordre[0]); v0 <= plafond(ordre[0]); v0++) {
+      for (let v1 = dep(ordre[1]); v1 <= plafond(ordre[1]); v1++) {
         if (essayer(new Map([[ordre[0], v0], [ordre[1], v1]]))) return true;
       }
     }
@@ -649,7 +657,7 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
         const t = ticks[i];
         const brut =
           axe !== 'combat'
-            ? ARTE_MAX
+            ? plafond(id)
             : bord === 'bas'
               ? speedForTick(t)
               : t <= 1
@@ -926,6 +934,32 @@ export function testSpeedTuneChaine() {
         'a2',
         "un point de moins sur l'ouvreur et son second le double : 4 est bien le minimum"
       );
+    }
+
+    // ⚠️⚠️ **LE PLAFOND DE 60 BORNE L'ARTÉFACT, PAS LA SOMME.** `artefactBuff`
+    // porte l'artéfact ET l'amplification de camp (Miriam +35 %), et seul le
+    // premier se choisit. Borner la somme à 60 laissait 25 points d'artéfact à un
+    // monstre amplifié : au-delà, l'outil répondait « hors de portée » sur des
+    // équipes que 29 points d'artéfact — la moitié de ce qu'on peut équiper —
+    // suffisent à régler. 271 plateaux sur 568 (47,7 %) étaient concernés.
+    {
+      const buff: Record<number, number> = {};
+      for (let t = 1; t <= 12; t++) buff[t] = 30;
+      const avecMiriam = (arte: number): TuneMonstre[] => [
+        { id: 'a1', combat: 150, camp: 'allie', speedMod: buff, artefactBuff: 35, ampliBuff: 35 },
+        { id: 'a2', combat: 120, camp: 'allie', speedMod: buff, artefactBuff: arte, ampliBuff: 35 },
+        { id: 'adv', combat: 178, camp: 'ennemi' },
+      ];
+      const plateau = avecMiriam(35); // 0 d'artéfact porté, 35 d'amplification
+      ok(!diagnostiquerChaine(plateau).ok, "au départ, l'adverse coupe l'équipe");
+      const r = artefactsRequis(plateau).find((x) => x.id === 'a2');
+      egal(r?.artefactRequis, 64, 'la valeur proposée dépasse 60 — 35 d’ampli + 29 d’artéfact porté');
+      ok(
+        (r?.artefactRequis ?? 0) - (r?.artefactActuel ?? 0) <= ARTE_MAX,
+        "et l'artéfact demandé au joueur (29) reste sous ce qu'il peut équiper"
+      );
+      ok(diagnostiquerChaine(avecMiriam(64)).ok, "à la valeur proposée, la chaîne tient");
+      ok(!diagnostiquerChaine(avecMiriam(63)).ok, "un point de moins et elle est coupée : c'est le minimum");
     }
   }
 
@@ -3556,6 +3590,15 @@ export function testSpeedTuneModele() {
       tune.every((m) => m.artefactBuff === 35),
       true,
       'TOUS les alliés la reçoivent dans l’entrée du moteur — la moitié seulement, et les deux écrans divergent'
+    );
+    // ⚠️ **Et elle voyage AUSSI À PART.** Le moteur ne connaît qu'une somme, mais
+    // ce qu'on PROPOSE au joueur est un artéfact, borné à 60 : sans `ampliBuff`,
+    // le plafond mordrait sur les 35 points de Miriam et l'outil répondrait
+    // « hors de portée » là où 29 points d'artéfact suffisent (voir `plafondDe`).
+    egal(
+      tune.every((m) => m.ampliBuff === 35),
+      true,
+      "la part d'amplification voyage à part, pour que le plafond de l'artéfact ne morde pas dessus"
     );
   }
 

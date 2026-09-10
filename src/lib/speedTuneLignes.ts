@@ -265,6 +265,14 @@ export function plateauDeLignes(lignes: Ligne[], leads: Leads): EntreeAuto[] {
 // valeur.
 export function tuneDe(lignes: Ligne[], leads: Leads, d: DonneesKit, choix: ChoixSorts): TuneMonstre[] {
   const out: TuneMonstre[] = [];
+  // ⚠️ L'amplification d'un camp entre dans `artefactBuff` — le moteur ne connaît
+  // qu'une somme — ET se garde à part dans `ampliBuff` : c'est ce qui empêche le
+  // plafond de l'artéfact PROPOSÉ de mordre sur une part que le joueur ne
+  // choisit pas (voir `plafondDe`).
+  const ampli: Record<Camp, number> = {
+    allie: ampliDe(lignes, 'allie', d),
+    ennemi: ampliDe(lignes, 'ennemi', d),
+  };
   for (const l of visibles(lignes)) {
     const c = combatDe(l, leadDe(leads, l.camp), d);
     if (c == null || c <= 0) continue;
@@ -274,7 +282,8 @@ export function tuneDe(lignes: Ligne[], leads: Leads, d: DonneesKit, choix: Choi
       camp: l.camp,
       atbMod: l.atbMod,
       speedMod: l.speedMod,
-      artefactBuff: (l.artefactBuff ?? 0) + ampliDe(lignes, l.camp, d),
+      artefactBuff: (l.artefactBuff ?? 0) + ampli[l.camp],
+      ampliBuff: ampli[l.camp],
       rejoue: sortActif(l, d, choix)?.rejoue ?? false,
     });
   }

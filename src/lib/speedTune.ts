@@ -140,6 +140,17 @@ export interface TuneMonstre {
   // l'artéfact TROIS À QUATRE FOIS trop fort — signalé par l'utilisateur sur un
   // deck où 10 d'artéfact valent ~3 de vitesse, pas ~20.
   artefactBuff?: number;
+  // La part de `artefactBuff` qui vient de l'AMPLIFICATION DE CAMP (Miriam
+  // +35 %), et non des artéfacts portés.
+  //
+  // ⚠️ **Elle ne sert QU'AU PLAFOND.** Le moteur n'en fait rien : les deux
+  // sources s'additionnent avant d'amplifier le buff, et `artefactBuff` les
+  // porte déjà toutes les deux. Mais ce qu'on PROPOSE au joueur, c'est un
+  // artéfact — plafonné à 60 (`ARTE_MAX`) — pas l'amplification, qu'il ne
+  // choisit pas. Sans ce champ, le plafond mordait sur la part de Miriam : avec
+  // elle, un monstre à 25 d'artéfact réel était déjà « au maximum » et l'outil
+  // répondait « hors de portée » sur près d'un cas sur deux.
+  ampliBuff?: number;
 }
 
 // Un tour pris : quel monstre, à quel tick, et son rang dans la séquence GLOBALE
@@ -468,6 +479,10 @@ export const COMBAT_MAX = speedForTick(1);
 // 6 % (voir PROC dans artifacts.ts), une ligne encaisse au plus 5 procs (le
 // tirage initial + les 4 améliorations d'un artéfact +15), et un monstre porte
 // DEUX artéfacts → 2 × 30 = 60 %. Au-delà, ce n'est plus une piste à proposer.
+//
+// ⚠️ **Il borne L'ARTÉFACT, pas `artefactBuff`.** Ce champ-là porte aussi
+// l'amplification de camp (Miriam +35 %), que le joueur ne choisit pas : c'est
+// `plafondDe` qui fait la part des choses.
 export const ARTE_MAX = 60;
 
 export interface Coupure {
@@ -570,7 +585,15 @@ export interface VitesseRequise {
 // buff de vitesse qu'on reçoit déjà.
 type Axe = 'combat' | 'artefactBuff';
 
-const PLAFOND: Record<Axe, number> = { combat: COMBAT_MAX, artefactBuff: ARTE_MAX };
+// ⚠️ **Le plafond de l'axe artéfact est PROPRE À CHAQUE MONSTRE.** `artefactBuff`
+// porte l'artéfact ET l'amplification de camp (voir `ampliBuff`) ; seul le
+// premier se choisit, et c'est lui que `ARTE_MAX` borne. Un plafond fixe à 60
+// rendait donc « hors de portée » un monstre à 25 d'artéfact réel dès qu'un
+// Miriam (+35 %) courait sur son camp — 271 plateaux sur 568 (47,7 %).
+function plafondDe(axe: Axe, m: TuneMonstre | undefined): number {
+  if (axe === 'combat') return COMBAT_MAX;
+  return ARTE_MAX + (m?.ampliBuff ?? 0);
+}
 
 interface Resolution {
   id: string;
@@ -695,7 +718,7 @@ function resoudre(monstres: TuneMonstre[], horizon: number, axe: Axe): Resolutio
   const auPlusTot = (m: TuneMonstre) => {
     const min = source.get(m.id) ?? valeur(m);
     let a = min;
-    let b = PLAFOND[axe];
+    let b = plafondDe(axe, m);
     while (a < b) {
       const mi = Math.ceil((a + b) / 2);
       poser(m, mi);
@@ -879,7 +902,11 @@ export function vitessesRequises(monstres: TuneMonstre[], horizon = HORIZON_TICK
 
 // L'autre levier : l'artéfact « Effet aug. VIT », qui AMPLIFIE le buff de
 // vitesse reçu. `artefactRequis: null` = rien à en attendre pour cet allié —
-// soit il ne reçoit aucun buff, soit même 60 % n'y suffiraient pas.
+// soit il ne reçoit aucun buff, soit même 60 % d'artéfact n'y suffiraient pas.
+//
+// ⚠️ **Les deux valeurs comptent L'AMPLIFICATION DE CAMP** (`ampliBuff`), comme
+// `artefactBuff` : c'est leur DIFFÉRENCE qu'affiche l'écran, et l'amplification
+// s'y annule. Ce que le joueur lit est bien un nombre de points d'artéfact.
 export interface ArtefactRequis {
   id: string;
   artefactActuel: number;
@@ -1115,7 +1142,10 @@ export function fenetresRequises(
   enchainer = false
 ): Fenetre[] {
   const out: Fenetre[] = [];
-  const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
+  // ⚠️ Le plafond dépend du MONSTRE sur l'axe artéfact (voir `plafondDe`) : il se
+  // relit à chaque monstre examiné, jamais une fois pour toutes.
+  const plafondPour = (cle: string): number =>
+    plafondDe(axe, monstres.find((m) => m.id === litOccurrence(cle).id));
   // ⚠️ **La chaîne se résout PAR LA FIN.** Corriger d'abord le 2ᵉ, puis lire le
   // 3ᵉ, ne marche pas : posé à SON minimum, le 2ᵉ ne laisse plus la place au
   // 3ᵉ, qui doit être à la fois plus lent que lui et assez rapide pour couper
@@ -1151,7 +1181,7 @@ export function fenetresRequises(
       if (d.ok) break;
       const enDefaut = ordre.find((cle) => d.problemes.some((p) => p.id === cle));
       if (enDefaut == null) break;
-      const v = borneBasse(plateau, ordre, enDefaut, horizon, axe, plafond);
+      const v = borneBasse(plateau, ordre, enDefaut, horizon, axe, plafondPour(enDefaut));
       if (v == null) break;
       const actuel = valeurDe(plateau.find((m) => m.id === litOccurrence(enDefaut).id), axe);
       // Rien à gagner : sa borne ne le fait pas monter, on ne bouclera pas.
@@ -1172,6 +1202,7 @@ export function fenetresRequises(
     // ⚠️ La vitesse RÉELLE, jamais la corrigée : « combatActuel » dit ce que
     // l'utilisateur a aujourd'hui, sinon l'écart affiché serait faux.
     const depart = axe === 'combat' ? original.combat : (original.artefactBuff ?? 0);
+    const plafond = plafondPour(id);
 
     // Copie de travail : on ne bouge QUE lui.
     const essai = base.map((m) => ({ ...m }));

@@ -426,6 +426,7 @@ export function analyseAutomatique(
           combat: combats.get(e.id)!,
           camp: 'ennemi' as Camp,
           artefactBuff: (e.artefactBuff ?? 0) + ampliAdverse,
+          ampliBuff: ampliAdverse,
           atbMod: e.atbMod,
           speedMod: e.speedMod,
         };
@@ -465,6 +466,7 @@ export function analyseAutomatique(
         combat: combats.get(e.id)!,
         camp: 'allie' as Camp,
         artefactBuff: (e.artefactBuff ?? 0) + ampli,
+        ampliBuff: ampli,
         sort: enEffet(sort, 1),
         rejoue: sort?.rejoue ?? false,
         sort2: second
@@ -481,6 +483,8 @@ export function analyseAutomatique(
       combat: combats.get(modele.id)!,
       camp: 'ennemi',
       artefactBuff: modele.artefactBuff ?? 0,
+      // Il est en face : il ne reçoit pas l'amplification de l'équipe.
+      ampliBuff: 0,
     });
   }
 
@@ -520,6 +524,7 @@ export function analyseAutomatique(
       combat: m.combat,
       camp: m.camp,
       artefactBuff: m.artefactBuff,
+      ampliBuff: m.ampliBuff,
       rejoue: m.rejoue,
       atbMod,
       speedMod,

@@ -211,6 +211,15 @@ Calcul dans [speedTune.ts](src/lib/speedTune.ts), **testé**
     (un proc vaut au mieux 6 %, une ligne encaisse 5 procs, un monstre porte deux
     artéfacts). ⚠️ **Rien n'est proposé sans buff** : l'artéfact n'amplifie que
     ce qui existe — c'est ce que dit `artefactRequis: null`.
+    ⚠️⚠️ **Le plafond borne L'ARTÉFACT, pas le champ `artefactBuff`** — celui-ci
+    porte aussi l'**amplification de camp** (Miriam +35 %), que le joueur ne
+    choisit pas. Elle voyage donc à part (`ampliBuff`) et le plafond vaut
+    `60 + ampli`, monstre par monstre. Borné à 60 en bloc, il ne laissait que
+    25 points d'artéfact à un monstre amplifié, et l'outil répondait « hors de
+    portée » sur **271 plateaux sur 568 (47,7 %)** — dont des équipes que
+    29 points d'artéfact suffisent à régler. L'écran, lui, affiche la
+    **différence** entre le requis et l'actuel : l'amplification s'y annule, et
+    ce que le joueur lit reste un nombre de points d'artéfact.
   L'écran affiche « **+71 SPD** ou **+18 spd buff effect** » — l'un OU l'autre suffit ; la
   pastille d'artéfact n'apparaît que si un buff de vitesse court sur son camp.
   Aucun des deux leviers n'y change rien → « hors de portée ».

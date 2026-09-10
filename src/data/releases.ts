@@ -62,13 +62,83 @@ export const RELEASES: Release[] = [
   // moment de publier, en même temps que `package.json` et le tag.
   {
     version: null,
-    date: '2026-08-28',
-    title: 'Tes sous-sections s’ouvrent au survol',
+    date: '2026-09-10',
+    title: 'Le speed tuning dit le bon chiffre',
+    highlights: [
+      'Les vitesses et les artéfacts annoncés tombent juste, buff de vitesse compris',
+      'Un bouton copie un monstre dans l’équipe d’en face',
+      'Sur ordinateur, survole une section du menu pour voir ses sous-sections',
+    ],
     changes: [
       {
         kind: 'feat',
         scope: 'Navigation',
         text: 'Sur ordinateur, survole une section du menu : ses sous-sections s’affichent à côté, en un clic de moins.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Un bouton copie un monstre dans l’équipe d’en face.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'À barre d’ATB égale, c’est ton monstre qui joue en premier.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Elsharion compte les buffs de toute l’équipe, plus seulement les siens.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Un boost de barre sous condition n’est plus annoncé comme acquis.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Le monstre pris en référence est bien le plus rapide, son passif compris.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: '« Tes monstres se font couper » ne se dit plus comme « ordre raté ».',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'La vitesse annoncée atteint vraiment la cible, Swift compris.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Plus de « +0 de vitesse » : s’il en manque, le chiffre est au moins 1.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Le buff de vitesse ne perd plus un point sous l’effet d’un artéfact.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'L’artéfact « Effet aug. VIT » est aussi proposé au monstre qui ouvre.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'Avec Miriam, l’artéfact proposé n’est plus bloqué à mi-chemin.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Speed tuning',
+        text: 'La rangée de boutons ne déborde plus sur la vitesse de combat.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Navigation',
+        text: 'Le menu de gauche respire : son texte est un peu plus grand, sur ordinateur.',
       },
     ],
   },

@@ -35,11 +35,19 @@ export interface FlottantProps {
   // de résultats posée sous son champ ; une popup ancrée à un bouton étroit
   // fixe la sienne.
   largeur?: string;
-  // Ancrage VERTICAL : sous l'élément (défaut) ou au-dessus.
+  // Ancrage : sous l'élément (défaut), au-dessus, ou À CÔTÉ.
   //
   // ⚠️ Décide AUSSI du sens de l'animation, qui doit partir du point d'ancrage
   // — sans quoi la surface semble arriver du mauvais côté.
-  ancrage?: 'dessous' | 'dessus';
+  //
+  // ⚠️ **`cote` est un AXE, pas une variante de `dessous`.** Un menu qui sort
+  // sur le FLANC de son ancre — les sous-sections au survol d'une entrée de la
+  // barre latérale — s'aligne sur le HAUT de l'ancre et se pose à sa DROITE.
+  // Aucune combinaison de `dessous`/`dessus` et de `cote: gauche/droite` ne
+  // l'exprime : celles-ci placent la surface au-dessus ou en dessous, jamais
+  // à côté. `cote` ignore donc `cote:` (le côté horizontal), qui n'a plus de
+  // sens quand c'est l'axe horizontal lui-même qui porte l'ancrage.
+  ancrage?: 'dessous' | 'dessus' | 'cote';
   // Ancrage HORIZONTAL : aligné à gauche de l'ancre (défaut) ou à droite.
   //
   // ⚠️ `droite` sert quand l'ancre est près du bord de l'écran : la surface
@@ -77,13 +85,24 @@ const Flottant = forwardRef<HTMLDivElement, FlottantProps>(function Flottant(
   // correspondante n'est jamais émise — et l'animation part du centre sans que
   // rien ne le signale.
   const origine =
-    ancrage === 'dessous'
-      ? cote === 'gauche'
-        ? 'origin-top-left'
-        : 'origin-top-right'
-      : cote === 'gauche'
-        ? 'origin-bottom-left'
-        : 'origin-bottom-right';
+    ancrage === 'cote'
+      ? 'origin-top-left'
+      : ancrage === 'dessous'
+        ? cote === 'gauche'
+          ? 'origin-top-left'
+          : 'origin-top-right'
+        : cote === 'gauche'
+          ? 'origin-bottom-left'
+          : 'origin-bottom-right';
+
+  // ⚠️ Placement écrit EN TOUTES LETTRES, comme l'origine juste au-dessus, et
+  // pour la même raison : Tailwind lit le source comme du texte.
+  const placement =
+    ancrage === 'cote'
+      ? 'left-full ml-1.5 top-0'
+      : `${cote === 'gauche' ? 'left-0' : 'right-0'} ${
+          ancrage === 'dessous' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+        }`;
 
   return (
     <div
@@ -99,11 +118,8 @@ const Flottant = forwardRef<HTMLDivElement, FlottantProps>(function Flottant(
       // dont les entrées doivent atteindre le bord pour que le survol ne laisse
       // pas de bande morte.
       className={`absolute z-30 overflow-hidden rounded-xl border border-border bg-panel
-        shadow-glow shadow-black/60 ${largeur} ${REMBOURRAGES[rembourrage]} ${
-          cote === 'gauche' ? 'left-0' : 'right-0'
-        } ${
-          ancrage === 'dessous' ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
-        } ${origine} animate-[popover_150ms_var(--ease-out)] ${className}`}
+        shadow-glow shadow-black/60 ${largeur} ${REMBOURRAGES[rembourrage]} ${placement} ${origine}
+        animate-[popover_150ms_var(--ease-out)] ${className}`}
       {...reste}
     >
       {children}

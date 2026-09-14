@@ -215,7 +215,12 @@ export function combatAuto(
   const base = combatSpeed(e.monster.stats.speed, e.runeSpeed, e.lead ?? lead, e.swift ?? false);
   if (base == null) return null;
   const p = passifDe(e, d);
-  const cumuls = e.cumulsPassif ?? cumulsEstimes(e, equipe, d);
+  // ⚠️ **La portée du cumul décide de ce qu'on compte** : les buffs du monstre
+  // lui-même (Chilling) ou ceux de TOUTE l'équipe (Elsharion). Voir
+  // `GainVitesse.cumulEquipe` — le jeu distingue les deux mot pour mot.
+  const cumuls =
+    e.cumulsPassif ??
+    (p?.gain?.cumulEquipe ? cumulsEquipe(equipe, d) : cumulsEstimes(e, equipe, d));
   return base + pointsDeGain(p?.gain ?? null, e.monster.stats.speed, cumuls);
 }
 
@@ -242,6 +247,25 @@ export function cumulsEstimes(e: EntreeAuto, equipe: EntreeAuto[], d: DonneesKit
     n += sortRetenu(autre, d)?.buffsEquipe ?? 0;
   }
   return n;
+}
+
+// ⚠️ **Combien de buffs porte L'ÉQUIPE ENTIÈRE**, pour les passifs qui les
+// comptent sur les alliés (Elsharion : +5 de vitesse par buff posé sur les
+// alliés, jusqu'à 100).
+//
+// C'est la SOMME de ce que chaque allié porte — et c'est là que la différence
+// entre les deux sets se voit vraiment :
+//
+//   - un set **Bouclier** pose un bouclier sur CHAQUE allié → il compte une fois
+//     PAR MONSTRE de l'équipe, pas une fois pour l'équipe ;
+//   - un set **Volonté** ne protège que celui qui le porte → il compte une fois
+//     par porteur.
+//
+// Une équipe de 3 avec un Bouclier et deux Volonté porte donc 3 + 2 = 5 buffs,
+// soit +25 de vitesse pour Elsharion. En comptant comme pour Chilling — les
+// buffs d'un seul monstre — on en trouvait 2, et il manquait 15 de vitesse.
+export function cumulsEquipe(equipe: EntreeAuto[], d: DonneesKit): number {
+  return equipe.reduce((n, m) => n + cumulsEstimes(m, equipe, d), 0);
 }
 
 // L'amplification des buffs apportée à TOUT le camp (Miriam). Ne s'empile pas :
@@ -402,6 +426,7 @@ export function analyseAutomatique(
           combat: combats.get(e.id)!,
           camp: 'ennemi' as Camp,
           artefactBuff: (e.artefactBuff ?? 0) + ampliAdverse,
+          ampliBuff: ampliAdverse,
           atbMod: e.atbMod,
           speedMod: e.speedMod,
         };
@@ -441,6 +466,7 @@ export function analyseAutomatique(
         combat: combats.get(e.id)!,
         camp: 'allie' as Camp,
         artefactBuff: (e.artefactBuff ?? 0) + ampli,
+        ampliBuff: ampli,
         sort: enEffet(sort, 1),
         rejoue: sort?.rejoue ?? false,
         sort2: second
@@ -457,6 +483,8 @@ export function analyseAutomatique(
       combat: combats.get(modele.id)!,
       camp: 'ennemi',
       artefactBuff: modele.artefactBuff ?? 0,
+      // Il est en face : il ne reçoit pas l'amplification de l'équipe.
+      ampliBuff: 0,
     });
   }
 
@@ -496,6 +524,7 @@ export function analyseAutomatique(
       combat: m.combat,
       camp: m.camp,
       artefactBuff: m.artefactBuff,
+      ampliBuff: m.ampliBuff,
       rejoue: m.rejoue,
       atbMod,
       speedMod,

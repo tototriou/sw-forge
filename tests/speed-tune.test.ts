@@ -30,6 +30,7 @@ import {
 import { deckPourSpeedTune } from '../src/lib/speedTuneDeck';
 import { LeadInfo, leadsDeVitesse } from '../src/lib/speed';
 import { kitVitesse, sortsVitesse, SortVitesse, BUFF_SPD_JEU } from '../src/lib/speedTuneKit';
+import { PassifVitesse } from '../src/lib/speedTunePassif';
 import { passifsVitesse, pointsDeGain } from '../src/lib/speedTunePassif';
 import {
   Ligne,
@@ -39,6 +40,7 @@ import {
   deplacerDansCamp,
   estimerCumuls,
   leadPresent,
+  ligneCopiee,
   ligneReference,
   uidReference,
   ligneVierge,
@@ -52,6 +54,7 @@ import {
 import {
   analyseAutomatique,
   combatAuto,
+  cumulsEquipe,
   cumulsEstimes,
   noterChoix,
   sortRetenu,
@@ -65,7 +68,7 @@ import { DetailMonstre, Competence, EffetCompetence } from '../src/lib/monsterSk
 import { readFileSync } from 'fs';
 import { PREFIXE_SPEED_TUNE } from '../src/hooks/useSpeedTune';
 import { Monster, SiegeTeam } from '../src/types';
-import { combatSpeed } from '../src/lib/speed';
+import { combatSpeed, runeSpeedForTarget } from '../src/lib/speed';
 import { egal, ok, titre } from './outils';
 
 export default function testSpeedTune() {
@@ -104,11 +107,59 @@ export default function testSpeedTune() {
     egal(pt[1].camp, 'ennemi', 'le camp est conservé');
   }
 
-  // Égalité parfaite : l'ordre de placement départage, échelonné d'un tick.
+  // ⚠️ **Égalité parfaite : l'ATTAQUANT passe devant.** C'est la règle du jeu, et
+  // elle manquait — le départage s'arrêtait à l'ordre de placement, si bien que
+  // le tour partait à l'adverse dès qu'il se trouvait placé avant. Le défaut ne
+  // se voyait qu'une fois sur deux, selon l'ordre des lignes à l'écran.
   {
     const pt = premiersTours(simuler([camp(150), camp(150, 'ennemi')]));
-    egal(pt[0].id, '150-allie', 'à vitesse égale, le premier placé passe');
+    egal(pt[0].id, '150-allie', 'à vitesse égale, ton équipe passe');
     egal(pt[0].tick + 1, pt[1].tick, 'un par tick : le second attend le tick suivant');
+  }
+  {
+    // ⚠️ **Le MÊME cas, l'adverse placé EN PREMIER** — celui que l'ancien test
+    // ne couvrait pas : avec l'allié en tête, il passait quel que soit le
+    // comportement du moteur. C'est ce test-ci qui tient la règle.
+    const pt = premiersTours(simuler([camp(150, 'ennemi'), camp(150)]));
+    egal(pt[0].id, '150-allie', 'même placé après, l’attaquant garde la priorité');
+    egal(pt[0].camp, 'allie', 'et c’est bien ton camp qui ouvre');
+  }
+  {
+    // ⚠️ **LE cas qui distingue la règle** : barres ÉGALES, vitesses
+    // DIFFÉRENTES. La condition est l'égalité des BARRES, pas des vitesses —
+    // ton monstre passe donc même s'il est plus lent.
+    //
+    // Montage : l'adverse à 150 gagne 10,5 %/tick et atteint 105 au tick 10 ;
+    // l'allié à 100 en gagne 7, soit 70 au tick 10, plus 35 posés à la main —
+    // 105 exactement, lui aussi. Deux barres identiques, 50 points de vitesse
+    // d'écart, l'adverse placé en premier.
+    const pt = premiersTours(
+      simuler([
+        { id: 'adverse', combat: 150, camp: 'ennemi' },
+        { id: 'moi', combat: 100, camp: 'allie', atbMod: { 10: 35 } },
+      ])
+    );
+    egal(pt[0].id, 'moi', 'à barre égale, ton monstre passe même 50 points plus lent');
+    egal(pt[0].tick, 10, 'et il joue bien au tick où les deux barres se rejoignent');
+  }
+  {
+    // ⚠️ Le contrôle qui empêche la règle de tout emporter : le camp départage
+    // l'égalité des BARRES, il ne passe jamais devant la barre elle-même. Un
+    // point de barre en moins, et l'adverse reprend la main.
+    const pt = premiersTours(
+      simuler([
+        { id: 'adverse', combat: 150, camp: 'ennemi' },
+        { id: 'moi', combat: 100, camp: 'allie', atbMod: { 10: 34 } },
+      ])
+    );
+    egal(pt[0].id, 'adverse', 'une barre adverse plus haute l’emporte, attaquant ou non');
+  }
+  {
+    // La barre départage AVANT le camp : deux vitesses différentes sans
+    // intervention donnent deux barres différentes, donc aucune égalité à
+    // trancher.
+    const pt = premiersTours(simuler([camp(150), camp(151, 'ennemi')]));
+    egal(pt[0].id, '151-ennemi', 'sans égalité de barre, le plus rapide passe');
   }
 
   // Boost de barre d'attaque : +30 % au tick 3 → agit plus tôt (tick 10 vs 15).
@@ -173,6 +224,43 @@ export default function testSpeedTune() {
       { id: 'wiki', combat: 100, camp: 'allie', speedMod: { 1: 30 }, artefactBuff: 10 },
     ]);
     egal(wiki.lignes[0].trajectoire[0].toFixed(3), '9.310', "10 % d'artéfact → buff 33 % (9,31 au tick 1)");
+
+    // ⚠️⚠️ **LA TRONCATURE SE FAIT EN ENTIERS, PAS SUR UN FLOTTANT.** Écrite
+    // `buff * (1 + arte / 100)`, elle tombait juste EN DESSOUS de l'entier sur
+    // 12 couples : à buff 25 et artéfact 16, `25 * 1.16` vaut
+    // 28,999999999999996 et se tronquait en 28 au lieu de 29. Un point de buff
+    // perdu, toujours dans le sens du MOINS — donc un outil qui réclame de la
+    // vitesse là où le jeu n'en demande pas.
+    //
+    // ⚠️ La référence de contrôle n'emprunte rien au code testé : c'est une
+    // division ENTIÈRE exacte (`BigInt`), qui ne peut pas se tromper de côté.
+    {
+      // Le buff que le moteur a réellement appliqué, relu dans la barre : à
+      // combat 100, `trajectoire[0]` vaut exactement (100 + buff) × 7 / 100.
+      const buffApplique = (buff: number, arte: number): number => {
+        const t = simuler([
+          { id: 'x', combat: 100, camp: 'allie', speedMod: { 1: buff }, artefactBuff: arte },
+        ]).lignes[0].trajectoire[0];
+        return Math.round((t * 100) / 7) - 100;
+      };
+      const exact = (buff: number, arte: number): number =>
+        Number((BigInt(buff) * BigInt(100 + arte)) / 100n);
+
+      let ecarts = 0;
+      let pire = '';
+      for (let buff = 1; buff <= 60; buff++) {
+        for (let arte = 0; arte <= ARTE_MAX; arte++) {
+          if (buffApplique(buff, arte) !== exact(buff, arte)) {
+            if (ecarts === 0) pire = `buff ${buff} + artéfact ${arte} → ${buffApplique(buff, arte)} au lieu de ${exact(buff, arte)}`;
+            ecarts++;
+          }
+        }
+      }
+      egal(ecarts, 0, `aucun écart de troncature sur les 60 × 61 couples buff/artéfact${pire ? ` (ex. ${pire})` : ''}`);
+      // Le cas le plus petit qui échouait, nommé pour qu'un retour en arrière se
+      // lise tout de suite.
+      egal(buffApplique(25, 16), 29, 'buff 25 + artéfact 16 → 29 (et non 28 : 25 × 1,16 flotte sous l’entier)');
+    }
   }
   {
     // Sans buff ce tick-là, l'artéfact ne fait RIEN (vitesse de base).
@@ -500,7 +588,21 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
   // meilleur Swift du compte. La référence doit résoudre LE MÊME problème que le
   // solveur, contrainte comprise — sinon elle réclame des solutions injouables.
   const premier = ordre[0];
-  const plafond = axe === 'combat' ? COMBAT_MAX : ARTE_MAX;
+  // ⚠️ **Le plafond de l'axe artéfact est PROPRE À CHAQUE MONSTRE** :
+  // `artefactBuff` porte l'artéfact ET l'amplification de camp (Miriam +35 %),
+  // et seul l'artéfact se choisit — c'est lui que `ARTE_MAX` borne. Un plafond
+  // fixe ferait chercher la référence moins loin que le solveur, et elle
+  // confirmerait des « hors de portée » qui n'en sont pas.
+  const plafond = (id: string): number =>
+    axe === 'combat'
+      ? COMBAT_MAX
+      : ARTE_MAX + (monstres.find((m) => m.id === id)?.ampliBuff ?? 0);
+
+  // ⚠️⚠️ **La contrainte ne vaut QUE sur l'axe VITESSE.** La référence figeait le
+  // premier sur les deux axes — donc elle partageait l'angle mort du solveur et
+  // ne pouvait pas le dénoncer. Un artéfact SE CHANGE : sur cet axe-là, celui qui
+  // ouvre est une inconnue comme les autres.
+  const figerLePremier = axe === 'combat';
 
   const essayer = (vals: Map<string, number>): boolean => {
     const essai = monstres.map((m) => ({ ...m }));
@@ -516,9 +618,18 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
   // forme de contrôle qui ne suppose RIEN du modèle — ni « un allié par tick »,
   // ni des valeurs remarquables. Elle a valeur de preuve.
   if (ordre.length === 2) {
-    const cible = ordre[1];
-    const dep = lireAxe(monstres.find((m) => m.id === cible)!, axe);
-    for (let v = dep; v <= plafond; v++) if (essayer(new Map([[cible, v]]))) return true;
+    const dep = (id: string) => lireAxe(monstres.find((m) => m.id === id)!, axe);
+    if (figerLePremier) {
+      const cible = ordre[1];
+      for (let v = dep(cible); v <= plafond(cible); v++) if (essayer(new Map([[cible, v]]))) return true;
+      return false;
+    }
+    // Deux inconnues : le produit complet, qui reste minuscule sur l'axe artéfact.
+    for (let v0 = dep(ordre[0]); v0 <= plafond(ordre[0]); v0++) {
+      for (let v1 = dep(ordre[1]); v1 <= plafond(ordre[1]); v1++) {
+        if (essayer(new Map([[ordre[0], v0], [ordre[1], v1]]))) return true;
+      }
+    }
     return false;
   }
 
@@ -547,13 +658,13 @@ function solutionExisteRef(monstres: TuneMonstre[], axe: Axe): boolean {
         const t = ticks[i];
         const brut =
           axe !== 'combat'
-            ? ARTE_MAX
+            ? plafond(id)
             : bord === 'bas'
               ? speedForTick(t)
               : t <= 1
                 ? COMBAT_MAX
                 : Math.min(COMBAT_MAX, speedForTick(t - 1) - 1);
-        if (id === premier && brut > src) interdit = true;
+        if (figerLePremier && id === premier && brut > src) interdit = true;
         vals.set(id, Math.max(src, brut));
       });
       if (!interdit && essayer(vals)) return true;
@@ -786,6 +897,70 @@ export function testSpeedTuneChaine() {
         !diagnostiquerChaine(avec(arte.artefactRequis! - 1)).ok,
         "un point d'artéfact de moins et elle est coupée : c'est bien le minimum"
       );
+    }
+
+    // ⚠️⚠️ **SUR L'AXE ARTÉFACT, CELUI QUI OUVRE EST POUSSABLE.** « Le premier ne
+    // bouge pas » vaut pour la VITESSE — il porte le meilleur Swift du compte —
+    // et le code l'excluait des DEUX axes. Un artéfact, lui, se change : sur
+    // 1 283 plateaux, 291 étaient rendus « hors de portée » alors qu'un artéfact
+    // sur l'ouvreur les sauvait.
+    {
+      const buff: Record<number, number> = {};
+      for (let t = 1; t <= 12; t++) buff[t] = 30;
+      const plateau: TuneMonstre[] = [
+        { id: 'a1', combat: 150, camp: 'allie', speedMod: buff },
+        { id: 'a2', combat: 139, camp: 'allie', speedMod: buff },
+        { id: 'adv', combat: 195, camp: 'ennemi' },
+      ];
+      ok(!diagnostiquerChaine(plateau).ok, "au départ, l'adverse coupe toute l'équipe");
+      const r = artefactsRequis(plateau);
+      const parId = new Map(r.map((x) => [x.id, x.artefactRequis]));
+      // Avant : `a1` n'était même pas listé et `a2` sortait `null` — « hors de
+      // portée » sur une équipe que 4 points d'artéfact sur l'ouvreur débloquent.
+      egal(parId.get('a1'), 4, "un artéfact est proposé à CELUI QUI OUVRE");
+      egal(parId.get('a2'), 37, "et au second, que l'ouvreur seul ne sauvait pas");
+      const corrige = plateau.map((m) => {
+        const v = parId.get(m.id);
+        return v != null ? { ...m, artefactBuff: v } : m;
+      });
+      ok(diagnostiquerChaine(corrige).ok, 'aux artéfacts proposés, la chaîne tient');
+      // ⚠️ **Le minimum se lit sur la CONTRAINTE COMPLÈTE**, pas sur la seule
+      // chaîne : à 3 d'artéfact, tout le monde passe encore avant l'adverse,
+      // mais le second DOUBLE l'ouvreur — les monstres qu'il booste joueraient
+      // avant le boost. C'est ce que le solveur refuse, et c'est ce qui fait de
+      // 4 le vrai minimum.
+      const moins = corrige.map((m) => (m.id === 'a1' ? { ...m, artefactBuff: 3 } : m));
+      egal(
+        ordreAlliesRef(moins)[0],
+        'a2',
+        "un point de moins sur l'ouvreur et son second le double : 4 est bien le minimum"
+      );
+    }
+
+    // ⚠️⚠️ **LE PLAFOND DE 60 BORNE L'ARTÉFACT, PAS LA SOMME.** `artefactBuff`
+    // porte l'artéfact ET l'amplification de camp (Miriam +35 %), et seul le
+    // premier se choisit. Borner la somme à 60 laissait 25 points d'artéfact à un
+    // monstre amplifié : au-delà, l'outil répondait « hors de portée » sur des
+    // équipes que 29 points d'artéfact — la moitié de ce qu'on peut équiper —
+    // suffisent à régler. 271 plateaux sur 568 (47,7 %) étaient concernés.
+    {
+      const buff: Record<number, number> = {};
+      for (let t = 1; t <= 12; t++) buff[t] = 30;
+      const avecMiriam = (arte: number): TuneMonstre[] => [
+        { id: 'a1', combat: 150, camp: 'allie', speedMod: buff, artefactBuff: 35, ampliBuff: 35 },
+        { id: 'a2', combat: 120, camp: 'allie', speedMod: buff, artefactBuff: arte, ampliBuff: 35 },
+        { id: 'adv', combat: 178, camp: 'ennemi' },
+      ];
+      const plateau = avecMiriam(35); // 0 d'artéfact porté, 35 d'amplification
+      ok(!diagnostiquerChaine(plateau).ok, "au départ, l'adverse coupe l'équipe");
+      const r = artefactsRequis(plateau).find((x) => x.id === 'a2');
+      egal(r?.artefactRequis, 64, 'la valeur proposée dépasse 60 — 35 d’ampli + 29 d’artéfact porté');
+      ok(
+        (r?.artefactRequis ?? 0) - (r?.artefactActuel ?? 0) <= ARTE_MAX,
+        "et l'artéfact demandé au joueur (29) reste sous ce qu'il peut équiper"
+      );
+      ok(diagnostiquerChaine(avecMiriam(64)).ok, "à la valeur proposée, la chaîne tient");
+      ok(!diagnostiquerChaine(avecMiriam(63)).ok, "un point de moins et elle est coupée : c'est le minimum");
     }
   }
 
@@ -1129,6 +1304,100 @@ export function testSpeedTuneChaine() {
     );
   }
 
+  // ⚠️⚠️ **LES MÊMES TROIS PROPRIÉTÉS SUR L'AXE ARTÉFACT.** Elles n'y étaient pas,
+  // et c'est ce qui a laissé passer deux défauts d'un coup : l'ouvreur exclu de
+  // la recherche, et un plafond qui bornait l'amplification de camp au lieu du
+  // seul artéfact. Les deux ne rendaient QUE des « hors de portée » — un axe qui
+  // ne proposait rien avait l'air de ne rien casser.
+  //
+  // ⚠️ **À DEUX ALLIÉS**, là où la référence est EXHAUSTIVE (tous les couples de
+  // valeurs, un par un) : elle a valeur de preuve. Au-delà, elle ne saurait
+  // qu'essayer « tout le monde au maximum » — un contrôle qui ne dénoncerait rien.
+  {
+    let justesse = 0;
+    let minimalite = 0;
+    let complets = 0;
+    let solubles = 0;
+    let horsPortee = 0;
+    let joues = 0;
+    const scenarios = 200;
+    for (let s = 0; s < scenarios; s++) {
+      const rng = mulberry32(31000 + s * 131);
+      // Un buff de vitesse court sur le camp allié — sans lui, l'artéfact
+      // n'amplifie rien et l'axe n'a rien à proposer.
+      const buff: ModParTick = {};
+      for (let t = 1; t <= 12; t++) buff[t] = 30;
+      // Une fois sur deux, un Miriam sur le camp : c'est le cas où le plafond
+      // doit s'ouvrir (60 d'artéfact PLUS l'amplification).
+      const ampli = rng() < 0.5 ? 35 : 0;
+      const allie = (i: number): TuneMonstre => ({
+        id: `allie${i}`,
+        combat: 110 + Math.floor(rng() * 200),
+        camp: 'allie',
+        speedMod: buff,
+        artefactBuff: ampli,
+        ampliBuff: ampli,
+      });
+      const allies = [allie(0), allie(1)];
+      // ⚠️ **L'ADVERSE SE TIRE PAR RAPPORT AUX ALLIÉS**, pas indépendamment. Tiré
+      // dans le vide, il est presque toujours hors de portée ou déjà battu : le
+      // tirage produisait des plateaux sans intérêt, et le bloc passait ENCORE
+      // en remettant les deux défauts qu'il est censé dénoncer. La zone qui
+      // discrimine est étroite — l'adverse un peu plus rapide que le plus lent
+      // des alliés, là où quelques points d'artéfact font la bascule.
+      const lent = Math.min(...allies.map((m) => m.combat));
+      const monstres: TuneMonstre[] = [
+        ...allies,
+        { id: 'ennemi0', combat: Math.round(lent * (1.05 + rng() * 0.45)), camp: 'ennemi' },
+      ];
+      if (diagnostiquerChaine(monstres).ok) continue;
+      joues++;
+
+      const ordre = ordreAlliesRef(monstres);
+      const req = artefactsRequis(monstres).map((r) => ({ id: r.id, requis: r.artefactRequis }));
+      const bloque = req.length === 0 || req.some((r) => r.requis === null);
+
+      if (bloque) {
+        horsPortee++;
+        if (!solutionExisteRef(monstres, 'artefactBuff')) complets++;
+        else ok(false, `scénario artéfact ${s} : « hors de portée » alors qu'une solution existe`);
+        continue;
+      }
+      solubles++;
+
+      const corrige = appliquer(monstres, 'artefactBuff', req);
+      if (tuneTient(corrige, ordre)) justesse++;
+      else ok(false, `scénario artéfact ${s} : ${JSON.stringify(req)} ne fait pas tenir le tune`);
+
+      let serre = true;
+      for (const r of req) {
+        if (r.requis == null) continue;
+        const moins = appliquer(monstres, 'artefactBuff', [
+          ...req.filter((x) => x.id !== r.id),
+          { id: r.id, requis: r.requis - 1 },
+        ]);
+        if (tuneTient(moins, ordre)) {
+          serre = false;
+          ok(false, `scénario artéfact ${s} : ${r.id} tient encore à ${r.requis - 1}`);
+        }
+      }
+      if (serre) minimalite++;
+    }
+    ok(joues > 0, `${joues} plateaux coupés tirés sur l'axe artéfact`);
+    ok(
+      justesse === solubles,
+      `P1 artéfact — l'artéfact proposé fait tenir le tune (${justesse} scénarios)`
+    );
+    ok(
+      minimalite === solubles,
+      `P2 artéfact — aucune valeur proposée n'est surévaluée d'un point (${minimalite} scénarios)`
+    );
+    ok(
+      complets === horsPortee,
+      `P3 artéfact — « hors de portée » confirmé par le balayage EXHAUSTIF des couples (${horsPortee} scénarios)`
+    );
+  }
+
   // ⚠️ **LE SOLVEUR EST FIGÉ À TROIS ALLIÉS.** Ce cas-là est validé : la méthode
   // à la main et le solveur tombent d'accord (P4), et ces cinq compos en
   // rendent les chiffres EXACTS. Toute évolution qui les déplace doit échouer
@@ -1466,6 +1735,79 @@ export function testSpeedTuneKit() {
     );
   }
 
+  // ⚠️ **UN BOOST SOUS CONDITION NE SE COMPTE PAS.** Le S2 de Sylvia augmente la
+  // barre de tout le camp — mais seulement si le retrait de buffs en a enlevé au
+  // moins deux. Un speed tune est ce qui tient SANS rien attendre de l'adverse :
+  // l'annoncer, c'est promettre un tick qu'on n'aura pas toujours.
+  {
+    const avecTexte = (nom: string, texte: string | null) =>
+      ({ ...comp(nom, [effet('Increase ATB', 20, true)]), description: texte }) as Competence;
+
+    egal(
+      kitVitesse(
+        detail([
+          avecTexte(
+            'Cutting Magic',
+            'Attacks an enemy and then removes all beneficial effects on the target. If there are 2 or more beneficial effects removed, the Attack Bar of all allies will be increased by 20% each.'
+          ),
+        ])
+      ).atb,
+      0,
+      'le boost conditionnel du S2 de Sylvia n’est pas annoncé'
+    );
+
+    // ⚠️ Le contrôle qui empêche la règle de tout emporter : le MÊME effet, sans
+    // condition, reste bien détecté.
+    egal(
+      kitVitesse(
+        detail([
+          avecTexte('Sans condition', 'Increases the Attack Bar of all allies by 20%.'),
+        ])
+      ).atb,
+      20,
+      'le même effet sans condition reste annoncé'
+    );
+
+    // ⚠️ Un « if » qui gouverne une AUTRE phrase ne condamne pas le boost : seule
+    // la phrase qui porte l'augmentation fait foi. Mesuré sur le corpus, 145
+    // compétences contiennent un « if », dont la plupart ailleurs.
+    egal(
+      kitVitesse(
+        detail([
+          avecTexte(
+            'Ailleurs',
+            'Attacks the enemy and stuns for 1 turn if the attack lands as a Critical Hit. Increases the Attack Bar of all allies by 20%.'
+          ),
+        ])
+      ).atb,
+      20,
+      'un « if » sur une autre phrase ne condamne pas le boost'
+    );
+
+    // ⚠️ Une action IRRÉSISTIBLE se produit toujours : la condition qu'elle porte
+    // est acquise. Aucun cas dans le corpus d'aujourd'hui — la règle garde
+    // l'avenir.
+    egal(
+      kitVitesse(
+        detail([
+          avecTexte(
+            'Irrésistible',
+            'Attacks and inflicts an irresistible provoke. If the provoke lands, the Attack Bar of all allies will be increased by 20%.'
+          ),
+        ])
+      ).atb,
+      20,
+      'une action irrésistible rend sa condition acquise'
+    );
+
+    // Sans texte du tout (fiche incomplète), on ne suppose rien : le boost passe.
+    egal(
+      kitVitesse(detail([avecTexte('Sans texte', null)])).atb,
+      20,
+      'sans description, aucune condition ne peut être lue — le boost reste'
+    );
+  }
+
   // Plusieurs compétences qui remplissent la barre : la plus forte l'emporte.
   {
     const k = kitVitesse(
@@ -1570,6 +1912,40 @@ export function testSpeedTuneSequence() {
     const monstres = [m('a', 300, 'allie'), m('lent', 120, 'allie'), m('e', 250, 'ennemi')];
     const d = diagnostiquerSequence(monstres, ['a', 'lent']);
     egal(d.problemes.find((p) => p.id === 'lent')?.raison, 'apres-adverse', "coupé par l'adverse d'abord");
+  }
+
+  // ⚠️ **L'ORDRE RESPECTÉ ET L'ÉQUIPE COUPÉE SONT DEUX PROBLÈMES.** Quand les
+  // alliés jouent bien dans l'ordre demandé mais qu'un adverse s'intercale, le
+  // SEUL ennui est `apres-adverse` — aucun `trop-tot` ni `trop-tard`. C'est
+  // cette propriété que l'écran lit pour choisir son message : annoncer « tes
+  // vitesses ne permettent pas de jouer dans l'ordre demandé » envoyait corriger
+  // un ordre qui n'avait rien à se reprocher.
+  {
+    // a joue au tick 4, b au 5, l'adverse au 6, c au 10.
+    const monstres = [
+      m('a', 400, 'allie'),
+      m('b', 300, 'allie'),
+      m('c', 150, 'allie'),
+      m('e', 250, 'ennemi'),
+    ];
+    const d = diagnostiquerSequence(monstres, ['a', 'b', 'c']);
+    ok(!d.ok, 'une équipe coupée n’est pas tenue');
+    egal(d.problemes.length, 1, 'un seul monstre pose problème : celui qui passe après');
+    ok(
+      d.problemes.every((p) => p.raison === 'apres-adverse'),
+      'et le seul reproche est d’être coupé, jamais un ordre raté'
+    );
+    egal(d.problemes[0].id, 'c', 'c’est bien le dernier qui se fait couper');
+  }
+
+  // Le contraste : un ordre RÉELLEMENT raté ne se dit pas « coupé ».
+  {
+    const monstres = [m('a', 300, 'allie'), m('b', 200, 'allie'), m('e', 100, 'ennemi')];
+    const d = diagnostiquerSequence(monstres, ['b', 'a']);
+    ok(
+      !d.problemes.every((p) => p.raison === 'apres-adverse'),
+      'un ordre inversé garde ses raisons d’ordre — le message général reste'
+    );
   }
 
   // ⚠️⚠️ **DEUX MONSTRES TROP LENTS À LA SUITE : les deux doivent avoir un
@@ -2073,6 +2449,103 @@ export function testSpeedTuneAuto() {
     );
   }
 
+  // ⚠️⚠️ **LA VITESSE DE RUNES ANNONCÉE DOIT ATTEINDRE LA CIBLE.** C'est
+  // l'invariant qui relie les deux sens du calcul : `runeSpeedForTarget` dit
+  // combien il en faut, `combatSpeed` dit ce qu'on obtient. Ils doivent se
+  // répondre exactement, sinon l'écran conseille une vitesse qui ne suffit pas —
+  // et redemande le point manquant après qu'on l'a appliquée.
+  {
+    let ecarts = 0;
+    let total = 0;
+    let exemple = '';
+    for (let base = 85; base <= 135; base++) {
+      for (const lead of [0, 19, 21, 24, 28, 33]) {
+        for (const swift of [false, true]) {
+          for (let cible = 200; cible <= 420; cible++) {
+            const r = runeSpeedForTarget(base, lead, cible, swift)!;
+            const obtenu = combatSpeed(base, r, lead, swift)!;
+            total++;
+            if (obtenu !== cible) {
+              ecarts++;
+              if (!exemple) exemple = `base ${base}, lead ${lead}, swift ${swift}, cible ${cible} → ${obtenu}`;
+            }
+          }
+        }
+      }
+    }
+    egal(ecarts, 0, `aller-retour exact sur ${total} combinaisons${exemple ? ` (ex. ${exemple})` : ''}`);
+  }
+
+  // ⚠️ **LE GAIN DE PASSIF SE RETIRE DE LA CIBLE.** La vitesse que le solveur
+  // vise est celle que la card affiche — gain compris (`combatDe` = vitesse de
+  // combat + `gainPassifDe`). Les runes, elles, ne portent que la première part.
+  // Viser la cible ENTIÈRE revenait à demander en runes ce que le passif donne
+  // déjà : +40 de trop sur un Chilling à deux buffs.
+  {
+    const base = 101;
+    const lead = 28;
+    const swift = true;
+    const rune = 220;
+    const gain = 40; // Chilling, +20 par buff, 2 buffs portés
+    const combatAffiche = combatSpeed(base, rune, lead, swift)! + gain;
+    const cible = combatAffiche + 6; // le solveur en réclame six de plus
+
+    const conseil = runeSpeedForTarget(base, lead, cible - gain, swift)! - rune;
+    egal(conseil, 6, 'le conseil vaut l’écart réel, pas l’écart plus le passif');
+
+    const apres = combatSpeed(base, rune + conseil, lead, swift)! + gain;
+    egal(apres, cible, 'et l’appliquer atteint exactement la cible');
+
+    // Ce que donnait l'ancien calcul : le gain demandé une seconde fois.
+    const ancien = runeSpeedForTarget(base, lead, cible, swift)! - rune;
+    egal(ancien, 46, 'sans le retrait, on réclamait 46 au lieu de 6');
+  }
+
+  // ⚠️ **« IL MANQUE 0 » EST UNE CONTRADICTION.** Le solveur ne réclame qu'une
+  // vitesse STRICTEMENT supérieure à l'actuelle : le conseil est donc toujours
+  // d'au moins 1. On le vérifie sur toute la plage plutôt que de faire confiance
+  // au plancher, qui n'est qu'un filet.
+  {
+    let zeros = 0;
+    let total = 0;
+    for (let base = 85; base <= 135; base++) {
+      for (const lead of [0, 19, 21, 24, 28, 33]) {
+        for (const swift of [false, true]) {
+          for (let rune = 100; rune <= 260; rune += 7) {
+            const combat = combatSpeed(base, rune, lead, swift)!;
+            // La plus petite cible que le solveur puisse réclamer : un de plus.
+            const conseil = runeSpeedForTarget(base, lead, combat + 1, swift)! - rune;
+            total++;
+            if (conseil <= 0) zeros++;
+          }
+        }
+      }
+    }
+    egal(zeros, 0, `aucun conseil nul sur ${total} combinaisons — « +0 SPD » ne peut plus s’afficher`);
+  }
+
+  // ⚠️ **LE SWIFT DOIT VOYAGER JUSQU'À LA CONVERSION.** L'invariant ci-dessus ne
+  // tient que si l'APPELANT passe le bon drapeau — et c'est là qu'était le
+  // défaut : `runesPour` appelait `runeSpeedForTarget(..., false)` en dur, alors
+  // que la vitesse de combat de la même ligne se calcule avec `l.swift`. Deux
+  // descriptions du même monstre, un point d'écart sur 40 % des cas réalistes.
+  //
+  // Le contrôle lit le SOURCE : un test qui appellerait la fonction ne verrait
+  // pas ce que l'appelant lui transmet.
+  {
+    const source = readFileSync('src/hooks/useSpeedTune.ts', 'utf8');
+    const appel = /runeSpeedForTarget\(([\s\S]*?)\);/.exec(source)?.[1] ?? '';
+    ok(appel.length > 0, 'la conversion vitesse de combat → vitesse de runes est bien là');
+    ok(
+      /l\.swift/.test(appel),
+      'elle transmet le Swift de la ligne, jamais une valeur en dur'
+    );
+    ok(
+      /gainPassifDe\(l\)/.test(appel),
+      'et elle retire le gain de passif de la cible visée'
+    );
+  }
+
   // ⚠️⚠️ **TOUT CE QUI ENTRE DANS L'ANALYSE DOIT LA RELANCER.** L'analyse écrit
   // dans les grilles puis ne repasse plus : ce qui la rend fausse doit donc la
   // redéclencher. La CIBLE d'un sort y manquait — désigner « sur : lui-même »
@@ -2330,6 +2803,48 @@ export function testSpeedTuneAuto() {
       }).cibleIndecise,
       'et une cible DÉSIGNÉE lève l’indécision — c’est le joueur qui a tranché'
     );
+  }
+
+  // ⚠️ **SUR QUI les buffs se comptent — Chilling contre Elsharion.**
+  //
+  // Les deux passifs gagnent de la vitesse « par buff », et le jeu les distingue
+  // mot pour mot :
+  //
+  //   Chilling  — « … according to the number of beneficial effects currently
+  //                ON YOU. »
+  //   Elsharion — « increases your Attack Speed by 5 for each beneficial effect
+  //                granted ON THE ALLIES, up to 100. »
+  //
+  // L'estimation ne comptait que les buffs du monstre lui-même : Elsharion était
+  // sous-compté de tous ceux de ses alliés.
+  {
+    const perso = (id: number, sets: string[]): EntreeAuto => ({
+      id: String(id),
+      monster: monstre(id, 'M' + id, 100),
+      runeSpeed: 0,
+      sets,
+    });
+    const vide: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map() };
+
+    // Une équipe de 3 : UN set Bouclier, DEUX sets Volonté.
+    const equipe = [perso(1, ['shield']), perso(2, ['will']), perso(3, ['will'])];
+
+    // ⚠️ Le Bouclier se pose sur TOUT LE MONDE : chacun des trois en porte un.
+    // La Volonté ne protège que son porteur.
+    egal(cumulsEstimes(equipe[0], equipe, vide), 1, 'le porteur du Bouclier ne porte que son bouclier');
+    egal(cumulsEstimes(equipe[1], equipe, vide), 2, 'un porteur de Volonté porte aussi le bouclier de l’équipe');
+
+    // 3 boucliers + 2 immunités = 5. C'est le total que compte Elsharion.
+    egal(cumulsEquipe(equipe, vide), 5, 'l’équipe porte 5 buffs : un bouclier chacun, plus deux Volonté');
+
+    // ⚠️ Le contrôle qui empêche la correction d'être un simple ×3 : sans aucun
+    // Bouclier, le total retombe au nombre de porteurs de Volonté.
+    const sansBouclier = [perso(1, []), perso(2, ['will']), perso(3, ['will'])];
+    egal(cumulsEquipe(sansBouclier, vide), 2, 'sans Bouclier, seules les Volonté comptent');
+
+    // Et un seul Bouclier, sans Volonté, vaut bien un buff PAR MONSTRE.
+    const boucliersSeuls = [perso(1, ['shield']), perso(2, []), perso(3, [])];
+    egal(cumulsEquipe(boucliersSeuls, vide), 3, 'un seul set Bouclier pose un buff sur chacun des trois');
   }
 
   // ⚠️ **UN COMBO : le même monstre joue DEUX FOIS, et lance autre chose.**
@@ -3171,6 +3686,15 @@ export function testSpeedTuneModele() {
       true,
       'TOUS les alliés la reçoivent dans l’entrée du moteur — la moitié seulement, et les deux écrans divergent'
     );
+    // ⚠️ **Et elle voyage AUSSI À PART.** Le moteur ne connaît qu'une somme, mais
+    // ce qu'on PROPOSE au joueur est un artéfact, borné à 60 : sans `ampliBuff`,
+    // le plafond mordrait sur les 35 points de Miriam et l'outil répondrait
+    // « hors de portée » là où 29 points d'artéfact suffisent (voir `plafondDe`).
+    egal(
+      tune.every((m) => m.ampliBuff === 35),
+      true,
+      "la part d'amplification voyage à part, pour que le plafond de l'artéfact ne morde pas dessus"
+    );
   }
 
   // Le plus rapide, et la référence qui le copie.
@@ -3191,6 +3715,123 @@ export function testSpeedTuneModele() {
     egal(ref.runeSpeed, 150, 'elle copie la vitesse de runes');
     egal(ref.artefactBuff, 12, "l'artéfact");
     egal(JSON.stringify(ref.sets), '["swift","will"]', 'et les sets — sans quoi elle serait plus lente que son modèle');
+  }
+
+  // ⚠️ **LE PLUS RAPIDE SE JUGE GAIN DE PASSIF COMPRIS**, même quand le compte
+  // de buffs n'est pas encore écrit.
+  //
+  // Cas réel : Chilling 404 (364 + 40 de passif, 2 buffs portés) et Ciri 375.
+  // `gainPassifDe` lit `cumulsPassif ?? 0` : tant que le compte n'est pas posé,
+  // Chilling se lisait 364 et Ciri lui passait devant — la référence copiait le
+  // mauvais monstre.
+  //
+  // ⚠️ Et le compte s'écrit par un EFFET, donc au rendu SUIVANT, alors que
+  // l'analyse part dans le même rendu : le résultat dépendait de l'ordre
+  // d'arrivée des données. Bonne référence quand les kits étaient déjà en cache,
+  // mauvaise à la première ouverture — un défaut « une fois sur deux » qui n'a
+  // rien d'aléatoire.
+  {
+    const passifChilling: PassifVitesse = {
+      nom: 'The Cunning',
+      texte: '',
+      amplifieBuff: null,
+      gain: { valeur: 20, pourcent: false, plafond: null, parCumul: true, releve: true },
+      buff: false,
+      barre: null,
+      tourSupp: false,
+      inconnu: false,
+    };
+    const chilling = monstre(101, 'Chilling', 101);
+    const ciri = monstre(102, 'Ciri', 121);
+    const avecPassif: DonneesKit = {
+      kits: new Map(),
+      sorts: new Map(),
+      passifs: new Map([[101, [passifChilling]]]),
+    };
+    // Deux buffs portés : Volonté sur lui, et le Bouclier de l'équipe.
+    const lignes: Ligne[] = [
+      { ...ligneVierge(chilling, 'allie'), runeSpeed: 220, sets: ['will'] },
+      { ...ligneVierge(ciri, 'allie'), runeSpeed: 202, sets: ['shield'] },
+    ];
+
+    // Sans le passif, Chilling est bien le plus lent des deux.
+    ok(
+      combatDeLigne(lignes[0], null, vide)! < combatDeLigne(lignes[1], null, vide)!,
+      'sans son passif, Chilling est plus lent que Ciri'
+    );
+    // Avec, il repasse devant — et c'est lui que la référence doit copier.
+    egal(
+      plusRapideAllie(lignes, leads, avecPassif)?.uid,
+      lignes[0].uid,
+      'le plus rapide est jugé gain de passif compris, cumuls non encore écrits'
+    );
+
+    // ⚠️ Le contrôle qui empêche la correction de tout renverser : une case
+    // VIDÉE À LA MAIN (`null`) est un choix, l'estimation ne repasse pas dessus.
+    // Chilling redevient alors le plus lent, et Ciri reprend la référence.
+    const cumulsEfface: Ligne[] = [{ ...lignes[0], cumulsPassif: null }, lignes[1]];
+    egal(
+      plusRapideAllie(cumulsEfface, leads, avecPassif)?.uid,
+      lignes[1].uid,
+      'un compte vidé à la main reste vide — le passif ne compte plus'
+    );
+  }
+
+  // ⚠️ **COPIER UN MONSTRE EN FACE** — pour se mesurer à lui.
+  {
+    const chilling = monstre(201, 'Chilling', 101);
+    const passif: PassifVitesse = {
+      nom: 'The Cunning',
+      texte: '',
+      amplifieBuff: null,
+      gain: { valeur: 20, pourcent: false, plafond: null, parCumul: true, releve: true },
+      buff: false,
+      barre: null,
+      tourSupp: false,
+      inconnu: false,
+    };
+    const d: DonneesKit = { kits: new Map(), sorts: new Map(), passifs: new Map([[201, [passif]]]) };
+    const modele: Ligne = {
+      ...ligneVierge(chilling, 'allie'),
+      runeSpeed: 220,
+      swift: true,
+      sets: ['swift', 'will'],
+      artefactBuff: 11,
+      atbMod: { 3: 30 },
+      speedMod: { 4: 30 },
+    };
+    const bouclier: Ligne = { ...ligneVierge(monstre(202, 'Autre', 100), 'allie'), sets: ['shield'] };
+    const copie = ligneCopiee(modele, [modele, bouclier], d);
+
+    egal(copie.camp, 'ennemi', 'la copie part dans le camp d’en face');
+    egal(copie.reference, undefined, 'ce n’est PAS un repère : elle ne suit pas l’équipe');
+    egal(copie.runeSpeed, 220, 'elle emporte la vitesse de runes');
+    egal(copie.swift, true, 'le Swift');
+    egal(copie.artefactBuff, 11, 'l’artéfact');
+    egal(JSON.stringify(copie.sets), '["swift","will"]', 'et les sets');
+
+    // ⚠️ Le compte de buffs est ESTIMÉ DEPUIS LE CAMP D'ORIGINE : Volonté sur
+    // lui + le Bouclier de son équipe = 2. Estimé dans son nouveau camp, il n'y
+    // aurait vu que sa Volonté — la copie serait plus lente que son modèle et la
+    // comparaison ne voudrait plus rien dire.
+    egal(copie.cumulsPassif, 2, 'le compte de buffs vient du camp d’ORIGINE');
+
+    // ⚠️ Les grilles ne suivent pas : elles décrivent ce qu'un sort a posé sur ce
+    // monstre DANS SON CAMP. Transportées, elles annonceraient des boosts que
+    // personne n'a lancés en face.
+    egal(JSON.stringify(copie.atbMod), '{}', 'la grille de barre repart vide');
+    egal(JSON.stringify(copie.speedMod), '{}', 'celle de vitesse aussi');
+
+    // La copie court EXACTEMENT aussi vite que son modèle — c'est tout l'objet
+    // du geste.
+    egal(
+      combatDeLigne(copie, null, d),
+      combatDeLigne({ ...modele, cumulsPassif: 2 }, null, d),
+      'et elle court aussi vite que le monstre qu’elle copie'
+    );
+
+    // Depuis le camp adverse, la copie revient dans le tien.
+    egal(ligneCopiee({ ...modele, camp: 'ennemi' }, [modele], d).camp, 'allie', 'et le geste marche dans les deux sens');
   }
 
   // ⚠️ **La référence court EXACTEMENT aussi vite que le monstre qu'elle copie**,

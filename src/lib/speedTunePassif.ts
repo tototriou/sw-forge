@@ -47,6 +47,20 @@ export interface GainVitesse {
   pourcent: boolean; // en % de la vitesse de base, sinon en points
   plafond: number | null; // ce que le gain ne peut pas dépasser
   parCumul: boolean; // il se répète (par buff, par tour adverse, par attaque…)
+  // ⚠️ **Sur QUI les cumuls se comptent.** `parCumul` disait que le gain se
+  // répète, jamais d'après quoi — et l'estimation comptait donc toujours les
+  // buffs du monstre LUI-MÊME. Le jeu distingue pourtant les deux, mot pour
+  // mot :
+  //
+  //   Chilling  — « Your Attack Speed increases according to the number of
+  //                beneficial effects currently ON YOU. »
+  //   Elsharion — « increases your Attack Speed by 5 for each beneficial effect
+  //                granted ON THE ALLIES, up to 100. »
+  //
+  // Le gain reste PROPRE au monstre dans les deux cas (c'est sa vitesse à lui
+  // qui monte) : ce qui change, c'est le périmètre de ce qu'on compte. Confondre
+  // les deux sous-comptait Elsharion de tous les buffs de ses alliés.
+  cumulEquipe: boolean;
   releve: boolean; // valeur absente des données, relevée à la main
 }
 
@@ -88,6 +102,15 @@ function pourSoi(phrase: string, index: number): boolean {
   return !/(enem(y|ies)'?s?|all(y|ies)'?)\s*$/i.test(avant.slice(-20));
 }
 
+// Le cumul se compte-t-il sur les ALLIÉS plutôt que sur le monstre lui-même ?
+//
+// ⚠️ On cherche la portée de ce qu'on COMPTE (« granted on the allies »), pas de
+// ce qui est augmenté : Elsharion augmente bien SA vitesse à lui. Un simple
+// « allies » dans la phrase ne suffirait donc pas — le passif d'Elsharion en
+// contient un autre juste avant, dans « applies it to all allies ».
+const SUR_LES_ALLIES =
+  /(for (each|every)[^.]*?\b(on|to) (the |your )?all(y|ies))|(all(y|ies)[^.]*\bare granted)/i;
+
 // « up to 150% », « up to 100 » : le plafond du gain. ⚠️ « up to 10 TIMES » est
 // un nombre de CUMULS, pas un plafond de vitesse.
 function plafondDe(ph: string, valeur: number): number | null {
@@ -121,6 +144,7 @@ function lirePassif(c: Competence): PassifVitesse | null {
         pourcent: m[2] === '%',
         plafond: plafondDe(ph, valeur),
         parCumul: CONDITION.test(ph),
+        cumulEquipe: SUR_LES_ALLIES.test(ph),
         releve: false,
       };
       continue;
@@ -133,7 +157,7 @@ function lirePassif(c: Competence): PassifVitesse | null {
 
   if (!gain && (gainFlou || a('Accumulate SPD'))) {
     const releve = RELEVE_EN_JEU[c.nom];
-    if (releve) gain = { ...releve, parCumul: true, releve: true };
+    if (releve) gain = { ...releve, parCumul: true, cumulEquipe: false, releve: true };
   }
   if (!gain && !gainFlou && !buff && a('Increase ATK SPD')) buff = true;
 

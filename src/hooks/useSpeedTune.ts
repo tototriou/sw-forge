@@ -33,6 +33,7 @@ import {
   deplacerDansCamp,
   leadPour,
   leadPresent,
+  ligneCopiee,
   ligneReference as ligneReferenceDe,
   ligneVierge,
   lignesDeDeck,
@@ -365,6 +366,26 @@ export function useSpeedTune({
     }
     const ref = { ...ligneReference(modele), ...(mods ?? {}) };
     setLignes((prev) => [...prev.filter((l) => !l.reference && l.uid !== ref.uid), ref]);
+  }
+
+  // Copier un monstre dans le camp d'en face — pour se mesurer à lui.
+  //
+  // ⚠️ **Elle REMPLACE une ligne du même monstre déjà présente en face.** Ne
+  // rien faire dans ce cas aurait donné un bouton qui, parfois, ne produit rien
+  // à l'écran : le geste est explicite, sa réponse doit l'être aussi. Et la
+  // copie repart des valeurs du modèle, ce que l'utilisateur vient justement de
+  // demander.
+  //
+  // ⚠️ **La référence automatique est retirée au passage** : elle n'existe que
+  // faute d'adversaire (voir `analyseAuto`). La laisser aurait mis DEUX
+  // adversaires en face, dont un que personne n'a posé.
+  function copierEnFace(uid: string) {
+    setLignes((prev) => {
+      const modele = prev.find((l) => l.uid === uid);
+      if (!modele) return prev;
+      const copie = ligneCopiee(modele, prev, donneesKit);
+      return [...prev.filter((l) => l.uid !== copie.uid && !l.reference), copie];
+    });
   }
 
   function retirer(uid: string) {
@@ -842,14 +863,42 @@ export function useSpeedTune({
 
   const nomDe = (uid: string) => ligneParUid.get(uid)?.monster.name ?? '?';
   // Vitesse de runes qu'il MANQUE pour atteindre une vitesse de combat cible.
+  // Ce qu'il faut AJOUTER en vitesse de runes pour atteindre une vitesse de
+  // combat cible.
+  //
+  // ⚠️ **Le Swift entre dans le calcul**, et il y était codé en dur à `false`.
+  // La vitesse de combat de la ligne, elle, se calcule avec `l.swift` : les deux
+  // formules décrivaient donc le même monstre différemment. Comme la Rapidité
+  // apporte 25 % de la base et que `combatSpeed` la retire à plat avant de la
+  // remettre dans la somme des pourcentages, l'écart tombe sur un arrondi — il
+  // vaut 0 ou 1 selon la base et le lead.
+  //
+  // ⚠️ **Mesuré : 40 % des cas réalistes** (base 85→135, leads du jeu, cibles
+  // 200→420) demandaient **un point de trop peu**. On appliquait « +18 SPD », on
+  // restait à 1 du compte, et l'outil réclamait ce dernier point — d'où
+  // l'impression d'un « il manque 1 de SPD » qui ne s'en va jamais.
   const runesPour = (l: Ligne, combatCible: number): number | null => {
+    // ⚠️ **Le GAIN DE PASSIF se retire de la cible.** La vitesse que le solveur
+    // vise est celle que la card affiche, gain compris (`combatDe` = vitesse de
+    // combat + `gainPassifDe`). Les runes, elles, ne portent que la première
+    // part : viser la cible ENTIÈRE revenait à demander en runes ce que le
+    // passif donne déjà — +40 de trop sur un Chilling à 2 buffs.
     const besoin = runeSpeedForTarget(
       l.monster.stats.speed,
       leadPour(leadDe(l.camp), l),
-      combatCible,
-      false
+      combatCible - gainPassifDe(l),
+      l.swift ?? false
     );
-    return besoin == null ? null : besoin - (l.runeSpeed ?? 0);
+    if (besoin == null) return null;
+    const manque = besoin - (l.runeSpeed ?? 0);
+    // ⚠️ **« Il manque 0 » est une CONTRADICTION** : si ce monstre doit aller
+    // plus vite, le plus petit conseil qu'on puisse donner est +1. Le calcul ne
+    // devrait plus jamais rendre 0 — le solveur ne réclame une vitesse que
+    // strictement supérieure à l'actuelle, et l'aller-retour est exact depuis
+    // que le Swift et le passif y entrent. Ce plancher est un FILET, pas le
+    // correctif : il empêche qu'un arrondi futur affiche « +0 SPD », ce qui
+    // enverrait chercher une correction qu'on a déjà.
+    return Math.max(1, manque);
   };
 
 
@@ -922,6 +971,7 @@ export function useSpeedTune({
     requisParUid,
     deplacerLigne,
     retirer,
+    copierEnFace,
     sequence,
     setArtefact,
     setAuto,

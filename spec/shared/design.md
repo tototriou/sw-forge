@@ -222,16 +222,28 @@ répété **55 fois**, à sept tailles différentes. Il devient la classe `.labe
 à 11 px — c'est ce qui donnait cette impression de flou dans les zones denses.
 Inter en demi-gras est plus net et plus compact à taille égale.
 
-### Échelle typographique — six paliers, plancher à 11 px
+### Échelle typographique — plancher à 11 px
 
 | Token | Taille | Usage |
 |-------|--------|-------|
 | `micro` | 11 px | Libellés mono en capitales, sous-titres de KPI |
 | `xs` | 12 px | Texte secondaire, corps de tuile |
 | `sm` | 13 px | Texte courant dense (tables, cartes) |
+| `md` | 14 px | **Navigation seulement** — voir ci-dessous |
 | `base` | 15 px | Texte courant |
 | `lg` | 17 px | Titre de section |
 | `xl` | `clamp(22px, 3vw, 30px)` | Titre de page |
+
+⚠️ **`md` n'est pas un cran de l'échelle générale.** Il existe pour une seule
+raison : la barre latérale du **bureau** se lisait serrée à 13 et trop appuyée à
+15 — une colonne de neuf entrées qu'on parcourt du regard, pas du texte de
+lecture. Il a été **ajouté à l'échelle** plutôt que posé en `text-[14px]` sur
+place : une valeur en dur aurait été hors système, et la première d'une série,
+puisque le cran manquant le serait resté.
+
+⚠️ **Ne pas s'en servir pour du corps de texte.** Entre `sm` et `base`, il cale
+une densité, il ne marque pas un niveau d'information : deux blocs voisins en
+`sm` et `md` se liraient comme une hésitation, pas comme une hiérarchie.
 
 ⚠️ **Plancher à 11 px, sans exception.** Les `text-[9px]` et `text-[10px]`
 existants remontent à 11 px. En dessous, l'écart ne crée pas de hiérarchie : il

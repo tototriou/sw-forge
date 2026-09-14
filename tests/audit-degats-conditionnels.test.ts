@@ -15,9 +15,14 @@ import {
   monsterBonusDegatsStackable,
   monsterBonusParEffetCible,
   monsterBonusStatFixe,
+  monsterCombatStatProfiles,
   monsterConditionsCombat,
   monsterCritInterdit,
   monsterDamageSkills,
+  monsterOffensivePassives,
+  resolvedDebuffsCibleCount,
+  resolvedDebuffCiblePresent,
+  statsDeCombat,
 } from '../src/lib/damage';
 import { DetailMonstre } from '../src/lib/monsterSkills';
 import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
@@ -63,7 +68,180 @@ const setupAudit: DamageSetup = {
 };
 
 export default function testAuditDegatsConditionnels() {
-  titre('Audit des dégâts conditionnels — étape 1');
+  titre('Audit des dégâts conditionnels — étapes 1 et 2');
+
+  const leoTorrent = profilDe(16613, 7808);
+  const leoPleineVie = computeSkillDamage(leoTorrent, buildAudit, { ...setupAudit, ownHpPct: 100 });
+  const leoMiVie = computeSkillDamage(leoTorrent, buildAudit, { ...setupAudit, ownHpPct: 50 });
+  ok(
+    Math.abs(leoMiVie / leoPleineVie - 6.5 / 5.5) < 1e-9,
+    '72 — Torrent lit les PV propres et augmente de façon discriminante à mi-vie'
+  );
+
+  const zerath = profilDe(14414, 2914);
+  const zerath20k = computeSkillDamage(zerath, buildAudit, { ...setupAudit, ownHpPct: 50 });
+  const zerath40k = computeSkillDamage(zerath, stats({ ...Object.fromEntries(buildAudit.map((s) => [s.key, s.total])), hp: 40000 }), {
+    ...setupAudit,
+    ownHpPct: 50,
+  });
+  egal(zerath40k, zerath20k * 2, '73 — les PV actuels de Zerath sont recalculés pour chaque build candidat');
+
+  const ramagos = profilDe(10733, 1863);
+  egal(
+    computeSkillDamage(ramagos, buildAudit, { ...setupAudit, ownHpPct: 50 }),
+    10000,
+    '74 — Clean Shot inflige exactement les PV propres manquants en dégâts fixes'
+  );
+
+  const skogul = profilDe(22413, 13008);
+  const trasar = profilDe(22415, 13010);
+  egal(
+    computeSkillDamage(skogul, buildAudit, { ...setupAudit, aliveEnemies: 4 }),
+    5000,
+    '77 — Atlas Stone répartit les PV max entre les ennemis vivants'
+  );
+  egal(
+    computeSkillDamage(trasar, buildAudit, {
+      ...setupAudit,
+      aliveEnemies: 4,
+      stackPersonnalise: { 13010: 2 },
+    }),
+    6500,
+    '308 — Trasar ajoute 15 % par mort, plafonné à 30 %, sur son Atlas Stone'
+  );
+  egal(
+    computeSkillDamage(skogul, buildAudit, {
+      ...setupAudit,
+      aliveEnemies: 4,
+      stackPersonnalise: { 13010: 2 },
+    }),
+    5000,
+    '308 — le compteur de Trasar ne majore ni Skogul ni son autre identifiant'
+  );
+
+  for (const [monstreId, sortId, nom] of [[31311, 21006, 'Lamiella'], [31315, 21010, 'Velaska']] as const) {
+    const arsenal = profilDe(monstreId, sortId);
+    egal(arsenal.formule, '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)', `${nom} — 1,2 × ATQ remplacé`);
+    egal(
+      computeSkillDamage(arsenal, buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3 }),
+      4000,
+      `${nom} — réserve linéaire de PV max répartie entre trois ennemis`
+    );
+  }
+
+  const hwa = profilDe(15512, 6907);
+  egal(resolvedDebuffsCibleCount(hwa.skillCom2usId, { ...setupAudit, effetsCibleCount: { 6907: 9 }, defBreak: true, brand: true }), 10,
+    'compteur ennemi — autres débuffs + Brise DEF + Marque sont plafonnés à 10');
+  const hwaAutres = computeSkillDamage(hwa, buildAudit, { ...setupAudit, effetsCibleCount: { 6907: 1 } });
+  const hwaAvecEffets = computeSkillDamage(hwa, buildAudit, {
+    ...setupAudit,
+    effetsCibleCount: { 6907: 1 },
+    defBreak: true,
+    brand: true,
+  });
+  ok(hwaAvecEffets > hwaAutres, 'Hwa S2 — Brise DEF et Marque incrémentent automatiquement le compteur de débuffs');
+  const brandiaMixte = profilDe(18912, 9712);
+  ok(
+    computeSkillDamage(brandiaMixte, buildAudit, {
+      ...setupAudit, effetsCibleCount: { 9712: 10 }, brand: true,
+    }) > computeSkillDamage(brandiaMixte, buildAudit, {
+      ...setupAudit, effetsCibleCount: { 9712: 10 },
+    }),
+    'Brandia — dix effets mixtes peuvent compter une Marque en plus ; seul le compteur des débuffs est plafonné'
+  );
+
+  const tesaS2 = profilDe(19212, 10007);
+  const passifTesa = monsterBonusParEffetCible(fiche(19212))!;
+  const totalTesa = (setup: DamageSetup) => computeTotalDamage(
+    tesaS2,
+    [],
+    buildAudit,
+    setup,
+    'fire',
+    ARTIFACT_DAMAGE_NEUTRE,
+    false,
+    null,
+    null,
+    { bonusParEffetCible: passifTesa }
+  );
+  ok(!resolvedDebuffCiblePresent(passifTesa.skillCom2usId, setupAudit), 'Tesarion — condition binaire inactive par défaut');
+  ok(
+    resolvedDebuffCiblePresent(passifTesa.skillCom2usId, {
+      ...setupAudit,
+      passifsOffensifs: { [passifTesa.skillCom2usId]: true },
+    }),
+    'Tesarion — le toggle active la présence d’un effet néfaste sans compteur'
+  );
+  for (const [label, patch] of [['Brise DEF', { defBreak: true }], ['Marque', { brand: true }]] as const) {
+    const avec = { ...setupAudit, ...patch };
+    ok(resolvedDebuffCiblePresent(passifTesa.skillCom2usId, avec), `Tesarion — ${label} active automatiquement le passif`);
+    ok(totalTesa(avec) > totalTesa(setupAudit), `Tesarion — ${label} applique réellement +30 %`);
+  }
+  const tesaPoseApres = (hit: number) => totalTesa({
+    ...setupAudit,
+    scenariosEffetsEntreCoups: {
+      [tesaS2.skillCom2usId]: { actif: true, apresCoup: { 'decrease-def': hit } },
+    },
+  });
+  ok(
+    totalTesa(setupAudit) < tesaPoseApres(2) && tesaPoseApres(2) < tesaPoseApres(1),
+    'Tesarion — Brise DEF posée au coup 1 ou 2 active le passif seulement sur les coups suivants'
+  );
+
+  const manannanS1 = profilDe(19715, 10505);
+  const passifManannan = monsterBonusParEffetCible(fiche(19715))!;
+  const totalManannan = (setup: DamageSetup) => computeTotalDamage(
+    manannanS1, [], buildAudit, setup, 'dark', ARTIFACT_DAMAGE_NEUTRE, false, null, null,
+    { bonusParEffetCible: passifManannan }
+  );
+  const manannanToggle = { ...setupAudit, passifsOffensifs: { [passifManannan.skillCom2usId]: true } };
+  ok(totalManannan(manannanToggle) > totalManannan(setupAudit), 'Manannan — le toggle binaire active King of the Ruins');
+  ok(totalManannan({ ...setupAudit, brand: true }) > totalManannan(setupAudit), 'Manannan — Marque active automatiquement King of the Ruins');
+
+  const arangS3 = profilDe(11213, 2213);
+  const arangNu = computeSkillDamage(arangS3, buildAudit, setupAudit, 'wind');
+  ok(
+    computeSkillDamage(arangS3, buildAudit, {
+      ...setupAudit,
+      passifsOffensifs: { [arangS3.skillCom2usId]: true },
+    }, 'wind') > arangNu,
+    'Arang — Sweet Talk utilise un toggle binaire, pas un compteur'
+  );
+  ok(
+    computeSkillDamage(arangS3, buildAudit, { ...setupAudit, defBreak: true }, 'wind') > arangNu,
+    'Arang — Brise DEF active automatiquement le bonus binaire de Sweet Talk'
+  );
+
+  const willOWisp = profilDe(11213, 2218);
+  const willBase = computeSkillDamage(willOWisp, buildAudit, setupAudit, 'wind');
+  const willPose = (hit: number) => computeSkillDamage(willOWisp, buildAudit, {
+    ...setupAudit,
+    scenariosEffetsEntreCoups: {
+      [willOWisp.skillCom2usId]: { actif: true, apresCoup: { brand: hit } },
+    },
+  }, 'wind');
+  ok(willBase < willPose(2) && willPose(2) < willPose(1), "Will-o'-the-Wisp — une Marque réussie amplifie seulement les coups suivants");
+
+  const fengYan = fiche(21213);
+  const fengS1 = profilDe(21213, 12003);
+  const passifsFeng = monsterOffensivePassives(fengYan);
+  const fengSetup = { ...setupAudit, enemyDef: 1500 };
+  const contributionFeng = (poseApres?: number) => {
+    const setup = poseApres == null
+      ? fengSetup
+      : {
+          ...fengSetup,
+          scenariosEffetsEntreCoups: {
+            [fengS1.skillCom2usId]: { actif: true, apresCoup: { 'decrease-def': poseApres } },
+          },
+        };
+    return computeTotalDamage(fengS1, passifsFeng, buildAudit, setup, 'wind') -
+      computeTotalDamage(fengS1, [], buildAudit, setup, 'wind');
+  };
+  ok(
+    contributionFeng() < contributionFeng(2) && contributionFeng(2) < contributionFeng(1),
+    'Feng Yan — chaque instance de Winds and Clouds lit le Brise DEF avant le coup correspondant'
+  );
 
   // Référence indépendante : sans DEF, critique ni skillup, le quotient des
   // totaux est le multiplicateur annoncé, sans dépendre du moteur de recherche.
@@ -206,10 +384,12 @@ export default function testAuditDegatsConditionnels() {
     'Mach Crush',
     'Panda Supremacy',
     'Rain of Stones',
+    'Sequential Attack',
     'Shadow Blade',
     'Shinryuken',
     'Triple Crush',
     'Water Dragon Attack',
+    "Will-o'-the-Wisp",
   ]);
   const effetsEntreCoupsTrouves = new Set<string>();
   for (const fichier of readdirSync(dossierSorts)) {
@@ -440,7 +620,7 @@ export default function testAuditDegatsConditionnels() {
     [19813, 10608, 'aucunBuffCible'],
     [19814, 10609, 'aucunBuffCible'],
     [11734, 2759, 'aucunBuffCible'],
-    [19712, 10502, 'aucunDebuffPropre'],
+    [19712, 10502, 'manuel'],
     [33211, 22506, 'buffCiblePresent'],
     [33711, 23006, 'buffCiblePresent'],
     [19515, 10315, 'pvCibleMax'],
@@ -539,13 +719,239 @@ export default function testAuditDegatsConditionnels() {
   egal(monsterConditionsCombat(fiche(15514))[0]?.condition.type, 'pvCibleMax', 'Pang : seuil de PV sur le passif exact');
   ok(!monsterBonusDegatsStackable(fiche(22415)), 'Trasar : aucun bonus global avant le déblocage d’Atlas Stone en étape 2');
 
-  for (const [monstreId, sortId] of [
-    [31311, 21006],
-    [31315, 21010],
-  ]) {
+  for (const [monstreId, sortId] of [[31311, 21006], [31315, 21010]] as const) {
     const profile = monsterDamageSkills(fiche(monstreId)).find((p) => p.skillCom2usId === sortId);
-    ok(profile != null && !estPrisEnCharge(profile), `${monstreId}/${sortId} : formule ATQ importée explicitement refusée`);
+    ok(profile != null && estPrisEnCharge(profile), `${monstreId}/${sortId} : formule PV/réserve curée et prise en charge`);
   }
+
+  const powerSurge = profilDe(19712, 10502);
+  const powerNu = computeSkillDamage(powerSurge, buildAudit, setupAudit, 'fire');
+  const powerToggle = computeSkillDamage(powerSurge, buildAudit, {
+    ...setupAudit,
+    passifsOffensifs: { [powerSurge.skillCom2usId]: true },
+  }, 'fire');
+  ok(Math.abs(powerToggle / powerNu - 1.15) < 1e-9, 'Power Surge — le toggle « aucun effet néfaste » applique +15 %');
+
+  const inosuke = fiche(32112);
+  const conditionInosuke = monsterConditionsCombat(inosuke)[0]!;
+  egal(conditionInosuke.condition.type, 'manuel', 'Inosuke feu — la clause 0 ou 1 effet néfaste est un toggle');
+  const inosukeS1 = profilDe(32112, 21502);
+  const totalInosuke = (actif: boolean) => computeTotalDamage(
+    inosukeS1,
+    [],
+    buildAudit,
+    { ...setupAudit, passifsOffensifs: { [conditionInosuke.skillCom2usId]: actif } },
+    'fire',
+    ARTIFACT_DAMAGE_NEUTRE,
+    false,
+    null,
+    null,
+    { conditionsCombat: [conditionInosuke] }
+  );
+  ok(Math.abs(totalInosuke(true) / totalInosuke(false) - 1.3) < 1e-9, 'Inosuke feu — le toggle applique +30 % de dégâts');
+
+  const astar = fiche(19812);
+  const profilStatsAstar = monsterCombatStatProfiles(astar);
+  const buildAstar = stats({ hp: 20000, atk: 2000, def: 800, spd: 100, cr: 0, cd: 50 });
+  const ligneAtkAstar = buildAstar.find((s) => s.key === 'atk')!;
+  ligneAtkAstar.base = 1000;
+  const atkAstarNu = statsDeCombat(buildAstar, setupAudit, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk;
+  const atkAstarTouchee = statsDeCombat(buildAstar, {
+    ...setupAudit,
+    statsCombatActives: { 10612: true },
+  }, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk;
+  egal(atkAstarTouchee - atkAstarNu, 1500, 'Astar — +150 % est appliqué à l’ATQ de base, pas à l’ATQ totale');
+  egal(
+    statsDeCombat(buildAstar, {
+      ...setupAudit,
+      passifsOffensifs: { 10612: true },
+    }, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk,
+    atkAstarNu,
+    'Astar — le toggle de dégâts n’active pas son bonus d’ATQ indépendant'
+  );
+
+  const ceres = profilDe(14912, 5812);
+  const ceresAuSeuil = computeSkillDamage(ceres, buildAudit, { ...setupAudit, enemyHp: 40000 });
+  const ceresAuDessus = computeSkillDamage(ceres, buildAudit, { ...setupAudit, enemyHp: 40001 });
+  ok(ceresAuDessus > ceresAuSeuil, '51 — Ceres : le seuil de PV actuels est strict');
+  const ceresBuildPv = stats({ hp: 30000, atk: 1000, def: 800, spd: 200, cr: 25, cd: 100 });
+  egal(
+    computeSkillDamage(ceres, ceresBuildPv, { ...setupAudit, enemyHp: 40001 }),
+    ceresAuSeuil,
+    '51 — Ceres : le seuil est recalculé sur les PV du build candidat'
+  );
+  const ceresCandidatA = { stats: buildAudit, effTotal: 0 } as unknown as BuildCandidate;
+  const ceresCandidatB = {
+    stats: stats({ hp: 30000, atk: 1100, def: 800, spd: 200, cr: 25, cd: 100 }),
+    effTotal: 0,
+  } as unknown as BuildCandidate;
+  const ceresContexte = (enemyHp: number): RealDamageContext => ({
+    profile: ceres,
+    passifs: [],
+    setup: { ...setupAudit, enemyHp },
+    element: 'fire',
+    artefacts: ARTIFACT_DAMAGE_NEUTRE,
+    critSiPlusRapide: false,
+    bonusDegatsSelonVit: null,
+    bonusDegatsStack: null,
+    monsterWide: {},
+    bonusDegatsConditionnel: null,
+    bonusDegatsSelonCr: null,
+    bonusDegatsSelonDef: null,
+    bonusSiAtqSeuil: null,
+  });
+  ok(
+    objectiveScore(ceresCandidatA, 'degats_reels', ceresContexte(40001)) >
+      objectiveScore(ceresCandidatB, 'degats_reels', ceresContexte(40001)),
+    '51 — Optimizer : le build faible en PV gagne seul le bonus de Ceres'
+  );
+  ok(
+    objectiveScore(ceresCandidatB, 'degats_reels', ceresContexte(60001)) >
+      objectiveScore(ceresCandidatA, 'degats_reels', ceresContexte(60001)),
+    '51 — Optimizer : classement inversé quand les deux builds franchissent le seuil'
+  );
+
+  const kassandraVent = profilDe(27613, 17413);
+  const kassandraEgalite = computeSkillDamage(kassandraVent, buildAudit, { ...setupAudit, enemyAtk: 1000 });
+  const kassandraSous = computeSkillDamage(kassandraVent, buildAudit, { ...setupAudit, enemyAtk: 999 });
+  ok(kassandraSous > kassandraEgalite, '63 — Kassandra vent : l’égalité d’ATQ ne donne aucun bonus');
+  const kassandraBuildAtk = stats({ hp: 20000, atk: 1200, def: 800, spd: 200, cr: 25, cd: 100 });
+  ok(
+    computeSkillDamage(kassandraVent, kassandraBuildAtk, { ...setupAudit, enemyAtk: 1000 }) > kassandraEgalite,
+    '63 — Kassandra vent : l’ATQ du build candidat déclenche la condition'
+  );
+
+  const yujiFeu = profilDe(30412, 20112);
+  const yujiIntact = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyDestroyedHpPct: 0 });
+  const yujiDetruit = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyDestroyedHpPct: 1 });
+  ok(yujiIntact > yujiDetruit, '70 — Yuji : un seul point de PV détruits retire le bonus');
+  egal(
+    yujiIntact,
+    computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyDestroyedHpPct: 0, critMode: 'crit' }),
+    '70 — Yuji : critique garanti quand aucun PV n’est détruit'
+  );
+
+  const copper = profilDe(16533, 7763);
+  ok(
+    computeSkillDamage(copper, buildAudit, { ...setupAudit, enemyDef: 400 }) >
+      computeSkillDamage(copper, buildAudit, { ...setupAudit, enemyDef: 401 }),
+    '204 — Copper : ignore DEF au seuil inclusif de la moitié de sa DEF'
+  );
+  const guardCrush = profilDe(26112, 15907);
+  ok(
+    computeSkillDamage(guardCrush, buildAudit, { ...setupAudit, enemyDef: 600 }) >
+      computeSkillDamage(guardCrush, buildAudit, { ...setupAudit, enemyDef: 601 }),
+    '205 — Guard Crush : ignore DEF au seuil inclusif de 60 % de son ATQ'
+  );
+  const triss = profilDe(29515, 19215);
+  const trissSans = computeSkillDamage(triss, buildAudit, { ...setupAudit, enemyDef: 1200 });
+  ok(
+    computeSkillDamage(triss, buildAudit, {
+      ...setupAudit, enemyDef: 1200, passifsOffensifs: { [triss.skillCom2usId]: true },
+    }) > trissSans,
+    '209 — Triss : un toggle de présence de débuff active l’ignore DEF'
+  );
+  ok(
+    computeSkillDamage(triss, buildAudit, { ...setupAudit, enemyDef: 1200, brand: true }) > trissSans,
+    '209 — Triss : Marque active automatiquement l’ignore DEF'
+  );
+
+  const odin = fiche(22613);
+  const odinS1 = profilDe(22613, 13103);
+  const odinCondition = monsterConditionsCombat(odin);
+  const odinScore = (stacks: number) => computeTotalDamage(
+    odinS1, [], buildAudit,
+    { ...setupAudit, enemyDef: 1500, stackPersonnalise: { 13113: stacks } },
+    'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null,
+    { conditionsCombat: odinCondition }
+  );
+  ok(odinScore(0) < odinScore(1) && odinScore(1) < odinScore(4) && odinScore(4) < odinScore(5),
+    '206 — Odin : ignore DEF croissant puis 100 % à cinq connaissances');
+  egal(odinScore(5), odinScore(50), '206 — Odin : connaissances plafonnées à cinq');
+
+  const lexy = fiche(19912);
+  const lexyS1 = profilDe(19912, 10702);
+  const lexyCondition = monsterConditionsCombat(lexy);
+  const lexyScore = (soins: number) => computeTotalDamage(
+    lexyS1, [], buildAudit,
+    { ...setupAudit, enemyDef: 1500, compteurPersonnalise: { 10712: soins } },
+    'fire', ARTIFACT_DAMAGE_NEUTRE, false, null, null,
+    { conditionsCombat: lexyCondition }
+  );
+  egal(lexyScore(0), lexyScore(4), '207 — Lexy : quatre soins adverses ne déclenchent rien');
+  ok(lexyScore(5) > lexyScore(4), '207 — Lexy : ignore DEF après cinq soins adverses');
+
+  const elsharionStats = monsterCombatStatProfiles(fiche(19214));
+  const elsharionSetup = (buffsPropres: number, buffsAllies: number): DamageSetup => ({
+    ...setupAudit,
+    buffsPropresCount: { 10014: buffsPropres },
+    buffsAlliesCount: { 10014: buffsAllies },
+  });
+  const elsharionNu = statsDeCombat(buildAudit, elsharionSetup(0, 0), 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
+  const elsharionPlein = statsDeCombat(buildAudit, elsharionSetup(10, 20), 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
+  ok(elsharionPlein.atk > elsharionNu.atk && elsharionPlein.spd > elsharionNu.spd,
+    '96 — Elsharion : buffs propres et alliés alimentent deux stats distinctes');
+  egal(
+    statsDeCombat(buildAudit, elsharionSetup(50, 50), 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats }),
+    elsharionPlein,
+    '96 — Elsharion : deux plafonds indépendants à 10 et 20'
+  );
+
+  const goldHeadband = monsterCombatStatProfiles(fiche(16812));
+  const goldStats = (stacks: number) => statsDeCombat(
+    buildAudit, { ...setupAudit, stackPersonnalise: { 7912: stacks } },
+    'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: goldHeadband }
+  );
+  ok(goldStats(10).atk > goldStats(0).atk && goldStats(10).spd > goldStats(0).spd,
+    '89 — Gold Headband : ATQ et VIT progressent avec les charges');
+  egal(goldStats(11), goldStats(10), '89 — Gold Headband : dix charges au maximum');
+
+  const berserkMonstre = fiche(18811);
+  const berserkS1 = profilDe(18811, 9601);
+  const berserkConditions = monsterConditionsCombat(berserkMonstre);
+  const berserkStats = monsterCombatStatProfiles(berserkMonstre);
+  const berserkWide = { conditionsCombat: berserkConditions, combatStats: berserkStats };
+  const berserkNu = computeTotalDamage(berserkS1, [], buildAudit, { ...setupAudit, enemyDef: 500 }, 'water', ARTIFACT_DAMAGE_NEUTRE, false, null, null, berserkWide);
+  const berserkActifSetup = { ...setupAudit, enemyDef: 500, passifsOffensifs: { 9611: true } };
+  const berserkActif = computeTotalDamage(berserkS1, [], buildAudit, berserkActifSetup, 'water', ARTIFACT_DAMAGE_NEUTRE, false, null, null, berserkWide);
+  ok(berserkActif > berserkNu, '116 — Berserk : état préalable double les dégâts du S1');
+  const statsBerserkNu = statsDeCombat(buildAudit, setupAudit, 'water', ARTIFACT_DAMAGE_NEUTRE, berserkWide);
+  const statsBerserkActif = statsDeCombat(buildAudit, berserkActifSetup, 'water', ARTIFACT_DAMAGE_NEUTRE, berserkWide);
+  ok(statsBerserkActif.spd > statsBerserkNu.spd && statsBerserkActif.def < statsBerserkNu.def,
+    '116 — Berserk : VIT +20 %, DEF −30 % seulement quand l’état est actif');
+
+  const dyeus = fiche(28314);
+  const dyeusS1 = profilDe(28314, 18124);
+  const dyeusWide = { conditionsCombat: monsterConditionsCombat(dyeus), combatStats: monsterCombatStatProfiles(dyeus) };
+  const dyeusSetup = { ...setupAudit, critMode: 'moyenne' as const };
+  const dyeusSans = computeTotalDamage(dyeusS1, [], buildAudit, dyeusSetup, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
+  const dyeusActifSetup = { ...dyeusSetup, passifsOffensifs: { 18139: true } };
+  const dyeusActif = computeTotalDamage(dyeusS1, [], buildAudit, dyeusActifSetup, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
+  ok(dyeusActif > dyeusSans, '268 — Dyeus : Thunderer force le critique en mode Moyenne');
+  egal(dyeusActif, computeTotalDamage(dyeusS1, [], buildAudit, { ...dyeusActifSetup, critMode: 'crit' }, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide),
+    '268 — Dyeus : critique déjà forcé quand le mode Critique est choisi');
+
+  const toma = profilDe(18711, 9511);
+  const tomaSetup = { ...setupAudit, critMode: 'moyenne' as const, enemyDef: 0 };
+  egal(computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true }),
+    computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true, critMode: 'crit' }),
+    '244 — Toma : Brise DEF force le critique même en mode Moyenne');
+  ok(computeSkillDamage(toma, buildAudit, tomaSetup) < computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true }),
+    '244 — Toma : sans Brise DEF, le critique n’est pas garanti');
+  const squall = profilDe(14611, 4206);
+  egal(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'moyenne' }),
+    computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'crit' }),
+    '246 — Squall : VIT propre strictement supérieure force le critique');
+  ok(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'moyenne' }) <
+    computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'crit' }),
+    '246 — Squall : égalité de VIT ne force pas le critique');
+
+  const ignoreAleatoire = profilDe(15811, 3311);
+  const ignoreSansProc = computeSkillDamage(ignoreAleatoire, buildAudit, { ...setupAudit, enemyDef: 1000 });
+  const ignoreAvecProc = computeSkillDamage(ignoreAleatoire, buildAudit, {
+    ...setupAudit, enemyDef: 1000, passifsOffensifs: { [ignoreAleatoire.skillCom2usId]: true },
+  });
+  ok(ignoreAvecProc > ignoreSansProc, '200 — ignore DEF aléatoire : proc activé explicitement, jamais implicite');
 
   const recette = buildOptimizerRecipe({
     monsterCom2usId: 14713,
@@ -558,6 +964,9 @@ export default function testAuditDegatsConditionnels() {
       scenariosEffetsEntreCoups: {
         [argen.skillCom2usId]: { actif: true, apresCoup: { brand: 1 } },
       },
+      statsCombatActives: { 10612: true },
+      buffsAlliesCount: { 10014: 4 },
+      atkDebuff: true,
     },
     metric: 'eff',
     slotFilterPreset: 'bas',
@@ -610,9 +1019,29 @@ export default function testAuditDegatsConditionnels() {
   delete ancienneRecette.damageSetup.scenariosEffetsEntreCoups;
   delete ancienneRecette.damageSetup.buffsCibleCount;
   delete ancienneRecette.damageSetup.buffsPropresCount;
+  delete ancienneRecette.damageSetup.statsCombatActives;
+  delete ancienneRecette.damageSetup.buffsAlliesCount;
+  delete ancienneRecette.damageSetup.atkDebuff;
+  delete ancienneRecette.damageSetup.effetsCibleCountAutres;
   const ancienneRelue = parseOptimizerRecipe(JSON.stringify(ancienneRecette)).recipe;
   ok(ancienneRelue?.damageSetup != null, 'ancienne recette sans nouveaux champs toujours lisible');
   ok(!ancienneRelue?.damageSetup?.scenariosEffetsEntreCoups, 'ancienne recette : aucun scénario implicite');
+  const ancienCompteur = { ...setupAudit, effetsCibleCountAutres: undefined, effetsCibleCount: { 6907: 2 }, defBreak: true };
+  egal(resolvedDebuffsCibleCount(6907, ancienCompteur), 2,
+    'ancienne recette : son total de débuffs incluait déjà Brise DEF, sans double comptage');
+  const ancienScenario = {
+    ...setupAudit,
+    effetsCibleCountAutres: undefined,
+    effetsCibleCount: { [argen.skillCom2usId]: 1 },
+    scenariosEffetsEntreCoups: {
+      [argen.skillCom2usId]: { actif: true, apresCoup: { brand: 1 } },
+    },
+  };
+  egal(
+    computeSkillDamage(argen, buildAudit, ancienScenario),
+    computeSkillDamage(argen, buildAudit, { ...ancienScenario, effetsCibleCountAutres: true }),
+    'ancienne recette : une Marque posée entre les coups ajoute bien un nouveau débuff'
+  );
   const recetteAvantDegats = JSON.parse(JSON.stringify(recette));
   delete recetteAvantDegats.damageSetup;
   ok(parseOptimizerRecipe(JSON.stringify(recetteAvantDegats)).recipe != null, 'recette antérieure au réglage de dégâts toujours lisible');
@@ -638,6 +1067,10 @@ export default function testAuditDegatsConditionnels() {
   verifierRefus('lignesVerrouillees.0', (r) => { r.lignesVerrouillees = [{ code: 'brand', min: 4 }]; });
   verifierRefus('damageSetup.buffsCibleCount', (r) => { r.damageSetup.buffsCibleCount = []; });
   verifierRefus('damageSetup.buffsPropresCount.6513', (r) => { r.damageSetup.buffsPropresCount = { 6513: -1 }; });
+  verifierRefus('damageSetup.statsCombatActives.10612', (r) => { r.damageSetup.statsCombatActives = { 10612: 1 }; });
+  verifierRefus('damageSetup.buffsAlliesCount.10014', (r) => { r.damageSetup.buffsAlliesCount = { 10014: -1 }; });
+  verifierRefus('damageSetup.atkDebuff', (r) => { r.damageSetup.atkDebuff = 'oui'; });
+  verifierRefus('damageSetup.effetsCibleCountAutres', (r) => { r.damageSetup.effetsCibleCountAutres = 'oui'; });
   verifierRefus('damageSetup.scenariosEffetsEntreCoups.6513.actif', (r) => {
     r.damageSetup.scenariosEffetsEntreCoups = { 6513: { actif: 'oui' } };
   });

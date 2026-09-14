@@ -1870,8 +1870,33 @@ principales de runes, paramètres d'artéfacts, compteurs conditionnels et
 scénarios inter-coups imbriqués sont contrôlés avant d'atteindre l'état de
 l'écran.
 
-Deux exclusions sont volontaires. Le constat 308 de Trasar attend le nombre
-d’ennemis nécessaire à Atlas Stone en étape 2 et ne crée aucun bonus global.
-Arsenal of Sacrifice de Lamiella/Velaska est refusé tant que sa formule PV max
-et réserve de Sacrifice n’est pas curée ; la formule ATQ importée n’est plus
-présentée comme un calcul valide.
+Ces deux exclusions de la partie 1 sont levées en partie 2 : Atlas Stone de
+Skogul/Trasar vaut `PV max / ennemis vivants` en dégâts fixes ; Trasar ajoute
+15 % par mort, au plus 30 %, à son S2 uniquement. Arsenal of Sacrifice de
+Lamiella/Velaska vaut `PV max × réserve de Sacrifice / 100 / ennemis vivants`,
+avec une réserve linéaire de 0 à 100. La formule ATQ importée est remplacée.
+
+## Audit des dégâts conditionnels — partie 2
+
+Le [périmètre exact](optimizer/audit-degats-conditionnels-2026-09-08/partie-2.md)
+ajoute les PV propres actuels/manquants, le nombre d'alliés et d'ennemis
+vivants, les comparaisons de PV/ATQ/DEF/VIT, les statistiques acquises en
+combat, les seuils d'ignore DEF et les critiques garantis conditionnels.
+Chaque grandeur provenant du build est recalculée pour chaque candidat.
+
+Les compteurs de débuffs ennemis sont plafonnés à 10 : Brise DEF et Marque
+actifs s'ajoutent automatiquement aux autres effets saisis. Les clauses
+binaires « au moins un effet néfaste » (Tesarion, Manannan, Arang et analogues)
+utilisent un interrupteur ; Brise DEF ou Marque l'activent aussi sans clic.
+Lorsqu'une pose est choisie entre les coups, seuls les coups suivants
+reçoivent le nouvel état. Cette règle couvre Triple Crush,
+Will-o'-the-Wisp et les dommages passifs par coup de Feng Yan.
+Les nouvelles recettes marquent explicitement cette sémantique « autres
+débuffs » ; une ancienne recette sans marqueur conserve son compteur total
+historique, qui incluait déjà Brise DEF et Marque.
+
+Les états binaires non observables (Power Surge, Inosuke, Berserk, Thunderer,
+procs d'ignore DEF) restent des interrupteurs désactivés par défaut ;
+aucune probabilité n'est convertie en succès garanti. Les deux clauses
+d'Astar sont indépendantes : le bonus de dégâts et le +150 % d'ATQ calculé
+sur sa stat de base quand elle a été touchée.

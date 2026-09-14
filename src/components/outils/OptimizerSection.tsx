@@ -94,6 +94,7 @@ import {
   monsterCritInterdit,
   monsterCritSiPlusRapide,
   monsterConditionsCombat,
+  monsterCombatStatProfiles,
   monsterDamageSkills,
   monsterModificateursVit,
   monsterOffensivePassives,
@@ -612,6 +613,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const bonusParEffetCibleMonstre = useMemo(() => monsterBonusParEffetCible(skillDetail), [skillDetail]);
   const bonusParEffetPropre = useMemo(() => monsterBonusParEffetPropre(skillDetail), [skillDetail]);
   const conditionsCombatMonstre = useMemo(() => monsterConditionsCombat(skillDetail), [skillDetail]);
+  const combatStats = useMemo(() => monsterCombatStatProfiles(skillDetail), [skillDetail]);
   const monsterWide = useMemo(
     () => ({
       critRateSelonVit: critRateSelonVit ?? undefined,
@@ -623,6 +625,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       bonusParEffetCible: bonusParEffetCibleMonstre ?? undefined,
       bonusParEffetPropre: bonusParEffetPropre ?? undefined,
       conditionsCombat: conditionsCombatMonstre,
+      combatStats,
       critInterdit,
     }),
     [
@@ -635,6 +638,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       bonusParEffetCibleMonstre,
       bonusParEffetPropre,
       conditionsCombatMonstre,
+      combatStats,
       critInterdit,
     ]
   );
@@ -1404,7 +1408,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         statsAvecAffiche(arts),
         damageSetup,
         espece.element,
-        artifactDamageProfile(arts)
+        artifactDamageProfile(arts),
+        { combatStats }
       );
     /**
      * ⚠️ **Le cran « Dégâts réels » choisit une AUTRE paire**, il ne réaffiche
@@ -4066,6 +4071,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           bonusParEffetPropre={bonusParEffetPropre}
           bonusSacrifice={bonusSacrifice}
           conditionsCombatMonstre={conditionsCombatMonstre}
+          combatStats={combatStats}
           critInterdit={critInterdit}
           artefacts={artefactsDegats}
         />

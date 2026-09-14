@@ -21,6 +21,7 @@ import {
   monsterBonusSacrifice,
   monsterBonusParEffetCible,
   monsterConditionsCombat,
+  monsterCombatStatProfiles,
   monsterCritInterdit,
   monsterCritRateSelonVit,
   monsterCritSiPlusRapide,
@@ -339,6 +340,7 @@ export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMon
     {
       bonusParEffetCible: monsterBonusParEffetCible(detail) ?? undefined,
       conditionsCombat: monsterConditionsCombat(detail),
+      combatStats: monsterCombatStatProfiles(detail),
       critInterdit: monsterCritInterdit(detail),
     }
   );

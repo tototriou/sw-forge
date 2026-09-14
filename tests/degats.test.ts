@@ -1800,30 +1800,27 @@ export default function testDegats() {
   );
   ok(!bonusConditionnelPropreActif(touchOfMercyProfile, brandiaSetup), 'désactivé par défaut, jamais deviné actif');
 
-  // Zaiross (« Fiery Breath ») — demande explicite : « if the enemy's Attack
-  // Power is half or less than your Attack Power, ... increases the damage
-  // dealt against the enemy by 50%. » Condition (ATQ adverse) que l'app ne
-  // peut pas déduire — bouton RESTREINT À CE SORT, même patron que Touch of
-  // Mercy/Rending Claw. La clause « critique garanti » du même texte reste
-  // hors modèle (non demandée).
+  // Zaiross (« Fiery Breath ») — l'audit étape 2 connaît désormais
+  // l'ATQ adverse saisie. La condition ≤ 50 % est donc calculée directement,
+  // et force aussi le critique annoncé par le texte du sort.
   const zaiross = fiche(14412);
   const fieryBreath = monsterDamageSkills(zaiross).find((s) => estPrisEnCharge(s) && s.nom === 'Fiery Breath');
   ok(fieryBreath != null && estPrisEnCharge(fieryBreath), 'Zaiross : Fiery Breath calculable');
   const fieryBreathProfile = fieryBreath as SkillDamageProfile;
-  egal(
-    fieryBreathProfile.bonusConditionnelPropre,
-    { pct: 50, condition: "l'ATQ de la cible est ≤ la moitié de la tienne" },
-    'Zaiross : +50 % si l’ATQ adverse est ≤ la moitié de la sienne'
+  ok(
+    fieryBreathProfile.conditionsCombat?.some((c) => c.type === 'atkCibleSousAtkPropre' && c.inclusif && c.pct === 50 && c.critiqueGaranti) === true,
+    'Zaiross : seuil ATQ adverse ≤ 50 %, +50 % et critique garanti'
   );
   const zairossStats = stats({ atk: 2000, cd: 200, cr: 100 });
   const zairossSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: fieryBreathProfile.skillCom2usId, summonerSkills: 'aucune', critMode: 'normal' };
-  ok(!bonusConditionnelPropreActif(fieryBreathProfile, zairossSetup), 'désactivé par défaut, jamais deviné actif');
-  const zairossSans = computeSkillDamage(fieryBreathProfile, zairossStats, zairossSetup);
-  const zairossAvec = computeSkillDamage(fieryBreathProfile, zairossStats, {
-    ...zairossSetup,
-    passifsOffensifs: { [fieryBreathProfile.skillCom2usId]: true },
-  });
-  ok(Math.abs(zairossAvec / zairossSans - 1.5) < 1e-9, 'activé : exactement ×1,5, ni plus ni moins');
+  const zairossHorsSeuil = computeSkillDamage(fieryBreathProfile, zairossStats, { ...zairossSetup, enemyAtk: 1001 });
+  const zairossAuSeuil = computeSkillDamage(fieryBreathProfile, zairossStats, { ...zairossSetup, enemyAtk: 1000 });
+  ok(zairossAuSeuil > zairossHorsSeuil, 'Zaiross : le seuil inclusif active le bonus et le critique');
+  egal(
+    zairossAuSeuil,
+    computeSkillDamage(fieryBreathProfile, zairossStats, { ...zairossSetup, enemyAtk: 1000, critMode: 'crit' }),
+    'Zaiross : le critique est garanti au seuil'
+  );
   const brandiaAvecImmunite = computeSkillDamage(touchOfMercyProfile, brandiaStats, {
     ...brandiaSetup,
     passifsOffensifs: { [touchOfMercyProfile.skillCom2usId]: true },

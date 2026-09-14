@@ -215,14 +215,29 @@ function validerDamageSetup(value: unknown): string | null {
     const e = validerNombre(setup.skillCom2usId, 'damageSetup.skillCom2usId', true);
     if (e) return e;
   }
-  for (const champ of ['enemyDef', 'enemyHp', 'enemyHpPct', 'enemySpd', 'leaderSpeedPct', 'velaskaPvPerduPct']) {
+  for (const champ of [
+    'enemyDef', 'enemyHp', 'enemyHpPct', 'ownHpPct', 'livingAlliesPct', 'aliveEnemies',
+    'sacrificeReservePct', 'enemyAtk', 'enemyDestroyedHpPct', 'enemySpd', 'leaderSpeedPct',
+    'velaskaPvPerduPct',
+  ]) {
     if (setup[champ] !== undefined) {
       const e = validerNombre(setup[champ], `damageSetup.${champ}`);
       if (e) return e;
     }
   }
+  for (const champ of ['ownHpPct', 'livingAlliesPct', 'sacrificeReservePct', 'enemyDestroyedHpPct']) {
+    if (setup[champ] !== undefined && ((setup[champ] as number) < 0 || (setup[champ] as number) > 100)) {
+      return erreur(`damageSetup.${champ}`, 'doit être compris entre 0 et 100');
+    }
+  }
+  if (
+    setup.aliveEnemies !== undefined &&
+    (!Number.isInteger(setup.aliveEnemies) || (setup.aliveEnemies as number) < 1)
+  ) {
+    return erreur('damageSetup.aliveEnemies', 'doit être un entier strictement positif');
+  }
   for (const champ of [
-    'atkBuff', 'defBuff', 'spdBuff', 'defBreak', 'defBreakParLeSort', 'brand', 'euldongActif', 'mirinaeActif',
+    'atkBuff', 'defBuff', 'spdBuff', 'defBreak', 'defBreakParLeSort', 'brand', 'effetsCibleCountAutres', 'atkDebuff', 'defDebuff', 'spdDebuff', 'euldongActif', 'mirinaeActif',
     'deborahActif', 'miriamActif', 'transmissionActif', 'velaskaActif',
   ]) {
     if (setup[champ] !== undefined && typeof setup[champ] !== 'boolean') return erreur(`damageSetup.${champ}`, 'doit être un booléen');
@@ -237,7 +252,7 @@ function validerDamageSetup(value: unknown): string | null {
     return erreur('damageSetup.enemyElement', 'contient un élément inconnu');
   }
 
-  for (const champ of ['coupsPersonnalises', 'effetsCibleCount', 'buffsCibleCount', 'buffsPropresCount', 'compteurPersonnalise', 'effetsPropresCount']) {
+  for (const champ of ['coupsPersonnalises', 'effetsCibleCount', 'buffsCibleCount', 'buffsPropresCount', 'buffsAlliesCount', 'compteurPersonnalise', 'effetsPropresCount']) {
     const e = validerRecordNumerique(setup[champ], `damageSetup.${champ}`, true);
     if (e) return e;
   }
@@ -247,6 +262,8 @@ function validerDamageSetup(value: unknown): string | null {
   }
   const ePassifs = validerRecordBooleen(setup.passifsOffensifs, 'damageSetup.passifsOffensifs');
   if (ePassifs) return ePassifs;
+  const eStatsCombat = validerRecordBooleen(setup.statsCombatActives, 'damageSetup.statsCombatActives');
+  if (eStatsCombat) return eStatsCombat;
 
   if (setup.scenariosEffetsEntreCoups !== undefined) {
     if (!estObjet(setup.scenariosEffetsEntreCoups)) {

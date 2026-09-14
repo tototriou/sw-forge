@@ -41,6 +41,7 @@ import {
   monsterCritInterdit,
   monsterCritSiPlusRapide,
   monsterConditionsCombat,
+  monsterCombatStatProfiles,
   monsterDamageSkills,
   monsterOffensivePassives,
   passifActif,
@@ -210,6 +211,7 @@ if (recipe.objective === 'degats_reels') {
           {
             bonusParEffetCible: monsterBonusParEffetCible(detail) ?? undefined,
             conditionsCombat: monsterConditionsCombat(detail),
+            combatStats: monsterCombatStatProfiles(detail),
             critInterdit,
           }
         ).join(', ')}]`

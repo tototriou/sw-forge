@@ -613,6 +613,13 @@ retour.
      change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
      place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 30 000 ·
      DEF 1 000 · Critique`. On la clique pour rouvrir.
+     La partie 2 de l'audit ajoute dans cette fenêtre les PV propres, les
+     ennemis vivants, la réserve de Sacrifice, les comparaisons de stats et
+     les états de combat propres au monstre choisi. Les compteurs de débuffs
+     ennemis s'arrêtent à 10 ; les conditions binaires utilisent un
+     interrupteur activé automatiquement par Brise DEF ou Marque. Ces choix
+     traversent recette, CLI, Worker, score de recherche et évaluation des
+     artéfacts ; les anciennes recettes conservent leurs valeurs par défaut.
      - ⚠️ **Le résumé dit le sort RÉELLEMENT utilisé**, pas celui qu'on
        avait choisi. Un sort appartient à un monstre : après un changement
        de monstre, le calcul retombe sur le sort par défaut du nouveau. Tant

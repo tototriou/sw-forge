@@ -2563,6 +2563,30 @@ function estBombeSansCoupDirect(c: Competence): boolean {
   return BOMBES_SANS_COUP_DIRECT_CONNUS.has(c.nom) || !(c.coups && c.coups > 0);
 }
 
+// Une formule peut chiffrer un SOIN, et non des dégâts. Sur le corpus actuel,
+// les sorts avec `coups: 0` et effet `Heal` ne frappent pas. Quelques soins
+// portent pourtant `coups: 1` (ou omettent l'effet Heal) : curation par nom
+// exact après lecture de toutes leurs variantes, jamais par regex sur la
+// description. One More Drink peut lancer Rolling Punch ensuite, mais sa
+// propre formule chiffre le soin, pas cette attaque supplémentaire.
+const SOINS_SANS_DEGATS_CONNUS = new Set([
+  'Amuse',
+  "Fairy's Blessing",
+  'Heal!',
+  'Love & Peace',
+  'Medical Support',
+  'Mystical Blood Transfusion',
+  'One More Drink',
+  'Operation Support',
+  'Soft Pudding',
+  'Synergy',
+]);
+
+function estSoinSansDegats(c: Competence): boolean {
+  return SOINS_SANS_DEGATS_CONNUS.has(c.nom)
+    || (c.coups === 0 && c.effets.some((e) => e.nom === 'Heal'));
+}
+
 // Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à
 // 5 fois »…) — `Competence.coups` ne porte qu'UN SEUL nombre, pas toujours
 // cohérent avec le texte (ex. Rain of Fire : `coups=6` en donnée, « 3 à 5
@@ -2619,7 +2643,7 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
  * dégâts calculables. Ne lève jamais.
  */
 export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDamageUnsupported | null {
-  if (c.passif || !c.formule || c.com2usId == null) return null;
+  if (c.passif || !c.formule || c.com2usId == null || estSoinSansDegats(c)) return null;
   const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule).trim();
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom };
   const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);

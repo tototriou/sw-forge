@@ -168,6 +168,42 @@ export default function testDegats() {
   ok(skillDamageProfile(sort(null)) === null, 'une compétence sans formule ne produit aucun profil');
   ok(skillDamageProfile(sort('3.6*{ATK}', { passif: true })) === null, 'un passif ne produit aucun profil');
 
+  titre('Dégâts réels — une formule de soin ne crée pas un sort offensif');
+
+  for (const monstreId of [10113, 10133]) {
+    const aeilene = fiche(monstreId);
+    const purify = aeilene.competences.find((c) => c.nom === 'Purify')!;
+    ok(!!purify.formule?.includes('{ATK}') && purify.coups === 0, `Aeilene ${monstreId} : Purify porte bien une formule d’ATQ sans frappe`);
+    egal(skillDamageProfile(purify), null, `Aeilene ${monstreId} : Purify est un soin, pas des dégâts`);
+    ok(monsterDamageSkills(aeilene).every((p) => p.nom !== 'Purify'), `Aeilene ${monstreId} : Purify absent du sélecteur offensif`);
+    ok(monsterDamageSkills(aeilene).some((p) => p.nom === 'Gust'), `Aeilene ${monstreId} : Gust reste offensif`);
+  }
+
+  // Chaque exception curée a son témoin réel : les données annoncent parfois
+  // un coup, ou omettent l'effet Heal, alors que la formule chiffre le soin.
+  const soinsCures: [number, string][] = [
+    [18313, 'Amuse'],
+    [19104, "Fairy's Blessing"],
+    [47801, 'Heal!'],
+    [26302, 'Love & Peace'],
+    [20101, 'Medical Support'],
+    [12014, 'Mystical Blood Transfusion'],
+    [17201, 'One More Drink'],
+    [1000204, 'Operation Support'],
+    [26802, 'Soft Pudding'],
+    [10413, 'Synergy'],
+  ];
+  for (const [monstreId, nom] of soinsCures) {
+    const competence = fiche(monstreId).competences.find((c) => c.nom === nom)!;
+    ok(competence.formule != null, `${nom} : l'exception vise une formule réelle`);
+    egal(skillDamageProfile(competence), null, `${nom} : formule de soin sans dégâts propres`);
+  }
+  ok(monsterDamageSkills(fiche(11213)).some((p) => p.nom === "Will-o'-the-Wisp"),
+    'Will-o’-the-Wisp frappe et soigne : son profil offensif reste disponible');
+  ok(profil('4.5*{ATK}', { nom: 'Bite', coups: 1,
+    effets: fiche(10113).competences.find((c) => c.nom === 'Purify')!.effets }) !== null,
+    'un effet Heal sur une attaque avec coup ne suffit pas à la retirer');
+
   // Une formule calculable mais indépendante des runes : refusée AVEC une
   // raison, pas silencieusement acceptée — optimiser dessus n'a aucun sens.
   const inerte = skillDamageProfile(sort('1500(Fixed)'));

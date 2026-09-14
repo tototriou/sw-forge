@@ -28,6 +28,21 @@ l'essentiel. Sont donc **déduits, jamais saisis** :
 | Dégâts fixes (ni critique ni mitigation) | marqueur `(Fixed)` de la formule |
 | Bonus de dégâts des améliorations | somme des `Damage +X%` de `ameliorations` |
 
+La présence d'une `formule` ne suffit **pas** à qualifier le sort d'offensif :
+elle peut chiffrer un soin (y compris proportionnel à l'ATQ), un bouclier ou
+un autre effet. Avant de construire un profil de dégâts, les soins sans frappe
+sont écartés. Sur le corpus vérifié, `coups: 0` avec l'effet `Heal` désigne
+un soin sans dégâts ; les exceptions où `coups` vaut 1 ou l'effet `Heal`
+manque sont curées par nom exact après lecture des variantes. Cela comprend
+`Purify` d'Aeilene (normal et second éveil), `Fairy's Blessing`,
+`Medical Support`, `Love & Peace`, `Soft Pudding`, `Amuse`, `Heal!`,
+`Operation Support`, `Synergy`, `Mystical Blood Transfusion` et
+`One More Drink` : ce dernier peut déclencher ensuite `Rolling Punch`, mais
+sa propre formule `2,4 × ATQ` décrit le soin. À l'inverse, `Bite`,
+`Will-o'-the-Wisp` et les autres sorts qui frappent **et** soignent gardent
+leur profil offensif. Ni une recherche automatique du mot « attaque » dans
+la prose ni la valeur de `coups` prise seule ne sont des preuves fiables.
+
 ⚠️ **La compétence est supposée MAXÉE**, comme partout ailleurs dans l'app
 (même parti pris que `paliersRechargement`, voir
 [monsterSkills.ts](src/lib/monsterSkills.ts)) : les `Damage +X%` sont tous
@@ -53,8 +68,8 @@ l'Optimizer classerait les builds sur une base fausse. C'est la seule
 propriété de ce module qui serait **grave et invisible** — d'où le balayage
 du corpus **réel** en test, pas seulement des cas écrits à la main.
 
-Couverture mesurée sur le corpus complet : **5 881 sorts offensifs
-calculables, 187 refusés explicitement** (variables hors modèle —
+Couverture mesurée sur le corpus complet après exclusion des 69 soins :
+**6 073 profils de dégâts calculables, 115 refusés explicitement** (variables hors modèle —
 `{Attacker's Level}`, `ABSORPTION_TOT_CNT`… — ou formules hors grammaire).
 `{Relative SPD}` a longtemps fait partie des variables refusées (20 sorts,
 Beast Rider ×10 formes/éléments, Barbara, Masha, Savannah, Narsha, Xiana) —

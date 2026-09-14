@@ -8,7 +8,6 @@ import {
   BonusMonstreParEffetPropreProfile,
   CombatStatProfile,
   ConditionMonstreProfile,
-  ArtifactDamageProfile,
   BonusSacrificeProfile,
   CRIT_MODE_LABELS,
   CritMode,
@@ -32,6 +31,7 @@ import {
   estPrisEnCharge,
   passifActif,
   resolvedBuffsPropresCount,
+  resolvedBuffCiblePresent,
   resolvedEffetsPropresCount,
   resolvedDebuffCiblePresent,
   resolvedDebuffsCibleCount,
@@ -138,10 +138,6 @@ interface Props {
   conditionsCombatMonstre: ConditionMonstreProfile[];
   combatStats: CombatStatProfile[];
   critInterdit: boolean;
-  // Ce que les artéfacts pris en compte apportent (`artifactDamageProfile`,
-  // damage.ts) — DÉDUIT, jamais saisi ici ; affiché en clair pour que les
-  // stats calculées ne semblent pas sorties de nulle part.
-  artefacts: ArtifactDamageProfile;
 }
 
 // Ce que le sort — ou le PASSIF (voir plus bas) — nous apprend, en une
@@ -285,7 +281,6 @@ export default function DamageSetupCard({
   conditionsCombatMonstre,
   combatStats,
   critInterdit,
-  artefacts,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
   const majBuffsPropres = (skillCom2usId: number, total: number) => {
@@ -375,41 +370,43 @@ export default function DamageSetupCard({
           {skills.map((s) => {
             const pris = estPrisEnCharge(s);
             return (
-              <Option
-                key={s.skillCom2usId}
-                actif={pris && s.skillCom2usId === resolved.skillCom2usId}
-                disabled={!pris}
-                onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}
-                icone={
-                  pris && s.icone ? (
-                    <img src={s.icone} alt="" className="h-7 w-7 rounded" loading="lazy" />
-                  ) : undefined
-                }
-                titre={
-                  <>
-                    <span className="font-mono text-micro text-ink-dim">S{s.slot}</span>
-                    {s.nom}
-                  </>
-                }
-                // Un sort refusé affiche POURQUOI plutôt que de disparaître :
-                // sans ça, l'absence du sort n°2 passerait pour un oubli.
-                description={
-                  pris ? (
-                    (() => {
-                      const { ratio, reste } = resumeSort(s, setup);
-                      return (
-                        <>
-                          {ratio && <span className="font-mono text-ink">{ratio}</span>}
-                          {ratio && ' · '}
-                          {reste}
-                        </>
-                      );
-                    })()
-                  ) : (
-                    s.raison
-                  )
-                }
-              />
+              <div key={s.skillCom2usId} title={s.description ?? undefined}>
+                <Option
+                  actif={pris && s.skillCom2usId === resolved.skillCom2usId}
+                  disabled={!pris}
+                  aria-description={s.description ?? undefined}
+                  onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}
+                  icone={
+                    pris && s.icone ? (
+                      <img src={s.icone} alt="" className="h-7 w-7 rounded" loading="lazy" />
+                    ) : undefined
+                  }
+                  titre={
+                    <>
+                      <span className="font-mono text-micro text-ink-dim">S{s.slot}</span>
+                      {s.nom}
+                    </>
+                  }
+                  // Un sort refusé affiche POURQUOI plutôt que de disparaître :
+                  // sans ça, l'absence du sort n°2 passerait pour un oubli.
+                  description={
+                    pris ? (
+                      (() => {
+                        const { ratio, reste } = resumeSort(s, setup);
+                        return (
+                          <>
+                            {ratio && <span className="font-mono text-ink">{ratio}</span>}
+                            {ratio && ' · '}
+                            {reste}
+                          </>
+                        );
+                      })()
+                    ) : (
+                      s.raison
+                    )
+                  }
+                />
+              </div>
             );
           })}
         </div>
@@ -1216,23 +1213,28 @@ export default function DamageSetupCard({
             </label>
           )}
           {demandeBuffsCible && (
-            <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">Buffs sur la cible</span>
-              <NumberField
-                value={setup.buffsCibleCount?.[resolved.skillCom2usId] ?? 0}
-                onChange={(v) =>
-                  maj({
-                    buffsCibleCount: {
-                      ...(setup.buffsCibleCount ?? {}),
-                      [resolved.skillCom2usId]: v ?? 0,
-                    },
-                  })
-                }
-                min={0}
-                boxWidth="w-24"
-                ariaLabel="Nombre de buffs actuellement sur la cible"
+            <div className="space-y-1">
+              <Interrupteur
+                actif={resolvedBuffCiblePresent(resolved.skillCom2usId, setup)}
+                onChange={(v) => maj({
+                  buffsCibleCount: {
+                    ...(setup.buffsCibleCount ?? {}),
+                    [resolved.skillCom2usId]: v ? 1 : 0,
+                  },
+                })}
+                libelle="Effets bénéfiques présents sur la cible"
+                aria-label="Effets bénéfiques présents sur la cible"
               />
-            </label>
+              <p className="text-xs text-ink-dim">
+                {conditionsSort
+                  .filter((condition) => condition.type === 'buffCiblePresent' || condition.type === 'aucunBuffCible')
+                  .map((condition) => resumeCondition(condition))
+                  .join(' · ')}.
+                {conditionsSort.some((condition) => condition.type === 'aucunBuffCible' && condition.critiqueGaranti)
+                  ? ' Un buff retire cette garantie ; le mode critique choisi s’applique alors.'
+                  : ''}
+              </p>
+            </div>
           )}
           {demandeDebuffsPropres && !resolved.bonusParEffetPropre && (
             <label className="flex items-center gap-2">
@@ -1461,25 +1463,6 @@ export default function DamageSetupCard({
                   dans « Passifs offensifs » ci-dessus (icône + description),
                   plus complet qu'une ligne de texte — les dupliquer ferait
                   redite. */}
-              {/* ⚠️ Une ligne par buff amplifié, et seulement ceux qui le
-                  sont réellement : annoncer « ATQ amplifiée » alors que le
-                  buff d'ATQ n'est pas coché ferait chercher un effet qui ne
-                  s'applique pas. */}
-              {artefacts.ampliVitPct > 0 && (
-                <span className="text-xs text-ink-dim">
-                  + artéfact « Effet aug. VIT » : le buff de VIT est amplifié de {artefacts.ampliVitPct} %
-                </span>
-              )}
-              {artefacts.ampliAtkPct > 0 && setup.atkBuff && (
-                <span className="text-xs text-ink-dim">
-                  + artéfact « Effet renforcement ATQ » : le buff d'ATQ est amplifié de {artefacts.ampliAtkPct} %
-                </span>
-              )}
-              {artefacts.ampliDefPct > 0 && setup.defBuff && (
-                <span className="text-xs text-ink-dim">
-                  + artéfact « Effet renforcement DEF » : le buff de DEF est amplifié de {artefacts.ampliDefPct} %
-                </span>
-              )}
             </>
           )}
         </div>

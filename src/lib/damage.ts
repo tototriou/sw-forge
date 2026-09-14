@@ -1208,6 +1208,12 @@ export function resolvedDebuffCiblePresent(skillCom2usId: number, setup: DamageS
   return (setup.passifsOffensifs?.[skillCom2usId] ?? false) || resolvedDebuffsCibleCount(skillCom2usId, setup) > 0;
 }
 
+// Les clauses « au moins un buff » et « aucun buff » ne lisent qu'une
+// présence. Les anciennes recettes peuvent encore contenir un compte > 1.
+export function resolvedBuffCiblePresent(skillCom2usId: number, setup: DamageSetup): boolean {
+  return (setup.buffsCibleCount?.[skillCom2usId] ?? 0) > 0;
+}
+
 // Le compteur ACTUELLEMENT saisi pour `profile` (Crawler/Frankenstein —
 // nombre d'attaques reçues) — 0 si rien de saisi. Borné à 9999, la plage
 // confirmée par l'utilisateur, au cas où une saisie hors plage viendrait
@@ -1267,9 +1273,9 @@ function conditionCombatActive(
 ): boolean {
   switch (condition.type) {
     case 'buffCiblePresent':
-      return (setup.buffsCibleCount?.[key] ?? 0) > 0;
+      return resolvedBuffCiblePresent(key, setup);
     case 'aucunBuffCible':
-      return (setup.buffsCibleCount?.[key] ?? 0) === 0;
+      return !resolvedBuffCiblePresent(key, setup);
     case 'aucunDebuffPropre':
       return (setup.effetsPropresCount?.[key] ?? 0) === 0;
     case 'debuffsPropresMax':
@@ -2099,6 +2105,7 @@ export interface SkillDamageProfile {
   skillCom2usId: number;
   slot: number;
   nom: string;
+  description: string | null;
   icone: string | null;
   formule: string;
   // Nombre de coups RETENU pour le calcul — le minimum de `hitsRange` s'il
@@ -2420,6 +2427,7 @@ const BONUS_STACK_PROPRE_CONNUS: Record<string, NonNullable<SkillDamageProfile['
 
 const EFFETS_ENTRE_COUPS_CONNUS: Record<string, EffetEntreCoupsProfile[]> = {
   'Arcane Burst': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  'Ghost Slash': [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
   'Death Blow': [
     { id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' },
     { id: 'beneficial-effects-blocked', label: 'Blocage des effets bénéfiques', cumulable: false },
@@ -2482,6 +2490,7 @@ export interface SkillDamageUnsupported {
   skillCom2usId: number;
   slot: number;
   nom: string;
+  description: string | null;
   raison: string;
 }
 
@@ -2660,7 +2669,7 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
 export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDamageUnsupported | null {
   if (c.passif || !c.formule || c.com2usId == null || estSoinSansDegats(c)) return null;
   const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule).trim();
-  const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom };
+  const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom, description: c.description };
   const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);
   const analyse = analyser(brut.replace(RE_FIXED, '').trim());
   if (!analyse) {
@@ -3044,6 +3053,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         skillCom2usId: c.com2usId,
         slot: c.slot ?? 0,
         nom: c.nom,
+        description: c.description,
         icone: c.icone,
         formule: brut,
         // ⚠️ **Jamais `c.coups`**, qui ne représente rien de fiable pour un
@@ -3301,9 +3311,9 @@ export interface DamageSetup {
   // Brise DEF/Marque s'ajoutent. Absent : ancienne recette qui stockait
   // le total, statuts explicites inclus. Les buffs ne sont pas concernés.
   effetsCibleCountAutres?: boolean;
-  // Compteurs séparés quand le sort lit uniquement les buffs : les fusionner
-  // avec `effetsCibleCount` ferait compter un débuff dans une clause qui ne
-  // parle que d'effets bénéfiques (et inversement).
+  // Ancien compte des buffs adverses pour les conditions binaires. L'écran
+  // écrit désormais 0 ou 1 ; une recette historique > 0 signifie « présent ».
+  // Distinct des vrais bonus PAR buff (`effetsCibleCount`).
   buffsCibleCount?: Record<number, number>;
   // Nouvelle recette : AUTRES buffs propres, hors ATQ/DEF/VIT explicites.
   // Ancienne recette (marqueur absent) : total historique inclusif.

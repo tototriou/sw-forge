@@ -1924,3 +1924,39 @@ procs d'ignore DEF) restent des interrupteurs désactivés par défaut ;
 aucune probabilité n'est convertie en succès garanti. Les deux clauses
 d'Astar sont indépendantes : le bonus de dégâts et le +150 % d'ATQ calculé
 sur sa stat de base quand elle a été touchée.
+
+### Conditions binaires de buffs adverses et lecture des sorts
+
+Raptor Combo et Flying Kick Combo gagnent 50 % de dégâts dès qu'au moins un
+effet bénéfique est présent sur la cible, quel qu'en soit le nombre. Leur
+condition, comme les clauses « aucun buff adverse » d'Airbender, Magic Surge,
+Flash Pierce et Storm of Midnight, se règle avec un interrupteur « Effets
+bénéfiques présents sur la cible ». Les anciennes recettes qui contiennent
+un `buffsCibleCount` supérieur à zéro restent interprétées comme « présent » ;
+les nouveaux choix enregistrent 0 ou 1. Les vrais bonus *par buff* (par
+exemple Thousand Shots) gardent leur compteur distinct.
+
+Dans la modale Dégâts réels, le survol de chaque compétence affiche sa prose
+SWARFARM, y compris si sa formule n'est pas prise en charge. Le résumé sous
+le nom reste celui des coefficients et conditions calculés. Dark Bolt (S1)
+et Decimate (S3) de Grogen ajoutent respectivement 20 et 150 points de
+Dégâts Crit au seul coup critique ; aucun de ces points ne modifie un coup
+non critique.
+
+Pour Storm of Midnight (Alicia, Tiana, Lydia S2), l'interrupteur de présence
+des buffs adverses explique en clair sa conséquence : sans buff sur la cible,
+le coup est critique garanti ; avec un buff, il suit le mode critique choisi.
+Les autres conditions binaires affichent aussi leur gain près de
+l'interrupteur, sans imposer de relire le résumé du sort.
+
+Les lignes « Effet renforcement ATQ/DEF » et « Effet aug. VIT » des artéfacts
+amplifient les buffs du monstre optimisé, pas la VIT de l'adversaire. Leur
+rappel apparaît auprès des buffs dans « État de mon monstre », seulement
+quand le buff correspondant est actif ; rien de tel ne figure sous « VIT
+adversaire ».
+
+Ghost Slash (S1 des Onimusha, deux coups) peut poser Brise DEF sur chacun
+de ses coups. Le scénario explicite « pose après le coup 1 » applique la
+réduction de DEF au second coup uniquement ; aucune réussite n'est supposée
+par défaut. Les cinq éléments et les formes partageant leur identifiant de
+compétence suivent la même règle.

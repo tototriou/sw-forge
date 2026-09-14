@@ -10,6 +10,7 @@ import {
   SkillDamageProfile,
   computeSkillDamage,
   computeTotalDamage,
+  defenseFactor,
   damageRelevantStats,
   estPrisEnCharge,
   monsterBonusDegatsConditionnel,
@@ -22,6 +23,7 @@ import {
   monsterDamageSkills,
   monsterOffensivePassives,
   resolvedBuffsPropresCount,
+  resolvedBuffCiblePresent,
   resolvedDebuffsCibleCount,
   resolvedDebuffCiblePresent,
   statsDeCombat,
@@ -381,6 +383,7 @@ export default function testAuditDegatsConditionnels() {
     'Chain Attack',
     'Death Blow',
     'Full Burst',
+    'Ghost Slash',
     'Gouge',
     'Gust',
     'Mach Crush',
@@ -435,6 +438,20 @@ export default function testAuditDegatsConditionnels() {
   for (const [monstreId, sortId, points] of cdPropres) {
     egal(profilDe(monstreId, sortId).critDamagePoints, points, `${monstreId}/${sortId} : bonus DC propre`);
   }
+  for (const [sortId, points] of [[2905, 20], [2915, 150]] as const) {
+    const grogen = profilDe(14415, sortId);
+    const sansBonus = { ...grogen, critDamagePoints: 0 };
+    const nonCrit = { ...setupAudit, critMode: 'normal' as const };
+    const crit = { ...setupAudit, critMode: 'crit' as const };
+    egal(computeSkillDamage(grogen, buildAudit, nonCrit, 'dark'), computeSkillDamage(sansBonus, buildAudit, nonCrit, 'dark'),
+      `Grogen ${sortId} : les points de DC ne changent pas un coup non critique`);
+    ok(computeSkillDamage(grogen, buildAudit, crit, 'dark') > computeSkillDamage(sansBonus, buildAudit, crit, 'dark'),
+      `Grogen ${sortId} : les ${points} points de DC augmentent réellement les dégâts critiques`);
+    egal(Math.round(computeSkillDamage(grogen, buildAudit, crit, 'dark') - computeSkillDamage(sansBonus, buildAudit, crit, 'dark')),
+      Math.round(1000 * (sortId === 2905 ? 4.6 : 5.2) * points / 100 * defenseFactor(0)),
+      `Grogen ${sortId} : l'écart suit ATQ × coefficient × points de DC × mitigation`);
+    ok(!!grogen.description?.length, `Grogen ${sortId} : la prose est transmise au choix du sort`);
+  }
   egal(profilDe(11734, 2759).critRatePoints, 50, 'Eludain : +50 points de TC');
   egal(profilDe(11731, 2756).critRatePoints, 50, 'Purian : +50 points de TC');
 
@@ -464,6 +481,21 @@ export default function testAuditDegatsConditionnels() {
   }
   const fuuki = fiche(25113);
   const fuukiS1 = profilDe(25113, 15003);
+  for (const [monstreId, sortId] of [[25111, 15001], [25112, 15002], [25113, 15003], [25114, 15004], [25115, 15005]] as const) {
+    egal(profilDe(monstreId, sortId).effetsEntreCoups?.[0]?.effetCombat, 'defBreak',
+      `${monstreId}/${sortId} : Ghost Slash peut poser Brise DEF au premier coup`);
+  }
+  const cibleOnimusha = { ...setupAudit, enemyDef: 1200 };
+  const ghostSansPose = computeSkillDamage(fuukiS1, buildAudit, cibleOnimusha, 'wind');
+  const ghostPoseApresPremier = computeSkillDamage(fuukiS1, buildAudit, {
+    ...cibleOnimusha,
+    scenariosEffetsEntreCoups: { [fuukiS1.skillCom2usId]: { actif: true, apresCoup: { 'decrease-def': 1 } } },
+  }, 'wind');
+  const ghostBreakInitial = computeSkillDamage(fuukiS1, buildAudit, { ...cibleOnimusha, defBreak: true }, 'wind');
+  ok(ghostSansPose < ghostPoseApresPremier && ghostPoseApresPremier < ghostBreakInitial,
+    'Ghost Slash : une pose au premier hit ne majore que le second');
+  egal(Math.round(ghostPoseApresPremier), Math.round((ghostSansPose + ghostBreakInitial) / 2),
+    'Ghost Slash : le scénario vaut un hit sans Brise DEF puis un hit avec');
   ok(!fuukiS1.fixed, 'Onimusha : dégâts ordinaires, pas dégâts fixes');
   const sansCritOnimusha = { critInterdit: monsterCritInterdit(fuuki) };
   egal(
@@ -703,6 +735,14 @@ export default function testAuditDegatsConditionnels() {
       computeSkillDamage(storm, buildAudit, setupAudit, 'water'),
     'Storm of Midnight : un buff adverse retire le critique garanti'
   );
+  for (const [monstreId, sortId] of [[18911, 9706], [18913, 9708], [18915, 9710]] as const) {
+    const s2 = profilDe(monstreId, sortId);
+    ok(s2.conditionsCombat?.some((condition) => condition.type === 'aucunBuffCible' && condition.critiqueGaranti),
+      `${monstreId} Storm of Midnight : aucun buff adverse garantit le critique`);
+    ok(computeSkillDamage(s2, buildAudit, setupAudit, 'water') >
+      computeSkillDamage(s2, buildAudit, { ...setupAudit, buffsCibleCount: { [sortId]: 1 } }, 'water'),
+      `${monstreId} Storm of Midnight : le buff adverse retire la garantie`);
+  }
 
   const togglesSortAttendus: [number, number, number][] = [
     [15411, 6811, 50],
@@ -765,6 +805,22 @@ export default function testAuditDegatsConditionnels() {
   for (const [monstreId, sortId] of [[31311, 21006], [31315, 21010]] as const) {
     const profile = monsterDamageSkills(fiche(monstreId)).find((p) => p.skillCom2usId === sortId);
     ok(profile != null && estPrisEnCharge(profile), `${monstreId}/${sortId} : formule PV/réserve curée et prise en charge`);
+  }
+  const combosBuffBinaire = [
+    [33211, 22506], [33213, 22508], [33214, 22509],
+    [33711, 23006], [33713, 23008], [33714, 23009],
+  ] as const;
+  for (const [monstreId, sortId] of combosBuffBinaire) {
+    const sort = profilDe(monstreId, sortId);
+    const zero = { ...setupAudit, buffsCibleCount: { [sort.skillCom2usId]: 0 } };
+    const un = { ...setupAudit, buffsCibleCount: { [sort.skillCom2usId]: 1 } };
+    const dix = { ...setupAudit, buffsCibleCount: { [sort.skillCom2usId]: 10 } };
+    ok(!resolvedBuffCiblePresent(sort.skillCom2usId, zero), `${sort.nom} : pas de buff`);
+    ok(resolvedBuffCiblePresent(sort.skillCom2usId, dix), `${sort.nom} : ancienne recette à dix buffs`);
+    ok(computeSkillDamage(sort, buildAudit, un, 'wind') > computeSkillDamage(sort, buildAudit, zero, 'wind'),
+      `${sort.nom} : un seul buff active le bonus`);
+    egal(computeSkillDamage(sort, buildAudit, un, 'wind'), computeSkillDamage(sort, buildAudit, dix, 'wind'),
+      `${sort.nom} : dix buffs ne renforcent pas le bonus binaire`);
   }
 
   const powerSurge = profilDe(19712, 10502);

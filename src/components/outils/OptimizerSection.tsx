@@ -3566,7 +3566,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
           le décalage d'une rangée de tout ce qui suit. */}
       <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
-        <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} />
+        <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} artefacts={artefactsDegats} />
       </div>
 
       {/* ⚠️ « Objectif de recherche » N'EST PLUS ICI — il a rejoint la carte
@@ -4073,7 +4073,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           conditionsCombatMonstre={conditionsCombatMonstre}
           combatStats={combatStats}
           critInterdit={critInterdit}
-          artefacts={artefactsDegats}
         />
       )}
 

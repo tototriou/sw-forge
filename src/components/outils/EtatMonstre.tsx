@@ -1,4 +1,4 @@
-import { DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills } from '../../lib/damage';
+import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
 import { Segmented, Selecteur } from '../../ui';
 import HelpPopover from '../HelpPopover';
@@ -37,10 +37,12 @@ export default function EtatMonstre({
   setup,
   maj,
   etroit,
+  artefacts,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
   etroit: boolean;
+  artefacts: ArtifactDamageProfile;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -146,6 +148,21 @@ export default function EtatMonstre({
         />
       </div>
       </div>
+      {(setup.atkBuff && artefacts.ampliAtkPct > 0) ||
+      (setup.defBuff && artefacts.ampliDefPct > 0) ||
+      (setup.spdBuff && artefacts.ampliVitPct > 0) ? (
+        <div className="space-y-0.5 text-xs text-ink-dim">
+          {setup.atkBuff && artefacts.ampliAtkPct > 0 && (
+            <p>Buff ATQ actif : l'artéfact « Effet renforcement ATQ » amplifie ce buff de {artefacts.ampliAtkPct} %.</p>
+          )}
+          {setup.defBuff && artefacts.ampliDefPct > 0 && (
+            <p>Buff DEF actif : l'artéfact « Effet renforcement DEF » amplifie ce buff de {artefacts.ampliDefPct} %.</p>
+          )}
+          {setup.spdBuff && artefacts.ampliVitPct > 0 && (
+            <p>Buff VIT actif : l'artéfact « Effet aug. VIT » amplifie ce buff de {artefacts.ampliVitPct} %.</p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -654,7 +654,10 @@ retour.
        fixes et bonus des améliorations sont lus dans la fiche du sort. Par
        défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
        dont la formule sort du modèle reste **affiché, grisé, avec son
-       motif** — jamais absent sans explication. ⚠️ **Coups variables** (« 2
+       motif** — jamais absent sans explication. Le survol de chaque sort,
+       même grisé, montre sa description du jeu. Les conditions « buff
+       adverse présent/absent » sont des interrupteurs, contrairement aux
+       bonus proportionnels au nombre de buffs. ⚠️ **Coups variables** (« 2
        à 3 fois », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3) : un
        champ numérique borné apparaît sous le sort choisi (ou sous le passif
        concerné) pour choisir la valeur réellement utilisée par le calcul —
@@ -919,6 +922,9 @@ retour.
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
    jeu) et **compétences d'invocateur**. Ce qui rend le monstre plus fort,
    quel que soit l'adversaire.
+   Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
+   apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
+   VIT), jamais sous la VIT de l'adversaire.
 
    Les trois groupes tiennent sur **une seule rangée** (demande explicite) :
    empilés, ils donnaient à la carte une hauteur sans rapport avec le peu

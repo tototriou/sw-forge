@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import {
   ARTIFACT_DAMAGE_NEUTRE,
+  autresBuffsPropresDepuisTotal,
   BonusDegatsConditionnelProfile,
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
@@ -20,6 +21,7 @@ import {
   monsterCritInterdit,
   monsterDamageSkills,
   monsterOffensivePassives,
+  resolvedBuffsPropresCount,
   resolvedDebuffsCibleCount,
   resolvedDebuffCiblePresent,
   statsDeCombat,
@@ -576,6 +578,47 @@ export default function testAuditDegatsConditionnels() {
     egal(profile.bonusParEffetPropre?.pct, 5, `${monstreId}/${sortId} : +5 % par buff propre`);
     ok(profile.ignoreDef, `${monstreId}/${sortId} : ignore DEF explicite`);
   }
+  const buffsExplicites: DamageSetup = {
+    ...setupAudit, buffsPropresCountAutres: true,
+    atkBuff: true, defBuff: true, spdBuff: true,
+    buffsPropresCount: { 17408: 2 },
+  };
+  egal(DEFAULT_DAMAGE_SETUP.buffsPropresCountAutres, true,
+    'les nouveaux réglages saisissent les autres buffs propres par défaut');
+  egal(resolvedBuffsPropresCount(17408, buffsExplicites), 5,
+    'Kassandra : deux autres buffs + ATQ/DEF/VIT actifs = cinq buffs propres');
+  egal(autresBuffsPropresDepuisTotal(5, buffsExplicites), 2,
+    'le compteur affiché à cinq reconstruit deux autres buffs à l’enregistrement');
+  egal(resolvedBuffsPropresCount(17408, { ...buffsExplicites, buffsPropresCount: { 17408: 7 } }), 10,
+    'buffs propres : sept autres + trois explicites atteignent le plafond de dix');
+  egal(resolvedBuffsPropresCount(17408, { ...buffsExplicites, buffsPropresCount: { 17408: 40 } }), 10,
+    'buffs propres : une recette éditée à la main ne peut dépasser dix');
+  egal(resolvedBuffsPropresCount(17408, { ...buffsExplicites, atkBuff: false, defBuff: false, spdBuff: false }), 2,
+    'buffs propres : les interrupteurs désactivés ne contribuent pas');
+  const ancienCompteBuffs = { ...buffsExplicites, buffsPropresCountAutres: undefined };
+  egal(resolvedBuffsPropresCount(17408, ancienCompteBuffs), 3,
+    'ancienne recette : le total inclusif ne recompte pas ATQ/DEF/VIT');
+  egal(autresBuffsPropresDepuisTotal(3, ancienCompteBuffs), 3,
+    'ancienne recette : modifier le compteur ne le convertit pas en autres buffs');
+  egal(resolvedBuffsPropresCount(17408, { ...ancienCompteBuffs, spdBuff: false }), 2,
+    'ancienne recette : le total historique de deux buffs reste inchangé');
+  for (const [monstreId, sortId] of [
+    [27612, 17407], [27613, 17408], [27615, 17410],
+    [28112, 17907], [28113, 17908], [28115, 17910],
+  ]) {
+    const profile = profilDe(monstreId, sortId);
+    const nu = computeSkillDamage(profile, buildAudit, setupAudit);
+    const avecDefBuff = computeSkillDamage(profile, buildAudit, { ...setupAudit, defBuff: true });
+    ok(Math.abs(avecDefBuff / nu - 1.05) < 1e-9,
+      `${monstreId}/${sortId} : le buff DEF seul apporte +5 % au S2 sans modifier l'ATQ`);
+  }
+  for (const [monstreId, sortId] of [[33413, 22713], [33913, 23213]]) {
+    const profile = profilDe(monstreId, sortId);
+    const nu = computeSkillDamage(profile, buildAudit, setupAudit);
+    const avecDefBuff = computeSkillDamage(profile, buildAudit, { ...setupAudit, defBuff: true });
+    ok(Math.abs(avecDefBuff / nu - 1.15) < 1e-9,
+      `${monstreId}/${sortId} : un buff propre explicite alimente aussi le bonus de 15 %`);
+  }
   for (const [monstreId, sortId] of [
     [33413, 22713],
     [33913, 23213],
@@ -888,6 +931,9 @@ export default function testAuditDegatsConditionnels() {
     buffsAlliesCount: { 10014: buffsAllies },
   });
   const elsharionNu = statsDeCombat(buildAudit, elsharionSetup(0, 0), 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
+  const elsharionDefBuff = statsDeCombat(buildAudit, { ...elsharionSetup(0, 0), defBuff: true }, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
+  ok(elsharionDefBuff.atk > elsharionNu.atk,
+    '96 — Elsharion : buff DEF explicite compte comme un buff propre et augmente son ATQ');
   const elsharionPlein = statsDeCombat(buildAudit, elsharionSetup(10, 20), 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
   ok(elsharionPlein.atk > elsharionNu.atk && elsharionPlein.spd > elsharionNu.spd,
     '96 — Elsharion : buffs propres et alliés alimentent deux stats distinctes');
@@ -896,6 +942,15 @@ export default function testAuditDegatsConditionnels() {
     elsharionPlein,
     '96 — Elsharion : deux plafonds indépendants à 10 et 20'
   );
+  const geraltStats = monsterCombatStatProfiles(fiche(29215));
+  const geraltTrois = statsDeCombat(buildAudit, {
+    ...setupAudit, buffsPropresCount: { 18915: 3 },
+  }, 'dark', ARTIFACT_DAMAGE_NEUTRE, { combatStats: geraltStats });
+  const geraltCinq = statsDeCombat(buildAudit, {
+    ...setupAudit, buffsPropresCount: { 18915: 3 }, defBuff: true, spdBuff: true,
+  }, 'dark', ARTIFACT_DAMAGE_NEUTRE, { combatStats: geraltStats });
+  egal(geraltCinq.atk, geraltTrois.atk,
+    'Geralt : son passif reste plafonné à trois buffs même si le total propre atteint cinq');
 
   const goldHeadband = monsterCombatStatProfiles(fiche(16812));
   const goldStats = (stacks: number) => statsDeCombat(
@@ -987,6 +1042,26 @@ export default function testAuditDegatsConditionnels() {
     computeTotalDamage(argen, [], candidatAtk.stats, recette.damageSetup!, 'wind'),
     'UI/CLI : même recette, même score conditionnel'
   );
+  const recetteKassandra = {
+    ...recette,
+    monsterCom2usId: 27613,
+    monsterName: 'Kassandra',
+    damageSetup: {
+      ...setupAudit, skillCom2usId: 17408, buffsPropresCountAutres: true,
+      buffsPropresCount: { 17408: 2 }, defBuff: true,
+    },
+  };
+  const contexteKassandra = buildRealDamageContext(recetteKassandra, 27613, []);
+  ok(contexteKassandra != null, 'CLI : le contexte Kassandra avec buffs propres est reconstruit');
+  egal(parseOptimizerRecipe(JSON.stringify(recetteKassandra)).recipe?.damageSetup, recetteKassandra.damageSetup,
+    'recette récente : le marqueur autres buffs propres traverse l’export/import');
+  egal(resolvedBuffsPropresCount(17408, contexteKassandra!.setup), 3,
+    'CLI : la recette conserve deux autres buffs et le buff DEF actif');
+  egal(
+    objectiveScore(candidatAtk, 'degats_reels', contexteKassandra!),
+    computeTotalDamage(profilDe(27613, 17408), [], candidatAtk.stats, recetteKassandra.damageSetup, 'wind'),
+    'UI/CLI : même score Kassandra avec buffs propres ajoutés automatiquement'
+  );
 
   // Le helper est celui des trois évaluateurs d'artéfacts de l'écran ET du
   // CLI. Guillaume rend l'omission de `monsterWide` observable : son passif
@@ -1019,6 +1094,7 @@ export default function testAuditDegatsConditionnels() {
   delete ancienneRecette.damageSetup.scenariosEffetsEntreCoups;
   delete ancienneRecette.damageSetup.buffsCibleCount;
   delete ancienneRecette.damageSetup.buffsPropresCount;
+  delete ancienneRecette.damageSetup.buffsPropresCountAutres;
   delete ancienneRecette.damageSetup.statsCombatActives;
   delete ancienneRecette.damageSetup.buffsAlliesCount;
   delete ancienneRecette.damageSetup.atkDebuff;
@@ -1026,6 +1102,13 @@ export default function testAuditDegatsConditionnels() {
   const ancienneRelue = parseOptimizerRecipe(JSON.stringify(ancienneRecette)).recipe;
   ok(ancienneRelue?.damageSetup != null, 'ancienne recette sans nouveaux champs toujours lisible');
   ok(!ancienneRelue?.damageSetup?.scenariosEffetsEntreCoups, 'ancienne recette : aucun scénario implicite');
+  egal(ancienneRelue?.damageSetup?.buffsPropresCountAutres, undefined,
+    'ancienne recette : l’absence du marqueur conserve le compteur inclusif');
+  const ancienneKassandra = JSON.parse(JSON.stringify(recetteKassandra));
+  delete ancienneKassandra.damageSetup.buffsPropresCountAutres;
+  const ancienneKassandraRelue = parseOptimizerRecipe(JSON.stringify(ancienneKassandra)).recipe;
+  egal(resolvedBuffsPropresCount(17408, ancienneKassandraRelue!.damageSetup!), 2,
+    'ancienne recette Kassandra : buff DEF déjà inclus dans le total de deux');
   const ancienCompteur = { ...setupAudit, effetsCibleCountAutres: undefined, effetsCibleCount: { 6907: 2 }, defBreak: true };
   egal(resolvedDebuffsCibleCount(6907, ancienCompteur), 2,
     'ancienne recette : son total de débuffs incluait déjà Brise DEF, sans double comptage');
@@ -1067,6 +1150,7 @@ export default function testAuditDegatsConditionnels() {
   verifierRefus('lignesVerrouillees.0', (r) => { r.lignesVerrouillees = [{ code: 'brand', min: 4 }]; });
   verifierRefus('damageSetup.buffsCibleCount', (r) => { r.damageSetup.buffsCibleCount = []; });
   verifierRefus('damageSetup.buffsPropresCount.6513', (r) => { r.damageSetup.buffsPropresCount = { 6513: -1 }; });
+  verifierRefus('damageSetup.buffsPropresCountAutres', (r) => { r.damageSetup.buffsPropresCountAutres = 'oui'; });
   verifierRefus('damageSetup.statsCombatActives.10612', (r) => { r.damageSetup.statsCombatActives = { 10612: 1 }; });
   verifierRefus('damageSetup.buffsAlliesCount.10014', (r) => { r.damageSetup.buffsAlliesCount = { 10014: -1 }; });
   verifierRefus('damageSetup.atkDebuff', (r) => { r.damageSetup.atkDebuff = 'oui'; });

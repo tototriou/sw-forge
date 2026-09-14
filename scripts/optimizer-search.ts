@@ -46,6 +46,7 @@ import {
   monsterOffensivePassives,
   passifActif,
   resolveDamageSkill,
+  resolvedBuffsPropresCount,
   resolvedHits,
   resolvedLeaderSkill,
   resolvedStackPct,
@@ -188,6 +189,7 @@ if (recipe.objective === 'degats_reels') {
         `cible ${s.enemyHp} PV / ${s.enemyDef} DEF` +
         `${profile.variables.some((v) => v === 'Relative SPD' || v === 'Target SPD') ? ` / ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd} VIT` : ''} — ${critInterdit ? 'critique impossible' : `crit ${s.critMode}`}` +
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
+        `${profile.bonusParEffetPropre?.source === 'buffs' ? ` — buffs propres ${resolvedBuffsPropresCount(profile.skillCom2usId, s)}/10` : ''}` +
         `${s.defBreak ? ' — def break avant' : ''}${s.defBreakParLeSort ? ' — def break posé par le sort' : ''}` +
         `${s.brand ? ' — marque' : ''}` +
         `${s.euldongActif ? ' — Euldong' : ''}${s.mirinaeActif ? ' — Mirinae' : ''}${s.deborahActif ? ' — Deborah' : ''}${s.miriamActif ? ' — Miriam' : ''}${s.transmissionActif ? ' — Dr. Matteo' : ''}${s.velaskaActif ? ` — Velaska (${s.velaskaPvPerduPct ?? 0}% PV perdus)` : ''}` +

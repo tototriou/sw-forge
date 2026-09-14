@@ -26,10 +26,12 @@ import {
   SkillDamageUnsupported,
   TRANSMISSION_ICON,
   VELASKA_ICON,
+  autresBuffsPropresDepuisTotal,
   bonusConditionnelPropreActif,
   bonusDegatsConditionnelActif,
   estPrisEnCharge,
   passifActif,
+  resolvedBuffsPropresCount,
   resolvedEffetsPropresCount,
   resolvedDebuffCiblePresent,
   resolvedDebuffsCibleCount,
@@ -286,6 +288,10 @@ export default function DamageSetupCard({
   artefacts,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
+  const majBuffsPropres = (skillCom2usId: number, total: number) => {
+    const autres = autresBuffsPropresDepuisTotal(total, setup);
+    maj({ buffsPropresCount: { ...(setup.buffsPropresCount ?? {}), [skillCom2usId]: autres } });
+  };
 
   if (chargement) {
     return <p className="text-xs text-ink-dim">Chargement des compétences…</p>;
@@ -990,7 +996,7 @@ export default function DamageSetupCard({
                     : setup.stackPersonnalise;
               const patcher = (value: number) => {
                 if (profile.source === 'buffsPropres') {
-                  maj({ buffsPropresCount: { ...(setup.buffsPropresCount ?? {}), [profile.skillCom2usId]: value } });
+                  majBuffsPropres(profile.skillCom2usId, value);
                 } else if (profile.source === 'buffsAllies') {
                   maj({ buffsAlliesCount: { ...(setup.buffsAlliesCount ?? {}), [profile.skillCom2usId]: value } });
                 } else if (profile.source === 'debuffsPropres') {
@@ -1003,10 +1009,12 @@ export default function DamageSetupCard({
                 <label key={key} className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-ink-dim">{profile.label}</span>
                   <NumberField
-                    value={record?.[profile.skillCom2usId] ?? 0}
+                    value={profile.source === 'buffsPropres'
+                      ? Math.min(profile.max ?? 10, resolvedBuffsPropresCount(profile.skillCom2usId, setup))
+                      : record?.[profile.skillCom2usId] ?? 0}
                     onChange={(v) => patcher(v ?? 0)}
                     min={0}
-                    max={profile.max}
+                    max={profile.source === 'buffsPropres' ? Math.min(10, profile.max ?? 10) : profile.max}
                     step={1}
                     boxWidth="w-24"
                     ariaLabel={profile.label}
@@ -1187,17 +1195,12 @@ export default function DamageSetupCard({
               <NumberField
                 value={
                   resolved.bonusParEffetPropre.source === 'buffs'
-                    ? setup.buffsPropresCount?.[resolved.skillCom2usId] ?? 0
+                    ? resolvedBuffsPropresCount(resolved.skillCom2usId, setup)
                     : setup.effetsPropresCount?.[resolved.skillCom2usId] ?? 0
                 }
                 onChange={(v) =>
                   resolved.bonusParEffetPropre?.source === 'buffs'
-                    ? maj({
-                        buffsPropresCount: {
-                          ...(setup.buffsPropresCount ?? {}),
-                          [resolved.skillCom2usId]: v ?? 0,
-                        },
-                      })
+                    ? majBuffsPropres(resolved.skillCom2usId, v ?? 0)
                     : maj({
                         effetsPropresCount: {
                           ...(setup.effetsPropresCount ?? {}),
@@ -1206,6 +1209,7 @@ export default function DamageSetupCard({
                       })
                 }
                 min={0}
+                max={resolved.bonusParEffetPropre.source === 'buffs' ? 10 : undefined}
                 boxWidth="w-24"
                 ariaLabel={`Nombre de ${resolved.bonusParEffetPropre.source === 'buffs' ? 'buffs' : 'débuffs'} sur toi-même`}
               />
@@ -1353,7 +1357,7 @@ export default function DamageSetupCard({
                     ? `+${condition.pct} % de dégâts`
                     : 'condition active';
               const compteChance = condition.chanceParBuffPropre
-                ? setup.buffsPropresCount?.[key] ?? 0
+                ? resolvedBuffsPropresCount(key, setup)
                 : condition.chanceParDebuffCible
                   ? resolvedDebuffsCibleCount(key, setup)
                   : 0;
@@ -1379,7 +1383,7 @@ export default function DamageSetupCard({
                       <NumberField
                         value={compteChance}
                         onChange={(v) => condition.chanceParBuffPropre
-                          ? maj({ buffsPropresCount: { ...(setup.buffsPropresCount ?? {}), [key]: v ?? 0 } })
+                          ? majBuffsPropres(key, v ?? 0)
                           : maj({ effetsCibleCount: { ...(setup.effetsCibleCount ?? {}), [key]: Math.max(0, (v ?? 0) - (setup.effetsCibleCountAutres === true ? Number(setup.defBreak) + Number(setup.brand) : 0)) } })}
                         min={0}
                         max={10}

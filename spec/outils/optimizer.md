@@ -620,6 +620,9 @@ retour.
      interrupteur activé automatiquement par Brise DEF ou Marque. Ces choix
      traversent recette, CLI, Worker, score de recherche et évaluation des
      artéfacts ; les anciennes recettes conservent leurs valeurs par défaut.
+     Les buffs sur soi ont le même compteur plafonné à 10 : les interrupteurs
+     ATQ, DEF et VIT actifs s'ajoutent automatiquement aux autres buffs saisis.
+     Une ancienne recette garde son total inclusif, sans double comptage.
      - ⚠️ **Le résumé dit le sort RÉELLEMENT utilisé**, pas celui qu'on
        avait choisi. Un sort appartient à un monstre : après un changement
        de monstre, le calcul retombe sur le sort par défaut du nouveau. Tant

@@ -1910,6 +1910,15 @@ Les nouvelles recettes marquent explicitement cette sémantique « autres
 débuffs » ; une ancienne recette sans marqueur conserve son compteur total
 historique, qui incluait déjà Brise DEF et Marque.
 
+Les buffs propres suivent le même principe : `buffsPropresCount` contient
+les **autres** buffs dans les nouvelles recettes, tandis que les buffs ATQ,
+DEF et VIT actifs ajoutent chacun 1, sans dépasser 10 au total. Cette valeur
+alimente Hero Strike/Strike of Fighter (Kassandra et équivalents), Power
+Charge/Flying Strike, les statistiques de combat d'Elsharion/Crane/Geralt/
+Valdemar et la chance affichée de Shadow Arrow. Une recette ancienne sans
+`buffsPropresCountAutres` conserve son total historique inclusif ; les trois
+interrupteurs en assurent au moins le minimum, sans double compte.
+
 Les états binaires non observables (Power Surge, Inosuke, Berserk, Thunderer,
 procs d'ignore DEF) restent des interrupteurs désactivés par défaut ;
 aucune probabilité n'est convertie en succès garanti. Les deux clauses

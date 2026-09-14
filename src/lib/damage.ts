@@ -1175,6 +1175,22 @@ export function resolvedDebuffsCibleCount(skillCom2usId: number, setup: DamageSe
   return Math.min(10, setup.effetsCibleCountAutres === true ? saisi + explicites : Math.max(saisi, explicites));
 }
 
+/** Buffs propres réellement présents, avec la même compatibilité que les débuffs ennemis. */
+export function resolvedBuffsPropresCount(skillCom2usId: number, setup: DamageSetup): number {
+  const saisi = Math.max(0, setup.buffsPropresCount?.[skillCom2usId] ?? 0);
+  const explicites = buffsPropresExplicites(setup);
+  return Math.min(10, setup.buffsPropresCountAutres === true ? saisi + explicites : Math.max(saisi, explicites));
+}
+
+function buffsPropresExplicites(setup: DamageSetup): number {
+  return Number(!!setup.atkBuff) + Number(!!setup.defBuff) + Number(!!setup.spdBuff);
+}
+
+/** Convertit le total affiché en valeur à stocker, y compris pour une ancienne recette. */
+export function autresBuffsPropresDepuisTotal(total: number, setup: DamageSetup): number {
+  return Math.max(0, total - (setup.buffsPropresCountAutres === true ? buffsPropresExplicites(setup) : 0));
+}
+
 // Melissa/Brandia comptent AUSSI les buffs : le plafond 10 est celui des
 // débuffs seuls, jamais un plafond universel du total d'effets mixtes.
 function resolvedEffetsMixtesCibleCount(skillCom2usId: number, setup: DamageSetup): number {
@@ -2140,9 +2156,8 @@ export interface SkillDamageProfile {
   // `coupsPersonnalises`/`stackPersonnalise` (0 par défaut, jamais deviné).
   bonusParEffetCible?: BonusParEffetProfile;
   // Même famille, mais effets présents sur l'ATTAQUANT. Les buffs et les
-  // débuffs ont deux compteurs séparés dans `DamageSetup` : jamais de
-  // déduction depuis les interrupteurs ATQ/DEF/VIT, qui ne représentent pas
-  // nécessairement tous les buffs actifs.
+  // débuffs ont deux compteurs séparés dans `DamageSetup`. Les interrupteurs
+  // ATQ/DEF/VIT comptent chacun un buff connu ; les autres buffs sont saisis.
   bonusParEffetPropre?: { pct: number; source: 'buffs' | 'debuffs' };
   // Conditions entièrement déductibles du contexte saisi. Les états que
   // l'app ne connaît pas restent dans `bonusConditionnelPropre` (bouton).
@@ -3290,7 +3305,10 @@ export interface DamageSetup {
   // avec `effetsCibleCount` ferait compter un débuff dans une clause qui ne
   // parle que d'effets bénéfiques (et inversement).
   buffsCibleCount?: Record<number, number>;
+  // Nouvelle recette : AUTRES buffs propres, hors ATQ/DEF/VIT explicites.
+  // Ancienne recette (marqueur absent) : total historique inclusif.
   buffsPropresCount?: Record<number, number>;
+  buffsPropresCountAutres?: boolean;
   // Buffs présents sur l'ensemble des alliés (Elsharion), compteur distinct
   // des buffs propres. Absent = 0.
   buffsAlliesCount?: Record<number, number>;
@@ -3365,6 +3383,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   summonerSkills: 'combat',
   passifsOffensifs: {},
   effetsCibleCountAutres: true,
+  buffsPropresCountAutres: true,
   statsCombatActives: {},
   coupsPersonnalises: {},
   scenariosEffetsEntreCoups: {},
@@ -3550,7 +3569,7 @@ function combatStatCount(profile: CombatStatProfile, setup: DamageSetup): number
       count = setup.stackPersonnalise?.[profile.skillCom2usId] ?? 0;
       break;
     case 'buffsPropres':
-      count = setup.buffsPropresCount?.[profile.skillCom2usId] ?? 0;
+      count = resolvedBuffsPropresCount(profile.skillCom2usId, setup);
       break;
     case 'buffsAllies':
       count = setup.buffsAlliesCount?.[profile.skillCom2usId] ?? 0;
@@ -4128,7 +4147,7 @@ export function computeSkillDamageDetail(
       Math.max(
         0,
         profile.bonusParEffetPropre.source === 'buffs'
-          ? setup.buffsPropresCount?.[profile.skillCom2usId] ?? 0
+          ? resolvedBuffsPropresCount(profile.skillCom2usId, setup)
           : setup.effetsPropresCount?.[profile.skillCom2usId] ?? 0
       )
     : 0;

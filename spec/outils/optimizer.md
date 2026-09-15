@@ -731,11 +731,14 @@ retour.
        ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont plus** — voir
        « État de mon monstre » ci-dessous.
      - ⚠️ **Compétences d'invocateur : parties ailleurs**, voir « État de mon
-       monstre ». Rappel de ce qu'elles font : **Aucune** / **Combat**
-       (défaut) / **Combat + Guilde**, remplaçant les anciens totems et
+       monstre ». Rappel de ce qu'elles font : **Combat** (défaut) /
+       **Combat + Guilde**, remplaçant les anciens totems et
        drapeaux, toujours supposées maxées. **Un choix unique, pas deux
        cases** : l'onglet Guilde ne s'applique qu'en contenu de guilde, où
        Combat compte aussi — « Guilde » implique donc toujours « Combat ».
+       Il n'existe pas de cran « Aucune » : les compétences de Combat
+       s'appliquent dans toute situation réelle du jeu. Une ancienne recette
+       qui portait ce cran est normalisée vers **Combat** à l'import.
        La compétence « Puis. d'att. de <élément> » suit l'élément du
        monstre, sans rien demander. Détail des valeurs :
        [degats-reels.md](degats-reels.md).
@@ -933,7 +936,7 @@ retour.
    les contrôles sous leur taille de cible.
 
    Dans le groupe **Invocateur**, le libellé et son aide sont **au-dessus**
-   des trois crans, pas à leur gauche (demande explicite) : côte à côte, ils
+   des deux crans, pas à leur gauche (demande explicite) : côte à côte, ils
    formaient le groupe le plus large des trois et faisaient replier la rangée
    plus tôt. ⚠️ **Sans changer la hauteur de la carte** — le groupe passe à
    deux rangées, mais « Lead » en fait déjà deux et `items-stretch` aligne les

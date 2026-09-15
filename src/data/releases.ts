@@ -76,6 +76,11 @@ export const RELEASES: Release[] = [
         scope: 'Optimiseur',
         text: 'Les Onimusha ne sont plus avantagés par des critiques impossibles.',
       },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Les compétences d’invocateur utilisent toujours Combat au minimum.',
+      },
     ],
   },
   {

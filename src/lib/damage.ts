@@ -209,14 +209,14 @@ export const LEADER_SKILL_VALEURS: Record<LeaderSkillStat, number[]> = {
 // (voir `skillupDamagePct`) et le rechargement (`paliersRechargement`) : même
 // parti pris dans toute l'app. Ce sont les valeurs Lv.20 des captures du jeu.
 //
-// ⚠️ **Trois états, pas deux interrupteurs indépendants** : l'onglet Guilde ne
-// s'applique qu'en contenu de guilde, où les compétences de Combat comptent
-// AUSSI — « Guilde » implique donc toujours « Combat », et deux cases
-// séparées auraient laissé cocher une combinaison qui n'existe pas en jeu.
-export type SummonerSkills = 'aucune' | 'combat' | 'guilde';
+// ⚠️ **Deux états, pas deux interrupteurs indépendants** : les compétences de
+// Combat s'appliquent toujours ; l'onglet Guilde ne s'ajoute qu'en contenu de
+// guilde, où Combat compte AUSSI. « Guilde » implique donc toujours « Combat ».
+// Il n'existe volontairement aucun état « aucune » : il ne correspond à aucune
+// situation du jeu et sous-estimerait silencieusement toutes les statistiques.
+export type SummonerSkills = 'combat' | 'guilde';
 
 export const SUMMONER_SKILLS_LABELS: { key: SummonerSkills; label: string }[] = [
-  { key: 'aucune', label: 'Aucune' },
   { key: 'combat', label: 'Combat' },
   { key: 'guilde', label: 'Combat + Guilde' },
 ];
@@ -246,7 +246,6 @@ export function summonerSkillBonus(
 ): { pct: Record<'atk' | 'def' | 'hp' | 'spd', number>; cdPoints: number } {
   const pct = { atk: 0, def: 0, hp: 0, spd: 0 };
   let cdPoints = 0;
-  if (choix === 'aucune') return { pct, cdPoints };
 
   pct.atk += COMBAT_PCT.atk;
   pct.def += COMBAT_PCT.def;
@@ -3386,10 +3385,9 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   // théorique comme défaut — voir l'avertissement affiché sous ce mode
   // dans DamageSetupCard.tsx).
   critMode: 'crit',
-  // ⚠️ « Combat » par défaut, pas « Aucune » : ces compétences sont
-  // PERMANENTES en jeu dès qu'elles sont montées, et le sont chez à peu près
-  // tout joueur qui utilise un optimiseur. Partir d'« Aucune » afficherait
-  // des dégâts que personne n'observe réellement.
+  // ⚠️ « Combat » est le seul défaut possible : ces compétences s'appliquent
+  // en permanence en jeu. « Guilde » ne s'ajoute que lorsque l'utilisateur
+  // décrit explicitement un contenu de guilde.
   summonerSkills: 'combat',
   passifsOffensifs: {},
   effetsCibleCountAutres: true,

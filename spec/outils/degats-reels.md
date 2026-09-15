@@ -143,10 +143,10 @@ Remplacent, dans le jeu, les anciens **totems** de guilde (onglet
 **Toujours supposées maxées** (Lv.20), même parti pris que les améliorations
 de compétence.
 
-⚠️ **Trois états, pas deux interrupteurs indépendants** — « Guilde » implique
-toujours « Combat » : l'onglet Guilde ne s'applique qu'en contenu de guilde,
-où les compétences de Combat comptent aussi. Deux cases séparées auraient
-laissé cocher une combinaison qui n'existe pas en jeu.
+⚠️ **Deux états, pas deux interrupteurs indépendants** — **Combat** s'applique
+toujours ; **Combat + Guilde** ajoute l'onglet Guilde dans le contenu concerné.
+Deux cases séparées permettraient de demander Guilde sans Combat, autre
+combinaison qui n'existe pas en jeu.
 
 | | Combat | + Guilde |
 |---|---|---|
@@ -172,9 +172,10 @@ monstre perso) ne reçoit aucune des cinq compétences élémentaires.
 totaux), d'où un double arrondi supérieur : au plus 1 point d'écart sur la
 statistique, sans effet sur un classement de builds.
 
-**Défaut : « Combat »**, pas « Aucune » — ces compétences sont permanentes en
-jeu dès qu'elles sont montées ; partir d'« Aucune » afficherait des dégâts
-que personne n'observe réellement.
+**Défaut et minimum : « Combat »** — le cran « Aucune » a été retiré, car ces
+compétences s'appliquent dans toute situation réelle du jeu. Une recette
+exportée avant ce retrait reste lisible : « Aucune » y est normalisée vers
+« Combat » avant d'atteindre l'écran ou le CLI.
 
 ## Volontairement hors modèle
 

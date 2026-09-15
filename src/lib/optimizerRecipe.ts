@@ -245,6 +245,9 @@ function validerDamageSetup(value: unknown): string | null {
   if (setup.critMode !== undefined && !['moyenne', 'crit', 'normal'].includes(String(setup.critMode))) {
     return erreur('damageSetup.critMode', 'contient un mode de critique inconnu');
   }
+  // ⚠️ « aucune » n'existe plus dans l'écran ni dans `SummonerSkills`, mais
+  // reste accepté ICI uniquement pour migrer une recette déjà exportée. Le
+  // parseur le transforme en « combat » avant de rendre la recette.
   if (setup.summonerSkills !== undefined && !['aucune', 'combat', 'guilde'].includes(String(setup.summonerSkills))) {
     return erreur('damageSetup.summonerSkills', "contient un mode de compétences d'invocateur inconnu");
   }
@@ -382,5 +385,13 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   }
   const damageSetupErreur = validerDamageSetup(d.damageSetup);
   if (damageSetupErreur) return { recipe: null, error: damageSetupErreur };
-  return { recipe: d as unknown as OptimizerRecipe };
+  // Compatibilité arrière : l'ancien cran « aucune » décrivait une situation
+  // impossible en jeu. Une recette qui le porte repart donc sur le défaut
+  // réel « combat » ; cette normalisation centrale protège autant l'écran que
+  // le CLI, tous deux consommateurs du résultat de ce parseur.
+  const normalisee =
+    estObjet(d.damageSetup) && !['combat', 'guilde'].includes(String(d.damageSetup.summonerSkills))
+      ? { ...d, damageSetup: { ...d.damageSetup, summonerSkills: 'combat' } }
+      : d;
+  return { recipe: normalisee as unknown as OptimizerRecipe };
 }

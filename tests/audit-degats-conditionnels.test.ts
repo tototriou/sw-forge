@@ -68,7 +68,7 @@ const setupAudit: DamageSetup = {
   enemyHp: 1_000_000,
   enemyHpPct: 100,
   critMode: 'normal',
-  summonerSkills: 'aucune',
+  summonerSkills: 'combat',
 };
 
 export default function testAuditDegatsConditionnels() {
@@ -737,7 +737,7 @@ export default function testAuditDegatsConditionnels() {
   );
   for (const [monstreId, sortId] of [[18911, 9706], [18913, 9708], [18915, 9710]] as const) {
     const s2 = profilDe(monstreId, sortId);
-    ok(s2.conditionsCombat?.some((condition) => condition.type === 'aucunBuffCible' && condition.critiqueGaranti),
+    ok(s2.conditionsCombat?.some((condition) => condition.type === 'aucunBuffCible' && condition.critiqueGaranti) === true,
       `${monstreId} Storm of Midnight : aucun buff adverse garantit le critique`);
     ok(computeSkillDamage(s2, buildAudit, setupAudit, 'water') >
       computeSkillDamage(s2, buildAudit, { ...setupAudit, buffsCibleCount: { [sortId]: 1 } }, 'water'),

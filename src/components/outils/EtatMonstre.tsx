@@ -114,7 +114,7 @@ export default function EtatMonstre({
       </div>
 
       {/* ⚠️ **Libellé AU-DESSUS des crans, pas à leur gauche** (demande
-          explicite) : côte à côte, « Invocateur » et ses trois crans
+          explicite) : côte à côte, « Invocateur » et ses deux crans
           formaient le groupe le plus large des trois et poussaient la rangée
           à se replier plus tôt. Empilé, le groupe ne fait plus que la largeur
           du segmenté.
@@ -138,7 +138,7 @@ export default function EtatMonstre({
           l&apos;élément du monstre, sans rien demander.
         </HelpPopover>
         </div>
-        {/* `size="sm"` et non `lg` : sur trois crans dans une carte étroite,
+        {/* `size="sm"` et non `lg` : dans une carte étroite,
             la taille d'origine (héritée d'une carte pleine largeur) débordait. */}
         <Segmented<SummonerSkills>
           options={SUMMONER_SKILLS_LABELS}

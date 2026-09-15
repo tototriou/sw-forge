@@ -720,7 +720,8 @@ retour.
        une fois
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
        pour comprendre la légende (au repos, tout est grisé : rien n'est
-       encore choisi). **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
+       encore choisi). Le survol décrit l'effet complet, pas seulement son
+       nom. **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
        Miriam, Dr. Matteo, Velaska — un AUTRE monstre que celui optimisé),
        même contrôle mais **portrait du monstre** en icône plutôt qu'une
        icône de buff générique. ⚠️ Velaska porte en plus un **champ
@@ -749,7 +750,9 @@ retour.
        **Moyenne** uniquement, un avertissement rappelle que la valeur
        affichée est une ESPÉRANCE théorique, pas ce qu'un combat réel (tour
        par tour) produit coup après coup — absent des deux autres modes,
-       qui sont déjà des bornes littérales.
+       qui sont déjà des bornes littérales. Si le sort garantit son critique,
+       ou si le réglage actif remplit sa condition de critique garanti, les
+       crans Non critique et Moyenne sont grisés et non sélectionnables.
      ⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
      défense ne montre ni la DEF ennemie ni la réduction de défense ; un
      sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un

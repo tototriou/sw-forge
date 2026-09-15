@@ -232,13 +232,13 @@ function validerDamageSetup(value: unknown): string | null {
   }
   if (
     setup.aliveEnemies !== undefined &&
-    (!Number.isInteger(setup.aliveEnemies) || (setup.aliveEnemies as number) < 1)
+    (!Number.isInteger(setup.aliveEnemies) || (setup.aliveEnemies as number) < 1 || (setup.aliveEnemies as number) > 4)
   ) {
-    return erreur('damageSetup.aliveEnemies', 'doit être un entier strictement positif');
+    return erreur('damageSetup.aliveEnemies', 'doit être un entier compris entre 1 et 4');
   }
   for (const champ of [
     'atkBuff', 'defBuff', 'spdBuff', 'defBreak', 'defBreakParLeSort', 'brand', 'effetsCibleCountAutres', 'buffsPropresCountAutres', 'atkDebuff', 'defDebuff', 'spdDebuff', 'euldongActif', 'mirinaeActif',
-    'deborahActif', 'miriamActif', 'transmissionActif', 'velaskaActif',
+    'deborahActif', 'miriamActif', 'transmissionActif', 'velaskaActif', 'enemyHpNotDestroyed',
   ]) {
     if (setup[champ] !== undefined && typeof setup[champ] !== 'boolean') return erreur(`damageSetup.${champ}`, 'doit être un booléen');
   }

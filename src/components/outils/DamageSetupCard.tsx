@@ -23,12 +23,15 @@ import {
   PassifOffensifProfile,
   SkillDamageProfile,
   SkillDamageUnsupported,
+  SeuilsPassifEivor,
   TRANSMISSION_ICON,
   VELASKA_ICON,
   autresBuffsPropresDepuisTotal,
   bonusConditionnelPropreActif,
   bonusDegatsConditionnelActif,
   estPrisEnCharge,
+  conditionCritiqueGarantiParReglage,
+  critiqueGarantiParReglage,
   passifActif,
   resolvedBuffsPropresCount,
   resolvedBuffCiblePresent,
@@ -137,6 +140,8 @@ interface Props {
   bonusSacrifice: BonusSacrificeProfile | null;
   conditionsCombatMonstre: ConditionMonstreProfile[];
   combatStats: CombatStatProfile[];
+  seuilsPassifEivor: SeuilsPassifEivor | null;
+  elementAttaquant: ElementKey | null;
   critInterdit: boolean;
 }
 
@@ -203,7 +208,7 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
     case 'vitPropreSuperieure':
       return 'critique garanti si ta VIT dépasse celle de la cible';
     case 'aucunPvCibleDetruit':
-      return `+${condition.pct ?? 0} % et critique garanti sans PV détruits sur la cible`;
+      return `+${condition.pct ?? 0} % si les PV de la cible n'ont pas été détruits`;
     case 'debuffCiblePresent':
       return 'ignore DEF si la cible a un débuff';
     case 'defBreakPresent':
@@ -224,6 +229,8 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: nu
   if (p.ignoreDef) bouts.push('Ignore la DEF');
   if (p.ignoreDefSelonVit) bouts.push(`Ignore la DEF selon l'écart de VIT (100 % à ${p.ignoreDefSelonVit.ecartMax}+ pts)`);
   if (p.fixed) bouts.push('Dégâts fixes');
+  if (p.composanteFixeAdditionnelle) bouts.push('Réserve de Sacrifice en dégâts fixes (Marque seulement)');
+  if (p.critiqueGaranti) bouts.push('Critique garanti');
   if (p.skillupDamagePct > 0) bouts.push(`+${p.skillupDamagePct} % (compétence maxée)`);
   if (p.bonusParEffetCible) {
     bouts.push(`+${p.bonusParEffetCible.pct} % par effet ${libelleSourceEffet(p.bonusParEffetCible.source)} sur la cible`);
@@ -235,7 +242,10 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: nu
   if (p.critDamagePoints) bouts.push(`+${p.critDamagePoints} pts de Dgts Crit`);
   for (const condition of p.conditionsCombat ?? []) bouts.push(resumeCondition(condition));
   if (p.bonusStackPropre) bouts.push(`jusqu’à +${p.bonusStackPropre.pctMax} % par charges`);
-  return { ratio: formuleLisible(p.formule), reste: bouts.join(' · ') };
+  const ratio = p.composanteFixeAdditionnelle
+    ? `${formuleLisible(p.formule)} + ${formuleLisible(p.composanteFixeAdditionnelle.formule)} (fixe)`
+    : formuleLisible(p.formule);
+  return { ratio, reste: bouts.join(' · ') };
 }
 
 // Champ « nombre de coups » d'un sort/passif à coups VARIABLES en jeu (Sia,
@@ -280,6 +290,8 @@ export default function DamageSetupCard({
   bonusSacrifice,
   conditionsCombatMonstre,
   combatStats,
+  seuilsPassifEivor,
+  elementAttaquant,
   critInterdit,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
@@ -343,7 +355,7 @@ export default function DamageSetupCard({
   );
   const demandeAtkCible = conditionsAvecCle.some(({ condition }) => condition.type === 'atkCibleSousAtkPropre');
   const demandeVitCible = conditionsAvecCle.some(({ condition }) => condition.type === 'vitPropreSuperieure');
-  const demandePvDetruits = conditionsAvecCle.some(({ condition }) => condition.type === 'aucunPvCibleDetruit');
+  const demandePvNonDetruits = conditionsAvecCle.some(({ condition }) => condition.type === 'aucunPvCibleDetruit');
   const conditionsManuelles = conditionsAvecCle.filter(({ condition }) => condition.type === 'manuel');
   const clesToggleDejaAffichees = new Set([
     ...conditionsManuelles.map(({ key }) => key),
@@ -353,6 +365,11 @@ export default function DamageSetupCard({
   // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
   // passif, ou si le sort ne pose pas de réduction de défense.
   const montreDefBreakParLeSort = resolved.appliqueDefBreak && passifs.length > 0;
+  const critiqueForceParReglage =
+    critiqueGarantiParReglage(resolved, setup, elementAttaquant) ||
+    conditionsCombatMonstre.some((p) =>
+      conditionCritiqueGarantiParReglage(p.condition, p.skillCom2usId, setup, elementAttaquant)
+    );
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-panel2 p-3">
@@ -912,8 +929,9 @@ export default function DamageSetupCard({
                 <span className="text-xs text-ink-dim">Ennemis vivants</span>
                 <NumberField
                   value={setup.aliveEnemies ?? DEFAULT_DAMAGE_SETUP.aliveEnemies!}
-                  onChange={(v) => maj({ aliveEnemies: Math.max(1, Math.floor(v ?? 1)) })}
+                  onChange={(v) => maj({ aliveEnemies: Math.min(4, Math.max(1, Math.floor(v ?? 1))) })}
                   min={1}
+                  max={4}
                   step={1}
                   boxWidth="w-24"
                   ariaLabel="Nombre d'ennemis vivants à l'impact"
@@ -1023,6 +1041,25 @@ export default function DamageSetupCard({
         </div>
       )}
 
+      {seuilsPassifEivor && (() => {
+        const requis = setup.summonerSkills === 'guilde'
+          ? seuilsPassifEivor.bonusGuilde
+          : seuilsPassifEivor.bonusCombat;
+        return (
+          <div className="rounded-lg border border-border-soft bg-panel px-3 py-2">
+            <p className="text-xs font-semibold text-ink">Might of the Clan — minimums en combat</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-dim">
+              {seuilsPassifEivor.atk} ATQ (<b className="text-ink">+{requis.atk}</b>) ·{' '}
+              {seuilsPassifEivor.def} DEF (<b className="text-ink">+{requis.def}</b>) ·{' '}
+              {seuilsPassifEivor.spd} VIT (<b className="text-ink">+{requis.spd}</b>)
+            </p>
+            <p className="mt-1 text-micro text-ink-dim">
+              Valeurs +stat avec {setup.summonerSkills === 'guilde' ? 'Combat + Guilde' : 'Combat'}.
+            </p>
+          </div>
+        );
+      })()}
+
       <div>
         <div className="mb-2 flex items-center gap-1.5">
           <p className="label">Adversaire</p>
@@ -1092,20 +1129,14 @@ export default function DamageSetupCard({
               />
             </label>
           )}
-          {demandePvDetruits && (
-            <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">PV détruits</span>
-              <NumberField
-                value={setup.enemyDestroyedHpPct ?? DEFAULT_DAMAGE_SETUP.enemyDestroyedHpPct!}
-                onChange={(v) => maj({ enemyDestroyedHpPct: v ?? 0 })}
-                min={0}
-                max={100}
-                step={5}
-                suffix="%"
-                boxWidth="w-28"
-                ariaLabel="Pourcentage de PV max détruits sur la cible"
-              />
-            </label>
+          {demandePvNonDetruits && (
+            <PassifInterrupteur
+              actif={setup.enemyHpNotDestroyed ?? false}
+              onChange={(v) => maj({ enemyHpNotDestroyed: v })}
+              icone={undefined}
+              libelle="PV ennemis non détruits"
+              title="Active le bonus de 50 % de dégâts ; désactivé par défaut"
+            />
           )}
           {/* Élément de la cible — décrit l'ADVERSAIRE, au même titre que ses
               PV et sa DEF, et se pose donc TOUJOURS.
@@ -1518,6 +1549,7 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={DEF_BREAK_ICON}
               libelle={montreDefBreakParLeSort ? 'Def break avant' : 'Def break'}
+              description="Réduit de 70 % la Défense de la cible avant que le sort ne frappe."
               onClick={() => maj({ defBreak: !setup.defBreak })}
               actif={setup.defBreak}
               etroit={etroit}
@@ -1535,12 +1567,20 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={DEF_BREAK_ICON}
               libelle="Ce sort pose le def break"
+              description="Le sort pose une réduction de Défense ; elle profite aux coups ou passifs qui frappent ensuite."
               onClick={() => maj({ defBreakParLeSort: !(setup.defBreakParLeSort ?? false) })}
               actif={setup.defBreakParLeSort ?? false}
               etroit={etroit}
             />
           )}
-          <EffetVignette icone={BRAND_ICON} libelle="Marque" onClick={() => maj({ brand: !setup.brand })} actif={setup.brand} etroit={etroit} />
+          <EffetVignette
+            icone={BRAND_ICON}
+            libelle="Marque"
+            description="La cible reçoit 25 % de dégâts supplémentaires."
+            onClick={() => maj({ brand: !setup.brand })}
+            actif={setup.brand}
+            etroit={etroit}
+          />
           {/* Quatre effets portés par un AUTRE monstre que celui optimisé
               (demande explicite de l'utilisateur) — portrait du monstre en
               icône plutôt qu'une icône de buff générique, mais le même
@@ -1553,6 +1593,7 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={EULDONG_ICON}
               libelle="Euldong"
+              description="Triumph Over Evil ajoute 100 points de Dégâts Critiques aux attaques alliées."
               onClick={() => maj({ euldongActif: !setup.euldongActif })}
               actif={setup.euldongActif ?? false}
               etroit={etroit}
@@ -1561,6 +1602,7 @@ export default function DamageSetupCard({
           <EffetVignette
             icone={MIRINAE_ICON}
             libelle="Mirinae"
+            description="Cursed Music augmente de 30 % les dégâts compatibles jusqu’au prochain tour de Mirinae."
             onClick={() => maj({ mirinaeActif: !setup.mirinaeActif })}
             actif={setup.mirinaeActif ?? false}
             etroit={etroit}
@@ -1569,6 +1611,7 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={DEBORAH_ICON}
               libelle="Deborah"
+              description="Blacksmith’s Discernment amplifie de 30 % une réduction d’ATQ, de DEF ou de VIT déjà active."
               onClick={() => maj({ deborahActif: !setup.deborahActif })}
               actif={setup.deborahActif ?? false}
               etroit={etroit}
@@ -1583,6 +1626,7 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={MIRIAM_ICON}
               libelle="Miriam"
+              description="Blacksmith’s Technique amplifie de 35 % les buffs d’ATQ, de DEF et de VIT déjà actifs."
               onClick={() => maj({ miriamActif: !setup.miriamActif })}
               actif={setup.miriamActif ?? false}
               etroit={etroit}
@@ -1591,6 +1635,7 @@ export default function DamageSetupCard({
           <EffetVignette
             icone={TRANSMISSION_ICON}
             libelle="Dr. Matteo"
+            description="Transmission augmente de 20 % les dégâts infligés tant que Dr. Matteo est sous incapacité."
             onClick={() => maj({ transmissionActif: !setup.transmissionActif })}
             actif={setup.transmissionActif ?? false}
             etroit={etroit}
@@ -1598,6 +1643,7 @@ export default function DamageSetupCard({
           <EffetVignette
             icone={VELASKA_ICON}
             libelle="Velaska"
+            description="Price of Pain augmente les dégâts compatibles de 0,5 % par 1 % de PV perdu par l’allié attaquant."
             onClick={() => maj({ velaskaActif: !setup.velaskaActif })}
             actif={setup.velaskaActif ?? false}
             etroit={etroit}
@@ -1658,11 +1704,19 @@ export default function DamageSetupCard({
             </HelpPopover>
           </div>
           <Segmented<CritMode>
-            options={CRIT_MODE_LABELS}
-            value={setup.critMode}
+            options={CRIT_MODE_LABELS.map((option) => ({
+              ...option,
+              disabled: critiqueForceParReglage && option.key !== 'crit',
+            }))}
+            value={critiqueForceParReglage ? 'crit' : setup.critMode}
             onChange={(v) => maj({ critMode: v })}
             size="lg"
           />
+          {critiqueForceParReglage && (
+            <p className="mt-1.5 text-xs text-ink-dim">
+              Ce sort inflige forcément un coup critique dans l’état sélectionné.
+            </p>
+          )}
           {/* « Moyenne » est une ESPÉRANCE (pondérée par le Taux Crit) —
               jamais ce qu'un combat réel, tour par tour, produit coup après
               coup. Demande explicite de l'utilisateur : le dire, UNIQUEMENT

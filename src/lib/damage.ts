@@ -617,27 +617,14 @@ export function monsterCritSiPlusRapide(detail: DetailMonstre | null): boolean {
   return detail.competences.some((c) => c.passif && CRIT_SI_PLUS_RAPIDE_CONNUS.has(c.nom));
 }
 
-// Brita (« Might of the Mercenary ») / Eivor, Eau (« Might of the Clan »)
-// — jumeaux de COLLABORATION (`jumeauCollab`, mêmes stats/compétences sous
-// deux habillages), même mécanisme confirmé DEUX FOIS indépendamment par
-// l'utilisateur : la branche « Attack Power » de ce passif accorde +100 %
-// de dégâts une fois un SEUIL d'ATQ atteint (les deux autres branches,
-// Defense/Attack Speed, sont défensives ou hors dégâts — hors modèle).
-// ⚠️ Une PREMIÈRE réponse (Brita, « +633 d'ATQ, sans lead ») avait été mal
-// interprétée comme un écart au-dessus de la seule BASE (736+633=1369).
-// La réponse suivante (Eivor, même mécanique) a donné le total ABSOLU
-// directement : « 1671, toute source confondue (ATQ de base + rune + lead
-// + compétence d'invocateur) » — et 736 (base) + 302 (compétence
-// d'invocateur combat, 41 % de la base) + 633 (rune) = 1671 EXACTEMENT :
-// confirme que `+633` représentait la part RUNE seule, pas un écart sur la
-// base entière. Seuil réel = 1671, un TOTAL ABSOLU (contrairement à tous
-// les autres seuils de ce fichier, qui sont des écarts) — INCLUT le lead
-// cette fois (`atkCombatComplet`, la même grandeur que `valeurs.ATK` de
-// `computeSkillDamageDetail`, non partagée par prudence). Entièrement
-// DÉDUIT, aucun bouton — même famille que `critSiPlusRapide`.
+// Brita (« Might of the Mercenary ») / Eivor Eau (« Might of the Clan »).
+// La branche ATQ accorde +100 % de dégâts une fois un seuil TOTAL atteint.
+// Dernier relevé utilisateur : Eivor exige 1 520 ATQ en combat. Brita garde
+// son relevé indépendant à 1 671 ; les deux habillages ne sont donc plus
+// supposés identiques sur cette valeur.
 const BONUS_SI_ATQ_SEUIL_CONNUS: Record<string, { seuil: number; pct: number }> = {
   'Might of the Mercenary (Passive)': { seuil: 1671, pct: 100 }, // Mercenary Queen, Brita
-  'Might of the Clan (Passive)': { seuil: 1671, pct: 100 }, // Eivor (Eau)
+  'Might of the Clan (Passive)': { seuil: 1520, pct: 100 }, // Eivor (Eau)
 };
 
 export function monsterBonusSiAtqSeuil(detail: DetailMonstre | null): { seuil: number; pct: number } | null {
@@ -1157,6 +1144,29 @@ export function resolvedEffetsCibleCount(profile: SkillDamageProfile, setup: Dam
   }
 }
 
+export interface SeuilsPassifEivor {
+  atk: number;
+  def: number;
+  spd: number;
+  bonusCombat: { atk: number; def: number; spd: number };
+  bonusGuilde: { atk: number; def: number; spd: number };
+}
+
+// Affichage demandé pour les trois branches de Might of the Clan. Les
+// équivalents « +stat » viennent du relevé en jeu et ne sont pas recalculés à
+// partir des constantes d'invocateur : ce sont précisément les valeurs que le
+// joueur doit comparer à la fiche verte affichée par le jeu.
+export function monsterSeuilsPassifEivor(detail: DetailMonstre | null): SeuilsPassifEivor | null {
+  if (!detail?.competences.some((c) => c.com2usId === 17511 && c.nom === 'Might of the Clan (Passive)')) return null;
+  return {
+    atk: 1520,
+    def: 1520,
+    spd: 213,
+    bonusCombat: { atk: 628, def: 720, spd: 111 },
+    bonusGuilde: { atk: 501, def: 634, spd: 111 },
+  };
+}
+
 /**
  * Nombre total de débuffs ennemis utilisé par les mécaniques de dégâts.
  * La saisie porte sur les AUTRES débuffs : Brise DEF et Marque, déjà décrites
@@ -1304,7 +1314,7 @@ function conditionCombatActive(
     case 'vitPropreSuperieure':
       return !!combat && combat.spd > Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
     case 'aucunPvCibleDetruit':
-      return (setup.enemyDestroyedHpPct ?? 0) === 0;
+      return setup.enemyHpNotDestroyed ?? false;
     case 'debuffCiblePresent':
       return resolvedDebuffCiblePresent(key, setup);
     case 'defBreakPresent':
@@ -1367,6 +1377,33 @@ function conditionCrPoints(
     }
   }
   return points;
+}
+
+// Ce prédicat ne tente pas de deviner une comparaison qui dépend du build
+// candidat (ATQ/DEF/VIT). Il couvre les états entièrement portés par le
+// réglage — toggle, élément, buffs/débuffs, PV cible — afin que l'écran puisse
+// neutraliser les modes « Non critique » et « Moyenne » quand ils n'ont plus
+// aucun sens.
+export function conditionCritiqueGarantiParReglage(
+  condition: ConditionCombatProfile,
+  key: number,
+  setup: DamageSetup,
+  elementAttaquant: ElementKey | null = null
+): boolean {
+  return condition.critiqueGaranti === true &&
+    conditionCombatActive(condition, setup, key, elementAttaquant, setup.enemyHpPct);
+}
+
+export function critiqueGarantiParReglage(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  elementAttaquant: ElementKey | null = null
+): boolean {
+  return profile.critiqueGaranti === true ||
+    conditionForceCrit(profile.conditionsCombat, setup, profile.skillCom2usId, elementAttaquant, setup.enemyHpPct) ||
+    (profile.bonusParEffetCible?.critiqueGarantiSiPresent === true && countEffetsCiblePourProfile(profile, setup) > 0) ||
+    (profile.bonusStackPropre?.critiqueGarantiAuMax === true &&
+      (setup.stackPersonnalise?.[profile.skillCom2usId] ?? 0) >= profile.bonusStackPropre.triggerMax);
 }
 
 function conditionIgnoreDefPct(
@@ -2128,6 +2165,15 @@ export interface SkillDamageProfile {
   // critiques et ne passent PAS par le facteur de défense (voir
   // spec/mecaniques.md, terme « Additionnel »).
   fixed: boolean;
+  // Composante fixe distincte d'une attaque ordinaire (Lamiella) : elle ne
+  // critique pas, ignore la DEF et ne reçoit que la Marque.
+  composanteFixeAdditionnelle?: { formule: string; variables: DamageVariable[]; noeud: Noeud };
+  // `false` uniquement pour les dégâts fixes dont les artéfacts élémentaires
+  // sont confirmés sans effet (Velaska). Absent/vrai conserve Atlas Stone et
+  // Reckless Assault.
+  bonusElementaireSurFixe?: boolean;
+  // Tous les coups du sort critiquent sans condition.
+  critiqueGaranti?: boolean;
   // Ce sort EST une bombe (voir `estBombeSansCoupDirect`).
   //
   // ⚠️ **Distinct de `fixed`**, même si toute bombe est fixe : `fixed` est
@@ -2327,10 +2373,10 @@ const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> 
   5812: [{ type: 'pvCibleSuperieursPvPropre', ratio: 2, pct: 50 }], // Ceres — Last Shot
   17413: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 30 }], // Kassandra vent
   17913: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 30 }], // Eleni vent
-  20112: [{ type: 'aucunPvCibleDetruit', pct: 50, critiqueGaranti: true }], // Yuji feu
-  20712: [{ type: 'aucunPvCibleDetruit', pct: 50, critiqueGaranti: true }], // Rick feu
-  7808: [{ type: 'pvPropreSous', seuilPct: 30, ignoreDefPct: 100 }], // Leo — Torrent
-  7810: [{ type: 'pvPropreSous', seuilPct: 30, ignoreDefPct: 100 }], // Ragdoll — Torrent
+  20112: [{ type: 'aucunPvCibleDetruit', pct: 50 }], // Yuji feu — le critique, lui, est inconditionnel
+  20712: [{ type: 'aucunPvCibleDetruit', pct: 50 }], // Rick feu — le critique, lui, est inconditionnel
+  7808: [{ type: 'manuel', libelle: 'tes PV actuels sont inférieurs à 30 %', ignoreDefPct: 100 }], // Leo — Torrent
+  7810: [{ type: 'manuel', libelle: 'tes PV actuels sont inférieurs à 30 %', ignoreDefPct: 100 }], // Ragdoll — Torrent
   7763: [{ type: 'defCibleSousDefPropre', ratio: 0.5, ignoreDefPct: 100 }], // Copper 2A
   15907: [{ type: 'defCibleSousAtkPropre', ratio: 0.6, ignoreDefPct: 100 }],
   15908: [{ type: 'defCibleSousAtkPropre', ratio: 0.6, ignoreDefPct: 100 }],
@@ -2528,14 +2574,32 @@ const EFFET_BOMBE = 'Bomb';
 // dans les deux sens (même parti pris que `artifactSubName`, effects.ts).
 const BOMBES_SANS_COUP_DIRECT_CONNUS = new Set(['Cursed Apple']);
 
-// Corrections de formule curées : les données importées portent encore
-// `1.2*{ATK}` pour Arsenal alors que la mécanique confirmée est une réserve
-// linéaire de dégâts fixes fondée sur les PV max, répartie entre les ennemis.
-// Les deux IDs couvrent Lamiella et Velaska, éveillées ou non.
+// Corrections de formule curées. Torrent ne varie pas linéairement avec les
+// PV : le palier de 30 % ne fait qu'activer l'ignore-DÉF. Velaska remplace sa
+// formule ATQ importée par la réserve fixe ; Lamiella conserve au contraire
+// son `1,2 × ATQ` et reçoit cette réserve comme composante SÉPARÉE plus bas.
 const FORMULES_CUREES_PAR_ID: Record<number, string> = {
-  21006: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)',
+  7808: '5.5*{ATK}',
+  7810: '5.5*{ATK}',
   21010: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)',
 };
+
+const COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: Record<number, string> = {
+  21006: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies}',
+};
+
+const DEGATS_FIXES_SANS_BONUS_ELEMENTAIRE = new Set([21010]);
+const DEGATS_FIXES_SANS_STAT_PROPRE_PRIS_EN_CHARGE = new Set([12011]);
+
+// Relevé exhaustif du corpus des effets `Guaranteed Critical Hit`, puis
+// validation compétence par compétence : la présence de l'effet seule ne
+// suffit pas (Dice Madness et Nightmare sont conditionnels).
+const CRITIQUES_GARANTIS_INCONDITIONNELS = new Set([
+  1611, 2713, 2763, 3113, 4211,
+  8301, 8302, 8303, 8304, 8305, 8316, 8317, 8318, 8319, 8320,
+  9118, 9407, 9408, 9410, 10811, 10813, 10815, 12410, 12516,
+  20112, 20113, 20115, 20712, 20713, 20715, 23515,
+]);
 
 const BONUS_STACK_PROPRE_PAR_ID_CONNUS: Record<number, NonNullable<SkillDamageProfile['bonusStackPropre']>> = {
   // Trasar uniquement : Skogul porte l'autre identifiant d'Atlas Stone.
@@ -2674,11 +2738,16 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   if (!analyse) {
     return { ...entete, raison: 'Formule non prise en charge par le calcul de dégâts.' };
   }
+  const formuleFixeAdditionnelle = COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID[c.com2usId];
+  const analyseFixeAdditionnelle = formuleFixeAdditionnelle ? analyser(formuleFixeAdditionnelle) : null;
+  if (formuleFixeAdditionnelle && !analyseFixeAdditionnelle) {
+    return { ...entete, raison: 'La composante fixe de ces dégâts n’est pas prise en charge.' };
+  }
   // Une formule qui ne dépend d'AUCUNE stat de l'attaquant (dégâts purement
   // fixes, ou fonction de la seule cible) reste calculable, mais optimiser
   // les runes dessus n'a aucun sens : toutes les combinaisons donneraient le
   // même nombre. On le dit plutôt que de laisser chercher pour rien.
-  if (!analyse.variables.some((v) => VARIABLE_STAT[v])) {
+  if (!analyse.variables.some((v) => VARIABLE_STAT[v]) && !DEGATS_FIXES_SANS_STAT_PROPRE_PRIS_EN_CHARGE.has(c.com2usId)) {
     return { ...entete, raison: 'Ces dégâts ne dépendent d’aucune statistique du monstre.' };
   }
 
@@ -2697,9 +2766,10 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   // dépend. `Relative SPD` ajoutée à `variables` fait suivre ça partout
   // (champ « VIT adversaire » à l'écran, `damageRelevantStats`) sans
   // dupliquer la logique.
-  const variables = ignoreDefSelonVit
+  const variablesBase = ignoreDefSelonVit
     ? Array.from(new Set([...analyse.variables, 'Relative SPD' as const]))
     : analyse.variables;
+  const variables = Array.from(new Set([...variablesBase, ...(analyseFixeAdditionnelle?.variables ?? [])]));
   return {
     ...entete,
     icone: c.icone,
@@ -2726,6 +2796,11 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     ignoreDefSelonVit,
     appliqueDefBreak: c.effets.some((e) => e.nom === 'Decrease DEF' && !e.surSoi),
     fixed,
+    composanteFixeAdditionnelle: analyseFixeAdditionnelle
+      ? { formule: formuleFixeAdditionnelle, ...analyseFixeAdditionnelle }
+      : undefined,
+    bonusElementaireSurFixe: !DEGATS_FIXES_SANS_BONUS_ELEMENTAIRE.has(c.com2usId),
+    critiqueGaranti: CRITIQUES_GARANTIS_INCONDITIONNELS.has(c.com2usId),
     bombe: estBombeSansCoupDirect(c),
     skillupDamagePct,
     bonusParEffetCible: BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS[c.com2usId] ?? BONUS_PAR_EFFET_CIBLE_CONNUS[c.nom],
@@ -3189,15 +3264,18 @@ export interface DamageSetup {
   ownHpPct?: number;
   // Pourcentage d'alliés encore vivants lu par Justice. Absent = 100 %.
   livingAlliesPct?: number;
-  // Ennemis vivants à l'impact des dégâts répartis. Entier strictement
-  // positif ; absent = un ennemi, ce qui préserve les anciennes recettes.
+  // Ennemis vivants à l'impact des dégâts répartis. Entier de 1 à 4 ; absent
+  // = un ennemi, ce qui préserve les anciennes recettes.
   aliveEnemies?: number;
   // Réserve de Sacrifice de Lamiella/Velaska, linéaire de 0 à 100.
   sacrificeReservePct?: number;
   // ATQ totale adverse pour les comparaisons. Absent = 0, donc aucune cible
   // artificiellement forte dans les anciennes recettes.
   enemyAtk?: number;
-  // Part de PV max déjà détruite sur la cible. Absent = aucun PV détruit.
+  // La cible de Yuji/Rick n'a encore subi aucune destruction de PV. C'est une
+  // condition binaire : absent/faux = bonus inactif, jamais deviné.
+  enemyHpNotDestroyed?: boolean;
+  /** @deprecated Ancien pourcentage, accepté à la lecture mais ignoré. */
   enemyDestroyedHpPct?: number;
   // VIT totale de l'adversaire (buffs compris) — saisie manuelle, comme
   // `enemyDef`. Ne sert QUE si le sort/passif lit `{Relative SPD}`. Optionnel
@@ -3361,7 +3439,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   aliveEnemies: 1,
   sacrificeReservePct: 0,
   enemyAtk: 1000,
-  enemyDestroyedHpPct: 0,
+  enemyHpNotDestroyed: false,
   // ⚠️ Contrairement à `enemyDef`/`enemyHp`, PAS recoupé avec un outil de
   // référence de la communauté — une VIT de base plate, à ajuster au cas par
   // cas (les 20 sorts qui en dépendent ciblent presque tous une AUTRE cible
@@ -3866,6 +3944,9 @@ export function computeSkillDamageDetail(
   // Momo, Zenitsu, Gideon, Brita, Velaska…). Sans elle, ces bonus majoraient
   // aussi les dégâts bruts — mesuré comme faux en jeu.
   additionnel: number;
+  // Part de formule fixe déjà majorée par ses seuls effets compatibles, à
+  // soustraire elle aussi des bonus monstre-wide appliqués après le sort.
+  fixeProtege: number;
   pvRestantsPct: number;
 } {
   const setupsScenario = setupsAvantChaqueCoup(profile, setup, monsterWide);
@@ -3878,6 +3959,7 @@ export function computeSkillDamageDetail(
     };
     let totalScenario = 0;
     let additionnelScenario = 0;
+    let fixeProtegeScenario = 0;
     let pvScenario = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
     for (let i = 0; i < setupsScenario.length; i++) {
       const artefactsCoup =
@@ -3887,9 +3969,10 @@ export function computeSkillDamageDetail(
       const detail = computeSkillDamageDetail(profilUnCoup, stats, setupsScenario[i], element, pvScenario, artefactsCoup, monsterWide);
       totalScenario += detail.total;
       additionnelScenario += detail.additionnel;
+      fixeProtegeScenario += detail.fixeProtege;
       pvScenario = detail.pvRestantsPct;
     }
-    return { total: totalScenario, additionnel: additionnelScenario, pvRestantsPct: pvScenario };
+    return { total: totalScenario, additionnel: additionnelScenario, fixeProtege: fixeProtegeScenario, pvRestantsPct: pvScenario };
   }
 
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
@@ -3961,7 +4044,7 @@ export function computeSkillDamageDetail(
     'Current HP': pvPropresActuels,
     'Missing HP': Math.max(0, combat.hp - pvPropresActuels),
     'Living Ally %': Math.min(100, Math.max(0, setup.livingAlliesPct ?? 100)) / 100,
-    'Alive Enemies': Math.max(1, Math.floor(setup.aliveEnemies ?? 1)),
+    'Alive Enemies': Math.min(4, Math.max(1, Math.floor(setup.aliveEnemies ?? 1))),
     'Sacrifice Reserve %': Math.min(100, Math.max(0, setup.sacrificeReservePct ?? 0)) / 100,
     'Target MAX HP': pvMax,
     'Target SPD': vitEnnemie,
@@ -4047,7 +4130,7 @@ export function computeSkillDamageDetail(
   const partCrit =
     profile.fixed || monsterWide.critInterdit
       ? 0
-      : critiqueConditionnel || setup.critMode === 'crit'
+      : profile.critiqueGaranti || critiqueConditionnel || setup.critMode === 'crit'
         ? 1
         : setup.critMode === 'normal'
           ? 0
@@ -4134,11 +4217,14 @@ export function computeSkillDamageDetail(
       : (setup.mirinaeActif ? MIRINAE_BONUS_PCT / 100 : 0) +
         (setup.transmissionActif ? TRANSMISSION_BONUS_PCT / 100 : 0));
 
-  // Terme DMG%, propre au sort. ⚠️ **Jamais sur une bombe** (mesuré) ; un sort
-  // ordinaire marqué `(Fixed)`, lui, en profite bien (swcalc : « skill-based
-  // fixed damage … is still multiplied by (1 + DMG%) »). C'est exactement ce
-  // que `bombe`, distinct de `fixed`, permet d'exprimer.
-  const dmgPct = profile.bombe ? 1 : 1 + bonusElement / 100;
+  // Terme DMG%, propre au sort. ⚠️ **Jamais sur une bombe** (mesuré). Un sort
+  // ordinaire marqué `(Fixed)` en profite en principe (swcalc : « skill-based
+  // fixed damage … is still multiplied by (1 + DMG%) »), sauf exception curée
+  // comme la réserve de Velaska. `bombe` et `bonusElementaireSurFixe`
+  // expriment séparément ces deux exclusions.
+  const dmgPct = profile.bombe || (profile.fixed && profile.bonusElementaireSurFixe === false)
+    ? 1
+    : 1 + bonusElement / 100;
   // « Dgts de bombe » (210) — sa propre majoration, réservée aux bombes. Elle
   // ne peut pas vivre dans DMG%, dont les bombes sont justement exclues.
   const facteurBombe = profile.bombe ? 1 + artefacts.degatsBombePct / 100 : 1;
@@ -4241,13 +4327,10 @@ export function computeSkillDamageDetail(
   // les améliorations du sort ACTIF n'ont aucune raison de majorer le bonus
   // plat d'un PASSIF, qui n'appartient pas à sa formule.
   //
-  // ❓ **Reste incohérent, et c'est assumé** : les modificateurs monstre-wide
-  // appliqués APRÈS coup dans `computeTotalDamage` (Sonia, Momo, Zenitsu,
-  // Gideon, Brita, Velaska…) multiplient encore le total, additionnel compris.
-  // swcalc les classe pourtant « Other » eux aussi — mais les en sortir exige
-  // de faire remonter la part additionnelle à travers toute l'accumulation
-  // (sort PUIS passifs), et aucune mesure ne le couvre encore. Documenté
-  // plutôt que fait au jugé.
+  // `computeSkillDamageDetail` fait remonter ce bucket jusqu'à
+  // `computeTotalDamage`, qui le met de côté pendant les modificateurs
+  // monstre-wide (Sonia, Momo, Velaska…). Il est réinjecté à la fin, comme les
+  // autres dégâts fixes protégés.
   const horsCoupBrut = reductionsUniverselles;
   // ── Lignes d'artéfact qui VARIENT d'un coup à l'autre (411, 222, 223) ──
   //
@@ -4353,7 +4436,10 @@ export function computeSkillDamageDetail(
     (artefacts.brutPctAtk / 100) * valeurs.ATK +
     (artefacts.brutPctDef / 100) * valeurs.DEF +
     (artefacts.brutPctVit / 100) * valeurs.SPD;
-  const ajoutBrutParCoup = ajoutMaxHpPropre + ajoutSacrifice + ajoutArtefactBrut;
+  const ajoutFixeDuSort = profile.composanteFixeAdditionnelle
+    ? Math.max(0, evaluer(profile.composanteFixeAdditionnelle.noeud, valeurs))
+    : 0;
+  const ajoutBrutParCoup = ajoutMaxHpPropre + ajoutSacrifice + ajoutArtefactBrut + ajoutFixeDuSort;
   // Ce que ce terme vaut par coup, amplificateurs de cible compris.
   const degatsBrutParCoup = ajoutBrutParCoup * horsCoupBrut;
   // Les PV ne peuvent pas descendre sous zéro, et une cible à 0 PV max (cas
@@ -4367,12 +4453,17 @@ export function computeSkillDamageDetail(
 
   if (!formuleLitPvCible && !artefactsVarientParCoup) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
-    if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, additionnel: 0, pvRestantsPct: pctDepart };
+    if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, additionnel: 0, fixeProtege: 0, pvRestantsPct: pctDepart };
     // ⚠️ Le terme brut est DANS le `×coups`, plus ajouté à côté : les deux
     // parts frappent le même nombre de fois, seule leur mitigation diffère.
     const totalDegats = (Math.max(0, mult) * horsCoup + degatsBrutParCoup) * coups;
     const pvApres = creuse(totalDegats, (pctDepart / 100) * pvMax);
-    return { total: totalDegats, additionnel: degatsBrutParCoup * coups, pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart };
+    return {
+      total: totalDegats,
+      additionnel: degatsBrutParCoup * coups,
+      fixeProtege: profile.fixed ? Math.max(0, mult) * horsCoup * coups : 0,
+      pvRestantsPct: pvMax > 0 ? (pvApres / pvMax) * 100 : pctDepart,
+    };
   }
 
   // Chemin SÉQUENTIEL — chaque coup frappe une cible plus basse que le
@@ -4382,6 +4473,7 @@ export function computeSkillDamageDetail(
   // Part ADDITIONNELLE réellement portée — comptée coup par coup, car un coup
   // dont le total tombe à zéro est sauté et ne la porte donc pas.
   let totalAdditionnel = 0;
+  let totalFixeProtege = 0;
   // ⚠️ Si la FORMULE ne lit pas les PV de la cible, son multiplicateur est
   // constant : on l'évalue UNE fois plutôt qu'à chaque tour de boucle. Sans
   // ça, un sort poussé ici par les seules lignes d'artéfact paierait
@@ -4400,6 +4492,7 @@ export function computeSkillDamageDetail(
     if (degatsCoup <= 0) continue;
     totalDegats += degatsCoup;
     totalAdditionnel += degatsBrutParCoup;
+    if (profile.fixed) totalFixeProtege += Math.max(0, mult) * horsCoupIci;
     // ⚠️ Le terme brut est creusé DANS la boucle, avec le coup qui le porte —
     // c'est ce qui garde `pvRestantsPct` exact pour les passifs à seuil qui
     // s'évaluent ensuite (le bug corrigé jadis sur l'ancien `ajoutUneFois`,
@@ -4415,6 +4508,7 @@ export function computeSkillDamageDetail(
   return {
     total: totalDegats,
     additionnel: totalAdditionnel,
+    fixeProtege: totalFixeProtege,
     pvRestantsPct: pvMax > 0 ? (pvCourant / pvMax) * 100 : pctDepart,
   };
 }
@@ -4607,6 +4701,7 @@ export function computeTotalDamage(
   // ⚠️ Accumulée AUSSI sur les passifs offensifs : chacun porte sa propre
   // part brute, et elle doit échapper à la même chaîne.
   let totalAdditionnel = sort.additionnel;
+  let totalFixeProtege = sort.fixeProtege;
   let pvCiblePct = sort.pvRestantsPct;
   // ⚠️ « Dgts CRIT 1re attaque » (411) vaut pour la PREMIÈRE attaque du tour,
   // pas pour le premier coup de chaque contribution : le sort actif l'a déjà
@@ -4656,7 +4751,12 @@ export function computeTotalDamage(
         additionnelPassif += detailCoup.additionnel;
         pvPassif = detailCoup.pvRestantsPct;
       }
-      detail = { total: totalPassif, additionnel: additionnelPassif, pvRestantsPct: pvPassif };
+      detail = {
+        total: totalPassif,
+        additionnel: additionnelPassif,
+        fixeProtege: p.profile.fixed ? totalPassif - additionnelPassif : 0,
+        pvRestantsPct: pvPassif,
+      };
     } else {
       // `hitsRange: undefined` : `hits` est déjà la valeur RÉSOLUE du sort
       // actif, `resolvedHits` ne doit pas la re-résoudre une seconde fois via
@@ -4686,12 +4786,13 @@ export function computeTotalDamage(
         contribution *= 1 + p.categorie.pct / 100;
       }
     }
+    if (p.profile.fixed) totalFixeProtege += contribution;
     total += contribution + additionnelPassif;
     totalAdditionnel += additionnelPassif;
   }
   // ⚠️ À partir d'ici, la chaîne de modificateurs ne doit voir QUE la part de
   // sort. On la met de côté et on la rend à la toute fin.
-  total -= totalAdditionnel;
+  total -= totalAdditionnel + totalFixeProtege;
   // ⚠️ Multiplicatif sur le TOTAL (sort actif + tous les passifs), APRÈS
   // coup — « the damage dealt increases », un modificateur sur l'ensemble de
   // ce que le monstre inflige, pas une contribution à part (contrairement à
@@ -4749,7 +4850,7 @@ export function computeTotalDamage(
     total *= 1 + (VELASKA_PCT_PAR_PV_PERDU * (setup.velaskaPvPerduPct ?? 0)) / 100;
   }
   // La part brute rejoint le total, sans avoir subi un seul de ces facteurs.
-  return total + totalAdditionnel;
+  return total + totalAdditionnel + totalFixeProtege;
 }
 
 /**
@@ -4839,6 +4940,7 @@ export function damageRelevantStats(
   // mais si UN SEUL des composants comptés (sort ou passif actif) peut
   // criter, les Dgts Crit restent pertinents pour le TOTAL.
   let peutCriter = !profile.fixed;
+  const critGarantiParSort = profile.critiqueGaranti === true;
   // ⚠️ Un passif `'toujours'` critique QUOI QU'IL ARRIVE : `computeTotalDamage`
   // lui impose `critMode: 'crit'` pour sa propre contribution, sans regarder le
   // mode choisi. Il faut le savoir plus bas, pour ne pas lui retirer les Dgts
@@ -4920,6 +5022,7 @@ export function damageRelevantStats(
   // pourtant à coup sûr — le remède devenait pire que le mal qu'il corrige.
   if (
     setup.critMode === 'normal' &&
+    !critGarantiParSort &&
     !critSiPlusRapide &&
     !critGarantiParPassif &&
     !critGarantiParCondition &&

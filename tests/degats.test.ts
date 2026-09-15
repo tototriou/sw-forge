@@ -57,6 +57,7 @@ import {
   monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
   monsterBonusSiAtqSeuil,
+  monsterSeuilsPassifEivor,
   monsterBonusDegatsStackable,
   monsterBonusEcartDef,
   monsterBonusFixeCiblePvMax,
@@ -1285,27 +1286,24 @@ export default function testDegats() {
   const gideonSans10000 = computeSkillDamage(gideonBase!, stats({ atk: 2000, def: 10000, cd: 200, cr: 100 }), gideonSetup);
   ok(Math.abs(gideonAvec10000 / gideonSans10000 - 2) < 1e-9, '10 000 DEF (le double du plafond) : reste à +100 %, jamais plus (×2)');
 
-  // Brita (« Might of the Mercenary »)/Eivor Eau (« Might of the Clan »),
-  // point 30b — jumeaux de COLLABORATION (`jumeauCollab`, mêmes stats/
-  // compétences), SEUIL absolu d'ATQ (pas linéaire, contrairement aux
-  // quatre précédents). Deux réponses successives de l'utilisateur,
-  // reconciliées : la première (Brita, « +633 d'ATQ, sans lead ») avait
-  // été mal interprétée comme un écart sur la BASE seule (736+633=1369) ;
-  // la seconde (Eivor, même mécanique confirmée indépendamment) donne le
-  // total ABSOLU directement : « 1671, toute source confondue (base + rune
-  // + lead + compétence d'invocateur) ». Les deux se recoupent EXACTEMENT :
-  // 736 (base) + 302 (compétence d'invocateur combat, 41 % de la base) +
-  // 633 (rune) = 1671 — confirme que `+633` désignait la part RUNE seule,
-  // pas un écart sur la base entière. Seuil = 1671, ABSOLU (contrairement
-  // à tous les autres seuils de ce fichier, des écarts), et INCLUT le lead
-  // cette fois (contrairement à la première interprétation).
+  // Brita (« Might of the Mercenary ») et Eivor Eau (« Might of the Clan »)
+  // portent chacune un seuil absolu d'ATQ. Le relevé indépendant de Brita
+  // reste à 1671 ; le dernier relevé utilisateur fixe Eivor à 1520 et fournit
+  // aussi ses seuils DEF/VIT destinés à l'affichage.
   const brita = fiche(28211);
   const britaBase = defaultDamageSkill(monsterDamageSkills(brita));
   ok(britaBase !== null, 'Brita : un sort de dégâts par défaut est trouvé');
   egal(monsterBonusSiAtqSeuil(brita), { seuil: 1671, pct: 100 }, 'Brita : Might of the Mercenary, seuil ABSOLU 1671');
   ok(!monsterBonusSiAtqSeuil(fiche(LUSHEN)), 'Lushen n’a pas ce mécanisme');
   const eivorEau = fiche(27711);
-  egal(monsterBonusSiAtqSeuil(eivorEau), { seuil: 1671, pct: 100 }, 'Eivor (Eau) : Might of the Clan, même mécanisme, nom différent (jumeaux de collaboration)');
+  egal(monsterBonusSiAtqSeuil(eivorEau), { seuil: 1520, pct: 100 }, 'Eivor (Eau) : Might of the Clan, seuil absolu corrigé à 1520');
+  egal(monsterSeuilsPassifEivor(eivorEau), {
+    atk: 1520,
+    def: 1520,
+    spd: 213,
+    bonusCombat: { atk: 628, def: 720, spd: 111 },
+    bonusGuilde: { atk: 501, def: 634, spd: 111 },
+  }, 'Eivor (Eau) : les trois seuils et leurs équivalents Combat/Guilde sont disponibles pour l’écran');
   const britaSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: britaBase!.skillCom2usId,

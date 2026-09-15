@@ -82,6 +82,7 @@ import {
   monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
   monsterBonusSiAtqSeuil,
+  monsterSeuilsPassifEivor,
   monsterBonusDegatsStackable,
   monsterBonusEcartDef,
   monsterBonusFixeCiblePvMax,
@@ -659,6 +660,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // (entièrement déduit, aucun bouton), mais un SEUIL d'ATQ plutôt qu'un
   // écart de VIT (voir `monsterBonusSiAtqSeuil`).
   const bonusSiAtqSeuil = useMemo(() => monsterBonusSiAtqSeuil(skillDetail), [skillDetail]);
+  const seuilsPassifEivor = useMemo(() => monsterSeuilsPassifEivor(skillDetail), [skillDetail]);
   // Contexte commun aux TROIS évaluations de dégâts d'artéfacts de l'écran.
   // Il est volontairement typé depuis `RealDamageContext` : si le moteur gagne
   // un modificateur monstre-wide, ces chemins ne peuvent plus l'oublier sans
@@ -4072,6 +4074,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           bonusSacrifice={bonusSacrifice}
           conditionsCombatMonstre={conditionsCombatMonstre}
           combatStats={combatStats}
+          seuilsPassifEivor={seuilsPassifEivor}
+          elementAttaquant={speciesMonster?.element ?? null}
           critInterdit={critInterdit}
         />
       )}

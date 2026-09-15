@@ -1574,25 +1574,14 @@ autres sont défensives/hors modèle. Brita et Eivor (Eau) sont des JUMEAUX
 DE COLLABORATION (`jumeauCollab`, mêmes stats et compétences sous deux
 habillages) — même mécanisme, deux noms de passif différents.
 
-⚠️ **Deux réponses successives de l'utilisateur, réconciliées après coup.**
-Une première (Brita, « +633 de vitesse ») ne correspondait pas aux données
-(aucune clause VIT ne porte de bonus de dégâts) — corrigée en « +633
-d'ATQ, sans lead attaque, en ne prenant en compte que les compétences
-d'invocateur combat », d'abord interprétée comme un ÉCART au-dessus de la
-seule BASE (736 + 633 = 1369). Une seconde réponse (Eivor, même mécanique
-confirmée indépendamment) a donné le seuil directement en TOTAL ABSOLU :
-« 1671, toute source confondue (ATQ de base + rune + lead + compétence
-d'invocateur) ». Les deux se recoupent exactement : 736 (base) + 302
-(compétence d'invocateur combat, 41 % de la base, arrondie au-dessus) +
-633 (rune) = **1671** — confirmant que `+633` désignait la part RUNE
-seule, pas un écart sur la base entière. Seuil réel = **1671, un total
-ABSOLU** (contrairement à tous les autres seuils/plafonds de ce fichier,
-qui sont des écarts) — et INCLUT le lead cette fois, contrairement à la
-première interprétation. Comparé à `atkCombatComplet` (nouvelle fonction,
-même prudence que `defCombat` : non partagée avec le calcul de
-`computeSkillDamageDetail`). Entièrement DÉDUIT, aucun bouton — même
-famille que `critSiPlusRapide`, mais un seuil sur l'ATQ propre plutôt
-qu'une comparaison de VIT avec la cible.
+Les seuils sont des totaux de combat, pas des écarts. Le relevé indépendant
+de Brita conserve **1671 ATQ**. Pour Eivor (Eau), le relevé le plus récent
+donne **1520 ATQ**, **1520 DEF** et **213 VIT**. L'écran montre les trois
+objectifs et leur équivalent au-dessus de la fiche : avec Combat,
+`+628 ATQ`, `+720 DEF`, `+111 VIT` ; avec Combat + Guilde, `+501 ATQ`,
+`+634 DEF`, `+111 VIT`. Seule la branche ATQ entre dans le score de dégâts ;
+DEF et VIT sont néanmoins affichées pour permettre de construire les trois
+parties du passif.
 
 **Brandia (« Touch of Mercy »)** — signalée par l'utilisateur (« augmente
 ses dégâts selon le nombre d'effets néfastes sur l'ennemi »), absente de
@@ -1889,8 +1878,11 @@ l'écran.
 Ces deux exclusions de la partie 1 sont levées en partie 2 : Atlas Stone de
 Skogul/Trasar vaut `PV max / ennemis vivants` en dégâts fixes ; Trasar ajoute
 15 % par mort, au plus 30 %, à son S2 uniquement. Arsenal of Sacrifice de
-Lamiella/Velaska vaut `PV max × réserve de Sacrifice / 100 / ennemis vivants`,
-avec une réserve linéaire de 0 à 100. La formule ATQ importée est remplacée.
+Velaska vaut `PV max × réserve de Sacrifice / 100 / ennemis vivants`, avec
+une réserve linéaire de 0 à 100. Lamiella conserve en plus sa composante
+ordinaire `1,2 × ATQ`, qui peut critiquer et reçoit les modificateurs usuels ;
+sa réserve est ajoutée séparément comme dégâts fixes. Le nombre d'ennemis
+vivants est toujours borné de 1 à 4.
 
 ## Audit des dégâts conditionnels — partie 2
 
@@ -1944,6 +1936,11 @@ et Decimate (S3) de Grogen ajoutent respectivement 20 et 150 points de
 Dégâts Crit au seul coup critique ; aucun de ces points ne modifie un coup
 non critique.
 
+Le survol d'une icône d'effet actif affiche sa conséquence complète : par
+exemple Marque indique +25 % de dégâts, Brise DEF indique −70 % de DEF, et
+les portraits d'Euldong, Mirinae, Deborah, Miriam, Dr. Matteo ou Velaska
+décrivent leur effet d'équipe. Le nom court reste visible sous l'icône.
+
 Pour Storm of Midnight (Alicia, Tiana, Lydia S2), l'interrupteur de présence
 des buffs adverses explique en clair sa conséquence : sans buff sur la cible,
 le coup est critique garanti ; avec un buff, il suit le mode critique choisi.
@@ -1961,3 +1958,27 @@ de ses coups. Le scénario explicite « pose après le coup 1 » applique la
 réduction de DEF au second coup uniquement ; aucune réussite n'est supposée
 par défaut. Les cinq éléments et les formes partageant leur identifiant de
 compétence suivent la même règle.
+
+### Correctifs de contexte et de dégâts fixes
+
+Yuji et Rick feu S3 utilisent un interrupteur « PV ennemis non détruits »,
+désactivé par défaut. L'activer applique +50 % de dégâts. Leur critique
+garanti est inconditionnel et ne dépend donc pas de cet interrupteur.
+
+Torrent de Leo et Ragdoll utilise un coefficient constant `5,5 × ATQ`.
+L'état de PV n'est pas interpolé : un interrupteur « PV actuels inférieurs à
+30 % » active seulement l'ignore-DÉF. Cette lecture suit la clause de seuil
+de la compétence ; elle ne transforme pas le sort en critique garanti.
+
+Lorsqu'un sort garantit son critique, ou qu'une condition sélectionnée le
+garantit, « Non critique » et « Moyenne » sont désactivés dans la modale et
+« Critique » devient la seule lecture possible. Les conditions qui dépendent
+du build candidat restent évaluées par candidat dans le moteur.
+
+Les dégâts fixes d'Atlas Stone (Skogul/Trasar) et de Reckless Assault
+(Mo Long) reçoivent les augmentations élémentaires d'artéfact. La réserve de
+Sacrifice de Velaska et la composante de réserve de Lamiella n'en reçoivent
+pas. Atlas Stone et les réserves de Sacrifice ne sont pas multipliés par
+Mirinae, Price of Pain ou les autres bonus généraux ; seule Marque les
+augmente. Sur Lamiella, ces restrictions ne concernent que la réserve : la
+partie `1,2 × ATQ` reste une attaque ordinaire.

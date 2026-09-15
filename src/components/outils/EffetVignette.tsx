@@ -11,12 +11,14 @@ import { Vignette } from '../../ui';
 export default function EffetVignette({
   icone,
   libelle,
+  description,
   actif,
   onClick,
   etroit,
 }: {
   icone: string;
   libelle: string;
+  description?: string;
   actif: boolean;
   onClick: () => void;
   etroit: boolean;
@@ -31,7 +33,7 @@ export default function EffetVignette({
       // fixe — « Ce sort pose le def break » devient « Ce sort... », illisible
       // sans un moyen de retrouver le texte complet. `title` affiche le
       // libellé ENTIER au survol, natif, sans changer la mise en page.
-      title={libelle}
+      title={description ?? libelle}
       contenu={<img src={icone} alt="" className={`h-7 w-7 transition ${actif ? '' : 'grayscale'}`} loading="lazy" />}
       libelle={libelle}
       // ⚠️ Coche masquée au DOIGT (même raison que CategoryBar) : à cette

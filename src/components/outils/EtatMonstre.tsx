@@ -87,6 +87,7 @@ export default function EtatMonstre({
         <EffetVignette
           icone={ATK_BUFF_ICON}
           libelle="Buff ATQ"
+          description="Augmente l’ATQ du monstre de 50 %."
           onClick={() => maj({ atkBuff: !setup.atkBuff })}
           actif={setup.atkBuff}
           etroit={etroit}
@@ -94,6 +95,7 @@ export default function EtatMonstre({
         <EffetVignette
           icone={DEF_BUFF_ICON}
           libelle="Buff DEF"
+          description="Augmente la DEF du monstre de 70 %."
           onClick={() => maj({ defBuff: !setup.defBuff })}
           actif={setup.defBuff}
           etroit={etroit}
@@ -101,6 +103,7 @@ export default function EtatMonstre({
         <EffetVignette
           icone={SPD_BUFF_ICON}
           libelle="Buff VIT"
+          description="Augmente la VIT du monstre de 30 %."
           onClick={() => maj({ spdBuff: !setup.spdBuff })}
           actif={setup.spdBuff}
           etroit={etroit}

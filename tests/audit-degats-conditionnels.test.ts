@@ -10,6 +10,7 @@ import {
   SkillDamageProfile,
   computeSkillDamage,
   computeTotalDamage,
+  critiqueGarantiParReglage,
   defenseFactor,
   damageRelevantStats,
   estPrisEnCharge,
@@ -75,12 +76,14 @@ export default function testAuditDegatsConditionnels() {
   titre('Audit des dégâts conditionnels — étapes 1 et 2');
 
   const leoTorrent = profilDe(16613, 7808);
-  const leoPleineVie = computeSkillDamage(leoTorrent, buildAudit, { ...setupAudit, ownHpPct: 100 });
-  const leoMiVie = computeSkillDamage(leoTorrent, buildAudit, { ...setupAudit, ownHpPct: 50 });
-  ok(
-    Math.abs(leoMiVie / leoPleineVie - 6.5 / 5.5) < 1e-9,
-    '72 — Torrent lit les PV propres et augmente de façon discriminante à mi-vie'
-  );
+  const leoNormal = computeSkillDamage(leoTorrent, buildAudit, { ...setupAudit, enemyDef: 1000 });
+  const leoSous30 = computeSkillDamage(leoTorrent, buildAudit, {
+    ...setupAudit,
+    enemyDef: 1000,
+    passifsOffensifs: { 7808: true },
+  });
+  egal(leoTorrent.formule, '5.5*{ATK}', '72 — Torrent ne varie plus proportionnellement avec les PV propres');
+  ok(leoSous30 > leoNormal, '72 — le toggle sous 30 % active l’ignore-DÉF de Torrent');
 
   const zerath = profilDe(14414, 2914);
   const zerath20k = computeSkillDamage(zerath, buildAudit, { ...setupAudit, ownHpPct: 50 });
@@ -123,15 +126,75 @@ export default function testAuditDegatsConditionnels() {
     '308 — le compteur de Trasar ne majore ni Skogul ni son autre identifiant'
   );
 
-  for (const [monstreId, sortId, nom] of [[31311, 21006, 'Lamiella'], [31315, 21010, 'Velaska']] as const) {
-    const arsenal = profilDe(monstreId, sortId);
-    egal(arsenal.formule, '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)', `${nom} — 1,2 × ATQ remplacé`);
-    egal(
-      computeSkillDamage(arsenal, buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3 }),
-      4000,
-      `${nom} — réserve linéaire de PV max répartie entre trois ennemis`
-    );
-  }
+  const lamiella = profilDe(31311, 21006);
+  egal(lamiella.formule, '1.2*{ATK}', 'Lamiella — la composante 1,2 × ATQ reste présente');
+  ok(!!lamiella.composanteFixeAdditionnelle, 'Lamiella — la réserve de Sacrifice est une composante fixe séparée');
+  const lamiellaSansReserve = computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3 });
+  const lamiellaAvecReserve = computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3 });
+  egal(lamiellaAvecReserve - lamiellaSansReserve, 4000, 'Lamiella — réserve linéaire de PV max répartie entre trois ennemis');
+  ok(
+    computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 0, critMode: 'crit' }) > lamiellaSansReserve,
+    'Lamiella — la composante ATQ peut infliger un coup critique'
+  );
+
+  const velaska = profilDe(31315, 21010);
+  egal(velaska.formule, '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)', 'Velaska — la formule est entièrement fixe');
+  egal(
+    computeSkillDamage(velaska, buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3 }),
+    4000,
+    'Velaska — réserve linéaire de PV max répartie entre trois ennemis'
+  );
+  egal(
+    computeSkillDamage(skogul, buildAudit, { ...setupAudit, aliveEnemies: 99 }),
+    5000,
+    'ennemis vivants — le moteur plafonne les recettes éditées à la main à quatre'
+  );
+  const skogulBase = computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4 }, 'wind');
+  egal(
+    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, mirinaeActif: true }, 'wind'),
+    skogulBase,
+    'Skogul — Mirinae ne majore pas Atlas Stone'
+  );
+  egal(
+    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, velaskaActif: true, velaskaPvPerduPct: 100 }, 'wind'),
+    skogulBase,
+    'Skogul — le passif de Velaska ne majore pas Atlas Stone'
+  );
+  egal(
+    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, brand: true }, 'wind'),
+    skogulBase * 1.25,
+    'Skogul — la Marque reste compatible avec Atlas Stone'
+  );
+  const artefactFeu20 = { ...ARTIFACT_DAMAGE_NEUTRE, degatsElementPct: { fire: 20 } };
+  egal(
+    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, enemyElement: 'fire' }, 'wind', artefactFeu20),
+    skogulBase * 1.2,
+    'Skogul — les dégâts élémentaires d’artéfact majorent Atlas Stone'
+  );
+  egal(
+    computeTotalDamage(velaska, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, enemyElement: 'fire' }, 'dark', artefactFeu20),
+    4000,
+    'Velaska — les dégâts élémentaires d’artéfact ne majorent pas la réserve'
+  );
+  const lamiellaMirinae0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, mirinaeActif: true }, 'water');
+  const lamiellaMirinae60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, mirinaeActif: true }, 'water');
+  egal(lamiellaMirinae60 - lamiellaMirinae0, 4000, 'Lamiella — Mirinae ne majore que la partie ATQ');
+  const lamiellaVelaska0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, velaskaActif: true, velaskaPvPerduPct: 100 }, 'water');
+  const lamiellaVelaska60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, velaskaActif: true, velaskaPvPerduPct: 100 }, 'water');
+  ok(
+    Math.abs(lamiellaVelaska60 - lamiellaVelaska0 - 4000) < 1e-9,
+    'Lamiella — Price of Pain ne majore que la partie ATQ'
+  );
+  const lamiellaBrand0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, brand: true }, 'water');
+  const lamiellaBrand60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, brand: true }, 'water');
+  egal(lamiellaBrand60 - lamiellaBrand0, 5000, 'Lamiella — la Marque majore aussi la réserve fixe');
+  const moLong = profilDe(21211, 12011);
+  const moLongBase = computeTotalDamage(moLong, [], buildAudit, { ...setupAudit, enemyElement: 'fire' }, 'water');
+  egal(
+    computeTotalDamage(moLong, [], buildAudit, { ...setupAudit, enemyElement: 'fire' }, 'water', artefactFeu20),
+    moLongBase * 1.2,
+    'Mo Long — les dégâts élémentaires d’artéfact majorent Reckless Assault'
+  );
 
   const hwa = profilDe(15512, 6907);
   egal(resolvedDebuffsCibleCount(hwa.skillCom2usId, { ...setupAudit, effetsCibleCount: { 6907: 9 }, defBreak: true, brand: true }), 10,
@@ -921,13 +984,21 @@ export default function testAuditDegatsConditionnels() {
   );
 
   const yujiFeu = profilDe(30412, 20112);
-  const yujiIntact = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyDestroyedHpPct: 0 });
-  const yujiDetruit = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyDestroyedHpPct: 1 });
-  ok(yujiIntact > yujiDetruit, '70 — Yuji : un seul point de PV détruits retire le bonus');
+  const yujiDetruit = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: false });
+  const yujiIntact = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: true });
+  ok(yujiIntact > yujiDetruit, '70 — Yuji : le toggle PV non détruits active le bonus de 50 %');
   egal(
-    yujiIntact,
-    computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyDestroyedHpPct: 0, critMode: 'crit' }),
-    '70 — Yuji : critique garanti quand aucun PV n’est détruit'
+    yujiDetruit,
+    computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: false, critMode: 'crit' }),
+    '70 — Yuji : critique garanti même quand le bonus de PV non détruits est inactif'
+  );
+  const bearHunt = profilDe(10501, 1611);
+  ok(critiqueGarantiParReglage(bearHunt, setupAudit), 'UI — Bear Hunt désactive toujours Non critique et Moyenne');
+  const nightmare = profilDe(11215, 2215);
+  ok(!critiqueGarantiParReglage(nightmare, setupAudit), 'UI — Nightmare ne force pas le critique sans cible endormie');
+  ok(
+    critiqueGarantiParReglage(nightmare, { ...setupAudit, passifsOffensifs: { 2215: true } }),
+    'UI — Nightmare force le critique quand son toggle de sommeil est actif'
   );
 
   const copper = profilDe(16533, 7763);
@@ -1205,6 +1276,8 @@ export default function testAuditDegatsConditionnels() {
   verifierRefus('artifactMainByKind.element', (r) => { r.artifactMainByKind = { element: 999 }; });
   verifierRefus('lignesVerrouillees.0', (r) => { r.lignesVerrouillees = [{ code: 'brand', min: 4 }]; });
   verifierRefus('damageSetup.buffsCibleCount', (r) => { r.damageSetup.buffsCibleCount = []; });
+  verifierRefus('damageSetup.aliveEnemies', (r) => { r.damageSetup.aliveEnemies = 5; });
+  verifierRefus('damageSetup.enemyHpNotDestroyed', (r) => { r.damageSetup.enemyHpNotDestroyed = 'oui'; });
   verifierRefus('damageSetup.buffsPropresCount.6513', (r) => { r.damageSetup.buffsPropresCount = { 6513: -1 }; });
   verifierRefus('damageSetup.buffsPropresCountAutres', (r) => { r.damageSetup.buffsPropresCountAutres = 'oui'; });
   verifierRefus('damageSetup.statsCombatActives.10612', (r) => { r.damageSetup.statsCombatActives = { 10612: 1 }; });

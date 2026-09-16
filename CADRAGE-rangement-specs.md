@@ -328,11 +328,20 @@ Définitions exactes :
   niveau **≤** au sien ;
 - **première phrase** : premier paragraphe de prose de la section, hors
   titres, blocs de code, tableaux et lignes vides ; un item de liste compte
-  comme prose ; tronqué à 120 caractères ; `—` si la section n'a pas de
-  prose avant son premier sous-titre ;
+  comme prose et **forme à lui seul son paragraphe** (marqueur `-`/`1.`
+  conservé ; sans ça une liste sans ligne vide interne deviendrait la
+  « phrase » entière — arbitrage du lot 3) ; tronqué à 120 caractères ;
+  `—` si la section n'a pas de prose avant son premier sous-titre ;
 - **en-tête** : les lignes `**Champ :** valeur` entre le H1 et la première
-  ligne qui n'en est pas une ; `statut` = la valeur du champ `Statut :` si
-  présent. **Bootstrap** : le lot 3 s'exécute avant le lot 5, donc un
+  ligne qui n'en est pas une, **les lignes vides étant transparentes**
+  (tous les en-têtes réels du dépôt ont une ligne vide entre le H1 et
+  `**Statut :**` ; sans ça aucun ne serait lu — arbitrage du lot 3, qui
+  vaut pour le lint du lot 4 et les modèles du lot 5) ; `statut` = la
+  valeur du champ `Statut :` si présent ;
+- **mode dossier** : parcours **récursif** de tous les `.md`, hors
+  `node_modules/` et `.git/`. Écrit au lot 3 sans test ; **le lot 4, qui
+  s'en sert pour son inventaire, ajoute la fixture** (dossier avec
+  sous-dossier et un `.md` à ignorer). **Bootstrap** : le lot 3 s'exécute avant le lot 5, donc un
   en-tête absent ou ancien (prose, ⚠️ libre) **n'est pas une erreur** :
   `statut: null`, `lireSi: null`, et le sommaire est produit normalement.
   C'est `spec-lint` (4) qui juge l'en-tête, pas `spec-toc` ;

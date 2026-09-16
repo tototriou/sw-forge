@@ -196,7 +196,8 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 6b consolidation + contrôles | J | exécuté | notes `b896771` → `sw-forge-docs` main `68f3c77` (`invariants.md`, `controle-6b.md`), 2026-09-16 |
 | 6c reprise du 6a sur `optimizer.md` (rappel) | C + J | exécuté | 2 règles, notes `b8c812b`, 2026-09-16 |
 | 7a delta privé / public | M | exécuté | notes `35ae956` → `sw-forge-docs` main `c996492` (`delta-7a-1.md`, `delta-7a-2.md`), 2026-09-16 |
-| 7b routage et fin du doublon (deux sessions : 7b-1 « Écran », 7b-2 reste + routage) | J | à faire | |
+| 7b-1 « Écran » : 89 sous-blocs décidés | J | exécuté | `6a92fd9`, `c87ccd1` (code), notes `9269f0c` → `sw-forge-docs` main `d735fbe` (`decisions-7b.md`), 2026-09-16 |
+| 7b-2 14 blocs restants, routage, preuve globale | J | à faire | |
 | 8 règles de rétention | J (intrant ≤ 100 l.) | à faire | |
 | 9 enforcement (hooks, skill, CLAUDE.md) | M | à faire | |
 
@@ -730,6 +731,23 @@ script de preuve **sur l'ensemble** des décisions (`decisions-7b.md`
 est un seul fichier, 7b-2 y ajoute ses entrées). Un bloc de 7b-2 dont la
 destination a été alimentée par 7b-1 passe par le même contrôle doublon
 (la section destination est relue, pas supposée vide).
+
+**Résultat 7b-1 (2026-09-16)** : 89 sous-blocs ; supprimer 59 (1 252 l.,
+chacun avec la citation de la formulation qui couvre : récits de
+révision → `archive/historique/`, état → `optimizer.md`, mécaniques de
+dégâts → `degats-reels.md`, 8 blocs contredits par le public ou le
+code), garder 17 (357 l., fusions dans `optimizer.md` et
+`degats-reels.md`), décisions 10 (207 l., nouveau
+`decisions/ecran-exemplaire-et-listes.md`), reliquat 3 (52 l.). L'alarme
+« > 300 lignes » a été levée, relue et acceptée ; 184 citations
+retrouvées par script, 0 introuvable. Les 5 entrées d'`invariants.md`
+sourcées sur le README sont repointées ; la contradiction l. 972–980 est
+close des deux côtés. README : 2 377 → 584 lignes ; **les numéros de
+lignes de `delta-7a-*.md` pour les blocs restants sont ceux de l'ancien
+README** (notes `35ae956`) — décalage −1 859 à partir de l'ancienne
+l. 2022, à confirmer par la première ligne de chaque bloc. Quatre
+contradictions publiques trouvées en passant attendent dans `pistes.md`
+§ Rangement.
 Pour chaque bloc, une décision parmi trois, écrite dans `decisions-7b.md`
 (dossier de preuves, A.6) avec la première ligne du bloc citée :
 

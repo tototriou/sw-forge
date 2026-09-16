@@ -38,6 +38,7 @@ import {
 } from 'fs';
 import { createHash } from 'crypto';
 import { dirname, join, relative, resolve, sep } from 'path';
+import { verifier as verifierSpecLint } from './spec-lint.mjs';
 
 const CHEMIN_NOTES = 'spec/outils/optimizer';
 const DOSSIER_RECUS = 'recus';
@@ -461,6 +462,32 @@ function nom_depot(chemin) {
 }
 
 /* --------------------------------------------------------------------------
+ * Lint des notes privées avant livraison
+ *
+ * ⚠️ Même périmètre et même config que `pre-commit` (`spec/spec-lint.json`,
+ * B.9) : le lint reste la SEULE source de vérité sur ce qui compte, `livrer`
+ * ne fait que lui soumettre les notes et refuser si elles ne passent pas.
+ * ----------------------------------------------------------------------- */
+
+function verifierLintNotes(depotCode, notesCode) {
+  const cheminConfig = join(depotCode, 'spec', 'spec-lint.json');
+  if (!existsSync(cheminConfig)) return;
+  const config = JSON.parse(readFileSync(cheminConfig, 'utf8'));
+  const { erreurs } = verifierSpecLint(depotCode, config);
+  const prefixe = `${relative(depotCode, notesCode).replace(/\\/g, '/')}/`;
+  const enJeu = erreurs.filter((e) => e.fichier.startsWith(prefixe));
+  if (enJeu.length > 0) {
+    refuser(
+      `spec-lint refuse ${enJeu.length} point(s) sur les notes du chantier`,
+      ...enJeu.map((e) => `${e.fichier}${e.ligne ? `:${e.ligne}` : ''} [${e.regle}] ${e.message}`),
+      '',
+      'Corriger les notes, puis relancer `livrer` :',
+      '  node scripts/spec-lint.mjs'
+    );
+  }
+}
+
+/* --------------------------------------------------------------------------
  * livrer
  * ----------------------------------------------------------------------- */
 
@@ -480,6 +507,7 @@ function livrer(nom) {
   }
 
   const notesCode = notesDuCode(depotCode);
+  verifierLintNotes(depotCode, notesCode);
   controlerWorktreeDoc(depotCode, chantier);
 
   const { worktreeDoc } = chantier;

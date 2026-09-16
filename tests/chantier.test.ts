@@ -37,11 +37,12 @@ export function testHooksCodex() {
     mkdirSync(join(doc, NOTES), { recursive: true });
     writeFileSync(join(doc, NOTES, 'note.md'), 'base\n');
     commiter(doc, 'Base documentaire\n');
-    mkdirSync(join(code, 'scripts'));
+    mkdirSync(join(code, 'scripts', 'lib'), { recursive: true });
     mkdirSync(join(code, '.githooks'));
-    for (const fichier of ['chantier.mjs', 'hooks-codex.mjs']) {
+    for (const fichier of ['chantier.mjs', 'hooks-codex.mjs', 'spec-lint.mjs']) {
       cpSync(join(RACINE, 'scripts', fichier), join(code, 'scripts', fichier));
     }
+    cpSync(join(RACINE, 'scripts', 'lib', 'spec-markdown.mjs'), join(code, 'scripts', 'lib', 'spec-markdown.mjs'));
     cpSync(join(RACINE, '.githooks', 'pre-commit'), join(code, '.githooks', 'pre-commit'));
     writeFileSync(join(code, '.gitignore'), `${NOTES}/\n`);
     commiter(code, 'Base code\n');
@@ -175,9 +176,11 @@ export function testChantierDeuxChantiers() {
     commiter(docDir, 'notes initiales\n');
     const baseInitiale = git(docDir, 'rev-parse', 'HEAD');
 
-    mkdirSync(join(codeA, 'scripts'), { recursive: true });
+    mkdirSync(join(codeA, 'scripts', 'lib'), { recursive: true });
     cpSync(OUTIL, join(codeA, 'scripts', 'chantier.mjs'));
     cpSync(join(RACINE, 'scripts', 'hooks-codex.mjs'), join(codeA, 'scripts', 'hooks-codex.mjs'));
+    cpSync(join(RACINE, 'scripts', 'spec-lint.mjs'), join(codeA, 'scripts', 'spec-lint.mjs'));
+    cpSync(join(RACINE, 'scripts', 'lib', 'spec-markdown.mjs'), join(codeA, 'scripts', 'lib', 'spec-markdown.mjs'));
     writeFileSync(join(codeA, '.gitignore'), `${NOTES}/\n`);
     depotJetable(codeA);
     commiter(codeA, 'code initial\n');
@@ -341,6 +344,61 @@ export function testChantierDeuxChantiers() {
   }
 }
 
+// `livrer` applique spec-lint (même config, même périmètre que `pre-commit`,
+// B.9) aux notes privées AVANT de les reporter : un bloc trop long ne doit
+// jamais atteindre la branche documentaire.
+export function testChantierLintNotes() {
+  titre('Chantier — livrer refuse des notes qui échouent spec-lint');
+
+  try {
+    execFileSync('git', ['--version'], { stdio: 'ignore' });
+  } catch {
+    ignore('livrer refuse des notes qui échouent spec-lint', 'git introuvable');
+    return;
+  }
+
+  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-chantier-lint-'));
+  const codeDir = join(bac, 'code');
+  const docDir = join(bac, 'docs');
+
+  try {
+    mkdirSync(join(docDir, NOTES), { recursive: true });
+    writeFileSync(join(docDir, NOTES, 'note.md'), 'base\n');
+    depotJetable(docDir);
+    commiter(docDir, 'notes initiales\n');
+
+    mkdirSync(join(codeDir, 'scripts', 'lib'), { recursive: true });
+    cpSync(OUTIL, join(codeDir, 'scripts', 'chantier.mjs'));
+    cpSync(join(RACINE, 'scripts', 'spec-lint.mjs'), join(codeDir, 'scripts', 'spec-lint.mjs'));
+    cpSync(join(RACINE, 'scripts', 'lib', 'spec-markdown.mjs'), join(codeDir, 'scripts', 'lib', 'spec-markdown.mjs'));
+    mkdirSync(join(codeDir, 'spec'), { recursive: true });
+    writeFileSync(join(codeDir, 'spec', 'spec-lint.json'), JSON.stringify({ perimetre: ['spec/outils/**'], exceptions: [] }));
+    writeFileSync(join(codeDir, '.gitignore'), `${NOTES}/\n`);
+    depotJetable(codeDir);
+    commiter(codeDir, 'code initial\n');
+    git(codeDir, 'checkout', '-b', 'forge/essai-lint');
+
+    ok(chantier(codeDir, 'ouvrir', '--chantier', 'essai-lint', '--depot-doc', docDir).code === 0, 'ouvrir réussit');
+
+    const lignes = Array.from({ length: 101 }, (_, i) => `Ligne ${i + 1} de contenu.`);
+    const contenu = `# Note\n\n**Statut :** État actuel\n\n## Section\n\n${lignes.join('\n')}\n`;
+    writeFileSync(join(codeDir, NOTES, 'note.md'), contenu);
+
+    const r = chantier(codeDir, 'livrer', '--chantier', 'essai-lint');
+    ok(r.code !== 0, 'livrer refuse un bloc de 101 lignes dans les notes');
+    ok(/bloc-trop-long/.test(r.sortie), 'et nomme la règle en cause');
+
+    const wt = (
+      JSON.parse(
+        readFileSync(join(codeDir, '.git', 'forge', 'etat', 'chantiers', 'essai-lint.json'), 'utf8')
+      ) as { worktreeDoc: string }
+    ).worktreeDoc;
+    ok(lire(join(wt, NOTES, 'note.md')) === 'base\n', 'et rien n’est reporté côté documentaire');
+  } finally {
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
 export default function testChantier() {
   titre('Chantier — livraison vérifiée des notes privées');
 
@@ -369,9 +427,11 @@ export default function testChantier() {
     writeFileSync(join(codeDir, '.gitignore'), `${NOTES}/\n`);
     // `installer` copie l'outil DEPUIS le dépôt où il tourne : le dépôt
     // jetable doit donc le porter, comme le vrai.
-    mkdirSync(join(codeDir, 'scripts'), { recursive: true });
+    mkdirSync(join(codeDir, 'scripts', 'lib'), { recursive: true });
     cpSync(OUTIL, join(codeDir, 'scripts', 'chantier.mjs'));
     cpSync(join(RACINE, 'scripts', 'hooks-codex.mjs'), join(codeDir, 'scripts', 'hooks-codex.mjs'));
+    cpSync(join(RACINE, 'scripts', 'spec-lint.mjs'), join(codeDir, 'scripts', 'spec-lint.mjs'));
+    cpSync(join(RACINE, 'scripts', 'lib', 'spec-markdown.mjs'), join(codeDir, 'scripts', 'lib', 'spec-markdown.mjs'));
     mkdirSync(join(codeDir, '.githooks'), { recursive: true });
     cpSync(join(RACINE, '.githooks', 'pre-commit'), join(codeDir, '.githooks', 'pre-commit'));
     depotJetable(codeDir);

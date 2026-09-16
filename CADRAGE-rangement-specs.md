@@ -200,7 +200,7 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 7a delta privé / public | M | exécuté | notes `35ae956` → `sw-forge-docs` main `c996492` (`delta-7a-1.md`, `delta-7a-2.md`), 2026-09-16 |
 | 7b-1 « Écran » : 89 sous-blocs décidés | J | exécuté | `6a92fd9`, `c87ccd1` (code), notes `9269f0c` → `sw-forge-docs` main `d735fbe` (`decisions-7b.md`), 2026-09-16 |
 | 7b-2 21 plages restantes, routage, preuve globale | J | exécuté | `b3884ac` (code), notes `a752678` → `sw-forge-docs` main `c3b236c`, README 112 l. (47 hors reliquat), 2026-09-16 |
-| 8 règles de rétention | J (intrant ≤ 100 l.) | à faire | |
+| 8 règles de rétention | J (intrant ≤ 100 l.) | exécuté | `cd60f2a` (spec/README.md), `76bd23c` (CLAUDE.md), `94ca484` (ARCHITECTURE.md), aucune note privée, 2026-09-16 |
 | 7c spec publique contredite par le code (6 entrées) | J (effort moyen) | à faire | |
 | 9 enforcement (hooks, skill, CLAUDE.md) | M | à faire | |
 

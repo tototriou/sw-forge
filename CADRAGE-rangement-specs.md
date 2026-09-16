@@ -202,7 +202,7 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 7b-2 21 plages restantes, routage, preuve globale | J | exécuté | `b3884ac` (code), notes `a752678` → `sw-forge-docs` main `c3b236c`, README 112 l. (47 hors reliquat), 2026-09-16 |
 | 8 règles de rétention | J (intrant ≤ 100 l.) | exécuté | `cd60f2a` (spec/README.md), `76bd23c` (CLAUDE.md), `94ca484` (ARCHITECTURE.md), aucune note privée, 2026-09-16 |
 | 7c spec publique contredite par le code (6 entrées) | J (effort moyen) | exécuté | `653bfc7` (code), notes `49b9086` → `sw-forge-docs` main `e1535aa` (`corrections-7c.md`), 6/6 corrigées, 2026-09-17 |
-| 9a parseur `§` par slug, sous-titres (4 fichiers), `spec-lint` complet sur le corpus | M (Sonnet, effort moyen) | à faire | |
+| 9a parseur `§` par slug, sous-titres (4 fichiers), `spec-lint` complet sur le corpus | M (Sonnet, effort moyen) | exécuté | `94918cc`, `7ed4153`, `faba3ef` (code), notes `b1129cd` → `sw-forge-docs` main `f10066f` ; `spec-lint spec/outils` → 0 point, `testSpecLintReel` enregistré ; `passifs-vitesse.md` sous-titré par son générateur, régénération identique, 2026-09-17 |
 | 9b enforcement (pre-commit, livrer, hook `Read`, skill, CLAUDE.md) | M (Sonnet, effort bas) | à faire | |
 
 ---

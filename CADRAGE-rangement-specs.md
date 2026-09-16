@@ -116,9 +116,13 @@ pas un interdit — A.3 prime.
   chaque lot : `chantier livrer` → `chantier verifier` → **`chantier
   integrer` immédiatement**, sinon le chantier relique ne voit pas les
   nouveaux chemins.
-- **`forge/implementation-relique` est ouvert (0 commit au 2026-09-15).**
-  Les lots B.0, B.1, B.2 passent avant qu'il produise. `reliques.md` ne
-  bouge pas, ne change pas de nom, n'est pas réécrit.
+- **`forge/implementation-relique` est ouvert (0 commit au 2026-09-16,
+  avancé sur l'audit `b2538ab`).** `reliques.md` ne bouge pas, ne change
+  pas de nom, n'est pas réécrit. **Sa première action, le jour où il
+  démarre : `git merge --ff-only forge/spec-rangement`** dans son worktree
+  — gratuit tant qu'il est à zéro commit, un vrai merge sur
+  `optimizer.md` après. Pas d'avance intermédiaire tant que personne n'y
+  travaille : elle serait à refaire à chaque lot.
 - Fichiers transverses portés par ce chantier : `spec/README.md`,
   `ARCHITECTURE.md`, `CLAUDE.md`, `tests/index.ts`. `App.tsx` non touché.
 - Règles de commit du dépôt : heredoc, jamais `-m` ; un commit = une raison ;

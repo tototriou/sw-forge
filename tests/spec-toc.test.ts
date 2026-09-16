@@ -76,6 +76,19 @@ export default function testSpecToc() {
   const sansEnTete = enTete(lireFixture('imbrique.md'));
   egal(sansEnTete, { statut: null, lireSi: null }, 'aucun en-tête normalisé — statut et lire si à null, pas une erreur');
 
+  titre('spec-toc · mode dossier (récursif, hors node_modules/)');
+
+  const sortieDossier = execFileSync(process.execPath, [SCRIPT, 'tests/fixtures/spec-toc/dossier', '--json'], {
+    cwd: RACINE,
+    encoding: 'utf8',
+  });
+  const parsedDossier = JSON.parse(sortieDossier);
+  egal(
+    parsedDossier.map((r: any) => r.fichier).sort(),
+    ['tests/fixtures/spec-toc/dossier/a.md', 'tests/fixtures/spec-toc/dossier/sous/b.md'],
+    'parcours récursif du sous-dossier, et node_modules/ ignoré malgré son .md'
+  );
+
   titre('spec-toc · spec/outils/optimizer.md réel');
 
   const optimizerPath = resolve(RACINE, 'spec/outils/optimizer.md');

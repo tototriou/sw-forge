@@ -1,8 +1,11 @@
 // `scripts/spec-lint.mjs` — contrat de B.4 (`CADRAGE-rangement-specs.md`) sur
 // des fixtures synthétiques. Deux cibles, au sens fixe : `testSpecLintEnTetes`
 // (en-têtes, slugs, références) et `testSpecLint` (tout ce qui précède, plus
-// les longueurs et les exceptions). Au lot 4, les deux ne tournent QUE sur
-// les fixtures — le corpus réel n'a pas encore ses en-têtes (lot 5).
+// les longueurs et les exceptions). Au lot 4, les deux ne tournaient QUE sur
+// les fixtures — le corpus réel n'avait pas encore ses en-têtes. Depuis le
+// lot 5, `testSpecLintEnTetesReel` rejoue le mode en-têtes sur le VRAI
+// périmètre (`spec/outils/**`, archives comprises) : c'est la preuve que les
+// en-têtes posés au lot 5 sont effectivement reconnus par le lint.
 
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -39,6 +42,19 @@ export function testSpecLintEnTetes() {
   ok(
     !regles(erreurs, 'bloc-101.md').includes('bloc-trop-long') && !regles(erreurs, 'fichier-501.md').includes('fichier-trop-long'),
     'cible en-têtes seule : aucune erreur de longueur, même sur les fixtures qui en portent'
+  );
+}
+
+export function testSpecLintEnTetesReel() {
+  titre('spec-lint-en-tetes · périmètre réel (spec/outils/**, archives comprises)');
+
+  const { erreurs } = verifier(RACINE, { perimetre: ['spec/outils/**'], exceptions: [] }, { inclureLongueurs: false });
+
+  ok(
+    erreurs.length === 0,
+    erreurs.length === 0
+      ? 'aucune erreur d\'en-tête, de slug ou de référence sur le corpus réel'
+      : `${erreurs.length} erreur(s) — ${erreurs.map((e) => `${e.fichier}${e.ligne ? `:${e.ligne}` : ''} [${e.regle}]`).join(', ')}`
   );
 }
 

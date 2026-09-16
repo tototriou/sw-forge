@@ -21,7 +21,11 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   section utile — jamais un fichier entier de plus de 300 lignes sans raison
   écrite. Avant un chantier Optimizer : `invariants.md` (en entier — le seul
   fichier lu ainsi, tenu compact pour ça) et le README de routage, tous deux
-  dans `spec/outils/optimizer/`.
+  dans `spec/outils/optimizer/`. **Modification NORMATIVE** d'un fichier
+  listé en exception dans `spec/spec-lint.json`, ou extraction des
+  invariants d'une section d'état actuel nouvelle/modifiée : skill
+  `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
+  ou un en-tête).
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
@@ -130,12 +134,14 @@ commit) prend une **junction**, déliée dans un `finally`. Le skill
 un vieux commit, `npm ci` installerait les dépendances de l'époque et
 changerait ce qu'on mesure. Détail : cadrage §2.1.
 
-- **Un hook `pre-commit` refuse trois choses** : un commit sur `main`, un
+- **Un hook `pre-commit` refuse quatre choses** : un commit sur `main`, un
   chemin privé dans l'index (`spec/outils/optimizer/`, `.history/`,
-  `.vscode/`), un fichier de plus de 5 Mo (un export de compte). Il est
-  **installé par machine**, donc actif quelle que soit la branche — mais
-  jamais requis : un clone neuf n'en a pas et commite normalement. Après
-  toute modification du hook ou de l'outil :
+  `.vscode/`), un fichier de plus de 5 Mo (un export de compte), et un
+  `spec/**.md` du périmètre de `spec/spec-lint.json` qui ne passe pas
+  `spec-lint` (niveau 1, invariant dépôt — CADRAGE-rangement-specs.md, B.9).
+  Il est **installé par machine**, donc actif quelle que soit la branche —
+  mais jamais requis : un clone neuf n'en a pas et commite normalement.
+  Après toute modification du hook ou de l'outil :
   `node scripts/chantier.mjs installer`.
 - **Les notes privées se LIVRENT, elles ne se copient pas.**
   `spec/outils/optimizer/` est gitignoré : ni historique, ni merge, ni conflit
@@ -248,6 +254,35 @@ l'action ne dépend d'aucune vigilance.
 sûrs et fréquents), ni `gh pr create --body`, ni `sed -i`. Couvrir la classe
 entière demanderait une analyse de quoting bash aux faux positifs permanents,
 `$(…)` étant une construction légitime.
+
+### Un `Read` sans offset sur une grosse spec est refusé
+
+[.claude/hooks/refuse-read-spec-entier.mjs](.claude/hooks/refuse-read-spec-entier.mjs)
+(`PreToolUse` sur `Read`) refuse la lecture d'un `spec/**.md` de plus de
+300 lignes sans `offset`/`limit`, avec le rappel `node scripts/spec-toc.mjs
+<fichier>` — exception : `spec/outils/optimizer/invariants.md`. Raison
+d'être : même logique que `refuse-commit-m` — une consigne écrite (« jamais
+un fichier entier de plus de 300 lignes ») s'érode à l'usage, un refus au
+moment de l'action non. Portée **étroite et assumée** (niveau 2, garde-fou
+outil, pas invariant, CADRAGE-rangement-specs.md B.9) : ne couvre ni `cat`
+ni un autre outil de lecture, seulement le chemin `Read` de Claude Code.
+Équivalent Codex dans `scripts/hooks-codex.mjs`. Câblage dans
+`.claude/settings.json` (ignoré, propre à chaque machine) :
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          { "type": "command", "command": "node .claude/hooks/refuse-read-spec-entier.mjs" }
+        ]
+      }
+    ]
+  }
+}
+```
 
 ### Windows : `TaskStop` ne tue pas le vrai process
 

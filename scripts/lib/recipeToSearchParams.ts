@@ -72,7 +72,7 @@ export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
  * les deux principales pour CHOISIR la paire n'est exact que pour l'efficience
  * et la VIT (aucun artéfact n'y entre) : pour les PV effectifs, `pvEffectifs`
  * n'est PAS une somme de PV et de DEF, voir
- * spec/outils/optimizer/cadrage-score-artefacts-ehp.md. `evaluerPourRegime`
+ * spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md. `evaluerPourRegime`
  * (`src/lib/artifactEvaluation.ts`) note donc chaque régime sur son critère
  * réel, jamais sur une somme incommensurable.
  */
@@ -154,7 +154,7 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
   // contrairement à l'efficience/la VIT. `evaluerPourRegime`
   // (`src/lib/artifactEvaluation.ts`) centralise ce contrat, partagé avec
   // les deux sites de OptimizerSection.tsx (spec/outils/optimizer/
-  // cadrage-score-artefacts-ehp.md).
+  // decisions/cadrage-score-artefacts-ehp.md).
   const regime = regimeArtefacts(recipe.objective);
 
   let evaluer: (arts: ArtifactDetail[]) => number;

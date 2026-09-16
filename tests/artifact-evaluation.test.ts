@@ -1,6 +1,6 @@
 // Le score de la paire d'artéfacts REPRÉSENTATIVE pour l'objectif « PV
 // effectifs » (`ehp`) n'est PAS une somme des deux principales — voir
-// spec/outils/optimizer/cadrage-score-artefacts-ehp.md et
+// spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md et
 // spec/outils/optimizer/artefacts.md §12.0/§12.7.
 //
 // ⚠️ Deux niveaux, volontairement séparés :

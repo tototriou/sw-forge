@@ -115,7 +115,7 @@ export interface ExclusionSourceData {
 //
 // ⚠️ Deux gardes DISTINCTES, une par granularité — trouvé manquant pour RTA/
 // siège par une revue de code externe (voir spec/outils/optimizer/
-// historique/historique-acceleration-et-outillage.md) :
+// archive/historique/historique-acceleration-et-outillage.md) :
 // - `excludeOwnUnitKey` (box UNIQUEMENT) : compare par ENTRÉE précise (clé de
 //   box), pas par espèce — la box peut contenir plusieurs exemplaires du même
 //   monstre (voir l'en-tête du fichier), et SEUL l'exemplaire réellement en
@@ -292,7 +292,7 @@ export function autoExcludedRuneIds(scope: AutoExclusionScope, data: ExclusionSo
 
 /* --------------------------------------------------------------------------
  * Listes de travail (Lot 3, voir
- * spec/outils/optimizer/historique/historique-import-monstres-a-optimiser.md)
+ * spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md)
  * — conteneurs LIBRES créés par l'utilisateur, PAS
  * de liste fixe (Box/RTA/Défense siège ne sont plus des cas spéciaux : c'est
  * l'utilisateur qui décide quels monstres partagent un même pool de runes,

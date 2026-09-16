@@ -1840,7 +1840,7 @@ crit qui ne sert plus à rien.
 ## Audit des dégâts conditionnels — partie 1
 
 La livraison du 9 septembre 2026 ajoute les clauses recensées dans le
-[suivi d’audit](optimizer/audit-degats-conditionnels-2026-09-08/suivi-implementation.md).
+[suivi d’audit](optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md).
 Les nouvelles saisies de `DamageSetup` restent optionnelles pour préserver les
 anciennes recettes : nombres de buffs sur la cible et sur soi, puis scénario
 de poses réussies entre les coups. Un scénario absent ou inactif ne suppose
@@ -1886,7 +1886,7 @@ vivants est toujours borné de 1 à 4.
 
 ## Audit des dégâts conditionnels — partie 2
 
-Le [périmètre exact](optimizer/audit-degats-conditionnels-2026-09-08/partie-2.md)
+Le [périmètre exact](optimizer/archive/audit-degats-conditionnels-2026-09-08/partie-2.md)
 ajoute les PV propres actuels/manquants, le nombre d'alliés et d'ennemis
 vivants, les comparaisons de PV/ATQ/DEF/VIT, les statistiques acquises en
 combat, les seuils d'ignore DEF et les critiques garantis conditionnels.

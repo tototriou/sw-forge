@@ -11,7 +11,7 @@ genre de piège (contention, chemins gitignorés, spawn Windows) a failli être
 re-découvert plusieurs fois faute d'un endroit où le retrouver vite. Ce
 skill est une RÉFÉRENCE, pas un récit : pour l'historique complet de chaque
 décision, voir
-`spec/outils/optimizer/historique/historique-acceleration-et-outillage.md` (sections
+`spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md` (sections
 « Suite — mode --quick et parallélisation… », « Suite —
 perf-battery-compare.ts… », « leçons retenues sur la méthodologie de
 mesure »).
@@ -294,7 +294,7 @@ ne change leur comportement en cours de route) — la règle ci-dessus les
 classe du côté valide, pas suspect. Seul un mécanisme de coordination
 EN DIRECT, encore jamais mesuré avant le Chantier D, était concerné.
 Détail complet de l'incident :
-`spec/outils/optimizer/historique/historique-acceleration-et-outillage.md`, section
+`spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md`, section
 « Suite — revérifié sous VRAIE concurrence : la simulation séquentielle
 était trompeuse sur le quota partagé ».
 
@@ -407,6 +407,6 @@ charge.
   risque qu'un script qui appelle les internes du moteur diverge du vrai
   chemin de production.
 - `spec/outils/optimizer/README.md` — index de la section, avec les
-  fichiers `historique/historique-*.md` (l'historique complet, chronologique, de
+  fichiers `archive/historique/historique-*.md` (l'historique complet, chronologique, de
   chaque décision résumée ici) et `spec/outils/optimizer/pistes.md` (état
   des lieux des pistes sans relire l'historique).

@@ -2,7 +2,7 @@
 // `artifactOptim.ts`) pour quel régime — UNE seule définition, consommée par
 // les trois sites qui en construisaient une chacun (OptimizerSection.tsx ×2,
 // scripts/lib/recipeToSearchParams.ts ×1). Voir
-// spec/outils/optimizer/cadrage-score-artefacts-ehp.md pour le cadrage complet.
+// spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md pour le cadrage complet.
 //
 // ⚠️ Volontairement SÉPARÉ de `artifactOptim.ts`, qui reste libre de toute
 // dépendance à `damage.ts`/`stats.ts` (spec/outils/optimizer/artefacts.md,

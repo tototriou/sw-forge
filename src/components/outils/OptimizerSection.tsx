@@ -222,7 +222,7 @@ const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 // encore la nouvelle valeur dans le même appel). Sert deux choses : activer/
 // désactiver chaque puce (une espèce jamais possédée dans une source
 // précise désactive SA puce, voir
-// spec/outils/optimizer/historique/historique-import-monstres-a-optimiser.md,
+// spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
 // Questions 2-3) et peupler la désambiguïsation
 // d'exemplaire (zone D, plusieurs candidats dans la même source — ex. 2
 // équipes de siège).
@@ -317,7 +317,7 @@ type EtatValidation = 'non' | 'oui' | 'artefacts';
  * `artifactEvaluation.ts` — UNE seule définition, partagée avec le CLI
  * (`scripts/lib/recipeToSearchParams.ts`), pour que les deux ne puissent
  * plus diverger silencieusement (spec/outils/optimizer/
- * cadrage-score-artefacts-ehp.md).
+ * decisions/cadrage-score-artefacts-ehp.md).
  */
 
 function memesIds(a: number[], b: number[]): boolean {
@@ -440,7 +440,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // Tous les monstres du BESTIAIRE, indexés par id — la recherche du
   // monstre à optimiser résout désormais une ESPÈCE dans TOUT le bestiaire
   // (monstre possédé ou non), pas seulement dans les 4 sources du compte
-  // (voir spec/outils/optimizer/historique/historique-import-monstres-a-optimiser.md,
+  // (voir spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
   // Question 1). Indexé par `String(monster.id)` — même clé que
   // `RtaEntry.monsterId`/`SiegeSlot.monsterId` (voir applyAccount.ts).
   // Recalculé seulement si la liste de monstres change, pas à chaque rendu.
@@ -1279,7 +1279,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // ⚠️ Le score de la paire dépend de l'OBJECTIF, et PAS de la même façon
     // pour tous : `pvEffectifs` (PV effectifs) n'est PAS une somme des deux
     // principales, contrairement à l'efficience/la VIT (voir
-    // spec/outils/optimizer/cadrage-score-artefacts-ehp.md).
+    // spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md).
     // `evaluerPourRegime` centralise ce contrat, partagé avec le site « au
     // fil de l'eau » plus bas et le CLI (`recipeToSearchParams.ts`).
     //
@@ -2240,7 +2240,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // l'ancienne « Monstres déjà runés » (Lot 2) : chaque ligne porte
   // directement son état validé, une section séparée ailleurs dans l'écran
   // pour la même info aurait été redondante (voir spec/outils/optimizer/
-  // historique/historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 »).
+  // archive/historique/historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 »).
   const activeList = lists.lists.find((l) => l.id === lists.activeListId) ?? null;
   const activeMembers = lists.activeListId ? lists.members.filter((m) => m.listId === lists.activeListId) : [];
   const alreadyMember = ownSelectorKey != null && activeMembers.some((m) => exclusionSelectorKey(m.selector) === ownSelectorKey);
@@ -2959,7 +2959,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         {/* ⚠️ Bureau et mobile ont des dispositions RÉELLEMENT DIFFÉRENTES
             ici, une par bloc `hidden`/`lg:hidden`, pas l'une déclinée de
             l'autre (Question 7 du cadrage, voir spec/outils/optimizer/
-            historique/historique-import-monstres-a-optimiser.md — Lot 1) : recherche +
+            archive/historique/historique-import-monstres-a-optimiser.md — Lot 1) : recherche +
             puces CÔTE À CÔTE avec zones C/D en encarts fixes sur bureau,
             contre 3 blocs empilés avec un dépliement propre chacun au
             doigt. La fiche (zone E), elle, est PARTAGÉE (même JSX, tout en
@@ -2999,7 +2999,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             )}
             {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont plus des
                 cas spéciaux, voir
-                spec/outils/optimizer/historique/historique-import-monstres-a-optimiser.md,
+                spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
                 « Suite — cadrage du Lot 3 ») —
                 tout est créé/renommé/supprimé par l'utilisateur. Flotte par-
                 dessus zone C, ne la pousse jamais (voir OptimizerListPicker.tsx). */}

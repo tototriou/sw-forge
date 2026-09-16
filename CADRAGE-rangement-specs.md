@@ -174,11 +174,13 @@ gauche) :
 4 → 5         1 → 5 (5 enregistre spec-lint-en-tetes sur le périmètre réel, archives comprises)
 3 → 6a        6a → 6b        4 → 6b
 3 → 7a        7a → 7b        6b → 7b (le routage cite invariants.md)
-7b → 8 (8 documente l'état final)          {4, 5, 6b, 7b, 8} → 9
+7b → 8 (8 documente l'état final)          7b → 7c (7c corrige ce que 7b a relevé)
+{4, 5, 6b, 7b, 7c, 8} → 9
 ```
 
 Ordre d'exécution = **ordre des numéros : 0 → 1 → 2 → 3 → 4 → 5 → 6a → 6b
-→ 7a → 7b → 8 → 9**. `2 → 3` est une dépendance technique
+→ 7a → 7b → 8 → 7c → 9** (7c après 8 : il est né du retour du lot 7,
+le brief du 8 était déjà émis ; les deux sont indépendants). `2 → 3` est une dépendance technique
 (`spec-markdown.mjs` naît au lot 2) ; que le lot 2 passe **aussi** très
 tôt répond à la contrainte du chantier relique (A.5). 3 puis 4 suivent
 pour que tous les lots sémantiques disposent de `spec-toc` **et** de
@@ -199,6 +201,7 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 7b-1 « Écran » : 89 sous-blocs décidés | J | exécuté | `6a92fd9`, `c87ccd1` (code), notes `9269f0c` → `sw-forge-docs` main `d735fbe` (`decisions-7b.md`), 2026-09-16 |
 | 7b-2 21 plages restantes, routage, preuve globale | J | exécuté | `b3884ac` (code), notes `a752678` → `sw-forge-docs` main `c3b236c`, README 112 l. (47 hors reliquat), 2026-09-16 |
 | 8 règles de rétention | J (intrant ≤ 100 l.) | à faire | |
+| 7c spec publique contredite par le code (6 entrées) | J (effort moyen) | à faire | |
 | 9 enforcement (hooks, skill, CLAUDE.md) | M | à faire | |
 
 ---
@@ -833,6 +836,39 @@ textuellement dans le fichier destination** (pour « déjà couverte », la
 citation de la formulation existante l'est). `spec-lint-en-tetes` résout
 tous les liens de section du routage ; le routage fait ≤ 120 lignes hors
 reliquat.
+
+#### 7c — la spec publique contredite par le code · J (effort moyen)
+
+Les lots 6b, 7b-1 et 7b-2 ont trouvé, en passant, **six affirmations de
+`optimizer.md` (ÉTAT ACTUEL) contredites par le code**, consignées dans
+`pistes.md` § Rangement et laissées telles quelles parce qu'aucun de ces
+lots n'avait le public pour objet. Les laisser à un chantier futur, c'est
+garder six phrases fausses dans la source de vérité ; A.3 (correction
+avant économie) les fait porter par ce lot, après le 8 et avant le 9.
+
+Intrant : les six entrées de `pistes.md` § Rangement marquées « à
+corriger dans la source » — continuité au retour sur l'onglet et « à
+DROITE » (§ Équipement actuel) ; artéfacts « hypothéqués » (§ Recherche
+des runes — meet-in-the-middle et élagages) ; position de « Réglages
+avancés » (§ Conditions, inventaire et réglages avancés) ; `tsconfig`
+« n'inclut que `src` » (l. 608 ancienne) ; l'écart « ne s'affiche que
+s'il y a quelque chose à gagner » (l. 438 contre l. 397). Pour chacune :
+la phrase actuelle citée, **la ligne de code qui la contredit citée**
+(fichier:ligne, texte), la phrase de remplacement (ou la suppression, si
+le public dit déjà la règle juste ailleurs — alors citation de cet
+endroit), et la fermeture de l'entrée de `pistes.md` **dans le même
+commit** (ledger et source ensemble, CLAUDE.md). Une entrée où le code
+ne tranche pas nettement n'est pas corrigée : `<!-- À trancher -->` sur
+place, entrée laissée ouverte avec la raison. Rien d'autre n'est
+retouché dans `optimizer.md` : six corrections locales, pas une
+relecture. Preuve : `corrections-7c.md` dans le dossier de preuves
+(A.6), une section par entrée ; `spec-lint` sans point nouveau ;
+`spec-lint-en-tetes`. Un commit `docs(optimizer)` par entrée, ou un
+seul si le message les liste toutes une à une — l'atomicité se juge sur
+le pourquoi (« le code contredit la spec ») et il est commun.
+
+Hors périmètre, tracé dans `pistes.md` : les trois reliquats du 7b-1
+(composants partagés, destination hors `spec/outils/`).
 
 ### B.8 Lot 8 — règles de rétention · J (intrant ≤ 100 lignes)
 

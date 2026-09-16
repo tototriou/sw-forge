@@ -57,6 +57,7 @@ import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 import testSpecMarkdown from './spec-markdown.test';
+import testSpecToc from './spec-toc.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -80,6 +81,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSpeedTuneModele', testSpeedTuneModele],
   ['testSiegeStatut', testSiegeStatut],
   ['testSpecMarkdown', testSpecMarkdown],
+  ['testSpecToc', testSpecToc],
   ['testImport', testImport],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],

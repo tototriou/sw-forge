@@ -142,6 +142,16 @@ pas un interdit — A.3 prime.
   l'en-tête `**Statut :** ARCHIVE — preuve d'exécution du cadrage
   spec-rangement, lot <n>, <date>` (le lint l'exige). Le message de commit
   cite le fichier de preuve ; il ne le remplace pas.
+- **Où vit le commit d'un lot** (convention actée au lot 0) :
+  `spec/outils/optimizer/` est gitignoré dans le dépôt de code, et
+  `chantier livrer` commite les notes dans `sw-forge-docs` avec un message
+  générique qu'on ne rédige pas. Donc un lot qui ne touche **que** des
+  notes privées n'a **aucun commit `docs(optimizer)`** dans le dépôt de
+  code : sa preuve vit dans son fichier de preuve (ci-dessus) **et** dans
+  le commit `docs(cadrage): lot <n> terminé`, qui met à jour A.7 et
+  embarque commandes et sorties d'observation. Un lot qui touche aussi des
+  fichiers suivis (spec publique, `src/`, `scripts/`, `tests/`) a en plus
+  ses commits normaux, un par raison.
 
 ### A.7 Ordre, dépendances, suivi
 
@@ -209,11 +219,12 @@ annoncé (ex. pour `cadrage-rangement-historique.md` : `historique/` existe
 que des chemins `historique/…`). L'observation est notée dans l'en-tête
 sous la forme **définitive** du modèle DÉCISION de B.5 — une ligne
 `**Exécution :** commit <sha> — vérifiée par <observation>` — que le lot 5
-**conserve telle quelle** quand il normalise le reste de l'en-tête. Un
-commit `docs(optimizer): en-têtes de statut à jour`.
+**conserve telle quelle** quand il normalise le reste de l'en-tête. Notes
+privées seules : pas de commit `docs(optimizer)` (A.6), `livrer` puis
+`docs(cadrage): lot 0 terminé`.
 
 Preuve : pour chaque statut modifié, la commande d'observation et sa sortie
-dans le message de commit.
+dans le message du commit `docs(cadrage): lot 0 terminé`.
 
 ### B.1 Lot 1 — `archive/` et `decisions/` · M
 

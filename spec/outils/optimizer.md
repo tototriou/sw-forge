@@ -267,6 +267,7 @@ retour.
 
 ## Écran (de haut en bas)
 
+### Recherche du monstre à optimiser
 0. **Bandeau bêta** — permanent, pas refermable (contrairement à
    `MobileNotice` : ce n'est pas un avertissement ponctuel mais un statut qui
    reste vrai tant que l'outil est en rodage). Rappelle que le moteur de
@@ -335,6 +336,7 @@ retour.
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
    plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
    le combat déjà décrit. Seuls les deux **sélecteurs** retombent au défaut.
+### Meilleurs artéfacts offensifs pour ce build
 2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte
    **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
    résultat suit immédiatement les réglages qui le produisent, sans qu'un
@@ -345,6 +347,7 @@ retour.
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
    ajoutent des dégâts par-dessus.
 
+#### Emplacements figés
    ⚠️ **Ce bloc RESPECTE les réglages de la carte, et le DIT** — il ne cherche
    pas dans son coin. La question « quels sont mes meilleurs artéfacts » et la
    question « quelle paire supposer pendant la recherche de runes » partagent
@@ -410,6 +413,7 @@ retour.
    qu’avec une **liste active** : une réservation appartient toujours à une
    liste.
 
+#### Deux crans : dégâts supplémentaires ou dégâts réels
    **Deux crans**, à choisir — un `Segmented`, jamais un bouton qui déclenche :
    - **Dégâts supplémentaires** (défaut) — les dégâts bruts par coup des
      sous-propriétés 218-221. **Calculé en permanence** : la qualité première
@@ -447,6 +451,7 @@ retour.
    dégâts supplémentaires **en le disant** — jamais un bloc vide ni un chiffre
    brut sous un libellé « Dégâts réels ».
 
+#### Affichage et emplacement de la proposition
    **Chaque artéfact proposé s'affiche comme dans le jeu** : sa statistique
    principale en tête, puis **une ligne par sous-propriété** avec le nombre de
    procs à gauche, la valeur en gras et le marqueur des propriétés modifiées.
@@ -492,6 +497,7 @@ retour.
    La statistique principale exigée et les lignes verrouillées sont respectées
    dans les deux cas — une contrainte posée reste une contrainte.
 
+### Équipement actuel
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
@@ -529,6 +535,7 @@ retour.
    d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des
    lignes à zéro, et `ArtifactSlots`/`RuneWheel` gèrent nativement un
    tableau vide.
+### Objectif de recherche
 3. **Objectif de recherche** — en tête de la **carte du bouton
    Rechercher**, au-dessus de la rangée Rechercher / Exporter / Importer.
    ⚠️ Il a longtemps été une carte à part, à droite de « Critères de
@@ -541,6 +548,7 @@ retour.
    choix unique** (`<Segmented
    size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
    après coup :
+#### Garde-fou de revalidation contre un compte vide
    ⚠️⚠️ **ON NE REVALIDE JAMAIS LES LISTES CONTRE UN COMPTE VIDE**
    (`comptePeutJuger`, [optimizerExclusion.ts](src/lib/optimizerExclusion.ts)).
    La revérification répond à « mon compte a-t-il changé depuis » ; face à un
@@ -599,6 +607,7 @@ retour.
      n'est pas élargi, **tout changement de type partagé avec `scripts/` se
      vérifie à la main** (`grep` du nom, puis un bundle esbuild de contrôle).
 
+#### Les quatre objectifs disponibles
    - **Efficience** (par défaut) — pas de biais particulier, la mesure
      choisie globalement (Efficience ou Score SW, voir
      [compte/runes.md](../compte/runes.md)).
@@ -646,6 +655,7 @@ retour.
        sur un sort, une cible et un mode de critique jamais choisis. Le
        geste est désormais explicite.
 
+#### Dégâts réels — compétence utilisée et passifs offensifs
      Ce que contient ce réglage :
      - **Compétence utilisée** — les sorts offensifs du monstre, chacun
        accompagné de ce que ses données disent déjà (« 3 coups · Zone ·
@@ -694,6 +704,7 @@ retour.
        et le texte du jeu (`Competence.description`) sont affichés **en
        clair sous chaque passif**, pas seulement au survol, pour que le
        joueur juge lui-même.
+#### Dégâts réels — adversaire, effets actifs et coup critique
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
        Un champ **PV restants** n'apparaît que pour les sorts dont la
@@ -764,6 +775,7 @@ retour.
      (`damageRelevantStats`) et les transmet au moteur via
      `SearchParams.objectiveStats`. Le moteur, lui, reste générique — il
      reçoit « ces stats comptent plus », jamais la notion de sort.
+#### Repli et objectifs retirés
      ⚠️ **Aucun sort calculable** (monstre perso, fiche absente, formules
      hors modèle) : l'option « Dégâts réels » **disparaît purement et
      simplement** du bouton à choix unique (`OBJECTIVE_LABELS` filtré sur
@@ -787,6 +799,7 @@ retour.
    (modifiable ensuite) — il **n'influence pas** le classement des candidats
    pendant la recherche elle-même : seuls les minimums/maximums posés
    ci-dessous en décident, quel que soit l'objectif choisi.
+### Set de runes recherché et statistique principale imposée
 4. **Set de runes recherché** — **un seul combo** (contrairement aux
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
    grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
@@ -837,6 +850,7 @@ retour.
    filtre s'applique **avant** tout le reste, dans la construction même du
    pool par slot — il réduit donc le nombre de candidats réellement
    considérés dès le départ.
+### Artéfacts
 6. **Artéfacts** — interrupteur **« Activer l'optimisation d'artéfacts »**,
    **ACTIVÉ par défaut**.
 
@@ -919,6 +933,7 @@ retour.
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigeait.
 
+### État de mon monstre
 6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
    juste sous « Artéfacts ». Elle a d'abord vécu en bas de cette carte, séparée
    par un simple trait : ça laissait croire que ces réglages servaient les
@@ -1001,6 +1016,7 @@ retour.
    réglages voisins, deux modèles de dégâts, sans que rien ne le signale. Le
    « et si… » est donc perdu, en connaissance de cause.
 
+### Sous-propriétés verrouillées
    **Sous-propriétés verrouillées** — sous les deux listes, jusqu'à **8**
    sous-propriétés exigées avec un minimum chacune (« Précision Compétence 3
    ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*
@@ -1082,6 +1098,7 @@ retour.
      réalisable, ce qui serait pire que de se taire. Chaque maximum étant pris
      ligne par ligne, deux lignes atteignables séparément peuvent ne l'être
      par aucune paire à la fois — l'écran le dit.
+### Conditions, inventaire et réglages avancés
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE**,
@@ -1155,6 +1172,7 @@ retour.
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
      une recette (voir plus bas).
+### Lancer la recherche
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
     pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
@@ -1181,6 +1199,7 @@ retour.
     suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
     d'un résultat) : « Attendez la fin de la recherche pour être sûr de
     trouver votre build optimal ».
+### Résultats
 13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
@@ -1286,6 +1305,7 @@ pool partagé** entre TOUTES les équipes 1 à 10 (une rune n'y sert qu'à UNE
 unique aurait fait fuiter des réservations entre des contextes qui, en
 jeu, n'ont RIEN à voir l'un avec l'autre.
 
+### Créer, valider et réserver dans une liste
 - **Aucune liste fixe** — l'utilisateur en crée, renomme et supprime
   librement (`OptimizerListPicker.tsx`, menu déroulant : crayon de
   renommage, corbeille de suppression par ligne, « + Nouvelle liste » en
@@ -1340,6 +1360,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   infobulle nommant le monstre qui la retient : le retirer laisserait croire que
   ce build n'est pas validable du tout, alors qu'il le redevient dès qu'on
   libère la rune.
+### Zone C — Monstres de la liste
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
@@ -1420,6 +1441,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
   changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
   build validé par défaut.
+### Comparer, valider sans recherche et persistance
 - **« Comparer », à côté de « Valider ce build »** sur chaque carte de
   résultat (demande explicite) : les deux boutons **se partagent la largeur**
   de la carte, plutôt que d'être empilés — une rangée de plus par carte se
@@ -1655,6 +1677,7 @@ Lancer une **nouvelle** recherche termine sèchement celle en cours ; arrêter
 la recherche **en cours** pour en garder le résultat passe par un canal
 différent, coopératif (voir « Interruption »).
 
+### Recherche des runes — meet-in-the-middle et élagages
 - **Jamais de brute-force.** *Meet-in-the-middle* : les 6 emplacements sont
   scindés en **deux moitiés de 3**, chacune énumérée depuis le pool déjà
   pré-filtré, puis regroupées par le **compte exact** de pièces de chaque

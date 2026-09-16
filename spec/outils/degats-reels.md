@@ -1,5 +1,10 @@
 # Dégâts réels — le modèle de calcul
 
+**Statut :** ÉTAT ACTUEL — décrit le modèle de calcul des dégâts d'un sort précis
+**Lire si :** on modifie ou vérifie `damage.ts`/`computeSkillDamageDetail`, ou qu'on documente un nouveau passif/artefact affectant les dégâts
+**Ne pas lire si :** on cherche le comportement d'écran de l'Optimizer (voir `optimizer.md`) ou le modèle générique communautaire (`mecaniques.md`)
+**Voir aussi :** optimizer.md
+
 Calcul des **dégâts d'un sort précis** d'un monstre précis contre un
 adversaire configuré. Brique de calcul pure, sans état ni rendu :
 [damage.ts](src/lib/damage.ts), vérifiée par

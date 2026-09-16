@@ -1,12 +1,17 @@
 # Outils · Optimizer (`#/outils/optimizer`)
 
+**Statut :** ÉTAT ACTUEL — décrit l'écran et le comportement ACTUELS de l'Optimizer, ainsi que son algorithme
+**Lire si :** on modifie l'écran, ses réglages, ou l'algorithme de recherche de runes
+**Ne pas lire si :** on cherche le modèle de calcul des dégâts (degats-reels.md) seul
+**Voir aussi :** degats-reels.md, README.md
+
 Cherche, parmi les runes **réellement possédées**, la (les) meilleure(s)
 combinaison(s) de 6 pour un monstre donné, sous contrainte d'un **combo de
 sets**, de **statistiques principales imposées** (slots 2/4/6) et de
 **minimums/maximums de stats**, orientée par un **objectif de recherche**
 choisi d'avance. Anticipé dans
-[compte/calcul-runes.md §6](../compte/calcul-runes.md) (« Futur optimiseur
-de builds »).
+[compte/calcul-runes.md § 6. Perf (contrainte forte, à respecter)](../compte/calcul-runes.md)
+(« Futur optimiseur de builds »).
 
 Fichiers : [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) ·
 [runeBuildOptim.ts](src/lib/runeBuildOptim.ts) (moteur pur) ·
@@ -1765,7 +1770,7 @@ différent, coopératif (voir « Interruption »).
   **revérifié sur les runes réelles** avant d'être retenu.
 - **Au plus 1 rune Intangible par proposition** : le jeu n'autorise à en
   sertir qu'une seule par monstre (voir
-  [compte/calcul-runes.md §5.2](../compte/calcul-runes.md)).
+  [compte/calcul-runes.md § 5.2 Bonus de set — **à ne pas oublier**](../compte/calcul-runes.md)).
 - **Élagage de faisabilité MIN et MAX, pas d'optimisation vers un seul
   critère** : la recherche collecte un ensemble large mais borné de
   combinaisons valides, pour permettre le tri après coup sur n'importe quel

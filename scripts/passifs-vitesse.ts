@@ -100,6 +100,11 @@ for (const fichier of readdirSync(DOSSIER)) {
 let total = 0;
 let md = `# Outils · Passifs qui pèsent sur un speed tune (inventaire)
 
+**Statut :** ÉTAT ACTUEL — inventaire généré des passifs qui pèsent sur un speed tune
+**Lire si :** on cherche si un monstre a un passif de vitesse et sa catégorie
+**Ne pas lire si :** on veut modifier l'outil (voir speedTunePassif.ts et speed-tuning.md, jamais ce fichier généré)
+**Voir aussi :** speed-tuning.md
+
 ⚠️ **Fichier GÉNÉRÉ** par \`node scripts/passifs-vitesse.mjs\` — ne pas l'éditer à
 la main, le regénérer après chaque mise à jour de \`public/data/skills\`.
 

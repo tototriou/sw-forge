@@ -1,5 +1,10 @@
 # Outils · Speed tuning (`#/outils/speed-tuning`)
 
+**Statut :** ÉTAT ACTUEL — décrit l'outil de speed tuning (formule ATB, chaîne d'ouverture, écran)
+**Lire si :** on modifie `speedTune.ts`, `speedTuneAuto.ts` ou l'écran de speed tuning
+**Ne pas lire si :** on cherche l'inventaire généré des passifs (passifs-vitesse.md) ou le modèle de dégâts (degats-reels.md)
+**Voir aussi :** passifs-vitesse.md, README.md
+
 Outil de speed tune : à chaque « tick » d'horloge, la barre d'action (ATB) de
 chaque monstre monte de `vitesse_combat × 7 %` ; **un seul monstre agit par
 tick**. L'écran répond à une question précise — « est-ce que je joue **avant**

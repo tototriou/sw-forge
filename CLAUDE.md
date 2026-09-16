@@ -15,7 +15,13 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   la mettre à jour dans le **même commit**. Index : [spec/README.md](spec/README.md)
   — c'est là que vivent les conventions produit détaillées (interface,
   persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
-  automatiquement à chaque session.
+  automatiquement à chaque session. Ouvrir une spec =
+  `node scripts/spec-toc.mjs <fichier|dossier>` (sommaire compact : en-tête,
+  puis niveau / plage de lignes / première phrase de chaque titre) puis la
+  section utile — jamais un fichier entier de plus de 300 lignes sans raison
+  écrite. Avant un chantier Optimizer : `invariants.md` (en entier — le seul
+  fichier lu ainsi, tenu compact pour ça) et le README de routage, tous deux
+  dans `spec/outils/optimizer/`.
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
@@ -96,11 +102,6 @@ correspond à rien échoue en listant ce qui existe — jamais en ne testant rie
 ⚠️ Lancer la suite entière à chaque changement coûte des minutes pour une
 information qu'on a déjà : ce qui compte pendant le travail, c'est la zone qu'on
 touche. Ce qui compte avant de fusionner, c'est **tout**.
-
-⚠️ **Pour ouvrir une spec, `node scripts/spec-toc.mjs <fichier|dossier>`
-avant de la lire en entier** : sommaire compact (en-tête, puis niveau /
-plage de lignes / première phrase de chaque titre), qui dit si une section
-tient en quelques lignes ou vaut la peine d'être ouverte.
 
 ⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise**
 (`[&>*]:w-full` ne l'a pas été). Quand un style ne s'applique pas, vérifier dans

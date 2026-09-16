@@ -183,7 +183,7 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 0 en-têtes de statut périmés | M | exécuté | notes 955e6f0 (`sw-forge-docs`), 2026-09-16 |
 | 1 archive/ + decisions/ | M | exécuté | `baac323`, 2026-09-16 |
 | 2 sous-titres `optimizer.md`, naissance de `spec-markdown.mjs` | C | exécuté | `ed4ba76`, `61ecd9f`, 2026-09-16 |
-| 3 `spec-toc` | C | à faire | |
+| 3 `spec-toc` | C | exécuté | `3776a6d`, `bf2e142`, 2026-09-16 |
 | 4 `spec-lint` (infrastructure, fixtures, inventaire des blocs) | C | à faire | |
 | 5 en-têtes normalisés, slugs uniques | M + C | à faire | |
 | 6a extraction des invariants | C | à faire | |

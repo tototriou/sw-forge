@@ -177,7 +177,7 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | 0 en-têtes de statut périmés | M | exécuté | notes 955e6f0 (`sw-forge-docs`), 2026-09-16 |
-| 1 archive/ + decisions/ | M | à faire | |
+| 1 archive/ + decisions/ | M | exécuté | `baac323`, 2026-09-16 |
 | 2 sous-titres `optimizer.md`, naissance de `spec-markdown.mjs` | C | à faire | |
 | 3 `spec-toc` | C | à faire | |
 | 4 `spec-lint` (infrastructure, fixtures, inventaire des blocs) | C | à faire | |

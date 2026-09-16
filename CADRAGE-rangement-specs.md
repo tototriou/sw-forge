@@ -857,8 +857,11 @@ Texte à insérer tel quel dans `spec/README.md` § Conventions communes :
 Plus, dans `CLAUDE.md` § « La spec avant le code » : *« Ouvrir une spec =
 `node scripts/spec-toc.mjs <fichier>` puis la section utile — jamais un
 fichier entier de plus de 300 lignes sans raison écrite. Avant un chantier
-Optimizer : `invariants.md` (en entier, ≤ 250 lignes) et le README de
-routage. »* Et dans `ARCHITECTURE.md`, les lignes Optimizer pointent vers
+Optimizer : `invariants.md` (en entier — le seul fichier lu ainsi, tenu
+compact pour ça) et le README de routage. »* — pas de nombre de lignes
+dans `CLAUDE.md` : le plafond de 250 de B.6 est un objectif de compacité
+qui se discute s'il est dépassé, jamais une raison d'omettre une règle ;
+un chiffre écrit là serait lu comme une consigne de coupe. Et dans `ARCHITECTURE.md`, les lignes Optimizer pointent vers
 une **section** de spec, pas un fichier.
 
 ### B.9 Lot 9 — enforcement · M

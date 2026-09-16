@@ -338,7 +338,12 @@ Définitions exactes :
 Le **parseur Markdown** vit dans `scripts/lib/spec-markdown.mjs`, **créé
 au lot 2** (titres, slug) et **étendu ici** (plages, en-tête, première
 phrase), puis partagé avec `spec-lint` (4) : une seule définition de
-« titre », de « section » et de « slug » dans le dépôt. `≤ 60 lignes`
+« titre », de « section » et de « slug » dans le dépôt. Deux contraintes
+héritées du lot 2 : `slug(titre, compteurs)` prend une `Map` **fournie par
+l'appelant** — une `Map` neuve **par fichier**, sinon les suffixes `-1`
+fuient d'un fichier à l'autre ; et le module a un sidecar
+`spec-markdown.d.mts` pour `tsc` — toute fonction ajoutée au `.mjs` est
+déclarée dans le `.d.mts`, dans le même commit. `≤ 60 lignes`
 est un objectif de compacité (A.3) : **tous les titres sont toujours
 imprimés**, quel que soit leur nombre.
 

@@ -195,8 +195,8 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 6a extraction des invariants | C | exécuté | notes `sw-forge-docs` (15 preuves `invariants-*.md`), `a4d7785`, 2026-09-16 |
 | 6b consolidation + contrôles | J | exécuté | notes `b896771` → `sw-forge-docs` main `68f3c77` (`invariants.md`, `controle-6b.md`), 2026-09-16 |
 | 6c reprise du 6a sur `optimizer.md` (rappel) | C + J | exécuté | 2 règles, notes `b8c812b`, 2026-09-16 |
-| 7a delta privé / public | M | à faire | |
-| 7b routage et fin du doublon | J | à faire | |
+| 7a delta privé / public | M | exécuté | notes `35ae956` → `sw-forge-docs` main `c996492` (`delta-7a-1.md`, `delta-7a-2.md`), 2026-09-16 |
+| 7b routage et fin du doublon (deux sessions : 7b-1 « Écran », 7b-2 reste + routage) | J | à faire | |
 | 8 règles de rétention | J (intrant ≤ 100 l.) | à faire | |
 | 9 enforcement (hooks, skill, CLAUDE.md) | M | à faire | |
 
@@ -691,11 +691,45 @@ objectif ≤ 150 lignes, **aucun bloc omis** — au-delà, plusieurs fichiers
 taux prouve « beaucoup de lignes identiques », pas « le reste est sans
 valeur ».
 
+**Résultat (2026-09-16)** : 41 sections (6 appariées, 6 privées seules,
+29 publiques seules) ; **2 111 lignes privées seules en 15 blocs**, somme
+rejouée = 2 377 = `wc -l` du README. Le delta est dominé par la section
+appariée « Écran (de haut en bas) » : **un bloc unique de 1 868 lignes
+(l. 154–2021)**, le README n'ayant aucun sous-titre sous ce H2. Ce n'est
+pas un artefact d'appariement : diffé contre **tout** le sous-arbre
+public d'« Écran » (H3/H4, `optimizer.md` l. 275–1513), 1 758 de ces
+1 868 lignes restent privées seules — le README raconte les révisions
+successives de l'écran, le public décrit l'état. Titre refusé à
+l'appariement : « Runes imposées — … dans la même carte » (privé) vs
+« … sur une rune précise » (public). Preuves : `delta-7a-1.md`,
+`delta-7a-2.md` (annexe 1 : les 5 entrées d'`invariants.md` à
+repointer ; annexe 2 : la contradiction README l. 972–980).
+
 #### 7b — décision bloc par bloc · J
 
 Intrant : la sortie de 7a, puis **les blocs « privé seulement »** (des
 sections appariées **et** des sections privées seules) lus par lecture
 partielle avec ± 5 lignes de contexte — jamais les deux fichiers entiers.
+
+**Découpage préalable (retour du 7a).** Le bloc unique « Écran »
+(l. 154–2021) est **d'abord** redécoupé par 7b, avec la règle des
+sections privées seules : blocs de ≤ 40 lignes aux frontières de
+paragraphes, un thème par bloc quand des paragraphes consécutifs traitent
+du même sujet. Le découpage est écrit en tête de `decisions-7b.md`
+(liste de plages) et **la réunion des sous-blocs couvre exactement
+l. 154–2021, sans trou ni chevauchement** — c'est la propriété 1 de la
+preuve appliquée à ce bloc. Une décision par sous-bloc, jamais une
+décision pour les 1 868 lignes.
+
+**Deux sessions, même lot.** L'intrant (2 111 lignes à lire, ~60
+décisions à écrire et prouver) dépasse ce qu'une session tient sans
+dégrader les dernières décisions. 7b-1 traite la section « Écran »
+(découpage, décisions, migrations, preuves après migration) ; 7b-2
+traite les 14 autres blocs, réécrit le README en routage, et lance le
+script de preuve **sur l'ensemble** des décisions (`decisions-7b.md`
+est un seul fichier, 7b-2 y ajoute ses entrées). Un bloc de 7b-2 dont la
+destination a été alimentée par 7b-1 passe par le même contrôle doublon
+(la section destination est relue, pas supposée vide).
 Pour chaque bloc, une décision parmi trois, écrite dans `decisions-7b.md`
 (dossier de preuves, A.6) avec la première ligne du bloc citée :
 

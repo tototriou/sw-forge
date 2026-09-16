@@ -461,6 +461,16 @@ définition de titre, de section, d'en-tête, de slug).
   `chantier_responsable` — jamais un `{ fichier, raison: "trop de
   blocs" }`, et jamais de refonte de contenu au lot 9.
 
+  **Résultat de l'inventaire (lot 4, `inventaire-longueurs-4.md`)** :
+  19 fichiers actifs, 11 avec un bloc > 100. Hors exceptions et hors
+  README privé (traité par 7b), **quatre fichiers, un seul bloc chacun** :
+  `limites-connues.md` (232), `passifs-vitesse.md` (222),
+  `algorithme.md` (160), `decisions/cadrage-score-artefacts-ehp.md`
+  (135) → sous-titres au lot 9, aucune exception nouvelle ; le lot 9
+  reste mécanique. Note : les 266 lignes d'`optimizer.md` sont son
+  préambule (avant le premier H2), non sous-titré au lot 2 — couvert par
+  l'exception, à traiter le jour où l'exception tombe.
+
 Preuve 4 : `node tests/run.mjs spec-lint-en-tetes spec-lint` sur les
 **fixtures seules**, `tests/fixtures/spec-lint/`, avec les tests
 négatifs : bloc de 101 lignes refusé, fichier de 501 lignes refusé, deux
@@ -524,10 +534,14 @@ titre`) sur `src/ scripts/ tests/ spec/ .claude/` ; repointage des
 références non ambiguës, diff relu ; une référence ambiguë est laissée
 telle quelle **et** listée dans `renommages-5.md` avec la raison.
 
-Ce lot **enregistre `spec-lint-en-tetes` dans `tests/index.ts`** sur le
-périmètre réel (`spec/outils/**`, archives comprises) : c'est la première
-fois que le lint en mode en-têtes peut passer, puisque les en-têtes
-viennent d'être posés.
+Ce lot **resserre le lint** (retour du lot 4, qui n'avait pas lu les
+modèles) : `Statut :` reconnu = valeur qui **commence par** `ÉTAT ACTUEL`,
+`DÉCISION` ou `ARCHIVE` — plus seulement « présent et non vide » ; fixture
+négative `Statut : n'importe quoi` refusée. Puis il **enregistre
+`spec-lint-en-tetes` dans `tests/index.ts`** sur le périmètre réel
+(`spec/outils/**`, archives comprises) : c'est la première fois que le
+lint en mode en-têtes peut passer, puisque les en-têtes viennent d'être
+posés.
 
 Preuve : `node tests/run.mjs spec-lint-en-tetes` passe sur le périmètre
 réel ; `git grep` de chaque ancien slug renvoie vide (ou les cas justifiés

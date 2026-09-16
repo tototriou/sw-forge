@@ -15,6 +15,7 @@ import { egal, ok, titre } from './outils';
 const RACINE = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const FIXTURES = resolve(RACINE, 'tests/fixtures/spec-lint');
 const CONFIG = JSON.parse(readFileSync(resolve(FIXTURES, 'spec-lint.json'), 'utf8'));
+const CONFIG_REEL = JSON.parse(readFileSync(resolve(RACINE, 'spec/spec-lint.json'), 'utf8'));
 
 function regles(erreurs: { fichier: string; regle: string }[], fichier: string): string[] {
   return erreurs.filter((e) => e.fichier === `perimetre-fixture/${fichier}`).map((e) => e.regle);
@@ -63,6 +64,19 @@ export function testSpecLintEnTetesReel() {
     erreurs.length === 0,
     erreurs.length === 0
       ? 'aucune erreur d\'en-tête, de slug ou de référence sur le corpus réel'
+      : `${erreurs.length} erreur(s) — ${erreurs.map((e) => `${e.fichier}${e.ligne ? `:${e.ligne}` : ''} [${e.regle}]`).join(', ')}`
+  );
+}
+
+export function testSpecLintReel() {
+  titre('spec-lint · périmètre réel COMPLET (spec/outils/**, exceptions comprises)');
+
+  const { erreurs } = verifier(RACINE, CONFIG_REEL);
+
+  ok(
+    erreurs.length === 0,
+    erreurs.length === 0
+      ? 'aucune erreur (en-têtes, slugs, références, longueurs, exceptions) sur le corpus réel — équivaut à `node scripts/spec-lint.mjs spec/outils`'
       : `${erreurs.length} erreur(s) — ${erreurs.map((e) => `${e.fichier}${e.ligne ? `:${e.ligne}` : ''} [${e.regle}]`).join(', ')}`
   );
 }

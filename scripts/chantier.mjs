@@ -755,7 +755,16 @@ function dossierInstallation(depotCode) {
   return join(commun, 'forge', 'installation');
 }
 
-const FICHIERS_INSTALLES = ['scripts/chantier.mjs', 'scripts/hooks-codex.mjs'];
+// ⚠️ `spec-lint.mjs` et son parseur sont installés pour que le hook
+// `pre-commit` (§4) puisse les importer EN RELATIF depuis son propre dossier
+// installé (`<installation>/hooks/pre-commit` → `../scripts/spec-lint.mjs`),
+// exactement comme depuis `.githooks/` du dépôt de code.
+const FICHIERS_INSTALLES = [
+  'scripts/chantier.mjs',
+  'scripts/hooks-codex.mjs',
+  'scripts/spec-lint.mjs',
+  'scripts/lib/spec-markdown.mjs',
+];
 const HOOKS_INSTALLES = ['pre-commit'];
 
 function empreinteFichier(chemin) {

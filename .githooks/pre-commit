@@ -25,6 +25,9 @@
 // dépendrait de la branche checkoutée. `chantier installer` fait la copie.
 
 import { execFileSync } from 'child_process';
+import { existsSync, readFileSync } from 'fs';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 
 const ROUGE = '\x1b[31m';
 const JAUNE = '\x1b[33m';
@@ -131,6 +134,41 @@ for (const chemin of stagés) {
         'Si ce fichier est légitime, ce hook se contourne : `git commit --no-verify`.',
       ],
     });
+  }
+}
+
+/* ------------------------------------------ 4. spec-lint sur l'INDEX */
+//
+// ⚠️ Le périmètre a une seule source de vérité, `spec/spec-lint.json`, et
+// c'est `verifier()` qui l'applique — ce hook ne fait que lui SOUMETTRE les
+// `spec/**.md` de l'index et NE GARDER que les erreurs qui les concernent :
+// un fichier hors périmètre (`verifier` ne le voit tout simplement pas) coûte
+// zéro et n'est jamais refusé. Voir CADRAGE-rangement-specs.md, B.9.
+
+const specsIndex = stagés.filter((c) => /^spec\/.*\.md$/.test(c));
+
+if (specsIndex.length > 0) {
+  const racineDepot = git('rev-parse', '--show-toplevel');
+  const cheminConfig = join(racineDepot, 'spec', 'spec-lint.json');
+  if (existsSync(cheminConfig)) {
+    // ⚠️ Import RELATIF à ce script : en installation, `spec-lint.mjs` et son
+    // parseur (`lib/spec-markdown.mjs`) vivent à côté, sous
+    // `<installation>/scripts/` — voir `chantier.mjs`, `FICHIERS_INSTALLES`.
+    const { verifier } = await import(new URL('../scripts/spec-lint.mjs', import.meta.url));
+    const config = JSON.parse(readFileSync(cheminConfig, 'utf8'));
+    const { erreurs } = verifier(racineDepot, config);
+    const enJeu = erreurs.filter((e) => specsIndex.includes(e.fichier));
+    if (enJeu.length > 0) {
+      refus.push({
+        titre: `spec-lint refuse ${enJeu.length} point(s) sur les specs de l’index`,
+        details: [
+          ...enJeu.map((e) => `${e.fichier}${e.ligne ? `:${e.ligne}` : ''} [${e.regle}] ${e.message}`),
+          '',
+          'Revoir le fichier, puis relire le détail :',
+          '  node scripts/spec-lint.mjs',
+        ],
+      });
+    }
   }
 }
 

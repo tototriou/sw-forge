@@ -3,7 +3,7 @@
 // Les contrôles métier sont exécutés par l'outil chantier installé à côté.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, mkdirSync, writeFileSync, renameSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 
@@ -22,6 +22,27 @@ function enregistrer(chemin, etat) {
   renameSync(temporaire, chemin);
 }
 function contexte(cwd) { return JSON.parse(appeler(cwd, ['contexte-hooks'])); }
+
+// Équivalent Codex du hook `Read` de Claude Code (CADRAGE-rangement-specs.md,
+// B.9) : Codex n'a pas d'outil `Read` distinct, il lit via des commandes
+// shell — seule la forme la PLUS COURANTE d'une lecture entière (`cat`/`type`/
+// `Get-Content` sans plage) est couverte ; niveau 2, garde-fou, pas invariant.
+// Exception : `invariants.md`, comme côté Claude Code.
+function refusLectureSpecEntiere(cwd, commande) {
+  const m = commande.match(/(?:^|&&|\|\||;)\s*(?:cat|type|Get-Content)\s+"?([^"\s|;&]+\.md)"?\s*(?:$|&&|\|\||;)/i);
+  if (!m) return null;
+  const racine = cwd || process.cwd();
+  const cheminAbsolu = resolve(racine, m[1]);
+  const relatif = relative(racine, cheminAbsolu).replace(/\\/g, '/');
+  if (!/^spec\/.*\.md$/.test(relatif)) return null;
+  if (relatif === 'spec/outils/optimizer/invariants.md') return null;
+  if (!existsSync(cheminAbsolu)) return null;
+  let nbLignes = 0;
+  try { nbLignes = readFileSync(cheminAbsolu, 'utf8').split(/\r\n|\n/).length; } catch { return null; }
+  if (nbLignes <= 300) return null;
+  return `REFUSÉ — lecture entière de ${relatif} (${nbLignes} lignes, > 300) sans offset. ` +
+    `Ouvrir le sommaire : node scripts/spec-toc.mjs ${relatif}`;
+}
 
 function executer(entree) {
   if (!entree.cwd || !entree.session_id) throw new Error('Événement Codex sans cwd ou session_id.');
@@ -55,6 +76,10 @@ function executer(entree) {
     // Détection conservatrice des formes Git usuelles, pas un analyseur de shell.
     // Les commandes indirectes/alias ne sont pas une frontière de sécurité.
     const texte = String(entree.tool_input?.command ?? entree.tool_input?.cmd ?? '');
+    const refusLecture = refusLectureSpecEntiere(entree.cwd, texte);
+    if (refusLecture) {
+      return { hookSpecificOutput: { hookEventName: evenement, permissionDecision: 'deny', permissionDecisionReason: refusLecture } };
+    }
     if (/\bgit(?:\.exe)?\s+(?:-C\s+(?:"[^"]+"|'[^']+'|\S+)\s+)?(?:merge|rebase|cherry-pick)\b/.test(texte)) {
       for (const contribution of c.contributions) {
         appeler(contribution.depotCode, ['verifier', '--chantier', contribution.nom]);

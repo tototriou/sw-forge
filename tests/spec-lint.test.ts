@@ -25,7 +25,8 @@ export function testSpecLintEnTetes() {
   ok(regles(erreurs, 'ok.md').length === 0, 'ok.md : en-tête, slugs et référence valides — aucune erreur');
   ok(regles(erreurs, 'slug-duplique.md').includes('slug-duplique'), 'deux titres de même slug refusés');
   ok(regles(erreurs, 'source-cassee.md').includes('reference-cassee'), '« Source : » cassé refusé');
-  ok(regles(erreurs, 'a-preciser.md').length === 0, 'Statut « À préciser » accepté — jamais une erreur');
+  ok(regles(erreurs, 'a-preciser.md').includes('entete'), 'Statut « À préciser » refusé : ne commence par aucune des trois natures (B.5)');
+  ok(regles(erreurs, 'statut-invalide.md').includes('entete'), 'Statut « n\'importe quoi » refusé');
   ok(regles(erreurs, 'sans-entete.md').includes('entete'), 'fichier dans le périmètre sans en-tête refusé');
   ok(
     !erreurs.some((e) => e.fichier.startsWith('hors-perimetre/')),

@@ -29,6 +29,18 @@ function estArchive(relatif) {
   return /(^|\/)archive\//.test(relatif);
 }
 
+// B.5 : un Statut n'est reconnu que s'il commence par une des trois natures
+// (A.2) — « présent et non vide » ne suffit plus depuis le lot 5. Comparaison
+// insensible à la casse : les en-têtes existants écrivent « État actuel »,
+// pas « ÉTAT ACTUEL ».
+const NATURES_RECONNUES = ['ÉTAT ACTUEL', 'DÉCISION', 'ARCHIVE'];
+
+function statutReconnu(statut) {
+  if (!statut || !statut.trim()) return false;
+  const normalise = statut.trim().toUpperCase();
+  return NATURES_RECONNUES.some((nature) => normalise.startsWith(nature));
+}
+
 // Un lien/`Source :` peut désigner un chemin relatif au fichier qui le
 // porte, à la racine du dépôt, ou à `spec/` — le premier qui existe gagne.
 function resoudreChemin(cheminSource, racine, refFichier) {
@@ -80,7 +92,7 @@ export function verifier(racine, config, options = {}) {
       continue; // archive/ : aucune autre règle (A.2, B.4)
     }
 
-    if (!statut || !statut.trim()) {
+    if (!statutReconnu(statut)) {
       erreurs.push({ fichier: relatif, regle: 'entete', message: 'en-tête absent ou sans champ Statut reconnu' });
     }
 

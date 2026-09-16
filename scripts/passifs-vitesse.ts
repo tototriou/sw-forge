@@ -116,6 +116,32 @@ sont regroupés par passive — les cinq éléments d'une même famille la parta
 qu'en coréen.
 `;
 
+// Bloc terminal ≤ 80 lignes visées (limite dure 100, CADRAGE-rangement-specs.md
+// B.4) : une catégorie dont les entrées dépasseraient ce budget à plat se
+// scinde en sous-titres H3 par tranche alphabétique — chaque entrée occupe 2
+// lignes (« - **cle** » + la liste de noms).
+const LIGNES_PAR_ENTREE = 2;
+const SEUIL_BLOC = 80;
+
+function initiale(cle: string): string {
+  return cle.charAt(0).toUpperCase();
+}
+
+function ecrireEntrees(entrees: [string, string[]][]): string {
+  let bloc = '';
+  if (entrees.length * LIGNES_PAR_ENTREE <= SEUIL_BLOC) {
+    for (const [cle, ms] of entrees) bloc += `- **${cle}**\n  - ${[...new Set(ms)].sort().join(', ')}\n`;
+    return bloc;
+  }
+  const parTranche = Math.max(1, Math.floor(SEUIL_BLOC / LIGNES_PAR_ENTREE));
+  for (let i = 0; i < entrees.length; i += parTranche) {
+    const tranche = entrees.slice(i, i + parTranche);
+    bloc += `\n### ${initiale(tranche[0][0])}–${initiale(tranche[tranche.length - 1][0])}\n\n`;
+    for (const [cle, ms] of tranche) bloc += `- **${cle}**\n  - ${[...new Set(ms)].sort().join(', ')}\n`;
+  }
+  return bloc;
+}
+
 for (const cat of ORDRE) {
   const groupe = parCategorie.get(cat);
   if (!groupe) continue;
@@ -123,7 +149,7 @@ for (const cat of ORDRE) {
   const compte = entrees.reduce((n, [, ms]) => n + ms.length, 0);
   total += compte;
   md += `\n## ${LIBELLE[cat]} — ${compte} monstre(s)\n\n`;
-  for (const [cle, ms] of entrees) md += `- **${cle}**\n  - ${[...new Set(ms)].sort().join(', ')}\n`;
+  md += ecrireEntrees(entrees);
 }
 
 const entreesInconnues = [...inconnus.entries()].sort();
@@ -132,7 +158,7 @@ md += `\n## ⚠️ Montant introuvable — ${compteInconnu} monstre(s)\n\n`;
 md += `Ni le texte ni les données d'effet ne le chiffrent : l'outil ne peut rien en\n`;
 md += `faire, ça se pose à la main dans les grilles. Les entrées **AUCUNE donnée\n`;
 md += `(vérifié)** sont des trous DÉFINITIFS — inutile de repartir les chercher.\n\n`;
-for (const [cle, ms] of entreesInconnues) md += `- **${cle}**\n  - ${[...new Set(ms)].sort().join(', ')}\n`;
+md += ecrireEntrees(entreesInconnues);
 
 md += `\n---\n\nTotal : **${total}** entrées, dont **${compteInconnu}** au montant introuvable.\n`;
 writeFileSync(SORTIE, md, 'utf8');

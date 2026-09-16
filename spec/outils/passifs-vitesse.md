@@ -150,6 +150,9 @@ qu'en coréen.
 
 ## Barre d'attaque gagnée hors de son tour — 232 monstre(s)
 
+
+### A–G
+
 - **Adrenaline Activation (Passive) — +50 % de barre, hors de son tour**
   - Lars, Magic Order Guardian
 - **Adrenaline Rush (Passive) — +50 % de barre, hors de son tour**
@@ -230,6 +233,9 @@ qu'en coréen.
   - Benedict, Weapon Master
 - **Galadhrim Bow (Passive) — +15 % de barre, hors de son tour**
   - Legolas
+
+### G–R
+
 - **God's Shield (Passive) — +5 % de barre, hors de son tour**
   - Akroma, Valkyrja
 - **Great Friends (Passive) — +10 % de barre, hors de son tour**
@@ -310,6 +316,9 @@ qu'en coréen.
   - Dragunov, Sniper Mk.I
 - **Repeated Nightmare (Passive) — +100 % de barre, hors de son tour**
   - 데몬(물)
+
+### R–Y
+
 - **Reversed Momentum (Passive) — +50 % de barre, hors de son tour**
   - Qilin Slasher
 - **Rule Breaker (Passive) — +30 % de barre, hors de son tour**

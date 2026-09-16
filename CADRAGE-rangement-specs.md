@@ -202,7 +202,8 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 7b-2 21 plages restantes, routage, preuve globale | J | exécuté | `b3884ac` (code), notes `a752678` → `sw-forge-docs` main `c3b236c`, README 112 l. (47 hors reliquat), 2026-09-16 |
 | 8 règles de rétention | J (intrant ≤ 100 l.) | exécuté | `cd60f2a` (spec/README.md), `76bd23c` (CLAUDE.md), `94ca484` (ARCHITECTURE.md), aucune note privée, 2026-09-16 |
 | 7c spec publique contredite par le code (6 entrées) | J (effort moyen) | exécuté | `653bfc7` (code), notes `49b9086` → `sw-forge-docs` main `e1535aa` (`corrections-7c.md`), 6/6 corrigées, 2026-09-17 |
-| 9 enforcement (hooks, skill, CLAUDE.md) | M | à faire | |
+| 9a parseur `§` par slug, sous-titres (4 fichiers), `spec-lint` complet sur le corpus | M (Sonnet, effort moyen) | à faire | |
+| 9b enforcement (pre-commit, livrer, hook `Read`, skill, CLAUDE.md) | M (Sonnet, effort bas) | à faire | |
 
 ---
 
@@ -922,6 +923,24 @@ ses en-têtes. Même principe pour `chantier livrer` (notes privées du
 chantier) et `npm test` (`spec-lint` complet enregistré sur le corpus
 réel dans `tests/index.ts`).
 
+#### Deux sessions, même lot (décidé au moment de brièfer, 2026-09-17)
+
+Le lot 9 est le plus chargé du chantier et ses deux moitiés sont
+indépendantes. **9a — parseur et corpus** (Sonnet 5, effort moyen : le
+parseur demande un peu de jugement) : références `§` par slug et
+fixtures ; repointage des trois entrées d'`invariants.md` et des deux
+lignes du routage ; **sous-titres sur les quatre fichiers à un bloc
+> 100** relevés au lot 4 (`limites-connues.md`, `passifs-vitesse.md`,
+`algorithme.md`, `decisions/cadrage-score-artefacts-ehp.md`) — par
+la recette du lot 2 (titres nommant le contenu existant, texte inchangé,
+`git diff --stat` montrant des insertions seules) ; enregistrement de
+`spec-lint` complet sur le corpus réel (`testSpecLintReel` ou nom
+équivalent) et sa preuve : `node scripts/spec-lint.mjs spec/outils`
+→ 0 point. **9b — enforcement** (Sonnet 5, effort bas, mécanique) :
+`pre-commit`, `chantier livrer`, hook `Read`, équivalent Codex, skill
+`spec-hygiene`, `CLAUDE.md`. 9b requiert 9a (le lint doit être vert
+avant d'être imposé).
+
 #### Références `§` vers un titre à lien ou parenthèse (défaut relevé au 6b)
 
 `referencesSection` ne sait pas citer un titre qui contient un lien
@@ -952,7 +971,14 @@ diff, vérifier) et celle du découpage d'un fichier en exception (livré →
 opérationnel** : un chantier qui doit **modifier le contenu normatif** d'un
 fichier listé dans `spec/spec-lint.json` (exceptions) — ajouter ou changer une
 règle ou un comportement. Faute, lien, en-tête, statut : pas de
-déclenchement.
+déclenchement. Le skill porte aussi **la recette d'extraction
+d'invariants du 6a avec le critère précisé au 6c** (B.6 § 6c : règles
+« X est dérivé de Y, jamais listé à la main », « ordre fixe d'un
+pipeline », « constante », formulées en description et non en
+impératif — le critère « casse quelque chose » seul les laisse passer,
+`controle-6b.md` § 7) : c'est ce qu'un chantier applique quand il ajoute
+une section d'état actuel et doit décider ce qui entre dans
+`invariants.md`.
 
 #### Preuve du lot 9
 

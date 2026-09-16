@@ -1494,6 +1494,20 @@ MULTIPLICATEUR du sort choisi comme `bonusCoefficientParCompteur`/Crawler,
 mais déduits d'un passif sans formule plutôt que propres à un sort — voir
 `computeSkillDamageDetail`, paramètre `monsterWide` étendu) :
 
+⚠️ **Un mécanisme porté par un PASSIF (`formule: ""`) ne se code JAMAIS
+comme un champ de `SkillDamageProfile` keyé par le nom du passif** —
+`skillDamageProfile()` (`if (c.passif || !c.formule …) return null`) ne
+construit un profil QUE pour un sort ACTIF à formule : une telle entrée n'y
+serait jamais lue. Erreur d'architecture évitée avant commit sur ces six
+mécanismes (d'abord codés ainsi, repérés en relisant `skillDamageProfile()`),
+reconstruits en modificateurs monstre-wide (`monsterWide` étendu de 2 à 8
+champs). Seul `bonusConditionnelPropre` (Emergency Drive → Rending Claw)
+reste sur `SkillDamageProfile`, à raison : « Rending Claw » est un vrai sort
+ACTIF. ⚠️ Un mécanisme se branche AUSSI dans le calcul, pas seulement dans
+la table, le résolveur et l'UI : `bonusConditionnelPropre` avait tout sauf sa
+multiplication dans `computeSkillDamageDetail`, trouvé par un test qui
+échouait (`facteurConditionnelPropre`, fusionné dans `horsCoup`).
+
 - **Spear of Tenacity/Centaur Knight, Pholus** (point 38) : « damage...
   proportionate to the enemy's MAX HP » — confirmé +2 %. Toujours actif,
   soumis au critique/à la défense comme le reste du sort.

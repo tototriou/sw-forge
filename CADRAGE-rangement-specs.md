@@ -118,7 +118,11 @@ pas un interdit — A.3 prime.
   nouveaux chemins.
 - **`forge/implementation-relique` est ouvert (0 commit au 2026-09-16,
   avancé sur l'audit `b2538ab`).** `reliques.md` ne bouge pas, ne change
-  pas de nom, n'est pas réécrit. **Sa première action, le jour où il
+  pas de nom, n'est pas réécrit — **à une exception près : son en-tête
+  DÉCISION de 5 lignes, posé au lot 5 en tête de fichier**, parce que le
+  lint l'exige sur tout fichier actif ; le chantier relique modifiera le
+  corps, jamais ces lignes, et le merge documentaire les sépare sans
+  conflit. **Sa première action, le jour où il
   démarre : `git merge --ff-only forge/spec-rangement`** dans son worktree
   — gratuit tant qu'il est à zéro commit, un vrai merge sur
   `optimizer.md` après. Pas d'avance intermédiaire tant que personne n'y
@@ -482,9 +486,11 @@ périmètre sans en-tête refusé ; plus `inventaire-longueurs-4.md` livré.
 
 ### B.5 Lot 5 — en-têtes par nature, slugs uniques · M + C
 
-Sur chaque fichier du périmètre hors `archive/` (≈ 12 privés + les 5
-publics de `spec/outils/`) — `archive/` a reçu son en-tête minimal au lot
-1 et n'est pas repassé. Intrants : les 12 premières lignes, `node
+Sur chaque fichier du périmètre hors `archive/` (11 privés à la racine,
+3 dans `decisions/`, 5 publics dans `spec/outils/`) — `archive/` a reçu
+son en-tête minimal au lot 1 et n'est pas repassé. `reliques.md` reçoit
+**son en-tête et rien d'autre** (A.5). Une ligne vide entre le H1 et le
+premier champ, comme partout dans le dépôt (le parseur la tolère, B.3). Intrants : les 12 premières lignes, `node
 scripts/spec-toc.mjs <fichier>`, et les **liens entrants** (`git grep -l
 <nom-de-fichier>`), qui disent *qui* consulte ce fichier et pour quoi.
 

@@ -1665,7 +1665,21 @@ construit cet ensemble d'exclusion pour le périmètre choisi — sa branche
 « Box » réutilise `excludedRuneIds`
 ([runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), seule fonction restée
 spécifique à la box (comportement historique de l'outil, avant l'ajout des
-deux autres périmètres).
+deux autres périmètres). Ses branches RTA et Défenses siège comparent par
+**`com2usId`** (l'espèce), jamais par entrée précise — c'est ce qui garantit
+qu'un monstre recherché présent en RTA ne s'exclut jamais lui-même ; et le
+périmètre Défenses siège ne dépend que de `monsterId` (stable), jamais de
+`SiegeTeam.id` (régénéré à chaque import), ce qui le rend pleinement fiable
+en ligne de commande — contrairement aux sélecteurs manuels siège (voir
+« Exclusion manuelle » ci-dessous).
+
+⚠️ **Repli de compatibilité à l'import d'une recette** exportée avant le
+renommage de la case (ancien champ `exploreAll`, coché = tout
+l'inventaire) : `exploreAll` absent ou `true` → case décochée
+(comportement identique) ; `exploreAll: false` → case cochée, périmètre
+**Box** (le seul que l'ancienne case connaissait). Une recette déjà
+exportée se comporte donc EXACTEMENT pareil après réimport — jamais un
+champ manquant ignoré en silence.
 
 ### Exclusion manuelle — un monstre précis, dans n'importe quelle source
 
@@ -1780,7 +1794,11 @@ plus du plafond de candidats collectés :
   ci-dessus, calibrés par mesure sur des comptes réels : plus le preset est
   large, plus le pool considéré par emplacement grandit, et plus la
   recherche peut prendre de temps (jusqu'à plusieurs dizaines de secondes au
-  preset le plus large sur un très gros compte).
+  preset le plus large sur un très gros compte). Valeurs
+  (`SLOT_FILTER_PRESETS`, `runeBuildOptim.ts` — runes gardées par
+  emplacement) : **Bas 40 · Moyen 80 (défaut) · Haut 150 · Extrême 300**.
+  Bas était le défaut d'origine, trop juste sur un vrai gros compte ; 300
+  est la valeur mesurée nécessaire pour y retrouver un build réel.
 - **Bouton « Arrêter »** — l'utilisateur reprend la main quand il l'estime
   suffisant. L'arrêt est **coopératif** : le moteur rend la main
   régulièrement pendant la recherche et renvoie le **meilleur trouvé
@@ -1797,6 +1815,25 @@ avec le nombre de combinaisons déjà examinées et déjà trouvées. ⚠️
 **Approximatif par construction** : le moteur ne consomme pas ses budgets
 internes à un rythme constant d'une recherche à l'autre, donc la barre peut
 accélérer ou ralentir en cours de route plutôt que progresser régulièrement.
+
+⚠️ Les messages du Worker sont **throttlés au temps écoulé** (au plus un
+tous les 150 ms, `PROGRESS_THROTTLE_MS`), pour ne jamais inonder le fil
+principal quand l'élagage va vite. Chaque message porte `explored`, `found`
+et un `pct` approximatif : le plus avancé des trois budgets qui peuvent
+chacun terminer la recherche — et les seuls qui existent (le plafond de
+nœuds a été supprimé, précisément parce qu'une borne qui grandissait en
+cours de route faisait RECULER la barre) :
+
+```
+pct = max(explored / totalPairs, found / maxCollected, tempsÉcoulé / maxMs)
+```
+
+Le troisième terme vaut 0 quand le filet de temps est retiré
+(« Rechercher jusqu'à épuisement complet »). Sous la barre : le compteur
+`explored`/`totalPairs`/`found`, puis le message doré (point 12 de « Lancer
+la recherche ») — et rien d'autre : un second chiffre « espace de
+recherche à épuiser (au pire) » a été retiré, doublon du dénominateur de
+la ligne du dessus.
 
 ## Algorithme (résumé fonctionnel)
 

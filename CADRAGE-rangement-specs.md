@@ -193,7 +193,7 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 4 `spec-lint` (infrastructure, fixtures, inventaire des blocs) | C | exécuté | `7699bb6`, `7b527e4`, 2026-09-16 |
 | 5 en-têtes normalisés, slugs uniques | M + C | exécuté | `f2d234b`, `9576fb8`, `0694bd2` (code), notes `f9c7f0b`, 2026-09-16 |
 | 6a extraction des invariants | C | exécuté | notes `sw-forge-docs` (15 preuves `invariants-*.md`), `a4d7785`, 2026-09-16 |
-| 6b consolidation + contrôles | J | à faire | |
+| 6b consolidation + contrôles | J | exécuté | notes `b896771` → `sw-forge-docs` main `68f3c77` (`invariants.md`, `controle-6b.md`), 2026-09-16 |
 | 7a delta privé / public | M | à faire | |
 | 7b routage et fin du doublon | J | à faire | |
 | 8 règles de rétention | J (intrant ≤ 100 l.) | à faire | |

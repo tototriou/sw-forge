@@ -6,7 +6,7 @@
 
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { slug, titres } from '../scripts/lib/spec-markdown.mjs';
+import { referencesSection, slug, titres } from '../scripts/lib/spec-markdown.mjs';
 import { egal, ok, titre } from './outils';
 
 const FIXTURE = resolve(
@@ -69,4 +69,39 @@ export default function testSpecMarkdown() {
   // le dédoublonnage est bien la responsabilité de l’appelant (un compteur par
   // document), pas un état caché du module.
   egal(slug('Pourquoi'), slug('Pourquoi'), 'sans compteur partagé, deux appels sur le même titre redonnent le même slug (pas d’état global)');
+
+  titre('spec-markdown · referencesSection() — parenthèse et crochet équilibrés depuis le début de la section');
+
+  egal(
+    referencesSection('Source : a.md § 3.2 Dgts CRIT (222-223) — ✅ IMPLÉMENTÉ\n')[0].section,
+    '3.2 Dgts CRIT (222-223) — ✅ IMPLÉMENTÉ',
+    'parenthèse OUVERTE puis FERMÉE à l’intérieur de la section : ne termine pas la capture'
+  );
+
+  egal(
+    referencesSection('[a.md § Écran (de haut en bas)](a.md)\n')[0].section,
+    'Écran (de haut en bas)',
+    'lien Markdown : le crochet fermant DU LIEN (sans ouvrant dans la section) termine la capture, la parenthèse mi-titre non'
+  );
+
+  egal(
+    referencesSection('(a.md § Titre simple) et la suite\n')[0].section,
+    'Titre simple',
+    'parenthèse qui ENVELOPPE toute la référence (aucun ouvrant vu depuis le début de la section) : elle termine la capture'
+  );
+
+  const deuxRefs = referencesSection('(a.md § Un) et (a.md § Deux)\n');
+  egal(deuxRefs.map((r) => r.section), ['Un', 'Deux'], 'deux références enveloppées de parenthèses, sans « ; » entre elles : chacune se termine sur SA propre parenthèse');
+
+  egal(
+    referencesSection('a.md § Un ; a.md § Deux\n').map((r) => r.section),
+    ['Un', 'Deux'],
+    'séparateur « ; » : termine toujours la capture, même sans parenthèse ni crochet'
+  );
+
+  egal(
+    referencesSection('a.md § `resetSearch()` — texte après\n')[0].section,
+    '`resetSearch()` — texte après',
+    'section démarrant par un backtick : capturée en entier (le backtick ne termine jamais)'
+  );
 }

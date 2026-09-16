@@ -36,7 +36,17 @@
 //
 // `referencesSection(texte)` repère, hors bloc de code, les occurrences
 // `fichier.md § Section` (champ `Source :` ou mention inline) que
-// `spec-lint` résout vers un titre existant.
+// `spec-lint` résout vers un titre existant — la comparaison se fait PAR
+// SLUG (`slug()` neutralise lien Markdown, parenthèses et backticks), donc la
+// section capturée n'a pas besoin d'être un texte « propre ». La référence
+// s'étend jusqu'à la fin de la phrase ou du séparateur « ; » : une parenthèse
+// ou un crochet fermant équilibré par une ouverture VUE DEPUIS LE DÉBUT DE LA
+// RÉFÉRENCE (mi-titre, ex. « 3.2 Dgts CRIT … (222-223) — ✅ IMPLÉMENTÉ ») ne
+// termine plus la capture ; seul un fermant SANS ouvrant correspondant dans
+// la capture la termine — c'est soit la parenthèse qui enveloppe toute la
+// référence (« (fichier.md § Titre) »), soit le crochet fermant d'un lien
+// Markdown (« [fichier.md § Titre](url) »). Un `;` termine toujours, sans
+// condition de solde.
 //
 // `fichiersMarkdown(chemin)` liste récursivement les `.md` d'un fichier ou
 // dossier, hors `node_modules/` et `.git/` — le « mode dossier » de
@@ -184,11 +194,11 @@ export function blocsTerminaux(texte) {
   return blocs;
 }
 
-// `X.md § Section` — comme champ `**Source :**` ou mention inline (y compris
-// dans un lien `[X.md § Section](...)`) — hors bloc de code. La section est
-// tronquée au premier `` ` ``, `]`, `)` ou saut de ligne, puis débarrassée de
-// sa ponctuation finale.
-const RE_REFERENCE = /([\w./-]+\.md)\s*§\s*([^\n`\]\)]+)/g;
+// `X.md § ` — début d'une référence, comme champ `**Source :**` ou mention
+// inline (y compris dans un lien `[X.md § Section](...)`) — hors bloc de
+// code. La fin de la section se détermine ensuite caractère par caractère
+// (voir plus haut), pas par cette seule regex.
+const RE_REFERENCE_DEBUT = /([\w./-]+\.md)\s*§\s*/g;
 
 export function referencesSection(texte) {
   const lignes = texte.split(/\r\n|\n/);
@@ -196,8 +206,28 @@ export function referencesSection(texte) {
   const resultat = [];
   lignes.forEach((ligne, index) => {
     if (dansBloc[index]) return;
-    for (const m of ligne.matchAll(RE_REFERENCE)) {
-      const section = m[2].trim().replace(/[\s.,;:]+$/, '');
+    for (const m of ligne.matchAll(RE_REFERENCE_DEBUT)) {
+      const debut = m.index + m[0].length;
+      let profondeurParenthese = 0;
+      let profondeurCrochet = 0;
+      let fin = ligne.length;
+      for (let i = debut; i < ligne.length; i++) {
+        const c = ligne[i];
+        if (c === ';') { fin = i; break; }
+        if (c === '(') { profondeurParenthese++; continue; }
+        if (c === ')') {
+          if (profondeurParenthese === 0) { fin = i; break; }
+          profondeurParenthese--;
+          continue;
+        }
+        if (c === '[') { profondeurCrochet++; continue; }
+        if (c === ']') {
+          if (profondeurCrochet === 0) { fin = i; break; }
+          profondeurCrochet--;
+          continue;
+        }
+      }
+      const section = ligne.slice(debut, fin).trim().replace(/[\s.,;:]+$/, '');
       if (section) resultat.push({ ligne: index + 1, fichier: m[1], section });
     }
   });

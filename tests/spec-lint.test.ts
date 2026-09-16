@@ -43,6 +43,15 @@ export function testSpecLintEnTetes() {
     !regles(erreurs, 'bloc-101.md').includes('bloc-trop-long') && !regles(erreurs, 'fichier-501.md').includes('fichier-trop-long'),
     'cible en-têtes seule : aucune erreur de longueur, même sur les fixtures qui en portent'
   );
+
+  const referencesEtendues = erreurs.filter(
+    (e) => e.fichier === 'perimetre-fixture/references-etendues.md' && e.regle === 'reference-cassee'
+  );
+  egal(
+    referencesEtendues.length,
+    1,
+    'sur quatre références (lien Markdown, parenthèse médiane, backticks, titre absent), seule celle vers un titre absent est refusée'
+  );
 }
 
 export function testSpecLintEnTetesReel() {

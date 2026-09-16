@@ -574,9 +574,12 @@ résout vers un titre existant — une source disparue fait échouer le lint.
 #### 6a — extraction · C, une session par fichier > 800 lignes
 
 Sources : `README.md` privé, `algorithme.md`, `limites-connues.md`,
-`artefacts.md`, `vitesse-finale.md`, `near-miss-appariement.md`,
-`parallelisation-partagee.md`, `harnais-diagnostic.md` ; côté public
-`optimizer.md`, `degats-reels.md`. Commencer par `spec-toc`, lire
+`artefacts.md`, `near-miss-appariement.md`, `parallelisation-partagee.md`,
+`harnais-diagnostic.md` ; côté public `optimizer.md`, `degats-reels.md`.
+**Pas `decisions/vitesse-finale.md`** : cadrage invalidé (DÉCISION « ne
+pas faire »), ses règles sont précisément celles qu'il déclare fausses.
+Plus généralement, **aucun fichier de `decisions/`** n'est une source
+d'invariants — une décision se cite, elle ne se réextrait pas. Commencer par `spec-toc`, lire
 **toutes** les sections d'état actuel (pas seulement les « candidates » —
 A.3 : un invariant est souvent une phrase perdue dans une description),
 sauter les sections marquées historiques ou envisagées. Sortie :

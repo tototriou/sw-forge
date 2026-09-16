@@ -122,11 +122,13 @@ pas un interdit — A.3 prime.
   DÉCISION de 5 lignes, posé au lot 5 en tête de fichier**, parce que le
   lint l'exige sur tout fichier actif ; le chantier relique modifiera le
   corps, jamais ces lignes, et le merge documentaire les sépare sans
-  conflit. **Sa première action, le jour où il
-  démarre : `git merge --ff-only forge/spec-rangement`** dans son worktree
-  — gratuit tant qu'il est à zéro commit, un vrai merge sur
-  `optimizer.md` après. Pas d'avance intermédiaire tant que personne n'y
-  travaille : elle serait à refaire à chaque lot.
+  conflit. **Avancée en `--ff-only` sur `forge/spec-rangement` le
+  2026-09-17, chantier terminé** (gratuite : zéro commit) ; à refaire une
+  fois sur `main` après la fusion, pour qu'elle parte de `main` même.
+  Le brief d'ouverture du chantier relique commence par
+  `git merge-base --is-ancestor main HEAD` et s'arrête si ça échoue —
+  vérifié à l'ouverture, pas promis. (Pas d'avance intermédiaire pendant
+  le chantier : elle aurait été à refaire à chaque lot.)
 - Fichiers transverses portés par ce chantier : `spec/README.md`,
   `ARCHITECTURE.md`, `CLAUDE.md`, `tests/index.ts`. `App.tsx` non touché.
 - Règles de commit du dépôt : heredoc, jamais `-m` ; un commit = une raison ;
@@ -203,7 +205,7 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 8 règles de rétention | J (intrant ≤ 100 l.) | exécuté | `cd60f2a` (spec/README.md), `76bd23c` (CLAUDE.md), `94ca484` (ARCHITECTURE.md), aucune note privée, 2026-09-16 |
 | 7c spec publique contredite par le code (6 entrées) | J (effort moyen) | exécuté | `653bfc7` (code), notes `49b9086` → `sw-forge-docs` main `e1535aa` (`corrections-7c.md`), 6/6 corrigées, 2026-09-17 |
 | 9a parseur `§` par slug, sous-titres (4 fichiers), `spec-lint` complet sur le corpus | M (Sonnet, effort moyen) | exécuté | `94918cc`, `7ed4153`, `faba3ef` (code), notes `b1129cd` → `sw-forge-docs` main `f10066f` ; `spec-lint spec/outils` → 0 point, `testSpecLintReel` enregistré ; `passifs-vitesse.md` sous-titré par son générateur, régénération identique, 2026-09-17 |
-| 9b enforcement (pre-commit, livrer, hook `Read`, skill, CLAUDE.md) | M (Sonnet, effort bas) | exécuté | `bf20204`, `1142603`, `1623d16`, `3802278`, `ae5fbd0` ; preuves : bloc de 101 l. refusé par pre-commit, accepté hors périmètre ; `Read` entier d'`optimizer.md` refusé (code 2), `invariants.md` passe ; 130 vérifications, 2026-09-17 |
+| 9b enforcement (pre-commit, livrer, hook `Read`, skill, CLAUDE.md) | M (Sonnet, effort bas) | exécuté | `bf20204`, `1142603`, `1623d16`, `5a15c43`, `c72fa10` (les deux derniers réécrits le 2026-09-17 pour ôter un BOM du sujet, contenu identique) ; preuves : bloc de 101 l. refusé par pre-commit, accepté hors périmètre ; `Read` entier d'`optimizer.md` refusé (code 2), `invariants.md` passe ; 130 vérifications, 2026-09-17 |
 
 ---
 

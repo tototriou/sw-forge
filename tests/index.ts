@@ -58,6 +58,7 @@ import testSiegeStatut from './siege-statut.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 import testSpecMarkdown from './spec-markdown.test';
 import testSpecToc from './spec-toc.test';
+import testSpecLint, { testSpecLintEnTetes } from './spec-lint.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -82,6 +83,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSiegeStatut', testSiegeStatut],
   ['testSpecMarkdown', testSpecMarkdown],
   ['testSpecToc', testSpecToc],
+  ['testSpecLintEnTetes', testSpecLintEnTetes],
+  ['testSpecLint', testSpecLint],
   ['testImport', testImport],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],

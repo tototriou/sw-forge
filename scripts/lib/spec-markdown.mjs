@@ -1,9 +1,9 @@
 // Parseur Markdown partagé pour les vérifications de rangement de `spec/`.
 //
 // ⚠️ **Une seule implémentation dans le dépôt** : tout script (contrôle de
-// slugs, de niveaux, `spec-toc`, futur `spec-lint`) importe ce fichier —
-// jamais une copie scratch, jamais une réimplémentation dans un hook. Voir
-// `CADRAGE-rangement-specs.md`, B.2 et B.3.
+// slugs, de niveaux, `spec-toc`, `spec-lint`) importe ce fichier — jamais une
+// copie scratch, jamais une réimplémentation dans un hook. Voir
+// `CADRAGE-rangement-specs.md`, B.2, B.3 et B.4.
 //
 // `titres(texte)` repère les lignes `^#{1,6} …`, hors blocs de code clôturés
 // (```` ``` ```` ou `~~~`) : un exemple de titre Markdown DANS une citation
@@ -27,7 +27,24 @@
 // intercalées sont ignorées, pas terminales — un en-tête réel du dépôt a une
 // ligne vide entre le H1 et son premier champ). Absent ou périmé, elle rend
 // `{ statut: null, lireSi: null }` : ce n'est pas une erreur ici, seulement
-// pour `spec-lint` (lot 4).
+// pour `spec-lint`.
+//
+// `blocsTerminaux(texte)` découpe le fichier en blocs terminaux au sens de
+// B.4 : les lignes entre un titre (exclu) et le PROCHAIN TITRE DE N'IMPORTE
+// QUEL NIVEAU (exclu), ou la fin du fichier — pas jusqu'au niveau ≤ au sien
+// comme `sections()`. Le préambule (avant le premier titre) est un bloc.
+//
+// `referencesSection(texte)` repère, hors bloc de code, les occurrences
+// `fichier.md § Section` (champ `Source :` ou mention inline) que
+// `spec-lint` résout vers un titre existant.
+//
+// `fichiersMarkdown(chemin)` liste récursivement les `.md` d'un fichier ou
+// dossier, hors `node_modules/` et `.git/` — le « mode dossier » de
+// `spec-toc` (B.3), partagé avec `spec-lint` qui en a besoin pour parcourir
+// le périmètre.
+
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 export function titres(texte) {
   const lignes = texte.split(/\r\n|\n/);
@@ -145,4 +162,57 @@ export function enTete(texte) {
     statut: champs['Statut'] ?? null,
     lireSi: champs['Lire si'] ?? null,
   };
+}
+
+export function blocsTerminaux(texte) {
+  const lignes = texte.split(/\r\n|\n/);
+  const listeTitres = titres(texte);
+  const blocs = [];
+  const ajouter = (debut, fin) => {
+    if (fin >= debut) blocs.push({ debut, fin, lignes: fin - debut + 1 });
+  };
+  if (listeTitres.length === 0) {
+    ajouter(1, lignes.length);
+    return blocs;
+  }
+  ajouter(1, listeTitres[0].ligne - 1);
+  listeTitres.forEach((t, i) => {
+    const debut = t.ligne + 1;
+    const fin = i + 1 < listeTitres.length ? listeTitres[i + 1].ligne - 1 : lignes.length;
+    ajouter(debut, fin);
+  });
+  return blocs;
+}
+
+// `X.md § Section` — comme champ `**Source :**` ou mention inline (y compris
+// dans un lien `[X.md § Section](...)`) — hors bloc de code. La section est
+// tronquée au premier `` ` ``, `]`, `)` ou saut de ligne, puis débarrassée de
+// sa ponctuation finale.
+const RE_REFERENCE = /([\w./-]+\.md)\s*§\s*([^\n`\]\)]+)/g;
+
+export function referencesSection(texte) {
+  const lignes = texte.split(/\r\n|\n/);
+  const dansBloc = lignesDansBloc(lignes);
+  const resultat = [];
+  lignes.forEach((ligne, index) => {
+    if (dansBloc[index]) return;
+    for (const m of ligne.matchAll(RE_REFERENCE)) {
+      const section = m[2].trim().replace(/[\s.,;:]+$/, '');
+      if (section) resultat.push({ ligne: index + 1, fichier: m[1], section });
+    }
+  });
+  return resultat;
+}
+
+export function fichiersMarkdown(chemin) {
+  const info = statSync(chemin);
+  if (info.isFile()) return [chemin];
+  const resultat = [];
+  for (const entree of readdirSync(chemin, { withFileTypes: true })) {
+    if (entree.name === 'node_modules' || entree.name === '.git') continue;
+    const sousChemin = join(chemin, entree.name);
+    if (entree.isDirectory()) resultat.push(...fichiersMarkdown(sousChemin));
+    else if (entree.name.endsWith('.md')) resultat.push(sousChemin);
+  }
+  return resultat.sort();
 }

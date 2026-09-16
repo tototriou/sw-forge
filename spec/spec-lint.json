@@ -1,0 +1,47 @@
+{
+  "perimetre": ["spec/outils/**"],
+  "exceptions": [
+    {
+      "fichier": "spec/outils/optimizer/harnais-diagnostic-extensions.md",
+      "raison": "fichier > 500 lignes, préexistant au lint (2 806 lignes mesurées le 2026-09-16)",
+      "condition_de_suppression": "prochain chantier harnais, avant modification normative",
+      "chantier_responsable": "harnais"
+    },
+    {
+      "fichier": "spec/outils/optimizer.md",
+      "raison": "fichier > 500 lignes, préexistant au lint (1 910 lignes mesurées le 2026-09-16)",
+      "condition_de_suppression": "découpage par sections en fichiers, hors périmètre de ce cadrage",
+      "chantier_responsable": "découpage-optimizer"
+    },
+    {
+      "fichier": "spec/outils/degats-reels.md",
+      "raison": "fichier > 500 lignes, préexistant au lint (1 877 lignes mesurées le 2026-09-16)",
+      "condition_de_suppression": "prochain chantier dégâts",
+      "chantier_responsable": "degats"
+    },
+    {
+      "fichier": "spec/outils/optimizer/artefacts.md",
+      "raison": "fichier > 500 lignes, préexistant au lint (1 700 lignes mesurées le 2026-09-16)",
+      "condition_de_suppression": "prochain chantier artéfacts",
+      "chantier_responsable": "artefacts"
+    },
+    {
+      "fichier": "spec/outils/speed-tuning.md",
+      "raison": "fichier > 500 lignes, préexistant au lint (1 229 lignes mesurées le 2026-09-16)",
+      "condition_de_suppression": "prochain chantier speed tuning",
+      "chantier_responsable": "speed-tuning"
+    },
+    {
+      "fichier": "spec/outils/optimizer/harnais-diagnostic.md",
+      "raison": "fichier > 500 lignes, préexistant au lint (1 141 lignes mesurées le 2026-09-16)",
+      "condition_de_suppression": "prochain chantier harnais",
+      "chantier_responsable": "harnais"
+    },
+    {
+      "fichier": "spec/outils/optimizer/pistes.md",
+      "raison": "fichier > 500 lignes, préexistant au lint (627 lignes mesurées le 2026-09-16)",
+      "condition_de_suppression": "archivage des entrées closes (lot ultérieur)",
+      "chantier_responsable": "pistes-archivage"
+    }
+  ]
+}

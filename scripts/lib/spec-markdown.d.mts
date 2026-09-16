@@ -22,7 +22,22 @@ export interface EnTete {
   lireSi: string | null;
 }
 
+export interface Bloc {
+  debut: number;
+  fin: number;
+  lignes: number;
+}
+
+export interface ReferenceSection {
+  ligne: number;
+  fichier: string;
+  section: string;
+}
+
 export function titres(texte: string): Titre[];
 export function slug(titre: string, compteurs?: Map<string, number>): string;
 export function sections(texte: string): Section[];
 export function enTete(texte: string): EnTete;
+export function blocsTerminaux(texte: string): Bloc[];
+export function referencesSection(texte: string): ReferenceSection[];
+export function fichiersMarkdown(chemin: string): string[];

@@ -4,29 +4,17 @@
 //
 // Usage : `node scripts/spec-toc.mjs <fichier|dossier> [--json]`
 //
-// ⚠️ Le parseur (titres, plages, en-tête, première phrase) vit dans
-// `scripts/lib/spec-markdown.mjs`, partagé avec le futur `spec-lint` — ce
-// script ne fait qu'appeler `sections()`/`enTete()` et mettre en forme.
+// ⚠️ Le parseur (titres, plages, en-tête, première phrase, mode dossier) vit
+// dans `scripts/lib/spec-markdown.mjs`, partagé avec `spec-lint` — ce script
+// ne fait qu'appeler `sections()`/`enTete()`/`fichiersMarkdown()` et mettre
+// en forme.
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { enTete, sections } from './lib/spec-markdown.mjs';
+import { enTete, sections, fichiersMarkdown } from './lib/spec-markdown.mjs';
 
 const RACINE = fileURLToPath(new URL('..', import.meta.url));
-
-function listerFichiersMarkdown(chemin) {
-  const info = statSync(chemin);
-  if (info.isFile()) return [chemin];
-  const resultat = [];
-  for (const entree of readdirSync(chemin, { withFileTypes: true })) {
-    if (entree.name === 'node_modules' || entree.name === '.git') continue;
-    const sousChemin = join(chemin, entree.name);
-    if (entree.isDirectory()) resultat.push(...listerFichiersMarkdown(sousChemin));
-    else if (entree.name.endsWith('.md')) resultat.push(sousChemin);
-  }
-  return resultat.sort();
-}
 
 function analyser(chemin) {
   const texte = readFileSync(chemin, 'utf8');
@@ -57,7 +45,7 @@ function main() {
     process.exit(1);
   }
 
-  const fichiers = listerFichiersMarkdown(cible);
+  const fichiers = fichiersMarkdown(cible);
   const resultats = fichiers.map(analyser);
 
   if (veutJson) {

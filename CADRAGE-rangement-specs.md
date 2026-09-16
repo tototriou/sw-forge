@@ -629,6 +629,33 @@ Preuve : `controle-6b.md` (règle → citation, sections de rappel → verdict ;
 en-tête ARCHIVE de preuve, A.6) livré avec les notes et cité dans le
 commit ; `spec-lint-en-tetes` résout toutes les `Source :`.
 
+#### 6c — reprise du 6a sur `optimizer.md` · C (déclenchée par le rappel du 6b)
+
+Le contrôle de rappel a trouvé 3 omissions (2 dans `algorithme.md`, 1 dans
+`optimizer.md § Sous-propriétés verrouillées`), toutes de la même famille :
+**règles de forme « X est dérivé de Y, jamais listé à la main » et « ordre
+fixe d'un pipeline »**, que le critère « casse quelque chose » laisse
+passer parce qu'elles sont formulées en description, pas en impératif.
+`algorithme.md` a été lu **en entier** par le 6b : couvert. `optimizer.md`
+(1 961 lignes) ne l'a pas été : **une session C relit ses sections d'état
+actuel avec ce critère précisé**, et n'écrit que les règles **absentes**
+d'`invariants.md` (diff contre lui, pas contre les extraits) dans
+`invariants-optimizer-bis.md` (H1 + en-tête de preuve, lot 6c). Une
+session J courte (intrant ≤ 40 lignes → Opus effort moyen, A.4) les
+intègre à `invariants.md` avec le contrôle de précision à 1 sur 5, met à
+jour `controle-6b.md` § Reprise, livre. Pas de nouveau tirage de rappel si
+la reprise trouve ≤ 3 règles ; au-delà, un tirage de 3 sections
+d'`optimizer.md`.
+
+Deux faits du 6b que le lot 7 doit connaître : **5 entrées
+d'`invariants.md` n'ont que `README.md` privé pour source** — 7b les
+repointe vers la destination du bloc correspondant **avant** de supprimer
+le bloc du README, sinon le lint casse ; et deux **contradictions de
+spec** relevées (README:972–980 vs optimizer.md:798, le code donne raison
+à optimizer.md ; optimizer.md L397 vs L438) sont dans `pistes.md` §
+Rangement — 7b tranche la première (c'est un bloc « privé seulement » à
+décider), la seconde reste une piste.
+
 ### B.7 Lot 7 — README privé : fin du doublon, routage
 
 #### 7a — delta privé / public · M
@@ -783,6 +810,17 @@ ceux hors périmètre — coût nul si aucun, et un commit sur
 ses en-têtes. Même principe pour `chantier livrer` (notes privées du
 chantier) et `npm test` (`spec-lint` complet enregistré sur le corpus
 réel dans `tests/index.ts`).
+
+#### Références `§` vers un titre à lien ou parenthèse (défaut relevé au 6b)
+
+`referencesSection` ne sait pas citer un titre qui contient un lien
+Markdown ou une parenthèse médiane (« § 6 bis » d'`artefacts.md` a dû
+être reformulé ; trois entrées d'`invariants.md` citent le H2 parent
+faute de mieux — listées dans `pistes.md`). Le lot 9 corrige le parseur :
+la référence `fichier § Titre` est comparée **par slug** au titre cible
+(le slug neutralise lien et ponctuation), et une fixture couvre un titre
+avec lien, un avec parenthèses, un avec backticks. Puis les trois entrées
+sont repointées sur leur vrai titre.
 
 #### Hook `Read`
 

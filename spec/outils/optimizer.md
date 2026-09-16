@@ -272,6 +272,30 @@ retour.
 
 ## Écran (de haut en bas)
 
+**Mise en page bureau — UNE SEULE grille à partir de `xl`**
+([OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx), `grid gap-5
+items-start xl:grid-cols-[1.35fr_1fr]`), où chaque carte reçoit un
+**placement explicite** (`col-start`/`row-start`/`row-span`) : CSS Grid
+l'honore indépendamment de l'ordre du DOM, qui reste donc l'ordre d'USAGE
+(monstre → objectif → critères → exclusion/réglages avancés) — et l'ordre de
+lecture sous `xl`, où une seule colonne s'affiche sans aucune de ces classes
+(le mobile ne dépend jamais de cette grille). Disposition actuelle : rangée 1,
+« Monstre & équipement » pleine largeur (`xl:col-span-2`) ; colonne 1,
+« Critères de recherche » sur les rangées 2 à 5 (`xl:row-span-4` — ce nombre
+suit la colonne d'en face : toute carte ajoutée ou retirée à droite s'y
+répercute) ; colonne 2, de haut en bas, « Artéfacts », « État de mon
+monstre », « Exclusion de runes », « Réglages avancés » ; en dernier, pleine
+largeur, la ligne d'estimation. ⚠️ `items-start` sur la grille : sans lui,
+chaque bloc s'étire à la hauteur de sa rangée et les cartes courtes se
+retrouvent avec un grand vide bordé. ⚠️ **Colonne 1 en `fr`, jamais en
+pixels** : bornée à `minmax(480px,560px)`, elle était trop étroite pour la
+rangée d'équipement à taille pleine (≈ 800 px : la roue puis la relique
+passaient à la ligne, cette dernière hors du cadre visible) ; en `fr`, elle
+suit la largeur réelle de l'écran au lieu d'un plafond deviné. La barre
+d'actions, la progression et les résultats restent **pleine largeur, hors de
+cette grille** — la grille de cartes de résultat profite directement de la
+largeur gagnée (`auto-fill`, voir « Résultats »).
+
 ### Recherche du monstre à optimiser
 0. **Bandeau bêta** — permanent, pas refermable (contrairement à
    `MobileNotice` : ce n'est pas un avertissement ponctuel mais un statut qui
@@ -779,7 +803,12 @@ retour.
      et ne tiennent donc pas dans une table statique : l'écran les calcule
      (`damageRelevantStats`) et les transmet au moteur via
      `SearchParams.objectiveStats`. Le moteur, lui, reste générique — il
-     reçoit « ces stats comptent plus », jamais la notion de sort.
+     reçoit « ces stats comptent plus », jamais la notion de sort. L'entrée
+     `degats_reels` de la table statique n'est qu'un REPLI (`['atk','cd']`)
+     pour le cas « aucun sort résolu ». ⚠️ `objectiveScore` exige un
+     `RealDamageContext` pour cet objectif et **lève** sans lui — jamais un
+     repli silencieux vers une autre formule : un score plausible mais
+     calculé sur un autre modèle que celui affiché serait invisible.
 #### Repli et objectifs retirés
      ⚠️ **Aucun sort calculable** (monstre perso, fiche absente, formules
      hors modèle) : l'option « Dégâts réels » **disparaît purement et
@@ -827,6 +856,20 @@ retour.
    **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté. **Colonne
    GAUCHE** de la carte (demande explicite), avec le point suivant.
+   ⚠️ **Rouge Tailwind `red-500` littéral, pas le jeton sémantique `bad`** du
+   thème — exception assumée à « aucune couleur Tailwind native »
+   (CLAUDE.md) : `bad` (voir [shared/design.md](shared/design.md)) est
+   volontairement une teinte corail douce en thème sombre, pensée pour un
+   état des DONNÉES — trop proche du fond du contrôle pour se voir comme un
+   vrai signal d'alerte. Ce cas précis en avait besoin, demandé explicitement
+   après deux essais d'intensification du jeton `bad` jugés encore
+   insuffisants (bordure épaisse + fond teinté + halo large).
+   ⚠️ **Densité** (demandes explicites, « plus compact » / « resserré ») :
+   `max-w-md` sur le conteneur de « Set de runes recherché » ; **Set principal
+   (4 pièces) sur DEUX LIGNES en permanence** (`SetComboPicker.tsx`, `grid
+   grid-cols-3` sans préfixe `compact:` — le bureau adopte l'agencement
+   asymétrique du tactile, demande « comme sur mobile » : Set principal
+   étroit, Set secondaire récupère la largeur libérée).
 5. **Statistique principale imposée (slots pairs)** — pour chacun des slots
    **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
    fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
@@ -1113,7 +1156,38 @@ retour.
      niveau/l'éveil ; activé, le champ porte sur ce que l'**équipement**
      (runes et artéfacts) doit apporter au-dessus de la base nue. Désactivé,
      il porte sur le total. Taux Crit/Dmg Crit/RES/Précision restent
-     TOUJOURS en total, quel que soit ce réglage.
+     TOUJOURS en total, quel que soit ce réglage — elles partent d'une petite
+     valeur d'éveil fixe plutôt que d'une base qui grandit ; leur champ
+     **évolue selon la valeur d'éveil du monstre** (repère affiché en
+     `placeholder`), pas selon ce réglage. « Bonus apporté par
+     l'équipement » se lit comme en jeu : un monstre sans la moindre rune
+     mais avec deux artéfacts ATQ +100 affiche déjà +200 de bonus ATQ, pas 0.
+   - ⚠️ **La valeur stockée ne change jamais de nature** : c'est une lecture
+     dérivée (`total − base`, `base` = la base NUE du monstre, jamais les
+     artéfacts) recalculée à l'affichage, pas une conversion appliquée une
+     fois puis oubliée. Désactiver l'interrupteur change donc immédiatement
+     les 4 champs concernés (sans perte), et **saisir** une valeur pendant
+     qu'il est activé l'enregistre convertie en total (`base + valeur
+     saisie`) — la valeur saisie représente le bonus **équipement complet**
+     (runes et artéfacts additionnés), pas les runes seules : soustraire
+     aussi les artéfacts aurait mélangé deux référentiels (`base` reste la
+     base nue dans la conversion, seul le PLANCHER ci-dessous change selon
+     les artéfacts comptés). Sans monstre sélectionné, la base vaut 0 : les
+     deux lectures coïncident.
+   - ⚠️ **Aucun champ ne descend sous ce qu'on a déjà GARANTI sans la moindre
+     rune** — le plancher, pas la valeur de conversion ci-dessus : en lecture
+     Total, la base nue du monstre **plus** les artéfacts effectivement
+     comptés (0 si aucun artéfact choisi sur cette stat) ; en lecture
+     « bonus », les artéfacts effectivement comptés SEULS — cohérent avec le
+     fait qu'en bonus, la base nue est déjà soustraite par la conversion.
+     Affiché en `placeholder` tant que rien n'est saisi.
+   - **Grille en `w-fit`**, un seul triplet (libellé/Min/Max) par rangée,
+     même au-delà de `2xl` — un passage à DEUX stats par rangée a été tenté
+     puis **explicitement écarté** : le triplet Min/Max reste la lecture
+     attendue, pas un doublement de densité. Cause du `w-fit` : un conteneur
+     `grid` en BLOC prend toute la largeur de son parent, et des colonnes
+     `auto` (Min/Max) sans aucune piste en `fr` **se partagent l'espace libre
+     restant** — la phase « maximize tracks » de CSS Grid, pas un bug.
    - Taux Crit, RES et Précision sont plafonnés à 100 % **sur la saisie**
      seulement — la recherche elle-même ne doit surtout pas exclure un build
      dont la somme brute dépasse 100 % (une marge de sécurité contre la
@@ -1197,8 +1271,15 @@ retour.
     préréglage, exploration de tout l'inventaire, choix d'artéfacts) —
     **jamais le pool de runes ni le compte**, ce qui la rend partageable
     entre joueurs. L'import remplit tous les réglages et sélectionne
-    automatiquement le monstre de la box courante si son `com2usId` s'y
-    trouve.
+    automatiquement le monstre par son `com2usId` — **résolu dans TOUT le
+    bestiaire**, plus seulement les monstres possédés : importer la recette
+    de quelqu'un d'autre pour un monstre qu'on ne possède pas reste
+    utilisable (repli sur ses stats de base) au lieu d'échouer avec « ce
+    monstre n'est pas dans ta box » ; ce message ne survient plus que si le
+    `com2usId` ne correspond à AUCUN monstre des données chargées (cas
+    limite, ex. monstre retiré du jeu). Aucune confirmation à l'import :
+    remplacer la saisie en cours n'est pas plus destructeur que la modifier
+    à la main.
 12. **Barre de progression** — se remplit progressivement (pas une roue qui
     tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
     suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
@@ -1212,11 +1293,54 @@ retour.
     pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
     rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
     moyen : X » selon le réglage global (Efficience/Score SW).
+    ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
+    [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
+    runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est
+    figé dans la mesure Efficience/Score active AU MOMENT DE LA RECHERCHE
+    (voir `SearchParams.metric`) — si l'utilisateur bascule le réglage (menu
+    ⚙) APRÈS avoir cherché, sans relancer, `effTotal` reste dans l'ancienne
+    mesure alors que le popover d'une rune individuelle, lui, se recalcule
+    toujours en direct. Bug signalé, corrigé, couvert par un test dédié
+    ([tests/rune-optim.test.ts](tests/rune-optim.test.ts) : la fonction ne
+    doit JAMAIS lire `effTotal`, vérifié avec un `effTotal` délibérément
+    faux). Même correctif appliqué au tri « Trier par efficience ».
+    ⚠️ **Au moins deux cartes par ligne**, calibré exprès (`scale=0,45` sur la
+    roue et les artéfacts, grille `repeat(auto-fill, minmax(min(360px,100%),
+    1fr))`) : deux cartes de 360 px + le creux entre elles tenaient tout juste
+    sous les 768 px de l'ancien conteneur `max-w-3xl` — ce calibrage reste le
+    PLANCHER (deux cartes), `auto-fill` faisant tenir davantage de cartes sur
+    un écran large. La bascule base+bonus ↔ total ne déplace jamais les
+    artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
+    fixe** (`w-[200px]`, voir [rta/sections-runes.md](rta/sections-runes.md)).
     ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
     actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la
     carte**, sur sa propre ligne. Un flottant à taille fixe débordait de
     l'écran sur une carte de résultat déjà compacte en mobile.
+    ⚠️ **Cliquer sur une rune** d'un résultat ouvre le **même popover** que
+    dans Mon compte → Runes (`DetailPopover` + `RuneDetailBox`, ancré sur la
+    rune cliquée) — les runes d'un candidat sont de vraies runes du compte.
+    La rune ouverte porte le **même halo orange** que la sélection dans
+    `MonsterGear` (`brightness` + `drop-shadow`, voir `RuneWheel.tsx`) — la
+    roue de résultat se comporte comme n'importe quelle roue de l'app. Une
+    seule rune ouverte à la fois, **parmi TOUS les résultats affichés** (pas
+    seulement dans la même carte) ; ⚠️ l'identité d'une rune ouverte (donc du
+    halo) combine le candidat ET le slot (`BuildCandidateCard.tsx`), pas
+    seulement l'id de la rune : la même rune peut apparaître dans plusieurs
+    candidats affichés à la fois, et ne doit ouvrir qu'UNE instance.
+    ⚠️ **Le popover passe toujours au premier plan, quel que soit son
+    voisinage** : sans z-index, deux éléments `position:absolute` frères
+    s'empilent par simple **ordre du DOM**, pas par position à l'écran — le
+    popover d'une rune pouvait se retrouver recouvert par le cadre d'une autre
+    rune de la même roue rendue plus tard, ou par une carte/fiche voisine
+    plus loin dans le DOM (grille de résultats, ligne suivante d'un
+    `AccordionGrid` en RTA/Siège). Corrigé en promouvant, UNIQUEMENT tant
+    qu'un popover y est ouvert, le wrapper de la pièce concernée (`z-10`,
+    dans `RuneWheel.tsx`/`ArtifactSlots.tsx`/`MonsterGear.tsx` pour la
+    relique) **et** la carte ou fiche entière qui le contient (`relative
+    z-10`, `BuildCandidateCard.tsx` et `MonsterGear.tsx`) — deux niveaux,
+    parce qu'un popover doit gagner à la fois contre ses voisins immédiats et
+    contre les autres cartes de la grille.
     ⚠️ **Sur 0 résultat**, jusqu'à trois encadrés diagnostic apparaissent, à la
     suite :
     - **Toujours** : une liste de conditions mathématiquement hors de portée

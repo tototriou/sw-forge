@@ -197,7 +197,7 @@ pour que tous les lots sémantiques disposent de `spec-toc` **et** de
 | 6c reprise du 6a sur `optimizer.md` (rappel) | C + J | exécuté | 2 règles, notes `b8c812b`, 2026-09-16 |
 | 7a delta privé / public | M | exécuté | notes `35ae956` → `sw-forge-docs` main `c996492` (`delta-7a-1.md`, `delta-7a-2.md`), 2026-09-16 |
 | 7b-1 « Écran » : 89 sous-blocs décidés | J | exécuté | `6a92fd9`, `c87ccd1` (code), notes `9269f0c` → `sw-forge-docs` main `d735fbe` (`decisions-7b.md`), 2026-09-16 |
-| 7b-2 14 blocs restants, routage, preuve globale | J | à faire | |
+| 7b-2 21 plages restantes, routage, preuve globale | J | exécuté | `b3884ac` (code), notes `a752678` → `sw-forge-docs` main `c3b236c`, README 112 l. (47 hors reliquat), 2026-09-16 |
 | 8 règles de rétention | J (intrant ≤ 100 l.) | à faire | |
 | 9 enforcement (hooks, skill, CLAUDE.md) | M | à faire | |
 
@@ -748,6 +748,25 @@ README** (notes `35ae956`) — décalage −1 859 à partir de l'ancienne
 l. 2022, à confirmer par la première ligne de chaque bloc. Quatre
 contradictions publiques trouvées en passant attendent dans `pistes.md`
 § Rangement.
+
+**Résultat 7b-2 (2026-09-16)** : 21 plages (le brief en annonçait 14 :
+il comptait des sections, pas des plages), préambule l. 16–118
+redécoupé en 6 ; supprimer 16 (167 l.), garder 8 (231 l.), décisions 2
+(60 l., nouveau `decisions/exclusion-de-runes.md`), reliquat 0, doute 0.
+« Runes imposées — dans la même carte » = la même règle que le public
+(récit de la 8ᵉ révision, couvert par l'historique) : supprimé.
+`invariants.md` l. 233–234 repointées ; `grep "Source : README.md"` →
+0. Preuve globale sur les 115 blocs : 22/22 plages 7a couvertes, 0
+orpheline, 115/115 destinations résolues, 244 citations retrouvées.
+README réécrit en routage : **112 lignes, 47 hors reliquat** ; lint
+`spec/outils/optimizer` : 4 points, tous préexistants (les 4 blocs
+> 100 l. attendus au lot 9). Destination hors liste, acceptée (A.3) :
+les descriptions des archives → `archive/README.md`. Deux lignes du
+routage citent un titre à backticks ou parenthèse sous forme non
+déclenchante, annotées : à réécrire en `fichier § section` au lot 9,
+quand le `§` résout par slug. Deux contradictions de plus dans
+`pistes.md` § Rangement (artefacts.md §12 « rien d'implémenté » ;
+« défilement horizontal » des coéquipiers vs `flex-wrap`).
 Pour chaque bloc, une décision parmi trois, écrite dans `decisions-7b.md`
 (dossier de preuves, A.6) avec la première ligne du bloc citée :
 
@@ -873,7 +892,9 @@ faute de mieux — listées dans `pistes.md`). Le lot 9 corrige le parseur :
 la référence `fichier § Titre` est comparée **par slug** au titre cible
 (le slug neutralise lien et ponctuation), et une fixture couvre un titre
 avec lien, un avec parenthèses, un avec backticks. Puis les trois entrées
-sont repointées sur leur vrai titre.
+sont repointées sur leur vrai titre, **et les deux lignes du routage du
+README privé annotées « hors regex du lint » (7b-2) sont réécrites en
+`fichier § section`**, pour que le lint les couvre.
 
 #### Hook `Read`
 

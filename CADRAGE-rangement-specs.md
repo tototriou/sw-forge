@@ -240,8 +240,10 @@ copie dans le worktree) :
 - **Un dossier daté part en bloc**, sauf un fichier qui porte des décisions
   encore en vigueur. Détection **mécanique, sans lire le corps** : nom du
   fichier + ses 12 premières lignes + son sommaire (`grep -n '^#'`), à la
-  recherche de titres du type « Décision », « Règle », « Retenu », « À
-  faire ». S'il en porte clairement, il est **déplacé** (pas copié) vers
+  recherche de titres — **H1 compris** (retour du lot 1 : un fichier dont
+  le H1 dit « Décisions » n'avait aucun H2 ainsi titré) — du type
+  « Décision », « Règle », « Retenu », « À faire ». S'il en porte
+  clairement, il est **déplacé** (pas copié) vers
   `decisions/` avec un lien retour dans le `README.md` du dossier archivé ;
   **s'il est ambigu, il reste en archive** et gagne une ligne de pointeur
   dans `archive/README.md` (« peut contenir des décisions actives : … »)

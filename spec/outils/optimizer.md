@@ -459,7 +459,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    - L'**absolu s'affiche toujours**, y compris quand on porte déjà la
      meilleure paire — c'est justement là qu'il est seul à dire quelque chose,
      l'écart valant zéro.
-   - L'**écart** ne s'affiche que s'il y a quelque chose à gagner.
+   - L'**écart** s'affiche dès qu'il est **non nul à l'arrondi, dans les
+     deux sens** (voir « L'écart s'affiche dans les DEUX sens » plus haut)
+     — jamais quand la paire proposée est celle déjà portée.
    - La phrase qui NOMME le chiffre suit la même règle : présente dès qu'un
      nombre l'est. Un nombre sans sa légende serait exactement le défaut du
      « +X % grâce aux artéfacts » qu'on a retiré faute de pouvoir le nommer.
@@ -532,12 +534,13 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    stats base/bonus, artéfacts, roue de runes et relique **tels
    qu'ACTUELLEMENT équipés** sur l'exemplaire choisi ci-dessus — **c'est
    CET exemplaire que la recherche optimise**, pas systématiquement la box.
-   Tant qu'aucun exemplaire n'a encore été choisi DANS LA SOURCE ACTIVE
-   depuis le dernier montage de la page : repli sur le meilleur exemplaire
-   box de l'espèce affichée la dernière fois (continuité au retour sur
-   l'onglet) si la source active est Box, fiche vide sinon (RTA/siège
-   n'ont pas d'équivalent « toujours un choix par défaut sensé », l'espèce
-   peut apparaître dans plusieurs équipes). ⚠️ **Limite connue** : ce choix
+   Tant qu'aucun exemplaire n'a encore été choisi depuis le dernier montage
+   de la page : repli sur le **PREMIER exemplaire Box** de l'espèce
+   persistée (`boxCandidates[0]`, initialisation paresseuse de
+   `sourceSelector` dans [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)
+   — la même règle que la recherche bestiaire, voir « Recherche du monstre
+   à optimiser »), stats de base seules si la box n'en compte aucun ; la
+   source active au montage est toujours Box. ⚠️ **Limite connue** : ce choix
    d'exemplaire ne fait PAS partie de la recette exportée (`OptimizerRecipe`
    ne porte que l'espèce, `monsterCom2usId`) — réimporter une recette lancée
    sur un exemplaire RTA/siège retombe sur la box par défaut. Chacun de ses éléments reste **cliquable**
@@ -556,8 +559,10 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    (demande explicite), comportement partagé avec RTA et Siège. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/sections-runes.md](../rta/sections-runes.md)).
-   ⚠️ **Affiché à DROITE de la recherche, TOUJOURS** — vide (stats à zéro,
-   emplacements grisés, roue sans rune) tant qu'aucun monstre n'est choisi,
+   ⚠️ **Affiché dans la carte « Monstre & équipement », SOUS les puces
+   d'exemplaire (colonne interne de droite au bureau), TOUJOURS** — vide
+   (stats à zéro, emplacements grisés, roue sans rune) tant qu'aucun
+   monstre n'est choisi,
    plutôt que de n'apparaître qu'au clic. C'est un `GearSet` NUL construit
    en local (`EMPTY_GEAR`, [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)),
    pas une variante de `MonsterGear` : le composant partagé n'a besoin
@@ -629,12 +634,15 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      silencieusement.
    - La valeur reste acceptée **en ligne de commande** : c'est une compatibilité
      d'argument, pas un objectif de l'app.
-   - ⚠️⚠️ **`tsconfig.json` n'inclut que `src`** : `tsc --noEmit` ne voit RIEN de
-     `scripts/`. C'est ce qui a laissé passer les dix casts — et le code le
-     savait déjà (`filterSlot` porte l'avertissement « incident déjà vécu deux
-     fois »). Ça vient de se reproduire une troisième. Tant que le périmètre
-     n'est pas élargi, **tout changement de type partagé avec `scripts/` se
-     vérifie à la main** (`grep` du nom, puis un bundle esbuild de contrôle).
+   - ⚠️⚠️ **`tsconfig.json` couvre `src`, `scripts` et `tests`**
+     (`"include": ["src", "scripts", "tests"]`) : `tsc --noEmit` attrape
+     désormais un champ partagé dont le type change ou qui devient
+     obligatoire. Les dix casts étaient passés quand le périmètre se limitait
+     à `src` — et le code le savait déjà (`filterSlot` porte l'avertissement
+     « incident déjà vécu deux fois »). Reste hors de portée de `tsc` le
+     champ **OPTIONNEL** ajouté ou renommé, où l'oubli reste parfaitement
+     typé : **`grep` du nom sur tout le dépôt** (`src/`, `scripts/`,
+     `tests/`), voir CLAUDE.md, « Un type partagé… ».
 
 #### Les quatre objectifs disponibles
    - **Efficience** (par défaut) — pas de biais particulier, la mesure
@@ -1198,8 +1206,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    (voir « Exclusion des runes » ci-dessous).
 9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
    `FlottantAuto`** (`shared/librairie-ui.md`), PAS un bloc qui grandit la
-   carte — dépliée, la carte reste sous « Exclusion de runes » (rangée 1-2
-   du duo Monstre & équipement, voir plus haut) à sa hauteur repliée, le
+   carte — dépliée, la carte reste sous « Exclusion de runes » (colonne 2,
+   rangée 5, sous Exclusion en rangée 4 — voir « Mise en page bureau » en
+   tête d'« Écran ») à sa hauteur repliée, le
    contenu flotte par-dessus le reste de la page ; ferme au clic extérieur.
    Un panneau replié par défaut ne peut pas réserver sa place à l'avance
    sans perdre l'intérêt d'être replié — voir
@@ -1941,8 +1950,12 @@ différent, coopératif (voir « Interruption »).
   fois, plutôt qu'un plafond fixe deviné à l'avance — évite à la fois de
   gaspiller du temps sur une recherche lâche et de sous-budgétiser une
   recherche à beaucoup de conditions simultanées.
-- **Artéfacts et relique restent fixes** (ceux actuellement équipés ou
-  hypothéqués à l'étape 6) : l'outil optimise **uniquement les 6 runes**.
+- **La recherche de runes optimise uniquement les 6 runes.** La relique
+  reste fixe (`relic?: RelicDetail; // fixe`, `SearchParams`) ; les
+  artéfacts y entrent comme **paire représentative** pour la notation
+  (`artifacts`) et comme **bornes d'inventaire** pour la faisabilité
+  (`artifactBounds`, produit par `bornesArtefacts`) — leur choix est un
+  second problème, séparé (voir « Le choix des artéfacts »).
 - Toutes les valeurs sont recalculées avec [stats.ts](src/lib/stats.ts)
   (`computeStats`), la même fonction que partout ailleurs dans l'app.
 - **Écrit comme un générateur**, pas une seule boucle qui tourne jusqu'au

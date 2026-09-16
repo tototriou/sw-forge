@@ -97,6 +97,11 @@ correspond à rien échoue en listant ce qui existe — jamais en ne testant rie
 information qu'on a déjà : ce qui compte pendant le travail, c'est la zone qu'on
 touche. Ce qui compte avant de fusionner, c'est **tout**.
 
+⚠️ **Pour ouvrir une spec, `node scripts/spec-toc.mjs <fichier|dossier>`
+avant de la lire en entier** : sommaire compact (en-tête, puis niveau /
+plage de lignes / première phrase de chaque titre), qui dit si une section
+tient en quelques lignes ou vaut la peine d'être ouverte.
+
 ⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise**
 (`[&>*]:w-full` ne l'a pas été). Quand un style ne s'applique pas, vérifier dans
 le **CSS construit**, pas dans le composant. Pour un algorithme de

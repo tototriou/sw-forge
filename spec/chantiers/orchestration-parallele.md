@@ -1,6 +1,6 @@
 # Cadrage — deux agents en parallèle sur SW Forge
 
-**Statut :** chantier en cours — branche forge/orchestration-parallele
+**Statut :** CHANTIER en cours — branche forge/orchestration-parallele
 
 > **STATUT : v5 — cadrage clos, prêt pour l'implémentation.** Les décisions
 > (§2-§4) sont stabilisées après quatre passes critiques ; le cycle de refonte

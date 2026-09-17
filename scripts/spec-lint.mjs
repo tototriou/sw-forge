@@ -29,6 +29,14 @@ function estArchive(relatif) {
   return /(^|\/)archive\//.test(relatif);
 }
 
+// B.4 amendement C6 : un cadrage — public `spec/chantiers/**` ou privé
+// `spec/outils/optimizer/chantiers/**` — n'est ni un état actuel, ni une
+// décision, ni une archive : il est « en cours » puis « terminé ». Le
+// dossier `chantiers/` fait foi, pas le périmètre déclaré.
+function estChantier(relatif) {
+  return /(^|\/)chantiers\//.test(relatif);
+}
+
 // B.5 : un Statut n'est reconnu que s'il commence par une des trois natures
 // (A.2) — « présent et non vide » ne suffit plus depuis le lot 5. Comparaison
 // insensible à la casse : les en-têtes existants écrivent « État actuel »,
@@ -39,6 +47,32 @@ function statutReconnu(statut) {
   if (!statut || !statut.trim()) return false;
   const normalise = statut.trim().toUpperCase();
   return NATURES_RECONNUES.some((nature) => normalise.startsWith(nature));
+}
+
+// Un Statut qui SE PRÉSENTE comme un cadrage (préfixe « CHANTIER »), qu'il
+// soit valide ou non — sert à distinguer « mauvaise forme dans chantiers/ »
+// de « nature CHANTIER employée hors de son dossier ».
+function statutSeDitChantier(statut) {
+  return /^CHANTIER\b/i.test((statut ?? '').trim());
+}
+
+function dateValide(annee, mois, jour) {
+  const d = new Date(Date.UTC(annee, mois - 1, jour));
+  return d.getUTCFullYear() === annee && d.getUTCMonth() === mois - 1 && d.getUTCDate() === jour;
+}
+
+// B.4 amendement C6 : regex stricte, deux formes acceptées — pas de préfixe
+// libre comme pour les trois autres natures. Les champs d'en-tête B.5 (Lire
+// si, Ne pas lire si, Voir aussi) restent facultatifs pour cette nature.
+const RE_CHANTIER_EN_COURS = /^CHANTIER EN COURS(\s+—.*)?$/;
+const RE_CHANTIER_TERMINE = /^CHANTIER TERMIN[EÉ] LE (\d{4})-(\d{2})-(\d{2})(\s+—.*)?$/;
+
+function statutChantierValide(statut) {
+  const normalise = (statut ?? '').trim().toUpperCase();
+  if (RE_CHANTIER_EN_COURS.test(normalise)) return true;
+  const m = normalise.match(RE_CHANTIER_TERMINE);
+  if (!m) return false;
+  return dateValide(Number(m[1]), Number(m[2]), Number(m[3]));
 }
 
 // Un lien/`Source :` peut désigner un chemin relatif au fichier qui le
@@ -92,7 +126,14 @@ export function verifier(racine, config, options = {}) {
       continue; // archive/ : aucune autre règle (A.2, B.4)
     }
 
-    if (!statutReconnu(statut)) {
+    const dansChantiers = estChantier(relatif);
+    if (dansChantiers) {
+      if (!statutChantierValide(statut)) {
+        erreurs.push({ fichier: relatif, regle: 'entete', message: 'chantiers/ : Statut doit être « CHANTIER en cours » ou « CHANTIER terminé le AAAA-MM-JJ »' });
+      }
+    } else if (statutSeDitChantier(statut)) {
+      erreurs.push({ fichier: relatif, regle: 'entete', message: 'nature CHANTIER réservée aux fichiers sous un dossier chantiers/' });
+    } else if (!statutReconnu(statut)) {
       erreurs.push({ fichier: relatif, regle: 'entete', message: 'en-tête absent ou sans champ Statut reconnu' });
     }
 
@@ -121,7 +162,10 @@ export function verifier(racine, config, options = {}) {
 
     const nbLignes = texte.split(/\r\n|\n/).length;
     const blocs = blocsTerminaux(texte);
-    const depasseFichier = nbLignes > 500;
+    // B.4 amendement C6 : seule exemption au plafond fichier — codée ici,
+    // pas dans spec-lint.json (ce n'est pas une dette à résorber, c'est la
+    // nature du document, cf. contrat). Le bloc terminal ≤ 100 reste exigé.
+    const depasseFichier = nbLignes > 500 && !dansChantiers;
     const depasseBloc = blocs.some((b) => b.lignes > 100);
     const exception = exceptionsParFichier.get(relatif);
 

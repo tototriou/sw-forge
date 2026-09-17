@@ -1,6 +1,6 @@
 # Cadrage — rangement des specs pour lire à la demande, pas en bloc
 
-**Statut :** chantier terminé le 2026-09-17 — branche forge/spec-rangement
+**Statut :** CHANTIER terminé le 2026-09-17 — branche forge/spec-rangement
 
 ⚠️ **Révision 7 — cinq revues adversariales intégrées le 2026-09-16, puis
 lots renumérotés dans l'ordre d'exécution ; à valider avant le premier
@@ -394,6 +394,8 @@ deux fois la même logique en scripts scratch temporaires.
 Construit sur `scripts/lib/spec-markdown.mjs` (le parseur du lot 3 : même
 définition de titre, de section, d'en-tête, de slug).
 
+#### Bloc terminal, refus et cibles de test
+
 - **Bloc terminal** : les lignes entre un titre (exclu) et le prochain titre
   de **n'importe quel niveau** (exclu), ou la fin du fichier ; le texte
   avant le premier titre est un bloc terminal (le préambule). Un titre = ligne
@@ -427,6 +429,9 @@ définition de titre, de section, d'en-tête, de slug).
   - **Au lot 4, les deux cibles ne tournent que sur les fixtures.** Le
     corpus réel n'a pas encore ses en-têtes (lot 5) ; d'où « 4 ne dépend
     pas de 1 » dans A.7.
+
+#### Périmètre, exceptions et inventaire des longueurs
+
 - **Périmètre et exceptions** : un seul fichier `spec/spec-lint.json` :
   `{ perimetre: ["spec/outils/**"], exceptions: [{ fichier, raison,
   condition_de_suppression, chantier_responsable }] }`. Le périmètre est
@@ -495,6 +500,24 @@ refusée, fichier d'`archive/` de 3 000 lignes avec deux titres identiques
 **accepté** avec son seul `Statut : ARCHIVE`, `À préciser` accepté,
 **fichier hors périmètre sans en-tête ignoré**, fichier dans le
 périmètre sans en-tête refusé ; plus `inventaire-longueurs-4.md` livré.
+
+**Amendement C6 (2026-09-17)** — un document de cadrage (dossier
+`chantiers/`, public `spec/chantiers/**` ou privé
+`spec/outils/optimizer/chantiers/**`) est une **quatrième nature**, ni
+état actuel, ni décision, ni archive (A.2) : il est « en cours » puis
+« terminé ». Deux formes de `Statut :` **seules** reconnues, par une
+regex stricte — pas un préfixe libre comme pour les trois autres
+natures : `CHANTIER en cours` et `CHANTIER terminé le AAAA-MM-JJ` (date
+calendaire valide) ; les deux tolèrent un suffixe `— <texte>`. La nature
+CHANTIER est refusée hors d'un dossier `chantiers/`, et toute autre
+nature y est refusée : seul CHANTIER y est reconnu. **Seule exemption au
+plafond fichier de 500 lignes** (règle 3 de A.2), codée dans
+`scripts/spec-lint.mjs`, pas déclarée dans `spec/spec-lint.json` — ce
+n'est pas une dette à résorber, c'est la nature du document, qui grossit
+avec les résultats de ses lots. Le bloc terminal ≤ 100 lignes, les slugs
+uniques et la résolution des références restent exigés comme partout.
+Périmètre étendu : `spec/spec-lint.json` déclare aussi
+`spec/chantiers/**`.
 
 ### B.5 Lot 5 — en-têtes par nature, slugs uniques · M + C
 
@@ -565,6 +588,12 @@ Preuve : `node tests/run.mjs spec-lint-en-tetes` passe sur le périmètre
 réel ; `git grep` de chaque ancien slug renvoie vide (ou les cas justifiés
 de `renommages-5.md`) ; la liste des `À préciser` figure dans le message
 de commit.
+
+**Amendement C6 (2026-09-17)** — la quatrième nature CHANTIER (B.4) n'a
+pas les trois champs d'en-tête ci-dessus (Lire si, Ne pas lire si, Voir
+aussi) : ils restent **facultatifs** pour elle, à la différence des trois
+natures modélisées ici. Son en-tête complet est fixé par le skill
+`cadrage-chantier` § F, pas par ce modèle.
 
 ### B.6 Lot 6 — `invariants.md`
 
@@ -642,7 +671,7 @@ commit ; `spec-lint-en-tetes` résout toutes les `Source :`.
 #### 6c — reprise du 6a sur `optimizer.md` · C (déclenchée par le rappel du 6b)
 
 Le contrôle de rappel a trouvé 3 omissions (2 dans `algorithme.md`, 1 dans
-`optimizer.md § Sous-propriétés verrouillées`), toutes de la même famille :
+`spec/outils/optimizer.md § Sous-propriétés verrouillées`), toutes de la même famille :
 **règles de forme « X est dérivé de Y, jamais listé à la main » et « ordre
 fixe d'un pipeline »**, que le critère « casse quelque chose » laisse
 passer parce qu'elles sont formulées en description, pas en impératif.
@@ -740,6 +769,8 @@ est un seul fichier, 7b-2 y ajoute ses entrées). Un bloc de 7b-2 dont la
 destination a été alimentée par 7b-1 passe par le même contrôle doublon
 (la section destination est relue, pas supposée vide).
 
+##### Résultats mesurés (7b-1, 7b-2)
+
 **Résultat 7b-1 (2026-09-16)** : 89 sous-blocs ; supprimer 59 (1 252 l.,
 chacun avec la citation de la formulation qui couvre : récits de
 révision → `archive/historique/`, état → `optimizer.md`, mécaniques de
@@ -773,7 +804,7 @@ les descriptions des archives → `archive/README.md`. Deux lignes du
 routage citent un titre à backticks ou parenthèse sous forme non
 déclenchante, annotées : à réécrire en `fichier § section` au lot 9,
 quand le `§` résout par slug. Deux contradictions de plus dans
-`pistes.md` § Rangement (artefacts.md §12 « rien d'implémenté » ;
+`pistes.md` § Rangement (artefacts.md, point 12, « rien d'implémenté » ;
 « défilement horizontal » des coéquipiers vs `flex-wrap`).
 Pour chaque bloc, une décision parmi trois, écrite dans `decisions-7b.md`
 (dossier de preuves, A.6) avec la première ligne du bloc citée :
@@ -783,6 +814,8 @@ Pour chaque bloc, une décision parmi trois, écrite dans `decisions-7b.md`
 - **garder en état actuel** — règle, limite, piège, mesure encore valides :
   va dans le fichier privé thématique concerné (pas dans le README) ;
 - **déplacer en `decisions/`** — raison d'un choix.
+
+##### Gabarit de preuve, routage et vérification
 
 Un bloc **non supprimé porte une destination explicite et une preuve
 après migration** :

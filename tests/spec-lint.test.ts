@@ -103,4 +103,30 @@ export default function testSpecLint() {
   );
 
   egal(CONFIG.exceptions.length, 2, 'la fixture de config déclare deux exceptions (une périmée, une valide)');
+
+  // C6 : un cadrage (dossier chantiers/) est une quatrième nature — B.4 amendement C6.
+  ok(
+    regles(erreurs, 'chantiers/cadrage-ok.md').length === 0,
+    'cadrage de 619 lignes, blocs < 100, Statut « CHANTIER en cours » : accepté malgré > 500 lignes (exemption chantiers/)'
+  );
+  ok(
+    regles(erreurs, 'chantiers/cadrage-bloc-101.md').includes('bloc-trop-long'),
+    'cadrage avec un bloc de 101 lignes refusé [bloc-trop-long] : la règle de bloc s\'applique aux chantiers/'
+  );
+  ok(
+    regles(erreurs, 'chantiers/cadrage-decision.md').includes('entete'),
+    'Statut « DÉCISION » dans chantiers/ refusé : seule la nature CHANTIER y est reconnue'
+  );
+  ok(
+    regles(erreurs, 'chantiers/cadrage-mauvaise-date.md').includes('entete'),
+    'Statut « CHANTIER terminé le 2026-13-01 » refusé : date invalide'
+  );
+  ok(
+    regles(erreurs, 'chantier-hors-dossier.md').includes('entete'),
+    'Statut « CHANTIER en cours » hors d\'un dossier chantiers/ refusé'
+  );
+  ok(
+    !regles(erreurs, 'chantiers/cadrage-ok.md').includes('fichier-trop-long'),
+    'chantiers/ : exemption du plafond fichier codée dans le lint, pas une entrée de spec-lint.json'
+  );
 }

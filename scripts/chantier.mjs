@@ -7,7 +7,7 @@
 // case à cocher en fin de chantier, il était une étape oubliée — faite par un
 // agent qui a déjà « fini », sur des fichiers qu'aucun hook ne voit.
 //
-// Cadrage complet : `CADRAGE-orchestration-parallele.md`, §4.
+// Cadrage complet : `spec/chantiers/orchestration-parallele.md`, §4.
 //
 // ⚠️ **L'outil REFUSE plus souvent qu'il n'agit, et c'est sa valeur.** Trois
 // refus protègent d'une perte irréversible :
@@ -1203,7 +1203,7 @@ if (!commande || options.aide || options.help) {
 
 ⚠️ Les commandes courantes s'appellent depuis l'INSTALLATION commune, jamais
 depuis scripts/ du worktree — sinon leur contenu dépend de la branche
-checkoutée. Voir CADRAGE-orchestration-parallele.md, §2.4 et §4.`);
+checkoutée. Voir spec/chantiers/orchestration-parallele.md, §2.4 et §4.`);
   process.exit(commande ? 0 : 1);
 }
 

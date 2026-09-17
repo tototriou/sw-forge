@@ -1,7 +1,7 @@
 // `scripts/spec-toc.mjs` et l'extension de `spec-markdown.mjs` (plages,
 // en-tête, première phrase) qui le porte. Fixtures synthétiques pour chaque
 // cas de B.3, plus un passage sur `spec/outils/optimizer.md` réel : voir
-// `CADRAGE-rangement-specs.md`, B.3.
+// `spec/chantiers/spec-rangement.md`, B.3.
 
 import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';

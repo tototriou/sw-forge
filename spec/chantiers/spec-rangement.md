@@ -1,5 +1,7 @@
 # Cadrage — rangement des specs pour lire à la demande, pas en bloc
 
+**Statut :** chantier terminé le 2026-09-17 — branche forge/spec-rangement
+
 ⚠️ **Révision 7 — cinq revues adversariales intégrées le 2026-09-16, puis
 lots renumérotés dans l'ordre d'exécution ; à valider avant le premier
 lot.** Correspondance avec les révisions 2–6 (citées par les revues) :

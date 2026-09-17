@@ -1,6 +1,6 @@
 // Sommaire compact d'une spec : en-tête (statut, lire si) puis, pour chaque
 // titre, niveau / plage de lignes / première phrase. Objectif : ouvrir une
-// spec sans la lire en entier. Voir `CADRAGE-rangement-specs.md`, B.3.
+// spec sans la lire en entier. Voir `spec/chantiers/spec-rangement.md`, B.3.
 //
 // Usage : `node scripts/spec-toc.mjs <fichier|dossier> [--json]`
 //

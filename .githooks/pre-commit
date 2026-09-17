@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Garde-fou de commit, commun aux deux agents — voir
-// CADRAGE-orchestration-parallele.md, §2.4.
+// spec/chantiers/orchestration-parallele.md, §2.4.
 //
 // ⚠️ **Pourquoi un hook GIT et pas un hook d'agent.** Un `PreToolUse` de Claude
 // Code ne vaut que pour Claude Code. Codex a **aussi** un système de hooks
@@ -143,7 +143,7 @@ for (const chemin of stagés) {
 // c'est `verifier()` qui l'applique — ce hook ne fait que lui SOUMETTRE les
 // `spec/**.md` de l'index et NE GARDER que les erreurs qui les concernent :
 // un fichier hors périmètre (`verifier` ne le voit tout simplement pas) coûte
-// zéro et n'est jamais refusé. Voir CADRAGE-rangement-specs.md, B.9.
+// zéro et n'est jamais refusé. Voir spec/chantiers/spec-rangement.md, B.9.
 
 const specsIndex = stagés.filter((c) => /^spec\/.*\.md$/.test(c));
 

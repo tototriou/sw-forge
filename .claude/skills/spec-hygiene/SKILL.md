@@ -1,6 +1,6 @@
 ---
 name: spec-hygiene
-description: Trois recettes pour manipuler spec/ sans perdre d'information ni casser les références — déplacer un fichier entre natures (état actuel / décision / archive), découper un fichier en exception de spec-lint.json le jour où un chantier doit en modifier le contenu normatif, et extraire les invariants d'une section d'état actuel nouvelle ou modifiée. Née du cadrage CADRAGE-rangement-specs.md (lots 1 à 9).
+description: Trois recettes pour manipuler spec/ sans perdre d'information ni casser les références — déplacer un fichier entre natures (état actuel / décision / archive), découper un fichier en exception de spec-lint.json le jour où un chantier doit en modifier le contenu normatif, et extraire les invariants d'une section d'état actuel nouvelle ou modifiée. Née du cadrage spec/chantiers/spec-rangement.md (lots 1 à 9).
 ---
 
 # Hygiène de `spec/` (SW Forge)
@@ -101,7 +101,7 @@ qu'un chantier qui touche à côté risque de casser sans le remarquer.
 
 ## Voir aussi
 
-- `CADRAGE-rangement-specs.md`, B.1 (natures), B.4 (contrat du lint), B.5
+- `spec/chantiers/spec-rangement.md`, B.1 (natures), B.4 (contrat du lint), B.5
   (gabarits d'en-tête), B.6 § 6c (critère précisé), B.9 (ce skill).
 - `node scripts/spec-toc.mjs <fichier>` pour lire une section sans charger
   le fichier entier avant de décider quoi découper ou extraire.

@@ -120,7 +120,7 @@ recette pour demander un relevé en jeu exploitable.
 
 Claude Code et Codex peuvent travailler en même temps, chacun dans **son
 worktree** et sur **sa branche** `forge/<sujet>`. Cadrage complet :
-[CADRAGE-orchestration-parallele.md](CADRAGE-orchestration-parallele.md).
+[spec/chantiers/orchestration-parallele.md](spec/chantiers/orchestration-parallele.md).
 
 ⚠️ **Toute nouvelle branche part d'une branche qui porte ce dispositif.**
 Sinon `chantier`, le hook source et cette section-ci n'existent pas dans
@@ -138,7 +138,7 @@ changerait ce qu'on mesure. Détail : cadrage §2.1.
   chemin privé dans l'index (`spec/outils/optimizer/`, `.history/`,
   `.vscode/`), un fichier de plus de 5 Mo (un export de compte), et un
   `spec/**.md` du périmètre de `spec/spec-lint.json` qui ne passe pas
-  `spec-lint` (niveau 1, invariant dépôt — CADRAGE-rangement-specs.md, B.9).
+  `spec-lint` (niveau 1, invariant dépôt — spec/chantiers/spec-rangement.md, B.9).
   Il est **installé par machine**, donc actif quelle que soit la branche —
   mais jamais requis : un clone neuf n'en a pas et commite normalement.
   Après toute modification du hook ou de l'outil :
@@ -264,7 +264,7 @@ entière demanderait une analyse de quoting bash aux faux positifs permanents,
 d'être : même logique que `refuse-commit-m` — une consigne écrite (« jamais
 un fichier entier de plus de 300 lignes ») s'érode à l'usage, un refus au
 moment de l'action non. Portée **étroite et assumée** (niveau 2, garde-fou
-outil, pas invariant, CADRAGE-rangement-specs.md B.9) : ne couvre ni `cat`
+outil, pas invariant, spec/chantiers/spec-rangement.md B.9) : ne couvre ni `cat`
 ni un autre outil de lecture, seulement le chemin `Read` de Claude Code.
 Équivalent Codex dans `scripts/hooks-codex.mjs`. Câblage dans
 `.claude/settings.json` (ignoré, propre à chaque machine) :

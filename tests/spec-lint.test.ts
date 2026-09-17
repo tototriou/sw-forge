@@ -1,4 +1,4 @@
-// `scripts/spec-lint.mjs` — contrat de B.4 (`CADRAGE-rangement-specs.md`) sur
+// `scripts/spec-lint.mjs` — contrat de B.4 (`spec/chantiers/spec-rangement.md`) sur
 // des fixtures synthétiques. Deux cibles, au sens fixe : `testSpecLintEnTetes`
 // (en-têtes, slugs, références) et `testSpecLint` (tout ce qui précède, plus
 // les longueurs et les exceptions). Au lot 4, les deux ne tournaient QUE sur

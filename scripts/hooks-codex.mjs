@@ -23,7 +23,7 @@ function enregistrer(chemin, etat) {
 }
 function contexte(cwd) { return JSON.parse(appeler(cwd, ['contexte-hooks'])); }
 
-// Équivalent Codex du hook `Read` de Claude Code (CADRAGE-rangement-specs.md,
+// Équivalent Codex du hook `Read` de Claude Code (spec/chantiers/spec-rangement.md,
 // B.9) : Codex n'a pas d'outil `Read` distinct, il lit via des commandes
 // shell — seule la forme la PLUS COURANTE d'une lecture entière (`cat`/`type`/
 // `Get-Content` sans plage) est couverte ; niveau 2, garde-fou, pas invariant.

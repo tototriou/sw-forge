@@ -116,7 +116,7 @@ sont regroupés par passive — les cinq éléments d'une même famille la parta
 qu'en coréen.
 `;
 
-// Bloc terminal ≤ 80 lignes visées (limite dure 100, CADRAGE-rangement-specs.md
+// Bloc terminal ≤ 80 lignes visées (limite dure 100, spec/chantiers/spec-rangement.md
 // B.4) : une catégorie dont les entrées dépasseraient ce budget à plat se
 // scinde en sous-titres H3 par tranche alphabétique — chaque entrée occupe 2
 // lignes (« - **cle** » + la liste de noms).

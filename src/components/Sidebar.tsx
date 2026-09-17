@@ -509,7 +509,18 @@ export default function Sidebar({
             <nav
               aria-label={`${panneau.section.titre} — sous-sections`}
               className="flex flex-col gap-0.5 p-1.5"
-              onClick={fermer}
+              onClick={() => {
+                fermer();
+                // ⚠️ **La barre SUIT le choix fait dans le panneau, tout de
+                // suite.** Elle ne le faisait qu'indirectement, via la remise
+                // à zéro sur changement de route — donc jamais quand la route
+                // NE change PAS : cliquer « Recommandations » depuis le
+                // panneau alors qu'on est déjà sur Recommandations laissait la
+                // barre au premier niveau, à marquer « Siège » pendant qu'on
+                // regardait une sous-section. Poser le niveau ici ne dépend
+                // plus de ce que la navigation fait ou non.
+                setOuverte(undefined);
+              }}
             >
               {/* ⚠️ Le MÊME rendu d'entrées que la barre — pas une liste à
                   part. Les sous-sections doivent se cliquer et se surligner

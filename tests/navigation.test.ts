@@ -99,5 +99,17 @@ export default function testNavigation() {
       !src.includes('const cleRoute = section?.titre ?? null;'),
       'l’ancienne clé, limitée à la section, a disparu'
     );
+
+    // ⚠️ Le cas que la clé de route ne peut PAS couvrir : cliquer dans le
+    // panneau la sous-section où l'on se trouve DÉJÀ. Aucune navigation, donc
+    // aucune remise à zéro — la barre restait au premier niveau à marquer
+    // « Siège » pendant qu'on regardait « Recommandations ». Le panneau doit
+    // donc poser le niveau lui-même, sans dépendre de la route.
+    const panneauNav = src.slice(src.indexOf('— sous-sections`}'));
+    const bloc = panneauNav.slice(0, panneauNav.indexOf('</nav>'));
+    ok(
+      bloc.includes('fermer();') && bloc.includes('setOuverte(undefined);'),
+      'le panneau de survol referme ET repose le niveau de barre, sans dépendre d’un changement de route'
+    );
   }
 }

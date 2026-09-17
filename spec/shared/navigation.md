@@ -260,6 +260,15 @@ La souris **traverse** la barre pour atteindre autre chose.
   passe par les 6 px qui les séparent : fermer au premier `mouseleave` rendait
   le panneau **inatteignable**, il se refermait pile pendant la traversée.
 
+⚠️ **Le clic dans le panneau POSE le niveau de la barre lui-même.** Il ne s'en
+remettait qu'à la remise à zéro par changement de route — donc à rien du tout
+quand la route ne change pas : choisir « Recommandations » dans le panneau alors
+qu'on **est déjà** sur Recommandations laissait la barre au premier niveau, à
+marquer « Siège » pendant qu'on regardait une de ses sous-sections. Le panneau
+repose donc `ouverte` sur `undefined` (« suivre la route ») au clic, sans
+dépendre de ce que la navigation fait ou non. **Gardé** par
+[tests/navigation.test.ts](tests/navigation.test.ts).
+
 Se referment aussi, **sans délai** : le clic sur une sous-section, la descente
 dans une section, le logo, `Échap`, et le **défilement** de la barre — le `top`
 du panneau est mesuré à l'entrée de la souris et ne suit pas une liste qui

@@ -126,6 +126,21 @@ l'appuyer.
 `#/siege/offense` doit montrer les sous-sections du Siège, même si on avait
 remonté ailleurs juste avant.
 
+⚠️⚠️ **« Changer de page » se mesure sur la DESTINATION, pas sur la section.**
+La clé de comparaison ne valait que le titre de section : passer d'
+`#/outils/optimizer` à `#/outils/speed-tuning` la laissait identique, donc
+**aucune remise à zéro**. C'est précisément le geste du [panneau de
+survol](#les-sous-sections-au-survol--un-panneau-à-côté-de-la-barre-bureau),
+qui ne s'ouvre QUE depuis le premier niveau : pour y être en se trouvant déjà
+dans une section, il faut avoir cliqué « retour ». Choisir une sous-section de
+la section où l'on était déjà ne faisait alors rien bouger, alors que la
+choisir dans une **autre** section faisait bien descendre la barre — deux
+comportements pour un seul geste. La clé est donc `titre de section | entrée
+active de la section | entrée active du premier niveau`, ce dernier terme
+distinguant deux pages sans sous-sections (Accueil, Bestiaire). Fonction pure
+`cleRouteBarre`, **gardée** par
+[tests/navigation.test.ts](tests/navigation.test.ts).
+
 ⚠️ **C'est le TITRE qui est mémorisé, jamais l'objet section.** L'objet y était
 stocké tel quel, donc **figé à l'instant du clic**, avec les `actif` calculés à
 ce moment-là. Or la remise à zéro ci-dessus ne se déclenche qu'au changement de

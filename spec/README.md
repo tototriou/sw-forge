@@ -387,3 +387,21 @@ Le cadre commun (nav, routing par hash, footer) vit dans
   qu'un import global les alimente tous. `importAccount(text)` orchestre les 3 ;
   `clearAllData()` efface tout.
 - Footer : rappel « données 100 % locales » ; crédit Com2uS / source SWARFARM.
+
+## Chantiers
+
+Un chantier (travail de plus d'une session, exécuté par lots dans des
+sessions fraîches) a un **document de cadrage** : Partie A relue par chaque
+lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
+Comment l'écrire et le faire vivre : skill `cadrage-chantier`. Il vit dans
+[chantiers/](chantiers/) — ou, si son contenu est privé, dans
+`spec/outils/optimizer/chantiers/` (notes livrées par `chantier livrer`).
+Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
+`node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
+jamais en entier.
+
+| Cadrage | Statut | Branche |
+| --- | --- | --- |
+| [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
+| [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
+| `spec/outils/optimizer/reliques.md` (privé, `sw-forge-docs`) — optimiseur de reliques ; à déplacer dans `spec/outils/optimizer/chantiers/` par le chantier lui-même | en cours | `forge/implementation-relique` |

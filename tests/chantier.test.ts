@@ -344,6 +344,162 @@ export function testChantierDeuxChantiers() {
   }
 }
 
+// `rafraichir` — le dispositif POUSSE (livrer → integrer), il ne TIRAIT jamais.
+// Un chantier ouvert avant qu'un autre intègre ses notes travaillait sur une
+// référence périmée sans le savoir. Ce qui est testé ici, c'est encore ce qui
+// PERD : des notes inédites recouvertes par la copie miroir, un conflit laissé
+// à moitié, un reçu invalidé par une simple remise à niveau.
+export function testChantierRafraichir() {
+  titre('Chantier — rafraichir tire le main documentaire vers un chantier ouvert');
+
+  try {
+    execFileSync('git', ['--version'], { stdio: 'ignore' });
+  } catch {
+    ignore('rafraichir tire le main documentaire', 'git introuvable');
+    return;
+  }
+
+  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-chantier-raf-'));
+  const codeA = join(bac, 'code-a');
+  const codeB = join(bac, 'code-b');
+  const docDir = join(bac, 'docs');
+
+  try {
+    mkdirSync(join(docDir, NOTES), { recursive: true });
+    writeFileSync(join(docDir, NOTES, 'note-a.md'), 'base a\n');
+    writeFileSync(join(docDir, NOTES, 'note-b.md'), 'base b\n');
+    writeFileSync(join(docDir, NOTES, 'obsolete.md'), 'a supprimer\n');
+    depotJetable(docDir);
+    commiter(docDir, 'notes initiales\n');
+    // `rafraichir` exige un distant JOIGNABLE : sans fetch, on ne sait pas si
+    // la référence locale est à jour.
+    const distantDoc = join(bac, 'docs-distant.git');
+    execFileSync('git', ['init', '--bare', '-b', 'main', distantDoc], { encoding: 'utf8' });
+    git(docDir, 'remote', 'add', 'origin', distantDoc);
+    git(docDir, 'push', '-u', 'origin', 'main');
+
+    mkdirSync(join(codeA, 'scripts', 'lib'), { recursive: true });
+    cpSync(OUTIL, join(codeA, 'scripts', 'chantier.mjs'));
+    cpSync(join(RACINE, 'scripts', 'hooks-codex.mjs'), join(codeA, 'scripts', 'hooks-codex.mjs'));
+    cpSync(join(RACINE, 'scripts', 'spec-lint.mjs'), join(codeA, 'scripts', 'spec-lint.mjs'));
+    cpSync(join(RACINE, 'scripts', 'lib', 'spec-markdown.mjs'), join(codeA, 'scripts', 'lib', 'spec-markdown.mjs'));
+    writeFileSync(join(codeA, '.gitignore'), `${NOTES}/\n`);
+    depotJetable(codeA);
+    commiter(codeA, 'code initial\n');
+    git(codeA, 'checkout', '-b', 'forge/a');
+    git(codeA, 'worktree', 'add', '-b', 'forge/b', codeB, 'main');
+
+    let r = chantier(codeA, 'ouvrir', '--chantier', 'a', '--depot-doc', docDir);
+    ok(r.code === 0, 'ouvrir A');
+    r = chantier(codeB, 'ouvrir', '--chantier', 'b');
+    ok(r.code === 0, 'ouvrir B sur la même base');
+    const registreB = join(codeA, '.git', 'forge', 'etat', 'chantiers', 'b.json');
+    const wtB = (JSON.parse(readFileSync(registreB, 'utf8')) as { worktreeDoc: string }).worktreeDoc;
+
+    /* --------------------------------------------------- à jour : no-op */
+    // Un chantier jamais livré peut se rafraîchir : la commande ne dépend pas
+    // d'un reçu, seulement de l'égalité entre notes locales et notes reportées.
+    r = chantier(codeB, 'rafraichir', '--chantier', 'b');
+    ok(r.code === 0 && /Déjà à jour/.test(r.sortie), 'à jour : rafraichir le dit, sans reçu ni commit');
+    const teteBAvant = git(wtB, 'rev-parse', 'HEAD');
+
+    /* ----------------------------- notes inédites : refus, rien écrasé */
+    writeFileSync(join(codeB, NOTES, 'note-b.md'), 'travail de B non livre\n');
+    const empreinteInedite = lire(join(codeB, NOTES, 'note-b.md'));
+    r = chantier(codeB, 'rafraichir', '--chantier', 'b');
+    ok(r.code !== 0 && /[Ll]ivrer d'abord/.test(r.sortie), 'notes non livrées : refus « livrer d’abord »');
+    ok(lire(join(codeB, NOTES, 'note-b.md')) === empreinteInedite, 'et rien n’a été écrasé');
+    ok(git(wtB, 'rev-parse', 'HEAD') === teteBAvant, 'ni commité côté documentaire');
+    writeFileSync(join(codeB, 'src-b.txt'), 'b\n');
+    commiter(codeB, 'travail B\n');
+    r = chantier(codeB, 'livrer', '--chantier', 'b');
+    ok(r.code === 0, 'B livre son travail');
+
+    /* --------------------- main avance (A intègre) : merge + miroir chez B */
+    writeFileSync(join(codeA, NOTES, 'note-a.md'), 'travail de A\n');
+    writeFileSync(join(codeA, NOTES, 'nouvelle-a.md'), 'ajout de A\n');
+    rmSync(join(codeA, NOTES, 'obsolete.md'));
+    writeFileSync(join(codeA, 'src-a.txt'), 'a\n');
+    commiter(codeA, 'travail A\n');
+    r = chantier(codeA, 'livrer', '--chantier', 'a');
+    ok(r.code === 0, 'A livre');
+    r = chantier(codeA, 'integrer', '--chantier', 'a');
+    ok(r.code === 0, 'A intègre : le main documentaire avance');
+    const mainDoc = git(docDir, 'rev-parse', 'HEAD');
+
+    ok(!existsSync(join(codeB, NOTES, 'nouvelle-a.md')), 'B ne voit pas encore le travail de A');
+    const teteBAvantRaf = git(wtB, 'rev-parse', 'HEAD');
+    r = chantier(codeB, 'rafraichir', '--chantier', 'b');
+    ok(r.code === 0, 'rafraichir réussit quand main a avancé');
+    ok(/ajoutés\s+: 1/.test(r.sortie) && /modifiés\s+: 1/.test(r.sortie) && /supprimés\s+: 1/.test(r.sortie),
+      'et rend compte : 1 ajouté, 1 modifié, 1 supprimé');
+    ok(lire(join(codeB, NOTES, 'nouvelle-a.md')) === 'ajout de A\n', 'le fichier ajouté par A est arrivé chez B');
+    ok(lire(join(codeB, NOTES, 'note-a.md')) === 'travail de A\n', 'la modification de A est arrivée');
+    ok(!existsSync(join(codeB, NOTES, 'obsolete.md')), 'le fichier supprimé dans main a disparu du worktree de code');
+    ok(lire(join(codeB, NOTES, 'note-b.md')) === 'travail de B non livre\n', 'le travail livré de B est conservé');
+    const teteBApres = git(wtB, 'rev-parse', 'HEAD');
+    ok(teteBApres !== teteBAvantRaf && /Rafraîchissement du chantier b depuis main/.test(git(wtB, 'log', '-1', '--format=%s')),
+      'un commit de fusion nommé porte le rafraîchissement');
+    ok(git(wtB, 'merge-base', '--is-ancestor', mainDoc, 'HEAD') === '', 'la branche de B contient main');
+    const registre = JSON.parse(readFileSync(registreB, 'utf8')) as {
+      revisionDocAttendue: string;
+      dernierRafraichissement: { empreinteAvant: string; empreinteApres: string };
+    };
+    ok(registre.revisionDocAttendue === teteBApres, 'la révision attendue est le nouveau HEAD documentaire');
+    ok(registre.dernierRafraichissement.empreinteAvant !== registre.dernierRafraichissement.empreinteApres,
+      'le registre porte les empreintes avant/après');
+    ok(execFileSync('git', ['-C', wtB, 'status', '--porcelain'], { encoding: 'utf8' }) === '',
+      'le worktree documentaire est propre après le rafraîchissement');
+
+    /* ------------------- verifier passe : la base a avancé, pas le travail */
+    r = chantier(codeB, 'verifier', '--chantier', 'b');
+    ok(r.code === 0, 'verifier passe après un rafraichir sans nouveau livrer');
+    ok(/base rafraîchie depuis main/.test(r.sortie), 'et dit que la base a avancé');
+    // Une modification APRÈS le rafraîchissement redevient une note non livrée.
+    writeFileSync(join(codeB, NOTES, 'note-b.md'), 'encore du travail\n');
+    r = chantier(codeB, 'verifier', '--chantier', 'b');
+    ok(r.code !== 0, 'une modification après le rafraîchissement périme bien le reçu');
+    r = chantier(codeB, 'livrer', '--chantier', 'b');
+    ok(r.code === 0, 'livrer repart de la base rafraîchie');
+    r = chantier(codeB, 'verifier', '--chantier', 'b');
+    ok(r.code === 0, 'et le nouveau reçu est valide');
+    r = chantier(codeB, 'rafraichir', '--chantier', 'b');
+    ok(r.code === 0 && /Déjà à jour/.test(r.sortie), 'rejouer rafraichir sans nouveauté est un no-op');
+
+    /* -------------------------------------------- conflit : refus propre */
+    // B intègre son travail sur `note-b.md` ; A, qui ne l'a pas, modifie le
+    // MÊME passage : la fusion de main dans la branche de A ne peut pas se
+    // faire seule.
+    r = chantier(codeB, 'integrer', '--chantier', 'b');
+    ok(r.code === 0, 'B intègre après s’être rafraîchi : aucun conflit avec A');
+    writeFileSync(join(codeA, NOTES, 'note-b.md'), 'travail de A sur le passage de B\n');
+    writeFileSync(join(codeA, 'src-a.txt'), 'a2\n');
+    commiter(codeA, 'travail A 2\n');
+    r = chantier(codeA, 'rafraichir', '--chantier', 'a');
+    ok(r.code !== 0 && /[Ll]ivrer d'abord/.test(r.sortie), 'A a des notes inédites : rafraichir refuse');
+    r = chantier(codeA, 'livrer', '--chantier', 'a');
+    ok(r.code === 0, 'A livre');
+    const registreA = join(codeA, '.git', 'forge', 'etat', 'chantiers', 'a.json');
+    const wtA = (JSON.parse(readFileSync(registreA, 'utf8')) as { worktreeDoc: string }).worktreeDoc;
+    const teteAAvantConflit = git(wtA, 'rev-parse', 'HEAD');
+    const arbreAAvantConflit = git(wtA, 'rev-parse', 'HEAD^{tree}');
+    r = chantier(codeA, 'rafraichir', '--chantier', 'a');
+    ok(r.code !== 0 && /CONFLIT/.test(r.sortie) && /note-b\.md/.test(r.sortie),
+      'A ne peut pas se rafraîchir : conflit nommé sur note-b.md');
+    ok(/worktree DOCUMENTAIRE/.test(r.sortie), 'et la marche à suivre est donnée');
+    ok(git(wtA, 'rev-parse', 'HEAD') === teteAAvantConflit, 'HEAD documentaire de A inchangé');
+    ok(git(wtA, 'status', '--porcelain') === '', 'le worktree documentaire de A est revenu propre');
+    ok(!existsSync(join(git(wtA, 'rev-parse', '--git-dir'), 'MERGE_HEAD')), 'aucune fusion laissée en cours');
+    git(wtA, 'add', '-A');
+    ok(git(wtA, 'write-tree') === arbreAAvantConflit, 'l’arbre documentaire est celui d’avant');
+    ok(lire(join(codeA, NOTES, 'note-b.md')) === 'travail de A sur le passage de B\n', 'les notes locales de A sont intactes');
+    r = chantier(codeA, 'verifier', '--chantier', 'a');
+    ok(r.code === 0, 'le reçu de A est toujours valide après le refus');
+  } finally {
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
 // `livrer` applique spec-lint (même config, même périmètre que `pre-commit`,
 // B.9) aux notes privées AVANT de les reporter : un bloc trop long ne doit
 // jamais atteindre la branche documentaire.

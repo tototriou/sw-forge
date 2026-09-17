@@ -227,6 +227,7 @@ qu'un autre agent build ne veut rien dire. Incident déjà vécu.
 | `livrer` | reporter, vérifier, committer les notes, écrire le reçu |
 | `verifier` | contrôler une contribution **explicitement désignée** et ses révisions |
 | `integrer` | avancer le `main` **documentaire** — indépendamment du sort du code |
+| `rafraichir` | **tirer** le `main` documentaire dans un chantier ouvert — l'inverse d'`integrer` |
 | `installer` | installer une version précise de l'outil et des hooks |
 | `fermer` | vérifier conservation, sauvegarde et état local avant nettoyage |
 
@@ -324,6 +325,69 @@ conservation du code, qui est un autre sujet.
 > ⚠️ `git merge` n'accepte **pas** `-F -` — contrairement à `commit`, il ne lit
 > pas l'entrée standard (« could not read file '-' »). D'où un fichier de
 > message, et non un `-m` que ce dépôt proscrit.
+
+### `rafraichir` — les notes se tirent aussi
+
+⚠️ **Défaut relevé le 2026-09-17** : le dispositif **poussait** (`livrer` →
+`integrer`), il ne **tirait** jamais. Un dossier de notes n'était copié qu'à
+`ouvrir`, et seulement s'il était absent. Un chantier ouvert *avant* qu'un
+autre intègre travaillait donc sur une référence périmée sans le savoir —
+constaté sur le chantier relique : 42 fichiers de notes dans son worktree
+contre 72 dans le `main` documentaire, et 41 dans l'installation `sw-forge`,
+remise à niveau à la main.
+
+`rafraichir --chantier <nom>` est l'inverse d'`integrer` : il fusionne le
+`main` documentaire **dans la branche du chantier** (commit de fusion
+`Rafraîchissement du chantier <nom> depuis main <hash court>`, jamais une
+avance rapide — le rafraîchissement doit se voir dans l'historique), puis
+recopie en miroir les notes du worktree documentaire vers le worktree de code
+(ajouts, modifications **et suppressions**). Il enregistre la nouvelle
+révision documentaire attendue et rend compte : ajoutés / modifiés /
+supprimés, hash documentaire avant → après.
+
+**Refus, chacun avec la marche à suivre :**
+
+- chantier non enregistré, mauvais worktree ou mauvaise branche — mêmes
+  contrôles d'identité que les autres commandes ;
+- worktree documentaire sale ou avancé indépendamment — mêmes contrôles que
+  `livrer` ;
+- **notes locales différentes des notes reportées ⇒ « livrer d'abord »**. La
+  copie miroir finale supprime ce que la source n'a pas : sur des notes non
+  livrées, ce serait une perte irréversible. Rien d'inédit n'est jamais
+  écrasé — c'est le refus qui fait la valeur de la commande ;
+- `main` documentaire local en retard sur `origin/main` après `fetch` ⇒ avancé
+  en avance rapide seule ; s'il a **divergé**, refus. Distant injoignable ⇒
+  refus : sans `fetch`, on ne sait pas si la référence est à jour, et
+  rafraîchir depuis une référence en retard donnerait une base périmée en
+  croyant la remettre à niveau ;
+- **conflit** ⇒ fusion annulée, liste des fichiers en conflit, branche et
+  notes locales intactes. La résolution se fait **dans le worktree
+  documentaire**, jamais dans le code : `git merge main`, résoudre,
+  committer, puis relancer `rafraichir` pour la copie et le registre.
+
+> ⚠️ `merge --abort` rend un arbre identique **pour git**, pas octet pour
+> octet : sous Windows, les fichiers que la fusion a touchés reviennent en
+> CRLF, et `git status` déclare modifié un fichier dont la seule taille a
+> changé, sans comparer son contenu. L'outil remet donc les notes du code
+> (l'état exact d'avant, par la précondition) puis `add` le dossier, qui
+> rehache et constate le même blob. Vu au premier test du cas conflit.
+
+**Déjà à jour** (le `main` est ancêtre de la branche) : la commande le dit et
+ne committe rien — rejouable sans effet de bord.
+
+**Ce que `verifier` compare après un rafraîchissement.** Le reçu précédent
+reste valide pour le code qu'il désigne — la base a avancé, pas le travail du
+chantier. Le contrôle « les notes actuelles sont celles du reçu » accepte
+donc aussi « les notes actuelles sont exactement celles laissées par le
+dernier rafraîchissement, et ce rafraîchissement prolonge bien ce reçu-là »
+(empreinte du reçu enregistrée dans le registre au moment du
+rafraîchissement). Toute autre différence reste une modification non livrée,
+et le détail affiché dit que la base a avancé. Un `livrer` ultérieur part de
+cette base et actualise le reçu.
+
+**Ce que `rafraichir` ne fait pas** : pas de lint (c'est `livrer`), pas de
+modification du code, pas de push. Et rien ne le déclenche : c'est à l'agent
+de le lancer — voir § 8.
 
 ### `fermer` — « livré » ne veut pas dire « intégré »
 
@@ -705,6 +769,10 @@ vraie session Codex nécessite l'approbation utilisateur dans `/hooks`.
    découpe et l'intégration protègent, et elles sont humaines.
 5. **L'outil et les hooks existent**, mais les formes d'intégration indirectes
    et la coordination des benchmarks restent hors des contrôles automatiques.
+6. **Rien ne signale à un chantier ouvert que le `main` documentaire a
+   avancé.** `rafraichir` existe, mais il se lance à la main : un agent qui
+   ne le fait pas travaille sur une base périmée jusqu'à son `integrer`, où
+   la fusion — ou son conflit — le lui apprend tard.
 
 ## 9. Journal des arbitrages
 

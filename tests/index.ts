@@ -26,7 +26,7 @@ import testReco, {
   testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
-import testChantier, { testChantierDeuxChantiers, testHooksCodex, testChantierLintNotes } from './chantier.test';
+import testChantier, { testChantierDeuxChantiers, testHooksCodex, testChantierLintNotes, testChantierRafraichir } from './chantier.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
@@ -100,6 +100,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testChantierDeuxChantiers', testChantierDeuxChantiers],
   ['testHooksCodex', testHooksCodex],
   ['testChantierLintNotes', testChantierLintNotes],
+  ['testChantierRafraichir', testChantierRafraichir],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],

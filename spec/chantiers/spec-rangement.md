@@ -1012,4 +1012,5 @@ suivi qu'A.7.
 | C2 `chantier rafraichir` — les notes se tirent aussi (fusion `main` documentaire → branche du chantier, miroir vers le worktree de code, refus si notes inédites) | J (effort moyen) | à faire | |
 | C3 fusion sur `main` : merge d'`origin/main`, fix `tsc` des fixtures speed-tune (PR #9), entrée unique 1.13.0, `package.json`, PR, tag, release | — | à faire | |
 | C4 après fusion : `chantier fermer` ×3, avance de `forge/implementation-relique` sur `main` + `rafraichir`, hook `Read` câblé, `chantier installer` | — | à faire | |
+| C6 le lint connaît les cadrages : nature `CHANTIER`, `chantiers/` exempté du seul plafond fichier, `spec/chantiers/**` dans le périmètre, sous-titres sur les 2 blocs > 100 de ce fichier, skill § F corrigé (retour de C1 : un cadrage privé aurait dû se dire DÉCISION et tenir en 500 lignes) | M (Sonnet, effort moyen) | à faire — avant C2 | |
 | C5 chantier relique : réécriture de `plan-implementation-relique.md` en cadrage (skill `cadrage-chantier`), dans `spec/outils/optimizer/chantiers/` | J (effort élevé) | à faire | |

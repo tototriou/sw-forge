@@ -1,6 +1,6 @@
 // Étape 1/2 de la comparaison de VITESSE « rétention par tranches » vs
 // l'ancien mécanisme à score unique — voir spec/outils/optimizer/
-// historique-dimensionnement.md, « Suite — vitesse de convergence : tranches
+// archive/historique/historique-dimensionnement.md, « Suite — vitesse de convergence : tranches
 // vs score unique ». Génère N scénarios synthétiques et calcule l'optimum
 // EXACT de chacun (référence indépendante de la rétention — un fait sur le
 // pool/l'exigence, pas sur le mécanisme testé), écrit le tout dans un JSON
@@ -15,55 +15,56 @@
 // « k plus grandes sommes » pour l'optimum exact sans produit cartésien
 // complet (a fait OOM en premier jet sur cette même piste).
 //
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ SOUS CONDITION — ce script est ABSORBABLE, mais
+// PAS sur tous ses scénarios** (§5.5 bis et §5.8 mesure 2, 2026-09-09). La
+// condition est le **COÛT DU SET DEMANDÉ**, donc le nombre d'emplacements
+// laissés libres :
+//   · set de **4 pièces** (2 libres — la forme courante en production) : un
+//     run du harnais à `--bucketCap=9007199254740991` revient **COMPLET sur
+//     23 014 530 paires en 11,8 s**, et son top-1 par `sortCandidates` EST
+//     l'optimum exact. ⚠️ Sa garantie est même **PLUS FORTE que celle de ce
+//     script** : `exactOptimum` plus bas s'arrête à `HEAP_BUDGET` = 20 000
+//     paires examinées et REFUSE au-delà, quand le harnais les examine
+//     TOUTES — il ne peut donc pas manquer un optimum que le tri par
+//     `relevanceScore` aurait relégué au 20 001ᵉ rang ;
+//   · set de **2 pièces** (4 libres) : le processus Node **PLANTE**.
+//
+// ⚠️ **Et ce script n'est pas exempt de reproche sur ce point** : son
+// générateur (plus bas) tire DEUX sets AU HASARD dans `SETS_SANS_JOKER`. Il
+// produit donc des combos à 2 pièces — ceux qui font planter le remplacement —
+// et des combos à **8 pièces pour 6 emplacements** (`violent`+`swift`),
+// structurellement impossibles, qui partent en `skippedInfeasible`.
+//
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
+// des extensions). Il ne compare rien : il **PRODUIT une VÉRITÉ TERRAIN** —
+// l'optimum EXACT de chaque scénario, calculé indépendamment du mécanisme de
+// rétention qu'on cherche à évaluer. Le harnais ne calcule aucun optimum
+// exact : il observe le pipeline, il ne le contourne pas. Il n'y a donc rien
+// à périmer ici, exactement comme `pair-bound-diag` au §5.3 (seul porteur
+// d'`estimatePairBound`, dont l'intégration a été ÉCARTÉE).
+// ⚠️ Et c'est un **précédent à reprendre**, pas seulement un script à garder :
+// son `exactOptimum` REFUSE d'écrire un résultat dès qu'UN SEUL couple de
+// compartiments a épuisé `HEAP_BUDGET` (`'budget-exceeded'`, plus bas) — un
+// oracle qui s'abstient plutôt que de livrer un optimum sous-optimal avec
+// l'autorité d'une référence. C'est la même culture que `NON_OBSERVABLE`
+// (§5.1) et `NON_COMPARABLE` (11c), trouvée ici avant eux.
+// ⚠️ Ne pas le supprimer avec `optimum-speed-diag` : ils forment une chaîne
+// en deux étapes, mais leurs raisons de survivre sont DIFFÉRENTES.
+//
 // Usage : optimum-speed-targets.ts <sortie.json> [scenarios=60] [perSlot=35] [seed=7000]
 
 import { writeFileSync } from 'fs';
-import { BaseStats, EffectLine, RuneDetail } from '../src/types';
+import { BaseStats, RuneDetail } from '../src/types';
 import { StatKey, activeSets, runeEfficiency } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import { missingSets } from '../src/lib/recoMatch';
 import { BuildRequirement, SearchParams, SLOT_FILTER_PRESETS, prepareSearch, buildBuckets, Bucket, HalfCombo } from '../src/lib/runeBuildOptim';
 import { drain } from './lib/drain';
+// Pool synthétique PARTAGÉ — voir scripts/lib/randomPool.ts.
+import { SETS_SANS_JOKER, mulberry32, randomPool } from './lib/randomPool';
 
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const SET_KEYS = ['violent', 'swift', 'will', 'shield', 'fight'];
-const STAT_CODES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
 const STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 
-function randomRune(id: number, slot: number, rng: () => number): RuneDetail {
-  const set = SET_KEYS[Math.floor(rng() * SET_KEYS.length)];
-  const mainCode = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-  const used = new Set([mainCode]);
-  const subs: EffectLine[] = [];
-  for (let i = 0; i < 4; i++) {
-    let code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-    let tries = 0;
-    while (used.has(code) && tries < 10) {
-      code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-      tries++;
-    }
-    used.add(code);
-    subs.push({ code, value: 5 + Math.floor(rng() * 40) });
-  }
-  return { id, slot, set, rank: 6, rarity: 5, level: 15, main: { code: mainCode, value: 10 + Math.floor(rng() * 100) }, subs };
-}
-
-function randomPool(rng: () => number, perSlot: number): RuneDetail[] {
-  const out: RuneDetail[] = [];
-  let id = 1;
-  for (let slot = 1; slot <= 6; slot++) for (let i = 0; i < perSlot; i++) out.push(randomRune(id++, slot, rng));
-  return out;
-}
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
@@ -206,7 +207,7 @@ console.log(`Calcul des cibles exactes — ${SCENARIOS} scénario(s), ${PER_SLOT
 
 for (let s = 0; s < SCENARIOS; s++) {
   const rng = mulberry32(SEED_BASE + s);
-  const pool = randomPool(rng, PER_SLOT);
+  const pool = randomPool(rng, PER_SLOT, SETS_SANS_JOKER);
 
   const nMin = 2 + Math.floor(rng() * 3);
   const shuffledStats = [...STAT_KEYS].sort(() => rng() - 0.5).slice(0, nMin);
@@ -222,7 +223,7 @@ for (let s = 0; s < SCENARIOS; s++) {
     else minStats[k] = 55 + Math.floor(rng() * 30);
   }
   const hasSets = rng() < 0.6;
-  const sets = hasSets ? [SET_KEYS[Math.floor(rng() * SET_KEYS.length)], SET_KEYS[Math.floor(rng() * SET_KEYS.length)]] : [];
+  const sets = hasSets ? [SETS_SANS_JOKER[Math.floor(rng() * SETS_SANS_JOKER.length)], SETS_SANS_JOKER[Math.floor(rng() * SETS_SANS_JOKER.length)]] : [];
   const requirement: BuildRequirement = { sets, minStats };
 
   const prepared = prepareSearch({ base: BASE, artifacts: [], pool, requirement, metric: 'eff', slotFilterCap: SLOT_FILTER_PRESETS[0].cap });

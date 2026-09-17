@@ -36,6 +36,7 @@ import {
   type ChoixPrincipale,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
+import { evaluerPourRegime, regimeArtefacts, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import {
   ARTIFACT_MAIN,
   CAPPED_STATS,
@@ -55,6 +56,8 @@ import {
   StatFeasibility,
   rankBlockingConditions,
   BlockingConditionsDiagnosis,
+  NearMiss,
+  StatShortfall,
   statTotal,
   objectiveScore,
   sortCandidates,
@@ -79,6 +82,7 @@ import {
   monsterBonusDegatsSelonDef,
   monsterBonusDegatsSelonVit,
   monsterBonusSiAtqSeuil,
+  monsterSeuilsPassifEivor,
   monsterBonusDegatsStackable,
   monsterBonusEcartDef,
   monsterBonusFixeCiblePvMax,
@@ -88,7 +92,10 @@ import {
   monsterBonusSacrifice,
   monsterBonusStatFixe,
   monsterCritRateSelonVit,
+  monsterCritInterdit,
   monsterCritSiPlusRapide,
+  monsterConditionsCombat,
+  monsterCombatStatProfiles,
   monsterDamageSkills,
   monsterModificateursVit,
   monsterOffensivePassives,
@@ -121,7 +128,7 @@ import {
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
 import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
-import { useRuneMetric } from '../../hooks/useRuneMetric';
+import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import IconeInterdite from '../IconeInterdite';
@@ -214,8 +221,9 @@ const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 // attendre le rendu suivant (`selectedId`/`speciesMonster` n'auraient pas
 // encore la nouvelle valeur dans le même appel). Sert deux choses : activer/
 // désactiver chaque puce (une espèce jamais possédée dans une source
-// précise désactive SA puce, voir spec/outils/optimizer/historique-import-
-// monstres-a-optimiser.md, Questions 2-3) et peupler la désambiguïsation
+// précise désactive SA puce, voir
+// spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
+// Questions 2-3) et peupler la désambiguïsation
 // d'exemplaire (zone D, plusieurs candidats dans la même source — ex. 2
 // équipes de siège).
 // ⚠️ Box : `item.gear` truthy suffit (PAS `item.gear.runes.length>0`,
@@ -304,14 +312,13 @@ type EtatValidation = 'non' | 'oui' | 'artefacts';
  * ⚠️ Le régime sert AUSSI de clé de cache (`signatureArtefacts`) : deux
  * critères ne la partagent que si la paire optimale est démontrablement la
  * même. Trop regrouper afficherait une paire périmée.
+ *
+ * `RegimeArtefacts`/`regimeArtefacts`/`evaluerPourRegime` vivent dans
+ * `artifactEvaluation.ts` — UNE seule définition, partagée avec le CLI
+ * (`scripts/lib/recipeToSearchParams.ts`), pour que les deux ne puissent
+ * plus diverger silencieusement (spec/outils/optimizer/
+ * decisions/cadrage-score-artefacts-ehp.md).
  */
-type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
-
-function regimeArtefacts(critere: OptimizerSortKey): RegimeArtefacts {
-  if (critere === 'degats_reels' || critere === 'ehp') return critere;
-  if (critere === 'hp' || critere === 'atk' || critere === 'def') return critere;
-  return 'aucun';
-}
 
 function memesIds(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
@@ -433,7 +440,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // Tous les monstres du BESTIAIRE, indexés par id — la recherche du
   // monstre à optimiser résout désormais une ESPÈCE dans TOUT le bestiaire
   // (monstre possédé ou non), pas seulement dans les 4 sources du compte
-  // (voir spec/outils/optimizer/historique-import-monstres-a-optimiser.md,
+  // (voir spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
   // Question 1). Indexé par `String(monster.id)` — même clé que
   // `RtaEntry.monsterId`/`SiegeSlot.monsterId` (voir applyAccount.ts).
   // Recalculé seulement si la liste de monstres change, pas à chaque rendu.
@@ -537,6 +544,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     ].filter(Boolean);
     return `État du monstre : ${bouts.length > 0 ? bouts.join(' · ') : 'aucun buff, aucun lead'}`;
   }, [damageSetup]);
+  const critInterdit = useMemo(() => monsterCritInterdit(skillDetail), [skillDetail]);
   /**
    * Ce que l'objectif « Dégâts réels » suppose, en une ligne — le résumé qui
    * remplace la carte dans le flux, et la rouvre au clic.
@@ -561,15 +569,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // n'existe même pas dans la fenêtre qu'elle résume. Signalé à l'usage.
     const champs = champsDuCombat(resolvedSkill);
     if (champs.defEnnemie) bouts.push(`DEF ${damageSetup.enemyDef.toLocaleString('fr-FR')}`);
-    if (champs.crit) {
+    if (champs.crit && !critInterdit) {
       bouts.push(CRIT_MODE_LABELS.find((c) => c.key === damageSetup.critMode)?.label ?? damageSetup.critMode);
     }
+    if (critInterdit) bouts.push('critique impossible');
     // ⚠️ **Plus de buffs ici.** Cette ligne résume la FENÊTRE qu'elle rouvre,
     // et les buffs n'y sont plus — ils ont leurs propres contrôles, toujours
     // visibles, dans « État de mon monstre ». Les répéter en texte alors qu'ils
     // sont réglables trois cartes plus haut ne fait que du bruit.
     return bouts.join(' · ');
-  }, [resolvedSkill, damageSetup]);
+  }, [resolvedSkill, damageSetup, critInterdit]);
   // Passifs offensifs de CE monstre (Feng Yan, Sia, Roid… — voir
   // spec/outils/degats-reels.md) — indépendants du sort choisi, calculés dès
   // qu'une fiche est chargée, comme `damageSkills`.
@@ -604,6 +613,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const bonusSacrifice = useMemo(() => monsterBonusSacrifice(skillDetail), [skillDetail]);
   const bonusParEffetCibleMonstre = useMemo(() => monsterBonusParEffetCible(skillDetail), [skillDetail]);
   const bonusParEffetPropre = useMemo(() => monsterBonusParEffetPropre(skillDetail), [skillDetail]);
+  const conditionsCombatMonstre = useMemo(() => monsterConditionsCombat(skillDetail), [skillDetail]);
+  const combatStats = useMemo(() => monsterCombatStatProfiles(skillDetail), [skillDetail]);
   const monsterWide = useMemo(
     () => ({
       critRateSelonVit: critRateSelonVit ?? undefined,
@@ -614,6 +625,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       bonusSacrifice: bonusSacrifice ?? undefined,
       bonusParEffetCible: bonusParEffetCibleMonstre ?? undefined,
       bonusParEffetPropre: bonusParEffetPropre ?? undefined,
+      conditionsCombat: conditionsCombatMonstre,
+      combatStats,
+      critInterdit,
     }),
     [
       critRateSelonVit,
@@ -624,6 +638,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       bonusSacrifice,
       bonusParEffetCibleMonstre,
       bonusParEffetPropre,
+      conditionsCombatMonstre,
+      combatStats,
+      critInterdit,
     ]
   );
   // Bonus conditionnel à bouton (Jin Kazama, Cyborg, Brownie Magician,
@@ -643,6 +660,44 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // (entièrement déduit, aucun bouton), mais un SEUIL d'ATQ plutôt qu'un
   // écart de VIT (voir `monsterBonusSiAtqSeuil`).
   const bonusSiAtqSeuil = useMemo(() => monsterBonusSiAtqSeuil(skillDetail), [skillDetail]);
+  const seuilsPassifEivor = useMemo(() => monsterSeuilsPassifEivor(skillDetail), [skillDetail]);
+  // Contexte commun aux TROIS évaluations de dégâts d'artéfacts de l'écran.
+  // Il est volontairement typé depuis `RealDamageContext` : si le moteur gagne
+  // un modificateur monstre-wide, ces chemins ne peuvent plus l'oublier sans
+  // faire échouer `tsc`.
+  const contexteDegatsArtefacts = useMemo<Omit<RealDamageContext, 'artefacts'> | null>(
+    () =>
+      resolvedSkill
+        ? {
+            profile: resolvedSkill,
+            setup: damageSetup,
+            element: speciesMonster?.element ?? null,
+            passifs: offensivePassives,
+            critSiPlusRapide,
+            bonusDegatsSelonVit,
+            bonusDegatsStack,
+            monsterWide,
+            bonusDegatsConditionnel,
+            bonusDegatsSelonCr,
+            bonusDegatsSelonDef,
+            bonusSiAtqSeuil,
+          }
+        : null,
+    [
+      resolvedSkill,
+      damageSetup,
+      speciesMonster?.element,
+      offensivePassives,
+      critSiPlusRapide,
+      bonusDegatsSelonVit,
+      bonusDegatsStack,
+      monsterWide,
+      bonusDegatsConditionnel,
+      bonusDegatsSelonCr,
+      bonusDegatsSelonDef,
+      bonusSiAtqSeuil,
+    ]
+  );
   // Affichage seul (icône/nom/description) des deux modificateurs VIT
   // ci-dessus, pour « Passifs offensifs » — voir `DamageSetupCard.tsx`.
   const modificateursVit = useMemo(() => monsterModificateursVit(skillDetail), [skillDetail]);
@@ -663,7 +718,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             bonusFixeMaxHpPropre != null || bonusSacrifice != null,
             bonusDegatsSelonCr,
             bonusDegatsSelonDef,
-            bonusSiAtqSeuil
+            bonusSiAtqSeuil,
+            monsterWide
           )
         : undefined,
     [
@@ -680,6 +736,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       bonusDegatsSelonCr,
       bonusDegatsSelonDef,
       bonusSiAtqSeuil,
+      monsterWide,
     ]
   );
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
@@ -798,21 +855,22 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // commentaire dans useOptimizerState.ts), donc hors recette exportée/
   // scripts CLI pour l'instant (limite connue, voir spec).
   const [gearSource, setGearSource] = useState<ExclusionSource>('box');
-  // ⚠️ Choix EXPLICITE de l'utilisateur (via `pickSource`, plus bas), sauf
-  // dans un seul cas NON ambigu : un seul exemplaire existe dans la source
-  // active pour cette espèce — jamais un « meilleur » deviné en silence dès
-  // qu'il y a un choix réel à faire (voir Question 1 du cadrage : le retour
-  // explicite qui a fait supprimer l'ancien `ownGearForSource` à la 5ᵉ
-  // révision reste valable ici). Initialisé PARESSEUSEMENT pour la
-  // continuité au montage (retour sur l'onglet Optimizer après un
-  // aller-retour ailleurs — cet état LOCAL ne survit pas au démontage) :
-  // résout la même règle pour l'espèce déjà persistée (`selectedId`).
+  // ⚠️ Choix EXPLICITE de l'utilisateur (via `pickSource`, plus bas) pour
+  // changer d'exemplaire ensuite ; l'exemplaire affiché au départ est le
+  // premier de la box (`boxCandidates[0]`, PAS un « meilleur » deviné —
+  // voir Question 1 du cadrage : le retour explicite qui a fait supprimer
+  // l'ancien `ownGearForSource` à la 5ᵉ révision reste valable ici), même
+  // règle que `pickSpecies` plus bas — repli sur `unowned` seulement si la
+  // box n'en compte AUCUN. Initialisé PARESSEUSEMENT pour la continuité au
+  // montage (retour sur l'onglet Optimizer après un aller-retour ailleurs —
+  // cet état LOCAL ne survit pas au démontage) : résout la même règle pour
+  // l'espèce déjà persistée (`selectedId`).
   const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(() => {
     if (!selectedId) return null;
     const species = monsterById.get(selectedId);
     if (!species) return null;
     const boxCandidates = speciesCandidatesBySource(species.com2usId, box, exclusionData).box;
-    return boxCandidates.length === 1 ? boxCandidates[0].selector : unownedSelectorIfNoneOwned(species, box, exclusionData);
+    return boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(species, box, exclusionData);
   });
   // Zone D — désambiguïsation d'exemplaire (plusieurs candidats dans la
   // source active pour l'espèce choisie, ex. 2 équipes de siège) : un
@@ -1218,30 +1276,33 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // plus dures à franchir sans que rien ne le dise.
     if (!selected) return null;
     const espece = selected.monster;
-    // ⚠️ Le score de la paire dépend de l'OBJECTIF. Hors « Dégâts réels », la
-    // somme des principales suffit et reste EXACTE : `computeStats` ne lit que
-    // la principale d'un artéfact, jamais ses sous-propriétés — deux pièces de
-    // même principale ne se distinguent donc que par sa valeur, et une valeur
-    // plus haute n'est jamais pire pour l'efficience, la VIT ou les PV
-    // effectifs. Dérouler un modèle de dégâts ici noterait sur un critère qui
-    // n'est pas celui de la recherche.
+    // ⚠️ Le score de la paire dépend de l'OBJECTIF, et PAS de la même façon
+    // pour tous : `pvEffectifs` (PV effectifs) n'est PAS une somme des deux
+    // principales, contrairement à l'efficience/la VIT (voir
+    // spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md).
+    // `evaluerPourRegime` centralise ce contrat, partagé avec le site « au
+    // fil de l'eau » plus bas et le CLI (`recipeToSearchParams.ts`).
+    //
+    // ⚠️ **Le RÉGIME suit `objective`, jamais `regimePaire`/`sortBy`** : cette
+    // paire sert à LANCER/BORNER la recherche avant qu'aucun résultat
+    // n'existe, alors que `regimePaire` répond à « qu'est-ce que je REGARDE
+    // en ce moment » (§12.16 d'artefacts.md). `objective` (`Objective`,
+    // runeBuildOptim.ts) ne peut jamais valoir `'hp'`/`'atk'`/`'def'` : seuls
+    // `degats_reels`/`ehp`/`aucun` sont possibles ici.
     //
     // ⚠️ `resolvedSkill`/`offensivePassives` (plus haut) ne dépendent QUE de la
     // fiche du monstre, jamais des artéfacts — c'est ce qui évite la
     // circularité avec `realDamage`, qui est construit APRÈS ce bloc et lit
     // `searchArtifacts`.
+    const statsAvec = statsParPaire(selected.gear);
+    const regimeBrut = regimeArtefacts(objective);
+    // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
+    // paramètre `degats` optionnel silencieusement absorbé par le helper.
+    const regimeRepresentatif: RegimeArtefacts = regimeBrut === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimeBrut;
     const evaluer =
-      objective === 'degats_reels' && resolvedSkill
-        ? (arts: ArtifactDetail[]) =>
-            computeTotalDamage(
-              resolvedSkill,
-              offensivePassives,
-              computeStats({ ...selected.gear, artifacts: arts }),
-              damageSetup,
-              espece.element,
-              artifactDamageProfile(arts)
-            )
-        : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+      regimeRepresentatif === 'degats_reels'
+        ? evaluerPourRegime(regimeRepresentatif, statsAvec, contexteDegatsArtefacts!)
+        : evaluerPourRegime(regimeRepresentatif, statsAvec);
     return {
       porteur: { element: espece.element, archetype: espece.archetype },
       // ⚠️ **Amputé des artéfacts RÉSERVÉS** par les autres builds validés de
@@ -1283,7 +1344,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       codesAmplification: codesAmplificationActifs(damageSetup),
       evaluer,
     };
-  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, resolvedSkill, offensivePassives]);
+  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, contexteDegatsArtefacts]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -1349,7 +1410,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         statsAvecAffiche(arts),
         damageSetup,
         espece.element,
-        artifactDamageProfile(arts)
+        artifactDamageProfile(arts),
+        { combatStats }
       );
     /**
      * ⚠️ **Le cran « Dégâts réels » choisit une AUTRE paire**, il ne réaffiche
@@ -1365,23 +1427,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
      * l'air juste et repose sur des hypothèses invisibles ». Choisir ce cran
      * OUVRE la fenêtre : les hypothèses sont désormais vues et posées.
      *
-     * ⚠️ Mêmes arguments que l'évaluateur de la file (voir `faireParams`) :
-     * les modificateurs monstre-wide (`critSiPlusRapide`,
-     * `bonusDegatsSelonVit`…) n'y sont pas passés là-bas non plus. Deux
-     * traitements différents pour la même question — « quelle paire ? » —
-     * auraient été pires qu'une omission partagée.
+     * ⚠️ Le contexte complet est le même que celui du moteur et de la file
+     * (voir `contexteDegatsArtefacts`) : modificateurs monstre-wide compris.
      */
     const evaluerReel =
-      resolvedSkill &&
-      ((arts: ArtifactDetail[]) =>
-        computeTotalDamage(
-          resolvedSkill,
-          offensivePassives,
-          statsAvecAffiche(arts),
-          damageSetup,
-          espece.element,
-          artifactDamageProfile(arts)
-        ));
+      contexteDegatsArtefacts && evaluerPourRegime('degats_reels', statsAvecAffiche, contexteDegatsArtefacts);
     // ⚠️ Repli sur le brut si aucun sort n'est calculable pour ce monstre —
     // jamais un bloc vide : le cran resterait sur « Dégâts réels » sans que
     // rien n'explique le silence.
@@ -1483,7 +1533,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, resolvedSkill, offensivePassives]);
+  }, [artifactParams, selected, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, contexteDegatsArtefacts]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -1512,39 +1562,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // au moteur, hypothétiques compris — jamais `selected.gear.artifacts`).
   const artefactsDegats = useMemo(() => artifactDamageProfile(searchArtifacts), [searchArtifacts]);
   const realDamage = useMemo<RealDamageContext | null>(
-    () =>
-      resolvedSkill
-        ? {
-            profile: resolvedSkill,
-            setup: damageSetup,
-            element: speciesMonster?.element ?? null,
-            passifs: offensivePassives,
-            artefacts: artefactsDegats,
-            critSiPlusRapide,
-            bonusDegatsSelonVit,
-            bonusDegatsStack,
-            monsterWide,
-            bonusDegatsConditionnel,
-            bonusDegatsSelonCr,
-            bonusDegatsSelonDef,
-            bonusSiAtqSeuil,
-          }
-        : null,
-    [
-      resolvedSkill,
-      damageSetup,
-      speciesMonster?.element,
-      offensivePassives,
-      artefactsDegats,
-      critSiPlusRapide,
-      bonusDegatsSelonVit,
-      bonusDegatsStack,
-      monsterWide,
-      bonusDegatsConditionnel,
-      bonusDegatsSelonCr,
-      bonusDegatsSelonDef,
-      bonusSiAtqSeuil,
-    ]
+    () => (contexteDegatsArtefacts ? { ...contexteDegatsArtefacts, artefacts: artefactsDegats } : null),
+    [contexteDegatsArtefacts, artefactsDegats]
   );
 
   // Ce que le moteur reçoit réellement — partagé entre la recherche et
@@ -1617,11 +1636,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
 
   // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
-  // plus coûteux que le palier 1 ci-dessus (N passes de pré-filtrage, N =
-  // nombre de conditions posées, contre une seule) : calculé UNIQUEMENT
-  // quand il sera réellement affiché — activé (`diagnoseBlockingEnabled`,
-  // « Réglages avancés ») ET une recherche vient de renvoyer 0 résultat —
-  // jamais à chaque frappe comme le palier 1.
+  // plus coûteux que le palier 1 ci-dessus (une dichotomie par condition
+  // posée, O(N × log(plage)) passes de pré-filtrage contre une seule) :
+  // calculé UNIQUEMENT quand il sera réellement affiché — activé
+  // (`diagnoseBlockingEnabled`, « Réglages avancés ») ET une recherche vient
+  // de renvoyer 0 résultat — jamais à chaque frappe comme le palier 1.
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
     if (!result || result.candidates.length > 0) return null;
@@ -1809,8 +1828,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // (formule générique sans sort ni adversaire, retirée le 2026-08-27 —
       // approximation strictement inférieure de « Dégâts réels » une fois
       // celle-ci mature). Une recette exportée avant l'un ou l'autre retrait
-      // porte encore ces valeurs — `parseOptimizerRecipe` ne valide pas
-      // `objective` contre le type, donc sans ce repli l'état affiché
+      // porte encore ces valeurs — `parseOptimizerRecipe` les accepte
+      // explicitement pour cette compatibilité, donc sans ce repli l'état affiché
       // porterait une valeur qu'aucun bouton ne peut représenter. « Efficience »,
       // pas « Dégâts réels » : celle-ci EXIGE un sort/adversaire résolus
       // (`objectiveScore` lève sans contexte, voir runeBuildOptim.ts) — une
@@ -1873,12 +1892,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // ⚠️ Une recette ne porte que l'ESPÈCE (`monsterCom2usId`), jamais un
         // exemplaire précis (voir le commentaire de `gearSource` plus haut) —
         // repli sur Box, comme si l'utilisateur venait de le choisir dans
-        // cette source (résolution automatique si un seul exemplaire, sinon
-        // stats de base seules — même règle que `pickSource`) ; possédée
-        // NULLE PART → sélecteur `unowned`, même règle que `pickSpecies`.
+        // cette source (même règle que `pickSpecies` : premier exemplaire de
+        // la box, PAS un repli sur « non possédé » dès que la box en compte
+        // plusieurs) ; possédée NULLE PART → sélecteur `unowned`.
         setGearSource('box');
         const boxCandidates = speciesCandidatesBySource(match.com2usId, box, exclusionData).box;
-        setSourceSelector(boxCandidates.length === 1 ? boxCandidates[0].selector : unownedSelectorIfNoneOwned(match, box, exclusionData));
+        setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(match, box, exclusionData));
         setZoneDOpen(false);
         setSelectedId(String(match.id));
         setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}` });
@@ -2002,57 +2021,33 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       const statsAvec = statsParPaire(gear);
       const espece = selected.monster;
       /**
-       * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`),
-       * pas sur une somme de statistiques principales.
-       *
-       * L'ancien évaluateur hors « Dégâts réels » additionnait des PV plats
-       * (jusqu'à 1500) à des DEF plates (jusqu'à 100) — deux unités sans
-       * commune mesure. Sur un objectif de PV effectifs, il retenait donc deux
-       * PV+1500 (score 3000) alors qu'une paire DEF+100 / PV+1500 (score 1600)
-       * donne PLUS de PV effectifs : un ordre faux, pas une approximation.
-       * Voir spec/outils/optimizer/artefacts.md, §12.7 (défaut n° 2).
+       * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`,
+       * via `regimePaire`), pas sur une somme de statistiques principales —
+       * voir `evaluerPourRegime` (`artifactEvaluation.ts`) pour le contrat
+       * partagé avec la paire représentative plus haut et le CLI.
        *
        * ⚠️ **Et c'est `sortBy`, pas `objective`.** L'objectif fige le critère au
        * lancement ; le tri, lui, peut changer après coup. Une paire optimisée
        * pour les dégâts affichée dans une liste triée par PV effectifs
        * montrerait une valeur qui n'est pas la meilleure atteignable.
        *
-       * ⚠️ Sur Efficience et Vitesse, il n'y a RIEN à maximiser :
-       * `runeEfficiency` ne lit que les runes, et aucun artéfact ne donne de
-       * VIT. Deux paires valides y laissent le score identique — on garde donc
-       * la somme des principales, qui départage au moins sur la valeur brute,
-       * et le seul travail qui compte est la faisabilité (§12.6).
+       * ⚠️ Sur Efficience et Vitesse (régime `'aucun'`), il n'y a RIEN à
+       * maximiser : `runeEfficiency` ne lit que les runes, et aucun artéfact
+       * ne donne de VIT. Deux paires valides y laissent le score identique —
+       * on garde donc la somme des principales, qui départage au moins sur la
+       * valeur brute, et le seul travail qui compte est la faisabilité
+       * (§12.6 d'artefacts.md).
        */
-      // ⚠️ **Quatre régimes, pas deux.** Les stats plates (PV/ATQ/DEF) sont un
-      // cas à part entière : trier par ATQ doit retenir la paire qui maximise
-      // l’ATQ, pas celle qui maximise la somme des principales — PV+1500 × 2
-      // (somme 3000) battait ATQ+100 × 2 (somme 200) sur un classement par ATQ.
-      //
-      // ⚠️ Sur le régime `'aucun'` (efficience, VIT, TC, DCC, RES, PRE), aucun
-      // artéfact n’entre dans le critère : deux paires valides y laissent le
-      // classement identique. La somme des principales n’y départage donc rien
-      // d’important — elle sert seulement à ne pas rendre une paire arbitraire.
+      // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
+      // paramètre `degats` optionnel silencieusement absorbé par le helper.
+      const regime: RegimeArtefacts = regimePaire === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimePaire;
       const evaluer =
-        regimePaire === 'degats_reels' && resolvedSkill
-          ? (arts: ArtifactDetail[]) =>
-              computeTotalDamage(
-                resolvedSkill,
-                offensivePassives,
-                statsAvec(arts),
-                damageSetup,
-                espece.element,
-                artifactDamageProfile(arts)
-              )
-          : regimePaire === 'ehp'
-            ? (arts: ArtifactDetail[]) => pvEffectifs(statsAvec(arts))
-            : regimePaire !== 'aucun'
-              ? // Une stat PLATE : on maximise cette stat, et rien d’autre.
-                (arts: ArtifactDetail[]) =>
-                  statsAvec(arts).find((r) => r.key === regimePaire)?.total ?? 0
-              : (arts: ArtifactDetail[]) => arts.reduce((n, a) => n + a.main.value, 0);
+        regime === 'degats_reels'
+          ? evaluerPourRegime(regime, statsAvec, contexteDegatsArtefacts!)
+          : evaluerPourRegime(regime, statsAvec);
       return { ...artifactParams, evaluer };
     };
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, resolvedSkill, offensivePassives, damageSetup]);
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, contexteDegatsArtefacts]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
@@ -2245,7 +2240,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // l'ancienne « Monstres déjà runés » (Lot 2) : chaque ligne porte
   // directement son état validé, une section séparée ailleurs dans l'écran
   // pour la même info aurait été redondante (voir spec/outils/optimizer/
-  // historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 »).
+  // archive/historique/historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 »).
   const activeList = lists.lists.find((l) => l.id === lists.activeListId) ?? null;
   const activeMembers = lists.activeListId ? lists.members.filter((m) => m.listId === lists.activeListId) : [];
   const alreadyMember = ownSelectorKey != null && activeMembers.some((m) => exclusionSelectorKey(m.selector) === ownSelectorKey);
@@ -2964,7 +2959,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         {/* ⚠️ Bureau et mobile ont des dispositions RÉELLEMENT DIFFÉRENTES
             ici, une par bloc `hidden`/`lg:hidden`, pas l'une déclinée de
             l'autre (Question 7 du cadrage, voir spec/outils/optimizer/
-            historique-import-monstres-a-optimiser.md — Lot 1) : recherche +
+            archive/historique/historique-import-monstres-a-optimiser.md — Lot 1) : recherche +
             puces CÔTE À CÔTE avec zones C/D en encarts fixes sur bureau,
             contre 3 blocs empilés avec un dépliement propre chacun au
             doigt. La fiche (zone E), elle, est PARTAGÉE (même JSX, tout en
@@ -3003,8 +2998,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               </div>
             )}
             {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont plus des
-                cas spéciaux, voir spec/outils/optimizer/historique-import-
-                monstres-a-optimiser.md, « Suite — cadrage du Lot 3 ») —
+                cas spéciaux, voir
+                spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
+                « Suite — cadrage du Lot 3 ») —
                 tout est créé/renommé/supprimé par l'utilisateur. Flotte par-
                 dessus zone C, ne la pousse jamais (voir OptimizerListPicker.tsx). */}
             <div className="mt-3">
@@ -3572,7 +3568,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
           le décalage d'une rangée de tout ce qui suit. */}
       <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
-        <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} />
+        <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} artefacts={artefactsDegats} />
       </div>
 
       {/* ⚠️ « Objectif de recherche » N'EST PLUS ICI — il a rejoint la carte
@@ -4076,7 +4072,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           bonusParEffetCibleMonstre={bonusParEffetCibleMonstre}
           bonusParEffetPropre={bonusParEffetPropre}
           bonusSacrifice={bonusSacrifice}
-          artefacts={artefactsDegats}
+          conditionsCombatMonstre={conditionsCombatMonstre}
+          combatStats={combatStats}
+          seuilsPassifEivor={seuilsPassifEivor}
+          elementAttaquant={speciesMonster?.element ?? null}
+          critInterdit={critInterdit}
         />
       )}
 
@@ -4264,11 +4264,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             />
           </div>
           {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
-              PAS `nodeBudgetMax` (le plafond de nœuds, qui grandit avec
-              l'escalade — voir « Suite — escalade automatique du budget de
-              nœuds ») : les deux racontent des choses différentes, et
-              `nodeBudgetMax` grandissant en cours de route ferait reculer la
-              barre au lieu d'avancer. */}
+              la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
+              longtemps coexisté avec lui, écarté d'ici parce qu'il
+              grandissait en cours de route et aurait fait RECULER la barre.
+              C'est ce choix de l'interface qui a fini par emporter sa
+              suppression du moteur (spec/outils/optimizer/pistes.md,
+              piste 8). */}
           <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'
@@ -4437,12 +4438,22 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 <ul className="space-y-1">
                   {blockingDiagnosis.impacts.map((imp) => {
                     const st = RECO_STATS.find((s) => s.key === imp.key)!;
-                    const gain = imp.poolMinSlotWithout - blockingDiagnosis.baselineMinSlot;
                     return (
                       <li key={`${imp.key}-${imp.kind}`} className="text-xs text-ink-dim">
-                        Retirer <span className="font-semibold text-ink">{st.label}</span> (
-                        {imp.kind === 'min' ? '≥' : '≤'} {imp.requested}
-                        {st.suffix}) : {imp.poolMinSlotWithout} candidat(s){gain > 0 ? ` (+${gain})` : ' (aucun gain)'}.
+                        {imp.delta == null ? (
+                          <>
+                            <span className="font-semibold text-ink">{st.label}</span> ({imp.kind === 'min' ? '≥' : '≤'}{' '}
+                            {imp.requested}
+                            {st.suffix}) : aucun gain, même desserrée entièrement.
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-ink">{st.label}</span>{' '}
+                            {imp.kind === 'min' ? `−${imp.delta}` : `+${imp.delta}`}
+                            {st.suffix} suffit ({imp.kind === 'min' ? '≥' : '≤'} {imp.threshold}
+                            {st.suffix}) : {imp.poolMinSlotAtThreshold} candidat(s).
+                          </>
+                        )}
                       </li>
                     );
                   })}
@@ -4459,6 +4470,81 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 </p>
               )
             ))}
+
+          {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
+              vraie recherche (`pairBuckets`, jamais recalculé), affiché
+              SYSTÉMATIQUEMENT (contrairement au palier 2 ci-dessus, dont le
+              coût réel justifie un réglage) : voir spec/outils/optimizer/
+              near-miss-appariement.md. Ne voit que ce que la recherche a
+              RÉELLEMENT exploré avant troncature — une paire encore plus
+              proche, jamais atteinte, resterait invisible. */}
+          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (() => {
+            // ⚠️ Même vocabulaire que le palier 2 ci-dessus (« −15 suffit ») —
+            // décision explicite (2026-09-07) : un seul réflexe de lecture
+            // pour tout l'écran diagnostic, plutôt que deux formulations
+            // (« manque »/« suffit ») pour la même idée de desserrage.
+            // ⚠️ Le score affiché doit être celui que l'utilisateur reconnaît
+            // des cartes de résultat (`BuildCandidateCard.tsx`) : la moyenne
+            // PAR RUNE (pas la somme brute), formatée par `formatRuneMetric`
+            // (« 140.2% », jamais un nombre nu) ; « PV effectifs » en plus
+            // quand c'est l'objectif choisi — sinon un nombre sans légende
+            // reconnaissable ressemble à une erreur, pas à un score (incident
+            // signalé à l'usage : « 1309.0 » affiché pour une recherche PV
+            // effectifs, sans rapport avec ce qui est cherché).
+            const nearMissScoreText = (miss: NearMiss): string => {
+              const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
+              const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
+              if (objective !== 'ehp') return base;
+              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats)).toLocaleString('fr-FR')}`;
+            };
+            const suffiraitText = (s: StatShortfall) => {
+              const st = RECO_STATS.find((r) => r.key === s.key)!;
+              const nouveauSeuil = s.kind === 'min' ? s.requested - s.shortfall : s.requested + s.shortfall;
+              return (
+                <span key={`${s.key}-${s.kind}`}>
+                  <span className="font-semibold text-ink">{st.label}</span> {s.kind === 'min' ? '−' : '+'}
+                  {s.shortfall}
+                  {st.suffix} suffirait ({s.kind === 'min' ? '≥' : '≤'} {nouveauSeuil}
+                  {st.suffix})
+                </span>
+              );
+            };
+            return (
+              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
+                <p className="mb-1.5 text-xs font-semibold text-ink">Quoi ajuster pour trouver des builds</p>
+                {result.globalNearMiss && (
+                  <p className="mb-1.5 text-xs text-ink-dim">
+                    Build le plus proche, toutes conditions confondues :{' '}
+                    {result.globalNearMiss.shortfalls.map((s, i) => (
+                      <span key={`${s.key}-${s.kind}`}>
+                        {i > 0 ? ', ' : ''}
+                        {suffiraitText(s)}
+                      </span>
+                    ))}{' '}
+                    — {nearMissScoreText(result.globalNearMiss)}.
+                  </p>
+                )}
+                {result.nearMissByCondition.length > 0 && (
+                  <>
+                    <p className="mb-1 text-xs text-ink-dim">
+                      Par condition (satisfait tout le reste, ne manque que celle-ci) :
+                    </p>
+                    <ul className="space-y-1">
+                      {result.nearMissByCondition.map(({ key, kind, miss }: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }) => (
+                        <li key={`${key}-${kind}`} className="text-xs text-ink-dim">
+                          {suffiraitText(miss.shortfalls[0])} — {nearMissScoreText(miss)}.
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <p className="mt-1.5 text-micro text-ink-dim">
+                  Ne voit que ce que la recherche a réellement exploré avant troncature — une paire encore
+                  plus proche, jamais atteinte, resterait invisible.
+                </p>
+              </div>
+            );
+          })()}
 
           {result?.truncated && (
             <p className="mb-2 text-micro text-warn">

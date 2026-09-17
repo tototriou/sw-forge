@@ -338,6 +338,21 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     un grand écran. Ne pas bricoler écran par écran en attendant — les rustines
     locales seraient à défaire.
 - **Langue** : interface 100 % française.
+- **Rétention.** Une mise à jour de spec **remplace** la section obsolète,
+  elle n'ajoute pas un paragraphe « depuis la v… » — l'ancien texte part
+  dans `archive/`, daté. Le raisonnement encore utile à une décision en
+  vigueur va dans `decisions/`. `archive/` reçoit les documents datés qui
+  ne sont plus une source de vérité active — conclusion déjà reprise
+  ailleurs, ou conservés comme historique — et les artefacts de preuve
+  d'un chantier ; une archive n'a qu'un en-tête `ARCHIVE`, aucune
+  contrainte de taille. Pour les documents actifs : aucun bloc terminal de
+  plus de 80 lignes (le lint refuse à 100) ; aucun fichier de plus de 500
+  lignes hors exceptions déclarées ; slugs de titres uniques. Un
+  fichier en exception se découpe **avant** qu'un chantier modifie son
+  contenu normatif — pas pour une faute, un lien ou un en-tête. Chaque
+  fichier commence par l'en-tête de sa nature (état actuel / décision /
+  archive). `invariants.md` est un index : une règle modifiée se modifie
+  dans sa source ET dans l'index, dans le même commit.
 
 ## Shell applicatif
 
@@ -372,3 +387,21 @@ Le cadre commun (nav, routing par hash, footer) vit dans
   qu'un import global les alimente tous. `importAccount(text)` orchestre les 3 ;
   `clearAllData()` efface tout.
 - Footer : rappel « données 100 % locales » ; crédit Com2uS / source SWARFARM.
+
+## Chantiers
+
+Un chantier (travail de plus d'une session, exécuté par lots dans des
+sessions fraîches) a un **document de cadrage** : Partie A relue par chaque
+lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
+Comment l'écrire et le faire vivre : skill `cadrage-chantier`. Il vit dans
+[chantiers/](chantiers/) — ou, si son contenu est privé, dans
+`spec/outils/optimizer/chantiers/` (notes livrées par `chantier livrer`).
+Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
+`node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
+jamais en entier.
+
+| Cadrage | Statut | Branche |
+| --- | --- | --- |
+| [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
+| [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
+| `spec/outils/optimizer/reliques.md` (privé, `sw-forge-docs`) — optimiseur de reliques ; à déplacer dans `spec/outils/optimizer/chantiers/` par le chantier lui-même | en cours | `forge/implementation-relique` |

@@ -37,7 +37,6 @@ for (const cap of ONLY_CAP != null ? [ONLY_CAP] : [40, 60, 80]) {
     requirement,
     metric: 'eff',
     maxMs: 60_000,
-    maxNodes: 20_000_000,
     slotFilterCap: cap,
   };
   const res = searchBuilds(params);

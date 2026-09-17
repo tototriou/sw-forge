@@ -196,7 +196,7 @@ async function essai(
   if (avecCharge) setImmediate(boucle);
   const res = await Promise.all(
     slices.map((s) =>
-      runWorker(scriptPath, { params, bucketASlice: s, bucketsB, nodeBudgetMax: Number.POSITIVE_INFINITY })
+      runWorker(scriptPath, { params, bucketASlice: s, bucketsB })
     )
   );
   const ms = performance.now() - t0;

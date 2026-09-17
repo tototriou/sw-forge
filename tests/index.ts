@@ -16,6 +16,7 @@ import testArtefactOptim, {
   testAmpliMaxAtteignable,
 } from './artefact-optim.test';
 import testArtefactFile from './artefact-file.test';
+import testArtifactEvaluation, { testArtifactPaireReelleEhp } from './artifact-evaluation.test';
 import testReco, {
   testTrimPartage,
   testDefensesVisees,
@@ -25,18 +26,28 @@ import testReco, {
   testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
+import testChantier, { testChantierDeuxChantiers, testHooksCodex, testChantierLintNotes, testChantierRafraichir } from './chantier.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
 import testDegats, { testFormesEquivalentes } from './degats.test';
+import testAuditDegatsConditionnels from './audit-degats-conditionnels.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
+import testRuneOptimOnStage from './rune-optim-onstage.test';
+import testRandomPool from './random-pool.test';
+import testDiagnosticHarness from './diagnostic-harness.test';
+import testDiagnosticProfils from './diagnostic-profils.test';
+import testDiagnosticDifferentiel from './diagnostic-differentiel.test';
+import testDiagnosticDecouverte from './diagnostic-decouverte.test';
 import testRuneOptimScaleMonotonicity from './rune-optim-scale-monotonicity.test';
 import testRuneOptimParallelPairing from './rune-optim-parallel-pairing.test';
 import testRuneOptimParallelTruncated from './rune-optim-parallel-truncated.test';
+import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
+import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
@@ -45,6 +56,9 @@ import testStockage from './stockage.test';
 import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
+import testSpecMarkdown from './spec-markdown.test';
+import testSpecToc from './spec-toc.test';
+import testSpecLint, { testSpecLintEnTetes, testSpecLintEnTetesReel, testSpecLintReel } from './spec-lint.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -67,6 +81,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSpeedTuneAuto', testSpeedTuneAuto],
   ['testSpeedTuneModele', testSpeedTuneModele],
   ['testSiegeStatut', testSiegeStatut],
+  ['testSpecMarkdown', testSpecMarkdown],
+  ['testSpecToc', testSpecToc],
+  ['testSpecLintEnTetes', testSpecLintEnTetes],
+  ['testSpecLintEnTetesReel', testSpecLintEnTetesReel],
+  ['testSpecLint', testSpecLint],
+  ['testSpecLintReel', testSpecLintReel],
   ['testImport', testImport],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
@@ -76,6 +96,11 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDecksMontables', testDecksMontables],
   ['testFormesJouables', testFormesJouables],
   ['testRtaPartage', testRtaPartage],
+  ['testChantier', testChantier],
+  ['testChantierDeuxChantiers', testChantierDeuxChantiers],
+  ['testHooksCodex', testHooksCodex],
+  ['testChantierLintNotes', testChantierLintNotes],
+  ['testChantierRafraichir', testChantierRafraichir],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],
@@ -84,15 +109,24 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRechargement', testRechargement],
   ['testCollabPaires', testCollabPaires],
   ['testDegats', testDegats],
+  ['testAuditDegatsConditionnels', testAuditDegatsConditionnels],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
+  ['testRuneOptimOnStage', testRuneOptimOnStage],
+  ['testRandomPool', testRandomPool],
+  ['testDiagnosticHarness', async () => { await testDiagnosticHarness(); }],
+  ['testDiagnosticProfils', async () => { await testDiagnosticProfils(); }],
+  ['testDiagnosticDifferentiel', async () => { await testDiagnosticDifferentiel(); }],
+  ['testDiagnosticDecouverte', async () => { await testDiagnosticDecouverte(); }],
   ['testRuneOptimScaleMonotonicity', testRuneOptimScaleMonotonicity],
   ['testRuneOptimParallelPairing', async () => { await testRuneOptimParallelPairing(); }],
   ['testRuneOptimParallelTruncated', testRuneOptimParallelTruncated],
+  ['testRuneOptimNearMiss', async () => { await testRuneOptimNearMiss(); }],
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testOptimizerExclusion', testOptimizerExclusion],
+  ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],
@@ -101,6 +135,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testConversionVitesseFinale', testConversionVitesseFinale],
   ['testAmpliMaxAtteignable', testAmpliMaxAtteignable],
   ['testArtefactFile', testArtefactFile],
+  ['testArtifactEvaluation', testArtifactEvaluation],
+  ['testArtifactPaireReelleEhp', testArtifactPaireReelleEhp],
   ['testRegistre', testRegistre],
   ['testSansDowngrade', testSansDowngrade],
   ['testPalier', testPalier],

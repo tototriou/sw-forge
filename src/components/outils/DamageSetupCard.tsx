@@ -6,7 +6,8 @@ import {
   BonusDegatsStackableProfile,
   BonusMonstreParEffetProfile,
   BonusMonstreParEffetPropreProfile,
-  ArtifactDamageProfile,
+  CombatStatProfile,
+  ConditionMonstreProfile,
   BonusSacrificeProfile,
   CRIT_MODE_LABELS,
   CritMode,
@@ -22,13 +23,22 @@ import {
   PassifOffensifProfile,
   SkillDamageProfile,
   SkillDamageUnsupported,
+  SeuilsPassifEivor,
   TRANSMISSION_ICON,
   VELASKA_ICON,
+  autresBuffsPropresDepuisTotal,
   bonusConditionnelPropreActif,
   bonusDegatsConditionnelActif,
   estPrisEnCharge,
+  conditionCritiqueGarantiParReglage,
+  critiqueGarantiParReglage,
   passifActif,
+  resolvedBuffsPropresCount,
+  resolvedBuffCiblePresent,
   resolvedEffetsPropresCount,
+  resolvedDebuffCiblePresent,
+  resolvedDebuffsCibleCount,
+  resolvedEffetsCibleCount,
   resolvedHits,
   resolvedPvActuelsAvantSacrificePctMonstre,
   resolvedStackPct,
@@ -41,6 +51,7 @@ import Jeton from '../../ui/Jeton';
 import NumberField from '../../ui/NumberField';
 import Option from '../../ui/Option';
 import Segmented from '../../ui/Segmented';
+import Selecteur from '../../ui/Selecteur';
 import { ELEMENTS, type ElementKey } from '../../types';
 import HelpPopover from '../HelpPopover';
 
@@ -127,10 +138,11 @@ interface Props {
   // de PV actuels avant le sacrifice (`monsterBonusSacrifice`). `null` = pas
   // ce passif.
   bonusSacrifice: BonusSacrificeProfile | null;
-  // Ce que les artéfacts pris en compte apportent (`artifactDamageProfile`,
-  // damage.ts) — DÉDUIT, jamais saisi ici ; affiché en clair pour que les
-  // stats calculées ne semblent pas sorties de nulle part.
-  artefacts: ArtifactDamageProfile;
+  conditionsCombatMonstre: ConditionMonstreProfile[];
+  combatStats: CombatStatProfile[];
+  seuilsPassifEivor: SeuilsPassifEivor | null;
+  elementAttaquant: ElementKey | null;
+  critInterdit: boolean;
 }
 
 // Ce que le sort — ou le PASSIF (voir plus bas) — nous apprend, en une
@@ -167,6 +179,49 @@ function libelleSourceEffet(source: 'buffs' | 'debuffs' | 'buffsEtDebuffs'): str
   }
 }
 
+function resumeCondition(condition: ConditionMonstreProfile['condition']): string {
+  switch (condition.type) {
+    case 'buffCiblePresent':
+      return `+${condition.pct ?? 0} % si la cible a un buff`;
+    case 'aucunBuffCible':
+      return `${condition.pct ? `+${condition.pct} %` : 'critique garanti'} si la cible n’a aucun buff`;
+    case 'aucunDebuffPropre':
+      return `+${condition.pct} % sans débuff sur toi`;
+    case 'debuffsPropresMax':
+      return `+${condition.pct} % avec au plus ${condition.max} débuff sur toi`;
+    case 'elementCible':
+      return `+${condition.pct ?? 0} % contre ${condition.element}`;
+    case 'elementCibleOppose':
+      return `+${condition.pct} % contre l’élément opposé`;
+    case 'pvCibleMax':
+      return `+${condition.pct} % à ${condition.seuilPct} % de PV cible ou moins`;
+    case 'pvPropreSous':
+      return `condition active sous ${condition.seuilPct} % de tes PV`;
+    case 'pvCibleSuperieursPvPropre':
+      return `+${condition.pct ?? 0} % si les PV actuels de la cible dépassent ${condition.ratio}× les tiens`;
+    case 'atkCibleSousAtkPropre':
+      return `condition d’ATQ cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ton ATQ`;
+    case 'defCibleSousDefPropre':
+      return `ignore DEF si la DEF cible ≤ ${condition.ratio}× ta DEF`;
+    case 'defCibleSousAtkPropre':
+      return `ignore DEF si la DEF cible ≤ ${condition.ratio}× ton ATQ`;
+    case 'vitPropreSuperieure':
+      return 'critique garanti si ta VIT dépasse celle de la cible';
+    case 'aucunPvCibleDetruit':
+      return `+${condition.pct ?? 0} % si les PV de la cible n'ont pas été détruits`;
+    case 'debuffCiblePresent':
+      return 'ignore DEF si la cible a un débuff';
+    case 'defBreakPresent':
+      return 'critique garanti sous Brise DEF';
+    case 'manuel':
+      return condition.libelle;
+    case 'ignoreDefParStack':
+      return `ignore ${condition.pctParStack} % de DEF par ${condition.label.toLowerCase()}, puis 100 % au maximum`;
+    case 'compteurMin':
+      return `ignore DEF à partir de ${condition.min} ${condition.label.toLowerCase()}`;
+  }
+}
+
 function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: number): { ratio: string | null; reste: string } {
   const hits = hitsOverride ?? resolvedHits(p, setup);
   const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`];
@@ -174,11 +229,23 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: nu
   if (p.ignoreDef) bouts.push('Ignore la DEF');
   if (p.ignoreDefSelonVit) bouts.push(`Ignore la DEF selon l'écart de VIT (100 % à ${p.ignoreDefSelonVit.ecartMax}+ pts)`);
   if (p.fixed) bouts.push('Dégâts fixes');
+  if (p.composanteFixeAdditionnelle) bouts.push('Réserve de Sacrifice en dégâts fixes (Marque seulement)');
+  if (p.critiqueGaranti) bouts.push('Critique garanti');
   if (p.skillupDamagePct > 0) bouts.push(`+${p.skillupDamagePct} % (compétence maxée)`);
   if (p.bonusParEffetCible) {
     bouts.push(`+${p.bonusParEffetCible.pct} % par effet ${libelleSourceEffet(p.bonusParEffetCible.source)} sur la cible`);
   }
-  return { ratio: formuleLisible(p.formule), reste: bouts.join(' · ') };
+  if (p.bonusParEffetPropre) {
+    bouts.push(`+${p.bonusParEffetPropre.pct} % par ${p.bonusParEffetPropre.source === 'buffs' ? 'buff' : 'débuff'} sur toi`);
+  }
+  if (p.critRatePoints) bouts.push(`+${p.critRatePoints} pts de Taux Crit`);
+  if (p.critDamagePoints) bouts.push(`+${p.critDamagePoints} pts de Dgts Crit`);
+  for (const condition of p.conditionsCombat ?? []) bouts.push(resumeCondition(condition));
+  if (p.bonusStackPropre) bouts.push(`jusqu’à +${p.bonusStackPropre.pctMax} % par charges`);
+  const ratio = p.composanteFixeAdditionnelle
+    ? `${formuleLisible(p.formule)} + ${formuleLisible(p.composanteFixeAdditionnelle.formule)} (fixe)`
+    : formuleLisible(p.formule);
+  return { ratio, reste: bouts.join(' · ') };
 }
 
 // Champ « nombre de coups » d'un sort/passif à coups VARIABLES en jeu (Sia,
@@ -221,9 +288,17 @@ export default function DamageSetupCard({
   bonusParEffetCibleMonstre,
   bonusParEffetPropre,
   bonusSacrifice,
-  artefacts,
+  conditionsCombatMonstre,
+  combatStats,
+  seuilsPassifEivor,
+  elementAttaquant,
+  critInterdit,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
+  const majBuffsPropres = (skillCom2usId: number, total: number) => {
+    const autres = autresBuffsPropresDepuisTotal(total, setup);
+    maj({ buffsPropresCount: { ...(setup.buffsPropresCount ?? {}), [skillCom2usId]: autres } });
+  };
 
   if (chargement) {
     return <p className="text-xs text-ink-dim">Chargement des compétences…</p>;
@@ -249,11 +324,52 @@ export default function DamageSetupCard({
   // résumé qui rouvre cette fenêtre doit dire EXACTEMENT ce qu'elle contient.
   // Deux copies de ces prédicats ont déjà divergé — « DEF 1000 » s'affichait
   // dans le résumé sur un sort qui ignore la défense.
-  const { defEnnemie: montreDefEnnemie, crit: montreCrit } = champsDuCombat(resolved);
+  const { defEnnemie: montreDefEnnemie, crit: montreCritProfil } = champsDuCombat(resolved);
+  const montreCrit = montreCritProfil && !critInterdit;
+  const conditionsSort = resolved.conditionsCombat ?? [];
+  const conditionsAvecCle = [
+    ...conditionsSort.map((condition) => ({
+      condition,
+      key: resolved.skillCom2usId,
+      nom: resolved.nom,
+      icone: resolved.icone,
+    })),
+    ...conditionsCombatMonstre.map((p) => ({
+      condition: p.condition,
+      key: p.skillCom2usId,
+      nom: p.nom,
+      icone: p.icone,
+    })),
+  ];
+  const demandeBuffsCible = conditionsSort.some(
+    (c) => c.type === 'buffCiblePresent' || c.type === 'aucunBuffCible'
+  );
+  const demandeDebuffsPropres = conditionsSort.some(
+    (c) => c.type === 'aucunDebuffPropre' || c.type === 'debuffsPropresMax'
+  );
+  const demandePvCible =
+    conditionsSort.some((c) => c.type === 'pvCibleMax') ||
+    conditionsCombatMonstre.some((p) => p.condition.type === 'pvCibleMax');
+  const demandePvPropres = conditionsAvecCle.some(({ condition }) =>
+    condition.type === 'pvPropreSous' || condition.type === 'pvCibleSuperieursPvPropre'
+  );
+  const demandeAtkCible = conditionsAvecCle.some(({ condition }) => condition.type === 'atkCibleSousAtkPropre');
+  const demandeVitCible = conditionsAvecCle.some(({ condition }) => condition.type === 'vitPropreSuperieure');
+  const demandePvNonDetruits = conditionsAvecCle.some(({ condition }) => condition.type === 'aucunPvCibleDetruit');
+  const conditionsManuelles = conditionsAvecCle.filter(({ condition }) => condition.type === 'manuel');
+  const clesToggleDejaAffichees = new Set([
+    ...conditionsManuelles.map(({ key }) => key),
+    ...(bonusDegatsConditionnel ? [bonusDegatsConditionnel.skillCom2usId] : []),
+  ]);
   // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
   // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
   // passif, ou si le sort ne pose pas de réduction de défense.
   const montreDefBreakParLeSort = resolved.appliqueDefBreak && passifs.length > 0;
+  const critiqueForceParReglage =
+    critiqueGarantiParReglage(resolved, setup, elementAttaquant) ||
+    conditionsCombatMonstre.some((p) =>
+      conditionCritiqueGarantiParReglage(p.condition, p.skillCom2usId, setup, elementAttaquant)
+    );
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-panel2 p-3">
@@ -271,41 +387,43 @@ export default function DamageSetupCard({
           {skills.map((s) => {
             const pris = estPrisEnCharge(s);
             return (
-              <Option
-                key={s.skillCom2usId}
-                actif={pris && s.skillCom2usId === resolved.skillCom2usId}
-                disabled={!pris}
-                onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}
-                icone={
-                  pris && s.icone ? (
-                    <img src={s.icone} alt="" className="h-7 w-7 rounded" loading="lazy" />
-                  ) : undefined
-                }
-                titre={
-                  <>
-                    <span className="font-mono text-micro text-ink-dim">S{s.slot}</span>
-                    {s.nom}
-                  </>
-                }
-                // Un sort refusé affiche POURQUOI plutôt que de disparaître :
-                // sans ça, l'absence du sort n°2 passerait pour un oubli.
-                description={
-                  pris ? (
-                    (() => {
-                      const { ratio, reste } = resumeSort(s, setup);
-                      return (
-                        <>
-                          {ratio && <span className="font-mono text-ink">{ratio}</span>}
-                          {ratio && ' · '}
-                          {reste}
-                        </>
-                      );
-                    })()
-                  ) : (
-                    s.raison
-                  )
-                }
-              />
+              <div key={s.skillCom2usId} title={s.description ?? undefined}>
+                <Option
+                  actif={pris && s.skillCom2usId === resolved.skillCom2usId}
+                  disabled={!pris}
+                  aria-description={s.description ?? undefined}
+                  onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}
+                  icone={
+                    pris && s.icone ? (
+                      <img src={s.icone} alt="" className="h-7 w-7 rounded" loading="lazy" />
+                    ) : undefined
+                  }
+                  titre={
+                    <>
+                      <span className="font-mono text-micro text-ink-dim">S{s.slot}</span>
+                      {s.nom}
+                    </>
+                  }
+                  // Un sort refusé affiche POURQUOI plutôt que de disparaître :
+                  // sans ça, l'absence du sort n°2 passerait pour un oubli.
+                  description={
+                    pris ? (
+                      (() => {
+                        const { ratio, reste } = resumeSort(s, setup);
+                        return (
+                          <>
+                            {ratio && <span className="font-mono text-ink">{ratio}</span>}
+                            {ratio && ' · '}
+                            {reste}
+                          </>
+                        );
+                      })()
+                    ) : (
+                      s.raison
+                    )
+                  }
+                />
+              </div>
             );
           })}
         </div>
@@ -331,6 +449,29 @@ export default function DamageSetupCard({
             />
           </div>
         )}
+        {resolved.bonusStackPropre && (
+          <label className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-ink-dim">{resolved.bonusStackPropre.label}</span>
+            <NumberField
+              value={setup.stackPersonnalise?.[resolved.skillCom2usId] ?? 0}
+              onChange={(v) =>
+                maj({
+                  stackPersonnalise: {
+                    ...(setup.stackPersonnalise ?? {}),
+                    [resolved.skillCom2usId]: v ?? 0,
+                  },
+                })
+              }
+              min={0}
+              max={resolved.bonusStackPropre.triggerMax}
+              step={resolved.bonusStackPropre.triggerStep}
+              suffix={resolved.bonusStackPropre.suffix}
+              boxWidth="w-24"
+              title={`${resolved.bonusStackPropre.aide} — 0 par défaut`}
+              ariaLabel={resolved.bonusStackPropre.label}
+            />
+          </label>
+        )}
       </div>
 
       {/* ⚠️ **Indépendant du sort choisi ci-dessus** — un passif s'applique
@@ -345,7 +486,9 @@ export default function DamageSetupCard({
         bonusDegatsConditionnel ||
         bonusParEffetCibleMonstre ||
         bonusParEffetPropre ||
-        bonusSacrifice) && (
+        bonusSacrifice ||
+        conditionsCombatMonstre.length > 0 ||
+        critInterdit) && (
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Passifs offensifs</p>
@@ -361,6 +504,38 @@ export default function DamageSetupCard({
             </HelpPopover>
           </div>
           <div className="space-y-2">
+            {critInterdit && (
+              <Jeton libelle="Critique impossible" detail="toujours actif — les attaques restent soumises à la DEF" />
+            )}
+            {conditionsCombatMonstre.map((p, index) => (
+              <div key={`condition-deduite-${p.skillCom2usId}-${index}`}>
+                <Jeton
+                  icone={p.icone ? <img src={p.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+                  libelle={p.nom.replace(/\s*\(Passive\)\s*$/i, '')}
+                  detail={resumeCondition(p.condition)}
+                />
+                {p.description && <p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>}
+                {(p.condition.type === 'debuffsPropresMax' || p.condition.type === 'aucunDebuffPropre') && (
+                  <label className="mt-1 flex items-center gap-2">
+                    <span className="text-xs text-ink-dim">Débuffs sur toi-même</span>
+                    <NumberField
+                      value={setup.effetsPropresCount?.[p.skillCom2usId] ?? 0}
+                      onChange={(v) =>
+                        maj({
+                          effetsPropresCount: {
+                            ...(setup.effetsPropresCount ?? {}),
+                            [p.skillCom2usId]: v ?? 0,
+                          },
+                        })
+                      }
+                      min={0}
+                      boxWidth="w-24"
+                      ariaLabel="Nombre de débuffs actuellement sur toi-même"
+                    />
+                  </label>
+                )}
+              </div>
+            ))}
             {/* Ciri (Eau)/Rigna/Magic Order Swordsinger (crit garanti si plus
                 rapide) et Sonia/Battle Angel (bonus continu selon l'écart de
                 VIT) : des MODIFICATEURS, pas des passifs à formule — sans
@@ -490,24 +665,50 @@ export default function DamageSetupCard({
                 {bonusParEffetCibleMonstre.description && (
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusParEffetCibleMonstre.description}</p>
                 )}
-                <label className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-ink-dim">Effets {libelleSourceEffet(bonusParEffetCibleMonstre.source)} sur la cible</span>
-                  <NumberField
-                    value={setup.effetsCibleCount?.[bonusParEffetCibleMonstre.skillCom2usId] ?? 0}
+                {bonusParEffetCibleMonstre.source !== 'buffs' && bonusParEffetCibleMonstre.maxCount === 1 ? (
+                  <PassifInterrupteur
+                    actif={resolvedDebuffCiblePresent(bonusParEffetCibleMonstre.skillCom2usId, setup)}
+                    onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [bonusParEffetCibleMonstre.skillCom2usId]: v } })}
+                    icone={undefined}
+                    libelle="Effets néfastes présents sur la cible"
+                    title={setup.defBreak || setup.brand ? 'Activé automatiquement par Brise DEF ou Marque' : 'Condition binaire'}
+                  />
+                ) : (
+                  <label className="mt-1 flex items-center gap-2">
+                    <span className="text-xs text-ink-dim">Effets {libelleSourceEffet(bonusParEffetCibleMonstre.source)} sur la cible</span>
+                    <NumberField
+                    value={
+                      bonusParEffetCibleMonstre.source === 'buffs'
+                        ? setup.effetsCibleCount?.[bonusParEffetCibleMonstre.skillCom2usId] ?? 0
+                        : bonusParEffetCibleMonstre.source === 'buffsEtDebuffs'
+                          ? (setup.effetsCibleCountAutres === true
+                            ? (setup.effetsCibleCount?.[bonusParEffetCibleMonstre.skillCom2usId] ?? 0) + Number(setup.defBreak) + Number(setup.brand)
+                            : Math.max(setup.effetsCibleCount?.[bonusParEffetCibleMonstre.skillCom2usId] ?? 0, Number(setup.defBreak) + Number(setup.brand)))
+                          : resolvedDebuffsCibleCount(bonusParEffetCibleMonstre.skillCom2usId, setup)
+                    }
                     onChange={(v) =>
                       maj({
                         effetsCibleCount: {
                           ...(setup.effetsCibleCount ?? {}),
-                          [bonusParEffetCibleMonstre.skillCom2usId]: v ?? 0,
+                          [bonusParEffetCibleMonstre.skillCom2usId]: Math.max(
+                            0,
+                            (v ?? 0) -
+                              (bonusParEffetCibleMonstre.source === 'buffs' || setup.effetsCibleCountAutres !== true
+                                ? 0 : Number(setup.defBreak) + Number(setup.brand))
+                          ),
                         },
                       })
                     }
                     min={0}
+                    max={bonusParEffetCibleMonstre.source !== 'debuffs'
+                      ? bonusParEffetCibleMonstre.maxCount
+                      : Math.min(10, bonusParEffetCibleMonstre.maxCount ?? 10)}
                     boxWidth="w-24"
                     title="Ce que l'app ne peut pas savoir (les effets réellement présents sur la cible) — à toi de le renseigner, 0 par défaut"
                     ariaLabel={`Nombre d'effets ${libelleSourceEffet(bonusParEffetCibleMonstre.source)} sur la cible`}
-                  />
-                </label>
+                    />
+                  </label>
+                )}
               </div>
             )}
             {/* Blessing of Curse (Devil Maiden/Jessica) — même mécanisme,
@@ -682,6 +883,183 @@ export default function DamageSetupCard({
         </div>
       )}
 
+      {(utilise('Current HP %') || utilise('Current HP') || utilise('Missing HP') || demandePvPropres ||
+        utilise('Living Ally %') || utilise('Alive Enemies') || utilise('Sacrifice Reserve %')) && (
+        <div>
+          <div className="mb-2 flex items-center gap-1.5">
+            <p className="label">Contexte du combat</p>
+            <HelpPopover title="Contexte du combat">
+              Ces valeurs décrivent l&apos;instant où le coup part. Les PV absolus
+              sont recalculés depuis les PV max de chaque build candidat.
+            </HelpPopover>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {(utilise('Current HP %') || utilise('Current HP') || utilise('Missing HP') || demandePvPropres) && (
+              <label className="flex items-center gap-2">
+                <span className="text-xs text-ink-dim">Mes PV actuels</span>
+                <NumberField
+                  value={setup.ownHpPct ?? DEFAULT_DAMAGE_SETUP.ownHpPct!}
+                  onChange={(v) => maj({ ownHpPct: v ?? 100 })}
+                  min={0}
+                  max={100}
+                  step={5}
+                  suffix="%"
+                  boxWidth="w-28"
+                  ariaLabel="Pourcentage de mes points de vie actuels"
+                />
+              </label>
+            )}
+            {utilise('Living Ally %') && (
+              <label className="flex items-center gap-2">
+                <span className="text-xs text-ink-dim">Alliés vivants</span>
+                <NumberField
+                  value={setup.livingAlliesPct ?? DEFAULT_DAMAGE_SETUP.livingAlliesPct!}
+                  onChange={(v) => maj({ livingAlliesPct: v ?? 100 })}
+                  min={0}
+                  max={100}
+                  step={25}
+                  suffix="%"
+                  boxWidth="w-28"
+                  ariaLabel="Pourcentage d'alliés vivants"
+                />
+              </label>
+            )}
+            {utilise('Alive Enemies') && (
+              <label className="flex items-center gap-2">
+                <span className="text-xs text-ink-dim">Ennemis vivants</span>
+                <NumberField
+                  value={setup.aliveEnemies ?? DEFAULT_DAMAGE_SETUP.aliveEnemies!}
+                  onChange={(v) => maj({ aliveEnemies: Math.min(4, Math.max(1, Math.floor(v ?? 1))) })}
+                  min={1}
+                  max={4}
+                  step={1}
+                  boxWidth="w-24"
+                  ariaLabel="Nombre d'ennemis vivants à l'impact"
+                />
+              </label>
+            )}
+            {utilise('Sacrifice Reserve %') && (
+              <label className="flex items-center gap-2">
+                <span className="text-xs text-ink-dim">Réserve Sacrifice</span>
+                <NumberField
+                  value={setup.sacrificeReservePct ?? DEFAULT_DAMAGE_SETUP.sacrificeReservePct!}
+                  onChange={(v) => maj({ sacrificeReservePct: v ?? 0 })}
+                  min={0}
+                  max={100}
+                  step={5}
+                  suffix="/100"
+                  boxWidth="w-28"
+                  ariaLabel="Réserve de Sacrifice"
+                />
+              </label>
+            )}
+          </div>
+        </div>
+      )}
+
+      {combatStats.length > 0 && (
+        <div>
+          <div className="mb-2 flex items-center gap-1.5">
+            <p className="label">Stats acquises en combat</p>
+            <HelpPopover title="Stats acquises en combat">
+              Ces cumuls et états modifient les stats du build avant d&apos;évaluer le sort et les lignes
+              de dégâts additionnels des artéfacts. Ils restent à zéro ou désactivés tant que tu ne les
+              renseignes pas.
+            </HelpPopover>
+          </div>
+          <div className="space-y-2">
+            {combatStats.map((profile, index) => {
+              const key = `${profile.skillCom2usId}-${profile.source}-${index}`;
+              const icone = profile.icone ? (
+                <img src={profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
+              ) : undefined;
+              if (profile.source === 'debuffsInverses') {
+                return (
+                  <div key={key} className="space-y-1.5">
+                    <Jeton icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={profile.label} />
+                    <div className="flex flex-wrap gap-2">
+                      <Interrupteur actif={setup.atkDebuff ?? false} onChange={(v) => maj({ atkDebuff: v })} libelle="Malus ATQ subi" />
+                      <Interrupteur actif={setup.defDebuff ?? false} onChange={(v) => maj({ defDebuff: v })} libelle="Malus DEF subi" />
+                      <Interrupteur actif={setup.spdDebuff ?? false} onChange={(v) => maj({ spdDebuff: v })} libelle="Malus VIT subi" />
+                    </div>
+                  </div>
+                );
+              }
+              if (profile.source === 'toujours') {
+                return <Jeton key={key} icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={`${profile.label} — toujours actif`} />;
+              }
+              if (profile.source === 'toggle') {
+                return profile.togglePartageCondition && clesToggleDejaAffichees.has(profile.skillCom2usId) ? (
+                  <Jeton key={key} icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={`${profile.label} — piloté par le bouton du passif`} />
+                ) : (
+                  <PassifInterrupteur
+                    key={key}
+                    actif={setup.statsCombatActives?.[profile.skillCom2usId] ?? false}
+                    onChange={(v) => maj({ statsCombatActives: { ...(setup.statsCombatActives ?? {}), [profile.skillCom2usId]: v } })}
+                    icone={icone}
+                    libelle={profile.label}
+                    title={`${profile.label}${setup.statsCombatActives?.[profile.skillCom2usId] ? ' (activé)' : ' — désactivé par défaut'}`}
+                  />
+                );
+              }
+              const record = profile.source === 'buffsPropres'
+                ? setup.buffsPropresCount
+                : profile.source === 'buffsAllies'
+                  ? setup.buffsAlliesCount
+                  : profile.source === 'debuffsPropres'
+                    ? setup.effetsPropresCount
+                    : setup.stackPersonnalise;
+              const patcher = (value: number) => {
+                if (profile.source === 'buffsPropres') {
+                  majBuffsPropres(profile.skillCom2usId, value);
+                } else if (profile.source === 'buffsAllies') {
+                  maj({ buffsAlliesCount: { ...(setup.buffsAlliesCount ?? {}), [profile.skillCom2usId]: value } });
+                } else if (profile.source === 'debuffsPropres') {
+                  maj({ effetsPropresCount: { ...(setup.effetsPropresCount ?? {}), [profile.skillCom2usId]: value } });
+                } else {
+                  maj({ stackPersonnalise: { ...(setup.stackPersonnalise ?? {}), [profile.skillCom2usId]: value } });
+                }
+              };
+              return (
+                <label key={key} className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-ink-dim">{profile.label}</span>
+                  <NumberField
+                    value={profile.source === 'buffsPropres'
+                      ? Math.min(profile.max ?? 10, resolvedBuffsPropresCount(profile.skillCom2usId, setup))
+                      : record?.[profile.skillCom2usId] ?? 0}
+                    onChange={(v) => patcher(v ?? 0)}
+                    min={0}
+                    max={profile.source === 'buffsPropres' ? Math.min(10, profile.max ?? 10) : profile.max}
+                    step={1}
+                    boxWidth="w-24"
+                    ariaLabel={profile.label}
+                  />
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {seuilsPassifEivor && (() => {
+        const requis = setup.summonerSkills === 'guilde'
+          ? seuilsPassifEivor.bonusGuilde
+          : seuilsPassifEivor.bonusCombat;
+        return (
+          <div className="rounded-lg border border-border-soft bg-panel px-3 py-2">
+            <p className="text-xs font-semibold text-ink">Might of the Clan — minimums en combat</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-dim">
+              {seuilsPassifEivor.atk} ATQ (<b className="text-ink">+{requis.atk}</b>) ·{' '}
+              {seuilsPassifEivor.def} DEF (<b className="text-ink">+{requis.def}</b>) ·{' '}
+              {seuilsPassifEivor.spd} VIT (<b className="text-ink">+{requis.spd}</b>)
+            </p>
+            <p className="mt-1 text-micro text-ink-dim">
+              Valeurs +stat avec {setup.summonerSkills === 'guilde' ? 'Combat + Guilde' : 'Combat'}.
+            </p>
+          </div>
+        );
+      })()}
+
       <div>
         <div className="mb-2 flex items-center gap-1.5">
           <p className="label">Adversaire</p>
@@ -719,11 +1097,24 @@ export default function DamageSetupCard({
               />
             </label>
           )}
+          {demandeAtkCible && (
+            <label className="flex items-center gap-2">
+              <span className="text-xs text-ink-dim">ATQ adverse</span>
+              <NumberField
+                value={setup.enemyAtk ?? DEFAULT_DAMAGE_SETUP.enemyAtk!}
+                onChange={(v) => maj({ enemyAtk: v ?? 0 })}
+                min={0}
+                step={50}
+                boxWidth="w-32"
+                ariaLabel="Attaque totale de l'adversaire"
+              />
+            </label>
+          )}
           {/* Pour les sorts dont la formule lit les PV COURANTS de la cible
               (« dégâts proportionnels aux PV perdus ») — mais AUSSI quand un
               passif porte un seuil de PV (Final Strike : +20 % sous 30 %),
               puisque les coups du sort creusent la cible avant qu'il frappe. */}
-          {(utilise('Target Current HP %') || passifs.some((p) => p.bonusPvCible)) && (
+          {(utilise('Target Current HP %') || passifs.some((p) => p.bonusPvCible) || demandePvCible) && (
             <label className="flex items-center gap-2">
               <span className="text-xs text-ink-dim">PV restants</span>
               <NumberField
@@ -737,6 +1128,15 @@ export default function DamageSetupCard({
                 ariaLabel="Pourcentage de PV restants de l'adversaire"
               />
             </label>
+          )}
+          {demandePvNonDetruits && (
+            <PassifInterrupteur
+              actif={setup.enemyHpNotDestroyed ?? false}
+              onChange={(v) => maj({ enemyHpNotDestroyed: v })}
+              icone={undefined}
+              libelle="PV ennemis non détruits"
+              title="Active le bonus de 50 % de dégâts ; désactivé par défaut"
+            />
           )}
           {/* Élément de la cible — décrit l'ADVERSAIRE, au même titre que ses
               PV et sa DEF, et se pose donc TOUJOURS.
@@ -774,13 +1174,35 @@ export default function DamageSetupCard({
               défaut. Propre à CE sort (`resolved.bonusParEffetCible`), pas
               à tout le monstre. */}
           {resolved.bonusParEffetCible && (
-            <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">Effets {libelleSourceEffet(resolved.bonusParEffetCible.source)} sur la cible</span>
-              <NumberField
-                value={setup.effetsCibleCount?.[resolved.skillCom2usId] ?? 0}
+            resolved.bonusParEffetCible.source !== 'buffs' && resolved.bonusParEffetCible.maxCount === 1 ? (
+              <PassifInterrupteur
+                actif={resolvedDebuffCiblePresent(resolved.skillCom2usId, setup)}
+                onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [resolved.skillCom2usId]: v } })}
+                icone={resolved.icone ? <img src={resolved.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+                libelle={`${resolved.nom} (+${resolved.bonusParEffetCible.pct} %)`}
+                title={setup.defBreak || setup.brand ? 'Activé automatiquement par Brise DEF ou Marque' : 'Effets néfastes présents sur la cible'}
+              />
+            ) : (
+              <label className="flex items-center gap-2">
+                <span className="text-xs text-ink-dim">Effets {libelleSourceEffet(resolved.bonusParEffetCible.source)} sur la cible</span>
+                <NumberField
+                value={
+                  resolvedEffetsCibleCount(resolved, setup)
+                }
+                max={resolved.bonusParEffetCible.source !== 'debuffs'
+                  ? resolved.bonusParEffetCible.maxCount
+                  : Math.min(10, resolved.bonusParEffetCible.maxCount ?? 10)}
                 onChange={(v) =>
                   maj({
-                    effetsCibleCount: { ...(setup.effetsCibleCount ?? {}), [resolved.skillCom2usId]: v ?? 0 },
+                    effetsCibleCount: {
+                      ...(setup.effetsCibleCount ?? {}),
+                      [resolved.skillCom2usId]: Math.max(
+                        0,
+                        (v ?? 0) -
+                          (resolved.bonusParEffetCible?.source === 'buffs' || setup.effetsCibleCountAutres !== true
+                            ? 0 : Number(setup.defBreak) + Number(setup.brand))
+                      ),
+                    },
                   })
                 }
                 min={0}
@@ -790,8 +1212,244 @@ export default function DamageSetupCard({
                 )} réellement présents sur la cible) — à toi de le renseigner, 0 par défaut`}
                 ariaLabel={`Nombre d'effets ${libelleSourceEffet(resolved.bonusParEffetCible.source)} sur la cible`}
               />
+              </label>
+            )
+          )}
+          {resolved.bonusParEffetPropre && (
+            <label className="flex items-center gap-2">
+              <span className="text-xs text-ink-dim">
+                {resolved.bonusParEffetPropre.source === 'buffs' ? 'Buffs' : 'Débuffs'} sur toi-même
+              </span>
+              <NumberField
+                value={
+                  resolved.bonusParEffetPropre.source === 'buffs'
+                    ? resolvedBuffsPropresCount(resolved.skillCom2usId, setup)
+                    : setup.effetsPropresCount?.[resolved.skillCom2usId] ?? 0
+                }
+                onChange={(v) =>
+                  resolved.bonusParEffetPropre?.source === 'buffs'
+                    ? majBuffsPropres(resolved.skillCom2usId, v ?? 0)
+                    : maj({
+                        effetsPropresCount: {
+                          ...(setup.effetsPropresCount ?? {}),
+                          [resolved.skillCom2usId]: v ?? 0,
+                        },
+                      })
+                }
+                min={0}
+                max={resolved.bonusParEffetPropre.source === 'buffs' ? 10 : undefined}
+                boxWidth="w-24"
+                ariaLabel={`Nombre de ${resolved.bonusParEffetPropre.source === 'buffs' ? 'buffs' : 'débuffs'} sur toi-même`}
+              />
             </label>
           )}
+          {demandeBuffsCible && (
+            <div className="space-y-1">
+              <Interrupteur
+                actif={resolvedBuffCiblePresent(resolved.skillCom2usId, setup)}
+                onChange={(v) => maj({
+                  buffsCibleCount: {
+                    ...(setup.buffsCibleCount ?? {}),
+                    [resolved.skillCom2usId]: v ? 1 : 0,
+                  },
+                })}
+                libelle="Effets bénéfiques présents sur la cible"
+                aria-label="Effets bénéfiques présents sur la cible"
+              />
+              <p className="text-xs text-ink-dim">
+                {conditionsSort
+                  .filter((condition) => condition.type === 'buffCiblePresent' || condition.type === 'aucunBuffCible')
+                  .map((condition) => resumeCondition(condition))
+                  .join(' · ')}.
+                {conditionsSort.some((condition) => condition.type === 'aucunBuffCible' && condition.critiqueGaranti)
+                  ? ' Un buff retire cette garantie ; le mode critique choisi s’applique alors.'
+                  : ''}
+              </p>
+            </div>
+          )}
+          {demandeDebuffsPropres && !resolved.bonusParEffetPropre && (
+            <label className="flex items-center gap-2">
+              <span className="text-xs text-ink-dim">Débuffs sur toi-même</span>
+              <NumberField
+                value={setup.effetsPropresCount?.[resolved.skillCom2usId] ?? 0}
+                onChange={(v) =>
+                  maj({
+                    effetsPropresCount: {
+                      ...(setup.effetsPropresCount ?? {}),
+                      [resolved.skillCom2usId]: v ?? 0,
+                    },
+                  })
+                }
+                min={0}
+                boxWidth="w-24"
+                ariaLabel="Nombre de débuffs actuellement sur toi-même"
+              />
+            </label>
+          )}
+          {resolved.effetsEntreCoups && resolved.effetsEntreCoups.length > 0 && resolvedHits(resolved, setup) > 1 && (() => {
+            const scenario = setup.scenariosEffetsEntreCoups?.[resolved.skillCom2usId] ?? {};
+            const majScenario = (patch: Partial<typeof scenario>) =>
+              maj({
+                scenariosEffetsEntreCoups: {
+                  ...(setup.scenariosEffetsEntreCoups ?? {}),
+                  [resolved.skillCom2usId]: { ...scenario, ...patch },
+                },
+              });
+            return (
+              <div className="space-y-2 rounded-lg border border-border-soft bg-panel2 p-2.5">
+                <Interrupteur
+                  actif={scenario.actif ?? false}
+                  onChange={(actif) => majScenario({ actif })}
+                  libelle="Prendre en compte les débuffs posés entre les coups"
+                />
+                {scenario.actif && (
+                  <div className="space-y-2 border-t border-border-soft pt-2">
+                    {resolved.effetsEntreCoups.map((effet) => {
+                      const presents = scenario.presentsInitialement ?? [];
+                      const initialDerive =
+                        effet.effetCombat === 'brand' ? setup.brand : effet.effetCombat === 'defBreak' ? setup.defBreak : false;
+                      return (
+                        <div key={effet.id} className="flex flex-wrap items-center gap-2">
+                          <span className="min-w-40 text-xs text-ink-dim">{effet.label}</span>
+                          {!effet.cumulable && !effet.effetCombat && (
+                            <Interrupteur
+                              actif={presents.includes(effet.id)}
+                              onChange={(actif) =>
+                                majScenario({
+                                  presentsInitialement: actif
+                                    ? Array.from(new Set([...presents, effet.id]))
+                                    : presents.filter((id) => id !== effet.id),
+                                })
+                              }
+                              libelle="déjà présent"
+                            />
+                          )}
+                          {effet.effetCombat && (
+                            <span className="text-xs text-ink-dim">
+                              {initialDerive ? 'déjà présent et inclus dans le compteur' : 'absent au départ'}
+                            </span>
+                          )}
+                          <Selecteur
+                            taille="sm"
+                            pleineLargeur={false}
+                            value={scenario.apresCoup?.[effet.id] ?? ''}
+                            onChange={(e) =>
+                              majScenario({
+                                apresCoup: {
+                                  ...(scenario.apresCoup ?? {}),
+                                  [effet.id]: e.target.value === '' ? null : Number(e.target.value),
+                                },
+                              })
+                            }
+                            aria-label={`Moment de pose réussie : ${effet.label}`}
+                          >
+                            <option value="">Aucune réussite</option>
+                            {Array.from({ length: resolvedHits(resolved, setup) - 1 }, (_, i) => i + 1).map((hit) => (
+                              <option key={hit} value={hit}>Après le coup {hit}</option>
+                            ))}
+                          </Selecteur>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-ink-dim">
+                      Une réapplication non cumulable ne rajoute pas de débuff ; un dégât continu réussi en ajoute un.
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          {conditionsAvecCle
+            .filter(({ condition }) => condition.type === 'debuffCiblePresent')
+            .map(({ condition, key, nom, icone }) => {
+              if (condition.type !== 'debuffCiblePresent') return null;
+              const actif = resolvedDebuffCiblePresent(key, setup);
+              return (
+                <PassifInterrupteur
+                  key={`condition-debuff-cible-${key}`}
+                  actif={actif}
+                  onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [key]: v } })}
+                  icone={icone ? <img src={icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+                  libelle={`${nom}${condition.pct ? ` (+${condition.pct} %)` : condition.ignoreDefPct ? ` (ignore ${condition.ignoreDefPct} % DEF)` : ''}`}
+                  title={actif && (setup.defBreak || setup.brand)
+                    ? 'Activé automatiquement par Brise DEF ou Marque'
+                    : 'Effets néfastes présents sur la cible'}
+                />
+              );
+            })}
+          {conditionsAvecCle
+            .filter(({ condition }) => condition.type === 'manuel')
+            .map(({ condition, key, nom, icone }) => {
+              if (condition.type !== 'manuel') return null;
+              const actif = setup.passifsOffensifs?.[key] ?? false;
+              const effet = condition.critiqueGaranti
+                ? 'critique garanti'
+                : condition.ignoreDefPct
+                  ? `ignore ${condition.ignoreDefPct} % de la DEF`
+                  : condition.pct
+                    ? `+${condition.pct} % de dégâts`
+                    : 'condition active';
+              const compteChance = condition.chanceParBuffPropre
+                ? resolvedBuffsPropresCount(key, setup)
+                : condition.chanceParDebuffCible
+                  ? resolvedDebuffsCibleCount(key, setup)
+                  : 0;
+              const chance = Math.min(
+                condition.chanceMax ?? 100,
+                (condition.chanceBase ?? 0) +
+                  (condition.chanceParBuffPropre ?? condition.chanceParDebuffCible ?? 0) * compteChance
+              );
+              return (
+                <div key={`condition-manuelle-${key}-${condition.libelle}`} className="space-y-1.5">
+                  <PassifInterrupteur
+                    actif={actif}
+                    onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [key]: v } })}
+                    icone={icone ? <img src={icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+                    libelle={`${nom} (${effet})`}
+                    title={`${condition.libelle}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
+                  />
+                  {(condition.chanceParBuffPropre || condition.chanceParDebuffCible) && (
+                    <label className="flex flex-wrap items-center gap-2 pl-2">
+                      <span className="text-xs text-ink-dim">
+                        {condition.chanceParBuffPropre ? 'Buffs sur toi' : 'Débuffs sur la cible'} — chance {chance} %
+                      </span>
+                      <NumberField
+                        value={compteChance}
+                        onChange={(v) => condition.chanceParBuffPropre
+                          ? majBuffsPropres(key, v ?? 0)
+                          : maj({ effetsCibleCount: { ...(setup.effetsCibleCount ?? {}), [key]: Math.max(0, (v ?? 0) - (setup.effetsCibleCountAutres === true ? Number(setup.defBreak) + Number(setup.brand) : 0)) } })}
+                        min={0}
+                        max={10}
+                        step={1}
+                        boxWidth="w-24"
+                        ariaLabel={condition.chanceParBuffPropre ? 'Nombre de buffs sur soi' : 'Nombre de débuffs sur la cible'}
+                      />
+                    </label>
+                  )}
+                </div>
+              );
+            })}
+          {conditionsAvecCle
+            .filter(({ condition }) => condition.type === 'ignoreDefParStack' || condition.type === 'compteurMin')
+            .map(({ condition, key }) => {
+              if (condition.type !== 'ignoreDefParStack' && condition.type !== 'compteurMin') return null;
+              return <label key={`condition-compteur-${key}-${condition.type}`} className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-ink-dim">{resumeCondition(condition)}</span>
+                <NumberField
+                  value={condition.type === 'ignoreDefParStack'
+                    ? setup.stackPersonnalise?.[key] ?? 0
+                    : setup.compteurPersonnalise?.[key] ?? 0}
+                  onChange={(v) => condition.type === 'ignoreDefParStack'
+                    ? maj({ stackPersonnalise: { ...(setup.stackPersonnalise ?? {}), [key]: v ?? 0 } })
+                    : maj({ compteurPersonnalise: { ...(setup.compteurPersonnalise ?? {}), [key]: v ?? 0 } })}
+                  min={0}
+                  max={condition.max}
+                  step={1}
+                  boxWidth="w-24"
+                  ariaLabel={condition.label}
+                />
+              </label>;
+            })}
           {/* Emergency Drive (Cynthia/Arcane Weapon) — bonus à bouton
               RESTREINT à CE SORT (« Rending Claw »), contrairement à
               `bonusDegatsConditionnel` qui majore le TOTAL quel que soit le
@@ -813,7 +1471,7 @@ export default function DamageSetupCard({
               tous ses dégâts selon l'écart de VIT (`bonusDegatsSelonVit`,
               Sonia), même si le sort CHOISI ne lit pas cette variable
               (ex. Rigna S1, ou n'importe quel sort de Sonia). */}
-          {(utilise('Relative SPD') || critSiPlusRapide || bonusDegatsSelonVit) && (
+          {(utilise('Relative SPD') || utilise('Target SPD') || critSiPlusRapide || bonusDegatsSelonVit || demandeVitCible) && (
             <>
               <label className="flex items-center gap-2">
                 <span className="text-xs text-ink-dim">VIT adversaire</span>
@@ -836,25 +1494,6 @@ export default function DamageSetupCard({
                   dans « Passifs offensifs » ci-dessus (icône + description),
                   plus complet qu'une ligne de texte — les dupliquer ferait
                   redite. */}
-              {/* ⚠️ Une ligne par buff amplifié, et seulement ceux qui le
-                  sont réellement : annoncer « ATQ amplifiée » alors que le
-                  buff d'ATQ n'est pas coché ferait chercher un effet qui ne
-                  s'applique pas. */}
-              {artefacts.ampliVitPct > 0 && (
-                <span className="text-xs text-ink-dim">
-                  + artéfact « Effet aug. VIT » : le buff de VIT est amplifié de {artefacts.ampliVitPct} %
-                </span>
-              )}
-              {artefacts.ampliAtkPct > 0 && setup.atkBuff && (
-                <span className="text-xs text-ink-dim">
-                  + artéfact « Effet renforcement ATQ » : le buff d'ATQ est amplifié de {artefacts.ampliAtkPct} %
-                </span>
-              )}
-              {artefacts.ampliDefPct > 0 && setup.defBuff && (
-                <span className="text-xs text-ink-dim">
-                  + artéfact « Effet renforcement DEF » : le buff de DEF est amplifié de {artefacts.ampliDefPct} %
-                </span>
-              )}
             </>
           )}
         </div>
@@ -910,6 +1549,7 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={DEF_BREAK_ICON}
               libelle={montreDefBreakParLeSort ? 'Def break avant' : 'Def break'}
+              description="Réduit de 70 % la Défense de la cible avant que le sort ne frappe."
               onClick={() => maj({ defBreak: !setup.defBreak })}
               actif={setup.defBreak}
               etroit={etroit}
@@ -927,12 +1567,20 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={DEF_BREAK_ICON}
               libelle="Ce sort pose le def break"
+              description="Le sort pose une réduction de Défense ; elle profite aux coups ou passifs qui frappent ensuite."
               onClick={() => maj({ defBreakParLeSort: !(setup.defBreakParLeSort ?? false) })}
               actif={setup.defBreakParLeSort ?? false}
               etroit={etroit}
             />
           )}
-          <EffetVignette icone={BRAND_ICON} libelle="Marque" onClick={() => maj({ brand: !setup.brand })} actif={setup.brand} etroit={etroit} />
+          <EffetVignette
+            icone={BRAND_ICON}
+            libelle="Marque"
+            description="La cible reçoit 25 % de dégâts supplémentaires."
+            onClick={() => maj({ brand: !setup.brand })}
+            actif={setup.brand}
+            etroit={etroit}
+          />
           {/* Quatre effets portés par un AUTRE monstre que celui optimisé
               (demande explicite de l'utilisateur) — portrait du monstre en
               icône plutôt qu'une icône de buff générique, mais le même
@@ -945,6 +1593,7 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={EULDONG_ICON}
               libelle="Euldong"
+              description="Triumph Over Evil ajoute 100 points de Dégâts Critiques aux attaques alliées."
               onClick={() => maj({ euldongActif: !setup.euldongActif })}
               actif={setup.euldongActif ?? false}
               etroit={etroit}
@@ -953,6 +1602,7 @@ export default function DamageSetupCard({
           <EffetVignette
             icone={MIRINAE_ICON}
             libelle="Mirinae"
+            description="Cursed Music augmente de 30 % les dégâts compatibles jusqu’au prochain tour de Mirinae."
             onClick={() => maj({ mirinaeActif: !setup.mirinaeActif })}
             actif={setup.mirinaeActif ?? false}
             etroit={etroit}
@@ -961,6 +1611,7 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={DEBORAH_ICON}
               libelle="Deborah"
+              description="Blacksmith’s Discernment amplifie de 30 % une réduction d’ATQ, de DEF ou de VIT déjà active."
               onClick={() => maj({ deborahActif: !setup.deborahActif })}
               actif={setup.deborahActif ?? false}
               etroit={etroit}
@@ -975,6 +1626,7 @@ export default function DamageSetupCard({
             <EffetVignette
               icone={MIRIAM_ICON}
               libelle="Miriam"
+              description="Blacksmith’s Technique amplifie de 35 % les buffs d’ATQ, de DEF et de VIT déjà actifs."
               onClick={() => maj({ miriamActif: !setup.miriamActif })}
               actif={setup.miriamActif ?? false}
               etroit={etroit}
@@ -983,6 +1635,7 @@ export default function DamageSetupCard({
           <EffetVignette
             icone={TRANSMISSION_ICON}
             libelle="Dr. Matteo"
+            description="Transmission augmente de 20 % les dégâts infligés tant que Dr. Matteo est sous incapacité."
             onClick={() => maj({ transmissionActif: !setup.transmissionActif })}
             actif={setup.transmissionActif ?? false}
             etroit={etroit}
@@ -990,6 +1643,7 @@ export default function DamageSetupCard({
           <EffetVignette
             icone={VELASKA_ICON}
             libelle="Velaska"
+            description="Price of Pain augmente les dégâts compatibles de 0,5 % par 1 % de PV perdu par l’allié attaquant."
             onClick={() => maj({ velaskaActif: !setup.velaskaActif })}
             actif={setup.velaskaActif ?? false}
             etroit={etroit}
@@ -1050,11 +1704,19 @@ export default function DamageSetupCard({
             </HelpPopover>
           </div>
           <Segmented<CritMode>
-            options={CRIT_MODE_LABELS}
-            value={setup.critMode}
+            options={CRIT_MODE_LABELS.map((option) => ({
+              ...option,
+              disabled: critiqueForceParReglage && option.key !== 'crit',
+            }))}
+            value={critiqueForceParReglage ? 'crit' : setup.critMode}
             onChange={(v) => maj({ critMode: v })}
             size="lg"
           />
+          {critiqueForceParReglage && (
+            <p className="mt-1.5 text-xs text-ink-dim">
+              Ce sort inflige forcément un coup critique dans l’état sélectionné.
+            </p>
+          )}
           {/* « Moyenne » est une ESPÉRANCE (pondérée par le Taux Crit) —
               jamais ce qu'un combat réel, tour par tour, produit coup après
               coup. Demande explicite de l'utilisateur : le dire, UNIQUEMENT
@@ -1067,6 +1729,11 @@ export default function DamageSetupCard({
             </p>
           )}
         </div>
+      )}
+      {critInterdit && (
+        <p className="text-xs text-ink-dim">
+          Ce monstre ne peut pas infliger de coup critique. Le mode critique enregistré est ignoré ; les dégâts ne sont pas fixes et restent soumis à la DEF.
+        </p>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 // Étape 2/2 de la comparaison de VITESSE « rétention par tranches » vs
 // l'ancien mécanisme à score unique — voir spec/outils/optimizer/
-// historique-dimensionnement.md, « Suite — vitesse de convergence : tranches
+// archive/historique/historique-dimensionnement.md, « Suite — vitesse de convergence : tranches
 // vs score unique ». Lit les scénarios+cibles produits par
 // `optimum-speed-targets.ts` (code ACTUEL uniquement) et mesure, pour
 // CHAQUE version du moteur, le nombre de paires explorées (et le temps)
@@ -15,6 +15,45 @@
 // l'ancien commit, jamais réécrit pour lui. Contrairement à
 // `optimum-speed-targets.ts` (reste dans le répertoire courant, importe
 // `buildBuckets`/`prepareSearch`, absents de l'ancien commit).
+//
+// ⚠️ **MAL CLASSÉ EN G2, ET LE RECLASSER EST LE RÉSULTAT** (vérifié le
+// 2026-09-09, §5.2 bis des extensions). Ce script porte bien un axe de
+// configuration (`combosOrderMode` en argv), mais ce n'est pas ce qu'il
+// mesure : il est copié TEL QUEL dans le `git worktree` d'un ancien commit
+// et comparé à lui-même — une comparaison de **VERSIONS DU MOTEUR**, donc le
+// domaine de `perf-battery-compare`, jamais celui du différentiel
+// `--profil=… --differentiel=…` (qui compare deux SURCHARGES du même code).
+// Ses gardes duck-typés (`Array.isArray(progress.candidates)`, `truncated`
+// optionnel) n'existent que pour tolérer l'ANCIEN `SearchProgress` : c'est la
+// signature d'un outil inter-versions. ⚠️ Il n'y a donc rien à absorber —
+// chercher à le faire passer par le différentiel serait une erreur de
+// catégorie.
+//
+// ⚠️ **MISE À JOUR DU 2026-09-09 (§5.6, §5.8)** : le harnais rend désormais
+// `foundExplored` lui-même (`decouverteBuildCible`). Ce script ne survit donc
+// plus QUE par sa portée inter-versions — et elle est **BORNÉE, mesure encore
+// OUVERTE** : `diagnosticHarness.ts` importe des symboles récents du moteur,
+// il ne compile donc dans le worktree d'un ancien commit que jusqu'à un
+// certain horizon. Au-delà, ce fichier-ci reste le seul outil, parce qu'il
+// n'importe QUE l'API stable (`searchBuildsSteps`/`SearchParams`). En deçà,
+// il est ABSORBABLE. La mesure 1 du §5.8 tranche laquelle des deux.
+//
+// ⚠️ **POURQUOI IL SURVIT À `perf-battery-compare`**, qui occupe pourtant le
+// même domaine — vérifié, pas supposé : `perf-battery-compare` ne rend que
+// des TEMPS et des comptes de builds (`foundMs`, `totalMs`, `buildWallMs`,
+// `pairingFoundMs`, `foundCount`). Il ne rend **jamais `foundExplored`**, le
+// nombre de PAIRES explorées avant que la cible n'apparaisse. Or c'est un
+// COMPTE, pas une durée : il est insensible à la dérive machine et à la
+// contention, là où tout `foundMs` y est exposé. C'est la seule grandeur qui
+// permette de dire qu'une version converge plus tôt *en travail*, et pas
+// seulement plus vite sur cette machine-là.
+// ⚠️ Ne pas le supprimer « parce que perf-battery-compare compare déjà deux
+// versions » : il compare des temps, pas du travail.
+//
+// ⚠️ `optimum-speed-targets.ts` (étape 1/2) survit pour une raison DISTINCTE,
+// écrite dans son propre en-tête : il produit une VÉRITÉ TERRAIN indépendante
+// et REFUSE de l'écrire dès qu'un seul couple de compartiments a épuisé son
+// budget de tas. Le harnais ne calcule aucun optimum exact : rien à périmer.
 //
 // Usage : optimum-speed-diag.ts <scenarios.json> [combosOrderMode=relevance]
 //   combosOrderMode — 'relevance' (défaut ici ET en production depuis le
@@ -67,7 +106,7 @@ function sameIds(a: number[], b: number[]): boolean {
 
 const rows: Row[] = [];
 for (const sc of scenarios) {
-  // ⚠️ AUCUNE surcharge de `bucketCap`/`slotFilterCap`/`maxNodes`/`maxMs` —
+  // ⚠️ AUCUNE surcharge de `bucketCap`/`slotFilterCap`/`maxMs` —
   // c'est précisément ce qu'on compare : le comportement RÉEL par défaut de
   // CHAQUE version, pas un réglage égalisé artificiellement.
   const params: SearchParams = { base: BASE, artifacts: [], pool: sc.pool, requirement: sc.requirement, metric: 'eff', combosOrderMode };

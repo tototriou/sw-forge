@@ -1,0 +1,189 @@
+#!/usr/bin/env node
+// Garde-fou de commit, commun aux deux agents — voir
+// spec/chantiers/orchestration-parallele.md, §2.4.
+//
+// ⚠️ **Pourquoi un hook GIT et pas un hook d'agent.** Un `PreToolUse` de Claude
+// Code ne vaut que pour Claude Code. Codex a **aussi** un système de hooks
+// (`SessionStart`, `PreToolUse`, `Stop`) — l'affirmation contraire, écrite ici
+// dans une première version, était fausse — mais ce sont deux dispositifs
+// distincts, à configurer et à maintenir séparément. Le seul point que les deux
+// agents traversent sans configuration commune, quel que soit le CLI, reste
+// `git commit`. Des hooks d'agent VIENDRAIENT EN PLUS de celui-ci, pas à sa
+// place : eux contrôlent au moment de l'action, lui au moment du commit.
+//
+// ⚠️ **Portée volontairement ÉTROITE, et ce n'est pas une exclusion mutuelle.**
+// Ce hook n'empêche pas d'éditer, seulement de committer ; il se contourne
+// (`--no-verify`) ; il ne remplace jamais l'étape d'intégration. Il attrape
+// l'erreur ORDINAIRE, celle qu'on fait en pensant à autre chose.
+//
+// ⚠️ **Il n'est JAMAIS requis.** Son câblage est une config de machine
+// (`core.hooksPath`), absente d'un clone neuf : le critère d'acceptation du
+// cadrage veut qu'un clone neuf développe, teste et commite normalement.
+//
+// ⚠️ **Le script SOURCE est ici ; ce qui s'exécute est son INSTALLATION** (hors
+// arbre de travail, sous le répertoire git commun). Sans quoi son contenu
+// dépendrait de la branche checkoutée. `chantier installer` fait la copie.
+
+import { execFileSync } from 'child_process';
+import { existsSync, readFileSync } from 'fs';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const ROUGE = '\x1b[31m';
+const JAUNE = '\x1b[33m';
+const FIN = '\x1b[0m';
+
+// Un fichier plus gros que ça n'est pas du code. Le plus gros fichier
+// légitime du dépôt est `public/data/monsters.json` (2,2 Mo) — plus du double
+// de marge. Un export de compte SW pèse ~9,5 Mo : c'est la cible.
+const TAILLE_MAX = 5 * 1024 * 1024;
+
+// ⚠️ `spec/outils/optimizer/` AVEC la barre finale : `spec/outils/optimizer.md`
+// est la spec PRODUIT, suivie et publique. Le dossier homonyme est le journal
+// privé. Un motif sans la barre interdirait de committer la spec publique.
+const CHEMINS_PRIVES = [
+  { motif: /(^|\/)spec\/outils\/optimizer\//, quoi: 'journal privé de l’Optimiseur' },
+  { motif: /(^|\/)\.history\//, quoi: 'révisions locales de l’éditeur' },
+  { motif: /(^|\/)\.vscode\//, quoi: 'réglages VS Code propres à la machine' },
+];
+
+function git(...args) {
+  return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
+}
+
+const refus = [];
+const avertissements = [];
+
+/* ---------------------------------------------------- 1. jamais sur `main` */
+
+let branche = '';
+try {
+  branche = git('rev-parse', '--abbrev-ref', 'HEAD');
+} catch {
+  // Dépôt sans commit : rien à protéger, on laisse passer.
+  process.exit(0);
+}
+
+if (branche === 'main' || branche === 'master') {
+  refus.push({
+    titre: `commit direct sur ${branche}`,
+    details: [
+      'Trois incidents déjà. Le travail se fait sur une branche `forge/<sujet>`,',
+      'et `main` ne reçoit que des fusions décidées explicitement.',
+      '',
+      'Créer une branche sans rien perdre :',
+      '  git checkout -b forge/<sujet>',
+    ],
+  });
+} else if (!/^forge\//.test(branche)) {
+  // Les branches `feat/…` et `release/…` existent dans l'historique : on
+  // signale la convention, on ne bloque pas un travail légitime.
+  avertissements.push(
+    `branche « ${branche} » hors convention — le dépôt nomme ses chantiers ` +
+      '`forge/<sujet>` (CLAUDE.md).'
+  );
+}
+
+/* -------------------------------------- 2. aucun chemin privé dans l'index */
+
+let stagés = [];
+try {
+  const sortie = git('diff', '--cached', '--name-only', '--diff-filter=ACMR');
+  stagés = sortie ? sortie.split('\n').filter(Boolean) : [];
+} catch {
+  process.exit(0);
+}
+
+for (const chemin of stagés) {
+  for (const { motif, quoi } of CHEMINS_PRIVES) {
+    if (motif.test(chemin)) {
+      refus.push({
+        titre: `chemin privé dans l’index : ${chemin}`,
+        details: [
+          `Nature : ${quoi}.`,
+          '',
+          "Ces fichiers sont gitignorés pour une raison — protection compétitive",
+          "pour le journal de l'Optimiseur, machine locale pour le reste. Les",
+          "committer les enverrait vers un dépôt PUBLIC.",
+          '',
+          `  git restore --staged "${chemin}"`,
+        ],
+      });
+    }
+  }
+}
+
+/* ------------------------------------------- 3. aucun fichier démesuré */
+
+for (const chemin of stagés) {
+  let taille = 0;
+  try {
+    taille = Number(git('cat-file', '-s', `:${chemin}`));
+  } catch {
+    continue;
+  }
+  if (taille > TAILLE_MAX) {
+    refus.push({
+      titre: `fichier de ${(taille / 1024 / 1024).toFixed(1)} Mo dans l’index : ${chemin}`,
+      details: [
+        `Au-delà de ${TAILLE_MAX / 1024 / 1024} Mo, ce n'est pas du code.`,
+        "Un export de compte SW pèse ~9,5 Mo et n'a rien à faire dans le dépôt.",
+        '',
+        `  git restore --staged "${chemin}"`,
+        '',
+        'Si ce fichier est légitime, ce hook se contourne : `git commit --no-verify`.',
+      ],
+    });
+  }
+}
+
+/* ------------------------------------------ 4. spec-lint sur l'INDEX */
+//
+// ⚠️ Le périmètre a une seule source de vérité, `spec/spec-lint.json`, et
+// c'est `verifier()` qui l'applique — ce hook ne fait que lui SOUMETTRE les
+// `spec/**.md` de l'index et NE GARDER que les erreurs qui les concernent :
+// un fichier hors périmètre (`verifier` ne le voit tout simplement pas) coûte
+// zéro et n'est jamais refusé. Voir spec/chantiers/spec-rangement.md, B.9.
+
+const specsIndex = stagés.filter((c) => /^spec\/.*\.md$/.test(c));
+
+if (specsIndex.length > 0) {
+  const racineDepot = git('rev-parse', '--show-toplevel');
+  const cheminConfig = join(racineDepot, 'spec', 'spec-lint.json');
+  if (existsSync(cheminConfig)) {
+    // ⚠️ Import RELATIF à ce script : en installation, `spec-lint.mjs` et son
+    // parseur (`lib/spec-markdown.mjs`) vivent à côté, sous
+    // `<installation>/scripts/` — voir `chantier.mjs`, `FICHIERS_INSTALLES`.
+    const { verifier } = await import(new URL('../scripts/spec-lint.mjs', import.meta.url));
+    const config = JSON.parse(readFileSync(cheminConfig, 'utf8'));
+    const { erreurs } = verifier(racineDepot, config);
+    const enJeu = erreurs.filter((e) => specsIndex.includes(e.fichier));
+    if (enJeu.length > 0) {
+      refus.push({
+        titre: `spec-lint refuse ${enJeu.length} point(s) sur les specs de l’index`,
+        details: [
+          ...enJeu.map((e) => `${e.fichier}${e.ligne ? `:${e.ligne}` : ''} [${e.regle}] ${e.message}`),
+          '',
+          'Revoir le fichier, puis relire le détail :',
+          '  node scripts/spec-lint.mjs',
+        ],
+      });
+    }
+  }
+}
+
+/* ------------------------------------------------------------- verdict */
+
+for (const a of avertissements) {
+  console.error(`${JAUNE}⚠️  ${a}${FIN}`);
+}
+
+if (refus.length === 0) process.exit(0);
+
+console.error('');
+for (const { titre, details } of refus) {
+  console.error(`${ROUGE}REFUSÉ — ${titre}${FIN}`);
+  for (const d of details) console.error(`  ${d}`);
+  console.error('');
+}
+process.exit(1);

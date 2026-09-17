@@ -61,3 +61,24 @@ spec/outils/optimizer/
 # consultation locale — notes de travail éphémères, pas un artefact du
 # dépôt.
 code-review-*.txt
+
+# Rapport d'audit local, généré pour consultation personnelle.
+AUDIT-AMELIORATIONS.md
+
+# Révisions de l'extension VS Code « Local History » (une copie du fichier à
+# chaque sauvegarde dans l'éditeur).
+# ⚠️ **Ce n'est pas qu'une question de propreté** : les règles ci-dessus sont
+# ANCRÉES à la racine, donc `spec/outils/optimizer/` ne couvre PAS
+# `.history/spec/outils/optimizer/…`. Sans cette ligne, sauvegarder un fichier
+# de la spec privée dans l'éditeur en dépose une copie hors protection, qu'un
+# `git add -A` pousserait vers un dépôt PUBLIC — exactement le contournement
+# contre lequel la règle de protection compétitive existe.
+# ⚠️ Second effet, voulu : `Grep`/ripgrep respectent ce fichier, donc les
+# copies périmées disparaissent aussi des recherches — sinon un agent finit
+# par « corriger » une version morte d'un fichier.
+.history/
+
+# Réglages VS Code propres à la machine (auto-approbation de commandes,
+# chemins locaux) — même logique que `.claude/*` plus haut : l'outillage
+# personnel ne se partage pas.
+.vscode/

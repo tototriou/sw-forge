@@ -6,15 +6,14 @@ import { BaseStats, EffectLine, RuneDetail } from '../src/types';
 import {
   BuildCandidate,
   BuildRequirement,
-  CHECKPOINT_EVERY,
   HalfCombo,
-  NodeBudget,
   buildBuckets,
   candidateMetricTotal,
   diagnoseFeasibility,
   dominatesHalfCombo,
   insertIntoSkyline,
   pairBuckets,
+  poolMinSlotSafe,
   prepareSearch,
   rankBlockingConditions,
   excludedRuneIds,
@@ -546,7 +545,7 @@ export default function testRuneOptim() {
     egal(diag.length, 0, 'sans minStats ni maxStats posés, rien à diagnostiquer');
   }
 
-  titre('Optimizer · palier 2 — condition la plus bloquante (rankBlockingConditions)');
+  titre('Optimizer · palier 2 — DE COMBIEN desserrer (rankBlockingConditions)');
 
   // `poolViolentWill()` : 1 rune/slot, VIT 10 chacune (défaut de `rune()`) —
   // maximum TOTAL de VIT atteignable = 100 (base) + 6×10 = 160. Poser
@@ -554,7 +553,7 @@ export default function testRuneOptim() {
   // `diagnoseFeasibility` plus haut pour ce type de preuve) : TOUS les slots
   // se vident, pas seulement un. atk=50 reste TOUJOURS trivialement
   // satisfait (base ATQ = 100 ≥ 50 sans la moindre contribution de rune) —
-  // jamais bloquant, quel que soit le pool.
+  // jamais bloquant, quel que soit le pool : même desserrée à 0, aucun gain.
   {
     const diag = rankBlockingConditions({
       base: ZERO_BASE,
@@ -565,14 +564,14 @@ export default function testRuneOptim() {
     });
     egal(diag.baselineMinSlot, 0, 'spd=175 dépasse le maximum total atteignable (160) → tous les slots vidés');
     egal(diag.impacts.length, 2, 'deux conditions posées → deux verdicts');
-    egal(diag.impacts[0]?.key, 'spd', 'retirer VIT est le plus impactant → classé en premier');
-    egal(diag.impacts[0]?.poolMinSlotWithout, 1, 'sans la contrainte VIT, le pool complet (1 rune/slot) redevient valide');
-    egal(diag.impacts[1]?.key, 'atk', 'retirer ATQ est classé en second, jamais devant un vrai gain');
-    egal(
-      diag.impacts[1]?.poolMinSlotWithout,
-      0,
-      'ATQ n’était déjà pas bloquant (base 100 ≥ 50 sans la moindre rune) → aucun gain à le retirer'
-    );
+    egal(diag.impacts[0]?.key, 'spd', 'VIT est la moins coûteuse à desserrer → classée en premier');
+    egal(diag.impacts[0]?.threshold, 160, 'seuil : pile le maximum total atteignable (100 base + 6×10)');
+    egal(diag.impacts[0]?.delta, 15, '175 − 160 = 15 : desserrer VIT de 15 suffit');
+    egal(diag.impacts[0]?.poolMinSlotAtThreshold, 1, 'à ce seuil, le pool complet (1 rune/slot) redevient valide');
+    egal(diag.impacts[1]?.key, 'atk', 'ATQ classée en second, sans gain');
+    egal(diag.impacts[1]?.threshold, null, 'ATQ n’était déjà pas bloquant → aucun seuil ne change quoi que ce soit');
+    egal(diag.impacts[1]?.delta, null, 'delta null ssi threshold l’est');
+    egal(diag.impacts[1]?.poolMinSlotAtThreshold, null, 'poolMinSlotAtThreshold null ssi threshold l’est');
   }
 
   // Sans condition posée, rien à classer — un tableau vide, pas une liste
@@ -586,6 +585,129 @@ export default function testRuneOptim() {
       metric: 'eff',
     });
     egal(diag.impacts.length, 0, 'sans condition posée, rien à classer');
+  }
+
+  // ⚠️ algo-verify — dichotomie sur un seuil : oracle indépendant (balayage
+  // exhaustif de CHAQUE valeur entière du domaine via `poolMinSlotSafe`, la
+  // même fonction de pré-filtrage que `rankBlockingConditions` réutilise en
+  // interne — voir son commentaire) pour vérifier DEUX choses séparément :
+  // 1) la monotonicité que la dichotomie SUPPOSE (jamais présumée) tient
+  //    réellement sur ce pool ; 2) le seuil qu'elle trouve est bien le plus
+  //    PROCHE de la valeur demandée parmi tous ceux qui font grandir le pool
+  //    — pas seulement UN seuil qui marche.
+  //
+  // Pool en escalier : 5 variantes par emplacement, VIT ∈ {0,5,10,15,20} —
+  // à minStats.spd = t, une variante v survient au pré-filtrage ssi
+  // 100 (base) + v + 5×20 (les 5 AUTRES emplacements à leur maximum
+  // observé, 20 chacun) ≥ t, soit v ≥ t − 200. Le pool le plus restreint
+  // (identique sur les 6 emplacements) DÉCROÎT par paliers de 5 en 5 à
+  // mesure que t grandit : 5 variantes passent pour t ≤ 200, jusqu'à 0 pour
+  // t > 220 — jamais un seul saut, un vrai test pour une dichotomie.
+  // ⚠️ Chaque variante porte aussi une sous-stat PV anti-corrélée à sa VIT
+  // (v=0 → PV le plus haut, v=20 → PV le plus bas) — sans ça, `pruneDominated`
+  // (même set 'violent' pour les 5, donc comparables) éliminerait purement et
+  // simplement les variantes les moins rapides, qui n'auraient plus rien de
+  // « meilleur » sur AUCUN axe : plus de palier à mesurer, juste un binaire.
+  // PV n'entre dans AUCUN calcul ci-dessous (hors `constrainedKeys`, qui ne
+  // contient que `spd`) — un simple leurre pour rester sur la frontière de
+  // Pareto.
+  {
+    const spdStaircase: RuneDetail[] = [];
+    let id = 1000;
+    for (let slot = 1; slot <= 6; slot++) {
+      for (const v of [0, 5, 10, 15, 20]) {
+        spdStaircase.push({
+          id: id++,
+          slot,
+          set: 'violent',
+          rank: 6,
+          rarity: 5,
+          level: 15,
+          main: main(8, v),
+          subs: [{ code: 1, value: 1000 - v * 10 }],
+        });
+      }
+    }
+    const requirement: BuildRequirement = { sets: ['violent'], minStats: { spd: 225 } };
+
+    // 1) Monotonicité RÉELLEMENT vérifiée sur tout le domaine [0, 225], pas
+    // supposée : chaque pas ne doit jamais faire DÉCROÎTRE le pool quand le
+    // minimum demandé DIMINUE.
+    let previous = -1;
+    for (let t = 225; t >= 0; t--) {
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: t } });
+      ok(size >= previous, `poolMinSlot ne doit jamais décroître quand minStats.spd diminue (t=${t} → ${size}, précédent ${previous})`);
+      previous = size;
+    }
+
+    // 2) Oracle par balayage exhaustif : le plus petit delta (le seuil le
+    // plus PROCHE de 225) qui fait grandir le pool au-delà de la baseline.
+    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, requirement);
+    egal(baseline, 0, 'à spd=225, aucune variante (max 220) ne passe → pool vide');
+    let oracleDelta: number | null = null;
+    for (let delta = 1; delta <= 225; delta++) {
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: 225 - delta } });
+      if (size > baseline) {
+        oracleDelta = delta;
+        break;
+      }
+    }
+    egal(oracleDelta, 5, 'oracle exhaustif : desserrer de 5 (seuil 220) est le premier à faire grandir le pool');
+
+    const diag = rankBlockingConditions({ base: ZERO_BASE, artifacts: [], pool: spdStaircase, requirement, metric: 'eff' });
+    egal(diag.impacts[0]?.delta, oracleDelta, 'la dichotomie trouve EXACTEMENT le même delta que le balayage exhaustif');
+    egal(diag.impacts[0]?.threshold, 220, 'seuil correspondant : 225 − 5');
+    egal(diag.impacts[0]?.poolMinSlotAtThreshold, 1, 'à seuil=220, seule la variante VIT=20 passe sur les 6 emplacements');
+  }
+
+  // Même vérification côté MAXIMUM (ATQ%, code 4 — pourcentage, pas plat) :
+  // à maxStats.atk = t, une variante avec ATQ%=p survit au pré-filtrage ssi
+  // 100 (base) + p (aucun autre emplacement ne peut RETIRER, le pire cas
+  // d'un maximum ignore les 5 autres) ≤ t, soit p ≤ t − 100. Même leurre PV
+  // anti-corrélé que ci-dessus, même raison (rester sur la frontière de
+  // Pareto malgré le même set pour les 5 variantes).
+  {
+    const atkStaircase: RuneDetail[] = [];
+    let id = 2000;
+    for (let slot = 1; slot <= 6; slot++) {
+      for (const p of [0, 5, 10, 15, 20]) {
+        atkStaircase.push({
+          id: id++,
+          slot,
+          set: 'violent',
+          rank: 6,
+          rarity: 5,
+          level: 15,
+          main: main(4, p),
+          subs: [{ code: 1, value: 1000 - p * 10 }],
+        });
+      }
+    }
+    const requirement: BuildRequirement = { sets: ['violent'], minStats: {}, maxStats: { atk: 95 } };
+
+    let previous = -1;
+    for (let t = 95; t <= 200; t++) {
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: t } });
+      ok(size >= previous, `poolMinSlot ne doit jamais décroître quand maxStats.atk augmente (t=${t} → ${size}, précédent ${previous})`);
+      previous = size;
+    }
+
+    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, requirement);
+    egal(baseline, 0, 'à atk≤95, même la variante ATQ%=0 (total 100) dépasse déjà le plafond → pool vide');
+    let oracleDelta: number | null = null;
+    for (let delta = 1; delta <= 105; delta++) {
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: 95 + delta } });
+      if (size > baseline) {
+        oracleDelta = delta;
+        break;
+      }
+    }
+    egal(oracleDelta, 5, 'oracle exhaustif : relever le plafond de 5 (seuil 100) est le premier à faire grandir le pool');
+
+    const diag = rankBlockingConditions({ base: ZERO_BASE, artifacts: [], pool: atkStaircase, requirement, metric: 'eff' });
+    egal(diag.impacts[0]?.delta, oracleDelta, 'la dichotomie trouve EXACTEMENT le même delta que le balayage exhaustif');
+    egal(diag.impacts[0]?.threshold, 100, 'seuil correspondant : 95 + 5');
+    egal(diag.impacts[0]?.poolMinSlotAtThreshold, 1, 'à seuil=100, seule la variante ATQ%=0 passe sur les 6 emplacements');
   }
 
   titre('Optimizer · élagage sûr — faisabilité de set (précoce, avec joker)');
@@ -875,17 +997,22 @@ export default function testRuneOptim() {
   }
 
   {
-    // ⚠️ Escalade du budget de nœuds (`NodeBudget`) — voir spec/outils/
-    // optimizer/ « Suite — escalade automatique du budget de nœuds ». Le
-    // point à vérifier N'EST PAS « le résultat final est correct » (ça,
-    // n'importe quelle implémentation correcte, même une qui relancerait
-    // `pairBuckets` depuis le début à chaque escalade, le donnerait aussi,
-    // l'algorithme étant déterministe) : c'est que `nodeBudget.max` est LU EN
-    // DIRECT à chaque vérification, PAS figé dans une constante locale au
-    // démarrage du générateur. Pool synthétique sans contrainte (3 runes par
-    // slot, aucun set/minimum demandé) pour que bucketsA/bucketsB contiennent
-    // plusieurs combos chacun (jusqu'à 27×27 paires) — assez pour qu'un
-    // plafond initial de 2 soit largement insuffisant sans escalade.
+    // ⚠️ **Aucun plafond de PAIRES** — voir spec/outils/optimizer/pistes.md,
+    // piste 8 (`maxNodes` et son escalade supprimés au profit de la borne
+    // exacte `totalPairs`). Ce bloc vérifiait auparavant que le plafond
+    // mutable était LU EN DIRECT par le générateur ; il vérifie désormais les
+    // deux propriétés qui l'ont remplacé, et qui sont celles dont dépend tout
+    // le reste :
+    //   1. un appel nu à `pairBuckets` (aucun 4ᵉ argument à oublier, il n'en
+    //      existe plus) épuise TOUT l'espace, sans troncature — c'est ce qui
+    //      a cessé de tronquer silencieusement `searchBuilds` et les scripts
+    //      de mesure ;
+    //   2. `totalPairCount` annonce EXACTEMENT ce nombre de paires.
+    // Pool synthétique sans contrainte (6 runes par slot, aucun set/minimum
+    // demandé) pour que bucketsA/bucketsB contiennent plusieurs combos chacun
+    // (6³ × 6³ = 46 656 paires) — bien au-delà de l'ancien plafond initial,
+    // donc un cas où l'ancien comportement TRONQUAIT là où le nouveau va au
+    // bout.
     function drain<T>(gen: Generator<unknown, T, void>): T {
       let step = gen.next();
       while (!step.done) step = gen.next();
@@ -896,8 +1023,8 @@ export default function testRuneOptim() {
     // seraient éliminées par `pruneDominated` (dominance au niveau rune,
     // voir plus haut) avant même d'atteindre `buildBuckets` — s'écroulant à
     // 1 seule rune survivante par emplacement, donc 1 seul demi-build par
-    // moitié, bien trop peu pour dépasser CHECKPOINT_EVERY (500) et
-    // solliciter la moindre escalade. Un code DIFFÉRENT par rune (chacune
+    // moitié, bien trop peu pour que l'espace parcouru soit significatif.
+    // Un code DIFFÉRENT par rune (chacune
     // meilleure sur UN axe, nulle sur les autres) les rend mutuellement
     // INCOMPARABLES : aucune n'est prunée, les 6 survivent par emplacement.
     const MAIN_CODES = [3, 4, 5, 6, 9, 10];
@@ -908,7 +1035,7 @@ export default function testRuneOptim() {
     }
     const requirement: BuildRequirement = { sets: [], minStats: {} };
     const prepared = prepareSearch({ base: ZERO_BASE, artifacts: [], pool, requirement, metric: 'eff' });
-    ok(prepared !== null, 'escalade NodeBudget : préparation réussie sur le pool synthétique');
+    ok(prepared !== null, 'borne exacte : préparation réussie sur le pool synthétique');
     if (prepared) {
       const bucketsA = drain(
         buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)
@@ -917,48 +1044,27 @@ export default function testRuneOptim() {
         buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)
       );
 
-      // Référence : plafond large dès le départ, jamais atteint → exhaustif.
-      // ⚠️ Doit dépasser le nombre RÉEL de paires possibles (6³ × 6³ =
-      // 46 656 ici, aucune contrainte ne les élague — sans contrainte,
-      // presque toutes les paires sont des candidats valides) : un plafond
-      // « à vue de nez » plus petit que ce total tronquerait la référence
-      // elle-même, et le test comparerait alors deux troncatures au lieu
-      // d'une troncature contre une recherche exhaustive.
-      const resultFull = drain(pairBuckets(prepared, bucketsA, bucketsB, { max: 200_000 }));
-      ok(!resultFull.truncated, 'escalade NodeBudget : la référence (grand plafond dès le départ) est exhaustive');
-
-      // Escalade : plafond MINUSCULE au départ, doublé entre chaque point de
-      // passage — jamais un second appel à `pairBuckets`, jamais un
-      // `explored` remis à zéro. ⚠️ Doit démarrer à AU MOINS
-      // `CHECKPOINT_EVERY` : le repli (`explored > nodeBudget.max`) est
-      // vérifié à CHAQUE paire, mais un point de passage (`yield`, seul
-      // moment où CE TEST peut intervenir) n'a lieu que tous les
-      // `CHECKPOINT_EVERY` — un plafond initial plus PETIT que cet
-      // intervalle tronquerait la recherche AVANT le tout premier point de
-      // passage, sans jamais laisser la moindre chance d'escalader (piège
-      // réel, rencontré en écrivant ce test avec un plafond initial de 2).
-      const nodeBudget: NodeBudget = { max: CHECKPOINT_EVERY };
-      const genEscalated = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
-      let step = genEscalated.next();
-      let escalations = 0;
-      while (!step.done) {
-        nodeBudget.max *= 2;
-        escalations++;
-        step = genEscalated.next();
-      }
-      const resultEscalated = step.value;
-      ok(escalations > 1, `escalade NodeBudget : le plafond initial (${CHECKPOINT_EVERY}) a bien dû être relevé plusieurs fois (${escalations} fois)`);
-      ok(!resultEscalated.truncated, 'escalade NodeBudget : la recherche escaladée finit, elle aussi, par devenir exhaustive');
-      egal(resultEscalated.explored, resultFull.explored, "escalade NodeBudget : même nombre de paires explorées qu'avec un grand plafond dès le départ — la mutation de `nodeBudget.max` est bien lue EN DIRECT, pas figée au démarrage du générateur");
-      egal(resultEscalated.candidates.length, resultFull.candidates.length, 'escalade NodeBudget : même nombre de candidats trouvés');
+      // ⚠️ Appel NU : trois arguments, rien d'autre à passer. C'est
+      // exactement ce que fait `searchBuildsSteps` (donc `searchBuilds`, donc
+      // les tests et les scripts de mesure) — et c'est précisément CE
+      // chemin-là qui, tant qu'un 4ᵉ argument existait avec un défaut figé,
+      // s'arrêtait en silence au budget initial. Sur ce pool, 46 656 paires :
+      // largement au-dessus de ce qu'un plafond « à vue de nez » aurait
+      // laissé passer, et pourtant plus rien ne tronque.
+      const resultFull = drain(pairBuckets(prepared, bucketsA, bucketsB));
+      ok(!resultFull.truncated, 'borne exacte : un appel nu à `pairBuckets` épuise tout l’espace, sans troncature');
+      ok(resultFull.explored > 40_000, `borne exacte : l’espace parcouru est bien celui du pool complet (${resultFull.explored} paires, 6³×6³ = 46 656 au maximum structurel)`);
 
       // `totalPairCount` : sur CE pool précis (aucun set ni minimum demandé,
-      // donc `pairFeasibleMin`/`comboAOk`/`quickOk` n'élaguent RIEN de plus
-      // que `satisfiesSets`/le joker) l'espace annoncé doit être EXACT, pas
-      // juste une borne large — une occasion rare de vérifier l'égalité
-      // stricte plutôt que « au moins autant que ».
+      // donc `pairFeasibleMin`/`comboAOk` n'élaguent RIEN de plus que
+      // `satisfiesSets`/le joker) l'espace annoncé est trivialement EXACT.
+      // ⚠️ L'égalité vaut en RÉALITÉ dans tous les cas, minimums compris —
+      // vérifiée là-dessus par `rune-optim-differential.test.ts` sur des
+      // scénarios aléatoires contraints. C'est d'elle que dépend l'absence de
+      // tout plafond de paires (piste 8) : ici on la vérifie sur un espace
+      // dont on connaît la taille théorique à la main.
       const total = totalPairCount(prepared, bucketsA, bucketsB);
-      egal(total, resultFull.explored, "totalPairCount : sur un pool sans minimum ni set demandé (aucun élagage combo par combo au-delà de satisfiesSets), l'espace annoncé correspond EXACTEMENT au nombre de paires réellement explorées par une recherche exhaustive");
+      egal(total, resultFull.explored, "totalPairCount : l'espace annoncé correspond EXACTEMENT au nombre de paires réellement explorées par une recherche exhaustive");
     }
   }
 

@@ -1,0 +1,1007 @@
+// Le harnais de diagnostic — la partie DÉTERMINISTE et rapide, celle qui a
+// sa place dans `npm test` : résolution de configuration, paliers, points
+// d'arrêt, suivi d'une rune, déduction du motif de troncature.
+//
+// ⚠️ **Ce qui est volontairement DEHORS** : tout ce qui exige un compte réel
+// (gitignoré, absent des autres machines) ou une recherche complète de
+// plusieurs minutes. Décision d'intégration hybride du cadrage (§12) — la
+// suite entière doit rester sous la barre des quelques dizaines de secondes.
+//
+// ⚠️ Le harnais est de l'OUTILLAGE : `algo-verify` ne s'y applique pas. Ce
+// qui est vérifié ici, ce n'est pas la justesse d'un algorithme (le moteur a
+// ses propres tests différentiels) mais le fait que le harnais rapporte
+// FIDÈLEMENT ce que le moteur a fait — l'inverse serait un outil qui ment
+// avec l'autorité d'un diagnostic.
+
+import { egal, ok, titre } from './outils';
+import { admissibiliteBuild, executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scripts/lib/diagnosticHarness';
+import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
+import { ConfigHarnais, EtagePopulation } from '../scripts/lib/diagnosticTypes';
+import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
+import {
+  AVERTISSEMENT_LOT,
+  PRESET_LOT,
+  ResultatLot,
+  annoncerLot,
+  rendreRecapLot,
+  resoudreSelectionCas,
+} from '../scripts/lib/diagnosticLot';
+import { CASES } from '../scripts/lib/perfShared';
+import { MAX_COLLECTED, SearchParams, SearchResult, bucketCapFor, combineParallelPairingResults } from '../src/lib/runeBuildOptim';
+
+function configSynthetique(surcharges: Partial<ConfigHarnais> = {}): ConfigHarnais {
+  return {
+    source: {
+      type: 'synthetique',
+      seed: 4242,
+      runesParEmplacement: 8,
+      requirement: { sets: ['violent'], minStats: { spd: 120 } },
+      slotFilterCap: 40,
+    },
+    ...surcharges,
+  };
+}
+
+export default async function testDiagnosticHarness() {
+  titre('Harnais de diagnostic — configuration, paliers et points d’arrêt');
+
+  /* ── §4.4 règle 4 : aucun repli silencieux ─────────────────────────── */
+  let leve = false;
+  try {
+    resoudreConfig({
+      source: {
+        type: 'synthetique',
+        seed: 1,
+        runesParEmplacement: 3,
+        requirement: { sets: [], minStats: {} },
+        // @ts-expect-error — on teste précisément l'absence de ce champ.
+        slotFilterCap: undefined,
+      },
+    });
+  } catch {
+    leve = true;
+  }
+  ok(leve, 'mode synthétique sans slotFilterCap explicite : REFUSÉ, jamais un repli sur le défaut moteur');
+
+  /* ── §4.3 piège A : la cascade est visible ─────────────────────────── */
+  const sansOverride = resoudreConfig(configSynthetique());
+  const bucketCap = sansOverride.parametres.find((p) => p.nom === 'bucketCap')!;
+  egal(bucketCap.valeur, bucketCapFor(40), 'bucketCap suit slotFilterCap');
+  egal(bucketCap.origine, 'dérivé', 'et son origine le DIT — « dérivé », pas une valeur venue de nulle part');
+  egal(bucketCap.derivéDe, 'slotFilterCap', 'de quel paramètre il dérive est nommé');
+
+  const capSurcharge = resoudreConfig(
+    configSynthetique({ overrides: { slotFilterCap: 120 } })
+  );
+  egal(
+    capSurcharge.parametres.find((p) => p.nom === 'bucketCap')!.valeur,
+    bucketCapFor(120),
+    'surcharger slotFilterCap déplace AUSSI bucketCap — deux paramètres bougent, un seul a été touché'
+  );
+
+  /* ── §6 : la table liste les paramètres EFFECTIFS, pas surchargeables ─
+   *
+   * ⚠️ Le §4.4 règle 2 dit « chaque paramètre EFFECTIF affiche son
+   * origine » ; `resoudreConfig` implémentait « chaque paramètre
+   * SURCHARGEABLE ». Un run lancé avec `adaptiveTrancheWeighting` sans le
+   * savoir mesure une autre rétention, et l'aperçu n'en montrait rien. */
+  const nomsParametres = sansOverride.parametres.map((p) => p.nom);
+  for (const attendu of ['objective', 'adaptiveTrancheWeighting', 'metric', 'recherche exhaustive', 'pool (runes)']) {
+    ok(nomsParametres.includes(attendu), `le paramètre EFFECTIF « ${attendu} » figure dans l’aperçu`);
+  }
+  ok(
+    nomsParametres.some((n) => n.startsWith('stats d’objectif')),
+    'les stats d’objectif aussi — le levier de rétention ×4 de filterSlot (24 gardées au lieu de 6)'
+  );
+  // ⚠️ `combosOrderMode` est toujours EFFECTIF (défaut « relevance »), il
+  // n'était listé que lorsqu'il était surchargé.
+  ok(nomsParametres.includes('combosOrderMode'), 'combosOrderMode est listé même sans override — il est toujours effectif');
+
+  // ⚠️ **Ce n'est PAS une infidélité, c'est un angle mort de l'aperçu** :
+  // la valeur appliquée EST celle de la production. Élargir la table ne doit
+  // donc faire basculer aucun verdict de fidélité.
+  ok(
+    !sansOverride.fidelite.divergeDeLaProd,
+    'élargir la table ne fait basculer AUCUN verdict : ces paramètres sont effectifs, pas surchargés'
+  );
+
+  /* ── §4.4 règle 3 : un run surchargé est MARQUÉ ────────────────────── */
+  ok(!sansOverride.fidelite.divergeDeLaProd, 'sans override : la fidélité annonce « conforme à la production »');
+  const surcharge = resoudreConfig(configSynthetique({ overrides: { bucketCap: 500 } }));
+  ok(surcharge.fidelite.divergeDeLaProd, 'avec un override : la fidélité annonce « DIVERGE DE LA PROD »');
+  ok(
+    surcharge.fidelite.ecarts.some((e) => e.nom === 'bucketCap' && e.valeur === 500),
+    'et l’écart nomme le paramètre, sa valeur ET celle de la prod'
+  );
+  // ⚠️ §3.4 — le mot « PLANCHER » a été RETIRÉ : c'était une affirmation de
+  // DIRECTION, et la direction n'est pas établie (la taxe setTimeout(0) va
+  // dans un seul sens, mais JIT, démarrage des workers et sérialisation ne
+  // sont pas comptés). Le test le VERROUILLE plutôt que de le laisser
+  // revenir à la prochaine réécriture de la note.
+  ok(
+    !surcharge.fidelite.noteNavigateur.includes('PLANCHER'),
+    'la note de plateforme n’affirme plus une DIRECTION (« plancher pour le navigateur »)'
+  );
+  ok(
+    surcharge.fidelite.noteNavigateur.includes('NON MESURÉ') &&
+      surcharge.fidelite.noteNavigateur.includes('pas directement transposables'),
+    'elle dit ce qu’elle est : un ordre de grandeur arithmétique, non mesuré, non transposable'
+  );
+
+  // ⚠️ §3.4 — la fidélité porte sur les paramètres SUIVIS, pas sur « la
+  // production ». Ce que la comparaison ne prouve pas voyage avec elle.
+  ok(
+    sansOverride.fidelite.horsPerimetre.some((h) => h.includes('COMPOSITION du pool')) &&
+      sansOverride.fidelite.horsPerimetre.some((h) => h.includes('ABSENT de la table')),
+    'le périmètre de la preuve est rendu : ce que la comparaison des paramètres ne couvre pas'
+  );
+
+  /* ── §3 : les points d'arrêt ───────────────────────────────────────── */
+  const arretDominance = await executerHarnais(configSynthetique({ arretApres: 'dominance' }));
+  egal(
+    arretDominance.preparation.map((t) => t.etage),
+    ['mainstat', 'dominance', 'feasibility', 'filterslot'],
+    'les 4 étages sont OBSERVÉS (ils s’exécutent d’un bloc, pour ~2 s au total)'
+  );
+  ok(arretDominance.demiBuilds == null, 'arrêt à un étage de préparation : AUCUN demi-build construit');
+  ok(arretDominance.completude == null, 'arrêt à un étage de préparation : aucun verdict de complétude');
+
+  const arretDemiBuilds = await executerHarnais(configSynthetique({ arretApres: 'demi-builds' }));
+  ok(arretDemiBuilds.demiBuilds != null, 'arrêt après les demi-builds : les deux moitiés sont là');
+
+  /* ── Les temps SUIVENT le point d'arrêt ────────────────────────────────
+   *
+   * ⚠️ Le harnais rendait `temps` en bloc ou pas du tout, et le retour
+   * anticipé d'un arrêt de préparation tombait AVANT l'agrégation : il
+   * mesurait la préparation — N fois si `--repetitions` le demandait — puis
+   * JETAIT les N relevés. Le nombre existait, il était simplement perdu. */
+  const arretFilterslot = await executerHarnais(configSynthetique({ arretApres: 'filterslot', repetitions: 2 }));
+  ok(arretFilterslot.temps != null, 'un arrêt DANS la préparation rend quand même ses temps');
+  egal(arretFilterslot.temps!.preparation.repetitions, 2, 'et les répétitions demandées y sont honorées, plus jetées');
+  // ⚠️ ABSENTES, jamais des séries à ZÉRO : un lecteur de `--json` lirait
+  // « la construction a coûté 0 ms » sur un run qui n'a rien construit —
+  // un silence remplacé par un mensonge.
+  ok(arretFilterslot.temps!.demiBuilds == null, 'les phases qui n’ont PAS tourné sont absentes, jamais à zéro');
+  ok(arretFilterslot.temps!.demiBuildA == null && arretFilterslot.temps!.demiBuildB == null, 'y compris le coût par fil');
+  ok(arretFilterslot.temps!.appariement == null, 'et l’appariement, qui n’a pas eu lieu non plus');
+  egal(
+    arretFilterslot.temps!.total.min,
+    arretFilterslot.temps!.preparation.min,
+    'sur un arrêt de préparation, le TOTAL vaut la préparation — exact, pas une approximation'
+  );
+
+  // ⚠️ Le PÉRIMÈTRE de la fenêtre `preparation` part avec elle, chiffré. Sans
+  // ce texte, `temps.preparation` se relit comme un `prepareSearch` pur, ce
+  // qu'il n'est pas : le harnais observe la préparation étage par étage et ce
+  // travail tombe DANS son chronomètre. Le dire sans le chiffrer aurait laissé
+  // le lecteur estimer l'écart — ce que le §4.6 refuse déjà pour A₂.
+  const perimetre = arretFilterslot.temps!.perimetrePreparation;
+  ok(perimetre.includes('onStage'), 'la fenêtre `preparation` dit ce qu’elle enclot EN PLUS de la production');
+  ok(perimetre.includes('MESURÉ') && perimetre.includes('%'), 'et l’écart est CHIFFRÉ, jamais laissé à l’estimation du lecteur');
+  ok(
+    perimetre.includes('pas nul') || perimetre.includes('BORNÉ'),
+    'sans jamais conclure « coût nul » : un écart sous le plancher de bruit n’est pas un écart démontré nul'
+  );
+
+  ok(arretDemiBuilds.temps!.demiBuilds != null, 'un arrêt après la construction rend bien, lui, le temps des demi-builds');
+  ok(arretDemiBuilds.temps!.appariement == null, 'mais toujours pas celui de l’appariement, qui n’a pas eu lieu');
+
+  /* ── §4.1 : le taux de rétention de la CONSTRUCTION (A₁) ───────────── */
+  {
+    const ret = arretDemiBuilds.demiBuilds!.retention;
+    const tailles = arretDemiBuilds.preparation.find((t) => t.etage === 'filterslot')!.parEmplacement;
+    // ⚠️ Le produit brut doit venir du pool RÉELLEMENT passé à buildBuckets
+    // — `onStage('filterslot')` reçoit le tableau qui devient
+    // `prepared.filtered`, et les fils reçoivent les slots [0,1,2]/[3,4,5].
+    egal(ret.A.produitBrut, tailles[0] * tailles[1] * tailles[2], 'produit brut A = |f₀|×|f₁|×|f₂| du pool qui entre dans buildBuckets');
+    egal(ret.B.produitBrut, tailles[3] * tailles[4] * tailles[5], 'produit brut B = |f₃|×|f₄|×|f₅|, l’autre moitié');
+    egal(ret.A.retenus, arretDemiBuilds.demiBuilds!.combosA, 'les retenus sont les demi-builds déjà rendus, jamais recomptés');
+    ok(ret.A.taux > 0 && ret.A.taux <= 1, 'le taux est un ratio des deux nombres déjà rendus');
+    ok(
+      ret.A.retenus <= ret.A.produitBrut,
+      'le produit brut est bien un MAJORANT : on ne retient jamais plus de triplets qu’il n’en existe'
+    );
+
+    // ⚠️ **La règle d'interprétation du §4.4 doit être IMPRIMÉE avec le
+    // résultat**, pas seulement écrite dans la spec — sinon un taux voyage
+    // seul et autorise la causalité fausse qu'il ne démontre pas.
+    ok(
+      ret.regleInterpretation.includes('NE PROUVE PAS QUE LA RÉTENTION EXPLIQUE LE TEMPS') &&
+        ret.regleInterpretation.includes('MAJORANT'),
+      'la règle d’interprétation voyage AVEC le taux : corrélation ≠ causalité, et le produit brut est un majorant'
+    );
+    // ⚠️ Vocabulaire IMPOSÉ : ces deux mots suggèrent un jugement que le
+    // nombre ne porte pas. Le test les interdit plutôt que de compter sur
+    // la relecture.
+    ok(
+      !/rendement|efficacité/i.test(ret.regleInterpretation.replace(/« rendement »|« efficacité »/g, '')),
+      'ni « rendement » ni « efficacité » ne servent à NOMMER ce taux (seulement à les écarter explicitement)'
+    );
+  }
+
+  /* ── §4.1 bis : le pic de tas par moitié (A₁ bis, palier LÉGER) ─────
+   *
+   * ⚠️ La TROISIÈME hypothèse de l'asymétrie A/B — A alloue peut-être
+   * davantage et paie plus de ramassage de miettes. Elle manquait aux deux
+   * premières rédactions du cadrage : « deux hypothèses » n'était pas une
+   * énumération close, mais celles auxquelles on avait pensé. */
+  {
+    const mem = arretDemiBuilds.demiBuilds!.memoire;
+    ok(mem.A.heapUsed > 0 && mem.B.heapUsed > 0, 'chaque moitié rend son relevé mémoire de fin de fil');
+    ok(
+      mem.A.heapTotal >= mem.A.heapUsed && mem.B.heapTotal >= mem.B.heapUsed,
+      'heapTotal englobe heapUsed — le relevé vient bien de process.memoryUsage()'
+    );
+    // ⚠️ Le caveat est de la même classe que la note de plateforme sur les
+    // temps : un chiffre de mémoire détaché de cette phrase se relit comme
+    // une prédiction de ce que vit l'utilisateur, ce qu'il n'est pas.
+    ok(
+      mem.caveat.includes('N’EST PAS celui du navigateur') && mem.caveat.includes('DANS LE MÊME PROCESSUS'),
+      'le caveat voyage AVEC la mesure : valable pour comparer A à B ici, jamais comme prédiction navigateur'
+    );
+    ok(
+      mem.caveat.includes('PerformanceObserver'),
+      'et il dit pourquoi le palier COMPLET reste écarté — son coût s’insère dans la phase qu’il mesurerait'
+    );
+  }
+  /* ── §4.2 : la cartographie de l'ÉLAGAGE (A₂, A-INSTRUMENTÉ) ────────
+   *
+   * ⚠️ A₂ est le SEUL instrument du harnais qui se paie : il associe un
+   * horodatage à des événements que la production émet déjà. D'où le
+   * caractère OPT-IN, vérifié en premier — le worker de construction est
+   * PARTAGÉ avec `perf-battery.ts`, l'outil de mesure de référence. */
+  {
+    ok(
+      arretDemiBuilds.demiBuilds!.progression == null,
+      'A₂ est OPT-IN : sans le demander, AUCUN horodatage — perf-battery.ts partage ce worker'
+    );
+
+    const avecA2 = await executerHarnais(configSynthetique({ arretApres: 'demi-builds', horodaterProgression: true }));
+    const prog = avecA2.demiBuilds!.progression!;
+    ok(prog != null, 'demandé, A₂ rend la progression des deux moitiés');
+
+    for (const [moitie, m] of [['A', prog.A], ['B', prog.B]] as const) {
+      const d = m.distribution;
+      // ⚠️ La série homogène compte UN intervalle de moins qu'il n'y a de
+      // runes extérieures : le prologue et le dernier `next()` (dernière
+      // rune + épilogue) sont sortis de la série, jamais versés dedans.
+      egal(
+        d.n,
+        Math.max(0, m.runesExterieures - 1),
+        `moitié ${moitie} : la série homogène exclut le prologue ET l’intervalle « dernière rune + épilogue »`
+      );
+      ok(
+        d.minMs <= d.medianeMs && d.medianeMs <= d.p90Ms && d.p90Ms <= d.maxMs,
+        `moitié ${moitie} : la DISTRIBUTION est rendue entière et ordonnée (min ≤ médiane ≤ p90 ≤ max)`
+      );
+      // ⚠️ L'histogramme n'est pas décoratif : une série BIMODALE ne se voit
+      // dans aucun jeu de quantiles, et c'est elle qui dit *où* l'élagage
+      // coupe. Il doit donc contenir TOUTE la série, sans perte.
+      egal(
+        d.histogramme.reduce((s, c) => s + c.effectif, 0),
+        d.n,
+        `moitié ${moitie} : l’histogramme porte toute la série — c’est la FORME qui porte l’information`
+      );
+    }
+
+    // ⚠️ Le diviseur vient du MÊME tableau `filtered` que le taux de
+    // rétention, donc du pool réellement entré dans `buildBuckets` :
+    // `buildBuckets` boucle sur `slotIdxs[0]` et parcourt [1] et [2].
+    const tailles = avecA2.preparation.find((t) => t.etage === 'filterslot')!.parEmplacement;
+    egal(prog.A.divisionParPairesInterieures.diviseur, tailles[1] * tailles[2], 'le diviseur de A est |f₁|×|f₂|, les emplacements INTÉRIEURS');
+    egal(prog.B.divisionParPairesInterieures.diviseur, tailles[4] * tailles[5], 'le diviseur de B est |f₄|×|f₅|, l’autre moitié');
+
+    /* ⚠️ **Le cœur d'A₂ : ce qu'il N'EST PAS doit finir DANS LA SORTIE.**
+     * L'instrument a été conservé (option b) alors qu'il ne répond pas à la
+     * question qui l'avait fait proposer. Sans cette phrase, un temps élevé
+     * côté A se lit « A est plus lent » — conclusion que ces chiffres
+     * n'autorisent pas. */
+    ok(
+      prog.avertissementPortee.includes('NE DÉPARTAGE PAS L’ASYMÉTRIE A/B') &&
+        prog.avertissementPortee.includes('MÉLANGE'),
+      'A₂ dit lui-même qu’il ne départage PAS l’asymétrie A/B, et pourquoi : le temps par rune MÉLANGE vitesse et élagage'
+    );
+    ok(
+      prog.avertissementPortee.includes('OÙ `buildBuckets` coupe'),
+      'et il dit pour quoi il est là : cartographier l’ÉLAGAGE — une information sur la topologie du pool'
+    );
+    // ⚠️ Le PÉRIMÈTRE DE L'HORLOGE voyage avec la mesure, sans quoi ces
+    // intervalles se relisent comme « le temps passé dans buildBuckets ».
+    ok(
+      prog.perimetreHorloge.includes('suspension et la reprise du générateur') &&
+        prog.perimetreHorloge.includes('n’est donc pas « le temps passé dans buildBuckets »'),
+      'le périmètre de l’horloge est imprimé AVEC la mesure : elle inclut la suspension/reprise du générateur'
+    );
+    ok(
+      prog.perimetreHorloge.includes('PROLOGUE') && prog.perimetreHorloge.includes('épilogue'),
+      'et il nomme les trois périmètres séparés, pour qu’aucun ne soit relu comme les autres'
+    );
+    /* ⚠️ **A₂ est AUTO-VÉRIFIANT** : son coût ne s'argumente pas, il se
+     * mesure — et le chiffre voyage AVEC la fonctionnalité. Le test verrouille
+     * les deux moitiés du résultat : le différentiel (qui ne conclut rien,
+     * sept écarts sur quatorze étant NÉGATIFS, donc sous le plancher de
+     * bruit) ET la borne arithmétique (qui, elle, tranche). */
+    ok(
+      prog.coutInstrumentation.includes('MESURÉ') && prog.coutInstrumentation.includes('plancher de bruit'),
+      'le COÛT de l’instrumentation voyage avec elle, mesuré — A₂ est le seul instrument du harnais qui se paie'
+    );
+    ok(
+      prog.coutInstrumentation.includes('ARITHMÉTIQUE') && prog.coutInstrumentation.includes('47 ns'),
+      'et « invisible sous le bruit » ne passe pas pour « nul » : la borne arithmétique est donnée avec son coût unitaire'
+    );
+
+    // ⚠️ Vocabulaire IMPOSÉ, verrouillé comme celui du taux de rétention :
+    // « temps par triplet énumérable » ne doit servir qu'à être ÉCARTÉ.
+    // Le compteur d'A₂ ne mesure AUCUNE itération interne.
+    const libelle = prog.A.divisionParPairesInterieures.libelle;
+    ok(
+      libelle.includes('DIVISION ARITHMÉTIQUE') && libelle.includes('PAS un temps par triplet énumérable'),
+      'la normalisation par |f₁|×|f₂| est présentée comme une DIVISION, jamais comme un temps par triplet énumérable'
+    );
+    ok(
+      !/temps par triplet énumérable/.test(libelle.replace(/PAS un temps par triplet énumérable/g, '')),
+      'et cette expression ne sert JAMAIS à nommer la valeur — seulement à l’écarter'
+    );
+  }
+
+  ok(arretDemiBuilds.regime != null, 'et le régime est déjà connu — il dépend de totalPairs, donc de la phase B');
+  ok(arretDemiBuilds.completude == null, 'mais aucun appariement n’a eu lieu');
+
+  const complet = await executerHarnais(configSynthetique());
+  ok(complet.completude != null, 'run complet : la complétude est rendue');
+  ok(complet.meilleurs != null, 'run complet : les candidats sont CLASSÉS (jamais candidates[0] brut)');
+
+  /* ── §7.0 : le régime miroite la production ────────────────────────── */
+  egal(
+    complet.regime!.applique,
+    complet.regime!.totalPairs >= complet.regime!.seuil ? 'parallele' : 'sequentiel',
+    'le régime appliqué est celui que la production choisirait pour ce totalPairs'
+  );
+  ok(!complet.regime!.force, 'et il n’est pas « forcé » : le harnais ne choisit pas, il reproduit');
+  ok(
+    complet.regime!.explication.includes('comme la production'),
+    'l’explication dit explicitement que c’est le comportement de production'
+  );
+
+  /* ── §6.2 : jamais un « 0 candidat » nu ────────────────────────────── */
+  const c = complet.completude!;
+  ok(c.complet ? c.motif == null : c.motif === 'maxMs' || c.motif === 'maxCollected', 'la complétude porte un motif, et seulement DEUX sont possibles');
+  ok(
+    !c.complet || c.explored === c.totalPairs || c.incoherence != null,
+    'un run annoncé complet dont explored < totalPairs est SIGNALÉ, jamais laissé à déduire'
+  );
+
+  // Le motif se déduit sans toucher au moteur — règle prouvée dans
+  // `combineParallelPairingResults` : le temps est testé AVANT le push, le
+  // quota APRÈS.
+  const paramsFictifs = { maxCollected: 100 } as SearchParams;
+  const parQuota: SearchResult = { candidates: new Array(100).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
+  const parTemps: SearchResult = { candidates: new Array(37).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
+  egal(evaluerCompletude(parQuota, 1000, paramsFictifs).motif, 'maxCollected', 'plafond de candidats ATTEINT ⇒ motif maxCollected');
+  egal(evaluerCompletude(parTemps, 1000, paramsFictifs).motif, 'maxMs', 'plafond NON atteint alors que tronqué ⇒ motif maxMs (le temps)');
+  // ⚠️ **Régression §3.3** — le harnais rendait `complet: true` EN MÊME
+  // TEMPS qu'une `incoherence` : « la recherche est complète » et « elle n'a
+  // pas exploré tout l'espace » dans le même objet. Un lecteur JSON qui
+  // teste `complet` était trompé. Le verdict PUBLIC doit basculer, pas
+  // seulement porter une note.
+  const completSansTout: SearchResult = { candidates: [], explored: 900, truncated: false, nearMissByCondition: [], globalNearMiss: null };
+  const incoherent = evaluerCompletude(completSansTout, 1000, paramsFictifs);
+  ok(incoherent.incoherence != null, 'annoncé complet mais 900 < 1000 paires : l’incohérence est dite');
+  ok(!incoherent.complet, 'et le VERDICT PUBLIC bascule : jamais `complet: true` en même temps qu’une incohérence');
+  egal(
+    incoherent.motif,
+    undefined,
+    'sans motif FABRIQUÉ : `truncated` est faux, donc la déduction quota/temps ne s’applique pas — on ne sait pas pourquoi'
+  );
+
+  /* ── §3.5 : le quota LOCAL d'un worker n'est pas une troncature ─────
+   *
+   * ⚠️ **Ce cas verrouille une réfutation que DEUX revues externes
+   * consécutives ont attaquée, par deux raisonnements différents** (§9.2 et
+   * §9.3 de harnais-diagnostic-extensions.md) : « le motif de troncature
+   * serait faux en régime parallèle ». Il est correct, parce que
+   * `combineParallelPairingResults` exclut du budget épuisé tout worker dont
+   * `candidates.length === perWorkerMaxCollected`.
+   *
+   * ⚠️ Ce qui est épinglé ici, c'est la **COMPOSITION** — le maillon que les
+   * deux revues visaient. `rune-optim-parallel-truncated.test.ts` (cas 1)
+   * couvre déjà `combineParallelPairingResults` seule ; ce qu'aucun test ne
+   * couvrait, c'est que le résultat fusionné, passé à `evaluerCompletude`,
+   * ne fabrique AUCUN motif `maxMs`. C'est là que la revue plaçait le bug. */
+  {
+    const PAR_WORKER = 25_000;
+    const GLOBAL = 100_000;
+    const candidats = (n: number) => new Array(n).fill({ runeIds: [], stats: [], effTotal: 0 });
+    const parWorker: SearchResult[] = [
+      // Le worker « riche » : quota LOCAL rempli PILE — `pairBuckets` sort
+      // toujours `truncated: true` dans ce cas, ce n'est pas un signe de
+      // recherche globalement incomplète.
+      { candidates: candidats(PAR_WORKER), explored: 500_000, truncated: true, nearMissByCondition: [], globalNearMiss: null },
+      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
+      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
+      { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
+    ];
+    const fusionne = combineParallelPairingResults(parWorker, PAR_WORKER, GLOBAL);
+    egal(fusionne.candidates.length, 40_000, 'le total (40 000) reste très en-deçà du plafond GLOBAL (100 000)');
+    egal(fusionne.truncated, false, 'un worker qui remplit son quota LOCAL ne rend pas la recherche globale tronquée');
+
+    // `explored` égale l'espace : la recherche a tout parcouru.
+    const verdict = evaluerCompletude(fusionne, fusionne.explored, { maxCollected: GLOBAL } as SearchParams);
+    ok(verdict.complet, 'et le harnais la déclare COMPLÈTE — c’est le scénario que deux revues ont cru faux');
+    egal(verdict.motif, undefined, 'AUCUN motif n’est fabriqué : ni maxMs (l’erreur annoncée par la revue), ni maxCollected');
+    ok(verdict.incoherence == null, 'et aucune incohérence : explored couvre tout l’espace');
+  }
+
+  /* ── §6.1 : suivi d'une rune, et ce qu'une disparition SIGNIFIE ────── */
+  const pool = randomPool(mulberry32(7), 5, SETS_JOKER);
+  const etages: EtagePopulation[] = [
+    { nom: 'mainstat', nature: 'contrainte', presents: new Set([1, 2, 3]) },
+    { nom: 'dominance', nature: 'sûr', presents: new Set([1, 2]) },
+    { nom: 'feasibility', nature: 'sûr', presents: new Set([1]) },
+    { nom: 'filterslot', nature: 'mixte', presents: new Set([1]) },
+  ];
+  const survivante = suivrePiece(1, pool, etages);
+  ok(survivante.premiereDisparition == null, 'une rune qui survit à tout n’a pas de « première disparition »');
+
+  const eliminee = suivrePiece(3, pool, etages);
+  egal(eliminee.premiereDisparition?.etage, 'dominance', 'la PREMIÈRE disparition est retenue, pas la dernière');
+  egal(eliminee.premiereDisparition?.nature, 'sûr', 'avec la NATURE de l’étage');
+  ok(
+    eliminee.premiereDisparition!.signification.includes('PROUVÉ'),
+    'un élagage sûr le dit — « prouvé », jamais un vague « éliminée »'
+  );
+
+  // ⚠️ `filterSlot` est MIXTE : le dire est le cœur du §6.1. Une rune qui y
+  // disparaît ne peut PAS être déclarée inutile.
+  const etagesFiltrees: EtagePopulation[] = [
+    { nom: 'mainstat', nature: 'contrainte', presents: new Set([1]) },
+    { nom: 'dominance', nature: 'sûr', presents: new Set([1]) },
+    { nom: 'feasibility', nature: 'sûr', presents: new Set([1]) },
+    { nom: 'filterslot', nature: 'mixte', presents: new Set<number>() },
+  ];
+  const parFiltrage = suivrePiece(1, pool, etagesFiltrees);
+  ok(
+    parFiltrage.premiereDisparition!.signification.includes('AMBIGU'),
+    'une disparition au pré-filtrage est annoncée AMBIGUË, jamais comme un verdict'
+  );
+
+  // Un id absent du pool n'est pas « écarté au premier étage ».
+  const inconnue = suivrePiece(999999, pool, etages);
+  ok(!inconnue.presenteAuDepart, 'une rune absente du pool est signalée comme telle');
+  ok(inconnue.premiereDisparition == null, 'et n’est PAS présentée comme éliminée par un étage');
+
+  /* ── §6.4 bis : aucun temps livré nu ───────────────────────────────── */
+  const uneSeule = serie([12]);
+  ok(uneSeule.avertissement != null, 'une seule répétition : la mesure est MARQUÉE comme non comparative');
+  const plusieurs = serie([10, 12, 11, 40]);
+  egal(plusieurs.min, 10, 'le MINIMUM est l’estimateur retenu (le bruit ne peut qu’ajouter du temps)');
+  egal(plusieurs.mediane, 11.5, 'la médiane est rendue à côté');
+  egal(Math.round(plusieurs.dispersionPct), 300, 'et la DISPERSION, qui dit si un écart veut dire quelque chose');
+  ok(plusieurs.avertissement == null, 'au-delà d’une répétition, plus d’avertissement');
+
+  // ⚠️ §6.4 bis niveau 2 : le harnais ne sait pas entrelacer deux conditions.
+  // Il doit donc DIRE que comparer deux runs séparés est le protocole en
+  // blocs — un biais qui se reproduit, donc qui passe pour un signal.
+  ok(
+    complet.temps!.avertissementComparaison.includes('BLOCS') &&
+      complet.temps!.avertissementComparaison.includes('perf-battery-compare'),
+    'toute mesure de temps porte le garde-fou contre la comparaison entre deux runs séparés'
+  );
+
+  ok(complet.temps != null, 'un run rend ses temps PAR PHASE (le budget maxMs court depuis la préparation)');
+  egal(complet.temps!.preparation.repetitions, 1, 'une répétition par défaut');
+  const repete = await executerHarnais(configSynthetique({ repetitions: 3 }));
+  egal(repete.temps!.total.repetitions, 3, 'et le nombre de répétitions est réglable');
+  ok(repete.temps!.total.avertissement == null, '3 répétitions : la dispersion devient exploitable');
+
+  /* ── Les bornes de faisabilité sont RENDUES ──────────────────────── */
+  // ⚠️ Sans elles, « aucune rune éliminée » est indistinguable de « la
+  // correction guaranteedMin/artifactBounds n'est pas active » — deux
+  // situations qui produisent exactement le même nombre.
+  egal(
+    complet.bornesFaisabilite.map((b) => b.stat),
+    ['spd'],
+    'les bornes sont rendues pour chaque stat CONTRAINTE (ici le seul minimum posé)'
+  );
+  const borne = complet.bornesFaisabilite[0];
+  ok(
+    borne.guaranteedMin.pct >= borne.guaranteed.pct,
+    'guaranteedMin est au moins aussi généreux que guaranteed (il inclut la marge d’activation)'
+  );
+  ok(borne.artFlatMax >= borne.artFlatMin, 'la borne HAUTE d’artéfact est au moins la borne basse');
+
+  /* ── §6.3 : preuve et indice, jamais confondus ─────────────────────── */
+  // Une preuve est rendue pour chaque condition posée, même quand tout va
+  // bien — c'est ce qui permet de lire un « 0 candidat » sans deviner.
+  egal(
+    complet.faisabilite.preuves.map((p) => [p.stat, p.borne]),
+    [['spd', 'min']],
+    'une PREUVE de faisabilité est rendue pour chaque condition posée'
+  );
+  ok(complet.faisabilite.preuves[0].satisfiable, 'ici rien ne prouve l’impossibilité');
+  // ⚠️ Économie assumée : les blocages coûtent un pré-filtrage PAR condition.
+  ok(complet.faisabilite.blocages == null, 'les blocages ne sont PAS calculés quand la recherche a abouti');
+
+  // Condition mathématiquement hors de portée : la preuve doit le DIRE, et
+  // les blocages doivent alors être calculés d’office.
+  const impossible = await executerHarnais(
+    configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 4242,
+        runesParEmplacement: 8,
+        requirement: { sets: [], minStats: { spd: 9999 } },
+        slotFilterCap: 40,
+      },
+    })
+  );
+  const preuve = impossible.faisabilite.preuves.find((p) => p.stat === 'spd')!;
+  ok(!preuve.satisfiable, 'une condition hors de portée est PROUVÉE impossible');
+  ok(preuve.atteignable < preuve.demande, 'et la borne atteignable est rendue, pas seulement le verdict');
+  ok(impossible.faisabilite.blocages != null, 'une configuration sans issue déclenche le classement des blocages');
+  ok(
+    impossible.faisabilite.blocages!.coutMs >= 0,
+    'dont le COÛT est rendu — un diagnostic dont on ignore le prix finit lancé au mauvais moment'
+  );
+
+  /* ── §6.2 : une configuration invalide NOMME sa cause ──────────────── */
+  const verrouAbsent = await executerHarnais(
+    configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 4242,
+        runesParEmplacement: 8,
+        requirement: { sets: [], minStats: {}, lockedRunes: { 2: 999999 } },
+        slotFilterCap: 40,
+      },
+    })
+  );
+  ok(
+    (verrouAbsent.completude!.configurationInvalide ?? "").includes('IMPOSÉE #999999 est absente du pool'),
+    'une rune imposée introuvable est nommée comme la cause — jamais « emplacement vide » tout court'
+  );
+
+  // ⚠️ Le piège voisin : la rune existe, mais à un AUTRE emplacement. Un
+  // verrou ne déplace pas une rune, il vide l’emplacement.
+  const verrouMauvaisSlot = await executerHarnais(
+    configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 4242,
+        runesParEmplacement: 8,
+        requirement: { sets: [], minStats: {}, lockedRunes: { 2: 1 } },
+        slotFilterCap: 40,
+      },
+    })
+  );
+  ok(
+    (verrouMauvaisSlot.completude!.configurationInvalide ?? "").includes('en réalité à l’emplacement 1') ||
+      (verrouMauvaisSlot.completude!.configurationInvalide ?? "").includes("en réalité à l'emplacement 1"),
+    'une rune imposée au mauvais emplacement est distinguée d’une rune absente'
+  );
+
+  /* ── §5.1, ÉTAGE 0 : l'ADMISSIBILITÉ d'un BUILD COMPLET à l'entrée ──
+   *
+   * ⚠️ C'est l'étage qui empêche d'attribuer au moteur une absence causée
+   * par l'ENTRÉE. Ce qui est vérifié ici : chaque refus NOMME sa cause, et
+   * aucune règle de compatibilité n'est recopiée (l'admissibilité par
+   * emplacement vient de `mainStatFilteredBySlot`, les sets d'`activeSets` +
+   * `missingSets` — les fonctions de production elles-mêmes). */
+  {
+    const sansConditions = resoudreConfig(
+      configSynthetique({
+        source: {
+          type: 'synthetique',
+          seed: 4242,
+          runesParEmplacement: 8,
+          requirement: { sets: [], minStats: {} },
+          slotFilterCap: 40,
+        },
+      })
+    );
+    const poolCible = sansConditions.params.pool;
+    // Un build STRUCTURELLEMENT valide : une rune par emplacement.
+    const build = [1, 2, 3, 4, 5, 6].map((slot) => poolCible.find((r) => r.slot === slot)!.id);
+
+    const admis = admissibiliteBuild(build, sansConditions.params);
+    ok(admis.admissible, 'un build d’une rune par emplacement, sans contrainte, est ADMISSIBLE à l’entrée');
+    egal(admis.motifs, [], 'et il ne porte AUCUN motif de refus');
+    egal(admis.parRune.length, 6, 'chaque rune est jugée individuellement, pas le build en bloc');
+
+    // Une rune qui n'existe pas : ce n'est PAS « écartée par un étage ».
+    const inconnue = admissibiliteBuild([999999, ...build.slice(1)], sansConditions.params);
+    ok(!inconnue.admissible, 'une rune absente du pool rend le build inadmissible');
+    egal(inconnue.parRune[0].presenteDansLePool, false, 'et elle est marquée comme absente du POOL');
+    egal(inconnue.parRune[0].admiseAuDepart, null, 'son admissibilité par emplacement ne se pose même pas');
+    ok(
+      inconnue.motifs.some((m) => m.includes('exclue par ailleurs')),
+      'le motif dit qu’elle est exclue ou venue d’un autre compte — jamais un verdict sur les builds'
+    );
+
+    // Deux runes du même emplacement ne forment pas un build.
+    const deuxFoisSlot1 = poolCible.filter((r) => r.slot === 1).slice(0, 2).map((r) => r.id);
+    const casse = admissibiliteBuild([...deuxFoisSlot1, ...build.slice(2)], sansConditions.params);
+    ok(!casse.admissible, 'deux runes du même emplacement rendent le build inadmissible');
+    ok(casse.structure != null, 'et c’est la STRUCTURE qui est mise en cause, pas un étage d’élagage');
+    ok(
+      casse.structure!.motif.includes('six emplacements'),
+      'le motif nomme la règle enfreinte — six runes, six emplacements'
+    );
+
+    // ⚠️ Un VERROU qui impose une AUTRE rune : la cause n'est pas la rune
+    // cible, c'est celle qu'on lui a préférée. Les deux se disent
+    // différemment.
+    const autreSlot2 = poolCible.find((r) => r.slot === 2 && r.id !== build[1])!;
+    const avecVerrou = resoudreConfig(
+      configSynthetique({
+        source: {
+          type: 'synthetique',
+          seed: 4242,
+          runesParEmplacement: 8,
+          requirement: { sets: [], minStats: {}, lockedRunes: { 2: autreSlot2.id } },
+          slotFilterCap: 40,
+        },
+      })
+    );
+    const verrouille = admissibiliteBuild(build, avecVerrou.params);
+    ok(!verrouille.admissible, 'une rune écartée par le verrou de son emplacement rend le build inadmissible');
+    ok(
+      verrouille.parRune[1].motif!.includes('VERROU'),
+      'et le motif nomme le VERROU, pas « la statistique principale » — deux règles distinctes'
+    );
+    ok(
+      verrouille.parRune[1].motif!.includes(`#${autreSlot2.id}`),
+      'en nommant la rune que le verrou impose à sa place'
+    );
+
+    // ⚠️ La statistique principale IMPOSÉE : l'autre règle que
+    // `mainStatFilteredBySlot` applique, et elle ne se confond pas avec la
+    // précédente.
+    const rune2 = poolCible.find((r) => r.id === build[1])!;
+    const autreCode = rune2.main.code === 8 ? 9 : 8;
+    const avecPrincipale = resoudreConfig(
+      configSynthetique({
+        source: {
+          type: 'synthetique',
+          seed: 4242,
+          runesParEmplacement: 8,
+          requirement: { sets: [], minStats: {}, mainStats: { 2: [autreCode] } },
+          slotFilterCap: 40,
+        },
+      })
+    );
+    const horsPrincipale = admissibiliteBuild(build, avecPrincipale.params);
+    ok(!horsPrincipale.admissible, 'une rune qui ne porte pas la principale imposée rend le build inadmissible');
+    ok(
+      horsPrincipale.parRune[1].motif!.includes('principale IMPOSÉE'),
+      'et le motif nomme la principale imposée, avec celle que la rune porte réellement'
+    );
+
+    // ⚠️ Le combo de SETS, sur les SIX vraies runes — le test exact de
+    // `pairBuckets`, jamais le pré-filtre optimiste des compartiments.
+    const avecSets = resoudreConfig(
+      configSynthetique({
+        source: {
+          type: 'synthetique',
+          seed: 4242,
+          runesParEmplacement: 8,
+          requirement: { sets: ['violent'], minStats: {} },
+          slotFilterCap: 40,
+        },
+      })
+    );
+    const surSets = admissibiliteBuild(build, avecSets.params);
+    egal(surSets.sets!.demandes, ['violent'], 'le combo DEMANDÉ est rendu');
+    ok(surSets.sets!.actifs != null, 'à côté des sets que les six runes activent RÉELLEMENT');
+    egal(
+      surSets.admissible,
+      surSets.sets!.manquants.length === 0,
+      'et le verdict d’admissibilité suit exactement ce que missingSets répond'
+    );
+  }
+
+  /* ── §5.1, ÉTAGES 4-5 : la PAIRE a-t-elle été explorée, et à quel RANG ?
+   *
+   * ⚠️ C'est ici que se joue l'incident fondateur d'`algo-verify` : un
+   * diagnostic avait conclu « le moteur manque un build meilleur » en lisant
+   * `candidates[0]`, le build cherché étant au rang 6. Ce qui est vérifié :
+   * le rang vient du classement ENTIER, jamais du top rendu. */
+  {
+    const base = configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 4242,
+        runesParEmplacement: 8,
+        requirement: { sets: [], minStats: { spd: 100 } },
+        slotFilterCap: 40,
+      },
+    });
+    const sansCible = await executerHarnais(base);
+    ok(sansCible.meilleurs!.length > 2, 'le run de référence rend bien un classement');
+    ok(sansCible.appariementBuildCible == null, 'sans build cible suivi, aucun étage 4-5 n’est produit');
+
+    // La cible : le 3ᵉ du classement — un build dont on SAIT le rang.
+    const troisieme = sansCible.meilleurs![2].runeIds;
+    const avecCible = await executerHarnais({ ...base, suivre: troisieme });
+    const ap = avecCible.appariementBuildCible!;
+    ok(ap != null, 'six runes suivies formant les deux moitiés déclenchent les étages 4-5');
+    egal(ap.arreteA, 'explorée', 'aucun prédicat d’élagage n’écarte la paire d’un build que la recherche a trouvé');
+    ok(ap.presenteDansLesCandidats, 'et la cible est bien parmi les candidats collectés');
+    egal(ap.rang!.rang, 3, 'son RANG est exactement celui qu’elle occupe dans le classement');
+    ok(ap.rang!.dansLeTopRendu, 'un rang 3 est dans le top rendu');
+    // ⚠️ LA vérification qui compte : si le rang était pris sur le top rendu
+    // (déjà coupé), la population VAUDRAIT la taille du top. Un build au
+    // rang 250 serait alors indistinguable d'un build ABSENT.
+    ok(
+      ap.rang!.population > ap.rang!.tailleTopRendu,
+      'le rang porte sur le classement ENTIER — la population dépasse largement le top rendu'
+    );
+    ok(
+      ap.rang!.population > avecCible.meilleurs!.length,
+      'et elle dépasse le nombre de builds effectivement affichés'
+    );
+    egal(
+      ap.rang!.dansLeTopRendu,
+      ap.rang!.rang <= ap.rang!.tailleTopRendu,
+      '« dans le top rendu » se déduit du rang et de la taille du top, jamais d’un second comptage'
+    );
+    ok(ap.compartimentA != null && ap.compartimentB != null, 'les deux compartiments de la paire sont nommés');
+
+    // ⚠️ Le cas où la paire est coupée AVANT d'être explorée. Ce build-ci
+    // (seed 4242, 8 runes/emplacement) porte une rune Intangible à
+    // l'emplacement 3 ET une à l'emplacement 6 : deux jokers ne sont pas
+    // sertissables ensemble sur un monstre. ⚠️ La cible est DURE, jamais
+    // cherchée par un filtre sous condition — un test qui ne s'exécute que
+    // si le pool s'y prête ne vérifie rien les jours où il ne s'y prête pas.
+    //
+    // ⚠️ Cette distinction n'existe QUE grâce aux trois primitives exportées
+    // (§11.2) : sans elles, ce build serait « perdu à l'appariement » sans
+    // qu'on puisse dire pourquoi — alors que la paire n'a JAMAIS pu produire
+    // quoi que ce soit.
+    const surJoker = await executerHarnais({ ...base, suivre: [1, 9, 17, 25, 33, 41] });
+    const apJoker = surJoker.appariementBuildCible!;
+    ok(apJoker.compartimentA != null && apJoker.compartimentB != null, 'les deux moitiés du build à deux jokers sont bien dans des compartiments');
+    egal(apJoker.arreteA, 'joker', 'et la paire est coupée à la règle du joker, avant toute exploration');
+    ok(
+      apJoker.explication.includes('SÛR'),
+      'l’étage est annoncé comme un élagage SÛR — la paire ne pouvait rien produire, ce n’est PAS une perte'
+    );
+    ok(!apJoker.presenteDansLesCandidats, 'un build non équipable en jeu n’est évidemment pas dans les candidats');
+    ok(apJoker.rang == null, 'et il n’a aucun rang — rien n’est fabriqué pour un build que la recherche n’a pas rendu');
+
+    /* ── §5.1 : LE VERDICT STRUCTURÉ, et il ne se lit JAMAIS sans la
+     * complétude ─────────────────────────────────────────────────────── */
+    const vPresent = avecCible.verdictBuildCible!;
+    egal(vPresent.verdict, 'PRÉSENT_DANS_LE_TOP_N', 'un build trouvé au rang 3 est PRÉSENT_DANS_LE_TOP_N');
+    ok(vPresent.explication.includes('rang'), 'le verdict dit à quel RANG, pas seulement « présent »');
+
+    const vJoker = surJoker.verdictBuildCible!;
+    egal(vJoker.verdict, 'PERDUE_À_L_APPARIEMENT', 'une paire coupée à un étage d’appariement rend PERDUE_À_L_APPARIEMENT');
+    ok(
+      vJoker.explication.includes('joker'),
+      '⚠️ et l’ÉTAGE est nommé — c’est exactement la distinction que les trois exports du §11.2 rendent possible'
+    );
+    ok(
+      vJoker.avertissementTroncature.includes('élagage SÛR'),
+      'la conséquence est celle du verdict rendu : un élagage sûr ne craint pas la troncature'
+    );
+
+    // ⚠️ **LE PIÈGE, VERROUILLÉ.** Le verdict ne doit JAMAIS voyager sans sa
+    // complétude : un lecteur de `--json` qui extrait le seul champ
+    // `verdictBuildCible` doit emporter la troncature avec lui, sinon cette
+    // fonctionnalité recrée l’erreur qu’elle existe pour empêcher.
+    for (const [nom, v] of [['présent', vPresent], ['joker', vJoker]] as const) {
+      ok(v.completude != null, `le verdict « ${nom} » porte sa COMPLÉTUDE, jamais rendu seul`);
+      ok(v.avertissementTroncature.length > 0, `et un avertissement de troncature non vide (« ${nom} »)`);
+      ok(
+        v.avertissementTroncature.includes('explored') && v.avertissementTroncature.includes('totalPairs'),
+        `les chiffres explored / totalPairs partent AVEC le verdict « ${nom} », pas seulement dans une section plus bas`
+      );
+      egal(v.completude!.complet, avecCible.completude!.complet, `et c’est bien la complétude DU RUN (« ${nom} »)`);
+    }
+  }
+
+  /* ── §5.1 : PRÉSENT_HORS_TOP_N sur un run COMPLET — l'incident fondateur
+   *
+   * ⚠️ C'est LE cas que le n° 6 existe pour rendre lisible : la cible sort au
+   * rang 2 915 sur 4 096, donc INVISIBLE dans un top-20. Un diagnostic qui
+   * lirait `candidates[0]` — ou même les vingt premiers — conclurait que « le
+   * moteur manque le build ». Et le run étant COMPLET, aucune troncature ne
+   * peut servir d'excuse : le verdict est un résultat, pas une hypothèse. */
+  {
+    const petit = configSynthetique({
+      source: {
+        type: 'synthetique',
+        seed: 7,
+        runesParEmplacement: 4,
+        requirement: { sets: [], minStats: { spd: 80 } },
+        slotFilterCap: 40,
+      },
+      suivre: [1, 5, 9, 13, 17, 21],
+    });
+    const r = await executerHarnais(petit);
+    const v = r.verdictBuildCible!;
+    ok(r.completude!.complet, 'le run de référence est COMPLET — c’est ce qui rend le verdict concluant');
+    egal(v.verdict, 'PRÉSENT_HORS_TOP_N', 'une cible trouvée au-delà du top rendu est PRÉSENT_HORS_TOP_N, jamais « absente »');
+    const rang = r.appariementBuildCible!.rang!;
+    ok(!rang.dansLeTopRendu, 'et son rang est bien hors du top rendu');
+    ok(
+      rang.rang > rang.tailleTopRendu && rang.rang < rang.population,
+      'le rang est strictement entre la taille du top et la population — la cible EST là, simplement pas affichée'
+    );
+    ok(
+      v.explication.includes('invisible dans un top-N'),
+      'l’explication NOMME le piège : c’est la situation où un diagnostic conclut à tort à un build manquant'
+    );
+    ok(
+      v.avertissementTroncature.startsWith('✅ Run COMPLET'),
+      'et sur un run complet, la complétude le DIT — le rang porte sur la population entière'
+    );
+
+    // ⚠️ NON_OBSERVABLE n'est pas un aveu de faiblesse : c'est la valeur qui
+    // EMPÊCHE le harnais de fabriquer une cause. Un arrêt avant la
+    // construction ne doit produire aucune autre valeur.
+    const arrete = await executerHarnais({ ...petit, arretApres: 'filterslot' });
+    egal(
+      arrete.verdictBuildCible!.verdict,
+      'NON_OBSERVABLE',
+      'un arrêt avant la construction rend NON_OBSERVABLE — jamais une cause plausible à la place'
+    );
+    ok(
+      arrete.verdictBuildCible!.completude == null,
+      'sans appariement, il n’y a pas de complétude — et rien n’en est inventé'
+    );
+    ok(
+      arrete.verdictBuildCible!.avertissementTroncature.includes('ne dit RIEN'),
+      'l’avertissement le dit en toutes lettres plutôt que de laisser le champ vide'
+    );
+
+    // ⚠️ L'étage 0 passe AVANT tout le reste : un build inadmissible à
+    // l'entrée ne se voit jamais attribuer une cause algorithmique.
+    const inadmissible = await executerHarnais({
+      ...petit,
+      source: {
+        type: 'synthetique',
+        seed: 7,
+        runesParEmplacement: 4,
+        requirement: { sets: ['violent'], minStats: {} },
+        slotFilterCap: 40,
+      },
+    });
+    // ⚠️ Assertion INCONDITIONNELLE : ce build (seed 7, 4 runes/emplacement)
+    // active « fight » et jamais « violent ». Un test sous condition ne
+    // vérifierait rien les jours où la condition est fausse.
+    const vi = inadmissible.verdictBuildCible!;
+    egal(vi.verdict, 'ENTRÉE_INADMISSIBLE', 'l’étage 0 l’emporte sur tous les étages d’élagage');
+    ok(
+      vi.explication.includes('manque violent'),
+      'et il nomme le combo que les six runes n’activent pas — jamais un « inadmissible » nu'
+    );
+    ok(
+      vi.avertissementTroncature.includes('dans l’ENTRÉE, pas dans le moteur'),
+      'la conséquence le dit : aucun réglage d’élagage n’y changerait quoi que ce soit'
+    );
+  }
+
+  /* ── §4.2 : la provenance du pool figure TOUJOURS dans le résultat ── */
+  egal(complet.source, 'synthetique', 'la source du pool est rendue');
+  ok(complet.descriptionSource.includes('seed'), 'et sa description permet de rejouer le run à l’identique');
+
+  /* ── §5.3 : la SÉLECTION de cas d'un lot ───────────────────────────
+   *
+   * ⚠️ Ce qui est vérifié ici est la SÉLECTION, jamais l'exécution : les
+   * deux exports de compte sont gitignorés, donc absents des autres
+   * machines, et un test qui les lirait échouerait ailleurs pour une raison
+   * qui n'a rien à voir avec le harnais. `resoudreSelectionCas` ne touche
+   * qu'aux LIBELLÉS de `CASES` — elle est donc testable partout. */
+  egal(resoudreSelectionCas('tous'), CASES.map((_, i) => i), '--cas=tous rend les 7 cas connus');
+  egal(resoudreSelectionCas('3'), [3], 'un nombre est un INDICE');
+  egal(
+    resoudreSelectionCas('ciri'),
+    [CASES.findIndex((c) => c.label.startsWith('Ciri'))],
+    'un fragment de libellé désigne un cas — la correspondance par nom est TOLÉRANTE'
+  );
+  egal(
+    resoudreSelectionCas('RAGE+BLADE'),
+    [CASES.findIndex((c) => c.label.includes('Rage+Blade'))],
+    'casse et ponctuation sont mises à plat : « RAGE+BLADE » trouve « Rage+Blade »'
+  );
+
+  // ⚠️ Trois refus, et chacun NOMME ce qui était attendu (§4.4 règle 4).
+  // Le plus important est l'AMBIGUÏTÉ : « lushen » désigne quatre cas, et en
+  // choisir un serait exactement le repli silencieux qu'on interdit.
+  const refuse = (brut: string): string => {
+    try {
+      resoudreSelectionCas(brut);
+      return '';
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  };
+  ok(refuse('lushen').includes('AMBIGU'), 'un nom qui désigne PLUSIEURS cas est refusé, jamais résolu au premier');
+  ok(
+    CASES.filter((c) => c.label.toLowerCase().includes('lushen')).every((c) => refuse('lushen').includes(c.label)),
+    'et le refus liste les cas concernés, pour que la levée d’ambiguïté soit immédiate'
+  );
+  const inconnu = refuse('camilla');
+  ok(inconnu.includes('aucun cas connu'), 'un nom inconnu est refusé');
+  ok(
+    CASES.every((c) => inconnu.includes(c.label)),
+    'et il liste les 7 libellés — un refus qui ne dit pas ce qui existe oblige à aller lire le code'
+  );
+  ok(refuse('7').includes('indice entre 0 et 6'), 'un indice hors bornes est refusé AVANT de produire un CASES[7] indéfini');
+  // ⚠️ Le piège : « -1 » mis à plat devient « 1 », fragment de cinq libellés
+  // (d15, d10, d11…). Sans reconnaissance du SIGNE, il aurait été refusé
+  // pour AMBIGUÏTÉ — un motif qui n’a rien à voir avec ce qui a été tapé.
+  ok(refuse('-1').includes('indice entre 0 et 6'), '« -1 » est refusé comme INDICE hors bornes, pas comme nom ambigu');
+
+  /* ── Le coût d'un lot se dit AVANT d'être payé ───────────────────── */
+  const annonce = annoncerLot([0, 1, 2], { arretApres: 'demi-builds', repetitions: 2 });
+  ok(annonce.includes('3 cas sur 7'), 'l’annonce dit COMBIEN de cas vont tourner');
+  ok(annonce.includes('demi-builds'), 'et jusqu’où chacun ira');
+  ok(annonce.includes('6 recherche(s) au total'), 'et le total effectif, répétitions comprises');
+  ok(annonce.includes(PRESET_LOT), 'et sous quel préréglage — « moyen », le défaut de l’écran, jamais un choix caché');
+  ok(
+    CASES.slice(0, 3).every((c) => annonce.includes(c.label)),
+    'les cas sont NOMMÉS : un lot qu’on relit avant de le lancer doit dire lesquels, pas seulement combien'
+  );
+  ok(
+    annoncerLot([0], { arretApres: 'classement' }).includes('COÛT'),
+    'un arrêt à « classement » annonce son coût — c’est le run complet, des minutes par cas'
+  );
+
+  /* ── §5.3 : la RESTITUTION du lot, et son garde-fou ────────────────
+   *
+   * ⚠️ Le lot est monté À LA MAIN à partir de deux runs SYNTHÉTIQUES : ce
+   * qui est vérifié ici est la mise en forme et le garde-fou, pas
+   * l'orchestration — cette dernière lirait les exports de compte, qui sont
+   * gitignorés. `rendreRecapLot` ne regarde de toute façon que des
+   * `ResultatHarnais`, quelle que soit leur provenance. */
+  const lotFactice: ResultatLot = {
+    condition: {
+      arretApres: 'classement',
+      repetitions: 1,
+      preset: PRESET_LOT,
+      overrides: {},
+      horodaterProgression: false,
+    },
+    lignes: [
+      { index: 0, libelle: 'Cas factice A', resultat: complet },
+      { index: 1, libelle: 'Cas factice B', resultat: repete },
+    ],
+    avertissementLot: AVERTISSEMENT_LOT,
+  };
+  const recap = rendreRecapLot(lotFactice);
+
+  // ⚠️ LE point du chantier. Une sortie qui aligne des cas en colonnes
+  // RESSEMBLE à une comparaison ; si elle ne dit pas laquelle des deux choses
+  // elle autorise (comparer deux CAS, oui — comparer deux CONDITIONS, non),
+  // elle sera lue comme autorisant l'autre.
+  ok(recap.includes('N’AUTORISE PAS'), 'le récapitulatif dit ce qu’un lot n’autorise PAS');
+  ok(
+    recap.includes('deux CAS') && recap.includes('deux CONDITIONS'),
+    'et il distingue explicitement comparer deux CAS (légitime) de comparer deux CONDITIONS (non)'
+  );
+  ok(recap.includes('ENTRELACER'), 'en nommant ce qui manquerait pour l’autre : l’entrelacement (niveau 2 du §6.4 bis)');
+  ok(
+    recap.indexOf(AVERTISSEMENT_LOT) < recap.indexOf('Cas factice A'),
+    'le garde-fou est AVANT le tableau, pas sous sa dernière ligne — sur le chemin d’un lecteur pressé'
+  );
+  ok(
+    recap.includes('Condition unique'),
+    'et la condition COMMUNE est affichée : c’est elle qui rend l’avertissement vérifiable plutôt que déclaratif'
+  );
+
+  // ⚠️ `avertissementComparaison` n'est NI affaibli, NI mutualisé : il reste
+  // porté par CHAQUE run, donc imprimé autant de fois qu'il y a de cas. Le
+  // remonter une seule fois en tête du lot le ferait lire comme ne valant que
+  // pour le premier cas.
+  ok(
+    lotFactice.lignes.every((x) => (x.resultat.temps?.avertissementComparaison ?? '').includes('BLOCS')),
+    'chaque cas du lot porte son PROPRE avertissement de comparaison, jamais un seul mutualisé'
+  );
+  ok(
+    !recap.includes('perf-battery-compare.ts.\n') || !recap.includes(complet.temps!.avertissementComparaison),
+    'le récapitulatif ne REMPLACE pas cet avertissement par le sien — les deux répondent à des questions différentes'
+  );
+}

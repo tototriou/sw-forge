@@ -15,7 +15,17 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   la mettre à jour dans le **même commit**. Index : [spec/README.md](spec/README.md)
   — c'est là que vivent les conventions produit détaillées (interface,
   persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
-  automatiquement à chaque session.
+  automatiquement à chaque session. Ouvrir une spec =
+  `node scripts/spec-toc.mjs <fichier|dossier>` (sommaire compact : en-tête,
+  puis niveau / plage de lignes / première phrase de chaque titre) puis la
+  section utile — jamais un fichier entier de plus de 300 lignes sans raison
+  écrite. Avant un chantier Optimizer : `invariants.md` (en entier — le seul
+  fichier lu ainsi, tenu compact pour ça) et le README de routage, tous deux
+  dans `spec/outils/optimizer/`. **Modification NORMATIVE** d'un fichier
+  listé en exception dans `spec/spec-lint.json`, ou extraction des
+  invariants d'une section d'état actuel nouvelle/modifiée : skill
+  `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
+  ou un en-tête).
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
@@ -106,7 +116,101 @@ données SWARFARM, table `*_CONNUS`, ou comportement supposé par ressemblance
 avec un autre effet — celle de `game-data-curation`, qui contient aussi la
 recette pour demander un relevé en jeu exploitable.
 
+## Deux agents en parallèle
+
+Claude Code et Codex peuvent travailler en même temps, chacun dans **son
+worktree** et sur **sa branche** `forge/<sujet>`. Cadrage complet :
+[spec/chantiers/orchestration-parallele.md](spec/chantiers/orchestration-parallele.md).
+
+⚠️ **Toute nouvelle branche part d'une branche qui porte ce dispositif.**
+Sinon `chantier`, le hook source et cette section-ci n'existent pas dans
+l'arbre de travail, et un agent qui démarre ne sait rien de ce qui suit.
+
+⚠️ **Deux sortes de worktree, deux règles opposées sur `node_modules`** — un
+worktree de **chantier** (durable, on y travaille) prend un `npm ci` ; un
+worktree de **mesure** (éphémère, créé et détruit par un script sur un vieux
+commit) prend une **junction**, déliée dans un `finally`. Le skill
+`optimizer-perf-testing` prescrit la seconde et a raison pour son objet : sur
+un vieux commit, `npm ci` installerait les dépendances de l'époque et
+changerait ce qu'on mesure. Détail : cadrage §2.1.
+
+- **Un hook `pre-commit` refuse quatre choses** : un commit sur `main`, un
+  chemin privé dans l'index (`spec/outils/optimizer/`, `.history/`,
+  `.vscode/`), un fichier de plus de 5 Mo (un export de compte), et un
+  `spec/**.md` du périmètre de `spec/spec-lint.json` qui ne passe pas
+  `spec-lint` (niveau 1, invariant dépôt — spec/chantiers/spec-rangement.md, B.9).
+  Il est **installé par machine**, donc actif quelle que soit la branche —
+  mais jamais requis : un clone neuf n'en a pas et commite normalement.
+  Après toute modification du hook ou de l'outil :
+  `node scripts/chantier.mjs installer`.
+- **Les notes privées se LIVRENT, elles ne se copient pas.**
+  `spec/outils/optimizer/` est gitignoré : ni historique, ni merge, ni conflit
+  détecté. Un chantier qui y touche n'est **pas fini** tant que
+  `chantier livrer` n'a pas été lancé et que `chantier verifier` ne passe pas.
+  ⚠️ **S'invoque depuis l'INSTALLATION**, jamais depuis `scripts/` du
+  worktree — sinon son contenu dépend de la branche checkoutée. Le chemin se
+  CALCULE, il ne s'écrit pas en dur : dans un worktree secondaire, `.git` est
+  un **fichier**, pas un dossier.
+  ```bash
+  node "$(git rev-parse --git-common-dir)/forge/installation/scripts/chantier.mjs" \
+    verifier --chantier <sujet>
+  ```
+- **`integrer` fait avancer la référence des notes**, et il ne dépend PAS du
+  sort du code : `chantier integrer --chantier <sujet>` fusionne la branche du
+  chantier dans le `main` documentaire dès que le reçu passe, puis pousse. À
+  faire **dès qu'un lot de notes est bon**, sans attendre que le code rejoigne
+  `main` — sinon un chantier ouvert plus tard repart d'un état périmé et ne
+  voit pas le travail du précédent. Le chantier reste ouvert : `fermer` est un
+  autre sujet, celui de la conservation du code.
+- **`rafraichir` — les notes se TIRENT aussi.** `integrer` pousse ; rien ne
+  redescendait vers un chantier déjà ouvert, qui travaillait sur une base
+  périmée sans le savoir. `chantier rafraichir --chantier <sujet>` fusionne
+  le `main` documentaire dans la branche du chantier puis recopie les notes
+  vers le code (suppressions comprises). Il refuse tant que les notes locales
+  ne sont pas livrées — rien d'inédit n'est écrasé — et en cas de conflit,
+  qui se résout dans le worktree **documentaire**. À lancer dès qu'un autre
+  chantier a intégré ; rien ne le signale à votre place. Le reçu reste
+  valide, `verifier` dit que la base a avancé.
+- **Les fichiers transverses ont un responsable désigné par chantier**, pas
+  d'interdit général : `App.tsx`, `package.json`, `tsconfig.json`,
+  `tailwind.config.js`, `ARCHITECTURE.md`, `CLAUDE.md`. Si deux chantiers ont
+  besoin du même changement transverse, il se fait **avant** de les séparer.
+  Un chevauchement découvert se **signale et se redécoupe**, il ne se force pas.
+- **Une contribution ne s'intègre pas sans son reçu.** L'intégrateur —
+  désigné au lancement, pas « celui qui finit en second » — lance
+  `chantier verifier` avant d'accepter chaque contribution, puis produit une
+  **nouvelle livraison** du résultat combiné : les reçus individuels ne
+  prouvent rien sur le tout.
+- **Pas de mesure de perf pendant que l'autre agent tourne** : une mesure
+  faite pendant un build ne veut rien dire.
+- **Hooks Codex personnels (opt-in)** : l'installation commune fournit
+  `scripts/hooks-codex.mjs`. Installation explicite :
+  `node scripts/chantier.mjs installer --codex-hooks <chemin-personnel/hooks.json>`.
+  Les définitions doivent ensuite être approuvées dans `/hooks` de Codex.
+  Un worktree sans chantier enregistré et les autres dépôts restent sans effet.
+  Le hook contrôle le contexte avant les outils ; les formes Git usuelles
+  `merge`, `rebase`, `cherry-pick` vérifient les autres contributions ouvertes.
+  Après un tour ayant modifié le chantier, `Stop` demande une livraison valide,
+  au plus une relance. Une pause explicite avec motif conserve le chantier
+  ouvert : `node <installation>/scripts/hooks-codex.mjs pause <session_id> "motif"`.
+  Le prochain tour utilisateur réactive le contrôle. Aucun commit automatique.
+
 ## Consignes pour l'agent (Claude Code)
+
+### Un ledger de suivi et le fichier qu'il référence se mettent à jour ensemble
+
+**Un ledger de suivi (`pistes.md` et équivalents) et le fichier qu'il
+référence ne se mettent jamais à jour l'un sans l'autre.** Fermer une
+entrée dans le ledger sans corriger le statut dans le fichier source (ou
+l'inverse) laisse deux sources qui se contredisent — un bug de ce type a
+déjà été trouvé et corrigé dans `spec/outils/optimizer/`.
+
+### Un travail de plus d'une session commence par un cadrage écrit
+
+Skill `cadrage-chantier` : tout travail de plus d'une session, ou confié à
+des sessions fraîches, se cadre dans un fichier `spec/chantiers/<sujet>.md`
+(gabarit, brief d'un lot, boucle de validation) — jamais dans un plan de
+conversation, qui ne se recharge pas. Index : `spec/README.md` § Chantiers.
 
 ### Déclarer l'application d'un skill avant d'agir
 
@@ -166,6 +270,35 @@ l'action ne dépend d'aucune vigilance.
 sûrs et fréquents), ni `gh pr create --body`, ni `sed -i`. Couvrir la classe
 entière demanderait une analyse de quoting bash aux faux positifs permanents,
 `$(…)` étant une construction légitime.
+
+### Un `Read` sans offset sur une grosse spec est refusé
+
+[.claude/hooks/refuse-read-spec-entier.mjs](.claude/hooks/refuse-read-spec-entier.mjs)
+(`PreToolUse` sur `Read`) refuse la lecture d'un `spec/**.md` de plus de
+300 lignes sans `offset`/`limit`, avec le rappel `node scripts/spec-toc.mjs
+<fichier>` — exception : `spec/outils/optimizer/invariants.md`. Raison
+d'être : même logique que `refuse-commit-m` — une consigne écrite (« jamais
+un fichier entier de plus de 300 lignes ») s'érode à l'usage, un refus au
+moment de l'action non. Portée **étroite et assumée** (niveau 2, garde-fou
+outil, pas invariant, spec/chantiers/spec-rangement.md B.9) : ne couvre ni `cat`
+ni un autre outil de lecture, seulement le chemin `Read` de Claude Code.
+Équivalent Codex dans `scripts/hooks-codex.mjs`. Câblage dans
+`.claude/settings.json` (ignoré, propre à chaque machine) :
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          { "type": "command", "command": "node .claude/hooks/refuse-read-spec-entier.mjs" }
+        ]
+      }
+    ]
+  }
+}
+```
 
 ### Windows : `TaskStop` ne tue pas le vrai process
 

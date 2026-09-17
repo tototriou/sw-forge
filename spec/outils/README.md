@@ -1,5 +1,10 @@
 # Outils (`#/outils`)
 
+**Statut :** ÉTAT ACTUEL — décrit la page Outils (navigation, briques de calcul partagées)
+**Lire si :** on ajoute ou réorganise un outil (nav, garde d'accès aux données de compte)
+**Ne pas lire si :** on cherche le détail d'un outil précis (optimizer.md, speed-tuning.md, degats-reels.md)
+**Voir aussi :** optimizer.md, speed-tuning.md, degats-reels.md
+
 Boîte à outils de calcul, distincte de « Mon compte » (qui explore le
 compte) et du Siège/RTA (qui préparent des équipes). Structurée pour
 accueillir plusieurs outils sans retoucher la nav (ajouter une branche =

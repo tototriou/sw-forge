@@ -193,8 +193,9 @@ export interface OptimizerState {
   slotFilterPreset: SlotFilterPresetKey;
   setSlotFilterPreset: Dispatch<SetStateAction<SlotFilterPresetKey>>;
   // Palier 2 du diagnostic « 0 résultat » (voir `rankBlockingConditions` dans
-  // runeBuildOptim.ts) : identifie quelle condition posée libère le plus de
-  // candidats si on la retire seule. Décoché par défaut — coûte N passes de
+  // runeBuildOptim.ts) : pour chaque condition posée, cherche par dichotomie
+  // DE COMBIEN la desserrer suffit à faire grandir le pool le plus
+  // restreint. Décoché par défaut — coûte O(N × log(plage)) passes de
   // pré-filtrage (N = nombre de conditions posées) au lieu d'une seule pour
   // le palier 1 (`diagnoseFeasibility`, toujours actif) : un coût réel, même
   // s'il reste sans commune mesure avec une recherche complète, donc rendu

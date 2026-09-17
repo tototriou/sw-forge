@@ -12,6 +12,33 @@
 // → buildBuckets), comme scripts/optimizer-search-analyze.ts.
 //
 // Usage : optimizer-bucket-rank-diag.ts <export.json> <recipe.json> <runeId>
+//
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
+// des extensions). Il pose sa question sur UNE rune ISOLÉE : « existe-t-il au
+// moins UN demi-build RETENU qui l'utilise ? » — ce qui sépare « morte au
+// pré-filtrage » de « morte à la rétention (bucketCap) ». Le harnais ne sait
+// pas répondre à celle-là :
+//   · `--suivre=<un seul id>` suit la rune de `mainstat` à `filterslot` et
+//     s'arrête là — la préparation, jamais la construction ;
+//   · `detailDemiBuilds` ne se déclenche QUE si `--suivre` porte les TROIS
+//     ids d'une même moitié, et il évalue alors le demi-build EXACT, pas
+//     « n'importe quel demi-build contenant cette rune ».
+// Entre les deux il reste un trou : une rune qui survit à `filterSlot` mais
+// dont AUCUNE combinaison ne survit à la rétention. Ce script est le seul
+// endroit où ce cas se voit (« ❌ Aucun demi-build retenu (sur N) n'utilise
+// cette rune »).
+//
+// ⚠️ `scripts/optimizer-find-rune.ts` existe précisément pour l'alimenter
+// (retrouver l'id d'une rune décrite par l'utilisateur) — le supprimer
+// laisserait cet amont sans aval.
+//
+// ⚠️ Limite connue, à garder en tête en lisant sa sortie : il charge le
+// monstre par `loadBoxMonster` (le meilleur exemplaire de la BOX), là où la
+// recette a pu être montée pour un monstre de DECK. Sur un compte qui porte
+// plusieurs exemplaires du même monstre, les artéfacts et la relique résolus
+// peuvent alors ne pas être ceux de la recherche qu'on croit reproduire.
+// Vérifié le 2026-09-08 sur Sonia deck 14 (compte Enzo) : base et relique
+// identiques, donc sans effet CE jour-là — ce n'est pas une garantie.
 
 import { readFileSync } from 'fs';
 import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';

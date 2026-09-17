@@ -495,6 +495,60 @@ export function testChantierRafraichir() {
     ok(lire(join(codeA, NOTES, 'note-b.md')) === 'travail de A sur le passage de B\n', 'les notes locales de A sont intactes');
     r = chantier(codeA, 'verifier', '--chantier', 'a');
     ok(r.code === 0, 'le reçu de A est toujours valide après le refus');
+
+    /* ------------------ conflit résolu À LA MAIN : rafraichir reprend ------- */
+    // Marche à suivre affichée par le refus ci-dessus : fusionner `main` dans
+    // le worktree DOCUMENTAIRE, résoudre, committer — puis relancer
+    // `rafraichir`. Avant le correctif du 2026-09-17, cette relance refusait
+    // « la branche documentaire a avancé indépendamment » : le commit de
+    // fusion fait à la main n'est pas la révision attendue, et rien ne le
+    // distinguait d'un commit venu d'ailleurs.
+    let conflitReleve = false;
+    try {
+      git(wtA, 'merge', 'main');
+    } catch {
+      conflitReleve = true;
+    }
+    ok(conflitReleve, 'la fusion à la main reproduit le même conflit sur note-b.md');
+    writeFileSync(join(wtA, NOTES, 'note-b.md'), 'résolu à la main par A\n');
+    git(wtA, 'add', '-A');
+    execFileSync('git', ['-C', wtA, 'commit', '--no-edit'], { encoding: 'utf8' });
+    const teteApresFusionManuelle = git(wtA, 'rev-parse', 'HEAD');
+
+    r = chantier(codeA, 'rafraichir', '--chantier', 'a');
+    ok(r.code === 0, 'rafraichir reprend la fusion résolue à la main (au lieu de refuser)');
+    ok(/[Ff]usion résolue à la main reprise/.test(r.sortie), 'et le dit dans le message');
+    ok(lire(join(codeA, NOTES, 'note-b.md')) === 'résolu à la main par A\n',
+      'la résolution manuelle est recopiée côté code, sans nouvelle fusion');
+    const registreAApresReprise = JSON.parse(readFileSync(registreA, 'utf8')) as { revisionDocAttendue: string };
+    ok(registreAApresReprise.revisionDocAttendue === teteApresFusionManuelle,
+      'le registre adopte le commit de fusion manuelle comme révision attendue');
+    r = chantier(codeA, 'verifier', '--chantier', 'a');
+    ok(r.code === 0, 'verifier passe après la reprise');
+
+    /* ---------------- un commit ORDINAIRE ailleurs reste refusé ------------ */
+    // Un simple commit (un seul parent) sur la branche documentaire, fait
+    // sans passer par `rafraichir`, ne doit jamais être confondu avec une
+    // fusion résolue à la main.
+    writeFileSync(join(wtA, NOTES, 'intrus.md'), 'commit ordinaire, pas une fusion\n');
+    git(wtA, 'add', '-A');
+    execFileSync('git', ['-C', wtA, 'commit', '-F', '-'], { input: 'commit ordinaire ailleurs\n', encoding: 'utf8' });
+    r = chantier(codeA, 'rafraichir', '--chantier', 'a');
+    ok(r.code !== 0 && /avancé indépendamment/.test(r.sortie),
+      'un commit ORDINAIRE (un seul parent) reste refusé, ce n’est pas une fusion');
+    git(wtA, 'reset', '--hard', teteApresFusionManuelle);
+
+    /* ------------- une fusion depuis une AUTRE branche que main refuse ----- */
+    git(docDir, 'branch', 'autre', 'main');
+    git(docDir, 'checkout', 'autre');
+    writeFileSync(join(docDir, NOTES, 'ecart.md'), 'sur une autre branche que main\n');
+    commiter(docDir, 'commit sur autre\n');
+    git(docDir, 'checkout', 'main');
+    git(wtA, 'merge', 'autre');
+    r = chantier(codeA, 'rafraichir', '--chantier', 'a');
+    ok(r.code !== 0 && /avancé indépendamment/.test(r.sortie),
+      'une fusion dont le second parent vient d’une AUTRE branche que main reste refusée');
+    git(wtA, 'reset', '--hard', teteApresFusionManuelle);
   } finally {
     rmSync(bac, { recursive: true, force: true });
   }

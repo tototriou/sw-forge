@@ -304,7 +304,7 @@ function controlerIdentite(depotCode, chantier) {
   }
 }
 
-function controlerWorktreeDoc(depotCode, chantier) {
+function controlerWorktreeDoc(depotCode, chantier, optionsAppel = {}) {
   const { worktreeDoc, brancheDoc, revisionDocAttendue } = chantier;
   if (!existsSync(worktreeDoc)) {
     refuser(
@@ -356,7 +356,47 @@ function controlerWorktreeDoc(depotCode, chantier) {
       );
       chantier.revisionDocAttendue = tete;
       ecrireChantier(depotCode, chantier.nom, chantier);
-      return tete;
+      return { tete, repriseFusionManuelle: false };
+    }
+
+    // ⚠️ Reprise après un CONFLIT de `rafraichir` résolu à la main (voir la
+    // marche à suivre affichée par le refus « CONFLIT » : `git merge`,
+    // résoudre, committer dans le worktree documentaire). Ce commit de fusion
+    // est alors le nouveau HEAD, différent de `revisionDocAttendue` par
+    // construction — sans ce cas, la reprise reste bloquée pour toujours.
+    // On ne l'adopte que si TROIS conditions tiennent ensemble ; un commit
+    // ordinaire venu d'ailleurs ne les remplit jamais toutes :
+    //  - `tete` est un commit de fusion à EXACTEMENT deux parents ;
+    //  - son premier parent est EXACTEMENT `revisionDocAttendue` (pas un
+    //    ancêtre : une fusion qui saute par-dessus une révision non vue
+    //    reste refusée) ;
+    //  - son second parent est la source du rafraîchissement (`main`) ou un
+    //    ancêtre de cette source — jamais une fusion depuis autre chose.
+    // Seul `rafraichir` passe `optionsAppel.source` : `livrer` garde son
+    // refus strict, une fusion à la main n'est pas son sujet.
+    if (optionsAppel.source) {
+      const parents = (gitOuNull(worktreeDoc, 'rev-list', '--parents', '-n', '1', tete) || '')
+        .trim()
+        .split(/\s+/);
+      const [, premierParent, secondParent, troisiemeParent] = parents;
+      if (premierParent === revisionDocAttendue && secondParent && !troisiemeParent) {
+        const secondEstDeSource =
+          gitOuNull(worktreeDoc, 'merge-base', '--is-ancestor', secondParent, optionsAppel.source) !== null;
+        if (secondEstDeSource) {
+          dire(
+            `${JAUNE}Fusion résolue à la main reprise${FIN} : ${brancheDoc} porte un commit de` +
+              ` fusion de ${optionsAppel.source} (${revisionDocAttendue.slice(0, 7)} → ${tete.slice(0, 7)}).`
+          );
+          chantier.revisionDocAttendue = tete;
+          ecrireChantier(depotCode, chantier.nom, chantier);
+          return {
+            tete,
+            repriseFusionManuelle: true,
+            baseAvant: premierParent,
+            sourceFusionnee: secondParent,
+          };
+        }
+      }
     }
 
     refuser(
@@ -374,7 +414,7 @@ function controlerWorktreeDoc(depotCode, chantier) {
       touches.length ? `Fichiers touchés : ${touches.slice(0, 5).join(', ')}` : ''
     );
   }
-  return tete;
+  return { tete, repriseFusionManuelle: false };
 }
 
 /* --------------------------------------------------------------------------
@@ -1169,124 +1209,145 @@ function rafraichir(nom, options) {
   controlerIdentite(depotCode, chantier);
 
   const notesCode = notesDuCode(depotCode);
-  const avantDoc = controlerWorktreeDoc(depotCode, chantier);
+  const source = options['depuis'] || 'main';
+  const infoDoc = controlerWorktreeDoc(depotCode, chantier, { source });
 
   const { depotDoc, brancheDoc, worktreeDoc } = chantier;
-  const source = options['depuis'] || 'main';
   const notesDoc = join(worktreeDoc, ...CHEMIN_NOTES.split('/'));
-
   const localesAvant = empreinteArbre(notesCode);
-  const reporteesAvant = existsSync(notesDoc)
-    ? empreinteArbre(notesDoc)
-    : { empreinte: null, fichiers: [] };
-  if (localesAvant.empreinte !== reporteesAvant.empreinte) {
-    refuser(
-      'les notes locales ne sont pas celles de la dernière livraison',
-      `Notes locales   : ${localesAvant.empreinte.slice(0, 16)} (${localesAvant.fichiers.length} fichiers)`,
-      `Notes reportées : ${String(reporteesAvant.empreinte).slice(0, 16)} (${reporteesAvant.fichiers.length} fichiers)`,
-      '',
-      "⚠️ Rafraîchir recopie les notes du worktree documentaire PAR-DESSUS les",
-      'notes locales, suppressions comprises : tout ce qui n’a pas été livré',
-      'serait perdu. Rien n’a été touché.',
-      '',
-      `Livrer d'abord : node scripts/chantier.mjs livrer --chantier ${nom}`
-    );
-  }
 
-  /* ---------------------------- la référence locale doit être celle du distant */
-  const brancheRef = git(depotDoc, 'rev-parse', '--abbrev-ref', 'HEAD');
-  if (brancheRef !== source) {
-    refuser(
-      `le dépôt documentaire n’est pas sur ${source}`,
-      `Chemin : ${depotDoc}`,
-      `Trouvé : ${brancheRef}`,
-      "C'est le répertoire de référence : il doit rester sur sa branche."
-    );
-  }
-  if (!estPropre(depotDoc)) {
-    refuser(
-      'le dépôt documentaire porte des modifications non commitées',
-      `Chemin : ${depotDoc}`,
-      "⚠️ Ce répertoire n'est pas un espace de travail : rien n'a à y être édité",
-      'à la main. Trancher ces modifications avant de continuer.'
-    );
-  }
-  if (gitOuNull(depotDoc, 'fetch', 'origin', source) === null) {
-    refuser(
-      'la sauvegarde distante est injoignable',
-      `Dépôt documentaire : ${depotDoc}`,
-      '',
-      `Sans \`fetch\`, on ne sait pas si ${source} est à jour : rafraîchir depuis une`,
-      'référence en retard donnerait une base périmée en croyant la remettre à niveau.',
-      "Rien n'a été fait. Réessayer une fois la connexion revenue."
-    );
-  }
-  const refLocale = git(depotDoc, 'rev-parse', source);
-  const refDistante = git(depotDoc, 'rev-parse', `origin/${source}`);
-  if (refLocale !== refDistante) {
-    if (gitOuNull(depotDoc, 'merge', '--ff-only', `origin/${source}`) === null) {
+  let avantDoc;
+  let apresDoc;
+  let refSource;
+
+  if (infoDoc.repriseFusionManuelle) {
+    // ⚠️ La fusion a déjà eu lieu À LA MAIN (marche à suivre du refus
+    // « CONFLIT » ci-dessous) : `controlerWorktreeDoc` a déjà vérifié que le
+    // HEAD documentaire est un commit de fusion dont le premier parent est
+    // la révision attendue et le second `source` (ou un ancêtre). Pas de
+    // nouvelle fusion — seulement la copie miroir et le registre, comme au
+    // cas normal. Le contrôle « notes locales = notes reportées » ne
+    // s'applique pas ici : la fusion a, par construction, déjà changé les
+    // notes documentaires par rapport à ce qui a été livré.
+    avantDoc = infoDoc.baseAvant;
+    apresDoc = infoDoc.tete;
+    refSource = infoDoc.sourceFusionnee;
+    dire(`${JAUNE}Fusion résolue à la main reprise${FIN} : recopie et registre, sans nouvelle fusion.`);
+  } else {
+    avantDoc = infoDoc.tete;
+
+    const reporteesAvant = existsSync(notesDoc)
+      ? empreinteArbre(notesDoc)
+      : { empreinte: null, fichiers: [] };
+    if (localesAvant.empreinte !== reporteesAvant.empreinte) {
       refuser(
-        `${source} local et origin/${source} ont divergé`,
-        `local   : ${refLocale.slice(0, 7)}`,
-        `distant : ${refDistante.slice(0, 7)}`,
+        'les notes locales ne sont pas celles de la dernière livraison',
+        `Notes locales   : ${localesAvant.empreinte.slice(0, 16)} (${localesAvant.fichiers.length} fichiers)`,
+        `Notes reportées : ${String(reporteesAvant.empreinte).slice(0, 16)} (${reporteesAvant.fichiers.length} fichiers)`,
         '',
-        'La référence locale ne peut pas être avancée en avance rapide : un',
-        `\`integrer\` a été fait ici sans push confirmé, ou le distant a été réécrit.`,
-        `Trancher à la main dans ${depotDoc} (un \`integrer\` relancé retente le push).`
+        "⚠️ Rafraîchir recopie les notes du worktree documentaire PAR-DESSUS les",
+        'notes locales, suppressions comprises : tout ce qui n’a pas été livré',
+        'serait perdu. Rien n’a été touché.',
+        '',
+        `Livrer d'abord : node scripts/chantier.mjs livrer --chantier ${nom}`
       );
     }
-    dire(`Référence ${source} avancée : ${refLocale.slice(0, 7)} → ${refDistante.slice(0, 7)} (origin).`);
-  }
-  const refSource = git(depotDoc, 'rev-parse', source);
 
-  /* --------------------------------------------- fusion dans la branche du chantier */
-  const dejaAJour = gitOuNull(worktreeDoc, 'merge-base', '--is-ancestor', refSource, avantDoc) !== null;
-  if (dejaAJour) {
-    dire(`${VERT}Déjà à jour.${FIN} ${brancheDoc} contient ${source} @ ${refSource.slice(0, 7)} — aucun commit.`);
-    return;
-  }
+    /* ---------------------------- la référence locale doit être celle du distant */
+    const brancheRef = git(depotDoc, 'rev-parse', '--abbrev-ref', 'HEAD');
+    if (brancheRef !== source) {
+      refuser(
+        `le dépôt documentaire n’est pas sur ${source}`,
+        `Chemin : ${depotDoc}`,
+        `Trouvé : ${brancheRef}`,
+        "C'est le répertoire de référence : il doit rester sur sa branche."
+      );
+    }
+    if (!estPropre(depotDoc)) {
+      refuser(
+        'le dépôt documentaire porte des modifications non commitées',
+        `Chemin : ${depotDoc}`,
+        "⚠️ Ce répertoire n'est pas un espace de travail : rien n'a à y être édité",
+        'à la main. Trancher ces modifications avant de continuer.'
+      );
+    }
+    if (gitOuNull(depotDoc, 'fetch', 'origin', source) === null) {
+      refuser(
+        'la sauvegarde distante est injoignable',
+        `Dépôt documentaire : ${depotDoc}`,
+        '',
+        `Sans \`fetch\`, on ne sait pas si ${source} est à jour : rafraîchir depuis une`,
+        'référence en retard donnerait une base périmée en croyant la remettre à niveau.',
+        "Rien n'a été fait. Réessayer une fois la connexion revenue."
+      );
+    }
+    const refLocale = git(depotDoc, 'rev-parse', source);
+    const refDistante = git(depotDoc, 'rev-parse', `origin/${source}`);
+    if (refLocale !== refDistante) {
+      if (gitOuNull(depotDoc, 'merge', '--ff-only', `origin/${source}`) === null) {
+        refuser(
+          `${source} local et origin/${source} ont divergé`,
+          `local   : ${refLocale.slice(0, 7)}`,
+          `distant : ${refDistante.slice(0, 7)}`,
+          '',
+          'La référence locale ne peut pas être avancée en avance rapide : un',
+          `\`integrer\` a été fait ici sans push confirmé, ou le distant a été réécrit.`,
+          `Trancher à la main dans ${depotDoc} (un \`integrer\` relancé retente le push).`
+        );
+      }
+      dire(`Référence ${source} avancée : ${refLocale.slice(0, 7)} → ${refDistante.slice(0, 7)} (origin).`);
+    }
+    refSource = git(depotDoc, 'rev-parse', source);
 
-  // ⚠️ Même contrainte qu'`integrer` : `git merge` ne lit pas `-F -`, d'où un
-  // fichier de message. `--no-ff` : le rafraîchissement doit se VOIR dans
-  // l'historique de la branche, avec sa révision de départ.
-  const cheminMessage = join(resolve(worktreeDoc, git(worktreeDoc, 'rev-parse', '--git-dir')), 'MERGE_MSG_CHANTIER');
-  writeFileSync(
-    cheminMessage,
-    `Rafraîchissement du chantier ${nom} depuis ${source} ${refSource.slice(0, 7)}\n\n` +
-      `${source} → ${brancheDoc}, par \`chantier rafraichir\`.\n`
-  );
-  try {
-    git(worktreeDoc, 'merge', '--no-ff', '-F', cheminMessage, refSource);
-  } catch {
-    const conflits = (gitOuNull(worktreeDoc, 'diff', '--name-only', '--diff-filter=U') || '')
-      .split('\n')
-      .filter(Boolean);
-    gitOuNull(worktreeDoc, 'merge', '--abort');
-    rmSync(cheminMessage, { force: true });
-    // ⚠️ `merge --abort` rend un arbre identique POUR GIT, pas octet pour
-    // octet : sous Windows, les fichiers que la fusion a touchés reviennent
-    // en CRLF (`core.autocrlf`), et `verifier` verrait des notes reportées
-    // différentes des notes locales. Les notes du code sont, par la
-    // précondition d'entrée, exactement l'état d'avant : on le remet. Puis
-    // `add` : `git status` déclare modifié un fichier dont la TAILLE a changé
-    // sans comparer son contenu (LF vs CRLF) ; `add` le rehache, constate le
-    // même blob, et remet l'index d'aplomb sans rien changer.
-    copierMiroir(notesCode, notesDoc);
-    gitOuNull(worktreeDoc, 'add', '-A', CHEMIN_NOTES);
-    refuser(
-      `la fusion de ${source} dans la branche du chantier est en CONFLIT`,
-      ...(conflits.length ? ['Fichiers en conflit :', ...conflits.map((f) => `  · ${f}`)] : []),
-      '',
-      `⚠️ La fusion a été ANNULÉE : ${brancheDoc} est resté à ${avantDoc.slice(0, 7)},`,
-      'les notes locales sont intactes.',
-      '',
-      'Marche à suivre, dans le worktree DOCUMENTAIRE (pas dans le code) :',
-      `  git -C "${worktreeDoc}" merge ${source}     # résoudre à la main, puis committer`,
-      `  node scripts/chantier.mjs rafraichir --chantier ${nom}   # recopie et enregistre`
+    /* --------------------------------------------- fusion dans la branche du chantier */
+    const dejaAJour = gitOuNull(worktreeDoc, 'merge-base', '--is-ancestor', refSource, avantDoc) !== null;
+    if (dejaAJour) {
+      dire(`${VERT}Déjà à jour.${FIN} ${brancheDoc} contient ${source} @ ${refSource.slice(0, 7)} — aucun commit.`);
+      return;
+    }
+
+    // ⚠️ Même contrainte qu'`integrer` : `git merge` ne lit pas `-F -`, d'où un
+    // fichier de message. `--no-ff` : le rafraîchissement doit se VOIR dans
+    // l'historique de la branche, avec sa révision de départ.
+    const cheminMessage = join(resolve(worktreeDoc, git(worktreeDoc, 'rev-parse', '--git-dir')), 'MERGE_MSG_CHANTIER');
+    writeFileSync(
+      cheminMessage,
+      `Rafraîchissement du chantier ${nom} depuis ${source} ${refSource.slice(0, 7)}\n\n` +
+        `${source} → ${brancheDoc}, par \`chantier rafraichir\`.\n`
     );
+    try {
+      git(worktreeDoc, 'merge', '--no-ff', '-F', cheminMessage, refSource);
+    } catch {
+      const conflits = (gitOuNull(worktreeDoc, 'diff', '--name-only', '--diff-filter=U') || '')
+        .split('\n')
+        .filter(Boolean);
+      gitOuNull(worktreeDoc, 'merge', '--abort');
+      rmSync(cheminMessage, { force: true });
+      // ⚠️ `merge --abort` rend un arbre identique POUR GIT, pas octet pour
+      // octet : sous Windows, les fichiers que la fusion a touchés reviennent
+      // en CRLF (`core.autocrlf`), et `verifier` verrait des notes reportées
+      // différentes des notes locales. Les notes du code sont, par la
+      // précondition d'entrée, exactement l'état d'avant : on le remet. Puis
+      // `add` : `git status` déclare modifié un fichier dont la TAILLE a changé
+      // sans comparer son contenu (LF vs CRLF) ; `add` le rehache, constate le
+      // même blob, et remet l'index d'aplomb sans rien changer.
+      copierMiroir(notesCode, notesDoc);
+      gitOuNull(worktreeDoc, 'add', '-A', CHEMIN_NOTES);
+      refuser(
+        `la fusion de ${source} dans la branche du chantier est en CONFLIT`,
+        ...(conflits.length ? ['Fichiers en conflit :', ...conflits.map((f) => `  · ${f}`)] : []),
+        '',
+        `⚠️ La fusion a été ANNULÉE : ${brancheDoc} est resté à ${avantDoc.slice(0, 7)},`,
+        'les notes locales sont intactes.',
+        '',
+        'Marche à suivre, dans le worktree DOCUMENTAIRE (pas dans le code) :',
+        `  git -C "${worktreeDoc}" merge ${source}     # résoudre à la main, puis committer`,
+        `  node scripts/chantier.mjs rafraichir --chantier ${nom}   # recopie et enregistre`
+      );
+    }
+    rmSync(cheminMessage, { force: true });
+    apresDoc = git(worktreeDoc, 'rev-parse', 'HEAD');
   }
-  rmSync(cheminMessage, { force: true });
-  const apresDoc = git(worktreeDoc, 'rev-parse', 'HEAD');
 
   /* ------------------------------------------------- copie miroir vers le code */
   copierMiroir(notesDoc, notesCode);

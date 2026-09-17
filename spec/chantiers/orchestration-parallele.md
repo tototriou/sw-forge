@@ -371,6 +371,30 @@ supprimés, hash documentaire avant → après.
 > changé, sans comparer son contenu. L'outil remet donc les notes du code
 > (l'état exact d'avant, par la précondition) puis `add` le dossier, qui
 > rehache et constate le même blob. Vu au premier test du cas conflit.
+>
+> ⚠️ **Défaut relevé le 2026-09-17, en usage réel sur ce chantier** : la marche
+> à suivre du conflit ci-dessus (`git merge main`, résoudre, committer) laisse
+> un HEAD documentaire qui **n'est plus** la révision attendue — c'est un
+> commit de fusion, par construction. La relancer refusait donc systématiquement
+> « la branche documentaire a avancé indépendamment », sans marche à suivre :
+> la résolution manuelle rendait le chantier bloqué pour de bon.
+>
+> `rafraichir` reconnaît maintenant ce cas précis et reprend, au lieu de
+> refuser, quand le HEAD documentaire est un commit de fusion à **exactement
+> deux parents** dont le **premier est la révision attendue** et dont le
+> **second est `main` (ou un ancêtre de `main`**, `git merge-base
+> --is-ancestor`). Aucune nouvelle fusion n'est tentée — elle a déjà eu lieu à
+> la main — seuls la copie miroir vers le code et le registre suivent, comme
+> au cas normal, avec un message qui dit « fusion résolue à la main reprise ».
+>
+> Le contrôle d'avance indépendante n'est pas affaibli pour autant : un simple
+> commit venu d'ailleurs n'a qu'un seul parent, donc jamais deux ; une fusion
+> depuis une branche qui n'est ni `main` ni un de ses ancêtres échoue au test
+> `--is-ancestor` du second parent. Les trois conditions doivent tenir
+> **ensemble**, et seul `rafraichir` les vérifie — `livrer` garde son refus
+> strict, une fusion à la main n'est pas son sujet ; un `livrer` lancé après un
+> `rafraichir` réussi repart simplement de la nouvelle révision attendue, sans
+> avoir besoin de connaître ce cas.
 
 **Déjà à jour** (le `main` est ancêtre de la branche) : la commande le dit et
 ne committe rien — rejouable sans effet de bord.

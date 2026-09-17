@@ -216,18 +216,28 @@ graphe.
 - **Privé seulement si son CONTENU l'est** (données du jeu non publiées,
   calibrage, compte réel) : `spec/outils/optimizer/chantiers/<sujet>.md`,
   livré par `chantier livrer` comme toute note. Il est alors **dans le
-  périmètre du lint** (`spec/spec-lint.json`) : en-tête reconnu — le
-  `Statut :` commence par `DÉCISION` (A.2 : un cadrage est une décision),
-  blocs terminaux ≤ 100 lignes, fichier ≤ 500 sans exception possible
-  (réservée aux fichiers préexistants au lint) — au-delà, Partie B dans
-  un second fichier `<sujet>-lots.md`.
+  périmètre du lint** (`spec/spec-lint.json`), comme le cadrage public
+  `spec/chantiers/<sujet>.md` — même contrat pour les deux (B.4
+  amendement C6) : un cadrage est une **quatrième nature**, ni état
+  actuel, ni décision, ni archive — `Statut :` reconnu seulement sous
+  deux formes exactes, `CHANTIER en cours` ou `CHANTIER terminé le
+  AAAA-MM-JJ` ; blocs terminaux ≤ 100 lignes toujours exigés ; **fichier
+  ≤ 500 : exemption inconditionnelle** pour tout fichier sous un dossier
+  `chantiers/` (codée dans le lint, pas une entrée de
+  `spec/spec-lint.json`) — un cadrage grossit avec les résultats de ses
+  lots et ne se lit jamais entier (A, une section B, `spec-toc`, hook
+  `Read`) ; au-delà d'une taille qui gêne malgré tout, Partie B dans un
+  second fichier `<sujet>-lots.md`.
 - **Dans les deux cas, une ligne dans `spec/README.md` § Chantiers**
   (fichier, statut, branche), ajoutée dans le commit qui crée le cadrage.
 - **En tête du fichier** : un H1, une ligne vide, puis
-  `**Statut :** chantier en cours | terminé le <date> — branche forge/<sujet>`
-  (précédée de `DÉCISION <date> — ` pour un cadrage privé), pour que
-  `spec-toc` le résume en une ligne. Le hook `Read` s'applique à lui comme
-  à toute spec : au-delà de 300 lignes, `spec-toc` puis la section utile.
+  `**Statut :** CHANTIER en cours — branche forge/<sujet>` ou
+  `**Statut :** CHANTIER terminé le <date> — branche forge/<sujet>`
+  (même forme, public ou privé), pour que `spec-toc` le résume en une
+  ligne. Les autres champs d'en-tête (Lire si, Ne pas lire si, Voir
+  aussi) sont facultatifs pour cette nature. Le hook `Read` s'applique à
+  lui comme à toute spec : au-delà de 300 lignes, `spec-toc` puis la
+  section utile.
 - **Le cadrage ne sort pas de `spec/` quand le chantier finit** : son
   statut passe à « terminé le <date> », la ligne du README suit, et il
   reste la référence citée par le code, les tests et les skills nés du

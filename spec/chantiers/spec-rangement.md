@@ -999,3 +999,17 @@ par ligne ») et `artefacts.md` (1 700) : jugement lourd, hors du rapport
 coût/valeur tant qu'aucun chantier n'y touche. Ils entrent dans les
 exceptions B.4 avec leur condition de suppression ; le skill `spec-hygiene`
 les découpe le jour venu.
+
+## Partie C — après le chantier, sur la même branche
+
+Lots nés de la clôture, avant la fusion sur `main` : ils ne font pas
+partie du rangement, ils en tirent les conséquences. Même règle de
+suivi qu'A.7.
+
+| Lot | Cat. | Statut | Commit / date |
+| --- | --- | --- | --- |
+| C1 skill `cadrage-chantier` + dossier `spec/chantiers/` (déplacement des deux cadrages, liens repointés, index `spec/README.md` § Chantiers) | J | exécuté | `09a5017`, `d9fd1e2`, `8ab12f9`, `80d8446` (code), notes `cd99bc1` → `sw-forge-docs` main `bcbb49a`, 2026-09-17 |
+| C2 `chantier rafraichir` — les notes se tirent aussi (fusion `main` documentaire → branche du chantier, miroir vers le worktree de code, refus si notes inédites) | J (effort moyen) | à faire | |
+| C3 fusion sur `main` : merge d'`origin/main`, fix `tsc` des fixtures speed-tune (PR #9), entrée unique 1.13.0, `package.json`, PR, tag, release | — | à faire | |
+| C4 après fusion : `chantier fermer` ×3, avance de `forge/implementation-relique` sur `main` + `rafraichir`, hook `Read` câblé, `chantier installer` | — | à faire | |
+| C5 chantier relique : réécriture de `plan-implementation-relique.md` en cadrage (skill `cadrage-chantier`), dans `spec/outils/optimizer/chantiers/` | J (effort élevé) | à faire | |

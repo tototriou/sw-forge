@@ -196,6 +196,13 @@ entrée dans le ledger sans corriger le statut dans le fichier source (ou
 l'inverse) laisse deux sources qui se contredisent — un bug de ce type a
 déjà été trouvé et corrigé dans `spec/outils/optimizer/`.
 
+### Un travail de plus d'une session commence par un cadrage écrit
+
+Skill `cadrage-chantier` : tout travail de plus d'une session, ou confié à
+des sessions fraîches, se cadre dans un fichier `spec/chantiers/<sujet>.md`
+(gabarit, brief d'un lot, boucle de validation) — jamais dans un plan de
+conversation, qui ne se recharge pas. Index : `spec/README.md` § Chantiers.
+
 ### Déclarer l'application d'un skill avant d'agir
 
 Quand un skill (`.claude/skills/*` ou un skill intégré, ex. `artifact-design`)

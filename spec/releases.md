@@ -136,6 +136,22 @@ Si le sujet lui-même dérive au point que le nom ment (la branche « filtres »
 finit par refondre le bestiaire), renommer reste possible — mais c'est rare,
 alors qu'un numéro devenait faux au premier `feat`.
 
+### ⚠️ Plusieurs sujets pour une même version : la branche d'intégration
+
+Quand **plusieurs branches `forge/<sujet>`** doivent partir ensemble — et
+que `main` porte déjà une version en préparation fusionnée par un autre
+contributeur — on ne les empile pas l'une sur l'autre : on crée une **branche
+d'intégration `release/vX.Y.Z`** depuis `origin/main`, **au moment où le
+numéro est connu** (c'est ce qui la distingue des anciennes `release/x.y.z`
+nommées avant de savoir), on y fusionne chaque `forge/<sujet>` en merge
+commit, on y fait l'étape 4 **une seule fois** (entrée unique dans
+`releases.ts` — deux entrées `version: null` deviennent une, pas deux
+entrées au même numéro — numéro dans `package.json`, `tsc`, `npm test`,
+`build`), et c'est **elle** qui part en PR vers `main`. Vécu pour la
+v1.13.0 (2026-09-17) : `forge/spec-rangement` et
+`forge/fixtures-cumul-equipe` fusionnées dans `release/v1.13.0`, par-dessus
+la version en préparation du speed tuning déjà sur `main`.
+
 ### Les cinq étapes
 
 1. **Créer la branche** sur son sujet : `git switch -c forge/prepa-rta`

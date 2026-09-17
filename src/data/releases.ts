@@ -57,28 +57,40 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
-  // ⚠️ Version EN PRÉPARATION (`version: null`) : le numéro se décide à la
-  // fusion, d'après ce que la branche contient au final. On le remplace au
-  // moment de publier, en même temps que `package.json` et le tag.
   {
-    version: null,
-    date: '2026-09-10',
-    title: 'Le speed tuning dit le bon chiffre',
+    version: '1.13.0',
+    date: '2026-09-17',
+    title: 'Le speed tuning dit le bon chiffre, les dégâts suivent le combat',
     highlights: [
       'Les vitesses et les artéfacts annoncés tombent juste, buff de vitesse compris',
-      'Un bouton copie un monstre dans l’équipe d’en face',
-      'Sur ordinateur, survole une section du menu pour voir ses sous-sections',
+      'Les dégâts réels suivent le combat : débuffs entre deux coups, conditions et charges des sorts',
+      'Un bouton copie un monstre dans l’équipe d’en face ; sur ordinateur, le menu montre ses sous-sections au survol',
     ],
     changes: [
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Les dégâts réels couvrent 77 nouveaux constats conditionnels vérifiés.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Speed tuning',
+        text: 'Un bouton copie un monstre dans l’équipe d’en face.',
+      },
       {
         kind: 'feat',
         scope: 'Navigation',
         text: 'Sur ordinateur, survole une section du menu : ses sous-sections s’affichent à côté, en un clic de moins.',
       },
       {
-        kind: 'feat',
-        scope: 'Speed tuning',
-        text: 'Un bouton copie un monstre dans l’équipe d’en face.',
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Les Onimusha ne sont plus avantagés par des critiques impossibles.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Les compétences d’invocateur utilisent toujours Combat au minimum.',
       },
       {
         kind: 'fix',
@@ -139,32 +151,6 @@ export const RELEASES: Release[] = [
         kind: 'fix',
         scope: 'Navigation',
         text: 'Le menu de gauche respire : son texte est un peu plus grand, sur ordinateur.',
-      },
-    ],
-  },
-  {
-    version: null,
-    date: '2026-09-09',
-    title: 'Les dégâts conditionnels suivent enfin le combat',
-    highlights: [
-      'Les débuffs posés entre deux coups modifient les coups suivants',
-      'Les conditions, charges et critiques propres aux sorts sont pris en compte',
-    ],
-    changes: [
-      {
-        kind: 'feat',
-        scope: 'Optimiseur',
-        text: 'Les dégâts réels couvrent 77 nouveaux constats conditionnels vérifiés.',
-      },
-      {
-        kind: 'fix',
-        scope: 'Optimiseur',
-        text: 'Les Onimusha ne sont plus avantagés par des critiques impossibles.',
-      },
-      {
-        kind: 'fix',
-        scope: 'Optimiseur',
-        text: 'Les compétences d’invocateur utilisent toujours Combat au minimum.',
       },
     ],
   },

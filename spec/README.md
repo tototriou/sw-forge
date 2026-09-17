@@ -404,4 +404,4 @@ jamais en entier.
 | --- | --- | --- |
 | [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
 | [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
-| `spec/outils/optimizer/reliques.md` (privé, `sw-forge-docs`) — optimiseur de reliques ; à déplacer dans `spec/outils/optimizer/chantiers/` par le chantier lui-même | en cours | `forge/implementation-relique` |
+| `spec/outils/optimizer/chantiers/implementation-relique.md` (privé, `sw-forge-docs`) — la relique dans l'Optimizer, 10 lots ; cadrage fonctionnel dans `spec/outils/optimizer/reliques.md` (décision), plan d'origine archivé | en cours | `forge/implementation-relique` |

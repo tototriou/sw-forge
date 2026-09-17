@@ -122,9 +122,9 @@ Claude Code et Codex peuvent travailler en même temps, chacun dans **son
 worktree** et sur **sa branche** `forge/<sujet>`. Cadrage complet :
 [spec/chantiers/orchestration-parallele.md](spec/chantiers/orchestration-parallele.md).
 
-⚠️ **Toute nouvelle branche part d'une branche qui porte ce dispositif.**
-Sinon `chantier`, le hook source et cette section-ci n'existent pas dans
-l'arbre de travail, et un agent qui démarre ne sait rien de ce qui suit.
+⚠️ **Toute nouvelle branche part de main**
+(`git fetch origin && git switch -c forge/<sujet> origin/main`) — main
+porte le dispositif depuis la v1.13.0 ; on n'y travaille jamais, on en part.
 
 ⚠️ **Deux sortes de worktree, deux règles opposées sur `node_modules`** — un
 worktree de **chantier** (durable, on y travaille) prend un `npm ci` ; un

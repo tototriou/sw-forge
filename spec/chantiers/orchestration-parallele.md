@@ -451,7 +451,8 @@ enregistré et les notes privées ne sont pas copiées. Une première version de
 cette séquence s'arrêtait à `npm ci` — elle était incomplète.
 
 ```powershell
-git worktree add ../sw-forge-codex -b forge/<sujet> forge/orchestration-parallele
+git fetch origin
+git worktree add ../sw-forge-codex -b forge/<sujet> origin/main
 Set-Location ../sw-forge-codex
 npm ci
 

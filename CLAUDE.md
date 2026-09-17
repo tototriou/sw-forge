@@ -162,6 +162,15 @@ changerait ce qu'on mesure. Détail : cadrage §2.1.
   `main` — sinon un chantier ouvert plus tard repart d'un état périmé et ne
   voit pas le travail du précédent. Le chantier reste ouvert : `fermer` est un
   autre sujet, celui de la conservation du code.
+- **`rafraichir` — les notes se TIRENT aussi.** `integrer` pousse ; rien ne
+  redescendait vers un chantier déjà ouvert, qui travaillait sur une base
+  périmée sans le savoir. `chantier rafraichir --chantier <sujet>` fusionne
+  le `main` documentaire dans la branche du chantier puis recopie les notes
+  vers le code (suppressions comprises). Il refuse tant que les notes locales
+  ne sont pas livrées — rien d'inédit n'est écrasé — et en cas de conflit,
+  qui se résout dans le worktree **documentaire**. À lancer dès qu'un autre
+  chantier a intégré ; rien ne le signale à votre place. Le reçu reste
+  valide, `verifier` dit que la base a avancé.
 - **Les fichiers transverses ont un responsable désigné par chantier**, pas
   d'interdit général : `App.tsx`, `package.json`, `tsconfig.json`,
   `tailwind.config.js`, `ARCHITECTURE.md`, `CLAUDE.md`. Si deux chantiers ont

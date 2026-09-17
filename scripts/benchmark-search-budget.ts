@@ -10,65 +10,21 @@
 // bucketCap et slotFilterCap restent FIXES aux valeurs de production
 // (5000 et 80, le preset « Moyen » — bucketCap relevé une seconde fois
 // depuis, voir spec/outils/optimizer/) — seul le budget de collecte
-// (`maxCollected`/`maxNodes`) varie, avec un temps de mur mesuré à chaque
-// palier pour vérifier qu'on reste bien dans l'ordre de grandeur annoncé.
+// (`maxCollected`) varie, avec un temps de mur mesuré à chaque palier pour
+// vérifier qu'on reste bien dans l'ordre de grandeur annoncé.
 //
 // ⚠️ Mesure, ne vérifie rien : pas d'assertions, pas dans `npm test`. Lancé à
 // la demande via `npm run benchmark:search-budget`.
 
-import { BaseStats, EffectLine, RuneDetail } from '../src/types';
+import { BaseStats, RuneDetail } from '../src/types';
 import { BuildRequirement, SearchParams, searchBuilds } from '../src/lib/runeBuildOptim';
+// Pool synthétique PARTAGÉ — voir scripts/lib/randomPool.ts.
+import { SETS_VARIES, mulberry32, randomPool } from './lib/randomPool';
 
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const SET_KEYS = ['violent', 'swift', 'despair', 'will', 'shield', 'fight', 'focus', 'endure', 'intangible'];
-const STAT_CODES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
-
-function randomRune(id: number, slot: number, rng: () => number): RuneDetail {
-  const set = SET_KEYS[Math.floor(rng() * SET_KEYS.length)];
-  const mainCode = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-  const used = new Set([mainCode]);
-  const subs: EffectLine[] = [];
-  for (let i = 0; i < 4; i++) {
-    let code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-    let tries = 0;
-    while (used.has(code) && tries < 10) {
-      code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-      tries++;
-    }
-    used.add(code);
-    subs.push({ code, value: 5 + Math.floor(rng() * 40) });
-  }
-  return {
-    id,
-    slot,
-    set,
-    rank: 6,
-    rarity: 5,
-    level: 15,
-    main: { code: mainCode, value: 10 + Math.floor(rng() * 100) },
-    subs,
-  };
-}
-
-function randomPool(perSlot: number, seed: number): RuneDetail[] {
-  const rng = mulberry32(seed);
-  const out: RuneDetail[] = [];
-  let id = 1;
-  for (let slot = 1; slot <= 6; slot++) {
-    for (let i = 0; i < perSlot; i++) out.push(randomRune(id++, slot, rng));
-  }
-  return out;
-}
+// `perSlot` runes par emplacement, seed explicite — l'assortiment LARGE
+// (9 sets) est celui qui met le plus de compartiments en compétition.
+const poolDeBenchmark = (perSlot: number, seed: number): RuneDetail[] =>
+  randomPool(mulberry32(seed), perSlot, SETS_VARIES);
 
 const BASE: BaseStats = { hp: 10000, atk: 600, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
@@ -94,8 +50,10 @@ const SCENARIOS: Scenario[] = [
 ];
 
 // bucketCap et slotFilterCap FIXES aux valeurs de production — seul le budget
-// de collecte change ici. maxNodes suit largement au-dessus de maxCollected
-// à chaque palier pour ne jamais devenir le facteur limitant à sa place.
+// de collecte change ici. ⚠️ Un `maxNodes` très large était posé à chaque
+// palier pour ne jamais devenir le facteur limitant à la place de
+// `maxCollected` : il n'y a plus de plafond de paires du tout (piste 8), la
+// précaution est sans objet.
 const PRODUCTION_BUCKET_CAP = 3000; // valeur de production réelle (BUCKET_CAP, par tranche depuis la 4e recalibration — Phase 0)
 // ⚠️ Testé aux DEUX presets réels, pas seulement « Moyen » : à 300/slot
 // (« Extrême »), la construction des compartiments (O(slotFilterCap³), fixe
@@ -118,7 +76,7 @@ async function main() {
   console.log('Suite Phase 0 — augmenter le budget de collecte améliore-t-il vraiment le résultat ?');
   console.log(`bucketCap=${PRODUCTION_BUCKET_CAP} · slotFilterCap=${PRODUCTION_SLOT_FILTER_CAP} (valeurs de production, fixes)\n`);
 
-  const pool = randomPool(POOL_PER_SLOT, POOL_PER_SLOT);
+  const pool = poolDeBenchmark(POOL_PER_SLOT, POOL_PER_SLOT);
 
   for (const scenario of SCENARIOS) {
     console.log(`\n${'─'.repeat(90)}`);
@@ -138,7 +96,6 @@ async function main() {
         bucketCap: PRODUCTION_BUCKET_CAP,
         slotFilterCap: PRODUCTION_SLOT_FILTER_CAP,
         maxCollected: cap,
-        maxNodes: Math.max(cap * 50, 5_000_000), // très large, pour que ce ne soit jamais lui le facteur limitant
         maxMs: 90_000, // marge au-delà de la minute « acceptable » annoncée
       };
       const t0 = performance.now();

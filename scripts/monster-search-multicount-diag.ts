@@ -8,14 +8,40 @@
 // suivre à chaque préréglage — pas juste « trouvé/pas trouvé ».
 //
 // Usage : monster-search-multicount-diag.ts <export.json> <nomMonstre> [objective=degats]
+//
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
+// des extensions). Il ne pose pas une question sur UN run : il compare SEIZE
+// CONFIGURATIONS (4 préréglages × 2 métriques × `adaptiveTrancheWeighting`
+// on/off). ⚠️ Au sens de la table du §5, c'est donc un **G2** (« comparer
+// deux configurations ») rangé en G1 — mais ce n'est PAS la raison de sa
+// survie : la raison, ce sont les deux grandeurs ci-dessous, que le harnais
+// ne produit pas, condition par condition.
+//
+// Deux grandeurs qu'il porte et que le harnais NE PRODUIT PAS :
+//
+//  1. **L'ENSEMBLE des builds trouvés, pas un top-N.** Le harnais suit UN
+//     build cible (`--suivre` = six ids) et rend `meilleurs`, qui est un
+//     `slice(0, TAILLE_TOP_RENDU)`. La preuve de dilution de ce script prend
+//     TOUS les `result.candidates` du préréglage « moyen » et vérifie, un par
+//     un, qu'ils restent atteignables à « extrême » — avec le harnais il
+//     faudrait un run par build trouvé, et connaître ces builds d'avance.
+//  2. **`metric` et `adaptiveTrancheWeighting` ne sont pas surchargeables.**
+//     Vérifié sur la sortie réelle du harnais : tous deux s'affichent
+//     « recette (non surchargeable) ». Les faire varier demande autant de
+//     recettes que de conditions, là où ce script les fait varier en un
+//     appel — et un lot du harnais fait varier le CAS, jamais la CONDITION
+//     (`AVERTISSEMENT_LOT`).
+//
+// ⚠️ Ne pas le supprimer « parce que le harnais rend un verdict de build
+// cible » : le verdict porte sur UNE cible connue d'avance, la question
+// d'ici porte sur le NOMBRE de builds et sur ceux qu'on ne connaît pas
+// encore.
 
 import { resolveObjectifCli } from './lib/objectifCli';
 import {
   BuildRequirement,
   SearchParams,
   Objective,
-  NodeBudget,
-  maybeEscalateNodeBudget,
   prepareSearch,
   buildBuckets,
   pairBuckets,
@@ -114,28 +140,16 @@ function runOnce(slotFilterCap: number, adaptiveTrancheWeighting: boolean, metri
     )
   );
   const tBuild = performance.now();
-  // ⚠️ REPRODUIT L'ESCALADE RÉELLE via `maybeEscalateNodeBudget` (partagée
-  // avec runeBuildOptim.worker.ts et perf-battery.ts — voir son commentaire
-  // dans runeBuildOptim.ts) : `pairBuckets` avec le budget par défaut (figé
-  // à prepared.maxNodes) s'arrête à truncated=true sans jamais élargir, ce
-  // n'est PAS ce que fait l'app. Un script qui l'oublie explore <0,0001 %
-  // de l'espace réellement couvert — cause du faux "0 build trouvé" qui a
-  // fait perdre du temps avant que cette factorisation existe.
-  const nodeBudget: NodeBudget = { max: prepared.maxNodes };
-  const gen = pairBuckets(prepared, bucketsA, bucketsB, nodeBudget);
+  // ⚠️ Ce script reproduisait ICI l'escalade du budget de paires, sans
+  // laquelle `pairBuckets` s'arrêtait à `truncated=true` sur <0,0001 % de
+  // l'espace réellement couvert par l'app — cause du faux « 0 build trouvé »
+  // qui a fait perdre du temps. Le budget a été supprimé (piste 8) : un appel
+  // nu explore désormais tout ce que l'app explore.
+  const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
-  let escalations = 0;
-  while (!step.done) {
-    const progress = step.value;
-    const now = Date.now();
-    const before = nodeBudget.max;
-    maybeEscalateNodeBudget(nodeBudget, prepared, progress, now);
-    if (nodeBudget.max !== before) escalations++;
-    step = gen.next();
-  }
+  while (!step.done) step = gen.next();
   const result = step.value;
   const tEnd = performance.now();
-  if (escalations > 0) console.log(`    [escalade x${escalations}, budget final ${nodeBudget.max.toLocaleString('fr-FR')}]`);
 
   return {
     count: result.candidates.length,

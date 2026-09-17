@@ -5,6 +5,36 @@
 // il se classe — pas seulement "il se classe #4/9", mais CE qui le devance.
 //
 // Usage : optimizer-bucket-list-diag.ts <export.json> <recipe.json> <deckId> <A|B>
+//
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
+// des extensions). `diagnostic-harness.ts --suivre=<les 3 ids d'une moitié>`
+// rend bien `detailDemiBuilds` — mais il rend le rang de LA CIBLE
+// (`compartiment : rang #3 / 6`) et les dix meilleurs classés À L'INTÉRIEUR
+// de ce compartiment. Il ne rend JAMAIS le CATALOGUE des compartiments : ni
+// leur clé (`counts` de pièces de sets demandés + `jokers`), ni leur taille,
+// ni leur meilleur combo. Ce script-ci est le seul endroit où cette grandeur
+// existe.
+//
+// ⚠️ Et elle n'est pas dérivable du rang. Relevé le 2026-09-08 sur Sonia
+// deck 14 (compte Enzo), moitié A — le harnais dit « compartiment #3/6 » ;
+// ce script dit POURQUOI :
+//
+//   #1/6  counts=[3] jokers=0  28245 combos  meilleur relevanceScore=0.359
+//   #2/6  counts=[2] jokers=1  21673 combos  meilleur relevanceScore=0.346
+//   #3/6  counts=[2] jokers=0  33445 combos  meilleur relevanceScore=0.364  ← la cible
+//
+// Le compartiment de la cible porte le MEILLEUR combo de la moitié (0.364)
+// et sort quand même 3ᵉ : l'ordre des compartiments est STRUCTUREL (pièces
+// réelles de set d'abord, jokers ensuite), pas un classement par score. Un
+// lecteur qui n'a que « #3/6 » lira ce rang comme un rang de qualité — et se
+// trompera. ⚠️ Ne pas le supprimer « parce que le harnais rend un rang de
+// compartiment » : il rend le rang, jamais ce qui le devance.
+//
+// ⚠️ Ce script chronomètre aussi `buildBuckets` (meilleur temps sur 15
+// essais). Ce n'est PAS la raison de sa survie, et ce temps ne se lit pas
+// comme une comparaison : voir le skill `optimizer-perf-testing` et le
+// §6.4 bis du cadrage (aucun temps livré nu, aucune conclusion sous le
+// plancher de bruit).
 
 import { readFileSync } from 'fs';
 import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';

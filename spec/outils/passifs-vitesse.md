@@ -1,5 +1,10 @@
 # Outils · Passifs qui pèsent sur un speed tune (inventaire)
 
+**Statut :** ÉTAT ACTUEL — inventaire généré des passifs qui pèsent sur un speed tune
+**Lire si :** on cherche si un monstre a un passif de vitesse et sa catégorie
+**Ne pas lire si :** on veut modifier l'outil (voir speedTunePassif.ts et speed-tuning.md, jamais ce fichier généré)
+**Voir aussi :** speed-tuning.md
+
 ⚠️ **Fichier GÉNÉRÉ** par `node scripts/passifs-vitesse.mjs` — ne pas l'éditer à
 la main, le regénérer après chaque mise à jour de `public/data/skills`.
 
@@ -145,6 +150,9 @@ qu'en coréen.
 
 ## Barre d'attaque gagnée hors de son tour — 232 monstre(s)
 
+
+### A–G
+
 - **Adrenaline Activation (Passive) — +50 % de barre, hors de son tour**
   - Lars, Magic Order Guardian
 - **Adrenaline Rush (Passive) — +50 % de barre, hors de son tour**
@@ -225,6 +233,9 @@ qu'en coréen.
   - Benedict, Weapon Master
 - **Galadhrim Bow (Passive) — +15 % de barre, hors de son tour**
   - Legolas
+
+### G–R
+
 - **God's Shield (Passive) — +5 % de barre, hors de son tour**
   - Akroma, Valkyrja
 - **Great Friends (Passive) — +10 % de barre, hors de son tour**
@@ -305,6 +316,9 @@ qu'en coréen.
   - Dragunov, Sniper Mk.I
 - **Repeated Nightmare (Passive) — +100 % de barre, hors de son tour**
   - 데몬(물)
+
+### R–Y
+
 - **Reversed Momentum (Passive) — +50 % de barre, hors de son tour**
   - Qilin Slasher
 - **Rule Breaker (Passive) — +30 % de barre, hors de son tour**

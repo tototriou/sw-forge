@@ -1,12 +1,17 @@
 # Outils · Optimizer (`#/outils/optimizer`)
 
+**Statut :** ÉTAT ACTUEL — décrit l'écran et le comportement ACTUELS de l'Optimizer, ainsi que son algorithme
+**Lire si :** on modifie l'écran, ses réglages, ou l'algorithme de recherche de runes
+**Ne pas lire si :** on cherche le modèle de calcul des dégâts (degats-reels.md) seul
+**Voir aussi :** degats-reels.md, README.md
+
 Cherche, parmi les runes **réellement possédées**, la (les) meilleure(s)
 combinaison(s) de 6 pour un monstre donné, sous contrainte d'un **combo de
 sets**, de **statistiques principales imposées** (slots 2/4/6) et de
 **minimums/maximums de stats**, orientée par un **objectif de recherche**
 choisi d'avance. Anticipé dans
-[compte/calcul-runes.md §6](../compte/calcul-runes.md) (« Futur optimiseur
-de builds »).
+[compte/calcul-runes.md § 6. Perf (contrainte forte, à respecter)](../compte/calcul-runes.md)
+(« Futur optimiseur de builds »).
 
 Fichiers : [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) ·
 [runeBuildOptim.ts](src/lib/runeBuildOptim.ts) (moteur pur) ·
@@ -26,7 +31,8 @@ de runes ») ·
 [BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx) ·
 [DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx) +
 [damage.ts](src/lib/damage.ts) (objectif « Dégâts réels », voir
-[degats-reels.md](degats-reels.md)) ·
+[degats-reels.md](degats-reels.md) et le
+[suivi de l’audit conditionnel](optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md)) ·
 [StatPanel.tsx](src/components/StatPanel.tsx) ·
 [ArtifactSlots.tsx](src/components/ArtifactSlots.tsx) ·
 [RuneWheel.tsx](src/components/RuneWheel.tsx) — ces trois derniers
@@ -266,6 +272,31 @@ retour.
 
 ## Écran (de haut en bas)
 
+**Mise en page bureau — UNE SEULE grille à partir de `xl`**
+([OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx), `grid gap-5
+items-start xl:grid-cols-[1.35fr_1fr]`), où chaque carte reçoit un
+**placement explicite** (`col-start`/`row-start`/`row-span`) : CSS Grid
+l'honore indépendamment de l'ordre du DOM, qui reste donc l'ordre d'USAGE
+(monstre → objectif → critères → exclusion/réglages avancés) — et l'ordre de
+lecture sous `xl`, où une seule colonne s'affiche sans aucune de ces classes
+(le mobile ne dépend jamais de cette grille). Disposition actuelle : rangée 1,
+« Monstre & équipement » pleine largeur (`xl:col-span-2`) ; colonne 1,
+« Critères de recherche » sur les rangées 2 à 5 (`xl:row-span-4` — ce nombre
+suit la colonne d'en face : toute carte ajoutée ou retirée à droite s'y
+répercute) ; colonne 2, de haut en bas, « Artéfacts », « État de mon
+monstre », « Exclusion de runes », « Réglages avancés » ; en dernier, pleine
+largeur, la ligne d'estimation. ⚠️ `items-start` sur la grille : sans lui,
+chaque bloc s'étire à la hauteur de sa rangée et les cartes courtes se
+retrouvent avec un grand vide bordé. ⚠️ **Colonne 1 en `fr`, jamais en
+pixels** : bornée à `minmax(480px,560px)`, elle était trop étroite pour la
+rangée d'équipement à taille pleine (≈ 800 px : la roue puis la relique
+passaient à la ligne, cette dernière hors du cadre visible) ; en `fr`, elle
+suit la largeur réelle de l'écran au lieu d'un plafond deviné. La barre
+d'actions, la progression et les résultats restent **pleine largeur, hors de
+cette grille** — la grille de cartes de résultat profite directement de la
+largeur gagnée (`auto-fill`, voir « Résultats »).
+
+### Recherche du monstre à optimiser
 0. **Bandeau bêta** — permanent, pas refermable (contrairement à
    `MobileNotice` : ce n'est pas un avertissement ponctuel mais un statut qui
    reste vrai tant que l'outil est en rodage). Rappelle que le moteur de
@@ -334,6 +365,7 @@ retour.
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
    plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
    le combat déjà décrit. Seuls les deux **sélecteurs** retombent au défaut.
+### Meilleurs artéfacts offensifs pour ce build
 2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte
    **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
    résultat suit immédiatement les réglages qui le produisent, sans qu'un
@@ -344,6 +376,7 @@ retour.
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
    ajoutent des dégâts par-dessus.
 
+#### Emplacements figés
    ⚠️ **Ce bloc RESPECTE les réglages de la carte, et le DIT** — il ne cherche
    pas dans son coin. La question « quels sont mes meilleurs artéfacts » et la
    question « quelle paire supposer pendant la recherche de runes » partagent
@@ -409,6 +442,7 @@ retour.
    qu’avec une **liste active** : une réservation appartient toujours à une
    liste.
 
+#### Deux crans : dégâts supplémentaires ou dégâts réels
    **Deux crans**, à choisir — un `Segmented`, jamais un bouton qui déclenche :
    - **Dégâts supplémentaires** (défaut) — les dégâts bruts par coup des
      sous-propriétés 218-221. **Calculé en permanence** : la qualité première
@@ -425,7 +459,9 @@ retour.
    - L'**absolu s'affiche toujours**, y compris quand on porte déjà la
      meilleure paire — c'est justement là qu'il est seul à dire quelque chose,
      l'écart valant zéro.
-   - L'**écart** ne s'affiche que s'il y a quelque chose à gagner.
+   - L'**écart** s'affiche dès qu'il est **non nul à l'arrondi, dans les
+     deux sens** (voir « L'écart s'affiche dans les DEUX sens » plus haut)
+     — jamais quand la paire proposée est celle déjà portée.
    - La phrase qui NOMME le chiffre suit la même règle : présente dès qu'un
      nombre l'est. Un nombre sans sa légende serait exactement le défaut du
      « +X % grâce aux artéfacts » qu'on a retiré faute de pouvoir le nommer.
@@ -446,6 +482,7 @@ retour.
    dégâts supplémentaires **en le disant** — jamais un bloc vide ni un chiffre
    brut sous un libellé « Dégâts réels ».
 
+#### Affichage et emplacement de la proposition
    **Chaque artéfact proposé s'affiche comme dans le jeu** : sa statistique
    principale en tête, puis **une ligne par sous-propriété** avec le nombre de
    procs à gauche, la valeur en gras et le marqueur des propriétés modifiées.
@@ -491,17 +528,19 @@ retour.
    La statistique principale exigée et les lignes verrouillées sont respectées
    dans les deux cas — une contrainte posée reste une contrainte.
 
+### Équipement actuel
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
    qu'ACTUELLEMENT équipés** sur l'exemplaire choisi ci-dessus — **c'est
    CET exemplaire que la recherche optimise**, pas systématiquement la box.
-   Tant qu'aucun exemplaire n'a encore été choisi DANS LA SOURCE ACTIVE
-   depuis le dernier montage de la page : repli sur le meilleur exemplaire
-   box de l'espèce affichée la dernière fois (continuité au retour sur
-   l'onglet) si la source active est Box, fiche vide sinon (RTA/siège
-   n'ont pas d'équivalent « toujours un choix par défaut sensé », l'espèce
-   peut apparaître dans plusieurs équipes). ⚠️ **Limite connue** : ce choix
+   Tant qu'aucun exemplaire n'a encore été choisi depuis le dernier montage
+   de la page : repli sur le **PREMIER exemplaire Box** de l'espèce
+   persistée (`boxCandidates[0]`, initialisation paresseuse de
+   `sourceSelector` dans [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)
+   — la même règle que la recherche bestiaire, voir « Recherche du monstre
+   à optimiser »), stats de base seules si la box n'en compte aucun ; la
+   source active au montage est toujours Box. ⚠️ **Limite connue** : ce choix
    d'exemplaire ne fait PAS partie de la recette exportée (`OptimizerRecipe`
    ne porte que l'espèce, `monsterCom2usId`) — réimporter une recette lancée
    sur un exemplaire RTA/siège retombe sur la box par défaut. Chacun de ses éléments reste **cliquable**
@@ -520,14 +559,17 @@ retour.
    (demande explicite), comportement partagé avec RTA et Siège. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/sections-runes.md](../rta/sections-runes.md)).
-   ⚠️ **Affiché à DROITE de la recherche, TOUJOURS** — vide (stats à zéro,
-   emplacements grisés, roue sans rune) tant qu'aucun monstre n'est choisi,
+   ⚠️ **Affiché dans la carte « Monstre & équipement », SOUS les puces
+   d'exemplaire (colonne interne de droite au bureau), TOUJOURS** — vide
+   (stats à zéro, emplacements grisés, roue sans rune) tant qu'aucun
+   monstre n'est choisi,
    plutôt que de n'apparaître qu'au clic. C'est un `GearSet` NUL construit
    en local (`EMPTY_GEAR`, [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)),
    pas une variante de `MonsterGear` : le composant partagé n'a besoin
    d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des
    lignes à zéro, et `ArtifactSlots`/`RuneWheel` gèrent nativement un
    tableau vide.
+### Objectif de recherche
 3. **Objectif de recherche** — en tête de la **carte du bouton
    Rechercher**, au-dessus de la rangée Rechercher / Exporter / Importer.
    ⚠️ Il a longtemps été une carte à part, à droite de « Critères de
@@ -540,6 +582,7 @@ retour.
    choix unique** (`<Segmented
    size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
    après coup :
+#### Garde-fou de revalidation contre un compte vide
    ⚠️⚠️ **ON NE REVALIDE JAMAIS LES LISTES CONTRE UN COMPTE VIDE**
    (`comptePeutJuger`, [optimizerExclusion.ts](src/lib/optimizerExclusion.ts)).
    La revérification répond à « mon compte a-t-il changé depuis » ; face à un
@@ -591,13 +634,17 @@ retour.
      silencieusement.
    - La valeur reste acceptée **en ligne de commande** : c'est une compatibilité
      d'argument, pas un objectif de l'app.
-   - ⚠️⚠️ **`tsconfig.json` n'inclut que `src`** : `tsc --noEmit` ne voit RIEN de
-     `scripts/`. C'est ce qui a laissé passer les dix casts — et le code le
-     savait déjà (`filterSlot` porte l'avertissement « incident déjà vécu deux
-     fois »). Ça vient de se reproduire une troisième. Tant que le périmètre
-     n'est pas élargi, **tout changement de type partagé avec `scripts/` se
-     vérifie à la main** (`grep` du nom, puis un bundle esbuild de contrôle).
+   - ⚠️⚠️ **`tsconfig.json` couvre `src`, `scripts` et `tests`**
+     (`"include": ["src", "scripts", "tests"]`) : `tsc --noEmit` attrape
+     désormais un champ partagé dont le type change ou qui devient
+     obligatoire. Les dix casts étaient passés quand le périmètre se limitait
+     à `src` — et le code le savait déjà (`filterSlot` porte l'avertissement
+     « incident déjà vécu deux fois »). Reste hors de portée de `tsc` le
+     champ **OPTIONNEL** ajouté ou renommé, où l'oubli reste parfaitement
+     typé : **`grep` du nom sur tout le dépôt** (`src/`, `scripts/`,
+     `tests/`), voir CLAUDE.md, « Un type partagé… ».
 
+#### Les quatre objectifs disponibles
    - **Efficience** (par défaut) — pas de biais particulier, la mesure
      choisie globalement (Efficience ou Score SW, voir
      [compte/runes.md](../compte/runes.md)).
@@ -612,6 +659,16 @@ retour.
      change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
      place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 30 000 ·
      DEF 1 000 · Critique`. On la clique pour rouvrir.
+     La partie 2 de l'audit ajoute dans cette fenêtre les PV propres, les
+     ennemis vivants, la réserve de Sacrifice, les comparaisons de stats et
+     les états de combat propres au monstre choisi. Les compteurs de débuffs
+     ennemis s'arrêtent à 10 ; les conditions binaires utilisent un
+     interrupteur activé automatiquement par Brise DEF ou Marque. Ces choix
+     traversent recette, CLI, Worker, score de recherche et évaluation des
+     artéfacts ; les anciennes recettes conservent leurs valeurs par défaut.
+     Les buffs sur soi ont le même compteur plafonné à 10 : les interrupteurs
+     ATQ, DEF et VIT actifs s'ajoutent automatiquement aux autres buffs saisis.
+     Une ancienne recette garde son total inclusif, sans double comptage.
      - ⚠️ **Le résumé dit le sort RÉELLEMENT utilisé**, pas celui qu'on
        avait choisi. Un sort appartient à un monstre : après un changement
        de monstre, le calcul retombe sur le sort par défaut du nouveau. Tant
@@ -635,6 +692,7 @@ retour.
        sur un sort, une cible et un mode de critique jamais choisis. Le
        geste est désormais explicite.
 
+#### Dégâts réels — compétence utilisée et passifs offensifs
      Ce que contient ce réglage :
      - **Compétence utilisée** — les sorts offensifs du monstre, chacun
        accompagné de ce que ses données disent déjà (« 3 coups · Zone ·
@@ -643,7 +701,10 @@ retour.
        fixes et bonus des améliorations sont lus dans la fiche du sort. Par
        défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
        dont la formule sort du modèle reste **affiché, grisé, avec son
-       motif** — jamais absent sans explication. ⚠️ **Coups variables** (« 2
+       motif** — jamais absent sans explication. Le survol de chaque sort,
+       même grisé, montre sa description du jeu. Les conditions « buff
+       adverse présent/absent » sont des interrupteurs, contrairement aux
+       bonus proportionnels au nombre de buffs. ⚠️ **Coups variables** (« 2
        à 3 fois », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3) : un
        champ numérique borné apparaît sous le sort choisi (ou sous le passif
        concerné) pour choisir la valeur réellement utilisée par le calcul —
@@ -680,6 +741,7 @@ retour.
        et le texte du jeu (`Competence.description`) sont affichés **en
        clair sous chaque passif**, pas seulement au survol, pour que le
        joueur juge lui-même.
+#### Dégâts réels — adversaire, effets actifs et coup critique
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
        Un champ **PV restants** n'apparaît que pour les sorts dont la
@@ -706,7 +768,8 @@ retour.
        une fois
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
        pour comprendre la légende (au repos, tout est grisé : rien n'est
-       encore choisi). **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
+       encore choisi). Le survol décrit l'effet complet, pas seulement son
+       nom. **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
        Miriam, Dr. Matteo, Velaska — un AUTRE monstre que celui optimisé),
        même contrôle mais **portrait du monstre** en icône plutôt qu'une
        icône de buff générique. ⚠️ Velaska porte en plus un **champ
@@ -717,11 +780,14 @@ retour.
        ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont plus** — voir
        « État de mon monstre » ci-dessous.
      - ⚠️ **Compétences d'invocateur : parties ailleurs**, voir « État de mon
-       monstre ». Rappel de ce qu'elles font : **Aucune** / **Combat**
-       (défaut) / **Combat + Guilde**, remplaçant les anciens totems et
+       monstre ». Rappel de ce qu'elles font : **Combat** (défaut) /
+       **Combat + Guilde**, remplaçant les anciens totems et
        drapeaux, toujours supposées maxées. **Un choix unique, pas deux
        cases** : l'onglet Guilde ne s'applique qu'en contenu de guilde, où
        Combat compte aussi — « Guilde » implique donc toujours « Combat ».
+       Il n'existe pas de cran « Aucune » : les compétences de Combat
+       s'appliquent dans toute situation réelle du jeu. Une ancienne recette
+       qui portait ce cran est normalisée vers **Combat** à l'import.
        La compétence « Puis. d'att. de <élément> » suit l'élément du
        monstre, sans rien demander. Détail des valeurs :
        [degats-reels.md](degats-reels.md).
@@ -732,7 +798,9 @@ retour.
        **Moyenne** uniquement, un avertissement rappelle que la valeur
        affichée est une ESPÉRANCE théorique, pas ce qu'un combat réel (tour
        par tour) produit coup après coup — absent des deux autres modes,
-       qui sont déjà des bornes littérales.
+       qui sont déjà des bornes littérales. Si le sort garantit son critique,
+       ou si le réglage actif remplit sa condition de critique garanti, les
+       crans Non critique et Moyenne sont grisés et non sélectionnables.
      ⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
      défense ne montre ni la DEF ennemie ni la réduction de défense ; un
      sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un
@@ -743,7 +811,13 @@ retour.
      et ne tiennent donc pas dans une table statique : l'écran les calcule
      (`damageRelevantStats`) et les transmet au moteur via
      `SearchParams.objectiveStats`. Le moteur, lui, reste générique — il
-     reçoit « ces stats comptent plus », jamais la notion de sort.
+     reçoit « ces stats comptent plus », jamais la notion de sort. L'entrée
+     `degats_reels` de la table statique n'est qu'un REPLI (`['atk','cd']`)
+     pour le cas « aucun sort résolu ». ⚠️ `objectiveScore` exige un
+     `RealDamageContext` pour cet objectif et **lève** sans lui — jamais un
+     repli silencieux vers une autre formule : un score plausible mais
+     calculé sur un autre modèle que celui affiché serait invisible.
+#### Repli et objectifs retirés
      ⚠️ **Aucun sort calculable** (monstre perso, fiche absente, formules
      hors modèle) : l'option « Dégâts réels » **disparaît purement et
      simplement** du bouton à choix unique (`OBJECTIVE_LABELS` filtré sur
@@ -767,6 +841,7 @@ retour.
    (modifiable ensuite) — il **n'influence pas** le classement des candidats
    pendant la recherche elle-même : seuls les minimums/maximums posés
    ci-dessous en décident, quel que soit l'objectif choisi.
+### Set de runes recherché et statistique principale imposée
 4. **Set de runes recherché** — **un seul combo** (contrairement aux
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
    grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
@@ -789,6 +864,20 @@ retour.
    **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté. **Colonne
    GAUCHE** de la carte (demande explicite), avec le point suivant.
+   ⚠️ **Rouge Tailwind `red-500` littéral, pas le jeton sémantique `bad`** du
+   thème — exception assumée à « aucune couleur Tailwind native »
+   (CLAUDE.md) : `bad` (voir [shared/design.md](shared/design.md)) est
+   volontairement une teinte corail douce en thème sombre, pensée pour un
+   état des DONNÉES — trop proche du fond du contrôle pour se voir comme un
+   vrai signal d'alerte. Ce cas précis en avait besoin, demandé explicitement
+   après deux essais d'intensification du jeton `bad` jugés encore
+   insuffisants (bordure épaisse + fond teinté + halo large).
+   ⚠️ **Densité** (demandes explicites, « plus compact » / « resserré ») :
+   `max-w-md` sur le conteneur de « Set de runes recherché » ; **Set principal
+   (4 pièces) sur DEUX LIGNES en permanence** (`SetComboPicker.tsx`, `grid
+   grid-cols-3` sans préfixe `compact:` — le bureau adopte l'agencement
+   asymétrique du tactile, demande « comme sur mobile » : Set principal
+   étroit, Set secondaire récupère la largeur libérée).
 5. **Statistique principale imposée (slots pairs)** — pour chacun des slots
    **2, 4 et 6** (les seuls dont la statistique principale n'est **pas**
    fixée par les règles du jeu — 1/3/5 sont toujours ATQ/DEF/PV plats), une
@@ -817,6 +906,7 @@ retour.
    filtre s'applique **avant** tout le reste, dans la construction même du
    pool par slot — il réduit donc le nombre de candidats réellement
    considérés dès le départ.
+### Artéfacts
 6. **Artéfacts** — interrupteur **« Activer l'optimisation d'artéfacts »**,
    **ACTIVÉ par défaut**.
 
@@ -899,6 +989,7 @@ retour.
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigeait.
 
+### État de mon monstre
 6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
    juste sous « Artéfacts ». Elle a d'abord vécu en bas de cette carte, séparée
    par un simple trait : ça laissait croire que ces réglages servaient les
@@ -908,6 +999,9 @@ retour.
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
    jeu) et **compétences d'invocateur**. Ce qui rend le monstre plus fort,
    quel que soit l'adversaire.
+   Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
+   apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
+   VIT), jamais sous la VIT de l'adversaire.
 
    Les trois groupes tiennent sur **une seule rangée** (demande explicite) :
    empilés, ils donnaient à la carte une hauteur sans rapport avec le peu
@@ -916,7 +1010,7 @@ retour.
    les contrôles sous leur taille de cible.
 
    Dans le groupe **Invocateur**, le libellé et son aide sont **au-dessus**
-   des trois crans, pas à leur gauche (demande explicite) : côte à côte, ils
+   des deux crans, pas à leur gauche (demande explicite) : côte à côte, ils
    formaient le groupe le plus large des trois et faisaient replier la rangée
    plus tôt. ⚠️ **Sans changer la hauteur de la carte** — le groupe passe à
    deux rangées, mais « Lead » en fait déjà deux et `items-stretch` aligne les
@@ -978,6 +1072,7 @@ retour.
    réglages voisins, deux modèles de dégâts, sans que rien ne le signale. Le
    « et si… » est donc perdu, en connaissance de cause.
 
+### Sous-propriétés verrouillées
    **Sous-propriétés verrouillées** — sous les deux listes, jusqu'à **8**
    sous-propriétés exigées avec un minimum chacune (« Précision Compétence 3
    ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*
@@ -1059,6 +1154,7 @@ retour.
      réalisable, ce qui serait pire que de se taire. Chaque maximum étant pris
      ligne par ligne, deux lignes atteignables séparément peuvent ne l'être
      par aucune paire à la fois — l'écran le dit.
+### Conditions, inventaire et réglages avancés
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE**,
@@ -1068,7 +1164,38 @@ retour.
      niveau/l'éveil ; activé, le champ porte sur ce que l'**équipement**
      (runes et artéfacts) doit apporter au-dessus de la base nue. Désactivé,
      il porte sur le total. Taux Crit/Dmg Crit/RES/Précision restent
-     TOUJOURS en total, quel que soit ce réglage.
+     TOUJOURS en total, quel que soit ce réglage — elles partent d'une petite
+     valeur d'éveil fixe plutôt que d'une base qui grandit ; leur champ
+     **évolue selon la valeur d'éveil du monstre** (repère affiché en
+     `placeholder`), pas selon ce réglage. « Bonus apporté par
+     l'équipement » se lit comme en jeu : un monstre sans la moindre rune
+     mais avec deux artéfacts ATQ +100 affiche déjà +200 de bonus ATQ, pas 0.
+   - ⚠️ **La valeur stockée ne change jamais de nature** : c'est une lecture
+     dérivée (`total − base`, `base` = la base NUE du monstre, jamais les
+     artéfacts) recalculée à l'affichage, pas une conversion appliquée une
+     fois puis oubliée. Désactiver l'interrupteur change donc immédiatement
+     les 4 champs concernés (sans perte), et **saisir** une valeur pendant
+     qu'il est activé l'enregistre convertie en total (`base + valeur
+     saisie`) — la valeur saisie représente le bonus **équipement complet**
+     (runes et artéfacts additionnés), pas les runes seules : soustraire
+     aussi les artéfacts aurait mélangé deux référentiels (`base` reste la
+     base nue dans la conversion, seul le PLANCHER ci-dessous change selon
+     les artéfacts comptés). Sans monstre sélectionné, la base vaut 0 : les
+     deux lectures coïncident.
+   - ⚠️ **Aucun champ ne descend sous ce qu'on a déjà GARANTI sans la moindre
+     rune** — le plancher, pas la valeur de conversion ci-dessus : en lecture
+     Total, la base nue du monstre **plus** les artéfacts effectivement
+     comptés (0 si aucun artéfact choisi sur cette stat) ; en lecture
+     « bonus », les artéfacts effectivement comptés SEULS — cohérent avec le
+     fait qu'en bonus, la base nue est déjà soustraite par la conversion.
+     Affiché en `placeholder` tant que rien n'est saisi.
+   - **Grille en `w-fit`**, un seul triplet (libellé/Min/Max) par rangée,
+     même au-delà de `2xl` — un passage à DEUX stats par rangée a été tenté
+     puis **explicitement écarté** : le triplet Min/Max reste la lecture
+     attendue, pas un doublement de densité. Cause du `w-fit` : un conteneur
+     `grid` en BLOC prend toute la largeur de son parent, et des colonnes
+     `auto` (Min/Max) sans aucune piste en `fr` **se partagent l'espace libre
+     restant** — la phase « maximize tracks » de CSS Grid, pas un bug.
    - Taux Crit, RES et Précision sont plafonnés à 100 % **sur la saisie**
      seulement — la recherche elle-même ne doit surtout pas exclure un build
      dont la somme brute dépasse 100 % (une marge de sécurité contre la
@@ -1079,8 +1206,9 @@ retour.
    (voir « Exclusion des runes » ci-dessous).
 9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
    `FlottantAuto`** (`shared/librairie-ui.md`), PAS un bloc qui grandit la
-   carte — dépliée, la carte reste sous « Exclusion de runes » (rangée 1-2
-   du duo Monstre & équipement, voir plus haut) à sa hauteur repliée, le
+   carte — dépliée, la carte reste sous « Exclusion de runes » (colonne 2,
+   rangée 5, sous Exclusion en rangée 4 — voir « Mise en page bureau » en
+   tête d'« Écran ») à sa hauteur repliée, le
    contenu flotte par-dessus le reste de la page ; ferme au clic extérieur.
    Un panneau replié par défaut ne peut pas réserver sa place à l'avance
    sans perdre l'intérêt d'être replié — voir
@@ -1132,6 +1260,7 @@ retour.
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
      une recette (voir plus bas).
+### Lancer la recherche
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
     pré-filtrage, détaillé par emplacement (une **somme**, pas un produit),
@@ -1151,13 +1280,21 @@ retour.
     préréglage, exploration de tout l'inventaire, choix d'artéfacts) —
     **jamais le pool de runes ni le compte**, ce qui la rend partageable
     entre joueurs. L'import remplit tous les réglages et sélectionne
-    automatiquement le monstre de la box courante si son `com2usId` s'y
-    trouve.
+    automatiquement le monstre par son `com2usId` — **résolu dans TOUT le
+    bestiaire**, plus seulement les monstres possédés : importer la recette
+    de quelqu'un d'autre pour un monstre qu'on ne possède pas reste
+    utilisable (repli sur ses stats de base) au lieu d'échouer avec « ce
+    monstre n'est pas dans ta box » ; ce message ne survient plus que si le
+    `com2usId` ne correspond à AUCUN monstre des données chargées (cas
+    limite, ex. monstre retiré du jeu). Aucune confirmation à l'import :
+    remplacer la saisie en cours n'est pas plus destructeur que la modifier
+    à la main.
 12. **Barre de progression** — se remplit progressivement (pas une roue qui
     tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
     suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
     d'un résultat) : « Attendez la fin de la recherche pour être sûr de
     trouver votre build optimal ».
+### Résultats
 13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant
     que dans « Équipement actuel ») et les artéfacts + les 6 runes sur une
@@ -1165,15 +1302,76 @@ retour.
     pour ouvrir le détail complet de la pièce. Puis la valeur **moyenne par
     rune** dans la mesure choisie — « Efficience moyenne : X » ou « Score
     moyen : X » selon le réglage global (Efficience/Score SW).
+    ⚠️ **Recalculée à l'affichage** (`candidateMetricTotal` dans
+    [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), à partir des VRAIES
+    runes) plutôt que lue depuis `BuildCandidate.effTotal` : ce champ est
+    figé dans la mesure Efficience/Score active AU MOMENT DE LA RECHERCHE
+    (voir `SearchParams.metric`) — si l'utilisateur bascule le réglage (menu
+    ⚙) APRÈS avoir cherché, sans relancer, `effTotal` reste dans l'ancienne
+    mesure alors que le popover d'une rune individuelle, lui, se recalcule
+    toujours en direct. Bug signalé, corrigé, couvert par un test dédié
+    ([tests/rune-optim.test.ts](tests/rune-optim.test.ts) : la fonction ne
+    doit JAMAIS lire `effTotal`, vérifié avec un `effTotal` délibérément
+    faux). Même correctif appliqué au tri « Trier par efficience ».
+    ⚠️ **Au moins deux cartes par ligne**, calibré exprès (`scale=0,45` sur la
+    roue et les artéfacts, grille `repeat(auto-fill, minmax(min(360px,100%),
+    1fr))`) : deux cartes de 360 px + le creux entre elles tenaient tout juste
+    sous les 768 px de l'ancien conteneur `max-w-3xl` — ce calibrage reste le
+    PLANCHER (deux cartes), `auto-fill` faisant tenir davantage de cartes sur
+    un écran large. La bascule base+bonus ↔ total ne déplace jamais les
+    artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
+    fixe** (`w-[200px]`, voir [rta/sections-runes.md](rta/sections-runes.md)).
     ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
     actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la
     carte**, sur sa propre ligne. Un flottant à taille fixe débordait de
     l'écran sur une carte de résultat déjà compacte en mobile.
-    ⚠️ **Sur 0 résultat**, un encadré diagnostic apparaît : soit une liste de
-    conditions mathématiquement hors de portée (avec leur borne exacte), soit
-    un message neutre orientant vers la conjonction des contraintes ou un
-    pré-filtrage plus large. Un sélecteur **« Trier par »** re-trie **côté
+    ⚠️ **Cliquer sur une rune** d'un résultat ouvre le **même popover** que
+    dans Mon compte → Runes (`DetailPopover` + `RuneDetailBox`, ancré sur la
+    rune cliquée) — les runes d'un candidat sont de vraies runes du compte.
+    La rune ouverte porte le **même halo orange** que la sélection dans
+    `MonsterGear` (`brightness` + `drop-shadow`, voir `RuneWheel.tsx`) — la
+    roue de résultat se comporte comme n'importe quelle roue de l'app. Une
+    seule rune ouverte à la fois, **parmi TOUS les résultats affichés** (pas
+    seulement dans la même carte) ; ⚠️ l'identité d'une rune ouverte (donc du
+    halo) combine le candidat ET le slot (`BuildCandidateCard.tsx`), pas
+    seulement l'id de la rune : la même rune peut apparaître dans plusieurs
+    candidats affichés à la fois, et ne doit ouvrir qu'UNE instance.
+    ⚠️ **Le popover passe toujours au premier plan, quel que soit son
+    voisinage** : sans z-index, deux éléments `position:absolute` frères
+    s'empilent par simple **ordre du DOM**, pas par position à l'écran — le
+    popover d'une rune pouvait se retrouver recouvert par le cadre d'une autre
+    rune de la même roue rendue plus tard, ou par une carte/fiche voisine
+    plus loin dans le DOM (grille de résultats, ligne suivante d'un
+    `AccordionGrid` en RTA/Siège). Corrigé en promouvant, UNIQUEMENT tant
+    qu'un popover y est ouvert, le wrapper de la pièce concernée (`z-10`,
+    dans `RuneWheel.tsx`/`ArtifactSlots.tsx`/`MonsterGear.tsx` pour la
+    relique) **et** la carte ou fiche entière qui le contient (`relative
+    z-10`, `BuildCandidateCard.tsx` et `MonsterGear.tsx`) — deux niveaux,
+    parce qu'un popover doit gagner à la fois contre ses voisins immédiats et
+    contre les autres cartes de la grille.
+    ⚠️ **Sur 0 résultat**, jusqu'à trois encadrés diagnostic apparaissent, à la
+    suite :
+    - **Toujours** : une liste de conditions mathématiquement hors de portée
+      (avec leur borne exacte), ou un message neutre orientant vers la
+      conjonction des contraintes ou un pré-filtrage plus large.
+    - **Si « Diagnostic approfondi sur 0 résultat » est coché** (décoché par
+      défaut, plus coûteux — voir le réglage plus haut) : pour chaque
+      condition posée, DE COMBIEN la desserrer suffit à faire grandir le pool
+      pré-filtré (« VIT −15 suffit (≥ 160) »), ou « aucun gain, même
+      desserrée entièrement » si ce n'est pas la stat qui bloque à ce stade.
+      Décoché, une simple invitation discrète à l'activer.
+    - **« Quoi ajuster pour trouver des builds »**, systématique (coût nul,
+      sans réglage) : contrairement au point précédent, qui ne regarde que le
+      pré-filtrage, celui-ci vient de la recherche RÉELLE — la meilleure
+      combinaison de runes déjà examinée qui échoue de peu. Pour chaque
+      condition posée, si une combinaison satisfait tout le reste et ne
+      manque QUE celle-ci, son écart (« VIT −5 suffirait (≥ 105) »), plus la
+      combinaison la plus proche toutes conditions confondues. N'apparaît que
+      s'il existe au moins un tel résultat parmi ce que la recherche a
+      réellement exploré — un near-miss encore plus proche, jamais atteint
+      avant l'arrêt de la recherche, resterait invisible.
+    Un sélecteur **« Trier par »** re-trie **côté
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes
     d'options — les 8 stats brutes, et les mêmes objectifs qu'à l'étape 3
@@ -1245,6 +1443,7 @@ pool partagé** entre TOUTES les équipes 1 à 10 (une rune n'y sert qu'à UNE
 unique aurait fait fuiter des réservations entre des contextes qui, en
 jeu, n'ont RIEN à voir l'un avec l'autre.
 
+### Créer, valider et réserver dans une liste
 - **Aucune liste fixe** — l'utilisateur en crée, renomme et supprime
   librement (`OptimizerListPicker.tsx`, menu déroulant : crayon de
   renommage, corbeille de suppression par ligne, « + Nouvelle liste » en
@@ -1299,6 +1498,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   infobulle nommant le monstre qui la retient : le retirer laisserait croire que
   ce build n'est pas validable du tout, alors qu'il le redevient dès qu'on
   libère la rune.
+### Zone C — Monstres de la liste
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
@@ -1379,6 +1579,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
   changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
   build validé par défaut.
+### Comparer, valider sans recherche et persistance
 - **« Comparer », à côté de « Valider ce build »** sur chaque carte de
   résultat (demande explicite) : les deux boutons **se partagent la largeur**
   de la carte, plutôt que d'être empilés — une rangée de plus par carte se
@@ -1473,7 +1674,21 @@ construit cet ensemble d'exclusion pour le périmètre choisi — sa branche
 « Box » réutilise `excludedRuneIds`
 ([runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), seule fonction restée
 spécifique à la box (comportement historique de l'outil, avant l'ajout des
-deux autres périmètres).
+deux autres périmètres). Ses branches RTA et Défenses siège comparent par
+**`com2usId`** (l'espèce), jamais par entrée précise — c'est ce qui garantit
+qu'un monstre recherché présent en RTA ne s'exclut jamais lui-même ; et le
+périmètre Défenses siège ne dépend que de `monsterId` (stable), jamais de
+`SiegeTeam.id` (régénéré à chaque import), ce qui le rend pleinement fiable
+en ligne de commande — contrairement aux sélecteurs manuels siège (voir
+« Exclusion manuelle » ci-dessous).
+
+⚠️ **Repli de compatibilité à l'import d'une recette** exportée avant le
+renommage de la case (ancien champ `exploreAll`, coché = tout
+l'inventaire) : `exploreAll` absent ou `true` → case décochée
+(comportement identique) ; `exploreAll: false` → case cochée, périmètre
+**Box** (le seul que l'ancienne case connaissait). Une recette déjà
+exportée se comporte donc EXACTEMENT pareil après réimport — jamais un
+champ manquant ignoré en silence.
 
 ### Exclusion manuelle — un monstre précis, dans n'importe quelle source
 
@@ -1588,7 +1803,11 @@ plus du plafond de candidats collectés :
   ci-dessus, calibrés par mesure sur des comptes réels : plus le preset est
   large, plus le pool considéré par emplacement grandit, et plus la
   recherche peut prendre de temps (jusqu'à plusieurs dizaines de secondes au
-  preset le plus large sur un très gros compte).
+  preset le plus large sur un très gros compte). Valeurs
+  (`SLOT_FILTER_PRESETS`, `runeBuildOptim.ts` — runes gardées par
+  emplacement) : **Bas 40 · Moyen 80 (défaut) · Haut 150 · Extrême 300**.
+  Bas était le défaut d'origine, trop juste sur un vrai gros compte ; 300
+  est la valeur mesurée nécessaire pour y retrouver un build réel.
 - **Bouton « Arrêter »** — l'utilisateur reprend la main quand il l'estime
   suffisant. L'arrêt est **coopératif** : le moteur rend la main
   régulièrement pendant la recherche et renvoie le **meilleur trouvé
@@ -1606,6 +1825,25 @@ avec le nombre de combinaisons déjà examinées et déjà trouvées. ⚠️
 internes à un rythme constant d'une recherche à l'autre, donc la barre peut
 accélérer ou ralentir en cours de route plutôt que progresser régulièrement.
 
+⚠️ Les messages du Worker sont **throttlés au temps écoulé** (au plus un
+tous les 150 ms, `PROGRESS_THROTTLE_MS`), pour ne jamais inonder le fil
+principal quand l'élagage va vite. Chaque message porte `explored`, `found`
+et un `pct` approximatif : le plus avancé des trois budgets qui peuvent
+chacun terminer la recherche — et les seuls qui existent (le plafond de
+nœuds a été supprimé, précisément parce qu'une borne qui grandissait en
+cours de route faisait RECULER la barre) :
+
+```
+pct = max(explored / totalPairs, found / maxCollected, tempsÉcoulé / maxMs)
+```
+
+Le troisième terme vaut 0 quand le filet de temps est retiré
+(« Rechercher jusqu'à épuisement complet »). Sous la barre : le compteur
+`explored`/`totalPairs`/`found`, puis le message doré (point 12 de « Lancer
+la recherche ») — et rien d'autre : un second chiffre « espace de
+recherche à épuiser (au pire) » a été retiré, doublon du dénominateur de
+la ligne du dessus.
+
 ## Algorithme (résumé fonctionnel)
 
 Calcul pur dans [runeBuildOptim.ts](src/lib/runeBuildOptim.ts), exécuté dans
@@ -1614,6 +1852,7 @@ Lancer une **nouvelle** recherche termine sèchement celle en cours ; arrêter
 la recherche **en cours** pour en garder le résultat passe par un canal
 différent, coopératif (voir « Interruption »).
 
+### Recherche des runes — meet-in-the-middle et élagages
 - **Jamais de brute-force.** *Meet-in-the-middle* : les 6 emplacements sont
   scindés en **deux moitiés de 3**, chacune énumérée depuis le pool déjà
   pré-filtré, puis regroupées par le **compte exact** de pièces de chaque
@@ -1701,7 +1940,7 @@ différent, coopératif (voir « Interruption »).
   **revérifié sur les runes réelles** avant d'être retenu.
 - **Au plus 1 rune Intangible par proposition** : le jeu n'autorise à en
   sertir qu'une seule par monstre (voir
-  [compte/calcul-runes.md §5.2](../compte/calcul-runes.md)).
+  [compte/calcul-runes.md § 5.2 Bonus de set — **à ne pas oublier**](../compte/calcul-runes.md)).
 - **Élagage de faisabilité MIN et MAX, pas d'optimisation vers un seul
   critère** : la recherche collecte un ensemble large mais borné de
   combinaisons valides, pour permettre le tri après coup sur n'importe quel
@@ -1711,8 +1950,12 @@ différent, coopératif (voir « Interruption »).
   fois, plutôt qu'un plafond fixe deviné à l'avance — évite à la fois de
   gaspiller du temps sur une recherche lâche et de sous-budgétiser une
   recherche à beaucoup de conditions simultanées.
-- **Artéfacts et relique restent fixes** (ceux actuellement équipés ou
-  hypothéqués à l'étape 6) : l'outil optimise **uniquement les 6 runes**.
+- **La recherche de runes optimise uniquement les 6 runes.** La relique
+  reste fixe (`relic?: RelicDetail; // fixe`, `SearchParams`) ; les
+  artéfacts y entrent comme **paire représentative** pour la notation
+  (`artifacts`) et comme **bornes d'inventaire** pour la faisabilité
+  (`artifactBounds`, produit par `bornesArtefacts`) — leur choix est un
+  second problème, séparé (voir « Le choix des artéfacts »).
 - Toutes les valeurs sont recalculées avec [stats.ts](src/lib/stats.ts)
   (`computeStats`), la même fonction que partout ailleurs dans l'app.
 - **Écrit comme un générateur**, pas une seule boucle qui tourne jusqu'au
@@ -1816,8 +2059,34 @@ les petits jeux du test différentiel.
 [tests/rune-optim-parallel-pairing.test.ts](tests/rune-optim-parallel-pairing.test.ts)
 vérifie spécifiquement que découper l'appariement sur plusieurs Workers
 retrouve EXACTEMENT le même ensemble de candidats que l'appariement
-séquentiel, sur des jeux aléatoires balayés à 1/2/3/4 tranches. Le moteur a
-par ailleurs été validé
+séquentiel, sur des jeux aléatoires balayés à 1/2/3/4 tranches.
+
+⚠️ **Les quatre étages de préparation sont OBSERVABLES, sans les rejouer.**
+`prepareSearch` accepte un observateur optionnel (`onStage`) appelé après
+chacun d'eux — statistique principale, dominance, faisabilité, pré-filtrage.
+Raison d'être : ces états sont écrasés l'un après l'autre et seul le dernier
+sort de la fonction, si bien qu'un outil de diagnostic voulant distinguer
+« rune **prouvée** impossible » (dominance, faisabilité) de « rune seulement
+**écartée** » (pré-filtrage heuristique) devait jusqu'ici rappeler les
+fonctions une par une et reconstruire le contexte à la main — une seconde
+implémentation du pipeline, qui a effectivement dérivé du vrai moteur.
+Observateur **omis = comportement strictement inchangé** ; il ne doit jamais
+muter ce qu'il reçoit.
+[tests/rune-optim-onstage.test.ts](tests/rune-optim-onstage.test.ts) le
+vérifie, en comparant le résultat produit avec et sans observateur.
+
+Cet observateur est ce sur quoi repose le **harnais de diagnostic**
+([scripts/diagnostic-harness.ts](scripts/diagnostic-harness.ts)) : un outil de
+développement — pas une fonctionnalité de l'app — qui rejoue une recherche à
+partir d'une recette exportée ou d'un pool synthétique reproductible, et
+restitue en deux paliers la configuration réellement appliquée (avec
+l'ORIGINE de chaque paramètre), la survie d'une rune étage par étage, le
+régime d'appariement choisi comme la production le choisirait, et la
+complétude avec son motif d'arrêt. Il remplace l'écriture de scripts de
+diagnostic ponctuels, dont plusieurs avaient dérivé du moteur réel sans que
+rien ne le signale.
+
+Le moteur a par ailleurs été validé
 « grandeur nature » : retrouver exactement le runage d'un monstre réel
 existant, à partir de ses propres stats comme critères, sur un compte de
 plusieurs milliers de runes.
@@ -1840,10 +2109,10 @@ plusieurs milliers de runes.
   construit, ni un workflow qui enchaîne automatiquement au monstre suivant
   après validation.
 - Le preset de pré-filtrage par emplacement et le filet de temps (« Réglages
-  avancés ») sont réglables ; le plafond de candidats collectés et le
-  budget de paires restent des paramètres internes du moteur, non exposés
-  dans l'UI — **« Rechercher jusqu'à épuisement complet » ne les retire
-  pas**. Sur une recherche assez large pour atteindre le plafond de
+  avancés ») sont réglables ; le plafond de candidats collectés reste un
+  paramètre interne du moteur, non exposé dans l'UI — **« Rechercher
+  jusqu'à épuisement complet » ne le retire pas**. Sur une recherche assez
+  large pour atteindre le plafond de
   candidats collectés avant d'avoir tout exploré, la recherche s'arrête
   quand même — en pratique sans conséquence sur la qualité du résultat, ce
   plafond étant largement au-delà de ce qu'affiche l'écran.

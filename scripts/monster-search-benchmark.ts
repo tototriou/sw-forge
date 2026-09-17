@@ -52,7 +52,7 @@ console.log('Statistique principale imposée (dérivée du runage réel) :', mai
  * ======================================================================= */
 function runMITM() {
   const t0 = performance.now();
-  const params: SearchParams = { base, artifacts, relic, pool: allRunes, requirement, metric: 'eff', maxMs: 120_000, maxNodes: 5_000_000, maxCollected: 5000 };
+  const params: SearchParams = { base, artifacts, relic, pool: allRunes, requirement, metric: 'eff', maxMs: 120_000, maxCollected: 5000 };
   const res = searchBuilds(params);
   const ms = performance.now() - t0;
   const foundExact = res.candidates.some((c) => c.runeIds.length === 6 && c.runeIds.every((id) => targetRuneIds.has(id)));

@@ -143,6 +143,32 @@ export const RELEASES: Release[] = [
     ],
   },
   {
+    version: null,
+    date: '2026-09-09',
+    title: 'Les dégâts conditionnels suivent enfin le combat',
+    highlights: [
+      'Les débuffs posés entre deux coups modifient les coups suivants',
+      'Les conditions, charges et critiques propres aux sorts sont pris en compte',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Les dégâts réels couvrent 77 nouveaux constats conditionnels vérifiés.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Les Onimusha ne sont plus avantagés par des critiques impossibles.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Les compétences d’invocateur utilisent toujours Combat au minimum.',
+      },
+    ],
+  },
+  {
     version: '1.12.0',
     date: '2026-09-03',
     title: 'Tes artéfacts se choisissent tout seuls',

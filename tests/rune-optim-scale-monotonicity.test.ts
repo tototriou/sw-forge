@@ -34,45 +34,11 @@
 // Rapide malgré l'échelle : `buildBuckets` SEUL (jamais `pairBuckets`),
 // l'étage exact où la perte se produit.
 
-import { BaseStats, EffectLine, RuneDetail } from '../src/types';
+import { BaseStats, RuneDetail } from '../src/types';
 import { BuildRequirement, SearchParams, SLOT_FILTER_PRESETS, prepareSearch, buildBuckets } from '../src/lib/runeBuildOptim';
 import { ok, titre } from './outils';
-
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const SET_KEYS = ['violent', 'swift', 'will', 'shield', 'fight'];
-const STAT_CODES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
-
-function randomRune(id: number, slot: number, rng: () => number): RuneDetail {
-  const set = SET_KEYS[Math.floor(rng() * SET_KEYS.length)];
-  const mainCode = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-  const used = new Set([mainCode]);
-  const subs: EffectLine[] = [];
-  for (let i = 0; i < 4; i++) {
-    let code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-    let tries = 0;
-    while (used.has(code) && tries < 10) {
-      code = STAT_CODES[Math.floor(rng() * STAT_CODES.length)];
-      tries++;
-    }
-    used.add(code);
-    subs.push({ code, value: 5 + Math.floor(rng() * 40) });
-  }
-  return {
-    id, slot, set, rank: 6, rarity: 5, level: 15,
-    main: { code: mainCode, value: 10 + Math.floor(rng() * 100) },
-    subs,
-  };
-}
+// Pool synthétique PARTAGÉ — voir scripts/lib/randomPool.ts.
+import { SETS_SANS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 
 // ⚠️ 300 runes/slot, pas 3 (voir `rune-optim-differential.test.ts`) — au
 // niveau du plus large préréglage réel (Extrême, slotFilterCap=300) : le
@@ -84,14 +50,7 @@ const PER_SLOT = 300;
 // mesure qui a fixé ce seuil (41,4 % ancien comportement, 91,1 % corrigé).
 const MIN_SURVIVAL_RATE = 0.7;
 
-function randomPool(rng: () => number): RuneDetail[] {
-  const out: RuneDetail[] = [];
-  let id = 1;
-  for (let slot = 1; slot <= 6; slot++) {
-    for (let i = 0; i < PER_SLOT; i++) out.push(randomRune(id++, slot, rng));
-  }
-  return out;
-}
+const poolDeCeTest = (rng: () => number): RuneDetail[] => randomPool(rng, PER_SLOT, SETS_SANS_JOKER);
 
 const BASE: BaseStats = { hp: 8000, atk: 500, def: 400, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
@@ -119,7 +78,7 @@ export default function testRuneOptimScaleMonotonicity() {
 
   for (let s = 0; s < SCENARIOS; s++) {
     const rng = mulberry32(3000 + s);
-    const pool = randomPool(rng);
+    const pool = poolDeCeTest(rng);
 
     // ⚠️ PLUSIEURS minimums À LA FOIS (comme le cas réel Sonia, 4 conditions
     // simultanées) — un seul minimum ne crée pas assez de compétition entre

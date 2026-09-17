@@ -1,0 +1,17 @@
+{
+  "perimetre": ["perimetre-fixture/**"],
+  "exceptions": [
+    {
+      "fichier": "perimetre-fixture/exception-perimee.md",
+      "raison": "fixture de test — exception délibérément périmée",
+      "condition_de_suppression": "n/a (fixture)",
+      "chantier_responsable": "test"
+    },
+    {
+      "fichier": "perimetre-fixture/exception-valide.md",
+      "raison": "fixture de test — fichier > 500 lignes, exception toujours justifiée",
+      "condition_de_suppression": "n/a (fixture)",
+      "chantier_responsable": "test"
+    }
+  ]
+}

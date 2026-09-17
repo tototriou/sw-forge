@@ -1,5 +1,10 @@
 # Dégâts réels — le modèle de calcul
 
+**Statut :** ÉTAT ACTUEL — décrit le modèle de calcul des dégâts d'un sort précis
+**Lire si :** on modifie ou vérifie `damage.ts`/`computeSkillDamageDetail`, ou qu'on documente un nouveau passif/artefact affectant les dégâts
+**Ne pas lire si :** on cherche le comportement d'écran de l'Optimizer (voir `optimizer.md`) ou le modèle générique communautaire (`mecaniques.md`)
+**Voir aussi :** optimizer.md
+
 Calcul des **dégâts d'un sort précis** d'un monstre précis contre un
 adversaire configuré. Brique de calcul pure, sans état ni rendu :
 [damage.ts](src/lib/damage.ts), vérifiée par
@@ -28,6 +33,21 @@ l'essentiel. Sont donc **déduits, jamais saisis** :
 | Dégâts fixes (ni critique ni mitigation) | marqueur `(Fixed)` de la formule |
 | Bonus de dégâts des améliorations | somme des `Damage +X%` de `ameliorations` |
 
+La présence d'une `formule` ne suffit **pas** à qualifier le sort d'offensif :
+elle peut chiffrer un soin (y compris proportionnel à l'ATQ), un bouclier ou
+un autre effet. Avant de construire un profil de dégâts, les soins sans frappe
+sont écartés. Sur le corpus vérifié, `coups: 0` avec l'effet `Heal` désigne
+un soin sans dégâts ; les exceptions où `coups` vaut 1 ou l'effet `Heal`
+manque sont curées par nom exact après lecture des variantes. Cela comprend
+`Purify` d'Aeilene (normal et second éveil), `Fairy's Blessing`,
+`Medical Support`, `Love & Peace`, `Soft Pudding`, `Amuse`, `Heal!`,
+`Operation Support`, `Synergy`, `Mystical Blood Transfusion` et
+`One More Drink` : ce dernier peut déclencher ensuite `Rolling Punch`, mais
+sa propre formule `2,4 × ATQ` décrit le soin. À l'inverse, `Bite`,
+`Will-o'-the-Wisp` et les autres sorts qui frappent **et** soignent gardent
+leur profil offensif. Ni une recherche automatique du mot « attaque » dans
+la prose ni la valeur de `coups` prise seule ne sont des preuves fiables.
+
 ⚠️ **La compétence est supposée MAXÉE**, comme partout ailleurs dans l'app
 (même parti pris que `paliersRechargement`, voir
 [monsterSkills.ts](src/lib/monsterSkills.ts)) : les `Damage +X%` sont tous
@@ -53,8 +73,8 @@ l'Optimizer classerait les builds sur une base fausse. C'est la seule
 propriété de ce module qui serait **grave et invisible** — d'où le balayage
 du corpus **réel** en test, pas seulement des cas écrits à la main.
 
-Couverture mesurée sur le corpus complet : **5 881 sorts offensifs
-calculables, 187 refusés explicitement** (variables hors modèle —
+Couverture mesurée sur le corpus complet après exclusion des 69 soins :
+**6 073 profils de dégâts calculables, 115 refusés explicitement** (variables hors modèle —
 `{Attacker's Level}`, `ABSORPTION_TOT_CNT`… — ou formules hors grammaire).
 `{Relative SPD}` a longtemps fait partie des variables refusées (20 sorts,
 Beast Rider ×10 formes/éléments, Barbara, Masha, Savannah, Narsha, Xiana) —
@@ -128,10 +148,10 @@ Remplacent, dans le jeu, les anciens **totems** de guilde (onglet
 **Toujours supposées maxées** (Lv.20), même parti pris que les améliorations
 de compétence.
 
-⚠️ **Trois états, pas deux interrupteurs indépendants** — « Guilde » implique
-toujours « Combat » : l'onglet Guilde ne s'applique qu'en contenu de guilde,
-où les compétences de Combat comptent aussi. Deux cases séparées auraient
-laissé cocher une combinaison qui n'existe pas en jeu.
+⚠️ **Deux états, pas deux interrupteurs indépendants** — **Combat** s'applique
+toujours ; **Combat + Guilde** ajoute l'onglet Guilde dans le contenu concerné.
+Deux cases séparées permettraient de demander Guilde sans Combat, autre
+combinaison qui n'existe pas en jeu.
 
 | | Combat | + Guilde |
 |---|---|---|
@@ -157,9 +177,10 @@ monstre perso) ne reçoit aucune des cinq compétences élémentaires.
 totaux), d'où un double arrondi supérieur : au plus 1 point d'écart sur la
 statistique, sans effet sur un classement de builds.
 
-**Défaut : « Combat »**, pas « Aucune » — ces compétences sont permanentes en
-jeu dès qu'elles sont montées ; partir d'« Aucune » afficherait des dégâts
-que personne n'observe réellement.
+**Défaut et minimum : « Combat »** — le cran « Aucune » a été retiré, car ces
+compétences s'appliquent dans toute situation réelle du jeu. Une recette
+exportée avant ce retrait reste lisible : « Aucune » y est normalisée vers
+« Combat » avant d'atteindre l'écran ou le CLI.
 
 ## Volontairement hors modèle
 
@@ -1473,6 +1494,20 @@ MULTIPLICATEUR du sort choisi comme `bonusCoefficientParCompteur`/Crawler,
 mais déduits d'un passif sans formule plutôt que propres à un sort — voir
 `computeSkillDamageDetail`, paramètre `monsterWide` étendu) :
 
+⚠️ **Un mécanisme porté par un PASSIF (`formule: ""`) ne se code JAMAIS
+comme un champ de `SkillDamageProfile` keyé par le nom du passif** —
+`skillDamageProfile()` (`if (c.passif || !c.formule …) return null`) ne
+construit un profil QUE pour un sort ACTIF à formule : une telle entrée n'y
+serait jamais lue. Erreur d'architecture évitée avant commit sur ces six
+mécanismes (d'abord codés ainsi, repérés en relisant `skillDamageProfile()`),
+reconstruits en modificateurs monstre-wide (`monsterWide` étendu de 2 à 8
+champs). Seul `bonusConditionnelPropre` (Emergency Drive → Rending Claw)
+reste sur `SkillDamageProfile`, à raison : « Rending Claw » est un vrai sort
+ACTIF. ⚠️ Un mécanisme se branche AUSSI dans le calcul, pas seulement dans
+la table, le résolveur et l'UI : `bonusConditionnelPropre` avait tout sauf sa
+multiplication dans `computeSkillDamageDetail`, trouvé par un test qui
+échouait (`facteurConditionnelPropre`, fusionné dans `horsCoup`).
+
 - **Spear of Tenacity/Centaur Knight, Pholus** (point 38) : « damage...
   proportionate to the enemy's MAX HP » — confirmé +2 %. Toujours actif,
   soumis au critique/à la défense comme le reste du sort.
@@ -1558,25 +1593,14 @@ autres sont défensives/hors modèle. Brita et Eivor (Eau) sont des JUMEAUX
 DE COLLABORATION (`jumeauCollab`, mêmes stats et compétences sous deux
 habillages) — même mécanisme, deux noms de passif différents.
 
-⚠️ **Deux réponses successives de l'utilisateur, réconciliées après coup.**
-Une première (Brita, « +633 de vitesse ») ne correspondait pas aux données
-(aucune clause VIT ne porte de bonus de dégâts) — corrigée en « +633
-d'ATQ, sans lead attaque, en ne prenant en compte que les compétences
-d'invocateur combat », d'abord interprétée comme un ÉCART au-dessus de la
-seule BASE (736 + 633 = 1369). Une seconde réponse (Eivor, même mécanique
-confirmée indépendamment) a donné le seuil directement en TOTAL ABSOLU :
-« 1671, toute source confondue (ATQ de base + rune + lead + compétence
-d'invocateur) ». Les deux se recoupent exactement : 736 (base) + 302
-(compétence d'invocateur combat, 41 % de la base, arrondie au-dessus) +
-633 (rune) = **1671** — confirmant que `+633` désignait la part RUNE
-seule, pas un écart sur la base entière. Seuil réel = **1671, un total
-ABSOLU** (contrairement à tous les autres seuils/plafonds de ce fichier,
-qui sont des écarts) — et INCLUT le lead cette fois, contrairement à la
-première interprétation. Comparé à `atkCombatComplet` (nouvelle fonction,
-même prudence que `defCombat` : non partagée avec le calcul de
-`computeSkillDamageDetail`). Entièrement DÉDUIT, aucun bouton — même
-famille que `critSiPlusRapide`, mais un seuil sur l'ATQ propre plutôt
-qu'une comparaison de VIT avec la cible.
+Les seuils sont des totaux de combat, pas des écarts. Le relevé indépendant
+de Brita conserve **1671 ATQ**. Pour Eivor (Eau), le relevé le plus récent
+donne **1520 ATQ**, **1520 DEF** et **213 VIT**. L'écran montre les trois
+objectifs et leur équivalent au-dessus de la fiche : avec Combat,
+`+628 ATQ`, `+720 DEF`, `+111 VIT` ; avec Combat + Guilde, `+501 ATQ`,
+`+634 DEF`, `+111 VIT`. Seule la branche ATQ entre dans le score de dégâts ;
+DEF et VIT sont néanmoins affichées pour permettre de construire les trois
+parties du passif.
 
 **Brandia (« Touch of Mercy »)** — signalée par l'utilisateur (« augmente
 ses dégâts selon le nombre d'effets néfastes sur l'ennemi »), absente de
@@ -1831,3 +1855,149 @@ l'objectif « Dégâts » : plafonné à 100 % en jeu, c'est une **condition** �
 atteindre (via un minimum posé), pas une cible à maximiser indéfiniment. L'y
 mettre pousserait la rétention à garder des demi-builds pour un potentiel de
 crit qui ne sert plus à rien.
+
+## Audit des dégâts conditionnels — partie 1
+
+La livraison du 9 septembre 2026 ajoute les clauses recensées dans le
+[suivi d’audit](optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md).
+Les nouvelles saisies de `DamageSetup` restent optionnelles pour préserver les
+anciennes recettes : nombres de buffs sur la cible et sur soi, puis scénario
+de poses réussies entre les coups. Un scénario absent ou inactif ne suppose
+aucune réussite.
+
+Pour un sort multi-coups éligible, chaque coup lit l’état qui le précède. Les
+effets choisis sont appliqués après ce coup, puis les coups suivants utilisent
+le compteur de débuffs, la Marque et la DEF actualisés. Une Marque, un DEF
+break ou un autre effet non cumulable déjà présent est identifié et ne
+réaugmente pas le compteur ; un DoT reste cumulable. Les profils concernés
+sont curés par identifiant quand leur nom possède un homonyme différent.
+
+Les conditions déductibles du contexte — nombre de buffs, débuffs propres,
+PV et élément de la cible — sont recalculées pour chaque build candidat. Les
+états non déductibles restent des interrupteurs désactivés par défaut. Les
+critiques garantis de Naomi, Kassandra/Kalantatze eau, Storm of Midnight et
+Bella sont intégrés au score. Les cinq Onimusha ne critent jamais, mais leurs
+dégâts restent ordinaires et soumis à la DEF.
+
+Le choix des artéfacts, leur réévaluation dans la file et le score final
+consomment le même contexte complet : sort, passifs, conditions, interdiction
+de critique et modificateurs monstre-wide. Ce contrat est dérivé de
+`RealDamageContext` ; ajouter un champ au moteur sans le propager à
+l'évaluation des artéfacts fait désormais échouer le typage. Un test
+différentiel sur Guillaume vérifie notamment que ses +100 points de Dgts Crit
+produisent le même score dans l'écran, le moteur et le chemin CLI.
+
+À l'import, une recette antérieure sans les nouveaux champs reste valide et
+conserve les défauts ci-dessus. En revanche, un champ présent mais mal typé
+est refusé avec son chemin précis : objectif, métrique, sets, contraintes,
+principales de runes, paramètres d'artéfacts, compteurs conditionnels et
+scénarios inter-coups imbriqués sont contrôlés avant d'atteindre l'état de
+l'écran.
+
+Ces deux exclusions de la partie 1 sont levées en partie 2 : Atlas Stone de
+Skogul/Trasar vaut `PV max / ennemis vivants` en dégâts fixes ; Trasar ajoute
+15 % par mort, au plus 30 %, à son S2 uniquement. Arsenal of Sacrifice de
+Velaska vaut `PV max × réserve de Sacrifice / 100 / ennemis vivants`, avec
+une réserve linéaire de 0 à 100. Lamiella conserve en plus sa composante
+ordinaire `1,2 × ATQ`, qui peut critiquer et reçoit les modificateurs usuels ;
+sa réserve est ajoutée séparément comme dégâts fixes. Le nombre d'ennemis
+vivants est toujours borné de 1 à 4.
+
+## Audit des dégâts conditionnels — partie 2
+
+Le [périmètre exact](optimizer/archive/audit-degats-conditionnels-2026-09-08/partie-2.md)
+ajoute les PV propres actuels/manquants, le nombre d'alliés et d'ennemis
+vivants, les comparaisons de PV/ATQ/DEF/VIT, les statistiques acquises en
+combat, les seuils d'ignore DEF et les critiques garantis conditionnels.
+Chaque grandeur provenant du build est recalculée pour chaque candidat.
+
+Les compteurs de débuffs ennemis sont plafonnés à 10 : Brise DEF et Marque
+actifs s'ajoutent automatiquement aux autres effets saisis. Les clauses
+binaires « au moins un effet néfaste » (Tesarion, Manannan, Arang et analogues)
+utilisent un interrupteur ; Brise DEF ou Marque l'activent aussi sans clic.
+Lorsqu'une pose est choisie entre les coups, seuls les coups suivants
+reçoivent le nouvel état. Cette règle couvre Triple Crush,
+Will-o'-the-Wisp et les dommages passifs par coup de Feng Yan.
+Les nouvelles recettes marquent explicitement cette sémantique « autres
+débuffs » ; une ancienne recette sans marqueur conserve son compteur total
+historique, qui incluait déjà Brise DEF et Marque.
+
+Les buffs propres suivent le même principe : `buffsPropresCount` contient
+les **autres** buffs dans les nouvelles recettes, tandis que les buffs ATQ,
+DEF et VIT actifs ajoutent chacun 1, sans dépasser 10 au total. Cette valeur
+alimente Hero Strike/Strike of Fighter (Kassandra et équivalents), Power
+Charge/Flying Strike, les statistiques de combat d'Elsharion/Crane/Geralt/
+Valdemar et la chance affichée de Shadow Arrow. Une recette ancienne sans
+`buffsPropresCountAutres` conserve son total historique inclusif ; les trois
+interrupteurs en assurent au moins le minimum, sans double compte.
+
+Les états binaires non observables (Power Surge, Inosuke, Berserk, Thunderer,
+procs d'ignore DEF) restent des interrupteurs désactivés par défaut ;
+aucune probabilité n'est convertie en succès garanti. Les deux clauses
+d'Astar sont indépendantes : le bonus de dégâts et le +150 % d'ATQ calculé
+sur sa stat de base quand elle a été touchée.
+
+### Conditions binaires de buffs adverses et lecture des sorts
+
+Raptor Combo et Flying Kick Combo gagnent 50 % de dégâts dès qu'au moins un
+effet bénéfique est présent sur la cible, quel qu'en soit le nombre. Leur
+condition, comme les clauses « aucun buff adverse » d'Airbender, Magic Surge,
+Flash Pierce et Storm of Midnight, se règle avec un interrupteur « Effets
+bénéfiques présents sur la cible ». Les anciennes recettes qui contiennent
+un `buffsCibleCount` supérieur à zéro restent interprétées comme « présent » ;
+les nouveaux choix enregistrent 0 ou 1. Les vrais bonus *par buff* (par
+exemple Thousand Shots) gardent leur compteur distinct.
+
+Dans la modale Dégâts réels, le survol de chaque compétence affiche sa prose
+SWARFARM, y compris si sa formule n'est pas prise en charge. Le résumé sous
+le nom reste celui des coefficients et conditions calculés. Dark Bolt (S1)
+et Decimate (S3) de Grogen ajoutent respectivement 20 et 150 points de
+Dégâts Crit au seul coup critique ; aucun de ces points ne modifie un coup
+non critique.
+
+Le survol d'une icône d'effet actif affiche sa conséquence complète : par
+exemple Marque indique +25 % de dégâts, Brise DEF indique −70 % de DEF, et
+les portraits d'Euldong, Mirinae, Deborah, Miriam, Dr. Matteo ou Velaska
+décrivent leur effet d'équipe. Le nom court reste visible sous l'icône.
+
+Pour Storm of Midnight (Alicia, Tiana, Lydia S2), l'interrupteur de présence
+des buffs adverses explique en clair sa conséquence : sans buff sur la cible,
+le coup est critique garanti ; avec un buff, il suit le mode critique choisi.
+Les autres conditions binaires affichent aussi leur gain près de
+l'interrupteur, sans imposer de relire le résumé du sort.
+
+Les lignes « Effet renforcement ATQ/DEF » et « Effet aug. VIT » des artéfacts
+amplifient les buffs du monstre optimisé, pas la VIT de l'adversaire. Leur
+rappel apparaît auprès des buffs dans « État de mon monstre », seulement
+quand le buff correspondant est actif ; rien de tel ne figure sous « VIT
+adversaire ».
+
+Ghost Slash (S1 des Onimusha, deux coups) peut poser Brise DEF sur chacun
+de ses coups. Le scénario explicite « pose après le coup 1 » applique la
+réduction de DEF au second coup uniquement ; aucune réussite n'est supposée
+par défaut. Les cinq éléments et les formes partageant leur identifiant de
+compétence suivent la même règle.
+
+### Correctifs de contexte et de dégâts fixes
+
+Yuji et Rick feu S3 utilisent un interrupteur « PV ennemis non détruits »,
+désactivé par défaut. L'activer applique +50 % de dégâts. Leur critique
+garanti est inconditionnel et ne dépend donc pas de cet interrupteur.
+
+Torrent de Leo et Ragdoll utilise un coefficient constant `5,5 × ATQ`.
+L'état de PV n'est pas interpolé : un interrupteur « PV actuels inférieurs à
+30 % » active seulement l'ignore-DÉF. Cette lecture suit la clause de seuil
+de la compétence ; elle ne transforme pas le sort en critique garanti.
+
+Lorsqu'un sort garantit son critique, ou qu'une condition sélectionnée le
+garantit, « Non critique » et « Moyenne » sont désactivés dans la modale et
+« Critique » devient la seule lecture possible. Les conditions qui dépendent
+du build candidat restent évaluées par candidat dans le moteur.
+
+Les dégâts fixes d'Atlas Stone (Skogul/Trasar) et de Reckless Assault
+(Mo Long) reçoivent les augmentations élémentaires d'artéfact. La réserve de
+Sacrifice de Velaska et la composante de réserve de Lamiella n'en reçoivent
+pas. Atlas Stone et les réserves de Sacrifice ne sont pas multipliés par
+Mirinae, Price of Pain ou les autres bonus généraux ; seule Marque les
+augmente. Sur Lamiella, ces restrictions ne concernent que la réserve : la
+partie `1,2 × ATQ` reste une attaque ordinaire.

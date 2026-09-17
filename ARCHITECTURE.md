@@ -110,13 +110,16 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
 
 **Optimiseur** — `outils/OptimizerSection.tsx` (racine), `MonsterSourcePicker`
 (recherche — deux modes, bestiaire/compte réel), `OptimizerListPicker`
-(listes de travail, Lot 3), `SetComboPicker`, `BuildCandidateCard`. Hooks
+(listes de travail, Lot 3), `SetComboPicker`, `BuildCandidateCard` — spec :
+`spec/outils/optimizer.md § Écran (de haut en bas)`. Hooks
 `useOptimizerState` + `useBuildOptimSearch` (saisie et recherche, jamais
 persistées) et `useOptimizerLists` (listes de travail créées par
 l'utilisateur + runes validées scopées par liste, Lot 3 — seul état PERSISTÉ
-de l'écran). Moteur `lib/runeBuildOptim.ts`, exécuté dans
+de l'écran — spec : `spec/outils/optimizer.md § Listes de travail et
+réservation de runes`). Moteur `lib/runeBuildOptim.ts`, exécuté dans
 `workers/runeBuildOptim.worker.ts` et
-`workers/buildHalf.worker.ts`. ⚠️ Disposition mobile dédiée pour « Monstre &
+`workers/buildHalf.worker.ts` — spec : `spec/outils/optimizer.md
+§ Algorithme (résumé fonctionnel)`. ⚠️ Disposition mobile dédiée pour « Monstre &
 équipement » seul (Lot 1) — le reste de l'écran n'est pas encore audité en
 mobile.
 

@@ -22,7 +22,7 @@ import { mkdirSync, rmSync, existsSync } from 'node:fs';
 import { Worker } from 'node:worker_threads';
 import { build } from 'esbuild';
 import { CASES, loadCase } from './lib/perfShared';
-import { prepareSearch, buildBuckets, pairBuckets, SearchParams, Bucket, NodeBudget } from '../src/lib/runeBuildOptim';
+import { prepareSearch, buildBuckets, pairBuckets, SearchParams, Bucket } from '../src/lib/runeBuildOptim';
 import { PairingWorkerData, PairingWorkerResult } from './lib/pairing-worker';
 import { drain } from './lib/drain';
 
@@ -59,9 +59,11 @@ const WORKER_COUNTS = [1, 2, 4, 8].filter((n) => n <= MAX_WORKERS);
 // équilibrage par charge perdent tous les deux des candidats valides sous
 // troncature). Le mode visé ici (« Rechercher jusqu'à épuisement complet »)
 // n'a PAR DÉFINITION aucun plafond — donc aucun risque de troncature, quel
-// que soit le découpage. Mesure corrigée : nodeBudget INFINI pour N=1 ET
-// pour chaque worker à N>1 (vraie complétion, pas une approximation
-// plafonnée), sur les 7 cas connus au préréglage Bas (cap=40 — le plus
+// que soit le découpage. Mesure corrigée : budget de paires INFINI pour N=1
+// ET pour chaque worker à N>1 (vraie complétion, pas une approximation
+// plafonnée) — depuis la piste 8, ce budget n'existe plus du tout, il n'y a
+// donc plus rien à neutraliser. Sur les 7 cas connus au préréglage Bas
+// (cap=40 — le plus
 // rapide à atteindre l'épuisement réel, seul moyen de couvrir les 7 cas en
 // un temps de diagnostic raisonnable).
 const DIAG_CASES = CASES;
@@ -114,8 +116,7 @@ async function main() {
       let explored = 0;
       let found = 0;
       if (n === 1) {
-        const nodeBudget: NodeBudget = { max: Number.POSITIVE_INFINITY };
-        const res = drain(pairBuckets(prepared, bucketsA, bucketsB, nodeBudget));
+        const res = drain(pairBuckets(prepared, bucketsA, bucketsB));
         explored = res.explored;
         found = res.candidates.length;
       } else {
@@ -123,8 +124,8 @@ async function main() {
         // quel que soit le découpage — l'ordre par potentiel décroissant
         // (qui protège les recherches TRONQUÉES) n'a plus d'importance ici.
         // Équilibrage GLOUTON par charge réelle (LPT) retenu pour le temps
-        // MUR (moins de traînards), chaque worker reçoit un budget INFINI
-        // (rien à répartir : chacun va simplement au bout de sa tranche).
+        // MUR (moins de traînards) : rien à répartir, chacun va simplement
+        // au bout de sa tranche.
         const withWorkload = bucketsA.map((b) => ({ b, workload: b.combos.length }));
         withWorkload.sort((a, b) => b.workload - a.workload);
         const slices: Bucket[][] = Array.from({ length: n }, () => []);
@@ -136,7 +137,7 @@ async function main() {
           sliceWorkload[target] += workload;
         }
         const results = await Promise.all(
-          slices.map((slice) => runWorker(workerScript, { params, bucketASlice: slice, bucketsB, nodeBudgetMax: Number.POSITIVE_INFINITY }))
+          slices.map((slice) => runWorker(workerScript, { params, bucketASlice: slice, bucketsB }))
         );
         explored = results.reduce((s, r) => s + r.explored, 0);
         found = results.reduce((s, r) => s + r.foundCount, 0);

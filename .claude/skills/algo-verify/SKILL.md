@@ -32,6 +32,10 @@ vérification** avant de considérer une implémentation comme fiable.
   appelle les fonctions internes du moteur directement** (`prepareSearch`,
   `buildBuckets`, `pairBuckets`…) plutôt que l'API publique (`searchBuilds`/
   `searchBuildsSteps`) — voir « Fidélité des scripts diagnostics » ci-dessous.
+  ⚠️ **Et d'abord se demander si ce script doit exister** :
+  `scripts/diagnostic-harness.ts` couvre déjà la plupart de ces questions, en
+  étant fidèle par construction (voir la section ci-dessous). Ce déclencheur
+  vaut pour CHAQUE script écrit, pas une fois par tâche.
 
 **Hors périmètre** : filtres, tris simples, ou calculs qui ne cherchent pas
 « la meilleure combinaison parmi énormément de possibilités » — un `Array.sort`
@@ -71,10 +75,9 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    usage réel.** Vécu en étendant la parallélisation de l'appariement au
    mode normal (`partitionBucketsALPT`/`runParallelPairing`,
    `runeBuildOptim.worker.ts`) : un test différentiel committé a d'abord
-   trouvé de VRAIES pertes de candidats à `maxMs ≤ 500` — l'escalade
-   adaptative de budget (`maybeEscalateNodeBudget`) a besoin d'un minimum de
-   temps RÉEL pour corriger un déséquilibre de charge initial entre
-   workers — mais AUCUN réglage d'écran ni arrêt manuel réel ne descend à
+   trouvé de VRAIES pertes de candidats à `maxMs ≤ 500` — il faut un minimum
+   de temps RÉEL pour qu'un déséquilibre de charge initial entre workers se
+   corrige — mais AUCUN réglage d'écran ni arrêt manuel réel ne descend à
    cette échelle (challengé directement par l'utilisateur : « un
    utilisateur ne met jamais de limite de temps, tout au plus il arrêtera
    une recherche au bout de quelques dizaines de secondes »). Remonté à un
@@ -82,8 +85,8 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    rien — voir `tests/rune-optim-parallel-pairing.test.ts` (`maxMs=30000`
    committé comme plancher vérifié) et la mémoire
    `sw-forge-realistic-test-parameters.md`. Un paramètre juste « assez
-   extrême pour déclencher le chemin de code » (peu de temps, peu de
-   nœuds…) peut être QUALITATIVEMENT différent d'un paramètre réaliste —
+   extrême pour déclencher le chemin de code » (peu de temps, un plafond
+   serré…) peut être QUALITATIVEMENT différent d'un paramètre réaliste —
    vérifier À L'ÉCHELLE D'USAGE RÉELLE avant de conclure à un risque, pas
    seulement à l'échelle qui fait apparaître le symptôme.
 3. **Ne jamais choisir une stratégie sur intuition.** Si plusieurs approches
@@ -112,7 +115,7 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    qu'UNE phase. Repère utilisé toute cette session : `buildBuckets` seul
    (sans `pairBuckets`) répond en quelques secondes à « ce demi-build
    survit-il à la rétention ? », contre plusieurs minutes (jusqu'à
-   `HARD_TIMEOUT_MS`, avec l'escalade de budget) pour la même question posée
+   `HARD_TIMEOUT_MS`) pour la même question posée
    via une recherche complète — c'est cette différence qui a rendu possible
    toute l'investigation `BUCKET_CAP` en un temps raisonnable. Avant de
    relancer un pipeline complet pour vérifier un changement, se demander
@@ -126,20 +129,110 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
 
 ## Fidélité des scripts diagnostics
 
+### ⚠️ D'abord : ne pas écrire le script
+
+`scripts/diagnostic-harness.ts` existe précisément pour ça. Il **orchestre et
+observe** les fonctions de production — il ne réimplémente aucune étape — et
+il rend d'office ce qu'un script ad hoc doit sinon penser à faire :
+l'ORIGINE de chaque paramètre effectif (dont le `bucketCap` **dérivé** de
+`slotFilterCap`), le marquage « DIVERGE DE LA PROD » dès qu'un override est
+posé, le régime d'appariement choisi comme la production le choisirait, la
+complétude avec son motif, l'autodiagnostic `explored` contre `totalPairs`,
+et la distinction élagage SÛR / rétention HEURISTIQUE.
+
+⚠️ **Il répond en particulier à la question de l'INCIDENT FONDATEUR de ce
+skill** — *« ce build de 6 runes est-il dans le résultat, et sinon, QUI l'a
+perdu ? »* :
+
+```
+diagnostic-harness.ts … --suivre=<les 6 ids du build>
+```
+
+Six identifiants dans `--suivre` (pas d'option de plus) et il rend un
+**verdict structuré**, qui cherche le PREMIER POINT DE DIVERGENCE au lieu de
+constater l'absence finale : `ENTRÉE_INADMISSIBLE` · `MOITIÉ_A_ÉCARTÉE` ·
+`MOITIÉ_B_ÉCARTÉE` · `ABSENT_DES_COMPARTIMENTS` · `PERDUE_À_L_APPARIEMENT`
+(avec l'ÉTAGE d'appariement qui a coupé la paire) · `PRÉSENT_DANS_LE_TOP_N` ·
+`PRÉSENT_HORS_TOP_N` **avec son rang** · `NON_OBSERVABLE`.
+
+C'est exactement le diagnostic qui manquait le jour où l'on a conclu « le
+moteur manque un build meilleur » en lisant `candidates[0]`, le build cherché
+étant au rang 6. **Le rang vient du classement ENTIER**, jamais d'un top-N
+déjà coupé.
+
+⚠️ **Deux valeurs à ne jamais contourner en les remplaçant par une cause
+plausible** :
+- `NON_OBSERVABLE` n'est pas un aveu de faiblesse — c'est ce qui EMPÊCHE
+  l'outil de fabriquer une cause quand il n'en connaît pas.
+- `PERDUE_À_L_APPARIEMENT` nomme l'ÉTAGE, pas une perte : il recouvre une
+  paire écartée par un élagage SÛR (elle ne pouvait rien produire) ET une
+  paire visitée dont le build échoue le test conjoint (il ne satisfait pas les
+  conditions posées). L'`explication` distingue les deux.
+
+⚠️ **Et il ne se lit JAMAIS sans sa complétude**, qui voyage dans le verdict
+lui-même : sur un run TRONQUÉ, « la cible n'est pas dans le classement » ne
+veut pas dire « le moteur ne la trouve pas ».
+
+**Avant d'écrire un script qui appelle `prepareSearch`/`buildBuckets`/
+`pairBuckets`, vérifier que le harnais ne répond pas déjà à la question.**
+C'est le cas pour l'écrasante majorité des diagnostics passés — les 6 qui
+avaient dérivé (contexte min/max reconstruit à la main, `guaranteedMin` et
+les bornes d'artéfact manquants) sont exactement ceux qu'il remplace.
+
+Le diff ligne à ligne décrit plus bas garde tout son sens pour ce que le
+harnais ne couvre PAS : l'intérieur de `buildBuckets`, une charge concurrente
+opposée au moteur, un prototype d'algorithme. Dans ces cas-là, tout ce qui
+suit s'applique intégralement.
+
+### Quand le script est nécessaire quand même
+
 ⚠️ **Incident vécu** : un script écrit pour reproduire un cas signalé par
 l'utilisateur (builds Sonia qui diminuent quand `slotFilterCap` augmente)
 appelait `prepareSearch`/`buildBuckets`/`pairBuckets` directement, en copiant
 la même séquence d'appels que `searchBuildsSteps` — mais SANS l'escalade de
-budget (`NodeBudget` mutable, `ESCALATION_FACTOR=2`, doublé tant qu'il reste
-du temps sous `maxMs` et pas assez de candidats), présente à la fois dans
-`runeBuildOptim.worker.ts` (le vrai chemin de prod) et `perf-battery.ts`. Le
-script s'arrêtait donc net au budget INITIAL (~38M paires) au lieu de monter
-à ~600M+ comme la vraie recherche sur 10 minutes — il n'explorait qu'une
+budget de nœuds qu'appliquait alors le vrai chemin de prod. Le script
+s'arrêtait donc net au budget INITIAL (~38M paires) au lieu de monter à
+~600M+ comme la vraie recherche sur 10 minutes — il n'explorait qu'une
 fraction dérisoire (~3×10⁻⁶ %) de l'espace réellement couvert. Résultat :
 « 0 build trouvé » partout, un faux signal de bug pris pour argent comptant
 pendant une bonne partie d'une session, alors que `tsc`/les types ne
 pouvaient rien détecter (l'appel était parfaitement valide, juste
 incomplet).
+
+⚠️⚠️ **Ce piège PRÉCIS n'existe plus, la LEÇON reste entière.** Le budget de
+paires et son escalade ont été supprimés du moteur (voir
+`spec/outils/optimizer/pistes.md`, piste 8, et
+`archive/historique/historique-diagnostics-et-robustesse.md`, « Suite — suppression du budget de
+nœuds ») : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
+il n'y a plus de 4ᵉ à oublier, et un appel nu explore désormais exactement ce
+que la production explore. Ne pas chercher à « reproduire l'escalade » dans un
+script neuf — un script qui la reproduirait aujourd'hui serait lui-même
+infidèle.
+
+**Ce qui reste vrai, et qui est la vraie leçon** : *un script infidèle qui ne
+trouve rien ressemble EXACTEMENT à un vrai bug*. Les deux façons de le
+redevenir, aujourd'hui :
+
+- **Réimposer une limite que la production n'a plus.** Un plafond de paires
+  posé « pour que ça finisse » (dans la boucle de pilotage, ou via un `maxMs`
+  raccourci) mesure une recherche TRONQUÉE, pas la recherche réelle. Si un
+  script en a besoin comme instrument (voir `optimum-rank-diag.ts`, qui coupe
+  sur `step.value.explored`), il doit le dire dans sa sortie, jamais le
+  laisser passer pour une recherche complète.
+- **Le budget-TEMPS, qui est désormais la SEULE borne pouvant tronquer.**
+  `searchBuilds` retombe sur `DEFAULT_MAX_MS` = **15 s** quand l'appelant ne
+  précise rien, alors que l'écran donne 10 min (`HARD_TIMEOUT_MS`) — ou
+  `Infinity` en mode exhaustif. Un script qui omet `maxMs` mesure donc une
+  recherche 40× plus courte que celle de l'utilisateur, avec exactement la
+  même signature d'échec qu'à l'époque de l'escalade oubliée. **C'est le
+  premier paramètre à vérifier** dans tout script de mesure.
+
+⚠️ Corollaire à ne pas manquer : `totalPairCount` est maintenant la borne
+EXACTE de l'espace (`explored` ne peut pas la dépasser, prédicats identiques).
+Un script qui trouve `explored < totalPairCount` sur une recherche annoncée
+exhaustive a donc été tronqué — par le temps ou par lui-même. C'est un
+autodiagnostic gratuit : l'afficher en tête de sortie vaut mieux que le
+déduire après coup.
 
 ## ⚠️ La fidélité s'arrête rarement à la recherche : elle va jusqu'à l'ÉCRAN
 
@@ -218,21 +311,22 @@ sa valeur.
 internes du moteur (pas l'API publique `searchBuilds`), le DIFFER
 explicitement, ligne par ligne, contre le vrai chemin de production —
 `runeBuildOptim.worker.ts` (recherche séquentielle) et/ou `perf-battery.ts`,
-**et `pairSlice.worker.ts` si le script touche l'appariement PARALLÉLISÉ**
-(chaque slice y porte son propre budget adaptatif via
-`maybeEscalateNodeBudget`, exactement comme le chemin séquentiel — un script
-qui lui donnerait un budget FIGÉ reproduirait l'incident « Un budget de
-TEMPS artificiellement court » de la méthode, point 2) — pas seulement
-« même noms de fonctions dans le même ordre ». En particulier vérifier :
+**et `pairSliceBody.ts` si le script touche l'appariement PARALLÉLISÉ**
+(chaque tranche y reçoit sa PART du plafond de candidats,
+`perWorkerMaxCollected`, et le `startedAt` GLOBAL — un script qui donnerait à
+chaque tranche le plafond entier, ou un chrono frais, mesurerait autre chose
+que la production) — pas seulement « même noms de fonctions dans le même
+ordre ». En particulier vérifier :
 - Tout paramètre optionnel avec une valeur par défaut différente du
-  comportement réel (ici `pairBuckets(..., nodeBudget)` — le 4ᵉ argument a un
-  défaut FIGÉ, documenté comme tel, alors que la prod passe toujours un objet
-  mutable + une boucle d'escalade autour du générateur).
+  comportement réel. ⚠️ Le cas d'école (`pairBuckets(..., nodeBudget)`, 4ᵉ
+  argument au défaut FIGÉ) a été supprimé — mais `maxMs` en est un autre,
+  bien vivant : `searchBuilds` retombe sur 15 s là où l'écran donne 10 min.
 - Toute boucle englobante autour d'un générateur (`while (!step.done)`) dans
   le vrai chemin — un simple `drain()` qui ignore les valeurs intermédiaires
   (`step.value` à chaque itération) est un signal qu'un comportement basé sur
-  la PROGRESSION (escalade, arrêt anticipé, mise à jour d'un budget) a pu
-  être perdu.
+  la PROGRESSION (arrêt anticipé, relevé d'un instant précis, coupure de
+  mesure) a pu être perdu. Inversement, une boucle pas à pas qui ne fait RIEN
+  de `step.value` n'a aucune raison d'exister : `drain()` suffit.
 - Les VALEURS de chaque paramètre transmis (caps, objectif, metric, pool,
   exclusions…), pas seulement leur présence — un défaut d'écran qui a changé
   depuis la dernière fois (ex. l'exclusion automatique de runes, renommée ET
@@ -299,4 +393,8 @@ ce calcul concret à chaque fois.
       volumes réels du projet, pas seulement sur un petit jeu de test.
 - [ ] Les limites connues (heuristique, non-exhaustivité au-delà d'un budget…)
       sont écrites dans le fichier `spec/` correspondant.
+- [ ] Aucun script de diagnostic n'a été écrit pour une question à laquelle
+      `scripts/diagnostic-harness.ts` répond déjà — et si un script était
+      quand même nécessaire, sa fidélité au chemin de prod a été diffée
+      explicitement.
 - [ ] `npx tsc --noEmit`, `npm test` et `npm run build` passent.

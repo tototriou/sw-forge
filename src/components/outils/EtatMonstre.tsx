@@ -1,4 +1,4 @@
-import { DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills } from '../../lib/damage';
+import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
 import { Segmented, Selecteur } from '../../ui';
 import HelpPopover from '../HelpPopover';
@@ -37,10 +37,12 @@ export default function EtatMonstre({
   setup,
   maj,
   etroit,
+  artefacts,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
   etroit: boolean;
+  artefacts: ArtifactDamageProfile;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -85,6 +87,7 @@ export default function EtatMonstre({
         <EffetVignette
           icone={ATK_BUFF_ICON}
           libelle="Buff ATQ"
+          description="Augmente l’ATQ du monstre de 50 %."
           onClick={() => maj({ atkBuff: !setup.atkBuff })}
           actif={setup.atkBuff}
           etroit={etroit}
@@ -92,6 +95,7 @@ export default function EtatMonstre({
         <EffetVignette
           icone={DEF_BUFF_ICON}
           libelle="Buff DEF"
+          description="Augmente la DEF du monstre de 70 %."
           onClick={() => maj({ defBuff: !setup.defBuff })}
           actif={setup.defBuff}
           etroit={etroit}
@@ -99,6 +103,7 @@ export default function EtatMonstre({
         <EffetVignette
           icone={SPD_BUFF_ICON}
           libelle="Buff VIT"
+          description="Augmente la VIT du monstre de 30 %."
           onClick={() => maj({ spdBuff: !setup.spdBuff })}
           actif={setup.spdBuff}
           etroit={etroit}
@@ -112,7 +117,7 @@ export default function EtatMonstre({
       </div>
 
       {/* ⚠️ **Libellé AU-DESSUS des crans, pas à leur gauche** (demande
-          explicite) : côte à côte, « Invocateur » et ses trois crans
+          explicite) : côte à côte, « Invocateur » et ses deux crans
           formaient le groupe le plus large des trois et poussaient la rangée
           à se replier plus tôt. Empilé, le groupe ne fait plus que la largeur
           du segmenté.
@@ -136,7 +141,7 @@ export default function EtatMonstre({
           l&apos;élément du monstre, sans rien demander.
         </HelpPopover>
         </div>
-        {/* `size="sm"` et non `lg` : sur trois crans dans une carte étroite,
+        {/* `size="sm"` et non `lg` : dans une carte étroite,
             la taille d'origine (héritée d'une carte pleine largeur) débordait. */}
         <Segmented<SummonerSkills>
           options={SUMMONER_SKILLS_LABELS}
@@ -146,6 +151,21 @@ export default function EtatMonstre({
         />
       </div>
       </div>
+      {(setup.atkBuff && artefacts.ampliAtkPct > 0) ||
+      (setup.defBuff && artefacts.ampliDefPct > 0) ||
+      (setup.spdBuff && artefacts.ampliVitPct > 0) ? (
+        <div className="space-y-0.5 text-xs text-ink-dim">
+          {setup.atkBuff && artefacts.ampliAtkPct > 0 && (
+            <p>Buff ATQ actif : l'artéfact « Effet renforcement ATQ » amplifie ce buff de {artefacts.ampliAtkPct} %.</p>
+          )}
+          {setup.defBuff && artefacts.ampliDefPct > 0 && (
+            <p>Buff DEF actif : l'artéfact « Effet renforcement DEF » amplifie ce buff de {artefacts.ampliDefPct} %.</p>
+          )}
+          {setup.spdBuff && artefacts.ampliVitPct > 0 && (
+            <p>Buff VIT actif : l'artéfact « Effet aug. VIT » amplifie ce buff de {artefacts.ampliVitPct} %.</p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

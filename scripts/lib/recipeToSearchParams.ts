@@ -9,6 +9,7 @@
 import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE } from '../../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
+import { DEFAULT_RELIC_MIN_UPGRADE, RelicIntent, defaultRelicMainChoice } from '../../src/hooks/useOptimizerState';
 import {
   DEFAULT_DAMAGE_SETUP,
   damageRelevantStats,
@@ -125,6 +126,32 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
     out.push({ id: 0, kind, level: 1, rarity: 5, main: { code: choice, value: ARTIFACT_MAIN_VALUE[choice] }, subs: [] });
   }
   return out;
+}
+
+/**
+ * Construit l'intention de recherche de relique (`RelicIntent`) depuis une
+ * recette — le second des deux constructeurs prévus par le lot 2 (le
+ * premier, depuis `OptimizerState`, est du lot 5c : les listes de l'écran
+ * n'existent pas encore). **Un seul point de lecture** (garantie G) : ni ce
+ * fichier ni l'écran ne relisent `relicMainChoice`/`relicUniqueChoice`/
+ * `relicMinUpgrade` séparément une fois cette fonction posée.
+ *
+ * ⚠️ `mode: 'off'` suit `ignoreArtifacts` (D1 : l'interrupteur « Activer
+ * l'optimisation d'artéfacts » s'étend aux reliques, aucun interrupteur
+ * propre — T2). Sans `relicMainChoice` (recette antérieure au lot 2, ou
+ * écran qui ne l'a pas encore posé), le défaut se CALCULE contre la relique
+ * réellement portée par `loaded` (`defaultRelicMainChoice`), jamais une
+ * constante — même règle que l'écran au lot 5c, pour que les deux
+ * convergent sur la même valeur à recette égale.
+ */
+export function recipeToRelicIntent(recipe: OptimizerRecipe, loaded: LoadedMonster): RelicIntent {
+  const principale = recipe.relicMainChoice ?? defaultRelicMainChoice(loaded.gear.relic);
+  return {
+    mode: recipe.ignoreArtifacts ? 'off' : principale === 'equipped' ? 'equipped' : 'recherche',
+    principale,
+    type: recipe.relicUniqueChoice ?? 'libre',
+    seuil: recipe.relicMinUpgrade ?? DEFAULT_RELIC_MIN_UPGRADE,
+  };
 }
 
 /**

@@ -3,7 +3,7 @@ import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup, DEFAULT_DAMAGE_SETUP } from '../lib/damage';
 import { AutoExclusionScope, ExclusionSelector } from '../lib/optimizerExclusion';
-import { ArtifactKind } from '../types';
+import { ArtifactKind, RelicDetail } from '../types';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
@@ -27,6 +27,61 @@ export type OptimizerSortKey = StatKey | Objective;
 // la fois. Les recettes exportées avant ce retrait sont ramenées sur `'libre'`
 // à l'import (voir `mainsPourCeCompte`, optimizerRecipe.ts).
 export type ArtifactMainChoice = 'equipped' | 'libre' | 100 | 101 | 102;
+
+// Choix de statistique principale de RELIQUE pour la recherche — même
+// domaine de valeurs qu'`ArtifactMainChoice` (100/101/102 = PV/ATQ/DEF,
+// `'equipped'`, `'libre'`), mais une sémantique différente : la principale
+// d'un artéfact est un PLAT (`ARTIFACT_MAIN`, effects.ts), celle d'une
+// relique un POURCENTAGE (`stat = B + ceil(B × (R + L) / 100) + plats`,
+// spec/outils/optimizer/chantiers/implementation-relique.md § A.1). Pas de
+// `'none'` : une relique n'a pas d'emplacement à vider, comme pour
+// l'artéfact — voir A.2 bis D1.
+export type RelicMainChoice = ArtifactMainChoice;
+
+// Choix de propriété unique de relique — `'libre'` (défaut) ou l'un des 16
+// types de `RELIC_UNIQUE` (lib/effects.ts). Pas d'union littérale des 16
+// valeurs : le nombre de types est fixé par le jeu, pas par ce type — la
+// validité se vérifie à la lecture contre `RELIC_UNIQUE`, comme
+// `EffectLine.stat` (types.ts) le fait déjà pour les codes d'effet.
+export type RelicUniqueChoice = 'libre' | number;
+
+// Seuil de niveau par défaut d'une relique éligible (D2, +6) — nommé une
+// seule fois : repris par `optimizerRecipe.ts` pour la recette ancienne qui
+// ne porte pas encore ce champ.
+export const DEFAULT_RELIC_MIN_UPGRADE = 6;
+
+/**
+ * Le défaut de `relicMainChoice`, calculé au choix du MONSTRE — jamais une
+ * constante (A.2 bis D1) : `'equipped'` s'il porte déjà une relique,
+ * `'libre'` sinon. Fonction PURE et exportée exprès (même raison que
+ * `mainsPourCeCompte`, optimizerRecipe.ts) : elle sert à la fois à
+ * `recipeToRelicIntent` (une recette antérieure au lot 2 ne porte pas le
+ * champ) et, au lot 5c, à `pickSpecies` (OptimizerSection.tsx) — ce lot ne
+ * la câble qu'au premier site, pas encore au second.
+ *
+ * ⚠️ **Ne pas répéter l'incident artéfacts** : l'écran doit AFFICHER la
+ * valeur que le moteur applique, jamais l'inverse — cette fonction est donc
+ * la source unique du calcul, pas une case à cocher qui devinerait.
+ */
+export function defaultRelicMainChoice(relic: RelicDetail | undefined): RelicMainChoice {
+  return relic ? 'equipped' : 'libre';
+}
+
+/**
+ * L'intention de recherche de relique — interrupteur, principale, type,
+ * seuil — résolue en un objet UNIQUE (garantie G, A.3 bis) : ni l'écran, ni
+ * le CLI, ni la file ne relisent les trois champs séparément. Ce lot livre
+ * le TYPE et le constructeur côté recette (`recipeToRelicIntent`,
+ * scripts/lib/recipeToSearchParams.ts) ; le constructeur côté écran (depuis
+ * `OptimizerState`) est du lot 5c — les listes n'ont d'effet qu'avec la
+ * recherche (D1).
+ */
+export interface RelicIntent {
+  mode: 'off' | 'equipped' | 'recherche';
+  principale: RelicMainChoice;
+  type: RelicUniqueChoice;
+  seuil: number;
+}
 
 // Toute la SAISIE de l'écran Outils → Optimizer, remontée ici (instancié dans
 // App.tsx, jamais démonté) pour survivre à un changement d'onglet : comme les
@@ -110,6 +165,25 @@ export interface OptimizerState {
   // vide. Le « et si… » est perdu, en connaissance de cause.
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
   setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
+  // Principale ET propriété unique de RELIQUE demandées (A.2 bis D1) —
+  // combinées en ET, comme `artifactMainByKind` un CRITÈRE remis à zéro par
+  // `resetSearch` au changement de monstre (une valeur `equipped`/propriété
+  // choisie pour l'ancien monstre n'a pas de sens pour le nouveau).
+  //
+  // ⚠️ **Aucune liste ne les lit encore** (lot 5c) : `libre` et le type n'ont
+  // d'effet qu'avec la recherche de relique, qui n'existe pas avant le
+  // lot 5a/5b. Ce lot ne pose que l'état, la recette et le CLI.
+  relicMainChoice: RelicMainChoice;
+  setRelicMainChoice: Dispatch<SetStateAction<RelicMainChoice>>;
+  relicUniqueChoice: RelicUniqueChoice;
+  setRelicUniqueChoice: Dispatch<SetStateAction<RelicUniqueChoice>>;
+  // Seuil de niveau minimum d'une relique éligible (D2, +0 à +15, +6 par
+  // défaut) — un RÉGLAGE AVANCÉ, pas un critère : `resetSearch` ne le remet
+  // PAS à zéro au changement de monstre, comme `slotFilterPreset` ou
+  // `exhaustiveSearch`. Vit dans « Réglages avancés » à partir du lot 5c
+  // seulement (un seuil sans pool visible ne réglerait rien d'observable).
+  relicMinUpgrade: number;
+  setRelicMinUpgrade: Dispatch<SetStateAction<number>>;
   // Sous-propriétés d'artéfact EXIGÉES, avec leur minimum.
   //
   // ⚠️ Le minimum porte sur la PAIRE, pas sur une pièce : une même ligne peut
@@ -254,6 +328,13 @@ export function useOptimizerState(): OptimizerState {
   // (efficience, VIT, TC, DCC, RES, PRE) — voir `regimeArtefacts`.
   const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(true);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
+  // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut D1
+  // ('equipped' si le monstre porte une relique) se calcule au choix du
+  // monstre (`defaultRelicMainChoice`), câblé par `pickSpecies` au lot 5c,
+  // pas ici : ce hook n'a jamais accès au monstre sélectionné.
+  const [relicMainChoice, setRelicMainChoice] = useState<RelicMainChoice>('libre');
+  const [relicUniqueChoice, setRelicUniqueChoice] = useState<RelicUniqueChoice>('libre');
+  const [relicMinUpgrade, setRelicMinUpgrade] = useState(DEFAULT_RELIC_MIN_UPGRADE);
   const [lignesVerrouillees, setLignesVerrouillees] = useState<LigneVerrouillee[]>([]);
   const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
   const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>({});
@@ -282,6 +363,11 @@ export function useOptimizerState(): OptimizerState {
     setOptimiserArtefacts(true);
     setAdapterArtefactsAuTri(true);
     setArtifactMainByKind({});
+    // ⚠️ Défaut statique ici — voir le commentaire du `useState` ci-dessus ;
+    // `pickSpecies` (lot 5c) surchargera avec `defaultRelicMainChoice` juste
+    // après cet appel, comme il le fait déjà pour `objective`.
+    setRelicMainChoice('libre');
+    setRelicUniqueChoice('libre');
     // ⚠️ Remis à zéro au changement de monstre, comme les runes imposées : une
     // ligne verrouillée exclusive à une sorte (« Précision Compétence 3 »)
     // n'a de sens que pour le monstre pour lequel on l'a choisie, et une
@@ -324,6 +410,12 @@ export function useOptimizerState(): OptimizerState {
     setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
+    relicMainChoice,
+    setRelicMainChoice,
+    relicUniqueChoice,
+    setRelicUniqueChoice,
+    relicMinUpgrade,
+    setRelicMinUpgrade,
     lignesVerrouillees,
     setLignesVerrouillees,
     mainStatsBySlot,

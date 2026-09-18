@@ -17,10 +17,10 @@ import { BuildRequirement, Objective, SLOT_FILTER_PRESETS, SLOT_MAIN_OPTIONS } f
 import { DamageSetup } from './damage';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind, RUNE_SETS } from '../types';
-import { ArtifactMainChoice, SlotFilterPresetKey } from '../hooks/useOptimizerState';
+import { ArtifactMainChoice, RelicMainChoice, RelicUniqueChoice, SlotFilterPresetKey } from '../hooks/useOptimizerState';
 import { LigneVerrouillee } from './artifactOptim';
 import { RuneMetric } from '../hooks/useRuneMetric';
-import { setsCost } from './effects';
+import { RELIC_UNIQUE, setsCost } from './effects';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
 
@@ -78,6 +78,26 @@ export function mainsPourCeCompte(
     ) as OptimizerRecipe['artifactMainByKind'],
     bascules: entrees.some(([, v]) => v === 'equipped'),
   };
+}
+
+/**
+ * Miroir de `mainsPourCeCompte` pour la relique (D1 : « mêmes trois règles
+ * que l'artéfact ») : `'equipped'` ne se partage pas — importé d'un AUTRE
+ * `wizard_name`, il bascule sur `'libre'` et le signale ; provenance
+ * inconnue (`wizardName` absent d'un côté ou de l'autre) ne touche à rien.
+ *
+ * ⚠️ **Pas factorisée avec `mainsPourCeCompte`** : celle-ci bascule une
+ * `Record<ArtifactKind, …>` (deux emplacements), ici un scalaire unique —
+ * assez différent pour que partager le code coûte plus qu'il ne rend, d'où
+ * le test parallèle plutôt que l'appel partagé (D1 l'autorise explicitement).
+ */
+export function relicMainPourCeCompte(
+  recipe: Pick<OptimizerRecipe, 'relicMainChoice' | 'wizardName'>,
+  accountName: string | null
+): { main: RelicMainChoice | undefined; bascule: boolean } {
+  const memeCompte = recipe.wizardName == null || accountName == null || recipe.wizardName === accountName;
+  if (memeCompte || recipe.relicMainChoice !== 'equipped') return { main: recipe.relicMainChoice, bascule: false };
+  return { main: 'libre', bascule: true };
 }
 
 export interface OptimizerRecipe {
@@ -140,6 +160,19 @@ export interface OptimizerRecipe {
   // rien à re-résoudre contre le compte de qui importe, contrairement à
   // `excludedSelectors`. La règle de tête de ce fichier tient.
   lignesVerrouillees?: LigneVerrouillee[];
+  /**
+   * Intention de recherche de relique (A.2 bis D1/D2) : principale ET
+   * propriété unique demandées, seuil de niveau. **Trois champs OPTIONNELS,
+   * et ils doivent le rester** : une recette exportée avant le lot 2 n'en
+   * porte aucun — tout lecteur applique le défaut de
+   * `defaultRelicMainChoice`/`'libre'`/`DEFAULT_RELIC_MIN_UPGRADE`
+   * (hooks/useOptimizerState.ts), jamais une valeur devinée ici. Sans effet
+   * sur `SearchParams` avant le lot 5a (D1 : `libre` et le type n'ont
+   * d'effet qu'avec la recherche de relique).
+   */
+  relicMainChoice?: RelicMainChoice;
+  relicUniqueChoice?: RelicUniqueChoice;
+  relicMinUpgrade?: number;
 }
 
 export function buildOptimizerRecipe(input: Omit<OptimizerRecipe, 'version'>): OptimizerRecipe {
@@ -157,6 +190,10 @@ const PRESETS_ACCEPTES = new Set<string>(SLOT_FILTER_PRESETS.map((p) => p.key));
 const SETS_ACCEPTES = new Set(RUNE_SETS.map((s) => s.key));
 const STATS_ACCEPTEES = new Set(['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc']);
 const CHOIX_ARTEFACT_ACCEPTES = new Set<unknown>(['equipped', 'libre', 'none', 100, 101, 102]);
+// ⚠️ Pas de `'none'` ici : ce cran n'a jamais existé pour la relique (D1),
+// contrairement à l'artéfact qui le tolère encore en compatibilité arrière.
+const CHOIX_RELIC_MAIN_ACCEPTES = new Set<unknown>(['equipped', 'libre', 100, 101, 102]);
+const RELIC_UNIQUE_TYPES_ACCEPTES = new Set<number>(Object.keys(RELIC_UNIQUE).map(Number));
 
 function estObjet(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -385,6 +422,20 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   }
   const damageSetupErreur = validerDamageSetup(d.damageSetup);
   if (damageSetupErreur) return { recipe: null, error: damageSetupErreur };
+  if (d.relicMainChoice !== undefined && !CHOIX_RELIC_MAIN_ACCEPTES.has(d.relicMainChoice)) {
+    return { recipe: null, error: erreur('relicMainChoice', 'contient un choix de relique invalide') };
+  }
+  if (
+    d.relicUniqueChoice !== undefined &&
+    d.relicUniqueChoice !== 'libre' &&
+    (typeof d.relicUniqueChoice !== 'number' || !RELIC_UNIQUE_TYPES_ACCEPTES.has(d.relicUniqueChoice))
+  ) {
+    return { recipe: null, error: erreur('relicUniqueChoice', 'contient un type de propriété unique inconnu') };
+  }
+  if (d.relicMinUpgrade !== undefined) {
+    const e = validerNombre(d.relicMinUpgrade, 'relicMinUpgrade', true);
+    if (e) return { recipe: null, error: e };
+  }
   // Compatibilité arrière : l'ancien cran « aucune » décrivait une situation
   // impossible en jeu. Une recette qui le porte repart donc sur le défaut
   // réel « combat » ; cette normalisation centrale protège autant l'écran que
@@ -393,5 +444,13 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
     estObjet(d.damageSetup) && !['combat', 'guilde'].includes(String(d.damageSetup.summonerSkills))
       ? { ...d, damageSetup: { ...d.damageSetup, summonerSkills: 'combat' } }
       : d;
-  return { recipe: normalisee as unknown as OptimizerRecipe };
+  // ⚠️ Le seuil est un FILTRE D'ENTRÉE, jamais un critère (D2) : une valeur
+  // hors bornes (fichier édité à la main, futur relâchement du jeu) est
+  // NORMALISÉE plutôt que rejetée — contrairement à tout le reste de ce
+  // parseur, qui refuse. Bornes `[0, 15]`, D2.
+  const avecSeuilNormalise =
+    d.relicMinUpgrade !== undefined
+      ? { ...normalisee, relicMinUpgrade: Math.min(15, Math.max(0, d.relicMinUpgrade as number)) }
+      : normalisee;
+  return { recipe: avecSeuilNormalise as unknown as OptimizerRecipe };
 }

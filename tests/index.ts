@@ -6,6 +6,7 @@
 
 import { bilan } from './outils';
 import testImport from './import.test';
+import testNavigation from './navigation.test';
 import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
@@ -88,6 +89,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSpecLint', testSpecLint],
   ['testSpecLintReel', testSpecLintReel],
   ['testImport', testImport],
+  ['testNavigation', testNavigation],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],

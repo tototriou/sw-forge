@@ -126,6 +126,21 @@ l'appuyer.
 `#/siege/offense` doit montrer les sous-sections du Siège, même si on avait
 remonté ailleurs juste avant.
 
+⚠️⚠️ **« Changer de page » se mesure sur la DESTINATION, pas sur la section.**
+La clé de comparaison ne valait que le titre de section : passer d'
+`#/outils/optimizer` à `#/outils/speed-tuning` la laissait identique, donc
+**aucune remise à zéro**. C'est précisément le geste du [panneau de
+survol](#les-sous-sections-au-survol--un-panneau-à-côté-de-la-barre-bureau),
+qui ne s'ouvre QUE depuis le premier niveau : pour y être en se trouvant déjà
+dans une section, il faut avoir cliqué « retour ». Choisir une sous-section de
+la section où l'on était déjà ne faisait alors rien bouger, alors que la
+choisir dans une **autre** section faisait bien descendre la barre — deux
+comportements pour un seul geste. La clé est donc `titre de section | entrée
+active de la section | entrée active du premier niveau`, ce dernier terme
+distinguant deux pages sans sous-sections (Accueil, Bestiaire). Fonction pure
+`cleRouteBarre`, **gardée** par
+[tests/navigation.test.ts](tests/navigation.test.ts).
+
 ⚠️ **C'est le TITRE qui est mémorisé, jamais l'objet section.** L'objet y était
 stocké tel quel, donc **figé à l'instant du clic**, avec les `actif` calculés à
 ce moment-là. Or la remise à zéro ci-dessus ne se déclenche qu'au changement de
@@ -244,6 +259,15 @@ La souris **traverse** la barre pour atteindre autre chose.
 - **Fermeture 180 ms** — la tolérance. Le trajet de l'entrée vers le panneau
   passe par les 6 px qui les séparent : fermer au premier `mouseleave` rendait
   le panneau **inatteignable**, il se refermait pile pendant la traversée.
+
+⚠️ **Le clic dans le panneau POSE le niveau de la barre lui-même.** Il ne s'en
+remettait qu'à la remise à zéro par changement de route — donc à rien du tout
+quand la route ne change pas : choisir « Recommandations » dans le panneau alors
+qu'on **est déjà** sur Recommandations laissait la barre au premier niveau, à
+marquer « Siège » pendant qu'on regardait une de ses sous-sections. Le panneau
+repose donc `ouverte` sur `undefined` (« suivre la route ») au clic, sans
+dépendre de ce que la navigation fait ou non. **Gardé** par
+[tests/navigation.test.ts](tests/navigation.test.ts).
 
 Se referment aussi, **sans délai** : le clic sur une sous-section, la descente
 dans une section, le logo, `Échap`, et le **défilement** de la barre — le `top`

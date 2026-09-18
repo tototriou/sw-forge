@@ -121,6 +121,30 @@ export function useSidebarRetractee() {
   return useStickyState('sidebar.retractee', false);
 }
 
+// Clé de la DESTINATION courante, telle que la barre la voit.
+//
+// ⚠️ **Elle doit changer à chaque changement de destination, pas seulement de
+// section.** Elle ne valait que le titre de section : aller d'
+// `#/outils/optimizer` à `#/outils/speed-tuning` laissait la clé identique,
+// donc aucune remise à zéro du niveau de barre.
+//
+// C'est exactement le geste du **panneau de survol**, qui ne s'ouvre QUE depuis
+// le premier niveau : pour y être en se trouvant déjà dans une section, il faut
+// avoir cliqué « retour ». Choisir une sous-section de la section où l'on est
+// déjà ne faisait alors rien bouger, alors que la choisir dans une AUTRE
+// section faisait descendre la barre — deux comportements pour un même geste.
+//
+// Le troisième terme (l'actif du premier niveau) distingue deux pages SANS
+// section entre elles, Accueil et Bestiaire par exemple.
+export function cleRouteBarre(
+  section: SidebarSection | null | undefined,
+  groupes: SidebarGroupe[]
+): string {
+  const actif = (gs: SidebarGroupe[]) =>
+    gs.flatMap((g) => g.liens).find((l) => l.actif)?.key ?? '';
+  return [section?.titre ?? '', section ? actif(section.groupes) : '', actif(groupes)].join('|');
+}
+
 export default function Sidebar({
   groupes,
   section,
@@ -172,7 +196,19 @@ export default function Sidebar({
 
   // ⚠️ Changer de page REPOSE le niveau sur celui de la route : arriver dans le
   // Siège doit montrer ses sous-sections, même si on avait remonté ailleurs.
-  const cleRoute = section?.titre ?? null;
+  //
+  // ⚠️ **La clé doit changer à chaque changement de DESTINATION, pas seulement
+  // de SECTION.** Elle ne valait que `section?.titre` : aller d'
+  // `#/outils/optimizer` à `#/outils/speed-tuning` laissait donc la clé
+  // identique, aucune remise à zéro, et la barre restait où elle était.
+  //
+  // C'est exactement le geste du **panneau de survol**, qui ne s'ouvre QUE
+  // depuis le premier niveau : pour y être tout en se trouvant déjà dans une
+  // section, il faut avoir cliqué « retour » (`ouverte === null`). Choisir une
+  // sous-section de la section où l'on est déjà ne faisait alors rien bouger,
+  // alors que la choisir dans une AUTRE section faisait bien descendre la
+  // barre — deux comportements pour un même geste.
+  const cleRoute = cleRouteBarre(section, groupes);
   const derniereRoute = useRef(cleRoute);
   if (derniereRoute.current !== cleRoute) {
     derniereRoute.current = cleRoute;
@@ -473,7 +509,18 @@ export default function Sidebar({
             <nav
               aria-label={`${panneau.section.titre} — sous-sections`}
               className="flex flex-col gap-0.5 p-1.5"
-              onClick={fermer}
+              onClick={() => {
+                fermer();
+                // ⚠️ **La barre SUIT le choix fait dans le panneau, tout de
+                // suite.** Elle ne le faisait qu'indirectement, via la remise
+                // à zéro sur changement de route — donc jamais quand la route
+                // NE change PAS : cliquer « Recommandations » depuis le
+                // panneau alors qu'on est déjà sur Recommandations laissait la
+                // barre au premier niveau, à marquer « Siège » pendant qu'on
+                // regardait une sous-section. Poser le niveau ici ne dépend
+                // plus de ce que la navigation fait ou non.
+                setOuverte(undefined);
+              }}
             >
               {/* ⚠️ Le MÊME rendu d'entrées que la barre — pas une liste à
                   part. Les sous-sections doivent se cliquer et se surligner

@@ -1,0 +1,69 @@
+{
+  "_lisezmoi": "Export SWEX MINIATURE, dédié à D4 (implementation-relique, B.1) : deux unit_id du MÊME com2usId (15105) portent des reliques DIFFÉRENTES, et rien ne les confond par nom/com2usId seul. L'unité 201 est en plus référencée par un preset RTA et une défense de siège : les trois chemins (Box, RTA, Siège) doivent retrouver la MÊME relique pour un MÊME unit_id, jamais celle de l'autre exemplaire.",
+  "tvalue": 1786261890,
+  "tvaluelocal": 1786236690,
+  "wizard_info": { "wizard_id": 2, "wizard_name": "TesteurD4" },
+
+  "unit_list": [
+    {
+      "unit_id": 201,
+      "unit_master_id": 15105,
+      "class": 6,
+      "unit_level": 40,
+      "con": 100,
+      "atk": 700,
+      "def": 500,
+      "spd": 101,
+      "critical_rate": 15,
+      "critical_damage": 50,
+      "resist": 15,
+      "accuracy": 0,
+      "runes": [],
+      "artifacts": [],
+      "relics": [
+        { "rid": 9101, "type": 12, "upgrade_curr": 6, "durability": 0, "pri_effect": [100, 9], "sec_effect": [12, 33000, 1] }
+      ]
+    },
+    {
+      "unit_id": 202,
+      "unit_master_id": 15105,
+      "class": 6,
+      "unit_level": 40,
+      "con": 100,
+      "atk": 700,
+      "def": 500,
+      "spd": 101,
+      "critical_rate": 15,
+      "critical_damage": 50,
+      "resist": 15,
+      "accuracy": 0,
+      "runes": [],
+      "artifacts": [],
+      "relics": [
+        { "rid": 9102, "type": 3, "upgrade_curr": 11, "durability": 0, "pri_effect": [101, 14], "sec_effect": [3, 18000, 3] }
+      ]
+    }
+  ],
+
+  "relics": [
+    { "rid": 9101, "type": 12, "upgrade_curr": 6, "durability": 0, "pri_effect": [100, 9], "sec_effect": [12, 33000, 1] },
+    { "rid": 9102, "type": 3, "upgrade_curr": 11, "durability": 0, "pri_effect": [101, 14], "sec_effect": [3, 18000, 3] }
+  ],
+
+  "favorite_unit_list": [{ "type": 1, "unit_id_list": [201] }],
+
+  "world_arena_rune_equip_list": [],
+  "world_arena_artifact_equip_list": [],
+
+  "guildsiege_defense_deck_unit_list": [{ "deck_id": 1, "unit_id_list": [201, 202, 0] }],
+  "guildsiege_defense_deck_equip_list": {
+    "1": {
+      "equip": [
+        { "unit_id": 201, "rune_id_list": [], "artifact_id_list": [] },
+        { "unit_id": 202, "rune_id_list": [], "artifact_id_list": [] }
+      ]
+    }
+  },
+
+  "deck_list": [{ "deck_seq": 1, "deck_type": 1, "leader_unit_id": 201, "unit_id_list": [201] }]
+}

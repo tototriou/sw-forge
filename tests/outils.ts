@@ -80,6 +80,12 @@ export function exportSynthetique(): string {
   return readFileSync(resolve(racine, 'tests/fixtures/compte-miniature.json'), 'utf8');
 }
 
+// Export miniature dédié à D4 (implementation-relique, B.1) : deux unit_id
+// d'un même com2usId, reliques différentes — voir le `_lisezmoi` du fichier.
+export function exportReliquesD4(): string {
+  return readFileSync(resolve(racine, 'tests/fixtures/compte-reliques-d4.json'), 'utf8');
+}
+
 // ⚠️ Export RÉEL du développeur — **gitignoré**, donc absent partout ailleurs.
 // Les tests qui s'en servent (mesures, cas réels) s'ignorent quand il manque.
 export function exportReel(): string | null {

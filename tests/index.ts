@@ -48,6 +48,7 @@ import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
+import testRelicOptim from './relic-optim.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
@@ -127,6 +128,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testOptimizerExclusion', testOptimizerExclusion],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],
+  ['testRelicOptim', testRelicOptim],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

@@ -294,7 +294,7 @@ export function dimensionsRetenues(
       const nature = relicUniqueNature(type);
       if (!nature) return false;
       if (nature.sorte === 'degatsInfliges') return true;
-      if (nature.sorte === 'buffStat') return sort.includes(nature.stat);
+      if (nature.sorte === 'buffStat') return new Set(sort).has(nature.stat);
       return false;
     };
   } else if (objectif === 'ehp') {
@@ -368,7 +368,11 @@ export function relicDominates(a: RelicDetail, b: RelicDetail, dimensions: Relic
 
   const principalePertinente = dimensions.principaleStats.has(statA);
   const strictPrincipale = principalePertinente && a.main.value > b.main.value;
-  const strictExclusive = exclusif === 'b-non-pertinente' && dimensions.exclusiveTypesPertinents.has(a.unique!.type);
+  const exclusivePertinente = dimensions.exclusiveTypesPertinents.has(a.unique!.type);
+  const strictExclusive = exclusivePertinente && (
+    exclusif === 'b-non-pertinente'
+      || (exclusif === 'meme-type' && (a.unique!.tranche < b.unique!.tranche || a.unique!.percent! > b.unique!.percent!))
+  );
 
   return strictPrincipale || strictExclusive;
 }

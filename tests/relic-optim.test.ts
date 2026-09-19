@@ -102,6 +102,12 @@ export default function testRelicOptim() {
     ok(relicDominates(r15, r8, dims), '+15 domine +8');
     ok(!relicDominates(r9, r15, dims), '+9 ne domine pas +15 (deux exclusives pertinentes de types différents)');
     ok(!relicDominates(r15, r9, dims), '+15 ne domine pas +9 non plus : les deux survivent');
+    const memeTypeMeilleure = relic(4, 101, 12, { type: 1, tranche: 1000, percent: 2 });
+    const memeTypeMoinsBonne = relic(5, 101, 12, { type: 1, tranche: 1000, percent: 1 });
+    ok(relicDominates(memeTypeMeilleure, memeTypeMoinsBonne, dims), 'même type pertinent, principales égales, +percent → domine');
+    const typeNonPertinentMeilleur = relic(6, 101, 12, { type: 16, tranche: 27000, percent: 2 });
+    const typeNonPertinentMoinsBon = relic(7, 101, 12, { type: 16, tranche: 27000, percent: 1 });
+    ok(!relicDominates(typeNonPertinentMeilleur, typeNonPertinentMoinsBon, dims), 'type non pertinent → ne domine pas');
   }
   {
     // +15 acceptée sans qu'aucune pièce +15 n'existe déjà — la borne

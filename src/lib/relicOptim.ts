@@ -46,16 +46,10 @@ function statDePrincipale(choix: RelicMainChoice): RelicStat | undefined {
  * ----------------------------------------------------------------------- */
 
 // ⚠️ **Pourquoi une dérivation et pas une table écrite à la main** :
-// `RELIC_UNIQUE` (effects.ts) donne pour chaque type sa fonction de
-// formulation (`effet`, une des 6 curées : Conquête, Ténacité, Bravoure,
-// Éternité, Origine, Régénération) et la stat de RÉFÉRENCE (`stat.court`, le
-// « X » — « tous les X pts de VIT »). Mais la stat AMÉLIORÉE par Bravoure/
-// Éternité/Origine est FIXE par groupe (ATQ/DEF/PV) et hardcodée dans le
-// gabarit, PAS dans `stat.court` (ex. type 7 = Bravoure·VIT : la référence
-// est la VIT, l'amélioration porte sur l'ATQ). La seule source qui la porte
-// est donc le TEXTE déjà curé que `effet(...)` produit — on le lit, on ne le
-// reconstruit pas (`game-data-curation` : le sens vient d'`effects.ts`,
-// jamais d'une analogie ni d'une table parallèle qui pourrait diverger).
+// `RELIC_UNIQUE` (effects.ts) donne pour chaque type son groupe curé et sa
+// stat de RÉFÉRENCE (`stat.court`, le « X » — « tous les X pts de VIT »).
+// Le groupe porte le sens mécanique ; il est relu sur le gabarit que la ligne
+// utilise déjà, jamais déduit du texte (`game-data-curation`).
 export type RelicNature =
   | { sorte: 'degatsInfliges' } // Conquête (1,2,3)
   | { sorte: 'degatsReduits' } // Ténacité (4,5,6)
@@ -69,15 +63,14 @@ export function relicUniqueNature(type: number): RelicNature | undefined {
   const def = RELIC_UNIQUE[type];
   let nature: RelicNature | undefined;
   if (def) {
-    // Arguments arbitraires (1, '1') : seul le TEXTE produit importe, jamais
-    // sa valeur numérique.
-    const texte = def.effet(1, '1', def.stat.phrase);
-    if (texte.includes('DGTS infligés')) nature = { sorte: 'degatsInfliges' };
-    else if (texte.includes('DGTS reçus')) nature = { sorte: 'degatsReduits' };
-    else if (texte.includes('Soins et boucliers')) nature = { sorte: 'soins' };
-    else if (texte.includes('[ATQ +')) nature = { sorte: 'buffStat', stat: 'atk' };
-    else if (texte.includes('[DEF +')) nature = { sorte: 'buffStat', stat: 'def' };
-    else if (texte.includes('Max des PV +')) nature = { sorte: 'buffStat', stat: 'hp' };
+    switch (def.groupe) {
+      case 'conquete': nature = { sorte: 'degatsInfliges' }; break;
+      case 'tenacite': nature = { sorte: 'degatsReduits' }; break;
+      case 'regeneration': nature = { sorte: 'soins' }; break;
+      case 'bravoure': nature = { sorte: 'buffStat', stat: 'atk' }; break;
+      case 'eternite': nature = { sorte: 'buffStat', stat: 'def' }; break;
+      case 'origine': nature = { sorte: 'buffStat', stat: 'hp' }; break;
+    }
   }
   CACHE_NATURE.set(type, nature);
   return nature;

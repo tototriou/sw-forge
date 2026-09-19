@@ -11,8 +11,10 @@ import {
   relicDominates,
   relicPctMaxByStat,
   relicPctMinByStat,
+  relicUniqueNature,
   resoudreContexteRelique,
 } from '../src/lib/relicOptim';
+import { RELIC_UNIQUE } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
 
 function main(code: number, value: number) {
@@ -26,6 +28,43 @@ function relic(id: number, code: number, value: number, unique?: { type: number;
 
 export default function testRelicOptim() {
   titre('Optimizer · module relique (relicOptim.ts)');
+
+  {
+    const natures = [
+      'degatsInfliges', 'degatsInfliges', 'degatsInfliges',
+      'degatsReduits', 'degatsReduits', 'degatsReduits',
+      'buffStat', 'buffStat', 'buffStat', 'buffStat', 'buffStat', 'buffStat',
+      'buffStat', 'buffStat', 'buffStat', 'soins',
+    ];
+    const stats = [
+      undefined, undefined, undefined, undefined, undefined, undefined,
+      'atk', 'atk', 'atk', 'def', 'def', 'def', 'hp', 'hp', 'hp', undefined,
+    ];
+    for (let type = 1; type <= 16; type++) {
+      const nature = relicUniqueNature(type);
+      egal(nature?.sorte, natures[type - 1], `type ${type} : nature dérivée du discriminant`);
+      if (nature?.sorte === 'buffStat') egal(nature.stat, stats[type - 1], `type ${type} : statistique du buff`);
+      const def = RELIC_UNIQUE[type];
+      egal(def.effet(1, '1', def.stat.phrase), [
+        'DGTS infligés +1% tous les 1 pts d\'ATQ au début du combat',
+        'DGTS infligés +1% tous les 1 pts de DEF au début du combat',
+        'DGTS infligés +1% tous les 1 pts du max des PV au début du combat',
+        'DGTS reçus -1% tous les 1 pts d\'ATQ au début du combat',
+        'DGTS reçus -1% tous les 1 pts de DEF au début du combat',
+        'DGTS reçus -1% tous les 1 pts du max des PV au début du combat',
+        '[ATQ +1% tous les 1 pts de VIT] au début du combat',
+        '[ATQ +1% tous les 1 pts de DEF] au début du combat',
+        '[ATQ +1% tous les 1 pts du max des PV] au début du combat',
+        '[DEF +1% tous les 1 pts d\'ATQ] au début du combat',
+        '[DEF +1% tous les 1 pts de VIT] au début du combat',
+        '[DEF +1% tous les 1 pts du max des PV] au début du combat',
+        '[Max des PV +1% tous les 1 pts d\'ATQ] au début du combat',
+        '[Max des PV +1% tous les 1 pts de VIT] au début du combat',
+        '[Max des PV +1% tous les 1 pts de DEF] au début du combat',
+        '[Soins et boucliers accordés +1% tous les 1 pts du max des PV] au début du combat',
+      ][type - 1], `type ${type} : texte d'effet inchangé`);
+    }
+  }
 
   /* ------------------------------------------------------------------
    * Les sept contrôles du plan § 8.2

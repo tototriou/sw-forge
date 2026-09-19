@@ -626,6 +626,7 @@ const R_PV = { phrase: 'du max des PV', court: 'PV' };
 const R_VIT = { phrase: 'de VIT', court: 'VIT' };
 
 type RelicGroupe = (percent: number, tranche: string, stat: string) => string;
+type RelicGroupeNom = 'conquete' | 'tenacite' | 'bravoure' | 'eternite' | 'origine' | 'regeneration';
 
 // Les six groupes, dans la formulation de la FICHE D'OBJET — relevée sur des
 // pièces réelles pour Conquête, Ténacité, Bravoure et Origine ; Éternité et
@@ -641,23 +642,23 @@ const ORIGINE: RelicGroupe = (p, t, s) => `[Max des PV +${p}% tous les ${t} pts 
 const REGENERATION: RelicGroupe = (p, t, s) =>
   `[Soins et boucliers accordés +${p}% tous les ${t} pts ${s}] au début du combat`;
 
-export const RELIC_UNIQUE: Record<number, { effet: RelicGroupe; stat: { phrase: string; court: string } }> = {
-  1: { effet: CONQUETE, stat: R_ATQ },
-  2: { effet: CONQUETE, stat: R_DEF },
-  3: { effet: CONQUETE, stat: R_PV },
-  4: { effet: TENACITE, stat: R_ATQ },
-  5: { effet: TENACITE, stat: R_DEF },
-  6: { effet: TENACITE, stat: R_PV },
-  7: { effet: BRAVOURE, stat: R_VIT },
-  8: { effet: BRAVOURE, stat: R_DEF },
-  9: { effet: BRAVOURE, stat: R_PV },
-  10: { effet: ETERNITE, stat: R_ATQ },
-  11: { effet: ETERNITE, stat: R_VIT },
-  12: { effet: ETERNITE, stat: R_PV },
-  13: { effet: ORIGINE, stat: R_ATQ },
-  14: { effet: ORIGINE, stat: R_VIT },
-  15: { effet: ORIGINE, stat: R_DEF },
-  16: { effet: REGENERATION, stat: R_PV },
+export const RELIC_UNIQUE: Record<number, { effet: RelicGroupe; groupe: RelicGroupeNom; stat: { phrase: string; court: string } }> = {
+  1: { effet: CONQUETE, groupe: 'conquete', stat: R_ATQ },
+  2: { effet: CONQUETE, groupe: 'conquete', stat: R_DEF },
+  3: { effet: CONQUETE, groupe: 'conquete', stat: R_PV },
+  4: { effet: TENACITE, groupe: 'tenacite', stat: R_ATQ },
+  5: { effet: TENACITE, groupe: 'tenacite', stat: R_DEF },
+  6: { effet: TENACITE, groupe: 'tenacite', stat: R_PV },
+  7: { effet: BRAVOURE, groupe: 'bravoure', stat: R_VIT },
+  8: { effet: BRAVOURE, groupe: 'bravoure', stat: R_DEF },
+  9: { effet: BRAVOURE, groupe: 'bravoure', stat: R_PV },
+  10: { effet: ETERNITE, groupe: 'eternite', stat: R_ATQ },
+  11: { effet: ETERNITE, groupe: 'eternite', stat: R_VIT },
+  12: { effet: ETERNITE, groupe: 'eternite', stat: R_PV },
+  13: { effet: ORIGINE, groupe: 'origine', stat: R_ATQ },
+  14: { effet: ORIGINE, groupe: 'origine', stat: R_VIT },
+  15: { effet: ORIGINE, groupe: 'origine', stat: R_DEF },
+  16: { effet: REGENERATION, groupe: 'regeneration', stat: R_PV },
 };
 
 // Propriété unique d'une relique : la FORMULE, jamais un libellé d'effet.

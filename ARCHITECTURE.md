@@ -268,6 +268,7 @@ Source de vérité du rendu : [`spec/shared/design.md`](spec/shared/design.md).
 - `scripts/fetch-monsters.mjs`, `fetch-skills.mjs`, `link-collabs.mjs` —
   régénèrent les données depuis SWARFARM.
 - `scripts/benchmark-*.mjs` — mesures de l'optimiseur.
+- `scripts/lib/relicOracle.ts` — oracle de contrôle de la dimension relique : N recherches du moteur réel, une par principale éligible distincte, et point d'entrée CLI pour les mesures du chantier.
 - `src/data/releases.ts` — le journal des versions, lu par l'accueil **et** la
   page Nouveautés.
 

@@ -66,6 +66,19 @@ export default function testRelicOptim() {
     }
   }
 
+  {
+    const off = resoudreContexteRelique({ mode: 'off', principale: 'libre', type: 'libre', seuil: 6 }, undefined, []);
+    const recherche = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, undefined, []);
+    ok(off.empreinte !== recherche.empreinte, "l'empreinte distingue 'off' de 'recherche' même sur un pool vide");
+
+    const intention = { mode: 'recherche' as const, principale: 'libre' as const, type: 'libre' as const, seuil: 6 };
+    const a = [relic(2, 101, 14), relic(1, 100, 9)];
+    const b = [relic(1, 100, 9), relic(2, 101, 14)];
+    const empreinteA = resoudreContexteRelique(intention, undefined, a).empreinte;
+    const empreinteB = resoudreContexteRelique(intention, undefined, b).empreinte;
+    egal(empreinteA, empreinteB, "deux imports qui ne diffèrent que par l'ordre ont la même empreinte");
+  }
+
   /* ------------------------------------------------------------------
    * Les sept contrôles du plan § 8.2
    * ---------------------------------------------------------------- */

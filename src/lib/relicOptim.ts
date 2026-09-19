@@ -179,7 +179,7 @@ function empreinteDe(eligibles: RelicDetail[], intention: RelicIntent): string {
     const uniqueTxt = u ? `${u.type}/${u.tranche}/${u.percent ?? ''}` : '';
     return `${r.id}:${r.main.code}:${r.main.value}:${r.upgrade}:${uniqueTxt}`;
   });
-  return [...parts, intention.principale, intention.type, intention.seuil].join('|');
+  return [intention.mode, ...parts, intention.principale, intention.type, intention.seuil].join('|');
 }
 
 function bornesDe(eligibles: RelicDetail[], principale: RelicMainChoice): RelicBounds {

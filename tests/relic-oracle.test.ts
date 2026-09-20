@@ -6,6 +6,7 @@ import { computeStats } from '../src/lib/stats';
 import { RelicDetail } from '../src/types';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
+import { buildCaseSearchParams, CASES } from '../scripts/lib/perfShared';
 import { egal, exportSynthetique, ok, titre } from './outils';
 
 function relique(id: number, code: 100 | 101 | 102, value: number, type = 1): RelicDetail {
@@ -63,6 +64,24 @@ export default function testRelicOracle() {
   ok(prepareDirect != null && prepareOracle != null, 'fidélité : les deux préparations sont valides');
   egal(prepareOracle?.bucketCap, prepareDirect?.bucketCap, 'fidélité : même bucketCap dérivé du preset Moyen');
   egal(prepareOracle?.maxMs, prepareDirect?.maxMs, 'fidélité : même budget de temps de production');
+
+  for (const cas of CASES) {
+    const construit = buildCaseSearchParams(cas, {
+      gear,
+      allRunes: inventaire.runes,
+      targetRuneIds: new Set(),
+      requirement: paramsFixture.requirement,
+    }, 10 * 60 * 1000);
+    egal(construit.objectiveStats, cas.objectiveStats, `fidélité --case : ${cas.label} conserve objectiveStats`);
+    egal(construit.base, gear.base, `fidélité --case : ${cas.label} conserve la base de perf-battery`);
+    egal(construit.artifacts, gear.artifacts, `fidélité --case : ${cas.label} conserve les artéfacts de perf-battery`);
+    egal(construit.pool, inventaire.runes, `fidélité --case : ${cas.label} conserve le pool de perf-battery`);
+    egal(construit.requirement, paramsFixture.requirement, `fidélité --case : ${cas.label} conserve les conditions de perf-battery`);
+    egal(construit.metric, 'eff', `fidélité --case : ${cas.label} conserve la métrique de perf-battery`);
+    egal(construit.objective, cas.objective, `fidélité --case : ${cas.label} conserve l’objectif de perf-battery`);
+    egal(construit.maxMs, 10 * 60 * 1000, `fidélité --case : ${cas.label} conserve le budget de perf-battery`);
+    egal(construit.slotFilterCap, 80, `fidélité --case : ${cas.label} conserve le preset Moyen de perf-battery`);
+  }
 
   const base = { hp: 10000, atk: 700, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
   const pool = randomPool(mulberry32(404), 2);

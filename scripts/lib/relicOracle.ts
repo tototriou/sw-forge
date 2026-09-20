@@ -20,7 +20,7 @@ import {
 import { computeStats } from '../../src/lib/stats';
 import { RelicDetail, RuneDetail } from '../../src/types';
 import { RelicContext, bestRelicForBuild, resoudreContexteRelique } from '../../src/lib/relicOptim';
-import { CASES, loadCase } from './perfShared';
+import { buildCaseSearchParams, CASES, loadCase } from './perfShared';
 
 export interface OracleCandidate extends BuildCandidate {
   rid?: number;
@@ -164,18 +164,15 @@ function argument(prefixe: string): string | undefined {
 export function relicOracleCli(): void {
   const index = Number(argument('--case='));
   const seuil = Number(argument('--relic-min-upgrade=') ?? 6);
-  const objectif = (argument('--objective=') ?? CASES[index]?.objective ?? 'efficience') as Objective;
   const exportDir = argument('--export-dir=');
   const cas = CASES[index];
   if (!cas || !Number.isInteger(index)) throw new Error(`--case doit désigner un index entre 0 et ${CASES.length - 1}.`);
   if (!Number.isInteger(seuil) || seuil < 0 || seuil > 15) throw new Error('--relic-min-upgrade doit être un entier entre 0 et 15.');
-  if (!['efficience', 'ehp', 'vitesse'].includes(objectif)) {
-    throw new Error('--objective accepte efficience, ehp ou vitesse au lot 4.');
-  }
 
   const exportPath = exportDir ? resolve(exportDir, cas.exportPath) : cas.exportPath;
   const casEffectif = { ...cas, exportPath };
-  const { gear, allRunes, requirement } = loadCase(casEffectif);
+  const charge = loadCase(casEffectif);
+  const { gear } = charge;
   const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
   const { relics } = parseAccountInventory(data);
   const contexte = resoudreContexteRelique(
@@ -183,17 +180,7 @@ export function relicOracleCli(): void {
     gear.relic,
     relics
   );
-  const params: SearchParams = {
-    base: gear.base,
-    artifacts: gear.artifacts,
-    relic: gear.relic,
-    pool: allRunes,
-    requirement,
-    metric: 'eff',
-    objective: objectif,
-    maxMs: 10 * 60 * 1000,
-    slotFilterCap: 80,
-  };
+  const params = buildCaseSearchParams(casEffectif, charge, 10 * 60 * 1000);
 
   const debut = performance.now();
   const resultat = oracleSearch(params, contexte);
@@ -201,7 +188,7 @@ export function relicOracleCli(): void {
   process.stdout.write(JSON.stringify({
     case: cas.label,
     seuil,
-    objectif,
+    objectif: params.objective,
     empreinte: contexte.empreinte,
     N: resultat.N,
     candidats: resultat.candidats.length,

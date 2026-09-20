@@ -96,7 +96,7 @@ import {
   pairBuckets,
   Bucket,
 } from '../src/lib/runeBuildOptim';
-import { Case, CASES, loadCase } from './lib/perfShared';
+import { Case, CASES, loadCase, loadCaseSearchParams } from './lib/perfShared';
 // ⚠️ `import type` impératif ici : build-half-worker.ts / monotonicity-worker.ts
 // exécutent du code au chargement du module (ils LISENT `workerData`, absent
 // dans ce processus parent) — un import normal, même pour les seuls types,
@@ -279,7 +279,7 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   // les mesures Phase 0 — l'omettre retombe sur MAX_PER_SLOT_MATCH=40 (le
   // défaut interne du moteur), un pré-filtrage plus étroit que ce que
   // l'app utilise réellement, faussant toute comparaison.
-  const params: SearchParams = { base: gear.base, artifacts: gear.artifacts, relic: gear.relic, pool: allRunes, requirement, metric: 'eff', objective: c.objective, objectiveStats: c.objectiveStats, maxMs, slotFilterCap: 80 };
+  const params = loadCaseSearchParams(c, maxMs);
 
   const t0 = performance.now();
   const prepared = prepareSearch(params);

@@ -57,6 +57,21 @@ export const CASES: Case[] = [
 // Reconstruit le monstre + l'exigence (sets/minStats/mainStats) d'un cas —
 // partagé par la mesure de temps ET la vérification de justesse, pour ne
 // jamais faire diverger les deux méthodes sur un même cas.
+export function buildCaseSearchParams(
+  c: Case,
+  { gear, allRunes, requirement }: ReturnType<typeof loadCase>,
+  maxMs: number
+): SearchParams {
+  return {
+    base: gear.base, artifacts: gear.artifacts, relic: gear.relic, pool: allRunes, requirement,
+    metric: 'eff', objective: c.objective, objectiveStats: c.objectiveStats, maxMs, slotFilterCap: 80,
+  };
+}
+
+export function loadCaseSearchParams(c: Case, maxMs: number): SearchParams {
+  return buildCaseSearchParams(c, loadCase(c), maxMs);
+}
+
 export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; targetRuneIds: Set<number>; requirement: BuildRequirement } {
   const { gear, allRunes } = loadDeckMonster({ exportPath: c.exportPath, deckId: c.deckId, monsterName: c.monsterName, defense: c.defense, rest: [] });
   const targetRuneIds = new Set(gear.runes.map((r) => r.id));

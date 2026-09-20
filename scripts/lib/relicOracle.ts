@@ -22,6 +22,9 @@ import { computeStats } from '../../src/lib/stats';
 import { RelicDetail, RuneDetail } from '../../src/types';
 import { RelicContext, bestRelicForBuild, resoudreContexteRelique } from '../../src/lib/relicOptim';
 import { buildCaseSearchParams, CASES, loadCase } from './perfShared';
+import { chargerRecette, ModeChargement } from './chargerRecette';
+import { recipeToRelicIntent } from './recipeToSearchParams';
+import { buildRealDamageContext } from './realDamageCli';
 
 export interface OracleCandidate extends BuildCandidate {
   rid?: number;
@@ -165,35 +168,67 @@ function argument(prefixe: string): string | undefined {
 
 /**
  * Point d'entrée réutilisable par B.6 :
- * `npx tsx scripts/lib/relicOracle.ts --case=<index> --relic-min-upgrade=<0..15> --objective=<objectif> [--export-dir=<dossier>]`.
+ * `npx tsx scripts/lib/relicOracle.ts --case=<index> --relic-min-upgrade=<0..15> [--export-dir=<dossier>]`
+ * ou `npx tsx scripts/lib/relicOracle.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]]`.
  * Un appel exécute une seule mesure, dans le processus courant.
  */
 export function relicOracleCli(): void {
-  const index = Number(argument('--case='));
+  const caseArg = argument('--case=');
+  const index = Number(caseArg);
   const seuil = Number(argument('--relic-min-upgrade=') ?? 6);
   const exportDir = argument('--export-dir=');
-  const cas = CASES[index];
-  if (!cas || !Number.isInteger(index)) throw new Error(`--case doit désigner un index entre 0 et ${CASES.length - 1}.`);
   if (!Number.isInteger(seuil) || seuil < 0 || seuil > 15) throw new Error('--relic-min-upgrade doit être un entier entre 0 et 15.');
+  let params: SearchParams;
+  let contexte: RelicContext;
+  let realDamage: RealDamageContext | null = null;
+  let label: string;
 
-  const exportPath = exportDir ? resolve(exportDir, cas.exportPath) : cas.exportPath;
-  const casEffectif = { ...cas, exportPath };
-  const charge = loadCase(casEffectif);
-  const { gear } = charge;
-  const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
-  const { relics } = parseAccountInventory(data);
-  const contexte = resoudreContexteRelique(
-    { mode: 'recherche', principale: 'libre', type: 'libre', seuil },
-    gear.relic,
-    relics
-  );
-  const params = buildCaseSearchParams(casEffectif, charge, 10 * 60 * 1000);
+  if (caseArg != null) {
+    const cas = CASES[index];
+    if (!cas || !Number.isInteger(index)) throw new Error(`--case doit désigner un index entre 0 et ${CASES.length - 1}.`);
+    const exportPath = exportDir ? resolve(exportDir, cas.exportPath) : cas.exportPath;
+    const casEffectif = { ...cas, exportPath };
+    const charge = loadCase(casEffectif);
+    const { gear } = charge;
+    const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
+    const { relics } = parseAccountInventory(data);
+    contexte = resoudreContexteRelique(
+      { mode: 'recherche', principale: 'libre', type: 'libre', seuil },
+      gear.relic,
+      relics
+    );
+    params = buildCaseSearchParams(casEffectif, charge, 10 * 60 * 1000);
+    label = cas.label;
+  } else {
+    const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+    if (!exportPath || !recipePath) throw new Error('Usage: relicOracle.ts --case=<index> […] ou relicOracle.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]].');
+    const rtaMode = process.argv.includes('--rta');
+    const siegeArg = argument('--siege=');
+    if (rtaMode && siegeArg != null) throw new Error('--rta et --siege sont exclusifs.');
+    const mode: ModeChargement = rtaMode
+      ? { type: 'rta' }
+      : siegeArg != null
+        ? (() => {
+            const [deckIdRaw, variant] = siegeArg.split(':');
+            const deckId = Number(deckIdRaw);
+            if (!Number.isFinite(deckId)) throw new Error(`--siege=<deckId>[:defense] : deckId invalide (${deckIdRaw}).`);
+            return { type: 'siege' as const, deckId, defense: variant === 'defense' };
+          })()
+        : { type: 'box' };
+    const chargee = chargerRecette(exportPath, recipePath, mode);
+    const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
+    const { relics } = parseAccountInventory(data);
+    contexte = resoudreContexteRelique(recipeToRelicIntent(chargee.recipe, chargee.loaded), chargee.loaded.gear.relic, relics);
+    params = chargee.params;
+    realDamage = buildRealDamageContext(chargee.recipe, chargee.loaded.com2usId, params.artifacts);
+    label = chargee.recipe.monsterName;
+  }
 
   const debut = performance.now();
-  const resultat = oracleSearch(params, contexte);
+  const resultat = oracleSearch(params, contexte, { realDamage });
   const ms = performance.now() - debut;
   process.stdout.write(JSON.stringify({
-    case: cas.label,
+    case: label,
     seuil,
     objectif: params.objective,
     empreinte: contexte.empreinte,

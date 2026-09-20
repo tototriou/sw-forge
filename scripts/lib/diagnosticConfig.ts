@@ -294,6 +294,16 @@ function parametresNonSurchargeables(
     effectif('artéfacts (paire représentative)', params.artifacts.length),
     effectif('bornes d’artéfact', params.artifactBounds != null ? 'inventaire' : 'repli sur la paire figée'),
     effectif('relique', params.relic != null ? 'présente' : 'absente'),
+    // Le contexte relique (garantie G, lot 5a) : en mode `recherche`, les
+    // bornes de faisabilité sont RELÂCHÉES (option A) — un « 0 build » ou un
+    // build en trop se lit aussi à cette ligne, pas seulement au pool.
+    effectif(
+      'contexte relique',
+      params.relicContext == null
+        ? 'absent (bornes = relique portée)'
+        : `${params.relicContext.mode} — ${params.relicContext.eligibles.length} éligible(s), seuil +${params.relicContext.seuil}` +
+          (params.relicContext.vide ? `, pool vide (${params.relicContext.vide})` : '')
+    ),
   ];
 
   if (recette) {

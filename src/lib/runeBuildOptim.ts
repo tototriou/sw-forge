@@ -47,6 +47,9 @@ import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeE
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
+// ⚠️ `import type` UNIQUEMENT — `relicOptim.ts` importe déjà `Objective`
+// d'ici (type seul) : un import de valeur ferait un cycle au runtime.
+import type { RelicContext, RelicVide } from './relicOptim';
 import {
   DEF_FACTOR_CONST,
   DEF_FACTOR_COEF,
@@ -164,7 +167,30 @@ export interface SearchParams {
      */
     possibles: Record<string, number>[];
   };
+  // La relique PORTÉE — reste ce paramètre-là même quand une relique est
+  // cherchée (garantie G : une candidate le REMPLACE au moment de la
+  // résolution exacte, lot 5b — jamais un cumul avec lui).
   relic?: RelicDetail; // fixe
+  /**
+   * Le contexte relique canonique (`resoudreContexteRelique`, relicOptim.ts —
+   * garantie G) : intention résolue UNE FOIS contre le monstre et
+   * l'inventaire, transportée telle quelle jusqu'à `PreparedSearch` pour
+   * que la file de résolution (5b) retrouve le pool éligible, la relique
+   * équipée et l'empreinte — pas seulement les bornes.
+   *
+   * ⚠️ **Absent, ou `mode` ≠ `'recherche'`** : le moteur se comporte
+   * EXACTEMENT comme avant (la relique portée entre dans les bornes des deux
+   * côtés, via `relicPctBonus(relic)`) — projection canonique byte-identique,
+   * vérifiée par tests/relic-search.test.ts.
+   *
+   * ⚠️ **`mode: 'recherche'`** : les bornes de faisabilité lisent
+   * `relicContext.bornes` À LA PLACE du pourcentage de `relic` (sinon
+   * l'équipée s'additionnerait à la candidate) — `max` sur les branches
+   * minimum, `min` sur les branches maximum, jamais l'inverse (voir
+   * `MinMaxContext.relPctMax`/`relPctMin`). Un `vide` fait REFUSER la
+   * recherche (`RechercheRefusee`), jamais une recherche « sans relique ».
+   */
+  relicContext?: RelicContext;
   pool: RuneDetail[]; // runes candidates (déjà filtrées par exclusion en amont)
   requirement: BuildRequirement;
   metric: OptimMetric;
@@ -210,6 +236,36 @@ export interface SearchParams {
   // combinedRetentionScore, repli sur relevanceScore si aucun minimum posé.
   // Jamais exposé dans l'UI.
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
+}
+
+const LIBELLE_VIDE: Record<RelicVide, string> = {
+  inventaire: 'aucune relique dans le compte',
+  principale: 'aucune relique ne porte la principale demandée',
+  type: 'aucune relique ne porte la propriété unique demandée',
+  seuil: 'aucune relique n’atteint le seuil de niveau',
+  equipee: 'aucune relique équipée',
+};
+
+/**
+ * Refus NOMMÉ d'une recherche dont le pool de reliques est vide en mode
+ * `recherche` (D1, « pool vide = pas de recherche ») : jamais une recherche
+ * « sans relique » à la place, jamais un candidat sans relique en `libre`.
+ * Levé par `prepareSearch` — donc AVANT toute construction, sur tous les
+ * chemins (séquentiel, Worker navigateur, Node). Le CLI l'imprime tel quel,
+ * l'écran (5c) ne lance pas la recherche dans ce cas.
+ *
+ * ⚠️ `mode: 'equipped'` sans relique portée (`vide: 'equipee'`) ne refuse
+ * PAS : le moteur y reste byte-identique à avant (une recherche sans relique
+ * est exactement ce que « garder l'équipée » veut dire quand il n'y en a
+ * pas) — c'est le défaut calculé (`defaultRelicMainChoice`) qui évite ce cas
+ * à l'écran.
+ */
+export class RechercheRefusee extends Error {
+  readonly motif = 'relique-pool-vide' as const;
+  constructor(readonly vide: RelicVide) {
+    super(`Recherche refusée : aucune relique éligible (${LIBELLE_VIDE[vide]}) — élargir le seuil ou les filtres.`);
+    this.name = 'RechercheRefusee';
+  }
 }
 
 // Diagnostic « quasi-succès » — voir spec/outils/optimizer/
@@ -3073,6 +3129,9 @@ export interface PreparedSearch {
   base: BaseStats;
   artifacts: ArtifactDetail[];
   relic?: RelicDetail;
+  // Transporté TEL QUEL depuis `SearchParams` (garantie G) : c'est ici que
+  // la résolution exacte (5b) retrouve le pool éligible et l'empreinte.
+  relicContext?: RelicContext;
   requirement: BuildRequirement;
   metric: OptimMetric;
   maxCollected: number;
@@ -3148,7 +3207,10 @@ export type PrepareStageObserver = (stage: PrepareStage, bySlot: RuneDetail[][])
 // sérialisable — l'y placer casserait le chemin parallèle au lieu d'échouer
 // à la compilation.
 export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserver): PreparedSearch | null {
-  const { base, artifacts, relic, pool, requirement, metric } = params;
+  const { base, artifacts, relic, relicContext, pool, requirement, metric } = params;
+  // Pool de reliques vide en mode recherche : refus nommé, AVANT toute
+  // construction (D1). Voir `RechercheRefusee`.
+  if (relicContext?.mode === 'recherche' && relicContext.vide) throw new RechercheRefusee(relicContext.vide);
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
   const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
@@ -3219,7 +3281,7 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
   const bucketCap = params.bucketCap ?? bucketCapFor(slotCap);
 
   return {
-    base, artifacts, relic, requirement, metric,
+    base, artifacts, relic, relicContext, requirement, metric,
     maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
     guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf,

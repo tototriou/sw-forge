@@ -75,7 +75,12 @@ export function oracleSearchRuns(params: SearchParams, relicContext: RelicContex
     principale,
     reliques,
     // Remplacement, jamais cumul : c'est le même paramètre que la production.
-    params: { ...params, relic: reliques[0] ?? relicContext.equipee },
+    // ⚠️ `relicContext: undefined` — garantie E : l'oracle n'applique AUCUNE
+    // des éliminations qu'il sert à valider. Depuis le lot 5a, un
+    // `SearchParams.relicContext` en mode `recherche` RELÂCHE les bornes du
+    // moteur ; le laisser passer ici ferait mesurer l'option A contre
+    // elle-même. Chaque run est le moteur d'avant, relique fixée.
+    params: { ...params, relic: reliques[0] ?? relicContext.equipee, relicContext: undefined },
   }));
 }
 

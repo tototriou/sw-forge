@@ -14,6 +14,7 @@ import {
   SearchParams,
   candidateMetricTotal,
   objectiveScore,
+  RealDamageContext,
   searchBuilds,
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
@@ -75,11 +76,12 @@ export function oracleSearchRuns(params: SearchParams, relicContext: RelicContex
   }));
 }
 
-function scoreDuCandidat(candidate: BuildCandidate, params: SearchParams, runeById: Map<number, RuneDetail>): number {
+function scoreDuCandidat(candidate: BuildCandidate, params: SearchParams, runeById: Map<number, RuneDetail>, realDamage?: RealDamageContext | null): number {
   const objectif = params.objective ?? 'efficience';
   if (objectif === 'efficience') return candidateMetricTotal(candidate, runeById, params.metric);
   if (objectif === 'degats_reels') {
-    throw new Error("oracleSearch : l'objectif « Dégâts réels » exige un contexte de combat, absent de SearchParams au lot 4.");
+    if (!realDamage) throw new Error("oracleSearch : l'objectif « Dégâts réels » exige un contexte de combat.");
+    return objectiveScore(candidate, objectif, realDamage);
   }
   return objectiveScore(candidate, objectif);
 }
@@ -88,7 +90,8 @@ function candidatAvecRelique(
   candidate: BuildCandidate,
   reliques: RelicDetail[],
   params: SearchParams,
-  runeById: Map<number, RuneDetail>
+  runeById: Map<number, RuneDetail>,
+  realDamage?: RealDamageContext | null
 ): OracleCandidate | null {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => r != null);
   if (runes.length !== candidate.runeIds.length) {
@@ -100,7 +103,7 @@ function candidatAvecRelique(
       ...candidate,
       stats: computeStats({ base: params.base, runes, artifacts: params.artifacts }),
     };
-    return { ...sansRelique, score: scoreDuCandidat(sansRelique, params, runeById) };
+    return { ...sansRelique, score: scoreDuCandidat(sansRelique, params, runeById, realDamage) };
   }
 
   const evaluations = new Map<number, BuildCandidate>();
@@ -111,19 +114,23 @@ function candidatAvecRelique(
       stats: computeStats({ base: params.base, runes, artifacts: params.artifacts, relic: relique }),
     };
     evaluations.set(relique.id, evalue);
-    return scoreDuCandidat(evalue, params, runeById);
+    return scoreDuCandidat(evalue, params, runeById, realDamage);
   }, { regimeAucun: objectif === 'efficience' || objectif === 'vitesse', equipee: params.relic });
 
   if (!meilleure) return null;
   const evalue = evaluations.get(meilleure.relique.id)!;
-  return { ...evalue, rid: meilleure.relique.id, score: scoreDuCandidat(evalue, params, runeById) };
+  return { ...evalue, rid: meilleure.relique.id, score: scoreDuCandidat(evalue, params, runeById, realDamage) };
 }
 
 /**
  * Référence relative au moteur rune existant : N recherches de production,
  * une par couple distinct `(statistique, valeur)` de principale éligible.
  */
-export function oracleSearch(params: SearchParams, relicContext: RelicContext): OracleResult {
+export function oracleSearch(
+  params: SearchParams,
+  relicContext: RelicContext,
+  options: { realDamage?: RealDamageContext | null } = {}
+): OracleResult {
   const runs = oracleSearchRuns(params, relicContext);
   const runeById = new Map(params.pool.map((r) => [r.id, r]));
   const fusion = new Map<string, OracleCandidate>();
@@ -132,7 +139,7 @@ export function oracleSearch(params: SearchParams, relicContext: RelicContext): 
   for (const run of runs) {
     const resultat = searchBuilds(run.params);
     for (const brut of resultat.candidates) {
-      const candidat = candidatAvecRelique(brut, run.reliques, params, runeById);
+      const candidat = candidatAvecRelique(brut, run.reliques, params, runeById, options.realDamage);
       if (!candidat) continue;
       const cle = candidat.runeIds.join(',');
       const precedent = fusion.get(cle);
@@ -147,7 +154,7 @@ export function oracleSearch(params: SearchParams, relicContext: RelicContext): 
 
   const candidats = ordre.map((cle) => fusion.get(cle)!);
   const objectif: Objective = params.objective ?? 'efficience';
-  const tries = sortCandidates(candidats, objectif, { runeById, metric: params.metric });
+  const tries = sortCandidates(candidats, objectif, { runeById, metric: params.metric, realDamage: options.realDamage });
   const optimum = (tries[0] as OracleCandidate | undefined) ?? null;
   return { candidats, optimum, rid: optimum?.rid, N: runs.length };
 }

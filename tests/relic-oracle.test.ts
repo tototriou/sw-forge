@@ -1,12 +1,14 @@
 import { activeSets } from '../src/lib/effects';
 import { parseAccountBox, parseAccountInventory, parseAccountSource } from '../src/lib/importAccount';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
-import { SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
+import { objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
+import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { computeStats } from '../src/lib/stats';
 import { RelicDetail } from '../src/types';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
 import { buildCaseSearchParams, CASES } from '../scripts/lib/perfShared';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { egal, exportSynthetique, ok, titre } from './outils';
 
 function relique(id: number, code: 100 | 101 | 102, value: number, type = 1): RelicDetail {
@@ -140,4 +142,18 @@ export default function testRelicOracle() {
   egal(oracleB1.N, 2, 'B1 : les deux valeurs de principale restent des recherches distinctes');
   egal(oracleB1.candidats.length, 1, 'B1 : le build faisable avec +12 est trouvé malgré le +14 infaisable');
   egal(oracleB1.rid, basse.id, 'B1 : l’optimum faisable porte la PV % +12');
+
+  const recetteDegats = {
+    objective: 'degats_reels',
+    damageSetup: { skillCom2usId: 15908, enemyDef: 2000, enemyHp: 60000, critMode: 'crit' },
+  } as OptimizerRecipe;
+  const realDamage = buildRealDamageContext(recetteDegats, 26113, []);
+  ok(realDamage != null, 'dégâts réels : le contexte de Sonia est construit par la fonction CLI partagée');
+  const oracleDegats = oracleSearch({ ...params, objective: 'degats_reels' }, contexteFixe, { realDamage });
+  ok(oracleDegats.optimum != null, 'dégâts réels : l’oracle classe les candidats avec un contexte explicite');
+  egal(
+    oracleDegats.optimum?.score,
+    objectiveScore(oracleDegats.optimum!, 'degats_reels', realDamage!),
+    'dégâts réels : le score oracle est celui de objectiveScore avec le contexte transmis'
+  );
 }

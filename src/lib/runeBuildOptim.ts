@@ -3957,6 +3957,10 @@ export function* pairBuckets(
     traceur.budget = { tronque: truncated, motif: truncated ? (candidates.length >= maxCollected ? 'maxCollected' : 'maxMs') : null };
     traceur.compteurs.explorees = explored;
     traceur.compteurs.collectes = candidates.length;
+    // Les compartiments reçus — exacts aussi quand `buildBuckets` a tourné
+    // dans un autre fil sans le traceur (harnais, navigateur).
+    traceur.compteurs.compartimentsA = bucketsA.length;
+    traceur.compteurs.compartimentsB = bucketsB.length;
   }
   return { candidates, explored, truncated, nearMissByCondition: nearMissSnapshot(), globalNearMiss, ...(traceur ? { traceur } : {}) };
 }

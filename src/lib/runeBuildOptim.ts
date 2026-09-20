@@ -236,6 +236,80 @@ export interface SearchParams {
   // combinedRetentionScore, repli sur relevanceScore si aucun minimum posé.
   // Jamais exposé dans l'UI.
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
+  /**
+   * DIAGNOSTIC SEULEMENT (lot 5a, instrumentation de la rétention) : un
+   * build « traceur » — ses 6 runes, alignées slot 1..6 — dont le moteur
+   * enregistre, DANS LE CODE, le verdict de chaque prédicat de faisabilité
+   * qu'il traverse et sa présence dans chaque structure bornée
+   * (`filterSlot`/`slotFilterCap`, tranches de `buildBuckets`/`bucketCap`,
+   * `MAX_COLLECTED`, `maxMs`). Rendu dans `SearchResult.traceur`.
+   *
+   * ⚠️ Absent (toute la production) : aucun chemin ne change, coût d'un
+   * test de référence par comboA et par paire de compartiments. Jamais
+   * exposé dans l'UI. Complet sur le chemin séquentiel (`searchBuilds`) ;
+   * sur le chemin Workers, `moities.*.tranches` n'est pas observable
+   * (les moitiés se construisent dans un autre fil sans ce champ).
+   */
+  traceur?: TraceurRequete;
+}
+
+export interface TraceurRequete {
+  runeIds: number[];
+}
+
+/**
+ * La trace d'UNE moitié (3 runes) du traceur dans `buildBuckets` : a-t-elle
+ * été générée, sinon quel élagage l'a coupée AVANT tout compartiment ; si
+ * oui, dans quel compartiment, retenue par quelles tranches, à quel rang.
+ */
+export interface TraceMoitie {
+  // La combinaison a été GÉNÉRÉE (elle a atteint le compartiment).
+  generee: boolean;
+  // Sinon : le prédicat qui l'a coupée avant — élagages SÛRS de set/joker,
+  // ou une rune absente du pool filtré (`filterSlot`, structure bornée n°1).
+  coupee?: 'filterSlot' | 'stillFeasible' | 'jokers' | 'demiBuildMort';
+  compartiment?: string;
+  // Combinaisons générées dans CE compartiment (occupation avant rétention).
+  generees?: number;
+  // Présence dans chaque tranche À LA CLÔTURE (après toutes les évictions),
+  // avec la capacité de la tranche et sa taille finale. Chemin séquentiel
+  // seulement.
+  tranches?: { nom: string; retenue: boolean; cap: number; taille: number }[];
+  // Présente dans `combos` du compartiment après fusion des tranches ?
+  retenue?: boolean;
+  rang?: number;
+  population?: number;
+}
+
+export interface TraceCandidat {
+  runeIds: number[];
+  // Par étage de préparation : les 6 runes du traceur encore présentes.
+  // `feasibility` est le verdict d'`eliminateInfeasible` rune par rune ;
+  // `filterslot` la première structure BORNÉE.
+  preparation: { etage: PrepareStage; presentes: boolean[] }[];
+  moities: { A?: TraceMoitie; B?: TraceMoitie };
+  appariement: {
+    // La paire de compartiments (A, B) a été VISITÉE par la boucle.
+    paireAtteinte: boolean;
+    satisfiesSets?: boolean;
+    jokers?: boolean;
+    bucketPairFeasibleMin?: boolean;
+    comboAFeasible?: boolean;
+    quickOkMin?: boolean;
+    quickOkMax?: boolean;
+    missingSets?: boolean;
+    validationFinale?: boolean;
+    collecte: boolean;
+  };
+  budget: { tronque: boolean; motif: 'maxMs' | 'maxCollected' | null };
+  compteurs: {
+    poolParSlot: number[];
+    filtreParSlot: number[];
+    compartimentsA: number;
+    compartimentsB: number;
+    explorees: number;
+    collectes: number;
+  };
 }
 
 const LIBELLE_VIDE: Record<RelicVide, string> = {
@@ -384,6 +458,11 @@ export interface SearchResult {
    * ou si aucune paire n'a jamais échoué (candidates déjà non vide).
    */
   globalNearMiss: NearMiss | null;
+  // Diagnostic seulement — présent ssi `SearchParams.traceur` l'était.
+  // Optionnel à dessein (contrairement aux champs near-miss) : un site qui
+  // construit un `SearchResult` sans trace n'a rien à dire, ce n'est pas un
+  // oubli à faire échouer par `tsc`.
+  traceur?: TraceCandidat;
 }
 
 // Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
@@ -1877,6 +1956,10 @@ export interface BuildBucketsContext {
   // PROTOTYPE (combosOrderMode='objective') — voir son commentaire dans
   // prepareSearch. Même discipline de propagation que `base` ci-dessus.
   objectiveKeys: StatKey[];
+  // Diagnostic seulement (voir `SearchParams.traceur`) : l'état MUTABLE de
+  // la trace, rempli par `buildBuckets` pour la moitié qu'il construit.
+  // Absent sur le chemin Workers (`BuildHalfRequest` ne le porte pas).
+  traceur?: TraceCandidat;
 }
 
 // ⚠️ GÉNÉRATEUR, comme `searchBuildsSteps` — la construction d'un
@@ -2020,6 +2103,17 @@ export function* buildBuckets(
 ): Generator<BuildingProgress, Bucket[], void> {
   const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys } = ctx;
   const [i0, i1, i2] = slotIdxs;
+  // Diagnostic (voir `SearchParams.traceur`) : la moitié traceuse, repérée
+  // par ses INDICES dans les trois pools filtrés — un entier à comparer par
+  // niveau de boucle, rien de plus quand il n'y a pas de traceur (−1).
+  const traceur = ctx.traceur;
+  const trIdx = [i0, i1, i2].map((si) => (traceur ? filtered[si].findIndex((r) => r.id === traceur.runeIds[si]) : -1));
+  const traceMoitie: TraceMoitie | undefined = traceur ? { generee: false } : undefined;
+  if (traceur && traceMoitie) {
+    traceur.moities[half] = traceMoitie;
+    if (trIdx.some((i) => i < 0)) traceMoitie.coupee = 'filterSlot';
+  }
+  let traceCombo: HalfCombo | undefined;
   const buckets = new Map<string, Bucket>();
   // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
   // par compartiment, [tranche générique, tranche combinée éventuelle, une
@@ -2150,12 +2244,20 @@ export function* buildBuckets(
     scannedR0++;
     yield { phase: 'building', half, scanned: scannedR0, total: totalR0 };
     const haveR0 = distinctKeys.map((key) => (r0.set === key ? 1 : 0));
-    if (distinctKeys.length > 0 && !stillFeasible(haveR0, [1, 2])) continue;
+    const tr0 = idx0 === trIdx[0];
+    if (distinctKeys.length > 0 && !stillFeasible(haveR0, [1, 2])) {
+      if (tr0 && traceMoitie) traceMoitie.coupee = 'stillFeasible';
+      continue;
+    }
     for (let idx1 = 0; idx1 < filtered[i1].length; idx1++) {
       const r1 = filtered[i1][idx1];
       const p1 = precompI1[idx1];
       const haveR01 = distinctKeys.map((key, k) => haveR0[k] + (r1.set === key ? 1 : 0));
-      if (distinctKeys.length > 0 && !stillFeasible(haveR01, [2])) continue;
+      const tr01 = tr0 && idx1 === trIdx[1];
+      if (distinctKeys.length > 0 && !stillFeasible(haveR01, [2])) {
+        if (tr01 && traceMoitie) traceMoitie.coupee = 'stillFeasible';
+        continue;
+      }
       // ⚠️ Sûr, PAS une heuristique : si un set demandé >3 pièces est
       // encore à 0 ET qu'aucun joker n'a été choisi (r0/r1), tout r2 qui
       // n'est NI ce set NI un joker aboutit à un demi-build mort — coupé
@@ -2172,7 +2274,10 @@ export function* buildBuckets(
       // cas, pour 0 effet sur `pairBuckets` (déjà écarté au niveau du
       // compartiment) — voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md,
       // « Suite — élagage jokers≥2 ».
-      if (jokersR01 >= 2) continue;
+      if (jokersR01 >= 2) {
+        if (tr01 && traceMoitie) traceMoitie.coupee = 'jokers';
+        continue;
+      }
       const mustRescue = hasFourPieceRequirement && jokersR01 === 0 && fourPieceKeys.some((is4p, k) => is4p && haveR01[k] === 0);
       const total2 = mustRescue ? rescueIdxI2.length : filtered[i2].length;
       for (let j2 = 0; j2 < total2; j2++) {
@@ -2181,7 +2286,11 @@ export function* buildBuckets(
         const p2 = precompI2[idx2];
         // Même raisonnement que ci-dessus : cas où jokersR01 ≤ 1 mais r2 lui
         // -même est un joker qui fait passer le total à 2.
-        if (jokersR01 + (p2.isJoker ? 1 : 0) >= 2) continue;
+        const tr012 = tr01 && idx2 === trIdx[2];
+        if (jokersR01 + (p2.isJoker ? 1 : 0) >= 2) {
+          if (tr012 && traceMoitie) traceMoitie.coupee = 'jokers';
+          continue;
+        }
         const runes: [RuneDetail, RuneDetail, RuneDetail] = [r0, r1, r2];
         // ⚠️ Réutilise `haveR01` (déjà accumulé pour `stillFeasible`) au
         // lieu de recalculer via `runes.filter(...)` — même résultat, sans
@@ -2215,7 +2324,10 @@ export function* buildBuckets(
             break;
           }
         }
-        if (demiBuildMort) continue;
+        if (demiBuildMort) {
+          if (tr012 && traceMoitie) traceMoitie.coupee = 'demiBuildMort';
+          continue;
+        }
 
         const pct: Record<string, number> = {};
         const flat: Record<string, number> = {};
@@ -2247,6 +2359,19 @@ export function* buildBuckets(
           if (flat[k] > (b.maxFlat[k] ?? 0)) b.maxFlat[k] = flat[k];
         }
         const combo: HalfCombo = { runes, counts, jokers, pct, flat, relevanceScore: score };
+        if (traceMoitie) {
+          // Occupation du compartiment traceur AVANT rétention : comptée
+          // pour toute combinaison générée dans CE compartiment, dès que
+          // celui-ci est connu (la traceuse peut arriver après d'autres).
+          if (tr012) {
+            traceCombo = combo;
+            traceMoitie.generee = true;
+            traceMoitie.compartiment = key;
+            traceMoitie.generees = (traceMoitie.generees ?? 0) + 1;
+          } else if (traceMoitie.compartiment === key) {
+            traceMoitie.generees = (traceMoitie.generees ?? 0) + 1;
+          }
+        }
         heapPush(bucketSlices![0], { item: combo, score }, genericCap);
         const retentionOffset = hasCombined ? 2 : 1;
         if (hasCombined) {
@@ -2389,6 +2514,27 @@ export function* buildBuckets(
     b.potential = pot;
   }
   out.sort((x, y) => y.potential - x.potential);
+  // Diagnostic : présence de la moitié traceuse dans chaque tranche À LA
+  // CLÔTURE (après toutes les évictions de `heapPush`), puis dans `combos`.
+  // ⚠️ `generees` n'a compté que les combinaisons vues APRÈS que le
+  // compartiment traceur est connu : c'est l'occupation à partir de la
+  // première visite du compartiment, pas depuis le début de la moitié.
+  if (traceMoitie && traceCombo && traceMoitie.compartiment != null) {
+    const bucketSlices = slices.get(traceMoitie.compartiment) ?? [];
+    const noms = ['generique', ...(hasCombined ? ['combinee'] : []), ...retentionKeys.map((k) => `stat:${k}`)];
+    traceMoitie.tranches = bucketSlices.map((slice, i) => ({
+      nom: noms[i] ?? `tranche${i}`,
+      retenue: slice.some((e) => e.item === traceCombo),
+      cap: i === 0 ? genericCap : adaptiveTrancheWeighting && i >= (hasCombined ? 2 : 1) ? reallocatedCap[retentionKeys[i - (hasCombined ? 2 : 1)]] : perOtherSliceCap,
+      taille: slice.length,
+    }));
+    const b = buckets.get(traceMoitie.compartiment);
+    const rang = b ? b.combos.indexOf(traceCombo) : -1;
+    traceMoitie.retenue = rang >= 0;
+    if (rang >= 0) traceMoitie.rang = rang + 1;
+    traceMoitie.population = b?.combos.length ?? 0;
+  }
+  if (traceur) traceur.compteurs[half === 'A' ? 'compartimentsA' : 'compartimentsB'] = out.length;
   return out;
 }
 
@@ -3292,6 +3438,9 @@ export interface PreparedSearch {
   relTermMax: (k: StatKey) => number;
   relTermMin: (k: StatKey) => number;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
+  // Diagnostic seulement — l'état MUTABLE de la trace du candidat traceur,
+  // créé par `prepareSearch`, complété par `buildBuckets` et `pairBuckets`.
+  traceur?: TraceCandidat;
   filtered: RuneDetail[][];
   requiredPieces: number[];
   jokerCredit: number;
@@ -3389,14 +3538,41 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
   //
   // ⚠️ `onStage` (voir son type) observe chacun de ces quatre états — le seul
   // endroit du moteur où les trois premiers existent encore.
+  // Diagnostic (voir `SearchParams.traceur`) : la présence des 6 runes du
+  // traceur après chaque étage — `feasibility` EST le verdict
+  // d'`eliminateInfeasible` rune par rune (c'est un filtre), produit ici
+  // sur la sortie réelle de l'étage, jamais rejoué.
+  const traceur: TraceCandidat | undefined = params.traceur
+    ? {
+        runeIds: [...params.traceur.runeIds],
+        preparation: [],
+        moities: {},
+        appariement: { paireAtteinte: false, collecte: false },
+        budget: { tronque: false, motif: null },
+        compteurs: { poolParSlot: [], filtreParSlot: [], compartimentsA: 0, compartimentsB: 0, explorees: 0, collectes: 0 },
+      }
+    : undefined;
+  const tracerEtage = (etage: PrepareStage, lists: RuneDetail[][]) => {
+    if (!traceur) return;
+    traceur.preparation.push({ etage, presentes: traceur.runeIds.map((id, i) => lists[i]?.some((r) => r.id === id) ?? false) });
+  };
+
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   onStage?.('mainstat', bySlot);
+  tracerEtage('mainstat', bySlot);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
   onStage?.('dominance', bySlot);
+  tracerEtage('dominance', bySlot);
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlatMax, relPctMax, totalOf, guaranteedMin, artFlatMin, relPctMin);
   onStage?.('feasibility', bySlot);
+  tracerEtage('feasibility', bySlot);
   const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective, params.objectiveStats));
   onStage?.('filterslot', filtered);
+  tracerEtage('filterslot', filtered);
+  if (traceur) {
+    traceur.compteurs.poolParSlot = mainStatFilteredBySlot(pool, requirement).map((l) => l.length);
+    traceur.compteurs.filtreParSlot = filtered.map((l) => l.length);
+  }
   // ⚠️ L'observateur voit `filterslot` AVANT ce retour anticipé : un
   // emplacement vidé par le pré-filtrage est précisément ce qu'un diagnostic
   // cherche à localiser, et `prepareSearch` renvoie alors `null` — sans le
@@ -3419,6 +3595,7 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
     maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
     guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
+    traceur,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
   };
 }
@@ -3566,9 +3743,41 @@ export function* pairBuckets(
     return Array.from(nearMissByCondition.values());
   }
 
+  // Diagnostic (voir `SearchParams.traceur`) : les deux moitiés traceuses,
+  // localisées UNE FOIS dans les compartiments reçus (chemin séquentiel ou
+  // Worker, peu importe d'où ils viennent) — ensuite un test de référence
+  // par paire de compartiments, un par comboA, un par comboB de la seule
+  // paire traceuse. Sans traceur : comparaisons à `undefined`, rien d'autre.
+  const traceur = prepared.traceur;
+  const localiser = (buckets: Bucket[], ids: number[]) => {
+    for (const b of buckets) for (let i = 0; i < b.combos.length; i++) {
+      const c = b.combos[i];
+      if (c.runes.every((r, j) => r.id === ids[j])) return { b, c, rang: i + 1, population: b.combos.length };
+    }
+    return undefined;
+  };
+  const trA = traceur ? localiser(bucketsA, traceur.runeIds.slice(0, 3)) : undefined;
+  const trB = traceur ? localiser(bucketsB, traceur.runeIds.slice(3, 6)) : undefined;
+  if (traceur) {
+    // Sur le chemin Workers, `buildBuckets` n'a pas vu le traceur : on
+    // complète ici ce que les compartiments reçus rendent observable.
+    for (const [half, tr] of [['A', trA], ['B', trB]] as const) {
+      const m = (traceur.moities[half] ??= { generee: tr != null });
+      if (tr) { m.retenue = true; m.rang = tr.rang; m.population = tr.population; m.compartiment ??= bucketKeyOf(tr.b.counts, tr.b.jokers); }
+      else if (m.generee && m.retenue == null) m.retenue = false;
+    }
+  }
+  const traceApp = traceur?.appariement;
+
   outer: for (const [bA, bB] of orderedCompartmentPairs(bucketsA, bucketsB)) {
     {
-      if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
+      const trPaire = trA != null && trB != null && bA === trA.b && bB === trB.b;
+      if (trPaire && traceApp) traceApp.paireAtteinte = true;
+      if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) {
+        if (trPaire && traceApp) traceApp.satisfiesSets = false;
+        continue;
+      }
+      if (trPaire && traceApp) traceApp.satisfiesSets = true;
       // ⚠️ Une seule rune Intangible peut être sertie par monstre (règle du
       // jeu, voir activeSets dans effects.ts) : deux jokers répartis entre
       // les deux moitiés (1+1, ou 2 dans une seule) ne pourraient jamais être
@@ -3576,16 +3785,30 @@ export function* pairBuckets(
       // des stats (il plafonne lui-même à 1 joker effectif). `bA.jokers`/
       // `bB.jokers` sont des comptes EXACTS (définissent le compartiment,
       // voir bucketKeyOf) : ce test ne peut jamais écarter une paire à tort.
-      if (bA.jokers + bB.jokers > 1) continue;
-      if (!pairFeasibleMin(bA, bB)) continue;
+      if (bA.jokers + bB.jokers > 1) {
+        if (trPaire && traceApp) traceApp.jokers = false;
+        continue;
+      }
+      if (trPaire && traceApp) traceApp.jokers = true;
+      if (!pairFeasibleMin(bA, bB)) {
+        if (trPaire && traceApp) traceApp.bucketPairFeasibleMin = false;
+        continue;
+      }
+      if (trPaire && traceApp) traceApp.bucketPairFeasibleMin = true;
 
       for (const comboA of bA.combos) {
+        const trComboA = trPaire && comboA === trA!.c;
         // Repli rapide côté MINIMUM ET MAXIMUM pour ce comboA précis, avant
         // d'ouvrir la boucle B en entier — voir `comboAFeasible` (factorisée
         // pour être réutilisée à l'identique par `totalPairCount`).
-        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin)) continue;
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin)) {
+          if (trComboA && traceApp) traceApp.comboAFeasible = false;
+          continue;
+        }
+        if (trComboA && traceApp) traceApp.comboAFeasible = true;
 
         for (const comboB of bB.combos) {
+          const trPair = trComboA && comboB === trB!.c;
           explored++;
           if (explored % CHECKPOINT_EVERY === 0) {
             yield { phase: 'pairing', candidates, explored, nearMissByCondition: nearMissSnapshot(), globalNearMiss };
@@ -3626,6 +3849,7 @@ export function* pairBuckets(
               break;
             }
           }
+          if (trPair && traceApp) traceApp.quickOkMin = quickOk;
           if (quickOk) {
             for (const { k, max } of maxEntries) {
               const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPctMin[k] ?? 0);
@@ -3635,6 +3859,7 @@ export function* pairBuckets(
                 break;
               }
             }
+            if (trPair && traceApp) traceApp.quickOkMax = quickOk;
           }
           if (!quickOk) continue;
 
@@ -3643,7 +3868,11 @@ export function* pairBuckets(
           // par compte est un pré-filtre sûr mais optimiste (voir
           // `satisfiesSets`), jamais la décision finale.
           const active = activeSets(runes.map((r) => r.set));
-          if (missingSets(requirement.sets, active).length > 0) continue;
+          if (missingSets(requirement.sets, active).length > 0) {
+            if (trPair && traceApp) traceApp.missingSets = false;
+            continue;
+          }
+          if (trPair && traceApp) traceApp.missingSets = true;
 
           // ⚠️ Mode recherche (`relicRelache`, lot 5a) : le candidat est
           // collecté SANS relique — la portée n'est pas une hypothèse de la
@@ -3710,8 +3939,10 @@ export function* pairBuckets(
             }
             considerNearMiss(runeIds, stats, effTotal, shortfalls);
           }
+          if (trPair && traceApp) traceApp.validationFinale = ok;
           if (!ok) continue;
 
+          if (trPair && traceApp) traceApp.collecte = true;
           candidates.push({ runeIds, stats, effTotal });
           if (candidates.length >= maxCollected) {
             truncated = true;
@@ -3722,7 +3953,12 @@ export function* pairBuckets(
     }
   }
 
-  return { candidates, explored, truncated, nearMissByCondition: nearMissSnapshot(), globalNearMiss };
+  if (traceur) {
+    traceur.budget = { tronque: truncated, motif: truncated ? (candidates.length >= maxCollected ? 'maxCollected' : 'maxMs') : null };
+    traceur.compteurs.explorees = explored;
+    traceur.compteurs.collectes = candidates.length;
+  }
+  return { candidates, explored, truncated, nearMissByCondition: nearMissSnapshot(), globalNearMiss, ...(traceur ? { traceur } : {}) };
 }
 
 // Fusionne les résultats des N workers de l'appariement PARALLÈLE
@@ -3789,7 +4025,14 @@ export function combineParallelPairingResults(
     globalNearMiss = globalNearMiss ? betterNearMiss(globalNearMiss, r.globalNearMiss, globalDistance) : r.globalNearMiss;
   }
 
-  return { candidates, explored, truncated, nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss };
+  // Diagnostic : la trace du traceur est celle du worker dont la tranche
+  // contient sa moitié A (les tranches de bucketsA sont disjointes — un seul
+  // worker peut avoir visité sa paire) ; sinon la première, avec ses
+  // compteurs partiels.
+  const traces = results.map((r) => r.traceur).filter((t): t is TraceCandidat => t != null);
+  const traceur = traces.find((t) => t.appariement.paireAtteinte) ?? traces[0];
+
+  return { candidates, explored, truncated, nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss, ...(traceur ? { traceur } : {}) };
 }
 
 // ⚠️ Simple ORCHESTRATION de `prepareSearch` → `buildBuckets` (×2) →

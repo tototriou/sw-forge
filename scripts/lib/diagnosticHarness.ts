@@ -372,6 +372,7 @@ async function deroulerHarnais(
   if (arretApres === 'demi-builds') return resultat;
 
   resultat.completude = evaluerCompletude(dernier.resultat!, dernier.totalPairs!, resolue.params);
+  if (dernier.resultat!.traceur) resultat.traceCandidat = dernier.resultat!.traceur;
 
   // ⚠️ Le classement complet n'est payé que s'il sert : un `--arret=appariement`
   // sans build cible n'a rien à classer.
@@ -985,7 +986,10 @@ async function unPassage(
   /** §5.6 — les SIX identifiants du build cible, ou `null` : sans cible, rien à découvrir. */
   cibleComplete: number[] | null = null
 ): Promise<Passage> {
-  const params = resolue.params;
+  // ⚠️ Le traceur (lot 5a) est un instrument de diagnostic posé sur une COPIE
+  // des paramètres — la recette reste la vérité prod ; sans cible complète,
+  // `resolue.params` passe tel quel.
+  const params: SearchParams = cibleComplete ? { ...resolue.params, traceur: { runeIds: cibleComplete } } : resolue.params;
   const t0 = performance.now();
 
   // ── Phase A : préparation, observée étage par étage.

@@ -10,7 +10,7 @@
 // écarté quoi, quel régime s'est appliqué, pourquoi la recherche s'est
 // arrêtée), jamais un état que le moteur ne produirait pas lui-même.
 
-import { PrepareStage } from '../../src/lib/runeBuildOptim';
+import { PrepareStage, TraceCandidat } from '../../src/lib/runeBuildOptim';
 import { ModeChargement } from './chargerRecette';
 
 /* --------------------------------------------------------------------------
@@ -1160,6 +1160,17 @@ export interface ResultatHarnais {
    * donne `NON_OBSERVABLE`, jamais une cause plausible.
    */
   verdictBuildCible?: VerdictBuildCible;
+  /**
+   * La trace du candidat traceur PRODUITE DANS LE MOTEUR (lot 5a,
+   * `SearchParams.traceur`) : verdict de chaque prédicat de faisabilité
+   * traversé, présence dans chaque structure bornée, compteurs. Présente dès
+   * que six identifiants sont suivis et que l'appariement a eu lieu.
+   * ⚠️ `moities.*.tranches` n'est pas observable ici : le harnais construit
+   * les moitiés dans deux fils (`buildHalvesNode`) qui ne portent pas le
+   * traceur — le reste de la trace est complété par `pairBuckets` depuis les
+   * compartiments reçus.
+   */
+  traceCandidat?: TraceCandidat;
   regime?: { applique: RegimeAppariement; totalPairs: number; seuil: number; force: boolean; explication: string };
   completude?: Completude;
   /**

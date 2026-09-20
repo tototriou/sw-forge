@@ -1430,7 +1430,7 @@ function appariementBuildCible(
   const bA = bucketsA[placeA.compartiment];
   const bB = bucketsB[placeB.compartiment];
   const comboA = bA.combos[placeA.combo];
-  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, artFlatMin, totalOf } = prepared;
+  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, relPctMin, artFlatMax, artFlatMin, totalOf } = prepared;
 
   if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) {
     return {
@@ -1451,7 +1451,7 @@ function appariementBuildCible(
         'sertissable par monstre. ⚠️ Élagage SÛR — ce build n’est pas équipable en jeu.',
     };
   }
-  if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf)) {
+  if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPctMax, artFlatMax, totalOf)) {
     return {
       ...commun,
       arreteA: 'borne-compartiment',
@@ -1461,7 +1461,7 @@ function appariementBuildCible(
         'demi-build en particulier.',
     };
   }
-  if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) {
+  if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin)) {
     return {
       ...commun,
       arreteA: 'borne-comboA',

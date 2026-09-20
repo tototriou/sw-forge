@@ -1350,7 +1350,10 @@ export function eliminateInfeasible(
   constrainedKeys: StatKey[],
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
   artFlatMax: Record<string, number>,
-  relPct: Record<string, number>,
+  // Le pourcentage de relique côté MINIMUM (`MinMaxContext.relPctMax`) —
+  // la relique portée hors mode recherche, la meilleure éligible par
+  // statistique en mode recherche.
+  relPctMax: Record<string, number>,
   totalOf: (k: StatKey, pct: number, flat: number) => number,
   // ⚠️ Réservé aux vérifications de MINIMUM (`bestPct`/`bestFlat` plus bas) —
   // `guaranteed` seul reste utilisé pour les maximums (`worstPct`/
@@ -1362,7 +1365,12 @@ export function eliminateInfeasible(
   // pour les MINIMUMS, `artFlatMin` (pessimiste) que pour les MAXIMUMS. Par
   // défaut = `artFlatMax` (comportement d'avant le §12) pour les appelants qui
   // n'ont pas d'inventaire d'artéfacts sous la main — scripts de diagnostic.
-  artFlatMin: Record<string, number> = artFlatMax
+  artFlatMin: Record<string, number> = artFlatMax,
+  // ⚠️ Même dissymétrie, côté relique (lot 5a) : `relPctMax` ne sert que les
+  // MINIMUMS, `relPctMin` (`MinMaxContext.relPctMin`) que les MAXIMUMS. Par
+  // défaut = `relPctMax` — exact pour une relique FIXÉE (les deux vecteurs
+  // coïncident), ce qu'ont les scripts de diagnostic qui appellent sans.
+  relPctMin: Record<string, number> = relPctMax
 ): RuneDetail[][] {
   if (minEntries.length === 0 && maxEntries.length === 0) return bySlot;
 
@@ -1386,7 +1394,7 @@ export function eliminateInfeasible(
         // CE slot est exclu du total (r le remplace).
         const otherPct = totalMaxPct[k] - (slotMax[i][k]?.pct ?? 0);
         const otherFlat = totalMaxFlat[k] - (slotMax[i][k]?.flat ?? 0);
-        const bestPct = c.pct + otherPct + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+        const bestPct = c.pct + otherPct + (guaranteedMin.pct[k] ?? 0) + (relPctMax[k] ?? 0);
         const bestFlat = c.flat + otherFlat + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
         if (totalOf(k, bestPct, bestFlat) < min) return false;
       }
@@ -1394,7 +1402,7 @@ export function eliminateInfeasible(
         const c = runeContribution(r, k);
         // Pire cas pour un MAXIMUM : les autres emplacements à zéro (toujours
         // atteignable — rien n'oblige un slot à contribuer à cette stat).
-        const worstPct = c.pct + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+        const worstPct = c.pct + (guaranteed.pct[k] ?? 0) + (relPctMin[k] ?? 0);
         const worstFlat = c.flat + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
         if (totalOf(k, worstPct, worstFlat) > max) return false;
       }
@@ -2404,14 +2412,15 @@ export function bucketPairFeasibleMin(
   bB: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
   minEntries: { k: StatKey; min: number }[],
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> },
-  relPct: Record<string, number>,
-  // ⚠️ Cette fonction ne vérifie QUE des minimums — d'où `artFlatMax` seul,
-  // sans pendant pessimiste : il n'y a aucune branche maximum à servir ici.
+  // ⚠️ Cette fonction ne vérifie QUE des minimums — d'où `relPctMax` et
+  // `artFlatMax` seuls, sans pendant pessimiste : il n'y a aucune branche
+  // maximum à servir ici.
+  relPctMax: Record<string, number>,
   artFlatMax: Record<string, number>,
   totalOf: (k: StatKey, pct: number, flat: number) => number
 ): boolean {
   for (const { k, min } of minEntries) {
-    const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPctMax[k] ?? 0);
     const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
     if (totalOf(k, optPct, optFlat) < min) return false;
   }
@@ -2434,20 +2443,22 @@ export function comboAFeasible(
   maxEntries: { k: StatKey; max: number }[],
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> },
-  relPct: Record<string, number>,
+  relPctMax: Record<string, number>,
   artFlatMax: Record<string, number>,
   totalOf: (k: StatKey, pct: number, flat: number) => number,
   // Même repli que `guaranteedMin = guaranteed` ci-dessus : voir
   // `eliminateInfeasible`.
-  artFlatMin: Record<string, number> = artFlatMax
+  artFlatMin: Record<string, number> = artFlatMax,
+  // Même repli, côté relique (lot 5a) : voir `eliminateInfeasible`.
+  relPctMin: Record<string, number> = relPctMax
 ): boolean {
   for (const { k, min } of minEntries) {
-    const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPctMax[k] ?? 0);
     const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
     if (totalOf(k, p, f) < min) return false;
   }
   for (const { k, max } of maxEntries) {
-    const p = (comboA.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const p = (comboA.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPctMin[k] ?? 0);
     const f = (comboA.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
     if (totalOf(k, p, f) > max) return false;
   }
@@ -2520,15 +2531,15 @@ export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): B
 // qui la vérifie strictement sur 15 scénarios aléatoires. Ne jamais toucher
 // à l'une des deux boucles sans l'autre.
 export function totalPairCount(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): number {
-  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, artFlatMin, totalOf } = prepared;
+  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, relPctMin, artFlatMax, artFlatMin, totalOf } = prepared;
   let total = 0;
   for (const bA of bucketsA) {
     for (const bB of bucketsB) {
       if (bA.jokers + bB.jokers > 1) continue;
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
-      if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf)) continue;
+      if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPctMax, artFlatMax, totalOf)) continue;
       for (const comboA of bA.combos) {
-        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) continue;
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin)) continue;
         total += bB.combos.length;
       }
     }
@@ -2737,7 +2748,47 @@ interface MinMaxContext {
    * calcul des pourcentages. `total − figée[k] + autre[k]` est exact.
    */
   artFlatFige: Record<string, number>;
-  relPct: Record<string, number>;
+  /**
+   * Le pourcentage de relique qui entre dans les vérifications de MINIMUM —
+   * fondu dans le `pct` que `totalOf` arrondit (`ceil(B × (R + L) / 100)`),
+   * jamais un `ceil` séparé.
+   *
+   * Relique portée (mode `off`/`equipped`, ou sans contexte) : son propre
+   * pourcentage, des deux côtés — le comportement d'avant. Mode `recherche`
+   * (lot 5a, D5) : la MEILLEURE principale éligible de chaque statistique
+   * (`relicContext.bornes.max`, PV/ATQ/DEF indépendantes — permissif, jamais
+   * un faux négatif : `ceil` est monotone, donc `L ≤ Lmax` ⇒
+   * `ceil(B×(R+L)/100) ≤ ceil(B×(R+Lmax)/100)`).
+   *
+   * ⚠️ **Ne JAMAIS l'utiliser pour un maximum** — même dissymétrie que
+   * `guaranteedMin`/`artFlatMax` : le pendant est `relPctMin`.
+   */
+  relPctMax: Record<string, number>;
+  /**
+   * Le pourcentage de relique qui entre dans les vérifications de MAXIMUM.
+   * Mode `recherche` : `relicContext.bornes.min` — la PLUS PETITE principale
+   * éligible sur la statistique FORCÉE, `0` partout ailleurs (la relique peut
+   * être sur une autre statistique). Minorant sûr : `L ≥ Lmin` ⇒
+   * `ceil(B×(R+L)/100) ≥ ceil(B×(R+Lmin)/100)`.
+   */
+  relPctMin: Record<string, number>;
+  // Vrai ssi `relicContext.mode === 'recherche'` : les bornes ci-dessus sont
+  // RELÂCHÉES et la validation finale n'a pas de relique exacte sous la main
+  // (voir `relTermMax`/`relTermMin`, et `pairBuckets`).
+  relicRelache: boolean;
+  /**
+   * Le terme relique ADDITIF de la validation finale en mode `recherche`, où
+   * les stats viennent de `computeStats` SANS relique (un total, pas un
+   * `pct` qu'on pourrait fondre) : branche minimum `ceil(B × Lmax / 100)`
+   * — majorant du vrai incrément car `ceil(x + y) ≤ ceil(x) + ceil(y)` ;
+   * branche maximum `floor(B × Lmin / 100)` — minorant car
+   * `ceil(x + y) − ceil(x) ≥ floor(y)` (D5, rév. 7 : jamais un `ceil` séparé
+   * côté maximum — B = 101, R = L = 1 % : réel 3, `ceil` séparé 4, un
+   * maximum à 104 rejetterait un build faisable). `0` hors mode `recherche`
+   * et sur toute statistique qu'une relique ne porte pas.
+   */
+  relTermMax: (k: StatKey) => number;
+  relTermMin: (k: StatKey) => number;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
 }
 
@@ -2753,7 +2804,11 @@ function deriveMinMaxContext(
   // la dissymétrie. Ce repli est SÛR mais pas juste : il fige le choix
   // d'artéfact avant la recherche (voir spec/outils/optimizer/artefacts.md,
   // §12). Il n'existe que pour les scripts de diagnostic sans inventaire.
-  artifactBounds?: SearchParams['artifactBounds']
+  artifactBounds?: SearchParams['artifactBounds'],
+  // Le contexte relique (garantie G). Absent ou `mode` ≠ `'recherche'` : la
+  // relique PORTÉE fait les deux bornes, comme avant. Mode `recherche` : ses
+  // bornes remplacent le pourcentage de `relic` — remplacement, jamais cumul.
+  relicContext?: RelicContext
 ): MinMaxContext {
   const minEntries = ALL_STAT_KEYS
     .map((k) => ({ k, min: requirement.minStats[k] }))
@@ -2774,13 +2829,31 @@ function deriveMinMaxContext(
   const artFlatMax = artifactBounds?.max ?? figee;
   const artFlatMin = artifactBounds?.min ?? figee;
   const artPossibles = artifactBounds?.possibles ?? [];
-  const relPct = relicPctBonus(relic);
+  const relicRelache = relicContext?.mode === 'recherche';
+  // Hors mode recherche : la relique portée, des deux côtés — le vecteur
+  // d'avant. En mode recherche : `bornes.max` côté minimum, `bornes.min` côté
+  // maximum, et `relic` n'est PAS lu (sinon l'équipée s'additionnerait à la
+  // candidate — garantie G).
+  const relPctFige = relicPctBonus(relic);
+  const relPctMax: Record<string, number> = relicRelache ? { ...relicContext!.bornes.max } : relPctFige;
+  const relPctMin: Record<string, number> = relicRelache ? { ...relicContext!.bornes.min } : relPctFige;
   const baseRec = base as unknown as Record<string, number>;
+  const estPct = (k: StatKey) => k === 'hp' || k === 'atk' || k === 'def';
   function totalOf(k: StatKey, pct: number, flat: number): number {
     const b = baseRec[k] ?? 0;
-    return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
+    return estPct(k) ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
   }
-  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige: figee, relPct, totalOf };
+  function relTermMax(k: StatKey): number {
+    return relicRelache && estPct(k) ? Math.ceil(((baseRec[k] ?? 0) * (relPctMax[k] ?? 0)) / 100) : 0;
+  }
+  function relTermMin(k: StatKey): number {
+    return relicRelache && estPct(k) ? Math.floor(((baseRec[k] ?? 0) * (relPctMin[k] ?? 0)) / 100) : 0;
+  }
+  return {
+    minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin,
+    artFlatMax, artFlatMin, artPossibles, artFlatFige: figee,
+    relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
+  };
 }
 
 // Verdict de faisabilité, PAR STAT PRISE ISOLÉMENT — pour une condition (min
@@ -2826,7 +2899,7 @@ export interface StatFeasibility {
 // sans recherche complète.
 export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
   const { base, artifacts, relic, pool, requirement } = params;
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, params.relicContext);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return [];
 
   const bySlot = mainStatFilteredBySlot(pool, requirement);
@@ -2834,7 +2907,7 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
 
   const out: StatFeasibility[] = [];
   for (const { k, min } of ctx.minEntries) {
-    const bestPct = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const bestPct = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPctMax[k] ?? 0);
     const bestFlat = slotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteedMin.flat[k] ?? 0) + (ctx.artFlatMax[k] ?? 0);
     const bound = ctx.totalOf(k, bestPct, bestFlat);
     out.push({ key: k, kind: 'min', requested: min, bound, satisfiable: bound >= min });
@@ -2843,7 +2916,7 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
     // Plancher incompressible : AUCUNE rune ne contribue à cette stat (le
     // pire cas le plus favorable pour un maximum) — base, bonus de set
     // garanti, artéfacts et relique restent, eux, incontournables.
-    const floorPct = (ctx.guaranteed.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const floorPct = (ctx.guaranteed.pct[k] ?? 0) + (ctx.relPctMin[k] ?? 0);
     const floorFlat = (ctx.guaranteed.flat[k] ?? 0) + (ctx.artFlatMin[k] ?? 0);
     const bound = ctx.totalOf(k, floorPct, floorFlat);
     out.push({ key: k, kind: 'max', requested: max, bound, satisfiable: bound <= max });
@@ -2923,9 +2996,13 @@ export function poolMinSlotSafe(
   relic: RelicDetail | undefined,
   pool: RuneDetail[],
   requirement: BuildRequirement,
-  artifactBounds?: SearchParams['artifactBounds']
+  artifactBounds?: SearchParams['artifactBounds'],
+  // Même borne relique que la recherche (lot 5a) — les trois consommateurs
+  // reçoivent le même contexte, sinon le diagnostic prouverait une
+  // impossibilité sur une borne plus étroite que celle qui a élagué.
+  relicContext?: RelicContext
 ): number {
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds, relicContext);
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   bySlot = bySlot.map((list) => pruneDominated(list, ctx.requiredKeys, ctx.maxKeys));
   bySlot = eliminateInfeasible(
@@ -2935,21 +3012,22 @@ export function poolMinSlotSafe(
     ctx.constrainedKeys,
     ctx.guaranteed,
     ctx.artFlatMax,
-    ctx.relPct,
+    ctx.relPctMax,
     ctx.totalOf,
     ctx.guaranteedMin,
-    ctx.artFlatMin
+    ctx.artFlatMin,
+    ctx.relPctMin
   );
   return Math.min(...bySlot.map((l) => l.length));
 }
 
 export function rankBlockingConditions(params: SearchParams): BlockingConditionsDiagnosis {
   const { base, artifacts, relic, pool, requirement } = params;
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, params.relicContext);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return { baselineMinSlot: 0, impacts: [] };
 
   function poolMinSlot(req: BuildRequirement): number {
-    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.artifactBounds);
+    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.artifactBounds, params.relicContext);
   }
 
   // Borne pour la recherche côté MAXIMUM : le plus grand total qu'un pool
@@ -2966,7 +3044,7 @@ export function rankBlockingConditions(params: SearchParams): BlockingConditions
   const fullBySlot = mainStatFilteredBySlot(pool, requirement);
   const fullSlotMax = computeSlotMaxBounds(fullBySlot, ctx.constrainedKeys);
   function achievableCeiling(k: StatKey): number {
-    const bestPct = fullSlotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const bestPct = fullSlotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPctMax[k] ?? 0);
     const bestFlat = fullSlotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteedMin.flat[k] ?? 0) + (ctx.artFlatMax[k] ?? 0);
     return ctx.totalOf(k, bestPct, bestFlat);
   }
@@ -3156,7 +3234,13 @@ export interface PreparedSearch {
   // — voir `MinMaxContext`.
   artPossibles: Record<string, number>[];
   artFlatFige: Record<string, number>;
-  relPct: Record<string, number>;
+  // Les deux vecteurs relique et le terme additif de la validation finale —
+  // voir `MinMaxContext`.
+  relPctMax: Record<string, number>;
+  relPctMin: Record<string, number>;
+  relicRelache: boolean;
+  relTermMax: (k: StatKey) => number;
+  relTermMin: (k: StatKey) => number;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
   filtered: RuneDetail[][];
   requiredPieces: number[];
@@ -3216,8 +3300,8 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
   const startedAt = Date.now();
 
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
-  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf } = ctx;
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, relicContext);
+  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -3259,7 +3343,7 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
   onStage?.('mainstat', bySlot);
   bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
   onStage?.('dominance', bySlot);
-  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlatMax, relPct, totalOf, guaranteedMin, artFlatMin);
+  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlatMax, relPctMax, totalOf, guaranteedMin, artFlatMin, relPctMin);
   onStage?.('feasibility', bySlot);
   const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective, params.objectiveStats));
   onStage?.('filterslot', filtered);
@@ -3284,7 +3368,7 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
     base, artifacts, relic, relicContext, requirement, metric,
     maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
-    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf,
+    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
   };
 }
@@ -3373,7 +3457,8 @@ export function* pairBuckets(
 ): Generator<PairingProgress, SearchResult, void> {
   const {
     base, artifacts, relic, requirement, metric, maxCollected, maxMs, startedAt,
-    minEntries, maxEntries, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf, distinctKeys,
+    minEntries, maxEntries, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige,
+    relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf, distinctKeys,
   } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
 
@@ -3381,7 +3466,7 @@ export function* pairBuckets(
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,
   // appliqué ici au niveau d'une paire de compartiments de 3 runes.
   function pairFeasibleMin(bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> }, bB: typeof bA): boolean {
-    return bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf);
+    return bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPctMax, artFlatMax, totalOf);
   }
 
   const candidates: BuildCandidate[] = [];
@@ -3448,7 +3533,7 @@ export function* pairBuckets(
         // Repli rapide côté MINIMUM ET MAXIMUM pour ce comboA précis, avant
         // d'ouvrir la boucle B en entier — voir `comboAFeasible` (factorisée
         // pour être réutilisée à l'identique par `totalPairCount`).
-        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) continue;
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin)) continue;
 
         for (const comboB of bB.combos) {
           explored++;
@@ -3484,7 +3569,7 @@ export function* pairBuckets(
           // la décision finale.
           let quickOk = true;
           for (const { k, min } of minEntries) {
-            const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+            const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPctMax[k] ?? 0);
             const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
             if (totalOf(k, p, f) < min) {
               quickOk = false;
@@ -3493,7 +3578,7 @@ export function* pairBuckets(
           }
           if (quickOk) {
             for (const { k, max } of maxEntries) {
-              const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+              const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPctMin[k] ?? 0);
               const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
               if (totalOf(k, p, f) > max) {
                 quickOk = false;
@@ -3510,7 +3595,17 @@ export function* pairBuckets(
           const active = activeSets(runes.map((r) => r.set));
           if (missingSets(requirement.sets, active).length > 0) continue;
 
-          const gear: GearSet = { base, runes, artifacts, relic };
+          // ⚠️ Mode recherche (`relicRelache`, lot 5a) : le candidat est
+          // collecté SANS relique — la portée n'est pas une hypothèse de la
+          // recherche (D1 : le pool est filtré, elle peut ne pas en faire
+          // partie ; garantie G : remplacement, jamais cumul), et la candidate
+          // n'existe qu'à la résolution exacte (5b), qui remplace `relic`,
+          // recalcule `stats` et repasse minimums ET maximums
+          // (`respecteConditionsAvecRelique`). Le score qui ordonne ces
+          // candidats AVANT `sortCandidates` est donc NON EXACT en mode
+          // recherche — nommé dans la preuve de 5a, corrigé par 5b.
+          // Hors mode recherche : la relique portée, exactement comme avant.
+          const gear: GearSet = { base, runes, artifacts, relic: relicRelache ? undefined : relic };
           const stats = computeStats(gear);
           /**
            * ⚠️ **Test de faisabilité CONJOINT, et exact.** Les bornes en amont
@@ -3542,15 +3637,21 @@ export function* pairBuckets(
             // tout SAUF k » — nécessaire pour savoir s'il n'y en a qu'UNE
             // seule. `minEntries`/`maxEntries` restent petits (une poignée
             // de conditions posées), le surcoût est négligeable.
+            // ⚠️ Mode recherche : `stats` est SANS relique, le terme relique
+            // s'ajoute ici (`relTermMax`/`relTermMin`, `0` sinon) — majorant
+            // côté minimum, minorant côté maximum, jamais l'inverse. Ce test
+            // reste donc une BORNE en mode recherche (plus de faux négatif,
+            // des faux positifs possibles) : l'exactitude est le filtre
+            // final de 5b, avec la relique réelle.
             const shortfalls: StatShortfall[] = [];
             for (const { k, min } of minEntries) {
               const row = stats.find((r) => r.key === k);
-              const actual = (row?.total ?? 0) + decalage(k);
+              const actual = (row?.total ?? 0) + decalage(k) + relTermMax(k);
               if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
             }
             for (const { k, max } of maxEntries) {
               const row = stats.find((r) => r.key === k);
-              const actual = (row?.total ?? 0) + decalage(k);
+              const actual = (row?.total ?? 0) + decalage(k) + relTermMin(k);
               if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
             }
             if (shortfalls.length === 0) {

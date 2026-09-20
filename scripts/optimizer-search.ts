@@ -55,7 +55,7 @@ import {
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { buildRealDamageContext } from './lib/realDamageCli';
-import { NearMiss, candidateMetricTotal, sortCandidates } from '../src/lib/runeBuildOptim';
+import { NearMiss, RechercheRefusee, candidateMetricTotal, sortCandidates } from '../src/lib/runeBuildOptim';
 import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -365,8 +365,34 @@ if (recipe.objective === 'degats_reels') {
 
 
 
+// Le contexte relique (lot 5a, garantie G) — la même ligne que le harnais
+// (`diagnosticConfig.ts`) : en mode `recherche` les bornes sont RELÂCHÉES
+// et, tant que la résolution exacte (5b) n'existe pas, les candidats
+// sortent SANS relique et leur score est provisoire.
+{
+  const rc = params.relicContext;
+  if (rc) {
+    console.log(
+      `Relique : mode ${rc.mode} (principale ${String(rc.principale)}, type ${String(rc.type)}, seuil +${rc.seuil}) — ` +
+        `${rc.eligibles.length} éligible(s)${rc.vide ? `, pool vide (${rc.vide})` : ''}` +
+        (rc.mode === 'recherche' ? ' — bornes relâchées, candidats collectés sans relique (résolution exacte : lot 5b)' : '')
+    );
+  }
+}
+
 console.log('\nRecherche en cours (chemin de prod complet, séquentiel — peut prendre plusieurs minutes)…');
-const result = runSearchToCompletion(params);
+let result: ReturnType<typeof runSearchToCompletion>;
+try {
+  result = runSearchToCompletion(params);
+} catch (e) {
+  // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+  // imprimé tel quel, jamais présenté comme « 0 build ».
+  if (e instanceof RechercheRefusee) {
+    console.error(`\n${e.message}`);
+    process.exit(2);
+  }
+  throw e;
+}
 
 console.log(
   `\n${result.candidates.length} build(s) trouvé(s) — tronqué : ${result.truncated} — ` +

@@ -88,6 +88,7 @@ export function testArtifactPaireReelleEhp() {
       artefactElement(2, 'water', 102, 100), // DEF +100, éligible (élément)
       artefactArchetype(3, 100, 1500), // PV +1500, éligible (archétype hp)
     ],
+    allRelics: [],
   };
 
   const recipe = buildOptimizerRecipe({

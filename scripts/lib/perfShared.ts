@@ -19,7 +19,11 @@ import {
 } from '../../src/lib/runeBuildOptim';
 import { loadDeckMonster } from './deckMonster';
 import { drain } from './drain';
-import { GearSet, RuneDetail } from '../../src/types';
+import { GearSet, RelicDetail, RuneDetail } from '../../src/types';
+// `import type` : ce module est chargé par un `worker_threads`
+// (monotonicity-worker.ts) — ne jamais y tirer React ni `damage.ts`.
+import type { RelicMainChoice, RelicUniqueChoice } from '../../src/hooks/useOptimizerState';
+import { resoudreContexteRelique } from '../../src/lib/relicOptim';
 
 export interface Case {
   label: string;
@@ -37,6 +41,15 @@ export interface Case {
   objectiveStats?: StatKey[];
   // Sinon, les sets RÉELLEMENT actifs sur le monstre (le cas courant).
   setsOverride?: string[];
+  /**
+   * L'intention relique du cas (lot 5a, garantie G) — choix de principale,
+   * type, seuil — résolue contre la relique portée et l'inventaire du
+   * compte par `buildCaseSearchParams`, SANS override d'objectif : tout le
+   * reste du `SearchParams` est celui de perf-battery. Absent (les sept cas
+   * historiques) : pas de `relicContext`, moteur byte-identique — c'est la
+   * batterie d'identité. B.6 pose ses cas avec ce champ.
+   */
+  relic?: { principale: RelicMainChoice; type: RelicUniqueChoice; seuil: number };
 }
 
 // ⚠️ Eivor (défense deck 2, 7 conditions) volontairement ABSENT de cette
@@ -57,13 +70,24 @@ export const CASES: Case[] = [
 // Reconstruit le monstre + l'exigence (sets/minStats/mainStats) d'un cas —
 // partagé par la mesure de temps ET la vérification de justesse, pour ne
 // jamais faire diverger les deux méthodes sur un même cas.
+//
+// ⚠️ **Troisième des trois producteurs de `relicContext`** (lot 5a — les
+// autres : `recipeToSearchParams`, et l'écran au lot 5c) : `perf-battery.ts`
+// et l'oracle `--case` passent tous deux ici.
 export function buildCaseSearchParams(
   c: Case,
-  { gear, allRunes, requirement }: ReturnType<typeof loadCase>,
+  { gear, allRunes, allRelics, requirement }: ReturnType<typeof loadCase>,
   maxMs: number
 ): SearchParams {
+  const relicContext = c.relic
+    ? resoudreContexteRelique(
+        { mode: c.relic.principale === 'equipped' ? 'equipped' : 'recherche', ...c.relic },
+        gear.relic,
+        allRelics
+      )
+    : undefined;
   return {
-    base: gear.base, artifacts: gear.artifacts, relic: gear.relic, pool: allRunes, requirement,
+    base: gear.base, artifacts: gear.artifacts, relic: gear.relic, relicContext, pool: allRunes, requirement,
     metric: 'eff', objective: c.objective, objectiveStats: c.objectiveStats, maxMs, slotFilterCap: 80,
   };
 }
@@ -72,8 +96,8 @@ export function loadCaseSearchParams(c: Case, maxMs: number): SearchParams {
   return buildCaseSearchParams(c, loadCase(c), maxMs);
 }
 
-export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; targetRuneIds: Set<number>; requirement: BuildRequirement } {
-  const { gear, allRunes } = loadDeckMonster({ exportPath: c.exportPath, deckId: c.deckId, monsterName: c.monsterName, defense: c.defense, rest: [] });
+export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allRelics: RelicDetail[]; targetRuneIds: Set<number>; requirement: BuildRequirement } {
+  const { gear, allRunes, allRelics } = loadDeckMonster({ exportPath: c.exportPath, deckId: c.deckId, monsterName: c.monsterName, defense: c.defense, rest: [] });
   const targetRuneIds = new Set(gear.runes.map((r) => r.id));
   const realSets = activeSets(gear.runes.map((r) => r.set));
   const targetStats = computeStats(gear);
@@ -85,7 +109,7 @@ export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; targ
   const mainStats: NonNullable<BuildRequirement['mainStats']> = {};
   for (const r of gear.runes) if (r.slot === 2 || r.slot === 4 || r.slot === 6) mainStats[r.slot] = [r.main.code];
   const requirement: BuildRequirement = { sets: c.setsOverride ?? realSets, minStats, mainStats };
-  return { gear, allRunes, targetRuneIds, requirement };
+  return { gear, allRunes, allRelics, targetRuneIds, requirement };
 }
 
 // ── Vérification de MONOTONICITÉ (voir spec/outils/optimizer/ « BUCKET_CAP

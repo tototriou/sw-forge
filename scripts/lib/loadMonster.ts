@@ -30,7 +30,7 @@ import {
 } from '../../src/lib/importAccount';
 import { runeSpeedOf, mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from '../../src/lib/applyAccount';
 import { runeEfficiency, formatRelicUnique } from '../../src/lib/effects';
-import { ArtifactDetail, GearSet, Monster, RtaEntry, RuneDetail, SiegeTeam } from '../../src/types';
+import { ArtifactDetail, GearSet, Monster, RelicDetail, RtaEntry, RuneDetail, SiegeTeam } from '../../src/types';
 import { loadDeckMonster, DeckMonsterArgs } from './deckMonster';
 import { loadMonstersList } from './monstersData';
 
@@ -44,6 +44,11 @@ export interface LoadedMonster {
   // peut piocher (voir `artifactOptim.ts`). ⚠️ Distinct de `gear.artifacts`,
   // qui n'est que ce que CET exemplaire porte aujourd'hui.
   allArtifacts: ArtifactDetail[];
+  // Inventaire COMPLET de reliques du compte (`data.relics`, dédoublonné par
+  // `rid`) — ce parmi quoi `resoudreContexteRelique` résout le pool
+  // éligible (lot 5a). Même remarque que `allArtifacts` : distinct de
+  // `gear.relic`, la pièce portée par CET exemplaire.
+  allRelics: RelicDetail[];
 }
 
 // Index nom ↔ com2usId — même source que deckMonster.ts et l'app elle-même
@@ -99,8 +104,8 @@ export function loadBoxMonster(exportPath: string, monsterName: string): LoadedM
   const scoreOf = (b: (typeof candidates)[number]) => (b.gear!.runes ?? []).reduce((s, r) => s + runeEfficiency(r), 0);
   const best = candidates.reduce((a, b) => (scoreOf(b) > scoreOf(a) ? b : a));
 
-  const { runes: allRunes, artifacts: allArtifacts } = parseAccountInventory(data);
-  return { unitId: best.unitId, com2usId: best.com2usId, monsterName, gear: best.gear!, allRunes, allArtifacts };
+  const { runes: allRunes, artifacts: allArtifacts, relics: allRelics } = parseAccountInventory(data);
+  return { unitId: best.unitId, com2usId: best.com2usId, monsterName, gear: best.gear!, allRunes, allArtifacts, allRelics };
 }
 
 // ── Sources partagées par les DEUX exclusions de l'écran (voir
@@ -172,11 +177,11 @@ export function loadRtaMonster(exportPath: string, monsterName: string): LoadedM
   const speedOf = (u: (typeof candidates)[number]) => runeSpeedOf(u.flatRuneSpeed, u.swift, baseSpd);
   const best = candidates.reduce((a, b) => (speedOf(b) > speedOf(a) ? b : a));
 
-  const { runes: allRunes, artifacts: allArtifacts } = parseAccountInventory(data);
+  const { runes: allRunes, artifacts: allArtifacts, relics: allRelics } = parseAccountInventory(data);
   // `ImportedUnit` n'expose pas l'unitId (non nécessaire à `mapRtaItems`) —
   // absent, pas un problème pour lancer une recherche (seul `gear` compte),
   // seulement pour l'affichage de traçabilité.
-  return { unitId: -1, com2usId: best.com2usId, monsterName, gear: best.gear!, allRunes, allArtifacts };
+  return { unitId: -1, com2usId: best.com2usId, monsterName, gear: best.gear!, allRunes, allArtifacts, allRelics };
 }
 
 // Mode SIÈGE (offense OU défense) : AUCUNE ambiguïté à résoudre — un slot de
@@ -192,9 +197,9 @@ export function loadSiegeMonster(args: DeckMonsterArgs): LoadedMonster {
   // ⚠️ `loadDeckMonster` ne remonte pas l'inventaire d'artéfacts : on le relit
   // ici depuis le même export, plutôt que de laisser un champ vide qui ferait
   // silencieusement chercher parmi RIEN.
-  const { artifacts: allArtifacts } = parseAccountInventory(parseAccountSource(readFileSync(args.exportPath, 'utf8'))!);
+  const { artifacts: allArtifacts, relics: allRelics } = parseAccountInventory(parseAccountSource(readFileSync(args.exportPath, 'utf8'))!);
   // `SiegeImportedSlot` n'expose pas l'unitId (voir importAccount.ts) — même
   // absence, même raison que `loadRtaMonster` ci-dessus : sans effet sur la
   // recherche elle-même, seulement sur l'affichage de traçabilité.
-  return { unitId: -1, com2usId, monsterName: args.monsterName, gear, allRunes, allArtifacts };
+  return { unitId: -1, com2usId, monsterName: args.monsterName, gear, allRunes, allArtifacts, allRelics };
 }

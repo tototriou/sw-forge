@@ -79,6 +79,7 @@ function monstreCharge(relic?: LoadedMonster['gear']['relic']): LoadedMonster {
     gear: { base: { hp: 10000, atk: 1000, def: 800, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 }, runes: [], artifacts: [], relic },
     allRunes: [],
     allArtifacts: [],
+    allRelics: relic ? [relic] : [],
   };
 }
 

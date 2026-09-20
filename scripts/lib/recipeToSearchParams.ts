@@ -10,6 +10,7 @@ import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_V
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { DEFAULT_RELIC_MIN_UPGRADE, RelicIntent, defaultRelicMainChoice } from '../../src/hooks/useOptimizerState';
+import { resoudreContexteRelique } from '../../src/lib/relicOptim';
 import {
   DEFAULT_DAMAGE_SETUP,
   damageRelevantStats,
@@ -390,6 +391,12 @@ export function recipeToSearchParams(
     // rejouerait donc un moteur qui n'existe plus, en silence.
     artifactBounds: resolveArtifactBounds(recipe, loaded),
     relic: loaded.gear.relic,
+    // ⚠️ **Deuxième des trois producteurs de `relicContext`** (lot 5a — les
+    // autres : `buildCaseSearchParams` de perfShared.ts, et l'écran au lot
+    // 5c). L'intention vient d'UN seul point de lecture (`recipeToRelicIntent`,
+    // garantie G), résolue contre la relique portée et l'inventaire du
+    // compte — exactement ce que `relicOracleCli` fait pour l'oracle.
+    relicContext: resoudreContexteRelique(recipeToRelicIntent(recipe, loaded), loaded.gear.relic, loaded.allRelics),
     pool: resolvePool(recipe, loaded, exclusionData),
     requirement: recipe.requirement,
     metric: recipe.metric,

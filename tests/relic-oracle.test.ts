@@ -71,9 +71,11 @@ export default function testRelicOracle() {
     const construit = buildCaseSearchParams(cas, {
       gear,
       allRunes: inventaire.runes,
+      allRelics: inventaire.relics,
       targetRuneIds: new Set(),
       requirement: paramsFixture.requirement,
     }, 10 * 60 * 1000);
+    egal(construit.relicContext, undefined, `fidélité --case : ${cas.label} sans intention relique ne pose aucun relicContext`);
     egal(construit.objectiveStats, cas.objectiveStats, `fidélité --case : ${cas.label} conserve objectiveStats`);
     egal(construit.base, gear.base, `fidélité --case : ${cas.label} conserve la base de perf-battery`);
     egal(construit.artifacts, gear.artifacts, `fidélité --case : ${cas.label} conserve les artéfacts de perf-battery`);

@@ -268,6 +268,56 @@ export class RechercheRefusee extends Error {
   }
 }
 
+/**
+ * Un jeu de stats respecte-t-il les minimums ET les maximums demandés ?
+ *
+ * ⚠️ Pendant de `respecteMinimums` (artifactOptim.ts), qui ne lit que
+ * `minStats` — défaut préexistant côté artéfacts (T11, hors chantier).
+ * Ici les deux bornes, parce qu'en mode recherche la borne relâchée d'un
+ * MAXIMUM vaut `0` sans principale forcée : un build que TOUTE relique
+ * éligible fait dépasser passerait la recherche sans jamais être rejeté.
+ */
+export function respecteMinEtMax(
+  stats: { key: string; total: number }[],
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>
+): boolean {
+  for (const [k, min] of Object.entries(requirement.minStats)) {
+    if (min == null || min <= 0) continue;
+    const s = stats.find((x) => x.key === k);
+    if (!s || s.total < min) return false;
+  }
+  for (const [k, max] of Object.entries(requirement.maxStats ?? {})) {
+    if (max == null || max <= 0) continue;
+    const s = stats.find((x) => x.key === k);
+    if (!s || s.total > max) return false;
+  }
+  return true;
+}
+
+/**
+ * **Le filtre final EXACT de la dimension relique** (lot 5a, appelé par la
+ * résolution exacte de 5b) : les stats du build AVEC la relique candidate —
+ * qui REMPLACE `gear.relic` (garantie G, jamais un cumul avec l'équipée) —
+ * puis minimums ET maximums vérifiés sur ces stats.
+ *
+ * Obligatoire en aval d'une recherche en mode `recherche` : les bornes
+ * (`relPctMax`/`relPctMin`) sont permissives par statistique — elles
+ * accordent la meilleure PV %, ATQ % et DEF % à la fois alors qu'une relique
+ * n'a qu'UNE principale — donc des candidats survivent sans qu'aucune
+ * relique réelle ne leur fasse tenir leurs conditions.
+ *
+ * Rend aussi les `stats` calculées : l'appelant (5b) note le build dessus,
+ * un seul `computeStats` par candidate.
+ */
+export function respecteConditionsAvecRelique(
+  gear: GearSet,
+  relique: RelicDetail | undefined,
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>
+): { stats: StatRow[]; respecte: boolean } {
+  const stats = computeStats({ ...gear, relic: relique });
+  return { stats, respecte: respecteMinEtMax(stats, requirement) };
+}
+
 // Diagnostic « quasi-succès » — voir spec/outils/optimizer/
 // near-miss-appariement.md pour le cadrage complet. Sous-produit GRATUIT de
 // l'appariement réel (`pairBuckets`) : les stats EXACTES (`computeStats`)

@@ -23,6 +23,9 @@ import { computeStats } from '../../src/lib/stats';
 import { RelicDetail, RuneDetail } from '../../src/types';
 import { RelicContext, bestRelicForBuild, resoudreContexteRelique } from '../../src/lib/relicOptim';
 import { buildCaseSearchParams, CASES, loadCase } from './perfShared';
+import { libelleAvecRelique, parseOptionsRelique } from './perfRelicOptions';
+import { DEFAULT_RELIC_MIN_UPGRADE } from '../../src/hooks/useOptimizerState';
+import type { LigneVerrouillee } from '../../src/lib/artifactOptim';
 import { chargerRecette, ModeChargement } from './chargerRecette';
 import { recipeToRelicIntent } from './recipeToSearchParams';
 import { buildRealDamageContext } from './realDamageCli';
@@ -32,11 +35,33 @@ export interface OracleCandidate extends BuildCandidate {
   score: number;
 }
 
+/**
+ * La complétude de CHAQUE run de l'oracle (lot 6, revue externe de l'outil
+ * F : `OracleResult` jetait `truncated`, C ne pouvait pas s'établir). Un point
+ * de la grille B.6 n'est complet que si aucun des N runs n'est tronqué.
+ */
+export interface OracleRunOutcome {
+  principale: { code: number; value: number } | null;
+  truncated: boolean;
+  explored: number;
+  candidats: number;
+}
+
 export interface OracleResult {
   candidats: OracleCandidate[];
   optimum: OracleCandidate | null;
   rid?: number;
   N: number;
+  runs: OracleRunOutcome[];
+  // `true` ssi aucun run n'est tronqué (`maxMs` ou `MAX_COLLECTED`).
+  complet: boolean;
+}
+
+/** Ce qu'un run de l'oracle doit rendre pour être fusionné — la forme d'un `SearchResult`, réduite à ce que la fusion lit. */
+export interface OracleRunResultat {
+  candidates: BuildCandidate[];
+  truncated: boolean;
+  explored: number;
 }
 
 export interface OracleSearchRun {
@@ -149,12 +174,31 @@ export function oracleSearch(
     throw new RechercheRefusee(relicContext.vide);
   }
   const runs = oracleSearchRuns(params, relicContext);
+  return fusionnerRunsOracle(params, runs, runs.map((run) => searchBuilds(run.params)), options);
+}
+
+/**
+ * La fusion des N runs — PARTAGÉE entre `oracleSearch` (les N `searchBuilds`
+ * dans ce processus, la forme du lot 4, celle des tests) et l'orchestrateur
+ * de B.6 (`scripts/relic-differentiel.ts` : un processus par run, résultats
+ * relus depuis un JSON). Une seule fusion, une seule convention d'ex æquo
+ * (score, puis `rid` croissant), jamais deux.
+ */
+export function fusionnerRunsOracle(
+  params: SearchParams,
+  runs: OracleSearchRun[],
+  resultats: OracleRunResultat[],
+  options: { realDamage?: RealDamageContext | null } = {}
+): OracleResult {
+  if (resultats.length !== runs.length) throw new Error(`fusionnerRunsOracle : ${runs.length} runs, ${resultats.length} résultats.`);
   const runeById = new Map(params.pool.map((r) => [r.id, r]));
   const fusion = new Map<string, OracleCandidate>();
   const ordre: string[] = [];
+  const issues: OracleRunOutcome[] = [];
 
-  for (const run of runs) {
-    const resultat = searchBuilds(run.params);
+  for (const [i, run] of runs.entries()) {
+    const resultat = resultats[i]!;
+    issues.push({ principale: run.principale, truncated: resultat.truncated, explored: resultat.explored, candidats: resultat.candidates.length });
     for (const brut of resultat.candidates) {
       const candidat = candidatAvecRelique(brut, run.reliques, params, runeById, options.realDamage);
       if (!candidat) continue;
@@ -173,70 +217,102 @@ export function oracleSearch(
   const objectif: Objective = params.objective ?? 'efficience';
   const tries = sortCandidates(candidats, objectif, { runeById, metric: params.metric, realDamage: options.realDamage });
   const optimum = (tries[0] as OracleCandidate | undefined) ?? null;
-  return { candidats, optimum, rid: optimum?.rid, N: runs.length };
-}
-
-function argument(prefixe: string): string | undefined {
-  return process.argv.find((a) => a.startsWith(prefixe))?.slice(prefixe.length);
+  return { candidats, optimum, rid: optimum?.rid, N: runs.length, runs: issues, complet: issues.every((r) => !r.truncated) };
 }
 
 /**
  * Point d'entrée réutilisable par B.6 :
- * `npx tsx scripts/lib/relicOracle.ts --case=<index> --relic-min-upgrade=<0..15> [--export-dir=<dossier>]`
+ * `npx tsx scripts/lib/relicOracle.ts --case=<index> [--relic-main=<libre|100|101|102>] [--relic-type=<libre|1..16>] [--relic-min-upgrade=<0..15>] [--export-dir=<dossier>]`
  * ou `npx tsx scripts/lib/relicOracle.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]]`.
- * Un appel exécute une seule mesure, dans le processus courant.
+ * Un appel exécute une seule mesure (les N runs), dans le processus courant ;
+ * la sortie porte la complétude de chaque run.
  */
-export function relicOracleCli(): void {
-  const caseArg = argument('--case=');
+/**
+ * Un point de mesure : les `SearchParams` de production, le contexte G résolu
+ * UNE fois, le contexte de dégâts, et de quoi nommer le point. PARTAGÉ entre
+ * ce CLI et l'orchestrateur de B.6 (`scripts/relic-differentiel.ts`) — un
+ * seul chargement pour l'oracle et pour A, jamais deux lectures des trois
+ * champs (garantie G).
+ */
+export interface PointOracle {
+  params: SearchParams;
+  contexte: RelicContext;
+  realDamage: RealDamageContext | null;
+  label: string;
+  // L'espèce (porteur des artéfacts : élément, archétype) — `loadDeckMonster`
+  // pour `--case`, `LoadedMonster` pour la recette.
+  com2usId: number;
+  // Les verrous de sous-propriété de la recette (`[]` en `--case`) : le
+  // différentiel les neutralise comme l'écran quand la paire est figée.
+  lignesVerrouillees: LigneVerrouillee[];
+}
+
+/**
+ * Charge un point depuis un `argv` : forme `--case=<i> [--relic-main=]
+ * [--relic-type=] [--relic-min-upgrade=] [--export-dir=]` (l'intention vient
+ * du MÊME parseur que `perf-battery`, `parseOptionsRelique` ; sans option
+ * relique : `libre/libre/+6`, la forme du lot 4 — `equipped` y est refusé,
+ * un oracle à N = 1 sur l'équipée est le moteur lui-même), ou forme
+ * `<export> <recette> [--rta] [--siege=<deckId>[:defense]]`.
+ */
+export function chargerPointOracle(argv: readonly string[]): PointOracle {
+  const lire = (prefixe: string) => argv.find((a) => a.startsWith(prefixe))?.slice(prefixe.length);
+  const caseArg = lire('--case=');
   const index = Number(caseArg);
-  const seuil = Number(argument('--relic-min-upgrade=') ?? 6);
-  const exportDir = argument('--export-dir=');
-  if (!Number.isInteger(seuil) || seuil < 0 || seuil > 15) throw new Error('--relic-min-upgrade doit être un entier entre 0 et 15.');
-  let params: SearchParams;
-  let contexte: RelicContext;
-  let realDamage: RealDamageContext | null = null;
-  let label: string;
+  const exportDir = lire('--export-dir=');
 
   if (caseArg != null) {
     const cas = CASES[index];
     if (!cas || !Number.isInteger(index)) throw new Error(`--case doit désigner un index entre 0 et ${CASES.length - 1}.`);
+    const option = parseOptionsRelique(argv) ?? { principale: 'libre', type: 'libre', seuil: DEFAULT_RELIC_MIN_UPGRADE };
+    if (option.principale === 'equipped') throw new Error("--relic-main=equipped n'est pas un point d'oracle : l'oracle mesure la dimension relique, l'équipée est le moteur lui-même.");
     const exportPath = exportDir ? resolve(exportDir, cas.exportPath) : cas.exportPath;
     const casEffectif = { ...cas, exportPath };
     const charge = loadCase(casEffectif);
     const { gear } = charge;
     const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
     const { relics } = parseAccountInventory(data);
-    contexte = resoudreContexteRelique(
-      { mode: 'recherche', principale: 'libre', type: 'libre', seuil },
-      gear.relic,
-      relics
-    );
-    params = buildCaseSearchParams(casEffectif, charge, 10 * 60 * 1000);
-    label = cas.label;
-  } else {
-    const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
-    if (!exportPath || !recipePath) throw new Error('Usage: relicOracle.ts --case=<index> […] ou relicOracle.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]].');
-    const rtaMode = process.argv.includes('--rta');
-    const siegeArg = argument('--siege=');
-    if (rtaMode && siegeArg != null) throw new Error('--rta et --siege sont exclusifs.');
-    const mode: ModeChargement = rtaMode
-      ? { type: 'rta' }
-      : siegeArg != null
-        ? (() => {
-            const [deckIdRaw, variant] = siegeArg.split(':');
-            const deckId = Number(deckIdRaw);
-            if (!Number.isFinite(deckId)) throw new Error(`--siege=<deckId>[:defense] : deckId invalide (${deckIdRaw}).`);
-            return { type: 'siege' as const, deckId, defense: variant === 'defense' };
-          })()
-        : { type: 'box' };
-    const chargee = chargerRecette(exportPath, recipePath, mode);
-    const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
-    const { relics } = parseAccountInventory(data);
-    contexte = resoudreContexteRelique(recipeToRelicIntent(chargee.recipe, chargee.loaded), chargee.loaded.gear.relic, relics);
-    params = chargee.params;
-    realDamage = buildRealDamageContext(chargee.recipe, chargee.loaded.com2usId, params.artifacts);
-    label = chargee.recipe.monsterName;
+    const contexte = resoudreContexteRelique({ mode: 'recherche', ...option }, gear.relic, relics);
+    // `casEffectif` ne porte pas `relic` : `relicContext` reste absent des
+    // params — l'oracle l'efface de toute façon sur chacun de ses runs.
+    const params = buildCaseSearchParams(casEffectif, charge, 10 * 60 * 1000);
+    return { params, contexte, realDamage: null, label: libelleAvecRelique(cas.label, option), com2usId: charge.com2usId, lignesVerrouillees: [] };
   }
+
+  const [exportPath, recipePath] = argv.slice(2).filter((a) => !a.startsWith('--'));
+  if (!exportPath || !recipePath) throw new Error('Usage: relicOracle.ts --case=<index> […] ou relicOracle.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]].');
+  const rtaMode = argv.includes('--rta');
+  const siegeArg = lire('--siege=');
+  if (rtaMode && siegeArg != null) throw new Error('--rta et --siege sont exclusifs.');
+  const mode: ModeChargement = rtaMode
+    ? { type: 'rta' }
+    : siegeArg != null
+      ? (() => {
+          const [deckIdRaw, variant] = siegeArg.split(':');
+          const deckId = Number(deckIdRaw);
+          if (!Number.isFinite(deckId)) throw new Error(`--siege=<deckId>[:defense] : deckId invalide (${deckIdRaw}).`);
+          return { type: 'siege' as const, deckId, defense: variant === 'defense' };
+        })()
+      : { type: 'box' };
+  const chargee = chargerRecette(exportPath, recipePath, mode);
+  const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
+  const { relics } = parseAccountInventory(data);
+  const contexte = resoudreContexteRelique(recipeToRelicIntent(chargee.recipe, chargee.loaded), chargee.loaded.gear.relic, relics);
+  const params = chargee.params;
+  const realDamage = buildRealDamageContext(chargee.recipe, chargee.loaded.com2usId, params.artifacts);
+  return {
+    params,
+    contexte,
+    realDamage,
+    label: chargee.recipe.monsterName,
+    com2usId: chargee.loaded.com2usId,
+    lignesVerrouillees: chargee.recipe.lignesVerrouillees ?? [],
+  };
+}
+
+export function relicOracleCli(): void {
+  const { params, contexte, realDamage, label } = chargerPointOracle(process.argv);
+  const seuil = contexte.seuil;
 
   const debut = performance.now();
   let resultat: OracleResult;
@@ -259,6 +335,8 @@ export function relicOracleCli(): void {
     objectif: params.objective,
     empreinte: contexte.empreinte,
     N: resultat.N,
+    complet: resultat.complet,
+    runs: resultat.runs,
     candidats: resultat.candidats.length,
     rid: resultat.rid ?? null,
     optimum: resultat.optimum ? { runeIds: resultat.optimum.runeIds, rid: resultat.optimum.rid ?? null, stats: resultat.optimum.stats, score: resultat.optimum.score } : null,

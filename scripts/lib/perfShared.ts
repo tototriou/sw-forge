@@ -76,7 +76,7 @@ export const CASES: Case[] = [
 // et l'oracle `--case` passent tous deux ici.
 export function buildCaseSearchParams(
   c: Case,
-  { gear, allRunes, allRelics, requirement }: ReturnType<typeof loadCase>,
+  { gear, allRunes, allRelics, requirement }: Pick<ReturnType<typeof loadCase>, 'gear' | 'allRunes' | 'allRelics' | 'requirement'>,
   maxMs: number
 ): SearchParams {
   const relicContext = c.relic
@@ -96,8 +96,11 @@ export function loadCaseSearchParams(c: Case, maxMs: number): SearchParams {
   return buildCaseSearchParams(c, loadCase(c), maxMs);
 }
 
-export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allRelics: RelicDetail[]; targetRuneIds: Set<number>; requirement: BuildRequirement } {
-  const { gear, allRunes, allRelics } = loadDeckMonster({ exportPath: c.exportPath, deckId: c.deckId, monsterName: c.monsterName, defense: c.defense, rest: [] });
+export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allRelics: RelicDetail[]; targetRuneIds: Set<number>; requirement: BuildRequirement; com2usId: number } {
+  // `com2usId` : l'espèce, porteur des artéfacts (élément, archétype) — le
+  // différentiel de B.6 en a besoin pour figer la paire de référence par le
+  // vrai chemin (`chercherPaires`, `artifactFitsMonster`).
+  const { gear, allRunes, allRelics, com2usId } = loadDeckMonster({ exportPath: c.exportPath, deckId: c.deckId, monsterName: c.monsterName, defense: c.defense, rest: [] });
   const targetRuneIds = new Set(gear.runes.map((r) => r.id));
   const realSets = activeSets(gear.runes.map((r) => r.set));
   const targetStats = computeStats(gear);
@@ -109,7 +112,7 @@ export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allR
   const mainStats: NonNullable<BuildRequirement['mainStats']> = {};
   for (const r of gear.runes) if (r.slot === 2 || r.slot === 4 || r.slot === 6) mainStats[r.slot] = [r.main.code];
   const requirement: BuildRequirement = { sets: c.setsOverride ?? realSets, minStats, mainStats };
-  return { gear, allRunes, allRelics, targetRuneIds, requirement };
+  return { gear, allRunes, allRelics, targetRuneIds, requirement, com2usId };
 }
 
 // ── Vérification de MONOTONICITÉ (voir spec/outils/optimizer/ « BUCKET_CAP

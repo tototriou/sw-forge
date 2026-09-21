@@ -65,7 +65,7 @@ export default function testPerfRelicOptions() {
   const inventaire = parseAccountInventory(data);
   const gear = box.find((m) => m.gear?.relic)?.gear!;
   ok(gear != null && gear.relic != null, 'fixture : un exemplaire porte une relique (7001, lot 1)');
-  const charge = { gear, allRunes: inventaire.runes, allRelics: inventaire.relics, targetRuneIds: new Set<number>(), requirement: { sets: activeSets(gear.runes.map((r) => r.set)), minStats: {} } };
+  const charge = { gear, allRunes: inventaire.runes, allRelics: inventaire.relics, requirement: { sets: activeSets(gear.runes.map((r) => r.set)), minStats: {} } };
 
   const sansOption = caseAvecRelique(CASES[3]!, undefined);
   ok(sansOption === CASES[3], 'sans option, le cas est rendu tel quel (même objet, même libellé)');

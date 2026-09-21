@@ -6,10 +6,23 @@ import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { computeStats } from '../src/lib/stats';
 import { RelicDetail } from '../src/types';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
-import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
+import { chargerPointOracle, fusionnerRunsOracle, oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
+import { existsSync } from 'fs';
+import { resolve } from 'path';
 import { buildCaseSearchParams, CASES } from '../scripts/lib/perfShared';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { egal, exportSynthetique, ok, titre } from './outils';
+
+const racineTests = resolve(new URL('.', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+
+function leve(f: () => unknown): string | null {
+  try {
+    f();
+    return null;
+  } catch (e) {
+    return (e as Error).message;
+  }
+}
 
 function relique(id: number, code: 100 | 101 | 102, value: number, type = 1): RelicDetail {
   return { id, upgrade: 6, main: { code, value }, unique: { type, tranche: 100, percent: 1 } };
@@ -72,7 +85,6 @@ export default function testRelicOracle() {
       gear,
       allRunes: inventaire.runes,
       allRelics: inventaire.relics,
-      targetRuneIds: new Set(),
       requirement: paramsFixture.requirement,
     }, 10 * 60 * 1000);
     egal(construit.relicContext, undefined, `fidélité --case : ${cas.label} sans intention relique ne pose aucun relicContext`);
@@ -124,6 +136,37 @@ export default function testRelicOracle() {
   const union = trois.flatMap((r) => searchBuilds({ ...params, relic: r }).candidates);
   egal(oracleTrois.N, 3, 'trois principales distinctes : N = 3');
   egal(cles(oracleTrois.candidats), cles(union), 'trois principales : candidats = union des trois listes moteur');
+
+  /* Lot 6 — complétude PAR RUN, et fusion partagée avec l'orchestrateur. */
+  egal(oracleTrois.runs.length, 3, 'complétude : un relevé par run');
+  ok(oracleTrois.complet && oracleTrois.runs.every((r) => !r.truncated), 'complétude : maxMs infini, aucun run tronqué → complet');
+  egal(oracleTrois.runs.map((r) => r.principale), [{ code: 100, value: 10 }, { code: 101, value: 10 }, { code: 102, value: 10 }], 'complétude : chaque relevé porte sa principale, dans l’ordre des runs');
+  const runsTrois = oracleSearchRuns(params, contexteTrois);
+  const refusion = fusionnerRunsOracle(params, runsTrois, runsTrois.map((r) => searchBuilds(r.params)));
+  egal(refusion, oracleTrois, 'fusion partagée : fusionnerRunsOracle sur les mêmes N résultats = oracleSearch (candidats, optimum, rid, runs, complet)');
+  const tronque = oracleSearch({ ...params, maxCollected: 1 }, contexteTrois);
+  ok(!tronque.complet, 'complétude : un plafond de collecte atteint sur un run → point incomplet');
+  ok(tronque.runs.every((r) => r.truncated && r.candidats === 1), 'complétude : chaque run tronqué le dit, avec son compte');
+  ok(leve(() => fusionnerRunsOracle(params, runsTrois, [])) != null, 'fusion partagée : N runs sans N résultats est refusé');
+
+  /* Lot 6 — chargement d'un point (--case) : les trois options relique, l'espèce. */
+  const exportDir = existsSync(resolve(racineTests, '..', 'tototriou-12889591.json')) ? resolve(racineTests, '..') : null;
+  if (exportDir) {
+    const point = chargerPointOracle(['node', 'relicOracle.ts', '--case=3', '--relic-main=101', '--relic-type=1', '--relic-min-upgrade=0', `--export-dir=${exportDir}`]);
+    egal(point.contexte.principale, 101, '--case + --relic-main=101 : la principale forcée est celle du contexte');
+    egal(point.contexte.type, 1, '--case + --relic-type=1 : le type forcé est celui du contexte');
+    egal(point.contexte.seuil, 0, '--case + --relic-min-upgrade=0 : le seuil est celui du contexte');
+    egal(point.contexte.mode, 'recherche', '--case : mode recherche');
+    egal(point.params.relicContext, undefined, '--case : les SearchParams ne portent pas de relicContext (l’oracle l’efface de toute façon)');
+    egal(point.label, 'Lushen d11 (tototriou) [relique 101/1/+0]', '--case : le libellé porte l’intention');
+    egal(point.com2usId, 13413, '--case : l’espèce (Lushen, com2usId 13413) est rendue pour le porteur des artéfacts');
+    egal(point.lignesVerrouillees, [], '--case : aucun verrou');
+    const defaut = chargerPointOracle(['node', 'relicOracle.ts', '--case=3', `--export-dir=${exportDir}`]);
+    egal([defaut.contexte.principale, defaut.contexte.type, defaut.contexte.seuil], ['libre', 'libre', 6], '--case sans option relique : libre/libre/+6, la forme du lot 4');
+    ok(leve(() => chargerPointOracle(['node', 'relicOracle.ts', '--case=3', '--relic-main=equipped', `--export-dir=${exportDir}`])) != null, '--case + --relic-main=equipped est refusé (pas un point d’oracle)');
+  } else {
+    ok(true, 'chargement --case non contrôlé : export réel tototriou-12889591.json absent de la racine');
+  }
 
   /* B1 : un maximum actif interdit de jeter la valeur de principale basse. */
   const poolB1 = randomPool(mulberry32(4012), 1).map((r) => ({ ...r, set: 'energy' }));

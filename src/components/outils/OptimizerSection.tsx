@@ -1353,9 +1353,14 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // qu'elle vaut des dégâts — la sonde de pertinence ne peut pas la voir
       // (voir `codesAmplificationActifs`, damage.ts).
       codesAmplification: codesAmplificationActifs(damageSetup),
+      // ⚠️ **B.5b bis, bloquant 1** : sous un maximum actif, une principale
+      // plus grande n'est plus « au moins aussi bonne » — voir le commentaire
+      // de `maxStatsActifs` sur `ArtifactSearchParams`. Filtré aux entrées
+      // RÉELLEMENT posées (> 0), comme `avecMaximum` plus bas.
+      maxStatsActifs: (Object.keys(maxStats) as StatKey[]).filter((k) => (maxStats[k] ?? 0) > 0),
       evaluer,
     };
-  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, contexteDegatsArtefacts]);
+  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, contexteDegatsArtefacts, maxStats]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),

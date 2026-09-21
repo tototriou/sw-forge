@@ -777,6 +777,38 @@ export default function testArtefactOptim() {
     );
     egal(avecVerrou, [porteurVerrou], 'le porteur du verrou reste, l’inerte de même principale tombe sur le seuil');
   }
+
+  // ⚠️ B.5b bis, BLOQUANT 1 de la revue adversariale du lot 5b
+  // (`revue-diff-lot5b-2026-09-21.md`) : sous un MAXIMUM ACTIF sur la stat
+  // d'une principale, « plus grand » n'est plus « au moins aussi bon » — un
+  // artéfact au plus petit apport peut rester sous le plafond quand celui au
+  // plus grand le dépasse. Sans `maxStatsActifs`, la dominance l'éliminait
+  // AVANT tout contrôle du maximum, perdant le seul couple faisable (cas
+  // exécuté par la revue : ATQ 2183, artéfacts ATQ +100/+90, maximum 2372 —
+  // reproduit intégralement, avec la relique, dans tests/relic-queue.test.ts).
+  {
+    const petit: ArtifactDetail = { ...attribut('dark', 101, 0), main: { code: 101, value: 90 } };
+    const grand: ArtifactDetail = { ...attribut('dark', 101, 0), main: { code: 101, value: 100 } };
+    const p: ArtifactSearchParams = {
+      porteur: lushen,
+      inventaire: [petit, grand],
+      equipes: [],
+      principaleParSorte: {},
+      evaluer: (arts) => arts.reduce((n, a) => n + a.main.value, 0),
+    };
+    const pert = analyserPertinence(p);
+    const sansMax = preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', [], pert);
+    egal(sansMax.includes(petit), false, 'sans maximum actif : le plus petit apport reste dominé, comme avant (identité)');
+    egal(sansMax.includes(grand), true, '… le plus grand survit, comme avant');
+    const avecMax = preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', [], pert, ['atk']);
+    egal(avecMax.includes(petit), true, 'sous maximum actif sur ATQ : le plus petit apport N’EST PLUS éliminé par dominance');
+    egal(avecMax.includes(grand), true, '… le plus grand reste candidat aussi (rien n’est perdu par le correctif)');
+    // Un maximum sur une AUTRE stat ne protège pas une principale ATQ : les
+    // deux artéfacts n’y diffèrent pas (ni l’un ni l’autre n’a de principale
+    // DEF), donc la comparaison ATQ reste inchangée.
+    const avecMaxAutreStat = preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', [], pert, ['def']);
+    egal(avecMaxAutreStat.includes(petit), false, 'un maximum sur une AUTRE stat ne protège pas la principale ATQ');
+  }
 }
 
 // « Garder l'artéfact équipé » ne se partage pas — une recette importée depuis

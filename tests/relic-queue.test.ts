@@ -19,6 +19,7 @@
 // l'instrumentation le prouve pour chaque fixture, jamais « petit volume ».
 
 import { ArtifactDetail, BaseStats, ElementKey, ArtifactArchetype, RelicDetail, RuneDetail } from '../src/types';
+import { StatKey } from '../src/lib/effects';
 import { computeStats, statsParPaire } from '../src/lib/stats';
 import { RelicContext, resoudreContexteRelique } from '../src/lib/relicOptim';
 import type { RelicIntent } from '../src/hooks/useOptimizerState';
@@ -74,6 +75,13 @@ function runesDe(p: SearchParams, c: BuildCandidate): RuneDetail[] {
   return c.runeIds.map((id) => byId.get(id)!).filter(Boolean);
 }
 
+// ⚠️ B.5b bis, bloquant 1 : le même calcul que `artifactParams`
+// (OptimizerSection.tsx) — les stats sous MAXIMUM ACTIF, filtrées aux
+// entrées réellement posées (> 0).
+function maxStatsActifsDe(p: SearchParams): StatKey[] {
+  return (Object.keys(p.requirement.maxStats ?? {}) as StatKey[]).filter((k) => (p.requirement.maxStats?.[k] ?? 0) > 0);
+}
+
 function entree(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: Reglages): EntreeResolution {
   const gear = { base: p.base, runes: runesDe(p, c), artifacts: p.artifacts, relic: p.relic };
   const regime = regimeDe(r);
@@ -83,7 +91,7 @@ function entree(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefine
     faireParams: (rel): ArtifactSearchParams => {
       const statsAvec = statsParPaire({ ...gear, relic: rel });
       const evaluer = regime === 'degats_reels' ? evaluerPourRegime(regime, statsAvec, r.degats!) : evaluerPourRegime(regime, statsAvec);
-      return { porteur: PORTEUR, inventaire: r.inventaireArtefacts ?? [], equipes: [], principaleParSorte: {}, evaluer };
+      return { porteur: PORTEUR, inventaire: r.inventaireArtefacts ?? [], equipes: [], principaleParSorte: {}, maxStatsActifs: maxStatsActifsDe(p), evaluer };
     },
     respecteConditions: minimumsPoses ? (arts) => respecteMinimums(computeStats({ ...gear, artifacts: arts }), p.requirement.minStats) : null,
     requirement: p.requirement,
@@ -438,6 +446,43 @@ export default function testRelicQueue() {
       egal([r.relique?.id, r.artefacts.map((a) => a.id)], [900, [11]], 'ordre (b) : (PV % +14, ATQ +100) = 3446 bat (ATQ % +14, vide) = 3444 — paire et relique résolues ENSEMBLE');
       egal(total(r.stats, 'atk'), atkRunes + 100, 'ordre (b) : ATQ 3446 ≤ 3494');
     }
+  }
+
+  /* ── BLOQUANT 1 de la revue adversariale du lot 5b (2026-09-21,
+   * `revue-diff-lot5b-2026-09-21.md`) : le préfiltre de dominance de
+   * `chercherPaires` éliminait le meilleur couple FAISABLE avant tout
+   * contrôle du maximum — deux artéfacts ATQ de même sorte, seul le plus
+   * PETIT apport tient le maximum. Sans `maxStatsActifs`, il disparaissait
+   * de `chercherPaires` avant même que `respecteConditionsAvecRelique` ne
+   * voie le maximum (cas exécuté par la revue, reproduit ici via le chemin
+   * complet `resoudreEquipementDuBuild` — la version isolée sur
+   * `preFiltrerCandidats` est dans tests/artefact-optim.test.ts). */
+  {
+    const equipee = relique(900, 100, 14); // PV % : n'affecte pas l'ATQ, isole le cas
+    const c0 = [101, 102, 103, 104, 105, 106];
+    const atkRunes = 700 + Math.ceil((700 * 378) / 100); // 3346, comme ci-dessus
+    const grand = art(21, 'element', [101, 100]); // ATQ +100
+    const petit = art(22, 'element', [101, 90]); // ATQ +90
+    const max = atkRunes + 95; // sous +100 (3446), au-dessus de +90 (3436)
+    const p = params(pool, { sets: [], minStats: {}, maxStats: { atk: max } }, { objective: 'ehp', relic: equipee });
+    const ctx = contexte(LIBRE, equipee, [equipee]);
+    const arts = [grand, petit];
+    const r = resoudre(p, candidat(p, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
+    ok(r.conforme, 'BLOQUANT 1 : un couple faisable existe — le plus petit apport');
+    egal(r.artefacts.map((a) => a.id), [22], 'BLOQUANT 1 : la paire retenue porte l’artéfact ATQ +90, jamais le +100 (dépasse le maximum)');
+    egal(total(r.stats, 'atk'), atkRunes + 90, 'BLOQUANT 1 : ATQ = runes + 90, sous le maximum');
+    // « faisable rejeté » (deuxième cas de la revue) : un minimum QUE SEUL
+    // le couple (+90) satisfait encore — le build FAISABLE doit rester
+    // CONSERVÉ, jamais rejeté.
+    const pMin = { ...p, requirement: { sets: [], minStats: { atk: atkRunes + 50 }, maxStats: { atk: max } } };
+    const rMin = resoudre(pMin, candidat(pMin, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
+    egal(rMin.conforme, true, 'BLOQUANT 1 : avec un minimum entre les deux apports, le build faisable (+90) reste CONSERVÉ');
+    egal(rMin.artefacts.map((a) => a.id), [22], 'BLOQUANT 1 : … toujours avec l’artéfact +90');
+    // Sans maximum actif : identité — la dominance élimine encore le plus
+    // petit apport, comportement d'avant, byte-identique.
+    const pSansMax = { ...p, requirement: { sets: [], minStats: {} } };
+    const rSansMax = resoudre(pSansMax, candidat(pSansMax, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
+    egal(rSansMax.artefacts.map((a) => a.id), [21], 'BLOQUANT 1 : sans maximum actif, le plus grand apport (+100) l’emporte — identité');
   }
 
   /* ── Contre-exemple B1 côté file : maximum PV actif, deux reliques PV %,

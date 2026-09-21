@@ -198,6 +198,24 @@ export interface ArtifactSearchParams {
    */
   codesAmplification?: number[];
   /**
+   * Les statistiques principales (PV/ATQ/DEF) sous un MAXIMUM ACTIF de la
+   * recherche — `requirement.maxStats` filtré aux entrées réellement posées
+   * (> 0).
+   *
+   * ⚠️ **Retire ces stats de la dominance, jamais de la pertinence ni de
+   * l'obligation.** Sans maximum, une principale plus grande est toujours au
+   * moins aussi bonne (D5 : la borne d'artéfacts est optimiste pour les
+   * minimums) ; avec un maximum actif dessus, un artéfact « plus » peut
+   * rendre un couple infaisable là où un « moins » restait sous le plafond —
+   * exactement la leçon de la dominance des reliques (A.2 bis D6 : « aucune
+   * dominance sur une statistique sous maximum actif »), transposée ici par
+   * la revue adversariale du lot 5b (bloquant 1, `revue-diff-lot5b-2026-09-21.md`).
+   *
+   * Absent (ou vide) : comportement d'avant, byte-identique — les trois
+   * principales restent comparées sans condition.
+   */
+  maxStatsActifs?: StatKey[];
+  /**
    * Chiffrer aussi ce que les verrous coûtent SUR CE BUILD.
    *
    * ⚠️ **Ce n'est pas gratuit, et ça ne peut pas l'être** : on ne peut pas à la
@@ -358,7 +376,8 @@ export function preFiltrerCandidats(
   candidats: (ArtifactDetail | null)[],
   kind: ArtifactKind,
   lignes: LigneVerrouillee[] = [],
-  pertinence?: Pertinence
+  pertinence?: Pertinence,
+  maxStatsActifs?: StatKey[]
 ): (ArtifactDetail | null)[] {
   const obligatoires = seuilsObligatoires(lignes, kind);
   const verrous = lignes.filter((l) => l.min > 0);
@@ -390,11 +409,25 @@ export function preFiltrerCandidats(
   // seules principales comparerait deux artéfacts en ignorant toutes leurs
   // sous-propriétés : le premier venu éliminerait un artéfact bien meilleur de
   // même principale. Un défaut prudent, pas un défaut « partiel ».
+  // ⚠️ **Sauf sous un MAXIMUM ACTIF sur la stat de la principale** — voir
+  // `maxStatsActifs` sur `ArtifactSearchParams`. « Plus grand » n'y est plus
+  // « au moins aussi bon » : un artéfact au plus petit apport peut rester sous
+  // le plafond quand celui au plus grand le dépasse. Le retirer purement du
+  // vecteur ne suffit PAS : deux artéfacts qui ne diffèrent QUE sur cette
+  // principale deviendraient des vecteurs IDENTIQUES, et le départage des ex
+  // æquo (plus bas) en éliminerait un par pur artefact d'index — alors qu'ils
+  // ne sont pas équivalents, l'un peut être feasible et l'autre non. La
+  // principale reste donc DANS le vecteur (comparaison inchangée quand les
+  // deux artéfacts s'y valent), mais la paire devient INCOMPARABLE dès qu'ils
+  // y diffèrent (bloquant 1, revue du lot 5b) : ni domine, ni dominé.
   const dims = pertinence ? [...new Set([...pertinence.croissants, ...codesVerrouilles])] : null;
   const MAINS = [100, 101, 102];
+  const plafonnees = new Set(maxStatsActifs ?? []);
+  const mainsExclues = MAINS.filter((m) => plafonnees.has(ARTIFACT_MAIN[m]!.stat));
+  const mainValue = (a: ArtifactDetail, m: number) => (a.main.code === m ? a.main.value : 0);
   const vecteur = (a: ArtifactDetail): number[] => [
     ...(dims ?? []).map((c) => valeurSur(a, c)),
-    ...MAINS.map((m) => (a.main.code === m ? a.main.value : 0)),
+    ...MAINS.map((m) => mainValue(a, m)),
   ];
   const vecteurs = survivants.map(vecteur);
   // ⚠️ Un artéfact portant une ligne AMBIGUË (qui bouge les dégâts sans
@@ -423,6 +456,11 @@ export function preFiltrerCandidats(
       // ⚠️ L'inverse est SÛR : un intangible dominé par un ordinaire peut
       // disparaître, puisque substituer un ordinaire ne restreint jamais rien.
       if (survivants[j]!.intangible && !survivants[i]!.intangible) continue;
+      // ⚠️ Sous un maximum actif : deux artéfacts qui DIFFÈRENT sur la
+      // principale plafonnée ne sont jamais comparables (D6) — voir le
+      // commentaire sur `mainsExclues` ci-dessus. S'ils s'y valent, la
+      // comparaison continue normalement : rien ne change.
+      if (mainsExclues.some((m) => mainValue(survivants[i]!, m) !== mainValue(survivants[j]!, m))) continue;
       const vi = vecteurs[i]!;
       const vj = vecteurs[j]!;
       let auMoinsEgal = true;
@@ -545,7 +583,7 @@ function candidatsPourRecherche(
 ): (ArtifactDetail | null)[] {
   const complets = candidatsParSorte(params, kind);
   const lignes = params.avecCoutDesVerrous ? [] : (params.lignesVerrouillees ?? []);
-  return preFiltrerCandidats(complets, kind, lignes, pertinence);
+  return preFiltrerCandidats(complets, kind, lignes, pertinence, params.maxStatsActifs);
 }
 
 // La meilleure paire, ou les `combien` meilleures.

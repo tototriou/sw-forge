@@ -241,6 +241,13 @@ function paramsArtefacts(
     // buff est invisible à la sonde de pertinence — voir
     // `codesAmplificationActifs` (damage.ts).
     codesAmplification: codesAmplificationActifs(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP),
+    // ⚠️ B.5b bis, bloquant 1 (dominance sous maximum actif) : `paireRepresentative`
+    // passe par `chercherPaires`, donc par la même dominance — sans ce champ,
+    // le CLI reproduirait le défaut que l'écran corrige (`artifactParams`,
+    // OptimizerSection.tsx), et « second constructeur » divergerait.
+    maxStatsActifs: (Object.keys(recipe.requirement.maxStats ?? {}) as StatKey[]).filter(
+      (k) => (recipe.requirement.maxStats?.[k] ?? 0) > 0
+    ),
     evaluer,
   };
 }

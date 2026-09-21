@@ -2007,8 +2007,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         lignesVerrouillees,
         relique: selected?.gear.relic ?? null,
         nbArtefacts: artifacts.length,
+        // ⚠️ La dimension relique de la recherche (lot 5b) : mode, pool
+        // éligible, choix, seuil — tout dans l'empreinte canonique. Un tri
+        // qui change de régime invalide déjà par `objective` ci-dessus ; un
+        // tri qui n'en change pas ne relance rien (plan § 8.4).
+        empreinteRelique: relicContextRecherche?.empreinte ?? null,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimePaire, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimePaire, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte]
   );
 
   const faireParamsArtefacts = useMemo(() => {

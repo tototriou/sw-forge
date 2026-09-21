@@ -220,6 +220,17 @@ export function signatureReglages(parts: {
   // l'utilisateur bascule d'exemplaire (box / RTA / deck de siège).
   relique: unknown;
   nbArtefacts: number;
+  /**
+   * L'empreinte du contexte relique de la recherche (`RelicContext.empreinte`,
+   * relicOptim.ts — lot 5b), `null` sans contexte. Elle est STABLE et
+   * SÉMANTIQUE : mode, pool éligible (`rid`, principale, upgrade, exclusive),
+   * choix de principale, de type et seuil — un `rid` réimporté avec une autre
+   * valeur la change. Elle vaut « signature complète » de la dimension
+   * relique (plan § 2.4 point 3, T5) ; le régime effectif est `objective`
+   * ci-dessus (D7 : un seul régime pour l'équipement complet), les données de
+   * combat `damageSetup`.
+   */
+  empreinteRelique: string | null;
 }): string {
   // ⚠️ Un minimum à 0 n'exige RIEN : le retenir ferait relancer 100
   // optimisations pour rien dès qu'on tape puis efface une valeur. L'ordre de
@@ -238,5 +249,6 @@ export function signatureReglages(parts: {
     lignes,
     JSON.stringify(parts.relique ?? null),
     parts.nbArtefacts,
+    parts.empreinteRelique ?? '',
   ].join('§');
 }

@@ -150,6 +150,7 @@ export default function testArtefactFile() {
       lignesVerrouillees: [] as { code: number; min: number }[],
       relique: { main: { code: 101, value: 12 } } as unknown,
       nbArtefacts: 2518,
+      empreinteRelique: null as string | null,
     };
     const s = signatureReglages(base);
     // ⚠️ Tout ce qui change quelles LIGNES comptent change la paire gagnante
@@ -163,6 +164,16 @@ export default function testArtefactFile() {
     ok(signatureReglages({ ...base, objective: 'efficience' }) !== s, '… et le changement d’objectif');
     ok(signatureReglages({ ...base, ignoreArtifacts: true }) !== s, '… et « ignorer les artéfacts »');
     ok(signatureReglages({ ...base, relique: { main: { code: 101, value: 15 } } }) !== s, '… et un changement de relique (elle entre dans les stats)');
+    // Lot 5b : la dimension relique de la recherche — l'empreinte canonique
+    // du contexte (mode, pool éligible, choix, seuil) — invalide aussi ; un
+    // contexte absent (chemin écran avant 5c) et un contexte présent ne
+    // partagent jamais la clé.
+    ok(signatureReglages({ ...base, empreinteRelique: 'recherche|1:100:14:6:1/100/1|libre|libre|6' }) !== s, '… et l’arrivée d’un contexte relique (empreinte)');
+    ok(
+      signatureReglages({ ...base, empreinteRelique: 'recherche|1:100:14:6:1/100/1|libre|libre|6' }) !==
+        signatureReglages({ ...base, empreinteRelique: 'recherche|1:100:14:6:1/100/1|libre|libre|9' }),
+      '… et un changement de seuil dans l’empreinte'
+    );
 
     // ⚠️ **LE test — bug rapporté à l'usage.** La signature ne listait que
     // `skillCom2usId` et l'élément visé : changer le buff ATQ, les PV restants

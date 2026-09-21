@@ -331,9 +331,19 @@ export default function testRelicSearch() {
   }
 
   /* ── Fixture A — principale HORS objectif nécessaire à un minimum :
-   * objectif « ATQ » (les runes ATQ % + Dmg Crit sont les plus efficientes),
-   * minimum DEF 684 = 600 + ceil(600 × 14 / 100) — atteignable par le build
-   * optimum SEULEMENT avec la DEF % +14. */
+   * survie par le minimum DEF 684 = 600 + ceil(600 × 14 / 100), atteignable
+   * par le build optimum SEULEMENT avec la DEF % +14 — les runes ATQ % +
+   * Dmg Crit sont les plus efficientes sous l'objectif Efficience de cette
+   * fixture. Repli documenté (revue adversariale du diff du lot 5a, MAJEUR ;
+   * B.5a ter, commit 3) : le nom d'origine annonçait un conflit
+   * objectif ATQ / minimum DEF que `objective: 'efficience'` n'exerce pas
+   * (`dimensionsRetenues` ne retient que `def`, par le minimum) — construire
+   * un `RealDamageContext` factice minimal (`objective: 'degats_reels'`)
+   * dépasse quelques lignes (`SkillDamageProfile` exige un `noeud` d'AST
+   * parsé, jamais écrit à la main dans ce dépôt) ; cette fixture reste donc
+   * la preuve de survie par minimum SEUL, et le conflit objectif/minimum est
+   * couvert par `tests/relic-optim.test.ts` (« minimum DEF actif → DEF %
+   * pertinente même hors du scaling »). */
   {
     const o = (slot: number, id: number) => rune(id, slot, [4, 63], [[10, 35]]);
     const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');

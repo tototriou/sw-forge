@@ -1,7 +1,8 @@
 import { ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
-import { activeSets } from '../../lib/effects';
+import { activeSets, RELIC_MAIN, relicUniqueShortLabel } from '../../lib/effects';
+import { EtatRelique } from '../../lib/relicQueue';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
@@ -22,6 +23,16 @@ interface Props {
   // pièces-là qui ont servi à calculer `candidate.stats` — montrer autre chose
   // afficherait des stats et un équipement qui ne vont pas ensemble.
   artifacts: ArtifactDetail[];
+  /**
+   * L'état de la relique de CE build (implementation-relique, B.5c),
+   * `etatReliqueDuBuild` (relicQueue.ts) — SEULE source, jamais recalculé
+   * ici. `undefined` : aucune dimension relique dans cette recherche (hors
+   * mode `recherche`, chemin d'avant ce lot), rien n'est affiché.
+   */
+  etatRelique?: EtatRelique;
+  // Occupation par `rid` (`n / 150`, D3 — AFFICHÉE, jamais bloquante),
+  // nécessaire seulement quand `etatRelique.etat === 'resolue'`.
+  relicUsageById?: Record<number, number>;
   // La paire de CE build n'a pas encore été calculée : celle affichée est la
   // paire supposée, commune. Dit explicitement plutôt que laissé croire.
   paireProvisoire?: boolean;
@@ -140,6 +151,8 @@ export default function BuildCandidateCard({
   candidate,
   runeById,
   artifacts,
+  etatRelique,
+  relicUsageById,
   metric,
   openDetailKey,
   onToggleDetail,
@@ -271,6 +284,40 @@ export default function BuildCandidateCard({
           <span className="w-full text-right text-micro text-ink-dimmer">
             {paireProvisoire ? 'artéfacts pas encore optimisés' : ' '}
           </span>
+        </p>
+      )}
+
+      {/* ⚠️ **Relique — quatre états, une seule source** (implementation-
+          relique, B.5c) : `fixe` (hors mode `recherche`) et `rejete` (jamais
+          affiché, le classement l'a déjà écarté) ne rendent rien de nouveau
+          ici — seuls `en attente` et `resolue` ajoutent une ligne. */}
+      {etatRelique?.etat === 'en attente' && (
+        <p className="mb-2 flex items-center justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
+          <span className="text-micro text-ink-dim">Relique</span>
+          <span className="text-micro text-ink-dimmer">en attente</span>
+        </p>
+      )}
+      {etatRelique?.etat === 'resolue' && (
+        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
+          <span className="text-micro text-ink-dim">Relique</span>
+          <span className="flex flex-col items-end">
+            <span className="font-mono text-sm font-bold text-star">
+              {RELIC_MAIN[etatRelique.relique.main.code]?.label ?? '?'} +{etatRelique.relique.main.value}%
+            </span>
+            <span className="text-micro text-ink-dim">
+              {etatRelique.relique.unique ? (relicUniqueShortLabel(etatRelique.relique.unique.type) ?? 'type inconnu') : '—'}
+            </span>
+            <span className="font-mono text-nano text-ink-dimmer">
+              rid {etatRelique.relique.id} · {relicUsageById?.[etatRelique.relique.id] ?? 1} / 150
+            </span>
+          </span>
+          {(etatRelique.sansEffetSurLeTri || etatRelique.equipeeExclue) && (
+            <span className="w-full text-right text-micro text-ink-dimmer">
+              {etatRelique.sansEffetSurLeTri && 'relique sans effet sur ce tri'}
+              {etatRelique.sansEffetSurLeTri && etatRelique.equipeeExclue && ' · '}
+              {etatRelique.equipeeExclue && 'relique équipée exclue par le filtre'}
+            </span>
+          )}
         </p>
       )}
 

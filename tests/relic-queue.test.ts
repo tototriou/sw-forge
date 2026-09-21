@@ -18,102 +18,48 @@
 // différentiel ne VAUT que sur un cas où aucune capacité n'est saturée —
 // l'instrumentation le prouve pour chaque fixture, jamais « petit volume ».
 
-import { ArtifactDetail, BaseStats, ElementKey, ArtifactArchetype, RelicDetail, RuneDetail } from '../src/types';
-import { StatKey } from '../src/lib/effects';
-import { computeStats, statsParPaire } from '../src/lib/stats';
+import { ArtifactDetail, ElementKey, ArtifactArchetype, RelicDetail } from '../src/types';
+import { computeStats } from '../src/lib/stats';
 import { RelicContext, resoudreContexteRelique } from '../src/lib/relicOptim';
 import type { RelicIntent } from '../src/hooks/useOptimizerState';
 import {
   BuildCandidate,
   RealDamageContext,
   SearchParams,
-  TraceCandidat,
-  buildBuckets,
-  candidateMetricTotal,
   objectiveScore,
-  prepareSearch,
   pvEffectifs,
-  respecteConditionsAvecRelique,
   searchBuilds,
   sortCandidates,
 } from '../src/lib/runeBuildOptim';
 import { ArtifactSearchParams, chercherPaires, respecteMinimums } from '../src/lib/artifactOptim';
-import { RegimeArtefacts, evaluerPourRegime, regimeArtefacts } from '../src/lib/artifactEvaluation';
+import { RegimeArtefacts, regimeArtefacts } from '../src/lib/artifactEvaluation';
 import { ResultatArtefacts, candidatAvecSaPaire, cleBuild, signatureReglages } from '../src/lib/artifactQueue';
 import { EntreeResolution, etatReliqueDuBuild, reliqueEquipeeExclue, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
-import { drain } from '../scripts/lib/drain';
 import { oracleSearch } from '../scripts/lib/relicOracle';
+import { ReglagesDifferentiel, Saturation, classerPerte, cle, comparerOptionA, entreeResolution, resoudreTousLesCandidats, runesDe, saturationDe } from '../scripts/lib/relicDifferentiel';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { BASE, CORPUS_5A, Fixture5a, LIBRE, params, relique, rune, six, stableStringify } from './relic-search.test';
 import { egal, ok, titre } from './outils';
 
 /* --------------------------------------------------------------------------
- * Le branchement de l'écran, reproduit TEL QUEL (OptimizerSection.tsx :
- * `faireParamsArtefacts`, `resoudreEquipement`) — aucune étape du pipeline
- * n'est réimplémentée, seuls les paramètres sont assemblés ici.
+ * Les mécanismes du différentiel vivent dans `scripts/lib/relicDifferentiel.ts`
+ * (lot 6, B.6 amendé) — extraits d'ici TELS QUELS ; ce test les réimporte et
+ * garde ses assertions de corpus : ce sont elles qui prouvent que rien n'a
+ * bougé. Le porteur des fixtures reste fixe (fire / attack) ; aucune paire
+ * figée ici (inventaires vides, la paire vide), comme au lot 5b.
  * ----------------------------------------------------------------------- */
 
 const PORTEUR = { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype };
 
-interface Reglages {
-  // Le critère effectif : `adapterAuTri ? sortBy : objective` — le régime en
-  // découle par `regimeArtefacts`, le même pour la paire et la relique (D7).
-  critere: Parameters<typeof regimeArtefacts>[0];
-  degats?: Omit<RealDamageContext, 'artefacts'> | null;
-  inventaireArtefacts?: ArtifactDetail[];
-}
-
-function regimeDe(r: Reglages): RegimeArtefacts {
-  const regime = regimeArtefacts(r.critere);
-  // Sort non calculable : rabattu sur 'aucun' AVANT l'appel (écran, `regimeEquipement`).
-  return regime === 'degats_reels' && !r.degats ? 'aucun' : regime;
-}
-
-function runesDe(p: SearchParams, c: BuildCandidate): RuneDetail[] {
-  const byId = new Map(p.pool.map((r) => [r.id, r]));
-  return c.runeIds.map((id) => byId.get(id)!).filter(Boolean);
-}
-
-// ⚠️ B.5b bis, bloquant 1 : le même calcul que `artifactParams`
-// (OptimizerSection.tsx) — les stats sous MAXIMUM ACTIF, filtrées aux
-// entrées réellement posées (> 0).
-function maxStatsActifsDe(p: SearchParams): StatKey[] {
-  return (Object.keys(p.requirement.maxStats ?? {}) as StatKey[]).filter((k) => (p.requirement.maxStats?.[k] ?? 0) > 0);
-}
+type Reglages = Omit<ReglagesDifferentiel, 'porteur'>;
 
 function entree(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: Reglages): EntreeResolution {
-  const gear = { base: p.base, runes: runesDe(p, c), artifacts: p.artifacts, relic: p.relic };
-  const regime = regimeDe(r);
-  const minimumsPoses = Object.values(p.requirement.minStats).some((v) => (v ?? 0) > 0);
-  return {
-    gear,
-    faireParams: (rel): ArtifactSearchParams => {
-      const statsAvec = statsParPaire({ ...gear, relic: rel });
-      const evaluer = regime === 'degats_reels' ? evaluerPourRegime(regime, statsAvec, r.degats!) : evaluerPourRegime(regime, statsAvec);
-      return { porteur: PORTEUR, inventaire: r.inventaireArtefacts ?? [], equipes: [], principaleParSorte: {}, maxStatsActifs: maxStatsActifsDe(p), evaluer };
-    },
-    respecteConditions: minimumsPoses ? (arts) => respecteMinimums(computeStats({ ...gear, artifacts: arts }), p.requirement.minStats) : null,
-    requirement: p.requirement,
-    regimeAucun: regime === 'aucun',
-    relicContext: ctx,
-  };
+  return entreeResolution(p, c, ctx, { ...r, porteur: PORTEUR });
 }
 
 function resoudre(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: Reglages): ResultatArtefacts {
   return resoudreEquipementDuBuild(entree(p, c, ctx, r));
-}
-
-// Le score d'un candidat RÉSOLU, par la fonction que l'oracle utilise
-// (`scoreDuCandidat`) — jamais une formule propre à ce test.
-function scoreOracle(p: SearchParams, c: BuildCandidate, realDamage?: RealDamageContext | null): number {
-  const objectif = p.objective ?? 'efficience';
-  if (objectif === 'efficience') return candidateMetricTotal(c, new Map(p.pool.map((r) => [r.id, r])), p.metric);
-  return objectiveScore(c, objectif, realDamage ?? undefined);
-}
-
-function cle(runeIds: number[]): string {
-  return [...runeIds].sort((a, b) => a - b).join(',');
 }
 
 /* --------------------------------------------------------------------------
@@ -121,63 +67,9 @@ function cle(runeIds: number[]): string {
  * contre l'oracle, sur une fixture
  * ----------------------------------------------------------------------- */
 
-type ClasseDePerte = 'faux négatif' | 'dilution' | 'tronqué';
+type ClasseDePerte = 'faux négatif' | 'dilution' | 'tronqué' | 'non observable';
 interface Perte { fixture: string; build: string; classe: ClasseDePerte; detail: string }
 const pertes: Perte[] = [];
-
-interface Saturation {
-  filterSlot: boolean;
-  compartiments: boolean;
-  maxCollected: boolean;
-  maxMs: boolean;
-  detail: string;
-}
-
-// L'instrumentation de 5a : aucune capacité saturée ? `filterSlot` (la
-// première structure BORNÉE) n'a rien retiré de ce que les élagages SÛRS
-// (dominance, faisabilité) lui ont laissé — observé par `onStage`, jamais
-// « pool filtré = pool par slot » (un élagage sûr n'est pas une capacité) —,
-// aucun compartiment n'atteint `bucketCap`, `MAX_COLLECTED` et `maxMs` non
-// atteints.
-function saturation(p: SearchParams, trace: TraceCandidat, tronque: boolean, collectes: number): Saturation {
-  const etages: Partial<Record<string, number[]>> = {};
-  const prepared = prepareSearch(p, (etage, bySlot) => { etages[etage] = bySlot.map((l) => l.length); })!;
-  const popA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA)).map((b) => b.combos.length);
-  const popB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB)).map((b) => b.combos.length);
-  const cap = prepared.bucketCap;
-  const avantFiltre = etages.feasibility ?? trace.compteurs.poolParSlot;
-  const apresFiltre = etages.filterslot ?? trace.compteurs.filtreParSlot;
-  const filterSlot = apresFiltre.some((n, i) => n < avantFiltre[i]!);
-  const compartiments = [...popA, ...popB].some((n) => n >= cap);
-  const maxCollected = collectes >= prepared.maxCollected;
-  const maxMs = tronque && !maxCollected;
-  return {
-    filterSlot,
-    compartiments,
-    maxCollected,
-    maxMs,
-    detail: `filterSlot ${apresFiltre.join('/')} sur ${avantFiltre.join('/')} après élagages sûrs (pool ${trace.compteurs.poolParSlot.join('/')}) ; compartiments A [${popA.join(',')}] B [${popB.join(',')}] / cap ${cap} ; collectés ${collectes} / ${prepared.maxCollected} ; tronqué ${tronque}`,
-  };
-}
-
-function classerPerte(p: SearchParams, runeIds: number[]): { classe: ClasseDePerte; detail: string } {
-  const r = searchBuilds({ ...p, traceur: { runeIds } });
-  const t = r.traceur!;
-  const feas = t.preparation.find((e) => e.etage === 'feasibility')?.presentes ?? [];
-  const predicats = ['bucketPairFeasibleMin', 'comboAFeasible', 'quickOkMin', 'quickOkMax', 'validationFinale'] as const;
-  const rejete = predicats.find((k) => t.appariement[k] === false);
-  if (feas.some((x) => !x) || rejete) return { classe: 'faux négatif', detail: rejete ?? 'eliminateInfeasible' };
-  const filtre = t.preparation.find((e) => e.etage === 'filterslot')?.presentes ?? [];
-  const evinceA = t.moities.A?.retenue === false;
-  const evinceB = t.moities.B?.retenue === false;
-  if (filtre.some((x) => !x)) return { classe: 'dilution', detail: `filterSlot : runes ${runeIds.filter((_, i) => !filtre[i]).join(',')} hors du pool filtré` };
-  if (evinceA || evinceB) {
-    const m = (evinceA ? t.moities.A : t.moities.B)!;
-    return { classe: 'dilution', detail: `moitié ${evinceA ? 'A' : 'B'} évincée (${m.tranches?.map((x) => `${x.nom} ${x.retenue ? 'garde' : 'évince'} ${x.taille}/${x.cap}`).join(' ; ') ?? 'tranches non observées'})` };
-  }
-  if (t.budget.tronque) return { classe: 'tronqué', detail: `budget ${t.budget.motif}` };
-  return { classe: 'faux négatif', detail: `non collecté sans explication — ${JSON.stringify(t)}` };
-}
 
 interface Differentiel {
   optimumA: { score: number; rids: number[]; cles: string[] } | null;
@@ -195,33 +87,25 @@ function differentiel(fx: Fixture5a, reglages: Reglages, realDamage?: RealDamage
 
   // L'option A : chaque candidat relâché résolu par la partie pure de la
   // file — TOUS (K = ∞), pas seulement le top-K de l'écran.
-  const resolus = relaxed.candidates
-    .map((c) => ({ c, r: resoudre(p, c, fx.ctx, reglages) }))
-    .filter(({ r }) => r.conforme)
-    .map(({ c, r }) => {
-      const enrichi = candidatAvecSaPaire(c, new Map([[cleBuild(c), r]]));
-      return { cle: cle(c.runeIds), rid: r.relique!.id, score: scoreOracle(p, enrichi, realDamage), enrichi };
-    });
+  const resolus = resoudreTousLesCandidats(p, relaxed, fx.ctx, { ...reglages, porteur: PORTEUR }, realDamage);
   // Aucun couple retenu ne viole ses conditions avec sa relique (assertion
   // finale redondante, côté test).
-  ok(
-    resolus.every(({ enrichi, rid }) => respecteConditionsAvecRelique({ base: p.base, runes: runesDe(p, enrichi), artifacts: p.artifacts }, fx.ctx.eligibles.find((r) => r.id === rid), p.requirement).respecte),
-    `${nom} : tout build retenu par A respecte minimums ET maximums avec sa relique`
-  );
+  ok(resolus.every((x) => x.conditionsRespectees), `${nom} : tout build retenu par A respecte minimums ET maximums avec sa relique`);
 
-  const faisablesA = [...new Set(resolus.map((x) => x.cle))].sort();
-  const faisablesOracle = [...new Set(oracle.candidats.map((c) => cle(c.runeIds)))].sort();
+  // La saturation, mesurée sur la trace de l'optimum de l'oracle.
+  const traceOpt = searchBuilds({ ...p, traceur: { runeIds: oracle.optimum!.runeIds } });
+  const sature = saturationDe(p, traceOpt.traceur!, relaxed.truncated, relaxed.candidates.length);
+  const cmp = comparerOptionA({ p, ctx: fx.ctx, oracle, relaxed, resolus, realDamage, traceOptimum: traceOpt.traceur, sature });
+  const { faisablesA, faisablesOracle, optimumA, optimumOracle } = cmp;
 
   // Pertes : faisable pour l'oracle, absent de A → classées par le traceur.
-  const perdus = faisablesOracle.filter((k) => !faisablesA.includes(k));
-  for (const k of perdus) {
-    const c = oracle.candidats.find((x) => cle(x.runeIds) === k)!;
-    const relache = relaxed.candidates.find((x) => cle(x.runeIds) === k);
-    if (relache) {
+  for (const k of cmp.perdus) {
+    if (cmp.rejetesParResolution.includes(k)) {
       // Candidat relâché mais rejeté par la résolution exacte alors que
       // l'oracle le trouve faisable : un faux négatif de la résolution.
       pertes.push({ fixture: nom, build: k, classe: 'faux négatif', detail: 'candidat relâché, rejeté par la résolution exacte' });
     } else {
+      const c = oracle.candidats.find((x) => cle(x.runeIds) === k)!;
       const { classe, detail } = classerPerte(p, c.runeIds);
       pertes.push({ fixture: nom, build: k, classe, detail });
     }
@@ -230,28 +114,17 @@ function differentiel(fx: Fixture5a, reglages: Reglages, realDamage?: RealDamage
   // faisable qu'avec une relique RÉELLE (vérifié ci-dessus) : un surplus ne
   // serait pas une erreur d'exactitude mais une perte de l'ORACLE par ses
   // propres structures bornées (chaque run a le même `bucketCap`).
-  const surplus = faisablesA.filter((k) => !faisablesOracle.includes(k));
-  egal(surplus, [], `${nom} : aucun build faisable pour A n'est absent de l'oracle`);
+  egal(cmp.surplus, [], `${nom} : aucun build faisable pour A n'est absent de l'oracle`);
+  egal(cmp.oracleNonConformes, [], `${nom} : tout candidat de l'oracle respecte les conditions avec la paire de référence`);
 
-  const optimum = (liste: { score: number; rid: number; cle: string }[]) => {
-    if (liste.length === 0) return null;
-    const max = Math.max(...liste.map((x) => x.score));
-    const tete = liste.filter((x) => x.score === max);
-    return { score: max, rids: [...new Set(tete.map((x) => x.rid))].sort((a, b) => a - b), cles: [...new Set(tete.map((x) => x.cle))].sort() };
-  };
-  const optimumA = optimum(resolus);
-  const optimumOracle = optimum(oracle.candidats.map((c) => ({ score: c.score, rid: c.rid ?? -1, cle: cle(c.runeIds) })));
-
-  // La saturation, mesurée sur la trace de l'optimum de l'oracle.
-  const traceOpt = searchBuilds({ ...p, traceur: { runeIds: oracle.optimum!.runeIds } });
-  const sature = saturation(p, traceOpt.traceur!, relaxed.truncated, relaxed.candidates.length);
   console.log(`  · ${nom} — saturation : ${sature.detail}`);
   const aucuneSaturee = !sature.filterSlot && !sature.compartiments && !sature.maxCollected && !sature.maxMs;
 
-  if (perdus.length === 0) {
+  if (cmp.perdus.length === 0) {
     ok(aucuneSaturee, `${nom} : aucune capacité saturée — le différentiel vaut (${sature.detail})`);
     egal(faisablesA, faisablesOracle, `${nom} : même ensemble de builds faisables que l'oracle (${faisablesA.length})`);
     egal(optimumA?.score, optimumOracle?.score, `${nom} : même score d'optimum que l'oracle (${optimumOracle?.score})`);
+    ok(cmp.fidele === true && cmp.statut === 'fidele', `${nom} : le point est fidèle (statut ${cmp.statut})`);
     if (optimumOracle && optimumOracle.rids.length === 1 && optimumA && optimumA.rids.length === 1) {
       egal(optimumA.rids[0], optimumOracle.rids[0], `${nom} : même rid d'optimum que l'oracle (${optimumOracle.rids[0]}, unique)`);
     } else {
@@ -259,8 +132,9 @@ function differentiel(fx: Fixture5a, reglages: Reglages, realDamage?: RealDamage
     }
   } else {
     const classes = pertes.filter((x) => x.fixture === nom).map((x) => `${x.build} → ${x.classe} (${x.detail})`);
-    ok(pertes.filter((x) => x.fixture === nom).every((x) => x.classe !== 'faux négatif'), `${nom} : ${perdus.length} perte(s), aucune n'est un faux négatif — ${classes.join(' | ')}`);
+    ok(pertes.filter((x) => x.fixture === nom).every((x) => x.classe !== 'faux négatif'), `${nom} : ${cmp.perdus.length} perte(s), aucune n'est un faux négatif — ${classes.join(' | ')}`);
     ok(!aucuneSaturee, `${nom} : une capacité est saturée, la perte est une dilution attendue (${sature.detail})`);
+    egal(cmp.perteOptimum?.classe, pertes.find((x) => x.fixture === nom && x.build === optimumOracle?.cles[0])?.classe, `${nom} : la perte de l'optimum classée par comparerOptionA = celle du traceur rejoué`);
     console.log(`  · ${nom} — optimum A ${JSON.stringify(optimumA)} contre oracle ${JSON.stringify(optimumOracle)}`);
   }
   return { optimumA, optimumOracle, faisablesA, faisablesOracle, sature };

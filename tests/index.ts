@@ -51,6 +51,7 @@ import testOptimizerRecipeImportSelection from './optimizer-recipe-import-select
 import testRelicOptim from './relic-optim.test';
 import testRelicOracle from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
+import testRelicQueue from './relic-queue.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
@@ -133,6 +134,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicOptim', testRelicOptim],
   ['testRelicOracle', testRelicOracle],
   ['testRelicSearch', testRelicSearch],
+  ['testRelicQueue', testRelicQueue],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

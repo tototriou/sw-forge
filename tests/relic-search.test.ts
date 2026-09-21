@@ -59,23 +59,23 @@ import { egal, ok, titre } from './outils';
 // 9 Taux Crit, 10 Dmg Crit. Sets `violent`/`will` : aucun bonus de stat
 // (SET_STAT_BONUS), donc `guaranteed`/`guaranteedMin` restent nuls et les
 // totaux se lisent directement : `B + ceil(B × (R + L) / 100)`.
-function rune(id: number, slot: number, main: [number, number], subs: [number, number][] = [], set = 'violent'): RuneDetail {
+export function rune(id: number, slot: number, main: [number, number], subs: [number, number][] = [], set = 'violent'): RuneDetail {
   return { id, slot, set, rank: 6, rarity: 5, level: 15, main: { code: main[0], value: main[1] }, subs: subs.map(([code, value]) => ({ code, value })) };
 }
 
-function relique(id: number, code: 100 | 101 | 102, value: number, type = 1, upgrade = 6): RelicDetail {
+export function relique(id: number, code: 100 | 101 | 102, value: number, type = 1, upgrade = 6): RelicDetail {
   return { id, upgrade, main: { code, value }, unique: { type, tranche: 100, percent: 1 } };
 }
 
-const BASE: BaseStats = { hp: 10000, atk: 700, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
+export const BASE: BaseStats = { hp: 10000, atk: 700, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
-const LIBRE: RelicIntent = { mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 };
+export const LIBRE: RelicIntent = { mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 };
 
 function contexte(intention: RelicIntent, equipee: RelicDetail | undefined, inventaire: RelicDetail[]): RelicContext {
   return resoudreContexteRelique(intention, equipee, inventaire);
 }
 
-function params(pool: RuneDetail[], requirement: BuildRequirement, extra: Partial<SearchParams> = {}): SearchParams {
+export function params(pool: RuneDetail[], requirement: BuildRequirement, extra: Partial<SearchParams> = {}): SearchParams {
   return {
     base: BASE,
     artifacts: [],
@@ -91,7 +91,7 @@ function params(pool: RuneDetail[], requirement: BuildRequirement, extra: Partia
 
 // Six runes, une par slot, à partir d'un gabarit — `variante(k)` produit la
 // rune du slot k (1..6).
-function six(idBase: number, variante: (slot: number, id: number) => RuneDetail): RuneDetail[] {
+export function six(idBase: number, variante: (slot: number, id: number) => RuneDetail): RuneDetail[] {
   return [1, 2, 3, 4, 5, 6].map((slot) => variante(slot, idBase + slot));
 }
 
@@ -104,13 +104,119 @@ function cles(candidats: { runeIds: number[] }[]): string[] {
 }
 
 /* --------------------------------------------------------------------------
+ * LE corpus du chantier — neuf fixtures (A–H + F bis), écrites à la main.
+ * Exporté pour que le différentiel complet du lot 5b
+ * (tests/relic-queue.test.ts) porte sur EXACTEMENT ces cas, jamais une copie.
+ * Chaque entrée : le pool de runes, l'inventaire de reliques, l'intention, les
+ * paramètres SANS contexte (`p0`) et le contexte résolu (`ctx`).
+ * ----------------------------------------------------------------------- */
+
+export interface Fixture5a {
+  nom: string;
+  pool: RuneDetail[];
+  inv: RelicDetail[];
+  intention: RelicIntent;
+  p0: SearchParams;
+  ctx: RelicContext;
+}
+
+function fixture(nom: string, pool: RuneDetail[], inv: RelicDetail[], p0: SearchParams, intention: RelicIntent = LIBRE): Fixture5a {
+  return { nom, pool, inv, intention, p0, ctx: contexte(intention, undefined, inv) };
+}
+
+export const CORPUS_5A: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'Fbis' | 'G' | 'H', Fixture5a> = (() => {
+  // A — principale HORS objectif nécessaire à un minimum (DEF 684).
+  const A = (() => {
+    const o = (slot: number, id: number) => rune(id, slot, [4, 63], [[10, 35]]);
+    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');
+    const pool = [...six(100, o), ...six(200, p)];
+    const inv = [relique(901, 102, 14), relique(902, 101, 14)];
+    return fixture('A', pool, inv, params(pool, { sets: [], minStats: { def: 684 } }));
+  })();
+  // B — deux minimums concurrents (PV ≥ 30300, DEF ≥ 1818).
+  const B = (() => {
+    const o = (slot: number, id: number) => rune(id, slot, slot <= 3 ? [2, 63] : [6, 63], [[10, 35], [9, 30]]);
+    const p = (slot: number, id: number) => rune(id, slot, slot <= 3 ? [2, 63] : [6, 63], [[2, 20], [6, 20]], 'will');
+    const pool = [...six(100, o), ...six(200, p)];
+    const inv = [relique(911, 100, 14), relique(912, 102, 14)];
+    return fixture('B', pool, inv, params(pool, { sets: [], minStats: { hp: 30300, def: 1818 } }));
+  })();
+  // C — pression sur bucketCap (10).
+  const C = (() => {
+    const o = (slot: number, id: number) => rune(id, slot, [6, 63], [[2, 10], [4, 10]]);
+    const d = (sub: [number, number]) => (slot: number, id: number) => rune(id, slot, [6, 70], [sub]);
+    const f = (sub: [number, number]) => (slot: number, id: number) => rune(id, slot, [4, 63], [sub], 'will');
+    const h = (sub: [number, number]) => (slot: number, id: number) => rune(id, slot, [2, 63], [sub]);
+    const pool = [
+      ...six(100, o),
+      ...six(400, d([10, 35])), ...six(500, d([11, 40])), ...six(600, d([12, 40])),
+      ...six(700, f([10, 35])), ...six(800, f([11, 40])),
+      ...six(900, h([10, 35])), ...six(1000, h([11, 40])),
+    ];
+    const inv = [relique(911, 100, 14), relique(912, 102, 14)];
+    return fixture('C', pool, inv, params(pool, { sets: [], minStats: { hp: 17400, def: 2784, atk: 1120 } }, { bucketCap: 10 }));
+  })();
+  // D — deux valeurs d'une même principale, non dominées.
+  const D = (() => {
+    const o = (slot: number, id: number) => rune(id, slot, [2, 63], [[10, 35]]);
+    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');
+    const pool = [...six(100, o), ...six(200, p)];
+    const inv = [relique(921, 100, 14, 16), relique(922, 100, 12, 13)];
+    return fixture('D', pool, inv, params(pool, { sets: [], minStats: { hp: 10000 + Math.ceil((10000 * (378 + 14)) / 100) } }, { objective: 'ehp' }));
+  })();
+  // E — égalités de valeurs brutes (PV, ATQ, DEF +14 %).
+  const E = (() => {
+    const o = (slot: number, id: number) => rune(id, slot, [2, 63], [[6, 20]]);
+    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [[2, 20]], 'will');
+    const pool = [...six(100, o), ...six(200, p)];
+    const inv = [relique(931, 100, 14), relique(932, 101, 14), relique(933, 102, 14)];
+    return fixture('E', pool, inv, params(pool, { sets: [], minStats: {} }, { objective: 'ehp' }));
+  })();
+  // F — minimum atteint EXACTEMENT à la frontière.
+  const F = (() => {
+    const base: BaseStats = { ...BASE, hp: 10007 };
+    const o = (slot: number, id: number) => rune(id, slot, [2, 63], [[10, 35]]);
+    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');
+    const pool = [...six(100, o), ...six(200, p)];
+    const inv = [relique(941, 100, 13), relique(942, 100, 11)];
+    const exact = 10007 + Math.ceil((10007 * (378 + 13)) / 100);
+    return fixture('F', pool, inv, { ...params(pool, { sets: [], minStats: { hp: exact } }), base });
+  })();
+  // F bis — branche MAXIMUM, base non multiple de 100, principale forcée.
+  const Fbis = (() => {
+    const base: BaseStats = { ...BASE, atk: 101 };
+    const o = (slot: number, id: number) => rune(id, slot, slot === 1 ? [4, 1] : [8, 5]);
+    const pool = six(100, o);
+    const inv = [relique(951, 101, 1)];
+    return fixture('F bis', pool, inv, { ...params(pool, { sets: [], minStats: {}, maxStats: { atk: 104 } }), base }, { mode: 'recherche', principale: 101, type: 'libre', seuil: 6 });
+  })();
+  // G — aucun minimum actif.
+  const G = (() => {
+    const o = (slot: number, id: number) => rune(id, slot, [2, 63], [[10, 35]]);
+    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');
+    const pool = [...six(100, o), ...six(200, p)];
+    const inv = [relique(961, 100, 14), relique(962, 102, 12)];
+    return fixture('G', pool, inv, params(pool, { sets: [], minStats: {} }, { objective: 'ehp' }));
+  })();
+  // H — minimums sur VIT et Taux Crit.
+  const H = (() => {
+    const o = (slot: number, id: number) => rune(id, slot, [8, 20], [[9, 10]]);
+    const p = (slot: number, id: number) => rune(id, slot, [2, 63], [[9, 5]], 'will');
+    const pool = [...six(100, o), ...six(200, p)];
+    const inv = [relique(971, 100, 14), relique(972, 101, 14), relique(973, 102, 14)];
+    return fixture('H', pool, inv, params(pool, { sets: [], minStats: { spd: 100 + 6 * 20, cr: 15 + 6 * 10 } }));
+  })();
+  return { A, B, C, D, E, F, Fbis, G, H };
+})();
+
+/* --------------------------------------------------------------------------
  * Projection algorithmique canonique (A.6 bis) — ce qui se compare octet
  * pour octet : candidats dans l'ordre rendu (ids, rid, stats, score), N,
  * population par compartiment, statut tronqué ; JSON à clés triées ; jamais
  * un temps.
  * ----------------------------------------------------------------------- */
 
-function stableStringify(v: unknown): string {
+export function stableStringify(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`;
   if (v && typeof v === 'object') {
     const o = v as Record<string, unknown>;
@@ -402,14 +508,9 @@ export default async function testRelicSearch() {
    * couvert par `tests/relic-optim.test.ts` (« minimum DEF actif → DEF %
    * pertinente même hors du scaling »). */
   {
-    const o = (slot: number, id: number) => rune(id, slot, [4, 63], [[10, 35]]);
-    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');
-    const pool = [...six(100, o), ...six(200, p)];
-    const inv = [relique(901, 102, 14), relique(902, 101, 14)];
-    const ctx = contexte(LIBRE, undefined, inv);
+    const { pool, inv, ctx, p0 } = CORPUS_5A.A;
     egal(ctx.bornes.max, { hp: 0, atk: 14, def: 14 }, 'A : bornes max = meilleure principale par statistique');
     egal(ctx.bornes.min, { hp: 0, atk: 0, def: 0 }, 'A : bornes min nulles en libre');
-    const p0 = params(pool, { sets: [], minStats: { def: 684 } });
     const { relaxed, oracle } = verifierFixture('A', p0, ctx, { optimumRunes: [101, 102, 103, 104, 105, 106], rid: 901, N: 2 });
     // Avec la relique ATQ % fixe, l'optimum est infaisable : le moteur d'avant
     // ne le trouve pas — c'est la relaxation qui le rend candidat.
@@ -441,12 +542,7 @@ export default async function testRelicSearch() {
    * borne accorde PV % +14 ET DEF % +14 à la fois ; le build O n'est faisable
    * avec AUCUNE relique seule (faux positif de la borne), le build P l'est. */
   {
-    const o = (slot: number, id: number) => rune(id, slot, slot <= 3 ? [2, 63] : [6, 63], [[10, 35], [9, 30]]);
-    const p = (slot: number, id: number) => rune(id, slot, slot <= 3 ? [2, 63] : [6, 63], [[2, 20], [6, 20]], 'will');
-    const pool = [...six(100, o), ...six(200, p)];
-    const inv = [relique(911, 100, 14), relique(912, 102, 14)];
-    const ctx = contexte(LIBRE, undefined, inv);
-    const p0 = params(pool, { sets: [], minStats: { hp: 30300, def: 1818 } });
+    const { pool, inv, ctx, p0 } = CORPUS_5A.B;
     const O = [101, 102, 103, 104, 105, 106];
     const { relaxed, oracle } = verifierFixture('B', p0, ctx, { N: 2 });
     ok(!oracle.candidats.some((c) => cle(c.runeIds) === cle(O)), 'B : O n’est candidat pour aucune relique fixe (oracle)');
@@ -475,22 +571,10 @@ export default async function testRelicSearch() {
     // (élagage sûr) retirerait des variantes qui ne diffèrent que par une
     // valeur — il faut assez de demi-builds DISTINCTS pour remplir dix places
     // par tranche.
-    const o = (slot: number, id: number) => rune(id, slot, [6, 63], [[2, 10], [4, 10]]);
-    const d = (sub: [number, number]) => (slot: number, id: number) => rune(id, slot, [6, 70], [sub]);
-    const f = (sub: [number, number]) => (slot: number, id: number) => rune(id, slot, [4, 63], [sub], 'will');
-    const h = (sub: [number, number]) => (slot: number, id: number) => rune(id, slot, [2, 63], [sub]);
-    const pool = [
-      ...six(100, o),
-      ...six(400, d([10, 35])), ...six(500, d([11, 40])), ...six(600, d([12, 40])),
-      ...six(700, f([10, 35])), ...six(800, f([11, 40])),
-      ...six(900, h([10, 35])), ...six(1000, h([11, 40])),
-    ];
-    const inv = [relique(911, 100, 14), relique(912, 102, 14)];
-    const ctx = contexte(LIBRE, undefined, inv);
     // O : PV 10000 + ceil(10000 × (60 + 14) / 100) = 17400 avec PV % +14 ;
     // DEF 600 + ceil(600 × 378 / 100) = 2868 ; ATQ 700 + ceil(700 × 60 / 100) = 1120.
     // Minimums : PV 17400, DEF 2784 (= 5 × 70 + 14 sur une rune sans DEF), ATQ 1120.
-    const p0 = params(pool, { sets: [], minStats: { hp: 17400, def: 2784, atk: 1120 } }, { bucketCap: 10 });
+    const { ctx, p0 } = CORPUS_5A.C;
     const O = [101, 102, 103, 104, 105, 106];
     const { trace, oracle } = verifierFixture('C', p0, ctx, { optimumRunes: O, rid: 911, N: 2 });
     egal(presentes(trace, 'feasibility').length, 6, 'C : la trace couvre les 6 runes');
@@ -504,16 +588,11 @@ export default async function testRelicSearch() {
    * dominées (PV % +14 / exclusive non pertinente, PV % +12 / pertinente) :
    * la borne prend 14, l'oracle garde les deux valeurs (N = 2). */
   {
-    const o = (slot: number, id: number) => rune(id, slot, [2, 63], [[10, 35]]);
-    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');
-    const pool = [...six(100, o), ...six(200, p)];
     // type 16 (Régénération) : jamais pertinente ; type 13 (Origine, PV) :
     // pertinente en PV effectifs.
-    const inv = [relique(921, 100, 14, 16), relique(922, 100, 12, 13)];
-    const ctx = contexte(LIBRE, undefined, inv);
+    const { ctx, p0 } = CORPUS_5A.D;
     egal(ctx.bornes.max.hp, 14, 'D : la borne PV prend la plus haute valeur');
     egal(ctx.eligibles.length, 2, 'D : les deux valeurs sont éligibles (aucune dominance dans le contexte)');
-    const p0 = params(pool, { sets: [], minStats: { hp: 10000 + Math.ceil((10000 * (378 + 14)) / 100) } }, { objective: 'ehp' });
     verifierFixture('D', p0, ctx, { optimumRunes: [101, 102, 103, 104, 105, 106], rid: 921, N: 2 });
   }
 
@@ -521,11 +600,7 @@ export default async function testRelicSearch() {
    * ordre d'itération ne décide — la projection relâchée et le rid oracle
    * sont les mêmes pour toute permutation de l'inventaire. */
   {
-    const o = (slot: number, id: number) => rune(id, slot, [2, 63], [[6, 20]]);
-    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [[2, 20]], 'will');
-    const pool = [...six(100, o), ...six(200, p)];
-    const inv = [relique(931, 100, 14), relique(932, 101, 14), relique(933, 102, 14)];
-    const p0 = params(pool, { sets: [], minStats: {} }, { objective: 'ehp' });
+    const { inv, p0 } = CORPUS_5A.E;
     const permutations = [inv, [inv[2], inv[0], inv[1]], [inv[1], inv[2], inv[0]]];
     const projections = permutations.map((inventaire) => projectionCanonique({ ...p0, relicContext: contexte(LIBRE, undefined, inventaire) }));
     ok(projections.every((s) => s === projections[0]), 'E : la projection relâchée ne dépend pas de l’ordre de l’inventaire');
@@ -539,14 +614,8 @@ export default async function testRelicSearch() {
   /* ── Fixture F — minimum atteint EXACTEMENT à la frontière (arrondi ceil,
    * `>=`) : base 10007, PV % +13 → 10007 + ceil(10007 × (R + 13) / 100). */
   {
-    const base: BaseStats = { ...BASE, hp: 10007 };
-    const o = (slot: number, id: number) => rune(id, slot, [2, 63], [[10, 35]]);
-    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');
-    const pool = [...six(100, o), ...six(200, p)];
-    const inv = [relique(941, 100, 13), relique(942, 100, 11)];
-    const ctx = contexte(LIBRE, undefined, inv);
+    const { ctx, p0 } = CORPUS_5A.F;
     const exact = 10007 + Math.ceil((10007 * (378 + 13)) / 100);
-    const p0 = { ...params(pool, { sets: [], minStats: { hp: exact } }), base };
     verifierFixture('F', p0, ctx, { optimumRunes: [101, 102, 103, 104, 105, 106], rid: 941, N: 2 });
     const diag = diagnoseFeasibility({ ...p0, relicContext: ctx }).find((d) => d.key === 'hp')!;
     egal(diag.bound, exact, 'F : la borne de diagnostic vaut exactement le total réel (fusion dans le ceil, pas un ceil séparé)');
@@ -559,13 +628,9 @@ export default async function testRelicSearch() {
    * forcée : B = 101, R = 1 %, Lmin = 1 %, max = 104. Réel : 101 +
    * ceil(101 × 2 / 100) = 104 faisable ; `ceil` séparé : 105 → rejeté à tort. */
   {
-    const base: BaseStats = { ...BASE, atk: 101 };
-    const o = (slot: number, id: number) => rune(id, slot, slot === 1 ? [4, 1] : [8, 5]);
-    const pool = six(100, o);
-    const inv = [relique(951, 101, 1)];
-    const ctx = contexte({ mode: 'recherche', principale: 101, type: 'libre', seuil: 6 }, undefined, inv);
+    const { pool, inv, ctx, p0 } = CORPUS_5A.Fbis;
+    const base = p0.base;
     egal(ctx.bornes.min.atk, 1, 'F bis : Lmin = 1 sur la statistique forcée');
-    const p0 = { ...params(pool, { sets: [], minStats: {}, maxStats: { atk: 104 } }), base };
     const { trace } = verifierFixture('F bis', p0, ctx, { optimumRunes: [101, 102, 103, 104, 105, 106], rid: 951, N: 1 });
     egal(trace.appariement.quickOkMax, true, 'F bis : quickOk maximum accepte (fusion dans le ceil)');
     egal(trace.appariement.validationFinale, true, 'F bis : validation finale accepte (floor(B × Lmin / 100) = 1, 103 + 1 = 104 ≤ 104)');
@@ -580,12 +645,7 @@ export default async function testRelicSearch() {
   /* ── Fixture G — aucun minimum actif : la relaxation ne change rien à la
    * population ; candidats relâchés = candidats de l'oracle. */
   {
-    const o = (slot: number, id: number) => rune(id, slot, [2, 63], [[10, 35]]);
-    const p = (slot: number, id: number) => rune(id, slot, [6, 63], [], 'will');
-    const pool = [...six(100, o), ...six(200, p)];
-    const inv = [relique(961, 100, 14), relique(962, 102, 12)];
-    const ctx = contexte(LIBRE, undefined, inv);
-    const p0 = params(pool, { sets: [], minStats: {} }, { objective: 'ehp' });
+    const { ctx, p0 } = CORPUS_5A.G;
     const { relaxed, oracle } = verifierFixture('G', p0, ctx, { N: 2 });
     egal(cles(relaxed.candidates), cles(oracle.candidats), 'G : mêmes candidats (ids) que l’oracle');
     egal(relaxed.candidates.length, 64, 'G : les 2⁶ builds sont candidats');
@@ -595,12 +655,7 @@ export default async function testRelicSearch() {
    * modifie pas : aucune fausse pertinence, mêmes candidats que l'oracle,
    * mêmes verdicts de diagnostic avec ou sans contexte. */
   {
-    const o = (slot: number, id: number) => rune(id, slot, [8, 20], [[9, 10]]);
-    const p = (slot: number, id: number) => rune(id, slot, [2, 63], [[9, 5]], 'will');
-    const pool = [...six(100, o), ...six(200, p)];
-    const inv = [relique(971, 100, 14), relique(972, 101, 14), relique(973, 102, 14)];
-    const ctx = contexte(LIBRE, undefined, inv);
-    const p0 = params(pool, { sets: [], minStats: { spd: 100 + 6 * 20, cr: 15 + 6 * 10 } });
+    const { ctx, p0 } = CORPUS_5A.H;
     const { relaxed, oracle } = verifierFixture('H', p0, ctx, { optimumRunes: [101, 102, 103, 104, 105, 106], N: 3 });
     egal(cles(relaxed.candidates), cles(oracle.candidats), 'H : mêmes candidats (ids) que l’oracle');
     egal(diagnoseFeasibility({ ...p0, relicContext: ctx }), diagnoseFeasibility(p0), 'H : diagnostic identique avec et sans contexte (VIT, Taux Crit)');

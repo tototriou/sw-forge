@@ -401,6 +401,13 @@ const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
 // relique). `truncate` tronque la valeur FERMÉE par « … » ; la liste
 // ouverte garde le texte complet (comportement natif du `<select>`).
 const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
+// ⚠️ Même principe pour les LIBELLÉS des deux rangées (Attribut / Type et
+// Principale / Propriété unique / Niveau minimum) : une largeur commune,
+// dimensionnée sur le plus long (« Propriété unique »), sans quoi les
+// boutons de la seconde rangée ne tombent pas sous ceux de la première —
+// « Type » et « Propriété unique » doivent être alignés (demande explicite,
+// vue sur le rendu du lot 5c quater).
+const LARGEUR_LIBELLE_LISTE = 'w-28';
 
 export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
@@ -3632,7 +3639,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           <div className="flex flex-wrap gap-3">
             {ARTIFACT_KINDS.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1.5">
-                <span className="text-xs text-ink w-14">{label}</span>
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>{label}</span>
                 {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
                     d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
                     Ce sélecteur affichait « Garder l'artéfact équipé » tant
@@ -3739,7 +3746,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             </div>
             <div className="mt-1.5 flex flex-wrap gap-3">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-ink">Principale</span>
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Principale</span>
                 <Selecteur
                   value={String(relicMainChoice)}
                   onChange={(e) => {
@@ -3763,7 +3770,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 </Selecteur>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-ink">Propriété unique</span>
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Propriété unique</span>
                 {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (D1 :
                     la pièce est fixée) — désactivé plutôt que retiré, et le
                     dit, même règle que les sous-propriétés verrouillées sans
@@ -3801,7 +3808,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 )}
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-ink">Niveau minimum</span>
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Niveau minimum</span>
                 {/* ⚠️ Filtre d'ENTRÉE sur le pool de reliques cherché, jamais
                     un critère de classement (la dominance départage les
                     reliques qui passent le seuil). Sans effet tant que

@@ -11,6 +11,7 @@ import { parseAccountInventory, parseAccountSource } from '../../src/lib/importA
 import {
   BuildCandidate,
   Objective,
+  RechercheRefusee,
   SearchParams,
   candidateMetricTotal,
   objectiveScore,
@@ -139,6 +140,14 @@ export function oracleSearch(
   relicContext: RelicContext,
   options: { realDamage?: RealDamageContext | null } = {}
 ): OracleResult {
+  // Même classe de refus que le moteur, jamais un « 0 résultat » ordinaire
+  // (revue adversariale du diff du lot 5a, BLOQUANT 2) : préexistait au lot
+  // 4, ce lot raccorde l'oracle au refus nommé de `prepareSearch`/
+  // `searchBuilds`/`runSearchToCompletion`/`runPairSlice` sur le même
+  // contexte.
+  if (relicContext.mode === 'recherche' && relicContext.vide) {
+    throw new RechercheRefusee(relicContext.vide);
+  }
   const runs = oracleSearchRuns(params, relicContext);
   const runeById = new Map(params.pool.map((r) => [r.id, r]));
   const fusion = new Map<string, OracleCandidate>();
@@ -230,7 +239,19 @@ export function relicOracleCli(): void {
   }
 
   const debut = performance.now();
-  const resultat = oracleSearch(params, contexte, { realDamage });
+  let resultat: OracleResult;
+  try {
+    resultat = oracleSearch(params, contexte, { realDamage });
+  } catch (e) {
+    // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+    // imprimé tel quel, comme `optimizer-search.ts`, jamais présenté comme
+    // « 0 build ».
+    if (e instanceof RechercheRefusee) {
+      process.stderr.write(`\n${e.message}\n`);
+      process.exit(2);
+    }
+    throw e;
+  }
   const ms = performance.now() - debut;
   process.stdout.write(JSON.stringify({
     case: label,

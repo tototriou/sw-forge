@@ -1,7 +1,7 @@
 import { activeSets } from '../src/lib/effects';
 import { parseAccountBox, parseAccountInventory, parseAccountSource } from '../src/lib/importAccount';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
-import { objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
+import { RechercheRefusee, objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { computeStats } from '../src/lib/stats';
 import { RelicDetail } from '../src/types';
@@ -144,6 +144,30 @@ export default function testRelicOracle() {
   egal(oracleB1.N, 2, 'B1 : les deux valeurs de principale restent des recherches distinctes');
   egal(oracleB1.candidats.length, 1, 'B1 : le build faisable avec +12 est trouvé malgré le +14 infaisable');
   egal(oracleB1.rid, basse.id, 'B1 : l’optimum faisable porte la PV % +12');
+
+  /* ── Refus nommé : pool vide en mode recherche — même classe que le moteur
+   * (revue adversariale du diff du lot 5a, BLOQUANT 2 : l'oracle rendait
+   * { candidats: [], optimum: null, N: 0 } au lieu de lever). */
+  {
+    const contexteVide = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, undefined, []);
+    egal(contexteVide.vide, 'inventaire', 'refus oracle : inventaire vide → vide inventaire');
+    let refusOracle: unknown = null;
+    try {
+      oracleSearch(params, contexteVide);
+    } catch (e) {
+      refusOracle = e;
+    }
+    let refusMoteur: unknown = null;
+    try {
+      searchBuilds({ ...params, relicContext: contexteVide });
+    } catch (e) {
+      refusMoteur = e;
+    }
+    ok(refusOracle instanceof RechercheRefusee, 'refus oracle : RechercheRefusee levée par oracleSearch');
+    ok(refusMoteur instanceof RechercheRefusee, 'refus oracle : RechercheRefusee levée par searchBuilds');
+    egal((refusOracle as RechercheRefusee).motif, (refusMoteur as RechercheRefusee).motif, 'refus oracle : même motif nommé que le moteur');
+    egal((refusOracle as RechercheRefusee).vide, (refusMoteur as RechercheRefusee).vide, 'refus oracle : même vide que le moteur');
+  }
 
   const recetteDegats = {
     objective: 'degats_reels',

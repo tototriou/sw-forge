@@ -394,6 +394,14 @@ const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
   { key: 'reel', label: 'Dégâts réels' },
 ];
 
+// ⚠️ **Largeur fixe et commune** aux quatre listes de la carte « Artéfacts
+// et reliques » (Attribut, Type, Principale, Propriété unique) — un
+// `<select>` natif sans largeur explicite prend celle de sa plus longue
+// option (« Soins et boucliers accordés en fonction des PV » pour la
+// relique). `truncate` tronque la valeur FERMÉE par « … » ; la liste
+// ouverte garde le texte complet (comportement natif du `<select>`).
+const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
+
 export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
@@ -3645,6 +3653,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   taille="sm"
                   surface="panel2"
                   pleineLargeur={false}
+                  className={LARGEUR_SELECTEUR_LISTE}
                 >
                   {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
                       ce choix conserve la PIÈCE entière — le pool tombe à un
@@ -3742,6 +3751,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   taille="sm"
                   surface="panel2"
                   pleineLargeur={false}
+                  className={LARGEUR_SELECTEUR_LISTE}
                 >
                   <option value="equipped">Garder la relique équipée</option>
                   <option value="libre">Libre</option>
@@ -3767,6 +3777,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   taille="sm"
                   surface="panel2"
                   pleineLargeur={false}
+                  className={LARGEUR_SELECTEUR_LISTE}
                   disabled={relicMainChoice === 'equipped'}
                   title={relicMainChoice === 'equipped' ? 'Sans effet : la relique équipée est fixée' : undefined}
                 >

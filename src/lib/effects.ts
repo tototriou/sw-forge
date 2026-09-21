@@ -119,6 +119,18 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
   102: { label: 'DEF', stat: 'def' },
 };
 
+// Options du sélecteur « Relique — principale » (implementation-relique,
+// B.5c) — qualifiées comme les entrées d'artéfact qui FILTRENT réellement
+// par stat principale (`ARTIFACT_MAIN_OPTIONS`, runeBuildOptim.ts) : « Comme
+// équipé » lu au milieu de trois statistiques se lisait « la principale,
+// comme équipé » (incident artéfacts). Le « % » distingue la relique de
+// l'artéfact (plat) — même stat, sémantique différente (A.1).
+export const RELIC_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
+  { code: 101, label: 'Principale ATQ %' },
+  { code: 102, label: 'Principale DEF %' },
+  { code: 100, label: 'Principale PV %' },
+];
+
 // Rareté → libellé + couleur de texte + fond de bannière (dégradé sombre),
 // façon bannière du jeu (ex. Légendaire = orange sur bordeaux).
 //
@@ -626,7 +638,7 @@ const R_PV = { phrase: 'du max des PV', court: 'PV' };
 const R_VIT = { phrase: 'de VIT', court: 'VIT' };
 
 type RelicGroupe = (percent: number, tranche: string, stat: string) => string;
-type RelicGroupeNom = 'conquete' | 'tenacite' | 'bravoure' | 'eternite' | 'origine' | 'regeneration';
+export type RelicGroupeNom = 'conquete' | 'tenacite' | 'bravoure' | 'eternite' | 'origine' | 'regeneration';
 
 // Les six groupes, dans la formulation de la FICHE D'OBJET — relevée sur des
 // pièces réelles pour Conquête, Ténacité, Bravoure et Origine ; Éternité et
@@ -673,6 +685,27 @@ export const RELIC_UNIQUE: Record<number, { effet: RelicGroupe; groupe: RelicGro
 // ⚠️ Le pourcentage peut manquer (fichier de prépa exporté par une version
 // antérieure, qui ne transportait que le type et la tranche) : on annonce alors
 // la tranche seule, plutôt qu'un « +0 % » qui serait faux.
+// Libellé COURT d'un type de propriété unique — groupe + stat de référence
+// (« Conquête · ATQ »), pour le sélecteur « Relique — propriété unique »
+// (implementation-relique, B.5c) et l'affichage compact d'une carte
+// candidat : `formatRelicUnique` ci-dessous reste la PHRASE complète du jeu
+// (tranche + pourcentage), trop longue pour ces deux usages. DÉRIVÉ de
+// `RELIC_UNIQUE`, jamais une table séparée qui pourrait diverger
+// (game-data-curation).
+const RELIC_GROUPE_LABEL: Record<RelicGroupeNom, string> = {
+  conquete: 'Conquête',
+  tenacite: 'Ténacité',
+  bravoure: 'Bravoure',
+  eternite: 'Éternité',
+  origine: 'Origine',
+  regeneration: 'Régénération',
+};
+
+export function relicUniqueShortLabel(type: number): string | undefined {
+  const def = RELIC_UNIQUE[type];
+  return def ? `${RELIC_GROUPE_LABEL[def.groupe]} · ${def.stat.court}` : undefined;
+}
+
 export function formatRelicUnique(u: RelicUnique): string {
   const nombre = u.tranche.toLocaleString('fr-FR');
   const def = RELIC_UNIQUE[u.type];

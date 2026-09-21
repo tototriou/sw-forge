@@ -83,6 +83,31 @@ export interface RelicIntent {
   seuil: number;
 }
 
+/**
+ * Le constructeur ÉCRAN de `RelicIntent` (second constructeur attendu par
+ * B.2, lot 5c) — mêmes règles que `recipeToRelicIntent`
+ * (scripts/lib/recipeToSearchParams.ts), appliquées aux quatre champs de
+ * `OptimizerState` au lieu d'une `OptimizerRecipe` : `mode: 'off'` suit
+ * l'interrupteur (D1, aucun interrupteur propre à la relique — T2),
+ * `'equipped'` si la principale l'est (le type est alors sans effet, D1),
+ * `'recherche'` sinon. `run()` (OptimizerSection.tsx) l'appelle pour poser
+ * `SearchParams.relicContext` — troisième producteur attendu par B.5a, à
+ * côté du CLI (`recipeToRelicIntent`) et de l'oracle.
+ */
+export function relicIntentDepuisEtat(
+  optimiserArtefacts: boolean,
+  relicMainChoice: RelicMainChoice,
+  relicUniqueChoice: RelicUniqueChoice,
+  relicMinUpgrade: number
+): RelicIntent {
+  return {
+    mode: !optimiserArtefacts ? 'off' : relicMainChoice === 'equipped' ? 'equipped' : 'recherche',
+    principale: relicMainChoice,
+    type: relicUniqueChoice,
+    seuil: relicMinUpgrade,
+  };
+}
+
 // Toute la SAISIE de l'écran Outils → Optimizer, remontée ici (instancié dans
 // App.tsx, jamais démonté) pour survivre à un changement d'onglet : comme les
 // autres pages de l'app, OptimizerSection est démontée à chaque navigation —

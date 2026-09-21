@@ -20,7 +20,7 @@
 import { readFileSync } from 'fs';
 import { egal, ok, titre } from './outils';
 import { buildOptimizerRecipe, parseOptimizerRecipe, relicMainPourCeCompte } from '../src/lib/optimizerRecipe';
-import { defaultRelicMainChoice } from '../src/hooks/useOptimizerState';
+import { defaultRelicMainChoice, relicIntentDepuisEtat } from '../src/hooks/useOptimizerState';
 import { recipeToRelicIntent } from '../scripts/lib/recipeToSearchParams';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
@@ -170,5 +170,43 @@ function testRecetteRelique() {
     // la relique portée — pas d'interrupteur propre à la relique (T2).
     const interrupteurCoupe = recipeToRelicIntent({ ...recetteAncienne, ignoreArtifacts: true }, monstreCharge({ id: 7, upgrade: 6, main: { code: 100, value: 11 } }));
     egal(interrupteurCoupe.mode, 'off', "« Activer l'optimisation d'artéfacts » coupé : mode « off » pour la relique aussi (D1)");
+  }
+
+  // Lot 5c (B.5c, contrat) : « même recette → même RelicIntent par les deux
+  // constructeurs » — `relicIntentDepuisEtat` (le constructeur ÉCRAN, depuis
+  // `OptimizerState`) doit produire EXACTEMENT le même `RelicIntent` que
+  // `recipeToRelicIntent` (le constructeur CLI, depuis `OptimizerRecipe`)
+  // pour un même jeu de valeurs — la garantie G (un seul point de lecture)
+  // ne tient que si les deux constructeurs convergent.
+  {
+    const relique = { id: 7, upgrade: 6, main: { code: 100, value: 11 } };
+
+    // Trois recettes couvrant les trois modes.
+    const recetteLibre = { ...recetteDeBase(), relicMainChoice: 101 as const, relicUniqueChoice: 7, relicMinUpgrade: 9 };
+    const recetteEquipee = { ...recetteDeBase(), relicMainChoice: 'equipped' as const };
+    const recetteCoupee = { ...recetteDeBase(), ignoreArtifacts: true, relicMainChoice: 101 as const };
+
+    for (const recette of [recetteLibre, recetteEquipee, recetteCoupee]) {
+      const depuisCli = recipeToRelicIntent(recette, monstreCharge(relique));
+      const depuisEcran = relicIntentDepuisEtat(
+        !recette.ignoreArtifacts,
+        recette.relicMainChoice ?? defaultRelicMainChoice(relique),
+        recette.relicUniqueChoice ?? 'libre',
+        recette.relicMinUpgrade ?? 6
+      );
+      egal(depuisEcran, depuisCli, `même recette (${JSON.stringify(recette.relicMainChoice)}) → même RelicIntent, écran comme CLI`);
+    }
+
+    // Recette ANCIENNE (avant le lot 2, aucun des trois champs) : les deux
+    // constructeurs retombent sur le même défaut D1 — ici avec relique portée.
+    const ancienne = recetteDeBase();
+    const depuisCliAncienne = recipeToRelicIntent(ancienne, monstreCharge(relique));
+    const depuisEcranAncienne = relicIntentDepuisEtat(
+      true,
+      defaultRelicMainChoice(relique),
+      'libre',
+      6
+    );
+    egal(depuisEcranAncienne, depuisCliAncienne, 'recette ancienne (sans les trois champs) : même défaut D1 des deux côtés');
   }
 }

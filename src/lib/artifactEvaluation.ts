@@ -33,6 +33,23 @@ export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
   return 'aucun';
 }
 
+/**
+ * Le régime EFFECTIF de l'ÉQUIPEMENT COMPLET — paire d'artéfacts ET relique,
+ * un seul régime pour les deux (D7, implementation-relique) : rabat
+ * `'degats_reels'` sur `'aucun'` tant qu'aucun sort n'est calculable pour ce
+ * monstre, sinon le régime brut tel quel.
+ *
+ * ⚠️ **C'est CE régime, jamais le brut, qui doit alimenter la signature de
+ * cache et le choix de paire/relique** (B.5b bis, contrôle 4 — un bug a
+ * laissé passer le régime brut dans la signature) : pendant la transition
+ * « sort indisponible → calculable » (le contexte de dégâts passe de
+ * `null`/absent à disponible), le régime brut reste `'degats_reels'` dans
+ * les deux cas — un cache indexé dessus resterait périmé.
+ */
+export function regimeEquipementDe(regime: RegimeArtefacts, contexteDegatsDisponible: boolean): RegimeArtefacts {
+  return regime === 'degats_reels' && !contexteDegatsDisponible ? 'aucun' : regime;
+}
+
 // Le choix de paire recalcule SON profil d'artéfacts, mais doit recevoir tout
 // le reste du même contexte que `objectiveScore`. Le dériver du type moteur
 // rend toute future extension de `RealDamageContext` obligatoire ici aussi :

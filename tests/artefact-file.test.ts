@@ -6,7 +6,8 @@
 // qui a besoin d'un navigateur) ni sur le choix de la paire (artefact-optim).
 
 import { BuildCandidate } from '../src/lib/runeBuildOptim';
-import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, prochainsATraiter, signatureReglages } from '../src/lib/artifactQueue';
+import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, prochainsATraiter, signatureReglages, signatureArtefacts } from '../src/lib/artifactQueue';
+import { regimeEquipementDe } from '../src/lib/artifactEvaluation';
 import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
@@ -219,6 +220,69 @@ export default function testArtefactFile() {
       signatureReglages({ ...base, requirement: { minStats: { ...base.requirement.minStats }, maxStats: { ...base.requirement.maxStats } } }),
       s,
       '… mais le MÊME requirement (copie) ne change rien'
+    );
+  }
+
+  titre('File d’artéfacts — signatureArtefacts (la closure de l’écran, extraite, B.5c)');
+
+  {
+    // ⚠️ `signatureArtefacts` (artifactQueue.ts) est la closure d'écran
+    // extraite : elle n'assemble RIEN de nouveau, elle relaie `regimeEquipement`
+    // vers `objective` (signatureReglages) sous un nom qui protège CONTRE le
+    // bug déjà survenu (B.5b bis, contrôle 4 : le mauvais régime — brut,
+    // `regimePaire` — passait à la place de l'effectif).
+    const base2 = {
+      monstreCom2usId: 14311,
+      damageSetup: { skillCom2usId: 4713, enemyElement: null, atkBuff: false, enemyHpPct: 100, enemyDef: 1000, critMode: 'crit' },
+      regimeEquipement: 'aucun',
+      ignoreArtifacts: false,
+      principaleParSorte: {},
+      lignesVerrouillees: [] as { code: number; min: number }[],
+      relique: null as unknown,
+      nbArtefacts: 10,
+      empreinteRelique: null as string | null,
+      requirement: { minStats: {}, maxStats: {} },
+    };
+    const s2 = signatureArtefacts(base2);
+    egal(
+      s2,
+      signatureReglages({ ...base2, objective: base2.regimeEquipement }),
+      'signatureArtefacts n’est qu’un adaptateur de noms vers signatureReglages (objective = regimeEquipement)'
+    );
+
+    // ⚠️ **Le contrôle 4 lui-même** : pendant la transition « sort
+    // indisponible → calculable », `regimePaire` reste `'degats_reels'` dans
+    // les deux cas — seul `regimeEquipementDe` distingue les deux, en
+    // rabattant sur `'aucun'` tant que le contexte de dégâts manque. La
+    // signature DOIT donc changer entre les deux — sinon la file resservirait
+    // une paire choisie sous le régime `'aucun'` une fois le sort calculable.
+    egal(regimeEquipementDe('degats_reels', false), 'aucun', 'rabattue sur "aucun" tant que le contexte de dégâts manque');
+    egal(regimeEquipementDe('degats_reels', true), 'degats_reels', '… et laissée telle quelle une fois calculable');
+    egal(regimeEquipementDe('ehp', false), 'ehp', 'un régime hors "degats_reels" n’est jamais rabattu');
+    const indisponible = signatureArtefacts({ ...base2, regimeEquipement: regimeEquipementDe('degats_reels', false) });
+    const calculable = signatureArtefacts({ ...base2, regimeEquipement: regimeEquipementDe('degats_reels', true) });
+    ok(indisponible !== calculable, 'la transition « sort indisponible → calculable » change la signature (contrôle 4)');
+
+    // `requirement` et `empreinteRelique` traversent l’adaptateur jusqu’à la
+    // signature (déjà prouvés sur `signatureReglages` ci-dessus — ici on
+    // vérifie qu’ils survivent à travers `signatureArtefacts`, pas seulement
+    // dans la fonction sous-jacente).
+    ok(
+      signatureArtefacts({ ...base2, requirement: { minStats: { atk: 100 }, maxStats: {} } }) !== s2,
+      'requirement traverse l’adaptateur jusqu’à la signature'
+    );
+    ok(
+      signatureArtefacts({ ...base2, empreinteRelique: 'recherche|1:100:14:6:1/100/1|libre|libre|6' }) !== s2,
+      'empreinteRelique aussi'
+    );
+
+    // Un réglage SANS effet (minimum nul dans une ligne verrouillée, déjà
+    // prouvé sur `signatureReglages`) ne change rien à travers l’adaptateur
+    // non plus.
+    egal(
+      signatureArtefacts({ ...base2, lignesVerrouillees: [{ code: 409, min: 0 }] }),
+      s2,
+      'un réglage sans effet (minimum nul) ne change pas la signature'
     );
   }
 

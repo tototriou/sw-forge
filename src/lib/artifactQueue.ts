@@ -265,6 +265,43 @@ export function signatureReglages(parts: {
 }
 
 /**
+ * La signature de cache de LA CARTE « Artéfacts » de l'écran — la closure
+ * `signatureArtefacts` d'`OptimizerSection.tsx` (implementation-relique,
+ * B.5c) sortie ici pour être testable : elle ne fait qu'assembler les
+ * réglages de l'écran dans les noms génériques de `signatureReglages`
+ * ci-dessus, mais c'est CET assemblage qui a déjà divergé une fois
+ * (B.5b bis, contrôle 4 : `objective` recevait le régime BRUT au lieu du
+ * régime EFFECTIF, `regimeEquipement` — voir `regimeEquipementDe`,
+ * artifactEvaluation.ts). `regimeEquipement` est déjà résolu par l'appelant
+ * (une seule dérivation, jamais recopiée ici).
+ */
+export function signatureArtefacts(parts: {
+  monstreCom2usId: number;
+  damageSetup: unknown;
+  regimeEquipement: string;
+  ignoreArtifacts: boolean;
+  principaleParSorte: Record<string, unknown>;
+  lignesVerrouillees: { code: number; min: number }[];
+  relique: unknown;
+  nbArtefacts: number;
+  empreinteRelique: string | null;
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>;
+}): string {
+  return signatureReglages({
+    monstreCom2usId: parts.monstreCom2usId,
+    damageSetup: parts.damageSetup,
+    objective: parts.regimeEquipement,
+    ignoreArtifacts: parts.ignoreArtifacts,
+    principaleParSorte: parts.principaleParSorte,
+    lignesVerrouillees: parts.lignesVerrouillees,
+    relique: parts.relique,
+    nbArtefacts: parts.nbArtefacts,
+    empreinteRelique: parts.empreinteRelique,
+    requirement: parts.requirement,
+  });
+}
+
+/**
  * Départage CANONIQUE à score égal : `rid` de la relique retenue croissant,
  * puis `cleBuild` — la convention du contrat (B.5b bis, mineur de la revue),
  * la même que l'oracle (`bestRelicForBuild`, `relicOptim.ts`).

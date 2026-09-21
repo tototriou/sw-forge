@@ -3030,9 +3030,12 @@ function deriveMinMaxContext(
   // d'avant. En mode recherche : `bornes.max` côté minimum, `bornes.min` côté
   // maximum, et `relic` n'est PAS lu (sinon l'équipée s'additionnerait à la
   // candidate — garantie G).
-  const relPctFige = relicPctBonus(relic);
-  const relPctMax: Record<string, number> = relicRelache ? { ...relicContext!.bornes.max } : relPctFige;
-  const relPctMin: Record<string, number> = relicRelache ? { ...relicContext!.bornes.min } : relPctFige;
+  // ⚠️ Calculé SEULEMENT hors mode recherche (revue adversariale du diff du
+  // lot 5a, « ce qui tient ») : en mode recherche, `relPctMax`/`relPctMin`
+  // valent `relicContext.bornes`, cet appel restait inutilisé.
+  const relPctFige = relicRelache ? undefined : relicPctBonus(relic);
+  const relPctMax: Record<string, number> = relicRelache ? { ...relicContext!.bornes.max } : relPctFige!;
+  const relPctMin: Record<string, number> = relicRelache ? { ...relicContext!.bornes.min } : relPctFige!;
   const baseRec = base as unknown as Record<string, number>;
   const estPct = (k: StatKey) => k === 'hp' || k === 'atk' || k === 'def';
   function totalOf(k: StatKey, pct: number, flat: number): number {

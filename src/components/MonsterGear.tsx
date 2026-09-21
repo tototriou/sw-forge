@@ -46,9 +46,21 @@ interface Props {
    */
   selection?: Selected;
   onSelectionChange?: (s: Selected) => void;
+  // Occupation par `rid` (`n / 150`, D3), affichée dans le détail de la
+  // relique — SEUL l'Optimizer la fournit (implementation-relique, B.5c ter) :
+  // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion — hors
+  // périmètre de ce lot, aucune ligne de compteur n'y apparaît, comme avant.
+  relicUsageById?: Record<number, number>;
 }
 
-export default function MonsterGear({ gear, spdCible = null, scale, selection, onSelectionChange }: Props) {
+export default function MonsterGear({
+  gear,
+  spdCible = null,
+  scale,
+  selection,
+  onSelectionChange,
+  relicUsageById,
+}: Props) {
   const stats = computeStats(gear);
   const [selInterne, setSelInterne] = useState<Selected>(null);
   // ⚠️ `selection !== undefined` distingue « contrôlé » de « non contrôlé »,
@@ -186,7 +198,7 @@ export default function MonsterGear({ gear, spdCible = null, scale, selection, o
     ) : sel?.kind === 'artifact' && gear.artifacts[sel.i] ? (
       <ArtifactDetailBox artifact={gear.artifacts[sel.i]} />
     ) : sel?.kind === 'relic' && gear.relic ? (
-      <RelicDetailBox relic={gear.relic} />
+      <RelicDetailBox relic={gear.relic} count={relicUsageById?.[gear.relic.id]} />
     ) : null;
 
   return (
@@ -379,7 +391,7 @@ export default function MonsterGear({ gear, spdCible = null, scale, selection, o
                 >
                   {/* Non-null : `RelicSlot` n'invoque `renderOverlay` que dans
                       sa branche « relique présente ». */}
-                  <RelicDetailBox relic={gear.relic!} encadre={false} />
+                  <RelicDetailBox relic={gear.relic!} count={relicUsageById?.[gear.relic!.id]} encadre={false} />
                 </FlottantAuto>
               )
         }

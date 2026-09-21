@@ -189,6 +189,10 @@ interface Props {
   // rôle qu'`artifacts` ci-dessus pour la dimension relique : le pool que
   // `resoudreContexteRelique` filtre en mode `recherche`.
   relics: RelicDetail[];
+  // Occupation par `rid` — combien d'exemplaires du compte portent CETTE
+  // relique, affiché `n / 150` dans le détail d'une relique (D3 : AFFICHÉE,
+  // jamais bloquante ni exclusive — implementation-relique, B.5c ter).
+  relicUsageById: Record<number, number>;
   // Remontée dans App.tsx (voir useOptimizerState) : la page est démontée à
   // chaque changement d'onglet, comme les autres pages de l'app — sans cette
   // remontée, toute la saisie (monstre, conditions, résultats…) serait
@@ -390,7 +394,7 @@ const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
   { key: 'reel', label: 'Dégâts réels' },
 ];
 
-export default function OptimizerSection({ box, runes, artifacts, relics, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
+export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -3179,7 +3183,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
             </div>
             <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
               {validatedBadge}
-              <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
+              <MonsterGear
+                gear={selected?.gear ?? EMPTY_GEAR}
+                selection={selectionFiche}
+                onSelectionChange={setSelectionFiche}
+                relicUsageById={relicUsageById}
+              />
               {validateBuildButton}
             </div>
           </div>
@@ -3245,7 +3254,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
               plus haut (`validatedBadge`/`validateBuildButton`). */}
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
             {validatedBadge}
-            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
+            <MonsterGear
+              gear={selected?.gear ?? EMPTY_GEAR}
+              selection={selectionFiche}
+              onSelectionChange={setSelectionFiche}
+              relicUsageById={relicUsageById}
+            />
               {validateBuildButton}
           </div>
         </div>
@@ -4842,6 +4856,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
                 // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
                 // classement écarte déjà ces builds, B.5b).
                 etatRelique={etatReliqueDuBuild(fileArtefacts.parBuild.get(cleBuild(c)), relicContextRecherche, selected?.gear.relic)}
+                relicUsageById={relicUsageById}
                 // ⚠️ Signalé SEULEMENT quand la file tourne pour de bon : hors
                 // « Dégâts réels » ou file inactive, il n'y a rien à attendre,
                 // et annoncer une optimisation qui n'aura pas lieu serait faux.

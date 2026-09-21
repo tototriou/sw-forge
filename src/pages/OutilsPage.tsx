@@ -18,6 +18,10 @@ interface Props {
   // Inventaire COMPLET de reliques (implementation-relique, B.5c) — même
   // rôle qu'`artifacts` ci-dessus pour la dimension relique de la recherche.
   relics: RelicDetail[];
+  // Occupation par `rid` (nombre d'exemplaires du compte qui la portent),
+  // affichée `n / 150` dans le détail d'une relique (implementation-relique,
+  // D3, B.5c ter) — jamais bloquante.
+  relicUsageById: Record<number, number>;
   loadState: LoadState;
   hydrating?: boolean;
   optimizer: OptimizerState;
@@ -40,7 +44,7 @@ interface Props {
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, artifacts, relics, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
+export default function OutilsPage({ sub, box, runes, artifacts, relics, relicUsageById, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
   // Speed tuning ne dépend PAS d'un compte importé : on ajoute n'importe quel
   // monstre du bestiaire et on saisit sa vitesse de runes à la main. Il passe
   // donc AVANT la garde « aucune donnée de compte » (propre à l'Optimizer).
@@ -87,6 +91,7 @@ export default function OutilsPage({ sub, box, runes, artifacts, relics, loadSta
           runes={runes}
           artifacts={artifacts}
           relics={relics}
+          relicUsageById={relicUsageById}
           optimizer={optimizer}
           allMonsters={allMonsters}
           rtaEntries={rtaEntries}

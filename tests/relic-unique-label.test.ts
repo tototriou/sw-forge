@@ -10,8 +10,11 @@
 // le nôtre, pas une nouvelle mécanique déduite. Ce test vérifie que les 16
 // types du corpus produisent bien 16 libellés DISTINCTS, sans « type
 // inconnu » — contrat du lot B.5c bis.
+//
+// `formatRelicUsage` (B.5c ter) : compteur `n / 150` réintroduit dans
+// `RelicDetailBox` — D3, ../spec/outils/optimizer/reliques.md § 7.
 
-import { RELIC_UNIQUE, relicUniqueEffectLabel } from '../src/lib/effects';
+import { RELIC_MAX_INSTANCES, RELIC_UNIQUE, formatRelicUsage, relicUniqueEffectLabel } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
 
 export default function testRelicUniqueLabel() {
@@ -43,4 +46,11 @@ export default function testRelicUniqueLabel() {
   );
 
   egal(relicUniqueEffectLabel(999), undefined, 'un type hors corpus reste `undefined`, jamais deviné');
+
+  titre('Relique — compteur d’occupation (n / 150, D3)');
+
+  egal(RELIC_MAX_INSTANCES, 150, 'la constante nommée vaut 150 (valeur de jeu au 2026-09)');
+  egal(formatRelicUsage(1), 'Équipée sur 1 exemplaire / 150', 'singulier à 1 exemplaire');
+  egal(formatRelicUsage(96), 'Équipée sur 96 exemplaires / 150', 'pluriel au-delà de 1');
+  egal(formatRelicUsage(150), 'Équipée sur 150 exemplaires / 150', 'au plafond : affiché, jamais opposé');
 }

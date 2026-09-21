@@ -32,6 +32,10 @@ interface Props {
    * relique, la case reste affichée, grisée « aucune ».
    */
   etatRelique?: EtatRelique;
+  // Occupation par `rid` (`n / 150`, D3), affichée dans le détail de la
+  // relique — nécessaire seulement quand `etatRelique.etat === 'resolue'` ou
+  // `'fixe'` avec une relique (implementation-relique, B.5c ter).
+  relicUsageById?: Record<number, number>;
   // La paire de CE build n'a pas encore été calculée : celle affichée est la
   // paire supposée, commune. Dit explicitement plutôt que laissé croire.
   paireProvisoire?: boolean;
@@ -151,6 +155,7 @@ export default function BuildCandidateCard({
   runeById,
   artifacts,
   etatRelique,
+  relicUsageById,
   metric,
   openDetailKey,
   onToggleDetail,
@@ -405,7 +410,11 @@ export default function BuildCandidateCard({
                     >
                       {/* Non-null : `RelicSlot` n'invoque `renderOverlay` que
                           dans sa branche « relique présente ». */}
-                      <RelicDetailBox relic={relicSlot.relic!} encadre={false} />
+                      <RelicDetailBox
+                        relic={relicSlot.relic!}
+                        count={relicUsageById?.[relicSlot.relic!.id]}
+                        encadre={false}
+                      />
                     </FlottantAuto>
                   )
             }
@@ -420,7 +429,9 @@ export default function BuildCandidateCard({
         <div className="mx-auto mt-2 w-full max-w-[280px] space-y-2">
           {openArtifact && <ArtifactDetailBox artifact={openArtifact} />}
           {openRune && <RuneDetailBox rune={openRune} />}
-          {openRelique && relicSlot.relic && <RelicDetailBox relic={relicSlot.relic} />}
+          {openRelique && relicSlot.relic && (
+            <RelicDetailBox relic={relicSlot.relic} count={relicUsageById?.[relicSlot.relic.id]} />
+          )}
         </div>
       )}
 

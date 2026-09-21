@@ -1508,11 +1508,13 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
       relique portée ne passe pas le seuil/la principale/le type demandés,
       la meilleure admissible peut alors noter moins qu'elle).
     ⚠️ **Le compte `n / 150`** (occupation de la relique sur le compte, D3)
-    **a quitté la carte candidat** au lot 5c bis — trop de détail pour une
-    case au format artéfact/rune ; `relicUsageById` reste calculé et
-    persisté (`accountStore.ts`) mais n'a aujourd'hui plus aucun
-    consommateur à l'écran (piste dans `../pistes.md`, à instruire si un
-    futur usage en a besoin).
+    a quitté la case au lot 5c bis — trop de détail pour une case au format
+    artéfact/rune — et est revenu au lot 5c ter dans le **détail** de la
+    relique (`RelicDetailBox`, une ligne, « Équipée sur n exemplaires /
+    150 » — pas un libellé relevé en jeu), visible depuis la carte candidat
+    ET depuis l'exemplaire (fiche d'équipement de l'Optimizer, même
+    composant) ; `relicUsageById` redescend jusqu'aux deux appelants de
+    `RelicSlot` pour ça.
     Le classement n'affiche **jamais** de gain contre la relique équipée
     (T9 tranché : non — exigerait une seconde évaluation par build dans la
     file, hors périmètre de ce lot).

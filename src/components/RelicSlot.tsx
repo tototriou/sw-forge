@@ -1,7 +1,7 @@
 import { ReactNode, useRef } from 'react';
 import { Ban } from 'lucide-react';
 import { RelicDetail } from '../types';
-import { formatRelicMain, formatRelicUnique } from '../lib/effects';
+import { formatRelicMain, formatRelicUnique, formatRelicUsage } from '../lib/effects';
 import { ZoneCliquable } from '../ui';
 
 // Emplacement « Relique » — extrait de [MonsterGear.tsx](src/components/MonsterGear.tsx)
@@ -17,7 +17,19 @@ import { ZoneCliquable } from '../ui';
 
 // ⚠️ `encadre=false` dans un `Flottant`, qui pose déjà bord + fond + coins
 // arrondis — voir `PieceDetailBox`, même règle.
-export function RelicDetailBox({ relic, encadre = true }: { relic: RelicDetail; encadre?: boolean }) {
+// ⚠️ `count` : occupation par `rid` (`relicUsageById`, calculée à l'import,
+// accountStore.ts) — D3, AFFICHÉE jamais bloquante. `undefined` : appelant
+// qui n'a pas cette donnée (RTA, Siège — hors périmètre de ce lot), aucune
+// ligne rendue plutôt qu'un chiffre inventé (implementation-relique, B.5c ter).
+export function RelicDetailBox({
+  relic,
+  count,
+  encadre = true,
+}: {
+  relic: RelicDetail;
+  count?: number;
+  encadre?: boolean;
+}) {
   return (
     <div className={encadre ? 'rounded-lg border border-border bg-panel/70 p-2.5' : ''}>
       <div className="text-xs font-bold text-ink">{formatRelicMain(relic.main)}</div>
@@ -36,6 +48,7 @@ export function RelicDetailBox({ relic, encadre = true }: { relic: RelicDetail; 
           {formatRelicUnique(relic.unique)}
         </div>
       )}
+      {count != null && <div className="font-mono text-nano text-ink-dimmer mt-0.5">{formatRelicUsage(count)}</div>}
     </div>
   );
 }

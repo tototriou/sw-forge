@@ -597,6 +597,21 @@ export function formatRelicMain(e: EffectLine): string {
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
 }
 
+// Limite de poses simultanées d'une relique sur le compte (D3,
+// ../outils/optimizer/reliques.md § 7 — AFFICHÉE, jamais opposée). Valeur de
+// jeu susceptible de rebouger (elle a déjà changé une fois) : une seule
+// constante nommée, à son seul point d'usage (`RelicDetailBox`,
+// implementation-relique B.5c ter).
+export const RELIC_MAX_INSTANCES = 150;
+
+// Ligne de compteur affichée dans le détail d'une relique. Aucun libellé
+// relevé en jeu pour cette mécanique (reliques.md § 7 ne cite qu'un exemple
+// d'affichage, « 96 / 150 ») : phrase choisie par le lot, comme les textes
+// de refus (B.5c) et les libellés propres à l'écran (B.5c bis).
+export function formatRelicUsage(count: number): string {
+  return `Équipée sur ${count} exemplaire${count > 1 ? 's' : ''} / ${RELIC_MAX_INSTANCES}`;
+}
+
 /* --------------------------------------------------------------------------
  * Propriétés uniques de relique — les 16 types
  * -----------------------------------------------------------------------

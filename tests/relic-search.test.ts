@@ -46,6 +46,7 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { drain } from '../scripts/lib/drain';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
+import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { egal, ok, titre } from './outils';
 
 /* --------------------------------------------------------------------------
@@ -278,6 +279,26 @@ export default function testRelicSearch() {
       refusSeuil = e;
     }
     ok(refusSeuil instanceof RechercheRefusee && /seuil/.test((refusSeuil as Error).message), 'refus : le message nomme le seuil');
+  }
+
+  /* ── Refus nommé sur le protocole du Worker (B.5a ter, commit 1 — sonde
+   * navigateur de la revue rejouée en Node) : `prepareOrRefuse`
+   * (`prepareForSearch.ts`) est la fonction extraite du handler
+   * `self.onmessage`, neutre et testable ici SANS `self` — un appel direct
+   * à `prepareSearch` dans le handler transformait ce refus en rejet de
+   * promesse non géré (BLOQUANT 1 : ni message posté, ni `Worker.onerror`,
+   * l'UI restait bloquée en `'running'`). */
+  {
+    const pool = [...six(100, (slot, id) => rune(id, slot, [4, 63]))];
+    const vide = contexte(LIBRE, undefined, []);
+    const refusProtocole = prepareOrRefuse({ ...params(pool, { sets: [], minStats: {} }), relicContext: vide });
+    egal(refusProtocole.kind, 'refus', 'protocole Worker : pool vide → refus nommé, jamais une exception qui s’échappe');
+    if (refusProtocole.kind === 'refus') {
+      egal(refusProtocole.motif, 'relique-pool-vide', 'protocole Worker : motif nommé');
+      egal(refusProtocole.vide, 'inventaire', 'protocole Worker : vide transporté');
+    }
+    const normal = prepareOrRefuse(params(pool, { sets: [], minStats: {} }));
+    ok(normal.kind === 'prepared', 'protocole Worker : sans refus → préparation normale');
   }
 
   /* ── L'oracle ne consomme jamais le contexte (garantie E). */

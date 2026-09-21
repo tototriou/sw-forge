@@ -18,11 +18,13 @@
 // single-threaded : un message ne peut être livré que quand le code en
 // cours d'exécution le permet).
 
-import { prepareSearch, pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, BuildCandidate } from '../lib/runeBuildOptim';
+import { pairBuckets, totalPairCount, PreparedSearch, SearchParams, SearchResult, Bucket, BuildCandidate } from '../lib/runeBuildOptim';
+import { RelicVide } from '../lib/relicOptim';
 import { BuildHalfRequest, BuildHalfResponse } from './buildHalf.worker';
 import { PairSliceRequest, PairSliceResponse } from './pairSliceBody';
 import { driveParallelPairing, PARALLEL_PAIRING_THRESHOLD, SliceHandle } from './parallelPairing';
 import { drivePairing, PROGRESS_THROTTLE_MS } from './pairingDriver';
+import { prepareOrRefuse } from './prepareForSearch';
 
 export type WorkerRequest = SearchParams | { stop: true };
 
@@ -64,7 +66,20 @@ export interface WorkerPairingMessage {
 }
 export type WorkerProgressMessage = WorkerBuildingMessage | WorkerPairingMessage;
 export type WorkerResultMessage = { type: 'result' } & SearchResult;
-export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage;
+// Refus NOMMÉ (pool de reliques vide en mode `recherche`, D1) — jamais un
+// `result` vide qui se présenterait comme « 0 build » (revue adversariale du
+// diff du lot 5a, BLOQUANT 1). `useBuildOptimSearch.ts` le distingue de
+// `error` par un statut propre (`'refused'`).
+export interface WorkerRefusMessage {
+  type: 'refus';
+  motif: 'relique-pool-vide';
+  vide: RelicVide;
+}
+export interface WorkerErrorMessage {
+  type: 'error';
+  message: string;
+}
+export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage | WorkerRefusMessage | WorkerErrorMessage;
 
 // Barre de progression, pas une roue qui tourne : approxime « à quel point on
 // approche d'un arrêt » en prenant le plus avancé des trois budgets qui
@@ -219,12 +234,31 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const startedAt = Date.now();
   let lastProgressPost = 0;
 
-  const prepared = prepareSearch(params);
-  if (!prepared) {
+  // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
+  // en mode `recherche`, D1) — jamais un simple appel direct ICI : un rejet
+  // dans un handler `async self.onmessage` non intercepté ne déclenche NI
+  // réponse du Worker NI `Worker.onerror` côté parent (piège JS/navigateur
+  // réel, revue adversariale du diff du lot 5a, BLOQUANT 1) — l'UI restait
+  // bloquée en `'running'` indéfiniment. `prepareOrRefuse` (module neutre,
+  // testable en Node sans `self`) convertit refus et erreur en résultats
+  // NOMMÉS plutôt que de laisser échapper l'exception.
+  const outcome = prepareOrRefuse(params);
+  if (outcome.kind === 'refus') {
+    const refus: WorkerRefusMessage = { type: 'refus', motif: outcome.motif, vide: outcome.vide };
+    (self as unknown as Worker).postMessage(refus);
+    return;
+  }
+  if (outcome.kind === 'error') {
+    const error: WorkerErrorMessage = { type: 'error', message: outcome.message };
+    (self as unknown as Worker).postMessage(error);
+    return;
+  }
+  if (outcome.kind === 'empty') {
     const result: WorkerResultMessage = { type: 'result', candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null };
     (self as unknown as Worker).postMessage(result);
     return;
   }
+  const prepared = outcome.prepared;
 
   // ⚠️ Deux moitiés INDÉPENDANTES (aucune ne dépend du résultat CONSTRUIT de
   // l'autre — seulement de `maxSetsForA`/`maxSetsForB`, déjà calculés par

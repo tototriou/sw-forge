@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BuildCandidate, SearchParams, SearchResult } from '../lib/runeBuildOptim';
+import { RelicVide } from '../lib/relicOptim';
 import { WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 // Plafond de sécurité sur la liste APERÇU accumulée pendant une recherche en
@@ -11,7 +12,9 @@ import { WorkerResponse } from '../workers/runeBuildOptim.worker';
 // lui, n'est jamais tronqué par cette limite — seul l'aperçu EN DIRECT l'est.
 const PREVIEW_CANDIDATES_CAP = 3000;
 
-export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error';
+// `'refused'` : refus NOMMÉ (pool de reliques vide en mode `recherche`, D1),
+// jamais un `'done'` avec un résultat vide — voir `refusal` ci-dessous.
+export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error' | 'refused';
 
 export interface HalfBuildProgress {
   scanned: number;
@@ -95,6 +98,8 @@ export function useBuildOptimSearch() {
   const [status, setStatus] = useState<BuildOptimStatus>('idle');
   const [result, setResult] = useState<SearchResult | null>(null);
   const [progress, setProgress] = useState<BuildOptimProgress | null>(null);
+  // Motif du refus (5c l'affiche ; ce lot ne touche pas OptimizerSection.tsx).
+  const [refusal, setRefusal] = useState<{ motif: 'relique-pool-vide'; vide: RelicVide } | null>(null);
 
   const cancel = useCallback(() => {
     runIdRef.current++;
@@ -115,6 +120,7 @@ export function useBuildOptimSearch() {
       setStatus('running');
       setResult(null);
       setProgress(null);
+      setRefusal(null);
       const worker = new Worker(new URL('../workers/runeBuildOptim.worker.ts', import.meta.url), {
         type: 'module',
       });
@@ -145,6 +151,17 @@ export function useBuildOptimSearch() {
               };
             });
           }
+          return;
+        }
+        if (data.type === 'refus') {
+          setRefusal({ motif: data.motif, vide: data.vide });
+          setProgress(null);
+          setStatus('refused');
+          return;
+        }
+        if (data.type === 'error') {
+          setProgress(null);
+          setStatus('error');
           return;
         }
         const { type: _type, ...res } = data;
@@ -178,7 +195,8 @@ export function useBuildOptimSearch() {
     setStatus('idle');
     setResult(null);
     setProgress(null);
+    setRefusal(null);
   }, [cancel]);
 
-  return { status, result, progress, run, stop, cancel, reset };
+  return { status, result, progress, refusal, run, stop, cancel, reset };
 }

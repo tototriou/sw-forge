@@ -3489,7 +3489,18 @@ export type PrepareStageObserver = (stage: PrepareStage, bySlot: RuneDetail[][])
 // les Workers (voir pairSliceBody.ts), et une fonction n'est pas
 // sérialisable — l'y placer casserait le chemin parallèle au lieu d'échouer
 // à la compilation.
-export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserver): PreparedSearch | null {
+//
+// `onReject` (diagnostic seulement, revue adversariale du diff du lot 5a,
+// MINEUR 1) : appelé avec le traceur AVANT le `return null` de rejet par
+// pré-filtrage — sans lui, ce candidat était enregistré PUIS PERDU
+// silencieusement (`searchBuildsSteps` ne reconstruisait qu'un résultat vide
+// sans trace), alors que c'est précisément le cas où l'instrumentation sert
+// le plus (un rejet à `eliminateInfeasible`).
+export function prepareSearch(
+  params: SearchParams,
+  onStage?: PrepareStageObserver,
+  onReject?: (traceur: TraceCandidat) => void
+): PreparedSearch | null {
   const { base, artifacts, relic, relicContext, pool, requirement, metric } = params;
   // Pool de reliques vide en mode recherche : refus nommé, AVANT toute
   // construction (D1). Voir `RechercheRefusee`.
@@ -3578,6 +3589,7 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
   // cherche à localiser, et `prepareSearch` renvoie alors `null` — sans le
   // signal ci-dessus, il n'y aurait AUCUNE trace de l'étage fautif.
   if (filtered.some((list) => list.length === 0)) {
+    if (traceur) onReject?.(traceur);
     return null;
   }
 
@@ -4049,9 +4061,15 @@ export function combineParallelPairingResults(
 // `pairBuckets` directement pour pouvoir construire A et B dans deux Workers
 // séparés, voir spec/outils/optimizer/ « Suite — parallélisation… ».
 export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
-  const prepared = prepareSearch(params);
+  // Le traceur d'un rejet par pré-filtrage (revue adversariale du diff du
+  // lot 5a, MINEUR 1) : `prepareSearch` le construit puis le perd en rendant
+  // `null` — récupéré ici via `onReject` pour qu'un résultat vide reste
+  // diagnosticable (étage `feasibility`/`filterslot` à 0), au lieu de
+  // disparaître précisément quand l'instrumentation sert le plus.
+  let traceurRejet: TraceCandidat | undefined;
+  const prepared = prepareSearch(params, undefined, (t) => { traceurRejet = t; });
   if (!prepared) {
-    return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null };
+    return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null, ...(traceurRejet ? { traceur: traceurRejet } : {}) };
   }
   const bucketsA = yield* buildBuckets(
     'A', [0, 1, 2], prepared, prepared.maxSetsForA,

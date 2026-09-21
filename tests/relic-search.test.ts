@@ -301,6 +301,27 @@ export default function testRelicSearch() {
     ok(normal.kind === 'prepared', 'protocole Worker : sans refus → préparation normale');
   }
 
+  /* ── Traceur : un rejet par pré-filtrage reste diagnosticable (B.5a ter,
+   * commit 4 — sonde TRACE_REJET de la revue). Six runes VIT, minimum ATQ
+   * hors de portée même avec la relique ATQ % la plus haute éligible :
+   * `prepareSearch` rejette (retour `null`), et `searchBuildsSteps`
+   * restituait jusqu'ici un résultat vide SANS trace — précisément le cas
+   * où l'instrumentation sert le plus (rejet à `eliminateInfeasible`). */
+  {
+    const poolVit = six(100, (slot, id) => rune(id, slot, [8, 5]));
+    const rel = relique(1, 101, 9);
+    const ctx = contexte(LIBRE, undefined, [rel]);
+    const p0: SearchParams = {
+      ...params(poolVit, { sets: [], minStats: { atk: 10000 } }),
+      relicContext: ctx,
+      traceur: { runeIds: poolVit.map((r) => r.id) },
+    };
+    ok(prepareSearch(p0) === null, 'traceur rejet : préparation impossible (minimum ATQ hors de portée)');
+    const result = searchBuilds(p0);
+    ok(result.traceur != null, 'traceur rejet : searchBuilds restitue le traceur même quand prepareSearch rend null');
+    ok(presentes(result.traceur!, 'feasibility').every((p) => !p), 'traceur rejet : étage feasibility à 0 (rejet à eliminateInfeasible)');
+  }
+
   /* ── L'oracle ne consomme jamais le contexte (garantie E). */
   {
     const pool = [...six(100, (slot, id) => rune(id, slot, [4, 63]))];

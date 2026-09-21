@@ -82,6 +82,16 @@
 //            manifeste que sur des cas plus volumineux ou via
 //            `--monotonicity`. Choisis pour l'itération rapide pendant le
 //            développement, pas pour la validation avant de committer.
+//   --relic-main=<equipped|libre|100|101|102> --relic-type=<libre|1..16>
+//   --relic-min-upgrade=<0..15> : l'intention relique posée sur CHAQUE cas
+//            du run (implementation-relique, B.6) — résolue par
+//            `buildCaseSearchParams` en `relicContext`, objectif du cas
+//            inchangé, propagée telle quelle au processus `--case=` et
+//            inscrite dans le libellé du run. Sans les trois : comportement
+//            d'avant (pas de `relicContext`). `--relic-main=equipped` est la
+//            baseline de B.6 (contexte présent, moteur byte-identique).
+//            Refusées avec `--monotonicity`, qui construit ses propres
+//            `SearchParams` sans relique (voir `checkMonotonicityForCase`).
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs';
 import { execSync } from 'child_process';
@@ -91,12 +101,14 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import {
   BuildRequirement,
+  RechercheRefusee,
   SearchParams,
   prepareSearch,
   pairBuckets,
   Bucket,
 } from '../src/lib/runeBuildOptim';
 import { Case, CASES, loadCase, loadCaseSearchParams } from './lib/perfShared';
+import { caseAvecRelique, jetonsRelique, parseOptionsRelique } from './lib/perfRelicOptions';
 // ⚠️ `import type` impératif ici : build-half-worker.ts / monotonicity-worker.ts
 // exécutent du code au chargement du module (ils LISENT `workerData`, absent
 // dans ce processus parent) — un import normal, même pour les seuls types,
@@ -108,6 +120,15 @@ export type { Case };
 export { CASES };
 
 const REPEATS = Number(process.argv.find((a) => a.startsWith('--repeats='))?.split('=')[1] ?? 2);
+// Les trois options relique (B.6) — validées ICI, une fois, dans
+// l'orchestrateur comme dans l'enfant `--case=` (qui reçoit les mêmes
+// jetons) ; `CASES_DU_RUN` est la seule table que ce fichier consulte.
+const RELIC_OPTION = parseOptionsRelique(process.argv);
+const RELIC_ARGS = jetonsRelique(process.argv).join(' ');
+const CASES_DU_RUN: Case[] = CASES.map((c) => caseAvecRelique(c, RELIC_OPTION));
+if (RELIC_OPTION && process.argv.includes('--monotonicity')) {
+  throw new Error("--relic-* ne s'applique pas à --monotonicity (checkMonotonicityForCase construit ses SearchParams sans relique).");
+}
 const SAVE = process.argv.includes('--save');
 // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (OptimizerSection.tsx) — le vrai filet de
 // temps que l'écran utilise, pas une valeur arbitraire plus courte. C'est
@@ -421,7 +442,19 @@ interface Baseline {
 const caseArg = process.argv.find((a) => a.startsWith('--case='));
 if (caseArg) {
   const idx = Number(caseArg.slice('--case='.length));
-  const outcome = await runOnce(CASES[idx]);
+  let outcome: CaseOutcome;
+  try {
+    outcome = await runOnce(CASES_DU_RUN[idx]);
+  } catch (e) {
+    // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+    // imprimé tel quel, code 2 — jamais un résultat vide ni une pile
+    // anonyme. C'est le « test de refus » de B.6 (seuil 15).
+    if (e instanceof RechercheRefusee) {
+      process.stderr.write(`\nREFUS ${CASES_DU_RUN[idx].label} : ${e.message}\n`);
+      process.exit(2);
+    }
+    throw e;
+  }
   process.stdout.write(JSON.stringify(outcome));
   process.exit(0);
 }
@@ -440,7 +473,9 @@ if (process.argv.includes('--monotonicity')) {
 const QUICK_CASE_LABELS = ['Lushen d11 (tototriou)', 'Ciri defense eq.3 (Enzo)'];
 const QUICK_MAX_MS = 45_000;
 if (process.argv.includes('--quick')) {
-  const quickCases = CASES.filter((c) => QUICK_CASE_LABELS.includes(c.label));
+  // Les deux canaris se reconnaissent sur le libellé D'ORIGINE (le libellé
+  // du run peut porter le suffixe relique).
+  const quickCases = CASES_DU_RUN.filter((_, i) => QUICK_CASE_LABELS.includes(CASES[i].label));
   console.log(
     `Mode rapide — ${quickCases.length} cas canari (${QUICK_MAX_MS / 1000}s de budget, 1 exécution, même processus). ` +
       `Signal « rien d'évidemment cassé », PAS un remplaçant de la batterie complète ni de --monotonicity : ` +
@@ -465,7 +500,10 @@ function runCaseIsolated(idx: number): CaseOutcome {
     // répertoire de cache DE CET ORCHESTRATEUR à l'enfant, pour qu'ils
     // bundlent tous dans le MÊME dossier (voir `ensureWorkerBundle`) sans
     // jamais retomber sur un chemin fixe partagé entre exécutions.
-    const out = execSync(`npx tsx scripts/perf-battery.ts --case=${idx} --bundle-dir=${RUN_ID}`, {
+    // `RELIC_ARGS` : les jetons `--relic-*` déjà VALIDÉS par
+    // `parseOptionsRelique` (un ensemble fini de littéraux), recopiés tels
+    // quels — l'enfant les revalide et pose le même contexte.
+    const out = execSync(`npx tsx scripts/perf-battery.ts --case=${idx} --bundle-dir=${RUN_ID}${RELIC_ARGS ? ' ' + RELIC_ARGS : ''}`, {
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024,
     });
@@ -503,15 +541,18 @@ function runCaseIsolated(idx: number): CaseOutcome {
 const previous: Baseline | null = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf8')) : null;
 const current: Baseline = { measuredAt: new Date().toISOString(), repeats: REPEATS, cases: {} };
 
-console.log(`Batterie de perf — ${CASES.length} cas, ${REPEATS} répétition(s) en processus isolés, min retenu.\n`);
+console.log(
+  `Batterie de perf — ${CASES_DU_RUN.length} cas, ${REPEATS} répétition(s) en processus isolés, min retenu.` +
+    `${RELIC_OPTION ? ` Relique : ${String(RELIC_OPTION.principale)}/${String(RELIC_OPTION.type)}/+${RELIC_OPTION.seuil}.` : ''}\n`
+);
 console.log(
   ['cas', 'trouvé', 'compte', 'prep', 'buildA (fil)', 'buildB (fil)', 'build réel (parallèle)', 'appariement (jusqu\'à trouvé / total)', 'foundMs global (delta)', 'totalMs global (delta)'].join(
     ' | '
   )
 );
 
-for (let idx = 0; idx < CASES.length; idx++) {
-  const c = CASES[idx];
+for (let idx = 0; idx < CASES_DU_RUN.length; idx++) {
+  const c = CASES_DU_RUN[idx];
   const outcome = runCaseIsolated(idx);
   current.cases[c.label] = outcome;
   const result = outcome.result;

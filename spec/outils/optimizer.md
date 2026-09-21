@@ -989,23 +989,31 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigeait.
 
-   La **relique** vivait ici (deux listes, lot 5c) ; elle a rejoint sa
-   propre carte, juste après celle-ci — voir « Relique » ci-dessous. Seul
-   reste commun l'interrupteur ci-dessus, renommé **« Activer
-   l'optimisation d'artéfacts et reliques »** : il masque d'un seul geste
-   les deux listes d'artéfacts ci-dessus ET la carte Relique entière.
+   La **relique** vit dans un **bloc séparé de cette même carte**, renommée
+   **« Artéfacts et reliques »** (implementation-relique, lot 5c ter — voir
+   « Relique » ci-dessous) : elle a d'abord vécu ici même (deux listes, lot
+   5c), puis dans sa propre carte (lot 5c bis) — écartée à la vue du rendu
+   (T9 re-tranché une seconde fois) au profit d'un bloc dans la carte
+   Artéfacts, sans en faire une carte de plus. L'interrupteur ci-dessus,
+   renommé **« Activer l'optimisation d'artéfacts et reliques »**, masque
+   d'un seul geste les deux listes d'artéfacts ET le bloc Relique.
 
 ### Relique
-6 ter. **Relique** (implementation-relique, lot 5c bis) — **carte à part**,
-   immédiatement après « Artéfacts » (sous « Meilleurs artéfacts offensifs
-   pour ce build », qui clôt cette dernière) : même grammaire (titre, aide,
-   composants `src/ui/`) que les autres cartes de l'écran.
+6 ter. **Relique** (implementation-relique, lot 5c ter) — **bloc séparé**
+   de la carte « Artéfacts et reliques », PAS une carte propre : sur
+   ordinateur, à **droite** de la rangée Attribut / Type, un trait vertical
+   de 1 px (`border-border-soft`, un seul contour) le sépare ; sur
+   téléphone, **sous** les deux listes d'artéfacts, séparé par un trait
+   horizontal — même JSX pour les deux formats, `xl:flex-row` bascule la
+   disposition (une carte propre au lot 5c bis faisait double emploi avec
+   la carte Artéfacts juste au-dessus, et décalait toute la grille de la
+   colonne).
 
-   ⚠️ **Pas d'interrupteur propre** (T2 confirmé) : coupée avec « Activer
-   l'optimisation d'artéfacts et reliques » (carte Artéfacts, juste
-   au-dessus), la carte se grise **entière** et le dit — un second
-   interrupteur aurait fait double emploi avec le premier pour la même
-   décision (« ne pas chercher d'équipement pour ce monstre »).
+   ⚠️ **Pas d'interrupteur propre** (T2 confirmé) : coupé avec « Activer
+   l'optimisation d'artéfacts et reliques » (même carte, juste au-dessus),
+   le bloc se masque avec le reste de la carte (mêmes deux listes
+   d'artéfacts) — plus de carte séparée à expliquer, donc plus de texte
+   « Coupée avec… » (existait au lot 5c bis).
 
    Trois réglages, **grammaire des artéfacts à la valeur près qui n'existe
    que pour la relique** (le type) :
@@ -1020,12 +1028,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de
      `RELIC_UNIQUE` — effet et stat sont chacun des mots du jeu, jamais une
      table séparée) — **désactivée et sans effet** avec « Garder la relique
-     équipée » (la pièce est fixée), la carte le dit. Même libellé sur la
+     équipée » (la pièce est fixée), le bloc le dit. Même libellé sur la
      carte candidat (voir « Résultats » plus bas).
    - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
      `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
-     critère de classement — absente à l'écran au lot 5c (réserve
-     corrigée ici).
+     critère de classement.
    - `libre` et le type n'ont d'effet qu'avec la recherche (bornes du lot
      5a, résolution exacte du lot 5b) ; les sélecteurs ne se conditionnent
      pas aux reliques possédées, comme pour l'artéfact.
@@ -1311,10 +1318,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      une recette (voir plus bas).
 
    ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** —
-   contrairement à ce que le lot 5c avait prévu : il vit dans la carte
-   « Relique » (« Niveau minimum », voir plus haut), avec les deux autres
-   réglages relique, pas dans « Réglages avancés » (implementation-relique,
-   lot 5c bis, T9 re-tranché).
+   contrairement à ce que le lot 5c avait prévu : il vit dans le bloc
+   « Relique » de la carte « Artéfacts et reliques » (« Niveau minimum »,
+   voir plus haut), avec les deux autres réglages relique, pas dans
+   « Réglages avancés » (implementation-relique, T9 re-tranché deux fois,
+   lot 5c ter).
 ### Lancer la recherche
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après

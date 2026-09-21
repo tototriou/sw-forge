@@ -19,7 +19,6 @@ import {
   Eye,
   Swords,
   Pencil,
-  Gem,
 } from 'lucide-react';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats, statsParPaire } from '../../lib/stats';
@@ -3256,14 +3255,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
           carte profite de toute la largeur de la colonne 1 plutôt que de se
           serrer sur son contenu — même patron que « Monstre & équipement »
           (carte haute à gauche, cartes plus courtes empilées à sa droite).
-          ⚠️ **`xl:row-span-5`** : la colonne 2 empile CINQ cartes —
-          Artéfacts (2), Relique (3, implementation-relique B.5c bis), État de
-          mon monstre (4), Exclusion de runes (5), Réglages avancés (6). Ce
-          nombre suit la colonne d'EN FACE, il ne décrit pas le contenu de
-          celle-ci : toute carte ajoutée ou retirée à droite se répercute ici,
-          et sur la rangée de la ligne d'estimation (pleine largeur, toujours
-          en dernier). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-5">
+          ⚠️ **`xl:row-span-4`** : la colonne 2 empile QUATRE cartes —
+          Artéfacts et reliques (2, bloc Relique fusionné dedans,
+          implementation-relique B.5c ter), État de mon monstre (3), Exclusion
+          de runes (4), Réglages avancés (5). Ce nombre suit la colonne d'EN
+          FACE, il ne décrit pas le contenu de celle-ci : toute carte ajoutée
+          ou retirée à droite se répercute ici, et sur la rangée de la ligne
+          d'estimation (pleine largeur, toujours en dernier). */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-4">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
               cible générique pour « plusieurs critères ajustables », et
@@ -3558,8 +3557,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
             <GameIcon name="artifact" size={15} />
           </div>
-          <p className="text-[13.5px] font-bold text-ink">Artéfacts</p>
-          <HelpPopover title="Artéfacts">
+          {/* ⚠️ Titre étendu à la relique (implementation-relique, B.5c ter,
+              T9 re-tranché une seconde fois — voir le bloc « Relique »
+              ci-dessous) : le titre suit l'interrupteur, qui porte déjà les
+              deux mots — à confirmer par l'utilisateur au premier rendu. */}
+          <p className="text-[13.5px] font-bold text-ink">Artéfacts et reliques</p>
+          <HelpPopover title="Artéfacts et reliques">
             <b className="text-ink">« Libre »</b> cherche parmi tous tes artéfacts équipables ; une{' '}
             <b className="text-ink">principale</b> restreint la recherche à ceux qui la portent.{' '}
             <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce entière portée sur le
@@ -3573,6 +3576,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
             <br />
             La paire retenue suit le <b className="text-ink">tri</b> affiché — trier par PV effectifs ne choisit
             pas les mêmes artéfacts que trier par dégâts.
+            <br />
+            <br />
+            La <b className="text-ink">relique</b> suit la même grammaire : une principale ET une propriété unique
+            se combinent, et la propriété unique compte pour retenir ou écarter une relique quand son effet est
+            connu ; sa valeur n&apos;entre pas encore dans la note.
           </HelpPopover>
           {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
               et son aide restent collés, l'interrupteur part à droite — même
@@ -3595,59 +3603,167 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
             />
           </div>
         </div>
+        {/* ⚠️ **Relique — bloc séparé, PAS une carte propre** (T9 re-tranché
+            une seconde fois à la vue du rendu, rév. 32, implementation-relique
+            B.5c ter — la carte propre de B.5c bis faisait double emploi avec
+            celle-ci). Ordinateur : à DROITE de la rangée Attribut/Type, trait
+            vertical 1 px (`border-border-soft`, un seul contour) ;
+            téléphone : SOUS les deux listes, trait horizontal — même JSX,
+            `xl:flex-row` bascule les deux. Même interrupteur que les listes
+            d'artéfacts juste au-dessus (T2 confirmé) : masqué avec elles
+            plutôt que grisé à part — plus de carte séparée à expliquer, donc
+            plus de texte « Coupée avec… » (B.5c bis). */}
         {optimiserArtefacts && (
-          <div className="flex flex-wrap gap-3">
-            {ARTIFACT_KINDS.map(({ key, label }) => (
-              <div key={key} className="flex items-center gap-1.5">
-                <span className="text-xs text-ink w-14">{label}</span>
-                {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
-                    d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
-                    Ce sélecteur affichait « Garder l'artéfact équipé » tant
-                    qu'aucun choix n'avait été fait, pendant que la recherche
-                    cherchait librement : l'écran annonçait le contraire de ce
-                    qui se passait, et tout ce qui se fiait à cet affichage
-                    (les emplacements « figés », donc l'éditeur de verrous)
-                    raisonnait sur un état faux. Le défaut se lit désormais au
-                    même endroit pour tout le monde. */}
-                <Selecteur
-                  value={String(artifactMainByKind[key] ?? 'libre')}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const next: ArtifactMainChoice =
-                      raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
-                    setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                >
-                  {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
-                      ce choix conserve la PIÈCE entière — le pool tombe à un
-                      seul candidat, l'exemplaire porté avec ses quatre
-                      sous-propriétés (voir `candidatsParSorte`,
-                      artifactOptim.ts). L'ancien libellé, posé au milieu de
-                      trois statistiques principales, se lisait « la
-                      principale, comme équipé ». Signalé à l'usage. */}
-                  <option value="equipped">Garder l&apos;artéfact équipé</option>
-                  {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
-                      été ajouté qu’une fois celle-ci construite, pour ne pas laisser
-                      une option morte dans le sélecteur. */}
-                  <option value="libre">Libre</option>
-                  {ARTIFACT_MAIN_OPTIONS.map((o) => (
-                    <option key={o.code} value={o.code}>
-                      {o.label}
-                    </option>
-                  ))}
-                  {/* ⚠️ Pas de « Aucun ». Retiré : vider UN emplacement pendant
-                      que l'autre cherche ne correspond à rien en jeu, et « ne
-                      pas compter les artéfacts » se dit d'un seul geste avec
-                      l'interrupteur ci-dessus, pour les deux à la fois.
-                      L'emplacement peut toujours RESTER vide si la recherche
-                      n'a rien de mieux à y mettre — c'est l'imposer par sorte
-                      qui n'avait pas de sens. */}
-                </Selecteur>
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
+            <div className="flex flex-wrap gap-3">
+              {ARTIFACT_KINDS.map(({ key, label }) => (
+                <div key={key} className="flex items-center gap-1.5">
+                  <span className="text-xs text-ink w-14">{label}</span>
+                  {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
+                      d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
+                      Ce sélecteur affichait « Garder l'artéfact équipé » tant
+                      qu'aucun choix n'avait été fait, pendant que la recherche
+                      cherchait librement : l'écran annonçait le contraire de ce
+                      qui se passait, et tout ce qui se fiait à cet affichage
+                      (les emplacements « figés », donc l'éditeur de verrous)
+                      raisonnait sur un état faux. Le défaut se lit désormais au
+                      même endroit pour tout le monde. */}
+                  <Selecteur
+                    value={String(artifactMainByKind[key] ?? 'libre')}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const next: ArtifactMainChoice =
+                        raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
+                      setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
+                    }}
+                    taille="sm"
+                    surface="panel2"
+                    pleineLargeur={false}
+                  >
+                    {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
+                        ce choix conserve la PIÈCE entière — le pool tombe à un
+                        seul candidat, l'exemplaire porté avec ses quatre
+                        sous-propriétés (voir `candidatsParSorte`,
+                        artifactOptim.ts). L'ancien libellé, posé au milieu de
+                        trois statistiques principales, se lisait « la
+                        principale, comme équipé ». Signalé à l'usage. */}
+                    <option value="equipped">Garder l&apos;artéfact équipé</option>
+                    {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
+                        été ajouté qu’une fois celle-ci construite, pour ne pas laisser
+                        une option morte dans le sélecteur. */}
+                    <option value="libre">Libre</option>
+                    {ARTIFACT_MAIN_OPTIONS.map((o) => (
+                      <option key={o.code} value={o.code}>
+                        {o.label}
+                      </option>
+                    ))}
+                    {/* ⚠️ Pas de « Aucun ». Retiré : vider UN emplacement pendant
+                        que l'autre cherche ne correspond à rien en jeu, et « ne
+                        pas compter les artéfacts » se dit d'un seul geste avec
+                        l'interrupteur ci-dessus, pour les deux à la fois.
+                        L'emplacement peut toujours RESTER vide si la recherche
+                        n'a rien de mieux à y mettre — c'est l'imposer par sorte
+                        qui n'avait pas de sens. */}
+                  </Selecteur>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col gap-1.5 border-t border-border-soft pt-3 xl:border-l xl:border-t-0 xl:pl-3 xl:pt-0">
+              <div className="flex items-center gap-1">
+                <span className="label">Relique</span>
+                <HelpPopover title="Relique">
+                  Une <b className="text-ink">principale</b> ET une <b className="text-ink">propriété unique</b>{' '}
+                  se combinent. La propriété unique compte pour retenir ou écarter une relique quand son effet
+                  est connu ; sa valeur n&apos;entre pas encore dans la note.
+                  <br />
+                  <br />
+                  <b className="text-ink">« Garder la relique équipée »</b> conserve la pièce entière portée sur
+                  le build affiché ci-dessus, sans rien chercher.
+                </HelpPopover>
               </div>
-            ))}
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-ink">Principale</span>
+                  <Selecteur
+                    value={String(relicMainChoice)}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const next: RelicMainChoice =
+                        raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
+                      setRelicMainChoice(next);
+                    }}
+                    taille="sm"
+                    surface="panel2"
+                    pleineLargeur={false}
+                  >
+                    <option value="equipped">Garder la relique équipée</option>
+                    <option value="libre">Libre</option>
+                    {RELIC_MAIN_OPTIONS.map((o) => (
+                      <option key={o.code} value={o.code}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </Selecteur>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-ink">Propriété unique</span>
+                  {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (D1 :
+                      la pièce est fixée) — désactivé plutôt que retiré, et le
+                      dit, même règle que les sous-propriétés verrouillées sans
+                      effet. */}
+                  <Selecteur
+                    value={String(relicUniqueChoice)}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setRelicUniqueChoice(raw === 'libre' ? 'libre' : Number(raw));
+                    }}
+                    taille="sm"
+                    surface="panel2"
+                    pleineLargeur={false}
+                    disabled={relicMainChoice === 'equipped'}
+                    title={relicMainChoice === 'equipped' ? 'Sans effet : la relique équipée est fixée' : undefined}
+                  >
+                    <option value="libre">Libre</option>
+                    {/* ⚠️ Libellé DÉRIVÉ de `RELIC_UNIQUE` (`relicUniqueEffectLabel`,
+                        effects.ts) — « <effet> en fonction <stat> » avec les mots du
+                        jeu des deux moitiés, jamais une table séparée
+                        (game-data-curation). Même libellé que sur la carte candidat
+                        (RelicSlot → `RelicDetailBox` → `formatRelicUnique`, qui
+                        reste la phrase COMPLÈTE, trop longue pour un sélecteur). */}
+                    {Object.keys(RELIC_UNIQUE)
+                      .map(Number)
+                      .map((type) => (
+                        <option key={type} value={type}>
+                          {relicUniqueEffectLabel(type)}
+                        </option>
+                      ))}
+                  </Selecteur>
+                  {relicMainChoice === 'equipped' && (
+                    <span className="text-nano text-ink-dimmer">sans effet : relique équipée fixée</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-ink">Niveau minimum</span>
+                  {/* ⚠️ Filtre d'ENTRÉE sur le pool de reliques cherché, jamais
+                      un critère de classement (la dominance départage les
+                      reliques qui passent le seuil). Sans effet tant que
+                      « Principale » ne vaut pas « Libre » ou une principale
+                      forcée — pas désactivé pour autant : la combinaison
+                      reste rare, et un champ qui apparaît/disparaît selon un
+                      AUTRE champ de la même carte serait plus déroutant que
+                      sans effet à l'occasion (contrairement à « Propriété
+                      unique », désactivée seulement par « Garder la relique
+                      équipée », qui la rend vraiment inerte). */}
+                  <NumberField
+                    value={relicMinUpgrade}
+                    onChange={(v) => setRelicMinUpgrade(v ?? DEFAULT_RELIC_MIN_UPGRADE)}
+                    min={0}
+                    max={15}
+                    title="Niveau minimum de la relique — filtre d'entrée sur le pool cherché, jamais un critère de classement"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
         {/* Sous les sélecteurs, et jamais au-dessus : les lignes
@@ -3680,147 +3796,21 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
         {blocArtefactsSeuls}
       </div>
 
-      {/* ⚠️ **Carte « Relique » propre**, juste après la carte Artéfacts (T9
-          re-tranché à la vue du rendu, rév. 31, implementation-relique
-          B.5c bis) — les deux listes vivaient dans la carte Artéfacts (B.5c),
-          au prix d'un décalage visuel avec les deux sélecteurs Attribut/Type
-          (libellé « Relique — principale » plus long). Même grammaire (titre
-          + aide, `src/ui/`) que les autres cartes.
-          ⚠️ **Pas d'interrupteur propre** (T2 confirmé, rév. 31) : coupée avec
-          « Activer l'optimisation d'artéfacts et reliques » (carte Artéfacts,
-          juste au-dessus) — toute la carte se grise et le dit, plutôt qu'un
-          second interrupteur qui ferait double emploi avec le premier.
-          ⚠️ `xl:col-start-2 xl:row-start-3` — la colonne 2 passe donc à CINQ
-          cartes empilées (Artéfacts, Relique, État de mon monstre, Exclusion
-          de runes, Réglages avancés), d'où le `row-span-5` de « Critères de
-          recherche » et le décalage d'une rangée de tout ce qui suit. */}
-      <div
-        className={`rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3 ${
-          optimiserArtefacts ? '' : 'opacity-40 pointer-events-none'
-        }`}
-      >
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <Gem size={15} className="text-ink-dim" />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Relique</p>
-          <HelpPopover title="Relique">
-            Une <b className="text-ink">principale</b> ET une <b className="text-ink">propriété unique</b>{' '}
-            se combinent. La propriété unique compte pour retenir ou écarter une relique quand son effet
-            est connu ; sa valeur n&apos;entre pas encore dans la note.
-            <br />
-            <br />
-            <b className="text-ink">« Garder la relique équipée »</b> conserve la pièce entière portée sur
-            le build affiché ci-dessus, sans rien chercher.
-          </HelpPopover>
-        </div>
-        {/* ⚠️ Texte affiché MÊME grisé (opacity-40 sur la carte entière) —
-            même vocabulaire que le bandeau « Emplacement attribut figé » des
-            artéfacts : un motif expliqué reste lisible, pas juste deviné. */}
-        {!optimiserArtefacts && (
-          <p className="mb-3 text-nano text-ink-dimmer">
-            Coupée avec l&apos;optimisation d&apos;artéfacts et reliques.
-          </p>
-        )}
-        <div className="flex flex-wrap gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-ink">Principale</span>
-            <Selecteur
-              value={String(relicMainChoice)}
-              onChange={(e) => {
-                const raw = e.target.value;
-                const next: RelicMainChoice =
-                  raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
-                setRelicMainChoice(next);
-              }}
-              taille="sm"
-              surface="panel2"
-              pleineLargeur={false}
-              disabled={!optimiserArtefacts}
-            >
-              <option value="equipped">Garder la relique équipée</option>
-              <option value="libre">Libre</option>
-              {RELIC_MAIN_OPTIONS.map((o) => (
-                <option key={o.code} value={o.code}>
-                  {o.label}
-                </option>
-              ))}
-            </Selecteur>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-ink">Propriété unique</span>
-            {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (D1 : la
-                pièce est fixée) — désactivé plutôt que retiré, et le dit,
-                même règle que les sous-propriétés verrouillées sans effet. */}
-            <Selecteur
-              value={String(relicUniqueChoice)}
-              onChange={(e) => {
-                const raw = e.target.value;
-                setRelicUniqueChoice(raw === 'libre' ? 'libre' : Number(raw));
-              }}
-              taille="sm"
-              surface="panel2"
-              pleineLargeur={false}
-              disabled={!optimiserArtefacts || relicMainChoice === 'equipped'}
-              title={relicMainChoice === 'equipped' ? 'Sans effet : la relique équipée est fixée' : undefined}
-            >
-              <option value="libre">Libre</option>
-              {/* ⚠️ Libellé DÉRIVÉ de `RELIC_UNIQUE` (`relicUniqueEffectLabel`,
-                  effects.ts) — « <effet> en fonction <stat> » avec les mots du
-                  jeu des deux moitiés, jamais une table séparée
-                  (game-data-curation). Même libellé que sur la carte candidat
-                  (RelicSlot → `RelicDetailBox` → `formatRelicUnique`, qui
-                  reste la phrase COMPLÈTE, trop longue pour un sélecteur). */}
-              {Object.keys(RELIC_UNIQUE)
-                .map(Number)
-                .map((type) => (
-                  <option key={type} value={type}>
-                    {relicUniqueEffectLabel(type)}
-                  </option>
-                ))}
-            </Selecteur>
-            {relicMainChoice === 'equipped' && (
-              <span className="text-nano text-ink-dimmer">sans effet : relique équipée fixée</span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-ink">Niveau minimum</span>
-            {/* ⚠️ Absent du lot 5c (réserve du pilote) — filtre d'ENTRÉE sur
-                le pool de reliques cherché, jamais un critère de classement
-                (la dominance départage les reliques qui passent le seuil).
-                Sans effet tant que « Principale » ne vaut pas « Libre » ou
-                une principale forcée — pas désactivé pour autant : la
-                combinaison reste rare, et un champ qui apparaît/disparaît
-                selon un AUTRE champ de la même carte serait plus déroutant
-                que sans effet à l'occasion (contrairement à « Propriété
-                unique », désactivée seulement par « Garder la relique
-                équipée », qui la rend vraiment inerte). */}
-            <NumberField
-              value={relicMinUpgrade}
-              onChange={(v) => setRelicMinUpgrade(v ?? DEFAULT_RELIC_MIN_UPGRADE)}
-              min={0}
-              max={15}
-              disabled={!optimiserArtefacts}
-              title="Niveau minimum de la relique — filtre d'entrée sur le pool cherché, jamais un critère de classement"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ⚠️ **Carte à part, sous « Relique »** — ces cinq réglages ne sont
-          PAS des réglages d'artéfact ni de relique. Ils décrivent le
-          monstre : buffs reçus, leader skill d'équipe, compétences
-          d'invocateur. Ils vivaient en bas de la carte Artéfacts, séparés
-          par un simple trait, ce qui laissait croire qu'ils la servaient —
-          alors qu'ils changent les statistiques du monstre tout court, donc
-          aussi bien les dégâts supplémentaires que n'importe quel calcul de
-          dégâts réels.
+      {/* ⚠️ **Carte à part, sous « Artéfacts et reliques »** — ces cinq
+          réglages ne sont PAS des réglages d'artéfact ni de relique. Ils
+          décrivent le monstre : buffs reçus, leader skill d'équipe,
+          compétences d'invocateur. Ils vivaient en bas de la carte
+          Artéfacts, séparés par un simple trait, ce qui laissait croire
+          qu'ils la servaient — alors qu'ils changent les statistiques du
+          monstre tout court, donc aussi bien les dégâts supplémentaires que
+          n'importe quel calcul de dégâts réels.
           ⚠️ **Toujours visible, indépendamment de l'objectif de recherche** :
           les laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
           qui optimise l'efficience, alors qu'ils s'appliquaient quand même.
-          ⚠️ `xl:row-start-4` (décalé d'une rangée par la carte « Relique »,
-          implementation-relique B.5c bis — voir son commentaire). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-4">
+          ⚠️ `xl:col-start-2 xl:row-start-3` — la colonne 2 passe donc à QUATRE
+          cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
+          le décalage d'une rangée de tout ce qui suit. */}
+      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
         <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} artefacts={artefactsDegats} />
       </div>
 
@@ -4171,8 +4161,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
 
         return (
           <>
-            {/* Bureau : « Réglages avancés », colonne 2, rangée 6 (décalée par
-                la carte « Relique », implementation-relique B.5c bis) — SOUS
+            {/* Bureau : « Réglages avancés », colonne 2, rangée 4 — SOUS
                 « Exclusion de runes » (ordre inversé sur demande explicite,
                 voir le commentaire d'Exclusion ci-dessous) — ⚠️ **`relative`**
                 : ancre du `FlottantAuto` ci-dessous, qui se positionne en
@@ -4182,7 +4171,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
                 en flux normal. */}
             <div
               ref={avancesRef}
-              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-6"
+              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-5"
             >
               <ZoneCliquable
                 onClick={() => setShowAdvanced((v) => !v)}
@@ -4211,9 +4200,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
               </FlottantAuto>
             </div>
 
-            {/* Bureau : « Exclusion de runes », colonne 2, rangée 5 (décalée
-                par la carte « Relique », implementation-relique B.5c bis) —
-                SOUS « État de mon monstre » (même colonne, voir son
+            {/* Bureau : « Exclusion de runes », colonne 2, rangée 3 — SOUS
+                « Objectif de recherche » (même colonne, rangée 2, voir son
                 commentaire) — ordre inversé avec « Réglages avancés » sur
                 demande explicite. Masquée au doigt (voir le panneau plus
                 bas). */}
@@ -4231,7 +4219,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
                 une fois pour cette même raison. */}
             <div
               ref={exclusionRef}
-              className="hidden lg:block relative rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-5"
+              className="hidden lg:block relative rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4"
             >
               <ZoneCliquable
                 onClick={() => setShowExclusion((v) => !v)}
@@ -4254,17 +4242,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, optimi
               </FlottantAuto>
             </div>
 
-            {/* ⚠️ Placée en rangée 7 (`xl:col-span-2`, pleine largeur, décalée
-                par la carte « Relique » — implementation-relique B.5c bis) :
-                ni dans la paire Critères/Objectif (rangée 2) ni dans la
-                colonne Artéfacts/Relique/État de mon monstre/Exclusion/
-                Avancés (rangées 2-6), cette ligne d'estimation n'a pas sa
-                place dans une cellule précise — simple info sous tout le
-                reste. Ne bouge plus JAMAIS au dépliement de Réglages
-                avancés, désormais un flottant hors flux plutôt qu'un bloc
-                qui poussait tout ce qui suivait. */}
+            {/* ⚠️ Placée en rangée 5 (`xl:col-span-2`, pleine largeur) : ni
+                dans la paire Critères/Objectif (rangée 2) ni dans la colonne
+                Objectif/Avancés/Exclusion (rangées 2-4), cette ligne
+                d'estimation n'a pas sa place dans une cellule précise —
+                simple info sous tout le reste. Ne bouge plus JAMAIS au
+                dépliement de Réglages avancés, désormais un flottant hors
+                flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
             {estimate && (
-              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-7">
+              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-6">
                 {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
                 (pool par emplacement : {estimate.perSlot.join(' + ')})
               </p>

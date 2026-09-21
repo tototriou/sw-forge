@@ -990,24 +990,37 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    corrigeait.
 
    La **relique** vit dans un **bloc séparé de cette même carte**, renommée
-   **« Artéfacts et reliques »** (implementation-relique, lot 5c ter — voir
-   « Relique » ci-dessous) : elle a d'abord vécu ici même (deux listes, lot
-   5c), puis dans sa propre carte (lot 5c bis) — écartée à la vue du rendu
-   (T9 re-tranché une seconde fois) au profit d'un bloc dans la carte
-   Artéfacts, sans en faire une carte de plus. L'interrupteur ci-dessus,
-   renommé **« Activer l'optimisation d'artéfacts et reliques »**, masque
-   d'un seul geste les deux listes d'artéfacts ET le bloc Relique.
+   **« Artéfacts et reliques »** (implementation-relique, lot 5c quater —
+   voir « Relique » ci-dessous) : elle a d'abord vécu ici même (deux
+   listes, lot 5c), puis dans sa propre carte (lot 5c bis) — écartée à la
+   vue du rendu (T9 re-tranché une seconde fois) au profit d'un bloc à
+   droite de la rangée Attribut / Type (lot 5c ter), lui-même écarté à son
+   tour (T9 re-tranché une troisième fois) au profit du bloc qui **ferme la
+   carte**, sous « Meilleurs artéfacts offensifs pour ce build » (lot 5c
+   quater). L'interrupteur ci-dessus, renommé **« Activer l'optimisation
+   d'artéfacts et reliques »**, masque d'un seul geste les deux listes
+   d'artéfacts ET le bloc Relique.
+
+   ⚠️ **Largeur fixe et commune** aux quatre listes déroulantes de la carte
+   (Attribut, Type, Principale relique, Propriété unique relique,
+   implementation-relique lot 5c quater) : sans elle, un `<select>` natif
+   prend la largeur de sa plus longue option — « Soins et boucliers
+   accordés en fonction des PV » imposait une case énorme pour « Propriété
+   unique », y compris quand « Libre » y était affiché. La valeur
+   **fermée** se tronque par « … » (`truncate`) ; la liste **ouverte**
+   garde le texte complet, comportement natif du `<select>`.
 
 ### Relique
-6 ter. **Relique** (implementation-relique, lot 5c ter) — **bloc séparé**
-   de la carte « Artéfacts et reliques », PAS une carte propre : sur
-   ordinateur, à **droite** de la rangée Attribut / Type, un trait vertical
-   de 1 px (`border-border-soft`, un seul contour) le sépare ; sur
-   téléphone, **sous** les deux listes d'artéfacts, séparé par un trait
-   horizontal — même JSX pour les deux formats, `xl:flex-row` bascule la
-   disposition (une carte propre au lot 5c bis faisait double emploi avec
-   la carte Artéfacts juste au-dessus, et décalait toute la grille de la
-   colonne).
+6 ter. **Relique** (implementation-relique, lot 5c quater) — **bloc
+   séparé** de la carte « Artéfacts et reliques », PAS une carte propre :
+   ferme la carte, sous « Meilleurs artéfacts offensifs pour ce build »,
+   séparé par un **trait horizontal** de 1 px (`border-border-soft`, un
+   seul contour) — même JSX pour les deux formats, ordinateur et
+   téléphone (une carte propre au lot 5c bis faisait double emploi avec la
+   carte Artéfacts juste au-dessus et décalait toute la grille de la
+   colonne ; un bloc à droite de la rangée Attribut / Type, trait vertical,
+   au lot 5c ter, désalignait les listes relique de celles d'artéfacts —
+   écarté au lot 5c quater, plus de variante `xl:border-l`).
 
    ⚠️ **Pas d'interrupteur propre** (T2 confirmé) : coupé avec « Activer
    l'optimisation d'artéfacts et reliques » (même carte, juste au-dessus),

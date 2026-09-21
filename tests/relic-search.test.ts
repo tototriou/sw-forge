@@ -46,6 +46,8 @@ import {
 } from '../src/lib/runeBuildOptim';
 import { drain } from '../scripts/lib/drain';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
+import { runPairSlice } from '../src/workers/pairSliceBody';
+import { ensurePairSliceBundle, makeSpawnSliceNode } from '../scripts/lib/spawnSliceNode';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { egal, ok, titre } from './outils';
 
@@ -228,7 +230,7 @@ function verifierFixture(
  * Les fixtures
  * ----------------------------------------------------------------------- */
 
-export default function testRelicSearch() {
+export default async function testRelicSearch() {
   titre('Optimizer · recherche relique (lot 5a — bornes, faisabilité, transport)');
 
   /* ── Identité sans relique / mode off / mode equipped : projection
@@ -320,6 +322,40 @@ export default function testRelicSearch() {
     const result = searchBuilds(p0);
     ok(result.traceur != null, 'traceur rejet : searchBuilds restitue le traceur même quand prepareSearch rend null');
     ok(presentes(result.traceur!, 'feasibility').every((p) => !p), 'traceur rejet : étage feasibility à 0 (rejet à eliminateInfeasible)');
+  }
+
+  /* ── Traceur : recopié par l'adaptateur Node d'appariement parallèle
+   * (B.5a ter, commit 5 — sonde TRACE_WORKER de la revue, avec de VRAIS
+   * `worker_threads`). `runPairSlice` le rend déjà ; seule la
+   * reconstruction EXPLICITE de `spawnSliceNode.ts` l'omettait. */
+  {
+    const poolFixe = [1, 2, 3, 4, 5, 6].map((slot) => rune(slot, slot, [8, 5]));
+    const rel = relique(1, 101, 9);
+    const ctx = contexte(LIBRE, undefined, [rel]);
+    const p0: SearchParams = {
+      ...params(poolFixe, { sets: [], minStats: {} }),
+      relicContext: ctx,
+      traceur: { runeIds: [1, 2, 3, 4, 5, 6] },
+    };
+    const prepared = prepareSearch(p0)!;
+    const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
+    const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
+    const requete = { params: p0, bucketASlice: bucketsA, bucketsB, startedAt: prepared.startedAt };
+
+    const direct = await runPairSlice(requete, () => false, () => {});
+    ok(direct.traceur != null, 'traceur worker : runPairSlice direct porte le traceur');
+
+    const bundle = await ensurePairSliceBundle();
+    const spawn = makeSpawnSliceNode(bundle);
+    const handle = spawn(requete, () => {});
+    let viaAdaptateur: Awaited<typeof handle.done>;
+    try {
+      viaAdaptateur = await handle.done;
+    } finally {
+      handle.terminate();
+    }
+    ok(viaAdaptateur.traceur != null, 'traceur worker : l’adaptateur Node (spawnSliceNode) recopie le traceur (MINEUR 2 corrigé)');
+    egal(viaAdaptateur.traceur, direct.traceur, 'traceur worker : trace identique entre appel direct et adaptateur worker_threads');
   }
 
   /* ── L'oracle ne consomme jamais le contexte (garantie E). */

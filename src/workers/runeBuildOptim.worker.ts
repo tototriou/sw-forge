@@ -177,12 +177,16 @@ function pairSliceInWorker(
       // à `SearchResult` sans être listé ICI serait perdu en silence. Voir
       // spec/outils/optimizer/near-miss-appariement.md, §5 : un des deux
       // points identifiés à l'avance pour cette raison précise.
+      // ⚠️ `traceur` (revue adversariale du diff du lot 5a, MINEUR 2) : cette
+      // reconstruction l'omettait, `combineParallelPairingResults` ne
+      // recevait alors rien à fusionner sur ce chemin.
       resolve({
         candidates: msg.candidates,
         explored: msg.explored,
         truncated: msg.truncated,
         nearMissByCondition: msg.nearMissByCondition,
         globalNearMiss: msg.globalNearMiss,
+        ...(msg.traceur ? { traceur: msg.traceur } : {}),
       });
     };
     worker.onerror = reject;

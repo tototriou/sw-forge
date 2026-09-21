@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BuildCandidate, SearchParams, SearchResult } from '../lib/runeBuildOptim';
-import { RelicVide } from '../lib/relicOptim';
+import { RelicContext, RelicVide } from '../lib/relicOptim';
 import { WorkerResponse } from '../workers/runeBuildOptim.worker';
 
 // Plafond de sécurité sur la liste APERÇU accumulée pendant une recherche en
@@ -100,6 +100,12 @@ export function useBuildOptimSearch() {
   const [progress, setProgress] = useState<BuildOptimProgress | null>(null);
   // Motif du refus (5c l'affiche ; ce lot ne touche pas OptimizerSection.tsx).
   const [refusal, setRefusal] = useState<{ motif: 'relique-pool-vide'; vide: RelicVide } | null>(null);
+  // Le contexte relique de la recherche LANCÉE (`SearchParams.relicContext`,
+  // garantie G — lot 5b) : c'est lui, et pas une relecture des trois champs
+  // de l'écran, que la file de résolution (`resoudreEquipementDuBuild`)
+  // consomme sur les candidats de CETTE recherche. `undefined` tant que
+  // l'écran n'en pose pas (5c) : la file garde alors la relique portée.
+  const [relicContext, setRelicContext] = useState<RelicContext | undefined>(undefined);
 
   const cancel = useCallback(() => {
     runIdRef.current++;
@@ -121,6 +127,7 @@ export function useBuildOptimSearch() {
       setResult(null);
       setProgress(null);
       setRefusal(null);
+      setRelicContext(params.relicContext);
       const worker = new Worker(new URL('../workers/runeBuildOptim.worker.ts', import.meta.url), {
         type: 'module',
       });
@@ -196,7 +203,8 @@ export function useBuildOptimSearch() {
     setResult(null);
     setProgress(null);
     setRefusal(null);
+    setRelicContext(undefined);
   }, [cancel]);
 
-  return { status, result, progress, refusal, run, stop, cancel, reset };
+  return { status, result, progress, refusal, relicContext, run, stop, cancel, reset };
 }

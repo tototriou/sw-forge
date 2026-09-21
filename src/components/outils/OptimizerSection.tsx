@@ -20,10 +20,11 @@ import {
   Swords,
   Pencil,
 } from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats, statsParPaire } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
+import { resoudreEquipementDuBuild } from '../../lib/relicQueue';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
   bornesArtefacts,
@@ -435,7 +436,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     search,
     resetSearch,
   } = optimizer;
-  const { status, result, progress, run, stop } = search;
+  // `relicContextRecherche` : le contexte relique de la recherche LANCÉE
+  // (garantie G) — `undefined` tant que l'écran n'en pose pas dans `run()`
+  // (5c) ; la file de résolution le lit ici, jamais dans les trois champs.
+  const { status, result, progress, relicContext: relicContextRecherche, run, stop } = search;
 
   // Tous les monstres du BESTIAIRE, indexés par id — la recherche du
   // monstre à optimiser résout désormais une ESPÈCE dans TOUT le bestiaire
@@ -1260,6 +1264,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    */
   const critereArtefactsPaire = adapterArtefactsAuTri ? sortBy : objective;
   const regimePaire = regimeArtefacts(critereArtefactsPaire);
+  /**
+   * Le régime EFFECTIF de l'équipement complet — paire ET relique (D7, lot
+   * 5b : le bouton gouverne les deux, aucun interrupteur parallèle) : sort
+   * non calculable → rabattu sur `'aucun'` ICI, une seule fois, jamais un
+   * contexte de dégâts optionnel absorbé en silence par `evaluerPourRegime`.
+   */
+  const regimeEquipement: RegimeArtefacts = regimePaire === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimePaire;
 
   const sortesFigees = useMemo<ArtifactKind[]>(
     () =>
@@ -2007,12 +2018,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // pour un résultat identique et cent tranches de temps masqué en pure
     // perte.
     if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    return (c: BuildCandidate): ArtifactSearchParams => {
+    // ⚠️ `relique` : la candidate que la résolution exacte (lot 5b) essaie
+    // pour ce build — elle REMPLACE la portée dans les stats qui notent chaque
+    // paire (garantie G, jamais un cumul). Hors mode `recherche`, la file
+    // passe la portée elle-même : strictement le comportement d'avant.
+    return (c: BuildCandidate, relique: RelicDetail | undefined): ArtifactSearchParams => {
       // ⚠️ Les stats sont recalculées avec LES RUNES DE CE CANDIDAT, pas celles
       // de l'équipement affiché : la stat principale d'un artéfact entre dans
       // les stats du monstre, donc comparer des paires sur un autre build
       // comparerait des scores faux.
-      const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
+      const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean), relic: relique };
       // ⚠️ **UN seul `computeStats` par build, pas un par paire.** L’évaluateur
       // tourne pour CHAQUE paire autorisée — quelques milliers en « Dégâts
       // réels », où la dominance n’élague plus rien. L’apport d’un artéfact
@@ -2038,16 +2053,50 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
        * valeur brute, et le seul travail qui compte est la faisabilité
        * (§12.6 d'artefacts.md).
        */
-      // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
-      // paramètre `degats` optionnel silencieusement absorbé par le helper.
-      const regime: RegimeArtefacts = regimePaire === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimePaire;
+      // ⚠️ Le régime EFFECTIF (`regimeEquipement`), le même pour la paire ET
+      // la relique (D7 : un seul régime pour l'équipement complet) — jamais
+      // un paramètre `degats` optionnel silencieusement absorbé par le helper.
+      const regime = regimeEquipement;
       const evaluer =
         regime === 'degats_reels'
           ? evaluerPourRegime(regime, statsAvec, contexteDegatsArtefacts!)
           : evaluerPourRegime(regime, statsAvec);
       return { ...artifactParams, evaluer };
     };
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, contexteDegatsArtefacts]);
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts]);
+
+  /**
+   * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
+   * file : `resoudreEquipementDuBuild` (relicQueue.ts, lot 5b), la partie
+   * pure que `tests/relic-queue.test.ts` compare à l'oracle. Ici on ne fait
+   * que lui donner le build, le prédicat d'avant (minimums seuls, T11), les
+   * conditions complètes et le contexte relique de la recherche LANCÉE
+   * (garantie G : jamais une relecture des trois champs).
+   */
+  const resoudreEquipement = useMemo(() => {
+    if (!faireParamsArtefacts || !selected) return null;
+    // ⚠️ Le filtre final du §12.5 d'avant ce lot — obligatoire, pas
+    // facultatif : la recherche valide les minimums contre une borne PAR STAT
+    // ISOLÉE (`searchArtifactBounds`), des builds arrivent donc ici sans
+    // qu'aucune paire réelle ne les rende équipables (mesuré : 99 sur 105).
+    // `null` quand aucun minimum n'est posé. Hors mode `recherche` de la
+    // relique seulement ; en mode `recherche`, `respecteConditionsAvecRelique`
+    // (minimums ET maximums, avec la candidate) le remplace.
+    const minimumsPoses = Object.values(requirement.minStats).some((v) => (v ?? 0) > 0);
+    return (c: BuildCandidate) => {
+      const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
+      return resoudreEquipementDuBuild({
+        gear,
+        faireParams: (relique) => faireParamsArtefacts(c, relique),
+        respecteConditions: minimumsPoses
+          ? (arts) => respecteMinimums(computeStats({ ...gear, artifacts: arts }), requirement.minStats)
+          : null,
+        requirement,
+        regimeAucun: regimeEquipement === 'aucun',
+        relicContext: relicContextRecherche,
+      });
+    };
+  }, [faireParamsArtefacts, selected, runeById, requirement, regimeEquipement, relicContextRecherche]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
@@ -2059,44 +2108,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // classement corrigé par cette file). Lu au moment de traiter, il voit
     // toujours la page réellement à l’écran.
     pageAffichee: () => pageAfficheeRef.current,
-    faireParams: faireParamsArtefacts,
-    // ⚠️ Les stats du candidat ont été calculées avec la paire SUPPOSÉE. La
-    // principale d'un artéfact entrant dans les stats, il faut les refaire avec
-    // la paire retenue — sinon la carte montre des stats qui ne vont pas avec
-    // les artéfacts affichés juste à côté, et un tri par ATQ porte sur une
-    // valeur périmée.
-    calculerStats: (c, arts) =>
-      selected
-        ? computeStats({
-            ...selected.gear,
-            runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
-            artifacts: arts,
-          })
-        : c.stats,
-    /**
-     * ⚠️ **Le filtre final du §12.5 — obligatoire, pas facultatif.** Depuis
-     * que la faisabilité passe par `searchArtifactBounds`, la recherche valide
-     * les minimums contre une borne calculée PAR STAT ISOLÉE : avec des
-     * minimums sur PV, ATQ et DEF à la fois, elle suppose les trois maxima
-     * réunis, alors qu'une paire ne porte que deux principales. Des builds
-     * arrivent donc ici sans qu'aucune paire réelle ne les rende équipables —
-     * mesuré sur un cas réel, 99 sur 105. Sans ce prédicat, la borne élargie
-     * AFFICHERAIT ces builds : pire que de les manquer.
-     *
-     * `null` quand aucun minimum n'est posé — il n'y a alors rien à vérifier.
-     */
-    respecteConditions:
-      Object.values(requirement.minStats).some((v) => (v ?? 0) > 0) && selected
-        ? (c, arts) =>
-            respecteMinimums(
-              computeStats({
-                ...selected.gear,
-                runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
-                artifacts: arts,
-              }),
-              requirement.minStats
-            )
-        : null,
+    // Paire ET relique, ensemble — les stats du résultat sont recalculées
+    // avec le couple retenu (voir `resoudreEquipement`) : sans ça, la carte
+    // montrerait des stats qui ne vont pas avec l'équipement affiché à côté,
+    // et un tri par ATQ porterait sur une valeur périmée.
+    resoudre: resoudreEquipement,
     signature: signatureArtefacts,
   });
 
@@ -2137,6 +2153,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    * classement-ci : c'est ce qui borne le nombre de re-tris, et c'est ce qui
    * fait que changer le tri d'affichage repriorise la file sans rien invalider
    * (le cache est indexé par build).
+   *
+   * ⚠️ Lot 5b : les stats remplacées INCLUENT la relique retenue
+   * (`ResultatArtefacts.relique`) — c'est ici, AVANT `sortCandidates`, que
+   * la résolution exacte entre dans le classement ; un build qu'aucun couple
+   * (paire, relique) ne rend faisable est `conforme: false` et sort par le
+   * même filtre que les paires. En mode `recherche`, un candidat non encore
+   * résolu (« en attente ») garde ses stats SANS relique : son rang n'est
+   * pas exact tant que la file ne l'a pas traité — la page affichée passe
+   * en priorité.
    */
   const affichees = useMemo(() => {
     if (fileArtefacts.parBuild.size === 0) return fullSortedCandidates;

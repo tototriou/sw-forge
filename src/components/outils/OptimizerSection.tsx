@@ -1999,14 +1999,23 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
         // quand même, le cache est refait pour rien : coût borné (K builds en
         // temps masqué), contre le risque d'afficher une paire périmée.
-        // ⚠️ **Le RÉGIME, pas le tri brut.** Deux critères ne partagent cette
-        // clé que si la paire optimale est démontrablement la même : c’est le
-        // cas de tous ceux qu’aucun artéfact ne touche (efficience, VIT, TC,
-        // DCC, RES, PRE), regroupés sous `'aucun'`. Basculer entre eux ne
-        // recalcule donc plus 100 builds pour retrouver la même paire.
-        // ⚠️ Trop regrouper afficherait une paire périmée — le régime est
-        // établi sur ce qu’un artéfact peut bouger, jamais sur une intuition.
-        objective: regimePaire,
+        // ⚠️ **Le RÉGIME EFFECTIF (`regimeEquipement`), jamais `regimePaire`
+        // brut** (B.5b bis, contrôle 4 — hypothèse confirmée de la revue) :
+        // `regimePaire` ne rabat PAS « Dégâts réels » sur `aucun` quand le
+        // sort n'est pas encore calculable — c'est `regimeEquipement` qui le
+        // fait, une fois, AVANT `faireParamsArtefacts`. Utiliser `regimePaire`
+        // ici laissait la signature identique pendant la transition « sort
+        // indisponible → calculable » (`contexteDegatsArtefacts` passe de
+        // `null` à un contexte, `regimePaire` reste `'degats_reels'` dans les
+        // deux cas) : le cache restait celui du régime `aucun`, périmé.
+        // ⚠️ Deux critères ne partagent cette clé que si la paire optimale
+        // est démontrablement la même : c'est le cas de tous ceux qu'aucun
+        // artéfact ne touche (efficience, VIT, TC, DCC, RES, PRE), regroupés
+        // sous `'aucun'`. Basculer entre eux ne recalcule donc plus 100
+        // builds pour retrouver la même paire. Trop regrouper afficherait une
+        // paire périmée — le régime est établi sur ce qu'un artéfact peut
+        // bouger, jamais sur une intuition.
+        objective: regimeEquipement,
         ignoreArtifacts: !optimiserArtefacts,
         principaleParSorte: artifactMainByKind,
         lignesVerrouillees,
@@ -2022,7 +2031,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // avec un autre maximum gardait un couple devenu infaisable en cache.
         requirement,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimePaire, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirement]
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirement]
   );
 
   const faireParamsArtefacts = useMemo(() => {

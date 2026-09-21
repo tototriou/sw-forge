@@ -19,7 +19,7 @@
 
 import { BuildCandidate } from './runeBuildOptim';
 import { StatRow } from './stats';
-import { ArtifactDetail } from '../types';
+import { ArtifactDetail, RelicDetail } from '../types';
 import { PaireArtefacts } from './artifactOptim';
 
 /**
@@ -78,8 +78,25 @@ export interface ResultatArtefacts {
    * `false` = à ne PAS afficher. Un build affiché qui viole la condition
    * demandée est pire qu'un build manquant : l'utilisateur ne le vérifie pas.
    * Voir spec/outils/optimizer/artefacts.md, §12.5.
+   *
+   * ⚠️ Depuis le lot 5b (implementation-relique), en mode `recherche` de la
+   * relique, `false` signifie « aucun couple (paire, relique) faisable » :
+   * minimums ET maximums, avec la relique réelle (`respecteConditionsAvecRelique`).
    */
   conforme: boolean;
+  /**
+   * La relique RETENUE pour ce build, résolue ENSEMBLE avec la paire
+   * (`resoudreEquipementDuBuild`, relicQueue.ts — lot 5b). Présente en mode
+   * `recherche` seulement : hors de ce mode la relique portée est fixe
+   * (`SearchParams.relic`), rien n'est résolu et le champ reste absent.
+   * `stats` ci-dessus l'INCLUT : c'est elle qui classe, et c'est son `id`
+   * (`rid`) que la carte affiche.
+   */
+  relique?: RelicDetail;
+  // Régime `aucun` (Efficience, Vitesse…) : toute candidate faisable a le
+  // même score, la relique choisie n'a pas d'effet sur le tri — transporté
+  // jusqu'à la carte (contrat de B.3, `bestRelicForBuild`).
+  sansEffetSurLeTri?: true;
 }
 
 /**
@@ -96,6 +113,14 @@ export interface ResultatArtefacts {
  *
  * C'est ce qui autorise à laisser un build passer devant dans l'ordre plutôt
  * que d'afficher une inversion visible entre le rang et le total.
+ *
+ * ⚠️ Lot 5b : en mode `recherche` de la relique, `r.stats` INCLUT la relique
+ * retenue (`ResultatArtefacts.relique`) — un candidat non résolu garde ses
+ * stats SANS relique (score non exact, « en attente »). L'argument de
+ * convergence tient : une principale en % ne fait jamais baisser PV, ATQ ni
+ * DEF. La non-régression est CONDITIONNELLE à l'ensemble admissible : si
+ * l'équipée est exclue du pool (filtre, seuil), la meilleure admissible peut
+ * noter moins que l'équipée — voir `reliqueEquipeeExclue` (relicQueue.ts).
  */
 export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string, ResultatArtefacts>): BuildCandidate {
   const r = cache.get(cleBuild(c));

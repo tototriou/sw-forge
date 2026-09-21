@@ -23,8 +23,9 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats, statsParPaire } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, signatureReglages } from '../../lib/artifactQueue';
-import { resoudreEquipementDuBuild } from '../../lib/relicQueue';
+import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
+import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
   bornesArtefacts,
@@ -37,13 +38,17 @@ import {
   type ChoixPrincipale,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
-import { evaluerPourRegime, regimeArtefacts, type RegimeArtefacts } from '../../lib/artifactEvaluation';
+import { evaluerPourRegime, regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import {
   ARTIFACT_MAIN,
   CAPPED_STATS,
   RUNE_EFFECT,
+  RELIC_MAIN,
+  RELIC_MAIN_OPTIONS,
+  RELIC_UNIQUE,
   StatKey,
   formatArtifactMain,
+  relicUniqueShortLabel,
   runeSetIconFilter,
   runeEfficiency,
   runeScore,
@@ -126,8 +131,17 @@ import {
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
-import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
-import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
+import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
+import {
+  ArtifactMainChoice,
+  OptimizerState,
+  OptimizerSortKey,
+  RelicMainChoice,
+  RelicUniqueChoice,
+  DEFAULT_RELIC_MIN_UPGRADE,
+  defaultRelicMainChoice,
+  relicIntentDepuisEtat,
+} from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
@@ -171,6 +185,14 @@ interface Props {
   // le sélecteur de stat principale FILTRE désormais cet inventaire au lieu
   // d’hypothéquer une pièce sans lignes d’effet (voir `searchArtifacts`).
   artifacts: ArtifactDetail[];
+  // Inventaire COMPLET de reliques (implementation-relique, B.5c) — même
+  // rôle qu'`artifacts` ci-dessus pour la dimension relique : le pool que
+  // `resoudreContexteRelique` filtre en mode `recherche`.
+  relics: RelicDetail[];
+  // Occupation par `rid` — combien d'exemplaires du compte portent CETTE
+  // relique, affiché `n / 150` sur une carte candidat (D3 : AFFICHÉE, jamais
+  // bloquante ni exclusive).
+  relicUsageById: Record<number, number>;
   // Remontée dans App.tsx (voir useOptimizerState) : la page est démontée à
   // chaque changement d'onglet, comme les autres pages de l'app — sans cette
   // remontée, toute la saisie (monstre, conditions, résultats…) serait
@@ -372,7 +394,7 @@ const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
   { key: 'reel', label: 'Dégâts réels' },
 ];
 
-export default function OptimizerSection({ box, runes, artifacts, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
+export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -399,6 +421,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
+    relicMainChoice,
+    setRelicMainChoice,
+    relicUniqueChoice,
+    setRelicUniqueChoice,
+    relicMinUpgrade,
+    setRelicMinUpgrade,
     lignesVerrouillees,
     setLignesVerrouillees,
     mainStatsBySlot,
@@ -439,7 +467,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // `relicContextRecherche` : le contexte relique de la recherche LANCÉE
   // (garantie G) — `undefined` tant que l'écran n'en pose pas dans `run()`
   // (5c) ; la file de résolution le lit ici, jamais dans les trois champs.
-  const { status, result, progress, relicContext: relicContextRecherche, run, stop } = search;
+  const { status, result, progress, refusal, relicContext: relicContextRecherche, run, stop } = search;
 
   // Tous les monstres du BESTIAIRE, indexés par id — la recherche du
   // monstre à optimiser résout désormais une ESPÈCE dans TOUT le bestiaire
@@ -916,8 +944,20 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // seules (demande explicite, voir ExclusionSelector « unowned »).
   function pickSpecies(monster: Monster) {
     const id = String(monster.id);
+    // ⚠️ Calculé AVANT le `if` (contrairement à avant ce lot) : le défaut de
+    // relique (D1, ci-dessous) a besoin du premier exemplaire Box pour
+    // connaître la relique RÉELLEMENT portée, comme `setSourceSelector` plus
+    // bas — un seul calcul, pas une résolution séparée qui pourrait diverger.
+    const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
     if (id !== selectedId) {
       resetSearch();
+      // ⚠️ **D1, incident artéfacts « le défaut affiché était FAUX » —
+      // jamais répété ici** : `defaultRelicMainChoice` (useOptimizerState.ts)
+      // est la SOURCE du défaut, câblée ici parce que c'est le seul site qui
+      // connaît le monstre choisi (le hook n'y a pas accès) — comme
+      // `objective` juste en dessous, remis à zéro puis surchargé au même
+      // endroit.
+      setRelicMainChoice(defaultRelicMainChoice(boxCandidates[0]?.gear.relic));
       /**
        * ⚠️ **Un sort appartient à un MONSTRE.** `skillCom2usId` désigne un
        * sort précis ; après un changement de monstre, `resolveDamageSkill`
@@ -955,7 +995,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     }
     setSelectedId(id);
     setGearSource('box');
-    const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
     setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData));
     setZoneDOpen(false);
   }
@@ -1270,7 +1309,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    * non calculable → rabattu sur `'aucun'` ICI, une seule fois, jamais un
    * contexte de dégâts optionnel absorbé en silence par `evaluerPourRegime`.
    */
-  const regimeEquipement: RegimeArtefacts = regimePaire === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimePaire;
+  const regimeEquipement: RegimeArtefacts = regimeEquipementDe(regimePaire, !!contexteDegatsArtefacts);
 
   const sortesFigees = useMemo<ArtifactKind[]>(
     () =>
@@ -1309,7 +1348,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     const regimeBrut = regimeArtefacts(objective);
     // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
     // paramètre `degats` optionnel silencieusement absorbé par le helper.
-    const regimeRepresentatif: RegimeArtefacts = regimeBrut === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimeBrut;
+    const regimeRepresentatif: RegimeArtefacts = regimeEquipementDe(regimeBrut, !!contexteDegatsArtefacts);
     const evaluer =
       regimeRepresentatif === 'degats_reels'
         ? evaluerPourRegime(regimeRepresentatif, statsAvec, contexteDegatsArtefacts!)
@@ -1701,6 +1740,17 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // `searchArtifactBounds` et SearchParams.artifactBounds.
       artifactBounds: searchArtifactBounds,
       relic: selected.gear.relic,
+      // ⚠️ **Troisième producteur de `relicContext`** (implementation-relique,
+      // B.5c — les deux autres : `recipeToSearchParams.ts` pour le CLI,
+      // `buildCaseSearchParams` pour le harnais). L'intention vient d'UNE
+      // seule fonction pure (`relicIntentDepuisEtat`, useOptimizerState.ts),
+      // mêmes règles que `recipeToRelicIntent` — jamais une relecture séparée
+      // des trois champs ici (garantie G).
+      relicContext: resoudreContexteRelique(
+        relicIntentDepuisEtat(optimiserArtefacts, relicMainChoice, relicUniqueChoice, relicMinUpgrade),
+        selected.gear.relic,
+        relics
+      ),
       pool,
       requirement,
       metric,
@@ -1744,6 +1794,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       ignoreArtifacts: !optimiserArtefacts,
       artifactMainByKind,
       lignesVerrouillees,
+      relicMainChoice,
+      relicUniqueChoice,
+      relicMinUpgrade,
     });
     const jour = new Date().toISOString().slice(0, 10);
     const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
@@ -1887,6 +1940,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas (voir
       // `OptimizerRecipe.lignesVerrouillees`, optionnel exprès).
       setLignesVerrouillees(recipe.lignesVerrouillees ?? []);
+      // ⚠️ **Même canal que la bascule artéfact** (D1, « mêmes trois
+      // règles ») : `relicMainPourCeCompte` (optimizerRecipe.ts) applique la
+      // bascule « equipped » → « libre » sur compte différent ; le défaut
+      // D1 (`defaultRelicMainChoice`, contre la relique réellement portée)
+      // ne s'applique QUE si la recette ne porte pas le champ (recette
+      // antérieure au lot 2) — résolu plus bas, une fois le monstre trouvé.
+      const { main: relicMainResolu, bascule: relicBascule } = relicMainPourCeCompte(recipe, accountName);
+      setRelicUniqueChoice(recipe.relicUniqueChoice ?? 'libre');
+      setRelicMinUpgrade(recipe.relicMinUpgrade ?? DEFAULT_RELIC_MIN_UPGRADE);
 
       // Les runes imposées ignorées (voir plus haut) sont signalées en
       // SUFFIXE du message d'import — un verrou perdu change réellement le
@@ -1896,7 +1958,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // change ce que la recherche va renvoyer, exactement comme un verrou
         // perdu. Une recette qui se comporte autrement que chez son auteur,
         // sans un mot, serait pire que la donnée transportée telle quelle.
-        + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '');
+        + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '')
+        + (relicBascule ? ` Cette recette vient d'un autre compte : « Garder la relique équipée » est passé sur « Libre ».` : '');
       // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
       // monstres possédés — la recherche « Monstre à optimiser » couvre
       // désormais tout le bestiaire (voir Question 1 du cadrage), donc une
@@ -1916,6 +1979,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(match, box, exclusionData));
         setZoneDOpen(false);
         setSelectedId(String(match.id));
+        // ⚠️ Défaut D1 calculé contre la relique de l'EXEMPLAIRE résolu ici
+        // (même source que `pickSpecies`), jamais une constante — seulement
+        // si la recette ne porte pas le champ (`relicMainResolu` absent).
+        setRelicMainChoice(relicMainResolu ?? defaultRelicMainChoice(boxCandidates[0]?.gear.relic));
         setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}` });
       } else {
         // Cas limite : le `com2usId` de la recette ne correspond à AUCUN
@@ -1923,6 +1990,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // devrait rester rare maintenant que `allMonsters` couvre tout le
         // bestiaire (avant Lot 1, ce message apparaissait dès que le
         // monstre n'était simplement pas POSSÉDÉ, un cas bien plus courant).
+        // ⚠️ Aucun exemplaire résolu : pas de relique connue pour calculer le
+        // défaut D1, repli sur « libre » (même situation que `pickSpecies`
+        // sur une espèce possédée nulle part).
+        setRelicMainChoice(relicMainResolu ?? 'libre');
         setImportMsg({
           text: `Réglages importés (${recipe.monsterName}), mais ce monstre est introuvable dans les données actuelles — choisis-en un manuellement.${suffixeLocks}`,
         });
@@ -1987,7 +2058,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    */
   const signatureArtefacts = useMemo(
     () =>
-      signatureReglages({
+      calculerSignatureArtefacts({
         monstreCom2usId: selected?.monster.com2usId ?? -1,
         // ⚠️ Le réglage ENTIER : n'en prendre que quelques champs laissait le
         // cache intact quand on changeait le buff ATQ ou les PV de la cible.
@@ -2015,7 +2086,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // builds pour retrouver la même paire. Trop regrouper afficherait une
         // paire périmée — le régime est établi sur ce qu'un artéfact peut
         // bouger, jamais sur une intuition.
-        objective: regimeEquipement,
+        regimeEquipement,
         ignoreArtifacts: !optimiserArtefacts,
         principaleParSorte: artifactMainByKind,
         lignesVerrouillees,
@@ -3504,25 +3575,30 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             <br />
             La paire retenue suit le <b className="text-ink">tri</b> affiché — trier par PV effectifs ne choisit
             pas les mêmes artéfacts que trier par dégâts.
+            <br />
+            <br />
+            La <b className="text-ink">relique</b> suit la même grammaire : une principale ET une propriété unique
+            se combinent, et la propriété unique compte pour retenir ou écarter une relique quand son effet est
+            connu ; sa valeur n&apos;entre pas encore dans la note.
           </HelpPopover>
           {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
               et son aide restent collés, l'interrupteur part à droite — même
               lecture qu'avant, dans le gabarit d'en-tête de carte. */}
           <div className="ml-auto flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Activer l&apos;optimisation d&apos;artéfacts</span>
-            <HelpPopover title="Activer l&apos;optimisation d&apos;artéfacts">
-              Activé (défaut), chaque build reçoit la meilleure paire parmi tes artéfacts, selon les réglages
-              ci-dessous.
+            <span className="text-xs font-semibold text-ink-dim">Activer l&apos;optimisation d&apos;artéfacts et reliques</span>
+            <HelpPopover title="Activer l&apos;optimisation d&apos;artéfacts et reliques">
+              Activé (défaut), chaque build reçoit la meilleure paire d&apos;artéfacts ET la meilleure relique
+              parmi les tiennes, selon les réglages ci-dessous.
               <br />
               <br />
-              Désactivé, le monstre <b className="text-ink">garde les artéfacts qu&apos;il porte</b>, statistiques
-              comprises — on cesse simplement d&apos;en chercher d&apos;autres. Utile pour composer un runage autour
-              des pièces déjà en place.
+              Désactivé, le monstre <b className="text-ink">garde les artéfacts et la relique qu&apos;il porte</b>,
+              statistiques comprises — on cesse simplement d&apos;en chercher d&apos;autres. Utile pour composer un
+              runage autour des pièces déjà en place.
             </HelpPopover>
             <Interrupteur
               actif={optimiserArtefacts}
               onChange={setOptimiserArtefacts}
-              aria-label="Activer l'optimisation d'artéfacts"
+              aria-label="Activer l'optimisation d'artéfacts et reliques"
             />
           </div>
         </div>
@@ -3581,7 +3657,70 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             ))}
           </div>
         )}
-        {/* ⚠️ Sous les sélecteurs, et jamais au-dessus : les lignes
+        {/* ⚠️ **Reliques — même bloc masqué que les artéfacts** (D1 : un seul
+            interrupteur pour l'équipement complet), sous les deux listes
+            d'artéfacts (T9, place par défaut retenue au cadrage). Même
+            grammaire que ci-dessus, à la valeur près qui n'existe que pour
+            la relique (le type) — jamais « Comme équipé », l'incident
+            artéfacts (D1). */}
+        {optimiserArtefacts && (
+          <div className="mt-3 flex flex-wrap gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-ink">Relique — principale</span>
+              <Selecteur
+                value={String(relicMainChoice)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const next: RelicMainChoice = raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
+                  setRelicMainChoice(next);
+                }}
+                taille="sm"
+                surface="panel2"
+                pleineLargeur={false}
+              >
+                <option value="equipped">Garder la relique équipée</option>
+                <option value="libre">Libre</option>
+                {RELIC_MAIN_OPTIONS.map((o) => (
+                  <option key={o.code} value={o.code}>
+                    {o.label}
+                  </option>
+                ))}
+              </Selecteur>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-ink">Relique — propriété unique</span>
+              {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (D1 :
+                  la pièce est fixée) — désactivé plutôt que retiré, et le
+                  dit, même règle que les sous-propriétés verrouillées sans
+                  effet. */}
+              <Selecteur
+                value={String(relicUniqueChoice)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setRelicUniqueChoice(raw === 'libre' ? 'libre' : Number(raw));
+                }}
+                taille="sm"
+                surface="panel2"
+                pleineLargeur={false}
+                disabled={relicMainChoice === 'equipped'}
+                title={relicMainChoice === 'equipped' ? 'Sans effet : la relique équipée est fixée' : undefined}
+              >
+                <option value="libre">Libre</option>
+                {Object.keys(RELIC_UNIQUE)
+                  .map(Number)
+                  .map((type) => (
+                    <option key={type} value={type}>
+                      {relicUniqueShortLabel(type)}
+                    </option>
+                  ))}
+              </Selecteur>
+              {relicMainChoice === 'equipped' && (
+                <span className="text-nano text-ink-dimmer">sans effet : relique équipée fixée</span>
+              )}
+            </div>
+          </div>
+        )}
+        {/* Sous les sélecteurs, et jamais au-dessus : les lignes
             verrouillées se lisent comme un raffinement du choix de pièce, pas
             comme une condition indépendante. Masqué avec le reste quand les
             artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
@@ -4350,6 +4489,25 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         <p className="text-xs text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
       )}
 
+      {/* ⚠️ Refus NOMMÉ (implementation-relique, B.5c) : `search.status ===
+          'refused'` et `search.refusal.vide` sont la SEULE source de ce
+          texte — un par raison, jamais un pool recalculé pour deviner
+          pourquoi. `'refused'` se traite ici comme `'error'` l'est
+          juste au-dessus, à la place du lancement. */}
+      {status === 'refused' && refusal && (
+        <p className="text-xs text-bad">
+          {refusal.vide === 'seuil'
+            ? 'Aucune relique éligible : abaisse le niveau minimum.'
+            : refusal.vide === 'principale'
+              ? 'Aucune relique de cette principale dans ton inventaire.'
+              : refusal.vide === 'type'
+                ? 'Aucune relique de cette propriété unique dans ton inventaire.'
+                : refusal.vide === 'inventaire'
+                  ? "Aucune relique dans le compte importé : réimporte le compte, ou coupe l'optimisation d'artéfacts et reliques."
+                  : 'Ce monstre ne porte pas de relique.'}
+        </p>
+      )}
+
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
           un candidat est trouvé (`sortedCandidates` vient alors de l'aperçu
           EN DIRECT de `progress`, pas de `result` — voir `candidatesSource`
@@ -4381,25 +4539,25 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 sélecteurs de principale et les sous-propriétés verrouillées. */}
             {optimiserArtefacts && (result ? result.candidates.length > 0 : true) && (
               <div className="ml-auto flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts au tri</span>
-                <HelpPopover title="Adapter les artéfacts au tri">
-                  Activé (défaut), chaque build reçoit les artéfacts qui maximisent le{' '}
+                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
+                <HelpPopover title="Adapter les artéfacts et reliques au tri">
+                  Activé (défaut), chaque build reçoit les artéfacts ET la relique qui maximisent le{' '}
                   <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
                   pièces que trier par PV effectifs.
                   <br />
                   <br />
-                  Désactivé, les artéfacts restent ceux qui servent l’<b className="text-ink">objectif de la
+                  Désactivé, les artéfacts et la relique restent ceux qui servent l’<b className="text-ink">objectif de la
                   recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
-                  que la paire bouge — et « Valider les artéfacts » propose alors toujours la même.
+                  que l’équipement bouge — et « Valider les artéfacts » propose alors toujours le même.
                   <br />
                   <br />
                   Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
-                  artéfact n’entre dans ces classements.
+                  artéfact ni aucune propriété de relique n’entre dans ces classements.
                 </HelpPopover>
                 <Interrupteur
                   actif={adapterArtefactsAuTri}
                   onChange={setAdapterArtefactsAuTri}
-                  aria-label="Adapter les artéfacts au tri"
+                  aria-label="Adapter les artéfacts et reliques au tri"
                 />
               </div>
             )}
@@ -4631,6 +4789,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 // atteint — et la carte le DIT (`paireProvisoire`) plutôt que
                 // de laisser croire que c'est le résultat final.
                 artifacts={fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts}
+                // ⚠️ **Seule source** (implementation-relique, B.5c) :
+                // `etatReliqueDuBuild` lit le cache de la file, jamais
+                // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
+                // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
+                // classement écarte déjà ces builds, B.5b).
+                etatRelique={etatReliqueDuBuild(fileArtefacts.parBuild.get(cleBuild(c)), relicContextRecherche, selected?.gear.relic)}
+                relicUsageById={relicUsageById}
                 // ⚠️ Signalé SEULEMENT quand la file tourne pour de bon : hors
                 // « Dégâts réels » ou file inactive, il n'y a rien à attendre,
                 // et annoncer une optimisation qui n'aura pas lieu serait faux.

@@ -1368,6 +1368,8 @@ export default function App() {
             box={box}
             runes={runes}
             artifacts={artifacts}
+            relics={relics}
+            relicUsageById={relicUsageById}
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}

@@ -6,7 +6,7 @@
 // qui a besoin d'un navigateur) ni sur le choix de la paire (artefact-optim).
 
 import { BuildCandidate } from '../src/lib/runeBuildOptim';
-import { candidatAvecSaPaire, cleBuild, prochainsATraiter, signatureReglages } from '../src/lib/artifactQueue';
+import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, prochainsATraiter, signatureReglages } from '../src/lib/artifactQueue';
 import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
@@ -219,6 +219,47 @@ export default function testArtefactFile() {
       signatureReglages({ ...base, requirement: { minStats: { ...base.requirement.minStats }, maxStats: { ...base.requirement.maxStats } } }),
       s,
       '… mais le MÊME requirement (copie) ne change rien'
+    );
+  }
+
+  titre('File d’artéfacts — départage canonique (B.5b bis, mineur de la revue)');
+
+  // ⚠️ À score égal, `sortCandidates` est un tri STABLE : sans départage,
+  // l'ordre de sortie suit l'ordre d'entrée (celui de l'appariement), qui n'a
+  // rien de canonique. `ordonnerParDepartage` (rid croissant, puis `cleBuild`)
+  // s'applique AVANT ce tri stable, pour que le résultat ne dépende plus de
+  // l'ordre d'arrivée des candidats.
+  {
+    const c1 = build(1, 2, 3, 4, 5, 6);
+    const c2 = build(11, 12, 13, 14, 15, 16);
+    const rid = new Map([[cleBuild(c1), 1], [cleBuild(c2), 1]]); // même rid : cleBuild départage
+    const ridDe = (c: BuildCandidate) => rid.get(cleBuild(c));
+    const direct = ordonnerParDepartage([c1, c2], ridDe).map(cleBuild);
+    const inverse = ordonnerParDepartage([c2, c1], ridDe).map(cleBuild);
+    egal(direct, inverse, 'même rid : l’ordre d’ENTRÉE ne change pas la sortie (départage par cleBuild)');
+    egal(direct, [cleBuild(c1), cleBuild(c2)].sort(), 'l’ordre rendu suit cleBuild croissant, pas l’ordre d’arrivée');
+  }
+  {
+    const c1 = build(1);
+    const c2 = build(2);
+    const rid = new Map([[cleBuild(c1), 5], [cleBuild(c2), 2]]);
+    const ridDe = (c: BuildCandidate) => rid.get(cleBuild(c));
+    egal(
+      ordonnerParDepartage([c1, c2], ridDe).map(cleBuild),
+      [cleBuild(c2), cleBuild(c1)],
+      'rid différents : le plus petit rid passe devant, quel que soit l’ordre d’entrée'
+    );
+  }
+  {
+    // Candidat pas encore résolu (`ridDe` rend `undefined`) : toujours en
+    // dernier, jamais avant un candidat déjà résolu.
+    const resolu = build(1);
+    const enAttente = build(2);
+    const rid = new Map([[cleBuild(resolu), 3]]);
+    egal(
+      ordonnerParDepartage([enAttente, resolu], (c) => rid.get(cleBuild(c))).map(cleBuild),
+      [cleBuild(resolu), cleBuild(enAttente)],
+      'un candidat non résolu (rid absent) va en dernier'
     );
   }
 }

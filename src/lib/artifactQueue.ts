@@ -263,3 +263,28 @@ export function signatureReglages(parts: {
     JSON.stringify(parts.requirement.maxStats ?? {}),
   ].join('§');
 }
+
+/**
+ * Départage CANONIQUE à score égal : `rid` de la relique retenue croissant,
+ * puis `cleBuild` — la convention du contrat (B.5b bis, mineur de la revue),
+ * la même que l'oracle (`bestRelicForBuild`, `relicOptim.ts`).
+ *
+ * ⚠️ **Un tri PRÉALABLE, pas un comparateur de plus dans `sortCandidates`.**
+ * `sortCandidates` reste un tri STABLE (ES2019, garanti par la spec) sur le
+ * seul score : lui faire suivre un ordre déjà départagé par `rid`/`cleBuild`
+ * suffit à rendre la sortie déterministe à score égal, sans apprendre à
+ * `sortCandidates` — générique, partagé avec le harnais — la notion de
+ * relique. `ridDe` absent (candidat pas encore résolu) va en dernier, par
+ * construction (`Number.POSITIVE_INFINITY`) : l'ordre entre candidats non
+ * résolus reste déterministe (par `cleBuild`), sans prétendre à un rang exact.
+ */
+export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readonly T[], ridDe: (c: T) => number | undefined): T[] {
+  return [...candidats].sort((a, b) => {
+    const ra = ridDe(a) ?? Number.POSITIVE_INFINITY;
+    const rb = ridDe(b) ?? Number.POSITIVE_INFINITY;
+    if (ra !== rb) return ra - rb;
+    const ca = cleBuild(a);
+    const cb = cleBuild(b);
+    return ca < cb ? -1 : ca > cb ? 1 : 0;
+  });
+}

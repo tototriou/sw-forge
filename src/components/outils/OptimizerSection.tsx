@@ -23,7 +23,7 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats, statsParPaire } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
+import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, signatureReglages } from '../../lib/artifactQueue';
 import { resoudreEquipementDuBuild } from '../../lib/relicQueue';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
@@ -2186,9 +2186,18 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // cherchée (absent du cache) : c'est le seul état honnête — on ne sait pas
     // encore. La file traite la page affichée en priorité, donc le verdict
     // arrive vite sur ce qu'on regarde.
-    const avecPaire = fullSortedCandidates
-      .filter((c) => fileArtefacts.parBuild.get(cleBuild(c))?.conforme !== false)
-      .map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
+    // ⚠️ **B.5b bis, mineur de la revue** : `sortCandidates` est un tri
+    // STABLE, à score égal l'ordre d'entrée est préservé — mais cet ordre
+    // d'entrée (celui de l'appariement) n'a rien de canonique. Le départage
+    // (`ordonnerParDepartage`, `rid` croissant puis `cleBuild`, la convention
+    // du contrat, la même que l'oracle) est appliqué AVANT, sur les candidats
+    // conformes : le tri stable qui suit préserve ensuite CET ordre pour
+    // toute égalité de score, quel que soit l'ordre d'arrivée des Workers.
+    const conformes = ordonnerParDepartage(
+      fullSortedCandidates.filter((c) => fileArtefacts.parBuild.get(cleBuild(c))?.conforme !== false),
+      (c) => fileArtefacts.parBuild.get(cleBuild(c))?.relique?.id
+    );
+    const avecPaire = conformes.map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
     return sortCandidates(avecPaire, sortBy, {
       realDamage,
       runeById,

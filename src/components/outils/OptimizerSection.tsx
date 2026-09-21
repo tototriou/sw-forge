@@ -2017,8 +2017,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // qui change de régime invalide déjà par `objective` ci-dessus ; un
         // tri qui n'en change pas ne relance rien (plan § 8.4).
         empreinteRelique: relicContextRecherche?.empreinte ?? null,
+        // ⚠️ B.5b bis, bloquant 2 : le résolveur consomme `requirement`
+        // (minimums ET maximums) depuis le lot 5b ; sans lui ici, relancer
+        // avec un autre maximum gardait un couple devenu infaisable en cache.
+        requirement,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimePaire, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte]
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimePaire, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirement]
   );
 
   const faireParamsArtefacts = useMemo(() => {

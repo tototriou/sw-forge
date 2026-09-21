@@ -151,6 +151,7 @@ export default function testArtefactFile() {
       relique: { main: { code: 101, value: 12 } } as unknown,
       nbArtefacts: 2518,
       empreinteRelique: null as string | null,
+      requirement: { minStats: { atk: 100 }, maxStats: { def: 2000 } },
     };
     const s = signatureReglages(base);
     // ⚠️ Tout ce qui change quelles LIGNES comptent change la paire gagnante
@@ -200,6 +201,24 @@ export default function testArtefactFile() {
       signatureReglages({ ...base, lignesVerrouillees: [{ code: 409, min: 15 }, { code: 206, min: 35 }] }),
       signatureReglages({ ...base, lignesVerrouillees: [{ code: 206, min: 35 }, { code: 409, min: 15 }] }),
       'l’ordre de saisie des lignes verrouillées est sans effet'
+    );
+
+    // ⚠️ **B.5b bis, BLOQUANT 2 de la revue** (`revue-diff-lot5b-2026-09-21.md`) :
+    // `requirement` (minimums ET maximums) doit invalider le cache — sans lui,
+    // relancer avec le même contexte et un autre maximum gardait un couple
+    // devenu infaisable (`conforme: true` périmé).
+    ok(
+      signatureReglages({ ...base, requirement: { minStats: base.requirement.minStats, maxStats: { def: 1900 } } }) !== s,
+      '… et un changement de MAXIMUM invalide le cache (bloquant 2)'
+    );
+    ok(
+      signatureReglages({ ...base, requirement: { minStats: { atk: 150 }, maxStats: base.requirement.maxStats } }) !== s,
+      '… un changement de MINIMUM aussi'
+    );
+    egal(
+      signatureReglages({ ...base, requirement: { minStats: { ...base.requirement.minStats }, maxStats: { ...base.requirement.maxStats } } }),
+      s,
+      '… mais le MÊME requirement (copie) ne change rien'
     );
   }
 }

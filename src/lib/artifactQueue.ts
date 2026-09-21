@@ -17,7 +17,7 @@
 // fil principal), le « comment » dans `artifactOptim.ts`. Trois responsabilités
 // séparées, dont celle-ci est la seule testable sans navigateur.
 
-import { BuildCandidate } from './runeBuildOptim';
+import { BuildCandidate, BuildRequirement } from './runeBuildOptim';
 import { StatRow } from './stats';
 import { ArtifactDetail, RelicDetail } from '../types';
 import { PaireArtefacts } from './artifactOptim';
@@ -231,6 +231,15 @@ export function signatureReglages(parts: {
    * combat `damageSetup`.
    */
   empreinteRelique: string | null;
+  /**
+   * Les conditions ENTIÈRES (minimums ET maximums) que le résolveur consomme
+   * depuis le lot 5b (`respecteConditionsAvecRelique`, `resoudreEquipementDuBuild`)
+   * — jamais un sous-ensemble choisi à la main, même règle que `damageSetup`
+   * (CLAUDE.md, « plusieurs constructeurs »). Sans ce champ, relancer avec le
+   * même contexte et un autre maximum gardait un couple devenu infaisable en
+   * cache (bloquant 2, revue du lot 5b, `revue-diff-lot5b-2026-09-21.md`).
+   */
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>;
 }): string {
   // ⚠️ Un minimum à 0 n'exige RIEN : le retenir ferait relancer 100
   // optimisations pour rien dès qu'on tape puis efface une valeur. L'ordre de
@@ -250,5 +259,7 @@ export function signatureReglages(parts: {
     JSON.stringify(parts.relique ?? null),
     parts.nbArtefacts,
     parts.empreinteRelique ?? '',
+    JSON.stringify(parts.requirement.minStats),
+    JSON.stringify(parts.requirement.maxStats ?? {}),
   ].join('§');
 }

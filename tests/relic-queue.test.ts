@@ -535,7 +535,7 @@ export default function testRelicQueue() {
     const ctx = contexte(LIBRE, undefined, inv);
     const c = candidat(p, [101, 102, 103, 104, 105, 106]);
     const signature = (regime: RegimeArtefacts) =>
-      signatureReglages({ monstreCom2usId: 1, damageSetup: {}, objective: regime, ignoreArtifacts: false, principaleParSorte: {}, lignesVerrouillees: [], relique: null, nbArtefacts: 0, empreinteRelique: ctx.empreinte });
+      signatureReglages({ monstreCom2usId: 1, damageSetup: {}, objective: regime, ignoreArtifacts: false, principaleParSorte: {}, lignesVerrouillees: [], relique: null, nbArtefacts: 0, empreinteRelique: ctx.empreinte, requirement: { minStats: {} } });
 
     // 1. tri ATQ + bouton actif : la relique maximise le tri (ATQ).
     const ex1 = resoudre(p, c, ctx, { critere: 'atk' });

@@ -1,47 +1,19 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Ban } from 'lucide-react';
-import { GearSet, RelicDetail } from '../types';
+import { GearSet } from '../types';
 import { computeStats } from '../lib/stats';
-import { formatRelicMain, formatRelicUnique } from '../lib/effects';
 import RuneWheel from './RuneWheel';
 import { COMPACT, useMediaQuery } from '../hooks/useMediaQuery';
 import ArtifactSlots from './ArtifactSlots';
 import StatPanel from './StatPanel';
+import RelicSlot, { RelicDetailBox } from './RelicSlot';
 import { ArtifactDetailBox, RuneDetailBox } from './PieceDetail';
-import { FlottantAuto, ZoneCliquable } from '../ui';
+import { FlottantAuto } from '../ui';
 
 export type Selected =
   | { kind: 'rune'; i: number }
   | { kind: 'artifact'; i: number }
   | { kind: 'relic' }
   | null;
-
-// ⚠️ `encadre=false` dans un `Flottant`, qui pose déjà bord + fond + coins
-// arrondis — voir `PieceDetailBox`, même règle.
-function RelicDetailBox({ relic, encadre = true }: { relic: RelicDetail; encadre?: boolean }) {
-  return (
-    <div className={encadre ? 'rounded-lg border border-border bg-panel/70 p-2.5' : ''}>
-      <div className="text-xs font-bold text-ink">{formatRelicMain(relic.main)}</div>
-      {/* ⚠️ **La description seule, sans intitulé.** La propriété unique
-          déclenche un effet proportionnel à une stat (« +2 % par tranche de
-          27 000 PV »), et cette phrase se suffit : la coiffer d'un « Propriété
-          unique · » répétait une catégorie que la ligne dit déjà, sur deux
-          lignes de tuile qui en valent l'or.
-          ⚠️ L'export ne dit NULLE PART ce que l'effet fait — seulement un numéro
-          de type, qui reste en infobulle pour retrouver la pièce en jeu. Avant :
-          « Effet secondaire · 27000 », où le nombre n'était même pas une valeur
-          mais un diviseur. */}
-      {relic.unique && (
-        <div
-          className="text-micro text-ink-dim mt-0.5"
-          title={`Propriété unique n° ${relic.unique.type} — l'export ne dit pas ce qu'elle déclenche`}
-        >
-          {formatRelicUnique(relic.unique)}
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface Props {
   gear: GearSet;
@@ -90,10 +62,6 @@ export default function MonsterGear({ gear, spdCible = null, scale, selection, o
     else setSelInterne(suivant);
   };
   const auDoigt = useMediaQuery(COMPACT);
-  // Ancre du détail de la relique. Les runes et les artéfacts fournissent la
-  // leur (`renderOverlay`) ; la relique est dessinée ici, elle porte donc sa
-  // propre référence.
-  const ancreRelique = useRef<HTMLDivElement>(null);
 
   const isSel = (s: Selected) =>
     !!sel &&
@@ -390,56 +358,32 @@ export default function MonsterGear({ gear, spdCible = null, scale, selection, o
           ⚠️ **Emplacement TOUJOURS affiché**, grisé quand le monstre n'a pas de
           relique — jamais absent (demande explicite) : même principe que
           `ArtifactSlots` (toujours 2 emplacements, un vide grisé à l'icône
-          `Ban`) et la roue de runes (toujours rendue, même à 0 rune). Sans
-          relique, la case n'a rien à ouvrir : pas de `ZoneCliquable`/
-          `FlottantAuto`, juste un cadre statique. */}
-      {gear.relic ? (
-        // ⚠️ `relative` : c'est l'ancre du flottant, qui s'y place en `absolute`.
-        // Et `z-10` quand elle est ouverte, comme les emplacements d'artéfacts —
-        // sans quoi la roue juste à côté recouvrirait le détail.
-        <div
-          ref={ancreRelique}
-          className={`relative ${isSel({ kind: 'relic' }) ? 'z-10' : ''}`}
-        >
-          <ZoneCliquable
-            onClick={() => toggle({ kind: 'relic' })}
-            title="Voir la relique"
-            aria-pressed={isSel({ kind: 'relic' })}
-            className={`rounded-lg border px-2.5 py-2 text-center compact:px-1.5 compact:py-1.5 ${
-              isSel({ kind: 'relic' })
-                ? 'border-star bg-star/10 ring-1 ring-star/50'
-                : 'border-border bg-panel/60 hoverable:border-accent'
-            }`}
-          >
-            <div className="label">Relique</div>
-            <div className="mt-0.5 text-xs font-bold text-ink compact:text-micro">
-              {formatRelicMain(gear.relic.main)}
-            </div>
-          </ZoneCliquable>
-          {!auDoigt && (
-            <FlottantAuto
-              ouvert={isSel({ kind: 'relic' })}
-              ancre={ancreRelique}
-              largeur={220}
-              hauteur={120}
-              rembourrage="md"
-            >
-              <RelicDetailBox relic={gear.relic} encadre={false} />
-            </FlottantAuto>
-          )}
-        </div>
-      ) : (
-        <div
-          title="Aucune relique équipée"
-          className="rounded-lg border border-border bg-panel/60 px-2.5 py-2 text-center opacity-40 compact:px-1.5 compact:py-1.5"
-        >
-          <div className="label">Relique</div>
-          <div className="mt-0.5 flex items-center justify-center">
-            <Ban size={16} className="text-ink-dim compact:hidden" />
-            <Ban size={13} className="hidden text-ink-dim compact:block" />
-          </div>
-        </div>
-      )}
+          `Ban`) et la roue de runes (toujours rendue, même à 0 rune).
+          ⚠️ **`RelicSlot`, partagé avec la carte candidat de l'Optimizer**
+          (implementation-relique, B.5c bis) — voir RelicSlot.tsx : LE modèle
+          que la carte candidat reprend, jamais une copie. */}
+      <RelicSlot
+        relic={gear.relic}
+        selected={isSel({ kind: 'relic' })}
+        onToggle={() => toggle({ kind: 'relic' })}
+        renderOverlay={
+          auDoigt
+            ? undefined
+            : (ancre) => (
+                <FlottantAuto
+                  ouvert={isSel({ kind: 'relic' })}
+                  ancre={ancre}
+                  largeur={220}
+                  hauteur={120}
+                  rembourrage="md"
+                >
+                  {/* Non-null : `RelicSlot` n'invoque `renderOverlay` que dans
+                      sa branche « relique présente ». */}
+                  <RelicDetailBox relic={gear.relic!} encadre={false} />
+                </FlottantAuto>
+              )
+        }
+      />
       </div>
       </div>
 

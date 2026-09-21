@@ -685,25 +685,30 @@ export const RELIC_UNIQUE: Record<number, { effet: RelicGroupe; groupe: RelicGro
 // ⚠️ Le pourcentage peut manquer (fichier de prépa exporté par une version
 // antérieure, qui ne transportait que le type et la tranche) : on annonce alors
 // la tranche seule, plutôt qu'un « +0 % » qui serait faux.
-// Libellé COURT d'un type de propriété unique — groupe + stat de référence
-// (« Conquête · ATQ »), pour le sélecteur « Relique — propriété unique »
-// (implementation-relique, B.5c) et l'affichage compact d'une carte
-// candidat : `formatRelicUnique` ci-dessous reste la PHRASE complète du jeu
-// (tranche + pourcentage), trop longue pour ces deux usages. DÉRIVÉ de
-// `RELIC_UNIQUE`, jamais une table séparée qui pourrait diverger
-// (game-data-curation).
-const RELIC_GROUPE_LABEL: Record<RelicGroupeNom, string> = {
-  conquete: 'Conquête',
-  tenacite: 'Ténacité',
-  bravoure: 'Bravoure',
-  eternite: 'Éternité',
-  origine: 'Origine',
-  regeneration: 'Régénération',
+// Mot du jeu qui ouvre la phrase d'un groupe — CONQUETE/TENACITE/BRAVOURE/
+// ETERNITE/ORIGINE/REGENERATION ci-dessus, recopié à l'identique. UN PAR
+// GROUPE (six entrées), jamais un par type (seize) : une mise à jour de la
+// phrase d'un groupe n'a qu'un seul endroit à corriger ici aussi. Sert
+// UNIQUEMENT à `relicUniqueEffectLabel` ci-dessous — jamais une table
+// déconnectée de RELIC_UNIQUE (game-data-curation) : si un mot change dans
+// une des six phrases au-dessus, celui-ci doit changer avec.
+const RELIC_GROUPE_EFFET: Record<RelicGroupeNom, string> = {
+  conquete: 'DGTS infligés',
+  tenacite: 'DGTS reçus',
+  bravoure: 'ATQ',
+  eternite: 'DEF',
+  origine: 'Max des PV',
+  regeneration: 'Soins et boucliers accordés',
 };
 
-export function relicUniqueShortLabel(type: number): string | undefined {
+// Libellé de propriété unique « <effet> en fonction <stat> » (implementation-
+// relique, B.5c bis) — sélecteur « Relique — propriété unique » et carte
+// candidat, MÊME libellé aux deux endroits. DÉRIVÉ de `RELIC_UNIQUE` : les
+// deux moitiés (`RELIC_GROUPE_EFFET`, `stat.phrase`) sont des mots du jeu,
+// l'assemblage lui-même (« en fonction ») est le nôtre.
+export function relicUniqueEffectLabel(type: number): string | undefined {
   const def = RELIC_UNIQUE[type];
-  return def ? `${RELIC_GROUPE_LABEL[def.groupe]} · ${def.stat.court}` : undefined;
+  return def ? `${RELIC_GROUPE_EFFET[def.groupe]} en fonction ${def.stat.phrase}` : undefined;
 }
 
 export function formatRelicUnique(u: RelicUnique): string {

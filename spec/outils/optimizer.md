@@ -989,28 +989,46 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigeait.
 
-   **Relique** (implementation-relique, lot 5c) — même carte, sous les deux
-   listes d'artéfacts ci-dessus, masquée avec elles par le même interrupteur
-   (renommé **« Activer l'optimisation d'artéfacts et reliques »**) : un
-   seul geste pour l'équipement complet. Deux listes déroulantes, **grammaire
-   des artéfacts à la valeur près qui n'existe que pour la relique** (le
-   type) :
-   - **Relique — principale** : **« Garder la relique équipée »** (pièce
-     entière, rien n'est cherché), **Principale ATQ %**, **Principale
-     DEF %**, **Principale PV %**, **« Libre »** (cherche parmi toutes les
-     reliques éligibles). **Défaut : « Garder la relique équipée » si le
-     monstre choisi porte une relique, « Libre » sinon** — calculé au choix
-     du monstre, comme pour l'artéfact.
-   - **Relique — propriété unique** : **« Libre »** (défaut) ou l'un des 16
-     types (`RELIC_UNIQUE`, `lib/effects.ts`) — **désactivée et sans effet**
-     avec « Garder la relique équipée » (la pièce est fixée), la carte le
-     dit.
-   - **Seuil de niveau minimum** (« Niveau minimum de la relique », +0 à
-     +15, +6 par défaut) : dans « Réglages avancés » (voir plus bas), un
-     filtre d'ENTRÉE sur le pool cherché, jamais un critère de classement.
+   La **relique** vivait ici (deux listes, lot 5c) ; elle a rejoint sa
+   propre carte, juste après celle-ci — voir « Relique » ci-dessous. Seul
+   reste commun l'interrupteur ci-dessus, renommé **« Activer
+   l'optimisation d'artéfacts et reliques »** : il masque d'un seul geste
+   les deux listes d'artéfacts ci-dessus ET la carte Relique entière.
+
+### Relique
+6 ter. **Relique** (implementation-relique, lot 5c bis) — **carte à part**,
+   immédiatement après « Artéfacts » (sous « Meilleurs artéfacts offensifs
+   pour ce build », qui clôt cette dernière) : même grammaire (titre, aide,
+   composants `src/ui/`) que les autres cartes de l'écran.
+
+   ⚠️ **Pas d'interrupteur propre** (T2 confirmé) : coupée avec « Activer
+   l'optimisation d'artéfacts et reliques » (carte Artéfacts, juste
+   au-dessus), la carte se grise **entière** et le dit — un second
+   interrupteur aurait fait double emploi avec le premier pour la même
+   décision (« ne pas chercher d'équipement pour ce monstre »).
+
+   Trois réglages, **grammaire des artéfacts à la valeur près qui n'existe
+   que pour la relique** (le type) :
+   - **Principale** : **« Garder la relique équipée »** (pièce entière,
+     rien n'est cherché), **Principale ATQ %**, **Principale DEF %**,
+     **Principale PV %**, **« Libre »** (cherche parmi toutes les reliques
+     éligibles). **Défaut : « Garder la relique équipée » si le monstre
+     choisi porte une relique, « Libre » sinon** — calculé au choix du
+     monstre, comme pour l'artéfact.
+   - **Propriété unique** : **« Libre »** (défaut) ou l'un des 16 types
+     (`RELIC_UNIQUE`, `lib/effects.ts`), avec le libellé **« `<effet>` en
+     fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de
+     `RELIC_UNIQUE` — effet et stat sont chacun des mots du jeu, jamais une
+     table séparée) — **désactivée et sans effet** avec « Garder la relique
+     équipée » (la pièce est fixée), la carte le dit. Même libellé sur la
+     carte candidat (voir « Résultats » plus bas).
+   - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
+     `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
+     critère de classement — absente à l'écran au lot 5c (réserve
+     corrigée ici).
    - `libre` et le type n'ont d'effet qu'avec la recherche (bornes du lot
-     5a, résolution exacte du lot 5b) ; le sélecteur ne se conditionne pas
-     aux reliques possédées, comme pour l'artéfact.
+     5a, résolution exacte du lot 5b) ; les sélecteurs ne se conditionnent
+     pas aux reliques possédées, comme pour l'artéfact.
    - **Pool vide → refus nommé**, à la place du lancement : un texte par
      raison (seuil trop haut, aucune relique de cette principale/ce type,
      aucune relique dans l'inventaire — réimporter le compte ou couper
@@ -1291,14 +1309,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
      une recette (voir plus bas).
-   - **« Niveau minimum de la relique »** (implementation-relique, lot 5c),
-     `NumberField`, **+0 à +15, +6 par défaut** : filtre d'ENTRÉE sur le pool
-     de reliques cherché (une relique moins évoluée que ce seuil n'est jamais
-     candidate) — jamais un critère de classement, la dominance (voir
-     « Algorithme ») départage les reliques qui passent le seuil. Sans effet
-     tant que la liste « Relique — principale » ne vaut pas « Libre » ou une
-     principale forcée (voir « Artéfacts »). Fait partie des réglages
-     exportés/importés dans une recette.
+
+   ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** —
+   contrairement à ce que le lot 5c avait prévu : il vit dans la carte
+   « Relique » (« Niveau minimum », voir plus haut), avec les deux autres
+   réglages relique, pas dans « Réglages avancés » (implementation-relique,
+   lot 5c bis, T9 re-tranché).
 ### Lancer la recherche
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
@@ -1462,20 +1478,33 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     même liste de travail), jusqu'à libération explicite : voir « Listes de
     travail et réservation de runes ».
 
-    ⚠️ **Relique, quatre états** (implementation-relique, lot 5c) — hors mode
-    `recherche` (interrupteur coupé, « Garder la relique équipée »), rien de
-    nouveau : la relique portée, comme avant ce lot. En mode `recherche`,
-    `etatReliqueDuBuild` (seule source) rend :
-    - **en attente** — la file n'a pas encore traité ce build : « relique :
-      en attente », le score n'est pas exact ;
+    ⚠️ **Relique, un emplacement, quatre états** (implementation-relique,
+    lot 5c, écran refait au lot 5c bis) — un emplacement « Relique », À
+    DROITE DE LA ROUE, même modèle que celui de la fiche d'équipement
+    (`MonsterGear.tsx`) : composant partagé `RelicSlot`, jamais une copie.
+    Hors mode `recherche` (interrupteur coupé, « Garder la relique
+    équipée »), rien de nouveau : la relique portée, comme avant ce lot, ou
+    la case grisée « aucune » sans relique. En mode `recherche`,
+    `etatReliqueDuBuild` (seule source) pilote la case :
+    - **en attente** — la file n'a pas encore traité ce build : **la même
+      case**, grisée, « en attente » — rien ne bouge à l'écran quand la file
+      résout, seul le contenu de la case change ;
     - **rejeté** — aucune relique éligible ne rend le build faisable :
       jamais affiché, le classement l'a déjà écarté ;
-    - **résolue** — la relique retenue (identifiant, principale, propriété
-      unique, occupation `n / 150`), avec deux marques possibles : « relique
-      sans effet sur ce tri » (régime `aucun` — Efficience, Vitesse…) et
-      « relique équipée exclue par le filtre » (la relique portée ne passe
-      pas le seuil/la principale/le type demandés, la meilleure admissible
-      peut alors noter moins qu'elle).
+    - **résolue** — la relique retenue (principale dans la case ; le détail
+      complet — propriété unique, le libellé « `<effet>` en fonction
+      `<stat>` » compris — au clic, comme un artéfact : flottant ancré à la
+      souris, ligne sous la carte au doigt), avec deux marques possibles
+      sous la case : « relique sans effet sur ce tri » (régime `aucun` —
+      Efficience, Vitesse…) et « relique équipée exclue par le filtre » (la
+      relique portée ne passe pas le seuil/la principale/le type demandés,
+      la meilleure admissible peut alors noter moins qu'elle).
+    ⚠️ **Le compte `n / 150`** (occupation de la relique sur le compte, D3)
+    **a quitté la carte candidat** au lot 5c bis — trop de détail pour une
+    case au format artéfact/rune ; `relicUsageById` reste calculé et
+    persisté (`accountStore.ts`) mais n'a aujourd'hui plus aucun
+    consommateur à l'écran (piste dans `../pistes.md`, à instruire si un
+    futur usage en a besoin).
     Le classement n'affiche **jamais** de gain contre la relique équipée
     (T9 tranché : non — exigerait une seconde évaluation par build dans la
     file, hors périmètre de ce lot).
@@ -1541,10 +1570,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   passe dans un troisième état, actif, qui met à jour la seule paire sans
   toucher aux runes. Sans lui, la carte disait « Validé » et n'offrait plus
   rien alors que ce qu'elle montrait n'était pas ce qui était réservé.
-  Le cas se présente dès que « Adapter les artéfacts au tri » est activé (le
-  défaut) : la paire suit alors le critère affiché, donc changer de tri peut
-  la changer à runes identiques. Interrupteur désactivé, elle reste stable et
-  ce bouton n’apparaît plus au fil de l’exploration.
+  Le cas se présente dès que « Adapter les artéfacts et reliques au tri »
+  est activé (le défaut) : la paire suit alors le critère affiché, donc
+  changer de tri peut la changer à runes identiques. Interrupteur désactivé,
+  elle reste stable et ce bouton n’apparaît plus au fil de l’exploration.
 
   Sans cette mémorisation, la fiche d'un build validé rejouait la paire portée
   AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Les builds validés
@@ -1958,8 +1987,9 @@ différent, coopératif (voir « Interruption »).
     réellement équipables lui fait tenir *toutes* ses conditions à la fois.
     Un résultat affiché respecte donc toujours les conditions demandées.
   - **La meilleure paire d'artéfacts d'un build suit le critère de
-    classement**, et l’interrupteur « Adapter les artéfacts au tri » décide
-    duquel : le **tri affiché** (défaut) ou l’**objectif de la recherche**.
+    classement**, et l’interrupteur « Adapter les artéfacts et reliques au
+    tri » décide duquel : le **tri affiché** (défaut) ou l’**objectif de la
+    recherche**.
     Trier par PV effectifs ne retient pas les mêmes pièces que trier par
     Dégâts réels — deux réponses différentes pour le même build, et c’est
     normal : un artéfact change les statistiques du monstre, donc le meilleur

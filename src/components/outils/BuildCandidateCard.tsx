@@ -1,12 +1,13 @@
 import { ArrowLeftRight, CheckCircle2 } from 'lucide-react';
-import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
+import { ArtifactDetail, RelicDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
-import { activeSets, RELIC_MAIN, relicUniqueShortLabel } from '../../lib/effects';
+import { activeSets } from '../../lib/effects';
 import { EtatRelique } from '../../lib/relicQueue';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
+import RelicSlot, { RelicDetailBox } from '../RelicSlot';
 import StatPanel from '../StatPanel';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
 import { Bouton, FlottantAuto } from '../../ui';
@@ -24,15 +25,13 @@ interface Props {
   // afficherait des stats et un équipement qui ne vont pas ensemble.
   artifacts: ArtifactDetail[];
   /**
-   * L'état de la relique de CE build (implementation-relique, B.5c),
+   * L'état de la relique de CE build (implementation-relique, B.5c/5c bis),
    * `etatReliqueDuBuild` (relicQueue.ts) — SEULE source, jamais recalculé
    * ici. `undefined` : aucune dimension relique dans cette recherche (hors
-   * mode `recherche`, chemin d'avant ce lot), rien n'est affiché.
+   * mode `recherche`, chemin d'avant ce lot) — traité comme `fixe` sans
+   * relique, la case reste affichée, grisée « aucune ».
    */
   etatRelique?: EtatRelique;
-  // Occupation par `rid` (`n / 150`, D3 — AFFICHÉE, jamais bloquante),
-  // nécessaire seulement quand `etatRelique.etat === 'resolue'`.
-  relicUsageById?: Record<number, number>;
   // La paire de CE build n'a pas encore été calculée : celle affichée est la
   // paire supposée, commune. Dit explicitement plutôt que laissé croire.
   paireProvisoire?: boolean;
@@ -152,7 +151,6 @@ export default function BuildCandidateCard({
   runeById,
   artifacts,
   etatRelique,
-  relicUsageById,
   metric,
   openDetailKey,
   onToggleDetail,
@@ -185,11 +183,14 @@ export default function BuildCandidateCard({
   // couvrait de toute façon pas le cas rune↔artéfact, ouvert dès l'origine :
   // deux états distincts laissaient les DEUX popovers affichés.
   //
-  // ⚠️ Les deux sortes partagent donc une clé, préfixée pour rester
-  // distinguables : `a<kind>` pour un artéfact, `r<slot>` pour une rune. Sans
-  // préfixe, l'ancien format `<candidateKey>-<slot>` ne se relisait pas.
+  // ⚠️ Les trois sortes partagent donc une clé, préfixée pour rester
+  // distinguables : `a<kind>` pour un artéfact, `r<slot>` pour une rune,
+  // `relic` (fixe, un seul emplacement) pour la relique (implementation-
+  // relique, B.5c bis). Sans préfixe, l'ancien format `<candidateKey>-<slot>`
+  // ne se relisait pas.
   const cleArtefact = (kind: string) => `${candidateKey}-a${kind}`;
   const cleRune = (slot: number) => `${candidateKey}-r${slot}`;
+  const cleRelique = `${candidateKey}-relic`;
   const detailOuvertIci = openDetailKey?.startsWith(`${candidateKey}-`) ?? false;
 
   // ⚠️ Même bascule flottant (souris) / en ligne (doigt) que MonsterGear.tsx —
@@ -198,8 +199,34 @@ export default function BuildCandidateCard({
   const auDoigt = useMediaQuery(COMPACT);
   const suffixe = detailOuvertIci ? openDetailKey!.slice(candidateKey.length + 1) : null;
   const openArtifact = suffixe?.startsWith('a') ? artifacts.find((a) => a.kind === suffixe.slice(1)) : undefined;
-  const openRuneSlot = suffixe?.startsWith('r') ? Number(suffixe.slice(1)) : null;
+  const openRelique = suffixe === 'relic';
+  // ⚠️ `suffixe !== 'relic'` D'ABORD : `'relic'` commence lui aussi par `r`,
+  // sans quoi `Number('elic')` (NaN) serait silencieusement comparé plus bas —
+  // inoffensif (NaN ne matche jamais un slot réel) mais faux par construction.
+  const openRuneSlot = suffixe && suffixe !== 'relic' && suffixe.startsWith('r') ? Number(suffixe.slice(1)) : null;
   const openRune = openRuneSlot !== null ? runes.find((r) => r.slot === openRuneSlot) : undefined;
+
+  // ⚠️ **Seule source** : `etatRelique` vient d'`etatReliqueDuBuild`
+  // (relicQueue.ts), jamais recalculé ici. `undefined` (aucune dimension
+  // relique dans cette recherche) se traite comme `fixe` sans relique — la
+  // case reste affichée, grisée « aucune », comme `MonsterGear`.
+  const relicSlot: { relic: RelicDetail | undefined; enAttente: boolean; marques: string[] } =
+    !etatRelique || etatRelique.etat === 'fixe'
+      ? { relic: etatRelique?.relique, enAttente: false, marques: [] }
+      : etatRelique.etat === 'en attente'
+        ? { relic: undefined, enAttente: true, marques: [] }
+        : etatRelique.etat === 'rejete'
+          ? // Jamais affiché en pratique (le classement l'a déjà écarté, B.5b) —
+            // repli sûr si ce chemin était emprunté quand même.
+            { relic: undefined, enAttente: false, marques: [] }
+          : {
+              relic: etatRelique.relique,
+              enAttente: false,
+              marques: [
+                ...(etatRelique.sansEffetSurLeTri ? ['relique sans effet sur ce tri'] : []),
+                ...(etatRelique.equipeeExclue ? ['relique équipée exclue par le filtre'] : []),
+              ],
+            };
 
   return (
     <div
@@ -287,40 +314,6 @@ export default function BuildCandidateCard({
         </p>
       )}
 
-      {/* ⚠️ **Relique — quatre états, une seule source** (implementation-
-          relique, B.5c) : `fixe` (hors mode `recherche`) et `rejete` (jamais
-          affiché, le classement l'a déjà écarté) ne rendent rien de nouveau
-          ici — seuls `en attente` et `resolue` ajoutent une ligne. */}
-      {etatRelique?.etat === 'en attente' && (
-        <p className="mb-2 flex items-center justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
-          <span className="text-micro text-ink-dim">Relique</span>
-          <span className="text-micro text-ink-dimmer">en attente</span>
-        </p>
-      )}
-      {etatRelique?.etat === 'resolue' && (
-        <p className="mb-2 flex flex-wrap items-baseline justify-between gap-x-2 rounded-lg border border-border-soft bg-panel2 px-2 py-1">
-          <span className="text-micro text-ink-dim">Relique</span>
-          <span className="flex flex-col items-end">
-            <span className="font-mono text-sm font-bold text-star">
-              {RELIC_MAIN[etatRelique.relique.main.code]?.label ?? '?'} +{etatRelique.relique.main.value}%
-            </span>
-            <span className="text-micro text-ink-dim">
-              {etatRelique.relique.unique ? (relicUniqueShortLabel(etatRelique.relique.unique.type) ?? 'type inconnu') : '—'}
-            </span>
-            <span className="font-mono text-nano text-ink-dimmer">
-              rid {etatRelique.relique.id} · {relicUsageById?.[etatRelique.relique.id] ?? 1} / 150
-            </span>
-          </span>
-          {(etatRelique.sansEffetSurLeTri || etatRelique.equipeeExclue) && (
-            <span className="w-full text-right text-micro text-ink-dimmer">
-              {etatRelique.sansEffetSurLeTri && 'relique sans effet sur ce tri'}
-              {etatRelique.sansEffetSurLeTri && etatRelique.equipeeExclue && ' · '}
-              {etatRelique.equipeeExclue && 'relique équipée exclue par le filtre'}
-            </span>
-          )}
-        </p>
-      )}
-
       {sets.length > 0 && (
         <p className="mb-2 flex flex-wrap items-center gap-1 text-micro text-ink-dim">
           {sets.map((key, i) => (
@@ -387,16 +380,47 @@ export default function BuildCandidateCard({
                   )
             }
           />
+          {/* Relique — à droite de la roue, comme l'emplacement de
+              `MonsterGear.tsx` (implementation-relique, B.5c bis) : même
+              composant partagé (`RelicSlot`), jamais une copie. `small` :
+              case resserrée pour tenir à côté d'artéfacts/roue à l'échelle
+              0,45 de cette carte. */}
+          <RelicSlot
+            relic={relicSlot.relic}
+            enAttente={relicSlot.enAttente}
+            marques={relicSlot.marques}
+            small
+            selected={openDetailKey === cleRelique}
+            onToggle={() => onToggleDetail(cleRelique)}
+            renderOverlay={
+              auDoigt
+                ? undefined
+                : (anchorRef) => (
+                    <FlottantAuto
+                      ouvert={openDetailKey === cleRelique}
+                      ancre={anchorRef}
+                      largeur={220}
+                      hauteur={120}
+                      rembourrage="md"
+                    >
+                      {/* Non-null : `RelicSlot` n'invoque `renderOverlay` que
+                          dans sa branche « relique présente ». */}
+                      <RelicDetailBox relic={relicSlot.relic!} encadre={false} />
+                    </FlottantAuto>
+                  )
+            }
+          />
         </div>
       </div>
 
-      {/* Au DOIGT : le détail sur sa propre ligne, sous artéfacts/roue — voir
-          MonsterGear.tsx. Artéfact et rune peuvent être ouverts en même temps
-          (états indépendants) : les deux s'empilent plutôt que de s'exclure. */}
-      {auDoigt && (openArtifact || openRune) && (
+      {/* Au DOIGT : le détail sur sa propre ligne, sous artéfacts/roue/relique
+          — voir MonsterGear.tsx. Les trois peuvent être ouverts en même temps
+          (états indépendants) : ils s'empilent plutôt que de s'exclure. */}
+      {auDoigt && (openArtifact || openRune || (openRelique && relicSlot.relic)) && (
         <div className="mx-auto mt-2 w-full max-w-[280px] space-y-2">
           {openArtifact && <ArtifactDetailBox artifact={openArtifact} />}
           {openRune && <RuneDetailBox rune={openRune} />}
+          {openRelique && relicSlot.relic && <RelicDetailBox relic={relicSlot.relic} />}
         </div>
       )}
 

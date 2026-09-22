@@ -9,7 +9,10 @@
 //
 // Usage (orchestrateur, un point) :
 //   relic-differentiel.ts --case=<i> [--relic-main=] [--relic-type=] [--relic-min-upgrade=] [--export-dir=] --out=<dossier>
-//   relic-differentiel.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]] --out=<dossier>
+//   relic-differentiel.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]] [--paire-reference=<id>,<id>] --out=<dossier>
+//     (`--paire-reference` : la paire de référence désignée explicitement à la
+//     place de la représentative — lot 6 bis, `paireDeReference` dans
+//     relicOracle.ts ; archivée dans `resultat.json.point.paireReference`)
 // Mode enfant (interne — une seule recherche, ce processus et rien d'autre) :
 //   … --run=oracle:<i> --out=<dossier>   →  <dossier>/oracle-<i>.json
 //   … --run=A --traceur=<6 ids> --out=<dossier>   →  <dossier>/A.json

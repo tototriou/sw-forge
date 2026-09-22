@@ -20,8 +20,10 @@ import {
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
 import { computeStats } from '../../src/lib/stats';
-import { RelicDetail, RuneDetail } from '../../src/types';
+import { ArtifactDetail, RelicDetail, RuneDetail } from '../../src/types';
+import { PorteurArtefact, artifactFitsMonster, artifactPairAllowed } from '../../src/lib/artifacts';
 import { RelicContext, bestRelicForBuild, resoudreContexteRelique } from '../../src/lib/relicOptim';
+import { loadMonstersList } from './monstersData';
 import { buildCaseSearchParams, CASES, loadCase } from './perfShared';
 import { libelleAvecRelique, parseOptionsRelique } from './perfRelicOptions';
 import { DEFAULT_RELIC_MIN_UPGRADE } from '../../src/hooks/useOptimizerState';
@@ -248,22 +250,71 @@ export interface PointOracle {
 }
 
 /**
+ * La paire d'artéfacts de RÉFÉRENCE désignée explicitement
+ * (`--paire-reference=<id>,<id>`, forme recette seulement — lot 6 bis) :
+ * remplace `params.artifacts`, la paire représentative de `resolveArtifacts`,
+ * quand celle-ci ne décrit pas le domaine que le différentiel doit comparer.
+ *
+ * ⚠️ Pourquoi : `paireRepresentative` choisit la meilleure paire AU SENS DU
+ * RÉGIME sur l'équipement porté — en PV effectifs avec une principale ATQ
+ * forcée, toutes les paires sont ex æquo avec la paire VIDE, qui sort la
+ * première (relevé du lot 6 bis, Shihwa : `[]`). Le différentiel fige cette
+ * paire des DEUX côtés (B.6 amendé, point 2) ; vide, elle rend infaisable
+ * tout build dont le minimum d'ATQ dépend de l'apport +100 × 2 que
+ * `artifactBounds.possibles` a pourtant admis à la recherche — le cas 3 (c)
+ * de la revue externe de l'outil F (« choisir et archiver explicitement la
+ * paire de référence »). L'option ne touche ni `artifactBounds` (le domaine
+ * de la recherche) ni la recette : elle s'archive avec la commande du point.
+ *
+ * Contrôles, refus nommé sinon (jamais une paire partielle silencieuse) :
+ * deux identifiants distincts présents dans l'inventaire, une pièce
+ * d'attribut ET une de type, portables par l'espèce (`artifactFitsMonster`),
+ * pas deux intangibles (`artifactPairAllowed`). Ordre rendu : attribut puis
+ * type, celui de `paireRepresentative`.
+ */
+export function paireDeReference(ids: readonly number[], inventaire: readonly ArtifactDetail[], porteur: PorteurArtefact): ArtifactDetail[] {
+  if (ids.length !== 2 || ids[0] === ids[1] || ids.some((id) => !Number.isInteger(id) || id <= 0)) {
+    throw new Error(`--paire-reference : deux identifiants d'artéfact distincts attendus (reçu ${JSON.stringify(ids)}).`);
+  }
+  const pieces = ids.map((id) => {
+    const a = inventaire.find((x) => x.id === id);
+    if (!a) throw new Error(`--paire-reference : artéfact ${id} absent de l'inventaire.`);
+    return a;
+  });
+  const element = pieces.find((a) => a.kind === 'element');
+  const archetype = pieces.find((a) => a.kind === 'archetype');
+  if (!element || !archetype) {
+    throw new Error(`--paire-reference : une pièce d'attribut ET une pièce de type attendues (reçu ${pieces.map((a) => a.kind).join(' + ')}).`);
+  }
+  for (const a of pieces) {
+    if (!artifactFitsMonster(a, porteur)) {
+      throw new Error(`--paire-reference : l'artéfact ${a.id} (${a.kind}) n'est pas portable par l'espèce (${porteur.element} / ${porteur.archetype}).`);
+    }
+  }
+  if (!artifactPairAllowed(element, archetype)) throw new Error('--paire-reference : deux intangibles ne se portent pas ensemble.');
+  return [element, archetype];
+}
+
+/**
  * Charge un point depuis un `argv` : forme `--case=<i> [--relic-main=]
  * [--relic-type=] [--relic-min-upgrade=] [--export-dir=]` (l'intention vient
  * du MÊME parseur que `perf-battery`, `parseOptionsRelique` ; sans option
  * relique : `libre/libre/+6`, la forme du lot 4 — `equipped` y est refusé,
  * un oracle à N = 1 sur l'équipée est le moteur lui-même), ou forme
- * `<export> <recette> [--rta] [--siege=<deckId>[:defense]]`.
+ * `<export> <recette> [--rta] [--siege=<deckId>[:defense]]
+ * [--paire-reference=<id>,<id>]` (`paireDeReference` ci-dessus).
  */
 export function chargerPointOracle(argv: readonly string[]): PointOracle {
   const lire = (prefixe: string) => argv.find((a) => a.startsWith(prefixe))?.slice(prefixe.length);
   const caseArg = lire('--case=');
   const index = Number(caseArg);
   const exportDir = lire('--export-dir=');
+  const paireArg = lire('--paire-reference=');
 
   if (caseArg != null) {
     const cas = CASES[index];
     if (!cas || !Number.isInteger(index)) throw new Error(`--case doit désigner un index entre 0 et ${CASES.length - 1}.`);
+    if (paireArg != null) throw new Error("--paire-reference ne s'applique qu'à la forme <export> <recette> : un cas de batterie porte sa paire (`gear.artifacts`).");
     const option = parseOptionsRelique(argv) ?? { principale: 'libre', type: 'libre', seuil: DEFAULT_RELIC_MIN_UPGRADE };
     if (option.principale === 'equipped') throw new Error("--relic-main=equipped n'est pas un point d'oracle : l'oracle mesure la dimension relique, l'équipée est le moteur lui-même.");
     const exportPath = exportDir ? resolve(exportDir, cas.exportPath) : cas.exportPath;
@@ -298,7 +349,15 @@ export function chargerPointOracle(argv: readonly string[]): PointOracle {
   const data = parseAccountSource(readFileSync(exportPath, 'utf8'))!;
   const { relics } = parseAccountInventory(data);
   const contexte = resoudreContexteRelique(recipeToRelicIntent(chargee.recipe, chargee.loaded), chargee.loaded.gear.relic, relics);
-  const params = chargee.params;
+  let params = chargee.params;
+  if (paireArg != null) {
+    const espece = loadMonstersList().find((m) => m.com2usId === chargee.loaded.com2usId);
+    if (!espece) throw new Error(`--paire-reference : espèce ${chargee.loaded.com2usId} absente du bestiaire — porteur introuvable.`);
+    const ids = paireArg.split(',').map(Number);
+    params = { ...params, artifacts: paireDeReference(ids, chargee.loaded.allArtifacts, { element: espece.element, archetype: espece.archetype }) };
+  }
+  // ⚠️ Construit APRÈS le remplacement : le profil d'artéfacts du contexte de
+  // dégâts est celui de la paire de référence effective.
   const realDamage = buildRealDamageContext(chargee.recipe, chargee.loaded.com2usId, params.artifacts);
   return {
     params,

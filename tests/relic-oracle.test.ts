@@ -4,9 +4,9 @@ import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import { RechercheRefusee, objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { computeStats } from '../src/lib/stats';
-import { RelicDetail } from '../src/types';
+import { ArtifactDetail, RelicDetail } from '../src/types';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
-import { chargerPointOracle, fusionnerRunsOracle, oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
+import { chargerPointOracle, fusionnerRunsOracle, oracleSearch, oracleSearchRuns, paireDeReference } from '../scripts/lib/relicOracle';
 import { existsSync } from 'fs';
 import { resolve } from 'path';
 import { buildCaseSearchParams, CASES } from '../scripts/lib/perfShared';
@@ -164,8 +164,31 @@ export default function testRelicOracle() {
     const defaut = chargerPointOracle(['node', 'relicOracle.ts', '--case=3', `--export-dir=${exportDir}`]);
     egal([defaut.contexte.principale, defaut.contexte.type, defaut.contexte.seuil], ['libre', 'libre', 6], '--case sans option relique : libre/libre/+6, la forme du lot 4');
     ok(leve(() => chargerPointOracle(['node', 'relicOracle.ts', '--case=3', '--relic-main=equipped', `--export-dir=${exportDir}`])) != null, '--case + --relic-main=equipped est refusé (pas un point d’oracle)');
+    ok(leve(() => chargerPointOracle(['node', 'relicOracle.ts', '--case=3', '--paire-reference=1,2', `--export-dir=${exportDir}`])) != null, '--case + --paire-reference est refusé (un cas de batterie porte sa paire)');
   } else {
     ok(true, 'chargement --case non contrôlé : export réel tototriou-12889591.json absent de la racine');
+  }
+
+  /* Lot 6 bis — la paire de référence désignée explicitement (`paireDeReference`) :
+   * remplace la représentative quand celle-ci ne décrit pas le domaine comparé
+   * (Shihwa : `[]` en PV effectifs, le minimum d'ATQ dépend de +100 × 2). */
+  {
+    const piece = (id: number, kind: 'element' | 'archetype', extra: Partial<ArtifactDetail> = {}): ArtifactDetail => ({
+      id, kind, level: 15, rarity: 5, main: { code: 101, value: 100 }, subs: [],
+      ...(kind === 'element' ? { element: 'fire' as const } : { archetype: 'attack' as const }),
+      ...extra,
+    });
+    const porteur = { element: 'fire' as const, archetype: 'attack' as const };
+    const inventaire = [piece(11, 'element'), piece(12, 'archetype'), piece(13, 'element', { element: 'water' }), piece(14, 'archetype', { archetype: 'support' }), piece(15, 'element', { intangible: true }), piece(16, 'archetype', { intangible: true })];
+    egal(paireDeReference([12, 11], inventaire, porteur).map((a) => a.id), [11, 12], 'paire de référence : attribut puis type, quel que soit l’ordre donné');
+    egal(paireDeReference([15, 12], inventaire, porteur).map((a) => a.id), [15, 12], 'paire de référence : un intangible se porte avec une pièce ordinaire');
+    ok(leve(() => paireDeReference([11], inventaire, porteur)) != null, 'paire de référence : un seul identifiant est refusé');
+    ok(leve(() => paireDeReference([11, 11], inventaire, porteur)) != null, 'paire de référence : deux fois le même identifiant est refusé');
+    ok(leve(() => paireDeReference([11, 99], inventaire, porteur)) != null, 'paire de référence : un identifiant absent de l’inventaire est refusé');
+    ok(leve(() => paireDeReference([11, 13], inventaire, porteur)) != null, 'paire de référence : deux pièces d’attribut sont refusées (une par sorte)');
+    ok(leve(() => paireDeReference([13, 12], inventaire, porteur)) != null, 'paire de référence : une pièce d’un autre élément n’est pas portable');
+    ok(leve(() => paireDeReference([11, 14], inventaire, porteur)) != null, 'paire de référence : une pièce d’un autre archétype n’est pas portable');
+    ok(leve(() => paireDeReference([15, 16], inventaire, porteur)) != null, 'paire de référence : deux intangibles ne se portent pas ensemble');
   }
 
   /* B1 : un maximum actif interdit de jeter la valeur de principale basse. */

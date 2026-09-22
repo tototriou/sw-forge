@@ -137,7 +137,7 @@ export default function testRelicDifferentiel() {
     egal(r.status, 0, `orchestrateur : code de sortie 0 (${(r.stderr ?? '').split('\n').slice(-3).join(' / ')})`);
     const resultat = JSON.parse(readFileSync(join(out, 'resultat.json'), 'utf8'));
     const point = chargerPointOracle(['node', 'x', ...argsPoint]);
-    const reference = oracleSearch(point.params, point.contexte, { realDamage: point.realDamage });
+    const reference = oracleSearch(point.params, point.contexte, { realDamage: point.realDamage, exclusive: point.exclusive });
     egal(resultat.oracle.N, reference.N, `orchestrateur ≡ oracle mono-processus : N (${reference.N})`);
     egal(resultat.oracle.complet, reference.complet, 'orchestrateur ≡ oracle : complet');
     egal(resultat.oracle.runs.map((x: { principale: unknown; truncated: boolean; candidats: number }) => [x.principale, x.truncated, x.candidats]), reference.runs.map((x) => [x.principale, x.truncated, x.candidats]), 'orchestrateur ≡ oracle : complétude et compte de chaque run');
@@ -149,7 +149,7 @@ export default function testRelicDifferentiel() {
     const pA: SearchParams = { ...point.params, relicContext: point.contexte };
     const relaxedA = searchBuilds(pA);
     const espece = loadMonstersList().find((m) => m.com2usId === point.com2usId)!;
-    const resolusA = resoudreTousLesCandidats(pA, relaxedA, point.contexte, { critere: pA.objective ?? 'efficience', degats: degatsSansArtefacts(point.realDamage), porteur: { element: espece.element, archetype: espece.archetype }, paireFixe: pA.artifacts, lignesVerrouillees: point.lignesVerrouillees }, point.realDamage);
+    const resolusA = resoudreTousLesCandidats(pA, relaxedA, point.contexte, { critere: pA.objective ?? 'efficience', degats: degatsSansArtefacts(point.realDamage), porteur: { element: espece.element, archetype: espece.archetype }, paireFixe: pA.artifacts, lignesVerrouillees: point.lignesVerrouillees, exclusive: point.exclusive }, point.realDamage);
     egal(resultat.A.nRelaches, relaxedA.candidates.length, `orchestrateur ≡ A mono-processus : candidats relâchés (${relaxedA.candidates.length})`);
     egal(resultat.A.nResolus, resolusA.length, `orchestrateur ≡ A : résolus conformes (${resolusA.length})`);
     egal(resultat.A.truncated, relaxedA.truncated, 'orchestrateur ≡ A : complétude');

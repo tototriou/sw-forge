@@ -26,6 +26,7 @@ import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
+import { apportExclusive } from '../../lib/relicExclusive';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
   bornesArtefacts,
@@ -1326,6 +1327,21 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    */
   const regimeEquipement: RegimeArtefacts = regimeEquipementDe(regimePaire, !!contexteDegatsArtefacts);
 
+  /**
+   * Le contexte de l'assiette `Y` des propriétés uniques de relique (lot 7,
+   * `relicExclusive.ts`) : le `DamageSetup` et l'élément de l'espèce.
+   *
+   * ⚠️ **Indépendant du contexte de dégâts** : « État de mon monstre » (lead,
+   * compétences d'invocateur) modifie les statistiques quel que soit
+   * l'objectif choisi, et « PV effectifs » n'a pas de sort calculable à
+   * fournir. Un seul objet, donné au choix de l'équipement ET au classement —
+   * jamais deux lectures qui divergeraient.
+   */
+  const contexteExclusive = useMemo(
+    () => ({ setup: damageSetup, element: speciesMonster?.element ?? null }),
+    [damageSetup, speciesMonster?.element]
+  );
+
   const sortesFigees = useMemo<ArtifactKind[]>(
     () =>
       ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (artifactMainByKind[key] ?? 'libre') === 'equipped'),
@@ -2166,13 +2182,18 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // la relique (D7 : un seul régime pour l'équipement complet) — jamais
       // un paramètre `degats` optionnel silencieusement absorbé par le helper.
       const regime = regimeEquipement;
+      // ⚠️ Le canal exclusive (lot 7) : la candidate qu'on essaie, plus le
+      // contexte de son assiette `Y`. C'est la MÊME note qui choisit la
+      // paire, choisit la relique et classe — jamais un score d'exclusive
+      // ajouté après coup (D6).
+      const exclusive = { relique, setup: contexteExclusive.setup, element: contexteExclusive.element };
       const evaluer =
         regime === 'degats_reels'
-          ? evaluerPourRegime(regime, statsAvec, contexteDegatsArtefacts!)
-          : evaluerPourRegime(regime, statsAvec);
+          ? evaluerPourRegime(regime, statsAvec, contexteDegatsArtefacts!, exclusive)
+          : evaluerPourRegime(regime, statsAvec, exclusive);
       return { ...artifactParams, evaluer };
     };
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts]);
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive]);
 
   /**
    * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
@@ -2302,8 +2323,22 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // doivent suivre. Sinon on note les stats d'un modèle avec les effets
       // d'un autre.
       artefactsDuBuild: (c) => profilArtefactsDuBuild(c),
+      // ⚠️ Lot 7 — même raison qu'`artefactsDuBuild` : la relique retenue
+      // par ce build apporte un gain chiffré, et le classement doit le voir,
+      // sinon il noterait autrement que le choix (D6, jamais deux notes).
+      // Un candidat encore « en attente » n'a pas d'entrée : apport neutre.
+      // `c.stats` sont déjà celles du couple retenu (`candidatAvecSaPaire`
+      // ci-dessus), principale de la relique comprise : c'est bien l'assiette
+      // que l'exclusive lit.
+      exclusiveDuBuild: (c) =>
+        apportExclusive(
+          fileArtefacts.parBuild.get(cleBuild(c))?.relique,
+          c.stats,
+          contexteExclusive.setup,
+          contexteExclusive.element
+        ),
     });
-  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, realDamage, runeById, metric]);
+  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, realDamage, runeById, metric, contexteExclusive]);
 
   const pageCandidates = useMemo(
     () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
@@ -3608,8 +3643,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             <br />
             <br />
             La <b className="text-ink">relique</b> suit la même grammaire : une principale ET une propriété unique
-            se combinent, et la propriété unique compte pour retenir ou écarter une relique quand son effet est
-            connu ; sa valeur n&apos;entre pas encore dans la note.
+            se combinent, et la propriété unique compte pour retenir ou écarter une relique{' '}
+            <b className="text-ink">comme pour la noter</b> — son gain vaut un palier entier par tranche de
+            statistique atteinte au début du combat.
           </HelpPopover>
           {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
               et son aide restent collés, l'interrupteur part à droite — même
@@ -3736,8 +3772,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               <span className="label">Relique</span>
               <HelpPopover title="Relique">
                 Une <b className="text-ink">principale</b> ET une <b className="text-ink">propriété unique</b>{' '}
-                se combinent. La propriété unique compte pour retenir ou écarter une relique quand son effet
-                est connu ; sa valeur n&apos;entre pas encore dans la note.
+                se combinent. La propriété unique compte pour retenir ou écarter une relique, et{' '}
+                <b className="text-ink">sa valeur entre dans la note</b> : le gain vaut un palier entier par
+                tranche de statistique atteinte au début du combat, lu sur la pièce. Les soins et boucliers
+                (Régénération) ne sont mesurés par aucun objectif, donc jamais notés.
                 <br />
                 <br />
                 <b className="text-ink">« Garder la relique équipée »</b> conserve la pièce entière portée sur

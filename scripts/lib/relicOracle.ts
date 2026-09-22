@@ -20,9 +20,11 @@ import {
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
 import { computeStats } from '../../src/lib/stats';
-import { ArtifactDetail, RelicDetail, RuneDetail } from '../../src/types';
+import { ArtifactDetail, ElementKey, RelicDetail, RuneDetail } from '../../src/types';
+import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 import { PorteurArtefact, artifactFitsMonster, artifactPairAllowed } from '../../src/lib/artifacts';
 import { RelicContext, bestRelicForBuild, resoudreContexteRelique } from '../../src/lib/relicOptim';
+import { APPORT_NEUTRE, ContexteExclusive, apportExclusive } from '../../src/lib/relicExclusive';
 import { loadMonstersList } from './monstersData';
 import { buildCaseSearchParams, CASES, loadCase } from './perfShared';
 import { libelleAvecRelique, parseOptionsRelique } from './perfRelicOptions';
@@ -112,14 +114,46 @@ export function oracleSearchRuns(params: SearchParams, relicContext: RelicContex
   }));
 }
 
-function scoreDuCandidat(candidate: BuildCandidate, params: SearchParams, runeById: Map<number, RuneDetail>, realDamage?: RealDamageContext | null): number {
+/**
+ * Les options de l'oracle — `realDamage` voyage hors `SearchParams` (garantie
+ * E), et `exclusive` est le contexte de l'assiette `Y` des propriétés uniques
+ * (lot 7). ⚠️ **Le MÊME objet doit être donné à l'option A** : c'est ce qui
+ * rend les deux scores comparables.
+ */
+export interface OptionsOracle {
+  realDamage?: RealDamageContext | null;
+  exclusive?: ContexteExclusive | null;
+}
+
+/**
+ * Le score d'un candidat, avec l'apport de la relique qu'on lui essaie
+ * (implementation-relique, lot 7).
+ *
+ * ⚠️ **L'apport se calcule ICI, sur les stats du candidat qui incluent déjà
+ * la principale de cette relique** — et par le MÊME module que l'option A
+ * (`relicExclusive.ts`), depuis le MÊME contexte (`exclusive`, transmis par
+ * l'appelant aux deux côtés). Deux calculs parallèles rendraient la
+ * comparaison de fidélité (F) vide de sens.
+ *
+ * `exclusive` absent → apport neutre : l'oracle d'avant le lot 7, à
+ * l'identique.
+ */
+function scoreDuCandidat(
+  candidate: BuildCandidate,
+  params: SearchParams,
+  runeById: Map<number, RuneDetail>,
+  realDamage?: RealDamageContext | null,
+  relique?: RelicDetail,
+  exclusive?: ContexteExclusive | null
+): number {
   const objectif = params.objective ?? 'efficience';
   if (objectif === 'efficience') return candidateMetricTotal(candidate, runeById, params.metric);
+  const apport = exclusive ? apportExclusive(relique, candidate.stats, exclusive.setup, exclusive.element) : APPORT_NEUTRE;
   if (objectif === 'degats_reels') {
     if (!realDamage) throw new Error("oracleSearch : l'objectif « Dégâts réels » exige un contexte de combat.");
-    return objectiveScore(candidate, objectif, realDamage);
+    return objectiveScore(candidate, objectif, realDamage, apport);
   }
-  return objectiveScore(candidate, objectif);
+  return objectiveScore(candidate, objectif, undefined, apport);
 }
 
 function candidatAvecRelique(
@@ -127,7 +161,8 @@ function candidatAvecRelique(
   reliques: RelicDetail[],
   params: SearchParams,
   runeById: Map<number, RuneDetail>,
-  realDamage?: RealDamageContext | null
+  realDamage?: RealDamageContext | null,
+  exclusive?: ContexteExclusive | null
 ): OracleCandidate | null {
   const runes = candidate.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => r != null);
   if (runes.length !== candidate.runeIds.length) {
@@ -139,6 +174,7 @@ function candidatAvecRelique(
       ...candidate,
       stats: computeStats({ base: params.base, runes, artifacts: params.artifacts }),
     };
+    // Aucune relique : aucun apport possible, quel que soit le contexte.
     return { ...sansRelique, score: scoreDuCandidat(sansRelique, params, runeById, realDamage) };
   }
 
@@ -150,12 +186,19 @@ function candidatAvecRelique(
       stats: computeStats({ base: params.base, runes, artifacts: params.artifacts, relic: relique }),
     };
     evaluations.set(relique.id, evalue);
-    return scoreDuCandidat(evalue, params, runeById, realDamage);
+    return scoreDuCandidat(evalue, params, runeById, realDamage, relique, exclusive);
   }, { regimeAucun: objectif === 'efficience' || objectif === 'vitesse', equipee: params.relic });
 
   if (!meilleure) return null;
   const evalue = evaluations.get(meilleure.relique.id)!;
-  return { ...evalue, rid: meilleure.relique.id, score: scoreDuCandidat(evalue, params, runeById, realDamage) };
+  // ⚠️ Le score RENDU est celui de la relique RETENUE, avec son apport — le
+  // même nombre que celui qui l'a fait gagner, jamais un second calcul sans
+  // exclusive (D6 : jamais deux notes).
+  return {
+    ...evalue,
+    rid: meilleure.relique.id,
+    score: scoreDuCandidat(evalue, params, runeById, realDamage, meilleure.relique, exclusive),
+  };
 }
 
 /**
@@ -165,7 +208,7 @@ function candidatAvecRelique(
 export function oracleSearch(
   params: SearchParams,
   relicContext: RelicContext,
-  options: { realDamage?: RealDamageContext | null } = {}
+  options: OptionsOracle = {}
 ): OracleResult {
   // Même classe de refus que le moteur, jamais un « 0 résultat » ordinaire
   // (revue adversariale du diff du lot 5a, BLOQUANT 2) : préexistait au lot
@@ -190,7 +233,7 @@ export function fusionnerRunsOracle(
   params: SearchParams,
   runs: OracleSearchRun[],
   resultats: OracleRunResultat[],
-  options: { realDamage?: RealDamageContext | null } = {}
+  options: OptionsOracle = {}
 ): OracleResult {
   if (resultats.length !== runs.length) throw new Error(`fusionnerRunsOracle : ${runs.length} runs, ${resultats.length} résultats.`);
   const runeById = new Map(params.pool.map((r) => [r.id, r]));
@@ -202,7 +245,7 @@ export function fusionnerRunsOracle(
     const resultat = resultats[i]!;
     issues.push({ principale: run.principale, truncated: resultat.truncated, explored: resultat.explored, candidats: resultat.candidates.length });
     for (const brut of resultat.candidates) {
-      const candidat = candidatAvecRelique(brut, run.reliques, params, runeById, options.realDamage);
+      const candidat = candidatAvecRelique(brut, run.reliques, params, runeById, options.realDamage, options.exclusive);
       if (!candidat) continue;
       const cle = candidat.runeIds.join(',');
       const precedent = fusion.get(cle);
@@ -247,6 +290,15 @@ export interface PointOracle {
   // Les verrous de sous-propriété de la recette (`[]` en `--case`) : le
   // différentiel les neutralise comme l'écran quand la paire est figée.
   lignesVerrouillees: LigneVerrouillee[];
+  /**
+   * Le contexte de l'assiette `Y` des propriétés uniques (lot 7) — le
+   * `DamageSetup` et l'élément de l'espèce, construits ICI, une fois, pour
+   * que l'ORACLE et l'OPTION A partent du même. ⚠️ Indépendant de
+   * `realDamage` : « État de mon monstre » agit sur tous les objectifs, et un
+   * point `ehp` n'a pas de contexte de dégâts (`realDamage: null`) tout en
+   * ayant un leader skill et des compétences d'invocateur.
+   */
+  exclusive: ContexteExclusive;
 }
 
 /**
@@ -327,7 +379,17 @@ export function chargerPointOracle(argv: readonly string[]): PointOracle {
     // `casEffectif` ne porte pas `relic` : `relicContext` reste absent des
     // params — l'oracle l'efface de toute façon sur chacun de ses runs.
     const params = buildCaseSearchParams(casEffectif, charge, 10 * 60 * 1000);
-    return { params, contexte, realDamage: null, label: libelleAvecRelique(cas.label, option), com2usId: charge.com2usId, lignesVerrouillees: [] };
+    return {
+      params,
+      contexte,
+      realDamage: null,
+      label: libelleAvecRelique(cas.label, option),
+      com2usId: charge.com2usId,
+      lignesVerrouillees: [],
+      // Un cas de batterie n'a pas de recette : le réglage par défaut, celui
+      // que l'écran présente tant que l'utilisateur n'a rien touché.
+      exclusive: { setup: DEFAULT_DAMAGE_SETUP, element: elementDe(charge.com2usId) },
+    };
   }
 
   const [exportPath, recipePath] = argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -366,17 +428,31 @@ export function chargerPointOracle(argv: readonly string[]): PointOracle {
     label: chargee.recipe.monsterName,
     com2usId: chargee.loaded.com2usId,
     lignesVerrouillees: chargee.recipe.lignesVerrouillees ?? [],
+    // ⚠️ Les MÊMES deux champs que `buildRealDamageContext` lit, mais lus
+    // INDÉPENDAMMENT de lui : une recette sans sort calculable
+    // (`realDamage === null`) porte quand même son leader skill et ses
+    // compétences d'invocateur, qui entrent dans l'assiette `Y`.
+    exclusive: {
+      setup: chargee.recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+      element: elementDe(chargee.loaded.com2usId),
+    },
   };
 }
 
+// L'élément de l'espèce — même lecture que `buildRealDamageContext`
+// (realDamageCli.ts), jamais une seconde source.
+function elementDe(com2usId: number): ElementKey | null {
+  return loadMonstersList().find((m) => m.com2usId === com2usId)?.element ?? null;
+}
+
 export function relicOracleCli(): void {
-  const { params, contexte, realDamage, label } = chargerPointOracle(process.argv);
+  const { params, contexte, realDamage, label, exclusive } = chargerPointOracle(process.argv);
   const seuil = contexte.seuil;
 
   const debut = performance.now();
   let resultat: OracleResult;
   try {
-    resultat = oracleSearch(params, contexte, { realDamage });
+    resultat = oracleSearch(params, contexte, { realDamage, exclusive });
   } catch (e) {
     // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
     // imprimé tel quel, comme `optimizer-search.ts`, jamais présenté comme

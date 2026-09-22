@@ -248,13 +248,20 @@ export default function testRelicOptim() {
     ok(!relicDominates(origineVit, eternitePv, dims), 'Origine·VIT ne domine pas Éternité·PV non plus');
   }
   {
-    // `scorePartiel` PAR RÉGIME : faux en Vitesse et Efficience (aucune
-    // exclusive n'y entre, dès ce lot), vrai en Dégâts réels et PV effectifs
-    // dès qu'un type pertinent existe (aucun n'a de formule chiffrée avant B.7).
+    // `scorePartiel` PAR RÉGIME. ⚠️ **Renversé par le lot 7** : Dégâts réels
+    // et PV effectifs valaient `true` tant qu'aucune exclusive n'avait de
+    // formule (D9). Les cinq groupes que le relevé T4 couvre sont désormais
+    // chiffrés (`relicExclusive.ts`), et les seuls types non chiffrables
+    // (Régénération, un type inconnu) ne sont jamais pertinents : le score
+    // n'est plus partiel sur aucun des quatre objectifs.
+    //
+    // ⚠️ Ce test fige une CONSÉQUENCE du relevé, pas le relevé lui-même :
+    // il retombera à `true` tout seul le jour où un type pertinent arrivera
+    // sans formule — c'est exactement ce qu'on veut qu'il dise.
     egal(dimensionsRetenues('vitesse', [], { hp: 1 }).scorePartiel, false, "'vitesse' → scorePartiel faux");
     egal(dimensionsRetenues('efficience', [], { hp: 1 }).scorePartiel, false, "'efficience' → scorePartiel faux");
-    egal(dimensionsRetenues('degats_reels', ['atk'], {}).scorePartiel, true, "'degats_reels' avec scaling ATQ → scorePartiel vrai (Conquête/Bravoure sans formule)");
-    egal(dimensionsRetenues('ehp', [], {}).scorePartiel, true, "'ehp' → scorePartiel vrai (Ténacité/Éternité/Origine sans formule)");
+    egal(dimensionsRetenues('degats_reels', ['atk'], {}).scorePartiel, false, "'degats_reels' avec scaling ATQ → scorePartiel FAUX depuis le lot 7 (Conquête et Bravoure sont chiffrées)");
+    egal(dimensionsRetenues('ehp', [], {}).scorePartiel, false, "'ehp' → scorePartiel FAUX depuis le lot 7 (Ténacité, Éternité et Origine sont chiffrées)");
   }
 
   /* ------------------------------------------------------------------

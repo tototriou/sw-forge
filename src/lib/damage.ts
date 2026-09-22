@@ -3729,6 +3729,48 @@ function crBrutEffectif(
 }
 
 /**
+ * Les stats **au DÉBUT DU COMBAT** — base + runes + artéfacts + principale de
+ * relique + effets de set (tout ce que `computeStats` a déjà posé), puis les
+ * compétences d'invocateur et le leader skill, **sans aucun buff** ATQ/DEF/VIT
+ * ni bonus de passif.
+ *
+ * ⚠️ **C'est la définition de l'assiette `Y` des propriétés uniques de
+ * relique** (« tous les X pts de DEF au début du combat ») — voir
+ * spec/outils/optimizer/reliques.md § 5.2, la définition qui fait foi, et
+ * `relicExclusive.ts` qui la consomme.
+ *
+ * ⚠️ **Extraite de `statsDeCombat`, pas recopiée** : celle-ci n'est que ce
+ * préfixe suivi des buffs. Les deux règles qui s'y jouent (un `ceil` UNIQUE
+ * sur la somme invocateur+lead, le lead qui porte sur la BASE) vivent donc à
+ * un seul endroit. `spd` réplique en revanche le préfixe de `maVitCombat`,
+ * laissée intacte (chemin chaud) — `tests/relic-exclusive.test.ts` verrouille
+ * l'égalité des deux, buff de VIT éteint.
+ *
+ * ⚠️ `fight` et `determination` (effets de set qui augmentent les stats au
+ * début du combat) ne sont modélisés nulle part dans l'app : ils manquent donc
+ * à cette assiette. Écart connu, hors périmètre.
+ */
+export function statsDebutCombat(
+  stats: StatRow[],
+  setup: DamageSetup,
+  element: ElementKey | null = null
+): { atk: number; def: number; hp: number; spd: number } {
+  const bonus = summonerSkillBonus(setup.summonerSkills, element);
+  const leader = resolvedLeaderSkill(setup);
+  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
+    const row = stats.find((s) => s.key === key);
+    if (!row) return 0;
+    return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
+  };
+  return {
+    atk: avecInvocateur('atk', leader?.stat === 'Attack Power' ? leader.pct : 0),
+    def: avecInvocateur('def', leader?.stat === 'Defense' ? leader.pct : 0),
+    hp: avecInvocateur('hp', leader?.stat === 'HP' ? leader.pct : 0),
+    spd: avecInvocateur('spd', leader?.stat === 'Attack Speed' ? leader.pct : 0),
+  };
+}
+
+/**
  * Les stats de COMBAT — celles qu'un sort lit vraiment : base + runes +
  * artéfacts, puis compétences d'invocateur, leader skill, et enfin les buffs
  * ATQ/DEF/VIT avec leur amplification par artéfact.
@@ -3752,22 +3794,17 @@ export function statsDeCombat(
   artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
   monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'> = {}
 ): { atk: number; def: number; hp: number; spd: number } {
-  const bonus = summonerSkillBonus(setup.summonerSkills, element);
-  const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
-    const row = stats.find((s) => s.key === key);
-    if (!row) return 0;
-    return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
-  };
+  // ⚠️ Le préfixe « début de combat » (invocateur + lead, sans buff) vient de
+  // `statsDebutCombat` — une seule écriture du `ceil` unique et du lead sur la
+  // base, partagée avec l'assiette `Y` des exclusives de relique.
+  const debut = statsDebutCombat(stats, setup, element);
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
-  const leader = resolvedLeaderSkill(setup);
-  const atkAvecLead = avecInvocateur('atk', leader?.stat === 'Attack Power' ? leader.pct : 0);
-  const defAvecLead = avecInvocateur('def', leader?.stat === 'Defense' ? leader.pct : 0);
   const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + (artefacts.ampliAtkPct + ampliMiriam) / 100) : 0;
   const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + (artefacts.ampliDefPct + ampliMiriam) / 100) : 0;
   const baseCombat = {
-    atk: (atkAvecLead * (100 + pctAtkBuff)) / 100,
-    def: (defAvecLead * (100 + pctDefBuff)) / 100,
-    hp: avecInvocateur('hp', leader?.stat === 'HP' ? leader.pct : 0),
+    atk: (debut.atk * (100 + pctAtkBuff)) / 100,
+    def: (debut.def * (100 + pctDefBuff)) / 100,
+    hp: debut.hp,
     spd: maVitCombat(stats, setup, element, artefacts.ampliVitPct),
   };
   const bonusCombat = resolvedCombatStatBonuses(monsterWide.combatStats ?? [], setup);
@@ -3933,7 +3970,11 @@ export function computeSkillDamageDetail(
     conditionsCombat?: ConditionMonstreProfile[];
     combatStats?: CombatStatProfile[];
     critInterdit?: boolean;
-  } = {}
+  } = {},
+  // Propriété unique de relique du groupe **Conquête** — un pourcentage
+  // ADDITIF dans le bracket `DMG%` (voir son usage plus bas, et
+  // `relicExclusive.ts` pour le calcul du gain). `0` = inchangé.
+  reliqueDmgPct = 0
 ): {
   total: number;
   // Part du total qui vient du bucket ADDITIONNEL (dégâts bruts par coup :
@@ -3966,7 +4007,7 @@ export function computeSkillDamageDetail(
         i === 0 || artefacts.cdPointsPremiereAttaque === 0
           ? artefacts
           : { ...artefacts, cdPointsPremiereAttaque: 0 };
-      const detail = computeSkillDamageDetail(profilUnCoup, stats, setupsScenario[i], element, pvScenario, artefactsCoup, monsterWide);
+      const detail = computeSkillDamageDetail(profilUnCoup, stats, setupsScenario[i], element, pvScenario, artefactsCoup, monsterWide, reliqueDmgPct);
       totalScenario += detail.total;
       additionnelScenario += detail.additionnel;
       fixeProtegeScenario += detail.fixeProtege;
@@ -4222,9 +4263,16 @@ export function computeSkillDamageDetail(
   // fixed damage … is still multiplied by (1 + DMG%) »), sauf exception curée
   // comme la réserve de Velaska. `bombe` et `bonusElementaireSurFixe`
   // expriment séparément ces deux exclusions.
+  // ⚠️ `reliqueDmgPct` — la propriété unique de groupe **Conquête** (types 1-3,
+  // « DGTS infligés +p % tous les t pts de X au début du combat »), relevée en
+  // jeu comme **additive dans ce bracket** (implementation-relique, A.2 ter T4,
+  // rév. 41). Elle partage donc exactement le sort des lignes élémentaires :
+  // jamais sur une bombe, jamais sur le bucket Additionnel — ce n'est pas un
+  // choix pris ici, c'est ce que le bracket fait déjà. Le gain se calcule dans
+  // `relicExclusive.ts` ; `0` = comportement strictement inchangé.
   const dmgPct = profile.bombe || (profile.fixed && profile.bonusElementaireSurFixe === false)
     ? 1
-    : 1 + bonusElement / 100;
+    : 1 + (bonusElement + reliqueDmgPct) / 100;
   // « Dgts de bombe » (210) — sa propre majoration, réservée aux bombes. Elle
   // ne peut pas vivre dans DMG%, dont les bombes sont justement exclues.
   const facteurBombe = profile.bombe ? 1 + artefacts.degatsBombePct / 100 : 1;
@@ -4674,7 +4722,13 @@ export function computeTotalDamage(
   // Brita/Eivor (Eau) — voir `monsterBonusSiAtqSeuil`. Entièrement DÉDUIT
   // (comme `critSiPlusRapide`), aucun bouton. `null` = comportement
   // inchangé.
-  bonusSiAtqSeuil: { seuil: number; pct: number } | null = null
+  bonusSiAtqSeuil: { seuil: number; pct: number } | null = null,
+  // Propriété unique de relique du groupe **Conquête** — pourcentage ADDITIF
+  // dans le bracket `DMG%`, propagé tel quel au sort actif ET à chaque passif
+  // offensif (c'est un bonus de dégâts infligés général, exactement comme les
+  // lignes élémentaires d'artéfact qui vivent dans le même bracket). Calculé
+  // par `relicExclusive.ts` ; `0` = comportement strictement inchangé.
+  reliqueDmgPct = 0
 ): number {
   const maVit = maVitCombat(stats, setup, element, artefacts.ampliVitPct);
   const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
@@ -4684,7 +4738,7 @@ export function computeTotalDamage(
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, artefacts, monsterWide);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, artefacts, monsterWide, reliqueDmgPct);
   let total = sort.total;
   // ⚠️ **Part ADDITIONNELLE mise de côté** — elle traverse la chaîne de
   // multiplicateurs ci-dessous sans en subir un seul, et n'est rendue qu'à la
@@ -4745,7 +4799,8 @@ export function computeTotalDamage(
           element,
           pvPassif,
           artefactsPassif,
-          monsterWide
+          monsterWide,
+          reliqueDmgPct
         );
         totalPassif += detailCoup.total;
         additionnelPassif += detailCoup.additionnel;
@@ -4765,7 +4820,7 @@ export function computeTotalDamage(
         ? { ...p.profile, hits: resolvedHits(profile, setup), hitsRange: undefined }
         : p.profile;
       const setupPassif = avecModeCritique({ ...setup, defBreak: defBreakApres(setup) });
-      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, artefactsPassif, monsterWide);
+      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, artefactsPassif, monsterWide, reliqueDmgPct);
     }
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;

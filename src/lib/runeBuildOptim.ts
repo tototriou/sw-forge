@@ -47,6 +47,9 @@ import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeE
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
+// Le canal exclusive du lot 7 — `relicExclusive.ts` ne dépend que de
+// `effects`/`stats`/`damage`, jamais de ce module : aucun cycle.
+import { APPORT_NEUTRE, ApportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
 // ⚠️ `import type` UNIQUEMENT — `relicOptim.ts` importe déjà `Objective`
 // d'ici (type seul) : un import de valeur ferait un cycle au runtime.
 import type { RelicContext, RelicVide } from './relicOptim';
@@ -682,9 +685,32 @@ export interface RealDamageContext {
   bonusSiAtqSeuil: { seuil: number; pct: number } | null;
 }
 
-export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
+/**
+ * Le score d'un candidat pour un objectif.
+ *
+ * `apport` — l'APPORT de la propriété unique de la relique retenue par ce
+ * candidat (implementation-relique, lot 7 ; `relicExclusive.ts`). ⚠️ **Il se
+ * PASSE, il ne se calcule pas ici** : son assiette `Y` a besoin du
+ * `DamageSetup` (leader skill, compétences d'invocateur), que cette fonction
+ * ne reçoit pas hors « Dégâts réels ». C'est l'appelant qui possède le
+ * contexte — l'écran, la file, l'oracle — et la MÊME valeur sert alors au
+ * choix de la relique et à son classement : jamais deux notes (D6).
+ * `APPORT_NEUTRE` (le défaut) = comportement strictement d'avant le lot 7,
+ * qui est aussi ce que voit le moteur pendant la recherche relâchée, où
+ * aucune relique n'est encore résolue.
+ */
+export function objectiveScore(
+  candidate: BuildCandidate,
+  objective: Objective,
+  realDamage?: RealDamageContext,
+  apport: ApportExclusive = APPORT_NEUTRE
+): number {
   if (objective === 'efficience') return candidate.effTotal;
-  const { stats } = candidate;
+  // Les points d'ATQ/DEF/PV des groupes Bravoure/Éternité/Origine entrent
+  // dans les stats QUI NOTENT, jamais dans `computeStats` (voir
+  // `statsAvecApport`) : les minimums et maximums restent jugés sur la
+  // statistique hors combat.
+  const stats = statsAvecApport(candidate.stats, apport);
   if (objective === 'vitesse') return statTotal(stats, 'spd');
   if (objective === 'degats_reels') {
     // ⚠️ Sans contexte, on ÉCHOUE bruyamment plutôt que de retomber sur EHP
@@ -710,7 +736,9 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.bonusDegatsConditionnel,
       realDamage.bonusDegatsSelonCr,
       realDamage.bonusDegatsSelonDef,
-      realDamage.bonusSiAtqSeuil
+      realDamage.bonusSiAtqSeuil,
+      // Conquête — additive dans le bracket `DMG%` (relevé T4, rév. 41).
+      apport.dmgPct
     );
   }
   // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
@@ -720,7 +748,11 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
   if (objective !== 'ehp') {
     throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
   }
-  return pvEffectifs(stats);
+  // Ténacité — terme de `Réductions`, donc des PV effectifs ÉQUIVALENTS :
+  // `pvEffectifs / (1 − X / 100)`, dérivé de l'équation (voir
+  // `facteurTenacite`). Réduction nulle → facteur 1, valeur d'avant à
+  // l'identique.
+  return pvEffectifs(stats) * facteurTenacite(apport.reductionPct);
 }
 
 /**
@@ -808,6 +840,16 @@ export function sortCandidates(
      * Absent, ou rendant `null` : on retombe sur `realDamage.artefacts`.
      */
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
+    /**
+     * L'APPORT de la propriété unique de la relique retenue par un candidat
+     * (lot 7, `relicExclusive.ts`) — même rôle qu'`artefactsDuBuild` : ce qui
+     * est propre à CE candidat une fois son équipement résolu, et que le
+     * classement doit voir sous peine de noter autrement que le choix.
+     *
+     * Absent, ou rendant `null` (candidat en attente, pas de dimension
+     * relique) : apport neutre, exactement l'ordre d'avant le lot 7.
+     */
+    exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
   } = {}
 ): BuildCandidate[] {
   const score = scorerPour(sortBy, opts);
@@ -852,8 +894,13 @@ function scorerPour(
     runeById?: Map<number, RuneDetail>;
     metric?: OptimMetric;
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
+    exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
   }
 ): ((c: BuildCandidate) => number) | null {
+  // Même patron qu'`artefactsDuBuild` : ce qui est PROPRE à un candidat une
+  // fois son équipement résolu. Absent, ou rendant `null` (relique pas encore
+  // résolue, aucune dimension relique) → neutre, l'ordre d'avant le lot 7.
+  const apportDe = (c: BuildCandidate) => opts.exclusiveDuBuild?.(c) ?? APPORT_NEUTRE;
   if (sortBy === 'efficience') {
     const { runeById, metric } = opts;
     if (!runeById || !metric) return null;
@@ -864,11 +911,11 @@ function scorerPour(
     if (!ctx) return null;
     return (c) => {
       const propre = opts.artefactsDuBuild?.(c);
-      return objectiveScore(c, sortBy, propre ? { ...ctx, artefacts: propre } : ctx);
+      return objectiveScore(c, sortBy, propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
     };
   }
-  if (sortBy === 'ehp' || sortBy === 'vitesse') return (c) => objectiveScore(c, sortBy);
-  return (c) => statTotal(c.stats, sortBy);
+  if (sortBy === 'ehp' || sortBy === 'vitesse') return (c) => objectiveScore(c, sortBy, undefined, apportDe(c));
+  return (c) => statTotal(statsAvecApport(c.stats, apportDe(c)), sortBy);
 }
 
 // ⚠️ **Il n'existe PLUS de budget de PAIRES** (`DEFAULT_MAX_NODES`, puis

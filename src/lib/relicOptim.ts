@@ -56,6 +56,28 @@ export type RelicNature =
   | { sorte: 'soins' } // Régénération (16) — jamais pertinente, reliques.md § 5.1
   | { sorte: 'buffStat'; stat: RelicStat }; // Bravoure→atk (7,8,9) · Éternité→def (10,11,12) · Origine→hp (13,14,15)
 
+/**
+ * Le type a-t-il une formule numérique ? C'est ce qui décide de
+ * `RelicDimensions.scorePartiel` : depuis le lot 7, les cinq groupes que le
+ * relevé T4 couvre sont chiffrés (`relicExclusive.ts`), le score cesse donc
+ * d'être partiel là où ils sont les seuls pertinents.
+ *
+ * ⚠️ **Écrit ICI et pas dans `relicExclusive.ts`**, qui porte la formule :
+ * celui-là importe `damage.ts`, et ce module doit rester libre de cette
+ * dépendance (frontière du lot 3). Les deux ne peuvent donc pas se dériver
+ * l'un de l'autre — c'est `tests/relic-exclusive.test.ts` qui vérifie leur
+ * accord sur les seize types, et qui tombera si l'un bouge sans l'autre.
+ *
+ * ⚠️ **Régénération** (16) est exclue à dessein : son effet est réel en jeu,
+ * mais aucun objectif ne le mesure — elle n'est jamais pertinente, donc ne
+ * rend jamais un score partiel (D6, rév. 9). Un type INCONNU n'est pas
+ * chiffrable non plus, et n'est jamais pertinent : il ne rend rien partiel.
+ */
+export function exclusiveChiffrable(type: number): boolean {
+  const groupe = RELIC_UNIQUE[type]?.groupe;
+  return groupe === 'conquete' || groupe === 'tenacite' || groupe === 'bravoure' || groupe === 'eternite' || groupe === 'origine';
+}
+
 const CACHE_NATURE = new Map<number, RelicNature | undefined>();
 
 export function relicUniqueNature(type: number): RelicNature | undefined {
@@ -249,9 +271,17 @@ export interface RelicDimensions {
   maxActifs: Set<RelicStat>;
   // Types d'exclusive (1..16) dont le gain entre dans le régime courant.
   exclusiveTypesPertinents: Set<number>;
-  // Vrai ssi au moins un type pertinent n'a pas de formule numérique — dans
-  // ce lot, AUCUNE exclusive n'a de formule (D9), donc vrai ssi l'ensemble
-  // ci-dessus est non vide.
+  /**
+   * Vrai ssi au moins un type pertinent pour CE régime n'a pas de formule
+   * numérique (`exclusiveChiffrable`).
+   *
+   * ⚠️ Depuis le lot 7, les cinq groupes que le relevé T4 couvre sont
+   * chiffrés — et les seuls types qui ne le sont pas (Régénération, un type
+   * inconnu ajouté par le jeu) ne sont jamais pertinents. Ce drapeau vaut
+   * donc `false` sur les quatre objectifs actuels. Il reste DÉRIVÉ et non
+   * codé en dur : le jour où un type pertinent arrive sans formule relevée,
+   * le score redevient partiel tout seul, et l'aide de l'écran le dit.
+   */
   scorePartiel: boolean;
 }
 
@@ -321,7 +351,7 @@ export function dimensionsRetenues(
     principaleStats,
     maxActifs,
     exclusiveTypesPertinents,
-    scorePartiel: exclusiveTypesPertinents.size > 0,
+    scorePartiel: [...exclusiveTypesPertinents].some((type) => !exclusiveChiffrable(type)),
   };
 }
 

@@ -152,6 +152,11 @@ function reglagesDe(point: PointOracle): ReglagesDifferentiel {
     critere: point.params.objective ?? 'efficience',
     degats: degatsSansArtefacts(point.realDamage),
     porteur: porteurDe(point.com2usId),
+    // ⚠️ Le canal exclusive (lot 7) — le MÊME objet que celui donné à
+    // `fusionnerRunsOracle` plus bas : les deux côtés calculent l'apport
+    // depuis le même `DamageSetup` et le même élément, sinon la comparaison
+    // de fidélité ne compare plus rien.
+    exclusive: point.exclusive,
     // B.6 amendé : la paire de RÉFÉRENCE (`params.artifacts`, celle que
     // l'oracle note) figée côté A ; verrous neutralisés comme l'écran.
     paireFixe: point.params.artifacts,
@@ -318,7 +323,7 @@ function orchestrer(argv: string[]): void {
     truncated: f.truncated,
     explored: f.explored,
   }));
-  const oracle = fusionnerRunsOracle(params, runs, resultats, { realDamage: point.realDamage });
+  const oracle = fusionnerRunsOracle(params, runs, resultats, { realDamage: point.realDamage, exclusive: point.exclusive });
 
   // 2. A, avec le traceur = l'optimum de l'oracle (sa trace est produite par
   //    le moteur pendant la recherche relâchée — aucune recherche de plus).

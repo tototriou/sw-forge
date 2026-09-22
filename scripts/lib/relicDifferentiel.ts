@@ -30,6 +30,7 @@ import { ArtifactDetail, RelicDetail, RuneDetail } from '../../src/types';
 import { StatKey } from '../../src/lib/effects';
 import { computeStats, statsParPaire } from '../../src/lib/stats';
 import { RelicContext } from '../../src/lib/relicOptim';
+import { APPORT_NEUTRE, ContexteExclusive, apportExclusive } from '../../src/lib/relicExclusive';
 import {
   BuildCandidate,
   Objective,
@@ -79,6 +80,16 @@ export interface ReglagesDifferentiel {
   // emplacements figés — OptimizerSection.tsx, `artifactParams`), transmis
   // sinon.
   lignesVerrouillees?: LigneVerrouillee[];
+  /**
+   * Le contexte de l'assiette `Y` des propriétés uniques (lot 7) — le
+   * `DamageSetup` et l'élément du monstre, disponibles quel que soit
+   * l'objectif (« État de mon monstre » modifie les stats partout).
+   *
+   * ⚠️ **Le MÊME objet va à l'oracle** (`OptionsOracle.exclusive`) : c'est la
+   * condition pour que les deux scores soient comparables. Absent des deux
+   * côtés → apport neutre, le différentiel d'avant le lot 7.
+   */
+  exclusive?: ContexteExclusive | null;
 }
 
 export function regimeDe(r: ReglagesDifferentiel): RegimeArtefacts {
@@ -108,7 +119,14 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
     gear,
     faireParams: (rel): ArtifactSearchParams => {
       const statsAvec = statsParPaire({ ...gear, relic: rel });
-      const evaluer = regime === 'degats_reels' ? evaluerPourRegime(regime, statsAvec, r.degats!) : evaluerPourRegime(regime, statsAvec);
+      // Le canal exclusive (lot 7) : la candidate essayée, plus le contexte de
+      // son assiette `Y` — exactement ce que l'écran pose dans
+      // `faireParamsArtefacts`.
+      const exclusive = r.exclusive ? { relique: rel, setup: r.exclusive.setup, element: r.exclusive.element } : undefined;
+      const evaluer =
+        regime === 'degats_reels'
+          ? evaluerPourRegime(regime, statsAvec, r.degats!, exclusive)
+          : evaluerPourRegime(regime, statsAvec, exclusive);
       return {
         porteur: r.porteur,
         inventaire: fixe ? [] : (r.inventaireArtefacts ?? []),
@@ -133,10 +151,23 @@ export function resoudreCandidat(p: SearchParams, c: BuildCandidate, ctx: RelicC
 // Le score d'un candidat RÉSOLU, par la fonction que l'oracle utilise
 // (`scoreDuCandidat`) — jamais une formule propre. En Efficience, la métrique
 // des runes (`candidateMetricTotal`), pas le score de paire (régime `aucun`).
-export function scoreOracle(p: SearchParams, c: BuildCandidate, realDamage?: RealDamageContext | null): number {
+//
+// ⚠️ `relique` + `exclusive` (lot 7) : l'apport de la propriété unique de la
+// relique RETENUE par ce candidat, calculé par le même module et depuis le
+// même contexte que côté oracle (`scoreDuCandidat`, relicOracle.ts). Sans
+// eux, A noterait sans exclusive ce que l'oracle note avec — et F ne
+// comparerait plus rien.
+export function scoreOracle(
+  p: SearchParams,
+  c: BuildCandidate,
+  realDamage?: RealDamageContext | null,
+  relique?: RelicDetail,
+  exclusive?: ContexteExclusive | null
+): number {
   const objectif = p.objective ?? 'efficience';
   if (objectif === 'efficience') return candidateMetricTotal(c, new Map(p.pool.map((r) => [r.id, r])), p.metric);
-  return objectiveScore(c, objectif, realDamage ?? undefined);
+  const apport = exclusive ? apportExclusive(relique, c.stats, exclusive.setup, exclusive.element) : APPORT_NEUTRE;
+  return objectiveScore(c, objectif, realDamage ?? undefined, apport);
 }
 
 export function cle(runeIds: number[]): string {
@@ -265,7 +296,7 @@ export function resoudreTousLesCandidats(
       return {
         cle: cle(c.runeIds),
         rid,
-        score: scoreOracle(p, enrichi, realDamage),
+        score: scoreOracle(p, enrichi, realDamage, relique, reglages.exclusive),
         enrichi,
         artefactsIds,
         paireFixeRespectee: reglages.paireFixe ? artefactsIds.join(',') === reference : true,

@@ -10,11 +10,12 @@
 // dégâts »). `computeTotalDamage`/`pvEffectifs`/`statsParPaire` casseraient
 // cette frontière.
 
-import { ArtifactDetail } from '../types';
+import { ArtifactDetail, ElementKey, RelicDetail } from '../types';
 import { StatKey } from './effects';
 import { Objective, pvEffectifs, type RealDamageContext } from './runeBuildOptim';
 import { StatRow } from './stats';
-import { artifactDamageProfile, computeTotalDamage } from './damage';
+import { DamageSetup, artifactDamageProfile, computeTotalDamage } from './damage';
+import { APPORT_NEUTRE, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
 
 export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
 
@@ -56,25 +57,59 @@ export function regimeEquipementDe(regime: RegimeArtefacts, contexteDegatsDispon
 // une omission ne peut plus rester silencieuse comme avant cet audit.
 export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
 
+/**
+ * Le CANAL EXCLUSIVE (implementation-relique, lot 7 — B.7) : la relique
+ * qu'`evaluate` est en train d'essayer pour ce build, et le contexte dont son
+ * assiette `Y` a besoin (leader skill, compétences d'invocateur).
+ *
+ * ⚠️ **L'apport se recalcule PAR PAIRE**, jamais une fois par relique : `Y`
+ * est une statistique de début de combat, et la principale plate d'un
+ * artéfact y entre. Deux paires différentes peuvent donc franchir un palier
+ * de tranche différent.
+ *
+ * ⚠️ **Une seule note** (D6) : le score rendu ici est celui qui choisit la
+ * paire, celui qui choisit la relique (`PaireArtefacts.score`, lu par
+ * `bestRelicForBuild`) et celui qui classe. Jamais un score de principale
+ * auquel on ajouterait un score d'exclusive.
+ *
+ * Absent → apport neutre, comportement strictement d'avant le lot 7.
+ */
+export interface CanalExclusive {
+  relique: RelicDetail | undefined;
+  setup: DamageSetup;
+  element: ElementKey | null;
+}
+
 // Surcharge 1 : `degats_reels` EXIGE le contexte de dégâts — omission =
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
 export function evaluerPourRegime(
   regime: 'degats_reels',
   statsAvec: (arts: ArtifactDetail[]) => StatRow[],
-  degats: DegatsContext
+  degats: DegatsContext,
+  exclusive?: CanalExclusive
 ): (arts: ArtifactDetail[]) => number;
 // Surcharge 2 : tout autre régime n'a pas besoin de contexte de dégâts.
 export function evaluerPourRegime(
   regime: Exclude<RegimeArtefacts, 'degats_reels'>,
-  statsAvec: (arts: ArtifactDetail[]) => StatRow[]
+  statsAvec: (arts: ArtifactDetail[]) => StatRow[],
+  exclusive?: CanalExclusive
 ): (arts: ArtifactDetail[]) => number;
 // Implémentation — signature élargie, jamais appelée directement de
 // l'extérieur (les deux surcharges ci-dessus sont le seul contrat public).
 export function evaluerPourRegime(
   regime: RegimeArtefacts,
   statsAvec: (arts: ArtifactDetail[]) => StatRow[],
-  degats?: DegatsContext
+  degatsOuExclusive?: DegatsContext | CanalExclusive,
+  exclusiveApresDegats?: CanalExclusive
 ): (arts: ArtifactDetail[]) => number {
+  // Le 3ᵉ paramètre porte le contexte de dégâts en `degats_reels`, le canal
+  // exclusive partout ailleurs — les deux surcharges publiques le fixent, ce
+  // démêlage n'existe que pour l'implémentation commune.
+  const degats = regime === 'degats_reels' ? (degatsOuExclusive as DegatsContext | undefined) : undefined;
+  const exclusive = regime === 'degats_reels' ? exclusiveApresDegats : (degatsOuExclusive as CanalExclusive | undefined);
+  // L'apport de la relique essayée, pour CETTE paire d'artéfacts.
+  const apportPour = (stats: StatRow[]) =>
+    exclusive ? apportExclusive(exclusive.relique, stats, exclusive.setup, exclusive.element) : APPORT_NEUTRE;
   if (regime === 'degats_reels') {
     // ⚠️ Backstop runtime, censé être INATTEIGNABLE une fois les deux
     // surcharges en place — un appel bien typé ne peut pas arriver ici sans
@@ -85,11 +120,15 @@ export function evaluerPourRegime(
         "evaluerPourRegime('degats_reels') exige un contexte de dégâts — les surcharges publiques devraient déjà l'imposer à la compilation."
       );
     }
-    return (arts) =>
-      computeTotalDamage(
+    return (arts) => {
+      const brutes = statsAvec(arts);
+      const apport = apportPour(brutes);
+      return computeTotalDamage(
         degats.profile,
         degats.passifs,
-        statsAvec(arts),
+        // Bravoure/Éternité/Origine : des POINTS de stat, jamais posés dans
+        // `computeStats` (les minimums/maximums restent jugés hors combat).
+        statsAvecApport(brutes, apport),
         degats.setup,
         degats.element,
         artifactDamageProfile(arts),
@@ -100,15 +139,28 @@ export function evaluerPourRegime(
         degats.bonusDegatsConditionnel,
         degats.bonusDegatsSelonCr,
         degats.bonusDegatsSelonDef,
-        degats.bonusSiAtqSeuil
+        degats.bonusSiAtqSeuil,
+        // Conquête — additive dans le bracket `DMG%`.
+        apport.dmgPct
       );
+    };
   }
-  if (regime === 'ehp') return (arts) => pvEffectifs(statsAvec(arts));
+  if (regime === 'ehp') {
+    return (arts) => {
+      const brutes = statsAvec(arts);
+      const apport = apportPour(brutes);
+      // Ténacité — terme de `Réductions` : des PV effectifs ÉQUIVALENTS.
+      return pvEffectifs(statsAvecApport(brutes, apport)) * facteurTenacite(apport.reductionPct);
+    };
+  }
   if (regime === 'hp' || regime === 'atk' || regime === 'def') {
     // `!` et non `?? 0` : computeStats() garantit une entrée par StatKey —
     // si elle manquait un jour, on veut un plantage, pas un score à 0 qui
     // ferait perdre silencieusement cette stat dans le classement.
-    return (arts) => statsAvec(arts).find((r) => r.key === regime)!.total;
+    return (arts) => {
+      const brutes = statsAvec(arts);
+      return statsAvecApport(brutes, apportPour(brutes)).find((r) => r.key === regime)!.total;
+    };
   }
   if (regime === 'aucun') {
     // Aucun artéfact n'entre dans ce score (§12.6 d'artefacts.md) — la somme

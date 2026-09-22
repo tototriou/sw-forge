@@ -373,6 +373,8 @@ async function deroulerHarnais(
 
   resultat.completude = evaluerCompletude(dernier.resultat!, dernier.totalPairs!, resolue.params);
   if (dernier.resultat!.traceur) resultat.traceCandidat = dernier.resultat!.traceur;
+  // Le résultat brut, entier — voir `ResultatHarnais.brut` (lot 6 bis).
+  resultat.brut = dernier.resultat;
 
   // ⚠️ Le classement complet n'est payé que s'il sert : un `--arret=appariement`
   // sans build cible n'a rien à classer.

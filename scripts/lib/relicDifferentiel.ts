@@ -255,8 +255,13 @@ export function resoudreTousLesCandidats(
     .map(({ c, r }) => {
       const enrichi = candidatAvecSaPaire(c, new Map([[cleBuild(c), r]]));
       const artefactsIds = r.artefacts.map((a) => a.id).sort((a, b) => a - b);
-      const rid = r.relique!.id;
-      const relique = ctx.eligibles.find((x) => x.id === rid);
+      // Hors mode `recherche` (`equipped`, contexte `off`), la file ne pose pas
+      // `relique` : la relique portée est fixe (`ctx.equipee`, le même
+      // paramètre que le moteur) — même convention que `comparerOptionA`
+      // (`ctx.equipee`, sentinelle `-1` sans relique). Lot 6 bis : le point
+      // `equipped` de non-régression n'avait jamais été joué par A au lot 6.
+      const relique = r.relique ?? (ctx.mode === 'recherche' ? undefined : ctx.equipee);
+      const rid = relique?.id ?? -1;
       return {
         cle: cle(c.runeIds),
         rid,

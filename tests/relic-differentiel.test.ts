@@ -97,6 +97,26 @@ export default function testRelicDifferentiel() {
   egal(violee.paireFixeViolee, [resolus[0]!.cle], 'paire fixe : un candidat dont la paire retenue diffère de la référence est rapporté');
   egal(degatsSansArtefacts(null), null, 'degats : sans contexte de dégâts, aucun contexte de sélection');
 
+  // Mode `equipped` (lot 6 bis, point de non-régression) : la file ne pose pas
+  // `relique` sur le résultat hors mode recherche — la portée est fixe. A doit
+  // résoudre chaque candidat avec elle (rid = l'équipée) et être fidèle au run
+  // unique de l'oracle ; A plantait sur `r.relique!.id` avant.
+  {
+    const equipee = inv[1]!;
+    const ctxEq = resoudreContexteRelique({ mode: 'equipped', principale: 'equipped', type: 'libre', seuil: 6 }, equipee, inv);
+    const pEq: SearchParams = { ...p, relic: equipee, relicContext: ctxEq };
+    const oracleEq = oracleSearch(pEq, ctxEq);
+    const relaxedEq = searchBuilds(pEq);
+    const resolusEq = resoudreTousLesCandidats(pEq, relaxedEq, ctxEq, reglages);
+    egal(oracleEq.N, 1, 'equipped : l’oracle n’a qu’un run (la relique portée)');
+    ok(resolusEq.length > 0 && resolusEq.every((x) => x.rid === equipee.id), `equipped : ${resolusEq.length} résolus, tous avec la relique portée (rid ${equipee.id})`);
+    ok(resolusEq.every((x) => x.conditionsRespectees), 'equipped : chaque résolu respecte les conditions avec la relique portée');
+    const cEq = comparerOptionA({ p: pEq, ctx: ctxEq, oracle: oracleEq, relaxed: relaxedEq, resolus: resolusEq, k: 5 });
+    egal(cEq.statut, 'fidele', 'equipped : A ≡ oracle (statut « fidele »)');
+    egal(cEq.optimumA?.rids, [equipee.id], 'equipped : le rid de l’optimum de A est l’équipée');
+    egal(cEq.optimumOracle?.rids, [equipee.id], 'equipped : le rid de l’optimum de l’oracle est l’équipée');
+  }
+
   /* (2) L'orchestrateur sur le cas réel le plus léger, si l'export est présent. */
   const exportCiri = resolve(racine, 'ß☆Enzo-6399149.json');
   if (!existsSync(exportCiri)) {

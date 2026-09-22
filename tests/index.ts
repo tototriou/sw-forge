@@ -55,6 +55,7 @@ import testRelicQueue from './relic-queue.test';
 import testPerfRelicOptions from './perf-relic-options.test';
 import testRelicDifferentiel from './relic-differentiel.test';
 import testRelicUniqueLabel from './relic-unique-label.test';
+import testRelicExclusive from './relic-exclusive.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
@@ -141,6 +142,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testPerfRelicOptions', testPerfRelicOptions],
   ['testRelicDifferentiel', testRelicDifferentiel],
   ['testRelicUniqueLabel', testRelicUniqueLabel],
+  ['testRelicExclusive', testRelicExclusive],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

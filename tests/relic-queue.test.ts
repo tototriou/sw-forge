@@ -35,7 +35,8 @@ import { ArtifactSearchParams, chercherPaires, respecteMinimums } from '../src/l
 import { RegimeArtefacts, regimeArtefacts } from '../src/lib/artifactEvaluation';
 import { ResultatArtefacts, candidatAvecSaPaire, cleBuild, signatureReglages } from '../src/lib/artifactQueue';
 import { EntreeResolution, etatReliqueDuBuild, reliqueEquipeeExclue, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
-import { oracleSearch } from '../scripts/lib/relicOracle';
+import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
+import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { ReglagesDifferentiel, Saturation, classerPerte, cle, comparerOptionA, entreeResolution, resoudreTousLesCandidats, runesDe, saturationDe } from '../scripts/lib/relicDifferentiel';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
@@ -82,7 +83,11 @@ interface Differentiel {
 function differentiel(fx: Fixture5a, reglages: Reglages, realDamage?: RealDamageContext | null): Differentiel {
   const nom = fx.nom;
   const p = { ...fx.p0, relicContext: fx.ctx };
-  const oracle = oracleSearch(p, fx.ctx, { realDamage });
+  // ⚠️ Lot 7 — le canal exclusive va aux DEUX côtés, depuis la MÊME source
+  // (`reglages.exclusive`) : A le lit par `entreeResolution`/`scoreOracle`,
+  // l'oracle par `OptionsOracle`. Un canal donné d'un seul côté rendrait le
+  // différentiel vide de sens.
+  const oracle = oracleSearch(p, fx.ctx, { realDamage, exclusive: reglages.exclusive });
   const relaxed = searchBuilds(p);
 
   // L'option A : chaque candidat relâché résolu par la partie pure de la
@@ -499,6 +504,113 @@ export default function testRelicQueue() {
   console.log(`  · pertes classées : ${pertes.length === 0 ? 'aucune' : pertes.map((x) => `${x.fixture} ${x.build} → ${x.classe} (${x.detail})`).join(' | ')}`);
   ok(pertes.every((x) => x.classe !== 'faux négatif'), 'différentiel : aucune perte n’est un faux négatif (dilution et tronqué seuls admis)');
   egal(pertes.filter((x) => x.classe === 'tronqué').length, 0, 'différentiel : aucune perte par troncature (maxMs infini, MAX_COLLECTED non atteint)');
+
+  /* ────────────────────────────────────────────────────────────────────────
+   * LOT 7 — (1) la GRANULARITÉ de l'oracle, prouvée AVANT de s'en servir
+   * ──────────────────────────────────────────────────────────────────────
+   * La garantie E fait reposer l'oracle sur « une recherche par couple
+   * (statistique, valeur) de principale » — donc sur l'hypothèse que **deux
+   * reliques de même principale sont INTERCHANGEABLES pour le moteur de
+   * runes**. Brancher le score des exclusives pourrait la casser : il
+   * suffirait qu'une valeur d'exclusive entre dans un prédicat de
+   * faisabilité, un score de rétention, un ordre de collecte ou une
+   * structure bornée pour que deux pièces de même principale ne produisent
+   * plus la même recherche — et « rejouée contre le même oracle » ne
+   * voudrait plus rien dire.
+   *
+   * ⚠️ Ce test le prouve par l'EXÉCUTION, pas par lecture : deux inventaires
+   * identiques sur la principale et DIFFÉRENTS sur l'exclusive doivent
+   * rendre la même recherche relâchée, le même nombre de runs d'oracle, et
+   * les mêmes populations de compartiments. */
+  titre('Optimizer · relique — lot 7 : le moteur est INSENSIBLE à l’exclusive (granularité de l’oracle, garantie E)');
+  {
+    const fx = CORPUS_5A.A;
+    // Mêmes `rid`, mêmes principales, mêmes niveaux — seules les propriétés
+    // uniques changent (Conquête·ATQ → Ténacité·PV et Origine·DEF), et avec
+    // elles les tranches et les pourcentages.
+    const memeExclusive = fx.inv.map((r) => ({ ...r, unique: { type: 1, tranche: 100, percent: 1 } }));
+    const autreExclusive = fx.inv.map((r, i) => ({ ...r, unique: i % 2 === 0 ? { type: 6, tranche: 3000, percent: 2 } : { type: 15, tranche: 250, percent: 3 } }));
+    const ctx1 = resoudreContexteRelique(LIBRE, undefined, memeExclusive);
+    const ctx2 = resoudreContexteRelique(LIBRE, undefined, autreExclusive);
+    const p1 = { ...fx.p0, relicContext: ctx1 };
+    const p2 = { ...fx.p0, relicContext: ctx2 };
+
+    // (a) Les bornes transportées au moteur ne dépendent que des principales.
+    egal(ctx2.bornes, ctx1.bornes, 'granularité (a) : les bornes du contexte ne bougent pas quand seule l’exclusive change');
+    // (b) L'oracle garde le MÊME nombre de runs : sa granularité est bien le
+    //     couple (statistique, valeur), pas la pièce.
+    egal(oracleSearchRuns(p2, ctx2).length, oracleSearchRuns(p1, ctx1).length, 'granularité (b) : N identique — la granularité de l’oracle reste le couple (statistique, valeur)');
+    // (c) La recherche relâchée elle-même est identique, candidat par
+    //     candidat, stats comprises — donc aucune valeur d'exclusive n'entre
+    //     dans la faisabilité, la rétention, la collecte ni une structure
+    //     bornée : tout cela se joue AVANT `bestRelicForBuild`.
+    const r1 = searchBuilds(p1);
+    const r2 = searchBuilds(p2);
+    const projection = (r: { candidates: BuildCandidate[]; truncated: boolean }) =>
+      stableStringify({ truncated: r.truncated, candidats: r.candidates.map((c) => ({ runeIds: [...c.runeIds].sort((a, b) => a - b), stats: c.stats, effTotal: c.effTotal })) });
+    egal(projection(r2), projection(r1), 'granularité (c) : la recherche relâchée est byte-identique — le moteur ne lit jamais l’exclusive');
+    // (d) Et l'ordre de BASE que la file consomme (`fullSortedCandidates` à
+    //     l'écran) ne la lit pas non plus : `sortCandidates` sans
+    //     `exclusiveDuBuild` est neutre par défaut.
+    egal(
+      sortCandidates(r2.candidates, p2.objective ?? 'efficience', { runeById: new Map(p2.pool.map((x) => [x.id, x])), metric: p2.metric }).map((c) => cle(c.runeIds)),
+      sortCandidates(r1.candidates, p1.objective ?? 'efficience', { runeById: new Map(p1.pool.map((x) => [x.id, x])), metric: p1.metric }).map((c) => cle(c.runeIds)),
+      'granularité (d) : l’ordre de collecte que la file consomme est identique — l’exclusive n’y entre pas'
+    );
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────
+   * LOT 7 — (2) le différentiel de B.5b REJOUÉ avec le score complet
+   * ──────────────────────────────────────────────────────────────────────
+   * Les neuf fixtures ci-dessus portent toutes Conquête·ATQ (le défaut de
+   * `relique()`), neutre en Efficience comme en PV effectifs : elles
+   * prouvent la NON-RÉGRESSION du canal, pas son effet. Ici l'exclusive
+   * DÉPARTAGE — deux reliques de MÊME principale dont seule l'unique
+   * diffère — et A doit retrouver exactement l'optimum de l'oracle. */
+  titre('Optimizer · relique — lot 7 : différentiel avec le score complet (l’exclusive départage)');
+  {
+    const fx = CORPUS_5A.A;
+    const exclusive = { setup: DEFAULT_DAMAGE_SETUP, element: null };
+    // Le corpus complet, rejoué avec le canal branché des DEUX côtés. La
+    // question du contrat est « aucun optimum PERDU PAR L'AJOUT du canal » :
+    // on compare donc chaque fixture à elle-même sans canal (`resultats`,
+    // calculés plus haut), pas à un idéal — la fixture C porte une dilution
+    // connue et consignée depuis le lot 5b (`bucketCap` 10), qui doit rester
+    // exactement ce qu'elle était, ni plus ni moins.
+    const avantPertes = pertes.length;
+    for (const f of fixtures) {
+      const d = differentiel({ ...f, nom: `${f.nom} (canal branché)` }, { critere: f.p0.objective ?? 'efficience', exclusive });
+      const sans = resultats[f.nom]!;
+      egal(d.faisablesA, sans.faisablesA, `${f.nom} : le canal ne change AUCUN build faisable (${sans.faisablesA.length})`);
+      egal(d.optimumA?.score, sans.optimumA?.score, `${f.nom} : le canal ne change pas le score d’optimum de A`);
+      egal(d.optimumA?.rids, sans.optimumA?.rids, `${f.nom} : le canal ne change pas la relique retenue`);
+    }
+    // ⚠️ Les fixtures portent toutes Conquête·ATQ (le défaut de `relique()`),
+    // neutre en Efficience comme en PV effectifs : cette passe prouve la
+    // NON-RÉGRESSION, et c'est le cas « départage » ci-dessous qui prouve
+    // l'effet. Les pertes de la seconde passe doivent être les mêmes que
+    // celles de la première, à la classe près.
+    const nouvelles = pertes.slice(avantPertes);
+    egal(nouvelles.length, avantPertes, 'le canal n’ajoute ni ne retire aucune perte (mêmes fixtures, mêmes classes)');
+    ok(nouvelles.every((x) => x.classe !== 'faux négatif'), 'canal branché : aucune perte n’est un faux négatif');
+
+    // Et un cas où l'exclusive DÉCIDE : deux PV % +12 (même principale, donc
+    // strictement interchangeables pour le moteur), l'une Ténacité·PV qui
+    // franchit son palier, l'autre Régénération qui ne compte jamais.
+    // ⚠️ Objectif `ehp` : c'est le régime où Ténacité entre au score.
+    const tenace: RelicDetail = { id: 8001, upgrade: 6, main: { code: 100, value: 12 }, unique: { type: 6, tranche: 3000, percent: 2 } };
+    const inerte: RelicDetail = { id: 8000, upgrade: 6, main: { code: 100, value: 12 }, unique: { type: 16, tranche: 3000, percent: 2 } };
+    const ctx = resoudreContexteRelique(LIBRE, undefined, [inerte, tenace]);
+    const p = { ...fx.p0, objective: 'ehp' as const, relicContext: ctx };
+    const fxDepartage: Fixture5a = { nom: 'exclusive départage', pool: fx.pool, inv: [inerte, tenace], intention: LIBRE, p0: p, ctx };
+    const d = differentiel(fxDepartage, { critere: 'ehp', exclusive });
+    // ⚠️ `inerte` a le `id` le plus petit : sans le score de l'exclusive, la
+    // convention d'ex æquo (`rid` croissant) la choisirait. C'est donc bien
+    // la VALEUR de l'exclusive qui départage, pas l'ordre.
+    egal(d.optimumA?.rids, [8001], 'l’exclusive départage : A retient la Ténacité (8001), pas la Régénération (8000) pourtant première par id');
+    egal(d.optimumOracle?.rids, [8001], '… et l’oracle retient la même — le canal est branché des deux côtés');
+    egal(d.optimumA?.score, d.optimumOracle?.score, '… avec exactement le même score');
+  }
 }
 
 export { pertes as pertesRelicQueue };

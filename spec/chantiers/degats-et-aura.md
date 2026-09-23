@@ -107,6 +107,8 @@ affirmations contradictoires, notamment sur 411.
 | --- | --- | --- |
 | Blade Surge, coups 1 et 2 | `0.5 × ATQ` chacun, **mono-cible** | donnée SWARFARM (`formule`, `coups: 2`) + confirmation |
 | Blade Surge, coup 3 | `3.0 × ATQ`, **en zone** | utilisateur — absent de l'API |
+| Portée de la curation Blade Surge | La même séquence de dégâts vaut aussi pour les compétences `10601`, `10603` et `10605` des Magic Knights eau, vent et ténèbres ; `10603` couvre également l'Imperfect Magic Knight vent qui partage cet identifiant | utilisateur, confirmation explicite du 2026-09-23 |
+| Skillups de Blade Surge | Le même nombre de skillups vaut pour les huit identifiants retenus et `skillupDamagePct` s'applique aux trois coups, **troisième coup inclus** | utilisateur, confirmation explicite du 2026-09-23 |
 | Tempest (Teshar) | `3.7 × ATQ`, **en zone**, déclenché après S1 **ou** S2 | utilisateur, **et** l'audit (3,7 ATQ, `other_skill=1181`) : deux sources concordantes |
 | Ignore DEF des Blade Dancers | **le coup 1 ne peut JAMAIS ignorer la DEF** ; une fois qu'un coup ignore, **tous les suivants ignorent** | utilisateur |
 | Défauts d'ignore DEF | 3 coups : **aucun ignore DEF** ; 7 coups : **septième seul**, dernier coup toujours ignore DEF | utilisateur, confirmation de revue du 2026-09-23 |
@@ -123,13 +125,13 @@ chantier ne la modélise pas.** C'est précisément pourquoi la condition d'igno
 DEF devient un **choix** de l'utilisateur, et non un état déduit : l'app ne
 sait pas où en est l'ATB de la cible. Voir lot 10.
 
-⚠️ **Deux résidus assumés, écrits ici pour ne pas être redécouverts** : que les
-améliorations de compétence (`skillupDamagePct`) portent aussi sur le 3ᵉ coup
-de Blade Surge et sur Tempest, et que le coup de zone de Blade Surge touche
-**aussi** la cible visée (ce qui fait « 3 coups sur la cible visée »). Les deux
-sont cohérents avec le modèle et avec la formulation de la demande ; le lot 1
-les inscrit comme hypothèses **datées et nommées** dans la spec, pour qu'un
-relevé futur les infirme sans avoir à relire le code.
+⚠️ **Deux résidus assumés, écrits ici pour ne pas être redécouverts** :
+l'application des améliorations de compétence (`skillupDamagePct`) à Tempest,
+et le fait que le coup de zone de Blade Surge touche **aussi** la cible visée
+(ce qui fait « 3 coups sur la cible visée »). Ils restent des hypothèses
+**datées et nommées**. En revanche, l'application des skillups au troisième
+coup de Blade Surge est désormais une valeur curée fournie par l'utilisateur,
+pas une hypothèse.
 
 ### A.3 Hiérarchie des priorités
 
@@ -279,7 +281,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | --- | --- | --- | --- |
 | 0 — ouverture du chantier | M | terminé | 2026-09-23 |
 | 1a — extraction automatique des candidats | C | terminé | `c0407a5` / 2026-09-23 |
-| 1b — classification Blade Surge | J | à faire | — |
+| 1b — classification Blade Surge | J | terminé | 2026-09-23 |
 | 1c1 — Tempest : amorces et noms partagés | J | à faire | — |
 | 1c2 — Tempest : effet Additional Attack, première moitié | J | à faire | — |
 | 1c3 — Tempest : effet Additional Attack, seconde moitié | J | à faire | — |
@@ -570,6 +572,21 @@ erreur d'extraction rouvre 1a. Chaque sous-lot validé suit `livrer` →
 27 024 octets**, empreinte
 `b4941261db4800379830b4524b4c522f5e18167b2ccde5b561648f5265d724c4`.
 Les constats 151, 163, 173 et 180 restent distingués.
+
+**Résultat validé le 2026-09-23.** Les huit identifiants `10601`, `10602`,
+`10603`, `10604`, `10605`, `10616`, `10618` et `10620`, soit onze formes,
+relèvent de la même mécanique. Les trois identifiants supplémentaires ont été
+curés par confirmation directe de l'utilisateur après la première
+classification ; ils ne sont plus à documenter. Les cinq identifiants
+`11015`, `18314`, `23507`, `23508` et `23510`, soit dix formes, restent hors
+famille. Aucun candidat ne reste indécis et aucun voisin n'est classé en même
+architecture. La confirmation complémentaire de l'utilisateur lève
+`H-BS-SKILLUP` : le même nombre de skillups vaut pour ces huit identifiants et
+leur bonus de dégâts porte aussi sur le troisième coup. Seule `H-BS-CIBLE`
+demeure une hypothèse datée. Le lot 1f devra proposer l'amendement correspondant
+du contrat du lot 8 sans réintroduire ces trois compétences dans le reliquat.
+Preuves : `decisions-lot-1b.json`, `controle-1b.md` et
+`controle-1b-amendement.md` dans le dossier de contrôles du chantier.
 
 #### Lots 1c1 à 1c3 — Tempest et attaques supplémentaires
 
@@ -1079,7 +1096,8 @@ liste ne prétend pas être la famille entière du corpus. Un test nommé qui
 vérifie les deux, **et** que 224 ne porte que sur 2 des 3 coups dans le
 premier cran. Vérifier aussi l'absence de 411 sur la zone, les PV propres à
 chaque cran pour 222/223, et la contribution par coup des dégâts additionnels.
-Toute hypothèse de skillup encore non relevée est nommée dans le test (A.2 ter).
+Le test vérifie que `skillupDamagePct` porte aussi sur le troisième coup,
+conformément à la valeur curée en A.2 ter.
 
 **Preuve :** le test · les trois unités et listes de couverture du lot 1 citées dans la spec ·
 `npx tsc --noEmit` ·

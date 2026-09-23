@@ -534,13 +534,28 @@ d'une attaque déclenchée. Aucune classification humaine n'est encore acquise.
 
 #### Contrat commun des lots 1b à 1e
 
-Intrant figé : `corpus-lot-1.json` à l'empreinte ci-dessus. Chaque sous-lot
-ne lit que ses enregistrements `decisions`, `competences`, `formes`,
-`lignesAudit` et, pour 1e, `configurations`. Il produit
-`decisions-lot-<sous-lot>.json` et `controle-<sous-lot>.md`, avec un verdict
-sourcé par couple `(famille, skillCom2usId)` : **même mécanique / même
-architecture / hors famille / à documenter**. Une ressemblance de nom, de
-prose ou d'effet ne suffit jamais. Aucun ratio n'est étendu.
+Intrant figé : `corpus-lot-1.json` à l'empreinte ci-dessus. La commande
+canonique `node scripts/projeter-degats-aura-lot-1.mjs` produit six fichiers
+`projection-lot-<sous-lot>.json` et `manifest-lot-1.json` (empreinte
+`42b66d32039311b535d7a4d3f913a8cca0745fd9ffa995eb5ea0c9589007c613`).
+Le format est du JSON tabulaire UTF-8/LF, une ligne par enregistrement, ordre
+fixe. Chaque projection porte son empreinte et celle du corpus.
+
+Dans une projection, seuls `couplesAttendus` et `candidats` désignent ce que
+le sous-lot doit classifier : même famille, mêmes identifiants, même nombre.
+`competences`, `formes` et `lignesAudit` sont du contexte consultable joint
+par identifiant ; `competencesCandidates` y est réduit aux identifiants du
+sous-lot. `configurations` est vide sauf en 1e. Aucun enregistrement de
+contexte ne crée un verdict supplémentaire.
+
+Chaque sous-lot produit `decisions-lot-<sous-lot>.json` et
+`controle-<sous-lot>.md`. Une décision structurée porte obligatoirement :
+`famille`, `skillCom2usId`, `verdict`, `justification`, `sources`,
+`lignesAudit`, `formes` (identifiant, nom, élément) et `incertitudes` ; 1e
+ajoute `configurations` et leurs branches de rendu. Les verdicts autorisés
+sont **même mécanique / même architecture / hors famille / à documenter**.
+Une ressemblance de nom, de prose ou d'effet ne suffit jamais. Aucun ratio
+n'est étendu.
 
 Chaque preuve cite les données lues, toutes les formes affectées et les
 incertitudes. Pas de code de production ni de modification du script ; une
@@ -551,8 +566,9 @@ erreur d'extraction rouvre 1a. Chaque sous-lot validé suit `livrer` →
 
 **Cat. J.** Les 13 identifiants candidats de `famille = bladeSurge` :
 `10601`, `10602`, `10603`, `10604`, `10605`, `10616`, `10618`, `10620`,
-`11015`, `18314`, `23507`, `23508`, `23510`. Volume maximal mesuré :
-69 enregistrements / 28 674 octets, chevauchements inter-familles inclus.
+`11015`, `18314`, `23507`, `23508`, `23510`. Projection : **85 lignes utiles /
+27 024 octets**, empreinte
+`b4941261db4800379830b4524b4c522f5e18167b2ccde5b561648f5265d724c4`.
 Les constats 151, 163, 173 et 180 restent distingués.
 
 #### Lots 1c1 à 1c3 — Tempest et attaques supplémentaires
@@ -560,13 +576,17 @@ Les constats 151, 163, 173 et 180 restent distingués.
 **Cat. J.** Trois ensembles disjoints dans `famille = tempest` :
 
 - **1c1** : les 20 amorces des constats 164, 168, 178, 179, 313, plus les
-  deux candidats à nom partagé `6111` et `6176` — 22 identifiants,
-  97 enregistrements / 48 041 octets ; 313 reçoit un verdict explicite.
+  deux candidats à nom partagé `6111` et `6176` — 22 identifiants ; projection
+  **134 lignes utiles / 50 161 octets**, empreinte
+  `94681cf5365ebe50311af11f4f7a7acee397d5719cecc30d51073e085e7e8e62`.
+  Le constat 313 reçoit un verdict explicite.
 - **1c2** : candidats restants découverts uniquement par l'effet
-  `Additional Attack`, triés par identifiant, positions **1 à 59** — au plus
-  235 enregistrements / 110 181 octets.
+  `Additional Attack`, triés par identifiant, positions **1 à 59** ; projection
+  **298 lignes utiles / 111 149 octets**, empreinte
+  `2852722f44ae68eb059f733cefd99208fdfd968f0caa5ba5b18f3f20b9d059f4`.
 - **1c3** : même liste triée, positions **60 à 118** — au plus
-  268 enregistrements / 125 670 octets.
+  **339 lignes utiles / 129 391 octets**, empreinte
+  `7a38a0c2edc1f0a31ac2f14280139a26a57a2f50b1bea4b1dc863e81bdd9d570`.
 
 Le tri et les positions portent sur le corpus figé, jamais sur une nouvelle
 extraction. 1f vérifie que les trois ensembles retrouvent exactement les 140
@@ -575,7 +595,9 @@ identifiants Tempest candidats sans doublon ni omission.
 #### Lot 1d — Blade Dancers
 
 **Cat. J.** Les six identifiants `14308`, `14310`, `14311`, `14808`,
-`14810`, `14811` — 30 enregistrements / 13 210 octets. Vérifier séparément
+`14810`, `14811`. Projection : **51 lignes utiles / 14 168 octets**, empreinte
+`70142e16f0ce2a4e18585efa541fa25add10cf93debc2bc60a831c7d5fba2f25`.
+Vérifier séparément
 les variantes trois et sept coups, les deux quantités de baisse d'ATB et le
 dernier coup inconditionnel ; ne pas valider les valeurs curées par simple
 relecture de la table initiale.
@@ -583,23 +605,29 @@ relecture de la table initiale.
 #### Lot 1e — stats acquises en combat
 
 **Cat. C.** Les 38 identifiants / 40 configurations de
-`STATS_COMBAT_PAR_ID_CONNUS`, soit au plus 239 enregistrements /
-103 966 octets avec les chevauchements. Résoudre les 80 formes, la source et
-la branche de rendu de chaque configuration. « Présent dans la table » ne
-valide pas la valeur de jeu. Le calcul du constat 110 reste à prouver au lot
-11.
+`STATS_COMBAT_PAR_ID_CONNUS`. Projection : **291 lignes utiles /
+107 450 octets**, empreinte
+`c871aa35d3b266000a38e8656356c56176cfea68597fccd7a8c8d12c250aa4f5`.
+Résoudre les 80 formes, la source et la branche de rendu de chaque
+configuration. « Présent dans la table » ne valide pas la valeur de jeu. Le
+calcul du constat 110 reste à prouver au lot 11.
 
 #### Lot 1f — réconciliation et proposition d'amendement
 
-**Cat. C+J.** Intrants : les six fichiers de décisions et leurs preuves ; ne
-pas relire les 870 lignes brutes. Vérifier **197 couples famille/identifiant**
-(13 + 140 + 6 + 38), en autorisant qu'un identifiant apparaisse dans deux
-familles candidates. Aucun verdict ne reste absent ou contradictoire.
+**Cat. C+J.** Intrants : `manifest-lot-1.json`, les six fichiers de décisions
+et leurs preuves ; ne pas relire les 870 lignes brutes. Comparer les clés aux
+**197 couples famille/identifiant nommés par le manifeste** (13 + 140 + 6 +
+38), pas au seul total : zéro substitution, doublon ou omission. Un même
+identifiant peut appartenir à deux familles candidates. Valider le schéma,
+les verdicts, les sources, les formes et les incertitudes ; pour 1e, les
+configurations et branches. Aucun verdict ne reste absent ou contradictoire.
 
 Produire `controle-1f.md` avec les listes finales par mécanique, les formes,
 les incertitudes et le texte exact proposé pour les lots 8, 9, 10, 11 et
-A.7. Le pilote applique ensuite cet amendement et le fait revoir ; lui seul
-marque l'ensemble du lot 1 terminé.
+A.7. La réconciliation automatique porte sur les fichiers structurés ; la
+preuve textuelle ne recopie que les totaux, anomalies et décisions encore
+ouvertes. Le pilote applique ensuite cet amendement et le fait revoir ; lui
+seul marque l'ensemble du lot 1 terminé.
 
 ### Lot 2a — classement des blocs et plan de découpage
 

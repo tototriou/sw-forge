@@ -13,61 +13,30 @@ exception du lint), d'où un seul chantier.
 
 ## Partie A — préambule commun (à relire par chaque lot)
 
+### A.0 Unités de périmètre
+
+- **Ligne d'audit** : une ligne de `inventaire.csv`, rattachée à un constat.
+- **Identifiant de compétence unique** : un `skillCom2usId`, unité première
+  d'une table de code clé par cet identifiant.
+- **Forme de monstre du corpus** : une forme identifiée dans les fichiers
+  `public/data/skills/*.json` ; plusieurs formes peuvent partager une compétence.
+
+Ne jamais employer « fiche » comme unité de comptage. Les preuves donnent
+trois colonnes distinctes et nomment toutes les formes affectées par chaque
+identifiant. Les nombres initiaux issus de l'audit ne bornent pas le corpus.
+Après le lot 1, le pilote amende obligatoirement les contrats 8, 9, 10 et 11,
+leurs listes et leurs nombres, avant de les autoriser à démarrer.
+
 ### A.1 Pourquoi
 
-**Le modèle de dégâts est complet là où SWARFARM est complet, et muet
-ailleurs.** Les quatre sorts visés sont exactement des cas où la donnée
-manque ou ment :
-
-| Sort | Ce que la donnée dit | Ce qui manque |
-| --- | --- | --- |
-| Blade Surge (5 fiches) | `coups: 2`, `0.5*{ATK}`, `aoe: false`, effet `Additional Attack` | le 3ᵉ coup, en zone : **absent de l'API**, ni ratio ni portée |
-| Tempest (Teshar, `3213`) | `passif: true`, `aoe: true`, `coups: 1`, **`formule: ""`** | tout le ratio ; les skillups (`Damage +10%` ×3) sont là |
-| Blade Dance of Night (`14808`, `14810`) et les 4 autres fiches du constat 212 | `coups: 3` ou `7`, effet `Ignore DEF` avec `note: "If enemy ATB at 0"` / `"… or 7th hit"`, et `Decrease ATB` de 50 % ou 40 % **par coup** | la condition : `ignoreDef` est un booléen du sort et la `note` n'est jamais lue |
-| Accelerando / Rankyaku (`14813`, `14313`) | `passif: true`, `formule: "5*{SPD}"` | rien au calcul (`atkDepuisSpd: 5` est câblé, damage.ts l. 1728-1729) — **seul l'affichage** de la prose manque |
-
-⚠️ **Les valeurs manquantes sont fournies, pas à relever** : voir A.2 ter. Ce
-sont des valeurs CURÉES au sens de `game-data-curation` — leur source est
-l'utilisateur (joueur), citée, comme pour la vingtaine d'autres valeurs de
-`damage.ts` qui n'ont pas d'autre origine.
-
-⚠️ **Et un défaut de rendu, pas de modèle.** Les passifs « Stats acquises en
-combat » sont **curés** — `STATS_COMBAT_PAR_ID_CONNUS` (damage.ts l. 1697)
-porte 38 entrées, dont Mayasura (`18311`, `stacks`, `atkFlat: 100`) et Jager
-lumière (`7814`, `stacks`, `atkPct: 50`). `CombatStatProfile` porte même
-`description` (l. 1676). Mais **aucune des 7 branches de rendu** de
-`DamageSetupCard.tsx` (l. 960-1040) ne la passe : les branches à compteur
-rendent un `<span>` nu + `NumberField` (Mayasura, Jager — « rien de visible »),
-`'toujours'` et `'debuffsInverses'` rendent un `Jeton`, et `Jeton` n'a aucun
-axe de prose (`src/ui/Jeton.tsx`). La prose existe et n'est affichée nulle
-part. ⚠️ Ma première lecture (« Mayasura et Jaeger n'apparaissent pas dans
-`src/` ») était **fausse** : la table est clé par identifiant numérique, sans
-commentaire de nom sur ces deux lignes — un `grep` sur le nom du monstre ne la
-voit pas.
-
-**Les sets d'aura, eux, sont absents par décision explicite et datée** :
-`effects.ts` l. 341 dit « les sets d'alliés (Fight, Determination, Enhance,
-Accuracy, Tolerance) ne sont PAS ici : dans SW ils buffent l'équipe en combat
-et n'apparaissent pas sur la fiche de stats du monstre ». Vrai pour la fiche,
-faux pour le calcul : ces bonus modifient les stats du monstre optimisé, donc
-les dégâts réels, les PV effectifs, l'assiette des propriétés uniques de
-relique, et l'atteinte des conditions min. Les cinq sets sont déjà dans
-`RUNE_SETS` (`types.ts` l. 278-282) et déjà choisissables comme set recherché.
-
-**Deux bugs de plancher, mesurés.** `artifactBonusOf`
-(`OptimizerSection.tsx` l. 2370) somme la principale de `searchArtifacts`, qui
-en « Libre » est la paire *représentative* — choisie par somme des principales,
-donc deux `PV +1500` (`ARTIFACT_MAIN_VALUE`, `runeBuildOptim.ts` l. 548). Le
-champ « PV min » reçoit donc un plancher (`min=` et `placeholder=`) de **3 000
-alors qu'aucune paire n'est décidée**. Même famille : la relique n'entre pas du
-tout dans ce plancher, alors que sa principale est un **pourcentage** de base
-(`stats.ts` l. 75-77) et qu'en « comme équipé » elle est fixe et connue.
-
-**Et une saisie perdue à chaque monstre.** `resetSearch`
-(`useOptimizerState.ts` l. 411) fait `setDamageSetup(DEFAULT_DAMAGE_SETUP)` :
-en parcourant une liste de travail, la DEF de l'adversaire, ses PV, les buffs,
-le lead, l'invocateur et les effets d'équipe sont à ressaisir à chaque
-sélection — alors que rien de tout cela ne dépend du monstre optimisé.
+Le chantier corrige les planchers artéfacts/relique (lots 3–4), la perte du
+contexte entre monstres (5), les auras absentes des calculs de combat (6–7),
+Blade Surge et Tempest incomplets (8–9), l'ignore DEF conditionnel (10), puis
+la prose des passifs déjà calculés mais mal présentés (11).
+Les constats détaillés et coordonnées de code sont dans chaque contrat.
+Les valeurs curées fournies sont en A.2 ter ; le périmètre réel se mesure au
+lot 1, sans confondre l'audit et le corpus. Le découpage documentaire précède
+les modifications de `degats-reels.md` (2a/2b).
 
 ### A.2 Cible et périmètre
 
@@ -77,30 +46,39 @@ sélection — alors que rien de tout cela ne dépend du monstre optimisé.
    décrit en Partie B et un test nommé dans `tests/`.
 2. Les cinq sets d'aura sont saisissables dans « État de mon monstre »,
    entrent dans `statsDebutCombat`, dans les objectifs `degats_reels` et
-   `ehp`, dans l'assiette des exclusives de relique, et — par interrupteur —
-   dans l'atteinte des conditions min.
+   `ehp`, dans les calculs des passifs et des exclusives de relique. Un unique
+   interrupteur autorise RES/PRE seulement dans les conditions min ET max ;
+   les auras PV/ATQ/DEF ne participent jamais aux conditions.
 3. Le contexte de combat survit à un changement de monstre ; ce qui désigne un
    sort précis ne survit pas.
-4. En « Libre », le plancher des conditions vaut 0 sur les huit stats.
+4. En « Libre », la contribution garantie des emplacements d'artéfact au
+   plancher vaut 0 ; la base et une relique réellement équipée restent comptées
+   selon le mode d'affichage. Ce n'est pas un plancher total nul sur huit stats.
 5. `spec/outils/degats-reels.md` n'est plus en exception de `spec-lint.json`.
-6. Chaque mécanique corrigée l'est pour **toutes** les fiches de l'inventaire
+6. Chaque mécanique corrigée l'est pour **tous** les identifiants et formes retenus au lot 1
    qui la partagent (A.3 bis), et le reliquat de l'inventaire a un **plan
    chiffré** (lot 13).
 
 **Hors périmètre, explicitement :**
 
-- **L'IMPLÉMENTATION du reliquat de l'inventaire.** Mesuré : **247 constats
-  restants, 535 fiches** (A.2 bis). Le lot 13 en produit le plan découpé et
+- **L'IMPLÉMENTATION du reliquat de l'inventaire.** Mesuré : **243 constats
+  restants, 521 lignes d'audit** hors suivi et hors chantier (A.2 bis). Le lot 13 en produit le plan découpé et
   chiffré ; ce que ce chantier en implémente se décide **sur ce plan**, pas
-  par avance. Promettre les 247 ici serait un engagement qu'aucun lot ne peut
+  par avance. Promettre les 243 ici serait un engagement qu'aucun lot ne peut
   tenir.
-- **Le découpage d'`optimizer.md` (2 135 l.) et d'`artefacts.md` (1 703 l.)**,
+- **Le découpage d'`optimizer.md` et d'`artefacts.md`**,
   tous deux en exception du lint. `spec-lint.json` les assigne à d'autres
   chantiers (`découpage-optimizer`, `artefacts`) avec, pour `optimizer.md`,
   la mention « hors périmètre de ce cadrage ». Décision de l'utilisateur
   (2026-09-23) : on découpe `degats-reels.md`, qui nous est assigné
   (`chantier_responsable: "degats"`), et on ajoute aux deux autres dans leurs
-  sections existantes. Une entrée de `pistes.md` note la dette (lot 14).
+  sections existantes. **Dérogation utilisateur explicite à la recette de
+  découpage préalable de `spec-hygiene` pour les modifications normatives de
+  ces deux fichiers dans ce chantier**, confirmée lors de la revue. Elle ne
+  dispense ni de la cohérence des règles ni de la mise à jour des invariants.
+  Une entrée de `pistes.md` note la dette (lot 14).
+  Réparer leurs liens au lot 2b ne déclenche aucun découpage : `spec-hygiene`
+  exclut explicitement les liens de son déclencheur normatif.
 - **Les parties 3 et 4 de l'audit des dégâts conditionnels.** Elles restent
   « à définir » ; ce chantier n'est pas leur cadrage (A.2 bis).
 - **Une passe responsive** sur les cartes touchées au-delà de ce que la
@@ -109,45 +87,21 @@ sélection — alors que rien de tout cela ne dépend du monstre optimisé.
 
 ### A.2 bis Croisement avec l'audit des dégâts conditionnels
 
-`spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/inventaire.csv`
-(695 lignes) contient **déjà quatre des cinq sujets de dégâts**, tous au
-statut `Manquant` et **aucun** dans `suivi-implementation.csv` (78 numéros
-livrés : 1-13, 15-23, 26-50, 52-54, 64, 71, 83, 86, 117-121, 160, 185, 186,
-195-197, 199, 295-302, 305, 307, 316).
-
-| Constat | Catégorie | Lot | Fiches concernées | Ce que l'audit avait déjà écrit |
-| --- | --- | --- | --- | --- |
-| **151** | 08 — Séquences et attaques déclenchées | B | Astar, Lapis, Lupinus, Iris, Lanett (`10602`…) | « Magic Knights S1 : deux petits coups puis un troisième plus fort en zone ; `hits=2` et formule unique insuffisants » |
-| **164** | 08 | B | Teshar (`3213`) | « Tempest déclenché sur son tour ; formule 3,7 ATQ dans `other_skill=1181` » |
-| **110** | 05 — Conversions de stats en combat | B | CHUN-LI vent (`14313`), Cordelia vent (`14813`) | « ATQ augmentée de cinq fois sa VIT » — **implémenté depuis**, `atkDepuisSpd: 5` |
-| **212** | 09 — Ignore DEF conditionnel | B | 8 fiches dont Cordelia (`14808`) et Vereesa (`14810`) | « ignore DEF selon ATB à zéro ou dernier coup, variantes distinctes » |
-
-**Trois conséquences pour ce chantier :**
-
-1. **Le ratio de Teshar est en litige** : l'audit dit **3,7 ATQ** (370 %,
-   depuis `other_skill=1181`), la demande dit **370 %**. Les deux concordent —
-   c'est le seul des quatre où une source antérieure existe. Elle se cite,
-   elle ne dispense pas du relevé (lot 1).
-2. **Le constat 110 est clos côté calcul** : ce qui reste est un défaut
-   d'AFFICHAGE, pas une mécanique manquante. Le lot 11 ne rouvre donc pas le
-   constat, il corrige un rendu.
-3. **Le constat 212 compte exactement 6 fiches**, et ses deux variantes se
-   lisent dans la donnée — le lot 10 traite les six (A.3 bis). La catégorie 09
-   entière, elle, pèse 17 constats / 34 fiches restants, dont ce constat est
-   un seul.
-
-**Le reliquat, mesuré le 2026-09-23** : sur **325 constats** distincts et
-695 lignes de fiches, **247 constats / 535 fiches** ne sont ni dans les 78
-livrés ni dans ce chantier — dont 62 constats / 182 fiches pour la seule
-catégorie 08. ⚠️ **C'est l'ordre de grandeur des parties 3 et 4 de l'audit**,
-restées « à définir » : d'où le lot 13, qui **planifie** et ne promet pas. La
-répartition complète par catégorie vit dans la section du lot 13, pas ici.
+Les constats 151, 164, 110 et 212 de l'audit sont les points de départ du
+lot 1. Ils ne figurent pas dans le suivi initial des 78 constats livrés.
+Le reliquat hors suivi ET hors chantier est **243 constats / 521 lignes
+d'audit**. La commande, la ventilation et la réconciliation vivent au lot 13a.
+Le constat 110 semble déjà calculé (`atkDepuisSpd: 5`) ; le lot 11 doit en
+prouver le calcul avant sa clôture documentaire. Aucun statut ancien du CSV
+ne vaut preuve de livraison.
 
 ### A.2 ter Les valeurs de jeu — curées, avec leur source
 
-**Toutes les valeurs nécessaires sont en main.** Elles viennent de
-l'utilisateur (joueur), le 2026-09-23, sauf mention contraire. Aucun lot n'a
-à les redemander, et **aucun lot n'a le droit d'en inventer une autre**.
+**Les valeurs ci-dessous sont fournies.** Elles viennent de l'utilisateur
+(joueur), le 2026-09-23, sauf mention contraire. Elles ne sont pas à redemander.
+Le cas à sept coups est confirmé au lot 10 ; aucune valeur ne se complète
+par invention. Les précisions de revue remplacent les anciennes
+affirmations contradictoires, notamment sur 411.
 
 | Mécanique | Valeur retenue | Source |
 | --- | --- | --- |
@@ -155,8 +109,14 @@ l'utilisateur (joueur), le 2026-09-23, sauf mention contraire. Aucun lot n'a
 | Blade Surge, coup 3 | `3.0 × ATQ`, **en zone** | utilisateur — absent de l'API |
 | Tempest (Teshar) | `3.7 × ATQ`, **en zone**, déclenché après S1 **ou** S2 | utilisateur, **et** l'audit (3,7 ATQ, `other_skill=1181`) : deux sources concordantes |
 | Ignore DEF des Blade Dancers | **le coup 1 ne peut JAMAIS ignorer la DEF** ; une fois qu'un coup ignore, **tous les suivants ignorent** | utilisateur |
-| Sets d'aura | **+8 % par effet de set**, en **pourcentage de la statistique de BASE** — « comme tous les % venant des runes » | utilisateur |
+| Défauts d'ignore DEF | 3 coups : **aucun ignore DEF** ; 7 coups : **septième seul**, dernier coup toujours ignore DEF | utilisateur, confirmation de revue du 2026-09-23 |
+| Auras PV/ATQ/DEF | **+8 % de la statistique de BASE par effet de set** | utilisateur |
+| Auras RES/PRE | **+8 points de pourcentage par effet de set**, additifs : `0 % + 8 % = 8 %` ; jamais `base × 8 %` | utilisateur, précision de revue |
 | Sets d'aura, les cinq stats | Fight → ATQ · Determination → DEF · Enhance → PV · Accuracy → **PRE** · Tolerance → RES | utilisateur (« Accuracy PV » de la demande était une coquille) |
+| Plafond d'auras de l'équipe | **18 sets au total**, tous types confondus : certains contenus accueillent 6 monstres, avec 3 sets chacun (`6 × 3`) | utilisateur, correction de revue du 2026-09-23 |
+| Artéfact 411 | Premier coup du tour seulement ; s'il est en zone, chaque adversaire recevant CE coup en profite. Jamais sur Tempest, même sélectionné seul, ni sur le coup de zone de Blade Surge | utilisateur, correction explicite en revue |
+| Cible secondaire | « Autres ennemis » = dégâts sur **un** autre ennemi, jamais somme sur tous | utilisateur, précision de revue |
+| Tempest seul | Une seule contribution, jamais un second déclenchement de lui-même | utilisateur, précision de revue |
 
 ⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
 chantier ne la modélise pas.** C'est précisément pourquoi la condition d'ignore
@@ -185,92 +145,66 @@ Dans cet ordre, quand deux consignes de ce cadrage se contredisent :
 3. **Erreur observable plutôt que silence.** Une mécanique qu'on ne sait pas
    calculer s'affiche refusée avec sa raison (`SkillDamageUnsupported`), jamais
    calculée avec une constante de remplacement.
-4. **Ne rien perdre de la spec.** Le découpage du lot 2 est un déplacement,
-   pas une réécriture : `git diff | grep -c '^-[^-]'` sur le contenu, hors
-   en-têtes ajoutés, doit être justifiable ligne par ligne.
+4. **Ne rien perdre de la spec.** Le découpage du lot 2 porte une correspondance
+   source → destination et un diff séquentiel de chaque bloc ; ordre et
+   doublons conservés, seules normalisations CRLF et espaces de fin permises.
+   Un comptage des lignes supprimées ne prouve pas la conservation.
 5. **Volume lu.** Un plafond (≤ 500 lignes, ≤ 100 par bloc) n'autorise jamais
    à omettre : on dépasse, ou on scinde — on ne tronque pas.
 
 ### A.3 bis Une mécanique corrigée l'est pour TOUTE sa famille
 
-**Règle, posée par l'utilisateur (2026-09-23) :** « si pour certains monstres
-on met à jour une mécanique, il faut le faire pour tous les monstres de
-l'inventaire qui partagent cette mécanique ». Un lot qui corrige une fiche et
-laisse ses jumelles produit une app qui calcule juste pour Cordelia et faux
-pour Vereesa, sans que rien ne le signale.
+**Décision utilisateur du 2026-09-23 :** corriger tous les monstres de
+l'inventaire qui partagent la mécanique, sans laisser leurs équivalents faux.
+- **Même mécanique** = même règle et mêmes paramètres (ratio, coups,
+  condition) : dans le lot, sans exception, après classification sourcée.
+- **Même architecture, paramètres différents** : livrer le mécanisme
+  générique ; les cas sans valeurs sourcées vont au lot 13 avec leur numéro
+  de constat. Les familles candidates sont nommées au lot 1.
 
-**Comment on délimite « la même mécanique ».** Deux niveaux, à ne pas
-confondre — c'est ce qui décide du périmètre d'un lot :
-
-- **Même mécanique** = même règle **et** mêmes paramètres lisibles dans la
-  donnée (ratio, nombre de coups, condition). Exemple : les 4 fiches à 3 coups
-  du constat 212 (`note: "If enemy ATB at 0"`, ATB −50 %/coup) sont une seule
-  mécanique. → **dans le lot**, sans exception.
-- **Même architecture, paramètres différents** = la même *forme* de mécanisme
-  avec des valeurs propres à chaque monstre. Exemple : Tempest (Teshar) et les
-  19 autres fiches d'attaque déclenchée par un sort (constats 168 Mina, 178
-  RYU/Striker, 179 Drunken Masters, 313 Jin/Kai). → **le lot livre le
-  MÉCANISME générique**, et les fiches dont les valeurs ne sont pas en main
-  vont au **lot 13** avec leur numéro de constat. Jamais « plus tard » sans
-  numéro.
-
-**Le périmètre de famille se MESURE sur `inventaire.csv`**, il ne s'estime pas.
-Chaque lot de mécanique commence par extraire ses fiches du CSV et colle la
-sortie dans sa preuve — c'est comme ça qu'on a découvert que le constat 212
-compte **6** fiches et non 8, et que 151 en compte exactement 5.
+Mesurer le périmètre dans l'audit puis le confronter au corpus entier.
+Aucun effet voisin n'est assimilé par analogie. Chaque lot cite la preuve
+du lot 1 et son amendement pilote (A.0).
 
 ### A.4 Catégories de lots → modèle et effort
 
-La difficulté d'un lot est durable ; l'affectation d'un modèle ne l'est pas.
-Deux tables.
-
-- **M — mécanique** : le diff se relit intégralement, la preuve est un `grep`
-  vide, un test qui passe ou un déplacement sans perte. Aucune décision.
-- **C — classification** : une sortie structurée avec coordonnées (fichier,
-  ligne, valeur mesurée). Un inventaire, un relevé de longueurs, un constat.
-- **J — jugement** : une décision par élément, chacune adossée à une citation
-  (donnée SWARFARM, relevé utilisateur, ligne de spec). Toute mécanique de jeu
-  et toute forme d'interface sont en J.
+- **M — mécanique** : aucune décision, diff intégralement relu, preuve rejouable.
+- **C — classification** : inventaire structuré avec coordonnées et mesures.
+- **J — jugement** : décision par élément, sourcée ; toute mécanique de jeu
+  et toute forme d'interface relèvent de J.
 
 Affectation actuelle (révisable sans toucher au reste) : **M → Sonnet, effort
 bas · C → Sonnet, effort moyen · J → Opus, effort élevé.**
 
 ### A.5 Branche, chantier, fichiers transverses
 
-**Branche `forge/degats-et-aura`, créée depuis `forge/implementation-relique`**
-(tête `81284199`, 62 commits en avance sur `origin/main`, 0 en retard ;
-`package.json`, `package-lock.json`, `tsconfig.json` et `tailwind.config.js`
-identiques à `main`). Dérogation assumée à « tout nouveau travail part de
-`origin/main` » : le point 2 (« les effets d'aura entrent dans les stats de
-début de combat pour les propriétés uniques de relique ») et le point 5
-(relique en « comme équipé ») n'existent pas sur `main` —
-`statsDebutCombat`/`relicExclusive.ts`/`relicOptim.ts` y sont absents. Partir
-de `main` rendrait ces deux lots infaisables ou à refaire à la fusion.
-
-**Conséquence sur la fusion** : cette branche ne rejoint `main` **qu'après**
-`forge/implementation-relique`, ou en même temps par une branche
-d'intégration. Elle n'est pas fusionnable seule.
+**Branche `forge/degats-et-aura` depuis `forge/implementation-relique`,
+point `81284199`.** Dérogation à la création depuis `origin/main` : les
+calculs de début de combat et de reliques nécessaires n'y étaient pas présents.
+Fusion uniquement après le chantier relique ou avec lui sur une branche
+d'intégration, jamais seule. Relever les révisions courantes au lot 0.
 
 **Notes privées** : les lots touchent `spec/outils/optimizer/invariants.md`,
 `pistes.md`, `artefacts.md` — gitignorés. Un chantier `degats-et-aura` doit
 être **ouvert** (lot 0) et chaque lot qui y touche finit par
-`livrer` → `verifier`, depuis l'installation :
+`livrer` → `verifier` → `integrer`, depuis l'installation, dès que ses notes
+sont validées (sans attendre le lot 14 ni la fusion du code) :
 
 ```bash
 node "$(git rev-parse --git-common-dir)/forge/installation/scripts/chantier.mjs" \
   verifier --chantier degats-et-aura
 ```
 
-⚠️ Le chantier `implementation-relique` est ouvert et à jour (dernier reçu
-2026-09-22, code `81284199`, 601 fichiers). Ses notes **avancent encore** :
+Les notes du chantier `implementation-relique` **avancent encore** :
 `chantier rafraichir --chantier degats-et-aura` à chaque fois qu'il intègre,
 rien ne le signale.
 
-**Fichiers transverses portés par CE chantier** : aucun a priori. `App.tsx`,
-`package.json`, `tsconfig.json`, `tailwind.config.js` ne sont pas touchés (ni
-page ni section ajoutée ou renommée — les cartes visées existent déjà).
-`ARCHITECTURE.md` reçoit **une seule** modification, au lot 2, quand
-`degats-reels.md` devient un dossier. `CLAUDE.md` n'est pas touché.
+**Fichiers transverses portés par CE chantier** : `App.tsx` peut recevoir au
+lot 5 le changement ciblé qui distingue import de compte et changement
+d'espèce. `package.json`, `tsconfig.json`, `tailwind.config.js` ne sont pas
+touchés (ni page ni section ajoutée ou renommée).
+`ARCHITECTURE.md` ne reçoit au lot 2b que les corrections de références
+effectivement présentes, si l'aperçu en trouve. `CLAUDE.md` n'est pas touché.
 
 **Ne pas toucher** : `spec/outils/optimizer/reliques.md` (propriété de
 `forge/implementation-relique`). Un besoin dessus se signale, il ne se force
@@ -303,6 +237,14 @@ Chaque fichier : un **H1**, une ligne vide, puis
 pour chaque preuve : la commande **exacte**, sa sortie **collée**, et ce
 qu'elle établit. Un relevé en jeu est cité intégralement, avec sa date.
 
+**Ordre de livraison, sans autoréférence :** finaliser la preuve privée →
+`livrer` → `verifier` → inscrire l'identifiant du reçu et les sorties de ces
+deux commandes dans le **résultat public du lot**, sous sa section de ce
+cadrage. Aucun nouveau `livrer` ne suit cette inscription publique. La preuve
+privée ne contient que les contrôles antérieurs à sa livraison ; on ne la
+modifie pas pour y recopier son propre reçu. `integrer` suit la validation,
+selon A.5 ; sa sortie peut également être inscrite dans le résultat public.
+
 ⚠️ **Le message de commit cite le fichier de preuve ; il ne le remplace pas.**
 Un lot dont la seule sortie est un relevé ou un inventaire n'a pas de commit
 de code : sa preuve est son fichier **et** le commit
@@ -313,41 +255,44 @@ de code : sa preuve est son fichier **et** le commit
 Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 
 ```text
-0 → 1 → 8, 9, 10, 11       (aucun lot de mécanique sans le périmètre de sa
-                            famille, mesuré — A.3 bis)
-0 → 2 → 6, 8, 9, 10, 11    (aucune modification normative de degats-reels.md
+0 → 1 → amendement pilote → 8, 9, 10, 11
+                            (périmètre mesuré, puis contrats corrigés)
+0 → 2a → 2b → 6, 8, 9, 10, 11 (aucune modification normative de degats-reels.md
                             avant son découpage)
 0 → 3 → 4                  (4 mesure le plancher que 3 vient de corriger)
-0 → 5                      (indépendant : useOptimizerState seul)
-0 → 6 → 7                  (l'écran ne peut pas saisir ce que le modèle
+0 → 5                      (réinitialisations du hook et appelants, dont App.tsx)
+5 → 6 → 7                  (les nouveaux champs suivent la politique du lot 5 ;
+                            l'écran ne peut pas saisir ce que le modèle
                             n'accepte pas ; 6 ne dépend PAS de 1 — les valeurs
                             d'aura sont en A.2 ter, aucune famille à mesurer)
 8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
-1, 11 → 13
-3, 4, 5, 6, 7, 12, 13 → 14
+1, 11, 12 → 13a → amendement et revue pilote → 13b-*
+                            (chaque contrat créé avant son exécution)
+3, 4, 5, 6, 7, 12, tous les 13b-* → 14
 ```
 
-L'ordre d'exécution est l'ordre des numéros. Les lots 3, 4, 5 sont
-volontairement en tête : ils sont courts, indépendants, et livrent de la
-valeur avant les deux gros lots (2 et 6-7).
+L'ordre d'exécution est l'ordre des numéros, avec 2a puis 2b, et 13a avant
+les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | 0 — ouverture du chantier | M | à faire | — |
-| 1 — périmètres de famille, mesurés | C | à faire | — |
-| 2 — découpage de `degats-reels.md` | C+M | à faire | — |
+| 1 — extraction, classification et amendement des périmètres | C+J | à faire | — |
+| 2a — classement des blocs et plan de découpage | C | à faire | — |
+| 2b — déplacement et repointage selon le plan validé | M | à faire | — |
 | 3 — plancher des conditions en « Libre » | M | à faire | — |
 | 4 — relique « comme équipé » et les minimums | C→M | à faire | — |
 | 5 — le contexte survit au changement de monstre | J | à faire | — |
 | 6 — sets d'aura : le modèle | J | à faire | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
-| 8 — Blade Surge : le 3ᵉ coup en zone (5 fiches) | J | à faire | — |
+| 8 — Blade Surge : le 3ᵉ coup en zone (périmètre à amender après lot 1) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort | J | à faire | — |
-| 10 — ignore DEF conditionnel des Blade Dancers (6 fiches) | J | à faire | — |
-| 11 — prose des passifs « Stats acquises en combat » (38 entrées) | C+M | à faire | — |
-| 12 — le mécanisme rejoué sur une fiche non écrite | C | à faire | — |
-| 13 — plan chiffré du reliquat (247 constats) | C | à faire | — |
-| 14 — clôture, ledgers, suite complète | M | à faire | — |
+| 10 — ignore DEF conditionnel des Blade Dancers (périmètre à amender après lot 1) | J | à faire | — |
+| 11 — prose des passifs « Stats acquises en combat » (38 identifiants, 40 configurations) | C+M | à faire | — |
+| 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
+| 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
+| 13b-* — contrats de qualification à créer par le pilote après 13a | J | non lançables avant amendement et revue | — |
+| 14 — clôture et ledgers après contrôles | M | à faire | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
 session qui **n'a pas écrit** ce document, munie de la checklist C du skill
@@ -361,6 +306,60 @@ revue qui ne trouve rien au premier tour n'a pas lu le graphe.
 
 ## Partie B — un contrat par lot
 
+### B.0 Champs traversants — contrat commun aux lots 6, 7, 8 et 10
+
+Les noms ci-dessous sont fixés pour le chantier. Tout renommage exige un
+amendement de cette table et le contrôle de propagation de l'ancien ET du
+nouveau nom. `SetAura` désigne l'union des cinq clés du lot 6.
+
+| Champ et emplacement | Type | Absent / défaut | Validation | Réinitialisation |
+| --- | --- | --- | --- | --- |
+| `DamageSetup.setsAura` | `Array<{ set: SetAura; nombre: number }>` optionnel | `[]` | clés reconnues et uniques, entiers 1..18, somme ≤ 18 | conservé entre monstres/listes ; vidé à l'import de compte |
+| `OptimizerState.compterAurasResPre` et `OptimizerRecipe.compterAurasResPre` | booléen ; optionnel dans la recette | `true` | booléen strict si présent | réglage avancé conservé par `resetSearch`, même contrat que les autres réglages avancés |
+| `DamageSetup.cibleDegatsParSort` | `Record<number, 'visee' \| 'secondaire'>` optionnel | map vide ; clé absente = `'visee'` | identifiants entiers positifs, valeur dans l'union | vidé au changement d'espèce ou import de compte ; conservé au changement d'exemplaire |
+| `DamageSetup.premierCoupIgnoreDefParSort` | `Record<number, number \| null>` optionnel | clé absente = `null` pour A, `7` pour B | A : `null`, 2, 3 ; B : entiers 2..7, jamais `null` | vidé au changement d'espèce ou import de compte ; conservé au changement d'exemplaire |
+
+Les champs de `DamageSetup` voyagent dans `OptimizerRecipe.damageSetup`.
+L'import de recette restaure les valeurs validées sans reset ultérieur ;
+pas de migration du précédent calcul ignore DEF (décision du lot 10).
+Les clés de sorts non pris en charge sont refusées avec le chemin du champ,
+sur la base des tables de capacités curées ; jamais un cran secondaire ou
+ignore DEF arbitrairement appliqué à un sort sans cette capacité.
+
+**Propagation obligatoire pour chaque champ :** état/setter et retours du
+hook, contrôles écran, constructeurs de recette export/import, parseur,
+`recipeToSearchParams`, contextes réels de recherche et de calcul, CLI,
+constructeurs de tests et scripts de diagnostic, signatures de cache
+concernées. Documenter explicitement les emplacements sans changement.
+Ajouter des tests de valeur absente, présente valide, mal typée/hors bornes,
+aller-retour export/import, reset et parité écran/CLI.
+Rechercher les noms dans `src/`, `scripts/`, `tests/` et conserver la sortie.
+Exécuter aussi `scripts/optimizer-search.ts` de bout en bout sur un compte
+réel et une recette gelée exerçant le nouveau champ ; conserver la commande,
+la révision, le régime réel et le résumé sans recopier de données privées
+dans ce cadrage public. Appliquer les skills de mesure si une perf est comparée.
+
+#### Dérogation documentaire au skill de propagation
+
+**Dérogation explicite validée par l'utilisateur lors de cette revue :**
+pour ce chantier, remplacer la checklist documentaire périmée du skill
+`.claude/skills/optimizer-field-propagation/SKILL.md` par celle-ci :
+
+- mettre à jour la spec publique de comportement (`optimizer.md` ou les
+  fichiers issus de `degats-reels.md`), et la spec privée compétente identifiée
+  par le README de routage ;
+- mettre à jour `invariants.md` si les règles retenues changent, avec leur source ;
+- tenir le suivi `pistes.md` et sa source cohérents dans la même livraison ;
+- conserver raisons et preuves dans le dossier A.6 bis et les résultats de lot ;
+  ne pas imposer une seconde narration dans un fichier historique ;
+- modifier `optimizer/README.md` seulement si son **routage** doit évoluer ;
+  ne jamais y réintroduire les anciennes sections de comportement.
+
+La checklist de code et l'exécution du CLI du skill restent obligatoires.
+Son ancien appel à `npm test` est remplacé pendant les lots par les tests
+ciblés prescrits par `CLAUDE.md` ; suite complète uniquement avant fusion.
+Le skill canonique n'est pas modifié par ce chantier.
+
 ### Lot 0 — ouverture du chantier
 
 **Cat. M.** Intrant : ce cadrage, Partie A. Aucun fichier de code.
@@ -368,56 +367,77 @@ revue qui ne trouve rien au premier tour n'a pas lu le graphe.
 **Déroulé :** `chantier ouvrir --chantier degats-et-aura` depuis
 l'installation ; créer
 `spec/outils/optimizer/archive/controles-degats-aura-2026-09/README.md`
-(H1 + `**Statut :** ARCHIVE — preuves du chantier degats-et-aura`) ; ajouter
-la ligne de ce cadrage dans `spec/README.md` § Chantiers (fichier, statut
-« en cours », branche `forge/degats-et-aura`).
+(H1 + `**Statut :** ARCHIVE — preuves du chantier degats-et-aura`) ; vérifier
+la ligne déjà présente dans `spec/README.md` § Chantiers (fichier, statut
+« en cours », branche `forge/degats-et-aura`), la corriger si nécessaire,
+ne jamais en créer une seconde.
 
 **Sortie :** l'état du chantier existe, `chantier verifier` passe.
 
-**Preuve :** sortie de `chantier ouvrir`, puis de `chantier livrer` et
-`chantier verifier`, collées dans `controle-0.md`.
+**Preuve :** sortie de `chantier ouvrir` et contrôle du README dans
+`controle-0.md`, finalisé avant livraison. Ensuite `livrer` → `verifier` →
+reçu et sorties inscrits dans le résultat public de ce lot, sans nouvelle
+livraison après cette inscription (A.6 bis).
 
 **Ne fait pas :** ne crée aucun fichier de spec de destination du lot 2, ne
 touche à aucun fichier de code.
 
 ### Lot 1 — les périmètres de famille, mesurés
 
-**Cat. C.** ⚠️ **Ce lot ne demande AUCUN relevé** : les valeurs sont fournies
+**Cat. C pour l'extraction, J pour la classification des candidats.** Les valeurs sont fournies
 et consignées en A.2 ter. Ce qu'il produit, c'est la seule chose que ni la
-demande ni le CSV ne donnent toute faite — **la liste nominative des fiches
-que chaque lot de mécanique doit couvrir** (A.3 bis). Sans elle, chaque lot
+demande ni le CSV ne donnent toute faite — **la liste nominative des compétences et formes
+que chaque lot de mécanique doit couvrir**, avec les trois unités de A.0.
+Un candidat supplémentaire sans valeur sourcée est signalé pour décision,
+jamais couvert par analogie avec les valeurs fournies. Sans cette liste, chaque lot
 redécouvre son périmètre et se trompe, comme je m'étais trompé sur le constat
-212 (8 fiches annoncées, 6 réelles).
+212 (8 lignes d'audit annoncées, 6 réelles).
 
-**Intrant :** `inventaire.csv` (695 lignes, extraction par script — **jamais**
-une lecture de mémoire) ; les fiches `public/data/skills/*.json` des monstres
-extraits, en lecture ciblée.
+**Intrant :** `inventaire.csv` (695 lignes d'audit, extraction par script — **jamais**
+une lecture de mémoire) ; balayage de tous les `public/data/skills/*.json`
+pour vérifier l'exhaustivité, puis lecture ciblée des candidats. Conserver
+le script, la commande et la liste des candidats retenus/rejetés avec raison.
+Script à créer et conserver : `scripts/audit-degats-aura-corpus.mjs`, sans
+dépendance au moteur de recherche. Sortie machine : `corpus-lot-1.json` dans
+le dossier de preuves A.6 bis ; commande et sortie résumée dans `controle-1.md`.
+Le balayage est automatique ; la lecture humaine porte seulement sur les
+candidats extraits (données utiles, provenance, textes de compétence).
+Avant cette lecture, mesurer son volume ; si plus de 800 lignes sont à
+examiner, le pilote crée des sous-lots de classification bornés avant exécution.
 
 **Sortie :** `controle-1.md`, une section par mécanique, chacune portant : la
-requête d'extraction exacte, la liste des fiches (monstre, élément,
+requête d'extraction exacte, la liste des formes et compétences (monstre, élément,
 `com2usId` du sort, `coups`, `formule`, `note` de l'effet conditionnel), et le
-verdict **même mécanique / même architecture** de A.3 bis pour chacune.
+verdict **même mécanique / même architecture / hors famille / à documenter**
+pour chacun, avec identifiants uniques et liste de toutes les formes affectées.
+
+**Passage obligatoire par le pilote :** après cette classification, amender
+les nombres ET listes nominatives des contrats 8, 9, 10, 11 et du tableau A.7.
+Le résultat public du lot 1 cite cet amendement et sa revue. Aucun des quatre
+lots ne démarre avec les anciennes listes ; signaler un écart dans la preuve
+sans corriger le contrat ne termine pas le lot 1.
 
 #### Les quatre extractions à produire
 
-1. **Blade Surge** — constat 151. Mesuré : **5 fiches** (Astar feu `10602`,
+1. **Blade Surge** — constat 151. Point de départ : **5 lignes d'audit / 5 identifiants** (Astar feu `10602`,
    Iris lumière `10604`, Lapis eau `10616`, Lupinus vent `10618`, Lanett
-   ténèbres `10620`). À vérifier : qu'aucune autre fiche du corpus ne porte le
+   ténèbres `10620`). À vérifier : quels autres identifiants et formes du corpus portent le
    même sort. ⚠️ Les constats **163** (Theonia : zone puis frappe sur la DEF
    la plus faible), **173** (Danu : zone après sept attaques cumulées) et
    **180** (Jackie : attaque de plus si la cible est étourdie) sont
    **voisins mais distincts** — même catégorie 08, autre mécanique. Ils ne
    rejoignent pas le lot 8 ; ils vont au lot 13.
-2. **Tempest** — constat 164, **1 fiche** (Teshar vent `3213`). Même
+2. **Tempest** — constat 164, **1 ligne d'audit / 1 identifiant**, `3213`.
+   Recenser toutes ses formes de monstre, pas seulement Teshar éveillé. Même
    architecture : constats **168** (Mina, 1), **178** (RYU/Striker, 6),
    **179** (Drunken Masters, 10), **313** (Jin/Kai ténèbres, 2) — **19
-   fiches** d'attaque déclenchée par un sort, aux déclencheurs et ratios
+   lignes d'audit** d'attaque déclenchée par un sort, aux déclencheurs et ratios
    propres. Le lot 9 livre le mécanisme, ces 19 vont au lot 13 **avec leur
    numéro de constat**.
-3. **Les Blade Dancers** — constat 212, **6 fiches**, **deux variantes** que
+3. **Les Blade Dancers** — constat 212, **6 lignes d'audit / 6 identifiants**, **deux variantes** que
    la donnée distingue (relevé ci-dessous, à rejouer et coller) :
 
-   | Variante | Fiches | `coups` | `Decrease ATB` / coup | `note` |
+   | Variante | Identifiants initiaux et noms | `coups` | `Decrease ATB` / coup | `note` |
    | --- | --- | --- | --- | --- |
    | **A** | Hyakuretsukyaku CHUN-LI vent `14308` et ténèbres `14310` ; Blade Dance of Night Cordelia `14808` et Vereesa `14810` | 3 | 50 % | `If enemy ATB at 0` |
    | **B** | Hoyokusen CHUN-LI eau `14311` ; Moonlight Dance Lariel eau `14811` | 7 | 40 % | `If enemy ATB at 0 or 7th hit` |
@@ -425,21 +445,21 @@ verdict **même mécanique / même architecture** de A.3 bis pour chacune.
    ⚠️ En **B**, la prose ajoute « The 7th attack will always ignore Defense » :
    le dernier coup est **inconditionnel**. C'est une règle de plus, pas la
    même mécanique — d'où deux entrées de table au lot 10, pas une.
-4. **Les passifs « Stats acquises en combat »** — les **38 entrées** de
-   `STATS_COMBAT_PAR_ID_CONNUS`, avec pour chacune le monstre (résolu depuis
-   `public/data/monsters.json`, 3 089 fiches), la `source`, et la branche de
+4. **Les passifs « Stats acquises en combat »** — les **38 identifiants / 40
+   configurations** de `STATS_COMBAT_PAR_ID_CONNUS`, avec pour chacune le monstre (résolu depuis
+   `public/data/monsters.json`), la `source`, et la branche de
    rendu qui la traite. C'est l'intrant du lot 11.
 
 **Preuve :** `controle-1.md` avec les quatre extractions et leurs commandes.
 Un écart avec un chiffre de ce cadrage se **signale** — le cadrage se corrige,
 pas la mesure.
 
-**Ne fait pas :** ne code rien, ne touche à `damage.ts` ni à aucune table
-`*_CONNUS`, ne décide d'aucun ratio (A.2 ter les fixe déjà).
+**Ne fait pas :** ne modifie aucun code de production, ne touche à `damage.ts`
+ni à aucune table `*_CONNUS`, ne décide d'aucun ratio (A.2 ter les fixe déjà).
 
-### Lot 2 — découpage de `spec/outils/degats-reels.md`
+### Lot 2a — classement des blocs et plan de découpage
 
-**Cat. C puis M.** Skill `spec-hygiene`, recette (b). Déclencheur : les lots
+**Cat. C.** Requiert le lot 0. Skill `spec-hygiene`, recette (b). Déclencheur : les lots
 6, 8, 9, 10 et 11 modifient le **contenu normatif** de ce fichier, listé en
 exception de `spec/spec-lint.json` (`chantier_responsable: "degats"` — c'est
 nous).
@@ -458,12 +478,35 @@ Masse par H2 :
 | L1648-1839 | 192 | effets d'équipe, leader skill, stats à privilégier |
 | L1840-2004 | 165 | audit des dégâts conditionnels, parties 1 et 2 |
 
+**Intrant borné :** les 2 004 lignes de `degats-reels.md` à l'état initial,
+par sections après sommaire ; les références sont relevées sans modification.
+Relever les plages courantes avant exécution. Les 429 lignes de catalogue
+font partie du classement, pas d'un déplacement automatique en archive.
+
+**Contrat :** classer chaque bloc en état actuel, décision, piste ou archive ;
+citer sa première ligne et justifier sa destination. Produire un plan complet
+source → destination, titres/ancres inclus, conservant ordre et doublons.
+Le pilote valide ce plan avant 2b. Ne modifier aucune règle métier.
+
+**Sortie et preuve :** `controle-2a.md`, décisions par bloc et plan de
+destination, avec longueurs et commandes d'inventaire ; aperçu des références
+daté, distinguant nombre de lignes correspondantes, occurrences et fichiers.
+Les anciens « 340 occurrences / 28 fichiers » ne constituent pas une cible.
+
+**Ne fait pas :** aucun déplacement, aucun repointage, aucune suppression
+d'exception ; ces opérations relèvent exclusivement de 2b.
+
+### Lot 2b — déplacement et repointage selon le plan validé
+
+**Cat. M.** Requiert le lot 2a et la validation pilote de son plan.
+**Intrants :** plan et décisions de `controle-2a.md`, blocs source nommés dans
+ce plan et aperçu des références. Si la source a changé, réconcilier le plan
+avec le pilote avant déplacement, jamais choisir de nouvelles destinations seul.
+
 #### Contrat exact
 
-1. **Trier d'abord** (étape 1 de la recette) : le catalogue des cinq vagues
-   décrit majoritairement du **non implémenté**. Ce qui est une piste part
-   dans `pistes.md` ; ce qui décrit un comportement livré reste en état actuel.
-   La décision se prend **bloc par bloc**, avec citation de la première ligne.
+1. **Exécuter le classement validé en 2a**, bloc par bloc, sans requalifier
+   les contenus au fil du déplacement.
 2. **Destination : un dossier `spec/outils/degats-reels/`** + un
    `degats-reels.md` réduit à son routage (comme
    `spec/outils/optimizer/README.md`). Chaque fichier ≤ 500 lignes, chaque
@@ -471,10 +514,10 @@ Masse par H2 :
    pas.
 3. **En-tête sur chaque fichier issu du découpage** (nature « état actuel » :
    `Statut` / `Lire si` / `Ne pas lire si` / `Voir aussi`).
-4. **Repointer les références** : **340 occurrences dans 28 fichiers**
-   (mesuré), dont `invariants.md`, `optimizer.md`, `artefacts.md`,
+4. **Repointer les références réellement relevées en 2a**, notamment dans
+   `invariants.md`, `optimizer.md`, `artefacts.md`,
    `pistes.md`, `spec/outils/README.md`, le skill `game-data-curation`,
-   `ARCHITECTURE.md`, et des commentaires de `damage.ts`,
+   `ARCHITECTURE.md` si une référence y existe, et les commentaires de `damage.ts`,
    `runeBuildOptim.ts`, `OptimizerSection.tsx`, `DamageSetupCard.tsx`,
    `useOptimizerState.ts`, `artifactOptim.ts`, `optimizerRecipe.ts`,
    `scripts/artifact-search.ts`, `tests/degats.test.ts`. **D'abord en aperçu**
@@ -482,22 +525,27 @@ Masse par H2 :
    l'aveugle : une référence `fichier § Titre` est sensible au chemin **et**
    au slug du titre.
 5. **Retirer l'exception** de `spec/spec-lint.json`.
-6. **`ARCHITECTURE.md`** : la colonne « Spec » et les mentions de
-   `degats-reels.md` suivent.
+6. **`ARCHITECTURE.md`** : relever ses références dans l'aperçu. Si une
+   référence à une section déplacée existe, la repointer vers sa destination
+   exacte. Si aucune référence n'existe, conserver la sortie vide comme
+   preuve et ne pas modifier le fichier. Ajouter volontairement une nouvelle
+   référence serait une décision distincte, pas un repointage du lot 2b.
 
-**Preuve** (`controle-2.md`) :
-`node scripts/spec-lint.mjs spec/outils` propre · `node tests/run.mjs spec-lint spec-markdown spec-toc` vert ·
-`git diff <avant> -- spec/outils/degats-reels.md | grep -c '^-[^-]'` avec sa
-justification ligne à ligne · `grep -rn 'degats-reels\.md' .` ne renvoyant
-plus aucun chemin mort · le tableau des longueurs après découpage.
+**Sortie :** fichiers déplacés selon le plan, routage et références mis à jour,
+exception retirée après vérification.
+**Preuve** (`controle-2b.md`) :
+`node scripts/spec-lint.mjs` propre (contrôle global, sans filtre de chemin) · `node tests/run.mjs spec-lint spec-markdown spec-toc` vert ·
+table source → destination (plages et première ligne de chaque bloc), puis
+`git diff --no-index -U0 <bloc-source> <bloc-destination>` sur les blocs
+reconstitués dans leur ordre d'origine, chaque différence structurelle
+justifiée · aperçu des références via `rg --hidden --no-ignore -n
+'degats-reels\.md' spec src scripts tests .claude/skills ARCHITECTURE.md`,
+puis vérification des chemins ET ancres · tableau des longueurs après découpage.
+Un `rg` non vide est normal : le fichier de routage reste valide.
 
-**Scission si nécessaire :** si le tri de l'étape 1 dépasse ce qu'une session
-tient (les 429 lignes de catalogue = ~40 décisions), scinder en **2a** (tri et
-décisions par bloc, sortie = un plan de destination) et **2b** (déplacement +
-repointage), dans cet ordre.
-
-**Ne fait pas :** ne corrige aucune faute, ne met à jour aucun contenu, ne
-touche ni `optimizer.md` ni `artefacts.md` (A.2).
+**Ne fait pas :** ne corrige aucune faute ni règle métier ; `optimizer.md`
+et `artefacts.md` ne reçoivent ici que les corrections de liens et références.
+Ces corrections ne déclenchent aucun découpage (`spec-hygiene`, déclencheur).
 
 ### Lot 3 — le plancher des conditions en « Libre »
 
@@ -509,13 +557,16 @@ touche ni `optimizer.md` ni `artefacts.md` (A.2).
 **3 000 PV**, et **0 ATQ / 0 DEF** — asymétrie qui a déjà causé une violation
 de monotonie côté moteur (`artefacts.md` § 12.13).
 
-**Contrat :** le plancher n'est **ce qui est garanti**, jamais ce qu'une paire
+**Contrat :** le plancher est **ce qui est garanti**, jamais ce qu'une paire
 représentative suppose. Donc, par emplacement :
 
 - `'equipped'` → la pièce réellement portée est fixe et connue : sa principale
   compte.
-- un code de stat forcé (100/101/102) → la principale est imposée : elle
-  compte.
+- un code de stat forcé (100/101/102) → la principale imposée compte.
+  Hypothèse produit explicite de l'utilisateur (revue du 2026-09-23) : chaque
+  compte possède au moins deux artéfacts applicables de chaque principale
+  PV/ATQ/DEF pour chaque monstre. Aucun mécanisme supplémentaire de preuve
+  de disponibilité n'est demandé pour ce plancher.
 - `'libre'` → **rien n'est garanti : 0**.
 - optimisation d'artéfacts coupée → les deux emplacements valent `'equipped'`
   (déjà le cas, l. 1402-1407) : inchangé.
@@ -524,8 +575,12 @@ Le plancher est donc une somme **par emplacement**, pas une lecture de la
 paire retenue. ⚠️ Les deux emplacements ont chacun leur choix : un
 `'equipped'` + un `'libre'` donne le plancher du seul premier.
 
-**Sortie :** `floor === 0` sur les huit stats quand les deux emplacements sont
-sur « Libre », inchangé partout ailleurs. Un test nommé dans `tests/` +
+**Sortie :** contribution d'artéfacts nulle quand les deux emplacements sont
+sur « Libre ». En mode total, le plancher conserve la base ; en mode bonus,
+la base est exclue seulement pour PV/ATQ/DEF/VIT. TC/DC/RES/PRE restent des
+totaux. La contribution d'une relique équipée s'ajoute au lot 4.
+Tester les modes total/bonus et les choix mixtes par emplacement.
+Un test nommé dans `tests/` +
 `tests/index.ts` (harnais d'abord — c'est un contrôle exprimable en test).
 
 **Preuve :** le test (rouge avant, vert après, les deux sorties collées) ·
@@ -551,13 +606,17 @@ garantie vaut `base × pct / 100`, arrondie comme `computeStats` l'arrondit —
 **jamais** recopiée ailleurs.
 
 **Déroulé :** 1) constater, par mesure, ce que le plancher vaut aujourd'hui
-avec et sans relique équipée, dans les quatre crans de `relicMainChoice`
+avec et sans relique équipée, dans les cinq valeurs de `relicMainChoice`
 (`equipped`, `libre`, 100/101/102) ; 2) comparer au moteur, qui lui a bien
 `relPctMax`/`relPctMin` (`runeBuildOptim.ts` l. 2777) ; 3) **si** écart, le
-corriger avec la même règle que le lot 3 — « garanti » seulement en
-`'equipped'` et sur une principale forcée.
+corriger : contribution garantie **uniquement en `'equipped'` avec une
+relique réellement présente**. Une principale forcée ou `'libre'` contribue
+0 au plancher : ni la présence d'une relique ni sa valeur en % ne sont
+supposées. Une relique ne modifie jamais TC, DC, RES ou PRE.
+Décision utilisateur, revue du 2026-09-23 ; l'hypothèse de disponibilité
+des artéfacts du lot 3 ne s'étend pas aux reliques.
 
-**Sortie :** `controle-4.md` avec le tableau des quatre crans × (avec /
+**Sortie :** `controle-4.md` avec le tableau des cinq valeurs × (avec /
 sans relique), les valeurs mesurées, et le verdict. Plus, si correction, un
 test nommé.
 
@@ -575,8 +634,11 @@ A.5) — le constat va dans `controle-4.md` et, s'il est normatif, dans
 raison — `skillCom2usId` désigne un sort du monstre précédent — et elle est
 **juste pour ce champ-là**, fausse pour le reste.
 
-**Critère mécanique de la coupe** (c'est ce qui rend le lot vérifiable) :
-dans `DamageSetup` (`damage.ts` l. 3254-3432),
+**Critère de la coupe : le sens métier**, pas le type TypeScript seul.
+Le lot dresse la liste exhaustive des champs de `DamageSetup` et classe
+chacun en contexte partagé, état propre au monstre/sort ou compatibilité.
+Les champs ajoutés aux lots 6 à 10 complètent ce classement et ses tests.
+Point de départ dans `DamageSetup` (`damage.ts` l. 3254-3432) :
 
 - un champ **`Record<number, …>` clé par `skillCom2usId`** désigne un sort ou
   un passif d'un monstre précis → **réinitialisé** : `passifsOffensifs`,
@@ -591,21 +653,28 @@ dans `DamageSetup` (`damage.ts` l. 3254-3432),
   `spdBuff`, `atkDebuff`, `defDebuff`, `spdDebuff`, `defBreak`, `brand`,
   `critMode`, `summonerSkills`, `leaderSkill`, les six effets d'équipe.
 
-⚠️ **Trois champs à trancher explicitement**, ni l'un ni l'autre : `defBreakParLeSort`
-(déduit du sort choisi), `enemyHpNotDestroyed`/`enemyDestroyedHpPct`
-(contexte, mais affichés par certains sorts seulement),
-`velaskaPvPerduPct`. Le lot décide, cite sa raison, et l'écrit dans
-`optimizer.md`.
+`defBreakParLeSort` et `sacrificeReservePct` sont propres au sort/monstre et
+retombent au défaut ; `enemyHpNotDestroyed` et `velaskaPvPerduPct` décrivent
+le contexte conservé. Les champs legacy et marqueurs de sémantique des
+compteurs sont traités avec leur champ associé, jamais comme de nouveaux
+réglages de contexte. Le lot documente chaque cas dans `optimizer.md`.
 
-⚠️ **La demande dit « d'une même liste ».** À trancher : le contexte se
-conserve-t-il aussi en changeant de liste de travail, ou seulement à
-l'intérieur d'une liste ? Le cadrage recommande **toujours conserver** — le
-contexte ne dépend d'aucune liste — et de le signaler dans le rapport.
+**Motif de remise à zéro obligatoire.** `App.tsx` appelle aussi
+`resetSearch()` à l'import d'un compte : cet appel garde la réinitialisation
+complète. Distinguer les actions ou leur motif explicite ; ne pas modifier
+indistinctement tous les appelants. L'import de recette restaure la recette,
+sans se faire écraser par une remise à zéro de changement d'espèce.
 
-**Sortie :** un test nommé qui pose un contexte, change de monstre, et vérifie
-champ par champ ce qui survit et ce qui tombe. La liste du test **est** la
-spec, citée par
+**Conservation en session, validée en revue :** le contexte se conserve
+aussi en changeant de liste de travail, pas seulement entre ses monstres.
+L'import de compte garde la réinitialisation complète définie ci-dessus.
+
+**Sortie :** une table normative des champs et événements dans
 `spec/outils/optimizer.md § Recherche du monstre à optimiser`.
+Elle est accompagnée d'un test qui vérifie changement d'espèce, d'exemplaire, de liste, import de
+recette et import de compte. Le test protège cette table, il ne remplace pas
+la spec. Les nombres d'auras dans l'équipe survivent au changement de
+monstre ; le lot 7 éprouve leur interaction avec les sets recherchés.
 
 **Preuve :** le test · `npx tsc --noEmit` · `node tests/run.mjs <nom> degats optimizer-recipe-import-selection`.
 
@@ -615,26 +684,34 @@ raison écrite sur place, et aucune n'est visée par la demande).
 
 ### Lot 6 — sets d'aura : le modèle
 
-**Cat. J.** Requiert le lot 2 seulement — **pas** le lot 1 : l'assiette et les
-cinq stats sont fixées en A.2 ter, il n'y a aucune famille à mesurer.
+**Cat. J.** Requiert les lots 2b et 5 — pas le lot 1 : les valeurs sont en
+A.2 ter, et les nouveaux champs suivent la politique de réinitialisation.
 
-⚠️ **L'assiette est tranchée : pourcentage de la statistique de BASE**, « comme
-tous les % venant des runes » (utilisateur, 2026-09-23). Ce n'est donc **pas**
-la famille du buff ATQ (% du total), c'est celle du lead et des compétences
-d'invocateur — d'où le point d'insertion ci-dessous.
+⚠️ **PV/ATQ/DEF : pourcentage de la statistique de BASE. RES/PRE : points
+de pourcentage additifs** (A.2 ter). Pour deux effets : +16 % de base en
+PV/ATQ/DEF ; +16 points de RES/PRE, même si la valeur de base est nulle.
 
-**Modèle de données :** une liste de `{ set: 'fight'|'determination'|
-'enhance'|'accuracy'|'tolerance', nombre: 1..15 }` dans `DamageSetup` — un
+**Modèle de données :** `DamageSetup.setsAura` (contrat B.0), liste de `{ set: 'fight'|'determination'|
+'enhance'|'accuracy'|'tolerance', nombre: 1..18 }` dans `DamageSetup` — un
 nouveau champ, **optionnel** (compatibilité des recettes déjà exportées).
+`nombre` est le **nombre total de sets dans l'équipe**, monstre optimisé
+inclus. Ne jamais ajouter une seconde fois les sets du candidat à ce total.
+Une seule entrée par set ; absence = 0. Les nombres doivent être entiers et
+leur **somme ne dépasse pas 18**, tous types confondus (6 monstres × 3 sets,
+source utilisateur en A.2 ter). Les recettes mal typées/hors bornes, y compris
+une somme supérieure à 18, sont refusées avec le chemin du champ.
+Le booléen `compterAurasResPre` (B.0) active ensemble RES et PRE dans les
+conditions min/max ; défaut **activé**, conservant les défauts précédemment
+prévus pour ces deux stats. Aucune option analogue pour PV/ATQ/DEF.
 ⚠️ **Champ optionnel = `tsc` ne verra jamais un oubli.** Skill
 `optimizer-field-propagation` : le champ se propage à **tous** ses
 constructeurs (`useOptimizerState`, `optimizerRecipe.ts`,
 `scripts/lib/recipeToSearchParams.ts`, les scripts de diagnostic), et le lot
 finit par un `grep -rn` du nom du champ sur `src/`, `scripts/` **et** `tests/`.
 
-**Trois chemins de calcul, distincts :**
+#### Chemins de calcul et preuves
 
-1. **Dégâts et PV effectifs.** `statsDebutCombat` (`damage.ts` l. 3753) est le
+1. **Dégâts, passifs et reliques.** `statsDebutCombat` (`damage.ts` l. 3753) est le
    point d'entrée : c'est déjà là que vivent l'invocateur et le lead, avec un
    **`ceil` unique** sur la somme des pourcentages de base. L'aura s'y ajoute
    comme un `extraBasePct` de plus — **jamais un second arrondi**. ⚠️ Gain
@@ -643,29 +720,48 @@ finit par un `grep -rn` du nom du champ sur `src/`, `scripts/` **et** `tests/`.
    entrent dans les stats de début de combat pour les reliques » est satisfaite
    **par construction**, sans second chemin. Le lot le **prouve** par un test,
    il ne le suppose pas.
-2. **Objectifs de recherche.** Determination et Enhance comptent pour `ehp` ;
-   Fight, Determination et Enhance peuvent compter pour `degats_reels` selon
-   ce que le sort scale. Ce n'est **pas** une liste à coder : ça sort de
-   `damageRelevantStats` (`damage.ts` l. 4943) et de l'objectif, comme pour
-   les autres bonus de stat. Le lot vérifie que rien n'est à nommer.
-3. **Conditions min.** RES et PRE ne passent **pas** par
-   `statsDebutCombat` (qui ne rend que atk/def/hp/spd). Les cinq sets doivent
-   donc entrer dans le moteur comme un apport **garanti** (famille
-   `guaranteed`, pas `artFlatMax`), et **seulement si** l'interrupteur du lot 7
-   l'autorise pour ce set.
+2. **PV effectifs.** Vérifier puis corriger le chemin EHP : actuellement
+   `objectiveScore('ehp')` appelle `pvEffectifs(stats)` sans passer par
+   `statsDebutCombat`. Enhance et Determination doivent compter dans le
+   score réel, le tri, la comparaison et le choix des artéfacts/reliques.
+   Ce correctif ajoute les auras ; il ne change pas implicitement la politique
+   des autres bonus de combat en EHP.
+3. **Conditions min ET max, RES/PRE seulement.** Le même interrupteur ajoute
+   `8 × nombre` aux deux statistiques pour les deux bornes. Désactivé, les
+   conditions utilisent les stats sans ces auras. PV/ATQ/DEF restent toujours
+   hors aura pour les conditions, même si elles comptent dans les scores.
+   Ne pas modifier `computeStats` globalement : conserver les stats de fiche.
+   Les bornes d'élagage, diagnostics et filtres finaux sur l'équipement réel
+   doivent employer exactement la même convention. Ne pas écrêter les stats
+   brutes à 100 dans le moteur ; les plafonds de saisie existants demeurent.
+
+**Propagation à prouver :** tableau des consommateurs (sort actif, passifs,
+additionnels, EHP, assiette des exclusives, recherche, diagnostics, sélection
+finale artéfacts/relique, tri et comparaison), chacun avec son test. Les
+signatures de cache qui dépendent du contexte incluent les nouveaux champs.
+Les auras ne comptent qu'une fois sur chaque chemin ; désactiver leur prise
+en compte dans les conditions ne les retire pas du calcul de dégâts/EHP.
 
 **Sortie :** un test nommé par chemin (dégâts, EHP, exclusive de relique,
-conditions min), plus un test de compatibilité d'une recette sans le champ.
+conditions min/max RES/PRE et absence d'effet sur les conditions PV/ATQ/DEF),
+plus un test de compatibilité d'une recette sans les champs. Cas explicites :
+RES/PRE de base 0, seuil min franchi, seuil max dépassé, toggle désactivé,
+18 sets acceptés (type unique ou mélange), 19 refusés même répartis,
+arrondi PV/ATQ/DEF avec lead/invocateur, parité écran/CLI et cache invalidé.
+Si les élagages sont modifiés : `algo-verify`, contrôle différentiel contre
+une référence exhaustive bornée et mesure ciblée, avant de valider le lot.
 
 **Preuve :** les tests · `npx tsc --noEmit` · `node tests/run.mjs <noms> degats rune-optim relic-exclusive` ·
-le `grep -rn` de propagation, sortie collée.
+le `grep -rn` de propagation, sortie collée · passage CLI réel et checklist
+documentaire de remplacement de B.0. B.0 fait partie des intrants de ce lot.
 
 **Amendement obligatoire :** `invariants.md` l. 20 dit aujourd'hui que les
 **cinq** réglages d'« État de mon monstre » « sont exactement les champs qui
 modifient les stats propres du monstre ». Ce lot en ajoute un sixième :
 l'invariant se corrige **dans le même commit** que la spec source.
 
-**Ne fait pas :** aucun rendu (lot 7). Aucun interrupteur de réglages avancés.
+**Ne fait pas :** aucun rendu (lot 7). Le champ du toggle et sa propagation
+sont livrés ici ; son contrôle visuel est livré au lot 7.
 
 ### Lot 7 — sets d'aura : l'écran
 
@@ -678,21 +774,54 @@ statistiques propres du monstre ». Un set d'aura en est un.
 
 **Quatre comportements :**
 
-1. **Ajouter / visualiser / supprimer.** Une liste déroulante des cinq sets +
-   un champ numérique **borné 1 à 15**, puis les effets actifs listés avec
-   leur croix. Tout vient de `src/ui/` (`Selecteur`, `NumberField`,
-   `BoutonIcone`) — rien de custom.
-2. **Auto-ajout depuis les sets recherchés.** Choisir Fight (ou l'un des
-   quatre autres) dans « Set de runes recherché » ajoute l'effet ici. ⚠️ Le
-   nombre alors posé est **à trancher** : 1 par set 2-pièces demandé (un combo
-   peut demander `3× Fight`, `types.ts` l. 375), ou une valeur laissée à
-   l'utilisateur. Le cadrage recommande 1 par occurrence demandée, modifiable.
-3. **Les interrupteurs de prise en compte dans les conditions min**, dans
-   « Réglages avancés » : **un par set**, activés par défaut pour Accuracy et
-   Tolerance, désactivés pour Fight, Determination, Enhance.
-4. **L'ouverture guidée.** Sélectionner un set d'aura (dans les sets
-   recherchés **ou** ici) ouvre « Réglages avancés », amène l'interrupteur
-   concerné à l'écran, et le surligne en orange.
+1. **Ajouter / visualiser / supprimer.** Libellé : « Nombre de sets Fight
+   dans l'équipe » (même patron pour les cinq sets). Liste déroulante + champ
+   entier borné, hors conflit, de `max(1, nombre demandé dans les sets recherchés)`
+   à `18 − somme des autres lignes` : plafond d'équipe, pas 18 par type.
+   Une seule ligne par set. Tout vient de `src/ui/` (`Selecteur`,
+   `NumberField`, `BoutonIcone`). Une ligne requise par les sets recherchés
+   ne peut être supprimée sans retirer ce choix de recherche ; l'expliquer.
+2. **Auto-ajout et minimum.** Choisir un set d'aura dans les sets recherchés
+   ajoute sa ligne si absente. Le nombre total devient au moins le nombre
+   d'occurrences demandé : `max(total précédent, nombre demandé)` ; un
+   `3× Fight` impose au moins 3. Réduire/retirer un set recherché ne réduit
+   pas automatiquement le total d'équipe. Changer de monstre dans une liste
+   conserve les totaux. Le total saisi est l'hypothèse d'équipe utilisée au
+   calcul, pas une somme automatiquement reconstruite depuis les candidats.
+   Si le nouveau nombre demandé dépasse un total précédemment renseigné,
+   relever le total au minimum requis et afficher en rouge (token `bad`) :
+   « Nombre sélectionné actuellement de sets {X} pour la recherche du monstre
+   supérieur à la valeur précédente de sets {X} : vous en aviez potentiellement
+   oublié. » Conserver la valeur précédente pour expliquer l'alerte ; une
+   création initiale de ligne sans valeur antérieure n'est pas un oubli.
+   Si le relèvement automatique ferait dépasser 18, **ne pas modifier la
+   valeur précédente**, ni aucune autre ligne. Conserver une saisie valide,
+   mémoriser séparément le minimum recherché non satisfait, afficher le
+   conflit et bloquer la recherche jusqu'à résolution. Une ligne absente reste
+   absente du modèle (0) ; afficher sa demande non satisfaite sans fabriquer
+   une entrée invalide. Le conflit est dérivé des sets recherchés et du total
+   valide : il ne s'exporte pas dans la recette et se reconstruit à l'import.
+   Dès que de la place est libérée, appliquer le relèvement requis et lever
+   le conflit ; retirer la demande de recherche le lève également.
+   **Jamais `min > max` dans `NumberField` :** pendant le conflit, les lignes
+   existantes gardent les bornes valides 1..`18 − somme des autres lignes`,
+   sans appliquer le minimum recherché à ce contrôle. Ce minimum reste
+   visible dans le message de conflit. Pour une ligne absente, rendre la
+   demande en attente sans champ numérique jusqu'à ce qu'une place existe.
+3. **Un seul interrupteur**, dans « Réglages avancés » : prise en compte des
+   auras RES et PRE dans les conditions minimum ET maximum, activée par
+   défaut. Il reste toujours visible dans les réglages avancés, même après
+   retrait de toutes les auras RES/PRE. Aucun interrupteur pour les conditions PV/ATQ/DEF.
+4. **L'ouverture guidée.** Ajouter Accuracy ou Tolerance (dans les sets
+   recherchés ou ici) ouvre automatiquement la surface de réglages avancés,
+   fait défiler l'interface jusqu'à `compterAurasResPre` avec le même patron
+   que « Set de runes recherché », puis le surligne temporairement en orange.
+   Le contrôle reste toujours rendu ; « guider » ne signifie jamais le monter
+   conditionnellement ni le masquer ensuite.
+   Fight/Determination/Enhance n'ouvrent pas un panneau sans contrôle associé.
+   L'ouverture guidée n'est pas rejouée automatiquement lors d'un import ou
+   d'un simple changement de monstre. Le message rouge réserve sa place ou
+   sort du flux : il ne déplace pas le contrôle qui vient d'être cliqué.
 
 #### ⚠️ Le point 4 n'a pas la même forme sur les deux formats
 
@@ -718,7 +847,14 @@ native ni une valeur en dur (spec/shared/design.md).
 **Sortie :** les quatre comportements, sur les deux formats, décrits dans
 `spec/outils/optimizer.md § Écran (de haut en bas)` ;
 `spec/outils/optimizer.md § Conditions, inventaire et réglages avancés`
-reçoit les interrupteurs.
+reçoit l'interrupteur commun. Tester la logique de synchronisation pure :
+création, conservation 1 → 1, relèvement 1 → 3 avec alerte, baisse 3 → 1 sans
+perte du total, retrait d'un set, changement de monstre et import de recette.
+La suppression explicite d'une ligne ne permet jamais de violer le minimum.
+Tester aussi : total 18 et demande supplémentaire → valeurs inchangées,
+conflit séparé, recherche bloquée, aucune borne inversée ; réduction d'une
+autre ligne → relèvement puis résolution ; import d'une recette avec totaux
+valides mais minimum recherché non satisfait → même conflit reconstruit.
 
 **Preuve :** `npm run build` (⚠️ une classe correcte dans le TSX peut n'être
 jamais émise — vérifier le **CSS construit** pour le surlignage) ; captures
@@ -730,7 +866,8 @@ l'écran en mobile.
 
 ### Lot 8 — Blade Surge : le 3ᵉ coup, en zone
 
-**Cat. J.** Bloqué par les lots 1 et 2. Constat 151 de l'audit.
+**Cat. J.** Bloqué par les lots 1, son amendement pilote et 2b. Constat 151.
+Intrant commun supplémentaire : B.0, champ `cibleDegatsParSort`.
 
 **Le problème structurel :** `SkillDamageProfile.aoe` est un booléen **du
 sort**, pas du coup (`damage.ts` l. 2157). Or ce sort a deux coups mono-cible
@@ -749,24 +886,30 @@ ou aux autres monstres autour », pas d'isoler un artéfact.
 | Cran | Ce qui est calculé | 224 | 411 |
 | --- | --- | --- | --- |
 | **Dégâts sur la cible visée** (défaut) | les 3 coups : `0.5×ATQ` ×2 **+** `3.0×ATQ` | sur les **2 premiers** seulement | sur le **1ᵉʳ** coup |
-| **Dégâts sur les autres ennemis** | le seul coup de zone : `3.0×ATQ` | **jamais** | sur ce coup — c'est la 1ʳᵉ attaque **sur cette cible** |
+| **Dégâts sur les autres ennemis** | le seul coup de zone : `3.0×ATQ` sur **un** autre ennemi | **jamais** | **jamais** |
 
-⚠️ Le second cran n'est **pas** « le total moins les deux premiers coups » : la
-ligne 411 y redevient active, parce que la cible change. Deux calculs, pas une
-soustraction.
+⚠️ Le second cran calcule **une cible distincte**, jamais la somme sur tous
+les ennemis. Ses PV initiaux sont ceux saisis pour cette cible, sans retirer
+les dégâts des deux premiers coups reçus par la cible visée. Ne pas dériver
+son résultat par soustraction du premier cran, notamment avec 222/223.
 
 ⚠️ **411 vaut pour la première attaque DU TOUR** et les passifs offensifs
 reçoivent un profil dont `cdPointsPremiereAttaque` est remis à zéro
 (`degats-reels.md`, § dédié). Le cran « autres ennemis » ne doit pas rouvrir
-ce compteur pour les passifs.
+ce compteur, ni pour le coup de zone ni pour les passifs. Correction explicite
+de l'utilisateur en revue : la première attaque sur une nouvelle cible n'est
+pas un nouveau premier coup du tour.
 
-**Sortie :** **les cinq fiches** du constat 151 (`10602` Astar, `10604` Iris,
-`10616` Lapis, `10618` Lupinus, `10620` Lanett — A.3 bis : c'est la famille
-entière, mesurée au lot 1) calculent les deux crans ; un test nommé qui
+**Sortie :** tous les identifiants retenus par l'amendement du lot 1 et
+toutes leurs formes de monstre calculent les deux crans. Point de départ
+de l'audit seulement : `10602`, `10604`, `10616`, `10618`, `10620` ; cette
+liste ne prétend pas être la famille entière du corpus. Un test nommé qui
 vérifie les deux, **et** que 224 ne porte que sur 2 des 3 coups dans le
-premier cran.
+premier cran. Vérifier aussi l'absence de 411 sur la zone, les PV propres à
+chaque cran pour 222/223, et la contribution par coup des dégâts additionnels.
+Toute hypothèse de skillup encore non relevée est nommée dans le test (A.2 ter).
 
-**Preuve :** le test · la liste des 5 fiches du lot 1 citée dans la spec ·
+**Preuve :** le test · les trois unités et listes de couverture du lot 1 citées dans la spec ·
 `npx tsc --noEmit` ·
 `node tests/run.mjs <nom> degats audit-degats-conditionnels` · `npm run build`.
 
@@ -776,7 +919,7 @@ ils vont au lot 13.
 
 ### Lot 9 — Teshar : Tempest après S1/S2, et comme sort
 
-**Cat. J.** Bloqué par les lots 1 et 2. Constat 164.
+**Cat. J.** Bloqué par les lots 1, son amendement pilote et 2b. Constat 164.
 
 **Trois choses, dans cet ordre :**
 
@@ -798,11 +941,16 @@ ils vont au lot 13.
    retourne `null` dès `c.passif` (l. 2732). Le lot décide **comment** — un
    `SkillDamageProfile` construit depuis le passif, ou une troisième voie —
    et l'écrit. La règle de calcul ne change pas : sur ce cran, seuls les
-   dégâts de cette attaque s'affichent.
+   dégâts de cette attaque s'affichent, **une seule fois**. Le passif 3213
+   n'est jamais ajouté à lui-même, même si son interrupteur est resté actif.
 
-**Artéfacts, deux règles opposées :** 411 (Dgts CRIT 1ʳᵉ attaque) s'applique
-**toujours** à Tempest — c'est une attaque neuve. 224 (cible unique pendant
-ton tour) **jamais** — elle est en zone.
+**Artéfacts :** 411 ne s'applique **jamais** à Tempest, même sélectionné seul.
+Il s'applique au premier coup du S1/S2 qui précède, conformément à la règle
+du premier coup DU TOUR. 224 ne s'applique jamais à Tempest, en zone.
+Le mode « Tempest seul » isole cette contribution, il ne lui attribue pas
+une place de premier coup. Les PV saisis y décrivent l'état avant Tempest.
+Définir et tester l'attribution des lignes par compétence (400–403/410) selon
+le profil de la contribution ; ne pas hériter aveuglément du slot S1/S2.
 
 ⚠️ **Les artéfacts 222/223** (D.CRIT+ selon bon / mauvais état des PV ennemis)
 doivent voir les PV **tels que le sort précédent les a laissés**. Le
@@ -811,12 +959,14 @@ coup et les passifs frappent après (`degats-reels.md`, § « Les PV de la cible
 se creusent COUP PAR COUP »). Le lot **prouve** que Tempest en profite ; il ne
 recode pas la chaîne.
 
-**Sortie :** les trois comportements + un test nommé par comportement. **Une
-seule fiche** (Teshar vent `3213`) : le constat 164 n'en a pas d'autre.
+**Sortie :** les trois comportements + un test nommé par comportement.
+Le constat 164 part d'un identifiant, `3213` ; toutes les formes qui le portent
+et les candidats supplémentaires retenus sont nommés par l'amendement du lot 1.
+Ne pas confondre la ligne d'audit Teshar et les formes affectées du corpus.
 
 ⚠️ **Le mécanisme, lui, est générique et doit le rester** (A.3 bis, second
 niveau) : « un passif à formule curée, déclenché après certains sorts,
-sélectionnable comme un sort ». Dix-neuf autres fiches l'attendent (constats
+sélectionnable comme un sort ». Dix-neuf autres lignes d'audit le concernent (constats
 168, 178, 179, 313 — lot 1, point 2). Le lot **n'en code aucune**, mais il
 écrit dans la spec **ce qu'il faudra fournir** pour en ajouter une : le ratio,
 la liste des sorts déclencheurs, la portée. Un mécanisme qui n'accepte que
@@ -825,14 +975,15 @@ Teshar serait à refaire dix-neuf fois.
 **Preuve :** les tests · `npx tsc --noEmit` ·
 `node tests/run.mjs <noms> degats audit-degats-conditionnels` · `npm run build`.
 
-**Ne fait pas :** ne traite aucune des 19 fiches de même architecture — elles
+**Ne fait pas :** ne traite aucun des cas des 19 lignes d'audit de même architecture — ils
 vont au lot 13, avec leur numéro de constat.
 
 ### Lot 10 — l'ignore DEF conditionnel des Blade Dancers
 
-**Cat. J.** Bloqué par les lots 1 et 2. **Tout le constat 212 : 6 fiches, deux
+**Cat. J.** Bloqué par les lots 1, son amendement pilote et 2b. **Tout le constat 212 : 6 identifiants initiaux, deux
 variantes** (A.3 bis — corriger une fiche et laisser ses jumelles donnerait une
-app juste pour Cordelia et fausse pour Vereesa).
+app juste pour Cordelia et fausse pour Vereesa). Lire B.0 pour le champ
+`premierCoupIgnoreDefParSort` et sa propagation.
 
 **Aujourd'hui** `ignoreDef` est un booléen dérivé de la seule présence de
 l'effet `Ignore DEF` (`damage.ts` l. 2792), sans jamais lire sa `note` : les
@@ -847,16 +998,26 @@ rang un **choix** de l'utilisateur, pas un état déduit.
 
 **Les crans, par variante :**
 
-| Variante | Fiches | Crans proposés |
+| Variante | Identifiants de compétence initiaux | Crans retenus |
 | --- | --- | --- |
-| **A** — 3 coups, ATB −50 %/coup | `14308`, `14310`, `14808`, `14810` | **aucun ignore DEF** · **à partir du 2ᵉ coup** · **à partir du 3ᵉ coup** |
-| **B** — 7 coups, ATB −40 %/coup, **7ᵉ coup toujours ignore-DEF** | `14311`, `14811` | à partir du 3ᵉ · 4ᵉ · 5ᵉ · 6ᵉ · **7ᵉ seul** (plancher : le 7ᵉ ignore toujours, « aucun » n'existe pas) |
+| **A** — 3 coups, ATB −50 %/coup | `14308`, `14310`, `14808`, `14810` | **aucun ignore DEF** (défaut) · **à partir du 2ᵉ coup** · **à partir du 3ᵉ coup** |
+| **B** — 7 coups, ATB −40 %/coup, **7ᵉ coup toujours ignore DEF** | `14311`, `14811` | à partir du 2ᵉ · 3ᵉ · 4ᵉ · 5ᵉ · 6ᵉ · **7ᵉ seul** (défaut) ; « aucun » n'existe pas |
 
-Le rang minimal se **justifie** par la donnée (ATB à 0 après ⌈100/50⌉ = 2 coups
-en A, ⌈100/40⌉ = 3 en B) mais se **cure** : une table par `com2usId` portant
-`premierCoupPossible` et `dernierCoupInconditionnel`, la dérivation écrite en
-commentaire comme justification — pas comme implémentation. Même discipline que
-les autres tables du fichier.
+**Aucune ATB initiale ni nombre de réductions réussies n'est déduit.**
+L'utilisateur choisit le scénario ; le premier coup reste exclu par la règle
+fournie. Supprimer la justification antérieure `⌈100/50⌉` / `⌈100/40⌉`, qui
+introduisait arbitrairement 100. La table par `com2usId` porte les rangs
+autorisés et l'éventuel dernier coup inconditionnel, avec leur source.
+
+**Décision confirmée par l'utilisateur le 2026-09-23 :** « aucun ignore DEF »
+ne concernait que la variante A à trois coups. La variante B garde son
+septième coup inconditionnel et prend « septième seul » par défaut.
+
+**Recettes :** décision utilisateur explicite du 2026-09-23, pas de migration
+pour préserver l'ancien calcul de ces monstres : aucun utilisateur n'a exporté
+de recette avec eux. Champ absent → nouveau défaut retenu ; cette dérogation
+ne concerne aucun autre champ/monstre. Un champ présent doit toujours être
+validé (type et rang permis), et le choix suit les resets du lot 5.
 
 **Le patron de saisie existe** : `ScenarioEffetsEntreCoups.apresCoup`
 (`Record<string, number | null>`, l. 2011) — « numéro du coup APRÈS lequel la
@@ -868,38 +1029,45 @@ dont on choisit quels coups sont affectés »).
 à l'écart de VIT, l. 2527) ni avec `ignoreDefParStack` (l. 1992) : trois
 mécaniques distinctes, celle-ci n'est ni l'une ni l'autre.
 
-**Sortie :** les 6 fiches proposent leurs crans ; un test nommé qui vérifie
-**chaque cran des deux variantes**, que le coup 1 n'ignore jamais, que le 7ᵉ
+**Sortie :** tous les identifiants et formes retenus après lot 1 proposent
+leurs crans ; les six identifiants initiaux restent le socle, pas une preuve
+d'exhaustivité du corpus. Un test nommé qui vérifie
+**chaque cran et le défaut des deux variantes**, que le coup 1 n'ignore jamais, que le 7ᵉ
 de la variante B ignore dans tous les crans, et — contrôle négatif — qu'un sort
 ignore-DEF inconditionnel (`IGNORE_DEF_COMPLET_CONNUS`, l. 2716) est
 **inchangé**.
 
-**Preuve :** le test, contrôle négatif inclus · l'extraction des 6 fiches du
+**Preuve :** le test, contrôle négatif inclus · l'extraction des identifiants et formes du
 lot 1 citée dans la spec · `npx tsc --noEmit` ·
 `node tests/run.mjs <nom> degats audit-degats-conditionnels`.
 
 **Ne fait pas :** ne traite pas les 16 autres constats de la catégorie 09
-(34 fiches restantes, A.2 bis) — autres mécaniques d'ignore DEF conditionnel,
+(28 lignes d'audit restantes, lot 13a) — autres mécaniques d'ignore DEF conditionnel,
 lot 13.
 
 ### Lot 11 — les passifs « Stats acquises en combat » non survolables
 
-**Cat. C puis M.** Requiert les lots 1 (extraction 4) et 2.
+**Cat. C puis M.** Requiert le lot 1 (extraction 4 et amendement pilote) et 2b.
+Les 38 identifiants / 40 configurations ci-dessous sont l'état initial,
+à corriger dans ce contrat après l'extraction ; nommer toutes les formes affectées.
 
 **Constat de départ, mesuré :** `CombatStatProfile` **porte déjà**
-`description` (la prose SWARFARM, `damage.ts` l. 1676), et les 38 entrées de
+`description` (la prose SWARFARM, `damage.ts` l. 1676), et les 38 identifiants de
 `STATS_COMBAT_PAR_ID_CONNUS` sont bien curées — **y compris Mayasura**
 (`18311`, `stacks`, `atkFlat: 100`) **et Jager lumière** (`7814`, `stacks`,
 `atkPct: 50`). Mais **aucune des 7 branches de rendu** de
 `DamageSetupCard.tsx` (l. 960-1040) ne passe la prose :
 
-| `source` | Entrées | Rendu actuel | Prose |
+| `source` | Configurations | Rendu actuel | Prose |
 | --- | --- | --- | --- |
 | `stacks` | 17 | `<span>{label}</span>` + `NumberField` | **non** — ni prose, ni icône |
 | `toggle` | 11 | `PassifInterrupteur`, `title` = le label | **non** |
 | `buffsPropres` / `buffsAllies` / `debuffsPropres` | 4 / 1 / 1 | idem `stacks` | **non** |
 | `toujours` | 5 | `Jeton` (icône + `detail`) | **non** |
 | `debuffsInverses` | 1 | `Jeton` + 3 interrupteurs | **non** |
+
+Total : **40 configurations pour 38 identifiants** ; `10014` et `11663`
+portent chacun deux configurations. Conserver les deux unités dans la preuve.
 
 ⚠️ **`Jeton` n'a aucun axe de prose** (`src/ui/Jeton.tsx` : `icone`, `libelle`,
 `detail`, `onRetirer`) — et on n'ajoute à la librairie que quand un **axe**
@@ -912,65 +1080,88 @@ invention : huit autres familles de passifs y affichent leur prose en
 donc rien ne bouge au clic. Le lot applique ce patron aux branches qui le
 perdent, **prose jamais reformulée** (les libellés sont ceux du jeu).
 
-**Contrat :** 1) l'extraction 4 du lot 1 (38 entrées × monstre × `source` ×
+**Contrat :** 1) l'extraction 4 du lot 1 (40 configurations × monstre × `source` ×
 branche de rendu) ; 2) le correctif par branche ; 3) la section de spec.
 
 ⚠️ **Ce que l'hypothèse de la demande recouvrait vraiment.** « Rien de visible
 (Mayasura, Jaeger) » et « le sort non survolable (Cordelia) » ne sont pas deux
 cas mais **un seul**, à deux rendus près : la prose n'est nulle part. Le cas
 « passif absent de la table » existe aussi, mais **ni Mayasura ni Jager n'en
-sont** — ma première lecture était fausse (A.1).
+sont** — la table par identifiant les contient bien.
 
-**Sortie :** `controle-11.md` avec le tableau des 38 entrées ; le correctif ;
+**Sortie :** `controle-11.md` avec les 38 identifiants / 40 configurations ; le correctif ;
 la section de spec mise à jour.
 
-**Preuve :** le tableau · `npm run build` · relecture à l'œil sur au moins un
+**Preuve du constat 110 :** retrouver ou ajouter dans `tests/degats.test.ts`
+un contrôle nommé pour chacun des identifiants `14313` et `14813`, construit
+depuis les données réelles : extraction du profil `atkDepuisSpd: 5`, puis
+calcul avec deux vitesses connues et vérification de l'apport `5 × VIT`.
+Un test qui exclut Rankyaku d'une autre mécanique ne suffit pas. Conserver
+la commande `node tests/run.mjs degats`, sa sortie et les assertions ciblées
+dans `controle-11.md`. Aucune clôture de 110 au lot 13a sans cette preuve.
+
+**Preuve de rendu :** le tableau · `npm run build` · relecture à l'œil sur au moins un
 monstre par `source` corrigée (Mayasura pour `stacks`, Cordelia pour
 `toujours`).
 
-**Ne fait pas :** ne cure aucun passif absent de la table — la liste des
-manquants, mesurée, va dans `pistes.md` et au lot 13.
+**Ne fait pas :** ne cure ni n'inventorie tous les passifs absents. Leur
+repérage depuis l'audit et le corpus est un intrant propre du lot 13a, puis
+leur qualification mécanique relève du lot 13b ; la table des présents ne
+prouve jamais l'exhaustivité des manquants.
 
-### Lot 12 — le mécanisme, rejoué sur une fiche qu'aucun lot n'a écrite
+### Lot 12 — les trois mécanismes rejoués sur des cas indépendants
 
 **Cat. C.** Requiert les lots 8, 9, 10.
 
-**Pourquoi ce lot existe.** A.3 bis demande que les lots 9 et 10 livrent un
+**Pourquoi ce lot existe.** Les lots 8, 9 et 10 doivent livrer un
 **mécanisme**, pas un cas particulier — mais rien ne le vérifie : un mécanisme
 qui n'accepte que Teshar passe tous les tests de Teshar. Ce lot le met à
 l'épreuve **sans écrire de code de production** : prendre **une** fiche d'une
 famille voisine dont les valeurs sont dans le CSV (constat **178** RYU/Striker
 pour l'attaque déclenchée, un constat de catégorie 09 pour l'ignore DEF
 conditionnel), l'ajouter **dans un test uniquement**, et dire ce qui manque.
+Le cas doit relever du mécanisme promis, avec les valeurs sourcées ; une
+mécanique voisine différente n'est pas un échec de généricité. Si aucun cas
+réel convenable n'est documenté, utiliser une fixture synthétique annoncée
+comme telle, sans prétendre valider une nouvelle mécanique du jeu.
+Ajouter un **troisième contrôle** pour le lot 8 : fixture indépendante de
+Blade Surge avec coups de portées différentes et coefficients distincts,
+cible principale/secondaire, 224 selon la portée et 411 selon le rang du tour.
+Vérifier que les PV de la cible secondaire ne sont pas creusés par les coups
+mono-cible précédents. Ce contrôle rend la dépendance au lot 8 effective.
 
-**Sortie :** `controle-12.md` — pour chacun des deux mécanismes : ce qu'il a
+**Sortie :** `controle-12.md` — pour chacun des trois mécanismes : ce qu'il a
 fallu fournir (une ligne de table ? un champ de plus ? une branche de rendu ?),
-et le verdict **générique / à retoucher**. Si une retouche est nécessaire, elle
-devient une entrée nommée du lot 13, pas une correction improvisée ici.
+et le verdict **générique / à retoucher**. Un échec sur le contrat générique
+promis rouvre le lot 8, 9 ou 10 : correction puis nouvelle preuve avant clôture.
+Seule une extension hors contrat rejoint le lot 13, avec sa justification.
 
-**Preuve :** `controle-12.md` · le test jetable, cité mais **non commité** dans
-`tests/index.ts` (ce n'est pas un contrôle permanent, c'est une mesure).
+**Preuve :** `controle-12.md` · fixtures, code de contrôle et commande exacte
+conservés et rejouables. Un contrôle du contrat permanent rejoint `tests/`
+et son registre ; une expérience exploratoire reste dans le dossier de
+preuves avec ses intrants. Aucun test cité puis supprimé.
 
 **Ne fait pas :** n'ajoute aucune fiche au calcul de production. Ne corrige
 rien — il **constate**.
 
 ### Lot 13 — le reliquat de l'inventaire : un plan, pas une promesse
 
-**Cat. C.** Requiert les lots 1 et 11. **Le lot le plus facile à mal cadrer**
-du chantier, d'où ce qui suit.
+**Deux étapes : 13a (C), puis 13b (J, plusieurs sessions bornées).**
+Requiert les lots 1, 11 et 12, y compris les corrections qu'exige le lot 12.
+Le plan n'est pas une implémentation du reliquat.
 
 **Le volume, mesuré le 2026-09-23** (script d'extraction à rejouer et joindre
-à la preuve) : sur 325 constats distincts, **247 restants, 535 fiches** —
-statuts : 176 `Manquant`, 59 `Partiel`, 12 cas nommés à part (donnée
-contradictoire, calcul trop favorable, interprétation à recouper).
+à la preuve) : sur 325 constats distincts, **243 restants, 521 lignes d'audit** hors
+des 78 constats suivis ET des quatre constats de ce chantier. La ventilation
+ci-dessous est celle du recomptage de revue ; 13a la rejoue après réconciliation.
 
-| Constats | Fiches | Catégorie |
+| Constats | Lignes d'audit | Catégorie |
 | --- | --- | --- |
-| 62 | 182 | 08 — Séquences, nombre de coups et attaques déclenchées |
+| 60 | 176 | 08 — Séquences, nombre de coups et attaques déclenchées |
 | 57 | 75 | 12 — Critiques garantis, bonus TC/DC et critiques interdits |
-| 32 | 59 | 05 — Bonus et conversions de statistiques en combat |
+| 31 | 57 | 05 — Bonus et conversions de statistiques en combat |
 | 18 | 46 | 10 — Pertes de PV, redistribution et dégâts différés |
-| 17 | 34 | 09 — Ignore DEF conditionnel ou probabiliste |
+| 16 | 28 | 09 — Ignore DEF conditionnel ou probabiliste |
 | 9 | 34 | 11 — Compétences sans formule / coopération / hors tour |
 | 11 | 30 | 04 — Variables de formule actuellement refusées |
 | 15 | 29 | 07 — Composantes de dégâts supplémentaires |
@@ -985,20 +1176,73 @@ livrerait ses premiers constats correctement et les derniers mal — le défaut
 exact que `cadrage-chantier` demande d'anticiper en scindant AVANT, sur
 l'intrant en lignes.
 
+#### 13a — extraction et réconciliation, sans jugement de mécanique
+
+**Intrants bornés :** les 695 lignes d'audit du CSV, le suivi d'implémentation, les
+preuves des lots 1/8/9/10/11/12. Conserver un instantané des intrants et leur
+révision avec le script d'extraction dans `controle-13a.md`.
+Commande du recomptage initial (PowerShell, depuis la racine) :
+
+```powershell
+$audit = Import-Csv -Delimiter ';' -Encoding UTF8 spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/inventaire.csv
+$suivi = Import-Csv -Delimiter ';' -Encoding UTF8 spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.csv
+$reste = @($audit | Where-Object { $_.entree -notin $suivi.constat -and $_.entree -notin @('110','151','164','212') })
+$reste.Count
+@($reste.entree | Sort-Object -Unique).Count
+$reste | Group-Object categorie | ForEach-Object {
+  [pscustomobject]@{ Categorie=$_.Name; Constats=@($_.Group.entree | Sort-Object -Unique).Count; LignesAudit=$_.Count }
+}
+```
+
+Sorties du 2026-09-23 : **521 lignes d'audit, 243 constats**, ventilation ci-dessus.
+Réconcilier `suivi-implementation.csv` avec les preuves : inscrire 110
+seulement après validation de la preuve ciblée du lot 11, puis 151/164/212
+selon les lots effectivement livrés. Conserver l'inventaire
+historique comme photographie datée ; le suivi porte l'état livré actuel.
+Les ensembles « livré avant / traité ici / différé » sont disjoints et leur
+union retrouve le corpus ; les constats du chantier ne sont pas comptés deux
+fois après mise à jour du suivi.
+
+Pour les passifs de stats absents, extraire les candidats de l'audit et
+balayer le corpus ; comparer leurs identifiants aux tables existantes.
+L'absence d'une table est un signal à examiner, pas un verdict automatique
+de mécanique manquante. Toute découverte hors inventaire reçoit un identifiant
+de suivi distinct et reste séparée des 243 constats historiques.
+
+**Sortie :** inventaires reproductibles et plan des sous-lots 13b, chacun avec
+liste nominative de lignes d'audit, identifiants et formes, et plages de code/spec à lire. Aucun sous-lot ne
+traite les 243 constats d'un coup ; au-delà de 800 lignes d'intrants à examiner,
+scinder avant exécution, sans tronquer une famille ni omettre ses dépendances.
+**Sortie pilote obligatoire :** à partir de ce plan, amender ce cadrage avec
+une section de contrat par `13b-<famille>` : intrants et plages bornés, sortie
+nommée, preuve/commande attendue, frontière et dépendances. Ajouter une ligne
+par sous-lot dans A.7 et mettre à jour le graphe. Revue pilote de cet amendement
+avant tout lancement de 13b ; le contrat générique ci-dessous ne suffit pas.
+
+#### 13b — qualification et plan par familles
+
+**Cat. J. Gabarit, non lançable en l'état.** Une session par contrat 13b-*
+créé et revu après 13a produit des décisions sourcées ;
+le pilote consolide ensuite les résultats. La présence d'une formule ou d'une
+`note` est un indice, jamais la preuve automatique que la mécanique est connue.
+
 **Ce que le lot produit :** un **plan découpé et chiffré**, dans
 `spec/outils/optimizer/decisions/` (nature décision, en-tête posé) :
 
-1. **Un classement des 247 par coût**, sur deux critères mesurables et pas sur
+1. **Un classement des 243 par coût**, sur deux critères documentés et pas sur
    une impression : (a) la valeur est-elle **dans la donnée** (formule, effet,
    `note`) ou faut-il un relevé ? (b) la mécanique **existe-t-elle déjà** dans
    `damage.ts` (une ligne de table suffit) ou demande-t-elle un mécanisme neuf ?
-   Les quatre cases qui en résultent ordonnent tout le reste.
-2. **Les familles reportées par ce chantier, nominativement** : les 19 fiches
+   Les quatre cases qui en résultent ordonnent tout le reste. Chaque verdict
+   cite la donnée et le chemin de code ; une incertitude reste nommée au lieu
+   d'être forcée artificiellement dans une case.
+2. **Les familles reportées par ce chantier, nominativement** : les 19 lignes d'audit
    d'attaque déclenchée (constats 168, 178, 179, 313), les constats 163, 173,
    180 voisins de Blade Surge, les 16 autres constats de catégorie 09, les
-   passifs absents de `STATS_COMBAT_PAR_ID_CONNUS` relevés au lot 11. Chacune
+   passifs absents de `STATS_COMBAT_PAR_ID_CONNUS` repérés au lot 13a puis
+   qualifiés ici. Chacune
    avec son numéro de constat — **jamais un « plus tard » sans numéro**.
-3. **Une proposition de lots**, chacun borné par son intrant en fiches, avec
+3. **Une proposition de lots**, chacun borné par ses trois unités de A.0 et ses plages de lecture, avec
    la liste des relevés en jeu à demander **regroupés en une seule demande**
    (un relevé par mécanique coûte un aller-retour ; 40 demandes séparées ne se
    font pas).
@@ -1007,9 +1251,10 @@ l'intrant en lignes.
 
 **Sortie :** le fichier de plan, plus une ligne dans `pistes.md` qui le pointe.
 
-**Preuve :** `controle-13.md` — les commandes d'extraction, les totaux par
-case du classement (les quatre nombres doivent sommer à 247), et la liste
-nominative des familles reportées.
+**Preuve :** `controle-13a.md` et `controle-13b-<famille>.md`, puis synthèse
+`controle-13.md` : extraction, décisions citées, totaux par case et liste des
+incertitudes (ensemble = 243, ou total réconcilié explicitement justifié).
+Les découvertes hors corpus sont dénombrées séparément.
 
 **Ne fait pas :** **n'implémente aucun constat.** Ne relance aucune mesure de
 perf. Ne décide pas seul d'ouvrir un chantier — il recommande, l'utilisateur
@@ -1019,20 +1264,27 @@ tranche.
 
 **Cat. M.**
 
-**Déroulé :** 1) statut du cadrage → `CHANTIER terminé le <date>`, ligne de
-`spec/README.md` § Chantiers suivie ; 2) entrées de `pistes.md` pour les
-dettes explicitement différées : découpage d'`optimizer.md` et
-d'`artefacts.md`, le plan du lot 13 et les familles qu'il reporte, les
-passifs « stats de combat » non curés ; 3) `chantier livrer` →
-`verifier` → `integrer` ; 4) **`npm test` complet** — les 45 vérifications,
-rien de moins : c'est la seule étape du chantier où la suite entière tourne.
+**Déroulé :** 1) vérifier les preuves et tests ciblés de tous les lots, le lint
+et l'absence de décision bloquante ; 2) réconcilier le suivi d'audit et les
+entrées de `pistes.md` avec leurs sources : dettes de découpage, plan du lot 13,
+familles reportées et passifs non curés ; 3) une fois ces contrôles passés,
+statut du cadrage → `CHANTIER terminé le <date>` et ligne de `spec/README.md`
+mise à jour ; 4) `chantier livrer` → `verifier` → `integrer` du résultat final.
+Les notes des lots précédents ont déjà été intégrées après leur validation.
+
+**La suite complète `npm test` est réservée à la fusion sur `main`**, qui
+n'est pas réalisée par ce lot. La clôture du travail n'atteste pas une fusion
+ni l'exécution de cette suite ; l'intégrateur la lance sur le résultat combiné.
 
 ⚠️ **Un ledger et le fichier qu'il référence se mettent à jour ensemble**
 (CLAUDE.md) : chaque entrée de `pistes.md` ouverte ici pointe un fichier dont
 le statut dit la même chose.
 
-**Preuve :** `npm test` complet, sortie collée dans `controle-14.md` ·
-`chantier verifier` vert · `node scripts/spec-lint.mjs` propre.
+**Preuve privée :** `controle-14.md`, récapitulatif des contrôles ciblés,
+de leur révision et du lint. Finaliser cette preuve → `livrer` → `verifier`
+→ inscrire reçu et sorties dans le résultat public de ce lot. Aucun nouveau
+`livrer` après cette inscription publique. La sortie de `verifier` ne se
+recopie jamais dans le fichier privé dont le reçu vérifie le contenu.
 
 **Ne fait pas :** ne fusionne pas dans `main`. Cette branche ne rejoint `main`
 qu'avec ou après `forge/implementation-relique` (A.5), et la fusion est une

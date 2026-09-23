@@ -405,3 +405,4 @@ jamais en entier.
 | [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
 | [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
 | `spec/outils/optimizer/chantiers/implementation-relique.md` (privé, `sw-forge-docs`) — la relique dans l'Optimizer, 10 lots ; cadrage fonctionnel dans `spec/outils/optimizer/reliques.md` (décision), plan d'origine archivé | en cours | `forge/implementation-relique` |
+| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` | en cours | `forge/degats-et-aura` |

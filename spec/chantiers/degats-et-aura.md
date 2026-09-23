@@ -111,6 +111,10 @@ affirmations contradictoires, notamment sur 411.
 | Skillups de Blade Surge | Le même nombre de skillups vaut pour les huit identifiants retenus et `skillupDamagePct` s'applique aux trois coups, **troisième coup inclus** | utilisateur, confirmation explicite du 2026-09-23 |
 | Cible du troisième coup de Blade Surge | Le coup de zone touche aussi la cible principale : elle reçoit donc les deux premiers coups mono-cible puis le troisième coup en zone | utilisateur, confirmation explicite du 2026-09-23 pour toute la famille retenue |
 | Tempest (Teshar) | `3.7 × ATQ`, **en zone**, déclenché après S1 **ou** S2 | utilisateur, **et** l'audit (3,7 ATQ, `other_skill=1181`) : deux sources concordantes |
+| Skillups de Tempest | Les trois améliorations `Damage +10%`, soit `+30 %`, s'appliquent aux dégâts de Tempest | utilisateur, confirmation explicite du 2026-09-23 |
+| Attaques supplémentaires conditionnelles | L'Optimizer ne tire jamais la probabilité : un interrupteur utilisateur inclut ou exclut la compétence supplémentaire, comme pour Tempest. Règle confirmée pour les S2/S3 des Maîtres ivres, Shoryuken et les chaînes de Kung Fu Girls ; chaque famille garde ses paramètres propres et doit être classée par le lot 1 | utilisateur, décision produit du 2026-09-23 |
+| Gabarits Martial Cat 2A | Les cinq formes génériques `47601` à `47605` ne correspondent à rien de jouable et sont entièrement ignorées | utilisateur, confirmation explicite du 2026-09-23 |
+| Stock de dégâts de Jin/Kai ténèbres | Lorsqu'un S3 élimine sa cible, l'excédent `max(0, dégâts infligés − PV restants)` devient un dégât fixe ajouté au prochain S3. Il ignore la DEF mais subit les réductions des dégâts fixes, est entièrement consommé puis remplacé par le nouvel excédent éventuel, sans plafond de jeu. L'Optimizer demande directement un stock `0..100000` à l'utilisateur ; cette borne de saisie n'est pas un plafond du jeu | utilisateur, valeurs et décision produit du 2026-09-23 |
 | Ignore DEF des Blade Dancers | **le coup 1 ne peut JAMAIS ignorer la DEF** ; une fois qu'un coup ignore, **tous les suivants ignorent** | utilisateur |
 | Défauts d'ignore DEF | 3 coups : **aucun ignore DEF** ; 7 coups : **septième seul**, dernier coup toujours ignore DEF | utilisateur, confirmation de revue du 2026-09-23 |
 | Auras PV/ATQ/DEF | **+8 % de la statistique de BASE par effet de set** | utilisateur |
@@ -126,11 +130,9 @@ chantier ne la modélise pas.** C'est précisément pourquoi la condition d'igno
 DEF devient un **choix** de l'utilisateur, et non un état déduit : l'app ne
 sait pas où en est l'ATB de la cible. Voir lot 10.
 
-⚠️ **Un résidu assumé, écrit ici pour ne pas être redécouvert** :
-l'application des améliorations de compétence (`skillupDamagePct`) à Tempest
-reste une hypothèse **datée et nommée**. Pour Blade Surge, l'application des
-skillups au troisième coup et le fait que la zone touche aussi la cible
-principale sont désormais des valeurs curées fournies par l'utilisateur.
+Les skillups de Blade Surge et de Tempest, ainsi que la cible du troisième
+coup de Blade Surge, sont désormais des valeurs curées fournies par
+l'utilisateur : aucune de ces trois règles ne demeure une hypothèse.
 
 ### A.3 Hiérarchie des priorités
 
@@ -281,7 +283,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 0 — ouverture du chantier | M | terminé | 2026-09-23 |
 | 1a — extraction automatique des candidats | C | terminé | `c0407a5` / 2026-09-23 |
 | 1b — classification Blade Surge | J | terminé | 2026-09-23 |
-| 1c1 — Tempest : amorces et noms partagés | J | à faire | — |
+| 1c1 — Tempest : amorces et noms partagés | J | terminé | 2026-09-23 |
 | 1c2 — Tempest : effet Additional Attack, première moitié | J | à faire | — |
 | 1c3 — Tempest : effet Additional Attack, seconde moitié | J | à faire | — |
 | 1d — classification Blade Dancers | J | à faire | — |
@@ -529,9 +531,10 @@ et stats de combat **42/38/80**, dans l'ordre lignes d'audit / identifiants /
 formes ; les 40 configurations de stats sont retrouvées.
 
 La preuve `controle-1.md` est associée au reçu valide code `c0407a5` ↔ notes
-`ea309e7` (76 fichiers, empreinte `6f3dd6da5d98bffc…`). Le constat 313 reste
-à trancher : sa lacune parle d'un excédent stocké pour le prochain S3, pas
-d'une attaque déclenchée. Aucune classification humaine n'est encore acquise.
+`ea309e7` (76 fichiers, empreinte `6f3dd6da5d98bffc…`). À ce stade de
+l'extraction, le constat 313 restait à trancher : sa lacune parlait d'un
+excédent stocké pour le prochain S3, pas d'une attaque déclenchée. Le résultat
+du lot 1c1 ci-dessous l'a depuis classé hors famille et en a curé la règle.
 
 #### Contrat commun des lots 1b à 1e
 
@@ -609,6 +612,25 @@ Preuves : `decisions-lot-1b.json`, `controle-1b.md` et
 Le tri et les positions portent sur le corpus figé, jamais sur une nouvelle
 extraction. 1f vérifie que les trois ensembles retrouvent exactement les 140
 identifiants Tempest candidats sans doublon ni omission.
+
+**Résultat du lot 1c1 validé le 2026-09-23.** Tempest `3213` est la seule
+compétence de même mécanique : ses trois skillups `Damage +10%` s'appliquent.
+Les dix-sept identifiants des constats 168, 178 et 179 relèvent de la même
+architecture, soit Mina 2A, les RYU/Strikers concernés et les Maîtres ivres.
+Leurs probabilités réelles restent des données de jeu — 30 % pour Drunken Kick
+de Wei Shin, 50 % pour les trois Shoryuken — mais ne pondèrent jamais le calcul :
+l'utilisateur active ou non chaque attaque supplémentaire. Les gabarits
+Martial Cat 2A `47601` à `47605` ne sont pas jouables ; `6176` rejoint donc
+`6111`, `22415` et `22915` hors famille. Aucun candidat ne reste à documenter.
+
+Les compétences appelées sont présentes dans le corpus complet : Energy Punch
+`6151`, Rolling Punch `8101` à `8105`, Hadoken `13902`, `13903`, `13905` et
+Mach Punch `14402`, `14403`, `14405`. Le lot 1f doit joindre ces profils aux
+déclencheurs au lieu de demander leurs paramètres à l'utilisateur. Les deux
+lignes du constat 313 forment une autre famille : Jin/Kai à stock de dégâts,
+destinée au lot 13 avec le compteur manuel curé en A.2 ter. Preuves :
+`decisions-lot-1c1.json`, `controle-1c1.md` et
+`controle-1c1-amendement.md` dans le dossier de contrôles du chantier.
 
 #### Lot 1d — Blade Dancers
 
@@ -1139,9 +1161,11 @@ ils vont au lot 13.
 Il s'applique au premier coup du S1/S2 qui précède, conformément à la règle
 du premier coup DU TOUR. 224 ne s'applique jamais à Tempest, en zone.
 Le mode « Tempest seul » isole cette contribution, il ne lui attribue pas
-une place de premier coup. Les PV saisis y décrivent l'état avant Tempest.
-Définir et tester l'attribution des lignes par compétence (400–403/410) selon
-le profil de la contribution ; ne pas hériter aveuglément du slot S1/S2.
+une place de premier coup et ne déclenche jamais une seconde Tempest. Les PV
+saisis y décrivent l'état avant Tempest. Les lignes 402 et 410 de dégâts
+critiques S3 s'appliquent **une fois** à sa contribution `3.7 × ATQ`, qu'elle
+soit affichée seule ou après S1/S2 ; elle n'hérite jamais de la ligne du sort
+déclencheur. Dans le mode combiné, le S1/S2 initial conserve sa propre ligne.
 
 ⚠️ **Les artéfacts 222/223** (D.CRIT+ selon bon / mauvais état des PV ennemis)
 doivent voir les PV **tels que le sort précédent les a laissés**. Le
@@ -1156,17 +1180,19 @@ et les candidats supplémentaires retenus sont nommés par l'amendement du lot 1
 Ne pas confondre la ligne d'audit Teshar et les formes affectées du corpus.
 
 ⚠️ **Le mécanisme, lui, est générique et doit le rester** (A.3 bis, second
-niveau) : « un passif à formule curée, déclenché après certains sorts,
-sélectionnable comme un sort ». Dix-neuf autres lignes d'audit le concernent (constats
-168, 178, 179, 313 — lot 1, point 2). Le lot **n'en code aucune**, mais il
-écrit dans la spec **ce qu'il faudra fournir** pour en ajouter une : le ratio,
-la liste des sorts déclencheurs, la portée. Un mécanisme qui n'accepte que
-Teshar serait à refaire dix-neuf fois.
+niveau) : « une compétence supplémentaire à profil propre, déclenchée après
+certains sorts et activée par un interrupteur utilisateur, sélectionnable
+isolément quand le produit le demande ». Dix-sept autres lignes d'audit le
+concernent (constats 168, 178 et 179 — lot 1, point 2). Le lot **n'en code
+aucune**, mais il écrit dans la spec **ce qu'il faudra fournir** pour en
+ajouter une : le ratio, la liste des sorts déclencheurs, la portée. Un
+mécanisme qui n'accepte que Teshar serait à refaire dix-sept fois. Les deux
+lignes du constat 313 sont explicitement hors de cette architecture.
 
 **Preuve :** les tests · `npx tsc --noEmit` ·
 `node tests/run.mjs <noms> degats audit-degats-conditionnels` · `npm run build`.
 
-**Ne fait pas :** ne traite aucun des cas des 19 lignes d'audit de même architecture — ils
+**Ne fait pas :** ne traite aucun des cas des 17 lignes d'audit de même architecture — ils
 vont au lot 13, avec leur numéro de constat.
 
 ### Lot 10 — l'ignore DEF conditionnel des Blade Dancers
@@ -1427,8 +1453,9 @@ le pilote consolide ensuite les résultats. La présence d'une formule ou d'une
    Les quatre cases qui en résultent ordonnent tout le reste. Chaque verdict
    cite la donnée et le chemin de code ; une incertitude reste nommée au lieu
    d'être forcée artificiellement dans une case.
-2. **Les familles reportées par ce chantier, nominativement** : les 19 lignes d'audit
-   d'attaque déclenchée (constats 168, 178, 179, 313), les constats 163, 173,
+2. **Les familles reportées par ce chantier, nominativement** : les 17 lignes d'audit
+   d'attaque déclenchée (constats 168, 178 et 179), les deux lignes du constat
+   313 à stock de dégâts et compteur manuel, les constats 163, 173,
    180 voisins de Blade Surge, les 16 autres constats de catégorie 09, les
    passifs absents de `STATS_COMBAT_PAR_ID_CONNUS` repérés au lot 13a puis
    qualifiés ici. Chacune

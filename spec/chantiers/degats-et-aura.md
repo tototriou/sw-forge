@@ -276,7 +276,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
-| 0 — ouverture du chantier | M | à faire | — |
+| 0 — ouverture du chantier | M | terminé | 2026-09-23 |
 | 1 — extraction, classification et amendement des périmètres | C+J | à faire | — |
 | 2a — classement des blocs et plan de découpage | C | à faire | — |
 | 2b — déplacement et repointage selon le plan validé | M | à faire | — |
@@ -378,6 +378,54 @@ ne jamais en créer une seconde.
 `controle-0.md`, finalisé avant livraison. Ensuite `livrer` → `verifier` →
 reçu et sorties inscrits dans le résultat public de ce lot, sans nouvelle
 livraison après cette inscription (A.6 bis).
+
+#### Résultat du lot 0 — 2026-09-23
+
+Le pilote valide l'ouverture du chantier et la preuve privée
+`archive/controles-degats-aura-2026-09/controle-0.md`. Le dossier de preuves
+porte l'en-tête requis, l'entrée de `spec/README.md` est unique et correcte,
+et aucun fichier de code ni de destination du lot 2 n'a été créé.
+
+Commande de livraison, rejouée sans changement des notes :
+
+```text
+node "C:\Users\Enzo\Desktop\sw-forge\.git\forge\installation\scripts\chantier.mjs" livrer --chantier degats-et-aura
+```
+
+```text
+Notes déjà à jour côté documentaire — aucun nouveau commit.
+Livré.
+  code  : c27fe42
+  notes : a190130 (74 fichiers)
+  reçu  : recus/degats-et-aura.json
+
+Sauvegarde non effectuée par cette commande : git -C "C:\Users\Enzo\Desktop\sw-forge-docs-chantiers\degats-et-aura" push -u origin chantier/degats-et-aura
+```
+
+Commande de vérification :
+
+```text
+node "C:\Users\Enzo\Desktop\sw-forge\.git\forge\installation\scripts\chantier.mjs" verifier --chantier degats-et-aura
+```
+
+```text
+Chantier « degats-et-aura »
+  ok   le code livré est le code actuel — reçu c27fe42 · actuel c27fe42
+  ok   aucune modification de code en attente
+  ok   les notes actuelles sont celles du reçu — 74 fichiers · da5fae8fe7e95c8a…
+  ok   le worktree documentaire est sur sa branche — chantier/degats-et-aura
+  ok   le worktree documentaire est propre
+  ok   la branche documentaire est à la révision attendue — attendue 741eacd · trouvée 741eacd
+  ok   les notes reportées sont identiques aux notes locales
+  ok   l'installation commune est intègre — @ 838641e
+
+Reçu valide. code c27fe42 ↔ notes a190130
+```
+
+Verdict : **lot 0 validé**. Le reçu associe le code
+`c27fe425305b90ac625e5b5be0691c873ea3c45d` au commit documentaire
+`a190130e3788aa773721c8b84c797431bb8fb145`, pour 74 fichiers et l'empreinte
+`da5fae8fe7e95c8a696167f807351afaa2c1b494c147d1c0dce9fac280a200f2`.
 
 **Ne fait pas :** ne crée aucun fichier de spec de destination du lot 2, ne
 touche à aucun fichier de code.

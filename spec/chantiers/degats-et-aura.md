@@ -109,6 +109,7 @@ affirmations contradictoires, notamment sur 411.
 | Blade Surge, coup 3 | `3.0 × ATQ`, **en zone** | utilisateur — absent de l'API |
 | Portée de la curation Blade Surge | La même séquence de dégâts vaut aussi pour les compétences `10601`, `10603` et `10605` des Magic Knights eau, vent et ténèbres ; `10603` couvre également l'Imperfect Magic Knight vent qui partage cet identifiant | utilisateur, confirmation explicite du 2026-09-23 |
 | Skillups de Blade Surge | Le même nombre de skillups vaut pour les huit identifiants retenus et `skillupDamagePct` s'applique aux trois coups, **troisième coup inclus** | utilisateur, confirmation explicite du 2026-09-23 |
+| Cible du troisième coup de Blade Surge | Le coup de zone touche aussi la cible principale : elle reçoit donc les deux premiers coups mono-cible puis le troisième coup en zone | utilisateur, confirmation explicite du 2026-09-23 pour toute la famille retenue |
 | Tempest (Teshar) | `3.7 × ATQ`, **en zone**, déclenché après S1 **ou** S2 | utilisateur, **et** l'audit (3,7 ATQ, `other_skill=1181`) : deux sources concordantes |
 | Ignore DEF des Blade Dancers | **le coup 1 ne peut JAMAIS ignorer la DEF** ; une fois qu'un coup ignore, **tous les suivants ignorent** | utilisateur |
 | Défauts d'ignore DEF | 3 coups : **aucun ignore DEF** ; 7 coups : **septième seul**, dernier coup toujours ignore DEF | utilisateur, confirmation de revue du 2026-09-23 |
@@ -125,13 +126,11 @@ chantier ne la modélise pas.** C'est précisément pourquoi la condition d'igno
 DEF devient un **choix** de l'utilisateur, et non un état déduit : l'app ne
 sait pas où en est l'ATB de la cible. Voir lot 10.
 
-⚠️ **Deux résidus assumés, écrits ici pour ne pas être redécouverts** :
-l'application des améliorations de compétence (`skillupDamagePct`) à Tempest,
-et le fait que le coup de zone de Blade Surge touche **aussi** la cible visée
-(ce qui fait « 3 coups sur la cible visée »). Ils restent des hypothèses
-**datées et nommées**. En revanche, l'application des skillups au troisième
-coup de Blade Surge est désormais une valeur curée fournie par l'utilisateur,
-pas une hypothèse.
+⚠️ **Un résidu assumé, écrit ici pour ne pas être redécouvert** :
+l'application des améliorations de compétence (`skillupDamagePct`) à Tempest
+reste une hypothèse **datée et nommée**. Pour Blade Surge, l'application des
+skillups au troisième coup et le fait que la zone touche aussi la cible
+principale sont désormais des valeurs curées fournies par l'utilisateur.
 
 ### A.3 Hiérarchie des priorités
 
@@ -582,8 +581,10 @@ classification ; ils ne sont plus à documenter. Les cinq identifiants
 famille. Aucun candidat ne reste indécis et aucun voisin n'est classé en même
 architecture. La confirmation complémentaire de l'utilisateur lève
 `H-BS-SKILLUP` : le même nombre de skillups vaut pour ces huit identifiants et
-leur bonus de dégâts porte aussi sur le troisième coup. Seule `H-BS-CIBLE`
-demeure une hypothèse datée. Le lot 1f devra proposer l'amendement correspondant
+leur bonus de dégâts porte aussi sur le troisième coup. Elle lève également
+`H-BS-CIBLE` : le troisième coup en zone touche la cible principale après les
+deux coups mono-cible. Il ne reste donc aucune hypothèse Blade Surge parmi ces
+deux points. Le lot 1f devra proposer l'amendement correspondant
 du contrat du lot 8 sans réintroduire ces trois compétences dans le reliquat.
 Preuves : `decisions-lot-1b.json`, `controle-1b.md` et
 `controle-1b-amendement.md` dans le dossier de contrôles du chantier.

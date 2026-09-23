@@ -255,8 +255,9 @@ de code : sa preuve est son fichier **et** le commit
 Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 
 ```text
-0 → 1 → amendement pilote → 8, 9, 10, 11
-                            (périmètre mesuré, puis contrats corrigés)
+0 → 1a → 1b, 1c1, 1c2, 1c3, 1d, 1e → 1f → amendement pilote → 8, 9, 10, 11
+                            (extraction, classifications bornées,
+                            réconciliation, puis contrats corrigés)
 0 → 2a → 2b → 6, 8, 9, 10, 11 (aucune modification normative de degats-reels.md
                             avant son découpage)
 0 → 3 → 4                  (4 mesure le plancher que 3 vient de corriger)
@@ -266,7 +267,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
                             n'accepte pas ; 6 ne dépend PAS de 1 — les valeurs
                             d'aura sont en A.2 ter, aucune famille à mesurer)
 8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
-1, 11, 12 → 13a → amendement et revue pilote → 13b-*
+1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
 3, 4, 5, 6, 7, 12, tous les 13b-* → 14
 ```
@@ -277,7 +278,14 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | 0 — ouverture du chantier | M | terminé | 2026-09-23 |
-| 1 — extraction, classification et amendement des périmètres | C+J | à faire | — |
+| 1a — extraction automatique des candidats | C | terminé | `c0407a5` / 2026-09-23 |
+| 1b — classification Blade Surge | J | à faire | — |
+| 1c1 — Tempest : amorces et noms partagés | J | à faire | — |
+| 1c2 — Tempest : effet Additional Attack, première moitié | J | à faire | — |
+| 1c3 — Tempest : effet Additional Attack, seconde moitié | J | à faire | — |
+| 1d — classification Blade Dancers | J | à faire | — |
+| 1e — formes et rendus des stats de combat | C | à faire | — |
+| 1f — réconciliation et proposition d'amendement | C+J | à faire | — |
 | 2a — classement des blocs et plan de découpage | C | à faire | — |
 | 2b — déplacement et repointage selon le plan validé | M | à faire | — |
 | 3 — plancher des conditions en « Libre » | M | à faire | — |
@@ -432,6 +440,12 @@ touche à aucun fichier de code.
 
 ### Lot 1 — les périmètres de famille, mesurés
 
+Le lot est désormais composé de l'extraction 1a, des six classifications
+bornées 1b à 1e, puis de la réconciliation 1f. Aucun lot 8, 9, 10 ou 11 ne
+démarre avant 1f, l'amendement pilote et sa revue.
+
+#### Lot 1a — extraction automatique des candidats
+
 **Cat. C pour l'extraction, J pour la classification des candidats.** Les valeurs sont fournies
 et consignées en A.2 ter. Ce qu'il produit, c'est la seule chose que ni la
 demande ni le CSV ne donnent toute faite — **la liste nominative des compétences et formes
@@ -453,13 +467,11 @@ candidats extraits (données utiles, provenance, textes de compétence).
 Avant cette lecture, mesurer son volume ; si plus de 800 lignes sont à
 examiner, le pilote crée des sous-lots de classification bornés avant exécution.
 
-**Sortie :** `controle-1.md`, une section par mécanique, chacune portant : la
-requête d'extraction exacte, la liste des formes et compétences (monstre, élément,
-`com2usId` du sort, `coups`, `formule`, `note` de l'effet conditionnel), et le
-verdict **même mécanique / même architecture / hors famille / à documenter**
-pour chacun, avec identifiants uniques et liste de toutes les formes affectées.
+**Sortie :** `controle-1.md` et `corpus-lot-1.json`, avec les requêtes,
+compteurs séparés et candidats complets. Les verdicts automatiques restent
+`à documenter` : ils sont remplacés par les sous-lots de classification.
 
-**Passage obligatoire par le pilote :** après cette classification, amender
+**Passage obligatoire par le pilote :** après 1f, amender
 les nombres ET listes nominatives des contrats 8, 9, 10, 11 et du tableau A.7.
 Le résultat public du lot 1 cite cet amendement et sa revue. Aucun des quatre
 lots ne démarre avec les anciennes listes ; signaler un écart dans la preuve
@@ -504,6 +516,90 @@ pas la mesure.
 
 **Ne fait pas :** ne modifie aucun code de production, ne touche à `damage.ts`
 ni à aucune table `*_CONNUS`, ne décide d'aucun ratio (A.2 ter les fixe déjà).
+
+#### Résultat du lot 1a — 2026-09-23
+
+Extraction déterministe livrée par `c0407a5`. Le corpus fait **870 lignes
+utiles / 407 338 octets**, empreinte
+`e14d2259f1a7501dee37f34d15c1dbb4d042db31c334f870989b64f6a38d5f34` :
+le seuil de 800 impose la scission avant lecture humaine. Les compteurs sont
+Blade Surge **10/13/21**, Tempest **100/140/202**, Blade Dancers **6/6/12**
+et stats de combat **42/38/80**, dans l'ordre lignes d'audit / identifiants /
+formes ; les 40 configurations de stats sont retrouvées.
+
+La preuve `controle-1.md` est associée au reçu valide code `c0407a5` ↔ notes
+`ea309e7` (76 fichiers, empreinte `6f3dd6da5d98bffc…`). Le constat 313 reste
+à trancher : sa lacune parle d'un excédent stocké pour le prochain S3, pas
+d'une attaque déclenchée. Aucune classification humaine n'est encore acquise.
+
+#### Contrat commun des lots 1b à 1e
+
+Intrant figé : `corpus-lot-1.json` à l'empreinte ci-dessus. Chaque sous-lot
+ne lit que ses enregistrements `decisions`, `competences`, `formes`,
+`lignesAudit` et, pour 1e, `configurations`. Il produit
+`decisions-lot-<sous-lot>.json` et `controle-<sous-lot>.md`, avec un verdict
+sourcé par couple `(famille, skillCom2usId)` : **même mécanique / même
+architecture / hors famille / à documenter**. Une ressemblance de nom, de
+prose ou d'effet ne suffit jamais. Aucun ratio n'est étendu.
+
+Chaque preuve cite les données lues, toutes les formes affectées et les
+incertitudes. Pas de code de production ni de modification du script ; une
+erreur d'extraction rouvre 1a. Chaque sous-lot validé suit `livrer` →
+`verifier` → `integrer` avant le suivant.
+
+#### Lot 1b — Blade Surge
+
+**Cat. J.** Les 13 identifiants candidats de `famille = bladeSurge` :
+`10601`, `10602`, `10603`, `10604`, `10605`, `10616`, `10618`, `10620`,
+`11015`, `18314`, `23507`, `23508`, `23510`. Volume maximal mesuré :
+69 enregistrements / 28 674 octets, chevauchements inter-familles inclus.
+Les constats 151, 163, 173 et 180 restent distingués.
+
+#### Lots 1c1 à 1c3 — Tempest et attaques supplémentaires
+
+**Cat. J.** Trois ensembles disjoints dans `famille = tempest` :
+
+- **1c1** : les 20 amorces des constats 164, 168, 178, 179, 313, plus les
+  deux candidats à nom partagé `6111` et `6176` — 22 identifiants,
+  97 enregistrements / 48 041 octets ; 313 reçoit un verdict explicite.
+- **1c2** : candidats restants découverts uniquement par l'effet
+  `Additional Attack`, triés par identifiant, positions **1 à 59** — au plus
+  235 enregistrements / 110 181 octets.
+- **1c3** : même liste triée, positions **60 à 118** — au plus
+  268 enregistrements / 125 670 octets.
+
+Le tri et les positions portent sur le corpus figé, jamais sur une nouvelle
+extraction. 1f vérifie que les trois ensembles retrouvent exactement les 140
+identifiants Tempest candidats sans doublon ni omission.
+
+#### Lot 1d — Blade Dancers
+
+**Cat. J.** Les six identifiants `14308`, `14310`, `14311`, `14808`,
+`14810`, `14811` — 30 enregistrements / 13 210 octets. Vérifier séparément
+les variantes trois et sept coups, les deux quantités de baisse d'ATB et le
+dernier coup inconditionnel ; ne pas valider les valeurs curées par simple
+relecture de la table initiale.
+
+#### Lot 1e — stats acquises en combat
+
+**Cat. C.** Les 38 identifiants / 40 configurations de
+`STATS_COMBAT_PAR_ID_CONNUS`, soit au plus 239 enregistrements /
+103 966 octets avec les chevauchements. Résoudre les 80 formes, la source et
+la branche de rendu de chaque configuration. « Présent dans la table » ne
+valide pas la valeur de jeu. Le calcul du constat 110 reste à prouver au lot
+11.
+
+#### Lot 1f — réconciliation et proposition d'amendement
+
+**Cat. C+J.** Intrants : les six fichiers de décisions et leurs preuves ; ne
+pas relire les 870 lignes brutes. Vérifier **197 couples famille/identifiant**
+(13 + 140 + 6 + 38), en autorisant qu'un identifiant apparaisse dans deux
+familles candidates. Aucun verdict ne reste absent ou contradictoire.
+
+Produire `controle-1f.md` avec les listes finales par mécanique, les formes,
+les incertitudes et le texte exact proposé pour les lots 8, 9, 10, 11 et
+A.7. Le pilote applique ensuite cet amendement et le fait revoir ; lui seul
+marque l'ensemble du lot 1 terminé.
 
 ### Lot 2a — classement des blocs et plan de découpage
 

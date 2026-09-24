@@ -69,9 +69,12 @@ Trois **cartes** numérotées `01 · 02 · 03` : exporter avec
 [SW Exporter](https://github.com/Xzandro/sw-exporter), déposer le fichier,
 préparer.
 
-⚠️ **Des cartes, pas des colonnes de texte nu** : un numéro posé au-dessus d'un
-paragraphe se lisait comme une note de bas de page. Le cadre, le numéro en
-pastille et l'icône colorée en font une **séquence qu'on suit du regard**.
+⚠️ **Une carte, pas des colonnes de texte nu** : un numéro posé au-dessus d'un
+paragraphe se lisait comme une note de bas de page. Depuis la refonte
+graphique (lot 5), les trois étapes vivent dans **une seule carte**,
+séparées par des filets (à gauche en colonnes, en haut une fois empilées) :
+une séquence qu'on lit de gauche à droite. Chaque étape : son numéro en
+chiffres de code, sa tuile d'icône, son titre, sa phrase.
 
 ### 5. Fonctionnalités
 
@@ -80,18 +83,40 @@ Grille **4 colonnes** de cartes **compactes** (icône, kicker, titre, une phrase
 ⚠️ Les anciennes `ToolCard` de 260 px de haut repoussaient tout le reste de la
 page hors de l'écran : à 7 entrées, la moitié des sections n'était jamais vue.
 
-| Carte | Route | Accent |
-|-------|-------|--------|
-| Préparation RTA | `#/rta` | `#A15FE0` |
-| Prépa d'un ami | `#/rta/ami` | `#D07FD8` |
-| Défenses et offenses | `#/siege/defense` | `#E4463A` |
-| Recommandations | `#/siege/recommandations` | `#5EDB8F` |
-| Analyse de runes | `#/compte/runes` | `#4AD8D8` |
-| Optimiseur de runes | `#/outils/optimizer` | `#FFA94D` |
-| Bestiaire | `#/bestiary` | `#2FA0E0` |
-| Mécaniques | `#/mecaniques` | `#8890B8` |
-| Nouveautés | `#/releases` | `#C79BFF` |
-| Arène classique | `#/arene` | `#F2C24C` — `soon` |
+| Carte | Route |
+|-------|-------|
+| Préparation RTA | `#/rta` |
+| Prépa d'un ami | `#/rta/ami` |
+| Défenses et offenses | `#/siege/defense` |
+| Recommandations | `#/siege/recommandations` |
+| Analyse de runes | `#/compte/runes` |
+| Analyse d'artéfacts | `#/compte/artefacts` |
+| Optimiseur de runes | `#/outils/optimizer` |
+| Speed tuning | `#/outils/speed-tuning` |
+| Bestiaire | `#/bestiary` |
+| Mécaniques | `#/mecaniques` |
+| Nouveautés | `#/releases` |
+| Arène classique | `#/arene` — `soon` |
+
+(La table avait oublié Analyse d'artéfacts et Speed tuning, présents dans la
+page ; relevé par le test de rendu du lot 5, `tests/rendu/accueil.test.tsx`,
+qui fixe désormais les douze cartes et leur ordre.)
+
+### Le style — refonte graphique, lot 5
+
+La structure ci-dessus est **gardée** (décision 10 de Thomas) ; seul le
+style change :
+
+- **Cartes de la refonte** : fond de panneau, contour discret
+  (`border-soft`), rayon 12 ; au survol, le fond s'appuie (`panel2`) et le
+  contour se précise. Plus de soulèvement ni de halo coloré.
+- **Icônes NEUTRES dans une tuile** (32 px, rayon 8, fond `panel2`) : les
+  teintes de section quittent l'accueil comme le menu (décision 3). Les
+  icônes d'élément du héros, rendus du jeu, gardent leur couleur.
+- **Le bouton du dernier appel est le `Bouton` principal plein** de la
+  librairie (décision 4).
+- Pastille de version : fond d'accent à 15 %, texte à l'**encre** — l'accent
+  sur ce fond tombait à 4,4:1 en Forge.
 
 ### 6. Dernier appel + quoi de neuf
 

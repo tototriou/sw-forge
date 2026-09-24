@@ -1,5 +1,10 @@
 // Couleur de SIGNATURE de chaque section et sous-section de l'app.
 //
+// ⚠️ **Refonte graphique (décision 3)** : ces teintes ont quitté la barre
+// latérale bureau (lot 4) et l'accueil (lot 5), qui sont neutres. Elles restent
+// sur la navigation du TÉLÉPHONE (onglets, panneau, barre du haut) jusqu'à son
+// lot (11). Ce qui suit décrit leur rôle d'origine.
+//
 // ⚠️ **Une seule source pour l'accueil ET la navigation.** L'accueil peint ses
 // cartes de cette couleur (HomePage), et la navigation (barre latérale, onglets
 // du bas, panneau mobile, barre supérieure) peint l'icône de la MÊME. Deux

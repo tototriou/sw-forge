@@ -51,6 +51,12 @@
     "retrait": "A.2 bis #12",
     "pourquoi": "Aperçu au survol à côté de la barre retiré : les sous-sections se déroulent sous leur entrée."
   },
+  "src/pages/HomePage.tsx :: texte:Importer mon compte": {
+    "de": "src/pages/HomePage.tsx",
+    "vers": "src/pages/HomePage.tsx",
+    "devient": "attr:libelle:Importer mon compte",
+    "pourquoi": "Lot 5, décision 4 : le bouton du dernier appel devient le Bouton principal plein de la librairie ; son texte passe par `libelle`."
+  },
   "src/components/SidebarCompte.tsx :: attr:title:Importer un export de compte SWEX": {
     "de": "src/components/SidebarCompte.tsx",
     "vers": "src/components/SidebarCompte.tsx",

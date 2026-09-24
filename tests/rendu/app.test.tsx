@@ -142,6 +142,11 @@ export function testRenduAppNavigation() {
   for (const nom of ['RTA', 'Mon compte', 'Runes', 'Outils', 'Ressources']) ok(tSiege.includes(nom), `dans le Siège : « ${nom} » reste visible`);
   ok(/aria-expanded="true"[^>]*>(?:(?!<\/button>)[\s\S])*Siège/.test(siege), 'l\'entrée « Siège » se dit déroulée');
   ok(!hrefs.includes('#/rta/ami'), 'les autres sections restent refermées');
+  // Chaque sous-section déroulée garde son icône (demandé par Thomas).
+  for (const h of ['#/siege/defense', '#/siege/offense', '#/siege/recommandations']) {
+    const lienSous = siege.match(new RegExp(`<a[^>]*href="${h}"[^>]*>[\\s\\S]*?</a>`))?.[0] ?? '';
+    ok(lienSous.includes('<svg'), `la sous-section ${h} porte son icône`);
+  }
   ok(tSiege.includes('Bientôt'), 'Arène porte « Bientôt », comme sa page');
 }
 

@@ -62,6 +62,9 @@ comme dans la maquette ». Relevé sur la maquette (`sidebar.txt`, `navjs.txt`,
 - badge « Bientôt » sur Arène (sa page l'annonce déjà) ;
 - Paramètres en pied, au gabarit des entrées, bascule inchangée.
 
+Écart voulu à la maquette : les sous-sections gardent leur **icône**
+(demandé par Thomas après essai, vérifié par le test de rendu).
+
 Non repris : le point « nouveau » sur Nouveautés (suivi du « lu » = un ajout,
 à décider). Logo : celui de l'app (`favicon.svg`), pas le losange de la
 maquette, qui en tenait lieu.

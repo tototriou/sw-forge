@@ -388,14 +388,18 @@ function SousSections({ section, retractee }: { section: SidebarSection; retract
                 key={s.key}
                 href={s.hash}
                 aria-current={s.actif ? 'page' : undefined}
-                className={`relative flex items-center rounded-lg py-1.5 pl-9 pr-2.5 text-sm transition-colors ${
+                className={`relative flex items-center gap-2 rounded-lg py-1.5 pl-9 pr-2.5 text-sm transition-colors ${
                   s.actif ? FOND_ACTIF : `text-ink-dim ${FOND_SURVOL}`
                 }`}
               >
                 {/* Le filet d'appartenance, dans l'axe de l'icône de l'entrée
                     parente (10 px de marge + la moitié d'une icône de 16). */}
                 <span aria-hidden className="absolute inset-y-0 left-[18px] w-px bg-border" />
-                {s.label}
+                {/* ⚠️ L'icône de la sous-section, comme avant la refonte —
+                    demandé par Thomas : la maquette n'en montrait pas, mais
+                    chaque vue a la sienne et elle se repère plus vite qu'un mot. */}
+                <span className="flex flex-none items-center">{s.icon}</span>
+                <span className="min-w-0 truncate">{s.label}</span>
               </a>
             )
           )}

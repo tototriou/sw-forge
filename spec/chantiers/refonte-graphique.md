@@ -259,7 +259,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 0 garde-fous : inventaire, chemins interdits, tests de rendu | C | exécuté | 2026-09-24 |
 | 1 décisions retenues (avec Thomas) | J | exécuté | 2026-09-24 |
 | 2 tokens : rayons, texte sur accent | J | exécuté | 2026-09-24 |
-| 3 `src/ui/` : rendu interne, API inchangée | J | à faire | |
+| 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
 | 4 coquille bureau : barre latérale, barre du haut | J | à faire | |
 | 5 Accueil | J | à faire | |
 | 6 RTA | J | à faire | |
@@ -412,6 +412,16 @@ tactile s'élargit par `cible-tactile`, pas en gonflant le dessin.
 chemins interdits, tests de rendu verts ; un test de rendu par composant de
 `src/ui/` qui porte un état (désactivé + raison, `aria-pressed`, `actif`),
 écrit AVANT de le modifier.
+
+**Résultat (2026-09-24)** — preuve [lot-3.md](refonte-graphique-preuves/lot-3.md).
+Tests de rendu de `src/ui/` écrits avant (`837efc0`), verts après sans
+changement. Bouton principal plein (combinaison inutilisée à ce jour : aucun
+écran ne change, les lots de zone le poseront) ; marqueur de filtre actif
+inversé dans une constante `MARQUEUR_FILTRE_ACTIF`. **Écart au périmètre
+« `src/ui/` seulement »** : `SetFilter`, `SlotFilter` et `FilterBar`
+importent ce marqueur — sinon des filtres voisins auraient porté deux
+marqueurs différents (règle de design.md). Comptes d'appels identiques.
+À regarder par Thomas : les icônes de set actives en thème sombre.
 
 ### B.4 Lot 4 — coquille bureau · J
 

@@ -112,8 +112,8 @@ affirmations contradictoires, notamment sur 411.
 | Cible du troisième coup de Blade Surge | Le coup de zone touche aussi la cible principale : elle reçoit donc les deux premiers coups mono-cible puis le troisième coup en zone | utilisateur, confirmation explicite du 2026-09-23 pour toute la famille retenue |
 | Tempest (Teshar) | `3.7 × ATQ`, **en zone**, déclenché après S1 **ou** S2 | utilisateur, **et** l'audit (3,7 ATQ, `other_skill=1181`) : deux sources concordantes |
 | Skillups de Tempest | Les trois améliorations `Damage +10%`, soit `+30 %`, s'appliquent aux dégâts de Tempest | utilisateur, confirmation explicite du 2026-09-23 |
-| Attaques supplémentaires conditionnelles | L'Optimizer ne tire jamais la probabilité : un interrupteur utilisateur inclut ou exclut la compétence supplémentaire, comme pour Tempest. Règle confirmée pour les S2/S3 des Maîtres ivres, Shoryuken et les chaînes de Kung Fu Girls ; chaque famille garde ses paramètres propres et doit être classée par le lot 1 | utilisateur, décision produit du 2026-09-23 |
-| Gabarits Martial Cat 2A | Les cinq formes génériques `47601` à `47605` ne correspondent à rien de jouable et sont entièrement ignorées | utilisateur, confirmation explicite du 2026-09-23 |
+| Attaques supplémentaires conditionnelles | L'Optimizer ne tire jamais la probabilité : un interrupteur utilisateur inclut ou exclut la compétence supplémentaire, comme pour Tempest. Règle confirmée pour les S2/S3 des Maîtres ivres, Shoryuken, les chaînes de Kung Fu Girls et Chain Effect de Vendhan. Pour Vendhan, la répétition vaut 50 % des dégâts ; le Silence réel à 25 % est hors calcul. Chaque famille garde ses paramètres propres et doit être classée par le lot 1 | utilisateur, décisions produit des 2026-09-23 et 2026-09-24 |
+| Formes génériques et non éveillées | Aucune forme non éveillée d'un monstre n'est sélectionnable dans l'Optimizer. Les cinq Martial Cat 2A génériques `47601` à `47605` ne correspondent en outre à rien de jouable. Ces formes sont entièrement ignorées, sauf quand leur identifiant de compétence est aussi porté par une forme jouable : le profil est alors conservé pour cette dernière seulement | utilisateur, confirmations explicites des 2026-09-23 et 2026-09-24 |
 | Stock de dégâts de Jin/Kai ténèbres | Lorsqu'un S3 élimine sa cible, l'excédent `max(0, dégâts infligés − PV restants)` devient un dégât fixe ajouté au prochain S3. Il ignore la DEF mais subit les réductions des dégâts fixes, est entièrement consommé puis remplacé par le nouvel excédent éventuel, sans plafond de jeu. L'Optimizer demande directement un stock `0..100000` à l'utilisateur ; cette borne de saisie n'est pas un plafond du jeu | utilisateur, valeurs et décision produit du 2026-09-23 |
 | Répétitions sans plafond connu | Scratch de Raoq, Sonic Boom d'Ermeda et Chain Fire utilisent un nombre total de coups saisi de `1` à `10`. Pour Raoq, l'utilisateur choisit après quel coup le break DEF réussit | utilisateur, décision produit du 2026-09-23 |
 | Déclenchements de Hwa et Jackie | Burning Whip répète exactement la S1 ou S2 initiale une fois, sans récursion, sur interrupteur. Exploding Hands répète une fois son ratio `7.4 × ATQ`, sur interrupteur, sans nouvelle tentative d'étourdissement | utilisateur, confirmation explicite du 2026-09-23 |
@@ -296,7 +296,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 1b — classification Blade Surge | J | terminé | 2026-09-23 |
 | 1c1 — Tempest : amorces et noms partagés | J | terminé | 2026-09-23 |
 | 1c2 — Tempest : effet Additional Attack, première moitié | J | terminé | `eaf8520` / 2026-09-24 |
-| 1c3 — Tempest : effet Additional Attack, seconde moitié | J | à faire | — |
+| 1c3 — Tempest : effet Additional Attack, seconde moitié | J | terminé | `1742488` + amendement pilote / 2026-09-24 |
 | 1c4 — classification du complément de 1a2 | J | terminé | 2026-09-24 |
 | 1d — classification Blade Dancers | J | à faire | — |
 | 1e — formes et rendus des stats de combat | C | à faire | — |
@@ -739,6 +739,29 @@ hors famille : elles ne sont portées que par les formes génériques `16901` à
 par l'utilisateur. Cette exclusion ne modifie ni les profils ni les chaînes
 des cinq formes nommées. Preuves : `decisions-lot-1c4.json`,
 `controle-1c4.md` et `valider-lot-1c4.mjs`.
+
+**Résultat amendé du lot 1c3, validé le 2026-09-24.** Les 59 couples sont
+réconciliés : **23 relèvent de la même architecture, 36 sont hors famille,
+0 de la même mécanique et 0 restent à documenter**. Improvisation `15513`
+de Dominic rejoint l'architecture des contributions passives déjà livrées :
+le calcul existant applique un dégât fixe de `2.0 × ATQ` au-dessus de 50 % de
+PV et de `1.0 × ATQ` sinon, sans facteur de DEF. Chain Effect `18112` sort du
+périmètre car il n'est porté que par Indra feu générique `28302`, non
+sélectionnable ; les Vendhan jouables `18132` et `18212` répètent, eux, la
+compétence à 50 % de ses dégâts, le Silence à 25 % restant hors calcul.
+
+Hwoarang et Taebaek sont deux habillages des mêmes monstres. Feu : Backlash
+`22502` correspond à Triple Kick `23002`, Hunting Hawk `22507` à Roundhouse
+Kick Combo `23007`, et Blood Talon `22512` à Heaven's Might `23012`. Sur S1,
+un interrupteur ajoute S2 ; sur S2, le scénario choisit S1 avant ou S2 après.
+La première pose réussie de Marque dans la chaîne de six coups se choisit
+entre aucune et les coups 1 à 5. Ténèbres : Backlash `22505` correspond à
+Triple Kick `23005`, Hunting Hawk `22510` à Roundhouse Kick Combo `23010`, et
+un interrupteur de S2 choisit si S1 frappe avant. Trinity Claymore `22515` et
+Endless Kick Combo `23015` appellent S1 puis S2, dans cet ordre, avant trois
+coups utilisant chacun leur ratio propre `0.8 × ATQ`. Les formes génériques
+associées à ces identifiants restent ignorées. Preuves :
+`decisions-lot-1c3.json`, `controle-1c3.md` et `valider-lot-1c3.mjs`.
 
 #### Lot 1d — Blade Dancers
 

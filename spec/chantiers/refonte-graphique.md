@@ -132,6 +132,19 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
 10. **Accueil : on garde l'accueil actuel, restylé** (héros, zone de dépôt,
     « Ton espace », comment ça marche, fonctionnalités, version). La
     maquette « sommaire » n'est pas retenue.
+11. **Menu bureau comme la maquette** — demandé par Thomas le 2026-09-24,
+    après le premier passage du lot 4 (« je veux que tu fasses le menu comme
+    dans la maquette ») : repli en tête à côté du logo, carte du compte
+    (nom, date d'export, nombre de monstres ; la carte importe), recherche
+    avec l'indication `Ctrl K`, intitulés de groupe en capitales, badge
+    « Bientôt » sur Arène, Paramètres en pied, et surtout **les
+    sous-sections se déroulent SOUS leur entrée** au lieu de remplacer la
+    liste. Le bouton « ‹ Section — revenir à toutes les sections » disparaît
+    avec le second niveau qu'il remontait — [retrait #11] décidé par Thomas
+    le 2026-09-24 (conséquence de la demande : toutes les sections restent
+    visibles, il n'y a plus de niveau à remonter). Non repris : le point
+    « nouveau » sur Nouveautés, qui demanderait de suivre ce qui a été lu —
+    un ajout, à décider.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur
@@ -447,6 +460,15 @@ Ressources), icônes monochromes, Meules et Gemmes hors du menu ; structure
 propre au bureau, le téléphone inchangé. Barre du haut non retouchée (rien
 n'y était décidé). Premier changement de NATURE d'une entrée d'inventaire :
 `deplacements.json` gagne le champ `devient`.
+
+**Second passage (2026-09-24)** — décision 11, « le menu comme dans la
+maquette ». Le contrat « même logique de niveau » est levé par Thomas : les
+sous-sections se déroulent sous leur entrée (la page ne change toujours
+qu'au choix d'une destination) ; carte du compte en tête, `Ctrl K`,
+Paramètres en pied, badge « Bientôt ». Un retrait, [retrait #11] (le retour
+de second niveau). Assertions des tests d'avant inchangées, 14 ajoutées ;
+deux contrôles de source de `navigation.test.ts` suivent le mécanisme.
+Détail dans la preuve.
 
 ### B.5 à B.10 — écrans bureau · J
 

@@ -7,8 +7,8 @@
 
 Calcul des **dégâts d'un sort précis** d'un monstre précis contre un
 adversaire configuré. Brique de calcul pure, sans état ni rendu :
-[damage.ts](src/lib/damage.ts), vérifiée par
-[tests/degats.test.ts](tests/degats.test.ts).
+[damage.ts](../../src/lib/damage.ts), vérifiée par
+[tests/degats.test.ts](../../tests/degats.test.ts).
 
 Consommée par l'objectif de recherche **« Dégâts réels »** de l'Optimizer
 (comportement d'écran : [optimizer.md](optimizer.md)). Ce fichier-ci décrit

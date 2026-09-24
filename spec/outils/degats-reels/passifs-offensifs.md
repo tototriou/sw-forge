@@ -13,11 +13,11 @@ Dominic…). `monsterOffensivePassives(detail)` les détecte et
 `computeTotalDamage(profil, passifs, stats, setup, élément)` additionne leur
 contribution à celle du sort de base — c'est elle, et non `computeSkillDamage`
 seul, que consomme l'objectif « Dégâts réels » (`objectiveScore`,
-[runeBuildOptim.ts](src/lib/runeBuildOptim.ts)) dès qu'au moins un passif est
+[runeBuildOptim.ts](../../../src/lib/runeBuildOptim.ts)) dès qu'au moins un passif est
 reconnu.
 
 ⚠️ **Curation à la main, jamais une extraction automatique** —
-`PASSIFS_OFFENSIFS_CONNUS` ([damage.ts](src/lib/damage.ts)) est une liste
+`PASSIFS_OFFENSIFS_CONNUS` ([damage.ts](../../../src/lib/damage.ts)) est une liste
 explicite de passifs vérifiés, par leur `Competence.nom` SWARFARM exact. La
 **formule elle-même** reste toujours lue en direct depuis les données (même
 parseur, même discipline tout-ou-rien que le sort actif) — seule l'
@@ -214,7 +214,7 @@ mais 6 n'est que le cas pleine vie) : aucune extraction automatique fiable
 n'est possible.
 
 ⚠️ **Même discipline de curation que `PASSIFS_OFFENSIFS_CONNUS`** —
-`COUPS_VARIABLES_CONNUS` ([damage.ts](src/lib/damage.ts)) associe un
+`COUPS_VARIABLES_CONNUS` ([damage.ts](../../../src/lib/damage.ts)) associe un
 `Competence.nom` exact à une plage `{ min, max, defaut? }`, à la main,
 jamais déduite du texte anglais libre. Sert aussi bien un sort actif
 (`skillDamageProfile`) qu'un passif (`monsterOffensivePassives`) — même
@@ -480,9 +480,9 @@ par vol d'effet bénéfique, jusqu'à +150 %, 15 fois).
 **réellement** travailler — les variables de sa formule, plus les Dgts Crit
 (sauf sur un sort à dégâts fixes, qui ne critent pas). C'est ce qui oriente
 le pré-filtrage de la recherche (`OBJECTIVE_RELEVANT_STATS`, voir
-[optimizer.md](optimizer.md)).
+[optimizer.md](../optimizer.md)).
 
 ⚠️ **Source UNIQUE**, appelée par l'écran **et** par la relecture d'une
 recette en ligne de commande — deux calculs séparés divergeraient en
 silence, sans que `tsc` puisse le voir (voir
-[README.md](../README.md), « Conventions communes »).
+[README.md](../../README.md), « Conventions communes »).

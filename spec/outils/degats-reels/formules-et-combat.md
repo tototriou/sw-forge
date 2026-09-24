@@ -8,7 +8,7 @@
 ## Principe directeur — ne jamais redemander ce qu'on sait déjà
 
 Les données SWARFARM (`public/data/skills/<com2usId>.json`, voir
-[donnees-monstres.md](../shared/donnees-monstres.md)) portent **déjà**
+[donnees-monstres.md](../../shared/donnees-monstres.md)) portent **déjà**
 l'essentiel. Sont donc **déduits, jamais saisis** :
 
 | Ce qu'on déduit | D'où |
@@ -38,7 +38,7 @@ la prose ni la valeur de `coups` prise seule ne sont des preuves fiables.
 
 ⚠️ **La compétence est supposée MAXÉE**, comme partout ailleurs dans l'app
 (même parti pris que `paliersRechargement`, voir
-[monsterSkills.ts](src/lib/monsterSkills.ts)) : les `Damage +X%` sont tous
+[monsterSkills.ts](../../../src/lib/monsterSkills.ts)) : les `Damage +X%` sont tous
 comptés.
 
 Ne restent donc à saisir que ce qu'aucune donnée ne peut savoir :
@@ -102,7 +102,7 @@ multiplier entre eux — c'est exactement l'erreur commise sur les lignes
 
 ## L'équation
 
-Reprend celle de [../mecaniques.md](../mecaniques.md) :
+Reprend celle de [../../mecaniques.md](../../mecaniques.md) :
 
 ```
 Dégâts = ( Mult × Crit × FacteurDéf + Additionnel ) × Réductions × coups
@@ -121,14 +121,14 @@ Dégâts = ( Mult × Crit × FacteurDéf + Additionnel ) × Réductions × coups
 - **FacteurDéf** — `1000 / (1140 + 3,5 × DEF_effective)`, avec
   `DEF_effective = DEF_ennemie × (0 si ignore défense) × (0,3 si réduction
   de défense)`. ⚠️ **Source unique du facteur de défense pour toute l'app** :
-  `objectiveScore('ehp')` ([runeBuildOptim.ts](src/lib/runeBuildOptim.ts))
+  `objectiveScore('ehp')` ([runeBuildOptim.ts](../../../src/lib/runeBuildOptim.ts))
   importe ces mêmes constantes plutôt que d'en garder une copie.
 - **Additionnel** — un sort à **dégâts fixes** passe par cette branche : ni
   critique, ni facteur de défense.
 - **Réductions** — `+25 %` si la **marque** (Branding) est active.
 
 **Effets de combat modélisés** (potences de base, tronquées vers le bas
-comme le décrit [../mecaniques.md](../mecaniques.md) ; aucun bonus d'effet
+comme le décrit [../../mecaniques.md](../../mecaniques.md) ; aucun bonus d'effet
 n'est exposé en v1) : buff d'attaque **+50 %**, buff de défense **+70 %**,
 buff de vitesse **+30 %**, réduction de défense **×0,3**, marque **+25 %**.
 
@@ -156,7 +156,7 @@ combinaison qui n'existe pas en jeu.
 
 ⚠️ **Le pourcentage porte sur la statistique de BASE**, pas sur le total
 runé — même modèle que le totem de vitesse déjà en place (`pctSpeedBonus`,
-[speed.ts](src/lib/speed.ts) ; le totem entre dans le `Σ%vit` appliqué à la
+[speed.ts](../../../src/lib/speed.ts) ; le totem entre dans le `Σ%vit` appliqué à la
 base). Un build à grosse ATQ runée n'en tire donc pas plus qu'un build nu de
 même base. Les **Dgts Crit**, eux, sont des **points** ajoutés à la stat
 (150 % → 175 %), pas un pourcentage de celle-ci.

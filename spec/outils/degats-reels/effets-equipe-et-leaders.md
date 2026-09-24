@@ -78,7 +78,7 @@ monstre, aucun `RealDamageContext` supplémentaire.
   ⚠️ **Sa place est RÉSERVÉE d'avance, il n'APPARAÎT pas.** Rendu sous
   condition, il poussait toute la rangée de vignettes vers le bas au moment
   même où on cliquait Velaska — un clic qui déplace ce qu'on vient de
-  cliquer, interdit par [../shared/design.md](../shared/design.md). Signalé
+  cliquer, interdit par [../../shared/design.md](../../shared/design.md). Signalé
   à l'usage. La rangée existe donc en permanence et garde sa hauteur ; seul
   son contenu se révèle. `invisible` et non `hidden`, avec `aria-hidden` et
   le champ désactivé : la place est tenue sans qu'on puisse tabuler dans un
@@ -128,7 +128,7 @@ défaut corrigé. Elle disparaît dès qu'on choisit autre chose.
 ⚠️ **Une GRILLE dont toutes les places sont tenues d'avance** — libellé
 (« Lead », abrégé pour la largeur), icône, menus. Trois choses y bougeaient au
 moindre clic, et c'est le même défaut trois fois
-([../shared/design.md](../shared/design.md), « un clic ne déplace jamais ce
+([../../shared/design.md](../../shared/design.md), « un clic ne déplace jamais ce
 qu'on vient de cliquer ») :
 
 1. le menu de la **valeur** se dépliait **à droite** du type, élargissant le

@@ -319,6 +319,18 @@ Un champ en tête de la barre, `⌘K` depuis n'importe où.
 Trois zones : l'identité à gauche, **où l'on est** au centre, ce qui **sort** à
 droite.
 
+⚠️ **Sur BUREAU, « où l'on est » est un FIL D'ARIANE à gauche**, plus le
+titre centré (refonte graphique, lot 4, 2026-09-24) : le chemin du menu
+jusqu'à la page — intitulé de groupe, entrée, sous-section (« Jouer › Siège ›
+Défense », « Mon compte › Runes › Liste »), texte 13, les étapes en
+`ink-dim`, la dernière en `ink` semi-gras, sans icône. Relevé par Thomas :
+le titre centré en Cinzel, icône colorée, « n'est pas raccord avec le menu ».
+⚠️ Le fil est **tiré de `groupesBureau`** (`filBureau` dans `App.tsx`),
+jamais ressaisi : il ne peut pas contredire la barre latérale. Une vue hors
+menu (Meules, Gemmes) garde son nom ; une page hors menu (Paramètres), son
+titre seul. Le **titre centré reste celui du téléphone** (`lg:hidden`) —
+lot 11. Gardé par `testRenduAppFil` ([tests/rendu/app.test.tsx](tests/rendu/app.test.tsx)).
+
 ⚠️ **Le contenu de la zone droite diffère selon le format** — c'est l'un des
 endroits où les deux se séparent (voir
 [deux-applications.md](deux-applications.md)) :

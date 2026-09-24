@@ -1063,6 +1063,23 @@ export default function App() {
     sectionOuverte?.titre ??
     entreeCourante?.label ??
     (route === 'parametres' ? 'Paramètres' : 'SW Forge');
+  // Fil d'Ariane de la barre du haut, BUREAU : le chemin du menu bureau jusqu'à
+  // la page — intitulé de groupe, entrée, sous-section (« Jouer › Siège ›
+  // Défense », « Mon compte › Runes › Liste »). ⚠️ Tiré de `groupesBureau`,
+  // jamais ressaisi : il ne peut pas contredire la barre latérale. Une vue
+  // HORS menu (Meules, Gemmes — [retrait #6]) garde son nom par `compteVue`.
+  // Hors menu tout court (Paramètres) : le titre seul.
+  const filBureau: string[] = (() => {
+    for (const g of groupesBureau) {
+      const l = g.liens.find((x) => x.actif);
+      if (!l) continue;
+      const sous =
+        l.ouvre?.groupes.flatMap((x) => x.liens).find((s) => s.actif)?.label ??
+        (l.ouvre && compteVue ? compteVue : undefined);
+      return [g.titre, l.label, sous].filter((x): x is string => !!x);
+    }
+    return [titreSection];
+  })();
   // ⚠️ Deux branches : l'icône d'inventaire (`InventaireIcon`, au trait comme le
   // reste) et la vue de siège (lucide) n'ont pas la même API — mais le MÊME style.
   const iconeSection = compteSub ? (
@@ -1262,6 +1279,7 @@ export default function App() {
       <TopBar
         titre={titreSection}
         icone={iconeSection}
+        fil={filBureau}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
         // ⚠️ Le burger n'apparaît que sur les pages qui ONT des actions : un
         // bouton qui ouvre un panneau vide est pire que pas de bouton.

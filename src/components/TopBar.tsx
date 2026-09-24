@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { LogOut, Settings } from 'lucide-react';
+import { Fragment, ReactNode } from 'react';
+import { ChevronRight, LogOut, Settings } from 'lucide-react';
 
 // Barre SUPÉRIEURE, fixe.
 //
@@ -27,6 +27,7 @@ import { LogOut, Settings } from 'lucide-react';
 export default function TopBar({
   titre,
   icone,
+  fil,
   gauche,
   onDeconnexion,
   parametresActifs,
@@ -40,6 +41,9 @@ export default function TopBar({
   // a cliquée, la retrouver ici confirme qu'on est au bon endroit. Elle prend
   // l'accent contextuel, comme partout ailleurs.
   icone?: ReactNode;
+  // Fil d'Ariane du BUREAU (groupe › section › sous-section), qui y remplace
+  // `titre` et `icone`. Tiré du menu bureau par l'appelant.
+  fil?: string[];
   gauche?: ReactNode;
   // Efface les données de l'appareil — « Se déconnecter » en attendant que les
   // comptes vivent en base. ⚠️ Bureau seulement (voir plus bas).
@@ -96,13 +100,37 @@ export default function TopBar({
           // gouttière), 60 px à gauche pour le logo. Au-dessus de `lg` le logo
           // vit dans la barre latérale : la marge gauche retombe à celle du
           // conteneur. `truncate` finit le travail sur « Recommandations ».
+          // ⚠️ `lg:hidden` : le titre centré est celui du TÉLÉPHONE. Sur bureau,
+          // c'est le fil d'Ariane ci-dessous (refonte graphique, lot 4).
           className="pointer-events-none absolute inset-y-0 left-[60px] right-[56px] flex
                      items-center justify-center gap-2 font-display text-base
-                     tracking-wide text-ink lg:left-3"
+                     tracking-wide text-ink lg:hidden"
         >
           {icone && <span className="flex-none text-ctx">{icone}</span>}
           <span className="truncate">{titre}</span>
         </span>
+
+        {/* BUREAU — le FIL D'ARIANE, à gauche, comme dans la maquette : le
+            chemin du menu jusqu'à la page (« Mon compte › Runes › Liste »),
+            en police de texte, sans icône. Relevé par Thomas : le titre
+            centré (Cinzel, icône colorée) « n'est pas raccord avec le menu ».
+            ⚠️ Construit par l'appelant À PARTIR DU MENU lui-même, jamais
+            ressaisi : le fil ne peut pas contredire la barre latérale. */}
+        {fil && fil.length > 0 && (
+          <nav aria-label="Fil d'Ariane" className="hidden min-w-0 items-center gap-1.5 text-sm lg:flex">
+            {fil.map((etape, i) => (
+              <Fragment key={i}>
+                {i > 0 && <ChevronRight size={14} aria-hidden className="flex-none text-ink-dimmer" />}
+                <span
+                  aria-current={i === fil.length - 1 ? 'page' : undefined}
+                  className={`truncate ${i === fil.length - 1 ? 'font-semibold text-ink' : 'text-ink-dim'}`}
+                >
+                  {etape}
+                </span>
+              </Fragment>
+            ))}
+          </nav>
+        )}
 
         {/* ⚠️ **Zone droite : un contenu par format, et strictement un.**
 

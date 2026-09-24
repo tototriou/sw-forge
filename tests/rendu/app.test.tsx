@@ -150,6 +150,28 @@ export function testRenduAppNavigation() {
   ok(tSiege.includes('Bientôt'), 'Arène porte « Bientôt », comme sa page');
 }
 
+// Fil d'Ariane de la barre du haut, bureau : le chemin du menu jusqu'à la page.
+export function testRenduAppFil() {
+  titre('rendu · App — le fil d\'Ariane bureau suit le menu');
+  const FILS: [string, string][] = [
+    ['#/', 'Accueil'],
+    ['#/siege/defense', 'Jouer Siège Défense'],
+    ['#/rta/ami', 'Jouer RTA Ami'],
+    ['#/arene', 'Jouer Arène'],
+    ['#/compte/monstres/liste', 'Mon compte Monstres'],
+    ['#/compte/runes/liste', 'Mon compte Runes Liste'],
+    // Vue hors menu ([retrait #6]) : elle garde son nom.
+    ['#/compte/runes/meules', 'Mon compte Runes Meules'],
+    ['#/outils/speed-tuning', 'Outils Speed tuning'],
+    ['#/bestiary', 'Ressources Bestiaire'],
+    ['#/parametres', 'Paramètres'],
+  ];
+  for (const [hash, attendu] of FILS) {
+    const fil = rendreApp(hash).match(/<nav aria-label="Fil d(?:'|&#x27;)Ariane"[\s\S]*?<\/nav>/)?.[0] ?? '';
+    egal(texteVisible(fil), attendu, `${hash} → « ${attendu} »`);
+  }
+}
+
 export function testRenduAppMobile() {
   titre('rendu · App — onglets mobiles inchangés (lot 4 = bureau seulement)');
   for (const hash of ['#/', '#/siege/defense', '#/compte/runes/liste']) {

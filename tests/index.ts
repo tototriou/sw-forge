@@ -68,7 +68,7 @@ import {
 } from './refonte-inventaire.test';
 import { testRenduSiegeDefense, testRenduSiegeOffense } from './rendu/siege.test';
 import { testRenduUiBouton, testRenduUiEtats } from './rendu/ui.test';
-import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile } from './rendu/app.test';
+import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil } from './rendu/app.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -108,6 +108,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduAppRoutes', testRenduAppRoutes],
   ['testRenduAppNavigation', testRenduAppNavigation],
   ['testRenduAppMobile', testRenduAppMobile],
+  ['testRenduAppFil', testRenduAppFil],
   ['testImport', testImport],
   ['testNavigation', testNavigation],
   ['testReco', testReco],

@@ -288,7 +288,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 1 décisions retenues (avec Thomas) | J | exécuté | 2026-09-24 |
 | 2 tokens : rayons, texte sur accent | J | exécuté | 2026-09-24 |
 | 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
-| 4 coquille bureau : barre latérale, barre du haut | J | exécuté | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), 2026-09-24 |
+| 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par Thomas le 2026-09-25 |
 | 5 Accueil | J | à faire | |
 | 6 RTA | J | à faire | |
 | 7 Siège | J | à faire | |
@@ -480,6 +480,14 @@ Paramètres en pied, badge « Bientôt ». Un retrait, [retrait #11] (le retour
 de second niveau). Assertions des tests d'avant inchangées, 14 ajoutées ;
 deux contrôles de source de `navigation.test.ts` suivent le mécanisme.
 Détail dans la preuve.
+
+**Ajustements et validation (2026-09-24 → 25)** — huit demandes de Thomas
+après essai, un commit chacune (`f285763`…`79066a8`, tableau dans la
+preuve) : icônes des sous-sections gardées, teintes de section écartées
+(décision 3 précisée), groupes séparés par un filet et un intitulé en
+accent, aperçu au survol retiré ([retrait #12]), résultats de recherche et
+fil d'Ariane bureau au gabarit du menu. **Validé sur bureau le 2026-09-25.**
+Le téléphone n'a pas été regardé : inchangé ici, il se vérifie au lot 11.
 
 ### B.5 à B.10 — écrans bureau · J
 

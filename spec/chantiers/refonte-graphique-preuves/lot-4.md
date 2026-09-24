@@ -94,6 +94,30 @@ $ npm run build                               → built ; bg-ink/10,
   hoverable:bg-ink/5, left-[18px], transition-[width] présentes dans le CSS
 ```
 
+## Ajustements après essai (2026-09-24), validés le 2026-09-25
+
+Chaque demande de Thomas, un commit :
+
+| Demande | Commit | Effet |
+|---|---|---|
+| « remets les icons sur les sous-sections » | `f285763` | icônes des sous-sections (écart voulu à la maquette) |
+| « un peu de couleur… » | `23fbf0b` | teintes de section sur les icônes — **écarté** ensuite |
+| précision : couleur principale | `8bb94cd` | icônes neutres ; trait d'accent devant l'entrée courante — **retiré** ensuite (malentendu) |
+| « les sections séparées de manière plus visible » | `4a492bc` | filet entre les groupes, intitulé en accent |
+| « supprime le popup à droite du menu » | `a09f2d4` | aperçu au survol retiré — [retrait #12] |
+| « la recherche n'a pas le rendu du menu » | `4359b9b` | résultats au gabarit exact d'une entrée |
+| « lignes des sous-sections et zone de sélection » | `608c91c` | un filet continu à gauche du bloc |
+| « le titre de la page pas raccord avec le menu » | `79066a8` | fil d'Ariane bureau tiré du menu (`testRenduAppFil`) |
+
+Dernier état vérifié : `tsc` 0 ; `node tests/run.mjs rendu refonte
+navigation` → 204 vérifications passées ; inventaire sans perte ; chemins
+interdits vides ; spec-lint propre ; build OK.
+
+**Validé par Thomas le 2026-09-25, sur bureau** (« ok c'est good »). Le
+téléphone n'a pas été regardé — il n'a pas changé au lot 4 (onglets et
+panneau mobiles inchangés, titre centré gardé en `lg:hidden`), et il a son
+propre lot (11), où cette vérification reste à faire.
+
 ## À regarder sur le serveur de dev (non testable)
 
 - Le panneau de survol à côté de la barre (RTA, Siège, Runes, Artéfacts

@@ -106,7 +106,10 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
   accent: {
     nu: 'text-ink hoverable:brightness-110',
     doux: 'text-ink hoverable:brightness-110',
-    plein: 'text-ink hoverable:brightness-110',
+    // Bouton PRINCIPAL (refonte graphique, décision 4) : texte `accent-ink`
+    // sur l'aplat d'accent — blanc en Atelier, fond sombre en Forge, où le
+    // blanc tombait sous le seuil (3.18). Voir design.md § Accent.
+    plein: 'text-accent-ink hoverable:brightness-110',
   },
   // `text-white` et non `text-ink` : sur l'aplat d'alerte, l'encre du thème
   // clair n'aurait pas le contraste, et cet aplat est le même dans les deux.
@@ -119,7 +122,10 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
 
 const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
   neutre: { vide: 'bg-transparent', doux: 'bg-panel', plein: 'bg-panel2' },
-  accent: { vide: 'bg-transparent', doux: 'bg-accent-soft', plein: 'bg-accent-soft' },
+  // ⚠️ `plein` est un VRAI aplat d'accent depuis la refonte (décision 4) : le
+  // bouton principal d'un écran, un seul par écran. Il valait `accent-soft`,
+  // comme `doux` — l'app n'avait aucun bouton principal qui ressorte.
+  accent: { vide: 'bg-transparent', doux: 'bg-accent-soft', plein: 'bg-accent' },
   // ⚠️ `plein` est OPAQUE, pas une opacité de plus que `doux` : c'est le cran
   // des actions posées SUR autre chose (la croix au coin d'une carte), où un
   // fond translucide laisserait passer l'image dessous et rendrait l'icône

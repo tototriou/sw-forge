@@ -67,6 +67,13 @@ Les axes se **choisissent séparément et se combinent** :
 > `danger` : c'est le cran des actions posées SUR autre chose, où un fond
 > translucide laisse passer l'image dessous.
 >
+> ⚠️ **`ton="accent"` + `fond="plein"` est le BOUTON PRINCIPAL** : un aplat
+> d'accent, texte `accent-ink` (blanc en Atelier, fond sombre en Forge —
+> mesurés, `design.md` § Accent). **Un seul par écran** : l'action qu'on vient
+> faire. Il valait `accent-soft` comme `doux` jusqu'à la refonte graphique
+> (décision 4 de Thomas, 2026-09-24) — l'app n'avait aucun bouton principal
+> qui ressorte. `BoutonGroupe` suit la même règle.
+>
 > ⚠️ Corollaire : **ne jamais peindre un fond en `className`.** Le composant ne
 > peut pas le savoir, et choisit alors la couleur de contenu du fond nu.
 
@@ -294,9 +301,14 @@ fois.
 > qui n'est pas une pastille de filtre passe par ici ») avant qu'elle existe.
 
 > ⚠️ **Un seul marqueur d'état, deux schémas jamais mêlés dans une rangée.** Sans
-> `couleurs`, l'état actif prend l'**accent** de l'app — c'est le cas de filtres
-> qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
+> `couleurs`, l'état actif prend le marqueur de filtre de l'app — c'est le cas de
+> filtres qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
 > rassemble, là où trois surbrillances se liraient comme trois natures de filtre.
+> Ce marqueur est la **couleur inversée** (fond d'encre, texte couleur de page ;
+> refonte graphique, décision 9 de Thomas, 2026-09-24) et vit dans une constante
+> exportée, `MARQUEUR_FILTRE_ACTIF` : les filtres qui ne passent pas par
+> `Pastille` (sets, emplacements, étoiles du Bestiaire) l'importent, pour porter
+> EXACTEMENT le même.
 > Avec `couleurs`, l'**appelant porte la teinte** (l'élément a la sienne, un
 > token partagé avec le Bestiaire via `elementStyles.ts`), exactement comme la
 > `teinte` d'une `Vignette` : la couleur est une DONNÉE de l'appelant, jamais une

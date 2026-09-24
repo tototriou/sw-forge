@@ -9,6 +9,8 @@
 // ⚠️ **Pas de bouton « ✕ tout ».** Six cases se décochent d'un geste, une par
 // une ; un raccourci de remise à zéro n'y gagnait rien et alourdissait la barre
 // (là où il reste utile côté SETS, qui en aligne vingt-cinq).
+import { MARQUEUR_FILTRE_ACTIF } from '../../ui/Pastille';
+
 const SLOTS = [1, 2, 3, 4, 5, 6];
 
 export default function SlotFilter({
@@ -47,12 +49,11 @@ export default function SlotFilter({
               className={`w-7 h-7 rounded-md border text-xs font-mono font-semibold transition select-none
                 ${
                   active
-                    ? // ⚠️ Marqueur d'état UNIQUE de l'app (voir spec/shared/design.md) :
-                      // contour d'accent + fond très léger. Le même que la pastille
-                      // « Antiques » de la même rangée et que les filtres de Ma box —
-                      // deux marqueurs différents côte à côte se liraient comme deux
-                      // natures de filtre.
-                      'bg-accent-soft border-accent text-ink'
+                    ? // ⚠️ Marqueur d'état UNIQUE des filtres (voir spec/shared/design.md),
+                      // importé de `Pastille` : le même que les filtres de Ma box et
+                      // des sets — deux marqueurs différents côte à côte se liraient
+                      // comme deux natures de filtre.
+                      MARQUEUR_FILTRE_ACTIF
                     : 'border-transparent text-ink-dim hoverable:text-ink hoverable:bg-panel2'
                 }`}
             >

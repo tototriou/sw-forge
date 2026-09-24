@@ -4,6 +4,7 @@ import { RuneDetail, RUNE_SETS } from '../../types';
 import RuneIcon from '../RuneIcon';
 import { runeSetIconFilter } from '../../lib/effects';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
+import { MARQUEUR_FILTRE_ACTIF } from '../../ui/Pastille';
 
 // Filtre multi-sélection par set de runes, **icônes seules**.
 //
@@ -64,7 +65,7 @@ export default function SetFilter({
             className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none
               ${
                 toutSelectionne
-                  ? 'bg-accent-soft border-transparent'
+                  ? MARQUEUR_FILTRE_ACTIF
                   : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
               }`}
           >
@@ -97,7 +98,7 @@ export default function SetFilter({
                   // n'ont pas de contour, en faire apparaître un à la sélection
                   // ajouterait un second marqueur — c'est le fond qui parle.
                   active
-                    ? 'bg-accent-soft border-transparent'
+                    ? MARQUEUR_FILTRE_ACTIF
                     : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
                 }`}
             >

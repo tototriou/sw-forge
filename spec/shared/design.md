@@ -134,13 +134,15 @@ filtres sont posés.
 | Support | Marqueur | Pourquoi pas l'autre |
 |---------|----------|----------------------|
 | **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
-| **Pastille de filtre** (chip, cran de `Segmented`, onglet) | `border-accent bg-accent-soft` | Le marqueur unique de l'app : le contour porte l'état, le fond l'appuie. Un cran dans un cadre commun (`SlotFilter`, `Segmented`) peut n'en garder que le fond, la bordure étant déjà celle du cadre |
+| **Pastille de filtre** (`Pastille`, sets, emplacements, étoiles du Bestiaire) | `MARQUEUR_FILTRE_ACTIF` : `border-ink bg-ink text-bg` | **Couleur inversée** (refonte graphique, décision 9, 2026-09-24) : un aplat d'encre se lit d'un coup d'œil dans une rangée de filtres. Contraste mesuré 12.9 (Atelier) / 15.1 (Forge). Une seule constante, exportée de `Pastille`, importée par les filtres qui ne passent pas par elle |
+| **Cran de `Segmented`, onglet** | `bg-accent-soft` (le cadre porte le contour) | Un choix UNIQUE dans un cadre commun, pas un filtre en rangée : il garde le fond d'accent léger — la décision 9 ne visait que les pastilles de filtre |
 
 ⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
-`SlotFilter`, le bouton « Antiques » et les filtres de Ma box (Nat / Doublons /
-2A) portent tous le **même fond d'accent** — deux marqueurs différents côte à
-côte se liraient comme deux natures de filtre. C'est la brique `Pastille`
-([librairie-ui.md](librairie-ui.md)), qui pose ce marqueur une fois pour toutes.
+`SlotFilter`, les sets de `SetFilter`, les étoiles du Bestiaire et les filtres
+de Ma box (Nat / Doublons / 2A) portent tous **la même couleur inversée** —
+deux marqueurs différents côte à côte se liraient comme deux natures de
+filtre. C'est la brique `Pastille` ([librairie-ui.md](librairie-ui.md)) qui le
+définit, dans `MARQUEUR_FILTRE_ACTIF`, une fois pour toutes.
 
 **Corollaires :**
 

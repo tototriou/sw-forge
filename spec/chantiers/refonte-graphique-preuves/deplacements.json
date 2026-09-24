@@ -4,5 +4,52 @@
     "vers": "src/App.tsx",
     "devient": "prop:titre:Mon compte",
     "pourquoi": "Lot 4, décision 5 : l'entrée « Mon compte » du premier niveau de la barre bureau devient le TITRE du groupe Mon compte, dont Monstres, Runes et Artéfacts sont des entrées directes."
+  },
+  "src/components/Sidebar.tsx :: attr:aria-label:Replier la navigation": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Replier la navigation",
+    "pourquoi": "Lot 4, décision 11 : le bouton de repli devient un BoutonIcone en tête de barre ; son libellé donne aria-label ET title."
+  },
+  "src/components/Sidebar.tsx :: attr:title:Replier la navigation": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Replier la navigation",
+    "pourquoi": "Lot 4, décision 11 : voir aria-label."
+  },
+  "src/components/Sidebar.tsx :: attr:aria-label:Déplier la navigation": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Déplier la navigation",
+    "pourquoi": "Lot 4, décision 11 : voir « Replier la navigation »."
+  },
+  "src/components/Sidebar.tsx :: attr:title:Déplier la navigation": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Déplier la navigation",
+    "pourquoi": "Lot 4, décision 11 : voir « Replier la navigation »."
+  },
+  "src/components/Sidebar.tsx :: texte:Replier": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Replier la navigation",
+    "pourquoi": "Lot 4, décision 11 : le repli passe en tête, en icône seule comme dans la maquette ; son nom reste dans l'infobulle et l'aria-label."
+  },
+  "src/components/Sidebar.tsx :: texte:Déplier": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Déplier la navigation",
+    "pourquoi": "Lot 4, décision 11 : voir « Replier »."
+  },
+  "src/components/Sidebar.tsx :: attr:title:{…} — revenir à toutes les sections": {
+    "de": "src/components/Sidebar.tsx",
+    "retrait": "A.2 bis #11",
+    "pourquoi": "Les sous-sections se déroulent sous leur entrée : plus de second niveau à remonter."
+  },
+  "src/components/SidebarCompte.tsx :: attr:title:Importer un export de compte SWEX": {
+    "de": "src/components/SidebarCompte.tsx",
+    "vers": "src/components/SidebarCompte.tsx",
+    "devient": "attr:title:Importer un export de compte SWEX (traité localement, rien n'est envoyé)",
+    "pourquoi": "Lot 4, décision 11 : une seule carte d'import, repliée ou non ; elle garde l'infobulle la plus complète des deux."
   }
 }

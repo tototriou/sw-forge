@@ -31,11 +31,12 @@ function rendreApp(hash: string): string {
   return rendre(<App />);
 }
 
-// La barre latérale bureau : tout ce qui précède son bouton de repli, qui la
-// ferme toujours. (Ses <nav> n'ont pas de nom : on ne peut pas les viser.)
+// La barre latérale bureau : son <aside>, le seul de la coquille. (Ses <nav>
+// n'ont pas de nom : on ne peut pas les viser.) ⚠️ Elle a d'abord été découpée
+// jusqu'à son bouton de repli, qui la fermait ; le lot 4 l'a remonté en tête,
+// à côté du logo.
 function barreLaterale(html: string): string {
-  const fin = html.search(/aria-label="(Replier|Déplier) la navigation"/);
-  return fin < 0 ? '' : html.slice(0, fin);
+  return html.match(/<aside[\s\S]*?<\/aside>/)?.[0] ?? '';
 }
 
 function ongletsMobiles(html: string): string {
@@ -129,6 +130,19 @@ export function testRenduAppNavigation() {
 
   // Au deuxième niveau, un retour vers le premier.
   ok(texteVisible(barreLaterale(rendreApp('#/siege/defense'))).includes('Siège'), 'dans le Siège : la barre dit où l\'on est');
+
+  // Décision 11 (menu comme la maquette) : les sous-sections se DÉROULENT sous
+  // leur entrée — dans le Siège, ses trois sous-sections ET toutes les autres
+  // sections sont à l'écran en même temps.
+  const siege = barreLaterale(rendreApp('#/siege/defense'));
+  const hrefs = valeurs(siege, 'href');
+  for (const h of ['#/siege/defense', '#/siege/offense', '#/siege/recommandations', '#/', '#/arene', '#/bestiary'])
+    ok(hrefs.includes(h), `dans le Siège, la barre montre aussi ${h}`);
+  const tSiege = texteVisible(siege);
+  for (const nom of ['RTA', 'Mon compte', 'Runes', 'Outils', 'Ressources']) ok(tSiege.includes(nom), `dans le Siège : « ${nom} » reste visible`);
+  ok(/aria-expanded="true"[^>]*>(?:(?!<\/button>)[\s\S])*Siège/.test(siege), 'l\'entrée « Siège » se dit déroulée');
+  ok(!hrefs.includes('#/rta/ami'), 'les autres sections restent refermées');
+  ok(tSiege.includes('Bientôt'), 'Arène porte « Bientôt », comme sa page');
 }
 
 export function testRenduAppMobile() {

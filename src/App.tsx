@@ -39,7 +39,7 @@ import Sidebar, {
 import MobileTabs, { OngletMobile } from './components/MobileTabs';
 import MobileNavSheet from './components/MobileNavSheet';
 import TopBar from './components/TopBar';
-import SidebarCompte from './components/SidebarCompte';
+import SidebarCompte, { SidebarParametres } from './components/SidebarCompte';
 import SidebarSearch, { CibleNav } from './components/SidebarSearch';
 import MobileNotice from './components/MobileNotice';
 import { loadAccount, saveAccount } from './lib/accountStore';
@@ -938,20 +938,21 @@ export default function App() {
   //   routes et leur page restent ; elles reviendront au menu une fois
   //   construites.
   //
-  // ⚠️ Le mécanisme de la barre ne change pas (spec/shared/navigation.md) :
-  // une entrée à sous-sections OUVRE son niveau au lieu de naviguer, le survol
-  // en montre un aperçu à côté.
+  // ⚠️ Une entrée à sous-sections les DÉROULE sous elle au lieu de naviguer
+  // (spec/shared/navigation.md) ; refermée, le survol en montre un aperçu à
+  // côté. La section de la route est déroulée d'office — la barre la déduit de
+  // l'entrée active, sans qu'on la lui passe.
   const VUES_BIENTOT = new Set<AccountView>(['meules', 'gemmes']);
 
   const sectionRtaBureau: SidebarSection = {
     titre: 'RTA',
-    icon: <Swords size={17} />,
-    groupes: [{ liens: RTA_SUBS.map((s) => ({ key: s.sub, label: s.label, hash: s.hash, icon: <s.icon size={17} />, actif: route === 'rta' && rtaSub === s.sub })) }],
+    icon: <Swords size={16} />,
+    groupes: [{ liens: RTA_SUBS.map((s) => ({ key: s.sub, label: s.label, hash: s.hash, icon: <s.icon size={16} />, actif: route === 'rta' && rtaSub === s.sub })) }],
   };
   const sectionSiegeBureau: SidebarSection = {
     titre: 'Siège',
-    icon: <Castle size={17} />,
-    groupes: [{ liens: SIEGE_SUBS.map((t) => ({ key: t.tab, label: t.label, hash: t.hash, icon: <t.icon size={17} />, actif: route === 'siege' && siegeTab === t.tab })) }],
+    icon: <Castle size={16} />,
+    groupes: [{ liens: SIEGE_SUBS.map((t) => ({ key: t.tab, label: t.label, hash: t.hash, icon: <t.icon size={16} />, actif: route === 'siege' && siegeTab === t.tab })) }],
   };
   // Un inventaire à plusieurs vues devient une section à part entière (Runes,
   // Artéfacts) : ses vues en entrées, sans le niveau « Mon compte » au-dessus.
@@ -959,7 +960,7 @@ export default function App() {
     const inv = ACCOUNT_SUBS.find((s) => s.sub === sub)!;
     return {
       titre: inv.label,
-      icon: <InventaireIcon name={inv.icon} size={17} />,
+      icon: <InventaireIcon name={inv.icon} size={18} />,
       groupes: [
         {
           liens: VUES_INVENTAIRE[sub]
@@ -968,7 +969,7 @@ export default function App() {
               key: `${sub}-${v.key}`,
               label: v.label,
               hash: hashVue(sub, v.key),
-              icon: <v.icon size={17} />,
+              icon: <v.icon size={16} />,
               actif: route === 'compte' && accountSub === sub && accountView === v.key,
             })),
         },
@@ -978,30 +979,17 @@ export default function App() {
   const sectionRunesBureau = sectionInventaireBureau('runes');
   const sectionArtefactsBureau = sectionInventaireBureau('artefacts');
 
-  // La section que la ROUTE ouvre dans la barre. Monstres (une seule vue) et
-  // les outils sont des entrées directes du premier niveau : la barre y reste.
-  const sectionOuverteBureau: SidebarSection | null =
-    route === 'rta'
-      ? sectionRtaBureau
-      : route === 'siege'
-        ? sectionSiegeBureau
-        : route === 'compte' && accountSub === 'runes'
-          ? sectionRunesBureau
-          : route === 'compte' && accountSub === 'artefacts'
-            ? sectionArtefactsBureau
-            : null;
-
   // Premier niveau. ⚠️ L'ordre d'importance est gardé — Accueil, puis le jeu
   // (RTA, Siège, Arène), le compte, les outils, les ressources — mais Arène
   // rejoint « Jouer », à côté du siège : c'est un mode de jeu.
   const groupesBureau: SidebarGroupe[] = [
-    { liens: [{ key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} />, actif: route === 'home' }] },
+    { liens: [{ key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={16} />, actif: route === 'home' }] },
     {
       titre: 'Jouer',
       liens: [
-        { key: 'rta', label: 'RTA', icon: <Swords size={17} />, ouvre: sectionRtaBureau, actif: route === 'rta' },
-        { key: 'siege', label: 'Siège', icon: <Castle size={17} />, ouvre: sectionSiegeBureau, actif: route === 'siege' },
-        { key: ARENE_ITEM.key, label: ARENE_ITEM.label, hash: ARENE_ITEM.hash, icon: <ARENE_ITEM.icon size={17} />, actif: route === 'arene' },
+        { key: 'rta', label: 'RTA', icon: <Swords size={16} />, ouvre: sectionRtaBureau, actif: route === 'rta' },
+        { key: 'siege', label: 'Siège', icon: <Castle size={16} />, ouvre: sectionSiegeBureau, actif: route === 'siege' },
+        { key: ARENE_ITEM.key, label: ARENE_ITEM.label, hash: ARENE_ITEM.hash, icon: <ARENE_ITEM.icon size={16} />, badge: 'Bientôt', actif: route === 'arene' },
       ],
     },
     {
@@ -1011,11 +999,11 @@ export default function App() {
           key: 'monstres',
           label: 'Monstres',
           hash: hashVue('monstres', vueParDefaut('monstres')),
-          icon: <InventaireIcon name="monster" size={17} />,
+          icon: <InventaireIcon name="monster" size={18} />,
           actif: route === 'compte' && accountSub === 'monstres',
         },
-        { key: 'runes', label: 'Runes', icon: <InventaireIcon name="rune" size={17} />, ouvre: sectionRunesBureau, actif: route === 'compte' && accountSub === 'runes' },
-        { key: 'artefacts', label: 'Artéfacts', icon: <InventaireIcon name="artifact" size={17} />, ouvre: sectionArtefactsBureau, actif: route === 'compte' && accountSub === 'artefacts' },
+        { key: 'runes', label: 'Runes', icon: <InventaireIcon name="rune" size={18} />, ouvre: sectionRunesBureau, actif: route === 'compte' && accountSub === 'runes' },
+        { key: 'artefacts', label: 'Artéfacts', icon: <InventaireIcon name="artifact" size={18} />, ouvre: sectionArtefactsBureau, actif: route === 'compte' && accountSub === 'artefacts' },
       ],
     },
     {
@@ -1024,7 +1012,7 @@ export default function App() {
         key: sub.sub,
         label: sub.label,
         hash: sub.hash,
-        icon: <sub.icon size={17} />,
+        icon: <sub.icon size={16} />,
         actif: route === 'outils' && toolSub === sub.sub,
       })),
     },
@@ -1034,7 +1022,7 @@ export default function App() {
         key: item.key,
         label: item.label,
         hash: item.hash,
-        icon: <item.icon size={17} />,
+        icon: <item.icon size={16} />,
         actif: route === item.key,
       })),
     },
@@ -1216,7 +1204,15 @@ export default function App() {
           rester en place quand le contenu défile sur 3 000 monstres. */}
       <Sidebar
         groupes={groupesBureau}
-        section={sectionOuverteBureau}
+        compte={
+          <SidebarCompte
+            nom={accountName}
+            exporteLe={accountExportedAt}
+            nbMonstres={box.length}
+            retractee={sidebarRetractee}
+            onImport={importAccount}
+          />
+        }
         recherche={
           <SidebarSearch
             cibles={ciblesRecherche}
@@ -1227,18 +1223,10 @@ export default function App() {
         retractee={sidebarRetractee}
         onToggleRetract={() => setSidebarRetractee((r) => !r)}
         pied={
-          /* ⚠️ Le pied dit QUI est chargé, et porte les deux gestes qui s'y
-             rapportent : changer de compte, régler l'app. Il a d'abord affiché
-             la date du dernier import dans une carte — une information qu'on ne
-             lit qu'une fois, occupant en permanence le bas de l'écran. Elle vit
-             maintenant dans les paramètres, à côté du réglage de conservation,
-             là où on se pose la question. */
-          <SidebarCompte
-            nom={accountName}
+          <SidebarParametres
+            actifs={route === 'parametres'}
             retractee={sidebarRetractee}
-            parametresActifs={route === 'parametres'}
-            onToggleParametres={basculerParametres}
-            onImport={importAccount}
+            onToggle={basculerParametres}
           />
         }
       />

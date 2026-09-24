@@ -43,9 +43,58 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built
 ```
 
+## Second passage — le menu comme la maquette (décision 11)
+
+Demandé par Thomas après le premier passage : « je veux que tu fasses le menu
+comme dans la maquette ». Relevé sur la maquette (`sidebar.txt`, `navjs.txt`,
+`css.txt` de la toile) puis appliqué :
+
+- repli en tête à côté du logo (BoutonIcone), largeur 248 px ;
+- carte du compte en tête : initiale, nom, « Export du … · N monstres »,
+  toute la carte importe (double chevron) ;
+- recherche : fond de panneau, indication `Ctrl K` ;
+- groupes annoncés par leur intitulé en capitales ;
+- **sous-sections déroulées sous leur entrée** (filet vertical, retrait
+  36 px), au lieu d'un second niveau qui remplaçait la liste ; le clic
+  déroule sans naviguer, comme avant ; l'aperçu au survol reste, pour les
+  sections refermées ;
+- entrée active : voile d'encre (`bg-ink/10`), survol `bg-ink/5` ;
+- badge « Bientôt » sur Arène (sa page l'annonce déjà) ;
+- Paramètres en pied, au gabarit des entrées, bascule inchangée.
+
+Non repris : le point « nouveau » sur Nouveautés (suivi du « lu » = un ajout,
+à décider). Logo : celui de l'app (`favicon.svg`), pas le losange de la
+maquette, qui en tenait lieu.
+
+Inventaire : le repli perd son texte visible (« Replier »/« Déplier ») et
+passe en `libelle` de BoutonIcone (aria-label + title) — déplacements
+`devient` ; le retour « ‹ Section — revenir à toutes les sections »
+disparaît avec le second niveau — **[retrait #11]** (A.2 bis) ; l'infobulle
+courte de l'import replié devient la longue, désormais unique.
+
+Tests : `tests/rendu/app.test.tsx` — **aucune assertion modifiée** ; l'outil
+`barreLaterale` découpe désormais l'`<aside>` (il coupait au bouton de
+repli, remonté en tête) ; ajout de 14 vérifications : dans le Siège, ses
+trois sous-sections ET toutes les autres sections sont à l'écran, « Siège »
+porte `aria-expanded="true"`, RTA reste refermée, Arène porte « Bientôt ».
+`tests/navigation.test.ts` : ses deux contrôles de SOURCE suivent le
+mécanisme (`cleRouteBarre(sectionRoute, groupes)`, le panneau vide
+`bascules`) — même invariant, nouveaux noms.
+
+```text
+$ npx tsc --noEmit                            → code 0
+$ node scripts/inventaire-ui.mjs --verifier   → aucune perte
+$ node tests/run.mjs rendu navigation refonte → 191 vérifications passées
+$ node scripts/chemins-interdits.mjs 6110609  → aucun modifié
+$ node scripts/spec-lint.mjs                  → aucune erreur
+$ npm run build                               → built ; bg-ink/10,
+  hoverable:bg-ink/5, left-[18px], transition-[width] présentes dans le CSS
+```
+
 ## À regarder sur le serveur de dev (non testable)
 
-- Le panneau de survol à côté de la barre (RTA, Siège, Runes, Artéfacts) :
-  il n'est pas rendu sans survol, aucun test ne le voit.
-- Barre repliée : les titres de groupe (Jouer, Mon compte…) et les icônes
-  monochromes.
+- Le panneau de survol à côté de la barre (RTA, Siège, Runes, Artéfacts
+  refermés) : il n'est pas rendu sans survol, aucun test ne le voit.
+- Dérouler / refermer une section au clic (l'état vit dans un effet de
+  rendu client, hors d'un rendu serveur).
+- Barre repliée : avatar, icônes, sous-sections en icônes sous leur entrée.

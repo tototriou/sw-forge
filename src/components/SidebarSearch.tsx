@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useComboboxNav } from '../hooks/useComboboxNav';
 
 // Recherche dans la NAVIGATION, en tête de la barre latérale.
@@ -129,12 +129,12 @@ export default function SidebarSearch({
   }
 
   return (
-    <div className="relative px-2.5 pb-2">
+    <div className="relative flex-none px-3">
       <div
-        className="flex items-center gap-2 rounded-md border border-border bg-panel2 px-2.5
-                   py-1.5 transition-colors focus-within:border-ctx"
+        className="flex items-center gap-2 rounded-lg border border-border-soft bg-panel py-1.5 pl-2.5
+                   pr-1.5 transition-colors hoverable:border-border focus-within:border-ctx"
       >
-        <Search size={15} className="flex-none text-ink-dimmer" />
+        <Search size={16} className="flex-none text-ink-dimmer" />
         <input
           {...nav.inputProps}
           value={query}
@@ -145,21 +145,15 @@ export default function SidebarSearch({
           className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none
                      placeholder:text-ink-dimmer"
         />
-        {/* ⚠️ Un CHEVRON VERS LA DROITE, pas le badge « ⌘K ». Le badge
-            annonçait un raccourci — une information qu'on lit une fois puis
-            qu'on n'utilise plus, alors qu'elle occupait le champ en permanence.
-            ⚠️ Vers la DROITE et non vers le bas : ce champ mène à une PAGE,
-            il n'ouvre pas un panneau. C'est le même chevron que les entrées de
-            navigation à sous-niveau, et il veut dire la même chose — « ça
-            emmène ailleurs ».
-            Le raccourci existe toujours : il est dans le `title` du champ. */}
-        <ChevronRight
-          size={14}
+        {/* Le raccourci, affiché comme dans la maquette de la refonte
+            graphique (lot 4) — il avait été réduit au `title` du champ. */}
+        <kbd
           aria-hidden
-          className={`flex-none transition-all ${
-            nav.open ? 'translate-x-0.5 text-ctx' : 'text-ink-dimmer'
-          }`}
-        />
+          className="flex-none rounded-md border border-border bg-panel2 px-1.5 font-mono text-micro
+                     text-ink-dim"
+        >
+          Ctrl K
+        </kbd>
       </div>
 
       {nav.open && (
@@ -168,7 +162,7 @@ export default function SidebarSearch({
           // ⚠️ `absolute` : la liste se pose PAR-DESSUS la navigation, elle ne
           // la pousse pas vers le bas. Une liste qui décale les neuf sections à
           // chaque frappe rend la barre illisible.
-          className="absolute inset-x-2.5 top-full z-40 mt-1 overflow-hidden rounded-lg border
+          className="absolute inset-x-3 top-full z-40 mt-1 overflow-hidden rounded-lg border
                      border-border bg-panel shadow-glow shadow-black/40"
         >
           {resultats.length === 0 ? (

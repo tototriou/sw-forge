@@ -59,26 +59,52 @@ Siège. Aucune destination ne disparaît — vérifié par
 **La page ne change qu'au choix d'une destination.** C'est la règle qui
 gouverne les deux gestes de navigation interne :
 
-- **Ouvrir une section** (RTA, Siège, Mon compte, Outils) affiche ses sous-sections
-  et **ne charge rien**. Cliquer « Siège » ouvrait la page de siège *et* le
-  second niveau d'un coup, alors qu'on n'avait pas encore choisi entre Défense,
-  Offense et Recommandations.
-- **Remonter** (« ‹ Siège » en tête du second niveau) réaffiche la liste des
-  sections et **ne quitte pas l'écran**. Le retour pointait vers `#/` : on
-  perdait sa page pour consulter un menu.
-- **Le logo** remet la barre au premier niveau *en plus* de ramener à l'accueil.
-  Il change la route, donc l'état se repose de lui-même — sauf si on était
-  **déjà** sur l'accueil avec une section ouverte à la main : la route ne
-  changeait pas, et la barre restait au second niveau.
+- **Dérouler une section** (RTA, Siège, Runes, Artéfacts) affiche ses
+  sous-sections **sous son entrée**, en retrait, et **ne charge rien**.
+  Cliquer « Siège » ouvrait la page de siège *et* ses sous-sections d'un coup,
+  alors qu'on n'avait pas encore choisi entre Défense, Offense et
+  Recommandations. Recliquer la referme.
+- **Le logo** remet la barre dans l'état de la route *en plus* de ramener à
+  l'accueil — même si l'on y était déjà, où la route ne change pas.
 
-Ouvrir et remonter sont donc des **`<button>`**, pas des `<a>` : ils ne vont
-nulle part, ils n'ont rien à faire dans l'historique ni dans un « ouvrir dans un
-nouvel onglet ». Le type l'impose — `hash` **ou** `ouvre`, jamais les deux.
+Dérouler est donc un **`<button>`** (avec `aria-expanded`), pas un `<a>` : il
+ne va nulle part, il n'a rien à faire dans l'historique ni dans un « ouvrir
+dans un nouvel onglet ». Le type l'impose — `hash` **ou** `ouvre`, jamais les
+deux.
+
+⚠️ **Déroulées sur place, pas un second niveau** (refonte graphique, décision
+11 de Thomas, 2026-09-24 — « le menu comme dans la maquette »). Les
+sous-sections **remplaçaient** la liste, avec un retour « ‹ Siège » en tête :
+on perdait de vue les autres sections dès qu'on entrait dans une. Déroulées
+sous leur entrée, avec un filet vertical dans l'axe de son icône, on voit à la
+fois où l'on est et tout ce qu'on peut atteindre. Le retour a disparu avec le
+niveau qu'il remontait — [retrait #11] du cadrage.
+
+```
+[logo] SW Forge                    [repli]
+┌─────────────────────────────────────┐
+│ T  Tototriou                      ⇕ │   carte du compte = import
+│    Export du 9 août · 342 monstres  │
+└─────────────────────────────────────┘
+[🔍 Aller à…                   Ctrl K]
+⌂  Accueil
+JOUER
+⚔  RTA                              ›
+🏰 Siège                            ⌄
+   │ Défense                            ← sous-section active : fond
+   │ Offense
+   │ Recommandations
+🏆 Arène                      Bientôt
+MON COMPTE · OUTILS · RESSOURCES …
+───────────────────────────────────────
+⚙  Paramètres
+```
 
 ### Le gabarit d'une entrée
 
-Environ **35 px de haut**, icône **17**, texte **14** (`text-md`) : les
-proportions d'une barre d'application plutôt que d'un menu de site.
+**32 px de haut**, icône **16** (18 pour les icônes d'inventaire du jeu),
+texte **14** (`text-md`, `font-medium`), rayon 8 px — le gabarit de la
+maquette. Les sous-sections : texte 13, sans icône, en retrait de 36 px.
 
 ⚠️ **Le texte était à 13 (`text-sm`) et la colonne se lisait serrée** ; 15
 l'appuyait trop. L'échelle n'avait rien entre les deux : le palier `md` a donc
@@ -94,24 +120,28 @@ destinée à un format ne touche pas l'autre
 ([deux-applications.md](deux-applications.md)).
 
 ⚠️ **`w-full` sur l'entrée** : un `<button>` ne s'étire pas comme un `<a>` — il
-fait `width: auto` même en `display: flex`. Sans lui, les trois entrées à
+fait `width: auto` même en `display: flex`. Sans lui, les entrées à
 sous-section étaient larges comme leur texte et leur fond au survol s'arrêtait au
 milieu de la barre.
 
-⚠️ **Le retour « ‹ Siège » aussi.** Il avait échappé à la règle : sa zone
-cliquable s'arrêtait au milieu de la barre, et rien ne disait où viser. Il occupe
-maintenant toute la largeur utile, **avec le gabarit exact des entrées** —
-rembourrage du conteneur, `rounded-md`, même rembourrage interne. Ce qui le
-distingue reste son chevron vers la gauche et son titre, pas une forme à part :
-la barre n'a qu'un seul gabarit de cible.
+Une entrée peut porter un **badge** à droite (`badge`) : « Bientôt » sur
+Arène, dont la page l'annonce déjà. Un état de la PAGE, pas de la navigation.
 
-### L'entrée active — contour + fond, le marqueur unique de l'app
+### L'entrée active — un voile d'encre (bureau)
 
-⚠️ **`border-ctx bg-ctx-soft`**, comme toute pastille de l'app
-([design.md](design.md)) : le **contour porte l'état**, le fond ne fait que
-l'appuyer.
+⚠️ **Dans la barre latérale BUREAU, depuis la décision 11** : fond
+`bg-ink/10`, survol `bg-ink/5` — le gabarit de la maquette. Un voile d'ENCRE
+et non une surface : la barre a le fond de la page, et `panel`/`panel2` ne s'en
+écartent pas dans le même ordre d'un thème à l'autre ; l'encre s'en écarte
+toujours d'autant plus qu'elle est dense. **Une section déroulée ne porte pas
+le fond** : c'est sa sous-section active qui le porte, juste en dessous ;
+refermée à la main, elle le reprend — on sait toujours où l'on est.
 
-- ⚠️ **Le contour n'est pas décoratif.** L'entrée n'a longtemps porté que
+Ce qui suit décrit le marqueur d'avant, qui reste celui du panneau mobile
+(lot 11 de la refonte) :
+
+- ⚠️ **`border-ctx bg-ctx-soft`**, comme toute pastille de l'app. **Le contour
+  n'est pas décoratif.** L'entrée n'a longtemps porté que
   `bg-ctx-soft` — exactement le cas que la règle décrit : *un fond de panneau
   trop proche du gris ambiant, qui ne se voit pas*. Au second niveau, où toutes
   les entrées sont des vues d'un même inventaire (Runes → Résumé, Liste,
@@ -137,51 +167,42 @@ l'appuyer.
   couleur ; les onglets du bas, le panneau mobile, la barre supérieure et la
   recherche gardent pour l'instant la teinte de signature — le téléphone a son
   propre lot, et l'accueil le sien.
-- Le **survol** est un calque distinct rendu **dessous** : une entrée déjà
-  sélectionnée ne change pas d'aspect quand la souris la traverse.
+### L'état de la barre : la route, plus ce qu'on a basculé à la main
 
-### L'état de la barre : trois valeurs, pas deux
+La section de l'entrée active est **déroulée d'office** ; la barre la déduit
+des `groupes` reçus (`sectionRoute`), l'appelant ne la lui passe pas. Par-dessus,
+`bascules` retient, **par titre**, les sections déroulées ou refermées à la main.
 
-| Valeur | Sens |
-|--------|------|
-| `undefined` | Suivre la route — l'état initial et celui de chaque changement de page |
-| `null` | Premier niveau, après un retour |
-| le **titre** d'une section | Ouverte à la main |
-
-⚠️ Changer de page **repose** l'état sur `undefined` : arriver sur
-`#/siege/offense` doit montrer les sous-sections du Siège, même si on avait
-remonté ailleurs juste avant.
+⚠️ Changer de page **vide** `bascules` : arriver sur `#/siege/offense` doit
+montrer les sous-sections du Siège, même si on l'avait refermé juste avant, et
+ce qu'on avait déroulé en passant se referme.
 
 ⚠️⚠️ **« Changer de page » se mesure sur la DESTINATION, pas sur la section.**
 La clé de comparaison ne valait que le titre de section : passer d'
 `#/outils/optimizer` à `#/outils/speed-tuning` la laissait identique, donc
 **aucune remise à zéro**. C'est précisément le geste du [panneau de
 survol](#les-sous-sections-au-survol--un-panneau-à-côté-de-la-barre-bureau),
-qui ne s'ouvre QUE depuis le premier niveau : pour y être en se trouvant déjà
-dans une section, il faut avoir cliqué « retour ». Choisir une sous-section de
-la section où l'on était déjà ne faisait alors rien bouger, alors que la
-choisir dans une **autre** section faisait bien descendre la barre — deux
+qui ne s'ouvre QUE sur une section refermée : choisir une sous-section de la
+section où l'on était déjà ne faisait alors rien bouger, alors que la choisir
+dans une **autre** section remettait bien la barre sur la route — deux
 comportements pour un seul geste. La clé est donc `titre de section | entrée
 active de la section | entrée active du premier niveau`, ce dernier terme
 distinguant deux pages sans sous-sections (Accueil, Bestiaire). Fonction pure
 `cleRouteBarre`, **gardée** par
 [tests/navigation.test.ts](tests/navigation.test.ts).
 
-⚠️ **C'est le TITRE qui est mémorisé, jamais l'objet section.** L'objet y était
-stocké tel quel, donc **figé à l'instant du clic**, avec les `actif` calculés à
-ce moment-là. Or la remise à zéro ci-dessus ne se déclenche qu'au changement de
-*section* : en naviguant de « Liste » à « Courbes », on reste dans « Mon
-compte », elle ne se déclenchait donc pas et la barre continuait d'afficher
-l'ancien objet — **le surlignage ne suivait la navigation qu'après un
-aller-retour au premier niveau**. Le titre, lui, est ré-résolu à chaque rendu
-sur les `groupes` reçus, que l'appelant reconstruit à chaque changement de page.
+⚠️ **C'est le TITRE qui est mémorisé, jamais l'objet section.** Un objet
+stocké est **figé à l'instant du clic**, avec les `actif` calculés à ce
+moment-là — le surlignage ne suivait plus la navigation. Le titre est
+ré-résolu à chaque rendu sur les `groupes` reçus, que l'appelant reconstruit à
+chaque changement de page.
 
 ## Trois niveaux — « Mon compte »
 
 ⚠️ **Sur bureau, ce niveau n'existe plus** depuis la refonte graphique
 (décision 5) : Monstres, Runes et Artéfacts sont au premier niveau, et Runes /
-Artéfacts ouvrent directement leurs vues (`‹ Runes` → Résumé · Liste · Courbes
-· Comparaison · Optimisation). **Meules et Gemmes n'y figurent plus** tant
+Artéfacts déroulent directement leurs vues (Résumé · Liste · Courbes ·
+Comparaison · Optimisation). **Meules et Gemmes n'y figurent plus** tant
 qu'elles sont « Bientôt » — [retrait #6] décidé par Thomas ; leurs routes et
 leur page restent. Ce qui suit décrit le **panneau mobile**, qui garde les
 trois niveaux (choisir l'inventaire, puis sa vue).
@@ -221,11 +242,20 @@ partir du **deuxième** groupe — en tête, il séparerait le premier de rien.
 Repliée, le filet **remplace** l'intitulé : « Artéfacts » n'a pas de version en
 trois lettres qui veuille dire quelque chose.
 
+⚠️ **Barre latérale bureau, décision 11** : dépliée, les groupes (Jouer, Mon
+compte, Outils, Ressources) sont annoncés par leur **intitulé en capitales**
+(`.label`, encre `ink-dimmer`), sans filet — c'est le gabarit de la maquette,
+et l'intitulé sépare déjà. Le filet court ne sert plus qu'à la barre repliée.
+
 ## Repli — deux états, jamais trois
 
-- La **largeur s'anime** (224 → 56 px), pas un `translateX` : la barre se replie
+- La **largeur s'anime** (248 → 56 px), pas un `translateX` : la barre se replie
   **sur elle-même** et rend sa place au contenu, dont la marge suit à la même
-  courbe.
+  courbe. 248 et non plus 224 depuis la décision 11 : la carte du compte
+  tronquait sa seconde ligne.
+- Le bouton de repli vit **en tête**, à côté du logo (décision 11) : un réglage
+  de la barre elle-même, pas une destination. Icône seule, son nom dans
+  l'infobulle. Repliée, logo et bouton s'empilent.
 - ⚠️ **Pas de déploiement au survol.** Il a été essayé et retiré : la barre
   devenait incohérente avec elle-même — repliée dans le Siège on voyait les
   icônes des *sections*, au survol elle basculait sur les *sous-sections*, donc
@@ -242,9 +272,11 @@ trois lettres qui veuille dire quelque chose.
 
 ## Les sous-sections au survol — un panneau à côté de la barre (bureau)
 
-Sur bureau, **survoler** une entrée à sous-sections (RTA, Siège, Mon compte,
-Outils) ouvre un panneau qui les liste, **à droite de la barre**. Cliquer une
-sous-section y mène directement : le premier des deux clics est économisé.
+Sur bureau, **survoler** une entrée à sous-sections **refermée** (RTA, Siège,
+Runes, Artéfacts) ouvre un panneau qui les liste, **à droite de la barre**.
+Cliquer une sous-section y mène directement : le premier des deux clics est
+économisé. Une section déroulée n'en ouvre pas — ses entrées seraient
+affichées deux fois.
 
 ### ⚠️ Ce n'est PAS le déploiement au survol qui avait été retiré
 
@@ -294,17 +326,16 @@ La souris **traverse** la barre pour atteindre autre chose.
   passe par les 6 px qui les séparent : fermer au premier `mouseleave` rendait
   le panneau **inatteignable**, il se refermait pile pendant la traversée.
 
-⚠️ **Le clic dans le panneau POSE le niveau de la barre lui-même.** Il ne s'en
-remettait qu'à la remise à zéro par changement de route — donc à rien du tout
-quand la route ne change pas : choisir « Recommandations » dans le panneau alors
-qu'on **est déjà** sur Recommandations laissait la barre au premier niveau, à
-marquer « Siège » pendant qu'on regardait une de ses sous-sections. Le panneau
-repose donc `ouverte` sur `undefined` (« suivre la route ») au clic, sans
-dépendre de ce que la navigation fait ou non. **Gardé** par
-[tests/navigation.test.ts](tests/navigation.test.ts).
+⚠️ **Le clic dans le panneau REMET la barre sur la route lui-même.** Il ne
+s'en remettait qu'à la remise à zéro par changement de route — donc à rien du
+tout quand la route ne change pas : choisir « Recommandations » dans le panneau
+alors qu'on **est déjà** sur Recommandations (Siège refermé à la main) laissait
+la section refermée pendant qu'on regardait une de ses sous-sections. Le
+panneau vide donc `bascules` au clic, sans dépendre de ce que la navigation
+fait ou non. **Gardé** par [tests/navigation.test.ts](tests/navigation.test.ts).
 
-Se referment aussi, **sans délai** : le clic sur une sous-section, la descente
-dans une section, le logo, `Échap`, et le **défilement** de la barre — le `top`
+Se referment aussi, **sans délai** : le clic sur une sous-section, le fait de
+dérouler une section, le logo, `Échap`, et le **défilement** de la barre — le `top`
 du panneau est mesuré à l'entrée de la souris et ne suit pas une liste qui
 glisse dessous. Le recalculer en continu ferait courir le panneau le long de
 l'écran pendant qu'on molette.
@@ -312,16 +343,11 @@ l'écran pendant qu'on molette.
 ### Ce qu'il montre
 
 Le titre de la section en tête (on doit savoir de quelle entrée il sort), puis
-ses groupes et ses entrées **avec le rendu exact de la barre** — même gabarit,
-même marqueur d'actif, mêmes filets entre groupes. Un troisième rendu d'entrée
-serait un troisième endroit à tenir d'accord avec les deux autres.
+ses entrées, avec leur icône et le même marqueur d'actif que la barre.
 
 ⚠️ **Libellés toujours affichés, même barre repliée** : c'est là que le panneau
 sert le plus. Repliée, la barre n'a que neuf icônes ; le panneau est le seul
 endroit où les sous-sections se lisent en toutes lettres sans déplier.
-
-⚠️ **Jamais au second niveau.** Les entrées de premier niveau ne sont plus à
-l'écran : le panneau flotterait à côté d'une liste qui ne l'a pas ouvert.
 
 ⚠️ Sa hauteur est **bornée par le bas de l'écran** (`calc`), pas par une valeur
 fixe : il s'aligne sur son entrée, qui peut être la dernière de la barre. Calculé
@@ -342,10 +368,10 @@ Un champ en tête de la barre, `⌘K` depuis n'importe où.
 - La navigation au clavier vient de `useComboboxNav`, comme toute barre à
   suggestions — voir [recherche-clavier.md](recherche-clavier.md).
 - Comparaison **insensible aux accents** : « arene » doit trouver « Arène ».
-- ⚠️ Un **chevron vers la droite**, pas un badge « ⌘K » : le badge annonçait un
-  raccourci qu'on lit une fois puis qu'on n'utilise plus, tout en occupant le
-  champ en permanence. Vers la droite et non vers le bas — ce champ mène à une
-  **page**, il n'ouvre pas un panneau.
+- L'indication **`Ctrl K`** à droite du champ (décision 11, la maquette). Elle
+  avait été remplacée par un chevron — un raccourci qu'on lit une fois, jugé
+  encombrant ; Thomas a retenu la maquette, qui l'affiche. Le raccourci marche
+  avec Ctrl comme avec ⌘.
 
 ## Barre supérieure
 
@@ -362,10 +388,9 @@ endroits où les deux se séparent (voir
 | **Mobile** | ⚙ **Paramètres** seul |
 
 - ⚠️ **Un seul bouton de chaque côté, et ce n'est pas le même.** Sur bureau, le
-  ⚙ a été retiré : le **pied de la barre latérale** en porte déjà un, à côté du
-  nom du compte et de l'import (`SidebarCompte`). Deux chemins vers le même
-  écran, à 60 px l'un de l'autre, se lisent comme deux réglages différents — et
-  c'est dans le bloc compte que celui-ci a sa place.
+  ⚙ a été retiré : le **pied de la barre latérale** porte déjà « Paramètres »
+  (`SidebarParametres`). Deux chemins vers le même écran se lisent comme deux
+  réglages différents.
 - ⚠️ Sur mobile, à l'inverse, le ⚙ est le **seul accès** aux paramètres : il n'y
   a pas de barre latérale, et aucun des cinq onglets n'y mène. C'est donc la
   déconnexion qui descend, pas lui.
@@ -687,12 +712,18 @@ Règle **globale**, pas propre à un composant : elle corrige aussi
 
 ## Nom du compte chargé
 
-Le pied de la barre porte l'avatar et le nom du joueur
-(`wizard_info.wizard_name`, voir `parseAccountWizardName`).
+Une **carte en tête** de la barre (bureau, décision 11) porte l'avatar, le nom
+du joueur (`wizard_info.wizard_name`, voir `parseAccountWizardName`), puis la
+date de l'EXPORT et le nombre de monstres (« Export du 9 août · 342
+monstres »). **Toute la carte importe** : le double chevron dit « changer », et
+charger un autre export est changer de compte. Sans compte : « Aucun compte »,
+« Importer un export SWEX ». Repliée, l'avatar seul. Paramètres descend en
+**pied**, au gabarit des entrées.
 
 - ⚠️ On jongle entre plusieurs exports — le sien, celui d'un ami dont on compare
-  les runes — et rien ne disait lequel était affiché. Une date d'import ne
-  suffit pas : deux comptes importés le même jour se ressemblent.
+  les runes — et rien ne disait lequel était affiché. Une date seule ne
+  suffit pas : deux comptes exportés le même jour se ressemblent — d'où le nom
+  en premier.
 - ⚠️ **L'avatar est une INITIALE, pas une image** : l'export SWEX ne porte
   aucune photo de profil. Une initiale distingue deux comptes d'un coup d'œil
   sans rien inventer, là où un pictogramme générique serait le même pour tous.

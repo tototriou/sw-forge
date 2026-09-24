@@ -91,8 +91,10 @@ export default function testNavigation() {
 
   {
     const src = readFileSync('src/components/Sidebar.tsx', 'utf8');
+    // Refonte graphique, lot 4 : la section n'est plus passée à la barre, elle
+    // la déduit de l'entrée active (`sectionRoute`) — la clé reste la même.
     ok(
-      src.includes('const cleRoute = cleRouteBarre(section, groupes);'),
+      src.includes('const cleRoute = cleRouteBarre(sectionRoute, groupes);'),
       'la barre utilise bien la clé élargie, pas le seul titre de section'
     );
     ok(
@@ -105,10 +107,12 @@ export default function testNavigation() {
     // aucune remise à zéro — la barre restait au premier niveau à marquer
     // « Siège » pendant qu'on regardait « Recommandations ». Le panneau doit
     // donc poser le niveau lui-même, sans dépendre de la route.
+    // Refonte graphique, lot 4 : le « niveau » est devenu l'état des sections
+    // déroulées à la main (`bascules`) — le panneau le remet sur la route.
     const panneauNav = src.slice(src.indexOf('— sous-sections`}'));
     const bloc = panneauNav.slice(0, panneauNav.indexOf('</nav>'));
     ok(
-      bloc.includes('fermer();') && bloc.includes('setOuverte(undefined);'),
+      bloc.includes('fermer();') && bloc.includes('setBascules({});'),
       'le panneau de survol referme ET repose le niveau de barre, sans dépendre d’un changement de route'
     );
   }

@@ -292,12 +292,12 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | --- | --- | --- | --- |
 | 0 — ouverture du chantier | M | terminé | 2026-09-23 |
 | 1a — extraction automatique des candidats | C | terminé | `c0407a5` / 2026-09-23 |
-| 1a2 — correctif d'extraction Kung Fu Girls et Samouraïs | C | à faire | — |
+| 1a2 — correctif d'extraction Kung Fu Girls et Samouraïs | C | terminé | `d9b6959` / 2026-09-24 |
 | 1b — classification Blade Surge | J | terminé | 2026-09-23 |
 | 1c1 — Tempest : amorces et noms partagés | J | terminé | 2026-09-23 |
 | 1c2 — Tempest : effet Additional Attack, première moitié | J | terminé | `eaf8520` / 2026-09-24 |
 | 1c3 — Tempest : effet Additional Attack, seconde moitié | J | à faire | — |
-| 1c4 — classification du complément de 1a2 | J | bloqué par 1a2 | — |
+| 1c4 — classification du complément de 1a2 | J | à faire | — |
 | 1d — classification Blade Dancers | J | à faire | — |
 | 1e — formes et rendus des stats de combat | C | à faire | — |
 | 1f — réconciliation et proposition d'amendement | C+J | à faire | — |
@@ -578,6 +578,27 @@ inchangées. Puis `node scripts/spec-lint.mjs` et `git diff --check`.
 
 **Ne fait pas :** aucune classification humaine, aucun code de production,
 aucune régénération silencieuse des projections 1c1 à 1e.
+
+**Résultat validé le 2026-09-24.** L'extracteur livré par `d9b6959` produit
+un complément déterministe de **43 couples attendus** : les trois S2 Kung Fu
+Girls omises `8216`, `8217` et `8219`, puis les quarante compétences Samurai
+`8001` à `8040`. Le contexte joint couvre **55 compétences, 16 formes et 14
+lignes d'audit**. Les onze kits Samurai comportent chacun les slots S1 à S4 ;
+le onzième est l'Imperfect Samurai eau `16921`, inclus parce que ses
+`familyId` et `skillGroupId` valent `16900`, sans préjuger ici de sa
+sélectionnabilité ni de son verdict au lot 1c4.
+
+Les deux extractions de contrôle donnent les mêmes octets :
+`corpus-lot-1-complement.json` (79 479 octets,
+`5ff6f62f62a44984cdbfdcf4495a57c64dad28d78d31b1e2ae722c44b5aa9f77`),
+`manifest-lot-1-complement.json` (5 303 octets,
+`a835faea98164ffb4364b13502684b18a91561f47a51afe7561954c9f0aa9886`)
+et `projection-lot-1c4.json` (76 175 octets,
+`72828e9f578b87741faa7a941e23e04f1113be1eb03c514a134d73f1a354296a`).
+Le corpus, le manifeste et les six projections antérieures conservent leurs
+empreintes. Preuve : `controle-1a2.md`. Reçu validé : code `d9b6959` ↔ notes
+`614e05d`. Le lot 1c4 est débloqué ; aucune classification ni valeur de jeu
+n'a été ajoutée par 1a2.
 
 #### Contrat commun des lots 1b à 1e
 

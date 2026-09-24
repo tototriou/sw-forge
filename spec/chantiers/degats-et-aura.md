@@ -887,7 +887,7 @@ d'exception ; ces opérations relèvent exclusivement de 2b.
 
 **Résultat validé et amendé par le pilote le 2026-09-24.** Après revue
 externe, le plan couvre exactement les 2 003 lignes de contenu en **68
-fragments** : 49 d'état actuel (1 486 lignes), 10 de décision (399), 2 de
+fragments** : 57 d'état actuel (1 859 lignes), 2 de décision (26), 2 de
 piste (15) et 7 d'archive (103).
 Les identifiants `Bnn` restent des coordonnées de preuve privées ; les
 destinations utilisent les titres métier conservés ou ajoutés et leurs slugs
@@ -907,6 +907,17 @@ la partie actuelle de l'ancien incident B09 et expliciter la politique des
 références archivées. Le plan ainsi amendé est l'intrant obligatoire du lot
 2b.
 
+Une seconde revue externe a ensuite relevé que cinq lignes d'`invariants.md`
+auraient continué à résoudre tout en visant une archive, une décision ou le
+mauvais fragment. Le pilote a donc reclassé en **état actuel** les huit
+fragments du catalogue qui décrivent le modèle livré (373 lignes), dans
+`degats-reels/catalogue-des-passifs.md` ; seules B15 et B24 restent des
+décisions. Le plan fixe désormais les cinq sources vivantes d'invariants,
+l'énoncé d'état actuel qui accompagne la décision B15 sur
+`damageRelevantStats`, la destination de trois références déjà obsolètes et
+la redistribution des dix titres cités par `pistes.md:108`. Aucune source
+d'invariant ne peut viser `decisions/` ou `archive/`.
+
 ### Lot 2b — déplacement et repointage selon le plan validé
 
 **Cat. M.** Requiert le lot 2a et la validation pilote de son plan.
@@ -918,9 +929,12 @@ avec le pilote avant déplacement, jamais choisir de nouvelles destinations seul
 
 1. **Exécuter le classement validé en 2a**, bloc par bloc, sans requalifier
    les contenus au fil du déplacement. Le fragment mixte B46b2 reste complet
-   en archive ; recopier dans l'état actuel l'unique ligne de conservation
-   fixée mot pour mot par `plan-2a.json` (`quantite: 7`) n'est pas une nouvelle
-   décision métier.
+   en archive ; les deux formulations d'état actuel fixées par
+   `plan-2a.json` sont ajoutées à leur destination : conservation de la valeur
+   curée `quantite: 7`, puis exclusion des lignes 218–221 de
+   `damageRelevantStats`. Elles ne changent aucune décision métier ; B15 reste
+   conservée dans `decisions/choix-de-recherche.md` pour en expliquer la
+   raison.
 2. **Destination : un dossier `spec/outils/degats-reels/`** + un
    `degats-reels.md` réduit à son routage (comme
    `spec/outils/optimizer/README.md`). Chaque fichier ≤ 500 lignes, chaque
@@ -940,6 +954,10 @@ avec le pilote avant déplacement, jamais choisir de nouvelles destinations seul
    au slug du titre. Repointer les documents actifs et les citations en prose
    identifiées ; ne pas réécrire les références des preuves sous `archive/`,
    qui décrivent volontairement le chemin et les titres à leur date.
+   Appliquer en particulier les cinq cibles d'`invariants.md`, les trois
+   références à l'ancien titre « Corrections identifiées » et la répartition
+   en quatre fichiers des dix titres de `pistes.md:108`, tous fixés dans
+   `plan-2a.json` ; aucune destination ne se décide pendant 2b.
 5. **Retirer l'exception** de `spec/spec-lint.json`.
 6. **`ARCHITECTURE.md`** : relever ses références dans l'aperçu. Si une
    référence à une section déplacée existe, la repointer vers sa destination

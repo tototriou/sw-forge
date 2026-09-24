@@ -298,7 +298,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 1c2 — Tempest : effet Additional Attack, première moitié | J | terminé | `eaf8520` / 2026-09-24 |
 | 1c3 — Tempest : effet Additional Attack, seconde moitié | J | terminé | `1742488` + amendement pilote / 2026-09-24 |
 | 1c4 — classification du complément de 1a2 | J | terminé | 2026-09-24 |
-| 1d — classification Blade Dancers | J | à faire | — |
+| 1d — classification Blade Dancers | J | terminé | 2026-09-24 |
 | 1e — formes et rendus des stats de combat | C | à faire | — |
 | 1f — réconciliation et proposition d'amendement | C+J | à faire | — |
 | 2a — classement des blocs et plan de découpage | C | à faire | — |
@@ -772,6 +772,17 @@ Vérifier séparément
 les variantes trois et sept coups, les deux quantités de baisse d'ATB et le
 dernier coup inconditionnel ; ne pas valider les valeurs curées par simple
 relecture de la table initiale.
+
+**Résultat validé le 2026-09-24.** Les six couples et leurs douze formes sont
+réconciliés sans incertitude. Les quatre compétences de variante A `14308`,
+`14310`, `14808` et `14810` relèvent de la **même mécanique** : trois coups à
+`1.8 × ATQ`, baisse d'ATB de 50 % par coup et aucun ignore DEF par défaut. Les
+deux compétences de variante B `14311` et `14811` relèvent de la **même
+architecture**, et de la même mécanique entre elles : sept coups à
+`0.85 × ATQ`, baisse d'ATB de 40 % par coup et septième coup toujours en
+ignore DEF, seul coup qui l'est par défaut. Cette règle supplémentaire
+interdit de fusionner A et B sous un même verdict mécanique. Preuves :
+`decisions-lot-1d.json`, `controle-1d.md` et `valider-lot-1d.mjs`.
 
 #### Lot 1e — stats acquises en combat
 

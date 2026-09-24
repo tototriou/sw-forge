@@ -34,6 +34,9 @@ export default {
         // Accent UNIQUE : actif, focus, lien. Distinct de la sémantique.
         accent: 'rgb(var(--accent) / <alpha-value>)',
         'accent-soft': 'rgb(var(--accent-soft) / <alpha-value>)',
+        // Texte posé SUR un aplat d'accent (bouton principal plein) : blanc en
+        // Atelier, fond sombre en Forge — mesurés, voir index.css.
+        'accent-ink': 'rgb(var(--accent-ink) / <alpha-value>)',
 
         // Sémantique : un état des DONNÉES, jamais « ceci est sélectionné ».
         good: 'rgb(var(--good) / <alpha-value>)',
@@ -114,6 +117,11 @@ export default {
       borderRadius: {
         DEFAULT: 'var(--radius)',
         lg: 'var(--radius-lg)',
+        // ⚠️ `xl` et `2xl` REDÉFINIS : c'étaient les valeurs figées de Tailwind
+        // (12 et 16 px), hors tokens. Refonte graphique, décision 2 : cartes
+        // 12 px, fenêtres 14 px — voir index.css et design.md § Rayons.
+        xl: 'var(--radius-xl)',
+        '2xl': 'var(--radius-2xl)',
         // ⚠️ Rayon INTÉRIEUR d'un panneau `rounded-lg` à contour 1 px : un
         // enfant collé au bord doit rentrer d'un pixel, sinon son fond déborde
         // dans l'arrondi et le coin redevient carré. Cas typique : le bandeau

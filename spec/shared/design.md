@@ -68,6 +68,7 @@ hexadécimal.
 |-------|-------|---------|------|
 | `accent` | `#d2723a` | `#3f4bb8` | Accent unique : état actif, focus, lien |
 | `accent-soft` | `#d2723a1f` | `#3f4bb812` | Fond d'un élément actif |
+| `accent-ink` | `#12131c` | `#ffffff` | Texte posé SUR un aplat d'accent (bouton principal plein) |
 | `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès — et **ton camp** |
 | `good-soft` | `#1b2a21` | `#e2f4e9` | Fond doux de `good` |
 | `warn` | `#d9a441` | `#b7791f` | Avertissement |
@@ -98,6 +99,13 @@ thème Forge il est cuivre : « ton équipe » y virait à l'orange, à un cheve
 données ; `accent` dit « ceci est actif ou sélectionné ». Les confondre rend un
 filtre actif indiscernable d'une alerte.
 
+⚠️ **`accent-ink` n'est pas du blanc dans les deux thèmes.** Sur l'aplat
+cuivre de Forge, le blanc tombe à **3.18** — sous le seuil de 4.5 ; le fond
+sombre (`forge-bg`) y fait **5.81**. En Atelier, le blanc sur l'indigo fait
+**9.66**. L'aplat lui-même se détache de ses surfaces (5.43 à 9.66, seuil 3.0
+d'un élément d'interface). Mesures du lot 2 de la refonte
+([preuve](../chantiers/refonte-graphique-preuves/lot-2.md)).
+
 ### Rayon intérieur : `rounded-lg-inner`
 
 ⚠️ **Un enfant à FOND PLEIN collé au bord d'un panneau arrondi doit rentrer d'un
@@ -106,8 +114,7 @@ carré — c'est visible dès que l'enfant est teinté (bandeau de titre d'une c
 colonne collante d'un tableau).
 
 `rounded-lg-inner` vaut `calc(var(--radius-lg) - 1px)` : le rayon du panneau
-moins son contour. Il suit les deux thèmes tout seul (7 px en Atelier, 6 px en
-Forge).
+moins son contour, 7 px (voir [Rayons](#rayons)).
 
 ⚠️ **`overflow-hidden` sur le parent n'est PAS la solution** : il règle le coin
 mais coupe les menus flottants, qui se placent en `absolute` à l'intérieur du
@@ -258,12 +265,23 @@ un palier de l'échelle.
 
 ### Rayons
 
-| Token | Forge | Atelier |
-|-------|-------|---------|
-| `radius` | 3 px | 5 px |
-| `radius-lg` | 4 px | 7 px |
+| Token | Classe | Valeur | Rôle |
+|-------|--------|--------|------|
+| `radius` | `rounded` | 6 px | Petit élément : pastille, badge, touche |
+| `radius-lg` | `rounded-lg` | 8 px | Bouton, champ, liste déroulante |
+| `radius-xl` | `rounded-xl` | 12 px | Carte, panneau |
+| `radius-2xl` | `rounded-2xl` | 14 px | Fenêtre : dialogue, panneau mobile |
 
-Forge assume l'angle vif (le métal, la frappe) ; Atelier reste légèrement adouci.
+**Les mêmes dans les deux thèmes** (refonte graphique, décision 2 de Thomas,
+2026-09-24, [cadrage](../chantiers/refonte-graphique.md)). Forge assumait
+jusque-là l'angle vif (4 / 6 px) ; il l'abandonne pour un rendu d'application
+plus doux, commun aux deux thèmes.
+
+⚠️ **`rounded-xl` et `rounded-2xl` sont REDÉFINIS** dans `tailwind.config.js`.
+C'étaient les valeurs figées de Tailwind (12 et 16 px), hors tokens : une
+classe qui ne suit pas le système se change partout d'un coup ou nulle part.
+`rounded-md` (6 px) et `rounded-sm` (2 px) restent ceux de Tailwind ;
+`rounded-full` n'a pas de token (un cercle ou une pilule).
 
 ### Mouvement
 

@@ -49,16 +49,22 @@ export interface Bouton {
   ariaLabel: string | null;
   title: string | null;
   desactive: boolean;
+  // `aria-pressed` : true / false pour un bouton à deux états, null sinon.
+  presse: boolean | null;
 }
 
 // Tous les boutons, avec ce qui les nomme et leur état.
 export function boutons(html: string): Bouton[] {
-  return [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map(([, attrs, contenu]) => ({
-    texte: texteVisible(contenu),
-    ariaLabel: attr(attrs, 'aria-label'),
-    title: attr(attrs, 'title'),
-    desactive: /\sdisabled(=""|\s|$)/.test(attrs),
-  }));
+  return [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].map(([, attrs, contenu]) => {
+    const presse = attr(attrs, 'aria-pressed');
+    return {
+      texte: texteVisible(contenu),
+      ariaLabel: attr(attrs, 'aria-label'),
+      title: attr(attrs, 'title'),
+      desactive: /\sdisabled(=""|\s|$)/.test(attrs),
+      presse: presse === null ? null : presse === 'true',
+    };
+  });
 }
 
 // Le bouton nommé `nom` (texte, aria-label ou title), ou undefined.

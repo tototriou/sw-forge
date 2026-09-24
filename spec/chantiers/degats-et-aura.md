@@ -797,18 +797,23 @@ calcul du constat 110 reste à prouver au lot 11.
 
 #### Lot 1f — réconciliation et proposition d'amendement
 
-**Cat. C+J.** Intrants : `manifest-lot-1.json`, les six fichiers de décisions
-et leurs preuves ; ne pas relire les 870 lignes brutes. Comparer les clés aux
-**197 couples famille/identifiant nommés par le manifeste** (13 + 140 + 6 +
-38), pas au seul total : zéro substitution, doublon ou omission. Un même
-identifiant peut appartenir à deux familles candidates. Valider le schéma,
-les verdicts, les sources, les formes et les incertitudes ; pour 1e, les
-configurations et branches. Aucun verdict ne reste absent ou contradictoire.
+**Cat. C+J.** Intrants : `manifest-lot-1.json`,
+`manifest-lot-1-complement.json`, les **sept** fichiers de décisions (`1b`,
+`1c1`, `1c2`, `1c3`, `1c4`, `1d`, `1e`) et leurs preuves ; ne pas relire les
+1 056 lignes brutes des deux corpus. Comparer les clés aux **240 couples
+famille/identifiant nommés par les deux manifestes** : 197 dans le manifeste
+initial (13 + 140 + 6 + 38) et 43 dans le complément, ensembles disjoints par
+famille. Comparer les clés, pas le seul total : zéro substitution, doublon ou
+omission. Un même identifiant peut appartenir à deux familles candidates.
+Valider les deux schémas, les verdicts, les sources, les formes et les
+incertitudes ; pour 1e, les configurations, branches et la résolution pilote
+de `7912`. Aucun verdict ne reste absent ou contradictoire.
 
 Produire `controle-1f.md` avec les listes finales par mécanique, les formes,
 les incertitudes et le texte exact proposé pour les lots 8, 9, 10, 11 et
-A.7. La réconciliation automatique porte sur les fichiers structurés ; la
-preuve textuelle ne recopie que les totaux, anomalies et décisions encore
+A.7, complément `1c4` compris. La réconciliation automatique porte sur les
+fichiers structurés ; la preuve textuelle ne recopie que les totaux, anomalies
+et décisions encore
 ouvertes. Le pilote applique ensuite cet amendement et le fait revoir ; lui
 seul marque l'ensemble du lot 1 terminé.
 

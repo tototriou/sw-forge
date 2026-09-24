@@ -313,7 +313,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 2a — classement des blocs et plan de découpage | C | terminé | amendement pilote / 2026-09-24 |
 | 2b — déplacement et repointage selon le plan validé | M | terminé | `62fc8bf8` + correctif pilote des liens relatifs / 2026-09-24 |
 | 3 — plancher des conditions en « Libre » | M | terminé | 2026-09-24 |
-| 4 — relique « comme équipé » et les minimums | C→M | à faire | — |
+| 4 — relique « comme équipé » et les minimums | C→M | terminé | `91837dab` / 2026-09-25 |
 | 5 — le contexte survit au changement de monstre | J | à faire | — |
 | 6 — sets d'aura : le modèle | J | à faire | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
@@ -1068,6 +1068,27 @@ test nommé.
 **Ne fait pas :** ne touche pas `reliques.md` (propriété d'un autre chantier,
 A.5) — le constat va dans `controle-4.md` et, s'il est normatif, dans
 `spec/outils/optimizer.md § Conditions, inventaire et réglages avancés`.
+
+#### Résultat du lot 4 — 2026-09-25
+
+Le pilote valide le correctif `91837dab` et la preuve privée
+`archive/controles-degats-aura-2026-09/controle-4.md`. Sur les cinq choix
+de principale, avec et sans relique portée, seuls les trois cas « comme
+équipé » avec une relique PV/ATQ/DEF à +8 % ajoutent respectivement
+641 PV, 81 ATQ ou 57 DEF aux bases mesurées (8 001/1 001/701), en modes
+total et bonus. Le test était rouge sur ces six lectures avant correction ;
+les autres choix et l'absence de relique restent à zéro. Le moteur porte
+déjà `relPctMax`/`relPctMin` et son `totalOf` utilise le même `ceil` sur la
+somme des pourcentages de base ; ni moteur ni `reliques.md` n'ont changé.
+
+Contrôles rejoués par le pilote : `node tests/run.mjs relic-queue relic-optim
+relic-search artifact-relic-condition-floor` → 716 vérifications passées ;
+`npx.cmd tsc --noEmit` → exit 0 ; `npm.cmd run build` → exit 0 (avertissement
+préexistant du chunk principal > 500 kB) ; `node scripts/spec-lint.mjs` →
+aucune erreur ; `git diff --check HEAD^ HEAD` → aucune erreur. Reçu
+`chantier verifier` valide : code `91837da` ↔ notes `8b5ef2d` (277 fichiers) ;
+notes intégrées et poussées sur le main documentaire `f2fb5c9`. Aucun rendu
+en navigateur n'a été prouvé : le test exerce le calcul du plancher, pas le DOM.
 
 ### Lot 5 — le contexte de combat survit au changement de monstre
 

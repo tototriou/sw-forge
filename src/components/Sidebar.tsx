@@ -59,6 +59,9 @@ export interface SidebarGroupe {
 export interface SidebarSection {
   titre: string;
   icon: ReactNode;
+  // Teinte de SIGNATURE de la section (data/couleursSection) : elle colore le
+  // filet de ses sous-sections déroulées, qui dit à qui elles appartiennent.
+  couleur?: string;
   // ⚠️ Des GROUPES, comme au premier niveau — le panneau mobile regroupe les
   // vues de « Mon compte » par inventaire.
   groupes: SidebarGroupe[];
@@ -393,8 +396,14 @@ function SousSections({ section, retractee }: { section: SidebarSection; retract
                 }`}
               >
                 {/* Le filet d'appartenance, dans l'axe de l'icône de l'entrée
-                    parente (10 px de marge + la moitié d'une icône de 16). */}
-                <span aria-hidden className="absolute inset-y-0 left-[18px] w-px bg-border" />
+                    parente (10 px de marge + la moitié d'une icône de 16), à
+                    la couleur de la section — atténuée : il relie, il ne doit
+                    pas concurrencer les icônes. */}
+                <span
+                  aria-hidden
+                  className={`absolute inset-y-0 left-[18px] w-px ${section.couleur ? 'opacity-50' : 'bg-border'}`}
+                  style={section.couleur ? { backgroundColor: section.couleur } : undefined}
+                />
                 {/* ⚠️ L'icône de la sous-section, comme avant la refonte —
                     demandé par Thomas : la maquette n'en montrait pas, mais
                     chaque vue a la sienne et elle se repère plus vite qu'un mot. */}

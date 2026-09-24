@@ -53,7 +53,8 @@ lot visuel ne démarre.
 **Ce qui ne change PAS — chemins interdits en écriture pour tout lot** :
 
 - la logique : `src/lib/**`, `src/hooks/**`, `src/workers/**`, `src/types.ts`,
-  `src/data/**` sauf `src/data/couleursSection.ts` ;
+  `src/data/**` sauf `src/data/couleursSection.ts` (affichage) et
+  `src/data/releases.ts` (la refonte y écrit sa note « Nouveautés ») ;
 - les données et ressources du jeu : `public/**` ;
 - les rendus copiés du jeu, **à l'identique** (mémoire
   `rendus-du-jeu-intouchables`) : `RuneWheel.tsx`, `RuneSlotIcon.tsx`,
@@ -98,6 +99,12 @@ structure** : on lui applique les tokens et les composants, rien d'autre.
 ### A.2 bis Décisions retenues
 
 *(Rempli par le lot 1. Vide = aucun lot visuel ne peut démarrer.)*
+
+Forme d'une décision de retrait, et **seulement** dans cette section :
+`[retrait #<n>]` sur la ligne de la décision, avec la date et « décidé par
+Thomas ». `scripts/lib/inventaire-comparer.mjs` ne reconnaît que cette
+forme, dans cette section ; un `deplacements.json` qui cite un numéro
+absent d'ici est refusé.
 
 ### A.3 Hiérarchie des priorités
 
@@ -203,7 +210,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
-| 0 garde-fous : inventaire, chemins interdits, captures « avant » | C | à faire | |
+| 0 garde-fous : inventaire, chemins interdits, captures « avant » | C | exécuté sauf captures (accord de Thomas attendu) | 2026-09-24 |
 | 1 décisions retenues (avec Thomas) | J | à faire | |
 | 2 tokens : couleurs, polices, rayons | J | à faire | |
 | 3 `src/ui/` : rendu interne, API inchangée | J | à faire | |
@@ -256,6 +263,16 @@ vérification avec le nom de l'entrée ; `scripts/chemins-interdits.mjs` rend
 0 sur un diff vide et 1 sur un diff qui touche `src/lib/`.
 
 **Ne fait pas** : aucun changement visuel, aucun fichier de `src/` modifié.
+
+**Résultat (2026-09-24)** — points 1 à 5 livrés ; preuve
+[lot-0.md](refonte-graphique-preuves/lot-0.md). Référence : 80 fichiers,
+1 756 entrées. Preuve négative sur le vrai code : un libellé altéré et un
+fichier de `src/lib/` touché sont refusés, fautif nommé. Limite mesurée : un
+texte construit par une fonction (`LeadPill`, `title={leadTitle(ls)}`)
+échappe à l'extraction — la relecture des captures le couvre. **Point 6
+(captures « avant ») non fait** : accord de Thomas pour piloter le
+navigateur attendu ; tant qu'il manque, aucun lot visuel (2 et suivants)
+ne démarre.
 
 ### B.1 Lot 1 — décisions retenues · J (avec Thomas)
 

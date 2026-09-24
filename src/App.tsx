@@ -85,7 +85,7 @@ import {
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 import { reinitialiserSticky } from './hooks/useStickyState';
 import { PREFIXE_SPEED_TUNE } from './hooks/useSpeedTune';
-import { VUES_INVENTAIRE, hashVue, vueValide } from './lib/accountViews';
+import { VUES_INVENTAIRE, hashVue, vueParDefaut, vueValide } from './lib/accountViews';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 
@@ -919,49 +919,114 @@ export default function App() {
           ? sectionOutils
           : null;
 
-  // Premier niveau — les sections. ⚠️ Le MÊME ordre d'importance que la nav
-  // précédente (spec/README.md) : Accueil → RTA → Siège → Mon compte → Outils
-  // → Arène, puis les ressources. La refonte change la FORME de la navigation,
-  // pas la hiérarchie, qui elle est le fruit de l'usage.
+  // ---- Barre latérale BUREAU (refonte graphique, lot 4) --------------------
+  //
+  // ⚠️ **Une structure PROPRE au bureau.** Les sections ci-dessus servent aussi
+  // au panneau mobile, à ses onglets et au titre de la barre du haut : le
+  // téléphone a sa propre refonte (lot 11), et une correction destinée à un
+  // format ne touche pas l'autre (CLAUDE.md). Le bureau construit donc les
+  // siennes, à partir des MÊMES constantes (libellés, routes) — seule la
+  // présentation diffère.
+  //
+  // Décisions de Thomas (spec/chantiers/refonte-graphique.md, A.2 bis) :
+  // - 3 : icônes MONOCHROMES — la couleur de section quitte le menu, la couleur
+  //   reste aux données du jeu ;
+  // - 5 : premier niveau regroupé — Jouer (RTA, Siège, Arène), Mon compte
+  //   (Monstres, Runes, Artéfacts en entrées directes), Outils (en entrées
+  //   directes), Ressources. Toutes les destinations restent ;
+  // - 6 : Meules et Gemmes, « Bientôt », hors du menu — [retrait #6]. Leurs
+  //   routes et leur page restent ; elles reviendront au menu une fois
+  //   construites.
+  //
+  // ⚠️ Le mécanisme de la barre ne change pas (spec/shared/navigation.md) :
+  // une entrée à sous-sections OUVRE son niveau au lieu de naviguer, le survol
+  // en montre un aperçu à côté.
+  const VUES_BIENTOT = new Set<AccountView>(['meules', 'gemmes']);
 
-  const groupesNav: SidebarGroupe[] = [
-    {
-      liens: [
-        ...NAV.map((item) => ({
-          key: item.key,
-          label: item.label,
-          icon: <item.icon size={17} color={item.couleur} />,
-          // ⚠️ RTA et Siège OUVRENT leur section au lieu de naviguer : on
-          // choisit sa sous-section avant de charger une page.
-          ...(item.key === 'rta'
-            ? { ouvre: sectionRta }
-            : item.key === 'siege'
-              ? { ouvre: sectionSiege }
-              : { hash: item.hash }),
-          actif: route === item.key,
-        })),
+  const sectionRtaBureau: SidebarSection = {
+    titre: 'RTA',
+    icon: <Swords size={17} />,
+    groupes: [{ liens: RTA_SUBS.map((s) => ({ key: s.sub, label: s.label, hash: s.hash, icon: <s.icon size={17} />, actif: route === 'rta' && rtaSub === s.sub })) }],
+  };
+  const sectionSiegeBureau: SidebarSection = {
+    titre: 'Siège',
+    icon: <Castle size={17} />,
+    groupes: [{ liens: SIEGE_SUBS.map((t) => ({ key: t.tab, label: t.label, hash: t.hash, icon: <t.icon size={17} />, actif: route === 'siege' && siegeTab === t.tab })) }],
+  };
+  // Un inventaire à plusieurs vues devient une section à part entière (Runes,
+  // Artéfacts) : ses vues en entrées, sans le niveau « Mon compte » au-dessus.
+  const sectionInventaireBureau = (sub: AccountSub): SidebarSection => {
+    const inv = ACCOUNT_SUBS.find((s) => s.sub === sub)!;
+    return {
+      titre: inv.label,
+      icon: <InventaireIcon name={inv.icon} size={17} />,
+      groupes: [
         {
-          key: 'compte',
-          label: 'Mon compte',
-          icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />,
-          ouvre: sectionCompte,
-          actif: route === 'compte',
-        },
-        {
-          key: 'outils',
-          label: 'Outils',
-          icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />,
-          ouvre: sectionOutils,
-          actif: route === 'outils',
-        },
-        {
-          key: ARENE_ITEM.key,
-          label: ARENE_ITEM.label,
-          hash: ARENE_ITEM.hash,
-          icon: <ARENE_ITEM.icon size={17} color={ARENE_ITEM.couleur} />,
-          actif: route === 'arene',
+          liens: VUES_INVENTAIRE[sub]
+            .filter((v) => !VUES_BIENTOT.has(v.key))
+            .map((v) => ({
+              key: `${sub}-${v.key}`,
+              label: v.label,
+              hash: hashVue(sub, v.key),
+              icon: <v.icon size={17} />,
+              actif: route === 'compte' && accountSub === sub && accountView === v.key,
+            })),
         },
       ],
+    };
+  };
+  const sectionRunesBureau = sectionInventaireBureau('runes');
+  const sectionArtefactsBureau = sectionInventaireBureau('artefacts');
+
+  // La section que la ROUTE ouvre dans la barre. Monstres (une seule vue) et
+  // les outils sont des entrées directes du premier niveau : la barre y reste.
+  const sectionOuverteBureau: SidebarSection | null =
+    route === 'rta'
+      ? sectionRtaBureau
+      : route === 'siege'
+        ? sectionSiegeBureau
+        : route === 'compte' && accountSub === 'runes'
+          ? sectionRunesBureau
+          : route === 'compte' && accountSub === 'artefacts'
+            ? sectionArtefactsBureau
+            : null;
+
+  // Premier niveau. ⚠️ L'ordre d'importance est gardé — Accueil, puis le jeu
+  // (RTA, Siège, Arène), le compte, les outils, les ressources — mais Arène
+  // rejoint « Jouer », à côté du siège : c'est un mode de jeu.
+  const groupesBureau: SidebarGroupe[] = [
+    { liens: [{ key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} />, actif: route === 'home' }] },
+    {
+      titre: 'Jouer',
+      liens: [
+        { key: 'rta', label: 'RTA', icon: <Swords size={17} />, ouvre: sectionRtaBureau, actif: route === 'rta' },
+        { key: 'siege', label: 'Siège', icon: <Castle size={17} />, ouvre: sectionSiegeBureau, actif: route === 'siege' },
+        { key: ARENE_ITEM.key, label: ARENE_ITEM.label, hash: ARENE_ITEM.hash, icon: <ARENE_ITEM.icon size={17} />, actif: route === 'arene' },
+      ],
+    },
+    {
+      titre: 'Mon compte',
+      liens: [
+        {
+          key: 'monstres',
+          label: 'Monstres',
+          hash: hashVue('monstres', vueParDefaut('monstres')),
+          icon: <InventaireIcon name="monster" size={17} />,
+          actif: route === 'compte' && accountSub === 'monstres',
+        },
+        { key: 'runes', label: 'Runes', icon: <InventaireIcon name="rune" size={17} />, ouvre: sectionRunesBureau, actif: route === 'compte' && accountSub === 'runes' },
+        { key: 'artefacts', label: 'Artéfacts', icon: <InventaireIcon name="artifact" size={17} />, ouvre: sectionArtefactsBureau, actif: route === 'compte' && accountSub === 'artefacts' },
+      ],
+    },
+    {
+      titre: 'Outils',
+      liens: OUTILS_SUBS.map((sub) => ({
+        key: sub.sub,
+        label: sub.label,
+        hash: sub.hash,
+        icon: <sub.icon size={17} />,
+        actif: route === 'outils' && toolSub === sub.sub,
+      })),
     },
     {
       titre: 'Ressources',
@@ -969,7 +1034,7 @@ export default function App() {
         key: item.key,
         label: item.label,
         hash: item.hash,
-        icon: <item.icon size={17} color={item.couleur} />,
+        icon: <item.icon size={17} />,
         actif: route === item.key,
       })),
     },
@@ -1150,8 +1215,8 @@ export default function App() {
           `position: sticky` aurait suffi visuellement, mais la barre doit
           rester en place quand le contenu défile sur 3 000 monstres. */}
       <Sidebar
-        groupes={groupesNav}
-        section={sectionOuverte}
+        groupes={groupesBureau}
+        section={sectionOuverteBureau}
         recherche={
           <SidebarSearch
             cibles={ciblesRecherche}

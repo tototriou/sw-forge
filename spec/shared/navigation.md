@@ -35,6 +35,25 @@ déroulants (« Mon compte », « Ressources ») et un bouton hamburger de repli
 C'est celui de [README.md](README.md), issu de l'usage : la refonte change la
 **forme** de la navigation, pas la hiérarchie.
 
+**Sur bureau, le premier niveau est REGROUPÉ** (refonte graphique, décision 5
+de Thomas, 2026-09-24 — [cadrage](../chantiers/refonte-graphique.md)) :
+
+```
+Accueil
+JOUER        RTA ›  Siège ›  Arène
+MON COMPTE   Monstres  Runes ›  Artéfacts ›
+OUTILS       Optimizer  Speed tuning
+RESSOURCES   Bestiaire  Mécaniques  Nouveautés
+```
+
+L'ordre est gardé, à une exception près : **Arène rejoint « Jouer »**, à côté
+du siège — c'est un mode de jeu. Les inventaires et les outils deviennent des
+entrées DIRECTES : Monstres (une seule vue) et les deux outils mènent à leur
+page ; Runes et Artéfacts (plusieurs vues) ouvrent leur niveau, comme RTA et
+Siège. Aucune destination ne disparaît — vérifié par
+`tests/rendu/app.test.tsx`. Les onglets mobiles gardent leurs cinq entrées
+(le téléphone a son propre lot).
+
 ## ⚠️ La barre navigue SEULE
 
 **La page ne change qu'au choix d'une destination.** C'est la règle qui
@@ -111,6 +130,13 @@ l'appuyer.
   mobile, à la barre supérieure et à la recherche de navigation, sans être
   ressaisie nulle part. (Elle a longtemps été monochrome et suivait l'encre du
   libellé ; la refonte lui rend l'identité colorée de l'accueil.)
+- ⚠️ **Dans la barre latérale BUREAU, l'icône est redevenue MONOCHROME**
+  (refonte graphique, décision 3 de Thomas, 2026-09-24) : la couleur quitte
+  le menu et reste aux données du jeu (éléments, raretés, statuts). La barre
+  bureau a ses propres sections (`groupesBureau` dans `App.tsx`), sans
+  couleur ; les onglets du bas, le panneau mobile, la barre supérieure et la
+  recherche gardent pour l'instant la teinte de signature — le téléphone a son
+  propre lot, et l'accueil le sien.
 - Le **survol** est un calque distinct rendu **dessous** : une entrée déjà
   sélectionnée ne change pas d'aspect quand la souris la traverse.
 
@@ -151,6 +177,14 @@ aller-retour au premier niveau**. Le titre, lui, est ré-résolu à chaque rendu
 sur les `groupes` reçus, que l'appelant reconstruit à chaque changement de page.
 
 ## Trois niveaux — « Mon compte »
+
+⚠️ **Sur bureau, ce niveau n'existe plus** depuis la refonte graphique
+(décision 5) : Monstres, Runes et Artéfacts sont au premier niveau, et Runes /
+Artéfacts ouvrent directement leurs vues (`‹ Runes` → Résumé · Liste · Courbes
+· Comparaison · Optimisation). **Meules et Gemmes n'y figurent plus** tant
+qu'elles sont « Bientôt » — [retrait #6] décidé par Thomas ; leurs routes et
+leur page restent. Ce qui suit décrit le **panneau mobile**, qui garde les
+trois niveaux (choisir l'inventaire, puis sa vue).
 
 Le second niveau porte des **groupes**, pas une liste plate :
 

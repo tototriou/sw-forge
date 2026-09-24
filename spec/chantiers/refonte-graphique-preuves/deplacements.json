@@ -1,1 +1,8 @@
-{}
+{
+  "src/App.tsx :: prop:label:Mon compte": {
+    "de": "src/App.tsx",
+    "vers": "src/App.tsx",
+    "devient": "prop:titre:Mon compte",
+    "pourquoi": "Lot 4, décision 5 : l'entrée « Mon compte » du premier niveau de la barre bureau devient le TITRE du groupe Mon compte, dont Monstres, Runes et Artéfacts sont des entrées directes."
+  }
+}

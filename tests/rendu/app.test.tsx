@@ -122,6 +122,11 @@ export function testRenduAppNavigation() {
   }
   ok(/aria-label="Replier la navigation"/.test(rendreApp('#/')), 'bouton « Replier la navigation »');
 
+  // [retrait #6], décidé par Thomas : Meules et Gemmes hors du menu bureau —
+  // leurs routes, elles, s'affichent toujours (testRenduAppRoutes).
+  const runes = valeurs(barreLaterale(rendreApp('#/compte/runes/liste')), 'href');
+  ok(!runes.includes('#/compte/runes/meules') && !runes.includes('#/compte/runes/gemmes'), 'Meules et Gemmes hors du menu bureau ([retrait #6])');
+
   // Au deuxième niveau, un retour vers le premier.
   ok(texteVisible(barreLaterale(rendreApp('#/siege/defense'))).includes('Siège'), 'dans le Siège : la barre dit où l\'on est');
 }

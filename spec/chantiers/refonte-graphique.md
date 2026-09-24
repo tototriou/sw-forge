@@ -110,12 +110,10 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
    cartes, 14 px fenêtres, dans les deux thèmes (Forge perd l'angle vif).
 3. **Menu sobre retenu** : les couleurs de section (`couleursSection.ts`)
    quittent le menu et l'accueil ; la couleur reste aux données du jeu.
-   *Amendée le 2026-09-24 pour le menu bureau* : après essai du menu
-   monochrome, Thomas a demandé « un peu de couleur pour qu'on puisse bien
-   voir les différentes sections » — les icônes du menu reprennent leur
-   teinte de signature, le filet des sous-sections celle de sa section ;
-   libellés et fonds restent neutres. L'accueil n'est pas concerné par
-   l'amendement (lot 5).
+   *Précisée le 2026-09-24 pour le menu bureau* : les teintes de section,
+   réessayées sur les icônes, ont été écartées — Thomas préfère le menu
+   neutre ; un **trait à la couleur principale** (accent) devant l'entrée
+   marque la section courante.
 4. **Bouton principal plein retenu** : `ton="accent"` + `fond="plein"`
    devient un aplat d'accent, un seul par écran.
 5. **Regroupement du menu retenu** : Jouer (RTA, Siège, Arène) / Mon compte

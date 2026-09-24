@@ -6,7 +6,6 @@
 // (décision 5) doit les laisser verts.
 
 import App from '../../src/App';
-import { COULEUR_SECTION } from '../../src/data/couleursSection';
 import { egal, faussLocalStorage, ok, titre } from '../outils';
 import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
 
@@ -149,12 +148,6 @@ export function testRenduAppNavigation() {
     ok(lienSous.includes('<svg'), `la sous-section ${h} porte son icône`);
   }
   ok(tSiege.includes('Bientôt'), 'Arène porte « Bientôt », comme sa page');
-
-  // Décision 3 amendée : les icônes du menu portent la teinte de leur section,
-  // et le filet des sous-sections du Siège celle du Siège.
-  const lienSiege = siege.match(/<button[^>]*aria-expanded="true"[\s\S]*?<\/button>/)?.[0] ?? '';
-  ok(lienSiege.includes(COULEUR_SECTION.siege), 'l\'icône « Siège » porte la teinte du Siège');
-  ok((siege.match(new RegExp(`background-color:${COULEUR_SECTION.siege}`, 'gi')) ?? []).length === 3, 'le filet des trois sous-sections porte la teinte du Siège');
 }
 
 export function testRenduAppMobile() {

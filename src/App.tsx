@@ -929,10 +929,8 @@ export default function App() {
   // présentation diffère.
   //
   // Décisions de Thomas (spec/chantiers/refonte-graphique.md, A.2 bis) :
-  // - 3, amendée le 2026-09-24 : la couleur de SIGNATURE revient sur les
-  //   icônes (« un peu de couleur pour qu'on puisse bien voir les différentes
-  //   sections ») — les mêmes teintes que l'accueil et le téléphone
-  //   (data/couleursSection). Les libellés et les fonds restent neutres ;
+  // - 3 : icônes MONOCHROMES — la couleur de section quitte le menu, la couleur
+  //   reste aux données du jeu ;
   // - 5 : premier niveau regroupé — Jouer (RTA, Siège, Arène), Mon compte
   //   (Monstres, Runes, Artéfacts en entrées directes), Outils (en entrées
   //   directes), Ressources. Toutes les destinations restent ;
@@ -948,15 +946,13 @@ export default function App() {
 
   const sectionRtaBureau: SidebarSection = {
     titre: 'RTA',
-    icon: <Swords size={16} color={COULEUR_SECTION.rta} />,
-    couleur: COULEUR_SECTION.rta,
-    groupes: [{ liens: RTA_SUBS.map((s) => ({ key: s.sub, label: s.label, hash: s.hash, icon: <s.icon size={16} color={s.couleur} />, actif: route === 'rta' && rtaSub === s.sub })) }],
+    icon: <Swords size={16} />,
+    groupes: [{ liens: RTA_SUBS.map((s) => ({ key: s.sub, label: s.label, hash: s.hash, icon: <s.icon size={16} />, actif: route === 'rta' && rtaSub === s.sub })) }],
   };
   const sectionSiegeBureau: SidebarSection = {
     titre: 'Siège',
-    icon: <Castle size={16} color={COULEUR_SECTION.siege} />,
-    couleur: COULEUR_SECTION.siege,
-    groupes: [{ liens: SIEGE_SUBS.map((t) => ({ key: t.tab, label: t.label, hash: t.hash, icon: <t.icon size={16} color={t.couleur} />, actif: route === 'siege' && siegeTab === t.tab })) }],
+    icon: <Castle size={16} />,
+    groupes: [{ liens: SIEGE_SUBS.map((t) => ({ key: t.tab, label: t.label, hash: t.hash, icon: <t.icon size={16} />, actif: route === 'siege' && siegeTab === t.tab })) }],
   };
   // Un inventaire à plusieurs vues devient une section à part entière (Runes,
   // Artéfacts) : ses vues en entrées, sans le niveau « Mon compte » au-dessus.
@@ -964,8 +960,7 @@ export default function App() {
     const inv = ACCOUNT_SUBS.find((s) => s.sub === sub)!;
     return {
       titre: inv.label,
-      icon: <InventaireIcon name={inv.icon} size={18} couleur={inv.couleur} />,
-      couleur: inv.couleur,
+      icon: <InventaireIcon name={inv.icon} size={18} />,
       groupes: [
         {
           liens: VUES_INVENTAIRE[sub]
@@ -974,9 +969,7 @@ export default function App() {
               key: `${sub}-${v.key}`,
               label: v.label,
               hash: hashVue(sub, v.key),
-              // Les vues portent la couleur de leur inventaire, comme sur
-              // téléphone.
-              icon: <v.icon size={16} color={inv.couleur} />,
+              icon: <v.icon size={16} />,
               actif: route === 'compte' && accountSub === sub && accountView === v.key,
             })),
         },
@@ -990,13 +983,13 @@ export default function App() {
   // (RTA, Siège, Arène), le compte, les outils, les ressources — mais Arène
   // rejoint « Jouer », à côté du siège : c'est un mode de jeu.
   const groupesBureau: SidebarGroupe[] = [
-    { liens: [{ key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={16} color={COULEUR_SECTION.home} />, actif: route === 'home' }] },
+    { liens: [{ key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={16} />, actif: route === 'home' }] },
     {
       titre: 'Jouer',
       liens: [
-        { key: 'rta', label: 'RTA', icon: <Swords size={16} color={COULEUR_SECTION.rta} />, ouvre: sectionRtaBureau, actif: route === 'rta' },
-        { key: 'siege', label: 'Siège', icon: <Castle size={16} color={COULEUR_SECTION.siege} />, ouvre: sectionSiegeBureau, actif: route === 'siege' },
-        { key: ARENE_ITEM.key, label: ARENE_ITEM.label, hash: ARENE_ITEM.hash, icon: <ARENE_ITEM.icon size={16} color={ARENE_ITEM.couleur} />, badge: 'Bientôt', actif: route === 'arene' },
+        { key: 'rta', label: 'RTA', icon: <Swords size={16} />, ouvre: sectionRtaBureau, actif: route === 'rta' },
+        { key: 'siege', label: 'Siège', icon: <Castle size={16} />, ouvre: sectionSiegeBureau, actif: route === 'siege' },
+        { key: ARENE_ITEM.key, label: ARENE_ITEM.label, hash: ARENE_ITEM.hash, icon: <ARENE_ITEM.icon size={16} />, badge: 'Bientôt', actif: route === 'arene' },
       ],
     },
     {
@@ -1006,11 +999,11 @@ export default function App() {
           key: 'monstres',
           label: 'Monstres',
           hash: hashVue('monstres', vueParDefaut('monstres')),
-          icon: <InventaireIcon name="monster" size={18} couleur={COULEUR_COMPTE_SUB.monstres} />,
+          icon: <InventaireIcon name="monster" size={18} />,
           actif: route === 'compte' && accountSub === 'monstres',
         },
-        { key: 'runes', label: 'Runes', icon: <InventaireIcon name="rune" size={18} couleur={COULEUR_COMPTE_SUB.runes} />, ouvre: sectionRunesBureau, actif: route === 'compte' && accountSub === 'runes' },
-        { key: 'artefacts', label: 'Artéfacts', icon: <InventaireIcon name="artifact" size={18} couleur={COULEUR_COMPTE_SUB.artefacts} />, ouvre: sectionArtefactsBureau, actif: route === 'compte' && accountSub === 'artefacts' },
+        { key: 'runes', label: 'Runes', icon: <InventaireIcon name="rune" size={18} />, ouvre: sectionRunesBureau, actif: route === 'compte' && accountSub === 'runes' },
+        { key: 'artefacts', label: 'Artéfacts', icon: <InventaireIcon name="artifact" size={18} />, ouvre: sectionArtefactsBureau, actif: route === 'compte' && accountSub === 'artefacts' },
       ],
     },
     {
@@ -1019,7 +1012,7 @@ export default function App() {
         key: sub.sub,
         label: sub.label,
         hash: sub.hash,
-        icon: <sub.icon size={16} color={sub.couleur} />,
+        icon: <sub.icon size={16} />,
         actif: route === 'outils' && toolSub === sub.sub,
       })),
     },
@@ -1029,7 +1022,7 @@ export default function App() {
         key: item.key,
         label: item.label,
         hash: item.hash,
-        icon: <item.icon size={16} color={item.couleur} />,
+        icon: <item.icon size={16} />,
         actif: route === item.key,
       })),
     },

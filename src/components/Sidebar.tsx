@@ -59,9 +59,6 @@ export interface SidebarGroupe {
 export interface SidebarSection {
   titre: string;
   icon: ReactNode;
-  // Teinte de SIGNATURE de la section (data/couleursSection) : elle colore le
-  // filet de ses sous-sections déroulées, qui dit à qui elles appartiennent.
-  couleur?: string;
   // ⚠️ Des GROUPES, comme au premier niveau — le panneau mobile regroupe les
   // vues de « Mon compte » par inventaire.
   groupes: SidebarGroupe[];
@@ -396,14 +393,8 @@ function SousSections({ section, retractee }: { section: SidebarSection; retract
                 }`}
               >
                 {/* Le filet d'appartenance, dans l'axe de l'icône de l'entrée
-                    parente (10 px de marge + la moitié d'une icône de 16), à
-                    la couleur de la section — atténuée : il relie, il ne doit
-                    pas concurrencer les icônes. */}
-                <span
-                  aria-hidden
-                  className={`absolute inset-y-0 left-[18px] w-px ${section.couleur ? 'opacity-50' : 'bg-border'}`}
-                  style={section.couleur ? { backgroundColor: section.couleur } : undefined}
-                />
+                    parente (10 px de marge + la moitié d'une icône de 16). */}
+                <span aria-hidden className="absolute inset-y-0 left-[18px] w-px bg-border" />
                 {/* ⚠️ L'icône de la sous-section, comme avant la refonte —
                     demandé par Thomas : la maquette n'en montrait pas, mais
                     chaque vue a la sienne et elle se repère plus vite qu'un mot. */}
@@ -460,11 +451,27 @@ function LienBarre({
       title={retractee ? lien.label : undefined}
       // ⚠️ 32 px de haut, icône 16, texte 14 : le gabarit de la maquette.
       // `w-full` : un `<button>` ne s'étire pas comme un `<a>`.
-      className={`flex h-8 w-full flex-none items-center rounded-lg text-left text-md font-medium
+      // `relative` : pour le trait de la section courante, ci-dessous.
+      className={`relative flex h-8 w-full flex-none items-center rounded-lg text-left text-md font-medium
                   transition-colors ${retractee ? 'justify-center px-0' : 'gap-2.5 px-2.5'} ${
-                    marquee ? FOND_ACTIF : `text-ink-dim ${FOND_SURVOL}`
+                    marquee ? FOND_ACTIF : lien.actif ? `text-ink ${FOND_SURVOL}` : `text-ink-dim ${FOND_SURVOL}`
                   }`}
     >
+      {/* ⚠️ **Le trait de la section courante**, à la couleur principale de
+          l'app. Demandé par Thomas pour voir d'un coup d'œil dans quelle
+          section on est — les teintes de section essayées sur les icônes ont
+          été écartées : il préfère le menu neutre. Il reste sur l'entrée
+          même déroulée, quand le fond est passé à la sous-section.
+          Posé dans la marge de la barre, hors de l'entrée : collé à son fond
+          arrondi, il en aurait mordu l'angle. */}
+      {lien.actif && (
+        <span
+          aria-hidden
+          className={`absolute top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent ${
+            retractee ? '-left-1.5' : '-left-2'
+          }`}
+        />
+      )}
       <span className="flex flex-none items-center">{lien.icon}</span>
       {!retractee && (
         <>

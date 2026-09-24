@@ -162,15 +162,21 @@ Ce qui suit décrit le marqueur d'avant, qui reste celui du panneau mobile
   mobile, à la barre supérieure et à la recherche de navigation, sans être
   ressaisie nulle part. (Elle a longtemps été monochrome et suivait l'encre du
   libellé ; la refonte lui rend l'identité colorée de l'accueil.)
-- **Dans la barre latérale BUREAU, l'icône garde sa teinte de signature.**
-  La décision 3 de la refonte (2026-09-24) l'avait rendue monochrome ; Thomas
-  l'a amendée le jour même, après essai : « un peu de couleur pour qu'on
-  puisse bien voir les différentes sections ». Mêmes teintes que l'accueil et
-  le téléphone — premier niveau à la couleur de la section, sous-sections à
-  la leur (vues d'un inventaire : celle de l'inventaire). Le **filet** des
-  sous-sections déroulées prend la couleur de leur section, à 50 %
-  (`SidebarSection.couleur`). Libellés, fonds et marqueur d'actif restent
-  neutres : la couleur dit *quelle* section, jamais *si* on y est.
+- ⚠️ **Dans la barre latérale BUREAU, l'icône est redevenue MONOCHROME**
+  (refonte graphique, décision 3 de Thomas, 2026-09-24) : la couleur quitte
+  le menu et reste aux données du jeu (éléments, raretés, statuts). La barre
+  bureau a ses propres sections (`groupesBureau` dans `App.tsx`), sans
+  couleur ; les onglets du bas, le panneau mobile, la barre supérieure et la
+  recherche gardent pour l'instant la teinte de signature — le téléphone a son
+  propre lot, et l'accueil le sien. ⚠️ Les teintes de section ont été
+  **réessayées sur les icônes puis écartées** par Thomas le même jour : il
+  préfère le menu neutre.
+- **Un trait à la couleur principale (`bg-accent`, 3 × 16 px) marque la
+  section courante**, devant son entrée, dans la marge de la barre — demandé
+  par Thomas pour voir d'un coup d'œil dans quelle section on est. Il reste
+  sur l'entrée **même déroulée**, quand le fond est passé à la sous-section
+  active ; son libellé passe alors à l'encre pleine. Hors de l'entrée : collé
+  à son fond arrondi, il en aurait mordu l'angle.
 ### L'état de la barre : la route, plus ce qu'on a basculé à la main
 
 La section de l'entrée active est **déroulée d'office** ; la barre la déduit

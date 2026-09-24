@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** Extraction du lot 1 : aucune valeur de jeu nouvelle, aucun import du moteur.
- * Usage : node scripts/audit-degats-aura-corpus.mjs [--out chemin.json]
+ * Usage : node scripts/audit-degats-aura-corpus.mjs [--out chemin.json | --complement-out dossier]
  * JSON tabulaire : une ligne par enregistrement, tableaux séparés par unité.
  * Les prédicats découvrent des CANDIDATS ; ils ne prouvent aucune mécanique.
  */
@@ -12,11 +12,12 @@ import ts from 'typescript';
 
 const racine = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
-if (args.length && (args.length !== 2 || args[0] !== '--out')) {
-  throw new Error('Usage : node scripts/audit-degats-aura-corpus.mjs [--out chemin.json]');
+if (args.length && (args.length !== 2 || !['--out', '--complement-out'].includes(args[0]))) {
+  throw new Error('Usage : node scripts/audit-degats-aura-corpus.mjs [--out chemin.json | --complement-out dossier]');
 }
 const auditPath = 'spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/inventaire.csv';
 const sortie = resolve(racine, args[1] ?? 'spec/outils/optimizer/archive/controles-degats-aura-2026-09/corpus-lot-1.json');
+const complement = args[0] === '--complement-out';
 const lire = p => readFileSync(resolve(racine, p), 'utf8');
 const hash = s => createHash('sha256').update(s).digest('hex');
 const unique = xs => [...new Set(xs)].sort((a, b) => typeof a === 'number' ? a - b : a < b ? -1 : a > b ? 1 : 0);
@@ -114,6 +115,77 @@ for (const fichier of fichiers) {
     groupe.variantes.set(cle, variante); groupe.formes.add(kit.com2usId);
     competences.set(s.com2usId, groupe);
   }
+}
+
+// Complément autonome : le mode historique et ses sept fichiers figés ne sont pas exécutés.
+if (complement) {
+  const dossier = sortie;
+  const ancienChemin = 'spec/outils/optimizer/archive/controles-degats-aura-2026-09/corpus-lot-1.json';
+  const ancienBrut = lire(ancienChemin);
+  const anciensCouples = new Set(JSON.parse(ancienBrut).decisions.map(d => `${d.famille}:${d.skillCom2usId}`));
+  const constat = audit.filter(r => Number(r.entree) === 177);
+  const formesKungFu = unique(constat.map(r => Number(r.monstre_com2us)));
+  const formesSamurai = unique(monstres.filter(m => m.familyId === 16900 || m.skillGroupId === 16900).map(m => m.com2usId));
+  exiger(formesKungFu.every(id => parMonstre.has(id)), 'Constat 177 : forme absente de monsters.json');
+  const formesParFamille = { kungFuGirls: formesKungFu, samurai16900: formesSamurai };
+  const kits = Object.fromEntries(Object.entries(formesParFamille).map(([famille, ids]) => [famille, ids.map(id => {
+    const chemin = `public/data/skills/${id}.json`;
+    exiger(fichiers.includes(`${id}.json`), `Kit absent : ${chemin}`);
+    const kit = JSON.parse(lire(chemin));
+    return { monstreCom2usId: id, competences: kit.competences.map(s => ({ skillCom2usId: s.com2usId, slot: s.slot })) };
+  })]));
+  const tousIds = unique(Object.values(kits).flat().flatMap(k => k.competences.map(s => s.skillCom2usId)));
+  const idsKungFu = unique(kits.kungFuGirls.flatMap(k => k.competences.filter(s => s.slot === 2).map(s => s.skillCom2usId)))
+    .filter(id => !anciensCouples.has(`tempest:${id}`));
+  const idsSamurai = unique(kits.samurai16900.flatMap(k => k.competences.map(s => s.skillCom2usId)));
+  const couplesAttendus = [
+    ...idsKungFu.map(skillCom2usId => ({ famille: 'kungFuGirls', skillCom2usId })),
+    ...idsSamurai.map(skillCom2usId => ({ famille: 'samurai16900', skillCom2usId })),
+  ];
+  const candidats = couplesAttendus.map(c => ({ ...c, decouverte: c.famille === 'kungFuGirls'
+    ? 'S2 du constat 177 absente des couples figés'
+    : 'Compétence d’un kit dont familyId ou skillGroupId vaut 16900' }));
+  const competencesContexte = tousIds.flatMap(id => [...competences.get(id).variantes.values()].map((s, index) => ({
+    ...s, variante: index + 1, formes: unique(s.formes), fichiers: unique(s.fichiers),
+  })));
+  const formesContexte = unique(Object.values(formesParFamille).flat()).map(id => {
+    const m = parMonstre.get(id);
+    return { monstreCom2usId: id, nom: m.name, element: m.element, secondAwaken: m.secondAwaken,
+      familyId: m.familyId, skillGroupId: m.skillGroupId,
+      competencesCandidates: couplesAttendus.filter(c => competences.get(c.skillCom2usId).formes.has(id)).map(c => c.skillCom2usId),
+      competencesKit: Object.values(kits).flat().find(k => k.monstreCom2usId === id).competences };
+  });
+  const lignesAudit = audit.filter(r => Number(r.entree) === 177 || tousIds.includes(Number(r.skill_com2us)));
+  const sections = { couplesAttendus, candidats, competences: competencesContexte, formes: formesContexte, lignesAudit, configurations: [] };
+  const compteurs = Object.fromEntries(Object.entries(sections).map(([nom, lignes]) => [nom, lignes.length]));
+  const serialiser = (meta, contenu) => '{\n  "metadonnees": ' + JSON.stringify(meta) + ',\n' +
+    Object.entries(contenu).map(([nom, lignes]) => `  ${JSON.stringify(nom)}: [\n${lignes.map(l => '    ' + JSON.stringify(l)).join(',\n')}\n  ]`).join(',\n') + '\n}\n';
+  const ecrire = (nom, texte) => {
+    writeFileSync(resolve(dossier, nom), texte);
+    return { fichier: nom, octets: Buffer.byteLength(texte), sha256: hash(texte),
+      lignesUtiles: texte.split('\n').filter(l => l.trim()).length };
+  };
+  mkdirSync(dossier, { recursive: true });
+  const source = { audit: { chemin: auditPath, sha256: hash(lire(auditPath)), lignes: audit.length },
+    corpus: { fichiers: fichiers.length, occurrencesCompetence: occurrences, identifiantsCompetence: competences.size,
+      sha256: empreinteCorpus.digest('hex') },
+    monstres: { chemin: 'public/data/monsters.json', sha256: hash(lire('public/data/monsters.json')) },
+    ancienCorpus: { chemin: ancienChemin, sha256: hash(ancienBrut) } };
+  const corpusMeta = { version: 1, lot: '1a2', format: 'JSON tabulaire UTF-8/LF ; une ligne par enregistrement',
+    source, formesParFamille, kits, compteurs };
+  const corpusProduit = ecrire('corpus-lot-1-complement.json', serialiser(corpusMeta, sections));
+  const projectionMeta = { version: 1, lot: '1c4', corpus: corpusProduit.fichier,
+    sha256Corpus: corpusProduit.sha256, format: corpusMeta.format, compteurs };
+  const projectionProduit = ecrire('projection-lot-1c4.json', serialiser(projectionMeta, sections));
+  const manifeste = { version: 1, lot: '1a2', source, corpus: corpusProduit,
+    projection: projectionProduit, compteurs, formesParFamille, couplesAttendus,
+    schemaDecision: { champsObligatoires: ['famille', 'skillCom2usId', 'verdict', 'justification', 'sources', 'lignesAudit', 'formes', 'incertitudes'],
+      verdicts: ['même mécanique', 'même architecture', 'hors famille', 'à documenter'], forme: ['monstreCom2usId', 'nom', 'element'] } };
+  const manifesteProduit = ecrire('manifest-lot-1-complement.json', JSON.stringify(manifeste, null, 2) + '\n');
+  console.log(JSON.stringify({ source, formesParFamille, compteurs, corpus: corpusProduit,
+    projection: projectionProduit, manifeste: manifesteProduit,
+    idsKungFu, idsSamurai, lignesConstat177: constat.map(r => r.ligneCsv) }, null, 2));
+  process.exit(0);
 }
 
 const constats = {

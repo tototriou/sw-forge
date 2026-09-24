@@ -72,8 +72,12 @@ Preuve mécanique, à chaque lot :
 
 **Une information portée par la FORME compte autant qu'un libellé.**
 L'inventaire du lot 0 ne voit que du texte ; ce qui suit se lit sans mot
-et doit survivre, sous une forme au moins aussi lisible — chaque lot de
-zone vérifie à l'œil ceux de sa zone et les liste dans sa preuve :
+et doit survivre, sous une forme au moins aussi lisible. Chaque lot de zone
+le couvre par un **test de rendu** quand l'information est exposée en sens
+(texte, `title`, `aria-label`, `disabled`), sinon par le test de la logique
+qui la calcule (ex. `siegeStatut`, déjà testé) ; ce qui ne se teste ni l'un
+ni l'autre (une couleur seule) est listé dans la preuve du lot pour que
+Thomas le regarde sur le serveur de dev :
 
 - statut d'une équipe de siège (vert / orange / rouge) ;
 - vitesse saisie ≠ runes importées (`DesyncBadge`) ;
@@ -137,7 +141,7 @@ lot l'applique.
 | --- | --- | --- |
 | M | mécanique | diff relu, vérifications vertes |
 | C | outillage | tests sur fixtures, dont un test négatif qui refuse |
-| J | jugement visuel | inventaire vert, captures relues écran par écran |
+| J | jugement visuel | inventaire vert, tests de rendu de la zone verts |
 
 | Cat. | Modèle, effort |
 | --- | --- |
@@ -178,19 +182,28 @@ lot l'applique.
   Thomas. Jamais de retrait « parce que la maquette ne le montre pas ».
 - **Écart entre maquette et règle de spec** → la règle gagne, l'écart va
   dans le rapport du lot.
-- Un format non visé par un lot (bureau ou téléphone) **ne bouge pas au
-  pixel près** par rapport aux captures de fin du lot précédent. Un écart
-  = une fuite de style : pas de commit.
+- **Les fonctionnalités se prouvent par des TESTS, jamais par des captures
+  d'écran** (Thomas, 2026-09-24 : « je veux les mêmes fonctionnalités, pas
+  la même chose au pixel près » ; « crée des tests unitaires si tu veux
+  contrôler de ne rien perdre »). Deux mécanismes : l'inventaire (statique,
+  tout le code) et les **tests de rendu** (`tests/rendu/`, par écran). Une
+  première version de ce cadrage prévoyait des captures « avant/après » et
+  un contrôle au pixel près : retirés, ils mesuraient l'apparence au lieu de
+  ce qui compte. L'apparence change librement.
+- **Un lot de zone commence par écrire les tests de rendu de sa zone, sur
+  le code AVANT tout changement**, dans un commit à part : verts sur la
+  base, ils décrivent ce qui existe. Il refait ensuite l'affichage ; ils
+  doivent rester verts. Un test qu'il faudrait modifier pour passer = une
+  fonctionnalité perdue, sauf déplacement déclaré (on met à jour le chemin
+  pour la retrouver, jamais l'assertion) ou retrait décidé par Thomas.
 
 ### A.6 bis Preuves — où elles vivent, sous quelle forme
 
 - Fichiers de preuve : `spec/chantiers/refonte-graphique-preuves/lot-<n>.md`,
   avec un H1 et la ligne
   `**Statut :** CHANTIER en cours — branche forge/refonte-graphique`. Ils
-  contiennent les commandes, leurs sorties, et la liste des écrans relus.
-- Captures d'écran : `.maquettes/captures/lot-<n>/` (exclu de git par
-  `.git/info/exclude`, trop lourd pour le dépôt) ; le fichier de preuve
-  liste les captures relues et ce qui a été vu sur chacune.
+  contiennent les commandes et leurs sorties, dont celles des tests de
+  rendu de la zone.
 - Le message de commit cite le fichier de preuve ; il ne le remplace pas.
 
 ### A.7 Ordre, dépendances, suivi
@@ -210,7 +223,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
-| 0 garde-fous : inventaire, chemins interdits, captures « avant » | C | exécuté sauf captures (accord de Thomas attendu) | 2026-09-24 |
+| 0 garde-fous : inventaire, chemins interdits, tests de rendu | C | exécuté | 2026-09-24 |
 | 1 décisions retenues (avec Thomas) | J | à faire | |
 | 2 tokens : couleurs, polices, rayons | J | à faire | |
 | 3 `src/ui/` : rendu interne, API inchangée | J | à faire | |
@@ -252,10 +265,14 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
    Une entrée nouvelle est acceptée.
 5. `scripts/chemins-interdits.mjs <base>` : `git diff --name-only` sur la
    liste de A.2 ; code de sortie 1 si non vide.
-6. Captures « avant » : chaque route × {1440×900, 390×844} × {clair, sombre}
-   avec un compte de démonstration, dans `.maquettes/captures/lot-0/`.
-   ⚠️ **Le pilotage du navigateur (`run-sw-forge`) exige l'accord explicite
-   de Thomas** : demander avant de lancer.
+6. Tests de rendu : `tests/rendu/outils-rendu.tsx` affiche un vrai
+   composant avec des données d'exemple (`react-dom/server`, sans
+   navigateur) et l'interroge sur le SENS — texte visible, boutons avec
+   `aria-label`, `title`, `disabled` — jamais sur les classes ou la
+   disposition. Premier écran couvert : Siège · Défense et Offense
+   (`tests/rendu/siege.test.tsx`), qui fixe le modèle des suivants. Les
+   autres écrans sont couverts par leur lot de zone, AVANT d'y toucher
+   (A.6).
 
 **Preuve** : `node tests/run.mjs refonte-inventaire` vert sur `6110609` ;
 **test négatif** : retirer un libellé d'une copie de fixture fait échouer la
@@ -264,15 +281,19 @@ vérification avec le nom de l'entrée ; `scripts/chemins-interdits.mjs` rend
 
 **Ne fait pas** : aucun changement visuel, aucun fichier de `src/` modifié.
 
-**Résultat (2026-09-24)** — points 1 à 5 livrés ; preuve
+**Résultat (2026-09-24)** — les six points livrés ; preuve
 [lot-0.md](refonte-graphique-preuves/lot-0.md). Référence : 80 fichiers,
 1 756 entrées. Preuve négative sur le vrai code : un libellé altéré et un
-fichier de `src/lib/` touché sont refusés, fautif nommé. Limite mesurée : un
-texte construit par une fonction (`LeadPill`, `title={leadTitle(ls)}`)
-échappe à l'extraction — la relecture des captures le couvre. **Point 6
-(captures « avant ») non fait** : accord de Thomas pour piloter le
-navigateur attendu ; tant qu'il manque, aucun lot visuel (2 et suivants)
-ne démarre.
+fichier de `src/lib/` touché sont refusés, fautif nommé. Limite mesurée de
+l'inventaire : un texte construit par une fonction (`LeadPill`,
+`title={leadTitle(ls)}`) lui échappe — les tests de rendu le voient (le
+bonus du leader « +33% (donjon) » s'affiche dans le rendu du siège). Tests
+de rendu du siège : 36 vérifications vertes ; « Tout effacer » renommé dans
+le vrai composant → le test échoue en nommant le bouton perdu.
+
+*Amendement (2026-09-24)* : le point 6 prévoyait des captures d'écran de
+chaque route ; faites puis **abandonnées sur décision de Thomas** au profit
+des tests de rendu (A.6). Script et images supprimés.
 
 ### B.1 Lot 1 — décisions retenues · J (avec Thomas)
 
@@ -321,7 +342,7 @@ commit.
 
 **Preuve** : tableau des ratios dans le fichier de preuve ; `npx tsc
 --noEmit`, `npm run build` ; chemins interdits vides ; inventaire vert ;
-captures des deux formats × deux thèmes relues une par une.
+tous les tests de rendu existants verts.
 
 **Ne fait pas** : ne touche aucun composant.
 
@@ -340,16 +361,18 @@ tactiles) redéfinit piste, pastille ET course ensemble ; la cible
 tactile s'élargit par `cible-tactile`, pas en gonflant le dessin.
 
 **Preuve** : comptes d'appels avant/après, `tsc`, build, inventaire,
-chemins interdits, captures — dont chaque taille de `Interrupteur` et
-de `Case`, activée et désactivée, dans les deux thèmes.
+chemins interdits, tests de rendu verts ; un test de rendu par composant de
+`src/ui/` qui porte un état (désactivé + raison, `aria-pressed`, `actif`),
+écrit AVANT de le modifier.
 
 ### B.4 Lot 4 — coquille bureau · J
 
 **Contrat** : mêmes destinations, mêmes routes, même logique de niveau de la
-barre (`navigation.md`). Le **téléphone ne bouge pas au pixel près**.
+barre (`navigation.md`).
 
 **Preuve** : `node tests/run.mjs navigation`, inventaire, chemins
-interdits, captures bureau relues, captures téléphone identiques au lot 3.
+interdits, un test de rendu de la barre latérale et des onglets mobiles
+écrit AVANT : chaque destination (libellé + route) reste présente.
 
 ### B.5 à B.10 — écrans bureau · J
 
@@ -364,20 +387,25 @@ contrat pour tous :
 - chaque contrôle de l'écran avant le lot est **retrouvé** après : même
   libellé, même effet, dans l'écran ou dans un menu nommé dans
   `deplacements.json` ;
-- le téléphone ne bouge pas au pixel près ;
+- **premier commit du lot** : les tests de rendu de la zone, écrits sur le
+  code actuel et verts (modèle : `tests/rendu/siege.test.tsx`) — chaque
+  bouton, libellé, infobulle, état désactivé, information calculée ;
+- le téléphone garde toutes ses fonctionnalités (mêmes tests de rendu :
+  le composant est le même) ;
 - les rendus du jeu (A.2) ne sont pas touchés, seulement placés ;
 - **preuve** : inventaire, chemins interdits, `node tests/run.mjs <zone>`,
-  captures bureau relues contrôle par contrôle.
+  tests de rendu de la zone verts sans que leurs assertions aient changé.
 
 ### B.11 Lot 11 — téléphone · J
 
 **Contrat** : `navigation.md` § Barre d'onglets et § Panneau d'actions
 mobile s'appliquent tels quels (panneau de sous-sections, bouton Options,
-pas de sous-onglets dans la page). Le bureau ne bouge pas au pixel près.
+pas de sous-onglets dans la page). Tous les tests de rendu restent verts.
 Se coordonne avec la passe responsive (A.5).
 
 ### B.12 Lot 12 — validation finale · M
 
-`npm test` complet, `tsc`, build ; captures « après » de toutes les routes
-comparées aux captures du lot 0, écran par écran, avec la liste des
-différences attendues (A.2 bis) ; inventaire vert ; fusion.
+`npm test` complet (inventaire et tous les tests de rendu compris), `tsc`,
+build ; relecture des déplacements déclarés et des retraits décidés
+(A.2 bis) ; Thomas vérifie sur le serveur de dev ce qui ne se teste pas
+(liste des preuves de zone) ; fusion.

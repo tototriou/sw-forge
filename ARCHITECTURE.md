@@ -267,6 +267,11 @@ Source de vérité du rendu : [`spec/shared/design.md`](spec/shared/design.md).
 - `scripts/fetch-monsters.mjs`, `fetch-skills.mjs`, `link-collabs.mjs` —
   régénèrent les données depuis SWARFARM.
 - `scripts/benchmark-*.mjs` — mesures de l'optimiseur.
+- `scripts/inventaire-ui.mjs` + `scripts/lib/inventaire-comparer.mjs` —
+  inventaire des points d'entrée visibles (textes, libellés, infobulles,
+  routes) comparé à une référence figée ; `scripts/chemins-interdits.mjs` —
+  ce qu'un lot de refonte ne touche pas. Chantier
+  `spec/chantiers/refonte-graphique.md`.
 - `src/data/releases.ts` — le journal des versions, lu par l'accueil **et** la
   page Nouveautés.
 
@@ -280,3 +285,8 @@ tris, optimiseur (dont un test différentiel).
 
 ⚠️ **Aucun test d'interface** — elle se vérifie à l'œil ; des tests d'affichage
 ne feraient que figer le rendu du jour.
+
+Une exception, qui ne fige PAS le rendu : `refonte-inventaire` refuse qu'une
+entrée visible (texte, libellé, infobulle, route) **disparaisse** sans
+déplacement déclaré ni décision écrite — la forme et la place restent libres.
+Référence et déplacements : `spec/chantiers/refonte-graphique-preuves/`.

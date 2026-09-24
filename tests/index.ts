@@ -60,6 +60,12 @@ import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit
 import testSpecMarkdown from './spec-markdown.test';
 import testSpecToc from './spec-toc.test';
 import testSpecLint, { testSpecLintEnTetes, testSpecLintEnTetesReel, testSpecLintReel } from './spec-lint.test';
+import {
+  testRefonteInventaire,
+  testRefonteInventaireExtraction,
+  testRefonteInventaireComparer,
+  testRefonteCheminsInterdits,
+} from './refonte-inventaire.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -88,6 +94,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSpecLintEnTetesReel', testSpecLintEnTetesReel],
   ['testSpecLint', testSpecLint],
   ['testSpecLintReel', testSpecLintReel],
+  ['testRefonteInventaireExtraction', testRefonteInventaireExtraction],
+  ['testRefonteInventaireComparer', testRefonteInventaireComparer],
+  ['testRefonteInventaire', testRefonteInventaire],
+  ['testRefonteCheminsInterdits', testRefonteCheminsInterdits],
   ['testImport', testImport],
   ['testNavigation', testNavigation],
   ['testReco', testReco],

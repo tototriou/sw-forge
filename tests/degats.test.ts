@@ -2629,7 +2629,8 @@ export default function testDegats() {
   // foi d'une confirmation qui était une ERREUR. Levée par un relevé EN JEU :
   // Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF → ~4 500 par coup,
   // contre 770 à 1 760 que donnait l'ancien calcul. Voir
-  // spec/outils/degats-reels.md, « Corrections identifiées ».
+  // spec/outils/degats-reels/artefacts-et-degats-bruts.md,
+  // « Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup ».
   egal(monsterBonusFixeMaxHpPropre(fiche(27513)), { pct: 7 }, 'Bayek (Vent) : Sickle Blade, +7 % de ses PV max');
   egal(monsterBonusFixeMaxHpPropre(fiche(28013)), { pct: 7 }, 'Shahat : Sand Blade, même mécanisme, nom différent');
   ok(!monsterBonusFixeMaxHpPropre(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');

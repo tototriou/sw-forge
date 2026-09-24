@@ -4466,7 +4466,8 @@ export function computeSkillDamageDetail(
   // l'utilisateur » pour le « une fois par sort » — c'était une ERREUR, levée
   // par un relevé EN JEU : Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF,
   // ~4 500 dégâts par coup relevés contre 770 à 1 760 prédits par l'ancien
-  // calcul. Voir spec/outils/degats-reels.md, « Corrections identifiées ».
+  // calcul. Voir spec/outils/degats-reels/artefacts-et-degats-bruts.md,
+  // « Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup ».
   //
   // ⚠️ Les deux familles vont EXACTEMENT au même endroit — ne pas rescinder
   // l'accumulateur « au cas où » : c'est ce partage qui avait été pris à tort

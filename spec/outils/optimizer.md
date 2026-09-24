@@ -709,17 +709,17 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        champ numérique borné apparaît sous le sort choisi (ou sous le passif
        concerné) pour choisir la valeur réellement utilisée par le calcul —
        `Competence.coups` ne porte qu'un seul nombre en donnée, pas fiable
-       pour ces sorts-là. Détail : [degats-reels.md](degats-reels.md),
+       pour ces sorts-là. Détail : [degats-reels/passifs-offensifs.md#coups-variables--un-sortpassif-qui-frappe-un-nombre-de-fois-qui-change-en-jeu](degats-reels/passifs-offensifs.md#coups-variables--un-sortpassif-qui-frappe-un-nombre-de-fois-qui-change-en-jeu),
        « Coups variables ». Un champ **Attaques reçues avant ce sort**
        (0 par défaut) n'apparaît que pour l'unique sort connu dont le
        coefficient dépend d'un compteur de combat (Crawler/Frankenstein —
-       « Hammer Punch »). Détail : [degats-reels.md](degats-reels.md),
+       « Hammer Punch »). Détail : [degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler](degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler),
        « formule bespoke selon un compteur ».
      - **Passifs offensifs** — n'apparaît que si le monstre en a un
        (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo, Chun-Li, Lizardman,
        Jin Kazama…) : des dégâts **en plus** du sort choisi ci-dessus, OU un
        modificateur sur l'ensemble de ses dégâts, via un passif reconnu
-       (liste à la main, voir [degats-reels.md](degats-reels.md)). Un passif
+       (liste à la main, voir [degats-reels/passifs-offensifs.md#passifs-offensifs--dégâts-supplémentaires-au-delà-du-sort-choisi](degats-reels/passifs-offensifs.md#passifs-offensifs--dégâts-supplémentaires-au-delà-du-sort-choisi)). Un passif
        **toujours actif** (le texte du jeu ne pose aucune condition)
        apparaît en jeton simple, sans bouton — y compris un modificateur
        sans formule propre (crit garanti si plus rapide, bonus continu
@@ -749,7 +749,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        cible** (0 par défaut) n'apparaît que pour les rares sorts dont les
        dégâts augmentent par effet présent sur l'adversaire (Julie, Melissa)
        — l'app ne simule aucun effet réel sur la cible. Détail :
-       [degats-reels.md](degats-reels.md), « bonus selon les effets sur la
+       [degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible](degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
        CIBLE ». ⚠️ **VIT adversaire** +
        **leader skill VIT** : apparaissent pour un sort/passif qui dépend de
        l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
@@ -758,7 +758,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        lit pas cette variable, ex. n'importe quel sort de Sonia) ; un
        artéfact « Effet aug. VIT » équipé et un éventuel critique/bonus de
        dégâts garanti sont, eux, **déduits et affichés**, jamais redemandés.
-       Détail : [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
+       Détail : [degats-reels/passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel](degats-reels/passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel), « VIT de l'adversaire ».
      - **Effets actifs** — effets subis par la cible (réduction de défense
        ×0,3, marque +25 %, « ce sort pose le def break » — distingue
        « attaque une cible déjà réduite » de « réduit puis frappe », les
@@ -775,7 +775,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        icône de buff générique. ⚠️ Velaska porte en plus un **champ
        numérique** (% de PV perdus, 0 par défaut) qui n'apparaît que si son
        effet est activé. Détail des mécaniques :
-       [degats-reels.md](degats-reels.md), « Effets d'équipe ».
+       [degats-reels/effets-equipe-et-leaders.md#effets-déquipe-euldong-mirinae-deborah-miriam-dr-matteo-velaska](degats-reels/effets-equipe-et-leaders.md#effets-déquipe-euldong-mirinae-deborah-miriam-dr-matteo-velaska), « Effets d'équipe ».
 
        ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont plus** — voir
        « État de mon monstre » ci-dessous.
@@ -790,7 +790,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        qui portait ce cran est normalisée vers **Combat** à l'import.
        La compétence « Puis. d'att. de <élément> » suit l'élément du
        monstre, sans rien demander. Détail des valeurs :
-       [degats-reels.md](degats-reels.md).
+       [degats-reels/effets-equipe-et-leaders.md#leader-skill-déquipe](degats-reels/effets-equipe-et-leaders.md#leader-skill-déquipe).
      - **Coup critique** — Critique (défaut, le plafond d'un coup isolé) /
        Non critique (le plancher) / Moyenne (espérance sur le Taux Crit
        réellement atteint — le seul mode où le Taux Crit pèse sur le
@@ -2251,4 +2251,4 @@ plusieurs milliers de runes.
   lignes de dégâts d'artéfact, réductions autres que la marque, mécaniques
   propres à certains monstres. Environ **200 sorts du corpus** (sur ~6 000)
   ont une formule hors modèle et sont refusés explicitement plutôt que
-  calculés de travers — détail dans [degats-reels.md](degats-reels.md).
+  calculés de travers — détail dans [degats-reels/formules-et-combat.md#lecture-des-formules--tout-ou-rien](degats-reels/formules-et-combat.md#lecture-des-formules--tout-ou-rien).

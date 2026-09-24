@@ -10,7 +10,8 @@
 //
 // ⚠️ Le build de runes est FIXE. Ce module ne cherche pas les deux ensemble :
 // un artéfact amplifie un build, il n'en déplace pas la cible (voir
-// spec/outils/degats-reels.md, « Ces lignes n'entrent PAS dans
+// spec/outils/degats-reels/artefacts-et-degats-bruts.md,
+// « Dégâts supplémentaires proportionnels à une stat (218-221) » — ces lignes n'entrent PAS dans
 // `damageRelevantStats` »).
 
 import { ARTIFACT_KINDS, ArtifactDetail, ArtifactKind, MAX_ARTIFACT_SUBS } from '../types';

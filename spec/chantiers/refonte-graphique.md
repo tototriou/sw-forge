@@ -264,7 +264,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 1 décisions retenues (avec Thomas) | J | exécuté | 2026-09-24 |
 | 2 tokens : rayons, texte sur accent | J | exécuté | 2026-09-24 |
 | 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
-| 4 coquille bureau : barre latérale, barre du haut | J | à faire | |
+| 4 coquille bureau : barre latérale, barre du haut | J | exécuté | `a68260a` (tests avant), 2026-09-24 |
 | 5 Accueil | J | à faire | |
 | 6 RTA | J | à faire | |
 | 7 Siège | J | à faire | |
@@ -296,6 +296,10 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
    départ : `{ "<entrée>": { "de": "<fichier>", "vers": "<fichier>" } }`,
    ou `{ "de": "<fichier>", "retrait": "A.2 bis #<n>" }` quand Thomas a
    décidé le retrait — la vérification refuse un numéro absent de A.2 bis.
+   *Ajout du lot 4* : `"devient": "<entrée>"` quand l'entrée change de
+   NATURE sans disparaître (une entrée cliquable devenue titre de groupe) ;
+   c'est cette forme qu'on doit retrouver dans `vers`. `"pourquoi"` : texte
+   libre, ignoré par la comparaison.
 4. Vérification `refonte-inventaire` enregistrée dans `tests/index.ts` :
    **échoue si une entrée de la référence manque** de l'inventaire courant,
    et échoue aussi si une entrée de `deplacements.json` est absente de son
@@ -435,6 +439,14 @@ barre (`navigation.md`).
 **Preuve** : `node tests/run.mjs navigation`, inventaire, chemins
 interdits, un test de rendu de la barre latérale et des onglets mobiles
 écrit AVANT : chaque destination (libellé + route) reste présente.
+
+**Résultat (2026-09-24)** — preuve [lot-4.md](refonte-graphique-preuves/lot-4.md).
+Tests de la coquille écrits avant (`a68260a`) : l'application entière rendue
+sur ses 23 routes. Barre bureau regroupée (Jouer · Mon compte · Outils ·
+Ressources), icônes monochromes, Meules et Gemmes hors du menu ; structure
+propre au bureau, le téléphone inchangé. Barre du haut non retouchée (rien
+n'y était décidé). Premier changement de NATURE d'une entrée d'inventaire :
+`deplacements.json` gagne le champ `devient`.
 
 ### B.5 à B.10 — écrans bureau · J
 

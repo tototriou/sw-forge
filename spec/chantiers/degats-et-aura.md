@@ -112,6 +112,7 @@ affirmations contradictoires, notamment sur 411.
 | Cible du troisième coup de Blade Surge | Le coup de zone touche aussi la cible principale : elle reçoit donc les deux premiers coups mono-cible puis le troisième coup en zone | utilisateur, confirmation explicite du 2026-09-23 pour toute la famille retenue |
 | Tempest (Teshar) | `3.7 × ATQ`, **en zone**, déclenché après S1 **ou** S2 | utilisateur, **et** l'audit (3,7 ATQ, `other_skill=1181`) : deux sources concordantes |
 | Skillups de Tempest | Les trois améliorations `Damage +10%`, soit `+30 %`, s'appliquent aux dégâts de Tempest | utilisateur, confirmation explicite du 2026-09-23 |
+| Gold Headband (`7912`, Mei Hou Wang feu) | Chaque cumul ajoute **20 % de l'ATQ de base** et **12 % de la VIT de base** ; maximum 10. Pour Mei Hou Wang éveillé, la VIT de base vaut 116 | utilisateur, confirmation explicite du 2026-09-24 |
 | Attaques supplémentaires conditionnelles | L'Optimizer ne tire jamais la probabilité : un interrupteur utilisateur inclut ou exclut la compétence supplémentaire, comme pour Tempest. Règle confirmée pour les S2/S3 des Maîtres ivres, Shoryuken, les chaînes de Kung Fu Girls et Chain Effect de Vendhan. Pour Vendhan, la répétition vaut 50 % des dégâts ; le Silence réel à 25 % est hors calcul. Chaque famille garde ses paramètres propres et doit être classée par le lot 1 | utilisateur, décisions produit des 2026-09-23 et 2026-09-24 |
 | Formes génériques et non éveillées | Aucune forme non éveillée d'un monstre n'est sélectionnable dans l'Optimizer. Les cinq Martial Cat 2A génériques `47601` à `47605` ne correspondent en outre à rien de jouable. Ces formes sont entièrement ignorées, sauf quand leur identifiant de compétence est aussi porté par une forme jouable : le profil est alors conservé pour cette dernière seulement | utilisateur, confirmations explicites des 2026-09-23 et 2026-09-24 |
 | Stock de dégâts de Jin/Kai ténèbres | Lorsqu'un S3 élimine sa cible, l'excédent `max(0, dégâts infligés − PV restants)` devient un dégât fixe ajouté au prochain S3. Il ignore la DEF mais subit les réductions des dégâts fixes, est entièrement consommé puis remplacé par le nouvel excédent éventuel, sans plafond de jeu. L'Optimizer demande directement un stock `0..100000` à l'utilisateur ; cette borne de saisie n'est pas un plafond du jeu | utilisateur, valeurs et décision produit du 2026-09-23 |
@@ -311,7 +312,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 8 — Blade Surge : le 3ᵉ coup en zone (périmètre à amender après lot 1) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (périmètre à amender après lot 1) | J | à faire | — |
-| 11 — prose des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | C+M | à faire | — |
+| 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | C+J | à faire | — |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
 | 13b-* — contrats de qualification à créer par le pilote après 13a | J | non lançables avant amendement et revue | — |
@@ -1404,9 +1405,9 @@ lot 1 citée dans la spec · `npx tsc --noEmit` ·
 (28 lignes d'audit restantes, lot 13a) — autres mécaniques d'ignore DEF conditionnel,
 lot 13.
 
-### Lot 11 — les passifs « Stats acquises en combat » non survolables
+### Lot 11 — les passifs « Stats acquises en combat » : prose et Gold Headband
 
-**Cat. C puis M.** Requiert le lot 1 (extraction 4 et amendement pilote) et 2b.
+**Cat. C puis J.** Requiert le lot 1 (extraction 4 et amendement pilote) et 2b.
 L'inventaire porte 38 identifiants / 40 configurations ; huit configurations
 ont déjà leur prose ailleurs. Le correctif porte donc sur 30 identifiants /
 32 configurations, en nommant toutes les formes affectées.
@@ -1447,6 +1448,20 @@ perdent réellement la prose, sans la dupliquer sur les huit déjà visibles ;
 monstre × `source` × branche) ; 2) corriger les 32 pertes par branche sans
 dupliquer les huit proses déjà visibles ; 3) mettre à jour la section de spec.
 
+**Correction curée de Gold Headband `7912`.** La configuration actuelle
+`{ atkPct: 20, spdFlat: 12 }` est fausse sur les deux assiettes : `atkPct`
+multiplie l'ATQ de combat totale et `spdFlat` ajoute des points. Chaque cumul
+doit au contraire ajouter `20 % × ATQ de base` et `12 % × VIT de base`, jusqu'à
+10 cumuls (A.2 ter). Employer l'axe existant `atkBasePct: 20` et ajouter un axe
+explicite `spdBasePct: 12` à `CombatStatProfile`, au résolveur et à
+`statsDeCombat` ; ne détourner ni `spdPct` (pourcentage de la VIT de combat)
+ni `spdFlat`. Tester 0, 1 et 10 cumuls sur les deux formes, dont la VIT de base
+116 de Mei Hou Wang : contributions brutes de VIT `0`, `13,92` et `139,2`
+avant toute politique d'arrondi ultérieure. Cette curation ne spécifie aucun
+nouvel arrondi intermédiaire : si le chemin existant ne tranche pas ce point,
+le lot s'arrête et demande un relevé au lieu d'ajouter `ceil`, `round` ou
+`floor`.
+
 ⚠️ **Ce que l'hypothèse de la demande recouvrait vraiment.** « Rien de visible
 (Mayasura, Jaeger) » et « le sort non survolable (Cordelia) » ne sont pas deux
 cas mais **un seul**, à deux rendus près : leur prose n'est nulle part. Le cas
@@ -1479,9 +1494,9 @@ configurations sont **hors famille du correctif** parce que leur prose est déj�
 visible ailleurs dans la carte : `2565`, `9611` à `9615`, `10612`, `18139`.
 Le périmètre du lot 11 est donc de 30 identifiants / 32 configurations. Les
 preuves sont `decisions-lot-1e.json`, `controle-1e.md` et
-`valider-lot-1e.mjs`. L'écart `7912` — prose « VIT +12 % », table
-`spdFlat: 12` — reste une incertitude de valeur explicitement non tranchée :
-le lot 11 n'y touche pas ; le lot 1f doit la conserver et proposer son suivi.
+`valider-lot-1e.mjs`. L'écart `7912` a été tranché ensuite par l'utilisateur le
+2026-09-24 : `+20 % ATQ de base` et `+12 % VIT de base` par cumul. Le lot 11
+porte sa correction et ses tests ; le lot 1f doit conserver cette résolution.
 
 ### Lot 12 — les trois mécanismes rejoués sur des cas indépendants
 

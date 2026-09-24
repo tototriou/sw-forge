@@ -30,7 +30,14 @@ try {
     outfile: sortie,
     logLevel: 'error',
     // `import.meta.url` sert à retrouver la racine du dépôt depuis les tests.
-    define: { 'import.meta.url': JSON.stringify(new URL('index.ts', import.meta.url).href) },
+    //
+    // `import.meta.env` : ce que Vite fournit à l'app. Les tests de RENDU
+    // (tests/rendu/) affichent de vrais composants, dont une vingtaine lisent
+    // `import.meta.env.BASE_URL` pour le chemin des images.
+    define: {
+      'import.meta.url': JSON.stringify(new URL('index.ts', import.meta.url).href),
+      'import.meta.env': JSON.stringify({ BASE_URL: '/', MODE: 'test', DEV: false, PROD: true }),
+    },
     // ⚠️ esbuild ne peut PAS être bundlé lui-même (son API a besoin d'un
     // exécutable externe, localisé via un chemin RELATIF à son propre
     // package sur disque — un chemin qui devient faux une fois inliné dans

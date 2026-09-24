@@ -67,18 +67,44 @@ commit ; le test le couvre.
 ## Ce que l'inventaire ne voit pas — limites connues
 
 - **Un texte construit par une fonction** n'est pas relevé : ex. l'infobulle
-  de `LeadPill.tsx` (`title={leadTitle(ls)}`), des libellés calculés dans
-  `src/lib/`. Les chaînes de `src/lib/` sont protégées autrement : le fichier
-  est un chemin interdit, il ne change pas.
-- **Une information sans texte** (couleur de statut, badge, icône, grisé) :
-  couverte par la liste de A.2 « information portée par la forme » et la
-  relecture des captures, lot par lot.
-- **Un comportement** (ce qu'un clic déclenche) : la logique ne bouge pas
-  (chemins interdits) ; le branchement du contrôle à cette logique se
-  vérifie à l'œil sur les captures et au clic, lot par lot.
+  de `LeadPill.tsx` (`title={leadTitle(ls)}`). Les **tests de rendu** le
+  voient (ci-dessous : le bonus du leader apparaît dans le rendu du siège).
+- **Une information sans texte** (couleur de statut, icône, grisé) :
+  couverte par un test de rendu quand elle est exposée en sens, par le test
+  de la logique qui la calcule sinon (A.2 « information portée par la
+  forme »).
+- **Un comportement déclenché par un clic** : le rendu serveur n'exécute ni
+  clic ni effet. La logique ne bouge pas (chemins interdits) ; qu'un bouton
+  soit présent, nommé et actif est testé, que son `onClick` reste branché
+  se vérifie dans l'app.
 
-## Non fait dans ce lot
+## Tests de rendu (point 6)
 
-Les **captures « avant »** (B.0, point 6) : elles exigent de piloter un
-navigateur (`run-sw-forge`), ce qui demande l'accord explicite de Thomas —
-demandé, pas encore donné. Aucun lot visuel ne démarre sans elles.
+`tests/rendu/outils-rendu.tsx` (rendre, texte visible, boutons avec
+`aria-label` / `title` / `disabled`) ; `tests/run.mjs` définit désormais
+`import.meta.env` pour les composants qui lisent `BASE_URL`.
+`tests/rendu/siege.test.tsx` affiche le vrai `SiegeBoard` (défense et
+offense) avec deux équipes réelles lues dans `public/data/monsters.json` via
+le faux `localStorage`.
+
+```text
+$ node tests/run.mjs rendusiege
+36 vérifications passées
+```
+
+Preuve négative : `libelle="Tout effacer"` → `"Vider"` dans
+`SiegeBoard.tsx`, puis `git checkout --` :
+
+```text
+$ node tests/run.mjs rendusiegedefense
+  KO   bouton « Tout effacer »
+1 échec(s) sur 18 vérifications
+```
+
+## Amendement — captures abandonnées
+
+Le point 6 prévoyait d'abord des captures d'écran de chaque route (bureau et
+téléphone, clair et sombre). Elles ont été faites (92), puis **abandonnées
+sur décision de Thomas** : des captures mesurent l'apparence, pas les
+fonctionnalités. Script et images supprimés ; les tests de rendu les
+remplacent (cadrage A.6).

@@ -290,3 +290,9 @@ Une exception, qui ne fige PAS le rendu : `refonte-inventaire` refuse qu'une
 entrée visible (texte, libellé, infobulle, route) **disparaisse** sans
 déplacement déclaré ni décision écrite — la forme et la place restent libres.
 Référence et déplacements : `spec/chantiers/refonte-graphique-preuves/`.
+
+Même esprit pour les **tests de rendu** (`tests/rendu/`) : un vrai composant
+affiché avec `react-dom/server` et des données d'exemple, interrogé sur le
+SENS (texte, `aria-label`, `title`, `disabled`), jamais sur les classes ou la
+disposition — ils vérifient qu'une fonctionnalité est là, pas à quoi elle
+ressemble.

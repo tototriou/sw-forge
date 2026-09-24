@@ -66,6 +66,7 @@ import {
   testRefonteInventaireComparer,
   testRefonteCheminsInterdits,
 } from './refonte-inventaire.test';
+import { testRenduSiegeDefense, testRenduSiegeOffense } from './rendu/siege.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -98,6 +99,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRefonteInventaireComparer', testRefonteInventaireComparer],
   ['testRefonteInventaire', testRefonteInventaire],
   ['testRefonteCheminsInterdits', testRefonteCheminsInterdits],
+  ['testRenduSiegeDefense', testRenduSiegeDefense],
+  ['testRenduSiegeOffense', testRenduSiegeOffense],
   ['testImport', testImport],
   ['testNavigation', testNavigation],
   ['testReco', testReco],

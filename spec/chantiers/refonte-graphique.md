@@ -289,7 +289,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 2 tokens : rayons, texte sur accent | J | exécuté | 2026-09-24 |
 | 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
 | 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par Thomas le 2026-09-25 |
-| 5 Accueil | J | à faire | |
+| 5 Accueil | J | exécuté, à valider | `b5a0418` (tests avant), `4ebcf70`, 2026-09-25 |
 | 6 RTA | J | à faire | |
 | 7 Siège | J | à faire | |
 | 8a Compte · Runes | J | à faire | |
@@ -510,6 +510,14 @@ contrat pour tous :
 - les rendus du jeu (A.2) ne sont pas touchés, seulement placés ;
 - **preuve** : inventaire, chemins interdits, `node tests/run.mjs <zone>`,
   tests de rendu de la zone verts sans que leurs assertions aient changé.
+
+**Résultat lot 5 — Accueil (2026-09-25)** — preuve
+[lot-5.md](refonte-graphique-preuves/lot-5.md). Tests avant `b5a0418`
+(40 vérifications), restylage `4ebcf70` : structure gardée (décision 10),
+cartes de la refonte, icônes neutres en tuile (décision 3), bouton plein
+(décision 4), « Comment ça marche » en une carte. Un changement de nature
+(bouton → `libelle`), aucune perte. À valider par Thomas sur le serveur de
+dev.
 
 ### B.11 Lot 11 — téléphone · J
 

@@ -37,6 +37,8 @@ try {
     define: {
       'import.meta.url': JSON.stringify(new URL('index.ts', import.meta.url).href),
       'import.meta.env': JSON.stringify({ BASE_URL: '/', MODE: 'test', DEV: false, PROD: true }),
+      // Injecté par `vite.config.ts` (numéro de version affiché au pied de page).
+      __APP_VERSION__: JSON.stringify('test'),
     },
     // ⚠️ esbuild ne peut PAS être bundlé lui-même (son API a besoin d'un
     // exécutable externe, localisé via un chemin RELATIF à son propre

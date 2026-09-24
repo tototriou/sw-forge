@@ -102,7 +102,39 @@ structure** : on lui applique les tokens et les composants, rien d'autre.
 
 ### A.2 bis Décisions retenues
 
-*(Rempli par le lot 1. Vide = aucun lot visuel ne peut démarrer.)*
+Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
+
+1. **Polices : on garde** Inter / JetBrains Mono (et Cinzel pour les
+   titres, comme aujourd'hui). Pas de Geist.
+2. **Arrondis des maquettes retenus** : 8 px boutons et champs, 12 px
+   cartes, 14 px fenêtres, dans les deux thèmes (Forge perd l'angle vif).
+3. **Menu sobre retenu** : les couleurs de section (`couleursSection.ts`)
+   quittent le menu et l'accueil ; la couleur reste aux données du jeu.
+4. **Bouton principal plein retenu** : `ton="accent"` + `fond="plein"`
+   devient un aplat d'accent, un seul par écran.
+5. **Regroupement du menu retenu** : Jouer (RTA, Siège, Arène) / Mon compte
+   (Monstres, Runes, Artéfacts) / Outils / Ressources — toutes les entrées
+   restent.
+6. **Meules et Gemmes retirées du MENU tant qu'elles sont « Bientôt »**
+   — [retrait #6] décidé par Thomas le 2026-09-24. Leurs routes
+   (`#/compte/runes/meules`, `…/gemmes`) et leur page « Bientôt » restent ;
+   elles reviennent au menu quand elles seront construites.
+7. **Flèches du speed tuning : on les garde sur la ligne.**
+8. **Pastille de statut retenue** pour les cartes de siège (les deux
+   thèmes), à la place du fond coloré en clair. Le statut y est ÉCRIT —
+   libellés de l'app (`siegeStatut`), jamais ceux inventés par les
+   maquettes.
+9. **Pastille de filtre active en couleur inversée retenue.**
+10. **Accueil : on garde l'accueil actuel, restylé** (héros, zone de dépôt,
+    « Ton espace », comment ça marche, fonctionnalités, version). La
+    maquette « sommaire » n'est pas retenue.
+
+**Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
+la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur
+« Sauvegardé il y a … » de la prépa RTA, notification avec « Annuler »
+après une action récupérable. Ils ajoutent du COMPORTEMENT : lot 13, après
+la refonte, avec sa propre spec, ses tests et sa liste de fichiers permis
+hors A.2.
 
 Forme d'une décision de retrait, et **seulement** dans cette section :
 `[retrait #<n>]` sur la ligne de la décision, avec la date et « décidé par
@@ -215,16 +247,17 @@ Notation **`A → B` : B requiert A** (prérequis à gauche).
 1 → 2 → 3 → 4 (tokens, puis composants qui les consomment, puis la coquille qui consomme les composants)
 4 → 5, 6, 7, 8a, 8b, 9a, 9b, 10 (un écran se refait sur la coquille finale ; entre eux, aucun ordre imposé)
 {5 … 10} → 11 (le téléphone se fait sur des écrans bureau stables)
-11 → 12
+11 → 13 (les ajouts se posent sur l'interface refaite)
+13 → 12 (la validation finale couvre aussi les ajouts)
 ```
 
 Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b → 9a → 9b → 10
-→ 11 → 12.
+→ 11 → 13 → 12.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | 0 garde-fous : inventaire, chemins interdits, tests de rendu | C | exécuté | 2026-09-24 |
-| 1 décisions retenues (avec Thomas) | J | à faire | |
+| 1 décisions retenues (avec Thomas) | J | exécuté | 2026-09-24 |
 | 2 tokens : couleurs, polices, rayons | J | à faire | |
 | 3 `src/ui/` : rendu interne, API inchangée | J | à faire | |
 | 4 coquille bureau : barre latérale, barre du haut | J | à faire | |
@@ -237,6 +270,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 9b Outils · Speed tuning | J | à faire | |
 | 10 Ressources, Paramètres, Bientôt | J | à faire | |
 | 11 Téléphone | J | à faire | |
+| 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | à faire | |
 | 12 validation finale et fusion | M | à faire | |
 
 ## Partie B — les lots
@@ -330,6 +364,12 @@ panneau Options) ne sont pas retenus : on garde ceux de l'app.
 
 **Ne fait pas** : aucun code.
 
+**Résultat (2026-09-24)** — les dix points tranchés par Thomas, recopiés dans
+A.2 bis. Écarts aux maquettes à retenir par les lots suivants : polices
+inchangées (1), accueil actuel conservé (10). Un seul retrait, [retrait #6]
+(Meules et Gemmes hors du menu, routes conservées). Trois ajouts, isolés au
+lot 13.
+
 ### B.2 Lot 2 — tokens · J
 
 **Intrant** : `src/index.css`, `tailwind.config.js`, `index.html`,
@@ -402,6 +442,24 @@ contrat pour tous :
 mobile s'appliquent tels quels (panneau de sous-sections, bouton Options,
 pas de sous-onglets dans la page). Tous les tests de rendu restent verts.
 Se coordonne avec la passe responsive (A.5).
+
+### B.13 Lot 13 — ajouts décidés · J
+
+Les trois ajouts de A.2 bis (palette Ctrl K, « Sauvegardé il y a … »,
+notification « Annuler »). **Seul lot autorisé à ajouter du comportement.**
+
+**Contrat** : avant tout code, la spec de chaque ajout dans la spec de sa
+zone (`spec/shared/navigation.md` pour la palette, `spec/rta/` pour
+l'indicateur, `spec/shared/design.md` pour la notification) ; la liste des
+fichiers permis hors A.2 écrite dans cette section, dans le même commit que
+la spec, AVANT le code. La palette part de la recherche de pages existante
+(`SidebarSearch.tsx`, « Rechercher une page (⌘K) »), elle ne la remplace
+pas par une seconde. « Annuler » ne s'applique qu'à une action
+récupérable (`design.md` § Ce qui se confirme).
+
+**Preuve** : tests de la logique ajoutée, tests de rendu des trois ajouts,
+inventaire (entrées nouvelles seulement), tous les tests de rendu existants
+verts.
 
 ### B.12 Lot 12 — validation finale · M
 

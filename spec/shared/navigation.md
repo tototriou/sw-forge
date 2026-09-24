@@ -107,6 +107,11 @@ texte **14** (`text-md`, `font-medium`), rayon 8 px — le gabarit de la
 maquette. Les sous-sections : texte 13, en retrait de 36 px, **avec leur
 icône** (16) — la maquette n'en montrait pas ; Thomas les a fait remettre
 (2026-09-24) : chaque vue a la sienne, et elle se repère plus vite qu'un mot.
+⚠️ **Le filet est UN contour gauche du bloc des sous-sections** (décalé de
+18 px, dans l'axe de l'icône parente), pas un trait dessiné dans chaque
+ligne : ainsi dessiné, il traversait le fond de la sous-section choisie et
+se coupait entre deux lignes (« fait bizarre », Thomas). Le fond de sélection
+commence après le filet.
 
 ⚠️ **Le texte était à 13 (`text-sm`) et la colonne se lisait serrée** ; 15
 l'appuyait trop. L'échelle n'avait rien entre les deux : le palier `md` a donc

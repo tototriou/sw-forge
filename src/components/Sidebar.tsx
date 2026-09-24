@@ -251,50 +251,59 @@ export default function Sidebar({
 
 // Les sous-sections d'une section déroulée, sous son entrée.
 function SousSections({ section, retractee }: { section: SidebarSection; retractee: boolean }) {
+  // Repliée, pas de place pour un libellé en retrait : l'icône de la
+  // sous-section, et son nom dans le `title`.
+  if (retractee) {
+    return (
+      <>
+        {section.groupes.flatMap((g) => g.liens).map((s) => (
+          <a
+            key={s.key}
+            href={s.hash}
+            title={s.label}
+            aria-label={s.label}
+            aria-current={s.actif ? 'page' : undefined}
+            className={`flex h-8 items-center justify-center rounded-lg transition-colors ${
+              s.actif ? FOND_ACTIF : `text-ink-dimmer ${FOND_SURVOL}`
+            }`}
+          >
+            {s.icon}
+          </a>
+        ))}
+      </>
+    );
+  }
+  // ⚠️ **UN filet continu, porté par le BLOC, pas un bout de trait par ligne.**
+  // Dessiné dans chaque ligne, il traversait le fond de la sous-section
+  // choisie et se coupait dans l'espace entre deux lignes — relevé par
+  // Thomas : « le rendu avec les lignes des sous-sections et la zone de
+  // sélection fait bizarre ». Le bloc est décalé de 18 px (10 de marge + la
+  // moitié d'une icône de 16) : son contour gauche tombe dans l'axe de l'icône
+  // de l'entrée parente, et le fond de sélection commence APRÈS lui.
   return (
-    <>
+    <div className="ml-[18px] flex flex-col gap-px border-l border-border py-0.5 pl-2">
       {section.groupes.map((g, i) => (
         <div key={g.titre ?? i} className="flex flex-col gap-px">
-          {g.titre && !retractee && <span className="label block pb-0.5 pl-9 pt-1.5">{g.titre}</span>}
-          {g.liens.map((s) =>
-            retractee ? (
-              // Repliée, pas de place pour un libellé en retrait : l'icône de la
-              // sous-section, et son nom dans le `title`.
-              <a
-                key={s.key}
-                href={s.hash}
-                title={s.label}
-                aria-label={s.label}
-                aria-current={s.actif ? 'page' : undefined}
-                className={`flex h-8 items-center justify-center rounded-lg transition-colors ${
-                  s.actif ? FOND_ACTIF : `text-ink-dimmer ${FOND_SURVOL}`
-                }`}
-              >
-                {s.icon}
-              </a>
-            ) : (
-              <a
-                key={s.key}
-                href={s.hash}
-                aria-current={s.actif ? 'page' : undefined}
-                className={`relative flex items-center gap-2 rounded-lg py-1.5 pl-9 pr-2.5 text-sm transition-colors ${
-                  s.actif ? FOND_ACTIF : `text-ink-dim ${FOND_SURVOL}`
-                }`}
-              >
-                {/* Le filet d'appartenance, dans l'axe de l'icône de l'entrée
-                    parente (10 px de marge + la moitié d'une icône de 16). */}
-                <span aria-hidden className="absolute inset-y-0 left-[18px] w-px bg-border" />
-                {/* ⚠️ L'icône de la sous-section, comme avant la refonte —
-                    demandé par Thomas : la maquette n'en montrait pas, mais
-                    chaque vue a la sienne et elle se repère plus vite qu'un mot. */}
-                <span className="flex flex-none items-center">{s.icon}</span>
-                <span className="min-w-0 truncate">{s.label}</span>
-              </a>
-            )
-          )}
+          {g.titre && <span className="label block px-2.5 pb-0.5 pt-1.5">{g.titre}</span>}
+          {g.liens.map((s) => (
+            <a
+              key={s.key}
+              href={s.hash}
+              aria-current={s.actif ? 'page' : undefined}
+              className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
+                s.actif ? FOND_ACTIF : `text-ink-dim ${FOND_SURVOL}`
+              }`}
+            >
+              {/* ⚠️ L'icône de la sous-section, comme avant la refonte —
+                  demandé par Thomas : la maquette n'en montrait pas, mais
+                  chaque vue a la sienne et elle se repère plus vite qu'un mot. */}
+              <span className="flex flex-none items-center">{s.icon}</span>
+              <span className="min-w-0 truncate">{s.label}</span>
+            </a>
+          ))}
         </div>
       ))}
-    </>
+    </div>
   );
 }
 

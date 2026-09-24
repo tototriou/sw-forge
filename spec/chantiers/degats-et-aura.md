@@ -115,6 +115,14 @@ affirmations contradictoires, notamment sur 411.
 | Attaques supplémentaires conditionnelles | L'Optimizer ne tire jamais la probabilité : un interrupteur utilisateur inclut ou exclut la compétence supplémentaire, comme pour Tempest. Règle confirmée pour les S2/S3 des Maîtres ivres, Shoryuken et les chaînes de Kung Fu Girls ; chaque famille garde ses paramètres propres et doit être classée par le lot 1 | utilisateur, décision produit du 2026-09-23 |
 | Gabarits Martial Cat 2A | Les cinq formes génériques `47601` à `47605` ne correspondent à rien de jouable et sont entièrement ignorées | utilisateur, confirmation explicite du 2026-09-23 |
 | Stock de dégâts de Jin/Kai ténèbres | Lorsqu'un S3 élimine sa cible, l'excédent `max(0, dégâts infligés − PV restants)` devient un dégât fixe ajouté au prochain S3. Il ignore la DEF mais subit les réductions des dégâts fixes, est entièrement consommé puis remplacé par le nouvel excédent éventuel, sans plafond de jeu. L'Optimizer demande directement un stock `0..100000` à l'utilisateur ; cette borne de saisie n'est pas un plafond du jeu | utilisateur, valeurs et décision produit du 2026-09-23 |
+| Répétitions sans plafond connu | Scratch de Raoq, Sonic Boom d'Ermeda et Chain Fire utilisent un nombre total de coups saisi de `1` à `10`. Pour Raoq, l'utilisateur choisit après quel coup le break DEF réussit | utilisateur, décision produit du 2026-09-23 |
+| Déclenchements de Hwa et Jackie | Burning Whip répète exactement la S1 ou S2 initiale une fois, sans récursion, sur interrupteur. Exploding Hands répète une fois son ratio `7.4 × ATQ`, sur interrupteur, sans nouvelle tentative d'étourdissement | utilisateur, confirmation explicite du 2026-09-23 |
+| Zeratu — Forbidden Power | L'utilisateur choisit 1, 2 ou 3 attaques, défaut 3. Les attaques 2 et 3 valent chacune 50 % du ratio initial : trois attaques valent `100 % + 50 % + 50 % = 200 %` | utilisateur, confirmation explicite du 2026-09-24 |
+| Sia — Great Friends | Sélecteur 2 ou 3 coups supplémentaires, défaut 2. Les deux skillups `Damage +10 %` s'appliquent à chaque coup du passif, ajouté après la S1 ou S2 sélectionnée | utilisateur, confirmation explicite du 2026-09-24 |
+| Chaînes des Kung Fu Girls | Les formes non éveillées `8206` à `8210` n'ont pas de suite et ne sont pas sélectionnables. Sur les formes éveillées, un break DEF réussi de S1 est actif pour la S2. Les cinq Dragon Attack utilisent un sélecteur de 1 à 4 coups reçus, défaut 4 ; Fei choisit l'ignore DEF séparément pour chaque coup | utilisateur, confirmations explicites des 2026-09-23 et 2026-09-24 |
+| Calcul monocible et nouvelle cible | Une contribution obligatoirement portée sur un autre monstre est ignorée : notamment la S2 après Sword of Promise des Valkyrjas et la seconde attaque de Shadow Assault de Tanya | utilisateur, décision produit du 2026-09-23 |
+| Samouraïs — tour supplémentaire | Après S1, l'utilisateur choisit S1/S2/S3/S4 ; après S2, S1/S3/S4 ; après S3, S1/S2/S4. Une S4 sélectionnée seule ne déclenche rien. La compétence suivante garde son propre profil et son slot | utilisateur, décision produit du 2026-09-23 |
+| Barque — Shoot n' Slash | Backspin Slash puis Pirate's Strike ; le break DEF de la première frappe, s'il est activé par l'utilisateur, profite à la seconde. Le bonus `+35 %` par effet nocif est recalculé avant chaque frappe. Skillups et lignes d'artéfact : `400` pour Backspin Slash, puis `401` pour Pirate's Strike | utilisateur, confirmation explicite du 2026-09-24 |
 | Ignore DEF des Blade Dancers | **le coup 1 ne peut JAMAIS ignorer la DEF** ; une fois qu'un coup ignore, **tous les suivants ignorent** | utilisateur |
 | Défauts d'ignore DEF | 3 coups : **aucun ignore DEF** ; 7 coups : **septième seul**, dernier coup toujours ignore DEF | utilisateur, confirmation de revue du 2026-09-23 |
 | Auras PV/ATQ/DEF | **+8 % de la statistique de BASE par effet de set** | utilisateur |
@@ -258,8 +266,10 @@ de code : sa preuve est son fichier **et** le commit
 Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 
 ```text
-0 → 1a → 1b, 1c1, 1c2, 1c3, 1d, 1e → 1f → amendement pilote → 8, 9, 10, 11
-                            (extraction, classifications bornées,
+0 → 1a → 1b, 1c1, 1c2, 1c3, 1d, 1e
+1c2 → 1a2 → 1c4
+1b, 1c1, 1c2, 1c3, 1c4, 1d, 1e → 1f → amendement pilote → 8, 9, 10, 11
+                            (extraction, correction bornée, classifications,
                             réconciliation, puis contrats corrigés)
 0 → 2a → 2b → 6, 8, 9, 10, 11 (aucune modification normative de degats-reels.md
                             avant son découpage)
@@ -282,10 +292,12 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | --- | --- | --- | --- |
 | 0 — ouverture du chantier | M | terminé | 2026-09-23 |
 | 1a — extraction automatique des candidats | C | terminé | `c0407a5` / 2026-09-23 |
+| 1a2 — correctif d'extraction Kung Fu Girls et Samouraïs | C | à faire | — |
 | 1b — classification Blade Surge | J | terminé | 2026-09-23 |
 | 1c1 — Tempest : amorces et noms partagés | J | terminé | 2026-09-23 |
-| 1c2 — Tempest : effet Additional Attack, première moitié | J | à faire | — |
+| 1c2 — Tempest : effet Additional Attack, première moitié | J | terminé | `eaf8520` / 2026-09-24 |
 | 1c3 — Tempest : effet Additional Attack, seconde moitié | J | à faire | — |
+| 1c4 — classification du complément de 1a2 | J | bloqué par 1a2 | — |
 | 1d — classification Blade Dancers | J | à faire | — |
 | 1e — formes et rendus des stats de combat | C | à faire | — |
 | 1f — réconciliation et proposition d'amendement | C+J | à faire | — |
@@ -536,6 +548,37 @@ l'extraction, le constat 313 restait à trancher : sa lacune parlait d'un
 excédent stocké pour le prochain S3, pas d'une attaque déclenchée. Le résultat
 du lot 1c1 ci-dessous l'a depuis classé hors famille et en a curé la règle.
 
+#### Lot 1a2 — correctif d'extraction borné
+
+**Cat. C.** Réouverture de 1a imposée par la découverte du lot 1c2 : le
+constat 177 contient les lignes de Twist Kick `8216`, `8217` et `8219`, mais
+elles sont absentes de `corpus-lot-1.json` alors que les deux autres S2 de la
+même famille, `8218` et `8220`, y figurent. Une extraction qui retient une
+partie d'un constat et omet ses compétences liées ne prouve pas le périmètre.
+
+**Intrant borné :** toutes les lignes du constat 177 dans `inventaire.csv`,
+les kits complets des formes Kung Fu Girl concernées, puis tous les kits dont
+`familyId` ou `skillGroupId` appartient à la famille Samurai `16900`. Le
+balayage du corpus entier sert à retrouver ces formes ; il ne crée aucun autre
+périmètre par ressemblance de prose.
+
+**Sortie :** modifier l'extracteur pour produire, sans modifier les six
+projections figées déjà livrées, un complément déterministe :
+`corpus-lot-1-complement.json`, `manifest-lot-1-complement.json` et
+`projection-lot-1c4.json`. Le complément contient au minimum les trois S2
+Kung Fu Girls omises et les compétences S1 à S4 de toutes les formes Samurai
+trouvées ; les couples à classifier et les contextes seulement consultables
+sont distingués comme dans le contrat commun. Comptages, octets et empreintes
+sont mesurés et collés dans `controle-1a2.md`.
+
+**Preuve :** la commande d'extraction rejouée deux fois donne des octets
+identiques ; les dix lignes du constat 177 sont retrouvées ; aucune décision
+des lots 1c1/1c2 n'est perdue ni déplacée ; les anciennes empreintes restent
+inchangées. Puis `node scripts/spec-lint.mjs` et `git diff --check`.
+
+**Ne fait pas :** aucune classification humaine, aucun code de production,
+aucune régénération silencieuse des projections 1c1 à 1e.
+
 #### Contrat commun des lots 1b à 1e
 
 Intrant figé : `corpus-lot-1.json` à l'empreinte ci-dessus. La commande
@@ -631,6 +674,37 @@ lignes du constat 313 forment une autre famille : Jin/Kai à stock de dégâts,
 destinée au lot 13 avec le compteur manuel curé en A.2 ter. Preuves :
 `decisions-lot-1c1.json`, `controle-1c1.md` et
 `controle-1c1-amendement.md` dans le dossier de contrôles du chantier.
+
+**Résultat du lot 1c2 validé le 2026-09-24.** Sur les 59 identifiants de la
+projection figée : aucun n'est de même mécanique, **18** relèvent de la même
+architecture, **41** sont hors famille et aucun ne reste à documenter. Les
+cinq S2 non éveillées `8206` à `8210` rejoignent les cas hors famille : elles
+n'ont pas de S3 et leurs formes ne sont pas sélectionnables. Sword of Promise
+`6001` à `6005` et Shadow Assault `10713` sortent aussi du calcul, car leur
+contribution suivante vise obligatoirement un autre monstre alors que
+l'Optimizer calcule une cible.
+
+Les décisions utilisateur de A.2 ter ferment les scénarios de Raoq, Ermeda,
+Chain Fire, Sia, Zeratu, Hwa, les cinq Kung Fu Girls éveillées, Barque et
+Jackie. Sword of the Supreme Sky Wolf `8018` reste hors famille comme
+**déclencheur** : une S4 sélectionnée seule ne produit aucune suite. Le
+mécanisme Samurai découvert porte sur les S1/S2/S3 et rejoint le complément
+1a2/1c4, avec toutes ses formes, au lieu d'être artificiellement attribué au
+seul identifiant `8018`. Preuves : `decisions-lot-1c2.json`,
+`controle-1c2.md` et `controle-1c2-amendement.md`.
+
+#### Lot 1c4 — classification du complément
+
+**Cat. J.** Intrant exclusif : la projection produite et bornée par 1a2.
+Appliquer le schéma de décision du contrat commun à chaque couple attendu.
+Pour les Kung Fu Girls, préserver la famille complète S1 → S2 → S3 et les
+crans curés en A.2 ter. Pour les Samouraïs, distinguer les compétences qui
+ouvrent un tour supplémentaire de la S4 terminale ; une forme générique ou
+non sélectionnable n'est jamais assimilée à une forme jouable sans preuve.
+
+**Sortie et preuve :** `decisions-lot-1c4.json`, `controle-1c4.md` et un
+validateur structurel couvrant exactement le manifeste complémentaire. Aucun
+code de production ni nouvelle valeur de jeu.
 
 #### Lot 1d — Blade Dancers
 

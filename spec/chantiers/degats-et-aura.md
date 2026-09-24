@@ -301,7 +301,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 1c4 — classification du complément de 1a2 | J | terminé | 2026-09-24 |
 | 1d — classification Blade Dancers | J | terminé | 2026-09-24 |
 | 1e — formes et rendus des stats de combat | C | terminé | `cb5f630` + amendement pilote / 2026-09-24 |
-| 1f — réconciliation et proposition d'amendement | C+J | à faire | — |
+| 1f — réconciliation et proposition d'amendement | C+J | terminé | 2026-09-24 |
 | 2a — classement des blocs et plan de découpage | C | à faire | — |
 | 2b — déplacement et repointage selon le plan validé | M | à faire | — |
 | 3 — plancher des conditions en « Libre » | M | à faire | — |
@@ -309,9 +309,9 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 5 — le contexte survit au changement de monstre | J | à faire | — |
 | 6 — sets d'aura : le modèle | J | à faire | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
-| 8 — Blade Surge : le 3ᵉ coup en zone (périmètre à amender après lot 1) | J | à faire | — |
-| 9 — Teshar : Tempest après S1/S2 et comme sort | J | à faire | — |
-| 10 — ignore DEF conditionnel des Blade Dancers (périmètre à amender après lot 1) | J | à faire | — |
+| 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
+| 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
+| 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
 | 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | C+J | à faire | — |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
@@ -741,6 +741,17 @@ par l'utilisateur. Cette exclusion ne modifie ni les profils ni les chaînes
 des cinq formes nommées. Preuves : `decisions-lot-1c4.json`,
 `controle-1c4.md` et `valider-lot-1c4.mjs`.
 
+**Périmètre du complément, clos au lot 1f.** Les 43 couples comprennent les
+trois S2 Kung Fu Girls `8216`, `8217`, `8219` et quarante compétences de
+Samouraïs : `8021` à `8040` pour les cinq formes nommées, de même architecture,
+et `8001` à `8020` pour les formes non sélectionnables, hors famille. Dans la
+chaîne Kung Fu Girl, les S1 `8201` à `8205` et les S2 `8218`/`8220` ont déjà
+été classées au lot 1c2 et font partie des 240 couples. Seules les cinq S3
+Dragon Attack `8211` à `8215` sont du contexte sans couple propre dans le
+complément ; leurs valeurs curées restent valides et elles rejoignent
+explicitement l'inventaire du lot 13 sans être ajoutées artificiellement aux
+240 clés.
+
 **Résultat amendé du lot 1c3, validé le 2026-09-24.** Les 59 couples sont
 réconciliés : **23 relèvent de la même architecture, 36 sont hors famille,
 0 de la même mécanique et 0 restent à documenter**. Improvisation `15513`
@@ -816,6 +827,24 @@ fichiers structurés ; la preuve textuelle ne recopie que les totaux, anomalies
 et décisions encore
 ouvertes. Le pilote applique ensuite cet amendement et le fait revoir ; lui
 seul marque l'ensemble du lot 1 terminé.
+
+**Résultat validé et amendé par le pilote le 2026-09-24.** Les deux manifestes
+portent exactement **240 couples famille/identifiant** : 197 initiaux et 43 du
+complément. Les sept fichiers de décisions restituent les mêmes 240 clés, sans
+omission, substitution, duplication ni verdict contradictoire : 18 « même
+mécanique », 108 « même architecture », 114 « hors famille », 0 « à
+documenter ». Les inventaires conservent toutes les formes du corpus ; leur
+présence ne les rend pas sélectionnables. La décision générale de `A.2 ter`
+exclut directement les formes non éveillées de l'écran, sans confirmation
+forme par forme ni suppression des identifiants partagés avec une forme
+jouable.
+
+Les validateurs 1d et 1e, rendus instables par leurs coordonnées de lignes
+absolues dans ce cadrage mutable, utilisent désormais des ancres sémantiques
+uniques pour les fichiers évolutifs et conservent la vérification ligne par
+ligne des projections figées. Les sept validateurs de sous-lot et le
+validateur 1f passent. Preuves : `controle-1f.md`, `valider-lot-1f.mjs` et les
+amendements consignés dans `controle-1d.md` et `controle-1e.md`.
 
 ### Lot 2a — classement des blocs et plan de découpage
 
@@ -1260,15 +1289,19 @@ ce compteur, ni pour le coup de zone ni pour les passifs. Correction explicite
 de l'utilisateur en revue : la première attaque sur une nouvelle cible n'est
 pas un nouveau premier coup du tour.
 
-**Sortie :** tous les identifiants retenus par l'amendement du lot 1 et
-toutes leurs formes de monstre calculent les deux crans. Point de départ
-de l'audit seulement : `10602`, `10604`, `10616`, `10618`, `10620` ; cette
-liste ne prétend pas être la famille entière du corpus. Un test nommé qui
-vérifie les deux, **et** que 224 ne porte que sur 2 des 3 coups dans le
-premier cran. Vérifier aussi l'absence de 411 sur la zone, les PV propres à
-chaque cran pour 222/223, et la contribution par coup des dégâts additionnels.
-Le test vérifie que `skillupDamagePct` porte aussi sur le troisième coup,
-conformément à la valeur curée en A.2 ter.
+**Sortie :** les **huit identifiants / onze formes de corpus** retenus au lot
+1f couvrent les deux crans : `10601`, `10602`, `10603`, `10604`, `10605`,
+`10616`, `10618`, `10620`, portés par `19801` à `19805`, `19811` à `19815` et
+`19823`. Le socle d'audit `10602`, `10604`, `10616`, `10618`, `10620` n'était
+donc pas la famille entière. Les formes non éveillées restent dans la preuve
+de corpus mais ne créent pas une entrée sélectionnable dans l'écran, selon
+`A.2 ter`.
+
+Un test nommé vérifie les deux crans, **et** que 224 ne porte que sur 2 des 3
+coups dans le premier cran. Vérifier aussi l'absence de 411 sur la zone, les PV
+propres à chaque cran pour 222/223, et la contribution par coup des dégâts
+additionnels. Le test vérifie que `skillupDamagePct` porte aussi sur le
+troisième coup, conformément à la valeur curée en A.2 ter.
 
 **Preuve :** le test · les trois unités et listes de couverture du lot 1 citées dans la spec ·
 `npx tsc --noEmit` ·
@@ -1322,32 +1355,43 @@ coup et les passifs frappent après (`degats-reels.md`, § « Les PV de la cible
 se creusent COUP PAR COUP »). Le lot **prouve** que Tempest en profite ; il ne
 recode pas la chaîne.
 
-**Sortie :** les trois comportements + un test nommé par comportement.
-Le constat 164 part d'un identifiant, `3213` ; toutes les formes qui le portent
-et les candidats supplémentaires retenus sont nommés par l'amendement du lot 1.
-Ne pas confondre la ligne d'audit Teshar et les formes affectées du corpus.
+**Sortie :** les trois comportements + un test nommé par comportement. Le
+périmètre de même mécanique est `3213`, porté par `14503` Phoenix vent et
+`14513` Teshar vent. Le mécanisme générique doit accepter les **81 identifiants
+de même architecture** nommés dans `controle-1f.md` : 58 de la famille
+`tempest` initiale, trois S2 Kung Fu Girls `8216`, `8217`, `8219` et vingt
+compétences de Samouraïs `8021` à `8040`. Cela ne les ajoute pas au calcul de
+production de ce lot.
 
 ⚠️ **Le mécanisme, lui, est générique et doit le rester** (A.3 bis, second
 niveau) : « une compétence supplémentaire à profil propre, déclenchée après
 certains sorts et activée par un interrupteur utilisateur, sélectionnable
-isolément quand le produit le demande ». Dix-sept autres lignes d'audit le
-concernent (constats 168, 178 et 179 — lot 1, point 2). Le lot **n'en code
-aucune**, mais il écrit dans la spec **ce qu'il faudra fournir** pour en
-ajouter une : le ratio, la liste des sorts déclencheurs, la portée. Un
-mécanisme qui n'accepte que Teshar serait à refaire dix-sept fois. Les deux
-lignes du constat 313 sont explicitement hors de cette architecture.
+isolément quand le produit le demande ». Parmi les 58 identifiants initiaux,
+17 amorces appartiennent aux constats 168, 178 et 179 ; 41 autres ont été
+découverts par l'effet `Additional Attack`. Le lot **n'en code aucune**, mais
+il écrit dans la spec **ce qu'il faudra fournir** pour en ajouter une : le
+ratio, la liste des sorts déclencheurs, la portée. Un mécanisme limité à
+Teshar serait à refaire pour les 81 cas. Les deux lignes du constat 313 sont
+explicitement hors de cette architecture.
 
 **Preuve :** les tests · `npx tsc --noEmit` ·
 `node tests/run.mjs <noms> degats audit-degats-conditionnels` · `npm run build`.
 
-**Ne fait pas :** ne traite aucun des cas des 17 lignes d'audit de même architecture — ils
-vont au lot 13, avec leur numéro de constat.
+**Ne fait pas :** ne traite aucun des 81 identifiants de même architecture.
+Les 17 amorces gardent leur numéro de constat ; les 41 découvertes
+`Additional Attack` et les 23 couples du complément rejoignent nominativement
+le lot 13. Les S1 Kung Fu Girls `8201` à `8205` et les S2 `8218`/`8220` sont
+déjà comprises dans les 58 identifiants initiaux. Les cinq S3 `8211` à `8215`,
+curées mais présentes comme contexte sans couple propre, rejoignent également
+l'inventaire du lot 13 sans être comptées dans les 81.
 
 ### Lot 10 — l'ignore DEF conditionnel des Blade Dancers
 
-**Cat. J.** Bloqué par les lots 1, son amendement pilote et 2b. **Tout le constat 212 : 6 identifiants initiaux, deux
-variantes** (A.3 bis — corriger une fiche et laisser ses jumelles donnerait une
-app juste pour Cordelia et fausse pour Vereesa). Lire B.0 pour le champ
+**Cat. J.** Bloqué par les lots 1, son amendement pilote et 2b. **Tout le
+constat 212 — et lui seul : 6 identifiants, 12 formes de corpus, deux
+variantes.** Le lot 1f confirme que la famille est close. Les formes non
+éveillées restent inventoriées sans devenir sélectionnables (`A.2 ter`). Lire
+B.0 pour le champ
 `premierCoupIgnoreDefParSort` et sa propagation.
 
 **Aujourd'hui** `ignoreDef` est un booléen dérivé de la seule présence de
@@ -1394,10 +1438,13 @@ dont on choisit quels coups sont affectés »).
 à l'écart de VIT, l. 2527) ni avec `ignoreDefParStack` (l. 1992) : trois
 mécaniques distinctes, celle-ci n'est ni l'une ni l'autre.
 
-**Sortie :** tous les identifiants et formes retenus après lot 1 proposent
-leurs crans ; les six identifiants initiaux restent le socle, pas une preuve
-d'exhaustivité du corpus. Un test nommé qui vérifie
-**chaque cran et le défaut des deux variantes**, que le coup 1 n'ignore jamais, que le 7ᵉ
+**Sortie :** les six identifiants couvrent leurs douze formes de corpus —
+variante A : `14308`, `14310`, `14808`, `14810`, formes `24403`, `24405`,
+`24413`, `24415`, `24903`, `24905`, `24913`, `24915` ; variante B : `14311`,
+`14811`, formes `24401`, `24411`, `24901`, `24911`. Seules les formes
+sélectionnables selon `A.2 ter` proposent les crans dans l'écran. Un test nommé
+vérifie **chaque cran et le défaut des deux variantes**, que le coup 1 n'ignore
+jamais, que le 7ᵉ
 de la variante B ignore dans tous les crans, et — contrôle négatif — qu'un sort
 ignore-DEF inconditionnel (`IGNORE_DEF_COMPLET_CONNUS`, l. 2716) est
 **inchangé**.
@@ -1452,6 +1499,12 @@ perdent réellement la prose, sans la dupliquer sur les huit déjà visibles ;
 **Contrat :** 1) reprendre l'extraction 1e exhaustive (40 configurations ×
 monstre × `source` × branche) ; 2) corriger les 32 pertes par branche sans
 dupliquer les huit proses déjà visibles ; 3) mettre à jour la section de spec.
+Les 38 identifiants, 40 configurations et 80 formes sont ceux de
+`decisions-lot-1e.json` et sont nommés dans `controle-11.md`. Les dix
+habillages coréens `23401` à `23405` et `23411` à `23415`, joints aux
+identifiants `13501` à `13505`, restent dans l'inventaire de corpus mais ne
+deviennent pas sélectionnables (`A.2 ter`) ; les identifiants partagés avec
+les formes jouables restent couverts.
 
 **Correction curée de Gold Headband `7912`.** La configuration actuelle
 `{ atkPct: 20, spdFlat: 12 }` est fausse sur les deux assiettes : `atkPct`

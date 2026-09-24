@@ -102,18 +102,13 @@ export default function testNavigation() {
       'l’ancienne clé, limitée à la section, a disparu'
     );
 
-    // ⚠️ Le cas que la clé de route ne peut PAS couvrir : cliquer dans le
-    // panneau la sous-section où l'on se trouve DÉJÀ. Aucune navigation, donc
-    // aucune remise à zéro — la barre restait au premier niveau à marquer
-    // « Siège » pendant qu'on regardait « Recommandations ». Le panneau doit
-    // donc poser le niveau lui-même, sans dépendre de la route.
-    // Refonte graphique, lot 4 : le « niveau » est devenu l'état des sections
-    // déroulées à la main (`bascules`) — le panneau le remet sur la route.
-    const panneauNav = src.slice(src.indexOf('— sous-sections`}'));
-    const bloc = panneauNav.slice(0, panneauNav.indexOf('</nav>'));
+    // Le panneau de survol, qui avait ici son propre contrôle (il devait
+    // reposer la barre au clic), a été retiré par Thomas le 2026-09-24
+    // ([retrait #12] du cadrage de la refonte graphique). On vérifie qu'il ne
+    // revient pas par morceaux.
     ok(
-      bloc.includes('fermer();') && bloc.includes('setBascules({});'),
-      'le panneau de survol referme ET repose le niveau de barre, sans dépendre d’un changement de route'
+      !src.includes('— sous-sections`}') && !src.includes('onMouseEnter'),
+      'plus d’aperçu au survol à côté de la barre ([retrait #12])'
     );
   }
 }

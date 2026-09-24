@@ -1,7 +1,7 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useStickyState } from '../hooks/useStickyState';
-import { BoutonIcone, Flottant } from '../ui';
+import { BoutonIcone } from '../ui';
 
 // Barre de navigation LATÉRALE (bureau) — refonte graphique, lot 4
 // (spec/chantiers/refonte-graphique.md, maquette « Barre latérale »).
@@ -75,13 +75,6 @@ export const GLISSEMENT = {
 
 export const COURBE = { duration: 0.18, ease: [0.23, 1, 0.32, 1] as const };
 
-// Survol d'une entrée à sous-sections — les DEUX délais sont là pour la même
-// raison : la souris TRAVERSE la barre pour atteindre autre chose.
-// ⚠️ Ouverture retardée = intention ; fermeture retardée = tolérance (le trajet
-// de l'entrée vers le panneau passe par l'espace qui les sépare).
-const DELAI_OUVERTURE = 140;
-const DELAI_FERMETURE = 180;
-
 // Le repli de la barre, exposé pour que le contenu décale sa marge en même
 // temps. ⚠️ `useStickyState` : le choix tient pour la session, sans passer par
 // le consentement de conservation (même règle que MobileNotice).
@@ -149,59 +142,12 @@ export default function Sidebar({
 
   const deroulee = (l: SidebarLien) => (l.ouvre ? (bascules[l.ouvre.titre] ?? l.actif) : false);
 
-  // ---- Survol : les sous-sections d'une section REFERMÉE, à côté ----------
-  //
-  // ⚠️ Le survol RACCOURCIT un chemin, il n'en ouvre pas un second : dérouler
-  // puis choisir reste le geste de référence (clavier, doigt). Le panneau sort
-  // À CÔTÉ, hors du flux — rien ne bouge sous le curseur. Jamais pour une
-  // section déjà déroulée : ses entrées seraient affichées deux fois.
-  const [survol, setSurvol] = useState<{ titre: string; haut: number } | null>(null);
-  const minuterie = useRef<number | undefined>(undefined);
-
-  // ⚠️ Une vraie souris seulement : au doigt, `mouseenter` précède le `click`.
-  const souris = () =>
-    typeof window !== 'undefined' &&
-    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-
-  const survoler = (titre: string, cible: HTMLElement) => {
-    window.clearTimeout(minuterie.current);
-    if (!souris()) return;
-    // Mesuré à l'ENTRÉE : la zone défile, le panneau s'aligne sur l'entrée
-    // telle qu'elle est à l'écran à cet instant.
-    const haut = cible.getBoundingClientRect().top;
-    minuterie.current = window.setTimeout(() => setSurvol({ titre, haut }), DELAI_OUVERTURE);
-  };
-
-  const quitter = () => {
-    window.clearTimeout(minuterie.current);
-    minuterie.current = window.setTimeout(() => setSurvol(null), DELAI_FERMETURE);
-  };
-
-  const fermer = () => {
-    window.clearTimeout(minuterie.current);
-    setSurvol(null);
-  };
-
-  useEffect(() => () => window.clearTimeout(minuterie.current), []);
-
-  // Échap referme, comme toute surface flottante de l'app.
-  useEffect(() => {
-    if (!survol) return;
-    const surTouche = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') fermer();
-    };
-    window.addEventListener('keydown', surTouche);
-    return () => window.removeEventListener('keydown', surTouche);
-  }, [survol]);
-
-  const lienSurvole = survol
-    ? groupes.flatMap((g) => g.liens).find((l) => l.ouvre?.titre === survol.titre)
-    : undefined;
-  const panneau =
-    survol && lienSurvole?.ouvre && !deroulee(lienSurvole) ? { survol, section: lienSurvole.ouvre } : null;
-
+  // ⚠️ **Pas d'aperçu au survol.** Un panneau sortait à droite de la barre
+  // quand la souris passait sur une section refermée ; Thomas l'a fait
+  // retirer (2026-09-24, [retrait #12] du cadrage de la refonte) : les
+  // sous-sections se déroulent désormais sous leur entrée, l'aperçu doublait
+  // ce geste et surgissait dès qu'on traversait la barre.
   const basculer = (l: SidebarLien) => {
-    fermer();
     const titre = l.ouvre!.titre;
     setBascules((b) => ({ ...b, [titre]: !deroulee(l) }));
   };
@@ -236,10 +182,7 @@ export default function Sidebar({
           href="#/"
           // Le logo ramène à l'accueil ET remet la barre dans l'état de la
           // route — même sur l'accueil, où la route ne change pas.
-          onClick={() => {
-            fermer();
-            setBascules({});
-          }}
+          onClick={() => setBascules({})}
           className="flex min-w-0 items-center gap-2.5 focus-visible:outline-none"
         >
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-7 w-7 flex-none" />
@@ -260,10 +203,7 @@ export default function Sidebar({
           `absolute`, et l'`overflow-x-hidden` du repli la coupait net. */}
       {recherche}
 
-      {/* ⚠️ Défiler referme le panneau : son `top` a été mesuré à l'entrée de la
-          souris, il ne suit pas la liste. */}
       <nav
-        onScroll={fermer}
         className={`flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden ${
           retractee ? 'px-1.5' : 'px-3'
         }`}
@@ -295,8 +235,6 @@ export default function Sidebar({
                     retractee={retractee}
                     deroulee={ouverte}
                     onBasculer={() => basculer(l)}
-                    onSurvol={survoler}
-                    onQuitter={quitter}
                   />
                   {ouverte && l.ouvre && <SousSections section={l.ouvre} retractee={retractee} />}
                 </div>
@@ -305,66 +243,6 @@ export default function Sidebar({
           </div>
         ))}
       </nav>
-
-      {/* ⚠️ Enfant DIRECT de l'aside, jamais de la zone défilante : son
-          `overflow-x-hidden` coupait le panneau à la lisière de la barre.
-          L'aside est `fixed` : le `top` mesuré à l'écran s'y applique tel quel. */}
-      {panneau && (
-        <div
-          className="absolute inset-x-0 h-0"
-          style={{ top: panneau.survol.haut }}
-          onMouseEnter={() => window.clearTimeout(minuterie.current)}
-          onMouseLeave={quitter}
-        >
-          <Flottant
-            ancrage="cote"
-            rembourrage="aucun"
-            largeur="w-56"
-            // Hauteur bornée par le bas de l'écran : le panneau s'aligne sur son
-            // entrée, qui peut être la dernière de la barre.
-            style={{ maxHeight: `calc(100vh - ${panneau.survol.haut + 16}px)` }}
-            className="flex flex-col overflow-y-auto"
-          >
-            {/* Le titre de la section : on doit savoir de QUELLE entrée le
-                panneau est sorti. */}
-            <span
-              className="flex flex-none items-center gap-2 border-b border-border-soft
-                         px-3 py-2 text-sm font-semibold text-ink"
-            >
-              <span className="flex-none text-ink-dim">{panneau.section.icon}</span>
-              {panneau.section.titre}
-            </span>
-            {/* ⚠️ Pas de `role="menu"` : il promet une navigation aux flèches
-                que ce panneau n'offre pas. */}
-            <nav
-              aria-label={`${panneau.section.titre} — sous-sections`}
-              className="flex flex-col gap-px p-1.5"
-              // ⚠️ La barre SUIT le choix tout de suite, sans attendre un
-              // changement de route : cliquer la sous-section où l'on est DÉJÀ
-              // ne navigue pas, et la section refermée à la main le serait
-              // restée pendant qu'on regarde l'une de ses pages.
-              onClick={() => {
-                fermer();
-                setBascules({});
-              }}
-            >
-              {panneau.section.groupes.flatMap((g) => g.liens).map((s) => (
-                <a
-                  key={s.key}
-                  href={s.hash}
-                  aria-current={s.actif ? 'page' : undefined}
-                  className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
-                    s.actif ? FOND_ACTIF : `text-ink-dim ${FOND_SURVOL}`
-                  }`}
-                >
-                  <span className="flex-none">{s.icon}</span>
-                  {s.label}
-                </a>
-              ))}
-            </nav>
-          </Flottant>
-        </div>
-      )}
 
       {pied && <div className={`flex-none border-t border-border-soft pt-2 ${retractee ? 'px-1.5' : 'px-3'}`}>{pied}</div>}
     </aside>
@@ -426,15 +304,11 @@ function LienBarre({
   retractee,
   deroulee,
   onBasculer,
-  onSurvol,
-  onQuitter,
 }: {
   lien: SidebarLien;
   retractee: boolean;
   deroulee: boolean;
   onBasculer: () => void;
-  onSurvol: (titre: string, cible: HTMLElement) => void;
-  onQuitter: () => void;
 }) {
   // ⚠️ Un BOUTON quand l'entrée déroule une section, un LIEN quand elle mène
   // quelque part : le premier ne va nulle part, il n'a rien à faire dans
@@ -450,14 +324,6 @@ function LienBarre({
         ? { type: 'button' as const, onClick: onBasculer, 'aria-expanded': deroulee }
         : { href: lien.hash })}
       aria-current={lien.actif && !lien.ouvre ? 'page' : undefined}
-      // ⚠️ Un geste de SOURIS seulement, pas de `focus` : le panneau est rendu
-      // après la zone défilante, le `Tab` suivant n'y entrerait jamais.
-      {...(lien.ouvre
-        ? {
-            onMouseEnter: (e: { currentTarget: HTMLElement }) => onSurvol(lien.ouvre!.titre, e.currentTarget),
-            onMouseLeave: onQuitter,
-          }
-        : {})}
       // Repliée, le `title` est la SEULE façon de savoir où mène une icône.
       title={retractee ? lien.label : undefined}
       // ⚠️ 32 px de haut, icône 16, texte 14 : le gabarit de la maquette.

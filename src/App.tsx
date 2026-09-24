@@ -939,8 +939,8 @@ export default function App() {
   //   construites.
   //
   // ⚠️ Une entrée à sous-sections les DÉROULE sous elle au lieu de naviguer
-  // (spec/shared/navigation.md) ; refermée, le survol en montre un aperçu à
-  // côté. La section de la route est déroulée d'office — la barre la déduit de
+  // (spec/shared/navigation.md), sans aperçu au survol ([retrait #12]). La
+  // section de la route est déroulée d'office — la barre la déduit de
   // l'entrée active, sans qu'on la lui passe.
   const VUES_BIENTOT = new Set<AccountView>(['meules', 'gemmes']);
 

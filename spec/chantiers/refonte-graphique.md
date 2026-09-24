@@ -151,6 +151,11 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
     visibles, il n'y a plus de niveau à remonter). Non repris : le point
     « nouveau » sur Nouveautés, qui demanderait de suivre ce qui a été lu —
     un ajout, à décider.
+12. **Plus d'aperçu au survol** à côté du menu bureau — [retrait #12]
+    décidé par Thomas le 2026-09-24 (« supprime le popup à droite du menu
+    quand on hover une section »). Les sous-sections se déroulent sous leur
+    entrée : le panneau doublait ce geste. Toutes restent atteignables en
+    déroulant la section, au clic comme au clavier.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

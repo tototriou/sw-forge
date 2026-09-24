@@ -46,6 +46,11 @@
     "retrait": "A.2 bis #11",
     "pourquoi": "Les sous-sections se déroulent sous leur entrée : plus de second niveau à remonter."
   },
+  "src/components/Sidebar.tsx :: attr:aria-label:{…} — sous-sections": {
+    "de": "src/components/Sidebar.tsx",
+    "retrait": "A.2 bis #12",
+    "pourquoi": "Aperçu au survol à côté de la barre retiré : les sous-sections se déroulent sous leur entrée."
+  },
   "src/components/SidebarCompte.tsx :: attr:title:Importer un export de compte SWEX": {
     "de": "src/components/SidebarCompte.tsx",
     "vers": "src/components/SidebarCompte.tsx",

@@ -185,12 +185,10 @@ ce qu'on avait déroulé en passant se referme.
 ⚠️⚠️ **« Changer de page » se mesure sur la DESTINATION, pas sur la section.**
 La clé de comparaison ne valait que le titre de section : passer d'
 `#/outils/optimizer` à `#/outils/speed-tuning` la laissait identique, donc
-**aucune remise à zéro**. C'est précisément le geste du [panneau de
-survol](#les-sous-sections-au-survol--un-panneau-à-côté-de-la-barre-bureau),
-qui ne s'ouvre QUE sur une section refermée : choisir une sous-section de la
-section où l'on était déjà ne faisait alors rien bouger, alors que la choisir
-dans une **autre** section remettait bien la barre sur la route — deux
-comportements pour un seul geste. La clé est donc `titre de section | entrée
+**aucune remise à zéro** — choisir une sous-section de la section où l'on
+était déjà ne faisait rien bouger, alors que la choisir dans une **autre**
+section remettait bien la barre sur la route : deux comportements pour un
+seul geste (vu avec le panneau de survol, retiré depuis). La clé est donc `titre de section | entrée
 active de la section | entrée active du premier niveau`, ce dernier terme
 distinguant deux pages sans sous-sections (Accueil, Bestiaire). Fonction pure
 `cleRouteBarre`, **gardée** par
@@ -269,99 +267,22 @@ Repliée, l'intitulé disparaît et le filet raccourcit.
   devenait incohérente avec elle-même — repliée dans le Siège on voyait les
   icônes des *sections*, au survol elle basculait sur les *sous-sections*, donc
   d'autres icônes aux mêmes places. Le contenu changeait sous le curseur.
-  ⚠️ **À ne pas confondre avec le panneau de survol** ci-dessous, qui ne
-  déploie rien : la barre garde exactement son contenu, le panneau sort *à
-  côté*. C'est précisément ce qui le rend admissible là où le déploiement ne
-  l'était pas.
 - Repliée, les libellés cèdent la place aux `title` : neuf icônes ne se
   distinguent pas toutes au premier regard.
 - Le repli tient pour la **session** (`useStickyState`), sans être persisté :
   une préférence d'affichage ne justifie pas de passer par le consentement de
   conservation — même règle que [MobileNotice](src/components/MobileNotice.tsx).
 
-## Les sous-sections au survol — un panneau à côté de la barre (bureau)
+## Pas d'aperçu au survol (bureau)
 
-Sur bureau, **survoler** une entrée à sous-sections **refermée** (RTA, Siège,
-Runes, Artéfacts) ouvre un panneau qui les liste, **à droite de la barre**.
-Cliquer une sous-section y mène directement : le premier des deux clics est
-économisé. Une section déroulée n'en ouvre pas — ses entrées seraient
-affichées deux fois.
-
-### ⚠️ Ce n'est PAS le déploiement au survol qui avait été retiré
-
-La distinction est la raison d'être de la fonctionnalité, pas un détail :
-
-| | Déploiement au survol (retiré) | Panneau de survol (retenu) |
-|---|---|---|
-| La barre | change de contenu | **ne bouge pas d'un pixel** |
-| Les sous-sections | remplacent les sections **aux mêmes places** | sortent **à côté**, hors du flux |
-| Sous le curseur | le contenu change | rien ne change |
-
-L'ancien essai violait la règle « un clic ne déplace jamais ce qu'on vient de
-cliquer » ([design.md](design.md)) : on cliquait ce qui venait d'arriver plutôt
-que ce qu'on visait. Un panneau flottant ancré au flanc de l'entrée ne la
-déplace pas — c'est le cas d'exception que la règle prévoit (« ce qui s'ouvre
-sort du flux »).
-
-### ⚠️ Le survol RACCOURCIT un chemin, il n'en ouvre pas un second
-
-« La barre navigue SEULE » reste la règle : cliquer « Siège » ouvre ses
-sous-sections **dans** la barre, sans rien charger. Le panneau ne remplace pas
-ce geste, il le devance à la souris. Conséquence directe :
-
-- ⚠️ **Le panneau n'est JAMAIS la seule porte** vers une sous-section. Tout ce
-  qu'il affiche est atteignable sans lui, par la descente en deux temps.
-- ⚠️ **C'est un geste de souris, et rien d'autre.** Pas d'ouverture au `focus`
-  clavier : le panneau est rendu **après** la zone défilante — il doit échapper
-  à son `overflow-x-hidden`, qui le couperait à la lisière de la barre — donc
-  le `Tab` suivant va à l'entrée d'à côté, jamais dans le panneau. L'ouvrir au
-  clavier aurait affiché un menu que le clavier ne peut pas atteindre. Pour la
-  même raison, pas de `role="menu"` : il promet une navigation aux flèches
-  qu'on n'offre pas.
-- ⚠️ **Rien au doigt.** Sur tactile, `mouseenter` part *avant* le `click` : le
-  panneau se serait ouvert sous le doigt à chaque touche. La garde est
-  `(hover: hover) and (pointer: fine)` en JS — le pendant de la variante
-  `hoverable:` de Tailwind, écrite ici parce que la décision est dans le code,
-  pas dans une classe. Le mobile garde son panneau montant (voir plus bas) :
-  **une correction destinée à un format ne touche pas l'autre.**
-
-### ⚠️ Deux délais, pour la même raison
-
-La souris **traverse** la barre pour atteindre autre chose.
-
-- **Ouverture 140 ms** — l'intention. Sans délai, descendre du logo vers le pied
-  de barre ouvrait puis fermait trois panneaux en chemin.
-- **Fermeture 180 ms** — la tolérance. Le trajet de l'entrée vers le panneau
-  passe par les 6 px qui les séparent : fermer au premier `mouseleave` rendait
-  le panneau **inatteignable**, il se refermait pile pendant la traversée.
-
-⚠️ **Le clic dans le panneau REMET la barre sur la route lui-même.** Il ne
-s'en remettait qu'à la remise à zéro par changement de route — donc à rien du
-tout quand la route ne change pas : choisir « Recommandations » dans le panneau
-alors qu'on **est déjà** sur Recommandations (Siège refermé à la main) laissait
-la section refermée pendant qu'on regardait une de ses sous-sections. Le
-panneau vide donc `bascules` au clic, sans dépendre de ce que la navigation
-fait ou non. **Gardé** par [tests/navigation.test.ts](tests/navigation.test.ts).
-
-Se referment aussi, **sans délai** : le clic sur une sous-section, le fait de
-dérouler une section, le logo, `Échap`, et le **défilement** de la barre — le `top`
-du panneau est mesuré à l'entrée de la souris et ne suit pas une liste qui
-glisse dessous. Le recalculer en continu ferait courir le panneau le long de
-l'écran pendant qu'on molette.
-
-### Ce qu'il montre
-
-Le titre de la section en tête (on doit savoir de quelle entrée il sort), puis
-ses entrées, avec leur icône et le même marqueur d'actif que la barre.
-
-⚠️ **Libellés toujours affichés, même barre repliée** : c'est là que le panneau
-sert le plus. Repliée, la barre n'a que neuf icônes ; le panneau est le seul
-endroit où les sous-sections se lisent en toutes lettres sans déplier.
-
-⚠️ Sa hauteur est **bornée par le bas de l'écran** (`calc`), pas par une valeur
-fixe : il s'aligne sur son entrée, qui peut être la dernière de la barre. Calculé
-plutôt que mesuré — mesurer aurait demandé un rendu de plus, donc un saut
-visible.
+Survoler une section refermée (RTA, Siège, Runes, Artéfacts) ouvrait un
+panneau flottant à droite de la barre, qui en listait les sous-sections.
+**Retiré** par Thomas le 2026-09-24 — [retrait #12] du cadrage de la
+refonte graphique : les sous-sections se déroulent désormais sous leur
+entrée, le panneau doublait ce geste et surgissait dès qu'on traversait la
+barre. Toutes restent atteignables en déroulant la section, au clic comme
+au clavier. [tests/navigation.test.ts](tests/navigation.test.ts) vérifie
+qu'il ne revient pas.
 
 ## Recherche de navigation
 

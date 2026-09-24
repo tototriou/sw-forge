@@ -464,15 +464,43 @@ node $outil ouvrir --chantier <sujet>
 Puis ouvrir la session de l'agent **dans ce dossier**, attribuer un chantier
 distinct à chacun, et désigner l'intégrateur.
 
-> ⚠️ **Prérequis à valider pour Codex : les droits sur les dépôts hors
-> workspace.** Un appel réel à `verifier` depuis la sandbox Codex a échoué sur
-> `dubious ownership` — le dépôt documentaire appartient à l'utilisateur, tandis
-> que l'exécution se fait sous un autre compte. **Ce n'est pas un reçu invalide,
-> c'est un blocage git**, et la distinction compte : un outil qui échoue pour une
-> raison d'environnement ne dit rien sur la validité de la livraison. À traiter
-> par un `safe.directory` explicite pour le dépôt documentaire et ses worktrees,
-> plus les droits d'écriture correspondants. **Non fait** : c'est un réglage de
-> l'environnement de l'utilisateur, pas du dépôt.
+> ⚠️ **Codex sur Windows : identité sandbox distincte.** Sur cette machine,
+> `git -C <worktree documentaire> status` échoue dans la sandbox avec
+> `dubious ownership` (`CodexSandboxOffline` contre le propriétaire `Enzo`),
+> mais réussit sous l'identité Windows de l'utilisateur. Un refus de créer
+> `.git/index.lock` ou l'erreur esbuild `Cannot read directory ...: Access is
+> denied` peut relever de la même frontière. **Ce n'est ni un reçu invalide
+> ni un test rouge** tant que la commande n'a pas réellement pu s'exécuter.
+>
+> Pour poursuivre dans Codex, demander l'approbation **sur la commande
+> concernée** avec `sandbox_permissions: "require_escalated"` et une
+> justification explicite, puis relancer cette même commande sous l'identité
+> Windows. Employer ce chemin pour les vérifications bloquées et, au besoin,
+> pour `git add`/`commit`, `chantier livrer`/`verifier`/`integrer`/`rafraichir`
+> et `hooks-codex pause`. Le chemin de `chantier.mjs` reste calculé depuis
+> `git rev-parse --git-common-dir` (§ 2.4), jamais codé en dur. **Ne pas**
+> ajouter de `safe.directory` global, assouplir les ACL ou désactiver la
+> sandbox pour toute la session : `safe.directory` ne confère aucun droit
+> d'écriture. Si l'approbation est refusée ou indisponible, arrêter le lot
+> et nommer l'opération non exécutée ; ne prétendre ni que la livraison est
+> vérifiée ni que la pause est enregistrée. Voir aussi la
+> [documentation officielle de la sandbox Windows](https://learn.chatgpt.com/docs/windows/windows-sandbox).
+
+Après validation du lot, la séquence reste celle-ci, depuis le worktree de
+code et avec l'identité ayant accès au dépôt documentaire :
+
+```powershell
+$gitCommun = git rev-parse --path-format=absolute --git-common-dir
+$outil = Join-Path $gitCommun 'forge/installation/scripts/chantier.mjs'
+node $outil livrer --chantier <sujet>
+node $outil verifier --chantier <sujet>
+node $outil integrer --chantier <sujet> # seulement après validation des notes ; pousse le main documentaire
+```
+
+Les skills canoniques du dépôt sont sous `.claude/skills/` ; Codex découvre
+leurs adaptateurs sous `.agents/skills/`. Chaque dossier canonique doit avoir
+son adaptateur homonyme. `node tests/run.mjs skill-adapters` vérifie cette
+correspondance, sans accéder au dépôt documentaire privé.
 
 | | Claude Code | Codex |
 |---|---|---|

@@ -155,6 +155,20 @@ changerait ce qu'on mesure. Détail : cadrage §2.1.
   node "$(git rev-parse --git-common-dir)/forge/installation/scripts/chantier.mjs" \
     verifier --chantier <sujet>
   ```
+- **Codex sur Windows : un refus de la sandbox n'est pas un échec du chantier.**
+  Si Git signale `dubious ownership` sur le worktree documentaire ou refuse
+  `.git/index.lock`, ou si esbuild échoue sur `Cannot read directory ...:
+  Access is denied` avant les tests, relever l'erreur puis relancer **la seule
+  commande concernée** hors sandbox sous l'identité Windows propriétaire,
+  avec l'approbation ponctuelle de l'outil Codex
+  (`sandbox_permissions: "require_escalated"`). Cela vaut aussi pour
+  `chantier livrer`/`verifier`/`integrer` et `hooks-codex pause` lorsqu'ils
+  rencontrent ce refus. Ne pas modifier `safe.directory` globalement, élargir
+  les ACL ni désactiver la sandbox pour toute la session : l'exception Git ne
+  donnerait d'ailleurs pas les droits d'écriture. Si l'approbation échoue ou
+  n'est pas disponible, s'arrêter et signaler exactement ce qui reste non
+  exécuté (reçu périmé, pause non inscrite, test non lancé). Procédure :
+  [orchestration-parallele.md § 5](spec/chantiers/orchestration-parallele.md).
 - **`integrer` fait avancer la référence des notes**, et il ne dépend PAS du
   sort du code : `chantier integrer --chantier <sujet>` fusionne la branche du
   chantier dans le `main` documentaire dès que le reçu passe, puis pousse. À

@@ -216,7 +216,10 @@ lot 5 le changement ciblé qui distingue import de compte et changement
 d'espèce. `package.json`, `tsconfig.json`, `tailwind.config.js` ne sont pas
 touchés (ni page ni section ajoutée ou renommée).
 `ARCHITECTURE.md` ne reçoit au lot 2b que les corrections de références
-effectivement présentes, si l'aperçu en trouve. `CLAUDE.md` n'est pas touché.
+effectivement présentes, si l'aperçu en trouve. Dérogation utilisateur du
+2026-09-24 : la procédure Codex Windows dans `CLAUDE.md` et les adaptateurs
+de skills manquants sont corrigés dans un commit transverse distinct des lots
+de mécanique, après le constat de blocage au lot 3.
 
 **Ne pas toucher** : `spec/outils/optimizer/reliques.md` (propriété de
 `forge/implementation-relique`). Un besoin dessus se signale, il ne se force

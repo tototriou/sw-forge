@@ -112,8 +112,10 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
    quittent le menu et l'accueil ; la couleur reste aux données du jeu.
    *Précisée le 2026-09-24 pour le menu bureau* : les teintes de section,
    réessayées sur les icônes, ont été écartées — Thomas préfère le menu
-   neutre ; un **trait à la couleur principale** (accent) devant l'entrée
-   marque la section courante.
+   neutre. Ce qui manquait, c'était de **séparer les groupes** : un filet
+   entre eux, et leur intitulé (Jouer, Mon compte…) à la couleur
+   principale (accent). Un trait devant l'entrée courante, essayé entre-temps
+   sur un malentendu, est retiré — « on sait déjà où on est ».
 4. **Bouton principal plein retenu** : `ton="accent"` + `fond="plein"`
    devient un aplat d'accent, un seul par écran.
 5. **Regroupement du menu retenu** : Jouer (RTA, Siège, Arène) / Mon compte

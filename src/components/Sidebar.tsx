@@ -270,11 +270,22 @@ export default function Sidebar({
       >
         {groupes.map((g, i) => (
           <div key={g.titre ?? i} className="flex flex-col gap-px">
-            {/* L'intitulé du groupe, en petites capitales. Repliée, il cède la
-                place à un filet court : « ce qui suit est un autre groupe » est
-                la seule information qui survit à la réduction. */}
-            {g.titre && !retractee && <span className="label block px-2.5 pb-1 pt-3 text-ink-dimmer">{g.titre}</span>}
-            {i > 0 && retractee && <span aria-hidden className="mx-auto my-2 block h-px w-5 bg-border-soft" />}
+            {/* ⚠️ **Les groupes se séparent VISIBLEMENT** — demandé par
+                Thomas : un intitulé gris ne suffisait pas, les quatre groupes
+                se lisaient comme une seule liste. Un FILET avant chaque groupe
+                (sauf le premier), et l'intitulé à la couleur principale de
+                l'app. Le menu reste neutre par ailleurs : les teintes de
+                section, essayées sur les icônes, ont été écartées.
+                Repliée, l'intitulé disparaît et le filet raccourcit : « ce qui
+                suit est un autre groupe » est la seule information qui
+                survit à la réduction. */}
+            {i > 0 && (
+              <span
+                aria-hidden
+                className={`block h-px bg-border ${retractee ? 'mx-auto my-2 w-5' : 'mx-2.5 mt-3'}`}
+              />
+            )}
+            {g.titre && !retractee && <span className="label block px-2.5 pb-1 pt-2.5 text-accent">{g.titre}</span>}
             {g.liens.map((l) => {
               const ouverte = deroulee(l);
               return (
@@ -451,27 +462,11 @@ function LienBarre({
       title={retractee ? lien.label : undefined}
       // ⚠️ 32 px de haut, icône 16, texte 14 : le gabarit de la maquette.
       // `w-full` : un `<button>` ne s'étire pas comme un `<a>`.
-      // `relative` : pour le trait de la section courante, ci-dessous.
-      className={`relative flex h-8 w-full flex-none items-center rounded-lg text-left text-md font-medium
+      className={`flex h-8 w-full flex-none items-center rounded-lg text-left text-md font-medium
                   transition-colors ${retractee ? 'justify-center px-0' : 'gap-2.5 px-2.5'} ${
-                    marquee ? FOND_ACTIF : lien.actif ? `text-ink ${FOND_SURVOL}` : `text-ink-dim ${FOND_SURVOL}`
+                    marquee ? FOND_ACTIF : `text-ink-dim ${FOND_SURVOL}`
                   }`}
     >
-      {/* ⚠️ **Le trait de la section courante**, à la couleur principale de
-          l'app. Demandé par Thomas pour voir d'un coup d'œil dans quelle
-          section on est — les teintes de section essayées sur les icônes ont
-          été écartées : il préfère le menu neutre. Il reste sur l'entrée
-          même déroulée, quand le fond est passé à la sous-section.
-          Posé dans la marge de la barre, hors de l'entrée : collé à son fond
-          arrondi, il en aurait mordu l'angle. */}
-      {lien.actif && (
-        <span
-          aria-hidden
-          className={`absolute top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent ${
-            retractee ? '-left-1.5' : '-left-2'
-          }`}
-        />
-      )}
       <span className="flex flex-none items-center">{lien.icon}</span>
       {!retractee && (
         <>

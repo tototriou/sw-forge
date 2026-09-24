@@ -170,13 +170,8 @@ Ce qui suit décrit le marqueur d'avant, qui reste celui du panneau mobile
   recherche gardent pour l'instant la teinte de signature — le téléphone a son
   propre lot, et l'accueil le sien. ⚠️ Les teintes de section ont été
   **réessayées sur les icônes puis écartées** par Thomas le même jour : il
-  préfère le menu neutre.
-- **Un trait à la couleur principale (`bg-accent`, 3 × 16 px) marque la
-  section courante**, devant son entrée, dans la marge de la barre — demandé
-  par Thomas pour voir d'un coup d'œil dans quelle section on est. Il reste
-  sur l'entrée **même déroulée**, quand le fond est passé à la sous-section
-  active ; son libellé passe alors à l'encre pleine. Hors de l'entrée : collé
-  à son fond arrondi, il en aurait mordu l'angle.
+  préfère le menu neutre. Ce qu'il voulait voir, ce sont les **groupes** —
+  voir « Un filet entre les groupes » plus bas.
 ### L'état de la barre : la route, plus ce qu'on a basculé à la main
 
 La section de l'entrée active est **déroulée d'office** ; la barre la déduit
@@ -252,10 +247,14 @@ partir du **deuxième** groupe — en tête, il séparerait le premier de rien.
 Repliée, le filet **remplace** l'intitulé : « Artéfacts » n'a pas de version en
 trois lettres qui veuille dire quelque chose.
 
-⚠️ **Barre latérale bureau, décision 11** : dépliée, les groupes (Jouer, Mon
-compte, Outils, Ressources) sont annoncés par leur **intitulé en capitales**
-(`.label`, encre `ink-dimmer`), sans filet — c'est le gabarit de la maquette,
-et l'intitulé sépare déjà. Le filet court ne sert plus qu'à la barre repliée.
+⚠️ **Barre latérale bureau** : les groupes (Jouer, Mon compte, Outils,
+Ressources) sont séparés par un **filet pleine largeur** (`bg-border`) et
+annoncés par leur **intitulé en capitales à la couleur principale**
+(`.label text-accent` — 5,4 à 9,7:1 sur le fond, mesuré au lot 3). La
+maquette ne portait qu'un intitulé gris, sans filet : les quatre groupes se
+lisaient comme une seule liste, et Thomas a demandé (2026-09-24) qu'ils se
+séparent « d'une manière plus visible ». Le reste du menu reste neutre.
+Repliée, l'intitulé disparaît et le filet raccourcit.
 
 ## Repli — deux états, jamais trois
 

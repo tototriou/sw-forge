@@ -121,7 +121,7 @@ affirmations contradictoires, notamment sur 411.
 | Sia — Great Friends | Sélecteur 2 ou 3 coups supplémentaires, défaut 2. Les deux skillups `Damage +10 %` s'appliquent à chaque coup du passif, ajouté après la S1 ou S2 sélectionnée | utilisateur, confirmation explicite du 2026-09-24 |
 | Chaînes des Kung Fu Girls | Les formes non éveillées `8206` à `8210` n'ont pas de suite et ne sont pas sélectionnables. Sur les formes éveillées, un break DEF réussi de S1 est actif pour la S2. Les cinq Dragon Attack utilisent un sélecteur de 1 à 4 coups reçus, défaut 4 ; Fei choisit l'ignore DEF séparément pour chaque coup | utilisateur, confirmations explicites des 2026-09-23 et 2026-09-24 |
 | Calcul monocible et nouvelle cible | Une contribution obligatoirement portée sur un autre monstre est ignorée : notamment la S2 après Sword of Promise des Valkyrjas et la seconde attaque de Shadow Assault de Tanya | utilisateur, décision produit du 2026-09-23 |
-| Samouraïs — tour supplémentaire | Après S1, l'utilisateur choisit S1/S2/S3/S4 ; après S2, S1/S3/S4 ; après S3, S1/S2/S4. Une S4 sélectionnée seule ne déclenche rien. La compétence suivante garde son propre profil et son slot | utilisateur, décision produit du 2026-09-23 |
+| Samouraïs — tour supplémentaire | Après S1, l'utilisateur choisit S1/S2/S3/S4 ; après S2, S1/S3/S4 ; après S3, S1/S2/S4. Une S4 sélectionnée seule ne déclenche rien. La compétence suivante garde son propre profil et son slot. Seules les formes nommées `16911` à `16915` sont sélectionnables : les formes génériques `16901` à `16905` et l'Imperfect Samurai `16921` ne le sont pas et sont ignorées par l'Optimizer | utilisateur, décisions produit des 2026-09-23 et 2026-09-24 |
 | Barque — Shoot n' Slash | Backspin Slash puis Pirate's Strike ; le break DEF de la première frappe, s'il est activé par l'utilisateur, profite à la seconde. Le bonus `+35 %` par effet nocif est recalculé avant chaque frappe. Skillups et lignes d'artéfact : `400` pour Backspin Slash, puis `401` pour Pirate's Strike | utilisateur, confirmation explicite du 2026-09-24 |
 | Ignore DEF des Blade Dancers | **le coup 1 ne peut JAMAIS ignorer la DEF** ; une fois qu'un coup ignore, **tous les suivants ignorent** | utilisateur |
 | Défauts d'ignore DEF | 3 coups : **aucun ignore DEF** ; 7 coups : **septième seul**, dernier coup toujours ignore DEF | utilisateur, confirmation de revue du 2026-09-23 |
@@ -297,7 +297,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 1c1 — Tempest : amorces et noms partagés | J | terminé | 2026-09-23 |
 | 1c2 — Tempest : effet Additional Attack, première moitié | J | terminé | `eaf8520` / 2026-09-24 |
 | 1c3 — Tempest : effet Additional Attack, seconde moitié | J | à faire | — |
-| 1c4 — classification du complément de 1a2 | J | à faire | — |
+| 1c4 — classification du complément de 1a2 | J | terminé | 2026-09-24 |
 | 1d — classification Blade Dancers | J | à faire | — |
 | 1e — formes et rendus des stats de combat | C | à faire | — |
 | 1f — réconciliation et proposition d'amendement | C+J | à faire | — |
@@ -726,6 +726,19 @@ non sélectionnable n'est jamais assimilée à une forme jouable sans preuve.
 **Sortie et preuve :** `decisions-lot-1c4.json`, `controle-1c4.md` et un
 validateur structurel couvrant exactement le manifeste complémentaire. Aucun
 code de production ni nouvelle valeur de jeu.
+
+**Résultat validé le 2026-09-24.** Les 43 couples sont réconciliés sans
+incertitude : **23 relèvent de la même architecture, 20 sont hors famille,
+0 de la même mécanique et 0 restent à documenter**. Les trois S2 Kung Fu
+Girls `8216`, `8217` et `8219` rejoignent l'architecture de chaîne curée.
+Pour les Samouraïs, les vingt compétences `8021` à `8040` des formes nommées
+Kaz, Jun, Kaito, Tosi et Sige relèvent de la même architecture, S4 comprise
+comme contribution terminale. Les vingt compétences `8001` à `8020` sont
+hors famille : elles ne sont portées que par les formes génériques `16901` à
+`16905` et l'Imperfect Samurai `16921`, toutes confirmées non sélectionnables
+par l'utilisateur. Cette exclusion ne modifie ni les profils ni les chaînes
+des cinq formes nommées. Preuves : `decisions-lot-1c4.json`,
+`controle-1c4.md` et `valider-lot-1c4.mjs`.
 
 #### Lot 1d — Blade Dancers
 

@@ -10,7 +10,10 @@
 // deux cas, et aucun autre (A.6) :
 //   - elle est DÉPLACÉE : `deplacements["<fichier> :: <entrée>"] = { de, vers }`
 //     ET on la retrouve bien dans le fichier `vers` — un déplacement déclaré
-//     mais pas fait est une perte ;
+//     mais pas fait est une perte. `devient` (facultatif) dit sous quelle
+//     FORME on la retrouve quand elle a changé de nature sans disparaître —
+//     ex. `prop:label:Mon compte` (entrée cliquable) devenue
+//     `prop:titre:Mon compte` (titre de groupe) ;
 //   - son retrait a été DÉCIDÉ par Thomas : `{ de, retrait: "A.2 bis #<n>" }`
 //     ET le numéro figure dans A.2 bis sous la forme `[retrait #<n>]`.
 // Une entrée NOUVELLE est toujours acceptée : ajouter n'efface rien.
@@ -55,7 +58,7 @@ export function comparer(reference, courant, deplacements, decisions) {
       if (d.retrait !== undefined) {
         const n = Number(String(d.retrait).match(/#(\d+)/)?.[1]);
         if (!decisions.has(n)) retraitsNonDecides.push({ fichier, entree, retrait: d.retrait });
-      } else if (!(courant[d.vers] ?? []).includes(entree)) {
+      } else if (!(courant[d.vers] ?? []).includes(d.devient ?? entree)) {
         deplacementsNonFaits.push({ fichier, entree, vers: d.vers });
       }
     }

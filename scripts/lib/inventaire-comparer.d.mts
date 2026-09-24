@@ -7,7 +7,12 @@ export type Inventaire = Record<string, string[]>;
 export interface Deplacement {
   de: string;
   vers?: string;
+  // Forme sous laquelle on retrouve l'entrée dans `vers`, si elle a changé de
+  // nature (ex. une entrée cliquable devenue titre de groupe).
+  devient?: string;
   retrait?: string;
+  // Pourquoi — lu par les humains, ignoré par la comparaison.
+  pourquoi?: string;
 }
 
 export interface ResultatComparaison {

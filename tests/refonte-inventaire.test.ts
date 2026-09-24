@@ -92,6 +92,12 @@ export function testRefonteInventaireComparer() {
   const nonDecide = comparer(ref, courant, dep, new Set([4]));
   ok(!nonDecide.ok && nonDecide.retraitsNonDecides.length === 1, 'retrait dont le numéro n\'est pas décidé dans A.2 bis : REFUSÉ');
 
+  // Une entrée qui change de NATURE sans disparaître (`devient`).
+  const refLabel = { 'src/N.tsx': ['prop:label:Mon compte'] };
+  const devient = { 'src/N.tsx :: prop:label:Mon compte': { de: 'src/N.tsx', vers: 'src/N.tsx', devient: 'prop:titre:Mon compte' } };
+  ok(comparer(refLabel, { 'src/N.tsx': ['prop:titre:Mon compte'] }, devient, new Set()).ok, 'changement de nature déclaré (devient) et retrouvé : accepté');
+  ok(!comparer(refLabel, { 'src/N.tsx': [] }, devient, new Set()).ok, 'changement de nature déclaré mais forme introuvable : REFUSÉ');
+
   const orphelin = comparer(ref, ref, { 'src/A.tsx :: texte:Garder': { de: 'src/A.tsx', vers: 'src/C.tsx' } }, new Set());
   ok(!orphelin.ok && orphelin.orphelins.length === 1, 'déclaration sans disparition réelle : REFUSÉ (elle masquerait une perte future)');
 

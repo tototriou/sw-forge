@@ -258,7 +258,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | --- | --- | --- | --- |
 | 0 garde-fous : inventaire, chemins interdits, tests de rendu | C | exécuté | 2026-09-24 |
 | 1 décisions retenues (avec Thomas) | J | exécuté | 2026-09-24 |
-| 2 tokens : couleurs, polices, rayons | J | à faire | |
+| 2 tokens : rayons, texte sur accent | J | exécuté | 2026-09-24 |
 | 3 `src/ui/` : rendu interne, API inchangée | J | à faire | |
 | 4 coquille bureau : barre latérale, barre du haut | J | à faire | |
 | 5 Accueil | J | à faire | |
@@ -385,6 +385,14 @@ commit.
 tous les tests de rendu existants verts.
 
 **Ne fait pas** : ne touche aucun composant.
+
+**Résultat (2026-09-24)** — preuve [lot-2.md](refonte-graphique-preuves/lot-2.md).
+Périmètre réduit par les décisions : polices inchangées (1), palette
+inchangée (hors décisions). Livré : quatre crans d'arrondi communs aux deux
+thèmes (6 / 8 / 12 / 14 px), `rounded-xl` et `rounded-2xl` passés sous token
+(ils étaient figés à 12 et 16 px) ; `accent-ink` pour le bouton plein du
+lot 3 — blanc en Atelier (9.66), fond sombre en Forge (5.81 ; le blanc y
+échouait à 3.18). Aucun `.tsx` touché ; tests de rendu et inventaire verts.
 
 ### B.3 Lot 3 — `src/ui/` · J
 

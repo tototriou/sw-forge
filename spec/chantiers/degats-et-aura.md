@@ -885,9 +885,10 @@ Les anciens « 340 occurrences / 28 fichiers » ne constituent pas une cible.
 **Ne fait pas :** aucun déplacement, aucun repointage, aucune suppression
 d'exception ; ces opérations relèvent exclusivement de 2b.
 
-**Résultat validé et amendé par le pilote le 2026-09-24.** Le plan couvre
-exactement les 2 003 lignes de contenu en **67 fragments** : 48 d'état actuel
-(1 475 lignes), 10 de décision (399), 2 de piste (15) et 7 d'archive (114).
+**Résultat validé et amendé par le pilote le 2026-09-24.** Après revue
+externe, le plan couvre exactement les 2 003 lignes de contenu en **68
+fragments** : 49 d'état actuel (1 486 lignes), 10 de décision (399), 2 de
+piste (15) et 7 d'archive (103).
 Les identifiants `Bnn` restent des coordonnées de preuve privées ; les
 destinations utilisent les titres métier conservés ou ajoutés et leurs slugs
 effectifs. `plan-2a.json` fixe aussi le H1 et l'en-tête de chaque nouveau
@@ -899,7 +900,12 @@ l'historique pour les exclusions générales, `ArtifactDamageProfile` et
 `damageRelevantStats` ; archivage de l'ancien blocage de Trasar, de
 l'application une fois par sort de Sickle/Sand Blade et de l'ancien bouton
 manuel de Zaiross ; distinction des deux listes qui portent un « point 10 ».
-Le plan ainsi amendé est l'intrant obligatoire du lot 2b.
+La revue externe a en plus fait régénérer les trois coordonnées périmées du
+cadrage dans l'inventaire, corriger le routage de la ligne d'artéfact 210,
+fixer le niveau de chaque titre et l'emplacement des deux pistes, conserver
+la partie actuelle de l'ancien incident B09 et expliciter la politique des
+références archivées. Le plan ainsi amendé est l'intrant obligatoire du lot
+2b.
 
 ### Lot 2b — déplacement et repointage selon le plan validé
 
@@ -911,12 +917,15 @@ avec le pilote avant déplacement, jamais choisir de nouvelles destinations seul
 #### Contrat exact
 
 1. **Exécuter le classement validé en 2a**, bloc par bloc, sans requalifier
-   les contenus au fil du déplacement.
+   les contenus au fil du déplacement. Le fragment mixte B46b2 reste complet
+   en archive ; recopier dans l'état actuel l'unique ligne de conservation
+   fixée mot pour mot par `plan-2a.json` (`quantite: 7`) n'est pas une nouvelle
+   décision métier.
 2. **Destination : un dossier `spec/outils/degats-reels/`** + un
    `degats-reels.md` réduit à son routage (comme
    `spec/outils/optimizer/README.md`). Chaque fichier ≤ 500 lignes, chaque
-   bloc terminal ≤ 100 — le bloc de 230 lignes se sous-titre, il ne se coupe
-   pas.
+   bloc terminal ≤ 100 — l'ancien bloc de 230 lignes est réparti dans les huit
+   fragments fixés par le plan ; aucun de ces fragments n'est tronqué.
 3. **En-tête sur chaque fichier issu du découpage** (nature « état actuel » :
    `Statut` / `Lire si` / `Ne pas lire si` / `Voir aussi`).
 4. **Repointer les références réellement relevées en 2a**, notamment dans
@@ -928,7 +937,9 @@ avec le pilote avant déplacement, jamais choisir de nouvelles destinations seul
    `scripts/artifact-search.ts`, `tests/degats.test.ts`. **D'abord en aperçu**
    (script qui liste sans écrire), puis diff relu, jamais une réécriture à
    l'aveugle : une référence `fichier § Titre` est sensible au chemin **et**
-   au slug du titre.
+   au slug du titre. Repointer les documents actifs et les citations en prose
+   identifiées ; ne pas réécrire les références des preuves sous `archive/`,
+   qui décrivent volontairement le chemin et les titres à leur date.
 5. **Retirer l'exception** de `spec/spec-lint.json`.
 6. **`ARCHITECTURE.md`** : relever ses références dans l'aperçu. Si une
    référence à une section déplacée existe, la repointer vers sa destination

@@ -134,12 +134,12 @@ filtres sont posés.
 | Support | Marqueur | Pourquoi pas l'autre |
 |---------|----------|----------------------|
 | **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
-| **Pastille de filtre** (`Pastille`, sets, emplacements, étoiles du Bestiaire) | `MARQUEUR_FILTRE_ACTIF` : `border-ink bg-ink text-bg` | **Couleur inversée** (refonte graphique, décision 9, 2026-09-24) : un aplat d'encre se lit d'un coup d'œil dans une rangée de filtres. Contraste mesuré 12.9 (Atelier) / 15.1 (Forge). Une seule constante, exportée de `Pastille`, importée par les filtres qui ne passent pas par elle |
+| **Pastille de filtre** (`Pastille`, sets, emplacements, étoiles du Bestiaire) | `MARQUEUR_FILTRE_ACTIF` : `border-accent bg-accent/25 text-ink` | **La couleur de l'app, teintée** (refonte graphique, décision 9, 2026-09-24) : le contour porte l'état, le fond d'accent à 25 % le rend lisible d'un coup d'œil — plus marqué que l'ancien `accent-soft`. Contraste mesuré : texte 8.5 à 10.6, contour 5.4 à 9.7. Une couleur inversée (aplat d'encre) a été essayée puis écartée par Thomas : un aplat blanc en thème sombre. Une seule constante, exportée de `Pastille`, importée par les filtres qui ne passent pas par elle |
 | **Cran de `Segmented`, onglet** | `bg-accent-soft` (le cadre porte le contour) | Un choix UNIQUE dans un cadre commun, pas un filtre en rangée : il garde le fond d'accent léger — la décision 9 ne visait que les pastilles de filtre |
 
 ⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
 `SlotFilter`, les sets de `SetFilter`, les étoiles du Bestiaire et les filtres
-de Ma box (Nat / Doublons / 2A) portent tous **la même couleur inversée** —
+de Ma box (Nat / Doublons / 2A) portent tous **le même fond d'accent teinté** —
 deux marqueurs différents côte à côte se liraient comme deux natures de
 filtre. C'est la brique `Pastille` ([librairie-ui.md](librairie-ui.md)) qui le
 définit, dans `MARQUEUR_FILTRE_ACTIF`, une fois pour toutes.

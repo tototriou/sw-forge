@@ -304,8 +304,9 @@ fois.
 > `couleurs`, l'état actif prend le marqueur de filtre de l'app — c'est le cas de
 > filtres qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
 > rassemble, là où trois surbrillances se liraient comme trois natures de filtre.
-> Ce marqueur est la **couleur inversée** (fond d'encre, texte couleur de page ;
-> refonte graphique, décision 9 de Thomas, 2026-09-24) et vit dans une constante
+> Ce marqueur est la **couleur d'accent teintée** (contour d'accent, fond d'accent
+> à 25 % ; refonte graphique, décision 9 de Thomas, 2026-09-24 — la couleur
+> inversée, essayée d'abord, a été écartée) et vit dans une constante
 > exportée, `MARQUEUR_FILTRE_ACTIF` : les filtres qui ne passent pas par
 > `Pastille` (sets, emplacements, étoiles du Bestiaire) l'importent, pour porter
 > EXACTEMENT le même.

@@ -124,7 +124,11 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
    thèmes), à la place du fond coloré en clair. Le statut y est ÉCRIT —
    libellés de l'app (`siegeStatut`), jamais ceux inventés par les
    maquettes.
-9. **Pastille de filtre active en couleur inversée retenue.**
+9. **Pastille de filtre active plus marquée, en couleur de l'app** :
+   contour d'accent + fond d'accent à 25 % (cuivre en Forge, indigo en
+   Atelier). *Amendée le 2026-09-24* : la couleur inversée d'abord retenue
+   (aplat d'encre) a été écartée par Thomas après essai — un aplat blanc en
+   thème sombre.
 10. **Accueil : on garde l'accueil actuel, restylé** (héros, zone de dépôt,
     « Ton espace », comment ça marche, fonctionnalités, version). La
     maquette « sommaire » n'est pas retenue.

@@ -27,13 +27,15 @@ import { PRESSION } from './Bouton';
 // classes d'élément s'accrochent ; `aria-pressed` pour qu'un lecteur d'écran
 // annonce l'état, pas un simple bouton.
 
-// Marqueur « filtre actif » de l'app : fond d'encre, texte couleur de page —
-// couleur INVERSÉE (refonte graphique, décision 9 de Thomas). Exporté pour que
-// les filtres qui ne passent pas par `Pastille` (sets, emplacements, étoiles du
-// Bestiaire) portent EXACTEMENT le même : deux marqueurs côte à côte se liraient
-// comme deux natures de filtre (spec/shared/design.md § UN SEUL marqueur).
-// Contraste mesuré : 12.9 (Atelier) et 15.1 (Forge).
-export const MARQUEUR_FILTRE_ACTIF = 'border-ink bg-ink text-bg';
+// Marqueur « filtre actif » de l'app : la couleur d'ACCENT (cuivre en Forge,
+// indigo en Atelier) en fond teinté à 25 %, avec son contour (refonte
+// graphique, décision 9 de Thomas, amendée : la couleur inversée donnait un
+// aplat blanc en thème sombre, écarté). Exporté pour que les filtres qui ne
+// passent pas par `Pastille` (sets, emplacements, étoiles du Bestiaire) portent
+// EXACTEMENT le même : deux marqueurs côte à côte se liraient comme deux natures
+// de filtre (spec/shared/design.md § UN SEUL marqueur). Contraste mesuré : texte
+// 8.5 à 10.6, contour 5.4 à 9.7, sur panneau comme sur la page.
+export const MARQUEUR_FILTRE_ACTIF = 'border-accent bg-accent/25 text-ink';
 
 export interface PastilleProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {

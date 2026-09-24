@@ -277,7 +277,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 1 décisions retenues (avec Thomas) | J | exécuté | 2026-09-24 |
 | 2 tokens : rayons, texte sur accent | J | exécuté | 2026-09-24 |
 | 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
-| 4 coquille bureau : barre latérale, barre du haut | J | exécuté | `a68260a` (tests avant), 2026-09-24 |
+| 4 coquille bureau : barre latérale, barre du haut | J | exécuté | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), 2026-09-24 |
 | 5 Accueil | J | à faire | |
 | 6 RTA | J | à faire | |
 | 7 Siège | J | à faire | |

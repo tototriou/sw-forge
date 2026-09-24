@@ -304,7 +304,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 1f — réconciliation et proposition d'amendement | C+J | terminé | 2026-09-24 |
 | 2a — classement des blocs et plan de découpage | C | terminé | amendement pilote / 2026-09-24 |
 | 2b — déplacement et repointage selon le plan validé | M | terminé | `62fc8bf8` + correctif pilote des liens relatifs / 2026-09-24 |
-| 3 — plancher des conditions en « Libre » | M | à faire | — |
+| 3 — plancher des conditions en « Libre » | M | terminé | 2026-09-24 |
 | 4 — relique « comme équipé » et les minimums | C→M | à faire | — |
 | 5 — le contexte survit au changement de monstre | J | à faire | — |
 | 6 — sets d'aura : le modèle | J | à faire | — |

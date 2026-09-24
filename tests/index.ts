@@ -17,6 +17,7 @@ import testArtefactOptim, {
 } from './artefact-optim.test';
 import testArtefactFile from './artefact-file.test';
 import testArtifactEvaluation, { testArtifactPaireReelleEhp } from './artifact-evaluation.test';
+import testArtifactConditionFloor from './artifact-condition-floor.test';
 import testReco, {
   testTrimPartage,
   testDefensesVisees,
@@ -153,6 +154,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtefactFile', testArtefactFile],
   ['testArtifactEvaluation', testArtifactEvaluation],
   ['testArtifactPaireReelleEhp', testArtifactPaireReelleEhp],
+  ['testArtifactConditionFloor', testArtifactConditionFloor],
   ['testRegistre', testRegistre],
   ['testSansDowngrade', testSansDowngrade],
   ['testPalier', testPalier],

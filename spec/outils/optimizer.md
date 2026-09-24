@@ -1251,13 +1251,19 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      base nue dans la conversion, seul le PLANCHER ci-dessous change selon
      les artéfacts comptés). Sans monstre sélectionné, la base vaut 0 : les
      deux lectures coïncident.
-   - ⚠️ **Aucun champ ne descend sous ce qu'on a déjà GARANTI sans la moindre
-     rune** — le plancher, pas la valeur de conversion ci-dessus : en lecture
-     Total, la base nue du monstre **plus** les artéfacts effectivement
-     comptés (0 si aucun artéfact choisi sur cette stat) ; en lecture
-     « bonus », les artéfacts effectivement comptés SEULS — cohérent avec le
-     fait qu'en bonus, la base nue est déjà soustraite par la conversion.
-     Affiché en `placeholder` tant que rien n'est saisi.
+   - ⚠️ **Aucun champ ne descend sous ce qui est garanti sans la moindre
+     rune** — le plancher, pas la valeur de conversion ci-dessus. La
+     contribution d'artéfact se calcule séparément par emplacement :
+     l'artéfact réellement porté si le choix est « Garder l'artéfact
+     équipé », la principale imposée si elle est choisie, et zéro si le
+     choix est « Libre ». L'optimisation coupée conserve les deux artéfacts
+     portés. En lecture Total, le plancher ajoute cette contribution à la
+     base nue ; en lecture « bonus », il garde seulement cette contribution.
+     Les deux modes « Libre » ne garantissent donc aucun bonus d'artéfact,
+     même si la paire représentative en montre deux. « Stats de base
+     exclues » ne s'applique qu'à PV/ATQ/DEF/VIT : Taux Crit, Dmg Crit, RES
+     et Précision restent toujours des totaux. Affiché en `placeholder`
+     tant que rien n'est saisi.
    - **Grille en `w-fit`**, un seul triplet (libellé/Min/Max) par rangée,
      même au-delà de `2xl` — un passage à DEUX stats par rangée a été tenté
      puis **explicitement écarté** : le triplet Min/Max reste la lecture

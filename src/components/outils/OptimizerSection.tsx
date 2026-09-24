@@ -27,6 +27,7 @@ import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, signatureArtefacts
 import { resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { apportExclusive } from '../../lib/relicExclusive';
+import { artifactConditionFloor } from '../../lib/artifactConditionFloor';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
   bornesArtefacts,
@@ -41,7 +42,6 @@ import {
 import { BoxItem } from '../../lib/applyAccount';
 import { evaluerPourRegime, regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import {
-  ARTIFACT_MAIN,
   CAPPED_STATS,
   RUNE_EFFECT,
   RELIC_MAIN,
@@ -73,7 +73,6 @@ import {
   OBJECTIVE_LABELS,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
-  ARTIFACT_MAIN_VALUE,
   ARTIFACT_MAIN_OPTIONS,
   type BuildCandidate,
 } from '../../lib/runeBuildOptim';
@@ -2360,18 +2359,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     return selected ? (selected.gear.base as unknown as Record<StatKey, number>)[key] : 0;
   }
 
-  // Contribution des artéfacts EFFECTIVEMENT comptés (voir searchArtifacts)
-  // à une stat donnée — 0 si aucun artéfact n'est
-  // supposé sur cette stat. Sert de PLANCHER pour les conditions ci-dessous :
-  // avec zéro rune, un monstre a déjà AU MOINS ce bonus en jeu (voir
-  // `baseOf`) — le champ ne doit jamais laisser demander moins. N'affecte
-  // que PV/ATQ/DEF (ARTIFACT_MAIN ne couvre que ces trois stats — VIT/TC/
-  // DCC/RES/Précision ne reçoivent jamais rien d'un artéfact).
-  function artifactBonusOf(key: StatKey): number {
-    return searchArtifacts.reduce((sum, a) => {
-      const def = ARTIFACT_MAIN[a.main.code];
-      return def?.stat === key ? sum + a.main.value : sum;
-    }, 0);
+  // Plancher des conditions : compter chaque principale garantie par son
+  // choix d'emplacement, jamais la paire représentative de searchArtifacts.
+  // Les artéfacts ne contribuent qu'à PV/ATQ/DEF ; baseOf ajoute la base
+  // en affichage total et l'exclut pour ces stats en affichage bonus.
+  function artifactFloorOf(key: StatKey, base: number, bonusMode: boolean): number {
+    const choices = optimiserArtefacts
+      ? artifactMainByKind
+      : { element: 'equipped' as const, archetype: 'equipped' as const };
+    return artifactConditionFloor(key, base, bonusMode, choices, selected?.gear.artifacts ?? []);
   }
 
   // Puces avec disponibilité PAR OPTION (Questions 2-3 du cadrage) — une
@@ -3475,7 +3471,6 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           {RECO_STATS.map((st) => {
             const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
             const base = baseOf(st.key);
-            const artBonus = artifactBonusOf(st.key);
             const capped = CAPPED_100.has(st.key);
             const bonusMode = affectedByToggle && excludeBase;
             const ceiling = capped ? (bonusMode ? 100 - base : 100) : undefined;
@@ -3483,10 +3478,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             // sert à la conversion affichage↔stockage, voir `baseOf`) : avec
             // zéro rune, un monstre a déjà AU MOINS ce bonus/total en jeu
             // (base nue + artéfacts éventuellement comptés) — voir
-            // `artifactBonusOf`. En mode bonus, seul l'artéfact compte (la
+            // `artifactFloorOf`. En mode bonus, seul l'artéfact compte (la
             // base nue est déjà soustraite par la conversion elle-même) ; en
             // mode total, base ET artéfact s'additionnent.
-            const floor = bonusMode ? artBonus : base + artBonus;
+            const floor = artifactFloorOf(st.key, base, bonusMode);
 
             const minTotal = minStats[st.key] ?? null;
             const minDisplayed = minTotal == null ? null : bonusMode ? minTotal - base : minTotal;

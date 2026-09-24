@@ -299,7 +299,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 1c3 — Tempest : effet Additional Attack, seconde moitié | J | terminé | `1742488` + amendement pilote / 2026-09-24 |
 | 1c4 — classification du complément de 1a2 | J | terminé | 2026-09-24 |
 | 1d — classification Blade Dancers | J | terminé | 2026-09-24 |
-| 1e — formes et rendus des stats de combat | C | à faire | — |
+| 1e — formes et rendus des stats de combat | C | terminé | `cb5f630` + amendement pilote / 2026-09-24 |
 | 1f — réconciliation et proposition d'amendement | C+J | à faire | — |
 | 2a — classement des blocs et plan de découpage | C | à faire | — |
 | 2b — déplacement et repointage selon le plan validé | M | à faire | — |
@@ -311,7 +311,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 8 — Blade Surge : le 3ᵉ coup en zone (périmètre à amender après lot 1) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (périmètre à amender après lot 1) | J | à faire | — |
-| 11 — prose des passifs « Stats acquises en combat » (38 identifiants, 40 configurations) | C+M | à faire | — |
+| 11 — prose des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | C+M | à faire | — |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
 | 13b-* — contrats de qualification à créer par le pilote après 13a | J | non lançables avant amendement et revue | — |
@@ -1407,26 +1407,29 @@ lot 13.
 ### Lot 11 — les passifs « Stats acquises en combat » non survolables
 
 **Cat. C puis M.** Requiert le lot 1 (extraction 4 et amendement pilote) et 2b.
-Les 38 identifiants / 40 configurations ci-dessous sont l'état initial,
-à corriger dans ce contrat après l'extraction ; nommer toutes les formes affectées.
+L'inventaire porte 38 identifiants / 40 configurations ; huit configurations
+ont déjà leur prose ailleurs. Le correctif porte donc sur 30 identifiants /
+32 configurations, en nommant toutes les formes affectées.
 
 **Constat de départ, mesuré :** `CombatStatProfile` **porte déjà**
 `description` (la prose SWARFARM, `damage.ts` l. 1676), et les 38 identifiants de
 `STATS_COMBAT_PAR_ID_CONNUS` sont bien curées — **y compris Mayasura**
 (`18311`, `stacks`, `atkFlat: 100`) **et Jager lumière** (`7814`, `stacks`,
-`atkPct: 50`). Mais **aucune des 7 branches de rendu** de
-`DamageSetupCard.tsx` (l. 960-1040) ne passe la prose :
+`atkPct: 50`). Aucune branche « Stats acquises en combat » de
+`DamageSetupCard.tsx` (l. 960-1040) ne passe `profile.description`, mais huit
+configurations ont déjà leur prose rendue par un autre bloc de la carte :
 
 | `source` | Configurations | Rendu actuel | Prose |
 | --- | --- | --- | --- |
 | `stacks` | 17 | `<span>{label}</span>` + `NumberField` | **non** — ni prose, ni icône |
-| `toggle` | 11 | `PassifInterrupteur`, `title` = le label | **non** |
+| `toggle` | 11 | 6 `Jeton` partagés + 5 `PassifInterrupteur` | **4 non** · **7 ailleurs** |
 | `buffsPropres` / `buffsAllies` / `debuffsPropres` | 4 / 1 / 1 | idem `stacks` | **non** |
-| `toujours` | 5 | `Jeton` (icône + `detail`) | **non** |
+| `toujours` | 5 | `Jeton` (icône + `detail`) | **4 non** · **1 ailleurs** |
 | `debuffsInverses` | 1 | `Jeton` + 3 interrupteurs | **non** |
 
-Total : **40 configurations pour 38 identifiants** ; `10014` et `11663`
-portent chacun deux configurations. Conserver les deux unités dans la preuve.
+Total inventorié : **40 configurations pour 38 identifiants** ; correctif :
+**32 configurations pour 30 identifiants**. `10014` et `11663` portent chacun
+deux configurations. Conserver les deux unités dans la preuve.
 
 ⚠️ **`Jeton` n'a aucun axe de prose** (`src/ui/Jeton.tsx` : `icone`, `libelle`,
 `detail`, `onRetirer`) — et on n'ajoute à la librairie que quand un **axe**
@@ -1436,20 +1439,22 @@ manque, jamais une variante.
 invention : huit autres familles de passifs y affichent leur prose en
 `<p className="mt-1 text-xs leading-snug text-ink-dim">{description}</p>`
 **sous** le contrôle (l. 517, 554, 586, 645, 666, 729, 769, 799). Statique,
-donc rien ne bouge au clic. Le lot applique ce patron aux branches qui le
-perdent, **prose jamais reformulée** (les libellés sont ceux du jeu).
+donc rien ne bouge au clic. Le lot applique ce patron aux 32 configurations qui
+perdent réellement la prose, sans la dupliquer sur les huit déjà visibles ;
+**prose jamais reformulée** (les libellés sont ceux du jeu).
 
-**Contrat :** 1) l'extraction 4 du lot 1 (40 configurations × monstre × `source` ×
-branche de rendu) ; 2) le correctif par branche ; 3) la section de spec.
+**Contrat :** 1) reprendre l'extraction 1e exhaustive (40 configurations ×
+monstre × `source` × branche) ; 2) corriger les 32 pertes par branche sans
+dupliquer les huit proses déjà visibles ; 3) mettre à jour la section de spec.
 
 ⚠️ **Ce que l'hypothèse de la demande recouvrait vraiment.** « Rien de visible
 (Mayasura, Jaeger) » et « le sort non survolable (Cordelia) » ne sont pas deux
-cas mais **un seul**, à deux rendus près : la prose n'est nulle part. Le cas
+cas mais **un seul**, à deux rendus près : leur prose n'est nulle part. Le cas
 « passif absent de la table » existe aussi, mais **ni Mayasura ni Jager n'en
 sont** — la table par identifiant les contient bien.
 
-**Sortie :** `controle-11.md` avec les 38 identifiants / 40 configurations ; le correctif ;
-la section de spec mise à jour.
+**Sortie :** `controle-11.md` avec l'inventaire 38 / 40, les huit exclusions
+nommées et le correctif 30 / 32 ; la section de spec mise à jour.
 
 **Preuve du constat 110 :** retrouver ou ajouter dans `tests/degats.test.ts`
 un contrôle nommé pour chacun des identifiants `14313` et `14813`, construit
@@ -1459,14 +1464,24 @@ Un test qui exclut Rankyaku d'une autre mécanique ne suffit pas. Conserver
 la commande `node tests/run.mjs degats`, sa sortie et les assertions ciblées
 dans `controle-11.md`. Aucune clôture de 110 au lot 13a sans cette preuve.
 
-**Preuve de rendu :** le tableau · `npm run build` · relecture à l'œil sur au moins un
-monstre par `source` corrigée (Mayasura pour `stacks`, Cordelia pour
-`toujours`).
+**Preuve de rendu :** le tableau · `npm run build` · relecture à l'œil sur au
+moins un monstre par `source` corrigée (Mayasura pour `stacks`, Cordelia pour
+`toujours`) et contrôle d'absence de doublon sur les huit exclusions.
 
 **Ne fait pas :** ne cure ni n'inventorie tous les passifs absents. Leur
 repérage depuis l'audit et le corpus est un intrant propre du lot 13a, puis
 leur qualification mécanique relève du lot 13b ; la table des présents ne
 prouve jamais l'exhaustivité des manquants.
+
+**Résultat du lot 1e validé le 2026-09-24.** L'inventaire réconcilie bien
+38 identifiants, 40 configurations, 80 formes et 42 lignes d'audit. Huit
+configurations sont **hors famille du correctif** parce que leur prose est déjà
+visible ailleurs dans la carte : `2565`, `9611` à `9615`, `10612`, `18139`.
+Le périmètre du lot 11 est donc de 30 identifiants / 32 configurations. Les
+preuves sont `decisions-lot-1e.json`, `controle-1e.md` et
+`valider-lot-1e.mjs`. L'écart `7912` — prose « VIT +12 % », table
+`spdFlat: 12` — reste une incertitude de valeur explicitement non tranchée :
+le lot 11 n'y touche pas ; le lot 1f doit la conserver et proposer son suivi.
 
 ### Lot 12 — les trois mécanismes rejoués sur des cas indépendants
 

@@ -66,6 +66,11 @@ les modifications de `degats-reels.md` (2a/2b).
   chiffré ; ce que ce chantier en implémente se décide **sur ce plan**, pas
   par avance. Promettre les 243 ici serait un engagement qu'aucun lot ne peut
   tenir.
+- **Les attaques conjointes et les lignes d'artéfact 209/225.** Demande du
+  2026-09-25, consignée intégralement dans
+  [la piste dédiée](../outils/optimizer/decisions/attaques-conjointes-piste.md) :
+  chantier distinct à cadrer. Le lot 13a/13b-* rapproche cette piste des
+  constats 234/235 et des découvertes hors audit, sans l'implémenter ici.
 - **Le découpage d'`optimizer.md` et d'`artefacts.md`**,
   tous deux en exception du lint. `spec-lint.json` les assigne à d'autres
   chantiers (`découpage-optimizer`, `artefacts`) avec, pour `optimizer.md`,

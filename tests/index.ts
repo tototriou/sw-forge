@@ -68,6 +68,7 @@ import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit
 import testSpecMarkdown from './spec-markdown.test';
 import testSpecToc from './spec-toc.test';
 import testSpecLint, { testSpecLintEnTetes, testSpecLintEnTetesReel, testSpecLintReel } from './spec-lint.test';
+import testSkillAdapters from './skill-adapters.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -96,6 +97,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSpecLintEnTetesReel', testSpecLintEnTetesReel],
   ['testSpecLint', testSpecLint],
   ['testSpecLintReel', testSpecLintReel],
+  ['testSkillAdapters', testSkillAdapters],
   ['testImport', testImport],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],

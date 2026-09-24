@@ -162,11 +162,11 @@ export default function SidebarSearch({
           // ⚠️ `absolute` : la liste se pose PAR-DESSUS la navigation, elle ne
           // la pousse pas vers le bas. Une liste qui décale les neuf sections à
           // chaque frappe rend la barre illisible.
-          className="absolute inset-x-3 top-full z-40 mt-1 overflow-hidden rounded-lg border
-                     border-border bg-panel shadow-glow shadow-black/40"
+          className="absolute inset-x-3 top-full z-40 mt-1 flex flex-col gap-px overflow-hidden rounded-xl
+                     border border-border-soft bg-panel p-1.5 shadow-glow shadow-black/40"
         >
           {resultats.length === 0 ? (
-            <p className="px-3 py-2.5 text-xs text-ink-dim">Aucune page</p>
+            <p className="px-2.5 py-1.5 text-sm text-ink-dim">Aucune page</p>
           ) : (
             resultats.map((c, i) => (
               <a
@@ -177,13 +177,20 @@ export default function SidebarSearch({
                 // avant que le clic ne l'atteigne.
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => nav.reinitialiser()}
-                className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm
-                            transition-colors ${
-                              i === nav.actif ? 'bg-ctx-soft text-ink' : 'text-ink-dim'
+                // ⚠️ **Le gabarit exact d'une entrée du menu** (Sidebar,
+                // LienBarre) : 32 px, icône 16, texte 14, rayon 8, voile
+                // d'encre pour le résultat choisi et au survol. Un résultat
+                // EST une entrée de navigation ; un rendu à part se lisait
+                // comme une autre sorte de liste.
+                className={`flex h-8 w-full flex-none items-center gap-2.5 rounded-lg px-2.5 text-left
+                            text-md font-medium transition-colors ${
+                              i === nav.actif
+                                ? 'bg-ink/10 text-ink'
+                                : 'text-ink-dim hoverable:bg-ink/5 hoverable:text-ink'
                             }`}
               >
-                <span className="flex-none">{c.icon}</span>
-                <span className="truncate">{c.label}</span>
+                <span className="flex flex-none items-center">{c.icon}</span>
+                <span className="min-w-0 truncate">{c.label}</span>
                 {c.contexte && (
                   <span className="ml-auto flex-none text-micro text-ink-dimmer">
                     {c.contexte}

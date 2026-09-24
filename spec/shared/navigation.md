@@ -302,6 +302,12 @@ Un champ en tête de la barre, `⌘K` depuis n'importe où.
   avait été remplacée par un chevron — un raccourci qu'on lit une fois, jugé
   encombrant ; Thomas a retenu la maquette, qui l'affiche. Le raccourci marche
   avec Ctrl comme avec ⌘.
+- ⚠️ **Un résultat a le rendu exact d'une entrée du menu** : 32 px, icône
+  NEUTRE de 16, texte 14, rayon 8, voile d'encre pour le résultat choisi
+  (`bg-ink/10`) et au survol (`bg-ink/5`) ; la section en contexte à droite,
+  en petit. Thomas l'a relevé (2026-09-24) : les résultats avaient gardé
+  l'ancien gabarit (texte 13, icônes colorées, fond `ctx-soft`) et se
+  lisaient comme une autre sorte de liste.
 
 ## Barre supérieure
 

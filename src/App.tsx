@@ -1087,25 +1087,29 @@ export default function App() {
   //
   // ⚠️ Les sous-sections portent leur SECTION en contexte : « Défense » seul ne
   // dit pas de quel écran il s'agit.
+  //
+  // ⚠️ Icônes NEUTRES, 16 px : la recherche vit dans la barre latérale bureau,
+  // et ses résultats doivent se lire comme les entrées du menu (décision 3 de
+  // la refonte — le menu est neutre).
   const ciblesRecherche: CibleNav[] = [
     ...NAV.map((i) => ({
       key: i.key,
       label: i.label,
       hash: i.hash,
-      icon: <i.icon size={15} color={i.couleur} />,
+      icon: <i.icon size={16} />,
     })),
     ...RTA_SUBS.map((s) => ({
       key: `rta-${s.sub}`,
       label: s.label,
       hash: s.hash,
-      icon: <s.icon size={15} color={s.couleur} />,
+      icon: <s.icon size={16} />,
       contexte: 'RTA',
     })),
     ...SIEGE_SUBS.map((t) => ({
       key: `siege-${t.tab}`,
       label: t.label,
       hash: t.hash,
-      icon: <t.icon size={15} color={t.couleur} />,
+      icon: <t.icon size={16} />,
       contexte: 'Siège',
     })),
     // ⚠️ Chaque VUE de chaque inventaire, pas seulement les trois inventaires :
@@ -1118,7 +1122,7 @@ export default function App() {
         key: `compte-${sub.sub}-${v.key}`,
         label: v.label,
         hash: hashVue(sub.sub, v.key),
-        icon: <v.icon size={15} color={sub.couleur} />,
+        icon: <v.icon size={16} />,
         contexte: sub.label,
       }))
     ),
@@ -1126,27 +1130,27 @@ export default function App() {
       key: `outils-${sub.sub}`,
       label: sub.label,
       hash: sub.hash,
-      icon: <sub.icon size={15} color={sub.couleur} />,
+      icon: <sub.icon size={16} />,
       contexte: 'Outils',
     })),
     {
       key: ARENE_ITEM.key,
       label: ARENE_ITEM.label,
       hash: ARENE_ITEM.hash,
-      icon: <ARENE_ITEM.icon size={15} color={ARENE_ITEM.couleur} />,
+      icon: <ARENE_ITEM.icon size={16} />,
     },
     ...RESOURCES.map((i) => ({
       key: i.key,
       label: i.label,
       hash: i.hash,
-      icon: <i.icon size={15} color={i.couleur} />,
+      icon: <i.icon size={16} />,
       contexte: 'Ressources',
     })),
     {
       key: 'parametres',
       label: 'Paramètres',
       hash: '#/parametres',
-      icon: <Settings size={15} />,
+      icon: <Settings size={16} />,
     },
   ];
 

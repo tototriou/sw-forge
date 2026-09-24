@@ -1256,11 +1256,17 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      contribution d'artéfact se calcule séparément par emplacement :
      l'artéfact réellement porté si le choix est « Garder l'artéfact
      équipé », la principale imposée si elle est choisie, et zéro si le
-     choix est « Libre ». L'optimisation coupée conserve les deux artéfacts
-     portés. En lecture Total, le plancher ajoute cette contribution à la
-     base nue ; en lecture « bonus », il garde seulement cette contribution.
-     Les deux modes « Libre » ne garantissent donc aucun bonus d'artéfact,
-     même si la paire représentative en montre deux. « Stats de base
+     choix est « Libre ». Pour la relique, seule une pièce réellement portée
+     avec le choix « Garder la relique équipée » garantit sa principale en
+     PV %, ATQ % ou DEF % : `ceil(base × valeur / 100)`, comme dans
+     `computeStats`. Une principale forcée, « Libre » ou l'absence de relique
+     garantit zéro. La contribution de relique ne modifie jamais Taux Crit,
+     Dmg Crit, RES ou Précision. L'optimisation coupée conserve les deux
+     artéfacts portés. En lecture Total, le plancher ajoute ces contributions
+     à la base nue ; en lecture « bonus », il garde seulement ces
+     contributions. Les choix « Libre » ne garantissent donc aucun bonus
+     d'artéfact ni de relique, même si une paire représentative en montre.
+     « Stats de base
      exclues » ne s'applique qu'à PV/ATQ/DEF/VIT : Taux Crit, Dmg Crit, RES
      et Précision restent toujours des totaux. Affiché en `placeholder`
      tant que rien n'est saisi.

@@ -27,7 +27,7 @@ import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, signatureArtefacts
 import { resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { apportExclusive } from '../../lib/relicExclusive';
-import { artifactConditionFloor } from '../../lib/artifactConditionFloor';
+import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
   bornesArtefacts,
@@ -2367,7 +2367,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const choices = optimiserArtefacts
       ? artifactMainByKind
       : { element: 'equipped' as const, archetype: 'equipped' as const };
-    return artifactConditionFloor(key, base, bonusMode, choices, selected?.gear.artifacts ?? []);
+    return artifactConditionFloor(key, base, bonusMode, choices, selected?.gear.artifacts ?? [])
+      + relicConditionFloor(key, base, relicMainChoice, selected?.gear.relic);
   }
 
   // Puces avec disponibilité PAR OPTION (Questions 2-3 du cadrage) — une

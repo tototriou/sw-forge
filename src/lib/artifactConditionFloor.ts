@@ -1,6 +1,6 @@
-import type { ArtifactDetail, ArtifactKind } from '../types';
+import type { ArtifactDetail, ArtifactKind, RelicDetail } from '../types';
 import type { ArtifactMainChoice } from '../hooks/useOptimizerState';
-import { ARTIFACT_MAIN, type StatKey } from './effects';
+import { ARTIFACT_MAIN, RELIC_MAIN, type StatKey } from './effects';
 import { ARTIFACT_MAIN_VALUE } from './runeBuildOptim';
 
 export type ArtifactChoicesByKind = Partial<Record<ArtifactKind, ArtifactMainChoice>>;
@@ -22,4 +22,16 @@ export function artifactConditionFloor(
     return main && ARTIFACT_MAIN[main.code]?.stat === stat ? sum + main.value : sum;
   }, 0);
   return bonusMode ? artifactBonus : base + artifactBonus;
+}
+
+/** Contribution garantie d'une relique réellement portée quand elle est fixée. */
+export function relicConditionFloor(
+  stat: StatKey,
+  base: number,
+  choice: ArtifactMainChoice,
+  equipped: RelicDetail | undefined,
+): number {
+  if (choice !== 'equipped' || !equipped) return 0;
+  const main = RELIC_MAIN[equipped.main.code];
+  return main?.stat === stat ? Math.ceil((base * equipped.main.value) / 100) : 0;
 }

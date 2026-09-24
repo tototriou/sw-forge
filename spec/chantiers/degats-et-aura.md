@@ -302,7 +302,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 1d — classification Blade Dancers | J | terminé | 2026-09-24 |
 | 1e — formes et rendus des stats de combat | C | terminé | `cb5f630` + amendement pilote / 2026-09-24 |
 | 1f — réconciliation et proposition d'amendement | C+J | terminé | 2026-09-24 |
-| 2a — classement des blocs et plan de découpage | C | à faire | — |
+| 2a — classement des blocs et plan de découpage | C | terminé | amendement pilote / 2026-09-24 |
 | 2b — déplacement et repointage selon le plan validé | M | à faire | — |
 | 3 — plancher des conditions en « Libre » | M | à faire | — |
 | 4 — relique « comme équipé » et les minimums | C→M | à faire | — |
@@ -884,6 +884,22 @@ Les anciens « 340 occurrences / 28 fichiers » ne constituent pas une cible.
 
 **Ne fait pas :** aucun déplacement, aucun repointage, aucune suppression
 d'exception ; ces opérations relèvent exclusivement de 2b.
+
+**Résultat validé et amendé par le pilote le 2026-09-24.** Le plan couvre
+exactement les 2 003 lignes de contenu en **67 fragments** : 48 d'état actuel
+(1 475 lignes), 10 de décision (399), 2 de piste (15) et 7 d'archive (114).
+Les identifiants `Bnn` restent des coordonnées de preuve privées ; les
+destinations utilisent les titres métier conservés ou ajoutés et leurs slugs
+effectifs. `plan-2a.json` fixe aussi le H1 et l'en-tête de chaque nouveau
+fichier, ainsi que l'emplacement des deux ajouts à `pistes.md`.
+
+Les sept ambiguïtés du premier plan sont tranchées dans `controle-2a.md` à
+partir du code et des tests actuels : scission de l'état courant et de
+l'historique pour les exclusions générales, `ArtifactDamageProfile` et
+`damageRelevantStats` ; archivage de l'ancien blocage de Trasar, de
+l'application une fois par sort de Sickle/Sand Blade et de l'ancien bouton
+manuel de Zaiross ; distinction des deux listes qui portent un « point 10 ».
+Le plan ainsi amendé est l'intrant obligatoire du lot 2b.
 
 ### Lot 2b — déplacement et repointage selon le plan validé
 

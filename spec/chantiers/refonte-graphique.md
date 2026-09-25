@@ -304,7 +304,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
 | 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par Thomas le 2026-09-25 |
 | 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par Thomas le 2026-09-25 |
-| 6 RTA | J | à faire | |
+| 6 RTA | J | exécuté, à valider | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435` ; 2026-09-25 |
 | 7 Siège | J | à faire | |
 | 8a Compte · Runes | J | à faire | |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
@@ -533,7 +533,17 @@ une carte. Un changement de nature (bouton → `libelle`), aucune perte.
 Premier passage en icônes neutres ; **couleurs remises** à la demande de
 Thomas le 2026-09-25 (décision 3 précisée : accueil coloré, menu neutre) —
 tuiles à la teinte de la section, halos, couleurs des étapes, mêmes valeurs
-qu'avant le lot. À valider par Thomas sur le serveur de dev.
+qu'avant le lot. Validé par Thomas le 2026-09-25.
+
+**Résultat lot 6 — RTA (2026-09-25)** — preuve
+[lot-6.md](refonte-graphique-preuves/lot-6.md). Décision 13 prise avant de
+coder (ordre de tour en bas, actions dans un menu « ⋯ », recherche
+permanente, fonctions nouvelles de la maquette non retenues). Tests avant
+`ef35074` (47 vérifications, aucune assertion modifiée) ; `src/ui/Menu`
+(`1ef4103`, premier usage justifié) ; en-tête bureau (`501699a`) ; sections
+sans cadre et cartes de la refonte (`ca0d435`). Aucune perte, aucun
+déplacement : la disposition mobile garde tous les libellés. À valider par
+Thomas sur le serveur de dev.
 
 ### B.11 Lot 11 — téléphone · J
 

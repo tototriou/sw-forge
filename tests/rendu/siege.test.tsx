@@ -140,6 +140,13 @@ export function testRenduSiegeEdition() {
   ok(/manque \d+ pour 239|\+\d+ au-dessus de 239|pile au tick 239/.test(t), 'le monstre visant 239 affiche son écart au tick');
   ok(valeurs(html, 'title').filter((v) => v === 'Changer la position (intervertir les monstres)').length >= 2, 'chaque monstre posé a son sélecteur « Position »');
   ok(t.includes('1 · Leader'), 'la position « 1 · Leader » est proposée');
+
+  // À la souris, les flèches ← → (demandées par Thomas, lot 7a). Aux bords,
+  // affichées mais désactivées, et l'infobulle dit pourquoi.
+  const premier = bouton(html, 'Déjà en première position');
+  ok(!!premier && premier.desactive, 'slot 1 : « ← » désactivé — « Déjà en première position »');
+  ok(!!bouton(html, 'Déplacer à gauche (devient le leader)'), 'slot 2 : « ← » annonce qu\'il devient le leader');
+  ok(!!bouton(html, 'Déplacer à droite (le monstre suivant devient le leader)'), 'slot 1 : « → » annonce que le suivant devient le leader');
 }
 
 // Lot 7a de la refonte : l'en-tête bureau. Ajouté APRÈS les tests ci-dessus,

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, Timer } from 'lucide-react';
+import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, Timer, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
 import { Monster, SiegeTeam as SiegeTeamType } from '../../types';
@@ -997,7 +997,40 @@ function SlotContent({
               onChange={onRune}
             />
           </label>
-          <span className="hidden items-center gap-1.5 lg:flex">{position}</span>
+          {/* ⚠️ **À la souris, deux FLÈCHES au lieu du sélecteur de
+              position** — demandé par Thomas : échanger avec le voisin de
+              gauche ou de droite est un geste direct, là où le sélecteur
+              demandait d'ouvrir une liste pour choisir un numéro. Aux bords,
+              la flèche reste affichée, désactivée, et son infobulle dit
+              pourquoi. Au doigt, le sélecteur reste (lot 11). */}
+          <span className="hidden items-center gap-0.5 lg:flex">
+            <BoutonIcone
+              libelle={
+                idx === 0
+                  ? 'Déjà en première position'
+                  : idx === 1
+                    ? 'Déplacer à gauche (devient le leader)'
+                    : 'Déplacer à gauche'
+              }
+              icone={<ChevronLeft size={15} />}
+              cadre
+              disabled={idx === 0}
+              onClick={() => onMoveTo(idx - 1)}
+            />
+            <BoutonIcone
+              libelle={
+                idx === 2
+                  ? 'Déjà en dernière position'
+                  : idx === 0
+                    ? 'Déplacer à droite (le monstre suivant devient le leader)'
+                    : 'Déplacer à droite'
+              }
+              icone={<ChevronRight size={15} />}
+              cadre
+              disabled={idx === 2}
+              onClick={() => onMoveTo(idx + 1)}
+            />
+          </span>
         </div>
       </div>
 

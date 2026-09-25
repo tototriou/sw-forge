@@ -297,13 +297,16 @@ Notation **`A → B` : B requiert A** (prérequis à gauche).
 0 → 1 (le lot 1 décide sur l'inventaire du lot 0, pas de mémoire)
 1 → 2 → 3 → 4 (tokens, puis composants qui les consomment, puis la coquille qui consomme les composants)
 4 → 5, 6, 7, 8a, 8b, 9a, 9b, 10 (un écran se refait sur la coquille finale ; entre eux, aucun ordre imposé)
-{5 … 10} → 11 (le téléphone se fait sur des écrans bureau stables)
+3 → 14 (le thème clair se revoit sur les composants de la librairie déjà refaits)
+14 → 8a, 8b, 9a, 9b, 10 (pas un prérequis technique : les écrans restants se jugent dans un thème clair déjà revu, au lieu d'être validés sur un thème qui va changer)
+{5 … 10, 14} → 11 (le téléphone se fait sur des écrans bureau stables)
 11 → 13 (les ajouts se posent sur l'interface refaite)
 13 → 12 (la validation finale couvre aussi les ajouts)
 ```
 
-Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b → 9a → 9b → 10
-→ 11 → 13 → 12.
+Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → **14** → 8a → 8b
+→ 9a → 9b → 10 → 11 → 13 → 12. (Le lot 14 est ajouté le 2026-09-26, à la
+demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours.)
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
@@ -316,6 +319,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
 | 7a Siège · Défense et Offense | J | exécuté, à valider | `553a709` (pastille), `f637bba`, `a39c836` (en-tête) ; 2026-09-26 |
 | 7b Siège · Recommandations | J | à faire | |
+| 14 thème clair (Atelier) : revoir les tokens | J | à faire | ajouté le 2026-09-26 |
 | 8a Compte · Runes | J | à faire | |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
 | 9a Outils · Optimizer | J | à faire | |
@@ -594,6 +598,47 @@ récupérable (`design.md` § Ce qui se confirme).
 **Preuve** : tests de la logique ajoutée, tests de rendu des trois ajouts,
 inventaire (entrées nouvelles seulement), tous les tests de rendu existants
 verts.
+
+### B.14 Lot 14 — thème clair (Atelier) · J
+
+Ajouté le 2026-09-26 à la demande de Thomas : « ajoute un lot pour revoir le
+thème clair, il faut revoir ça ». Exécuté après 7b, avant les écrans
+restants (A.7).
+
+**Intrant** : les valeurs du thème clair (`src/index.css`, bloc `:root` hors
+Forge ; `tailwind.config.js`), `spec/shared/design.md` § Tokens et
+§ Contraste (par `spec-toc`), le thème clair de la maquette (`css.txt` de la
+toile, `.sf[data-theme=light]`), et la **liste des défauts relevés par
+Thomas** — rien d'autre.
+
+**Déroulé** :
+1. **Relevé, avant tout code** : un tableau token par token — valeur de l'app,
+   valeur de la maquette, écart — et les défauts vus par Thomas (lui demander
+   ce qui le gêne, écran par écran s'il le faut). Premier écart déjà vu : le
+   fond de page de l'app (`--bg` `223 227 237`, `#DFE3ED`, un gris-bleu
+   soutenu) contre `#F6F6F8` dans la maquette.
+2. Les valeurs retenues sont **proposées à Thomas** (le tableau, avec les
+   contrastes), puis appliquées.
+3. Chaque couple texte / fond et contour / fond du thème clair est **mesuré**
+   (WCAG : 4,5:1 pour le texte, 3:1 pour un contour ou une icône porteuse de
+   sens), y compris les couleurs d'élément et de statut sur les nouveaux
+   fonds.
+
+**Contrat** : seules les VALEURS du thème clair changent. Le thème sombre
+(Forge, `--forge-*` et ses deux déclencheurs) n'est **pas touché** ; aucun
+composant, aucune classe, aucun rendu du jeu (A.2) ne bouge. Un défaut qui ne
+se corrige pas par un token (une classe en dur, un fond oublié) est **listé**
+dans la preuve avec son fichier et va au lot de sa zone — il n'est pas corrigé
+ici.
+
+**Preuve** (`refonte-graphique-preuves/lot-14.md`) : le tableau avant / après
+de chaque token modifié, la sortie du script de contraste (tous les couples au
+seuil), `node tests/run.mjs rendu refonte` vert, build, chemins interdits ;
+la liste des écrans à regarder en thème clair sur le serveur de dev.
+
+**Ce que le lot ne fait PAS** : ni le thème sombre, ni la mise en page, ni les
+rayons (décision 2), ni les couleurs de section de l'accueil (décision 3
+précisée) — seulement leur lisibilité sur le nouveau fond, mesurée.
 
 ### B.12 Lot 12 — validation finale · M
 

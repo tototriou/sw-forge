@@ -50,6 +50,7 @@ import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
+import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
 import testRelicOptim from './relic-optim.test';
 import testRelicOracle from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
@@ -139,6 +140,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testOptimizerExclusion', testOptimizerExclusion],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],
+  ['testOptimizerDamageTransitions', testOptimizerDamageTransitions],
   ['testRelicOptim', testRelicOptim],
   ['testRelicOracle', testRelicOracle],
   ['testRelicSearch', testRelicSearch],

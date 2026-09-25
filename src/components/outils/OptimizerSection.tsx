@@ -478,6 +478,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     setOpenDetailKey,
     search,
     resetSearch,
+    resetDamageSkill,
   } = optimizer;
   // `relicContextRecherche` : le contexte relique de la recherche LANCÉE
   // (garantie G) — `undefined` tant que l'écran n'en pose pas dans `run()`
@@ -931,6 +932,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // voir `candidatesBySource`) n'appelle jamais cette fonction (voir
   // `disabled` du `Segmented`, plus bas).
   function pickSource(source: ExclusionSource) {
+    if (source !== gearSource) resetDamageSkill();
     setGearSource(source);
     const candidates = candidatesBySource[source];
     if (candidates.length === 1) {
@@ -985,15 +987,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
        * plutôt que visible. Réoptimiser en dégâts demande alors de recliquer
        * « Dégâts réels » et de rechoisir le sort — le geste qui manquait.
        *
-       * ⚠️ **`damageSetup` n'est PAS remis à zéro pour autant.** La défense,
-       * les PV et l'élément de l'adversaire, les buffs, le lead : rien de
-       * tout cela n'est propre au monstre, et c'est le plus long à
-       * ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec le
-       * combat déjà décrit, seul le sort restant à choisir. Seul
-       * `skillCom2usId` est vidé, pour que la valeur STOCKÉE soit celle
-       * réellement utilisée — sinon un identifiant périmé traîne, inerte
-       * tant que le cran est au défaut, et ressort au prochain « Dégâts
-       * réels ».
+       * Le reset garde le contexte commun mais vide le sort et ses réglages
+       * associés. Recliquer « Dégâts réels » retrouve le combat décrit.
        *
        * ⚠️ **Ici et surtout PAS dans un `useEffect` sur le monstre
        * sélectionné** : `importRecipe` pose le monstre ET l'objectif
@@ -1006,7 +1001,6 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
        */
       setObjective('efficience');
       setCritereArtefacts('brut');
-      setDamageSetup((s) => ({ ...s, skillCom2usId: null }));
     }
     setSelectedId(id);
     setGearSource('box');
@@ -2371,6 +2365,21 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       + relicConditionFloor(key, base, relicMainChoice, selected?.gear.relic);
   }
 
+  function choisirListe(id: string | null) {
+    if (id !== lists.activeListId) resetDamageSkill();
+    lists.setActiveListId(id);
+  }
+
+  function creerListe(name: string) {
+    resetDamageSkill();
+    return lists.createList(name);
+  }
+
+  function supprimerListe(id: string) {
+    if (id === lists.activeListId) resetDamageSkill();
+    lists.deleteList(id);
+  }
+
   // Puces avec disponibilité PAR OPTION (Questions 2-3 du cadrage) — une
   // source sans AUCUN candidat pour l'espèce courante voit SA puce
   // désactivée (voir l'axe `disabled` ajouté à Segmented.tsx), le contrôle
@@ -2399,6 +2408,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           key={exclusionSelectorKey(c.selector)}
           type="button"
           onClick={() => {
+            if (exclusionSelectorKey(c.selector) !== (sourceSelector ? exclusionSelectorKey(sourceSelector) : null)) resetDamageSkill();
             setSourceSelector(c.selector);
             setZoneDOpen(false);
           }}
@@ -2923,6 +2933,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     if (!resolved) return;
                     const id = String(resolved.monster.id);
                     if (id !== selectedId) resetSearch();
+                    else if (exclusionSelectorKey(m.selector) !== (sourceSelector ? exclusionSelectorKey(sourceSelector) : null)) resetDamageSkill();
                     setSelectedId(id);
                     // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une
                     // des 4 puces) — `gearSource` reste sur sa dernière
@@ -3184,10 +3195,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 lists={lists.lists}
                 activeListId={lists.activeListId}
                 memberCounts={memberCountsByList}
-                onSelect={lists.setActiveListId}
-                onCreate={lists.createList}
+                onSelect={choisirListe}
+                onCreate={creerListe}
                 onRename={lists.renameList}
-                onDelete={lists.deleteList}
+                onDelete={supprimerListe}
               />
             </div>
             <div className="mt-3">{zoneCContent}</div>
@@ -3270,10 +3281,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   lists={lists.lists}
                   activeListId={lists.activeListId}
                   memberCounts={memberCountsByList}
-                  onSelect={lists.setActiveListId}
-                  onCreate={lists.createList}
+                  onSelect={choisirListe}
+                  onCreate={creerListe}
                   onRename={lists.renameList}
-                  onDelete={lists.deleteList}
+                  onDelete={supprimerListe}
                 />
                 {zoneCContent}
               </div>

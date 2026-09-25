@@ -330,7 +330,7 @@ export default function App() {
       hydrationJustAppliedRef.current = false;
       return;
     }
-    optimizer.resetSearch();
+    optimizer.resetSearch('compte');
 
     // Listes de travail (Lot 3) — un build validé porte un INSTANTANÉ de
     // runes (voir ValidatedBuild, optimizerExclusion.ts), pas une référence

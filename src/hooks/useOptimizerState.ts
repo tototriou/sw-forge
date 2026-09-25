@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup, DEFAULT_DAMAGE_SETUP } from '../lib/damage';
+import { damageSetupApresChangementMonstre } from '../lib/damageSetupTransition';
 import { AutoExclusionScope, ExclusionSelector } from '../lib/optimizerExclusion';
 import { ArtifactKind, RelicDetail } from '../types';
 import { LigneVerrouillee } from '../lib/artifactOptim';
@@ -333,7 +334,8 @@ export interface OptimizerState {
   // App.tsx quand un nouveau compte est importé (voir son `useEffect` sur
   // `box`) : dans les deux cas, la recherche affichée devient obsolète
   // (autre monstre, autre pool de runes).
-  resetSearch: () => void;
+  resetSearch: (motif?: 'monstre' | 'compte') => void;
+  resetDamageSkill: () => void;
 }
 
 export function useOptimizerState(): OptimizerState {
@@ -379,7 +381,7 @@ export function useOptimizerState(): OptimizerState {
   const [openDetailKey, setOpenDetailKey] = useState<string | null>(null);
   const search = useBuildOptimSearch();
 
-  function resetSearch() {
+  function resetSearch(motif: 'monstre' | 'compte' = 'monstre') {
     setComboSets([]);
     setSetPickerInvalid(false);
     setMinStats({});
@@ -405,15 +407,18 @@ export function useOptimizerState(): OptimizerState {
     // rune qui n'a plus rien à voir (et la rendrait probablement vide).
     setLockedRunes({});
     setObjective('efficience');
-    // ⚠️ Réinitialisé AVEC les autres critères : `skillCom2usId` désigne un
-    // sort du monstre PRÉCÉDENT, qui n'existe pas chez le nouveau — le
-    // garder afficherait un réglage muet, jamais appliqué.
-    setDamageSetup(DEFAULT_DAMAGE_SETUP);
+    // Un compte importé efface tout ; un changement de monstre conserve le
+    // contexte commun et vide les réglages indexés par sort ou passif.
+    setDamageSetup((s) => motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s));
     setSortBy('efficience');
     setResultsPage(1);
     setStoppedManually(false);
     setOpenDetailKey(null);
     search.reset();
+  }
+
+  function resetDamageSkill() {
+    setDamageSetup(damageSetupApresChangementMonstre);
   }
 
   return {
@@ -477,5 +482,6 @@ export function useOptimizerState(): OptimizerState {
     setOpenDetailKey,
     search,
     resetSearch,
+    resetDamageSkill,
   };
 }

@@ -1,6 +1,11 @@
 import { ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
-import BoutonIcone from './BoutonIcone';
+import Bouton from './Bouton';
+
+// Hauteur des boutons posés dans un EN-TÊTE d'écran, « ⋯ » compris : 36 px.
+// Exportée pour que les boutons voisins (« Exporter » de la RTA) s'y alignent
+// sans recopier la valeur.
+export const HAUTEUR_EN_TETE = 'h-9';
 import Flottant from './Flottant';
 
 // MENU D'ACTIONS : un bouton « ⋯ » qui ouvre, sous lui, une liste d'actions.
@@ -96,15 +101,24 @@ export default function Menu({ libelle, elements, largeur = 'w-60' }: MenuProps)
 
   return (
     <div ref={racine} className="relative flex-none">
-      <BoutonIcone
+      {/* ⚠️ **La HAUTEUR des boutons d'en-tête (36 px, `HAUTEUR_EN_TETE`)**, pas
+          celle d'un `BoutonIcone` (28 px) : le « ⋯ » se pose à côté des
+          boutons d'action d'un en-tête (« Exporter » dans la RTA), et deux
+          hauteurs côte à côte se lisaient comme deux familles de boutons —
+          relevé par Thomas. Un `Bouton` carré dimensionné ici, et non un
+          `BoutonIcone` dont on écraserait le `h-7` : deux hauteurs dans la
+          même classe, c'est l'ordre de la feuille de style qui trancherait. */}
+      <Bouton
         ref={declencheur}
-        libelle={libelle}
+        taille="carre"
+        aria-label={libelle}
+        title={libelle}
         icone={<MoreHorizontal size={16} />}
-        cadre
         aria-haspopup="menu"
         aria-expanded={ouvert}
         aria-controls={id}
         onClick={() => setOuvert((o) => !o)}
+        className={`${HAUTEUR_EN_TETE} w-9`}
       />
       {/* ⚠️ Toujours rendu, masqué fermé : voir l'en-tête. */}
       <Flottant

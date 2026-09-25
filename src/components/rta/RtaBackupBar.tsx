@@ -26,7 +26,7 @@ import {
 } from '../../lib/rtaShare';
 import RtaValidationReport from './RtaValidationReport';
 import { ConfirmDialog, Modale } from '../../ui/Dialogs';
-import { Bouton, Menu, Option } from '../../ui';
+import { Bouton, HAUTEUR_EN_TETE, Menu, Option } from '../../ui';
 import type { ElementMenu } from '../../ui';
 
 /* --------------------------------------------------------------------------
@@ -316,6 +316,9 @@ export default function RtaBackupBar({
             icone={<Upload size={14} />}
             libelle="Exporter"
             title="Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté"
+            // ⚠️ La hauteur du « ⋯ » juste à côté (36 px) : deux hauteurs
+            // voisines se lisaient comme deux familles de boutons.
+            className={HAUTEUR_EN_TETE}
           />
           {/* Les entrées reprennent les boutons de la barre MOT POUR MOT —
               libellés, désactivations, infobulles — à une précision près :

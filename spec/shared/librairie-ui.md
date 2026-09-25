@@ -223,9 +223,15 @@ type est la seule façon de ne plus avoir à y penser.
 
 ### Composants à part entière
 
-**`Menu`** — un bouton « ⋯ » (`BoutonIcone` cadré, nommé par `libelle`) qui
-ouvre sous lui, ancrée à droite, une liste d'actions (`Flottant`,
-`role="menu"`). Chaque entrée : icône, libellé, `disabled` + `title` pour dire
+**`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
+ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).
+⚠️ **Le « ⋯ » a la hauteur des boutons d'EN-TÊTE, 36 px**
+(`HAUTEUR_EN_TETE`, exportée) — pas les 28 px d'un `BoutonIcone` : posé à côté
+d'un bouton d'action (« Exporter » dans la RTA), il faisait deux hauteurs
+voisines, lues comme deux familles de boutons (relevé par Thomas). Les
+boutons voisins s'y alignent en reprenant la constante. C'est un `Bouton`
+carré dimensionné, pas un `BoutonIcone` dont on écraserait le `h-7` : deux
+hauteurs dans la même classe, l'ordre de la feuille de style trancherait. Chaque entrée : icône, libellé, `disabled` + `title` pour dire
 pourquoi, et `danger` pour un geste qui perd quelque chose — rangé en dernier,
 derrière un filet, en `bad`. Clavier : flèches, Début / Fin, Échap (rend le
 focus au bouton), Tab referme ; un clic dehors aussi.

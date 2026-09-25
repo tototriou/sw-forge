@@ -59,7 +59,7 @@ export type { FlottantProps } from './Flottant';
 // une grille, un badge au bout d'une ligne : ces ancres vont jusqu'aux bords de
 // la page, où un flottant posé toujours du même côté se fait couper.
 export { default as FlottantAuto } from './FlottantAuto';
-export { default as Menu } from './Menu';
+export { default as Menu, HAUTEUR_EN_TETE } from './Menu';
 export type { MenuProps, ElementMenu } from './Menu';
 export type { FlottantAutoProps } from './FlottantAuto';
 

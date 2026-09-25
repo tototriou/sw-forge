@@ -13,6 +13,7 @@ import Segmented from '../../src/ui/Segmented';
 import Option from '../../src/ui/Option';
 import Jeton from '../../src/ui/Jeton';
 import Selecteur from '../../src/ui/Selecteur';
+import Menu from '../../src/ui/Menu';
 import { egal, ok, titre } from '../outils';
 import { bouton, boutons, rendre, texteVisible } from './outils-rendu';
 
@@ -96,4 +97,29 @@ export function testRenduUiEtats() {
   );
   ok(/<select[^>]*disabled/.test(sel) && /aria-label="Tri"/.test(sel), 'Selecteur : nom accessible et état désactivé transmis');
   ok(texteVisible(sel).includes('Score') && texteVisible(sel).includes('Efficience'), 'Selecteur : options rendues');
+}
+
+// Menu d'actions « ⋯ » — ajouté au lot 6 de la refonte (décision 13).
+export function testRenduUiMenu() {
+  titre('rendu · src/ui — Menu');
+  const html = rendre(
+    <Menu
+      libelle="Plus d'actions"
+      elements={[
+        { cle: 'a', libelle: 'Sauvegarder', onClick: () => {} },
+        { cle: 'b', libelle: 'Reprendre', onClick: () => {}, disabled: true, title: 'Aucun point de sauvegarde' },
+        { cle: 'c', libelle: 'Tout effacer', onClick: () => {}, danger: true },
+      ]}
+    />
+  );
+  const declencheur = bouton(html, "Plus d'actions");
+  ok(!!declencheur && declencheur.ariaLabel === "Plus d'actions" && declencheur.title === "Plus d'actions", 'le bouton « ⋯ » est nommé (aria-label et infobulle)');
+  ok(/aria-haspopup="menu"/.test(html) && /aria-expanded="false"/.test(html), 'il annonce un menu, fermé');
+  ok(/role="menu"[^>]*aria-label="Plus d&#x27;actions"|aria-label="Plus d&#x27;actions"[^>]*role="menu"/.test(html), 'la liste porte role="menu" et le même nom');
+  egal((html.match(/role="menuitem"/g) ?? []).length, 3, 'fermé, les trois entrées restent dans le DOM (masquées, pas retirées)');
+  const reprendre = bouton(html, 'Reprendre');
+  ok(!!reprendre && reprendre.desactive && reprendre.title === 'Aucun point de sauvegarde', 'une entrée désactivée le reste, avec sa raison');
+  // L'entrée destructrice vient APRÈS les autres, derrière un filet.
+  const ordre = boutons(html).filter((b) => ['Sauvegarder', 'Reprendre', 'Tout effacer'].includes(b.texte)).map((b) => b.texte);
+  egal(ordre, ['Sauvegarder', 'Reprendre', 'Tout effacer'], 'l\'entrée destructrice est rangée en dernier');
 }

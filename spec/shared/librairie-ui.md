@@ -223,6 +223,20 @@ type est la seule façon de ne plus avoir à y penser.
 
 ### Composants à part entière
 
+**`Menu`** — un bouton « ⋯ » (`BoutonIcone` cadré, nommé par `libelle`) qui
+ouvre sous lui, ancrée à droite, une liste d'actions (`Flottant`,
+`role="menu"`). Chaque entrée : icône, libellé, `disabled` + `title` pour dire
+pourquoi, et `danger` pour un geste qui perd quelque chose — rangé en dernier,
+derrière un filet, en `bad`. Clavier : flèches, Début / Fin, Échap (rend le
+focus au bouton), Tab referme ; un clic dehors aussi.
+⚠️ **Les entrées restent dans le DOM, menu fermé** (`hidden`) : un bouton ne
+quitte jamais le DOM selon l'état de l'écran, et c'est ce qui laisse les tests
+de rendu retrouver chaque action, son état et sa raison.
+⚠️ **Monté à son PREMIER usage** (la RTA, refonte graphique lot 6, décision
+13), contre la règle du deuxième (« Quand ajouter quelque chose ») : l'écrire
+dans l'écran aurait fait un contrôle MAISON — ce que la règle qui gouverne tout
+le reste interdit — et les maquettes en posent un dans plusieurs écrans.
+
 **`Champ`** — saisie texte. ⚠️ `compact:text-base` n'est **pas un choix de
 taille, c'est un correctif** : sous 16 px, iOS **zoome** sur le champ à la mise
 au point, et la page ne revient pas seule de ce zoom. C'est la seule raison pour

@@ -67,7 +67,7 @@ import {
   testRefonteCheminsInterdits,
 } from './refonte-inventaire.test';
 import { testRenduSiegeDefense, testRenduSiegeOffense } from './rendu/siege.test';
-import { testRenduUiBouton, testRenduUiEtats } from './rendu/ui.test';
+import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu } from './rendu/ui.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil } from './rendu/app.test';
 import { testRenduAccueil, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduRtaPrepa, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi } from './rendu/rta.test';
@@ -107,6 +107,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduSiegeOffense', testRenduSiegeOffense],
   ['testRenduUiBouton', testRenduUiBouton],
   ['testRenduUiEtats', testRenduUiEtats],
+  ['testRenduUiMenu', testRenduUiMenu],
   ['testRenduAppRoutes', testRenduAppRoutes],
   ['testRenduAppNavigation', testRenduAppNavigation],
   ['testRenduAppMobile', testRenduAppMobile],

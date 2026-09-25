@@ -328,17 +328,23 @@ export default function SiegeBoard({
           </p>
         </div>
       ) : (
-        // 2 équipes par ligne sur grand écran ; une équipe en édition reprend
-        // toute la largeur. `items-start` évite d'étirer les cartes basses.
+        // ⚠️ **Autant de colonnes que la PLACE en permet** (lot 7a, « optimiser
+        // l'espace ») : des colonnes d'au moins 480 px — la largeur où les trois
+        // monstres d'une équipe tiennent côte à côte, nom et vitesse lisibles.
+        // Le nombre suit la largeur RÉELLE, barre latérale comprise : 1 colonne
+        // sur un écran de 1024 px, 2 sur 1280, 3 sur 1920. Il était fixé à 2
+        // à partir de `xl`, même sur un grand écran qui en tenait trois.
+        // Une équipe en édition reprend toute la ligne (`col-span-full`).
+        // `items-start` évite d'étirer les cartes basses.
         // ⚠️ Écarts réduits sous `sm` : la page empile jusqu'à huit équipes, et
-        // chaque `gap-4` se paie autant de fois — un écran entier de vide sur un
+        // chaque écart se paie autant de fois — un écran entier de vide sur un
         // téléphone.
-        <div className="mt-3 grid grid-cols-1 gap-2 items-start sm:mt-6 sm:gap-4 xl:grid-cols-2">
+        <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,480px),1fr))] items-start gap-2 sm:mt-4 sm:gap-3">
           {siege.state.teams.map((team, i) => (
             <div
               key={team.id}
               ref={i === siege.state.teams.length - 1 ? lastTeamRef : undefined}
-              className={expandedIds.has(team.id) ? 'xl:col-span-2' : undefined}
+              className={expandedIds.has(team.id) ? 'col-span-full' : undefined}
             >
             <SiegeTeam
               team={team}

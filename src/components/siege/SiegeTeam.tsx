@@ -313,11 +313,15 @@ export default function SiegeTeam({
     // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
     // sur un téléphone.
     // Gabarit des cartes de la refonte : fond `panel`, rayon 12.
-    <section className={`rounded-xl border bg-panel p-4 compact:p-2.5 transition-colors ${sectionClass}`}>
+    // ⚠️ **Resserrée** (lot 7a, « revois un peu les cards pour optimiser
+    // l'espace ») : rembourrage 12 px au lieu de 16, en-tête à 8 px de la
+    // rangée, titre en `text-base`. La souris seulement — les valeurs
+    // `compact:` (au doigt) ne bougent pas.
+    <section className={`rounded-xl border bg-panel p-3 compact:p-2.5 transition-colors ${sectionClass}`}>
       {/* ⚠️ `gap-3` sous `sm` autour des deux icônes nues : sans cadre, elles se
           distinguent par l'espace. */}
-      <div className="mb-3 flex flex-wrap items-center gap-2 compact:mb-2 compact:gap-3">
-        <h3 className="font-display text-lg tracking-wide compact:text-base">Équipe {index + 1}</h3>
+      <div className="mb-2 flex flex-wrap items-center gap-2 compact:mb-2 compact:gap-3">
+        <h3 className="font-display text-base tracking-wide">Équipe {index + 1}</h3>
         {pastille && (
           // ⚠️ Texte à l'ENCRE sur le fond doux du ton, le point porte la
           // couleur : un texte `good`/`warn` sur son propre fond doux manque de
@@ -622,8 +626,10 @@ export default function SiegeTeam({
           étroit, il passe au-dessus des boutons plutôt que de se comprimer. */}
       {(hasMonsters || statut !== 'neutre' || aGearIncomplet) && (
         <div
-          className="-mx-4 -mb-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-2xl border-t border-border-soft px-4 py-2.5
-            compact:-mx-2.5 compact:-mb-2.5 compact:px-2.5"
+          // Calé sur le rembourrage de la carte (12 px) et sur son arrondi
+          // (`rounded-xl`, depuis la refonte).
+          className="-mx-3 -mb-3 mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-xl border-t border-border-soft px-3 py-2
+            compact:-mx-2.5 compact:-mb-2.5 compact:mt-3 compact:px-2.5 compact:py-2.5"
         >
           <span className="flex min-w-0 flex-1 items-start gap-2">
             {(aGearIncomplet || statut === 'rouge' || statut === 'orange') && (

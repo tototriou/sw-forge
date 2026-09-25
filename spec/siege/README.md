@@ -46,14 +46,21 @@ persistance : voir [recommandations.md](recommandations.md).
    Tout effacer séparé) — inchangé, lot 11.
 4. **Liste d'équipes** (ou état vide incitant à ajouter/importer).
 
-### Disposition de la liste — 2 équipes par ligne
+### Disposition de la liste — autant d'équipes par ligne que la place en permet
 
-- **1 colonne** jusqu'à `lg`, **2 colonnes à partir de `xl`** (≥ 1280 px) pour ne
-  pas gâcher la largeur sur grand écran (le conteneur de l'app est plafonné à
-  1180 px → ~575 px par équipe, assez pour les 3 monstres côte à côte).
-- **Une équipe en cours d'édition reprend toute la largeur**
-  (`xl:col-span-2`) : les 3 slots détaillés (picker, SPD, ticks, position)
-  seraient trop à l'étroit sur une demi-colonne.
+- ⚠️ **Des colonnes d'au moins 480 px, en nombre suivant la largeur RÉELLE**
+  (`repeat(auto-fill, minmax(min(100%, 480px), 1fr))`) — refonte graphique,
+  lot 7a, « revois un peu les cards pour optimiser l'espace ». 480 px, c'est
+  la largeur où les trois monstres d'une équipe tiennent côte à côte, nom et
+  vitesse lisibles. Barre latérale comprise, cela donne 1 colonne sur un écran
+  de 1024 px, 2 sur 1280, 3 sur 1920. Le nombre était fixé à 2 à partir de
+  `xl`, même sur un grand écran qui en tenait trois.
+- **La carte est resserrée à la souris** : rembourrage 12 px (au lieu de 16),
+  en-tête à 8 px de la rangée, titre en `text-base`, pied calé dessus. Au
+  doigt (`compact:`), rien ne change.
+- **Une équipe en cours d'édition reprend toute la ligne** (`col-span-full`) :
+  les 3 slots détaillés (picker, SPD, ticks, position) seraient trop à
+  l'étroit dans une colonne.
 - Pour ça, l'état « équipe dépliée » est **remonté dans
   [SiegeBoard.tsx](src/components/siege/SiegeBoard.tsx)** (`expandedIds`, un
   `Set`) et passé en prop ; **plusieurs équipes peuvent rester dépliées** en même

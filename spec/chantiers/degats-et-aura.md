@@ -30,13 +30,17 @@ leurs listes et leurs nombres, avant de les autoriser à démarrer.
 ### A.1 Pourquoi
 
 Le chantier corrige les planchers artéfacts/relique (lots 3–4), la perte du
-contexte entre monstres (5), les auras absentes des calculs de combat (6–7),
-Blade Surge et Tempest incomplets (8–9), l'ignore DEF conditionnel (10), puis
+contexte entre monstres (5), les auras absentes des calculs de combat
+(6, 6bis, 7), Blade Surge et Tempest incomplets (8–9), l'ignore DEF
+conditionnel (10), puis
 la prose des passifs déjà calculés mais mal présentés (11).
 Les constats détaillés et coordonnées de code sont dans chaque contrat.
 Les valeurs curées fournies sont en A.2 ter ; le périmètre réel se mesure au
 lot 1, sans confondre l'audit et le corpus. Le découpage documentaire précède
 les modifications de `degats-reels.md` (2a/2b).
+Le lot 6 a livré des auras comme total d'équipe figé ; la décision du
+2026-09-25 les sépare désormais en auras **externes** saisies et auras
+**propres au build** calculées. Le lot 6bis corrige le modèle avant l'écran 7.
 
 ### A.2 Cible et périmètre
 
@@ -44,9 +48,11 @@ les modifications de `degats-reels.md` (2a/2b).
 
 1. Les quatre sorts se calculent, avec pour chacun le réglage utilisateur
    décrit en Partie B et un test nommé dans `tests/`.
-2. Les cinq sets d'aura sont saisissables dans « État de mon monstre »,
-   entrent dans `statsDebutCombat`, dans les objectifs `degats_reels` et
-   `ehp`, dans les calculs des passifs et des exclusives de relique. Un unique
+2. Les cinq sets d'aura **externes au monstre optimisé** sont saisissables
+   dans « État de mon monstre ». Chaque build ajoute ses propres activations
+   réelles, même non demandées ou complétées par Intangible : elles entrent
+   ensemble dans `statsDebutCombat`, les objectifs `degats_reels` et `ehp`, les
+   passifs et les exclusives de relique. Un unique
    interrupteur autorise RES/PRE seulement dans les conditions min ET max ;
    les auras PV/ATQ/DEF ne participent jamais aux conditions.
 3. Le contexte de combat survit à un changement d'espèce ; ce qui désigne un
@@ -136,7 +142,7 @@ affirmations contradictoires, notamment sur 411.
 | Auras PV/ATQ/DEF | **+8 % de la statistique de BASE par effet de set** | utilisateur |
 | Auras RES/PRE | **+8 points de pourcentage par effet de set**, additifs : `0 % + 8 % = 8 %` ; jamais `base × 8 %` | utilisateur, précision de revue |
 | Sets d'aura, les cinq stats | Fight → ATQ · Determination → DEF · Enhance → PV · Accuracy → **PRE** · Tolerance → RES | utilisateur (« Accuracy PV » de la demande était une coquille) |
-| Plafond d'auras de l'équipe | **18 sets au total**, tous types confondus : certains contenus accueillent 6 monstres, avec 3 sets chacun (`6 × 3`) | utilisateur, correction de revue du 2026-09-23 |
+| Plafond de saisie des auras externes | **15 sets au total**, tous types confondus : au plus 5 autres monstres avec 3 sets chacun (`5 × 3`). Les 3 activations possibles du monstre optimisé s'ajoutent ensuite ; 18 reste la borne physique du total effectif, **pas** celle du champ saisi | utilisateur, changement de périmètre confirmé le 2026-09-25 ; borne physique initiale du 2026-09-23 |
 | Artéfact 411 | Premier coup du tour seulement ; s'il est en zone, chaque adversaire recevant CE coup en profite. Jamais sur Tempest, même sélectionné seul, ni sur le coup de zone de Blade Surge | utilisateur, correction explicite en revue |
 | Cible secondaire | « Autres ennemis » = dégâts sur **un** autre ennemi, jamais somme sur tous | utilisateur, précision de revue |
 | Tempest seul | Une seule contribution, jamais un second déclenchement de lui-même | utilisateur, précision de revue |
@@ -286,14 +292,14 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
                             avant son découpage)
 0 → 3 → 4                  (4 mesure le plancher que 3 vient de corriger)
 0 → 5                      (réinitialisations du hook et appelants, dont App.tsx)
-5 → 6 → 7                  (les nouveaux champs suivent la politique du lot 5 ;
-                            l'écran ne peut pas saisir ce que le modèle
-                            n'accepte pas ; 6 ne dépend PAS de 1 — les valeurs
-                            d'aura sont en A.2 ter, aucune famille à mesurer)
+5 → 6 → 6bis-a → amendement et revue pilote → 6bis-b-* → 7
+                            (cartographier les consommateurs et borner les
+                            sous-lots avant de corriger le modèle ; l'écran 7
+                            attend tous les sous-lots validés)
 8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
 1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
-3, 4, 5, 6, 7, 12, tous les 13b-* → 14
+3, 4, 5, 6, 6bis-a, tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
 ```
 
 L'ordre d'exécution est l'ordre des numéros, avec 2a puis 2b, et 13a avant
@@ -317,7 +323,9 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 3 — plancher des conditions en « Libre » | M | terminé | 2026-09-24 |
 | 4 — relique « comme équipé » et les minimums | C→M | terminé | `91837dab` / 2026-09-25 |
 | 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
-| 6 — sets d'aura : le modèle | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
+| 6 — sets d'aura : modèle initial, corrigé au lot 6bis | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
+| 6bis-a — carte des consommateurs et recettes de contrôle | C | à faire | — |
+| 6bis-b-* — correction du modèle par sous-lots bornés | J | non lançables avant amendement et revue | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -340,7 +348,7 @@ revue qui ne trouve rien au premier tour n'a pas lu le graphe.
 
 ## Partie B — un contrat par lot
 
-### B.0 Champs traversants — contrat commun aux lots 6, 7, 8 et 10
+### B.0 Champs traversants — contrat commun aux lots 6bis, 7, 8 et 10
 
 Les noms ci-dessous sont fixés pour le chantier. Tout renommage exige un
 amendement de cette table et le contrôle de propagation de l'ancien ET du
@@ -348,7 +356,7 @@ nouveau nom. `SetAura` désigne l'union des cinq clés du lot 6.
 
 | Champ et emplacement | Type | Absent / défaut | Validation | Réinitialisation |
 | --- | --- | --- | --- | --- |
-| `DamageSetup.setsAura` | `Array<{ set: SetAura; nombre: number }>` optionnel | `[]` | clés reconnues et uniques, entiers 1..18, somme ≤ 18 | conservé entre monstres/listes ; vidé à l'import de compte |
+| `DamageSetup.setsAuraExternes` | `Array<{ set: SetAura; nombre: number }>` optionnel | `[]` | clés reconnues et uniques, entiers 1..15, somme ≤ 15 ; voir 6bis pour les anciennes recettes | conservé entre monstres/listes ; vidé à l'import de compte |
 | `OptimizerState.compterAurasResPre` et `OptimizerRecipe.compterAurasResPre` | booléen ; optionnel dans la recette | `true` | booléen strict si présent | réglage avancé conservé par `resetSearch`, même contrat que les autres réglages avancés |
 | `DamageSetup.cibleDegatsParSort` | `Record<number, 'visee' \| 'secondaire'>` optionnel | map vide ; clé absente = `'visee'` | identifiants entiers positifs, valeur dans l'union | vidé au changement d'espèce ou import de compte ; conservé au changement d'exemplaire |
 | `DamageSetup.premierCoupIgnoreDefParSort` | `Record<number, number \| null>` optionnel | clé absente = `null` pour A, `7` pour B | A : `null`, 2, 3 ; B : entiers 2..7, jamais `null` | vidé au changement d'espèce ou import de compte ; conservé au changement d'exemplaire |
@@ -356,6 +364,17 @@ nouveau nom. `SetAura` désigne l'union des cinq clés du lot 6.
 Les champs de `DamageSetup` voyagent dans `OptimizerRecipe.damageSetup`.
 L'import de recette restaure les valeurs validées sans reset ultérieur ;
 pas de migration du précédent calcul ignore DEF (décision du lot 10).
+`setsAuraExternes` désigne uniquement les autres membres de l'équipe : au
+plus cinq monstres à trois sets, d'où le plafond **dérivé** de 15. Le total
+effectif d'un build est ce nombre plus les activations d'aura de ses six
+runes, résolues par `activeSets` (répétitions et Intangible comprises) ; il
+reste au plus à 18. Les sets recherchés ne sont qu'une contrainte, jamais le
+nombre des activations propres. L'ancien `setsAura` signifie « total d'équipe » :
+une recette qui le porte non vide est refusée avec `damageSetup.setsAura`
+et une explication, jamais réinterprétée silencieusement comme « externe ».
+Absent ou vide, il équivaut à aucune aura externe ; les recettes antérieures
+sans ce champ restent valides. Ne pas changer la version de recette au prix
+de rejeter toutes les autres recettes antérieures.
 Les clés de sorts non pris en charge sont refusées avec le chemin du champ,
 sur la base des tables de capacités curées ; jamais un cran secondaire ou
 ignore DEF arbitrairement appliqué à un sort sans cette capacité.
@@ -1174,12 +1193,15 @@ lancé.
 
 **Cat. J.** Requiert les lots 2b et 5 — pas le lot 1 : les valeurs sont en
 A.2 ter, et les nouveaux champs suivent la politique de réinitialisation.
+**Contrat historique exécuté :** les mentions de `setsAura` et de B.0 dans
+ce lot décrivent la règle en vigueur lors de sa livraison, désormais
+remplacée par B.0 et 6bis. Ne pas le rejouer comme contrat actuel.
 
 ⚠️ **PV/ATQ/DEF : pourcentage de la statistique de BASE. RES/PRE : points
 de pourcentage additifs** (A.2 ter). Pour deux effets : +16 % de base en
 PV/ATQ/DEF ; +16 points de RES/PRE, même si la valeur de base est nulle.
 
-**Modèle de données :** `DamageSetup.setsAura` (contrat B.0), liste de `{ set: 'fight'|'determination'|
+**Modèle de données :** `DamageSetup.setsAura` (contrat B.0 à la date du lot 6), liste de `{ set: 'fight'|'determination'|
 'enhance'|'accuracy'|'tolerance', nombre: 1..18 }` dans `DamageSetup` — un
 nouveau champ, **optionnel** (compatibilité des recettes déjà exportées).
 `nombre` est le **nombre total de sets dans l'équipe**, monstre optimisé
@@ -1241,7 +1263,7 @@ une référence exhaustive bornée et mesure ciblée, avant de valider le lot.
 
 **Preuve :** les tests · `npx tsc --noEmit` · `node tests/run.mjs <noms> degats rune-optim relic-exclusive` ·
 le `grep -rn` de propagation, sortie collée · passage CLI réel et checklist
-documentaire de remplacement de B.0. B.0 fait partie des intrants de ce lot.
+documentaire de remplacement de B.0 dans sa version d'alors.
 
 **Amendement obligatoire :** `invariants.md` l. 20 dit aujourd'hui que les
 **cinq** réglages d'« État de mon monstre » « sont exactement les champs qui
@@ -1267,15 +1289,138 @@ réel, tronqué à 100 000 builds, n'établit pas l'exhaustivité sur le compte.
 Le rendu est réservé au lot 7 et `npm test` à la fusion sur main. Les deux
 libellés d'Accuracy et Tolerance encore à « +10 % » sont attribués au lot 7.
 
+**Correction décidée le 2026-09-25 :** ce résultat reste la preuve du modèle
+livré alors. Sa convention « total d'équipe figé, candidat inclus » est
+remplacée par le lot 6bis ; ni ses tests ni son reçu ne prouvent la nouvelle
+convention. Le lot 7 attend donc 6bis.
+
+### Lot 6bis — auras externes et activations propres par build
+
+**Décision utilisateur du 2026-09-25 :** `setsAuraExternes` contient seulement
+les auras des **autres** monstres de l'équipe. Pour chaque build, compter en
+plus ses sets d'aura **réellement actifs** à partir de ses six runes avec
+`activeSets`, y compris un set non demandé ou complété par Intangible.
+`requirement.sets` est un minimum de recherche, pas un compteur d'auras.
+Exemples obligatoires : 3 Fight externes + 2 Fight actifs = 5 ; si un build
+active 3 Fight, le total vaut 6. Avec Rage seul demandé, 4 Rage + 1 Fight +
+1 Intangible active Fight et reçoit aussi son +8 % ATQ de base.
+
+#### 6bis-a — cartographie et intrants figés
+
+**Cat. C.** Requiert 6. Lire d'abord **en entier**
+`optimizer/invariants.md` et `optimizer/README.md`, en comptant leurs lignes
+dans le budget, puis B.0, le résultat du lot 6, les points 1/2
+du lot 7, la section « Sets d'aura d'équipe — modèle » de
+`degats-reels/effets-equipe-et-leaders.md`, les sections d'aura ciblées
+d'`optimizer.md` (`spec-toc` d'abord), la recette et les noms de tests de
+`controle-6.md` — jamais ce dernier fichier entier sans nécessité.
+Dans le code, commencer par les deux inventaires bornés
+`rg -n 'setsAura|nombreAura|pointsAuraResPre|auraResPre' src scripts tests`
+(46 lignes au 2026-09-25) et
+`rg -l 'activeSets|pvEffectifs|objectiveScore' src scripts tests`
+(41 chemins). Conserver commandes et sorties, puis lire uniquement les
+plages utiles autour des producteurs/consommateurs. **Budget de lecture
+humaine : 800 lignes utiles au total, lectures obligatoires et sorties `rg`
+comprises.** Compter les lignes réellement consultées avant chaque nouvelle
+plage ; si la cartographie exige de dépasser 800, s'arrêter **avant** cette
+lecture et proposer des sous-lots `6bis-a2-*` bornés au pilote, sans tronquer
+un consommateur. Ne jamais ouvrir entiers `damage.ts`, `runeBuildOptim.ts`
+ou `OptimizerSection.tsx`.
+
+**Sortie :** `controle-6bis-a.md` porte la carte de tous les consommateurs
+(coordonnées, contexte de runes disponible ou manquant, cache, écran/Worker/
+CLI, test existant ou à créer), les plages et le nombre de lignes que chaque
+sous-lot devra lire. Si le budget impose `6bis-a2-*`, la sortie est à la
+place un manifeste des consommateurs repérés, des non classés et de leurs
+plages ; le pilote crée ces sous-lots avant toute classification restante.
+Créer une nouvelle recette privée
+`recette-6bis-externe.json`, avec **3 Fight externes et Rage seul demandé**,
+et en consigner l'empreinte, le compte de test, les valeurs et la commande
+CLI réelle à rejouer après correction. Conserver la recette non vide du lot 6
+comme fixture de **refus**, pas comme recette de succès. Figer également
+les seeds du contrôle différentiel et la liste des tests ciblés dans la
+preuve ; aucune sortie verte anticipée sur le code actuel n'est exigée.
+
+**Découpage :** une fois la carte complète, proposer des contrats `6bis-b-*`,
+chacun avec liste exacte de
+fichiers et plages à lire, intrant ≤ 800 lignes utiles par session ou scission
+supplémentaire avant exécution, sorties, commandes et preuves. Les contrats
+séparent au minimum la résolution/propagation des auras, puis les conditions
+et élagages ; leurs dépendances sont explicites. Le pilote les inscrit dans
+ce cadrage, les fait revoir indépendamment et met à jour A.7 **avant** de
+lancer le premier sous-lot. Une simple liste de fichiers entiers n'est pas
+un intrant borné.
+
+**Preuve :** commandes `rg`/`spec-toc`, sorties et table de couverture dans
+`controle-6bis-a.md` (partielle et explicitement marquée comme telle si des
+sous-lots `6bis-a2-*` sont nécessaires) ; empreinte de la nouvelle recette
+et de la fixture ancienne, commandes prévues, `node scripts/spec-lint.mjs` et
+`git diff --check`. Le fichier privé est livré et vérifié selon A.6 bis.
+
+**Ne fait pas :** aucune modification du modèle, des tests ou de l'écran ;
+aucun benchmark. `6bis-b-*` reste non lançable avant l'amendement pilote.
+
+#### 6bis-b-* — correction du modèle, contrats à créer après 6bis-a
+
+**Cat. J ; gabarit non lançable en l'état.** Chaque contrat reprend un intrant
+borné de 6bis-a et désigne ses producteurs, consommateurs et preuves, sans
+omettre ceux attribués à un autre sous-lot. Ensemble, ils livrent ceci :
+
+- Résoudre les activations propres depuis les runes de **chaque** build,
+  propager explicitement externe + propre sans muter `DamageSetup` ni déduire
+  les sets de `StatRow`. Un appel sans équipement déclare explicitement zéro
+  aura propre. Le total effectif est identique à l'écran, en Worker et au CLI.
+- Compter chaque activation dans les dégâts (sort, passifs, additionnels),
+  PV effectifs, exclusives de relique, choix artéfacts/relique, tri,
+  comparaison et affichage. PV/ATQ/DEF rejoignent le `ceil` commun de base
+  sans modifier `computeStats` ; RES/PRE rejoignent min **et** max seulement
+  avec le toggle actif. Aucun double compte des sets du candidat.
+- Auditer et corriger dominance, faisabilité, `filterSlot`, rétention par
+  compartiment, diagnostics, cache et filtre final : Fight non demandé n'est
+  plus neutre pour le score. Aucune coupe « sûre » ne rejette un build valide
+  ou meilleur en ignorant une aura ; une rétention heuristique n'annonce
+  jamais une garantie d'optimalité globale. Mesurer l'impact de la recherche
+  selon `optimizer-perf-testing`, sans benchmark concurrent ; toute constante
+  changée suit `algo-verify` avant d'être figée.
+- Renommer et propager le champ de B.0 (état, reset, recette, parseur,
+  export/import, CLI, caches, scripts et tests). Ancien `setsAura` absent/vide
+  accepté ; non vide refusé avec le chemin et la raison. Nouveau champ :
+  somme externe ≤ 15, total effectif ≤ 18. Aucun rejet global des anciennes
+  recettes sans aura ; aucune réinterprétation silencieuse de leurs totaux.
+
+**Preuves globales obligatoires :** les exemples du chapeau, 0/15/16 auras
+externes, 15 + 3 propres = 18, 2 ou 3 Fight actifs, joker qui complète Fight,
+aura non demandée, recette ancienne vide/non vide, import/export, reset,
+cache et parité écran/CLI. Chaque consommateur de 6bis-a a un test nommé.
+La référence exhaustive indépendante n'appelle pas le nouvel évaluateur
+pour établir ses attentes ; seeds fixes et comparaison différentielle sur
+petits pools, plus cas à volume réel pour les rétentions. Commandes ciblées
+exactes et résultats de complétude/troncature dans les preuves privées.
+Rejouer la nouvelle recette figée par le **CLI réel** ; l'ancienne doit être
+refusée explicitement. Terminer par `npx tsc --noEmit`, tests ciblés,
+`npm run build`, `node scripts/spec-lint.mjs`, `git diff --check` et recherche
+des **deux** noms de champ dans `src/`, `scripts/`, `tests/`. Mettre à jour
+`degats-reels/effets-equipe-et-leaders.md`, `optimizer.md` et `invariants.md`
+avec le modèle dans les commits concernés ; livrer, vérifier puis intégrer
+les notes privées de chaque sous-lot validé.
+
+**Ne fait pas :** aucun contrôle visuel d'aura (lot 7), aucun changement de
+la règle de jeu d'Intangible ni des valeurs +8 de A.2 ter. Après tous les
+sous-lots et avant le lot 7, revue technique indépendante des coupes sûres,
+du double compte et de la parité des chemins ; objections corrigées et
+preuves rejouées avant validation.
+
 ### Lot 7 — sets d'aura : l'écran
 
-**Cat. J.** Requiert le lot 6.
+**Cat. J.** Requiert tous les lots 6bis-b-* validés et leur revue technique.
+L'écran saisit les auras **externes** du modèle corrigé, jamais un total
+incluant le build.
 
 **Écart hérité du lot 6 à corriger ici :** `src/lib/effects.ts` affiche
 « Précision alliés +10% » et « Résistance alliés +10% » pour Accuracy et
 Tolerance. Aligner ces deux libellés et leurs usages visibles sur les
 **+8 points** curés en A.2 ter ; vérifier les surfaces qui les consomment.
-Ne pas modifier le calcul livré au lot 6.
+Ne pas modifier le calcul validé par les lots 6bis-b-*.
 
 **Où** : la carte « État de mon monstre » (`EtatMonstre.tsx`) — et son critère
 de coupe, écrit en tête du fichier, la désigne sans ambiguïté : « sortent de
@@ -1284,54 +1429,48 @@ statistiques propres du monstre ». Un set d'aura en est un.
 
 **Quatre comportements :**
 
-1. **Ajouter / visualiser / supprimer.** Libellé : « Nombre de sets Fight
-   dans l'équipe » (même patron pour les cinq sets). Liste déroulante + champ
-   entier borné, hors conflit, de `max(1, nombre demandé dans les sets recherchés)`
-   à `18 − somme des autres lignes` : plafond d'équipe, pas 18 par type.
-   Une seule ligne par set. Tout vient de `src/ui/` (`Selecteur`,
-   `NumberField`, `BoutonIcone`). Une ligne requise par les sets recherchés
-   ne peut être supprimée sans retirer ce choix de recherche ; l'expliquer.
-2. **Auto-ajout et minimum.** Choisir un set d'aura dans les sets recherchés
-   ajoute sa ligne si absente. Le nombre total devient au moins le nombre
-   d'occurrences demandé : `max(total précédent, nombre demandé)` ; un
-   `3× Fight` impose au moins 3. Réduire/retirer un set recherché ne réduit
-   pas automatiquement le total d'équipe. Changer de monstre dans une liste
-   conserve les totaux. Le total saisi est l'hypothèse d'équipe utilisée au
-   calcul, pas une somme automatiquement reconstruite depuis les candidats.
-   Si le nouveau nombre demandé dépasse un total précédemment renseigné,
-   relever le total au minimum requis et afficher en rouge (token `bad`) :
-   « Nombre sélectionné actuellement de sets {X} pour la recherche du monstre
-   supérieur à la valeur précédente de sets {X} : vous en aviez potentiellement
-   oublié. » Conserver la valeur précédente pour expliquer l'alerte ; une
-   création initiale de ligne sans valeur antérieure n'est pas un oubli.
-   Si le relèvement automatique ferait dépasser 18, **ne pas modifier la
-   valeur précédente**, ni aucune autre ligne. Conserver une saisie valide,
-   mémoriser séparément le minimum recherché non satisfait, afficher le
-   conflit et bloquer la recherche jusqu'à résolution. Une ligne absente reste
-   absente du modèle (0) ; afficher sa demande non satisfaite sans fabriquer
-   une entrée invalide. Le conflit est dérivé des sets recherchés et du total
-   valide : il ne s'exporte pas dans la recette et se reconstruit à l'import.
-   Dès que de la place est libérée, appliquer le relèvement requis et lever
-   le conflit ; retirer la demande de recherche le lève également.
-   **Jamais `min > max` dans `NumberField` :** pendant le conflit, les lignes
-   existantes gardent les bornes valides 1..`18 − somme des autres lignes`,
-   sans appliquer le minimum recherché à ce contrôle. Ce minimum reste
-   visible dans le message de conflit. Pour une ligne absente, rendre la
-   demande en attente sans champ numérique jusqu'à ce qu'une place existe.
+1. **Ajouter / visualiser / supprimer.** Libellé explicite : « Nombre de sets
+   Fight des autres monstres de l'équipe » (même patron pour les cinq sets),
+   avec une aide : les sets du monstre optimisé sont comptés automatiquement
+   sur chaque build, même s'ils ne sont pas recherchés. Liste déroulante +
+   champ entier borné de 1 à `15 − somme des autres lignes externes` ; absence
+   = 0. Une seule ligne par set. Tout vient de `src/ui/` (`Selecteur`,
+   `NumberField`, `BoutonIcone`). Une ligne peut être supprimée quel que soit
+   le set recherché : les deux sources sont indépendantes. Ne jamais donner
+   `min > max` au contrôle ; à somme 15, empêcher l'ajout d'une nouvelle ligne
+   sans modifier les lignes existantes.
+2. **Indépendance et rappel.** Choisir, augmenter, réduire ou retirer un set
+   recherché ne crée, ne relève et ne supprime **aucune** aura externe, ne
+   produit aucun conflit et ne bloque pas la recherche. Les nombres externes
+   restent conservés au changement de monstre comme le contexte du lot 5.
+   Lorsqu'on change le monstre optimisé depuis une liste de travail et que
+   des auras externes sont renseignées, surligner temporairement leur zone
+   avec un token d'attention jaune/orange et afficher « Pense à vérifier les
+   sets d'aura externes. » C'est un rappel non bloquant : l'identité du
+   monstre optimisé change ce qui est « externe », mais l'app ne réécrit pas
+   les nombres à la place de l'utilisateur. Ne pas déclencher ce rappel à
+   l'import initial d'une recette ou d'un compte, ni sur un simple rendu.
+   Le rappel est limité au parcours d'une liste de travail, conformément à
+   la demande ; un choix de monstre hors liste depuis le bestiaire conserve
+   les valeurs mais ne le déclenche pas. Tester explicitement les deux voies.
+   Réserver sa place ou le sortir du flux : aucun contrôle cliqué ne bouge.
 3. **Un seul interrupteur**, dans « Réglages avancés » : prise en compte des
    auras RES et PRE dans les conditions minimum ET maximum, activée par
    défaut. Il reste toujours visible dans les réglages avancés, même après
    retrait de toutes les auras RES/PRE. Aucun interrupteur pour les conditions PV/ATQ/DEF.
-4. **L'ouverture guidée.** Ajouter Accuracy ou Tolerance (dans les sets
-   recherchés ou ici) ouvre automatiquement la surface de réglages avancés,
+4. **L'ouverture guidée.** Ajouter Accuracy ou Tolerance **aux auras externes**
+   ouvre automatiquement la surface de réglages avancés,
    fait défiler l'interface jusqu'à `compterAurasResPre` avec le même patron
    que « Set de runes recherché », puis le surligne temporairement en orange.
    Le contrôle reste toujours rendu ; « guider » ne signifie jamais le monter
    conditionnellement ni le masquer ensuite.
-   Fight/Determination/Enhance n'ouvrent pas un panneau sans contrôle associé.
+   Choisir Accuracy ou Tolerance comme set recherché ne change pas les auras
+   externes : il guide néanmoins vers le même interrupteur, sans modifier
+   les nombres. Fight/Determination/Enhance n'ouvrent pas un panneau
+   sans contrôle associé.
    L'ouverture guidée n'est pas rejouée automatiquement lors d'un import ou
-   d'un simple changement de monstre. Le message rouge réserve sa place ou
-   sort du flux : il ne déplace pas le contrôle qui vient d'être cliqué.
+   d'un simple changement de monstre. Le rappel orange du point 2 réserve sa
+   place ou sort du flux : il ne déplace pas le contrôle qui vient d'être cliqué.
 
 #### ⚠️ Le point 4 n'a pas la même forme sur les deux formats
 
@@ -1358,20 +1497,20 @@ native ni une valeur en dur (spec/shared/design.md).
 `spec/outils/optimizer.md § Écran (de haut en bas)` ;
 `spec/outils/optimizer.md § Conditions, inventaire et réglages avancés`
 reçoit l'interrupteur commun. Tester la logique de synchronisation pure :
-création, conservation 1 → 1, relèvement 1 → 3 avec alerte, baisse 3 → 1 sans
-perte du total, retrait d'un set, changement de monstre et import de recette.
-La suppression explicite d'une ligne ne permet jamais de violer le minimum.
-Tester aussi : total 18 et demande supplémentaire → valeurs inchangées,
-conflit séparé, recherche bloquée, aucune borne inversée ; réduction d'une
-autre ligne → relèvement puis résolution ; import d'une recette avec totaux
-valides mais minimum recherché non satisfait → même conflit reconstruit.
+création, suppression, 15 externes acceptés et 16 refusés, indépendance
+complète des sets recherchés (y compris leur retrait), recherche sans aura
+externe et conservation au changement de monstre/liste. Tester le rappel
+uniquement après un changement de monstre dans une liste avec valeurs non
+vides, son absence au premier rendu et à l'import de recette/compte, et la
+parité du réglage sur les deux formats. Une recette avec 0 externe reste
+valide même si trois Fight sont demandés et activés sur le build.
 
 **Preuve :** `npm run build` (⚠️ une classe correcte dans le TSX peut n'être
 jamais émise — vérifier le **CSS construit** pour le surlignage) ; captures
 ou relecture à l'œil des deux formats — il n'y a pas de test d'interface dans
 ce dépôt, c'est assumé (`ARCHITECTURE.md` § 9).
 
-**Ne fait pas :** ne change aucun calcul (lot 6). N'audite pas le reste de
+**Ne fait pas :** ne change aucun calcul validé par 6bis-b-*. N'audite pas le reste de
 l'écran en mobile.
 
 ### Lot 8 — Blade Surge : le 3ᵉ coup, en zone

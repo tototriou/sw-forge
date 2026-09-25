@@ -11,6 +11,9 @@ interface Props {
   onPick: (id: string) => void;
   excludeIds?: Set<string>;
   placeholder?: string;
+  // Nom accessible du champ, quand le placeholder ne suffit pas à dire à quoi
+  // il sert (« Chercher une équipe par monstre »).
+  ariaLabel?: string;
 }
 
 const MAX_RESULTS = 25;
@@ -21,7 +24,7 @@ const MAX_RESULTS = 25;
 // [useComboboxNav](src/hooks/useComboboxNav.ts), partagé avec
 // [RtaSearch](src/components/rta/RtaSearch.tsx) : ↑/↓, Entrée sur l'élément
 // surligné, Échap pour fermer.
-export default function MonsterPicker({ monsters, onPick, excludeIds, placeholder }: Props) {
+export default function MonsterPicker({ monsters, onPick, excludeIds, placeholder, ariaLabel }: Props) {
   const [query, setQuery] = useState('');
   // ⚠️ Plusieurs pickers coexistent (un par slot d'équipe de siège) : les `id`
   // ARIA doivent être uniques, sinon `aria-activedescendant` désigne l'option
@@ -64,6 +67,7 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder ?? 'Rechercher…'}
+        aria-label={ariaLabel}
         icone={<Search size={16} />}
         // ⚠️ `bg-panel` plutôt que le `panel2` par défaut de `Champ` — même
         // écart assumé que le champ de RtaSearch : ce champ vit DANS un slot

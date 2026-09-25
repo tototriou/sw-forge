@@ -51,13 +51,19 @@ persistance : voir [recommandations.md](recommandations.md).
 
 Ajout décidé par Thomas le 2026-09-26 (refonte graphique, décision 14).
 
-- Un champ **« Nom du monstre… »** sous l'en-tête, aux deux formats : seules
-  les équipes qui **contiennent** un monstre dont le nom contient la saisie
-  restent affichées. Comparaison **insensible aux accents et à la casse**
-  (« chasun » trouve Chasun), comme la recherche de pages.
-- Une croix vide le champ. Filtré, le compteur le dit : « 2 équipes sur 8 »
-  s'ajoute au compteur d'équipes ; aucune équipe trouvée → un message, et
-  « Effacer la recherche ».
+- Un champ **« Nom du monstre… »** sous l'en-tête, aux deux formats, avec
+  **une liste de suggestions sous le champ**, comme les autres recherches de
+  monstre de l'app (RTA, Recommandations — `MonsterPicker`) : on tape, on
+  **choisit** un monstre, et seules les équipes qui le contiennent restent
+  affichées. Demandé par Thomas : la première version filtrait à chaque
+  frappe, sans liste — pas comme ailleurs.
+- ⚠️ **Les suggestions ne proposent que les monstres PRÉSENTS dans les équipes
+  de ce côté** : un autre monstre ne trouverait aucune équipe.
+- Le monstre choisi devient un **jeton** (portrait + nom) ; sa croix retire le
+  filtre (« Vider la recherche »). Filtré, le compteur le dit : « 2 équipes
+  sur 8 ». Aucune équipe trouvée → un message, et « Effacer la recherche ».
+- La comparaison des noms (`rechercheEquipe.ts`) reste insensible aux accents
+  et à la casse.
 - ⚠️ **Le filtre n'est PAS enregistré** : il ne vit que le temps de l'écran.
   Revenir sur la page montre toutes ses équipes — un filtre oublié ferait
   croire à des équipes disparues.

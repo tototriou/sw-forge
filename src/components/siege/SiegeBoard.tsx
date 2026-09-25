@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Castle, Trash2, Gauge, Wand2, Upload, Download, Search, X } from 'lucide-react';
+import { Plus, Castle, Trash2, Gauge, Wand2, Upload, Download } from 'lucide-react';
 import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../../types';
 import { LoadState } from '../../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
@@ -9,7 +9,9 @@ import SpeedTuneModale from '../outils/SpeedTuneModale';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import MobileSheet from '../../ui/MobileSheet';
-import { BarreActions, Bouton, BoutonIcone, Champ } from '../../ui';
+import { BarreActions, Bouton, Jeton } from '../../ui';
+import MonsterPicker from '../MonsterPicker';
+import MonsterAvatar from '../MonsterAvatar';
 import { equipeContient } from './rechercheEquipe';
 import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
 import { CustomLead } from '../../hooks/useCustomMonsters';
@@ -108,6 +110,18 @@ export default function SiegeBoard({
     .map((team, rang) => ({ team, rang }))
     .filter(({ team }) => equipeContient(team, recherche, monsterById));
   const filtre = recherche.trim() !== '';
+  // Les monstres présents dans les équipes de ce côté : ce sont les seules
+  // suggestions utiles (un autre monstre ne trouverait aucune équipe).
+  const monstresDesEquipes = useMemo(() => {
+    const vus = new Map<string, Monster>();
+    for (const t of siege.state.teams)
+      for (const sl of t.slots) {
+        const m = sl.monsterId ? monsterById.get(sl.monsterId) : undefined;
+        if (m) vus.set(String(m.id), m);
+      }
+    return [...vus.values()];
+  }, [siege.state.teams, monsterById]);
+  const choisi = filtre ? monstresDesEquipes.find((m) => m.name === recherche) ?? null : null;
 
   // ---- Export / import d'équipes (décision 14, lib/siegeShare) ------------
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
@@ -405,22 +419,30 @@ export default function SiegeBoard({
 
       {/* ---- Recherche d'équipe par monstre (décision 14) — aux deux formats.
           Le message d'export / d'import s'affiche juste en dessous. */}
+      {/* ⚠️ **Une liste de suggestions sous le champ, comme partout ailleurs**
+          (RTA, Recommandations) — demandé par Thomas : on tape, on CHOISIT un
+          monstre dans la liste, et le filtre s'applique. Les suggestions ne
+          proposent que les monstres PRÉSENTS dans les équipes de ce côté : un
+          autre ne trouverait rien. Le monstre choisi devient un jeton, que sa
+          croix retire. */}
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <div className="w-full sm:w-72">
-          <Champ
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
+          <MonsterPicker
+            monsters={monstresDesEquipes}
             placeholder="Nom du monstre…"
-            aria-label="Chercher une équipe par monstre"
-            icone={<Search size={14} />}
+            ariaLabel="Chercher une équipe par monstre"
+            onPick={(id) => setRecherche(monsterById.get(id)?.name ?? '')}
           />
         </div>
         {filtre && (
           <>
-            <BoutonIcone
-              libelle="Vider la recherche"
-              icone={<X size={14} />}
-              onClick={() => setRecherche('')}
+            <Jeton
+              icone={
+                choisi ? <MonsterAvatar monster={choisi} size={20} /> : undefined
+              }
+              libelle={recherche}
+              onRetirer={() => setRecherche('')}
+              libelleRetrait="Vider la recherche"
             />
             <span className="font-mono text-xs text-ink-dim">
               {affichees.length} équipe{affichees.length > 1 ? 's' : ''} sur {siege.state.teams.length}

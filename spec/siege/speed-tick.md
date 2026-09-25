@@ -32,9 +32,15 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 
 ## Ticks (speed tune) — **par monstre**
 
-- Boutons dans **chaque slot** : **Off**, **Rapide 286**, **Lent 239**
-  (`SIEGE_TICKS`). Un tick **par monstre** (`slot.tick`, 0 = Off), pas par équipe
-  → on peut viser 2 monstres en tick rapide et 1 en tick lent dans la même équipe.
+- Boutons dans **chaque slot** : **Rapide 286**, **Lent 239** (`SIEGE_TICKS`).
+  Un tick **par monstre** (`slot.tick`, 0 = aucun), pas par équipe → on peut
+  viser 2 monstres en tick rapide et 1 en tick lent dans la même équipe.
+- ⚠️ **Recliquer sur le tick visé l'ENLÈVE** (retour à 0) — demandé par Thomas
+  le 2026-09-26 (refonte graphique, lot 7a), avec le retrait du bouton
+  **« Off »** à la souris : un bouton à deux états s'éteint là où on l'a
+  allumé. L'infobulle le dit (« Ne plus viser le tick 239 » / « Viser le tick
+  286 »). Au doigt, « Off » reste pour l'instant (lot 11), et le reclic y
+  marche aussi.
 - **Par défaut à l'import** : chaque monstre reçoit le **tick le plus proche** de sa
   vitesse de combat (`nearestTick` dans [applyAccount.ts](src/lib/applyAccount.ts)),
   **sauf** si l'équipe contient **au moins un Swift** (équipe speed → pas de tick)

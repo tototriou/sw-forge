@@ -757,7 +757,19 @@ export default function SiegeTeam({
 // `actif`. Ne reste ici que ce qui est propre à ces pastilles-là : le mono, et
 // le resserrement à trois crans au doigt (cinq pastilles côte à côte dans un
 // slot qui en fait 110).
-function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+function TickBtn({
+  active,
+  onClick,
+  label,
+  title,
+  className = '',
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  title?: string;
+  className?: string;
+}) {
   return (
     <Bouton
       onClick={onClick}
@@ -765,13 +777,14 @@ function TickBtn({ active, onClick, label }: { active: boolean; onClick: () => v
       forme="pilule"
       taille="xs"
       libelle={label}
+      title={title}
       // ⚠️ `data-cible-fine`, sans zone étendue : ces pastilles forment une
       // rangée serrée de cinq. Portées à 40 px par la règle tactile, elles
       // occupaient deux lignes dans un slot qui en fait 110 ; dotées d'une cible
       // de 44, elles se chevaucheraient et l'on choisirait le mauvais tick.
       // C'est l'espacement du groupe qui protège du ratage.
       data-cible-fine
-      className="font-mono select-none compact:px-1.5 compact:py-0 compact:text-nano"
+      className={`font-mono select-none compact:px-1.5 compact:py-0 compact:text-nano ${className}`}
     />
   );
 }
@@ -1068,13 +1081,19 @@ function SlotContent({
       {/* Tick cible, propre à ce monstre — à la souris, sur la ligne de la
           saisie, à droite du champ SPD. */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5 compact:mt-1 compact:gap-1 lg:col-start-2 lg:row-start-2 lg:mt-0">
-        <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" />
+        {/* ⚠️ **Recliquer sur le tick visé l'ENLÈVE** — demandé par Thomas,
+            avec le retrait du bouton « Off » à la souris : un bouton à deux
+            états s'éteint là où on l'a allumé, sans aller chercher un
+            troisième bouton. Au doigt, « Off » reste pour l'instant (lot 11),
+            et le reclic y marche aussi. */}
+        <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" className="lg:hidden" />
         {SIEGE_TICKS.map((t) => (
           <TickBtn
             key={t.key}
             active={tick === t.value}
-            onClick={() => onTick(t.value)}
+            onClick={() => onTick(tick === t.value ? 0 : t.value)}
             label={`${t.label} ${t.value}`}
+            title={tick === t.value ? `Ne plus viser le tick ${t.value}` : `Viser le tick ${t.value}`}
           />
         ))}
       </div>

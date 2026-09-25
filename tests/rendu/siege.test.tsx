@@ -143,6 +143,11 @@ export function testRenduSiegeEdition() {
 
   // À la souris, les flèches ← → (demandées par Thomas, lot 7a). Aux bords,
   // affichées mais désactivées, et l'infobulle dit pourquoi.
+  // Recliquer sur le tick visé l'enlève (demandé par Thomas) : l'infobulle
+  // du tick actif le dit, celle des autres propose de le viser.
+  ok(valeurs(html, 'title').includes('Ne plus viser le tick 239'), 'le tick visé (239) se désactive d\'un reclic — son infobulle le dit');
+  ok(valeurs(html, 'title').includes('Viser le tick 286'), 'un tick non visé propose « Viser le tick 286 »');
+
   const premier = bouton(html, 'Déjà en première position');
   ok(!!premier && premier.desactive, 'slot 1 : « ← » désactivé — « Déjà en première position »');
   ok(!!bouton(html, 'Déplacer à gauche (devient le leader)'), 'slot 2 : « ← » annonce qu\'il devient le leader');

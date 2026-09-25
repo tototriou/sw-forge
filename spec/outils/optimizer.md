@@ -365,8 +365,8 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
    plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
    le combat déjà décrit. Les sélecteurs et réglages propres au sort ne
-   retombent au défaut que lorsque l'espèce optimisée change, selon la table
-   ci-dessous.
+   retombent au défaut que lorsque l'espèce optimisée change ou qu'un nouveau
+   compte est importé, selon la table ci-dessous.
 
    **Classement exhaustif de `DamageSetup` (lot 5).** « Contexte » désigne
    l'adversaire, l'équipe ou l'état de combat réutilisable ; « sort » désigne

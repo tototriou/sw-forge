@@ -1132,10 +1132,10 @@ sans se faire écraser par une remise à zéro de changement d'espèce.
 
 **Conservation en session, précisée par l'utilisateur le 2026-09-25 :** le
 contexte se conserve en changeant d'espèce ou de liste de travail. Les
-réglages propres au sort ne se vident qu'au choix d'une espèce différente,
-depuis le bestiaire ou un membre de liste : changer d'exemplaire de même
-espèce, créer/supprimer une liste ou naviguer entre listes ne change pas le
-sort optimisé. L'import de compte garde la réinitialisation complète définie
+réglages propres au sort ne se vident qu'au choix d'une espèce différente
+ou à l'import d'un nouveau compte. Changer d'exemplaire de même espèce,
+créer/supprimer une liste ou naviguer entre listes ne change pas le sort
+optimisé. L'import de compte garde la réinitialisation complète définie
 ci-dessus.
 
 **Sortie :** une table normative des champs et événements dans

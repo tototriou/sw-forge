@@ -292,18 +292,23 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
                             avant son découpage)
 0 → 3 → 4                  (4 mesure le plancher que 3 vient de corriger)
 0 → 5                      (réinitialisations du hook et appelants, dont App.tsx)
-5 → 6 → 6bis-a → amendement et revue pilote → 6bis-b-* → 7
-                            (cartographier les consommateurs et borner les
-                            sous-lots avant de corriger le modèle ; l'écran 7
-                            attend tous les sous-lots validés)
+5 → 6 → contre-revue du cadrage → 6bis-a1
+        → amendement et revue pilote → 6bis-a2 → 6bis-a3 → 6bis-a4
+        → amendement et revue pilote → 6bis-b-* → 7
+                            (inventaire, cartographies bornées, réconciliation,
+                            puis contrats d'implémentation ; l'écran 7 attend
+                            tous les sous-lots validés)
 8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
 1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
-3, 4, 5, 6, 6bis-a, tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
+3, 4, 5, 6, 6bis-a1, 6bis-a2, 6bis-a3, 6bis-a4,
+  tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
 ```
 
 L'ordre d'exécution est l'ordre des numéros, avec 2a puis 2b, et 13a avant
 les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
+La contre-revue de 6bis-a1 vérifie ce découpage, son budget et le repli
+`git grep` ; a2–a4 reçoivent leurs plages puis leur revue après a1.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
@@ -324,7 +329,10 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 4 — relique « comme équipé » et les minimums | C→M | terminé | `91837dab` / 2026-09-25 |
 | 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
 | 6 — sets d'aura : modèle initial, corrigé au lot 6bis | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
-| 6bis-a — carte des consommateurs et recettes de contrôle | C | à faire | — |
+| 6bis-a1 — inventaire et recettes de contrôle | C | à revoir avant lancement | — |
+| 6bis-a2 — carte dégâts, EHP, artéfacts et reliques | C | non lançable avant les plages de 6bis-a1 | — |
+| 6bis-a3 — carte conditions, recherche et diagnostics | C | non lançable avant a1, ses plages et a2 | — |
+| 6bis-a4 — écran/CLI/tests et réconciliation des cartes | C | non lançable avant a1, ses plages, a2 et a3 | — |
 | 6bis-b-* — correction du modèle par sous-lots bornés | J | non lançables avant amendement et revue | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -375,6 +383,12 @@ et une explication, jamais réinterprétée silencieusement comme « externe ».
 Absent ou vide, il équivaut à aucune aura externe ; les recettes antérieures
 sans ce champ restent valides. Ne pas changer la version de recette au prix
 de rejeter toutes les autres recettes antérieures.
+Le vecteur des cinq nombres effectifs (externes + activations propres) se
+résout pour **chaque candidat** puis se transmet aux consommateurs concernés,
+sans muter `DamageSetup`. En particulier, `auraResPre` figé une fois par
+recherche ne peut représenter la RES/PRE des sets propres variables : les
+tests de minimum, maximum, bornes et filtres finaux doivent distinguer la
+part externe constante et la part propre au build, avec la même convention.
 Les clés de sorts non pris en charge sont refusées avec le chemin du champ,
 sur la base des tables de capacités curées ; jamais un cran secondaire ou
 ignore DEF arbitrairement appliqué à un sort sans cette capacité.
@@ -1221,7 +1235,7 @@ finit par un `grep -rn` du nom du champ sur `src/`, `scripts/` **et** `tests/`.
 
 #### Chemins de calcul et preuves
 
-1. **Dégâts, passifs et reliques.** `statsDebutCombat` (`damage.ts` l. 3753) est le
+1. **Dégâts, passifs et reliques.** `statsDebutCombat` (`damage.ts` l. 3768) est le
    point d'entrée : c'est déjà là que vivent l'invocateur et le lead, avec un
    **`ceil` unique** sur la somme des pourcentages de base. L'aura s'y ajoute
    comme un `extraBasePct` de plus — **jamais un second arrondi**. ⚠️ Gain
@@ -1283,6 +1297,9 @@ les attentes chiffrées indépendantes et rejoué `node tests/run.mjs auras
 degats rune-optim relic-exclusive` : **1 958 vérifications passées**.
 `chantier verifier` confirme le reçu code `88d5801` ↔ notes `f10ade2` ;
 les notes ont été intégrées au main documentaire en `e405061`.
+La preuve initiale `controle-6.md` compte 1 940 vérifications sur ce filtre ;
+les 18 assertions du complément `88d58019` expliquent les 1 958 du rejeu
+pilote. Les deux comptes portent sur des révisions différentes.
 
 Le contrôle différentiel couvre 12 petites recherches exhaustives ; le CLI
 réel, tronqué à 100 000 builds, n'établit pas l'exhaustivité sur le compte.
@@ -1305,65 +1322,135 @@ Exemples obligatoires : 3 Fight externes + 2 Fight actifs = 5 ; si un build
 active 3 Fight, le total vaut 6. Avec Rage seul demandé, 4 Rage + 1 Fight +
 1 Intangible active Fight et reçoit aussi son +8 % ATQ de base.
 
-#### 6bis-a — cartographie et intrants figés
+**Volume commun :** la Partie A, `optimizer/invariants.md` et
+`optimizer/README.md` dépassent déjà presque le précédent budget de 800
+lignes, avant les inventaires et le code. Chaque sous-lot `6bis-a*` lit ce
+socle, B.0, le résultat du lot 6, le chapeau 6bis, la section « Sets d'aura
+d'équipe — modèle » d'`effets-equipe-et-leaders.md`, puis les sections d'aura
+ciblées d'`optimizer.md` (`spec-toc` d'abord). Il compte **toutes ses lectures
+de travail** (ces documents, son contrat, preuves, code et sorties de
+recherche) dans un budget prévisionnel de **1 500 lignes utiles**.
+`CLAUDE.md` et les skills chargés
+comme instructions ne sont pas des intrants de classification. Mesurer le
+volume avant chaque plage ; si 1 500 ne suffit pas, le pilote crée **avant**
+lecture un contrat nommé et une arête A.7, sans tronquer ni omettre. Aucun
+sous-lot n'ouvre entiers `damage.ts`, `runeBuildOptim.ts` ou
+`OptimizerSection.tsx`.
 
-**Cat. C.** Requiert 6. Lire d'abord **en entier**
-`optimizer/invariants.md` et `optimizer/README.md`, en comptant leurs lignes
-dans le budget, puis B.0, le résultat du lot 6, les points 1/2
-du lot 7, la section « Sets d'aura d'équipe — modèle » de
+#### 6bis-a1 — inventaire et fixtures, sans classification de code
+
+**Cat. C.** Requiert 6. Lire la Partie A, puis en entier
+`optimizer/invariants.md` et `optimizer/README.md` ; lire B.0, le résultat
+du lot 6 et les points **1 et 2 du lot 7** (« Ajouter / visualiser /
+supprimer » et « Indépendance et rappel », plages relevées par `spec-toc`),
+la seule section « Sets d'aura d'équipe — modèle » de
 `degats-reels/effets-equipe-et-leaders.md`, les sections d'aura ciblées
-d'`optimizer.md` (`spec-toc` d'abord), la recette et les noms de tests de
-`controle-6.md` — jamais ce dernier fichier entier sans nécessité.
-Dans le code, commencer par les deux inventaires bornés
-`rg -n 'setsAura|nombreAura|pointsAuraResPre|auraResPre' src scripts tests`
-(46 lignes au 2026-09-25) et
-`rg -l 'activeSets|pvEffectifs|objectiveScore' src scripts tests`
-(41 chemins). Conserver commandes et sorties, puis lire uniquement les
-plages utiles autour des producteurs/consommateurs. **Budget de lecture
-humaine : 800 lignes utiles au total, lectures obligatoires et sorties `rg`
-comprises.** Compter les lignes réellement consultées avant chaque nouvelle
-plage ; si la cartographie exige de dépasser 800, s'arrêter **avant** cette
-lecture et proposer des sous-lots `6bis-a2-*` bornés au pilote, sans tronquer
-un consommateur. Ne jamais ouvrir entiers `damage.ts`, `runeBuildOptim.ts`
-ou `OptimizerSection.tsx`.
+d'`optimizer.md` et la recette/les noms de tests de `controle-6.md`.
+Ne pas lire la preuve entière sans besoin. Consigner les longueurs exactes
+et les plages réellement consultées, budget commun ci-dessus compris.
 
-**Sortie :** `controle-6bis-a.md` porte la carte de tous les consommateurs
-(coordonnées, contexte de runes disponible ou manquant, cache, écran/Worker/
-CLI, test existant ou à créer), les plages et le nombre de lignes que chaque
-sous-lot devra lire. Si le budget impose `6bis-a2-*`, la sortie est à la
-place un manifeste des consommateurs repérés, des non classés et de leurs
-plages ; le pilote crée ces sous-lots avant toute classification restante.
-Créer une nouvelle recette privée
-`recette-6bis-externe.json`, avec **3 Fight externes et Rage seul demandé**,
-et en consigner l'empreinte, le compte de test, les valeurs et la commande
-CLI réelle à rejouer après correction. Conserver la recette non vide du lot 6
-comme fixture de **refus**, pas comme recette de succès. Figer également
-les seeds du contrôle différentiel et la liste des tests ciblés dans la
-preuve ; aucune sortie verte anticipée sur le code actuel n'est exigée.
+**Extraction :** depuis un worktree propre, lancer les deux commandes
+ci-dessous. Si `rg` manque dans la session, utiliser les deux commandes
+`git grep` équivalentes ; noter l'outil, la commande et la sortie réellement
+utilisés. Au 2026-09-25 les résultats sont 46 lignes et 41 chemins avec les
+deux outils ; les remesurer, pas les supposer.
 
-**Découpage :** une fois la carte complète, proposer des contrats `6bis-b-*`,
-chacun avec liste exacte de
-fichiers et plages à lire, intrant ≤ 800 lignes utiles par session ou scission
-supplémentaire avant exécution, sorties, commandes et preuves. Les contrats
-séparent au minimum la résolution/propagation des auras, puis les conditions
-et élagages ; leurs dépendances sont explicites. Le pilote les inscrit dans
-ce cadrage, les fait revoir indépendamment et met à jour A.7 **avant** de
-lancer le premier sous-lot. Une simple liste de fichiers entiers n'est pas
-un intrant borné.
+```text
+rg -n 'setsAura|nombreAura|pointsAuraResPre|auraResPre' src scripts tests
+rg -l 'activeSets|pvEffectifs|objectiveScore' src scripts tests
+git grep -n -E 'setsAura|nombreAura|pointsAuraResPre|auraResPre' -- src scripts tests
+git grep -l -E 'activeSets|pvEffectifs|objectiveScore' -- src scripts tests
+```
 
-**Preuve :** commandes `rg`/`spec-toc`, sorties et table de couverture dans
-`controle-6bis-a.md` (partielle et explicitement marquée comme telle si des
-sous-lots `6bis-a2-*` sont nécessaires) ; empreinte de la nouvelle recette
-et de la fixture ancienne, commandes prévues, `node scripts/spec-lint.mjs` et
-`git diff --check`. Le fichier privé est livré et vérifié selon A.6 bis.
+**Sortie :** `manifest-6bis-a1.json` inventorie chaque occurrence et chemin
+détecté (fichier, ligne ou fonction, motif, source de découverte), puis
+propose une affectation **provisoire** à a2, a3 ou a4, ou un rejet motivé.
+Ajouter les candidats connus de B.0, de l'écran/Worker/CLI et des caches
+même s'ils échappent aux deux motifs. Ne pas déclarer « consommateur » sur
+la seule présence d'un mot. Le pilote remplace les contrats a2–a4 par les
+plages et comptes nominaux du manifeste et les fait revoir **avant a2**.
+Créer `recette-6bis-externe.json` avec 3 Fight externes et Rage seul demandé,
+plus une fixture portant l'ancien `setsAura` non vide ; conserver leurs
+empreintes, le compte de test et la commande du CLI réel pour a4 et 6bis-b.
+Le parseur actuel accepte une clé inconnue `setsAuraExternes` et le code
+de calcul l'ignore : inscrire cet état **rouge**, sourcé par les chemins de
+code, sans appeler la recette neuve un succès. Aucune sortie verte anticipée.
 
-**Ne fait pas :** aucune modification du modèle, des tests ou de l'écran ;
-aucun benchmark. `6bis-b-*` reste non lançable avant l'amendement pilote.
+**Preuve :** `controle-6bis-a1.md` avec commandes, sorties, décompte des
+lectures, manifeste, empreintes et code cité ; `node scripts/spec-lint.mjs`
+et `git diff --check`. Livraison et vérification privées selon A.6 bis.
+**Ne fait pas :** aucune classification approfondie de consommateur,
+modification de production, test nouveau ou benchmark.
 
-#### 6bis-b-* — correction du modèle, contrats à créer après 6bis-a
+#### 6bis-a2 — carte du score et des dégâts
+
+**Cat. C ; non lançable avant l'amendement pilote de a1.** Intrant : socle
+commun, lignes du manifeste a1 affectées au score, et **plages de code
+exactes** inscrites ici par le pilote (budget commun : 1 500 lignes, dont
+au plus 450 de code ciblé).
+Classer dégâts actifs/passifs/additionnels, `statsDebutCombat`, EHP,
+artéfacts, reliques, tri/comparaison et rendu. Pour chaque consommateur,
+noter coordonnées, disponibilité des six runes, provenance des auras,
+arrondi, cache et test existant ou requis. Conserver la politique EHP
+préexistante hors auras (pas de lead/invocateur ajouté implicitement).
+Suivre les appels adjacents manquants dans l'inventaire et les y ajouter.
+
+**Sortie/preuve :** `carte-6bis-a2.json` et `controle-6bis-a2.md` avec
+chaînes d'appel et longueurs lues, `spec-lint`, `git diff --check` et reçu
+privé valide. **Ne fait pas :** code, benchmarks, conditions ou CLI.
+
+#### 6bis-a3 — carte des conditions et de la recherche
+
+**Cat. C ; non lançable avant a2 et l'amendement pilote de a1.** Même socle
+documentaire et budget que a2 ; lire les plages nominatives du manifeste a1
+affectées à recherche/conditions, plus `carte-6bis-a2.json` (synthèse, pas
+preuve entière). Classer `avecAurasConditions`, `auraResPre`, minimums ET
+maximums, bornes, dominance, faisabilité, `filterSlot`, rétention,
+diagnostics, `relicQueue`, filtres finaux et caches. Pour chaque chemin,
+noter quand les runes du candidat sont connues et quand une borne doit
+rester optimiste. Nommer deux scénarios de contrôle : Tolerance propre
+(Intangible compris) fait franchir un minimum RES et dépasser un maximum
+RES ; le toggle éteint ne retire pas cette aura du score.
+
+**Sortie/preuve :** `carte-6bis-a3.json` et `controle-6bis-a3.md` avec
+chaînes d'appel, écarts à a2, longueurs lues, `spec-lint`, `git diff
+--check` et reçu privé valide. **Ne fait pas :** correction des élagages,
+tests différentiels ou benchmark.
+
+#### 6bis-a4 — propagation et réconciliation des cartes
+
+**Cat. C ; non lançable avant a2 et a3.** Même socle et budget ; lire les
+plages a1 affectées à écran/Worker/CLI/recette/reset/tests et les **cartes
+structurées** a2/a3. Classer tous les constructeurs du champ optionnel
+selon B.0 et `optimizer-field-propagation`, les signatures de cache, les
+surfaces affichées et les tests existants. Rejouer le CLI réel avec la
+recette figée de a1 à titre de **constat fonctionnel**, pas de benchmark :
+rapporter commande, succès/refus, champ pris en compte ou ignoré, plafond
+de recherche et troncature ; une recette acceptée mais ignorée est rouge.
+Si la sortie CLI ne montre pas la contribution d'aura, qualifier « ignoré »
+par la chaîne de code citée, pas par l'égalité de deux recherches tronquées.
+Si l'exécution est impossible, écrire « non prouvé » et la cause exacte.
+
+**Réconciliation :** chaque entrée du manifeste a1 a un verdict sourcé
+dans a2, a3 ou a4, ou un rejet explicite ; les découvertes hors inventaire
+s'y ajoutent avec leur source. Vérifier l'égalité des clés, pas seulement
+des totaux, et distinguer deux usages du même symbole. `carte-6bis-a4.json`
+consolide coordonnées, contexte de runes, cache, tests et incertitudes.
+`controle-6bis-a4.md` porte commandes, sorties, longueurs, verdict CLI,
+seeds figées et liste des tests à créer. Sur cette base, proposer les
+contrats `6bis-b-*` avec plages et nombres de lignes, dépendances, preuves
+et commandes. Le pilote les inscrit, les fait revoir et met A.7 à jour
+**avant** leur premier lancement. Un fichier entier n'est pas un intrant
+borné. `spec-lint`, `git diff --check`, livraison et vérification privées.
+
+**Ne fait pas :** aucune modification de production ou de tests, aucune
+mesure de performance. Les lots `6bis-b-*` restent non lançables.
+
+#### 6bis-b-* — correction du modèle, contrats à créer après 6bis-a4
 
 **Cat. J ; gabarit non lançable en l'état.** Chaque contrat reprend un intrant
-borné de 6bis-a et désigne ses producteurs, consommateurs et preuves, sans
+borné de la carte réconciliée 6bis-a4 et désigne ses producteurs,
+consommateurs et preuves, sans
 omettre ceux attribués à un autre sous-lot. Ensemble, ils livrent ceci :
 
 - Résoudre les activations propres depuis les runes de **chaque** build,
@@ -1373,8 +1460,10 @@ omettre ceux attribués à un autre sous-lot. Ensemble, ils livrent ceci :
 - Compter chaque activation dans les dégâts (sort, passifs, additionnels),
   PV effectifs, exclusives de relique, choix artéfacts/relique, tri,
   comparaison et affichage. PV/ATQ/DEF rejoignent le `ceil` commun de base
-  sans modifier `computeStats` ; RES/PRE rejoignent min **et** max seulement
-  avec le toggle actif. Aucun double compte des sets du candidat.
+  de `statsDebutCombat` sans modifier `computeStats` ; EHP garde sa politique
+  préexistante hors auras (ni lead ni invocateur ajoutés implicitement).
+  RES/PRE rejoignent min **et** max seulement avec le toggle actif. Aucun
+  double compte des sets du candidat.
 - Auditer et corriger dominance, faisabilité, `filterSlot`, rétention par
   compartiment, diagnostics, cache et filtre final : Fight non demandé n'est
   plus neutre pour le score. Aucune coupe « sûre » ne rejette un build valide
@@ -1391,7 +1480,13 @@ omettre ceux attribués à un autre sous-lot. Ensemble, ils livrent ceci :
 **Preuves globales obligatoires :** les exemples du chapeau, 0/15/16 auras
 externes, 15 + 3 propres = 18, 2 ou 3 Fight actifs, joker qui complète Fight,
 aura non demandée, recette ancienne vide/non vide, import/export, reset,
-cache et parité écran/CLI. Chaque consommateur de 6bis-a a un test nommé.
+cache et parité écran/CLI. Tester explicitement les deux bornes RES/PRE
+avec une aura **propre** au candidat, y compris complétée par Intangible :
+minimum franchi, maximum dépassé et toggle éteint. Chaque consommateur de
+6bis-a4 a un test nommé. Les attentes historiques 18 acceptés / 19 refusés
+de `testAurasRecette` changent : conserver la sortie rouge avant correction,
+puis justifier 15 acceptés / 16 refusés et le refus d'un ancien `setsAura`
+non vide, au lieu d'ajuster silencieusement le test existant.
 La référence exhaustive indépendante n'appelle pas le nouvel évaluateur
 pour établir ses attentes ; seeds fixes et comparaison différentielle sur
 petits pools, plus cas à volume réel pour les rétentions. Commandes ciblées

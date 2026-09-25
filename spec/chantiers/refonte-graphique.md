@@ -599,6 +599,13 @@ grille selon la place, édition réorganisée (flèches ← → en haut, lignes
 alignées, saisie puis conclusion, reclic pour enlever un tick, « Off »
 masqué à la souris). **Validé par Thomas le 2026-09-26, sur bureau.**
 
+**Ajouts de la décision 14 (2026-09-26), faits dans la foulée du 7a** —
+spec avant le code (`b11a922`), logique `lib/siegeShare` + `appendTeams`
+(`6ef0e24`, test `siege-partage`), écran : recherche, Exporter, Importer
+(`bb69a00`), recherche en liste de suggestions comme ailleurs (`0e0e891`).
+Fichiers hors A.2 limités à ceux nommés par la décision ; chemins interdits
+vides. Validé par Thomas (« ok »).
+
 ### B.11 Lot 11 — téléphone · J
 
 **Contrat** : `navigation.md` § Barre d'onglets et § Panneau d'actions

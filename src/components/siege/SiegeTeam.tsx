@@ -978,7 +978,9 @@ function SlotContent({
             déplacent CE monstre. Aux bords, la flèche reste affichée,
             désactivée, et son infobulle dit pourquoi. Au doigt, le sélecteur
             reste (lot 11). */}
-        <span className="hidden flex-none items-center gap-0.5 self-start lg:flex">
+        {/* Centrées sur la ligne du monstre, comme la croix — elles étaient
+            collées en haut (`self-start`) et flottaient au-dessus du nom. */}
+        <span className="hidden flex-none items-center gap-0.5 lg:flex">
           <BoutonIcone
             libelle={
               idx === 0
@@ -1010,21 +1012,27 @@ function SlotContent({
           taille="serre"
           ton="danger"
           icone={<X size={14} />}
-          className="self-start"
         />
       </div>
 
-      {/* Vitesse de combat, mise en avant ; à la souris, la POSITION suit le
-          champ SPD sur la même ligne. */}
-      <div className="mt-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-1.5 compact:mt-0.5">
+      {/* Vitesse de combat, mise en avant, et le champ SPD — CENTRÉS l'un sur
+          l'autre (`items-center`) : calés par le bas, le gros chiffre montait
+          au-dessus de « SPD : » et les deux ne tombaient pas au même niveau. */}
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 compact:mt-0.5">
         <div>
           {/* ⚠️ 16 px au doigt contre 22 à la souris (26 avant le lot 7a). Le
               nom du monstre est la RÉFÉRENCE de ce bloc : la vitesse doit rester
               au-dessus de lui sans l'écraser — un rapport de 1,3 à 1,6 suffit à
               dire « c'est la valeur principale », là où 2,2 en faisait le seul
               élément lisible. */}
-          <div className="font-mono text-[22px] font-black leading-none text-star compact:text-[16px]">
-            {combat ?? '—'}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="font-mono text-[22px] font-black leading-none text-star compact:text-[16px]">
+              {combat ?? '—'}
+            </div>
+            {/* À la souris, l'ÉCART au tick suit la vitesse qu'il qualifie
+                (« 323 · +37 au-dessus de 286 ») : posé au bout de la rangée
+                des ticks, il passait seul à la ligne, calé à droite. */}
+            {ecart && <span className="hidden lg:inline-flex">{ecart}</span>}
           </div>
           <div className="mt-1 font-mono text-micro text-ink-dim compact:mt-0.5 compact:text-nano">
             base {base ?? '—'}
@@ -1045,8 +1053,7 @@ function SlotContent({
         </div>
       </div>
 
-      {/* Tick cible, propre à ce monstre ; à la souris, l'écart au tick au
-          bout de la rangée. */}
+      {/* Tick cible, propre à ce monstre */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5 compact:mt-1 compact:gap-1">
         <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" />
         {SIEGE_TICKS.map((t) => (
@@ -1057,7 +1064,6 @@ function SlotContent({
             label={`${t.label} ${t.value}`}
           />
         ))}
-        {ecart && <span className="ml-auto hidden lg:inline-flex">{ecart}</span>}
       </div>
 
       {/* TÉLÉPHONE : l'écart au tick sur sa ligne (manque / surplus) */}

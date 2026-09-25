@@ -86,7 +86,14 @@ moins par slot, **rien de retiré** :
   sa raison (« Déjà en première position » / « Déjà en dernière position ») ;
   vers le slot 1, l'infobulle dit que le monstre **devient le leader** ;
 - l'**écart au tick** (« manque 12 pour 239 », « +3 au-dessus de 286 »,
-  « pile au tick ») se pose **au bout de la rangée des ticks** ;
+  « pile au tick ») se pose **juste après la vitesse de combat** qu'il
+  qualifie. Posé d'abord au bout de la rangée des ticks, il y passait seul à
+  la ligne, calé à droite — relevé par Thomas sur capture (« ce n'est pas
+  aligné ») ;
+- **tout est centré sur sa ligne** : les flèches et la croix sur la ligne du
+  monstre (les flèches étaient collées en haut), la vitesse et le champ SPD
+  l'un sur l'autre (ils étaient calés par le bas, le gros chiffre dépassant
+  au-dessus de « SPD : ») ;
 - la vitesse de combat passe de 26 à 22 px ; plus de hauteur minimale de
   150 px — la grille aligne déjà les trois slots sur le plus haut ;
 - ⚠️ **les lignes des trois slots sont alignées** (« ce serait bien que les

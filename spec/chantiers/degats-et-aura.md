@@ -331,7 +331,7 @@ bloquant ; les précisions d'intrants relevées sont intégrées ci-dessous.
 | 4 — relique « comme équipé » et les minimums | C→M | terminé | `91837dab` / 2026-09-25 |
 | 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
 | 6 — sets d'aura : modèle initial, corrigé au lot 6bis | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
-| 6bis-a1 — inventaire et recettes de contrôle | C | prêt à lancer | contre-revue favorable / 2026-09-25 |
+| 6bis-a1 — inventaire et recettes de contrôle | C | terminé | reçu `948066b` ↔ `87d09ec` / 2026-09-25 |
 | 6bis-a2 — carte dégâts, EHP, artéfacts et reliques | C | non lançable avant les plages de 6bis-a1 | — |
 | 6bis-a3 — carte conditions, recherche et diagnostics | C | non lançable avant a1, ses plages et a2 | — |
 | 6bis-a4 — écran/CLI/tests et réconciliation des cartes | C | non lançable avant a1, ses plages, a2 et a3 | — |
@@ -1390,6 +1390,26 @@ et `git diff --check`. Livraison et vérification privées selon A.6 bis.
 **Ne fait pas :** aucune classification approfondie de consommateur,
 modification de production, test nouveau ou benchmark.
 
+**Résultat pilote du 2026-09-25 :** les deux extractions au repli `git grep`
+retrouvent 46 lignes et 41 chemins. Le manifeste affecte provisoirement
+chaque entrée à a2, a3 ou a4 et ajoute 17 candidats hors motifs ; deux lignes
+de `damage.ts` ont légitimement un double usage score/conditions. Les recettes
+figées prouvent l'état rouge par le code : le nouveau champ est accepté comme
+clé inconnue mais ignoré par le calcul ; l'ancienne recette non vide reste
+acceptée. Le sort de la clé inconnue après reconstruction du parseur sera
+qualifié en **a4**. Le « compte de test » désigne le fichier de compte pour le
+CLI réel ; les 117 vérifications du filtre `auras` sont un décompte distinct.
+La recette ancienne non vide, identique à celle du lot 6, est conservée comme
+fixture historique de régression, sans prétendre être un nouveau scénario.
+La vérification isolée par `node --eval`, contraire à `CLAUDE.md`, a été
+réintégrée au script conservé avant validation ; aucune décision n'en dépend.
+`controle-6bis-a1.md` et son manifeste corrigé ont été livrés puis vérifiés
+(`948066b` ↔ `87d09ec`), et les notes validées intégrées au main documentaire
+en `f52f3ee`. Aucun code de production ni test n'a changé ; a2–a4 restent
+non lançables avant inscription et revue de leurs plages exactes. La mention
+erronée de `pair-slice-worker.ts` dans `invariants.md` sera corrigée au lot 14
+avec la réconciliation finale des notes.
+
 #### 6bis-a2 — carte du score et des dégâts
 
 **Cat. C ; non lançable avant l'amendement pilote de a1.** Intrant : socle
@@ -2078,7 +2098,8 @@ tranche.
 **Déroulé :** 1) vérifier les preuves et tests ciblés de tous les lots, le lint
 et l'absence de décision bloquante ; 2) réconcilier le suivi d'audit et les
 entrées de `pistes.md` avec leurs sources : dettes de découpage, plan du lot 13,
-familles reportées et passifs non curés ; 3) une fois ces contrôles passés,
+familles reportées et passifs non curés ; corriger dans `invariants.md` le
+nom `pair-slice-worker.ts` en `src/workers/pairSlice.worker.ts` ; 3) une fois ces contrôles passés,
 statut du cadrage → `CHANTIER terminé le <date>` et ligne de `spec/README.md`
 mise à jour ; 4) `chantier livrer` → `verifier` → `integrer` du résultat final.
 Les notes des lots précédents ont déjà été intégrées après leur validation.

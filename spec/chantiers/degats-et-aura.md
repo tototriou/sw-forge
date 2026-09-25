@@ -294,8 +294,10 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 0 → 5                      (réinitialisations du hook et appelants, dont App.tsx)
 5 → 6 → contre-revue du cadrage → 6bis-a1
         → amendement pilote et revue indépendante
-        → 6bis-a2a → 6bis-a2b → 6bis-a3a → 6bis-a3b
-        → 6bis-a4a → 6bis-a4b → 6bis-a4c → 6bis-a4d
+        → correctif pilote de la revue → 6bis-a2a1 → 6bis-a2a2
+        → 6bis-a2b → 6bis-a3a → 6bis-a3b
+        → 6bis-a4a → 6bis-a4b → 6bis-a4c1 → 6bis-a4c2
+        → 6bis-a4d1 → 6bis-a4d2
         → amendement et revue pilote → 6bis-b-* → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -303,8 +305,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
 1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
-3, 4, 5, 6, 6bis-a1, 6bis-a2a, 6bis-a2b, 6bis-a3a, 6bis-a3b,
-  6bis-a4a, 6bis-a4b, 6bis-a4c, 6bis-a4d,
+3, 4, 5, 6, 6bis-a1, 6bis-a2a1, 6bis-a2a2, 6bis-a2b, 6bis-a3a, 6bis-a3b,
+  6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
 ```
 
@@ -312,9 +314,15 @@ L'ordre d'exécution est l'ordre des numéros, avec 2a puis 2b, et 13a avant
 les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 La contre-revue de 6bis-a1 vérifie ce découpage, son budget et le repli
 `git grep` ; les cartes issues de a1 reçoivent leurs plages puis leur revue
-indépendante avant a2a.
+indépendante avant a2a1.
 Contre-revue indépendante du 2026-09-25 : **a1 lançable**, aucun défaut
 bloquant ; les précisions d'intrants relevées sont intégrées ci-dessous.
+La revue des cartes du 2026-09-25 a trouvé une marge totale trop mince,
+trois bornes au-delà des fichiers, quatre lignes hors fenêtres et une
+projection non outillée ; le validateur renforcé en a révélé une quatrième.
+Le pilote scinde a2a, a4c et a4d et corrige le contrat avant
+son lancement ; le verdict « a2a lançable » de la revue ne vaut pas
+validation du contrat amendé.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
@@ -336,14 +344,17 @@ bloquant ; les précisions d'intrants relevées sont intégrées ci-dessous.
 | 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
 | 6 — sets d'aura : modèle initial, corrigé au lot 6bis | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
 | 6bis-a1 — inventaire et recettes de contrôle | C | terminé | reçu `948066b` ↔ `87d09ec` / 2026-09-25 |
-| 6bis-a2a — score et début de combat | C | en attente de revue indépendante du contrat | — |
-| 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a et de la revue | — |
+| 6bis-a2a1 — début de combat et dégâts | C | en attente de validation du correctif pilote | — |
+| 6bis-a2a2 — sets actifs du build et score | C | en attente de a2a1 | — |
+| 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b et de la revue | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a et de la revue | — |
 | 6bis-a4a — recette, reset et import écran | C | en attente de a3b et de la revue | — |
 | 6bis-a4b — CLI et scripts de diagnostic | C | en attente de a4a et de la revue | — |
-| 6bis-a4c — écran, affichage et caches | C | en attente de a4b et de la revue | — |
-| 6bis-a4d — Workers, tests et réconciliation | C | en attente de a4c et de la revue | — |
+| 6bis-a4c1 — écran de recherche et caches | C | en attente de a4b | — |
+| 6bis-a4c2 — cartes de résultat et autres affichages | C | en attente de a4c1 | — |
+| 6bis-a4d1 — Workers et tests | C | en attente de a4c2 | — |
+| 6bis-a4d2 — réconciliation des cartes | C | en attente de a4d1 | — |
 | 6bis-b-* — correction du modèle par sous-lots bornés | J | non lançables avant amendement et revue | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -1384,7 +1395,7 @@ propose une affectation **provisoire** à a2, a3 ou a4, ou un rejet motivé.
 Ajouter les candidats connus de B.0, de l'écran/Worker/CLI et des caches
 même s'ils échappent aux deux motifs. Ne pas déclarer « consommateur » sur
 la seule présence d'un mot. Le pilote remplace les contrats des cartes par
-des sous-lots bornés et les fait revoir **avant a2a**.
+des sous-lots bornés et les fait revoir **avant a2a1**.
 Créer dans ce même dossier `recette-6bis-externe.json` avec 3 Fight externes
 et Rage seul demandé, et `recette-6bis-ancienne-non-vide.json` portant
 l'ancien `setsAura` non vide ; conserver leurs empreintes, le compte de test
@@ -1419,52 +1430,60 @@ non lançables avant inscription et revue de leurs plages exactes. La mention
 erronée de `pair-slice-worker.ts` dans `invariants.md` sera corrigée au lot 14
 avec la réconciliation finale des notes.
 
-#### Contrat commun de 6bis-a2a à 6bis-a4d — fenêtres mesurées après a1
+#### Contrat commun de 6bis-a2a1 à 6bis-a4d2 — fenêtres mesurées après a1
 
-**Amendement pilote du 2026-09-25 ; revue indépendante encore requise avant
-a2a.** Le manifeste a1 est à
+**Amendement pilote du 2026-09-25 après contre-revue ; validation du correctif
+requise avant a2a1.** Le manifeste a1 est à
 `spec/outils/optimizer/archive/controles-degats-aura-2026-09/manifest-6bis-a1.json`
 (SHA-256 `23e107ace593dd322e8343f778fdd21e7c66c3d92f05684cbcbe547eb758f65d`).
-Pour chaque sous-lot, projeter seulement les entrées `occurrencesMotifA`,
-`cheminsMotifB` et `candidatsHorsMotifs` affectées à sa phase a2, a3 ou a4
-(`affectationProvisoire` ou `vers`) ; ne pas lire les 1 146 lignes du JSON
-comme de la prose. Les sous-lots d'une même phase se partagent cette
-projection, qui reste **provisoire** : les deux usages de `damage.ts` L3785–3786
-doivent avoir deux verdicts, sans être comptés comme deux lignes d'origine.
-Une clé stable vaut `A:<fichier>:<ligne>`, `B:<chemin>` ou `H:<chemin>` pour
-les trois tableaux ; une découverte supplémentaire vaut `D:<source>:<coordonnée>`.
+L'outil privé `projeter-6bis.mjs` du même dossier vérifie cette empreinte et
+répartit les entrées **sans décision de mécanique** : `node
+spec/outils/optimizer/archive/controles-degats-aura-2026-09/projeter-6bis.mjs
+--lot <suffixe>` émet une ligne JSON par entrée du seul sous-lot ; `--bilan`
+vérifie l'union, les doublons permis et les entrées différées. La projection
+est un intrant lu et compté ; ne pas lire les 1 146 lignes du manifeste
+comme de la prose. Les affectations a1 restent provisoires quant au
+**verdict**, non quant à la propriété des clés dans les cartes.
+Une clé stable vaut `A:<fichier>:<ligne>`, `B:<chemin>`,
+`H:fichier:<chemin>`, `H:champ:<type.champ>`, `H:cache:signatureArtefacts`
+ou `H:document:<référence source>` ; une découverte supplémentaire vaut
+`D:<source>:<coordonnée>`. Les deux lignes partagées de `damage.ts`
+L3785–3786 apparaissent en a2a1 (`usage: score`) et a3a (`usage:
+conditions`) : deux verdicts sous `(clé, usage)`, mais une seule ligne A
+d'origine chacune. Les deux H documentaires dont `vers` est vide sont
+`differe` dans le bilan : l'invariant et la spec source relèvent des futurs
+6bis-b-*, pas d'une carte de code ; a4d2 les réconcilie séparément.
 Chaque carte porte clé, verdict sourcé (consommateur / non-consommateur /
 incertain), `usage` (`score` ou `conditions` pour les deux lignes partagées),
 fonction, six runes connues ou non, provenance des auras, cache,
 test existant ou à créer, et une `synthese` de 12 lignes au plus pour le lot
 suivant ; cette compacité ne retire aucune décision de la carte complète.
-Une clé d'origine a un seul verdict canonique dans l'union des cartes : le
-premier sous-lot qui la qualifie en est propriétaire, et les suivants la
-référencent sans la recopier. Si une même ligne sert réellement à deux
-calculs, chaque usage a son verdict distinct sous la paire `(clé, usage)` ;
-une carte ultérieure peut compléter cet usage, en citant la carte d'origine.
-Les clés A/B/H d'origine se réconcilient en a4d, pas par total ; pour les
-lignes partagées, vérifier aussi les deux couples `(clé, usage)` attendus.
+Une clé d'origine a un seul propriétaire dans les cartes, fixé par la
+projection ; les suivantes la référencent sans recopier son verdict. Les
+clés A/B/H actives se réconcilient en a4d2 par égalité, pas par total ; les
+deux H différées et les deux usages supplémentaires sont comptés à part.
 
 Les plages ci-dessous sont **inclusives**, relevées au HEAD `b2ccfca1` ; un
-lot les recontrôle sur sa révision. Son socle documentaire : Partie A
-L14–367, B.0 L370–440, résultat du lot 6 L1301–1324, chapeau 6bis
-L1325–1351, cette section, `invariants.md` et le README de routage en
+lot les recontrôle sur sa révision. Son socle documentaire : Partie A et
+B.0 en entier, « Résultat du lot 6 », le chapeau du lot 6bis, cette
+section, `invariants.md` et le README de routage en
 entier, `spec/outils/degats-reels/effets-equipe-et-leaders.md` L88–120 et
 `spec/outils/optimizer.md` L680–687 et L1319–1324. Ces coordonnées de
-cadrage se relèvent à nouveau par `spec-toc` si le fichier bouge. Le lot lit
+cadrage se relèvent par `spec-toc` à chaque lot. Le lot lit
 sa projection compacte du manifeste et **ses** fenêtres de code — jamais
 les fichiers entiers. La somme prévisionnelle des fenêtres de code de chaque
-sous-lot est inférieure à 450 lignes ; compter aussi toutes les lectures
-documentaires, cartes antérieures et sorties dans le plafond de 1 500. Les fenêtres sont
-des amorces de chaîne d'appel, pas le droit d'omettre un appel adjacent : si
+sous-lot est inférieure à 450 lignes ; compter aussi la projection, toutes
+les lectures documentaires, cartes antérieures et sorties dans le plafond
+de 1 500. Les fenêtres sont des amorces de chaîne d'appel, pas le droit
+d'omettre un appel adjacent : si
 sa lecture nécessaire dépasserait le budget, arrêter et faire créer un
 sous-lot nommé avant de lire davantage. Chaque preuve donne les plages
 réellement lues, les lignes et les découvertes hors manifeste.
 Rejouer `node spec/outils/optimizer/archive/controles-degats-aura-2026-09/valider-fenetres-6bis.mjs` :
-sommes inclusives attendues a2a/a2b/a3a/a3b/a4a/a4b/a4c/a4d =
-430/386/355/413/377/302/417/320 lignes de code. Cette mesure ne remplace
-pas le décompte **total** de lecture de chaque lot.
+sommes inclusives attendues a2a1/a2a2/a2b/a3a/a3b/a4a/a4b/a4c1/a4c2/
+a4d1/a4d2 = 271/159/386/375/411/371/299/231/186/334/0 lignes de code,
+avec existence des fichiers et des bornes vérifiée. Ce contrôle ne remplace pas le
+décompte **total** de lecture de chaque lot.
 
 **Preuve commune :** un `carte-6bis-<sous-lot>.json` et un
 `controle-6bis-<sous-lot>.md` dans le dossier privé A.6 bis, avec commandes,
@@ -1474,25 +1493,35 @@ consommateur » : la présence d'`activeSets` dans un import ou un test ne
 prouve aucune consommation d'aura. Aucun de ces sous-lots ne modifie le
 code de production, les tests ou la règle de jeu.
 
-#### 6bis-a2a — score, sets actifs et début de combat
+#### 6bis-a2a1 — contexte, début de combat et calcul des dégâts
 
-**Cat. C ; requiert a1 et la revue de cet amendement.** Fenêtres de code :
+**Cat. C ; requiert a1 et la validation du correctif pilote.** Fenêtres de code :
 `src/lib/damage.ts` L3309–3321, L3433–3441, L3503–3515, L3745–3790,
-L4690–4699, L4744–4868 ; `src/lib/runeBuildOptim.ts` L733–807,
-L3965–4005 ;
-`src/lib/stats.ts` L49–103 ; `src/lib/effects.ts` L303–345.
+L4690–4699, L4744–4868 ; `src/lib/stats.ts` L49–103.
 Classer `DamageSetup`, `nombreAura`, `statsDebutCombat`, dégâts actifs,
-passifs et additionnels, EHP et résolution d'`activeSets` sur les six runes.
-Établir où un build concret existe et où l'appel ne reçoit que des stats ;
-ne pas supposer que `computeStats` inclut une aura d'équipe.
+passifs et additionnels et calcul des stats de fiche. Établir où l'appel
+ne reçoit que des stats ; ne pas supposer que `computeStats` inclut une
+aura d'équipe.
 
-**Sortie :** carte a2a et chaîne source → score, avec politique d'arrondi
-et de score EHP hors auras. **Ne fait pas :** choix de paire/relique, tri,
+**Sortie :** carte a2a1 et chaîne du contexte vers les dégâts, avec
+politique d'arrondi. **Ne fait pas :** sets des six runes, score de
+recherche, choix de paire/relique, conditions ou CLI.
+
+#### 6bis-a2a2 — sets actifs du build et score
+
+**Cat. C ; requiert a2a1.** Lire sa synthèse, puis :
+`src/lib/runeBuildOptim.ts` L733–807, L3965–4005 ;
+`src/lib/effects.ts` L303–345. Classer EHP, score et résolution
+d'`activeSets` sur les six runes ; distinguer build concret et borne sur
+un demi-build. Conserver la politique EHP préexistante hors auras.
+
+**Sortie :** carte a2a2 et chaîne runes → sets actifs → score, avec
+renvoi au contexte a2a1. **Ne fait pas :** choix de paire/relique, tri,
 conditions ou CLI.
 
 #### 6bis-a2b — choix d'artéfacts/relique, tri et comparaison
 
-**Cat. C ; requiert a2a.** Lire la synthèse structurée a2a et ces fenêtres :
+**Cat. C ; requiert a2a2.** Lire la synthèse structurée a2a1/a2a2 et ces fenêtres :
 `src/lib/artifactEvaluation.ts` L85–158 ; `src/lib/relicExclusive.ts`
 L117–150 ; `src/lib/relicQueue.ts` L138–205 ; `src/lib/relicOptim.ts`
 L190–210 ; `src/lib/runeBuildOptim.ts` L848–870, L930–959 ;
@@ -1505,14 +1534,14 @@ appels ciblés par recherche de texte avant toute lecture élargie.
 Classer sélection réelle, EHP, exclusive, comparaison, cache de paire et
 tri ; distinguer le score de l'équipement essayé de celui du build rendu.
 
-**Sortie :** carte a2b reliant chacun des chemins a2 à a2a ou à un rejet
+**Sortie :** carte a2b reliant chacun des chemins a2 à a2a1/a2a2 ou à un rejet
 motivé. **Ne fait pas :** conditions, diagnostics ou CLI.
 
 #### 6bis-a3a — conditions et élagages locaux
 
 **Cat. C ; requiert a2b.** Lire la synthèse a2b et ces fenêtres :
 `src/lib/damage.ts` L3506–3515, L3778–3788 ;
-`src/lib/runeBuildOptim.ts` L80–125, L365–434, L1297–1318,
+`src/lib/runeBuildOptim.ts` L60–125, L365–434, L1297–1318,
 L1339–1392, L1515–1609 ; `src/lib/effects.ts` L303–330 ;
 `src/lib/relicQueue.ts` L50–68. Relever par recherche ciblée le test
 `tests/relic-queue.test.ts` du manifeste.
@@ -1532,7 +1561,7 @@ complète, diagnostic ou correction d'élagage.
 `src/lib/runeBuildOptim.ts` L2866–2883, L2940–2955, L3085–3110,
 L3185–3218, L3309–3340, L3588–3635, L3965–4048, L4179–4190 ;
 `src/lib/relicQueue.ts` L138–205 ; `src/workers/prepareForSearch.ts`
-L14–33 ; `scripts/monster-search-rank-diag.ts` L43–53 ;
+L14–31 ; `scripts/monster-search-rank-diag.ts` L43–53 ;
 `scripts/monster-search-validate.ts` L31–42 ;
 `scripts/optimum-retention-rate.ts` L94–114 ;
 `scripts/retention-dispersion-diag.ts` L178–188. Les autres chemins de
@@ -1548,9 +1577,9 @@ benchmark ni correction du moteur.
 
 #### 6bis-a4a — recette, reset et import écran
 
-**Cat. C ; requiert a3b.** Lire les synthèses des cartes antérieures et :
+**Cat. C ; requiert a3b.** Lire les synthèses a2a1 et a3b, puis :
 `src/lib/optimizerRecipe.ts` L125–140, L240–340, L405–475 ;
-`src/lib/damageSetupTransition.ts` L1–44 ;
+`src/lib/damageSetupTransition.ts` L1–38 ;
 `src/hooks/useOptimizerState.ts` L235–255, L365–425, L450–465 ;
 `src/components/outils/OptimizerSection.tsx` L1810–1830, L1930–1955.
 Qualifier le sort de la clé inconnue après reconstruction du succès du
@@ -1564,7 +1593,7 @@ compatibilités. **Ne fait pas :** CLI, affichage ou changement de champ.
 #### 6bis-a4b — CLI réel et scripts de diagnostic
 
 **Cat. C ; requiert a4a.** Lire la synthèse a4a et :
-`scripts/lib/recipeToSearchParams.ts` L180–210, L350–375, L388–423 ;
+`scripts/lib/recipeToSearchParams.ts` L180–210, L350–375, L388–420 ;
 `scripts/optimizer-search.ts` L102–120, L150–166, L410–420 ;
 `scripts/lib/realDamageCli.ts` L40–67 ;
 `scripts/optimizer-search-analyze.ts` L98–113, L155–175 ;
@@ -1590,41 +1619,66 @@ CLI « passé ».
 **Sortie :** carte a4b et constat CLI rouge ou vert, sans prétendre à une
 mesure de performance. **Ne fait pas :** modifications de scripts ou tests.
 
-#### 6bis-a4c — écran, affichage et caches
+#### 6bis-a4c1 — écran de recherche et caches
 
 **Cat. C ; requiert a4b.** Lire la synthèse a4b et :
 `src/components/outils/OptimizerSection.tsx` L455–465, L580–605,
 L1155–1180, L1325–1345, L1415–1435, L1640–1672, L2053–2066,
-L2088–2143, L4938–4960 ; `BuildCandidateCard.tsx` L165–180,
+L2088–2143, L4938–4960.
+Classer l'écran de recherche, le cache et les moments où les six runes
+sont disponibles. `src/lib/importAccount.ts` et `src/lib/recoMatch.ts`,
+trouvés au motif B, se qualifient par leurs appels ciblés à `activeSets`,
+sans supposer qu'ils calculent des auras de combat.
+
+**Sortie :** carte a4c1 et matrice écran/cache. **Ne fait pas :** cartes
+de résultat, autres contrôles, Workers ou tests.
+
+#### 6bis-a4c2 — cartes de résultat et autres affichages
+
+**Cat. C ; requiert a4c1.** Lire sa synthèse, puis :
+`BuildCandidateCard.tsx` L165–180,
 L260–275 ; `ExclusionCandidateRow.tsx` L20–36 ; `EtatMonstre.tsx`
 L35–65, L75–115 ; `DamageSetupCard.tsx` L82–104 ;
 `DamageSetupModale.tsx` L25–40 (ces cinq fichiers sont sous
 `src/components/outils/`) ; `src/lib/artifactQueue.ts` L280–305.
 Classer les surfaces avec ou sans six runes, l'écho d'« État de mon
 monstre », le score de carte et la signature du cache ; ajouter les
-affichages découverts hors manifeste. `src/lib/importAccount.ts` et
-`src/lib/recoMatch.ts`, trouvés au motif B, se qualifient par leurs appels
-ciblés à `activeSets`, sans supposer qu'ils calculent des auras de combat.
+affichages découverts hors manifeste.
 
-**Sortie :** carte a4c et matrice écran/cache, sans rendu nouveau ni
-contrôle visuel (lot 7). **Ne fait pas :** Workers ou tests.
+**Sortie :** carte a4c2 et matrice des cartes et contrôles. Aucun rendu
+nouveau ni contrôle visuel (lot 7). **Ne fait pas :** Workers ou tests.
 
-#### 6bis-a4d — Workers, tests et réconciliation des cartes
+#### 6bis-a4d1 — Workers et tests
 
-**Cat. C ; requiert a4c.** Lire les **synthèses structurées** a2a–a4c,
-pas toutes leurs preuves, puis : `src/workers/runeBuildOptim.worker.ts`
+**Cat. C ; requiert a4c2.** Lire les synthèses a3b et a4c2, puis :
+`src/workers/runeBuildOptim.worker.ts`
 L235–265, L270–290, L360–385 ; `buildHalf.worker.ts` L30–55, L90–110 ;
-`pairSlice.worker.ts` L27–39 ; `pairSliceBody.ts` L47–60, L94–105 ;
+`pairSlice.worker.ts` L27–37 ; `pairSliceBody.ts` L47–60, L94–105 ;
 `parallelPairing.ts` L104–138 ; `pairingDriver.ts` L1–30 (tous sous
-`src/workers/`) ; `tests/auras-modele.test.ts` L1–60, L200–230.
+`src/workers/`) ; `tests/auras-modele.test.ts` L1–60, L85–100,
+L200–230.
 Pour les quatre autres tests a4 du manifeste, lire seulement les appels
 adjacents ciblés, en documentant leurs coordonnées. Les cartes a2/a3
 portent leurs propres tests candidats ; ne pas les perdre à l'agrégation.
 
-**Réconciliation :** égalité des clés A/B/H du manifeste et de l'union des
-cartes, avec verdicts sourcés et usages multiples distincts ; découvertes
-D séparées. `carte-6bis-a4d.json` consolide coordonnées, runes connues ou
-non, cache, tests, incertitudes et scénarios Intangible. `controle-6bis-a4d.md`
+**Sortie :** carte a4d1, contexte des six runes côté Workers et inventaire
+des tests présents/manquants. **Ne fait pas :** réconciliation globale,
+benchmarks ni implémentation.
+
+#### 6bis-a4d2 — réconciliation des cartes
+
+**Cat. C ; requiert a4d1.** Lire les synthèses structurées a2a1–a4d1,
+pas toutes leurs preuves ; aucune fenêtre de code nouvelle. Créer puis
+exécuter un script de réconciliation conservé avec la preuve, qui compare
+les cartes complètes sans les charger toutes comme prose. Rejouer
+`projeter-6bis.mjs --bilan` et conserver les clés attendues.
+
+**Réconciliation :** égalité des clés A/B/H **actives** de la projection
+et de l'union des cartes, avec verdicts sourcés et usages multiples
+distincts ; les deux H documentaires `differe` sont vérifiées séparément
+contre leur destination 6bis-b-* ; découvertes D séparées.
+`carte-6bis-a4d2.json` consolide coordonnées, runes connues ou
+non, cache, tests, incertitudes et scénarios Intangible. `controle-6bis-a4d2.md`
 porte commandes, sorties, longueurs, verdict CLI repris de a4b et les
 seeds/tests à créer. Proposer des contrats **bornés** `6bis-b-*` ; le pilote
 les inscrit dans A.7, les fait revoir et les valide avant tout lancement.
@@ -1632,10 +1686,10 @@ les inscrit dans A.7, les fait revoir et les valide avant tout lancement.
 **Ne fait pas :** code, tests différentiels, benchmark ou implémentation du
 modèle. Les lots `6bis-b-*` restent non lançables.
 
-#### 6bis-b-* — correction du modèle, contrats à créer après 6bis-a4d
+#### 6bis-b-* — correction du modèle, contrats à créer après 6bis-a4d2
 
 **Cat. J ; gabarit non lançable en l'état.** Chaque contrat reprend un intrant
-borné de la carte réconciliée 6bis-a4d et désigne ses producteurs,
+borné de la carte réconciliée 6bis-a4d2 et désigne ses producteurs,
 consommateurs et preuves, sans
 omettre ceux attribués à un autre sous-lot. Ensemble, ils livrent ceci :
 
@@ -1669,7 +1723,7 @@ aura non demandée, recette ancienne vide/non vide, import/export, reset,
 cache et parité écran/CLI. Tester explicitement les deux bornes RES/PRE
 avec une aura **propre** au candidat, y compris complétée par Intangible :
 minimum franchi, maximum dépassé et toggle éteint. Chaque consommateur de
-6bis-a4d a un test nommé. Les attentes historiques 18 acceptés / 19 refusés
+6bis-a4d2 a un test nommé. Les attentes historiques 18 acceptés / 19 refusés
 de `testAurasRecette` changent : conserver la sortie rouge avant correction,
 puis justifier 15 acceptés / 16 refusés et le refus d'un ancien `setsAura`
 non vide, au lieu d'ajuster silencieusement le test existant.

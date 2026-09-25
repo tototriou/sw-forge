@@ -309,7 +309,8 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par Thomas le 2026-09-25 |
 | 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par Thomas le 2026-09-25 |
 | 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
-| 7 Siège | J | à faire | |
+| 7a Siège · Défense et Offense | J | exécuté, à valider | `553a709` (pastille), `f637bba`, `a39c836` (en-tête) ; 2026-09-26 |
+| 7b Siège · Recommandations | J | à faire | |
 | 8a Compte · Runes | J | à faire | |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
 | 9a Outils · Optimizer | J | à faire | |
@@ -550,6 +551,19 @@ déplacement : la disposition mobile garde tous les libellés. Ajustements
 après essai : « Exporter » et « ⋯ » à la même hauteur (`b5bf247`) ; sur PC,
 toutes les actions en boutons quand elles tiennent (`src/ui/BarreActions`,
 place mesurée — `4121a71`, `1c05c06`). **Validé par Thomas le 2026-09-26.**
+
+**Lot 7 scindé (2026-09-26)** — ~5 200 lignes, dont 3 600 pour les
+Recommandations : **7a** Défense et Offense (`SiegeBoard`, `SiegeTeam`),
+**7b** Recommandations (`RecoBoard`, `RecoCard`). Même contrat pour chacun.
+
+**Résultat lot 7a — Siège · Défense et Offense (2026-09-26)** — preuve
+[lot-7a.md](refonte-graphique-preuves/lot-7a.md). Tests d'avant (lot 0)
+verts sans changement. Pastille de statut écrite (décision 8, libellés
+choisis par Thomas, `pastilleStatut.ts` testé), fond coloré du thème clair
+retiré (`553a709`) ; en-tête bureau par `BarreActions`, comme la RTA
+(`a39c836`), avec « Vérifier mes speed » en action principale à la demande de
+Thomas ; axes `principal` / `actif` dans la librairie (`f637bba`). Fonctions
+nouvelles de la maquette non faites. Aucune perte. À valider par Thomas.
 
 ### B.11 Lot 11 — téléphone · J
 

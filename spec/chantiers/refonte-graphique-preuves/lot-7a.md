@@ -1,0 +1,71 @@
+# Preuve — lot 7a de la refonte graphique : Siège · Défense et Offense
+
+**Statut :** CHANTIER en cours — branche forge/refonte-graphique
+
+Cadrage : [refonte-graphique.md](../refonte-graphique.md), section B.5 à B.10.
+Le lot 7 est **scindé** (règle du cadrage : l'intrant en lignes) — la zone
+compte ~5 200 lignes, dont 3 600 pour les Recommandations :
+
+- **7a** : Défense et Offense — `SiegeBoard.tsx`, `SiegeTeam.tsx` (ce lot) ;
+- **7b** : Recommandations — `RecoBoard.tsx`, `RecoCard.tsx`, ensuite.
+
+Décisions appliquées (A.2 bis) :
+- 8 (pastille de statut écrite) ;
+- 13 précisée (en-tête et `BarreActions`, comme la RTA) ;
+- 4 (action principale) ;
+- 1 (Cinzel pour les titres).
+
+## Tests écrits AVANT
+
+`tests/rendu/siege.test.tsx` (Défense et Offense, écrits au lot 0 sur le code
+d'avant la refonte) :
+- les actions de la page ;
+- chaque équipe : son titre, ses actions, ses monstres avec leur vitesse, le
+  speed tune ;
+- le bonus du leader ;
+- les emplacements vides.
+
+**Aucune assertion modifiée.**
+
+## Réponses de Thomas pendant le lot
+
+| Question | Réponse |
+|---|---|
+| Textes de la pastille de statut | **courts, tirés des phrases de l'app** — Tous au tick, Speed tune, Tick validé, Speed tune validé, À vérifier, Pas au tick, Runes incomplètes (+ Artéfacts incomplets quand il ne manque que des artéfacts) |
+| « met plutôt en avant la vérification des speed plutôt que l'ajout d'une équipe » | « Vérifier mes speed » est l'action principale (aplat d'accent), en premier |
+
+Fonctions nouvelles de la maquette (recherche d'équipe par monstre, pastilles
+de filtre par statut, vue liste) : **non faites**, comme pour la RTA (« on
+verra plus tard ») — elles restent des propositions.
+
+## Ce qui change
+
+| Commit | Quoi |
+|---|---|
+| `553a709` | pastille de statut écrite à côté de « Équipe N » (`components/siege/pastilleStatut.ts`, hors `lib/`, testé cas par cas : `tests/siege-pastille.test.ts`) ; plus de fond coloré en thème clair (tokens `--siege-card-*` retirés) ; carte au gabarit de la refonte |
+| `f637bba` | `BarreActions` / `Menu` : axes `principal` et `actif` |
+| `a39c836` | en-tête bureau (titre, compteur, `BarreActions`) ; « Créer un monstre » depuis le menu (mode piloté) ; test `testRenduSiegeEnTete` |
+
+## Vérifications
+
+```text
+$ npx tsc --noEmit                                  → code 0
+$ node tests/run.mjs rendu refonte navigation siege → 343 vérifications passées
+$ node tests/run.mjs siege rendu-ui rendu-rta       → 164 vérifications passées (dernier état)
+$ node scripts/inventaire-ui.mjs --verifier         → aucune perte
+$ node scripts/chemins-interdits.mjs 6110609        → aucun modifié
+$ node scripts/spec-lint.mjs                        → aucune erreur
+$ npm run build                                     → built ; bg-good-soft, bg-warn-soft,
+  bg-bad-soft, border-good/40, border-warn/40, border-bad/40 présentes
+```
+
+## À regarder sur le serveur de dev (non testable)
+
+- **La pastille** dans les deux thèmes, pour une équipe verte, orange, rouge et
+  une équipe à l'équipement incomplet.
+- **« Vérifier mes speed »** : plein quand il est éteint, fond doux d'accent
+  quand il est allumé.
+- **Le passage des boutons au menu « ⋯ »** selon la largeur de la fenêtre et
+  l'état de la barre latérale.
+- **Téléphone** : non regardé. Le panneau est inchangé, mais la pastille et la
+  carte sont communes aux deux formats (lot 11).

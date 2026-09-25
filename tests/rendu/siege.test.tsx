@@ -92,3 +92,18 @@ export function testRenduSiegeOffense() {
   titre('rendu · Siège · Offense — fonctionnalités présentes');
   verifierCamp('offense');
 }
+
+// Lot 7a de la refonte : l'en-tête bureau. Ajouté APRÈS les tests ci-dessus,
+// dont aucune assertion n'a changé.
+export function testRenduSiegeEnTete() {
+  titre('rendu · Siège — l\'en-tête bureau et son menu « ⋯ »');
+  for (const [side, nom] of [['defense', 'Défense'], ['offense', 'Offense']] as const) {
+    const html = rendreCamp(side);
+    ok(texteVisible(html).includes(`${nom} 2 équipes`), `${nom} : le titre, puis le compteur`);
+    ok(!!bouton(html, "Plus d'actions"), `${nom} : bouton « Plus d'actions »`);
+    const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
+    egal(boutons(menu).map((b) => b.texte), ['Créer un monstre', 'Tout effacer'], `${nom} : le menu porte « Créer un monstre » puis « Tout effacer »`);
+    const hors = boutons(html.replace(menu, ''));
+    ok(hors.some((b) => b.texte === 'Ajouter une équipe') && hors.some((b) => b.texte === 'Vérifier mes speed'), `${nom} : « Ajouter une équipe » et « Vérifier mes speed » restent visibles`);
+  }
+}

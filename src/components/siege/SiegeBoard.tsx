@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Castle, Trash2, Gauge } from 'lucide-react';
+import { Plus, Castle, Trash2, Gauge, Wand2 } from 'lucide-react';
 import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../../types';
 import { LoadState } from '../../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
@@ -9,7 +9,7 @@ import SpeedTuneModale from '../outils/SpeedTuneModale';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import MobileSheet from '../../ui/MobileSheet';
-import { Bouton } from '../../ui';
+import { BarreActions, Bouton } from '../../ui';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
 interface Props {
@@ -52,6 +52,8 @@ export default function SiegeBoard({
   // ensuite est automatique — statut, message, ordre d'une équipe Swift : le
   // bouton dit QUAND on veut voir, pas ce qu'il faut recalculer soi-même.
   const [checkTicks, setCheckTicks] = useStickyState(`siege.checkTicks.${side}`, false);
+  // Formulaire de création ouvert depuis le menu « ⋯ » (bureau).
+  const [creationOuverte, setCreationOuverte] = useState(false);
 
   const noun = side === 'defense' ? 'défense' : 'attaque';
 
@@ -139,6 +141,13 @@ export default function SiegeBoard({
     />
   );
 
+  // Posé DEUX fois : dans l'en-tête bureau, et seul dans la page au téléphone.
+  const compteur = (
+    <>
+      {siege.state.teams.length} équipe{siege.state.teams.length > 1 ? 's' : ''}
+    </>
+  );
+
   const actions = (
     <>
       {/* ⚠️ Deux longueurs : en grille à trois colonnes, un bouton dispose d'un
@@ -198,12 +207,89 @@ export default function SiegeBoard({
           « Options » : à 40 px avec leur libellé complet, elles remplissaient
           deux rangées avant la première équipe. Le COMPTEUR reste, lui — c'est
           une information, pas une action, et elle tient sur une ligne. */}
-      <div className="mt-5 flex items-center gap-3 flex-wrap">
-        <div className="hidden lg:contents">{actions}</div>
-        <span className="font-mono text-xs text-ink-dim">
-          {siege.state.teams.length} équipe{siege.state.teams.length > 1 ? 's' : ''}
+      {/* ---- En-tête BUREAU (refonte graphique, lot 7a) --------------------
+          Comme la RTA (décision 13, précisée) : le titre, le compteur, puis
+          les actions — toutes en boutons quand elles tiennent sur la ligne,
+          sinon « Ajouter une équipe » et « Vérifier mes speed » visibles et le
+          reste (Créer un monstre, Tout effacer) dans le menu « ⋯ ».
+          « Ajouter une équipe » est l'action PRINCIPALE de l'écran (décision
+          4, aplat d'accent). Le téléphone garde son compteur et son panneau
+          « Options » (lot 11). */}
+      <div className="mt-5 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">
+          {side === 'defense' ? 'Défense' : 'Offense'}
+        </h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {compteur}
         </span>
-        <div className="ml-auto hidden lg:contents">{effacer(false)}</div>
+        <BarreActions
+          libelleMenu="Plus d'actions"
+          toujours={[
+            // ⚠️ « Vérifier mes speed » est l'action PRINCIPALE de l'écran, et
+            // vient en premier — choix de Thomas : c'est pour vérifier ses
+            // équipes qu'on vient ici, on n'en ajoute qu'une de temps en temps.
+            // Aplat d'accent tant qu'il est éteint ; allumé, le fond d'accent
+            // doux d'un bouton enclenché.
+            {
+              cle: 'verifier',
+              libelle: 'Vérifier mes speed',
+              icone: <Gauge size={15} />,
+              principal: true,
+              actif: checkTicks,
+              disabled: siege.state.teams.length === 0,
+              // Même texte que le bouton du panneau mobile, ci-dessous.
+              title:
+                siege.state.teams.length === 0
+                  ? 'Aucune équipe à vérifier'
+                  : checkTicks
+                    ? 'Masquer les auras de vérification'
+                    : 'Colorer les équipes selon leur vitesse : speed tune pour une équipe Swift, calage sur les ticks ATB pour les autres',
+              onClick: () => setCheckTicks((v) => !v),
+            },
+            {
+              cle: 'ajouter',
+              libelle: 'Ajouter une équipe',
+              'aria-label': 'Ajouter une équipe',
+              icone: <Plus size={15} />,
+              onClick: () => {
+                siege.addTeam();
+                setScrollToLast(true);
+              },
+            },
+          ]}
+          autres={[
+            {
+              cle: 'creer',
+              libelle: 'Créer un monstre',
+              icone: <Wand2 size={15} />,
+              title: "Créer un monstre qui n'existe pas dans les données chargées",
+              onClick: () => setCreationOuverte(true),
+            },
+            {
+              cle: 'effacer',
+              libelle: 'Tout effacer',
+              icone: <Trash2 size={14} />,
+              danger: true,
+              disabled: siege.state.teams.length === 0,
+              title: siege.state.teams.length === 0 ? 'Aucune équipe à effacer' : undefined,
+              onClick: () => setEffacementAConfirmer(true),
+            },
+          ]}
+        />
+      </div>
+      {/* Le formulaire de création, ouvert depuis le menu (mode piloté). */}
+      <CreateMonster
+        onCreate={onCreateMonster}
+        customMonsters={customMonsters}
+        onDelete={onDeleteMonster}
+        sansBouton
+        ouvert={creationOuverte}
+        onOuvert={setCreationOuverte}
+      />
+
+      {/* TÉLÉPHONE : le compteur seul ; les actions sont dans le panneau. */}
+      <div className="mt-5 flex items-center gap-3 lg:hidden">
+        <span className="font-mono text-xs text-ink-dim">{compteur}</span>
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>

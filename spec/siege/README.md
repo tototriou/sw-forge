@@ -24,16 +24,25 @@ persistance : voir [recommandations.md](recommandations.md).
 
 ## Vue d'ensemble
 
-1. **En-tête** : titre « Siège » + intro dépendant du côté.
-2. **Sous-onglets** : Défense / Offense.
-3. **Barre d'actions**, dans cet ordre : **Ajouter une équipe** → **Vérifier mes
-   tick ATB** → **Créer un monstre** → compteur d'équipes → **Tout effacer**
-   (poussé à droite).
+1. **En-tête BUREAU** (refonte graphique, lot 7a — même règle que la RTA,
+   décision 13 précisée) : titre « Défense » / « Offense », compteur
+   d'équipes, puis les actions via `BarreActions` : **toutes en boutons quand
+   elles tiennent sur la ligne** (place mesurée), sinon **Vérifier mes speed**
+   et **Ajouter une équipe** visibles, et **Créer un monstre**, **Tout
+   effacer** (séparé, en `bad`) dans le menu « ⋯ » Plus d'actions.
+   - ⚠️ **« Vérifier mes speed » est l'action principale** (décision 4), et
+     vient en premier — choix de Thomas (2026-09-26) : c'est pour vérifier ses
+     équipes qu'on vient ici, on n'en ajoute qu'une de temps en temps. Bouton à
+     deux états : aplat d'accent éteint, fond d'accent doux allumé
+     (`aria-pressed`).
    - « Créer un monstre » est **en dernier des actions** : c'est le geste le plus
      rare.
-   - Tous les boutons d'action partagent le **même gabarit**
-     (`px-3.5 py-2`, 13 px, icône 15) — y compris `CreateMonster`, qui était plus
-     petit et paraissait rabougri à côté des autres.
+   - Tous les boutons d'en-tête font **36 px** (`HAUTEUR_EN_TETE`).
+2. **Sous-onglets** : Défense / Offense — dans la barre latérale (bureau) et
+   le panneau de navigation (téléphone), plus dans la page.
+3. **Téléphone** : le compteur seul dans la page ; les actions dans le panneau
+   « Options » (Ajouter une équipe, Vérifier mes speed, Créer un monstre, puis
+   Tout effacer séparé) — inchangé, lot 11.
 4. **Liste d'équipes** (ou état vide incitant à ajouter/importer).
 
 ### Disposition de la liste — 2 équipes par ligne

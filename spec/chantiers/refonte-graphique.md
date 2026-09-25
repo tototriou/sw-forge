@@ -293,7 +293,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 2 tokens : rayons, texte sur accent | J | exécuté | 2026-09-24 |
 | 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
 | 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par Thomas le 2026-09-25 |
-| 5 Accueil | J | exécuté, à valider | `b5a0418` (tests avant), `4ebcf70`, 2026-09-25 |
+| 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par Thomas le 2026-09-25 |
 | 6 RTA | J | à faire | |
 | 7 Siège | J | à faire | |
 | 8a Compte · Runes | J | à faire | |

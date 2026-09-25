@@ -28,9 +28,15 @@ vérifications :
 ## Ce qui change (commit `4ebcf70`)
 
 - Cartes de la refonte (panneau, `border-soft`, rayon 12, fond appuyé au
-  survol) ; plus de soulèvement (`whileHover`) ni de halo coloré.
-- Icônes neutres dans une tuile de 32 px ; les icônes d'élément du héros
-  (rendus du jeu) gardent leur couleur.
+  survol) ; plus de soulèvement (`whileHover`).
+- Icônes dans une tuile de 32 px. **Premier passage : neutres, halos
+  retirés. Retour de Thomas (2026-09-25) : « j'aimais bien les couleurs sur
+  la page d'accueil »** — tuiles à la teinte de leur section (icône, fond
+  14 %, contour 32 %), halos des cartes de fonctionnalités, couleurs des
+  étapes, numéro compris. Les 16 teintes des cartes et tuiles sont les
+  mêmes qu'avant le lot : comparées par `diff` avec `b5a0418` (« teintes
+  identiques à avant le lot »). Les icônes d'élément du héros (rendus du jeu)
+  gardent leur couleur.
 - « Comment ça marche » : une carte, trois étapes séparées par des filets.
 - Dernier appel : `Bouton ton="accent" fond="plein"`.
 - Pastille de version : texte à l'encre. Mesure

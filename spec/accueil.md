@@ -83,20 +83,20 @@ Grille **4 colonnes** de cartes **compactes** (icône, kicker, titre, une phrase
 ⚠️ Les anciennes `ToolCard` de 260 px de haut repoussaient tout le reste de la
 page hors de l'écran : à 7 entrées, la moitié des sections n'était jamais vue.
 
-| Carte | Route |
-|-------|-------|
-| Préparation RTA | `#/rta` |
-| Prépa d'un ami | `#/rta/ami` |
-| Défenses et offenses | `#/siege/defense` |
-| Recommandations | `#/siege/recommandations` |
-| Analyse de runes | `#/compte/runes` |
-| Analyse d'artéfacts | `#/compte/artefacts` |
-| Optimiseur de runes | `#/outils/optimizer` |
-| Speed tuning | `#/outils/speed-tuning` |
-| Bestiaire | `#/bestiary` |
-| Mécaniques | `#/mecaniques` |
-| Nouveautés | `#/releases` |
-| Arène classique | `#/arene` — `soon` |
+| Carte | Route | Teinte (`couleursSection.ts`) |
+|-------|-------|--------|
+| Préparation RTA | `#/rta` | `COULEUR_SECTION.rta` |
+| Prépa d'un ami | `#/rta/ami` | `COULEUR_RTA_SUB.ami` |
+| Défenses et offenses | `#/siege/defense` | `COULEUR_SECTION.siege` |
+| Recommandations | `#/siege/recommandations` | `COULEUR_SIEGE_SUB.recos` |
+| Analyse de runes | `#/compte/runes` | `COULEUR_COMPTE_SUB.runes` |
+| Analyse d'artéfacts | `#/compte/artefacts` | `COULEUR_COMPTE_SUB.artefacts` |
+| Optimiseur de runes | `#/outils/optimizer` | `COULEUR_SECTION.outils` |
+| Speed tuning | `#/outils/speed-tuning` | `COULEUR_SECTION.outils` |
+| Bestiaire | `#/bestiary` | `COULEUR_SECTION.bestiary` |
+| Mécaniques | `#/mecaniques` | `COULEUR_SECTION.mecaniques` |
+| Nouveautés | `#/releases` | `COULEUR_SECTION.releases` |
+| Arène classique | `#/arene` — `soon` | `COULEUR_SECTION.arene` |
 
 (La table avait oublié Analyse d'artéfacts et Speed tuning, présents dans la
 page ; relevé par le test de rendu du lot 5, `tests/rendu/accueil.test.tsx`,
@@ -109,10 +109,16 @@ style change :
 
 - **Cartes de la refonte** : fond de panneau, contour discret
   (`border-soft`), rayon 12 ; au survol, le fond s'appuie (`panel2`) et le
-  contour se précise. Plus de soulèvement ni de halo coloré.
-- **Icônes NEUTRES dans une tuile** (32 px, rayon 8, fond `panel2`) : les
-  teintes de section quittent l'accueil comme le menu (décision 3). Les
-  icônes d'élément du héros, rendus du jeu, gardent leur couleur.
+  contour se précise. Plus de soulèvement.
+- ⚠️ **Les COULEURS restent** : l'icône de chaque carte est dans une tuile
+  (32 px, rayon 8) **à la teinte de sa section** — icône à la teinte, fond à
+  14 %, contour à 32 % (`color-mix`) — et les cartes de fonctionnalités
+  gardent leur **halo** flouté dans le coin, plus marqué au survol. Les
+  étapes gardent leurs trois couleurs propres (bleu, vert, or), numéro
+  compris. Le premier passage du lot 5 les avait retirées (décision 3 lue
+  comme « neutre partout ») ; Thomas les a fait remettre le 2026-09-25 :
+  « j'aimais bien les couleurs sur la page d'accueil ». **L'accueil est
+  coloré, le menu neutre.**
 - **Le bouton du dernier appel est le `Bouton` principal plein** de la
   librairie (décision 4).
 - Pastille de version : fond d'accent à 15 %, texte à l'**encre** — l'accent

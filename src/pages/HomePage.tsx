@@ -24,6 +24,12 @@ import ElementIcon from '../components/ElementIcon';
 import { ElementKey } from '../types';
 import { RELEASES, libelleVersion } from '../data/releases';
 import { Bouton } from '../ui';
+import {
+  COULEUR_SECTION,
+  COULEUR_RTA_SUB,
+  COULEUR_SIEGE_SUB,
+  COULEUR_COMPTE_SUB,
+} from '../data/couleursSection';
 
 const ELEMENT_ORDER: ElementKey[] = ['fire', 'water', 'wind', 'light', 'dark'];
 const SW_EXPORTER = 'https://github.com/Xzandro/sw-exporter';
@@ -46,8 +52,9 @@ const item = {
 
 // Carte de l'accueil — le gabarit de la refonte graphique (lot 5) : fond de
 // panneau, contour discret, rayon 12 ; au survol, le fond s'appuie et le
-// contour se précise. ⚠️ Plus de soulèvement ni de halo coloré : la carte dit
-// « cliquable » par son fond, comme les entrées du menu.
+// contour se précise. ⚠️ Plus de soulèvement : la carte dit « cliquable » par
+// son fond, comme les entrées du menu. La COULEUR, elle, reste (voir `Tuile`
+// et `Halo`).
 const CARTE = 'rounded-xl border border-border-soft bg-panel';
 const CARTE_LIEN = `${CARTE} transition-colors hoverable:border-border hoverable:bg-panel2`;
 
@@ -82,9 +89,10 @@ interface Props {
 // bandeau de version en fin de page donne la raison de revenir.
 //
 // ⚠️ **Refonte graphique, lot 5 — la structure est GARDÉE** (décision 10 de
-// Thomas), seul le style change : cartes de la refonte, icônes NEUTRES dans
-// une tuile (décision 3 : les teintes de section quittent l'accueil comme le
-// menu), bouton principal plein (décision 4).
+// Thomas), seul le style change : cartes de la refonte, icônes dans une tuile
+// À LA TEINTE de leur section (décision 3 précisée le 2026-09-25 : Thomas
+// aimait les couleurs de l'accueil — elles restent ici, le menu reste neutre),
+// bouton principal plein (décision 4).
 export default function HomePage({ stats, onImport }: Props) {
   // ⚠️ La dernière version PUBLIÉE, pas `RELEASES[0]` : une version en
   // préparation est en tête du journal sans être en ligne. L'annoncer ici
@@ -127,7 +135,7 @@ export default function HomePage({ stats, onImport }: Props) {
           {/* Vague d'éléments centrée sous le texte : alignée à gauche, elle
               pendait sous le dernier paragraphe sans rien équilibrer.
               ⚠️ Les icônes d'élément sont des RENDUS DU JEU : leur couleur
-              reste (décision 3 ne vise que les teintes de section). */}
+              reste, comme partout. */}
           <div className="mt-6 flex items-center justify-center gap-4">
             {ELEMENT_ORDER.map((el, i) => (
               <motion.div
@@ -154,10 +162,10 @@ export default function HomePage({ stats, onImport }: Props) {
               un débutant en lui parlant d'un passé qu'il n'a pas. */}
           <SectionTitle icon={LayoutGrid} title="Ton espace" />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Resume href="#/rta" icon={Swords} value={stats.rta} unit={stats.rta > 1 ? 'monstres' : 'monstre'} label="Prépa RTA" />
-            <Resume href="#/siege/defense" icon={Castle} value={stats.defense} unit={stats.defense > 1 ? 'équipes' : 'équipe'} label="Défense de siège" />
-            <Resume href="#/siege/offense" icon={Swords} value={stats.offense} unit={stats.offense > 1 ? 'équipes' : 'équipe'} label="Offense de siège" />
-            <Resume href="#/siege/recommandations" icon={Lightbulb} value={stats.recos} unit={stats.recos > 1 ? 'recos' : 'reco'} label="Recommandations" />
+            <Resume href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} value={stats.rta} unit={stats.rta > 1 ? 'monstres' : 'monstre'} label="Prépa RTA" />
+            <Resume href="#/siege/defense" icon={Castle} accent={COULEUR_SIEGE_SUB.defense} value={stats.defense} unit={stats.defense > 1 ? 'équipes' : 'équipe'} label="Défense de siège" />
+            <Resume href="#/siege/offense" icon={Swords} accent={COULEUR_SIEGE_SUB.offense} value={stats.offense} unit={stats.offense > 1 ? 'équipes' : 'équipe'} label="Offense de siège" />
+            <Resume href="#/siege/recommandations" icon={Lightbulb} accent={COULEUR_SIEGE_SUB.recos} value={stats.recos} unit={stats.recos > 1 ? 'recos' : 'reco'} label="Recommandations" />
           </div>
         </motion.section>
       )}
@@ -174,6 +182,7 @@ export default function HomePage({ stats, onImport }: Props) {
           <Etape
             n="01"
             icon={Download}
+            accent="#5B9DE0"
             title="Exporte ton compte"
             desc="Génère un fichier .json de ton compte avec SW Exporter, en lançant le jeu une fois."
             lien={{ href: SW_EXPORTER, label: 'SW Exporter' }}
@@ -181,12 +190,14 @@ export default function HomePage({ stats, onImport }: Props) {
           <Etape
             n="02"
             icon={Upload}
+            accent="#5EDB8F"
             title="Dépose le fichier"
             desc="Ici même, en haut de page. Rien n'est envoyé : tout se calcule dans ton navigateur."
           />
           <Etape
             n="03"
             icon={Sparkles}
+            accent="#F2C24C"
             title="Prépare et optimise"
             desc="Runes, prépa RTA, équipes de siège et analyse de compte se remplissent d'un seul coup."
           />
@@ -199,18 +210,18 @@ export default function HomePage({ stats, onImport }: Props) {
       <motion.section variants={item} id="features" className="py-12">
         <h2 className="font-display text-[26px] tracking-wide mb-6">Fonctionnalités</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Feature href="#/rta" icon={Swords} kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer et lis l'ordre de tour recalculé selon les leads." />
-          <Feature href="#/rta/ami" icon={Users} kicker="RTA" title="Prépa d'un ami" body="Ouvre la prépa qu'un ami t'a exportée — ou son export SWEX complet — et regarde son classement, ses vitesses et son ordre de tour." />
-          <Feature href="#/siege/defense" icon={Castle} kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
-          <Feature href="#/siege/recommandations" icon={Lightbulb} kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
-          <Feature href="#/compte/runes" icon={UserRound} kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
-          <Feature href="#/compte/artefacts" icon={Gem} kicker="Compte" title="Analyse d'artéfacts" body="Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus." />
-          <Feature href="#/outils/optimizer" icon={Sparkles} kicker="Outils" title="Optimiseur de runes" body="Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés." />
-          <Feature href="#/outils/speed-tuning" icon={Timer} kicker="Outils" title="Speed tuning" body="Tick par tick, vois quel monstre remplit sa barre d'action en premier — ton équipe et celle d'en face, pour savoir qui joue avant qui." />
-          <Feature href="#/bestiary" icon={BookOpen} kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
-          <Feature href="#/mecaniques" icon={Calculator} kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
-          <Feature href="#/releases" icon={Tag} kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
-          <Feature href="#/arene" icon={Trophy} kicker="Arène" title="Arène classique" body="Préparation des équipes d'offense et de défense." soon />
+          <Feature href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer et lis l'ordre de tour recalculé selon les leads." />
+          <Feature href="#/rta/ami" icon={Users} accent={COULEUR_RTA_SUB.ami} kicker="RTA" title="Prépa d'un ami" body="Ouvre la prépa qu'un ami t'a exportée — ou son export SWEX complet — et regarde son classement, ses vitesses et son ordre de tour." />
+          <Feature href="#/siege/defense" icon={Castle} accent={COULEUR_SECTION.siege} kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
+          <Feature href="#/siege/recommandations" icon={Lightbulb} accent={COULEUR_SIEGE_SUB.recos} kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
+          <Feature href="#/compte/runes" icon={UserRound} accent={COULEUR_COMPTE_SUB.runes} kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
+          <Feature href="#/compte/artefacts" icon={Gem} accent={COULEUR_COMPTE_SUB.artefacts} kicker="Compte" title="Analyse d'artéfacts" body="Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus." />
+          <Feature href="#/outils/optimizer" icon={Sparkles} accent={COULEUR_SECTION.outils} kicker="Outils" title="Optimiseur de runes" body="Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés." />
+          <Feature href="#/outils/speed-tuning" icon={Timer} accent={COULEUR_SECTION.outils} kicker="Outils" title="Speed tuning" body="Tick par tick, vois quel monstre remplit sa barre d'action en premier — ton équipe et celle d'en face, pour savoir qui joue avant qui." />
+          <Feature href="#/bestiary" icon={BookOpen} accent={COULEUR_SECTION.bestiary} kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
+          <Feature href="#/mecaniques" icon={Calculator} accent={COULEUR_SECTION.mecaniques} kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
+          <Feature href="#/releases" icon={Tag} accent={COULEUR_SECTION.releases} kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
+          <Feature href="#/arene" icon={Trophy} accent={COULEUR_SECTION.arene} kicker="Arène" title="Arène classique" body="Préparation des équipes d'offense et de défense." soon />
         </div>
       </motion.section>
 
@@ -342,13 +353,38 @@ function Separator() {
   return <div className="h-px bg-border-soft" />;
 }
 
-// L'icône d'une carte, dans sa tuile neutre — la maquette : 32 px, rayon 8,
-// fond `panel2`, contour discret, icône atténuée.
-function Tuile({ icon: Icon, taille = 16 }: { icon: typeof BookOpen; taille?: number }) {
+// L'icône d'une carte, dans sa tuile — la maquette : 32 px, rayon 8, contour
+// discret. ⚠️ **À la teinte de sa section** (décision 3 précisée : Thomas
+// aimait les couleurs de l'accueil, qui les garde ; le menu, lui, reste
+// neutre) : icône à la teinte, fond et contour de la même teinte, fondus.
+// `color-mix` et non un suffixe hexa (`${accent}44`) : ça marche aussi bien
+// avec une variable CSS qu'avec un hexa.
+function Tuile({ icon: Icon, accent }: { icon: typeof BookOpen; accent: string }) {
   return (
-    <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-border-soft bg-panel2 text-ink-dim">
-      <Icon size={taille} />
+    <span
+      className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border"
+      style={{
+        color: accent,
+        background: `color-mix(in srgb, ${accent} 14%, transparent)`,
+        borderColor: `color-mix(in srgb, ${accent} 32%, transparent)`,
+      }}
+    >
+      <Icon size={16} />
     </span>
+  );
+}
+
+// Halo de la teinte, flouté dans le coin haut droit d'une carte — l'identité
+// colorée des cartes de l'accueil d'avant la refonte, gardée à la demande de
+// Thomas. La carte doit être `relative overflow-hidden`.
+function Halo({ accent }: { accent: string }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-15 blur-2xl
+                 transition-opacity group-hover:opacity-30"
+      style={{ background: accent }}
+    />
   );
 }
 
@@ -366,12 +402,14 @@ function SectionTitle({ icon: Icon, title }: { icon: typeof BookOpen; title: str
 function Resume({
   href,
   icon,
+  accent,
   value,
   unit,
   label,
 }: {
   href: string;
   icon: typeof BookOpen;
+  accent: string;
   value: number;
   unit: string;
   label: string;
@@ -382,7 +420,7 @@ function Resume({
       // ⚠️ Une valeur à 0 est ATTÉNUÉE, pas masquée : sinon la rangée saute.
       className={`flex items-center gap-3 p-3 ${CARTE_LIEN} ${value === 0 ? 'opacity-60' : ''}`}
     >
-      <Tuile icon={icon} />
+      <Tuile icon={icon} accent={accent} />
       <div className="min-w-0">
         <div className="label truncate">{label}</div>
         <div className="flex items-baseline gap-1.5">
@@ -397,24 +435,30 @@ function Resume({
 // Une étape de « Comment ça marche », dans la carte commune : le numéro en
 // chiffres de code, la tuile d'icône, le titre, la phrase. Les étapes sont
 // séparées par un filet (à gauche en colonnes, en haut une fois empilées).
+// ⚠️ Chaque étape a sa couleur PROPRE, pas `var(--accent)` : les trois
+// forment une séquence, elles se lisent comme trois pairs.
 function Etape({
   n,
   icon,
+  accent,
   title,
   desc,
   lien,
 }: {
   n: string;
   icon: typeof BookOpen;
+  accent: string;
   title: string;
   desc: string;
   lien?: { href: string; label: string };
 }) {
   return (
     <div className="flex gap-3.5 border-t border-border-soft p-4 first:border-t-0 md:border-l md:border-t-0 md:first:border-l-0">
-      <span className="pt-2 font-mono text-xs text-ink-dimmer">{n}</span>
+      <span className="pt-2 font-mono text-xs font-bold" style={{ color: accent }}>
+        {n}
+      </span>
       <div className="min-w-0">
-        <Tuile icon={icon} />
+        <Tuile icon={icon} accent={accent} />
         <h3 className="mt-2.5 text-md font-semibold text-ink">{title}</h3>
         <p className="mt-1 text-sm leading-relaxed text-ink-dim">{desc}</p>
         {lien && (
@@ -437,6 +481,7 @@ function Etape({
 function Feature({
   href,
   icon,
+  accent,
   kicker,
   title,
   body,
@@ -444,14 +489,19 @@ function Feature({
 }: {
   href: string;
   icon: typeof BookOpen;
+  accent: string;
   kicker: string;
   title: string;
   body: string;
   soon?: boolean;
 }) {
   return (
-    <a href={href} className={`flex flex-col p-4 ${CARTE_LIEN} ${soon ? 'opacity-70' : ''}`}>
-      <Tuile icon={icon} />
+    <a
+      href={href}
+      className={`group relative flex flex-col overflow-hidden p-4 ${CARTE_LIEN} ${soon ? 'opacity-70' : ''}`}
+    >
+      <Halo accent={accent} />
+      <Tuile icon={icon} accent={accent} />
       <div className="mt-3 label">
         {kicker}
         {soon && ' · bientôt'}

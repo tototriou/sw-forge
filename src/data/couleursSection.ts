@@ -1,9 +1,9 @@
 // Couleur de SIGNATURE de chaque section et sous-section de l'app.
 //
-// ⚠️ **Refonte graphique (décision 3)** : ces teintes ont quitté la barre
-// latérale bureau (lot 4) et l'accueil (lot 5), qui sont neutres. Elles restent
-// sur la navigation du TÉLÉPHONE (onglets, panneau, barre du haut) jusqu'à son
-// lot (11). Ce qui suit décrit leur rôle d'origine.
+// ⚠️ **Refonte graphique (décision 3, précisée)** : ces teintes ont quitté la
+// barre latérale bureau (lot 4), qui est neutre. Elles restent sur l'ACCUEIL
+// (tuiles d'icône, halos — Thomas l'a demandé au lot 5) et sur la navigation
+// du TÉLÉPHONE (onglets, panneau, barre du haut) jusqu'à son lot (11).
 //
 // ⚠️ **Une seule source pour l'accueil ET la navigation.** L'accueil peint ses
 // cartes de cette couleur (HomePage), et la navigation (barre latérale, onglets

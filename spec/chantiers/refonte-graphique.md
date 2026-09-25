@@ -116,6 +116,10 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
    entre eux, et leur intitulé (Jouer, Mon compte…) à la couleur
    principale (accent). Un trait devant l'entrée courante, essayé entre-temps
    sur un malentendu, est retiré — « on sait déjà où on est ».
+   *Précisée le 2026-09-25 pour l'accueil* : après le premier passage du
+   lot 5 (accueil neutre), Thomas : « j'aimais bien les couleurs sur la page
+   d'accueil ». **L'accueil garde ses teintes de section** (tuiles d'icône,
+   halos, couleurs des étapes) ; seul le menu est neutre.
 4. **Bouton principal plein retenu** : `ton="accent"` + `fond="plein"`
    devient un aplat d'accent, un seul par écran.
 5. **Regroupement du menu retenu** : Jouer (RTA, Siège, Arène) / Mon compte
@@ -514,10 +518,12 @@ contrat pour tous :
 **Résultat lot 5 — Accueil (2026-09-25)** — preuve
 [lot-5.md](refonte-graphique-preuves/lot-5.md). Tests avant `b5a0418`
 (40 vérifications), restylage `4ebcf70` : structure gardée (décision 10),
-cartes de la refonte, icônes neutres en tuile (décision 3), bouton plein
-(décision 4), « Comment ça marche » en une carte. Un changement de nature
-(bouton → `libelle`), aucune perte. À valider par Thomas sur le serveur de
-dev.
+cartes de la refonte, bouton plein (décision 4), « Comment ça marche » en
+une carte. Un changement de nature (bouton → `libelle`), aucune perte.
+Premier passage en icônes neutres ; **couleurs remises** à la demande de
+Thomas le 2026-09-25 (décision 3 précisée : accueil coloré, menu neutre) —
+tuiles à la teinte de la section, halos, couleurs des étapes, mêmes valeurs
+qu'avant le lot. À valider par Thomas sur le serveur de dev.
 
 ### B.11 Lot 11 — téléphone · J
 

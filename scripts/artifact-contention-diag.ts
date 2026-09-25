@@ -105,6 +105,7 @@ function chargeArtefacts() {
     requirement: { sets: ['rage'], minStats: {}, mainStats: {} },
     objective: 'degats_reels',
     damageSetup: setup,
+    compterAurasResPre: true,
     metric: 'eff',
     slotFilterPreset: 'moyen',
     adaptiveTrancheWeighting: false,

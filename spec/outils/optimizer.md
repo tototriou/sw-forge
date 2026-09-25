@@ -681,7 +681,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    - **Efficience** (par défaut) — pas de biais particulier, la mesure
      choisie globalement (Efficience ou Score SW, voir
      [compte/runes.md](../compte/runes.md)).
-   - **PV effectifs** — considère PV et DEF ensemble.
+   - **PV effectifs** — considère PV et DEF ensemble. Les auras Enhance et
+     Determination apportent chacune 8 % de leur base au score, à son tri et
+     à sa comparaison, sans ajouter les autres bonus de début de combat.
    - **Vitesse** — VIT seule.
    - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
      adversaire configuré, pas une espérance générique. Modèle de calcul
@@ -1314,6 +1316,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      seulement — la recherche elle-même ne doit surtout pas exclure un build
      dont la somme brute dépasse 100 % (une marge de sécurité contre la
      précision/résistance adverse reste un résultat légitime).
+   - Le modèle des auras accepte les totaux d'équipe dans `DamageSetup.setsAura`
+     (voir [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)).
+     `compterAurasResPre`, activé par défaut, ajoute les points d'aura RES
+     et PRE aux **minimums et maximums** ; désactivé, il ne change pas les
+     dégâts ni les PV effectifs. Les auras PV/ATQ/DEF ne comptent dans aucune
+     condition. Les contrôles de saisie de ces deux champs arrivent au lot 7.
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
 8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**

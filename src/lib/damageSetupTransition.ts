@@ -9,7 +9,7 @@ export const DAMAGE_SETUP_CLASSIFICATION = {
   sacrificeReservePct: 'sort', enemyAtk: 'contexte',
   enemyHpNotDestroyed: 'contexte', enemyDestroyedHpPct: 'legacy-contexte',
   enemySpd: 'contexte', enemyElement: 'contexte',
-  leaderSkill: 'contexte', leaderSpeedPct: 'legacy-contexte',
+  leaderSkill: 'contexte', leaderSpeedPct: 'legacy-contexte', setsAura: 'contexte',
   atkBuff: 'contexte', defBuff: 'contexte', spdBuff: 'contexte',
   defBreak: 'contexte', defBreakParLeSort: 'sort', brand: 'contexte',
   euldongActif: 'contexte', mirinaeActif: 'contexte', deborahActif: 'contexte',

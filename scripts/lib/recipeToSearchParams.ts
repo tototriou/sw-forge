@@ -6,7 +6,7 @@
 // runeBuildOptim.ts, pas d'une copie locale) pour qu'un script ne puisse
 // plus diverger silencieusement de l'écran comme c'est arrivé cette session.
 
-import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE } from '../../src/lib/runeBuildOptim';
+import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE, avecAurasConditions } from '../../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { DEFAULT_RELIC_MIN_UPGRADE, RelicIntent, defaultRelicMainChoice } from '../../src/hooks/useOptimizerState';
@@ -199,7 +199,9 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
     const { artefacts: _artefacts, ...contexteSansArtefacts } = ctx;
     evaluer = evaluerPourRegime(regime, statsAvec, contexteSansArtefacts);
   } else {
-    evaluer = evaluerPourRegime(regime, statsAvec);
+    evaluer = evaluerPourRegime(regime, statsAvec, regime === 'ehp'
+      ? { relique: loaded.gear.relic, setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: espece.element }
+      : undefined);
   }
 
   return paireRepresentative(
@@ -405,7 +407,7 @@ export function recipeToSearchParams(
     // compte — exactement ce que `relicOracleCli` fait pour l'oracle.
     relicContext: resoudreContexteRelique(recipeToRelicIntent(recipe, loaded), loaded.gear.relic, loaded.allRelics),
     pool: resolvePool(recipe, loaded, exclusionData),
-    requirement: recipe.requirement,
+    requirement: avecAurasConditions(recipe.requirement, recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, recipe.compterAurasResPre ?? true),
     metric: recipe.metric,
     objective: recipe.objective,
     objectiveStats: resolveObjectiveStats(recipe, loaded),

@@ -150,7 +150,7 @@ export function evaluerPourRegime(
       const brutes = statsAvec(arts);
       const apport = apportPour(brutes);
       // Ténacité — terme de `Réductions` : des PV effectifs ÉQUIVALENTS.
-      return pvEffectifs(statsAvecApport(brutes, apport)) * facteurTenacite(apport.reductionPct);
+      return pvEffectifs(statsAvecApport(brutes, apport), exclusive?.setup) * facteurTenacite(apport.reductionPct);
     };
   }
   if (regime === 'hp' || regime === 'atk' || regime === 'def') {

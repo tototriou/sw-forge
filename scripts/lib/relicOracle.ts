@@ -153,7 +153,7 @@ function scoreDuCandidat(
     if (!realDamage) throw new Error("oracleSearch : l'objectif « Dégâts réels » exige un contexte de combat.");
     return objectiveScore(candidate, objectif, realDamage, apport);
   }
-  return objectiveScore(candidate, objectif, undefined, apport);
+  return objectiveScore(candidate, objectif, undefined, apport, exclusive?.setup);
 }
 
 function candidatAvecRelique(
@@ -175,7 +175,7 @@ function candidatAvecRelique(
       stats: computeStats({ base: params.base, runes, artifacts: params.artifacts }),
     };
     // Aucune relique : aucun apport possible, quel que soit le contexte.
-    return { ...sansRelique, score: scoreDuCandidat(sansRelique, params, runeById, realDamage) };
+    return { ...sansRelique, score: scoreDuCandidat(sansRelique, params, runeById, realDamage, undefined, exclusive) };
   }
 
   const evaluations = new Map<number, BuildCandidate>();
@@ -260,7 +260,7 @@ export function fusionnerRunsOracle(
 
   const candidats = ordre.map((cle) => fusion.get(cle)!);
   const objectif: Objective = params.objective ?? 'efficience';
-  const tries = sortCandidates(candidats, objectif, { runeById, metric: params.metric, realDamage: options.realDamage });
+  const tries = sortCandidates(candidats, objectif, { runeById, metric: params.metric, realDamage: options.realDamage, damageSetup: options.exclusive?.setup });
   const optimum = (tries[0] as OracleCandidate | undefined) ?? null;
   return { candidats, optimum, rid: optimum?.rid, N: runs.length, runs: issues, complet: issues.every((r) => !r.truncated) };
 }

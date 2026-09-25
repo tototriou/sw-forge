@@ -139,6 +139,7 @@ async function comparerCas(index: number): Promise<boolean> {
     requirement,
     objective: c.objective ?? 'efficience',
     damageSetup: DEFAULT_DAMAGE_SETUP,
+    compterAurasResPre: true,
     metric: 'eff',
     slotFilterPreset: 'bas',
     adaptiveTrancheWeighting: false,

@@ -246,6 +246,8 @@ export interface OptimizerState {
   // et traversable par le Web Worker.
   damageSetup: DamageSetup;
   setDamageSetup: Dispatch<SetStateAction<DamageSetup>>;
+  compterAurasResPre: boolean;
+  setCompterAurasResPre: Dispatch<SetStateAction<boolean>>;
   // « Exclure les runes déjà utilisées » — DÉCOCHÉ par défaut (inversion du
   // comportement historique de l'ancienne case « Utiliser tout l'inventaire »,
   // qui était COCHÉE par défaut avec la signification opposée : les deux
@@ -367,6 +369,7 @@ export function useOptimizerState(): OptimizerState {
   const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>({});
   const [objective, setObjective] = useState<Objective>('efficience');
   const [damageSetup, setDamageSetup] = useState<DamageSetup>(DEFAULT_DAMAGE_SETUP);
+  const [compterAurasResPre, setCompterAurasResPre] = useState(true);
   const [excludeUsedRunes, setExcludeUsedRunes] = useState(false);
   const [excludeUsedScope, setExcludeUsedScope] = useState<AutoExclusionScope>('rta');
   const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
@@ -410,6 +413,7 @@ export function useOptimizerState(): OptimizerState {
     // Un compte importé efface tout ; un changement de monstre conserve le
     // contexte commun et vide les réglages indexés par sort ou passif.
     setDamageSetup((s) => motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s));
+    if (motif === 'compte') setCompterAurasResPre(true);
     setSortBy('efficience');
     setResultsPage(1);
     setStoppedManually(false);
@@ -452,6 +456,8 @@ export function useOptimizerState(): OptimizerState {
     setObjective,
     damageSetup,
     setDamageSetup,
+    compterAurasResPre,
+    setCompterAurasResPre,
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,

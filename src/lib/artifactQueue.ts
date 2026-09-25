@@ -211,6 +211,7 @@ export function signatureReglages(parts: {
   // champ oublié dans une clé de cache. On sérialise donc tout l'objet, ce qui
   // reste juste quand `DamageSetup` gagne un champ.
   damageSetup: unknown;
+  compterAurasResPre?: boolean;
   objective: string;
   ignoreArtifacts: boolean;
   principaleParSorte: Record<string, unknown>;
@@ -252,6 +253,7 @@ export function signatureReglages(parts: {
   return [
     parts.monstreCom2usId,
     JSON.stringify(parts.damageSetup),
+    parts.compterAurasResPre ?? true,
     parts.objective,
     parts.ignoreArtifacts ? 'x' : '-',
     JSON.stringify(parts.principaleParSorte),
@@ -278,6 +280,7 @@ export function signatureReglages(parts: {
 export function signatureArtefacts(parts: {
   monstreCom2usId: number;
   damageSetup: unknown;
+  compterAurasResPre?: boolean;
   regimeEquipement: string;
   ignoreArtifacts: boolean;
   principaleParSorte: Record<string, unknown>;
@@ -290,6 +293,7 @@ export function signatureArtefacts(parts: {
   return signatureReglages({
     monstreCom2usId: parts.monstreCom2usId,
     damageSetup: parts.damageSetup,
+    compterAurasResPre: parts.compterAurasResPre,
     objective: parts.regimeEquipement,
     ignoreArtifacts: parts.ignoreArtifacts,
     principaleParSorte: parts.principaleParSorte,

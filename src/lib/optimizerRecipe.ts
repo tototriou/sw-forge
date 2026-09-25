@@ -133,6 +133,7 @@ export interface OptimizerRecipe {
   // régénérées) retombe silencieusement sur le sort par défaut, jamais une
   // erreur — même tolérance que le reste de ce fichier.
   damageSetup: DamageSetup;
+  compterAurasResPre?: boolean;
   metric: RuneMetric;
   slotFilterPreset: SlotFilterPresetKey;
   adaptiveTrancheWeighting: boolean;
@@ -248,6 +249,25 @@ function validerDamageSetup(value: unknown): string | null {
   if (!estObjet(value)) return erreur('damageSetup', 'doit être un objet');
 
   const setup = value;
+  if (setup.setsAura !== undefined) {
+    if (!Array.isArray(setup.setsAura)) return erreur('damageSetup.setsAura', 'doit être une liste');
+    const connus = new Set(['fight', 'determination', 'enhance', 'accuracy', 'tolerance']);
+    const vus = new Set<string>();
+    let somme = 0;
+    for (const [index, entree] of setup.setsAura.entries()) {
+      const chemin = `damageSetup.setsAura.${index}`;
+      if (!estObjet(entree)) return erreur(chemin, 'doit être un objet');
+      if (typeof entree.set !== 'string' || !connus.has(entree.set) || vus.has(entree.set)) {
+        return erreur(`${chemin}.set`, 'set inconnu ou répété');
+      }
+      vus.add(entree.set);
+      if (typeof entree.nombre !== 'number' || !Number.isInteger(entree.nombre) || entree.nombre < 1 || entree.nombre > 18) {
+        return erreur(`${chemin}.nombre`, 'doit être un entier de 1 à 18');
+      }
+      somme += entree.nombre;
+    }
+    if (somme > 18) return erreur('damageSetup.setsAura', 'la somme ne doit pas dépasser 18');
+  }
   if (setup.skillCom2usId !== undefined && setup.skillCom2usId !== null) {
     const e = validerNombre(setup.skillCom2usId, 'damageSetup.skillCom2usId', true);
     if (e) return e;
@@ -391,7 +411,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
     }
   }
 
-  for (const champ of ['adaptiveTrancheWeighting', 'exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts']) {
+  for (const champ of ['adaptiveTrancheWeighting', 'exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts', 'compterAurasResPre']) {
     if (d[champ] !== undefined && typeof d[champ] !== 'boolean') return { recipe: null, error: erreur(champ, 'doit être un booléen') };
   }
   if (d.excludeUsedScope !== undefined && !['rta', 'siege-defense', 'box'].includes(String(d.excludeUsedScope))) {

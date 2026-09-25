@@ -55,7 +55,7 @@ export interface EntreeResolution {
   respecteConditions: ((artefacts: ArtifactDetail[]) => boolean) | null;
   // Minimums ET maximums — le filtre exact de la dimension relique, mode
   // `recherche` seulement (`respecteConditionsAvecRelique`).
-  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>;
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>;
   // Le régime effectif est-il `aucun` (Efficience, Vitesse, VIT, TC, DCC,
   // RES, PRE) ? La relique n'a alors aucun effet sur le tri : contrat de B.3
   // (équipée si candidate et faisable, sinon première par `id`).

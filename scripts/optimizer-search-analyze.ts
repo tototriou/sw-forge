@@ -154,7 +154,8 @@ const runeById = new Map<number, RuneDetail>(loaded.allRunes.map((r) => [r.id, r
 // Tri identique à l'écran (OptimizerSection.tsx, fullSortedCandidates) :
 // objectiveScore décroissant, `realDamage` transmis pour « Dégâts réels ».
 const sorted = [...result.candidates].sort(
-  (a, b) => objectiveScore(b, recipe.objective, realDamage ?? undefined) - objectiveScore(a, recipe.objective, realDamage ?? undefined)
+  (a, b) => objectiveScore(b, recipe.objective, realDamage ?? undefined, undefined, recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP)
+    - objectiveScore(a, recipe.objective, realDamage ?? undefined, undefined, recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP)
 );
 
 console.log(`\nTop 15 (triés comme l'écran, objectif=${recipe.objective}) :`);
@@ -170,7 +171,7 @@ for (let i = 0; i < Math.min(TOP_N, sorted.length); i++) {
   const isBroken = extraActive.length === 0 && requestedActive.length === recipe.requirement.sets.length;
   if (isBroken) brokenInTop++;
   console.log(
-    `  #${i + 1} score=${objectiveScore(c, recipe.objective, realDamage ?? undefined).toFixed(1)} sets actifs=[${active.join('+') || 'aucun'}] ` +
+    `  #${i + 1} score=${objectiveScore(c, recipe.objective, realDamage ?? undefined, undefined, recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP).toFixed(1)} sets actifs=[${active.join('+') || 'aucun'}] ` +
       `runes/set=[${sets.join(',')}] ${isBroken ? '⚠️ SET CASSÉ (rien de plus que le requis)' : ''}`
   );
 }

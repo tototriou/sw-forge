@@ -43,10 +43,12 @@ import {
   objectiveScore,
   prepareSearch,
   respecteConditionsAvecRelique,
+  conditionsPaireFixePosees,
+  respecteConditionsPaireFixe,
   searchBuilds,
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
-import { ArtifactSearchParams, LigneVerrouillee, respecteMinimums } from '../../src/lib/artifactOptim';
+import { ArtifactSearchParams, LigneVerrouillee } from '../../src/lib/artifactOptim';
 import { PorteurArtefact } from '../../src/lib/artifacts';
 import { RegimeArtefacts, evaluerPourRegime, regimeArtefacts, regimeEquipementDe } from '../../src/lib/artifactEvaluation';
 import { ResultatArtefacts, candidatAvecSaPaire, cleBuild } from '../../src/lib/artifactQueue';
@@ -113,7 +115,7 @@ export function maxStatsActifsDe(p: SearchParams): StatKey[] {
 export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: ReglagesDifferentiel): EntreeResolution {
   const gear = { base: p.base, runes: runesDe(p, c), artifacts: p.artifacts, relic: p.relic };
   const regime = regimeDe(r);
-  const minimumsPoses = Object.values(p.requirement.minStats).some((v) => (v ?? 0) > 0);
+  const conditionsPosees = conditionsPaireFixePosees(p.requirement);
   const fixe = r.paireFixe;
   return {
     gear,
@@ -137,7 +139,7 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
         evaluer,
       };
     },
-    respecteConditions: minimumsPoses ? (arts) => respecteMinimums(computeStats({ ...gear, artifacts: arts }), p.requirement.minStats) : null,
+    respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement) : null,
     requirement: p.requirement,
     regimeAucun: regime === 'aucun',
     relicContext: ctx,
@@ -167,7 +169,7 @@ export function scoreOracle(
   const objectif = p.objective ?? 'efficience';
   if (objectif === 'efficience') return candidateMetricTotal(c, new Map(p.pool.map((r) => [r.id, r])), p.metric);
   const apport = exclusive ? apportExclusive(relique, c.stats, exclusive.setup, exclusive.element) : APPORT_NEUTRE;
-  return objectiveScore(c, objectif, realDamage ?? undefined, apport);
+  return objectiveScore(c, objectif, realDamage ?? undefined, apport, exclusive?.setup);
 }
 
 export function cle(runeIds: number[]): string {
@@ -379,6 +381,7 @@ export interface EntreesComparaison {
   relaxed: Pick<SearchResult, 'candidates' | 'truncated'>;
   resolus: CandidatResolu[];
   realDamage?: RealDamageContext | null;
+  exclusive?: ContexteExclusive | null;
   // La trace de l'optimum de l'oracle dans le run A (`SearchResult.traceur`),
   // si l'appelant l'a demandée ; sinon `classerPerte` rejoue une recherche.
   traceOptimum?: TraceCandidat | null;
@@ -387,9 +390,9 @@ export interface EntreesComparaison {
   k?: number;
 }
 
-function topKDe(p: SearchParams, candidats: BuildCandidate[], scores: Map<string, number>, k: number, realDamage?: RealDamageContext | null): { cles: string[]; frontiere: number | null } {
+function topKDe(p: SearchParams, candidats: BuildCandidate[], scores: Map<string, number>, k: number, realDamage?: RealDamageContext | null, exclusive?: ContexteExclusive | null): { cles: string[]; frontiere: number | null } {
   const objectif: Objective = p.objective ?? 'efficience';
-  const tries = sortCandidates(candidats, objectif, { runeById: new Map(p.pool.map((r) => [r.id, r])), metric: p.metric, realDamage });
+  const tries = sortCandidates(candidats, objectif, { runeById: new Map(p.pool.map((r) => [r.id, r])), metric: p.metric, realDamage, damageSetup: exclusive?.setup });
   if (tries.length === 0) return { cles: [], frontiere: null };
   const kieme = tries[Math.min(k, tries.length) - 1]!;
   const frontiere = scores.get(cle(kieme.runeIds)) ?? null;
@@ -429,8 +432,8 @@ export function comparerOptionA(e: EntreesComparaison): ResultatDifferentiel {
 
   const scoresOracle = new Map(oracle.candidats.map((c) => [cle(c.runeIds), c.score]));
   const scoresA = new Map(resolus.map((x) => [x.cle, x.score]));
-  const topOracle = topKDe(p, oracle.candidats, scoresOracle, k, realDamage);
-  const topA = topKDe(p, resolus.map((x) => x.enrichi), scoresA, k, realDamage);
+  const topOracle = topKDe(p, oracle.candidats, scoresOracle, k, realDamage, e.exclusive);
+  const topA = topKDe(p, resolus.map((x) => x.enrichi), scoresA, k, realDamage, e.exclusive);
   const top20: TopK = { k, oracle: topOracle.cles, A: topA.cles, communs: topOracle.cles.filter((c) => topA.cles.includes(c)).length, scoreFrontiereOracle: topOracle.frontiere };
 
   let perteOptimum: PerteClassee | null = null;

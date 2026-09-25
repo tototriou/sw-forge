@@ -60,6 +60,8 @@ import {
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
   DamageSetup,
+  nombreAura,
+  pointsAuraResPre,
   MonsterWideDamageModifiers,
   PassifOffensifProfile,
   SkillDamageProfile,
@@ -85,6 +87,8 @@ export interface BuildRequirement {
   minStats: Partial<Record<StatKey, number>>;
   // Maximums exigés sur le TOTAL final. Absent = non plafonné.
   maxStats?: Partial<Record<StatKey, number>>;
+  // Dérivé au lancement depuis DamageSetup et le toggle ; absent d'une recette.
+  auraResPre?: { res: number; acc: number };
   // Statistiques principales AUTORISÉES sur les slots 2/4/6 (codes RUNE_EFFECT,
   // voir SLOT_MAIN_OPTIONS). Absent/vide pour un slot = pas de contrainte.
   mainStats?: Partial<Record<2 | 4 | 6, number[]>>;
@@ -108,6 +112,14 @@ export interface BuildRequirement {
   // C'est le comportement voulu : mieux vaut zéro build qu'un build qui
   // ignore silencieusement le verrou posé.
   lockedRunes?: Partial<Record<number, number>>;
+}
+
+export function avecAurasConditions(requirement: BuildRequirement, setup: DamageSetup, compter: boolean): BuildRequirement {
+  return { ...requirement, auraResPre: pointsAuraResPre(setup, compter) };
+}
+
+function totalCondition(total: number, key: string, requirement: Pick<BuildRequirement, 'auraResPre'>): number {
+  return total + (key === 'res' || key === 'acc' ? requirement.auraResPre?.[key] ?? 0 : 0);
 }
 
 export interface BuildCandidate {
@@ -356,19 +368,38 @@ export class RechercheRefusee extends Error {
  */
 export function respecteMinEtMax(
   stats: { key: string; total: number }[],
-  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>
 ): boolean {
   for (const [k, min] of Object.entries(requirement.minStats)) {
     if (min == null || min <= 0) continue;
     const s = stats.find((x) => x.key === k);
-    if (!s || s.total < min) return false;
+    if (!s || totalCondition(s.total, k, requirement) < min) return false;
   }
   for (const [k, max] of Object.entries(requirement.maxStats ?? {})) {
     if (max == null || max <= 0) continue;
     const s = stats.find((x) => x.key === k);
-    if (!s || s.total > max) return false;
+    if (!s || totalCondition(s.total, k, requirement) > max) return false;
   }
   return true;
+}
+
+// La résolution à relique fixe conservait historiquement les maximums hors
+// filtre final (T11). Le lot aura lui ajoute seulement les maximums RES/PRE,
+// nécessaires à la règle du toggle, sans changer les autres maximums.
+export function conditionsPaireFixePosees(requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>): boolean {
+  return Object.values(requirement.minStats).some((v) => (v ?? 0) > 0)
+    || (requirement.maxStats?.res ?? 0) > 0 || (requirement.maxStats?.acc ?? 0) > 0;
+}
+
+export function respecteConditionsPaireFixe(
+  stats: { key: string; total: number }[],
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>
+): boolean {
+  return respecteMinEtMax(stats, {
+    minStats: requirement.minStats,
+    maxStats: { res: requirement.maxStats?.res, acc: requirement.maxStats?.acc },
+    auraResPre: requirement.auraResPre,
+  });
 }
 
 /**
@@ -389,7 +420,7 @@ export function respecteMinEtMax(
 export function respecteConditionsAvecRelique(
   gear: GearSet,
   relique: RelicDetail | undefined,
-  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>
 ): { stats: StatRow[]; respecte: boolean } {
   const stats = computeStats({ ...gear, relic: relique });
   return { stats, respecte: respecteMinEtMax(stats, requirement) };
@@ -703,7 +734,8 @@ export function objectiveScore(
   candidate: BuildCandidate,
   objective: Objective,
   realDamage?: RealDamageContext,
-  apport: ApportExclusive = APPORT_NEUTRE
+  apport: ApportExclusive = APPORT_NEUTRE,
+  damageSetup?: DamageSetup
 ): number {
   if (objective === 'efficience') return candidate.effTotal;
   // Les points d'ATQ/DEF/PV des groupes Bravoure/Éternité/Origine entrent
@@ -752,7 +784,7 @@ export function objectiveScore(
   // `pvEffectifs / (1 − X / 100)`, dérivé de l'équation (voir
   // `facteurTenacite`). Réduction nulle → facteur 1, valeur d'avant à
   // l'identique.
-  return pvEffectifs(stats) * facteurTenacite(apport.reductionPct);
+  return pvEffectifs(stats, damageSetup) * facteurTenacite(apport.reductionPct);
 }
 
 /**
@@ -763,9 +795,11 @@ export function objectiveScore(
  * effectifs » d'une carte de résultat en ont besoin, et recopier la formule
  * là-bas aurait donné deux nombres qui divergent au premier ajustement.
  */
-export function pvEffectifs(stats: StatRow[]): number {
-  const hp = statTotal(stats, 'hp');
-  const def = statTotal(stats, 'def');
+export function pvEffectifs(stats: StatRow[], setup?: DamageSetup): number {
+  // La politique EHP préexistante ne comptait ni lead ni invocateur : seul le
+  // nouveau gain d'aura rejoint ici les stats de fiche, sans les muter.
+  const hp = statTotal(stats, 'hp') + Math.ceil((stats.find((s) => s.key === 'hp')?.base ?? 0) * 8 * (setup ? nombreAura(setup, 'enhance') : 0) / 100);
+  const def = statTotal(stats, 'def') + Math.ceil((stats.find((s) => s.key === 'def')?.base ?? 0) * 8 * (setup ? nombreAura(setup, 'determination') : 0) / 100);
   // ⚠️ Constantes importées de damage.ts, seule source du facteur de défense
   // pour toute l'app — l'arithmétique reste écrite TELLE QUELLE (et non
   // `hp / defenseFactor(def)`, pourtant mathématiquement identique) : passer
@@ -820,6 +854,7 @@ export function sortCandidates(
     // porter cet objectif alors que le monstre courant n'a aucun sort
     // calculable (le tri n'est alors même pas proposé à l'écran).
     realDamage?: RealDamageContext | null;
+    damageSetup?: DamageSetup;
     // Nécessaires pour `'efficience'`. ⚠️ On recalcule depuis les VRAIES runes
     // dans la mesure COURANTE plutôt que de lire `candidate.effTotal`, figé
     // dans la mesure active au moment de la recherche — sinon le classement
@@ -891,6 +926,7 @@ function scorerPour(
   sortBy: StatKey | Objective,
   opts: {
     realDamage?: RealDamageContext | null;
+    damageSetup?: DamageSetup;
     runeById?: Map<number, RuneDetail>;
     metric?: OptimMetric;
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
@@ -914,7 +950,7 @@ function scorerPour(
       return objectiveScore(c, sortBy, propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
     };
   }
-  if (sortBy === 'ehp' || sortBy === 'vitesse') return (c) => objectiveScore(c, sortBy, undefined, apportDe(c));
+  if (sortBy === 'ehp' || sortBy === 'vitesse') return (c) => objectiveScore(c, sortBy, undefined, apportDe(c), opts.damageSetup);
   return (c) => statTotal(statsAvecApport(c.stats, apportDe(c)), sortBy);
 }
 
@@ -1270,8 +1306,10 @@ export function relevance(rune: RuneDetail, requirement: BuildRequirement, base:
   let score = 0;
   for (const [key, min] of Object.entries(requirement.minStats)) {
     if (min == null || min <= 0) continue;
+    const restant = min - (key === 'res' || key === 'acc' ? requirement.auraResPre?.[key] ?? 0 : 0);
+    if (restant <= 0) continue;
     const c = runeContribution(rune, key as StatKey);
-    score += weightedContribution(base, key as StatKey, c.pct, c.flat) / min;
+    score += weightedContribution(base, key as StatKey, c.pct, c.flat) / restant;
   }
   // Tie-break générique : une rune globalement meilleure reste préférable
   // quand rien ne la distingue sur les stats demandées.
@@ -1339,7 +1377,8 @@ export function filterSlot(
     .map((r) => ({ r, s: relevance(r, requirement, base) }))
     .sort((a, b) => b.s - a.s);
 
-  const conditionCount = Object.values(requirement.minStats).filter((v) => v != null && v > 0).length;
+  const conditionCount = Object.entries(requirement.minStats).filter(([k, v]) =>
+    v != null && v > (k === 'res' || k === 'acc' ? requirement.auraResPre?.[k] ?? 0 : 0)).length;
   const extraCap = Math.max(0, conditionCount - FILTER_SLOT_WIDENING_THRESHOLD) * FILTER_SLOT_WIDENING_PER_CONDITION;
   const effectiveMatchCap = matchCap + extraCap;
   const effectiveFillCap = fillCap + extraCap;
@@ -3087,7 +3126,7 @@ function deriveMinMaxContext(
   const estPct = (k: StatKey) => k === 'hp' || k === 'atk' || k === 'def';
   function totalOf(k: StatKey, pct: number, flat: number): number {
     const b = baseRec[k] ?? 0;
-    return estPct(k) ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
+    return totalCondition(estPct(k) ? b + Math.ceil((b * pct) / 100) + flat : b + flat, k, requirement);
   }
   function relTermMax(k: StatKey): number {
     return relicRelache && estPct(k) ? Math.ceil(((baseRec[k] ?? 0) * (relPctMax[k] ?? 0)) / 100) : 0;
@@ -3987,12 +4026,12 @@ export function* pairBuckets(
             const shortfalls: StatShortfall[] = [];
             for (const { k, min } of minEntries) {
               const row = stats.find((r) => r.key === k);
-              const actual = (row?.total ?? 0) + decalage(k) + relTermMax(k);
+              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMax(k), k, requirement);
               if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
             }
             for (const { k, max } of maxEntries) {
               const row = stats.find((r) => r.key === k);
-              const actual = (row?.total ?? 0) + decalage(k) + relTermMin(k);
+              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMin(k), k, requirement);
               if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
             }
             if (shortfalls.length === 0) {

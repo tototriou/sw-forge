@@ -341,6 +341,7 @@ function orchestrer(argv: string[]): void {
     relaxed: { candidates: fA.relaches.map((runeIds): BuildCandidate => ({ runeIds, stats: [], effTotal: 0 })), truncated: fA.truncated },
     resolus,
     realDamage: point.realDamage,
+    exclusive: point.exclusive,
     traceOptimum: fA.traceur,
     sature: fA.sature,
   });

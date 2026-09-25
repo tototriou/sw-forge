@@ -85,6 +85,39 @@ monstre, aucun `RealDamageContext` supplémentaire.
   champ qu'on ne voit pas.
 
 
+## Sets d'aura d'équipe — modèle
+
+`DamageSetup.setsAura` est une liste optionnelle d'entrées `{ set, nombre }` :
+Fight → ATQ, Determination → DEF, Enhance → PV, Accuracy → PRE et Tolerance
+→ RES. Chaque `nombre` est le **total de sets de l'équipe, monstre optimisé
+inclus** ; le runage candidat n'y ajoute jamais ses propres activations.
+Une seule entrée par type est admise, avec un entier de 1 à 18 et une somme
+de tous les types au plus égale à **18** (jusqu'à six monstres à trois sets).
+Une liste absente vaut zéro ; une recette mal typée ou hors bornes est refusée
+avec le chemin `damageSetup.setsAura` ou celui de son entrée. Source des cinq
+valeurs et du plafond : utilisateur, 2026-09-23, cadrage
+`spec/chantiers/degats-et-aura.md` A.2 ter.
+
+Fight, Determination et Enhance donnent chacun **8 % de la statistique de
+base** correspondante. Ils s'ajoutent au pourcentage de l'invocateur et du
+lead dans le **même `ceil`** de `statsDebutCombat`, sans arrondi séparé. Ils
+agissent ainsi sur le sort actif, ses passifs, les dégâts additionnels et
+l'assiette `Y` des propriétés uniques de relique. Accuracy et Tolerance
+donnent chacun **8 points** de PRE/RES, même si la base vaut zéro. Aucun de
+ces cinq effets ne modifie `computeStats`, qui reste la fiche hors combat.
+
+L'objectif PV effectifs compte Enhance et Determination dans ses scores,
+son choix de paire d'artéfacts et de relique, son tri et sa comparaison.
+Cette extension n'ajoute pas implicitement le lead ou l'invocateur aux PV
+effectifs. Pour les conditions min **et** max, seul RES/PRE reçoit les points
+d'aura, ensemble, quand `compterAurasResPre` est activé (défaut `true`) :
+recherche, élagages, diagnostics et filtres finaux suivent la même règle.
+Désactiver ce booléen ne retire aucun effet des dégâts ni des PV effectifs.
+Les auras PV/ATQ/DEF restent hors conditions. Le booléen est optionnel dans
+la recette pour préserver les exports antérieurs ; ses valeurs présentes
+doivent être booléennes. Le modèle est livré au lot 6 ; ses contrôles visuels
+appartiennent au lot 7.
+
 ## Leader skill d'équipe
 
 Généralise l'ancien champ VIT-only (`leaderSpeedPct`) à **toute** stat de

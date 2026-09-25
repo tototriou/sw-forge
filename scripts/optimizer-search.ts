@@ -110,6 +110,7 @@ console.log(
     }`
 );
 console.log(`minStats : ${JSON.stringify(recipe.requirement.minStats)}`);
+console.log(`Auras d'équipe : ${JSON.stringify(recipe.damageSetup?.setsAura ?? [])} ; RES/PRE dans les conditions : ${recipe.compterAurasResPre ?? true}`);
 if (recipe.requirement.maxStats && Object.keys(recipe.requirement.maxStats).length > 0) {
   console.log(`maxStats : ${JSON.stringify(recipe.requirement.maxStats)}`);
 }
@@ -412,6 +413,7 @@ if (recipe.objective === 'degats_reels' && !realDamage) {
 }
 const classes = sortCandidates(result.candidates, recipe.objective, {
   realDamage,
+  damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
   runeById: new Map(params.pool.map((r) => [r.id, r])),
   metric: recipe.metric,
 });

@@ -67,6 +67,9 @@ import {
   StatShortfall,
   statTotal,
   objectiveScore,
+  avecAurasConditions,
+  conditionsPaireFixePosees,
+  respecteConditionsPaireFixe,
   sortCandidates,
   candidateMetricTotal,
   pvEffectifs,
@@ -452,6 +455,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     setObjective,
     damageSetup,
     setDamageSetup,
+    compterAurasResPre,
+    setCompterAurasResPre,
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,
@@ -1163,7 +1168,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * mesure de la recherche donnerait un écart faux dès qu'on bascule
    * Efficience ↔ Score sans relancer.
    */
-  const refEhp = useMemo(() => (statsReference ? pvEffectifs(statsReference) : null), [statsReference]);
+  const refEhp = useMemo(() => (statsReference ? pvEffectifs(statsReference, damageSetup) : null), [statsReference, damageSetup]);
   const refMetric = useMemo(
     () =>
       selected
@@ -1374,7 +1379,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const evaluer =
       regimeRepresentatif === 'degats_reels'
         ? evaluerPourRegime(regimeRepresentatif, statsAvec, contexteDegatsArtefacts!)
-        : evaluerPourRegime(regimeRepresentatif, statsAvec);
+        : evaluerPourRegime(regimeRepresentatif, statsAvec, regimeRepresentatif === 'ehp'
+          ? { ...contexteExclusive, relique: selected.gear.relic }
+          : undefined);
     return {
       porteur: { element: espece.element, archetype: espece.archetype },
       // ⚠️ **Amputé des artéfacts RÉSERVÉS** par les autres builds validés de
@@ -1654,6 +1661,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     }
     return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq, lockedRunes };
   }, [comboSets, minStats, maxStats, mainStatsBySlot, lockedRunes]);
+  const requirementAvecAuras = useMemo(
+    () => avecAurasConditions(requirement, damageSetup, compterAurasResPre),
+    [requirement, damageSetup, compterAurasResPre]
+  );
 
   /**
    * Ce que l'INVENTAIRE d'artéfacts peut apporter, borné des deux côtés —
@@ -1694,8 +1705,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // stricts avant d'attendre un résultat.
   const estimate = useMemo(() => {
     if (!selected || comboSets.length === 0) return null;
-    return estimateSearchSpace(pool, requirement, selected.gear.base, slotFilterCap, objective, objectiveStats);
-  }, [selected, comboSets, pool, requirement, slotFilterCap, objective, objectiveStats]);
+    return estimateSearchSpace(pool, requirementAvecAuras, selected.gear.base, slotFilterCap, objective, objectiveStats);
+  }, [selected, comboSets, pool, requirementAvecAuras, slotFilterCap, objective, objectiveStats]);
 
   // Diagnostic affiché UNIQUEMENT si une recherche aboutit à 0 résultat (voir
   // le rendu plus bas) : pour chaque condition posée, le meilleur cas
@@ -1708,8 +1719,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // ce que « satisfiable » garantit et ne garantit PAS.
   const feasibilityDiagnosis = useMemo<StatFeasibility[]>(() => {
     if (!selected) return [];
-    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement, metric });
-  }, [selected, searchArtifacts, searchArtifactBounds, pool, requirement, metric]);
+    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
+  }, [selected, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
   const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
 
   // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
@@ -1721,8 +1732,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
     if (!result || result.candidates.length > 0) return null;
-    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement, metric });
-  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirement, metric]);
+    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
+  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
 
   // `adaptiveTrancheWeighting` (toggle « Prioriser les stats les plus
   // difficiles », voir SearchParams dans runeBuildOptim.ts) — réalloue le
@@ -1774,7 +1785,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         relics
       ),
       pool,
-      requirement,
+      requirement: requirementAvecAuras,
       metric,
       maxMs: exhaustiveSearch ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
       slotFilterCap,
@@ -1806,6 +1817,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       requirement,
       objective,
       damageSetup,
+      compterAurasResPre,
       metric,
       slotFilterPreset,
       adaptiveTrancheWeighting,
@@ -1933,6 +1945,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // `resolveDamageSkill` qui retombe alors sur le sort par défaut, pas
       // une erreur d'import (même tolérance que le monstre lui-même, plus bas).
       setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);
+      setCompterAurasResPre(recipe.compterAurasResPre ?? true);
       setSlotFilterPreset(recipe.slotFilterPreset);
       setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
       // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
@@ -2044,8 +2057,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
   // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
   const fullSortedCandidates = useMemo(
-    () => (candidatesSource ? sortCandidates(candidatesSource, sortBy, { realDamage, runeById, metric }) : []),
-    [candidatesSource, sortBy, runeById, metric, realDamage]
+    () => (candidatesSource ? sortCandidates(candidatesSource, sortBy, { realDamage, runeById, metric, damageSetup }) : []),
+    [candidatesSource, sortBy, runeById, metric, realDamage, damageSetup]
   );
 
   const RESULTS_PAGE_SIZE = 20;
@@ -2085,6 +2098,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // ⚠️ Le réglage ENTIER : n'en prendre que quelques champs laissait le
         // cache intact quand on changeait le buff ATQ ou les PV de la cible.
         damageSetup,
+        compterAurasResPre,
         // ⚠️ Le TRI, pas l'objectif : c'est lui qui décide désormais du critère
         // de choix de la paire (voir `faireParamsArtefacts`). Changer de tri
         // entre Dégâts réels et PV effectifs change donc la meilleure paire, et
@@ -2122,9 +2136,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // ⚠️ B.5b bis, bloquant 2 : le résolveur consomme `requirement`
         // (minimums ET maximums) depuis le lot 5b ; sans lui ici, relancer
         // avec un autre maximum gardait un couple devenu infaisable en cache.
-        requirement,
+        requirement: requirementAvecAuras,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirement]
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras]
   );
 
   const faireParamsArtefacts = useMemo(() => {
@@ -2203,21 +2217,21 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // `null` quand aucun minimum n'est posé. Hors mode `recherche` de la
     // relique seulement ; en mode `recherche`, `respecteConditionsAvecRelique`
     // (minimums ET maximums, avec la candidate) le remplace.
-    const minimumsPoses = Object.values(requirement.minStats).some((v) => (v ?? 0) > 0);
+    const conditionsPosees = conditionsPaireFixePosees(requirementAvecAuras);
     return (c: BuildCandidate) => {
       const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
       return resoudreEquipementDuBuild({
         gear,
         faireParams: (relique) => faireParamsArtefacts(c, relique),
-        respecteConditions: minimumsPoses
-          ? (arts) => respecteMinimums(computeStats({ ...gear, artifacts: arts }), requirement.minStats)
+        respecteConditions: conditionsPosees
+          ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), requirementAvecAuras)
           : null,
-        requirement,
+        requirement: requirementAvecAuras,
         regimeAucun: regimeEquipement === 'aucun',
         relicContext: relicContextRecherche,
       });
     };
-  }, [faireParamsArtefacts, selected, runeById, requirement, regimeEquipement, relicContextRecherche]);
+  }, [faireParamsArtefacts, selected, runeById, requirement, requirementAvecAuras, regimeEquipement, relicContextRecherche]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
@@ -2307,6 +2321,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const avecPaire = conformes.map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
     return sortCandidates(avecPaire, sortBy, {
       realDamage,
+      damageSetup,
       runeById,
       metric,
       // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
@@ -4819,7 +4834,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
               const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
               if (objective !== 'ehp') return base;
-              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats)).toLocaleString('fr-FR')}`;
+              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats, damageSetup)).toLocaleString('fr-FR')}`;
             };
             const suffiraitText = (s: StatShortfall) => {
               const st = RECO_STATS.find((r) => r.key === s.key)!;
@@ -4932,8 +4947,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     pvEffectifs:
                       objective === 'ehp' || sortBy === 'ehp'
                         ? {
-                            total: pvEffectifs(c.stats),
-                            delta: compare && refEhp != null ? pvEffectifs(c.stats) - refEhp : undefined,
+                            total: pvEffectifs(c.stats, damageSetup),
+                            delta: compare && refEhp != null ? pvEffectifs(c.stats, damageSetup) - refEhp : undefined,
                           }
                         : undefined,
                     metricDelta:

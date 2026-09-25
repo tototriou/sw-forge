@@ -3251,6 +3251,8 @@ export const CRIT_MODE_LABELS: { key: CritMode; label: string }[] = [
 // ⚠️ Sérialisable et STABLE : ce réglage part dans `OptimizerRecipe` (fichier
 // partagé entre joueurs) et traverse le Web Worker. Aucune valeur dérivée
 // d'un monstre chargé ici — seulement ce que l'utilisateur a saisi.
+export type SetAura = 'fight' | 'determination' | 'enhance' | 'accuracy' | 'tolerance';
+
 export interface DamageSetup {
   // `null` = « le sort par défaut » (voir `defaultDamageSkill`) : une recette
   // partagée reste valable même si son auteur et son lecteur n'optimisent pas
@@ -3309,6 +3311,9 @@ export interface DamageSetup {
   // l'un vers l'autre (lead VIT), jamais un défaut générique qui perdrait
   // l'information déjà saisie.
   leaderSkill?: { stat: LeaderSkillStat; pct: number };
+  // Totaux de l'équipe, monstre optimisé inclus : les sets de ses runes ne
+  // s'ajoutent jamais une seconde fois à ces nombres.
+  setsAura?: { set: SetAura; nombre: number }[];
   /** @deprecated Remplacé par `leaderSkill` (lead VIT). Conservé UNIQUEMENT
    * pour la lecture d'une recette exportée avant la généralisation — voir
    * `resolvedLeaderSkill`. Ne jamais écrire ce champ depuis l'écran. */
@@ -3430,6 +3435,7 @@ export interface DamageSetup {
 // comparaison le plus courant, et les mêmes ordres de grandeur que les
 // outils de référence de la communauté.
 export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
+  setsAura: [],
   skillCom2usId: null,
   enemyDef: 1000,
   enemyHp: 30000,
@@ -3495,6 +3501,16 @@ export function resolvedLeaderSkill(setup: DamageSetup): { stat: LeaderSkillStat
   if (setup.leaderSkill) return setup.leaderSkill;
   const legacy = setup.leaderSpeedPct;
   return legacy ? { stat: 'Attack Speed', pct: legacy } : null;
+}
+
+export function nombreAura(setup: DamageSetup, set: SetAura): number {
+  return setup.setsAura?.find((entree) => entree.set === set)?.nombre ?? 0;
+}
+
+export function pointsAuraResPre(setup: DamageSetup, compter = true): { res: number; acc: number } {
+  return compter
+    ? { res: 8 * nombreAura(setup, 'tolerance'), acc: 8 * nombreAura(setup, 'accuracy') }
+    : { res: 0, acc: 0 };
 }
 
 /**
@@ -3746,15 +3762,14 @@ function crBrutEffectif(
  * laissée intacte (chemin chaud) — `tests/relic-exclusive.test.ts` verrouille
  * l'égalité des deux, buff de VIT éteint.
  *
- * ⚠️ `fight` et `determination` (effets de set qui augmentent les stats au
- * début du combat) ne sont modélisés nulle part dans l'app : ils manquent donc
- * à cette assiette. Écart connu, hors périmètre.
+ * Les auras PV/ATQ/DEF rejoignent le même ceil que l'invocateur et le lead.
+ * RES/PRE gagnent des points directs, y compris depuis une base nulle.
  */
 export function statsDebutCombat(
   stats: StatRow[],
   setup: DamageSetup,
   element: ElementKey | null = null
-): { atk: number; def: number; hp: number; spd: number } {
+): { atk: number; def: number; hp: number; spd: number; res: number; acc: number } {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   const leader = resolvedLeaderSkill(setup);
   const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
@@ -3763,10 +3778,12 @@ export function statsDebutCombat(
     return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
   };
   return {
-    atk: avecInvocateur('atk', leader?.stat === 'Attack Power' ? leader.pct : 0),
-    def: avecInvocateur('def', leader?.stat === 'Defense' ? leader.pct : 0),
-    hp: avecInvocateur('hp', leader?.stat === 'HP' ? leader.pct : 0),
+    atk: avecInvocateur('atk', (leader?.stat === 'Attack Power' ? leader.pct : 0) + 8 * nombreAura(setup, 'fight')),
+    def: avecInvocateur('def', (leader?.stat === 'Defense' ? leader.pct : 0) + 8 * nombreAura(setup, 'determination')),
+    hp: avecInvocateur('hp', (leader?.stat === 'HP' ? leader.pct : 0) + 8 * nombreAura(setup, 'enhance')),
     spd: avecInvocateur('spd', leader?.stat === 'Attack Speed' ? leader.pct : 0),
+    res: (stats.find((s) => s.key === 'res')?.total ?? 0) + pointsAuraResPre(setup).res,
+    acc: (stats.find((s) => s.key === 'acc')?.total ?? 0) + pointsAuraResPre(setup).acc,
   };
 }
 

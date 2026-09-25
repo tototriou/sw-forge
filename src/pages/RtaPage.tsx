@@ -311,7 +311,9 @@ export default function RtaPage({
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
           {compteur}
         </span>
-        <span className="flex-1" />
+        {/* Pas d'espaceur : la barre d'actions prend elle-même la place
+            restante (`flex-1`) — c'est cette largeur qu'elle mesure pour
+            décider si ses boutons tiennent. */}
         <RtaBackupBar
           rta={rta}
           cats={cats}

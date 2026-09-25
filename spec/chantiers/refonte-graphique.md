@@ -170,6 +170,10 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
     pastilles de set avec compteurs, tri, vue liste) : **« on verra plus
     tard »** — non retenues, hors refonte. Bureau seulement : le panneau
     d'actions mobile ne change pas (lot 11).
+    *Précisée le 2026-09-26* : « sur PC, afficher ces boutons si on a la
+    place » — **toutes les actions en boutons quand elles tiennent sur la
+    ligne de l'en-tête** (place mesurée, barre latérale comprise), le menu
+    « ⋯ » seulement faute de place (`src/ui/BarreActions`).
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

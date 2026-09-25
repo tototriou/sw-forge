@@ -26,7 +26,7 @@ import {
 } from '../../lib/rtaShare';
 import RtaValidationReport from './RtaValidationReport';
 import { ConfirmDialog, Modale } from '../../ui/Dialogs';
-import { Bouton, HAUTEUR_EN_TETE, Menu, Option } from '../../ui';
+import { BarreActions, Bouton, Option } from '../../ui';
 import type { ElementMenu } from '../../ui';
 
 /* --------------------------------------------------------------------------
@@ -308,25 +308,27 @@ export default function RtaBackupBar({
     // largeur (`basis-full`), sous le titre et les boutons.
     <div data-passe-grille className={enMenu ? 'contents' : 'mt-4'}>
       {enMenu ? (
-        <div className="flex flex-none items-center gap-2">
-          <Bouton
-            onClick={() => setExportAChoisir(true)}
-            disabled={vide}
-            aria-label="Exporter"
-            icone={<Upload size={14} />}
-            libelle="Exporter"
-            title="Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté"
-            // ⚠️ La hauteur du « ⋯ » juste à côté (36 px) : deux hauteurs
-            // voisines se lisaient comme deux familles de boutons.
-            className={HAUTEUR_EN_TETE}
-          />
-          {/* Les entrées reprennent les boutons de la barre MOT POUR MOT —
-              libellés, désactivations, infobulles — à une précision près :
-              « Importer » devient « Importer une prépa », seul dans un menu où
-              voisinent d'autres gestes. */}
-          <Menu
-            libelle="Plus d'actions"
-            elements={[
+        // ⚠️ `BarreActions` : toutes les actions en boutons S'IL Y A LA PLACE
+        // sur la ligne de l'en-tête (mesurée), sinon « Exporter » + « ⋯ » —
+        // demandé par Thomas : sur PC, ne pas cacher derrière un clic ce que
+        // l'écran peut montrer.
+        // Les entrées reprennent les boutons de la barre MOT POUR MOT —
+        // libellés, désactivations, infobulles — à une précision près :
+        // « Importer » devient « Importer une prépa », voisin d'autres gestes.
+        <BarreActions
+          libelleMenu="Plus d'actions"
+          toujours={[
+            {
+              cle: 'exporter',
+              libelle: 'Exporter',
+              'aria-label': 'Exporter',
+              icone: <Upload size={14} />,
+              onClick: () => setExportAChoisir(true),
+              disabled: vide,
+              title: 'Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté',
+            },
+          ]}
+          autres={[
               {
                 cle: 'sauvegarder',
                 libelle: 'Sauvegarder',
@@ -373,7 +375,6 @@ export default function RtaBackupBar({
               ...entreesEnPlus.filter((e) => e.danger),
             ]}
           />
-        </div>
       ) : (
       <>
       {/* ⚠️ **Une rangée par TYPE d'action**, et non une seule file de six

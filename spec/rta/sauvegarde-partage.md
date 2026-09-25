@@ -6,7 +6,11 @@ Exporter · Importer**.
 ⚠️ **Deux dispositions, une seule logique** (`RtaBackupBar`, prop
 `disposition`) — refonte graphique, lot 6, décision 13 de Thomas :
 
-- **Bureau — `menu`** : dans l'en-tête de la page, « **Exporter** » visible,
+- **Bureau — `menu`** : dans l'en-tête de la page (composant `BarreActions`
+  de `src/ui`). **S'il y a la place sur la ligne, toutes les actions y sont en
+  boutons** (Réinitialiser et Tout effacer à droite, derrière un filet) —
+  demandé par Thomas ; la place est mesurée, barre latérale comprise. Sinon :
+  « **Exporter** » visible,
   les autres dans le menu **« ⋯ » Plus d'actions** (composant `Menu` de
   `src/ui`) : Sauvegarder, Reprendre, **Importer une prépa**, puis les entrées
   de la page (Créer un monstre) ; séparés en bas, en `bad` : Réinitialiser et

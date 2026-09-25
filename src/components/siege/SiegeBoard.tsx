@@ -225,16 +225,15 @@ export default function SiegeBoard({
         <BarreActions
           libelleMenu="Plus d'actions"
           toujours={[
-            // ⚠️ « Vérifier mes speed » est l'action PRINCIPALE de l'écran, et
-            // vient en premier — choix de Thomas : c'est pour vérifier ses
+            // « Vérifier mes speed » vient en premier : c'est pour vérifier ses
             // équipes qu'on vient ici, on n'en ajoute qu'une de temps en temps.
-            // Aplat d'accent tant qu'il est éteint ; allumé, le fond d'accent
-            // doux d'un bouton enclenché.
+            // ⚠️ **Aucune action n'est mise en avant** (pas d'aplat d'accent) :
+            // essayé sur ce bouton, Thomas l'a retiré — « ça rend pas bien ».
+            // Allumé, il prend le fond d'accent doux d'un bouton enclenché.
             {
               cle: 'verifier',
               libelle: 'Vérifier mes speed',
               icone: <Gauge size={15} />,
-              principal: true,
               actif: checkTicks,
               disabled: siege.state.teams.length === 0,
               // Même texte que le bouton du panneau mobile, ci-dessous.

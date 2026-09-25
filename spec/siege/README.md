@@ -30,11 +30,12 @@ persistance : voir [recommandations.md](recommandations.md).
    elles tiennent sur la ligne** (place mesurée), sinon **Vérifier mes speed**
    et **Ajouter une équipe** visibles, et **Créer un monstre**, **Tout
    effacer** (séparé, en `bad`) dans le menu « ⋯ » Plus d'actions.
-   - ⚠️ **« Vérifier mes speed » est l'action principale** (décision 4), et
-     vient en premier — choix de Thomas (2026-09-26) : c'est pour vérifier ses
-     équipes qu'on vient ici, on n'en ajoute qu'une de temps en temps. Bouton à
-     deux états : aplat d'accent éteint, fond d'accent doux allumé
-     (`aria-pressed`).
+   - « Vérifier mes speed » vient en premier : c'est pour vérifier ses équipes
+     qu'on vient ici, on n'en ajoute qu'une de temps en temps. Bouton à deux
+     états : fond d'accent doux quand il est allumé (`aria-pressed`).
+   - ⚠️ **Aucune action mise en avant** (pas d'aplat d'accent dans l'en-tête) :
+     essayé sur « Vérifier mes speed », retiré par Thomas le 2026-09-26 — « ça
+     rend pas bien ». Voir la décision 4 précisée.
    - « Créer un monstre » est **en dernier des actions** : c'est le geste le plus
      rare.
    - Tous les boutons d'en-tête font **36 px** (`HAUTEUR_EN_TETE`).

@@ -12,7 +12,7 @@ compte ~5 200 lignes, dont 3 600 pour les Recommandations :
 Décisions appliquées (A.2 bis) :
 - 8 (pastille de statut écrite) ;
 - 13 précisée (en-tête et `BarreActions`, comme la RTA) ;
-- 4 (action principale) ;
+- 4 précisée (pas d'action mise en avant dans un en-tête) ;
 - 1 (Cinzel pour les titres).
 
 ## Tests écrits AVANT
@@ -32,7 +32,8 @@ d'avant la refonte) :
 | Question | Réponse |
 |---|---|
 | Textes de la pastille de statut | **courts, tirés des phrases de l'app** — Tous au tick, Speed tune, Tick validé, Speed tune validé, À vérifier, Pas au tick, Runes incomplètes (+ Artéfacts incomplets quand il ne manque que des artéfacts) |
-| « met plutôt en avant la vérification des speed plutôt que l'ajout d'une équipe » | « Vérifier mes speed » est l'action principale (aplat d'accent), en premier |
+| « met plutôt en avant la vérification des speed plutôt que l'ajout d'une équipe » | « Vérifier mes speed » en premier, en aplat d'accent |
+| « ne met pas d'action en avant en fait ça rend pas bien » | **aucun aplat dans l'en-tête** — « Vérifier mes speed » reste en premier, bouton normal (fond doux allumé) ; axe `principal` retiré de la librairie ; décision 4 précisée |
 
 Fonctions nouvelles de la maquette (recherche d'équipe par monstre, pastilles
 de filtre par statut, vue liste) : **non faites**, comme pour la RTA (« on

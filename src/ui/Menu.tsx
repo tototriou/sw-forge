@@ -46,10 +46,8 @@ export interface ElementMenu {
   // il porte `aria-pressed` et le fond d'accent ; dans le menu, il devient une
   // entrée à cocher (`menuitemcheckbox`).
   actif?: boolean;
-  // L'action PRINCIPALE de l'écran (décision 4 : un seul bouton plein par
-  // écran). Ne vaut qu'en bouton : une action principale ne se range pas dans
-  // un menu — la mettre dans les `toujours` d'une BarreActions.
-  principal?: boolean;
+  // ⚠️ Pas d'axe « principal » : aucune action n'est mise en avant dans un
+  // en-tête d'écran (décision 4 précisée — essayé, retiré par Thomas).
 }
 
 export interface MenuProps {

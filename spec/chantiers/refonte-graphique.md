@@ -122,6 +122,11 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
    halos, couleurs des étapes) ; seul le menu est neutre.
 4. **Bouton principal plein retenu** : `ton="accent"` + `fond="plein"`
    devient un aplat d'accent, un seul par écran.
+   *Précisée le 2026-09-26* : **pas d'action mise en avant dans les
+   EN-TÊTES d'écran** (`BarreActions`). Essayé sur « Vérifier mes speed »
+   (Siège), retiré par Thomas : « ne met pas d'action en avant en fait ça
+   rend pas bien ». L'aplat reste là où il est déjà (« Importer mon compte »
+   de l'accueil, boutons de validation des dialogues).
 5. **Regroupement du menu retenu** : Jouer (RTA, Siège, Arène) / Mon compte
    (Monstres, Runes, Artéfacts) / Outils / Ressources — toutes les entrées
    restent.

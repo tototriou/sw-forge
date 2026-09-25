@@ -308,7 +308,7 @@ Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 8b �
 | 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
 | 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par Thomas le 2026-09-25 |
 | 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par Thomas le 2026-09-25 |
-| 6 RTA | J | exécuté, à valider | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435` ; 2026-09-25 |
+| 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
 | 7 Siège | J | à faire | |
 | 8a Compte · Runes | J | à faire | |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
@@ -546,8 +546,10 @@ permanente, fonctions nouvelles de la maquette non retenues). Tests avant
 `ef35074` (47 vérifications, aucune assertion modifiée) ; `src/ui/Menu`
 (`1ef4103`, premier usage justifié) ; en-tête bureau (`501699a`) ; sections
 sans cadre et cartes de la refonte (`ca0d435`). Aucune perte, aucun
-déplacement : la disposition mobile garde tous les libellés. À valider par
-Thomas sur le serveur de dev.
+déplacement : la disposition mobile garde tous les libellés. Ajustements
+après essai : « Exporter » et « ⋯ » à la même hauteur (`b5bf247`) ; sur PC,
+toutes les actions en boutons quand elles tiennent (`src/ui/BarreActions`,
+place mesurée — `4121a71`, `1c05c06`). **Validé par Thomas le 2026-09-26.**
 
 ### B.11 Lot 11 — téléphone · J
 

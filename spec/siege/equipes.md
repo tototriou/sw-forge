@@ -85,6 +85,14 @@ moins par slot, **rien de retiré** :
   monstre. Aux bords, la flèche reste affichée, **désactivée**, avec
   sa raison (« Déjà en première position » / « Déjà en dernière position ») ;
   vers le slot 1, l'infobulle dit que le monstre **devient le leader** ;
+- ⚠️ **L'ordre des lignes : le monstre, ce qu'on SAISIT, la CONCLUSION.**
+  Ligne 2 : le champ SPD puis les ticks visés, côte à côte. Ligne 3, en bas,
+  sous un filet : la vitesse de combat, sa base et l'écart au tick —
+  demandé par Thomas : « la spd et la conclusion en bas, car c'est la
+  conclusion ». Le slot est une grille à deux colonnes (`auto 1fr`) dont les
+  lignes sont celles de la grille des slots ; les éléments y sont PLACÉS,
+  sans duplication ni changement de l'ordre du DOM — le téléphone garde le
+  sien ;
 - l'**écart au tick** (« manque 12 pour 239 », « +3 au-dessus de 286 »,
   « pile au tick ») se pose **juste après la vitesse de combat** qu'il
   qualifie. Posé d'abord au bout de la rangée des ticks, il y passait seul à

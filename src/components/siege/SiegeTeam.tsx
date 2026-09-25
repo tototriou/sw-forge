@@ -906,9 +906,18 @@ function SlotContent({
       ref={cardRef}
       // Plus de `min-h` à la souris : la grille aligne les trois slots, ligne
       // par ligne (`grid-rows-subgrid`, voir la grille des slots).
-      className="relative flex flex-col p-2.5 compact:min-h-[110px] compact:p-2 lg:row-span-3 lg:grid lg:grid-rows-subgrid"
+      // ⚠️ À la souris, le slot est une GRILLE : ses trois lignes sont celles
+      // de la grille des slots (`grid-rows-subgrid`, alignées d'un slot à
+      // l'autre), sur deux colonnes à lui (`auto 1fr`). On y place, sans rien
+      // dupliquer ni changer l'ordre du DOM (le téléphone garde le sien) :
+      //   1. le monstre (les deux colonnes) ;
+      //   2. ce qu'on SAISIT : le champ SPD, puis les ticks visés ;
+      //   3. la CONCLUSION, en bas : la vitesse de combat, sa base, l'écart au
+      //      tick — demandé par Thomas : « la spd et la conclusion en bas, car
+      //      c'est la conclusion ».
+      className="relative flex flex-col p-2.5 compact:min-h-[110px] compact:p-2 lg:row-span-3 lg:grid lg:grid-rows-subgrid lg:grid-cols-[auto_1fr] lg:items-center lg:gap-x-3"
     >
-      <div className="mb-2 flex items-center gap-1.5 compact:mb-1">
+      <div className="mb-2 flex items-center gap-1.5 compact:mb-1 lg:col-span-2">
         <ZoneCliquable
           poignee
           draggable
@@ -1017,9 +1026,12 @@ function SlotContent({
 
       {/* Vitesse de combat, mise en avant, et le champ SPD — CENTRÉS l'un sur
           l'autre (`items-center`) : calés par le bas, le gros chiffre montait
-          au-dessus de « SPD : » et les deux ne tombaient pas au même niveau. */}
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 compact:mt-0.5">
-        <div>
+          au-dessus de « SPD : » et les deux ne tombaient pas au même niveau.
+          ⚠️ À la souris, ce conteneur S'EFFACE (`lg:contents`) : ses deux
+          enfants sont placés dans la grille du slot — la vitesse en bas
+          (ligne 3), le champ SPD avec les ticks (ligne 2). */}
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 compact:mt-0.5 lg:contents">
+        <div className="lg:col-span-2 lg:row-start-3 lg:mt-2 lg:border-t lg:border-border-soft lg:pt-2">
           {/* ⚠️ 16 px au doigt contre 22 à la souris (26 avant le lot 7a). Le
               nom du monstre est la RÉFÉRENCE de ce bloc : la vitesse doit rester
               au-dessus de lui sans l'écraser — un rapport de 1,3 à 1,6 suffit à
@@ -1038,7 +1050,7 @@ function SlotContent({
             base {base ?? '—'}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 lg:col-start-1 lg:row-start-2">
           <label className="flex items-center gap-1.5">
             <span className="label">SPD :</span>
             <NumberField
@@ -1053,8 +1065,9 @@ function SlotContent({
         </div>
       </div>
 
-      {/* Tick cible, propre à ce monstre */}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5 compact:mt-1 compact:gap-1">
+      {/* Tick cible, propre à ce monstre — à la souris, sur la ligne de la
+          saisie, à droite du champ SPD. */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 compact:mt-1 compact:gap-1 lg:col-start-2 lg:row-start-2 lg:mt-0">
         <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" />
         {SIEGE_TICKS.map((t) => (
           <TickBtn

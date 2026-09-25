@@ -163,7 +163,12 @@ export function testRenduSiegeEnTete() {
     ok(texteVisible(html).includes(`${nom} 2 équipes`), `${nom} : le titre, puis le compteur`);
     ok(!!bouton(html, "Plus d'actions"), `${nom} : bouton « Plus d'actions »`);
     const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
-    egal(boutons(menu).map((b) => b.texte), ['Créer un monstre', 'Tout effacer'], `${nom} : le menu porte « Créer un monstre » puis « Tout effacer »`);
+    // (Décision 14 : « Exporter » et « Importer » s'ajoutent en tête du menu.)
+    egal(boutons(menu).map((b) => b.texte), ['Exporter', 'Importer', 'Créer un monstre', 'Tout effacer'], `${nom} : le menu porte Exporter, Importer, Créer un monstre, puis Tout effacer`);
+    const exp = boutons(menu).find((b) => b.texte === 'Exporter');
+    ok(!!exp && !exp.desactive && (exp.title ?? '').includes('.json'), `${nom} : « Exporter » actif, son infobulle parle du fichier .json`);
+    ok((boutons(menu).find((b) => b.texte === 'Importer')?.title ?? '').includes('ne sont pas touchées'), `${nom} : « Importer » dit que les équipes existantes ne sont pas touchées`);
+    ok(/aria-label="Chercher une équipe par monstre"/.test(html) && /placeholder="Nom du monstre…"/.test(html), `${nom} : le champ de recherche « Nom du monstre… »`);
     const hors = boutons(html.replace(menu, ''));
     ok(hors.some((b) => b.texte === 'Ajouter une équipe') && hors.some((b) => b.texte === 'Vérifier mes speed'), `${nom} : « Ajouter une équipe » et « Vérifier mes speed » restent visibles`);
   }

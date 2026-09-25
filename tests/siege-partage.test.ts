@@ -3,6 +3,7 @@
 // entier, un monstre inconnu ou perso laisse son emplacement vide.
 
 import { exporterEquipes, lireEquipes, nomFichierSiege, FORMAT_SIEGE } from '../src/lib/siegeShare';
+import { equipeContient, normaliser } from '../src/components/siege/rechercheEquipe';
 import type { Monster, SiegeTeam } from '../src/types';
 import { egal, monstersJson, ok, titre } from './outils';
 
@@ -66,4 +67,14 @@ export default function testSiegePartage() {
   refus(JSON.stringify({ format: FORMAT_SIEGE, version: 1 }), 'aucune liste', 'pas de liste d\'équipes');
 
   egal(nomFichierSiege('defense', new Date('2026-09-26T12:00:00Z')), 'swforge-siege-defense-2026-09-26.json', 'le nom du fichier dit le côté et la date');
+
+  // Recherche d'équipe par monstre (même décision 14).
+  titre('Siège — recherche d\'équipe par monstre');
+  const equipe = teams[0];
+  ok(equipeContient(equipe, '', parId), 'une saisie vide garde toutes les équipes');
+  ok(equipeContient(equipe, '  ', parId), 'des espaces seuls aussi');
+  ok(equipeContient(equipe, 'lush', parId), '« lush » trouve Lushen (début du nom)');
+  ok(equipeContient(equipe, 'ERO', parId), '« ERO » trouve Veromos (casse ignorée, milieu du nom)');
+  ok(!equipeContient(equipe, 'chasun', parId), '« chasun » ne trouve pas une équipe sans Chasun');
+  egal(normaliser('Éléonore'), 'eleonore', 'accents ignorés : « Éléonore » se cherche « eleonore »');
 }

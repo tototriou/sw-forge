@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Castle, Trash2, Gauge, Wand2 } from 'lucide-react';
+import { Plus, Castle, Trash2, Gauge, Wand2, Upload, Download, Search, X } from 'lucide-react';
 import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../../types';
 import { LoadState } from '../../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
@@ -9,7 +9,9 @@ import SpeedTuneModale from '../outils/SpeedTuneModale';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import MobileSheet from '../../ui/MobileSheet';
-import { BarreActions, Bouton } from '../../ui';
+import { BarreActions, Bouton, BoutonIcone, Champ } from '../../ui';
+import { equipeContient } from './rechercheEquipe';
+import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
 interface Props {
@@ -94,6 +96,65 @@ export default function SiegeBoard({
     for (const mon of monsters) m.set(String(mon.id), mon);
     return m;
   }, [monsters]);
+
+  // ---- Recherche d'équipe par monstre (décision 14) ----------------------
+  // ⚠️ État LOCAL, jamais enregistré : revenir sur la page montre toutes ses
+  // équipes — un filtre oublié ferait croire à des équipes disparues.
+  const [recherche, setRecherche] = useState('');
+  // Les équipes affichées, AVEC leur rang dans la liste complète : la
+  // numérotation (« Équipe 5 ») est l'identité de l'équipe, elle ne change pas
+  // quand on filtre.
+  const affichees = siege.state.teams
+    .map((team, rang) => ({ team, rang }))
+    .filter(({ team }) => equipeContient(team, recherche, monsterById));
+  const filtre = recherche.trim() !== '';
+
+  // ---- Export / import d'équipes (décision 14, lib/siegeShare) ------------
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(null), msg.error ? 9000 : 5000);
+    return () => clearTimeout(t);
+  }, [msg]);
+  const fichierEquipes = useRef<HTMLInputElement>(null);
+
+  function exporter() {
+    const aExporter = affichees.map((a) => a.team);
+    if (aExporter.length === 0) return;
+    const { texte, equipes, perso } = exporterEquipes(aExporter, side, monsterById);
+    const nom = nomFichierSiege(side);
+    const blob = new Blob([texte], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nom;
+    a.click();
+    URL.revokeObjectURL(url);
+    setMsg({
+      text:
+        `${equipes} équipe(s) exportée(s) · ${nom}` +
+        (perso > 0 ? ` · ${perso} monstre(s) perso non exporté(s) : emplacement vide.` : ''),
+    });
+  }
+
+  function importer(texte: string) {
+    const lu = lireEquipes(texte, monsters);
+    if (!lu.ok) {
+      setMsg({ text: `Import refusé : ${lu.erreur}`, error: true });
+      return;
+    }
+    siege.appendTeams(lu.equipes);
+    setScrollToLast(true);
+    setMsg({
+      text:
+        `${lu.equipes.length} équipe(s) ajoutée(s) à la suite des tiennes.` +
+        (lu.cote !== side ? ` Le fichier venait ${lu.cote === 'defense' ? 'de la défense' : "de l'offense"}.` : '') +
+        (lu.inconnus.length > 0
+          ? ` ${lu.inconnus.length} monstre(s) absent(s) des données chargées (${lu.inconnus.slice(0, 3).join(', ')}${lu.inconnus.length > 3 ? '…' : ''}) : emplacement vide.`
+          : ''),
+      error: lu.inconnus.length > 0,
+    });
+  }
 
   // Les actions du board, rendues une seule fois et posées à DEUX endroits
   // selon la largeur : dans la page au-dessus de `lg`, dans le panneau en
@@ -192,6 +253,28 @@ export default function SiegeBoard({
         libelleCourt="Speed"
       />
 
+      {/* Export / import d'équipes (décision 14) — mêmes gestes que dans
+          l'en-tête bureau, mêmes fonctions. */}
+      <Bouton
+        onClick={() => {
+          exporter();
+          onFermerMenu();
+        }}
+        disabled={affichees.length === 0}
+        title={affichees.length === 0 ? 'Aucune équipe à exporter' : 'Exporter les équipes affichées en fichier .json'}
+        icone={<Upload size={15} />}
+        libelle="Exporter"
+      />
+      <Bouton
+        onClick={() => {
+          fichierEquipes.current?.click();
+          onFermerMenu();
+        }}
+        title="Ajouter les équipes d'un fichier .json exporté par SW Forge — les tiennes ne sont pas touchées"
+        icone={<Download size={15} />}
+        libelle="Importer"
+      />
+
       {/* En dernier des actions : c'est le geste le plus rare. */}
       <CreateMonster
         onCreate={onCreateMonster}
@@ -257,6 +340,27 @@ export default function SiegeBoard({
             },
           ]}
           autres={[
+            // Export / import d'équipes — ajout décidé par Thomas (décision 14).
+            {
+              cle: 'exporter',
+              libelle: 'Exporter',
+              icone: <Upload size={14} />,
+              disabled: affichees.length === 0,
+              title:
+                affichees.length === 0
+                  ? 'Aucune équipe à exporter'
+                  : filtre
+                    ? 'Exporter les équipes affichées (celles de la recherche) en fichier .json'
+                    : `Télécharger tes équipes d'${noun} en fichier .json, pour les partager ou les garder de côté`,
+              onClick: exporter,
+            },
+            {
+              cle: 'importer',
+              libelle: 'Importer',
+              icone: <Download size={14} />,
+              title: "Ajouter les équipes d'un fichier .json exporté par SW Forge — les tiennes ne sont pas touchées",
+              onClick: () => fichierEquipes.current?.click(),
+            },
             {
               cle: 'creer',
               libelle: 'Créer un monstre',
@@ -285,6 +389,50 @@ export default function SiegeBoard({
         ouvert={creationOuverte}
         onOuvert={setCreationOuverte}
       />
+
+      {/* Le sélecteur de fichier de l'import d'équipes (jamais dessiné). */}
+      <input
+        ref={fichierEquipes}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = ''; // permet de recharger le même fichier
+          if (f) f.text().then(importer);
+        }}
+      />
+
+      {/* ---- Recherche d'équipe par monstre (décision 14) — aux deux formats.
+          Le message d'export / d'import s'affiche juste en dessous. */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <div className="w-full sm:w-72">
+          <Champ
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Nom du monstre…"
+            aria-label="Chercher une équipe par monstre"
+            icone={<Search size={14} />}
+          />
+        </div>
+        {filtre && (
+          <>
+            <BoutonIcone
+              libelle="Vider la recherche"
+              icone={<X size={14} />}
+              onClick={() => setRecherche('')}
+            />
+            <span className="font-mono text-xs text-ink-dim">
+              {affichees.length} équipe{affichees.length > 1 ? 's' : ''} sur {siege.state.teams.length}
+            </span>
+          </>
+        )}
+      </div>
+      {msg && (
+        <p className={`mt-2 text-xs ${msg.error ? 'text-fire' : 'text-good'}`} role="status">
+          {msg.text}
+        </p>
+      )}
 
       {/* TÉLÉPHONE : le compteur seul ; les actions sont dans le panneau. */}
       <div className="mt-5 flex items-center gap-3 lg:hidden">
@@ -327,6 +475,14 @@ export default function SiegeBoard({
             depuis la barre du haut.
           </p>
         </div>
+      ) : affichees.length === 0 ? (
+        // La recherche ne trouve rien : on le dit, et on propose d'en sortir.
+        <div className="mt-6 flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-6 py-10 text-center">
+          <p className="text-sm text-ink-dim">
+            Aucune équipe ne contient « {recherche.trim()} ».
+          </p>
+          <Bouton taille="sm" libelle="Effacer la recherche" onClick={() => setRecherche('')} />
+        </div>
       ) : (
         // ⚠️ **Autant de colonnes que la PLACE en permet** (lot 7a, « optimiser
         // l'espace ») : des colonnes d'au moins 480 px — la largeur où les trois
@@ -340,15 +496,17 @@ export default function SiegeBoard({
         // chaque écart se paie autant de fois — un écran entier de vide sur un
         // téléphone.
         <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,480px),1fr))] items-start gap-2 sm:mt-4 sm:gap-3">
-          {siege.state.teams.map((team, i) => (
+          {/* Les équipes AFFICHÉES (filtre de recherche), chacune avec son rang
+              dans la liste complète : « Équipe 5 » reste « Équipe 5 ». */}
+          {affichees.map(({ team, rang }) => (
             <div
               key={team.id}
-              ref={i === siege.state.teams.length - 1 ? lastTeamRef : undefined}
+              ref={rang === siege.state.teams.length - 1 ? lastTeamRef : undefined}
               className={expandedIds.has(team.id) ? 'col-span-full' : undefined}
             >
             <SiegeTeam
               team={team}
-              index={i}
+              index={rang}
               monsters={monsters}
               monsterById={monsterById}
               checkTicks={checkTicks}

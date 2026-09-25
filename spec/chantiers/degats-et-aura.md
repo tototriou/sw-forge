@@ -316,7 +316,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 2b — déplacement et repointage selon le plan validé | M | terminé | `62fc8bf8` + correctif pilote des liens relatifs / 2026-09-24 |
 | 3 — plancher des conditions en « Libre » | M | terminé | 2026-09-24 |
 | 4 — relique « comme équipé » et les minimums | C→M | terminé | `91837dab` / 2026-09-25 |
-| 5 — le contexte survit au changement de monstre | J | à faire | — |
+| 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
 | 6 — sets d'aura : le modèle | J | à faire | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -1152,6 +1152,23 @@ recherchés.
 **Ne fait pas :** ne touche pas aux autres réinitialisations de `resetSearch`
 (`minStats`, `lockedRunes`, `lignesVerrouillees`, `objective`… — chacune a sa
 raison écrite sur place, et aucune n'est visée par la demande).
+
+#### Résultat du lot 5 — 2026-09-25
+
+Le code `bed3818f` classe exhaustivement les champs de `DamageSetup`,
+conserve le contexte au changement d'espèce et distingue l'import de compte
+de l'import de recette. Le correctif pilote `09ca897d`, décidé avec
+l'utilisateur, retire la remise à zéro superflue lors de la navigation entre
+listes ou exemplaires de même espèce. Le choix d'une autre espèce, depuis le
+bestiaire ou un membre de liste, garde le reset ciblé ; l'import de compte
+garde le reset complet. La règle normative et l'invariant privé concordent
+avec les chemins de l'écran. Preuve privée :
+`archive/controles-degats-aura-2026-09/controle-5.md`, corrigendum pilote.
+Le test nommé a échoué sur trois assertions avant le correctif, puis ses 22
+vérifications sont passées ; 1 016 vérifications ciblées, `tsc`, build, lint
+global et `git diff --check` passent. Le test lit les raccordements de l'écran
+mais ne simule pas les clics dans un navigateur ; aucun benchmark n'a été
+lancé.
 
 ### Lot 6 — sets d'aura : le modèle
 

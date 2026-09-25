@@ -343,9 +343,8 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    imposée, objectif, artéfacts, conditions min/max, tri, pagination) — des
    critères posés pour l'ancien monstre n'ont pas de raison de valoir pour
    le nouveau. Re-choisir le même exemplaire, ou un AUTRE exemplaire de la
-   MÊME espèce, conserve les critères de recherche mais vide le sort et ses
-   réglages propres ; re-choisir exactement le même exemplaire ne vide rien.
-   Les **réglages avancés**
+   MÊME espèce, conserve les critères de recherche, le sort et ses réglages :
+   aucun nouveau sort n'est à choisir pour cette espèce. Les **réglages avancés**
    (préfiltrage, exclusions, recherche exhaustive…) ne sont jamais
    concernés : préférences générales, pas critères propres à un monstre.
    **Importer un nouveau compte** déclenche la réinitialisation complète,
@@ -365,8 +364,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    ⚠️ **La description du combat, elle, SURVIT** : défense, PV et élément de
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
    plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
-   le combat déjà décrit. Les sélecteurs et réglages propres au sort retombent
-   au défaut, selon la table ci-dessous.
+   le combat déjà décrit. Les sélecteurs et réglages propres au sort ne
+   retombent au défaut que lorsque l'espèce optimisée change, selon la table
+   ci-dessous.
 
    **Classement exhaustif de `DamageSetup` (lot 5).** « Contexte » désigne
    l'adversaire, l'équipe ou l'état de combat réutilisable ; « sort » désigne
@@ -384,16 +384,19 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     | Événement | Contexte partagé et legacy associé | Sort, passifs et marqueurs associés | Autres critères de recherche |
     | --- | --- | --- | --- |
     | Espèce différente | Conservés | Défauts | `resetSearch` habituel |
-    | Autre exemplaire de la même espèce | Conservés | Défauts | Conservés |
-    | Autre liste de travail, y compris création ou suppression de la liste active | Conservés | Défauts | Conservés |
+    | Autre exemplaire de la même espèce, y compris après une nouvelle recherche bestiaire | Conservés | Conservés | Conservés |
+    | Navigation entre listes, création ou suppression de la liste active sans choisir un autre monstre | Conservés | Conservés | Conservés |
+    | Choix d'un membre de liste d'une espèce différente | Conservés | Défauts | `resetSearch` habituel |
+    | Choix d'un membre de liste de la même espèce | Conservés | Conservés | Conservés |
     | Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette |
     | Import de compte | Défauts | Défauts | `resetSearch` habituel |
 
    Cliquer un autre membre de la liste garde les autres effets de `resetSearch`
-   quand son espèce change. Une simple re-sélection de la même espèce, du même
-   exemplaire ou de la même liste ne vide rien. L'import de recette écrit
-   directement ses valeurs après validation ; aucun effet différé de changement
-   d'espèce ne les écrase.
+   quand son espèce change. Naviguer entre listes sans choisir un autre
+   monstre ne change pas le monstre optimisé ; la simple re-sélection de la
+   même espèce ou d'un exemplaire de celle-ci ne vide rien. L'import de
+   recette écrit directement ses valeurs après validation ; aucun effet
+   différé de changement d'espèce ne les écrase.
 
 ### Meilleurs artéfacts offensifs pour ce build
 2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte

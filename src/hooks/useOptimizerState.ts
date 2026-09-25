@@ -333,9 +333,9 @@ export interface OptimizerState {
   // propres critères juste après, les effacer aussitôt les perdrait) et par
   // App.tsx quand un nouveau compte est importé (voir son `useEffect` sur
   // `box`) : dans les deux cas, la recherche affichée devient obsolète
-  // (autre monstre, autre pool de runes).
+  // (autre espèce ou autre pool de runes). La navigation entre exemplaires
+  // d'une même espèce et listes ne passe pas par ici.
   resetSearch: (motif?: 'monstre' | 'compte') => void;
-  resetDamageSkill: () => void;
 }
 
 export function useOptimizerState(): OptimizerState {
@@ -417,10 +417,6 @@ export function useOptimizerState(): OptimizerState {
     search.reset();
   }
 
-  function resetDamageSkill() {
-    setDamageSetup(damageSetupApresChangementMonstre);
-  }
-
   return {
     selectedId,
     setSelectedId,
@@ -482,6 +478,5 @@ export function useOptimizerState(): OptimizerState {
     setOpenDetailKey,
     search,
     resetSearch,
-    resetDamageSkill,
   };
 }

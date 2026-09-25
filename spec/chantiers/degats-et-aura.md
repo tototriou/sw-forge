@@ -49,8 +49,10 @@ les modifications de `degats-reels.md` (2a/2b).
    `ehp`, dans les calculs des passifs et des exclusives de relique. Un unique
    interrupteur autorise RES/PRE seulement dans les conditions min ET max ;
    les auras PV/ATQ/DEF ne participent jamais aux conditions.
-3. Le contexte de combat survit à un changement de monstre ; ce qui désigne un
-   sort précis ne survit pas.
+3. Le contexte de combat survit à un changement d'espèce ; ce qui désigne un
+   sort précis de l'ancienne espèce ne survit pas. Un changement d'exemplaire
+   de même espèce ou une navigation entre listes ne vide aucun réglage de
+   combat.
 4. En « Libre », la contribution garantie des emplacements d'artéfact au
    plancher vaut 0 ; la base et une relique réellement équipée restent comptées
    selon le mode d'affichage. Ce n'est pas un plancher total nul sur huit stats.
@@ -1128,16 +1130,22 @@ complète. Distinguer les actions ou leur motif explicite ; ne pas modifier
 indistinctement tous les appelants. L'import de recette restaure la recette,
 sans se faire écraser par une remise à zéro de changement d'espèce.
 
-**Conservation en session, validée en revue :** le contexte se conserve
-aussi en changeant de liste de travail, pas seulement entre ses monstres.
-L'import de compte garde la réinitialisation complète définie ci-dessus.
+**Conservation en session, précisée par l'utilisateur le 2026-09-25 :** le
+contexte se conserve en changeant d'espèce ou de liste de travail. Les
+réglages propres au sort ne se vident qu'au choix d'une espèce différente,
+depuis le bestiaire ou un membre de liste : changer d'exemplaire de même
+espèce, créer/supprimer une liste ou naviguer entre listes ne change pas le
+sort optimisé. L'import de compte garde la réinitialisation complète définie
+ci-dessus.
 
 **Sortie :** une table normative des champs et événements dans
 `spec/outils/optimizer.md § Recherche du monstre à optimiser`.
-Elle est accompagnée d'un test qui vérifie changement d'espèce, d'exemplaire, de liste, import de
-recette et import de compte. Le test protège cette table, il ne remplace pas
-la spec. Les nombres d'auras dans l'équipe survivent au changement de
-monstre ; le lot 7 éprouve leur interaction avec les sets recherchés.
+Elle est accompagnée d'un test qui vérifie changement d'espèce, conservation
+sur changement d'exemplaire et navigation de liste, choix d'un membre d'une
+autre espèce, import de recette et import de compte. Le test protège cette
+table, il ne remplace pas la spec. Les nombres d'auras dans l'équipe survivent
+au changement de monstre ; le lot 7 éprouve leur interaction avec les sets
+recherchés.
 
 **Preuve :** le test · `npx tsc --noEmit` · `node tests/run.mjs <nom> degats optimizer-recipe-import-selection`.
 

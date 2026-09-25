@@ -9,7 +9,7 @@ export default function testOptimizerDamageTransitions() {
   titre('Optimizer · contexte de dégâts aux cinq transitions');
 
   // Le contrat de production est exercé avec une valeur distincte sur chaque
-  // catégorie ; les cinq chemins UI sont contrôlés à leurs points d'appel.
+  // catégorie ; les événements UI sont contrôlés à leurs points d'appel.
   const avant: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: 123, enemyDef: 2345, leaderSkill: { stat: 'Attack Speed', pct: 24 },
@@ -19,17 +19,15 @@ export default function testOptimizerDamageTransitions() {
     effetsCibleCountAutres: false, buffsPropresCountAutres: false,
   };
   const attendu = damageSetupApresChangementMonstre(avant);
-  for (const evenement of ['espèce', 'exemplaire', 'liste'] as const) {
-    const apres = damageSetupApresChangementMonstre(avant);
-    egal(apres, attendu, `${evenement} : transition de production commune`);
-    egal(apres.enemyDef, 2345, `${evenement} : contexte préservé`);
-    egal(apres.leaderSpeedPct, 19, `${evenement} : compatibilité du lead préservée`);
-    egal(apres.skillCom2usId, null, `${evenement} : sort vidé`);
-    egal(apres.passifsOffensifs, {}, `${evenement} : passifs du monstre vidés`);
-    egal(apres.defBreakParLeSort, false, `${evenement} : état du sort vidé`);
-    egal(apres.sacrificeReservePct, 0, `${evenement} : réserve du sort vidée`);
-    egal(apres.effetsCibleCountAutres, true, `${evenement} : marqueur associé au compteur remis au défaut`);
-  }
+  const apres = damageSetupApresChangementMonstre(avant);
+  egal(apres, attendu, 'espèce différente : transition de production');
+  egal(apres.enemyDef, 2345, 'espèce différente : contexte préservé');
+  egal(apres.leaderSpeedPct, 19, 'espèce différente : compatibilité du lead préservée');
+  egal(apres.skillCom2usId, null, 'espèce différente : sort vidé');
+  egal(apres.passifsOffensifs, {}, 'espèce différente : passifs du monstre vidés');
+  egal(apres.defBreakParLeSort, false, 'espèce différente : état du sort vidé');
+  egal(apres.sacrificeReservePct, 0, 'espèce différente : réserve du sort vidée');
+  egal(apres.effetsCibleCountAutres, true, 'espèce différente : marqueur associé au compteur remis au défaut');
   // L'import de recette écrit directement sa valeur ; le compte suit l'autre
   // branche explicite de resetSearch.
   const recette = buildOptimizerRecipe({
@@ -49,12 +47,14 @@ export default function testOptimizerDamageTransitions() {
   const hook = readFileSync('src/hooks/useOptimizerState.ts', 'utf8');
   const app = readFileSync('src/App.tsx', 'utf8');
   ok(/if \(id !== selectedId\)\s*\{\s*resetSearch\(\)/.test(ecran), 'espèce : resetSearch de production');
-  ok(ecran.includes('if (source !== gearSource) resetDamageSkill()'), 'exemplaire : changement de source');
-  ok(ecran.includes('setSourceSelector(c.selector);') && ecran.includes('resetDamageSkill();\n            setSourceSelector(c.selector)'), 'exemplaire : désambiguïsation');
-  ok(ecran.includes('onSelect={choisirListe}') && ecran.includes('onCreate={creerListe}'), 'liste : sélection et création');
+  ok(ecran.includes('if (id !== selectedId) resetSearch();'), 'membre de liste : seule une autre espèce provoque le reset');
+  ok(!ecran.includes('resetDamageSkill'), 'exemplaire et listes : aucun reset propre au sort');
+  ok(ecran.includes('onSelect={lists.setActiveListId}') && ecran.includes('onCreate={lists.createList}') && ecran.includes('onDelete={lists.deleteList}'), 'navigation et gestion des listes sans reset');
+  ok(ecran.includes('const id = lists.createList(nom);'), 'création et ajout depuis la fenêtre sans reset');
   ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP)'), 'recette : import direct');
   ok(app.includes("optimizer.resetSearch('compte')"), 'compte : motif explicite');
   ok(hook.includes("motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s)"), 'resetSearch : deux branches de production');
+  ok(!hook.includes('resetDamageSkill'), 'hook : aucune transition superflue sur les listes ou exemplaires');
 
   const source = ts.createSourceFile('damage.ts', readFileSync('src/lib/damage.ts', 'utf8'), ts.ScriptTarget.Latest, true);
   const declaration = source.statements.find((s): s is ts.InterfaceDeclaration =>

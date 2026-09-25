@@ -44,7 +44,55 @@ persistance : voir [recommandations.md](recommandations.md).
 3. **Téléphone** : le compteur seul dans la page ; les actions dans le panneau
    « Options » (Ajouter une équipe, Vérifier mes speed, Créer un monstre, puis
    Tout effacer séparé) — inchangé, lot 11.
-4. **Liste d'équipes** (ou état vide incitant à ajouter/importer).
+4. **Recherche d'équipe** (champ sous l'en-tête) — voir ci-dessous.
+5. **Liste d'équipes** (ou état vide incitant à ajouter/importer).
+
+### Recherche d'équipe par monstre
+
+Ajout décidé par Thomas le 2026-09-26 (refonte graphique, décision 14).
+
+- Un champ **« Nom du monstre… »** sous l'en-tête, aux deux formats : seules
+  les équipes qui **contiennent** un monstre dont le nom contient la saisie
+  restent affichées. Comparaison **insensible aux accents et à la casse**
+  (« chasun » trouve Chasun), comme la recherche de pages.
+- Une croix vide le champ. Filtré, le compteur le dit : « 2 équipes sur 8 »
+  s'ajoute au compteur d'équipes ; aucune équipe trouvée → un message, et
+  « Effacer la recherche ».
+- ⚠️ **Le filtre n'est PAS enregistré** : il ne vit que le temps de l'écran.
+  Revenir sur la page montre toutes ses équipes — un filtre oublié ferait
+  croire à des équipes disparues.
+- ⚠️ Le filtre ne change **pas la numérotation** : « Équipe 5 » reste
+  « Équipe 5 » même affichée seule. C'est son identité dans la liste.
+
+### Exporter et importer des équipes
+
+Ajout décidé par Thomas le 2026-09-26 (décision 14). Logique :
+[siegeShare.ts](src/lib/siegeShare.ts), testée par
+[tests/siege-partage.test.ts](tests/siege-partage.test.ts). 100 % local.
+
+- **« Exporter »** télécharge les équipes **affichées** — toutes, ou celles
+  du filtre actif : l'infobulle le dit — dans un fichier
+  `swforge-siege-<defense|offense>-AAAA-MM-JJ.json`.
+- Format `sw-forge/siege-equipes`, version 1, clés en français :
+  `{ format, version, cote, equipes: [{ monstres: [{ com2usId, nom,
+  vitesseRunes, tick, sets }] × 3 }] }`. Le **slot 0 est le leader**, comme
+  dans l'app.
+  - ⚠️ **Le `com2usId`, jamais l'id local** : c'est le seul identifiant qui
+    vaille d'un joueur à l'autre (même règle que les recommandations et la
+    prépa RTA). Le nom accompagne, pour qu'un fichier se lise.
+  - ⚠️ **Pas le détail des runes** (`gear`) : on partage une composition et
+    ses vitesses, pas son inventaire. Un monstre **perso** (sans `com2usId`)
+    ne part pas : son emplacement part vide, et le message d'export le dit.
+- **« Importer »** lit un tel fichier et **AJOUTE** ses équipes à la fin des
+  siennes — rien n'est remplacé ni effacé (« Tout effacer » existe pour qui
+  veut repartir de zéro). Un monstre absent des données chargées laisse son
+  emplacement vide, et le rapport le dit. Un fichier de l'autre côté (une
+  défense importée dans l'offense) est accepté : c'est une composition, elle
+  se joue des deux côtés — le message le signale.
+- Validation : un fichier qui n'est pas au format est **refusé** avec la
+  raison, rien n'est touché.
+- Où : dans les actions de l'en-tête (`BarreActions` : en boutons s'il y a la
+  place, sinon dans « ⋯ ») et dans le panneau « Options » au doigt.
 
 ### Disposition de la liste — autant d'équipes par ligne que la place en permet
 

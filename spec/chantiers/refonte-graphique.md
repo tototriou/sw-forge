@@ -147,6 +147,11 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
 10. **Accueil : on garde l'accueil actuel, restylé** (héros, zone de dépôt,
     « Ton espace », comment ça marche, fonctionnalités, version). La
     maquette « sommaire » n'est pas retenue.
+#### Décisions prises en cours de chantier (11 et suivantes)
+
+Même forme et même portée que les dix premières ; `[retrait #n]` y est
+reconnu de la même façon (cette sous-section fait partie de A.2 bis).
+
 11. **Menu bureau comme la maquette** — demandé par Thomas le 2026-09-24,
     après le premier passage du lot 4 (« je veux que tu fasses le menu comme
     dans la maquette ») : repli en tête à côté du logo, carte du compte
@@ -179,6 +184,21 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
     place » — **toutes les actions en boutons quand elles tiennent sur la
     ligne de l'en-tête** (place mesurée, barre latérale comprise), le menu
     « ⋯ » seulement faute de place (`src/ui/BarreActions`).
+14. **Siège · Défense et Offense — deux AJOUTS, faits tout de suite** —
+    demandés par Thomas le 2026-09-26 (« ajoute une barre de recherche dans
+    les offenses et une fonctionnalité d'export », « idem dans les
+    défenses ») ; il a choisi de les faire maintenant plutôt qu'au lot 13 :
+    - **recherche par monstre** : un champ filtre les équipes qui contiennent
+      ce monstre (un nom, insensible aux accents) ;
+    - **export en `.json` réimportable**, avec son bouton **« Importer »** :
+      les équipes affichées (monstres, vitesses des runes, ticks, sets) ;
+      l'import AJOUTE les équipes du fichier aux siennes.
+    Spec : [../siege/README.md](../siege/README.md) § Recherche d'équipe et
+    § Exporter et importer des équipes. **Fichiers permis hors A.2**, écrits
+    ici avant le code (règle du lot 13) : `src/lib/siegeShare.ts` (nouveau :
+    format, validation), `src/hooks/useSiegeState.ts` (ajout de
+    `appendTeams`, rien d'autre) — `scripts/chemins-interdits.mjs` les
+    autorise nommément.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

@@ -16,8 +16,15 @@ import { fileURLToPath } from 'node:url';
 const DOSSIERS = ['src/lib/', 'src/hooks/', 'src/workers/', 'src/data/', 'public/'];
 // Exceptions explicites dans ces dossiers : ce que la refonte a le droit de
 // toucher — les couleurs de section (affichage) et les notes de version (la
-// refonte y écrit sa propre entrée « Nouveautés »).
-const PERMIS = new Set(['src/data/couleursSection.ts', 'src/data/releases.ts']);
+// refonte y écrit sa propre entrée « Nouveautés ») ; puis les fichiers des
+// AJOUTS décidés par Thomas, nommés dans le cadrage AVANT leur code (A.2 bis,
+// décision 14 : recherche et export des équipes de siège).
+const PERMIS = new Set([
+  'src/data/couleursSection.ts',
+  'src/data/releases.ts',
+  'src/lib/siegeShare.ts',
+  'src/hooks/useSiegeState.ts',
+]);
 // Fichiers isolés : les types, et les rendus copiés du jeu (mémoire
 // `rendus-du-jeu-intouchables`), qui restent à l'identique.
 const FICHIERS = new Set([

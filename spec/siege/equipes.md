@@ -87,7 +87,8 @@ moins par slot, **rien de retiré** :
   vers le slot 1, l'infobulle dit que le monstre **devient le leader** ;
 - ⚠️ **L'ordre des lignes : le monstre, ce qu'on SAISIT, la CONCLUSION.**
   Ligne 2 : le champ SPD puis les ticks visés, côte à côte. Ligne 3, en bas,
-  sous un filet : la vitesse de combat, sa base et l'écart au tick —
+  sans filet (essayé, retiré par Thomas — « pas besoin de séparateur dans la
+  card ») : la vitesse de combat, sa base et l'écart au tick —
   demandé par Thomas : « la spd et la conclusion en bas, car c'est la
   conclusion ». Le slot est une grille à deux colonnes (`auto 1fr`) dont les
   lignes sont celles de la grille des slots ; les éléments y sont PLACÉS,

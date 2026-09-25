@@ -1044,7 +1044,9 @@ function SlotContent({
           enfants sont placés dans la grille du slot — la vitesse en bas
           (ligne 3), le champ SPD avec les ticks (ligne 2). */}
       <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 compact:mt-0.5 lg:contents">
-        <div className="lg:col-span-2 lg:row-start-3 lg:mt-2 lg:border-t lg:border-border-soft lg:pt-2">
+        {/* Pas de filet au-dessus de la conclusion : essayé, retiré par
+            Thomas (« pas besoin de séparateur dans la card »). */}
+        <div className="lg:col-span-2 lg:row-start-3 lg:mt-2">
           {/* ⚠️ 16 px au doigt contre 22 à la souris (26 avant le lot 7a). Le
               nom du monstre est la RÉFÉRENCE de ce bloc : la vitesse doit rester
               au-dessus de lui sans l'écraser — un rapport de 1,3 à 1,6 suffit à

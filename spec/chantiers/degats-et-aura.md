@@ -309,6 +309,8 @@ L'ordre d'exécution est l'ordre des numéros, avec 2a puis 2b, et 13a avant
 les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 La contre-revue de 6bis-a1 vérifie ce découpage, son budget et le repli
 `git grep` ; a2–a4 reçoivent leurs plages puis leur revue après a1.
+Contre-revue indépendante du 2026-09-25 : **a1 lançable**, aucun défaut
+bloquant ; les précisions d'intrants relevées sont intégrées ci-dessous.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
@@ -329,7 +331,7 @@ La contre-revue de 6bis-a1 vérifie ce découpage, son budget et le repli
 | 4 — relique « comme équipé » et les minimums | C→M | terminé | `91837dab` / 2026-09-25 |
 | 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
 | 6 — sets d'aura : modèle initial, corrigé au lot 6bis | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
-| 6bis-a1 — inventaire et recettes de contrôle | C | à revoir avant lancement | — |
+| 6bis-a1 — inventaire et recettes de contrôle | C | prêt à lancer | contre-revue favorable / 2026-09-25 |
 | 6bis-a2 — carte dégâts, EHP, artéfacts et reliques | C | non lançable avant les plages de 6bis-a1 | — |
 | 6bis-a3 — carte conditions, recherche et diagnostics | C | non lançable avant a1, ses plages et a2 | — |
 | 6bis-a4 — écran/CLI/tests et réconciliation des cartes | C | non lançable avant a1, ses plages, a2 et a3 | — |
@@ -1322,14 +1324,15 @@ Exemples obligatoires : 3 Fight externes + 2 Fight actifs = 5 ; si un build
 active 3 Fight, le total vaut 6. Avec Rage seul demandé, 4 Rage + 1 Fight +
 1 Intangible active Fight et reçoit aussi son +8 % ATQ de base.
 
-**Volume commun :** la Partie A, `optimizer/invariants.md` et
-`optimizer/README.md` dépassent déjà presque le précédent budget de 800
-lignes, avant les inventaires et le code. Chaque sous-lot `6bis-a*` lit ce
+**Volume commun :** la Partie A, `spec/outils/optimizer/invariants.md` et
+`spec/outils/optimizer/README.md` dépassent déjà presque le précédent budget
+de 800 lignes, avant les inventaires et le code. Chaque sous-lot `6bis-a*` lit ce
 socle, B.0, le résultat du lot 6, le chapeau 6bis, la section « Sets d'aura
-d'équipe — modèle » d'`effets-equipe-et-leaders.md`, puis les sections d'aura
-ciblées d'`optimizer.md` (`spec-toc` d'abord). Il compte **toutes ses lectures
-de travail** (ces documents, son contrat, preuves, code et sorties de
-recherche) dans un budget prévisionnel de **1 500 lignes utiles**.
+d'équipe — modèle » de `spec/outils/degats-reels/effets-equipe-et-leaders.md`,
+puis les sections d'aura ciblées de `spec/outils/optimizer.md` (`spec-toc`
+d'abord). Il compte **toutes ses lectures de travail** (ces documents, son
+contrat, les preuves, le code et les sorties de recherche) dans un budget
+prévisionnel de **1 500 lignes utiles**.
 `CLAUDE.md` et les skills chargés
 comme instructions ne sont pas des intrants de classification. Mesurer le
 volume avant chaque plage ; si 1 500 ne suffit pas, le pilote crée **avant**
@@ -1340,20 +1343,23 @@ sous-lot n'ouvre entiers `damage.ts`, `runeBuildOptim.ts` ou
 #### 6bis-a1 — inventaire et fixtures, sans classification de code
 
 **Cat. C.** Requiert 6. Lire la Partie A, puis en entier
-`optimizer/invariants.md` et `optimizer/README.md` ; lire B.0, le résultat
-du lot 6 et les points **1 et 2 du lot 7** (« Ajouter / visualiser /
-supprimer » et « Indépendance et rappel », plages relevées par `spec-toc`),
-la seule section « Sets d'aura d'équipe — modèle » de
-`degats-reels/effets-equipe-et-leaders.md`, les sections d'aura ciblées
-d'`optimizer.md` et la recette/les noms de tests de `controle-6.md`.
+`spec/outils/optimizer/invariants.md` et `spec/outils/optimizer/README.md` ;
+lire B.0, le résultat du lot 6 et les points **1 et 2 du lot 7** (actuellement
+l. 1535–1559, de « Ajouter / visualiser / supprimer » jusqu'avant le point 3).
+`spec-toc` repère le lot 7, pas ses items de liste : relever de nouveau cette
+plage si le cadrage bouge. Lire aussi la seule section « Sets d'aura d'équipe —
+modèle » de `spec/outils/degats-reels/effets-equipe-et-leaders.md`, les sections
+d'aura ciblées de `spec/outils/optimizer.md`, ainsi que la recette et les noms
+de tests de
+`spec/outils/optimizer/archive/controles-degats-aura-2026-09/controle-6.md`.
 Ne pas lire la preuve entière sans besoin. Consigner les longueurs exactes
 et les plages réellement consultées, budget commun ci-dessus compris.
 
 **Extraction :** depuis un worktree propre, lancer les deux commandes
 ci-dessous. Si `rg` manque dans la session, utiliser les deux commandes
 `git grep` équivalentes ; noter l'outil, la commande et la sortie réellement
-utilisés. Au 2026-09-25 les résultats sont 46 lignes et 41 chemins avec les
-deux outils ; les remesurer, pas les supposer.
+utilisés. Au 2026-09-25, le repli `git grep` a donné 46 lignes et 41 chemins
+dans une session sans `rg` ; les remesurer, pas les supposer.
 
 ```text
 rg -n 'setsAura|nombreAura|pointsAuraResPre|auraResPre' src scripts tests
@@ -1362,16 +1368,18 @@ git grep -n -E 'setsAura|nombreAura|pointsAuraResPre|auraResPre' -- src scripts 
 git grep -l -E 'activeSets|pvEffectifs|objectiveScore' -- src scripts tests
 ```
 
-**Sortie :** `manifest-6bis-a1.json` inventorie chaque occurrence et chemin
+**Sortie :** dans le dossier privé A.6 bis, `manifest-6bis-a1.json` inventorie
+chaque occurrence et chemin
 détecté (fichier, ligne ou fonction, motif, source de découverte), puis
 propose une affectation **provisoire** à a2, a3 ou a4, ou un rejet motivé.
 Ajouter les candidats connus de B.0, de l'écran/Worker/CLI et des caches
 même s'ils échappent aux deux motifs. Ne pas déclarer « consommateur » sur
 la seule présence d'un mot. Le pilote remplace les contrats a2–a4 par les
 plages et comptes nominaux du manifeste et les fait revoir **avant a2**.
-Créer `recette-6bis-externe.json` avec 3 Fight externes et Rage seul demandé,
-plus une fixture portant l'ancien `setsAura` non vide ; conserver leurs
-empreintes, le compte de test et la commande du CLI réel pour a4 et 6bis-b.
+Créer dans ce même dossier `recette-6bis-externe.json` avec 3 Fight externes
+et Rage seul demandé, et `recette-6bis-ancienne-non-vide.json` portant
+l'ancien `setsAura` non vide ; conserver leurs empreintes, le compte de test
+et la commande du CLI réel pour a4 et 6bis-b.
 Le parseur actuel accepte une clé inconnue `setsAuraExternes` et le code
 de calcul l'ignore : inscrire cet état **rouge**, sourcé par les chemins de
 code, sans appeler la recette neuve un succès. Aucune sortie verte anticipée.
@@ -1570,7 +1578,7 @@ statistiques propres du monstre ». Un set d'aura en est un.
 #### ⚠️ Le point 4 n'a pas la même forme sur les deux formats
 
 **Sur ordinateur, « Réglages avancés » n'est pas une carte : c'est un
-`FlottantAuto`** (`OptimizerSection.tsx` l. 1864-1878), replié par défaut et
+`FlottantAuto`** (`OptimizerSection.tsx`), replié par défaut et
 qui s'ouvre **par-dessus** la page précisément pour ne rien pousser
 (spec/shared/design.md, « un clic ne déplace jamais ce qu'on vient de
 cliquer »). Il n'y a donc rien vers quoi « défiler » : ce qui doit entrer dans
@@ -1584,7 +1592,7 @@ destinée à un format ne touche pas l'autre** (CLAUDE.md). ⚠️ La famille
 entière (`ARCHITECTURE.md` § 7).
 
 **Le patron existe déjà** : `setPickerSectionRef.current?.scrollIntoView({
-behavior: 'smooth', block: 'center' })` (l. 1760, cas « aucun set choisi »).
+behavior: 'smooth', block: 'center' })` (cas « aucun set choisi »).
 Le surlignage orange se fait par un **token**, jamais une couleur Tailwind
 native ni une valeur en dur (spec/shared/design.md).
 

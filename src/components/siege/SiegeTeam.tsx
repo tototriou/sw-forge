@@ -23,6 +23,7 @@ import { useDonneesKit } from '../../hooks/useDonneesKit';
 import NumberField from '../../ui/NumberField';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { ConfirmDialog } from '../../ui/Dialogs';
+import { pastilleStatut } from './pastilleStatut';
 import { Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
 
@@ -286,40 +287,59 @@ export default function SiegeTeam({
   // des monstres si.
   const monstresDeLEquipe = slotInfos.map(({ monster }) => monster?.name).filter(Boolean) as string[];
 
-  // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE.** En mode sombre, un
-  // contour coloré lumineux sur fond profond suffit. En mode clair, le fond
-  // blanc rend un contour d'un pixel difficile à voir : les tokens
-  // `--siege-card-*` apportent un fond coloré EN CLAIR SEULEMENT — les deux
-  // déclencheurs dark de `index.css` les ramènent à la couleur du panel, ce
-  // qui les rend invisibles (= contour seul en sombre, contour + fond en clair).
+  // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE ÉCRITE** (refonte
+  // graphique, décision 8). La pastille remplace le point de couleur ET le fond
+  // coloré qu'apportait le thème clair (`--siege-card-*`) : en clair, un
+  // contour d'un pixel sur fond blanc ne se voyait pas, d'où ce fond — la
+  // pastille, lisible dans les deux thèmes, dit désormais l'état en toutes
+  // lettres. Libellés choisis par Thomas (voir `pastilleStatut`).
   const sectionClass = aGearIncomplet || statut === 'rouge'
     ? 'border-fire'
     : statut === 'orange'
       ? 'border-warn'
       : statut === 'vert'
         ? 'border-good'
-        : 'border-border';
-  const sectionBg =
-    aGearIncomplet || statut === 'rouge' ? { backgroundColor: 'var(--siege-card-rouge)' } :
-    statut === 'orange' ? { backgroundColor: 'var(--siege-card-orange)' } :
-    statut === 'vert' ? { backgroundColor: 'var(--siege-card-vert)' } :
-    undefined;
-  const dotClass =
-    aGearIncomplet || statut === 'rouge' ? 'bg-fire'
-    : statut === 'orange' ? 'bg-warn'
-    : statut === 'vert' ? 'bg-good'
-    : '';
+        : 'border-border-soft';
+  const pastille = pastilleStatut({
+    statut,
+    validee: validated,
+    swift: teamHasSwift,
+    manqueRunes: gearIncomplet.some((g) => g.manqueRunes),
+    manqueArtes: gearIncomplet.some((g) => g.manqueArtes),
+  });
 
   return (
     // ⚠️ `p-2.5` sous `sm` : la page empile jusqu'à huit équipes, et chaque
     // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
     // sur un téléphone.
-    <section className={`rounded-2xl border bg-panel/50 p-4 compact:p-2.5 transition-colors ${sectionClass}`} style={sectionBg}>
+    // Gabarit des cartes de la refonte : fond `panel`, rayon 12.
+    <section className={`rounded-xl border bg-panel p-4 compact:p-2.5 transition-colors ${sectionClass}`}>
       {/* ⚠️ `gap-3` sous `sm` autour des deux icônes nues : sans cadre, elles se
           distinguent par l'espace. */}
       <div className="mb-3 flex flex-wrap items-center gap-2 compact:mb-2 compact:gap-3">
         <h3 className="font-display text-lg tracking-wide compact:text-base">Équipe {index + 1}</h3>
-        {dotClass && <span className={`w-2 h-2 rounded-full ${dotClass}`} />}
+        {pastille && (
+          // ⚠️ Texte à l'ENCRE sur le fond doux du ton, le point porte la
+          // couleur : un texte `good`/`warn` sur son propre fond doux manque de
+          // contraste en clair.
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro font-semibold text-ink ${
+              pastille.ton === 'good'
+                ? 'border-good/40 bg-good-soft'
+                : pastille.ton === 'warn'
+                  ? 'border-warn/40 bg-warn-soft'
+                  : 'border-bad/40 bg-bad-soft'
+            }`}
+          >
+            <span
+              aria-hidden
+              className={`h-1.5 w-1.5 rounded-full ${
+                pastille.ton === 'good' ? 'bg-good' : pastille.ton === 'warn' ? 'bg-warn' : 'bg-bad'
+              }`}
+            />
+            {pastille.libelle}
+          </span>
+        )}
         {/* Lead à côté du nom de l'équipe : la VALEUR doit être lisible sans
             déplier. Le badge posé sur le portrait du leader reste, lui : il dit
             de quel monstre vient le lead — les deux répondent à deux questions

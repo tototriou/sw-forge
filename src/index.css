@@ -60,13 +60,9 @@
      dans la surface. `255 236 181` : assez chaud pour être lu comme « alerte »
      sur blanc, assez pâle pour ne pas occulter le contenu. */
   --warn-soft: 255 236 181;
-  /* ⚠️ Ces tokens sont EXCLUSIVEMENT pour le fond des cards de siège en mode
-     clair — le statut d'équipe doit être visible sans fond coloré en sombre. En
-     sombre les deux déclencheurs ci-dessous les remettent à la couleur du panel
-     (invisible = contours seuls). */
-  --siege-card-vert:   rgb(var(--good-soft));
-  --siege-card-orange: rgb(var(--warn-soft));
-  --siege-card-rouge:  rgb(var(--el-fire-soft));
+  /* (Les tokens `--siege-card-*`, fond coloré des cartes de siège en mode
+     clair, ont disparu au lot 7 de la refonte graphique : une PASTILLE écrite
+     porte désormais le statut, dans les deux thèmes — décision 8.) */
 
   --bad: 176 28 28;
   /* Fond doux de `bad` — même construction que `--accent-soft` et les fonds
@@ -257,9 +253,6 @@
 /* Le bloc appliqué par les deux déclencheurs. Une seule liste à maintenir. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --siege-card-vert:   rgb(var(--forge-panel) / 0.5);
-    --siege-card-orange: rgb(var(--forge-panel) / 0.5);
-    --siege-card-rouge:  rgb(var(--forge-panel) / 0.5);
     --bg: var(--forge-bg);
     --panel: var(--forge-panel);
     --panel2: var(--forge-panel2);
@@ -311,9 +304,6 @@
    tu ajoutes un token, ajoute-le AUX DEUX. Une divergence est déjà survenue :
    le thème forcé gardait des couleurs sous le seuil de contraste. */
 :root[data-theme='dark'] {
-  --siege-card-vert:   rgb(var(--forge-panel) / 0.5);
-  --siege-card-orange: rgb(var(--forge-panel) / 0.5);
-  --siege-card-rouge:  rgb(var(--forge-panel) / 0.5);
   --bg: var(--forge-bg);
   --panel: var(--forge-panel);
   --panel2: var(--forge-panel2);

@@ -61,21 +61,28 @@ lire — passait derrière. Le contour porte l'état ; la pastille le nomme pour
 ne distingue pas les teintes (**une couleur seule ne se lit pas en niveaux de
 gris**, règle de la charte).
 
-⚠️ **Le fond, lui, dépend du THÈME — et c'est le contour qui décide, pas
-l'inverse.** En sombre, un contour clair sur fond profond se voit seul : le fond
-reste celui de toutes les cards. En clair, un trait d'un pixel sur du blanc ne
-se distingue pas d'une card neutre — on ne voyait plus quelle équipe allait mal.
-Les trois tokens `--siege-card-vert` / `-orange` / `-rouge`
-([index.css](src/index.css)) portent donc un fond doux **en clair seulement**
-(`good-soft` / `warn-soft` / `el-fire-soft`) et retombent à la couleur du panel
-sous les **deux** déclencheurs sombres — d'où : *contour seul en sombre, contour
-+ fond en clair*.
+⚠️ **La pastille est ÉCRITE** (refonte graphique, décision 8 de Thomas) : à
+côté du titre « Équipe N », un libellé court sur le fond doux du ton, un point
+de la couleur du statut, le texte à l'encre (un texte `good`/`warn` sur son
+propre fond doux manque de contraste en clair). Libellés choisis par Thomas le
+2026-09-26, tirés des phrases du pied ([pastilleStatut.ts](src/components/siege/pastilleStatut.ts),
+testé par `tests/siege-pastille.test.ts`) :
 
-⚠️ **Ce fond est un fond DOUX, pas un aplat.** La première tentative posait des
-opacités de 5 à 10 % : imperceptibles sur blanc, elles donnaient l'impression
-que la vérification n'avait pas tourné. Les teintes sont fondues dans le fond de
-page (tokens `*-soft`), assez pour comparer deux équipes d'un coup d'œil, pas
-assez pour qu'on les subisse l'une après l'autre.
+| Cas | Pastille |
+|---|---|
+| runes manquantes (même équipe verte) | **Runes incomplètes** (rouge) |
+| seulement des artéfacts manquants | **Artéfacts incomplets** (rouge) |
+| rouge | **Pas au tick** |
+| orange | **À vérifier** |
+| vert, équipe normale / Swift | **Tous au tick** / **Speed tune** |
+| vert validé à la main | **Tick validé** / **Speed tune validé** |
+| neutre (mode éteint, équipe vide…) | pas de pastille |
+
+⚠️ **Plus de fond coloré en thème clair.** Il existait parce qu'en clair un
+contour d'un pixel sur du blanc ne se distinguait pas d'une carte neutre ; les
+tokens `--siege-card-*` le portaient. La pastille écrite, lisible dans les deux
+thèmes, le remplace — les tokens ont été retirés d'`index.css`. La phrase
+détaillée (quel monstre, combien de VIT) reste dans le pied.
 
 ⚠️ **Le pied non plus ne prend pas la teinte.** Un bandeau ambré pleine largeur
 sous chaque équipe repeignait la page à la place du contenu, et faisait passer

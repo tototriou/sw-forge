@@ -71,6 +71,24 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - **Sélecteur de position** (« 1 · Leader / 2 / 3 ») = repli tactile : intervertit
   avec le slot cible.
 
+### ⚠️ Le slot en édition, à la souris — resserré (refonte graphique, lot 7a)
+
+Demandé par Thomas : « revois surtout la partie d'édition ». Deux lignes de
+moins par slot, **rien de retiré** :
+
+- la **position** monte à côté du champ **SPD**, sur la ligne de la vitesse
+  (plus de rangée séparée par un filet) ;
+- l'**écart au tick** (« manque 12 pour 239 », « +3 au-dessus de 286 »,
+  « pile au tick ») se pose **au bout de la rangée des ticks** ;
+- la vitesse de combat passe de 26 à 22 px ; plus de hauteur minimale de
+  150 px — la grille aligne déjà les trois slots sur le plus haut.
+
+Au doigt, la disposition ne change pas (écart et position sur leurs propres
+lignes) : chacun est rendu UNE fois et posé à deux endroits selon la largeur
+(`hidden lg:…` / `lg:hidden`). Gardé par `testRenduSiegeEdition`
+([tests/rendu/siege.test.tsx](tests/rendu/siege.test.tsx)) : écrit pendant le
+lot, il passe à l'identique sur l'édition d'avant et sur celle d'après.
+
 ## Leader & pastille de lead
 
 - Le **slot 0 est le leader** : son lead alimente le calcul (voir spec vitesse).

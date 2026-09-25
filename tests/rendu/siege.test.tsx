@@ -5,10 +5,11 @@
 // après.
 
 import SiegeBoard from '../../src/components/siege/SiegeBoard';
+import SiegeTeam from '../../src/components/siege/SiegeTeam';
 import { useSiegeState, SiegeSide } from '../../src/hooks/useSiegeState';
 import type { Monster } from '../../src/types';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
-import { bouton, boutons, rendre, texteVisible } from './outils-rendu';
+import { bouton, boutons, rendre, texteVisible, valeurs } from './outils-rendu';
 
 const MONSTRES = monstersJson() as Monster[];
 const id = (nom: string, el: string) =>
@@ -91,6 +92,54 @@ export function testRenduSiegeDefense() {
 export function testRenduSiegeOffense() {
   titre('rendu · Siège · Offense — fonctionnalités présentes');
   verifierCamp('offense');
+}
+
+// L'ÉDITION d'une équipe (vue dépliée). ⚠️ Écrit PENDANT le lot 7a, après le
+// resserrement de l'édition — les tests d'avant ne couvraient que la vue
+// compacte. Il fixe ce que chaque slot doit garder : le choix d'un monstre,
+// le retrait, la vitesse et sa base, le champ SPD, les ticks, l'écart au tick
+// et la position.
+export function testRenduSiegeEdition() {
+  titre('rendu · Siège — une équipe en édition garde tous ses contrôles');
+  faussLocalStorage();
+  const team = {
+    ...equipe([['Lushen', 'wind'], ['Veromos', 'dark'], ['', '']], [120, 130, null], 24),
+    slots: equipe([['Lushen', 'wind'], ['Veromos', 'dark'], ['', '']], [120, 130, null], 24).slots.map((s, i) =>
+      i === 0 ? { ...s, tick: 239 } : s
+    ),
+  };
+  const monsterById = new Map(MONSTRES.map((m) => [String(m.id), m]));
+  const rien = () => {};
+  const html = rendre(
+    <SiegeTeam
+      team={team}
+      index={0}
+      monsters={MONSTRES}
+      monsterById={monsterById}
+      expanded
+      onToggleExpand={rien}
+      onRemoveTeam={rien}
+      onPickMonster={rien}
+      onClearSlot={rien}
+      onSlotRune={rien}
+      onSlotTick={rien}
+      checkTicks={false}
+      onDismissAlert={rien}
+      onVoirSpeedTune={rien}
+      onSwap={rien}
+    />
+  );
+  const t = texteVisible(html);
+
+  ok(!!bouton(html, "Terminer l'édition"), 'le bouton « Terminer l\'édition »');
+  ok(valeurs(html, 'placeholder').includes('Choisir un monstre…'), 'le slot vide propose « Choisir un monstre… »');
+  egal(boutons(html).filter((b) => b.ariaLabel === 'Retirer' || b.title === 'Retirer').length, 2, 'chaque monstre posé a sa croix « Retirer »');
+  egal(valeurs(html, 'aria-label').filter((v) => v === 'SPD des runes').length, 2, 'chaque monstre posé a son champ « SPD des runes »');
+  egal((t.match(/base \d+/g) ?? []).length, 2, 'chaque monstre posé affiche sa vitesse de base');
+  egal(boutons(html).filter((b) => b.texte === 'Off').length, 2, 'chaque monstre posé a sa rangée de ticks (« Off » + les ticks)');
+  ok(/manque \d+ pour 239|\+\d+ au-dessus de 239|pile au tick 239/.test(t), 'le monstre visant 239 affiche son écart au tick');
+  ok(valeurs(html, 'title').filter((v) => v === 'Changer la position (intervertir les monstres)').length >= 2, 'chaque monstre posé a son sélecteur « Position »');
+  ok(t.includes('1 · Leader'), 'la position « 1 · Leader » est proposée');
 }
 
 // Lot 7a de la refonte : l'en-tête bureau. Ajouté APRÈS les tests ci-dessus,

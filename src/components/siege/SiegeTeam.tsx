@@ -817,7 +817,9 @@ function SlotContent({
     return (
       // ⚠️ `min-h` abaissée au doigt : trois slots empilés à 150 px font
       // 450 px d'édition avant même le reste de la page.
-      <div className="flex min-h-[150px] flex-col justify-center p-3 compact:min-h-[110px] compact:p-2">
+      // ⚠️ Plus de `min-h` à la souris (lot 7a, édition resserrée) : les trois
+      // slots sont dans une grille, qui les aligne déjà sur le plus haut.
+      <div className="flex flex-col justify-center p-2.5 compact:min-h-[110px] compact:p-2">
         <div className="flex items-center gap-1.5 mb-2">
           {isLeader && <Crown size={13} className="text-star" />}
           <span className="label">
@@ -848,10 +850,53 @@ function SlotContent({
     onDragStart();
   }
 
+  // ⚠️ **Édition resserrée à la souris** (lot 7a, « revois surtout la partie
+  // d'édition ») : la position monte à côté du champ SPD, l'écart au tick au
+  // bout de la rangée des ticks — deux lignes de moins par slot. Au doigt, la
+  // disposition ne change pas (une correction destinée à un format ne touche
+  // pas l'autre) : chacun des deux est rendu UNE fois ici, et posé à deux
+  // endroits selon la largeur (`hidden lg:…` / `lg:hidden`).
+  const position = (
+    <>
+      <span className="label">Position</span>
+      <Selecteur
+        value={idx}
+        onChange={(e) => onMoveTo(Number(e.target.value))}
+        title="Changer la position (intervertir les monstres)"
+        taille="dense"
+        surface="panel"
+        // ⚠️ `data-cible-fine` : la règle tactile portait ce sélecteur à 40 px
+        // de haut, dans un slot qui en fait 110 — il y pesait autant que la
+        // vitesse qu'on vient régler. Il occupe toute la largeur restante de
+        // sa ligne : rien d'autre à toucher autour, donc rien à rater.
+        data-cible-fine
+      >
+        <option value={0}>1 · Leader</option>
+        <option value={1}>2</option>
+        <option value={2}>3</option>
+      </Selecteur>
+    </>
+  );
+  const ecart =
+    diff === null ? null : diff < 0 ? (
+      <span className="inline-flex items-center gap-1 rounded-md bg-fire/15 text-fire px-2 py-0.5 text-micro font-mono font-semibold">
+        manque {-diff} pour {tick}
+      </span>
+    ) : diff > 0 ? (
+      <span className="inline-flex items-center gap-1 rounded-md bg-water/15 text-water px-2 py-0.5 text-micro font-mono font-semibold">
+        +{diff} au-dessus de {tick}
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 rounded-md bg-wind/15 text-wind px-2 py-0.5 text-micro font-mono font-semibold">
+        pile au tick {tick} ✓
+      </span>
+    );
+
   return (
     <div
       ref={cardRef}
-      className="relative flex min-h-[150px] flex-col p-3 compact:min-h-[110px] compact:p-2"
+      // Plus de `min-h` à la souris : la grille aligne les trois slots.
+      className="relative flex flex-col p-2.5 compact:min-h-[110px] compact:p-2"
     >
       <div className="mb-2 flex items-center gap-1.5 compact:mb-1">
         <ZoneCliquable
@@ -924,34 +969,40 @@ function SlotContent({
         />
       </div>
 
-      {/* Vitesse de combat, mise en avant */}
-      <div className="mt-1 flex items-end justify-between compact:mt-0.5">
+      {/* Vitesse de combat, mise en avant ; à la souris, la POSITION suit le
+          champ SPD sur la même ligne. */}
+      <div className="mt-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-1.5 compact:mt-0.5">
         <div>
-          {/* ⚠️ 16 px au doigt contre 26 à la souris. Le nom du monstre est la
-              RÉFÉRENCE de ce bloc : la vitesse doit rester au-dessus de lui sans
-              l'écraser — un rapport de 1,3 suffit à dire « c'est la valeur
-              principale », là où 2,2 en faisait le seul élément lisible. */}
-          <div className="font-mono text-[26px] font-black leading-none text-star compact:text-[16px]">
+          {/* ⚠️ 16 px au doigt contre 22 à la souris (26 avant le lot 7a). Le
+              nom du monstre est la RÉFÉRENCE de ce bloc : la vitesse doit rester
+              au-dessus de lui sans l'écraser — un rapport de 1,3 à 1,6 suffit à
+              dire « c'est la valeur principale », là où 2,2 en faisait le seul
+              élément lisible. */}
+          <div className="font-mono text-[22px] font-black leading-none text-star compact:text-[16px]">
             {combat ?? '—'}
           </div>
           <div className="mt-1 font-mono text-micro text-ink-dim compact:mt-0.5 compact:text-nano">
             base {base ?? '—'}
           </div>
         </div>
-        <label className="flex items-center gap-1.5">
-          <span className="label">SPD :</span>
-          <NumberField
-            value={slot.runeSpeed}
-            allowEmpty
-            min={0}
-            width="w-12"
-            ariaLabel="SPD des runes"
-            onChange={onRune}
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <label className="flex items-center gap-1.5">
+            <span className="label">SPD :</span>
+            <NumberField
+              value={slot.runeSpeed}
+              allowEmpty
+              min={0}
+              width="w-12"
+              ariaLabel="SPD des runes"
+              onChange={onRune}
+            />
+          </label>
+          <span className="hidden items-center gap-1.5 lg:flex">{position}</span>
+        </div>
       </div>
 
-      {/* Tick cible, propre à ce monstre */}
+      {/* Tick cible, propre à ce monstre ; à la souris, l'écart au tick au
+          bout de la rangée. */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5 compact:mt-1 compact:gap-1">
         <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" />
         {SIEGE_TICKS.map((t) => (
@@ -962,46 +1013,15 @@ function SlotContent({
             label={`${t.label} ${t.value}`}
           />
         ))}
+        {ecart && <span className="ml-auto hidden lg:inline-flex">{ecart}</span>}
       </div>
 
-      {/* Retour tick : manque / surplus */}
-      {diff !== null && (
-        <div className="mt-2 compact:mt-1">
-          {diff < 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-md bg-fire/15 text-fire px-2 py-0.5 text-micro font-mono font-semibold">
-              manque {-diff} pour {tick}
-            </span>
-          ) : diff > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-md bg-water/15 text-water px-2 py-0.5 text-micro font-mono font-semibold">
-              +{diff} au-dessus de {tick}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-md bg-wind/15 text-wind px-2 py-0.5 text-micro font-mono font-semibold">
-              pile au tick {tick} ✓
-            </span>
-          )}
-        </div>
-      )}
+      {/* TÉLÉPHONE : l'écart au tick sur sa ligne (manque / surplus) */}
+      {ecart && <div className="mt-2 compact:mt-1 lg:hidden">{ecart}</div>}
 
-      {/* Position dans l'équipe (repli tactile du drag & drop) */}
-      <div className="mt-2 flex items-center gap-1.5 border-t border-border/60 pt-2 compact:mt-1 compact:pt-1">
-        <span className="label">Position</span>
-        <Selecteur
-          value={idx}
-          onChange={(e) => onMoveTo(Number(e.target.value))}
-          title="Changer la position (intervertir les monstres)"
-          taille="dense"
-          surface="panel"
-          // ⚠️ `data-cible-fine` : la règle tactile portait ce sélecteur à 40 px
-          // de haut, dans un slot qui en fait 110 — il y pesait autant que la
-          // vitesse qu'on vient régler. Il occupe toute la largeur restante de
-          // sa ligne : rien d'autre à toucher autour, donc rien à rater.
-          data-cible-fine
-        >
-          <option value={0}>1 · Leader</option>
-          <option value={1}>2</option>
-          <option value={2}>3</option>
-        </Selecteur>
+      {/* TÉLÉPHONE : la position dans l'équipe (repli tactile du drag & drop) */}
+      <div className="mt-2 flex items-center gap-1.5 border-t border-border/60 pt-2 compact:mt-1 compact:pt-1 lg:hidden">
+        {position}
       </div>
 
       {retraitAConfirmer && (

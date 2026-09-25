@@ -88,7 +88,14 @@ moins par slot, **rien de retiré** :
 - l'**écart au tick** (« manque 12 pour 239 », « +3 au-dessus de 286 »,
   « pile au tick ») se pose **au bout de la rangée des ticks** ;
 - la vitesse de combat passe de 26 à 22 px ; plus de hauteur minimale de
-  150 px — la grille aligne déjà les trois slots sur le plus haut.
+  150 px — la grille aligne déjà les trois slots sur le plus haut ;
+- ⚠️ **les lignes des trois slots sont alignées** (« ce serait bien que les
+  éléments soient alignés dans la card ») : la grille définit trois lignes —
+  le monstre, la vitesse et le SPD, les ticks — que chaque slot reprend
+  (`grid-rows-subgrid`). Chacune prend la hauteur de la plus haute des trois :
+  la pastille de lead sous le nom du leader ne décale plus sa vitesse ni ses
+  ticks. Un slot vide pose son étiquette sur la ligne du monstre et son champ
+  de recherche sur celle de la vitesse.
 
 Au doigt, la disposition ne change pas (écart et position sur leurs propres
 lignes) : chacun est rendu UNE fois et posé à deux endroits selon la largeur

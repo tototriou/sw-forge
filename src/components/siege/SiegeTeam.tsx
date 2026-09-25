@@ -409,7 +409,14 @@ export default function SiegeTeam({
       )}
 
       {expanded ? (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      // ⚠️ **Les lignes des trois slots sont ALIGNÉES à la souris** (lot 7a,
+      // « ce serait bien que les éléments soient alignés dans la card ») : la
+      // grille définit trois lignes — le monstre, la vitesse et le SPD, les
+      // ticks — que chaque slot reprend (`grid-rows-subgrid`). Chaque ligne
+      // prend la hauteur de la plus haute des trois : la pastille de lead sous
+      // le nom du leader ne décale plus sa vitesse ni ses ticks par rapport
+      // aux deux autres. Au doigt (slots empilés), rien ne change.
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 lg:grid-rows-[repeat(3,auto)] lg:gap-y-0">
         {team.slots.map((slot, idx) => {
           const monster = slot.monsterId ? monsterById.get(slot.monsterId) ?? null : null;
           const slotDanger = statut === 'rouge' ? slotDangers[idx] : null;
@@ -425,7 +432,7 @@ export default function SiegeTeam({
                 e.preventDefault();
                 handleDrop(idx);
               }}
-              className={`rounded-xl border transition-colors ${
+              className={`rounded-xl border transition-colors lg:row-span-3 lg:grid lg:grid-rows-subgrid ${
                 overIdx === idx
                   ? 'border-accent bg-panel2'
                   : slotDanger
@@ -819,7 +826,9 @@ function SlotContent({
       // 450 px d'édition avant même le reste de la page.
       // ⚠️ Plus de `min-h` à la souris (lot 7a, édition resserrée) : les trois
       // slots sont dans une grille, qui les aligne déjà sur le plus haut.
-      <div className="flex flex-col justify-center p-2.5 compact:min-h-[110px] compact:p-2">
+      // `lg:grid-rows-subgrid` : l'étiquette tombe sur la ligne du monstre, le
+      // champ de recherche sur celle de la vitesse — alignés sur les voisins.
+      <div className="flex flex-col justify-center p-2.5 compact:min-h-[110px] compact:p-2 lg:row-span-3 lg:grid lg:grid-rows-subgrid lg:content-start">
         <div className="flex items-center gap-1.5 mb-2">
           {isLeader && <Crown size={13} className="text-star" />}
           <span className="label">
@@ -895,8 +904,9 @@ function SlotContent({
   return (
     <div
       ref={cardRef}
-      // Plus de `min-h` à la souris : la grille aligne les trois slots.
-      className="relative flex flex-col p-2.5 compact:min-h-[110px] compact:p-2"
+      // Plus de `min-h` à la souris : la grille aligne les trois slots, ligne
+      // par ligne (`grid-rows-subgrid`, voir la grille des slots).
+      className="relative flex flex-col p-2.5 compact:min-h-[110px] compact:p-2 lg:row-span-3 lg:grid lg:grid-rows-subgrid"
     >
       <div className="mb-2 flex items-center gap-1.5 compact:mb-1">
         <ZoneCliquable

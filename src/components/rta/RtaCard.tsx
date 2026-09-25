@@ -119,12 +119,15 @@ export default function RtaCard({
       // `ring-1 ring-accent/50`, soit deux traits d'accent concentriques autour
       // de la même carte. Superposés, ils ne se lisent pas comme deux
       // informations mais comme un contour flou. Voir spec/shared/design.md.
-      className={`group relative rounded-lg border bg-panel2 transition-colors ${
-        open ? 'border-accent' : 'border-border'
+      // ⚠️ Refonte graphique, lot 6 : le gabarit des cartes de la refonte —
+      // fond de panneau, contour discret, rayon 12 —, le contour se précisant au
+      // survol. L'anneau des catégories suit le même rayon.
+      className={`group relative rounded-xl border bg-panel transition-colors ${
+        open ? 'border-accent' : 'border-border-soft hoverable:border-border'
       }`}
     >
       {/* Anneau des catégories, par-dessus la bordure (voir CategoryRing). */}
-      <CategoryRing colors={categoryColors} />
+      <CategoryRing colors={categoryColors} radius="rounded-xl" />
       <div className="flex items-center gap-2 p-1.5">
       {/* Poignée de drag : seule zone qui déclenche le glisser-déposer.
           ⚠️ Masquée au DOIGT (`coarse:hidden`) : le glisser-déposer HTML5 n'y

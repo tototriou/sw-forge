@@ -20,10 +20,21 @@ Fichiers : [RtaSection.tsx](src/components/rta/RtaSection.tsx) ·
 
 ## Section — `RtaSection`
 
-- En-tête : icône/losange + label + compteur de cartes + (si supprimable) croix.
+- En-tête : icône/losange + label + compteur de cartes + **filet** jusqu'au bord
+  + (si supprimable) croix.
+- ⚠️ **Pas de cadre au repos** (refonte graphique, lot 6, la maquette) : cinq
+  sections encadrées empilaient cinq boîtes dans la page ; c'est l'en-tête et
+  son filet qui délimitent la section. Même gabarit pour les sections de la
+  prépa d'un ami (`RtaFriendView`).
 - Vide → « Glisse des monstres ici ». Sinon grille de cartes responsive.
-- **Cible de drop** : surbrillance + halo à la couleur d'accent au survol d'un
-  drag (compteur enter/leave pour éviter le scintillement). Drop → `moveMonster`.
+- **Cible de drop** : au survol d'un drag, le cadre apparaît — **1 px à la
+  couleur d'accent** (la bordure, transparente au repos, prend la teinte : rien
+  ne bouge) — sur un fond `panel2` léger (compteur enter/leave pour éviter le
+  scintillement). Drop → `moveMonster`. Plus d'ombre ajoutée par-dessus la
+  bordure, qui en faisait un trait de 2 px.
+- **Cartes** (`RtaCard`, et celles de la prépa d'un ami) : gabarit des cartes de
+  la refonte — fond `panel`, contour `border-soft` (`border` au survol), rayon
+  12 ; l'anneau des catégories suit ce rayon.
 - **Suppression de section** : disponible pour tous les sets **sauf « Autre »**.
   Les monstres de la section supprimée **repartent en « Non classé »**.
 

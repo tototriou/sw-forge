@@ -306,7 +306,8 @@ export default function RtaPage({
           ⚠️ `hidden lg:flex` : le téléphone garde son compteur et son panneau
           d'actions, inchangés (lot 11). */}
       <div className="mb-4 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
-        <h1 className="text-xl font-semibold tracking-tight text-ink">Ma prépa</h1>
+        {/* Cinzel, comme tous les titres de l'app (décision 1). */}
+        <h1 className="font-display text-xl tracking-wide text-ink">Ma prépa</h1>
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
           {compteur}
         </span>

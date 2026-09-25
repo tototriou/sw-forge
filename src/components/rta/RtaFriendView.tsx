@@ -82,12 +82,13 @@ function CarteAmi({
   return (
     <div
       title={libelles.length > 0 ? libelles.join(' · ') : undefined}
-      className={`relative rounded-lg border bg-panel2 transition-colors ${
+      className={`relative rounded-xl border bg-panel transition-colors ${
         // Bordure seule, sans anneau superposé — voir spec/shared/design.md.
-        open ? 'border-accent' : 'border-border'
+        // Même gabarit que la carte de « Ma prépa » (RtaCard, lot 6).
+        open ? 'border-accent' : 'border-border-soft'
       }`}
     >
-      <CategoryRing colors={couleurs} />
+      <CategoryRing colors={couleurs} radius="rounded-xl" />
       <div className="flex items-center gap-2 p-1.5">
         <div className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`} onClick={onToggle}>
           <div
@@ -236,8 +237,10 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
     const gear = openIndex >= 0 ? items[openIndex].entry.gear : undefined;
 
     return (
-      <section key={key} className="rounded-2xl border border-border bg-panel/40 p-3">
-        <div className="flex items-center gap-2.5 mb-3">
+      // Même gabarit que les sections de « Ma prépa » (RtaSection, lot 6) : pas
+      // de cadre, un en-tête prolongé d'un filet.
+      <section key={key} className="p-2">
+        <div className="mb-2.5 flex items-center gap-2.5">
           {key === RTA_OTHER || key === RTA_UNASSIGNED ? (
             <span
               className="w-3 h-3 rounded-[3px] rotate-45 flex-none"
@@ -247,7 +250,8 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
             <RuneIcon setKey={key} size={22} className="flex-none" />
           )}
           <h3 className="font-display text-base tracking-wide">{sectionLabel(key)}</h3>
-          <span className="font-mono text-ink-dim text-micro">{items.length}</span>
+          <span className="font-mono text-ink-dimmer text-micro">{items.length}</span>
+          <span aria-hidden className="ml-1 h-px flex-1 bg-border-soft" />
         </div>
 
         <AccordionGrid

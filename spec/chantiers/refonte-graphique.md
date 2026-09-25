@@ -160,6 +160,16 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
     quand on hover une section »). Les sous-sections se déroulent sous leur
     entrée : le panneau doublait ce geste. Toutes restent atteignables en
     déroulant la section, au clic comme au clavier.
+13. **RTA · Ma prépa (lot 6)** — choix de Thomas le 2026-09-25 :
+    l'**ordre de tour reste en bas**, pleine largeur (pas le panneau latéral
+    de la maquette) ; les **actions passent dans un menu « ⋯ »** (maquette) —
+    « Exporter » seul reste visible dans l'en-tête, Sauvegarder, Reprendre,
+    Importer une prépa et Créer un monstre dans le menu, Réinitialiser et
+    Tout effacer séparés en bas ; le **champ de recherche d'ajout reste
+    permanent**. Les fonctions nouvelles de la maquette (filtrer la prépa,
+    pastilles de set avec compteurs, tri, vue liste) : **« on verra plus
+    tard »** — non retenues, hors refonte. Bureau seulement : le panneau
+    d'actions mobile ne change pas (lot 11).
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

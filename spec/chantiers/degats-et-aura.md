@@ -317,7 +317,7 @@ les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
 | 3 — plancher des conditions en « Libre » | M | terminé | 2026-09-24 |
 | 4 — relique « comme équipé » et les minimums | C→M | terminé | `91837dab` / 2026-09-25 |
 | 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
-| 6 — sets d'aura : le modèle | J | à faire | — |
+| 6 — sets d'aura : le modèle | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -1251,9 +1251,31 @@ l'invariant se corrige **dans le même commit** que la spec source.
 **Ne fait pas :** aucun rendu (lot 7). Le champ du toggle et sa propagation
 sont livrés ici ; son contrôle visuel est livré au lot 7.
 
+#### Résultat du lot 6 — 2026-09-25
+
+Le modèle des cinq auras est livré par `4f6ce326` ; `88d58019` complète
+les preuves d'arrondi commun avec lead et invocateur et de choix effectif
+entre deux reliques pour l'objectif PV effectifs. La preuve privée est
+`archive/controles-degats-aura-2026-09/controle-6.md`. Le pilote a relu
+les attentes chiffrées indépendantes et rejoué `node tests/run.mjs auras
+degats rune-optim relic-exclusive` : **1 958 vérifications passées**.
+`chantier verifier` confirme le reçu code `88d5801` ↔ notes `f10ade2` ;
+les notes ont été intégrées au main documentaire en `e405061`.
+
+Le contrôle différentiel couvre 12 petites recherches exhaustives ; le CLI
+réel, tronqué à 100 000 builds, n'établit pas l'exhaustivité sur le compte.
+Le rendu est réservé au lot 7 et `npm test` à la fusion sur main. Les deux
+libellés d'Accuracy et Tolerance encore à « +10 % » sont attribués au lot 7.
+
 ### Lot 7 — sets d'aura : l'écran
 
 **Cat. J.** Requiert le lot 6.
+
+**Écart hérité du lot 6 à corriger ici :** `src/lib/effects.ts` affiche
+« Précision alliés +10% » et « Résistance alliés +10% » pour Accuracy et
+Tolerance. Aligner ces deux libellés et leurs usages visibles sur les
+**+8 points** curés en A.2 ter ; vérifier les surfaces qui les consomment.
+Ne pas modifier le calcul livré au lot 6.
 
 **Où** : la carte « État de mon monstre » (`EtatMonstre.tsx`) — et son critère
 de coupe, écrit en tête du fichier, la désigne sans ambiguïté : « sortent de

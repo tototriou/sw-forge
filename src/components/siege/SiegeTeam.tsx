@@ -959,6 +959,41 @@ function SlotContent({
             ligne du nom qu'elle borde. `serre` reste à 20 px dessinés, avec sa
             propre zone étendue à 44 px (le pseudo-élément de `data-cible-fine`) :
             elle est seule dans son coin, rien à rater autour. */}
+        {/* ⚠️ **À la souris, deux FLÈCHES au lieu du sélecteur de position**,
+            EN HAUT du slot, à côté de la croix — demandé par Thomas : échanger
+            avec le voisin de gauche ou de droite est un geste direct, là où
+            le sélecteur demandait d'ouvrir une liste. Posées d'abord sur la
+            ligne de la vitesse, elles s'y mêlaient au champ SPD (« compact
+            mais confus ») : sur la ligne du monstre, elles disent qu'elles
+            déplacent CE monstre. Aux bords, la flèche reste affichée,
+            désactivée, et son infobulle dit pourquoi. Au doigt, le sélecteur
+            reste (lot 11). */}
+        <span className="hidden flex-none items-center gap-0.5 self-start lg:flex">
+          <BoutonIcone
+            libelle={
+              idx === 0
+                ? 'Déjà en première position'
+                : idx === 1
+                  ? 'Déplacer à gauche (devient le leader)'
+                  : 'Déplacer à gauche'
+            }
+            icone={<ChevronLeft size={14} />}
+            disabled={idx === 0}
+            onClick={() => onMoveTo(idx - 1)}
+          />
+          <BoutonIcone
+            libelle={
+              idx === 2
+                ? 'Déjà en dernière position'
+                : idx === 0
+                  ? 'Déplacer à droite (le monstre suivant devient le leader)'
+                  : 'Déplacer à droite'
+            }
+            icone={<ChevronRight size={14} />}
+            disabled={idx === 2}
+            onClick={() => onMoveTo(idx + 1)}
+          />
+        </span>
         <BoutonIcone
           onClick={() => setRetraitAConfirmer(true)}
           libelle="Retirer"
@@ -997,40 +1032,6 @@ function SlotContent({
               onChange={onRune}
             />
           </label>
-          {/* ⚠️ **À la souris, deux FLÈCHES au lieu du sélecteur de
-              position** — demandé par Thomas : échanger avec le voisin de
-              gauche ou de droite est un geste direct, là où le sélecteur
-              demandait d'ouvrir une liste pour choisir un numéro. Aux bords,
-              la flèche reste affichée, désactivée, et son infobulle dit
-              pourquoi. Au doigt, le sélecteur reste (lot 11). */}
-          <span className="hidden items-center gap-0.5 lg:flex">
-            <BoutonIcone
-              libelle={
-                idx === 0
-                  ? 'Déjà en première position'
-                  : idx === 1
-                    ? 'Déplacer à gauche (devient le leader)'
-                    : 'Déplacer à gauche'
-              }
-              icone={<ChevronLeft size={15} />}
-              cadre
-              disabled={idx === 0}
-              onClick={() => onMoveTo(idx - 1)}
-            />
-            <BoutonIcone
-              libelle={
-                idx === 2
-                  ? 'Déjà en dernière position'
-                  : idx === 0
-                    ? 'Déplacer à droite (le monstre suivant devient le leader)'
-                    : 'Déplacer à droite'
-              }
-              icone={<ChevronRight size={15} />}
-              cadre
-              disabled={idx === 2}
-              onClick={() => onMoveTo(idx + 1)}
-            />
-          </span>
         </div>
       </div>
 

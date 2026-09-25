@@ -76,10 +76,13 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 Demandé par Thomas : « revois surtout la partie d'édition ». Deux lignes de
 moins par slot, **rien de retiré** :
 
-- la **position** se règle par **deux flèches ← →**, à côté du champ **SPD**
-  (plus de rangée séparée par un filet) — demandé par Thomas : échanger avec le
-  voisin est un geste direct, le sélecteur demandait d'ouvrir une liste pour
-  choisir un numéro. Aux bords, la flèche reste affichée, **désactivée**, avec
+- la **position** se règle par **deux flèches ← →**, **en haut du slot**,
+  sur la ligne du monstre, à côté de sa croix (plus de rangée séparée par un
+  filet) — demandé par Thomas : échanger avec le voisin est un geste direct,
+  le sélecteur demandait d'ouvrir une liste pour choisir un numéro. Posées
+  d'abord à côté du champ SPD, elles s'y mêlaient à la saisie (« compact mais
+  confus ») : sur la ligne du monstre, elles disent qu'elles déplacent CE
+  monstre. Aux bords, la flèche reste affichée, **désactivée**, avec
   sa raison (« Déjà en première position » / « Déjà en dernière position ») ;
   vers le slot 1, l'infobulle dit que le monstre **devient le leader** ;
 - l'**écart au tick** (« manque 12 pour 239 », « +3 au-dessus de 286 »,

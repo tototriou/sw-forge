@@ -121,7 +121,14 @@ function BoutonAction({ e }: { e: ElementMenu }) {
       aria-label={e['aria-label']}
       icone={e.icone}
       libelle={e.libelle as ReactNode}
-      ton={e.danger ? 'danger' : 'neutre'}
+      // Principal : l'aplat d'accent (décision 4). À deux états : le fond
+      // d'accent quand il est enclenché, `aria-pressed` — comme partout.
+      ton={e.danger ? 'danger' : e.principal || e.actif ? 'accent' : 'neutre'}
+      // ⚠️ Principal ET à deux états (« Vérifier mes speed ») : plein tant
+      // qu'il est éteint ; enclenché, le fond doux d'accent de tout bouton
+      // actif (le `Bouton` l'impose).
+      fond={e.principal && !e.actif ? 'plein' : undefined}
+      actif={e.actif || undefined}
       className={HAUTEUR_EN_TETE}
     />
   );

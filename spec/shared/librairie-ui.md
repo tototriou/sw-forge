@@ -236,6 +236,11 @@ rupture fixe se tromperait — la place dépend aussi de la barre latérale
 rendu, c'est le **menu** (la forme qui tient partout) ; le basculement se fait
 dans un `useLayoutEffect`, avant la première peinture. Tous ses boutons ont la
 hauteur d'en-tête (`HAUTEUR_EN_TETE`).
+Deux axes d'entrée en plus de `danger` (lot 7a, Siège) : **`principal`** —
+l'aplat d'accent de l'action principale (décision 4), à ne mettre que dans
+les `toujours` ; **`actif`** — un bouton à deux états (`aria-pressed`, fond
+d'accent enclenché), qui devient une entrée à cocher (`menuitemcheckbox`) s'il
+tombe dans le menu.
 
 **`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
 ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).

@@ -42,6 +42,14 @@ export interface ElementMenu {
   'aria-label'?: string;
   // Action qui perd quelque chose : séparée des autres, en `bad`.
   danger?: boolean;
+  // Bouton À DEUX ÉTATS (« Vérifier mes speed ») : enclenché ou non. En bouton,
+  // il porte `aria-pressed` et le fond d'accent ; dans le menu, il devient une
+  // entrée à cocher (`menuitemcheckbox`).
+  actif?: boolean;
+  // L'action PRINCIPALE de l'écran (décision 4 : un seul bouton plein par
+  // écran). Ne vaut qu'en bouton : une action principale ne se range pas dans
+  // un menu — la mettre dans les `toujours` d'une BarreActions.
+  principal?: boolean;
 }
 
 export interface MenuProps {
@@ -60,7 +68,11 @@ export default function Menu({ libelle, elements, largeur = 'w-60' }: MenuProps)
   const id = useId();
 
   const entrees = () =>
-    [...(liste.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])];
+    [
+      ...(liste.current?.querySelectorAll<HTMLButtonElement>(
+        '[role="menuitem"]:not(:disabled), [role="menuitemcheckbox"]:not(:disabled)'
+      ) ?? []),
+    ];
 
   // Ouvert : le focus va à la première entrée active ; un clic ailleurs referme.
   useEffect(() => {
@@ -150,7 +162,8 @@ function Entree({ el, fermer }: { el: ElementMenu; fermer: () => void }) {
   return (
     <button
       type="button"
-      role="menuitem"
+      role={el.actif === undefined ? 'menuitem' : 'menuitemcheckbox'}
+      aria-checked={el.actif === undefined ? undefined : el.actif}
       disabled={el.disabled}
       title={el.title}
       aria-label={el['aria-label']}

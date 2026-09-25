@@ -223,6 +223,20 @@ type est la seule façon de ne plus avoir à y penser.
 
 ### Composants à part entière
 
+**`BarreActions`** — les actions d'un EN-TÊTE d'écran : **toutes en boutons
+quand elles tiennent sur la ligne, sinon les actions `toujours` + un `Menu`
+« ⋯ »** pour les `autres`. Les entrées sont les mêmes `ElementMenu` dans les
+deux formes (libellé, icône, désactivation et raison, `danger` rangé en
+dernier derrière un filet) : aucune action n'existe que dans l'une. Demandé par
+Thomas (RTA, lot 6) : « sur PC, afficher ces boutons si on a la place ».
+⚠️ **La place se MESURE** : une copie invisible et `inert` de la rangée complète
+est comparée à la largeur disponible, à chaque redimensionnement. Un point de
+rupture fixe se tromperait — la place dépend aussi de la barre latérale
+(dépliée ou repliée) et du titre de l'écran. ⚠️ En rendu serveur et au premier
+rendu, c'est le **menu** (la forme qui tient partout) ; le basculement se fait
+dans un `useLayoutEffect`, avant la première peinture. Tous ses boutons ont la
+hauteur d'en-tête (`HAUTEUR_EN_TETE`).
+
 **`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
 ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).
 ⚠️ **Le « ⋯ » a la hauteur des boutons d'EN-TÊTE, 36 px**

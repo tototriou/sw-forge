@@ -280,6 +280,8 @@ de code : sa preuve est son fichier **et** le commit
 
 ### A.7 Dépendances, ordre, suivi
 
+#### Graphe et validations
+
 Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 
 ```text
@@ -294,7 +296,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 0 → 5                      (réinitialisations du hook et appelants, dont App.tsx)
 5 → 6 → contre-revue du cadrage → 6bis-a1
         → amendement pilote et revue indépendante
-        → correctif pilote de la revue → 6bis-a2a1 → 6bis-a2a2
+        → correctif pilote de la revue → validation indépendante → 6bis-a2a1
+        → 6bis-a2a2
         → 6bis-a2b → 6bis-a3a → 6bis-a3b
         → 6bis-a4a → 6bis-a4b → 6bis-a4c1 → 6bis-a4c2
         → 6bis-a4d1 → 6bis-a4d2
@@ -323,6 +326,16 @@ projection non outillée ; le validateur renforcé en a révélé une quatrième
 Le pilote scinde a2a, a4c et a4d et corrige le contrat avant
 son lancement ; le verdict « a2a lançable » de la revue ne vaut pas
 validation du contrat amendé.
+Contre-vérification indépendante du 2026-09-26 : **a2a1 lançable**, aucun
+bloquant ; 104 clés et 2 usages partagés réconciliés, fenêtres et budgets
+rejoués. Le diff `02391062..e1b4bf6` conserve aussi la preuve des anciennes
+bornes et de leur correction. Les réserves sur les lectures adjacentes et
+la taille des lignes JSON sont précisées dans le contrat ci-dessous.
+Le budget corrigé laisse moins de 100 lignes de marge prévisionnelle à a2b,
+a3a, a3b, a4a et a4d1 : le pilote réévalue et, si nécessaire, scinde chacun
+**avant son lancement**, sans faire lire un intrant tronqué à sa session.
+
+#### Suivi des lots
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
@@ -344,13 +357,13 @@ validation du contrat amendé.
 | 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
 | 6 — sets d'aura : modèle initial, corrigé au lot 6bis | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
 | 6bis-a1 — inventaire et recettes de contrôle | C | terminé | reçu `948066b` ↔ `87d09ec` / 2026-09-25 |
-| 6bis-a2a1 — début de combat et dégâts | C | en attente de validation du correctif pilote | — |
+| 6bis-a2a1 — début de combat et dégâts | C | prêt à lancer | contre-vérification / 2026-09-26 |
 | 6bis-a2a2 — sets actifs du build et score | C | en attente de a2a1 | — |
 | 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
-| 6bis-a3a — conditions et élagages locaux | C | en attente de a2b et de la revue | — |
-| 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a et de la revue | — |
-| 6bis-a4a — recette, reset et import écran | C | en attente de a3b et de la revue | — |
-| 6bis-a4b — CLI et scripts de diagnostic | C | en attente de a4a et de la revue | — |
+| 6bis-a3a — conditions et élagages locaux | C | en attente de a2b | — |
+| 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
+| 6bis-a4a — recette, reset et import écran | C | en attente de a3b | — |
+| 6bis-a4b — CLI et scripts de diagnostic | C | en attente de a4a | — |
 | 6bis-a4c1 — écran de recherche et caches | C | en attente de a4b | — |
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | en attente de a4c1 | — |
 | 6bis-a4d1 — Workers et tests | C | en attente de a4c2 | — |
@@ -1432,8 +1445,8 @@ avec la réconciliation finale des notes.
 
 #### Contrat commun de 6bis-a2a1 à 6bis-a4d2 — fenêtres mesurées après a1
 
-**Amendement pilote du 2026-09-25 après contre-revue ; validation du correctif
-requise avant a2a1.** Le manifeste a1 est à
+**Amendement pilote du 2026-09-25 : contre-vérification indépendante favorable
+le 2026-09-26, puis précisions de budget et de périmètre du pilote.** Le manifeste a1 est à
 `spec/outils/optimizer/archive/controles-degats-aura-2026-09/manifest-6bis-a1.json`
 (SHA-256 `23e107ace593dd322e8343f778fdd21e7c66c3d92f05684cbcbe547eb758f65d`).
 L'outil privé `projeter-6bis.mjs` du même dossier vérifie cette empreinte et
@@ -1444,6 +1457,9 @@ vérifie l'union, les doublons permis et les entrées différées. La projection
 est un intrant lu et compté ; ne pas lire les 1 146 lignes du manifeste
 comme de la prose. Les affectations a1 restent provisoires quant au
 **verdict**, non quant à la propriété des clés dans les cartes.
+Pour le budget de lecture, chaque projection JSONL compte pour le maximum
+entre son nombre d'enregistrements et `ceil(octets UTF-8 / 80)` lignes
+équivalentes ; une longue ligne JSON ne réduit pas artificiellement le volume.
 Une clé stable vaut `A:<fichier>:<ligne>`, `B:<chemin>`,
 `H:fichier:<chemin>`, `H:champ:<type.champ>`, `H:cache:signatureArtefacts`
 ou `H:document:<référence source>` ; une découverte supplémentaire vaut
@@ -1481,7 +1497,7 @@ sous-lot nommé avant de lire davantage. Chaque preuve donne les plages
 réellement lues, les lignes et les découvertes hors manifeste.
 Rejouer `node spec/outils/optimizer/archive/controles-degats-aura-2026-09/valider-fenetres-6bis.mjs` :
 sommes inclusives attendues a2a1/a2a2/a2b/a3a/a3b/a4a/a4b/a4c1/a4c2/
-a4d1/a4d2 = 271/159/386/375/411/371/299/231/186/334/0 lignes de code,
+a4d1/a4d2 = 271/159/386/375/411/371/299/231/186/336/0 lignes de code,
 avec existence des fichiers et des bornes vérifiée. Ce contrôle ne remplace pas le
 décompte **total** de lecture de chaque lot.
 
@@ -1498,10 +1514,13 @@ code de production, les tests ou la règle de jeu.
 **Cat. C ; requiert a1 et la validation du correctif pilote.** Fenêtres de code :
 `src/lib/damage.ts` L3309–3321, L3433–3441, L3503–3515, L3745–3790,
 L4690–4699, L4744–4868 ; `src/lib/stats.ts` L49–103.
-Classer `DamageSetup`, `nombreAura`, `statsDebutCombat`, dégâts actifs,
+Classer les champs d'aura de `DamageSetup` et leur défaut, `nombreAura`,
+`statsDebutCombat`, dégâts actifs,
 passifs et additionnels et calcul des stats de fiche. Établir où l'appel
 ne reçoit que des stats ; ne pas supposer que `computeStats` inclut une
-aura d'équipe.
+aura d'équipe. Les fenêtres de `computeTotalDamage` sont des amorces : si sa
+fin (lignes 4869 à 4927) est nécessaire au verdict, la lire et la compter avant de
+poursuivre ; ne pas l'omettre pour respecter le budget.
 
 **Sortie :** carte a2a1 et chaîne du contexte vers les dégâts, avec
 politique d'arrondi. **Ne fait pas :** sets des six runes, score de
@@ -1653,7 +1672,7 @@ nouveau ni contrôle visuel (lot 7). **Ne fait pas :** Workers ou tests.
 **Cat. C ; requiert a4c2.** Lire les synthèses a3b et a4c2, puis :
 `src/workers/runeBuildOptim.worker.ts`
 L235–265, L270–290, L360–385 ; `buildHalf.worker.ts` L30–55, L90–110 ;
-`pairSlice.worker.ts` L27–37 ; `pairSliceBody.ts` L47–60, L94–105 ;
+`pairSlice.worker.ts` L25–37 ; `pairSliceBody.ts` L47–60, L94–105 ;
 `parallelPairing.ts` L104–138 ; `pairingDriver.ts` L1–30 (tous sous
 `src/workers/`) ; `tests/auras-modele.test.ts` L1–60, L85–100,
 L200–230.

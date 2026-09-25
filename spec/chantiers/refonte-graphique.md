@@ -317,7 +317,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par Thomas le 2026-09-25 |
 | 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par Thomas le 2026-09-25 |
 | 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
-| 7a Siège · Défense et Offense | J | exécuté, à valider | `553a709` (pastille), `f637bba`, `a39c836` (en-tête) ; 2026-09-26 |
+| 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par Thomas le 2026-09-26 |
 | 7b Siège · Recommandations | J | à faire | |
 | 14 thème clair (Atelier) : revoir les tokens | J | à faire | ajouté le 2026-09-26 |
 | 8a Compte · Runes | J | à faire | |
@@ -572,7 +572,12 @@ choisis par Thomas, `pastilleStatut.ts` testé), fond coloré du thème clair
 retiré (`553a709`) ; en-tête bureau par `BarreActions`, comme la RTA
 (`a39c836`), avec « Vérifier mes speed » en action principale à la demande de
 Thomas ; axes `principal` / `actif` dans la librairie (`f637bba`). Fonctions
-nouvelles de la maquette non faites. Aucune perte. À valider par Thomas.
+nouvelles de la maquette non faites. Aucune perte. Dix ajustements après
+essai, un commit chacun (`7587749`…`e3e00cf`, tableau dans la preuve) :
+aucune action mise en avant (décision 4 précisée), cartes resserrées et
+grille selon la place, édition réorganisée (flèches ← → en haut, lignes
+alignées, saisie puis conclusion, reclic pour enlever un tick, « Off »
+masqué à la souris). **Validé par Thomas le 2026-09-26, sur bureau.**
 
 ### B.11 Lot 11 — téléphone · J
 

@@ -47,6 +47,28 @@ verra plus tard ») — elles restent des propositions.
 | `f637bba` | `BarreActions` / `Menu` : axes `principal` et `actif` |
 | `a39c836` | en-tête bureau (titre, compteur, `BarreActions`) ; « Créer un monstre » depuis le menu (mode piloté) ; test `testRenduSiegeEnTete` |
 
+## Ajustements après essai (2026-09-26), puis validation
+
+Chaque demande de Thomas, un commit :
+
+| Demande | Commit | Effet |
+|---|---|---|
+| « ne met pas d'action en avant, ça rend pas bien » | `7587749` | aucun aplat dans l'en-tête ; axe `principal` retiré ; décision 4 précisée |
+| « revois un peu les cards pour optimiser l'espace » | `8355ead` | carte resserrée ; grille en colonnes d'au moins 480 px, selon la place |
+| « revois surtout la partie d'édition » | `a51b5dd` | deux lignes de moins par slot ; `testRenduSiegeEdition` (passe à l'identique avant et après) |
+| « remplacer l'encart position par des flèches » | `57e42d9` | ← → à la souris, désactivées aux bords, annonce du leader |
+| « les mettre en haut de la card » | `56a90ce` | flèches sur la ligne du monstre, à côté de la croix |
+| « les éléments alignés dans la card » | `751b0c3` | lignes des trois slots alignées (`grid-rows-subgrid`) |
+| capture : « ce n'est pas aligné » | `a0e4b4d` | tout centré sur sa ligne ; écart au tick après la vitesse |
+| « la spd et la conclusion en bas » | `8dcbb70` | ordre : monstre, saisie (SPD + ticks), conclusion |
+| « supprime le bouton off, reclic = enlève le tick » | `d00b3b0` | « Off » masqué à la souris, reclic sur le tick actif = 0 |
+| « pas besoin de séparateur dans la card » | `e3e00cf` | plus de filet au-dessus de la conclusion |
+
+**Validé par Thomas le 2026-09-26, sur bureau** (« et on est bon »). Le
+téléphone n'a pas été regardé : il garde « Off », le sélecteur de position et
+sa disposition — à voir au lot 11 (les flèches et le reclic y seraient aussi
+pratiques).
+
 ## Vérifications
 
 ```text

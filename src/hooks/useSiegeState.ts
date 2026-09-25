@@ -71,6 +71,11 @@ export interface UseSiegeState {
   importTeams: (
     teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[]
   ) => void;
+  // AJOUTE des équipes à la fin, sans toucher aux existantes — l'import d'un
+  // fichier d'équipes (refonte graphique, décision 14 ; voir lib/siegeShare).
+  appendTeams: (
+    teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[]
+  ) => void;
   clearAll: () => void;
 }
 
@@ -201,8 +206,40 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
 
   const clearAll = useCallback(() => setState({ teams: [] }), []);
 
+  // ⚠️ **AJOUTE, ne remplace pas** — l'inverse d'`importTeams`. Un fichier
+  // d'équipes reçu s'ajoute à ce qu'on a ; « Tout effacer » existe pour qui
+  // veut repartir de zéro. Les équipes ajoutées sont NOUVELLES : identité
+  // neuve (aucune liste de travail ne les désigne encore), alerte de tick
+  // active. Les existantes gardent tout, validation de tick comprise.
+  const appendTeams = useCallback(
+    (teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[]) => {
+      setState((s) => ({
+        ...s,
+        teams: [
+          ...s.teams,
+          ...teams.map((t) => ({
+            id: newId(),
+            slots: [0, 1, 2].map((i) => {
+              const sl = t.slots[i];
+              return {
+                monsterId: sl && typeof sl.monsterId === 'string' ? sl.monsterId : null,
+                runeSpeed: sl && typeof sl.runeSpeed === 'number' ? sl.runeSpeed : null,
+                tick: sl && typeof sl.tick === 'number' ? sl.tick : 0,
+                sets: sl && Array.isArray(sl.sets) ? sl.sets : [],
+              };
+            }),
+            lead: 0,
+            tickAlertDismissed: false,
+          })),
+        ],
+      }));
+    },
+    []
+  );
+
   return {
     state,
+    appendTeams,
     addTeam,
     removeTeam,
     setSlotMonster,

@@ -30,13 +30,17 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 
 ## Vue d'ensemble de l'écran « Ma prépa » (de haut en bas)
 
-1. **En-tête** : titre + explication.
-2. **Barre de recherche** pour ajouter un monstre à la prépa.
-3. **Barre d'actions** : compteur, **Importer un compte**, **Créer un monstre**,
-   **Tout effacer** ; + disclaimer monstres récents / message d'import.
-3bis. **Sauvegarder · Reprendre · Réinitialiser · Exporter · Importer** — point
-   de restauration manuel et partage. Voir
-   [sauvegarde-partage.md](sauvegarde-partage.md).
+1. **En-tête** (bureau) : titre « Ma prépa », le compteur (« 3 monstres en
+   prépa »), **Exporter**, et le menu **« ⋯ » Plus d'actions** — Sauvegarder,
+   Reprendre, Importer une prépa, Créer un monstre, puis, séparés en bas,
+   Réinitialiser et Tout effacer. Refonte graphique, lot 6, décision 13 de
+   Thomas : ces actions s'alignaient en deux rangées de boutons au-dessus de
+   la prépa. Voir [sauvegarde-partage.md](sauvegarde-partage.md).
+2. **Barre de recherche** pour ajouter un monstre à la prépa — **permanente**
+   (décision 13 : pas derrière un bouton).
+3. **Téléphone** : le compteur seul dans la page ; toutes les actions dans le
+   panneau « Options » (création, Sauvegarder · Reprendre · Réinitialiser ·
+   Exporter · Importer, catégories, Tout effacer) — inchangé, lot 11.
 4. **« Non classé »** : zone tampon où atterrissent les monstres ajoutés.
 5. **Sections par set de runes** (Swift / Violent / Despair / Autre + ajoutables).
 6. **Ajouter une section** (choix d'un set de runes).

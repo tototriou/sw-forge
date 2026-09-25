@@ -116,6 +116,25 @@ export function testRenduRtaPrepa() {
   ok(!!bouton(html, 'Surligner les changements'), 'bouton « Surligner les changements »');
 }
 
+// Décision 13 (lot 6) : sur bureau, « Exporter » dans l'en-tête, le reste dans
+// le menu « ⋯ ». Ajouté APRÈS le commit des tests d'avant : les assertions
+// ci-dessus, elles, n'ont pas changé.
+export function testRenduRtaMenu() {
+  titre('rendu · RTA · Ma prépa — l\'en-tête bureau et son menu « ⋯ »');
+
+  const html = rendrePrepa({
+    'sky-arena-rta-v1': PREPA,
+    'sw-forge-rta-backup-v1': { date: '2026-09-01T10:00:00.000Z', state: PREPA, categories: [] },
+    'sw-forge-rta-import-v1': { date: '2026-09-01T10:00:00.000Z', state: PREPA, categories: [] },
+  });
+  ok(texteVisible(html).includes('Ma prépa 3 monstres en prépa'), 'en-tête : « Ma prépa », puis le compteur');
+  ok(!!bouton(html, "Plus d'actions"), 'bouton « Plus d\'actions »');
+  const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
+  const entrees = boutons(menu).map((b) => b.texte);
+  egal(entrees, ['Sauvegarder', 'Reprendre', 'Importer une prépa', 'Créer un monstre', 'Réinitialiser', 'Tout effacer'], 'le menu, dans l\'ordre : construction, puis les deux gestes destructeurs');
+  ok(!entrees.includes('Exporter') && !!bouton(html, 'Exporter'), '« Exporter » reste visible, hors du menu');
+}
+
 export function testRenduRtaVide() {
   titre('rendu · RTA · Ma prépa — prépa vide');
 

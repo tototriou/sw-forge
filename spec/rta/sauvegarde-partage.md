@@ -1,7 +1,25 @@
 # RTA · Point de sauvegarde & partage de prépa
 
-Cinq boutons sous la barre d'actions de **Ma prépa** : **Sauvegarder ·
-Reprendre · Réinitialiser · Exporter · Importer**.
+Cinq actions de **Ma prépa** : **Sauvegarder · Reprendre · Réinitialiser ·
+Exporter · Importer**.
+
+⚠️ **Deux dispositions, une seule logique** (`RtaBackupBar`, prop
+`disposition`) — refonte graphique, lot 6, décision 13 de Thomas :
+
+- **Bureau — `menu`** : dans l'en-tête de la page, « **Exporter** » visible,
+  les autres dans le menu **« ⋯ » Plus d'actions** (composant `Menu` de
+  `src/ui`) : Sauvegarder, Reprendre, **Importer une prépa**, puis les entrées
+  de la page (Créer un monstre) ; séparés en bas, en `bad` : Réinitialiser et
+  Tout effacer. « Importer » y devient « Importer une prépa » : dans un menu
+  où voisinent d'autres gestes, le mot seul ne dit plus ce qu'on importe.
+  Libellés, désactivations et infobulles sont repris mot pour mot. La ligne
+  « Point de sauvegarde · … », les messages et le rapport de lecture passent
+  sous l'en-tête, pleine largeur.
+- **Téléphone — `barre`** (défaut) : les cinq boutons en rangées, dans le
+  panneau « Options » — inchangé (lot 11).
+
+Les dialogues, les messages et le sélecteur de fichier sont les MÊMES dans les
+deux : seule la façon de déclencher change.
 
 ⚠️ **Consulter la prépa d'un ami n'est plus un de ces boutons** : c'est un
 sous-onglet à part, `#/rta/ami` — voir « La consultation » plus bas et

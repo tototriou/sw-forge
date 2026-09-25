@@ -51,7 +51,7 @@ import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
-import { testAurasRecette, testAurasCombatEtExclusive, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle } from './auras-modele.test';
+import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle } from './auras-modele.test';
 import testRelicOptim from './relic-optim.test';
 import testRelicOracle from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
@@ -144,6 +144,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerDamageTransitions', testOptimizerDamageTransitions],
   ['testAurasRecette', testAurasRecette],
   ['testAurasCombatEtExclusive', testAurasCombatEtExclusive],
+  ['testAurasArrondiCommunLeadInvocateur', testAurasArrondiCommunLeadInvocateur],
+  ['testAurasChoixEffectifReliqueEhp', testAurasChoixEffectifReliqueEhp],
   ['testAurasPassifEtAdditionnel', testAurasPassifEtAdditionnel],
   ['testAurasEhpEtConditions', testAurasEhpEtConditions],
   ['testAurasReliqueFinaleEtDiagnostics', testAurasReliqueFinaleEtDiagnostics],

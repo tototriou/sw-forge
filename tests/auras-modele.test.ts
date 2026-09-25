@@ -1,11 +1,13 @@
 import { egal, ok, titre } from './outils';
-import { computeStats } from '../src/lib/stats';
+import { computeStats, statsParPaire } from '../src/lib/stats';
 import { ARTIFACT_DAMAGE_NEUTRE, DEFAULT_DAMAGE_SETUP, computeSkillDamage, computeTotalDamage, degatsBrutsArtefactsParCoup, estPrisEnCharge, skillDamageProfile, statsDebutCombat } from '../src/lib/damage';
 import { apportExclusive } from '../src/lib/relicExclusive';
 import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { avecAurasConditions, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
 import { signatureArtefacts } from '../src/lib/artifactQueue';
+import { resoudreContexteRelique } from '../src/lib/relicOptim';
+import { resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { recipeToSearchParams } from '../scripts/lib/recipeToSearchParams';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { runeEfficiency } from '../src/lib/effects';
@@ -73,6 +75,67 @@ export function testAurasCombatEtExclusive() {
   const relic: RelicDetail = { id: 1, upgrade: 9, main: { code: 101, value: 0 }, unique: { type: 1, tranche: 130, percent: 1 } };
   ok(apportExclusive(relic, STATS, SETUP, null).dmgPct > apportExclusive(relic, STATS, DEFAULT_DAMAGE_SETUP, null).dmgPct,
     'exclusive : l’assiette Y contient Fight');
+}
+
+export function testAurasArrondiCommunLeadInvocateur() {
+  titre('Auras · PV/ATQ/DEF : lead + invocateur + aura, un seul ceil');
+  // Attentes fixées par le contrat, avant l'appel au moteur : 20 + 13 + 8 = 41 %
+  // de la base. Trois ceil séparés donneraient 1414, 145 et 147.
+  const cas = [
+    { stat: 'HP' as const, key: 'hp' as const, base: 1001, attendu: 1412, arrondisSepares: 1414 },
+    { stat: 'Attack Power' as const, key: 'atk' as const, base: 101, attendu: 143, arrondisSepares: 145 },
+    { stat: 'Defense' as const, key: 'def' as const, base: 103, attendu: 146, arrondisSepares: 147 },
+  ];
+  const base: BaseStats = { ...BASE, def: 103 };
+  const stats = computeStats({ base, runes: [], artifacts: [] });
+  const setsAura = [
+    { set: 'enhance' as const, nombre: 1 },
+    { set: 'fight' as const, nombre: 1 },
+    { set: 'determination' as const, nombre: 1 },
+  ];
+  for (const { stat, key, base: valeurBase, attendu, arrondisSepares } of cas) {
+    const setup = { ...DEFAULT_DAMAGE_SETUP, leaderSkill: { stat, pct: 13 }, setsAura };
+    ok(attendu !== arrondisSepares, `${key} : la base ${valeurBase} distingue les deux règles d'arrondi`);
+    egal(statsDebutCombat(stats, setup)[key], attendu, `${key} : 20 % invocateur + 13 % lead + 8 % aura, un ceil`);
+  }
+}
+
+export function testAurasChoixEffectifReliqueEhp() {
+  titre('Auras · choix effectif entre deux reliques EHP avec Enhance/Determination');
+  // Attentes indépendantes du score du moteur : base 1001 PV / 101 DEF ;
+  // Enhance ajoute ceil(1001 × 8 %) = 81 PV, Determination ceil(101 × 8 %) = 9 DEF.
+  // PV +10 % : (1102 + 81) × (1142 + 3,572 × (101 + 9)) / 1000 = 1815,81036.
+  // DEF +40 % : (1001 + 81) × (1142 + 3,572 × (142 + 9)) / 1000 = 1819,244504.
+  // Sans aura, les scores sont 1656,054744 et 1650,873224 : l'ordre s'inverse.
+  const attendu = {
+    avecAura: { pv: 1815.81036, def: 1819.244504, retenue: 102 },
+    sansAura: { pv: 1656.054744, def: 1650.873224, retenue: 101 },
+  };
+  const pv: RelicDetail = { id: 101, upgrade: 9, main: { code: 100, value: 10 } };
+  const def: RelicDetail = { id: 102, upgrade: 9, main: { code: 102, value: 40 } };
+  const candidates = [pv, def]; // La meilleure avec aura est la seconde, pas la première du pool.
+  const ctx = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, undefined, candidates);
+  const gear = { base: BASE, runes: [], artifacts: [] };
+  for (const [nom, setup, oracle] of [
+    ['avecAura', SETUP, attendu.avecAura],
+    ['sansAura', DEFAULT_DAMAGE_SETUP, attendu.sansAura],
+  ] as const) {
+    const faireParams = (relique: RelicDetail | undefined) => ({
+      porteur: { element: 'fire' as const, archetype: 'attack' as const },
+      inventaire: [], equipes: [], principaleParSorte: {},
+      evaluer: evaluerPourRegime('ehp', statsParPaire({ ...gear, relic: relique }), { relique, setup, element: null }),
+    });
+    const scores = candidates.map((relique) => faireParams(relique).evaluer([]));
+    ok(Math.abs(scores[0]! - oracle.pv) < 1e-9, `${nom} : score chiffré de la relique PV`);
+    ok(Math.abs(scores[1]! - oracle.def) < 1e-9, `${nom} : score chiffré de la relique DEF`);
+    egal(scores[0]! > scores[1]!, oracle.retenue === pv.id, `${nom} : classement chiffré des deux candidates`);
+    const resolution = resoudreEquipementDuBuild({ gear, faireParams, respecteConditions: null,
+      requirement: { minStats: {}, maxStats: {} }, regimeAucun: false, relicContext: ctx });
+    egal(resolution.conforme, true, `${nom} : un couple faisable est retenu`);
+    egal(resolution.relique?.id, oracle.retenue, `${nom} : relique effectivement retenue par la résolution`);
+    ok(Math.abs((resolution.paire?.score ?? NaN) - Math.max(oracle.pv, oracle.def)) < 1e-9,
+      `${nom} : score de la paire retenue égal au meilleur score attendu`);
+  }
 }
 
 export function testAurasPassifEtAdditionnel() {

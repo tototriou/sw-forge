@@ -1025,6 +1025,13 @@ panneau « Options » fait maintenant sans quitter le haut de l'écran (voir plu
 bas). Une icône de plus dans un coin déjà chargé pour un geste qui a un meilleur
 endroit ne se justifiait plus.
 
+⚠️ **Et seulement à partir de `lg`** (`max-lg:hidden` en plus de
+`compact:hidden`, lot 7b) : sous ce seuil la page prend sa disposition
+téléphone, panneau « Options » compris — même à la souris, dans une fenêtre
+étroite. Le bouton y apparaissait alors aux DEUX endroits, sur la carte et
+dans le panneau (Thomas : « il ne le faut qu'à un seul endroit »). Un geste,
+un endroit : la carte à partir de `lg`, le panneau en dessous.
+
 - Le bouton est **désactivé sans compte importé** (rien à quoi comparer).
 - Le résultat est **mémorisé dans le board** avec la reco et les builds qui ont
   servi ; il devient **périmé** dès que l'un des deux change (comparaison par

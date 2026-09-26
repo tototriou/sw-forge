@@ -456,7 +456,12 @@ export default function RecoCard({
             pastille qui redisait déjà ce que l'encart d'analyse affiche juste
             en dessous (voir plus bas — `StatusPill` a été retiré pour ça). Sa
             version au doigt vit désormais en icône, groupée avec Exporter /
-            Éditer / Supprimer — voir plus bas. */}
+            Éditer / Supprimer — voir plus bas.
+            ⚠️ **Masqué aussi sous `lg`** (`max-lg:hidden`), même à la souris :
+            sous ce seuil, la page prend sa disposition téléphone, et
+            « Analyser » vit dans le panneau « Options » — une fenêtre étroite
+            le montrait aux DEUX endroits (Thomas : « il ne le faut qu'à un
+            seul endroit »). */}
         {/* ⚠️ À la souris, un RESSORT pousse la suite au bout de la ligne
             (la maquette : titre et résumé à gauche, puis ce qui se clique à
             droite, derrière le filet). Il remplace le `ml-auto` des actions,
@@ -478,7 +483,7 @@ export default function RecoCard({
             taille="sm"
             icone={<Gauge size={13} />}
             libelle={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
-            className={`compact:hidden ${BOUTON_LG}`}
+            className={`compact:hidden max-lg:hidden ${BOUTON_LG}`}
           />
         )}
       </div>

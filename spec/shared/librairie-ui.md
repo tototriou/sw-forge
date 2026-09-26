@@ -235,6 +235,13 @@ type est la seule façon de ne plus avoir à y penser.
   serait ni focusable au clavier ni atteignable au doigt — on ne pouvait plus
   retirer un monstre sur téléphone. On joue sur l'**opacité**, et il est visible
   d'office là où il n'y a pas de survol.
+- `libelleALaSouris` — **à la souris, le libellé s'écrit à côté de l'icône** :
+  le carré devient un bouton `sm` à libellé (28 px, 10 px de côté). Au doigt,
+  l'icône seule, inchangée. Né au lot 7b de la refonte (Recommandations) : la
+  maquette écrit « Éditer ce deck » en pied du détail, le téléphone garde le
+  crayon. ⚠️ **Un seul élément, deux dessins** — et non une icône `lg:hidden`
+  plus un bouton `hidden lg:inline-flex` : deux éléments pour un geste, c'est
+  deux cibles au clavier et deux annonces au lecteur d'écran.
 
 ### Composants à part entière
 

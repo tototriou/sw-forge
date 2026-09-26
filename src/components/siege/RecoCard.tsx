@@ -33,6 +33,7 @@ import {
 } from '../../types';
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { DeckHit, RecoHit } from '../../lib/recoSearch';
+import { VueDefenses, VueRecos, vueDefenses } from '../../lib/recoDefenses';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import { Bouton, BoutonIcone, Champ, Selecteur, ZoneCliquable } from '../../ui';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
@@ -121,6 +122,8 @@ interface Props {
   // Où le monstre cherché se trouve dans CETTE recommandation, `null` hors
   // recherche. Sert à déplier les bons decks et à surligner les bons portraits.
   hit?: RecoHit | null;
+  // Vue de la page (décision 19). Absente : Attaque, l'affichage d'avant.
+  vue?: VueRecos;
 }
 
 // Carte d'une recommandation — ⚠️ **NEUTRE, quel que soit le résultat de
@@ -156,6 +159,7 @@ export default function RecoCard({
   onToggleEdit,
   onExport,
   recos,
+  vue = 'attaque',
 }: Props) {
   const status = match?.status ?? 'unknown';
 
@@ -224,6 +228,30 @@ export default function RecoCard({
   const decksFiltres = hit != null;
   // Positions du monstre dans un deck donné, pour le surlignage.
   const hitDeDeck = (di: number) => hit?.decks.find((d) => d.deckIndex === di) ?? null;
+
+  // ── Vue Défense (décision 19) ─────────────────────────────────────────────
+  //
+  // ⚠️ **En LECTURE SEULE** (choix de Thomas) : dès qu'on édite — la
+  // recommandation ou l'un de ses decks —, la carte reprend la vue Attaque,
+  // celle où se trouvent les formulaires. Changer de vue ne fait donc jamais
+  // disparaître une édition en cours.
+  const enVueDefense = vue === 'defense' && !editing && editingDeck === null;
+  // Pendant une recherche : on garde l'offense si son deck JOUE le monstre
+  // cherché, ou si CETTE défense le contient — la même règle que le
+  // dépliage des decks en vue Attaque.
+  const defenses = useMemo(
+    () =>
+      vueDefenses(
+        reco,
+        hit
+          ? (di, ci) => {
+              const h = hit.decks.find((d) => d.deckIndex === di);
+              return !!h && (h.slots.length > 0 || (ci != null && h.counters.includes(ci)));
+            }
+          : undefined,
+      ),
+    [reco, hit],
+  );
 
   // ── Aller d'une ligne du résumé au deck correspondant ────────────────────
   //
@@ -545,7 +573,7 @@ export default function RecoCard({
           match={match}
           monsterByCom2us={monsterByCom2us}
           onClear={onClearAnalysis}
-          onGoToDeck={allerAuDeck}
+          onGoToDeck={enVueDefense ? undefined : allerAuDeck}
         />
       )}
 
@@ -553,7 +581,39 @@ export default function RecoCard({
 
       {/* Repliée : un aperçu d'une ligne — le nom de chaque deck et sa pastille
           de statut, pour savoir quoi ouvrir sans tout déplier. */}
-      {!expanded && (
+      {/* En vue Défense : une puce par DÉFENSE visée, le point du meilleur
+          verdict de ses offenses (verte si l'une au moins est jouable), et
+          combien d'offenses la battent. */}
+      {!expanded && enVueDefense && (
+        <ZoneCliquable
+          onClick={() => onToggleOpen(reco.id)}
+          className="w-full flex flex-wrap items-center gap-1.5"
+          title="Consulter cette recommandation"
+        >
+          {defenses.defenses.map((d) => (
+            <span
+              key={d.cle}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel2/60
+                         px-2 py-0.5 text-micro text-ink-dim"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full flex-none ${DOT[meilleurStatut(d.offenses, match)]}`} />
+              {defenseLabel(d.monsters, monsterByCom2us)}
+              <span className="font-mono">· {d.offenses.length}</span>
+            </span>
+          ))}
+          {defenses.sansDefense.length > 0 && (
+            <span className="inline-flex items-center gap-1 text-micro text-ink-dim">
+              {defenses.sansDefense.length} deck{defenses.sansDefense.length > 1 ? 's' : ''} sans défense visée
+            </span>
+          )}
+          {reco.note && (
+            <span className="inline-flex items-center gap-1 text-micro text-ink-dim">
+              <StickyNote size={11} className="text-star" /> consignes
+            </span>
+          )}
+        </ZoneCliquable>
+      )}
+      {!expanded && !enVueDefense && (
         <ZoneCliquable
           onClick={() => onToggleOpen(reco.id)}
           className="w-full flex flex-wrap items-center gap-1.5"
@@ -580,8 +640,18 @@ export default function RecoCard({
         </ZoneCliquable>
       )}
 
+      {/* Vue Défense : les défenses visées, et les offenses qui les battent. */}
+      {expanded && enVueDefense && (
+        <TableauDefenses
+          reco={reco}
+          vue={defenses}
+          match={match}
+          monsterByCom2us={monsterByCom2us}
+        />
+      )}
+
       {/* Les decks de la recommandation */}
-      {expanded && (
+      {expanded && !enVueDefense && (
         <>
           {/* ⚠️ Masqué pendant une recherche : les decks trouvés sont déjà
               dépliés d'office, et « Déplier tous les decks » désignerait des
@@ -931,7 +1001,8 @@ function AnalysisSummary({
   monsterByCom2us: Map<number, Monster>;
   onClear: () => void;
   // Déplie le deck visé (et la carte si besoin) puis y fait défiler.
-  onGoToDeck: (deckIndex: number) => void;
+  // Absent en vue Défense, où les decks ne sont pas affichés.
+  onGoToDeck?: (deckIndex: number) => void;
 }) {
   // Tous les decks analysables, triés du plus urgent au plus tranquille :
   // ⚠️ ROUGE → ORANGE → VERT. Ce qui demande du travail se lit en premier ; les
@@ -1087,11 +1158,19 @@ function AnalysisSummary({
                   parmi six, puis l'ouvrir — alors que la ligne le désigne déjà.
                   ⚠️ Le DÉTAIL par monstre reste HORS du bouton : c'est du texte
                   qu'on lit et qu'on veut pouvoir sélectionner, pas une cible. */}
+              {/* ⚠️ En vue Défense (`onGoToDeck` absent), les decks ne sont pas
+                  affichés : la ligne reste, DÉSACTIVÉE, et dit pourquoi — un
+                  clic qui ne mène nulle part se lirait comme un défaut. */}
               <ZoneCliquable
-                onClick={() => onGoToDeck(i)}
+                onClick={() => onGoToDeck?.(i)}
+                disabled={!onGoToDeck}
                 className="flex w-full items-baseline gap-1.5 flex-wrap rounded-md px-1 py-0.5 -mx-1
-                           transition hoverable:bg-panel2/60"
-                title={`Voir le deck « ${deckLabel(deck, monsterByCom2us, i)} »`}
+                           transition hoverable:bg-panel2/60 disabled:hoverable:bg-transparent"
+                title={
+                  onGoToDeck
+                    ? `Voir le deck « ${deckLabel(deck, monsterByCom2us, i)} »`
+                    : 'Passe en vue Attaque pour ouvrir ce deck'
+                }
               >
                 {/* Le point du VERDICT, pas `DOT[status]` : il doit être le
                     même que celui de la pastille qui filtre cette ligne — dont
@@ -2106,6 +2185,137 @@ function CounterRow({
         placeholder="Précision (ex. « si le Chloe est en lead »)…"
         className="mt-1.5 bg-panel py-1 text-micro"
       />
+    </div>
+  );
+}
+
+/* ---- Vue Défense (décision 19) ------------------------------------------ */
+
+// Rang d'un statut de deck, du plus favorable au moins favorable : le point
+// d'une défense prend le MEILLEUR de ses offenses — une seule jouable suffit
+// à la taper.
+const RANG_STATUT: Record<string, number> = { ok: 0, partial: 1, nodeck: 2, ko: 3, missing: 4, unknown: 5 };
+
+function meilleurStatut(offenses: { deckIndex: number }[], match: RecoMatch | null): string {
+  let meilleur = 'unknown';
+  for (const o of offenses) {
+    const st = match?.decks[o.deckIndex]?.status ?? 'unknown';
+    if ((RANG_STATUT[st] ?? 5) < (RANG_STATUT[meilleur] ?? 5)) meilleur = st;
+  }
+  return meilleur;
+}
+
+// « Galleon - Belladeon », même forme que le nom d'un deck (`deckLabel`).
+function defenseLabel(monsters: RecoCounter['monsters'], byCom2us: Map<number, Monster>): string {
+  return monsters
+    .map((m) => (m.com2usId != null ? byCom2us.get(m.com2usId)?.name ?? m.name : m.name).trim())
+    .filter(Boolean)
+    .join(' - ');
+}
+
+// ⚠️ **Lecture seule** (choix de Thomas) : on consulte « contre cette défense,
+// j'ai ces offenses » ; on modifie en vue Attaque. Même cadre et même rangée
+// d'intitulés que le tableau des decks, pour qu'une vue se lise comme l'autre.
+// Au doigt, chaque défense s'empile au-dessus de ses offenses.
+function TableauDefenses({
+  reco,
+  vue,
+  match,
+  monsterByCom2us,
+}: {
+  reco: Reco;
+  vue: VueDefenses;
+  match: RecoMatch | null;
+  monsterByCom2us: Map<number, Monster>;
+}) {
+  const monstre = (id: number | null) => (id != null ? monsterByCom2us.get(id) ?? null : null);
+
+  // Une offense : ses trois portraits (le leader porte son lead), le point de
+  // son verdict si la recommandation est analysée, et la précision que CE deck
+  // donne sur la défense (« si Galleon est en lead »).
+  const offense = (deckIndex: number, note: string) => {
+    const deck = reco.decks[deckIndex];
+    const st = match?.decks[deckIndex]?.status ?? 'unknown';
+    const leader = monstre(deck.slots[0]?.com2usId ?? null);
+    return (
+      <li key={deckIndex} className="flex flex-wrap items-center gap-x-2 gap-y-1" data-offense-contre>
+        <span className={`h-2 w-2 flex-none rounded-full ${DOT[st]}`} aria-hidden />
+        <span className="flex flex-none items-center gap-1" title={deckLabel(deck, monsterByCom2us, deckIndex)}>
+          {deck.slots.map((sl, i) => (
+            <MiniMonster
+              key={i}
+              monster={monstre(sl.com2usId)}
+              fallback={sl.name}
+              size={28}
+              lead={i === 0 ? leader?.leaderSkill ?? null : null}
+            />
+          ))}
+        </span>
+        <span className="text-xs text-ink">{deckLabel(deck, monsterByCom2us, deckIndex)}</span>
+        {note && <span className="text-micro text-ink-dim">— {note}</span>}
+      </li>
+    );
+  };
+
+  if (vue.defenses.length === 0 && vue.sansDefense.length === 0) {
+    return <p className="py-3 text-center text-xs text-ink-dim">Aucun deck dans cette recommandation.</p>;
+  }
+
+  return (
+    <div
+      className="grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
+                 lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft"
+    >
+      <div
+        className="hidden bg-panel2 px-3 py-1.5 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-3"
+        aria-hidden
+        data-intitules-defenses
+      >
+        <span className="label">Défense</span>
+        <span className="label">Offenses fortes contre elle</span>
+      </div>
+      {vue.defenses.map((d) => {
+        const leader = monstre(d.monsters[0]?.com2usId ?? null);
+        return (
+          <div
+            key={d.cle}
+            className="rounded-xl border border-border-soft bg-panel2 p-2.5 compact:p-1.5
+                       lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-center lg:gap-3
+                       lg:rounded-none lg:border-0 lg:border-t lg:bg-transparent lg:px-3 lg:py-2"
+            data-defense-visee
+          >
+            <div className="mb-2 flex min-w-0 items-center gap-2 lg:mb-0">
+              <span className="flex flex-none items-center gap-1">
+                {d.monsters.map((m, i) => (
+                  <MiniMonster
+                    key={i}
+                    monster={monstre(m.com2usId)}
+                    fallback={m.name}
+                    size={34}
+                    lead={i === 0 ? leader?.leaderSkill ?? null : null}
+                  />
+                ))}
+              </span>
+              <span className="min-w-0 truncate text-sm font-semibold text-ink">
+                {defenseLabel(d.monsters, monsterByCom2us)}
+              </span>
+            </div>
+            <ul className="flex flex-col gap-1.5">{d.offenses.map((o) => offense(o.deckIndex, o.note))}</ul>
+          </div>
+        );
+      })}
+      {/* Les decks sans défense visée : pas de ligne à eux, mais ils ne
+          disparaissent pas en changeant de vue. */}
+      {vue.sansDefense.length > 0 && (
+        <div
+          className="rounded-xl border border-dashed border-border-soft p-2.5 compact:p-1.5
+                     lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-center lg:gap-3
+                     lg:rounded-none lg:border-0 lg:border-t lg:border-solid lg:px-3 lg:py-2"
+        >
+          <p className="mb-2 text-xs text-ink-dim lg:mb-0">Aucune défense visée</p>
+          <ul className="flex flex-col gap-1.5">{vue.sansDefense.map((di) => offense(di, ''))}</ul>
+        </div>
+      )}
     </div>
   );
 }

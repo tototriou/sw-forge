@@ -12,6 +12,7 @@ import { useSiegeRecos } from '../../src/hooks/useSiegeRecos';
 import { chercheMonstre } from '../../src/lib/recoSearch';
 import { useSiegeState } from '../../src/hooks/useSiegeState';
 import type { Monster } from '../../src/types';
+import type { VueRecos } from '../../src/lib/recoDefenses';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
 import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
 
@@ -92,7 +93,7 @@ export function rendreRecos(etat: object = RECOS): string {
   return rendre(<Page />);
 }
 
-function Carte({ ouverte, edition, cherche }: { ouverte: boolean; edition: boolean; cherche?: string }) {
+function Carte({ ouverte, edition, cherche, vue }: { ouverte: boolean; edition: boolean; cherche?: string; vue?: VueRecos }) {
   const recos = useSiegeRecos();
   const monsterByCom2us = new Map(MONSTRES.filter((m) => m.com2usId != null).map((m) => [m.com2usId!, m]));
   const monsterById = new Map(MONSTRES.map((m) => [String(m.id), m]));
@@ -121,13 +122,14 @@ function Carte({ ouverte, edition, cherche }: { ouverte: boolean; edition: boole
       onExport={() => {}}
       recos={recos}
       hit={hit}
+      vue={vue}
     />
   );
 }
 
-export function rendreCarte(ouverte: boolean, edition = false, cherche?: string): string {
+export function rendreCarte(ouverte: boolean, edition = false, cherche?: string, vue?: VueRecos): string {
   faussLocalStorage({ 'sw-forge-siege-recos-v1': JSON.stringify(RECOS) });
-  return rendre(<Carte ouverte={ouverte} edition={edition} cherche={cherche} />);
+  return rendre(<Carte ouverte={ouverte} edition={edition} cherche={cherche} vue={vue} />);
 }
 
 const nomme = (html: string, nom: string) =>
@@ -144,11 +146,12 @@ export function testRenduRecosPage() {
   ok(!!nomme(html, 'Exporter toutes les recommandations en un seul fichier')[0], '« Tout exporter », son infobulle');
   ok(boutons(html).some((b) => b.texte === 'Tout effacer'), 'bouton « Tout effacer »');
 
-  // Origine : trois filtres avec leur effectif ; « Toutes » enclenché.
-  const toutes = boutons(html).find((b) => b.texte === 'Toutes 2');
-  ok(!!toutes && toutes.presse === true, 'origine « Toutes 2 », enclenché');
-  ok(boutons(html).some((b) => b.texte === 'Mes recos 1' && b.presse === false), 'origine « Mes recos 1 »');
-  ok(boutons(html).some((b) => b.texte === 'Importées 1' && b.presse === false), 'origine « Importées 1 »');
+  // Vue Attaque / Défense — remplace le filtre d'origine Toutes / Mes recos /
+  // Importées (décision 19, [retrait #19] : ses trois assertions sont
+  // remplacées par celles-ci, la fonction qu'elles couvraient n'existe plus).
+  // « Attaque », l'affichage d'avant, enclenché par défaut.
+  ok(boutons(html).some((b) => b.texte === 'Attaque' && b.presse === true), 'vue « Attaque », enclenchée par défaut');
+  ok(boutons(html).some((b) => b.texte === 'Défense' && b.presse === false), 'vue « Défense »');
 
   // Recherche par monstre.
   ok(valeurs(html, 'placeholder').includes('Nom du monstre…'), 'recherche « Nom du monstre… »');
@@ -217,4 +220,30 @@ export function testRenduRecosEdition() {
   const offense = boutons(html).find((b) => b.texte.startsWith("Importer un deck d'offense"));
   ok(!!offense && offense.desactive && offense.title === 'Aucune équipe d\'offense : importe ton compte (barre du haut) après avoir sauvegardé tes attaques en jeu.', '« Importer un deck d\'offense » désactivé sans équipe, et pourquoi');
   ok(t.includes('Déplier tous les decks'), '« Déplier tous les decks »');
+}
+
+// Décision 19 : la vue Défense — chaque défense visée, avec les offenses qui
+// la battent. Ajouté avec elle ; les tests d'avant restent inchangés.
+export function testRenduRecosVueDefense() {
+  titre('rendu · Siège · Recommandations — la vue Défense');
+
+  // Repliée : une puce par défense (et le nombre d'offenses), les decks sans
+  // défense comptés à part.
+  const repliee = texteVisible(rendreCarte(false, false, undefined, 'defense'));
+  ok(repliee.includes('Galleon - Belladeon · 1'), 'repliée : la défense « Galleon - Belladeon », battue par 1 offense');
+  ok(repliee.includes('1 deck sans défense visée'), 'repliée : le deck sans défense visée est compté');
+
+  // Dépliée : la défense, puis l'offense qui la bat, avec sa précision.
+  const html = rendreCarte(true, false, undefined, 'defense');
+  const t = texteVisible(html);
+  egal((html.match(/data-defense-visee/g) ?? []).length, 1, 'une ligne par défense visée');
+  ok(t.includes('Défense Offenses fortes contre elle'), 'les intitulés des colonnes');
+  ok(t.includes('Galleon - Belladeon Lushen - Veromos - Chasun — si Galleon est en lead'), 'la défense, puis son offense et la précision que ce deck donne');
+  ok(t.includes('Aucune défense visée Galleon - Belladeon - Chasun'), 'le deck sans défense visée reste affiché, à part');
+  egal((html.match(/data-offense-contre/g) ?? []).length, 2, 'chaque deck apparaît : 1 contre la défense, 1 sans défense');
+
+  // Lecture seule : en édition, la carte reprend la vue Attaque.
+  const edition = rendreCarte(true, true, undefined, 'defense');
+  ok(!edition.includes('data-defense-visee'), 'en édition : plus de vue Défense');
+  ok(boutons(edition).some((b) => b.texte === 'Ajouter un deck vide'), 'en édition : les formulaires de la vue Attaque');
 }

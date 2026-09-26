@@ -248,6 +248,21 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     `src/components/siege/slotVideSuivant.ts` (calcul pur, testé). Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Trois
     niveaux d'édition.
+19. **Siège · Recommandations — vue Attaque / Défense à la place du filtre
+    d'origine** (Thomas, le 2026-09-26 : « au lieu du tri toutes / mes recos
+    / importées, mets plutôt un tri attaque / défense […] je veux des
+    défenses qui ont X offenses fortes contre elles, je veux que les deux
+    affichages soient possibles, sans toucher au modèle exporté ou alors
+    compatible »). Vue Défense : dans chaque recommandation, une ligne par
+    défense visée avec les offenses qui la battent ; même leader et mêmes
+    deux autres monstres = même défense ; lecture seule (on modifie en vue
+    Attaque) — trois choix de Thomas. CALCULÉE à partir des decks
+    (`src/lib/recoDefenses.ts`, fichier permis hors A.2, testé) : format
+    exporté inchangé. Le filtre Toutes / Mes recos / Importées et ce qui
+    n'existait que pour lui (états vides, infobulle d'export filtrée) sont
+    retirés — [retrait #19] décidé par Thomas le 2026-09-26 ; la pastille
+    « Importée » reste. Spec :
+    [../siege/recommandations.md](../siege/recommandations.md) § Vue Défense.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

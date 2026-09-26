@@ -97,7 +97,8 @@ Lib : `rtaShare`, `speed`, `stats`, `gearSync`, `artifacts`, `monsterForms`.
 **Siège** — `siege/SiegeBoard.tsx` (défense/offense), `siege/SiegeTeam.tsx`,
 `siege/RecoBoard.tsx` + `siege/RecoCard.tsx` (recommandations),
 `siege/LeadPill.tsx`. Hooks `useSiegeState`, `useSiegeRecos`. Lib `recoMatch`,
-`recoSearch`, `recoShare`, `recoFromSiege`, `ownedBuilds`, **`siegeStatut`**
+`recoSearch`, `recoShare`, `recoFromSiege`, `recoDefenses` (la vue Défense,
+calculée à partir des decks), `ownedBuilds`, **`siegeStatut`**
 (le statut vert/orange/rouge d'une équipe en mode « Vérifier mes tick ATB » —
 pur et testé, il ne vit pas dans la card).
 
@@ -219,7 +220,7 @@ dans un composant.
 | Artéfacts | `artifacts.ts` |
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
 | Monstres | `monsterForms.ts`, `monsterSkills.ts`, `monsterSort.ts`, `collabPairs.ts` |
-| Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `ownedBuilds.ts` |
+| Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `recoDefenses.ts`, `ownedBuilds.ts` |
 | Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement) |
 
 ---

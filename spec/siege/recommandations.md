@@ -28,7 +28,7 @@ avant. Libellés, désactivations et infobulles repris des boutons d'avant. Au
 doigt, le panneau « Options » ne change pas (lot 11).
 
 ⚠️ **À la souris, une seule barre d'outils sous l'en-tête** (la maquette) :
-Origine (Toutes / Mes recos / Importées) · filet vertical · recherche par
+Vue (Attaque / Défense, qui a remplacé Origine — décision 19) · filet vertical · recherche par
 monstre et ses trois cases, sur la même ligne ; « Rôle » passe dessous
 quand une recherche est posée.
 
@@ -152,7 +152,7 @@ lesquelles il peut jouer.
     apporter.
 - Les **decks totalement vides** ne sont ni exportés ni comptés dans les statuts.
 
-## Origine & filtre
+## Origine
 
 Chaque recommandation porte une **origine** :
 
@@ -166,16 +166,68 @@ export (d'où `RecoPayload`, qui exclut `id` **et** `origin`). Ce qui est « à 
 chez l'auteur devient « importée » chez celui qui la reçoit — y compris si je
 réimporte mon propre export.
 
-**Filtre** : **Toutes · Mes recos · Importées**, chacun avec son effectif.
-**Toujours affiché et actif**, même sans aucune recommandation (tous les
-effectifs à zéro) — voir plus bas pourquoi il ne suit pas la règle du bloc de
-filtres. Persistance via `useStickyState` (survit à la navigation, remis à
-« Toutes » au reload).
+⚠️ **Plus de filtre par origine** (refonte graphique, décision 19 — Thomas :
+« au lieu du tri toutes / mes recos / importées, mets plutôt un tri attaque /
+défense »). Le filtre **Toutes · Mes recos · Importées**, ses effectifs, ses
+états vides (« Tu n'as créé aucune recommandation… », « Voir toutes les
+recommandations »), l'infobulle d'export « celles du filtre actif » et les
+bascules automatiques à la création et à l'import sont retirés ([retrait #19]
+du cadrage). L'origine reste une donnée de la carte : la puce « Importée » dit
+toujours ce qu'on a reçu.
 
-Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
-- **créer** une recommandation depuis la vue « Importées » bascule le filtre sur
-  « Mes recos » ;
-- **importer** depuis la vue « Mes recos » bascule sur « Toutes ».
+## Vue Attaque / Défense
+
+Les mêmes recommandations, lues dans les deux sens (décision 19 — « je
+voudrais des défenses qui ont X offenses fortes contre elles, je veux que les
+deux affichages soient possibles ») :
+
+| Vue | Une ligne par… | Puis | Rôle |
+|-----|----------------|------|------|
+| **Attaque** (défaut) | deck (offense) | les défenses contre lesquelles il est fort (« Fort contre ») | l'affichage d'avant ; **c'est là qu'on modifie** |
+| **Défense** | défense visée | les offenses de la recommandation fortes contre elle | **lecture seule** |
+
+⚠️ **Le format exporté ne change pas.** La vue Défense est **calculée** à
+partir des `counters` de chaque deck ([recoDefenses.ts](../../src/lib/recoDefenses.ts),
+calcul pur, testé : `reco-defenses`) — rien n'est stocké en plus, un ancien
+fichier s'affiche dans les deux vues sans conversion (« attention à ne pas
+toucher au modèle de données exporté »).
+
+Règles de la vue Défense — trois choix de Thomas :
+- **Dans chaque recommandation** : la carte garde son en-tête (titre, auteur,
+  analyse, export) ; à l'intérieur, une ligne par défense visée, avec les
+  decks de CETTE recommandation qui la battent. Rien ne se mélange entre
+  recommandations de joueurs différents.
+- **Même défense = même leader et mêmes deux autres monstres**, dans
+  n'importe quel ordre : un leader différent change la défense en jeu (son
+  lead). Un monstre saisi à la main se reconnaît à son nom, sans casse.
+  Défense entièrement vide : ignorée. Les monstres affichés sont ceux de sa
+  première saisie ; les lignes suivent l'ordre de première apparition (celui
+  de la vue Attaque).
+- **Lecture seule** : on consulte « contre cette défense, j'ai ces
+  offenses ». Dès qu'on édite — la recommandation ou l'un de ses decks —, la
+  carte reprend la vue Attaque, où sont les formulaires : changer de vue ne
+  fait jamais disparaître une édition en cours.
+
+Affichage :
+- **Repliée** : une puce par défense (« Galleon - Belladeon · 2 » — le nombre
+  d'offenses), dont le point prend le **meilleur** verdict de ses offenses
+  après analyse — une seule jouable suffit à la taper — ; puis « N deck(s)
+  sans défense visée ».
+- **Dépliée** : même cadre et même rangée d'intitulés que le tableau des decks
+  (« Défense » · « Offenses fortes contre elle »). Chaque offense : le point
+  de son verdict, ses trois portraits (le leader porte son lead), son nom, et
+  la **précision** que CE deck donne sur la défense (« — si Galleon est en
+  lead »). Un deck qui vise deux fois la même défense n'y figure qu'une fois.
+- **Les decks sans défense visée** ne disparaissent pas : ils sont listés à la
+  fin, sous « Aucune défense visée ».
+- **Recherche** : une offense reste si son deck JOUE le monstre cherché, ou si
+  CETTE défense le contient ; une défense sans offense restante disparaît.
+- L'encart d'analyse reste ; ses lignes (« Voir le deck… ») sont
+  **désactivées** en vue Défense, où les decks ne sont pas affichés —
+  infobulle « Passe en vue Attaque pour ouvrir ce deck ».
+
+La vue est **mémorisée** (`useStickyState`, clé `recos.vue` — neuve :
+l'ancienne portait une origine).
 
 ## Recherche par monstre — sur toute la page
 
@@ -187,21 +239,22 @@ Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 C'est elle qui décide de ce que la liste montre, elle doit donc être collée à ce
 qu'elle filtre.
 
-### Origine — SORTIE du bloc de filtres, toujours affichée
+### La vue — SORTIE du bloc de filtres, toujours affichée
 
-⚠️ **Origine ne suit pas la règle du bloc de filtres** (ci-dessous), et c'est
-volontaire. Un filtre au-dessus d'une liste vide n'a normalement rien à
+⚠️ **La vue ne suit pas la règle du bloc de filtres** (ci-dessous), et c'est
+volontaire — elle a hérité de la place et de la règle du filtre d'origine
+qu'elle remplace. Un filtre au-dessus d'une liste vide n'a normalement rien à
 filtrer — c'est vrai pour la recherche par monstre, qui n'a RIEN à chercher
-sans recommandation. Ce n'est **pas** vrai pour Origine : ses trois crans
-(Toutes/Mes recos/Importées) restent un choix qui a un sens dès qu'on **crée**
+sans recommandation. Ce n'est **pas** vrai pour la vue : ses deux crans
+(Attaque/Défense) restent un choix qui a un sens dès qu'on **crée**
 la première recommandation, et un bouton d'action qui apparaît une fois qu'on
 en a besoin surprend — on ne l'a jamais vu apparaître d'un geste, il était
 juste absent (voir la règle générale dans
 [shared/design.md](../shared/design.md#-un-bouton-daction-ne-disparaît-jamais--il-se-désactive)).
-Origine est donc **posée hors du bloc**, sur sa propre ligne, **toujours
-affichée et active** — aux deux formats.
+La vue est donc **posée hors du bloc**, **toujours affichée et active** —
+aux deux formats.
 
-Rendu **une seule fois** (`origineFilter(pleineLargeur)`), posé aux deux
+Rendu **une seule fois** (`vueFilter(pleineLargeur)`), posé aux deux
 endroits — même geste que `actions` et `effacer` :
 - **à la souris** : sur la page, juste au-dessus du bloc de filtres, `hidden
   lg:flex` ;
@@ -213,13 +266,11 @@ endroits — même geste que `actions` et `effacer` :
 de sa ligne, il y flotterait sinon dans une bande vide. `Segmented` passe en
 `size="lg"` (chaque cran se partage la largeur à égalité).
 
-⚠️ **Intitulé « Origine » : au DOIGT seulement.** Dans le panneau, c'est le
+⚠️ **Intitulé « Vue » : au DOIGT seulement.** Dans le panneau, c'est le
 seul repère de ce contrôle — rien d'autre à côté pour dire ce qu'il fait.
-À la SOURIS, plus d'intitulé : il avait sa raison d'être DANS le bloc de
-filtres, aligné sur « Monstres » et « Rôle » en dessous (même largeur
-`w-[76px]`, grammaire intitulé+contrôle) ; sorti de ce bloc et seul sur sa
-ligne, rien ne le précède plus à quoi l'intitulé pourrait s'aligner — les trois
-crans (Toutes/Mes recos/Importées) se lisent d'eux-mêmes.
+À la SOURIS, pas d'intitulé : en tête de la barre d'outils, les deux crans
+(Attaque/Défense) se lisent d'eux-mêmes, et leur infobulle dit ce que chacun
+montre.
 
 ⚠️ **`size="md"` à la souris, pas `sm`** — troisième palier ajouté à
 [Segmented.tsx](../../src/components/Segmented.tsx) : le texte et le
@@ -240,7 +291,7 @@ Monstres cherchés et rôle **filtrent tous la même liste** et se
 | **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
 
 ⚠️ **Pas de cadre.** Il enfermait un contenu qui n'a pas besoin d'être distingué
-du reste de la page — Origine, juste au-dessus, n'en a pas non plus.
+du reste de la page — la vue, juste avant, n'en a pas non plus.
 
 ⚠️ **Pas d'intitulé « Monstres ».** Les trois cases et le champ disent déjà par
 leur FORME ce qu'on y fait — une composition de 3 monstres à composer —, un mot
@@ -248,7 +299,7 @@ devant n'ajoutait rien. « Rôle » garde le sien : contrairement aux cases, un
 `Segmented` Partout/Défense/Offense ne dit pas de lui-même sur QUOI il porte.
 
 Ce bloc **n'apparaît que s'il existe au moins une recommandation** : sans rien
-à chercher, la recherche n'a pas sa place — à la différence d'Origine, qui
+à chercher, la recherche n'a pas sa place — à la différence de la vue, qui
 reste affichée à vide (voir plus haut).
 
 ⚠️ **Le champ de recherche à GAUCHE, les portraits des monstres posés à
@@ -267,15 +318,15 @@ bloc.
   la même liste ni qu'ils se cumulaient. L'intitulé de **largeur fixe**
   (`w-[76px]`) aligne les contrôles entre eux quelle que soit la longueur du
   mot.
-- ⚠️ **Le filtre d'origine utilise le VRAI [Segmented](src/components/Segmented.tsx)**,
+- ⚠️ **La vue (comme le filtre d'origine avant elle) utilise le VRAI
+  [Segmented](src/components/Segmented.tsx)**,
   et non une copie écrite à la main. La copie avait dérivé — `bg-panel` au lieu de
   `bg-panel2`, `rounded-xl p-1` au lieu de `rounded-lg p-0.5`, texte plus grand :
   deux contrôles à cran voisins n'avaient ni le même cadre, ni le même rayon, ni
   la même taille. Un composant partagé existe, on le prend.
-- L'**effectif** vit **dans le cran, après le libellé** (`suffix` de `Segmented`,
-  ajouté pour ça) : un nombre se lit après ce qu'il compte. Il reste `ink-dim`
-  dans tous les états — c'est une quantité, pas l'état du cran, que le fond dit
-  déjà (voir [../shared/design.md](../shared/design.md)).
+- Les crans de la vue ne portent pas d'effectif (le filtre d'origine en avait
+  un, dans le cran après le libellé, `suffix` de `Segmented`) : les deux vues
+  montrent les MÊMES recommandations, il n'y aurait rien à compter.
 - Le **compteur de résultats** est sur la rangée **Rôle** : c'est lui qui décide
   combien il en reste. Il n'a ainsi plus besoin d'une hauteur de ligne en dur
   (`leading-[30px]`) pour se caler sur un contrôle voisin.
@@ -394,11 +445,10 @@ la même réponse :
     l'analyse (rouge/vert), la remplacer effacerait cette information au moment
     même où on parcourt la page. Deux langages, deux supports. Même écho de
     filtre que les propriétés recherchées d'un artéfact.
-- **Aucun résultat** → message dédié, distinct de celui du filtre : dire « tu
-  n'as créé aucune recommandation » après une recherche ferait croire à une
-  perte de données.
+- **Aucun résultat** → message dédié : dire « aucune recommandation » après
+  une recherche ferait croire à une perte de données.
 - Persistée via `useStickyState` (survit à la navigation, repartie à vide au
-  reload), comme le filtre d'origine.
+  reload), comme la vue.
 
 Effet du filtre sur les actions :
 - **Export global** : exporte **ce qui est affiché**. ⚠️ Le bouton s'intitule
@@ -1064,8 +1114,8 @@ un endroit : la carte à partir de `lg`, le panneau en dessous.
 analyser (aucune carte n'est sous les yeux pour le dire), puis « Analyser » qui
 fait le reste.
 
-- Le menu liste les recommandations **affichées** (`list` — filtre d'origine et
-  recherche déjà appliqués), avec le même nom de repli
+- Le menu liste les recommandations **affichées** (`list` — recherche déjà
+  appliquée), avec le même nom de repli
   (« Recommandation N ») que sur les cartes.
 - **Désactivé sans compte importé**, même condition que le bouton de la souris.
 - Au clic sur « Analyser » : l'analyse se lance, la carte visée **s'ouvre**

@@ -58,6 +58,7 @@ import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
 import testSiegeSlotSuivant from './siege-slot-suivant.test';
+import testRecoDefenses from './reco-defenses.test';
 import testSiegePartage from './siege-partage.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 import testSpecMarkdown from './spec-markdown.test';
@@ -73,7 +74,7 @@ import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, tes
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu } from './rendu/ui.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil } from './rendu/app.test';
 import { testRenduAccueil, testRenduAccueilEspace } from './rendu/accueil.test';
-import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition } from './rendu/recos.test';
+import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense } from './rendu/recos.test';
 import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi } from './rendu/rta.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
@@ -99,6 +100,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSiegeStatut', testSiegeStatut],
   ['testSiegePastille', testSiegePastille],
   ['testSiegeSlotSuivant', testSiegeSlotSuivant],
+  ['testRecoDefenses', testRecoDefenses],
   ['testSiegePartage', testSiegePartage],
   ['testSpecMarkdown', testSpecMarkdown],
   ['testSpecToc', testSpecToc],
@@ -118,6 +120,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRecosEnTete', testRenduRecosEnTete],
   ['testRenduRecosDeploiement', testRenduRecosDeploiement],
   ['testRenduRecosEdition', testRenduRecosEdition],
+  ['testRenduRecosVueDefense', testRenduRecosVueDefense],
   ['testRenduUiBouton', testRenduUiBouton],
   ['testRenduUiEtats', testRenduUiEtats],
   ['testRenduUiMenu', testRenduUiMenu],

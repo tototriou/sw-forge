@@ -1670,9 +1670,15 @@ La reprise se limite au sous-lot suivant ; a2a2 demeure bloqué.
 reste obligatoire ; le travail propre à ce lot est limité aux trois fichiers
 privés déjà modifiés (`carte-6bis-a2a1-suite.json`,
 `verifier-union-6bis-a2a1.mjs`, `controle-6bis-a2a1-suite.md`), à la synthèse
-de la carte contexte et à la présente section. Comparer ces trois fichiers
-aux versions du worktree documentaire pour identifier le brouillon, sans
-réécrire les 11 clés de contexte. **Ne pas rouvrir les 219 lignes** du lot
+de la carte contexte et à la présente section. Le pilote a comparé ces trois
+fichiers par SHA-256 le 2026-09-26 : leurs copies privées locales sont
+**identiques** à celles de
+`C:/Users/Enzo/Desktop/sw-forge-docs-chantiers/degats-et-aura`
+(branche `chantier/degats-et-aura`) ; les deux premiers diffèrent de
+`C:/Users/Enzo/Desktop/sw-forge-docs` (branche `main`), où ils ne sont pas
+encore intégrés. Ne pas prendre ce `main` pour le brouillon ni refaire cette
+comparaison sans changement constaté. Ne pas réécrire les 11 clés de contexte.
+**Ne pas rouvrir les 219 lignes** du lot
 précédent : contrôler seulement les citations utiles dans `damage.ts`
 L3647–3655, L3719–3724, L3768–3788, L3807–3818, L4049–4057,
 L4092–4103, L4500–4504, L4690–4694, L4755–4759, L4813–4822,
@@ -1701,6 +1707,14 @@ dans le résultat public et libère a2a2. Si le budget manque encore, arrêter
 avant livraison et indiquer quelles lignes sont nécessaires. **Ne fait pas :**
 aucun code de production, test, benchmark ni cadrage public ; ne relance pas
 la classification générale du lot 6bis.
+
+**Tentative de reprise du 2026-09-26 :** aucun fichier modifié, aucun contrôle
+rejoué ni reçu créé. Deux sorties de lecture tronquées puis reprises ont
+consommé le budget de 1 600 lignes. Aucun nouvel intrant nécessaire n'a été
+nommé : il s'agit d'un échec de conduite des lectures, pas d'une preuve que
+le contrat dépasse le budget. La prochaine session reprend ce même sous-lot
+avec un budget neuf ; elle borne chaque sortie avant l'appel et compte toute
+relecture. a2a2 reste bloqué jusqu'aux preuves complètes et à leur validation.
 
 #### 6bis-a2a2 — sets actifs du build et score
 

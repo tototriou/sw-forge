@@ -298,7 +298,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → amendement pilote et revue indépendante
         → correctif pilote de la revue → validation indépendante
         → 6bis-a2a1-contexte → 6bis-a2a1-suite
-        → 6bis-a2a1-suite-correction-stats-chain → 6bis-a2a2
+        → 6bis-a2a1-suite-correction-stats-chain
+        → 6bis-a2a1-suite-finalisation-preuve → 6bis-a2a2
         → 6bis-a2b → 6bis-a3a → 6bis-a3b
         → 6bis-a4a → 6bis-a4b → 6bis-a4c1 → 6bis-a4c2
         → 6bis-a4d1 → 6bis-a4d2
@@ -310,7 +311,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
 3, 4, 5, 6, 6bis-a1, 6bis-a2a1-contexte, 6bis-a2a1-suite,
-  6bis-a2a1-suite-correction-stats-chain, 6bis-a2a2,
+  6bis-a2a1-suite-correction-stats-chain,
+  6bis-a2a1-suite-finalisation-preuve, 6bis-a2a2,
   6bis-a2b, 6bis-a3a, 6bis-a3b,
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
@@ -347,6 +349,10 @@ La carte a2a1-suite a été livrée et ses 12 clés réconciliées, mais ce cont
 ne valide pas leur contenu : la chaîne des stats de combat y est mal située et
 deux chemins de bonus restent à distinguer. Son correctif nommé est un
 prérequis de a2a2 ; le reçu initial ne vaut pas validation du verdict.
+La contre-lecture du correctif a produit une carte et un validateur locaux,
+mais a dépassé son budget après deux sorties tronquées puis relues. La preuve
+reste inachevée : **finalisation-preuve** reprend uniquement cette preuve,
+avant a2a2. Aucun contrôle vert d'une carte locale ne clôt le lot initial.
 
 #### Suivi des lots
 
@@ -373,8 +379,9 @@ prérequis de a2a2 ; le reçu initial ne vaut pas validation du verdict.
 | 6bis-a2a1 — tentative initiale | C | interrompu sans carte | 2026-09-26 |
 | 6bis-a2a1-contexte — champs, début de combat, stats de fiche | C | terminé | reçu `c09a516` ↔ `7dffbbc` / 2026-09-26 |
 | 6bis-a2a1-suite — chaîne des dégâts | C | livré, correction requise | reçu `12b7d05` ↔ `6d9b556` / 2026-09-26 |
-| 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte | C | prêt à lancer | — |
-| 6bis-a2a2 — sets actifs du build et score | C | en attente de la correction a2a1-suite | — |
+| 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte | C | interrompu, notes locales non validées | 2026-09-26 |
+| 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif | C+M | prêt à lancer | — |
+| 6bis-a2a2 — sets actifs du build et score | C | en attente de la finalisation a2a1-suite | — |
 | 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
@@ -1648,9 +1655,56 @@ Notes seules : `livrer` → `verifier` → `integrer` depuis l'installation apr�
 validation. **Ne fait pas :** aucun code de production, test, chiffre de jeu,
 set de rune, score ou règle de condition ; ne touche pas au cadrage public.
 
+**Résultat provisoire du 2026-09-26 :** budget de 1 700 lignes dépassé après
+deux sorties tronquées puis relues. La carte B et le validateur d'union ont
+été modifiés localement : 12 clés et mutation négative passent. Le contrôle
+initial garde toutefois son faux verdict et son mauvais en-tête ; aucune
+preuve complète n'a été produite. Ces notes restent **un brouillon non validé**,
+même si elles sont sauvegardées par une livraison de cadrage intermédiaire.
+La reprise se limite au sous-lot suivant ; a2a2 demeure bloqué.
+
+#### 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif
+
+**Cat. C+M ; requiert le correctif stats-chain interrompu.** Budget neuf de
+**1 600 lignes utiles**, sorties et relectures comprises. Le socle commun
+reste obligatoire ; le travail propre à ce lot est limité aux trois fichiers
+privés déjà modifiés (`carte-6bis-a2a1-suite.json`,
+`verifier-union-6bis-a2a1.mjs`, `controle-6bis-a2a1-suite.md`), à la synthèse
+de la carte contexte et à la présente section. Comparer ces trois fichiers
+aux versions du worktree documentaire pour identifier le brouillon, sans
+réécrire les 11 clés de contexte. **Ne pas rouvrir les 219 lignes** du lot
+précédent : contrôler seulement les citations utiles dans `damage.ts`
+L3647–3655, L3719–3724, L3768–3788, L3807–3818, L4049–4057,
+L4092–4103, L4500–4504, L4690–4694, L4755–4759, L4813–4822,
+L4840–4841 et L4892–4901 (**106 lignes inclusives** au HEAD `049ceac`).
+Une plage nécessaire en plus se compte avant lecture ; aucune sortie tronquée
+n'autorise à ignorer son contenu.
+
+**Contrat :** confirmer ou corriger les citations de la carte B et les deux
+`ecarts` sans décider de nouvelle règle de jeu. Conserver le validateur
+sémantique et prouver qu'une altération du verdict est rejetée. Corriger
+`controle-6bis-a2a1-suite.md` : en-tête exact d'A.6 bis, verdict historique
+explicitement **invalidé**, verdict corrigé visible avant l'historique, puis
+rectification datée avec commande exacte, sortie complète collée et conclusion
+pour chaque contrôle rejoué. Ne pas attribuer au premier reçu une sortie
+obtenue aujourd'hui. Créer
+`controle-6bis-a2a1-suite-finalisation-preuve.md` au même format avec le
+décompte intégral des lectures et les éventuelles limites non prouvées.
+
+**Preuve et sortie :** projection, validateur des fenêtres initiales, carte
+contexte, union des 12 clés, mutation négative, `node scripts/spec-lint.mjs`
+et `git diff --check` ; chaque commande avec sa sortie et son code de sortie
+dans la preuve privée. Les notes ne deviennent validables que si la carte, le
+validateur et **les deux contrôles** concordent. Alors seulement : `livrer` →
+`verifier` → `integrer` depuis l'installation ; le pilote inscrit le reçu
+dans le résultat public et libère a2a2. Si le budget manque encore, arrêter
+avant livraison et indiquer quelles lignes sont nécessaires. **Ne fait pas :**
+aucun code de production, test, benchmark ni cadrage public ; ne relance pas
+la classification générale du lot 6bis.
+
 #### 6bis-a2a2 — sets actifs du build et score
 
-**Cat. C ; requiert a2a1-suite-correction-stats-chain validé.** Lire sa
+**Cat. C ; requiert a2a1-suite-finalisation-preuve validé.** Lire sa
 synthèse combinée corrigée, puis :
 `src/lib/runeBuildOptim.ts` L733–807, L3965–4005 ;
 `src/lib/effects.ts` L303–345. Classer EHP, score et résolution

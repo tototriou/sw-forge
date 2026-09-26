@@ -170,6 +170,16 @@ export function testRenduRecosPage() {
   ok(analyser.length === 2 && analyser.every((b) => b.desactive && b.title === 'Importe ton compte pour analyser'), '« Analyser mes decks » désactivé sans compte, et pourquoi');
 }
 
+// Lot 7b : l'en-tête bureau. Ajouté APRÈS les tests d'avant (40cd2d8).
+export function testRenduRecosEnTete() {
+  titre('rendu · Siège · Recommandations — l\'en-tête bureau et son menu « ⋯ »');
+  const html = rendreRecos();
+  ok(texteVisible(html).includes('Recommandations 2 recommandations'), 'le titre, puis le compteur');
+  const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
+  egal(boutons(menu).map((b) => b.texte), ['Importer', 'Tout exporter', 'Tout effacer'], 'le menu : Importer, Tout exporter, puis Tout effacer');
+  ok(boutons(html.replace(menu, '')).some((b) => b.texte === 'Créer une recommandation'), '« Créer une recommandation » reste visible');
+}
+
 export function testRenduRecosDeploiement() {
   titre('rendu · Siège · Recommandations — une recommandation dépliée, ses decks ouverts');
   // La recherche « Chasun » ouvre les deux decks (il est dans les deux).

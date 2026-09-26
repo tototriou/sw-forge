@@ -16,7 +16,7 @@ import MobileSheet from '../../ui/MobileSheet';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
-import { Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
+import { BarreActions, Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 interface Props {
   recos: UseRecoState;
@@ -502,9 +502,67 @@ export default function RecoBoard({
       {/* ⚠️ Sous `lg`, les actions descendent dans le panneau « Options » :
           quatre boutons à libellé complet remplissaient deux rangées avant la
           première recommandation. */}
-      <div className="mt-5 flex flex-wrap items-center gap-3 empty:mt-0">
-        <div className="hidden lg:contents">{actions}</div>
-        <div className="ml-auto hidden lg:contents">{effacer(false)}</div>
+      {/* ---- En-tête BUREAU (refonte graphique, lot 7b) --------------------
+          Comme la RTA et Défense / Offense (décision 13 précisée) : le titre,
+          le compteur, puis les actions — toutes en boutons quand elles
+          tiennent sur la ligne, sinon « Créer une recommandation » visible et
+          le reste (Importer, Tout exporter, Tout effacer — séparé) dans le
+          menu « ⋯ ». Aucune action mise en avant (décision 4 précisée). Les
+          libellés, désactivations et infobulles sont ceux des boutons
+          d'avant. Le téléphone garde son panneau « Options » (lot 11). */}
+      <div className="mt-5 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Recommandations</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {all.length} recommandation{all.length > 1 ? 's' : ''}
+        </span>
+        <BarreActions
+          libelleMenu="Plus d'actions"
+          toujours={[
+            {
+              cle: 'creer',
+              libelle: 'Créer une recommandation',
+              icone: <Plus size={15} />,
+              onClick: () => {
+                const id = recos.addReco();
+                setEditingId(id);
+                setScrollToLast(true);
+                // La nouvelle est « à moi » : ne pas la créer dans une vue qui la cache.
+                if (filter === 'imported') setFilter('mine');
+              },
+            },
+          ]}
+          autres={[
+            {
+              cle: 'importer',
+              libelle: 'Importer',
+              icone: <Download size={15} />,
+              title: "Charger un fichier .json reçu d'un ami",
+              onClick: () => fileRef.current?.click(),
+            },
+            {
+              cle: 'exporter',
+              libelle: 'Tout exporter',
+              icone: <Upload size={15} />,
+              disabled: list.length === 0,
+              title:
+                list.length === 0
+                  ? 'Aucune recommandation à exporter'
+                  : filter === 'all'
+                    ? 'Exporter toutes les recommandations en un seul fichier'
+                    : 'Exporter les recommandations affichées (celles du filtre actif)',
+              onClick: () => requestExport(list, filter === 'all' ? 'toutes' : filter),
+            },
+            {
+              cle: 'effacer',
+              libelle: 'Tout effacer',
+              icone: <Trash2 size={13} />,
+              danger: true,
+              disabled: all.length === 0,
+              title: all.length === 0 ? 'Aucune recommandation à effacer' : undefined,
+              onClick: () => setEffacementAConfirmer(true),
+            },
+          ]}
+        />
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">

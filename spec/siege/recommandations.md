@@ -16,6 +16,15 @@ Fichiers :
 - [recoFromSiege.ts](src/lib/recoFromSiege.ts) — deck pré-rempli depuis une équipe d'offense.
 - [recoSearch.ts](src/lib/recoSearch.ts) — recherche d'un monstre dans les recos (calcul pur).
 
+⚠️ **En-tête BUREAU** (refonte graphique, lot 7b — même règle que la RTA et
+Défense / Offense) : le titre « Recommandations », le compteur, puis les
+actions par `BarreActions` — **toutes en boutons quand elles tiennent sur la
+ligne**, sinon **Créer une recommandation** visible et **Importer**, **Tout
+exporter**, **Tout effacer** (séparé, en `bad`) dans le menu « ⋯ » Plus
+d'actions. Aucune action mise en avant. Libellés, désactivations et
+infobulles repris des boutons d'avant. Au doigt, le panneau « Options » ne
+change pas (lot 11).
+
 ## Modèle
 
 ```ts

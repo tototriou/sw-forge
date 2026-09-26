@@ -355,6 +355,9 @@ reste inachevée : **finalisation-preuve** reprend uniquement cette preuve,
 avant a2a2. Aucun contrôle vert d'une carte locale ne clôt le lot initial.
 La finalisation et la contre-revue pilote ont depuis validé la carte corrigée,
 les deux écarts et les preuves ; a2a2 peut commencer.
+Le pilote a ensuite validé a2a2 : quatre clés réconciliées, et le `return`
+L808 contrôlé séparément. Le budget de lecture dépassé de 79 lignes et les
+écarts de discipline de commande restent consignés, sans changer les verdicts.
 
 #### Suivi des lots
 
@@ -383,7 +386,7 @@ les deux écarts et les preuves ; a2a2 peut commencer.
 | 6bis-a2a1-suite — chaîne des dégâts | C | terminé après rectification | reçu initial `12b7d05` ↔ `6d9b556` / 2026-09-26 |
 | 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte | C | interrompu, notes locales non validées | 2026-09-26 |
 | 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif | C+M | terminé après complément pilote | reçu `57a7c28` ↔ `ab0fb25` / 2026-09-26 |
-| 6bis-a2a2 — sets actifs du build et score | C | prêt à lancer | — |
+| 6bis-a2a2 — sets actifs du build et score | C | terminé après complément pilote | reçu `4816082` ↔ `1d20a54` / 2026-09-26 |
 | 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
@@ -1748,6 +1751,25 @@ un demi-build. Conserver la politique EHP préexistante hors auras.
 **Sortie :** carte a2a2 et chaîne runes → sets actifs → score, avec
 renvoi au contexte a2a1. **Ne fait pas :** choix de paire/relique, tri,
 conditions ou CLI.
+
+**Résultat du 2026-09-26 :** les quatre clés de
+`carte-6bis-a2a2.json` égalent la projection (4 entrées, 1 210 octets,
+16 lignes équivalentes). `valider-fenetres-6bis.mjs` retrouve les trois
+plages et 159 lignes ; le vérificateur privé conservé
+`verifier-carte-6bis-a2a2.mjs` rend `RÉSULTAT : OK` (aucune omission,
+substitution ou duplication). Le pilote a lu en plus L808 de
+`runeBuildOptim.ts` : le `return` consomme les `hp`/`def` enrichis aux L801–802.
+La chaîne six runes → `activeSets` existe, mais ne rejoint pas le score EHP :
+elle vérifie seulement les sets demandés. Aucun code ni test n'a changé.
+L'agent a déclaré 1 579/1 500 lignes lues, deux `node -e` et l'absence de
+relecture de `CLAUDE.md` ; ces écarts de méthode ne sont pas effacés par la
+contre-vérification pilote. `node scripts/spec-lint.mjs` : aucune erreur ;
+`git diff --check` : aucune sortie. Preuve privée :
+`archive/controles-degats-aura-2026-09/controle-6bis-a2a2.md`.
+La rectification a été livrée puis vérifiée : reçu valide, code `4816082` ↔
+notes `1d20a54` (304 fichiers). `chantier integrer` a avancé le main
+documentaire `4322036 → ffa8991` et l'a poussé. a2b reste à scinder avant
+son lancement, sa marge prévisionnelle n'étant que de 53 lignes.
 
 #### 6bis-a2b — choix d'artéfacts/relique, tri et comparaison
 

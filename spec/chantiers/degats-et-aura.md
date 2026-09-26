@@ -353,6 +353,8 @@ La contre-lecture du correctif a produit une carte et un validateur locaux,
 mais a dépassé son budget après deux sorties tronquées puis relues. La preuve
 reste inachevée : **finalisation-preuve** reprend uniquement cette preuve,
 avant a2a2. Aucun contrôle vert d'une carte locale ne clôt le lot initial.
+La finalisation et la contre-revue pilote ont depuis validé la carte corrigée,
+les deux écarts et les preuves ; a2a2 peut commencer.
 
 #### Suivi des lots
 
@@ -378,10 +380,10 @@ avant a2a2. Aucun contrôle vert d'une carte locale ne clôt le lot initial.
 | 6bis-a1 — inventaire et recettes de contrôle | C | terminé | reçu `948066b` ↔ `87d09ec` / 2026-09-25 |
 | 6bis-a2a1 — tentative initiale | C | interrompu sans carte | 2026-09-26 |
 | 6bis-a2a1-contexte — champs, début de combat, stats de fiche | C | terminé | reçu `c09a516` ↔ `7dffbbc` / 2026-09-26 |
-| 6bis-a2a1-suite — chaîne des dégâts | C | livré, correction requise | reçu `12b7d05` ↔ `6d9b556` / 2026-09-26 |
+| 6bis-a2a1-suite — chaîne des dégâts | C | terminé après rectification | reçu initial `12b7d05` ↔ `6d9b556` / 2026-09-26 |
 | 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte | C | interrompu, notes locales non validées | 2026-09-26 |
-| 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif | C+M | prêt à lancer | — |
-| 6bis-a2a2 — sets actifs du build et score | C | en attente de la finalisation a2a1-suite | — |
+| 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif | C+M | terminé après complément pilote | reçu `57a7c28` ↔ `ab0fb25` / 2026-09-26 |
+| 6bis-a2a2 — sets actifs du build et score | C | prêt à lancer | — |
 | 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
@@ -1715,6 +1717,24 @@ nommé : il s'agit d'un échec de conduite des lectures, pas d'une preuve que
 le contrat dépasse le budget. La prochaine session reprend ce même sous-lot
 avec un budget neuf ; elle borne chaque sortie avant l'appel et compte toute
 relecture. a2a2 reste bloqué jusqu'aux preuves complètes et à leur validation.
+
+**Résultat du 2026-09-26 :** l'agent a corrigé le verdict historique dans
+`controle-6bis-a2a1-suite.md`, vérifié les 106 lignes contractuelles plus
+L4902, confirmé les deux `ecarts` et rejoué les sept contrôles à code de
+sortie 0. Le pilote les a rejoués, puis a corrigé deux erreurs de preuve
+dans `controle-6bis-a2a1-suite-finalisation-preuve.md` : la projection de
+180 octets vaut **3 lignes équivalentes**, pas 1 ; le delta de noyau
+`1209 → 1228` provient des **14 lignes ajoutées à la Partie A** et des
+**5 lignes ajoutées au contrat a2a1-suite**, pas de la carte privée.
+L'agent n'avait pas lu les 401 lignes obligatoires du socle documentaire ;
+le pilote les a lues séparément et a consigné cette dérogation, sans lui
+attribuer cette lecture ni modifier sa mesure de budget. La lecture
+adjacente de `damage.ts` L4492–L4504 confirme aussi l'attribution des codes
+218–221 aux valeurs de combat. Aucun code de production ni règle de jeu n'a
+changé. `chantier livrer` puis `verifier` : reçu **valide**, code
+`57a7c28` ↔ notes `ab0fb25` ; `integrer` a avancé le main documentaire
+`e54e122 → 675626f` et l'a poussé sur `origin/main`. Les deux fichiers de
+preuve sont conservés. La finalisation est validée et **a2a2 est libéré**.
 
 #### 6bis-a2a2 — sets actifs du build et score
 

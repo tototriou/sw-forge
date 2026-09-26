@@ -365,8 +365,8 @@ non livrée. La seconde réunit les deux synthèses pour a2a2.
 | 6 — sets d'aura : modèle initial, corrigé au lot 6bis | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
 | 6bis-a1 — inventaire et recettes de contrôle | C | terminé | reçu `948066b` ↔ `87d09ec` / 2026-09-25 |
 | 6bis-a2a1 — tentative initiale | C | interrompu sans carte | 2026-09-26 |
-| 6bis-a2a1-contexte — champs, début de combat, stats de fiche | C | prêt à lancer | scission pilote / 2026-09-26 |
-| 6bis-a2a1-suite — chaîne des dégâts | C | en attente de a2a1-contexte | — |
+| 6bis-a2a1-contexte — champs, début de combat, stats de fiche | C | terminé | reçu `c09a516` ↔ `7dffbbc` / 2026-09-26 |
+| 6bis-a2a1-suite — chaîne des dégâts | C | prêt à lancer | — |
 | 6bis-a2a2 — sets actifs du build et score | C | en attente de a2a1-suite | — |
 | 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b | — |
@@ -1542,6 +1542,21 @@ sur les usages vus dans cette fenêtre, et nommer toute limite de portée.
 **Sortie :** `carte-6bis-a2a1-contexte.json` et
 `controle-6bis-a2a1-contexte.md`, avec une synthèse de 12 lignes au plus.
 **Ne fait pas :** chaîne `computeTotalDamage`, score, conditions ou CLI.
+
+**Résultat du lot 6bis-a2a1-contexte — 2026-09-26.** Le pilote valide la carte
+privée corrigée : les 11 clés projetées sont couvertes (9 A, 1 B, 1 H), avec
+6 lectures effectives d'aura, 2 points de propagation et 5 non-consommateurs
+(dont ces 2 points), sans incertitude. L'assiette PV/ATQ/DEF est la stat de
+base, dans un `ceil` commun avec l'invocateur et le lead ; RES/PRE ajoutent
+8 points par set. `computeStats` ne lit pas d'aura dans la fenêtre examinée.
+L'ancien défaut `setsAura: []` ne crée pas le nouveau défaut de
+`setsAuraExternes`, encore à implémenter. Les tests cités sont des candidats,
+pas une couverture vérifiée. Le validateur de carte, celui des fenêtres,
+`spec-lint` et `git diff --check` passent ; reçu vérifié `c09a516` ↔
+`7dffbbc`, notes intégrées. La preuve conserve le dépassement de lecture
+déclaré (environ 85 lignes, dû aux sorties annexes) ; aucune fenêtre prescrite
+n'a été omise ni tronquée. `computeTotalDamage`, les caches et les autres
+consommateurs restent à classer dans les sous-lots numérotés suivants.
 
 #### 6bis-a2a1-suite — chaîne des dégâts
 

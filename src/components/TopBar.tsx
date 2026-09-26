@@ -1,5 +1,6 @@
 import { Fragment, ReactNode } from 'react';
 import { ChevronRight, LogOut, Settings } from 'lucide-react';
+import { Bouton } from '../ui';
 
 // Barre SUPÉRIEURE, fixe.
 //
@@ -145,17 +146,18 @@ export default function TopBar({
             déconnexion et l'import y descendent, faute de place — trois cibles
             dans 48 px de haut, à côté d'un titre centré, ne laissaient à chacune
             ni la marge d'erreur qu'un doigt réclame. */}
-        <button
-          type="button"
+        {/* Bouton de la librairie (décision 16) : la hauteur commune des
+            boutons de l'app, ton `danger` qui ne rougit qu'au survol. */}
+        <Bouton
           onClick={onDeconnexion}
           title="Effacer mes données de cet appareil"
-          className="relative z-10 ml-auto hidden items-center gap-1.5 rounded-md px-2 py-1.5
-                     text-sm text-ink-dim transition-colors lg:flex
-                     hoverable:bg-panel2 hoverable:text-bad"
-        >
-          <LogOut size={16} className="flex-none" />
-          Se déconnecter
-        </button>
+          ton="danger"
+          fond="vide"
+          trait="aucun"
+          icone={<LogOut size={16} className="flex-none" />}
+          libelle="Se déconnecter"
+          className="relative z-10 ml-auto hidden lg:inline-flex"
+        />
 
         <button
           type="button"

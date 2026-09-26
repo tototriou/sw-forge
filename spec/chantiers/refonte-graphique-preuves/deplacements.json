@@ -87,6 +87,12 @@
     "devient": "attr:libelle:Terminer l'édition de ce deck",
     "pourquoi": "Lot 7b, boutons de la page : voir title."
   },
+  "src/components/TopBar.tsx :: texte:Se déconnecter": {
+    "de": "src/components/TopBar.tsx",
+    "vers": "src/components/TopBar.tsx",
+    "devient": "attr:libelle:Se déconnecter",
+    "pourquoi": "Décision 16, boutons unifiés : « Se déconnecter » de la barre du haut, un <button> redessiné, devient un Bouton de la librairie ; son texte passe par `libelle`."
+  },
   "src/components/siege/RecoCard.tsx :: attr:aria-label:Terminer": {
     "de": "src/components/siege/RecoCard.tsx",
     "vers": "src/components/siege/RecoCard.tsx",

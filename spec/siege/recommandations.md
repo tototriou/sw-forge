@@ -1498,6 +1498,20 @@ est un **travail de fond**. Il n'a d'ailleurs **pas de mode édition de bloc** �
 juste un « + » qui ajoute et ouvre l'entrée créée. Voir « Défenses visées » plus
 haut.
 
+⚠️ **Un monstre choisi, le curseur passe au monstre suivant** (refonte
+graphique, décision 18 — Thomas : « quand on édite une équipe, mets un
+autofocus sur le monstre suivant une fois qu'on en a choisi un, idem pour les
+défenses (fort contre) ») : dans les 3 slots d'un deck comme dans les 3
+monstres d'une défense visée, le champ du **slot vide suivant** prend le focus
+— en bouclant sur ceux d'avant si on a commencé par le milieu ; trio complet,
+le focus ne bouge pas. On compose ainsi un trio au clavier, sans revenir à la
+souris. Calcul dans
+[slotVideSuivant.ts](../../src/components/siege/slotVideSuivant.ts) (testé :
+`siege-slot-suivant`), focus par le `jetonFocus` de
+[MonsterPicker](../../src/components/MonsterPicker.tsx) — un jeton qui change
+à chaque demande, car le champ suivant est DÉJÀ affiché (`autoFocus` n'agit
+qu'au montage).
+
 #### ⚠️ Le titre et les icônes d'action partagent LEUR PROPRE rangée
 
 L'en-tête est **trois zones empilées**, pas deux côte à côte :

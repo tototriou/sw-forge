@@ -49,6 +49,7 @@ import {
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
+import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import MonsterAvatar from '../MonsterAvatar';
 import LeadPill, { LeadBadge } from './LeadPill';
 
@@ -1229,6 +1230,9 @@ function DeckBlock({
   recos: UseRecoState;
 }) {
   const [deckAConfirmer, setDeckAConfirmer] = useState(false);
+  // Un monstre choisi → le curseur passe au slot vide suivant (voir
+  // `slotVideSuivant`) : on compose les trois d'affilée, sans la souris.
+  const [focus, setFocus] = useState<JetonSlot | null>(null);
 
   // Un monstre ne peut pas occuper deux slots du MÊME deck (il peut revenir
   // dans un autre deck de la recommandation).
@@ -1509,10 +1513,15 @@ function DeckBlock({
                       monsters={monsters}
                       excludeIds={usedIds}
                       placeholder="Choisir un monstre…"
+                      jetonFocus={focus?.slot === idx ? focus.n : undefined}
                       onPick={(id) => {
                         const m = monsters.find((x) => String(x.id) === id);
-                        if (m && m.com2usId != null)
+                        if (m && m.com2usId != null) {
                           recos.setSlotMonster(reco.id, deckIndex, idx, m.com2usId, m.name);
+                          setFocus((f) =>
+                            prochainFocus(f, deck.slots.map((s) => s.com2usId != null), idx)
+                          );
+                        }
                       }}
                     />
                   </div>
@@ -1891,6 +1900,9 @@ function CounterRow({
       .filter((id): id is string => id != null)
       .map(String)
   );
+  // Un monstre choisi → le curseur passe au monstre vide suivant (voir
+  // `slotVideSuivant`), comme dans les slots d'un deck.
+  const [focus, setFocus] = useState<JetonSlot | null>(null);
 
   if (!editing) {
     // Une vignette sans note n'a rien à déplier : elle ne devient donc pas
@@ -2017,11 +2029,12 @@ function CounterRow({
                     monsters={monsters}
                     excludeIds={usedIds}
                     placeholder={`Monstre ${i + 1}…`}
+                    jetonFocus={focus?.slot === i ? focus.n : undefined}
                     onPick={(id) => {
                       const mon = monsters.find((x) => String(x.id) === id);
                       // ⚠️ Même clé stable que partout : un monstre perso
                       // (`com2usId` nul) n'est pas partageable, donc pas retenu.
-                      if (mon && mon.com2usId != null)
+                      if (mon && mon.com2usId != null) {
                         recos.setCounterMonster(
                           reco.id,
                           deckIndex,
@@ -2030,6 +2043,10 @@ function CounterRow({
                           mon.com2usId,
                           mon.name
                         );
+                        setFocus((f) =>
+                          prochainFocus(f, counter.monsters.map((x) => x.com2usId != null), i)
+                        );
+                      }
                     }}
                   />
                 ) : (

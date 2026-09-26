@@ -239,6 +239,15 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     « affichage seulement » de la refonte. Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Confrontation
     avec mon compte.
+18. **Siège · Recommandations — le curseur passe au monstre suivant** : dans
+    un deck ou une défense visée en édition, un monstre choisi donne le focus
+    au slot vide suivant (Thomas, le 2026-09-26 : « quand on édite une
+    équipe, mets un autofocus sur le monstre suivant une fois qu'on en a
+    choisi un, idem pour les défenses »). AJOUT de comportement demandé,
+    fait maintenant. Fichier permis hors A.2 :
+    `src/components/siege/slotVideSuivant.ts` (calcul pur, testé). Spec :
+    [../siege/recommandations.md](../siege/recommandations.md) § Trois
+    niveaux d'édition.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

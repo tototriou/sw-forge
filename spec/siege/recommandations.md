@@ -468,8 +468,15 @@ plus lourd que la colonne qu'il remplaçait. Les autres colonnes (`Stat`,
 suffit à les nommer, et « actuel » est la seule à valoir la peine d'un mot
 au-dessus puisqu'elle n'apparaît qu'après une analyse.
 
-- le **champ de bonus** est **`w-14`, `pleineLargeur={false}`** — cinq
-  chiffres visibles, la taille de la plupart des stats (PV ~35 000).
+- le **champ de bonus** est **`w-[calc(6ch+26px)]`, `pleineLargeur={false}`**
+  — six chiffres de la police du champ, plus son rembourrage (24 px) et son
+  contour (2 px) : au moins cinq chiffres visibles (PV ~35 000), plus un signe
+  pour un bonus négatif. ⚠️ L'ancien `w-14` (56 px) annonçait cinq chiffres
+  et n'en montrait que trois (lot 7b — Thomas : « augmenter la taille des
+  champs en mode édition pour avoir au moins 5 chiffres dedans ») : le `px-3`
+  de `Champ` l'emporte sur un `px-1` ajouté (ordre de la feuille), et son
+  `text-sm` sur `text-micro`. Une largeur en `ch` suit la police réelle,
+  quel que soit le format.
   ⚠️ **`pleineLargeur={false}` n'est pas optionnel** : `Champ` (la librairie)
   vaut `w-full` par défaut, pensé pour un champ posé seul dans un formulaire.
   Sans l'annuler ici, un champ de cinq chiffres s'étirait sur presque toute

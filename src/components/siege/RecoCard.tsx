@@ -2096,8 +2096,14 @@ function StatEditor({
               {/* Champ texte (et non `type=number`) : pas de boutons +/- à
                   droite, qui mangent la largeur d'une colonne déjà étroite.
                   `inputMode=numeric` garde le pavé numérique sur mobile.
-                  `w-14` : cinq chiffres visibles — la plupart des stats en ont
-                  autant (PV ~35 000).
+                  ⚠️ **Largeur en `ch`, pas en pixels** : six chiffres de la
+                  police mono du champ, plus son rembourrage (`px-3` de `Champ`,
+                  qui l'emporte sur un `px-1` ajouté — ordre de la feuille) et
+                  son contour. L'ancien `w-14` (56 px) annonçait cinq chiffres
+                  mais n'en montrait que trois : le rembourrage en mangeait 24,
+                  et `ch` suit la taille de police quel que soit le format.
+                  Six et non cinq : un bonus négatif porte un signe. */}
+              {/* Largeur : `6ch` + 24 px de rembourrage + 2 px de contour.
                   ⚠️ **`pleineLargeur={false}` obligatoire ici.** `Champ` vaut
                   `w-full` par défaut : posé tel quel dans une ligne
                   `flex-wrap`, sans largeur de colonne pour le contenir, il
@@ -2114,7 +2120,7 @@ function StatEditor({
                 }}
                 placeholder="—"
                 pleineLargeur={false}
-                className="w-14 bg-panel px-1 py-0.5 text-micro font-mono tabular-nums text-good"
+                className="w-[calc(6ch+26px)] bg-panel py-0.5 text-micro font-mono tabular-nums text-good"
               />
             </span>
             <span

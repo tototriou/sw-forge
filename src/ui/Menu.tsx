@@ -2,10 +2,11 @@ import { ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import Bouton from './Bouton';
 
-// Hauteur des boutons posés dans un EN-TÊTE d'écran, « ⋯ » compris : 36 px.
-// Exportée pour que les boutons voisins (« Exporter » de la RTA) s'y alignent
-// sans recopier la valeur.
-export const HAUTEUR_EN_TETE = 'h-9';
+// Hauteur des boutons posés dans un EN-TÊTE d'écran, « ⋯ » compris : 36 px au
+// doigt, 32 px à la souris — le `.btn` de la maquette, la hauteur de tout
+// bouton `md` (décision 16, voir Bouton.tsx). Exportée pour que les boutons
+// voisins (« Exporter » de la RTA) s'y alignent sans recopier la valeur.
+export const HAUTEUR_EN_TETE = 'h-9 lg:h-8';
 import Flottant from './Flottant';
 
 // MENU D'ACTIONS : un bouton « ⋯ » qui ouvre, sous lui, une liste d'actions.
@@ -128,7 +129,7 @@ export default function Menu({ libelle, elements, largeur = 'w-60' }: MenuProps)
         aria-expanded={ouvert}
         aria-controls={id}
         onClick={() => setOuvert((o) => !o)}
-        className={`${HAUTEUR_EN_TETE} w-9`}
+        className={`${HAUTEUR_EN_TETE} w-9 lg:w-8`}
       />
       {/* ⚠️ Toujours rendu, masqué fermé : voir l'en-tête. */}
       <Flottant

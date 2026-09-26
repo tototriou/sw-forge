@@ -119,11 +119,11 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       // ⚠️ Voir plus haut : `serre` s'exempte de la règle tactile parce que son
       // contenant est plus petit qu'elle, pas parce que 40 px gênait.
       {...(serre || zoneEtendue ? { 'data-cible-fine': true } : {})}
-      // ⚠️ Le voile de survol ne se pose QUE sur un bouton sans fond propre :
-      // sur un fond déjà peint, il l'assombrit au lieu de le désigner.
-      className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${zoneEtendue ? 'cible-tactile' : ''} ${
-        cadre || fond ? '' : 'hoverable:bg-black/25'
-      } ${apparition} ${className}`}
+      // ⚠️ Plus de voile propre (`hoverable:bg-black/25`) : le fond de survol
+      // vient désormais de `Bouton` lui-même, `panel2` comme `.btn-ghost` de la
+      // maquette (décision 16). Deux classes de survol rivales, c'est l'ordre
+      // de la feuille qui aurait tranché.
+      className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${zoneEtendue ? 'cible-tactile' : ''} ${apparition} ${className}`}
       {...reste}
     />
   );

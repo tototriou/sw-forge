@@ -169,7 +169,10 @@ définit, dans `MARQUEUR_FILTRE_ACTIF`, une fois pour toutes.
     `LeadPill`.
 - Le **survol** garde `hoverable:border-accent` sur les contrôles à fond : il
   agit au repos, quand aucun marqueur n'occupe la bordure — il n'y a donc pas de
-  cumul.
+  cumul. ⚠️ **Sauf les BOUTONS** (`Bouton`, `BoutonIcone`, le « ⋯ »), depuis
+  la décision 16 de la refonte graphique : leur survol peint le **fond**
+  (`panel2`, `bad-soft` en danger), comme `.btn-secondary` / `.btn-ghost` de
+  la maquette. Pastilles, champs et cartes cliquables gardent le contour.
 
 **Focus mis à part.** L'anneau `:focus-visible` (voir plus bas) n'est pas un
 marqueur de sélection mais la position du clavier — les deux peuvent coexister

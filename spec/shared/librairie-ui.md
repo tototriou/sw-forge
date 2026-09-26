@@ -58,6 +58,21 @@ Les axes se **choisissent séparément et se combinent** :
 | `forme` | `boite`, `pilule` | Le **rayon des coins** |
 | `taille` | `xs`, `sm`, `md`, `carre` | L'**encombrement** |
 
+> ⚠️ **À la souris, le gabarit des boutons de la maquette** (refonte
+> graphique, décision 16 — « le même rendu que sur la maquette au niveau des
+> boutons ») : `md` = `.btn`, **32 px** de haut, 12 px de côté, 13 px de
+> texte ; `sm` = `.btn-sm`, **28 px**, 10 px, 12 px ; rayon 8 px. Un bouton
+> d'icône est un carré de la même hauteur : `BoutonIcone` = 28 px
+> (`.btn-icon.btn-sm`), le « ⋯ » d'en-tête = 32 px (`.btn-icon`).
+> `Segmented` = `.seg` : cadre de 32 px, crans de 26. `min-h` et non `h` :
+> un libellé qui passe à la ligne agrandit le bouton au lieu de déborder.
+> `xs` et `serre` restent hors échelle — ils vivent DANS un contenant plus
+> petit qu'elle. **Le survol peint le fond** : `panel2` (l'équivalent du
+> `--hover` de la maquette, même écart au panneau dans les deux thèmes) sur
+> un bouton neutre, `bad-soft` sur un `danger` sans fond — et plus le contour
+> d'accent, ni le voile noir propre à `BoutonIcone`. Au doigt, rien ne change
+> (lot 11) : tailles en `lg:`, survol en `hoverable:`.
+
 > ⚠️ **`fond` décide aussi de la COULEUR DU CONTENU**, pas seulement du
 > remplissage. Un bouton sans fond prend une icône qui vire à la teinte de son
 > ton au survol — juste sur une surface neutre. Sur un fond peint de cette même
@@ -245,8 +260,8 @@ retiré par Thomas (« ça rend pas bien ») — décision 4 précisée.
 
 **`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
 ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).
-⚠️ **Le « ⋯ » a la hauteur des boutons d'EN-TÊTE, 36 px**
-(`HAUTEUR_EN_TETE`, exportée) — pas les 28 px d'un `BoutonIcone` : posé à côté
+⚠️ **Le « ⋯ » a la hauteur des boutons d'EN-TÊTE, 36 px au doigt, 32 px à
+la souris** (`HAUTEUR_EN_TETE`, exportée ; 32 = un bouton `md`, décision 16) — pas les 28 px d'un `BoutonIcone` : posé à côté
 d'un bouton d'action (« Exporter » dans la RTA), il faisait deux hauteurs
 voisines, lues comme deux familles de boutons (relevé par Thomas). Les
 boutons voisins s'y alignent en reprenant la constante. C'est un `Bouton`

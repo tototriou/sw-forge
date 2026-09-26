@@ -209,6 +209,24 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     ligne dépliée. Au doigt, rien ne change (lot 11). Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Repli deck
     par deck.
+16. **Boutons unifiés dans toute l'app, au rendu de la maquette** — Thomas,
+    le 2026-09-26 : « il faut que les boutons soient unifiés dans
+    l'application », puis « surtout, je veux le même rendu que sur la
+    maquette au niveau des boutons ». Fait DANS LA LIBRAIRIE, pas écran par
+    écran : `md` = `.btn` (32 px), `sm` = `.btn-sm` (28 px), `BoutonIcone`
+    = `.btn-icon.btn-sm`, « ⋯ » et boutons d'en-tête = 32 px, `Segmented` =
+    `.seg` (32 px, crans de 26) ; le survol peint le fond (`panel2`,
+    l'équivalent du `--hover` de la maquette ; `bad-soft` en danger) au lieu
+    d'allumer le contour d'accent. `xs` et `serre` restent hors échelle
+    (DANS un contenant plus petit). La palette reste celle de l'app (ses
+    tokens), seul le gabarit vient de la maquette.
+    Tout est en `lg:` ou au survol : au doigt, rien ne change (lot 11).
+    ⚠️ **Les `<button>` redessinés hors librairie des lots à venir** (Runes,
+    Monstres, Artéfacts, Optimizer, Speed tuning, Ressources, Paramètres —
+    une cinquantaine) **passent à la librairie DANS leur lot**, après ses
+    tests de rendu, comme le reste de la zone. Exceptions admises : liens
+    dans une phrase, entrées de navigation, grilles d'icônes du jeu.
+    Spec : [../shared/librairie-ui.md](../shared/librairie-ui.md) § Bouton.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

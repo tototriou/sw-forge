@@ -77,12 +77,23 @@ const SOCLE =
   'transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ' +
   PRESSION;
 
+// ⚠️ **À la souris, le gabarit des boutons de la MAQUETTE, dans toute l'app**
+// (refonte graphique, décision 16 — Thomas : « il faut que les boutons soient
+// unifiés dans l'application », « le même rendu que sur la maquette ») :
+// `md` = `.btn` (32 px, 12 px de côté, 13 px de texte), `sm` = `.btn-sm`
+// (28 px, 10 px, 12 px), rayon 8 px ; un bouton d'icône est un carré de la
+// même hauteur (`BoutonIcone` = `.btn-icon.btn-sm`, le « ⋯ » d'en-tête =
+// `.btn-icon`). `md` valait 37,5 px — un rembourrage autour d'une ligne de
+// 19,5 px — et ne tombait juste à côté de rien. `min-h` et non `h` : un
+// libellé qui passe à la ligne agrandit le bouton au lieu de déborder. `xs`
+// et `BoutonIcone` `serre` restent hors de l'échelle : ils vivent DANS un
+// contenant plus petit qu'elle. Au doigt, rien ne change (lot 11).
 const TAILLES: Record<TailleBouton, string> = {
   // ⚠️ `xs` vit DANS un contenant déjà serré (une carte, une pilule d'en-tête),
   // jamais pour l'action principale d'un écran.
   xs: 'px-2 py-0.5 text-micro',
-  sm: 'px-2.5 py-1 text-xs',
-  md: 'px-3.5 py-2 text-sm',
+  sm: 'px-2.5 py-1 text-xs lg:min-h-7 lg:py-0',
+  md: 'px-3.5 py-2 text-sm lg:min-h-8 lg:px-3 lg:py-0',
   // Voir la note sur le type : pas de rembourrage du tout, la boîte est un carré.
   carre: 'p-0 text-xs',
 };
@@ -120,8 +131,17 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
   alerte: { nu: 'text-warn', doux: 'text-warn', plein: 'text-bg' },
 };
 
+// ⚠️ **Le survol peint le FOND, comme dans la maquette** (décision 16) :
+// `.btn-secondary:hover` et `.btn-ghost:hover` y prennent `--hover`, dont
+// l'équivalent ici est `panel2` (même écart au panneau, dans les deux thèmes).
+// Il allumait le CONTOUR en accent — un signal réservé, depuis, à l'état
+// enclenché et au focus. `.btn-danger:hover` prend `--bad-soft`.
 const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
-  neutre: { vide: 'bg-transparent', doux: 'bg-panel', plein: 'bg-panel2' },
+  neutre: {
+    vide: 'bg-transparent hoverable:bg-panel2',
+    doux: 'bg-panel hoverable:bg-panel2',
+    plein: 'bg-panel2',
+  },
   // ⚠️ `plein` est un VRAI aplat d'accent depuis la refonte (décision 4) : le
   // bouton principal d'un écran, un seul par écran. Il valait `accent-soft`,
   // comme `doux` — l'app n'avait aucun bouton principal qui ressorte.
@@ -130,15 +150,16 @@ const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
   // des actions posées SUR autre chose (la croix au coin d'une carte), où un
   // fond translucide laisserait passer l'image dessous et rendrait l'icône
   // illisible. `doux` reste le voile discret d'un bouton posé dans un panneau.
-  danger: { vide: 'bg-transparent', doux: 'bg-bad/10', plein: 'bg-bad' },
+  danger: { vide: 'bg-transparent hoverable:bg-bad-soft', doux: 'bg-bad/10', plein: 'bg-bad' },
   alerte: { vide: 'bg-transparent', doux: 'bg-warn/10', plein: 'bg-warn' },
 };
 
 const TRAITS: Record<TonBouton, Record<TraitBouton, string>> = {
+  // Plus de contour d'accent au survol : c'est le fond qui répond (voir FONDS).
   neutre: {
     aucun: 'border border-transparent',
-    plein: 'border border-border hoverable:border-accent',
-    pointille: 'border border-dashed border-border hoverable:border-accent',
+    plein: 'border border-border',
+    pointille: 'border border-dashed border-border',
   },
   accent: {
     aucun: 'border border-transparent',

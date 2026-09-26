@@ -729,9 +729,15 @@ export default function RecoBoard({
                 ⚠️ `min(180px, 100%)` et non `180px` nu : un minimum rigide
                 empêche le champ de se réduire dans un conteneur plus étroit,
                 et c'est toute la page qui gagne un défilement latéral. Même
-                garde que RecoCard et ReleasesPage. */}
+                garde que RecoCard et ReleasesPage.
+                ⚠️ **Sous `lg`, le champ prend TOUTE la place** (plafond de
+                260 px à partir de `lg` seulement) : plafonné dès `sm`, il
+                laissait un grand vide entre lui et les cases, repoussées au
+                bord droit — les cases se lisaient comme un contrôle à part
+                (relevé par Thomas, capture en fenêtre étroite). Désormais
+                champ et cases forment un seul bloc sur toute la largeur. */}
             {!casesPleines ? (
-              <div className="min-w-[min(180px,100%)] flex-1 sm:max-w-[260px]">
+              <div className="min-w-[min(180px,100%)] flex-1 lg:max-w-[260px]">
                 <MonsterPicker
                   monsters={monsters}
                   // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
@@ -754,15 +760,11 @@ export default function RecoBoard({
             {/* TROIS CASES, et non trois champs texte : elles montrent la
                 forme de ce qu'on cherche — une composition de 3 monstres —, et
                 reprennent le langage des slots de deck de la page.
-                ⚠️ **`ml-auto`, sauf à la SOURIS (`lg:ml-0`).** Au doigt, la
-                largeur manque et la rangée passe vite à la ligne : pousser les
-                cases au bord droit les sépare proprement du champ. À la
-                souris, le champ est plafonné à 260 px
-                (`sm:max-w-[260px]` ci-dessus) — sur une page bien plus large,
-                `ml-auto` les envoyait loin de lui, à l'autre bout d'une rangée
-                vide. Sans la marge auto, elles collent au champ dont elles
-                sont le résultat. */}
-            <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
+                ⚠️ **Collées au champ, à toutes les largeurs** — elles sont le
+                résultat de ce qu'on y tape. L'ancien `ml-auto` (sous `lg`) les
+                envoyait au bord droit, loin du champ plafonné. `flex-none` :
+                trois cases de 40 px ne se compriment pas. */}
+            <div className="flex flex-none items-center gap-1.5">
               {queries.map((nom, i) => {
                 // ⚠️ Résolu dans les formes JOUABLES, pas dans la liste
                 // complète : plusieurs entrées portent le même nom (forme

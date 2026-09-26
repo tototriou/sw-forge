@@ -236,7 +236,7 @@ Monstres cherchés et rôle **filtrent tous la même liste** et se
 
 | Rangée | Contrôle | Visible |
 |--------|----------|---------|
-| **(sans intitulé)** | le champ, puis les 3 cases (`ml-auto`), puis « Vider » | dès 1 recommandation |
+| **(sans intitulé)** | le champ, puis les 3 cases collées à lui, puis « Vider » | dès 1 recommandation |
 | **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
 
 ⚠️ **Pas de cadre.** Il enfermait un contenu qui n'a pas besoin d'être distingué
@@ -252,9 +252,15 @@ Ce bloc **n'apparaît que s'il existe au moins une recommandation** : sans rien
 reste affichée à vide (voir plus haut).
 
 ⚠️ **Le champ de recherche à GAUCHE, les portraits des monstres posés à
-DROITE (`ml-auto`).** C'est le champ qu'on utilise en premier — le regard
+sa DROITE, collés à lui.** C'est le champ qu'on utilise en premier — le regard
 commence par lui, pas par des cases encore vides — et les portraits sont son
 RÉSULTAT : ils se lisent après ce qu'on vient de taper, jamais avant.
+⚠️ **Sous `lg`, le champ prend toute la largeur restante** ; il n'est plafonné
+(260 px) qu'à partir de `lg`. Plafonné dès `sm`, avec les cases poussées au
+bord droit (`ml-auto`), il laissait un grand vide entre les deux, et les cases
+se lisaient comme un contrôle à part (Thomas, sur une capture en fenêtre
+étroite : « revois cet affichage »). Champ et cases forment maintenant un seul
+bloc.
 
 - ⚠️ **Origine, Monstres et Rôle étaient posés à trois niveaux différents, sans
   intitulé** : trois objets flottants dont rien ne disait qu'ils portaient sur

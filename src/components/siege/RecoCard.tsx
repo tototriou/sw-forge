@@ -468,21 +468,32 @@ export default function RecoCard({
             qui laissait « Analyser » au milieu. */}
         <span className="hidden lg:block lg:flex-1" aria-hidden />
         {!editing && (
+          // ⚠️ **Bouton à DEUX ÉTATS** (décision 17 — Thomas : « une fois
+          // analysé, si on clique ça cache l'analyse ») : un premier clic
+          // analyse, un second MASQUE le résultat — le même geste que la croix
+          // de l'encart. Enclenché (`actif`, `aria-pressed`) tant qu'une
+          // analyse est affichée. Il disait « Réanalyser mes decks » dans cet
+          // état : relancer se fait maintenant en deux clics (masquer, puis
+          // analyser). Masquer reste possible sans compte chargé : il n'y a
+          // rien à calculer pour ça.
           <Bouton
-            onClick={onAnalyze}
-            disabled={!canAnalyze}
+            onClick={match ? onClearAnalysis : onAnalyze}
+            disabled={!match && !canAnalyze}
+            actif={Boolean(match)}
             // Bouton FANTÔME (`.btn-ghost.btn-sm` de la maquette), comme tout
             // ce qui se clique dans cet en-tête.
             fond="vide"
             trait="aucun"
             title={
-              canAnalyze
-                ? 'Confronter toute la recommandation à tes monstres'
-                : 'Importe ton compte pour analyser'
+              match
+                ? "Masquer le résultat de l'analyse"
+                : canAnalyze
+                  ? 'Confronter toute la recommandation à tes monstres'
+                  : 'Importe ton compte pour analyser'
             }
             taille="sm"
             icone={<Gauge size={13} />}
-            libelle={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
+            libelle="Analyser mes decks"
             className={`compact:hidden max-lg:hidden ${BOUTON_LG}`}
           />
         )}

@@ -1019,9 +1019,20 @@ Calcul pur dans [recoMatch.ts](src/lib/recoMatch.ts) → stats réelles via
 
 ⚠️ **Rien n'est confronté par défaut.** Une carte non analysée est neutre : pas
 d'aura, pas de pastille, pas de badge sur les monstres. L'analyse se lance **par
-recommandation**, via le bouton **« Analyser mes decks »** de son en-tête (il
-devient « Réanalyser mes decks » ensuite) — le libellé dit bien que la
-confrontation porte sur **l'ensemble des decks**, pas sur un seul.
+recommandation**, via le bouton **« Analyser mes decks »** de son en-tête — le
+libellé dit bien que la confrontation porte sur **l'ensemble des decks**, pas
+sur un seul.
+
+⚠️ **Bouton à DEUX ÉTATS** (refonte graphique, décision 17 — Thomas : « une
+fois analysé, je veux que si on clique ça cache l'analyse ») : un clic
+analyse, un second **masque** le résultat — le même geste que la croix
+« Masquer le résultat de l'analyse » de l'encart. Il est enclenché
+(`aria-pressed`, fond d'accent) tant qu'une analyse est affichée, avec
+« Masquer le résultat de l'analyse » en infobulle. Masquer reste possible sans
+compte chargé (rien à calculer). Il devenait avant « Réanalyser mes decks » :
+relancer se fait maintenant en deux clics — et relancer sans rien avoir changé
+redonnait le même résultat, puisqu'un résultat périmé est de toute façon
+effacé (voir plus bas).
 
 ⚠️ **À la SOURIS seulement** (`compact:hidden`), étiqueté, à côté du titre — la
 place ne manque pas. Au doigt, il n'est plus sur la carte du tout : il vivait en

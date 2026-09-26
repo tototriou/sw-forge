@@ -209,6 +209,8 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     ligne dépliée. Au doigt, rien ne change (lot 11). Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Repli deck
     par deck.
+#### Décisions prises en cours de chantier (16 et suivantes)
+
 16. **Boutons unifiés dans toute l'app, au rendu de la maquette** — Thomas,
     le 2026-09-26 : « il faut que les boutons soient unifiés dans
     l'application », puis « surtout, je veux le même rendu que sur la
@@ -227,6 +229,16 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     tests de rendu, comme le reste de la zone. Exceptions admises : liens
     dans une phrase, entrées de navigation, grilles d'icônes du jeu.
     Spec : [../shared/librairie-ui.md](../shared/librairie-ui.md) § Bouton.
+17. **Siège · Recommandations — « Analyser mes decks » devient un bouton à
+    deux états** : un clic analyse, un second masque le résultat (Thomas, le
+    2026-09-26 : « une fois analysé, je veux que si on clique ça cache
+    l'analyse »). Le libellé « Réanalyser mes decks », que le bouton prenait
+    une fois l'analyse affichée, disparaît — [retrait #17] décidé par Thomas
+    le 2026-09-26 : relancer se fait en deux clics (masquer, puis analyser),
+    aucune fonction perdue. Changement de COMPORTEMENT demandé, hors du
+    « affichage seulement » de la refonte. Spec :
+    [../siege/recommandations.md](../siege/recommandations.md) § Confrontation
+    avec mon compte.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

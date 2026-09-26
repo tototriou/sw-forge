@@ -87,6 +87,11 @@
     "devient": "attr:libelle:Terminer l'édition de ce deck",
     "pourquoi": "Lot 7b, boutons de la page : voir title."
   },
+  "src/components/siege/RecoCard.tsx :: attr:libelle:Réanalyser mes decks": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "retrait": "A.2 bis #17",
+    "pourquoi": "« Analyser mes decks » devient un bouton à deux états : une fois l'analyse affichée, le clic la masque. Relancer se fait en deux clics."
+  },
   "src/components/TopBar.tsx :: texte:Se déconnecter": {
     "de": "src/components/TopBar.tsx",
     "vers": "src/components/TopBar.tsx",

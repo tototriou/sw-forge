@@ -348,7 +348,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par Thomas le 2026-09-25 |
 | 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
 | 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par Thomas le 2026-09-26 |
-| 7b Siège · Recommandations | J | à faire | |
+| 7b Siège · Recommandations | J | exécuté, à valider | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête) ; 2026-09-26 |
 | 14 thème clair (Atelier) : revoir les tokens | J | à faire | ajouté le 2026-09-26 |
 | 8a Compte · Runes | J | à faire | |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
@@ -615,6 +615,15 @@ spec avant le code (`b11a922`), logique `lib/siegeShare` + `appendTeams`
 (`bb69a00`), recherche en liste de suggestions comme ailleurs (`0e0e891`).
 Fichiers hors A.2 limités à ceux nommés par la décision ; chemins interdits
 vides. Validé par Thomas (« ok »).
+
+**Résultat lot 7b — Siège · Recommandations (2026-09-26)** — preuve
+[lot-7b.md](refonte-graphique-preuves/lot-7b.md). Tests avant `40cd2d8`
+(37 vérifications ; une assertion recalée, pas assouplie — le compte de
+« Fort contre » hors de la rangée d'intitulés). Décision 15 prise sur une
+planche « proposition mixte » ajoutée à la maquette : à la souris, les decks
+en tableau (offense avec sets visés, fort contre, verdict), la carte
+détaillée d'avant sous une ligne dépliée (`439dfa6`) ; en-tête par
+`BarreActions` (`f04845c`). Aucune perte. À valider par Thomas.
 
 ### B.11 Lot 11 — téléphone · J
 

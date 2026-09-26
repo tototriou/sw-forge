@@ -25,6 +25,28 @@ d'actions. Aucune action mise en avant. Libellés, désactivations et
 infobulles repris des boutons d'avant. Au doigt, le panneau « Options » ne
 change pas (lot 11).
 
+⚠️ **À la souris, l'en-tête d'une recommandation tient sur UNE ligne**
+(lot 7b, la maquette) : titre · Importée · decks · auteur · Analyser, puis
+Consulter / Exporter / Éditer / Supprimer au bout. Au doigt, il garde ses deux
+rangées.
+
+⚠️ **Couleurs : plus d'aplats teintés** (lot 7b — Thomas : « revois les
+couleurs et l'affichage sur les cards, là il n'y a rien qui va »). La carte
+d'une recommandation, chaque deck, chaque monstre et l'encart de synthèse se
+teintaient chacun en vert / orange / rouge à 20-45 % : une page analysée
+devenait un patchwork. Désormais :
+
+- cartes **neutres** (fond de panneau, contour discret) ; le statut d'un deck
+  ou d'un monstre se lit au **contour** (au doigt) et aux **pastilles** —
+  même règle que les équipes de siège (décision 8) ;
+- l'encart de synthèse est neutre, son icône et son titre portent la couleur ;
+- jetons de sets et de propriétés d'artéfact, filtres de verdict enclenchés,
+  rapport d'import : les **fonds doux** (`good-soft`, `warn-soft`,
+  `bad-soft`) avec le texte à l'encre. Contrastes mesurés, 4,63:1 au plus bas
+  (titre `fire` sur `bad-soft`, Forge) ;
+- « Importée » : pastille neutre (le contour d'accent la faisait passer pour
+  un élément sélectionné).
+
 ## Modèle
 
 ```ts

@@ -122,15 +122,19 @@ interface Props {
   hit?: RecoHit | null;
 }
 
-// Aura selon la confrontation avec la box (même langage visuel que les équipes
-// de siège) : vert = OK, orange = partiel, rouge = bloqué, neutre = pas de compte.
-// ⚠️ Fonds à /10 et non /5 : sur fond clair, un aplat à 5 % ne se distingue pas
-// du panneau. Même langage visuel que SiegeTeam.
+// Carte d'une recommandation — ⚠️ **NEUTRE, quel que soit le résultat de
+// l'analyse** (refonte graphique, lot 7b, « revois les couleurs, là il n'y a
+// rien qui va »). Elle se teintait en entier (vert, orange, rouge à 25-45 %),
+// et chaque deck, chaque monstre, l'encart de synthèse se teintaient à leur
+// tour : une page analysée devenait un patchwork où plus rien ne ressortait.
+// Le statut se lit désormais aux PASTILLES et aux CONTOURS — la même règle que
+// les équipes de siège (décision 8) —, jamais à un aplat. La table est gardée,
+// par statut, pour qu'un ajustement ultérieur reste local.
 const AURA: Record<string, string> = {
-  ok: 'border-good bg-good/30',
-  partial: 'border-warn bg-warn/45',
-  missing: 'border-fire bg-fire/25',
-  unknown: 'border-border bg-panel/50',
+  ok: 'border-border-soft bg-panel',
+  partial: 'border-border-soft bg-panel',
+  missing: 'border-border-soft bg-panel',
+  unknown: 'border-border-soft bg-panel',
 };
 
 export default function RecoCard({
@@ -253,7 +257,8 @@ export default function RecoCard({
     // ⚠️ `compact:p-2.5` : même resserrement qu'une équipe de siège
     // (SiegeTeam.tsx) — au doigt, la page empile plusieurs recommandations,
     // et chaque `p-4` coûte 32 px de haut multipliés par leur nombre.
-    <section className={`rounded-2xl border p-4 compact:p-2.5 transition-colors ${AURA[status]}`}>
+    // Gabarit des cartes de la refonte : rayon 12, contour discret (`AURA`).
+    <section className={`rounded-xl border p-4 compact:p-2.5 transition-colors ${AURA[status]}`}>
       {/* En-tête de la recommandation.
           ⚠️ **TROIS zones, pas deux.** Le titre et les icônes d'action
           vivaient chacun dans leur propre bloc (titre + badges à gauche,
@@ -265,7 +270,13 @@ export default function RecoCard({
           (`items-center`), toujours à deux, jamais perturbée par la longueur
           des badges — qui passent en dessous, sur une deuxième rangée qui
           leur est propre et peut s'enrouler librement. */}
-      <div className="mb-1.5 flex items-center gap-2">
+      {/* ⚠️ **À la souris, l'en-tête tient sur UNE ligne** (lot 7b, la
+          maquette) : titre · origine · decks · auteur · Analyser, puis les
+          actions au bout. Les deux rangées ci-dessous s'effacent
+          (`lg:contents`) dans ce conteneur ; au doigt, elles restent deux,
+          pour la raison dite juste en dessous. */}
+      <div className="lg:mb-3 lg:flex lg:flex-wrap lg:items-center lg:gap-x-3 lg:gap-y-1.5">
+      <div className="mb-1.5 flex items-center gap-2 lg:contents">
         {editing ? (
           <Champ
             value={reco.name}
@@ -293,7 +304,9 @@ export default function RecoCard({
             // ⚠️ `p-0` explicite : un `<button>` porte un rembourrage par
             // défaut du navigateur, invisible à l'œil mais qui élargit sa
             // boîte au-delà du texte.
-            className="min-w-0 flex-1 truncate p-0 text-left transition hoverable:text-ctx"
+            // `lg:flex-initial` : sur la ligne unique, le titre prend sa
+            // largeur, et l'origine, les decks et l'auteur le suivent.
+            className="min-w-0 flex-1 truncate p-0 text-left transition hoverable:text-ctx lg:flex-initial"
           >
             {/* ⚠️ `compact:text-base` : même resserrement que le titre d'une
                 équipe de siège (SiegeTeam.tsx) — au doigt, `text-lg` pesait
@@ -306,8 +319,9 @@ export default function RecoCard({
           </ZoneCliquable>
         )}
 
-        {/* Actions — sur la MÊME rangée que le titre, à sa hauteur. */}
-        <div className="flex flex-none items-center gap-1.5">
+        {/* Actions — sur la MÊME rangée que le titre, à sa hauteur ; à la
+            souris, au BOUT de la ligne unique (`lg:order-last lg:ml-auto`). */}
+        <div className="flex flex-none items-center gap-1.5 lg:order-last lg:ml-auto">
           {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens.
               ⚠️ **Masqué au DOIGT** (`compact:hidden`) : le titre bascule
               désormais la carte lui-même (voir plus haut), et ce petit bouton
@@ -379,10 +393,13 @@ export default function RecoCard({
 
       {/* Métadonnées — SOUS le titre, sur leur propre rangée qui s'enroule
           librement sans jamais perturber l'alignement titre/icônes. */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2 lg:contents">
         {reco.origin === 'imported' && (
+          // Pastille NEUTRE (lot 7b) : l'origine est une information, pas un
+          // état à signaler — le contour d'accent la faisait passer pour un
+          // élément sélectionné.
           <span
-            className="inline-flex items-center gap-1 rounded-full border border-accent bg-panel2 px-2 py-0.5
+            className="inline-flex items-center gap-1 rounded-full border border-border-soft bg-panel2 px-2 py-0.5
                        label"
             title="Recommandation reçue d'un autre joueur"
           >
@@ -423,6 +440,7 @@ export default function RecoCard({
             className="compact:hidden"
           />
         )}
+      </div>
       </div>
 
       {suppressionAConfirmer && (
@@ -760,7 +778,9 @@ const VERDICTS: {
     statuts: ['ok'],
     dot: 'bg-good',
     texte: 'text-good',
-    actif: 'border-good bg-good/30 text-ink',
+    // `actif` : contour du ton + son fond DOUX (lot 7b) — l'aplat saturé à
+    // 25-45 % se lisait mal, voir `AURA`.
+    actif: 'border-good bg-good-soft text-ink',
     rang: 3,
   },
   {
@@ -769,7 +789,7 @@ const VERDICTS: {
     statuts: ['nodeck'],
     dot: 'bg-warn',
     texte: 'text-warn',
-    actif: 'border-warn bg-warn/45 text-ink',
+    actif: 'border-warn bg-warn-soft text-ink',
     rang: 2,
   },
   {
@@ -778,7 +798,7 @@ const VERDICTS: {
     statuts: ['ko'],
     dot: 'bg-fire',
     texte: 'text-fire',
-    actif: 'border-fire bg-fire/25 text-ink',
+    actif: 'border-fire bg-bad-soft text-ink',
     rang: 1,
   },
   {
@@ -794,7 +814,7 @@ const VERDICTS: {
     // introduire une cinquième couleur qui mentirait sur la gravité.
     dot: 'border border-fire',
     texte: 'text-fire',
-    actif: 'border-fire bg-fire/25 text-ink',
+    actif: 'border-fire bg-bad-soft text-ink',
     rang: 0,
   },
 ];
@@ -884,17 +904,15 @@ function AnalysisSummary({
     );
   }
 
-  // L'encart prend la couleur du pire verdict présent : vert si tout passe,
-  // orange sinon — le rouge reste porté par les lignes, pour ne pas alarmer sur
-  // une reco dont il ne manque qu'une équipe à composer.
+  // L'icône et le titre de l'encart prennent la couleur du pire verdict
+  // présent : vert si tout passe, orange sinon — le rouge reste porté par les
+  // lignes, pour ne pas alarmer sur une reco dont il ne manque qu'une équipe à
+  // composer. ⚠️ Le FOND reste neutre (lot 7b, voir `AURA`) : un encart teinté
+  // posé dans une carte teintée ne ressortait plus.
   const toutPasse = rates.length === 0;
 
   return (
-    <div
-      className={`mb-3 rounded-lg border px-3 py-2 ${
-        toutPasse ? 'border-good bg-good/30' : 'border-warn bg-warn/40'
-      }`}
-    >
+    <div className="mb-3 rounded-lg border border-border-soft bg-panel2 px-3 py-2">
       <div className="flex items-center gap-2">
         {toutPasse ? (
           <Check size={15} className="flex-none text-good" />
@@ -1050,13 +1068,17 @@ const DOT: Record<string, string> = {
   unknown: 'bg-unknown',
 };
 
+// Un deck : le statut au CONTOUR (au doigt, où le deck est une carte), le fond
+// reste neutre — plus d'aplat teinté (voir `AURA`). À la souris, le deck est
+// une ligne de tableau sans contour propre : la pastille de la colonne Verdict
+// porte le statut.
 const DECK_AURA: Record<string, string> = {
-  ok: 'border-good/70 bg-good/20',
-  nodeck: 'border-warn/70 bg-warn/35',
-  ko: 'border-fire/70 bg-fire/20',
-  missing: 'border-fire/70 bg-fire/20',
-  partial: 'border-warn/70 bg-warn/35',
-  unknown: 'border-border bg-panel2/40',
+  ok: 'border-good/60 bg-panel2',
+  nodeck: 'border-warn/60 bg-panel2',
+  ko: 'border-fire/60 bg-panel2',
+  missing: 'border-fire/60 bg-panel2',
+  partial: 'border-warn/60 bg-panel2',
+  unknown: 'border-border-soft bg-panel2',
 };
 
 // ⚠️ **À la souris, un deck est une LIGNE de tableau** (décision 15) : chevron ·
@@ -1120,7 +1142,7 @@ function DeckBlock({
     // teinté de l'analyse (`DECK_AURA`) reste : il colore la ligne entière.
     <div
       className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}
-        lg:rounded-none lg:border-0 lg:border-t lg:border-border-soft lg:px-3 lg:py-2`}
+        lg:rounded-none lg:border-0 lg:border-t lg:border-border-soft lg:bg-transparent lg:px-3 lg:py-2`}
     >
       <div className="mb-2 lg:mb-0">
         {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
@@ -1334,11 +1356,13 @@ function DeckBlock({
               // voisine au lieu de laisser la table défiler à l'intérieur.
               className={`min-w-0 rounded-xl border p-2.5 compact:p-2 ${
                 // Indisponible ET stats insuffisantes sont tous deux bloquants → rouge.
+                // Statut au CONTOUR seul, fond neutre (voir `AURA`) : le badge
+                // sous le nom dit déjà ce qui cloche.
                 sm?.status === 'absent' || sm?.status === 'ko'
-                  ? 'border-fire bg-fire/20'
+                  ? 'border-fire/60 bg-panel2'
                   : sm?.status === 'ok'
-                    ? 'border-good/70 bg-good/20'
-                    : 'border-border bg-panel2/60'
+                    ? 'border-good/60 bg-panel2'
+                    : 'border-border-soft bg-panel2'
               } ${
                 // ⚠️ Le monstre CHERCHÉ prend un fond d'accent léger, jamais une
                 // bordure : celle-ci porte déjà le résultat de l'analyse
@@ -2474,15 +2498,17 @@ function ArtifactList({
                         ? 'Propriété présente sur son artéfact'
                         : `Propriété absente de l'artéfact ${LIBELLE_KIND[key]} de ton exemplaire`
                   }
+                  // Fonds DOUX du jeton (`good-soft`/`bad-soft`), texte à l'encre :
+                  // un aplat saturé à 20-25 % se lisait mal (lot 7b).
                   className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
                     ok === null
-                      ? 'border-border bg-panel'
+                      ? 'border-border-soft bg-panel'
                       : ok
-                        ? 'border-good bg-good/25'
-                        : 'border-fire bg-fire/20'
+                        ? 'border-good/50 bg-good-soft'
+                        : 'border-bad/50 bg-bad-soft'
                   }`}
                 >
-                  <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                  <span className="text-micro text-ink">
                     {artifactSubLabel(code)}
                   </span>
                   {ok === true && <Check size={10} className="text-good" />}
@@ -2537,16 +2563,18 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                       title={
                         ok === null ? undefined : ok ? 'Set porté' : `Set ${key} manquant sur ton exemplaire`
                       }
+                      // Fonds DOUX, texte à l'encre (lot 7b) — comme les
+                      // propriétés d'artéfact.
                       className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
                         ok === null
-                          ? 'border-border bg-panel'
+                          ? 'border-border-soft bg-panel'
                           : ok
-                            ? 'border-good/70 bg-good/20'
-                            : 'border-fire/70 bg-fire/20'
+                            ? 'border-good/50 bg-good-soft'
+                            : 'border-bad/50 bg-bad-soft'
                       }`}
                     >
                       <RuneIcon setKey={key} size={14} />
-                      <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                      <span className="text-micro text-ink">
                         ×{setPieces(key)}
                       </span>
                       {ok === true && <Check size={10} className="text-good" />}

@@ -959,7 +959,9 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
   return (
     <div
       className={`mt-3 rounded-xl border px-3 py-2.5 ${
-        bloque ? 'border-fire bg-fire/20' : 'border-warn bg-warn/35'
+        // Fonds DOUX (lot 7b, voir `AURA` dans RecoCard) : l'aplat saturé à
+        // 20-35 % se lisait mal ; l'icône et le titre portent la couleur.
+        bloque ? 'border-bad/50 bg-bad-soft' : 'border-warn/50 bg-warn-soft'
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">

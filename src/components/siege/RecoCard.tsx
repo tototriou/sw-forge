@@ -537,7 +537,23 @@ export default function RecoCard({
               ses 3 emplacements de monstres plus le picker de chacun seraient à
               l'étroit sur une demi-colonne — même raison que pour une équipe de
               siège dépliée. */}
-          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2 lg:items-start animate-[apparition_180ms_var(--ease-out)]">
+          {/* ⚠️ **Remplacé à la souris par un TABLEAU** (décision 15) : une
+              seule colonne de lignes, dans un cadre commun, sous une rangée
+              d'intitulés. La grille à deux colonnes décrite ci-dessus ne vaut
+              plus qu'au doigt… où elle n'a jamais eu qu'une colonne. */}
+          <div
+            className="grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
+                       lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft"
+          >
+            {/* Intitulés des colonnes — à la souris seulement, même gabarit que
+                chaque ligne (`LIGNE_DECK`). */}
+            <div className={`hidden bg-panel2 px-3 py-1.5 ${LIGNE_DECK}`} aria-hidden data-intitules-decks>
+              <span />
+              <span className="label">Offense · sets visés</span>
+              <span className="label">Fort contre</span>
+              <span className="label">Verdict</span>
+              <span />
+            </div>
             {/* ⚠️ Pendant une recherche, SEULS les decks trouvés sont rendus —
                 les autres disparaissent complètement. Sans ça la carte remontait
                 dans les résultats en affichant ses six decks, et il fallait
@@ -1043,6 +1059,13 @@ const DECK_AURA: Record<string, string> = {
   unknown: 'border-border bg-panel2/40',
 };
 
+// ⚠️ **À la souris, un deck est une LIGNE de tableau** (décision 15) : chevron ·
+// offense (sets visés collés à chaque monstre) · fort contre · verdict · crayon.
+// Même gabarit de colonnes pour la rangée d'intitulés et pour chaque ligne.
+// Écrit EN TOUTES LETTRES : Tailwind lit le source comme du texte.
+const LIGNE_DECK =
+  'lg:grid lg:grid-cols-[20px_minmax(0,1fr)_minmax(0,150px)_minmax(0,190px)_auto] lg:items-center lg:gap-3';
+
 function DeckBlock({
   reco,
   deck,
@@ -1083,14 +1106,23 @@ function DeckBlock({
   );
   const status = match?.status ?? 'unknown';
   const empty = deck.slots.every((s) => s.com2usId == null);
+  // Le verdict de la ligne (souris), avec les libellés et points des filtres.
+  const verdictKey = match ? VERDICT_DE[match.status] : null;
+  const verdictLigne = verdictKey ? VERDICTS.find((v) => v.key === verdictKey) ?? null : null;
   // Lead porté par le slot 0 du deck recommandé.
   const leaderId = deck.slots[0]?.com2usId;
   const leaderLead = leaderId != null ? monsterByCom2us.get(leaderId)?.leaderSkill ?? null : null;
   // Lead de VITESSE du deck (slot 0), pour le total de VIT des monstres.
 
   return (
-    <div className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}`}>
-      <div className="mb-2">
+    // ⚠️ À la souris, la carte du deck devient une LIGNE du tableau : plus de
+    // cadre ni d'arrondi, un filet au-dessus (celui du tableau). Le fond
+    // teinté de l'analyse (`DECK_AURA`) reste : il colore la ligne entière.
+    <div
+      className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}
+        lg:rounded-none lg:border-0 lg:border-t lg:border-border-soft lg:px-3 lg:py-2`}
+    >
+      <div className="mb-2 lg:mb-0">
         {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
             le crayon doit rester en HAUT À DROITE quel que soit l'état du
             deck. Le mettre dans la même rangée flex-wrap que le verdict le
@@ -1098,7 +1130,7 @@ function DeckBlock({
             « réalisable N fois » prenait sa propre ligne, voir plus bas) —
             un bouton d'action ne doit pas se déplacer selon ce qui s'affiche
             à côté de lui. */}
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${LIGNE_DECK}`}>
           {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
           <BoutonIcone
             onClick={onToggleFold}
@@ -1121,19 +1153,82 @@ function DeckBlock({
               n'a jamais été lu ici, et n'est pas rejeté à l'import. */}
           <ZoneCliquable
             onClick={onToggleFold}
-            className="flex items-center gap-1.5 flex-1 min-w-0"
+            className="flex items-center gap-1.5 flex-1 min-w-0 lg:gap-4"
             title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
           >
-            {deck.slots.map((sl, i) => (
-              <MiniMonster
-                key={i}
-                monster={sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null}
-                fallback={sl.name}
-                size={34}
-                lead={i === 0 ? leaderLead : null}
-              />
-            ))}
+            {deck.slots.map((sl, i) => {
+              const m = sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null;
+              // Sets visés : la PREMIÈRE possibilité de runage, sans doublon
+              // (3× Fight → une icône). Les autres possibilités restent dans le
+              // détail.
+              const sets = [...new Set(sl.setOptions?.[0] ?? [])];
+              return (
+                <span key={i} className="flex min-w-0 items-center gap-1.5">
+                  <MiniMonster monster={m} fallback={sl.name} size={34} lead={i === 0 ? leaderLead : null} />
+                  {/* À la souris seulement : le nom et les sets visés de CE
+                      monstre, collés à lui (décision 15). Au doigt, la ligne
+                      reste aux portraits seuls. */}
+                  {(m?.name || sl.name) && (
+                    <span className="hidden truncate text-xs font-medium text-ink lg:inline">{m?.name ?? sl.name}</span>
+                  )}
+                  {sets.length > 0 && (
+                    <span
+                      className="hidden flex-none items-center gap-0.5 lg:inline-flex"
+                      title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
+                    >
+                      {sets.map((k) => (
+                        <RuneIcon key={k} setKey={k} size={14} />
+                      ))}
+                    </span>
+                  )}
+                </span>
+              );
+            })}
           </ZoneCliquable>
+
+          {/* À la souris : FORT CONTRE — les portraits de la première défense
+              visée, +N s'il y en a d'autres. Purement informatif, comme le
+              bloc détaillé. */}
+          <span className="hidden min-w-0 items-center gap-1 lg:flex">
+            {deck.counters.length > 0 ? (
+              <>
+                {deck.counters[0].monsters
+                  .filter((cm) => cm.com2usId != null || cm.name)
+                  .map((cm, i) => (
+                    <MiniMonster
+                      key={i}
+                      monster={cm.com2usId != null ? monsterByCom2us.get(cm.com2usId) ?? null : null}
+                      fallback={cm.name}
+                      size={24}
+                    />
+                  ))}
+                {deck.counters.length > 1 && (
+                  <span className="font-mono text-micro text-ink-dim">+{deck.counters.length - 1}</span>
+                )}
+              </>
+            ) : (
+              <span className="text-micro text-ink-dimmer">—</span>
+            )}
+          </span>
+
+          {/* À la souris : le VERDICT — la pastille des filtres (Bon, À
+              composer, À revoir, Monstre manquant), la phrase complète en
+              infobulle, et combien de fois le deck est montable. Avant
+              l'analyse : rien. */}
+          <span className="hidden min-w-0 flex-col items-start gap-0.5 lg:flex">
+            {!editing && match && !empty && verdictLigne && (
+              <>
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-panel px-2 py-0.5 text-micro font-semibold text-ink"
+                  title={verdictDeck(match)?.text}
+                >
+                  <span className={`h-1.5 w-1.5 flex-none rounded-full ${verdictLigne.dot}`} />
+                  {verdictLigne.label}
+                </span>
+                <CopiesBadge copies={match.copies} />
+              </>
+            )}
+          </span>
           {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
               (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
 
@@ -1177,8 +1272,10 @@ function DeckBlock({
             force CHAQUE ligne (verdict, puis nombre de copies) à démarrer sa
             propre ligne, systématique. `sm:basis-auto` : au-delà, la place ne
             manque plus, elles reprennent leur place naturelle côte à côte. */}
+        {/* `lg:hidden` : à la souris, le verdict et « réalisable N fois » sont
+            dans la colonne Verdict de la ligne (décision 15). */}
         {!editing && match && !empty && (
-          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5">
+          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5 lg:hidden">
             <span className="basis-full sm:basis-auto">
               <DeckBadge match={match} />
             </span>
@@ -1204,7 +1301,10 @@ function DeckBlock({
       )}
 
       {!folded && (
-      <>
+      // ⚠️ À la souris, le détail d'une ligne dépliée est une CARTE sous elle,
+      // en retrait du chevron (décision 15) — le contenu est celui d'avant,
+      // inchangé. Au doigt, ce conteneur ne dessine rien.
+      <div className="lg:mb-1 lg:ml-8 lg:mt-2 lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel lg:p-3">
 
       {/* Consignes propres à ce deck */}
       {editing ? (
@@ -1389,7 +1489,7 @@ function DeckBlock({
         recos={recos}
         hitCounters={hit?.counters ?? []}
       />
-      </>
+      </div>
       )}
     </div>
   );
@@ -2467,6 +2567,15 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
 
 // Badge d'un deck : le verdict en trois mots, + l'équipe retenue si trouvée.
 function DeckBadge({ match }: { match: DeckMatch }) {
+  const m = verdictDeck(match);
+  if (!m) return null;
+  return <span className={`font-mono text-micro ${m.cls}`}>· {m.text}</span>;
+}
+
+// La phrase du verdict d'un deck — lue par `DeckBadge` et par l'infobulle de
+// la pastille de la ligne (tableau des decks à la souris, décision 15) : une
+// seule rédaction pour les deux.
+function verdictDeck(match: DeckMatch): { cls: string; text: string } | null {
   const map: Record<string, { cls: string; text: string }> = {
     ok: { cls: 'text-good', text: `jouable${match.team ? ` · ${match.team}` : ''}` },
     nodeck: { cls: 'text-warn', text: 'aucun deck avec ces monstres — à composer' },
@@ -2476,9 +2585,7 @@ function DeckBadge({ match }: { match: DeckMatch }) {
     },
     missing: { cls: 'text-fire', text: 'monstre indisponible — deck impossible' },
   };
-  const m = map[match.status];
-  if (!m) return null;
-  return <span className={`font-mono text-micro ${m.cls}`}>· {m.text}</span>;
+  return map[match.status] ?? null;
 }
 
 // Combien de fois le deck est montable EN PARALLÈLE avec la réserve 6★.

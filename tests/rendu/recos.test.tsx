@@ -184,7 +184,10 @@ export function testRenduRecosDeploiement() {
   ok(t.includes('×4 ×2'), 'les sets recommandés (4 pièces + 2 pièces)');
   ok(boutons(html).some((b) => b.texte === 'VIT 103 +97' && b.title === 'Voir les valeurs totales'), 'la stat recommandée (VIT, base + bonus), bascule vers les totaux');
   ok(t.includes('Aucun set recommandé') && t.includes('Aucune stat recommandée'), 'un monstre sans consigne le dit');
-  egal((t.match(/Fort contre/g) ?? []).length, 2, '« Fort contre » sur chaque deck');
+  // (Compté hors de la rangée d'intitulés des colonnes, ajoutée au lot 7b —
+  // décision 15 — qui porte elle aussi le mot « Fort contre ».)
+  const sansIntitules = texteVisible(html.replace(/<div[^>]*data-intitules-decks[^>]*>[\s\S]*?<\/div>/, ''));
+  egal((sansIntitules.match(/Fort contre/g) ?? []).length, 2, '« Fort contre » sur chaque deck');
   ok(!!nomme(html, 'Modifier cette défense')[0], 'la défense visée se modifie');
   egal(nomme(html, 'Ajouter une défense que ce deck bat').length, 2, '« Ajouter une défense que ce deck bat » sur chaque deck');
   egal(nomme(html, 'Replier ce deck').length, 4, 'chaque deck ouvert se replie (chevron et en-tête)');

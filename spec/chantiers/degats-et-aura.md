@@ -297,7 +297,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 5 → 6 → contre-revue du cadrage → 6bis-a1
         → amendement pilote et revue indépendante
         → correctif pilote de la revue → validation indépendante
-        → 6bis-a2a1-contexte → 6bis-a2a1-suite → 6bis-a2a2
+        → 6bis-a2a1-contexte → 6bis-a2a1-suite
+        → 6bis-a2a1-suite-correction-stats-chain → 6bis-a2a2
         → 6bis-a2b → 6bis-a3a → 6bis-a3b
         → 6bis-a4a → 6bis-a4b → 6bis-a4c1 → 6bis-a4c2
         → 6bis-a4d1 → 6bis-a4d2
@@ -308,7 +309,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
 1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
-3, 4, 5, 6, 6bis-a1, 6bis-a2a1-contexte, 6bis-a2a1-suite, 6bis-a2a2,
+3, 4, 5, 6, 6bis-a1, 6bis-a2a1-contexte, 6bis-a2a1-suite,
+  6bis-a2a1-suite-correction-stats-chain, 6bis-a2a2,
   6bis-a2b, 6bis-a3a, 6bis-a3b,
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
@@ -341,6 +343,10 @@ largement ont épuisé les 1 500 lignes. Elle n'établit aucun verdict. Le pilot
 scinde les intrants en **a2a1-contexte** puis **a2a1-suite** ; chaque session
 part d'un budget neuf et d'un livrable autonome, sans reprendre une mémoire
 non livrée. La seconde réunit les deux synthèses pour a2a2.
+La carte a2a1-suite a été livrée et ses 12 clés réconciliées, mais ce contrôle
+ne valide pas leur contenu : la chaîne des stats de combat y est mal située et
+deux chemins de bonus restent à distinguer. Son correctif nommé est un
+prérequis de a2a2 ; le reçu initial ne vaut pas validation du verdict.
 
 #### Suivi des lots
 
@@ -366,8 +372,9 @@ non livrée. La seconde réunit les deux synthèses pour a2a2.
 | 6bis-a1 — inventaire et recettes de contrôle | C | terminé | reçu `948066b` ↔ `87d09ec` / 2026-09-25 |
 | 6bis-a2a1 — tentative initiale | C | interrompu sans carte | 2026-09-26 |
 | 6bis-a2a1-contexte — champs, début de combat, stats de fiche | C | terminé | reçu `c09a516` ↔ `7dffbbc` / 2026-09-26 |
-| 6bis-a2a1-suite — chaîne des dégâts | C | prêt à lancer | — |
-| 6bis-a2a2 — sets actifs du build et score | C | en attente de a2a1-suite | — |
+| 6bis-a2a1-suite — chaîne des dégâts | C | livré, correction requise | reçu `12b7d05` ↔ `6d9b556` / 2026-09-26 |
+| 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte | C | prêt à lancer | — |
+| 6bis-a2a2 — sets actifs du build et score | C | en attente de la correction a2a1-suite | — |
 | 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
@@ -1578,9 +1585,73 @@ dans l'union des deux cartes, vérifiée par comparaison des clés et non par
 le seul total. **Ne fait pas :** sets des six runes, score, choix de
 paire/relique, conditions ou CLI.
 
+**Résultat provisoire du 2026-09-26 :** carte et contrôle privés livrés, reçu
+vérifié `12b7d05` ↔ `6d9b556`, notes intégrées. L'égalité des 12 clés passe,
+mais elle ne vérifie ni le sens du verdict ni la chaîne de calcul. Le lot
+reste **non validé** jusqu'au correctif nommé ci-dessous ; a2a2 attend.
+
+#### 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte
+
+**Cat. C ; requiert a2a1-suite et a2a1-contexte.** Scission décidée après
+l'arrêt du correctif initial à **1 209 lignes de noyau sur 1 500** : les 291
+lignes restantes ne suffisaient pas à la contre-lecture et aux preuves. Ce
+lot dispose d'un budget neuf de **1 700 lignes utiles**, exceptionnellement
+plus large que le plafond prévisionnel commun de 1 500 : socle documentaire
+commun (~1 000 lignes), carte/contrôle/validateur existants (~100), fenêtres
+de code ciblées (~220) et sorties de contrôle à compter. Mesurer chaque lecture,
+y compris une sortie tronquée puis relue ; si 1 700 ne suffit pas, arrêter et
+demander une nouvelle scission, sans omettre de branche.
+
+**Intrants bornés :** socle documentaire du contrat commun ; synthèse de
+`carte-6bis-a2a1-contexte.json`, puis les seuls
+`carte-6bis-a2a1-suite.json`, `controle-6bis-a2a1-suite.md` et
+`verifier-union-6bis-a2a1.mjs` du dossier privé A.6 bis. À partir du HEAD
+réel, recontrôler et lire dans `src/lib/damage.ts` les fenêtres inclusives
+L3645–3661, L3715–3728, L3768–3788, L3807–3828, L3951–3964,
+L4049–4062, L4091–4105, L4498–4506, L4568–4579, L4690–4699,
+L4751–4761, L4806–4825, L4833–4844, L4886–4904 et L4920–4928
+(**219 lignes** au HEAD `12b7d05`). Une ligne adjacente nécessaire se
+compte avant lecture ; ne pas relire tout `computeTotalDamage`.
+
+**Contrat exact :** corriger la clé `B:src/lib/damage.ts` sans toucher aux 11
+clés du contexte. `computeTotalDamage` reçoit `StatRow[]` et `DamageSetup` :
+ne pas présenter ces `stats` comme des statistiques de combat déjà calculées.
+Tracer séparément son appel à `computeSkillDamageDetail`, puis
+`statsDeCombat` → `statsDebutCombat`, pour le sort, les passifs et les lignes
+additionnelles 218–221, en citant la lecture effective des valeurs. Examiner
+à part `defCombat` et `atkCombatComplet`, appelés depuis le calcul total mais
+ne passant pas par cette chaîne ; conserver leur effet éventuel sur les auras
+comme **écart à qualifier** dans un champ `ecarts` distinct des 12 clés
+projetées, repris par a4d2 puis les contrats 6bis-b-*, sans inventer une
+correction de règle de jeu. Garder `verdict` dans l'énumération du contrat
+commun et `role` dans `lecture | propagation | aucun` : la clé B est un
+consommateur au niveau du fichier, tandis que l'orchestrateur délègue la
+lecture d'aura à ses appelés. La synthèse destinée à a2a2 distingue ce fait
+des deux chemins séparés, sans attribuer la résolution à un appelant non lu.
+
+**Sortie :** carte et contrôle a2a1-suite corrigés ; validateur d'union
+renforcé pour vérifier aussi les champs sémantiques de la clé B, et non les
+seules 12 clés ; `controle-6bis-a2a1-suite-correction-stats-chain.md` avec
+les plages et le décompte des lectures. Corriger dans la preuve initiale son
+en-tête selon A.6 bis et ajouter une rectification datée avec **commande
+exacte + sortie complète collée + conclusion** pour chaque contrôle rejoué ;
+ne pas présenter une sortie actuelle comme sortie historique du premier lot.
+La nouvelle preuve suit le même format ; les contrôles pré-livraison y
+précèdent le reçu, inscrit par
+le pilote dans le résultat public après `livrer` puis `verifier`.
+
+**Preuve :** projection a2a1-suite et validation des fenêtres d'origine,
+validateur du contexte, validateur d'union renforcé (12 clés et assertions
+sémantiques, avec mutation négative), `node scripts/spec-lint.mjs` et
+`git diff --check`, commandes et sorties complètes dans la preuve privée.
+Notes seules : `livrer` → `verifier` → `integrer` depuis l'installation après
+validation. **Ne fait pas :** aucun code de production, test, chiffre de jeu,
+set de rune, score ou règle de condition ; ne touche pas au cadrage public.
+
 #### 6bis-a2a2 — sets actifs du build et score
 
-**Cat. C ; requiert a2a1-suite.** Lire sa synthèse combinée, puis :
+**Cat. C ; requiert a2a1-suite-correction-stats-chain validé.** Lire sa
+synthèse combinée corrigée, puis :
 `src/lib/runeBuildOptim.ts` L733–807, L3965–4005 ;
 `src/lib/effects.ts` L303–345. Classer EHP, score et résolution
 d'`activeSets` sur les six runes ; distinguer build concret et borne sur

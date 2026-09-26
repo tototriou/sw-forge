@@ -296,8 +296,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 0 → 5                      (réinitialisations du hook et appelants, dont App.tsx)
 5 → 6 → contre-revue du cadrage → 6bis-a1
         → amendement pilote et revue indépendante
-        → correctif pilote de la revue → validation indépendante → 6bis-a2a1
-        → 6bis-a2a2
+        → correctif pilote de la revue → validation indépendante
+        → 6bis-a2a1-contexte → 6bis-a2a1-suite → 6bis-a2a2
         → 6bis-a2b → 6bis-a3a → 6bis-a3b
         → 6bis-a4a → 6bis-a4b → 6bis-a4c1 → 6bis-a4c2
         → 6bis-a4d1 → 6bis-a4d2
@@ -308,7 +308,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
 1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
-3, 4, 5, 6, 6bis-a1, 6bis-a2a1, 6bis-a2a2, 6bis-a2b, 6bis-a3a, 6bis-a3b,
+3, 4, 5, 6, 6bis-a1, 6bis-a2a1-contexte, 6bis-a2a1-suite, 6bis-a2a2,
+  6bis-a2b, 6bis-a3a, 6bis-a3b,
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
 ```
@@ -334,6 +335,12 @@ la taille des lignes JSON sont précisées dans le contrat ci-dessous.
 Le budget corrigé laisse moins de 100 lignes de marge prévisionnelle à a2b,
 a3a, a3b, a4a et a4d1 : le pilote réévalue et, si nécessaire, scinde chacun
 **avant son lancement**, sans faire lire un intrant tronqué à sa session.
+La première tentative a2a1 du 2026-09-26 s'est arrêtée avant toute carte ou
+preuve : une sortie tronquée puis des relectures et un contrat a1 lu trop
+largement ont épuisé les 1 500 lignes. Elle n'établit aucun verdict. Le pilote
+scinde les intrants en **a2a1-contexte** puis **a2a1-suite** ; chaque session
+part d'un budget neuf et d'un livrable autonome, sans reprendre une mémoire
+non livrée. La seconde réunit les deux synthèses pour a2a2.
 
 #### Suivi des lots
 
@@ -357,8 +364,10 @@ a3a, a3b, a4a et a4d1 : le pilote réévalue et, si nécessaire, scinde chacun
 | 5 — le contexte survit au changement de monstre | J | terminé | `bed3818f` + `09ca897d` / 2026-09-25 |
 | 6 — sets d'aura : modèle initial, corrigé au lot 6bis | J | terminé | `4f6ce326` + `88d58019` / 2026-09-25 |
 | 6bis-a1 — inventaire et recettes de contrôle | C | terminé | reçu `948066b` ↔ `87d09ec` / 2026-09-25 |
-| 6bis-a2a1 — début de combat et dégâts | C | prêt à lancer | contre-vérification / 2026-09-26 |
-| 6bis-a2a2 — sets actifs du build et score | C | en attente de a2a1 | — |
+| 6bis-a2a1 — tentative initiale | C | interrompu sans carte | 2026-09-26 |
+| 6bis-a2a1-contexte — champs, début de combat, stats de fiche | C | prêt à lancer | scission pilote / 2026-09-26 |
+| 6bis-a2a1-suite — chaîne des dégâts | C | en attente de a2a1-contexte | — |
+| 6bis-a2a2 — sets actifs du build et score | C | en attente de a2a1-suite | — |
 | 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
@@ -1443,7 +1452,7 @@ non lançables avant inscription et revue de leurs plages exactes. La mention
 erronée de `pair-slice-worker.ts` dans `invariants.md` sera corrigée au lot 14
 avec la réconciliation finale des notes.
 
-#### Contrat commun de 6bis-a2a1 à 6bis-a4d2 — fenêtres mesurées après a1
+#### Contrat commun de 6bis-a2a1-contexte à 6bis-a4d2 — fenêtres mesurées après a1
 
 **Amendement pilote du 2026-09-25 : contre-vérification indépendante favorable
 le 2026-09-26, puis précisions de budget et de périmètre du pilote.** Le manifeste a1 est à
@@ -1464,7 +1473,7 @@ Une clé stable vaut `A:<fichier>:<ligne>`, `B:<chemin>`,
 `H:fichier:<chemin>`, `H:champ:<type.champ>`, `H:cache:signatureArtefacts`
 ou `H:document:<référence source>` ; une découverte supplémentaire vaut
 `D:<source>:<coordonnée>`. Les deux lignes partagées de `damage.ts`
-L3785–3786 apparaissent en a2a1 (`usage: score`) et a3a (`usage:
+L3785–3786 apparaissent en a2a1-contexte (`usage: score`) et a3a (`usage:
 conditions`) : deux verdicts sous `(clé, usage)`, mais une seule ligne A
 d'origine chacune. Les deux H documentaires dont `vers` est vide sont
 `differe` dans le bilan : l'invariant et la spec source relèvent des futurs
@@ -1495,9 +1504,13 @@ d'omettre un appel adjacent : si
 sa lecture nécessaire dépasserait le budget, arrêter et faire créer un
 sous-lot nommé avant de lire davantage. Chaque preuve donne les plages
 réellement lues, les lignes et les découvertes hors manifeste.
+Ne pas relire le contrat a1 historique : sa synthèse dans le cadrage suffit.
+Une sortie tronquée puis relue compte **deux fois** ; dimensionner la sortie
+ou lire en plages plus petites dès le premier essai.
 Rejouer `node spec/outils/optimizer/archive/controles-degats-aura-2026-09/valider-fenetres-6bis.mjs` :
-sommes inclusives attendues a2a1/a2a2/a2b/a3a/a3b/a4a/a4b/a4c1/a4c2/
-a4d1/a4d2 = 271/159/386/375/411/371/299/231/186/336/0 lignes de code,
+sommes inclusives attendues a2a1-contexte/a2a1-suite/a2a2/a2b/a3a/a3b/
+a4a/a4b/a4c1/a4c2/a4d1/a4d2 =
+136/194/159/386/375/411/371/299/231/186/336/0 lignes de code,
 avec existence des fichiers et des bornes vérifiée. Ce contrôle ne remplace pas le
 décompte **total** de lecture de chaque lot.
 
@@ -1509,26 +1522,50 @@ consommateur » : la présence d'`activeSets` dans un import ou un test ne
 prouve aucune consommation d'aura. Aucun de ces sous-lots ne modifie le
 code de production, les tests ou la règle de jeu.
 
-#### 6bis-a2a1 — contexte, début de combat et calcul des dégâts
+#### 6bis-a2a1 — tentative interrompue, sans livrable
 
-**Cat. C ; requiert a1 et la validation du correctif pilote.** Fenêtres de code :
-`src/lib/damage.ts` L3309–3321, L3433–3441, L3503–3515, L3745–3790,
-L4690–4699, L4744–4868 ; `src/lib/stats.ts` L49–103.
-Classer les champs d'aura de `DamageSetup` et leur défaut, `nombreAura`,
-`statsDebutCombat`, dégâts actifs,
-passifs et additionnels et calcul des stats de fiche. Établir où l'appel
-ne reçoit que des stats ; ne pas supposer que `computeStats` inclut une
-aura d'équipe. Les fenêtres de `computeTotalDamage` sont des amorces : si sa
-fin (lignes 4869 à 4927) est nécessaire au verdict, la lire et la compter avant de
-poursuivre ; ne pas l'omettre pour respecter le budget.
+Le premier lancement n'a produit ni carte, ni preuve, ni reçu. Ses lectures
+ne sont pas une source pour les sessions fraîches. Le contrat est remplacé
+par les deux sous-lots ci-dessous ; ne pas le relancer tel quel.
 
-**Sortie :** carte a2a1 et chaîne du contexte vers les dégâts, avec
-politique d'arrondi. **Ne fait pas :** sets des six runes, score de
-recherche, choix de paire/relique, conditions ou CLI.
+#### 6bis-a2a1-contexte — champs et stats de début de combat
+
+**Cat. C ; requiert a1 et la scission pilote validée.** Projection
+`projeter-6bis.mjs --lot a2a1-contexte` : **11 clés** (9 A, 1 B, 1 H).
+Fenêtres : `src/lib/damage.ts` L3309–3321, L3433–3441, L3503–3515,
+L3745–3790 ; `src/lib/stats.ts` L49–103. Classer les champs d'aura de
+`DamageSetup` et leur défaut, `nombreAura`, `statsDebutCombat` et les stats de
+fiche. Prouver l'assiette et l'arrondi ; ne pas attribuer des auras d'équipe
+à `computeStats` par analogie. Pour la clé B de `stats.ts`, classer le fichier
+sur les usages vus dans cette fenêtre, et nommer toute limite de portée.
+
+**Sortie :** `carte-6bis-a2a1-contexte.json` et
+`controle-6bis-a2a1-contexte.md`, avec une synthèse de 12 lignes au plus.
+**Ne fait pas :** chaîne `computeTotalDamage`, score, conditions ou CLI.
+
+#### 6bis-a2a1-suite — chaîne des dégâts
+
+**Cat. C ; requiert a2a1-contexte.** Lire sa synthèse structurée ; interroger
+sa carte par clé si nécessaire, sans charger sa preuve entière comme prose.
+Compter ces sorties. Projection `projeter-6bis.mjs --lot a2a1-suite` :
+**1 clé B**, `B:src/lib/damage.ts`. Fenêtres : `src/lib/damage.ts`
+L4690–4699 et L4744–4927 (**194 lignes**, fin de `computeTotalDamage`
+incluse). Examiner les appels adjacents nécessaires en les comptant avant
+lecture. Classer la clé B et établir la chaîne contexte → dégâts actifs,
+passifs et additionnels ; distinguer les appels qui ne reçoivent que des
+stats. La synthèse relie les 11 verdicts du lot précédent au dernier,
+**sans les recopier ni les modifier**. Une divergence rouvre a2a1-contexte.
+
+**Sortie :** `carte-6bis-a2a1-suite.json` et
+`controle-6bis-a2a1-suite.md`, puis synthèse combinée pour a2a2. Les
+**12 clés** de la projection initiale doivent être présentes une seule fois
+dans l'union des deux cartes, vérifiée par comparaison des clés et non par
+le seul total. **Ne fait pas :** sets des six runes, score, choix de
+paire/relique, conditions ou CLI.
 
 #### 6bis-a2a2 — sets actifs du build et score
 
-**Cat. C ; requiert a2a1.** Lire sa synthèse, puis :
+**Cat. C ; requiert a2a1-suite.** Lire sa synthèse combinée, puis :
 `src/lib/runeBuildOptim.ts` L733–807, L3965–4005 ;
 `src/lib/effects.ts` L303–345. Classer EHP, score et résolution
 d'`activeSets` sur les six runes ; distinguer build concret et borne sur
@@ -1540,7 +1577,8 @@ conditions ou CLI.
 
 #### 6bis-a2b — choix d'artéfacts/relique, tri et comparaison
 
-**Cat. C ; requiert a2a2.** Lire la synthèse structurée a2a1/a2a2 et ces fenêtres :
+**Cat. C ; requiert a2a2.** Lire la synthèse combinée a2a1-suite puis celle
+d'a2a2 et ces fenêtres :
 `src/lib/artifactEvaluation.ts` L85–158 ; `src/lib/relicExclusive.ts`
 L117–150 ; `src/lib/relicQueue.ts` L138–205 ; `src/lib/relicOptim.ts`
 L190–210 ; `src/lib/runeBuildOptim.ts` L848–870, L930–959 ;
@@ -1553,7 +1591,7 @@ appels ciblés par recherche de texte avant toute lecture élargie.
 Classer sélection réelle, EHP, exclusive, comparaison, cache de paire et
 tri ; distinguer le score de l'équipement essayé de celui du build rendu.
 
-**Sortie :** carte a2b reliant chacun des chemins a2 à a2a1/a2a2 ou à un rejet
+**Sortie :** carte a2b reliant chacun des chemins a2 à a2a1-suite/a2a2 ou à un rejet
 motivé. **Ne fait pas :** conditions, diagnostics ou CLI.
 
 #### 6bis-a3a — conditions et élagages locaux
@@ -1596,7 +1634,7 @@ benchmark ni correction du moteur.
 
 #### 6bis-a4a — recette, reset et import écran
 
-**Cat. C ; requiert a3b.** Lire les synthèses a2a1 et a3b, puis :
+**Cat. C ; requiert a3b.** Lire les synthèses combinées a2a1-suite et a3b, puis :
 `src/lib/optimizerRecipe.ts` L125–140, L240–340, L405–475 ;
 `src/lib/damageSetupTransition.ts` L1–38 ;
 `src/hooks/useOptimizerState.ts` L235–255, L365–425, L450–465 ;
@@ -1686,7 +1724,8 @@ benchmarks ni implémentation.
 
 #### 6bis-a4d2 — réconciliation des cartes
 
-**Cat. C ; requiert a4d1.** Lire les synthèses structurées a2a1–a4d1,
+**Cat. C ; requiert a4d1.** Lire les synthèses structurées a2a1-contexte,
+a2a1-suite et a2a2–a4d1,
 pas toutes leurs preuves ; aucune fenêtre de code nouvelle. Créer puis
 exécuter un script de réconciliation conservé avec la preuve, qui compare
 les cartes complètes sans les charger toutes comme prose. Rejouer

@@ -300,7 +300,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-a2a1-contexte → 6bis-a2a1-suite
         → 6bis-a2a1-suite-correction-stats-chain
         → 6bis-a2a1-suite-finalisation-preuve → 6bis-a2a2
-        → 6bis-a2b → 6bis-a3a → 6bis-a3b
+        → 6bis-a2b1 → 6bis-a2b2 → 6bis-a2b3
+        → 6bis-a3a → 6bis-a3b
         → 6bis-a4a → 6bis-a4b → 6bis-a4c1 → 6bis-a4c2
         → 6bis-a4d1 → 6bis-a4d2
         → amendement et revue pilote → 6bis-b-* → 7
@@ -313,7 +314,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 3, 4, 5, 6, 6bis-a1, 6bis-a2a1-contexte, 6bis-a2a1-suite,
   6bis-a2a1-suite-correction-stats-chain,
   6bis-a2a1-suite-finalisation-preuve, 6bis-a2a2,
-  6bis-a2b, 6bis-a3a, 6bis-a3b,
+  6bis-a2b1, 6bis-a2b2, 6bis-a2b3, 6bis-a3a, 6bis-a3b,
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
 ```
@@ -358,6 +359,9 @@ les deux écarts et les preuves ; a2a2 peut commencer.
 Le pilote a ensuite validé a2a2 : quatre clés réconciliées, et le `return`
 L808 contrôlé séparément. Le budget de lecture dépassé de 79 lignes et les
 écarts de discipline de commande restent consignés, sans changer les verdicts.
+Avant son lancement, a2b est scindé en trois contrats successifs : paire
+d'artéfacts et cache, relique, puis scripts/tests et réconciliation. Les huit
+clés de sa projection gardent chacune un seul propriétaire.
 
 #### Suivi des lots
 
@@ -387,8 +391,10 @@ L808 contrôlé séparément. Le budget de lecture dépassé de 79 lignes et les
 | 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte | C | interrompu, notes locales non validées | 2026-09-26 |
 | 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif | C+M | terminé après complément pilote | reçu `57a7c28` ↔ `ab0fb25` / 2026-09-26 |
 | 6bis-a2a2 — sets actifs du build et score | C | terminé après complément pilote | reçu `4816082` ↔ `1d20a54` / 2026-09-26 |
-| 6bis-a2b — artéfacts, reliques, tri et comparaison | C | en attente de a2a2 | — |
-| 6bis-a3a — conditions et élagages locaux | C | en attente de a2b | — |
+| 6bis-a2b1 — paire d'artéfacts et cache | C | prêt à lancer | — |
+| 6bis-a2b2 — exclusive et sélection de relique | C | en attente de a2b1 | — |
+| 6bis-a2b3 — scripts, tests et réconciliation | C | en attente de a2b2 | — |
+| 6bis-a3a — conditions et élagages locaux | C | en attente de a2b3 | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
 | 6bis-a4a — recette, reset et import écran | C | en attente de a3b | — |
 | 6bis-a4b — CLI et scripts de diagnostic | C | en attente de a4a | — |
@@ -1758,7 +1764,8 @@ conditions ou CLI.
 plages et 159 lignes ; le vérificateur privé conservé
 `verifier-carte-6bis-a2a2.mjs` rend `RÉSULTAT : OK` (aucune omission,
 substitution ou duplication). Le pilote a lu en plus L808 de
-`runeBuildOptim.ts` : le `return` consomme les `hp`/`def` enrichis aux L801–802.
+`src/lib/runeBuildOptim.ts` : le `return` consomme les `hp`/`def` enrichis
+aux lignes 801 et 802.
 La chaîne six runes → `activeSets` existe, mais ne rejoint pas le score EHP :
 elle vérifie seulement les sets demandés. Aucun code ni test n'a changé.
 L'agent a déclaré 1 579/1 500 lignes lues, deux `node -e` et l'absence de
@@ -1768,31 +1775,100 @@ contre-vérification pilote. `node scripts/spec-lint.mjs` : aucune erreur ;
 `archive/controles-degats-aura-2026-09/controle-6bis-a2a2.md`.
 La rectification a été livrée puis vérifiée : reçu valide, code `4816082` ↔
 notes `1d20a54` (304 fichiers). `chantier integrer` a avancé le main
-documentaire `4322036 → ffa8991` et l'a poussé. a2b reste à scinder avant
-son lancement, sa marge prévisionnelle n'étant que de 53 lignes.
+documentaire `4322036 → ffa8991` et l'a poussé. Sa marge prévisionnelle de
+53 lignes motive la scission de a2b ci-dessous, avant son lancement.
 
-#### 6bis-a2b — choix d'artéfacts/relique, tri et comparaison
+#### 6bis-a2b — découpage des choix d'artéfacts et de relique
 
-**Cat. C ; requiert a2a2.** Lire la synthèse combinée a2a1-suite puis celle
-d'a2a2 et ces fenêtres :
+**Scission pilote avant exécution, le 2026-09-26.** L'ancien contrat réunissait
+386 lignes de fenêtres de code et ne laissait que 53 lignes de marge
+prévisionnelle sur 1 500, avant les appels adjacents et les tests. Les trois
+sous-lots ci-dessous se partagent ses fenêtres sans perte : **178 + 123 + 85
+= 386 lignes**. L'inventaire historique que contrôle encore
+`valider-fenetres-6bis.mjs` est :
 `src/lib/artifactEvaluation.ts` L85–158 ; `src/lib/relicExclusive.ts`
 L117–150 ; `src/lib/relicQueue.ts` L138–205 ; `src/lib/relicOptim.ts`
-L190–210 ; `src/lib/runeBuildOptim.ts` L848–870, L930–959 ;
-`src/lib/artifactQueue.ts` L190–214, L280–305 ;
-`scripts/lib/relicDifferentiel.ts` L115–143, L162–173 ;
-`scripts/lib/relicOracle.ts` L141–157, L175–201.
-Les deux chemins de tests `tests/relic-exclusive.test.ts` et
-`tests/relic-oracle.test.ts` sont des candidats du manifeste : relever leurs
-appels ciblés par recherche de texte avant toute lecture élargie.
-Classer sélection réelle, EHP, exclusive, comparaison, cache de paire et
-tri ; distinguer le score de l'équipement essayé de celui du build rendu.
+L190–210 ; `src/lib/runeBuildOptim.ts` L848–870 et L930–959 ;
+`src/lib/artifactQueue.ts` L190–214 et L280–305 ;
+`scripts/lib/relicDifferentiel.ts` L115–143 et L162–173 ;
+`scripts/lib/relicOracle.ts` L141–157 et L175–201.
+Ce bloc commun n'est **plus un lot exécutable**. Chacun des trois sous-lots
+lit le socle du contrat commun, puis seulement ses fenêtres et la synthèse de
+son prédécesseur. À chaque session, recontrôler les numéros de ligne au HEAD,
+mesurer toutes les sorties avant de les lire et demander une nouvelle
+scission si les appels adjacents nécessaires épuisent le budget ; ni une
+fenêtre ni une preuve ne se tronquent.
 
-**Sortie :** carte a2b reliant chacun des chemins a2 à a2a1-suite/a2a2 ou à un rejet
-motivé. **Ne fait pas :** conditions, diagnostics ou CLI.
+`projeter-6bis.mjs --lot a2b` émet **8 clés** : 7 B et 1 H. Chaque sous-lot
+rejoue cette projection compacte, ne classe que les clés qui lui sont
+attribuées ci-dessous et mentionne les autres sans leur donner de verdict.
+La somme des trois cartes, non chacune isolément, doit être égale à cette
+projection, clé par clé. `valider-fenetres-6bis.mjs` garde sa mesure de 386
+lignes pour **l'union** des fenêtres ; les comptes propres aux sous-lots
+figurent dans leurs preuves. Le contrat commun de preuve, de livraison et de
+non-modification du code s'applique à chacun.
+
+#### 6bis-a2b1 — paire d'artéfacts et cache
+
+**Cat. C ; requiert a2a2.** Lire les synthèses combinées a2a1-suite et a2a2.
+Classer uniquement `B:src/lib/artifactEvaluation.ts` et
+`H:cache:signatureArtefacts`. Fenêtres :
+`src/lib/artifactEvaluation.ts` L85–158 ; `src/lib/runeBuildOptim.ts`
+L848–870 et L930–959 ; `src/lib/artifactQueue.ts` L190–214 et L280–305,
+soit **178 lignes inclusives**. Suivre les appels adjacents nécessaires en
+les comptant avant lecture. Distinguer la paire essayée du build finalement
+rendu, son score, le tri/comparaison et les dépendances de sa signature de
+cache. Une référence à la relique ne donne pas ici de verdict sur ses clés.
+
+**Sortie :** `carte-6bis-a2b1.json`, `controle-6bis-a2b1.md`, synthèse de 12
+lignes au plus pour a2b2. **Ne fait pas :** exclusive ou sélection finale de
+relique, scripts/tests du manifeste, conditions, diagnostics ou CLI.
+
+#### 6bis-a2b2 — exclusive et sélection de relique
+
+**Cat. C ; requiert a2b1.** Lire sa synthèse, et la carte a2b1 uniquement
+pour suivre une clé citée. Classer uniquement `B:src/lib/relicExclusive.ts`
+et `B:src/lib/relicOptim.ts`. Fenêtres : `src/lib/relicExclusive.ts`
+L117–150 ; `src/lib/relicQueue.ts` L138–205 ; `src/lib/relicOptim.ts`
+L190–210, soit **123 lignes inclusives**. Relier l'assiette des exclusives,
+le score EHP et la relique effectivement retenue au build rendu ; distinguer
+un essai de la sélection finale. Toute nouvelle branche d'appel indispensable
+est lue et décomptée, jamais supposée. Ne pas attribuer un verdict aux scripts
+ou aux tests simplement parce qu'ils appellent ces fonctions.
+
+**Sortie :** `carte-6bis-a2b2.json`, `controle-6bis-a2b2.md`, synthèse de 12
+lignes au plus pour a2b3. **Ne fait pas :** modifier la règle de jeu,
+conditions, diagnostics ou CLI.
+
+#### 6bis-a2b3 — scripts, tests et réconciliation
+
+**Cat. C ; requiert a2b2.** Lire les deux synthèses précédentes et classer
+uniquement `B:scripts/lib/relicDifferentiel.ts`,
+`B:scripts/lib/relicOracle.ts`, `B:tests/relic-exclusive.test.ts` et
+`B:tests/relic-oracle.test.ts`. Fenêtres de scripts :
+`scripts/lib/relicDifferentiel.ts` L115–143 et L162–173 ;
+`scripts/lib/relicOracle.ts` L141–157 et L175–201, soit **85 lignes
+inclusives**. Pour les tests, chercher d'abord les appels ciblés, puis lire
+les seules fenêtres utiles : `tests/relic-exclusive.test.ts` L35–40,
+L145–160 et L180–260 ; `tests/relic-oracle.test.ts` L1–10, L50–75,
+L116–138 et L240–252
+(**175 lignes inclusives au plus** avant recontrôle au HEAD). Les tests sont
+des **candidats**, pas une preuve de couverture avant lecture de leurs
+assertions. Classer si chaque script/test consomme réellement le contexte
+d'aura, ou ne fait que transmettre des statistiques déjà calculées.
+
+**Sortie :** `carte-6bis-a2b3.json` et `controle-6bis-a2b3.md`, puis
+`carte-6bis-a2b.json` combinée avec une synthèse de 12 lignes au plus pour
+a3a. Conserver un vérificateur rejouable comparant l'union des trois cartes
+aux **8 clés exactes** de la projection, refusant omission, substitution,
+doublon et verdict contradictoire ; coller commande et sortie dans la preuve.
+Le fichier combiné est l'interface attendue par a3a et a4d2 ; il ne remplace
+pas les trois preuves détaillées. **Ne fait pas :** tests d'exécution,
+conditions, diagnostics, benchmark, CLI ou correction de code.
 
 #### 6bis-a3a — conditions et élagages locaux
 
-**Cat. C ; requiert a2b.** Lire la synthèse a2b et ces fenêtres :
+**Cat. C ; requiert a2b3.** Lire la synthèse combinée a2b et ces fenêtres :
 `src/lib/damage.ts` L3506–3515, L3778–3788 ;
 `src/lib/runeBuildOptim.ts` L60–125, L365–434, L1297–1318,
 L1339–1392, L1515–1609 ; `src/lib/effects.ts` L303–330 ;

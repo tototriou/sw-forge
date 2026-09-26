@@ -344,7 +344,7 @@ export default function RecoCard({
 
         {/* Actions — sur la MÊME rangée que le titre, à sa hauteur ; à la
             souris, au BOUT de la ligne unique (`lg:order-last lg:ml-auto`). */}
-        <div className="flex flex-none items-center gap-1.5 lg:order-last lg:ml-auto">
+        <div className="flex flex-none items-center gap-1.5 lg:order-last">
           {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens.
               ⚠️ **Masqué au DOIGT** (`compact:hidden`) : le titre bascule
               désormais la carte lui-même (voir plus haut), et ce petit bouton
@@ -457,10 +457,19 @@ export default function RecoCard({
             en dessous (voir plus bas — `StatusPill` a été retiré pour ça). Sa
             version au doigt vit désormais en icône, groupée avec Exporter /
             Éditer / Supprimer — voir plus bas. */}
+        {/* ⚠️ À la souris, un RESSORT pousse la suite au bout de la ligne
+            (la maquette : titre et résumé à gauche, puis ce qui se clique à
+            droite, derrière le filet). Il remplace le `ml-auto` des actions,
+            qui laissait « Analyser » au milieu. */}
+        <span className="hidden lg:block lg:flex-1" aria-hidden />
         {!editing && (
           <Bouton
             onClick={onAnalyze}
             disabled={!canAnalyze}
+            // Bouton FANTÔME (`.btn-ghost.btn-sm` de la maquette), comme tout
+            // ce qui se clique dans cet en-tête.
+            fond="vide"
+            trait="aucun"
             title={
               canAnalyze
                 ? 'Confronter toute la recommandation à tes monstres'
@@ -602,8 +611,10 @@ export default function RecoCard({
               d'intitulés. La grille à deux colonnes décrite ci-dessus ne vaut
               plus qu'au doigt… où elle n'a jamais eu qu'une colonne. */}
           <div
-            className="grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
-                       lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft"
+            className={`grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
+                       lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft ${
+                         editing ? 'lg:rounded-b-none' : ''
+                       }`}
           >
             {/* Intitulés des colonnes — à la souris seulement, même gabarit que
                 chaque ligne (`LIGNE_DECK`). */}
@@ -611,8 +622,7 @@ export default function RecoCard({
               <span />
               <span className="label">Offense · sets visés</span>
               <span className="label">Fort contre</span>
-              <span className="label">Verdict</span>
-              <span />
+              <span className="label text-right">Verdict</span>
             </div>
             {/* ⚠️ Pendant une recherche, SEULS les decks trouvés sont rendus —
                 les autres disparaissent complètement. Sans ça la carte remontait
@@ -655,9 +665,14 @@ export default function RecoCard({
         </>
       )}
 
+      {/* ⚠️ **À la souris, le PIED du tableau des decks** (lot 7b, la
+          maquette) : collé sous le cadre (`lg:mt-0`, le cadre perd ses coins
+          du bas en édition), le filet du cadre pour séparateur — un seul
+          trait —, les ajouts à DROITE, en boutons fantômes pointillés
+          (`.btn-ghost.btn-sm` + bord pointillé). Au doigt, rien ne change. */}
       {editing && (
-        <div className="mt-2.5">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="mt-2.5 lg:mt-0 lg:rounded-b-xl lg:border lg:border-t-0 lg:border-border-soft lg:px-3 lg:py-2">
+          <div className="flex items-center gap-2 flex-wrap lg:justify-end">
             <Bouton
               onClick={() => {
                 recos.addDeck(reco.id);
@@ -667,7 +682,7 @@ export default function RecoCard({
               taille="sm"
               icone={<Plus size={14} />}
               libelle="Ajouter un deck vide"
-              className={BOUTON_LG}
+              className={`${BOUTON_LG} ${FANTOME_LG}`}
             />
             {/* ⚠️ `trait` bascule pointillé → plein avec l'état, comme le fond :
                 le pointillé dit « pas encore rempli », et perd son sens une fois
@@ -684,7 +699,9 @@ export default function RecoCard({
               }
               taille="sm"
               icone={<Swords size={14} />}
-              className={BOUTON_LG}
+              // Fantôme au repos seulement : enclenché, le fond d'accent porte
+              // l'état (`actif`) et ne doit pas être effacé.
+              className={`${BOUTON_LG} ${pickOffense ? '' : FANTOME_LG}`}
               libelle={
                 <>
                   Importer un deck d'offense{' '}
@@ -1142,8 +1159,13 @@ const DECK_AURA: Record<string, string> = {
 // offense (sets visés collés à chaque monstre) · fort contre · verdict · crayon.
 // Même gabarit de colonnes pour la rangée d'intitulés et pour chaque ligne.
 // Écrit EN TOUTES LETTRES : Tailwind lit le source comme du texte.
+// ⚠️ **QUATRE colonnes, plus de colonne d'actions** (la maquette) : le crayon
+// quitte la ligne et devient « Éditer ce deck », en pied du détail déplié —
+// voir `DeckBlock`. La ligne elle-même est la grille du deck entier : ses
+// enfants s'y posent directement (`lg:contents` sur les conteneurs), le détail
+// sur la rangée suivante, le pied d'actions sur la troisième.
 const LIGNE_DECK =
-  'lg:grid lg:grid-cols-[28px_minmax(0,1fr)_minmax(0,150px)_minmax(0,190px)_auto] lg:items-center lg:gap-3';
+  'lg:grid lg:grid-cols-[28px_minmax(0,1fr)_minmax(0,170px)_minmax(0,150px)] lg:items-center lg:gap-3';
 
 // ⚠️ **UN seul bouton d'icône sur toute la page, à la souris** (lot 7b, la
 // maquette) : un carré de 28 px aux coins arrondis, sans cadre ni fond —
@@ -1157,6 +1179,10 @@ const ICONE_ACTION = `h-6 w-6 ${ICONE_LG}`;
 // haut à la souris, la hauteur des boutons d'icône. Seul « + Défense » y
 // échappe — il prend la hauteur des vignettes de défense qu'il prolonge.
 const BOUTON_LG = 'lg:h-7';
+// Un bouton à fond (`doux`) qui devient FANTÔME à la souris — `.btn-ghost` de
+// la maquette — sans changer au doigt. Le survol reste peint (`panel2`) : la
+// variante empilée passe après `lg:bg-transparent` dans la feuille.
+const FANTOME_LG = 'lg:bg-transparent lg:hoverable:bg-panel2';
 
 function DeckBlock({
   reco,
@@ -1212,9 +1238,10 @@ function DeckBlock({
     // teinté de l'analyse (`DECK_AURA`) reste : il colore la ligne entière.
     <div
       className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}
-        lg:rounded-none lg:border-0 lg:border-t lg:border-border-soft lg:bg-transparent lg:px-3 lg:py-2`}
+        lg:rounded-none lg:border-0 lg:border-t lg:border-border-soft lg:bg-transparent lg:px-3 lg:py-2
+        ${LIGNE_DECK} lg:gap-y-0`}
     >
-      <div className="mb-2 lg:mb-0">
+      <div className="mb-2 lg:contents">
         {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
             le crayon doit rester en HAUT À DROITE quel que soit l'état du
             deck. Le mettre dans la même rangée flex-wrap que le verdict le
@@ -1222,7 +1249,7 @@ function DeckBlock({
             « réalisable N fois » prenait sa propre ligne, voir plus bas) —
             un bouton d'action ne doit pas se déplacer selon ce qui s'affiche
             à côté de lui. */}
-        <div className={`flex items-center gap-2 ${LIGNE_DECK}`}>
+        <div className="flex items-center gap-2 lg:contents">
           {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
           <BoutonIcone
             onClick={onToggleFold}
@@ -1308,7 +1335,7 @@ function DeckBlock({
               composer, À revoir, Monstre manquant), la phrase complète en
               infobulle, et combien de fois le deck est montable. Avant
               l'analyse : rien. */}
-          <span className="hidden min-w-0 flex-col items-start gap-0.5 lg:flex">
+          <span className="hidden min-w-0 flex-col items-start gap-0.5 lg:flex lg:items-end">
             {!editing && match && !empty && verdictLigne && (
               <>
                 <span
@@ -1326,8 +1353,20 @@ function DeckBlock({
               (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
 
           {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
-              nues et resserrées, comme dans l'en-tête de la recommandation. */}
-          <div className="ml-auto flex items-center gap-0.5">
+              nues et resserrées, comme dans l'en-tête de la recommandation.
+              ⚠️ **À la souris, le PIED du détail déplié** (lot 7b, la
+              maquette) : « Éditer ce deck » écrit en toutes lettres, à droite,
+              sous un filet — placé sur la 3ᵉ rangée de la grille du deck
+              (`lg:row-start-3`), sous le détail, dont il ferme le cadre (le
+              détail n'a pas de bord bas : un seul trait entre les deux). Replié,
+              il n'y a pas de détail à éditer à l'œil : il se masque
+              (`lg:hidden`), sans quitter le DOM. Au doigt, rien ne change : les
+              icônes restent en haut à droite de la carte. */}
+          <div
+            className={`ml-auto flex items-center gap-0.5 lg:col-span-full lg:row-start-3 lg:mb-1 lg:ml-8
+              lg:justify-end lg:gap-1.5 lg:rounded-b-xl lg:border lg:border-border-soft lg:bg-panel lg:px-3 lg:py-2
+              ${folded ? 'lg:hidden' : ''}`}
+          >
             {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
                 est la convention documentée de l'édition en cours sur toute
                 cette page (spec/siege/recommandations.md), pas le marqueur
@@ -1339,7 +1378,7 @@ function DeckBlock({
               taille="serre"
               icone={editing ? <Check size={13} className="text-star" /> : <Pencil size={12} />}
               libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
-              className={ICONE_LG}
+              libelleALaSouris
             />
             {editing && (
               <BoutonIcone
@@ -1348,7 +1387,7 @@ function DeckBlock({
                 taille="serre"
                 icone={<Trash2 size={12} />}
                 libelle="Supprimer ce deck"
-                className={ICONE_LG}
+                libelleALaSouris
               />
             )}
           </div>
@@ -1395,7 +1434,9 @@ function DeckBlock({
       // ⚠️ À la souris, le détail d'une ligne dépliée est une CARTE sous elle,
       // en retrait du chevron (décision 15) — le contenu est celui d'avant,
       // inchangé. Au doigt, ce conteneur ne dessine rien.
-      <div className="lg:mb-1 lg:ml-8 lg:mt-2 lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel lg:p-3">
+      // Le cadre s'ARRÊTE au bas du détail (`lg:border-b-0`, coins du bas
+      // droits) : le pied d'actions, en dessous, le ferme — voir plus haut.
+      <div className="lg:col-span-full lg:ml-8 lg:mt-2 lg:rounded-t-xl lg:border lg:border-b-0 lg:border-border-soft lg:bg-panel lg:p-3">
 
       {/* Consignes propres à ce deck */}
       {editing ? (
@@ -1768,11 +1809,19 @@ function CounterBlock({
             rangée, à la suite des défenses — c'est là qu'on ajoute, et il montre
             où la prochaine se posera. Le bloc restant visible même vide, c'est
             aussi lui qui rend la fonctionnalité découvrable sur un deck qui n'en
-            porte encore aucune. */}
+            porte encore aucune.
+            ⚠️ **À la souris, le « + Défense » de la maquette** (lot 7b) : un
+            bouton fantôme `sm`, au bout de la rangée (`lg:ml-auto`). Au doigt,
+            la tuile pointillée de 44 px d'avant, à la hauteur des vignettes :
+            `taille="sm"` + `max-lg:px-3.5 max-lg:text-sm` redonnent
+            exactement son dessin SOUS `lg` seulement. ⚠️ Pas `px-3.5 text-sm`
+            nus : `text-xs` (de `sm`) passe APRÈS `text-sm` dans la feuille
+            construite, il aurait gagné — vérifié dans le CSS. */}
         <Bouton
           onClick={ajouter}
           trait="pointille"
-          className="h-[44px]"
+          taille="sm"
+          className={`h-[44px] max-lg:px-3.5 max-lg:text-sm lg:ml-auto lg:h-7 lg:self-center lg:border-transparent ${FANTOME_LG}`}
           icone={<Plus size={14} />}
           libelle="Défense"
           aria-label="Ajouter une défense que ce deck bat"

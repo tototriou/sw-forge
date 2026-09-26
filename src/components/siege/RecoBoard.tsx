@@ -505,9 +505,9 @@ export default function RecoBoard({
       {/* ---- En-tête BUREAU (refonte graphique, lot 7b) --------------------
           Comme la RTA et Défense / Offense (décision 13 précisée) : le titre,
           le compteur, puis les actions — toutes en boutons quand elles
-          tiennent sur la ligne, sinon « Créer une recommandation » visible et
-          le reste (Importer, Tout exporter, Tout effacer — séparé) dans le
-          menu « ⋯ ». Aucune action mise en avant (décision 4 précisée). Les
+          tiennent sur la ligne, sinon Importer et « Créer une
+          recommandation » visibles et le reste (Tout exporter, Tout effacer —
+          séparé) dans le menu « ⋯ », comme dans la maquette. Aucune action mise en avant (décision 4 précisée). Les
           libellés, désactivations et infobulles sont ceux des boutons
           d'avant. Le téléphone garde son panneau « Options » (lot 11). */}
       <div className="mt-5 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
@@ -517,7 +517,19 @@ export default function RecoBoard({
         </span>
         <BarreActions
           libelleMenu="Plus d'actions"
+          // ⚠️ **Importer ET Créer toujours visibles, dans cet ordre** (lot 7b —
+          // Thomas : « l'organisation des boutons comme sur la maquette ») :
+          // la maquette les pose tous deux en boutons, Tout exporter et Tout
+          // effacer derrière le « ⋯ ». Ces deux-là restent en boutons quand la
+          // ligne a la place (décision 13 précisée).
           toujours={[
+            {
+              cle: 'importer',
+              libelle: 'Importer',
+              icone: <Download size={15} />,
+              title: "Charger un fichier .json reçu d'un ami",
+              onClick: () => fileRef.current?.click(),
+            },
             {
               cle: 'creer',
               libelle: 'Créer une recommandation',
@@ -532,13 +544,6 @@ export default function RecoBoard({
             },
           ]}
           autres={[
-            {
-              cle: 'importer',
-              libelle: 'Importer',
-              icone: <Download size={15} />,
-              title: "Charger un fichier .json reçu d'un ami",
-              onClick: () => fileRef.current?.click(),
-            },
             {
               cle: 'exporter',
               libelle: 'Tout exporter',
@@ -688,9 +693,16 @@ export default function RecoBoard({
           crans (Toutes/Mes recos/Importées) ont un sens dès qu'on en crée une
           première. Rendu une seule fois (`origineFilter`), posé aux deux
           endroits (ici et dans le panneau « Options » au doigt). */}
-      <div className="mt-4 hidden lg:flex flex-wrap items-center gap-2">
+      {/* ⚠️ **À la souris, UNE barre d'outils** (lot 7b, la maquette) :
+          Origine · filet · recherche, sur la même ligne ; le « Rôle » passe
+          dessous (`lg:basis-full`). Les deux conteneurs d'origine s'effacent
+          dans celui-ci (`lg:contents`). Au doigt, rien ne change : Origine
+          vit dans le panneau « Options », la recherche reste en colonne. */}
+      <div className="lg:mt-4 lg:flex lg:flex-wrap lg:items-center lg:gap-2">
+      <div className="hidden lg:contents">
         {origineFilter(false)}
       </div>
+      {all.length > 0 && <span className="mx-1 hidden h-5 w-px flex-none bg-border-soft lg:block" aria-hidden />}
 
       {/* Bloc de filtres — composition cherchée, rôle.
           ⚠️ **Sans cadre ni intitulé « Monstres »** : les trois cases ET le
@@ -707,9 +719,9 @@ export default function RecoBoard({
           bloc quand même laisserait croire qu'on n'a rien trouvé alors qu'il
           n'y a rien. */}
       {all.length > 0 && (
-        <div className="mt-2.5 flex flex-col gap-2.5">
+        <div className="mt-2.5 flex flex-col gap-2.5 lg:contents">
           {/* Composition cherchée. */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 lg:flex-1">
             {/* ⚠️ **La recherche à GAUCHE, les portraits à DROITE.** C'est le
                 champ qu'on utilise en premier — le regard commence par lui,
                 pas par des cases encore vides. Les cases suivent CE QU'ON A
@@ -823,7 +835,7 @@ export default function RecoBoard({
               décide combien il en reste, et il n'a ainsi plus besoin d'une
               hauteur de ligne en dur pour se caler sur un contrôle voisin. */}
           {aUneRecherche && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 lg:mt-0.5 lg:basis-full">
               <span className="w-[76px] flex-none label">Rôle</span>
               <Segmented
                 value={searchMode}
@@ -841,6 +853,7 @@ export default function RecoBoard({
           )}
         </div>
       )}
+      </div>
 
       {all.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-border bg-panel/40 py-16 px-6">

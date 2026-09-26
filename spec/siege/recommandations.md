@@ -19,16 +19,40 @@ Fichiers :
 ⚠️ **En-tête BUREAU** (refonte graphique, lot 7b — même règle que la RTA et
 Défense / Offense) : le titre « Recommandations », le compteur, puis les
 actions par `BarreActions` — **toutes en boutons quand elles tiennent sur la
-ligne**, sinon **Créer une recommandation** visible et **Importer**, **Tout
-exporter**, **Tout effacer** (séparé, en `bad`) dans le menu « ⋯ » Plus
-d'actions. Aucune action mise en avant. Libellés, désactivations et
-infobulles repris des boutons d'avant. Au doigt, le panneau « Options » ne
-change pas (lot 11).
+ligne**, sinon **Importer** et **Créer une recommandation** visibles, dans
+cet ordre, et **Tout exporter**, **Tout effacer** (séparé, en `bad`) dans le
+menu « ⋯ » Plus d'actions — l'organisation de la maquette (Thomas : « sur la
+page de reco, le rendu comme sur la maquette sur l'organisation des boutons et
+leur rendu »). Importer était d'abord dans le menu. Aucune action mise en
+avant. Libellés, désactivations et infobulles repris des boutons d'avant. Au
+doigt, le panneau « Options » ne change pas (lot 11).
+
+⚠️ **À la souris, une seule barre d'outils sous l'en-tête** (la maquette) :
+Origine (Toutes / Mes recos / Importées) · filet vertical · recherche par
+monstre et ses trois cases, sur la même ligne ; « Rôle » passe dessous
+quand une recherche est posée.
 
 ⚠️ **À la souris, l'en-tête d'une recommandation tient sur UNE ligne**
-(lot 7b, la maquette) : chevron · titre · Importée · decks · auteur ·
-Analyser, puis un filet vertical et Exporter / Éditer / Supprimer au bout. Au
-doigt, il garde ses deux rangées.
+(lot 7b, la maquette) : chevron · titre · Importée · decks · auteur, un
+ressort, puis **au bout** « Analyser mes decks » (bouton **fantôme**, comme
+tout ce qui se clique dans cet en-tête), un filet vertical et Exporter /
+Éditer / Supprimer. Au doigt, il garde ses deux rangées.
+
+⚠️ **À la souris, le crayon d'un deck quitte la ligne** (la maquette) : la
+ligne n'a plus que ses quatre colonnes (chevron · offense · fort contre ·
+verdict, ce dernier aligné à droite), et l'édition devient **« Éditer ce
+deck » écrit en toutes lettres, en PIED du détail déplié**, à droite, sous
+un filet (en édition : « Terminer l'édition de ce deck » et « Supprimer ce
+deck »). Replié, un deck ne montre donc plus d'action d'édition : on le
+déplie d'abord, comme dans la maquette. C'est le MÊME bouton qu'au doigt
+(`BoutonIcone` `libelleALaSouris`), placé sur la 3ᵉ rangée de la grille du
+deck. **En édition de la recommandation**, Ajouter un deck vide et Importer
+un deck d'offense forment le **pied du tableau des decks**, à droite, en
+boutons fantômes pointillés. **« + Défense »** devient un bouton fantôme
+`sm` au bout de la rangée des défenses visées. ⚠️ **Écart assumé** : la
+maquette pose « Déplier tous les decks » dans ce pied, en BAS ; il reste
+en HAUT du tableau — en bas, son clic l'aurait repoussé de toute la hauteur
+des decks dépliés (un clic ne déplace jamais ce qu'on vient de cliquer).
 
 ⚠️ **À la souris, UN seul bouton d'icône sur toute la page** (lot 7b —
 Thomas : « il faudrait revoir un peu le système de bouton de cette page… comme
@@ -49,7 +73,8 @@ de haut pour tout bouton à libellé et toute pastille de filtre**, à la souris
 + Possibilité, les pastilles de verdict, « Tout afficher » (bouton fantôme,
 plus un lien souligné). Le ✓ « Terminer » d'une défense devient un
 `BoutonIcone`, de la taille de la corbeille voisine. Restent à part, et c'est
-voulu : **« + Défense »** (la hauteur des vignettes qu'il prolonge), les
+voulu : **« + Défense »** au doigt (la hauteur des vignettes qu'il prolonge ;
+à la souris, bouton fantôme `sm`, voir plus haut), les
 **croix posées dans une puce** (set, propriété d'artéfact, monstre d'une
 défense — `serre`, 20 px, la puce est plus petite qu'un bouton), le **crayon
 posé sur le coin d'une vignette**, la **grille des sets** (icônes du jeu) et
@@ -1373,8 +1398,9 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
     filtres (Bon · À composer · À revoir · Monstre manquant, `VERDICTS`), la
     phrase complète en infobulle, et « réalisable N fois ». Avant analyse,
     rien.
-  - Le chevron et le crayon du deck gardent leur place dans la ligne — ce sont
-    les MÊMES boutons qu'avant, seule la disposition change.
+  - Le chevron garde sa place dans la ligne. Le crayon l'a quittée depuis :
+    il est devenu « Éditer ce deck », en pied du détail déplié (voir en tête
+    de fichier) — c'est le MÊME bouton, seule la disposition change.
   Déplier une ligne montre, dessous, la **carte détaillée d'avant, inchangée**
   (consignes du deck, les 3 monstres avec runage, stats et artéfacts, « Fort
   contre » avec ses précisions, édition). **Au doigt, rien ne change** : les

@@ -176,8 +176,12 @@ export function testRenduRecosEnTete() {
   const html = rendreRecos();
   ok(texteVisible(html).includes('Recommandations 2 recommandations'), 'le titre, puis le compteur');
   const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
-  egal(boutons(menu).map((b) => b.texte), ['Importer', 'Tout exporter', 'Tout effacer'], 'le menu : Importer, Tout exporter, puis Tout effacer');
-  ok(boutons(html.replace(menu, '')).some((b) => b.texte === 'Créer une recommandation'), '« Créer une recommandation » reste visible');
+  // Organisation de la maquette (lot 7b, demandée par Thomas) : Importer et
+  // Créer restent visibles, le menu ne garde que Tout exporter et Tout effacer.
+  egal(boutons(menu).map((b) => b.texte), ['Tout exporter', 'Tout effacer'], 'le menu : Tout exporter, puis Tout effacer');
+  const horsMenu = boutons(html.replace(menu, ''));
+  ok(horsMenu.some((b) => b.texte === 'Importer'), '« Importer » reste visible');
+  ok(horsMenu.some((b) => b.texte === 'Créer une recommandation'), '« Créer une recommandation » reste visible');
 }
 
 export function testRenduRecosDeploiement() {

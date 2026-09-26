@@ -1284,13 +1284,34 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 - ⚠️ **Les decks sont repliés par défaut** : déplier une recommandation montre la
   **liste de ses decks**, pas leur contenu. On ouvre ensuite celui qui intéresse.
   Sans ça, une reco de 6 decks déroulait tout l'écran d'un coup.
-- ⚠️ **Grille à 2 colonnes à la SOURIS** (`lg:grid-cols-2`), une colonne en
-  dessous — même seuil que la grille d'équipes de siège (SiegeBoard.tsx). Une
-  recommandation porte souvent une demi-douzaine de decks : les empiler sur
-  une seule colonne, à la souris, laissait la moitié de la largeur de l'écran
-  vide. **Le deck en édition reprend toute la largeur** (`col-span-2`) : ses 3
-  emplacements de monstres plus le picker de chacun seraient à l'étroit sur
-  une demi-colonne — même raison que pour une équipe de siège dépliée.
+- ⚠️ **À la SOURIS, un TABLEAU de decks, chacun dépliable en sa carte
+  détaillée** — refonte graphique, lot 7b, décision 15 de Thomas (« propose-moi
+  un mix des deux propositions », puis « pars là-dessus », sur la planche
+  « proposition mixte » de la maquette). Chaque deck est une LIGNE, sous une
+  rangée d'intitulés de colonnes :
+  - **Offense · sets visés** : les 3 monstres (portrait + nom), le leader
+    d'abord avec son badge de lead ; les **icônes des sets visés collées à
+    chaque monstre** (première possibilité de runage) — on voit qui porte
+    quoi sans ouvrir. La colonne « Sets et stats » de la maquette est FUSIONNÉE
+    ici : dans une colonne à part, on ne saurait plus quel monstre porte quel
+    set ; les stats visées restent dans le détail, trop nombreuses pour une
+    ligne.
+  - **Fort contre** : les portraits de la première défense visée (+N s'il y
+    en a d'autres).
+  - **Verdict** : après analyse, la pastille du statut avec les libellés des
+    filtres (Bon · À composer · À revoir · Monstre manquant, `VERDICTS`), la
+    phrase complète en infobulle, et « réalisable N fois ». Avant analyse,
+    rien.
+  - Le chevron et le crayon du deck gardent leur place dans la ligne — ce sont
+    les MÊMES boutons qu'avant, seule la disposition change.
+  Déplier une ligne montre, dessous, la **carte détaillée d'avant, inchangée**
+  (consignes du deck, les 3 monstres avec runage, stats et artéfacts, « Fort
+  contre » avec ses précisions, édition). **Au doigt, rien ne change** : les
+  decks restent des cartes empilées (lot 11).
+  L'ancienne disposition à la souris — une grille de cartes sur deux colonnes
+  (`lg:grid-cols-2`, le deck en édition sur toute la largeur) — est remplacée
+  par cette liste : une ligne par deck se lit d'un regard, sans demi-largeur
+  vide.
 - **Lead du leader** : affiché **sur le monstre** en slot 0, comme en siège et
   avec les mêmes composants ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) —
   `LeadBadge` sur son portrait dans l'aperçu replié, `LeadPill` (icône +

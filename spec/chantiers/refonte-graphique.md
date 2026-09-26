@@ -199,6 +199,16 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     format, validation), `src/hooks/useSiegeState.ts` (ajout de
     `appendTeams`, rien d'autre) — `scripts/chemins-interdits.mjs` les
     autorise nommément.
+15. **Siège · Recommandations (lot 7b) — les decks en tableau, chacun
+    dépliable en sa carte détaillée** — choix de Thomas le 2026-09-26 :
+    entre « garder les cartes » et « le tableau de la maquette », il a demandé
+    un mélange des deux, l'a fait mettre dans la maquette (planche « Siège ·
+    Recommandations — proposition mixte »), puis « pars là-dessus ». À la
+    souris : une ligne par deck (offense avec les sets visés collés à chaque
+    monstre · fort contre · verdict), la carte détaillée d'aujourd'hui sous la
+    ligne dépliée. Au doigt, rien ne change (lot 11). Spec :
+    [../siege/recommandations.md](../siege/recommandations.md) § Repli deck
+    par deck.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

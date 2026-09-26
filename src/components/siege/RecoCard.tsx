@@ -200,6 +200,13 @@ export default function RecoCard({
       next.has(i) ? next.delete(i) : next.add(i);
       return next;
     });
+  // « Déplier / Replier tous les decks » — un geste, deux boutons (lien au
+  // doigt, bouton fantôme à la souris).
+  const basculerTousLesDecks = () =>
+    setOpenDecks((s) =>
+      s.size === reco.decks.length ? new Set() : new Set(reco.decks.map((_, i) => i))
+    );
+  const tousOuverts = openDecks.size === reco.decks.length;
 
   // Decks contenant le monstre cherché : dépliés d'office pendant la recherche.
   //
@@ -277,6 +284,22 @@ export default function RecoCard({
           pour la raison dite juste en dessous. */}
       <div className="lg:mb-3 lg:flex lg:flex-wrap lg:items-center lg:gap-x-3 lg:gap-y-1.5">
       <div className="mb-1.5 flex items-center gap-2 lg:contents">
+        {/* ⚠️ **À la souris, le repli de la carte est un CHEVRON en tête de
+            ligne** (lot 7b, la maquette) — même bouton, même taille et même
+            place que le chevron de chaque deck juste en dessous. Il remplace
+            « Consulter / Réduire » au bout de la ligne, qui reste au doigt
+            (masqué `lg:hidden` plus bas).
+            ⚠️ En édition il reste là, DÉSACTIVÉ : la carte est forcément
+            dépliée, mais le retirer décalerait le champ du nom. */}
+        <BoutonIcone
+          onClick={() => onToggleOpen(reco.id)}
+          disabled={editing}
+          aria-expanded={expanded}
+          taille="serre"
+          icone={<ChevronDown size={15} className={`transition-transform ${expanded ? '' : '-rotate-90'}`} />}
+          libelle={editing ? "Termine l'édition pour replier" : open ? 'Réduire' : 'Consulter'}
+          className={`hidden lg:inline-flex ${ICONE_LG}`}
+        />
         {editing ? (
           <Champ
             value={reco.name}
@@ -340,9 +363,12 @@ export default function RecoCard({
               }
               libelle={open ? 'Réduire' : 'Consulter'}
               title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
-              className="compact:hidden"
+              className="compact:hidden lg:hidden"
             />
           )}
+          {/* Filet vertical entre les informations et les actions — à la
+              souris seulement, comme dans la maquette. */}
+          <span className="hidden h-5 w-px bg-border-soft lg:block" aria-hidden />
           {/* Exporter / Éditer / Supprimer : icônes nues (ni cadre ni fond), comme
               la corbeille — l'en-tête est déjà chargé. Groupées pour se lire
               comme UNE barre d'outils, pas comme trois actions éparses. Le sens
@@ -353,39 +379,45 @@ export default function RecoCard({
               redonner un peu d'air autour de l'icône. `h-6` gagne sur le `h-5`
               du composant car il est plus loin dans la feuille de style
               (valeurs Tailwind rangées par ordre croissant) — vérifié dans le
-              CSS construit, pas supposé. */}
-          <div className="flex items-center gap-1 -mr-1">
+              CSS construit, pas supposé.
+              ⚠️ **À la souris, carrés de 28 px aux coins arrondis**
+              (`lg:h-7 lg:w-7 lg:rounded-lg`, lot 7b) : la taille et la forme
+              des boutons d'icône de la maquette, les mêmes que les chevrons —
+              toute la page n'a plus qu'un seul bouton d'icône. Les variantes
+              `lg:` passent après les classes de base dans la feuille : l'ordre
+              est garanti, pas supposé. */}
+          <div className="flex items-center gap-1 -mr-1 lg:mr-0 lg:gap-0.5">
             <BoutonIcone
               onClick={() => onExport(reco)}
               taille="serre"
               icone={<Upload size={13} />}
               libelle="Exporter cette recommandation (tous ses decks)"
-              className="h-6 w-6"
+              className={ICONE_ACTION}
             />
             {/* ⚠️ Pas `actif` (le marqueur d'état standard) : le ✓ DORÉ
                 (`text-star`) est la convention DOCUMENTÉE de l'édition en
                 cours sur cette page entière (voir spec/siege/recommandations.md
                 §« icônes d'action »), reprise plus bas sur chaque deck et
-                chaque défense — la changer ici la briserait partout ailleurs. */}
-            <button
+                chaque défense — la changer ici la briserait partout ailleurs.
+                La couleur est posée sur l'ICÔNE, pas sur le bouton : le bouton
+                de la librairie garde ses propres couleurs, et l'ordre de deux
+                classes de couleur rivales dans la feuille ne serait pas
+                garanti. `aria-pressed` passe directement. */}
+            <BoutonIcone
               onClick={() => onToggleEdit(reco.id)}
-              data-cible-fine
-              className={`flex h-6 w-6 items-center justify-center transition ${
-                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-              }`}
-              title={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
-              aria-label={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
               aria-pressed={editing}
-            >
-              {editing ? <Check size={14} /> : <Pencil size={13} />}
-            </button>
+              taille="serre"
+              icone={editing ? <Check size={14} className="text-star" /> : <Pencil size={13} />}
+              libelle={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
+              className={ICONE_ACTION}
+            />
             <BoutonIcone
               onClick={() => setSuppressionAConfirmer(true)}
               ton="danger"
               taille="serre"
               icone={<Trash2 size={13} />}
               libelle="Supprimer cette recommandation"
-              className="h-6 w-6"
+              className={ICONE_ACTION}
             />
           </div>
         </div>
@@ -437,7 +469,8 @@ export default function RecoCard({
             taille="sm"
             icone={<Gauge size={13} />}
             libelle={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
-            className="compact:hidden"
+            // `lg:h-7` : la hauteur des boutons d'icône de la même ligne.
+            className="compact:hidden lg:h-7"
           />
         )}
       </div>
@@ -530,16 +563,26 @@ export default function RecoCard({
               decks qui ne sont plus à l'écran. */}
           {reco.decks.length > 1 && !decksFiltres && (
             <div className="flex justify-end mb-1.5">
+              {/* Au doigt : le lien souligné d'avant, inchangé (lot 11). */}
               <button
-                onClick={() =>
-                  setOpenDecks((s) =>
-                    s.size === reco.decks.length ? new Set() : new Set(reco.decks.map((_, i) => i))
-                  )
-                }
-                className="font-mono text-micro text-ink-dim hoverable:text-ink transition underline"
+                onClick={basculerTousLesDecks}
+                className="font-mono text-micro text-ink-dim hoverable:text-ink transition underline lg:hidden"
               >
-                {openDecks.size === reco.decks.length ? 'Replier tous les decks' : 'Déplier tous les decks'}
+                {tousOuverts ? 'Replier tous les decks' : 'Déplier tous les decks'}
               </button>
+              {/* ⚠️ **À la souris, un bouton fantôme de la librairie** (lot 7b,
+                  la maquette), plus un lien souligné. Il reste AU-DESSUS du
+                  tableau, pas en dessous comme dans la maquette : en bas, le
+                  clic l'aurait repoussé de toute la hauteur des decks dépliés
+                  (un clic ne déplace jamais ce qu'on vient de cliquer). */}
+              <Bouton
+                onClick={basculerTousLesDecks}
+                fond="vide"
+                trait="aucun"
+                taille="sm"
+                libelle={tousOuverts ? 'Replier tous les decks' : 'Déplier tous les decks'}
+                className="hidden lg:inline-flex lg:h-7"
+              />
             </div>
           )}
           {/* Les decks se posent au dépliage plutôt que d'apparaître d'un bloc.
@@ -1086,7 +1129,16 @@ const DECK_AURA: Record<string, string> = {
 // Même gabarit de colonnes pour la rangée d'intitulés et pour chaque ligne.
 // Écrit EN TOUTES LETTRES : Tailwind lit le source comme du texte.
 const LIGNE_DECK =
-  'lg:grid lg:grid-cols-[20px_minmax(0,1fr)_minmax(0,150px)_minmax(0,190px)_auto] lg:items-center lg:gap-3';
+  'lg:grid lg:grid-cols-[28px_minmax(0,1fr)_minmax(0,150px)_minmax(0,190px)_auto] lg:items-center lg:gap-3';
+
+// ⚠️ **UN seul bouton d'icône sur toute la page, à la souris** (lot 7b, la
+// maquette) : un carré de 28 px aux coins arrondis, sans cadre ni fond —
+// chevrons, Exporter, Éditer, Supprimer, en-tête de recommandation comme ligne
+// de deck. Au doigt, chacun garde sa taille d'avant (24 px dans l'en-tête de la
+// recommandation, 20 px dans celui du deck) : `taille="serre"` et son exemption
+// tactile ne changent pas.
+const ICONE_LG = 'lg:h-7 lg:w-7 lg:rounded-lg';
+const ICONE_ACTION = `h-6 w-6 ${ICONE_LG}`;
 
 function DeckBlock({
   reco,
@@ -1160,6 +1212,7 @@ function DeckBlock({
             taille="serre"
             icone={<ChevronDown size={14} className={`transition-transform ${folded ? '-rotate-90' : ''}`} />}
             libelle={folded ? 'Déplier ce deck' : 'Replier ce deck'}
+            className={ICONE_LG}
           />
 
           {/* ⚠️ **Plus de titre texte : les portraits SEULS identifient le
@@ -1260,19 +1313,16 @@ function DeckBlock({
             {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
                 est la convention documentée de l'édition en cours sur toute
                 cette page (spec/siege/recommandations.md), pas le marqueur
-                d'état standard. */}
-            <button
+                d'état standard. Couleur posée sur l'icône, comme dans
+                l'en-tête de la recommandation. */}
+            <BoutonIcone
               onClick={onToggleEdit}
-              data-cible-fine
-              className={`flex h-5 w-5 items-center justify-center transition ${
-                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-              }`}
-              title={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
-              aria-label={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
               aria-pressed={editing}
-            >
-              {editing ? <Check size={13} /> : <Pencil size={12} />}
-            </button>
+              taille="serre"
+              icone={editing ? <Check size={13} className="text-star" /> : <Pencil size={12} />}
+              libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+              className={ICONE_LG}
+            />
             {editing && (
               <BoutonIcone
                 onClick={() => setDeckAConfirmer(true)}
@@ -1280,6 +1330,7 @@ function DeckBlock({
                 taille="serre"
                 icone={<Trash2 size={12} />}
                 libelle="Supprimer ce deck"
+                className={ICONE_LG}
               />
             )}
           </div>

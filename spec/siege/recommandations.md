@@ -26,9 +26,22 @@ infobulles repris des boutons d'avant. Au doigt, le panneau « Options » ne
 change pas (lot 11).
 
 ⚠️ **À la souris, l'en-tête d'une recommandation tient sur UNE ligne**
-(lot 7b, la maquette) : titre · Importée · decks · auteur · Analyser, puis
-Consulter / Exporter / Éditer / Supprimer au bout. Au doigt, il garde ses deux
-rangées.
+(lot 7b, la maquette) : chevron · titre · Importée · decks · auteur ·
+Analyser, puis un filet vertical et Exporter / Éditer / Supprimer au bout. Au
+doigt, il garde ses deux rangées.
+
+⚠️ **À la souris, UN seul bouton d'icône sur toute la page** (lot 7b —
+Thomas : « il faudrait revoir un peu le système de bouton de cette page… comme
+tu as fait dans la maquette ») : un carré de 28 px aux coins arrondis, sans
+cadre ni fond, voile au survol — chevron de la recommandation, chevron de
+chaque deck, Exporter, Éditer, Supprimer (`ICONE_LG` dans
+[RecoCard.tsx](../../src/components/siege/RecoCard.tsx)). Avant, trois
+tailles et deux formes cohabitaient (24 px rond, 20 px rond, bouton étiqueté
+« Consulter »), et les deux crayons étaient des `<button>` redessinés hors
+librairie : ils sont désormais des `BoutonIcone`, le ✓ doré posé sur l'icône.
+« Analyser mes decks » et « Déplier tous les decks » (bouton fantôme de la
+librairie, plus un lien souligné) prennent la même hauteur de 28 px. Au doigt,
+chaque bouton garde sa taille et sa forme d'avant (lot 11).
 
 ⚠️ **Couleurs : plus d'aplats teintés** (lot 7b — Thomas : « revois les
 couleurs et l'affichage sur les cards, là il n'y a rien qui va »). La carte
@@ -1298,6 +1311,13 @@ illisible tout déplié. Chaque carte est donc **repliée par défaut** :
   seconde cible pour le même geste que le titre — sur un écran qu'on parcourt
   au pouce, la plus petite des deux. À la souris, viser un bouton précis ne
   coûte rien, et le chevron confirme l'état d'un coup d'œil.
+  ⚠️ **À la souris, c'est un CHEVRON seul en tête de ligne** (lot 7b, la
+  maquette), le même que celui de chaque deck : pointe à droite replié, en bas
+  déplié, libellé « Consulter » / « Réduire » en infobulle et `aria-label`.
+  Le bouton étiqueté « Consulter / Réduire » au bout de la ligne ne vit plus
+  que sous `lg` (souris sur fenêtre étroite). En édition, le chevron reste en
+  place, **désactivé** (« Termine l'édition pour replier ») : le retirer
+  décalerait le champ du nom.
 - **Le TITRE bascule aussi la carte** — même geste que « Consulter », pas un
   second, et le SEUL au doigt. Masqué en édition, comme « Consulter » : le
   titre devient alors le champ de saisie du nom.
@@ -1381,7 +1401,9 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   demi-douzaine par recommandation) sur un écran étroit. Même resserrement
   sur l'espacement de la rangée verdict/copies (`compact:gap-1 compact:mt-0.5`).
 - **« Déplier / Replier tous les decks »** : lien en haut à droite de la liste,
-  affiché dès **2 decks**.
+  affiché dès **2 decks**. À la souris, un **bouton fantôme** de la librairie
+  (lot 7b), toujours **au-dessus** du tableau — la maquette le posait en
+  dessous, où le clic l'aurait repoussé de toute la hauteur des decks dépliés.
 - Un deck **en édition est toujours déplié**, quel que soit son état de repli.
 - État **local à la carte** (`openDecks` = les decks ouverts), réinitialisé quand
   le **nombre de decks change** (les index se décalent à l'ajout/suppression).
@@ -1460,7 +1482,12 @@ fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
 - Le sens passe par l'**infobulle** et l'`aria-label` (obligatoire : une icône
   seule n'est pas lisible au lecteur d'écran).
 - Faute de cadre pour marquer l'état actif, l'**édition en cours** se lit à
-  l'icône qui devient un **✓ doré** (`text-star`) + `aria-pressed`.
+  l'icône qui devient un **✓ doré** (`text-star`) + `aria-pressed`. Les deux
+  crayons sont des `BoutonIcone` (lot 7b) : la couleur dorée est posée sur
+  l'**icône**, pas sur le bouton — deux classes de couleur rivales sur le même
+  élément n'ont pas d'ordre garanti dans la feuille.
+- À la souris, ces carrés passent à **28 px aux coins arrondis** (voir en tête
+  de fichier, « un seul bouton d'icône »).
 - Les libellés ne sont conservés que là où la place ne manque pas : « Analyser
   mes decks », « Consulter », et les actions de la barre du haut.
 

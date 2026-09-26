@@ -62,5 +62,53 @@
     "vers": "src/components/SidebarCompte.tsx",
     "devient": "attr:title:Importer un export de compte SWEX (traité localement, rien n'est envoyé)",
     "pourquoi": "Lot 4, décision 11 : une seule carte d'import, repliée ou non ; elle garde l'infobulle la plus complète des deux."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Éditer la recommandation": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Éditer la recommandation",
+    "pourquoi": "Lot 7b, boutons de la page : le crayon de la recommandation, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Éditer la recommandation": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Éditer la recommandation",
+    "pourquoi": "Lot 7b, boutons de la page : voir aria-label."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Terminer l'édition": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer l'édition",
+    "pourquoi": "Lot 7b, boutons de la page : voir title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Terminer l'édition de ce deck": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer l'édition de ce deck",
+    "pourquoi": "Lot 7b, boutons de la page : voir title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Terminer l'édition": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer l'édition",
+    "pourquoi": "Lot 7b, boutons de la page : l'état « en édition » du même crayon, même passage par `libelle` (aria-label ET title)."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Éditer ce deck": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Éditer ce deck",
+    "pourquoi": "Lot 7b, boutons de la page : le crayon du deck, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Éditer ce deck": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Éditer ce deck",
+    "pourquoi": "Lot 7b, boutons de la page : voir aria-label."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Terminer l'édition de ce deck": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer l'édition de ce deck",
+    "pourquoi": "Lot 7b, boutons de la page : l'état « en édition » du même crayon, même passage par `libelle` (aria-label ET title)."
   }
 }

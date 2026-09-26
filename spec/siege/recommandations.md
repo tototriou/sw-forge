@@ -43,6 +43,19 @@ librairie : ils sont désormais des `BoutonIcone`, le ✓ doré posé sur l'icô
 librairie, plus un lien souligné) prennent la même hauteur de 28 px. Au doigt,
 chaque bouton garde sa taille et sa forme d'avant (lot 11).
 
+Puis, en édition (Thomas : « revoir tous les boutons de la page ») : **28 px
+de haut pour tout bouton à libellé et toute pastille de filtre**, à la souris
+(`BOUTON_LG`) — Ajouter un deck vide, Importer un deck d'offense, + Set,
++ Possibilité, les pastilles de verdict, « Tout afficher » (bouton fantôme,
+plus un lien souligné). Le ✓ « Terminer » d'une défense devient un
+`BoutonIcone`, de la taille de la corbeille voisine. Restent à part, et c'est
+voulu : **« + Défense »** (la hauteur des vignettes qu'il prolonge), les
+**croix posées dans une puce** (set, propriété d'artéfact, monstre d'une
+défense — `serre`, 20 px, la puce est plus petite qu'un bouton), le **crayon
+posé sur le coin d'une vignette**, la **grille des sets** (icônes du jeu) et
+les **liens dans une phrase** (« Chercher partout », « Effacer la
+recherche »).
+
 ⚠️ **Couleurs : plus d'aplats teintés** (lot 7b — Thomas : « revois les
 couleurs et l'affichage sur les cards, là il n'y a rien qui va »). La carte
 d'une recommandation, chaque deck, chaque monstre et l'encart de synthèse se

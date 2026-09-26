@@ -469,8 +469,7 @@ export default function RecoCard({
             taille="sm"
             icone={<Gauge size={13} />}
             libelle={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
-            // `lg:h-7` : la hauteur des boutons d'icône de la même ligne.
-            className="compact:hidden lg:h-7"
+            className={`compact:hidden ${BOUTON_LG}`}
           />
         )}
       </div>
@@ -581,7 +580,7 @@ export default function RecoCard({
                 trait="aucun"
                 taille="sm"
                 libelle={tousOuverts ? 'Replier tous les decks' : 'Déplier tous les decks'}
-                className="hidden lg:inline-flex lg:h-7"
+                className={`hidden lg:inline-flex ${BOUTON_LG}`}
               />
             </div>
           )}
@@ -668,6 +667,7 @@ export default function RecoCard({
               taille="sm"
               icone={<Plus size={14} />}
               libelle="Ajouter un deck vide"
+              className={BOUTON_LG}
             />
             {/* ⚠️ `trait` bascule pointillé → plein avec l'état, comme le fond :
                 le pointillé dit « pas encore rempli », et perd son sens une fois
@@ -684,6 +684,7 @@ export default function RecoCard({
               }
               taille="sm"
               icone={<Swords size={14} />}
+              className={BOUTON_LG}
               libelle={
                 <>
                   Importer un deck d'offense{' '}
@@ -999,7 +1000,7 @@ function AnalysisSummary({
                     : `N'afficher que « ${v.label} »`
               }
               className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs
-                          font-semibold transition ${
+                          font-semibold transition ${BOUTON_LG} ${
                             n === 0
                               ? 'border-border text-ink-dim opacity-40 cursor-not-allowed'
                               : actif
@@ -1016,12 +1017,25 @@ function AnalysisSummary({
           );
         })}
         {vus.size > 0 && (
-          <button
-            onClick={() => setVus(new Set())}
-            className="text-xs text-ink-dim underline transition hoverable:text-ink"
-          >
-            Tout afficher
-          </button>
+          <>
+            {/* Au doigt : le lien souligné d'avant (lot 11). À la souris : un
+                bouton fantôme de la librairie, comme « Déplier tous les
+                decks ». */}
+            <button
+              onClick={() => setVus(new Set())}
+              className="text-xs text-ink-dim underline transition hoverable:text-ink lg:hidden"
+            >
+              Tout afficher
+            </button>
+            <Bouton
+              onClick={() => setVus(new Set())}
+              fond="vide"
+              trait="aucun"
+              taille="sm"
+              libelle="Tout afficher"
+              className={`hidden lg:inline-flex ${BOUTON_LG}`}
+            />
+          </>
         )}
       </div>
 
@@ -1139,6 +1153,10 @@ const LIGNE_DECK =
 // tactile ne changent pas.
 const ICONE_LG = 'lg:h-7 lg:w-7 lg:rounded-lg';
 const ICONE_ACTION = `h-6 w-6 ${ICONE_LG}`;
+// Même règle pour les boutons à LIBELLÉ et les pastilles de filtre : 28 px de
+// haut à la souris, la hauteur des boutons d'icône. Seul « + Défense » y
+// échappe — il prend la hauteur des vignettes de défense qu'il prolonge.
+const BOUTON_LG = 'lg:h-7';
 
 function DeckBlock({
   reco,
@@ -1972,17 +1990,16 @@ function CounterRow({
         </div>
         {/* Terminer, puis supprimer — l'ordre du geste courant d'abord.
             ⚠️ Le ✓ doré est la convention de l'édition en cours dans toute la
-            page (voir spec/siege/recommandations.md). */}
+            page (voir spec/siege/recommandations.md) — posé sur l'icône d'un
+            `BoutonIcone`, comme les crayons de la recommandation et du deck,
+            et de la même taille que la corbeille voisine. */}
         <div className="mt-1 flex flex-none items-center gap-1.5">
-          <button
+          <BoutonIcone
             onClick={onToggleEdit}
             aria-pressed
-            className="text-star transition hoverable:brightness-125"
-            title="Terminer"
-            aria-label="Terminer"
-          >
-            <Check size={14} />
-          </button>
+            icone={<Check size={14} className="text-star" />}
+            libelle="Terminer"
+          />
           <BoutonIcone
             onClick={() => recos.removeCounter(reco.id, deckIndex, counterIndex)}
             ton="danger"
@@ -2356,6 +2373,7 @@ function SetEditor({
           pleineLargeur
           icone={!full ? <Plus size={11} /> : undefined}
           libelle={full ? 'Plus de place (6 runes)' : 'Set'}
+          className={BOUTON_LG}
         />
         <Bouton
           onClick={() => {
@@ -2373,6 +2391,7 @@ function SetEditor({
           pleineLargeur
           icone={<Plus size={11} />}
           libelle="Possibilité"
+          className={BOUTON_LG}
         />
       </div>
 

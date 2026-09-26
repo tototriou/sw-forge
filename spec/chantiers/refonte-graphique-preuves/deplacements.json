@@ -87,6 +87,18 @@
     "devient": "attr:libelle:Terminer l'édition de ce deck",
     "pourquoi": "Lot 7b, boutons de la page : voir title."
   },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Terminer": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer",
+    "pourquoi": "Lot 7b, boutons de la page : le ✓ « Terminer » d'une défense visée, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Terminer": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer",
+    "pourquoi": "Lot 7b, boutons de la page : voir aria-label."
+  },
   "src/components/siege/RecoCard.tsx :: attr:title:Terminer l'édition": {
     "de": "src/components/siege/RecoCard.tsx",
     "vers": "src/components/siege/RecoCard.tsx",

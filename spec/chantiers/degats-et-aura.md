@@ -427,8 +427,8 @@ Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 | 6bis-a3a — conditions et élagages locaux | C | terminé après rectification pilote | reçu initial `e21a385` ↔ `ab5c858` / 2026-09-27 ; preuve rectifiée relivrée |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | terminé | reçu `bd9b60a` ↔ `2c5b82d` / 2026-09-27 |
 | 6bis-a4a — recette, reset et import écran | C | terminé | reçu `2d8d364` ↔ `7e0541c` / 2026-09-28 |
-| 6bis-a4b — CLI et scripts de diagnostic | C | à lancer | — |
-| 6bis-a4c1 — écran de recherche et caches | C | en attente de a4b | — |
+| 6bis-a4b — CLI et scripts de diagnostic | C | terminé | reçu `6669527` ↔ `308c6be` / 2026-09-28 |
+| 6bis-a4c1 — écran de recherche et caches | C | à lancer | — |
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | en attente de a4c1 | — |
 | 6bis-a4d1 — Workers et tests | C | en attente de a4c2 | — |
 | 6bis-a4d2 — réconciliation des cartes | C | en attente de a4d1 | — |
@@ -2109,6 +2109,19 @@ CLI « passé ».
 
 **Sortie :** carte a4b et constat CLI rouge ou vert, sans prétendre à une
 mesure de performance. **Ne fait pas :** modifications de scripts ou tests.
+
+**Résultat du lot 6bis-a4b — 2026-09-28.** Les 13 clés projetées sont
+réconciliées : 4 consommatrices et 9 non-consommatrices dans leur usage actuel.
+Le CLI réel accepte la recette figée à trois Fight externes, mais le code
+continue de lire `setsAura` et ignore `setsAuraExternes` pour le calcul ; son
+écho « Auras d'équipe : [] » ne suffit pas seul à ce verdict. La recherche
+atteint 100 000 builds et indique `tronqué : true` : aucune exhaustivité ni
+variation chiffrée du score par les auras externes n'est établie. Le pilote a
+rejoué la projection, le contrôle des 299 lignes, le lint et le diff, comparé
+les 13 clés et l'empreinte de la sortie CLI conservée, puis vérifié le reçu
+`6669527` ↔ `308c6be`. Preuves privées : `carte-6bis-a4b.json`,
+`controle-6bis-a4b.md` et `sortie-cli-6bis-a4b.txt` ; notes intégrées au main
+documentaire `7ba3367`. 6bis-a4c1 peut commencer.
 
 #### 6bis-a4c1 — écran de recherche et caches
 

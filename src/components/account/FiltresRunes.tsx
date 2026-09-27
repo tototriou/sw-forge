@@ -1,25 +1,24 @@
 import { useMemo } from 'react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import { Bouton, Deroulant } from '../../ui';
-import RuneIcon from '../RuneIcon';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import AncientFilter, { ANCIENTS, AncientFilter as AncientFilterValue } from './AncientFilter';
 
-// ⚠️ **Les filtres des runes À LA SOURIS : trois menus déroulants** (refonte
-// graphique, lot 8a, décision 20 — Thomas : « menus déroulants », comme la
-// maquette) : Set · Emplacement · Antiques, puis « Effacer les filtres ».
-// Chaque menu garde les MÊMES choix qu'avant — `SetFilter`, `SlotFilter`,
-// `AncientFilter`, inchangés, dans le panneau. Ils prenaient trois rangées de
-// la page ; le bouton dit maintenant la valeur d'un coup d'œil.
+// ⚠️ **Les filtres des runes À LA SOURIS, sur UNE ligne** (refonte graphique,
+// lot 8a, décision 20 précisée) : la rangée d'icônes des SETS, visible, puis
+// deux menus déroulants — Emplacement · Antiques —, puis « Effacer les
+// filtres ». Chaque menu garde les MÊMES choix qu'avant (`SlotFilter`,
+// `AncientFilter`, inchangés, dans le panneau) ; ils prenaient deux rangées de
+// la page, le bouton dit maintenant la valeur d'un coup d'œil.
+// ⚠️ **Les sets ne sont PAS dans un menu** : essayé, puis défait par Thomas
+// (« pas très fan d'avoir des drop-down pour un set filtre dedans »). La
+// rangée d'icônes du jeu se reconnaît et se coche d'un regard ; fermée dans un
+// menu, il fallait l'ouvrir pour voir quels sets étaient choisis.
 // Partagé par la Liste, les Courbes et l'Optimisation. Au doigt, chaque vue
 // garde ses filtres d'avant (lot 11).
 
 const SLOTS = [1, 2, 3, 4, 5, 6];
-
-// Au-delà de deux noms, le résumé s'abrège (« Swift, Violent +3 ») : le bouton
-// reste sur une ligne, la liste complète est dans l'infobulle.
-const NOMS_MAX = 2;
 
 export default function FiltresRunes({
   runes,
@@ -47,39 +46,16 @@ export default function FiltresRunes({
     return RUNE_SETS.filter((rs) => s.has(rs.key));
   }, [runes]);
 
-  const setsChoisis = present.filter((s) => sets.has(s.key));
-  const tousLesSets = setsChoisis.length === present.length;
+  const tousLesSets = present.every((s) => sets.has(s.key));
   const tousLesSlots = SLOTS.every((n) => slots.has(n));
   const parDefaut = tousLesSets && tousLesSlots && (!antiques || ancient === 'all');
 
-  const resumeSets = tousLesSets ? (
-    'Tous'
-  ) : setsChoisis.length === 0 ? (
-    'Aucun'
-  ) : (
-    <span className="inline-flex items-center gap-1">
-      {setsChoisis.slice(0, NOMS_MAX).map((s) => (
-        <RuneIcon key={s.key} setKey={s.key} size={14} />
-      ))}
-      {setsChoisis
-        .slice(0, NOMS_MAX)
-        .map((s) => s.label)
-        .join(', ')}
-      {setsChoisis.length > NOMS_MAX && ` +${setsChoisis.length - NOMS_MAX}`}
-    </span>
-  );
   const slotsChoisis = SLOTS.filter((n) => slots.has(n));
   const resumeSlots = tousLesSlots ? 'Tous' : slotsChoisis.length === 0 ? 'Aucun' : slotsChoisis.join(', ');
 
   return (
     <div className="flex flex-wrap items-center gap-2" data-filtres-deroulants>
-      <Deroulant
-        intitule="Set"
-        resume={resumeSets}
-        title={tousLesSets ? undefined : setsChoisis.map((s) => s.label).join(', ') || 'Aucun set'}
-      >
-        <SetFilter runes={runes} value={sets} onChange={onSets} sansIntitule />
-      </Deroulant>
+      <SetFilter runes={runes} value={sets} onChange={onSets} />
       <Deroulant intitule="Emplacement" resume={resumeSlots}>
         <SlotFilter value={slots} onChange={onSlots} sansIntitule />
       </Deroulant>

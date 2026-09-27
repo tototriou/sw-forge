@@ -271,6 +271,10 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
       trois menus déroulants compacts, comme la maquette, plus « Effacer
       les filtres ». Chaque menu garde les MÊMES choix qu'aujourd'hui. Au
       doigt, rien ne change (lot 11).
+    - **Précisée le 2026-09-27, après essai** : les SETS ne vont pas dans
+      un menu (Thomas : « pas très fan d'avoir des drop-down pour un set
+      filtre dedans »). Leur rangée d'icônes reste visible, et seuls
+      Emplacement et Antiques sont des menus, sur la même ligne.
     - Les fonctions que la maquette AJOUTE sont repoussées : recherche
       texte de propriété (« VIT ≥ 20 »), pagination numérotée, courbe par
       set et « Ajouter un set », « Voir en tableau », tableau chiffré de

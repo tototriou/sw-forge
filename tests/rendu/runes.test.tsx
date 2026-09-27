@@ -195,9 +195,10 @@ export function testRenduRunesFiltresDeroulants() {
   for (const vue of ['liste', 'courbes', 'optimisation'] as AccountView[]) {
     const html = rendreVue(vue);
     const b = boutons(html);
-    ok(b.some((x) => x.texte === 'Set Tous'), `${vue} : menu « Set », tous les sets`);
+    // Les sets restent une RANGÉE visible (décision 20 précisée : pas de menu).
+    ok(!b.some((x) => x.texte === 'Set Tous'), `${vue} : pas de menu « Set », les sets restent visibles`);
     ok(b.some((x) => x.texte === 'Emplacement Tous'), `${vue} : menu « Emplacement », tous`);
-    ok(/role="dialog"[^>]*aria-label="Set"|aria-label="Set"[^>]*role="dialog"/.test(html), `${vue} : le panneau « Set » est dans la page, fermé`);
+    ok(/role="dialog"[^>]*aria-label="Emplacement"|aria-label="Emplacement"[^>]*role="dialog"/.test(html), `${vue} : le panneau « Emplacement » est dans la page, fermé`);
     ok(b.some((x) => x.texte === 'Effacer les filtres' && x.desactive && x.title === 'Aucun filtre posé'), `${vue} : « Effacer les filtres », désactivé sans filtre, et pourquoi`);
     if (vue === 'optimisation') ok(!b.some((x) => x.texte === 'Antiques Toutes'), 'optimisation : pas de menu « Antiques » (ils sont dans ses options)');
     else ok(b.some((x) => x.texte === 'Antiques Toutes'), `${vue} : menu « Antiques », toutes`);

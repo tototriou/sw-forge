@@ -775,19 +775,18 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
 [SetFilter.tsx](src/components/account/SetFilter.tsx), partagé par **Liste**,
 **Courbes** et **Optimisation**.
 
-⚠️ **À la SOURIS, les filtres sont des MENUS DÉROULANTS** (refonte graphique,
-lot 8a, décision 20 — Thomas : « menus déroulants », comme la maquette) :
-**Set · Emplacement · Antiques**, puis **« Effacer les filtres »** —
-[FiltresRunes.tsx](../../src/components/account/FiltresRunes.tsx), sur le
-composant `Deroulant` de la librairie. Chaque bouton dit sa valeur (« Set ·
-Tous », « Emplacement · 1, 3, 5 », « Antiques · Toutes ») ; son panneau
-contient les MÊMES contrôles qu'avant, `SetFilter`, `SlotFilter`,
-`AncientFilter`, sans intitulé (`sansIntitule`, le bouton le porte).
-- Le résumé des sets montre **les icônes ET les noms** des deux premiers
-  (« Swift, Violent +3 »), la liste complète en infobulle. C'est une
-  exception assumée à la règle « icône sans nom » ci-dessous : cette règle
-  vaut pour la RANGÉE qu'on parcourt d'un coup d'œil, alors que le résumé se
-  LIT, et deux icônes seules n'y diraient pas lesquelles sont choisies.
+⚠️ **À la SOURIS, les filtres tiennent sur UNE ligne** (refonte graphique,
+lot 8a, décision 20 précisée) — [FiltresRunes.tsx](../../src/components/account/FiltresRunes.tsx) :
+la **rangée d'icônes des sets**, visible, puis deux **menus déroulants**
+(`Deroulant` de la librairie), **Emplacement · Antiques**, puis **« Effacer
+les filtres »**. Chaque menu dit sa valeur (« Emplacement · 1, 3, 5 »,
+« Antiques · Toutes ») ; son panneau contient les MÊMES contrôles qu'avant,
+`SlotFilter` (sans intitulé, `sansIntitule` : le bouton le porte) et
+`AncientFilter`.
+- ⚠️ **Les sets ne sont PAS dans un menu** : essayé, puis défait par Thomas
+  (« pas très fan d'avoir des drop-down pour un set filtre dedans »). La
+  rangée d'icônes du jeu se reconnaît et se coche d'un regard ; fermée dans
+  un menu, il fallait l'ouvrir pour savoir quels sets étaient choisis.
 - « Effacer les filtres » remet tous les sets, tous les emplacements et
   toutes les runes. Il est **toujours affiché**, désactivé quand rien n'est
   filtré (« Aucun filtre posé »).

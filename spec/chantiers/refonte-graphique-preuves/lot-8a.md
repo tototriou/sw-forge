@@ -35,6 +35,13 @@ Hors zone : la mesure Efficience / Score SW, réglage global du menu ⚙.
 | `c0e04a6` | `src/ui/Deroulant` : bouton `sm` à cadre (intitulé, résumé, chevron) + panneau `Flottant` `role="dialog"`, resté dans le DOM fermé ; test `testRenduUiDeroulant` (4) |
 | (ce commit) | `FiltresRunes` : Set · Emplacement · Antiques + « Effacer les filtres », dans la Liste, les Courbes et l'Optimisation (sans Antiques, rangés dans ses options) ; `sansIntitule` sur `SetFilter` et `SlotFilter` ; test `testRenduRunesFiltresDeroulants` (15) |
 
+**Précisée après essai** : Thomas n'a pas voulu des sets dans un menu (« pas
+très fan d'avoir des drop-down pour un set filtre dedans »). Leur rangée
+d'icônes reste visible sur la ligne ; Emplacement et Antiques restent des
+menus. Le test `testRenduRunesFiltresDeroulants`, écrit dans ce sous-lot,
+suit ce changement : plus de menu « Set », panneau « Emplacement » fermé.
+Les 114 vérifications d'avant ne changent pas.
+
 Chaque panneau contient les MÊMES contrôles qu'avant. Au doigt, rien ne
 change :
 - la Liste garde ses rangées dans le panneau « Options » ;

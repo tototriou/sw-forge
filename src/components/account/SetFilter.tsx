@@ -18,14 +18,11 @@ export default function SetFilter({
   value,
   onChange,
   label = 'Sets',
-  sansIntitule = false,
 }: {
   runes: RuneDetail[];
   value: Set<string>;
   onChange: (next: Set<string>) => void;
   label?: string;
-  // Dans un `Deroulant` (lot 8a), le bouton porte déjà l'intitulé.
-  sansIntitule?: boolean;
 }) {
   // Pointeur grossier (téléphone) → icônes de set agrandies pour la visée.
   const auDoigt = useMediaQuery(COMPACT);
@@ -50,7 +47,7 @@ export default function SetFilter({
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {!sansIntitule && <span className="label mr-1">{label}</span>}
+      <span className="label mr-1">{label}</span>
       {/* Une SEULE barre continue plutôt que des boutons détachés : les symboles
           se lisent comme une rangée d'icônes du jeu, et l'ensemble tient sur une
           ligne même avec 25 sets. Seul l'état actif porte un cadre. */}

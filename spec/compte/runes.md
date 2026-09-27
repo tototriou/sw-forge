@@ -269,14 +269,13 @@ déroulante (règle de vocabulaire du [README](../README.md)). Calcul pur dans
 [runeSort.ts](src/lib/runeSort.ts), testé par
 [rune-tri.test.ts](tests/rune-tri.test.ts).
 
-⚠️ **À la SOURIS, le tri est en ONGLETS** (`Segmented`), comme les autres
-contrôles de la page — refonte graphique, lot 8a (Thomas : « le tri des runes
-ne peut pas être un segmented button comme le reste ? »). Mêmes entrées, même
-ordre (celui du jeu), la même infobulle par entrée ; le bouton de sens reste
-collé à côté. Neuf entrées font ~920 px : sur une fenêtre plus étroite, le
-`Segmented` passe de lui-même en mode serré (il se mesure). **Au doigt**, la
-liste déroulante reste (lot 11) : neuf onglets ne tiennent pas sur un
-téléphone. Même chose pour le tri de l'Optimisation (cinq entrées).
+⚠️ **Le tri de la Liste reste une LISTE DÉROULANTE**, à la hauteur des
+filtres de la ligne à la souris (32 px) — refonte graphique, lot 8a. Des
+onglets (`Segmented`) ont été essayés à la demande de Thomas (« le tri des
+runes ne peut pas être un segmented button comme le reste ? »), puis défaits :
+neuf entrées font ~920 px (« ça fait peut-être un peu gros »). Le tri de
+l'**Optimisation**, cinq entrées (~640 px), est en onglets à la souris ; au
+doigt, les deux restent des listes déroulantes (lot 11).
 
 | Entrée | Clé de tri |
 |--------|-----------|

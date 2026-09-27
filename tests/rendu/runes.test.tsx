@@ -201,14 +201,14 @@ export function testRenduRunesFiltresLigne() {
   }
 }
 
-// Lot 8a-1 : à la souris, le tri en ONGLETS (`Segmented`), comme le reste de
-// la page. Ajouté avec eux ; les tests d'avant restent inchangés.
+// Lot 8a-1 : à la souris, le tri de l'Optimisation en ONGLETS (`Segmented`),
+// comme le reste de la page. Celui de la Liste reste une liste déroulante
+// (neuf entrées en onglets : « un peu gros », Thomas). Ajouté avec eux ; les
+// tests d'avant restent inchangés.
 export function testRenduRunesTriOnglets() {
   titre('rendu · Mon compte · Runes — le tri en onglets (souris)');
   const liste = boutons(rendreVue('liste'));
-  for (const e of ['Grade', 'Propriété secondaire', 'Sous-propriété avant meule', 'Nv. d’amélioration', 'Obtenu', 'Total des sous-prop.', 'Efficience', 'Slot'])
-    ok(liste.some((x) => x.texte === e && x.presse === false), `liste : onglet « ${e} »`);
-  ok(liste.some((x) => x.texte === 'Score' && x.title === 'Le score du jeu' && x.presse === true), 'liste : « Score », enclenché par défaut, avec son infobulle');
+  ok(!liste.some((x) => x.texte === 'Score' || x.texte === 'Grade'), 'liste : pas d\'onglets de tri, la liste déroulante reste');
   const optim = boutons(rendreVue('optimisation'));
   ok(optim.some((x) => x.texte === 'Valeur actuelle' && x.presse === true), 'optimisation : « Valeur actuelle », enclenché par défaut');
   for (const e of ['Potentiel héroïque', 'Potentiel légendaire', 'Gain héroïque', 'Gain légendaire'])

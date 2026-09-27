@@ -262,9 +262,12 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
 
 Les filtres se combinent avec la recherche.
 
-⚠️ **À la SOURIS, deux lignes fixes** (refonte graphique, lot 8b) : la
-recherche à largeur fixe (288 px) et le **tri calé à droite**, puis élément ·
-Nat, Doublons, 2A sur une ligne. Une barre unique a été essayée puis défaite
+⚠️ **À la SOURIS, trois lignes fixes** (refonte graphique, lot 8b) : la
+recherche à largeur fixe (288 px), puis élément · Nat, Doublons, 2A sur une
+ligne, puis **le tri à la suite des filtres** (Thomas : « mets l'ordre à la
+suite des filtres »), sur la ligne de la pagination, calée à droite. Cette
+ligne reste là sans résultat ni seconde page : le tri ne disparaît jamais
+avec les données. Une barre unique a été essayée puis défaite
 par Thomas : à 1 000 px, elle écrasait la recherche et renvoyait le tri seul
 à la ligne. Les filtres restent **visibles**, pas
 dans des menus : même choix que pour les runes (décision 20 du cadrage

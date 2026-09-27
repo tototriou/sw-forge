@@ -266,6 +266,33 @@ function MonsterBoxSection({
     </>
   );
 
+  // ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux ordres
+  // s'excluent. Et il n'est pas mêlé aux pastilles de filtre — trier n'est pas
+  // filtrer, le ranger parmi elles le ferait lire comme un critère de plus.
+  // ⚠️ Les libellés disent ce qui varie — la date ou le nom — et NON « ordre du
+  // jeu » : les monstres sont groupés par élément dans les deux cas, donc les
+  // deux sont « l'ordre du jeu ».
+  // Posé à DEUX endroits selon le format (un seul visible), d'où une fonction.
+  const tri = (className = '') => (
+    <Segmented
+      value={sortMode}
+      onChange={setSortMode}
+      className={className}
+      options={[
+        {
+          key: 'jeu' as const,
+          label: 'Sortie',
+          hint: 'Par élément, puis les 2A d’abord et les familles par date de sortie',
+        },
+        {
+          key: 'alpha' as const,
+          label: 'A → Z',
+          hint: 'Par élément, puis par nom',
+        },
+      ]}
+    />
+  );
+
   return (
     <div>
       {/* ⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8b, la
@@ -283,12 +310,12 @@ function MonsterBoxSection({
           filtres (élément, étoiles, doublons/2A) passent dans le tiroir sous
           `lg`. Elles occupaient quatre lignes avant la première carte sur un
           téléphone — plus que la grille qu'elles filtrent.
-          ⚠️ **À la SOURIS, DEUX lignes fixes** (lot 8b) : la recherche à
-          largeur fixe et le TRI calé à droite, puis TOUS les filtres sur une
-          ligne. Une barre unique a été essayée et défaite (Thomas : « ça va
-          pas ») : à 1 000 px elle écrasait la recherche et renvoyait le tri
-          seul à la ligne. Les filtres restent VISIBLES, pas dans des menus
-          (décision 20, Runes : Thomas n'en a pas voulu). */}
+          ⚠️ **À la SOURIS, trois lignes fixes** (lot 8b) : la recherche à
+          largeur fixe, TOUS les filtres sur une ligne, puis le tri et la
+          pagination. Une barre unique a été essayée et défaite (Thomas :
+          « ça va pas ») : à 1 000 px elle écrasait la recherche et renvoyait
+          le tri seul à la ligne. Les filtres restent VISIBLES, pas dans des
+          menus (décision 20, Runes : Thomas n'en a pas voulu). */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
           <Champ
@@ -299,33 +326,26 @@ function MonsterBoxSection({
             classNameConteneur="max-w-xs flex-1 lg:w-72 lg:flex-none"
           />
 
-          {/* ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux
-              ordres s'excluent. Et il est posé à côté de la RECHERCHE, pas dans
-              la rangée de filtres en dessous — trier n'est pas filtrer, le
-              mêler aux pastilles le ferait lire comme un critère de plus.
-              ⚠️ Les libellés disent ce qui varie — la date ou le nom — et NON
-              « ordre du jeu » : les monstres sont groupés par élément dans les
-              deux cas, donc les deux sont « l'ordre du jeu ». */}
-          <Segmented
-            value={sortMode}
-            onChange={setSortMode}
-            className="lg:ml-auto"
-            options={[
-              {
-                key: 'jeu' as const,
-                label: 'Sortie',
-                hint: 'Par élément, puis les 2A d’abord et les familles par date de sortie',
-              },
-              {
-                key: 'alpha' as const,
-                label: 'A → Z',
-                hint: 'Par élément, puis par nom',
-              },
-            ]}
-          />
+          {/* Au doigt, le tri à côté de la recherche ; à la souris, sous les
+              filtres (voir plus bas). */}
+          {tri('lg:hidden')}
         </div>
 
         <div className="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-x-5 lg:gap-y-2">{filtres}</div>
+      </div>
+
+      {/* ⚠️ **À la SOURIS, le TRI vient À LA SUITE DES FILTRES** (Thomas,
+          lot 8b : « mets l'ordre à la suite des filtres »), sur la ligne de
+          la pagination : les deux réglages de PRÉSENTATION de la grille, juste
+          au-dessus d'elle. La ligne est là même sans résultat ni seconde
+          page — le tri ne disparaît jamais avec les données. */}
+      <div className="mb-3 hidden items-center gap-3 lg:flex">
+        {tri()}
+        {filtered.length > 0 && pageCount > 1 && (
+          <div className="ml-auto">
+            <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
+          </div>
+        )}
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer ma box">
@@ -340,8 +360,9 @@ function MonsterBoxSection({
               lit avec les cartes qu'il découpe, pas avec le compteur en tête.
               Répétée en bas plus loin. Le `Pager` se masque seul à une seule
               page. */}
+          {/* À la souris, elle est sur la ligne du tri, plus haut. */}
           {pageCount > 1 && (
-            <div className="mb-3 flex justify-end">
+            <div className="mb-3 flex justify-end lg:hidden">
               <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
             </div>
           )}

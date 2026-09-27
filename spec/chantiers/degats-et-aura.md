@@ -355,6 +355,9 @@ La contre-lecture du correctif a produit une carte et un validateur locaux,
 mais a dépassé son budget après deux sorties tronquées puis relues. La preuve
 reste inachevée : **finalisation-preuve** reprend uniquement cette preuve,
 avant a2a2. Aucun contrôle vert d'une carte locale ne clôt le lot initial.
+
+##### Validations des cartes 6bis
+
 La finalisation et la contre-revue pilote ont depuis validé la carte corrigée,
 les deux écarts et les preuves ; a2a2 peut commencer.
 Le pilote a ensuite validé a2a2 : quatre clés réconciliées, et le `return`
@@ -376,6 +379,12 @@ contexte de la relique essayée ; `relicOptim.ts` consomme indirectement la note
 des couples faisables. Le résultat conserve la relique et la paire retenues,
 distinctes des essais. Les auras propres aux six runes restent hors du calcul
 actuel ; a2b3 peut réconcilier les huit clés projetées.
+Le pilote valide a2b3 après rectification de sa carte combinée : les deux
+scripts consomment le contexte transmis, mais n'en déduisent pas les auras
+propres aux six runes ; les deux tests ne prouvent aucune couverture d'aura.
+Les huit clés projetées sont réconciliées. Le vérificateur compare désormais
+aussi les **verdicts** combinés aux cartes sources : `relicOptim.ts` reste
+« consommateur indirect », non un nouveau verdict « transmetteur ».
 
 #### Suivi des lots
 
@@ -407,8 +416,8 @@ actuel ; a2b3 peut réconcilier les huit clés projetées.
 | 6bis-a2a2 — sets actifs du build et score | C | terminé après complément pilote | reçu `4816082` ↔ `1d20a54` / 2026-09-26 |
 | 6bis-a2b1 — paire d'artéfacts et cache | C | terminé après reprise | reçu `e5d785f` ↔ `9c2e357` / 2026-09-27 |
 | 6bis-a2b2 — exclusive et sélection de relique | C | terminé | reçu `0a512eb` ↔ `4e46068` / 2026-09-27 |
-| 6bis-a2b3 — scripts, tests et réconciliation | C | à lancer | — |
-| 6bis-a3a — conditions et élagages locaux | C | en attente de a2b3 | — |
+| 6bis-a2b3 — scripts, tests et réconciliation | C | terminé après rectification pilote | reçu initial `d04bb19` ↔ `833b51a` / 2026-09-27 ; preuve rectifiée relivrée |
+| 6bis-a3a — conditions et élagages locaux | C | à lancer | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
 | 6bis-a4a — recette, reset et import écran | C | en attente de a3b | — |
 | 6bis-a4b — CLI et scripts de diagnostic | C | en attente de a4a | — |
@@ -1934,6 +1943,16 @@ doublon et verdict contradictoire ; coller commande et sortie dans la preuve.
 Le fichier combiné est l'interface attendue par a3a et a4d2 ; il ne remplace
 pas les trois preuves détaillées. **Ne fait pas :** tests d'exécution,
 conditions, diagnostics, benchmark, CLI ou correction de code.
+
+**Résultat du 2026-09-27.** Les quatre clés de scripts/tests ont été classées
+sur leurs appels et assertions : deux consommateurs du contexte transmis,
+deux tests sans preuve d'aura. La réunion a2b1–a2b3 couvre les huit clés
+exactes de la projection. La contre-vérification pilote a corrigé un verdict
+de synthèse différent de sa carte source (`relicOptim.ts`) et renforcé le
+vérificateur par un auto-refus de cette divergence. Les fenêtres ciblées
+totalisent 259 lignes ; `spec-lint` et `git diff --check` passent. La preuve
+privée `controle-6bis-a2b3.md` conserve le reçu initial et la rectification ;
+aucun test d'exécution, CLI ou benchmark n'est attesté par ce lot.
 
 #### 6bis-a3a — conditions et élagages locaux
 

@@ -262,9 +262,11 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
 
 Les filtres se combinent avec la recherche.
 
-⚠️ **À la SOURIS, une seule barre d'outils** (refonte graphique, lot 8b, la
-maquette) : recherche · élément · Nat, Doublons, 2A, puis le **tri calé à
-droite** (`lg:order-last lg:ml-auto`). Les filtres restent **visibles**, pas
+⚠️ **À la SOURIS, deux lignes fixes** (refonte graphique, lot 8b) : la
+recherche à largeur fixe (288 px) et le **tri calé à droite**, puis élément ·
+Nat, Doublons, 2A sur une ligne. Une barre unique a été essayée puis défaite
+par Thomas : à 1 000 px, elle écrasait la recherche et renvoyait le tri seul
+à la ligne. Les filtres restent **visibles**, pas
 dans des menus : même choix que pour les runes (décision 20 du cadrage
 [../chantiers/refonte-graphique.md](../chantiers/refonte-graphique.md)). Au
 doigt, rien ne change (lot 11).

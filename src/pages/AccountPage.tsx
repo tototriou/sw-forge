@@ -283,19 +283,20 @@ function MonsterBoxSection({
           filtres (élément, étoiles, doublons/2A) passent dans le tiroir sous
           `lg`. Elles occupaient quatre lignes avant la première carte sur un
           téléphone — plus que la grille qu'elles filtrent.
-          ⚠️ **À la SOURIS, UNE barre d'outils** (lot 8b, la maquette) :
-          recherche · élément · étoiles, doublons, 2A · et le TRI calé à droite
-          (`lg:order-last lg:ml-auto`). Les rangées s'effacent dans cette
-          ligne (`lg:contents`). Les filtres restent VISIBLES, pas dans des
-          menus (décision 20, Runes : Thomas n'en a pas voulu). */}
-      <div className="flex flex-col gap-3 mb-4 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-4 lg:gap-y-2">
-        <div className="flex flex-wrap items-center gap-2 lg:contents">
+          ⚠️ **À la SOURIS, DEUX lignes fixes** (lot 8b) : la recherche à
+          largeur fixe et le TRI calé à droite, puis TOUS les filtres sur une
+          ligne. Une barre unique a été essayée et défaite (Thomas : « ça va
+          pas ») : à 1 000 px elle écrasait la recherche et renvoyait le tri
+          seul à la ligne. Les filtres restent VISIBLES, pas dans des menus
+          (décision 20, Runes : Thomas n'en a pas voulu). */}
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
           <Champ
             icone={<Search size={15} />}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher un monstre…"
-            classNameConteneur="max-w-xs flex-1"
+            classNameConteneur="max-w-xs flex-1 lg:w-72 lg:flex-none"
           />
 
           {/* ⚠️ Un contrôle à CRAN (`Segmented`) et non une pastille : les deux
@@ -308,7 +309,7 @@ function MonsterBoxSection({
           <Segmented
             value={sortMode}
             onChange={setSortMode}
-            className="lg:order-last lg:ml-auto"
+            className="lg:ml-auto"
             options={[
               {
                 key: 'jeu' as const,
@@ -324,7 +325,7 @@ function MonsterBoxSection({
           />
         </div>
 
-        <div className="hidden lg:contents">{filtres}</div>
+        <div className="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-x-5 lg:gap-y-2">{filtres}</div>
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer ma box">

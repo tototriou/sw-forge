@@ -269,6 +269,15 @@ déroulante (règle de vocabulaire du [README](../README.md)). Calcul pur dans
 [runeSort.ts](src/lib/runeSort.ts), testé par
 [rune-tri.test.ts](tests/rune-tri.test.ts).
 
+⚠️ **À la SOURIS, le tri est en ONGLETS** (`Segmented`), comme les autres
+contrôles de la page — refonte graphique, lot 8a (Thomas : « le tri des runes
+ne peut pas être un segmented button comme le reste ? »). Mêmes entrées, même
+ordre (celui du jeu), la même infobulle par entrée ; le bouton de sens reste
+collé à côté. Neuf entrées font ~920 px : sur une fenêtre plus étroite, le
+`Segmented` passe de lui-même en mode serré (il se mesure). **Au doigt**, la
+liste déroulante reste (lot 11) : neuf onglets ne tiennent pas sur un
+téléphone. Même chose pour le tri de l'Optimisation (cinq entrées).
+
 | Entrée | Clé de tri |
 |--------|-----------|
 | **Grade** | rareté, puis étoiles |
@@ -905,7 +914,8 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
 
 ### Affichage & interactions
 
-- **Tri** (dropdown) : Efficience actuelle (défaut) · Potentiel héroïque ·
+- **Tri** (onglets à la souris, liste déroulante au doigt — voir § Tri de la
+  Liste) : Efficience actuelle (défaut) · Potentiel héroïque ·
   Potentiel légendaire · Gain héroïque · Gain légendaire. **Gain** = potentiel −
   efficience actuelle.
 - **Palier** : champ % — n'affiche que les runes dont l'efficience actuelle ≥ palier

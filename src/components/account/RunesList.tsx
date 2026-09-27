@@ -11,6 +11,7 @@ import { Critere } from './SubSearchDialog';
 import SubSearchBar from './SubSearchBar';
 import MobileSheet from '../../ui/MobileSheet';
 import Selecteur from '../../ui/Selecteur';
+import Segmented from '../../ui/Segmented';
 import BoutonSensTri from '../BoutonSensTri';
 import { SENS_PAR_DEFAUT, SensTri } from '../../lib/tri';
 import AncientFilter, {
@@ -204,6 +205,8 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
             place, en bas de la colonne de filtres. */}
         <div data-tri-bloc className="flex items-center gap-2 flex-wrap">
           <span className="w-[86px] flex-none label">Trier par</span>
+          {/* Au DOIGT : la liste déroulante (lot 11 ; neuf entrées ne tiennent
+              pas en onglets sur un téléphone). */}
           <Selecteur
             value={sort}
             onChange={(e) => {
@@ -212,6 +215,7 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
             }}
             title={RUNE_SORTS.find((s) => s.key === sort)?.hint}
             pleineLargeur={false}
+            className="lg:hidden"
           >
             {RUNE_SORTS.map((s) => (
               <option key={s.key} value={s.key} title={s.hint}>
@@ -219,6 +223,22 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
               </option>
             ))}
           </Selecteur>
+          {/* ⚠️ À la SOURIS, des ONGLETS (`Segmented`), comme les autres
+              contrôles de la page (Thomas : « le tri des runes ne peut pas
+              être un segmented button comme le reste ? », lot 8a). Mêmes
+              entrées, même ordre (celui du jeu), même infobulle par entrée.
+              Neuf entrées font ~920 px : sur une fenêtre plus étroite, le
+              `Segmented` passe de lui-même en mode serré (il se mesure). */}
+          <div className="hidden min-w-0 lg:block">
+            <Segmented
+              value={sort}
+              onChange={(v) => {
+                setSort(v);
+                setPage(0);
+              }}
+              options={RUNE_SORTS.map((s) => ({ key: s.key, label: s.label, hint: s.hint }))}
+            />
+          </div>
           {/* ⚠️ Collé au sélecteur, jamais ailleurs : c'est le MÊME réglage en
               deux morceaux — sur quoi l'on trie, et dans quel sens. */}
           <BoutonSensTri

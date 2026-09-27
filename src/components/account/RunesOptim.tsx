@@ -427,6 +427,7 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
 
         <div className="flex items-center gap-2">
           <span className="label">Trier par</span>
+          {/* Au DOIGT : la liste déroulante (lot 11). */}
           <Selecteur
             value={sort}
             onChange={(e) => {
@@ -434,6 +435,7 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
               setPage(0);
             }}
             pleineLargeur={false}
+            className="lg:hidden"
           >
             {SORTS.map((s) => (
               <option key={s.key} value={s.key}>
@@ -441,6 +443,18 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
               </option>
             ))}
           </Selecteur>
+          {/* À la SOURIS, des onglets (`Segmented`), comme le reste de la
+              page (Thomas, lot 8a). Mêmes entrées, même ordre. */}
+          <div className="hidden lg:block">
+            <Segmented
+              value={sort}
+              onChange={(v) => {
+                setSort(v);
+                setPage(0);
+              }}
+              options={SORTS.map((s) => ({ key: s.key, label: s.label }))}
+            />
+          </div>
           <BoutonSensTri
             sens={sens}
             onChange={(v) => {

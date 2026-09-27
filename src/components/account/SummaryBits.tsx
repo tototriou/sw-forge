@@ -12,19 +12,33 @@ export const pct = (n: number, total: number) => (total ? (n / total) * 100 : 0)
 export const fmt = (v: number) => v.toFixed(1);
 
 // Tuile de chiffre clé : libellé mono, grande valeur, sous-titre.
+// ⚠️ `bandeau` (refonte graphique, lot 8a, la maquette `.stats`) : à la
+// SOURIS, le chiffre n'est plus une carte mais une CASE d'un bandeau commun —
+// sans cadre propre, séparée de la précédente par un filet (`premier` : pas de
+// filet à gauche). Au doigt, la carte d'avant (lot 11).
+const CASE_BANDEAU = 'lg:flex-1 lg:rounded-none lg:border-0 lg:border-l lg:border-border-soft lg:bg-transparent lg:px-4 lg:py-3';
+
 export function Kpi({
   label,
   value,
   sub,
   tone,
+  bandeau = false,
+  premier = false,
 }: {
   label: string;
   value: string;
   sub?: string;
   tone?: string;
+  bandeau?: boolean;
+  premier?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-panel px-3 py-2.5">
+    <div
+      className={`rounded-xl border border-border bg-panel px-3 py-2.5 ${bandeau ? CASE_BANDEAU : ''} ${
+        bandeau && premier ? 'lg:border-l-0' : ''
+      }`}
+    >
       <p className="label">{label}</p>
       <p
         className="mt-0.5 text-[22px] font-bold leading-none tabular-nums"
@@ -38,9 +52,19 @@ export function Kpi({
 }
 
 // Panneau titré.
-export function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+// `className` : la place du panneau dans une grille (ordre, largeur) — le
+// Résumé des runes le range en trois colonnes à la souris (lot 8a).
+export function Panel({
+  title,
+  children,
+  className = '',
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <section className="rounded-xl border border-border bg-panel p-4">
+    <section className={`rounded-xl border border-border bg-panel p-4 ${className}`}>
       <h3 className="mb-3 label">{title}</h3>
       {children}
     </section>

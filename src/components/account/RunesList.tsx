@@ -259,6 +259,17 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
       {/* ⚠️ CINQ rangées de filtres — sets, slots, propriété secondaire, tri —
           soit près de la moitié d'un écran de téléphone avant la première rune.
           Sous `lg` elles descendent dans le panneau « Options ». */}
+      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a, la maquette) :
+          le titre de la vue et le nombre de runes de l'INVENTAIRE ; le compte
+          FILTRÉ reste au-dessus des tuiles. Au doigt, la barre du haut dit
+          déjà la vue (lot 11). */}
+      <div className="mb-3 hidden items-center gap-2.5 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Liste</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {runes.length.toLocaleString('fr-FR')} rune{runes.length > 1 ? 's' : ''}
+        </span>
+      </div>
+
       <div className="hidden lg:flex lg:flex-col gap-3 mb-4">
         <FiltresRunes
           runes={runes}

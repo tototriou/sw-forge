@@ -75,7 +75,7 @@ import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu } from './rendu/ui
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil } from './rendu/app.test';
 import { testRenduAccueil, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense } from './rendu/recos.test';
-import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets } from './rendu/runes.test';
+import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris } from './rendu/runes.test';
 import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi } from './rendu/rta.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
@@ -130,6 +130,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRunesAVenir', testRenduRunesAVenir],
   ['testRenduRunesFiltresLigne', testRenduRunesFiltresLigne],
   ['testRenduRunesTriOnglets', testRenduRunesTriOnglets],
+  ['testRenduRunesResumeSouris', testRenduRunesResumeSouris],
+  ['testRenduRunesListeSouris', testRenduRunesListeSouris],
   ['testRenduUiBouton', testRenduUiBouton],
   ['testRenduUiEtats', testRenduUiEtats],
   ['testRenduUiMenu', testRenduUiMenu],

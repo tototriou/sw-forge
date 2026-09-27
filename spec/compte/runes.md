@@ -83,6 +83,26 @@ pagination** (rien n'est rendu par rune → un seul passage mémoïsé sur l'inv
 fluide à ~2000 runes). Fichier :
 [RunesSummary.tsx](src/components/account/RunesSummary.tsx).
 
+⚠️ **À la SOURIS, la disposition de la maquette** (refonte graphique, lot
+8a-2), sans rien retirer ni ajouter :
+- un **en-tête** : « Résumé » et le nombre de runes ;
+- les six chiffres clés dans **un bandeau** (`Kpi bandeau`) : des cases
+  séparées par un filet, au lieu de six cartes ;
+- **trois colonnes** : Distribution · Qualité du stock · Marge de
+  progression, puis Par emplacement et Stats principales (sur deux
+  colonnes), puis Par set sur toute la largeur. La maquette n'a pas Par
+  set, mais il reste ;
+- **Par emplacement** en barres verticales : la hauteur suit l'efficience
+  moyenne ; le nombre de runes et le maximum sont écrits sous chaque barre.
+
+L'ordre de la souris est posé par `lg:order-*`. Au doigt, une colonne dans
+l'ordre d'avant, et les cartes par slot (lot 11). Non repris de la
+maquette, et gardés pour le lot 13 (décision 20) :
+- le tableau des stats principales slot par slot (une information
+  nouvelle) ;
+- le lien « Voir l'optimisation » ;
+- le choix de la mesure dans la page, qui reste un réglage du ⚙.
+
 Blocs, dans l'ordre :
 
 1. **Chiffres clés** (6 tuiles) : nombre de runes (+ nb au **+15**) ·
@@ -126,6 +146,13 @@ Blocs, dans l'ordre :
    la couleur du set), effectif, efficience moyenne et max, **triée par volume**.
 
 ## Onglet Liste — `RunesList`
+
+⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8a-2, la maquette) :
+« Liste » et le nombre de runes de l'INVENTAIRE ; le compte FILTRÉ reste
+au-dessus des tuiles. La **pagination** (`Pager`, partagé par toutes les
+pages qui paginent) a ses flèches en `BoutonIcone` de la librairie : même
+carré de 28 px à cadre, même zone tactile de 44 px (décision 16). La
+pagination numérotée de la maquette est repoussée au lot 13 (décision 20).
 
 ### ⚠️ La tuile EST la carte du jeu
 

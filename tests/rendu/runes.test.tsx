@@ -218,3 +218,24 @@ export function testRenduRunesTriOnglets() {
   for (const e of ['Potentiel héroïque', 'Potentiel légendaire', 'Gain héroïque', 'Gain légendaire'])
     ok(optim.some((x) => x.texte === e && x.presse === false), `optimisation : onglet « ${e} »`);
 }
+
+// Lot 8a-2 : le Résumé à la souris — en-tête, bandeau de chiffres, barres
+// par emplacement. Ajouté avec eux ; les tests d'avant restent inchangés.
+export function testRenduRunesResumeSouris() {
+  titre('rendu · Mon compte · Runes — Résumé à la souris');
+  const html = rendreVue('resume');
+  const t = texteVisible(html);
+  ok(/<h1[^>]*>Résumé<\/h1>/.test(html) && t.includes('Résumé 9 runes'), 'l\'en-tête : « Résumé », puis le nombre de runes');
+  const barres = html.match(/data-emplacements-barres[\s\S]*?<\/section>/)?.[0] ?? '';
+  const texteBarres = texteVisible(barres);
+  egal((texteBarres.match(/Slot \d/g) ?? []).length, 6, 'une barre par emplacement');
+  ok(texteBarres.includes('89.9 % Slot 1 1 · max 89.9 %') && texteBarres.includes('94.7 % Slot 4 2 · max 109.5 %'), 'chaque barre dit la moyenne, le slot, le nombre et le maximum');
+}
+
+// Lot 8a-2 : la Liste à la souris — l'en-tête. Ajouté avec lui ; les tests
+// d'avant restent inchangés.
+export function testRenduRunesListeSouris() {
+  titre('rendu · Mon compte · Runes — Liste à la souris');
+  const html = rendreVue('liste');
+  ok(/<h1[^>]*>Liste<\/h1>/.test(html) && texteVisible(html).includes('Liste 9 runes'), 'l\'en-tête : « Liste », puis le nombre de runes de l\'inventaire');
+}

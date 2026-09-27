@@ -488,6 +488,14 @@ sans muter `DamageSetup`. En particulier, `auraResPre` figé une fois par
 recherche ne peut représenter la RES/PRE des sets propres variables : les
 tests de minimum, maximum, bornes et filtres finaux doivent distinguer la
 part externe constante et la part propre au build, avec la même convention.
+**Décision utilisateur du 2026-09-27 :** pour les conditions RES/PRE,
+un set Tolerance ou Accuracy propre est reconnu même s'il n'est pas demandé,
+y compris s'il est complété par Intangible, **seulement quand
+`compterAurasResPre` est activé**. Désactivé, il ne contribue ni aux bornes
+ni au filtre final de ces conditions ; son effet de combat reste actif.
+L'analogie avec Blade porte sur la reconnaissance d'un set réellement formé,
+pas sur une modification présumée des protections existantes de Blade ou
+d'Intangible : a3b vérifie leur parcours avant tout verdict algorithmique.
 Les clés de sorts non pris en charge sont refusées avec le chemin du champ,
 sur la base des tables de capacités curées ; jamais un cran secondaire ou
 ignore DEF arbitrairement appliqué à un sort sans cette capacité.
@@ -1986,10 +1994,13 @@ six signatures ou déclarations comme points de propagation ; le bilan est
 6 consommateurs, 12 non-consommateurs, dont 7 propagations. Les contrôles
 rejoués retrouvent les 18 clés sans doublon, 375 lignes ciblées et un lint
 propre. Les filtres min/max sont exacts pour l'aura figée reçue, non pour les
-activations propres inconnues avant six runes. Dominance et faisabilité min
-peuvent couper un build valide ; le maximum peut conserver un faux positif ;
-`filterSlot` est heuristique. Deux scénarios Tolerance/Intangible et toggle
-sont transmis à a3b. Aucun test d'exécution ni benchmark n'est attesté.
+activations propres inconnues avant six runes. La carte signale des **risques
+statiques à éprouver** pour dominance, faisabilité min et rétention ; elle
+ne démontre aucune perte de build par une recherche exécutée et ne conclut
+pas à un défaut du traitement de Blade ou d'Intangible. Le maximum peut
+conserver un faux positif ; `filterSlot` est heuristique. Deux scénarios
+Tolerance/Intangible et toggle sont transmis à a3b. Aucun test d'exécution
+ni benchmark n'est attesté.
 
 #### 6bis-a3b — recherche, diagnostics et filtre final
 
@@ -2007,9 +2018,26 @@ Classer bornes, rétention, `prepareSearch`, diagnostics, appariement,
 sélection finale artéfacts/relique et caches. Écrire pour chaque étape si
 les six runes sont connues et si une coupe sûre reste démontrable.
 
-**Sortie :** carte a3b, liens vers a2 et a3a, plus inventaire des tests
-différentiels nécessaires aux futurs 6bis-b-*. **Ne fait pas :** ces tests,
-benchmark ni correction du moteur.
+**Contrôle ciblé de la décision du 2026-09-27 :** suivre d'abord le cas de
+référence Rage seul demandé, Blade non demandé complété par Intangible,
+depuis les demi-builds jusqu'au filtre final. Le cas historique de Lushen
+est un point de départ, pas une preuve que le parcours actuel est défectueux.
+Suivre ensuite Rage seul demandé avec Tolerance non demandé complété par
+Intangible : minimum RES franchi et maximum RES dépassé quand le toggle est
+actif ; toggle éteint, aucun des deux tests de condition ne compte cette aura,
+qui reste présente au calcul de combat. Distinguer une borne optimiste d'une
+activation réelle et noter l'étape exacte qui reçoit ou perd l'information.
+Un verdict de faux rejet exige un contrôle reproductible sur le **vrai
+chemin de recherche**, avec ses paramètres et sa complétude consignés ; à
+défaut, le verdict reste « risque non démontré ». Ce contrôle ciblé peut
+rester dans le dossier de preuves ; s'il appelle le moteur par un script ad
+hoc, appliquer `algo-verify`. Ne pas refondre les tranches de Blade ou
+d'Intangible sans échec observé.
+
+**Sortie :** carte a3b, liens vers a2 et a3a, trace des deux cas ci-dessus
+et inventaire des tests différentiels nécessaires aux futurs 6bis-b-*.
+**Ne fait pas :** la suite différentielle complète, benchmark ni correction
+du moteur.
 
 #### 6bis-a4a — recette, reset et import écran
 
@@ -2148,6 +2176,13 @@ omettre ceux attribués à un autre sous-lot. Ensemble, ils livrent ceci :
   jamais une garantie d'optimalité globale. Mesurer l'impact de la recherche
   selon `optimizer-perf-testing`, sans benchmark concurrent ; toute constante
   changée suit `algo-verify` avant d'être figée.
+- Pour RES/PRE, préserver le potentiel d'Accuracy/Tolerance propres non
+  demandés dans les conditions **seulement si** le toggle est actif : borne
+  favorable aux minimums, borne fondée sur l'inévitable pour les maximums,
+  puis activations réelles au filtre final. Toggle éteint, leurs auras restent
+  en combat mais ne favorisent ni ne pénalisent ces conditions. Reprendre la
+  trace Blade/Intangible de a3b comme témoin ; ne changer son traitement que
+  si un test ciblé établit un défaut réel.
 - Renommer et propager le champ de B.0 (état, reset, recette, parseur,
   export/import, CLI, caches, scripts et tests). Ancien `setsAura` absent/vide
   accepté ; non vide refusé avec le chemin et la raison. Nouveau champ :

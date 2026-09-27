@@ -1,8 +1,9 @@
 // ⚠️ **Un monstre choisi, le curseur passe au monstre suivant** (refonte
 // graphique, décision 18 — Thomas : « quand on édite une équipe, mets un
 // autofocus sur le monstre suivant une fois qu'on en a choisi un, idem pour
-// les défenses »). Vaut pour les 3 slots d'un deck de recommandation et les 3
-// monstres d'une défense visée (« Fort contre »). Calcul pur, testé à part
+// les défenses »). Vaut pour les 3 slots d'un deck de recommandation, les 3
+// monstres d'une défense visée (« Fort contre ») et, depuis le 2026-09-27, les
+// 3 slots d'une équipe de Siège Défense / Offense. Calcul pur, testé à part
 // (tests/siege-slot-suivant.test.ts) : le focus lui-même ne se voit pas dans
 // un rendu serveur.
 

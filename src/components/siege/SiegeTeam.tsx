@@ -13,6 +13,7 @@ import {
   LeadInfo,
 } from '../../lib/speed';
 import MonsterPicker from '../MonsterPicker';
+import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
@@ -89,6 +90,9 @@ export default function SiegeTeam({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [detailIdx, setDetailIdx] = useState<number | null>(null); // slot dont on montre le détail
   const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
+  // Un monstre choisi → le curseur passe au slot vide suivant (décision 18,
+  // voir slotVideSuivant.ts) : on compose les trois d'affilée au clavier.
+  const [focus, setFocus] = useState<JetonSlot | null>(null);
   // ⚠️ Le budget de la ligne « vitesse + sets » est COMPTÉ. Sur 348 px, une
   // carte compacte fait (348 − 2×4) ÷ 3 ≈ 113 px ; moins le rembourrage et le
   // portrait de 30, il reste ~73 px. Trois icônes à 17 px n'y tiennent pas à
@@ -456,7 +460,11 @@ export default function SiegeTeam({
                 combat={slotInfos[idx].combat}
                 monsters={monsters}
                 usedIds={usedIds}
-                onPick={(id) => onPickMonster(team.id, idx, id)}
+                onPick={(id) => {
+                  onPickMonster(team.id, idx, id);
+                  setFocus((f) => prochainFocus(f, team.slots.map((s) => s.monsterId !== null), idx));
+                }}
+                jetonFocus={focus?.slot === idx ? focus.n : undefined}
                 onClear={() => onClearSlot(team.id, idx)}
                 onRune={(v) => onSlotRune(team.id, idx, v)}
                 onTick={(t) => onSlotTick(team.id, idx, t)}
@@ -802,6 +810,8 @@ interface SlotProps {
   monsters: Monster[];
   usedIds: Set<string>;
   onPick: (id: string) => void;
+  // Voir `jetonFocus` dans MonsterPicker : le champ prend le focus quand il change.
+  jetonFocus?: number;
   onClear: () => void;
   onRune: (v: number | null) => void;
   onTick: (tick: number) => void;
@@ -820,6 +830,7 @@ function SlotContent({
   monsters,
   usedIds,
   onPick,
+  jetonFocus,
   onClear,
   onRune,
   onTick,
@@ -851,6 +862,7 @@ function SlotContent({
         <MonsterPicker
           monsters={monsters}
           onPick={onPick}
+          jetonFocus={jetonFocus}
           excludeIds={usedIds}
           placeholder="Choisir un monstre…"
         />

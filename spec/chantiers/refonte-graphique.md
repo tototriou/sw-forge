@@ -247,7 +247,9 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     fait maintenant. Fichier permis hors A.2 :
     `src/components/siege/slotVideSuivant.ts` (calcul pur, testé). Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Trois
-    niveaux d'édition.
+    niveaux d'édition. **Étendue le 2026-09-27** aux équipes de Siège
+    Défense / Offense (Thomas : « ah oui fais ça ») —
+    [../siege/equipes.md](../siege/equipes.md) § Slot vide.
 19. **Siège · Recommandations — vue Attaque / Défense à la place du filtre
     d'origine** (Thomas, le 2026-09-26 : « au lieu du tri toutes / mes recos
     / importées, mets plutôt un tri attaque / défense […] je veux des

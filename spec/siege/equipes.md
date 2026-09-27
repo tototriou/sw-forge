@@ -60,6 +60,14 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - Marqué « Leader » (slot 0) ou « Slot », avec un **`MonsterPicker`** :
   recherche par nom (max 25), exclut les monstres déjà utilisés dans l'équipe
   (`usedIds`), affiche **portrait** + nom + SPD. Sélection → remplit le slot.
+- ⚠️ **Puis le curseur passe au slot vide suivant** (refonte graphique,
+  décision 18, étendue ici le 2026-09-27 — Thomas : « ah oui fais ça ») :
+  son champ prend le focus, en bouclant sur ceux d'avant si on a commencé
+  par le milieu ; équipe complète, le focus ne bouge pas. On compose les
+  trois d'affilée au clavier. Même règle que les decks et les défenses
+  visées des recommandations —
+  [slotVideSuivant.ts](../../src/components/siege/slotVideSuivant.ts)
+  (testé : `siege-slot-suivant`), `jetonFocus` de `MonsterPicker`.
 
 ## Slot rempli
 

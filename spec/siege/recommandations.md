@@ -806,6 +806,12 @@ d'une équipe de siège dont on consulte les runes (voir
   popovers de l'app ([SettingsMenu.tsx](src/components/SettingsMenu.tsx)).
 - `min-w-full` (au moins la largeur de sa vignette, pour se lire comme sa suite)
   et **280 px au plus** : la note est une phrase courte.
+- ⚠️ **C'est le `Flottant` de la librairie** (refonte graphique, lot 8a —
+  Thomas : « fais la même chose partout dans l'appli », après la bulle
+  d'aide) : même fond, même contour neutre, même ombre, même rembourrage que
+  toutes les bulles de l'app. C'était une boîte maison au contour d'ACCENT —
+  réservé à l'état enclenché, que porte déjà la vignette —, à l'ombre et aux
+  marges à elle.
 - La vignette ouverte passe en **`z-20`** : les suivantes sont peintes après dans
   le flux et passeraient sinon par-dessus le flottant.
 

@@ -35,7 +35,7 @@ import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotF
 import { DeckHit, RecoHit } from '../../lib/recoSearch';
 import { VueDefenses, VueRecos, vueDefenses } from '../../lib/recoDefenses';
 import { ConfirmDialog } from '../../ui/Dialogs';
-import { Bouton, BoutonIcone, Champ, Selecteur, ZoneCliquable } from '../../ui';
+import { Bouton, BoutonIcone, Champ, Flottant, Selecteur, ZoneCliquable } from '../../ui';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import {
@@ -2104,19 +2104,24 @@ function CounterRow({
             jamais depuis son centre (voir spec/shared/design.md).
             `min-w-full` : au moins aussi large que la vignette, pour se lire
             comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
+        {/* ⚠️ **Le `Flottant` de la librairie** (refonte graphique, lot 8a —
+            Thomas : « fais la même chose partout dans l'appli », après la
+            bulle d'aide) : même fond, même contour neutre, même ombre et même
+            rembourrage que toutes les bulles de l'app. C'était une boîte
+            maison au contour d'ACCENT (réservé à l'état enclenché), à l'ombre
+            et aux marges à elle. */}
         {noteOuverte && (
-          <div
+          <Flottant
             ref={noteRef}
             // ⚠️ Ancrée à gauche d'une vignette qui peut être la DERNIÈRE de sa
             // rangée : la note sortait alors de l'écran par la droite. Le
             // `max-w` borne sa largeur, pas sa position. Voir le hook.
             style={recalageNote}
-            className="absolute left-0 top-full z-20 mt-1 w-max min-w-full max-w-[280px] origin-top-left
-                       rounded-lg border border-accent bg-panel px-2.5 py-1.5 shadow-xl shadow-black/50
-                       animate-[popover_150ms_var(--ease-out)]"
+            largeur="w-max min-w-full max-w-[280px]"
+            rembourrage="sm"
           >
             <p className="text-xs leading-snug text-ink-dim">{counter.note}</p>
-          </div>
+          </Flottant>
         )}
       </div>
     );

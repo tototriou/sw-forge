@@ -406,6 +406,27 @@ html[data-theme='dark'] {
   color-scheme: dark;
 }
 
+/* ⚠️ **Teinte de section de l'accueil, selon le thème** (refonte graphique,
+   lot 14 — Thomas, capture de l'accueil en clair : « effectivement pas très
+   lisible »). Les couleurs de section sont des hex FIXES pensés pour le fond
+   sombre (data/couleursSection.ts) : en clair, le cyan, le jaune, le vert
+   tombaient vers 1.4:1. Le composant pose en ligne DEUX valeurs —
+   `--teinte-sombre` (la couleur d'origine) et `--teinte-clair` (sa variante
+   assombrie, `TEINTE_CLAIRE`) — et cette règle choisit selon le thème, avec
+   les DEUX déclencheurs du sombre, comme les tokens. Le composant peint
+   ensuite avec `var(--teinte)`. */
+.teinte-section {
+  --teinte: var(--teinte-clair);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .teinte-section {
+    --teinte: var(--teinte-sombre);
+  }
+}
+:root[data-theme='dark'] .teinte-section {
+  --teinte: var(--teinte-sombre);
+}
+
 body {
   background: var(--page-veil), rgb(var(--bg));
   color: rgb(var(--ink));

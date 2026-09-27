@@ -771,9 +771,13 @@ Aucune ligne `--forge-*` touchée. Contrastes mesurés :
   bordure qui sépare.
 
 `design.md` : la colonne Atelier est réalignée sur le code, dont elle avait
-décroché. Défaut préexistant listé, pas corrigé : les couleurs de section de
-l'accueil, des hex fixes pensés pour le sombre, passent sous 3:1 en clair
-(neuf sur douze). Il revient au lot de l'Accueil. À valider par Thomas.
+décroché. Défaut préexistant relevé par la mesure : les couleurs de section
+de l'accueil, des hex fixes pensés pour le sombre, passent sous 3:1 en clair
+(neuf sur douze). D'abord listé, il est corrigé à la demande de Thomas
+(« effectivement pas très lisible ») : une variante claire par couleur
+(`TEINTE_CLAIRE`, ≥ 3,2:1), choisie en CSS selon le thème ; l'accueil
+seulement, la navigation du téléphone relève du lot 11. À valider par
+Thomas.
 
 ### B.12 Lot 12 — validation finale · M
 

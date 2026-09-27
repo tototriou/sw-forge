@@ -119,6 +119,18 @@ style change :
   comme « neutre partout ») ; Thomas les a fait remettre le 2026-09-25 :
   « j'aimais bien les couleurs sur la page d'accueil ». **L'accueil est
   coloré, le menu neutre.**
+- ⚠️ **En thème CLAIR, chaque teinte a sa variante assombrie**
+  (`TEINTE_CLAIRE`, [couleursSection.ts](../src/data/couleursSection.ts) —
+  refonte graphique, lot 14 ; Thomas, sur une capture de l'accueil en clair :
+  « effectivement pas très lisible »). Les couleurs de section sont pensées
+  pour le fond sombre : en clair, l'icône sur sa tuile tombait jusqu'à 1,40:1
+  (arène), neuf sur douze sous 3:1. Chaque variante garde la teinte,
+  assombrie juste assez pour 3,2:1 sur la carte comme au survol. Le sombre
+  est inchangé. Mécanique : la tuile, le halo et le numéro d'étape posent en
+  ligne les deux valeurs (`--teinte-sombre`, `--teinte-clair`), et la règle
+  `.teinte-section` d'index.css choisit selon le thème, avec les deux
+  déclencheurs du sombre. Numéros d'étape : 4,23 à 4,37 sur la carte — des
+  repères de séquence, pas du texte courant.
 - **Le bouton du dernier appel est le `Bouton` principal plein** de la
   librairie (décision 4).
 - Pastille de version : fond d'accent à 15 %, texte à l'**encre** — l'accent

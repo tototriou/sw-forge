@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import {
   BookOpen,
@@ -29,6 +30,7 @@ import {
   COULEUR_RTA_SUB,
   COULEUR_SIEGE_SUB,
   COULEUR_COMPTE_SUB,
+  TEINTE_CLAIRE,
 } from '../data/couleursSection';
 
 const ELEMENT_ORDER: ElementKey[] = ['fire', 'water', 'wind', 'light', 'dark'];
@@ -359,14 +361,23 @@ function Separator() {
 // neutre) : icône à la teinte, fond et contour de la même teinte, fondus.
 // `color-mix` et non un suffixe hexa (`${accent}44`) : ça marche aussi bien
 // avec une variable CSS qu'avec un hexa.
+// ⚠️ **Deux valeurs de la teinte, choisies en CSS selon le thème** (lot 14) :
+// la couleur d'origine en sombre, sa variante assombrie en clair
+// (`TEINTE_CLAIRE`), où l'origine tombait à 1.4:1. L'élément porte
+// `teinte-section` et peint avec `var(--teinte)` — voir index.css.
+function varsTeinte(accent: string): CSSProperties {
+  return { '--teinte-sombre': accent, '--teinte-clair': TEINTE_CLAIRE[accent] ?? accent } as CSSProperties;
+}
+
 function Tuile({ icon: Icon, accent }: { icon: typeof BookOpen; accent: string }) {
   return (
     <span
-      className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border"
+      className="teinte-section flex h-8 w-8 flex-none items-center justify-center rounded-lg border"
       style={{
-        color: accent,
-        background: `color-mix(in srgb, ${accent} 14%, transparent)`,
-        borderColor: `color-mix(in srgb, ${accent} 32%, transparent)`,
+        ...varsTeinte(accent),
+        color: 'var(--teinte)',
+        background: 'color-mix(in srgb, var(--teinte) 14%, transparent)',
+        borderColor: 'color-mix(in srgb, var(--teinte) 32%, transparent)',
       }}
     >
       <Icon size={16} />
@@ -381,9 +392,9 @@ function Halo({ accent }: { accent: string }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-15 blur-2xl
+      className="teinte-section pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-15 blur-2xl
                  transition-opacity group-hover:opacity-30"
-      style={{ background: accent }}
+      style={{ ...varsTeinte(accent), background: 'var(--teinte)' }}
     />
   );
 }
@@ -454,7 +465,7 @@ function Etape({
 }) {
   return (
     <div className="flex gap-3.5 border-t border-border-soft p-4 first:border-t-0 md:border-l md:border-t-0 md:first:border-l-0">
-      <span className="pt-2 font-mono text-xs font-bold" style={{ color: accent }}>
+      <span className="teinte-section pt-2 font-mono text-xs font-bold" style={{ ...varsTeinte(accent), color: 'var(--teinte)' }}>
         {n}
       </span>
       <div className="min-w-0">

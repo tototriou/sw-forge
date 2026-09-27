@@ -111,9 +111,26 @@ compte 1.60 · arene 1.55
 FIXES, les mêmes dans les deux thèmes (`couleursSection.ts`), choisis pour le
 fond sombre. En clair, neuf sur douze passent sous 3:1, le seuil d'une icône
 porteuse de sens ; cyan, jaune et vert tombent vers 1,6. Ce ne sont pas des
-tokens : hors du contrat de ce lot. Le correctif possible est une variante
-claire, plus foncée, par section. Il revient à la zone Accueil (lot 5, déjà
-validé), à décider avec Thomas.
+tokens, donc hors du contrat de ce lot : je l'ai d'abord listé, sans le
+corriger.
+
+**Corrigé ensuite à la demande de Thomas** (capture de l'accueil en clair :
+« effectivement pas très lisible ») :
+- chaque couleur reçoit une variante claire (`TEINTE_CLAIRE`), de la même
+  teinte, assombrie juste assez pour 3,2:1 (script `variantes-claires.mjs`) ;
+- la règle `.teinte-section` choisit la variante selon le thème ;
+- le sombre est inchangé ;
+- accueil seulement : la navigation du téléphone peint ces couleurs en
+  attribut SVG, où une variable CSS ne se résout pas, et relève du lot 11.
+
+```text
+home 2.25 → 3.24 · rta 3.05 → 3.20 · ami 2.15 → 3.25 · siege 2.98 → 3.23
+offense 1.99 → 3.21 · recos 1.45 → 3.20 · compte 1.44 → 3.26
+monstres 2.37 → 3.21 · artefacts 2.11 → 3.27 · outils 1.57 → 3.25
+arene 1.40 → 3.26 · bestiary 2.27 → 3.20 · mecaniques 2.45 → 3.25
+releases 1.78 → 3.23          (icône sur sa tuile, pire de panel / panel2)
+numéros d'étape sur la carte : 4.23 à 4.37
+```
 
 ## Défauts qui ne se corrigent pas par un token
 

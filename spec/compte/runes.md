@@ -474,6 +474,18 @@ Deux pièces, reprises telles quelles :
 Au doigt, la rangée sous le graphe d'avant (lot 11). « Ajouter un set » et
 « Voir en tableau » de la maquette sont repoussés au lot 13 (décision 20).
 
+⚠️ **L'infobulle de survol est du HTML posé sur le graphe** (lot 8a — Thomas :
+« revois un peu les infobulles pour que ça rende mieux ») : le gabarit des
+panneaux flottants de l'app (fond `panel`, contour, ombre, texte 12 px ; la
+maquette `.tt`), qui suit le thème. Dessinée en SVG, c'était une boîte aux
+couleurs écrites en dur, sombre même en thème clair, et les noms étaient
+coupés à 16 caractères ; ils sont maintenant tronqués à la largeur réelle.
+Mêmes informations, même place : le rang (« N runes »), puis une ligne par
+courbe, point de couleur, nom, valeur alignée à droite. La grille, les
+graduations, les titres d'axes et le liseré des points passent eux aussi aux
+tokens (`border-soft`, encres atténuées, `panel`). Vaut aussi pour la
+Comparaison, qui partage `CurveChart`.
+
 Trois courbes, chacune **triée par valeur décroissante** (ordonnée = la **mesure
 choisie** — efficience % ou score SW, l'axe et l'infobulle s'adaptent ; abscisse =
 nombre de runes) :

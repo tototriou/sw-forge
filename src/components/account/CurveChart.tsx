@@ -3,6 +3,7 @@
 // Réutilisé par « Courbes » (une série) et « Comparaison » (plusieurs séries).
 
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2, X } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import { RuneDetailBox } from '../PieceDetail';
@@ -361,6 +362,47 @@ export default function CurveChart({
     setChoisi((cur) => (cur && cur.rang === hover ? null : { rang: hover }));
   }
 
+  // ⚠️ **L'infobulle de survol est du HTML, posé AU-DESSUS du SVG** (refonte
+  // graphique, lot 8a — Thomas : « revois un peu les infobulles pour que ça
+  // rende mieux »). Dessinée en SVG, c'était une boîte aux couleurs écrites en
+  // dur (bleu nuit, texte gris-bleu) : sombre même en thème clair, sans ombre,
+  // et des noms coupés à 16 caractères faute de mesurer le texte. Elle prend
+  // maintenant le gabarit des panneaux flottants de l'app (fond `panel`,
+  // contour, ombre, texte 12 px ; la maquette `.tt`) et suit le thème. La
+  // position est la même : un pourcentage du `viewBox`, collée à droite de la
+  // ligne de visée, ou à gauche passé 60 % de la largeur.
+  const valeurLue = (v: number) => (unit === '%' ? v.toFixed(1) : String(Math.round(v))) + unit;
+  const infobulle =
+    hover != null && hoverSeries.length > 0
+      ? (() => {
+          const hx = x(hover);
+          const aGauche = hx > PAD_L + IW * 0.6;
+          const cote: CSSProperties = aGauche
+            ? { right: `${100 - ((hx - 8) / W) * 100}%` }
+            : { left: `${((hx + 8) / W) * 100}%` };
+          return (
+            <div
+              aria-hidden
+              data-infobulle-graphe
+              className="pointer-events-none absolute z-10 flex min-w-[120px] max-w-[45%] flex-col gap-1 rounded-lg
+                         border border-border bg-panel px-2.5 py-2 text-xs shadow-glow shadow-black/60"
+              style={{ ...cote, top: `${((PAD_T + 4) / H) * 100}%` }}
+            >
+              <span className="font-mono text-ink-dim">{hover + 1} runes</span>
+              {hoverSeries.map(({ s, val }) => (
+                <span key={s.name} className="flex items-center gap-2">
+                  <span className="h-2 w-2 flex-none rounded-full" style={{ background: s.color }} />
+                  <span className="min-w-0 flex-1 truncate text-ink-dim">{s.name}</span>
+                  {/* Valeurs alignées à droite : en colonne, elles se
+                      comparent d'un coup d'œil. */}
+                  <span className="font-mono font-semibold text-ink">{valeurLue(val)}</span>
+                </span>
+              ))}
+            </div>
+          );
+        })()
+      : null;
+
   // ⚠️ **Largeur BORNÉE et centrée.** Le graphe suit son conteneur, et depuis
   // que le contenu occupe tout l'écran il s'étirait sur 2 000 px : la courbe
   // s'aplatissait jusqu'à devenir une ligne droite, et les écarts entre runes —
@@ -375,6 +417,8 @@ export default function CurveChart({
           : 'w-full rounded-xl border border-border bg-panel/50 p-2'
       }
     >
+      {/* Référentiel de l'infobulle de survol, posée en HTML sur le SVG. */}
+      <div className="relative">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
@@ -414,7 +458,12 @@ export default function CurveChart({
           </clipPath>
         </defs>
 
-        {/* Grille + graduations Y */}
+        {/* Grille + graduations Y.
+            ⚠️ Couleurs du THÈME (tokens), plus des bleus nuit en dur
+            (`#242a4d`, `#7c85b8`, `#1c2140`, `#9aa2d0`) — pensés pour le
+            sombre, ils détonnaient en thème clair (lot 8a, « revois les
+            infobulles pour que ça rende mieux »). Grille : `border-soft` ;
+            graduations et titres d'axes : les encres atténuées. */}
         {yTicks.map((v) => (
           <g key={`y${v}`}>
             <line
@@ -422,11 +471,11 @@ export default function CurveChart({
               y1={y(v)}
               x2={W - PAD_R}
               y2={y(v)}
-              stroke="#242a4d"
+              stroke="rgb(var(--border-soft))"
               strokeWidth="1"
               strokeDasharray={v === lo ? '' : '3 5'}
             />
-            <text x={PAD_L - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill="#7c85b8" fontFamily="monospace">
+            <text x={PAD_L - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill="rgb(var(--ink-dimmer))" fontFamily="monospace">
               {Math.round(v)}{unit}
             </text>
           </g>
@@ -435,13 +484,13 @@ export default function CurveChart({
         {/* Graduations X (nombre de runes) */}
         {xTicks.map((i) => (
           <g key={`x${i}`}>
-            <line x1={x(i)} y1={PAD_T} x2={x(i)} y2={PAD_T + IH} stroke="#1c2140" strokeWidth="1" />
+            <line x1={x(i)} y1={PAD_T} x2={x(i)} y2={PAD_T + IH} stroke="rgb(var(--border-soft))" strokeOpacity="0.6" strokeWidth="1" />
             <text
               x={x(i)}
               y={H - PAD_B + 18}
               textAnchor="middle"
               fontSize="11"
-              fill="#7c85b8"
+              fill="rgb(var(--ink-dimmer))"
               fontFamily="monospace"
             >
               {i + 1}
@@ -477,7 +526,7 @@ export default function CurveChart({
         </g>
 
         {/* Titres des axes */}
-        <text x={PAD_L + IW / 2} y={H - 5} textAnchor="middle" fontSize="11" fill="#9aa2d0" fontFamily="monospace">
+        <text x={PAD_L + IW / 2} y={H - 5} textAnchor="middle" fontSize="11" fill="rgb(var(--ink-dim))" fontFamily="monospace">
           Nombre de runes
         </text>
         <text
@@ -485,7 +534,7 @@ export default function CurveChart({
           y={PAD_T + IH / 2}
           textAnchor="middle"
           fontSize="11"
-          fill="#9aa2d0"
+          fill="rgb(var(--ink-dim))"
           fontFamily="monospace"
           transform={`rotate(-90 15 ${PAD_T + IH / 2})`}
         >
@@ -501,27 +550,11 @@ export default function CurveChart({
             // valeur : à trois courbes superposées, une pastille de couleur ne
             // suffit pas — il fallait faire l'aller-retour avec la légende pour
             // savoir qui valait quoi.
-            const fmt = (v: number) => (unit === '%' ? v.toFixed(1) : String(Math.round(v))) + unit;
-            // Nom borné : un libellé long étirerait l'infobulle jusqu'à sortir
-            // du graphe. Le nom complet reste lisible dans la légende.
-            const court = (n: string) => (n.length > 16 ? `${n.slice(0, 15)}…` : n);
-            const lignes = hoverSeries.map(({ s, val }) => ({
-              s,
-              nom: court(s.name),
-              valeur: fmt(val),
-              val,
-            }));
-            // Largeur mesurée sur le contenu réel (police mono ≈ 6,7 px/car.) :
-            // en dur, les noms débordaient de la boîte.
-            const CAR = 6.7;
-            const boxW = Math.max(
-              104,
-              ...lignes.map((l) => 19 + l.nom.length * CAR + 12 + l.valeur.length * CAR + 8)
-            );
-            const boxH = 20 + hoverSeries.length * 14 + 4;
-            const left = hx > PAD_L + IW * 0.6;
-            const bx = left ? hx - boxW - 8 : hx + 8;
-            const by = PAD_T + 4;
+            // ⚠️ La BOÎTE de l'infobulle n'est plus dessinée ici, en SVG :
+            // voir `infobulle`, plus bas, posée en HTML au-dessus du graphe.
+            // Restent ici la ligne de visée et les points sur les courbes.
+            // Liseré des points : la couleur du PANNEAU (token), pas un bleu
+            // nuit en dur, qui tranchait en thème clair.
             return (
               <g pointerEvents="none">
                 <line
@@ -534,31 +567,7 @@ export default function CurveChart({
                   strokeDasharray="3 3"
                 />
                 {hoverSeries.map(({ s, val }) => (
-                  <circle key={s.name} cx={hx} cy={y(val)} r="3.2" fill={s.color} stroke="#0d1022" strokeWidth="1.2" />
-                ))}
-                <rect x={bx} y={by} width={boxW} height={boxH} rx="6" fill="#0d1022" stroke="#2b3055" opacity="0.96" />
-                <text x={bx + 8} y={by + 14} fontSize="11" fill="#9aa2d0" fontFamily="monospace">
-                  {hover + 1} runes
-                </text>
-                {lignes.map((l, k) => (
-                  <g key={l.s.name}>
-                    <circle cx={bx + 11} cy={by + 29 + k * 14 - 3.5} r="3" fill={l.s.color} />
-                    <text x={bx + 19} y={by + 29 + k * 14} fontSize="11" fill="#9aa2d0" fontFamily="monospace">
-                      {l.nom}
-                    </text>
-                    {/* Valeurs alignées à droite : en colonne, elles se
-                        comparent d'un coup d'œil. */}
-                    <text
-                      x={bx + boxW - 8}
-                      y={by + 29 + k * 14}
-                      fontSize="11"
-                      fill="#ffffff"
-                      fontFamily="monospace"
-                      textAnchor="end"
-                    >
-                      {l.valeur}
-                    </text>
-                  </g>
+                  <circle key={s.name} cx={hx} cy={y(val)} r="3.2" fill={s.color} stroke="rgb(var(--panel))" strokeWidth="1.2" />
                 ))}
               </g>
             );
@@ -598,7 +607,7 @@ export default function CurveChart({
                 cy={y(val)}
                 r="3.2"
                 fill={serie.color}
-                stroke="#0d1022"
+                stroke="rgb(var(--panel))"
                 strokeWidth="1.2"
               />
             ))}
@@ -608,6 +617,8 @@ export default function CurveChart({
         {/* Zone de capture du pointeur (transparente, au-dessus) */}
         <rect x={0} y={0} width={W} height={H} fill="transparent" />
       </svg>
+      {infobulle}
+      </div>
 
       {/* Détail de la (ou des) rune(s) du point cliqué.
           ⚠️ SOUS le graphe, dans le flux, et non en flottant : la carte d'une

@@ -87,6 +87,30 @@
     "devient": "attr:libelle:Terminer l'édition de ce deck",
     "pourquoi": "Lot 7b, boutons de la page : voir title."
   },
+  "src/components/account/Pager.tsx :: attr:aria-label:Page précédente": {
+    "de": "src/components/account/Pager.tsx",
+    "vers": "src/components/account/Pager.tsx",
+    "devient": "attr:libelle:Page précédente",
+    "pourquoi": "Lot 8a (décision 16) : la flèche, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/account/Pager.tsx :: attr:title:Page précédente": {
+    "de": "src/components/account/Pager.tsx",
+    "vers": "src/components/account/Pager.tsx",
+    "devient": "attr:libelle:Page précédente",
+    "pourquoi": "Lot 8a : voir aria-label."
+  },
+  "src/components/account/Pager.tsx :: attr:aria-label:Page suivante": {
+    "de": "src/components/account/Pager.tsx",
+    "vers": "src/components/account/Pager.tsx",
+    "devient": "attr:libelle:Page suivante",
+    "pourquoi": "Lot 8a (décision 16) : la flèche, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/account/Pager.tsx :: attr:title:Page suivante": {
+    "de": "src/components/account/Pager.tsx",
+    "vers": "src/components/account/Pager.tsx",
+    "devient": "attr:libelle:Page suivante",
+    "pourquoi": "Lot 8a : voir aria-label."
+  },
   "src/components/account/RunesList.tsx :: texte:Choisis une propriété ci-dessus pour trier dessus.": {
     "de": "src/components/account/RunesList.tsx",
     "vers": "src/components/account/RunesList.tsx",

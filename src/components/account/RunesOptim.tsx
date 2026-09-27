@@ -11,6 +11,7 @@ import RuneSlotIcon from '../RuneSlotIcon';
 import Pager from './Pager';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
+import FiltresRunes from './FiltresRunes';
 import NumberField from '../../ui/NumberField';
 import Selecteur from '../../ui/Selecteur';
 import Bouton from '../../ui/Bouton';
@@ -94,6 +95,15 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
   const [sets, setSets] = useStickyState<Set<string>>('optim.sets', new Set(runes.map((r) => r.set)));
   const [slots, setSlots] = useStickyState<Set<number>>('optim.slots', new Set([1, 2, 3, 4, 5, 6]));
   const [page, setPage] = useState(0);
+  // Changer un filtre ramène à la première page.
+  const choisirSets = (next: Set<string>) => {
+    setSets(next);
+    setPage(0);
+  };
+  const choisirSlots = (next: Set<number>) => {
+    setSlots(next);
+    setPage(0);
+  };
   const [openId, setOpenId] = useState<number | null>(null);
   const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
   const withGem = gemMode === 'gem';
@@ -393,22 +403,27 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
 
       {/* Contrôles */}
       <div className="flex items-center gap-4 flex-wrap mb-4">
-        <SetFilter
-          runes={runes}
-          value={sets}
-          onChange={(next) => {
-            setSets(next);
-            setPage(0);
-          }}
-        />
-
-        <SlotFilter
-          value={slots}
-          onChange={(next) => {
-            setSlots(next);
-            setPage(0);
-          }}
-        />
+        {/* Au DOIGT : les rangées d'avant (`contents` : leurs enfants restent
+            des éléments de la rangée), cachées à la souris (lot 11). */}
+        <div className="contents lg:hidden">
+          <SetFilter runes={runes} value={sets} onChange={choisirSets} />
+          <SlotFilter value={slots} onChange={choisirSlots} />
+        </div>
+        {/* À la SOURIS : les menus déroulants (lot 8a, décision 20). Sans
+            « Antiques » : l'Optimisation les range avec « Faisable avec ma
+            réserve », dans ses options, plus loin sur la rangée. */}
+        <div className="hidden lg:block">
+          <FiltresRunes
+            runes={runes}
+            sets={sets}
+            onSets={choisirSets}
+            slots={slots}
+            onSlots={choisirSlots}
+            ancient={ancient}
+            onAncient={setAncient}
+            antiques={false}
+          />
+        </div>
 
         <div className="flex items-center gap-2">
           <span className="label">Trier par</span>

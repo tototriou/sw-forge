@@ -2,6 +2,7 @@ import { memo, useMemo, useState } from 'react';
 import { RuneDetail } from '../../types';
 import { RUNE_EFFECT, runeEfficiency, runeScore } from '../../lib/effects';
 import SetFilter from './SetFilter';
+import FiltresRunes from './FiltresRunes';
 import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../PieceDetail';
@@ -140,37 +141,41 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   const safePage = Math.min(page, pageCount - 1);
   const shown = sorted.slice(safePage * PAGE, safePage * PAGE + PAGE);
 
-  // Les filtres, rendus une seule fois et posés à DEUX endroits selon la
-  // largeur. Deux copies auraient divergé au premier filtre ajouté.
-  const filtres = (
+  // Changer un filtre ramène à la première page.
+  const choisirSets = (next: Set<string>) => {
+    setSets(next);
+    setPage(0);
+  };
+  const choisirSlots = (next: Set<number>) => {
+    setSlots(next);
+    setPage(0);
+  };
+  const choisirAntiques = (v: AncientFilterValue) => {
+    setAncient(v);
+    setPage(0);
+  };
+
+  // Sets, emplacements, antiques — AU DOIGT, dans le panneau « Options ». À
+  // la souris, ils deviennent trois menus déroulants (`FiltresRunes`, lot 8a,
+  // décision 20), avec les MÊMES contrôles dedans.
+  const filtresEnsemble = (
     <>
         {/* Sets : multi-sélection, icônes seules (voir SetFilter) */}
-        <SetFilter
-          runes={runes}
-          value={sets}
-          onChange={(next) => {
-            setSets(next);
-            setPage(0);
-          }}
-        />
+        <SetFilter runes={runes} value={sets} onChange={choisirSets} />
 
         {/* Slot + antiques */}
         <div className="flex flex-wrap items-center gap-2">
-          <SlotFilter
-            value={slots}
-            onChange={(next) => {
-              setSlots(next);
-              setPage(0);
-            }}
-          />
-          <AncientFilter
-            value={ancient}
-            onChange={(v) => {
-              setAncient(v);
-              setPage(0);
-            }}
-          />
+          <SlotFilter value={slots} onChange={choisirSlots} />
+          <AncientFilter value={ancient} onChange={choisirAntiques} />
         </div>
+    </>
+  );
+
+  // Propriété secondaire et tri : les mêmes aux deux formats, rendus une seule
+  // fois et posés à DEUX endroits selon la largeur. Deux copies auraient
+  // divergé au premier filtre ajouté.
+  const filtres = (
+    <>
 
         {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
             et la bascule 2 ↔ 4 à côté.
@@ -239,7 +244,18 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
       {/* ⚠️ CINQ rangées de filtres — sets, slots, propriété secondaire, tri —
           soit près de la moitié d'un écran de téléphone avant la première rune.
           Sous `lg` elles descendent dans le panneau « Options ». */}
-      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">{filtres}</div>
+      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">
+        <FiltresRunes
+          runes={runes}
+          sets={sets}
+          onSets={choisirSets}
+          slots={slots}
+          onSlots={choisirSlots}
+          ancient={ancient}
+          onAncient={choisirAntiques}
+        />
+        {filtres}
+      </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer mes runes">
         {/* ⚠️ `data-filtres-runes` : dans le PANNEAU, les contrôles prennent toute
@@ -247,6 +263,7 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
             hors tiroir), où il reste compact — d'où le marqueur, lu uniquement
             sous `[data-tiroir]`. */}
         <div className="flex flex-col gap-3" data-filtres-runes>
+          {filtresEnsemble}
           {filtres}
         </div>
       </MobileSheet>

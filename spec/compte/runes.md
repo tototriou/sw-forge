@@ -775,6 +775,27 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
 [SetFilter.tsx](src/components/account/SetFilter.tsx), partagé par **Liste**,
 **Courbes** et **Optimisation**.
 
+⚠️ **À la SOURIS, les filtres sont des MENUS DÉROULANTS** (refonte graphique,
+lot 8a, décision 20 — Thomas : « menus déroulants », comme la maquette) :
+**Set · Emplacement · Antiques**, puis **« Effacer les filtres »** —
+[FiltresRunes.tsx](../../src/components/account/FiltresRunes.tsx), sur le
+composant `Deroulant` de la librairie. Chaque bouton dit sa valeur (« Set ·
+Tous », « Emplacement · 1, 3, 5 », « Antiques · Toutes ») ; son panneau
+contient les MÊMES contrôles qu'avant, `SetFilter`, `SlotFilter`,
+`AncientFilter`, sans intitulé (`sansIntitule`, le bouton le porte).
+- Le résumé des sets montre **les icônes ET les noms** des deux premiers
+  (« Swift, Violent +3 »), la liste complète en infobulle. C'est une
+  exception assumée à la règle « icône sans nom » ci-dessous : cette règle
+  vaut pour la RANGÉE qu'on parcourt d'un coup d'œil, alors que le résumé se
+  LIT, et deux icônes seules n'y diraient pas lesquelles sont choisies.
+- « Effacer les filtres » remet tous les sets, tous les emplacements et
+  toutes les runes. Il est **toujours affiché**, désactivé quand rien n'est
+  filtré (« Aucun filtre posé »).
+- L'Optimisation n'a que Set et Emplacement : ses antiques vivent dans ses
+  options, avec « Faisable avec ma réserve ».
+- **Au doigt, rien ne change** (lot 11) : la Liste garde ses rangées dans le
+  panneau « Options » ; les Courbes et l'Optimisation, dans la page.
+
 ⚠️ **Règle d'interface : un filtre de set affiche l'icône du jeu, SANS le nom.**
 Partout dans l'appli. Les icônes sont reconnues d'un coup d'œil par n'importe
 quel joueur, alors qu'une rangée de libellés fait un mur de texte et réduit le

@@ -13,6 +13,7 @@ import AncientFilter, {
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
 import SlotFilter from './SlotFilter';
+import FiltresRunes from './FiltresRunes';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 import CurveLegend from './CurveLegend';
 import HelpPopover from '../HelpPopover';
@@ -140,7 +141,8 @@ export default function RunesCurve({ runes }: Props) {
           flottant annonce un contenu qu'on ne devine pas. La Liste, elle, a
           3 000 tuiles à montrer — chaque rangée de filtre lui prend un écran de
           résultats, ce qui n'est pas le cas ici. */}
-      <div className="flex flex-col gap-3 mb-4">
+      {/* Au DOIGT : les rangées d'avant (`lg:hidden`, lot 11). */}
+      <div className="flex flex-col gap-3 mb-4 lg:hidden">
         {/* Sets : icônes seules (voir SetFilter) */}
         <SetFilter runes={runes} value={sets} onChange={setSets} />
 
@@ -148,6 +150,19 @@ export default function RunesCurve({ runes }: Props) {
           <SlotFilter value={slots} onChange={setSlots} />
           <AncientFilter value={ancient} onChange={setAncient} />
         </div>
+      </div>
+      {/* À la SOURIS : trois menus déroulants (lot 8a, décision 20), avec les
+          mêmes contrôles dedans. */}
+      <div className="mb-4 hidden lg:block">
+        <FiltresRunes
+          runes={runes}
+          sets={sets}
+          onSets={setSets}
+          slots={slots}
+          onSlots={setSlots}
+          ancient={ancient}
+          onAncient={setAncient}
+        />
       </div>
 
       {/* Mode gemme + nombre de runes */}

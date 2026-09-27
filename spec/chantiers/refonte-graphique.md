@@ -437,7 +437,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 7b Siège · Recommandations | J | exécuté, validé (bureau) | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête), ajustements `c06d36d`…`4b40d07` (décisions 16 à 19) ; validé par Thomas le 2026-09-27 |
 | 14 thème clair (Atelier) : revoir les tokens | J | exécuté, validé | `03fbe84` (tokens), `85f3c9e` (teintes claires de l'accueil) ; fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix de Thomas) ; preuve `lot-14.md` ; validé par Thomas le 2026-09-27 |
 | 8a Compte · Runes | J | exécuté, validé (bureau) | tests avant `dd0151b` (114) ; décisions 20 et 21 ; 8a-1 filtres (`f010f55`…`d310592`), 8a-2 Résumé et Liste (`84e07ed`, `989f8f5`), 8a-3 Courbes, Comparaison, Optimisation (`8dd9dba`), bulles de l'app (`c87c8f1`, `aaaac28`, `c094446`) ; validé par Thomas le 2026-09-27 |
-| 8b Compte · Monstres, Artéfacts | J | à faire | |
+| 8b Compte · Monstres, Artéfacts | J | exécuté, validé (bureau) | tests avant `bb30d06` (59) ; décision 20 reprise ; box (`2227712`, `aee4db2`, `6c35a1b`), artéfacts (`ec5ec31`), tests (`2498f8b`) ; validé par Thomas le 2026-09-28 |
 | 9a Outils · Optimizer | J | à faire | |
 | 9b Outils · Speed tuning | J | à faire | |
 | 10 Ressources, Paramètres, Bientôt | J | à faire | |
@@ -759,6 +759,19 @@ ajoutés : 21 vérifications, 135 au total. Aucune perte. Non repris, pour le
 lot 13 : les ajouts de la décision 20 et le plan d'optimisation dans chaque
 carte. **Validé par Thomas le 2026-09-27.**
 
+**Résultat lot 8b — Mon compte · Monstres et Artéfacts (2026-09-28)** —
+preuve [lot-8b.md](refonte-graphique-preuves/lot-8b.md). Décision 20
+reprise telle quelle, annoncée à Thomas avant le code.
+- **Box** : en-tête « Ma box » ; une barre unique essayée puis défaite
+  (« ça va pas ») ; état final en trois lignes : recherche, filtres, puis
+  le tri « à la suite des filtres » avec la pagination.
+- **Artéfacts** : en-têtes « Résumé » et « Liste », chiffres clés en
+  bandeau, les six rangées de filtres sur la ligne.
+
+Tests d'avant inchangés ; 3 vérifications ajoutées, 62 au total. Aucune
+perte. Non ajouté, pour le lot 13 : « Effacer les filtres » hors des runes.
+**Validé par Thomas le 2026-09-28.**
+
 ### B.11 Lot 11 — téléphone · J
 
 **Contrat** : `navigation.md` § Barre d'onglets et § Panneau d'actions
@@ -781,7 +794,9 @@ un par un avec Thomas avant d'entrer dans ce lot :
 - lien « Voir l'optimisation » depuis le Résumé ;
 - dans l'Optimisation, le plan écrit DANS chaque carte, toujours visible
   (la maquette), au lieu du panneau qui s'ouvre au clic — relevé au lot
-  8a-3.
+  8a-3 ;
+- « Effacer les filtres » dans la box et la liste d'artéfacts, comme pour
+  les runes — proposé au lot 8b, resté sans réponse.
 
 Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
 

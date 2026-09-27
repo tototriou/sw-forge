@@ -54,7 +54,14 @@ export default function FiltresRunes({
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2" data-filtres-ligne>
       <SetFilter runes={runes} value={sets} onChange={onSets} />
       <SlotFilter value={slots} onChange={onSlots} />
-      {antiques && <AncientFilter value={ancient} onChange={onAncient} />}
+      {/* Intitulé comme ses voisins (« Sets », « Slot ») : celui que
+          l'Optimisation donne déjà à ce filtre. */}
+      {antiques && (
+        <div className="flex items-center gap-1">
+          <span className="label mr-1">Runes</span>
+          <AncientFilter value={ancient} onChange={onAncient} />
+        </div>
+      )}
       {/* ⚠️ Toujours affiché, DÉSACTIVÉ quand rien n'est filtré : un bouton
           qui apparaît au premier filtre posé ne s'explique pas. */}
       <Bouton
@@ -69,6 +76,8 @@ export default function FiltresRunes({
         trait="aucun"
         taille="sm"
         libelle="Effacer les filtres"
+        // 32 px : la hauteur des filtres de la ligne (gabaritFiltre.ts).
+        className="h-8"
       />
     </div>
   );

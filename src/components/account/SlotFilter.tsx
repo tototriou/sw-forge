@@ -10,6 +10,7 @@
 // une ; un raccourci de remise à zéro n'y gagnait rien et alourdissait la barre
 // (là où il reste utile côté SETS, qui en aligne vingt-cinq).
 import { MARQUEUR_FILTRE_ACTIF } from '../../ui/Pastille';
+import { ACTIF_FILTRE_LG, CADRE_FILTRE_LG, CASE_FILTRE_LG } from './gabaritFiltre';
 
 const SLOTS = [1, 2, 3, 4, 5, 6];
 
@@ -33,7 +34,8 @@ export default function SlotFilter({
     // répartissent sur toute la largeur (voir index.css). Ailleurs, sans effet.
     <div data-filtre-slots className="flex flex-wrap items-center gap-1">
       <span className="label mr-1">{label}</span>
-      <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1">
+      {/* À la SOURIS, le gabarit du `Segmented` : voir gabaritFiltre.ts. */}
+      <div className={`flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1 ${CADRE_FILTRE_LG}`}>
         {SLOTS.map((n) => {
           const active = value.has(n);
           return (
@@ -46,14 +48,15 @@ export default function SlotFilter({
               // filtrerait le mauvais emplacement. C'est l'ESPACEMENT du groupe
               // qui protège du ratage — même choix que SetFilter juste à côté.
               data-cible-fine
-              className={`w-7 h-7 rounded-md border text-xs font-mono font-semibold transition select-none
+              className={`w-7 h-7 rounded-md border text-xs font-mono font-semibold transition select-none ${CASE_FILTRE_LG}
                 ${
                   active
                     ? // ⚠️ Marqueur d'état UNIQUE des filtres (voir spec/shared/design.md),
                       // importé de `Pastille` : le même que les filtres de Ma box et
                       // des sets — deux marqueurs différents côte à côte se liraient
-                      // comme deux natures de filtre.
-                      MARQUEUR_FILTRE_ACTIF
+                      // comme deux natures de filtre. À la souris, celui du
+                      // `Segmented` voisin (gabaritFiltre.ts), pour la même raison.
+                      `${MARQUEUR_FILTRE_ACTIF} ${ACTIF_FILTRE_LG}`
                     : 'border-transparent text-ink-dim hoverable:text-ink hoverable:bg-panel2'
                 }`}
             >

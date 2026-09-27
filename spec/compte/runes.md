@@ -786,6 +786,17 @@ Ils prenaient trois rangées.
   les sets d'abord (« pas très fan d'avoir des drop-down pour un set filtre
   dedans »), puis pour le reste (« sors tout des boutons »). Un filtre fermé
   dans un menu ne dit pas ce qu'il filtre sans qu'on l'ouvre.
+- ⚠️ **Tous au même gabarit, celui du `Segmented`** (Thomas : « ce serait
+  bien que les boutons aient tous la même tête ») : à la souris, les barres
+  de sets et d'emplacements prennent le cadre `panel2` de 32 px, des cases de
+  26 px et le marqueur du `Segmented` (fond d'accent doux, sans contour),
+  comme le filtre des antiques voisin —
+  [gabaritFiltre.ts](../../src/components/account/gabaritFiltre.ts).
+  « Effacer les filtres » est à la même hauteur (32 px), et les antiques
+  reçoivent l'intitulé « Runes », comme leurs voisins « Sets » et « Slot »
+  (c'est celui que leur donne déjà l'Optimisation). Avant, trois gabarits
+  cohabitaient : barres de 38 px au fond `panel` et cases cerclées d'accent,
+  `Segmented` de 32 px, bouton de 28 px.
 - « Effacer les filtres » remet tous les sets, tous les emplacements et
   toutes les runes. Il est **toujours affiché**, désactivé quand rien n'est
   filtré (« Aucun filtre posé »).

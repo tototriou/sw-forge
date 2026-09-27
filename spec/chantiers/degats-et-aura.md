@@ -425,8 +425,8 @@ Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 | 6bis-a2b2 — exclusive et sélection de relique | C | terminé | reçu `0a512eb` ↔ `4e46068` / 2026-09-27 |
 | 6bis-a2b3 — scripts, tests et réconciliation | C | terminé après rectification pilote | reçu initial `d04bb19` ↔ `833b51a` / 2026-09-27 ; preuve rectifiée relivrée |
 | 6bis-a3a — conditions et élagages locaux | C | terminé après rectification pilote | reçu initial `e21a385` ↔ `ab5c858` / 2026-09-27 ; preuve rectifiée relivrée |
-| 6bis-a3b — recherche, diagnostics et filtre final | C | à lancer | — |
-| 6bis-a4a — recette, reset et import écran | C | en attente de a3b | — |
+| 6bis-a3b — recherche, diagnostics et filtre final | C | terminé | reçu `bd9b60a` ↔ `2c5b82d` / 2026-09-27 |
+| 6bis-a4a — recette, reset et import écran | C | à lancer | — |
 | 6bis-a4b — CLI et scripts de diagnostic | C | en attente de a4a | — |
 | 6bis-a4c1 — écran de recherche et caches | C | en attente de a4b | — |
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | en attente de a4c1 | — |
@@ -2038,6 +2038,19 @@ d'Intangible sans échec observé.
 et inventaire des tests différentiels nécessaires aux futurs 6bis-b-*.
 **Ne fait pas :** la suite différentielle complète, benchmark ni correction
 du moteur.
+
+**Résultat du lot 6bis-a3b — 2026-09-27.** La projection et la carte privée
+réconcilient 9 clés, toutes non-consommatrices dans leur usage actuel ; huit
+étapes de recherche supplémentaires sont documentées séparément. La trace
+statique confirme que Blade non demandé, complété par Intangible, est activé
+sur six runes réelles, mais que le majorant de sets supplémentaires ne crédite
+pas ce joker. Pour Tolerance, l'activation réelle n'est pas propagée aux
+conditions ni aux stats de combat sur le HEAD examiné. **Aucun faux rejet
+n'a été reproduit** : le risque reste à éprouver sur le vrai chemin par les
+contrôles différentiels proposés, sans attribuer de défaut aux tranches
+Blade/Intangible. La preuve est `controle-6bis-a3b.md` ; projection, 411 lignes
+contractuelles, lint, diff et reçu `bd9b60a` ↔ `2c5b82d` ont été rejoués ou
+vérifiés par le pilote. Notes intégrées au main documentaire `b9054fc`.
 
 #### 6bis-a4a — recette, reset et import écran
 

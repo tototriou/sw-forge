@@ -69,6 +69,15 @@ Les intitulés ont une **largeur fixe** (`w-[86px]`) : les rangées de boutons
 démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
 « TYPE » et « CATÉGORIE » décalaient leurs rangées l'une par rapport à l'autre.
 
+⚠️ **À la SOURIS** (refonte graphique, lot 8b) : les rangées se suivent **sur
+la ligne**, chacune avec son intitulé à sa largeur naturelle, collé à ses
+choix — ce qui sépare deux filtres est alors l'écart entre les groupes, plus
+la colonne. La rangée `Propriété` prend la place restante (au moins 440 px).
+Tout reste visible, rien ne passe en menu : même choix que pour les runes
+(décision 20 du cadrage
+[../chantiers/refonte-graphique.md](../chantiers/refonte-graphique.md)). Au
+doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
+
 - **Catégorie** : `Tous` · `Attribut` · `Type`.
   - ⚠️ L'intitulé de la rangée est **« Catégorie »**, pas « Type » : une des deux
     valeurs s'appelle déjà « Type », et un en-tête homonyme au-dessus de son
@@ -157,6 +166,23 @@ démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
 ## Pagination
 
 `Pager` : 60 tuiles/page (DOM borné). En-tête : nombre filtré (« N sur M »).
+
+⚠️ **À la SOURIS, un en-tête de vue** (refonte graphique, lot 8b, même
+gabarit que la Liste des runes) : « Liste » et le nombre d'artéfacts de
+l'INVENTAIRE ; le compte FILTRÉ reste au-dessus des tuiles.
+
+## Onglet Résumé — `ArtifactsSummary`
+
+[ArtifactsSummary.tsx](src/components/account/ArtifactsSummary.tsx), de haut
+en bas : six **chiffres clés** (Artéfacts, Eff. moy. · Attribut, Eff. moy. ·
+Type, Meilleur score, ≥ 90 % d'eff., Quad rolls), puis **Distribution
+d'efficience** et **Raretés**, **Par attribut et par type**, **Quad rolls ·
+sur quelle propriété**.
+
+⚠️ **À la SOURIS** (refonte graphique, lot 8b, même gabarit que le Résumé des
+runes) : un en-tête « Résumé » et le nombre d'artéfacts, puis les six
+chiffres clés en **un bandeau** (`Kpi bandeau`, cases séparées par un
+filet) au lieu de six cartes. Au doigt, les cartes restent (lot 11).
 
 ## Données sous-jacentes
 

@@ -224,7 +224,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
             jeu, un en-tête « Type » au-dessus d'un bouton « Type » se lirait
             comme un doublon. */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-[86px] flex-none label">
+          <span className="w-[86px] flex-none label lg:w-auto">
             Catégorie
           </span>
           {/* ⚠️ Un contrôle **à cran** (`Segmented`) et non trois pastilles :
@@ -267,7 +267,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
             largeur : on ne voyait plus où finissait un filtre et où commençait
             le suivant. */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-[86px] flex-none label">
+          <span className="w-[86px] flex-none label lg:w-auto">
             Attribut
           </span>
 
@@ -316,7 +316,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-[86px] flex-none label">
+          <span className="w-[86px] flex-none label lg:w-auto">
             Type
           </span>
           {/* ⚠️ Les types restent **neutres**, sans couleur propre. Les quatre
@@ -356,7 +356,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
 
         {/* Rareté */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="w-[86px] flex-none label">Rareté</span>
+          <span className="w-[86px] flex-none label lg:w-auto">Rareté</span>
           {RARITY_ORDER.map((r) => {
             const meta = RARITY_META[r];
             const active = rarities.has(r);
@@ -407,7 +407,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
               colonne d'intitulés. L'abréger trahirait le nom du jeu, l'élargir
               décalerait les cinq autres rangées — le repli tient dans la
               hauteur déjà occupée par le contrôle. */}
-          <span className="w-[86px] flex-none label leading-tight">Stat principale</span>
+          <span className="w-[86px] flex-none label lg:w-auto leading-tight">Stat principale</span>
           <Segmented
             value={main}
             onChange={(v) => {
@@ -428,8 +428,8 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
             recherche détaillée en modale. Identique aux runes.
             ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ trie la liste, la 2ᵉ départage
             les ex æquo, etc. La position porte du sens (voir `Critere`). */}
-        <div className="flex flex-wrap items-start gap-2">
-          <span className="w-[86px] flex-none label mt-1">Propriété</span>
+        <div className="flex flex-wrap items-start gap-2 lg:min-w-[440px] lg:flex-1">
+          <span className="w-[86px] flex-none label lg:w-auto mt-1">Propriété</span>
           <div className="min-w-0 flex-1 max-w-[520px]">
             <SubSearchBar
               options={dispoSubs}
@@ -459,10 +459,25 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
 
   return (
     <div>
+      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8b, même gabarit
+          que la Liste des runes) : le titre de la vue et le nombre d'artéfacts
+          de l'INVENTAIRE ; le compte FILTRÉ reste au-dessus des tuiles. */}
+      <div className="mb-3 hidden items-center gap-2.5 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Liste</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {artifacts.length.toLocaleString('fr-FR')} artéfact{artifacts.length > 1 ? 's' : ''}
+        </span>
+      </div>
+
       {/* ⚠️ Cinq rangées de filtres — catégorie, sous-filtre, stat principale,
           propriétés — qui remplissaient un écran de téléphone avant le premier
-          artéfact. Sous `lg` elles descendent dans le panneau « Options ». */}
-      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">{filtres}</div>
+          artéfact. Sous `lg` elles descendent dans le panneau « Options ».
+          ⚠️ À la SOURIS (lot 8b, décision 20 appliquée aux artéfacts) : les
+          rangées se suivent SUR LA LIGNE, intitulé collé à ses choix, au lieu
+          d'une colonne de six — tout reste visible, rien ne passe en menu. */}
+      <div className="hidden gap-3 mb-4 lg:flex lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-6 lg:gap-y-3">
+        {filtres}
+      </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer mes artéfacts">
         <div className="flex flex-col gap-3">{filtres}</div>

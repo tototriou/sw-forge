@@ -371,6 +371,11 @@ Le pilote valide la reprise de a2b1 : ses deux clés sont classées, la paire
 essayée est distinguée de celle retenue et la signature globale du cache de
 la clé propre aux six runes. Le dépassement du repère de lecture n'a omis
 aucune fenêtre ni aucun appel adjacent ; a2b2 peut commencer.
+Le pilote valide a2b2 : l'exclusive consomme directement les stats et le
+contexte de la relique essayée ; `relicOptim.ts` consomme indirectement la note
+des couples faisables. Le résultat conserve la relique et la paire retenues,
+distinctes des essais. Les auras propres aux six runes restent hors du calcul
+actuel ; a2b3 peut réconcilier les huit clés projetées.
 
 #### Suivi des lots
 
@@ -401,8 +406,8 @@ aucune fenêtre ni aucun appel adjacent ; a2b2 peut commencer.
 | 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif | C+M | terminé après complément pilote | reçu `57a7c28` ↔ `ab0fb25` / 2026-09-26 |
 | 6bis-a2a2 — sets actifs du build et score | C | terminé après complément pilote | reçu `4816082` ↔ `1d20a54` / 2026-09-26 |
 | 6bis-a2b1 — paire d'artéfacts et cache | C | terminé après reprise | reçu `e5d785f` ↔ `9c2e357` / 2026-09-27 |
-| 6bis-a2b2 — exclusive et sélection de relique | C | à lancer | — |
-| 6bis-a2b3 — scripts, tests et réconciliation | C | en attente de a2b2 | — |
+| 6bis-a2b2 — exclusive et sélection de relique | C | terminé | reçu `0a512eb` ↔ `4e46068` / 2026-09-27 |
+| 6bis-a2b3 — scripts, tests et réconciliation | C | à lancer | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b3 | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
 | 6bis-a4a — recette, reset et import écran | C | en attente de a3b | — |
@@ -1886,6 +1891,23 @@ ou aux tests simplement parce qu'ils appellent ces fonctions.
 **Sortie :** `carte-6bis-a2b2.json`, `controle-6bis-a2b2.md`, synthèse de 12
 lignes au plus pour a2b3. **Ne fait pas :** modifier la règle de jeu,
 conditions, diagnostics ou CLI.
+
+**Résultat du lot 6bis-a2b2 — 2026-09-27.** Les deux clés sont classées
+« consommateur » avec des portées distinctes. `relicExclusive.ts` calcule
+l'assiette `Y` sur les stats du build incluant la principale de la relique
+essayée, puis `statsDebutCombat` lit le `DamageSetup` actuel.
+`relicOptim.ts` ne lit ni les auras ni les six runes directement : il compare
+les notes des couples faisables transmises par l'appelant ; la file reprend
+ensuite la relique et la paire retenues pour les stats, le tri et le rendu.
+Les auras propres issues des six runes ne sont pas encore ajoutées au contexte.
+La carte et `controle-6bis-a2b2.md` portent ces chemins, la projection des
+huit clés et la vérification des 123 lignes prescrites. `spec-lint`,
+`git diff --check` et le reçu code `0a512eb` ↔ notes `4e46068` ont été
+rejoués ; les notes sont intégrées au main documentaire `9ea0220`.
+La lecture totale est estimée à 4 500 lignes équivalentes, au-dessus du repère
+indicatif de 2 500, avec les appels adjacents et relectures décomptés. Aucun
+test ni benchmark dans ce lot de classification. a2b3 est libéré ; ses quatre
+clés de scripts et tests attendent encore leur verdict.
 
 #### 6bis-a2b3 — scripts, tests et réconciliation
 

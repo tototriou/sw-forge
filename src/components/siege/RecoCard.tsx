@@ -921,9 +921,10 @@ const VERDICTS: {
     statuts: ['ok'],
     dot: 'bg-good',
     texte: 'text-good',
-    // `actif` : contour du ton + son fond DOUX (lot 7b) — l'aplat saturé à
-    // 25-45 % se lisait mal, voir `AURA`.
-    actif: 'border-good bg-good-soft text-ink',
+    // `actif` : la pastille COLORÉE de repos (`PASTILLE_STATUT`, la même que
+    // sur les decks) + le CONTOUR du ton, qui seul dit « enclenché » — voir
+    // le filtre dans `AnalysisSummary`.
+    actif: 'border-good bg-good-soft text-good',
     rang: 3,
   },
   {
@@ -932,7 +933,7 @@ const VERDICTS: {
     statuts: ['nodeck'],
     dot: 'bg-warn',
     texte: 'text-warn',
-    actif: 'border-warn bg-warn-soft text-ink',
+    actif: 'border-warn bg-warn-soft text-warn',
     rang: 2,
   },
   {
@@ -941,7 +942,7 @@ const VERDICTS: {
     statuts: ['ko'],
     dot: 'bg-fire',
     texte: 'text-fire',
-    actif: 'border-fire bg-bad-soft text-ink',
+    actif: 'border-fire bg-bad-soft text-fire',
     rang: 1,
   },
   {
@@ -957,7 +958,7 @@ const VERDICTS: {
     // introduire une cinquième couleur qui mentirait sur la gravité.
     dot: 'border border-fire',
     texte: 'text-fire',
-    actif: 'border-fire bg-bad-soft text-ink',
+    actif: 'border-fire bg-bad-soft text-fire',
     rang: 0,
   },
 ];
@@ -1097,6 +1098,12 @@ function AnalysisSummary({
           des pastilles de filtre (voir spec/shared/design.md).
           Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit
           qu'il n'y en a aucun, au lieu de chercher un bouton disparu.
+          ⚠️ **Colorées AU REPOS, comme les pastilles des decks en dessous**
+          (`PASTILLE_STATUT`, 2026-09-27 — Thomas : « dans le résumé d'analyse
+          et dans les cards en dessous, la même couleur ») : fond doux et
+          texte du ton. Elles étaient neutres au repos, seul le point coloré.
+          Enclenchée, la pastille garde ces couleurs et prend le CONTOUR de son
+          ton — la bordure reste le seul marqueur d'état.
           ⚠️ Pas un `Bouton` de la librairie : chaque verdict porte SA couleur
           sémantique (bon/à composer/à revoir/manquant), et aucune n'est un ton
           de bouton (accent, danger…) — même exception que les pastilles
@@ -1124,7 +1131,7 @@ function AnalysisSummary({
                               ? 'border-border text-ink-dim opacity-40 cursor-not-allowed'
                               : actif
                                 ? v.actif
-                                : 'border-border text-ink-dim hoverable:border-accent hoverable:text-ink'
+                                : `${PASTILLE_STATUT[v.key]} hoverable:border-border`
                           }`}
             >
               {/* 2 px de plus que le point des lignes : un cercle CREUX de

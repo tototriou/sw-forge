@@ -101,17 +101,23 @@ devenait un patchwork. Désormais :
   même règle que les équipes de siège (décision 8) ;
 - ⚠️ **les pastilles de statut sont COLORÉES en entier**, à la maquette
   (`.pill.good/.warn/.bad` : fond doux du ton, texte du ton, sans contour) —
-  la pastille Verdict de chaque ligne de deck et les puces de la carte repliée
-  (un deck, ou une défense en vue Défense). Elles étaient neutres, la couleur
+  la pastille Verdict de chaque ligne de deck, les puces de la carte repliée
+  (un deck, ou une défense en vue Défense) **et les pastilles de filtre du
+  résumé d'analyse**, colorées dès le repos pour que le résumé et les decks en
+  dessous parlent la même couleur (« dans le résumé d'analyse et dans les
+  cards en dessous, la même couleur ») — enclenchée, une pastille de filtre
+  prend en plus le contour de son ton, seul marqueur d'état. Elles étaient
+  neutres, la couleur
   réduite à un point de 6 px : « les couleurs ne sont pas assez vives sur les
   vignettes de validation de decks » (Thomas, 2026-09-27). Non analysé :
   neutre. Le point reste dedans (son creux distingue « monstre manquant » de
   « à revoir »). `PASTILLE_STATUT` dans RecoCard.tsx ; contrastes texte /
   fond doux mesurés dans les deux thèmes, 4,63:1 au plus bas ;
 - l'encart de synthèse est neutre, son icône et son titre portent la couleur ;
-- jetons de sets et de propriétés d'artéfact, filtres de verdict enclenchés,
-  rapport d'import : les **fonds doux** (`good-soft`, `warn-soft`,
-  `bad-soft`) avec le texte à l'encre. Contrastes mesurés, 4,63:1 au plus bas
+- jetons de sets et de propriétés d'artéfact, rapport d'import : les **fonds
+  doux** (`good-soft`, `warn-soft`, `bad-soft`) avec le texte à l'encre (les
+  filtres de verdict ont depuis le texte de leur ton, voir ci-dessus).
+  Contrastes mesurés, 4,63:1 au plus bas
   (titre `fire` sur `bad-soft`, Forge) ;
 - « Importée » : pastille neutre (le contour d'accent la faisait passer pour
   un élément sélectionné).

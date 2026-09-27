@@ -402,7 +402,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par Thomas le 2026-09-25 |
 | 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
 | 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par Thomas le 2026-09-26 |
-| 7b Siège · Recommandations | J | exécuté, à valider | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête) ; 2026-09-26 |
+| 7b Siège · Recommandations | J | exécuté, validé (bureau) | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête), ajustements `c06d36d`…`4b40d07` (décisions 16 à 19) ; validé par Thomas le 2026-09-27 |
 | 14 thème clair (Atelier) : revoir les tokens | J | à faire | ajouté le 2026-09-26 |
 | 8a Compte · Runes | J | à faire | |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
@@ -677,7 +677,13 @@ vides. Validé par Thomas (« ok »).
 planche « proposition mixte » ajoutée à la maquette : à la souris, les decks
 en tableau (offense avec sets visés, fort contre, verdict), la carte
 détaillée d'avant sous une ligne dépliée (`439dfa6`) ; en-tête par
-`BarreActions` (`f04845c`). Aucune perte. À valider par Thomas.
+`BarreActions` (`f04845c`). Aucune perte. Puis onze ajustements demandés par
+Thomas (`c06d36d`…`4b40d07`, tableau dans la preuve), dont les décisions 16
+(boutons de toute l'app au gabarit de la maquette, dans `src/ui/`), 17
+(« Analyser » à deux états, [retrait #17]), 18 (curseur au monstre suivant)
+et 19 (vue Attaque / Défense à la place du filtre d'origine, [retrait #19]).
+Tests d'avant le lot inchangés, sauf les trois du filtre retiré. **Validé
+par Thomas le 2026-09-27.**
 
 ### B.11 Lot 11 — téléphone · J
 

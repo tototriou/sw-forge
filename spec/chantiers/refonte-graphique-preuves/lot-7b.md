@@ -79,3 +79,33 @@ $ npm run build                               → built ; gabarit de colonnes
 - **Un deck en édition** : sa ligne, puis la carte d'édition dessous.
 - **L'en-tête** : le passage des boutons au « ⋯ » selon la largeur.
 - **Téléphone** : non regardé, il reste en cartes (lot 11).
+
+## Ajustements demandés par Thomas, puis validation (2026-09-26 et 27)
+
+Chaque ajustement a son commit et sa spec (`recommandations.md`, sauf
+mention). Décisions 16 à 19 inscrites en A.2 bis.
+
+| Commit | Demande de Thomas | Quoi |
+|---|---|---|
+| `c06d36d` | « revois les couleurs et l'affichage sur les cards » | cartes neutres, statut aux pastilles, en-tête sur une ligne |
+| `12496d4` | « revoir le système de bouton de cette page, comme dans la maquette » | un seul bouton d'icône (28 px) à la souris, chevron en tête, crayons dans la librairie |
+| `738f833` | « au moins 5 chiffres » dans les champs d'édition | champ de bonus en `6ch` (il en montrait trois) |
+| `592e4f3` | « revoir tous les boutons de la page » | 28 px pour les boutons à libellé et les pastilles, en édition comprise |
+| `dd2da29`, `a9c899a` | « boutons unifiés dans l'application », « le même rendu que la maquette » | **décision 16** : gabarit de la maquette dans `src/ui/` (32 / 28 px, survol au fond) ; « Se déconnecter » dans la librairie (`librairie-ui.md`, `design.md`) |
+| `eb9bb3a`, `20beae2` | « l'organisation des boutons comme sur la maquette » | `BoutonIcone.libelleALaSouris` ; Importer visible, barre d'outils sur une ligne, « Éditer ce deck » en pied du détail, ajouts en pied du tableau ; « Déplier tous les decks » reste en haut (un clic ne déplace pas ce qu'on clique) |
+| `c458a61` | « Analyser » en double sur petit écran | caché sous `lg`, le panneau « Options » le porte |
+| `d0bbd39` | « revois cet affichage » (capture) | le champ de recherche et ses trois cases en un seul bloc |
+| `16f0050` | « si on clique, ça cache l'analyse » | **décision 17** : « Analyser mes decks » à deux états ; [retrait #17] « Réanalyser mes decks » |
+| `8284ab2` | « autofocus sur le monstre suivant » | **décision 18** : le curseur passe au slot vide suivant (deck et défense visée) ; `slotVideSuivant.ts`, testé |
+| `4b40d07` | « un tri attaque / défense au lieu de toutes / mes recos / importées » | **décision 19** : vue Défense calculée (`recoDefenses.ts`, testé), format exporté inchangé ; [retrait #19] le filtre d'origine |
+
+**Tests modifiés, et pourquoi.** Assertions écrites PENDANT ce lot, mises
+à jour quand Thomas a changé ce qu'elles décrivaient : le contenu du menu
+« ⋯ » (Importer en est sorti, `20beae2`). Assertions d'AVANT le lot
+remplacées : les trois du filtre d'origine (`4b40d07`), dont la fonction
+est retirée (décision 19, [retrait #19]). Toutes les autres sont
+inchangées et passent. Tests ajoutés : `siege-slot-suivant` (10),
+`reco-defenses` (13), `testRenduRecosVueDefense` (9).
+
+**Validé par Thomas le 2026-09-27** (« ok c'est super », puis « oui,
+clos »). Téléphone non regardé (lot 11).

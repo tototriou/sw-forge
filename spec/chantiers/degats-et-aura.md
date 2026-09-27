@@ -385,6 +385,13 @@ propres aux six runes ; les deux tests ne prouvent aucune couverture d'aura.
 Les huit clés projetées sont réconciliées. Le vérificateur compare désormais
 aussi les **verdicts** combinés aux cartes sources : `relicOptim.ts` reste
 « consommateur indirect », non un nouveau verdict « transmetteur ».
+Le pilote valide a3a après rectification de six signatures ou déclarations
+initialement comptées comme lectures : 18 clés, **6 lectures consommatrices et
+12 non-consommateurs**, dont 7 points de propagation. Le toggle atteint les
+deux bornes RES/PRE du contexte figé, mais les auras propres au build y
+manquent. Dominance et faisabilité minimum peuvent rejeter à tort ; le
+maximum peut laisser passer un faux positif et `filterSlot` reste heuristique.
+Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 
 #### Suivi des lots
 
@@ -417,8 +424,8 @@ aussi les **verdicts** combinés aux cartes sources : `relicOptim.ts` reste
 | 6bis-a2b1 — paire d'artéfacts et cache | C | terminé après reprise | reçu `e5d785f` ↔ `9c2e357` / 2026-09-27 |
 | 6bis-a2b2 — exclusive et sélection de relique | C | terminé | reçu `0a512eb` ↔ `4e46068` / 2026-09-27 |
 | 6bis-a2b3 — scripts, tests et réconciliation | C | terminé après rectification pilote | reçu initial `d04bb19` ↔ `833b51a` / 2026-09-27 ; preuve rectifiée relivrée |
-| 6bis-a3a — conditions et élagages locaux | C | à lancer | — |
-| 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
+| 6bis-a3a — conditions et élagages locaux | C | terminé après rectification pilote | reçu initial `e21a385` ↔ `ab5c858` / 2026-09-27 ; preuve rectifiée relivrée |
+| 6bis-a3b — recherche, diagnostics et filtre final | C | à lancer | — |
 | 6bis-a4a — recette, reset et import écran | C | en attente de a3b | — |
 | 6bis-a4b — CLI et scripts de diagnostic | C | en attente de a4a | — |
 | 6bis-a4c1 — écran de recherche et caches | C | en attente de a4b | — |
@@ -1971,6 +1978,18 @@ pour chaque borne si elle est exacte, optimiste ou heuristique.
 propre, Intangible compris, franchit un minimum RES puis dépasse un maximum
 RES ; toggle éteint, elle reste dans le score. **Ne fait pas :** recherche
 complète, diagnostic ou correction d'élagage.
+
+**Résultat du 2026-09-27.** Les 18 clés de la projection sont couvertes par
+`carte-6bis-a3a.json` et `controle-6bis-a3a.md`. La contre-vérification
+pilote a réservé « consommateur » aux six lectures effectives et reclassé
+six signatures ou déclarations comme points de propagation ; le bilan est
+6 consommateurs, 12 non-consommateurs, dont 7 propagations. Les contrôles
+rejoués retrouvent les 18 clés sans doublon, 375 lignes ciblées et un lint
+propre. Les filtres min/max sont exacts pour l'aura figée reçue, non pour les
+activations propres inconnues avant six runes. Dominance et faisabilité min
+peuvent couper un build valide ; le maximum peut conserver un faux positif ;
+`filterSlot` est heuristique. Deux scénarios Tolerance/Intangible et toggle
+sont transmis à a3b. Aucun test d'exécution ni benchmark n'est attesté.
 
 #### 6bis-a3b — recherche, diagnostics et filtre final
 

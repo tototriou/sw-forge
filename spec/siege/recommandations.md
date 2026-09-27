@@ -34,9 +34,11 @@ quand une recherche est posée.
 
 ⚠️ **À la souris, l'en-tête d'une recommandation tient sur UNE ligne**
 (lot 7b, la maquette) : chevron · titre · Importée · decks · auteur, un
-ressort, puis **au bout** « Analyser mes decks » (bouton **fantôme**, comme
-tout ce qui se clique dans cet en-tête), un filet vertical et Exporter /
-Éditer / Supprimer. Au doigt, il garde ses deux rangées.
+ressort, puis **au bout** « Analyser mes decks » (bouton **à cadre**, comme
+les autres boutons à libellé de la page — il a été fantôme un temps, et ne se
+lisait plus comme un bouton parmi les icônes nues : « il ne ressort pas, il ne
+ressemble pas aux autres boutons »), un filet vertical et Exporter / Éditer /
+Supprimer. Au doigt, il garde ses deux rangées.
 
 ⚠️ **À la souris, le crayon d'un deck quitte la ligne** (la maquette) : la
 ligne n'a plus que ses quatre colonnes (chevron · offense · fort contre ·

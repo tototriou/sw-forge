@@ -509,10 +509,11 @@ export default function RecoCard({
             onClick={match ? onClearAnalysis : onAnalyze}
             disabled={!match && !canAnalyze}
             actif={Boolean(match)}
-            // Bouton FANTÔME (`.btn-ghost.btn-sm` de la maquette), comme tout
-            // ce qui se clique dans cet en-tête.
-            fond="vide"
-            trait="aucun"
+            // ⚠️ Bouton À CADRE (`.btn-secondary`), comme les autres boutons à
+            // libellé de la page — pas fantôme. En fantôme, seul libellé nu au
+            // milieu d'icônes nues, il ne se lisait plus comme un bouton
+            // (Thomas : « il ne ressort pas, il ne ressemble pas aux autres
+            // boutons »). Les icônes du bout de ligne restent nues.
             title={
               match
                 ? "Masquer le résultat de l'analyse"

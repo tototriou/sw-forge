@@ -4,8 +4,8 @@
 
 Cadrage : [refonte-graphique.md](../refonte-graphique.md), section B.5 à
 B.10, § Lot 8a (découpage en trois sous-lots). Décision appliquée (A.2 bis) :
-**20** — filtres en menus déroulants à la souris, ajouts de la maquette
-repoussés au lot 13.
+**20**, précisée — les filtres restent visibles, sur une ligne à la souris,
+sans menu déroulant ; les ajouts de la maquette sont repoussés au lot 13.
 
 ## Tests écrits AVANT (commit `dd0151b`)
 
@@ -28,42 +28,43 @@ défaut de l'Optimisation.
 
 Hors zone : la mesure Efficience / Score SW, réglage global du menu ⚙.
 
-## 8a-1 — les filtres en menus déroulants
+## 8a-1 — les filtres sur une ligne
 
-| Commit | Quoi |
-|---|---|
-| `c0e04a6` | `src/ui/Deroulant` : bouton `sm` à cadre (intitulé, résumé, chevron) + panneau `Flottant` `role="dialog"`, resté dans le DOM fermé ; test `testRenduUiDeroulant` (4) |
-| (ce commit) | `FiltresRunes` : Set · Emplacement · Antiques + « Effacer les filtres », dans la Liste, les Courbes et l'Optimisation (sans Antiques, rangés dans ses options) ; `sansIntitule` sur `SetFilter` et `SlotFilter` ; test `testRenduRunesFiltresDeroulants` (15) |
+Trois essais le même jour, avec Thomas.
 
-**Précisée après essai** : Thomas n'a pas voulu des sets dans un menu (« pas
-très fan d'avoir des drop-down pour un set filtre dedans »). Leur rangée
-d'icônes reste visible sur la ligne ; Emplacement et Antiques restent des
-menus. Le test `testRenduRunesFiltresDeroulants`, écrit dans ce sous-lot,
-suit ce changement : plus de menu « Set », panneau « Emplacement » fermé.
-Les 114 vérifications d'avant ne changent pas.
+| Commit | Quoi | Retour de Thomas |
+|---|---|---|
+| `c0e04a6`, `f010f55` | `src/ui/Deroulant` ; les trois filtres en menus déroulants (la maquette), plus « Effacer les filtres » | « pas très fan d'avoir des drop-down pour un set filtre dedans » |
+| `ebeda3a` | les sets visibles, Emplacement et Antiques en menus | « sors tout des boutons » |
+| (ce commit) | les trois filtres VISIBLES sur une ligne, plus « Effacer les filtres » ; `Deroulant` retiré de la librairie, sans autre usage | — |
 
-Chaque panneau contient les MÊMES contrôles qu'avant. Au doigt, rien ne
-change :
-- la Liste garde ses rangées dans le panneau « Options » ;
-- les Courbes et l'Optimisation les gardent dans la page (`lg:hidden`).
+État final :
+- **`FiltresRunes`**, à la souris, dans la Liste, les Courbes et
+  l'Optimisation : `SetFilter` · `SlotFilter` · `AncientFilter` (absent de
+  l'Optimisation, qui le range dans ses options), sur une ligne, puis
+  « Effacer les filtres ». Ce bouton est toujours affiché, désactivé sans
+  filtre (« Aucun filtre posé »).
+- `SetFilter` et `SlotFilter` sont revenus à l'identique d'avant le lot.
+- Au doigt, rien ne change : la Liste garde ses rangées dans le panneau
+  « Options », les Courbes et l'Optimisation dans la page (`lg:hidden`).
 
-Aucune assertion d'avant modifiée. Inventaire : aucune perte. Seuls des
-libellés sont ajoutés (« Set », « Emplacement », « Antiques », « Effacer
-les filtres »).
+Tests :
+- les 114 vérifications d'avant sont inchangées ;
+- le test propre au sous-lot, écrit pour les menus, suit leur retrait et
+  devient `testRenduRunesFiltresLigne` (6 vérifications) : aucun filtre
+  fermé dans un menu, et « Effacer les filtres » désactivé avec sa raison.
+
+Inventaire : aucune perte ; un seul libellé ajouté, « Effacer les
+filtres ».
 
 ```text
 $ npx tsc --noEmit                            → code 0
-$ node tests/run.mjs rendu-runes              → 129 vérifications passées
-$ node tests/run.mjs rendu-ui-deroulant       → 4 vérifications passées
+$ node tests/run.mjs rendu-runes rendu-ui     → 155 vérifications passées
 $ node scripts/inventaire-ui.mjs --verifier   → aucune perte
 $ node scripts/chemins-interdits.mjs 6110609  → aucun modifié
 $ node scripts/spec-lint.mjs                  → aucune erreur
-$ npm run build                               → built ; contents, w-max, lg:block émis
+$ npm run build                               → built
 ```
 
-À regarder sur le serveur de dev (non testable en rendu serveur) :
-- l'ouverture et la fermeture de chaque menu : clic dehors, Échap,
-  rappuyer ;
-- le résumé des sets quand on en décoche : icônes, noms, « +N » ;
-- « Effacer les filtres » ;
-- la page qui ne bouge pas quand un menu s'ouvre : le panneau flotte.
+À regarder sur le serveur de dev : la ligne de filtres, et « Effacer les
+filtres » après avoir filtré.

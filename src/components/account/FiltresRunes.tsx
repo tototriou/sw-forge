@@ -1,20 +1,20 @@
 import { useMemo } from 'react';
 import { RuneDetail, RUNE_SETS } from '../../types';
-import { Bouton, Deroulant } from '../../ui';
+import { Bouton } from '../../ui';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
-import AncientFilter, { ANCIENTS, AncientFilter as AncientFilterValue } from './AncientFilter';
+import AncientFilter, { AncientFilter as AncientFilterValue } from './AncientFilter';
 
-// ⚠️ **Les filtres des runes À LA SOURIS, sur UNE ligne** (refonte graphique,
-// lot 8a, décision 20 précisée) : la rangée d'icônes des SETS, visible, puis
-// deux menus déroulants — Emplacement · Antiques —, puis « Effacer les
-// filtres ». Chaque menu garde les MÊMES choix qu'avant (`SlotFilter`,
-// `AncientFilter`, inchangés, dans le panneau) ; ils prenaient deux rangées de
-// la page, le bouton dit maintenant la valeur d'un coup d'œil.
-// ⚠️ **Les sets ne sont PAS dans un menu** : essayé, puis défait par Thomas
-// (« pas très fan d'avoir des drop-down pour un set filtre dedans »). La
-// rangée d'icônes du jeu se reconnaît et se coche d'un regard ; fermée dans un
-// menu, il fallait l'ouvrir pour voir quels sets étaient choisis.
+// ⚠️ **Les filtres des runes À LA SOURIS, tous VISIBLES, sur une ligne**
+// (refonte graphique, lot 8a, décision 20 précisée) : sets · emplacements ·
+// antiques, puis « Effacer les filtres ». Mêmes contrôles qu'avant —
+// `SetFilter`, `SlotFilter`, `AncientFilter`, inchangés —, rangés sur une
+// seule ligne au lieu de trois.
+// ⚠️ **Pas de menus déroulants** : la maquette en posait trois, essayés puis
+// défaits par Thomas, d'abord pour les sets (« pas très fan d'avoir des
+// drop-down pour un set filtre dedans »), puis pour le reste (« sors tout des
+// boutons »). Un filtre fermé dans un menu ne dit pas ce qu'il filtre sans
+// qu'on l'ouvre.
 // Partagé par la Liste, les Courbes et l'Optimisation. Au doigt, chaque vue
 // garde ses filtres d'avant (lot 11).
 
@@ -50,20 +50,11 @@ export default function FiltresRunes({
   const tousLesSlots = SLOTS.every((n) => slots.has(n));
   const parDefaut = tousLesSets && tousLesSlots && (!antiques || ancient === 'all');
 
-  const slotsChoisis = SLOTS.filter((n) => slots.has(n));
-  const resumeSlots = tousLesSlots ? 'Tous' : slotsChoisis.length === 0 ? 'Aucun' : slotsChoisis.join(', ');
-
   return (
-    <div className="flex flex-wrap items-center gap-2" data-filtres-deroulants>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2" data-filtres-ligne>
       <SetFilter runes={runes} value={sets} onChange={onSets} />
-      <Deroulant intitule="Emplacement" resume={resumeSlots}>
-        <SlotFilter value={slots} onChange={onSlots} sansIntitule />
-      </Deroulant>
-      {antiques && (
-        <Deroulant intitule="Antiques" resume={ANCIENTS.find((a) => a.key === ancient)?.label ?? 'Toutes'}>
-          <AncientFilter value={ancient} onChange={onAncient} />
-        </Deroulant>
-      )}
+      <SlotFilter value={slots} onChange={onSlots} />
+      {antiques && <AncientFilter value={ancient} onChange={onAncient} />}
       {/* ⚠️ Toujours affiché, DÉSACTIVÉ quand rien n'est filtré : un bouton
           qui apparaît au premier filtre posé ne s'explique pas. */}
       <Bouton

@@ -17,13 +17,10 @@ export default function SlotFilter({
   value,
   onChange,
   label = 'Slot',
-  sansIntitule = false,
 }: {
   value: Set<number>;
   onChange: (next: Set<number>) => void;
   label?: string;
-  // Dans un `Deroulant` (lot 8a), le bouton porte déjà l'intitulé.
-  sansIntitule?: boolean;
 }) {
   const toggle = (n: number) => {
     const next = new Set(value);
@@ -35,7 +32,7 @@ export default function SlotFilter({
     // `data-filtre-slots` : dans le panneau mobile, les six emplacements se
     // répartissent sur toute la largeur (voir index.css). Ailleurs, sans effet.
     <div data-filtre-slots className="flex flex-wrap items-center gap-1">
-      {!sansIntitule && <span className="label mr-1">{label}</span>}
+      <span className="label mr-1">{label}</span>
       <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1">
         {SLOTS.map((n) => {
           const active = value.has(n);

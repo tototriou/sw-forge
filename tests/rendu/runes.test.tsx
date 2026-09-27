@@ -188,19 +188,15 @@ export function testRenduRunesAVenir() {
   }
 }
 
-// Lot 8a-1 (décision 20) : à la souris, les filtres en menus déroulants.
-// Ajouté avec eux ; les tests d'avant restent inchangés.
-export function testRenduRunesFiltresDeroulants() {
-  titre('rendu · Mon compte · Runes — filtres en menus déroulants (souris)');
+// Lot 8a-1 (décision 20 précisée) : à la souris, les filtres tous VISIBLES sur
+// une ligne, plus « Effacer les filtres ». Pas de menu déroulant (essayé, puis
+// défait par Thomas). Ajouté avec eux ; les tests d'avant restent inchangés.
+export function testRenduRunesFiltresLigne() {
+  titre('rendu · Mon compte · Runes — filtres sur une ligne (souris)');
   for (const vue of ['liste', 'courbes', 'optimisation'] as AccountView[]) {
     const html = rendreVue(vue);
     const b = boutons(html);
-    // Les sets restent une RANGÉE visible (décision 20 précisée : pas de menu).
-    ok(!b.some((x) => x.texte === 'Set Tous'), `${vue} : pas de menu « Set », les sets restent visibles`);
-    ok(b.some((x) => x.texte === 'Emplacement Tous'), `${vue} : menu « Emplacement », tous`);
-    ok(/role="dialog"[^>]*aria-label="Emplacement"|aria-label="Emplacement"[^>]*role="dialog"/.test(html), `${vue} : le panneau « Emplacement » est dans la page, fermé`);
+    ok(!/aria-haspopup="dialog"/.test(html), `${vue} : aucun filtre fermé dans un menu`);
     ok(b.some((x) => x.texte === 'Effacer les filtres' && x.desactive && x.title === 'Aucun filtre posé'), `${vue} : « Effacer les filtres », désactivé sans filtre, et pourquoi`);
-    if (vue === 'optimisation') ok(!b.some((x) => x.texte === 'Antiques Toutes'), 'optimisation : pas de menu « Antiques » (ils sont dans ses options)');
-    else ok(b.some((x) => x.texte === 'Antiques Toutes'), `${vue} : menu « Antiques », toutes`);
   }
 }

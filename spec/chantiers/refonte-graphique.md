@@ -271,10 +271,12 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
       trois menus déroulants compacts, comme la maquette, plus « Effacer
       les filtres ». Chaque menu garde les MÊMES choix qu'aujourd'hui. Au
       doigt, rien ne change (lot 11).
-    - **Précisée le 2026-09-27, après essai** : les SETS ne vont pas dans
-      un menu (Thomas : « pas très fan d'avoir des drop-down pour un set
-      filtre dedans »). Leur rangée d'icônes reste visible, et seuls
-      Emplacement et Antiques sont des menus, sur la même ligne.
+    - **Précisée le 2026-09-27, après essai, en deux temps** : les SETS
+      d'abord ne vont pas dans un menu (Thomas : « pas très fan d'avoir des
+      drop-down pour un set filtre dedans »), puis plus AUCUN filtre (« sors
+      tout des boutons »). Les trois filtres restent visibles, sur une seule
+      ligne à la souris, suivis d'« Effacer les filtres ». Le composant
+      `Deroulant`, ajouté pour les menus, est retiré sans autre usage.
     - Les fonctions que la maquette AJOUTE sont repoussées : recherche
       texte de propriété (« VIT ≥ 20 »), pagination numérotée, courbe par
       set et « Ajouter un set », « Voir en tableau », tableau chiffré de
@@ -712,11 +714,11 @@ de spec (`spec/compte/runes.md`, lue par sections) et cinq planches de
 maquette. C'est trop pour un seul passage sans dégrader les derniers
 écrans. Trois sous-lots, dans cet ordre, chacun validé par Thomas avant le
 suivant :
-- **8a-1 — les filtres** (décision 20) : `SetFilter`, `SlotFilter`,
-  `AncientFilter` en menus déroulants à la souris, plus « Effacer les
-  filtres ». Ils sont partagés par la Liste, les Courbes et
-  l'Optimisation. Le menu est COMPOSÉ de la librairie (`Bouton` +
-  `Flottant`), pas un contrôle maison.
+- **8a-1 — les filtres** (décision 20, précisée) : `SetFilter`,
+  `SlotFilter`, `AncientFilter` visibles sur UNE ligne à la souris, plus
+  « Effacer les filtres ». Ils sont partagés par la Liste, les Courbes et
+  l'Optimisation. Les menus déroulants de la maquette ont été essayés,
+  puis défaits par Thomas.
 - **8a-2 — Résumé et Liste** : le Résumé en barres et tableaux (planche
   « Résumé ») ; l'en-tête, le tri et la pagination de la Liste. Les
   tuiles, rendus du jeu, sont seulement placées.

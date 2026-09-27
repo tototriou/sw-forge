@@ -126,3 +126,15 @@ export function testRenduCompteArtefactsListe() {
   ok(t.includes('PV +1500 Légendaire 71.9% 1 Dgts de bombe +8% 2 Dgts CRIT reçus -5%'), 'le meilleur en tête : stat principale, rareté, efficience, propriétés avec leurs rolls');
   ok(t.includes('DEF +60 Rare 3.6%'), 'le moins bon en fin de liste');
 }
+
+// Lot 8b : les en-têtes à la souris. Ajoutés avec eux ; les tests d'avant
+// restent inchangés.
+export function testRenduCompteSouris() {
+  titre('rendu · Mon compte · Monstres et Artéfacts — en-têtes à la souris');
+  const box = rendreCompte('monstres', 'liste');
+  ok(/<h1[^>]*>Ma box<\/h1>/.test(box) && texteVisible(box).includes('Ma box 6 monstres différents · 6★'), 'la box : « Ma box », puis son compte');
+  const resume = rendreCompte('artefacts', 'resume');
+  ok(/<h1[^>]*>Résumé<\/h1>/.test(resume) && texteVisible(resume).includes('Résumé 8 artéfacts Artéfacts 8'), 'le Résumé : « Résumé », le nombre d\'artéfacts, puis les chiffres clés');
+  const liste = rendreCompte('artefacts', 'liste');
+  ok(/<h1[^>]*>Liste<\/h1>/.test(liste) && texteVisible(liste).includes('Liste 8 artéfacts Catégorie'), 'la Liste : « Liste », le nombre d\'artéfacts de l\'inventaire, puis les filtres');
+}

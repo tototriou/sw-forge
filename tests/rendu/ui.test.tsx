@@ -14,6 +14,7 @@ import Option from '../../src/ui/Option';
 import Jeton from '../../src/ui/Jeton';
 import Selecteur from '../../src/ui/Selecteur';
 import Menu from '../../src/ui/Menu';
+import Deroulant from '../../src/ui/Deroulant';
 import { egal, ok, titre } from '../outils';
 import { bouton, boutons, rendre, texteVisible } from './outils-rendu';
 
@@ -122,4 +123,20 @@ export function testRenduUiMenu() {
   // L'entrée destructrice vient APRÈS les autres, derrière un filet.
   const ordre = boutons(html).filter((b) => ['Sauvegarder', 'Reprendre', 'Tout effacer'].includes(b.texte)).map((b) => b.texte);
   egal(ordre, ['Sauvegarder', 'Reprendre', 'Tout effacer'], 'l\'entrée destructrice est rangée en dernier');
+}
+
+// `Deroulant` (lot 8a, décision 20) : un bouton qui dit un réglage et sa
+// valeur, et un panneau qui reste dans la page, fermé.
+export function testRenduUiDeroulant() {
+  titre('rendu · ui — Deroulant');
+  const html = rendre(
+    <Deroulant intitule="Set" resume="Tous" title="Tous les sets">
+      <button type="button">Violent</button>
+    </Deroulant>,
+  );
+  const declencheur = boutons(html).find((b) => b.texte === 'Set Tous');
+  ok(!!declencheur && declencheur.title === 'Tous les sets', 'le bouton : l\'intitulé, puis la valeur ; la valeur complète en infobulle');
+  ok(/aria-expanded="false"/.test(html) && /aria-haspopup="dialog"/.test(html), 'fermé, et annoncé comme ouvrant un panneau');
+  ok(/role="dialog"[^>]*aria-label="Set"|aria-label="Set"[^>]*role="dialog"/.test(html), 'le panneau, nommé par l\'intitulé');
+  ok(boutons(html).some((b) => b.texte === 'Violent'), 'son contenu reste dans la page, fermé');
 }

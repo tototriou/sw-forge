@@ -289,6 +289,20 @@ de rendu retrouver chaque action, son état et sa raison.
 dans l'écran aurait fait un contrôle MAISON — ce que la règle qui gouverne tout
 le reste interdit — et les maquettes en posent un dans plusieurs écrans.
 
+**`Deroulant`** — un bouton qui dit un RÉGLAGE et sa valeur (« Set · Swift,
+Violent ▾ » : `intitule` atténué, `resume`, chevron), et qui ouvre sous lui un
+panneau (`Flottant`, `role="dialog"`) où l'on change cette valeur. Né au lot
+8a de la refonte (décision 20 : les filtres des runes en menus déroulants, la
+maquette `.fbtn` + `.menu`), avec trois usages dès le départ (Liste, Courbes,
+Optimisation). ⚠️ **Ce n'est pas un `Menu`** : un menu liste des ACTIONS et se
+referme au premier choix ; un déroulant porte un réglage, souvent à choix
+multiples, et reste ouvert tant qu'on règle — il se referme au clic dehors, à
+Échap (le focus revient au bouton) ou en rappuyant sur le bouton. ⚠️ Composé
+de la librairie : le bouton est un `Bouton` `sm` à cadre, le panneau un
+`Flottant` ; le CONTENU est celui de l'appelant, avec ses propres contrôles.
+⚠️ Le panneau reste dans le DOM, fermé (`hidden`), comme celui de `Menu`.
+`title` porte la valeur complète quand le résumé l'abrège.
+
 **`Champ`** — saisie texte. ⚠️ `compact:text-base` n'est **pas un choix de
 taille, c'est un correctif** : sous 16 px, iOS **zoome** sur le champ à la mise
 au point, et la page ne revient pas seule de ce zoom. C'est la seule raison pour

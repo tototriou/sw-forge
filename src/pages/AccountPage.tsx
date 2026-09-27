@@ -268,17 +268,28 @@ function MonsterBoxSection({
 
   return (
     <div>
-      <p className="mb-4 font-mono text-ink-dim text-xs">
-        {entries.length} monstre{entries.length > 1 ? 's' : ''} différent{entries.length > 1 ? 's' : ''}
-        {box.length !== entries.length && ` · ${box.length} au total`} · 6★
-      </p>
+      {/* ⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8b, la
+          maquette) : « Ma box », puis le compte en pastille — le même texte
+          qu'au doigt, où il reste une ligne sous la barre du haut (lot 11). */}
+      <div className="mb-4 flex items-center gap-2.5">
+        <h1 className="hidden font-display text-xl tracking-wide text-ink lg:block">Ma box</h1>
+        <p className="font-mono text-ink-dim text-xs lg:rounded-full lg:border lg:border-border-soft lg:bg-panel2 lg:px-2 lg:py-0.5 lg:text-micro">
+          {entries.length} monstre{entries.length > 1 ? 's' : ''} différent{entries.length > 1 ? 's' : ''}
+          {box.length !== entries.length && ` · ${box.length} au total`} · 6★
+        </p>
+      </div>
 
       {/* ⚠️ La RECHERCHE et le TRI restent visibles ; les trois rangées de
           filtres (élément, étoiles, doublons/2A) passent dans le tiroir sous
           `lg`. Elles occupaient quatre lignes avant la première carte sur un
-          téléphone — plus que la grille qu'elles filtrent. */}
-      <div className="flex flex-col gap-3 mb-4">
-        <div className="flex flex-wrap items-center gap-2">
+          téléphone — plus que la grille qu'elles filtrent.
+          ⚠️ **À la SOURIS, UNE barre d'outils** (lot 8b, la maquette) :
+          recherche · élément · étoiles, doublons, 2A · et le TRI calé à droite
+          (`lg:order-last lg:ml-auto`). Les rangées s'effacent dans cette
+          ligne (`lg:contents`). Les filtres restent VISIBLES, pas dans des
+          menus (décision 20, Runes : Thomas n'en a pas voulu). */}
+      <div className="flex flex-col gap-3 mb-4 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-4 lg:gap-y-2">
+        <div className="flex flex-wrap items-center gap-2 lg:contents">
           <Champ
             icone={<Search size={15} />}
             value={query}
@@ -297,6 +308,7 @@ function MonsterBoxSection({
           <Segmented
             value={sortMode}
             onChange={setSortMode}
+            className="lg:order-last lg:ml-auto"
             options={[
               {
                 key: 'jeu' as const,

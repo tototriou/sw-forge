@@ -21,6 +21,9 @@ Affiche **tous les monstres montés 6★** du compte importé. Composant :
     d'exemplaires (box seule — le bestiaire ne sait pas ce qu'on possède) et la
     rangée d'**étoiles**, masquée ici puisque tout est 6★.
 - En-tête : « N monstres différents · M au total · 6★ ».
+  - ⚠️ **À la SOURIS** (refonte graphique, lot 8b, la maquette) : précédé du
+    titre « Ma box », le compte passe en pastille. Au doigt, il reste une ligne
+    sous la barre du haut (lot 11).
 
 ## Pagination & performance
 
@@ -258,6 +261,13 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
   dérivé de `awaken_level ≥ 2` côté données SWARFARM). Ex. Tractor 2A.
 
 Les filtres se combinent avec la recherche.
+
+⚠️ **À la SOURIS, une seule barre d'outils** (refonte graphique, lot 8b, la
+maquette) : recherche · élément · Nat, Doublons, 2A, puis le **tri calé à
+droite** (`lg:order-last lg:ml-auto`). Les filtres restent **visibles**, pas
+dans des menus : même choix que pour les runes (décision 20 du cadrage
+[../chantiers/refonte-graphique.md](../chantiers/refonte-graphique.md)). Au
+doigt, rien ne change (lot 11).
 
 > ⚠️ **Une chip active se reconnaît à sa couleur, sans lire son libellé.**
 >

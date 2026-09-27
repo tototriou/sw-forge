@@ -108,3 +108,14 @@ $ node scripts/chemins-interdits.mjs 6110609  → aucun modifié
 $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built ; grilles 220 / 240 px émises
 ```
+
+## Ajustements de 8a-3, puis clôture
+
+| Commit | Demande de Thomas | Quoi |
+|---|---|---|
+| `c87c8f13` | « revois un peu les infobulles pour que ça rende mieux » | l'infobulle du graphe (Courbes, Comparaison) en HTML au gabarit des panneaux, aux couleurs du thème ; grille, graduations et axes aux tokens |
+| `aaaac28c` | capture de « Comment est-ce calculé ? » : « ça ne rend pas bien » | `HelpPopover` : rembourrage, hauteur bornée avec défilement, titre détaché — toutes les aides « ? » de l'app |
+| `c094446e` | « fais la même chose partout dans l'appli » | recensement de toutes les bulles ; les deux dernières écrites à la main (précision d'une défense visée, menu ⚙) passent au `Flottant` |
+
+**Lot 8a validé par Thomas le 2026-09-27** (« ok c'est good »).
+Téléphone non regardé (lot 11).

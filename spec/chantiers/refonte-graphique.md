@@ -436,7 +436,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par Thomas le 2026-09-26 |
 | 7b Siège · Recommandations | J | exécuté, validé (bureau) | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête), ajustements `c06d36d`…`4b40d07` (décisions 16 à 19) ; validé par Thomas le 2026-09-27 |
 | 14 thème clair (Atelier) : revoir les tokens | J | exécuté, validé | `03fbe84` (tokens), `85f3c9e` (teintes claires de l'accueil) ; fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix de Thomas) ; preuve `lot-14.md` ; validé par Thomas le 2026-09-27 |
-| 8a Compte · Runes | J | en cours | tests avant `dd0151b` (114) ; décision 20 ; découpé en 8a-1 filtres, 8a-2 Résumé et Liste, 8a-3 Courbes, Comparaison, Optimisation |
+| 8a Compte · Runes | J | exécuté, validé (bureau) | tests avant `dd0151b` (114) ; décisions 20 et 21 ; 8a-1 filtres (`f010f55`…`d310592`), 8a-2 Résumé et Liste (`84e07ed`, `989f8f5`), 8a-3 Courbes, Comparaison, Optimisation (`8dd9dba`), bulles de l'app (`c87c8f1`, `aaaac28`, `c094446`) ; validé par Thomas le 2026-09-27 |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
 | 9a Outils · Optimizer | J | à faire | |
 | 9b Outils · Speed tuning | J | à faire | |
@@ -738,6 +738,26 @@ suivant :
 
 Tests avant : `dd0151b` (114 vérifications, `tests/rendu/runes.test.tsx`).
 Ils valent pour les trois sous-lots.
+
+**Résultat lot 8a — Mon compte · Runes (2026-09-27)** — preuve
+[lot-8a.md](refonte-graphique-preuves/lot-8a.md).
+- **8a-1, les filtres** : trois essais avant l'état final (menus
+  déroulants, puis sets visibles, puis tout visible), avec les filtres sur
+  une ligne au gabarit du `Segmented` et « Effacer les filtres ». Le tri de
+  l'Optimisation est en onglets, celui de la Liste en liste déroulante, au
+  même endroit, au-dessus de la propriété. Décision 21 : une seule entrée
+  de mesure, [retrait #21].
+- **8a-2** : Résumé en bandeau et en trois colonnes, « Par emplacement »
+  en barres, en-tête de la Liste, flèches du `Pager` dans la librairie.
+- **8a-3** : en-têtes, graphe et légende « Séries » côte à côte.
+- **Bulles de toute l'app** : l'infobulle du graphe aux tokens,
+  `HelpPopover` rembourrée et bornée, les deux dernières bulles maison
+  passées au `Flottant`.
+
+Tests d'avant inchangés, sauf un, remplacé par la décision 21. Tests
+ajoutés : 21 vérifications, 135 au total. Aucune perte. Non repris, pour le
+lot 13 : les ajouts de la décision 20 et le plan d'optimisation dans chaque
+carte. **Validé par Thomas le 2026-09-27.**
 
 ### B.11 Lot 11 — téléphone · J
 

@@ -239,3 +239,17 @@ export function testRenduRunesListeSouris() {
   const html = rendreVue('liste');
   ok(/<h1[^>]*>Liste<\/h1>/.test(html) && texteVisible(html).includes('Liste 9 runes'), 'l\'en-tête : « Liste », puis le nombre de runes de l\'inventaire');
 }
+
+// Lot 8a-3 : Courbes, Comparaison, Optimisation à la souris — en-têtes et
+// légende « Séries ». Ajouté avec eux ; les tests d'avant restent inchangés.
+export function testRenduRunesVuesSouris() {
+  titre('rendu · Mon compte · Runes — Courbes, Comparaison, Optimisation à la souris');
+  const courbes = rendreVue('courbes');
+  ok(/<h1[^>]*>Courbes<\/h1>/.test(courbes) && texteVisible(courbes).includes('Efficience de chaque rune, de la meilleure à la moins bonne.'), 'Courbes : le titre, et ce qu\'elles tracent');
+  ok(texteVisible(courbes).includes('Séries Actuelle Potentiel Héro Potentiel Légend'), 'Courbes : la légende, sous « Séries »');
+  const comparaison = rendreVue('comparaison');
+  ok(/<h1[^>]*>Comparaison<\/h1>/.test(comparaison), 'Comparaison : le titre');
+  ok(texteVisible(comparaison).includes('Séries Moi'), 'Comparaison : la légende, sous « Séries »');
+  const optim = rendreVue('optimisation');
+  ok(/<h1[^>]*>Optimisation<\/h1>/.test(optim) && texteVisible(optim).includes('Ce que tes meules et gemmes permettent d\'améliorer, rune par rune.'), 'Optimisation : le titre, et ce qu\'elle cherche');
+}

@@ -79,3 +79,32 @@ filtres » après avoir filtré.
 | `d310592f` | « il y a Score et Efficience mais c'est la même chose » | **décision 21**, [retrait #21] : une seule entrée de mesure, celle du ⚙ ; une assertion d'avant remplacée |
 
 **8a-1 validé par Thomas le 2026-09-27** (« ok »).
+
+## 8a-2 — Résumé et Liste
+
+| Commit | Quoi |
+|---|---|
+| `84e07ed` | `Pager` : flèches en `BoutonIcone` de la librairie, même carré de 28 px et même zone tactile de 44 px (décision 16) ; vaut pour toutes les pages qui paginent ; 4 libellés déclarés (`libelle`) |
+| `989f8f5` | Résumé à la souris : en-tête, bandeau de chiffres (`Kpi bandeau`), trois colonnes (`lg:order-*`), « Par emplacement » en barres verticales ; Liste : en-tête ; tests `testRenduRunesResumeSouris` (3), `testRenduRunesListeSouris` (1) |
+
+Rien n'est retiré. Le tableau des stats principales slot par slot, le lien
+« Voir l'optimisation » et la pagination numérotée restent pour le lot 13.
+
+## 8a-3 — Courbes, Comparaison, Optimisation
+
+| Commit | Quoi |
+|---|---|
+| (ce commit) | Courbes : en-tête (titre et ce qu'elles tracent), graphe et légende côte à côte (carte « Séries ») ; Comparaison : titre en tête des sous-onglets, même graphe et légende côte à côte dans les deux sous-onglets ; Optimisation : en-tête ; `CurveLegend` reçoit `className` ; test `testRenduRunesVuesSouris` (5) |
+
+Non fait, pour décision (liste du lot 13) : le plan d'optimisation écrit dans
+chaque carte, au lieu du panneau qui s'ouvre au clic.
+
+```text
+$ npx tsc --noEmit                            → code 0
+$ node tests/run.mjs rendu-runes              → 135 vérifications passées
+$ node tests/run.mjs rendu                    → toutes les zones vertes (462 avant 8a-3)
+$ node scripts/inventaire-ui.mjs --verifier   → aucune perte
+$ node scripts/chemins-interdits.mjs 6110609  → aucun modifié
+$ node scripts/spec-lint.mjs                  → aucune erreur
+$ npm run build                               → built ; grilles 220 / 240 px émises
+```

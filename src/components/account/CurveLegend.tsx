@@ -33,13 +33,18 @@ export default function CurveLegend({
   entrees,
   masquees,
   onBascule,
+  className = '',
 }: {
   entrees: EntreeLegende[];
   masquees: Set<string>;
   onBascule: (name: string) => void;
+  // La disposition à la souris : en COLONNE dans le panneau « Séries » à côté
+  // du graphe (refonte graphique, lot 8a-3, la maquette). Au doigt, la rangée
+  // sous le graphe d'avant.
+  className?: string;
 }) {
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+    <div className={`mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 ${className}`}>
       {entrees.map(({ name, color, onRetirer }) => {
         const off = masquees.has(name);
         return (

@@ -393,6 +393,16 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
 
   return (
     <div>
+      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+          le titre de la vue et ce qu'elle cherche. Au doigt, la barre du haut
+          dit déjà la vue (lot 11). */}
+      <div className="mb-3 hidden items-baseline gap-3 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Optimisation</h1>
+        <span className="text-sm text-ink-dim">
+          Ce que tes meules et gemmes permettent d'améliorer, rune par rune.
+        </span>
+      </div>
+
       <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/50 bg-warn/10 px-3 py-2 text-xs text-warn">
         <AlertTriangle size={15} className="flex-none mt-0.5" />
         <span>

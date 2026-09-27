@@ -758,7 +758,10 @@ un par un avec Thomas avant d'entrer dans ce lot :
 - courbe par set et « Ajouter un set » ;
 - « Voir en tableau » des Courbes ;
 - tableau chiffré de comparaison entre comptes et « Retirer » par compte ;
-- lien « Voir l'optimisation » depuis le Résumé.
+- lien « Voir l'optimisation » depuis le Résumé ;
+- dans l'Optimisation, le plan écrit DANS chaque carte, toujours visible
+  (la maquette), au lieu du panneau qui s'ouvre au clic — relevé au lot
+  8a-3.
 
 Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
 

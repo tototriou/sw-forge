@@ -465,6 +465,15 @@ Deux pièces, reprises telles quelles :
 
 ## Onglet Courbes — `RunesCurve`
 
+⚠️ **À la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+- un en-tête : « Courbes », puis ce qu'elles tracent (« Efficience de chaque
+  rune, de la meilleure à la moins bonne. », ou « Score », selon le ⚙) ;
+- le graphe et sa légende côte à côte : la légende (`CurveLegend`, en
+  colonne) passe dans une carte « Séries » à droite du graphe.
+
+Au doigt, la rangée sous le graphe d'avant (lot 11). « Ajouter un set » et
+« Voir en tableau » de la maquette sont repoussés au lot 13 (décision 20).
+
 Trois courbes, chacune **triée par valeur décroissante** (ordonnée = la **mesure
 choisie** — efficience % ou score SW, l'axe et l'infobulle s'adaptent ; abscisse =
 nombre de runes) :
@@ -682,6 +691,14 @@ un écran de résultats, et la place libérée profite immédiatement.
 ## Onglet Comparaison — `RunesCompare`
 
 Se comparer entre amis en superposant plusieurs courbes.
+
+⚠️ **À la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+- le titre « Comparaison » en tête de la rangée des sous-onglets ;
+- dans les deux sous-onglets, le graphe et sa légende côte à côte, la
+  légende dans une carte « Séries », comme l'onglet Courbes.
+
+Au doigt, rien ne change (lot 11). Le tableau chiffré entre comptes et le
+« Retirer » par ligne de la maquette sont repoussés au lot 13 (décision 20).
 
 ### ⚠️ DEUX sous-onglets, parce que les deux formats ne portent pas la même chose
 
@@ -915,6 +932,12 @@ sous `[data-tiroir]` (voir index.css) ; le desktop garde ses contrôles à la
 largeur de leur contenu.
 
 ## Onglet Optimisation — `RunesOptim`
+
+⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8a-3, la maquette) :
+« Optimisation », puis « Ce que tes meules et gemmes permettent d'améliorer,
+rune par rune. ». Les tuiles et leur plan, qui s'ouvre au clic, ne changent
+pas. La maquette écrit le plan DANS chaque carte, toujours visible : c'est un
+changement de comportement, à décider avec Thomas, pas fait ici.
 
 Calcule, pour chaque rune, son **potentiel maximal** et **ce qu'il faut faire**
 pour l'atteindre. Calcul pur & linéaire dans [runeOptim.ts](src/lib/runeOptim.ts)

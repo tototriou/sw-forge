@@ -44,14 +44,21 @@ Supprimer. Au doigt, il garde ses deux rangées.
 ligne n'a plus que ses quatre colonnes (chevron · offense · fort contre ·
 verdict, ce dernier aligné à droite), et l'édition devient **« Éditer ce
 deck » écrit en toutes lettres, en PIED du détail déplié**, à droite, sous
-un filet (en édition : « Terminer l'édition de ce deck » et « Supprimer ce
-deck »). Replié, un deck ne montre donc plus d'action d'édition : on le
-déplie d'abord, comme dans la maquette. C'est le MÊME bouton qu'au doigt
-(`BoutonIcone` `libelleALaSouris`), placé sur la 3ᵉ rangée de la grille du
+un filet (en édition : « Terminer l'édition de ce deck »), et **« Supprimer
+ce deck » à l'autre bout, TOUJOURS présent** — plus seulement en édition
+(Thomas, 2026-09-27 : « le bouton de suppression devrait toujours être
+présent » ; la confirmation reste le garde-fou). Au doigt aussi, la
+corbeille suit le crayon en permanence. Ces boutons ont un **CADRE** à la
+souris, comme les autres boutons à libellé (« le bouton d'édition ne ressort
+pas trop ») : `BoutonIcone` `libelleALaSouris`. Replié, un deck ne montre
+donc plus d'action d'édition : on le déplie d'abord, comme dans la maquette.
+C'est le MÊME bouton qu'au doigt, placé sur la 3ᵉ rangée de la grille du
 deck. **En édition de la recommandation**, Ajouter un deck vide et Importer
 un deck d'offense forment le **pied du tableau des decks**, à droite, en
-boutons fantômes pointillés. **« + Défense »** devient un bouton fantôme
-`sm` au bout de la rangée des défenses visées. ⚠️ **Écart assumé** : la
+boutons **pointillés à fond**. **« + Défense »** devient un bouton `sm`
+pointillé à fond au bout de la rangée des défenses visées. Tous trois ont
+été fantômes un temps (la maquette) et ne ressortaient pas (« le bouton
+d'ajout de défense ne ressort pas trop »). ⚠️ **Écart assumé** : la
 maquette pose « Déplier tous les decks » dans ce pied, en BAS ; il reste
 en HAUT du tableau — en bas, son clic l'aurait repoussé de toute la hauteur
 des decks dépliés (un clic ne déplace jamais ce qu'on vient de cliquer).
@@ -76,7 +83,7 @@ de haut pour tout bouton à libellé et toute pastille de filtre**, à la souris
 plus un lien souligné). Le ✓ « Terminer » d'une défense devient un
 `BoutonIcone`, de la taille de la corbeille voisine. Restent à part, et c'est
 voulu : **« + Défense »** au doigt (la hauteur des vignettes qu'il prolonge ;
-à la souris, bouton fantôme `sm`, voir plus haut), les
+à la souris, bouton `sm` pointillé à fond, voir plus haut), les
 **croix posées dans une puce** (set, propriété d'artéfact, monstre d'une
 défense — `serre`, 20 px, la puce est plus petite qu'un bouton), le **crayon
 posé sur le coin d'une vignette**, la **grille des sets** (icônes du jeu) et
@@ -1626,7 +1633,8 @@ fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
   le titre, la puce « Importée », le compteur de decks, l'auteur, et
   « Analyser mes decks » / « Consulter » à la souris. Analyser vit au doigt
   dans le panneau « Options » (voir plus haut), pas dans ce groupe.
-- **deck** : Éditer ✏️, puis Supprimer 🗑 (visible seulement en édition).
+- **deck** : Éditer ✏️, puis Supprimer 🗑 — **toujours visible** depuis le
+  2026-09-27 (il ne l'était qu'en édition).
 - Le sens passe par l'**infobulle** et l'`aria-label` (obligatoire : une icône
   seule n'est pas lisible au lecteur d'écran).
 - Faute de cadre pour marquer l'état actif, l'**édition en cours** se lit à

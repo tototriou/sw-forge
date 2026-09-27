@@ -752,8 +752,8 @@ export default function RecoCard({
       {/* ⚠️ **À la souris, le PIED du tableau des decks** (lot 7b, la
           maquette) : collé sous le cadre (`lg:mt-0`, le cadre perd ses coins
           du bas en édition), le filet du cadre pour séparateur — un seul
-          trait —, les ajouts à DROITE, en boutons fantômes pointillés
-          (`.btn-ghost.btn-sm` + bord pointillé). Au doigt, rien ne change. */}
+          trait —, les ajouts à DROITE, en boutons pointillés À FOND (fantômes
+          un temps, ils ne ressortaient pas). Au doigt, rien ne change. */}
       {editing && (
         <div className="mt-2.5 lg:mt-0 lg:rounded-b-xl lg:border lg:border-t-0 lg:border-border-soft lg:px-3 lg:py-2">
           <div className="flex items-center gap-2 flex-wrap lg:justify-end">
@@ -766,7 +766,7 @@ export default function RecoCard({
               taille="sm"
               icone={<Plus size={14} />}
               libelle="Ajouter un deck vide"
-              className={`${BOUTON_LG} ${FANTOME_LG}`}
+              className={BOUTON_LG}
             />
             {/* ⚠️ `trait` bascule pointillé → plein avec l'état, comme le fond :
                 le pointillé dit « pas encore rempli », et perd son sens une fois
@@ -783,9 +783,7 @@ export default function RecoCard({
               }
               taille="sm"
               icone={<Swords size={14} />}
-              // Fantôme au repos seulement : enclenché, le fond d'accent porte
-              // l'état (`actif`) et ne doit pas être effacé.
-              className={`${BOUTON_LG} ${pickOffense ? '' : FANTOME_LG}`}
+              className={BOUTON_LG}
               libelle={
                 <>
                   Importer un deck d'offense{' '}
@@ -1291,10 +1289,10 @@ const ICONE_ACTION = `h-6 w-6 ${ICONE_LG}`;
 // haut à la souris, la hauteur des boutons d'icône. Seul « + Défense » y
 // échappe — il prend la hauteur des vignettes de défense qu'il prolonge.
 const BOUTON_LG = 'lg:h-7';
-// Un bouton à fond (`doux`) qui devient FANTÔME à la souris — `.btn-ghost` de
-// la maquette — sans changer au doigt. Le survol reste peint (`panel2`) : la
-// variante empilée passe après `lg:bg-transparent` dans la feuille.
-const FANTOME_LG = 'lg:bg-transparent lg:hoverable:bg-panel2';
+// ⚠️ Plus de bouton d'ajout FANTÔME : « Ajouter un deck vide », « Importer un
+// deck d'offense » et « + Défense » l'ont été un temps (la maquette), et ne
+// ressortaient pas (Thomas : « le bouton d'ajout de défense ne ressort pas
+// trop »). Ils gardent le fond d'un bouton et le bord POINTILLÉ d'un ajout.
 
 function DeckBlock({
   reco,
@@ -1497,16 +1495,21 @@ function DeckBlock({
               libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
               libelleALaSouris
             />
-            {editing && (
-              <BoutonIcone
-                onClick={() => setDeckAConfirmer(true)}
-                ton="danger"
-                taille="serre"
-                icone={<Trash2 size={12} />}
-                libelle="Supprimer ce deck"
-                libelleALaSouris
-              />
-            )}
+            {/* ⚠️ **Toujours présent**, plus seulement en édition (Thomas :
+                « le bouton de suppression devrait toujours être présent ») —
+                la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
+                À la souris, à l'AUTRE bout du pied (`lg:order-first
+                lg:mr-auto`) : un geste qui perd quelque chose ne se range pas
+                au contact de celui qu'on presse le plus. */}
+            <BoutonIcone
+              onClick={() => setDeckAConfirmer(true)}
+              ton="danger"
+              taille="serre"
+              icone={<Trash2 size={12} />}
+              libelle="Supprimer ce deck"
+              libelleALaSouris
+              className="lg:order-first lg:mr-auto"
+            />
           </div>
         </div>
 
@@ -1932,8 +1935,11 @@ function CounterBlock({
             où la prochaine se posera. Le bloc restant visible même vide, c'est
             aussi lui qui rend la fonctionnalité découvrable sur un deck qui n'en
             porte encore aucune.
-            ⚠️ **À la souris, le « + Défense » de la maquette** (lot 7b) : un
-            bouton fantôme `sm`, au bout de la rangée (`lg:ml-auto`). Au doigt,
+            ⚠️ **À la souris, un bouton `sm` POINTILLÉ à fond**, au bout de la
+            rangée (`lg:ml-auto`) — le bord pointillé d'un ajout, le fond d'un
+            bouton. Il a été fantôme un temps (la maquette), et ne ressortait
+            pas (Thomas : « le bouton d'ajout de défense ne ressort pas
+            trop »). Au doigt,
             la tuile pointillée de 44 px d'avant, à la hauteur des vignettes :
             `taille="sm"` + `max-lg:px-3.5 max-lg:text-sm` redonnent
             exactement son dessin SOUS `lg` seulement. ⚠️ Pas `px-3.5 text-sm`
@@ -1943,7 +1949,7 @@ function CounterBlock({
           onClick={ajouter}
           trait="pointille"
           taille="sm"
-          className={`h-[44px] max-lg:px-3.5 max-lg:text-sm lg:ml-auto lg:h-7 lg:self-center lg:border-transparent ${FANTOME_LG}`}
+          className="h-[44px] max-lg:px-3.5 max-lg:text-sm lg:ml-auto lg:h-7 lg:self-center"
           icone={<Plus size={14} />}
           libelle="Défense"
           aria-label="Ajouter une défense que ce deck bat"

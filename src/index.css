@@ -30,19 +30,31 @@
      aussi bien de fond enfoncé sur `panel` (détail de rune, piste de barre) que
      de surface posée sur `bg`. À 243 245 250 il se confondait avec `panel` ;
      trop foncé, il se confondait avec `bg`. `bg` est donc descendu pour laisser
-     la place aux deux écarts. */
-  --bg: 223 227 237;
+     la place aux deux écarts.
+     ⚠️ **Refonte graphique, lot 14 (2026-09-27) : les fonds de la MAQUETTE**,
+     gris NEUTRES et clairs — `bg` valait 223 227 237 (#DFE3ED), un gris-bleu
+     soutenu, `panel2` 239 242 248. Arbitrage assumé : `panel2` se distingue
+     moins de `bg` (1.04) ; c'est la bordure qui sépare une surface posée sur
+     la page. Le texte, lui, y gagne partout (voir `ink-dimmer`). */
+  --bg: 246 246 248;
   --panel: 255 255 255;
-  --panel2: 239 242 248;
-  /* Bordures assombries : à 211 216 228 elles tombaient à 1.43 sur panel —
-     une carte sans contour perceptible. */
-  --border: 166 175 197;
-  --border-soft: 197 205 221;
-  --ink: 26 30 43;
-  --ink-dim: 88 95 117;
-  /* `ink-dimmer` échouait partout (2.65 sur bg) : assombri pour passer 4.5
-     sur les TROIS surfaces, `bg` comprise — c'est la plus exigeante. */
-  --ink-dimmer: 102 109 131;
+  --panel2: 241 241 244;
+  /* Bordures — lot 14, choix de Thomas : « intermédiaires ». `border-soft`
+     (séparateurs, cadres de carte) est celle de la maquette, aussi discrète
+     qu'elle ; `border` (champs, boutons, puces) reste un cran plus marquée
+     qu'elle (#D0D1DA) pour qu'on voie encore où taper. Mesuré : `border`
+     1.51 à 1.70, `border-soft` 1.13 à 1.28 selon la surface. Elles valaient
+     166 175 197 et 197 205 221, bleutées (1.96-2.20) ; aucune des trois
+     versions n'atteint 3:1, le seuil WCAG d'un contour. */
+  --border: 196 198 208;
+  --border-soft: 227 227 233;
+  /* Encres NEUTRES de la maquette (lot 14) ; elles étaient teintées bleu. */
+  --ink: 22 23 31;
+  --ink-dim: 86 88 105;
+  /* `ink-dimmer` doit passer 4.5 sur les TROIS surfaces, `bg` comprise : 4.72
+     sur `bg`, 4.52 sur `panel2`, 5.09 sur `panel` (il ne passait pas sur
+     l'ancien `bg`, 4.01). */
+  --ink-dimmer: 107 109 128;
 
   --accent: 43 54 165;
   --accent-soft: 226 229 247;
@@ -57,9 +69,10 @@
   /* `warn` et `star` portent des CHIFFRES qu'on lit (max d'efficience). */
   --warn: 138 87 12;
   /* Fond doux de `warn` — même construction que `--good-soft` : l'ambre fondu
-     dans la surface. `255 236 181` : assez chaud pour être lu comme « alerte »
-     sur blanc, assez pâle pour ne pas occulter le contenu. */
-  --warn-soft: 255 236 181;
+     dans la surface. Celui de la maquette (lot 14) : `253 240 210`, plus pâle
+     que l'ancien `255 236 181`, un jaune vif qui dominait les pastilles
+     orange. Mesuré : `warn` dessus 5.38, l'encre 15.79. */
+  --warn-soft: 253 240 210;
   /* (Les tokens `--siege-card-*`, fond coloré des cartes de siège en mode
      clair, ont disparu au lot 7 de la refonte graphique : une PASTILLE écrite
      porte désormais le statut, dans les deux thèmes — décision 8.) */
@@ -150,7 +163,10 @@
   --radius-xl: 12px;
   --radius-2xl: 14px;
 
-  --page-veil: radial-gradient(ellipse 80% 50% at 50% -10%, #dfe3f5 0%, transparent 60%);
+  /* Halo BLANC en haut de page (lot 14) : il était bleuté (`#dfe3f5`), un
+     éclairage sur l'ancien fond gris-bleu ; sur le fond neutre, il aurait fait
+     une tache bleue. */
+  --page-veil: radial-gradient(ellipse 80% 50% at 50% -10%, #ffffff 0%, transparent 60%);
 
   /* ---- Accent CONTEXTUEL (refonte UI) --------------------------------- */
   /* ⚠️ **Un alias, pas une couleur.** `--ctx` ne vaut jamais une valeur

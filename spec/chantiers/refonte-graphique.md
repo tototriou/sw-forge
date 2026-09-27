@@ -405,7 +405,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
 | 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par Thomas le 2026-09-26 |
 | 7b Siège · Recommandations | J | exécuté, validé (bureau) | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête), ajustements `c06d36d`…`4b40d07` (décisions 16 à 19) ; validé par Thomas le 2026-09-27 |
-| 14 thème clair (Atelier) : revoir les tokens | J | à faire | ajouté le 2026-09-26 |
+| 14 thème clair (Atelier) : revoir les tokens | J | exécuté, à valider | fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix de Thomas) ; preuve `lot-14.md` ; 2026-09-27 |
 | 8a Compte · Runes | J | à faire | |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
 | 9a Outils · Optimizer | J | à faire | |
@@ -752,6 +752,28 @@ la liste des écrans à regarder en thème clair sur le serveur de dev.
 **Ce que le lot ne fait PAS** : ni le thème sombre, ni la mise en page, ni les
 rayons (décision 2), ni les couleurs de section de l'accueil (décision 3
 précisée) — seulement leur lisibilité sur le nouveau fond, mesurée.
+
+**Résultat lot 14 — thème clair (2026-09-27)** — preuve
+[lot-14.md](refonte-graphique-preuves/lot-14.md). Relevé app / maquette, puis
+deux choix de Thomas : bordures « intermédiaires », accent indigo gardé.
+Changent, dans le bloc clair seulement :
+- depuis la maquette : `bg` (`#DFE3ED` → `#F6F6F8`), `panel2`, `border-soft`,
+  les trois encres (neutres) et `warn-soft` ;
+- `border` : un cran plus marquée que celle de la maquette ;
+- le halo de page, désormais blanc.
+
+Aucune ligne `--forge-*` touchée. Contrastes mesurés :
+- le texte gagne partout, `ink-dimmer` passe 4,5 sur le fond de page (4,01 →
+  4,72) ;
+- vent et paliers or / gris restent un peu sous 4,5 hors `panel`, arbitrage
+  étendu dans design.md ;
+- `panel2` / `bg` passe de 1,15 à 1,04, choix de la maquette : c'est la
+  bordure qui sépare.
+
+`design.md` : la colonne Atelier est réalignée sur le code, dont elle avait
+décroché. Défaut préexistant listé, pas corrigé : les couleurs de section de
+l'accueil, des hex fixes pensés pour le sombre, passent sous 3:1 en clair
+(neuf sur douze). Il revient au lot de l'Accueil. À valider par Thomas.
 
 ### B.12 Lot 12 — validation finale · M
 

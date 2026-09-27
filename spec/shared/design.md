@@ -51,29 +51,35 @@ hexadécimal.
 
 ### Surfaces et encre
 
+⚠️ **Colonne Atelier : valeurs du lot 14 de la refonte graphique**
+(2026-09-27) — les fonds, bordures et encres de la maquette, gris NEUTRES ; la
+colonne entière a été réalignée sur [index.css](../../src/index.css), dont
+elle avait décroché (elle donnait `bg` à `#eceef3` quand le code valait
+`#dfe3ed`). La colonne Forge n'a pas été relue par ce lot.
+
 | Token | Forge (sombre) | Atelier (clair) | Rôle |
 |-------|----------------|-----------------|------|
-| `bg` | `#0c0b0f` | `#eceef3` | Fond de page |
+| `bg` | `#0c0b0f` | `#f6f6f8` | Fond de page |
 | `panel` | `#16141b` | `#ffffff` | Carte, panneau |
-| `panel2` | `#1e1b24` | `#f4f6fa` | Surface enfoncée (piste de barre, cadre de `Segmented`) |
-| `border` | `#2e2a37` | `#d3d8e4` | Bordure standard |
-| `border-soft` | `#241f2b` | `#e4e8f0` | Séparateur intérieur, ligne de table |
-| `ink` | `#ede8e4` | `#1a1e2b` | Texte principal |
-| `ink-dim` | `#948c9c` | `#636a80` | Texte secondaire, libellés |
-| `ink-dimmer` | `#6a6373` | `#8c93a6` | Texte tertiaire (rare) |
+| `panel2` | `#1e1b24` | `#f1f1f4` | Surface enfoncée (piste de barre, cadre de `Segmented`) |
+| `border` | `#2e2a37` | `#c4c6d0` | Bordure standard — champs, boutons, puces |
+| `border-soft` | `#241f2b` | `#e3e3e9` | Séparateur intérieur, ligne de table, cadre de carte |
+| `ink` | `#ede8e4` | `#16171f` | Texte principal |
+| `ink-dim` | `#948c9c` | `#565869` | Texte secondaire, libellés |
+| `ink-dimmer` | `#6a6373` | `#6b6d80` | Texte tertiaire (rare) |
 
 ### Accent et sémantique
 
 | Token | Forge | Atelier | Rôle |
 |-------|-------|---------|------|
-| `accent` | `#d2723a` | `#3f4bb8` | Accent unique : état actif, focus, lien |
-| `accent-soft` | `#d2723a1f` | `#3f4bb812` | Fond d'un élément actif |
+| `accent` | `#d2723a` | `#2b36a5` | Accent unique : état actif, focus, lien |
+| `accent-soft` | `#d2723a1f` | `#e2e5f7` | Fond d'un élément actif |
 | `accent-ink` | `#12131c` | `#ffffff` | Texte posé SUR un aplat d'accent (bouton principal plein) |
-| `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès — et **ton camp** |
+| `good` | `#7fbe7f` | `#146a41` | Au tick, gain, succès — et **ton camp** |
 | `good-soft` | `#1b2a21` | `#e2f4e9` | Fond doux de `good` |
-| `warn` | `#d9a441` | `#b7791f` | Avertissement |
-| `warn-soft` | `#322a14` | `#ffecb5` | Fond doux de `warn` |
-| `bad` | `#cf5b4e` | `#c53030` | Hors tick, destructif, erreur |
+| `warn` | `#d9a441` | `#8a570c` | Avertissement |
+| `warn-soft` | `#322a14` | `#fdf0d2` | Fond doux de `warn` (plus pâle depuis le lot 14) |
+| `bad` | `#cf5b4e` | `#b01c1c` | Hors tick, destructif, erreur |
 | `bad-soft` | `#301c20` | `#fae6e6` | Fond doux de `bad` — le pendant d'`accent-soft` |
 
 ⚠️ **`warn-soft` ferme le trio, il ne l'ouvre pas.** `good-soft` et `bad-soft`
@@ -690,8 +696,13 @@ trahit le second ; il faut saturer, pas seulement foncer.
 clair ; l'assombrir jusqu'à 4,5 sur `bg` le fait virer au kaki, et le joueur ne
 reconnaît plus son élément. On tient donc **4,5 sur `panel`** — la surface des
 cartes et des listes, où ces libellés apparaissent réellement — et on accepte
-~3,6 sur `bg`, qui ne porte quasiment aucun texte d'élément. Ce sont des
-libellés courts et gras, pas du texte courant.
+moins sur `bg`, qui ne porte quasiment aucun texte d'élément : ~3,6 sur
+l'ancien fond, **4,29 depuis le lot 14** (fond plus clair). Ce sont des
+libellés courts et gras, pas du texte courant. Même tolérance, mesurée au lot
+14, pour le palier or (`pal-1`, 4,21 sur `bg`, 4,03 sur `panel2`) et gris
+(`pal-6`, 4,48 / 4,29) du résumé de compte : un peu sous le seuil hors
+`panel`, plus lisibles qu'avant (3,54 / 4,05 et 3,76 / 4,31) sauf `pal-6` sur
+`panel2`, un cheveu en dessous.
 
 ### Les trois surfaces se distinguent deux à deux
 
@@ -701,11 +712,17 @@ les deux — ni confondu avec le blanc, ni avec le fond de page.
 
 | Paire | Écart |
 |-------|-------|
-| `panel2` / `panel` | 1,12 |
-| `panel2` / `bg` | 1,15 |
+| `panel2` / `panel` | 1,13 |
+| `panel2` / `bg` | **1,04** (1,15 avant le lot 14) |
 
 C'est ce qui manquait quand le détail d'une rune « semblait n'avoir aucun fond » :
-`panel2` était à 1,08 de `panel`.
+`panel2` était à 1,08 de `panel` — l'écart `panel2` / `panel` est tenu.
+⚠️ **Arbitrage du lot 14** : avec les fonds neutres et clairs de la maquette,
+`panel2` ne se distingue presque plus de `bg`. Une surface `panel2` posée
+directement sur la page est séparée par sa BORDURE, pas par son fond — le
+choix de la maquette, retenu par Thomas. De même, une carte `panel` ne se
+détache plus du fond qu'à 1,08 (1,28 avant) : le blanc sur un blanc cassé,
+avec son contour.
 
 ### Raretés : deux couleurs, deux usages
 
@@ -720,7 +737,10 @@ par rareté, parce qu'elles servent à deux choses :
 ⚠️ Utiliser `color` comme couleur de texte est le bug qu'il faut éviter : le vert
 magique `#7cf0a6` sur fond blanc est illisible.
 
-⚠️ **`border` et `border-soft` sont volontairement sous 3,0** (1,3 à 2,2). Ce
+⚠️ **`border` et `border-soft` sont volontairement sous 3,0** (en clair, depuis
+le lot 14 : `border` 1,51 à 1,70, `border-soft` 1,13 à 1,28 — des bordures
+« intermédiaires », choix de Thomas : `border-soft` celle de la maquette,
+`border` un cran plus marquée pour qu'on voie où taper). Ce
 seuil vaut pour un contour qui *porte une information* — un champ de saisie, un
 élément sélectionné. Une bordure de carte est décorative : la monter à 3,0
 quadrillerait une interface qui affiche 60 tuiles par écran. Ce qui distingue

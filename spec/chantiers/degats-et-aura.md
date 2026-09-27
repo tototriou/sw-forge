@@ -337,9 +337,10 @@ bloquant ; 104 clés et 2 usages partagés réconciliés, fenêtres et budgets
 rejoués. Le diff `02391062..e1b4bf6` conserve aussi la preuve des anciennes
 bornes et de leur correction. Les réserves sur les lectures adjacentes et
 la taille des lignes JSON sont précisées dans le contrat ci-dessous.
-Le budget corrigé laisse moins de 100 lignes de marge prévisionnelle à a2b,
-a3a, a3b, a4a et a4d1 : le pilote réévalue et, si nécessaire, scinde chacun
-**avant son lancement**, sans faire lire un intrant tronqué à sa session.
+Au repère historique de 1 500 lignes, le budget corrigé laissait moins de
+100 lignes de marge prévisionnelle à a2b, a3a, a3b, a4a et a4d1. Ce constat
+avait conduit à des scissions préventives ; la politique de lecture du
+2026-09-27 ci-dessous retire cet arrêt automatique pour les lots restants.
 La première tentative a2a1 du 2026-09-26 s'est arrêtée avant toute carte ou
 preuve : une sortie tronquée puis des relectures et un contrat a1 lu trop
 largement ont épuisé les 1 500 lignes. Elle n'établit aucun verdict. Le pilote
@@ -362,6 +363,10 @@ L808 contrôlé séparément. Le budget de lecture dépassé de 79 lignes et les
 Avant son lancement, a2b est scindé en trois contrats successifs : paire
 d'artéfacts et cache, relique, puis scripts/tests et réconciliation. Les huit
 clés de sa projection gardent chacune un seul propriétaire.
+La première tentative a2b1 du 2026-09-27 n'a produit aucun verdict : deux
+sorties tronquées puis relues ont consommé sa marge sous l'ancien seuil. Elle
+n'établit pas que ses deux clés exigent un lot de plus. a2b1 est repris sous
+la politique de lecture assouplie, sans nouvelle scission.
 
 #### Suivi des lots
 
@@ -391,7 +396,7 @@ clés de sa projection gardent chacune un seul propriétaire.
 | 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte | C | interrompu, notes locales non validées | 2026-09-26 |
 | 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif | C+M | terminé après complément pilote | reçu `57a7c28` ↔ `ab0fb25` / 2026-09-26 |
 | 6bis-a2a2 — sets actifs du build et score | C | terminé après complément pilote | reçu `4816082` ↔ `1d20a54` / 2026-09-26 |
-| 6bis-a2b1 — paire d'artéfacts et cache | C | prêt à lancer | — |
+| 6bis-a2b1 — paire d'artéfacts et cache | C | à reprendre, sans nouvelle scission | tentative du 2026-09-27 sans verdict ni reçu |
 | 6bis-a2b2 — exclusive et sélection de relique | C | en attente de a2b1 | — |
 | 6bis-a2b3 — scripts, tests et réconciliation | C | en attente de a2b2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b3 | — |
@@ -1392,20 +1397,33 @@ active 3 Fight, le total vaut 6. Avec Rage seul demandé, 4 Rage + 1 Fight +
 1 Intangible active Fight et reçoit aussi son +8 % ATQ de base.
 
 **Volume commun :** la Partie A, `spec/outils/optimizer/invariants.md` et
-`spec/outils/optimizer/README.md` dépassent déjà presque le précédent budget
-de 800 lignes, avant les inventaires et le code. Chaque sous-lot `6bis-a*` lit ce
-socle, B.0, le résultat du lot 6, le chapeau 6bis, la section « Sets d'aura
-d'équipe — modèle » de `spec/outils/degats-reels/effets-equipe-et-leaders.md`,
-puis les sections d'aura ciblées de `spec/outils/optimizer.md` (`spec-toc`
-d'abord). Il compte **toutes ses lectures de travail** (ces documents, son
-contrat, les preuves, le code et les sorties de recherche) dans un budget
-prévisionnel de **1 500 lignes utiles**.
-`CLAUDE.md` et les skills chargés
-comme instructions ne sont pas des intrants de classification. Mesurer le
-volume avant chaque plage ; si 1 500 ne suffit pas, le pilote crée **avant**
-lecture un contrat nommé et une arête A.7, sans tronquer ni omettre. Aucun
-sous-lot n'ouvre entiers `damage.ts`, `runeBuildOptim.ts` ou
-`OptimizerSection.tsx`.
+`spec/outils/optimizer/README.md` représentent déjà environ 800 lignes,
+avant B.0, les autres sections, la projection et le code. Chaque sous-lot
+`6bis-a*` lit ce socle, B.0, le résultat du lot 6, le chapeau 6bis, la
+section « Sets d'aura d'équipe — modèle » de
+`spec/outils/degats-reels/effets-equipe-et-leaders.md`, puis les sections
+d'aura ciblées de `spec/outils/optimizer.md` (`spec-toc` d'abord).
+
+**Politique de lecture décidée le 2026-09-27 pour les lots restants :**
+**2 500 lignes utiles sont un repère d'alerte, pas un plafond ni une cause
+d'arrêt automatique**. Ce chiffre réserve une marge au socle documentaire
+(environ 1 000 lignes), aux fenêtres de code, aux appels adjacents et aux
+sorties ; il ne prétend mesurer ni la capacité du modèle ni des tokens. Les
+anciens budgets de 1 500/1 600/1 700 lignes restent les repères historiques
+des tentatives déjà terminées ou suspendues. L'agent compte **toutes ses
+lectures de travail** (documents, contrat, preuves, code, recherches et
+sorties), y compris une sortie tronquée puis relue, et donne le total réel
+dans sa preuve. `CLAUDE.md` et les skills chargés comme instructions ne sont
+pas des intrants de classification.
+
+Dimensionner les sorties **avant** lecture et ouvrir les gros intrants en
+plages bornées : une troncature appelle une relecture ciblée de la partie
+manquante, jamais l'omission de celle-ci. Si le repère de 2 500 est franchi,
+continuer les lectures indispensables, consigner le dépassement et sa cause,
+et préserver la preuve par clé. Scinder seulement si le périmètre réel ou la
+capacité à vérifier les verdicts exige deux travaux autonomes ; le simple
+compteur de lignes ou une troncature d'outil ne suffit pas. Ne pas ouvrir
+entiers `damage.ts`, `runeBuildOptim.ts` ou `OptimizerSection.tsx`.
 
 #### 6bis-a1 — inventaire et fixtures, sans classification de code
 
@@ -1523,21 +1541,23 @@ cadrage se relèvent par `spec-toc` à chaque lot. Le lot lit
 sa projection compacte du manifeste et **ses** fenêtres de code — jamais
 les fichiers entiers. La somme prévisionnelle des fenêtres de code de chaque
 sous-lot est inférieure à 450 lignes ; compter aussi la projection, toutes
-les lectures documentaires, cartes antérieures et sorties dans le plafond
-de 1 500. Les fenêtres sont des amorces de chaîne d'appel, pas le droit
-d'omettre un appel adjacent : si
-sa lecture nécessaire dépasserait le budget, arrêter et faire créer un
-sous-lot nommé avant de lire davantage. Chaque preuve donne les plages
-réellement lues, les lignes et les découvertes hors manifeste.
+les lectures documentaires, cartes antérieures et sorties selon la politique
+du chapeau 6bis. Les fenêtres sont des amorces de chaîne d'appel, pas le droit
+d'omettre un appel adjacent : le lire et le compter même si le repère de
+2 500 lignes est franchi. Chaque preuve donne les plages réellement lues,
+le total, l'éventuel dépassement et les découvertes hors manifeste.
 Ne pas relire le contrat a1 historique : sa synthèse dans le cadrage suffit.
 Une sortie tronquée puis relue compte **deux fois** ; dimensionner la sortie
 ou lire en plages plus petites dès le premier essai.
 Rejouer `node spec/outils/optimizer/archive/controles-degats-aura-2026-09/valider-fenetres-6bis.mjs` :
-sommes inclusives attendues a2a1-contexte/a2a1-suite/a2a2/a2b/a3a/a3b/
-a4a/a4b/a4c1/a4c2/a4d1/a4d2 =
-136/194/159/386/375/411/371/299/231/186/336/0 lignes de code,
-avec existence des fichiers et des bornes vérifiée. Ce contrôle ne remplace pas le
-décompte **total** de lecture de chaque lot.
+sommes inclusives attendues a2a1-contexte/a2a1-suite/a2a2/a2b/a2b1/a2b2/
+a2b3/a3a/a3b/a4a/a4b/a4c1/a4c2/a4d1/a4d2 =
+136/194/159/386/178/123/259/375/411/371/299/231/186/336/0 lignes
+de code et de tests ciblés (a2b3 : 85 + 174), avec existence des fichiers et
+des bornes vérifiée. a2b garde l'inventaire historique des 386 lignes ; seuls
+a2b1, a2b2 et a2b3 s'exécutent. Le contrôle affiche une estimation au repère
+de 2 500 lignes mais **n'échoue pas** sur ce seul compte. Il ne remplace pas
+le décompte **réel et total** de lecture de chaque lot.
 
 **Preuve commune :** un `carte-6bis-<sous-lot>.json` et un
 `controle-6bis-<sous-lot>.md` dans le dossier privé A.6 bis, avec commandes,
@@ -1794,10 +1814,9 @@ L190–210 ; `src/lib/runeBuildOptim.ts` L848–870 et L930–959 ;
 `scripts/lib/relicOracle.ts` L141–157 et L175–201.
 Ce bloc commun n'est **plus un lot exécutable**. Chacun des trois sous-lots
 lit le socle du contrat commun, puis seulement ses fenêtres et la synthèse de
-son prédécesseur. À chaque session, recontrôler les numéros de ligne au HEAD,
-mesurer toutes les sorties avant de les lire et demander une nouvelle
-scission si les appels adjacents nécessaires épuisent le budget ; ni une
-fenêtre ni une preuve ne se tronquent.
+son prédécesseur. À chaque session, recontrôler les numéros de ligne au HEAD
+et dimensionner les sorties. Un appel adjacent nécessaire se lit même au-delà
+du repère d'alerte ; ni une fenêtre ni une preuve ne se tronquent.
 
 `projeter-6bis.mjs --lot a2b` émet **8 clés** : 7 B et 1 H. Chaque sous-lot
 rejoue cette projection compacte, ne classe que les clés qui lui sont
@@ -1823,6 +1842,13 @@ cache. Une référence à la relique ne donne pas ici de verdict sur ses clés.
 **Sortie :** `carte-6bis-a2b1.json`, `controle-6bis-a2b1.md`, synthèse de 12
 lignes au plus pour a2b2. **Ne fait pas :** exclusive ou sélection finale de
 relique, scripts/tests du manifeste, conditions, diagnostics ou CLI.
+
+**Tentative suspendue du 2026-09-27 :** branche, HEAD et worktree initiaux
+conformes ; deux sorties de lecture tronquées puis reprises ont épuisé la
+marge sous l'ancien seuil de 1 500. Aucun verdict, carte, preuve, reçu ou
+intégration n'en résulte. La pause est enregistrée. **Reprendre ce même lot**
+avec la politique du 2026-09-27, sans créer un a2b1 supplémentaire ; les
+lectures de la tentative suspendue ne constituent pas une preuve à réutiliser.
 
 #### 6bis-a2b2 — exclusive et sélection de relique
 
@@ -1851,8 +1877,8 @@ uniquement `B:scripts/lib/relicDifferentiel.ts`,
 inclusives**. Pour les tests, chercher d'abord les appels ciblés, puis lire
 les seules fenêtres utiles : `tests/relic-exclusive.test.ts` L35–40,
 L145–160 et L180–260 ; `tests/relic-oracle.test.ts` L1–10, L50–75,
-L116–138 et L240–252
-(**175 lignes inclusives au plus** avant recontrôle au HEAD). Les tests sont
+L116–138 et L240–251
+(**174 lignes inclusives au plus** avant recontrôle au HEAD). Les tests sont
 des **candidats**, pas une preuve de couverture avant lecture de leurs
 assertions. Classer si chaque script/test consomme réellement le contexte
 d'aura, ou ne fait que transmettre des statistiques déjà calculées.

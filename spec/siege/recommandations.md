@@ -1482,7 +1482,10 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   L'ancienne disposition à la souris — une grille de cartes sur deux colonnes
   (`lg:grid-cols-2`, le deck en édition sur toute la largeur) — est remplacée
   par cette liste : une ligne par deck se lit d'un regard, sans demi-largeur
-  vide.
+  vide. ⚠️ Le `lg:col-span-2` du deck en édition, resté de cette grille, a été
+  retiré le 2026-09-27 : dans le tableau à UNE colonne, il en créait une
+  seconde, implicite, où la rangée d'intitulés et les lignes se tassaient
+  (« gros bug d'affichage quand on essaye d'éditer un deck »).
 - **Lead du leader** : affiché **sur le monstre** en slot 0, comme en siège et
   avec les mêmes composants ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) —
   `LeadBadge` sur son portrait dans l'aperçu replié, `LeadPill` (icône +

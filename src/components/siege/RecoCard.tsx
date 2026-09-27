@@ -684,19 +684,16 @@ export default function RecoCard({
               ⚠️ L'animation est sur CE conteneur, déjà présent, et non sur un
               `<div>` ajouté autour du fragment : un wrapper de plus casserait
               l'espacement du parent pour un simple effet.
-              ⚠️ **Grille à la SOURIS** (`lg:grid-cols-2`), une colonne en
-              dessous — même seuil que la grille d'équipes de siège
-              (SiegeBoard.tsx). Une recommandation porte souvent une demi-douzaine
-              de decks : les empiler sur une seule colonne, à la souris, laissait
-              la moitié de la largeur de l'écran vide.
-              ⚠️ **Le deck en ÉDITION reprend toute la largeur** (`col-span-2`) :
-              ses 3 emplacements de monstres plus le picker de chacun seraient à
-              l'étroit sur une demi-colonne — même raison que pour une équipe de
-              siège dépliée. */}
-          {/* ⚠️ **Remplacé à la souris par un TABLEAU** (décision 15) : une
-              seule colonne de lignes, dans un cadre commun, sous une rangée
-              d'intitulés. La grille à deux colonnes décrite ci-dessus ne vaut
-              plus qu'au doigt… où elle n'a jamais eu qu'une colonne. */}
+              ⚠️ **À la souris, un TABLEAU** (décision 15) : une seule colonne
+              de lignes, dans un cadre commun, sous une rangée d'intitulés. Il a
+              remplacé une grille de cartes à deux colonnes (`lg:grid-cols-2`),
+              où le deck en édition prenait les deux (`lg:col-span-2`).
+              ⚠️ **Ce `col-span-2` était resté** sur le deck en édition : dans
+              une grille à UNE colonne, il en créait une seconde, implicite —
+              la rangée d'intitulés et les lignes se tassaient dans la
+              première, « Offense · sets visés » passait sur trois lignes et
+              « Fort contre » chevauchait (capture de Thomas, « gros bug
+              d'affichage quand on essaye d'éditer un deck »). Retiré. */}
           <div
             className={`grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
                        lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft ${
@@ -729,7 +726,6 @@ export default function RecoCard({
                     if (el) deckRefs.current.set(di, el);
                     else deckRefs.current.delete(di);
                   }}
-                  className={editingDeck === di ? 'lg:col-span-2' : undefined}
                 >
                   <DeckBlock
                     reco={reco}

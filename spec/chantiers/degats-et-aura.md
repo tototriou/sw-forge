@@ -426,8 +426,8 @@ Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 | 6bis-a2b3 — scripts, tests et réconciliation | C | terminé après rectification pilote | reçu initial `d04bb19` ↔ `833b51a` / 2026-09-27 ; preuve rectifiée relivrée |
 | 6bis-a3a — conditions et élagages locaux | C | terminé après rectification pilote | reçu initial `e21a385` ↔ `ab5c858` / 2026-09-27 ; preuve rectifiée relivrée |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | terminé | reçu `bd9b60a` ↔ `2c5b82d` / 2026-09-27 |
-| 6bis-a4a — recette, reset et import écran | C | à lancer | — |
-| 6bis-a4b — CLI et scripts de diagnostic | C | en attente de a4a | — |
+| 6bis-a4a — recette, reset et import écran | C | terminé | reçu `2d8d364` ↔ `7e0541c` / 2026-09-28 |
+| 6bis-a4b — CLI et scripts de diagnostic | C | à lancer | — |
 | 6bis-a4c1 — écran de recherche et caches | C | en attente de a4b | — |
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | en attente de a4c1 | — |
 | 6bis-a4d1 — Workers et tests | C | en attente de a4c2 | — |
@@ -2066,6 +2066,20 @@ l'export/import et les resets. Appliquer la checklist de code du skill
 
 **Sortie :** carte a4a, matrice des constructeurs recette/état et des
 compatibilités. **Ne fait pas :** CLI, affichage ou changement de champ.
+
+**Résultat du lot 6bis-a4a — 2026-09-28.** La carte privée réconcilie les
+9 clés projetées : 6 consommatrices et 3 non-consommatrices dans leur usage
+actuel. Le parseur accepte encore `setsAura` absent, vide ou non vide valide
+jusqu'à 18 ; la cible 6bis devra refuser le non-vide avec le chemin
+`damageSetup.setsAura`. Une clé inconnue dans `damageSetup` survit au parseur,
+à l'import écran et au réexport sans être validée ni calculée ; une clé
+inconnue à la racine disparaît au réexport. Le reset d'espèce conserve le
+contexte et le toggle, l'import de compte les réinitialise. La matrice de
+propagation est dans `controle-6bis-a4a.md` et `carte-6bis-a4a.json` ;
+projection, 371 lignes contractuelles, lint, diff et reçu valide
+`2d8d364` ↔ `7e0541c` ont été contrôlés par le pilote. Ces conclusions
+restent statiques : aucun round trip exécuté, reset React ou CLI réel n'est
+prouvé ici. Notes intégrées au main documentaire `af2820e`.
 
 #### 6bis-a4b — CLI réel et scripts de diagnostic
 

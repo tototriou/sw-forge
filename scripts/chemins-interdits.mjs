@@ -18,12 +18,14 @@ const DOSSIERS = ['src/lib/', 'src/hooks/', 'src/workers/', 'src/data/', 'public
 // toucher — les couleurs de section (affichage) et les notes de version (la
 // refonte y écrit sa propre entrée « Nouveautés ») ; puis les fichiers des
 // AJOUTS décidés par Thomas, nommés dans le cadrage AVANT leur code (A.2 bis,
-// décision 14 : recherche et export des équipes de siège).
+// décision 14 : recherche et export des équipes de siège ; décision 19 : la
+// vue Défense des recommandations, calculée sans toucher au format exporté).
 const PERMIS = new Set([
   'src/data/couleursSection.ts',
   'src/data/releases.ts',
   'src/lib/siegeShare.ts',
   'src/hooks/useSiegeState.ts',
+  'src/lib/recoDefenses.ts',
 ]);
 // Fichiers isolés : les types, et les rendus copiés du jeu (mémoire
 // `rendus-du-jeu-intouchables`), qui restent à l'identique.

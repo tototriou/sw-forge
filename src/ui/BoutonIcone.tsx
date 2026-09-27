@@ -84,6 +84,11 @@ export interface BoutonIconeProps
   // `lg:hidden` et un bouton à libellé `hidden lg:inline-flex` — auraient fait
   // deux éléments pour un geste : deux cibles au clavier, deux annonces au
   // lecteur d'écran. Un seul élément, deux dessins.
+  // ⚠️ **À CADRE à la souris** (`.btn-secondary`) : un bouton à libellé posé
+  // parmi d'autres boutons à libellé doit leur ressembler. Nu, « Éditer ce
+  // deck » ne ressortait pas (Thomas : « le bouton d'édition ne ressort pas
+  // trop »). Au doigt, l'icône reste nue, comme avant. `danger` prend le
+  // contour et le texte de son ton.
   libelleALaSouris?: boolean;
 }
 
@@ -135,7 +140,13 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       // maquette (décision 16). Deux classes de survol rivales, c'est l'ordre
       // de la feuille qui aurait tranché.
       className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${zoneEtendue ? 'cible-tactile' : ''} ${
-        libelleALaSouris ? 'lg:h-7 lg:w-auto lg:rounded-lg lg:px-2.5' : ''
+        libelleALaSouris
+          ? `lg:h-7 lg:w-auto lg:rounded-lg lg:px-2.5 ${
+              ton === 'danger'
+                ? 'lg:border-bad/50 lg:bg-panel lg:text-bad lg:hoverable:bg-bad-soft'
+                : 'lg:border-border lg:bg-panel lg:hoverable:bg-panel2'
+            }`
+          : ''
       } ${apparition} ${className}`}
       {...reste}
     />

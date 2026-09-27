@@ -242,6 +242,10 @@ type est la seule façon de ne plus avoir à y penser.
   crayon. ⚠️ **Un seul élément, deux dessins** — et non une icône `lg:hidden`
   plus un bouton `hidden lg:inline-flex` : deux éléments pour un geste, c'est
   deux cibles au clavier et deux annonces au lecteur d'écran.
+  ⚠️ **À CADRE à la souris** (`.btn-secondary` : fond `panel`, contour
+  `border`, survol `panel2` ; `danger` : contour et texte `bad`, survol
+  `bad-soft`) — un bouton à libellé posé parmi d'autres boutons à libellé
+  doit leur ressembler. Nu, il ne ressortait pas (Thomas, 2026-09-27).
 
 ### Composants à part entière
 

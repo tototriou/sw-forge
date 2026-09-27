@@ -367,6 +367,10 @@ La première tentative a2b1 du 2026-09-27 n'a produit aucun verdict : deux
 sorties tronquées puis relues ont consommé sa marge sous l'ancien seuil. Elle
 n'établit pas que ses deux clés exigent un lot de plus. a2b1 est repris sous
 la politique de lecture assouplie, sans nouvelle scission.
+Le pilote valide la reprise de a2b1 : ses deux clés sont classées, la paire
+essayée est distinguée de celle retenue et la signature globale du cache de
+la clé propre aux six runes. Le dépassement du repère de lecture n'a omis
+aucune fenêtre ni aucun appel adjacent ; a2b2 peut commencer.
 
 #### Suivi des lots
 
@@ -396,8 +400,8 @@ la politique de lecture assouplie, sans nouvelle scission.
 | 6bis-a2a1-suite-correction-stats-chain — contenu et preuve de la carte | C | interrompu, notes locales non validées | 2026-09-26 |
 | 6bis-a2a1-suite-finalisation-preuve — preuve et livraison du correctif | C+M | terminé après complément pilote | reçu `57a7c28` ↔ `ab0fb25` / 2026-09-26 |
 | 6bis-a2a2 — sets actifs du build et score | C | terminé après complément pilote | reçu `4816082` ↔ `1d20a54` / 2026-09-26 |
-| 6bis-a2b1 — paire d'artéfacts et cache | C | à reprendre, sans nouvelle scission | tentative du 2026-09-27 sans verdict ni reçu |
-| 6bis-a2b2 — exclusive et sélection de relique | C | en attente de a2b1 | — |
+| 6bis-a2b1 — paire d'artéfacts et cache | C | terminé après reprise | reçu `e5d785f` ↔ `9c2e357` / 2026-09-27 |
+| 6bis-a2b2 — exclusive et sélection de relique | C | à lancer | — |
 | 6bis-a2b3 — scripts, tests et réconciliation | C | en attente de a2b2 | — |
 | 6bis-a3a — conditions et élagages locaux | C | en attente de a2b3 | — |
 | 6bis-a3b — recherche, diagnostics et filtre final | C | en attente de a3a | — |
@@ -1849,6 +1853,23 @@ marge sous l'ancien seuil de 1 500. Aucun verdict, carte, preuve, reçu ou
 intégration n'en résulte. La pause est enregistrée. **Reprendre ce même lot**
 avec la politique du 2026-09-27, sans créer un a2b1 supplémentaire ; les
 lectures de la tentative suspendue ne constituent pas une preuve à réutiliser.
+
+**Résultat du lot 6bis-a2b1 — 2026-09-27.** Les deux clés sont classées
+« consommateur », chacune dans son rôle : `artifactEvaluation.ts` note les
+paires essayées avec le `DamageSetup` courant, tandis que
+`signatureArtefacts` sérialise ce contexte pour invalider le cache. Le build
+final reprend les stats de la paire retenue puis est retrié ; la clé de build
+encode séparément les six identifiants de runes. **Aucun de ces chemins ne
+déduit encore les auras propres des sets actifs des six runes** : ce constat
+reste une obligation des futurs 6bis-b-*, pas une couverture acquise. La
+preuve `controle-6bis-a2b1.md` et la carte du même nom sont livrées sous le
+reçu valide code `e5d785f` ↔ notes `9c2e357`, intégré au main documentaire
+`ea836f6`. Le contrôle des 178 lignes prescrites, la projection des deux clés,
+`spec-lint` et `git diff --check` ont été rejoués. La lecture réelle est
+estimée à 3 800 lignes équivalentes, au-dessus du repère indicatif de 2 500 ;
+les troncatures et relectures sont décomptées. Pas de test ni benchmark pour
+ce lot de classification. a2b2 est libéré ; les clés de relique n'ont pas de
+verdict ici.
 
 #### 6bis-a2b2 — exclusive et sélection de relique
 

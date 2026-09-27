@@ -285,6 +285,16 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     - Non suivi : le choix Efficience / Score SW dans la page. C'est un
       réglage global du menu ⚙ —
       [../compte/runes.md](../compte/runes.md) § Choix de la mesure.
+21. **Mon compte · Runes — une seule entrée de mesure dans le tri de la
+    Liste** : celle du menu ⚙, qui en porte le nom (« Score » ou
+    « Efficience »). Thomas, le 2026-09-27 : « il y a Score et Efficience
+    mais c'est la même chose », puis « une seule entrée qui suit ⚙ ». Les
+    deux entrées côte à côte permettaient aussi de classer par la mesure
+    qu'on ne voit pas sur les tuiles, pour un classement presque
+    identique — [retrait #21] décidé par Thomas le 2026-09-27. Un tri
+    mémorisé sur l'autre mesure suit le ⚙. Une assertion d'avant le lot
+    (la liste des entrées de tri) est remplacée en conséquence. Spec :
+    [../compte/runes.md](../compte/runes.md) § Tri.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

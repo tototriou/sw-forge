@@ -108,7 +108,11 @@ export function testRenduRunesListe() {
   ok(b.some((x) => x.ariaLabel === 'Passer à quatre propriétés' && x.presse === false), '« Passer à quatre propriétés »');
 
   // Tri : les entrées du jeu, dans son ordre, et le sens.
-  ok(t.includes('Trier par Grade Propriété secondaire Sous-propriété avant meule Nv. d’amélioration Obtenu Total des sous-prop. Score Efficience Slot'), 'tri : les entrées du jeu');
+  // Décision 21, [retrait #21] : une seule entrée de mesure, celle du menu ⚙
+  // (ici l'efficience, par défaut). L'assertion d'avant listait « Score » ET
+  // « Efficience » ; la fonction qu'elle couvrait (trier par la mesure qu'on ne
+  // voit pas) est retirée à la demande de Thomas.
+  ok(t.includes('Trier par Grade Propriété secondaire Sous-propriété avant meule Nv. d’amélioration Obtenu Total des sous-prop. Efficience Slot'), 'tri : les entrées du jeu, une seule mesure — celle du ⚙');
   ok(b.some((x) => x.ariaLabel === 'Trier du plus petit au plus grand'), 'sens du tri');
 
   // Les runes : une tuile par rune, la meilleure en tête.

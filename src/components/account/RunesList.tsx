@@ -72,10 +72,6 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // Sens du tri — un AXE à part du critère : il vaut pour celui qui est choisi,
   // quel qu'il soit (voir lib/tri.ts).
   const [sens, setSens] = useStickyState<SensTri>('runesList.sens', SENS_PAR_DEFAUT);
-  // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
-  // du jeu) retombe sur le défaut : sinon `sortFn` renvoie `undefined` et le
-  // `sort` lève, page blanche à la clé.
-  const sort = estTriConnu(sortBrut) ? sortBrut : 'score';
   // Propriétés cherchées, dans l'ordre de priorité — même grammaire que
   // l'inventaire d'artéfacts (voir SubSearchDialog).
   //
@@ -88,6 +84,19 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // Codes recherchés : les tuiles s'en servent pour surligner la ligne visée.
   const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
+  // ⚠️ **UNE seule entrée de mesure dans le tri : celle du menu ⚙** (refonte
+  // graphique, décision 21 — Thomas : « il y a Score et Efficience mais c'est
+  // la même chose »). Les deux entrées côte à côte classaient aussi par la
+  // mesure qu'on ne voit pas sur les tuiles, pour un classement presque
+  // identique. L'entrée porte le nom de la mesure active (« Score » ou
+  // « Efficience », les libellés de `RUNE_SORTS`).
+  const autreMesure: RuneSortMode = metric === 'eff' ? 'score' : 'eff';
+  const trisProposes = RUNE_SORTS.filter((s) => s.key !== autreMesure);
+  // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
+  // du jeu) retombe sur la mesure active : sinon `sortFn` renvoie `undefined`
+  // et le `sort` lève, page blanche à la clé. Un tri mémorisé sur l'AUTRE
+  // mesure suit le menu ⚙ de la même façon.
+  const sort: RuneSortMode = estTriConnu(sortBrut) && sortBrut !== autreMesure ? sortBrut : metric;
   const [page, setPage] = useState(0);
   // Sous `lg`, la grille passe à DEUX colonnes et les tuiles au rendu étroit.
   // ⚠️ Lu ICI, une seule fois, et passé aux tuiles : ce qui change n'est pas un
@@ -195,11 +204,11 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
               setSort(e.target.value as RuneSortMode);
               setPage(0);
             }}
-            title={RUNE_SORTS.find((s) => s.key === sort)?.hint}
+            title={trisProposes.find((s) => s.key === sort)?.hint}
             pleineLargeur={false}
             className="lg:h-8 lg:py-0 lg:text-xs"
           >
-            {RUNE_SORTS.map((s) => (
+            {trisProposes.map((s) => (
               <option key={s.key} value={s.key} title={s.hint}>
                 {s.label}
               </option>

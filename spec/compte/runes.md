@@ -292,12 +292,19 @@ remontait déjà en tête. L'avertissement des deux tris « propriété » dit d
 | **Nv. d'amélioration** | le `+X` |
 | **Obtenu** | les plus récentes d'abord |
 | **Total des sous-prop.** | somme des quatre propriétés |
-| **Score** | le score du jeu (défaut) |
-| *Efficience* | notre mesure (%) |
+| **Score** *ou* *Efficience* | la mesure choisie dans le menu ⚙ (défaut) |
 | *Slot* | du 1 au 6 |
 
-Les deux dernières n'existent pas dans le jeu et **ferment** la liste :
-l'efficience est notre mesure, le slot sert au repérage.
+⚠️ **Une seule entrée de mesure, celle du menu ⚙** (refonte graphique,
+décision 21, [retrait #21] — Thomas : « il y a Score et Efficience mais
+c'est la même chose ») : « Score » (le score du jeu) quand le ⚙ est sur
+Score SW, « Efficience » (notre mesure, %) quand il est sur Efficience. Les
+deux entrées côte à côte classaient aussi par la mesure qu'on ne voit pas sur
+les tuiles, pour un classement presque identique. Un tri mémorisé sur l'autre
+mesure suit le ⚙ (et un tri inconnu retombe sur la mesure active).
+
+« Efficience » et « Slot » n'existent pas dans le jeu et **ferment** la
+liste : l'efficience est notre mesure, le slot sert au repérage.
 
 - ⚠️ **« Avant meule » DÉDUIT la meule**, il ne l'ignore pas : deux runes à
   20 % ne se valent pas si l'une y est arrivée seule et l'autre à coups de

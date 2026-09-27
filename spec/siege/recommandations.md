@@ -92,6 +92,15 @@ devenait un patchwork. Désormais :
 - cartes **neutres** (fond de panneau, contour discret) ; le statut d'un deck
   ou d'un monstre se lit au **contour** (au doigt) et aux **pastilles** —
   même règle que les équipes de siège (décision 8) ;
+- ⚠️ **les pastilles de statut sont COLORÉES en entier**, à la maquette
+  (`.pill.good/.warn/.bad` : fond doux du ton, texte du ton, sans contour) —
+  la pastille Verdict de chaque ligne de deck et les puces de la carte repliée
+  (un deck, ou une défense en vue Défense). Elles étaient neutres, la couleur
+  réduite à un point de 6 px : « les couleurs ne sont pas assez vives sur les
+  vignettes de validation de decks » (Thomas, 2026-09-27). Non analysé :
+  neutre. Le point reste dedans (son creux distingue « monstre manquant » de
+  « à revoir »). `PASTILLE_STATUT` dans RecoCard.tsx ; contrastes texte /
+  fond doux mesurés dans les deux thèmes, 4,63:1 au plus bas ;
 - l'encart de synthèse est neutre, son icône et son titre portent la couleur ;
 - jetons de sets et de propriétés d'artéfact, filtres de verdict enclenchés,
   rapport d'import : les **fonds doux** (`good-soft`, `warn-soft`,

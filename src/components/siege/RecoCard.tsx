@@ -594,8 +594,9 @@ export default function RecoCard({
           {defenses.defenses.map((d) => (
             <span
               key={d.cle}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel2/60
-                         px-2 py-0.5 text-micro text-ink-dim"
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro ${
+                PASTILLE_STATUT[meilleurStatut(d.offenses, match)]
+              }`}
             >
               <span className={`w-1.5 h-1.5 rounded-full flex-none ${DOT[meilleurStatut(d.offenses, match)]}`} />
               {defenseLabel(d.monsters, monsterByCom2us)}
@@ -625,8 +626,7 @@ export default function RecoCard({
             return (
               <span
                 key={di}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel2/60
-                           px-2 py-0.5 text-micro text-ink-dim"
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro ${PASTILLE_STATUT[st]}`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full flex-none ${DOT[st]}`} />
                 {deckLabel(deck, monsterByCom2us, di)}
@@ -963,6 +963,25 @@ const VERDICTS: {
     rang: 0,
   },
 ];
+
+// ⚠️ **Pastille de statut COLORÉE, à la maquette** (`.pill.good/.warn/.bad` :
+// fond doux du ton, texte du ton, pas de contour) — Thomas : « les couleurs ne
+// sont pas assez vives sur les vignettes de validation de decks ». Elles
+// étaient neutres, la couleur réduite à un point de 6 px (lot 7b, « cartes
+// neutres ») : la CARTE reste neutre, mais la pastille qui dit le verdict
+// porte sa couleur en entier. Contrastes mesurés, texte sur fond doux, deux
+// thèmes : 4.63 au plus bas (`fire` sur `bad-soft`, Forge).
+// Par STATUT de deck (celui de `DOT`), pas par verdict : les puces de la carte
+// repliée et la ligne du tableau disent la même chose de la même façon.
+const PASTILLE_STATUT: Record<string, string> = {
+  ok: 'border-transparent bg-good-soft text-good',
+  partial: 'border-transparent bg-warn-soft text-warn',
+  nodeck: 'border-transparent bg-warn-soft text-warn',
+  ko: 'border-transparent bg-bad-soft text-fire',
+  missing: 'border-transparent bg-bad-soft text-fire',
+  // Non analysé : neutre — rien à dire encore.
+  unknown: 'border-border bg-panel2/60 text-ink-dim',
+};
 
 const RANG_DE = Object.fromEntries(VERDICTS.map((v) => [v.key, v.rang])) as Record<
   VerdictKey,
@@ -1435,7 +1454,9 @@ function DeckBlock({
             {!editing && match && !empty && verdictLigne && (
               <>
                 <span
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-panel px-2 py-0.5 text-micro font-semibold text-ink"
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro font-semibold ${
+                    PASTILLE_STATUT[match.status] ?? PASTILLE_STATUT.unknown
+                  }`}
                   title={verdictDeck(match)?.text}
                 >
                   <span className={`h-1.5 w-1.5 flex-none rounded-full ${verdictLigne.dot}`} />

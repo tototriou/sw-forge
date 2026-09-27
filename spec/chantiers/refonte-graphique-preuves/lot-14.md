@@ -161,3 +161,6 @@ $ node scripts/chemins-interdits.mjs 6110609  → aucun modifié
 - **Les écrans pas encore refaits** (Runes, Optimizer…) : ils prennent aussi
   ces valeurs.
 - **Téléphone** : non regardé (lot 11).
+
+**Validé par Thomas le 2026-09-27** (« ok »), après les teintes claires de
+l'accueil.

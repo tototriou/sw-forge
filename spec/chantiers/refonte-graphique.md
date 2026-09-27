@@ -405,7 +405,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
 | 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par Thomas le 2026-09-26 |
 | 7b Siège · Recommandations | J | exécuté, validé (bureau) | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête), ajustements `c06d36d`…`4b40d07` (décisions 16 à 19) ; validé par Thomas le 2026-09-27 |
-| 14 thème clair (Atelier) : revoir les tokens | J | exécuté, à valider | fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix de Thomas) ; preuve `lot-14.md` ; 2026-09-27 |
+| 14 thème clair (Atelier) : revoir les tokens | J | exécuté, validé | `03fbe84` (tokens), `85f3c9e` (teintes claires de l'accueil) ; fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix de Thomas) ; preuve `lot-14.md` ; validé par Thomas le 2026-09-27 |
 | 8a Compte · Runes | J | à faire | |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
 | 9a Outils · Optimizer | J | à faire | |
@@ -776,8 +776,8 @@ de l'accueil, des hex fixes pensés pour le sombre, passent sous 3:1 en clair
 (neuf sur douze). D'abord listé, il est corrigé à la demande de Thomas
 (« effectivement pas très lisible ») : une variante claire par couleur
 (`TEINTE_CLAIRE`, ≥ 3,2:1), choisie en CSS selon le thème ; l'accueil
-seulement, la navigation du téléphone relève du lot 11. À valider par
-Thomas.
+seulement, la navigation du téléphone relève du lot 11. **Validé par Thomas
+le 2026-09-27.**
 
 ### B.12 Lot 12 — validation finale · M
 

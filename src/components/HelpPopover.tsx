@@ -65,9 +65,27 @@ export default function HelpPopover({
       />
 
       {/* À la SOURIS : bulle ancrée au bouton, qui choisit son côté. */}
-      <FlottantAuto ouvert={open && !auDoigt} ancre={ref} largeur={width} hauteur={420}>
+      {/* ⚠️ **Rembourrée, bornée en hauteur, titre détaché** (refonte
+          graphique, lot 8a — Thomas, capture de « Comment est-ce calculé ? » :
+          « ça ne rend pas bien, l'infobulle ») :
+          - `rembourrage="md"` : `FlottantAuto` n'en pose aucun par défaut (il
+            sert aussi aux LISTES, dont les entrées touchent le bord), et le
+            texte collait au cadre ;
+          - hauteur BORNÉE avec défilement : une aide longue sortait de l'écran
+            par le bas, ses dernières lignes illisibles. `overflow-y-auto` passe
+            après l'`overflow-hidden` de `Flottant` dans la feuille ;
+          - le TITRE en 13 px, séparé du texte par un filet : à 12 px comme le
+            corps, il ne s'en détachait pas. */}
+      <FlottantAuto
+        ouvert={open && !auDoigt}
+        ancre={ref}
+        largeur={width}
+        hauteur={420}
+        rembourrage="md"
+        className="max-h-[min(70vh,480px)] overflow-y-auto"
+      >
         <div className="text-xs leading-relaxed text-ink-dim">
-          <p className="text-ink font-semibold mb-1">{title}</p>
+          <p className="mb-2 border-b border-border-soft pb-2 text-sm font-semibold text-ink">{title}</p>
           {children}
         </div>
       </FlottantAuto>

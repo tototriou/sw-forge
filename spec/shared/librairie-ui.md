@@ -458,6 +458,15 @@ autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
 haut si elle est près du bas. Puis il **borne sa position au viewport**, en
 gardant la surface ancrée à ce qui l'a ouverte.
 
+> ⚠️ **Sans rembourrage par défaut** (`rembourrage="aucun"`), à la différence
+> de `Flottant` : il sert aussi aux LISTES, dont les entrées touchent le bord.
+> Un TEXTE posé dedans demande donc `rembourrage="md"` — la bulle d'aide
+> `HelpPopover` l'oubliait, son texte collait au cadre (lot 8a de la refonte,
+> capture de Thomas). Un texte LONG demande aussi une hauteur bornée avec
+> défilement (`max-h-[…] overflow-y-auto`), sans quoi il sort de l'écran par
+> le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
+> dessous) du corps (12 px).
+
 > ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
 > dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
 > vont jusqu'aux bords de la page, et un flottant posé toujours du même côté s'y

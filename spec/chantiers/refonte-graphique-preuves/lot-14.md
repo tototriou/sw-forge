@@ -82,7 +82,8 @@ Sous le seuil, en connaissance de cause :
     cheveu en dessous (4,31 → 4,29) ;
   - au-dessus de 4,5 sur `panel`, la surface où ils apparaissent.
 
-  C'est l'arbitrage déjà documenté pour le vent (design.md § Contraste),
+  C'est l'arbitrage déjà documenté pour le vent
+  ([design.md](../../shared/design.md) § Contraste — mesuré, jamais estimé),
   étendu aux deux paliers.
 - **Bordures** : sous 3, comme avant (1,96 à 2,20). Elles sont décoratives
   (design.md) ; le seuil de 3 vaut pour un contour porteur de sens, qui est

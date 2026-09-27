@@ -265,6 +265,20 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     retirés — [retrait #19] décidé par Thomas le 2026-09-26 ; la pastille
     « Importée » reste. Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Vue Défense.
+20. **Mon compte · Runes (lot 8a) — filtres en menus déroulants, ajouts
+    plus tard** — deux choix de Thomas le 2026-09-27, avant le code :
+    - À la souris, les filtres Sets / Emplacement / Antiques deviennent
+      trois menus déroulants compacts, comme la maquette, plus « Effacer
+      les filtres ». Chaque menu garde les MÊMES choix qu'aujourd'hui. Au
+      doigt, rien ne change (lot 11).
+    - Les fonctions que la maquette AJOUTE sont repoussées : recherche
+      texte de propriété (« VIT ≥ 20 »), pagination numérotée, courbe par
+      set et « Ajouter un set », « Voir en tableau », tableau chiffré de
+      comparaison et « Retirer » par compte, lien « Voir l'optimisation ».
+      Elles iront au lot 13, une par une, comme pour la RTA (décision 13).
+    - Non suivi : le choix Efficience / Score SW dans la page. C'est un
+      réglage global du menu ⚙ —
+      [../compte/runes.md](../compte/runes.md) § Choix de la mesure.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur
@@ -406,7 +420,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par Thomas le 2026-09-26 |
 | 7b Siège · Recommandations | J | exécuté, validé (bureau) | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête), ajustements `c06d36d`…`4b40d07` (décisions 16 à 19) ; validé par Thomas le 2026-09-27 |
 | 14 thème clair (Atelier) : revoir les tokens | J | exécuté, validé | `03fbe84` (tokens), `85f3c9e` (teintes claires de l'accueil) ; fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix de Thomas) ; preuve `lot-14.md` ; validé par Thomas le 2026-09-27 |
-| 8a Compte · Runes | J | à faire | |
+| 8a Compte · Runes | J | en cours | tests avant `dd0151b` (114) ; décision 20 ; découpé en 8a-1 filtres, 8a-2 Résumé et Liste, 8a-3 Courbes, Comparaison, Optimisation |
 | 8b Compte · Monstres, Artéfacts | J | à faire | |
 | 9a Outils · Optimizer | J | à faire | |
 | 9b Outils · Speed tuning | J | à faire | |
@@ -687,6 +701,28 @@ et 19 (vue Attaque / Défense à la place du filtre d'origine, [retrait #19]).
 Tests d'avant le lot inchangés, sauf les trois du filtre retiré. **Validé
 par Thomas le 2026-09-27.**
 
+#### Lot 8a — Mon compte · Runes
+
+**Découpage, écrit AVANT le code (2026-09-27).** L'intrant fait environ 4 000 lignes de composants, 1 136
+de spec (`spec/compte/runes.md`, lue par sections) et cinq planches de
+maquette. C'est trop pour un seul passage sans dégrader les derniers
+écrans. Trois sous-lots, dans cet ordre, chacun validé par Thomas avant le
+suivant :
+- **8a-1 — les filtres** (décision 20) : `SetFilter`, `SlotFilter`,
+  `AncientFilter` en menus déroulants à la souris, plus « Effacer les
+  filtres ». Ils sont partagés par la Liste, les Courbes et
+  l'Optimisation. Le menu est COMPOSÉ de la librairie (`Bouton` +
+  `Flottant`), pas un contrôle maison.
+- **8a-2 — Résumé et Liste** : le Résumé en barres et tableaux (planche
+  « Résumé ») ; l'en-tête, le tri et la pagination de la Liste. Les
+  tuiles, rendus du jeu, sont seulement placées.
+- **8a-3 — Courbes, Comparaison, Optimisation** : l'Optimisation en
+  tableau ; les graphes restent les mêmes, placés dans les cartes de la
+  refonte.
+
+Tests avant : `dd0151b` (114 vérifications, `tests/rendu/runes.test.tsx`).
+Ils valent pour les trois sous-lots.
+
 ### B.11 Lot 11 — téléphone · J
 
 **Contrat** : `navigation.md` § Barre d'onglets et § Panneau d'actions
@@ -698,6 +734,17 @@ Se coordonne avec la passe responsive (A.5).
 
 Les trois ajouts de A.2 bis (palette Ctrl K, « Sauvegardé il y a … »,
 notification « Annuler »). **Seul lot autorisé à ajouter du comportement.**
+
+**Candidats repoussés par la décision 20** (Runes, 2026-09-27), à décider
+un par un avec Thomas avant d'entrer dans ce lot :
+- recherche texte de propriété dans la Liste (« VIT ≥ 20 ») ;
+- pagination numérotée ;
+- courbe par set et « Ajouter un set » ;
+- « Voir en tableau » des Courbes ;
+- tableau chiffré de comparaison entre comptes et « Retirer » par compte ;
+- lien « Voir l'optimisation » depuis le Résumé.
+
+Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
 
 **Contrat** : avant tout code, la spec de chaque ajout dans la spec de sa
 zone (`spec/shared/navigation.md` pour la palette, `spec/rta/` pour

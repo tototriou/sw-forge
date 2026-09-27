@@ -176,32 +176,12 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // divergé au premier filtre ajouté.
   const filtres = (
     <>
-
-        {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
-            et la bascule 2 ↔ 4 à côté.
-            ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ sert aussi de clé aux deux tris
-            « propriété secondaire ». La position porte donc du sens. */}
-        <div className="flex flex-wrap items-start gap-2">
-          <span className="w-[86px] flex-none label mt-1">Propriété</span>
-          <div className="min-w-0 flex-1 max-w-[480px]">
-            <SubSearchBar
-              options={SUBS_OPTIONS}
-              criteres={criteres}
-              max={MAX_SUBS}
-              nomDe={(code) => RUNE_EFFECT[code]?.label ?? `#${code}`}
-              onChange={(c) => {
-                setCriteres(c);
-                setPage(0);
-              }}
-            />
-          </div>
-        </div>
-
         {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
             score) reste un réglage global, dans la barre de nav.
-            ⚠️ `data-tri-bloc` : dans le PANNEAU mobile, ce bloc remonte en tête
-            (voir index.css) — trier vient avant filtrer. Au desktop il garde sa
-            place, en bas de la colonne de filtres. */}
+            ⚠️ **AU-DESSUS de la propriété secondaire**, aux deux formats
+            (Thomas, lot 8a : « mets le Trier par au-dessus de la
+            propriété »). Dans le PANNEAU mobile, `data-tri-bloc` le remontait
+            déjà en tête (voir index.css) — trier vient avant filtrer. */}
         <div data-tri-bloc className="flex items-center gap-2 flex-wrap">
           <span className="w-[86px] flex-none label">Trier par</span>
           {/* ⚠️ **Une liste DÉROULANTE, pas des onglets** : neuf entrées en
@@ -238,9 +218,29 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
               le dire ici évite de croire que le tri est cassé. */}
           {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (
             <span className="text-xs text-warn">
-              Choisis une propriété ci-dessus pour trier dessus.
+              Choisis une propriété ci-dessous pour trier dessus.
             </span>
           )}
+        </div>
+
+        {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
+            et la bascule 2 ↔ 4 à côté.
+            ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ sert aussi de clé aux deux tris
+            « propriété secondaire ». La position porte donc du sens. */}
+        <div className="flex flex-wrap items-start gap-2">
+          <span className="w-[86px] flex-none label mt-1">Propriété</span>
+          <div className="min-w-0 flex-1 max-w-[480px]">
+            <SubSearchBar
+              options={SUBS_OPTIONS}
+              criteres={criteres}
+              max={MAX_SUBS}
+              nomDe={(code) => RUNE_EFFECT[code]?.label ?? `#${code}`}
+              onChange={(c) => {
+                setCriteres(c);
+                setPage(0);
+              }}
+            />
+          </div>
         </div>
     </>
   );

@@ -277,6 +277,13 @@ neuf entrées font ~920 px (« ça fait peut-être un peu gros »). Le tri de
 l'**Optimisation**, cinq entrées (~640 px), est en onglets à la souris ; au
 doigt, les deux restent des listes déroulantes (lot 11).
 
+⚠️ **« Trier par » est AU-DESSUS de la propriété secondaire**, aux deux
+formats (Thomas, lot 8a : « mets le Trier par au-dessus de la propriété ») —
+trier vient avant filtrer, comme dans le panneau mobile, où le bloc de tri
+remontait déjà en tête. L'avertissement des deux tris « propriété » dit donc
+« Choisis une propriété **ci-dessous** pour trier dessus » (il disait
+« ci-dessus », faux au doigt depuis que le tri y était remonté).
+
 | Entrée | Clé de tri |
 |--------|-----------|
 | **Grade** | rareté, puis étoiles |

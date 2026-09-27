@@ -87,6 +87,12 @@
     "devient": "attr:libelle:Terminer l'édition de ce deck",
     "pourquoi": "Lot 7b, boutons de la page : voir title."
   },
+  "src/components/account/RunesList.tsx :: texte:Choisis une propriété ci-dessus pour trier dessus.": {
+    "de": "src/components/account/RunesList.tsx",
+    "vers": "src/components/account/RunesList.tsx",
+    "devient": "texte:Choisis une propriété ci-dessous pour trier dessus.",
+    "pourquoi": "Lot 8a : « Trier par » passe AU-DESSUS de la propriété secondaire (demande de Thomas) ; l'avertissement du tri, posé dans son bloc, désigne donc la propriété « ci-dessous ». Au doigt, le tri était déjà remonté en tête du panneau : « ci-dessus » y était déjà faux."
+  },
   "src/components/siege/RecoBoard.tsx :: prop:label:Toutes": {
     "de": "src/components/siege/RecoBoard.tsx",
     "retrait": "A.2 bis #19",

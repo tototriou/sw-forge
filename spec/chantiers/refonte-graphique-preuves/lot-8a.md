@@ -68,3 +68,14 @@ $ npm run build                               → built
 
 À regarder sur le serveur de dev : la ligne de filtres, et « Effacer les
 filtres » après avoir filtré.
+
+### Ajustements de 8a-1, puis validation
+
+| Commit | Demande de Thomas | Quoi |
+|---|---|---|
+| `26b3aeec` | « que les boutons aient tous la même tête » | sets et emplacements au gabarit du `Segmented` à la souris (`gabaritFiltre.ts`), « Effacer » à 32 px, intitulé « Runes » pour les antiques |
+| `473d61bd`, `17a1e2bb` | tri en `Segmented`, puis « ça fait peut-être un peu gros » | onglets pour l'Optimisation (5 entrées) ; la Liste (9) garde sa liste déroulante, à 32 px |
+| `496c198c` | « mets le Trier par au-dessus de la propriété » | le tri avant la propriété secondaire ; « ci-dessus » → « ci-dessous » (déclaré) |
+| `d310592f` | « il y a Score et Efficience mais c'est la même chose » | **décision 21**, [retrait #21] : une seule entrée de mesure, celle du ⚙ ; une assertion d'avant remplacée |
+
+**8a-1 validé par Thomas le 2026-09-27** (« ok »).

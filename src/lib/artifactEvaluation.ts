@@ -14,7 +14,7 @@ import { ArtifactDetail, ElementKey, RelicDetail } from '../types';
 import { StatKey } from './effects';
 import { Objective, pvEffectifs, type RealDamageContext } from './runeBuildOptim';
 import { StatRow } from './stats';
-import { DamageSetup, artifactDamageProfile, computeTotalDamage } from './damage';
+import { AurasPropres, DamageSetup, artifactDamageProfile, computeTotalDamage } from './damage';
 import { APPORT_NEUTRE, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
 
 export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
@@ -80,11 +80,17 @@ export interface CanalExclusive {
   element: ElementKey | null;
 }
 
+// `propres` (6bis-b2, les deux surcharges) : les activations d'aura des runes
+// du build dont `statsAvec` calcule les stats. Constantes pour toutes ses
+// paires et reliques (ni artéfact ni relique ne porte de set), obligatoires :
+// la note d'une paire, celle qui choisit la relique et celle qui classe les
+// voient toutes trois (D6, une seule note).
 // Surcharge 1 : `degats_reels` EXIGE le contexte de dégâts — omission =
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
 export function evaluerPourRegime(
   regime: 'degats_reels',
   statsAvec: (arts: ArtifactDetail[]) => StatRow[],
+  propres: AurasPropres,
   degats: DegatsContext,
   exclusive?: CanalExclusive
 ): (arts: ArtifactDetail[]) => number;
@@ -92,6 +98,7 @@ export function evaluerPourRegime(
 export function evaluerPourRegime(
   regime: Exclude<RegimeArtefacts, 'degats_reels'>,
   statsAvec: (arts: ArtifactDetail[]) => StatRow[],
+  propres: AurasPropres,
   exclusive?: CanalExclusive
 ): (arts: ArtifactDetail[]) => number;
 // Implémentation — signature élargie, jamais appelée directement de
@@ -99,17 +106,18 @@ export function evaluerPourRegime(
 export function evaluerPourRegime(
   regime: RegimeArtefacts,
   statsAvec: (arts: ArtifactDetail[]) => StatRow[],
+  propres: AurasPropres,
   degatsOuExclusive?: DegatsContext | CanalExclusive,
   exclusiveApresDegats?: CanalExclusive
 ): (arts: ArtifactDetail[]) => number {
-  // Le 3ᵉ paramètre porte le contexte de dégâts en `degats_reels`, le canal
+  // Le 4ᵉ paramètre porte le contexte de dégâts en `degats_reels`, le canal
   // exclusive partout ailleurs — les deux surcharges publiques le fixent, ce
   // démêlage n'existe que pour l'implémentation commune.
   const degats = regime === 'degats_reels' ? (degatsOuExclusive as DegatsContext | undefined) : undefined;
   const exclusive = regime === 'degats_reels' ? exclusiveApresDegats : (degatsOuExclusive as CanalExclusive | undefined);
   // L'apport de la relique essayée, pour CETTE paire d'artéfacts.
   const apportPour = (stats: StatRow[]) =>
-    exclusive ? apportExclusive(exclusive.relique, stats, exclusive.setup, exclusive.element) : APPORT_NEUTRE;
+    exclusive ? apportExclusive(exclusive.relique, stats, exclusive.setup, propres, exclusive.element) : APPORT_NEUTRE;
   if (regime === 'degats_reels') {
     // ⚠️ Backstop runtime, censé être INATTEIGNABLE une fois les deux
     // surcharges en place — un appel bien typé ne peut pas arriver ici sans
@@ -130,6 +138,7 @@ export function evaluerPourRegime(
         // `computeStats` (les minimums/maximums restent jugés hors combat).
         statsAvecApport(brutes, apport),
         degats.setup,
+        propres,
         degats.element,
         artifactDamageProfile(arts),
         degats.critSiPlusRapide,
@@ -150,7 +159,7 @@ export function evaluerPourRegime(
       const brutes = statsAvec(arts);
       const apport = apportPour(brutes);
       // Ténacité — terme de `Réductions` : des PV effectifs ÉQUIVALENTS.
-      return pvEffectifs(statsAvecApport(brutes, apport), exclusive?.setup) * facteurTenacite(apport.reductionPct);
+      return pvEffectifs(statsAvecApport(brutes, apport), propres, exclusive?.setup) * facteurTenacite(apport.reductionPct);
     };
   }
   if (regime === 'hp' || regime === 'atk' || regime === 'def') {

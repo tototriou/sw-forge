@@ -29,7 +29,7 @@ import { loadBoxMonster, printMonsterSummary } from './lib/loadMonster';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import { meilleuresPairesArtefacts, nombreDePaires, type ArtifactSearchParams, type ChoixPrincipale } from '../src/lib/artifactOptim';
-import { artifactDamageProfile, computeTotalDamage, monsterDamageSkills, monsterOffensivePassives, DEFAULT_DAMAGE_SETUP, type DamageSetup, type SkillDamageProfile } from '../src/lib/damage';
+import { artifactDamageProfile, aurasPropresDesRunes, computeTotalDamage, monsterDamageSkills, monsterOffensivePassives, DEFAULT_DAMAGE_SETUP, type DamageSetup, type SkillDamageProfile } from '../src/lib/damage';
 import { computeStats } from '../src/lib/stats';
 import { artifactSubName } from '../src/lib/effects';
 import { ARTIFACT_KINDS, type ArtifactDetail, type ArtifactKind, type ElementKey } from '../src/types';
@@ -78,9 +78,12 @@ const passifs = monsterOffensivePassives(fiche);
 // ⚠️ Les stats sont RECALCULÉES pour chaque paire : la stat principale d'un
 // artéfact entre dans les stats du monstre. Un score qui réutiliserait les
 // stats du build actuel comparerait des paires sur des stats fausses.
+// Les auras propres (6bis-b2) sont celles des runes PORTÉES, les mêmes pour
+// toutes les paires : aucun artéfact ne porte de set.
+const propres = aurasPropresDesRunes(loaded.gear.runes);
 const evaluer = (artefacts: ArtifactDetail[]) => {
   const stats = computeStats({ ...loaded.gear, artifacts: artefacts });
-  return computeTotalDamage(sort, passifs, stats, setup, espece.element, artifactDamageProfile(artefacts));
+  return computeTotalDamage(sort, passifs, stats, setup, propres, espece.element, artifactDamageProfile(artefacts));
 };
 
 const params: ArtifactSearchParams = {

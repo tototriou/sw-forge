@@ -13,6 +13,7 @@ import {
   Objective,
   RechercheRefusee,
   SearchParams,
+  aurasPropresParRunes,
   candidateMetricTotal,
   objectiveScore,
   RealDamageContext,
@@ -148,12 +149,15 @@ function scoreDuCandidat(
 ): number {
   const objectif = params.objective ?? 'efficience';
   if (objectif === 'efficience') return candidateMetricTotal(candidate, runeById, params.metric);
-  const apport = exclusive ? apportExclusive(relique, candidate.stats, exclusive.setup, exclusive.element) : APPORT_NEUTRE;
+  // Auras propres des six runes du candidat (6bis-b2), par la même porte que
+  // le tri (`aurasPropresParRunes`), jamais un recomptage local.
+  const propres = aurasPropresParRunes(runeById)(candidate);
+  const apport = exclusive ? apportExclusive(relique, candidate.stats, exclusive.setup, propres, exclusive.element) : APPORT_NEUTRE;
   if (objectif === 'degats_reels') {
     if (!realDamage) throw new Error("oracleSearch : l'objectif « Dégâts réels » exige un contexte de combat.");
-    return objectiveScore(candidate, objectif, realDamage, apport);
+    return objectiveScore(candidate, objectif, propres, realDamage, apport);
   }
-  return objectiveScore(candidate, objectif, undefined, apport, exclusive?.setup);
+  return objectiveScore(candidate, objectif, propres, undefined, apport, exclusive?.setup);
 }
 
 function candidatAvecRelique(
@@ -260,7 +264,13 @@ export function fusionnerRunsOracle(
 
   const candidats = ordre.map((cle) => fusion.get(cle)!);
   const objectif: Objective = params.objective ?? 'efficience';
-  const tries = sortCandidates(candidats, objectif, { runeById, metric: params.metric, realDamage: options.realDamage, damageSetup: options.exclusive?.setup });
+  const tries = sortCandidates(candidats, objectif, {
+    runeById,
+    metric: params.metric,
+    realDamage: options.realDamage,
+    damageSetup: options.exclusive?.setup,
+    aurasPropresDe: aurasPropresParRunes(runeById),
+  });
   const optimum = (tries[0] as OracleCandidate | undefined) ?? null;
   return { candidats, optimum, rid: optimum?.rid, N: runs.length, runs: issues, complet: issues.every((r) => !r.truncated) };
 }

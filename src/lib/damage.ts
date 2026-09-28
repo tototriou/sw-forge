@@ -22,7 +22,7 @@
 import type { Competence, DetailMonstre } from './monsterSkills';
 import type { ArtifactDetail, ElementKey } from '../types';
 import { StatRow } from './stats';
-import { StatKey } from './effects';
+import { StatKey, activeSets } from './effects';
 
 // ── Facteur de défense ───────────────────────────────────────────────────
 // ⚠️ **Source unique** de la mitigation par la défense pour toute l'app —
@@ -3313,9 +3313,10 @@ export interface DamageSetup {
   leaderSkill?: { stat: LeaderSkillStat; pct: number };
   // Auras des AUTRES monstres de l'équipe seulement : au plus cinq monstres à
   // trois sets, donc 15 au total. Les activations propres du build viennent
-  // de ses six runes (`activeSets`) et ne sont jamais saisies ici. ⚠️ État
-  // provisoire : tant que ces activations propres ne sont pas branchées, les
-  // calculs ne lisent que cette part externe. Remplace l'ancien `setsAura`
+  // de ses six runes (`AurasPropres`, résolues par `activeSets`) et ne sont
+  // jamais saisies ici. Le combat et le score lisent les deux parts ; ⚠️ état
+  // provisoire (6bis-b2) : les conditions RES/PRE (`avecAurasConditions`) ne
+  // lisent encore que cette part externe. Remplace l'ancien `setsAura`
   // (total d'équipe, monstre optimisé inclus) : une recette qui le porte non
   // vide est refusée à l'import, jamais réinterprétée (`optimizerRecipe.ts`).
   setsAuraExternes?: { set: SetAura; nombre: number }[];
@@ -3508,12 +3509,52 @@ export function resolvedLeaderSkill(setup: DamageSetup): { stat: LeaderSkillStat
   return legacy ? { stat: 'Attack Speed', pct: legacy } : null;
 }
 
-// Part EXTERNE seule (voir `DamageSetup.setsAuraExternes`) : les activations
-// propres du build n'y sont pas encore ajoutées.
+// Part EXTERNE seule (voir `DamageSetup.setsAuraExternes`). Le combat et le
+// score y ajoutent les activations propres du build (`nombreAuraEffectif`).
 export function nombreAura(setup: DamageSetup, set: SetAura): number {
   return setup.setsAuraExternes?.find((entree) => entree.set === set)?.nombre ?? 0;
 }
 
+/**
+ * Les activations d'aura PROPRES à un build : ce que ses runes activent
+ * réellement, résolu par `activeSets` — répétitions comprises, Intangible
+ * compris quand il complète un set, set demandé ou non. `requirement.sets`
+ * n'est qu'un minimum de recherche, jamais ce compteur.
+ *
+ * ⚠️ **Jamais stocké dans `DamageSetup`** (qui voyage dans la recette) et
+ * **jamais déduit des `StatRow`** : c'est un argument OBLIGATOIRE de chaque
+ * calcul de combat et de score, pour que `tsc` signale tout appel qui
+ * l'oublierait. `AUCUNE_AURA_PROPRE` se passe explicitement quand il n'y a
+ * réellement aucun équipement (stats synthétiques, monstre sans rune).
+ */
+export type AurasPropres = Readonly<Record<SetAura, number>>;
+
+export const AUCUNE_AURA_PROPRE: AurasPropres = Object.freeze({
+  fight: 0,
+  determination: 0,
+  enhance: 0,
+  accuracy: 0,
+  tolerance: 0,
+});
+
+export function aurasPropresDesRunes(runes: readonly { set: string }[]): AurasPropres {
+  const out = { fight: 0, determination: 0, enhance: 0, accuracy: 0, tolerance: 0 };
+  for (const set of activeSets(runes.map((r) => r.set))) {
+    if (set in out) out[set as SetAura]++;
+  }
+  return out;
+}
+
+// Le total EFFECTIF d'un set d'aura pour ce build : part externe saisie +
+// activations propres. Seule lecture du combat et du score ; les conditions
+// RES/PRE lisent encore `pointsAuraResPre` (part externe, provisoire).
+export function nombreAuraEffectif(setup: DamageSetup, propres: AurasPropres, set: SetAura): number {
+  return nombreAura(setup, set) + propres[set];
+}
+
+// Points RES/PRE des auras EXTERNES pour les conditions min/max
+// (`avecAurasConditions`) — ⚠️ provisoire : les activations propres n'y sont
+// pas encore (lot 6bis-b3a). Le combat ne passe plus par ici.
 export function pointsAuraResPre(setup: DamageSetup, compter = true): { res: number; acc: number } {
   return compter
     ? { res: 8 * nombreAura(setup, 'tolerance'), acc: 8 * nombreAura(setup, 'accuracy') }
@@ -3643,20 +3684,17 @@ export function vitTotalePourVitesseFinale(
   return Math.max(0, baseEffMin - apportBase);
 }
 
-// DEF de combat (base + rune + lead, PUIS le buff de combat sur le total) —
-// même structure que `maVitCombat`, pour DEF plutôt que VIT. ⚠️ Réplique
-// SANS LA PARTAGER la portion DEF du calcul déjà fait dans
-// `computeSkillDamageDetail` (`avecInvocateur('def', …)`/`valeurs.DEF`) —
-// non factorisée avec elle par prudence (ce chemin est fortement couplé à
-// celui d'ATK dans la même fonction, déjà éprouvé par les tests existants) ;
-// gardée IDENTIQUE à dessein pour `monsterBonusDegatsSelonDef` (Gideon —
-// « selon TA Défense », pas un écart avec la cible comme `bonusEcartDef`).
-function defCombat(stats: StatRow[], setup: DamageSetup, element: ElementKey | null = null): number {
-  const bonus = summonerSkillBonus(setup.summonerSkills, element);
-  const row = stats.find((s) => s.key === 'def');
-  const leader = resolvedLeaderSkill(setup);
-  const pctLeaderDefBase = leader?.stat === 'Defense' ? leader.pct : 0;
-  const defAvecLead = row ? row.total + Math.ceil((row.base * (bonus.pct.def + pctLeaderDefBase)) / 100) : 0;
+// DEF de combat (base + rune + lead + invocateur + auras, PUIS le buff de
+// combat sur le total) — même structure que `maVitCombat`, pour DEF plutôt
+// que VIT, pour `monsterBonusDegatsSelonDef` (Gideon — « selon TA Défense »,
+// pas un écart avec la cible comme `bonusEcartDef`).
+// ⚠️ Le préfixe vient de `statsDebutCombat` (6bis-b2) : c'est le même `ceil`
+// unique invocateur + lead + auras Determination, jamais une réplique qui
+// oublierait l'aura (elle l'oubliait depuis le lot 6). Aura nulle → valeur
+// strictement identique à l'ancienne réplique. Pas d'amplification
+// artéfact du buff ici, comme avant (hors périmètre des auras).
+function defCombat(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null): number {
+  const defAvecLead = statsDebutCombat(stats, setup, propres, element).def;
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + ampliMiriam / 100) : 0;
   return (defAvecLead * (100 + pctDefBuff)) / 100;
@@ -3720,15 +3758,14 @@ function resolvedCombatStatBonuses(profiles: CombatStatProfile[], setup: DamageS
 // Brita/Eivor (Eau), voir `monsterBonusSiAtqSeuil` : confirmé par
 // l'utilisateur, « toute source confondue (ATQ de base + rune + lead +
 // compétence d'invocateur) ». Pas de buff ATQ (`atkBuff`) ni de Miriam : la
-// stat AFFICHÉE hors combat, pas un instantané de tour. Même prudence que
-// `defCombat` (non partagée avec `avecInvocateur('atk', …)` de
-// `computeSkillDamageDetail`).
-function atkCombatComplet(stats: StatRow[], setup: DamageSetup, element: ElementKey | null = null): number {
-  const bonus = summonerSkillBonus(setup.summonerSkills, element);
-  const row = stats.find((s) => s.key === 'atk');
-  const leader = resolvedLeaderSkill(setup);
-  const pctLeaderAtkBase = leader?.stat === 'Attack Power' ? leader.pct : 0;
-  return row ? row.total + Math.ceil((row.base * (bonus.pct.atk + pctLeaderAtkBase)) / 100) : 0;
+// stat AFFICHÉE hors combat, pas un instantané de tour.
+// ⚠️ Les auras Fight (externes + propres) en font partie depuis 6bis-b2 :
+// « toute source confondue », et le cadrage (A.2, cible 2) fait entrer les
+// auras dans les passifs. C'est exactement l'ATQ de `statsDebutCombat`, même
+// `ceil` unique ; aura nulle → valeur strictement identique à l'ancienne
+// réplique locale.
+function atkCombatComplet(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null): number {
+  return statsDebutCombat(stats, setup, propres, element).atk;
 }
 
 // Taux Crit BRUT (avant plafond à 100 %) — leader Taux Crit + les deux
@@ -3771,26 +3808,31 @@ function crBrutEffectif(
  *
  * Les auras PV/ATQ/DEF rejoignent le même ceil que l'invocateur et le lead.
  * RES/PRE gagnent des points directs, y compris depuis une base nulle.
+ * Chaque aura compte sa part externe saisie PLUS les activations `propres`
+ * des runes du build (`AurasPropres`), dans UN seul terme : jamais deux
+ * `ceil` séparés, jamais un set du candidat compté deux fois.
  */
 export function statsDebutCombat(
   stats: StatRow[],
   setup: DamageSetup,
+  propres: AurasPropres,
   element: ElementKey | null = null
 ): { atk: number; def: number; hp: number; spd: number; res: number; acc: number } {
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   const leader = resolvedLeaderSkill(setup);
+  const aura = (set: SetAura) => 8 * nombreAuraEffectif(setup, propres, set);
   const avecInvocateur = (key: 'atk' | 'def' | 'hp' | 'spd', extraBasePct = 0) => {
     const row = stats.find((s) => s.key === key);
     if (!row) return 0;
     return row.total + Math.ceil((row.base * (bonus.pct[key] + extraBasePct)) / 100);
   };
   return {
-    atk: avecInvocateur('atk', (leader?.stat === 'Attack Power' ? leader.pct : 0) + 8 * nombreAura(setup, 'fight')),
-    def: avecInvocateur('def', (leader?.stat === 'Defense' ? leader.pct : 0) + 8 * nombreAura(setup, 'determination')),
-    hp: avecInvocateur('hp', (leader?.stat === 'HP' ? leader.pct : 0) + 8 * nombreAura(setup, 'enhance')),
+    atk: avecInvocateur('atk', (leader?.stat === 'Attack Power' ? leader.pct : 0) + aura('fight')),
+    def: avecInvocateur('def', (leader?.stat === 'Defense' ? leader.pct : 0) + aura('determination')),
+    hp: avecInvocateur('hp', (leader?.stat === 'HP' ? leader.pct : 0) + aura('enhance')),
     spd: avecInvocateur('spd', leader?.stat === 'Attack Speed' ? leader.pct : 0),
-    res: (stats.find((s) => s.key === 'res')?.total ?? 0) + pointsAuraResPre(setup).res,
-    acc: (stats.find((s) => s.key === 'acc')?.total ?? 0) + pointsAuraResPre(setup).acc,
+    res: (stats.find((s) => s.key === 'res')?.total ?? 0) + aura('tolerance'),
+    acc: (stats.find((s) => s.key === 'acc')?.total ?? 0) + aura('accuracy'),
   };
 }
 
@@ -3814,14 +3856,15 @@ export function statsDebutCombat(
 export function statsDeCombat(
   stats: StatRow[],
   setup: DamageSetup,
+  propres: AurasPropres,
   element: ElementKey | null = null,
   artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
   monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'> = {}
 ): { atk: number; def: number; hp: number; spd: number } {
-  // ⚠️ Le préfixe « début de combat » (invocateur + lead, sans buff) vient de
-  // `statsDebutCombat` — une seule écriture du `ceil` unique et du lead sur la
-  // base, partagée avec l'assiette `Y` des exclusives de relique.
-  const debut = statsDebutCombat(stats, setup, element);
+  // ⚠️ Le préfixe « début de combat » (invocateur + lead + auras, sans buff)
+  // vient de `statsDebutCombat` — une seule écriture du `ceil` unique et du
+  // lead sur la base, partagée avec l'assiette `Y` des exclusives de relique.
+  const debut = statsDebutCombat(stats, setup, propres, element);
   const ampliMiriam = setup.miriamActif ? MIRIAM_AMPLIFY_PCT : 0;
   const pctAtkBuff = setup.atkBuff ? ATK_BUFF_PCT * (1 + (artefacts.ampliAtkPct + ampliMiriam) / 100) : 0;
   const pctDefBuff = setup.defBuff ? DEF_BUFF_PCT * (1 + (artefacts.ampliDefPct + ampliMiriam) / 100) : 0;
@@ -3864,11 +3907,12 @@ export function statsDeCombat(
 export function degatsBrutsArtefactsParCoup(
   stats: StatRow[],
   setup: DamageSetup,
+  propres: AurasPropres,
   element: ElementKey | null,
   artefacts: ArtifactDamageProfile,
   monsterWide: Pick<MonsterWideDamageModifiers, 'combatStats'> = {}
 ): number {
-  const v = statsDeCombat(stats, setup, element, artefacts, monsterWide);
+  const v = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide);
   return (
     (artefacts.brutPctPv / 100) * v.hp +
     (artefacts.brutPctAtk / 100) * v.atk +
@@ -3959,6 +4003,9 @@ export function computeSkillDamageDetail(
   profile: SkillDamageProfile,
   stats: StatRow[],
   setup: DamageSetup,
+  // Activations d'aura propres aux runes de CE build (voir `AurasPropres`),
+  // obligatoires : elles entrent dans les stats de combat avec la part externe.
+  propres: AurasPropres,
   // Élément du monstre optimisé — décide de la compétence « Puis. d'att. de
   // <élément> ». `null`/omis = aucune compétence élémentaire comptée (monstre
   // perso, élément inconnu).
@@ -4031,7 +4078,7 @@ export function computeSkillDamageDetail(
         i === 0 || artefacts.cdPointsPremiereAttaque === 0
           ? artefacts
           : { ...artefacts, cdPointsPremiereAttaque: 0 };
-      const detail = computeSkillDamageDetail(profilUnCoup, stats, setupsScenario[i], element, pvScenario, artefactsCoup, monsterWide, reliqueDmgPct);
+      const detail = computeSkillDamageDetail(profilUnCoup, stats, setupsScenario[i], propres, element, pvScenario, artefactsCoup, monsterWide, reliqueDmgPct);
       totalScenario += detail.total;
       additionnelScenario += detail.additionnel;
       fixeProtegeScenario += detail.fixeProtege;
@@ -4061,7 +4108,7 @@ export function computeSkillDamageDetail(
   const pvMax = Math.max(0, setup.enemyHp);
   const pctDepart = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
 
-  const combat = statsDeCombat(stats, setup, element, artefacts, monsterWide);
+  const combat = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide);
   const maVit = combat.spd;
   // ⚠️ Bornée à 1 : une VIT adverse ≤ 0 ferait diverger le ratio (division
   // par zéro ou par un nombre négatif), un réglage vidé ne doit jamais casser
@@ -4591,9 +4638,10 @@ export function computeSkillDamage(
   profile: SkillDamageProfile,
   stats: StatRow[],
   setup: DamageSetup,
+  propres: AurasPropres,
   element: ElementKey | null = null
 ): number {
-  return computeSkillDamageDetail(profile, stats, setup, element).total;
+  return computeSkillDamageDetail(profile, stats, setup, propres, element).total;
 }
 
 // Un passif de `passifs` doit-il compter dans le total, selon l'état des
@@ -4699,6 +4747,10 @@ export function computeTotalDamage(
   passifs: PassifOffensifProfile[],
   stats: StatRow[],
   setup: DamageSetup,
+  // Activations d'aura propres aux runes de CE build (voir `AurasPropres`) —
+  // obligatoires, transmises telles quelles au sort, à chaque passif, aux
+  // parts additionnelles et aux bonus monstre-wide lus sur l'ATQ/la DEF.
+  propres: AurasPropres,
   element: ElementKey | null = null,
   // Ce que les artéfacts apportent — voir `artifactDamageProfile`, fixe pour
   // toute une recherche.
@@ -4763,7 +4815,7 @@ export function computeTotalDamage(
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setupSort, element, undefined, artefacts, monsterWide, reliqueDmgPct);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, propres, element, undefined, artefacts, monsterWide, reliqueDmgPct);
   let total = sort.total;
   // ⚠️ **Part ADDITIONNELLE mise de côté** — elle traverse la chaîne de
   // multiplicateurs ci-dessous sans en subir un seul, et n'est rendue qu'à la
@@ -4821,6 +4873,7 @@ export function computeTotalDamage(
           profilUnCoup,
           stats,
           avecModeCritique(etatAvantCoup),
+          propres,
           element,
           pvPassif,
           artefactsPassif,
@@ -4845,7 +4898,7 @@ export function computeTotalDamage(
         ? { ...p.profile, hits: resolvedHits(profile, setup), hitsRange: undefined }
         : p.profile;
       const setupPassif = avecModeCritique({ ...setup, defBreak: defBreakApres(setup) });
-      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, element, pvCiblePct, artefactsPassif, monsterWide, reliqueDmgPct);
+      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsPassif, monsterWide, reliqueDmgPct);
     }
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;
@@ -4897,14 +4950,14 @@ export function computeTotalDamage(
   // Gideon (« Aegis Shell ») — linéaire, plafonné, même forme que
   // `bonusDegatsSelonVit`/`bonusDegatsSelonCr`, source = TA PROPRE DEF.
   if (bonusDegatsSelonDef) {
-    const def = defCombat(stats, setup, element);
+    const def = defCombat(stats, setup, propres, element);
     const pct = Math.min(bonusDegatsSelonDef.defMax, Math.max(0, def)) * (bonusDegatsSelonDef.pctMax / bonusDegatsSelonDef.defMax);
     total *= 1 + pct / 100;
   }
   // Brita/Eivor (Eau) — SEUIL absolu (pas linéaire) : +pct % dès que l'ATQ
   // totale (avec lead, compétence d'invocateur) atteint `seuil`, rien
   // avant. Entièrement déduit.
-  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, element) >= bonusSiAtqSeuil.seuil) {
+  if (bonusSiAtqSeuil && atkCombatComplet(stats, setup, propres, element) >= bonusSiAtqSeuil.seuil) {
     total *= 1 + bonusSiAtqSeuil.pct / 100;
   }
   // Même famille que `bonusDegatsSelonVit` (multiplicatif sur le TOTAL,

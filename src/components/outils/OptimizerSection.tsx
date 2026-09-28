@@ -73,6 +73,7 @@ import {
   sortCandidates,
   candidateMetricTotal,
   pvEffectifs,
+  aurasPropresParRunes,
   OBJECTIVE_LABELS,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
@@ -83,6 +84,7 @@ import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
 import { monsterBaseStats } from '../../lib/stats';
 import {
   DEFAULT_DAMAGE_SETUP,
+  aurasPropresDesRunes,
   computeTotalDamage,
   damageRelevantStats,
   degatsBrutsArtefactsParCoup,
@@ -827,6 +829,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const HARD_TIMEOUT_MS = 10 * 60 * 1000;
 
   const runeById = useMemo(() => new Map(runes.map((r) => [r.id, r])), [runes]);
+  // Activations d'aura PROPRES aux runes de chaque candidat (6bis-b2), lues
+  // par le tri, les cartes et le near-miss — jamais celles de la fiche.
+  const aurasPropresDe = useMemo(() => aurasPropresParRunes(runeById), [runeById]);
   // Jumeau de `runeById` : sert à rejouer la paire d'un build validé, qui n'en
   // mémorise que les identifiants.
   const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
@@ -1155,6 +1160,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * runage réellement porté », qui la désactive exprès.
    */
   const statsReference = useMemo(() => (selected ? computeStats(selected.gear) : null), [selected]);
+  // Les activations d'aura des runes de CETTE fiche (6bis-b2) : elles
+  // accompagnent `statsReference` et tout calcul fait sur `selected.gear`
+  // (paire représentative, bloc « Meilleurs artéfacts »). Sans rune, zéro.
+  const aurasPropresFiche = useMemo(() => aurasPropresDesRunes(selected?.gear.runes ?? []), [selected]);
   /**
    * Les deux autres valeurs de référence du bouton « Comparer » : les PV
    * effectifs et l'efficience/score total de la fiche.
@@ -1168,7 +1177,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * mesure de la recherche donnerait un écart faux dès qu'on bascule
    * Efficience ↔ Score sans relancer.
    */
-  const refEhp = useMemo(() => (statsReference ? pvEffectifs(statsReference, damageSetup) : null), [statsReference, damageSetup]);
+  const refEhp = useMemo(
+    () => (statsReference ? pvEffectifs(statsReference, aurasPropresFiche, damageSetup) : null),
+    [statsReference, aurasPropresFiche, damageSetup]
+  );
   const refMetric = useMemo(
     () =>
       selected
@@ -1378,8 +1390,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const regimeRepresentatif: RegimeArtefacts = regimeEquipementDe(regimeBrut, !!contexteDegatsArtefacts);
     const evaluer =
       regimeRepresentatif === 'degats_reels'
-        ? evaluerPourRegime(regimeRepresentatif, statsAvec, contexteDegatsArtefacts!)
-        : evaluerPourRegime(regimeRepresentatif, statsAvec, regimeRepresentatif === 'ehp'
+        ? evaluerPourRegime(regimeRepresentatif, statsAvec, aurasPropresFiche, contexteDegatsArtefacts!)
+        : evaluerPourRegime(regimeRepresentatif, statsAvec, aurasPropresFiche, regimeRepresentatif === 'ehp'
           ? { ...contexteExclusive, relique: selected.gear.relic }
           : undefined);
     return {
@@ -1428,7 +1440,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       maxStatsActifs: (Object.keys(maxStats) as StatKey[]).filter((k) => (maxStats[k] ?? 0) > 0),
       evaluer,
     };
-  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, contexteDegatsArtefacts, maxStats]);
+  }, [selected, aurasPropresFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, contexteDegatsArtefacts, maxStats]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -1493,6 +1505,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       degatsBrutsArtefactsParCoup(
         statsAvecAffiche(arts),
         damageSetup,
+        aurasPropresFiche,
         espece.element,
         artifactDamageProfile(arts),
         { combatStats }
@@ -1515,7 +1528,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
      * (voir `contexteDegatsArtefacts`) : modificateurs monstre-wide compris.
      */
     const evaluerReel =
-      contexteDegatsArtefacts && evaluerPourRegime('degats_reels', statsAvecAffiche, contexteDegatsArtefacts);
+      contexteDegatsArtefacts && evaluerPourRegime('degats_reels', statsAvecAffiche, aurasPropresFiche, contexteDegatsArtefacts);
     // ⚠️ Repli sur le brut si aucun sort n'est calculable pour ce monstre —
     // jamais un bloc vide : le cran resterait sur « Dégâts réels » sans que
     // rien n'explique le silence.
@@ -1617,7 +1630,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, contexteDegatsArtefacts]);
+  }, [artifactParams, selected, aurasPropresFiche, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, contexteDegatsArtefacts]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -2057,8 +2070,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
   // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
   const fullSortedCandidates = useMemo(
-    () => (candidatesSource ? sortCandidates(candidatesSource, sortBy, { realDamage, runeById, metric, damageSetup }) : []),
-    [candidatesSource, sortBy, runeById, metric, realDamage, damageSetup]
+    () =>
+      candidatesSource
+        ? sortCandidates(candidatesSource, sortBy, { realDamage, runeById, metric, damageSetup, aurasPropresDe })
+        : [],
+    [candidatesSource, sortBy, runeById, metric, realDamage, damageSetup, aurasPropresDe]
   );
 
   const RESULTS_PAGE_SIZE = 20;
@@ -2192,10 +2208,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // paire, choisit la relique et classe — jamais un score d'exclusive
       // ajouté après coup (D6).
       const exclusive = { relique, setup: contexteExclusive.setup, element: contexteExclusive.element };
+      // ⚠️ Les auras propres de CE candidat (6bis-b2), résolues sur les mêmes
+      // runes que `gear` : chaque paire et chaque relique essayées pour lui
+      // sont notées avec elles, puis la paire et la relique retenues.
+      const propres = aurasPropresDesRunes(gear.runes);
       const evaluer =
         regime === 'degats_reels'
-          ? evaluerPourRegime(regime, statsAvec, contexteDegatsArtefacts!, exclusive)
-          : evaluerPourRegime(regime, statsAvec, exclusive);
+          ? evaluerPourRegime(regime, statsAvec, propres, contexteDegatsArtefacts!, exclusive)
+          : evaluerPourRegime(regime, statsAvec, propres, exclusive);
       return { ...artifactParams, evaluer };
     };
   }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive]);
@@ -2324,6 +2344,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       damageSetup,
       runeById,
       metric,
+      aurasPropresDe,
       // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
       // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
       // doivent suivre. Sinon on note les stats d'un modèle avec les effets
@@ -2341,10 +2362,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           fileArtefacts.parBuild.get(cleBuild(c))?.relique,
           c.stats,
           contexteExclusive.setup,
+          aurasPropresDe(c),
           contexteExclusive.element
         ),
     });
-  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, realDamage, runeById, metric, contexteExclusive]);
+  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, realDamage, runeById, metric, contexteExclusive, aurasPropresDe]);
 
   const pageCandidates = useMemo(
     () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
@@ -4834,7 +4856,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
               const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
               if (objective !== 'ehp') return base;
-              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats, damageSetup)).toLocaleString('fr-FR')}`;
+              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats, aurasPropresDe(miss), damageSetup)).toLocaleString('fr-FR')}`;
             };
             const suffiraitText = (s: StatShortfall) => {
               const st = RECO_STATS.find((r) => r.key === s.key)!;
@@ -4947,8 +4969,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     pvEffectifs:
                       objective === 'ehp' || sortBy === 'ehp'
                         ? {
-                            total: pvEffectifs(c.stats, damageSetup),
-                            delta: compare && refEhp != null ? pvEffectifs(c.stats, damageSetup) - refEhp : undefined,
+                            total: pvEffectifs(c.stats, aurasPropresDe(c), damageSetup),
+                            delta:
+                              compare && refEhp != null
+                                ? pvEffectifs(c.stats, aurasPropresDe(c), damageSetup) - refEhp
+                                : undefined,
                           }
                         : undefined,
                     metricDelta:
@@ -4984,6 +5009,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                           realDamage.passifs,
                           c.stats,
                           realDamage.setup,
+                          aurasPropresDe(c),
                           realDamage.element,
                           profilArtefactsDuBuild(c) ?? realDamage.artefacts,
                           realDamage.critSiPlusRapide,
@@ -5012,6 +5038,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                                   realDamage.passifs,
                                   statsReference,
                                   realDamage.setup,
+                                  aurasPropresFiche,
                                   realDamage.element,
                                   realDamage.artefacts,
                                   realDamage.critSiPlusRapide,

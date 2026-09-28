@@ -332,7 +332,9 @@ pas linéaire), suit juste après :
   damage you deal to enemies by up to 100% in proportion to your Defense »
   (`quantite: 100`) — confirmé 100 % à 5000 DEF (« y compris lead, buff
   DEF »). Distinct de Martial Arts Specialist : ici c'est la DEF PROPRE,
-  sans comparaison avec la cible.
+  sans comparaison avec la cible. Depuis le lot 6bis-b2, cette DEF de combat
+  comprend aussi les auras Determination, externes et propres au build, dans
+  l'arrondi du lead ([sets d'aura](effets-equipe-et-leaders.md)).
 
 ⚠️ **Régression trouvée EN COURS d'implémentation de Gideon (pas signalée
 par l'utilisateur)** : la formule linéaire-plafonnée partagée par toute
@@ -355,7 +357,9 @@ autres sont défensives/hors modèle. Brita et Eivor (Eau) sont des JUMEAUX
 DE COLLABORATION (`jumeauCollab`, mêmes stats et compétences sous deux
 habillages) — même mécanisme, deux noms de passif différents.
 
-Les seuils sont des totaux de combat, pas des écarts. Le relevé indépendant
+Les seuils sont des totaux de combat, pas des écarts : l'ATQ comparée
+comprend donc aussi les auras Fight, externes et propres au build, depuis le
+lot 6bis-b2 ([sets d'aura](effets-equipe-et-leaders.md)). Le relevé indépendant
 de Brita conserve **1671 ATQ**. Pour Eivor (Eau), le relevé le plus récent
 donne **1520 ATQ**, **1520 DEF** et **213 VIT**. L'écran montre les trois
 objectifs et leur équivalent au-dessus de la fiche : avec Combat,

@@ -59,7 +59,9 @@ import {
   ArtifactDamageProfile,
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
+  AurasPropres,
   DamageSetup,
+  aurasPropresDesRunes,
   nombreAura,
   pointsAuraResPre,
   MonsterWideDamageModifiers,
@@ -729,10 +731,15 @@ export interface RealDamageContext {
  * `APPORT_NEUTRE` (le défaut) = comportement strictement d'avant le lot 7,
  * qui est aussi ce que voit le moteur pendant la recherche relâchée, où
  * aucune relique n'est encore résolue.
+ *
+ * `propres` — les activations d'aura des six runes de CE candidat
+ * (`aurasPropresDesRunes`), obligatoires (6bis-b2) : `RealDamageContext` et
+ * `damageSetup` sont figés pour toute une recherche, pas elles.
  */
 export function objectiveScore(
   candidate: BuildCandidate,
   objective: Objective,
+  propres: AurasPropres,
   realDamage?: RealDamageContext,
   apport: ApportExclusive = APPORT_NEUTRE,
   damageSetup?: DamageSetup
@@ -759,6 +766,7 @@ export function objectiveScore(
       realDamage.passifs,
       stats,
       realDamage.setup,
+      propres,
       realDamage.element,
       realDamage.artefacts,
       realDamage.critSiPlusRapide,
@@ -784,7 +792,7 @@ export function objectiveScore(
   // `pvEffectifs / (1 − X / 100)`, dérivé de l'équation (voir
   // `facteurTenacite`). Réduction nulle → facteur 1, valeur d'avant à
   // l'identique.
-  return pvEffectifs(stats, damageSetup) * facteurTenacite(apport.reductionPct);
+  return pvEffectifs(stats, propres, damageSetup) * facteurTenacite(apport.reductionPct);
 }
 
 /**
@@ -794,12 +802,18 @@ export function objectiveScore(
  * valeur que celle qui classe : le bouton « Comparer » et la ligne « PV
  * effectifs » d'une carte de résultat en ont besoin, et recopier la formule
  * là-bas aurait donné deux nombres qui divergent au premier ajustement.
+ *
+ * `propres` — activations d'aura des runes de ce build, obligatoires ;
+ * `setup` absent = aucune aura externe.
  */
-export function pvEffectifs(stats: StatRow[], setup?: DamageSetup): number {
+export function pvEffectifs(stats: StatRow[], propres: AurasPropres, setup?: DamageSetup): number {
   // La politique EHP préexistante ne comptait ni lead ni invocateur : seul le
-  // nouveau gain d'aura rejoint ici les stats de fiche, sans les muter.
-  const hp = statTotal(stats, 'hp') + Math.ceil((stats.find((s) => s.key === 'hp')?.base ?? 0) * 8 * (setup ? nombreAura(setup, 'enhance') : 0) / 100);
-  const def = statTotal(stats, 'def') + Math.ceil((stats.find((s) => s.key === 'def')?.base ?? 0) * 8 * (setup ? nombreAura(setup, 'determination') : 0) / 100);
+  // gain d'aura rejoint ici les stats de fiche, sans les muter. ⚠️ UN seul
+  // `ceil` sur `base × 8 × (externes + propres)`, comme le `ceil` commun de
+  // `statsDebutCombat` : jamais `ceil(externe) + ceil(propre)`.
+  const aura = (set: 'enhance' | 'determination') => (setup ? nombreAura(setup, set) : 0) + propres[set];
+  const hp = statTotal(stats, 'hp') + Math.ceil((stats.find((s) => s.key === 'hp')?.base ?? 0) * 8 * aura('enhance') / 100);
+  const def = statTotal(stats, 'def') + Math.ceil((stats.find((s) => s.key === 'def')?.base ?? 0) * 8 * aura('determination') / 100);
   // ⚠️ Constantes importées de damage.ts, seule source du facteur de défense
   // pour toute l'app — l'arithmétique reste écrite TELLE QUELLE (et non
   // `hp / defenseFactor(def)`, pourtant mathématiquement identique) : passer
@@ -885,7 +899,16 @@ export function sortCandidates(
      * relique) : apport neutre, exactement l'ordre d'avant le lot 7.
      */
     exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
-  } = {}
+    /**
+     * Les activations d'aura PROPRES aux six runes d'un candidat (6bis-b2),
+     * lues par « Dégâts réels » et « PV effectifs ». ⚠️ **Obligatoire**,
+     * contrairement aux deux voisins ci-dessus : un oubli ne doit jamais
+     * retomber sur « aucune aura propre » en silence. `aurasPropresParRunes`
+     * la construit depuis le pool ; `() => AUCUNE_AURA_PROPRE` seulement pour
+     * des candidats réellement sans runes (stats synthétiques).
+     */
+    aurasPropresDe: (c: BuildCandidate) => AurasPropres;
+  }
 ): BuildCandidate[] {
   const score = scorerPour(sortBy, opts);
   // Contexte manquant (« Dégâts réels » sans sort calculable, « Efficience »
@@ -901,7 +924,8 @@ export function sortCandidates(
   // Mesuré : 1 084 ms par tri sur un compte réel, sur le FIL PRINCIPAL.
   //
   // ⚠️ **Exactement équivalent, pas une approximation.** Le score est une
-  // fonction PURE des stats du candidat : tout le reste (profil de sort,
+  // fonction PURE du candidat — ses stats, et les auras propres de ses runes
+  // (`aurasPropresDe`, 6bis-b2) : tout le reste (profil de sort,
   // passifs, adversaire, modificateurs monstre-wide) est figé pendant un tri.
   // Vérifié par différentiel sur 5 monstres × 100 000 candidats, dont les cas
   // qui mobilisent le scaling sur la VIT (Sonia), les dégâts fixes sur PV
@@ -920,6 +944,17 @@ export function sortCandidates(
   return decore.map((d) => d.c);
 }
 
+/**
+ * `aurasPropresDe` de `sortCandidates` depuis le pool : les activations
+ * d'aura des runes réelles de chaque candidat (`aurasPropresDesRunes`,
+ * `activeSets`). Une rune absente du pool est ignorée, exactement comme la
+ * reconstruction de l'équipement d'un candidat à l'écran (`runeById.get(id)`
+ * puis `filter(Boolean)`), pour que les deux lisent les mêmes runes.
+ */
+export function aurasPropresParRunes(runeById: Map<number, { set: string }>): (c: { runeIds: number[] }) => AurasPropres {
+  return (c) => aurasPropresDesRunes(c.runeIds.map((id) => runeById.get(id)).filter((r): r is { set: string } => r != null));
+}
+
 // Le score d'UN candidat pour ce critère — `null` quand le contexte nécessaire
 // manque, auquel cas l'appelant laisse l'ordre en place.
 function scorerPour(
@@ -931,6 +966,7 @@ function scorerPour(
     metric?: OptimMetric;
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
     exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
+    aurasPropresDe: (c: BuildCandidate) => AurasPropres;
   }
 ): ((c: BuildCandidate) => number) | null {
   // Même patron qu'`artefactsDuBuild` : ce qui est PROPRE à un candidat une
@@ -947,10 +983,11 @@ function scorerPour(
     if (!ctx) return null;
     return (c) => {
       const propre = opts.artefactsDuBuild?.(c);
-      return objectiveScore(c, sortBy, propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
+      return objectiveScore(c, sortBy, opts.aurasPropresDe(c), propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
     };
   }
-  if (sortBy === 'ehp' || sortBy === 'vitesse') return (c) => objectiveScore(c, sortBy, undefined, apportDe(c), opts.damageSetup);
+  if (sortBy === 'ehp' || sortBy === 'vitesse')
+    return (c) => objectiveScore(c, sortBy, opts.aurasPropresDe(c), undefined, apportDe(c), opts.damageSetup);
   return (c) => statTotal(statsAvecApport(c.stats, apportDe(c)), sortBy);
 }
 

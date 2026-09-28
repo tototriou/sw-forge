@@ -683,7 +683,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      [compte/runes.md](../compte/runes.md)).
    - **PV effectifs** — considère PV et DEF ensemble. Les auras Enhance et
      Determination apportent chacune 8 % de leur base au score, à son tri et
-     à sa comparaison, sans ajouter les autres bonus de début de combat.
+     à sa comparaison, sans ajouter les autres bonus de début de combat —
+     celles des autres monstres comme celles que forment les runes de chaque
+     build, dans un seul arrondi.
    - **Vitesse** — VIT seule.
    - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
      adversaire configuré, pas une espérance générique. Modèle de calcul
@@ -1320,8 +1322,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      l'équipe dans `DamageSetup.setsAuraExternes`, 15 sets au plus (voir
      [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) ; une
      recette portant l'ancien total d'équipe `setsAura` non vide est refusée.
-     En l'état, seule cette part externe est comptée : les activations
-     propres des runes du build ne le sont pas encore (lots 6bis-b2 et b3a).
+     Les activations propres des runes de chaque build s'y ajoutent dans le
+     combat et le score (dégâts, PV effectifs, exclusives de relique, choix
+     des artéfacts et de la relique, tri et comparaison), pas encore dans les
+     conditions : en l'état, les minimums et maximums RES/PRE ne comptent que
+     la part externe (lot 6bis-b3a), et la recherche n'est pas encore revue
+     pour ce modèle (lot 6bis-b3b).
      `compterAurasResPre`, activé par défaut, ajoute les points d'aura RES
      et PRE aux **minimums et maximums** ; désactivé, il ne change pas les
      dégâts ni les PV effectifs. Les auras PV/ATQ/DEF ne comptent dans aucune

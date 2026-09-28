@@ -55,7 +55,7 @@ import {
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { buildRealDamageContext } from './lib/realDamageCli';
-import { NearMiss, RechercheRefusee, candidateMetricTotal, sortCandidates } from '../src/lib/runeBuildOptim';
+import { NearMiss, RechercheRefusee, aurasPropresParRunes, candidateMetricTotal, sortCandidates } from '../src/lib/runeBuildOptim';
 import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -112,7 +112,8 @@ console.log(
 console.log(`minStats : ${JSON.stringify(recipe.requirement.minStats)}`);
 console.log(
   `Auras externes (autres monstres) : ${JSON.stringify(recipe.damageSetup?.setsAuraExternes ?? [])} ; ` +
-    `activations propres du build : pas encore comptées ; RES/PRE dans les conditions : ${recipe.compterAurasResPre ?? true}`
+    `activations propres du build : comptées dans le combat et le score, pas encore dans les conditions ; ` +
+    `RES/PRE dans les conditions : ${recipe.compterAurasResPre ?? true}`
 );
 if (recipe.requirement.maxStats && Object.keys(recipe.requirement.maxStats).length > 0) {
   console.log(`maxStats : ${JSON.stringify(recipe.requirement.maxStats)}`);
@@ -414,11 +415,14 @@ const realDamage = buildRealDamageContext(recipe, loaded.com2usId, params.artifa
 if (recipe.objective === 'degats_reels' && !realDamage) {
   console.warn(`⚠️ Aucun sort calculable pour ${loaded.monsterName} — le classement reste dans l'ordre de collecte.`);
 }
+const runeByIdPool = new Map(params.pool.map((r) => [r.id, r]));
 const classes = sortCandidates(result.candidates, recipe.objective, {
   realDamage,
   damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
-  runeById: new Map(params.pool.map((r) => [r.id, r])),
+  runeById: runeByIdPool,
   metric: recipe.metric,
+  // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
+  aurasPropresDe: aurasPropresParRunes(runeByIdPool),
 });
 console.log(`\nLes 20 meilleurs pour l'objectif « ${recipe.objective} » :`);
 for (const c of classes.slice(0, 20)) {

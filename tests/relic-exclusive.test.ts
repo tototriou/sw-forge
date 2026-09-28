@@ -20,7 +20,7 @@
 import { BaseStats, RelicDetail } from '../src/types';
 import { computeStats } from '../src/lib/stats';
 import {
-  ARTIFACT_DAMAGE_NEUTRE,
+  AUCUNE_AURA_PROPRE, ARTIFACT_DAMAGE_NEUTRE,
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
   computeSkillDamageDetail,
@@ -57,7 +57,7 @@ function statsDe(relique?: RelicDetail) {
 }
 
 function apport(relique?: RelicDetail) {
-  return apportExclusive(relique, statsDe(relique), SETUP, null);
+  return apportExclusive(relique, statsDe(relique), SETUP, AUCUNE_AURA_PROPRE, null);
 }
 
 // Une pièce réelle, recopiée telle qu'elle est lue dans l'export.
@@ -95,28 +95,28 @@ export default function testRelicExclusive() {
     // `statsDebutCombat` = total (base + runes + artéfacts + principale de
     // relique + sets) + ⌈base × (invocateur + lead) / 100⌉.
     // ATQ : 2 000 + ⌈2 000 × 20/100⌉ = 2 400. VIT : 200 + ⌈200 × 15/100⌉ = 230.
-    const y = statsDebutCombat(statsDe(), SETUP, null);
+    const y = statsDebutCombat(statsDe(), SETUP, AUCUNE_AURA_PROPRE, null);
     egal(y.atk, 2400, 'Y(ATQ) = 2 000 base + 20 % invocateur = 2 400');
     egal(y.def, 2160, 'Y(DEF) = 1 800 base + 20 % invocateur = 2 160');
     egal(y.hp, 30000, 'Y(PV) = 25 000 base + 20 % invocateur = 30 000');
     egal(y.spd, 230, 'Y(VIT) = 200 base + 15 % invocateur = 230');
 
     // La compétence élémentaire (+21 % ATQ) n'entre que pour un élément connu.
-    egal(statsDebutCombat(statsDe(), SETUP, 'fire').atk, 2820, 'Y(ATQ) avec élément = 2 000 + 41 % = 2 820');
-    egal(statsDebutCombat(statsDe(), SETUP, 'unknown').atk, 2400, "Y(ATQ) d'un élément inconnu ne reçoit pas le +21 %");
+    egal(statsDebutCombat(statsDe(), SETUP, AUCUNE_AURA_PROPRE, 'fire').atk, 2820, 'Y(ATQ) avec élément = 2 000 + 41 % = 2 820');
+    egal(statsDebutCombat(statsDe(), SETUP, AUCUNE_AURA_PROPRE, 'unknown').atk, 2400, "Y(ATQ) d'un élément inconnu ne reçoit pas le +21 %");
 
     // ⚠️ **Sans BUFF** : c'est ce qui distingue `statsDebutCombat` de
     // `statsDeCombat`. Buffs éteints, les deux coïncident exactement — c'est
     // l'extraction qui le garantit pour ATQ/DEF/PV, et cette assertion qui le
     // garantit pour la VIT, dont `maVitCombat` garde sa propre écriture.
-    const sansBuff = statsDeCombat(statsDe(), SETUP, null);
+    const sansBuff = statsDeCombat(statsDe(), SETUP, AUCUNE_AURA_PROPRE, null);
     egal([sansBuff.atk, sansBuff.def, sansBuff.hp, sansBuff.spd], [y.atk, y.def, y.hp, y.spd], 'buffs éteints : statsDeCombat ≡ statsDebutCombat (VIT comprise)');
     egal(maVitCombat(statsDe(), SETUP, null), y.spd, 'VIT : le préfixe de maVitCombat est bien Y(VIT)');
 
     // Buff actif : `statsDeCombat` monte, l'assiette `Y` ne bouge PAS.
-    const avecBuff = statsDeCombat(statsDe(), { ...SETUP, atkBuff: true }, null);
+    const avecBuff = statsDeCombat(statsDe(), { ...SETUP, atkBuff: true }, AUCUNE_AURA_PROPRE, null);
     ok(avecBuff.atk > y.atk, 'un buff ATQ fait monter statsDeCombat…');
-    egal(statsDebutCombat(statsDe(), { ...SETUP, atkBuff: true }, null).atk, y.atk, '… et laisse Y(ATQ) inchangé — « au début du combat » exclut les buffs');
+    egal(statsDebutCombat(statsDe(), { ...SETUP, atkBuff: true }, AUCUNE_AURA_PROPRE, null).atk, y.atk, '… et laisse Y(ATQ) inchangé — « au début du combat » exclut les buffs');
   }
 
   /* ── Conquête (1-3) — additive dans le bracket DMG% ──────────────────── */
@@ -133,8 +133,8 @@ export default function testRelicExclusive() {
     // terme du sort par exactement 1,02.
     const st = statsDe(conquete);
     const p = sortSynthetique('3.6*{ATK}');
-    const sans = computeSkillDamageDetail(p, st, SETUP, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {}, 0).total;
-    const avec = computeSkillDamageDetail(p, st, SETUP, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {}, 2).total;
+    const sans = computeSkillDamageDetail(p, st, SETUP, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {}, 0).total;
+    const avec = computeSkillDamageDetail(p, st, SETUP, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {}, 2).total;
     ok(Math.abs(avec / sans - 1.02) < 1e-9, 'Conquête est ADDITIVE dans DMG% : le terme du sort est multiplié par 1,02 exactement');
   }
 
@@ -152,8 +152,8 @@ export default function testRelicExclusive() {
     egal(facteurTenacite(0), 1, 'réduction nulle → facteur 1, le score d’avant à l’identique');
     ok(Math.abs(facteurTenacite(1) - 1 / 0.99) < 1e-12, 'réduction de 1 % → facteur 1/0,99');
     const st = statsDe(tenacite);
-    const attendu = pvEffectifs(st) / 0.99;
-    const recu = objectiveScore({ runeIds: [], stats: st, effTotal: 0 }, 'ehp', undefined, apport(tenacite));
+    const attendu = pvEffectifs(st, AUCUNE_AURA_PROPRE) / 0.99;
+    const recu = objectiveScore({ runeIds: [], stats: st, effTotal: 0 }, 'ehp', AUCUNE_AURA_PROPRE, undefined, apport(tenacite));
     ok(Math.abs(recu - attendu) < 1e-9, `objectiveScore('ehp') applique le facteur de Ténacité (${attendu.toFixed(3)})`);
 
     // ⚠️ Ténacité réduit les dégâts REÇUS : elle ne touche jamais les dégâts
@@ -188,8 +188,8 @@ export default function testRelicExclusive() {
     // La même pièce sur un monstre plus rapide franchit le palier : VIT de
     // base 218 → Y = 218 + ⌈218 × 15/100⌉ = 218 + 33 = 251 ≥ 250 → 1 tranche.
     const rapide = computeStats({ base: { ...BASE, spd: 218 }, runes: [], artifacts: [], relic: bravoureVit });
-    egal(statsDebutCombat(rapide, SETUP, null).spd, 251, 'VIT de base 218 → Y(VIT) = 251, juste au-dessus du palier');
-    egal(apportExclusive(bravoureVit, rapide, SETUP, null), { ...APPORT_NEUTRE, atk: 40 }, 'juste AU palier → +1 tranche, soit +2 % de l’ATQ de base (+40)');
+    egal(statsDebutCombat(rapide, SETUP, AUCUNE_AURA_PROPRE, null).spd, 251, 'VIT de base 218 → Y(VIT) = 251, juste au-dessus du palier');
+    egal(apportExclusive(bravoureVit, rapide, SETUP, AUCUNE_AURA_PROPRE, null), { ...APPORT_NEUTRE, atk: 40 }, 'juste AU palier → +1 tranche, soit +2 % de l’ATQ de base (+40)');
   }
 
   /* ── Éternité (10-12) → DEF, et Origine (13-15) → PV ─────────────────── */
@@ -212,7 +212,7 @@ export default function testRelicExclusive() {
     const st = statsDe(origine);
     egal(statsAvecApport(st, apport(origine)).find((r) => r.key === 'hp')!.total, 25500, 'statsAvecApport ajoute les 500 points aux PV…');
     egal(st.find((r) => r.key === 'hp')!.total, 25000, '… et laisse computeStats intacte (minimums et maximums restent hors combat)');
-    ok(objectiveScore({ runeIds: [], stats: st, effTotal: 0 }, 'ehp', undefined, apport(origine)) > pvEffectifs(st), 'le gain de PV d’Origine fait monter les PV effectifs');
+    ok(objectiveScore({ runeIds: [], stats: st, effTotal: 0 }, 'ehp', AUCUNE_AURA_PROPRE, undefined, apport(origine)) > pvEffectifs(st, AUCUNE_AURA_PROPRE), 'le gain de PV d’Origine fait monter les PV effectifs');
   }
 
   /* ── Ce qui reste NEUTRE, et ne s'estime jamais ──────────────────────── */
@@ -235,7 +235,7 @@ export default function testRelicExclusive() {
     // Apport neutre ⇒ score strictement inchangé, sur les deux objectifs
     // que l'exclusive touche.
     const st = statsDe();
-    egal(objectiveScore({ runeIds: [], stats: st, effTotal: 0 }, 'ehp', undefined, APPORT_NEUTRE), pvEffectifs(st), 'apport neutre → objectiveScore(ehp) est exactement pvEffectifs');
+    egal(objectiveScore({ runeIds: [], stats: st, effTotal: 0 }, 'ehp', AUCUNE_AURA_PROPRE, undefined, APPORT_NEUTRE), pvEffectifs(st, AUCUNE_AURA_PROPRE), 'apport neutre → objectiveScore(ehp) est exactement pvEffectifs');
   }
 
   /* ── L'accord entre le prédicat et la formule, type par type ─────────── */
@@ -249,7 +249,7 @@ export default function testRelicExclusive() {
     let accord = 0;
     for (const type of Object.keys(RELIC_UNIQUE).map(Number)) {
       const p = piece(1, 100, 12, 9, type, 45000, 1);
-      const a = apportExclusive(p, enorme, SETUP, null);
+      const a = apportExclusive(p, enorme, SETUP, AUCUNE_AURA_PROPRE, null);
       const chiffre = JSON.stringify(a) !== JSON.stringify(APPORT_NEUTRE);
       if (chiffre === exclusiveChiffrable(type)) accord++;
       else ok(false, `type ${type} (${RELIC_UNIQUE[type]!.groupe}) : exclusiveChiffrable=${exclusiveChiffrable(type)} mais apport ${chiffre ? 'non neutre' : 'neutre'}`);

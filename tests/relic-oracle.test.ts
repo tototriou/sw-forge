@@ -1,7 +1,7 @@
 import { activeSets } from '../src/lib/effects';
 import { parseAccountBox, parseAccountInventory, parseAccountSource } from '../src/lib/importAccount';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
-import { RechercheRefusee, objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
+import { RechercheRefusee, aurasPropresParRunes, objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { computeStats } from '../src/lib/stats';
 import { ArtifactDetail, RelicDetail } from '../src/types';
@@ -245,7 +245,12 @@ export default function testRelicOracle() {
   ok(oracleDegats.optimum != null, 'dégâts réels : l’oracle classe les candidats avec un contexte explicite');
   egal(
     oracleDegats.optimum?.score,
-    objectiveScore(oracleDegats.optimum!, 'degats_reels', realDamage!),
+    objectiveScore(
+      oracleDegats.optimum!,
+      'degats_reels',
+      aurasPropresParRunes(new Map(params.pool.map((r) => [r.id, r])))(oracleDegats.optimum!),
+      realDamage!
+    ),
     'dégâts réels : le score oracle est celui de objectiveScore avec le contexte transmis'
   );
 }

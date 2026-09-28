@@ -34,7 +34,7 @@
 import { ElementKey, RelicDetail } from '../types';
 import { RELIC_UNIQUE, RelicGroupeNom } from './effects';
 import { StatRow } from './stats';
-import { DamageSetup, statsDebutCombat } from './damage';
+import { AurasPropres, DamageSetup, statsDebutCombat } from './damage';
 
 /**
  * Ce qu'une relique apporte au score, par BRACKET — jamais un scalaire unique,
@@ -110,14 +110,16 @@ export function tranchesAtteintes(Y: number, tranche: number): number {
  * principale entre donc dans `Y`, le gain de l'exclusive non — il n'y a qu'une
  * relique, donc aucune boucle à résoudre (reliques.md § 5.2).
  *
- * `setup`/`element` servent au seul `statsDebutCombat` (leader skill et
- * compétences d'invocateur). Ils sont toujours disponibles : « État de mon
+ * `setup`/`propres`/`element` servent au seul `statsDebutCombat` (leader
+ * skill, compétences d'invocateur, auras externes ET activations propres des
+ * runes de ce build — 6bis-b2). Ils sont toujours disponibles : « État de mon
  * monstre » modifie les stats quel que soit l'objectif choisi.
  */
 export function apportExclusive(
   relique: RelicDetail | undefined,
   stats: StatRow[],
   setup: DamageSetup,
+  propres: AurasPropres,
   element: ElementKey | null = null
 ): ApportExclusive {
   const u = relique?.unique;
@@ -130,7 +132,7 @@ export function apportExclusive(
 
   const cleRef = CLE_DE_REFERENCE[def.stat.court];
   if (!cleRef) return APPORT_NEUTRE;
-  const Y = statsDebutCombat(stats, setup, element)[cleRef];
+  const Y = statsDebutCombat(stats, setup, propres, element)[cleRef];
   const gainPct = tranchesAtteintes(Y, u.tranche) * u.percent;
   if (gainPct === 0) return APPORT_NEUTRE;
 

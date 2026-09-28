@@ -13,6 +13,7 @@ import { DEFAULT_RELIC_MIN_UPGRADE, RelicIntent, defaultRelicMainChoice } from '
 import { resoudreContexteRelique } from '../../src/lib/relicOptim';
 import {
   DEFAULT_DAMAGE_SETUP,
+  aurasPropresDesRunes,
   damageRelevantStats,
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
@@ -177,6 +178,9 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
 
   // ⚠️ Un seul `computeStats` pour toutes les paires — voir `statsParPaire`.
   const statsAvec = statsParPaire(loaded.gear);
+  // Les auras propres (6bis-b2) des runes PORTÉES, celles dont `statsAvec`
+  // calcule les stats — comme l'écran (`aurasPropresFiche`).
+  const propres = aurasPropresDesRunes(loaded.gear.runes);
   // ⚠️ Le score dépend du RÉGIME, pas juste de « Dégâts réels » vs le reste :
   // `pvEffectifs` (PV effectifs) n'est PAS une somme des deux principales,
   // contrairement à l'efficience/la VIT. `evaluerPourRegime`
@@ -197,9 +201,9 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
     // plutôt que de rabattre le régime sur `'aucun'` comme le fait l'écran.
     if (!ctx) return null;
     const { artefacts: _artefacts, ...contexteSansArtefacts } = ctx;
-    evaluer = evaluerPourRegime(regime, statsAvec, contexteSansArtefacts);
+    evaluer = evaluerPourRegime(regime, statsAvec, propres, contexteSansArtefacts);
   } else {
-    evaluer = evaluerPourRegime(regime, statsAvec, regime === 'ehp'
+    evaluer = evaluerPourRegime(regime, statsAvec, propres, regime === 'ehp'
       ? { relique: loaded.gear.relic, setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: espece.element }
       : undefined);
   }

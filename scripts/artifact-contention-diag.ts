@@ -43,7 +43,7 @@ import { loadMonstersList } from './lib/monstersData';
 import { chercherPaires, nombreDePaires, type ArtifactSearchParams } from '../src/lib/artifactOptim';
 import { buildRealDamageContext } from './lib/realDamageCli';
 import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { artifactDamageProfile, computeTotalDamage, DEFAULT_DAMAGE_SETUP, type DamageSetup } from '../src/lib/damage';
+import { artifactDamageProfile, aurasPropresDesRunes, computeTotalDamage, DEFAULT_DAMAGE_SETUP, type DamageSetup } from '../src/lib/damage';
 import { computeStats } from '../src/lib/stats';
 import type { ArtifactDetail } from '../src/types';
 
@@ -117,6 +117,9 @@ function chargeArtefacts() {
     artifactMainByKind: { element: 'libre', archetype: 'libre' },
   });
   const ctx = buildRealDamageContext(recipe, lushen.com2usId, lushen.gear.artifacts)!;
+  // Auras propres des runes portées (6bis-b2), résolues une fois : la charge
+  // mesurée par paire reste celle d'avant.
+  const propres = aurasPropresDesRunes(lushen.gear.runes);
   const params: ArtifactSearchParams = {
     porteur: { element: espece.element, archetype: espece.archetype },
     inventaire: lushen.allArtifacts,
@@ -128,6 +131,7 @@ function chargeArtefacts() {
         ctx.passifs,
         computeStats({ ...lushen.gear, artifacts: arts }),
         setup,
+        propres,
         espece.element,
         artifactDamageProfile(arts)
       ),

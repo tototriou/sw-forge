@@ -100,11 +100,18 @@ compte. Source des cinq valeurs et du plafond : utilisateur, 2026-09-23 puis
 2026-09-25, cadrage `spec/chantiers/degats-et-aura.md` A.2 ter.
 
 Les activations d'aura **propres** au build — les sets réellement formés par
-ses six runes, Intangible compris — s'ajoutent à cette part externe, pour un
-total effectif d'au plus 18. ⚠️ **État provisoire (lot 6bis-b1)** : elles ne
-sont pas encore comptées. Tous les calculs décrits ci-dessous lisent la
-**seule part externe** ; les lots 6bis-b2 (combat et score) et 6bis-b3a
-(conditions) y ajoutent les activations propres de chaque candidat.
+ses runes, résolus par `activeSets` : répétitions et Intangible compris, set
+demandé ou non (`requirement.sets` n'est qu'un minimum de recherche) —
+s'ajoutent à cette part externe, pour un total effectif d'au plus 18
+(15 + 3). Elles se résolvent **pour chaque build** — candidat, fiche affichée,
+build dont on choisit la paire et la relique — et se transmettent aux calculs
+comme un argument **obligatoire** (`AurasPropres`), jamais stockées dans
+`DamageSetup` ni déduites des statistiques ; sans rune, le zéro se déclare
+explicitement (`AUCUNE_AURA_PROPRE`). Depuis le lot 6bis-b2, le **combat et
+le score** les comptent, comme décrit ci-dessous. ⚠️ **État provisoire
+(lot 6bis-b2)** : les conditions min/max RES/PRE lisent encore la **seule
+part externe**, jusqu'au lot 6bis-b3a ; la recherche elle-même (élagages,
+rétention) n'est pas encore revue pour ce modèle (lot 6bis-b3b).
 
 L'ancien champ `damageSetup.setsAura` comptait l'équipe entière, monstre
 optimisé inclus : ses nombres ne se traduisent pas en auras des autres
@@ -114,23 +121,34 @@ jamais réinterprétée en auras externes. La version de recette ne change pas.
 
 Fight, Determination et Enhance donnent chacun **8 % de la statistique de
 base** correspondante. Ils s'ajoutent au pourcentage de l'invocateur et du
-lead dans le **même `ceil`** de `statsDebutCombat`, sans arrondi séparé. Ils
-agissent ainsi sur le sort actif, ses passifs, les dégâts additionnels et
-l'assiette `Y` des propriétés uniques de relique. Accuracy et Tolerance
-donnent chacun **8 points** de PRE/RES, même si la base vaut zéro. Aucun de
-ces cinq effets ne modifie `computeStats`, qui reste la fiche hors combat.
+lead dans le **même `ceil`** de `statsDebutCombat`, sans arrondi séparé :
+part externe et activations propres forment un seul terme
+`8 × (externes + propres)`, jamais deux arrondis, jamais un set du build
+compté deux fois. Ils agissent ainsi sur le sort actif, ses passifs, les
+dégâts additionnels, les bonus lus sur l'ATQ ou la DEF de combat (Brita,
+Gideon : `atkCombatComplet` et `defCombat` dérivent désormais de ce même
+préfixe) et l'assiette `Y` des propriétés uniques de relique. Accuracy et
+Tolerance donnent chacun **8 points** de PRE/RES par set effectif, même si la
+base vaut zéro. Aucun de ces cinq effets ne modifie `computeStats`, qui reste
+la fiche hors combat : aucun set d'aura n'y a de bonus.
 
 L'objectif PV effectifs compte Enhance et Determination dans ses scores,
-son choix de paire d'artéfacts et de relique, son tri et sa comparaison.
+son choix de paire d'artéfacts et de relique, son tri et sa comparaison,
+avec un seul `ceil` par stat sur `base × 8 × (externes + propres)`.
 Cette extension n'ajoute pas implicitement le lead ou l'invocateur aux PV
-effectifs. Pour les conditions min **et** max, seul RES/PRE reçoit les points
-d'aura, ensemble, quand `compterAurasResPre` est activé (défaut `true`) :
-recherche, élagages, diagnostics et filtres finaux suivent la même règle.
-Désactiver ce booléen ne retire aucun effet des dégâts ni des PV effectifs.
-Les auras PV/ATQ/DEF restent hors conditions. Le booléen est optionnel dans
-la recette pour préserver les exports antérieurs ; ses valeurs présentes
-doivent être booléennes. Le modèle est livré au lot 6, le champ externe au
-lot 6bis-b1 ; ses contrôles visuels appartiennent au lot 7.
+effectifs. La note d'une paire, celle qui choisit la relique et celle qui
+classe reçoivent les activations propres du build noté, constantes pour
+toutes ses paires et reliques (aucune ne porte de set) ; les couples restent
+jugés sur leurs conditions avec la fiche hors combat. Pour les conditions
+min **et** max, seul RES/PRE reçoit les points d'aura, ensemble, quand
+`compterAurasResPre` est activé (défaut `true`) : recherche, élagages,
+diagnostics et filtres finaux suivent la même règle, sur la part externe
+seule jusqu'au lot 6bis-b3a. Désactiver ce booléen ne retire aucun effet des
+dégâts ni des PV effectifs. Les auras PV/ATQ/DEF restent hors conditions. Le
+booléen est optionnel dans la recette pour préserver les exports antérieurs ;
+ses valeurs présentes doivent être booléennes. Le modèle est livré au lot 6,
+le champ externe au lot 6bis-b1, les activations propres dans le combat et le
+score au lot 6bis-b2 ; ses contrôles visuels appartiennent au lot 7.
 
 ## Leader skill d'équipe
 

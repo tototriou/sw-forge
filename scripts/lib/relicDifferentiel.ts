@@ -31,6 +31,7 @@ import { StatKey } from '../../src/lib/effects';
 import { computeStats, statsParPaire } from '../../src/lib/stats';
 import { RelicContext } from '../../src/lib/relicOptim';
 import { APPORT_NEUTRE, ContexteExclusive, apportExclusive } from '../../src/lib/relicExclusive';
+import { aurasPropresDesRunes } from '../../src/lib/damage';
 import {
   BuildCandidate,
   Objective,
@@ -38,6 +39,7 @@ import {
   SearchParams,
   SearchResult,
   TraceCandidat,
+  aurasPropresParRunes,
   buildBuckets,
   candidateMetricTotal,
   objectiveScore,
@@ -125,10 +127,13 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
       // son assiette `Y` — exactement ce que l'écran pose dans
       // `faireParamsArtefacts`.
       const exclusive = r.exclusive ? { relique: rel, setup: r.exclusive.setup, element: r.exclusive.element } : undefined;
+      // Les auras propres de CE candidat (6bis-b2), sur les runes de `gear` —
+      // exactement ce que l'écran passe dans `faireParamsArtefacts`.
+      const propres = aurasPropresDesRunes(gear.runes);
       const evaluer =
         regime === 'degats_reels'
-          ? evaluerPourRegime(regime, statsAvec, r.degats!, exclusive)
-          : evaluerPourRegime(regime, statsAvec, exclusive);
+          ? evaluerPourRegime(regime, statsAvec, propres, r.degats!, exclusive)
+          : evaluerPourRegime(regime, statsAvec, propres, exclusive);
       return {
         porteur: r.porteur,
         inventaire: fixe ? [] : (r.inventaireArtefacts ?? []),
@@ -168,8 +173,9 @@ export function scoreOracle(
 ): number {
   const objectif = p.objective ?? 'efficience';
   if (objectif === 'efficience') return candidateMetricTotal(c, new Map(p.pool.map((r) => [r.id, r])), p.metric);
-  const apport = exclusive ? apportExclusive(relique, c.stats, exclusive.setup, exclusive.element) : APPORT_NEUTRE;
-  return objectiveScore(c, objectif, realDamage ?? undefined, apport, exclusive?.setup);
+  const propres = aurasPropresDesRunes(runesDe(p, c));
+  const apport = exclusive ? apportExclusive(relique, c.stats, exclusive.setup, propres, exclusive.element) : APPORT_NEUTRE;
+  return objectiveScore(c, objectif, propres, realDamage ?? undefined, apport, exclusive?.setup);
 }
 
 export function cle(runeIds: number[]): string {
@@ -392,7 +398,8 @@ export interface EntreesComparaison {
 
 function topKDe(p: SearchParams, candidats: BuildCandidate[], scores: Map<string, number>, k: number, realDamage?: RealDamageContext | null, exclusive?: ContexteExclusive | null): { cles: string[]; frontiere: number | null } {
   const objectif: Objective = p.objective ?? 'efficience';
-  const tries = sortCandidates(candidats, objectif, { runeById: new Map(p.pool.map((r) => [r.id, r])), metric: p.metric, realDamage, damageSetup: exclusive?.setup });
+  const runeById = new Map(p.pool.map((r) => [r.id, r]));
+  const tries = sortCandidates(candidats, objectif, { runeById, metric: p.metric, realDamage, damageSetup: exclusive?.setup, aurasPropresDe: aurasPropresParRunes(runeById) });
   if (tries.length === 0) return { cles: [], frontiere: null };
   const kieme = tries[Math.min(k, tries.length) - 1]!;
   const frontiere = scores.get(cle(kieme.runeIds)) ?? null;

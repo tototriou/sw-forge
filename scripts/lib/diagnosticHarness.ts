@@ -49,6 +49,7 @@ import {
   relevance,
   runeContribution,
   satisfiesSets,
+  aurasPropresParRunes,
   sortCandidates,
   totalPairCount,
   trancheReallocation,
@@ -1992,7 +1993,13 @@ function classer(
 ): { classes: BuildCandidate[]; total: (c: BuildCandidate) => number } {
   const runeById = new Map(resolue.poolInitial.map((r) => [r.id, r]));
   const objectif = resolue.recette?.objective ?? resolue.params.objective ?? 'efficience';
-  const classes = sortCandidates(candidats, objectif, { runeById, metric: resolue.params.metric, damageSetup: resolue.recette?.damageSetup });
+  const classes = sortCandidates(candidats, objectif, {
+    runeById,
+    metric: resolue.params.metric,
+    damageSetup: resolue.recette?.damageSetup,
+    // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
+    aurasPropresDe: aurasPropresParRunes(runeById),
+  });
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
   // est appliqué à la DEMANDE, pas à toute la liste : le classement peut

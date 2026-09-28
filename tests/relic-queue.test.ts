@@ -26,6 +26,7 @@ import {
   BuildCandidate,
   RealDamageContext,
   SearchParams,
+  aurasPropresParRunes,
   objectiveScore,
   pvEffectifs,
   searchBuilds,
@@ -36,7 +37,7 @@ import { RegimeArtefacts, regimeArtefacts } from '../src/lib/artifactEvaluation'
 import { ResultatArtefacts, candidatAvecSaPaire, cleBuild, signatureReglages } from '../src/lib/artifactQueue';
 import { EntreeResolution, etatReliqueDuBuild, reliqueEquipeeExclue, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
-import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
+import { DEFAULT_DAMAGE_SETUP, aurasPropresDesRunes } from '../src/lib/damage';
 import { ReglagesDifferentiel, Saturation, classerPerte, cle, comparerOptionA, entreeResolution, resoudreTousLesCandidats, runesDe, saturationDe } from '../scripts/lib/relicDifferentiel';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
@@ -422,7 +423,7 @@ export default function testRelicQueue() {
     // 2. tri ATQ + bouton inactif : la relique suit l'objectif (PV effectifs).
     const ex2 = resoudre(p, c, ctx, { critere: 'ehp' });
     egal(ex2.relique?.id, 1, 'plan § 2.4 ex. 2 : tri ATQ + bouton inactif → la relique suit l’objectif (PV % +14)');
-    egal(ex2.paire?.score, pvEffectifs(ex2.stats), 'plan § 2.4 ex. 2 : une seule note — score de la paire = PV effectifs des stats exactes');
+    egal(ex2.paire?.score, pvEffectifs(ex2.stats, aurasPropresDesRunes(runesDe(p, c))), 'plan § 2.4 ex. 2 : une seule note — score de la paire = PV effectifs des stats exactes');
     // 3. changement de tri PV effectifs → ATQ, bouton actif : le régime
     // effectif change, la signature aussi, la file ré-optimise.
     ok(signature(regimeArtefacts('ehp')) !== signature(regimeArtefacts('atk')), 'plan § 2.4 ex. 3 : bouton actif, changer le tri change le régime → la signature invalide le cache');
@@ -434,8 +435,9 @@ export default function testRelicQueue() {
     const cache = new Map([[cleBuild(c), resoudre(p, c, ctx, { critere: 'ehp' })], [cleBuild(c2), resoudre(p, c2, ctx, { critere: 'ehp' })]]);
     egal([...cache.values()].map((r) => r.relique?.id), [1, 1], 'plan § 2.4 ex. 4 : les reliques ne bougent pas (PV % pour les deux)');
     const enrichis = [c, c2].map((x) => candidatAvecSaPaire(x, cache));
-    const parEhp = sortCandidates(enrichis, 'ehp').map((x) => cle(x.runeIds));
-    const parAtk = sortCandidates(enrichis, 'atk').map((x) => cle(x.runeIds));
+    const aurasPropresDe = (x: BuildCandidate) => aurasPropresDesRunes(runesDe(p, x));
+    const parEhp = sortCandidates(enrichis, 'ehp', { aurasPropresDe }).map((x) => cle(x.runeIds));
+    const parAtk = sortCandidates(enrichis, 'atk', { aurasPropresDe }).map((x) => cle(x.runeIds));
     egal(parEhp[0], cle(c2.runeIds), 'plan § 2.4 ex. 4 : classé par PV effectifs, le build PV % passe devant');
     egal(parAtk[0], cle(c.runeIds), 'plan § 2.4 ex. 4 : classé par ATQ, le build ATQ % passe devant — seul le classement a changé');
   }
@@ -455,7 +457,7 @@ export default function testRelicQueue() {
     const c = candidat(p, [201, 202, 203, 204, 205, 206]);
     const r = resoudre(p, c, ctx, { critere: 'degats_reels', degats: realDamage });
     egal(r.relique?.id, 61, 'plan § 2.3 : l’ATQ % à exclusive non offensive bat la DEF % à exclusive offensive (le sort scale sur l’ATQ)');
-    egal(r.paire?.score, objectiveScore({ ...c, stats: r.stats }, 'degats_reels', realDamage!), 'plan § 2.3 : la note est celle de computeTotalDamage sur les stats exactes, une seule fois');
+    egal(r.paire?.score, objectiveScore({ ...c, stats: r.stats }, 'degats_reels', aurasPropresDesRunes(runesDe(p, c)), realDamage!), 'plan § 2.3 : la note est celle de computeTotalDamage sur les stats exactes, une seule fois');
     // Le régime « Dégâts réels » sans contexte de dégâts est rabattu sur
     // `aucun` par l'appelant, jamais absorbé : ici, la relique n'a pas d'effet.
     const sansSort = resoudre(p, c, ctx, { critere: 'degats_reels', degats: null });
@@ -474,9 +476,10 @@ export default function testRelicQueue() {
     const c = candidat(p, [201, 202, 203, 204, 205, 206]);
     const r = resoudre(p, c, ctx, { critere: 'ehp' });
     egal(r.relique?.id, 901, 'équipée exclue : la meilleure ADMISSIBLE est retenue');
-    const scoreRetenu = pvEffectifs(r.stats);
-    const scoreEquipee = pvEffectifs(computeStats({ base: BASE, runes: runesDe(p, c), artifacts: [], relic: equipee }));
-    const scoreSansRelique = pvEffectifs(computeStats({ base: BASE, runes: runesDe(p, c), artifacts: [] }));
+    const propres = aurasPropresDesRunes(runesDe(p, c));
+    const scoreRetenu = pvEffectifs(r.stats, propres);
+    const scoreEquipee = pvEffectifs(computeStats({ base: BASE, runes: runesDe(p, c), artifacts: [], relic: equipee }), propres);
+    const scoreSansRelique = pvEffectifs(computeStats({ base: BASE, runes: runesDe(p, c), artifacts: [] }), propres);
     ok(scoreRetenu < scoreEquipee, `équipée exclue : elle note MOINS que l’équipée (${scoreRetenu} < ${scoreEquipee}) — légitime`);
     ok(scoreRetenu >= scoreSansRelique, `équipée exclue : … mais jamais moins que l’état de référence du même ensemble admissible (sans relique, ${scoreSansRelique})`);
     egal(etatReliqueDuBuild(r, ctx, equipee), { etat: 'resolue', relique: admissible, sansEffetSurLeTri: false, equipeeExclue: true }, 'équipée exclue : le candidat porte « relique équipée exclue par le filtre »');
@@ -553,8 +556,8 @@ export default function testRelicQueue() {
     //     l'écran) ne la lit pas non plus : `sortCandidates` sans
     //     `exclusiveDuBuild` est neutre par défaut.
     egal(
-      sortCandidates(r2.candidates, p2.objective ?? 'efficience', { runeById: new Map(p2.pool.map((x) => [x.id, x])), metric: p2.metric }).map((c) => cle(c.runeIds)),
-      sortCandidates(r1.candidates, p1.objective ?? 'efficience', { runeById: new Map(p1.pool.map((x) => [x.id, x])), metric: p1.metric }).map((c) => cle(c.runeIds)),
+      sortCandidates(r2.candidates, p2.objective ?? 'efficience', { runeById: new Map(p2.pool.map((x) => [x.id, x])), metric: p2.metric, aurasPropresDe: aurasPropresParRunes(new Map(p2.pool.map((x) => [x.id, x]))) }).map((c) => cle(c.runeIds)),
+      sortCandidates(r1.candidates, p1.objective ?? 'efficience', { runeById: new Map(p1.pool.map((x) => [x.id, x])), metric: p1.metric, aurasPropresDe: aurasPropresParRunes(new Map(p1.pool.map((x) => [x.id, x]))) }).map((c) => cle(c.runeIds)),
       'granularité (d) : l’ordre de collecte que la file consomme est identique — l’exclusive n’y entre pas'
     );
   }

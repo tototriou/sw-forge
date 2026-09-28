@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import {
-  ARTIFACT_DAMAGE_NEUTRE,
+  AUCUNE_AURA_PROPRE, ARTIFACT_DAMAGE_NEUTRE,
   autresBuffsPropresDepuisTotal,
   BonusDegatsConditionnelProfile,
   DEFAULT_DAMAGE_SETUP,
@@ -76,26 +76,26 @@ export default function testAuditDegatsConditionnels() {
   titre('Audit des dégâts conditionnels — étapes 1 et 2');
 
   const leoTorrent = profilDe(16613, 7808);
-  const leoNormal = computeSkillDamage(leoTorrent, buildAudit, { ...setupAudit, enemyDef: 1000 });
+  const leoNormal = computeSkillDamage(leoTorrent, buildAudit, { ...setupAudit, enemyDef: 1000 }, AUCUNE_AURA_PROPRE);
   const leoSous30 = computeSkillDamage(leoTorrent, buildAudit, {
     ...setupAudit,
     enemyDef: 1000,
     passifsOffensifs: { 7808: true },
-  });
+  }, AUCUNE_AURA_PROPRE);
   egal(leoTorrent.formule, '5.5*{ATK}', '72 — Torrent ne varie plus proportionnellement avec les PV propres');
   ok(leoSous30 > leoNormal, '72 — le toggle sous 30 % active l’ignore-DÉF de Torrent');
 
   const zerath = profilDe(14414, 2914);
-  const zerath20k = computeSkillDamage(zerath, buildAudit, { ...setupAudit, ownHpPct: 50 });
+  const zerath20k = computeSkillDamage(zerath, buildAudit, { ...setupAudit, ownHpPct: 50 }, AUCUNE_AURA_PROPRE);
   const zerath40k = computeSkillDamage(zerath, stats({ ...Object.fromEntries(buildAudit.map((s) => [s.key, s.total])), hp: 40000 }), {
     ...setupAudit,
     ownHpPct: 50,
-  });
+  }, AUCUNE_AURA_PROPRE);
   egal(zerath40k, zerath20k * 2, '73 — les PV actuels de Zerath sont recalculés pour chaque build candidat');
 
   const ramagos = profilDe(10733, 1863);
   egal(
-    computeSkillDamage(ramagos, buildAudit, { ...setupAudit, ownHpPct: 50 }),
+    computeSkillDamage(ramagos, buildAudit, { ...setupAudit, ownHpPct: 50 }, AUCUNE_AURA_PROPRE),
     10000,
     '74 — Clean Shot inflige exactement les PV propres manquants en dégâts fixes'
   );
@@ -103,7 +103,7 @@ export default function testAuditDegatsConditionnels() {
   const skogul = profilDe(22413, 13008);
   const trasar = profilDe(22415, 13010);
   egal(
-    computeSkillDamage(skogul, buildAudit, { ...setupAudit, aliveEnemies: 4 }),
+    computeSkillDamage(skogul, buildAudit, { ...setupAudit, aliveEnemies: 4 }, AUCUNE_AURA_PROPRE),
     5000,
     '77 — Atlas Stone répartit les PV max entre les ennemis vivants'
   );
@@ -112,7 +112,7 @@ export default function testAuditDegatsConditionnels() {
       ...setupAudit,
       aliveEnemies: 4,
       stackPersonnalise: { 13010: 2 },
-    }),
+    }, AUCUNE_AURA_PROPRE),
     6500,
     '308 — Trasar ajoute 15 % par mort, plafonné à 30 %, sur son Atlas Stone'
   );
@@ -121,7 +121,7 @@ export default function testAuditDegatsConditionnels() {
       ...setupAudit,
       aliveEnemies: 4,
       stackPersonnalise: { 13010: 2 },
-    }),
+    }, AUCUNE_AURA_PROPRE),
     5000,
     '308 — le compteur de Trasar ne majore ni Skogul ni son autre identifiant'
   );
@@ -129,69 +129,69 @@ export default function testAuditDegatsConditionnels() {
   const lamiella = profilDe(31311, 21006);
   egal(lamiella.formule, '1.2*{ATK}', 'Lamiella — la composante 1,2 × ATQ reste présente');
   ok(!!lamiella.composanteFixeAdditionnelle, 'Lamiella — la réserve de Sacrifice est une composante fixe séparée');
-  const lamiellaSansReserve = computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3 });
-  const lamiellaAvecReserve = computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3 });
+  const lamiellaSansReserve = computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3 }, AUCUNE_AURA_PROPRE);
+  const lamiellaAvecReserve = computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3 }, AUCUNE_AURA_PROPRE);
   egal(lamiellaAvecReserve - lamiellaSansReserve, 4000, 'Lamiella — réserve linéaire de PV max répartie entre trois ennemis');
   ok(
-    computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 0, critMode: 'crit' }) > lamiellaSansReserve,
+    computeSkillDamage(lamiella, buildAudit, { ...setupAudit, sacrificeReservePct: 0, critMode: 'crit' }, AUCUNE_AURA_PROPRE) > lamiellaSansReserve,
     'Lamiella — la composante ATQ peut infliger un coup critique'
   );
 
   const velaska = profilDe(31315, 21010);
   egal(velaska.formule, '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)', 'Velaska — la formule est entièrement fixe');
   egal(
-    computeSkillDamage(velaska, buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3 }),
+    computeSkillDamage(velaska, buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3 }, AUCUNE_AURA_PROPRE),
     4000,
     'Velaska — réserve linéaire de PV max répartie entre trois ennemis'
   );
   egal(
-    computeSkillDamage(skogul, buildAudit, { ...setupAudit, aliveEnemies: 99 }),
+    computeSkillDamage(skogul, buildAudit, { ...setupAudit, aliveEnemies: 99 }, AUCUNE_AURA_PROPRE),
     5000,
     'ennemis vivants — le moteur plafonne les recettes éditées à la main à quatre'
   );
-  const skogulBase = computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4 }, 'wind');
+  const skogulBase = computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4 }, AUCUNE_AURA_PROPRE, 'wind');
   egal(
-    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, mirinaeActif: true }, 'wind'),
+    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, mirinaeActif: true }, AUCUNE_AURA_PROPRE, 'wind'),
     skogulBase,
     'Skogul — Mirinae ne majore pas Atlas Stone'
   );
   egal(
-    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, velaskaActif: true, velaskaPvPerduPct: 100 }, 'wind'),
+    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, velaskaActif: true, velaskaPvPerduPct: 100 }, AUCUNE_AURA_PROPRE, 'wind'),
     skogulBase,
     'Skogul — le passif de Velaska ne majore pas Atlas Stone'
   );
   egal(
-    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, brand: true }, 'wind'),
+    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, brand: true }, AUCUNE_AURA_PROPRE, 'wind'),
     skogulBase * 1.25,
     'Skogul — la Marque reste compatible avec Atlas Stone'
   );
   const artefactFeu20 = { ...ARTIFACT_DAMAGE_NEUTRE, degatsElementPct: { fire: 20 } };
   egal(
-    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, enemyElement: 'fire' }, 'wind', artefactFeu20),
+    computeTotalDamage(skogul, [], buildAudit, { ...setupAudit, aliveEnemies: 4, enemyElement: 'fire' }, AUCUNE_AURA_PROPRE, 'wind', artefactFeu20),
     skogulBase * 1.2,
     'Skogul — les dégâts élémentaires d’artéfact majorent Atlas Stone'
   );
   egal(
-    computeTotalDamage(velaska, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, enemyElement: 'fire' }, 'dark', artefactFeu20),
+    computeTotalDamage(velaska, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, enemyElement: 'fire' }, AUCUNE_AURA_PROPRE, 'dark', artefactFeu20),
     4000,
     'Velaska — les dégâts élémentaires d’artéfact ne majorent pas la réserve'
   );
-  const lamiellaMirinae0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, mirinaeActif: true }, 'water');
-  const lamiellaMirinae60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, mirinaeActif: true }, 'water');
+  const lamiellaMirinae0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, mirinaeActif: true }, AUCUNE_AURA_PROPRE, 'water');
+  const lamiellaMirinae60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, mirinaeActif: true }, AUCUNE_AURA_PROPRE, 'water');
   egal(lamiellaMirinae60 - lamiellaMirinae0, 4000, 'Lamiella — Mirinae ne majore que la partie ATQ');
-  const lamiellaVelaska0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, velaskaActif: true, velaskaPvPerduPct: 100 }, 'water');
-  const lamiellaVelaska60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, velaskaActif: true, velaskaPvPerduPct: 100 }, 'water');
+  const lamiellaVelaska0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, velaskaActif: true, velaskaPvPerduPct: 100 }, AUCUNE_AURA_PROPRE, 'water');
+  const lamiellaVelaska60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, velaskaActif: true, velaskaPvPerduPct: 100 }, AUCUNE_AURA_PROPRE, 'water');
   ok(
     Math.abs(lamiellaVelaska60 - lamiellaVelaska0 - 4000) < 1e-9,
     'Lamiella — Price of Pain ne majore que la partie ATQ'
   );
-  const lamiellaBrand0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, brand: true }, 'water');
-  const lamiellaBrand60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, brand: true }, 'water');
+  const lamiellaBrand0 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 0, aliveEnemies: 3, brand: true }, AUCUNE_AURA_PROPRE, 'water');
+  const lamiellaBrand60 = computeTotalDamage(lamiella, [], buildAudit, { ...setupAudit, sacrificeReservePct: 60, aliveEnemies: 3, brand: true }, AUCUNE_AURA_PROPRE, 'water');
   egal(lamiellaBrand60 - lamiellaBrand0, 5000, 'Lamiella — la Marque majore aussi la réserve fixe');
   const moLong = profilDe(21211, 12011);
-  const moLongBase = computeTotalDamage(moLong, [], buildAudit, { ...setupAudit, enemyElement: 'fire' }, 'water');
+  const moLongBase = computeTotalDamage(moLong, [], buildAudit, { ...setupAudit, enemyElement: 'fire' }, AUCUNE_AURA_PROPRE, 'water');
   egal(
-    computeTotalDamage(moLong, [], buildAudit, { ...setupAudit, enemyElement: 'fire' }, 'water', artefactFeu20),
+    computeTotalDamage(moLong, [], buildAudit, { ...setupAudit, enemyElement: 'fire' }, AUCUNE_AURA_PROPRE, 'water', artefactFeu20),
     moLongBase * 1.2,
     'Mo Long — les dégâts élémentaires d’artéfact majorent Reckless Assault'
   );
@@ -199,21 +199,21 @@ export default function testAuditDegatsConditionnels() {
   const hwa = profilDe(15512, 6907);
   egal(resolvedDebuffsCibleCount(hwa.skillCom2usId, { ...setupAudit, effetsCibleCount: { 6907: 9 }, defBreak: true, brand: true }), 10,
     'compteur ennemi — autres débuffs + Brise DEF + Marque sont plafonnés à 10');
-  const hwaAutres = computeSkillDamage(hwa, buildAudit, { ...setupAudit, effetsCibleCount: { 6907: 1 } });
+  const hwaAutres = computeSkillDamage(hwa, buildAudit, { ...setupAudit, effetsCibleCount: { 6907: 1 } }, AUCUNE_AURA_PROPRE);
   const hwaAvecEffets = computeSkillDamage(hwa, buildAudit, {
     ...setupAudit,
     effetsCibleCount: { 6907: 1 },
     defBreak: true,
     brand: true,
-  });
+  }, AUCUNE_AURA_PROPRE);
   ok(hwaAvecEffets > hwaAutres, 'Hwa S2 — Brise DEF et Marque incrémentent automatiquement le compteur de débuffs');
   const brandiaMixte = profilDe(18912, 9712);
   ok(
     computeSkillDamage(brandiaMixte, buildAudit, {
       ...setupAudit, effetsCibleCount: { 9712: 10 }, brand: true,
-    }) > computeSkillDamage(brandiaMixte, buildAudit, {
+    }, AUCUNE_AURA_PROPRE) > computeSkillDamage(brandiaMixte, buildAudit, {
       ...setupAudit, effetsCibleCount: { 9712: 10 },
-    }),
+    }, AUCUNE_AURA_PROPRE),
     'Brandia — dix effets mixtes peuvent compter une Marque en plus ; seul le compteur des débuffs est plafonné'
   );
 
@@ -224,6 +224,7 @@ export default function testAuditDegatsConditionnels() {
     [],
     buildAudit,
     setup,
+    AUCUNE_AURA_PROPRE,
     'fire',
     ARTIFACT_DAMAGE_NEUTRE,
     false,
@@ -258,7 +259,7 @@ export default function testAuditDegatsConditionnels() {
   const manannanS1 = profilDe(19715, 10505);
   const passifManannan = monsterBonusParEffetCible(fiche(19715))!;
   const totalManannan = (setup: DamageSetup) => computeTotalDamage(
-    manannanS1, [], buildAudit, setup, 'dark', ARTIFACT_DAMAGE_NEUTRE, false, null, null,
+    manannanS1, [], buildAudit, setup, AUCUNE_AURA_PROPRE, 'dark', ARTIFACT_DAMAGE_NEUTRE, false, null, null,
     { bonusParEffetCible: passifManannan }
   );
   const manannanToggle = { ...setupAudit, passifsOffensifs: { [passifManannan.skillCom2usId]: true } };
@@ -266,27 +267,27 @@ export default function testAuditDegatsConditionnels() {
   ok(totalManannan({ ...setupAudit, brand: true }) > totalManannan(setupAudit), 'Manannan — Marque active automatiquement King of the Ruins');
 
   const arangS3 = profilDe(11213, 2213);
-  const arangNu = computeSkillDamage(arangS3, buildAudit, setupAudit, 'wind');
+  const arangNu = computeSkillDamage(arangS3, buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'wind');
   ok(
     computeSkillDamage(arangS3, buildAudit, {
       ...setupAudit,
       passifsOffensifs: { [arangS3.skillCom2usId]: true },
-    }, 'wind') > arangNu,
+    }, AUCUNE_AURA_PROPRE, 'wind') > arangNu,
     'Arang — Sweet Talk utilise un toggle binaire, pas un compteur'
   );
   ok(
-    computeSkillDamage(arangS3, buildAudit, { ...setupAudit, defBreak: true }, 'wind') > arangNu,
+    computeSkillDamage(arangS3, buildAudit, { ...setupAudit, defBreak: true }, AUCUNE_AURA_PROPRE, 'wind') > arangNu,
     'Arang — Brise DEF active automatiquement le bonus binaire de Sweet Talk'
   );
 
   const willOWisp = profilDe(11213, 2218);
-  const willBase = computeSkillDamage(willOWisp, buildAudit, setupAudit, 'wind');
+  const willBase = computeSkillDamage(willOWisp, buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'wind');
   const willPose = (hit: number) => computeSkillDamage(willOWisp, buildAudit, {
     ...setupAudit,
     scenariosEffetsEntreCoups: {
       [willOWisp.skillCom2usId]: { actif: true, apresCoup: { brand: hit } },
     },
-  }, 'wind');
+  }, AUCUNE_AURA_PROPRE, 'wind');
   ok(willBase < willPose(2) && willPose(2) < willPose(1), "Will-o'-the-Wisp — une Marque réussie amplifie seulement les coups suivants");
 
   const fengYan = fiche(21213);
@@ -302,8 +303,8 @@ export default function testAuditDegatsConditionnels() {
             [fengS1.skillCom2usId]: { actif: true, apresCoup: { 'decrease-def': poseApres } },
           },
         };
-    return computeTotalDamage(fengS1, passifsFeng, buildAudit, setup, 'wind') -
-      computeTotalDamage(fengS1, [], buildAudit, setup, 'wind');
+    return computeTotalDamage(fengS1, passifsFeng, buildAudit, setup, AUCUNE_AURA_PROPRE, 'wind') -
+      computeTotalDamage(fengS1, [], buildAudit, setup, AUCUNE_AURA_PROPRE, 'wind');
   };
   ok(
     contributionFeng() < contributionFeng(2) && contributionFeng(2) < contributionFeng(1),
@@ -313,23 +314,23 @@ export default function testAuditDegatsConditionnels() {
   // Référence indépendante : sans DEF, critique ni skillup, le quotient des
   // totaux est le multiplicateur annoncé, sans dépendre du moteur de recherche.
   const kroS2 = profilDe(11035, 2060);
-  const kroNu = computeSkillDamage(kroS2, buildAudit, setupAudit);
+  const kroNu = computeSkillDamage(kroS2, buildAudit, setupAudit, AUCUNE_AURA_PROPRE);
   const kroDeux = computeSkillDamage(kroS2, buildAudit, {
     ...setupAudit,
     effetsCibleCount: { [kroS2.skillCom2usId]: 2 },
-  });
+  }, AUCUNE_AURA_PROPRE);
   ok(Math.abs(kroDeux / kroNu - 1.4) < 1e-9, 'Kro S2 : +20 % par débuff sur ses dégâts propres');
 
   const akhamamir = profilDe(19213, 10013);
-  const akhaNu = computeSkillDamage(akhamamir, buildAudit, setupAudit);
+  const akhaNu = computeSkillDamage(akhamamir, buildAudit, setupAudit, AUCUNE_AURA_PROPRE);
   const akhaUn = computeSkillDamage(akhamamir, buildAudit, {
     ...setupAudit,
     effetsCibleCount: { [akhamamir.skillCom2usId]: 1 },
-  });
+  }, AUCUNE_AURA_PROPRE);
   const akhaDeux = computeSkillDamage(akhamamir, buildAudit, {
     ...setupAudit,
     effetsCibleCount: { [akhamamir.skillCom2usId]: 2 },
-  });
+  }, AUCUNE_AURA_PROPRE);
   ok(Math.abs(akhaUn / akhaNu - 1.5) < 1e-9, 'Akhamamir : exactement un débuff vaut +50 %');
   ok(Math.abs(akhaDeux / akhaNu - 1.6) < 1e-9, 'Akhamamir : deux débuffs valent +30 % chacun');
   const akhaPoseApresUn = computeSkillDamage(akhamamir, buildAudit, {
@@ -337,20 +338,20 @@ export default function testAuditDegatsConditionnels() {
     scenariosEffetsEntreCoups: {
       [akhamamir.skillCom2usId]: { actif: true, apresCoup: { unrecoverable: 1 } },
     },
-  });
+  }, AUCUNE_AURA_PROPRE);
   ok(Math.abs(akhaPoseApresUn / akhaNu - 1.25) < 1e-9, 'Akhamamir : le seuil exactement-un est recalculé pour le coup 2');
 
   // Aucune réussite, pose après le coup 2, pose après le coup 1 : le coup qui
   // pose l'effet lit toujours l'état antérieur, seuls les suivants en profitent.
   const argen = profilDe(14713, 6513);
-  const argenBase = computeSkillDamage(argen, buildAudit, setupAudit);
+  const argenBase = computeSkillDamage(argen, buildAudit, setupAudit, AUCUNE_AURA_PROPRE);
   const argenApres = (hit: number) =>
     computeSkillDamage(argen, buildAudit, {
       ...setupAudit,
       scenariosEffetsEntreCoups: {
         [argen.skillCom2usId]: { actif: true, apresCoup: { brand: hit } },
       },
-    });
+    }, AUCUNE_AURA_PROPRE);
   ok(argenBase < argenApres(2) && argenApres(2) < argenApres(1), 'Argen : aucune pose < après coup 2 < après coup 1');
 
   const argenMarqueInitiale: DamageSetup = {
@@ -362,8 +363,8 @@ export default function testAuditDegatsConditionnels() {
     computeSkillDamage(argen, buildAudit, {
       ...argenMarqueInitiale,
       scenariosEffetsEntreCoups: { [argen.skillCom2usId]: { actif: true, apresCoup: { brand: 1 } } },
-    }),
-    computeSkillDamage(argen, buildAudit, argenMarqueInitiale),
+    }, AUCUNE_AURA_PROPRE),
+    computeSkillDamage(argen, buildAudit, argenMarqueInitiale, AUCUNE_AURA_PROPRE),
     'réappliquer une Marque déjà présente ne double pas le compteur'
   );
   const argenDeuxEffets = computeSkillDamage(argen, buildAudit, {
@@ -374,7 +375,7 @@ export default function testAuditDegatsConditionnels() {
         apresCoup: { brand: 1, 'beneficial-effects-blocked': 1 },
       },
     },
-  });
+  }, AUCUNE_AURA_PROPRE);
   ok(argenDeuxEffets > argenApres(1), 'deux débuffs distincts posés au même instant comptent séparément');
 
   const ken = profilDe(24112, 14012);
@@ -387,15 +388,15 @@ export default function testAuditDegatsConditionnels() {
     computeSkillDamage(ken, buildAudit, {
       ...kenInitial,
       scenariosEffetsEntreCoups: { [ken.skillCom2usId]: { actif: true, apresCoup: { brand: 1 } } },
-    }),
-    computeSkillDamage(ken, buildAudit, kenInitial),
+    }, AUCUNE_AURA_PROPRE),
+    computeSkillDamage(ken, buildAudit, kenInitial, AUCUNE_AURA_PROPRE),
     'KEN : Marque initiale active dès le premier coup et non recomptée à la pose'
   );
   ok(
     computeSkillDamage(ken, buildAudit, {
       ...setupAudit,
       scenariosEffetsEntreCoups: { [ken.skillCom2usId]: { actif: true, apresCoup: { brand: 1 } } },
-    }) > computeSkillDamage(ken, buildAudit, setupAudit),
+    }, AUCUNE_AURA_PROPRE) > computeSkillDamage(ken, buildAudit, setupAudit, AUCUNE_AURA_PROPRE),
     'KEN : une Marque posée après le coup 1 amplifie les coups suivants'
   );
 
@@ -423,20 +424,20 @@ export default function testAuditDegatsConditionnels() {
       scenariosEffetsEntreCoups: {
         [fullBurst.skillCom2usId]: { actif: true, apresCoup: { 'continuous-damage': 1 } },
       },
-    }) > computeSkillDamage(fullBurst, buildAudit, fullBurstInitial),
+    }, AUCUNE_AURA_PROPRE) > computeSkillDamage(fullBurst, buildAudit, fullBurstInitial, AUCUNE_AURA_PROPRE),
     'un DoT réussi s’ajoute même si un DoT existe déjà'
   );
 
   const cecilia = profilDe(34011, 23311);
   const ceciliaSetup = { ...setupAudit, enemyDef: 1500 };
-  const ceciliaNu = computeSkillDamage(cecilia, buildAudit, ceciliaSetup);
+  const ceciliaNu = computeSkillDamage(cecilia, buildAudit, ceciliaSetup, AUCUNE_AURA_PROPRE);
   const ceciliaApres = (hit: number) =>
     computeSkillDamage(cecilia, buildAudit, {
       ...ceciliaSetup,
       scenariosEffetsEntreCoups: {
         [cecilia.skillCom2usId]: { actif: true, apresCoup: { 'decrease-def': hit } },
       },
-    });
+    }, AUCUNE_AURA_PROPRE);
   ok(ceciliaNu < ceciliaApres(2) && ceciliaApres(2) < ceciliaApres(1), 'Cecilia : la DEF change après le coup choisi');
 
   // Le relevé exhaustif des profils éligibles est figé. Une nouvelle entrée
@@ -471,8 +472,8 @@ export default function testAuditDegatsConditionnels() {
   const baekdu = profilDe(18514, 9314);
   ok(baekdu.variables.includes('Target SPD'), 'Target SPD est accepté par le parseur');
   ok(
-    computeSkillDamage(baekdu, buildAudit, { ...setupAudit, enemySpd: 100 }) !==
-      computeSkillDamage(baekdu, buildAudit, { ...setupAudit, enemySpd: 200 }),
+    computeSkillDamage(baekdu, buildAudit, { ...setupAudit, enemySpd: 100 }, AUCUNE_AURA_PROPRE) !==
+      computeSkillDamage(baekdu, buildAudit, { ...setupAudit, enemySpd: 200 }, AUCUNE_AURA_PROPRE),
     'Target SPD lit la VIT adverse saisie'
   );
 
@@ -506,11 +507,11 @@ export default function testAuditDegatsConditionnels() {
     const sansBonus = { ...grogen, critDamagePoints: 0 };
     const nonCrit = { ...setupAudit, critMode: 'normal' as const };
     const crit = { ...setupAudit, critMode: 'crit' as const };
-    egal(computeSkillDamage(grogen, buildAudit, nonCrit, 'dark'), computeSkillDamage(sansBonus, buildAudit, nonCrit, 'dark'),
+    egal(computeSkillDamage(grogen, buildAudit, nonCrit, AUCUNE_AURA_PROPRE, 'dark'), computeSkillDamage(sansBonus, buildAudit, nonCrit, AUCUNE_AURA_PROPRE, 'dark'),
       `Grogen ${sortId} : les points de DC ne changent pas un coup non critique`);
-    ok(computeSkillDamage(grogen, buildAudit, crit, 'dark') > computeSkillDamage(sansBonus, buildAudit, crit, 'dark'),
+    ok(computeSkillDamage(grogen, buildAudit, crit, AUCUNE_AURA_PROPRE, 'dark') > computeSkillDamage(sansBonus, buildAudit, crit, AUCUNE_AURA_PROPRE, 'dark'),
       `Grogen ${sortId} : les ${points} points de DC augmentent réellement les dégâts critiques`);
-    egal(Math.round(computeSkillDamage(grogen, buildAudit, crit, 'dark') - computeSkillDamage(sansBonus, buildAudit, crit, 'dark')),
+    egal(Math.round(computeSkillDamage(grogen, buildAudit, crit, AUCUNE_AURA_PROPRE, 'dark') - computeSkillDamage(sansBonus, buildAudit, crit, AUCUNE_AURA_PROPRE, 'dark')),
       Math.round(1000 * (sortId === 2905 ? 4.6 : 5.2) * points / 100 * defenseFactor(0)),
       `Grogen ${sortId} : l'écart suit ATQ × coefficient × points de DC × mitigation`);
     ok(!!grogen.description?.length, `Grogen ${sortId} : la prose est transmise au choix du sort`);
@@ -528,7 +529,7 @@ export default function testAuditDegatsConditionnels() {
     setup: DamageSetup,
     bonus: BonusDegatsConditionnelProfile | null = bonusIsabelle
   ) =>
-    computeTotalDamage(profile, [], buildAudit, setup, null, undefined, false, null, null, {}, bonus);
+    computeTotalDamage(profile, [], buildAudit, setup, AUCUNE_AURA_PROPRE, null, undefined, false, null, null, {}, bonus);
   ok(
     Math.abs(totalIsabelle(s1Isabelle, setupIsabelle) / totalIsabelle(s1Isabelle, setupAudit, null) - 1.5) < 1e-9,
     'Isabelle : S1 reçoit +50 % quand S3 est en recharge'
@@ -549,12 +550,12 @@ export default function testAuditDegatsConditionnels() {
       `${monstreId}/${sortId} : Ghost Slash peut poser Brise DEF au premier coup`);
   }
   const cibleOnimusha = { ...setupAudit, enemyDef: 1200 };
-  const ghostSansPose = computeSkillDamage(fuukiS1, buildAudit, cibleOnimusha, 'wind');
+  const ghostSansPose = computeSkillDamage(fuukiS1, buildAudit, cibleOnimusha, AUCUNE_AURA_PROPRE, 'wind');
   const ghostPoseApresPremier = computeSkillDamage(fuukiS1, buildAudit, {
     ...cibleOnimusha,
     scenariosEffetsEntreCoups: { [fuukiS1.skillCom2usId]: { actif: true, apresCoup: { 'decrease-def': 1 } } },
-  }, 'wind');
-  const ghostBreakInitial = computeSkillDamage(fuukiS1, buildAudit, { ...cibleOnimusha, defBreak: true }, 'wind');
+  }, AUCUNE_AURA_PROPRE, 'wind');
+  const ghostBreakInitial = computeSkillDamage(fuukiS1, buildAudit, { ...cibleOnimusha, defBreak: true }, AUCUNE_AURA_PROPRE, 'wind');
   ok(ghostSansPose < ghostPoseApresPremier && ghostPoseApresPremier < ghostBreakInitial,
     'Ghost Slash : une pose au premier hit ne majore que le second');
   egal(Math.round(ghostPoseApresPremier), Math.round((ghostSansPose + ghostBreakInitial) / 2),
@@ -562,8 +563,8 @@ export default function testAuditDegatsConditionnels() {
   ok(!fuukiS1.fixed, 'Onimusha : dégâts ordinaires, pas dégâts fixes');
   const sansCritOnimusha = { critInterdit: monsterCritInterdit(fuuki) };
   egal(
-    computeTotalDamage(fuukiS1, [], buildAudit, { ...setupAudit, critMode: 'crit' }, 'wind', undefined, false, null, null, sansCritOnimusha),
-    computeTotalDamage(fuukiS1, [], buildAudit, { ...setupAudit, critMode: 'normal' }, 'wind', undefined, false, null, null, sansCritOnimusha),
+    computeTotalDamage(fuukiS1, [], buildAudit, { ...setupAudit, critMode: 'crit' }, AUCUNE_AURA_PROPRE, 'wind', undefined, false, null, null, sansCritOnimusha),
+    computeTotalDamage(fuukiS1, [], buildAudit, { ...setupAudit, critMode: 'normal' }, AUCUNE_AURA_PROPRE, 'wind', undefined, false, null, null, sansCritOnimusha),
     'Onimusha : le mode Critique ne crée pas un critique impossible'
   );
 
@@ -585,13 +586,13 @@ export default function testAuditDegatsConditionnels() {
     bonusSiAtqSeuil: null,
   });
   ok(
-    objectiveScore(candidatCd, 'degats_reels', contexteFuuki(false)) >
-      objectiveScore(candidatAtk, 'degats_reels', contexteFuuki(false)),
+    objectiveScore(candidatCd, 'degats_reels', AUCUNE_AURA_PROPRE, contexteFuuki(false)) >
+      objectiveScore(candidatAtk, 'degats_reels', AUCUNE_AURA_PROPRE, contexteFuuki(false)),
     'contrôle : critique permis, le build DC gagne'
   );
   ok(
-    objectiveScore(candidatAtk, 'degats_reels', contexteFuuki(true)) >
-      objectiveScore(candidatCd, 'degats_reels', contexteFuuki(true)),
+    objectiveScore(candidatAtk, 'degats_reels', AUCUNE_AURA_PROPRE, contexteFuuki(true)) >
+      objectiveScore(candidatCd, 'degats_reels', AUCUNE_AURA_PROPRE, contexteFuuki(true)),
     'classement réel : critique interdit, le build ATQ devient optimal'
   );
   ok(
@@ -702,15 +703,15 @@ export default function testAuditDegatsConditionnels() {
     [28112, 17907], [28113, 17908], [28115, 17910],
   ]) {
     const profile = profilDe(monstreId, sortId);
-    const nu = computeSkillDamage(profile, buildAudit, setupAudit);
-    const avecDefBuff = computeSkillDamage(profile, buildAudit, { ...setupAudit, defBuff: true });
+    const nu = computeSkillDamage(profile, buildAudit, setupAudit, AUCUNE_AURA_PROPRE);
+    const avecDefBuff = computeSkillDamage(profile, buildAudit, { ...setupAudit, defBuff: true }, AUCUNE_AURA_PROPRE);
     ok(Math.abs(avecDefBuff / nu - 1.05) < 1e-9,
       `${monstreId}/${sortId} : le buff DEF seul apporte +5 % au S2 sans modifier l'ATQ`);
   }
   for (const [monstreId, sortId] of [[33413, 22713], [33913, 23213]]) {
     const profile = profilDe(monstreId, sortId);
-    const nu = computeSkillDamage(profile, buildAudit, setupAudit);
-    const avecDefBuff = computeSkillDamage(profile, buildAudit, { ...setupAudit, defBuff: true });
+    const nu = computeSkillDamage(profile, buildAudit, setupAudit, AUCUNE_AURA_PROPRE);
+    const avecDefBuff = computeSkillDamage(profile, buildAudit, { ...setupAudit, defBuff: true }, AUCUNE_AURA_PROPRE);
     ok(Math.abs(avecDefBuff / nu - 1.15) < 1e-9,
       `${monstreId}/${sortId} : un buff propre explicite alimente aussi le bonus de 15 %`);
   }
@@ -743,10 +744,10 @@ export default function testAuditDegatsConditionnels() {
     effetsCibleCount: { [bonusNaomi.skillCom2usId]: 1 },
   };
   egal(
-    computeTotalDamage(naomiS1, [], buildAudit, setupNaomi, 'wind', undefined, false, null, null, {
+    computeTotalDamage(naomiS1, [], buildAudit, setupNaomi, AUCUNE_AURA_PROPRE, 'wind', undefined, false, null, null, {
       bonusParEffetCible: bonusNaomi,
     }),
-    computeTotalDamage(naomiS1, [], buildAudit, { ...setupNaomi, critMode: 'crit' }, 'wind', undefined, false, null, null, {
+    computeTotalDamage(naomiS1, [], buildAudit, { ...setupNaomi, critMode: 'crit' }, AUCUNE_AURA_PROPRE, 'wind', undefined, false, null, null, {
       bonusParEffetCible: bonusNaomi,
     }),
     'Naomi : un débuff force réellement le critique en mode Normal'
@@ -778,32 +779,32 @@ export default function testAuditDegatsConditionnels() {
 
   const kassandraEau = profilDe(27611, 17411);
   egal(
-    computeSkillDamage(kassandraEau, buildAudit, { ...setupAudit, enemyElement: 'wind' }, 'water'),
-    computeSkillDamage(kassandraEau, buildAudit, { ...setupAudit, enemyElement: 'wind', critMode: 'crit' }, 'water'),
+    computeSkillDamage(kassandraEau, buildAudit, { ...setupAudit, enemyElement: 'wind' }, AUCUNE_AURA_PROPRE, 'water'),
+    computeSkillDamage(kassandraEau, buildAudit, { ...setupAudit, enemyElement: 'wind', critMode: 'crit' }, AUCUNE_AURA_PROPRE, 'water'),
     'Kassandra eau : la cible Vent force le critique en mode Normal'
   );
   ok(
-    computeSkillDamage(kassandraEau, buildAudit, { ...setupAudit, enemyElement: 'wind' }, 'water') >
-      computeSkillDamage(kassandraEau, buildAudit, { ...setupAudit, enemyElement: 'fire' }, 'water'),
+    computeSkillDamage(kassandraEau, buildAudit, { ...setupAudit, enemyElement: 'wind' }, AUCUNE_AURA_PROPRE, 'water') >
+      computeSkillDamage(kassandraEau, buildAudit, { ...setupAudit, enemyElement: 'fire' }, AUCUNE_AURA_PROPRE, 'water'),
     'Kassandra eau : le +100 % dépend bien de l’élément de la cible'
   );
   const storm = profilDe(18911, 9706);
   egal(
-    computeSkillDamage(storm, buildAudit, setupAudit, 'water'),
-    computeSkillDamage(storm, buildAudit, { ...setupAudit, critMode: 'crit' }, 'water'),
+    computeSkillDamage(storm, buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'water'),
+    computeSkillDamage(storm, buildAudit, { ...setupAudit, critMode: 'crit' }, AUCUNE_AURA_PROPRE, 'water'),
     'Storm of Midnight : aucun buff adverse force le critique'
   );
   ok(
-    computeSkillDamage(storm, buildAudit, { ...setupAudit, buffsCibleCount: { [storm.skillCom2usId]: 1 } }, 'water') <
-      computeSkillDamage(storm, buildAudit, setupAudit, 'water'),
+    computeSkillDamage(storm, buildAudit, { ...setupAudit, buffsCibleCount: { [storm.skillCom2usId]: 1 } }, AUCUNE_AURA_PROPRE, 'water') <
+      computeSkillDamage(storm, buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'water'),
     'Storm of Midnight : un buff adverse retire le critique garanti'
   );
   for (const [monstreId, sortId] of [[18911, 9706], [18913, 9708], [18915, 9710]] as const) {
     const s2 = profilDe(monstreId, sortId);
     ok(s2.conditionsCombat?.some((condition) => condition.type === 'aucunBuffCible' && condition.critiqueGaranti) === true,
       `${monstreId} Storm of Midnight : aucun buff adverse garantit le critique`);
-    ok(computeSkillDamage(s2, buildAudit, setupAudit, 'water') >
-      computeSkillDamage(s2, buildAudit, { ...setupAudit, buffsCibleCount: { [sortId]: 1 } }, 'water'),
+    ok(computeSkillDamage(s2, buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'water') >
+      computeSkillDamage(s2, buildAudit, { ...setupAudit, buffsCibleCount: { [sortId]: 1 } }, AUCUNE_AURA_PROPRE, 'water'),
       `${monstreId} Storm of Midnight : le buff adverse retire la garantie`);
   }
 
@@ -844,17 +845,17 @@ export default function testAuditDegatsConditionnels() {
   egal(profilDe(22915, 13315).bonusStackPropre?.critiqueGarantiAuMax, true, 'Bella : critique garanti à dix charges');
   const bella = profilDe(22915, 13315);
   egal(
-    computeSkillDamage(bella, buildAudit, { ...setupAudit, stackPersonnalise: { [bella.skillCom2usId]: 10 } }),
+    computeSkillDamage(bella, buildAudit, { ...setupAudit, stackPersonnalise: { [bella.skillCom2usId]: 10 } }, AUCUNE_AURA_PROPRE),
     computeSkillDamage(bella, buildAudit, {
       ...setupAudit,
       critMode: 'crit',
       stackPersonnalise: { [bella.skillCom2usId]: 10 },
-    }),
+    }, AUCUNE_AURA_PROPRE),
     'Bella : dix charges forcent réellement le critique'
   );
   ok(
-    computeSkillDamage(bella, buildAudit, { ...setupAudit, stackPersonnalise: { [bella.skillCom2usId]: 10 } }) >
-      computeSkillDamage(bella, buildAudit, { ...setupAudit, stackPersonnalise: { [bella.skillCom2usId]: 9 } }),
+    computeSkillDamage(bella, buildAudit, { ...setupAudit, stackPersonnalise: { [bella.skillCom2usId]: 10 } }, AUCUNE_AURA_PROPRE) >
+      computeSkillDamage(bella, buildAudit, { ...setupAudit, stackPersonnalise: { [bella.skillCom2usId]: 9 } }, AUCUNE_AURA_PROPRE),
     'Bella : la dixième charge ajoute le dernier palier de dégâts et le critique'
   );
   egal(profilDe(27314, 17114).bonusStackPropre?.ratio, 25, 'Altaïr : +25 % par tour');
@@ -880,18 +881,18 @@ export default function testAuditDegatsConditionnels() {
     const dix = { ...setupAudit, buffsCibleCount: { [sort.skillCom2usId]: 10 } };
     ok(!resolvedBuffCiblePresent(sort.skillCom2usId, zero), `${sort.nom} : pas de buff`);
     ok(resolvedBuffCiblePresent(sort.skillCom2usId, dix), `${sort.nom} : ancienne recette à dix buffs`);
-    ok(computeSkillDamage(sort, buildAudit, un, 'wind') > computeSkillDamage(sort, buildAudit, zero, 'wind'),
+    ok(computeSkillDamage(sort, buildAudit, un, AUCUNE_AURA_PROPRE, 'wind') > computeSkillDamage(sort, buildAudit, zero, AUCUNE_AURA_PROPRE, 'wind'),
       `${sort.nom} : un seul buff active le bonus`);
-    egal(computeSkillDamage(sort, buildAudit, un, 'wind'), computeSkillDamage(sort, buildAudit, dix, 'wind'),
+    egal(computeSkillDamage(sort, buildAudit, un, AUCUNE_AURA_PROPRE, 'wind'), computeSkillDamage(sort, buildAudit, dix, AUCUNE_AURA_PROPRE, 'wind'),
       `${sort.nom} : dix buffs ne renforcent pas le bonus binaire`);
   }
 
   const powerSurge = profilDe(19712, 10502);
-  const powerNu = computeSkillDamage(powerSurge, buildAudit, setupAudit, 'fire');
+  const powerNu = computeSkillDamage(powerSurge, buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'fire');
   const powerToggle = computeSkillDamage(powerSurge, buildAudit, {
     ...setupAudit,
     passifsOffensifs: { [powerSurge.skillCom2usId]: true },
-  }, 'fire');
+  }, AUCUNE_AURA_PROPRE, 'fire');
   ok(Math.abs(powerToggle / powerNu - 1.15) < 1e-9, 'Power Surge — le toggle « aucun effet néfaste » applique +15 %');
 
   const inosuke = fiche(32112);
@@ -903,6 +904,7 @@ export default function testAuditDegatsConditionnels() {
     [],
     buildAudit,
     { ...setupAudit, passifsOffensifs: { [conditionInosuke.skillCom2usId]: actif } },
+    AUCUNE_AURA_PROPRE,
     'fire',
     ARTIFACT_DAMAGE_NEUTRE,
     false,
@@ -917,28 +919,28 @@ export default function testAuditDegatsConditionnels() {
   const buildAstar = stats({ hp: 20000, atk: 2000, def: 800, spd: 100, cr: 0, cd: 50 });
   const ligneAtkAstar = buildAstar.find((s) => s.key === 'atk')!;
   ligneAtkAstar.base = 1000;
-  const atkAstarNu = statsDeCombat(buildAstar, setupAudit, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk;
+  const atkAstarNu = statsDeCombat(buildAstar, setupAudit, AUCUNE_AURA_PROPRE, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk;
   const atkAstarTouchee = statsDeCombat(buildAstar, {
     ...setupAudit,
     statsCombatActives: { 10612: true },
-  }, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk;
+  }, AUCUNE_AURA_PROPRE, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk;
   egal(atkAstarTouchee - atkAstarNu, 1500, 'Astar — +150 % est appliqué à l’ATQ de base, pas à l’ATQ totale');
   egal(
     statsDeCombat(buildAstar, {
       ...setupAudit,
       passifsOffensifs: { 10612: true },
-    }, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk,
+    }, AUCUNE_AURA_PROPRE, 'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: profilStatsAstar }).atk,
     atkAstarNu,
     'Astar — le toggle de dégâts n’active pas son bonus d’ATQ indépendant'
   );
 
   const ceres = profilDe(14912, 5812);
-  const ceresAuSeuil = computeSkillDamage(ceres, buildAudit, { ...setupAudit, enemyHp: 40000 });
-  const ceresAuDessus = computeSkillDamage(ceres, buildAudit, { ...setupAudit, enemyHp: 40001 });
+  const ceresAuSeuil = computeSkillDamage(ceres, buildAudit, { ...setupAudit, enemyHp: 40000 }, AUCUNE_AURA_PROPRE);
+  const ceresAuDessus = computeSkillDamage(ceres, buildAudit, { ...setupAudit, enemyHp: 40001 }, AUCUNE_AURA_PROPRE);
   ok(ceresAuDessus > ceresAuSeuil, '51 — Ceres : le seuil de PV actuels est strict');
   const ceresBuildPv = stats({ hp: 30000, atk: 1000, def: 800, spd: 200, cr: 25, cd: 100 });
   egal(
-    computeSkillDamage(ceres, ceresBuildPv, { ...setupAudit, enemyHp: 40001 }),
+    computeSkillDamage(ceres, ceresBuildPv, { ...setupAudit, enemyHp: 40001 }, AUCUNE_AURA_PROPRE),
     ceresAuSeuil,
     '51 — Ceres : le seuil est recalculé sur les PV du build candidat'
   );
@@ -963,33 +965,33 @@ export default function testAuditDegatsConditionnels() {
     bonusSiAtqSeuil: null,
   });
   ok(
-    objectiveScore(ceresCandidatA, 'degats_reels', ceresContexte(40001)) >
-      objectiveScore(ceresCandidatB, 'degats_reels', ceresContexte(40001)),
+    objectiveScore(ceresCandidatA, 'degats_reels', AUCUNE_AURA_PROPRE, ceresContexte(40001)) >
+      objectiveScore(ceresCandidatB, 'degats_reels', AUCUNE_AURA_PROPRE, ceresContexte(40001)),
     '51 — Optimizer : le build faible en PV gagne seul le bonus de Ceres'
   );
   ok(
-    objectiveScore(ceresCandidatB, 'degats_reels', ceresContexte(60001)) >
-      objectiveScore(ceresCandidatA, 'degats_reels', ceresContexte(60001)),
+    objectiveScore(ceresCandidatB, 'degats_reels', AUCUNE_AURA_PROPRE, ceresContexte(60001)) >
+      objectiveScore(ceresCandidatA, 'degats_reels', AUCUNE_AURA_PROPRE, ceresContexte(60001)),
     '51 — Optimizer : classement inversé quand les deux builds franchissent le seuil'
   );
 
   const kassandraVent = profilDe(27613, 17413);
-  const kassandraEgalite = computeSkillDamage(kassandraVent, buildAudit, { ...setupAudit, enemyAtk: 1000 });
-  const kassandraSous = computeSkillDamage(kassandraVent, buildAudit, { ...setupAudit, enemyAtk: 999 });
+  const kassandraEgalite = computeSkillDamage(kassandraVent, buildAudit, { ...setupAudit, enemyAtk: 1000 }, AUCUNE_AURA_PROPRE);
+  const kassandraSous = computeSkillDamage(kassandraVent, buildAudit, { ...setupAudit, enemyAtk: 999 }, AUCUNE_AURA_PROPRE);
   ok(kassandraSous > kassandraEgalite, '63 — Kassandra vent : l’égalité d’ATQ ne donne aucun bonus');
   const kassandraBuildAtk = stats({ hp: 20000, atk: 1200, def: 800, spd: 200, cr: 25, cd: 100 });
   ok(
-    computeSkillDamage(kassandraVent, kassandraBuildAtk, { ...setupAudit, enemyAtk: 1000 }) > kassandraEgalite,
+    computeSkillDamage(kassandraVent, kassandraBuildAtk, { ...setupAudit, enemyAtk: 1000 }, AUCUNE_AURA_PROPRE) > kassandraEgalite,
     '63 — Kassandra vent : l’ATQ du build candidat déclenche la condition'
   );
 
   const yujiFeu = profilDe(30412, 20112);
-  const yujiDetruit = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: false });
-  const yujiIntact = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: true });
+  const yujiDetruit = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: false }, AUCUNE_AURA_PROPRE);
+  const yujiIntact = computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: true }, AUCUNE_AURA_PROPRE);
   ok(yujiIntact > yujiDetruit, '70 — Yuji : le toggle PV non détruits active le bonus de 50 %');
   egal(
     yujiDetruit,
-    computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: false, critMode: 'crit' }),
+    computeSkillDamage(yujiFeu, buildAudit, { ...setupAudit, enemyHpNotDestroyed: false, critMode: 'crit' }, AUCUNE_AURA_PROPRE),
     '70 — Yuji : critique garanti même quand le bonus de PV non détruits est inactif'
   );
   const bearHunt = profilDe(10501, 1611);
@@ -1003,26 +1005,26 @@ export default function testAuditDegatsConditionnels() {
 
   const copper = profilDe(16533, 7763);
   ok(
-    computeSkillDamage(copper, buildAudit, { ...setupAudit, enemyDef: 400 }) >
-      computeSkillDamage(copper, buildAudit, { ...setupAudit, enemyDef: 401 }),
+    computeSkillDamage(copper, buildAudit, { ...setupAudit, enemyDef: 400 }, AUCUNE_AURA_PROPRE) >
+      computeSkillDamage(copper, buildAudit, { ...setupAudit, enemyDef: 401 }, AUCUNE_AURA_PROPRE),
     '204 — Copper : ignore DEF au seuil inclusif de la moitié de sa DEF'
   );
   const guardCrush = profilDe(26112, 15907);
   ok(
-    computeSkillDamage(guardCrush, buildAudit, { ...setupAudit, enemyDef: 600 }) >
-      computeSkillDamage(guardCrush, buildAudit, { ...setupAudit, enemyDef: 601 }),
+    computeSkillDamage(guardCrush, buildAudit, { ...setupAudit, enemyDef: 600 }, AUCUNE_AURA_PROPRE) >
+      computeSkillDamage(guardCrush, buildAudit, { ...setupAudit, enemyDef: 601 }, AUCUNE_AURA_PROPRE),
     '205 — Guard Crush : ignore DEF au seuil inclusif de 60 % de son ATQ'
   );
   const triss = profilDe(29515, 19215);
-  const trissSans = computeSkillDamage(triss, buildAudit, { ...setupAudit, enemyDef: 1200 });
+  const trissSans = computeSkillDamage(triss, buildAudit, { ...setupAudit, enemyDef: 1200 }, AUCUNE_AURA_PROPRE);
   ok(
     computeSkillDamage(triss, buildAudit, {
       ...setupAudit, enemyDef: 1200, passifsOffensifs: { [triss.skillCom2usId]: true },
-    }) > trissSans,
+    }, AUCUNE_AURA_PROPRE) > trissSans,
     '209 — Triss : un toggle de présence de débuff active l’ignore DEF'
   );
   ok(
-    computeSkillDamage(triss, buildAudit, { ...setupAudit, enemyDef: 1200, brand: true }) > trissSans,
+    computeSkillDamage(triss, buildAudit, { ...setupAudit, enemyDef: 1200, brand: true }, AUCUNE_AURA_PROPRE) > trissSans,
     '209 — Triss : Marque active automatiquement l’ignore DEF'
   );
 
@@ -1032,6 +1034,7 @@ export default function testAuditDegatsConditionnels() {
   const odinScore = (stacks: number) => computeTotalDamage(
     odinS1, [], buildAudit,
     { ...setupAudit, enemyDef: 1500, stackPersonnalise: { 13113: stacks } },
+    AUCUNE_AURA_PROPRE,
     'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null,
     { conditionsCombat: odinCondition }
   );
@@ -1045,6 +1048,7 @@ export default function testAuditDegatsConditionnels() {
   const lexyScore = (soins: number) => computeTotalDamage(
     lexyS1, [], buildAudit,
     { ...setupAudit, enemyDef: 1500, compteurPersonnalise: { 10712: soins } },
+    AUCUNE_AURA_PROPRE,
     'fire', ARTIFACT_DAMAGE_NEUTRE, false, null, null,
     { conditionsCombat: lexyCondition }
   );
@@ -1057,31 +1061,32 @@ export default function testAuditDegatsConditionnels() {
     buffsPropresCount: { 10014: buffsPropres },
     buffsAlliesCount: { 10014: buffsAllies },
   });
-  const elsharionNu = statsDeCombat(buildAudit, elsharionSetup(0, 0), 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
-  const elsharionDefBuff = statsDeCombat(buildAudit, { ...elsharionSetup(0, 0), defBuff: true }, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
+  const elsharionNu = statsDeCombat(buildAudit, elsharionSetup(0, 0), AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
+  const elsharionDefBuff = statsDeCombat(buildAudit, { ...elsharionSetup(0, 0), defBuff: true }, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
   ok(elsharionDefBuff.atk > elsharionNu.atk,
     '96 — Elsharion : buff DEF explicite compte comme un buff propre et augmente son ATQ');
-  const elsharionPlein = statsDeCombat(buildAudit, elsharionSetup(10, 20), 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
+  const elsharionPlein = statsDeCombat(buildAudit, elsharionSetup(10, 20), AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
   ok(elsharionPlein.atk > elsharionNu.atk && elsharionPlein.spd > elsharionNu.spd,
     '96 — Elsharion : buffs propres et alliés alimentent deux stats distinctes');
   egal(
-    statsDeCombat(buildAudit, elsharionSetup(50, 50), 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats }),
+    statsDeCombat(buildAudit, elsharionSetup(50, 50), AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats }),
     elsharionPlein,
     '96 — Elsharion : deux plafonds indépendants à 10 et 20'
   );
   const geraltStats = monsterCombatStatProfiles(fiche(29215));
   const geraltTrois = statsDeCombat(buildAudit, {
     ...setupAudit, buffsPropresCount: { 18915: 3 },
-  }, 'dark', ARTIFACT_DAMAGE_NEUTRE, { combatStats: geraltStats });
+  }, AUCUNE_AURA_PROPRE, 'dark', ARTIFACT_DAMAGE_NEUTRE, { combatStats: geraltStats });
   const geraltCinq = statsDeCombat(buildAudit, {
     ...setupAudit, buffsPropresCount: { 18915: 3 }, defBuff: true, spdBuff: true,
-  }, 'dark', ARTIFACT_DAMAGE_NEUTRE, { combatStats: geraltStats });
+  }, AUCUNE_AURA_PROPRE, 'dark', ARTIFACT_DAMAGE_NEUTRE, { combatStats: geraltStats });
   egal(geraltCinq.atk, geraltTrois.atk,
     'Geralt : son passif reste plafonné à trois buffs même si le total propre atteint cinq');
 
   const goldHeadband = monsterCombatStatProfiles(fiche(16812));
   const goldStats = (stacks: number) => statsDeCombat(
     buildAudit, { ...setupAudit, stackPersonnalise: { 7912: stacks } },
+    AUCUNE_AURA_PROPRE,
     'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: goldHeadband }
   );
   ok(goldStats(10).atk > goldStats(0).atk && goldStats(10).spd > goldStats(0).spd,
@@ -1093,12 +1098,12 @@ export default function testAuditDegatsConditionnels() {
   const berserkConditions = monsterConditionsCombat(berserkMonstre);
   const berserkStats = monsterCombatStatProfiles(berserkMonstre);
   const berserkWide = { conditionsCombat: berserkConditions, combatStats: berserkStats };
-  const berserkNu = computeTotalDamage(berserkS1, [], buildAudit, { ...setupAudit, enemyDef: 500 }, 'water', ARTIFACT_DAMAGE_NEUTRE, false, null, null, berserkWide);
+  const berserkNu = computeTotalDamage(berserkS1, [], buildAudit, { ...setupAudit, enemyDef: 500 }, AUCUNE_AURA_PROPRE, 'water', ARTIFACT_DAMAGE_NEUTRE, false, null, null, berserkWide);
   const berserkActifSetup = { ...setupAudit, enemyDef: 500, passifsOffensifs: { 9611: true } };
-  const berserkActif = computeTotalDamage(berserkS1, [], buildAudit, berserkActifSetup, 'water', ARTIFACT_DAMAGE_NEUTRE, false, null, null, berserkWide);
+  const berserkActif = computeTotalDamage(berserkS1, [], buildAudit, berserkActifSetup, AUCUNE_AURA_PROPRE, 'water', ARTIFACT_DAMAGE_NEUTRE, false, null, null, berserkWide);
   ok(berserkActif > berserkNu, '116 — Berserk : état préalable double les dégâts du S1');
-  const statsBerserkNu = statsDeCombat(buildAudit, setupAudit, 'water', ARTIFACT_DAMAGE_NEUTRE, berserkWide);
-  const statsBerserkActif = statsDeCombat(buildAudit, berserkActifSetup, 'water', ARTIFACT_DAMAGE_NEUTRE, berserkWide);
+  const statsBerserkNu = statsDeCombat(buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'water', ARTIFACT_DAMAGE_NEUTRE, berserkWide);
+  const statsBerserkActif = statsDeCombat(buildAudit, berserkActifSetup, AUCUNE_AURA_PROPRE, 'water', ARTIFACT_DAMAGE_NEUTRE, berserkWide);
   ok(statsBerserkActif.spd > statsBerserkNu.spd && statsBerserkActif.def < statsBerserkNu.def,
     '116 — Berserk : VIT +20 %, DEF −30 % seulement quand l’état est actif');
 
@@ -1106,33 +1111,33 @@ export default function testAuditDegatsConditionnels() {
   const dyeusS1 = profilDe(28314, 18124);
   const dyeusWide = { conditionsCombat: monsterConditionsCombat(dyeus), combatStats: monsterCombatStatProfiles(dyeus) };
   const dyeusSetup = { ...setupAudit, critMode: 'moyenne' as const };
-  const dyeusSans = computeTotalDamage(dyeusS1, [], buildAudit, dyeusSetup, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
+  const dyeusSans = computeTotalDamage(dyeusS1, [], buildAudit, dyeusSetup, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
   const dyeusActifSetup = { ...dyeusSetup, passifsOffensifs: { 18139: true } };
-  const dyeusActif = computeTotalDamage(dyeusS1, [], buildAudit, dyeusActifSetup, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
+  const dyeusActif = computeTotalDamage(dyeusS1, [], buildAudit, dyeusActifSetup, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
   ok(dyeusActif > dyeusSans, '268 — Dyeus : Thunderer force le critique en mode Moyenne');
-  egal(dyeusActif, computeTotalDamage(dyeusS1, [], buildAudit, { ...dyeusActifSetup, critMode: 'crit' }, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide),
+  egal(dyeusActif, computeTotalDamage(dyeusS1, [], buildAudit, { ...dyeusActifSetup, critMode: 'crit' }, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide),
     '268 — Dyeus : critique déjà forcé quand le mode Critique est choisi');
 
   const toma = profilDe(18711, 9511);
   const tomaSetup = { ...setupAudit, critMode: 'moyenne' as const, enemyDef: 0 };
-  egal(computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true }),
-    computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true, critMode: 'crit' }),
+  egal(computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true }, AUCUNE_AURA_PROPRE),
+    computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true, critMode: 'crit' }, AUCUNE_AURA_PROPRE),
     '244 — Toma : Brise DEF force le critique même en mode Moyenne');
-  ok(computeSkillDamage(toma, buildAudit, tomaSetup) < computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true }),
+  ok(computeSkillDamage(toma, buildAudit, tomaSetup, AUCUNE_AURA_PROPRE) < computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true }, AUCUNE_AURA_PROPRE),
     '244 — Toma : sans Brise DEF, le critique n’est pas garanti');
   const squall = profilDe(14611, 4206);
-  egal(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'moyenne' }),
-    computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'crit' }),
+  egal(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'moyenne' }, AUCUNE_AURA_PROPRE),
+    computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'crit' }, AUCUNE_AURA_PROPRE),
     '246 — Squall : VIT propre strictement supérieure force le critique');
-  ok(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'moyenne' }) <
-    computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'crit' }),
+  ok(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'moyenne' }, AUCUNE_AURA_PROPRE) <
+    computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'crit' }, AUCUNE_AURA_PROPRE),
     '246 — Squall : égalité de VIT ne force pas le critique');
 
   const ignoreAleatoire = profilDe(15811, 3311);
-  const ignoreSansProc = computeSkillDamage(ignoreAleatoire, buildAudit, { ...setupAudit, enemyDef: 1000 });
+  const ignoreSansProc = computeSkillDamage(ignoreAleatoire, buildAudit, { ...setupAudit, enemyDef: 1000 }, AUCUNE_AURA_PROPRE);
   const ignoreAvecProc = computeSkillDamage(ignoreAleatoire, buildAudit, {
     ...setupAudit, enemyDef: 1000, passifsOffensifs: { [ignoreAleatoire.skillCom2usId]: true },
-  });
+  }, AUCUNE_AURA_PROPRE);
   ok(ignoreAvecProc > ignoreSansProc, '200 — ignore DEF aléatoire : proc activé explicitement, jamais implicite');
 
   const recette = buildOptimizerRecipe({
@@ -1165,8 +1170,8 @@ export default function testAuditDegatsConditionnels() {
   const contexteCli = buildRealDamageContext(recette, 14713, []);
   ok(contexteCli != null, 'CLI : le contexte de dégâts réels est reconstruit');
   egal(
-    objectiveScore(candidatAtk, 'degats_reels', contexteCli!),
-    computeTotalDamage(argen, [], candidatAtk.stats, recette.damageSetup!, 'wind'),
+    objectiveScore(candidatAtk, 'degats_reels', AUCUNE_AURA_PROPRE, contexteCli!),
+    computeTotalDamage(argen, [], candidatAtk.stats, recette.damageSetup!, AUCUNE_AURA_PROPRE, 'wind'),
     'UI/CLI : même recette, même score conditionnel'
   );
   const recetteKassandra = {
@@ -1185,8 +1190,8 @@ export default function testAuditDegatsConditionnels() {
   egal(resolvedBuffsPropresCount(17408, contexteKassandra!.setup), 3,
     'CLI : la recette conserve deux autres buffs et le buff DEF actif');
   egal(
-    objectiveScore(candidatAtk, 'degats_reels', contexteKassandra!),
-    computeTotalDamage(profilDe(27613, 17408), [], candidatAtk.stats, recetteKassandra.damageSetup, 'wind'),
+    objectiveScore(candidatAtk, 'degats_reels', AUCUNE_AURA_PROPRE, contexteKassandra!),
+    computeTotalDamage(profilDe(27613, 17408), [], candidatAtk.stats, recetteKassandra.damageSetup, AUCUNE_AURA_PROPRE, 'wind'),
     'UI/CLI : même score Kassandra avec buffs propres ajoutés automatiquement'
   );
 
@@ -1202,15 +1207,15 @@ export default function testAuditDegatsConditionnels() {
   const contexteGuillaume = buildRealDamageContext(recetteGuillaume, 14115, []);
   ok(contexteGuillaume != null, 'CLI : le contexte complet de Guillaume est reconstruit');
   const { artefacts: _artefactsGuillaume, ...contexteArtefactsGuillaume } = contexteGuillaume!;
-  const scoreArtefactsEcranCli = evaluerPourRegime('degats_reels', () => candidatAtk.stats, contexteArtefactsGuillaume)([]);
+  const scoreArtefactsEcranCli = evaluerPourRegime('degats_reels', () => candidatAtk.stats, AUCUNE_AURA_PROPRE, contexteArtefactsGuillaume)([]);
   egal(
     scoreArtefactsEcranCli,
-    objectiveScore(candidatAtk, 'degats_reels', contexteGuillaume!),
+    objectiveScore(candidatAtk, 'degats_reels', AUCUNE_AURA_PROPRE, contexteGuillaume!),
     'artefacts écran/CLI et moteur : même score avec le contexte monstre-wide complet'
   );
   ok(
     scoreArtefactsEcranCli >
-      evaluerPourRegime('degats_reels', () => candidatAtk.stats, {
+      evaluerPourRegime('degats_reels', () => candidatAtk.stats, AUCUNE_AURA_PROPRE, {
         ...contexteArtefactsGuillaume,
         monsterWide: {},
       })([]),
@@ -1248,8 +1253,8 @@ export default function testAuditDegatsConditionnels() {
     },
   };
   egal(
-    computeSkillDamage(argen, buildAudit, ancienScenario),
-    computeSkillDamage(argen, buildAudit, { ...ancienScenario, effetsCibleCountAutres: true }),
+    computeSkillDamage(argen, buildAudit, ancienScenario, AUCUNE_AURA_PROPRE),
+    computeSkillDamage(argen, buildAudit, { ...ancienScenario, effetsCibleCountAutres: true }, AUCUNE_AURA_PROPRE),
     'ancienne recette : une Marque posée entre les coups ajoute bien un nouveau débuff'
   );
   const recetteAvantDegats = JSON.parse(JSON.stringify(recette));

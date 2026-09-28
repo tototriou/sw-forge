@@ -16,7 +16,7 @@
 import { ArtifactDetail, ElementKey, GearSet } from '../src/types';
 import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import { statsParPaire } from '../src/lib/stats';
-import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
+import { AUCUNE_AURA_PROPRE, DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { resolveArtifacts } from '../scripts/lib/recipeToSearchParams';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
@@ -57,7 +57,8 @@ export default function testArtifactEvaluation() {
 
   const gear: GearSet = { base: BASE_GONFLEE, runes: [], artifacts: [] };
   const statsAvec = statsParPaire(gear);
-  const evaluer = evaluerPourRegime('ehp', statsAvec);
+  // `runes: []` : aucune aura propre, déclarée explicitement (6bis-b2).
+  const evaluer = evaluerPourRegime('ehp', statsAvec, AUCUNE_AURA_PROPRE);
 
   const deuxPv = [artefactElement(1, 'water', 100, 1500), artefactArchetype(2, 100, 1500)];
   const defEtPv = [artefactElement(3, 'water', 102, 100), artefactArchetype(4, 100, 1500)];

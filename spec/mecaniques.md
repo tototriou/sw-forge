@@ -30,6 +30,16 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
 > Volontairement **exclus** (non présents sur swcalc/game-mechanics) : efficacité
 > des runes, sets de runes, précision/résistance, avantage élémentaire.
 
+⚠️ **Deux écarts connus entre la page et cette spec, à corriger** (relevés au
+lot 10 de la refonte graphique, le 2026-09-28 ; Thomas : « on le fera plus
+tard ») :
+
+- la page affiche encore `1000 / (1140 + 3.5 × DEF)`, les valeurs arrondies
+  du wiki, alors que le point 4 ci-dessus retient `1142 + 3.572` (swcalc.cz) ;
+- le point 2 et la page disent « 7 % par tick » sans réserve : c'est vrai
+  partout **sauf en raid (4,5 %) et en RTA (1,5 %)** — voir
+  [outils/speed-tuning.md](outils/speed-tuning.md) § Mode RTA.
+
 ## Règles / attendus
 
 - **Formules = modèle communautaire** (prédictif), annoncé dans l'intro (pas de

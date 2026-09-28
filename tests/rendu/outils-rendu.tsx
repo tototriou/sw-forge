@@ -76,3 +76,32 @@ export function bouton(html: string, nom: string): Bouton | undefined {
 export function valeurs(html: string, nom: string): string[] {
   return [...html.matchAll(new RegExp(`\\s${nom}="([^"]*)"`, 'g'))].map((m) => decoder(m[1]));
 }
+
+// ⚠️ **Rendu TÉLÉPHONE** (refonte graphique, lot 11). Les panneaux « Options »
+// (`MobileSheet`) ne s'affichent qu'au format téléphone, lu par `matchMedia`,
+// et passent par un PORTAIL — deux choses qu'un rendu serveur n'a pas : sans
+// navigateur, le panneau rend `null` et son contenu échappe aux tests. On
+// simule donc, LE TEMPS DU RENDU seulement :
+//   - `window.matchMedia` : vrai pour les requêtes « au plus » (`max-width`,
+//     donc SOUS_LG, SOUS_SM), faux pour le reste — une largeur de téléphone ;
+//   - `document`, que le panneau exige avant de monter son portail ;
+//   - `createPortal`, qui rend son contenu EN PLACE au lieu de l'envoyer
+//     ailleurs : c'est ce qui le fait apparaître dans le HTML rendu.
+// Aucun code de l'app n'est modifié pour autant.
+const reactDom = require('react-dom') as { createPortal: unknown };
+export function auTelephone<T>(faire: () => T): T {
+  const g = globalThis as Record<string, unknown>;
+  const avant = { window: g.window, document: g.document, createPortal: reactDom.createPortal };
+  g.window = {
+    matchMedia: (q: string) => ({ matches: q.includes('max-width'), addEventListener() {}, removeEventListener() {} }),
+  };
+  g.document = {};
+  reactDom.createPortal = (enfants: unknown) => enfants;
+  try {
+    return faire();
+  } finally {
+    g.window = avant.window;
+    g.document = avant.document;
+    reactDom.createPortal = avant.createPortal;
+  }
+}

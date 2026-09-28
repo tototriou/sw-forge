@@ -84,7 +84,8 @@ export function valeurs(html: string, nom: string): string[] {
 // simule donc, LE TEMPS DU RENDU seulement :
 //   - `window.matchMedia` : vrai pour les requêtes « au plus » (`max-width`,
 //     donc SOUS_LG, SOUS_SM), faux pour le reste — une largeur de téléphone ;
-//   - `document`, que le panneau exige avant de monter son portail ;
+//   - `document` (et son `body`), que le panneau et la `Modale` exigent avant
+//     de monter leur portail ;
 //   - `createPortal`, qui rend son contenu EN PLACE au lieu de l'envoyer
 //     ailleurs : c'est ce qui le fait apparaître dans le HTML rendu.
 // Aucun code de l'app n'est modifié pour autant.
@@ -95,7 +96,8 @@ export function auTelephone<T>(faire: () => T): T {
   g.window = {
     matchMedia: (q: string) => ({ matches: q.includes('max-width'), addEventListener() {}, removeEventListener() {} }),
   };
-  g.document = {};
+  // `body` : la `Modale` vérifie qu'elle a où se monter avant son portail.
+  g.document = { body: {} };
   reactDom.createPortal = (enfants: unknown) => enfants;
   try {
     return faire();

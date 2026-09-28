@@ -130,6 +130,18 @@
     "retrait": "A.2 bis #29",
     "pourquoi": "Lot 13 : la suppression d'une équipe se défait (« Équipe retirée … · Annuler ») au lieu de se confirmer."
   },
+  "src/components/SidebarSearch.tsx :: attr:placeholder:Aller à…": {
+    "de": "src/components/SidebarSearch.tsx",
+    "vers": "src/components/SidebarSearch.tsx",
+    "devient": "texte:Aller à…",
+    "pourquoi": "Lot 13 (décision 29) : le champ de la barre ouvre la palette Ctrl K ; il devient un bouton à l'aspect de champ, dont « Aller à… » est le texte."
+  },
+  "src/components/SidebarSearch.tsx :: texte:Aucune page": {
+    "de": "src/components/SidebarSearch.tsx",
+    "vers": "src/components/Palette.tsx",
+    "devient": "texte:Aucun résultat pour «",
+    "pourquoi": "Lot 13 (décision 29) : la recherche de pages vit dans la palette, qui cherche aussi monstres et actions ; son message vide couvre les trois natures."
+  },
   "src/components/SettingsMenu.tsx :: texte:Tout supprimer": {
     "de": "src/components/SettingsMenu.tsx",
     "vers": "src/components/SettingsMenu.tsx",

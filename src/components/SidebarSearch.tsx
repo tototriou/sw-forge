@@ -1,24 +1,19 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode } from 'react';
 import { Search } from 'lucide-react';
-import { useComboboxNav } from '../hooks/useComboboxNav';
 
 // Recherche dans la NAVIGATION, en tête de la barre latérale.
 //
-// ⚠️ **Elle ne cherche QUE des destinations** — pages et sous-sections. Pas les
-// monstres, pas les runes : chercher un monstre est le rôle du Bestiaire et de
-// la box, qui ont leurs filtres et leur grille. Un champ qui répondrait aux deux
-// obligerait à trier du regard deux natures de résultats, et « Runes » se
-// noierait sous les noms de monstres contenant ces lettres.
+// ⚠️ **Depuis le lot 13 (décision 29), ce champ OUVRE LA PALETTE** Ctrl K
+// (`Palette.tsx`), qui cherche pages, monstres et actions en groupes
+// intitulés. Il n'existe qu'UNE recherche : le contrat du lot interdisait d'en
+// poser une seconde à côté de celle-ci. Le champ garde son aspect (« Aller
+// à… », le raccourci Ctrl K) et son nom accessible ; ses résultats et le
+// raccourci vivent désormais dans la palette et dans `App.tsx`.
 //
-// ⚠️ Elle existe parce que la navigation compte **quinze destinations** une fois
-// les sous-sections dépliées, réparties sur deux niveaux. Atteindre
-// « Recommandations » demande d'ouvrir le Siège d'abord ; ici, trois lettres
-// suffisent.
-//
-// ⚠️ La navigation au clavier vient de `useComboboxNav`, comme toutes les barres
-// de l'app — voir spec/shared/recherche-clavier.md. Chaque barre avait la
-// sienne, et toutes la même faute : Entrée agissait sur « le premier résultat »
-// sans que rien à l'écran ne dise lequel.
+// ⚠️ Elle cherchait QUE des destinations — « pas les monstres : un champ
+// répondant aux deux obligerait à trier du regard deux natures de résultats ».
+// La palette y répond par ses groupes : les natures sont séparées, pas mêlées.
+// Les pages y sont les mêmes, dérivées des mêmes constantes (`CibleNav`).
 
 export interface CibleNav {
   key: string;
@@ -31,93 +26,20 @@ export interface CibleNav {
   contexte?: string;
 }
 
-// Comparaison INSENSIBLE aux accents et à la casse : on tape « arene » pour
-// « Arène », « recos » pour « Recommandations ». Sans ça, la moitié des pages
-// françaises de l'app étaient introuvables au clavier.
-function normaliser(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-}
-
 export default function SidebarSearch({
-  cibles,
   retractee,
-  onDeplier,
+  onOuvrir,
 }: {
-  // TOUTES les destinations, sous-sections comprises — c'est ce qui fait
-  // l'intérêt du champ : atteindre « Recommandations » sans ouvrir le Siège.
-  cibles: CibleNav[];
   retractee: boolean;
-  // ⚠️ Repliée, il n'y a AUCUN champ à focaliser : le bouton doit d'abord
-  // déplier la barre. Sans ça, cliquer la loupe ne faisait rien du tout.
-  onDeplier: () => void;
+  // Ouvre la palette. ⚠️ Repliée, la barre n'a pas la place d'un champ : la
+  // loupe ouvre la palette directement, sans déplier la barre.
+  onOuvrir: () => void;
 }) {
-  const [query, setQuery] = useState('');
-  // Vrai le temps d'un dépliage demandé par ⌘K ou par la loupe : le champ
-  // n'existe pas encore au moment du geste, il prendra le focus au rendu où il
-  // apparaît.
-  const [focusAuMontage, setFocusAuMontage] = useState(false);
-
-  const resultats = useMemo(() => {
-    const q = normaliser(query.trim());
-    if (!q) return [];
-    return cibles.filter(
-      (c) => normaliser(c.label).includes(q) || normaliser(c.contexte ?? '').includes(q)
-    );
-  }, [query, cibles]);
-
-  const nav = useComboboxNav<CibleNav>({
-    results: resultats,
-    query,
-    setQuery,
-    idBase: 'nav-search',
-    onValider: (c) => {
-      window.location.hash = c.hash;
-    },
-  });
-
-  // ⚠️ Ctrl/⌘ + K depuis n'importe quel écran. C'est le raccourci qu'attendent
-  // les gens qui viennent d'un éditeur ou d'un outil de développement, et il
-  // évite d'aller chercher le champ à la souris.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        // Repliée, le champ n'est pas monté : on déplie, et l'effet ci-dessous
-        // lui donnera le focus au rendu suivant.
-        if (retractee) {
-          setFocusAuMontage(true);
-          onDeplier();
-        } else {
-          nav.inputProps.ref.current?.focus();
-        }
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [nav.inputProps.ref, retractee, onDeplier]);
-
-  // Le champ vient d'apparaître à la suite d'un ⌘K ou d'un clic sur la loupe :
-  // il prend le focus, sinon le geste n'aurait servi qu'à déplier.
-  useEffect(() => {
-    if (!retractee && focusAuMontage) {
-      nav.inputProps.ref.current?.focus();
-      setFocusAuMontage(false);
-    }
-  }, [retractee, focusAuMontage, nav.inputProps.ref]);
-
-  // Repliée, un champ de saisie n'a pas la place d'exister : la loupe DÉPLIE la
-  // barre, et le champ prend le focus une fois monté.
   if (retractee) {
     return (
       <button
         type="button"
-        onClick={() => {
-          setFocusAuMontage(true);
-          onDeplier();
-        }}
+        onClick={onOuvrir}
         title="Rechercher une page (⌘K)"
         aria-label="Rechercher une page"
         className="mx-auto mb-1 flex aspect-square h-8 w-8 items-center justify-center rounded-md
@@ -130,23 +52,18 @@ export default function SidebarSearch({
 
   return (
     <div className="relative flex-none px-3">
-      <div
-        className="flex items-center gap-2 rounded-lg border border-border-soft bg-panel py-1.5 pl-2.5
-                   pr-1.5 transition-colors hoverable:border-border focus-within:border-ctx"
+      <button
+        type="button"
+        onClick={onOuvrir}
+        aria-label="Rechercher une page"
+        title="Rechercher une page (⌘K)"
+        className="flex w-full items-center gap-2 rounded-lg border border-border-soft bg-panel py-1.5 pl-2.5
+                   pr-1.5 text-left transition-colors hoverable:border-border"
       >
         <Search size={16} className="flex-none text-ink-dimmer" />
-        <input
-          {...nav.inputProps}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Aller à…"
-          aria-label="Rechercher une page"
-          title="Rechercher une page (⌘K)"
-          className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none
-                     placeholder:text-ink-dimmer"
-        />
+        <span className="min-w-0 flex-1 truncate text-sm text-ink-dimmer">Aller à…</span>
         {/* Le raccourci, affiché comme dans la maquette de la refonte
-            graphique (lot 4) — il avait été réduit au `title` du champ. */}
+            graphique (lot 4). */}
         <kbd
           aria-hidden
           className="flex-none rounded-md border border-border bg-panel2 px-1.5 font-mono text-micro
@@ -154,53 +71,7 @@ export default function SidebarSearch({
         >
           Ctrl K
         </kbd>
-      </div>
-
-      {nav.open && (
-        <div
-          {...nav.listProps}
-          // ⚠️ `absolute` : la liste se pose PAR-DESSUS la navigation, elle ne
-          // la pousse pas vers le bas. Une liste qui décale les neuf sections à
-          // chaque frappe rend la barre illisible.
-          className="absolute inset-x-3 top-full z-40 mt-1 flex flex-col gap-px overflow-hidden rounded-xl
-                     border border-border-soft bg-panel p-1.5 shadow-glow shadow-black/40"
-        >
-          {resultats.length === 0 ? (
-            <p className="px-2.5 py-1.5 text-sm text-ink-dim">Aucune page</p>
-          ) : (
-            resultats.map((c, i) => (
-              <a
-                key={c.key}
-                href={c.hash}
-                {...nav.optionProps(i)}
-                // Garde le focus au champ : sans ça, le `blur` ferme la liste
-                // avant que le clic ne l'atteigne.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => nav.reinitialiser()}
-                // ⚠️ **Le gabarit exact d'une entrée du menu** (Sidebar,
-                // LienBarre) : 32 px, icône 16, texte 14, rayon 8, voile
-                // d'encre pour le résultat choisi et au survol. Un résultat
-                // EST une entrée de navigation ; un rendu à part se lisait
-                // comme une autre sorte de liste.
-                className={`flex h-8 w-full flex-none items-center gap-2.5 rounded-lg px-2.5 text-left
-                            text-md font-medium transition-colors ${
-                              i === nav.actif
-                                ? 'bg-ink/10 text-ink'
-                                : 'text-ink-dim hoverable:bg-ink/5 hoverable:text-ink'
-                            }`}
-              >
-                <span className="flex flex-none items-center">{c.icon}</span>
-                <span className="min-w-0 truncate">{c.label}</span>
-                {c.contexte && (
-                  <span className="ml-auto flex-none text-micro text-ink-dimmer">
-                    {c.contexte}
-                  </span>
-                )}
-              </a>
-            ))
-          )}
-        </div>
-      )}
+      </button>
     </div>
   );
 }

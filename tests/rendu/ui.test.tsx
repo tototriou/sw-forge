@@ -15,8 +15,10 @@ import Jeton from '../../src/ui/Jeton';
 import Selecteur from '../../src/ui/Selecteur';
 import Menu from '../../src/ui/Menu';
 import { BandeauNotification } from '../../src/ui/Notification';
+import Palette from '../../src/components/Palette';
+import type { GroupePalette } from '../../src/components/palette/recherchePalette';
 import { egal, ok, titre } from '../outils';
-import { bouton, boutons, rendre, texteVisible } from './outils-rendu';
+import { auTelephone, bouton, boutons, rendre, texteVisible } from './outils-rendu';
 
 const rien = () => {};
 
@@ -123,6 +125,27 @@ export function testRenduUiMenu() {
   // L'entrée destructrice vient APRÈS les autres, derrière un filet.
   const ordre = boutons(html).filter((b) => ['Sauvegarder', 'Reprendre', 'Tout effacer'].includes(b.texte)).map((b) => b.texte);
   egal(ordre, ['Sauvegarder', 'Reprendre', 'Tout effacer'], 'l\'entrée destructrice est rangée en dernier');
+}
+
+// Lot 13 (décision 29) : la palette Ctrl K — ajoutée avec elle. La Modale passe
+// par un portail : rendue par `auTelephone`, qui le pose en place.
+export function testRenduPalette() {
+  titre('rendu · Palette Ctrl K');
+  const rien = () => {};
+  const groupes = (saisie: string): GroupePalette[] =>
+    saisie === 'rien'
+      ? []
+      : [
+          { titre: 'Pages', entrees: [{ cle: 'p', libelle: 'Recommandations', contexte: 'Siège', faire: rien }] },
+          { titre: 'Actions', entrees: [{ cle: 'a', libelle: 'Importer mon compte', faire: rien }] },
+        ];
+  const html = auTelephone(() => rendre(<Palette groupesPour={groupes} onFermer={rien} />));
+  const t = texteVisible(html);
+  ok(/placeholder="Rechercher une page, un monstre, une action…"/.test(html), 'le champ, et ce qu\'il cherche');
+  ok(t.includes('Pages Recommandations Siège Actions Importer mon compte'), 'les groupes intitulés, chaque entrée avec son contexte');
+  ok(/aria-selected="true"[^>]*>|data-actif="true"/.test(html), 'une entrée est sélectionnée d\'emblée (Entrée l\'ouvre)');
+  const vide = texteVisible(auTelephone(() => rendre(<Palette groupesPour={groupes} onFermer={rien} saisieInitiale="rien" />)));
+  ok(vide.includes('Aucun résultat pour « rien » Essaie un nom de monstre, de page ou d\'action.'), 'rien ne répond : le dire, et quoi essayer');
 }
 
 // Lot 13 (décision 29) : la notification « … · Annuler » — ajoutée avec elle.

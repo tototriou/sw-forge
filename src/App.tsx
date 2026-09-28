@@ -16,7 +16,19 @@ import {
   Lightbulb,
   Settings,
   Timer,
+  Upload,
+  Plus,
+  Gauge,
+  SunMoon,
 } from 'lucide-react';
+import Palette from './components/Palette';
+import { resultatsPalette } from './components/palette/recherchePalette';
+import SpeedTuneModale from './components/outils/SpeedTuneModale';
+import MonsterDetailDialog from './components/MonsterDetailDialog';
+import { autreForme, jumeauDeCollab } from './lib/monsterForms';
+import { THEME_CHOICES, setTheme } from './hooks/useTheme';
+import { RUNE_METRICS, setRuneMetric } from './hooks/useRuneMetric';
+import type { DeckInitial } from './hooks/useSpeedTune';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
@@ -508,6 +520,33 @@ export default function App() {
     for (const mon of allMonsters) if (mon.com2usId != null) m.set(mon.com2usId, mon);
     return m;
   }, [allMonsters]);
+
+  // ---- PALETTE Ctrl K (lot 13, décision 29) --------------------------------
+  // Ouverte par Ctrl/⌘ K de n'importe où, par le champ de la barre latérale, et
+  // au téléphone par la loupe de la barre du haut. Ce qu'elle ouvre (fiche d'un
+  // monstre, speed tuning d'une équipe) se monte ICI : on n'y change pas de
+  // page. Voir spec/shared/navigation.md § Palette Ctrl K.
+  const [paletteOuverte, setPaletteOuverte] = useState(false);
+  const [ficheMonstre, setFicheMonstre] = useState<Monster | null>(null);
+  const [speedTuneEquipe, setSpeedTuneEquipe] = useState<DeckInitial | null>(null);
+  // « Importer mon compte » depuis la palette : le même choix de fichier que
+  // les Paramètres, porté par un champ caché.
+  const fichierCompte = useRef<HTMLInputElement>(null);
+  const monstreParId = useMemo(() => {
+    const m = new Map<string, Monster>();
+    for (const mon of allMonsters) m.set(String(mon.id), mon);
+    return m;
+  }, [allMonsters]);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOuverte(true);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Relecture du compte conservé, au démarrage.
   //
@@ -1172,6 +1211,58 @@ export default function App() {
     },
   ];
 
+  // Ce que la palette propose pour une saisie : les MÊMES pages que la recherche
+  // de la barre (dérivées du menu), puis monstres et actions (décision 29 —
+  // aucune destructrice). Règles de groupe, d'ordre et de plafond : voir
+  // `resultatsPalette`.
+  const groupesPalette = (saisie: string) =>
+    resultatsPalette({
+      saisie,
+      pages: ciblesRecherche.map((c) => ({
+        cle: c.key,
+        libelle: c.label,
+        contexte: c.contexte,
+        icone: c.icon,
+        faire: () => {
+          window.location.hash = c.hash;
+        },
+      })),
+      actions: [
+        { cle: 'a-import', libelle: 'Importer mon compte', icone: <Upload size={16} />, faire: () => fichierCompte.current?.click() },
+        ...THEME_CHOICES.map((t) => ({
+          cle: `a-theme-${t.key}`,
+          libelle: `Thème ${t.label.toLowerCase()}`,
+          contexte: t.hint,
+          icone: <SunMoon size={16} />,
+          faire: () => setTheme(t.key),
+        })),
+        {
+          cle: 'a-reco',
+          libelle: 'Créer une recommandation',
+          icone: <Plus size={16} />,
+          faire: () => {
+            recos.addReco();
+            window.location.hash = '#/siege/recommandations';
+          },
+        },
+        ...RUNE_METRICS.map((m) => ({
+          cle: `a-mesure-${m.key}`,
+          libelle: `Mesure : ${m.label}`,
+          contexte: m.hint,
+          icone: <Gauge size={16} />,
+          faire: () => setRuneMetric(m.key),
+        })),
+      ],
+      monstres: allMonsters,
+      equipes: [
+        ...siegeDef.state.teams.map((team, i) => ({ cote: 'defense' as const, rang: i + 1, team })),
+        ...siegeOff.state.teams.map((team, i) => ({ cote: 'offense' as const, rang: i + 1, team })),
+      ],
+      monsterById: monstreParId,
+      ouvrirFiche: setFicheMonstre,
+      ouvrirSpeedTune: (e) => setSpeedTuneEquipe({ source: e.cote, teamId: e.team.id }),
+    });
+
   // ⚠️ CINQ onglets mobiles au maximum — au-delà, les cibles passent sous 44 px.
   // Les quatre premiers sont les destinations de travail ; « Compte » ouvre la
   // section dont dépendent toutes les autres.
@@ -1239,11 +1330,7 @@ export default function App() {
           />
         }
         recherche={
-          <SidebarSearch
-            cibles={ciblesRecherche}
-            retractee={sidebarRetractee}
-            onDeplier={() => setSidebarRetractee(false)}
-          />
+          <SidebarSearch retractee={sidebarRetractee} onOuvrir={() => setPaletteOuverte(true)} />
         }
         retractee={sidebarRetractee}
         onToggleRetract={() => setSidebarRetractee((r) => !r)}
@@ -1284,6 +1371,7 @@ export default function App() {
         titre={titreSection}
         icone={iconeSection}
         fil={filBureau}
+        onRecherche={() => setPaletteOuverte(true)}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
         // ⚠️ Le burger n'apparaît que sur les pages qui ONT des actions : un
         // bouton qui ouvre un panneau vide est pire que pas de bouton.
@@ -1558,6 +1646,40 @@ export default function App() {
             onDismiss={() => repondreConservation(null)}
           />
         )}
+
+        {/* ---- Palette Ctrl K et ce qu'elle ouvre (lot 13, décision 29) --- */}
+        {paletteOuverte && (
+          <Palette groupesPour={groupesPalette} onFermer={() => setPaletteOuverte(false)} />
+        )}
+        {ficheMonstre && (
+          <MonsterDetailDialog
+            monster={ficheMonstre}
+            autre={autreForme(ficheMonstre, allMonsters)}
+            jumeau={jumeauDeCollab(ficheMonstre, allMonsters)}
+            onClose={() => setFicheMonstre(null)}
+          />
+        )}
+        {speedTuneEquipe && (
+          <SpeedTuneModale
+            deck={speedTuneEquipe}
+            allMonsters={allMonsters}
+            siegeDefenseTeams={siegeDef.state.teams}
+            siegeOffenseTeams={siegeOff.state.teams}
+            onClose={() => setSpeedTuneEquipe(null)}
+          />
+        )}
+        {/* « Importer mon compte » de la palette : le choix de fichier. */}
+        <input
+          ref={fichierCompte}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f) importAccount(await f.text());
+          }}
+        />
       </div>
     </div>
     </FournisseurNotification>

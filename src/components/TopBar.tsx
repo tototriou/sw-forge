@@ -1,5 +1,5 @@
 import { Fragment, ReactNode } from 'react';
-import { ChevronRight, LogOut, Settings } from 'lucide-react';
+import { ChevronRight, LogOut, Search, Settings } from 'lucide-react';
 import { Bouton } from '../ui';
 
 // Barre SUPÉRIEURE, fixe.
@@ -33,6 +33,7 @@ export default function TopBar({
   onDeconnexion,
   parametresActifs,
   onToggleParametres,
+  onRecherche,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
   decalage,
@@ -54,6 +55,10 @@ export default function TopBar({
   // vient. Un lien seul n'offrait aucune sortie — on y entrait sans pouvoir en
   // revenir autrement qu'en choisissant une autre destination.
   onToggleParametres: () => void;
+  // Ouvre la palette Ctrl K (lot 13, décision 29). Au TÉLÉPHONE seulement, par
+  // une loupe : sans clavier, c'est son seul accès. Au bureau, le champ de la
+  // barre latérale et Ctrl K suffisent.
+  onRecherche?: () => void;
   decalage: number;
 }) {
   return (
@@ -159,6 +164,21 @@ export default function TopBar({
           className="relative z-10 ml-auto hidden lg:inline-flex"
         />
 
+        {/* TÉLÉPHONE — la loupe de la palette Ctrl K (lot 13, décision 29, la
+            maquette), juste avant le ⚙. Même gabarit que lui. */}
+        {onRecherche && (
+          <button
+            type="button"
+            onClick={onRecherche}
+            title="Rechercher une page, un monstre, une action"
+            aria-label="Rechercher"
+            className="relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center rounded-md
+                       text-ink-dim transition-colors hoverable:bg-panel2 hoverable:text-ink lg:hidden"
+          >
+            <Search size={16} />
+          </button>
+        )}
+
         <button
           type="button"
           onClick={onToggleParametres}
@@ -168,7 +188,9 @@ export default function TopBar({
           // ⚠️ `lg:hidden` : sur bureau, le pied de la barre latérale porte le
           // même accès, à côté du nom du compte. Le garder ici aurait fait deux
           // boutons pour un seul écran.
-          className={`relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center
+          // ⚠️ `ml-auto` seulement sans loupe : avec elle, c'est la loupe qui
+          // pousse la paire à droite ; deux `ml-auto` se partageraient la place.
+          className={`relative z-10 ${onRecherche ? '' : 'ml-auto'} flex aspect-square h-8 w-8 items-center justify-center
                       rounded-md transition-colors lg:hidden ${
                         parametresActifs
                           ? 'bg-ctx-soft text-ctx'

@@ -345,7 +345,10 @@ Refonte graphique, lot 13, décision 29 de Thomas, la maquette (planche
   monstres n'apparaissent qu'à partir de deux lettres tapées — 3 000 fiches
   ne se parcourent pas.
 - Clavier : `↑` `↓` naviguent sur toute la liste, groupes compris, `Entrée`
-  ouvre, `Échap` ferme (`useComboboxNav`, comme toute barre à suggestions).
+  ouvre, `Échap` ferme. ⚠️ **Géré par la palette elle-même, pas par
+  `useComboboxNav`** : ce hook n'ouvre sa liste qu'une fois quelque chose
+  tapé, alors que la palette montre déjà pages et actions quand le champ est
+  vide — les flèches doivent y marcher aussi.
   Comparaison **insensible aux accents**. Au plus **8 monstres** et **8
   équipes** affichés : la palette mène quelque part, elle ne remplace pas le
   Bestiaire.

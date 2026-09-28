@@ -954,6 +954,24 @@ un par un avec Thomas avant d'entrer dans ce lot :
 
 Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
 
+**Décision 28 (Thomas, 2026-09-28) — ce qui est retenu parmi ces
+candidats** :
+- **Retenus** : « Effacer les filtres » dans la box et la liste
+  d'artéfacts ; au téléphone, les pastilles de filtre par catégorie en tête
+  de la RTA.
+- **Non retenus** : tous les autres — recherche texte de propriété, courbe
+  par set, « Voir en tableau », pagination numérotée, tableau de
+  comparaison, « Voir l'optimisation », plan dans chaque carte, tous ceux du
+  Speed tuning et des Ressources, compteurs de l'accueil, ligne de résumé des
+  listes, « Voir N runes ». (Pour deux groupes, la réponse a été « Autre »
+  sans précision : lue comme « aucun », dit à Thomas.)
+- Les trois ajouts de A.2 bis restent décidés.
+
+**Fichiers permis hors A.2 pour les deux ajouts retenus** : aucun — ils ne
+touchent que des composants d'écran (`AccountPage.tsx`, `ArtifactsList.tsx`,
+`components/rta/`) ; si un calcul de logique devait naître, il passerait par
+ici d'abord.
+
 **Contrat** : avant tout code, la spec de chaque ajout dans la spec de sa
 zone (`spec/shared/navigation.md` pour la palette, `spec/rta/` pour
 l'indicateur, `spec/shared/design.md` pour la notification) ; la liste des

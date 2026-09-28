@@ -108,7 +108,10 @@ export default function HomePage({ stats, onImport }: Props) {
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="pt-4">
       {/* ---- Héros : promesse à gauche, action à droite ------------------- */}
-      <header className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center pt-6 pb-10">
+      {/* ⚠️ **Au doigt, resserré** (refonte graphique, lot 11a, décision 24) :
+          la structure est gardée, seules les marges verticales et la zone de
+          dépôt se tassent (`max-lg:`) — le bureau ne bouge pas. */}
+      <header className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center pt-6 pb-10 max-lg:gap-5 max-lg:pt-2 max-lg:pb-6">
         <motion.div variants={item} className="max-w-xl">
           {/* ⚠️ Le NOM du site reste le titre. Sur desktop la barre de nav ne
               porte pas la marque (elle n'apparaît qu'en version repliée) : sans
@@ -158,7 +161,7 @@ export default function HomePage({ stats, onImport }: Props) {
 
       {/* ---- Reprise (habitués) ------------------------------------------- */}
       {aDesDonnees && (
-        <motion.section variants={item} className="pb-10">
+        <motion.section variants={item} className="pb-10 max-lg:pb-6">
           {/* ⚠️ Titre NEUTRE : ce bloc apparaît dès le premier import, pas
               seulement au retour. « Reprends où tu en étais » accueillait donc
               un débutant en lui parlant d'un passé qu'il n'a pas. */}
@@ -175,8 +178,8 @@ export default function HomePage({ stats, onImport }: Props) {
       <Separator />
 
       {/* ---- Comment ça marche -------------------------------------------- */}
-      <motion.section variants={item} id="comment" className="py-12">
-        <h2 className="font-display text-[26px] tracking-wide mb-6">Comment ça marche</h2>
+      <motion.section variants={item} id="comment" className="py-12 max-lg:py-6">
+        <h2 className="font-display text-[26px] tracking-wide mb-6 max-lg:mb-4">Comment ça marche</h2>
         {/* ⚠️ UNE carte, trois étapes séparées par des filets (la maquette) :
             une séquence qu'on lit de gauche à droite, pas trois cartes
             indépendantes. Empilées sous `md`, le filet passe en haut. */}
@@ -209,8 +212,8 @@ export default function HomePage({ stats, onImport }: Props) {
       <Separator />
 
       {/* ---- Fonctionnalités ---------------------------------------------- */}
-      <motion.section variants={item} id="features" className="py-12">
-        <h2 className="font-display text-[26px] tracking-wide mb-6">Fonctionnalités</h2>
+      <motion.section variants={item} id="features" className="py-12 max-lg:py-6">
+        <h2 className="font-display text-[26px] tracking-wide mb-6 max-lg:mb-4">Fonctionnalités</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Feature href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer et lis l'ordre de tour recalculé selon les leads." />
           <Feature href="#/rta/ami" icon={Users} accent={COULEUR_RTA_SUB.ami} kicker="RTA" title="Prépa d'un ami" body="Ouvre la prépa qu'un ami t'a exportée — ou son export SWEX complet — et regarde son classement, ses vitesses et son ordre de tour." />
@@ -228,7 +231,7 @@ export default function HomePage({ stats, onImport }: Props) {
       </motion.section>
 
       {/* ---- Dernier appel -------------------------------------------------- */}
-      <motion.section variants={item} className="py-12 max-w-xl">
+      <motion.section variants={item} className="py-12 max-w-xl max-lg:py-6">
         <h2 className="font-display text-[26px] tracking-wide">Prêt à préparer tes équipes ?</h2>
         <p className="mt-2 text-sm leading-relaxed text-ink-dim">
           Importe ton fichier SWEX et retrouve ta box, tes runes, ta prépa RTA et tes équipes de siège
@@ -317,7 +320,7 @@ function Dropzone({ onImport }: { onImport: (text: string) => void }) {
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && ref.current?.click()}
       className={`flex min-h-[260px] cursor-pointer flex-col items-center justify-center gap-2.5
-                  rounded-2xl border border-dashed p-8 text-center transition-colors ${
+                  rounded-2xl border border-dashed p-8 text-center transition-colors max-lg:min-h-[170px] max-lg:p-5 ${
                     survol
                       ? 'border-accent bg-panel2'
                       : 'border-border bg-panel hoverable:border-accent hoverable:bg-panel2'
@@ -509,7 +512,7 @@ function Feature({
   return (
     <a
       href={href}
-      className={`group relative flex flex-col overflow-hidden p-4 ${CARTE_LIEN} ${soon ? 'opacity-70' : ''}`}
+      className={`group relative flex flex-col overflow-hidden p-4 max-lg:p-3 ${CARTE_LIEN} ${soon ? 'opacity-70' : ''}`}
     >
       <Halo accent={accent} />
       <Tuile icon={icon} accent={accent} />

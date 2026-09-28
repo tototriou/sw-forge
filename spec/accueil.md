@@ -135,6 +135,12 @@ style change :
   librairie (décision 4).
 - Pastille de version : fond d'accent à 15 %, texte à l'**encre** — l'accent
   sur ce fond tombait à 4,4:1 en Forge.
+- ⚠️ **Au doigt, la même structure, resserrée** (lot 11a, décision 24 —
+  Thomas a écarté la liste groupée de la maquette téléphone, qui retirait la
+  zone de dépôt, « Comment ça marche », les descriptions, « Prépa d'un ami »,
+  l'Arène et la dernière version) : marges verticales entre blocs réduites
+  (`max-lg:py-6`), zone de dépôt moins haute (170 px au lieu de 260), cartes
+  de fonctionnalités moins rembourrées. Le bureau ne bouge pas.
 
 ### 6. Dernier appel + quoi de neuf
 

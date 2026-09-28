@@ -265,6 +265,8 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     retirés — [retrait #19] décidé par Thomas le 2026-09-26 ; la pastille
     « Importée » reste. Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Vue Défense.
+#### Décisions prises en cours de chantier (20 et suivantes)
+
 20. **Mon compte · Runes (lot 8a) — filtres en menus déroulants, ajouts
     plus tard** — deux choix de Thomas le 2026-09-27, avant le code :
     - À la souris, les filtres Sets / Emplacement / Antiques deviennent
@@ -295,6 +297,19 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     mémorisé sur l'autre mesure suit le ⚙. Une assertion d'avant le lot
     (la liste des entrées de tri) est remplacée en conséquence. Spec :
     [../compte/runes.md](../compte/runes.md) § Tri.
+22. **Outils · Speed tuning (lot 9b)** — trois choix de Thomas le
+    2026-09-28, avant le code :
+    - « Importer un deck de siège » reste **un par camp**, posé dans
+      l'en-tête de la carte du camp à côté du lead — et non un seul en tête
+      de page comme la maquette : on voit quel camp il remplace.
+    - **Ordre des sorts | Analyse** côte à côte (la cause, puis l'effet),
+      puis **Ordre de tour** remonté juste en dessous, avant les tableaux —
+      la maquette le met à côté de l'Analyse.
+    - Les ajouts de la maquette (« Appliquer +3 » sur le verdict, pastille
+      « 1 correction », note sous le nom, élément sur le portrait) vont au
+      lot 13, à décider un par un.
+    Les trois tableaux, absents de la maquette, restent ; les boutons de
+    chaque monstre aussi (monter / descendre, copier en face).
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur
@@ -801,7 +816,10 @@ un par un avec Thomas avant d'entrer dans ce lot :
   (la maquette), au lieu du panneau qui s'ouvre au clic — relevé au lot
   8a-3 ;
 - « Effacer les filtres » dans la box et la liste d'artéfacts, comme pour
-  les runes — proposé au lot 8b, resté sans réponse.
+  les runes — proposé au lot 8b, resté sans réponse ;
+- Speed tuning (décision 22) : « Appliquer +N » sur le verdict de
+  l'analyse, pastille du nombre de corrections, note sous le nom du
+  monstre (sort retenu), élément sur le portrait.
 
 Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
 

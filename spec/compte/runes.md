@@ -1064,10 +1064,16 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
 Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
 téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
 **grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
-six** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
-**filtre antique**, **« Faisable avec ma réserve »**, **« Sans les
-immémoriaux »** et **« Runes utilisées »**. **Sets, slot, tri et l'aide restent
-dans la page**, à tous les formats.
+cinq** contrôles y descendent : **palier**, **filtre antique**, **« Faisable
+avec ma réserve »**, **« Sans les immémoriaux »** et **« Runes utilisées »**.
+**Sets, slot, tri et l'aide restent dans la page**, à tous les formats.
+
+⚠️ **« Gemme + meule / Meule seule » est en TÊTE DE LA PAGE au téléphone**
+(refonte graphique, lot 11c, décision 26, la maquette), sur toute la largeur,
+avant les filtres : c'est ce qui change toute la liste — on le voit et on le
+bascule sans ouvrir le panneau. Il était le deuxième des six contrôles du
+panneau. Au bureau, il reste dans la rangée d'options (`modeControl`, écrit
+une fois, posé aux deux endroits).
 
 - ⚠️ **Au bureau, le groupe en ligne passe à la ligne tout seul**
   (`lg:flex-wrap`). Il est **un seul élément** de la rangée de filtres : sans
@@ -1075,10 +1081,11 @@ dans la page**, à tous les formats.
   de ses six contrôles, et c'est la **page** qui déborde par la droite — la
   rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Constaté au
   sixième contrôle, sur un écran de bureau ordinaire.
-- Les six sont écrits **une fois** (`optionsControls`) et posés à deux
-  endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
-  doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
-  largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
+- Les contrôles sont écrits **une fois** (`optionsControls`) et posés à deux
+  endroits : **en ligne au bureau** (`hidden lg:flex`, les six, mode compris),
+  **dans le panneau au doigt** (`MobileSheet`, sans le mode : `avecMode`
+  faux). L'argument `large` élargit les segmentés à toute la largeur du
+  panneau (`size="lg"`) ; en ligne ils restent serrés.
 - ⚠️ **Dans le panneau, tout occupe la largeur — les trois boutons aussi.**
   Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve »,
   « Sans les immémoriaux » et « Runes utilisées » prennent donc eux aussi toute la colonne

@@ -262,7 +262,30 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
   // posés à deux endroits : en ligne au bureau, dans le panneau « Options » au
   // doigt (comme les filtres de la Liste). `large` élargit les segmentés à toute
   // la largeur du panneau ; en ligne ils restent serrés.
-  const optionsControls = (large: boolean) => (
+  // Le MODE du potentiel — ce qui change toute la liste. ⚠️ Au TÉLÉPHONE, il
+  // n'est plus dans le panneau « Options » mais en tête de la page (lot 11c,
+  // décision 26, la maquette) : on le voit et on le bascule sans ouvrir le
+  // panneau. Au bureau, il reste dans la rangée d'options.
+  const modeControl = (large: boolean) => (
+    <Segmented
+      value={gemMode}
+      onChange={(k) => {
+        setGemMode(k);
+        setPage(0);
+      }}
+      size={large ? 'lg' : undefined}
+      options={[
+        { key: 'gem', label: 'Gemme + meule', hint: 'Potentiel avec la gemme optimale + les meules' },
+        {
+          key: 'grind',
+          label: 'Meule seule',
+          hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
+        },
+      ]}
+    />
+  );
+
+  const optionsControls = (large: boolean, avecMode = true) => (
     <>
       <div className="flex items-center gap-2">
         {/* ⚠️ `data-intitule-conserve` : le panneau « Options » masque les
@@ -287,22 +310,7 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
         <span className="font-mono text-xs text-ink-dim">{metric === 'eff' ? '%' : 'pts'}</span>
       </div>
 
-      <Segmented
-        value={gemMode}
-        onChange={(k) => {
-          setGemMode(k);
-          setPage(0);
-        }}
-        size={large ? 'lg' : undefined}
-        options={[
-          { key: 'gem', label: 'Gemme + meule', hint: 'Potentiel avec la gemme optimale + les meules' },
-          {
-            key: 'grind',
-            label: 'Meule seule',
-            hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
-          },
-        ]}
-      />
+      {avecMode && modeControl(large)}
 
       <div className={large ? 'flex flex-col gap-1' : 'flex items-center gap-2'}>
         <span className="label">Runes</span>
@@ -413,6 +421,8 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
 
       {/* Contrôles */}
       <div className="flex items-center gap-4 flex-wrap mb-4">
+        {/* Au DOIGT : le MODE en tête, sur toute la largeur (décision 26). */}
+        <div className="w-full lg:hidden">{modeControl(true)}</div>
         {/* Au DOIGT : les rangées d'avant (`contents` : leurs enfants restent
             des éléments de la rangée), cachées à la souris (lot 11). */}
         <div className="contents lg:hidden">
@@ -593,12 +603,12 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
         </div>
       </div>
 
-      {/* AU DOIGT : panneau « Options » (palier, mesure gemme/meule, filtre
-          antique, « Faisable avec ma réserve »). Le bouton qui l'ouvre vit dans la
-          barre de nav — voir App.tsx (`pageAPanneau`). Sets, slots, tri et aide
-          restent dans la page. */}
+      {/* AU DOIGT : panneau « Options » (palier, filtre antique, « Faisable
+          avec ma réserve »…). Le bouton qui l'ouvre vit dans la barre de nav —
+          voir App.tsx (`pageAPanneau`). Le mode gemme/meule, sets, slots, tri
+          et aide restent dans la page. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options d'optimisation">
-        <div className="flex flex-col gap-3">{optionsControls(true)}</div>
+        <div className="flex flex-col gap-3">{optionsControls(true, false)}</div>
       </MobileSheet>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">

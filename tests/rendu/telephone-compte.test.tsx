@@ -90,7 +90,10 @@ export function testRenduTelephoneRunes() {
   const optim = rendreRunes('optimisation', true);
   const to = texteVisible(optim);
   egal(dialogues(optim), 1, 'Optimisation : un panneau');
-  ok(to.includes('Options d\'optimisation Palier % Gemme + meule Meule seule') && to.includes('Faisable avec ma réserve Sans les immémoriaux Runes utilisées'), 'Optimisation : palier, potentiel, antiques, options');
+  // ⚠️ Lot 11c (décision 26) : « Gemme + meule / Meule seule » a quitté le
+  // panneau pour la tête de la page (vérifié juste après).
+  ok(to.includes('Options d\'optimisation Palier % Runes') && to.includes('Faisable avec ma réserve Sans les immémoriaux Runes utilisées'), 'Optimisation : palier, antiques, options');
+  ok(to.includes('Gemme + meule Meule seule Sets'), 'Optimisation : le mode du potentiel en tête de la page, avant les filtres');
 
   const comparaison = texteVisible(rendreRunes('comparaison', true));
   ok(comparaison.includes('Courbes partagées Fichiers de compte') && comparaison.includes('Exporter ma courbe Importer une courbe'), 'Comparaison : sous-onglets, export, import');

@@ -18,6 +18,25 @@ Fichiers : [RtaSection.tsx](src/components/rta/RtaSection.tsx) ·
   et sa **couleur d'accent** (`sectionAccent`).
 - « Autre » et « Non classé » utilisent un losange coloré au lieu d'une icône de rune.
 
+## Filtre par section — au téléphone
+
+Refonte graphique, lot 13, décision 28 (la maquette) : **au doigt**, une rangée
+de pastilles en tête des sections — **« Tous »**, puis **« Non classé »** et
+chaque section de set, chacune avec son **nombre de monstres** (et l'icône de
+son set). **Une seule à la fois** : en choisir une n'affiche plus que cette
+section ; « Tous » les rend toutes.
+
+- ⚠️ **Un filtre d'AFFICHAGE, rien d'autre** : l'ordre de tour, les
+  compteurs, la prépa elle-même ne changent pas — on regarde une section, on
+  ne la sort pas de la prépa.
+- ⚠️ **Au téléphone seulement** (`lg:hidden`) : sur une colonne, trente
+  rangées se parcourent mal ; à la souris, les sections tiennent côte à côte
+  sous les yeux.
+- Non persisté : rouvrir la page montre tout. Une section supprimée pendant
+  qu'elle est choisie ramène à « Tous ».
+- Défilement horizontal de la rangée si les sections dépassent la largeur,
+  jamais un retour à la ligne qui pousserait les sections vers le bas.
+
 ## Section — `RtaSection`
 
 - En-tête : icône/losange + label + compteur de cartes + **filet** jusqu'au bord

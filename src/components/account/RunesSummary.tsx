@@ -3,7 +3,7 @@ import { RuneDetail, RUNE_SETS } from '../../types';
 import { RARITY_META, RUNE_EFFECT, runeEfficiency } from '../../lib/effects';
 import { runePotential } from '../../lib/runeOptim';
 import RuneIcon from '../RuneIcon';
-import { Kpi, Panel, BarRow, pct, fmt } from './SummaryBits';
+import { Kpi, Panel, BarRow, pct, fmt, CARTE_CHIFFRES_DOIGT } from './SummaryBits';
 
 interface Props {
   runes: RuneDetail[];
@@ -173,10 +173,12 @@ export default function RunesSummary({ runes }: Props) {
 
       {/* ---- Chiffres clés ---------------------------------------------- */}
       {/* ⚠️ À la SOURIS, UN bandeau (`Kpi bandeau`, la maquette `.stats`) :
-          six cases séparées par un filet, au lieu de six cartes. */}
+          six cases séparées par un filet, au lieu de six cartes. Au DOIGT,
+          une carte sur deux colonnes (lot 11c, décision 26). */}
       <div
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2
-                   lg:flex lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel"
+        className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2
+                   lg:flex lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel
+                   ${CARTE_CHIFFRES_DOIGT}`}
       >
         {/* Les tons reprennent la palette du résumé (`--pal-*`), qui suit le
             thème : mêmes teintes qu'avant en sombre, variante assombrie en

@@ -96,7 +96,12 @@ fluide à ~2000 runes). Fichier :
   moyenne ; le nombre de runes et le maximum sont écrits sous chaque barre.
 
 L'ordre de la souris est posé par `lg:order-*`. Au doigt, une colonne dans
-l'ordre d'avant, et les cartes par slot (lot 11). Non repris de la
+l'ordre d'avant, et les cartes par slot. ⚠️ **Au doigt, les six chiffres clés
+dans UNE carte** (lot 11c, décision 26, la maquette — qui n'en montrait que
+quatre ; les six restent) : deux colonnes (trois dès `sm`), les cases séparées
+par un filet d'1 px venu de l'écart de la grille sur fond `border-soft`
+(`CARTE_CHIFFRES_DOIGT`, `SummaryBits.tsx`) — un seul trait entre deux cases,
+aucun contre le bord. Même traitement au Résumé des artéfacts. Non repris de la
 maquette, et gardés pour le lot 13 (décision 20) :
 - le tableau des stats principales slot par slot (une information
   nouvelle) ;

@@ -182,7 +182,9 @@ sur quelle propriété**.
 ⚠️ **À la SOURIS** (refonte graphique, lot 8b, même gabarit que le Résumé des
 runes) : un en-tête « Résumé » et le nombre d'artéfacts, puis les six
 chiffres clés en **un bandeau** (`Kpi bandeau`, cases séparées par un
-filet) au lieu de six cartes. Au doigt, les cartes restent (lot 11).
+filet) au lieu de six cartes. Au doigt, les six chiffres clés forment **une
+carte** sur deux colonnes (lot 11c, décision 26 — même traitement que le
+Résumé des runes, voir [runes.md](runes.md)).
 
 ## Données sous-jacentes
 

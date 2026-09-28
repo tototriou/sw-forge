@@ -15,8 +15,20 @@ export const fmt = (v: number) => v.toFixed(1);
 // ⚠️ `bandeau` (refonte graphique, lot 8a, la maquette `.stats`) : à la
 // SOURIS, le chiffre n'est plus une carte mais une CASE d'un bandeau commun —
 // sans cadre propre, séparée de la précédente par un filet (`premier` : pas de
-// filet à gauche). Au doigt, la carte d'avant (lot 11).
-const CASE_BANDEAU = 'lg:flex-1 lg:rounded-none lg:border-0 lg:border-l lg:border-border-soft lg:bg-transparent lg:px-4 lg:py-3';
+// filet à gauche).
+// ⚠️ Au DOIGT (lot 11c, décision 26, la maquette) : une CASE de la carte
+// commune des chiffres clés — ni cadre ni arrondi propres, fond de panneau ;
+// les filets entre cases viennent de l'écart d'1 px du conteneur, posé sur un
+// fond couleur filet (voir `CARTE_CHIFFRES_DOIGT`). Un seul trait entre deux
+// cases, aucun contre le bord de la carte.
+const CASE_BANDEAU =
+  'lg:flex-1 lg:rounded-none lg:border-0 lg:border-l lg:border-border-soft lg:bg-transparent lg:px-4 lg:py-3 ' +
+  'max-lg:rounded-none max-lg:border-0 max-lg:bg-panel';
+
+// Le conteneur des chiffres clés AU DOIGT : une carte, deux colonnes (trois
+// dès `sm`), les cases séparées par l'écart d'1 px sur fond `border-soft`.
+export const CARTE_CHIFFRES_DOIGT =
+  'max-lg:gap-px max-lg:overflow-hidden max-lg:rounded-xl max-lg:border max-lg:border-border-soft max-lg:bg-border-soft';
 
 export function Kpi({
   label,

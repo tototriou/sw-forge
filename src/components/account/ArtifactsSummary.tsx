@@ -7,7 +7,7 @@ import {
   artifactSubName,
 } from '../../lib/effects';
 import { artifactScore, artifactEfficiency, maxRolls, isFullStack } from '../../lib/artifacts';
-import { Kpi, Panel, pct, fmt } from './SummaryBits';
+import { Kpi, Panel, pct, fmt, CARTE_CHIFFRES_DOIGT } from './SummaryBits';
 
 interface Props {
   artifacts: ArtifactDetail[];
@@ -177,10 +177,12 @@ export default function ArtifactsSummary({ artifacts }: Props) {
 
       {/* ---- Chiffres clés — le compte entier, puis chaque sorte ---------- */}
       {/* ⚠️ À la SOURIS, UN bandeau (`Kpi bandeau`, la maquette `.stats`),
-          comme le Résumé des runes : six cases séparées par un filet. */}
+          comme le Résumé des runes : six cases séparées par un filet. Au
+          DOIGT, une carte sur deux colonnes (lot 11c, décision 26). */}
       <div
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2
-                   lg:flex lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel"
+        className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2
+                   lg:flex lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel
+                   ${CARTE_CHIFFRES_DOIGT}`}
       >
         <Kpi
           label="Artéfacts"

@@ -489,7 +489,7 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 | 9a Outils · Optimizer | J | reporté après 10 | attend une livraison sur l'Optimizer (Thomas, 2026-09-28) |
 | 9b Outils · Speed tuning | J | exécuté, validé (bureau) | tests avant `f5cc897` (48) ; décision 22 (`f3c1715`) ; écran (`0f5e4c8`, `0e7a69a`) ; une assertion recomptée (import 2 → 4) ; validé par Thomas le 2026-09-28 |
 | 10 Ressources, Paramètres, Bientôt | J | exécuté, clos (bureau) | tests avant `96b74e9` (81) ; décision 23 (`6f90edd`) ; Bestiaire `cf11209`, Mécaniques `9779379`, Nouveautés `c99c99c`, Paramètres `9c7da0c` ; deux assertions assouplies (titre en tête) ; clos sur « continue » de Thomas le 2026-09-28 |
-| 11a Téléphone · Accueil, RTA | J | à faire | |
+| 11a Téléphone · Accueil, RTA | J | exécuté, clos | tests avant `8d2552b` (37, `auTelephone`) ; décision 24 (`8ab9ebf`) ; barre `8ce6f6b`, panneau `e249feb`, accueil `96a1e5e`, RTA `54049bf` ; 9 titres attendus suivent la barre ; clos sur « ok continue » le 2026-09-28 |
 | 11b Téléphone · Siège | J | à faire | |
 | 11c Téléphone · Mon compte | J | à faire | |
 | 11d Téléphone · Speed tuning, Ressources, Paramètres, Bientôt | J | à faire | |

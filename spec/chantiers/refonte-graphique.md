@@ -320,6 +320,8 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     (lot 8b) ; libellés de l'app gardés là où la maquette en change
     (« Correction », pas « Correctif » ; « Importer un JSON » ; « Tout
     supprimer »).
+#### Décisions prises en cours de chantier (24 et suivantes — le téléphone)
+
 24. **Téléphone · Accueil et RTA (lot 11a)** — quatre choix de Thomas le
     2026-09-28, avant le code :
     - **Accueil** : la structure est GARDÉE, resserrée au doigt (comme la
@@ -350,6 +352,20 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
       s'ouvrant au toucher — comme le tableau du bureau (décision 15).
     Le filtre « Toutes / Mes recos / Importées » de la maquette est ignoré :
     retiré par la décision 19.
+26. **Téléphone · Mon compte (lot 11c)** — quatre choix de Thomas le
+    2026-09-28, avant le code :
+    - **Résumés** (runes, artéfacts) : les chiffres clés dans UNE carte sur
+      deux colonnes — les six gardés, la maquette n'en montrait que quatre —,
+      puis chaque bloc en carte.
+    - **Courbes** : les filtres passent dans le panneau « Options », comme
+      pour la Liste ; la page ouvre sur le graphe.
+    - **Optimisation** : « Gemme + meule / Meule seule » sort du panneau,
+      sur la page, en tête.
+    - **Panneau « Filtrer mes runes »** : deux blocs intitulés « Filtrer » et
+      « Trier », et « Effacer les filtres » y entre (décision 20).
+    Au lot 13, à décider un par un : la ligne de résumé des listes (« 318
+    runes · Swift, Violent · Tri : Score SW ↓ »), le bouton « Voir N runes »
+    qui ferme le panneau.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur
@@ -920,7 +936,9 @@ un par un avec Thomas avant d'entrer dans ce lot :
   « Voir les nouveautés » sur « Bientôt disponible » ;
 - Téléphone (décision 24) : pastilles de filtre par catégorie avec
   compteurs en tête de la RTA, compteurs Monstres / Runes / Artéfacts sur
-  l'accueil.
+  l'accueil ;
+- Téléphone (décision 26) : ligne de résumé en tête des listes (compte,
+  filtres posés, tri), bouton « Voir N runes » qui ferme le panneau.
 
 Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
 

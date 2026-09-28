@@ -462,55 +462,38 @@ s'orienter.
     moment. Le conteneur est `relative` : sans ancêtre positionné, le sortant se
     calait sur le panneau `fixed` entier, donc en travers du titre.
 
-#### ⚠️ Des boutons DÉLIMITÉS, et deux colonnes quand la largeur le permet
+#### ⚠️ Une LISTE, une rangée par entrée
 
-- ⚠️ **Chaque cible porte SON cadre**, et non une liste qui les engloberait. Le
-  panneau a d'abord été une liste à filets : trois libellés séparés par des
-  traits, dont on ne voyait pas où commençait la cible. Le cadre est ce qui dit
-  où est le bouton. **Un seul contour, 1 px** — le marqueur d'état ne fait que le
-  teindre (`border-ctx bg-ctx-soft`), il n'en ajoute pas un second.
-- ⚠️ **Second temps en GRILLE de DEUX colonnes**, une seule quand elles
-  n'entrent plus. Les sept vues de Runes tiennent alors sur quatre rangées au
-  lieu de sept, dans un panneau qui n'a que le tiers de l'écran.
+Refonte graphique, lot 11a, **décision 24** (Thomas, la maquette) : une
+colonne de rangées au lieu d'une grille de cases encadrées.
 
-  ```
-  repeat(auto-fit, minmax(max(140px, calc(50% - 4px)), 1fr))
-  ```
-
-  - La **borne à deux** tient dans le `max()` : le minimum d'une colonne vaut la
-    moitié de la largeur, donc trois n'entrent jamais. ⚠️ Un `minmax(140px, 1fr)`
-    seul laissait `auto-fit` en poser **trois** dès 543 px de panneau — vrai sur
-    une tablette étroite, et les vues y devenaient des vignettes.
-  - Le **plancher de 140 px** porte le repli : c'est la largeur sous laquelle
-    « Optimisation » et « Comparaison » se tronquent. Dès que la moitié du
-    panneau passe dessous, plus aucune paire n'entre et la grille retombe
-    **d'elle-même** sur une colonne pleine largeur.
-  - Bascule mesurée : **2 colonnes dès 320 px d'écran** (288 px de panneau),
-    1 seule en dessous. Un seul `max()` porte les deux règles — pas de second
-    seuil à écrire, donc rien à maintenir d'accord.
-  - ⚠️ Les `_` sont la façon d'écrire une espace dans une valeur arbitraire
-    Tailwind (`calc(50%_-_4px)`). Sans eux la classe n'est pas reconnue et
-    **aucune règle n'est émise** — à vérifier dans le CSS construit.
-- ⚠️ **Les DEUX temps partagent la même grille.** Ils se succèdent au même
-  endroit à quelques centaines de millisecondes d'intervalle : une colonne
-  pleine largeur puis deux colonnes, c'était deux gabarits de cible pour un seul
-  geste, et le panneau changeait de nature en descendant d'un niveau.
-  - Un nombre **impair** de cibles laisse la dernière seule sur sa rangée, à
-    gauche (trois inventaires, trois vues de Siège). C'est le comportement d'une
-    grille ; l'étirer sur les deux colonnes lui donnerait un poids qu'elle n'a
-    pas.
-  - ⚠️ **Toutes les cibles ont la MÊME taille**, le retour compris — il est une
-    cellule de la grille comme les autres. Posé pleine largeur au-dessus, au
-    motif que c'est une action sur le panneau et non une destination, il faisait
-    un bouton deux fois plus large que ses voisins dans un panneau qui n'a qu'un
-    seul gabarit. Ce qui le distingue est son **encre atténuée** et son chevron
-    **vers la gauche**, pas son encombrement.
+- **Historique, à ne pas perdre de vue.** Le panneau a d'abord été une liste
+  à filets — « trois libellés séparés par des traits, dont on ne voyait pas où
+  commençait la cible » —, puis une **grille de deux colonnes** de cases
+  encadrées (`repeat(auto-fit, minmax(max(140px, calc(50% - 4px)), 1fr))`,
+  deux colonnes dès 320 px d'écran). Thomas a choisi la liste de la maquette
+  en connaissance de cause ; ce qui répond au défaut d'alors :
+  - chaque rangée prend **toute la largeur**, sur **52 px** exactement (au-delà
+    des 44 de la règle tactile) : la cible est la rangée entière, pas le
+    libellé ;
+  - elle **s'allume au toucher** (`active:`) et au survol ;
+  - un **filet sous chaque rangée, sauf la dernière** — un seul trait entre
+    deux entrées, jamais deux.
+- L'entrée courante : **encre pleine, semi-gras, icône teintée** de la couleur
+  de contexte — le marqueur de la barre latérale.
+- ⚠️ **Les DEUX temps partagent la même liste.** Ils se succèdent au même
+  endroit à quelques centaines de millisecondes d'intervalle : deux gabarits
+  de cible pour un seul geste, et le panneau changerait de nature en
+  descendant d'un niveau.
+- Le **retour** est la **première rangée**, en haut du panneau, au même
+  gabarit que les autres — **toutes les cibles ont la même taille**. Ce qui le
+  distingue est son **encre atténuée** et son chevron **vers la gauche**, pas
+  son encombrement.
 - La **colonne d'icône est à largeur fixe** (18 px) : sans elle les libellés se
-  décalent d'une cible à l'autre au gré de la largeur des symboles — et en
-  grille, les deux colonnes cessent de s'aligner l'une sur l'autre.
-- Le **retour** est une cible pleine largeur au-dessus de la grille, même cadre
-  et même gabarit, encre atténuée : il ramène au niveau du dessus, il n'est pas
-  une destination de plus.
+  décalent d'une rangée à l'autre au gré de la largeur des symboles.
+- Meules et Gemmes n'y reviennent pas (la maquette les montre avec
+  « Bientôt ») : elles ont quitté le menu par décision de Thomas, [retrait #6]
+  du cadrage de la refonte.
 - ⚠️ La hauteur du panneau est **re-mesurée au changement de temps**
   (`mesureCle`). Elle est figée à l'ouverture pour qu'un dépliage interne ne
   fasse pas remonter ce qu'on vient de toucher ; mais ici tout le contenu est

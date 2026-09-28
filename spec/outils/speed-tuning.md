@@ -41,6 +41,33 @@ vitesse_combat = base + runes + ⌈ base × (15 + lead) / 100 ⌉
   `⌈ 10000 / (7n) ⌉` (`speedForTick`) : 130 au tick 11, **239 au tick 6**
   (« Lent » en siège), **286 au tick 5** (« Rapide »), 477 au tick 3.
 
+### ⚠️ Mode RTA — non modélisé, chantier à ouvrir
+
+**Les 7 % par tick sont ceux du siège** (et de l'arène, de la guerre de
+guilde). **La RTA remplit la barre de 1,5 % de la vitesse par tick**, les
+raids de 4,5 % :
+
+> « In most areas of the game the tick size is 7%, the only exceptions are
+> in Raids (4.5%) and RTA (1.5%) » —
+> [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/attack_bar/),
+> même chose sur le [wiki Fandom](https://summonerswar.fandom.com/wiki/Attack_Bar).
+
+L'outil ne connaît que le siège : un réglage validé ici ne vaut pas pour la
+RTA dès qu'un boost de barre ou un buff de vitesse entre en jeu (sans
+modificateur, l'ordre est le même : tout le monde est ralenti dans la même
+proportion). Demandé par Thomas le 2026-09-28 — **chantier à part**, pas la
+refonte graphique (il touche `src/lib/`). Ce qu'il devra trancher :
+
+- un réglage **Siège / RTA** de l'outil, qui change la constante du moteur
+  (`speedTune.ts`), le seuil par tick (`speedForTick`) et le repère des ticks
+  (239 / 286 n'existent qu'en siège) ;
+- la **longueur des tableaux** : à 1,5 %, un monstre à 300 de vitesse joue
+  vers le 23ᵉ tick — les 40 colonnes ne montreraient que son premier tour ;
+- le **totem +15 %**, compté partout aujourd'hui (voir plus haut), y
+  compris dans l'ordre de tour de la RTA : les bâtiments comptent-ils en
+  RTA ? **Non établi** — à citer ou à mesurer en jeu avant de coder (skill
+  `game-data-curation`, §6 ter : pas de déduction par ressemblance).
+
 Deux **modificateurs par tick** (saisis dans les grilles, voir plus bas) entrent
 dans la simulation. ⚠️ **Une valeur saisie REMPLACE ce que les compétences
 posent** pour ce monstre et ce tick — **0 annule** l'effet du sort, une case

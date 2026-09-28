@@ -405,4 +405,5 @@ jamais en entier.
 | [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
 | [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
 | [chantiers/refonte-graphique.md](chantiers/refonte-graphique.md) — refonte graphique sans régression (navigation, boutons, densité) | en cours | `forge/refonte-graphique` |
+| Speed tuning en mode RTA (1,5 % par tick au lieu de 7 %) — pas encore de cadrage ; ce qu'il devra trancher : [outils/speed-tuning.md](outils/speed-tuning.md) § Mode RTA | à ouvrir | — |
 | `spec/outils/optimizer/reliques.md` (privé, `sw-forge-docs`) — optimiseur de reliques ; à déplacer dans `spec/outils/optimizer/chantiers/` par le chantier lui-même | en cours | `forge/implementation-relique` |

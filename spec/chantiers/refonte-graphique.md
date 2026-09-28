@@ -470,7 +470,7 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 | 8b Compte · Monstres, Artéfacts | J | exécuté, validé (bureau) | tests avant `bb30d06` (59) ; décision 20 reprise ; box (`2227712`, `aee4db2`, `6c35a1b`), artéfacts (`ec5ec31`), tests (`2498f8b`) ; validé par Thomas le 2026-09-28 |
 | 9a Outils · Optimizer | J | reporté après 10 | attend une livraison sur l'Optimizer (Thomas, 2026-09-28) |
 | 9b Outils · Speed tuning | J | exécuté, validé (bureau) | tests avant `f5cc897` (48) ; décision 22 (`f3c1715`) ; écran (`0f5e4c8`, `0e7a69a`) ; une assertion recomptée (import 2 → 4) ; validé par Thomas le 2026-09-28 |
-| 10 Ressources, Paramètres, Bientôt | J | à faire | |
+| 10 Ressources, Paramètres, Bientôt | J | exécuté, clos (bureau) | tests avant `96b74e9` (81) ; décision 23 (`6f90edd`) ; Bestiaire `cf11209`, Mécaniques `9779379`, Nouveautés `c99c99c`, Paramètres `9c7da0c` ; deux assertions assouplies (titre en tête) ; clos sur « continue » de Thomas le 2026-09-28 |
 | 11 Téléphone | J | à faire | |
 | 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | à faire | |
 | 12 validation finale et fusion | M | à faire | |
@@ -810,6 +810,16 @@ de Thomas), ordre de tour sous l'analyse. Tests avant `f5cc897` (48) ; une
 assertion recomptée, import 2 → 4 (une copie par format). Aucune perte.
 Hors refonte, noté : le mode RTA (1,5 % par tick), chantier à ouvrir.
 **Validé par Thomas le 2026-09-28.**
+
+**Résultat lot 10 — Ressources, Paramètres, Bientôt (2026-09-28)** — preuve
+[lot-10.md](refonte-graphique-preuves/lot-10.md). Décision 23 avant le code.
+À la souris : Bestiaire en-tête et barre de « Ma box », Mécaniques en deux
+colonnes (sommaire fixe), Nouveautés une version par rangée, Paramètres en
+deux blocs intitulés. Aux deux formats, les derniers contrôles dessinés à la
+main de ces pages passent sur la librairie. Tests avant `96b74e9` (81) ;
+deux assertions assouplies (« contient » : le titre de page passe en tête).
+Aucune perte. Reportés, hors refonte : deux textes de la page Mécaniques
+(`spec/mecaniques.md`). **Clos sur « continue » de Thomas le 2026-09-28.**
 
 ### B.11 Lot 11 — téléphone · J
 

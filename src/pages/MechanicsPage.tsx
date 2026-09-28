@@ -17,15 +17,12 @@ function goTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ⚠️ À la SOURIS, plus de carte : un filet au-dessus de chaque section, comme
-// la maquette — un article qui se lit d'un trait, pas sept panneaux empilés.
+// ⚠️ Plus de carte : un filet au-dessus de chaque section, comme la maquette —
+// un article qui se lit d'un trait, pas sept panneaux empilés. À la souris
+// depuis le lot 10, au doigt depuis le lot 11d (décision 27).
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section
-      id={id}
-      className="scroll-mt-24 rounded-2xl border border-border bg-panel/50 p-5
-                 lg:rounded-none lg:border-x-0 lg:border-b-0 lg:border-border-soft lg:bg-transparent lg:px-0 lg:pb-0"
-    >
+    <section id={id} className="scroll-mt-24 border-t border-border-soft pt-5">
       <h2 className="font-display text-[22px] tracking-wide mb-3">{title}</h2>
       <div className="space-y-3 text-sm leading-relaxed text-ink-dim">{children}</div>
     </section>
@@ -93,7 +90,7 @@ export default function MechanicsPage() {
         </ol>
       </nav>
 
-      <div className="mt-5 flex flex-col gap-4 lg:col-start-2 lg:row-start-2 lg:gap-5">
+      <div className="mt-5 flex flex-col gap-5 lg:col-start-2 lg:row-start-2">
         <Section id="vitesse" title="Vitesse de combat">
           <p>
             La vitesse effective d&apos;un monstre en combat se calcule à partir de sa vitesse de

@@ -56,6 +56,9 @@ tard ») :
   le sommaire **fixe** à gauche (220 px, `sticky`), sans cadre ni numéros,
   chaque entrée surlignée au survol ; l'article à droite, borné à 720 px, ses
   sections séparées par un filet au lieu d'être des panneaux. L'ordre du DOM ne
-  change pas (titre, sommaire, sections) : seule la grille les place. Au doigt,
-  rien ne change (lot 11). La section en cours surlignée dans le sommaire est
-  un ajout de la maquette, reporté au lot 13 (décision 23).
+  change pas (titre, sommaire, sections) : seule la grille les place. **Au
+  doigt** (lot 11d, décision 27), une colonne : le sommaire en tête, dans sa
+  carte — **gardé**, alors que la maquette téléphone le retirait —, puis les
+  sections séparées par un filet, comme à la souris. La section en cours
+  surlignée dans le sommaire est un ajout de la maquette, reporté au lot 13
+  (décision 23).

@@ -3758,9 +3758,10 @@ function resolvedCombatStatBonuses(profiles: CombatStatProfile[], setup: DamageS
 // Brita/Eivor (Eau), voir `monsterBonusSiAtqSeuil` : confirmé par
 // l'utilisateur, « toute source confondue (ATQ de base + rune + lead +
 // compétence d'invocateur) ». Pas de buff ATQ (`atkBuff`) ni de Miriam : la
-// stat AFFICHÉE hors combat, pas un instantané de tour.
+// stat du DÉBUT du combat, pas un instantané de tour.
 // ⚠️ Les auras Fight (externes + propres) en font partie depuis 6bis-b2 :
-// « toute source confondue », et le cadrage (A.2, cible 2) fait entrer les
+// « toute source confondue », les seuils sont « des totaux de combat »
+// (catalogue-des-passifs.md), et le cadrage (A.2, cible 2) fait entrer les
 // auras dans les passifs. C'est exactement l'ATQ de `statsDebutCombat`, même
 // `ceil` unique ; aura nulle → valeur strictement identique à l'ancienne
 // réplique locale.

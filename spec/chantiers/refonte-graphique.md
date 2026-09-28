@@ -320,6 +320,24 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     (lot 8b) ; libellés de l'app gardés là où la maquette en change
     (« Correction », pas « Correctif » ; « Importer un JSON » ; « Tout
     supprimer »).
+24. **Téléphone · Accueil et RTA (lot 11a)** — quatre choix de Thomas le
+    2026-09-28, avant le code :
+    - **Accueil** : la structure est GARDÉE, resserrée au doigt (comme la
+      décision 10 au bureau) — pas la liste groupée de la maquette, qui
+      retirait la zone de dépôt, « Comment ça marche », les descriptions,
+      « Prépa d'un ami », l'Arène et la dernière version.
+    - **RTA** : les rangées compactes de la maquette (portrait, nom,
+      vitesse, alerte) au lieu des cartes ; le **choix de catégorie reste
+      sur chaque rangée** (au doigt, on ne glisse pas), avec le retrait.
+    - **Panneau des sous-sections** (onglets RTA, Siège, Compte) : la LISTE
+      de la maquette — mêmes entrées, mêmes deux niveaux, retour en haut du
+      panneau — au lieu de la grille de cases.
+    - **Barre du haut** : la section en petit au-dessus du nom de la page, à
+      gauche, au lieu du titre centré.
+    Au lot 13, à décider un par un : la loupe de recherche de la barre du
+    haut (la palette Ctrl K, déjà décidée), les pastilles de filtre par
+    catégorie avec compteurs en tête de la RTA, les compteurs Monstres /
+    Runes / Artéfacts de l'accueil.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur
@@ -887,7 +905,10 @@ un par un avec Thomas avant d'entrer dans ce lot :
   monstre (sort retenu), élément sur le portrait ;
 - Ressources (décision 23) : stats VIT / PV / ATQ / DEF sur les cartes du
   bestiaire, section en cours surlignée dans le sommaire des Mécaniques,
-  « Voir les nouveautés » sur « Bientôt disponible ».
+  « Voir les nouveautés » sur « Bientôt disponible » ;
+- Téléphone (décision 24) : pastilles de filtre par catégorie avec
+  compteurs en tête de la RTA, compteurs Monstres / Runes / Artéfacts sur
+  l'accueil.
 
 Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
 

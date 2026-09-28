@@ -1426,10 +1426,12 @@ function DeckBlock({
             })}
           </ZoneCliquable>
 
-          {/* À la souris : FORT CONTRE — les portraits de la première défense
-              visée, +N s'il y en a d'autres. Purement informatif, comme le
-              bloc détaillé. */}
-          <span className="hidden min-w-0 items-center gap-1 lg:flex">
+          {/* FORT CONTRE — les portraits de la première défense visée, +N s'il
+              y en a d'autres. Purement informatif, comme le bloc détaillé.
+              ⚠️ **Au téléphone aussi** (lot 11b, décision 25, la maquette) :
+              la rangée repliée dit l'offense ET ce qu'elle bat, séparées par
+              un filet. Il était réservé à la souris. */}
+          <span className="flex min-w-0 flex-none items-center gap-1 max-lg:border-l max-lg:border-border-soft max-lg:pl-2">
             {deck.counters.length > 0 ? (
               <>
                 {deck.counters[0].monsters
@@ -1531,6 +1533,29 @@ function DeckBlock({
             manque plus, elles reprennent leur place naturelle côte à côte. */}
         {/* `lg:hidden` : à la souris, le verdict et « réalisable N fois » sont
             dans la colonne Verdict de la ligne (décision 15). */}
+        {/* ⚠️ **Au téléphone, les SETS visés sous la rangée** (lot 11b,
+            décision 25, la maquette) : ceux de chaque monstre, dans l'ordre
+            des portraits — à la souris, ils sont collés à chaque nom. La
+            PREMIÈRE possibilité de runage, comme là-bas. */}
+        {deck.slots.some((sl) => (sl.setOptions?.[0] ?? []).length > 0) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
+            {deck.slots.map((sl, i) => {
+              const sets = [...new Set(sl.setOptions?.[0] ?? [])];
+              if (sets.length === 0) return null;
+              return (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-0.5 rounded-full border border-border-soft bg-panel2 px-1.5 py-0.5"
+                  title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
+                >
+                  {sets.map((k) => (
+                    <RuneIcon key={k} setKey={k} size={13} />
+                  ))}
+                </span>
+              );
+            })}
+          </div>
+        )}
         {!editing && match && !empty && (
           <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5 lg:hidden">
             <span className="basis-full sm:basis-auto">

@@ -1507,8 +1507,12 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
     de fichier) — c'est le MÊME bouton, seule la disposition change.
   Déplier une ligne montre, dessous, la **carte détaillée d'avant, inchangée**
   (consignes du deck, les 3 monstres avec runage, stats et artéfacts, « Fort
-  contre » avec ses précisions, édition). **Au doigt, rien ne change** : les
-  decks restent des cartes empilées (lot 11).
+  contre » avec ses précisions, édition). **Au doigt**, les decks restent
+  des cartes empilées, repliées par défaut, qui s'ouvrent au toucher ; depuis
+  le lot 11b (décision 25, la maquette), la rangée repliée montre aussi
+  **« Fort contre »** (séparé de l'offense par un filet) et, dessous, les
+  **sets visés** de chaque monstre (une pastille par monstre, première
+  possibilité de runage) — ce qu'elle réservait à la souris.
   L'ancienne disposition à la souris — une grille de cartes sur deux colonnes
   (`lg:grid-cols-2`, le deck en édition sur toute la largeur) — est remplacée
   par cette liste : une ligne par deck se lit d'un regard, sans demi-largeur

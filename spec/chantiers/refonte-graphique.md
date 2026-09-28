@@ -542,8 +542,8 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 | 11c Téléphone · Mon compte | J | exécuté, clos | tests avant `17c0ffb` (23) ; décision 26 (`74b1cb4`, corrigée `0b19997`) ; panneau runes `170861d`, Optimisation `8597bb6`, résumés `7bb9787` ; deux assertions suivent les panneaux ; clos sur « ok continue » le 2026-09-28 |
 | 11d Téléphone · Speed tuning, Ressources, Paramètres, Bientôt | J | exécuté, clos | tests avant `e89fc4d` (15) ; décision 27 (`c2b2f3c`) ; Mécaniques `baecb4e`, Nouveautés `a381111`, Paramètres `c9436c2`, Speed tuning `a7da34e` (retour de Thomas) ; clos sur « ok continue » le 2026-09-28 |
 | 11e Téléphone · Optimizer | J | après 9a | |
-| 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | à faire | |
-| 12 validation finale et fusion | M | à faire | |
+| 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | exécuté, clos | décisions 28 et 29 ; Effacer les filtres `41b5cb0`, filtre RTA `3b8ca2f`, indicateur `9123d0b`, restauration `3a47356`, Annuler `6e0294a`, palette `6384885` ; clos sur « ok » le 2026-09-28 |
+| 12 validation finale et fusion | M | après 9a et 11e | Thomas, 2026-09-28 : attendre l'Optimizer (livraison attendue) avant la fusion |
 
 ## Partie B — les lots
 

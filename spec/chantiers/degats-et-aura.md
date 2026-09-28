@@ -234,9 +234,13 @@ effectivement présentes, si l'aperçu en trouve. Dérogation utilisateur du
 de skills manquants sont corrigés dans un commit transverse distinct des lots
 de mécanique, après le constat de blocage au lot 3.
 
-**Ne pas toucher** : `spec/outils/optimizer/reliques.md` (propriété de
-`forge/implementation-relique`). Un besoin dessus se signale, il ne se force
-pas.
+**`spec/outils/optimizer/reliques.md`** : propriété de
+`forge/implementation-relique` jusqu'au 2026-09-29. **Décision utilisateur
+du 2026-09-29 :** ce chantier est terminé, entièrement inclus dans cette
+branche, et n'attend que sa fusion sur `main` pour être clôturé ; ce
+chantier-ci peut donc modifier `reliques.md` quand un lot l'exige, avec
+`rafraichir` avant la modification et `livrer` → `verifier` → `integrer`
+ensuite, comme toute note privée.
 
 ### A.6 Si une vérification échoue, si un cas est ambigu
 
@@ -2402,11 +2406,11 @@ leur parité finale.
 les auras dans les exclusives de relique : l'assiette Y d'`apportExclusive`
 (`relicExclusive.ts` L133) passe par `statsDebutCombat` et change donc en
 b2. Or `reliques.md` § 5.2 (L254–260) énumère « au début du combat » sans
-les auras, et A.5 interdit de modifier ce fichier. b2 documente le
-comportement dans `degats-reels/effets-equipe-et-leaders.md` avec renvoi à
-§ 5.2, inscrit le besoin de mise à jour de § 5.2 dans `pistes.md`, et le
-signale au chantier `forge/implementation-relique` dans son rapport. Il ne
-touche pas `reliques.md`.
+les auras. b2 amende cette énumération dans le **même commit** que le code
+(auras externes et activations propres, décision du 2026-09-25), avec renvoi
+croisé vers `degats-reels/effets-equipe-et-leaders.md`, et met à jour la
+ligne « les reliques » du README privé de l'Optimizer, qui interdit encore
+de modifier ce fichier ailleurs (A.5, décision du 2026-09-29).
 
 **Ne fait pas :** aucun contrôle visuel d'aura (lot 7), aucun changement de
 la règle de jeu d'Intangible ni des valeurs +8 de A.2 ter. Après tous les

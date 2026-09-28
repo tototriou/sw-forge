@@ -262,6 +262,14 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
 
 Les filtres se combinent avec la recherche.
 
+**« Effacer les filtres »** (refonte graphique, lot 13, décision 28 — le même
+bouton que les runes, `spec/compte/runes.md`) : au bout des filtres, à la
+souris comme dans le panneau « Filtrer ma box ». Il remet **tous les
+éléments, toutes les étoiles**, et coupe **Doublons** et **2A**. Il ne touche
+ni à la recherche ni au tri. ⚠️ **Toujours affiché, désactivé** quand rien
+n'est filtré (« Aucun filtre posé ») : un bouton qui apparaît au premier
+filtre ne s'explique pas.
+
 ⚠️ **À la SOURIS, trois lignes fixes** (refonte graphique, lot 8b) : la
 recherche à largeur fixe (288 px), puis élément · Nat, Doublons, 2A sur une
 ligne, puis **le tri à la suite des filtres** (Thomas : « mets l'ordre à la

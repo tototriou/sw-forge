@@ -69,6 +69,15 @@ Les intitulés ont une **largeur fixe** (`w-[86px]`) : les rangées de boutons
 démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
 « TYPE » et « CATÉGORIE » décalaient leurs rangées l'une par rapport à l'autre.
 
+**« Effacer les filtres »** (refonte graphique, lot 13, décision 28 — le même
+bouton que les runes) : au bout des filtres, à la souris comme dans le
+panneau « Filtrer mes artéfacts ». Il remet la catégorie à **Tous**, retire
+l'attribut et le type choisis, recoche **toutes les raretés** et remet la stat
+principale à **Toutes**. ⚠️ Il ne touche **pas aux propriétés recherchées** :
+comme pour les runes, elles servent aussi à TRIER, et les vider changerait
+l'ordre de la liste. Ni au sens du tri. **Toujours affiché, désactivé** quand
+rien n'est filtré (« Aucun filtre posé »).
+
 ⚠️ **À la SOURIS** (refonte graphique, lot 8b) : les rangées se suivent **sur
 la ligne**, chacune avec son intitulé à sa largeur naturelle, collé à ses
 choix — ce qui sépare deux filtres est alors l'écart entre les groupes, plus

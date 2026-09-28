@@ -90,6 +90,18 @@ export function testRenduTelephoneRta() {
   ok(b.some((x) => x.ariaLabel === 'Fermer'), 'le panneau se ferme');
 }
 
+// Lot 13 (décision 28) : le filtre par section au téléphone — ajouté avec lui.
+export function testRenduTelephoneRtaFiltre() {
+  titre('rendu téléphone · RTA — filtre par section');
+  const html = rendreRta('prepa', false);
+  ok(valeurs(html, 'aria-label').includes('Afficher une section'), 'la rangée de pastilles est nommée');
+  const b = boutons(html);
+  ok(b.some((x) => x.texte === 'Tous 3' && x.presse === true), '« Tous », enclenché, avec le nombre de monstres');
+  for (const p of ['Non classé 1', 'Swift 1', 'Violent 1', 'Despair 0', 'Autre 0'])
+    ok(b.some((x) => x.texte === p && x.presse === false), `« ${p} »`);
+  ok(texteVisible(html).endsWith('1 Chasun 267 2 Veromos 205 3 Galleon 125'), 'l\'ordre de tour reste entier');
+}
+
 export function testRenduTelephoneRtaAmi() {
   titre('rendu téléphone · RTA · Ami');
   const html = rendreRta('ami', true);

@@ -79,7 +79,7 @@ import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testR
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
-import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi } from './rendu/telephone-accueil-rta.test';
+import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
 import { testRenduTelephoneMonstres, testRenduTelephoneArtefacts, testRenduTelephoneRunes } from './rendu/telephone-compte.test';
 import { testRenduTelephoneOutilsRessources } from './rendu/telephone-outils-ressources.test';
@@ -156,6 +156,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneAccueil', testRenduTelephoneAccueil],
   ['testRenduTelephoneRta', testRenduTelephoneRta],
   ['testRenduTelephoneRtaAmi', testRenduTelephoneRtaAmi],
+  ['testRenduTelephoneRtaFiltre', testRenduTelephoneRtaFiltre],
   ['testRenduTelephoneSiege', testRenduTelephoneSiege],
   ['testRenduTelephoneRecos', testRenduTelephoneRecos],
   ['testRenduTelephoneMonstres', testRenduTelephoneMonstres],

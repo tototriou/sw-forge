@@ -30,6 +30,8 @@ import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import { Bouton, Selecteur } from '../ui';
+import Pastille from '../ui/Pastille';
+import RuneIcon from '../components/RuneIcon';
 import type { RtaSub } from '../App';
 
 interface Props {
@@ -224,6 +226,19 @@ export default function RtaPage({
   }
 
   const runeSections = rta.state.sections;
+
+  // Filtre par section AU TÉLÉPHONE (lot 13, décision 28, la maquette) : une
+  // seule section affichée, ou toutes (`null`). ⚠️ Affichage seulement —
+  // l'ordre de tour et la prépa ne changent pas. Non persisté. Une section
+  // supprimée pendant qu'elle est choisie ramène à « Tous ».
+  const [filtreSection, setFiltreSection] = useState<string | null>(null);
+  const sectionFiltree =
+    filtreSection && (filtreSection === RTA_UNASSIGNED || runeSections.includes(filtreSection))
+      ? filtreSection
+      : null;
+  // Au téléphone, une section non choisie sort de l'affichage (`max-lg:hidden`) ;
+  // à la souris, tout reste.
+  const horsFiltre = (key: string) => (sectionFiltree && sectionFiltree !== key ? 'max-lg:hidden' : '');
 
   // ⚠️ Rendus une seule fois, posés à DEUX endroits selon la largeur : dans la
   // page au-dessus de `lg`, dans le panneau en dessous. Deux copies auraient
@@ -451,8 +466,31 @@ export default function RtaPage({
         <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>
       )}
 
+      {/* ⚠️ **Filtre par section, au TÉLÉPHONE** (lot 13, décision 28, la
+          maquette) : « Tous », « Non classé », puis chaque section, avec son
+          nombre de monstres. Une rangée qui DÉFILE en largeur, jamais à la
+          ligne — elle ne pousse pas les sections vers le bas. */}
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden" role="group" aria-label="Afficher une section">
+        <Pastille
+          actif={sectionFiltree === null}
+          onClick={() => setFiltreSection(null)}
+          libelle={`Tous ${allItems.length}`}
+          className="flex-none"
+        />
+        {[RTA_UNASSIGNED, ...runeSections].map((key) => (
+          <Pastille
+            key={key}
+            actif={sectionFiltree === key}
+            onClick={() => setFiltreSection(key)}
+            icone={RUNE_SETS.some((s) => s.key === key) ? <RuneIcon setKey={key} size={15} /> : undefined}
+            libelle={`${key === RTA_UNASSIGNED ? 'Non classé' : sectionLabel(key)} ${groups[key]?.length ?? 0}`}
+            className="flex-none"
+          />
+        ))}
+      </div>
+
       {/* Zone tampon : les monstres ajoutés y arrivent avant classement */}
-      <div className="mt-5">
+      <div className={`mt-5 ${horsFiltre(RTA_UNASSIGNED)}`}>
         <RtaSection
           sectionKey={RTA_UNASSIGNED}
           label="Non classé"
@@ -468,19 +506,20 @@ export default function RtaPage({
       {/* Sections par set de runes */}
       <div className="mt-6 flex flex-col gap-4">
         {runeSections.map((key) => (
-          <RtaSection
-            key={key}
-            sectionKey={key}
-            label={sectionLabel(key)}
-            accent={sectionAccent(key)}
-            count={groups[key]?.length ?? 0}
-            removable={key !== RTA_OTHER}
-            onRemoveSection={rta.removeSection}
-            onDropMonster={handleDrop}
-            {...detailOf(groups[key] ?? [])}
-          >
-            {renderCards(groups[key] ?? [])}
-          </RtaSection>
+          <div key={key} className={horsFiltre(key)}>
+            <RtaSection
+              sectionKey={key}
+              label={sectionLabel(key)}
+              accent={sectionAccent(key)}
+              count={groups[key]?.length ?? 0}
+              removable={key !== RTA_OTHER}
+              onRemoveSection={rta.removeSection}
+              onDropMonster={handleDrop}
+              {...detailOf(groups[key] ?? [])}
+            >
+              {renderCards(groups[key] ?? [])}
+            </RtaSection>
+          </div>
         ))}
       </div>
 

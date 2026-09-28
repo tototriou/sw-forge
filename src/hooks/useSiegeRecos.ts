@@ -18,6 +18,28 @@ import { artifactSubKinds, canAddSet, isArtifactSub } from '../lib/effects';
 import { cleanArtifacts, cleanSetOptions } from '../lib/recoShare';
 import { saveLocal, usePersistence } from './usePersistence';
 
+// Un deck VIDE : celui que `removeDeck` pose quand on retire le dernier — trois
+// slots sans monstre, sans consigne ni défense visée.
+const deckVide = (d: RecoDeck) =>
+  !d.note && d.counters.length === 0 && d.slots.every((s) => s.com2usId == null && !s.name);
+
+// Remettre un élément À SA PLACE dans une liste (« Annuler », lot 13) : à
+// l'index d'origine, borné à la liste actuelle. Pure, pour être testée.
+export function reinsererA<T>(liste: T[], el: T, index: number): T[] {
+  const copie = [...liste];
+  copie.splice(Math.min(Math.max(index, 0), copie.length), 0, el);
+  return copie;
+}
+
+// Les decks d'une recommandation après restauration d'un deck supprimé.
+// ⚠️ Supprimer le DERNIER deck en laisse un vide à sa place (jamais zéro deck,
+// voir `removeDeck`) : le restaurer REMPLACE ce deck vide au lieu de s'y
+// ajouter. Pure, pour être testée.
+export function decksApresRestauration(decks: RecoDeck[], deck: RecoDeck, index: number): RecoDeck[] {
+  if (decks.length === 1 && deckVide(decks[0])) return [deck];
+  return reinsererA(decks, deck, index);
+}
+
 const SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
 // Recommandations de decks de siège. Contrairement à la box (en mémoire), ce
@@ -130,6 +152,9 @@ export interface UseRecoState {
   addDeck: (id: string) => void;
   addDeckWith: (id: string, deck: RecoDeck) => void; // deck pré-rempli (ex. depuis le siège)
   removeDeck: (id: string, deck: number) => void;
+  // « Annuler » une suppression (lot 13) : remet à sa place, tel quel.
+  restaurerReco: (reco: Reco, index: number) => void;
+  restaurerDeck: (id: string, deck: RecoDeck, index: number) => void;
   setDeckMeta: (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) => void;
   // Défenses adverses visées par un deck (« fort contre ») — informatif.
   addCounter: (id: string, deck: number) => void;
@@ -218,6 +243,22 @@ export function useSiegeRecos(): UseRecoState {
         const decks = r.decks.filter((_, i) => i !== deck);
         return { ...r, decks: decks.length ? decks : [emptyRecoDeck()] };
       }),
+    [update]
+  );
+
+  // « Annuler » (refonte graphique, lot 13, décision 29) : ce qu'on vient de
+  // supprimer revient TEL QUEL, à SA place. Sans effet s'il est déjà là.
+  const restaurerReco = useCallback(
+    (reco: Reco, index: number) =>
+      setState((s) => (s.recos.some((r) => r.id === reco.id) ? s : { recos: reinsererA(s.recos, reco, index) })),
+    []
+  );
+
+  // Voir `decksApresRestauration` : un deck vide laissé par la suppression du
+  // dernier est remplacé, pas complété.
+  const restaurerDeck = useCallback(
+    (id: string, deck: RecoDeck, index: number) =>
+      update(id, (r) => ({ ...r, decks: decksApresRestauration(r.decks, deck, index) })),
     [update]
   );
 
@@ -405,10 +446,12 @@ export function useSiegeRecos(): UseRecoState {
     state,
     addReco,
     removeReco,
+    restaurerReco,
     setMeta,
     addDeck,
     addDeckWith,
     removeDeck,
+    restaurerDeck,
     setDeckMeta,
     addCounter,
     removeCounter,

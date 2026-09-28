@@ -56,10 +56,21 @@ function load(side: SiegeSide): SiegeState {
   }
 }
 
+// Les équipes après restauration d'une équipe supprimée (« Annuler », lot 13) :
+// à son index d'origine, borné à la liste actuelle — pas au bout. Pure, pour
+// être testée.
+export function equipesApresRestauration(teams: SiegeTeam[], team: SiegeTeam, index: number): SiegeTeam[] {
+  const copie = [...teams];
+  copie.splice(Math.min(Math.max(index, 0), copie.length), 0, team);
+  return copie;
+}
+
 export interface UseSiegeState {
   state: SiegeState;
   addTeam: () => void;
   removeTeam: (teamId: string) => void;
+  // « Annuler » une suppression (lot 13) : remet l'équipe à sa place.
+  restaurerEquipe: (team: SiegeTeam, index: number) => void;
   setSlotMonster: (teamId: string, idx: number, monsterId: string) => void;
   clearSlot: (teamId: string, idx: number) => void;
   setSlotRune: (teamId: string, idx: number, value: number | null) => void;
@@ -111,6 +122,15 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
 
   const removeTeam = useCallback(
     (teamId: string) => setState((s) => ({ ...s, teams: s.teams.filter((t) => t.id !== teamId) })),
+    []
+  );
+
+  // « Annuler » une suppression (refonte graphique, lot 13, décision 29) :
+  // l'équipe revient TELLE QUELLE à sa place d'avant — pas au bout de la liste.
+  // Sans effet si elle est déjà là.
+  const restaurerEquipe = useCallback(
+    (team: SiegeTeam, index: number) =>
+      setState((s) => (s.teams.some((t) => t.id === team.id) ? s : { ...s, teams: equipesApresRestauration(s.teams, team, index) })),
     []
   );
 
@@ -242,6 +262,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
     appendTeams,
     addTeam,
     removeTeam,
+    restaurerEquipe,
     setSlotMonster,
     clearSlot,
     setSlotRune,

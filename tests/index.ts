@@ -85,6 +85,7 @@ import { testRenduTelephoneMonstres, testRenduTelephoneArtefacts, testRenduTelep
 import { testRenduTelephoneOutilsRessources } from './rendu/telephone-outils-ressources.test';
 import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi, testRenduRtaIndicateur } from './rendu/rta.test';
 import { testIndicateurSauvegarde } from './indicateur-sauvegarde.test';
+import { testRestauration } from './restauration.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -179,6 +180,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRtaSauvegarde', testRenduRtaSauvegarde],
   ['testRenduRtaIndicateur', testRenduRtaIndicateur],
   ['testIndicateurSauvegarde', testIndicateurSauvegarde],
+  ['testRestauration', testRestauration],
   ['testRenduRtaAmi', testRenduRtaAmi],
   ['testImport', testImport],
   ['testNavigation', testNavigation],

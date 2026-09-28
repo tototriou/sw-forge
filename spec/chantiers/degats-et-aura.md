@@ -414,6 +414,20 @@ précision ajoutée par le nouveau pilote, sans changer de propriétaire : la
 preuve b3a du minimum par `pairBuckets` dépend d'une marge Endure/Focus,
 faute de quoi elle revient à b3b. Écho du lot 7 précisé. **b1 est
 lançable** ; b2, b3a, b3b et b4 le sont à la validation de leur prérequis.
+Revue adversariale finale, le 2026-09-29, sur `4a13db13` : recompte
+indépendant (b1 27, b2 19, b3a 16, b3b 11, b4 31 = 104 entrées), maximum b3a
+et limite Endure/Focus confirmés, aucun double compte trouvé. Trois
+bloquants, tous rejoués par le pilote dans le code et corrigés ci-dessous :
+b2 se disait « complet » avant b3a ; `relicQueue.ts:165` sert aussi au score
+(partage par usage b2/b3a) ; l'assiette des exclusives change en b2 alors
+que `reliques.md` § 5.2 nous est interdit (signal au chantier relique).
+Corrigés aussi : le toggle, replié dans `auraResPre`, n'atteint pas le
+moteur (b3a) ; un seul `ceil` dans `pvEffectifs` (b2) ; preuve et ligne de
+suivi pour la revue technique ; régime parallèle sans cas réel connu (b4).
+Le plafond 15 = 5 × 3 reste la valeur fournie en A.2 ter, non rediscutée.
+b1 ne change que dans la phrase sur l'état provisoire : **il reste
+lançable**. b2, b3a et b4, amendés, attendent une contre-vérification
+ciblée avant leur lancement ; b3b est inchangé.
 
 #### Suivi des lots
 
@@ -455,10 +469,11 @@ lançable** ; b2, b3a, b3b et b4 le sont à la validation de leur prérequis.
 | 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu initial `b9ff929` ↔ `473fe62` ; complément livré et intégré / 2026-09-28 |
 | 6bis-b1 — champ externe, recette et CLI | J | lançable, amendement contre-vérifié | — |
-| 6bis-b2 — aura propre et scores | J | contre-vérifié, attend b1 | — |
-| 6bis-b3a — conditions exactes et filtre final | J | contre-vérifié avec précision pilote, attend b2 | — |
+| 6bis-b2 — aura propre et scores | J | amendé, contre-vérification ciblée requise, attend b1 | — |
+| 6bis-b3a — conditions exactes et filtre final | J | amendé, contre-vérification ciblée requise, attend b2 | — |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | contre-vérifié, attend b3a | — |
-| 6bis-b4 — écran, Workers, caches et parité | J | contre-vérifié, attend b3b | — |
+| 6bis-b4 — écran, Workers, caches et parité | J | amendé, contre-vérification ciblée requise, attend b3b | — |
+| 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b4 ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -2358,6 +2373,8 @@ des **deux** noms de champ dans `src/`, `scripts/`, `tests/`. Mettre à jour
 avec le modèle dans les commits concernés ; livrer, vérifier puis intégrer
 les notes privées de chaque sous-lot validé.
 
+##### 6bis-b-* — propriétaires, découvertes et frontières
+
 Le découpage ci-dessous attribue un **propriétaire de correction** à chaque
 zone ; les 104 clés restent dans `carte-6bis-a4d2.json`, sans recopier ses
 112 Ko dans le cadrage. Un sous-lot relit ses propres cartes et seulement
@@ -2371,7 +2388,9 @@ de `prepareSearch`, `estimateSearchSpace`, `estimatePairBound`, `buildBuckets`,
 `diagnoseFeasibility` et `rankBlockingConditions` → b3b ;
 `pairBuckets` se partage par **usage** : `quickOk` et bornes → b3b,
 contrôle exact après construction des six runes → b3a ;
-filtre final de `relicQueue` → b3a ; signature
+`relicQueue.ts:165` (`resoudreEquipementDuBuild`) se partage de même par
+usage : note des couples (`chercherPaires(e.faireParams(relique))`,
+`p.score`) → b2, conditions (`respecteConditionsAvecRelique`) → b3a ; signature
 `artifactQueue` → b4. Les coordonnées restent dans les entrées D de la
 carte, et cette attribution ne préjuge pas qu'un correctif est nécessaire.
 Les quatre `contratsProposes` de la carte a4d2 sont sa proposition
@@ -2379,12 +2398,23 @@ Les quatre `contratsProposes` de la carte a4d2 sont sa proposition
 foi pour l'exécution. Les tests a4d1 ne sont pas réservés en bloc à b4 :
 chaque propriétaire de calcul corrige ses fixtures et attentes, b4 vérifie
 leur parité finale.
+**Assiette des exclusives et chantier relique.** A.2 (cible 2) fait entrer
+les auras dans les exclusives de relique : l'assiette Y d'`apportExclusive`
+(`relicExclusive.ts` L133) passe par `statsDebutCombat` et change donc en
+b2. Or `reliques.md` § 5.2 (L254–260) énumère « au début du combat » sans
+les auras, et A.5 interdit de modifier ce fichier. b2 documente le
+comportement dans `degats-reels/effets-equipe-et-leaders.md` avec renvoi à
+§ 5.2, inscrit le besoin de mise à jour de § 5.2 dans `pistes.md`, et le
+signale au chantier `forge/implementation-relique` dans son rapport. Il ne
+touche pas `reliques.md`.
 
 **Ne fait pas :** aucun contrôle visuel d'aura (lot 7), aucun changement de
 la règle de jeu d'Intangible ni des valeurs +8 de A.2 ter. Après tous les
 sous-lots et avant le lot 7, revue technique indépendante des coupes sûres,
 du double compte et de la parité des chemins ; objections corrigées et
-preuves rejouées avant validation.
+preuves rejouées avant validation. Cette revue a sa propre preuve,
+`controle-6bis-b-revue-technique.md` (dossier A.6 bis), et sa ligne dans
+le suivi A.7.
 
 ##### 6bis-b1 — données externes, recettes, resets et CLI
 
@@ -2405,7 +2435,8 @@ l'aller-retour sans clé inconnue opaque. Dans l'état intermédiaire b1,
 les calculs qui recevaient un total figé reçoivent la seule part externe :
 ne pas prétendre que les activations propres sont déjà comptées. La spec
 source et l'invariant décrivent exactement cet état provisoire, puis b2
-les amende ensemble vers le modèle complet.
+(combat et score) et b3a (conditions) les amènent ensemble au modèle
+complet.
 Dans `tests/auras-modele.test.ts`, b1 prend la fixture L20 et le test de
 recette L41–57 ; il renomme mécaniquement l'ancien champ dans les autres
 fixtures nécessaires au typage, **sans changer leurs attentes métier**,
@@ -2429,7 +2460,8 @@ ajouter les contrôles visuels du lot 7 ou présenter le CLI comme complet.
 **Cat. J ; requiert b1.** Intrant borné : les cinq clés A de
 `src/lib/damage.ts` aux lignes 3781, 3782, 3783, 3785 et 3786, et la clé
 `B:src/lib/stats.ts` d'a2a1-contexte, a2a1-suite (1), a2a2 (4),
-a2b1–a2b3 (8) dans la carte consolidée ; consulter les plages citées
+a2b1–a2b3 (8) dans la carte consolidée, plus l'usage « note des couples »
+de `D:src/lib/relicQueue.ts:165` ; consulter les plages citées
 et leurs appelants directs. Les quatre clés de champ/lecteur
 `damage.ts:3316/3438/3506/3507` sont déjà traitées par b1 : b2
 vérifie leur interface, sans les reclasser.
@@ -2443,7 +2475,10 @@ les stats de fiche et celles du combat. Examiner les chemins séparés
 `defCombat` et `atkCombatComplet` signalés par a2a1-suite, avec test ou
 justification sourcée pour chacun. Les choix et scores par build doivent
 être cohérents ; les conditions restent le lot b3a. Mettre à jour la spec
-source et `invariants.md` ensemble pour l'état désormais complet du calcul.
+source et `invariants.md` ensemble pour l'état du **combat et du score** ;
+l'invariant RES/PRE des conditions reste marqué **provisoire** (part externe
+seule, activations propres pas encore comptées) jusqu'à b3a, qui lève cette
+réserve. Aucun texte publié par b2 ne présente le modèle comme complet.
 Ordre des chemins partagés : b1 renomme et valide le lecteur **externe** ;
 b2 compose les activations propres dans le combat et le score, mais laisse
 `avecAurasConditions` sur la seule part externe provisoire ; b3a corrige
@@ -2462,7 +2497,11 @@ complété par Intangible, set non demandé, +8 de base dans le `ceil` commun,
 RES/PRE depuis zéro, EHP, exclusive, paire/relique réellement retenues,
 non-mutation du setup et deux candidats aux auras différentes. Prouver
 **15 externes + 3 propres = 18**, et que 3 externes + 2 propres valent 5,
-jamais 7, séparément pour dégâts, EHP, exclusive et paire. Couvrir aussi
+jamais 7, séparément pour dégâts, EHP, exclusive et paire. `pvEffectifs`
+(`runeBuildOptim.ts` L801–802) garde **un seul** `ceil` sur
+`base × 8 × (externes + propres)`, comme le `ceil` commun de
+`statsDebutCombat` : test nommé avec une aura propre non nulle et une base
+où `ceil(externe) + ceil(propre)` diffère de ce `ceil` unique. Couvrir aussi
 Intangible quand deux sets sont incomplets et qu'il n'en complète aucun :
 test de cohérence avec `activeSets`, sans prétendre relever une nouvelle
 règle du jeu. Tester le score direct sans revendiquer encore la sûreté de
@@ -2476,8 +2515,8 @@ preuve `controle-6bis-b2.md`.
 **Cat. J ; requiert b2.** Intrant borné : les **16 clés a3a hors**
 `A:src/lib/runeBuildOptim.ts:1309` et
 `A:src/lib/runeBuildOptim.ts:1381` (points de propagation,
-conditions et tests, pas 16 filtres), plus la découverte
-`D:src/lib/relicQueue.ts:165` et l'usage de contrôle final de
+conditions et tests, pas 16 filtres), plus l'usage « conditions » de la
+découverte `D:src/lib/relicQueue.ts:165` et l'usage de contrôle final de
 `D:src/lib/runeBuildOptim.ts:4029-4035`. Interroger
 `carte-6bis-a4d2.json` par ces clés, puis les seules plages citées.
 Les deux clés `filterSlot`, les **9 clés a3b** et les coupes précoces de
@@ -2490,6 +2529,22 @@ et score inchangés. Transmettre la même convention aux appelants du filtre,
 sans déclarer sûrs les diagnostics ou coupes amont encore anciens. Ne jamais ajouter
 les auras PV/ATQ/DEF aux conditions. Mettre à jour la spec et l'invariant
 concernés dans le même commit.
+**Le toggle doit atteindre le moteur.** Aujourd'hui `avecAurasConditions`
+(`runeBuildOptim.ts` L117–119) le replie dans `auraResPre`, et
+`pointsAuraResPre` rend `{ res: 0, acc: 0 }` éteint, valeur identique à
+« allumé sans aura externe » ; `compterAurasResPre` n'apparaît ni dans
+`runeBuildOptim.ts` ni dans `src/workers/`. b3a ajoute donc à l'objet
+`auraResPre` un booléen **obligatoire dans cet objet**, posé seulement par
+`avecAurasConditions` et lu par `totalCondition` (L121–122), les trois
+`Pick<…>` (L371, L396, L423) et `relicQueue.ts` L58. `auraResPre` absent
+garde son sens actuel : aucune aura dans les conditions, ni externe ni
+propre. Ne pas coder « éteint » par l'absence de `auraResPre`. Producteurs
+à vérifier : `recipeToSearchParams.ts` L410, `OptimizerSection.tsx` L1665 ;
+recettes littérales qui fixent le toggle : `scripts/lib/diagnosticLot.ts`
+L246, `scripts/diagnostic-harness-parite.ts` L142,
+`scripts/artifact-contention-diag.ts` L108. Les littéraux L209/L211 de
+`tests/auras-modele.test.ts` reçoivent mécaniquement le nouveau booléen,
+sans changer leur sens ; la parité reste à b4.
 **État intermédiaire explicite :** les contrôles exacts connaissent l'aura
 propre, mais les élagages de dominance/faisabilité et la rétention ne sont
 pas encore prouvés sûrs pour ce nouveau modèle. L'énoncé général
@@ -2592,7 +2647,10 @@ contexte écran côté Node, `testRuneOptimParallelPairing` de **vrais
 `worker_threads`** couvre le régime parallèle. Pour ce dernier, utiliser
 un cas réel au-dessus du seuil de 100 M de paires ou déclarer un forçage
 « FIDÉLITÉ : DIVERGE DE LA PROD » ; ne jamais faire passer le second pour
-le premier. La coquille Web Worker reste une vérification manuelle au
+le premier. Aucun cas réel au-dessus du seuil n'est connu à ce jour : b4
+mesure d'abord `totalPairs` sur les recettes gelées et le consigne ; faute
+de cas, le forçage marqué est la preuve attendue du régime parallèle, pas un
+échec du lot. La coquille Web Worker reste une vérification manuelle au
 navigateur, sans Playwright sauf demande explicite. La recette externe
 figée de a1 vise l'EHP : créer, geler et hacher une **seconde recette** en
 « Dégâts réels » pour la preuve offensive. Avec ces deux recettes, vérifier

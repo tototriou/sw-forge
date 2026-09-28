@@ -159,3 +159,15 @@ nouvelles surfaces.
   `pal-6` corrigés) ?
 - **Q6** — icônes de navigation de la toile, ou lucide ?
 - **Q7** — couleurs de section de l'accueil gardées, ou braise / laiton ?
+
+## 6. Réponses de Thomas (2026-09-29)
+
+La recommandation, sur les sept questions ; inscrites comme décisions 4 à 10
+du cadrage (A.8) :
+- Q1 → braise foncée pour le texte (décision 4) ;
+- Q2 → jeton `bar` (décision 5) ;
+- Q3 → Auto reste le défaut (décision 6) ;
+- Q4 → notre échelle (décision 7) ;
+- Q5 → règle existante (décision 8) ;
+- Q6 → icônes de la toile, plus sept à dessiner (décision 9) ;
+- Q7 → couleurs de section gardées (décision 10).

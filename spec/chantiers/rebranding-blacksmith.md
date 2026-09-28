@@ -22,10 +22,10 @@ de code d'écran.
 
 ### A.2 Cible et périmètre
 
-**Cible** : l'app porte le nom, le logo, les deux thèmes (Forge sombre par
-défaut, Atelier clair), les polices, les arrondis et les composants de la
-toile ; chaque écran qui a une planche en suit la structure, dans les limites
-des décisions de Thomas.
+**Cible** : l'app porte le nom, le logo, les deux thèmes (Forge sombre,
+Atelier clair ; le défaut reste « Auto », décision 6), les polices, les
+arrondis et les composants de la toile ; chaque écran qui a une planche en
+suit la structure, dans les limites des décisions de Thomas.
 
 **Décisions de départ (Thomas, 2026-09-28)** :
 1. **Tout de suite, sur la branche de la refonte** (`forge/refonte-graphique`)
@@ -102,7 +102,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R1 jetons : deux thèmes, police de texte, arrondis | J | à faire | |
 | R2 nom et logo | J | à faire | |
 | R3 `src/ui/` aux planches « Composants » | J | à faire | |
-| R4 coquille : barre latérale et barre du haut | J | à faire | |
+| R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | à faire | |
 | R5 Accueil (bureau et téléphone) | J | à faire | |
 | R6 Siège et Recommandations | J | à faire | |
 | R7 RTA | J | à faire | |
@@ -113,6 +113,29 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 
 (Numérotées à partir de 4, datées, « Thomas » ; un retrait porte
 `[retrait R#n]` et se déclare dans `deplacements.json` de la refonte.)
+
+**4 à 10 — les questions du R0 (Thomas, 2026-09-29)**, chiffres dans
+[lot-R0.md](rebranding-preuves/lot-R0.md) :
+
+4. **Braise foncée pour le texte** en Atelier : un jeton de texte séparé,
+   `#A64F11` (4,52 au pire). Aplats et boutons restent en braise vive
+   `#FF7A1A`. En Forge, texte et aplat ont la même valeur.
+5. **Un jeton `bar`** pour la barre latérale et la barre du haut (Forge
+   `#1B1A19`, Atelier `#FFFDF8` = `surface`, comme la toile).
+6. **Le thème par défaut reste « Auto »** (suit le navigateur) ; Forge est
+   le thème de la charte et des captures, pas le point de départ imposé.
+7. **Notre échelle typographique est gardée** : Source Sans 3 remplace
+   Inter, les tailles ne bougent pas (le corps de 17 px de la toile vaut
+   pour sa charte, pas pour la densité de nos listes).
+8. **La règle de contraste de `design.md` est gardée** (4,5 sur `panel`,
+   moins toléré ailleurs, les couleurs du jeu d'abord). Seuls `pal-1`
+   (Atelier) et `pal-6` (Forge) bougent. Le laiton de la toile en Atelier
+   (4,79 sur `surface`) y entre sans repli.
+9. **Les icônes de la toile, plus sept à dessiner** dans le même trait :
+   Arène, Outils, Optimizer, Speed tuning, Monstres, Artéfacts, Ami. Elles
+   sont montrées à Thomas avant d'être posées (R4).
+10. **Les couleurs de section sont gardées** (accueil, onglets du
+    téléphone), variantes claires du lot 14 comprises.
 
 ## Partie B — les lots
 
@@ -134,9 +157,23 @@ proposition pour chacun ; la liste des questions à poser à Thomas avant R1.
 
 Les valeurs de R0 dans `src/index.css` (Forge et Atelier, mêmes noms de
 variables), Source Sans 3 à la place d'Inter (`index.html`,
-`tailwind.config.js`), arrondis 6 / 10 / 14 / 20. **Preuve** : contrastes
-re-mesurés (≥ 4,5:1 pour le texte courant), tous les tests de rendu verts,
-build, relecture par Thomas sur son serveur de dev dans les deux thèmes.
+`tailwind.config.js`), arrondis 6 / 10 / 14 / 20. Selon les décisions 4 à 10 :
+- les jetons nouveaux `bar` (5) et texte de braise (4) ;
+- les 32 `text-accent` passent au jeton de texte, par renommage mécanique,
+  avec un `grep` qui prouve qu'il n'en reste aucun ;
+- `pal-1` et `pal-6` recalculés (8) ;
+- fonds doux (`*-soft`) recalculés sur les nouvelles surfaces, par la même
+  construction.
+
+⚠️ **À mesurer dans ce lot** : `border-accent` (65 usages) marque souvent
+une sélection, donc un contour porteur de sens (3:1). La braise vive fait
+2,11 à 2,57 sur les fonds Atelier. Si les usages porteurs de sens ne
+passent pas, question à Thomas **avant** de trancher (jeton de texte,
+épaisseur, ou tolérance).
+
+**Preuve** : contrastes re-mesurés (≥ 4,5:1 pour le texte courant, règle
+de la décision 8), tous les tests de rendu verts, build, relecture par
+Thomas sur son serveur de dev dans les deux thèmes.
 
 ### R2 — nom et logo · J
 

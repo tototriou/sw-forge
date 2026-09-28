@@ -19,13 +19,17 @@ const DOSSIERS = ['src/lib/', 'src/hooks/', 'src/workers/', 'src/data/', 'public
 // refonte y écrit sa propre entrée « Nouveautés ») ; puis les fichiers des
 // AJOUTS décidés par Thomas, nommés dans le cadrage AVANT leur code (A.2 bis,
 // décision 14 : recherche et export des équipes de siège ; décision 19 : la
-// vue Défense des recommandations, calculée sans toucher au format exporté).
+// vue Défense des recommandations, calculée sans toucher au format exporté ;
+// décision 29 : « Annuler » restaure ce qu'on vient de retirer de la prépa RTA
+// et des recommandations).
 const PERMIS = new Set([
   'src/data/couleursSection.ts',
   'src/data/releases.ts',
   'src/lib/siegeShare.ts',
   'src/hooks/useSiegeState.ts',
   'src/lib/recoDefenses.ts',
+  'src/hooks/useRtaState.ts',
+  'src/hooks/useSiegeRecos.ts',
 ]);
 // Fichiers isolés : les types, et les rendus copiés du jeu (mémoire
 // `rendus-du-jeu-intouchables`), qui restent à l'identique.

@@ -972,6 +972,31 @@ touchent que des composants d'écran (`AccountPage.tsx`, `ArtifactsList.tsx`,
 `components/rta/`) ; si un calcul de logique devait naître, il passerait par
 ici d'abord.
 
+**Décision 29 (Thomas, 2026-09-28) — le périmètre des trois ajouts de A.2
+bis**, avant leurs specs :
+- **Palette Ctrl K** : pages, **monstres** (ouvre leur fiche) et
+  **actions** — importer mon compte ; thème auto / clair / sombre ; créer
+  une recommandation ; mesure efficience / score SW ; ouvrir le speed tuning
+  d'une équipe de siège (cherchée par ses monstres). Aucune action
+  destructrice.
+- **« Sauvegardé il y a … »** : l'heure du **dernier changement** de la
+  prépa RTA (elle s'enregistre seule à chaque changement), dans l'en-tête de
+  Ma prépa, aux deux formats.
+- **« Annuler » REMPLACE la confirmation** pour quatre suppressions : une
+  équipe de siège, un deck, une recommandation, un monstre de la prépa RTA.
+  Le geste se fait tout de suite, une notification « … · Annuler » reste
+  quelques secondes. « Tout effacer » et l'effacement des données gardent
+  leur confirmation ; les autres gestes de `design.md` § Ce qui se confirme
+  aussi.
+
+**Fichiers permis hors A.2 pour ces trois ajouts** (écrits ici avant le
+code) : `src/hooks/useRtaState.ts` (restaurer un monstre retiré),
+`src/hooks/useSiegeRecos.ts` (restaurer une recommandation, un deck) ;
+`src/hooks/useSiegeState.ts` l'est déjà (restaurer une équipe). Aucun autre :
+la palette et la notification vivent dans `src/components/` et `src/ui/`,
+et lisent les réglages par les fonctions déjà exportées (`setTheme`,
+`setRuneMetric`).
+
 **Contrat** : avant tout code, la spec de chaque ajout dans la spec de sa
 zone (`spec/shared/navigation.md` pour la palette, `spec/rta/` pour
 l'indicateur, `spec/shared/design.md` pour la notification) ; la liste des

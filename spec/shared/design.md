@@ -431,12 +431,27 @@ n'est pas le mot « supprimer » sur le bouton, c'est le coût de l'erreur.
 
 | Geste | Ce qui part |
 |-------|-------------|
-| Retirer un monstre d'une prépa RTA ou d'un slot de siège | Sa vitesse saisie, son tick, son classement |
+| Retirer un monstre d'un slot de siège | Sa vitesse saisie, son tick |
 | Supprimer un monstre créé à la main | Le monstre entier : il n'existe pas dans les données du jeu |
 | Supprimer une section RTA | Le classement — les monstres, eux, reviennent en « Non classé » |
 | Supprimer / vider une catégorie | L'appartenance, cochée un monstre à la fois |
-| Supprimer une équipe, un deck, une recommandation | Leur composition |
+| « Tout effacer » (prépa, équipes, recommandations) | Tout le côté |
 | Effacer les données du compte | Tout |
+
+**Se DÉFAIT au lieu de se confirmer** (refonte graphique, lot 13, décision
+29 de Thomas) — le geste se fait tout de suite, puis une **notification
+« … · Annuler »** le laisse revenir en arrière quelques secondes :
+
+| Geste | Notification |
+|-------|--------------|
+| Retirer un monstre de la prépa RTA | « {Monstre} retiré de ta prépa » |
+| Supprimer une équipe de siège | « Équipe retirée de la défense / de l'offense » |
+| Supprimer un deck | « Deck supprimé » |
+| Supprimer une recommandation | « Recommandation supprimée » |
+
+⚠️ **« Annuler » remet l'élément À SA PLACE, tel quel** — même position dans
+la liste, mêmes vitesses, mêmes sets, même section —, pas une copie ajoutée
+au bout. Voir « Notification « Annuler » » plus bas.
 
 **Ne se confirme PAS** — l'état se repose en un geste :
 
@@ -452,6 +467,25 @@ n'est pas le mot « supprimer » sur le bouton, c'est le coût de l'erreur.
 on valide sans lire — et celle qui compte vraiment passe inaperçue. Deux clics
 pour annuler un filtre useraient la patience qu'on veut garder pour l'effacement
 d'une prépa.
+
+### Notification « Annuler »
+
+`src/ui/Notification.tsx` (refonte graphique, lot 13, décision 29, la
+maquette) — un fournisseur monté une fois par `App.tsx`, et `useNotifier()`
+pour annoncer un geste qui se défait (tableau plus haut).
+
+- **En bas de l'écran, centrée** ; au téléphone, **au-dessus de la barre
+  d'onglets et du bouton « Options »**, jamais dessous. `role="status"` : un
+  lecteur d'écran l'annonce sans voler le focus.
+- **Le message, « Annuler », et une croix** pour la fermer. **6 secondes**,
+  puis elle s'en va ; le survol et le focus la retiennent tant qu'on y est.
+- **Une seule à la fois** : la suivante remplace la précédente, dont le
+  geste devient alors définitif — deux notifications empilées se liraient
+  comme deux choses à décider.
+- « Annuler » **restaure l'élément à sa place** (fonctions `restaurer*` des
+  hooks, qui réinsèrent à l'index d'origine) puis ferme la notification.
+- Même gabarit que les flottants de l'app : fond `panel`, contour 1 px,
+  ombre des panneaux.
 
 ### Bloquer le défilement derrière un flottant
 

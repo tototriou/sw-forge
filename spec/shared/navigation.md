@@ -293,10 +293,17 @@ qu'il ne revient pas.
 
 Un champ en tête de la barre, `⌘K` depuis n'importe où.
 
-- ⚠️ **Elle ne cherche QUE des destinations** — les quinze de l'app,
-  sous-sections comprises. Pas les monstres : c'est le rôle du Bestiaire et de
-  la box, qui ont leurs filtres. Un champ répondant aux deux obligerait à trier
-  du regard deux natures de résultats.
+⚠️ **Depuis le lot 13 (décision 29), ce champ OUVRE LA PALETTE** (section
+suivante) : toucher le champ ou `Ctrl K` ouvre la même palette, qui cherche
+pages, monstres et actions. Il n'existe qu'**une** recherche — le contrat du
+lot 13 interdisait d'en ajouter une seconde à côté de celle-ci. Ce qui suit
+décrit ce qu'elle garde de la recherche de pages d'avant.
+
+- ⚠️ **Elle ne cherchait QUE des destinations** — les quinze de l'app,
+  sous-sections comprises. « Pas les monstres : un champ répondant aux deux
+  obligerait à trier du regard deux natures de résultats. » La palette y
+  répond par des **groupes intitulés** (Pages, Monstres, Actions) : les
+  natures sont séparées, pas mêlées.
 - ⚠️ **Dérivée des mêmes constantes que la barre**, pas ressaisie : une seconde
   liste aurait divergé au premier écran ajouté, et le manque serait passé
   inaperçu — on ne cherche pas ce dont on ignore l'existence.
@@ -313,6 +320,37 @@ Un champ en tête de la barre, `⌘K` depuis n'importe où.
   en petit. Thomas l'a relevé (2026-09-24) : les résultats avaient gardé
   l'ancien gabarit (texte 13, icônes colorées, fond `ctx-soft`) et se
   lisaient comme une autre sorte de liste.
+
+## Palette Ctrl K
+
+Refonte graphique, lot 13, décision 29 de Thomas, la maquette (planche
+« Palette »). Composant `src/components/Palette.tsx`, monté une fois par
+`App.tsx`.
+
+- **S'ouvre** par `Ctrl K` / `⌘K` de n'importe où, par le champ de recherche
+  de la barre latérale (bureau), et au téléphone par une **loupe** dans la
+  barre du haut, à côté du ⚙ — sans clavier, c'est son seul accès.
+- **Une modale centrée en haut** (bureau), plein écran au téléphone : un
+  champ « Rechercher une page, un monstre, une action… », puis les résultats
+  en **trois groupes intitulés** — **Pages** (les destinations du menu, comme
+  avant, dérivées des mêmes constantes), **Monstres** (le bestiaire ; choisir
+  ouvre la **fiche** du monstre, sans changer de page), **Actions**.
+- **Actions** (décision 29) — aucune destructrice : **Importer mon compte**
+  (le choix de fichier des Paramètres) ; **Thème auto / clair / sombre** ;
+  **Créer une recommandation** (ouvre les Recommandations et en crée une) ;
+  **Mesure : efficience / score SW** (le réglage du menu ⚙) ; **Speed tuning
+  d'une équipe** (les équipes de siège dont un monstre correspond à la
+  recherche ; choisir ouvre leur speed tuning en modale).
+- **Vide, elle propose** les pages (comme le menu) et les actions ; les
+  monstres n'apparaissent qu'à partir de deux lettres tapées — 3 000 fiches
+  ne se parcourent pas.
+- Clavier : `↑` `↓` naviguent sur toute la liste, groupes compris, `Entrée`
+  ouvre, `Échap` ferme (`useComboboxNav`, comme toute barre à suggestions).
+  Comparaison **insensible aux accents**. Au plus **8 monstres** et **8
+  équipes** affichés : la palette mène quelque part, elle ne remplace pas le
+  Bestiaire.
+- Chaque groupe affiche au plus ce qui tient ; « Aucun résultat pour « … » »
+  et « Essaie un nom de monstre, de page ou d'action. » quand rien ne répond.
 
 ## Barre supérieure
 

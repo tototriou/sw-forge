@@ -52,6 +52,17 @@ l'essai ne donne rien. D'où le vocabulaire — « point de sauvegarde »,
 « Reprendre » — et l'infobulle qui rappelle que la conservation automatique
 existe par ailleurs.
 
+⚠️ **« Sauvegardé il y a … »** (refonte graphique, lot 13, décision 29, la
+maquette) : dans l'en-tête de Ma prépa, aux deux formats, l'heure du
+**dernier changement** de la prépa — c'est-à-dire de son dernier
+enregistrement automatique. Il DIT la conservation automatique au lieu de la
+laisser deviner : c'est l'inverse d'un bouton « enregistrer », qui mentirait.
+Avant tout changement dans la session, il dit **« Enregistré sur cet
+appareil »** : l'heure du dernier enregistrement d'une session précédente
+n'est pas connue, et on ne l'invente pas. Rafraîchi chaque minute (« à
+l'instant », « il y a 1 min », « il y a 2 h »…). À ne pas confondre avec le
+point de sauvegarde, ci-dessous.
+
 Le point est **annoncé sous les boutons** (« Point de sauvegarde : 42 monstres ·
 il y a 3 min »). Sans repère visible, on ne sait pas s'il existe ni de quand il
 date — donc on n'ose pas expérimenter, et la fonctionnalité ne sert à rien.

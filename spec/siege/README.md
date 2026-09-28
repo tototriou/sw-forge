@@ -41,9 +41,15 @@ persistance : voir [recommandations.md](recommandations.md).
    - Tous les boutons d'en-tête font **36 px** (`HAUTEUR_EN_TETE`).
 2. **Sous-onglets** : Défense / Offense — dans la barre latérale (bureau) et
    le panneau de navigation (téléphone), plus dans la page.
-3. **Téléphone** : le compteur seul dans la page ; les actions dans le panneau
-   « Options » (Ajouter une équipe, Vérifier mes speed, Créer un monstre, puis
-   Tout effacer séparé) — inchangé, lot 11.
+3. **Téléphone** : le compteur et l'**interrupteur « Vérifier mes speed »**
+   dans la page ; les autres actions dans le panneau « Options » (Ajouter une
+   équipe, Exporter, Importer, Créer un monstre, puis Tout effacer séparé).
+   ⚠️ L'interrupteur a quitté le panneau au lot 11b de la refonte (décision
+   25, la maquette) : c'est un AFFICHAGE qu'on allume et éteint en parcourant
+   ses équipes, pas une action rare — il fallait ouvrir le panneau pour le
+   basculer. Même état que le bouton du bureau, désactivé sans équipe,
+   infobulle selon l'état. Les équipes gardent leurs trois monstres côte à
+   côte (décision 25 : pas les rangées de la maquette).
 4. **Recherche d'équipe** (champ sous l'en-tête) — voir ci-dessous.
 5. **Liste d'équipes** (ou état vide incitant à ajouter/importer).
 

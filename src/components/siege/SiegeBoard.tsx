@@ -12,6 +12,7 @@ import MobileSheet from '../../ui/MobileSheet';
 import { BarreActions, Bouton, Jeton } from '../../ui';
 import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
+import Switch from '../Switch';
 import { equipeContient } from './rechercheEquipe';
 import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
 import { CustomLead } from '../../hooks/useCustomMonsters';
@@ -241,31 +242,9 @@ export default function SiegeBoard({
         libelleCourt="Équipe"
       />
 
-      {/* ⚠️ Toujours affiché, désactivé sans équipe — même règle que
-          « Tout effacer ». */}
-      <Bouton
-        onClick={() => {
-          setCheckTicks((v) => !v);
-          onFermerMenu();
-        }}
-        actif={checkTicks || undefined}
-        ton={checkTicks ? 'accent' : 'neutre'}
-        disabled={siege.state.teams.length === 0}
-        title={
-          siege.state.teams.length === 0
-            ? 'Aucune équipe à vérifier'
-            : checkTicks
-              ? 'Masquer les auras de vérification'
-              : // ⚠️ Le bouton couvre les DEUX questions : une équipe Swift se
-                // juge sur son speed tune, les autres sur leur tick. « Vérifier
-                // mes tick ATB » n'en nommait qu'une, et pas celle qui compte
-                // pour les équipes speed.
-                'Colorer les équipes selon leur vitesse : speed tune pour une équipe Swift, calage sur les ticks ATB pour les autres'
-        }
-        icone={<Gauge size={15} />}
-        libelle="Vérifier mes speed"
-        libelleCourt="Speed"
-      />
+      {/* ⚠️ « Vérifier mes speed » n'est PLUS ici : au téléphone, c'est un
+          interrupteur sur la page, à côté du compteur (lot 11b, décision 25) —
+          un affichage qu'on allume et éteint en parcourant ses équipes. */}
 
       {/* Export / import d'équipes (décision 14) — mêmes gestes que dans
           l'en-tête bureau, mêmes fonctions. */}
@@ -456,9 +435,34 @@ export default function SiegeBoard({
         </p>
       )}
 
-      {/* TÉLÉPHONE : le compteur seul ; les actions sont dans le panneau. */}
+      {/* TÉLÉPHONE : le compteur et « Vérifier mes speed » ; les autres
+          actions sont dans le panneau.
+          ⚠️ **Un INTERRUPTEUR sur la page** (lot 11b, décision 25, la
+          maquette) : il était un bouton du panneau « Options », qu'il fallait
+          ouvrir pour allumer ou éteindre un AFFICHAGE qu'on consulte en
+          parcourant ses équipes. Toujours affiché, désactivé sans équipe. */}
       <div className="mt-5 flex items-center gap-3 lg:hidden">
         <span className="font-mono text-xs text-ink-dim">{compteur}</span>
+        <label
+          className="ml-auto flex items-center gap-2 text-sm text-ink-dim"
+          title={
+            siege.state.teams.length === 0
+              ? 'Aucune équipe à vérifier'
+              : checkTicks
+                ? 'Masquer les auras de vérification'
+                : // ⚠️ L'interrupteur couvre les DEUX questions : une équipe
+                  // Swift se juge sur son speed tune, les autres sur leur tick.
+                  'Colorer les équipes selon leur vitesse : speed tune pour une équipe Swift, calage sur les ticks ATB pour les autres'
+          }
+        >
+          Vérifier mes speed
+          <Switch
+            checked={checkTicks}
+            onChange={setCheckTicks}
+            disabled={siege.state.teams.length === 0}
+            label="Vérifier mes speed"
+          />
+        </label>
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>

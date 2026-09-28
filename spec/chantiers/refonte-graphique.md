@@ -370,6 +370,14 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     Au lot 13, à décider un par un : la ligne de résumé des listes (« 318
     runes · Swift, Violent · Tri : Score SW ↓ »), le bouton « Voir N runes »
     qui ferme le panneau.
+27. **Téléphone · Speed tuning, Ressources, Paramètres, Bientôt (lot
+    11d)** — Thomas, le 2026-09-28, avant le code : les Mécaniques (sections
+    à filet, **sommaire gardé** — la maquette le retirait), les Nouveautés
+    (versions à filet) et les Paramètres (blocs « Réglages » et « Mes
+    données ») prennent AU DOIGT le rendu posé au bureau au lot 10, qui est
+    celui des maquettes téléphone. Speed tuning, Bestiaire et Bientôt ne
+    changent pas : leurs maquettes sont l'écran, plus des ajouts déjà
+    candidats au lot 13.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

@@ -9,7 +9,7 @@ import SpeedTuneModale from '../outils/SpeedTuneModale';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import MobileSheet from '../../ui/MobileSheet';
-import { BarreActions, Bouton, Interrupteur, Jeton } from '../../ui';
+import { BarreActions, Bouton, Interrupteur, Jeton, useNotifier } from '../../ui';
 import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
 import { equipeContient } from './rechercheEquipe';
@@ -60,6 +60,21 @@ export default function SiegeBoard({
   const [creationOuverte, setCreationOuverte] = useState(false);
 
   const noun = side === 'defense' ? 'défense' : 'attaque';
+
+  // Supprimer une équipe SE DÉFAIT au lieu de se confirmer (lot 13, décision
+  // 29) : immédiat, puis « Équipe retirée · Annuler » la remet à SA place,
+  // avec ses monstres, leurs vitesses et ses réglages.
+  const notifier = useNotifier();
+  function retirerEquipe(teamId: string) {
+    const index = siege.state.teams.findIndex((t) => t.id === teamId);
+    if (index < 0) return;
+    const equipe = siege.state.teams[index];
+    siege.removeTeam(teamId);
+    notifier({
+      message: `Équipe retirée ${side === 'defense' ? 'de la défense' : "de l'offense"}`,
+      annuler: () => siege.restaurerEquipe(equipe, index),
+    });
+  }
 
   // « Voir le speed tune » : l'outil s'ouvre EN MODALE par-dessus le deck.
   //
@@ -537,7 +552,7 @@ export default function SiegeBoard({
               onVoirSpeedTune={setSpeedTune}
               expanded={expandedIds.has(team.id)}
               onToggleExpand={toggleExpand}
-              onRemoveTeam={siege.removeTeam}
+              onRemoveTeam={retirerEquipe}
               onPickMonster={siege.setSlotMonster}
               onClearSlot={siege.clearSlot}
               onSlotRune={siege.setSlotRune}

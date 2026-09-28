@@ -101,6 +101,12 @@ export type { PastilleProps } from './Pastille';
 export { default as Jeton } from './Jeton';
 export type { JetonProps } from './Jeton';
 
+// NOTIFICATION « … · Annuler » (lot 13, décision 29) : un geste qui se défait
+// au lieu de se confirmer. Un fournisseur monté par App.tsx, `useNotifier()`
+// pour annoncer. Voir spec/shared/design.md § Notification « Annuler ».
+export { FournisseurNotification, useNotifier } from './Notification';
+export type { Annonce } from './Notification';
+
 // SURFACE rendue cliquable (ligne de carte, poignée de glissement) : un
 // <button> volontairement NU. Voir le composant — la nudité y est la règle, pas
 // un oubli.

@@ -14,6 +14,7 @@ import Option from '../../src/ui/Option';
 import Jeton from '../../src/ui/Jeton';
 import Selecteur from '../../src/ui/Selecteur';
 import Menu from '../../src/ui/Menu';
+import { BandeauNotification } from '../../src/ui/Notification';
 import { egal, ok, titre } from '../outils';
 import { bouton, boutons, rendre, texteVisible } from './outils-rendu';
 
@@ -122,4 +123,16 @@ export function testRenduUiMenu() {
   // L'entrée destructrice vient APRÈS les autres, derrière un filet.
   const ordre = boutons(html).filter((b) => ['Sauvegarder', 'Reprendre', 'Tout effacer'].includes(b.texte)).map((b) => b.texte);
   egal(ordre, ['Sauvegarder', 'Reprendre', 'Tout effacer'], 'l\'entrée destructrice est rangée en dernier');
+}
+
+// Lot 13 (décision 29) : la notification « … · Annuler » — ajoutée avec elle.
+export function testRenduUiNotification() {
+  titre('rendu · Notification « … · Annuler »');
+  const rien = () => {};
+  const avec = rendre(<BandeauNotification annonce={{ message: 'Deck supprimé', annuler: rien }} onFermer={rien} />);
+  ok(/role="status"/.test(avec), 'annoncée sans voler le focus (role="status")');
+  ok(texteVisible(avec).startsWith('Deck supprimé Annuler'), 'le message, puis « Annuler »');
+  ok(!!bouton(avec, 'Annuler') && !!bouton(avec, 'Fermer la notification'), '« Annuler » et la croix');
+  const sans = rendre(<BandeauNotification annonce={{ message: 'Compte importé' }} onFermer={rien} />);
+  ok(!bouton(sans, 'Annuler') && !!bouton(sans, 'Fermer la notification'), 'sans retour possible : pas de « Annuler », la croix reste');
 }

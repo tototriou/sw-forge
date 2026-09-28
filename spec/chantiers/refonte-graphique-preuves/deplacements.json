@@ -105,6 +105,31 @@
     "devient": "attr:libelle:Vérifier mes speed",
     "pourquoi": "Lot 11b (décision 25) : la forme courte ne servait qu'au bouton du panneau, en grille de trois ; l'interrupteur sur la page (l'Interrupteur de la librairie depuis le lot 13) porte le libellé entier."
   },
+  "src/components/rta/RtaCard.tsx :: attr:titre:Retirer {…} de ta prépa ?": {
+    "de": "src/components/rta/RtaCard.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : le retrait d'un monstre de la prépa se défait (« … retiré de ta prépa · Annuler ») au lieu de se confirmer."
+  },
+  "src/components/rta/RtaCard.tsx :: texte:Sa vitesse saisie et son classement partent avec lui. Les autres monstres ne sont pas touchés.": {
+    "de": "src/components/rta/RtaCard.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : message du dialogue de confirmation retiré ; « Annuler » remet le monstre avec sa vitesse et son classement."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:titre:Supprimer ce deck ?": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : la suppression d'un deck se défait (« Deck supprimé · Annuler ») au lieu de se confirmer."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:titre:Supprimer cette recommandation ?": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : la suppression d'une recommandation se défait (« Recommandation supprimée · Annuler ») au lieu de se confirmer."
+  },
+  "src/components/siege/SiegeTeam.tsx :: attr:titre:Supprimer l'équipe {…} ?": {
+    "de": "src/components/siege/SiegeTeam.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : la suppression d'une équipe se défait (« Équipe retirée … · Annuler ») au lieu de se confirmer."
+  },
   "src/components/SettingsMenu.tsx :: texte:Tout supprimer": {
     "de": "src/components/SettingsMenu.tsx",
     "vers": "src/components/SettingsMenu.tsx",

@@ -89,7 +89,6 @@ export default function SiegeTeam({
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [detailIdx, setDetailIdx] = useState<number | null>(null); // slot dont on montre le détail
-  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
   // Un monstre choisi → le curseur passe au slot vide suivant (décision 18,
   // voir slotVideSuivant.ts) : on compose les trois d'affilée au clavier.
   const [focus, setFocus] = useState<JetonSlot | null>(null);
@@ -287,10 +286,6 @@ export default function SiegeTeam({
     setOverIdx(null);
   }
 
-  // Nommer ce qui va partir : « supprimer l'équipe 3 » ne dit rien, la liste
-  // des monstres si.
-  const monstresDeLEquipe = slotInfos.map(({ monster }) => monster?.name).filter(Boolean) as string[];
-
   // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE ÉCRITE** (refonte
   // graphique, décision 8). La pastille remplace le point de couleur ET le fond
   // coloré qu'apportait le thème clair (`--siege-card-*`) : en clair, un
@@ -376,7 +371,7 @@ export default function SiegeTeam({
           className="ml-auto"
         />
         <Bouton
-          onClick={() => setSuppressionAConfirmer(true)}
+          onClick={() => onRemoveTeam(team.id)}
           ton="danger"
           fond="vide"
           trait="aucun"
@@ -390,27 +385,11 @@ export default function SiegeTeam({
         />
       </div>
 
-      {/* ⚠️ Une équipe se supprime en un clic, juste à côté du bouton « Éditer »
-          qu'on utilise sans arrêt — et rien ne permet de la retrouver ensuite :
-          ni annulation, ni corbeille. Trois monstres et leurs vitesses partent
-          avec elle. */}
-      {suppressionAConfirmer && (
-        <ConfirmDialog
-          titre={`Supprimer l'équipe ${index + 1} ?`}
-          message={
-            monstresDeLEquipe.length > 0
-              ? `${monstresDeLEquipe.join(', ')} — ainsi que leurs vitesses saisies. Les autres équipes ne sont pas touchées.`
-              : 'Cette équipe est vide. Les autres ne sont pas touchées.'
-          }
-          libelleAction="Supprimer"
-          destructif
-          onCancel={() => setSuppressionAConfirmer(false)}
-          onConfirm={() => {
-            setSuppressionAConfirmer(false);
-            onRemoveTeam(team.id);
-          }}
-        />
-      )}
+      {/* ⚠️ Une équipe se supprime en un clic, juste à côté du bouton
+          « Éditer » qu'on utilise sans arrêt. Ce n'est plus une confirmation
+          qui couvre l'erreur, mais « Annuler » (lot 13, décision 29) : la page
+          annonce « Équipe retirée · Annuler », qui la remet à sa place avec ses
+          monstres et leurs vitesses. */}
 
       {expanded ? (
       // ⚠️ **Les lignes des trois slots sont ALIGNÉES à la souris** (lot 7a,

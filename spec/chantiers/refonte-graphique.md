@@ -378,6 +378,14 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     celui des maquettes téléphone. Speed tuning, Bestiaire et Bientôt ne
     changent pas : leurs maquettes sont l'écran, plus des ajouts déjà
     candidats au lot 13.
+28. **Lot 13 — ajouts retenus parmi les candidats** — écrite en B.13.
+29. **Lot 13 — périmètre des trois ajouts de A.2 bis** — écrite en B.13.
+    Elle retire les **dialogues de confirmation** de quatre suppressions
+    (monstre de la prépa RTA, équipe de siège, deck, recommandation), que la
+    notification « Annuler » remplace : leurs titres (« Retirer … de ta
+    prépa ? », « Supprimer l'équipe … ? », « Supprimer ce deck ? »,
+    « Supprimer cette recommandation ? ») et leurs messages — [retrait #29]
+    décidé par Thomas le 2026-09-28.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
-import { ConfirmDialog } from '../../ui/Dialogs';
 import { BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
@@ -72,12 +71,13 @@ export default function RtaCard({
   markDesync = true,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
-  // ⚠️ Le retrait passe par une CONFIRMATION. La croix est posée sur le coin de
-  // la carte, à quelques pixels du portrait qu'on touche pour ouvrir le détail :
-  // au doigt on la déclenche par accident en faisant défiler une grille, et le
-  // monstre part avec sa vitesse saisie, ses sets et ses catégories — sans
-  // annulation ni corbeille pour le retrouver.
-  const [retraitAConfirmer, setRetraitAConfirmer] = useState(false);
+  // ⚠️ Le retrait se DÉFAIT au lieu de se confirmer (lot 13, décision 29) : la
+  // croix retire tout de suite, et la page annonce « … retiré de ta prépa ·
+  // Annuler », qui remet le monstre tel quel. Elle passait par une
+  // confirmation : posée sur le coin de la carte, près du portrait, on la
+  // touchait par accident en faisant défiler — le danger reste, mais c'est
+  // désormais « Annuler » qui le couvre, sans un dialogue à chaque retrait
+  // voulu.
   const base = monster.stats.speed;
   const rune = entry.runeSpeed;
   const total = base !== null || rune !== null ? (base ?? 0) + (rune ?? 0) : null;
@@ -270,7 +270,7 @@ export default function RtaCard({
           Sa cible reste petite mais isolée — rien d'autre à toucher autour, donc
           rien à rater. */}
       <BoutonIcone
-        onClick={() => setRetraitAConfirmer(true)}
+        onClick={() => onRemove(String(monster.id))}
         libelle={`Retirer ${monster.name}`}
         taille="serre"
         ton="danger"
@@ -283,25 +283,6 @@ export default function RtaCard({
         icone={<X size={12} />}
         className="absolute -top-1.5 -right-1.5 shadow"
       />
-
-      {retraitAConfirmer && (
-        <ConfirmDialog
-          titre={`Retirer ${monster.name} de ta prépa ?`}
-          message={
-            <>
-              Sa vitesse saisie et son classement partent avec lui. Les autres
-              monstres ne sont pas touchés.
-            </>
-          }
-          libelleAction="Retirer"
-          destructif
-          onCancel={() => setRetraitAConfirmer(false)}
-          onConfirm={() => {
-            setRetraitAConfirmer(false);
-            onRemove(String(monster.id));
-          }}
-        />
-      )}
       </div>
     </div>
   );

@@ -33,6 +33,7 @@ import { Bouton, Selecteur } from '../ui';
 import Pastille from '../ui/Pastille';
 import RuneIcon from '../components/RuneIcon';
 import IndicateurSauvegarde from '../components/rta/IndicateurSauvegarde';
+import { useNotifier } from '../ui/Notification';
 import type { RtaSub } from '../App';
 
 interface Props {
@@ -168,6 +169,17 @@ export default function RtaPage({
   // Destinations proposées dans le sélecteur des cartes (repli tactile du drag).
   const moveTargets = [RTA_UNASSIGNED, ...rta.state.sections];
 
+  // Retirer un monstre de la prépa SE DÉFAIT au lieu de se confirmer (lot 13,
+  // décision 29) : le retrait est immédiat, et la notification « Annuler »
+  // remet l'entrée telle quelle — section, vitesse saisie, sets, équipement.
+  const notifier = useNotifier();
+  function retirerMonstre(id: string) {
+    const entree = rta.state.entries[id];
+    const nom = monsterById.get(id)?.name ?? 'Monstre';
+    rta.removeMonster(id);
+    if (entree) notifier({ message: `${nom} retiré de ta prépa`, annuler: () => rta.restaurerMonstre(entree) });
+  }
+
   function renderCards(items: TurnItem[]) {
     return items.map((it) => (
       <RtaCard
@@ -183,7 +195,7 @@ export default function RtaPage({
         open={openId === String(it.monster.id)}
         onToggleDetail={toggleDetail}
         onMove={rta.moveMonster}
-        onRemove={rta.removeMonster}
+        onRemove={retirerMonstre}
         onDragStart={setDraggingId}
         onDragEnd={() => setDraggingId(null)}
       />

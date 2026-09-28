@@ -34,8 +34,7 @@ import {
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { DeckHit, RecoHit } from '../../lib/recoSearch';
 import { VueDefenses, VueRecos, vueDefenses } from '../../lib/recoDefenses';
-import { ConfirmDialog } from '../../ui/Dialogs';
-import { Bouton, BoutonIcone, Champ, Flottant, Selecteur, ZoneCliquable } from '../../ui';
+import { Bouton, BoutonIcone, Champ, Flottant, Selecteur, ZoneCliquable, useNotifier } from '../../ui';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import {
@@ -193,7 +192,15 @@ export default function RecoCard({
   // celui qui nous intéresse. Réinitialisé si le nombre de decks change (les
   // index se décalent à l'ajout/suppression).
   const [openDecks, setOpenDecks] = useState<Set<number>>(new Set());
-  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
+  // Supprimer une recommandation SE DÉFAIT au lieu de se confirmer (lot 13,
+  // décision 29) : immédiat, puis « Recommandation supprimée · Annuler » la
+  // remet à SA place, avec tous ses decks et ses consignes.
+  const notifier = useNotifier();
+  function supprimerReco() {
+    const index = recos.state.recos.findIndex((r) => r.id === reco.id);
+    recos.removeReco(reco.id);
+    notifier({ message: 'Recommandation supprimée', annuler: () => recos.restaurerReco(reco, index) });
+  }
   const deckCount = reco.decks.length;
   useEffect(() => {
     setOpenDecks(new Set());
@@ -441,7 +448,7 @@ export default function RecoCard({
               className={ICONE_ACTION}
             />
             <BoutonIcone
-              onClick={() => setSuppressionAConfirmer(true)}
+              onClick={supprimerReco}
               ton="danger"
               taille="serre"
               icone={<Trash2 size={13} />}
@@ -529,20 +536,6 @@ export default function RecoCard({
         )}
       </div>
       </div>
-
-      {suppressionAConfirmer && (
-        <ConfirmDialog
-          titre="Supprimer cette recommandation ?"
-          message="Elle sera retirée avec tous ses decks et ses consignes."
-          libelleAction="Supprimer"
-          destructif
-          onCancel={() => setSuppressionAConfirmer(false)}
-          onConfirm={() => {
-            setSuppressionAConfirmer(false);
-            recos.removeReco(reco.id);
-          }}
-        />
-      )}
 
       {editing && (
         <div className="flex flex-col gap-2 mb-3">
@@ -1329,7 +1322,15 @@ function DeckBlock({
   hit: DeckHit | null;
   recos: UseRecoState;
 }) {
-  const [deckAConfirmer, setDeckAConfirmer] = useState(false);
+  // Supprimer un deck SE DÉFAIT au lieu de se confirmer (lot 13, décision 29) :
+  // immédiat, puis « Deck supprimé · Annuler » le remet à SA place — le dernier
+  // deck remplace alors le deck vide laissé derrière lui (voir
+  // `decksApresRestauration`).
+  const notifier = useNotifier();
+  function supprimerDeck() {
+    recos.removeDeck(reco.id, deckIndex);
+    notifier({ message: 'Deck supprimé', annuler: () => recos.restaurerDeck(reco.id, deck, deckIndex) });
+  }
   // Un monstre choisi → le curseur passe au slot vide suivant (voir
   // `slotVideSuivant`) : on compose les trois d'affilée, sans la souris.
   const [focus, setFocus] = useState<JetonSlot | null>(null);
@@ -1511,7 +1512,7 @@ function DeckBlock({
                 lg:mr-auto`) : un geste qui perd quelque chose ne se range pas
                 au contact de celui qu'on presse le plus. */}
             <BoutonIcone
-              onClick={() => setDeckAConfirmer(true)}
+              onClick={supprimerDeck}
               ton="danger"
               taille="serre"
               icone={<Trash2 size={12} />}
@@ -1567,20 +1568,6 @@ function DeckBlock({
           </div>
         )}
       </div>
-
-      {deckAConfirmer && (
-        <ConfirmDialog
-          titre="Supprimer ce deck ?"
-          message="Ses trois slots et ses consignes seront perdus. Les autres decks de la recommandation restent en place."
-          libelleAction="Supprimer"
-          destructif
-          onCancel={() => setDeckAConfirmer(false)}
-          onConfirm={() => {
-            setDeckAConfirmer(false);
-            recos.removeDeck(reco.id, deckIndex);
-          }}
-        />
-      )}
 
       {!folded && (
       // ⚠️ À la souris, le détail d'une ligne dépliée est une CARTE sous elle,

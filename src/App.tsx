@@ -52,6 +52,7 @@ import {
   storageAvailable,
 } from './hooks/usePersistence';
 import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
+import { FournisseurNotification } from './ui/Notification';
 import InventaireIcon, { InventaireIconKey } from './components/InventaireIcon';
 import {
   COULEUR_SECTION,
@@ -1203,10 +1204,13 @@ export default function App() {
     null;
 
   return (
-    // ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent contextuel
-    // de tout l'écran (voir index.css). Une page qui parle d'un monstre le
-    // posera à son élément ; partout ailleurs il reste absent, et `--ctx`
-    // retombe sur l'accent de l'app.
+    // ⚠️ La notification « … · Annuler » (lot 13, décision 29) enveloppe
+    // toute l'app : un geste qui se défait peut venir de n'importe quel écran.
+    <FournisseurNotification>
+    {/* ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent
+        contextuel de tout l'écran (voir index.css). Une page qui parle d'un
+        monstre le posera à son élément ; partout ailleurs il reste absent, et
+        `--ctx` retombe sur l'accent de l'app. */}
     <div
       // ⚠️ La marge suit le REPLI de la barre, et à la même courbe : sans ça,
       // la barre se replierait sur une colonne de vide. `--pad-nav` n'est posé
@@ -1556,5 +1560,6 @@ export default function App() {
         )}
       </div>
     </div>
+    </FournisseurNotification>
   );
 }

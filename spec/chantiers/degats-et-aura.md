@@ -428,8 +428,8 @@ Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 | 6bis-a3b — recherche, diagnostics et filtre final | C | terminé | reçu `bd9b60a` ↔ `2c5b82d` / 2026-09-27 |
 | 6bis-a4a — recette, reset et import écran | C | terminé | reçu `2d8d364` ↔ `7e0541c` / 2026-09-28 |
 | 6bis-a4b — CLI et scripts de diagnostic | C | terminé | reçu `6669527` ↔ `308c6be` / 2026-09-28 |
-| 6bis-a4c1 — écran de recherche et caches | C | à lancer | — |
-| 6bis-a4c2 — cartes de résultat et autres affichages | C | en attente de a4c1 | — |
+| 6bis-a4c1 — écran de recherche et caches | C | terminé après complément pilote de la preuve | reçu initial `4d95932` ↔ `4ed721e` / 2026-09-28 ; preuve relivrée |
+| 6bis-a4c2 — cartes de résultat et autres affichages | C | à lancer | — |
 | 6bis-a4d1 — Workers et tests | C | en attente de a4c2 | — |
 | 6bis-a4d2 — réconciliation des cartes | C | en attente de a4d1 | — |
 | 6bis-b-* — correction du modèle par sous-lots bornés | J | non lançables avant amendement et revue | — |
@@ -2136,6 +2136,21 @@ sans supposer qu'ils calculent des auras de combat.
 
 **Sortie :** carte a4c1 et matrice écran/cache. **Ne fait pas :** cartes
 de résultat, autres contrôles, Workers ou tests.
+
+**Résultat du lot 6bis-a4c1 — 2026-09-28.** Les trois clés projetées sont
+réconciliées : `OptimizerSection.tsx` consomme le contexte fixe pour les
+conditions, le tri et le cache d'artéfacts ; `importAccount.ts` et
+`recoMatch.ts` emploient `activeSets` sans calculer d'aura de combat. Les six
+runes sont connues une fois les candidats publiés par l'appariement, mais
+aucune aura propre n'est dérivée dans l'écran. La preuve privée
+`controle-6bis-a4c1.md` et la carte homonyme consignent les citations et la
+matrice écran/cache. Le pilote a comparé les trois clés à la projection,
+rejoué le contrôle des 231 lignes et le lint, puis complété l'en-tête et les
+sorties de contrôle de la preuve avant de la relivrer. Les quelque 4 800 lignes
+lues par l'agent dépassent le repère indicatif, principalement à cause d'un
+`spec-toc` trop large ; aucune fenêtre requise n'a été omise. Aucun test
+d'interface ni calcul d'aura propre par build n'est prouvé ici. Le reçu
+initial était `4d95932` ↔ `4ed721e` ; a4c2 peut commencer.
 
 #### 6bis-a4c2 — cartes de résultat et autres affichages
 

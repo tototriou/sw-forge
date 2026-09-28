@@ -81,6 +81,7 @@ import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnal
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
+import { testRenduTelephoneMonstres, testRenduTelephoneArtefacts, testRenduTelephoneRunes } from './rendu/telephone-compte.test';
 import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi } from './rendu/rta.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
@@ -155,6 +156,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneRtaAmi', testRenduTelephoneRtaAmi],
   ['testRenduTelephoneSiege', testRenduTelephoneSiege],
   ['testRenduTelephoneRecos', testRenduTelephoneRecos],
+  ['testRenduTelephoneMonstres', testRenduTelephoneMonstres],
+  ['testRenduTelephoneArtefacts', testRenduTelephoneArtefacts],
+  ['testRenduTelephoneRunes', testRenduTelephoneRunes],
   ['testRenduUiBouton', testRenduUiBouton],
   ['testRenduUiEtats', testRenduUiEtats],
   ['testRenduUiMenu', testRenduUiMenu],

@@ -87,16 +87,30 @@ monstre, aucun `RealDamageContext` supplémentaire.
 
 ## Sets d'aura d'équipe — modèle
 
-`DamageSetup.setsAura` est une liste optionnelle d'entrées `{ set, nombre }` :
-Fight → ATQ, Determination → DEF, Enhance → PV, Accuracy → PRE et Tolerance
-→ RES. Chaque `nombre` est le **total de sets de l'équipe, monstre optimisé
-inclus** ; le runage candidat n'y ajoute jamais ses propres activations.
-Une seule entrée par type est admise, avec un entier de 1 à 18 et une somme
-de tous les types au plus égale à **18** (jusqu'à six monstres à trois sets).
-Une liste absente vaut zéro ; une recette mal typée ou hors bornes est refusée
-avec le chemin `damageSetup.setsAura` ou celui de son entrée. Source des cinq
-valeurs et du plafond : utilisateur, 2026-09-23, cadrage
-`spec/chantiers/degats-et-aura.md` A.2 ter.
+`DamageSetup.setsAuraExternes` est une liste optionnelle d'entrées
+`{ set, nombre }` : Fight → ATQ, Determination → DEF, Enhance → PV, Accuracy
+→ PRE et Tolerance → RES. Elle ne décrit que les auras des **autres**
+monstres de l'équipe : au plus cinq monstres à trois sets, d'où une seule
+entrée par type, un entier de 1 à 15 et une somme de tous les types au plus
+égale à **15**. Une liste absente ou vide vaut zéro ; une recette mal typée,
+répétée ou hors bornes est refusée avec le chemin
+`damageSetup.setsAuraExternes` ou celui de son entrée. La liste survit à un
+changement d'espèce, d'exemplaire ou de liste et se vide à l'import d'un
+compte. Source des cinq valeurs et du plafond : utilisateur, 2026-09-23 puis
+2026-09-25, cadrage `spec/chantiers/degats-et-aura.md` A.2 ter.
+
+Les activations d'aura **propres** au build — les sets réellement formés par
+ses six runes, Intangible compris — s'ajoutent à cette part externe, pour un
+total effectif d'au plus 18. ⚠️ **État provisoire (lot 6bis-b1)** : elles ne
+sont pas encore comptées. Tous les calculs décrits ci-dessous lisent la
+**seule part externe** ; les lots 6bis-b2 (combat et score) et 6bis-b3a
+(conditions) y ajoutent les activations propres de chaque candidat.
+
+L'ancien champ `damageSetup.setsAura` comptait l'équipe entière, monstre
+optimisé inclus : ses nombres ne se traduisent pas en auras des autres
+monstres. Absent ou vide, il est accepté et retiré à l'import ; non vide, la
+recette est refusée avec le chemin `damageSetup.setsAura` et la raison,
+jamais réinterprétée en auras externes. La version de recette ne change pas.
 
 Fight, Determination et Enhance donnent chacun **8 % de la statistique de
 base** correspondante. Ils s'ajoutent au pourcentage de l'invocateur et du
@@ -115,8 +129,8 @@ recherche, élagages, diagnostics et filtres finaux suivent la même règle.
 Désactiver ce booléen ne retire aucun effet des dégâts ni des PV effectifs.
 Les auras PV/ATQ/DEF restent hors conditions. Le booléen est optionnel dans
 la recette pour préserver les exports antérieurs ; ses valeurs présentes
-doivent être booléennes. Le modèle est livré au lot 6 ; ses contrôles visuels
-appartiennent au lot 7.
+doivent être booléennes. Le modèle est livré au lot 6, le champ externe au
+lot 6bis-b1 ; ses contrôles visuels appartiennent au lot 7.
 
 ## Leader skill d'équipe
 

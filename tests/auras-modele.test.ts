@@ -1,6 +1,7 @@
 import { egal, ok, titre } from './outils';
 import { computeStats, statsParPaire } from '../src/lib/stats';
-import { ARTIFACT_DAMAGE_NEUTRE, DEFAULT_DAMAGE_SETUP, computeSkillDamage, computeTotalDamage, degatsBrutsArtefactsParCoup, estPrisEnCharge, skillDamageProfile, statsDebutCombat } from '../src/lib/damage';
+import { ARTIFACT_DAMAGE_NEUTRE, DEFAULT_DAMAGE_SETUP, computeSkillDamage, computeTotalDamage, degatsBrutsArtefactsParCoup, estPrisEnCharge, nombreAura, skillDamageProfile, statsDebutCombat } from '../src/lib/damage';
+import { DAMAGE_SETUP_CLASSIFICATION, damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
 import { apportExclusive } from '../src/lib/relicExclusive';
 import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
@@ -17,7 +18,7 @@ import type { BaseStats, RelicDetail } from '../src/types';
 
 const BASE: BaseStats = { hp: 1001, atk: 101, def: 101, spd: 100, cr: 15, cd: 50, res: 0, acc: 0 };
 const STATS = computeStats({ base: BASE, runes: [], artifacts: [] });
-const SETUP = { ...DEFAULT_DAMAGE_SETUP, setsAura: [
+const SETUP = { ...DEFAULT_DAMAGE_SETUP, setsAuraExternes: [
   { set: 'fight' as const, nombre: 2 }, { set: 'determination' as const, nombre: 1 },
   { set: 'enhance' as const, nombre: 1 }, { set: 'accuracy' as const, nombre: 1 },
   { set: 'tolerance' as const, nombre: 1 },
@@ -35,26 +36,67 @@ function recette() {
 }
 
 export function testAurasRecette() {
-  titre('Auras · recette, 18 acceptés, 19 refusés et ancien format');
+  titre('Auras · recette externe, 15 acceptés, 16 refusés, ancien champ et resets');
   const r = recette();
   const lire = (value: unknown) => parseOptimizerRecipe(JSON.stringify(value));
-  egal(lire({ ...r, damageSetup: { ...SETUP, setsAura: [{ set: 'fight', nombre: 18 }] } }).recipe?.damageSetup.setsAura,
-    [{ set: 'fight', nombre: 18 }], '18 sets d’un type acceptés');
-  ok(lire({ ...r, damageSetup: { ...SETUP, setsAura: [{ set: 'fight', nombre: 10 }, { set: 'accuracy', nombre: 8 }] } }).recipe !== null,
-    '18 sets répartis acceptés');
-  ok(!!lire({ ...r, damageSetup: { ...SETUP, setsAura: [{ set: 'fight', nombre: 10 }, { set: 'accuracy', nombre: 9 }] } }).error?.includes('damageSetup.setsAura'),
-    '19 sets répartis refusés avec chemin');
-  for (const invalide of [[{ set: 'fight', nombre: 0 }], [{ set: 'fight', nombre: 1.5 }], [{ set: 'inconnu', nombre: 1 }],
-    [{ set: 'fight', nombre: 1 }, { set: 'fight', nombre: 1 }], 'fight']) {
-    ok(!!lire({ ...r, damageSetup: { ...SETUP, setsAura: invalide } }).error?.includes('damageSetup.setsAura'),
-      'aura mal typée, hors bornes ou répétée refusée avec chemin');
+  const avecExternes = (setsAuraExternes: unknown) => lire({ ...r, damageSetup: { ...SETUP, setsAuraExternes } });
+  // `erreur` écrit « <chemin> <attente> » : l'espace final exige le chemin exact.
+  const refuse = (resultat: ReturnType<typeof lire>, chemin: string) => resultat.recipe === null && !!resultat.error?.includes(`${chemin} `);
+
+  // Plafond de saisie : cinq AUTRES monstres à trois sets (A.2 ter), les
+  // activations propres du build s'ajoutant hors de ce champ.
+  egal(avecExternes([]).recipe?.damageSetup.setsAuraExternes, [], '0 aura externe acceptée');
+  egal(avecExternes([{ set: 'fight', nombre: 15 }]).recipe?.damageSetup.setsAuraExternes,
+    [{ set: 'fight', nombre: 15 }], '15 sets d’un type acceptés');
+  ok(avecExternes([{ set: 'fight', nombre: 10 }, { set: 'accuracy', nombre: 5 }]).recipe !== null, '15 sets répartis acceptés');
+  ok(refuse(avecExternes([{ set: 'fight', nombre: 10 }, { set: 'accuracy', nombre: 6 }]), 'damageSetup.setsAuraExternes'),
+    '16 sets répartis refusés avec chemin');
+  ok(refuse(avecExternes([{ set: 'fight', nombre: 16 }]), 'damageSetup.setsAuraExternes.0.nombre'),
+    '16 sets d’un type refusés avec chemin de l’entrée');
+  for (const [invalide, chemin, motif] of [
+    [[{ set: 'fight', nombre: 0 }], 'damageSetup.setsAuraExternes.0.nombre', 'zéro'],
+    [[{ set: 'fight', nombre: 1.5 }], 'damageSetup.setsAuraExternes.0.nombre', 'non entier'],
+    [[{ set: 'fight', nombre: '2' }], 'damageSetup.setsAuraExternes.0.nombre', 'nombre en texte'],
+    [[{ set: 'inconnu', nombre: 1 }], 'damageSetup.setsAuraExternes.0.set', 'set inconnu'],
+    [[{ set: 'fight', nombre: 1 }, { set: 'fight', nombre: 1 }], 'damageSetup.setsAuraExternes.1.set', 'doublon'],
+    [['fight'], 'damageSetup.setsAuraExternes.0', 'entrée non objet'],
+    ['fight', 'damageSetup.setsAuraExternes', 'pas une liste'],
+  ] as [unknown, string, string][]) {
+    ok(refuse(avecExternes(invalide), chemin), `aura externe refusée avec chemin : ${motif}`);
   }
   ok(!!lire({ ...r, compterAurasResPre: 'oui' }).error?.includes('compterAurasResPre'), 'toggle mal typé refusé avec chemin');
+
+  // Ancien `setsAura` (total d'équipe, monstre optimisé inclus) : absent ou
+  // vide ne dit rien ; non vide ne se convertit pas en externe, il est refusé.
   const ancien = JSON.parse(JSON.stringify(r));
-  delete ancien.damageSetup.setsAura;
+  delete ancien.damageSetup.setsAuraExternes;
   delete ancien.compterAurasResPre;
-  ok(lire(ancien).recipe !== null, 'ancienne recette acceptée');
-  egal(lire(r).recipe?.damageSetup.setsAura, SETUP.setsAura, 'aller-retour de la liste de sets');
+  const sansChamp = lire(ancien);
+  ok(sansChamp.recipe !== null, 'recette antérieure sans champ d’aura acceptée');
+  egal(sansChamp.recipe && nombreAura(sansChamp.recipe.damageSetup, 'fight'), 0, 'champ absent : aucune aura externe');
+  const vide = lire({ ...ancien, damageSetup: { ...ancien.damageSetup, setsAura: [] } });
+  ok(vide.recipe !== null, 'ancien setsAura vide accepté');
+  ok(!!vide.recipe && !('setsAura' in vide.recipe.damageSetup), 'ancien setsAura vide retiré : aucune clé opaque à réexporter');
+  const nonVide = lire({ ...ancien, damageSetup: { ...ancien.damageSetup, setsAura: [{ set: 'fight', nombre: 3 }] } });
+  ok(refuse(nonVide, 'damageSetup.setsAura') && !!nonVide.error?.includes('damageSetup.setsAuraExternes'),
+    'ancien setsAura non vide refusé avec chemin et raison, jamais réinterprété');
+  ok(refuse(lire({ ...r, damageSetup: { ...SETUP, setsAura: [{ set: 'fight', nombre: 3 }] } }), 'damageSetup.setsAura'),
+    'ancien setsAura non vide refusé même à côté du nouveau champ');
+  ok(refuse(lire({ ...ancien, damageSetup: { ...ancien.damageSetup, setsAura: 'fight' } }), 'damageSetup.setsAura'),
+    'ancien setsAura mal typé refusé avec chemin');
+
+  // Aller-retour export → import → export : aucune clé perdue ni ajoutée.
+  const relue = lire(r).recipe;
+  egal(relue?.damageSetup, SETUP, 'aller-retour : damageSetup identique');
+  egal(relue && lire(relue).recipe, relue, 'aller-retour : un second import ne change rien');
+  egal(relue && nombreAura(relue.damageSetup, 'fight'), 2, 'calcul : la part externe relue est celle lue par nombreAura');
+
+  // Resets : l'import de compte applique le défaut complet (branche
+  // `'compte'` de resetSearch), un changement d'espèce garde le contexte.
+  egal(DEFAULT_DAMAGE_SETUP.setsAuraExternes, [], 'import de compte : auras externes vidées');
+  egal(DAMAGE_SETUP_CLASSIFICATION.setsAuraExternes, 'contexte', 'auras externes classées contexte');
+  egal(damageSetupApresChangementMonstre(SETUP).setsAuraExternes, SETUP.setsAuraExternes,
+    'changement d’espèce : auras externes conservées');
 }
 
 export function testAurasCombatEtExclusive() {
@@ -88,13 +130,13 @@ export function testAurasArrondiCommunLeadInvocateur() {
   ];
   const base: BaseStats = { ...BASE, def: 103 };
   const stats = computeStats({ base, runes: [], artifacts: [] });
-  const setsAura = [
+  const setsAuraExternes = [
     { set: 'enhance' as const, nombre: 1 },
     { set: 'fight' as const, nombre: 1 },
     { set: 'determination' as const, nombre: 1 },
   ];
   for (const { stat, key, base: valeurBase, attendu, arrondisSepares } of cas) {
-    const setup = { ...DEFAULT_DAMAGE_SETUP, leaderSkill: { stat, pct: 13 }, setsAura };
+    const setup = { ...DEFAULT_DAMAGE_SETUP, leaderSkill: { stat, pct: 13 }, setsAuraExternes };
     ok(attendu !== arrondisSepares, `${key} : la base ${valeurBase} distingue les deux règles d'arrondi`);
     egal(statsDebutCombat(stats, setup)[key], attendu, `${key} : 20 % invocateur + 13 % lead + 8 % aura, un ceil`);
   }
@@ -220,7 +262,7 @@ export function testAurasPariteEcranCliEtCache() {
     lignesVerrouillees: [], relique: null, nbArtefacts: 0, empreinteRelique: null,
     requirement: { minStats: { res: 8 }, maxStats: {} } });
   ok(signature(true) !== signature(false), 'le toggle invalide le cache');
-  ok(signatureArtefacts({ monstreCom2usId: 1, damageSetup: { ...SETUP, setsAura: [] },
+  ok(signatureArtefacts({ monstreCom2usId: 1, damageSetup: { ...SETUP, setsAuraExternes: [] },
     compterAurasResPre: true, regimeEquipement: 'ehp', ignoreArtifacts: false, principaleParSorte: {},
     lignesVerrouillees: [], relique: null, nbArtefacts: 0, empreinteRelique: null,
     requirement: { minStats: { res: 8 }, maxStats: {} } }) !== signature(true), 'la liste invalide le cache');

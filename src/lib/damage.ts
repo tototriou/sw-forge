@@ -3311,9 +3311,14 @@ export interface DamageSetup {
   // l'un vers l'autre (lead VIT), jamais un défaut générique qui perdrait
   // l'information déjà saisie.
   leaderSkill?: { stat: LeaderSkillStat; pct: number };
-  // Totaux de l'équipe, monstre optimisé inclus : les sets de ses runes ne
-  // s'ajoutent jamais une seconde fois à ces nombres.
-  setsAura?: { set: SetAura; nombre: number }[];
+  // Auras des AUTRES monstres de l'équipe seulement : au plus cinq monstres à
+  // trois sets, donc 15 au total. Les activations propres du build viennent
+  // de ses six runes (`activeSets`) et ne sont jamais saisies ici. ⚠️ État
+  // provisoire : tant que ces activations propres ne sont pas branchées, les
+  // calculs ne lisent que cette part externe. Remplace l'ancien `setsAura`
+  // (total d'équipe, monstre optimisé inclus) : une recette qui le porte non
+  // vide est refusée à l'import, jamais réinterprétée (`optimizerRecipe.ts`).
+  setsAuraExternes?: { set: SetAura; nombre: number }[];
   /** @deprecated Remplacé par `leaderSkill` (lead VIT). Conservé UNIQUEMENT
    * pour la lecture d'une recette exportée avant la généralisation — voir
    * `resolvedLeaderSkill`. Ne jamais écrire ce champ depuis l'écran. */
@@ -3435,7 +3440,7 @@ export interface DamageSetup {
 // comparaison le plus courant, et les mêmes ordres de grandeur que les
 // outils de référence de la communauté.
 export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
-  setsAura: [],
+  setsAuraExternes: [],
   skillCom2usId: null,
   enemyDef: 1000,
   enemyHp: 30000,
@@ -3503,8 +3508,10 @@ export function resolvedLeaderSkill(setup: DamageSetup): { stat: LeaderSkillStat
   return legacy ? { stat: 'Attack Speed', pct: legacy } : null;
 }
 
+// Part EXTERNE seule (voir `DamageSetup.setsAuraExternes`) : les activations
+// propres du build n'y sont pas encore ajoutées.
 export function nombreAura(setup: DamageSetup, set: SetAura): number {
-  return setup.setsAura?.find((entree) => entree.set === set)?.nombre ?? 0;
+  return setup.setsAuraExternes?.find((entree) => entree.set === set)?.nombre ?? 0;
 }
 
 export function pointsAuraResPre(setup: DamageSetup, compter = true): { res: number; acc: number } {

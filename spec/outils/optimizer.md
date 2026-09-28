@@ -1316,8 +1316,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      seulement — la recherche elle-même ne doit surtout pas exclure un build
      dont la somme brute dépasse 100 % (une marge de sécurité contre la
      précision/résistance adverse reste un résultat légitime).
-   - Le modèle des auras accepte les totaux d'équipe dans `DamageSetup.setsAura`
-     (voir [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)).
+   - Le modèle des auras accepte les auras des **autres** monstres de
+     l'équipe dans `DamageSetup.setsAuraExternes`, 15 sets au plus (voir
+     [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) ; une
+     recette portant l'ancien total d'équipe `setsAura` non vide est refusée.
+     En l'état, seule cette part externe est comptée : les activations
+     propres des runes du build ne le sont pas encore (lots 6bis-b2 et b3a).
      `compterAurasResPre`, activé par défaut, ajoute les points d'aura RES
      et PRE aux **minimums et maximums** ; désactivé, il ne change pas les
      dégâts ni les PV effectifs. Les auras PV/ATQ/DEF ne comptent dans aucune

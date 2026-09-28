@@ -249,24 +249,41 @@ function validerDamageSetup(value: unknown): string | null {
   if (!estObjet(value)) return erreur('damageSetup', 'doit être un objet');
 
   const setup = value;
+  // ⚠️ L'ancien `setsAura` comptait l'équipe ENTIÈRE, monstre optimisé
+  // inclus : ses nombres ne se traduisent pas en auras des autres monstres
+  // (on ignore lesquelles venaient des runes du monstre lui-même). Absent ou
+  // vide, il ne dit rien et reste accepté — `parseOptimizerRecipe` le retire
+  // alors ; non vide, il est refusé plutôt que réinterprété en silence.
   if (setup.setsAura !== undefined) {
     if (!Array.isArray(setup.setsAura)) return erreur('damageSetup.setsAura', 'doit être une liste');
+    if (setup.setsAura.length > 0) {
+      return erreur(
+        'damageSetup.setsAura',
+        "est l'ancien total d'auras de l'équipe, monstre optimisé inclus, qui ne peut pas être converti en auras des autres monstres : " +
+          'retirer ce champ et saisir les auras des autres monstres dans damageSetup.setsAuraExternes'
+      );
+    }
+  }
+  if (setup.setsAuraExternes !== undefined) {
+    if (!Array.isArray(setup.setsAuraExternes)) return erreur('damageSetup.setsAuraExternes', 'doit être une liste');
     const connus = new Set(['fight', 'determination', 'enhance', 'accuracy', 'tolerance']);
     const vus = new Set<string>();
     let somme = 0;
-    for (const [index, entree] of setup.setsAura.entries()) {
-      const chemin = `damageSetup.setsAura.${index}`;
+    for (const [index, entree] of setup.setsAuraExternes.entries()) {
+      const chemin = `damageSetup.setsAuraExternes.${index}`;
       if (!estObjet(entree)) return erreur(chemin, 'doit être un objet');
       if (typeof entree.set !== 'string' || !connus.has(entree.set) || vus.has(entree.set)) {
         return erreur(`${chemin}.set`, 'set inconnu ou répété');
       }
       vus.add(entree.set);
-      if (typeof entree.nombre !== 'number' || !Number.isInteger(entree.nombre) || entree.nombre < 1 || entree.nombre > 18) {
-        return erreur(`${chemin}.nombre`, 'doit être un entier de 1 à 18');
+      if (typeof entree.nombre !== 'number' || !Number.isInteger(entree.nombre) || entree.nombre < 1 || entree.nombre > 15) {
+        return erreur(`${chemin}.nombre`, 'doit être un entier de 1 à 15');
       }
       somme += entree.nombre;
     }
-    if (somme > 18) return erreur('damageSetup.setsAura', 'la somme ne doit pas dépasser 18');
+    // Cinq autres monstres à trois sets au plus : 15. Les activations propres
+    // du build (jusqu'à 3) s'y ajoutent hors de ce champ.
+    if (somme > 15) return erreur('damageSetup.setsAuraExternes', 'la somme ne doit pas dépasser 15');
   }
   if (setup.skillCom2usId !== undefined && setup.skillCom2usId !== null) {
     const e = validerNombre(setup.skillCom2usId, 'damageSetup.skillCom2usId', true);
@@ -460,10 +477,17 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   // impossible en jeu. Une recette qui le porte repart donc sur le défaut
   // réel « combat » ; cette normalisation centrale protège autant l'écran que
   // le CLI, tous deux consommateurs du résultat de ce parseur.
-  const normalisee =
-    estObjet(d.damageSetup) && !['combat', 'guilde'].includes(String(d.damageSetup.summonerSkills))
-      ? { ...d, damageSetup: { ...d.damageSetup, summonerSkills: 'combat' } }
-      : d;
+  // L'ancien `setsAura`, accepté seulement absent ou vide (voir
+  // `validerDamageSetup`), est retiré : aucune clé hors de `DamageSetup` ne
+  // survit à l'import ni ne repart dans l'export suivant.
+  let normalisee = d;
+  if (estObjet(d.damageSetup)) {
+    const { setsAura: _ancienTotal, ...setup } = d.damageSetup;
+    normalisee = {
+      ...d,
+      damageSetup: ['combat', 'guilde'].includes(String(setup.summonerSkills)) ? setup : { ...setup, summonerSkills: 'combat' },
+    };
+  }
   // ⚠️ Le seuil est un FILTRE D'ENTRÉE, jamais un critère (D2) : une valeur
   // hors bornes (fichier édité à la main, futur relâchement du jeu) est
   // NORMALISÉE plutôt que rejetée — contrairement à tout le reste de ce

@@ -110,7 +110,10 @@ console.log(
     }`
 );
 console.log(`minStats : ${JSON.stringify(recipe.requirement.minStats)}`);
-console.log(`Auras d'équipe : ${JSON.stringify(recipe.damageSetup?.setsAura ?? [])} ; RES/PRE dans les conditions : ${recipe.compterAurasResPre ?? true}`);
+console.log(
+  `Auras externes (autres monstres) : ${JSON.stringify(recipe.damageSetup?.setsAuraExternes ?? [])} ; ` +
+    `activations propres du build : pas encore comptées ; RES/PRE dans les conditions : ${recipe.compterAurasResPre ?? true}`
+);
 if (recipe.requirement.maxStats && Object.keys(recipe.requirement.maxStats).length > 0) {
   console.log(`maxStats : ${JSON.stringify(recipe.requirement.maxStats)}`);
 }

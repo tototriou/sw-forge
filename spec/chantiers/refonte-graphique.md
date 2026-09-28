@@ -421,8 +421,13 @@ Notation **`A → B` : B requiert A** (prérequis à gauche).
 ```
 
 Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → **14** → 8a → 8b
-→ 9a → 9b → 10 → 11 → 13 → 12. (Le lot 14 est ajouté le 2026-09-26, à la
+→ 9b → 10 → 9a → 11 → 13 → 12. (Le lot 14 est ajouté le 2026-09-26, à la
 demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours.)
+**9a reporté après 10** (Thomas, 2026-09-28 : « saute l'Optimizer, on le fera
+à la fin, j'attends une livraison sur cette partie-là ») : l'écran va changer
+par un autre travail, le refaire avant serait à refaire. Il reste un
+prérequis du lot 11 (`{5 … 10, 14} → 11`) : si la livraison n'est pas là
+quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
@@ -438,7 +443,7 @@ demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours
 | 14 thème clair (Atelier) : revoir les tokens | J | exécuté, validé | `03fbe84` (tokens), `85f3c9e` (teintes claires de l'accueil) ; fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix de Thomas) ; preuve `lot-14.md` ; validé par Thomas le 2026-09-27 |
 | 8a Compte · Runes | J | exécuté, validé (bureau) | tests avant `dd0151b` (114) ; décisions 20 et 21 ; 8a-1 filtres (`f010f55`…`d310592`), 8a-2 Résumé et Liste (`84e07ed`, `989f8f5`), 8a-3 Courbes, Comparaison, Optimisation (`8dd9dba`), bulles de l'app (`c87c8f1`, `aaaac28`, `c094446`) ; validé par Thomas le 2026-09-27 |
 | 8b Compte · Monstres, Artéfacts | J | exécuté, validé (bureau) | tests avant `bb30d06` (59) ; décision 20 reprise ; box (`2227712`, `aee4db2`, `6c35a1b`), artéfacts (`ec5ec31`), tests (`2498f8b`) ; validé par Thomas le 2026-09-28 |
-| 9a Outils · Optimizer | J | à faire | |
+| 9a Outils · Optimizer | J | reporté après 10 | attend une livraison sur l'Optimizer (Thomas, 2026-09-28) |
 | 9b Outils · Speed tuning | J | à faire | |
 | 10 Ressources, Paramètres, Bientôt | J | à faire | |
 | 11 Téléphone | J | à faire | |

@@ -488,8 +488,8 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | terminé après rectification pilote des verdicts | reçu initial `840f202` ↔ `39a362f` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu initial `b9ff929` ↔ `473fe62` ; complément livré et intégré / 2026-09-28 |
-| 6bis-b1 — champ externe, recette et CLI | J | lancé ; phrase d'état provisoire amendée le 2026-09-29, avant lancement | `4622a02f` à valider |
-| 6bis-b2 — aura propre et scores | J | contre-vérifié, lançable après validation de b1 | — |
+| 6bis-b1 — champ externe, recette et CLI | J | terminé, preuves rejouées par le pilote | `4622a02f` ; reçu `de9e893` ↔ `a38a410` / 2026-09-29 |
+| 6bis-b2 — aura propre et scores | J | lançable | — |
 | 6bis-b3a — conditions exactes et filtre final | J | contre-vérifié et corrigé, lançable après b2 | — |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | contre-vérifié, attend b3a | — |
 | 6bis-b4 — écran, Workers, caches et parité | J | contre-vérifié, lançable après b3b | — |
@@ -2480,6 +2480,28 @@ l'exhaustivité. `tsc`, tests ciblés, build, spec-lint, diff-check ; preuve
 **Ne fait pas :** dériver les auras propres du build, changer les coupes,
 ajouter les contrôles visuels du lot 7 ou présenter le CLI comme complet.
 
+**Résultat du lot 6bis-b1 — 2026-09-29.** Code `4622a02f` (7 fichiers,
+une seule raison : champ, recette, CLI, tests, spec publique). Reçu
+`de9e893` ↔ `a38a410`, notes intégrées au main documentaire `92ca335`.
+Preuve privée `controle-6bis-b1.md` (324 lignes). Le pilote a rejoué sur
+`de9e8938` : `npx tsc --noEmit` → 0 ; les six filtres du brief → 102
+vérifications passées ; `node tests/run.mjs auras` → 132 ; `npm run build`,
+`spec-lint` et `git diff --check` verts ; `setsAura` ne subsiste que dans
+le refus, le retrait à l'import et les tests. CLI réel reconstruit :
+recette ancienne non vide refusée, `damageSetup.setsAura`, code 1 ;
+recette externe → écho `[{"set":"fight","nombre":3}]`, 100 000 builds,
+`truncated=true`, 8 536 796 paires (régime séquentiel), 11 s ;
+`chantier verifier` → « Reçu valide ». `invariants.md` L21–23 et
+`artefacts.md` § 11.5 décrivent l'état provisoire. Écarts acceptés :
+l'ancien champ est retiré du type ; la sortie rouge est celle de
+l'ancien test sur le code corrigé ; un `node -e` sans backtick a été
+utilisé contre CLAUDE.md. Non prouvé : l'effet offensif des Fight par le
+CLI (objectif EHP) et l'exhaustivité (recherche tronquée).
+**Incident de pilotage :** un commit du cadrage pendant la livraison de b1
+a bloqué `livrer` (arbre sale) ; le reçu porte donc `de9e893`. Règle : le
+pilote ne commite plus le cadrage pendant qu'un lot tourne dans ce
+worktree.
+
 ##### 6bis-b2 — aura propre par build, combat, EHP et choix des pièces
 
 **Cat. J ; requiert b1.** Intrant borné : les cinq clés A de
@@ -2536,6 +2558,9 @@ pièces séparés par build. Test nommé sur la note des couples de
 aura propre non nulle, qui prouve aussi que les couples transmis au contrôle
 des conditions (usage b3a) restent ceux attendus. `tsc`, tests ciblés, build, spec-lint, diff-check ;
 preuve `controle-6bis-b2.md`.
+L'écho du CLI (`scripts/optimizer-search.ts`, « activations propres du
+build : pas encore comptées ») devient « comptées dans le combat et le
+score, pas encore dans les conditions » ; b3a l'achève.
 **Ne fait pas :** conditions, élagages, rétention heuristique, UI de saisie.
 
 ##### 6bis-b3a — conditions exactes et filtres finaux
@@ -2605,7 +2630,8 @@ prouver la conservation du pool ; cette preuve de bout en bout (T2 et T3)
 appartient à b3b. Un échec de recherche complète éventuellement constaté
 ici est documenté comme risque à traiter en b3b, pas corrigé par b3a.
 `tsc`, suite ciblée, build, spec-lint et diff-check ; preuve
-`controle-6bis-b3a.md`.
+`controle-6bis-b3a.md`. b3a retire de l'écho du CLI la réserve « pas
+encore dans les conditions ».
 **Ne fait pas :** dominance, faisabilité précoce, diagnostics de faisabilité
 ou de blocage, `filterSlot`, rétention par compartiment ni benchmark.
 

@@ -440,7 +440,7 @@ Notation **`A → B` : B requiert A** (prérequis à gauche).
 4 → 5, 6, 7, 8a, 8b, 9a, 9b, 10 (un écran se refait sur la coquille finale ; entre eux, aucun ordre imposé)
 3 → 14 (le thème clair se revoit sur les composants de la librairie déjà refaits)
 14 → 8a, 8b, 9a, 9b, 10 (pas un prérequis technique : les écrans restants se jugent dans un thème clair déjà revu, au lieu d'être validés sur un thème qui va changer)
-{5 … 10, 14} → 11 (le téléphone se fait sur des écrans bureau stables)
+{5 … 10, 14} → 11 (le téléphone se fait sur des écrans bureau stables ; 9a → 11e seulement, voir B.11)
 11 → 13 (les ajouts se posent sur l'interface refaite)
 13 → 12 (la validation finale couvre aussi les ajouts)
 ```
@@ -471,7 +471,11 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 | 9a Outils · Optimizer | J | reporté après 10 | attend une livraison sur l'Optimizer (Thomas, 2026-09-28) |
 | 9b Outils · Speed tuning | J | exécuté, validé (bureau) | tests avant `f5cc897` (48) ; décision 22 (`f3c1715`) ; écran (`0f5e4c8`, `0e7a69a`) ; une assertion recomptée (import 2 → 4) ; validé par Thomas le 2026-09-28 |
 | 10 Ressources, Paramètres, Bientôt | J | exécuté, clos (bureau) | tests avant `96b74e9` (81) ; décision 23 (`6f90edd`) ; Bestiaire `cf11209`, Mécaniques `9779379`, Nouveautés `c99c99c`, Paramètres `9c7da0c` ; deux assertions assouplies (titre en tête) ; clos sur « continue » de Thomas le 2026-09-28 |
-| 11 Téléphone | J | à faire | |
+| 11a Téléphone · Accueil, RTA | J | à faire | |
+| 11b Téléphone · Siège | J | à faire | |
+| 11c Téléphone · Mon compte | J | à faire | |
+| 11d Téléphone · Speed tuning, Ressources, Paramètres, Bientôt | J | à faire | |
+| 11e Téléphone · Optimizer | J | après 9a | |
 | 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | à faire | |
 | 12 validation finale et fusion | M | à faire | |
 
@@ -827,6 +831,38 @@ Aucune perte. Reportés, hors refonte : deux textes de la page Mécaniques
 mobile s'appliquent tels quels (panneau de sous-sections, bouton Options,
 pas de sous-onglets dans la page). Tous les tests de rendu restent verts.
 Se coordonne avec la passe responsive (A.5).
+
+**Découpage, décidé avec Thomas le 2026-09-28, avant le code** — même
+raison que les lots bureau : 23 maquettes téléphone (`Mobile-*` sur la
+toile) et tous les écrans. Un sous-lot par zone, chacun validé par Thomas
+avant le suivant :
+
+- **11a** Accueil et RTA (`Mobile-Accueil`, `Mobile-Rta`, `Mobile-Rta-Ami`,
+  `Mobile-Menu-Compte`) ;
+- **11b** Siège (`Mobile-Siege-Defense`, `-Offense`, `-Recos`) ;
+- **11c** Mon compte (`Mobile-Monstres`, `Mobile-Runes-*`,
+  `Mobile-Options-Runes`, `Mobile-Artefacts-*`) ;
+- **11d** Speed tuning, Ressources, Paramètres, Bientôt ;
+- **11e** Optimizer — **après le 9a** (`{9a} → 11e`), lui-même en attente
+  d'une livraison.
+
+Pour chacun, comme B.5 à B.10 : **premier commit** = tests de rendu de la
+zone au format téléphone (panneaux « Options » ouverts, `menuOuvert`), sur
+le code actuel ; décisions de maquette soumises à Thomas avant le code ;
+preuve `lot-11x.md`. ⚠️ **Rien de ce qui est fait à la souris ne bouge** :
+une correction destinée au téléphone passe par les variantes sous `lg`
+(`max-lg:`, `lg:hidden`), jamais par une classe sans préfixe partagée avec
+le bureau.
+
+**Validation** : Thomas regarde en **mode appareil du navigateur**, sur son
+serveur de dev habituel.
+
+**Branches voisines (A.5), relevé du 2026-09-28** : `forge/edition-json`
+(App.tsx, accueil, page Outils) est **abandonnée pour l'instant** (Thomas) —
+elle ne bloque pas 11a ; c'est elle qui s'adaptera à sa reprise.
+`forge/implementation-relique` touche l'Optimizer (d'où 11e après 9a) et
+`MonsterGear.tsx` : avant 11a, vérifier si l'écran RTA le monte, et le
+laisser à l'identique si oui.
 
 ### B.13 Lot 13 — ajouts décidés · J
 

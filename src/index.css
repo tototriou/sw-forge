@@ -64,24 +64,29 @@
      ou `border-accent`, et reçoit la bonne braise. */
   --accent: 255 122 26;
   --accent-lisible: 166 79 17;
-  /* Fonds doux : la teinte fondue à 12 % dans `panel`, la MÊME construction
-     pour tous (accent, sémantique, éléments). L'encre y reste au-dessus de 14. */
+  /* ⚠️ **Fonds doux : la VIVACITÉ d'avant, dans la teinte de la toile.**
+     Chacun prend la plus vive (chroma OKLCH) de deux constructions : la teinte
+     fondue à 12 % dans `panel`, OU la chroma et l'écart de clarté de l'ancien
+     fond doux, reportés sur le nouveau `panel`. Le 12 % seul donnait des gris
+     à peine teintés (Thomas, R1 : « ça me paraît pâle » — les camps du speed
+     tuning) : la toile a une sémantique pastel, et la fondre dans un fond
+     chaud la délave. L'encre y fait 13.99 au pire. */
   --accent-soft: 255 237 221;
   /* Texte posé SUR un aplat de braise (bouton principal plein) : l'encre
      sombre, pas le blanc. Mesuré : 6.66. */
   --accent-ink: 27 26 25;
   /* Sémantique de la toile. Chacune lisible sur les trois surfaces (5.17 au
-     pire) et sur son fond doux (5.29 au pire). */
+     pire) et sur son fond doux (5.48 au pire). */
   --good: 47 107 54;
   /* Fond doux de `good`. Ils vont par PAIRE avec `bad-soft` — le speed tuning
      oppose ton équipe (`good`) au camp d'en face (`bad`). */
-  --good-soft: 230 235 225;
+  --good-soft: 227 241 227;
   /* ⚠️ `warn` est ORANGE, comme la braise (décision 12 : la toile telle
      quelle). ΔE 3.8 avec `accent-lisible` : ils se confondent à l'œil. C'est
      le LIBELLÉ qui porte l'avertissement (« à corriger »), jamais la couleur
      seule — décision 8 de la refonte. */
   --warn: 154 67 7;
-  --warn-soft: 243 231 219;
+  --warn-soft: 255 231 216;
   /* (Les tokens `--siege-card-*`, fond coloré des cartes de siège en mode
      clair, ont disparu au lot 7 de la refonte graphique : une PASTILLE écrite
      porte désormais le statut, dans les deux thèmes — décision 8.) */
@@ -90,7 +95,7 @@
   /* Fond doux de `bad`. ⚠️ Il manquait un AXE, pas une variante : l'accent et
      les éléments avaient leur `-soft`, la sémantique non. Il porte le camp
      ADVERSE du speed tuning, en face de `--good-soft`. */
-  --bad-soft: 244 228 225;
+  --bad-soft: 248 228 227;
 
   /* Éléments — teinte conservée, SATURATION poussée.
      ⚠️ Le ratio WCAG mesure la luminance, pas la présence d'une couleur : à
@@ -121,13 +126,14 @@
      `--accent-soft` l'est pour l'accent. Ils portent l'élément sans crier :
      une pastille sélectionnée, un en-tête d'écran, une carte de résumé.
      ⚠️ Assez pâles pour que `--ink` reste lisible dessus — ce sont des FONDS,
-     jamais du texte. Fondus à 12 % dans `panel`, comme `--accent-soft`. */
+     jamais du texte. Même construction que `--accent-soft` (la plus vive des
+     deux). */
   --el-fire-soft: 248 226 220;
-  --el-water-soft: 224 235 238;
+  --el-water-soft: 225 236 245;
   --el-wind-soft: 242 236 218;
-  --el-light-soft: 240 235 221;
-  --el-dark-soft: 239 227 241;
-  --el-unknown-soft: 235 234 233;
+  --el-light-soft: 244 238 224;
+  --el-dark-soft: 237 230 249;
+  --el-unknown-soft: 232 235 242;
 
   /* Le LAITON de la toile (`--bs-brass`) : étoiles, maxima d'efficience.
      4.79 sur `panel`, 4.29 sur `bg`, 3.93 sur `panel2` — même règle que le
@@ -245,23 +251,25 @@
   /* Texte sur aplat de braise : le fond sombre, pas le blanc. Mesuré 6.66. */
   --forge-accent-ink: 27 26 25;
   --forge-good: 159 211 154;
-  --forge-good-soft: 50 54 47;
+  --forge-good-soft: 37 48 36;
   /* ⚠️ La toile donne à l'avertissement la valeur du SURVOL de la braise
      (`--bs-accent-hover`) : ΔE 6.7 avec l'accent. Gardé tel quel (décision 12
      du rebranding) ; le libellé porte l'état. */
   --forge-warn: 255 154 77;
-  --forge-warn-soft: 61 48 37;
+  --forge-warn-soft: 64 45 31;
   --forge-bad: 229 132 138;
-  --forge-bad-soft: 58 45 45;
+  --forge-bad-soft: 55 35 36;
 
-  /* Fonds doux — la teinte fondue à 12 % dans `--forge-panel`, la même
-     construction que `--forge-accent-soft` et que le thème Atelier. */
-  --forge-el-fire-soft: 59 40 38;
-  --forge-el-water-soft: 36 48 55;
+  /* Fonds doux — la même construction qu'en Atelier : la plus vive de la
+     teinte fondue à 12 % dans `--forge-panel` et de la chroma de l'ancien
+     fond doux. En Forge, le 12 % seul délavait surtout les camps du speed
+     tuning (vert et rouge pastel de la toile, sur un fond brun). */
+  --forge-el-fire-soft: 54 34 31;
+  --forge-el-water-soft: 30 47 58;
   --forge-el-wind-soft: 59 52 34;
-  --forge-el-light-soft: 59 57 57;
-  --forge-el-dark-soft: 52 43 56;
-  --forge-el-unknown-soft: 47 46 48;
+  --forge-el-light-soft: 47 49 60;
+  --forge-el-dark-soft: 46 35 58;
+  --forge-el-unknown-soft: 41 44 55;
 
   --forge-el-fire: 232 92 80;
   --forge-el-water: 47 160 224;

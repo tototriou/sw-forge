@@ -25,13 +25,13 @@ scripts du scratchpad `r1-mesures.mjs`, `r1-warn.mjs`, `r1-valeurs.mjs`,
 | `accent-lisible` *(nouveau)* | — | `#FF7A1A` | — | `#A64F11` |
 | `accent-soft` | `#302622` | `#3D2C1F` | `#E2E5F7` | `#FFEDDD` |
 | `accent-ink` | `#12131C` | `#1B1A19` | `#FFFFFF` | `#1B1A19` |
-| `good` / `-soft` | `#7FBE7F` / `#1B2A21` | `#9FD39A` / `#32362F` | `#146A41` / `#E2F4E9` | `#2F6B36` / `#E6EBE1` |
-| `warn` / `-soft` | `#D9A441` / `#322A14` | `#FF9A4D` / `#3D3025` | `#8A570C` / `#FDF0D2` | `#9A4307` / `#F3E7DB` |
-| `bad` / `-soft` | `#E27468` / `#301C20` | `#E5848A` / `#3A2D2D` | `#B01C1C` / `#FAE6E6` | `#A3303A` / `#F4E4E1` |
+| `good` / `-soft` | `#7FBE7F` / `#1B2A21` | `#9FD39A` / `#253024` | `#146A41` / `#E2F4E9` | `#2F6B36` / `#E3F1E3` |
+| `warn` / `-soft` | `#D9A441` / `#322A14` | `#FF9A4D` / `#402D1F` | `#8A570C` / `#FDF0D2` | `#9A4307` / `#FFE7D8` |
+| `bad` / `-soft` | `#E27468` / `#301C20` | `#E5848A` / `#372324` | `#B01C1C` / `#FAE6E6` | `#A3303A` / `#F8E4E3` |
 | `star` | `#F2C24C` | `#C9A227` | `#8A570C` | `#8C6D0E` |
 | `pal-1` | — | — | `#96700A` | `#956F0A` |
 | `pal-6` | `#6A7191` | `#8187A2` | — | — |
-| `el-*-soft` | fondus dans l'ancien `panel` | fondus à 12 % dans le nouveau | idem | idem |
+| `el-*-soft` | — | la plus vive des deux constructions (§ 9) | — | idem |
 
 Inchangés : couleurs d'élément, raretés, `pal-2` à `pal-5`, couleurs de
 section (décision 10). **Arrondis** 6 / 8 / 12 / 14 → **6 / 10 / 14 / 20**.
@@ -98,7 +98,7 @@ Texte, pire des trois surfaces (`bg`, `panel`, `panel2`) :
   son libellé.
 - **Bordures** (décoratives, sous 3:1 comme avant) : `border` 1,86–2,44
   (Forge), 1,50–1,83 (Atelier) ; `border-soft` 1,18–1,54 et 1,13–1,37.
-- **Fonds doux** (12 % dans `panel`) : encre 9,02 au pire (Forge), 13,99
+- **Fonds doux** (après le § 9) : encre 9,71 au pire (Forge), 13,99
   (Atelier) ; accent et sémantique sur leur propre fond doux, 4,91 au pire.
 - **Nos couleurs** (règle : 4,5 sur `panel`) : toutes au-dessus ; les plus
   justes, `pal-6` Forge 4,52, `pal-1` Atelier 4,53, vent Atelier 4,56.
@@ -163,3 +163,27 @@ Menu ⚙ → Thème → Clair puis Sombre, et sur chaque écran :
   ligne décalé ne se voit qu'à l'écran.
 - **Les 70 contours d'accent** passent tous à la braise lisible, sans tri un à
   un : elle tient 3:1 partout, donc un contour purement décoratif n'y perd rien.
+
+## 9. Retour de Thomas — « ça me paraît pâle » (2026-09-29)
+
+Capture : les camps du speed tuning, en Forge. Cause : les fonds doux fondus à
+12 % dans `panel`. La sémantique de la toile est pastel ; fondue dans un fond
+brun, elle donnait des gris à peine teintés. Chroma OKLCH, avant → 12 % :
+`good-soft` 0,026 → 0,013, `bad-soft` 0,032 → 0,019.
+
+Correction : chaque fond doux prend la plus vive de deux constructions — le
+12 %, ou la chroma et l'écart de clarté de l'ancien fond doux reportés sur le
+nouveau `panel`, dans la teinte de la toile (`r1-doux-chroma.mjs`).
+
+| Fond doux | Forge | Atelier |
+|---|---|---|
+| `accent-soft` | 12 % gardé, `#3D2C1F` | 12 % gardé, `#FFEDDD` |
+| `good-soft` | `#32362F` → `#253024` | `#E6EBE1` → `#E3F1E3` |
+| `warn-soft` | `#3D3025` → `#402D1F` | `#F3E7DB` → `#FFE7D8` |
+| `bad-soft` | `#3A2D2D` → `#372324` | `#F4E4E1` → `#F8E4E3` |
+| `el-*-soft` | 12 % gardé pour le vent, chroma d'avant pour les autres | 12 % gardé pour le feu et le vent |
+
+Mesures (`r1-doux-mesure.mjs`) : encre 9,71 au pire (Forge), 13,99 (Atelier) ;
+`good` sur `good-soft` 8,03 / 5,48, `bad` sur `bad-soft` 5,60 / 5,65.
+Non touché : le vert et le rouge eux-mêmes (`#9FD39A`, `#E5848A`), plus pastel
+que les anciens — ce sont ceux de la toile.

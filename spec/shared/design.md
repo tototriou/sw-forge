@@ -90,11 +90,11 @@ fond.
 | `accent-soft` | `#3d2c1f` | `#ffeddd` | Fond d'un élément actif |
 | `accent-ink` | `#1b1a19` | `#1b1a19` | Texte posé SUR un aplat de braise (bouton principal plein) |
 | `good` | `#9fd39a` | `#2f6b36` | Au tick, gain, succès — et **ton camp** |
-| `good-soft` | `#32362f` | `#e6ebe1` | Fond doux de `good` |
+| `good-soft` | `#253024` | `#e3f1e3` | Fond doux de `good` |
 | `warn` | `#ff9a4d` | `#9a4307` | Avertissement — orange, comme la braise (décision 12) |
-| `warn-soft` | `#3d3025` | `#f3e7db` | Fond doux de `warn` |
+| `warn-soft` | `#402d1f` | `#ffe7d8` | Fond doux de `warn` |
 | `bad` | `#e5848a` | `#a3303a` | Hors tick, destructif, erreur |
-| `bad-soft` | `#3a2d2d` | `#f4e4e1` | Fond doux de `bad` |
+| `bad-soft` | `#372324` | `#f8e4e3` | Fond doux de `bad` |
 | `star` | `#c9a227` | `#8c6d0e` | Le laiton : étoiles, maxima d'efficience |
 
 ⚠️ **Deux braises, un seul nom de classe** (décisions 4 et 11 du rebranding).
@@ -117,12 +117,17 @@ ambre lisible ne s'en éloigne vraiment en clair (ΔE 10 au mieux, un brun
 terne). Un avertissement se lit donc à son **libellé** — une pastille écrite,
 décision 8 de la refonte — jamais à sa seule couleur.
 
-**Fonds doux** : la teinte fondue à **12 %** dans `panel`, la même
-construction pour tous (accent, sémantique, éléments). L'encre y fait 9,02 au
-pire (Forge) et 13,99 (Atelier). L'accent et la sémantique restent lisibles
-sur leur propre fond doux (4,91 au pire, `accent-lisible` en Atelier) ; un
-élément, non (3,92 à 4,80) — ses fonds doux portent l'encre, jamais la
-couleur de l'élément en texte.
+**Fonds doux : la vivacité d'avant, dans la teinte de la toile.** Chacun
+prend la plus vive (chroma OKLCH) de deux constructions : la teinte fondue à
+12 % dans `panel`, ou la chroma et l'écart de clarté de l'ancien fond doux
+reportés sur le nouveau `panel`. ⚠️ Le 12 % seul a été posé d'abord, puis
+repris (Thomas, R1 : « ça me paraît pâle », les camps du speed tuning) : la
+sémantique de la toile est pastel, et la fondre dans un fond brun donnait des
+gris à peine teintés — le vert des camps à la moitié de sa chroma d'avant.
+L'encre y fait 9,71 au pire (Forge) et 13,99 (Atelier). L'accent et la
+sémantique restent lisibles sur leur propre fond doux (4,91 au pire,
+`accent-lisible` en Atelier) ; un élément pas toujours (3,92 à 10,85) — ses
+fonds doux portent l'encre, jamais la couleur de l'élément en texte.
 
 ⚠️ **`warn-soft` ferme le trio, il ne l'ouvre pas.** `good-soft` et `bad-soft`
 existaient, l'ambre non : toute surface qui voulait dire « à corriger » devait

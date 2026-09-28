@@ -76,7 +76,12 @@ export function testRenduTelephoneRunes() {
   const tl = texteVisible(liste);
   egal(dialogues(liste), 1, 'Liste : un panneau « Options »');
   ok(valeurs(liste, 'aria-label').includes('Filtrer mes runes'), 'Liste : le panneau « Filtrer mes runes »');
-  ok(tl.includes('Filtrer mes runes Sets Slot 1 2 3 4 5 6 Toutes Antiques uniquement Aucune antique Trier par Grade'), 'Liste : sets, slot, antiques, puis le tri');
+  // ⚠️ Lot 11c (décision 26) : le panneau est rangé en « Trier » puis
+  // « Filtrer », dans l'ordre du DOM (il était remonté par CSS) ; « Effacer
+  // les filtres » y entre. Mêmes contrôles.
+  ok(tl.includes('Filtrer mes runes Trier Trier par Grade'), 'Liste : le bloc « Trier » en tête du panneau');
+  ok(tl.includes('Filtrer Sets Slot 1 2 3 4 5 6 Toutes Antiques uniquement Aucune antique Propriété'), 'Liste : le bloc « Filtrer » — sets, slot, antiques, propriété');
+  ok(boutons(liste).filter((x) => x.texte === 'Effacer les filtres').length === 2, 'Liste : « Effacer les filtres » dans le panneau aussi');
   ok(tl.includes('9 runes · meilleure efficience 109.5%'), 'Liste : le compte et la meilleure');
 
   const courbes = texteVisible(rendreRunes('courbes', true));

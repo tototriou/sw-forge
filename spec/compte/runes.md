@@ -311,6 +311,15 @@ remontait déjà en tête. L'avertissement des deux tris « propriété » dit d
 « Choisis une propriété **ci-dessous** pour trier dessus » (il disait
 « ci-dessus », faux au doigt depuis que le tri y était remonté).
 
+⚠️ **Le panneau « Filtrer mes runes » (téléphone) est rangé en deux blocs
+intitulés** (refonte graphique, lot 11c, décision 26, la maquette) :
+**« Trier »** (le sélecteur et le sens ; l'intitulé « Trier par » y est masqué,
+redondant), puis **« Filtrer »** (sets, emplacement, antiques, propriété
+secondaire), puis **« Effacer les filtres »** — le même bouton qu'au bout de la
+ligne de filtres à la souris (`EffacerFiltres`, décision 20). Le tri reste en
+tête, par l'ORDRE DU DOM ; la maquette mettait « Filtrer » d'abord. La règle
+d'`index.css` qui le remontait (`order: -1`) est retirée.
+
 | Entrée | Clé de tri |
 |--------|-----------|
 | **Grade** | rareté, puis étoiles |

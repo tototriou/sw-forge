@@ -41,15 +41,6 @@ export default function FiltresRunes({
   // les répète pas ici.
   antiques?: boolean;
 }) {
-  const present = useMemo(() => {
-    const s = new Set(runes.map((r) => r.set));
-    return RUNE_SETS.filter((rs) => s.has(rs.key));
-  }, [runes]);
-
-  const tousLesSets = present.every((s) => sets.has(s.key));
-  const tousLesSlots = SLOTS.every((n) => slots.has(n));
-  const parDefaut = tousLesSets && tousLesSlots && (!antiques || ancient === 'all');
-
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2" data-filtres-ligne>
       <SetFilter runes={runes} value={sets} onChange={onSets} />
@@ -62,23 +53,72 @@ export default function FiltresRunes({
           <AncientFilter value={ancient} onChange={onAncient} />
         </div>
       )}
-      {/* ⚠️ Toujours affiché, DÉSACTIVÉ quand rien n'est filtré : un bouton
-          qui apparaît au premier filtre posé ne s'explique pas. */}
-      <Bouton
-        onClick={() => {
-          onSets(new Set(present.map((s) => s.key)));
-          onSlots(new Set(SLOTS));
-          if (antiques) onAncient('all');
-        }}
-        disabled={parDefaut}
-        title={parDefaut ? 'Aucun filtre posé' : 'Revenir à tous les sets, tous les emplacements et toutes les runes'}
-        fond="vide"
-        trait="aucun"
-        taille="sm"
-        libelle="Effacer les filtres"
+      <EffacerFiltres
+        runes={runes}
+        sets={sets}
+        onSets={onSets}
+        slots={slots}
+        onSlots={onSlots}
+        ancient={ancient}
+        onAncient={onAncient}
+        antiques={antiques}
         // 32 px : la hauteur des filtres de la ligne (gabaritFiltre.ts).
         className="h-8"
       />
     </div>
+  );
+}
+
+// « Effacer les filtres » — posé au bout de la ligne de filtres (souris) ET
+// dans le panneau « Filtrer mes runes » (téléphone, lot 11c, décision 26).
+// Un seul composant pour les deux : même remise à zéro, même raison quand il
+// est désactivé.
+// ⚠️ Toujours affiché, DÉSACTIVÉ quand rien n'est filtré : un bouton qui
+// apparaît au premier filtre posé ne s'explique pas.
+export function EffacerFiltres({
+  runes,
+  sets,
+  onSets,
+  slots,
+  onSlots,
+  ancient,
+  onAncient,
+  antiques = true,
+  className = '',
+}: {
+  runes: RuneDetail[];
+  sets: Set<string>;
+  onSets: (next: Set<string>) => void;
+  slots: Set<number>;
+  onSlots: (next: Set<number>) => void;
+  ancient: AncientFilterValue;
+  onAncient: (v: AncientFilterValue) => void;
+  antiques?: boolean;
+  className?: string;
+}) {
+  const present = useMemo(() => {
+    const s = new Set(runes.map((r) => r.set));
+    return RUNE_SETS.filter((rs) => s.has(rs.key));
+  }, [runes]);
+
+  const tousLesSets = present.every((s) => sets.has(s.key));
+  const tousLesSlots = SLOTS.every((n) => slots.has(n));
+  const parDefaut = tousLesSets && tousLesSlots && (!antiques || ancient === 'all');
+
+  return (
+    <Bouton
+      onClick={() => {
+        onSets(new Set(present.map((s) => s.key)));
+        onSlots(new Set(SLOTS));
+        if (antiques) onAncient('all');
+      }}
+      disabled={parDefaut}
+      title={parDefaut ? 'Aucun filtre posé' : 'Revenir à tous les sets, tous les emplacements et toutes les runes'}
+      fond="vide"
+      trait="aucun"
+      taille="sm"
+      libelle="Effacer les filtres"
+      className={className}
+    />
   );
 }

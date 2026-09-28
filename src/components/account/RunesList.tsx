@@ -2,7 +2,7 @@ import { memo, useMemo, useState } from 'react';
 import { RuneDetail } from '../../types';
 import { RUNE_EFFECT, runeEfficiency, runeScore } from '../../lib/effects';
 import SetFilter from './SetFilter';
-import FiltresRunes from './FiltresRunes';
+import FiltresRunes, { EffacerFiltres } from './FiltresRunes';
 import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../PieceDetail';
@@ -183,7 +183,7 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // Propriété secondaire et tri : les mêmes aux deux formats, rendus une seule
   // fois et posés à DEUX endroits selon la largeur. Deux copies auraient
   // divergé au premier filtre ajouté.
-  const filtres = (
+  const blocTri = (
     <>
         {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
             score) reste un réglage global, dans la barre de nav.
@@ -231,7 +231,11 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
             </span>
           )}
         </div>
+    </>
+  );
 
+  const blocPropriete = (
+    <>
         {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
             et la bascule 2 ↔ 4 à côté.
             ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ sert aussi de clé aux deux tris
@@ -280,17 +284,36 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
           ancient={ancient}
           onAncient={choisirAntiques}
         />
-        {filtres}
+        {blocTri}
+        {blocPropriete}
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer mes runes">
         {/* ⚠️ `data-filtres-runes` : dans le PANNEAU, les contrôles prennent toute
-            la largeur (voir index.css). Le même bloc sert au desktop (ci-dessus,
-            hors tiroir), où il reste compact — d'où le marqueur, lu uniquement
-            sous `[data-tiroir]`. */}
+            la largeur (voir index.css). Les mêmes blocs servent au desktop
+            (ci-dessus, hors tiroir), où ils restent compacts — d'où le
+            marqueur, lu uniquement sous `[data-tiroir]`.
+            ⚠️ **Deux blocs intitulés, « Trier » puis « Filtrer »** (lot 11c,
+            décision 26, la maquette), et « Effacer les filtres » au bout
+            (décision 20). Le TRI d'abord, comme avant — « trier vient avant
+            filtrer » ; la maquette mettait « Filtrer » en tête. L'ordre est
+            maintenant celui du DOM : la règle d'index.css qui remontait le
+            tri (`order: -1`) est retirée. */}
         <div className="flex flex-col gap-3" data-filtres-runes>
+          <span className="label">Trier</span>
+          {blocTri}
+          <span className="label mt-2 border-t border-border-soft pt-3">Filtrer</span>
           {filtresEnsemble}
-          {filtres}
+          {blocPropriete}
+          <EffacerFiltres
+            runes={runes}
+            sets={sets}
+            onSets={choisirSets}
+            slots={slots}
+            onSlots={choisirSlots}
+            ancient={ancient}
+            onAncient={choisirAntiques}
+          />
         </div>
       </MobileSheet>
 

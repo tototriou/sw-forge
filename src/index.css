@@ -1225,10 +1225,16 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
 [data-tiroir] [data-filtres-runes] .max-w-\[480px\] {
   max-width: none;
 }
-/* ⚠️ Le TRI remonte en tête du panneau (trier vient avant filtrer). Uniquement
-   dans le tiroir : au desktop, le bloc garde sa place en bas de la colonne. */
-[data-tiroir] [data-filtres-runes] [data-tri-bloc] {
-  order: -1;
+/* ⚠️ Le TRI vient en tête du panneau (trier vient avant filtrer) — par
+   l'ORDRE DU DOM depuis le lot 11c de la refonte (RunesList pose « Trier »
+   puis « Filtrer », chacun sous son intitulé). La règle `order: -1` qui l'y
+   remontait est retirée : elle aurait fait passer le tri AU-DESSUS de son
+   propre intitulé. */
+/* Dans le panneau, l'intitulé « Trier » du bloc remplace « Trier par » : les
+   deux l'un sur l'autre disaient deux fois la même chose. L'intitulé reste
+   dans le DOM (et à la souris, où il n'y a pas de bloc intitulé). */
+[data-tiroir] [data-filtres-runes] [data-tri-bloc] > .label {
+  display: none;
 }
 
 /* ⚠️ **Le sens du tri reste À CÔTÉ du sélecteur**, pas seul sur la ligne

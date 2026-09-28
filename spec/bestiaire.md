@@ -34,6 +34,21 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**.
   - `stars_desc` (défaut) : étoiles ↓ puis nom
   - `stars_asc` : étoiles ↑ puis nom
   - `name_asc` : nom A→Z
+- ⚠️ **Contrôles de la librairie** (refonte graphique, lot 10) : `Pastille`
+  pour élément et étoiles, `Selecteur` pour le tri — les mêmes que « Ma box »
+  ([compte/monstres.md](compte/monstres.md)). Ils étaient dessinés à la main :
+  le même filtre d'élément se présentait autrement d'un écran à l'autre.
+
+### ⚠️ À la souris — en-tête et barre de « Ma box »
+
+Refonte graphique, lot 10 (la maquette, et la barre de la box reprise du lot
+8b) : un en-tête **« Bestiaire »** et le nombre de monstres de la base, puis
+**la recherche** à largeur fixe (`Champ` de la librairie), **élément et
+étoiles** sur une ligne, et **le tri** qui ouvre la ligne du compte et de la
+pagination — il reste affiché sans résultat. Filtres visibles, jamais en
+menus (décision 20 du cadrage
+[chantiers/refonte-graphique.md](chantiers/refonte-graphique.md)). Au doigt,
+rien ne change : grande recherche, filtres et tri dans le tiroir (lot 11).
 
 ### Affichage — [MonsterGrid.tsx](src/components/MonsterGrid.tsx) + [MonsterCard.tsx](src/components/MonsterCard.tsx)
 - Résultats **groupés par élément** (un bloc par élément dans l'ordre `ELEMENTS`).

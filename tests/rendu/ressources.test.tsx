@@ -41,7 +41,10 @@ export function testRenduBestiaire() {
   const t = texteVisible(html);
   const b = boutons(html);
   ok(valeurs(html, 'placeholder').includes('Rechercher un monstre par nom…'), 'la recherche par nom');
-  ok(t.startsWith('Élément Feu Eau Vent Lumière Ténèbres Autre Étoiles 1★ 2★ 3★ 4★ 5★ 6★ Tri interne'), 'les filtres : élément, étoiles, tri');
+  // ⚠️ Lot 10 : « contient » au lieu de « commence par » — l'en-tête
+  // « Bestiaire » précède désormais les filtres ; leur suite, tri compris, ne
+  // change pas.
+  ok(t.includes('Élément Feu Eau Vent Lumière Ténèbres Autre Étoiles 1★ 2★ 3★ 4★ 5★ 6★ Tri interne'), 'les filtres : élément, étoiles, tri');
   for (const f of ['Feu', 'Eau', 'Vent', 'Lumière', 'Ténèbres', 'Autre', '1★', '2★', '3★', '4★', '5★', '6★'])
     ok(b.some((x) => x.texte === f), `filtre « ${f} »`);
   ok(t.includes('Tri interne Étoiles ↓ puis nom Étoiles ↑ puis nom Nom (A→Z)'), 'les trois tris');

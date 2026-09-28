@@ -42,3 +42,10 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
   aux pages outils) car c'est une doc.
 - Ancres de sommaire via `scrollIntoView` (pas de `href="#..."` qui modifierait le
   hash de routing).
+- ⚠️ **À la souris, deux colonnes** (refonte graphique, lot 10, la maquette) :
+  le sommaire **fixe** à gauche (220 px, `sticky`), sans cadre ni numéros,
+  chaque entrée surlignée au survol ; l'article à droite, borné à 720 px, ses
+  sections séparées par un filet au lieu d'être des panneaux. L'ordre du DOM ne
+  change pas (titre, sommaire, sections) : seule la grille les place. Au doigt,
+  rien ne change (lot 11). La section en cours surlignée dans le sommaire est
+  un ajout de la maquette, reporté au lot 13 (décision 23).

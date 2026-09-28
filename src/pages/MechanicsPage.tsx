@@ -17,9 +17,15 @@ function goTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ⚠️ À la SOURIS, plus de carte : un filet au-dessus de chaque section, comme
+// la maquette — un article qui se lit d'un trait, pas sept panneaux empilés.
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-24 rounded-2xl border border-border bg-panel/50 p-5">
+    <section
+      id={id}
+      className="scroll-mt-24 rounded-2xl border border-border bg-panel/50 p-5
+                 lg:rounded-none lg:border-x-0 lg:border-b-0 lg:border-border-soft lg:bg-transparent lg:px-0 lg:pb-0"
+    >
       <h2 className="font-display text-[22px] tracking-wide mb-3">{title}</h2>
       <div className="space-y-3 text-sm leading-relaxed text-ink-dim">{children}</div>
     </section>
@@ -44,9 +50,16 @@ export default function MechanicsPage() {
   // ⚠️ Colonne BORNÉE, contrairement aux autres pages : c'est du texte suivi,
   // pas une grille. Une ligne de 2 000 px se lit mal — l'œil perd le début de
   // la suivante. Voir spec/shared/design.md.
+  // ⚠️ **À la SOURIS, deux colonnes** (refonte graphique, lot 10, la
+  // maquette) : le sommaire FIXE à gauche, qui reste sous la main pendant la
+  // lecture, et l'article à droite, borné à 720 px. L'ordre du DOM ne change
+  // pas — titre, sommaire, sections — seule la grille les place.
   return (
-    <div className="mx-auto max-w-[1100px]">
-      <header>
+    <div
+      className="mx-auto max-w-[1100px]
+                 lg:grid lg:grid-cols-[220px_minmax(0,720px)] lg:justify-center lg:gap-x-12"
+    >
+      <header className="lg:col-start-2 lg:row-start-1">
         <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-1.5">
           Mécaniques du jeu
         </h1>
@@ -58,14 +71,21 @@ export default function MechanicsPage() {
       </header>
 
       {/* Sommaire */}
-      <nav className="mt-5 rounded-2xl border border-border bg-panel p-4">
-        <div className="label mb-2">
+      <nav
+        className="mt-5 rounded-2xl border border-border bg-panel p-4
+                   lg:sticky lg:top-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:mt-1 lg:self-start
+                   lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0"
+      >
+        <div className="label mb-2 lg:px-2.5">
           Sommaire
         </div>
-        <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-1 list-decimal list-inside">
+        <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-1 list-decimal list-inside lg:grid-cols-1 lg:gap-y-0.5 lg:list-none">
           {TOC.map((t) => (
             <li key={t.id} className="text-sm text-ink-dim">
-              <button onClick={() => goTo(t.id)} className="text-left hoverable:text-ink transition">
+              <button
+                onClick={() => goTo(t.id)}
+                className="text-left hoverable:text-ink transition lg:w-full lg:rounded-lg lg:px-2.5 lg:py-1.5 lg:hoverable:bg-panel2"
+              >
                 {t.label}
               </button>
             </li>
@@ -73,7 +93,7 @@ export default function MechanicsPage() {
         </ol>
       </nav>
 
-      <div className="mt-5 flex flex-col gap-4">
+      <div className="mt-5 flex flex-col gap-4 lg:col-start-2 lg:row-start-2 lg:gap-5">
         <Section id="vitesse" title="Vitesse de combat">
           <p>
             La vitesse effective d&apos;un monstre en combat se calcule à partir de sa vitesse de

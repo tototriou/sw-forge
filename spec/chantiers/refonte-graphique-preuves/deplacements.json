@@ -99,17 +99,11 @@
     "devient": "attr:libelle:Page précédente",
     "pourquoi": "Lot 8a : voir aria-label."
   },
-  "src/components/siege/SiegeBoard.tsx :: attr:libelle:Vérifier mes speed": {
-    "de": "src/components/siege/SiegeBoard.tsx",
-    "vers": "src/components/siege/SiegeBoard.tsx",
-    "devient": "texte:Vérifier mes speed",
-    "pourquoi": "Lot 11b (décision 25) : au téléphone, le bouton du panneau Options devient un interrupteur sur la page, à côté du compteur ; son libellé est le texte de l'interrupteur. Au bureau, la barre d'actions le garde."
-  },
   "src/components/siege/SiegeBoard.tsx :: attr:libelleCourt:Speed": {
     "de": "src/components/siege/SiegeBoard.tsx",
     "vers": "src/components/siege/SiegeBoard.tsx",
-    "devient": "texte:Vérifier mes speed",
-    "pourquoi": "Lot 11b (décision 25) : la forme courte ne servait qu'au bouton du panneau, en grille de trois ; l'interrupteur sur la page porte le libellé entier."
+    "devient": "attr:libelle:Vérifier mes speed",
+    "pourquoi": "Lot 11b (décision 25) : la forme courte ne servait qu'au bouton du panneau, en grille de trois ; l'interrupteur sur la page (l'Interrupteur de la librairie depuis le lot 13) porte le libellé entier."
   },
   "src/components/SettingsMenu.tsx :: texte:Tout supprimer": {
     "de": "src/components/SettingsMenu.tsx",

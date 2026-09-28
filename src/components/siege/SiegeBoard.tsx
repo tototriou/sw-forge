@@ -9,10 +9,9 @@ import SpeedTuneModale from '../outils/SpeedTuneModale';
 import CreateMonster from '../CreateMonster';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import MobileSheet from '../../ui/MobileSheet';
-import { BarreActions, Bouton, Jeton } from '../../ui';
+import { BarreActions, Bouton, Interrupteur, Jeton } from '../../ui';
 import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
-import Switch from '../Switch';
 import { equipeContient } from './rechercheEquipe';
 import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
 import { CustomLead } from '../../hooks/useCustomMonsters';
@@ -443,8 +442,15 @@ export default function SiegeBoard({
           parcourant ses équipes. Toujours affiché, désactivé sans équipe. */}
       <div className="mt-5 flex items-center gap-3 lg:hidden">
         <span className="font-mono text-xs text-ink-dim">{compteur}</span>
-        <label
-          className="ml-auto flex items-center gap-2 text-sm text-ink-dim"
+        {/* L'`Interrupteur` de la LIBRAIRIE, libellé à côté (et non le
+            `Switch` des réglages, antérieur à la librairie). */}
+        <Interrupteur
+          actif={checkTicks}
+          onChange={setCheckTicks}
+          disabled={siege.state.teams.length === 0}
+          libelle="Vérifier mes speed"
+          aria-label="Vérifier mes speed"
+          className="ml-auto"
           title={
             siege.state.teams.length === 0
               ? 'Aucune équipe à vérifier'
@@ -454,15 +460,7 @@ export default function SiegeBoard({
                   // Swift se juge sur son speed tune, les autres sur leur tick.
                   'Colorer les équipes selon leur vitesse : speed tune pour une équipe Swift, calage sur les ticks ATB pour les autres'
           }
-        >
-          Vérifier mes speed
-          <Switch
-            checked={checkTicks}
-            onChange={setCheckTicks}
-            disabled={siege.state.teams.length === 0}
-            label="Vérifier mes speed"
-          />
-        </label>
+        />
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>

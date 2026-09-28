@@ -403,6 +403,17 @@ indépendante de cet amendement**, notamment du partage 16 + 2 + 9 clés et
 du test exact de `pairBuckets` distinct de ses coupes amont.
 Trace des décisions et du comptage : `controle-6bis-contrats-b-revue.md`
 dans le dossier de preuves A.6 bis.
+Contre-vérification indépendante de l'amendement `39a7d5ee`, le 2026-09-28,
+par une session qui ne l'a pas écrit : les deux bloquants et N1–N12 sont
+traités. Partage rejoué depuis la carte : a2a1-contexte 5 → b1 et 6 → b2,
+a3a 16 → b3a et 2 → b3b, a3b 9 → b3b ; les 104 entrées de carte et les
+2 H documentaires (b1 puis b2) ont chacune un propriétaire ;
+réconciliateur rejoué sans `--ecrire`, sortie « 46 A + 41 B + 15 H … 104
+clés », mutations `omission`, `document`, `verdict` refusées. Une seule
+précision ajoutée par le nouveau pilote, sans changer de propriétaire : la
+preuve b3a du minimum par `pairBuckets` dépend d'une marge Endure/Focus,
+faute de quoi elle revient à b3b. Écho du lot 7 précisé. **b1 est
+lançable** ; b2, b3a, b3b et b4 le sont à la validation de leur prérequis.
 
 #### Suivi des lots
 
@@ -443,11 +454,11 @@ dans le dossier de preuves A.6 bis.
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | terminé après rectification pilote des verdicts | reçu initial `840f202` ↔ `39a362f` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu initial `b9ff929` ↔ `473fe62` ; complément livré et intégré / 2026-09-28 |
-| 6bis-b1 — champ externe, recette et CLI | J | amendé, contre-vérification requise | — |
-| 6bis-b2 — aura propre et scores | J | amendé, contre-vérification requise | — |
-| 6bis-b3a — conditions exactes et filtre final | J | amendé, contre-vérification requise | — |
-| 6bis-b3b — coupes, diagnostics et différentiel | J | amendé, contre-vérification requise | — |
-| 6bis-b4 — écran, Workers, caches et parité | J | amendé, contre-vérification requise | — |
+| 6bis-b1 — champ externe, recette et CLI | J | lançable, amendement contre-vérifié | — |
+| 6bis-b2 — aura propre et scores | J | contre-vérifié, attend b1 | — |
+| 6bis-b3a — conditions exactes et filtre final | J | contre-vérifié avec précision pilote, attend b2 | — |
+| 6bis-b3b — coupes, diagnostics et différentiel | J | contre-vérifié, attend b3a | — |
+| 6bis-b4 — écran, Workers, caches et parité | J | contre-vérifié, attend b3b | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -2492,6 +2503,18 @@ construits**. Tests nommés au niveau de `respecteMinEtMax`,
 `resoudreEquipementDuBuild` et du contrôle final de `pairBuckets` : pour
 ce dernier, les coupes `quickOk`/bornes doivent être rendues non
 contraignantes ou leur passage prouvé, afin d'isoler l'assertion finale.
+**Limite mesurée par le pilote :** le `quickOk` minimum
+(`runeBuildOptim.ts` L3944–3952) précède ce contrôle et sa marge
+`guaranteedMin` ne vient que de `SET_STAT_BONUS` (L1690–1725, L3105) :
+aucune aura n'y figure. Un **minimum** franchi seulement grâce à une
+Tolerance/Accuracy propre n'atteint donc le contrôle final que si le pool
+offre une marge Endure (RES) ou Focus (PRE) sur les emplacements libres,
+passage tracé par `quickOkMin` ; sans cette marge, ce minimum se prouve
+au niveau des fonctions ci-dessus et son passage par `pairBuckets` est
+reporté à b3b, sans modifier `quickOk` ici. Le **maximum** s'y prouve en
+b3a : `quickOk` y reste un minorant sans l'aura propre. En mode recherche
+de relique (L4020–4025), ce contrôle reste une borne pour le terme de
+relique ; seul le terme d'aura, connu par les six runes, y est exact.
 Comparer au moins deux candidats sans passer par `searchBuilds` ni prétendre
 prouver la conservation du pool ; cette preuve de bout en bout (T2 et T3)
 appartient à b3b. Un échec de recherche complète éventuellement constaté
@@ -2596,7 +2619,10 @@ Ne pas modifier le calcul validé par les lots 6bis-b-*.
 Corriger aussi l'écho d'état qui affichait « aucune aura » alors que des
 auras externes étaient renseignées : il doit nommer **les auras externes**
 et distinguer les activations propres, calculées par build. C'est un rendu
-du lot 7, pas une nouvelle source de calcul.
+du lot 7, pas une nouvelle source de calcul. La modale ne connaît aucun
+candidat (carte a4c2, `DamageSetupModale.tsx`) : l'écho dit que les sets du
+build s'ajoutent sur chaque résultat, sans afficher de nombre d'activations
+propres.
 
 **Où** : la carte « État de mon monstre » (`EtatMonstre.tsx`) — et son critère
 de coupe, écrit en tête du fichier, la désigne sans ambiguïté : « sortent de

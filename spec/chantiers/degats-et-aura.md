@@ -304,7 +304,9 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-a3a → 6bis-a3b
         → 6bis-a4a → 6bis-a4b → 6bis-a4c1 → 6bis-a4c2
         → 6bis-a4d1 → 6bis-a4d2
-        → amendement et revue pilote → 6bis-b-* → 7
+        → amendement et revue pilote
+        → 6bis-b1 → 6bis-b2 → 6bis-b3a → 6bis-b3b → 6bis-b4
+        → revue technique indépendante → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
                             tous les sous-lots validés)
@@ -316,7 +318,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
   6bis-a2a1-suite-finalisation-preuve, 6bis-a2a2,
   6bis-a2b1, 6bis-a2b2, 6bis-a2b3, 6bis-a3a, 6bis-a3b,
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
-  tous les 6bis-b-*, 7, 12, tous les 13b-* → 14
+  6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4,
+  7, 12, tous les 13b-* → 14
 ```
 
 L'ordre d'exécution est l'ordre des numéros, avec 2a puis 2b, et 13a avant
@@ -431,8 +434,12 @@ Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 | 6bis-a4c1 — écran de recherche et caches | C | terminé après complément pilote de la preuve | reçu initial `4d95932` ↔ `4ed721e` / 2026-09-28 ; preuve relivrée |
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | terminé après rectification pilote des verdicts | reçu initial `840f202` ↔ `39a362f` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
-| 6bis-a4d2 — réconciliation des cartes | C | à lancer | — |
-| 6bis-b-* — correction du modèle par sous-lots bornés | J | non lançables avant amendement et revue | — |
+| 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu `b9ff929` ↔ `473fe62` / 2026-09-28 ; preuve complétée à relivrer |
+| 6bis-b1 — champ externe, recette et CLI | J | contrat proposé, revue requise | — |
+| 6bis-b2 — aura propre et scores | J | contrat proposé, revue requise | — |
+| 6bis-b3a — conditions exactes et filtre final | J | contrat proposé, revue requise | — |
+| 6bis-b3b — coupes, diagnostics et différentiel | J | contrat proposé, revue requise | — |
+| 6bis-b4 — écran, Workers, caches et parité | J | contrat proposé, revue requise | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -2252,9 +2259,28 @@ les inscrit dans A.7, les fait revoir et les valide avant tout lancement.
 **Ne fait pas :** code, tests différentiels, benchmark ou implémentation du
 modèle. Les lots `6bis-b-*` restent non lançables.
 
-#### 6bis-b-* — correction du modèle, contrats à créer après 6bis-a4d2
+**Résultat du lot 6bis-a4d2 — 2026-09-28.** Le script
+`reconcilier-6bis-a4d2.mjs` compare par identité les 13 cartes propriétaires
+aux projections : **46 A + 41 B + 15 H = 102 clés actives**, plus **2 H
+documentaires différées**, soit 104 clés du manifeste. Les deux usages
+supplémentaires `score`/`conditions` sont distincts ; `carte-6bis-a2b.json`
+n'est pas comptée deux fois, les découvertes D restent à part. Les cinq
+mutations initiales sont refusées ; le pilote a corrigé le contrôle négatif
+du verdict (empreinte recalculée après mutation) et imposé l'identité exacte
+des deux H documentaires, avec une sixième mutation refusée. Le CLI et T1–T6
+sont **repris des preuves précédentes, non rejoués**. La preuve est
+`controle-6bis-a4d2.md` ; `projeter-6bis.mjs --bilan`, le réconciliateur,
+`spec-lint` et `git diff --check` passent. Les lectures comptées dépassent
+de 78 lignes le repère indicatif de 2 500, sans fenêtre omise. Le reçu initial
+est `b9ff929` ↔ `473fe62`, notes intégrées sur le main documentaire
+`43037eb` ; le complément pilote doit être relivré. La sûreté des coupes,
+les nouveaux calculs et la parité ne sont pas encore prouvés. Les contrats
+b1–b4 ci-dessous sont une **proposition du pilote**, non lançable avant
+contre-revue indépendante et amendement de ses objections.
 
-**Cat. J ; gabarit non lançable en l'état.** Chaque contrat reprend un intrant
+#### 6bis-b-* — contrat commun de correction du modèle
+
+**Cat. J ; contrats proposés, non lançables avant contre-revue.** Chaque contrat reprend un intrant
 borné de la carte réconciliée 6bis-a4d2 et désigne ses producteurs,
 consommateurs et preuves, sans
 omettre ceux attribués à un autre sous-lot. Ensemble, ils livrent ceci :
@@ -2312,11 +2338,163 @@ des **deux** noms de champ dans `src/`, `scripts/`, `tests/`. Mettre à jour
 avec le modèle dans les commits concernés ; livrer, vérifier puis intégrer
 les notes privées de chaque sous-lot validé.
 
+Le découpage ci-dessous attribue un **propriétaire de correction** à chaque
+zone ; les 104 clés restent dans `carte-6bis-a4d2.json`, sans recopier ses
+112 Ko dans le cadrage. Un sous-lot relit ses propres cartes et seulement
+les clés citées d'un lot voisin. Les tests existants ne sont pas des preuves
+des nouvelles auras : ils sont à conserver ou à remplacer avec une attente
+justifiée, jamais à modifier pour les faire passer. Les découvertes D
+reçoivent une décision explicite avant clôture du propriétaire concerné :
+commentaire `damage.ts` et ancien invariant → b1/b2 ; libellés +10 % et
+écho d'état sans aura → lot 7 ; `isSetComparable`, `guaranteedMin`, ordre
+de `prepareSearch`, `estimateSearchSpace`, `estimatePairBound`, `buildBuckets`,
+`pairBuckets`, `diagnoseFeasibility` et `rankBlockingConditions` → b3b ;
+filtre final de `relicQueue` → b3a ; signature
+`artifactQueue` → b4. Les coordonnées restent dans les entrées D de la
+carte, et cette attribution ne préjuge pas qu'un correctif est nécessaire.
+
 **Ne fait pas :** aucun contrôle visuel d'aura (lot 7), aucun changement de
 la règle de jeu d'Intangible ni des valeurs +8 de A.2 ter. Après tous les
 sous-lots et avant le lot 7, revue technique indépendante des coupes sûres,
 du double compte et de la parité des chemins ; objections corrigées et
 preuves rejouées avant validation.
+
+##### 6bis-b1 — données externes, recettes, resets et CLI
+
+**Cat. J ; requiert la revue des contrats après a4d2.** Intrant borné :
+`carte-6bis-a4d2.json`, clés des propriétaires a4a (9) et a4b (13), plus
+`H:champ:DamageSetup.setsAuraExternes` et les quatre sites de définition /
+lecture de `nombreAura` d'a2a1-contexte. Lire les plages de code citées dans
+ces clés seulement, puis leurs appelants directs nécessaires ; ne pas
+rouvrir les 13 preuves complètes. Les deux H documentaires suivent b1
+puis b2 : aucune ne reste sans propriétaire.
+
+**Contrat :** ajouter et valider le champ externe optionnel, somme ≤ 15 ;
+refuser l'ancien `setsAura` **non vide** avec le chemin du champ, garder
+absent/vide compatible. Propager type, défaut, transition d'espèce, import
+de compte, recette, état, constructeurs de scripts et CLI réel ; faire
+l'aller-retour sans clé inconnue opaque. Dans l'état intermédiaire b1,
+les calculs qui recevaient un total figé reçoivent la seule part externe :
+ne pas prétendre que les activations propres sont déjà comptées. La spec
+source et l'invariant décrivent exactement cet état provisoire, puis b2
+les amende ensemble vers le modèle complet.
+
+**Preuves :** test rouge puis vert de l'ancien `testAurasRecette` ; 0/15
+acceptés, 16 refusés, champ mal typé, doublon, absent/vide/non vide ancien,
+export/import et resets ; recherche des deux noms dans `src/`, `scripts/`,
+`tests/` avec décision par occurrence. CLI réel sur la recette externe
+gelée de a1 : prouver lecture des trois Fight externes et signaler toute
+troncature, sans conclure à l'exhaustivité. `tsc`, tests ciblés, build,
+spec-lint, diff-check ; preuve `controle-6bis-b1.md`.
+**Ne fait pas :** dériver les auras propres du build, changer les coupes,
+ajouter les contrôles visuels du lot 7 ou présenter le CLI comme complet.
+
+##### 6bis-b2 — aura propre par build, combat, EHP et choix des pièces
+
+**Cat. J ; requiert b1.** Intrant borné : clés d'a2a1-contexte utiles à
+`statsDebutCombat` (11 au plus), a2a1-suite (1), a2a2 (4), a2b1–a2b3
+(8) dans la carte consolidée ; consulter les plages citées et leurs
+appelants directs. Les clés de recette b1 ne sont pas à reclasser.
+
+**Contrat :** produire un vecteur externe + activations propres depuis les
+six runes du candidat via `activeSets`, puis le transmettre sans muter
+`DamageSetup` aux calculs de dégâts, passifs, additionnels, EHP et assiette
+des exclusives ; un appel sans équipement annonce zéro aura propre. Recalculer
+pour chaque paire d'artéfacts/relique essayée puis retenue, sans confondre
+les stats de fiche et celles du combat. Examiner les chemins séparés
+`defCombat` et `atkCombatComplet` signalés par a2a1-suite, avec test ou
+justification sourcée pour chacun. Les choix et scores par build doivent
+être cohérents ; les conditions restent le lot b3a. Mettre à jour la spec
+source et `invariants.md` ensemble pour l'état désormais complet du calcul.
+
+**Preuves :** 3 Fight externes + 2 ou 3 Fight propres, Rage seul avec Fight
+complété par Intangible, set non demandé, +8 de base dans le `ceil` commun,
+RES/PRE depuis zéro, EHP, exclusive, paire/relique réellement retenues,
+non-mutation du setup et deux candidats aux auras différentes. Tester le
+score direct sans revendiquer encore la sûreté de la recherche ; caches des
+pièces séparés par build. `tsc`, tests ciblés, build, spec-lint, diff-check ;
+preuve `controle-6bis-b2.md`.
+**Ne fait pas :** conditions, élagages, rétention heuristique, UI de saisie.
+
+##### 6bis-b3a — conditions exactes et filtres finaux
+
+**Cat. J ; requiert b2.** Intrant borné : clés d'a3a (18) et d'a3b (9)
+portant les minimums/maximums et le filtre final ;
+interroger `carte-6bis-a4d2.json` par clé, puis les seules plages de code
+citées. Les clés de coupe précoce sont attribuées à b3b.
+
+**Contrat :** séparer RES/PRE externes constants et propres variables par
+build ; au filtre final, tester la valeur **réelle** des six runes pour min
+et max. Toggle éteint : aucune aura RES/PRE dans ces conditions, mais combat
+et score inchangés. Transmettre la même convention aux appelants du filtre,
+sans déclarer sûrs les diagnostics ou coupes amont encore anciens. Ne jamais ajouter
+les auras PV/ATQ/DEF aux conditions. Mettre à jour la spec et l'invariant
+concernés dans le même commit.
+
+**Preuves :** Tolerance ou Accuracy propre non demandée, Intangible qui
+la complète, min franchi, max dépassé, filtre final exact sur au moins deux
+builds du même pool. T2 et la partie
+filtre exact de T3 ; tests nommés, `tsc`, suite ciblée, build, spec-lint et
+diff-check ; preuve `controle-6bis-b3a.md`.
+**Ne fait pas :** dominance, faisabilité précoce, diagnostics de faisabilité
+ou de blocage, `filterSlot`, rétention par compartiment ni benchmark.
+
+##### 6bis-b3b — coupes, diagnostics et rétention, avec oracle indépendant
+
+**Cat. J ; requiert b3a.** Intrant borné : clés restantes d'a3a/a3b sur
+dominance, faisabilité, diagnostics, `filterSlot`, compartiments et appariement, plus
+les clés Worker d'a4d1 qui transportent ces étapes. Lire les plages citées
+par la carte ; l'inventaire exact des fonctions et tests concernés figure
+dans `controle-6bis-a3a.md` et `controle-6bis-a3b.md`, non dans les
+fichiers complets. Une clé partagée entre b3a et b3b conserve ses deux
+usages, sans deuxième verdict contradictoire.
+
+**Contrat :** les bornes sûres comptent le potentiel favorable de
+Tolerance/Accuracy propres non demandés pour un minimum, seulement toggle
+actif ; pour un maximum, elles n'attribuent que l'inévitable. Vérifier
+dominance, faisabilité, diagnostics, pré-filtrage et rétention par compartiment pour les
+cinq auras influant sur score ou conditions, sans attribuer à `filterSlot`
+une garantie d'optimum qu'il n'a pas. Préserver le parcours Blade/Intangible
+tant qu'un test ne prouve pas un défaut. `algo-verify` s'applique avant toute
+modification d'algorithme : oracle exhaustif indépendant, comparaison
+différentielle, puis mesure ciblée avec `optimizer-perf-testing` au créneau
+sans concurrent convenu ; une constante ne se fige pas sur une impression.
+
+**Preuves :** T1, T3 et T4 sur seeds fixes et petits pools, zéro faux rejet
+par coupe sûre, témoins Fight/Tolerance/Accuracy non demandés avec et sans
+Intangible, diagnostics et near-miss cohérents, maximum RES/PRE, toggle éteint, résultats de complétude et
+troncature. Cas réel pour quantifier la rétention heuristique ; temps min,
+médiane et dispersion, sans chiffre nu. `tsc`, tests ciblés, build,
+spec-lint, diff-check ; preuve `controle-6bis-b3b.md`.
+**Ne fait pas :** nouveau contrôle visuel, valeur de jeu curée ou promesse
+d'exhaustivité sur une recherche tronquée.
+
+##### 6bis-b4 — raccordements écran/Workers, caches et parité finale
+
+**Cat. J ; requiert b3b.** Intrant borné : clés d'a4c1 (3), a4c2 (4),
+a4d1 (24), plus `H:cache:signatureArtefacts` et les scripts/test candidats
+d'a4b et a2b3. Lire les synthèses et plages citées, pas leurs preuves
+entières ; vérifier les chemins effectivement modifiés par b1–b3b.
+
+**Contrat :** tri, comparaison, cartes de résultat, sélection finale des
+pièces et signatures de cache utilisent le vecteur effectif **du candidat**.
+Le Worker séquentiel et le régime parallèle transmettent les mêmes données
+au même calcul, sans attribuer un set propre au setup commun. Les cartes
+d'affichage de sets ne sont pas automatiquement des consommateurs d'aura :
+seules les valeurs réellement présentées sont vérifiées. Aucun contrôle de
+saisie des auras n'est ajouté ici (lot 7).
+
+**Preuves :** T5–T6 ; invalidation du cache au changement des auras
+externes, séparation par six runes et absence de résultat périmé ; même
+build avec écran, CLI réel, Worker séquentiel et parallèle ; recette
+externe 3 Fight, build à 2 puis 3 Fight, EHP/critère dégâts/conditions et
+Intangible. Distinguer une recherche `truncated=true` d'une preuve
+exhaustive. `tsc`, tests ciblés, build, spec-lint, diff-check, sorties des
+deux noms de champ et preuve `controle-6bis-b4.md`. Faire ensuite revoir
+indépendamment coupes sûres, double compte et parité ; corriger les
+objections et rejouer avant d'autoriser le lot 7.
+**Ne fait pas :** rendu visuel ou contrôles de saisie du lot 7, fusion du
+code sur `main`, suite complète `npm test` avant cette fusion.
 
 ### Lot 7 — sets d'aura : l'écran
 

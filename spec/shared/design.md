@@ -89,12 +89,13 @@ fond.
 | `accent-lisible` | `#ff7a1a` | `#a64f11` | La braise qui se LIT : texte, contour d'état, focus, trait de graphique |
 | `accent-soft` | `#3d2c1f` | `#ffeddd` | Fond d'un élément actif |
 | `accent-ink` | `#1b1a19` | `#1b1a19` | Texte posé SUR un aplat de braise (bouton principal plein) |
-| `good` | `#9fd39a` | `#2f6b36` | Au tick, gain, succès — et **ton camp** |
+| `good` | `#73e06b` | `#2f6b36` | Au tick, gain, succès — et **ton camp** |
 | `good-soft` | `#253024` | `#e3f1e3` | Fond doux de `good` |
 | `warn` | `#ff9a4d` | `#9a4307` | Avertissement — orange, comme la braise (décision 12) |
 | `warn-soft` | `#402d1f` | `#ffe7d8` | Fond doux de `warn` |
-| `bad` | `#e5848a` | `#a3303a` | Hors tick, destructif, erreur |
+| `bad` | `#f27a84` | `#a3303a` | Hors tick, destructif, erreur |
 | `bad-soft` | `#372324` | `#f8e4e3` | Fond doux de `bad` |
+| `bad-ink` | `#1b1a19` | `#ffffff` | Encre SUR un aplat de `bad` (bouton danger plein) — le pendant d'`accent-ink` |
 | `star` | `#c9a227` | `#8c6d0e` | Le laiton : étoiles, maxima d'efficience |
 
 ⚠️ **Deux braises, un seul nom de classe** (décisions 4 et 11 du rebranding).
@@ -116,6 +117,15 @@ Forge, 3,8 avec la braise lisible en Atelier (29 avant, avec l'indigo). Aucun
 ambre lisible ne s'en éloigne vraiment en clair (ΔE 10 au mieux, un brun
 terne). Un avertissement se lit donc à son **libellé** — une pastille écrite,
 décision 8 de la refonte — jamais à sa seule couleur.
+
+⚠️ **Vert et rouge de Forge : plus saturés que la toile** (décision 13 —
+Thomas : « ça me paraît pâle »). La toile donne `#9fd39a` et `#e5848a`,
+pastel. Même clarté OKLCH et même teinte, chroma relevée à mi-chemin du
+maximum : `#73e06b` et `#f27a84`, contraste inchangé (8,35 et 5,23 au pire).
+Le rouge garde sa teinte rosée : le ramener vers le corail de l'ancien rouge
+le rapprochait de la braise (ΔE 7,7) et du Feu. Atelier garde ceux de la
+toile. Sur l'aplat rouge, le blanc tombait à 2,66 en Forge : d'où `bad-ink`,
+sombre en Forge (6,53), blanc en Atelier (6,91).
 
 **Fonds doux : la vivacité d'avant, dans la teinte de la toile.** Chacun
 prend la plus vive (chroma OKLCH) de deux constructions : la teinte fondue à

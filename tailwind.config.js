@@ -56,6 +56,10 @@ export default {
         // Fond doux de `bad` : le pendant de `accent-soft`. Le speed tuning s'en
         // sert pour opposer « en face » à « ton équipe » d'un coup d'œil.
         'bad-soft': 'rgb(var(--bad-soft) / <alpha-value>)',
+        // Encre posée SUR un aplat de `bad` (bouton danger plein) : blanc en
+        // Atelier, sombre en Forge, où le rouge est clair — le pendant
+        // d'`accent-ink` (rebranding, décision 13).
+        'bad-ink': 'rgb(var(--bad-ink) / <alpha-value>)',
 
         // Éléments — vocabulaire Summoners War. Deux valeurs par élément
         // (voir design.md) : le Vent et la Lumière sont illisibles sur clair.

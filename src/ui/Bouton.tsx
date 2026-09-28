@@ -122,9 +122,11 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
     // blanc tombait sous le seuil (3.18). Voir design.md § Accent.
     plein: 'text-accent-ink hoverable:brightness-110',
   },
-  // `text-white` et non `text-ink` : sur l'aplat d'alerte, l'encre du thème
-  // clair n'aurait pas le contraste, et cet aplat est le même dans les deux.
-  danger: { nu: 'text-ink-dim hoverable:text-bad', doux: 'text-bad', plein: 'text-white' },
+  // `text-bad-ink` sur l'aplat rouge : blanc en Atelier, SOMBRE en Forge. C'était
+  // `text-white` pour les deux thèmes ; depuis le rebranding, le rouge de Forge
+  // est clair et le blanc n'y faisait plus que 2.66 (la croix « Retirer » d'une
+  // carte RTA). Même logique qu'`accent-ink`.
+  danger: { nu: 'text-ink-dim hoverable:text-bad', doux: 'text-bad', plein: 'text-bad-ink' },
   // ⚠️ La teinte est là DÈS LE REPOS et ne bouge pas au survol : elle signale un
   // état des données, et un signal qui s'allume au passage de la souris n'est
   // plus un signal.

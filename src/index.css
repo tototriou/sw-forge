@@ -96,6 +96,10 @@
      les éléments avaient leur `-soft`, la sémantique non. Il porte le camp
      ADVERSE du speed tuning, en face de `--good-soft`. */
   --bad-soft: 248 228 227;
+  /* Encre SUR un aplat de `bad` (bouton danger plein), le pendant
+     d'`accent-ink` : blanc ici (6.9 sur `bad`), sombre en Forge, où le rouge
+     est clair. */
+  --bad-ink: 255 255 255;
 
   /* Éléments — teinte conservée, SATURATION poussée.
      ⚠️ Le ratio WCAG mesure la luminance, pas la présence d'une couleur : à
@@ -250,15 +254,25 @@
   --forge-accent-soft: 61 44 31;
   /* Texte sur aplat de braise : le fond sombre, pas le blanc. Mesuré 6.66. */
   --forge-accent-ink: 27 26 25;
-  --forge-good: 159 211 154;
+  /* ⚠️ Vert et rouge PLUS SATURÉS que la toile (décision 13 du rebranding —
+     Thomas : « ça me paraît pâle », les camps du speed tuning). Même clarté
+     OKLCH et même teinte que `--bs-success` / `--bs-danger` (#9FD39A,
+     #E5848A), chroma relevée à mi-chemin du maximum du gamut : le contraste
+     ne bouge pas (8.35 et 5.23 au pire), la couleur se voit. Le rouge reste
+     dans sa teinte rosée : ramené vers le corail de l'ancien, il se
+     rapprochait de la braise (ΔE 7.7) et du Feu (4.7 pour l'ancien). */
+  --forge-good: 115 224 107;
   --forge-good-soft: 37 48 36;
   /* ⚠️ La toile donne à l'avertissement la valeur du SURVOL de la braise
      (`--bs-accent-hover`) : ΔE 6.7 avec l'accent. Gardé tel quel (décision 12
      du rebranding) ; le libellé porte l'état. */
   --forge-warn: 255 154 77;
   --forge-warn-soft: 64 45 31;
-  --forge-bad: 229 132 138;
+  --forge-bad: 242 122 132;
   --forge-bad-soft: 55 35 36;
+  /* Encre SUR un aplat de `bad` (bouton danger plein) : sombre, comme sur la
+     braise. Le blanc y faisait 2.66, sous le 3:1 d'une icône. */
+  --forge-bad-ink: 27 26 25;
 
   /* Fonds doux — la même construction qu'en Atelier : la plus vive de la
      teinte fondue à 12 % dans `--forge-panel` et de la chroma de l'ancien
@@ -329,6 +343,7 @@
     --warn-soft: var(--forge-warn-soft);
     --bad: var(--forge-bad);
     --bad-soft: var(--forge-bad-soft);
+    --bad-ink: var(--forge-bad-ink);
     --el-fire: var(--forge-el-fire);
     --el-water: var(--forge-el-water);
     --el-wind: var(--forge-el-wind);
@@ -382,6 +397,7 @@
   --warn-soft: var(--forge-warn-soft);
   --bad: var(--forge-bad);
   --bad-soft: var(--forge-bad-soft);
+  --bad-ink: var(--forge-bad-ink);
   --el-fire: var(--forge-el-fire);
   --el-water: var(--forge-el-water);
   --el-wind: var(--forge-el-wind);

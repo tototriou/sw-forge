@@ -185,5 +185,34 @@ nouveau `panel`, dans la teinte de la toile (`r1-doux-chroma.mjs`).
 
 Mesures (`r1-doux-mesure.mjs`) : encre 9,71 au pire (Forge), 13,99 (Atelier) ;
 `good` sur `good-soft` 8,03 / 5,48, `bad` sur `bad-soft` 5,60 / 5,65.
-Non touché : le vert et le rouge eux-mêmes (`#9FD39A`, `#E5848A`), plus pastel
-que les anciens — ce sont ceux de la toile.
+⚠️ **Ce correctif répondait à une lecture fausse du retour** : Thomas parlait
+du vert et du rouge eux-mêmes (§ 10), pas de leurs fonds. Il est gardé : il
+va dans le même sens, et les fonds recalculés suivent la teinte, qui ne
+change pas au § 10.
+
+## 10. Le vert et le rouge de Forge — décision 13
+
+« Je parlais du vert et du rouge. » Mesures (`r1-vert-rouge.mjs`) : le vert de
+la toile est surtout très CLAIR (L 0,816, C 0,095 ; l'ancien L 0,743, C 0,110).
+À clarté égale, le gamut permet 0,276. Retenu : même clarté, même teinte,
+chroma à mi-chemin du maximum.
+
+| Jeton Forge | Toile | Retenu | Pire contraste | ΔE braise | ΔE Feu |
+|---|---|---|---|---|---|
+| `good` | `#9FD39A` (C 0,095) | `#73E06B` (C 0,186) | 8,12 → 8,35 | 28,6 | 34,5 |
+| `bad` | `#E5848A` (C 0,119) | `#F27A84` (C 0,147) | 5,30 → 5,23 | 10,1 | 7,8 |
+
+Écartée : ramener le rouge vers le corail de l'ancien (`#EF7F73`) — ΔE 7,7
+avec la braise. L'ancien rouge n'était qu'à 4,7 du Feu.
+
+Sur leurs fonds doux : `good` 8,25, `bad` 5,53. **Défaut trouvé en route** :
+le bouton danger plein écrivait en blanc, et le blanc sur le rouge de Forge
+tombait déjà à 2,63 avec la toile (3,03 avec l'ancien) — la croix « Retirer »
+d'une carte RTA, sous le 3:1 d'une icône. Nouveau jeton `bad-ink`, le pendant
+d'`accent-ink` : sombre en Forge (6,53), blanc en Atelier (6,91) ;
+`Bouton.tsx` l'utilise pour `danger` / `plein`. Atelier : vert et rouge
+inchangés.
+
+Vérifié : tsc ; `node tests/run.mjs rendu refonte ui` → 848 ; inventaire sans
+perte ; chemins interdits ; build (`.text-bad-ink` émis, `--forge-good: 115
+224 107`, `--forge-bad: 242 122 132`).

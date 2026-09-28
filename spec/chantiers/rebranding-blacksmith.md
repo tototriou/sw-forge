@@ -146,6 +146,11 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 12. **L'avertissement de la toile, tel quel** (orange) : ΔE 6,7 avec l'accent
     en Forge, 3,8 en Atelier. Le libellé porte l'état ; aucun ambre lisible ne
     s'éloignait vraiment de la braise foncée en clair.
+13. **Le vert et le rouge de Forge, plus saturés que la toile** (Thomas,
+    2026-09-29, sur les camps du speed tuning : « ça me paraît pâle », puis
+    « je parlais du vert et du rouge »). Même clarté et même teinte, chroma à
+    mi-chemin du maximum : `#73E06B`, `#F27A84`. Atelier inchangé. Nouveau
+    jeton `bad-ink` (encre sur l'aplat rouge), le blanc n'y tenant plus.
 
 ## Partie B — les lots
 

@@ -434,7 +434,7 @@ Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 | 6bis-a4c1 — écran de recherche et caches | C | terminé après complément pilote de la preuve | reçu initial `4d95932` ↔ `4ed721e` / 2026-09-28 ; preuve relivrée |
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | terminé après rectification pilote des verdicts | reçu initial `840f202` ↔ `39a362f` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
-| 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu `b9ff929` ↔ `473fe62` / 2026-09-28 ; preuve complétée à relivrer |
+| 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu initial `b9ff929` ↔ `473fe62` ; complément livré et intégré / 2026-09-28 |
 | 6bis-b1 — champ externe, recette et CLI | J | contrat proposé, revue requise | — |
 | 6bis-b2 — aura propre et scores | J | contrat proposé, revue requise | — |
 | 6bis-b3a — conditions exactes et filtre final | J | contrat proposé, revue requise | — |
@@ -2273,7 +2273,7 @@ sont **repris des preuves précédentes, non rejoués**. La preuve est
 `spec-lint` et `git diff --check` passent. Les lectures comptées dépassent
 de 78 lignes le repère indicatif de 2 500, sans fenêtre omise. Le reçu initial
 est `b9ff929` ↔ `473fe62`, notes intégrées sur le main documentaire
-`43037eb` ; le complément pilote doit être relivré. La sûreté des coupes,
+`43037eb` ; le complément pilote a été livré et intégré ensuite. La sûreté des coupes,
 les nouveaux calculs et la parité ne sont pas encore prouvés. Les contrats
 b1–b4 ci-dessous sont une **proposition du pilote**, non lançable avant
 contre-revue indépendante et amendement de ses objections.

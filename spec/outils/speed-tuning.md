@@ -1201,7 +1201,10 @@ De haut en bas :
    corriger là où il est. Un même monstre peut
    figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le même camp.
    **Chaque camp** porte sous sa barre de recherche un bouton **« Importer un
-   deck de siège »** (voir plus bas). Chaque monstre est une **card** avec, en **haut à droite** (convention app),
+   deck de siège »** (voir plus bas). ⚠️ **À la souris**, ce bouton passe dans
+   l'**en-tête de la carte du camp**, à côté du lead, en taille compacte, sa
+   liste calée à droite (refonte graphique, décision 22 : on voit sans lire
+   quel camp il remplace). Au doigt, il reste sous la recherche. Chaque monstre est une **card** avec, en **haut à droite** (convention app),
    les **flèches** (monter / descendre dans l'équipe), l'**œil** (masquer /
    afficher) et la **croix** de suppression. Un monstre **masqué** reste dans son
    camp (grisé) mais quitte les calculs et les trois tableaux — pour tester une
@@ -1407,7 +1410,13 @@ De haut en bas :
    Comme pour le boost, une case vide laisse la **compétence** décider (valeur en
    repère), une valeur saisie la remplace et `0` l'annule.
 8. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
-   son tick.
+   son tick. ⚠️ **À la souris, il remonte sous l'ordre des sorts et l'analyse**,
+   avant les trois tableaux (refonte graphique, décision 22) : c'est la
+   conclusion qu'on vient lire. Au doigt, il reste tout en bas (lot 11).
+
+⚠️ **En-tête à la souris** (refonte graphique, lot 9b) : le titre au gabarit
+des autres pages (police d'affichage), sans la pastille d'icône, la règle des
+ticks dessous. En modale, pas d'en-tête : la modale porte titre et règle.
 
 Les trois tableaux **partagent les mêmes colonnes de ticks** (1 → au moins 12,
 étendu jusqu'au dernier tick d'action) : on peut donc poser un modificateur sur

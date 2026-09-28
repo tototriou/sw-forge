@@ -96,7 +96,10 @@ export function testRenduSpeedTuneVide() {
   const places = valeurs(html, 'placeholder');
   ok(places.includes('Ajouter un monstre à ton équipe…') && places.includes('Ajouter un monstre adverse…'), 'une recherche d\'ajout par camp');
   const imports = b.filter((x) => x.texte === 'Importer un deck de siège');
-  egal(imports.length, 2, '« Importer un deck de siège » dans chaque camp');
+  // ⚠️ Lot 9b (décision 22) : un bouton par camp ET par format — en tête de
+  // carte à la souris, sous la recherche au doigt, un seul visible. Le compte
+  // passe de 2 à 4 ; le sens (un import par camp) ne change pas.
+  egal(imports.length, 4, '« Importer un deck de siège » dans chaque camp, à chaque format');
   ok(imports.every((x) => x.desactive && x.title === IMPORT_VIDE), 'désactivé sans équipe de siège, et pourquoi');
   ok(t.endsWith('Ajoute au moins un monstre pour visualiser le remplissage des barres et l\'ordre de tour.'), 'ce qu\'il faut faire pour voir les tableaux');
 }

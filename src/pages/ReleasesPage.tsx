@@ -36,16 +36,23 @@ export default function ReleasesPage() {
         </a>
       </p>
 
-      <div className="space-y-4">
+      {/* ⚠️ **À la SOURIS, une version = une rangée à deux colonnes**
+          (refonte graphique, lot 10, la maquette) : à gauche le numéro, son
+          statut, sa date et son lien GitHub ; à droite le titre et les
+          changements. Plus de carte : un filet sépare les versions, et la
+          pastille (« Version actuelle », « Pas encore publiée ») dit laquelle
+          tourne. L'ordre du DOM ne change pas ; au doigt, rien ne change. */}
+      <div className="space-y-4 lg:space-y-0">
         {RELEASES.map((r, i) => (
           <section
             key={r.version ?? 'en-preparation'}
             className={`rounded-2xl border p-4 ${
               // La dernière version est mise en avant : c'est celle qui tourne.
               i === 0 ? 'border-accent bg-panel2/50' : 'border-border bg-panel/50'
-            }`}
+            } lg:grid lg:grid-cols-[160px_minmax(0,1fr)] lg:gap-x-8 lg:rounded-none lg:border-x-0 lg:border-b-0
+              lg:border-border-soft lg:bg-transparent lg:px-0 lg:py-6`}
           >
-            <div className="flex items-baseline gap-2.5 flex-wrap mb-1">
+            <div className="flex items-baseline gap-2.5 flex-wrap mb-1 lg:row-span-3 lg:mb-0 lg:flex-col lg:items-start lg:gap-1.5">
               <h2 className="font-display text-lg tracking-wide flex items-center gap-1.5">
                 <Tag size={15} className={i === 0 ? 'text-star' : 'text-ink-dim'} />
                 {libelleVersion(r.version)}
@@ -74,7 +81,7 @@ export default function ReleasesPage() {
                   href={`${REPO}/releases/tag/v${r.version}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="ml-auto font-mono text-micro text-ink-dim hoverable:text-ink transition"
+                  className="ml-auto font-mono text-micro text-ink-dim hoverable:text-ink transition lg:ml-0"
                   title={`Release v${r.version} sur GitHub`}
                 >
                   GitHub ↗
@@ -82,10 +89,10 @@ export default function ReleasesPage() {
               )}
             </div>
 
-            <p className="text-sm text-ink mb-2">{r.title}</p>
+            <p className="text-sm text-ink mb-2 lg:col-start-2 lg:text-base lg:font-semibold">{r.title}</p>
 
             {r.highlights && r.highlights.length > 0 && (
-              <ul className="mb-3 space-y-1">
+              <ul className="mb-3 space-y-1 lg:col-start-2">
                 {r.highlights.map((h, k) => (
                   <li key={k} className="flex gap-2 text-sm text-ink-dim">
                     <span className="text-star">◆</span>
@@ -95,7 +102,7 @@ export default function ReleasesPage() {
               </ul>
             )}
 
-            <ul className="space-y-1.5">
+            <ul className="space-y-1.5 lg:col-start-2">
               {[...r.changes]
                 .sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind))
                 .map((c, k) => (

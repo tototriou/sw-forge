@@ -197,8 +197,12 @@ export default function RtaCard({
               ⚠️ La vitesse passe alors à GAUCHE (`flex-1` transféré) : seule sur
               sa ligne, calée à droite, elle flottait loin du portrait qu'elle
               qualifie. */}
+          {/* ⚠️ **Au TÉLÉPHONE, le nom REVIENT** (lot 11a, décision 24) : la
+              rangée prend toute la largeur, il n'a plus à céder sa place. Il
+              reste masqué sur une tablette tactile au format bureau, où la
+              tuile garde ses 150 px. */}
           <span
-            className={`text-xs font-semibold compact:hidden leading-tight truncate flex-1 ${
+            className={`text-xs font-semibold compact:hidden leading-tight truncate flex-1 max-lg:block max-lg:text-sm ${
               desync && markDesync ? 'text-warn' : ''
             }`}
           >
@@ -208,7 +212,7 @@ export default function RtaCard({
             <>
               <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
               <span
-                className={`font-mono text-sm font-black leading-none compact:flex-1 ${
+                className={`font-mono text-sm font-black leading-none compact:flex-1 max-lg:flex-none max-lg:text-base ${
                   desync && markDesync ? 'text-warn' : 'text-ink'
                 }`}
               >
@@ -243,7 +247,9 @@ export default function RtaCard({
           // ⚠️ La carte est déjà en `panel2` : le sélecteur y prend `panel` pour
           // s'en détacher. Voir la prop `surface`.
           surface="panel"
-          className="mt-1"
+          // Au téléphone, la rangée est pleine largeur : étiré, le sélecteur
+          // pèserait plus que le monstre qu'il classe.
+          className="mt-1 max-lg:w-auto"
         >
           {sectionKeys.map((k) => (
             <option key={k} value={k}>

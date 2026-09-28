@@ -247,7 +247,18 @@ catégorie » plus haut.
 
 ## La carte sur téléphone
 
-⚠️ **Le nom du monstre n'est pas affiché sous `sm`.** Sur deux colonnes de
+⚠️ **Au téléphone, une RANGÉE par monstre, et le nom revient** (refonte
+graphique, lot 11a, décision 24 — la maquette). La grille passe à une colonne
+(`max-lg:grid-cols-1`) : portrait, **nom**, vitesse calée à droite, sets,
+badge de désynchronisation, et dessous le choix de section, à sa largeur
+naturelle ; l'anneau des catégories et la croix de retrait restent sur chaque
+rangée. Les colonnes de 210 px passent de `sm:` à `lg:` — `sm:` sortait après
+`max-lg:` dans le CSS construit et reprenait le dessus entre 640 et 1023 px.
+
+Ce qui suit décrit la **tuile de 150 px**, qui ne vaut plus qu'au format bureau
+avec un pointeur tactile (`compact:`, une tablette) :
+
+⚠️ **Le nom du monstre n'y est pas affiché.** Sur deux colonnes de
 150 px, la ligne porte déjà la vitesse, le badge de désynchronisation et trois
 icônes de set : il ne restait au nom qu'une quarantaine de pixels, de quoi
 afficher « Sath… » — qui ne distingue rien.

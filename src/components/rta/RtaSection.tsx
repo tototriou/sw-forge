@@ -135,8 +135,18 @@ export default function RtaSection({
           // 320 px et trois à partir de 480.
           // La carte s'y adapte : le sélecteur de section passe sous le nom
           // plutôt qu'à côté (voir RtaCard).
+          // ⚠️ **Au TÉLÉPHONE, une RANGÉE par monstre** (refonte graphique,
+          // lot 11a, décision 24, la maquette) : une colonne, écart resserré.
+          // Thomas l'a choisie en connaissance de l'objection ci-dessus (trente
+          // monstres, trente lignes) : la rangée est plus basse que la carte
+          // et elle rend le NOM, que la tuile de 150 px devait masquer.
+          // ⚠️ `lg:` et non plus `sm:` pour les colonnes de 210 px : `sm:` sort
+          // APRÈS `max-lg:` dans le CSS construit et l'aurait emporté entre 640
+          // et 1023 px — deux colonnes sur un téléphone en paysage. Au-dessus
+          // de `lg`, les deux reviennent au même : le bureau ne bouge pas.
           className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2
-                     sm:grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] sm:gap-2.5"
+                     lg:grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] lg:gap-2.5
+                     max-lg:grid-cols-1 max-lg:gap-1.5"
           openIndex={openIndex}
           detail={detail}
         >

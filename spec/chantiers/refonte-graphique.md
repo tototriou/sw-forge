@@ -532,7 +532,7 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 | 11a Téléphone · Accueil, RTA | J | exécuté, clos | tests avant `8d2552b` (37, `auTelephone`) ; décision 24 (`8ab9ebf`) ; barre `8ce6f6b`, panneau `e249feb`, accueil `96a1e5e`, RTA `54049bf` ; 9 titres attendus suivent la barre ; clos sur « ok continue » le 2026-09-28 |
 | 11b Téléphone · Siège | J | exécuté, clos | tests avant `9a421af` (30) ; décision 25 (`29f33f1`) ; interrupteur `afc5e8e`, decks `220ab28` ; une assertion suit le panneau ; clos sur « ok continue » le 2026-09-28 |
 | 11c Téléphone · Mon compte | J | exécuté, clos | tests avant `17c0ffb` (23) ; décision 26 (`74b1cb4`, corrigée `0b19997`) ; panneau runes `170861d`, Optimisation `8597bb6`, résumés `7bb9787` ; deux assertions suivent les panneaux ; clos sur « ok continue » le 2026-09-28 |
-| 11d Téléphone · Speed tuning, Ressources, Paramètres, Bientôt | J | à faire | |
+| 11d Téléphone · Speed tuning, Ressources, Paramètres, Bientôt | J | exécuté, clos | tests avant `e89fc4d` (15) ; décision 27 (`c2b2f3c`) ; Mécaniques `baecb4e`, Nouveautés `a381111`, Paramètres `c9436c2`, Speed tuning `a7da34e` (retour de Thomas) ; clos sur « ok continue » le 2026-09-28 |
 | 11e Téléphone · Optimizer | J | après 9a | |
 | 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | à faire | |
 | 12 validation finale et fusion | M | à faire | |

@@ -430,8 +430,8 @@ Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 | 6bis-a4b — CLI et scripts de diagnostic | C | terminé | reçu `6669527` ↔ `308c6be` / 2026-09-28 |
 | 6bis-a4c1 — écran de recherche et caches | C | terminé après complément pilote de la preuve | reçu initial `4d95932` ↔ `4ed721e` / 2026-09-28 ; preuve relivrée |
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | terminé après rectification pilote des verdicts | reçu initial `840f202` ↔ `39a362f` ; preuve relivrée / 2026-09-28 |
-| 6bis-a4d1 — Workers et tests | C | à lancer | — |
-| 6bis-a4d2 — réconciliation des cartes | C | en attente de a4d1 | — |
+| 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
+| 6bis-a4d2 — réconciliation des cartes | C | à lancer | — |
 | 6bis-b-* — correction du modèle par sous-lots bornés | J | non lançables avant amendement et revue | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -2204,6 +2204,28 @@ portent leurs propres tests candidats ; ne pas les perdre à l'agrégation.
 des tests présents/manquants. **Ne fait pas :** réconciliation globale,
 benchmarks ni implémentation.
 
+**Résultat du lot 6bis-a4d1 — 2026-09-28.** La carte privée classe les
+**24 clés projetées** (13 A, 5 B, 6 H) : aucune clé omise, substituée ou
+doublée. Les Workers relaient les paramètres et les demi-builds ; les six
+runes ne sont réunies que dans `pairBuckets`, que les deux régimes appellent.
+Les tests du lot 6 prouvent surtout les anciennes auras `setsAura` figées :
+le différentiel à 12 seeds construit six runes, mais ajoute 8 points RES/PRE
+constants à son oracle. Aucun des 24 sites ne calcule l'**aura propre au
+build**. Ce verdict local ne signifie pas que les tests ou les Workers ne
+lisent jamais l'ancien contexte d'aura fixe.
+
+La preuve `controle-6bis-a4d1.md` porte les citations et l'inventaire des
+tests manquants ; le pilote y a ajouté la commande exacte de comparaison
+des clés. Contrôles rejoués : 24 attendues = 24 réelles = 24 uniques,
+0 écart ; `valider-fenetres-6bis.mjs` : 13 plages et 336 lignes, bornes OK ;
+`node scripts/spec-lint.mjs` : aucune erreur ; `git diff --check` : aucune
+sortie. Les lectures (~2 900 lignes) dépassent le repère indicatif de
+2 500 après suivi des appels ; aucune fenêtre prescrite n'a été omise.
+Reçu initial `655b0a2` ↔ `7f2e0bf`, notes intégrées au main documentaire
+`08eb674` ; la preuve complétée est relivrée par le pilote. Aucun calcul
+externe + propre, cas Intangible non demandé ni parité des régimes Worker
+n'est encore prouvé. 6bis-a4d2 peut commencer.
+
 #### 6bis-a4d2 — réconciliation des cartes
 
 **Cat. C ; requiert a4d1.** Lire les synthèses structurées a2a1-contexte,
@@ -2217,6 +2239,10 @@ les cartes complètes sans les charger toutes comme prose. Rejouer
 et de l'union des cartes, avec verdicts sourcés et usages multiples
 distincts ; les deux H documentaires `differe` sont vérifiées séparément
 contre leur destination 6bis-b-* ; découvertes D séparées.
+Conserver **deux axes distincts** lors de la consolidation : consommation
+de l'ancienne aura fixe reçue dans `setup` et calcul de l'aura propre aux
+six runes. Les « non-consommateurs » d'a4d1 ne le sont que sur le second
+axe ; ne pas les assimiler à une absence de tout usage d'aura.
 `carte-6bis-a4d2.json` consolide coordonnées, runes connues ou
 non, cache, tests, incertitudes et scénarios Intangible. `controle-6bis-a4d2.md`
 porte commandes, sorties, longueurs, verdict CLI repris de a4b et les

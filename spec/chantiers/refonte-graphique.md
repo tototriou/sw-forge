@@ -543,7 +543,7 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 | 11d Téléphone · Speed tuning, Ressources, Paramètres, Bientôt | J | exécuté, clos | tests avant `e89fc4d` (15) ; décision 27 (`c2b2f3c`) ; Mécaniques `baecb4e`, Nouveautés `a381111`, Paramètres `c9436c2`, Speed tuning `a7da34e` (retour de Thomas) ; clos sur « ok continue » le 2026-09-28 |
 | 11e Téléphone · Optimizer | J | après 9a | |
 | 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | exécuté, clos | décisions 28 et 29 ; Effacer les filtres `41b5cb0`, filtre RTA `3b8ca2f`, indicateur `9123d0b`, restauration `3a47356`, Annuler `6e0294a`, palette `6384885` ; clos sur « ok » le 2026-09-28 |
-| 12 validation finale et fusion | M | après 9a et 11e | Thomas, 2026-09-28 : attendre l'Optimizer (livraison attendue) avant la fusion |
+| 12 validation finale et fusion | M | après 9a, 11e et le rebranding | Thomas, 2026-09-28 : attendre l'Optimizer (livraison attendue), puis le rebranding « SW Blacksmith », fait sur cette même branche ([rebranding-blacksmith.md](rebranding-blacksmith.md)) — une seule validation finale, une seule fusion |
 
 ## Partie B — les lots
 

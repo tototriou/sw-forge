@@ -1212,8 +1212,13 @@ De haut en bas :
    (tick NATUREL = `⌈10000/(7×combat)⌉`, sans la règle « un par tick » : le repère
    lit la VITESSE, pas l'ordre final). Un adversaire porte un contour `bad` — on
    repère d'un coup d'œil un ennemi qui tombe au même tick que soi.
-2. **Deux camps** côte à côte (flex-wrap, pas de breakpoint de largeur) : **Ton
-   équipe** et **En face**. Chacun a son **lead** (`Selecteur`), sa liste de
+2. **Deux camps** côte à côte (flex-wrap, qui suit la place réelle — page ou
+   modale) : **Ton équipe** et **En face**. ⚠️ **Au TÉLÉPHONE, toujours
+   empilés** (`max-lg:flex-col`, refonte graphique, lot 11d) : dès 560 px,
+   deux camps de 280 px tenaient côte à côte et chacun devenait trop étroit —
+   le lead débordait de l'en-tête, les réglages de chaque monstre
+   s'empilaient (relevé par Thomas en mode appareil). L'en-tête du camp passe
+   à la ligne au lieu de déborder. Chacun a son **lead** (`Selecteur`), sa liste de
    monstres (portrait, **SPD de base seule**, champ vitesse de runes, vitesse de
    combat) et sa **barre de recherche** d'ajout (combobox `Champ` + `Flottant`,
    même grammaire que RtaSearch — voir

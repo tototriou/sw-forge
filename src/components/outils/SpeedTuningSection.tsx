@@ -469,8 +469,13 @@ export default function SpeedTuningSection({
         </div>
       </section>
 
-      {/* Camps — flex-wrap : côte à côte quand il y a la place, empilés sinon. */}
-      <div className="flex flex-wrap gap-4">
+      {/* Camps — flex-wrap : côte à côte quand il y a la place, empilés sinon.
+          ⚠️ **Au TÉLÉPHONE, toujours empilés** (`max-lg:flex-col`, lot 11d) :
+          dès 560 px de large, deux camps de 280 px tenaient côte à côte, et
+          chacun devenait trop étroit — le lead débordait de l'en-tête et les
+          trois réglages de chaque monstre s'empilaient (relevé par Thomas en
+          mode appareil). Pleine largeur, la card retrouve sa rangée. */}
+      <div className="flex flex-wrap gap-4 max-lg:flex-col">
         <CampPanneau
           camp="allie"
           titre="Ton équipe"
@@ -1099,7 +1104,7 @@ function CampPanneau({
     // concentriques, ce que la charte interdit. Même règle pour le bandeau, qui
     // teinte une bande existante au lieu d'en ajouter une.
     <section
-      className={`min-w-[280px] flex-1 rounded-lg border bg-panel ${
+      className={`min-w-[280px] flex-1 rounded-lg border bg-panel max-lg:min-w-0 ${
         adv ? 'border-bad/45' : 'border-good/45'
       }`}
     >
@@ -1107,7 +1112,9 @@ function CampPanneau({
         // ⚠️ `rounded-t-lg-inner` : le fond du bandeau débordait dans l'arrondi
         // du panneau et lui redonnait des coins carrés. Le rayon intérieur vaut
         // celui du panneau MOINS son contour d'un pixel (voir tailwind.config).
-        className={`flex items-center gap-2 rounded-t-lg-inner border-b px-3.5 py-2.5 lg:flex-wrap ${
+        // ⚠️ `flex-wrap` aux deux formats : au téléphone, sur un écran étroit,
+        // le lead passe sous le titre au lieu de déborder de la carte.
+        className={`flex flex-wrap items-center gap-2 rounded-t-lg-inner border-b px-3.5 py-2.5 ${
           adv ? 'border-bad/30 bg-bad-soft' : 'border-good/30 bg-good-soft'
         }`}
       >
@@ -1122,7 +1129,7 @@ function CampPanneau({
           <span className={adv ? 'text-bad' : 'text-good'}>{icone}</span>
           {titre}
         </span>
-        <span className="ml-auto flex items-center gap-1.5 lg:flex-wrap lg:justify-end">
+        <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
           <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Lead</span>
           {/* ⚠️ **Un lead d'ÉLÉMENT s'affiche ICI, pas sur chaque monstre.** Le
               sélecteur n'a qu'une valeur : il ne sait pas dire « +33 % pour les

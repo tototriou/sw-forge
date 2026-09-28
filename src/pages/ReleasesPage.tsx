@@ -41,16 +41,17 @@ export default function ReleasesPage() {
           statut, sa date et son lien GitHub ; à droite le titre et les
           changements. Plus de carte : un filet sépare les versions, et la
           pastille (« Version actuelle », « Pas encore publiée ») dit laquelle
-          tourne. L'ordre du DOM ne change pas ; au doigt, rien ne change. */}
-      <div className="space-y-4 lg:space-y-0">
+          tourne. L'ordre du DOM ne change pas.
+          ⚠️ **Au doigt aussi, plus de carte** (lot 11d, décision 27, la
+          maquette) : le même filet entre les versions ; la ligne numéro ·
+          statut · date reste AU-DESSUS du titre, faute de place pour deux
+          colonnes. */}
+      <div>
         {RELEASES.map((r, i) => (
           <section
             key={r.version ?? 'en-preparation'}
-            className={`rounded-2xl border p-4 ${
-              // La dernière version est mise en avant : c'est celle qui tourne.
-              i === 0 ? 'border-accent bg-panel2/50' : 'border-border bg-panel/50'
-            } lg:grid lg:grid-cols-[160px_minmax(0,1fr)] lg:gap-x-8 lg:rounded-none lg:border-x-0 lg:border-b-0
-              lg:border-border-soft lg:bg-transparent lg:px-0 lg:py-6`}
+            className="border-t border-border-soft py-5
+              lg:grid lg:grid-cols-[160px_minmax(0,1fr)] lg:gap-x-8 lg:py-6"
           >
             <div className="flex items-baseline gap-2.5 flex-wrap mb-1 lg:row-span-3 lg:mb-0 lg:flex-col lg:items-start lg:gap-1.5">
               <h2 className="font-display text-lg tracking-wide flex items-center gap-1.5">

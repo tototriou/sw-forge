@@ -328,8 +328,17 @@ le titre centré en Cinzel, icône colorée, « n'est pas raccord avec le menu �
 ⚠️ Le fil est **tiré de `groupesBureau`** (`filBureau` dans `App.tsx`),
 jamais ressaisi : il ne peut pas contredire la barre latérale. Une vue hors
 menu (Meules, Gemmes) garde son nom ; une page hors menu (Paramètres), son
-titre seul. Le **titre centré reste celui du téléphone** (`lg:hidden`) —
-lot 11. Gardé par `testRenduAppFil` ([tests/rendu/app.test.tsx](tests/rendu/app.test.tsx)).
+titre seul. Gardé par `testRenduAppFil` ([tests/rendu/app.test.tsx](tests/rendu/app.test.tsx)).
+
+⚠️ **Sur TÉLÉPHONE, « où l'on est » est à gauche, sur deux lignes**
+(refonte graphique, lot 11a, décision 24, la maquette) : la section en petit
+(`ink-dimmer`, le fil sauf son dernier élément joint par « · » : « Jouer ·
+RTA », « Mon compte · Runes »), la page dessous en semi-gras (« Ma prépa »,
+« Résumé »). **Tiré du MÊME fil** que le bureau ; sans fil, le titre seul.
+Il était **centré en absolu, en Cinzel, avec l'icône colorée de la
+section** : il ne disait que la page, pas où elle se range. Les attendus de
+`testRenduAppRoutes` pour « Mon compte » ont suivi (« Mon compte · Runes
+Résumé » au lieu de « Runes · Résumé »).
 
 ⚠️ **Le contenu de la zone droite diffère selon le format** — c'est l'un des
 endroits où les deux se séparent (voir
@@ -365,9 +374,10 @@ endroits où les deux se séparent (voir
 - ⚠️ **Elle COMMENCE après la barre latérale**, elle ne la surplombe pas
   (`z-20` contre `z-30`). La barre latérale est la navigation principale : la
   couper d'un bandeau horizontal la ferait passer pour un panneau secondaire.
-- ⚠️ Le titre est **centré en absolu**, pas dans le flux : centré par la
+- ⚠️ Le titre était **centré en absolu**, pas dans le flux : centré par la
   disposition, il se serait décalé dès que la zone de droite change de largeur.
-  Un repère qui bouge n'en est plus un.
+  Depuis le lot 11a il est **aligné à gauche**, juste après le logo : le
+  problème ne se pose plus, son point de départ ne dépend plus de la droite.
 - ⚠️ **Fond opaque, pas de flou** : le contenu qu'on devinait derrière ne disait
   rien d'utile et brouillait le titre par transparence.
 - Le titre et son icône sont **dérivés** des constantes de navigation — jamais

@@ -45,6 +45,10 @@ function ongletsMobiles(html: string): string {
 
 // Chaque route et le titre que la barre du haut affiche (relevés sur le code
 // d'avant la refonte).
+// ⚠️ Lot 11a (décision 24) : au téléphone, la barre dit la section en petit
+// AU-DESSUS de la page (« Mon compte · Runes » / « Résumé »), là où elle
+// disait « Runes · Résumé » d'un seul tenant. Même information — l'inventaire
+// et la vue —, les neuf attendus de « Mon compte » suivent ce nouveau texte.
 const TITRES: [string, string][] = [
   ['#/', 'Accueil'],
   ['#/rta', 'Ma prépa'],
@@ -53,15 +57,15 @@ const TITRES: [string, string][] = [
   ['#/siege/offense', 'Offense'],
   ['#/siege/recommandations', 'Recommandations'],
   ['#/compte/monstres/liste', 'Monstres'],
-  ['#/compte/runes/resume', 'Runes · Résumé'],
-  ['#/compte/runes/liste', 'Runes · Liste'],
-  ['#/compte/runes/courbes', 'Runes · Courbes'],
-  ['#/compte/runes/comparaison', 'Runes · Comparaison'],
-  ['#/compte/runes/optimisation', 'Runes · Optimisation'],
-  ['#/compte/runes/meules', 'Runes · Meules'],
-  ['#/compte/runes/gemmes', 'Runes · Gemmes'],
-  ['#/compte/artefacts/resume', 'Artéfacts · Résumé'],
-  ['#/compte/artefacts/liste', 'Artéfacts · Liste'],
+  ['#/compte/runes/resume', 'Mon compte · Runes Résumé'],
+  ['#/compte/runes/liste', 'Mon compte · Runes Liste'],
+  ['#/compte/runes/courbes', 'Mon compte · Runes Courbes'],
+  ['#/compte/runes/comparaison', 'Mon compte · Runes Comparaison'],
+  ['#/compte/runes/optimisation', 'Mon compte · Runes Optimisation'],
+  ['#/compte/runes/meules', 'Mon compte · Runes Meules'],
+  ['#/compte/runes/gemmes', 'Mon compte · Runes Gemmes'],
+  ['#/compte/artefacts/resume', 'Mon compte · Artéfacts Résumé'],
+  ['#/compte/artefacts/liste', 'Mon compte · Artéfacts Liste'],
   ['#/outils/optimizer', 'Outils'],
   ['#/outils/speed-tuning', 'Outils'],
   ['#/bestiary', 'Bestiaire'],

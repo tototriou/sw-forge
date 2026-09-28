@@ -91,25 +91,25 @@ export default function TopBar({
           {gauche}
         </div>
 
-        {/* ⚠️ `pointer-events-none` : le titre couvre toute la largeur pour
-            rester centré, et capterait sinon les clics destinés aux boutons
-            qu'il recouvre. */}
-        <span
-          // ⚠️ Marges LATÉRALES sur le titre, pas `inset-x-0` : centré sur toute
-          // la largeur, il passait SOUS le bouton — le ⚙ chevauchait « RTA »
-          // sur mobile. 56 px réservés à droite (la cible de 32 px plus sa
-          // gouttière), 60 px à gauche pour le logo. Au-dessus de `lg` le logo
-          // vit dans la barre latérale : la marge gauche retombe à celle du
-          // conteneur. `truncate` finit le travail sur « Recommandations ».
-          // ⚠️ `lg:hidden` : le titre centré est celui du TÉLÉPHONE. Sur bureau,
-          // c'est le fil d'Ariane ci-dessous (refonte graphique, lot 4).
-          className="pointer-events-none absolute inset-y-0 left-[60px] right-[56px] flex
-                     items-center justify-center gap-2 font-display text-base
-                     tracking-wide text-ink lg:hidden"
-        >
-          {icone && <span className="flex-none text-ctx">{icone}</span>}
-          <span className="truncate">{titre}</span>
-        </span>
+        {/* TÉLÉPHONE — OÙ L'ON EST, à gauche, sur deux lignes (refonte
+            graphique, lot 11a, décision 24, la maquette) : la section en petit
+            (« Jouer · RTA », « Mon compte · Runes »), la page dessous (« Ma
+            prépa », « Liste »). Il était centré, en Cinzel, avec l'icône de la
+            section : il ne disait que la page, pas où elle se range.
+            ⚠️ Tiré du MÊME fil que le bureau (`fil`, construit depuis le menu),
+            jamais ressaisi. Sans fil, le titre seul.
+            ⚠️ `lg:hidden` : sur bureau, c'est le fil d'Ariane ci-dessous. */}
+        {(() => {
+          const chemin = fil && fil.length > 0 ? fil : [titre];
+          const page = chemin[chemin.length - 1];
+          const section = chemin.slice(0, -1).join(' · ');
+          return (
+            <div className="flex min-w-0 flex-col leading-tight lg:hidden">
+              {section && <span className="truncate text-micro text-ink-dimmer">{section}</span>}
+              <span className="truncate text-sm font-semibold text-ink">{page}</span>
+            </div>
+          );
+        })()}
 
         {/* BUREAU — le FIL D'ARIANE, à gauche, comme dans la maquette : le
             chemin du menu jusqu'à la page (« Mon compte › Runes › Liste »),

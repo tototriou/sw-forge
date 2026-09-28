@@ -157,10 +157,11 @@ export default function Sidebar({
       style={{ width: retractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR }}
       // ⚠️ La LARGEUR s'anime, pas un `translateX` : la barre se replie sur
       // elle-même et rend sa place au contenu.
-      // ⚠️ Le FOND DE LA PAGE, séparé par un filet : la barre fait partie de
-      // l'application, elle ne se pose pas dessus comme un panneau.
+      // ⚠️ Le fond des BARRES (`bar`, rebranding, décision 5), séparé par un
+      // filet : la barre fait partie de l'application, elle ne se pose pas
+      // dessus comme un panneau. C'était le fond de la page.
       className="hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col gap-3 border-r border-border-soft
-                 bg-bg pb-3 pt-3.5 transition-[width] duration-[180ms] ease-out"
+                 bg-bar pb-3 pt-3.5 transition-[width] duration-[180ms] ease-out"
     >
       {/* ⚠️ Liseré d'ACCENT CONTEXTUEL : il porte l'élément du monstre
           consulté. Dégradé vers le transparent pour ne pas tirer l'œil. */}

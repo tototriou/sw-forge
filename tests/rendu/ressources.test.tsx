@@ -108,8 +108,10 @@ export function testRenduParametres() {
   ok(b.some((x) => x.texte === 'Importer un JSON' && x.title === 'Importer un export de compte SWEX (traité localement, rien n\'est envoyé)'), '« Importer un JSON », et ce qu\'il devient');
   for (const [texte, info, presse] of [
     ['Auto', 'Suit le thème de ton navigateur', true],
-    ['Clair', 'Atelier — fond clair, encre froide', false],
-    ['Sombre', 'Forge — fond profond, accent cuivre', false],
+    // Rebranding R1 : « encre froide » et « accent cuivre » décrivaient
+    // l'ancienne identité.
+    ['Clair', 'Atelier — fond clair, encre chaude', false],
+    ['Sombre', 'Forge — fond profond, accent braise', false],
     ['Efficience', 'Efficience communautaire (principale incluse, /2,8)', true],
     ['Score SW', 'Score affiché dans le jeu (stats secondaires uniquement)', false],
   ] as const) ok(b.some((x) => x.texte === texte && x.title === info && x.presse === presse), `« ${texte} », ce qu'il fait, son état`);

@@ -27,14 +27,16 @@ import { PRESSION } from './Bouton';
 // classes d'élément s'accrochent ; `aria-pressed` pour qu'un lecteur d'écran
 // annonce l'état, pas un simple bouton.
 
-// Marqueur « filtre actif » de l'app : la couleur d'ACCENT (cuivre en Forge,
-// indigo en Atelier) en fond teinté à 25 %, avec son contour (refonte
+// Marqueur « filtre actif » de l'app : la couleur d'ACCENT (la braise, depuis
+// le rebranding) en fond teinté à 25 %, avec son contour (refonte
 // graphique, décision 9 de Thomas, amendée : la couleur inversée donnait un
 // aplat blanc en thème sombre, écarté). Exporté pour que les filtres qui ne
 // passent pas par `Pastille` (sets, emplacements, étoiles du Bestiaire) portent
 // EXACTEMENT le même : deux marqueurs côte à côte se liraient comme deux natures
-// de filtre (spec/shared/design.md § UN SEUL marqueur). Contraste mesuré : texte
-// 8.5 à 10.6, contour 5.4 à 9.7, sur panneau comme sur la page.
+// de filtre (spec/shared/design.md § UN SEUL marqueur). ⚠️ Le fond lit la
+// braise VIVE, le contour la braise LISIBLE (tailwind.config.js) : en Atelier,
+// la vive ne ferait que 2.1 à 2.6 comme contour. Contraste mesuré (R1) : texte
+// 8.25 / 13.46, contour 4.02 / 4.34 (Forge / Atelier).
 export const MARQUEUR_FILTRE_ACTIF = 'border-accent bg-accent/25 text-ink';
 
 export interface PastilleProps

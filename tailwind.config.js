@@ -7,10 +7,12 @@ export default {
     extend: {
       fontFamily: {
         display: ['Cinzel', 'serif'],
-        body: ['Inter', 'sans-serif'],
+        // Source Sans 3 remplace Inter (rebranding « SW Blacksmith », R1). Les
+        // TAILLES ne bougent pas (décision 7) : voir `fontSize` plus bas.
+        body: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
         // ⚠️ Réservée aux CHIFFRES (efficiences, vitesses, ticks, compteurs) :
         // c'est ce qui doit s'aligner en colonnes. Les libellés en capitales
-        // sont en Inter — voir `label` ci-dessous.
+        // sont dans la police du texte — voir `.label` dans index.css.
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
 
@@ -23,6 +25,8 @@ export default {
       // Source de vérité : spec/shared/design.md
       colors: {
         bg: 'rgb(var(--bg) / <alpha-value>)',
+        // Barres de l'application (latérale, du haut) — rebranding, décision 5.
+        bar: 'rgb(var(--bar) / <alpha-value>)',
         panel: 'rgb(var(--panel) / <alpha-value>)',
         panel2: 'rgb(var(--panel2) / <alpha-value>)',
         border: 'rgb(var(--border) / <alpha-value>)',
@@ -32,6 +36,9 @@ export default {
         'ink-dimmer': 'rgb(var(--ink-dimmer) / <alpha-value>)',
 
         // Accent UNIQUE : actif, focus, lien. Distinct de la sémantique.
+        // ⚠️ Ici, la braise VIVE : celle des APLATS (`bg-accent`, `from-accent`,
+        // `accent-accent`). Le texte et les traits la remplacent par la braise
+        // lisible — voir `textColor` / `borderColor` plus bas.
         accent: 'rgb(var(--accent) / <alpha-value>)',
         'accent-soft': 'rgb(var(--accent-soft) / <alpha-value>)',
         // Texte posé SUR un aplat d'accent (bouton principal plein) : blanc en
@@ -78,6 +85,35 @@ export default {
         star: 'rgb(var(--star) / <alpha-value>)',
       },
 
+      // ⚠️ **Deux braises, un seul nom de classe** (rebranding, décisions 4 et
+      // 11). En Atelier, la braise vive tombe à 2.11-2.57 comme texte ou comme
+      // contour : ces utilitaires-là lisent `--accent-lisible` (4.52 au pire),
+      // les aplats gardent la vive via `colors` ci-dessus. En Forge, les deux
+      // valent la même chose.
+      // Pourquoi ici plutôt qu'une classe `text-accent-lisible` à écrire sur
+      // place : 70 usages auraient été à renommer, et chaque `text-accent` écrit
+      // plus tard serait redevenu illisible sans que rien ne le signale. Ici,
+      // la bonne braise vient d'office.
+      // `divideColor` suit `borderColor` (défaut de Tailwind), l'opacité
+      // (`border-accent/50`) aussi. Même partage pour `ctx`, dont la valeur
+      // par défaut EST l'accent.
+      textColor: {
+        accent: 'rgb(var(--accent-lisible) / <alpha-value>)',
+        ctx: 'rgb(var(--ctx-lisible) / <alpha-value>)',
+      },
+      borderColor: {
+        accent: 'rgb(var(--accent-lisible) / <alpha-value>)',
+        ctx: 'rgb(var(--ctx-lisible) / <alpha-value>)',
+      },
+      ringColor: {
+        accent: 'rgb(var(--accent-lisible) / <alpha-value>)',
+        ctx: 'rgb(var(--ctx-lisible) / <alpha-value>)',
+      },
+      outlineColor: {
+        accent: 'rgb(var(--accent-lisible) / <alpha-value>)',
+        ctx: 'rgb(var(--ctx-lisible) / <alpha-value>)',
+      },
+
       // Six paliers, plancher à 11 px. ⚠️ Ni demi-pixel, ni valeur en dessous
       // de 11 px : l'écart ne crée pas de hiérarchie, il crée du flou.
       fontSize: {
@@ -118,8 +154,9 @@ export default {
         DEFAULT: 'var(--radius)',
         lg: 'var(--radius-lg)',
         // ⚠️ `xl` et `2xl` REDÉFINIS : c'étaient les valeurs figées de Tailwind
-        // (12 et 16 px), hors tokens. Refonte graphique, décision 2 : cartes
-        // 12 px, fenêtres 14 px — voir index.css et design.md § Rayons.
+        // (12 et 16 px), hors tokens. Refonte graphique, décision 2, puis
+        // rebranding R1 : cartes 14 px, fenêtres 20 px — voir index.css et
+        // design.md § Rayons.
         xl: 'var(--radius-xl)',
         '2xl': 'var(--radius-2xl)',
         // ⚠️ Rayon INTÉRIEUR d'un panneau `rounded-lg` à contour 1 px : un

@@ -562,7 +562,7 @@ export default function CurveChart({
                   y1={PAD_T}
                   x2={hx}
                   y2={PAD_T + IH}
-                  stroke="rgb(var(--accent))"
+                  stroke="rgb(var(--accent-lisible))"
                   strokeWidth="1"
                   strokeDasharray="3 3"
                 />
@@ -579,10 +579,13 @@ export default function CurveChart({
             graphe. Sa seule différence est qu'il SURVIT au départ du pointeur :
             c'est lui qui dit d'où sort le détail lu en dessous, une fois la
             souris partie vers les flèches.
-            ⚠️ `rgb(var(--accent))` et NON `var(--accent)` : les tokens de
-            couleur sont des TRIPLETS (« 43 54 165 »), pas des couleurs CSS.
-            Posé nu dans un attribut SVG, le trait n'était tout simplement pas
-            peint — invisible, sans erreur. Voir spec/shared/design.md. */}
+            ⚠️ `rgb(var(--accent-lisible))` et NON `var(--accent-lisible)` : les
+            tokens de couleur sont des TRIPLETS (« 166 79 17 »), pas des
+            couleurs CSS. Posé nu dans un attribut SVG, le trait n'était tout
+            simplement pas peint — invisible, sans erreur.
+            ⚠️ `accent-lisible`, pas `accent` : c'est un TRAIT, et la braise vive
+            tombe à 2.1-2.6 sur les fonds clairs (rebranding, décision 11).
+            Voir spec/shared/design.md. */}
         {choisi && runesChoisies.length > 0 && (
           <g pointerEvents="none">
             <line
@@ -590,7 +593,7 @@ export default function CurveChart({
               y1={PAD_T}
               x2={x(choisi.rang)}
               y2={PAD_T + IH}
-              stroke="rgb(var(--accent))"
+              stroke="rgb(var(--accent-lisible))"
               strokeWidth="1"
               strokeDasharray="3 3"
               strokeOpacity="0.75"

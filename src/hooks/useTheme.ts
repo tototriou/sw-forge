@@ -11,8 +11,10 @@ export type ResolvedTheme = 'light' | 'dark';
 
 export const THEME_CHOICES: { key: ThemeChoice; label: string; hint: string }[] = [
   { key: 'auto', label: 'Auto', hint: 'Suit le thème de ton navigateur' },
-  { key: 'light', label: 'Clair', hint: 'Atelier — fond clair, encre froide' },
-  { key: 'dark', label: 'Sombre', hint: 'Forge — fond profond, accent cuivre' },
+  // Rebranding R1 : l'encre de l'atelier est CHAUDE, l'accent est la BRAISE
+  // (ils disaient « encre froide », « accent cuivre » — l'ancienne identité).
+  { key: 'light', label: 'Clair', hint: 'Atelier — fond clair, encre chaude' },
+  { key: 'dark', label: 'Sombre', hint: 'Forge — fond profond, accent braise' },
 ];
 
 // **Persisté** dans `localStorage`, même si la conservation est refusée : c'est

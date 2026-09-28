@@ -21,7 +21,9 @@ const DOSSIERS = ['src/lib/', 'src/hooks/', 'src/workers/', 'src/data/', 'public
 // décision 14 : recherche et export des équipes de siège ; décision 19 : la
 // vue Défense des recommandations, calculée sans toucher au format exporté ;
 // décision 29 : « Annuler » restaure ce qu'on vient de retirer de la prépa RTA
-// et des recommandations).
+// et des recommandations). Puis ceux du rebranding « SW Blacksmith », nommés
+// dans la section de leur lot (`spec/chantiers/rebranding-blacksmith.md`) —
+// R1 : les sous-titres des thèmes, périmés par les nouveaux jetons.
 const PERMIS = new Set([
   'src/data/couleursSection.ts',
   'src/data/releases.ts',
@@ -30,6 +32,7 @@ const PERMIS = new Set([
   'src/lib/recoDefenses.ts',
   'src/hooks/useRtaState.ts',
   'src/hooks/useSiegeRecos.ts',
+  'src/hooks/useTheme.ts',
 ]);
 // Fichiers isolés : les types, et les rendus copiés du jeu (mémoire
 // `rendus-du-jeu-intouchables`), qui restent à l'identique.

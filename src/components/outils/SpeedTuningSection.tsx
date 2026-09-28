@@ -1111,7 +1111,14 @@ function CampPanneau({
           adv ? 'border-bad/30 bg-bad-soft' : 'border-good/30 bg-good-soft'
         }`}
       >
-        <span className={`flex items-center gap-1.5 text-sm font-bold ${adv ? 'text-bad' : 'text-ink'}`}>
+        {/* ⚠️ **À la SOURIS, le titre prend TOUTE sa ligne** (`lg:w-full`),
+            lead et import passent dessous, calés à droite — dans les DEUX
+            camps. Laissé au hasard de la largeur, « Ton équipe » (plus long
+            qu'« En face ») renvoyait ses réglages à la ligne et pas l'autre :
+            deux cartes voisines rendues différemment (Thomas : « il faut que
+            le rendu soit le même »). Une seule ligne ne tient pas : la
+            pastille d'un lead posé l'élargit encore. */}
+        <span className={`flex items-center gap-1.5 text-sm font-bold lg:w-full ${adv ? 'text-bad' : 'text-ink'}`}>
           <span className={adv ? 'text-bad' : 'text-good'}>{icone}</span>
           {titre}
         </span>

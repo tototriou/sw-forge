@@ -1204,7 +1204,11 @@ De haut en bas :
    deck de siège »** (voir plus bas). ⚠️ **À la souris**, ce bouton passe dans
    l'**en-tête de la carte du camp**, à côté du lead, en taille compacte, sa
    liste calée à droite (refonte graphique, décision 22 : on voit sans lire
-   quel camp il remplace). Au doigt, il reste sous la recherche. Chaque monstre est une **card** avec, en **haut à droite** (convention app),
+   quel camp il remplace). Au doigt, il reste sous la recherche.
+   L'en-tête est alors sur **deux lignes dans les deux camps** : le titre, puis
+   lead et import calés à droite. Laissé au hasard de la largeur, « Ton
+   équipe » passait à la ligne et pas « En face » — Thomas : « il faut que le
+   rendu soit le même ». Chaque monstre est une **card** avec, en **haut à droite** (convention app),
    les **flèches** (monter / descendre dans l'équipe), l'**œil** (masquer /
    afficher) et la **croix** de suppression. Un monstre **masqué** reste dans son
    camp (grisé) mais quitte les calculs et les trois tableaux — pour tester une

@@ -124,18 +124,22 @@ export function testRefonteCheminsInterdits() {
       'src/components/RuneWheel.tsx',
       'src/data/couleursSection.ts',
       'src/data/releases.ts',
-      'src\\hooks\\useRtaState.ts',
+      'src\\hooks\\usePersistence.ts',
+      'src/hooks/useRtaState.ts',
       'src/index.css',
       'src/types.ts',
     ]),
     [
       'public/data/monsters.json',
       'src/components/RuneWheel.tsx',
-      'src/hooks/useRtaState.ts',
+      'src/hooks/usePersistence.ts',
       'src/lib/speed.ts',
       'src/types.ts',
     ],
-    'interdits relevés (logique, données, rendus du jeu, types) ; couleursSection, releases, Sidebar et index.css permis'
+    // `useRtaState` est permis depuis le lot 13 (décision 29, « Annuler »
+    // restaure un monstre retiré) : il servait d'exemple de hook interdit, et
+    // le test a échoué dès son ajout à PERMIS. `usePersistence` le remplace.
+    'interdits relevés (logique, données, rendus du jeu, types, chemin Windows compris) ; couleursSection, releases, useRtaState, Sidebar et index.css permis'
   );
   egal(interdits(['src/pages/HomePage.tsx', 'tailwind.config.js']), [], 'un diff purement visuel ne déclenche rien');
 }

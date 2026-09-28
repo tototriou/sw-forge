@@ -429,8 +429,8 @@ Les deux scénarios nommés passent à a3b, sans correction de code à ce stade.
 | 6bis-a4a — recette, reset et import écran | C | terminé | reçu `2d8d364` ↔ `7e0541c` / 2026-09-28 |
 | 6bis-a4b — CLI et scripts de diagnostic | C | terminé | reçu `6669527` ↔ `308c6be` / 2026-09-28 |
 | 6bis-a4c1 — écran de recherche et caches | C | terminé après complément pilote de la preuve | reçu initial `4d95932` ↔ `4ed721e` / 2026-09-28 ; preuve relivrée |
-| 6bis-a4c2 — cartes de résultat et autres affichages | C | à lancer | — |
-| 6bis-a4d1 — Workers et tests | C | en attente de a4c2 | — |
+| 6bis-a4c2 — cartes de résultat et autres affichages | C | terminé après rectification pilote des verdicts | reçu initial `840f202` ↔ `39a362f` ; preuve relivrée / 2026-09-28 |
+| 6bis-a4d1 — Workers et tests | C | à lancer | — |
 | 6bis-a4d2 — réconciliation des cartes | C | en attente de a4d1 | — |
 | 6bis-b-* — correction du modèle par sous-lots bornés | J | non lançables avant amendement et revue | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
@@ -2166,6 +2166,26 @@ affichages découverts hors manifeste.
 
 **Sortie :** carte a4c2 et matrice des cartes et contrôles. Aucun rendu
 nouveau ni contrôle visuel (lot 7). **Ne fait pas :** Workers ou tests.
+
+**Résultat du lot 6bis-a4c2 — 2026-09-28.** Les quatre clés de la projection
+sont réconciliées (4 attendues, 4 présentes, aucune substitution). Les deux
+cartes de candidats connaissent les runes et utilisent `activeSets` pour
+**afficher** leurs sets, sans convertir ceux-ci en auras. Les dégâts et PV
+effectifs affichés par `BuildCandidateCard` viennent du parent. Les deux
+contrôles `DamageSetupCard` et `DamageSetupModale` ne connaissent pas les six
+runes candidates et ne lisent aucun champ d'aura : le pilote a corrigé leurs
+verdicts initiaux de « consommateurs » à **non-consommateurs**. Recevoir ou
+transmettre `DamageSetup` dans l'interface ne prouve pas une consommation
+d'aura dans un calcul. La signature du cache d'artéfacts porte le setup et le
+toggle RES/PRE, mais pas un vecteur distinct d'auras propres au build.
+
+Preuve : `controle-6bis-a4c2.md` et `carte-6bis-a4c2.json` dans le dossier
+A.6 bis. Projection et contrôle des fenêtres rejoués : 8 plages et **186
+lignes**, bornes OK ; `node scripts/spec-lint.mjs` : aucune erreur ;
+`git diff --check` : aucune sortie. Le reçu initial était `840f202` ↔
+`39a362f` ; la carte et la preuve rectifiées sont relivrées par le pilote.
+Aucun test, contrôle visuel ni calcul d'aura propre par build n'est établi
+par ce lot. 6bis-a4d1 peut commencer.
 
 #### 6bis-a4d1 — Workers et tests
 

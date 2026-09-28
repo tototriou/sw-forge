@@ -99,7 +99,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | fait — sept questions posées | 2026-09-28, [lot-R0.md](rebranding-preuves/lot-R0.md) |
-| R1 jetons : deux thèmes, police de texte, arrondis | J | à faire | |
+| R1 jetons : deux thèmes, police de texte, arrondis | J | fait — relecture de Thomas en attente | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
 | R2 nom et logo | J | à faire | |
 | R3 `src/ui/` aux planches « Composants » | J | à faire | |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | à faire | |
@@ -137,6 +137,16 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 10. **Les couleurs de section sont gardées** (accueil, onglets du
     téléphone), variantes claires du lot 14 comprises.
 
+**11 et 12 — les questions du R1 (Thomas, 2026-09-29)**, chiffres dans
+[lot-R1.md](rebranding-preuves/lot-R1.md) :
+
+11. **Contours d'état et focus en braise foncée** en Atelier (`#A64F11`,
+    4,52 au pire) : la vive y fait 2,11 à 2,57, sous le 3:1 d'un contour qui
+    porte un état. Même jeton que le texte (`accent-lisible`).
+12. **L'avertissement de la toile, tel quel** (orange) : ΔE 6,7 avec l'accent
+    en Forge, 3,8 en Atelier. Le libellé porte l'état ; aucun ambre lisible ne
+    s'éloignait vraiment de la braise foncée en clair.
+
 ## Partie B — les lots
 
 ### R0 — relevé · C
@@ -165,6 +175,12 @@ variables), Source Sans 3 à la place d'Inter (`index.html`,
 - fonds doux (`*-soft`) recalculés sur les nouvelles surfaces, par la même
   construction.
 
+**Fichier permis hors affichage** (A.2, nommé avant son code) :
+`src/hooks/useTheme.ts` — seulement les sous-titres des thèmes dans le menu ⚙,
+« Atelier — fond clair, encre froide » et « Forge — fond profond, accent
+cuivre », que les nouveaux jetons rendent faux (encre chaude, braise). La
+logique du thème n'y bouge pas (décision 6 : « Auto » reste le défaut).
+
 ⚠️ **À mesurer dans ce lot** : `border-accent` (65 usages) marque souvent
 une sélection, donc un contour porteur de sens (3:1). La braise vive fait
 2,11 à 2,57 sur les fonds Atelier. Si les usages porteurs de sens ne
@@ -174,6 +190,21 @@ passent pas, question à Thomas **avant** de trancher (jeton de texte,
 **Preuve** : contrastes re-mesurés (≥ 4,5:1 pour le texte courant, règle
 de la décision 8), tous les tests de rendu verts, build, relecture par
 Thomas sur son serveur de dev dans les deux thèmes.
+
+**Résultat (2026-09-29)** — preuve [lot-R1.md](rebranding-preuves/lot-R1.md).
+Les jetons de la toile posés dans les deux thèmes, `bar` et
+`accent-lisible` ajoutés, fonds doux recalculés (12 % dans `panel`),
+`pal-1` et `pal-6` d'un cheveu, rayons 6 / 10 / 14 / 20, Source Sans 3,
+halo retiré. `border-accent` mesuré comme prévu : question posée, décision
+11. Écarts au contrat :
+- les 32 `text-accent` ne sont PAS renommés. Le partage des deux braises se
+  fait dans `tailwind.config.js` (`textColor`, `borderColor`, `ringColor`,
+  `outlineColor`), prouvé dans le CSS construit ;
+- `useTheme.ts` a été ajouté en cours de lot, nommé ci-dessus avant son code ;
+- un test périmé depuis le lot 13 de la refonte a été corrigé à part
+  (f119015d).
+
+Reste la relecture de Thomas à l'œil.
 
 ### R2 — nom et logo · J
 

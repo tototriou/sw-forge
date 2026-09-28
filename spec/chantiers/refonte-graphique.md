@@ -459,7 +459,7 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 | 8a Compte · Runes | J | exécuté, validé (bureau) | tests avant `dd0151b` (114) ; décisions 20 et 21 ; 8a-1 filtres (`f010f55`…`d310592`), 8a-2 Résumé et Liste (`84e07ed`, `989f8f5`), 8a-3 Courbes, Comparaison, Optimisation (`8dd9dba`), bulles de l'app (`c87c8f1`, `aaaac28`, `c094446`) ; validé par Thomas le 2026-09-27 |
 | 8b Compte · Monstres, Artéfacts | J | exécuté, validé (bureau) | tests avant `bb30d06` (59) ; décision 20 reprise ; box (`2227712`, `aee4db2`, `6c35a1b`), artéfacts (`ec5ec31`), tests (`2498f8b`) ; validé par Thomas le 2026-09-28 |
 | 9a Outils · Optimizer | J | reporté après 10 | attend une livraison sur l'Optimizer (Thomas, 2026-09-28) |
-| 9b Outils · Speed tuning | J | à faire | |
+| 9b Outils · Speed tuning | J | exécuté, validé (bureau) | tests avant `f5cc897` (48) ; décision 22 (`f3c1715`) ; écran (`0f5e4c8`, `0e7a69a`) ; une assertion recomptée (import 2 → 4) ; validé par Thomas le 2026-09-28 |
 | 10 Ressources, Paramètres, Bientôt | J | à faire | |
 | 11 Téléphone | J | à faire | |
 | 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | à faire | |
@@ -790,6 +790,15 @@ reprise telle quelle, annoncée à Thomas avant le code.
 
 Tests d'avant inchangés ; 3 vérifications ajoutées, 62 au total. Aucune
 perte. Non ajouté, pour le lot 13 : « Effacer les filtres » hors des runes.
+**Validé par Thomas le 2026-09-28.**
+
+**Résultat lot 9b — Outils · Speed tuning (2026-09-28)** — preuve
+[lot-9b.md](refonte-graphique-preuves/lot-9b.md). Décision 22 avant le
+code. À la souris : titre au gabarit des pages, import de deck en tête de
+chaque camp (en-tête sur deux lignes dans les deux camps, après un retour
+de Thomas), ordre de tour sous l'analyse. Tests avant `f5cc897` (48) ; une
+assertion recomptée, import 2 → 4 (une copie par format). Aucune perte.
+Hors refonte, noté : le mode RTA (1,5 % par tick), chantier à ouvrir.
 **Validé par Thomas le 2026-09-28.**
 
 ### B.11 Lot 11 — téléphone · J

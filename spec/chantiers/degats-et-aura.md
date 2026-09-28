@@ -220,9 +220,11 @@ node "$(git rev-parse --git-common-dir)/forge/installation/scripts/chantier.mjs"
   verifier --chantier degats-et-aura
 ```
 
-Les notes du chantier `implementation-relique` **avancent encore** :
-`chantier rafraichir --chantier degats-et-aura` à chaque fois qu'il intègre,
-rien ne le signale.
+Le chantier `implementation-relique` est **terminé** (décision utilisateur
+du 2026-09-29, voir ci-dessous) : ses notes n'avancent plus. Lancer quand
+même `chantier rafraichir --chantier degats-et-aura` avant toute
+modification de `reliques.md`, au cas où une intégration tardive aurait eu
+lieu.
 
 **Fichiers transverses portés par CE chantier** : `App.tsx` peut recevoir au
 lot 5 le changement ciblé qui distingue import de compte et changement
@@ -419,7 +421,11 @@ preuve b3a du minimum par `pairBuckets` dépend d'une marge Endure/Focus,
 faute de quoi elle revient à b3b. Écho du lot 7 précisé. **b1 est
 lançable** ; b2, b3a, b3b et b4 le sont à la validation de leur prérequis.
 Revue adversariale finale, le 2026-09-29, sur `4a13db13` : recompte
-indépendant (b1 27, b2 19, b3a 16, b3b 11, b4 31 = 104 entrées), maximum b3a
+indépendant (b1 27, b2 19, b3a 16, b3b 11, b4 31 = 104 entrées ; rejouable :
+effectifs par lot de `projeter-6bis.mjs --bilan`, puis b1 = a4a 9 +
+a4b 13 + 5 d'a2a1-contexte, b2 = 6 + a2a1-suite 1 + a2a2 4 + a2b 8, b3a = 16 d'a3a,
+b3b = 2 d'a3a + a3b 9, b4 = a4c1 3 + a4c2 4 + a4d1 24 en vérification
+finale), maximum b3a
 et limite Endure/Focus confirmés, aucun double compte trouvé. Trois
 bloquants, tous rejoués par le pilote dans le code et corrigés ci-dessous :
 b2 se disait « complet » avant b3a ; `relicQueue.ts:165` sert aussi au score
@@ -432,6 +438,16 @@ Le plafond 15 = 5 × 3 reste la valeur fournie en A.2 ter, non rediscutée.
 b1 ne change que dans la phrase sur l'état provisoire : **il reste
 lançable**. b2, b3a et b4, amendés, attendent une contre-vérification
 ciblée avant leur lancement ; b3b est inchangé.
+Contre-vérification ciblée, le 2026-09-29, sur `5fb9ae72` : **b2 et b4
+lançables**, **b3a à corriger** — `runeBuildOptim.ts` L1309/L1381 (b3b)
+lisaient `auraResPre` sans porteur de toggle nommé. Le pilote a rejoué
+chaque objection dans le code et amendé : clause « seul porteur du toggle »
+dans les frontières communes ; test b2 sur la note des couples de
+`relicQueue.ts` ; levée de la réserve RES/PRE nommée en b3a ; rétention
+distinguée des élagages sûrs ; `reliques.md` § 5.2 cité L254–261 ; A.5
+aligné sur la fin du chantier relique ; `totalPairCount` nommé en b4 ;
+recompte rendu rejouable. b3a, corrigé selon la correction minimale
+proposée par la revue elle-même, est lançable après b2.
 
 #### Suivi des lots
 
@@ -472,11 +488,11 @@ ciblée avant leur lancement ; b3b est inchangé.
 | 6bis-a4c2 — cartes de résultat et autres affichages | C | terminé après rectification pilote des verdicts | reçu initial `840f202` ↔ `39a362f` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu initial `b9ff929` ↔ `473fe62` ; complément livré et intégré / 2026-09-28 |
-| 6bis-b1 — champ externe, recette et CLI | J | lançable, amendement contre-vérifié | — |
-| 6bis-b2 — aura propre et scores | J | amendé, contre-vérification ciblée requise, attend b1 | — |
-| 6bis-b3a — conditions exactes et filtre final | J | amendé, contre-vérification ciblée requise, attend b2 | — |
+| 6bis-b1 — champ externe, recette et CLI | J | lancé ; phrase d'état provisoire amendée le 2026-09-29, avant lancement | `4622a02f` à valider |
+| 6bis-b2 — aura propre et scores | J | contre-vérifié, lançable après validation de b1 | — |
+| 6bis-b3a — conditions exactes et filtre final | J | contre-vérifié et corrigé, lançable après b2 | — |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | contre-vérifié, attend b3a | — |
-| 6bis-b4 — écran, Workers, caches et parité | J | amendé, contre-vérification ciblée requise, attend b3b | — |
+| 6bis-b4 — écran, Workers, caches et parité | J | contre-vérifié, lançable après b3b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b4 ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -2395,7 +2411,12 @@ contrôle exact après construction des six runes → b3a ;
 `relicQueue.ts:165` (`resoudreEquipementDuBuild`) se partage de même par
 usage : note des couples (`chercherPaires(e.faireParams(relique))`,
 `p.score`) → b2, conditions (`respecteConditionsAvecRelique`) → b3a ; signature
-`artifactQueue` → b4. Les coordonnées restent dans les entrées D de la
+`artifactQueue` → b4. **Toggle RES/PRE :** le booléen ajouté par b3a dans
+`auraResPre` est le **seul** porteur du toggle dans le moteur. Les lectures
+de valeur `runeBuildOptim.ts` L1309 (`relevance`) et L1381 (`filterSlot`),
+qui appartiennent à b3b, s'y conforment ; `tsc` ne les signale pas, car
+`auraResPre?.[k]` reste typé. « Éteint » ne se code jamais par l'absence
+de `auraResPre`. Les coordonnées restent dans les entrées D de la
 carte, et cette attribution ne préjuge pas qu'un correctif est nécessaire.
 Les quatre `contratsProposes` de la carte a4d2 sont sa proposition
 **historique**, non réécrite ; les **cinq** contrats publics amendés ici font
@@ -2405,7 +2426,7 @@ leur parité finale.
 **Assiette des exclusives et chantier relique.** A.2 (cible 2) fait entrer
 les auras dans les exclusives de relique : l'assiette Y d'`apportExclusive`
 (`relicExclusive.ts` L133) passe par `statsDebutCombat` et change donc en
-b2. Or `reliques.md` § 5.2 (L254–260) énumère « au début du combat » sans
+b2. Or `reliques.md` § 5.2 (L254–261, énumération citée L259–261) énumère « au début du combat » sans
 les auras. b2 amende cette énumération dans le **même commit** que le code
 (auras externes et activations propres, décision du 2026-09-25), avec renvoi
 croisé vers `degats-reels/effets-equipe-et-leaders.md`, et met à jour la
@@ -2510,7 +2531,10 @@ Intangible quand deux sets sont incomplets et qu'il n'en complète aucun :
 test de cohérence avec `activeSets`, sans prétendre relever une nouvelle
 règle du jeu. Tester le score direct sans revendiquer encore la sûreté de
 la recherche ; caches des
-pièces séparés par build. `tsc`, tests ciblés, build, spec-lint, diff-check ;
+pièces séparés par build. Test nommé sur la note des couples de
+`resoudreEquipementDuBuild` (`relicQueue.ts`, appel `faireParams`) avec une
+aura propre non nulle, qui prouve aussi que les couples transmis au contrôle
+des conditions (usage b3a) restent ceux attendus. `tsc`, tests ciblés, build, spec-lint, diff-check ;
 preuve `controle-6bis-b2.md`.
 **Ne fait pas :** conditions, élagages, rétention heuristique, UI de saisie.
 
@@ -2532,7 +2556,8 @@ et max. Toggle éteint : aucune aura RES/PRE dans ces conditions, mais combat
 et score inchangés. Transmettre la même convention aux appelants du filtre,
 sans déclarer sûrs les diagnostics ou coupes amont encore anciens. Ne jamais ajouter
 les auras PV/ATQ/DEF aux conditions. Mettre à jour la spec et l'invariant
-concernés dans le même commit.
+concernés dans le même commit, dont l'invariant RES/PRE laissé provisoire
+par b2, dont b3a lève la réserve.
 **Le toggle doit atteindre le moteur.** Aujourd'hui `avecAurasConditions`
 (`runeBuildOptim.ts` L117–119) le replie dans `auraResPre`, et
 `pointsAuraResPre` rend `{ res: 0, acc: 0 }` éteint, valeur identique à
@@ -2550,8 +2575,9 @@ L246, `scripts/diagnostic-harness-parite.ts` L142,
 `tests/auras-modele.test.ts` reçoivent mécaniquement le nouveau booléen,
 sans changer leur sens ; la parité reste à b4.
 **État intermédiaire explicite :** les contrôles exacts connaissent l'aura
-propre, mais les élagages de dominance/faisabilité et la rétention ne sont
-pas encore prouvés sûrs pour ce nouveau modèle. L'énoncé général
+propre, mais les élagages de dominance/faisabilité ne sont pas encore
+prouvés sûrs pour ce nouveau modèle, et l'effet de la rétention heuristique
+n'est pas mesuré (elle n'a jamais été garantie, `invariants.md` L193). L'énoncé général
 « élagages SÛRS » d'`invariants.md` reçoit cette réserve temporaire, avec
 renvoi à b3b ; aucune garantie de résultat complet n'est publiée à ce stade.
 
@@ -2652,7 +2678,8 @@ contexte écran côté Node, `testRuneOptimParallelPairing` de **vrais
 un cas réel au-dessus du seuil de 100 M de paires ou déclarer un forçage
 « FIDÉLITÉ : DIVERGE DE LA PROD » ; ne jamais faire passer le second pour
 le premier. Aucun cas réel au-dessus du seuil n'est connu à ce jour : b4
-mesure d'abord `totalPairs` sur les recettes gelées et le consigne ; faute
+mesure d'abord l'espace réel par `totalPairCount` (`runeBuildOptim.ts`,
+utilisé par `runeBuildOptim.worker.ts`) sur les recettes gelées et le consigne ; faute
 de cas, le forçage marqué est la preuve attendue du régime parallèle, pas un
 échec du lot. La coquille Web Worker reste une vérification manuelle au
 navigateur, sans Playwright sauf demande explicite. La recette externe

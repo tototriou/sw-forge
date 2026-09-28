@@ -77,6 +77,7 @@ import { testRenduAccueil, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense } from './rendu/recos.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris } from './rendu/compte.test';
+import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi } from './rendu/rta.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
@@ -138,6 +139,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduCompteArtefactsResume', testRenduCompteArtefactsResume],
   ['testRenduCompteArtefactsListe', testRenduCompteArtefactsListe],
   ['testRenduCompteSouris', testRenduCompteSouris],
+  ['testRenduSpeedTuneVide', testRenduSpeedTuneVide],
+  ['testRenduSpeedTuneCamps', testRenduSpeedTuneCamps],
+  ['testRenduSpeedTuneAnalyse', testRenduSpeedTuneAnalyse],
   ['testRenduUiBouton', testRenduUiBouton],
   ['testRenduUiEtats', testRenduUiEtats],
   ['testRenduUiMenu', testRenduUiMenu],

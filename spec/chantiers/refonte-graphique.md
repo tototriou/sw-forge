@@ -357,8 +357,12 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     - **Résumés** (runes, artéfacts) : les chiffres clés dans UNE carte sur
       deux colonnes — les six gardés, la maquette n'en montrait que quatre —,
       puis chaque bloc en carte.
-    - **Courbes** : les filtres passent dans le panneau « Options », comme
-      pour la Liste ; la page ouvre sur le graphe.
+    - **Courbes** : ~~les filtres passent dans le panneau « Options »~~ —
+      **corrigé le même jour : ils RESTENT dans la page.** La question avait
+      été posée sans l'historique de `compte/runes.md` (« Pas de panneau
+      « Options » ici ») : c'était déjà fait puis défait, la page ne portant
+      plus qu'un graphe et deux réglages. Redemandé avec cet historique,
+      Thomas les garde dans la page.
     - **Optimisation** : « Gemme + meule / Meule seule » sort du panneau,
       sur la page, en tête.
     - **Panneau « Filtrer mes runes »** : deux blocs intitulés « Filtrer » et

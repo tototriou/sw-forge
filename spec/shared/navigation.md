@@ -719,8 +719,9 @@ s'en serait aperçu puisqu'on n'ouvre jamais les deux à la fois.
   « Paramètres », la carte du compte, puis **deux blocs intitulés** —
   « Réglages » (thème, score, overcap, adversaire de référence) et « Mes
   données » (garder mes données, âge des données, tout supprimer) — chacun
-  dans sa carte. Même liste, même ordre (`SettingsList groupes`). Au doigt,
-  une seule carte ; le popover ⚙ n'est pas groupé.
+  dans sa carte. Même liste, même ordre (`SettingsList groupes`). **Au doigt
+  aussi** depuis le lot 11d (décision 27) : les mêmes blocs intitulés. Le
+  popover ⚙ n'est pas groupé.
 - « Importer un JSON » et « Tout supprimer » sont des `Bouton` de la
   librairie (lot 10), « Tout supprimer » au ton `danger` — ils étaient
   dessinés à la main. Vaut pour la page et le popover.

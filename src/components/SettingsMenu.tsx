@@ -64,11 +64,13 @@ export function SettingsList({
   const theme = useTheme();
   const overcap = useOvercapDisplay();
   const adversaireRef = useAdversaireReference();
-  const carteLg = groupes ? 'lg:rounded-xl lg:border lg:border-border lg:bg-panel lg:px-4 lg:py-1' : '';
+  // ⚠️ Aux DEUX formats depuis le lot 11d (décision 27) : la page de réglages
+  // range ses blocs de la même façon au doigt qu'à la souris.
+  const carteLg = groupes ? 'rounded-xl border border-border bg-panel px-4 py-1' : '';
   const intitule = (texte: string) =>
-    groupes ? <span className="mb-2 hidden label lg:block">{texte}</span> : null;
+    groupes ? <span className="mb-2 block label">{texte}</span> : null;
   return (
-    <div className={groupes ? 'lg:flex lg:flex-col lg:gap-5' : ''}>
+    <div className={groupes ? 'flex flex-col gap-5' : ''}>
       <section>
       {intitule('Réglages')}
       {/* ⚠️ `border-b` : le filet qui séparait « Adversaire de référence » de

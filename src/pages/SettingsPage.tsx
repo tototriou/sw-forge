@@ -69,9 +69,10 @@ export default function SettingsPage({
         )}
         <AccountImportControl onImport={onImport} variant="desktop" />
       </div>
-      {/* ⚠️ Au doigt, UNE carte ; à la souris, elle s'efface devant les deux
-          blocs intitulés de la liste (`groupes`, la maquette). */}
-      <div className="rounded-xl border border-border bg-panel px-4 py-1 lg:mt-5 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
+      {/* ⚠️ Pas de carte ici : la liste pose ses deux blocs intitulés, chacun
+          dans sa carte (`groupes`, la maquette) — à la souris depuis le lot
+          10, au doigt depuis le lot 11d (décision 27). */}
+      <div className="mt-5">
         <SettingsList
           onClearData={onClearData}
           onKeepAccount={onKeepAccount}

@@ -338,6 +338,18 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     haut (la palette Ctrl K, déjà décidée), les pastilles de filtre par
     catégorie avec compteurs en tête de la RTA, les compteurs Monstres /
     Runes / Artéfacts de l'accueil.
+25. **Téléphone · Siège (lot 11b)** — trois choix de Thomas le 2026-09-28,
+    avant le code :
+    - **Équipes** : les trois monstres restent CÔTE À CÔTE (une équipe tient
+      en une carte basse, on en parcourt vingt) — pas les rangées de la
+      maquette.
+    - **« Vérifier mes speed »** sort du panneau « Options » : un
+      **interrupteur sur la page**, en tête, à côté du compteur d'équipes.
+    - **Recommandations** : chaque deck en **rangée compacte** (offense,
+      défense visée, verdict, sets dessous), la carte détaillée d'aujourd'hui
+      s'ouvrant au toucher — comme le tableau du bureau (décision 15).
+    Le filtre « Toutes / Mes recos / Importées » de la maquette est ignoré :
+    retiré par la décision 19.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur

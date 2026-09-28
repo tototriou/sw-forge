@@ -98,7 +98,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
-| R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | à faire | |
+| R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | fait — sept questions posées | 2026-09-28, [lot-R0.md](rebranding-preuves/lot-R0.md) |
 | R1 jetons : deux thèmes, police de texte, arrondis | J | à faire | |
 | R2 nom et logo | J | à faire | |
 | R3 `src/ui/` aux planches « Composants » | J | à faire | |

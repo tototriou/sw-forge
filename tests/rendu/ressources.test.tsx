@@ -101,7 +101,9 @@ export function testRenduParametres() {
   const avec = rendreParametres('Tototriou');
   const t = texteVisible(vide);
   const b = boutons(vide);
-  ok(t.startsWith('Ces réglages valent pour toute l\'application et restent sur cet appareil. Compte Aucun compte chargé Importer un JSON'), 'sans compte : « Aucun compte chargé », et l\'import');
+  // ⚠️ Lot 10 : « contient » au lieu de « commence par » — le titre
+  // « Paramètres » précède désormais l'introduction ; la suite ne change pas.
+  ok(t.includes('Ces réglages valent pour toute l\'application et restent sur cet appareil. Compte Aucun compte chargé Importer un JSON'), 'sans compte : « Aucun compte chargé », et l\'import');
   ok(texteVisible(avec).includes('Compte chargé Tototriou Importer un JSON'), 'avec un compte : son nom');
   ok(b.some((x) => x.texte === 'Importer un JSON' && x.title === 'Importer un export de compte SWEX (traité localement, rien n\'est envoyé)'), '« Importer un JSON », et ce qu\'il devient');
   for (const [texte, info, presse] of [

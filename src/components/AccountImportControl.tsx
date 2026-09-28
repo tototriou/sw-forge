@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Import } from 'lucide-react';
+import Bouton from '../ui/Bouton';
 
 interface Props {
   // Applique un export (RTA + siège défense + offense d'un coup).
@@ -36,17 +37,26 @@ export default function AccountImportControl({ onImport, variant }: Props) {
         onChange={handleFile}
         className="hidden"
       />
-      <button
-        onClick={() => fileInput.current?.click()}
-        title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
-        className={
-          isMobile
-            ? 'flex items-center gap-2 rounded-lg border border-border bg-panel2 px-3 py-3 text-base font-semibold text-ink'
-            : 'flex items-center gap-1.5 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-sm font-semibold text-ink-dim hoverable:text-ink hoverable:border-accent transition whitespace-nowrap'
-        }
-      >
-        <Import size={isMobile ? 18 : 14} className="flex-none" /> Importer un JSON
-      </button>
+      {/* ⚠️ Variante `desktop` (la seule montée, par la page Paramètres) : le
+          `Bouton` de la LIBRAIRIE (refonte graphique, lot 10) — il était
+          dessiné à la main. */}
+      {isMobile ? (
+        <button
+          onClick={() => fileInput.current?.click()}
+          title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
+          className="flex items-center gap-2 rounded-lg border border-border bg-panel2 px-3 py-3 text-base font-semibold text-ink"
+        >
+          <Import size={18} className="flex-none" /> Importer un JSON
+        </button>
+      ) : (
+        <Bouton
+          icone={<Import size={14} />}
+          libelle="Importer un JSON"
+          onClick={() => fileInput.current?.click()}
+          title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
+          className="whitespace-nowrap"
+        />
+      )}
 
     </div>
   );

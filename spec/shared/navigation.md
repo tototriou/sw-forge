@@ -722,6 +722,15 @@ s'en serait aperçu puisqu'on n'ouvre jamais les deux à la fois.
   devait traverser le vide pour relier les deux.
 - Le popover reste le geste rapide ; la page est là pour s'y attarder — deux de
   ses réglages portent trois lignes d'explication, illisibles dans 260 px.
+- ⚠️ **À la souris** (refonte graphique, lot 10, la maquette) : le titre
+  « Paramètres », la carte du compte, puis **deux blocs intitulés** —
+  « Réglages » (thème, score, overcap, adversaire de référence) et « Mes
+  données » (garder mes données, âge des données, tout supprimer) — chacun
+  dans sa carte. Même liste, même ordre (`SettingsList groupes`). Au doigt,
+  une seule carte ; le popover ⚙ n'est pas groupé.
+- « Importer un JSON » et « Tout supprimer » sont des `Bouton` de la
+  librairie (lot 10), « Tout supprimer » au ton `danger` — ils étaient
+  dessinés à la main. Vaut pour la page et le popover.
 
 ## Largeur du contenu
 

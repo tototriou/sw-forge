@@ -7,6 +7,7 @@ import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
 import AccountFreshness from './AccountFreshness';
 import Segmented from '../ui/Segmented';
+import Bouton from '../ui/Bouton';
 import Flottant from '../ui/Flottant';
 import Switch from './Switch';
 
@@ -45,10 +46,17 @@ export function SettingsList({
   onClearData,
   onKeepAccount,
   accountExportedAt,
+  groupes = false,
 }: {
   onClearData?: () => void;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
+  // ⚠️ **La PAGE de réglages, à la SOURIS** (refonte graphique, lot 10, la
+  // maquette) : deux blocs intitulés, « Réglages » puis « Mes données »,
+  // chacun dans sa carte. Même liste, même ordre — seul le rangement change.
+  // Au doigt, les classes ne s'appliquent pas : une seule carte, portée par la
+  // page, comme avant. Le popover ⚙ n'en a pas l'usage.
+  groupes?: boolean;
 }) {
   const metric = useRuneMetric();
   const keep = usePersistence();
@@ -56,8 +64,18 @@ export function SettingsList({
   const theme = useTheme();
   const overcap = useOvercapDisplay();
   const adversaireRef = useAdversaireReference();
+  const carteLg = groupes ? 'lg:rounded-xl lg:border lg:border-border lg:bg-panel lg:px-4 lg:py-1' : '';
+  const intitule = (texte: string) =>
+    groupes ? <span className="mb-2 hidden label lg:block">{texte}</span> : null;
   return (
-    <div>
+    <div className={groupes ? 'lg:flex lg:flex-col lg:gap-5' : ''}>
+      <section>
+      {intitule('Réglages')}
+      {/* ⚠️ `border-b` : le filet qui séparait « Adversaire de référence » de
+          « Garder mes données » doit rester (popover ⚙, et la page au doigt) —
+          le dernier réglage du bloc perd le sien (`last:border-0`). À la
+          souris, la carte du bloc le remplace. */}
+      <div className={`border-b border-border/60 ${carteLg}`}>
       {/* Le réglage le plus global de tous : il change l'app entière, il vient
           donc en premier. ⚠️ TROIS options, pas un interrupteur — « Auto » doit
           rester un choix explicite, sinon quelqu'un dont le système bascule le
@@ -92,7 +110,12 @@ export function SettingsList({
           label="Toujours ajouter en face mon monstre le plus rapide"
         />
       </Setting>
+      </div>
+      </section>
 
+      <section>
+      {intitule('Mes données')}
+      <div className={carteLg}>
       <Setting
         title="Garder mes données"
         hint={
@@ -119,17 +142,22 @@ export function SettingsList({
           travers. Dans un menu qu'on ouvre exprès, le geste est délibéré. */}
       {onClearData && (
         <Setting title="Mes données">
-          <button
+          {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` (refonte graphique,
+              lot 10) : il était dessiné à la main, et ne disait son danger
+              qu'au survol. */}
+          <Bouton
+            taille="sm"
+            ton="danger"
+            icone={<Trash2 size={12} />}
+            libelle="Tout supprimer"
             onClick={onClearData}
             title="Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé"
-            className="flex flex-none items-center gap-1.5 rounded-lg border border-border bg-panel2
-                       px-2.5 py-1 text-micro font-semibold text-ink-dim transition
-                       hoverable:border-fire/60 hoverable:text-fire"
-          >
-            <Trash2 size={12} /> Tout supprimer
-          </button>
+            className="flex-none"
+          />
         </Setting>
       )}
+      </div>
+      </section>
     </div>
   );
 }

@@ -310,6 +310,16 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
       lot 13, à décider un par un.
     Les trois tableaux, absents de la maquette, restent ; les boutons de
     chaque monstre aussi (monter / descendre, copier en face).
+23. **Ressources, Paramètres, Bientôt (lot 10)** — Thomas, le 2026-09-28,
+    avant le code : les ajouts de la maquette vont au lot 13, à décider un
+    par un (stats VIT / PV / ATQ / DEF sur les cartes du bestiaire, section
+    en cours surlignée dans le sommaire des Mécaniques, « Voir les
+    nouveautés » sur « Bientôt disponible », pagination numérotée — déjà
+    candidate). Repris sans nouvelle question, et annoncé : filtres du
+    bestiaire visibles (décision 20), sa barre au gabarit de « Ma box »
+    (lot 8b) ; libellés de l'app gardés là où la maquette en change
+    (« Correction », pas « Correctif » ; « Importer un JSON » ; « Tout
+    supprimer »).
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur
@@ -828,7 +838,10 @@ un par un avec Thomas avant d'entrer dans ce lot :
   les runes — proposé au lot 8b, resté sans réponse ;
 - Speed tuning (décision 22) : « Appliquer +N » sur le verdict de
   l'analyse, pastille du nombre de corrections, note sous le nom du
-  monstre (sort retenu), élément sur le portrait.
+  monstre (sort retenu), élément sur le portrait ;
+- Ressources (décision 23) : stats VIT / PV / ATQ / DEF sur les cartes du
+  bestiaire, section en cours surlignée dans le sommaire des Mécaniques,
+  « Voir les nouveautés » sur « Bientôt disponible ».
 
 Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
 

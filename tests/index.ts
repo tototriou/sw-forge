@@ -76,7 +76,7 @@ import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRen
 import { testRenduAccueil, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense } from './rendu/recos.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
-import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris } from './rendu/compte.test';
+import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi } from './rendu/telephone-accueil-rta.test';
@@ -144,6 +144,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduCompteArtefactsResume', testRenduCompteArtefactsResume],
   ['testRenduCompteArtefactsListe', testRenduCompteArtefactsListe],
   ['testRenduCompteSouris', testRenduCompteSouris],
+  ['testRenduCompteEffacerFiltres', testRenduCompteEffacerFiltres],
   ['testRenduSpeedTuneVide', testRenduSpeedTuneVide],
   ['testRenduSpeedTuneCamps', testRenduSpeedTuneCamps],
   ['testRenduSpeedTuneAnalyse', testRenduSpeedTuneAnalyse],

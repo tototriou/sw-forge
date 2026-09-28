@@ -32,6 +32,7 @@ import MonsterDetailDialog from '../components/MonsterDetailDialog';
 import MobileSheet from '../ui/MobileSheet';
 import Champ from '../ui/Champ';
 import Pastille from '../ui/Pastille';
+import Bouton from '../ui/Bouton';
 import type { AccountView } from '../App';
 
 type Sub = 'monstres' | 'runes' | 'artefacts';
@@ -213,6 +214,13 @@ function MonsterBoxSection({
   // Les rangées de filtres, rendues une seule fois et posées à DEUX endroits
   // selon la largeur : dans la page au-dessus de `lg`, dans le tiroir en
   // dessous. C'est le même JSX — deux copies auraient divergé.
+  // Aucun filtre posé : tous les éléments, toutes les étoiles, ni Doublons ni 2A.
+  const filtresParDefaut =
+    ELEMENTS.every((el) => activeElements.has(el.key)) &&
+    STAR_OPTIONS.every((s) => activeStars.has(s)) &&
+    !dupesOnly &&
+    !secondOnly;
+
   const filtres = (
     <>
         {/* Filtre élément — la teinte de l'élément est portée par l'appelant
@@ -263,6 +271,26 @@ function MonsterBoxSection({
             title="Monstres à second éveil (double éveil)"
           />
         </div>
+
+        {/* « Effacer les filtres » (lot 13, décision 28) — le même bouton que
+            les runes : au bout des filtres, à la souris comme dans le panneau.
+            ⚠️ Toujours affiché, DÉSACTIVÉ quand rien n'est filtré. Ne touche
+            ni à la recherche ni au tri. */}
+        <Bouton
+          onClick={() => {
+            setActiveElements(new Set(ELEMENTS.map((el) => el.key)));
+            setActiveStars(new Set(STAR_OPTIONS));
+            setDupesOnly(false);
+            setSecondOnly(false);
+          }}
+          disabled={filtresParDefaut}
+          title={filtresParDefaut ? 'Aucun filtre posé' : 'Revenir à tous les éléments et toutes les étoiles, sans Doublons ni 2A'}
+          fond="vide"
+          trait="aucun"
+          taille="sm"
+          libelle="Effacer les filtres"
+          className="self-start lg:h-8 lg:self-auto"
+        />
     </>
   );
 

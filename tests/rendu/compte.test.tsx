@@ -127,6 +127,17 @@ export function testRenduCompteArtefactsListe() {
   ok(t.includes('DEF +60 Rare 3.6%'), 'le moins bon en fin de liste');
 }
 
+// Lot 13 (décision 28) : « Effacer les filtres » dans la box et la liste
+// d'artéfacts — présent, et désactivé avec sa raison quand rien n'est filtré.
+export function testRenduCompteEffacerFiltres() {
+  titre('rendu · Mon compte — « Effacer les filtres » (box, artéfacts)');
+  for (const [nom, html] of [['box', rendreCompte('monstres', 'liste')], ['artéfacts', rendreCompte('artefacts', 'liste')]] as const) {
+    const b = boutons(html).filter((x) => x.texte === 'Effacer les filtres');
+    egal(b.length, 1, `${nom} : « Effacer les filtres » présent`);
+    ok(b[0]?.desactive === true && b[0]?.title === 'Aucun filtre posé', `${nom} : désactivé sans filtre, et pourquoi`);
+  }
+}
+
 // Lot 8b : les en-têtes à la souris. Ajoutés avec eux ; les tests d'avant
 // restent inchangés.
 export function testRenduCompteSouris() {

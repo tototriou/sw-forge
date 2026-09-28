@@ -62,7 +62,9 @@ export function testRenduTelephoneArtefacts() {
   const t = texteVisible(liste);
   egal(dialogues(liste), 1, 'Liste : un panneau « Options »');
   ok(t.includes('Filtrer mes artéfacts Catégorie Tous Attribut Type') && t.includes('Rareté Légendaire Héroïque Rare Magique Commun Stat principale Toutes PV ATQ DEF'), 'Liste : ses filtres, catégorie à stat principale');
-  ok(t.includes('Propriété 1 — 2 — 8 artéfacts (5 attribut · 3 type)'), 'Liste : la propriété, puis le compte');
+  // ⚠️ Lot 13 (décision 28) : « Effacer les filtres » s'insère entre la
+  // propriété et le compte.
+  ok(t.includes('Propriété 1 — 2 — Effacer les filtres 8 artéfacts (5 attribut · 3 type)'), 'Liste : la propriété, « Effacer les filtres », puis le compte');
   ok(boutons(liste).some((x) => x.ariaLabel === 'Trier du plus petit au plus grand'), 'Liste : le sens du tri');
   const resume = rendreCompte('artefacts', 'resume', true);
   egal(dialogues(resume), 0, 'Résumé : pas de panneau');

@@ -15,6 +15,7 @@ import ArtifactFrameIcon from '../ArtifactFrameIcon';
 import ArtifactSubLigne from '../ArtifactSubLigne';
 import ElementIcon from '../ElementIcon';
 import Segmented from '../../ui/Segmented';
+import Bouton from '../../ui/Bouton';
 import MobileSheet from '../../ui/MobileSheet';
 import { ELEMENT_FILTER_STYLES } from '../elementStyles';
 import Pager from './Pager';
@@ -213,6 +214,12 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE));
   const safePage = Math.min(page, pageCount - 1);
   const shown = filtered.slice(safePage * PAGE, safePage * PAGE + PAGE);
+
+  // Aucun filtre posé : toutes les catégories, aucune valeur choisie, toutes
+  // les raretés, toutes les stats principales. (Les propriétés recherchées ne
+  // comptent pas : elles trient autant qu'elles filtrent.)
+  const filtresParDefaut =
+    kind === 'all' && !element && !archetype && RARITY_ORDER.every((r) => rarities.has(r)) && main === '';
 
   // Les filtres, rendus une seule fois et posés à DEUX endroits selon la
   // largeur. Deux copies auraient divergé au premier filtre ajouté.
@@ -454,6 +461,32 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
             )}
           </div>
         </div>
+
+        {/* « Effacer les filtres » (lot 13, décision 28) — le même bouton que
+            les runes. ⚠️ Il ne touche PAS aux propriétés recherchées : elles
+            servent aussi à TRIER, les vider changerait l'ordre de la liste.
+            Toujours affiché, DÉSACTIVÉ quand rien n'est filtré. */}
+        <Bouton
+          onClick={() => {
+            setKind('all');
+            setElement('');
+            setArchetype('');
+            setRarities(new Set(RARITY_ORDER));
+            setMain('');
+            setPage(0);
+          }}
+          disabled={filtresParDefaut}
+          title={
+            filtresParDefaut
+              ? 'Aucun filtre posé'
+              : 'Revenir à toutes les catégories, raretés et stats principales — les propriétés recherchées restent'
+          }
+          fond="vide"
+          trait="aucun"
+          taille="sm"
+          libelle="Effacer les filtres"
+          className="self-start lg:h-8 lg:self-auto"
+        />
     </>
   );
 

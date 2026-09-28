@@ -83,7 +83,8 @@ import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRta
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
 import { testRenduTelephoneMonstres, testRenduTelephoneArtefacts, testRenduTelephoneRunes } from './rendu/telephone-compte.test';
 import { testRenduTelephoneOutilsRessources } from './rendu/telephone-outils-ressources.test';
-import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi } from './rendu/rta.test';
+import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi, testRenduRtaIndicateur } from './rendu/rta.test';
+import { testIndicateurSauvegarde } from './indicateur-sauvegarde.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -176,6 +177,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRtaMenu', testRenduRtaMenu],
   ['testRenduRtaVide', testRenduRtaVide],
   ['testRenduRtaSauvegarde', testRenduRtaSauvegarde],
+  ['testRenduRtaIndicateur', testRenduRtaIndicateur],
+  ['testIndicateurSauvegarde', testIndicateurSauvegarde],
   ['testRenduRtaAmi', testRenduRtaAmi],
   ['testImport', testImport],
   ['testNavigation', testNavigation],

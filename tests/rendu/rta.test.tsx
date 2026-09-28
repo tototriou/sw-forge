@@ -165,6 +165,15 @@ export function testRenduRtaSauvegarde() {
   ok(t.includes('Point de sauvegarde ·'), 'ligne « Point de sauvegarde · … »');
 }
 
+// Lot 13 (décision 29) : « Sauvegardé il y a … » — ajouté avec lui. Avant tout
+// changement dans la session, il dit la conservation sans inventer d'heure.
+export function testRenduRtaIndicateur() {
+  titre('rendu · RTA · Ma prépa — « Enregistré sur cet appareil »');
+  const t = texteVisible(rendrePrepa({ 'sky-arena-rta-v1': PREPA }));
+  egal((t.match(/Enregistré sur cet appareil/g) ?? []).length, 2, 'l\'indicateur, à chaque format (en-tête bureau, ligne téléphone)');
+  ok(t.includes('Ma prépa 3 monstres en prépa Enregistré sur cet appareil'), 'à la souris, juste après le compteur');
+}
+
 export function testRenduRtaAmi() {
   titre('rendu · RTA · Ami — aucune prépa ouverte');
 

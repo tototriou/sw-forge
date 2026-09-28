@@ -32,6 +32,7 @@ import { CustomLead } from '../hooks/useCustomMonsters';
 import { Bouton, Selecteur } from '../ui';
 import Pastille from '../ui/Pastille';
 import RuneIcon from '../components/RuneIcon';
+import IndicateurSauvegarde from '../components/rta/IndicateurSauvegarde';
 import type { RtaSub } from '../App';
 
 interface Props {
@@ -326,6 +327,9 @@ export default function RtaPage({
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
           {compteur}
         </span>
+        {/* « Sauvegardé il y a … » (lot 13, décision 29) : la prépa ET ses
+            catégories, écrites à chaque changement. */}
+        <IndicateurSauvegarde prepa={rta.state} categories={cats.categories} />
         {/* Pas d'espaceur : la barre d'actions prend elle-même la place
             restante (`flex-1`) — c'est cette largeur qu'elle mesure pour
             décider si ses boutons tiennent. */}
@@ -379,6 +383,9 @@ export default function RtaPage({
           le panneau « Options ». Sur bureau, le compteur est dans l'en-tête. */}
       <div className="mt-4 flex flex-wrap items-center gap-3 lg:hidden">
         <span className="font-mono text-xs text-ink-dim">{compteur}</span>
+        <span className="ml-auto">
+          <IndicateurSauvegarde prepa={rta.state} categories={cats.categories} />
+        </span>
       </div>
 
       {effacementAConfirmer && (

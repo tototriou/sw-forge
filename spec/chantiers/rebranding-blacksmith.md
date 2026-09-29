@@ -99,8 +99,8 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | fait — sept questions posées | 2026-09-28, [lot-R0.md](rebranding-preuves/lot-R0.md) |
-| R1 jetons : deux thèmes, police de texte, arrondis | J | fait — relecture de Thomas en attente | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
-| R2 nom et logo | J | à faire | |
+| R1 jetons : deux thèmes, police de texte, arrondis | J | **validé par Thomas** (« continues », après les décisions 11 à 13) | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
+| R2 nom et logo | J | fait — image de partage et relecture de Thomas en attente | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
 | R3 `src/ui/` aux planches « Composants » | J | à faire | |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | à faire | |
 | R5 Accueil (bureau et téléphone) | J | à faire | |
@@ -151,6 +151,16 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
     « je parlais du vert et du rouge »). Même clarté et même teinte, chroma à
     mi-chemin du maximum : `#73E06B`, `#F27A84`. Atelier inchangé. Nouveau
     jeton `bad-ink` (encre sur l'aplat rouge), le blanc n'y tenant plus.
+
+**14 à 16 — les questions du R2 (Thomas, 2026-09-29)** :
+
+14. **Les fichiers téléchargés prennent le préfixe `swblacksmith-`** (ils
+    s'appelaient `swforge-…`). Contenu et format inchangés, l'import ne
+    dépend pas du nom : un ancien fichier se réimporte comme avant.
+15. **L'infobulle Discord dit « SW Blacksmith »** ; Thomas renomme le
+    serveur de son côté, le lien d'invitation ne change pas.
+16. **L'image de partage est refaite dans ce lot** : même contenu, logo et
+    couleurs de la charte, montrée à Thomas avant son commit.
 
 ## Partie B — les lots
 
@@ -220,6 +230,42 @@ pas. Le logo (symbole, horizontal, empilé, favicon 16 / 32, icône d'app) en
 composant et en fichiers `public/`. **Preuve** : `grep -rn "SW Forge"` ne
 rend plus que l'historique (`data/releases.ts`) et les commentaires ;
 inventaire (les textes renommés déclarés) ; tests verts.
+
+**Précisé au démarrage (2026-09-29)**, relevé : 30 fichiers mentionnent le
+nom. Seuls sont renommés les TEXTES affichés, les noms de fichiers
+téléchargés (décision 14) et les commentaires des fichiers qu'on touche. Ne
+bougent pas : les clés de stockage `sw-forge-*`, la base IndexedDB
+`sw-forge`, les identifiants de format (`sw-forge/prepa-rta`…), les URLs
+GitHub et Vercel (A.2, hors périmètre).
+- **Où vit le nom** : `src/marque.ts` (`NOM_APP`, préfixe des fichiers), lu
+  par les composants, par `src/lib/` et par `index.html` au build, via un
+  plugin de `vite.config.ts` qui remplace `%NOM_APP%`.
+- **Le logo** : un composant `src/components/Logo.tsx` (symbole, horizontal,
+  empilé), en couleurs de JETONS (enclume `ink`, marteau `star`, étincelles
+  `accent`), donc lisible dans les deux thèmes. Il remplace les trois
+  `<img src="favicon.svg">` de l'app : barre latérale, `App.tsx`, accueil.
+- **Fichiers permis** (A.2, nommés avant leur code) : `public/favicon.svg`,
+  `public/favicon.png`, `public/og-image.png` ; dans `src/lib/`,
+  `rtaShare.ts`, `recoShare.ts` et `siegeShare.ts` — seulement les messages
+  d'erreur qui nomment l'app, et le nom de fichier du siège.
+- **Différé aux lots 9a / 11e** : `swforge-optimizer-…`, dans
+  `OptimizerSection.tsx`. Thomas attend une livraison sur l'Optimizer, et une
+  ligne changée ici risquerait un conflit avec elle.
+
+**Résultat (2026-09-29)** — preuve [lot-R2.md](rebranding-preuves/lot-R2.md).
+Le nom est lu partout depuis `src/marque.ts`, `index.html` compris, et le
+logo est un composant en couleurs de jetons. Le favicon est la variante
+16 px de la charte ; l'icône d'app, rendue en 512. Le nom tient dans la barre
+latérale : mesuré sur l'app construite, dans les deux thèmes. Écarts au
+contrat :
+- l'extracteur de l'inventaire apprend à lire `NOM_APP` par sa valeur (sans
+  cela, R2 rendait le nom invisible à l'inventaire) ;
+- un test `marque` fige les identifiants de format ;
+- les variantes « empilé » et « monochrome » du logo ne sont pas codées :
+  rien ne les utilise encore (R5, l'accueil, pourra en avoir besoin).
+
+Restent l'image de partage (décision 16, montrée avant son commit) et la
+relecture de Thomas.
 
 ### R3 à R9
 

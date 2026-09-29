@@ -217,6 +217,9 @@ export default function NumberField({
   // ⚠️ `tabIndex={-1}` : au clavier on tape la valeur, on ne clique pas trente
   // fois sur « + ». Les laisser dans le parcours de tabulation imposait trois
   // arrêts par champ pour atteindre le suivant.
+  // ⚠️ Séparateurs des flèches en `border-soft`, le contour extérieur restant
+  // `border` : un trait INTÉRIEUR plus discret que le cadre, comme le champ
+  // « Nombre » de la planche « Formulaires » (rebranding R3b).
   const btn =
     'flex h-7 w-6 flex-none touch-none select-none items-center justify-center text-ink-dim transition hoverable:text-ink hoverable:bg-panel2 disabled:opacity-30';
 
@@ -237,7 +240,7 @@ export default function NumberField({
           {...gestes(-step)}
           disabled={disabled || (min != null && (value ?? 0) <= min)}
           data-cible-fine
-          className={`${btn} border-r border-border`}
+          className={`${btn} border-r border-border-soft`}
           aria-label="Diminuer"
           tabIndex={-1}
         >
@@ -298,7 +301,7 @@ export default function NumberField({
           {...gestes(step)}
           disabled={disabled || (max != null && (value ?? 0) >= max)}
           data-cible-fine
-          className={`${btn} border-l border-border`}
+          className={`${btn} border-l border-border-soft`}
           aria-label="Augmenter"
           tabIndex={-1}
         >

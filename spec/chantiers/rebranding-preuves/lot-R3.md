@@ -110,3 +110,24 @@ sans perte ; chemins interdits ; build ; spec-lint. Specs : `design.md`
 
 **Non prouvé** : l'appui et le survol à l'œil (aucun navigateur piloté sur
 un vrai clic) ; le rendu des icônes de sets sur l'aplat de braise.
+
+## 6. R3b — Formulaires (2026-09-29)
+
+Relevé : nos champs suivent déjà la logique de la planche — fond un cran
+plus clair que la surface qui les porte (`panel2` sur une carte `panel`,
+comme #232120 sur #1B1A19 dans la toile), contour `border`, focus en braise
+lisible sans halo (décision 18), tailles gardées (décision 17). Deux écarts
+repris :
+
+| Composant | Changement | Pourquoi |
+|---|---|---|
+| `Case` cochée | coche en `accent-ink` au lieu de `text-bg` | en Atelier, la coche était CLAIRE sur braise : 2,3 de contraste depuis le R1 ; la toile la dessine en encre sombre (6,66) |
+| `NumberField` | séparateurs des flèches en `border-soft` | trait intérieur plus discret que le cadre, comme le champ « Nombre » de la planche |
+
+**Écarté, à dessein** : l'interrupteur éteint de la toile (piste `border-soft`
+sans contour). En Atelier, le curseur blanc sur `#E4D9C6` tomberait à ~1,4 :
+invisible. La toile ne dessine que Forge. Le nôtre garde son contour et son
+fond `panel2`. `Selecteur` reste une liste native (la liste personnalisée de
+la toile est un changement de COMPORTEMENT, pas de style).
+
+Vérifié : `tsc` ; `node tests/run.mjs ui rendu` → 811 ; build.

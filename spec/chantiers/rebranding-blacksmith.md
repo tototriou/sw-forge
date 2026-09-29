@@ -101,8 +101,8 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | fait — sept questions posées | 2026-09-28, [lot-R0.md](rebranding-preuves/lot-R0.md) |
 | R1 jetons : deux thèmes, police de texte, arrondis | J | **validé par Thomas** (« continues », après les décisions 11 à 13) | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
 | R2 nom et logo | J | **validé par Thomas** (« continues », image de partage comprise) | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
-| R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | fait — symbole et police validés sur planche ; relecture de Thomas dans l'app en attente | 2026-09-29, [lot-R2bis.md](rebranding-preuves/lot-R2bis.md) |
-| R3 `src/ui/` aux planches « Composants » | J | relevé et décisions faits (`dc9bee00`) ; R3a en pause, mis de côté (`git stash`, « R3a en cours ») pour le R2 bis | |
+| R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | **validé par Thomas** (« ok continues ») | 2026-09-29, [lot-R2bis.md](rebranding-preuves/lot-R2bis.md) |
+| R3 `src/ui/` aux planches « Composants » | J | relevé et décisions faits (`dc9bee00`) ; **R3a fait** (relecture de Thomas en attente) ; R3b, R3c à faire | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | à faire | |
 | R5 Accueil (bureau et téléphone) | J | à faire | |
 | R6 Siège et Recommandations | J | à faire | |

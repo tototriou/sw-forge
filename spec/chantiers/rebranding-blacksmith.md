@@ -105,7 +105,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R3 `src/ui/` aux planches « Composants » | J | **fait** — relevé `dc9bee00`, R3a `012f7baa`, R3b `766258e1`, R3c `39a4c0af` ; relecture de Thomas en attente | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 à 7 |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | fait — relecture de Thomas en attente | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
 | R5 Accueil (bureau et téléphone) | J | fait — accueil gardé (décisions 31 à 36) ; icônes d'atelier sur les cartes (37) | 2026-09-29, [lot-R5.md](rebranding-preuves/lot-R5.md) |
-| R6 Siège et Recommandations | J | à faire | |
+| R6 Siège et Recommandations | J | en cours — écrans gardés (décisions 38 à 40, 42, 45) ; carte d'ajout, couleurs d'état, icônes (41, 43, 44) | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
 | R7 RTA | J | à faire | |
 | R8 Mon compte | J | à faire | |
 | R9 Bestiaire, Mécaniques, Nouveautés | J | à faire | |
@@ -232,6 +232,31 @@ La toile propose un autre accueil ; Thomas garde le nôtre.
 36. **Téléphone : la décision 24 tient** (même structure, resserrée).
 37. **Les cartes de section prennent les icônes d'atelier** de la nav : une
     section a la même icône partout.
+
+#### 38 à 45 — les questions du R6, Siège et Recommandations (Thomas, 2026-09-29)
+
+Relevé dans [lot-R6.md](rebranding-preuves/lot-R6.md). Thomas garde nos
+écrans, prend la carte d'ajout de la toile et les couleurs d'état.
+
+38. **En-tête du Siège gardé** : « Défense » + compteur, côtés dans la barre
+    latérale, aucune action en aplat (refonte, décision 4 précisée).
+39. **Cartes d'équipe gardées** : tuiles portrait + nom + VIT + sets, pastille
+    du lead, statut à la demande (« Vérifier mes speed »).
+40. **Pas de panneau « Vérification du tick »** ni de sélection d'équipe.
+41. **Une carte en pointillés « Ajouter une équipe » en fin de grille**, en
+    plus du bouton de l'en-tête (la toile). Bureau seulement : la question
+    portait sur la planche bureau, et le téléphone est gardé (45).
+42. **Page Recommandations gardée** : une liste de lots de decks, analyse à la
+    demande dans la carte.
+43. **Couleurs d'état** au Siège et aux Recommandations : les fautes passent
+    du rouge de l'élément Feu (`fire`) au rouge d'état `bad`, « pile au
+    tick » de l'or du Vent à `good` ; le bleu de « au-dessus » reste. Les
+    autres écrans suivent dans leur lot (R7 à R9).
+44. **Icônes d'atelier dans l'écran** : état vide (bouclier ou épée selon le
+    côté, icône des Recommandations), « Voir le speed tune » (chronomètre du
+    Speed tuning), « Importer un deck d'offense » et « Fort contre » (épée).
+45. **Téléphone gardé** : côtés dans le panneau de l'onglet Siège,
+    interrupteur « Vérifier mes speed » dans la page.
 
 ## Partie B — les lots
 
@@ -422,7 +447,21 @@ Relevé des écarts, six questions à Thomas, puis une septième sur les icônes
 Thomas garde l'accueil (décisions 31 à 36). Seul changement : les cartes de
 section prennent les icônes d'atelier de la nav (37).
 
-### R6 à R9
+### R6 — Siège et Recommandations · J
+
+**Écrit au démarrage (2026-09-29)**. Intrant : planches `BsSiege`,
+`BsRecommandations` et `BsMobileSiege` de la toile ; `spec/siege/README.md`
+(l. 1–184), `speed-tick.md` (tableau des statuts), `recommandations.md`
+(sections d'affichage) ; `SiegeBoard.tsx`, `SiegeTeam.tsx`, `RecoBoard.tsx`,
+`RecoCard.tsx`. Relevé, puis huit questions à Thomas (décisions 38 à 45).
+
+Un commit par décision appliquée : la carte d'ajout (41), les couleurs d'état
+(43, contrastes mesurés sur les fonds où elles se posent), les icônes (44).
+**Ne fait pas** : les couleurs d'état des autres écrans (RTA, Mon compte),
+qui suivent leur lot ; l'outil Speed tuning ouvert en modale depuis une
+équipe — c'est un écran des Outils, hors de ce lot.
+
+### R7 à R9
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

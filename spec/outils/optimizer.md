@@ -1324,13 +1324,16 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      recette portant l'ancien total d'équipe `setsAura` non vide est refusée.
      Les activations propres des runes de chaque build s'y ajoutent dans le
      combat et le score (dégâts, PV effectifs, exclusives de relique, choix
-     des artéfacts et de la relique, tri et comparaison), pas encore dans les
-     conditions : en l'état, les minimums et maximums RES/PRE ne comptent que
-     la part externe (lot 6bis-b3a), et la recherche n'est pas encore revue
-     pour ce modèle (lot 6bis-b3b).
+     des artéfacts et de la relique, tri et comparaison).
      `compterAurasResPre`, activé par défaut, ajoute les points d'aura RES
-     et PRE aux **minimums et maximums** ; désactivé, il ne change pas les
-     dégâts ni les PV effectifs. Les auras PV/ATQ/DEF ne comptent dans aucune
+     et PRE aux **minimums et maximums** : part externe et activations
+     Tolerance/Accuracy propres du build, testées sur leur valeur réelle par
+     les contrôles exacts (filtre final de l'appariement, filtres de paire et
+     de relique) ; désactivé, aucune aura n'y compte, et il ne change pas les
+     dégâts ni les PV effectifs. ⚠️ Les coupes amont de la recherche ne sont
+     pas encore revues pour les auras propres (lot 6bis-b3b) : aucune
+     garantie de résultat complet pour une condition RES/PRE que seule une
+     aura propre fait tenir. Les auras PV/ATQ/DEF ne comptent dans aucune
      condition. Les contrôles de saisie de ces deux champs arrivent au lot 7.
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
@@ -2045,7 +2048,11 @@ différent, coopératif (voir « Interruption »).
 - **Statistique principale imposée (slots 2/4/6)** : appliquée avant tout le
   reste, dans la construction même du pool par slot.
 - **Élagages SÛRS, ensuite — jamais un faux rejet**, avant même le
-  pré-filtrage heuristique qui suit :
+  pré-filtrage heuristique qui suit. ⚠️ Réserve temporaire (lot 6bis-b3a,
+  levée seulement par un différentiel vert du lot 6bis-b3b) : cette sûreté
+  n'est pas encore prouvée pour les auras RES/PRE **propres** au build, que
+  ces élagages ignorent alors qu'elles peuvent seules faire tenir un minimum
+  (voir [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
   - **Dominance** : une rune strictement moins bonne qu'une autre du MÊME
     slot (sur toutes les stats suivies, avantage strict quelque part) ne
     sert jamais à rien. Comparaison limitée aux runes de même set (ou toutes

@@ -7,8 +7,9 @@ import { apportExclusive } from '../src/lib/relicExclusive';
 import { evaluerPourRegime, type DegatsContext } from '../src/lib/artifactEvaluation';
 import { chercherPaires } from '../src/lib/artifactOptim';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { aurasPropresParRunes, avecAurasConditions, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
-import type { BuildCandidate, RealDamageContext } from '../src/lib/runeBuildOptim';
+import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
+import type { BuildCandidate, BuildRequirement, RealDamageContext, TraceCandidat } from '../src/lib/runeBuildOptim';
+import { drain } from '../scripts/lib/drain';
 import { candidatAvecSaPaire, cleBuild, signatureArtefacts } from '../src/lib/artifactQueue';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import { resoudreEquipementDuBuild } from '../src/lib/relicQueue';
@@ -253,14 +254,14 @@ export function testAurasEhpEtConditions() {
   egal(evaluerPourRegime('ehp', () => STATS, AUCUNE_AURA_PROPRE, { relique: undefined, setup: SETUP, element: null })([]), pvEffectifs(STATS, AUCUNE_AURA_PROPRE, SETUP),
     'choix de paire EHP sur les stats avec aura');
   const actif = avecAurasConditions({ sets: [], minStats: { res: 8, acc: 8 }, maxStats: { res: 8, acc: 8 } }, SETUP, true);
-  ok(respecteMinEtMax(STATS, actif), 'min et max RES/PRE franchis à partir de zéro');
+  ok(respecteMinEtMax(STATS, actif, AUCUNE_AURA_PROPRE), 'min et max RES/PRE franchis à partir de zéro');
   const inactif = avecAurasConditions(actif, SETUP, false);
-  ok(!respecteMinEtMax(STATS, inactif), 'toggle désactivé : min RES/PRE non franchis');
+  ok(!respecteMinEtMax(STATS, inactif, AUCUNE_AURA_PROPRE), 'toggle désactivé : min RES/PRE non franchis');
   ok(pvEffectifs(STATS, AUCUNE_AURA_PROPRE, SETUP) > pvEffectifs(STATS, AUCUNE_AURA_PROPRE), 'toggle désactivé : EHP reste augmenté');
   const tropBas = avecAurasConditions({ sets: [], minStats: {}, maxStats: { res: 7, acc: 7 } }, SETUP, true);
-  ok(!respecteMinEtMax(STATS, tropBas), 'max RES/PRE dépassés');
+  ok(!respecteMinEtMax(STATS, tropBas, AUCUNE_AURA_PROPRE), 'max RES/PRE dépassés');
   const physiques = avecAurasConditions({ sets: [], minStats: { atk: 102 }, maxStats: {} }, SETUP, true);
-  ok(!respecteMinEtMax(STATS, physiques), 'Fight reste hors des conditions ATQ');
+  ok(!respecteMinEtMax(STATS, physiques, AUCUNE_AURA_PROPRE), 'Fight reste hors des conditions ATQ');
 }
 
 export function testAurasReliqueFinaleEtDiagnostics() {
@@ -274,7 +275,7 @@ export function testAurasReliqueFinaleEtDiagnostics() {
   const maximum = avecAurasConditions({ sets: [], minStats: {}, maxStats: { res: 7, acc: 7 } }, SETUP, true);
   ok(!respecteConditionsAvecRelique(gear, undefined, maximum).respecte,
     'filtre final de relique : maximum seul bloque le résultat');
-  ok(conditionsPaireFixePosees(maximum) && !respecteConditionsPaireFixe(STATS, maximum),
+  ok(conditionsPaireFixePosees(maximum) && !respecteConditionsPaireFixe(STATS, maximum, AUCUNE_AURA_PROPRE),
     'paire à relique fixe : maximum RES/PRE seul bloque le résultat');
   ok(!conditionsPaireFixePosees({ minStats: {}, maxStats: { atk: 100 } }),
     'paire à relique fixe : ancien comportement T11 des autres maximums préservé');
@@ -294,9 +295,9 @@ export function testAurasPariteEcranCliEtCache() {
   const params = recipeToSearchParams(r, loaded);
   egal(params.requirement.auraResPre, avecAurasConditions(r.requirement, r.damageSetup, true).auraResPre,
     'CLI et écran construisent les mêmes bonus de condition');
-  egal(recipeToSearchParams({ ...r, compterAurasResPre: false }, loaded).requirement.auraResPre, { res: 0, acc: 0 },
+  egal(recipeToSearchParams({ ...r, compterAurasResPre: false }, loaded).requirement.auraResPre, { res: 0, acc: 0, compter: false },
     'CLI désactivé : les deux conditions sont hors aura');
-  egal(recipeToSearchParams({ ...r, compterAurasResPre: undefined }, loaded).requirement.auraResPre, { res: 8, acc: 8 },
+  egal(recipeToSearchParams({ ...r, compterAurasResPre: undefined }, loaded).requirement.auraResPre, { res: 8, acc: 8, compter: true },
     'ancienne recette : le défaut de condition est activé');
   const deux = [
     { runeIds: [1], stats: STATS, effTotal: 1 },
@@ -601,4 +602,169 @@ export function testAurasPropresNoteDesCouples() {
     'cache : le candidat relit SES stats, relique DEF comprise');
   egal(aurasPropresParRunes(new Map(pool.map((x) => [x.id, x])))(cAura), aurasPropresDesRunes(runesAura),
     'les six runeIds de la clé déterminent les auras propres : la signature globale n’a pas à les porter');
+}
+
+/* --------------------------------------------------------------------------
+ * 6bis-b3a — conditions RES/PRE EXACTES avec les auras propres du build.
+ * Candidats CONSTRUITS, jamais issus de `searchBuilds`. Attentes à la main :
+ * +8 points par activation (A.2 ter), externes de `SETUP` = 1 Tolerance et
+ * 1 Accuracy, fiche sans rune de RES/PRE (base 0). `activeSets` reste la
+ * seule source des sets actifs (cohérence prouvée par
+ * `testAurasPropresResolution`).
+ * ----------------------------------------------------------------------- */
+
+const V4 = ['violent', 'violent', 'violent', 'violent'];
+// [nom, sets des six runes, RES attendue, PRE attendue] — toggle actif.
+const CANDIDATS_CONDITIONS: [string, string[], number, number][] = [
+  ['Tolerance propre non demandée', [...V4, 'tolerance', 'tolerance'], 16, 8],
+  ['Tolerance complétée par Intangible', [...V4, 'tolerance', 'intangible'], 16, 8],
+  ['Accuracy propre non demandée', [...V4, 'accuracy', 'accuracy'], 8, 16],
+  ['Accuracy complétée par Intangible', [...V4, 'accuracy', 'intangible'], 8, 16],
+  ['trois Tolerance propres', ['tolerance', 'tolerance', 'tolerance', 'tolerance', 'tolerance', 'tolerance'], 32, 8],
+  ['aucune aura propre', [...V4, 'will', 'will'], 8, 8],
+];
+
+function conditions(minStats: BuildRequirement['minStats'], maxStats: BuildRequirement['maxStats'], compter: boolean) {
+  return avecAurasConditions({ sets: [], minStats, maxStats }, SETUP, compter);
+}
+
+export function testAurasConditionsPropresFonctions() {
+  titre('Auras propres · conditions RES/PRE exactes (respecteMinEtMax, paire fixe, relique)');
+  for (const [nom, sets, res, acc] of CANDIDATS_CONDITIONS) {
+    const runes = runesDeSets(3000, sets);
+    const gear = { base: BASE, runes, artifacts: [] };
+    const stats = computeStats(gear);
+    const propres = aurasPropresDesRunes(runes);
+    // Les trois chemins reçoivent les mêmes conditions et doivent rendre le
+    // même verdict : stats + propres, paire à relique fixe, relique finale.
+    const verdicts = (req: BuildRequirement) => [
+      respecteMinEtMax(stats, req, propres),
+      respecteConditionsPaireFixe(stats, req, propres),
+      respecteConditionsAvecRelique(gear, undefined, req).respecte,
+    ];
+    const exact = conditions({ res, acc }, { res, acc }, true);
+    egal(verdicts(exact), [true, true, true], `${nom} : min = max = ${res} RES / ${acc} PRE, franchis exactement`);
+    egal(verdicts(conditions({ res: res + 1 }, {}, true)), [false, false, false],
+      `${nom} : minimum RES ${res + 1} non franchi — l'aura propre n'est comptée qu'une fois`);
+    egal(verdicts(conditions({ acc: acc + 1 }, {}, true)), [false, false, false], `${nom} : minimum PRE ${acc + 1} non franchi`);
+    egal(verdicts(conditions({}, { res: res - 1 }, true)), [false, false, false], `${nom} : maximum RES ${res - 1} dépassé`);
+    egal(verdicts(conditions({}, { acc: acc - 1 }, true)), [false, false, false], `${nom} : maximum PRE ${acc - 1} dépassé`);
+    // Toggle éteint : ni externe ni propre, dans les deux sens.
+    egal(verdicts(conditions({ res: 1 }, {}, false)), [false, false, false], `${nom} : toggle éteint, aucune aura ne franchit le minimum`);
+    egal(verdicts(conditions({}, { res: 1, acc: 1 }, false)), [true, true, true], `${nom} : toggle éteint, aucune aura ne dépasse le maximum`);
+  }
+  // Minimum franchi GRÂCE à l'aura propre, maximum dépassé À CAUSE d'elle :
+  // deux candidats qui ne diffèrent que par leurs deux runes de set.
+  const avec = runesDeSets(3100, [...V4, 'tolerance', 'tolerance']);
+  const sans = runesDeSets(3200, [...V4, 'will', 'will']);
+  const verdict = (runes: RuneDetail[], req: BuildRequirement) =>
+    respecteMinEtMax(computeStats({ base: BASE, runes, artifacts: [] }), req, aurasPropresDesRunes(runes));
+  egal([verdict(avec, conditions({ res: 16 }, {}, true)), verdict(sans, conditions({ res: 16 }, {}, true))], [true, false],
+    'minimum RES 16 : seule la Tolerance propre le franchit');
+  egal([verdict(avec, conditions({}, { res: 15 }, true)), verdict(sans, conditions({}, { res: 15 }, true))], [false, true],
+    'maximum RES 15 : seule la Tolerance propre le dépasse');
+  // PV/ATQ/DEF jamais dans les conditions, même avec Fight/Enhance/Determination propres.
+  const physiques = runesDeSets(3300, ['fight', 'fight', 'enhance', 'enhance', 'determination', 'determination']);
+  ok(!verdict(physiques, conditions({ atk: 102 }, {}, true)) && !verdict(physiques, conditions({ hp: 1002 }, {}, true))
+    && !verdict(physiques, conditions({ def: 102 }, {}, true)), 'Fight, Enhance et Determination propres restent hors des conditions');
+  // `auraResPre` absent : aucune aura dans les conditions, pas même externe.
+  ok(!respecteMinEtMax(computeStats({ base: BASE, runes: avec, artifacts: [] }), { minStats: { res: 1 } }, aurasPropresDesRunes(avec)),
+    'sans auraResPre : aucune aura, ni externe ni propre');
+}
+
+export function testAurasConditionsPropresResolution() {
+  titre('Auras propres · resoudreEquipementDuBuild (relicQueue) en mode recherche');
+  const pv: RelicDetail = { id: 201, upgrade: 9, main: { code: 100, value: 10 } };
+  const ctx = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, undefined, [pv]);
+  for (const [nom, sets, res] of CANDIDATS_CONDITIONS.filter(([, , r]) => r > 8)) {
+    const runes = runesDeSets(3400, sets);
+    const gear = { base: BASE, runes, artifacts: [] };
+    const propres = aurasPropresDesRunes(runes);
+    const faireParams = (relique: RelicDetail | undefined) => ({
+      porteur: { element: 'fire' as const, archetype: 'attack' as const },
+      inventaire: [], equipes: [], principaleParSorte: {},
+      evaluer: evaluerPourRegime('ehp', statsParPaire({ ...gear, relic: relique }), propres, { relique, setup: SETUP, element: null }),
+    });
+    const conforme = (req: BuildRequirement) => resoudreEquipementDuBuild({ gear, faireParams, respecteConditions: null,
+      requirement: req, regimeAucun: false, relicContext: ctx }).conforme;
+    egal(conforme(conditions({ res }, {}, true)), true, `${nom} : minimum RES ${res} franchi, couple retenu`);
+    egal(conforme(conditions({ res }, {}, false)), false, `${nom} : toggle éteint, minimum RES ${res} non franchi`);
+    egal(conforme(conditions({}, { res: res - 1 }, true)), false, `${nom} : maximum RES ${res - 1} dépassé, aucun couple`);
+    egal(conforme(conditions({}, { res: res - 1 }, false)), true, `${nom} : toggle éteint, maximum RES ${res - 1} tenu`);
+    // Seuils que la part propre SEULE (≥ 8) franchirait : éteint, elle ne compte pas.
+    egal(conforme(conditions({ res: 8 }, {}, false)), false, `${nom} : toggle éteint, la part propre ne franchit pas un minimum RES 8`);
+    egal(conforme(conditions({}, { res: 7 }, false)), true, `${nom} : toggle éteint, la part propre ne dépasse pas un maximum RES 7`);
+  }
+}
+
+// Le contrôle final de `pairBuckets` isolé : `prepareSearch`, `buildBuckets`
+// et `pairBuckets` appelés directement (jamais `searchBuilds`), sur un pool
+// minuscule où toutes les runes survivent à la préparation. Les runes hors
+// Violent portent chacune une sous-propriété distincte : aucune ne domine.
+const POOL_PAIR: RuneDetail[] = [
+  ...[1, 2, 3, 4].map((slot) => rune(4000 + slot, slot, [8, 0], [], 'violent')),
+  ...[5, 6].flatMap((slot) => [
+    rune(4100 + slot, slot, [8, 0], [[8, 1]], 'tolerance'),
+    rune(4200 + slot, slot, [8, 0], [[9, 1]], 'will'),
+    rune(4300 + slot, slot, [8, 0], [[10, 1]], 'endure'),
+  ]),
+];
+const IDS = (a: number, b: number) => [4001, 4002, 4003, 4004, a + 5, b + 6];
+const TOLERANCE = IDS(4100, 4100);
+const WILL = IDS(4200, 4200);
+
+function pairBucketsSeul(requirement: BuildRequirement, traceur: number[]) {
+  const prepared = prepareSearch({ base: BASE, artifacts: [], pool: POOL_PAIR, requirement, metric: 'eff', maxMs: 60000,
+    slotFilterCap: 80, traceur: { runeIds: traceur } });
+  if (!prepared) throw new Error('pairBucketsSeul : préparation refusée');
+  const A = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA));
+  const B = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB));
+  const resultat = drain(pairBuckets(prepared, A, B));
+  return { resultat, trace: prepared.traceur!, collectes: resultat.candidates.map((c) => c.runeIds.join(',')) };
+}
+
+export function testAurasConditionsPropresPairBuckets() {
+  titre('Auras propres · contrôle final exact de pairBuckets');
+  const cle = (ids: number[]) => ids.join(',');
+  const passageAmont = (trace: TraceCandidat) => trace.preparation.every((e) => e.presentes.every(Boolean))
+    && trace.appariement.paireAtteinte && trace.appariement.missingSets === true;
+
+  // MAXIMUM RES 15 : quickOk (externe seule, minorant) laisse passer ; seul
+  // le contrôle final connaît la Tolerance propre (8 + 8 = 16 > 15).
+  const req = (minStats: BuildRequirement['minStats'], maxStats: BuildRequirement['maxStats'], compter: boolean) =>
+    avecAurasConditions({ sets: ['violent'], minStats, maxStats }, SETUP, compter);
+  const max = pairBucketsSeul(req({}, { res: 15 }, true), TOLERANCE);
+  ok(passageAmont(max.trace) && max.trace.appariement.quickOkMax === true,
+    'maximum : la paire Tolerance passe toutes les coupes amont et quickOk');
+  egal([max.trace.appariement.validationFinale, max.trace.appariement.collecte], [false, false],
+    'maximum : le contrôle final rejette la Tolerance propre (16 > 15)');
+  ok(max.collectes.includes(cle(WILL)) && !max.collectes.includes(cle(TOLERANCE)),
+    'maximum : même pool, le candidat Will (8) est collecté, pas le Tolerance (16)');
+  const maxEteint = pairBucketsSeul(req({}, { res: 15 }, false), TOLERANCE);
+  egal([maxEteint.trace.appariement.validationFinale, maxEteint.collectes.includes(cle(TOLERANCE))], [true, true],
+    'maximum, toggle éteint : la Tolerance propre ne pénalise plus');
+  const maxEteintSept = pairBucketsSeul(req({}, { res: 7 }, false), TOLERANCE);
+  egal([maxEteintSept.trace.appariement.validationFinale, maxEteintSept.collectes.includes(cle(TOLERANCE))], [true, true],
+    'maximum RES 7, toggle éteint : la part propre (8) n’est pas comptée');
+  const maxExact = pairBucketsSeul(req({}, { res: 16 }, true), TOLERANCE);
+  egal(maxExact.trace.appariement.validationFinale, true, 'maximum RES 16 : tenu exactement, aucun double compte');
+
+  // MINIMUM RES 16 : la marge Endure du pool (+20 sur les emplacements
+  // libres, `guaranteedMin`) fait passer quickOkMin ; le contrôle final
+  // décide alors avec la Tolerance propre.
+  const min = pairBucketsSeul(req({ res: 16 }, {}, true), TOLERANCE);
+  ok(passageAmont(min.trace) && min.trace.appariement.quickOkMin === true,
+    'minimum : quickOkMin passe grâce à la marge Endure du pool');
+  egal([min.trace.appariement.validationFinale, min.trace.appariement.collecte], [true, true],
+    'minimum : franchi grâce à la Tolerance propre (8 + 8 = 16)');
+  ok(min.collectes.includes(cle(TOLERANCE)) && !min.collectes.includes(cle(WILL)),
+    'minimum : même pool, Tolerance collecté, Will (8) rejeté');
+  const minEteint = pairBucketsSeul(req({ res: 16 }, {}, false), TOLERANCE);
+  egal([minEteint.trace.appariement.quickOkMin, minEteint.trace.appariement.validationFinale], [true, false],
+    'minimum, toggle éteint : quickOk passe, le contrôle final rejette');
+  const minEteintHuit = pairBucketsSeul(req({ res: 8 }, {}, false), TOLERANCE);
+  egal([minEteintHuit.trace.appariement.quickOkMin, minEteintHuit.trace.appariement.validationFinale], [true, false],
+    'minimum RES 8, toggle éteint : la part propre (8) ne le franchit pas');
+  const minTrop = pairBucketsSeul(req({ res: 17 }, {}, true), TOLERANCE);
+  egal(minTrop.trace.appariement.validationFinale, false, 'minimum RES 17 : non franchi, aucun double compte');
 }

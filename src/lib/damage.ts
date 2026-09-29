@@ -3314,9 +3314,8 @@ export interface DamageSetup {
   // Auras des AUTRES monstres de l'équipe seulement : au plus cinq monstres à
   // trois sets, donc 15 au total. Les activations propres du build viennent
   // de ses six runes (`AurasPropres`, résolues par `activeSets`) et ne sont
-  // jamais saisies ici. Le combat et le score lisent les deux parts ; ⚠️ état
-  // provisoire (6bis-b2) : les conditions RES/PRE (`avecAurasConditions`) ne
-  // lisent encore que cette part externe. Remplace l'ancien `setsAura`
+  // jamais saisies ici. Le combat, le score et, toggle actif, les conditions
+  // RES/PRE (`avecAurasConditions`) lisent les deux parts. Remplace l'ancien `setsAura`
   // (total d'équipe, monstre optimisé inclus) : une recette qui le porte non
   // vide est refusée à l'import, jamais réinterprétée (`optimizerRecipe.ts`).
   setsAuraExternes?: { set: SetAura; nombre: number }[];
@@ -3538,27 +3537,38 @@ export const AUCUNE_AURA_PROPRE: AurasPropres = Object.freeze({
 });
 
 export function aurasPropresDesRunes(runes: readonly { set: string }[]): AurasPropres {
+  return aurasPropresDesSetsActifs(activeSets(runes.map((r) => r.set)));
+}
+
+// Même vecteur depuis un résultat d'`activeSets` déjà calculé sur les six
+// runes, pour ne pas le recalculer dans la boucle d'appariement.
+export function aurasPropresDesSetsActifs(actifs: readonly string[]): AurasPropres {
   const out = { fight: 0, determination: 0, enhance: 0, accuracy: 0, tolerance: 0 };
-  for (const set of activeSets(runes.map((r) => r.set))) {
+  for (const set of actifs) {
     if (set in out) out[set as SetAura]++;
   }
   return out;
 }
 
 // Le total EFFECTIF d'un set d'aura pour ce build : part externe saisie +
-// activations propres. Seule lecture du combat et du score ; les conditions
-// RES/PRE lisent encore `pointsAuraResPre` (part externe, provisoire).
+// activations propres. Lecture du combat et du score ; les conditions
+// RES/PRE combinent `pointsAuraResPre` et `pointsAuraResPrePropres`.
 export function nombreAuraEffectif(setup: DamageSetup, propres: AurasPropres, set: SetAura): number {
   return nombreAura(setup, set) + propres[set];
 }
 
-// Points RES/PRE des auras EXTERNES pour les conditions min/max
-// (`avecAurasConditions`) — ⚠️ provisoire : les activations propres n'y sont
-// pas encore (lot 6bis-b3a). Le combat ne passe plus par ici.
+// Points RES/PRE de la part EXTERNE, constante sur toute la recherche, pour
+// les conditions min/max (`avecAurasConditions`). Le combat ne passe pas ici.
 export function pointsAuraResPre(setup: DamageSetup, compter = true): { res: number; acc: number } {
   return compter
     ? { res: 8 * nombreAura(setup, 'tolerance'), acc: 8 * nombreAura(setup, 'accuracy') }
     : { res: 0, acc: 0 };
+}
+
+// Points RES/PRE de la part PROPRE à un build, pour les conditions : la
+// même règle de +8 points par activation, sur Tolerance et Accuracy seules.
+export function pointsAuraResPrePropres(propres: AurasPropres): { res: number; acc: number } {
+  return { res: 8 * propres.tolerance, acc: 8 * propres.accuracy };
 }
 
 /**

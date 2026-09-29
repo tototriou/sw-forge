@@ -28,6 +28,7 @@
 
 import { BaseStats, RelicDetail, RuneDetail } from '../src/types';
 import { computeStats } from '../src/lib/stats';
+import { aurasPropresDesRunes } from '../src/lib/damage';
 import { resoudreContexteRelique, RelicContext } from '../src/lib/relicOptim';
 import type { RelicIntent } from '../src/hooks/useOptimizerState';
 import {
@@ -490,7 +491,7 @@ export default async function testRelicSearch() {
     const autre = relique(902, 100, 14);
     const avecAutre = respecteConditionsAvecRelique(gear, autre, { minStats: {} }).stats;
     egal(avecAutre, computeStats({ ...gear, relic: autre }), 'filtre final : la candidate remplace la relique portée (jamais cumul)');
-    ok(respecteMinEtMax(stats, { minStats: {}, maxStats: {} }), 'respecteMinEtMax : aucune condition → vrai');
+    ok(respecteMinEtMax(stats, { minStats: {}, maxStats: {} }, aurasPropresDesRunes(gear.runes)), 'respecteMinEtMax : aucune condition → vrai');
   }
 
   /* ── Fixture A — principale HORS objectif nécessaire à un minimum :

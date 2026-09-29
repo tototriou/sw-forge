@@ -144,7 +144,7 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
         evaluer,
       };
     },
-    respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement) : null,
+    respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement, aurasPropresDesRunes(gear.runes)) : null,
     requirement: p.requirement,
     regimeAucun: regime === 'aucun',
     relicContext: ctx,

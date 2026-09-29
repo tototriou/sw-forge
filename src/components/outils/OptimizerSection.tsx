@@ -2240,11 +2240,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const conditionsPosees = conditionsPaireFixePosees(requirementAvecAuras);
     return (c: BuildCandidate) => {
       const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
+      const propres = aurasPropresDesRunes(gear.runes);
       return resoudreEquipementDuBuild({
         gear,
         faireParams: (relique) => faireParamsArtefacts(c, relique),
         respecteConditions: conditionsPosees
-          ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), requirementAvecAuras)
+          ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), requirementAvecAuras, propres)
           : null,
         requirement: requirementAvecAuras,
         regimeAucun: regimeEquipement === 'aucun',

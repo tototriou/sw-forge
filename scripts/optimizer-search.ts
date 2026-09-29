@@ -112,8 +112,8 @@ console.log(
 console.log(`minStats : ${JSON.stringify(recipe.requirement.minStats)}`);
 console.log(
   `Auras externes (autres monstres) : ${JSON.stringify(recipe.damageSetup?.setsAuraExternes ?? [])} ; ` +
-    `activations propres du build : comptées dans le combat et le score, pas encore dans les conditions ; ` +
-    `RES/PRE dans les conditions : ${recipe.compterAurasResPre ?? true}`
+    `activations propres du build : comptées dans le combat et le score ; ` +
+    `RES/PRE (externes + propres) dans les conditions : ${recipe.compterAurasResPre ?? true}`
 );
 if (recipe.requirement.maxStats && Object.keys(recipe.requirement.maxStats).length > 0) {
   console.log(`maxStats : ${JSON.stringify(recipe.requirement.maxStats)}`);

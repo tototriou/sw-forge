@@ -59,11 +59,14 @@ import {
   ArtifactDamageProfile,
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
+  AUCUNE_AURA_PROPRE,
   AurasPropres,
   DamageSetup,
   aurasPropresDesRunes,
+  aurasPropresDesSetsActifs,
   nombreAura,
   pointsAuraResPre,
+  pointsAuraResPrePropres,
   MonsterWideDamageModifiers,
   PassifOffensifProfile,
   SkillDamageProfile,
@@ -89,8 +92,12 @@ export interface BuildRequirement {
   minStats: Partial<Record<StatKey, number>>;
   // Maximums exigés sur le TOTAL final. Absent = non plafonné.
   maxStats?: Partial<Record<StatKey, number>>;
-  // Dérivé au lancement depuis DamageSetup et le toggle ; absent d'une recette.
-  auraResPre?: { res: number; acc: number };
+  // Dérivé au lancement par `avecAurasConditions`, seul producteur ; absent
+  // d'une recette. `res`/`acc` : part EXTERNE, constante sur la recherche.
+  // `compter` : le toggle RES/PRE, seul à décider si les auras (externes ET
+  // propres au build) entrent dans les conditions. Absent = aucune aura dans
+  // les conditions ; « éteint » s'écrit `compter: false`, jamais par l'absence.
+  auraResPre?: { res: number; acc: number; compter: boolean };
   // Statistiques principales AUTORISÉES sur les slots 2/4/6 (codes RUNE_EFFECT,
   // voir SLOT_MAIN_OPTIONS). Absent/vide pour un slot = pas de contrainte.
   mainStats?: Partial<Record<2 | 4 | 6, number[]>>;
@@ -117,11 +124,18 @@ export interface BuildRequirement {
 }
 
 export function avecAurasConditions(requirement: BuildRequirement, setup: DamageSetup, compter: boolean): BuildRequirement {
-  return { ...requirement, auraResPre: pointsAuraResPre(setup, compter) };
+  return { ...requirement, auraResPre: { ...pointsAuraResPre(setup, compter), compter } };
 }
 
-function totalCondition(total: number, key: string, requirement: Pick<BuildRequirement, 'auraResPre'>): number {
-  return total + (key === 'res' || key === 'acc' ? requirement.auraResPre?.[key] ?? 0 : 0);
+// Le total d'une stat tel que le lisent les conditions min/max. `total` vient
+// de `computeStats` (aucune aura) : RES/PRE y reçoivent, toggle actif, la part
+// externe ET `propres` — une seule fois, jamais les stats de combat qui les
+// contiennent déjà. PV/ATQ/DEF et les autres stats : jamais d'aura.
+function totalCondition(total: number, key: string, requirement: Pick<BuildRequirement, 'auraResPre'>, propres: AurasPropres): number {
+  if (key !== 'res' && key !== 'acc') return total;
+  const aura = requirement.auraResPre;
+  if (!aura?.compter) return total;
+  return total + aura[key] + pointsAuraResPrePropres(propres)[key];
 }
 
 export interface BuildCandidate {
@@ -370,17 +384,18 @@ export class RechercheRefusee extends Error {
  */
 export function respecteMinEtMax(
   stats: { key: string; total: number }[],
-  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>,
+  propres: AurasPropres
 ): boolean {
   for (const [k, min] of Object.entries(requirement.minStats)) {
     if (min == null || min <= 0) continue;
     const s = stats.find((x) => x.key === k);
-    if (!s || totalCondition(s.total, k, requirement) < min) return false;
+    if (!s || totalCondition(s.total, k, requirement, propres) < min) return false;
   }
   for (const [k, max] of Object.entries(requirement.maxStats ?? {})) {
     if (max == null || max <= 0) continue;
     const s = stats.find((x) => x.key === k);
-    if (!s || totalCondition(s.total, k, requirement) > max) return false;
+    if (!s || totalCondition(s.total, k, requirement, propres) > max) return false;
   }
   return true;
 }
@@ -395,13 +410,14 @@ export function conditionsPaireFixePosees(requirement: Pick<BuildRequirement, 'm
 
 export function respecteConditionsPaireFixe(
   stats: { key: string; total: number }[],
-  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>,
+  propres: AurasPropres
 ): boolean {
   return respecteMinEtMax(stats, {
     minStats: requirement.minStats,
     maxStats: { res: requirement.maxStats?.res, acc: requirement.maxStats?.acc },
     auraResPre: requirement.auraResPre,
-  });
+  }, propres);
 }
 
 /**
@@ -417,7 +433,8 @@ export function respecteConditionsPaireFixe(
  * relique réelle ne leur fasse tenir leurs conditions.
  *
  * Rend aussi les `stats` calculées : l'appelant (5b) note le build dessus,
- * un seul `computeStats` par candidate.
+ * un seul `computeStats` par candidate. Les auras propres se résolvent ici,
+ * sur les six runes de `gear` : l'appelant n'a rien à transmettre.
  */
 export function respecteConditionsAvecRelique(
   gear: GearSet,
@@ -425,7 +442,7 @@ export function respecteConditionsAvecRelique(
   requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>
 ): { stats: StatRow[]; respecte: boolean } {
   const stats = computeStats({ ...gear, relic: relique });
-  return { stats, respecte: respecteMinEtMax(stats, requirement) };
+  return { stats, respecte: respecteMinEtMax(stats, requirement, aurasPropresDesRunes(gear.runes)) };
 }
 
 // Diagnostic « quasi-succès » — voir spec/outils/optimizer/
@@ -3161,9 +3178,12 @@ function deriveMinMaxContext(
   const relPctMin: Record<string, number> = relicRelache ? { ...relicContext!.bornes.min } : relPctFige!;
   const baseRec = base as unknown as Record<string, number>;
   const estPct = (k: StatKey) => k === 'hp' || k === 'atk' || k === 'def';
+  // ⚠️ Bornes, élagages et diagnostics amont : part externe seule, aucune
+  // aura propre (six runes inconnues ici). Minorant sûr pour un maximum ;
+  // pour un minimum, la part propre n'est pas encore bornée (6bis-b3b).
   function totalOf(k: StatKey, pct: number, flat: number): number {
     const b = baseRec[k] ?? 0;
-    return totalCondition(estPct(k) ? b + Math.ceil((b * pct) / 100) + flat : b + flat, k, requirement);
+    return totalCondition(estPct(k) ? b + Math.ceil((b * pct) / 100) + flat : b + flat, k, requirement, AUCUNE_AURA_PROPRE);
   }
   function relTermMax(k: StatKey): number {
     return relicRelache && estPct(k) ? Math.ceil(((baseRec[k] ?? 0) * (relPctMax[k] ?? 0)) / 100) : 0;
@@ -4043,6 +4063,9 @@ export function* pairBuckets(
            * la paire figée, comportement d'avant.
            */
           const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
+          // Auras RES/PRE propres : EXACTES ici, depuis les sets actifs des
+          // six runes (Intangible et set non demandé compris).
+          const propres = aurasPropresDesSetsActifs(active);
           const runeIds = runes.map((r) => r.id);
           const effTotal = runes.reduce((sum, r) => sum + valueOf(r, metric), 0);
           let ok = false;
@@ -4063,12 +4086,12 @@ export function* pairBuckets(
             const shortfalls: StatShortfall[] = [];
             for (const { k, min } of minEntries) {
               const row = stats.find((r) => r.key === k);
-              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMax(k), k, requirement);
+              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMax(k), k, requirement, propres);
               if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
             }
             for (const { k, max } of maxEntries) {
               const row = stats.find((r) => r.key === k);
-              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMin(k), k, requirement);
+              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMin(k), k, requirement, propres);
               if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
             }
             if (shortfalls.length === 0) {

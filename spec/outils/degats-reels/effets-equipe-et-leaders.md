@@ -108,10 +108,13 @@ build dont on choisit la paire et la relique — et se transmettent aux calculs
 comme un argument **obligatoire** (`AurasPropres`), jamais stockées dans
 `DamageSetup` ni déduites des statistiques ; sans rune, le zéro se déclare
 explicitement (`AUCUNE_AURA_PROPRE`). Depuis le lot 6bis-b2, le **combat et
-le score** les comptent, comme décrit ci-dessous. ⚠️ **État provisoire
-(lot 6bis-b2)** : les conditions min/max RES/PRE lisent encore la **seule
-part externe**, jusqu'au lot 6bis-b3a ; la recherche elle-même (élagages,
-rétention) n'est pas encore revue pour ce modèle (lot 6bis-b3b).
+le score** les comptent ; depuis le lot 6bis-b3a, les **contrôles exacts**
+des conditions RES/PRE aussi, comme décrit ci-dessous. ⚠️ **État
+intermédiaire (lot 6bis-b3a)** : les coupes amont de la recherche
+(dominance, faisabilité, bornes rapides de l'appariement, pré-filtrage,
+diagnostics, rétention) ne sont pas encore revues pour ce modèle (lot
+6bis-b3b) ; aucune garantie de résultat complet n'est donnée pour une
+condition RES/PRE que seule une aura propre fait tenir.
 
 L'ancien champ `damageSetup.setsAura` comptait l'équipe entière, monstre
 optimisé inclus : ses nombres ne se traduisent pas en auras des autres
@@ -141,14 +144,26 @@ classe reçoivent les activations propres du build noté, constantes pour
 toutes ses paires et reliques (aucune ne porte de set) ; les couples restent
 jugés sur leurs conditions avec la fiche hors combat. Pour les conditions
 min **et** max, seul RES/PRE reçoit les points d'aura, ensemble, quand
-`compterAurasResPre` est activé (défaut `true`) : recherche, élagages,
-diagnostics et filtres finaux suivent la même règle, sur la part externe
-seule jusqu'au lot 6bis-b3a. Désactiver ce booléen ne retire aucun effet des
-dégâts ni des PV effectifs. Les auras PV/ATQ/DEF restent hors conditions. Le
+`compterAurasResPre` est activé (défaut `true`) : la part externe, constante
+sur toute la recherche, **et** les activations Tolerance/Accuracy propres du
+build (Intangible et set non demandé compris), 8 points chacune, ajoutées
+une seule fois à la fiche hors combat. Les contrôles exacts — filtre final
+de l'appariement sur les six runes, filtres de paire à relique fixe et de
+relique finale (`resoudreEquipementDuBuild`) — testent cette valeur réelle
+pour le minimum comme pour le maximum ; en recherche de relique, seul le
+terme de relique du filtre de l'appariement reste une borne. Le toggle
+atteint le moteur par un booléen obligatoire de `auraResPre`, dont le seul
+producteur est `avecAurasConditions` ; `auraResPre` absent signifie aucune
+aura dans les conditions, et « désactivé » ne s'écrit jamais par cette
+absence. Les coupes amont lisent encore la part externe seule (voir l'état
+intermédiaire ci-dessus). Désactiver ce booléen ne retire aucun effet des
+dégâts ni des PV effectifs, et une aura propre n'y favorise ni ne pénalise
+plus aucune condition. Les auras PV/ATQ/DEF restent hors conditions. Le
 booléen est optionnel dans la recette pour préserver les exports antérieurs ;
 ses valeurs présentes doivent être booléennes. Le modèle est livré au lot 6,
 le champ externe au lot 6bis-b1, les activations propres dans le combat et le
-score au lot 6bis-b2 ; ses contrôles visuels appartiennent au lot 7.
+score au lot 6bis-b2, dans les contrôles exacts des conditions au lot
+6bis-b3a ; ses contrôles visuels appartiennent au lot 7.
 
 ## Leader skill d'équipe
 

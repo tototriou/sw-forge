@@ -51,7 +51,7 @@ import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
-import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle, testAurasPropresResolution, testAurasPropresCombatEtScore, testAurasPvEffectifsCeilUnique, testAurasPropresNoteDesCouples } from './auras-modele.test';
+import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle, testAurasPropresResolution, testAurasPropresCombatEtScore, testAurasPvEffectifsCeilUnique, testAurasPropresNoteDesCouples, testAurasConditionsPropresFonctions, testAurasConditionsPropresResolution, testAurasConditionsPropresPairBuckets } from './auras-modele.test';
 import testRelicOptim from './relic-optim.test';
 import testRelicOracle from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
@@ -155,6 +155,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAurasPropresCombatEtScore', testAurasPropresCombatEtScore],
   ['testAurasPvEffectifsCeilUnique', testAurasPvEffectifsCeilUnique],
   ['testAurasPropresNoteDesCouples', testAurasPropresNoteDesCouples],
+  ['testAurasConditionsPropresFonctions', testAurasConditionsPropresFonctions],
+  ['testAurasConditionsPropresResolution', testAurasConditionsPropresResolution],
+  ['testAurasConditionsPropresPairBuckets', testAurasConditionsPropresPairBuckets],
   ['testRelicOptim', testRelicOptim],
   ['testRelicOracle', testRelicOracle],
   ['testRelicSearch', testRelicSearch],

@@ -101,7 +101,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | fait — sept questions posées | 2026-09-28, [lot-R0.md](rebranding-preuves/lot-R0.md) |
 | R1 jetons : deux thèmes, police de texte, arrondis | J | **validé par Thomas** (« continues », après les décisions 11 à 13) | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
 | R2 nom et logo | J | **validé par Thomas** (« continues », image de partage comprise) | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
-| R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | en cours | |
+| R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | fait — symbole et police validés sur planche ; relecture de Thomas dans l'app en attente | 2026-09-29, [lot-R2bis.md](rebranding-preuves/lot-R2bis.md) |
 | R3 `src/ui/` aux planches « Composants » | J | relevé et décisions faits (`dc9bee00`) ; R3a en pause, mis de côté (`git stash`, « R3a en cours ») pour le R2 bis | |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | à faire | |
 | R5 Accueil (bureau et téléphone) | J | à faire | |
@@ -319,6 +319,15 @@ permis). Le nom reste écrit une fois (`src/marque.ts`).
 **Preuve** : `rebranding-preuves/lot-R2bis.md`, avec les rendus comparatifs ;
 build ; tests `marque`, `rendu` ; inventaire. **Ne fait pas** : la palette,
 les titres, les bannières Discord (hors de l'app).
+
+**Résultat (2026-09-29)** — preuve [lot-R2bis.md](rebranding-preuves/lot-R2bis.md).
+Symbole redessiné, planche montrée : « Oui, pose-le », nom en Saira 700.
+Posés : `Logo.tsx` (deux jetons `logo-cristal`), `font-marque`, favicon (le
+symbole complet, lisible à 16 px), icône d'app, image de partage avec la
+devise. Le nom tient dans la barre latérale (123 px pour 130) ; le héros ne
+déborde à aucune largeur (360, 390, 1440). Au passage, `accueil.md` disait
+que la barre ne porte pas la marque, ce qui est faux depuis la refonte :
+corrigé.
 
 ### R3 — la librairie aux planches « Composants » · J
 

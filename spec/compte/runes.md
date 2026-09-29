@@ -961,6 +961,9 @@ dans la page**, à tous les formats.
   (`pleineLargeur={large}`), sinon ils pendaient seuls, à la largeur de leur
   texte, sous des contrôles pleins. En ligne au bureau (`large` faux) ils
   restent serrés.
+- Sous « Runes utilisées », le panneau montre **en permanence** les six cases de
+  périmètre (grisées filtre éteint). Au bureau, elles vivent dans un flottant
+  ouvert par un chevron : voir « Les périmètres » plus bas.
 - ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
   crans se partagent la largeur à égalité et « Antiques uniquement » débordait
   son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
@@ -1040,6 +1043,38 @@ elles qu'il combat.
 - Il **se cumule** avec tous les autres (palier, sets, slot, antiques, réserve) :
   « ce que je peux améliorer ce soir, sur des runes qui jouent » est justement la
   question qu'on pose le plus souvent.
+
+#### Les périmètres — choisir ce qui compte
+
+Six périmètres, tous **cochés par défaut** : le filtre garde alors exactement sa
+définition ci-dessus. Une rune est gardée dès qu'**un** périmètre coché la
+contient (union).
+
+| Périmètre | Contenu |
+|-----------|---------|
+| RTA | presets RTA |
+| Siège — attaque | `deck_list`, `deck_type` 22 |
+| Siège — défense | défenses de siège |
+| Arène — attaque | `deck_list`, `deck_type` 1 |
+| Arène — défense | défense d'arène et d'arène de serveur |
+| Autres decks | tout autre `deck_type` (donjons, ToA, labyrinthe…) |
+
+- Des **`Case`**, chacune suivie de son nombre de runes (« RTA (212) »). L'état
+  est collant (`optim.usedScopes`, liste blanche).
+- ⚠️ **Deux supports, un par format, et aucun ne déplace ce qu'on clique :**
+  - **au bureau**, un `BoutonIcone` (chevron) collé à « Runes utilisées » ouvre
+    les cases dans un `FlottantAuto`, qui sort du flux. Un clic ailleurs ou Échap
+    le ferme ;
+  - **dans le panneau « Options » au doigt**, les cases sont rendues **en
+    permanence** sous le bouton. Leur place est réservée, et aucun flottant ne
+    s'ouvre dans le tiroir (règles descendantes `[data-tiroir]`).
+- **Inactives filtre éteint** : chevron désactivé au bureau, cases grisées dans
+  le panneau. Elles n'auraient aucun effet.
+- « Désactivé sans decks lus » se juge sur **tous** les périmètres, pas sur ceux
+  cochés : tout décocher n'est pas « aucun deck lu ». Cela donne une liste vide,
+  que le message explique (« aucun périmètre coché »).
+- Le compteur nomme les périmètres dès qu'ils ne sont pas tous cochés :
+  « · utilisées (RTA, Siège — attaque) ».
 
 ### « Faisable avec ma réserve » — le filtre qui regarde le sac
 

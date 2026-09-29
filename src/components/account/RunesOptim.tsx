@@ -1,9 +1,14 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCw, AlertTriangle, PackageCheck, Swords, Lock, Hammer, Gem } from 'lucide-react';
+import { RotateCw, AlertTriangle, PackageCheck, Swords, Lock, Hammer, Gem, ChevronDown } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
 import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
-import { RunesUtilisees, unionRunesUtilisees } from '../../lib/importAccount';
+import {
+  PERIMETRES_UTILISES,
+  PerimetreUtilise,
+  RunesUtilisees,
+  unionRunesUtilisees,
+} from '../../lib/importAccount';
 import { CraftStock, EMPTY_STOCK, GRADE_SCENARIO, buildCraftStock, ownsCraft } from '../../lib/crafts';
 import { useRuneMetric, formatRuneMetric, convertirPalier, runeMetricValue } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -19,7 +24,7 @@ import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
 import BoutonSensTri from '../BoutonSensTri';
 import { SENS_PAR_DEFAUT, SensTri, signeTri } from '../../lib/tri';
-import { FlottantAuto } from '../../ui';
+import { BoutonIcone, Case, FlottantAuto } from '../../ui';
 import MobileSheet from '../../ui/MobileSheet';
 import HelpPopover from '../HelpPopover';
 import AncientFilter, {
@@ -181,14 +186,50 @@ export default function RunesOptim({
   // jouer trois cents ; les autres dorment dans le sac, et améliorer l'une
   // d'elles ne change rien à aucun combat. Le potentiel, les gains et les tris
   // restent exactement les mêmes.
-  const utilisees = useMemo(() => new Set(unionRunesUtilisees(usedRuneIds)), [usedRuneIds]);
-  // ⚠️ Un compte conservé sous l'ancien schéma n'a pas cette liste, et un export
-  // sans aucun deck enregistré non plus : le bouton est alors DÉSACTIVÉ et dit
-  // pourquoi, plutôt que de vider la liste sans explication (même règle que la
-  // réserve de meules).
-  const utiliseesDispo = utilisees.size > 0;
+  //
+  // Les PÉRIMÈTRES (RTA, siège, arène, autres decks) se choisissent : liste
+  // blanche, les six cochés par défaut — c'est la définition historique du
+  // filtre, qui ne change donc pas tant qu'on n'y touche pas. Une rune compte
+  // dès qu'UN périmètre coché la contient (union).
+  const [perimetres, setPerimetres] = useStickyState<Set<PerimetreUtilise>>(
+    'optim.usedScopes',
+    new Set(PERIMETRES_UTILISES.map((p) => p.key))
+  );
+  const utilisees = useMemo(
+    () => new Set(unionRunesUtilisees(usedRuneIds, perimetres)),
+    [usedRuneIds, perimetres]
+  );
+  const tousPerimetres = PERIMETRES_UTILISES.every((p) => perimetres.has(p.key));
+  // ⚠️ Un export sans aucun deck enregistré n'a rien à proposer : le bouton est
+  // alors DÉSACTIVÉ et dit pourquoi, plutôt que de vider la liste sans
+  // explication (même règle que la réserve de meules). Jugé sur TOUS les
+  // périmètres, pas sur ceux cochés : décocher tout n'est pas « aucun deck lu ».
+  const utiliseesDispo = PERIMETRES_UTILISES.some((p) => usedRuneIds[p.key].length > 0);
   const [usedOnly, setUsedOnly] = useStickyState('optim.usedOnly', false);
   const filtreUtilisees = usedOnly && utiliseesDispo;
+  const basculerPerimetre = (k: PerimetreUtilise) => {
+    const next = new Set(perimetres);
+    next.has(k) ? next.delete(k) : next.add(k);
+    setPerimetres(next);
+    setPage(0);
+  };
+  // Choix des périmètres au BUREAU : un flottant ancré au bouton voisin — il
+  // sort du flux, rien ne bouge au clic. Fermé par un clic ailleurs ou Échap.
+  const [perimOuvert, setPerimOuvert] = useState(false);
+  const ancrePerim = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!perimOuvert) return;
+    const onDown = (e: MouseEvent) => {
+      if (ancrePerim.current && !ancrePerim.current.contains(e.target as Node)) setPerimOuvert(false);
+    };
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setPerimOuvert(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [perimOuvert]);
   const scenario = scenarioOf(sort);
 
   // Potentiel calculé une fois par import (linéaire, mémoïsé).
@@ -302,6 +343,22 @@ export default function RunesOptim({
   // posés à deux endroits : en ligne au bureau, dans le panneau « Options » au
   // doigt (comme les filtres de la Liste). `large` élargit les segmentés à toute
   // la largeur du panneau ; en ligne ils restent serrés.
+  // Les six cases de périmètre, chacune avec son nombre de runes. Écrites une
+  // fois, posées dans le flottant (bureau) ou sous le bouton (panneau).
+  const casesPerimetres = (grisees: boolean) => (
+    <div className={`flex flex-col gap-1.5 ${grisees ? 'opacity-50' : ''}`}>
+      {PERIMETRES_UTILISES.map((p) => (
+        <Case
+          key={p.key}
+          checked={perimetres.has(p.key)}
+          disabled={grisees}
+          onChange={() => basculerPerimetre(p.key)}
+          libelle={`${p.libelle} (${usedRuneIds[p.key].length})`}
+        />
+      ))}
+    </div>
+  );
+
   const optionsControls = (large: boolean) => (
     <>
       <div className="flex items-center gap-2">
@@ -411,23 +468,58 @@ export default function RunesOptim({
       {/* ⚠️ Même gabarit que le bouton ci-dessus (`pleineLargeur={large}`) :
           dans le panneau « Options », les deux prennent la largeur de la
           colonne ; en ligne au bureau, ils restent serrés côte à côte. */}
-      <Bouton
-        onClick={() => {
-          setUsedOnly((v) => !v);
-          setPage(0);
-        }}
-        disabled={!utiliseesDispo}
-        actif={filtreUtilisees}
-        taille="sm"
-        pleineLargeur={large}
-        title={
-          utiliseesDispo
-            ? `Ne garder que les ${utilisees.size} runes qui jouent : posées sur un monstre d'un deck (tous contenus) ou en RTA`
-            : 'Aucun deck lu dans les données chargées — réimporte ton compte'
-        }
-        icone={<Swords size={14} />}
-        libelle="Runes utilisées"
-      />
+      {/* « Runes utilisées » + le choix de ses périmètres.
+          ⚠️ **Deux supports, un par format**, et aucun ne déplace ce qu'on
+          clique :
+           - au BUREAU, un bouton d'icône voisin ouvre les cases dans un
+             `FlottantAuto` — hors du flux ;
+           - dans le panneau « Options » au DOIGT, les cases sont rendues EN
+             PERMANENCE sous le bouton : leur place est réservée, et aucun
+             flottant ne s'ouvre dans le tiroir (règles `[data-tiroir]`).
+          Les cases n'agissent que filtre allumé : grisées sinon. */}
+      <div className={large ? 'flex flex-col gap-2' : 'flex items-center gap-1'}>
+        <Bouton
+          onClick={() => {
+            setUsedOnly((v) => !v);
+            setPage(0);
+          }}
+          disabled={!utiliseesDispo}
+          actif={filtreUtilisees}
+          taille="sm"
+          pleineLargeur={large}
+          title={
+            utiliseesDispo
+              ? `Ne garder que les ${utilisees.size} runes qui jouent dans les périmètres cochés`
+              : 'Aucun deck lu dans les données chargées — réimporte ton compte'
+          }
+          icone={<Swords size={14} />}
+          libelle="Runes utilisées"
+        />
+        {large ? (
+          casesPerimetres(!filtreUtilisees)
+        ) : (
+          <span ref={ancrePerim} className="relative inline-flex flex-none">
+            <BoutonIcone
+              onClick={() => setPerimOuvert((v) => !v)}
+              disabled={!filtreUtilisees}
+              actif={perimOuvert && filtreUtilisees}
+              aria-expanded={perimOuvert && filtreUtilisees}
+              cadre
+              icone={<ChevronDown size={14} />}
+              libelle="Choisir les périmètres des runes utilisées"
+            />
+            <FlottantAuto
+              ouvert={perimOuvert && filtreUtilisees}
+              ancre={ancrePerim}
+              largeur={220}
+              hauteur={190}
+              rembourrage="md"
+            >
+              {casesPerimetres(false)}
+            </FlottantAuto>
+          </span>
+        )}
+      </div>
     </>
   );
 
@@ -637,6 +729,12 @@ export default function RunesOptim({
                 Le reste de ton stock n'est pas affiché — améliorer une rune que personne ne porte ne change
                 aucun combat.
               </p>
+              <p className="mt-1.5">
+                Tu choisis les <b className="text-ink">périmètres</b> qui comptent (flèche à côté du bouton,
+                ou cases sous le bouton dans le panneau « Options ») : RTA, siège en attaque et en défense,
+                arène en attaque et en défense, autres decks (donjons, ToA…). Tous sont cochés par défaut ;
+                une rune est gardée dès qu'un périmètre coché l'utilise.
+              </p>
 
               <p className="mt-2">
                 <span className="text-ink font-semibold">Marqueurs</span> : les marqueurs que tu poses sur tes
@@ -665,6 +763,13 @@ export default function RunesOptim({
           {verifie && ' · faisables avec ma réserve'}
           {verifie && sansImmemoriaux && ' · sans immémoriaux'}
           {filtreUtilisees && ' · utilisées'}
+          {filtreUtilisees &&
+            !tousPerimetres &&
+            ` (${
+              PERIMETRES_UTILISES.filter((p) => perimetres.has(p.key))
+                .map((p) => p.libelle)
+                .join(', ') || 'aucun périmètre'
+            })`}
           {nbMarqueursExclus > 0 &&
             ` · ${nbMarqueursExclus} marqueur${nbMarqueursExclus > 1 ? 's' : ''} exclu${nbMarqueursExclus > 1 ? 's' : ''}`}
         </p>
@@ -703,7 +808,9 @@ export default function RunesOptim({
           Aucune rune ≥ {threshold}
           {metric === 'eff' ? '%' : ''}
           {ancient !== 'all' && (ancient === 'without' ? ' hors antiques' : ' parmi les antiques')}
-          {filtreUtilisees && ' parmi tes runes utilisées'}. Baisse le palier
+          {filtreUtilisees &&
+            (perimetres.size === 0 ? ' — aucun périmètre coché pour « Runes utilisées »' : ' parmi tes runes utilisées')}
+          . Baisse le palier
           {ancient !== 'all' ? ' ou repasse sur « Toutes »' : ''}
           {filtreUtilisees ? ' ou désactive « Runes utilisées »' : ''}
           {nbMarqueursExclus > 0 ? ' ou réaffiche tous les marqueurs' : ''} pour en voir plus.

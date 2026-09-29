@@ -1600,8 +1600,11 @@ export default function App() {
             </p>
           </div>
           {/* Signature : projet perso, code ouvert, et un contact direct pour les
-              questions ou les demandes particulières. */}
-          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:justify-end">
+              questions ou les demandes particulières.
+              ⚠️ Au bureau, les trois liens EN COLONNE, alignés à droite
+              (Thomas : « met sur une colonne le github la version et le
+              discord ») ; au téléphone, sur une ligne, inchangé. */}
+          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:flex-col lg:items-end lg:gap-y-0.5">
             <a
               href="https://github.com/tototriou/sw-forge"
               target="_blank"

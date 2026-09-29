@@ -85,6 +85,10 @@ trois mentions). Question posée, réponse : « une rangée, comme la toile ».
   Les libellés longs restent au bureau, l'infobulle garde la phrase entière.
 - Police du texte au lieu de la mono ; filet `border-soft` au-dessus.
 - Mêmes phrases, mêmes liens : inventaire sans perte.
+- Puis, Thomas : « met sur une colonne le github la version et le
+  discord » — au bureau, les trois liens en colonne, alignés à droite
+  (`lg:flex-col lg:items-end`) : **79 px**. Téléphone inchangé (145 px),
+  la demande visant la rangée du bureau.
 
 Vérifié : `tsc` ; `node tests/run.mjs rendu refonte` → 829 ; inventaire ;
 build ; app construite à 1440, 390 et 360 px, sans débordement.

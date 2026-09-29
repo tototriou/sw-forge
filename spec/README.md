@@ -362,8 +362,9 @@ Le cadre commun (nav, routing par hash, footer) vit dans
 - **Pied de page — une rangée, comme la toile** (rebranding R4, Thomas : « le
   pied de page commence à être vraiment gros ») : au bureau, logo à gauche,
   mentions au centre (données locales ; © Com2uS, source SWARFARM, projet non
-  officiel), liens à droite (GitHub, version, Discord) — 61 px de haut, il en
-  empilait cinq lignes. Au téléphone, une colonne centrée : logo, liens sur
+  officiel), liens à droite, **en colonne** (GitHub, version, Discord ; Thomas :
+  « met sur une colonne le github la version et le discord ») — 79 px de haut,
+  il empilait cinq lignes. Au téléphone, une colonne centrée : logo, liens sur
   une ligne en libellés courts (« GitHub », « Discord »), mentions. Police du
   texte, plus la mono.
 - Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.

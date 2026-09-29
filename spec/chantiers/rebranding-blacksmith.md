@@ -103,7 +103,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R2 nom et logo | J | **validé par Thomas** (« continues », image de partage comprise) | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
 | R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | **validé par Thomas** (« ok continues ») | 2026-09-29, [lot-R2bis.md](rebranding-preuves/lot-R2bis.md) |
 | R3 `src/ui/` aux planches « Composants » | J | **fait** — relevé `dc9bee00`, R3a `012f7baa`, R3b `766258e1`, R3c `39a4c0af` ; relecture de Thomas en attente | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 à 7 |
-| R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | à faire | |
+| R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | fait — relecture de Thomas en attente | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
 | R5 Accueil (bureau et téléphone) | J | à faire | |
 | R6 Siège et Recommandations | J | à faire | |
 | R7 RTA | J | à faire | |
@@ -195,6 +195,21 @@ Progresse ». Elle ne vient pas de la toile.
 25. **Le symbole est redessiné en SVG** d'après l'image (il n'existe qu'en
     rendu), et montré à Thomas avant d'être posé.
 26. **La devise va sur l'image de partage.**
+
+**27 à 30 — les questions du R4 (Thomas, 2026-09-29)**, planches dans
+`rebranding-preuves/lot-R4-icones*.png` :
+
+27. **Icônes de navigation** : celles de la toile, plus, choisies sur trois
+    planches successives (toutes les premières propositions retouchées à sa
+    demande) : coupe (Arène), tenailles (Outils), compas (Optimizer), œuf fêlé
+    (Monstres), deux compagnons (Ami), chronomètre (Speed tuning), médaillon
+    actuel (Artéfacts).
+28. **Paramètres prend les curseurs « Réglages » de la toile** ; l'engrenage
+    va à Mécaniques.
+29. **L'entrée active de la barre latérale est en braise** (fond braise
+    sombre, texte et icône en braise).
+30. **Le pied de page prend le logo et la mention** « Projet non officiel,
+    sans affiliation avec Com2uS. » ; rien n'en est retiré.
 
 ## Partie B — les lots
 
@@ -354,7 +369,28 @@ CSS construit ; relecture de Thomas dans les deux thèmes.
 **Ne fait pas** : le bouton « chargement » (spinner + « En cours ») de la
 toile — aucun écran ne l'emploie : il monte au premier usage réel, pas avant.
 
-### R4 à R9
+### R4 — la coquille · J
+
+**Écrit au démarrage (2026-09-29)**. Intrant : planche « Icônes » et
+planche 3 « Navigation et structure » de la toile ; `App.tsx` (constantes de
+nav, pied de page), `Sidebar.tsx`, `SidebarCompte.tsx`, `TopBar.tsx`,
+`SettingsMenu.tsx`, `pages/ComingSoon.tsx`. Décisions 9, 27 à 30.
+- Icônes de nav : un composant `IconesAtelier.tsx`, au contrat de lucide.
+- ⚠️ `InventaireIcon.tsx` est un **chemin interdit** (rendus du jeu à
+  l'identique, refonte A.2) : il n'est pas touché ; la nav a ses propres
+  icônes des trois inventaires.
+- **Hors R4** : les icônes posées DANS les écrans (état vide du Siège et des
+  recommandations, en-tête du Speed tuning, Bestiaire…) — elles suivent leurs
+  lots d'écran, R5 à R9. Les hauteurs de la barre du haut (48) et des
+  onglets gardent notre densité (décision 17).
+
+**Résultat (2026-09-29)** — preuve [lot-R4.md](rebranding-preuves/lot-R4.md).
+Icônes posées dans la barre latérale, les onglets du téléphone, le panneau de
+navigation, le fil d'Ariane, la page Arène et le pied de page ; entrée active
+en braise ; curseurs pour Paramètres (la rotation de l'engrenage retirée, le
+fond et le libellé portent l'état) ; logo et mention en pied de page.
+
+### R5 à R9
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

@@ -13,6 +13,7 @@ import Pager from './Pager';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
+import Pastille from '../../ui/Pastille';
 import Selecteur from '../../ui/Selecteur';
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
@@ -82,7 +83,17 @@ export const signed = (g: number, metric: 'eff' | 'score') =>
 export const effColor = (e: number, base: number) =>
   e > base + 0.05 ? 'text-good' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
 
-export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onFermerMenu }: Props) {
+// Valeur de filtre d'une rune SANS marqueur. Les marqueurs du jeu vont de 1 à 8.
+const SANS_MARQUEUR = 0;
+
+export default function RunesOptim({
+  runes,
+  crafts,
+  usedRuneIds,
+  runeMarkerLabels,
+  menuOuvert,
+  onFermerMenu,
+}: Props) {
   const [threshold, setThreshold] = useStickyState('optim.threshold', 100);
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const [sort, setSort] = useStickyState<SortMode>('optim.sort', 'effCur');
@@ -98,6 +109,26 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
   // aucun coché = rien.
   const [sets, setSets] = useStickyState<Set<string>>('optim.sets', new Set(runes.map((r) => r.set)));
   const [slots, setSlots] = useStickyState<Set<number>>('optim.slots', new Set([1, 2, 3, 4, 5, 6]));
+  // Marqueurs posés en jeu (voir `RuneDetail.marker`). ⚠️ **On retient ce qui
+  // est EXCLU**, pas ce qui est affiché — à l'inverse des sets : un marqueur
+  // qui apparaît au réimport suivant doit s'afficher, pas arriver décoché en
+  // silence. Vide = tout affiché, le défaut.
+  const [marqueursExclus, setMarqueursExclus] = useStickyState<Set<number>>(
+    'optim.marqueursExclus',
+    new Set()
+  );
+  // Les choix proposés : les marqueurs réellement posés dans l'inventaire, et
+  // « Sans marqueur ». Proposer un marqueur que ne porte aucune rune ne filtre rien.
+  const choixMarqueurs = useMemo(() => {
+    const presents = new Set<number>();
+    for (const r of runes) if (r.marker !== undefined) presents.add(r.marker);
+    return presents.size === 0 ? [] : [...Array.from(presents).sort((a, b) => a - b), SANS_MARQUEUR];
+  }, [runes]);
+  // Une exclusion qui ne vise aucun choix présent (marqueur retiré en jeu
+  // depuis) ne compte pas : elle ne retire rien.
+  const nbMarqueursExclus = choixMarqueurs.filter((k) => marqueursExclus.has(k)).length;
+  const libelleMarqueur = (k: number) =>
+    k === SANS_MARQUEUR ? 'Sans marqueur' : runeMarkerLabels[k] ?? `Marqueur ${k}`;
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<number | null>(null);
   const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
@@ -220,10 +251,24 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
           (!filtreUtilisees || utilisees.has(r.rune.id)) &&
           sets.has(r.rune.set) &&
           slots.has(r.rune.slot) &&
+          (nbMarqueursExclus === 0 || !marqueursExclus.has(r.rune.marker ?? SANS_MARQUEUR)) &&
           (!faisable || faisable.has(r.id))
       )
       .sort((a, b) => signe * (val(b.pot) - val(a.pot)));
-  }, [rows, threshold, sort, ancient, sets, slots, faisable, filtreUtilisees, utilisees, sens]);
+  }, [
+    rows,
+    threshold,
+    sort,
+    ancient,
+    sets,
+    slots,
+    nbMarqueursExclus,
+    marqueursExclus,
+    faisable,
+    filtreUtilisees,
+    utilisees,
+    sens,
+  ]);
 
   // ⚠️ Le palier est exprimé DANS la mesure courante : « 100 » ne veut pas dire
   // la même chose en efficience et en score. Changer de mesure sans convertir
@@ -415,6 +460,43 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
           }}
         />
 
+        {/* Marqueurs posés en jeu — DANS la page aux deux formats, comme sets
+            et slot : c'est un critère de sélection des runes, pas un réglage du
+            calcul. Libellés tels que saisis en jeu, sinon le numéro.
+            ⚠️ Masqué quand aucune rune ne porte de marqueur : export sans
+            marqueurs, ou compte conservé avant leur lecture. Un filtre qui ne
+            peut rien retirer n'aide personne. */}
+        {choixMarqueurs.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="label mr-1">Marqueurs</span>
+            {/* Bascule TOUT / RIEN en tête, comme la tuile « Tout » des sets :
+                pour n'en garder qu'un, on vide puis on coche celui-là. */}
+            <Pastille
+              actif={nbMarqueursExclus === 0}
+              onClick={() => {
+                setMarqueursExclus(nbMarqueursExclus === 0 ? new Set(choixMarqueurs) : new Set());
+                setPage(0);
+              }}
+              title={nbMarqueursExclus === 0 ? 'Tout désélectionner' : 'Tout sélectionner'}
+              libelle="Tous"
+            />
+            {choixMarqueurs.map((k) => (
+              <Pastille
+                key={k}
+                actif={!marqueursExclus.has(k)}
+                onClick={() => {
+                  const next = new Set(marqueursExclus);
+                  next.has(k) ? next.delete(k) : next.add(k);
+                  setMarqueursExclus(next);
+                  setPage(0);
+                }}
+                title={k === SANS_MARQUEUR ? 'Runes sans marqueur' : `Marqueur ${k}`}
+                libelle={libelleMarqueur(k)}
+              />
+            ))}
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
           <span className="label">Trier par</span>
           <Selecteur
@@ -555,6 +637,13 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
                 Le reste de ton stock n'est pas affiché — améliorer une rune que personne ne porte ne change
                 aucun combat.
               </p>
+
+              <p className="mt-2">
+                <span className="text-ink font-semibold">Marqueurs</span> : les marqueurs que tu poses sur tes
+                runes en jeu, avec les noms que tu leur as donnés (un marqueur jamais nommé s'affiche par son
+                numéro). Tout est affiché par défaut ; décoche un marqueur pour l'exclure, ou « Tous » puis
+                un seul marqueur pour ne garder que lui.
+              </p>
           </HelpPopover>
         </div>
       </div>
@@ -576,6 +665,8 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
           {verifie && ' · faisables avec ma réserve'}
           {verifie && sansImmemoriaux && ' · sans immémoriaux'}
           {filtreUtilisees && ' · utilisées'}
+          {nbMarqueursExclus > 0 &&
+            ` · ${nbMarqueursExclus} marqueur${nbMarqueursExclus > 1 ? 's' : ''} exclu${nbMarqueursExclus > 1 ? 's' : ''}`}
         </p>
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
       </div>
@@ -614,7 +705,8 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
           {ancient !== 'all' && (ancient === 'without' ? ' hors antiques' : ' parmi les antiques')}
           {filtreUtilisees && ' parmi tes runes utilisées'}. Baisse le palier
           {ancient !== 'all' ? ' ou repasse sur « Toutes »' : ''}
-          {filtreUtilisees ? ' ou désactive « Runes utilisées »' : ''} pour en voir plus.
+          {filtreUtilisees ? ' ou désactive « Runes utilisées »' : ''}
+          {nbMarqueursExclus > 0 ? ' ou réaffiche tous les marqueurs' : ''} pour en voir plus.
         </p>
       )}
 

@@ -969,6 +969,32 @@ dans la page**, à tous les formats.
 - ⚠️ Au **bureau, rien ne change** : les six restent visibles dans la rangée
   de filtres. Le panneau n'existe que sous `lg`.
 
+### « Marqueurs » — le filtre des marqueurs posés en jeu
+
+Une rangée de `Pastille` intitulée **Marqueurs**, dans la rangée de filtres
+**de la page** aux deux formats, comme sets et slot. C'est un critère de
+sélection des runes, pas un réglage du calcul : il ne descend pas dans le
+panneau « Options ».
+
+- **Une pastille par marqueur réellement posé** dans l'inventaire, plus « Sans
+  marqueur ». Le libellé est **celui saisi en jeu**, tel quel. Un marqueur jamais
+  nommé s'affiche « Marqueur N ». Données : `RuneDetail.marker` et
+  `runeMarkerLabels`, voir
+  [shared/import-compte.md](../shared/import-compte.md).
+- **Tout affiché par défaut.** Décocher une pastille exclut ses runes. La
+  pastille **« Tous »**, en tête, bascule tout / rien comme la tuile « Tout » des
+  sets : pour ne garder qu'un marqueur, on vide puis on coche celui-là.
+- ⚠️ **L'état retient ce qui est EXCLU** (`optim.marqueursExclus`), pas ce qui est
+  affiché, à l'inverse des sets. Un marqueur qui apparaît au réimport suivant
+  doit s'afficher, pas arriver décoché en silence. Une exclusion qui ne vise
+  plus aucun marqueur présent ne compte pas.
+- **Masquée quand aucune rune ne porte de marqueur** (export sans marqueurs,
+  compte conservé avant leur lecture) : un filtre qui ne peut rien retirer
+  n'aide personne.
+- Le compteur rappelle « · N marqueurs exclus », et le message de liste vide
+  propose de réafficher tous les marqueurs.
+- Il **se cumule** avec tous les autres filtres.
+
 ### « Runes utilisées » — le filtre qui regarde les decks
 
 Un compte de 3 000 runes n'en fait jouer qu'un tiers ; les autres dorment dans le

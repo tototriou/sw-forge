@@ -570,6 +570,37 @@ export default function SiegeBoard({
             />
             </div>
           ))}
+          {/* ⚠️ **La carte d'ajout, en fin de grille** (rebranding, décision 41,
+              la toile) — en plus du bouton de l'en-tête, pas à sa place.
+              BUREAU seulement : le téléphone ajoute depuis « Options »
+              (décision 45).
+              - Elle est la PLACE de la nouvelle équipe : l'équipe naît
+                exactement là où l'on a cliqué, et la carte passe à la case
+                suivante. Rien d'autre ne bouge, donc AUCUN défilement — au
+                contraire du bouton d'en-tête, qui va chercher une équipe née
+                hors de vue.
+              - `self-stretch` : à côté d'une équipe, elle en prend la hauteur ;
+                seule sur sa ligne, `min-h-36` la tient à la hauteur d'une
+                carte repliée.
+              - Désactivée pendant une recherche : une équipe vide n'y
+                apparaîtrait pas, et la carte promet de la montrer ici. */}
+          <Bouton
+            onClick={() => siege.addTeam()}
+            disabled={filtre}
+            title={
+              filtre
+                ? "Vide la recherche pour ajouter une équipe ici : une équipe vide n'y apparaîtrait pas"
+                : 'Ajouter une équipe à la fin de la liste'
+            }
+            fond="vide"
+            trait="pointille"
+            taille="carre"
+            icone={<Plus size={22} />}
+            libelle="Ajouter une équipe"
+            // ⚠️ `lg:text-sm` et non `text-sm` : le `text-xs` de la taille
+            // `carre` vient APRÈS `text-sm` dans le CSS construit et l'emportait.
+            className="hidden min-h-36 w-full flex-col gap-2 self-stretch rounded-xl p-4 lg:inline-flex lg:text-sm"
+          />
         </div>
       )}
 

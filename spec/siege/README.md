@@ -137,6 +137,21 @@ automatiquement** jusqu'à elle (`scrollIntoView`, `behavior: 'smooth'`,
 rendue porte une `ref`, et un flag `scrollToLast` déclenche le scroll au rendu
 suivant.
 
+**Au bureau, une carte en pointillés « Ajouter une équipe » termine la
+grille** (rebranding, décision 41 — la toile), en plus du bouton de
+l'en-tête. Le téléphone n'en a pas : il ajoute depuis « Options »
+(décision 45).
+- ⚠️ **Elle est la place de la nouvelle équipe** : l'équipe naît exactement là
+  où l'on a cliqué, la carte passe à la case suivante. Donc **aucun
+  défilement** — contrairement au bouton d'en-tête, dont l'équipe naît hors de
+  vue.
+- Même hauteur qu'une équipe à côté d'elle (`self-stretch`), celle d'une carte
+  repliée seule sur sa ligne.
+- **Désactivée pendant une recherche**, avec la raison en infobulle : une
+  équipe vide n'y apparaîtrait pas, alors que la carte promet de la montrer
+  là. Ni l'état vide ni « aucune équipe trouvée » ne l'affichent : ils n'ont
+  pas de grille.
+
 ### ⚠️ Supprimer une équipe demande confirmation
 
 Le bouton **Supprimer** est juste à côté d'**Éditer**, qu'on utilise sans arrêt,

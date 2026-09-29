@@ -69,6 +69,8 @@ import {
   pointsAuraResPrePropres,
   MonsterWideDamageModifiers,
   PassifOffensifProfile,
+  STAT_DE_L_AURA,
+  SetAura,
   SkillDamageProfile,
   computeTotalDamage,
 } from './damage';
@@ -1502,34 +1504,59 @@ export function filterSlot(
 // Deux runes du MÊME set sont toujours interchangeables (pièce pour pièce, y
 // compris deux jokers) : aucun compte de pièces ne change. Entre deux sets
 // DIFFÉRENTS, la dominance reste générique pour les sets hors combo, sauf
-// quand le remplacement peut changer les sets actifs — trois faux rejets
+// quand le remplacement peut changer un résultat qui compte — faux rejets
 // prouvés par l'oracle de `rune-optim-auras-coupes.test.ts` (6bis-b3b) :
-//  - un set à bonus de fiche (Blade…) ou une aura (Fight au score,
-//    Tolerance/Accuracy aux conditions RES/PRE) peut s'activer sur les
-//    emplacements libres ;
-//  - un set SANS effet compte encore pour le joker : l'Intangible ne complète
-//    un set que s'il est le seul incomplet (`activeSets`). Rage + Intangible
-//    + Will + Will est valide ; Will remplacé par Violent laisse trois sets
-//    incomplets, Rage n'est plus complété.
+//  - un set à bonus de fiche (Blade…) ou une aura qui peut s'activer sur les
+//    emplacements libres, SI sa stat est UTILE : une condition min/max (pour
+//    une aura, seulement RES/PRE et toggle actif — PV/ATQ/DEF n'entrent dans
+//    aucune condition) ou une stat de l'objectif. Le Taux Crit compte pour
+//    « Dégâts réels » même hors `objectiveKeysOf` (qui l'exclut pour la
+//    rétention) : il pèse sur les dégâts en mode Moyenne. Un bonus de PRE
+//    (Focus) sans condition PRE ni objectif qui la lise ne protège rien ;
+//  - tout set, même sans effet utile, compte encore pour le joker :
+//    l'Intangible ne complète un set que s'il est le seul incomplet
+//    (`activeSets`). Rage + Intangible + Will + Will est valide ; Will
+//    remplacé par Violent laisse trois sets incomplets.
 // Un set qui ne peut JAMAIS être complet sur les emplacements libres (4 pièces
-// pour 2 libres) échappe aux deux risques : ni bonus, ni joker ne dépendent
-// de lui. Les sets demandés et l'Intangible ne se comparent qu'entre eux.
+// pour 2 libres) échappe aux deux risques. Les sets demandés et l'Intangible
+// ne se comparent qu'entre eux.
+// ⚠️ Conséquence assumée : l'optimum n'est garanti que pour les conditions,
+// l'objectif et l'efficience — un tri après coup sur une AUTRE stat peut
+// manquer un build qu'un bonus de set inutile à la recherche aurait porté.
 export interface ContexteDominance {
   // Sets hors combo dont une rune peut être remplacée par une rune d'un autre
-  // set de la liste sans changer aucun set actif.
+  // set de la liste sans changer aucune stat utile ni la validité du build.
   interchangeables: ReadonlySet<string>;
 }
 
-export function contexteDominance(requirement: BuildRequirement, pool: RuneDetail[]): ContexteDominance {
+export function contexteDominance(
+  requirement: BuildRequirement,
+  pool: RuneDetail[],
+  objective: Objective | undefined,
+  objectiveStats: StatKey[] | undefined
+): ContexteDominance {
   const libres = Math.max(0, MAX_SET_PIECES - setsCost(requirement.sets));
   const demandes = new Set(requirement.sets);
   const jokerPossible = pool.some((r) => r.set === INTANGIBLE_SET);
+  const conditions = new Set<string>(
+    [...Object.entries(requirement.minStats), ...Object.entries(requirement.maxStats ?? {})]
+      .filter(([, v]) => v != null && v > 0)
+      .map(([k]) => k)
+  );
+  const objectif = new Set<string>([...objectiveKeysOf(objective, objectiveStats), ...(objective === 'degats_reels' ? ['cr'] : [])]);
+  const effetUtile = (set: string): boolean => {
+    const bonus = SET_STAT_BONUS[set];
+    if (bonus) return conditions.has(bonus.stat) || objectif.has(bonus.stat);
+    if (!(set in STAT_DE_L_AURA)) return false;
+    const stat = STAT_DE_L_AURA[set as SetAura];
+    const enCondition = (stat === 'res' || stat === 'acc') && requirement.auraResPre?.compter === true && conditions.has(stat);
+    return enCondition || objectif.has(stat);
+  };
   const interchangeables = new Set<string>();
   for (const set of new Set(pool.map((r) => r.set))) {
     if (set === INTANGIBLE_SET || demandes.has(set)) continue;
     const jamaisComplet = setPieces(set) > libres;
-    const sansEffet = !(set in SET_STAT_BONUS) && !(set in AUCUNE_AURA_PROPRE);
-    if (jamaisComplet || (sansEffet && !jokerPossible)) interchangeables.add(set);
+    if (jamaisComplet || (!effetUtile(set) && !jokerPossible)) interchangeables.add(set);
   }
   return { interchangeables };
 }
@@ -3100,7 +3127,6 @@ interface MinMaxContext {
   maxEntries: { k: StatKey; max: number }[];
   constrainedKeys: StatKey[];
   maxKeys: Set<StatKey>;
-  dominance: ContexteDominance;
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
   // Réservé aux vérifications de MINIMUM — `guaranteed` + le bonus qu'un set
   // NON demandé, OU DÉJÀ demandé mais activable PLUS de fois que le minimum,
@@ -3211,7 +3237,6 @@ function deriveMinMaxContext(
     .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
   const constrainedKeys = Array.from(new Set([...minEntries.map((e) => e.k), ...maxEntries.map((e) => e.k)]));
   const maxKeys = new Set(maxEntries.map((e) => e.k));
-  const dominance = contexteDominance(requirement, pool);
   const guaranteed = guaranteedSetBonus(requirement, base);
   const guaranteedMin = mergeBonus(
     mergeBonus(guaranteed, additionalSetActivationHeadroom(pool, requirement, base)),
@@ -3253,7 +3278,7 @@ function deriveMinMaxContext(
     return relicRelache && estPct(k) ? Math.floor(((baseRec[k] ?? 0) * (relPctMin[k] ?? 0)) / 100) : 0;
   }
   return {
-    minEntries, maxEntries, constrainedKeys, maxKeys, dominance, guaranteed, guaranteedMin,
+    minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin,
     artFlatMax, artFlatMin, artPossibles, artFlatFige: figee,
     relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
   };
@@ -3399,6 +3424,11 @@ export function poolMinSlotSafe(
   relic: RelicDetail | undefined,
   pool: RuneDetail[],
   requirement: BuildRequirement,
+  // L'objectif de la recherche : la dominance protège les bonus de set
+  // utiles à ses stats (`contexteDominance`) — le même que `prepareSearch`,
+  // sinon le diagnostic élaguerait autrement que la recherche.
+  objective: Objective | undefined,
+  objectiveStats: StatKey[] | undefined,
   artifactBounds?: SearchParams['artifactBounds'],
   // Même borne relique que la recherche (lot 5a) — les trois consommateurs
   // reçoivent le même contexte, sinon le diagnostic prouverait une
@@ -3406,8 +3436,9 @@ export function poolMinSlotSafe(
   relicContext?: RelicContext
 ): number {
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds, relicContext);
+  const dominance = contexteDominance(requirement, pool, objective, objectiveStats);
   let bySlot = mainStatFilteredBySlot(pool, requirement);
-  bySlot = bySlot.map((list) => pruneDominated(list, ctx.maxKeys, ctx.dominance));
+  bySlot = bySlot.map((list) => pruneDominated(list, ctx.maxKeys, dominance));
   bySlot = eliminateInfeasible(
     bySlot,
     ctx.minEntries,
@@ -3430,7 +3461,7 @@ export function rankBlockingConditions(params: SearchParams): BlockingConditions
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return { baselineMinSlot: 0, impacts: [] };
 
   function poolMinSlot(req: BuildRequirement): number {
-    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.artifactBounds, params.relicContext);
+    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.objective, params.objectiveStats, params.artifactBounds, params.relicContext);
   }
 
   // Borne pour la recherche côté MAXIMUM : le plus grand total qu'un pool
@@ -3718,7 +3749,8 @@ export function prepareSearch(
   const startedAt = Date.now();
 
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, relicContext);
-  const { minEntries, maxEntries, constrainedKeys, maxKeys, dominance, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
+  const { minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
+  const dominance = contexteDominance(requirement, pool, params.objective, params.objectiveStats);
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »

@@ -2056,12 +2056,20 @@ différent, coopératif (voir « Interruption »).
     slot (sur toutes les stats suivies, avantage strict quelque part) ne
     sert jamais à rien. Deux runes du même set se comparent toujours ; un set
     demandé ou l'Intangible ne se compare qu'à lui-même. Hors combo, la
-    comparaison reste générique, sauf pour un set qui pourrait changer les
-    sets actifs du build (lot 6bis-b3b) : un set à bonus ou une aura qui peut
-    s'activer sur les emplacements libres, et — dès qu'une Intangible est
-    disponible — tout set qui peut s'y compléter, puisque le joker ne
+    comparaison reste générique, sauf pour un set qui pourrait changer ce
+    qui compte pour la recherche (lot 6bis-b3b) : un set à bonus ou une aura
+    qui peut s'activer sur les emplacements libres **et dont la stat est
+    utile** — une condition minimum ou maximum (pour une aura, seulement
+    RES/PRE avec l'interrupteur activé), ou une stat de l'objectif, Taux
+    Crit compris en « Dégâts réels » ; et, dès qu'une Intangible est
+    disponible, tout set qui peut s'y compléter, puisque le joker ne
     complète un set que s'il est le seul incomplet. Un set qui ne peut jamais
     y être complet (4 pièces pour 2 emplacements libres) reste comparable.
+    En « Dégâts réels » avec des minimums ATQ, Taux Crit et Dgts Crit, une
+    Blade dominée reste donc, un Focus dominé part. ⚠️ L'optimum n'est
+    garanti que pour les conditions, l'objectif et l'efficience : un tri
+    après coup sur une autre stat peut manquer un build qu'un bonus de set
+    inutile à la recherche aurait porté.
     ⚠️ Sur une stat PLAFONNÉE (un maximum est
     demandé dessus), le sens s'inverse — seule l'égalité stricte y est sûre
     à comparer.

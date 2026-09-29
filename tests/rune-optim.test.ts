@@ -640,18 +640,18 @@ export default function testRuneOptim() {
     // minimum demandé DIMINUE.
     let previous = -1;
     for (let t = 225; t >= 0; t--) {
-      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: t } });
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: t } }, undefined, undefined);
       ok(size >= previous, `poolMinSlot ne doit jamais décroître quand minStats.spd diminue (t=${t} → ${size}, précédent ${previous})`);
       previous = size;
     }
 
     // 2) Oracle par balayage exhaustif : le plus petit delta (le seuil le
     // plus PROCHE de 225) qui fait grandir le pool au-delà de la baseline.
-    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, requirement);
+    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, requirement, undefined, undefined);
     egal(baseline, 0, 'à spd=225, aucune variante (max 220) ne passe → pool vide');
     let oracleDelta: number | null = null;
     for (let delta = 1; delta <= 225; delta++) {
-      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: 225 - delta } });
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: 225 - delta } }, undefined, undefined);
       if (size > baseline) {
         oracleDelta = delta;
         break;
@@ -692,16 +692,16 @@ export default function testRuneOptim() {
 
     let previous = -1;
     for (let t = 95; t <= 200; t++) {
-      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: t } });
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: t } }, undefined, undefined);
       ok(size >= previous, `poolMinSlot ne doit jamais décroître quand maxStats.atk augmente (t=${t} → ${size}, précédent ${previous})`);
       previous = size;
     }
 
-    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, requirement);
+    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, requirement, undefined, undefined);
     egal(baseline, 0, 'à atk≤95, même la variante ATQ%=0 (total 100) dépasse déjà le plafond → pool vide');
     let oracleDelta: number | null = null;
     for (let delta = 1; delta <= 105; delta++) {
-      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: 95 + delta } });
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: 95 + delta } }, undefined, undefined);
       if (size > baseline) {
         oracleDelta = delta;
         break;

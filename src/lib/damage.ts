@@ -3253,6 +3253,17 @@ export const CRIT_MODE_LABELS: { key: CritMode; label: string }[] = [
 // d'un monstre chargé ici — seulement ce que l'utilisateur a saisi.
 export type SetAura = 'fight' | 'determination' | 'enhance' | 'accuracy' | 'tolerance';
 
+// La statistique que chaque aura augmente (cadrage degats-et-aura, A.2 ter :
+// Fight → ATQ, Determination → DEF, Enhance → PV, Accuracy → PRE,
+// Tolerance → RES), la même que `statsDebutCombat` applique.
+export const STAT_DE_L_AURA: Readonly<Record<SetAura, 'atk' | 'def' | 'hp' | 'acc' | 'res'>> = {
+  fight: 'atk',
+  determination: 'def',
+  enhance: 'hp',
+  accuracy: 'acc',
+  tolerance: 'res',
+};
+
 export interface DamageSetup {
   // `null` = « le sort par défaut » (voir `defaultDamageSkill`) : une recette
   // partagée reste valable même si son auteur et son lecteur n'optimisent pas

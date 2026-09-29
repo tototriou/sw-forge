@@ -34,6 +34,7 @@ import { StatKey } from '../src/lib/effects';
 import {
   BuildRequirement,
   artifactFlatBonus,
+  avecAurasConditions,
   contexteDominance,
   eliminateInfeasible,
   filterSlot,
@@ -82,7 +83,11 @@ function pipelineHistorique(
     .map((k) => ({ k, max: requirement.maxStats?.[k] }))
     .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
-  const step2 = step1.map((list) => pruneDominated(list, maxKeys, contexteDominance(requirement, pool)));
+  // La dominance de production, avec le contexte que la recette du harnais
+  // lui donne (toggle RES/PRE actif, objectif du cas) : cet étage doit rester
+  // IDENTIQUE entre les deux chemins.
+  const dominance = contexteDominance(avecAurasConditions(requirement, DEFAULT_DAMAGE_SETUP, true), pool, objective, undefined);
+  const step2 = step1.map((list) => pruneDominated(list, maxKeys, dominance));
 
   const minEntries = statKeys
     .map((k) => ({ k, min: requirement.minStats[k] }))

@@ -29,7 +29,7 @@ import {
   rankBlockingConditions,
   searchBuilds,
 } from '../src/lib/runeBuildOptim';
-import type { SearchParams, SearchResult, TraceCandidat } from '../src/lib/runeBuildOptim';
+import type { Objective, SearchParams, SearchResult, TraceCandidat } from '../src/lib/runeBuildOptim';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import type { BaseStats, RuneDetail } from '../src/types';
 
@@ -50,6 +50,10 @@ interface Cas {
   maxStats?: Partial<Record<StatKey, number>>;
   externes?: Partial<Record<SetAura, number>>;
   compter: boolean;
+  // L'objectif et SES stats, toujours explicites : l'oracle n'appelle pas
+  // `objectiveKeysOf`.
+  objective?: Objective;
+  objectiveStats?: StatKey[];
 }
 
 interface BuildOracle {
@@ -99,7 +103,21 @@ function evaluer(cas: Cas, runes: RuneDetail[]): { cond: Record<StatKey, number>
     cr: total('cr'),
     cd: total('cd'),
   };
+  for (const k of CLES) crit[`cond.${k}`] = cond[k];
   return { cond, crit, setsOk: setsSatisfaits(cas.sets, actifs) };
+}
+
+// Les critères sur lesquels la dominance DOIT conserver l'optimum :
+// l'efficience (toujours comparée), les stats des conditions (telles que les
+// lisent les conditions) et celles de l'objectif (avec ses auras de combat ;
+// le Taux Crit en « Dégâts réels »). Un tri après coup sur une autre stat
+// n'est pas garanti (choix produit, 6bis-b3b).
+const CRITERE_OBJECTIF: Record<StatKey, string> = { atk: 'atkCombat', def: 'defCombat', hp: 'hpCombat', res: 'resCombat', acc: 'accCombat', spd: 'spd', cr: 'cr', cd: 'cd' };
+function criteresUtiles(cas: Cas): string[] {
+  const out = new Set<string>(['eff']);
+  for (const [k, v] of [...Object.entries(cas.minStats ?? {}), ...Object.entries(cas.maxStats ?? {})]) if (v != null && v > 0) out.add(`cond.${k}`);
+  for (const k of [...(cas.objectiveStats ?? []), ...(cas.objective === 'degats_reels' ? ['cr' as StatKey] : [])]) out.add(CRITERE_OBJECTIF[k]);
+  return [...out];
 }
 
 function respecte(cas: Cas, cond: Record<StatKey, number>): boolean {
@@ -152,7 +170,7 @@ function parametres(cas: Cas, extra: Partial<SearchParams> = {}): SearchParams {
   const requirement = avecAurasConditions({ sets: cas.sets, minStats: cas.minStats ?? {}, maxStats: cas.maxStats }, setup, cas.compter);
   // Heuristiques NON contraignantes : pré-filtrage et rétention plus larges
   // que le pool, collecte et temps illimités en pratique.
-  return { base: BASE, artifacts: [], pool: cas.pool, requirement, metric: 'eff', maxMs: 120000, maxCollected: 1_000_000, slotFilterCap: 200, bucketCap: 100000, ...extra };
+  return { base: BASE, artifacts: [], pool: cas.pool, requirement, metric: 'eff', objective: cas.objective, objectiveStats: cas.objectiveStats, maxMs: 120000, maxCollected: 1_000_000, slotFilterCap: 200, bucketCap: 100000, ...extra };
 }
 
 // Première coupe traversée par un build (6 identifiants), lue dans la trace.
@@ -223,7 +241,7 @@ function verifier(cas: Cas, v: Verdict, exact: boolean) {
   if (exact) egal([...trouves].sort(), [...o.valides.keys()].sort(), `${cas.nom} : candidats EXACTS de l'oracle`);
   if (trouves.size > 0 && o.valides.size > 0) {
     const parCle = new Map([...o.valides.values()].map((b) => [b.cle, b]));
-    for (const critere of Object.keys([...o.valides.values()][0].crit)) {
+    for (const critere of criteresUtiles(cas)) {
       const meilleurOracle = Math.max(...[...o.valides.values()].map((b) => b.crit[critere]));
       const meilleurMoteur = Math.max(...[...trouves].map((c) => parCle.get(c)!.crit[critere]));
       ok(Math.abs(meilleurOracle - meilleurMoteur) < 1e-9, `${cas.nom} : optimum ${critere} conservé (moteur ${meilleurMoteur}, oracle ${meilleurOracle})`);
@@ -559,6 +577,7 @@ export function testRuneOptimAurasCoupesBladeIntangible() {
  * ----------------------------------------------------------------------- */
 
 const COMBOS: string[][] = [[], ['violent'], ['will'], ['tolerance'], ['fight', 'will'], ['violent', 'tolerance'], ['blade'], ['accuracy', 'shield'], ['energy']];
+const OBJECTIFS: [Objective | undefined, StatKey[] | undefined][] = [[undefined, undefined], ['degats_reels', ['atk', 'cd']], ['ehp', ['hp', 'def']], ['vitesse', ['spd']]];
 
 export function testRuneOptimAurasCoupesDifferentiel() {
   titre('Auras propres · différentiel aléatoire contre l\'oracle (seeds 6300..6359)');
@@ -584,7 +603,9 @@ export function testRuneOptimAurasCoupesDifferentiel() {
       if (t < 0.35) minStats[k] = Math.max(1, quantile(vals, 0.6 + 0.35 * rng()));
       else if (t < 0.55) maxStats[k] = Math.max(1, quantile(vals, 0.1 + 0.4 * rng()));
     }
-    const cas: Cas = { nom: `seed ${seed} sets=${JSON.stringify(sets)} toggle=${compter} ext=${JSON.stringify(externes)} min=${JSON.stringify(minStats)} max=${JSON.stringify(maxStats)}`, pool, sets, compter, externes, minStats, maxStats };
+    // Tiré APRÈS les conditions : la suite des tirages précédents est inchangée.
+    const [objective, objectiveStats] = OBJECTIFS[Math.floor(rng() * OBJECTIFS.length)];
+    const cas: Cas = { nom: `seed ${seed} sets=${JSON.stringify(sets)} toggle=${compter} ext=${JSON.stringify(externes)} min=${JSON.stringify(minStats)} max=${JSON.stringify(maxStats)} objectif=${objective ?? '—'}`, pool, sets, compter, externes, minStats, maxStats, objective, objectiveStats };
     const v = lancer(cas, {}, 25);
     verifier(cas, v, false);
     scenarios++;
@@ -623,30 +644,66 @@ export function testRuneOptimAurasCoupesDominance() {
   };
   verifier(max, lancer(max), true);
 
-  // Score : Fight non demandé n'est plus neutre. Will domine le Fight de
-  // l'emplacement 5 ; le meilleur build en ATQ de combat porte Fight ×2.
+  // Score : un objectif qui lit l'ATQ (« Dégâts réels » d'un sort à ATQ).
+  // Will domine le Fight de l'emplacement 5 ; le meilleur build en ATQ de
+  // combat porte Fight ×2 : le Fight est protégé.
   const fight: Cas = {
-    nom: 'Dominance Fight retiré (score)',
+    nom: 'Dominance Fight protégé (objectif ATQ)',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'fight', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'fight', [[1, 100]])],
-    sets: ['violent'], compter: true,
+    sets: ['violent'], compter: true, objective: 'degats_reels', objectiveStats: ['atk', 'cd'],
   };
   verifier(fight, lancer(fight), true);
 
   // Fight complété par l'Intangible.
   const fightJoker: Cas = {
-    nom: 'Dominance Fight + Intangible (score)',
+    nom: 'Dominance Fight + Intangible protégé (objectif ATQ)',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'fight', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'intangible', [[1, 100]])],
-    sets: ['violent'], compter: true,
+    sets: ['violent'], compter: true, objective: 'degats_reels', objectiveStats: ['atk', 'cd'],
   };
   verifier(fightJoker, lancer(fightJoker), true);
 
-  // Accuracy, toggle éteint : l'aura reste au score (PRE de combat).
-  const accEteint: Cas = {
-    nom: 'Dominance Accuracy, toggle éteint (score)',
+  // Le même Fight sous PV effectifs : l'ATQ n'est ni condition ni objectif,
+  // la dominance générique s'applique. Energy (PV) y reste protégée.
+  const ehp: Cas = {
+    nom: 'Dominance PV effectifs : Fight inutile retiré, Energy protégée',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'fight', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(35, 5, 'energy', [[3, 5]]), r(16, 6, 'energy', [[1, 100]]), r(26, 6, 'fight', [[1, 100]])],
+    sets: ['violent'], compter: true, objective: 'ehp', objectiveStats: ['hp', 'def'],
+  };
+  const vEhp = lancer(ehp);
+  verifier(ehp, vEhp, false);
+  egal([[...vEhp.trouves].some((c) => c.split(',')[4] === '15'), vEhp.trouves.has('1,2,3,4,35,16'), vEhp.motifs.get(DOMINANCE)], [false, true, 2],
+    'PV effectifs : le Fight dominé est retiré (2 builds, par la dominance), l\'Energy dominée reste et porte le meilleur PV');
+
+  // Ton exemple : « Dégâts réels » avec minimums ATQ, Taux Crit, Dgts Crit.
+  // Will domine un Focus et une Blade de l'emplacement 5 : la PRE du Focus
+  // ne sert à rien (retiré), le CR de la Blade si (gardée).
+  const focus: Cas = {
+    nom: 'Dominance dégâts réels : Focus inutile retiré, Blade protégée',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'focus', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(35, 5, 'blade', [[3, 5]]), r(16, 6, 'blade', [[1, 100]]), r(26, 6, 'focus', [[1, 100]])],
+    sets: ['violent'], compter: true, minStats: { atk: 700, cr: 15, cd: 50 }, objective: 'degats_reels', objectiveStats: ['atk', 'cd'],
+  };
+  const vF = lancer(focus);
+  verifier(focus, vF, false);
+  egal([[...vF.trouves].some((c) => c.split(',')[4] === '15'), vF.trouves.has('1,2,3,4,35,16'), vF.motifs.get(DOMINANCE)], [false, true, 2],
+    'dégâts réels : le Focus dominé est retiré (2 builds, par la dominance), la Blade dominée reste et porte CR 27');
+
+  // Accuracy : utile seulement si une condition PRE la lit, toggle actif.
+  const accUtile: Cas = {
+    nom: 'Dominance Accuracy protégée (min PRE 8, toggle actif)',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'accuracy', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'accuracy', [[1, 100]])],
+    sets: ['violent'], compter: true, minStats: { acc: 8 },
+  };
+  const vAU = lancer(accUtile);
+  verifier(accUtile, vAU, true);
+  cibleCollectee(accUtile, vAU, '1,2,3,4,15,16');
+  const accInutile: Cas = {
+    nom: 'Dominance Accuracy non utile (efficience, toggle éteint)',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'accuracy', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'accuracy', [[1, 100]])],
     sets: ['violent'], compter: false,
   };
-  verifier(accEteint, lancer(accEteint), true);
+  const vAI = lancer(accInutile);
+  verifier(accInutile, vAI, false);
+  egal([[...vAI.trouves], vAI.motifs.get(DOMINANCE)], [['1,2,3,4,25,16'], 1], 'Accuracy non utile : la rune dominée est retirée par la dominance, l\'efficience reste optimale');
 
   // Deux runes du MÊME set d'aura restent comparables : la moins bonne part.
   const memeSet: Cas = {

@@ -489,7 +489,7 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu initial `b9ff929` ↔ `473fe62` ; complément livré et intégré / 2026-09-28 |
 | 6bis-b1 — champ externe, recette et CLI | J | terminé, preuves rejouées par le pilote | `4622a02f` ; reçu `de9e893` ↔ `a38a410` / 2026-09-29 |
-| 6bis-b2 — aura propre et scores | J | terminé, preuves rejouées par le pilote ; Brita/Gideon à confirmer | `dbd4ee54` + `b0a2e84d` ; reçu `b0a2e84` ↔ `5e32fe6` / 2026-09-29 |
+| 6bis-b2 — aura propre et scores | J | terminé, preuves rejouées par le pilote ; Brita/Gideon confirmés par l'utilisateur | `dbd4ee54` + `b0a2e84d` ; reçu `b0a2e84` ↔ `5e32fe6` / 2026-09-29 |
 | 6bis-b3a — conditions exactes et filtre final | J | lançable | — |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | contre-vérifié, attend b3a | — |
 | 6bis-b4 — écran, Workers, caches et parité | J | contre-vérifié, lançable après b3b | — |
@@ -2583,10 +2583,10 @@ README privé L29 aligné, invariant RES/PRE des conditions marqué provisoire,
 écho CLI « pas encore dans les conditions ». Mutations rapportées par
 l'agent (double compte, deux `ceil`, note des couples, Brita/Gideon) : non
 rejouées par le pilote. `relicQueue.ts` inchangé, raccordé par
-`faireParams`. **Décision à confirmer par l'utilisateur :** `defCombat`
+`faireParams`. **Décision utilisateur du 2026-09-29 :** `defCombat`
 (Gideon) et `atkCombatComplet` (Brita) passent par `statsDebutCombat` et
-comptent donc les auras, en lecture de A.2 cible 2 (« les passifs ») ;
-aura nulle → valeurs inchangées. Non prouvé : écran non exécuté, effet sur
+comptent donc les auras externes et propres, comme les autres passifs
+(A.2 cible 2) ; aura nulle → valeurs inchangées. Non prouvé : écran non exécuté, effet sur
 le classement du compte réel (recherche EHP tronquée), Brita/Gideon sans
 relevé en jeu. Lectures ≈ 5 600 lignes, au-delà du repère, sans fichier
 lourd lu en entier.

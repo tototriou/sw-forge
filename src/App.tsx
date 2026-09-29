@@ -79,8 +79,11 @@ import {
   parseSiegeOffense,
   parseAccountBox,
   parseAccountInventory,
-  parseUsedRuneIds,
+  parseUsedRuneIdsParPerimetre,
+  parseRuneMarkerLabels,
   parseWizardId,
+  RunesUtilisees,
+  runesUtiliseesVides,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 import { reinitialiserSticky } from './hooks/useStickyState';
@@ -283,11 +286,14 @@ export default function App() {
   const [runes, setRunes] = useState<RuneDetail[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
   const [crafts, setCrafts] = useState<CraftLine[]>([]);
-  // Runes UTILISÉES (posées sur un monstre d'un deck ou en RTA — voir
-  // `parseUsedRuneIds`). ⚠️ Instancié ICI, comme le reste du compte : les decks
-  // ne vivent que dans l'export brut, cette liste est la seule trace qu'il en
-  // reste une fois l'import terminé.
-  const [usedRuneIds, setUsedRuneIds] = useState<number[]>([]);
+  // Runes UTILISÉES, par périmètre (posées sur un monstre d'un deck ou en RTA —
+  // voir `parseUsedRuneIdsParPerimetre`). ⚠️ Instancié ICI, comme le reste du
+  // compte : les decks ne vivent que dans l'export brut, cette liste est la
+  // seule trace qu'il en reste une fois l'import terminé.
+  const [usedRuneIds, setUsedRuneIds] = useState<RunesUtilisees>(runesUtiliseesVides);
+  // Libellés des marqueurs de runes (`parseRuneMarkerLabels`) — même raison :
+  // `markers` ne vit que dans l'export brut.
+  const [runeMarkerLabels, setRuneMarkerLabels] = useState<Record<number, string>>({});
 
   // Un nouveau compte importé (`appliquerImport`, `setBox` avec une NOUVELLE
   // référence) rend obsolètes les « Critères de recherche »/« Combinaisons
@@ -536,6 +542,7 @@ export default function App() {
         setArtifacts(rec.artifacts);
         setCrafts(rec.crafts);
         setUsedRuneIds(rec.usedRuneIds);
+        setRuneMarkerLabels(rec.runeMarkerLabels);
         setAccountExportedAt(rec.exportedAt);
         setAccountName(rec.wizardName ?? null);
       }
@@ -616,8 +623,9 @@ export default function App() {
     const boxRes = parseAccountBox(data);
     const invRes = parseAccountInventory(data);
     // Tous les contenus où le joueur a posé des monstres (decks + RTA + siège),
-    // réduits aux runes qui y jouent.
-    const usedRunes = parseUsedRuneIds(data);
+    // réduits aux runes qui y jouent — rangés par périmètre.
+    const usedRunes = parseUsedRuneIdsParPerimetre(data);
+    const markerLabels = parseRuneMarkerLabels(data);
 
     const rtaItems = rtaRes.units ? mapRtaItems(rtaRes.units, monsterByCom2us) : [];
     const def = mapSiegeTeams(defRes.decks ?? [], monsterByCom2us);
@@ -680,6 +688,7 @@ export default function App() {
     setArtifacts(invRes.artifacts ?? []);
     setCrafts(invRes.crafts ?? []);
     setUsedRuneIds(usedRunes);
+    setRuneMarkerLabels(markerLabels);
 
     // Enregistrement **après** la mise à jour de l'affichage et sans attendre :
     // une écriture de 2 Mo ne doit pas retarder l'apparition du compte. Un échec
@@ -692,6 +701,7 @@ export default function App() {
         artifacts: invRes.artifacts ?? [],
         crafts: invRes.crafts ?? [],
         usedRuneIds: usedRunes,
+        runeMarkerLabels: markerLabels,
         exportedAt: exporte,
         wizardName: nomJoueur,
       });
@@ -770,6 +780,7 @@ export default function App() {
       artifacts,
       crafts,
       usedRuneIds,
+      runeMarkerLabels,
       exportedAt: accountExportedAt,
       wizardName: accountName,
     });
@@ -1340,6 +1351,7 @@ export default function App() {
             artifacts={artifacts}
             crafts={crafts}
             usedRuneIds={usedRuneIds}
+            runeMarkerLabels={runeMarkerLabels}
             loadState={data.loadState}
             hydrating={accountHydrating}
             // ⚠️ Le bestiaire COMPLET, pas seulement la box : la fiche d'un

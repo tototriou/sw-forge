@@ -162,6 +162,30 @@ const indexRunes = memoByData((data: any): ReadonlyMap<number, any> => {
   return runeById;
 });
 
+// Marqueur de chaque rune marquée : rune_id → `lock_type` (1..8), depuis
+// `rune_lock_list` au premier niveau de l'export.
+//
+// ⚠️ **Le marqueur n'est PAS dans l'objet rune** — ses clés sont les mêmes
+// partout, et `extra` y est la rareté. Il vit dans cette liste à part, de même
+// forme que `unit_marker_list` (marqueurs des monstres). Malgré le mot
+// « lock », ce n'est pas un simple verrou anti-vente : relevé sur un export
+// réel, 563 entrées couvrent les 8 valeurs.
+//
+// ⚠️ **Aucune valeur ne dit « aucun marqueur »** : une rune sans marqueur est
+// simplement ABSENTE de la liste. Chaque rune_id y figure au plus une fois
+// (vérifié sur deux exports réels).
+const indexRuneMarkers = memoByData((data: any): ReadonlyMap<number, number> => {
+  const m = new Map<number, number>();
+  if (Array.isArray(data?.rune_lock_list)) {
+    for (const e of data.rune_lock_list) {
+      const id = Number(e?.rune_id);
+      const type = Number(e?.lock_type);
+      if (Number.isFinite(id) && Number.isInteger(type) && type > 0) m.set(id, type);
+    }
+  }
+  return m;
+});
+
 // Index des unités possédées par unit_id.
 const indexUnits = memoByData((data: any): ReadonlyMap<number, any> => {
   const unitById = new Map<number, any>();
@@ -264,11 +288,14 @@ function subEffLine(eff: any): EffectLine {
   };
 }
 
-function runeToDetail(rune: any): RuneDetail {
+// `markers` : voir `indexRuneMarkers`. Une rune absente de l'index n'a pas de
+// marqueur — le champ reste alors absent, jamais à 0.
+function runeToDetail(rune: any, markers: ReadonlyMap<number, number>): RuneDetail {
   const subs = Array.isArray(rune?.sec_eff)
     ? rune.sec_eff.filter((e: any) => Number(e?.[0])).map(subEffLine)
     : [];
   const rar = Number(rune?.extra) || 0; // rareté com2us (champ `extra`, +10 si antique)
+  const marker = markers.get(Number(rune?.rune_id));
   return {
     id: Number(rune?.rune_id) || 0,
     slot: Number(rune?.slot_no) || 0,
@@ -279,6 +306,7 @@ function runeToDetail(rune: any): RuneDetail {
     main: effLine(rune?.pri_eff) ?? { code: 0, value: 0 },
     innate: effLine(rune?.prefix_eff),
     subs,
+    ...(marker !== undefined ? { marker } : {}),
   };
 }
 
@@ -379,11 +407,17 @@ function baseStatsOf(unit: any): BaseStats {
 
 // Assemble le GearSet d'un monstre dans un contexte donné : runes du preset,
 // artéfacts fournis (RTA ou box), relique de l'unité, stats de base.
-function buildGear(unit: any, runeIds: any[], artifactObjs: any[], runeById: ReadonlyMap<number, any>): GearSet {
+function buildGear(
+  unit: any,
+  runeIds: any[],
+  artifactObjs: any[],
+  runeById: ReadonlyMap<number, any>,
+  markers: ReadonlyMap<number, number>
+): GearSet {
   const runes = runeIds
     .map((rid) => runeById.get(Number(rid)))
     .filter(Boolean)
-    .map(runeToDetail)
+    .map((r) => runeToDetail(r, markers))
     .sort((a, b) => a.slot - b.slot);
   const artifacts = (artifactObjs || []).filter(Boolean).map(artifactToDetail);
   const relic = relicToDetail((Array.isArray(unit?.relics) ? unit.relics : [])[0]);
@@ -547,7 +581,7 @@ export function parseAccountJson(src: AccountSource): ParseResult {
     const swift = swiftActive(sets);
     // Artéfacts RTA si disponibles, sinon les artéfacts actuellement équipés.
     const artifactObjs = rtaArts.get(uid) ?? (Array.isArray(unit?.artifacts) ? unit.artifacts : []);
-    const gear = buildGear(unit, runeIds, artifactObjs, runeById);
+    const gear = buildGear(unit, runeIds, artifactObjs, runeById, indexRuneMarkers(data));
     units.push({ com2usId, flatRuneSpeed, swift, sets, runeCount: runeIds.length, gear });
   }
 
@@ -587,6 +621,7 @@ export function parseAccountBox(src: AccountSource): BoxParseResult {
   }
 
   const runeById = indexRunes(data);
+  const markers = indexRuneMarkers(data);
   const monsters: BoxMonster[] = [];
   for (const u of unitList) {
     if (Number(u?.class) !== 6) continue; // seuls les monstres montés 6★
@@ -595,7 +630,7 @@ export function parseAccountBox(src: AccountSource): BoxParseResult {
     if (!Number.isFinite(com2usId)) continue;
     const runeIds = Array.isArray(u?.runes) ? u.runes.map((r: any) => r?.rune_id) : [];
     const artifactObjs = Array.isArray(u?.artifacts) ? u.artifacts : [];
-    const gear = buildGear(u, runeIds, artifactObjs, runeById);
+    const gear = buildGear(u, runeIds, artifactObjs, runeById, markers);
     monsters.push({ unitId, com2usId, stars: 6, level: Number(u?.unit_level) || 0, gear });
   }
 
@@ -630,8 +665,9 @@ export function parseAccountInventory(src: AccountSource): InventoryParseResult 
   }
 
   // indexRunes / indexArtifacts fusionnent déjà inventaire + équipés (dédup par id).
+  const markers = indexRuneMarkers(data);
   const runes = Array.from(indexRunes(data).values())
-    .map(runeToDetail)
+    .map((r) => runeToDetail(r, markers))
     .filter((r) => r.main.code !== 0);
   const artifacts = Array.from(indexArtifacts(data).values())
     .map(artifactToDetail)
@@ -661,53 +697,98 @@ export function parseAccountInventory(src: AccountSource): InventoryParseResult 
  * Pour un monstre d'un deck SANS preset (la plupart des contenus), les runes
  * utilisées sont celles qu'il **porte actuellement** : c'est avec elles qu'il
  * combat.
+ *
+ * Le résultat est rangé PAR PÉRIMÈTRE (voir `PerimetreUtilise`) : l'écran
+ * d'optimisation laisse choisir lesquels comptent. Une même rune peut figurer
+ * dans plusieurs périmètres ; le filtre prend l'UNION des périmètres cochés.
  * ----------------------------------------------------------------------- */
 
-// deck_type des équipes d'ARÈNE d'attaque, de donjon, de ToA… : aucun n'est
-// filtré. Une constante de plus serait une liste à tenir à jour à chaque
-// contenu ajouté par Com2uS, et un contenu manquant se traduirait par des runes
-// annoncées « inutilisées » alors qu'elles jouent.
+// Les contenus que l'écran sait distinguer. ⚠️ `autres` n'est PAS un reste
+// qu'on pourrait oublier : c'est là que tombe tout `deck_type` qui n'est ni
+// l'attaque de siège ni l'attaque d'arène — donjons, ToA, labyrinthe… et tout
+// contenu que Com2uS ajoutera. Une liste blanche de contenus ferait passer des
+// runes qui jouent pour des runes qui dorment (19 types relevés sur un export).
+export type PerimetreUtilise =
+  | 'rta'
+  | 'siege-attaque'
+  | 'siege-defense'
+  | 'arene-attaque'
+  | 'arene-defense'
+  | 'autres';
 
-export function parseUsedRuneIds(src: AccountSource): number[] {
+// Ordre d'affichage et libellés de l'écran.
+export const PERIMETRES_UTILISES: { key: PerimetreUtilise; libelle: string }[] = [
+  { key: 'rta', libelle: 'RTA' },
+  { key: 'siege-attaque', libelle: 'Siège — attaque' },
+  { key: 'siege-defense', libelle: 'Siège — défense' },
+  { key: 'arene-attaque', libelle: 'Arène — attaque' },
+  { key: 'arene-defense', libelle: 'Arène — défense' },
+  { key: 'autres', libelle: 'Autres decks' },
+];
+
+// `rune_id` utilisés, triés, par périmètre.
+export type RunesUtilisees = Record<PerimetreUtilise, number[]>;
+
+// Aucune rune utilisée — compte absent, ou fichier illisible. Une fabrique et
+// pas une constante : chaque appelant reçoit ses propres tableaux.
+export function runesUtiliseesVides(): RunesUtilisees {
+  return {
+    rta: [],
+    'siege-attaque': [],
+    'siege-defense': [],
+    'arene-attaque': [],
+    'arene-defense': [],
+    autres: [],
+  };
+}
+
+export function parseUsedRuneIdsParPerimetre(src: AccountSource): RunesUtilisees {
   const data = parseAccountSource(src);
-  if (!data) return [];
+  if (!data) return runesUtiliseesVides();
 
   const runeById = indexRunes(data);
   const unitById = indexUnits(data);
-  const used = new Set<number>();
+  const used: Record<PerimetreUtilise, Set<number>> = {
+    rta: new Set(),
+    'siege-attaque': new Set(),
+    'siege-defense': new Set(),
+    'arene-attaque': new Set(),
+    'arene-defense': new Set(),
+    autres: new Set(),
+  };
 
   // Une rune inconnue de l'index (preset qui référence un exemplaire vendu
   // depuis) n'est jamais ajoutée : elle ne pourrait correspondre à aucune rune
   // de l'inventaire affiché.
-  const addRuneIds = (ids: any) => {
+  const addRuneIds = (dest: Set<number>, ids: any) => {
     if (!Array.isArray(ids)) return;
     for (const rid of ids) {
       const id = Number(rid);
-      if (runeById.has(id)) used.add(id);
+      if (runeById.has(id)) dest.add(id);
     }
   };
 
   // Les runes actuellement portées par une unité — le repli quand le contenu
   // n'a pas de preset propre.
-  const addUnitRunes = (uid: number) => {
+  const addUnitRunes = (dest: Set<number>, uid: number) => {
     const unit = unitById.get(uid);
     if (!unit || !Array.isArray(unit.runes)) return;
-    addRuneIds(unit.runes.map((r: any) => r?.rune_id));
+    addRuneIds(dest, unit.runes.map((r: any) => r?.rune_id));
   };
 
   // Un monstre d'un deck : son preset s'il en a un, sinon ce qu'il porte.
-  const addUnit = (uid: any, presets: Map<number, any[]>) => {
+  const addUnit = (dest: Set<number>, uid: any, presets: Map<number, any[]>) => {
     const id = Number(uid);
     if (!Number.isFinite(id) || id === 0) return;
     const preset = presets.get(id);
-    if (preset && preset.length > 0) addRuneIds(preset);
-    else addUnitRunes(id);
+    if (preset && preset.length > 0) addRuneIds(dest, preset);
+    else addUnitRunes(dest, id);
   };
 
   // RTA : le preset EST le build joué, quel que soit l'endroit où la rune dort.
   for (const e of findRtaEquipList(data) ?? []) {
     const id = Number(e?.rune_id);
-    if (runeById.has(id)) used.add(id);
+    if (runeById.has(id)) used.rta.add(id);
   }
 
   // Défenses de siège : un preset par unité, dans une table indexée par deck_id.
@@ -718,18 +799,26 @@ export function parseUsedRuneIds(src: AccountSource): number[] {
       const entry = equipList?.[String(dk?.deck_id)] ?? equipList?.[dk?.deck_id];
       const presets = equipArrayToMap(entry?.equip);
       const unitIds = Array.isArray(dk?.unit_id_list) ? dk.unit_id_list : [];
-      for (const uid of unitIds) addUnit(uid, presets);
+      for (const uid of unitIds) addUnit(used['siege-defense'], uid, presets);
     }
   }
 
-  // Tous les decks enregistrés, tous contenus confondus.
+  // Tous les decks enregistrés, tous contenus confondus : l'attaque de siège et
+  // l'attaque d'arène ont leur périmètre, tout le reste tombe dans `autres`.
   const deckList = data?.deck_list;
   if (Array.isArray(deckList)) {
     for (const dk of deckList) {
+      const type = Number(dk?.deck_type);
+      const dest =
+        type === SIEGE_OFFENSE_DECK_TYPE
+          ? used['siege-attaque']
+          : type === ARENA_OFFENSE_DECK_TYPE
+            ? used['arene-attaque']
+            : used.autres;
       const presets = equipArrayToMap(dk?.equip);
       const unitIds = Array.isArray(dk?.unit_id_list) ? dk.unit_id_list : [];
-      for (const uid of unitIds) addUnit(uid, presets);
-      addUnit(dk?.leader_unit_id, presets); // absent de unit_id_list sur certains exports
+      for (const uid of unitIds) addUnit(dest, uid, presets);
+      addUnit(dest, dk?.leader_unit_id, presets); // absent de unit_id_list sur certains exports
     }
   }
 
@@ -745,12 +834,66 @@ export function parseUsedRuneIds(src: AccountSource): number[] {
     if (!info || typeof info !== 'object') continue;
     const presets = equipArrayToMap(info.equip);
     const unitIds = Array.isArray(info.unit_id_list) ? info.unit_id_list : [];
-    for (const u of unitIds) addUnit(u && typeof u === 'object' ? u.unit_id : u, presets);
+    for (const u of unitIds) {
+      addUnit(used['arene-defense'], u && typeof u === 'object' ? u.unit_id : u, presets);
+    }
   }
 
   // Trié : la liste part telle quelle dans IndexedDB et dans les tests — un
   // ordre d'insertion dépendant du fichier n'y apporterait rien.
-  return Array.from(used).sort((x, y) => x - y);
+  const trie = (s: Set<number>) => Array.from(s).sort((x, y) => x - y);
+  return {
+    rta: trie(used.rta),
+    'siege-attaque': trie(used['siege-attaque']),
+    'siege-defense': trie(used['siege-defense']),
+    'arene-attaque': trie(used['arene-attaque']),
+    'arene-defense': trie(used['arene-defense']),
+    autres: trie(used.autres),
+  };
+}
+
+// Union triée des périmètres cochés. Sans `perimetres`, TOUS : c'est la
+// définition historique de « runes utilisées ».
+export function unionRunesUtilisees(
+  parPerimetre: RunesUtilisees,
+  perimetres: Iterable<PerimetreUtilise> = PERIMETRES_UTILISES.map((p) => p.key)
+): number[] {
+  const union = new Set<number>();
+  for (const p of perimetres) for (const id of parPerimetre[p] ?? []) union.add(id);
+  return Array.from(union).sort((x, y) => x - y);
+}
+
+// Toutes les runes utilisées, tous périmètres confondus.
+export function parseUsedRuneIds(src: AccountSource): number[] {
+  return unionRunesUtilisees(parseUsedRuneIdsParPerimetre(src));
+}
+
+/* --------------------------------------------------------------------------
+ * Libellés des marqueurs de runes (`markers`)
+ *
+ * Les marqueurs se renomment en jeu : le libellé vit dans `markers[]`, au
+ * premier niveau. Ceux des RUNES ont `type: 1`, et leur `sub_type` est le
+ * `lock_type` de `rune_lock_list` (voir `indexRuneMarkers`). `type: 3` sert
+ * aux monstres ; `type: 2` n'a qu'un libellé sur les exports relevés
+ * (probablement les artéfacts, non vérifié) — ni l'un ni l'autre n'est lu ici.
+ *
+ * ⚠️ Un marqueur peut n'avoir AUCUN libellé : le joueur ne l'a jamais nommé
+ * (relevé : 7 numéros utilisés pour 6 libellés, et un libellé vide). Il est
+ * alors absent du résultat, et l'écran affiche son numéro. Les espaces de
+ * bord sont retirés (« raffinage␠ » relevé tel quel).
+ * ----------------------------------------------------------------------- */
+
+export function parseRuneMarkerLabels(src: AccountSource): Record<number, string> {
+  const data = parseAccountSource(src);
+  const labels: Record<number, string> = {};
+  if (!data || !Array.isArray(data.markers)) return labels;
+  for (const m of data.markers) {
+    if (Number(m?.type) !== 1) continue;
+    const n = Number(m?.sub_type);
+    const texte = typeof m?.description === 'string' ? m.description.trim() : '';
+    if (Number.isInteger(n) && n > 0 && texte) labels[n] = texte;
+  }
+  return labels;
 }
 
 /* --------------------------------------------------------------------------
@@ -833,6 +976,11 @@ export function parseCrafts(src: AccountSource): CraftLine[] {
 // Identifié sur des exports réels : 3 monstres/deck avec presets de runes.
 const SIEGE_OFFENSE_DECK_TYPE = 22;
 
+// deck_type des équipes d'attaque d'ARÈNE (dans deck_list). Relevé fourni par
+// l'utilisateur, puis vérifié : 15 decks de ce type sur chacun de deux exports
+// réels. Sert au périmètre `arene-attaque` de `parseUsedRuneIdsParPerimetre`.
+const ARENA_OFFENSE_DECK_TYPE = 1;
+
 // Un slot importé, ou null pour un slot vide (unit_id = 0).
 export interface SiegeImportedSlot {
   com2usId: number;
@@ -892,7 +1040,8 @@ function buildSiegeDecks(
   defs: DeckDef[],
   runeById: ReadonlyMap<number, any>,
   unitById: ReadonlyMap<number, any>,
-  artById: ReadonlyMap<number, any>
+  artById: ReadonlyMap<number, any>,
+  markers: ReadonlyMap<number, number>
 ): SiegeImportedDeck[] {
   const decks: SiegeImportedDeck[] = [];
   for (const def of defs) {
@@ -910,7 +1059,7 @@ function buildSiegeDecks(
       // Artéfacts du preset de siège (artifact_id_list du deck), résolus via l'index global.
       const artIds = def.artifactIdsByUnit.get(uid) ?? [];
       const artifactObjs = artIds.map((aid) => artById.get(Number(aid))).filter(Boolean);
-      const gear = buildGear(unit, runeIds, artifactObjs, runeById);
+      const gear = buildGear(unit, runeIds, artifactObjs, runeById, markers);
       return { com2usId, flatRuneSpeed, swift, sets, gear };
     });
     // On ignore les decks totalement vides (jamais configurés).
@@ -955,7 +1104,7 @@ export function parseSiegeDefense(src: AccountSource): SiegeParseResult {
     };
   });
 
-  const decks = buildSiegeDecks(defs, runeById, unitById, artById);
+  const decks = buildSiegeDecks(defs, runeById, unitById, artById, indexRuneMarkers(data));
   if (decks.length === 0) {
     return { decks: [], error: 'Aucune défense de siège configurée dans ce fichier.' };
   }
@@ -1004,7 +1153,7 @@ export function parseSiegeOffense(src: AccountSource): SiegeParseResult {
     };
   });
 
-  const decks = buildSiegeDecks(defs, runeById, unitById, artById);
+  const decks = buildSiegeDecks(defs, runeById, unitById, artById, indexRuneMarkers(data));
   if (decks.length === 0) {
     return { decks: [], error: "Aucune équipe d'attaque de siège configurée dans ce fichier." };
   }

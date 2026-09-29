@@ -3,6 +3,7 @@ import { RotateCw, AlertTriangle, PackageCheck, Swords, Lock, Hammer, Gem } from
 import { CraftLine, RuneDetail } from '../../types';
 import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
+import { RunesUtilisees, unionRunesUtilisees } from '../../lib/importAccount';
 import { CraftStock, EMPTY_STOCK, GRADE_SCENARIO, buildCraftStock, ownsCraft } from '../../lib/crafts';
 import { useRuneMetric, formatRuneMetric, convertirPalier, runeMetricValue } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -29,9 +30,13 @@ import AncientFilter, {
 interface Props {
   runes: RuneDetail[];
   crafts: CraftLine[];
-  // `rune_id` des runes UTILISÉES : posées sur un monstre d'un deck — tous
-  // contenus confondus — ou en RTA. Voir `parseUsedRuneIds`.
-  usedRuneIds: number[];
+  // `rune_id` des runes UTILISÉES, par périmètre : posées sur un monstre d'un
+  // deck — tous contenus confondus — ou en RTA. Voir
+  // `parseUsedRuneIdsParPerimetre`.
+  usedRuneIds: RunesUtilisees;
+  // Libellés des marqueurs de runes (numéro → texte saisi en jeu). Un marqueur
+  // sans libellé en est absent.
+  runeMarkerLabels: Record<number, string>;
   // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx),
   // comme la Liste. Ne s'ouvre que sous `lg`.
   menuOuvert: boolean;
@@ -145,7 +150,7 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
   // jouer trois cents ; les autres dorment dans le sac, et améliorer l'une
   // d'elles ne change rien à aucun combat. Le potentiel, les gains et les tris
   // restent exactement les mêmes.
-  const utilisees = useMemo(() => new Set(usedRuneIds), [usedRuneIds]);
+  const utilisees = useMemo(() => new Set(unionRunesUtilisees(usedRuneIds)), [usedRuneIds]);
   // ⚠️ Un compte conservé sous l'ancien schéma n'a pas cette liste, et un export
   // sans aucun deck enregistré non plus : le bouton est alors DÉSACTIVÉ et dit
   // pourquoi, plutôt que de vider la liste sans explication (même règle que la

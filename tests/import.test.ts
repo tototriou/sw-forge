@@ -11,8 +11,11 @@ import {
   parseAccountSource,
   parseSiegeDefense,
   parseSiegeOffense,
+  parseRuneMarkerLabels,
   parseUsedRuneIds,
+  parseUsedRuneIdsParPerimetre,
   parseWizardId,
+  unionRunesUtilisees,
 } from '../src/lib/importAccount';
 import { formatRelicUnique } from '../src/lib/effects';
 import { egal, exportReel, exportSynthetique, ignore, ok, titre } from './outils';
@@ -158,6 +161,59 @@ export default function testImport() {
   // ⚠️ Une rune de l'INVENTAIRE peut jouer : les presets RTA/siège ne
   // déplacent rien en jeu. S'en tenir à `occupied_id` aurait raté ce cas.
   ok(utilisees.includes(9002), 'runes utilisées : une rune de réserve montée en RTA compte');
+
+  // Par périmètre — chaque source dans le sien, avec la même règle « preset,
+  // sinon ce que l'unité porte ». Le fichier d'exemple ajoute :
+  //  - défense d'arène (`defense_deck_info`, unité 102 sans preset) ;
+  //  - défense d'arène de serveur (unité 101, preset 1004, ids en objets) ;
+  //  - un deck de type 3 (ni siège ni arène) → « autres ».
+  const parPerimetre = parseUsedRuneIdsParPerimetre(objet);
+  egal(parPerimetre.rta, [1001, 1002, 1003, 2001, 2002, 9002], 'périmètre RTA : les presets RTA');
+  egal(parPerimetre['siege-defense'], [1001, 1002, 1003, 2001, 2002], 'périmètre siège — défense');
+  egal(parPerimetre['siege-attaque'], [1001, 1004, 2001], 'périmètre siège — attaque : deck_type 22');
+  egal(
+    parPerimetre['arene-attaque'],
+    [1001, 1002, 1003, 1004],
+    'périmètre arène — attaque : deck_type 1, sans preset → runes portées'
+  );
+  egal(
+    parPerimetre['arene-defense'],
+    [1004, 2001, 2002],
+    'périmètre arène — défense : les deux défenses, ids nus et en objets'
+  );
+  egal(parPerimetre.autres, [2001, 2002], 'périmètre autres : tout autre deck_type');
+  egal(unionRunesUtilisees(parPerimetre), utilisees, 'l’union des périmètres = les runes utilisées');
+  egal(
+    unionRunesUtilisees(parPerimetre, ['siege-attaque', 'arene-defense']),
+    [1001, 1004, 2001, 2002],
+    'union restreinte aux périmètres choisis'
+  );
+  egal(parseUsedRuneIdsParPerimetre('{oops').rta, [], 'fichier illisible → périmètres vides');
+
+  /* --- Marqueurs de runes (rune_lock_list + markers) -------------------- */
+
+  // ⚠️ Le marqueur n'est PAS dans l'objet rune : il vient de `rune_lock_list`.
+  // Une rune absente de la liste n'a pas de marqueur — le champ reste absent.
+  const inventaire = parseAccountInventory(objet).runes;
+  const marqueDe = (id: number) => inventaire.find((r) => r.id === id)?.marker;
+  egal(marqueDe(1002), 1, 'marqueur : rune équipée marquée');
+  egal(marqueDe(9001), 3, 'marqueur : rune d’inventaire marquée');
+  egal(marqueDe(2001), 7, 'marqueur : numéro sans libellé conservé');
+  ok(
+    !('marker' in inventaire.find((r) => r.id === 1001)!),
+    'marqueur : absent de la liste → champ absent, jamais 0'
+  );
+  // Même donnée sur l'équipement des monstres de la box : une rune ne change
+  // pas de marqueur selon l'endroit où on la regarde.
+  const rune1002Box = box.monsters[0].gear?.runes.find((r) => r.id === 1002);
+  egal(rune1002Box?.marker, 1, 'marqueur : aussi sur l’équipement de la box');
+
+  egal(
+    parseRuneMarkerLabels(objet),
+    { 1: 'Target reap', 3: 'meule' },
+    'libellés : type 1 seulement, espaces retirés, libellé vide absent'
+  );
+  egal(parseRuneMarkerLabels('{oops'), {}, 'libellés : fichier illisible → aucun');
   egal(parseUsedRuneIds('{oops'), [], 'fichier illisible → aucune rune utilisée');
 
   /* --- Texte et objet : strictement équivalents ------------------------ */
@@ -230,4 +286,16 @@ export default function testImport() {
     utiliseesReelles.length > 0 && utiliseesReelles.length < totalRunes,
     `export réel : ${utiliseesReelles.length} runes utilisées sur ${totalRunes}`
   );
+  const parPerimetreReel = parseUsedRuneIdsParPerimetre(reelObjet);
+  egal(
+    unionRunesUtilisees(parPerimetreReel),
+    utiliseesReelles,
+    'export réel : l’union des périmètres = les runes utilisées'
+  );
+  ok(
+    parPerimetreReel['arene-attaque'].length > 0 && parPerimetreReel['siege-attaque'].length > 0,
+    `export réel : arène — attaque ${parPerimetreReel['arene-attaque'].length}, siège — attaque ${parPerimetreReel['siege-attaque'].length}`
+  );
+  const marquees = parseAccountInventory(reelObjet).runes.filter((r) => r.marker !== undefined).length;
+  ok(marquees > 0, `export réel : ${marquees} runes marquées`);
 }

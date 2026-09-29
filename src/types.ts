@@ -124,6 +124,10 @@ export interface RuneDetail {
   main: EffectLine;
   innate?: EffectLine; // stat innée (prefix)
   subs: EffectLine[]; // substats
+  // Marqueur posé en jeu (1..8, `lock_type` de `rune_lock_list`) — ABSENT si
+  // la rune n'en porte aucun. Le libellé, renommable en jeu, vit au niveau du
+  // compte (`parseRuneMarkerLabels`), jamais recopié ici.
+  marker?: number;
 }
 
 /* --------------------------------------------------------------------------

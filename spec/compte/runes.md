@@ -998,9 +998,11 @@ seul `occupied_id` aurait raté les deux cas. Pour un monstre d'un deck **sans
 preset**, ce sont ses runes **actuellement portées** qui comptent : c'est avec
 elles qu'il combat.
 
-- Extraction : `parseUsedRuneIds` dans
-  [importAccount.ts](src/lib/importAccount.ts) → une liste de `rune_id` triée.
-- ⚠️ **Conservée dans IndexedDB** (`usedRuneIds`, `ACCOUNT_SCHEMA` 4) : les decks
+- Extraction : `parseUsedRuneIdsParPerimetre` dans
+  [importAccount.ts](src/lib/importAccount.ts) → une liste de `rune_id` triée
+  **par périmètre** (voir
+  [shared/import-compte.md](../shared/import-compte.md)).
+- ⚠️ **Conservée dans IndexedDB** (`usedRuneIds`, `ACCOUNT_SCHEMA` 7) : les decks
   ne vivent que dans l'**export brut**, jamais stocké (5 à 8 Mo). Sans ça le
   filtre s'éteindrait à chaque rechargement d'un compte conservé.
 - **Désactivé sans decks lus** (compte conservé sous un schéma antérieur, export

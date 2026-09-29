@@ -11,7 +11,8 @@ import {
   parseAccountBox,
   parseAccountInventory,
   parseAccountSource,
-  parseUsedRuneIds,
+  parseRuneMarkerLabels,
+  parseUsedRuneIdsParPerimetre,
 } from '../src/lib/importAccount';
 import { egal, exportSynthetique, ok, titre } from './outils';
 
@@ -26,7 +27,8 @@ export default async function testStockage() {
     runes: inv.runes,
     artifacts: inv.artifacts,
     crafts: inv.crafts,
-    usedRuneIds: parseUsedRuneIds(data),
+    usedRuneIds: parseUsedRuneIdsParPerimetre(data),
+    runeMarkerLabels: parseRuneMarkerLabels(data),
     exportedAt: 1786261890000,
   };
 
@@ -44,7 +46,16 @@ export default async function testStockage() {
   // ⚠️ Les decks ne vivent QUE dans l'export brut, jamais conservé : sans cette
   // liste au stockage, le filtre « Runes utilisées » s'éteindrait à chaque
   // rechargement d'un compte conservé.
-  egal(relu.usedRuneIds, compte.usedRuneIds, 'runes utilisées conservées');
+  egal(relu.usedRuneIds, compte.usedRuneIds, 'runes utilisées conservées, par périmètre');
+  // Même raison pour les marqueurs : `rune_lock_list` et `markers` ne vivent
+  // que dans l'export brut.
+  egal(relu.runeMarkerLabels, compte.runeMarkerLabels, 'libellés des marqueurs conservés');
+  egal(
+    relu.runes.filter((r) => r.marker !== undefined).map((r) => [r.id, r.marker]),
+    inv.runes.filter((r) => r.marker !== undefined).map((r) => [r.id, r.marker]),
+    'marqueurs des runes conservés'
+  );
+  ok(inv.runes.some((r) => r.marker !== undefined), 'le fichier d’exemple porte bien des runes marquées');
 
   // ⚠️ Le structured clone doit rendre des objets INDÉPENDANTS : muter ce qu'on
   // relit ne doit pas contaminer ce qui est en mémoire ailleurs dans l'app.
@@ -99,6 +110,15 @@ export default async function testStockage() {
 
   await ecrireBrut({ schema: ACCOUNT_SCHEMA, savedAt: 1, box: 'pas un tableau' });
   egal(await loadAccount(), null, 'enregistrement corrompu → ignoré, sans exception');
+
+  // ⚠️ Schéma 6 : runes sans `marker` et `usedRuneIds` en liste plate. Relu,
+  // chaque rune passerait pour « sans marqueur » — il doit être ignoré.
+  await ecrireBrut({ ...compte, schema: 6, savedAt: 1, usedRuneIds: [1001], runeMarkerLabels: undefined });
+  egal(await loadAccount(), null, 'schéma 6 (runes utilisées en liste plate) → ignoré');
+
+  // Même au BON schéma, une liste plate n'est pas une liste par périmètre.
+  await ecrireBrut({ ...compte, schema: ACCOUNT_SCHEMA, savedAt: 1, usedRuneIds: [1001] });
+  egal(await loadAccount(), null, 'runes utilisées en liste plate → ignorées, sans exception');
 
   await clearAccount();
 }

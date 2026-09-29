@@ -1330,10 +1330,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      Tolerance/Accuracy propres du build, testées sur leur valeur réelle par
      les contrôles exacts (filtre final de l'appariement, filtres de paire et
      de relique) ; désactivé, aucune aura n'y compte, et il ne change pas les
-     dégâts ni les PV effectifs. ⚠️ Les coupes amont de la recherche ne sont
-     pas encore revues pour les auras propres (lot 6bis-b3b) : aucune
-     garantie de résultat complet pour une condition RES/PRE que seule une
-     aura propre fait tenir. Les auras PV/ATQ/DEF ne comptent dans aucune
+     dégâts ni les PV effectifs. Les élagages sûrs de la recherche en
+     tiennent compte (lot 6bis-b3b) : potentiel favorable pour un minimum,
+     seul l'inévitable pour un maximum, sans jamais écarter un build valide ;
+     le pré-filtrage et la rétention restent heuristiques et ne valorisent
+     pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
      condition. Les contrôles de saisie de ces deux champs arrivent au lot 7.
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
@@ -2048,11 +2049,9 @@ différent, coopératif (voir « Interruption »).
 - **Statistique principale imposée (slots 2/4/6)** : appliquée avant tout le
   reste, dans la construction même du pool par slot.
 - **Élagages SÛRS, ensuite — jamais un faux rejet**, avant même le
-  pré-filtrage heuristique qui suit. ⚠️ Réserve temporaire (lot 6bis-b3a,
-  levée seulement par un différentiel vert du lot 6bis-b3b) : cette sûreté
-  n'est pas encore prouvée pour les auras RES/PRE **propres** au build, que
-  ces élagages ignorent alors qu'elles peuvent seules faire tenir un minimum
-  (voir [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
+  pré-filtrage heuristique qui suit, auras **propres** au build et Intangible
+  comprises : un oracle exhaustif indépendant le vérifie depuis le lot
+  6bis-b3b (voir [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
   - **Dominance** : une rune strictement moins bonne qu'une autre du MÊME
     slot (sur toutes les stats suivies, avantage strict quelque part) ne
     sert jamais à rien. Deux runes du même set se comparent toujours ; un set

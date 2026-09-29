@@ -109,12 +109,17 @@ comme un argument **obligatoire** (`AurasPropres`), jamais stockées dans
 `DamageSetup` ni déduites des statistiques ; sans rune, le zéro se déclare
 explicitement (`AUCUNE_AURA_PROPRE`). Depuis le lot 6bis-b2, le **combat et
 le score** les comptent ; depuis le lot 6bis-b3a, les **contrôles exacts**
-des conditions RES/PRE aussi, comme décrit ci-dessous. ⚠️ **État
-intermédiaire (lot 6bis-b3a)** : les coupes amont de la recherche
-(dominance, faisabilité, bornes rapides de l'appariement, pré-filtrage,
-diagnostics, rétention) ne sont pas encore revues pour ce modèle (lot
-6bis-b3b) ; aucune garantie de résultat complet n'est donnée pour une
-condition RES/PRE que seule une aura propre fait tenir.
+des conditions RES/PRE aussi, comme décrit ci-dessous. Depuis le lot
+6bis-b3b, les **coupes sûres** de la recherche (dominance, faisabilité,
+bornes rapides de l'appariement) et les diagnostics de faisabilité en
+tiennent compte : pour un minimum, le potentiel favorable — activations
+Tolerance/Accuracy possibles, set non demandé et Intangible compris, toggle
+actif —, pour un maximum, seul l'inévitable ; la dominance ne remplace plus
+une rune d'aura utile à la recherche (stat d'une condition ou de l'objectif)
+par celle d'un autre set. Un oracle exhaustif indépendant le vérifie. Le
+pré-filtrage par emplacement et la rétention par compartiment restent
+**heuristiques** : ils ne valorisent pas l'aura propre et ne garantissent
+aucun optimum.
 
 L'ancien champ `damageSetup.setsAura` comptait l'équipe entière, monstre
 optimisé inclus : ses nombres ne se traduisent pas en auras des autres

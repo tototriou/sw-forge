@@ -104,7 +104,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | **validé par Thomas** (« ok continues ») | 2026-09-29, [lot-R2bis.md](rebranding-preuves/lot-R2bis.md) |
 | R3 `src/ui/` aux planches « Composants » | J | **fait** — relevé `dc9bee00`, R3a `012f7baa`, R3b `766258e1`, R3c `39a4c0af` ; relecture de Thomas en attente | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 à 7 |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | fait — relecture de Thomas en attente | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
-| R5 Accueil (bureau et téléphone) | J | à faire | |
+| R5 Accueil (bureau et téléphone) | J | fait — accueil gardé (décisions 31 à 36) ; icônes d'atelier sur les cartes (37) | 2026-09-29, [lot-R5.md](rebranding-preuves/lot-R5.md) |
 | R6 Siège et Recommandations | J | à faire | |
 | R7 RTA | J | à faire | |
 | R8 Mon compte | J | à faire | |
@@ -209,7 +209,23 @@ Progresse ». Elle ne vient pas de la toile.
 29. **L'entrée active de la barre latérale est en braise** (fond braise
     sombre, texte et icône en braise).
 30. **Le pied de page prend le logo et la mention** « Projet non officiel,
-    sans affiliation avec Com2uS. » ; rien n'en est retiré.
+    sans affiliation avec Com2uS. » ; rien n'en est retiré. Puis, à la
+    relecture (« le pied de page commence à être vraiment gros ») : une
+    rangée comme la toile, liens en colonne au bureau, en encre.
+
+**31 à 37 — les questions du R5, l'accueil (Thomas, 2026-09-29)** : la toile
+propose un autre accueil ; Thomas garde le nôtre.
+
+31. **Héros : gardé tel quel** — logo et nom en titre, « La boîte à outils
+    pour Summoners War. » (pas « Forgé pour la guilde. »).
+32. **Zone de dépôt seule** à droite du héros : ni l'illustration ni les
+    deux boutons de la toile.
+33. **Pas de bandeau de garanties.**
+34. **Les douze cartes gardées** telles quelles (pas les six de la toile).
+35. **« Comment ça marche » gardé** (pas « Trois coups de marteau »).
+36. **Téléphone : la décision 24 tient** (même structure, resserrée).
+37. **Les cartes de section prennent les icônes d'atelier** de la nav : une
+    section a la même icône partout.
 
 ## Partie B — les lots
 
@@ -390,7 +406,17 @@ navigation, le fil d'Ariane, la page Arène et le pied de page ; entrée active
 en braise ; curseurs pour Paramètres (la rotation de l'engrenage retirée, le
 fond et le libellé portent l'état) ; logo et mention en pied de page.
 
-### R5 à R9
+### R5 — l'accueil · J
+
+**Écrit au démarrage (2026-09-29)**. Intrant : planches « Accueil » (bureau)
+et « Accueil mobile » de la toile, `spec/accueil.md`, `HomePage.tsx`.
+Relevé des écarts, six questions à Thomas, puis une septième sur les icônes.
+
+**Résultat (2026-09-29)** — preuve [lot-R5.md](rebranding-preuves/lot-R5.md).
+Thomas garde l'accueil (décisions 31 à 36). Seul changement : les cartes de
+section prennent les icônes d'atelier de la nav (37).
+
+### R6 à R9
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

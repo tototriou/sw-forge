@@ -162,6 +162,25 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 16. **L'image de partage est refaite dans ce lot** : même contenu, logo et
     couleurs de la charte, montrée à Thomas avant son commit.
 
+**17 à 23 — les questions du R3 (Thomas, 2026-09-29)**, relevé dans
+[lot-R3.md](rebranding-preuves/lot-R3.md) :
+
+17. **Notre densité est gardée** : couleurs, rayons et états de la toile, mais
+    les hauteurs actuelles (bureau 28 / 32, doigt 40), pas « 44 minimum ».
+    Même logique que la décision 7.
+18. **La règle du 1 px est gardée** : focus en anneau d'1 px de braise
+    lisible, champ au focus sans halo, pas de double anneau.
+19. **`Segmented` : l'option choisie en APLAT braise**, texte `accent-ink`
+    (au lieu du fond doux du lot 9 de la refonte).
+20. **Pastille active : les couleurs de la toile, sans coche ni gras** —
+    contour braise, fond braise sombre. La largeur ne change pas au clic.
+21. **Appui : un bouton fonce et descend d'1 px**, comme la toile ; les cartes
+    et autres surfaces cliquables gardent le léger rétrécissement.
+22. **Confirmation destructive : l'action en APLAT rouge**, l'autre bouton à
+    contour. Libellés inchangés, focus sur l'action sans perte.
+23. **Notification : en bas à droite au bureau** ; au téléphone, au-dessus des
+    onglets, comme aujourd'hui. 6 s et une à la fois, inchangés.
+
 ## Partie B — les lots
 
 ### R0 — relevé · C
@@ -267,7 +286,32 @@ contrat :
 Restent l'image de partage (décision 16, montrée avant son commit) et la
 relecture de Thomas.
 
-### R3 à R9
+### R3 — la librairie aux planches « Composants » · J
+
+**Écrit au démarrage (2026-09-29)**. Intrant : les planches 1 (Actions et
+sélection), 2 (Formulaires) et 6 (Retours et fenêtres) — les trois autres
+vont à la coquille et aux écrans (tableau § 1 de la preuve). Relevé des
+écarts et décisions 17 à 23 : [lot-R3.md](rebranding-preuves/lot-R3.md).
+
+**Contrat** : seul `src/ui/` change (plus `index.css` pour la pression et le
+focus, et les specs `librairie-ui.md` / `design.md`). Aucun écran n'est
+retouché : ce qu'un écran dessine à la main hors librairie attend son lot
+(R5 à R9). Aucune information ni fonction perdue (inventaire).
+- **R3a** Actions et sélection : `Bouton` (états des quatre tons, appui,
+  désactivé), `Segmented` (aplat, décision 19), `Pastille` (décision 20).
+- **R3b** Formulaires : `Champ`, `NumberField`, `Selecteur`, `Interrupteur`,
+  `Case` — couleurs et états, tailles gardées (décision 17).
+- **R3c** Retours et fenêtres : confirmation destructive (décision 22),
+  notification (décision 23), `Menu`, `Modale`.
+
+**Preuve** : tests de rendu `ui` et `rendu` verts, avec les assertions
+changées déclarées une à une ; inventaire ; build ; classes vérifiées dans le
+CSS construit ; relecture de Thomas dans les deux thèmes.
+
+**Ne fait pas** : le bouton « chargement » (spinner + « En cours ») de la
+toile — aucun écran ne l'emploie : il monte au premier usage réel, pas avant.
+
+### R4 à R9
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

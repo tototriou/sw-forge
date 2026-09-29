@@ -27,6 +27,7 @@ import {
 import RtaValidationReport from './RtaValidationReport';
 import { ConfirmDialog, Modale } from '../../ui/Dialogs';
 import { BarreActions, Bouton, Option } from '../../ui';
+import { PREFIXE_FICHIER } from '../../marque';
 import type { ElementMenu } from '../../ui';
 
 /* --------------------------------------------------------------------------
@@ -226,7 +227,7 @@ export default function RtaBackupBar({
     const snap = toSnapshot(rta.state, cats.categories, monsterById, { niveau });
     // ⚠️ **Le nom du fichier dit ce qu'il contient.** C'est le seul repère
     // avant de l'ouvrir — et quand on en a plusieurs dans son dossier de
-    // téléchargements, ou qu'on en reçoit un d'un ami, « swforge-prepa-rta.json »
+    // téléchargements, ou qu'on en reçoit un d'un ami, « swblacksmith-prepa-rta.json »
     // ne permet pas de savoir si les runes y sont.
     const suffixe: Record<NiveauPartage, string> = {
       complet: 'complet',
@@ -234,7 +235,7 @@ export default function RtaBackupBar({
       ordre: 'ordre-seul',
     };
     const jour = new Date().toISOString().slice(0, 10); // déjà « 2026-08-11 »
-    const fichier = `swforge-prepa-rta-${suffixe[niveau]}-${jour}.json`;
+    const fichier = `${PREFIXE_FICHIER}-prepa-rta-${suffixe[niveau]}-${jour}.json`;
     download(fichier, encodeSnapshot(snap));
     const dit: Record<NiveauPartage, string> = {
       complet: 'avec les runes et artéfacts',

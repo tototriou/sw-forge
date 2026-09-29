@@ -60,6 +60,7 @@ import testSiegePastille from './siege-pastille.test';
 import testSiegeSlotSuivant from './siege-slot-suivant.test';
 import testRecoDefenses from './reco-defenses.test';
 import testSiegePartage from './siege-partage.test';
+import testMarque from './marque.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 import testSpecMarkdown from './spec-markdown.test';
 import testSpecToc from './spec-toc.test';
@@ -113,6 +114,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSiegeSlotSuivant', testSiegeSlotSuivant],
   ['testRecoDefenses', testRecoDefenses],
   ['testSiegePartage', testSiegePartage],
+  ['testMarque', testMarque],
   ['testSpecMarkdown', testSpecMarkdown],
   ['testSpecToc', testSpecToc],
   ['testSpecLintEnTetes', testSpecLintEnTetes],

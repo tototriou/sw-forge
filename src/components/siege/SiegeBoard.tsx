@@ -14,6 +14,7 @@ import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
 import { equipeContient } from './rechercheEquipe';
 import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
+import { NOM_APP } from '../../marque';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
 interface Props {
@@ -277,7 +278,7 @@ export default function SiegeBoard({
           fichierEquipes.current?.click();
           onFermerMenu();
         }}
-        title="Ajouter les équipes d'un fichier .json exporté par SW Forge — les tiennes ne sont pas touchées"
+        title={`Ajouter les équipes d'un fichier .json exporté par ${NOM_APP} — les tiennes ne sont pas touchées`}
         icone={<Download size={15} />}
         libelle="Importer"
       />
@@ -365,7 +366,7 @@ export default function SiegeBoard({
               cle: 'importer',
               libelle: 'Importer',
               icone: <Download size={14} />,
-              title: "Ajouter les équipes d'un fichier .json exporté par SW Forge — les tiennes ne sont pas touchées",
+              title: `Ajouter les équipes d'un fichier .json exporté par ${NOM_APP} — les tiennes ne sont pas touchées`,
               onClick: () => fichierEquipes.current?.click(),
             },
             {

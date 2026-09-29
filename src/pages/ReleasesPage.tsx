@@ -1,5 +1,6 @@
 import { Tag, ExternalLink } from 'lucide-react';
 import { RELEASES, CHANGE_META, ChangeKind, libelleVersion } from '../data/releases';
+import { NOM_APP } from '../marque';
 
 const REPO = 'https://github.com/tototriou/sw-forge';
 
@@ -24,8 +25,9 @@ export default function ReleasesPage() {
         Nouveautés
       </h1>
       <p className="text-ink-dim text-sm leading-relaxed mb-6 max-w-2xl">
-        Ce qui a changé à chaque version de SW Forge. La version en cours est rappelée en bas de
-        chaque page.{' '}
+        {/* Un GABARIT, pas du texte coupé par `{NOM_APP}` : l'inventaire de
+            l'interface relève ainsi la phrase entière (rebranding R2). */}
+        {`Ce qui a changé à chaque version de ${NOM_APP}. La version en cours est rappelée en bas de chaque page.`}{' '}
         <a
           href={`${REPO}/releases`}
           target="_blank"

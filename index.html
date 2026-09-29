@@ -27,13 +27,16 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
 
-    <title>SW Forge — Boîte à outils Summoners War</title>
+    <!-- ⚠️ `%NOM_APP%` : remplacé au build par le nom de `src/marque.ts`
+         (plugin de vite.config.ts). Les URLs gardent `sw-forge` : le domaine
+         est hors du rebranding. -->
+    <title>%NOM_APP% — Boîte à outils Summoners War</title>
     <meta name="description" content="Outil Summoners War : RTA, siège, arène — perfectionne ton compte simplement." />
 
     <!-- Open Graph (Discord, Facebook…) -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="SW Forge" />
-    <meta property="og:title" content="SW Forge — Boîte à outils Summoners War" />
+    <meta property="og:site_name" content="%NOM_APP%" />
+    <meta property="og:title" content="%NOM_APP% — Boîte à outils Summoners War" />
     <meta property="og:description" content="Outil Summoners War : RTA, siège, arène — perfectionne ton compte simplement." />
     <meta property="og:url" content="https://sw-forge.vercel.app/" />
     <meta property="og:image" content="https://sw-forge.vercel.app/og-image.png" />
@@ -42,7 +45,7 @@
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="SW Forge — Boîte à outils Summoners War" />
+    <meta name="twitter:title" content="%NOM_APP% — Boîte à outils Summoners War" />
     <meta name="twitter:description" content="Outil Summoners War : RTA, siège, arène — perfectionne ton compte simplement." />
     <meta name="twitter:image" content="https://sw-forge.vercel.app/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

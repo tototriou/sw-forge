@@ -20,6 +20,7 @@ import AncientFilter, {
 } from './AncientFilter';
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
+import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
   runes: RuneDetail[];
@@ -226,7 +227,7 @@ function OngletCourbes({
     // doit transporter aucune donnée de compte.
     const json = encodeCurveJson(name, myEffs, myScores);
     navigator.clipboard?.writeText(json).catch(() => {});
-    download(`swforge-runes-${name.replace(/\s+/g, '_')}.json`, json);
+    download(`${PREFIXE_FICHIER}-runes-${name.replace(/\s+/g, '_')}.json`, json);
     flash(true, 'Courbe exportée : fichier .json téléchargé et contenu copié.');
   }
 

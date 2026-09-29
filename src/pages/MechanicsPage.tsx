@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { NOM_APP } from '../marque';
 
 // Doc de mécaniques de jeu (Summoners War). Formules issues des modèles
 // communautaires (swcalc.cz, swarfarm) — valeurs prédictives, pas le code source.
@@ -233,8 +234,9 @@ export default function MechanicsPage() {
             <li>Vol de stats basé sur une stat de base et la « knowledge » (Herteit S3).</li>
           </ul>
           <p className="text-sm">
-            Ces effets ne sont pas modélisés dans SW Forge (qui se concentre sur la vitesse, les
-            ticks et les runes).
+            {/* Un GABARIT, pas du texte coupé par `{NOM_APP}` : l'inventaire de
+                l'interface relève ainsi la phrase entière (rebranding R2). */}
+            {`Ces effets ne sont pas modélisés dans ${NOM_APP} (qui se concentre sur la vitesse, les ticks et les runes).`}
           </p>
         </Section>
       </div>

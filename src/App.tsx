@@ -99,6 +99,8 @@ import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/apply
 import { reinitialiserSticky } from './hooks/useStickyState';
 import { PREFIXE_SPEED_TUNE } from './hooks/useSpeedTune';
 import { VUES_INVENTAIRE, hashVue, vueParDefaut, vueValide } from './lib/accountViews';
+import { NOM_APP } from './marque';
+import { SymboleLogo } from './components/Logo';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 
@@ -1102,7 +1104,7 @@ export default function App() {
     siegeSub?.label ??
     sectionOuverte?.titre ??
     entreeCourante?.label ??
-    (route === 'parametres' ? 'Paramètres' : 'SW Forge');
+    (route === 'parametres' ? 'Paramètres' : NOM_APP);
   // Fil d'Ariane de la barre du haut, BUREAU : le chemin du menu bureau jusqu'à
   // la page — intitulé de groupe, entrée, sous-section (« Jouer › Siège ›
   // Défense », « Mon compte › Runes › Liste »). ⚠️ Tiré de `groupesBureau`,
@@ -1387,7 +1389,9 @@ export default function App() {
              réglages : trois éléments qui poussaient le titre centré en absolu
              SOUS eux, et le bouton ⚙ chevauchait « RTA ». */
           <a href="#/" className="flex items-center gap-2 lg:hidden">
-            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-6 w-6" />
+            {/* Le symbole en composant (rebranding R2), plus le favicon : ses
+                couleurs suivent le thème, le favicon a un fond fixe. */}
+            <SymboleLogo className="h-6 w-6" />
           </a>
         }
       />
@@ -1569,7 +1573,7 @@ export default function App() {
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
-              title="Le code de SW Forge sur GitHub"
+              title={`Le code de ${NOM_APP} sur GitHub`}
             >
               <Github size={13} /> github.com/tototriou
             </a>
@@ -1587,7 +1591,7 @@ export default function App() {
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
-              title="Rejoindre le serveur Discord de SW Forge"
+              title={`Rejoindre le serveur Discord de ${NOM_APP}`}
             >
               <MessageCircle size={13} /> Rejoindre le Discord
             </a>

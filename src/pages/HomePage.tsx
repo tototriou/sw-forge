@@ -25,6 +25,8 @@ import ElementIcon from '../components/ElementIcon';
 import { ElementKey } from '../types';
 import { RELEASES, libelleVersion } from '../data/releases';
 import { Bouton } from '../ui';
+import { NOM_APP } from '../marque';
+import { SymboleLogo } from '../components/Logo';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
@@ -117,14 +119,14 @@ export default function HomePage({ stats, onImport }: Props) {
               porte pas la marque (elle n'apparaît qu'en version repliée) : sans
               ce titre, on ne sait plus sur quel site on est. L'accroche vient
               juste après, en sous-titre. */}
+          {/* ⚠️ Rebranding R2 : le symbole en composant (couleurs du thème) et
+              le nom de `marque.ts`. Espace ORDINAIRE, plus `&nbsp;` : « SW
+              Blacksmith » est long, il doit pouvoir passer sur deux lignes au
+              téléphone plutôt que déborder. Le reste du héros est le lot R5. */}
           <div className="flex items-center gap-3">
-            <img
-              src={`${import.meta.env.BASE_URL}favicon.svg`}
-              alt=""
-              className="w-[clamp(38px,6vw,64px)] h-[clamp(38px,6vw,64px)] flex-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]"
-            />
+            <SymboleLogo className="w-[clamp(38px,6vw,64px)] h-[clamp(38px,6vw,64px)] flex-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" />
             <h1 className="font-display font-black text-[clamp(40px,7vw,76px)] leading-[0.95] title-gradient">
-              SW&nbsp;Forge
+              {NOM_APP}
             </h1>
           </div>
 

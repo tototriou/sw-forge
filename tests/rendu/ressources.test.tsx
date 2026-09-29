@@ -76,7 +76,7 @@ export function testRenduMecaniques() {
     'FacteurDéf = 1000 / (1140 + 3.5 × DEF)',
     'Mise à l’échelle sur stats : ±2.8 % → [0.972 , 1.028]',
   ]) ok(t.includes(f), `formule « ${f.slice(0, 40)}… »`);
-  ok(t.endsWith('Ces effets ne sont pas modélisés dans SW Forge (qui se concentre sur la vitesse, les ticks et les runes).'), 'ce qui n\'est pas modélisé');
+  ok(t.endsWith('Ces effets ne sont pas modélisés dans SW Blacksmith (qui se concentre sur la vitesse, les ticks et les runes).'), 'ce qui n\'est pas modélisé');
 }
 
 export function testRenduNouveautes() {
@@ -84,7 +84,7 @@ export function testRenduNouveautes() {
   const html = rendre(<ReleasesPage />);
   const t = texteVisible(html);
   const liens = valeurs(html, 'href');
-  ok(t.startsWith('Nouveautés Ce qui a changé à chaque version de SW Forge. La version en cours est rappelée en bas de chaque page. Voir les releases sur GitHub'), 'le titre, l\'introduction, le lien GitHub');
+  ok(t.startsWith('Nouveautés Ce qui a changé à chaque version de SW Blacksmith. La version en cours est rappelée en bas de chaque page. Voir les releases sur GitHub'), 'le titre, l\'introduction, le lien GitHub');
   ok(liens.includes('https://github.com/tototriou/sw-forge/releases'), 'le lien vers toutes les releases');
   for (const r of RELEASES) ok(t.includes(`${libelleVersion(r.version)}`) && t.includes(r.title), `version ${libelleVersion(r.version)} : numéro et titre`);
   const enTete = RELEASES[0];

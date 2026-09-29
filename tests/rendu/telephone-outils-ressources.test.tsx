@@ -46,7 +46,7 @@ export function testRenduTelephoneOutilsRessources() {
   const meca = texteVisible(auTelephone(() => rendre(<MechanicsPage />)));
   ok(meca.includes('Sommaire Vitesse de combat Barre d’action & ordre de tour'), 'Mécaniques : le sommaire');
   const nouv = texteVisible(auTelephone(() => rendre(<ReleasesPage />)));
-  ok(nouv.startsWith('Nouveautés Ce qui a changé à chaque version de SW Forge.') && nouv.includes('Voir les releases sur GitHub'), 'Nouveautés : titre, introduction, lien');
+  ok(nouv.startsWith('Nouveautés Ce qui a changé à chaque version de SW Blacksmith.') && nouv.includes('Voir les releases sur GitHub'), 'Nouveautés : titre, introduction, lien');
 
   const param = auTelephone(() => {
     faussLocalStorage({});

@@ -2,6 +2,7 @@ import { ReactNode, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useStickyState } from '../hooks/useStickyState';
 import { BoutonIcone } from '../ui';
+import Logo from './Logo';
 
 // Barre de navigation LATÉRALE (bureau) — refonte graphique, lot 4
 // (spec/chantiers/refonte-graphique.md, maquette « Barre latérale »).
@@ -186,15 +187,16 @@ export default function Sidebar({
           onClick={() => setBascules({})}
           className="flex min-w-0 items-center gap-2.5 focus-visible:outline-none"
         >
-          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-7 w-7 flex-none" />
-          {!retractee && <span className="truncate font-display text-lg tracking-wide">SW Forge</span>}
+          <Logo replie={retractee} />
         </a>
-        {!retractee && <span className="flex-1" />}
+        {/* ⚠️ `ml-auto` sur le bouton, plus un espaceur `flex-1` : l'espaceur
+            coûtait un écart de 10 px de plus, et « SW Blacksmith » n'a que
+            130 px pour tenir (rebranding R2). */}
         <BoutonIcone
           libelle={retractee ? 'Déplier la navigation' : 'Replier la navigation'}
           icone={retractee ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           onClick={onToggleRetract}
-          className="flex-none text-ink-dimmer"
+          className={`flex-none text-ink-dimmer ${retractee ? '' : 'ml-auto'}`}
         />
       </div>
 

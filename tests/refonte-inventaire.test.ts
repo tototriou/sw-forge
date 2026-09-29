@@ -12,6 +12,7 @@ import { spawnSync } from 'child_process';
 import { resolve } from 'path';
 import { comparer, decisionsRetrait } from '../scripts/lib/inventaire-comparer.mjs';
 import { interdits } from '../scripts/chemins-interdits.mjs';
+import { NOM_APP } from '../src/marque';
 import { egal, ok, titre } from './outils';
 
 const RACINE = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -54,6 +55,10 @@ export function testRefonteInventaireExtraction() {
     'message:Fichier importé',
     'attr:placeholder:Rechercher {…}…',
     "texte:L'apostrophe décodée",
+    // Rebranding R2 : une constante de `src/marque.ts` se lit par sa VALEUR,
+    // posée seule ou dans un gabarit (une variable ordinaire reste « {…} »).
+    `texte:${NOM_APP}`,
+    `attr:title:Le code de ${NOM_APP}`,
   ]) {
     ok(e.includes(vu), `relevé : ${vu}`);
   }

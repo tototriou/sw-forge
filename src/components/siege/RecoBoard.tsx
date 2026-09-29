@@ -18,6 +18,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
 import { BarreActions, Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
+import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
   recos: UseRecoState;
@@ -291,7 +292,7 @@ export default function RecoBoard({
     // presse-papier — l'import ne lit que des fichiers, un contenu collé
     // n'aurait nulle part où aller.
     const what = `${usable.length} recommandation(s) · ${decks} deck(s)`;
-    download(`swforge-reco-${slugify(label)}.json`, encodeRecosJson(usable));
+    download(`${PREFIXE_FICHIER}-reco-${slugify(label)}.json`, encodeRecosJson(usable));
     setMsg({ text: `${what} · fichier .json téléchargé.` });
     setExportAConfirmer(null);
   }

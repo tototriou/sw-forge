@@ -23,7 +23,8 @@ const DOSSIERS = ['src/lib/', 'src/hooks/', 'src/workers/', 'src/data/', 'public
 // décision 29 : « Annuler » restaure ce qu'on vient de retirer de la prépa RTA
 // et des recommandations). Puis ceux du rebranding « SW Blacksmith », nommés
 // dans la section de leur lot (`spec/chantiers/rebranding-blacksmith.md`) —
-// R1 : les sous-titres des thèmes, périmés par les nouveaux jetons.
+// R1 : les sous-titres des thèmes, périmés par les nouveaux jetons ; R2 : les
+// messages d'import qui nomment l'app, et les icônes et l'image de partage.
 const PERMIS = new Set([
   'src/data/couleursSection.ts',
   'src/data/releases.ts',
@@ -33,6 +34,11 @@ const PERMIS = new Set([
   'src/hooks/useRtaState.ts',
   'src/hooks/useSiegeRecos.ts',
   'src/hooks/useTheme.ts',
+  'src/lib/rtaShare.ts',
+  'src/lib/recoShare.ts',
+  'public/favicon.svg',
+  'public/favicon.png',
+  'public/og-image.png',
 ]);
 // Fichiers isolés : les types, et les rendus copiés du jeu (mémoire
 // `rendus-du-jeu-intouchables`), qui restent à l'identique.

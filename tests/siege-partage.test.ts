@@ -66,7 +66,9 @@ export default function testSiegePartage() {
   refus(JSON.stringify({ format: FORMAT_SIEGE, version: 99, equipes: [] }), 'plus récente', 'une version future');
   refus(JSON.stringify({ format: FORMAT_SIEGE, version: 1 }), 'aucune liste', 'pas de liste d\'équipes');
 
-  egal(nomFichierSiege('defense', new Date('2026-09-26T12:00:00Z')), 'swforge-siege-defense-2026-09-26.json', 'le nom du fichier dit le côté et la date');
+  // Préfixe `swblacksmith-` depuis le rebranding (R2, décision 14) ; le
+  // FORMAT, lui, reste `sw-forge/siege-equipes` (figé par marque.test.ts).
+  egal(nomFichierSiege('defense', new Date('2026-09-26T12:00:00Z')), 'swblacksmith-siege-defense-2026-09-26.json', 'le nom du fichier dit le côté et la date');
 
   // Recherche d'équipe par monstre (même décision 14).
   titre('Siège — recherche d\'équipe par monstre');

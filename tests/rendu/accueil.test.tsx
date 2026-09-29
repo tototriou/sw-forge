@@ -33,7 +33,7 @@ export function testRenduAccueil() {
 
   // Héros : le nom, l'accroche, la promesse.
   for (const s of [
-    'SW Forge',
+    'SW Blacksmith', // rebranding R2 (« SW Forge » avant)
     'La boîte à outils pour Summoners War.',
     // (en deux morceaux : « dans ton navigateur » est en gras, et la balise
     // laisse un espace avant le point.)

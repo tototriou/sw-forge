@@ -26,6 +26,7 @@ import {
   RelicUnique,
 } from '../types';
 import { RtaCategory } from '../hooks/useRtaCategories';
+import { NOM_APP } from '../marque';
 
 const SET_KEYS = new Set<string>(RUNE_SETS.map((s) => s.key));
 // Sections acceptées : les sets de runes + les deux sections spéciales.
@@ -825,7 +826,7 @@ export function validateRtaImport(text: string): ImportReport {
   }
   // Message explicite plutôt qu'une erreur de parseur cryptique.
   if (!t.startsWith('{')) {
-    ctx.errors.push("Attendu un JSON de prépa RTA (fichier .json d'export SW Forge).");
+    ctx.errors.push(`Attendu un JSON de prépa RTA (fichier .json d'export ${NOM_APP}).`);
     return { ...vide, ...ctx };
   }
 
@@ -855,7 +856,7 @@ export function validateRtaImport(text: string): ImportReport {
   if (Number.isFinite(version) && version > JSON_VERSION) {
     warn(
       ctx,
-      `Fichier au format v${version}, plus récent que cette version de SW Forge (v${JSON_VERSION}) — ` +
+      `Fichier au format v${version}, plus récent que cette version de ${NOM_APP} (v${JSON_VERSION}) — ` +
         `ce qui n'est pas reconnu a été ignoré.`
     );
   } else if (Number.isFinite(version) && version < JSON_VERSION) {

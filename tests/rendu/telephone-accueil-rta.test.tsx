@@ -55,7 +55,7 @@ const STATS: HomeStats = { rta: 3, defense: 2, offense: 1, recos: 4 };
 export function testRenduTelephoneAccueil() {
   titre('rendu téléphone · Accueil');
   const t = texteVisible(auTelephone(() => rendre(<HomePage stats={STATS} onImport={() => {}} />)));
-  ok(t.startsWith('SW Forge La boîte à outils pour Summoners War.'), 'le nom et l\'accroche');
+  ok(t.startsWith('SW Blacksmith La boîte à outils pour Summoners War.'), 'le nom et l\'accroche');
   ok(t.includes('Dépose ton fichier .json ici ou clique pour parcourir Export SWEX (.json) lu dans la page, jamais envoyé'), 'l\'import, et ce qu\'il devient');
   ok(t.includes('Ton espace Prépa RTA 3 monstres Défense de siège 2 équipes Offense de siège 1 équipe Recommandations 4 recos'), '« Ton espace » et ses quatre compteurs');
   ok(t.includes('Comment ça marche 01 Exporte ton compte') && t.includes('03 Prépare et optimise'), 'les trois étapes');

@@ -11,7 +11,10 @@
 // vitesses, pas son inventaire.
 
 import type { Monster, SiegeTeam } from '../types';
+import { NOM_APP, PREFIXE_FICHIER } from '../marque';
 
+// ⚠️ Un IDENTIFIANT de format, pas le nom de l'app : il garde `sw-forge` après
+// le rebranding, sans quoi les fichiers déjà exportés seraient refusés.
 export const FORMAT_SIEGE = 'sw-forge/siege-equipes';
 export const VERSION_SIEGE = 1;
 
@@ -63,9 +66,9 @@ export function exporterEquipes(
   return { texte: JSON.stringify(fichier, null, 2), equipes: teams.length, perso };
 }
 
-// `swforge-siege-defense-2026-09-26.json` — le nom dit ce qu'il contient.
+// `swblacksmith-siege-defense-2026-09-26.json` — le nom dit ce qu'il contient.
 export function nomFichierSiege(cote: CoteSiege, date = new Date()): string {
-  return `swforge-siege-${cote}-${date.toISOString().slice(0, 10)}.json`;
+  return `${PREFIXE_FICHIER}-siege-${cote}-${date.toISOString().slice(0, 10)}.json`;
 }
 
 export type LectureSiege =
@@ -91,10 +94,10 @@ export function lireEquipes(texte: string, monsters: Monster[]): LectureSiege {
   }
   const o = brut as Partial<FichierSiege> | null;
   if (!o || typeof o !== 'object' || o.format !== FORMAT_SIEGE) {
-    return { ok: false, erreur: "Ce fichier n'est pas un export d'équipes de siège SW Forge." };
+    return { ok: false, erreur: `Ce fichier n'est pas un export d'équipes de siège ${NOM_APP}.` };
   }
   if (typeof o.version !== 'number' || o.version > VERSION_SIEGE) {
-    return { ok: false, erreur: 'Ce fichier vient d’une version plus récente de SW Forge.' };
+    return { ok: false, erreur: `Ce fichier vient d’une version plus récente de ${NOM_APP}.` };
   }
   if (!Array.isArray(o.equipes)) {
     return { ok: false, erreur: 'Le fichier ne contient aucune liste d’équipes.' };

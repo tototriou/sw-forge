@@ -93,7 +93,7 @@ export function testRenduTelephoneSiege() {
     // panneau, dans le même ordre.
     ok(to.includes('Équipe Ajouter une équipe Exporter Importer Monstre Créer un monstre Tout effacer'), `${side} : ses actions, groupées, dans l'ordre`);
     ok(b.some((x) => x.texte === 'Exporter' && x.title === 'Exporter les équipes affichées en fichier .json'), `${side} : « Exporter », et ce qu'il exporte`);
-    ok(b.some((x) => x.texte === 'Importer' && x.title === 'Ajouter les équipes d\'un fichier .json exporté par SW Forge — les tiennes ne sont pas touchées'), `${side} : « Importer », et ce qu'il ne touche pas`);
+    ok(b.some((x) => x.texte === 'Importer' && x.title === 'Ajouter les équipes d\'un fichier .json exporté par SW Blacksmith — les tiennes ne sont pas touchées'), `${side} : « Importer », et ce qu'il ne touche pas`);
   }
   const b = boutons(ferme);
   ok(b.filter((x) => x.ariaLabel === 'Éditer l\'équipe').length === 2 && b.filter((x) => x.ariaLabel === 'Supprimer l\'équipe').length === 2, 'éditer et supprimer, sur chaque équipe');

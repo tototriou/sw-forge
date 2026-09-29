@@ -262,5 +262,41 @@
     "vers": "src/components/siege/RecoCard.tsx",
     "devient": "attr:libelle:Terminer l'édition de ce deck",
     "pourquoi": "Lot 7b, boutons de la page : l'état « en édition » du même crayon, même passage par `libelle` (aria-label ET title)."
+  },
+  "src/App.tsx :: attr:title:Le code de SW Forge sur GitHub": {
+    "de": "src/App.tsx",
+    "vers": "src/App.tsx",
+    "devient": "attr:title:Le code de SW Blacksmith sur GitHub",
+    "pourquoi": "Rebranding « SW Blacksmith », R2, décision 2 : le nom de l'app, lu dans src/marque.ts."
+  },
+  "src/App.tsx :: attr:title:Rejoindre le serveur Discord de SW Forge": {
+    "de": "src/App.tsx",
+    "vers": "src/App.tsx",
+    "devient": "attr:title:Rejoindre le serveur Discord de SW Blacksmith",
+    "pourquoi": "Rebranding R2, décision 15 : l'infobulle Discord dit SW Blacksmith ; le lien d'invitation ne change pas."
+  },
+  "src/components/Sidebar.tsx :: texte:SW Forge": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Logo.tsx",
+    "devient": "texte:SW Blacksmith",
+    "pourquoi": "Rebranding R2 : le logo de la barre latérale devient le composant Logo (symbole de la charte et nom), qui porte le texte."
+  },
+  "src/pages/HomePage.tsx :: texte:SW Forge": {
+    "de": "src/pages/HomePage.tsx",
+    "vers": "src/pages/HomePage.tsx",
+    "devient": "texte:SW Blacksmith",
+    "pourquoi": "Rebranding R2, décision 2 : le titre du héros est le nom de l'app."
+  },
+  "src/pages/MechanicsPage.tsx :: texte:Ces effets ne sont pas modélisés dans SW Forge (qui se concentre sur la vitesse, les ticks et les runes).": {
+    "de": "src/pages/MechanicsPage.tsx",
+    "vers": "src/pages/MechanicsPage.tsx",
+    "devient": "texte:Ces effets ne sont pas modélisés dans SW Blacksmith (qui se concentre sur la vitesse, les ticks et les runes).",
+    "pourquoi": "Rebranding R2, décision 2 : le nom de l'app."
+  },
+  "src/pages/ReleasesPage.tsx :: texte:Ce qui a changé à chaque version de SW Forge. La version en cours est rappelée en bas de chaque page.": {
+    "de": "src/pages/ReleasesPage.tsx",
+    "vers": "src/pages/ReleasesPage.tsx",
+    "devient": "texte:Ce qui a changé à chaque version de SW Blacksmith. La version en cours est rappelée en bas de chaque page.",
+    "pourquoi": "Rebranding R2, décision 2 : le nom de l'app. L'historique des versions (data/releases.ts), lui, garde « SW Forge »."
   }
 }

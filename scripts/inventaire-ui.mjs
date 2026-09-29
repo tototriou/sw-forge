@@ -63,12 +63,32 @@ function nomPropriete(n) {
   return null;
 }
 
+// ⚠️ **Constantes de MARQUE** (`src/marque.ts`) : depuis le rebranding (R2),
+// le nom de l'app n'est plus écrit dans les composants, qui lisent `NOM_APP`.
+// L'inventaire relève ce qu'un joueur LIT : une constante de marque se lit par
+// sa VALEUR, pas comme `{…}` — sinon le nom disparaîtrait de l'inventaire, et
+// sa perte avec lui. Seules ces constantes-là, relues à chaque lancement : le
+// fichier est un module de chaînes, lu par une expression régulière.
+function lireConstantes(fichier) {
+  try {
+    const source = readFileSync(fichier, 'utf8');
+    return Object.fromEntries([...source.matchAll(/^export const (\w+) = '([^']*)';/gm)].map((m) => [m[1], m[2]]));
+  } catch {
+    return {};
+  }
+}
+const CONSTANTES = lireConstantes(join(RACINE, 'src/marque.ts'));
+const valeurConstante = (n, constantes) =>
+  ts.isIdentifier(n) && Object.hasOwn(constantes, n.text) ? constantes[n.text] : null;
+
 // Texte d'un littéral chaîne ou gabarit ; `${…}` devient « {…} » pour garder
 // la phrase lisible et stable quel que soit le nom de la variable, sans se
-// confondre avec un « … » écrit en toutes lettres.
-function texteLitteral(n) {
+// confondre avec un « … » écrit en toutes lettres — sauf une constante de
+// marque, remplacée par sa valeur.
+function texteLitteral(n, constantes) {
   if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) return n.text;
-  if (ts.isTemplateExpression(n)) return n.head.text + n.templateSpans.map((s) => '{…}' + s.literal.text).join('');
+  if (ts.isTemplateExpression(n))
+    return n.head.text + n.templateSpans.map((s) => (valeurConstante(s.expression, constantes) ?? '{…}') + s.literal.text).join('');
   return null;
 }
 
@@ -113,7 +133,7 @@ function remonteVersAffichage(n) {
   return null;
 }
 
-export function extraireSource(source, nomFichier = 'x.tsx') {
+export function extraireSource(source, nomFichier = 'x.tsx', constantes = CONSTANTES) {
   const sf = ts.createSourceFile(nomFichier, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const entrees = new Set();
   const visiter = (n) => {
@@ -125,8 +145,12 @@ export function extraireSource(source, nomFichier = 'x.tsx') {
       const v = propre(n.initializer.text);
       if (v.startsWith('#/')) entrees.add(`route:${v}`);
       else if (ATTRS.has(nom) && v && lisible(v)) entrees.add(`attr:${nom}:${v}`);
+    } else if (valeurConstante(n, constantes) !== null) {
+      // `{NOM_APP}` posé tel quel : même règle d'affichage qu'une chaîne.
+      const genre = remonteVersAffichage(n);
+      if (genre) entrees.add(`${genre}:${propre(valeurConstante(n, constantes))}`);
     } else {
-      const t = texteLitteral(n);
+      const t = texteLitteral(n, constantes);
       if (t !== null && !(n.parent && ts.isJsxAttribute(n.parent))) {
         const v = propre(t);
         if (v.startsWith('#/')) entrees.add(`route:${v}`);

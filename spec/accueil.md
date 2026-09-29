@@ -106,6 +106,22 @@ page hors de l'écran : à 7 entrées, la moitié des sections n'était jamais v
 page ; relevé par le test de rendu du lot 5, `tests/rendu/accueil.test.tsx`,
 qui fixe désormais les douze cartes et leur ordre.)
 
+### Rebranding « SW Blacksmith » — lot R5 (2026-09-29)
+
+La planche d'accueil de la toile a été relevée et comparée, point par point ;
+**Thomas garde l'accueil tel quel** (décisions 31 à 36 du
+[cadrage](chantiers/rebranding-blacksmith.md)) : héros (nom en titre, zone
+de dépôt seule, aucun bouton), pas de bandeau de garanties, les douze cartes,
+« Comment ça marche », et au téléphone la décision 24 (même structure,
+resserrée) — la toile proposait « Forgé pour la guilde. », deux boutons et
+une illustration, trois garanties, six cartes, « Trois coups de marteau » et
+un accueil réduit au téléphone. Il reçoit déjà les jetons (R1), le logo et le
+nom en Saira (R2 bis).
+Seul changement (décision 37) : les cartes de **section** — fonctionnalités et
+« Ton espace » — portent les **icônes d'atelier** de la navigation
+([IconesAtelier.tsx](../src/components/IconesAtelier.tsx)) : une section a la
+même icône partout. Les étapes et le titre « Ton espace » gardent lucide.
+
 ### Le style — refonte graphique, lot 5
 
 La structure ci-dessus est **gardée** (décision 10 de Thomas) ; seul le

@@ -89,6 +89,12 @@ trois mentions). Question posée, réponse : « une rangée, comme la toile ».
   discord » — au bureau, les trois liens en colonne, alignés à droite
   (`lg:flex-col lg:items-end`) : **79 px**. Téléphone inchangé (145 px),
   la demande visant la rangée du bureau.
+- Puis « revois un peu l'affichage » (capture) : icônes des liens décalées
+  (lignes alignées à droite, libellés de longueurs différentes) et trois
+  liens en braise trop lourds. Repris : le bloc reste à droite
+  (`lg:justify-self-end`) mais ses lignes s'alignent à gauche
+  (`lg:items-start`) ; liens en `ink-dim`, braise au survol ; mentions en
+  `ink-dimmer` — comme le pied de page de la toile. Hauteurs inchangées.
 
 Vérifié : `tsc` ; `node tests/run.mjs rendu refonte` → 829 ; inventaire ;
 build ; app construite à 1440, 390 et 360 px, sans débordement.

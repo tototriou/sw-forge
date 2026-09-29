@@ -1586,7 +1586,9 @@ export default function App() {
             <SymboleLogo className="h-6 w-6" />
             <span className={`${CLASSE_NOM} text-xs`}>{NOM_APP}</span>
           </p>
-          <div className="space-y-1 text-center max-lg:order-last">
+          {/* Mentions en encre TERTIAIRE, comme la toile : elles informent, elles
+              ne doivent pas rivaliser avec le contenu (5.26 au pire). */}
+          <div className="space-y-1 text-center text-ink-dimmer max-lg:order-last">
             <p>Toutes tes données restent en local dans ton navigateur.</p>
             <p>
               Données et images © Com2uS · Source :{' '}
@@ -1601,15 +1603,20 @@ export default function App() {
           </div>
           {/* Signature : projet perso, code ouvert, et un contact direct pour les
               questions ou les demandes particulières.
-              ⚠️ Au bureau, les trois liens EN COLONNE, alignés à droite
-              (Thomas : « met sur une colonne le github la version et le
-              discord ») ; au téléphone, sur une ligne, inchangé. */}
-          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:flex-col lg:items-end lg:gap-y-0.5">
+              ⚠️ Au bureau, les trois liens EN COLONNE (Thomas : « met sur une
+              colonne le github la version et le discord ») ; au téléphone, sur
+              une ligne, inchangé. Le BLOC se cale à droite (`justify-self-end`),
+              mais ses lignes s'alignent à GAUCHE (`items-start`) : alignées à
+              droite, les icônes se décalaient d'un libellé à l'autre (« revois
+              un peu l'affichage »).
+              ⚠️ En encre secondaire, la braise au survol — comme la toile :
+              trois liens en braise pesaient plus lourd que tout le pied. */}
+          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:flex-col lg:items-start lg:justify-self-end lg:gap-y-0.5">
             <a
               href="https://github.com/tototriou/sw-forge"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
+              className="inline-flex items-center gap-1.5 text-ink-dim hoverable:text-accent transition"
               title={`Le code de ${NOM_APP} sur GitHub`}
             >
               <Github size={13} /> <span className="lg:hidden">GitHub</span>
@@ -1617,7 +1624,7 @@ export default function App() {
             </a>
             <a
               href="#/releases"
-              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
+              className="inline-flex items-center gap-1.5 text-ink-dim hoverable:text-accent transition"
               title="Voir les nouveautés de cette version"
             >
               <IconeNouveautes size={13} /> v{__APP_VERSION__}
@@ -1628,7 +1635,7 @@ export default function App() {
               href={DISCORD_INVITE}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
+              className="inline-flex items-center gap-1.5 text-ink-dim hoverable:text-accent transition"
               title={`Rejoindre le serveur Discord de ${NOM_APP}`}
             >
               <MessageCircle size={13} /> <span className="lg:hidden">Discord</span>

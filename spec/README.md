@@ -366,7 +366,10 @@ Le cadre commun (nav, routing par hash, footer) vit dans
   « met sur une colonne le github la version et le discord ») — 79 px de haut,
   il empilait cinq lignes. Au téléphone, une colonne centrée : logo, liens sur
   une ligne en libellés courts (« GitHub », « Discord »), mentions. Police du
-  texte, plus la mono.
+  texte, plus la mono. Liens en encre secondaire, braise au survol ; mentions
+  en encre tertiaire (la toile) ; au bureau, la colonne de liens se cale à
+  droite mais ses lignes s'alignent à gauche, pour que les icônes restent
+  dans l'axe.
 - Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.
 - Nav desktop (pilules) + nav repliée (hamburger qui se referme à la navigation),
   avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.

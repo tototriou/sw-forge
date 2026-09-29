@@ -1754,6 +1754,12 @@ export function additionalSetActivationHeadroom(
   for (const key of requirement.sets) requestedOccurrences.set(key, (requestedOccurrences.get(key) ?? 0) + 1);
   const counts = new Map<string, number>();
   for (const r of pool) counts.set(r.set, (counts.get(r.set) ?? 0) + 1);
+  // ⚠️ Le joker (Intangible) complète UN set incomplet : une Blade physique +
+  // Intangible active Blade, trois Energy en surplus + Intangible une seconde
+  // Energy. Sans ce crédit, la borne SOUS-estimait (faux rejet prouvé par
+  // `testRuneOptimAurasCoupesBladeIntangible`, 6bis-b3b). Un crédit par set,
+  // généreux — le vrai joker n'en aide qu'un — donc toujours un majorant.
+  const joker = counts.has(INTANGIBLE_SET) ? 1 : 0;
   for (const [setKey, bonus] of Object.entries(SET_STAT_BONUS)) {
     const pieces = setPieces(setKey);
     if (pieces > freeSlots) continue;
@@ -1761,15 +1767,14 @@ export function additionalSetActivationHeadroom(
     // (0 si le set n'est pas demandé du tout) — seul ce qui reste au-delà,
     // dans le pool réel, peut fournir une activation SUPPLÉMENTAIRE.
     const alreadyReserved = (requestedOccurrences.get(setKey) ?? 0) * pieces;
-    // ⚠️ `Math.min(available, freeSlots)` : le pool peut posséder BEAUCOUP
+    // ⚠️ `Math.min(…, freeSlots)` : le pool peut posséder BEAUCOUP
     // plus de runes de ce set (au-delà de la réserve garantie) que
     // d'emplacements libres pour les accueillir — sans ce plafond, une
     // seule activation possible se compterait comme plusieurs (ex. 8 runes
     // Blade en surplus dans le pool, mais seulement 2 emplacements libres :
     // 1 activation possible, pas 4).
-    const available = (counts.get(setKey) ?? 0) - alreadyReserved;
-    if (available <= 0) continue;
-    const activations = Math.floor(Math.min(available, freeSlots) / pieces);
+    const available = Math.max(0, (counts.get(setKey) ?? 0) - alreadyReserved);
+    const activations = Math.floor(Math.min(available + joker, freeSlots) / pieces);
     if (activations <= 0) continue;
     if (bonus.pct != null) {
       if (bonus.stat === 'hp' || bonus.stat === 'atk' || bonus.stat === 'def') {

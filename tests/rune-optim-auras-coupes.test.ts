@@ -488,3 +488,110 @@ export function testRuneOptimAurasCoupesRetention() {
   }
   egal(fauxRejets, 0, `T4 rétention : ${absents} build(s) absents, ${perteHeuristique} tracé(s) à une perte heuristique, zéro à une coupe sûre (${fmtMotifs(motifs)})`);
 }
+
+/* --------------------------------------------------------------------------
+ * T1 — témoin Blade/Intangible (Rage seul demandé) : crédit du joker.
+ * ----------------------------------------------------------------------- */
+
+const R = (id: number, slot: number) => r(id, slot, 'rage');
+
+export function testRuneOptimAurasCoupesBladeIntangible() {
+  titre('Témoin T1 · Blade non demandé et Intangible (Rage seul)');
+
+  // Une Blade physique + Intangible : CR 15 + 12 = 27, seul build valide.
+  const unBlade: Cas = {
+    nom: 'T1 Blade 1 + Intangible, min CR 27',
+    pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'blade', [[1, 100]]), r(25, 5, 'will', [[3, 10]]), r(16, 6, 'intangible', [[5, 10]]), r(26, 6, 'will', [[3, 10]])],
+    sets: ['rage'], minStats: { cr: 27 }, compter: true,
+  };
+  const v1 = lancer(unBlade);
+  verifier(unBlade, v1, true);
+  cibleCollectee(unBlade, v1, '1,2,3,4,15,16');
+
+  // Moitiés permutées : Blade en moitié A, Intangible en moitié B.
+  const permute: Cas = {
+    nom: 'T1 Blade 1 + Intangible, moitiés permutées',
+    pool: [R(1, 1), r(12, 2, 'blade', [[1, 100]]), r(22, 2, 'will', [[3, 10]]), R(3, 3), R(4, 4), r(15, 5, 'intangible', [[5, 10]]), r(25, 5, 'will', [[3, 10]]), R(6, 6)],
+    sets: ['rage'], minStats: { cr: 27 }, compter: true,
+  };
+  const vP = lancer(permute);
+  verifier(permute, vP, true);
+  cibleCollectee(permute, vP, '1,12,3,4,15,6');
+
+  // Deux Blade physiques : le cas déjà couvert (témoin inchangé).
+  const deuxBlade: Cas = {
+    nom: 'T1 Blade 2 physiques, min CR 27',
+    pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'blade', [[1, 100]]), r(25, 5, 'will', [[3, 10]]), r(16, 6, 'blade', [[1, 100]]), r(26, 6, 'will', [[3, 10]])],
+    sets: ['rage'], minStats: { cr: 27 }, compter: true,
+  };
+  verifier(deuxBlade, lancer(deuxBlade), true);
+
+  // Sans seuil, puis maximum CR 26 : l'activation Blade n'est pas inévitable.
+  const sansSeuil: Cas = { ...unBlade, nom: 'T1 Blade 1 + Intangible, sans seuil', minStats: {} };
+  verifier(sansSeuil, lancer(sansSeuil), true);
+  const max: Cas = { ...unBlade, nom: 'T1 Blade 1 + Intangible, max CR 26', minStats: {}, maxStats: { cr: 26 } };
+  const vM = lancer(max);
+  verifier(max, vM, true);
+  egal(vM.o.valides.size, 3, 'T1 max CR 26 : Blade+Intangible (27) rejeté, les trois autres gardés');
+
+  // Seconde activation d'un set DEMANDÉ grâce au joker : Energy demandé une
+  // fois, trois Energy physiques + Intangible = deux activations (PV +30 %,
+  // 10000 → 13000) ; le Will des emplacements 5-6 est complet, seul Energy
+  // reste incomplet pour le joker.
+  const energy: Cas = {
+    nom: 'T1 Energy demandé, 2e activation par Intangible',
+    pool: [r(1, 1, 'energy'), r(2, 2, 'energy'), r(3, 3, 'energy'), r(14, 4, 'intangible', [[5, 10]]), r(24, 4, 'will', [[3, 10]]), r(5, 5, 'will', [[3, 10]]), r(6, 6, 'will', [[5, 10]])],
+    sets: ['energy'], minStats: { hp: 13000 }, compter: true,
+  };
+  const vE = lancer(energy);
+  verifier(energy, vE, true);
+  cibleCollectee(energy, vE, '1,2,3,14,5,6');
+
+  verifierDiagnostics({
+    nom: 'Diag Blade + Intangible (min CR 27)', compter: true, sets: ['rage'], minStats: { cr: 27 },
+    pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'blade', [[1, 100]]), r(16, 6, 'intangible', [[5, 10]])],
+  });
+}
+
+/* --------------------------------------------------------------------------
+ * Différentiel aléatoire (seeds fixes) : auras propres, Intangible, toggle,
+ * part externe, min et max sur RES/PRE/CR.
+ * ----------------------------------------------------------------------- */
+
+const COMBOS: string[][] = [[], ['violent'], ['will'], ['tolerance'], ['fight', 'will'], ['violent', 'tolerance'], ['blade'], ['accuracy', 'shield'], ['energy']];
+
+export function testRuneOptimAurasCoupesDifferentiel() {
+  titre('Auras propres · différentiel aléatoire contre l\'oracle (seeds 6300..6359)');
+  let fauxRejets = 0;
+  let scenarios = 0;
+  let valides = 0;
+  const motifs = new Map<string, number>();
+  for (let s = 0; s < 60; s++) {
+    const seed = 6300 + s;
+    const rng = mulberry32(seed);
+    const pool = randomPool(rng, 3, SETS_DIFF);
+    const sets = COMBOS[Math.floor(rng() * COMBOS.length)];
+    const compter = rng() < 0.7;
+    const externes: Partial<Record<SetAura, number>> = { tolerance: Math.floor(rng() * 2), accuracy: Math.floor(rng() * 2), fight: Math.floor(rng() * 2) };
+    const brouillon: Cas = { nom: '', pool, sets, compter, externes };
+    const tous = oracle(brouillon).ensembleSets;
+    if (tous.length === 0) continue;
+    const minStats: Partial<Record<StatKey, number>> = {};
+    const maxStats: Partial<Record<StatKey, number>> = {};
+    for (const k of ['res', 'acc', 'cr'] as const) {
+      const vals = tous.map((b) => b.cond[k]);
+      const t = rng();
+      if (t < 0.35) minStats[k] = Math.max(1, quantile(vals, 0.6 + 0.35 * rng()));
+      else if (t < 0.55) maxStats[k] = Math.max(1, quantile(vals, 0.1 + 0.4 * rng()));
+    }
+    const cas: Cas = { nom: `seed ${seed} sets=${JSON.stringify(sets)} toggle=${compter} ext=${JSON.stringify(externes)} min=${JSON.stringify(minStats)} max=${JSON.stringify(maxStats)}`, pool, sets, compter, externes, minStats, maxStats };
+    const v = lancer(cas, {}, 25);
+    verifier(cas, v, false);
+    scenarios++;
+    valides += v.o.valides.size;
+    fauxRejets += v.fauxRejets.length;
+    for (const [k, n] of v.motifs) motifs.set(k, (motifs.get(k) ?? 0) + n);
+  }
+  ok(scenarios >= 35, `différentiel : ${scenarios} scénarios comparés sur 60 seeds (les autres n'ont aucun build au combo demandé), ${valides} builds valides à l'oracle`);
+  egal(fauxRejets, 0, `différentiel : zéro faux rejet par une coupe sûre — absents par motif : ${fmtMotifs(motifs)}`);
+}

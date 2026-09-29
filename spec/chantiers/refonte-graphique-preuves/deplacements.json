@@ -298,5 +298,11 @@
     "vers": "src/pages/ReleasesPage.tsx",
     "devient": "texte:Ce qui a changé à chaque version de SW Blacksmith. La version en cours est rappelée en bas de chaque page.",
     "pourquoi": "Rebranding R2, décision 2 : le nom de l'app. L'historique des versions (data/releases.ts), lui, garde « SW Forge »."
+  },
+  "src/components/siege/RecoCard.tsx :: prop:texte:text-fire": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "prop:texte:text-bad",
+    "pourquoi": "Rebranding R6, décision 43 : les verdicts « À revoir » et « Monstre manquant » passent du rouge de l'élément Feu au rouge d'état."
   }
 }

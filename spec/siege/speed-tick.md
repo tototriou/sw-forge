@@ -121,12 +121,17 @@ par équipe :
 
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
-| Orange | `amber` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ⚠️ **RIEN QUE ce qui manque**, monstre par monstre (« Susano +14 VIT ») |
+| Orange | `warn` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ⚠️ **RIEN QUE ce qui manque**, monstre par monstre (« Susano +14 VIT ») |
 | — | neutre | Équipe Swift dont le speed tune **ne peut pas encore être calculé** (données en cours de chargement, un seul monstre renseigné) | la RAISON, et pas n'importe laquelle — voir ci-dessous |
-| Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
-| Vert | `emerald` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
+| Rouge | `bad` | (Sans Swift) un monstre **pas au tick** (contour rouge et fond `bad-soft` sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
+| Vert | `good` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
-| Rouge | `fire` | **Équipement incomplet** (< 6 runes ou < 2 artéfacts sur un monstre importé) — prime sur tous les autres cas | une phrase par monstre, voir ci-dessous |
+| Rouge | `bad` | **Équipement incomplet** (< 6 runes ou < 2 artéfacts sur un monstre importé) — prime sur tous les autres cas | une phrase par monstre, voir ci-dessous |
+
+⚠️ **Rouge d'ÉTAT (`bad`), pas celui de l'élément Feu** (rebranding, décision
+43). Le rouge d'une faute était `fire` : il se confondait avec un monstre Feu,
+et la pastille de la même carte était déjà en `bad`. Les couleurs de ce tableau
+sont celles des jetons (`amber` / `emerald` étaient des noms d'avant les jetons).
 
 ⚠️ **Le message orange n'a pas d'introduction.** Il disait « Équipe speed : … »,
 ce que le pictogramme d'alerte et le contour disaient déjà : on relisait la même
@@ -367,9 +372,14 @@ Marges : `TICK_BELOW_MARGIN = 10`, `TICK_ABOVE_MARGIN = 15`.
 
 | Cas | Affichage |
 |-----|-----------|
-| `diff < 0` | « manque `-diff` pour `tick` » (rouge / `fire`) |
+| `diff < 0` | « manque `-diff` pour `tick` » (`bad` sur `bad-soft`) |
 | `diff > 0` | « +`diff` au-dessus de `tick` » (bleu / `water`) |
-| `diff = 0` | « pile au tick `tick` ✓ » (vert / `wind`) |
+| `diff = 0` | « pile au tick `tick` ✓ » (`good` sur `good-soft`) |
+
+Rebranding, décision 43 : « manque » et « pile au tick » prennent les couleurs
+d'ÉTAT sur leur fond doux (ils empruntaient le Feu et l'or du Vent, qui ne
+faisait que 3,78:1 en Atelier). Le bleu de « au-dessus » reste : aucune couleur
+d'état ne dit « plus que nécessaire, sans faute ».
 
 ## Attendus
 

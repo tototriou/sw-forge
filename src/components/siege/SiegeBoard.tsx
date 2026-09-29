@@ -445,7 +445,7 @@ export default function SiegeBoard({
         )}
       </div>
       {msg && (
-        <p className={`mt-2 text-xs ${msg.error ? 'text-fire' : 'text-good'}`} role="status">
+        <p className={`mt-2 text-xs ${msg.error ? 'text-bad' : 'text-good'}`} role="status">
           {msg.text}
         </p>
       )}

@@ -887,9 +887,12 @@ function deckProblem(dm: DeckMatch): string {
 // horizon, ni la même décision. Les fondre obligeait à parcourir la liste rouge
 // pour trier à l'œil ce sur quoi on pouvait agir ce soir.
 //
-// Les deux gardent la couleur `fire` : ils sont bloquants tous les deux, et
+// Les deux gardent le même rouge, `bad` : ils sont bloquants tous les deux, et
 // c'est bien ce que la couleur dit. Ce sont deux FILTRES sur un même rouge, pas
 // deux couleurs de plus.
+// ⚠️ `bad`, le rouge d'ÉTAT, et non plus `fire`, celui de l'élément Feu
+// (rebranding, décision 43) : un rouge de faute ne doit pas se lire comme un
+// monstre Feu, et « Tout effacer » était déjà en `bad` sur la même page.
 type VerdictKey = 'ok' | 'nodeck' | 'ko' | 'missing';
 
 const VERDICTS: {
@@ -933,9 +936,9 @@ const VERDICTS: {
     key: 'ko',
     label: 'À revoir',
     statuts: ['ko'],
-    dot: 'bg-fire',
-    texte: 'text-fire',
-    actif: 'border-fire bg-bad-soft text-fire',
+    dot: 'bg-bad',
+    texte: 'text-bad',
+    actif: 'border-bad bg-bad-soft text-bad',
     rang: 1,
   },
   {
@@ -949,9 +952,9 @@ const VERDICTS: {
     // côte ne se distinguent plus que par leur texte, qu'on ne relit pas une
     // fois la barre connue. Le creux dit « il manque quelque chose » sans
     // introduire une cinquième couleur qui mentirait sur la gravité.
-    dot: 'border border-fire',
-    texte: 'text-fire',
-    actif: 'border-fire bg-bad-soft text-fire',
+    dot: 'border border-bad',
+    texte: 'text-bad',
+    actif: 'border-bad bg-bad-soft text-bad',
     rang: 0,
   },
 ];
@@ -962,15 +965,16 @@ const VERDICTS: {
 // étaient neutres, la couleur réduite à un point de 6 px (lot 7b, « cartes
 // neutres ») : la CARTE reste neutre, mais la pastille qui dit le verdict
 // porte sa couleur en entier. Contrastes mesurés, texte sur fond doux, deux
-// thèmes : 4.63 au plus bas (`fire` sur `bad-soft`, Forge).
+// thèmes : 5.48 au plus bas (`good` sur `good-soft`, Atelier ; `bad` sur
+// `bad-soft` fait 5.53 en Forge, contre 4.26 pour l'ancien `fire`).
 // Par STATUT de deck (celui de `DOT`), pas par verdict : les puces de la carte
 // repliée et la ligne du tableau disent la même chose de la même façon.
 const PASTILLE_STATUT: Record<string, string> = {
   ok: 'border-transparent bg-good-soft text-good',
   partial: 'border-transparent bg-warn-soft text-warn',
   nodeck: 'border-transparent bg-warn-soft text-warn',
-  ko: 'border-transparent bg-bad-soft text-fire',
-  missing: 'border-transparent bg-bad-soft text-fire',
+  ko: 'border-transparent bg-bad-soft text-bad',
+  missing: 'border-transparent bg-bad-soft text-bad',
   // Non analysé : neutre — rien à dire encore.
   unknown: 'border-border bg-panel2/60 text-ink-dim',
 };
@@ -1246,8 +1250,8 @@ function AnalysisSummary({
 const DOT: Record<string, string> = {
   ok: 'bg-good',
   nodeck: 'bg-warn',
-  ko: 'bg-fire',
-  missing: 'bg-fire',
+  ko: 'bg-bad',
+  missing: 'bg-bad',
   partial: 'bg-warn',
   unknown: 'bg-unknown',
 };
@@ -1259,8 +1263,8 @@ const DOT: Record<string, string> = {
 const DECK_AURA: Record<string, string> = {
   ok: 'border-good/60 bg-panel2',
   nodeck: 'border-warn/60 bg-panel2',
-  ko: 'border-fire/60 bg-panel2',
-  missing: 'border-fire/60 bg-panel2',
+  ko: 'border-bad/60 bg-panel2',
+  missing: 'border-bad/60 bg-panel2',
   partial: 'border-warn/60 bg-panel2',
   unknown: 'border-border-soft bg-panel2',
 };
@@ -1608,7 +1612,7 @@ function DeckBlock({
                 // Statut au CONTOUR seul, fond neutre (voir `AURA`) : le badge
                 // sous le nom dit déjà ce qui cloche.
                 sm?.status === 'absent' || sm?.status === 'ko'
-                  ? 'border-fire/60 bg-panel2'
+                  ? 'border-bad/60 bg-panel2'
                   : sm?.status === 'ok'
                     ? 'border-good/60 bg-panel2'
                     : 'border-border-soft bg-panel2'
@@ -2519,7 +2523,7 @@ function NoteEditor({
       <div className="flex items-center justify-between mb-0.5">
         <span className="label">{label}</span>
         {left < max / 4 && (
-          <span className={`font-mono text-micro ${left <= 0 ? 'text-fire' : 'text-ink-dim'}`}>
+          <span className={`font-mono text-micro ${left <= 0 ? 'text-bad' : 'text-ink-dim'}`}>
             {left} car.
           </span>
         )}
@@ -2675,7 +2679,7 @@ function SetEditor({
                         <button
                           onClick={() => onRemove(oi, pos)}
                           data-cible-fine
-                          className="flex-none text-ink-dim transition hoverable:text-fire"
+                          className="flex-none text-ink-dim transition hoverable:text-bad"
                           title="Retirer ce set"
                           aria-label="Retirer ce set"
                         >
@@ -2928,7 +2932,7 @@ function ArtifactList({
                     {artifactSubLabel(code)}
                   </span>
                   {ok === true && <Check size={10} className="text-good" />}
-                  {ok === false && <X size={10} className="text-fire" />}
+                  {ok === false && <X size={10} className="text-bad" />}
                 </span>
               );
             })}
@@ -2994,7 +2998,7 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                         ×{setPieces(key)}
                       </span>
                       {ok === true && <Check size={10} className="text-good" />}
-                      {ok === false && <X size={10} className="text-fire" />}
+                      {ok === false && <X size={10} className="text-bad" />}
                     </span>
                   );
                 })}
@@ -3024,10 +3028,10 @@ function verdictDeck(match: DeckMatch): { cls: string; text: string } | null {
     ok: { cls: 'text-good', text: `jouable${match.team ? ` · ${match.team}` : ''}` },
     nodeck: { cls: 'text-warn', text: 'aucun deck avec ces monstres — à composer' },
     ko: {
-      cls: 'text-fire',
+      cls: 'text-bad',
       text: `${libelleCausesDeck(deckFaults(match.slots)) || 'critères non respectés'}${match.team ? ` · ${match.team}` : ''}`,
     },
-    missing: { cls: 'text-fire', text: 'monstre indisponible — deck impossible' },
+    missing: { cls: 'text-bad', text: 'monstre indisponible — deck impossible' },
   };
   return map[match.status] ?? null;
 }
@@ -3050,7 +3054,7 @@ function CopiesBadge({ copies }: { copies: number | null }) {
   if (copies === 0) {
     return (
       <span
-        className="font-mono text-micro text-fire"
+        className="font-mono text-micro text-bad"
         title="Il manque au moins un monstre 6★ en réserve pour monter ce deck"
       >
         · réalisable 0 fois
@@ -3107,7 +3111,7 @@ function libelleCausesDeck(causes: FaultCause[]): string {
 // (box, RTA, défense/offense de siège) — utile quand plusieurs presets existent.
 function SlotBadge({ sm }: { sm: SlotMatch }) {
   if (sm.status === 'absent')
-    return <div className="font-mono text-micro text-fire">monstre indisponible</div>;
+    return <div className="font-mono text-micro text-bad">monstre indisponible</div>;
   if (sm.status === 'unknown')
     // Possédé, mais aucun deck existant ne le réunit aux autres → rien à comparer.
     return <div className="font-mono text-micro text-ink-dim">possédé</div>;
@@ -3119,7 +3123,7 @@ function SlotBadge({ sm }: { sm: SlotMatch }) {
     );
   if (sm.status === 'ko')
     return (
-      <div className="font-mono text-micro text-fire" title={`Deck retenu : ${sm.owned?.label}`}>
+      <div className="font-mono text-micro text-bad" title={`Deck retenu : ${sm.owned?.label}`}>
         {libelleCausesSlot(slotFaults(sm)) || 'critères non respectés'}
       </div>
     );
@@ -3185,9 +3189,9 @@ function StatList({
           <div
             key={st.key}
             className={`flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1
-              text-micro last:border-0 ${rate ? 'bg-fire/10' : ''}`}
+              text-micro last:border-0 ${rate ? 'bg-bad-soft' : ''}`}
           >
-            <span className={`w-14 flex-none ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}>
+            <span className={`w-14 flex-none ${rate ? 'text-bad font-semibold' : 'text-ink-dim'}`}>
               {st.label}
             </span>
             {total ? (
@@ -3208,7 +3212,7 @@ function StatList({
             {analyse && (
               <span
                 className={`ml-auto flex-none font-mono tabular-nums ${
-                  c ? (c.ok ? 'text-good' : 'text-fire') : 'text-ink-dim'
+                  c ? (c.ok ? 'text-good' : 'text-bad') : 'text-ink-dim'
                 }`}
                 title={
                   c && c.actual !== null && !c.ok
@@ -3220,7 +3224,7 @@ function StatList({
                   <>
                     {fmtStat(c.actual)}
                     {st.suffix}
-                    {!c.ok && <span className="text-fire/70"> (−{fmtStat(-c.diff)})</span>}
+                    {!c.ok && <span className="text-bad/70"> (−{fmtStat(-c.diff)})</span>}
                   </>
                 ) : (
                   '—'

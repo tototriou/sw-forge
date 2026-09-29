@@ -646,7 +646,7 @@ export default function RecoBoard({
       />
 
       {msg && (
-        <p className={`mt-3 text-sm ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
+        <p className={`mt-3 text-sm ${msg.error ? 'text-bad' : 'text-good'}`}>{msg.text}</p>
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
@@ -755,7 +755,7 @@ export default function RecoBoard({
                     onClick={() => retirerMonstre(i)}
                     className="group relative flex h-[40px] w-[40px] flex-none items-center justify-center
                                rounded-lg border border-accent bg-accent/[0.08] transition
-                               hoverable:border-fire"
+                               hoverable:border-bad"
                     title={`Retirer ${nom}`}
                     aria-label={`Retirer ${nom}`}
                   >
@@ -935,11 +935,11 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
     >
       <div className="flex items-center gap-2 mb-1.5">
         {bloque ? (
-          <XCircle size={15} className="flex-none text-fire" />
+          <XCircle size={15} className="flex-none text-bad" />
         ) : (
           <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <span className={`text-xs font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
+        <span className={`text-xs font-semibold ${bloque ? 'text-bad' : 'text-warn'}`}>
           {bloque
             ? "Import refusé — le contenu n'est pas valide"
             : `Import effectué avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
@@ -954,7 +954,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
 
       <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">
         {report.errors.map((e, i) => (
-          <li key={`e${i}`} className="text-xs text-fire leading-snug">
+          <li key={`e${i}`} className="text-xs text-bad leading-snug">
             • {e}
           </li>
         ))}

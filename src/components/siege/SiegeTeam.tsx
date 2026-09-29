@@ -292,8 +292,10 @@ export default function SiegeTeam({
   // contour d'un pixel sur fond blanc ne se voyait pas, d'où ce fond — la
   // pastille, lisible dans les deux thèmes, dit désormais l'état en toutes
   // lettres. Libellés choisis par Thomas (voir `pastilleStatut`).
+  // ⚠️ Rouge d'ÉTAT (`bad`), comme la pastille juste à côté — plus `fire`, le
+  // rouge de l'élément Feu (rebranding, décision 43).
   const sectionClass = aGearIncomplet || statut === 'rouge'
-    ? 'border-fire'
+    ? 'border-bad'
     : statut === 'orange'
       ? 'border-warn'
       : statut === 'vert'
@@ -419,7 +421,7 @@ export default function SiegeTeam({
                 overIdx === idx
                   ? 'border-accent bg-panel2'
                   : slotDanger
-                    ? 'border-fire bg-fire/20'
+                    ? 'border-bad bg-bad-soft'
                     : 'border-border bg-panel2/60'
               }`}
               title={
@@ -493,7 +495,10 @@ export default function SiegeTeam({
                     ? // Bordure seule, sans anneau superposé — voir design.md.
                       'border-accent bg-panel2'
                     : danger
-                      ? 'border-fire bg-fire/20'
+                      ? // Fond DOUX du rouge d'état : la VIT fautive, écrite
+                        // en `bad` dessus, y fait 5.53 en Forge (4.31 sur
+                        // l'ancien voile à 20 %). Rebranding, décision 43.
+                        'border-bad bg-bad-soft'
                       : 'border-border bg-panel2/60'
                 }`}
               >
@@ -556,7 +561,7 @@ export default function SiegeTeam({
                         />
                         <span
                           className={`font-mono text-base font-black leading-none flex-none compact:text-sm ${
-                            danger ? 'text-fire' : 'text-ink'
+                            danger ? 'text-bad' : 'text-ink'
                           }`}
                         >
                           {combat ?? '—'}
@@ -629,7 +634,7 @@ export default function SiegeTeam({
             {(aGearIncomplet || statut === 'rouge' || statut === 'orange') && (
               <AlertTriangle
                 size={15}
-                className={`mt-px flex-none ${aGearIncomplet || statut === 'rouge' ? 'text-fire' : 'text-warn'}`}
+                className={`mt-px flex-none ${aGearIncomplet || statut === 'rouge' ? 'text-bad' : 'text-warn'}`}
               />
             )}
             {/* ⚠️ Le TEXTE reste neutre lui aussi : ce qu'il dit est déjà porté
@@ -890,9 +895,13 @@ function SlotContent({
       </Selecteur>
     </>
   );
+  // ⚠️ Couleurs d'ÉTAT sur leur fond doux (rebranding, décision 43) : « manque »
+  // en `bad`, « pile au tick » en `good` — ils empruntaient le Feu et l'or du
+  // Vent, et ce dernier ne faisait que 3.78 en Atelier. Le bleu de « au-dessus »
+  // reste : aucune couleur d'état ne dit « plus que nécessaire, sans faute ».
   const ecart =
     diff === null ? null : diff < 0 ? (
-      <span className="inline-flex items-center gap-1 rounded-md bg-fire/15 text-fire px-2 py-0.5 text-micro font-mono font-semibold">
+      <span className="inline-flex items-center gap-1 rounded-md bg-bad-soft text-bad px-2 py-0.5 text-micro font-mono font-semibold">
         manque {-diff} pour {tick}
       </span>
     ) : diff > 0 ? (
@@ -900,7 +909,7 @@ function SlotContent({
         +{diff} au-dessus de {tick}
       </span>
     ) : (
-      <span className="inline-flex items-center gap-1 rounded-md bg-wind/15 text-wind px-2 py-0.5 text-micro font-mono font-semibold">
+      <span className="inline-flex items-center gap-1 rounded-md bg-good-soft text-good px-2 py-0.5 text-micro font-mono font-semibold">
         pile au tick {tick} ✓
       </span>
     );

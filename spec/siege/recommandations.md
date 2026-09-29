@@ -117,8 +117,9 @@ devenait un patchwork. Désormais :
 - jetons de sets et de propriétés d'artéfact, rapport d'import : les **fonds
   doux** (`good-soft`, `warn-soft`, `bad-soft`) avec le texte à l'encre (les
   filtres de verdict ont depuis le texte de leur ton, voir ci-dessus).
-  Contrastes mesurés, 4,63:1 au plus bas
-  (titre `fire` sur `bad-soft`, Forge) ;
+  Contrastes mesurés, 5,48:1 au plus bas
+  (`good` sur `good-soft`, Atelier ; le rouge est `bad` depuis le
+  rebranding, décision 43, et fait 5,53 sur `bad-soft` en Forge) ;
 - « Importée » : pastille neutre (le contour d'accent la faisait passer pour
   un élément sélectionné).
 
@@ -1240,9 +1241,10 @@ chacune :
   monter un monstre qu'on n'a pas. Ce n'est ni le même horizon, ni la même
   décision. Fondus, il fallait parcourir toute la liste rouge pour trier à l'œil
   ce sur quoi on pouvait agir le soir même.
-- ⚠️ **Deux filtres, un seul rouge.** Les deux gardent la couleur `fire` : ils
-  sont bloquants tous les deux, et c'est ce que la couleur dit. On n'introduit
-  pas une cinquième couleur qui mentirait sur la gravité.
+- ⚠️ **Deux filtres, un seul rouge.** Les deux gardent la même couleur, `bad` :
+  ils sont bloquants tous les deux, et c'est ce que la couleur dit. On
+  n'introduit pas une cinquième couleur qui mentirait sur la gravité. (C'était
+  `fire`, le rouge de l'élément Feu, jusqu'au rebranding, décision 43.)
 - ⚠️ **Le point de « Monstre manquant » est CREUX.** Deux pastilles de la même
   couleur côte à côte ne se distinguent plus que par leur texte, qu'on ne relit
   pas une fois la barre connue. Le creux dit « il manque quelque chose ». Il est
@@ -1374,10 +1376,10 @@ build de cette équipe-là**, pas au meilleur build tous contextes confondus.
 
 | Statut | Couleur | Condition | Badge |
 |--------|---------|-----------|-------|
-| `missing` | `fire` | au moins un monstre **non possédé** | « monstre indisponible — deck impossible » |
-| `ko` | `fire` | l'équipe existe mais **stats/sets insuffisants** | selon la cause, voir ci-dessous |
-| `nodeck` | `amber` | monstres possédés, **aucune équipe ne les réunit** | « aucun deck avec ces monstres — à composer » |
-| `ok` | `emerald` | l'équipe existe et tout est au niveau | « jouable · Offense 3 » |
+| `missing` | `bad` | au moins un monstre **non possédé** | « monstre indisponible — deck impossible » |
+| `ko` | `bad` | l'équipe existe mais **stats/sets insuffisants** | selon la cause, voir ci-dessous |
+| `nodeck` | `warn` | monstres possédés, **aucune équipe ne les réunit** | « aucun deck avec ces monstres — à composer » |
+| `ok` | `good` | l'équipe existe et tout est au niveau | « jouable · Offense 3 » |
 | `unknown` | neutre | deck **vide** | — |
 
 Statut **par slot** : `absent` (rouge, « monstre indisponible ») · `ko` (rouge,
@@ -1430,9 +1432,9 @@ deck bloqué. Elles sont montées à **20–45 % selon la teinte et la surface**
 
 | Statut | Couleur | Condition |
 |--------|---------|-----------|
-| `ok` | `emerald` | **tous** les decks jouables |
-| `partial` | `amber` | une partie seulement |
-| `missing` | `fire` | **aucun** deck jouable, tous bloqués par un monstre manquant |
+| `ok` | `good` | **tous** les decks jouables |
+| `partial` | `warn` | une partie seulement |
+| `missing` | `bad` | **aucun** deck jouable, tous bloqués par un monstre manquant |
 | `unknown` | neutre | **pas encore analysée**, ou aucun deck rempli |
 
 - Sans compte importé : bouton « Analyser » **désactivé**, cartes neutres. Les

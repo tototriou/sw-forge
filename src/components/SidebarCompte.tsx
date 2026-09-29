@@ -1,5 +1,6 @@
 import { ChangeEvent, useRef } from 'react';
-import { ChevronsUpDown, Import, Settings } from 'lucide-react';
+import { ChevronsUpDown, Import } from 'lucide-react';
+import { IconeParametres } from './IconesAtelier';
 import { dateCourte } from './AccountFreshness';
 
 // Carte du compte, en tête de la barre latérale (bureau) : QUI est chargé, et
@@ -119,9 +120,14 @@ export function SidebarParametres({
       aria-pressed={actifs}
       className={`flex h-8 w-full items-center rounded-lg text-left text-md font-medium transition-colors ${
         retractee ? 'justify-center px-0' : 'gap-2.5 px-2.5'
-      } ${actifs ? 'bg-ink/10 text-ink' : 'text-ink-dim hoverable:bg-ink/5 hoverable:text-ink'}`}
+      } ${actifs ? 'bg-accent-soft text-accent' : 'text-ink-dim hoverable:bg-ink/5 hoverable:text-ink'}`}
     >
-      <Settings size={16} className={`flex-none transition-transform ${actifs ? 'rotate-45' : ''}`} />
+      {/* Rebranding R4 : les curseurs « Réglages » de la toile (décision 28 —
+          l'engrenage est à Mécaniques), et l'état ouvert en braise comme toute
+          entrée active de la barre (décision 29). L'engrenage pivotait d'un
+          huitième de tour à l'ouverture : des curseurs tournés ne diraient
+          rien, et l'état se lit déjà au fond et au libellé. */}
+      <IconeParametres size={16} />
       {!retractee && <span>Paramètres</span>}
     </button>
   );

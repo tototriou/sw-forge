@@ -95,14 +95,19 @@ export function cleRouteBarre(
   return [section?.titre ?? '', section ? actif(section.groupes) : '', actif(groupes)].join('|');
 }
 
-// Fonds d'état des entrées — ceux de la maquette : un voile d'ENCRE, léger au
-// survol, plus appuyé sur l'entrée active. ⚠️ L'encre et non une surface : la
+// Fonds d'état des entrées. Survol : un voile d'ENCRE léger (la maquette de la
+// refonte ; l'entrée active en prenait un plus appuyé, jusqu'au rebranding —
+// voir plus bas). ⚠️ L'encre et non une surface : la
 // barre a le fond de la page, et `panel`/`panel2` ne s'en écartent pas dans le
 // même ordre d'un thème à l'autre (`panel` est le plus loin du fond en
 // Atelier, `panel2` en Forge). Un voile d'encre s'en écarte toujours d'autant
 // plus qu'il est dense.
+// ⚠️ **L'entrée ACTIVE est en braise** depuis le rebranding (décision 29 — la
+// toile, « En situation ») : fond braise sombre (`accent-soft`), texte et
+// icône en braise lisible (5.58 en Forge, 4.91 en Atelier). Le survol garde
+// le voile d'encre : lui ne dit pas « on est ici ».
 const FOND_SURVOL = 'hoverable:bg-ink/5 hoverable:text-ink';
-const FOND_ACTIF = 'bg-ink/10 text-ink';
+const FOND_ACTIF = 'bg-accent-soft text-accent';
 
 export default function Sidebar({
   groupes,

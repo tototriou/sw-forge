@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Settings, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { IconeParametres } from './IconesAtelier';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
@@ -209,7 +210,8 @@ export default function SettingsMenu({
         title="Réglages"
         className={`flex items-center justify-center transition ${btnClass}`}
       >
-        <Settings size={16} />
+        {/* Rebranding R4 : les curseurs de Paramètres (décision 28). */}
+        <IconeParametres size={16} />
       </button>
       {open && (
         // ⚠️ Le `Flottant` de la librairie (refonte graphique, lot 8a : les

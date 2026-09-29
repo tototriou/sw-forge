@@ -134,7 +134,29 @@ milieu de la barre.
 Une entrée peut porter un **badge** à droite (`badge`) : « Bientôt » sur
 Arène, dont la page l'annonce déjà. Un état de la PAGE, pas de la navigation.
 
-### L'entrée active — un voile d'encre (bureau)
+### Les icônes — des objets d'atelier (rebranding R4)
+
+⚠️ **Une icône par section, du jeu d'icônes de la toile « SW Blacksmith »**
+([IconesAtelier.tsx](../../src/components/IconesAtelier.tsx) ; décisions 9, 27
+et 28 du [cadrage](../chantiers/rebranding-blacksmith.md)) : enclume (Accueil),
+épées croisées (RTA, Ma prépa), tour (Siège), bouclier et épée (Défense,
+Offense), parchemin (Recommandations), coffre (Mon compte), pierre runique
+(Runes), grimoire griffé (Bestiaire), engrenage (Mécaniques), étincelle
+(Nouveautés), curseurs (Paramètres) ; dessinées pour l'app et choisies par
+Thomas sur planche : coupe (Arène), compagnons (Ami), œuf fêlé (Monstres),
+médaillon (Artéfacts), tenailles (Outils), compas (Optimizer), chronomètre
+(Speed tuning). Grille 24, trait 2, `currentColor`, au contrat de lucide
+(`size`, `color`). Les ACTIONS gardent lucide (importer, rechercher…).
+⚠️ `InventaireIcon` n'est pas touché : il reste le rendu du jeu des écrans du
+compte (tête de monstre, rune, médaillon) ; la nav a ses propres icônes des
+trois inventaires.
+
+### L'entrée active — en braise (bureau)
+
+⚠️ **Depuis le rebranding (décision 29)** : fond `accent-soft` (le « braise
+sombre » de la toile), texte et icône en braise lisible (`text-accent`, 5,58
+en Forge, 4,91 en Atelier) ; le survol garde le voile d'encre (`bg-ink/5`).
+Avant : `bg-ink/10`, la décision 11 de la refonte, décrite ci-dessous.
 
 ⚠️ **Dans la barre latérale BUREAU, depuis la décision 11** : fond
 `bg-ink/10`, survol `bg-ink/5` — le gabarit de la maquette. Un voile d'ENCRE
@@ -740,10 +762,15 @@ pied de la barre latérale (bureau).
 - ⚠️ **Une seule fonction pour les deux boutons** (`basculerParametres`), pas une
   logique par barre : c'est ce qui les avait laissés diverger — l'un basculait,
   l'autre pas.
-- L'engrenage **pivote d'un huitième de tour** quand les paramètres sont ouverts,
-  et le bouton porte `aria-pressed`. Il annonce ainsi qu'il fera l'**inverse** au
-  prochain clic, sans changer d'icône : une croix aurait fait croire à la
-  fermeture de la page entière.
+- Le bouton porte `aria-pressed`, et quand les paramètres sont ouverts son
+  **fond** change (braise sombre dans la barre latérale, `ctx-soft` dans la
+  barre du haut) et son libellé devient « Fermer les paramètres ». Il annonce
+  ainsi qu'il fera l'**inverse** au prochain clic, sans changer d'icône : une
+  croix aurait fait croire à la fermeture de la page entière.
+  ⚠️ L'icône était un engrenage qui **pivotait d'un huitième de tour** ; depuis
+  le rebranding (décision 28), ce sont les curseurs « Réglages » de la toile
+  (l'engrenage est à Mécaniques) — tournés, ils ne diraient rien : la rotation
+  est retirée, le fond et le libellé portent l'état.
 
 ## Page Paramètres
 

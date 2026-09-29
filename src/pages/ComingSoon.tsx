@@ -1,9 +1,11 @@
+import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Hammer } from 'lucide-react';
 
 interface Props {
   title: string;
-  icon: typeof Hammer;
+  // L'icône de la section : une icône d'atelier (la nav, rebranding R4) ou une
+  // icône lucide (les pages de l'écran des runes) — le même contrat d'appel.
+  icon: (props: { size?: number; className?: string }) => ReactNode;
   description?: string;
 }
 

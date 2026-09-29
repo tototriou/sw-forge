@@ -1,5 +1,6 @@
 import { Fragment, ReactNode } from 'react';
-import { ChevronRight, LogOut, Search, Settings } from 'lucide-react';
+import { ChevronRight, LogOut, Search } from 'lucide-react';
+import { IconeParametres } from './IconesAtelier';
 import { Bouton } from '../ui';
 
 // Barre SUPÉRIEURE, fixe.
@@ -198,14 +199,12 @@ export default function TopBar({
                           : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
                       }`}
         >
-          {/* L'engrenage pivote d'un huitième de tour quand les paramètres sont
-              ouverts : le bouton dit alors qu'il fera l'inverse au prochain
-              clic, sans changer d'icône — une croix aurait fait croire à une
-              fermeture de la page entière. */}
-          <Settings
-            size={16}
-            className={`transition-transform ${parametresActifs ? 'rotate-45' : ''}`}
-          />
+          {/* Les curseurs « Réglages » de la toile (rebranding R4, décision
+              28). L'engrenage pivotait d'un huitième de tour à l'ouverture ;
+              des curseurs tournés ne diraient rien : l'état ouvert se lit au
+              fond (`ctx-soft`) et au libellé (« Fermer les paramètres »). Pas
+              de croix, qui ferait croire à la fermeture de la page entière. */}
+          <IconeParametres size={16} />
         </button>
       </div>
     </header>

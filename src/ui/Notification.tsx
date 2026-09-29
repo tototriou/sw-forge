@@ -83,18 +83,24 @@ export function BandeauNotification({
       onMouseLeave={() => onRetenir?.(false)}
       onFocus={() => onRetenir?.(true)}
       onBlur={() => onRetenir?.(false)}
-      // ⚠️ En bas, centrée. Au TÉLÉPHONE, AU-DESSUS de la barre d'onglets et du
+      // ⚠️ Au TÉLÉPHONE, en bas, centrée, AU-DESSUS de la barre d'onglets et du
       // bouton « Options » (même dégagement que le contenu, voir App.tsx :
       // 116 px + l'encoche), jamais dessous.
+      // ⚠️ À la SOURIS, en bas à DROITE (rebranding, décision 23 — la planche
+      // « Retours et fenêtres ») : `lg:` seulement, le téléphone ne bouge pas.
+      // Fond `panel2`, un cran au-dessus des cartes qu'elle survole, comme la
+      // toile.
       className="fixed inset-x-0 z-[70] mx-auto flex w-[min(92vw,440px)] items-center gap-2.5 rounded-xl border
-                 border-border bg-panel py-2 pl-3.5 pr-2 text-sm text-ink shadow-glow shadow-black/60
-                 bottom-[calc(116px+env(safe-area-inset-bottom))] lg:bottom-6"
+                 border-border bg-panel2 py-2 pl-3.5 pr-2 text-sm text-ink shadow-glow shadow-black/60
+                 bottom-[calc(116px+env(safe-area-inset-bottom))] lg:inset-x-auto lg:right-6 lg:mx-0 lg:bottom-6"
     >
       <Check size={15} className="flex-none text-good" aria-hidden />
       <span className="min-w-0 flex-1">{annonce.message}</span>
       {annonce.annuler && (
         <Bouton
           taille="sm"
+          // Le « fantôme » de la toile : l'action en braise, sans cadre.
+          ton="accent"
           fond="vide"
           trait="aucun"
           libelle="Annuler"

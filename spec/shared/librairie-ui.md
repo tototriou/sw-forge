@@ -81,6 +81,9 @@ Les axes se **choisissent séparément et se combinent** :
 > **descend d'1 px** à l'appui (`data-bouton`, voir design.md § Pression).
 > Les hauteurs restent les nôtres (28 / 32 au bureau, 40 au doigt), pas les
 > 36 / 44 / 52 de la toile : notre densité est gardée.
+> Le **« fantôme »** de la toile est `ton="accent"` + `fond="vide"` : texte en
+> braise lisible, fond braise sombre au survol (R3c). Personne n'employait
+> cette combinaison avant ; elle porte l'action d'une notification.
 > ⚠️ `active:!bg-accent-appui` et `disabled:!bg-panel2` portent un
 > `!important`, à dessein : les variantes du plugin (`hoverable:`) sont émises
 > APRÈS `active:` et `disabled:` dans le CSS construit, et le survol
@@ -588,6 +591,14 @@ pas — il remplit trois emplacements :
 
 `croix` est posée partout **sauf sur les confirmations** (`ConfirmDialog`,
 `KeepAccountDialog`).
+
+> ⚠️ **Confirmation DESTRUCTIVE : l'action en aplat rouge, « Annuler » à
+> contour** (`ConfirmDialog` `destructif` ; rebranding, décision 22 — la
+> planche « Retours et fenêtres »). L'action était un `danger` doux et
+> « Annuler » une braise douce. Le focus initial reste sur « Annuler » : le
+> défaut ne perd jamais rien, l'aplat dit seulement ce que l'action coûte.
+> Encre sur l'aplat : `bad-ink`. Une confirmation NON destructive ne change
+> pas (action neutre pleine, « Annuler » en braise douce).
 
 > ⚠️ Sur une confirmation, **« Annuler » EST la sortie**. Une croix à côté ferait
 > deux portes pour un choix qui n'en a qu'une, et l'on hésiterait sur ce qu'elle

@@ -487,14 +487,23 @@ export function ConfirmDialog({
         <>
           {/* ⚠️ `plein` pour le ton neutre : c'est `bg-panel2`, la surface d'un
               bouton posé DANS un dialogue — lui-même déjà en `bg-panel`. Un fond
-              `doux` s'y confondrait avec la boîte qui le porte. */}
+              `doux` s'y confondrait avec la boîte qui le porte.
+              ⚠️ **Destructif : l'action en APLAT rouge, « Annuler » à
+              contour** (rebranding, décision 22 — la planche « Retours et
+              fenêtres » de la toile). Le focus reste sur « Annuler » : l'aplat
+              dit ce que l'action coûte, il ne l'invite pas. Encre sur l'aplat :
+              `bad-ink`, 6.53 / 6.91. */}
           <Bouton
             onClick={onConfirm}
             ton={destructif ? 'danger' : 'neutre'}
-            fond={destructif ? 'doux' : 'plein'}
+            fond="plein"
             libelle={libelleAction}
           />
-          <Bouton onClick={onCancel} autoFocus ton="accent" fond="doux" libelle="Annuler" />
+          {destructif ? (
+            <Bouton onClick={onCancel} autoFocus fond="vide" trait="plein" libelle="Annuler" />
+          ) : (
+            <Bouton onClick={onCancel} autoFocus ton="accent" fond="doux" libelle="Annuler" />
+          )}
         </>
       }
     />

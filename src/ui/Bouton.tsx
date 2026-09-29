@@ -132,7 +132,10 @@ const FORMES: Record<FormeBouton, string> = {
 const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
   neutre: { nu: 'text-ink-dim hoverable:text-ink', doux: 'text-ink', plein: 'text-ink' },
   accent: {
-    nu: 'text-ink hoverable:brightness-110',
+    // « FANTÔME » de la toile (rebranding R3c) : texte braise lisible, sans
+    // fond ni contour, le fond braise sombre au survol (voir FONDS). Personne
+    // ne l'employait avant — il sert à l'action d'une notification.
+    nu: 'text-accent',
     doux: 'text-ink hoverable:brightness-110',
     // Bouton PRINCIPAL (refonte graphique, décision 4) : texte `accent-ink`
     // sur l'aplat de braise, l'encre sombre de la toile. Le survol ne passe
@@ -173,7 +176,7 @@ const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
   // jamais vu à la souris (on survole toujours ce qu'on presse). Vérifié dans
   // `dist/` : `hoverable:bg-accent-hover` après `active:bg-accent-appui`.
   accent: {
-    vide: 'bg-transparent',
+    vide: 'bg-transparent hoverable:bg-accent-soft',
     doux: 'bg-accent-soft',
     plein: 'bg-accent hoverable:bg-accent-hover active:!bg-accent-appui',
   },

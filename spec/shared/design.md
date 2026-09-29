@@ -550,10 +550,13 @@ d'une prépa.
 maquette) — un fournisseur monté une fois par `App.tsx`, et `useNotifier()`
 pour annoncer un geste qui se défait (tableau plus haut).
 
-- **En bas de l'écran, centrée** ; au téléphone, **au-dessus de la barre
-  d'onglets et du bouton « Options »**, jamais dessous. `role="status"` : un
-  lecteur d'écran l'annonce sans voler le focus.
-- **Le message, « Annuler », et une croix** pour la fermer. **6 secondes**,
+- **À la souris, en bas à droite** (rebranding, décision 23 — la planche
+  « Retours et fenêtres » ; elle était centrée) ; **au téléphone, en bas,
+  centrée, au-dessus de la barre d'onglets et du bouton « Options »**,
+  jamais dessous. Fond `panel2`, un cran au-dessus des cartes qu'elle
+  survole. `role="status"` : un lecteur d'écran l'annonce sans voler le focus.
+- **Le message, « Annuler », et une croix** pour la fermer. « Annuler » est
+  le « fantôme » de la toile : texte braise, sans cadre. **6 secondes**,
   puis elle s'en va ; le survol et le focus la retiennent tant qu'on y est.
 - **Une seule à la fois** : la suivante remplace la précédente, dont le
   geste devient alors définitif — deux notifications empilées se liraient

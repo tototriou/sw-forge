@@ -131,3 +131,28 @@ fond `panel2`. `Selecteur` reste une liste native (la liste personnalisée de
 la toile est un changement de COMPORTEMENT, pas de style).
 
 Vérifié : `tsc` ; `node tests/run.mjs ui rendu` → 811 ; build.
+
+## 7. R3c — Retours et fenêtres (2026-09-29)
+
+| Composant | Changement | Décision |
+|---|---|---|
+| `ConfirmDialog` destructif | action `danger` + `plein` (aplat `bad`, encre `bad-ink` 6,53 / 6,91) ; « Annuler » à contour, focus conservé | 22 |
+| `ConfirmDialog` non destructif | inchangé | — |
+| `Notification` | à la souris en bas à droite (`lg:inset-x-auto lg:right-6 lg:mx-0`) ; téléphone inchangé ; fond `panel2` ; « Annuler » en fantôme | 23 |
+| `Bouton` `accent` + `vide` | devient le « fantôme » de la toile : `text-accent`, survol `bg-accent-soft` | — |
+
+Le fantôme n'avait aucun appelant : vérifié en relisant les cinq boutons à ton
+dynamique (`BuildCandidateCard` ×2, `OptimizerSection` ×2, `BarreActions`) —
+tous passent `fond="doux"`, `plein` ou `actif`, jamais `vide` avec l'accent.
+
+`Modale` et `Menu` suivaient déjà la planche : panneau `panel` à contour
+`border`, rayon 20 px ; entrées au survol `panel2`, « Supprimer » en rouge.
+
+Ordre dans le CSS construit : `lg:inset-x-auto`, `lg:mx-0`, `lg:right-6` après
+`inset-x-0` et `mx-auto` ; `hoverable:bg-accent-soft` après `bg-transparent`.
+
+Vérifié : `tsc` ; `node tests/run.mjs ui rendu refonte` → 850 ; inventaire ;
+build.
+
+**Non prouvé** : la notification à l'œil au bureau (pile de dialogues,
+recouvrement d'un contenu en bas à droite).

@@ -881,7 +881,8 @@ Ils prenaient trois rangées.
 - ⚠️ **Tous au même gabarit, celui du `Segmented`** (Thomas : « ce serait
   bien que les boutons aient tous la même tête ») : à la souris, les barres
   de sets et d'emplacements prennent le cadre `panel2` de 32 px, des cases de
-  26 px et le marqueur du `Segmented` (fond d'accent doux, sans contour),
+  26 px et le marqueur du `Segmented` (sans contour ; un aplat de braise
+  depuis le rebranding, décision 19 — fond d'accent doux avant),
   comme le filtre des antiques voisin —
   [gabaritFiltre.ts](../../src/components/account/gabaritFiltre.ts).
   « Effacer les filtres » est à la même hauteur (32 px), et les antiques

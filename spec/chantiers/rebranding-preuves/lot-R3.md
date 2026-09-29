@@ -75,3 +75,38 @@ les sept. Inscrites comme décisions 17 à 23 du cadrage (A.8) :
 case à cocher (15 px, la toile en dessine 22) et l'interrupteur (36 × 20,
 toile 46 × 26), et la décision 18 pour les pointillés de la zone d'import
 (1 px, toile 2 px). Même raison : la densité et le contour unique.
+
+## 5. R3a — Actions et sélection (2026-09-29)
+
+Commencé, mis de côté par `git stash` le temps du R2 bis (nouvelle identité
+de logo), repris ensuite : la fusion du stash a gardé les deux travaux (`tsc`
+vert, jetons du logo et de la braise présents).
+
+| Composant | Changement | Décision |
+|---|---|---|
+| `Bouton` principal | survol `accent-hover`, appui `accent-appui` (plus de `brightness-110`) ; désactivé = aplat `panel2`, encre `ink-dimmer` | 17, 21 |
+| `Bouton` (tous) | `data-bouton` : descend d'1 px à l'appui (`index.css`) ; les autres surfaces gardent `scale(0.97)` | 21 |
+| `Segmented` | option enfoncée en aplat `bg-accent text-accent-ink` | 19 |
+| `Pastille` | `MARQUEUR_FILTRE_ACTIF` = `border-accent bg-accent-soft text-ink`, sans coche | 20 |
+| Filtres de runes (`gabaritFiltre`) | à la souris, suivent `Segmented` : `lg:bg-accent lg:text-accent-ink` | 19 |
+| Jetons | `accent-hover`, `accent-appui` (deux thèmes) ; `accent-soft` de Forge = `#3A2415`, le « braise sombre » que la toile emploie partout | — |
+
+Mesures (`r3a-mesures.mjs`) : encre sur survol 8,26 (Forge), sur appui 4,90 ;
+encre sur `accent-soft` Forge 11,44, braise 5,58 ; `Segmented` 6,66 ; encre
+d'un principal désactivé 5,05 / 4,82.
+
+**Piège trouvé dans le CSS construit** (`ordre-classes.mjs` sur `dist/`) :
+`hoverable:bg-accent-hover` (octet 67 434) était émis APRÈS
+`active:bg-accent-appui` (63 570) et `disabled:bg-panel2` (63 968) — les
+variantes du plugin passent après les variantes de base. Conséquence : pas
+d'appui visible à la souris, braise rallumée au survol d'un bouton
+désactivé. Corrigé par `active:!bg-accent-appui` et `disabled:!bg-panel2`,
+vérifiés émis avec `!important`.
+
+Vérifié : `tsc` ; `node tests/run.mjs ui rendu refonte` → 850 ; inventaire
+sans perte ; chemins interdits ; build ; spec-lint. Specs : `design.md`
+(jetons, marqueurs, pression), `librairie-ui.md` (états du bouton,
+`Segmented`, `Pastille`), `compte/runes.md` (marqueur des filtres).
+
+**Non prouvé** : l'appui et le survol à l'œil (aucun navigateur piloté sur
+un vrai clic) ; le rendu des icônes de sets sur l'aplat de braise.

@@ -73,6 +73,20 @@ Les axes se **choisissent séparément et se combinent** :
 > d'accent, ni le voile noir propre à `BoutonIcone`. Au doigt, rien ne change
 > (lot 11) : tailles en `lg:`, survol en `hoverable:`.
 
+> ⚠️ **Les états de la toile, sans ses hauteurs** (rebranding, R3a — décisions
+> 17 et 21). Le bouton principal (`accent` + `plein`) prend le **survol**
+> `accent-hover` et l'**appui** `accent-appui` (le filtre `brightness-110`
+> disparaît) ; **désactivé**, il devient un aplat gris (`panel2`, encre
+> `ink-dimmer`) au lieu d'une braise à 40 % d'opacité, boueuse. Tout `Bouton`
+> **descend d'1 px** à l'appui (`data-bouton`, voir design.md § Pression).
+> Les hauteurs restent les nôtres (28 / 32 au bureau, 40 au doigt), pas les
+> 36 / 44 / 52 de la toile : notre densité est gardée.
+> ⚠️ `active:!bg-accent-appui` et `disabled:!bg-panel2` portent un
+> `!important`, à dessein : les variantes du plugin (`hoverable:`) sont émises
+> APRÈS `active:` et `disabled:` dans le CSS construit, et le survol
+> l'emportait à spécificité égale — pas d'appui visible à la souris, une
+> braise qui se rallumait sur un bouton désactivé.
+
 > ⚠️ **`fond` décide aussi de la COULEUR DU CONTENU**, pas seulement du
 > remplissage. Un bouton sans fond prend une icône qui vire à la teinte de son
 > ton au survol — juste sur une surface neutre. Sur un fond peint de cette même
@@ -336,7 +350,9 @@ découvrir.
 seule enfoncée. À préférer à une rangée de pastilles quand les options
 **s'excluent** : des pastilles indépendantes se lisent comme des filtres
 cumulables, rien dans leur forme ne dit qu'en activer une désactive les
-autres — le cadre commun le dit sans un mot.
+autres — le cadre commun le dit sans un mot. L'option enfoncée est un
+**aplat de braise**, texte `accent-ink` (rebranding, décision 19 ; fond
+d'accent doux avant).
 
 > ⚠️ **Il se resserre TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
 > le contrôle mesure la place qu'il reçoit **réellement** et bascule en texte/
@@ -376,9 +392,10 @@ fois.
 > `couleurs`, l'état actif prend le marqueur de filtre de l'app — c'est le cas de
 > filtres qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
 > rassemble, là où trois surbrillances se liraient comme trois natures de filtre.
-> Ce marqueur est la **couleur d'accent teintée** (contour d'accent, fond d'accent
-> à 25 % ; refonte graphique, décision 9 de Thomas, 2026-09-24 — la couleur
-> inversée, essayée d'abord, a été écartée) et vit dans une constante
+> Ce marqueur est la **couleur d'accent teintée** (contour d'accent, fond
+> `accent-soft` — le « braise sombre » de la toile depuis le rebranding,
+> décision 20, sans sa coche ; refonte graphique, décision 9 de Thomas,
+> 2026-09-24 — la couleur inversée, essayée d'abord, a été écartée) et vit dans une constante
 > exportée, `MARQUEUR_FILTRE_ACTIF` : les filtres qui ne passent pas par
 > `Pastille` (sets, emplacements, étoiles du Bestiaire) l'importent, pour porter
 > EXACTEMENT le même.

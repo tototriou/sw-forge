@@ -64,6 +64,13 @@
      ou `border-accent`, et reçoit la bonne braise. */
   --accent: 255 122 26;
   --accent-lisible: 166 79 17;
+  /* SURVOL et APPUI de l'aplat de braise (bouton principal) — rebranding R3a,
+     planche « Actions » de la toile. En Atelier, la toile fonce au survol
+     (`--bs-accent-hover` #E0620A) ; l'appui ne peut pas foncer davantage sans
+     que l'encre posée dessus passe sous 4.5 (4.90 ici) : il garde la valeur
+     du survol, et c'est le déplacement d'1 px qui accuse le clic. */
+  --accent-hover: 224 98 10;
+  --accent-appui: 224 98 10;
   /* ⚠️ **Fonds doux : la VIVACITÉ d'avant, dans la teinte de la toile.**
      Chacun prend la plus vive (chroma OKLCH) de deux constructions : la teinte
      fondue à 12 % dans `panel`, OU la chroma et l'écart de clarté de l'ancien
@@ -259,7 +266,16 @@
      panel2). `accent-lisible` y vaut donc `accent`. */
   --forge-accent: 255 122 26;
   --forge-accent-lisible: 255 122 26;
-  --forge-accent-soft: 61 44 31;
+  /* Survol : plus CLAIR (`--bs-accent-hover`) ; appui : plus FONCÉ (#E0620A),
+     comme les états du bouton primaire de la toile. Encre dessus : 8.26 et
+     4.90. */
+  --forge-accent-hover: 255 154 77;
+  --forge-accent-appui: 224 98 10;
+  /* ⚠️ Le « braise sombre » de la toile (#3A2415), qu'elle emploie partout
+     pour une chose active sur fond sombre : filtre posé, compteur d'onglet,
+     tuile d'outil. R3a : il remplace la valeur calculée au R1 (61 44 31,
+     fondue à 12 %), plus terne. Encre dessus 11.44, braise 5.58. */
+  --forge-accent-soft: 58 36 21;
   /* Texte sur aplat de braise : le fond sombre, pas le blanc. Mesuré 6.66. */
   --forge-accent-ink: 27 26 25;
   /* ⚠️ Vert et rouge PLUS SATURÉS que la toile (décision 13 du rebranding —
@@ -345,6 +361,8 @@
     --ink-dimmer: var(--forge-ink-dimmer);
     --accent: var(--forge-accent);
     --accent-lisible: var(--forge-accent-lisible);
+    --accent-hover: var(--forge-accent-hover);
+    --accent-appui: var(--forge-accent-appui);
     --accent-soft: var(--forge-accent-soft);
     --accent-ink: var(--forge-accent-ink);
     --good: var(--forge-good);
@@ -401,6 +419,8 @@
   --ink-dimmer: var(--forge-ink-dimmer);
   --accent: var(--forge-accent);
   --accent-lisible: var(--forge-accent-lisible);
+  --accent-hover: var(--forge-accent-hover);
+  --accent-appui: var(--forge-accent-appui);
   --accent-soft: var(--forge-accent-soft);
   --accent-ink: var(--forge-accent-ink);
   --good: var(--forge-good);
@@ -635,6 +655,16 @@ button,
 button:not(:disabled):not([draggable]):not([role='switch']):active,
 [role='button']:not([aria-disabled='true']):not([draggable]):active {
   transform: scale(0.97);
+}
+/* ⚠️ **Les BOUTONS de la librairie descendent d'1 px au lieu de rétrécir**
+   (rebranding, décision 21 — la planche « Actions » de la toile : l'appui
+   fonce le bouton et le pousse vers le bas). `data-bouton` est posé par
+   `ui/Bouton.tsx` (donc aussi `BoutonIcone`) ; les cartes, poignées et autres
+   surfaces cliquables gardent le rétrécissement ci-dessus.
+   ⚠️ Même liste d'exclusions, plus l'attribut : la règle doit être PLUS
+   spécifique que la précédente, sans quoi `scale` l'emporterait. */
+button[data-bouton]:not(:disabled):not([draggable]):not([role='switch']):active {
+  transform: translateY(1px);
 }
 
 /* ---- Entrée d'un popover ------------------------------------------------ */

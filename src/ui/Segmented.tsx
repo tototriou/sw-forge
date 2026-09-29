@@ -196,8 +196,14 @@ export default function Segmented<T extends string>({
                               // une élévation qui ne veut rien dire ici (le cran
                               // ne flotte pas au-dessus du contrôle qui le
                               // contient). Voir spec/shared/design.md.
+                              // ⚠️ Un APLAT de braise, texte `accent-ink`
+                              // (rebranding, décision 19 — la planche
+                              // « Actions » de la toile) : il valait le fond
+                              // doux `accent-soft` depuis le lot 9 de la
+                              // refonte. Toujours un seul marqueur. Encre
+                              // dessus : 6.66.
                               active
-                              ? 'bg-accent-soft text-ink'
+                              ? 'bg-accent text-accent-ink'
                               : 'text-ink-dim hoverable:text-ink'
                           }`}
             >

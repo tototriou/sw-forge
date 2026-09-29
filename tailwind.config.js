@@ -43,6 +43,9 @@ export default {
         // `accent-accent`). Le texte et les traits la remplacent par la braise
         // lisible — voir `textColor` / `borderColor` plus bas.
         accent: 'rgb(var(--accent) / <alpha-value>)',
+        // Survol et appui de l'APLAT de braise (bouton principal) — R3a.
+        'accent-hover': 'rgb(var(--accent-hover) / <alpha-value>)',
+        'accent-appui': 'rgb(var(--accent-appui) / <alpha-value>)',
         'accent-soft': 'rgb(var(--accent-soft) / <alpha-value>)',
         // Texte posé SUR un aplat d'accent (bouton principal plein) : blanc en
         // Atelier, fond sombre en Forge — mesurés, voir index.css.

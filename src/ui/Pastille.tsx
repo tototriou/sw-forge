@@ -33,11 +33,16 @@ import { PRESSION } from './Bouton';
 // aplat blanc en thème sombre, écarté). Exporté pour que les filtres qui ne
 // passent pas par `Pastille` (sets, emplacements, étoiles du Bestiaire) portent
 // EXACTEMENT le même : deux marqueurs côte à côte se liraient comme deux natures
-// de filtre (spec/shared/design.md § UN SEUL marqueur). ⚠️ Le fond lit la
-// braise VIVE, le contour la braise LISIBLE (tailwind.config.js) : en Atelier,
-// la vive ne ferait que 2.1 à 2.6 comme contour. Contraste mesuré (R1) : texte
-// 8.25 / 13.46, contour 4.02 / 4.34 (Forge / Atelier).
-export const MARQUEUR_FILTRE_ACTIF = 'border-accent bg-accent/25 text-ink';
+// de filtre (spec/shared/design.md § UN SEUL marqueur). ⚠️ Le contour lit la
+// braise LISIBLE (tailwind.config.js) : en Atelier, la vive ne ferait que 2.1 à
+// 2.6 comme contour.
+// ⚠️ Rebranding, décision 20 — la planche « Actions » de la toile : contour
+// braise sur le « braise sombre » (`accent-soft`, #3A2415 en Forge), qui
+// remplace le fond braise à 25 %. **Sans la coche ni le gras** de la toile : la coche
+// apparaissait au clic et élargissait la pastille, ses voisines bougeaient
+// (règle « un clic ne déplace jamais ce qu'on vient de cliquer »). Contraste
+// mesuré : texte 11.44 / 15.23, contour 5.58 / 4.91 (Forge / Atelier).
+export const MARQUEUR_FILTRE_ACTIF = 'border-accent bg-accent-soft text-ink';
 
 export interface PastilleProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {

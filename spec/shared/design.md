@@ -87,7 +87,9 @@ fond.
 |-------|-------|---------|------|
 | `accent` | `#ff7a1a` | `#ff7a1a` | La braise VIVE : aplats seulement (`bg-accent`, bouton principal) |
 | `accent-lisible` | `#ff7a1a` | `#a64f11` | La braise qui se LIT : texte, contour d'état, focus, trait de graphique |
-| `accent-soft` | `#3d2c1f` | `#ffeddd` | Fond d'un élément actif |
+| `accent-hover` | `#ff9a4d` | `#e0620a` | Survol de l'APLAT de braise (bouton principal) — R3a |
+| `accent-appui` | `#e0620a` | `#e0620a` | Appui du même aplat ; en Atelier, il ne peut pas foncer plus sans que l'encre passe sous 4,5 (4,90) |
+| `accent-soft` | `#3a2415` | `#ffeddd` | Fond d'un élément actif — en Forge, le « braise sombre » de la toile depuis le R3a (il valait `#3d2c1f`, fondu à 12 %) |
 | `accent-ink` | `#1b1a19` | `#1b1a19` | Texte posé SUR un aplat de braise (bouton principal plein) |
 | `good` | `#73e06b` | `#2f6b36` | Au tick, gain, succès — et **ton camp** |
 | `good-soft` | `#253024` | `#e3f1e3` | Fond doux de `good` |
@@ -197,8 +199,8 @@ filtres sont posés.
 | Support | Marqueur | Pourquoi pas l'autre |
 |---------|----------|----------------------|
 | **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
-| **Pastille de filtre** (`Pastille`, sets, emplacements, étoiles du Bestiaire) | `MARQUEUR_FILTRE_ACTIF` : `border-accent bg-accent/25 text-ink` | **La couleur de l'app, teintée** (refonte graphique, décision 9, 2026-09-24) : le contour porte l'état, le fond d'accent à 25 % le rend lisible d'un coup d'œil — plus marqué que l'ancien `accent-soft`. Contraste mesuré (rebranding R1) : texte 8,25 (Forge) et 13,46 (Atelier) ; contour, en `accent-lisible` sur ce fond, 4,02 et 4,34. Une couleur inversée (aplat d'encre) a été essayée puis écartée par Thomas : un aplat blanc en thème sombre. Une seule constante, exportée de `Pastille`, importée par les filtres qui ne passent pas par elle. ⚠️ **Exception, à la souris : les filtres de sets et d'emplacements des RUNES** prennent le gabarit et le marqueur du `Segmented` (fond d'accent doux, sans contour) — posés sur une ligne à côté du filtre des antiques, qui EST un `Segmented`, deux marqueurs se lisaient comme deux familles de boutons (Thomas : « que les boutons aient tous la même tête », lot 8a ; `gabaritFiltre.ts`) |
-| **Cran de `Segmented`, onglet** | `bg-accent-soft` (le cadre porte le contour) | Un choix UNIQUE dans un cadre commun, pas un filtre en rangée : il garde le fond d'accent léger — la décision 9 ne visait que les pastilles de filtre |
+| **Pastille de filtre** (`Pastille`, sets, emplacements, étoiles du Bestiaire) | `MARQUEUR_FILTRE_ACTIF` : `border-accent bg-accent-soft text-ink` | **La couleur de l'app, teintée** (refonte graphique, décision 9, 2026-09-24) : le contour porte l'état, le fond le rend lisible d'un coup d'œil. Depuis le rebranding (décision 20), le fond est le « braise sombre » de la toile (`accent-soft`, `#3a2415` en Forge), au lieu de la braise à 25 % ; **sans la coche ni le gras** de la toile, qui élargissaient la pastille au clic. Contraste mesuré : texte 11,44 (Forge) et 15,23 (Atelier) ; contour, en `accent-lisible`, 5,58 et 4,91. Une couleur inversée (aplat d'encre) a été essayée puis écartée par Thomas : un aplat blanc en thème sombre. Une seule constante, exportée de `Pastille`, importée par les filtres qui ne passent pas par elle. ⚠️ **Exception, à la souris : les filtres de sets et d'emplacements des RUNES** prennent le gabarit et le marqueur du `Segmented` (sans contour ; un aplat de braise depuis la décision 19) — posés sur une ligne à côté du filtre des antiques, qui EST un `Segmented`, deux marqueurs se lisaient comme deux familles de boutons (Thomas : « que les boutons aient tous la même tête », lot 8a ; `gabaritFiltre.ts`) |
+| **Cran de `Segmented`, onglet** | `bg-accent text-accent-ink` (le cadre porte le contour) | Un choix UNIQUE dans un cadre commun, pas un filtre en rangée. **Un APLAT de braise** depuis le rebranding (décision 19, la planche « Actions » de la toile) — il gardait le fond d'accent léger depuis la décision 9. Toujours un seul marqueur. Encre dessus : 6,66 |
 
 ⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
 `SlotFilter`, les sets de `SetFilter`, les étoiles du Bestiaire et les filtres
@@ -1168,6 +1170,13 @@ après un tap au tactile : on croit avoir sélectionné quelque chose.
 Tout élément cliquable porte `active:scale-[0.97]` avec
 `transition-transform duration-150`. Un bouton qui ne bouge pas au clic laisse un
 doute d'un dixième de seconde.
+
+⚠️ **Sauf les boutons de la librairie** (rebranding, décision 21 — la
+planche « Actions » de la toile) : un `Bouton` (donc aussi `BoutonIcone`)
+**descend d'1 px**, et le principal fonce (`accent-appui`). La règle vit dans
+`index.css` (`button[data-bouton]`, attribut posé par `Bouton`), plus
+spécifique que celle du rétrécissement ; les cartes, poignées et autres
+surfaces cliquables gardent `scale(0.97)`.
 
 ### Un élément atteignable ne dépend jamais du survol
 

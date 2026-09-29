@@ -63,19 +63,36 @@ export type TailleBouton = 'xs' | 'sm' | 'md' | 'carre';
 // posée dans un formulaire ou un dialogue.
 export type FormeBouton = 'boite' | 'pilule';
 
-// Retour tactile commun à tout élément pressable.
+// Retour tactile commun à tout élément pressable QUI N'EST PAS un `Bouton`.
 //
 // ⚠️ Un seul endroit à modifier, toute l'app qui accuse réception. Un bouton qui
 // ne bouge pas au clic laisse un doute d'un dixième de seconde : est-ce que ça a
 // pris ? Voir spec/shared/design.md.
+// ⚠️ Le `Bouton` lui-même ne rétrécit plus : il descend d'1 px (rebranding,
+// décision 21), par la règle `button[data-bouton]` d'index.css, posée ici par
+// l'attribut. Cette constante reste celle des autres surfaces pressables.
 export const PRESSION = 'transition-transform duration-150 ease-out active:scale-[0.97]';
 
-// ⚠️ Le SOCLE ne porte ni couleur ni contour : il pose la géométrie, l'alignement
-// et l'état désactivé, que toutes les combinaisons partagent sans exception.
+// ⚠️ Le SOCLE ne porte ni couleur ni contour : il pose la géométrie et
+// l'alignement, que toutes les combinaisons partagent sans exception. L'état
+// désactivé dépend du remplissage (voir `desactive`).
 const SOCLE =
   'inline-flex flex-none items-center justify-center gap-1.5 font-semibold select-none ' +
-  'transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ' +
-  PRESSION;
+  'transition disabled:cursor-not-allowed';
+
+// ⚠️ **Désactivé : un APLAT de braise devient gris, il ne pâlit pas.** La planche
+// « Actions » de la toile le dessine en `panel2` avec une encre éteinte : une
+// braise à 40 % d'opacité donnait un brun boueux qui se lisait encore comme
+// une invitation. Les autres boutons, sans aplat de couleur, pâlissent comme
+// avant.
+// ⚠️ `disabled:!bg-panel2` : même raison que `active:!` dans FONDS — sans
+// l'important, le survol (émis plus loin) rallumait la braise sur un bouton
+// désactivé.
+function desactive(ton: TonBouton, fond: FondBouton): string {
+  return ton === 'accent' && fond === 'plein'
+    ? 'disabled:border-transparent disabled:!bg-panel2 disabled:text-ink-dimmer'
+    : 'disabled:opacity-40';
+}
 
 // ⚠️ **À la souris, le gabarit des boutons de la MAQUETTE, dans toute l'app**
 // (refonte graphique, décision 16 — Thomas : « il faut que les boutons soient
@@ -118,9 +135,10 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
     nu: 'text-ink hoverable:brightness-110',
     doux: 'text-ink hoverable:brightness-110',
     // Bouton PRINCIPAL (refonte graphique, décision 4) : texte `accent-ink`
-    // sur l'aplat d'accent — blanc en Atelier, fond sombre en Forge, où le
-    // blanc tombait sous le seuil (3.18). Voir design.md § Accent.
-    plein: 'text-accent-ink hoverable:brightness-110',
+    // sur l'aplat de braise, l'encre sombre de la toile. Le survol ne passe
+    // plus par un filtre de luminosité : c'est le FOND qui change (voir FONDS,
+    // `accent-hover` / `accent-appui`, rebranding R3a).
+    plein: 'text-accent-ink',
   },
   // `text-bad-ink` sur l'aplat rouge : blanc en Atelier, SOMBRE en Forge. C'était
   // `text-white` pour les deux thèmes ; depuis le rebranding, le rouge de Forge
@@ -147,7 +165,18 @@ const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
   // ⚠️ `plein` est un VRAI aplat d'accent depuis la refonte (décision 4) : le
   // bouton principal d'un écran, un seul par écran. Il valait `accent-soft`,
   // comme `doux` — l'app n'avait aucun bouton principal qui ressorte.
-  accent: { vide: 'bg-transparent', doux: 'bg-accent-soft', plein: 'bg-accent' },
+  // Survol et appui : les états de la toile (R3a) — plus clair puis plus
+  // foncé en Forge ; en Atelier, les deux foncent (voir index.css).
+  // ⚠️ `active:!` : les variantes du plugin (`hoverable:`) sont émises APRÈS
+  // les variantes de base (`active:`, `disabled:`) dans le CSS construit — à
+  // spécificité égale, le survol l'emportait sur l'appui, qu'on n'aurait
+  // jamais vu à la souris (on survole toujours ce qu'on presse). Vérifié dans
+  // `dist/` : `hoverable:bg-accent-hover` après `active:bg-accent-appui`.
+  accent: {
+    vide: 'bg-transparent',
+    doux: 'bg-accent-soft',
+    plein: 'bg-accent hoverable:bg-accent-hover active:!bg-accent-appui',
+  },
   // ⚠️ `plein` est OPAQUE, pas une opacité de plus que `doux` : c'est le cran
   // des actions posées SUR autre chose (la croix au coin d'une carte), où un
   // fond translucide laisserait passer l'image dessous et rendrait l'icône
@@ -266,10 +295,12 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
       ref={ref}
       type={type}
       aria-pressed={actif}
+      // Appui : descend d'1 px (règle `button[data-bouton]` d'index.css).
+      data-bouton=""
       {...(nuAuDoigt ? { 'data-cible-fine': true } : {})}
-      className={`${SOCLE} ${TAILLES[taille]} ${FORMES[forme]} ${TRAITS[ton][trait]} ${nu} ${
-        FONDS[tonEffectif][fondEffectif]
-      } ${TEXTES[tonEffectif][fondEffectif === 'vide' ? 'nu' : fondEffectif]} ${
+      className={`${SOCLE} ${desactive(tonEffectif, fondEffectif)} ${TAILLES[taille]} ${FORMES[forme]} ${
+        TRAITS[ton][trait]
+      } ${nu} ${FONDS[tonEffectif][fondEffectif]} ${TEXTES[tonEffectif][fondEffectif === 'vide' ? 'nu' : fondEffectif]} ${
         pleineLargeur ? 'w-full' : ''
       } ${className}`}
       {...reste}

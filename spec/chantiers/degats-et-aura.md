@@ -2738,7 +2738,9 @@ Chacun reçoit un verdict prouvé par l'oracle. Lever la réserve « élagages
 SÛRS » partout où b3a l'a posée : `grep -rn "6bis-b3b" spec/` (quatre
 emplacements au 2026-09-29), invariant et sources dans le même commit.
 Toute mesure de performance attend un créneau confirmé par l'utilisateur
-sans autre agent actif.
+sans autre agent actif. **Créneau confirmé par l'utilisateur le
+2026-09-29** pour la session b3b : aucun autre agent, aucun serveur de dev,
+aucun build ni test lancé en parallèle par le pilote pendant les mesures.
 
 **Preuves :** T1, **T2 de bout en bout**, T3 et T4 sur seeds fixes et petits
 pools, zéro faux rejet par coupe sûre, témoins Fight/Tolerance/Accuracy

@@ -2055,8 +2055,15 @@ différent, coopératif (voir « Interruption »).
   (voir [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
   - **Dominance** : une rune strictement moins bonne qu'une autre du MÊME
     slot (sur toutes les stats suivies, avantage strict quelque part) ne
-    sert jamais à rien. Comparaison limitée aux runes de même set (ou toutes
-    deux hors du combo demandé). ⚠️ Sur une stat PLAFONNÉE (un maximum est
+    sert jamais à rien. Deux runes du même set se comparent toujours ; un set
+    demandé ou l'Intangible ne se compare qu'à lui-même. Hors combo, la
+    comparaison reste générique, sauf pour un set qui pourrait changer les
+    sets actifs du build (lot 6bis-b3b) : un set à bonus ou une aura qui peut
+    s'activer sur les emplacements libres, et — dès qu'une Intangible est
+    disponible — tout set qui peut s'y compléter, puisque le joker ne
+    complète un set que s'il est le seul incomplet. Un set qui ne peut jamais
+    y être complet (4 pièces pour 2 emplacements libres) reste comparable.
+    ⚠️ Sur une stat PLAFONNÉE (un maximum est
     demandé dessus), le sens s'inverse — seule l'égalité stricte y est sûre
     à comparer.
   - **Faisabilité** : une rune ne peut jamais entrer dans un build valide si,

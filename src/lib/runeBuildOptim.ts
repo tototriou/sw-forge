@@ -1499,19 +1499,43 @@ export function filterSlot(
  * critère de tri après coup, puisqu'aucune stat ne recule.
  * ----------------------------------------------------------------------- */
 
-// ⚠️ Comparer deux runes de sets DIFFÉRENTS n'est sûr que si leur set est
-// ÉQUIVALENT du point de vue de la satisfaction du combo demandé — sinon une
-// rune moins bonne en stats brutes mais seule à apporter une pièce de set
-// manquante serait écartée à tort. Deux cas sûrs : même set (interchangeables
-// pièce pour pièce, y compris deux jokers) ; ou aucun des deux sets ne compte
-// pour le combo demandé (ni l'un ni l'autre n'apporte de pièce, donc le set
-// n'entre pas en ligne de compte).
-function isSetIrrelevant(setKey: string, requiredKeys: Set<string>): boolean {
-  return setKey !== 'intangible' && !requiredKeys.has(setKey);
+// Deux runes du MÊME set sont toujours interchangeables (pièce pour pièce, y
+// compris deux jokers) : aucun compte de pièces ne change. Entre deux sets
+// DIFFÉRENTS, la dominance reste générique pour les sets hors combo, sauf
+// quand le remplacement peut changer les sets actifs — trois faux rejets
+// prouvés par l'oracle de `rune-optim-auras-coupes.test.ts` (6bis-b3b) :
+//  - un set à bonus de fiche (Blade…) ou une aura (Fight au score,
+//    Tolerance/Accuracy aux conditions RES/PRE) peut s'activer sur les
+//    emplacements libres ;
+//  - un set SANS effet compte encore pour le joker : l'Intangible ne complète
+//    un set que s'il est le seul incomplet (`activeSets`). Rage + Intangible
+//    + Will + Will est valide ; Will remplacé par Violent laisse trois sets
+//    incomplets, Rage n'est plus complété.
+// Un set qui ne peut JAMAIS être complet sur les emplacements libres (4 pièces
+// pour 2 libres) échappe aux deux risques : ni bonus, ni joker ne dépendent
+// de lui. Les sets demandés et l'Intangible ne se comparent qu'entre eux.
+export interface ContexteDominance {
+  // Sets hors combo dont une rune peut être remplacée par une rune d'un autre
+  // set de la liste sans changer aucun set actif.
+  interchangeables: ReadonlySet<string>;
 }
-function isSetComparable(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>): boolean {
-  if (a.set === b.set) return true;
-  return isSetIrrelevant(a.set, requiredKeys) && isSetIrrelevant(b.set, requiredKeys);
+
+export function contexteDominance(requirement: BuildRequirement, pool: RuneDetail[]): ContexteDominance {
+  const libres = Math.max(0, MAX_SET_PIECES - setsCost(requirement.sets));
+  const demandes = new Set(requirement.sets);
+  const jokerPossible = pool.some((r) => r.set === INTANGIBLE_SET);
+  const interchangeables = new Set<string>();
+  for (const set of new Set(pool.map((r) => r.set))) {
+    if (set === INTANGIBLE_SET || demandes.has(set)) continue;
+    const jamaisComplet = setPieces(set) > libres;
+    const sansEffet = !(set in SET_STAT_BONUS) && !(set in AUCUNE_AURA_PROPRE);
+    if (jamaisComplet || (sansEffet && !jokerPossible)) interchangeables.add(set);
+  }
+  return { interchangeables };
+}
+
+function isSetComparable(a: RuneDetail, b: RuneDetail, contexte: ContexteDominance): boolean {
+  return a.set === b.set || (contexte.interchangeables.has(a.set) && contexte.interchangeables.has(b.set));
 }
 
 // ⚠️ **Un maximum INVERSE le sens de « mieux ».** Sur une stat SANS plafond,
@@ -1524,11 +1548,11 @@ function isSetComparable(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>
 function isDominated(
   a: RuneDetail,
   b: RuneDetail,
-  requiredKeys: Set<string>,
   maxKeys: Set<StatKey>,
+  contexte: ContexteDominance,
   contribById: Map<number, Record<StatKey, { pct: number; flat: number }>>
 ): boolean {
-  if (a.id === b.id || !isSetComparable(a, b, requiredKeys)) return false;
+  if (a.id === b.id || !isSetComparable(a, b, contexte)) return false;
   const contribA = contribById.get(a.id)!;
   const contribB = contribById.get(b.id)!;
   let strictlyBetter = false;
@@ -1571,11 +1595,11 @@ const DOMINANCE_MAX_POOL = 2000;
 // coût est payé À CHAQUE fois que `prepareSearch` tourne, y compris une
 // fois PAR WORKER en pairing parallèle (jusqu'à 4×, voir
 // `pairSlice.worker.ts`).
-export function pruneDominated(list: RuneDetail[], requiredKeys: Set<string>, maxKeys: Set<StatKey>): RuneDetail[] {
+export function pruneDominated(list: RuneDetail[], maxKeys: Set<StatKey>, contexte: ContexteDominance): RuneDetail[] {
   if (list.length > DOMINANCE_MAX_POOL) return list;
   const contribById = new Map<number, Record<StatKey, { pct: number; flat: number }>>();
   for (const r of list) contribById.set(r.id, runeContributionAllKeys(r));
-  return list.filter((a) => !list.some((b) => isDominated(a, b, requiredKeys, maxKeys, contribById)));
+  return list.filter((a) => !list.some((b) => isDominated(a, b, maxKeys, contexte, contribById)));
 }
 
 /* --------------------------------------------------------------------------
@@ -3075,8 +3099,8 @@ interface MinMaxContext {
   minEntries: { k: StatKey; min: number }[];
   maxEntries: { k: StatKey; max: number }[];
   constrainedKeys: StatKey[];
-  requiredKeys: Set<string>;
   maxKeys: Set<StatKey>;
+  dominance: ContexteDominance;
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
   // Réservé aux vérifications de MINIMUM — `guaranteed` + le bonus qu'un set
   // NON demandé, OU DÉJÀ demandé mais activable PLUS de fois que le minimum,
@@ -3186,8 +3210,8 @@ function deriveMinMaxContext(
     .map((k) => ({ k, max: requirement.maxStats?.[k] }))
     .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
   const constrainedKeys = Array.from(new Set([...minEntries.map((e) => e.k), ...maxEntries.map((e) => e.k)]));
-  const requiredKeys = new Set(requirement.sets);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
+  const dominance = contexteDominance(requirement, pool);
   const guaranteed = guaranteedSetBonus(requirement, base);
   const guaranteedMin = mergeBonus(
     mergeBonus(guaranteed, additionalSetActivationHeadroom(pool, requirement, base)),
@@ -3229,7 +3253,7 @@ function deriveMinMaxContext(
     return relicRelache && estPct(k) ? Math.floor(((baseRec[k] ?? 0) * (relPctMin[k] ?? 0)) / 100) : 0;
   }
   return {
-    minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin,
+    minEntries, maxEntries, constrainedKeys, maxKeys, dominance, guaranteed, guaranteedMin,
     artFlatMax, artFlatMin, artPossibles, artFlatFige: figee,
     relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
   };
@@ -3383,7 +3407,7 @@ export function poolMinSlotSafe(
 ): number {
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds, relicContext);
   let bySlot = mainStatFilteredBySlot(pool, requirement);
-  bySlot = bySlot.map((list) => pruneDominated(list, ctx.requiredKeys, ctx.maxKeys));
+  bySlot = bySlot.map((list) => pruneDominated(list, ctx.maxKeys, ctx.dominance));
   bySlot = eliminateInfeasible(
     bySlot,
     ctx.minEntries,
@@ -3694,7 +3718,7 @@ export function prepareSearch(
   const startedAt = Date.now();
 
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, relicContext);
-  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
+  const { minEntries, maxEntries, constrainedKeys, maxKeys, dominance, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -3754,7 +3778,7 @@ export function prepareSearch(
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   onStage?.('mainstat', bySlot);
   tracerEtage('mainstat', bySlot);
-  bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
+  bySlot = bySlot.map((list) => pruneDominated(list, maxKeys, dominance));
   onStage?.('dominance', bySlot);
   tracerEtage('dominance', bySlot);
   bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlatMax, relPctMax, totalOf, guaranteedMin, artFlatMin, relPctMin);

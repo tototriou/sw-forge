@@ -595,3 +595,126 @@ export function testRuneOptimAurasCoupesDifferentiel() {
   ok(scenarios >= 35, `différentiel : ${scenarios} scénarios comparés sur 60 seeds (les autres n'ont aucun build au combo demandé), ${valides} builds valides à l'oracle`);
   egal(fauxRejets, 0, `différentiel : zéro faux rejet par une coupe sûre — absents par motif : ${fmtMotifs(motifs)}`);
 }
+
+/* --------------------------------------------------------------------------
+ * Dominance : deux sets DIFFÉRENTS ne sont plus interchangeables, même hors
+ * combo — aura (conditions ou score), bonus de fiche, ou joker.
+ * ----------------------------------------------------------------------- */
+
+export function testRuneOptimAurasCoupesDominance() {
+  titre('Auras propres · dominance entre sets hors combo');
+
+  // Minimum : Will domine la Tolerance de l'emplacement 5.
+  const min: Cas = {
+    nom: 'Dominance Tolerance retirée (min RES 23)',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'tolerance', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'tolerance', [[1, 100]])],
+    sets: ['violent'], minStats: { res: 23 }, compter: true,
+  };
+  const vMin = lancer(min);
+  verifier(min, vMin, true);
+  cibleCollectee(min, vMin, '1,2,3,4,15,16');
+
+  // Maximum : la Tolerance domine la Will (RES égale), mais son aura ferait
+  // dépasser RES 22 ; retirer la Will perd le meilleur build en PV.
+  const max: Cas = {
+    nom: 'Dominance Will retirée (max RES 22)',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'tolerance', [[3, 6]]), r(25, 5, 'will', [[3, 5]]), r(16, 6, 'tolerance', [[1, 100]]), r(26, 6, 'will', [[5, 10]])],
+    sets: ['violent'], maxStats: { res: 22 }, compter: true,
+  };
+  verifier(max, lancer(max), true);
+
+  // Score : Fight non demandé n'est plus neutre. Will domine le Fight de
+  // l'emplacement 5 ; le meilleur build en ATQ de combat porte Fight ×2.
+  const fight: Cas = {
+    nom: 'Dominance Fight retiré (score)',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'fight', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'fight', [[1, 100]])],
+    sets: ['violent'], compter: true,
+  };
+  verifier(fight, lancer(fight), true);
+
+  // Fight complété par l'Intangible.
+  const fightJoker: Cas = {
+    nom: 'Dominance Fight + Intangible (score)',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'fight', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'intangible', [[1, 100]])],
+    sets: ['violent'], compter: true,
+  };
+  verifier(fightJoker, lancer(fightJoker), true);
+
+  // Accuracy, toggle éteint : l'aura reste au score (PRE de combat).
+  const accEteint: Cas = {
+    nom: 'Dominance Accuracy, toggle éteint (score)',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'accuracy', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'accuracy', [[1, 100]])],
+    sets: ['violent'], compter: false,
+  };
+  verifier(accEteint, lancer(accEteint), true);
+
+  // Deux runes du MÊME set d'aura restent comparables : la moins bonne part.
+  const memeSet: Cas = {
+    nom: 'Dominance entre deux Tolerance (sûre)',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'tolerance', [[3, 5]]), r(25, 5, 'tolerance', [[3, 6]]), r(16, 6, 'tolerance', [[1, 100]])],
+    sets: ['violent'], minStats: { res: 23 }, compter: true,
+  };
+  const vS = lancer(memeSet);
+  verifier(memeSet, vS, false);
+  egal([...vS.trouves], ['1,2,3,4,25,16'], 'Dominance entre deux Tolerance : seule la meilleure des deux reste, sans perte d\'optimum');
+
+  // Témoin T1 : une rune Will domine la Blade de l'emplacement 5 (ATQ 6 ≥ 5),
+  // mais seule la Blade complète le set qui porte CR 27 (Rage seul demandé).
+  const blade: Cas = {
+    nom: 'T1 Blade dominée par une rune hors combo',
+    pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'blade', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'blade', [[1, 100]])],
+    sets: ['rage'], minStats: { cr: 27 }, compter: true,
+  };
+  const vB = lancer(blade);
+  verifier(blade, vB, true);
+  cibleCollectee(blade, vB, '1,2,3,4,15,16');
+
+  // Témoin T1 : deux sets SANS effet (Will/Shield), combo tenu par
+  // l'Intangible. Remplacer Will par Shield laisse deux sets incomplets : le
+  // joker ne complète plus Violent (règle d'`activeSets`).
+  const joker: Cas = {
+    nom: 'T1 Intangible : dominance Will → Shield',
+    pool: [V(1, 1), V(2, 2), V(3, 3), r(14, 4, 'intangible', [[5, 10]]), r(15, 5, 'will', [[3, 5]]), r(25, 5, 'shield', [[3, 6]]), r(16, 6, 'will', [[1, 100]])],
+    sets: ['violent'], compter: true,
+  };
+  const vJ = lancer(joker);
+  verifier(joker, vJ, true);
+  cibleCollectee(joker, vJ, '1,2,3,14,15,16');
+
+  // La dominance GÉNÉRIQUE reste là où elle est sûre. Rage seul demandé,
+  // aucune Intangible : Violent (4 pièces, jamais complet sur 2 emplacements
+  // libres) domine le Will de l'emplacement 5 (ATQ 6 ≥ 5) — le Will part,
+  // sans perte d'optimum.
+  const generique: Cas = {
+    nom: 'Dominance générique Violent > Will (Rage, sans Intangible)',
+    pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'will', [[3, 5]]), r(25, 5, 'violent', [[3, 6]]), r(16, 6, 'will', [[1, 100]])],
+    sets: ['rage'], compter: true,
+  };
+  const vG = lancer(generique);
+  verifier(generique, vG, false);
+  egal([[...vG.trouves], vG.motifs.get(DOMINANCE)], [['1,2,3,4,25,16'], 1], 'Dominance générique : le Will dominé est retiré par la dominance, l\'optimum reste');
+
+  // Avec une Intangible, deux sets qui ne peuvent JAMAIS être complets sur les
+  // emplacements libres (Swift et Violent, 4 pièces pour 2 libres) restent
+  // comparables : la Swift dominée part.
+  const jamaisComplets: Cas = {
+    nom: 'Dominance Violent > Swift, 4 pièces jamais complètes (Intangible présente)',
+    pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'swift', [[3, 5]]), r(25, 5, 'violent', [[3, 6]]), r(16, 6, 'will', [[1, 100]]), r(26, 6, 'intangible', [[5, 10]])],
+    sets: ['rage'], compter: true,
+  };
+  const vC = lancer(jamaisComplets);
+  verifier(jamaisComplets, vC, false);
+  egal([[...vC.trouves].sort(), vC.motifs.get(DOMINANCE)], [['1,2,3,4,25,16', '1,2,3,4,25,26'], 2], 'Dominance jamais-complets : la Swift dominée est retirée malgré l\'Intangible, l\'optimum reste');
+
+  // Le même Violent > Will, mais Rage tenu par l'Intangible : Rage + joker +
+  // Will + Will est valide, Rage + joker + Violent + Will ne l'est plus (trois
+  // sets incomplets). Le Will doit rester.
+  const willJoker: Cas = {
+    nom: 'Dominance Violent > Will refusée (Rage complété par l\'Intangible)',
+    pool: [R(1, 1), R(2, 2), R(3, 3), r(14, 4, 'intangible', [[5, 10]]), r(15, 5, 'will', [[3, 5]]), r(25, 5, 'violent', [[3, 6]]), r(16, 6, 'will', [[1, 100]])],
+    sets: ['rage'], compter: true,
+  };
+  const vW = lancer(willJoker);
+  verifier(willJoker, vW, true);
+  cibleCollectee(willJoker, vW, '1,2,3,14,15,16');
+}

@@ -20,6 +20,7 @@ import { computeStats } from '../src/lib/stats';
 import {
   BuildRequirement,
   mainStatFilteredBySlot,
+  contexteDominance,
   pruneDominated,
   eliminateInfeasible,
   guaranteedSetBonus,
@@ -57,10 +58,9 @@ for (const key of statKeys) {
 const requirement: BuildRequirement = { sets: targetSets, minStats, mainStats };
 const base: BaseStats = gear.base;
 
-const requiredKeys = new Set(requirement.sets);
 const maxKeys = new Set<StatKey>();
 const step1 = mainStatFilteredBySlot(allRunes, requirement);
-const step2 = step1.map((l) => pruneDominated(l, requiredKeys, maxKeys));
+const step2 = step1.map((l) => pruneDominated(l, maxKeys, contexteDominance(requirement, allRunes)));
 const guaranteed = guaranteedSetBonus(requirement, base);
 const artFlat = artifactFlatBonus(gear.artifacts);
 const relPct = relicPctBonus(gear.relic);

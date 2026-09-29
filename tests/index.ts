@@ -58,6 +58,7 @@ import {
   testRuneOptimAurasCoupesRetention,
   testRuneOptimAurasCoupesBladeIntangible,
   testRuneOptimAurasCoupesDifferentiel,
+  testRuneOptimAurasCoupesDominance,
 } from './rune-optim-auras-coupes.test';
 import testRelicOptim from './relic-optim.test';
 import testRelicOracle from './relic-oracle.test';
@@ -170,6 +171,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimAurasCoupesRetention', testRuneOptimAurasCoupesRetention],
   ['testRuneOptimAurasCoupesBladeIntangible', testRuneOptimAurasCoupesBladeIntangible],
   ['testRuneOptimAurasCoupesDifferentiel', testRuneOptimAurasCoupesDifferentiel],
+  ['testRuneOptimAurasCoupesDominance', testRuneOptimAurasCoupesDominance],
   ['testRelicOptim', testRelicOptim],
   ['testRelicOracle', testRelicOracle],
   ['testRelicSearch', testRelicSearch],

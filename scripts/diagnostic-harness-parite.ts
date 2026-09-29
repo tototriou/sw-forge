@@ -34,6 +34,7 @@ import { StatKey } from '../src/lib/effects';
 import {
   BuildRequirement,
   artifactFlatBonus,
+  contexteDominance,
   eliminateInfeasible,
   filterSlot,
   guaranteedSetBonus,
@@ -77,12 +78,11 @@ function pipelineHistorique(
 ): EtatsHistoriques {
   const step1 = mainStatFilteredBySlot(pool, requirement);
 
-  const requiredKeys = new Set(requirement.sets);
   const maxEntries = statKeys
     .map((k) => ({ k, max: requirement.maxStats?.[k] }))
     .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
-  const step2 = step1.map((list) => pruneDominated(list, requiredKeys, maxKeys));
+  const step2 = step1.map((list) => pruneDominated(list, maxKeys, contexteDominance(requirement, pool)));
 
   const minEntries = statKeys
     .map((k) => ({ k, min: requirement.minStats[k] }))

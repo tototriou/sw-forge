@@ -490,8 +490,8 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu initial `b9ff929` ↔ `473fe62` ; complément livré et intégré / 2026-09-28 |
 | 6bis-b1 — champ externe, recette et CLI | J | terminé, preuves rejouées par le pilote | `4622a02f` ; reçu `de9e893` ↔ `a38a410` / 2026-09-29 |
 | 6bis-b2 — aura propre et scores | J | terminé, preuves rejouées par le pilote ; Brita/Gideon confirmés par l'utilisateur | `dbd4ee54` + `b0a2e84d` ; reçu `b0a2e84` ↔ `5e32fe6` / 2026-09-29 |
-| 6bis-b3a — conditions exactes et filtre final | J | lançable | — |
-| 6bis-b3b — coupes, diagnostics et différentiel | J | contre-vérifié, attend b3a | — |
+| 6bis-b3a — conditions exactes et filtre final | J | terminé, preuves et deux mutations rejouées par le pilote | `6b1ff763` ; reçu `6b1ff76` ↔ `11be57d` / 2026-09-29 |
+| 6bis-b3b — coupes, diagnostics et différentiel | J | lançable | — |
 | 6bis-b4 — écran, Workers, caches et parité | J | contre-vérifié, lançable après b3b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b4 ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
@@ -2665,6 +2665,32 @@ encore dans les conditions ».
 **Ne fait pas :** dominance, faisabilité précoce, diagnostics de faisabilité
 ou de blocage, `filterSlot`, rétention par compartiment ni benchmark.
 
+**Résultat du lot 6bis-b3a — 2026-09-29.** Code `6b1ff763` (10 fichiers).
+Reçu `6b1ff76` ↔ `11be57d`, notes intégrées au main documentaire `867acdb`.
+Preuve privée `controle-6bis-b3a.md` (362 lignes). Conception : le toggle
+atteint le moteur par `auraResPre.compter`, obligatoire dans l'objet et posé
+par le seul `avecAurasConditions` ; `totalCondition` ajoute, toggle actif,
+part externe + `pointsAuraResPrePropres` à un total `computeStats` (aucune
+aura) : un seul compte. Sites raccordés : les trois `respecte*`, les deux
+appels de `relicQueue.ts`, le contrôle final de `pairBuckets` (depuis
+`activeSets` des six runes). Les bornes amont (`deriveMinMaxContext`)
+passent `AUCUNE_AURA_PROPRE`, volontairement, jusqu'à b3b. Le pilote a relu
+le diff et rejoué sur `6b1ff763` : `npx tsc --noEmit` → 0 ;
+`node tests/run.mjs auras relic runeoptim conditionfloor intangible` →
+2 155 vérifications passées ; les trois tests nouveaux → 76 ; build,
+`spec-lint`, `git diff --check` verts ; « Reçu valide ». Deux mutations
+rejouées par le pilote dans un worktree jetable : aura propre comptée
+toggle éteint → 16 échecs sur 76 (trois tests) ; contrôle final de
+`pairBuckets` sans aura propre → 4 échecs sur 12. `pairBuckets` : maximum
+prouvé, minimum prouvé grâce à une marge Endure tracée (`quickOkMin`).
+Invariant RES/PRE des conditions : réserve levée. Réserve « élagages SÛRS »
+posée à **quatre** endroits : `invariants.md` L35, `optimizer.md` L1334 et
+L2052, `effets-equipe-et-leaders.md` L116. Non prouvé : recherche complète
+où un minimum ne tient que par l'aura propre sans marge Endure/Focus (b3b) ;
+écran non exécuté ; l'écart de premier build au CLI réel attribué à la
+troncature par déduction ; lectures ≈ 3 600 lignes, estimées sans
+commande de comptage.
+
 ##### 6bis-b3b — coupes, diagnostics et rétention, avec oracle indépendant
 
 **Cat. J ; requiert b3a.** Intrant borné : les **deux clés a3a**
@@ -2699,6 +2725,20 @@ production : ils ne sont **pas** une référence indépendante pour les auras
 et ne fournissent aucune attente d'aura à cet oracle.
 La réserve temporaire d'`invariants.md` créée en b3a n'est levée qu'après
 un différentiel vert prouvant à nouveau la sûreté des coupes concernées.
+
+**Entrées laissées par b3a** (risques observés, pas des défauts
+reproduits) : sans marge Endure/Focus dans le pool, un minimum RES/PRE que
+seule une aura propre fait tenir peut être coupé par `quickOk`,
+`guaranteedMin`, `bucketPairFeasibleMin`, `comboAFeasible` ou
+`eliminateInfeasible` ; la dominance compare des runes de sets hors combo
+(`isSetComparable`) et peut retirer une rune Tolerance/Accuracy ;
+`diagnoseFeasibility` peut déclarer impossible un tel minimum ;
+`filterSlot`/`relevance` ne lisent que la part externe de `auraResPre`.
+Chacun reçoit un verdict prouvé par l'oracle. Lever la réserve « élagages
+SÛRS » partout où b3a l'a posée : `grep -rn "6bis-b3b" spec/` (quatre
+emplacements au 2026-09-29), invariant et sources dans le même commit.
+Toute mesure de performance attend un créneau confirmé par l'utilisateur
+sans autre agent actif.
 
 **Preuves :** T1, **T2 de bout en bout**, T3 et T4 sur seeds fixes et petits
 pools, zéro faux rejet par coupe sûre, témoins Fight/Tolerance/Accuracy

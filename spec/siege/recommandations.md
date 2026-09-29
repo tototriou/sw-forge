@@ -117,9 +117,10 @@ devenait un patchwork. Désormais :
 - jetons de sets et de propriétés d'artéfact, rapport d'import : les **fonds
   doux** (`good-soft`, `warn-soft`, `bad-soft`) avec le texte à l'encre (les
   filtres de verdict ont depuis le texte de leur ton, voir ci-dessus).
-  Contrastes mesurés, 5,48:1 au plus bas
-  (`good` sur `good-soft`, Atelier ; le rouge est `bad` depuis le
-  rebranding, décision 43, et fait 5,53 sur `bad-soft` en Forge) ;
+  Contrastes mesurés, 4,91:1 au plus bas
+  (`warn` ocre sur `warn-soft`, Atelier — décision 46 du rebranding ; le
+  rouge est `bad` depuis la décision 43, et fait 5,53 sur `bad-soft` en
+  Forge) ;
 - « Importée » : pastille neutre (le contour d'accent la faisait passer pour
   un élément sélectionné).
 

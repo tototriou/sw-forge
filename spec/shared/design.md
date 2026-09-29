@@ -93,12 +93,18 @@ fond.
 | `accent-ink` | `#1b1a19` | `#1b1a19` | Texte posé SUR un aplat de braise (bouton principal plein) |
 | `good` | `#73e06b` | `#2f6b36` | Au tick, gain, succès — et **ton camp** |
 | `good-soft` | `#253024` | `#e3f1e3` | Fond doux de `good` |
-| `warn` | `#ff9a4d` | `#9a4307` | Avertissement — orange, comme la braise (décision 12) |
-| `warn-soft` | `#402d1f` | `#ffe7d8` | Fond doux de `warn` |
+| `warn` | `#f2c230` | `#7c630d` | Avertissement — **jaune / ocre** (décision 46 du rebranding) ; il était orange et se confondait avec la braise |
+| `warn-soft` | `#39311b` | `#fbedb7` | Fond doux de `warn` — en Atelier hors construction (voir index.css) |
 | `bad` | `#f27a84` | `#a3303a` | Hors tick, destructif, erreur |
 | `bad-soft` | `#372324` | `#f8e4e3` | Fond doux de `bad` |
 | `bad-ink` | `#1b1a19` | `#ffffff` | Encre SUR un aplat de `bad` (bouton danger plein) — le pendant d'`accent-ink` |
 | `star` | `#c9a227` | `#8c6d0e` | Le laiton : étoiles, maxima d'efficience |
+
+⚠️ **« Orange » dans les specs = `warn`.** Le statut d'avertissement s'appelle
+encore `orange` dans le code (`statutEquipe`, les verdicts) et dans les specs
+écrites avant la décision 46 ; il se DESSINE en jaune / ocre. Lire `warn`, pas
+une teinte. (Ne concerne pas les couleurs du jeu : rareté légendaire, part de
+meule, etc.)
 
 ⚠️ **Deux braises, un seul nom de classe** (décisions 4 et 11 du rebranding).
 En Atelier, la braise vive fait **2,11 à 2,57** sur les fonds : illisible comme

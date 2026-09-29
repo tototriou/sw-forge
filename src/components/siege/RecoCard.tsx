@@ -967,8 +967,9 @@ const VERDICTS: {
 // étaient neutres, la couleur réduite à un point de 6 px (lot 7b, « cartes
 // neutres ») : la CARTE reste neutre, mais la pastille qui dit le verdict
 // porte sa couleur en entier. Contrastes mesurés, texte sur fond doux, deux
-// thèmes : 5.48 au plus bas (`good` sur `good-soft`, Atelier ; `bad` sur
-// `bad-soft` fait 5.53 en Forge, contre 4.26 pour l'ancien `fire`).
+// thèmes : 4.91 au plus bas (`warn` ocre sur `warn-soft`, Atelier, depuis la
+// décision 46 ; `bad` sur `bad-soft` fait 5.53 en Forge, contre 4.26 pour
+// l'ancien `fire`).
 // Par STATUT de deck (celui de `DOT`), pas par verdict : les puces de la carte
 // repliée et la ligne du tableau disent la même chose de la même façon.
 const PASTILLE_STATUT: Record<string, string> = {

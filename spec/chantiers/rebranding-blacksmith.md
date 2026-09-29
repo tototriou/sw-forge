@@ -149,6 +149,7 @@ Chiffres dans [lot-R1.md](rebranding-preuves/lot-R1.md) :
 12. **L'avertissement de la toile, tel quel** (orange) : ΔE 6,7 avec l'accent
     en Forge, 3,8 en Atelier. Le libellé porte l'état ; aucun ambre lisible ne
     s'éloignait vraiment de la braise foncée en clair.
+    ⚠️ **Remplacée par la décision 46** (jaune / ocre).
 13. **Le vert et le rouge de Forge, plus saturés que la toile** (Thomas,
     2026-09-29, sur les camps du speed tuning : « ça me paraît pâle », puis
     « je parlais du vert et du rouge »). Même clarté et même teinte, chroma à
@@ -257,6 +258,21 @@ Relevé dans [lot-R6.md](rebranding-preuves/lot-R6.md). Thomas garde nos
     Speed tuning), « Importer un deck d'offense » et « Fort contre » (épée).
 45. **Téléphone gardé** : côtés dans le panneau de l'onglet Siège,
     interrupteur « Vérifier mes speed » dans la page.
+
+#### 46 — l'avertissement passe au jaune (Thomas, 2026-09-29)
+
+Pendant la relecture du R6 : « le orange rappelle vachement la couleur
+principale de l'application, essaye une autre teinte ». En Forge, `warn`
+valait exactement `accent-hover`.
+
+46. **`warn` jaune / ocre**, dans toute l'app (c'est un jeton) : Forge
+    `#F2C230`, Atelier `#7C630D`. Remplace la décision 12. Choisi sur la
+    planche [lot-R6-warn-planche.png](rebranding-preuves/lot-R6-warn-planche.png)
+    parmi jaune, violet (recommandé) et sarcelle, en sachant qu'en Atelier
+    l'ocre lisible est proche de l'or du lead (ΔE 4). Fond doux d'Atelier
+    hors construction (`#FBEDB7`) : les deux constructions du R1 donnaient une
+    crème indiscernable de `panel2`. Le code et les specs appellent encore ce
+    statut « orange » : `design.md` dit de lire `warn`.
 
 ## Partie B — les lots
 

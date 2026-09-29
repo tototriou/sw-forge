@@ -72,6 +72,25 @@ jamais dessinés. Rien à reprendre au titre de la librairie.
   après le clic, l'équipe 4 occupe exactement sa position (850, 373),
   défilement 0 → 0 ; désactivée pendant une recherche.
 
+- **Avertissement en jaune (46)**, demandé à la relecture. Balayage de toutes
+  les teintes OKLCH (`warn-teintes.mjs`) : la couleur la plus vive encore
+  lisible, et sa distance aux couleurs réservées. En Atelier, un orange ou un
+  ambre lisible tombe à ΔE 2 à 4 de la braise foncée ou de l'or. Planche
+  [lot-R6-warn-planche.png](lot-R6-warn-planche.png) : actuel, jaune, violet,
+  sarcelle, en situation, deux thèmes. Retenu : jaune / ocre.
+  Mesures (`warn-ocre.mjs`) :
+
+  ```text
+                              Atelier #7C630D    Forge #F2C230
+  sur bg / panel / panel2     5,07 / 5,66 / 4,65 10,89 / 9,57 / 8,30
+  sur son fond doux           4,91 (#FBEDB7)      7,69 (#39311B)
+  texte bg sur l'aplat        5,07               10,89
+  ΔE braise lisible / or      9 / 4              16 / 11
+  ```
+
+  Fond doux d'Atelier : 12 % dans `panel` (`#EFEBDC`) était à ΔE 1,3 de
+  `panel2` ; chroma 0,07 à la clarté de l'ancien doux → ΔE 5,0.
+
 ## 4. Vérifications
 
 ```text

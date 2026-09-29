@@ -88,12 +88,20 @@
   /* Fond doux de `good`. Ils vont par PAIRE avec `bad-soft` — le speed tuning
      oppose ton équipe (`good`) au camp d'en face (`bad`). */
   --good-soft: 227 241 227;
-  /* ⚠️ `warn` est ORANGE, comme la braise (décision 12 : la toile telle
-     quelle). ΔE 3.8 avec `accent-lisible` : ils se confondent à l'œil. C'est
-     le LIBELLÉ qui porte l'avertissement (« à corriger »), jamais la couleur
-     seule — décision 8 de la refonte. */
-  --warn: 154 67 7;
-  --warn-soft: 255 231 216;
+  /* ⚠️ `warn` est JAUNE / OCRE, plus orange (rebranding, décision 46, qui
+     remplace la 12). L'orange de la toile était la braise : ΔE 3.8 avec
+     `accent-lisible` en Atelier, et en Forge la valeur même d'`accent-hover`
+     — Thomas : « le orange rappelle vachement la couleur principale ». Aucun
+     orange ni ambre lisible ne s'en écartait (balayage des teintes). Ocre :
+     ΔE 9 avec la braise lisible, 5.07 sur `bg`, 4.65 sur `panel2`.
+     ⚠️ En Atelier il reste proche de l'or du lead (`star`, ΔE 4) : choisi en
+     connaissance de cause. C'est le LIBELLÉ qui porte l'avertissement,
+     jamais la couleur seule — décision 8 de la refonte.
+     ⚠️ Fond doux hors construction : 12 % dans `panel` donnait une crème
+     indiscernable de `panel2` (ΔE 1.3). Chroma 0.07 à la clarté de l'ancien
+     doux : ΔE 5.0 avec `panel2`, l'ocre y fait 4.91. */
+  --warn: 124 99 13;
+  --warn-soft: 251 237 183;
   /* (Les tokens `--siege-card-*`, fond coloré des cartes de siège en mode
      clair, ont disparu au lot 7 de la refonte graphique : une PASTILLE écrite
      porte désormais le statut, dans les deux thèmes — décision 8.) */
@@ -287,11 +295,13 @@
      rapprochait de la braise (ΔE 7.7) et du Feu (4.7 pour l'ancien). */
   --forge-good: 115 224 107;
   --forge-good-soft: 37 48 36;
-  /* ⚠️ La toile donne à l'avertissement la valeur du SURVOL de la braise
-     (`--bs-accent-hover`) : ΔE 6.7 avec l'accent. Gardé tel quel (décision 12
-     du rebranding) ; le libellé porte l'état. */
-  --forge-warn: 255 154 77;
-  --forge-warn-soft: 64 45 31;
+  /* ⚠️ Jaune, plus la valeur du SURVOL de la braise que la toile donnait à
+     l'avertissement (rebranding, décision 46, qui remplace la 12). ΔE 16 avec
+     la braise, 11 avec l'or du lead ; 8.30 sur `panel2` au pire. Proche du
+     Vent (ΔE 2), qui ne colore que des monstres. Fond doux : la plus vive des
+     deux constructions du R1 (chroma de l'ancien doux). */
+  --forge-warn: 242 194 48;
+  --forge-warn-soft: 57 49 27;
   --forge-bad: 242 122 132;
   --forge-bad-soft: 55 35 36;
   /* Encre SUR un aplat de `bad` (bouton danger plein) : sombre, comme sur la

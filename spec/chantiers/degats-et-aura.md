@@ -489,8 +489,8 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-a4d1 — Workers et tests | C | terminé après complément pilote de la preuve | reçu initial `655b0a2` ↔ `7f2e0bf` ; preuve relivrée / 2026-09-28 |
 | 6bis-a4d2 — réconciliation des cartes | C | terminé après complément pilote du validateur | reçu initial `b9ff929` ↔ `473fe62` ; complément livré et intégré / 2026-09-28 |
 | 6bis-b1 — champ externe, recette et CLI | J | terminé, preuves rejouées par le pilote | `4622a02f` ; reçu `de9e893` ↔ `a38a410` / 2026-09-29 |
-| 6bis-b2 — aura propre et scores | J | lançable | — |
-| 6bis-b3a — conditions exactes et filtre final | J | contre-vérifié et corrigé, lançable après b2 | — |
+| 6bis-b2 — aura propre et scores | J | terminé, preuves rejouées par le pilote ; Brita/Gideon à confirmer | `dbd4ee54` + `b0a2e84d` ; reçu `b0a2e84` ↔ `5e32fe6` / 2026-09-29 |
+| 6bis-b3a — conditions exactes et filtre final | J | lançable | — |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | contre-vérifié, attend b3a | — |
 | 6bis-b4 — écran, Workers, caches et parité | J | contre-vérifié, lançable après b3b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b4 ; preuve `controle-6bis-b-revue-technique.md` | — |
@@ -2563,6 +2563,34 @@ build : pas encore comptées ») devient « comptées dans le combat et le
 score, pas encore dans les conditions » ; b3a l'achève.
 **Ne fait pas :** conditions, élagages, rétention heuristique, UI de saisie.
 
+**Résultat du lot 6bis-b2 — 2026-09-29.** Code `dbd4ee54` (25 fichiers :
+résolution, raccordements, tests, spec publique) et `b0a2e84d` (commentaire
+seul). Reçu `b0a2e84` ↔ `5e32fe6`, notes intégrées au main documentaire
+`18266dd`. Preuve privée `controle-6bis-b2.md` (376 lignes). Conception :
+`aurasPropresDesRunes` (via `activeSets`) produit `AurasPropres`, argument
+obligatoire après `setup` de toute la chaîne combat/score (`statsDebutCombat`,
+`statsDeCombat`, `computeSkillDamageDetail`, `computeTotalDamage`,
+`pvEffectifs`, `objectiveScore`, `apportExclusive`, `evaluerPourRegime`,
+`aurasPropresDe` requis par `sortCandidates`). Le pilote a relu le diff de
+code et rejoué sur `b0a2e84d` : `npx tsc --noEmit` → 0 ;
+`node tests/run.mjs auras degats relic artifact runeoptim` → 3 040
+vérifications passées ; build, `spec-lint`, `git diff --check` verts ;
+`chantier verifier` → « Reçu valide ». Aucun `AUCUNE_AURA_PROPRE` hors
+tests dans `src/` et `scripts/` : chaque chemin de production résout les
+runes réelles. L'appariement ne calcule aucun score d'objectif (tri après
+recherche) : les Workers ne sont pas touchés. `reliques.md` § 5.2 amendé,
+README privé L29 aligné, invariant RES/PRE des conditions marqué provisoire,
+écho CLI « pas encore dans les conditions ». Mutations rapportées par
+l'agent (double compte, deux `ceil`, note des couples, Brita/Gideon) : non
+rejouées par le pilote. `relicQueue.ts` inchangé, raccordé par
+`faireParams`. **Décision à confirmer par l'utilisateur :** `defCombat`
+(Gideon) et `atkCombatComplet` (Brita) passent par `statsDebutCombat` et
+comptent donc les auras, en lecture de A.2 cible 2 (« les passifs ») ;
+aura nulle → valeurs inchangées. Non prouvé : écran non exécuté, effet sur
+le classement du compte réel (recherche EHP tronquée), Brita/Gideon sans
+relevé en jeu. Lectures ≈ 5 600 lignes, au-delà du repère, sans fichier
+lourd lu en entier.
+
 ##### 6bis-b3a — conditions exactes et filtres finaux
 
 **Cat. J ; requiert b2.** Intrant borné : les **16 clés a3a hors**
@@ -2596,8 +2624,10 @@ propre. Ne pas coder « éteint » par l'absence de `auraResPre`. Producteurs
 à vérifier : `recipeToSearchParams.ts` L410, `OptimizerSection.tsx` L1665 ;
 recettes littérales qui fixent le toggle : `scripts/lib/diagnosticLot.ts`
 L246, `scripts/diagnostic-harness-parite.ts` L142,
-`scripts/artifact-contention-diag.ts` L108. Les littéraux L209/L211 de
-`tests/auras-modele.test.ts` reçoivent mécaniquement le nouveau booléen,
+`scripts/artifact-contention-diag.ts` L108. Les littéraux `auraResPre`
+attendus par `testAurasPariteEcranCliEtCache` (`tests/auras-modele.test.ts`,
+retrouver par `grep` : les lignes des tests bougent à chaque lot) reçoivent
+mécaniquement le nouveau booléen,
 sans changer leur sens ; la parité reste à b4.
 **État intermédiaire explicite :** les contrôles exacts connaissent l'aura
 propre, mais les élagages de dominance/faisabilité ne sont pas encore
@@ -2663,6 +2693,10 @@ de stats et de sets actifs, mais calcule lui-même les 8 points par aura et
 les conditions : il n'appelle ni le nouveau calcul d'auras par build, ni
 `prepareSearch`, ni ses bornes ou élagages. La référence exhaustive part
 du pool **avant** préparation ; elle n'est jamais l'ensemble déjà filtré.
+⚠️ Depuis b2, `scripts/lib/relicOracle.ts` et `relicDifferentiel.ts`
+résolvent les auras propres par `aurasPropresDesRunes`, comme la
+production : ils ne sont **pas** une référence indépendante pour les auras
+et ne fournissent aucune attente d'aura à cet oracle.
 La réserve temporaire d'`invariants.md` créée en b3a n'est levée qu'après
 un différentiel vert prouvant à nouveau la sûreté des coupes concernées.
 
@@ -2682,8 +2716,14 @@ d'exhaustivité sur une recherche tronquée.
 a4d1 (24) **pour vérification finale**, plus
 `H:cache:signatureArtefacts` et les scripts/test candidats d'a4b et
 a2b3. Les six clés Worker sont raccordées par b3b si ses coupes changent ;
-b4 vérifie les deux régimes. Les assertions de parité L207–223 de
-`tests/auras-modele.test.ts` appartiennent à b4. Lire les synthèses et
+b4 vérifie les deux régimes. Les assertions de parité de
+`testAurasPariteEcranCliEtCache` (`tests/auras-modele.test.ts`, citées par
+nom : leurs lignes bougent à chaque lot) appartiennent à b4.
+**Constat hérité de b2, à trancher par b4 :** la carte « Dégâts réels »
+(`OptimizerSection.tsx`, calcul affiché près de L5007 en `b0a2e84d`)
+n'ajoute pas le bonus de Conquête que le tri compte. Défaut antérieur aux
+auras, mais c'est un écart tri/carte, donc de parité : b4 le corrige s'il
+le confirme, sinon il le consigne dans `pistes.md` avec sa raison. Lire les synthèses et
 plages citées, pas leurs preuves entières ; vérifier les chemins modifiés
 par b1–b3b.
 

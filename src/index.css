@@ -144,6 +144,14 @@
      vent (décision 8 du rebranding). */
   --star: 140 109 14;
 
+  /* Le CRISTAL du logo (rebranding R2 bis, décisions 24-25) : deux facettes,
+     la gauche plus claire que la droite, comme l'identité de Thomas. Aucun
+     jeton existant ne donne cette paire dans les deux thèmes — la braise
+     claire de Forge est plus claire que la braise, celle d'Atelier ne l'est
+     pas. Décoratif : pas de seuil de contraste (le symbole se lit à sa forme). */
+  --logo-cristal: 224 98 10;
+  --logo-cristal-clair: 255 122 26;
+
   /* Palette du résumé de compte (paliers d'efficience, qualité du stock).
      ⚠️ MÊMES TEINTES que le thème sombre, assombries pour tenir sur blanc.
      Les valeurs sombres (or, violet, vert d'eau, bleu ciel…) sont pensées pour
@@ -295,6 +303,8 @@
 
   /* Le laiton de la toile : 5.75 au pire. */
   --forge-star: 201 162 39;
+  --forge-logo-cristal: 255 122 26;
+  --forge-logo-cristal-clair: 255 154 77;
 
   /* Palette du résumé en sombre : les couleurs D'ORIGINE, inchangées.
      Elles fonctionnaient — c'est uniquement sur fond clair qu'elles tombaient
@@ -357,6 +367,8 @@
     --el-dark-soft: var(--forge-el-dark-soft);
     --el-unknown-soft: var(--forge-el-unknown-soft);
     --star: var(--forge-star);
+    --logo-cristal: var(--forge-logo-cristal);
+    --logo-cristal-clair: var(--forge-logo-cristal-clair);
     --pal-1: var(--forge-pal-1);
   --pal-2: var(--forge-pal-2);
   --pal-3: var(--forge-pal-3);
@@ -411,6 +423,8 @@
   --el-dark-soft: var(--forge-el-dark-soft);
   --el-unknown-soft: var(--forge-el-unknown-soft);
   --star: var(--forge-star);
+  --logo-cristal: var(--forge-logo-cristal);
+  --logo-cristal-clair: var(--forge-logo-cristal-clair);
   --pal-1: var(--forge-pal-1);
   --pal-2: var(--forge-pal-2);
   --pal-3: var(--forge-pal-3);

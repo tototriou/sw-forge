@@ -10,6 +10,9 @@ export default {
         // Source Sans 3 remplace Inter (rebranding « SW Blacksmith », R1). Les
         // TAILLES ne bougent pas (décision 7) : voir `fontSize` plus bas.
         body: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+        // Le NOM de l'app seulement, dans le logo (rebranding R2 bis, choix de
+        // Thomas : Saira 700). Les titres restent en Cinzel (`display`).
+        marque: ['Saira', 'sans-serif'],
         // ⚠️ Réservée aux CHIFFRES (efficiences, vitesses, ticks, compteurs) :
         // c'est ce qui doit s'aligner en colonnes. Les libellés en capitales
         // sont dans la police du texte — voir `.label` dans index.css.

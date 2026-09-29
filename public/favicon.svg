@@ -1,10 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- SW Blacksmith — favicon (rebranding R2). Variante 16 px de la charte :
-       l'enclume seule, en braise, sur fond Fer, rayon 25 %. L'onglet l'affiche
-       à 16 px : la version 32 (enclume + marteau) y serait illisible.
-       Couleurs en dur : un favicon ne lit pas les jetons de l'app. -->
+  <!-- SW Blacksmith — favicon (rebranding R2 bis) : le symbole de l'identité
+       (enclume, cristal à deux facettes, deux éclats), cadré au plus près sur
+       fond Fer, rayon 25 %. Couleurs en dur : un favicon ne lit pas les jetons
+       de l'app ; ce sont celles de Forge. Tracés : src/components/Logo.tsx. -->
   <rect width="16" height="16" rx="4" fill="#1B1A19" />
-  <svg x="1.5" y="1.5" width="13" height="13" viewBox="0 0 120 120">
-    <path d="M8 48 C20 46 30 44 38 44 H110 V60 H90 C84 60 80 64 80 70 V78 H94 V92 H26 V78 H40 V70 C40 64 36 60 30 60 C20 60 13 56 8 48 Z" fill="#FF7A1A" />
+  <svg x="1" y="1" width="14" height="14" viewBox="4 0 112 112">
+    <path d="M8 58 H112 C106 64 96 69 84 71 C78 72 75 74 75 77 V81 C75 84 78 86 83 88 L86 96 H34 L37 88 C42 86 45 84 45 81 V77 C45 74 42 72 36 71 C24 69 14 64 8 58 Z" fill="#EDE3D1" />
+    <path d="M35 34 L53 43.5 L48.5 50.5 Z" fill="#EDE3D1" />
+    <path d="M85 34 L67 43.5 L71.5 50.5 Z" fill="#EDE3D1" />
+    <path d="M60 16 L60 53 L53 40 Z" fill="#FF9A4D" />
+    <path d="M60 16 L67 40 L60 53 Z" fill="#FF7A1A" />
   </svg>
 </svg>

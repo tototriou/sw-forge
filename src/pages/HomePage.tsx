@@ -26,7 +26,7 @@ import { ElementKey } from '../types';
 import { RELEASES, libelleVersion } from '../data/releases';
 import { Bouton } from '../ui';
 import { NOM_APP } from '../marque';
-import { SymboleLogo } from '../components/Logo';
+import { CLASSE_NOM, SymboleLogo } from '../components/Logo';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
@@ -123,11 +123,14 @@ export default function HomePage({ stats, onImport }: Props) {
               le nom de `marque.ts`. Espace ORDINAIRE, plus `&nbsp;` : « SW
               Blacksmith » est long, il doit pouvoir passer sur deux lignes au
               téléphone plutôt que déborder. Le reste du héros est le lot R5. */}
+          {/* ⚠️ R2 bis : le nom dans la police de l'identité (Saira, capitales
+              espacées, `CLASSE_NOM`), en encre pleine comme sur l'identité de
+              Thomas — plus le dégradé de Cinzel. Taille `clamp(32px, 5vw,
+              56px)` : en capitales, « BLACKSMITH » mesure 291 px à 40 px, et
+              débordait d'un téléphone de 360 px ; 233 px à 32 px. */}
           <div className="flex items-center gap-3">
             <SymboleLogo className="w-[clamp(38px,6vw,64px)] h-[clamp(38px,6vw,64px)] flex-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" />
-            <h1 className="font-display font-black text-[clamp(40px,7vw,76px)] leading-[0.95] title-gradient">
-              {NOM_APP}
-            </h1>
+            <h1 className={`${CLASSE_NOM} text-[clamp(32px,5vw,56px)] leading-[0.95] text-ink`}>{NOM_APP}</h1>
           </div>
 
           <p className="mt-3 max-w-lg font-display text-[clamp(18px,2.4vw,26px)] leading-tight tracking-wide text-ink">

@@ -286,6 +286,12 @@ Source Sans 3 remplace Inter au rebranding (R1), comme dans la toile ; les
 **tailles** ne bougent pas (décision 7 : le corps de 17 px de la charte vaut
 pour elle, pas pour la densité de nos listes).
 
+⚠️ **Une quatrième police, hors de ce système : `font-marque` (Saira 700)**,
+le NOM de l'app et rien d'autre — dans le logo (`Logo.tsx`, `CLASSE_NOM` :
+capitales espacées) et le héros de l'accueil. Choisie par Thomas avec la
+nouvelle identité de logo (rebranding R2 bis, décision 24). Les titres restent
+en Cinzel : Saira n'est pas une police de titre, c'est la signature.
+
 ⚠️ **La mono ne sert qu'à ce qui s'aligne.** Efficiences, vitesses, ticks,
 compteurs — des colonnes qu'on compare d'une ligne à l'autre. `tabular-nums` est
 posé d'office sur `.font-mono` : sans lui, un « 1 » plus étroit décale toute une

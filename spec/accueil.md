@@ -1,6 +1,6 @@
 # Accueil (`#/`)
 
-Page d'entrée de SW Forge. Rôle : **faire faire le premier geste** (importer son
+Page d'entrée de SW Blacksmith. Rôle : **faire faire le premier geste** (importer son
 compte) et **ramener l'habitué là où il s'était arrêté**.
 
 Fichier : [HomePage.tsx](src/pages/HomePage.tsx)
@@ -16,12 +16,16 @@ quitte jamais. La page répond donc à deux publics, dans cet ordre.
 
 Deux colonnes (`1.1fr / 0.9fr`, empilées sous `lg`).
 
-- **Gauche** : **logo + titre `SW Forge`**, accroche en sous-titre (« La boîte à
-  outils pour Summoners War. »), phrase de promesse, puis les **5 éléments qui
-  flottent**, centrés sous le texte.
-  - ⚠️ **Le logo et le nom du site restent dans le héros.** Sur desktop, la barre
-    de nav **ne porte pas la marque** (elle n'apparaît qu'en version repliée) :
-    sans eux, on ne sait plus sur quel site on est.
+- **Gauche** : **logo + titre `SW Blacksmith`** (rebranding : le symbole de
+  l'identité, le nom en Saira, capitales espacées, `clamp(32px, 5vw, 56px)`,
+  qui passe sur deux lignes quand la colonne est étroite — R2 bis), accroche
+  en sous-titre (« La boîte à outils pour Summoners War. »), phrase de
+  promesse, puis les **5 éléments qui flottent**, centrés sous le texte.
+  - ⚠️ **Le logo et le nom du site restent dans le héros.** C'est la page
+    d'entrée : le nom s'y lit en grand, même si la barre latérale du bureau
+    porte aussi le logo (depuis la refonte — cette spec disait l'inverse,
+    corrigé au rebranding R2 bis) ; au téléphone, la barre du haut ne montre
+    que le symbole.
   - ⚠️ **Aucun bouton dans le héros**, et aucun argument commercial répété
     (« Gratuit · Aucune inscription », « Traitement 100 % local… », « sans créer
     de compte »). La **zone de dépôt est juste à côté** : un bouton « Importer

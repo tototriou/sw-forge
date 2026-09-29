@@ -10,10 +10,12 @@ import {
   StickyNote,
   Download,
   ChevronDown,
-  Swords,
   Search,
   Gauge,
 } from 'lucide-react';
+// L'épée de la section Offense, à la place des deux épées de lucide
+// (rebranding, décision 44) : « Importer un deck d'offense », « Fort contre ».
+import { IconeOffense } from '../IconesAtelier';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import {
@@ -775,7 +777,7 @@ export default function RecoCard({
                   : "Partir d'une de tes équipes d'offense (monstres, sets, artéfacts et stats réels pré-remplis)"
               }
               taille="sm"
-              icone={<Swords size={14} />}
+              icone={<IconeOffense size={14} />}
               className={BOUTON_LG}
               libelle={
                 <>
@@ -1920,7 +1922,7 @@ function CounterBlock({
   return (
     <div className="mt-2.5 pt-2.5 border-t border-border/50">
       <div className="mb-1.5 flex items-center gap-1.5">
-        <Swords size={13} className="flex-none text-ink-dim" />
+        <IconeOffense size={13} className="text-ink-dim" />
         <span className="label">Fort contre</span>
         {deck.counters.length > 1 && (
           <span className="font-mono text-micro text-ink-dim">{deck.counters.length}</span>

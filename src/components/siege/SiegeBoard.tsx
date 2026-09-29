@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Castle, Trash2, Gauge, Wand2, Upload, Download } from 'lucide-react';
+import { Plus, Trash2, Gauge, Wand2, Upload, Download } from 'lucide-react';
+import { IconeDefense, IconeOffense } from '../IconesAtelier';
 import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../../types';
 import { LoadState } from '../../hooks/useMonsters';
 import { SiegeSide, UseSiegeState } from '../../hooks/useSiegeState';
@@ -507,7 +508,13 @@ export default function SiegeBoard({
       {siege.state.teams.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-border bg-panel/40 py-16 px-6">
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
-            <Castle size={26} className="text-ink-dim" />
+            {/* L'icône du CÔTÉ, celle de son entrée de nav — bouclier ou épée
+                (rebranding, décision 44). */}
+            {side === 'defense' ? (
+              <IconeDefense size={26} className="text-ink-dim" />
+            ) : (
+              <IconeOffense size={26} className="text-ink-dim" />
+            )}
           </div>
           <p className="text-ink-dim text-sm max-w-md">
             Aucune équipe d'{noun} pour l'instant. Clique sur{' '}

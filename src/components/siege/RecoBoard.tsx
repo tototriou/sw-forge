@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X, Gauge } from 'lucide-react';
+import { Plus, Download, Upload, Trash2, AlertTriangle, XCircle, X, Gauge } from 'lucide-react';
+import { IconeRecos } from '../IconesAtelier';
 import { Monster, Reco } from '../../types';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import { UseSiegeState } from '../../hooks/useSiegeState';
@@ -825,7 +826,8 @@ export default function RecoBoard({
       {all.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-border bg-panel/40 py-16 px-6">
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
-            <Lightbulb size={26} className="text-ink-dim" />
+            {/* L'icône de la section dans la nav (rebranding, décision 44). */}
+            <IconeRecos size={26} className="text-ink-dim" />
           </div>
           <p className="text-ink-dim text-sm max-w-md">
             Aucune recommandation. <b className="text-ink">Crée-en une</b> pour proposer un{' '}

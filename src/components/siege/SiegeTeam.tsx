@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, Timer, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
+import { IconeSpeedTuning } from '../IconesAtelier';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
 import { Monster, SiegeTeam as SiegeTeamType } from '../../types';
@@ -731,7 +732,8 @@ export default function SiegeTeam({
                 taille="sm"
                 fond="vide"
                 trait="aucun"
-                icone={<Timer size={14} />}
+                // Le chronomètre de l'outil qu'il ouvre (rebranding, décision 44).
+                icone={<IconeSpeedTuning size={14} />}
                 libelle="Voir le speed tune"
                 libelleCourt="Speed tune"
                 title="Ouvre le speed tuning avec cette équipe déjà chargée"

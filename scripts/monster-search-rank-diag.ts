@@ -60,7 +60,7 @@ const base: BaseStats = gear.base;
 
 const maxKeys = new Set<StatKey>();
 const step1 = mainStatFilteredBySlot(allRunes, requirement);
-const step2 = step1.map((l) => pruneDominated(l, maxKeys, contexteDominance(requirement, allRunes, objective, objectiveStats)));
+const step2 = step1.map((l) => pruneDominated(l, maxKeys, contexteDominance(requirement, step1.flat(), objective, objectiveStats)));
 const guaranteed = guaranteedSetBonus(requirement, base);
 const artFlat = artifactFlatBonus(gear.artifacts);
 const relPct = relicPctBonus(gear.relic);

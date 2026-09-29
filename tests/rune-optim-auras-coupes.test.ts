@@ -109,14 +109,15 @@ function evaluer(cas: Cas, runes: RuneDetail[]): { cond: Record<StatKey, number>
 
 // Les critères sur lesquels la dominance DOIT conserver l'optimum :
 // l'efficience (toujours comparée), les stats des conditions (telles que les
-// lisent les conditions) et celles de l'objectif (avec ses auras de combat ;
-// le Taux Crit en « Dégâts réels »). Un tri après coup sur une autre stat
-// n'est pas garanti (choix produit, 6bis-b3b).
+// lisent les conditions) et celles de l'objectif (avec ses auras de combat).
+// « Efficience » ou aucun objectif : TOUTES les stats (décision utilisateur
+// du 2026-09-29). Un tri après coup sur une autre stat n'est pas garanti.
 const CRITERE_OBJECTIF: Record<StatKey, string> = { atk: 'atkCombat', def: 'defCombat', hp: 'hpCombat', res: 'resCombat', acc: 'accCombat', spd: 'spd', cr: 'cr', cd: 'cd' };
 function criteresUtiles(cas: Cas): string[] {
   const out = new Set<string>(['eff']);
   for (const [k, v] of [...Object.entries(cas.minStats ?? {}), ...Object.entries(cas.maxStats ?? {})]) if (v != null && v > 0) out.add(`cond.${k}`);
-  for (const k of [...(cas.objectiveStats ?? []), ...(cas.objective === 'degats_reels' ? ['cr' as StatKey] : [])]) out.add(CRITERE_OBJECTIF[k]);
+  const stats = cas.objective === undefined || cas.objective === 'efficience' ? CLES : (cas.objectiveStats ?? []);
+  for (const k of stats) out.add(CRITERE_OBJECTIF[k]);
   return [...out];
 }
 
@@ -687,6 +688,45 @@ export function testRuneOptimAurasCoupesDominance() {
   egal([[...vF.trouves].some((c) => c.split(',')[4] === '15'), vF.trouves.has('1,2,3,4,35,16'), vF.motifs.get(DOMINANCE)], [false, true, 2],
     'dégâts réels : le Focus dominé est retiré (2 builds, par la dominance), la Blade dominée reste et porte CR 27');
 
+  // Sans aucune condition CR, la Blade n'est PAS protégée en « Dégâts réels »
+  // (décision utilisateur du 2026-09-29 : le Taux Crit ne compte que sous un
+  // minimum de Taux Crit, jamais par l'objectif). Will la domine : elle part.
+  const bladeObjectif: Cas = {
+    nom: 'Dominance Blade non protégée en dégâts réels sans condition CR',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'blade', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'blade', [[1, 100]])],
+    sets: ['violent'], compter: true, objective: 'degats_reels', objectiveStats: ['atk', 'cd'],
+  };
+  const vBO = lancer(bladeObjectif);
+  verifier(bladeObjectif, vBO, false);
+  egal([[...vBO.trouves], vBO.motifs.get(DOMINANCE)], [['1,2,3,4,25,16'], 1], 'dégâts réels sans minimum CR : la Blade dominée est retirée par la dominance');
+
+  // « Efficience » maximise toutes les stats : un set à bonus qui peut se
+  // former reste (Endure, deux emplacements), un set sans effet part
+  // (Revenge), comme une Blade seule sur son emplacement, qui ne se formera
+  // jamais sans Intangible.
+  const efficience: Cas = {
+    nom: 'Dominance efficience : Revenge et Blade isolée retirées, Endure formable gardée',
+    pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'revenge', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(35, 5, 'endure', [[3, 5]]), r(45, 5, 'blade', [[3, 5]]), r(16, 6, 'endure', [[1, 100]]), r(26, 6, 'will', [[5, 10]])],
+    sets: ['rage'], compter: true, objective: 'efficience',
+  };
+  const vEf = lancer(efficience);
+  verifier(efficience, vEf, false);
+  const emplacement5 = [...vEf.trouves].map((c) => c.split(',')[4]);
+  egal([emplacement5.includes('15'), emplacement5.includes('45'), vEf.trouves.has('1,2,3,4,35,16'), vEf.motifs.get(DOMINANCE)], [false, false, true, 4],
+    'efficience : Revenge et Blade isolée retirées (4 builds, par la dominance), Endure gardée avec son meilleur RES');
+
+  // Intangible présente : deux sets sans effet qui ne peuvent jamais être
+  // complets (une seule rune chacun) restent comparables — le joker n'en
+  // dépend pas.
+  const jokerIsoles: Cas = {
+    nom: 'Dominance Shield > Revenge, sets isolés malgré l\'Intangible',
+    pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'revenge', [[3, 5]]), r(25, 5, 'shield', [[3, 6]]), r(16, 6, 'will', [[1, 100]]), r(26, 6, 'intangible', [[5, 10]])],
+    sets: ['rage'], compter: true, objective: 'efficience',
+  };
+  const vJI = lancer(jokerIsoles);
+  verifier(jokerIsoles, vJI, false);
+  egal([[...vJI.trouves].sort(), vJI.motifs.get(DOMINANCE)], [['1,2,3,4,25,16', '1,2,3,4,25,26'], 2], 'sets isolés : la Revenge dominée est retirée malgré l\'Intangible');
+
   // Accuracy : utile seulement si une condition PRE la lit, toggle actif.
   const accUtile: Cas = {
     nom: 'Dominance Accuracy protégée (min PRE 8, toggle actif)',
@@ -697,13 +737,23 @@ export function testRuneOptimAurasCoupesDominance() {
   verifier(accUtile, vAU, true);
   cibleCollectee(accUtile, vAU, '1,2,3,4,15,16');
   const accInutile: Cas = {
-    nom: 'Dominance Accuracy non utile (efficience, toggle éteint)',
+    nom: 'Dominance Accuracy non utile (PV effectifs, toggle éteint)',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'accuracy', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'accuracy', [[1, 100]])],
-    sets: ['violent'], compter: false,
+    sets: ['violent'], compter: false, objective: 'ehp', objectiveStats: ['hp', 'def'],
   };
   const vAI = lancer(accInutile);
   verifier(accInutile, vAI, false);
   egal([[...vAI.trouves], vAI.motifs.get(DOMINANCE)], [['1,2,3,4,25,16'], 1], 'Accuracy non utile : la rune dominée est retirée par la dominance, l\'efficience reste optimale');
+  // Toggle éteint, même avec une condition PRE : l'aura n'y compte pas, elle
+  // n'est pas utile ; la PRE des runes (5) tient seule le minimum.
+  const accEteintCondition: Cas = {
+    nom: 'Dominance Accuracy non utile (min PRE 5, toggle éteint, PV effectifs)',
+    pool: [...QUATRE_VIOLENT, r(15, 5, 'accuracy', [[12, 5], [3, 5]]), r(25, 5, 'will', [[12, 5], [3, 6]]), r(16, 6, 'accuracy', [[1, 100]])],
+    sets: ['violent'], compter: false, minStats: { acc: 5 }, objective: 'ehp', objectiveStats: ['hp', 'def'],
+  };
+  const vAEC = lancer(accEteintCondition);
+  verifier(accEteintCondition, vAEC, false);
+  egal([[...vAEC.trouves], vAEC.motifs.get(DOMINANCE)], [['1,2,3,4,25,16'], 1], 'Accuracy toggle éteint : la rune dominée est retirée malgré la condition PRE, qui tient sans aura');
 
   // Deux runes du MÊME set d'aura restent comparables : la moins bonne part.
   const memeSet: Cas = {

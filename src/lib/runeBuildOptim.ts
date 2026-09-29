@@ -1506,20 +1506,23 @@ export function filterSlot(
 // DIFFÉRENTS, la dominance reste générique pour les sets hors combo, sauf
 // quand le remplacement peut changer un résultat qui compte — faux rejets
 // prouvés par l'oracle de `rune-optim-auras-coupes.test.ts` (6bis-b3b) :
-//  - un set à bonus de fiche (Blade…) ou une aura qui peut s'activer sur les
-//    emplacements libres, SI sa stat est UTILE : une condition min/max (pour
-//    une aura, seulement RES/PRE et toggle actif — PV/ATQ/DEF n'entrent dans
-//    aucune condition) ou une stat de l'objectif. Le Taux Crit compte pour
-//    « Dégâts réels » même hors `objectiveKeysOf` (qui l'exclut pour la
-//    rétention) : il pèse sur les dégâts en mode Moyenne. Un bonus de PRE
-//    (Focus) sans condition PRE ni objectif qui la lise ne protège rien ;
-//  - tout set, même sans effet utile, compte encore pour le joker :
-//    l'Intangible ne complète un set que s'il est le seul incomplet
-//    (`activeSets`). Rage + Intangible + Will + Will est valide ; Will
-//    remplacé par Violent laisse trois sets incomplets.
-// Un set qui ne peut JAMAIS être complet sur les emplacements libres (4 pièces
-// pour 2 libres) échappe aux deux risques. Les sets demandés et l'Intangible
-// ne se comparent qu'entre eux.
+//  - un set à bonus de fiche (Blade…) ou une aura qui peut réellement se
+//    FORMER — assez d'emplacements distincts portant ce set, un joker
+//    compris, dans la limite des emplacements libres — et dont la stat est
+//    UTILE : une condition min/max (pour une aura, seulement RES/PRE et
+//    toggle actif — PV/ATQ/DEF n'entrent dans aucune condition) ou une stat
+//    de l'objectif ; « Efficience » (ou aucun objectif) maximise TOUTES les
+//    stats. Décisions de l'utilisateur (2026-09-29) : le Taux Crit ne compte
+//    que sous un minimum de Taux Crit, jamais par l'objectif ; un Focus sans
+//    condition PRE ne protège rien en « Dégâts réels » ; en « Efficience »,
+//    Endure ou Blade formables restent, Violent ou Revenge s'élaguent ;
+//  - un set qui peut être COMPLET avec ses seules vraies runes compte encore
+//    pour le joker dès qu'une Intangible est disponible : l'Intangible ne
+//    complète un set que s'il est le seul incomplet (`activeSets`). Rage +
+//    Intangible + Will + Will est valide ; Will remplacé par Violent laisse
+//    trois sets incomplets. Un set qui ne peut jamais être complet reste
+//    incomplet dans tout build : le remplacer ne change rien au joker.
+// Les sets demandés et l'Intangible ne se comparent qu'entre eux.
 // ⚠️ Conséquence assumée : l'optimum n'est garanti que pour les conditions,
 // l'objectif et l'efficience — un tri après coup sur une AUTRE stat peut
 // manquer un build qu'un bonus de set inutile à la recherche aurait porté.
@@ -1529,34 +1532,47 @@ export interface ContexteDominance {
   interchangeables: ReadonlySet<string>;
 }
 
+// `runes` : le pool APRÈS statistique principale imposée et verrous — les
+// runes que la dominance compare, et les seules qui peuvent former un set.
 export function contexteDominance(
   requirement: BuildRequirement,
-  pool: RuneDetail[],
+  runes: RuneDetail[],
   objective: Objective | undefined,
   objectiveStats: StatKey[] | undefined
 ): ContexteDominance {
   const libres = Math.max(0, MAX_SET_PIECES - setsCost(requirement.sets));
   const demandes = new Set(requirement.sets);
-  const jokerPossible = pool.some((r) => r.set === INTANGIBLE_SET);
+  const joker = runes.some((r) => r.set === INTANGIBLE_SET) ? 1 : 0;
+  const emplacements = new Map<string, Set<number>>();
+  for (const r of runes) {
+    let slots = emplacements.get(r.set);
+    if (!slots) emplacements.set(r.set, (slots = new Set()));
+    slots.add(r.slot);
+  }
   const conditions = new Set<string>(
     [...Object.entries(requirement.minStats), ...Object.entries(requirement.maxStats ?? {})]
       .filter(([, v]) => v != null && v > 0)
       .map(([k]) => k)
   );
-  const objectif = new Set<string>([...objectiveKeysOf(objective, objectiveStats), ...(objective === 'degats_reels' ? ['cr'] : [])]);
+  const toutesStats = objective === undefined || objective === 'efficience';
+  const objectif = new Set<string>(objectiveKeysOf(objective, objectiveStats));
   const effetUtile = (set: string): boolean => {
     const bonus = SET_STAT_BONUS[set];
-    if (bonus) return conditions.has(bonus.stat) || objectif.has(bonus.stat);
+    if (bonus) return toutesStats || conditions.has(bonus.stat) || objectif.has(bonus.stat);
     if (!(set in STAT_DE_L_AURA)) return false;
     const stat = STAT_DE_L_AURA[set as SetAura];
     const enCondition = (stat === 'res' || stat === 'acc') && requirement.auraResPre?.compter === true && conditions.has(stat);
-    return enCondition || objectif.has(stat);
+    return toutesStats || enCondition || objectif.has(stat);
   };
   const interchangeables = new Set<string>();
-  for (const set of new Set(pool.map((r) => r.set))) {
+  for (const [set, slots] of emplacements) {
     if (set === INTANGIBLE_SET || demandes.has(set)) continue;
-    const jamaisComplet = setPieces(set) > libres;
-    if (jamaisComplet || (!effetUtile(set) && !jokerPossible)) interchangeables.add(set);
+    const pieces = setPieces(set);
+    const formable = Math.min(slots.size + joker, libres) >= pieces;
+    const completReel = Math.min(slots.size, libres) >= pieces;
+    const protegeBonus = formable && effetUtile(set);
+    const protegeJoker = joker === 1 && completReel;
+    if (!protegeBonus && !protegeJoker) interchangeables.add(set);
   }
   return { interchangeables };
 }
@@ -3436,8 +3452,8 @@ export function poolMinSlotSafe(
   relicContext?: RelicContext
 ): number {
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds, relicContext);
-  const dominance = contexteDominance(requirement, pool, objective, objectiveStats);
   let bySlot = mainStatFilteredBySlot(pool, requirement);
+  const dominance = contexteDominance(requirement, bySlot.flat(), objective, objectiveStats);
   bySlot = bySlot.map((list) => pruneDominated(list, ctx.maxKeys, dominance));
   bySlot = eliminateInfeasible(
     bySlot,
@@ -3750,7 +3766,6 @@ export function prepareSearch(
 
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, relicContext);
   const { minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
-  const dominance = contexteDominance(requirement, pool, params.objective, params.objectiveStats);
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -3810,6 +3825,7 @@ export function prepareSearch(
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   onStage?.('mainstat', bySlot);
   tracerEtage('mainstat', bySlot);
+  const dominance = contexteDominance(requirement, bySlot.flat(), params.objective, params.objectiveStats);
   bySlot = bySlot.map((list) => pruneDominated(list, maxKeys, dominance));
   onStage?.('dominance', bySlot);
   tracerEtage('dominance', bySlot);

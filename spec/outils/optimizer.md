@@ -2058,15 +2058,18 @@ différent, coopératif (voir « Interruption »).
     demandé ou l'Intangible ne se compare qu'à lui-même. Hors combo, la
     comparaison reste générique, sauf pour un set qui pourrait changer ce
     qui compte pour la recherche (lot 6bis-b3b) : un set à bonus ou une aura
-    qui peut s'activer sur les emplacements libres **et dont la stat est
-    utile** — une condition minimum ou maximum (pour une aura, seulement
-    RES/PRE avec l'interrupteur activé), ou une stat de l'objectif, Taux
-    Crit compris en « Dégâts réels » ; et, dès qu'une Intangible est
-    disponible, tout set qui peut s'y compléter, puisque le joker ne
-    complète un set que s'il est le seul incomplet. Un set qui ne peut jamais
-    y être complet (4 pièces pour 2 emplacements libres) reste comparable.
-    En « Dégâts réels » avec des minimums ATQ, Taux Crit et Dgts Crit, une
-    Blade dominée reste donc, un Focus dominé part. ⚠️ L'optimum n'est
+    qui peut réellement se **former** (assez d'emplacements distincts qui
+    le portent, une Intangible comprise, dans la limite des emplacements
+    libres) **et dont la stat est utile** — une condition minimum ou
+    maximum (pour une aura, seulement RES/PRE avec l'interrupteur activé),
+    ou une stat de l'objectif ; « Efficience » maximise toutes les stats.
+    Le Taux Crit ne compte que sous un minimum de Taux Crit, jamais par
+    l'objectif. S'y ajoute, dès qu'une Intangible est disponible, tout set
+    qui peut être complet avec ses seules vraies runes, puisque le joker ne
+    complète un set que s'il est le seul incomplet. Ainsi, en « Dégâts
+    réels » avec des minimums ATQ, Taux Crit et Dgts Crit, une Blade dominée
+    reste et un Focus dominé part ; en « Efficience », Endure ou Blade
+    formables restent, Violent ou Revenge partent. ⚠️ L'optimum n'est
     garanti que pour les conditions, l'objectif et l'efficience : un tri
     après coup sur une autre stat peut manquer un build qu'un bonus de set
     inutile à la recherche aurait porté.

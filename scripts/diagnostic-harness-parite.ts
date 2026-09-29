@@ -86,7 +86,7 @@ function pipelineHistorique(
   // La dominance de production, avec le contexte que la recette du harnais
   // lui donne (toggle RES/PRE actif, objectif du cas) : cet étage doit rester
   // IDENTIQUE entre les deux chemins.
-  const dominance = contexteDominance(avecAurasConditions(requirement, DEFAULT_DAMAGE_SETUP, true), pool, objective, undefined);
+  const dominance = contexteDominance(avecAurasConditions(requirement, DEFAULT_DAMAGE_SETUP, true), step1.flat(), objective, undefined);
   const step2 = step1.map((list) => pruneDominated(list, maxKeys, dominance));
 
   const minEntries = statKeys

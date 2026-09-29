@@ -115,8 +115,9 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 (Numérotées à partir de 4, datées, « Thomas » ; un retrait porte
 `[retrait R#n]` et se déclare dans `deplacements.json` de la refonte.)
 
-**4 à 10 — les questions du R0 (Thomas, 2026-09-29)**, chiffres dans
-[lot-R0.md](rebranding-preuves/lot-R0.md) :
+#### 4 à 10 — les questions du R0 (Thomas, 2026-09-29)
+
+Chiffres dans [lot-R0.md](rebranding-preuves/lot-R0.md) :
 
 4. **Braise foncée pour le texte** en Atelier : un jeton de texte séparé,
    `#A64F11` (4,52 au pire). Aplats et boutons restent en braise vive
@@ -138,8 +139,9 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 10. **Les couleurs de section sont gardées** (accueil, onglets du
     téléphone), variantes claires du lot 14 comprises.
 
-**11 et 12 — les questions du R1 (Thomas, 2026-09-29)**, chiffres dans
-[lot-R1.md](rebranding-preuves/lot-R1.md) :
+#### 11 à 13 — les questions du R1 (Thomas, 2026-09-29)
+
+Chiffres dans [lot-R1.md](rebranding-preuves/lot-R1.md) :
 
 11. **Contours d'état et focus en braise foncée** en Atelier (`#A64F11`,
     4,52 au pire) : la vive y fait 2,11 à 2,57, sous le 3:1 d'un contour qui
@@ -153,7 +155,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
     mi-chemin du maximum : `#73E06B`, `#F27A84`. Atelier inchangé. Nouveau
     jeton `bad-ink` (encre sur l'aplat rouge), le blanc n'y tenant plus.
 
-**14 à 16 — les questions du R2 (Thomas, 2026-09-29)** :
+#### 14 à 16 — les questions du R2 (Thomas, 2026-09-29)
 
 14. **Les fichiers téléchargés prennent le préfixe `swblacksmith-`** (ils
     s'appelaient `swforge-…`). Contenu et format inchangés, l'import ne
@@ -163,8 +165,9 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 16. **L'image de partage est refaite dans ce lot** : même contenu, logo et
     couleurs de la charte, montrée à Thomas avant son commit.
 
-**17 à 23 — les questions du R3 (Thomas, 2026-09-29)**, relevé dans
-[lot-R3.md](rebranding-preuves/lot-R3.md) :
+#### 17 à 23 — les questions du R3 (Thomas, 2026-09-29)
+
+Relevé dans [lot-R3.md](rebranding-preuves/lot-R3.md) :
 
 17. **Notre densité est gardée** : couleurs, rayons et états de la toile, mais
     les hauteurs actuelles (bureau 28 / 32, doigt 40), pas « 44 minimum ».
@@ -182,8 +185,9 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 23. **Notification : en bas à droite au bureau** ; au téléphone, au-dessus des
     onglets, comme aujourd'hui. 6 s et une à la fois, inchangés.
 
-**24 à 26 — la nouvelle identité de logo (Thomas, 2026-09-29)**, envoyée en
-image pendant le R3a (« voilà ce que je veux comme identité de logo ») : une
+#### 24 à 26 — la nouvelle identité de logo (Thomas, 2026-09-29)
+
+Envoyée en image pendant le R3a (« voilà ce que je veux comme identité de logo ») : une
 enclume blanche surmontée d'un cristal de braise et de deux éclats, le nom en
 linéale large en capitales espacées, la devise « Analyse · Optimise ·
 Progresse ». Elle ne vient pas de la toile.
@@ -196,8 +200,9 @@ Progresse ». Elle ne vient pas de la toile.
     rendu), et montré à Thomas avant d'être posé.
 26. **La devise va sur l'image de partage.**
 
-**27 à 30 — les questions du R4 (Thomas, 2026-09-29)**, planches dans
-`rebranding-preuves/lot-R4-icones*.png` :
+#### 27 à 30 — les questions du R4 (Thomas, 2026-09-29)
+
+Planches dans `rebranding-preuves/lot-R4-icones*.png` :
 
 27. **Icônes de navigation** : celles de la toile, plus, choisies sur trois
     planches successives (toutes les premières propositions retouchées à sa
@@ -213,8 +218,9 @@ Progresse ». Elle ne vient pas de la toile.
     relecture (« le pied de page commence à être vraiment gros ») : une
     rangée comme la toile, liens en colonne au bureau, en encre.
 
-**31 à 37 — les questions du R5, l'accueil (Thomas, 2026-09-29)** : la toile
-propose un autre accueil ; Thomas garde le nôtre.
+#### 31 à 37 — les questions du R5, l'accueil (Thomas, 2026-09-29)
+
+La toile propose un autre accueil ; Thomas garde le nôtre.
 
 31. **Héros : gardé tel quel** — logo et nom en titre, « La boîte à outils
     pour Summoners War. » (pas « Forgé pour la guilde. »).

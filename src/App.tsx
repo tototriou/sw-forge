@@ -1567,16 +1567,41 @@ export default function App() {
           />
         )}
 
-        <footer className="mt-16 text-center font-mono text-xs text-ink-dim space-y-2">
-          {/* Le logo en tête du pied (rebranding R4, décision 30 — le pied de page
-              de la toile), en encre éteinte : une signature, pas un titre. */}
-          <p className="flex items-center justify-center gap-2">
+        {/* ⚠️ **Le pied de page de la toile : UNE rangée** (rebranding R4 —
+            Thomas : « le pied de page commence à être vraiment gros »). Il
+            empilait cinq lignes centrées en police à chasse fixe. Au bureau :
+            logo à gauche, mentions au centre, liens à droite. Au téléphone,
+            une colonne centrée : logo, liens sur UNE ligne (libellés courts
+            « GitHub », « Discord », ceux de la toile — à côté du logo, les
+            libellés longs s'empilaient en trois lignes), mentions dessous
+            (`order-last`). Police du TEXTE, plus étroite que la mono. Aucune
+            phrase ni aucun lien retiré : les libellés longs restent au bureau,
+            et l'infobulle garde partout la phrase entière. */}
+        <footer
+          className="mt-16 grid grid-cols-1 justify-items-center gap-y-3 border-t border-border-soft pt-5
+                     text-xs text-ink-dim lg:grid-cols-[auto_1fr_auto] lg:items-center lg:justify-items-stretch lg:gap-x-6"
+        >
+          {/* Le logo (décision 30), en encre éteinte : une signature, pas un titre. */}
+          <p className="flex items-center gap-2">
             <SymboleLogo className="h-6 w-6" />
             <span className={`${CLASSE_NOM} text-xs`}>{NOM_APP}</span>
           </p>
+          <div className="space-y-1 text-center max-lg:order-last">
+            <p>Toutes tes données restent en local dans ton navigateur.</p>
+            <p>
+              Données et images © Com2uS · Source :{' '}
+              <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-accent">
+                swarfarm.com
+              </a>
+              {/* Décision 30 : la mention de la toile — l'app montre des images
+                  et des données du jeu, elle dit qu'elle n'est pas officielle. */}
+              <span aria-hidden> · </span>
+              <span>Projet non officiel, sans affiliation avec Com2uS.</span>
+            </p>
+          </div>
           {/* Signature : projet perso, code ouvert, et un contact direct pour les
               questions ou les demandes particulières. */}
-          <p className="flex items-center justify-center gap-x-4 gap-y-1 flex-wrap">
+          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:justify-end">
             <a
               href="https://github.com/tototriou/sw-forge"
               target="_blank"
@@ -1584,7 +1609,8 @@ export default function App() {
               className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
               title={`Le code de ${NOM_APP} sur GitHub`}
             >
-              <Github size={13} /> github.com/tototriou
+              <Github size={13} /> <span className="lg:hidden">GitHub</span>
+              <span className="hidden lg:inline">github.com/tototriou</span>
             </a>
             <a
               href="#/releases"
@@ -1602,20 +1628,10 @@ export default function App() {
               className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
               title={`Rejoindre le serveur Discord de ${NOM_APP}`}
             >
-              <MessageCircle size={13} /> Rejoindre le Discord
+              <MessageCircle size={13} /> <span className="lg:hidden">Discord</span>
+              <span className="hidden lg:inline">Rejoindre le Discord</span>
             </a>
           </p>
-          <p>Toutes tes données restent en local dans ton navigateur.</p>
-          <p>
-            Données et images © Com2uS · Source :{' '}
-            <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-accent">
-              swarfarm.com
-            </a>
-          </p>
-          {/* Rebranding R4, décision 30 : la mention de la toile — l'app montre
-              des images et des données du jeu, elle dit qu'elle n'est pas
-              officielle. La ligne du dessus (© et source) est gardée. */}
-          <p>Projet non officiel, sans affiliation avec Com2uS.</p>
         </footer>
 
         {importEnAttente !== null && (

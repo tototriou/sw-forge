@@ -73,7 +73,23 @@ light bureau : entrée active Bestiaire — rgb(255, 237, 221) / rgb(166, 79, 17
 barre d'onglets ni le bouton « Options » ne la recouvrent. En cours de
 défilement, le bouton flottant passe par-dessus, comme tout contenu.)
 
-## 4. Ce que je n'ai pas pu prouver
+## 4. Retour de Thomas — « le pied de page commence à être vraiment gros »
+
+Il empilait cinq lignes centrées en police à chasse fixe (logo, liens,
+trois mentions). Question posée, réponse : « une rangée, comme la toile ».
+- Bureau : grille `auto / 1fr / auto` — logo, mentions sur deux lignes au
+  centre, liens à droite. **61 px de haut.**
+- Téléphone : d'abord logo et liens côte à côte — les liens s'empilaient en
+  trois lignes (153 px) ; repris en colonne centrée, liens sur UNE ligne en
+  libellés courts (« GitHub », « Discord », ceux de la toile) : **145 px**.
+  Les libellés longs restent au bureau, l'infobulle garde la phrase entière.
+- Police du texte au lieu de la mono ; filet `border-soft` au-dessus.
+- Mêmes phrases, mêmes liens : inventaire sans perte.
+
+Vérifié : `tsc` ; `node tests/run.mjs rendu refonte` → 829 ; inventaire ;
+build ; app construite à 1440, 390 et 360 px, sans débordement.
+
+## 5. Ce que je n'ai pas pu prouver
 
 - La **lisibilité des icônes** au-delà des planches : 17 px dans la barre
   latérale, avec la couleur de section au téléphone.

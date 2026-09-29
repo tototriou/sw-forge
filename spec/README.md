@@ -359,6 +359,13 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 Le cadre commun (nav, routing par hash, footer) vit dans
 [App.tsx](src/App.tsx) :
 
+- **Pied de page — une rangée, comme la toile** (rebranding R4, Thomas : « le
+  pied de page commence à être vraiment gros ») : au bureau, logo à gauche,
+  mentions au centre (données locales ; © Com2uS, source SWARFARM, projet non
+  officiel), liens à droite (GitHub, version, Discord) — 61 px de haut, il en
+  empilait cinq lignes. Au téléphone, une colonne centrée : logo, liens sur
+  une ligne en libellés courts (« GitHub », « Discord »), mentions. Police du
+  texte, plus la mono.
 - Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.
 - Nav desktop (pilules) + nav repliée (hamburger qui se referme à la navigation),
   avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.

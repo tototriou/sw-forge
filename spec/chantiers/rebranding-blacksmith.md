@@ -105,7 +105,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R3 `src/ui/` aux planches « Composants » | J | **fait** — relevé `dc9bee00`, R3a `012f7baa`, R3b `766258e1`, R3c `39a4c0af` ; relecture de Thomas en attente | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 à 7 |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | fait — relecture de Thomas en attente | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
 | R5 Accueil (bureau et téléphone) | J | fait — accueil gardé (décisions 31 à 36) ; icônes d'atelier sur les cartes (37) | 2026-09-29, [lot-R5.md](rebranding-preuves/lot-R5.md) |
-| R6 Siège et Recommandations | J | en cours — écrans gardés (décisions 38 à 40, 42, 45) ; carte d'ajout, couleurs d'état, icônes (41, 43, 44) | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
+| R6 Siège et Recommandations | J | fait — écrans gardés (38 à 40, 42, 45) ; couleurs d'état `a329378c`, icônes `f3198798`, carte d'ajout `fb770b5c` ; relecture de Thomas en attente | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
 | R7 RTA | J | à faire | |
 | R8 Mon compte | J | à faire | |
 | R9 Bestiaire, Mécaniques, Nouveautés | J | à faire | |
@@ -460,6 +460,15 @@ Un commit par décision appliquée : la carte d'ajout (41), les couleurs d'état
 **Ne fait pas** : les couleurs d'état des autres écrans (RTA, Mon compte),
 qui suivent leur lot ; l'outil Speed tuning ouvert en modale depuis une
 équipe — c'est un écran des Outils, hors de ce lot.
+
+**Résultat (2026-09-29)** — preuve [lot-R6.md](rebranding-preuves/lot-R6.md).
+Nos écrans gardés ; trois commits : couleurs d'état (`a329378c`, contrastes
+tous relevés, la VIT fautive en Forge passe de 3,58 à 5,53), icônes
+d'atelier (`f3198798`), carte d'ajout au bureau (`fb770b5c`, l'équipe naît à
+la place exacte de la carte, sans défilement). Choix faits sans question,
+écrits dans la spec : la carte est désactivée pendant une recherche ;
+« au-dessus du tick » garde le bleu de l'Eau. Défaut antérieur relevé, non
+corrigé : « Aucune équipe d'défense ».
 
 ### R7 à R9
 

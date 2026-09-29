@@ -44,3 +44,50 @@ Contrôles natifs relevés dans ces écrans (`<button>`, `<input>`) : tous sont
 des exceptions déjà écrites dans le code — liens soulignés au doigt, filtres
 de verdict (une couleur par statut), grille des sets, sélecteurs de fichier
 jamais dessinés. Rien à reprendre au titre de la librairie.
+
+## 3. Les changements
+
+- **Couleurs d'état (43)** — `a329378c`. `fire` → `bad`, `wind` → `good`
+  dans les quatre composants du Siège ; les tables d'éléments (dégradés des
+  portraits) restent. Voiles d'opacité remplacés par les fonds doux.
+  Contrastes (`r6-contrastes.mjs`), avant → après :
+
+  ```text
+                                    Atelier        Forge
+  VIT fautive sur sa tuile          4,17 → 5,65    3,58 → 5,53
+  « manque N »                      4,55 → 5,65    3,83 → 5,53
+  « pile au tick ✓ »                3,78 → 5,48    6,65 → 8,25
+  verdict « À revoir » sur bad-soft 4,88 → 5,65    4,26 → 5,53
+  contour de carte sur bg           5,26 → 6,08    5,28 → 6,85
+  ```
+
+  Seul sous le seuil, avant comme après : le contour à 60 % d'un deck
+  bloquant (2,70 / 2,81) — il double la pastille de verdict, il ne porte pas
+  seul l'information.
+- **Icônes d'atelier (44)** — `f3198798`. Captures en place, deux thèmes
+  (`r6-icones.mjs`) : états vides (bouclier, épée, parchemin), « Voir le
+  speed tune », « Importer un deck d'offense », « Fort contre ».
+- **Carte d'ajout (41)** — `fb770b5c`. Mesurée sur l'app construite
+  (`r6-ajout.mjs`), deux thèmes : carte 566 × 155 comme l'équipe voisine ;
+  après le clic, l'équipe 4 occupe exactement sa position (850, 373),
+  défilement 0 → 0 ; désactivée pendant une recherche.
+
+## 4. Vérifications
+
+```text
+npx tsc --noEmit                                  → 0
+node tests/run.mjs RenduSiege RenduRecos RenduTelephoneSiege RenduTelephoneRecos Reco SiegeStatut SiegePastille → 234 passées
+node tests/run.mjs navigation                     → vert (avec la zone : 209)
+node tests/run.mjs RenduSiege RenduTelephoneSiege refonte → 121 passées
+node scripts/inventaire-ui.mjs --verifier         → aucune perte (prop `texte` déclarée)
+node scripts/chemins-interdits.mjs 6110609        → aucun modifié
+npm run build                                     → classes `bad` émises, ordre vérifié
+```
+
+## 5. Ce que je n'ai pas pu prouver
+
+- Le **téléphone réel** : captures en émulation tactile de Playwright
+  (390 et 360 px), pas sur un appareil.
+- Au passage, un défaut **antérieur au lot**, non corrigé : l'état vide de la
+  défense écrit « Aucune équipe d'défense » (`d'${noun}` avec
+  `noun = 'défense'`). À corriger à part si Thomas le veut.

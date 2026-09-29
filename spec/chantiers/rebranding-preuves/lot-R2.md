@@ -100,7 +100,8 @@ Rendue par Playwright (`r2-images.mjs`) : fond Forge, surtitre « Summoners War
 · Boîte à outils », logo horizontal de la charte (symbole et « SW Blacksmith »
 en Cinzel 700), « RTA · Siège · Arène · Bestiaire », filet de braise en pied.
 Même contenu que l'ancienne, sans les losanges d'élément violets. **Commitée à
-part, après l'accord de Thomas.**
+part, après l'accord de Thomas** (« continues », 2026-09-29, en réponse à
+« l'image de partage te va ? »).
 
 ## 5. Vérifications
 

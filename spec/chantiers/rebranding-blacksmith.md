@@ -100,7 +100,7 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | --- | --- | --- | --- |
 | R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | fait — sept questions posées | 2026-09-28, [lot-R0.md](rebranding-preuves/lot-R0.md) |
 | R1 jetons : deux thèmes, police de texte, arrondis | J | **validé par Thomas** (« continues », après les décisions 11 à 13) | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
-| R2 nom et logo | J | fait — image de partage et relecture de Thomas en attente | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
+| R2 nom et logo | J | **validé par Thomas** (« continues », image de partage comprise) | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
 | R3 `src/ui/` aux planches « Composants » | J | à faire | |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | à faire | |
 | R5 Accueil (bureau et téléphone) | J | à faire | |

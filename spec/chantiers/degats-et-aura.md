@@ -491,8 +491,8 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-b1 — champ externe, recette et CLI | J | terminé, preuves rejouées par le pilote | `4622a02f` ; reçu `de9e893` ↔ `a38a410` / 2026-09-29 |
 | 6bis-b2 — aura propre et scores | J | terminé, preuves rejouées par le pilote ; Brita/Gideon confirmés par l'utilisateur | `dbd4ee54` + `b0a2e84d` ; reçu `b0a2e84` ↔ `5e32fe6` / 2026-09-29 |
 | 6bis-b3a — conditions exactes et filtre final | J | terminé, preuves et deux mutations rejouées par le pilote | `6b1ff763` ; reçu `6b1ff76` ↔ `11be57d` / 2026-09-29 |
-| 6bis-b3b — coupes, diagnostics et différentiel | J | lançable | — |
-| 6bis-b4 — écran, Workers, caches et parité | J | contre-vérifié, lançable après b3b | — |
+| 6bis-b3b — coupes, diagnostics et différentiel | J | terminé, preuves rejouées par le pilote ; rétention sur compte réel arrêtée par décision utilisateur | `bdbd952c`…`3f9be574` ; reçu `3f9be57` ↔ `bc01ad2` / 2026-09-29 |
+| 6bis-b4 — écran, Workers, caches et parité | J | lançable | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b4 ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -2752,7 +2752,43 @@ spec-lint, diff-check ; preuve `controle-6bis-b3b.md`.
 **Ne fait pas :** nouveau contrôle visuel, valeur de jeu curée ou promesse
 d'exhaustivité sur une recherche tronquée.
 
+**Résultat du lot 6bis-b3b — 2026-09-29.** Cinq commits de code : borne
+de minimum RES/PRE avec potentiel propre, toggle actif (`bdbd952c`) ; joker
+crédité dans `additionalSetActivationHeadroom`, borne seulement, `activeSets`
+inchangé (`b841912c`) ; dominance restreinte aux sets interchangeables,
+`contexteDominance` (`1bb729c2`, `12812a6e`, `3f9be574`) ; réserve levée
+(`e43aee53`). Reçu `3f9be57` ↔ `bc01ad2`, notes intégrées au main
+documentaire `9e38ffc`. Preuve privée `controle-6bis-b3b.md` (708 lignes),
+rouge d'origine reproduit : 100 échecs sur 753. Le pilote a relu le diff et
+rejoué sur `3f9be574` : `npx tsc --noEmit` → 0 ;
+`node tests/run.mjs runeoptim auras intangible conditionfloor diagnostic relic amplification`
+→ 3 404 vérifications passées, 0 KO ; build, `spec-lint`, `git diff --check`
+verts ; « Reçu valide ». La nouvelle dominance est strictement plus
+prudente que l'ancienne (tout set jadis protégé l'est encore) ; sa portée
+est écrite dans `invariants.md` L37 : optimum garanti pour conditions,
+objectif et efficience, pas pour un tri après coup sur une autre stat
+(décisions utilisateur du 2026-09-29, dont le Taux Crit protégé seulement
+sous un minimum de Taux Crit). Mesures rapportées (min/médiane, répétitions
+entrelacées) : écarts dans la dispersion (1,4 à 5,8 %), non rejouées par le
+pilote. **Écart au contrat acté par décision utilisateur du 2026-09-29 :**
+la mesure de la rétention heuristique sur un vrai compte est arrêtée ;
+premier relevé à RES 85 / PRE 80 : 3 473 candidats sur 528 221 ne tiennent
+que par l'aura propre, sans comparaison à un filtrage large. `filterSlot`,
+`relevance` et `bucketCap` restent aveugles à l'aura propre, documenté comme
+limite connue (`limites-connues.md` L71–85). Bornes comptées sur tout le
+pool plutôt que par emplacement : piste « En attente » (`pistes.md` L197).
+Hors chantier, constaté : `sw-forge-docs` (privé) porte `comptes/` avec
+deux exports de compte, jetons de session masqués (`30b8a6f`), ajout
+volontaire pour les sessions cloud.
+
 ##### 6bis-b4 — raccordements écran/Workers, caches et parité finale
+
+**Legs de b3b :** `prepareSearch` calcule désormais `contexteDominance` à
+partir de `objective`/`objectiveStats` ; b4 vérifie que l'écran, le CLI et
+les deux régimes Worker (qui relancent `prepareSearch` par Worker)
+transmettent les mêmes valeurs. La revue technique qui suit b4 vérifie que
+`invariants.md` L35 (« jamais de faux rejet ») renvoie à la portée écrite
+en L37.
 
 **Cat. J ; requiert b3b.** Intrant borné : clés d'a4c1 (3), a4c2 (4),
 a4d1 (24) **pour vérification finale**, plus

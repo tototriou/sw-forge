@@ -43,7 +43,7 @@
 // valable) plutôt que maximalement serrées.
 
 import { ArtifactDetail, BaseStats, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
-import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces, setsCost } from './effects';
+import { INTANGIBLE_SET, MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces, setsCost } from './effects';
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
@@ -1785,6 +1785,32 @@ export function additionalSetActivationHeadroom(
   return { pct, flat };
 }
 
+// Auras Tolerance/Accuracy PROPRES au build : potentiel FAVORABLE pour les
+// minimums RES/PRE, toggle actif seulement (`auraResPre.compter`). Ni l'une
+// ni l'autre n'est dans `SET_STAT_BONUS` (hors `computeStats`), mais
+// `totalCondition` ajoute 8 points par activation au contrôle final. Majorant
+// sûr : les activations DEMANDÉES (garanties) plus celles que le pool peut
+// former en plus sur les emplacements libres, un joker compris — un seul
+// crédit, même généreux (`activeSets` n'aide qu'un set incomplet, jamais
+// deux). Réservé aux MINIMUMS : une activation possible n'est pas inévitable,
+// `guaranteed` (maximums) n'en porte aucune. Toggle éteint : rien.
+export function auraResPreHeadroom(
+  pool: RuneDetail[],
+  requirement: BuildRequirement
+): { pct: Record<string, number>; flat: Record<string, number> } {
+  if (!requirement.auraResPre?.compter) return { pct: {}, flat: {} };
+  const freeSlots = Math.max(0, MAX_SET_PIECES - setsCost(requirement.sets));
+  const joker = pool.some((r) => r.set === INTANGIBLE_SET) ? 1 : 0;
+  const activations = (set: 'tolerance' | 'accuracy') => {
+    const pieces = setPieces(set);
+    const demandees = requirement.sets.filter((s) => s === set).length;
+    const disponibles = Math.max(0, pool.filter((r) => r.set === set).length - demandees * pieces);
+    return demandees + Math.floor(Math.min(disponibles + joker, freeSlots) / pieces);
+  };
+  const { res, acc } = pointsAuraResPrePropres({ ...AUCUNE_AURA_PROPRE, tolerance: activations('tolerance'), accuracy: activations('accuracy') });
+  return { pct: {}, flat: { res, acc } };
+}
+
 function mergeBonus(
   a: { pct: Record<string, number>; flat: Record<string, number> },
   b: { pct: Record<string, number>; flat: Record<string, number> }
@@ -3049,8 +3075,10 @@ interface MinMaxContext {
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
   // Réservé aux vérifications de MINIMUM — `guaranteed` + le bonus qu'un set
   // NON demandé, OU DÉJÀ demandé mais activable PLUS de fois que le minimum,
-  // pourrait apporter (voir `additionalSetActivationHeadroom`). Ne JAMAIS
-  // utiliser pour un maximum : voir son commentaire.
+  // pourrait apporter (voir `additionalSetActivationHeadroom`), + les points
+  // RES/PRE que des auras Tolerance/Accuracy propres pourraient apporter,
+  // toggle actif (`auraResPreHeadroom`). Ne JAMAIS utiliser pour un
+  // maximum : voir leurs commentaires.
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
   /**
    * Apport d'artéfact retenu pour les vérifications de MINIMUM — le meilleur
@@ -3156,7 +3184,10 @@ function deriveMinMaxContext(
   const requiredKeys = new Set(requirement.sets);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
   const guaranteed = guaranteedSetBonus(requirement, base);
-  const guaranteedMin = mergeBonus(guaranteed, additionalSetActivationHeadroom(pool, requirement, base));
+  const guaranteedMin = mergeBonus(
+    mergeBonus(guaranteed, additionalSetActivationHeadroom(pool, requirement, base)),
+    auraResPreHeadroom(pool, requirement)
+  );
   // ⚠️ L'apport de la paire REPRÉSENTATIVE ne vaut plus que comme repli. Elle
   // est choisie pour son SCORE, pas pour sa capacité à franchir les
   // conditions : s'en servir comme borne de faisabilité décide avant la
@@ -3178,9 +3209,10 @@ function deriveMinMaxContext(
   const relPctMin: Record<string, number> = relicRelache ? { ...relicContext!.bornes.min } : relPctFige!;
   const baseRec = base as unknown as Record<string, number>;
   const estPct = (k: StatKey) => k === 'hp' || k === 'atk' || k === 'def';
-  // ⚠️ Bornes, élagages et diagnostics amont : part externe seule, aucune
-  // aura propre (six runes inconnues ici). Minorant sûr pour un maximum ;
-  // pour un minimum, la part propre n'est pas encore bornée (6bis-b3b).
+  // ⚠️ Bornes, élagages et diagnostics amont : `totalOf` n'ajoute que la part
+  // externe (six runes inconnues ici). Pour un maximum, c'est un minorant
+  // sûr ; pour un minimum, le potentiel d'aura propre arrive par le `flat`
+  // de `guaranteedMin` (`auraResPreHeadroom`), jamais par `totalOf`.
   function totalOf(k: StatKey, pct: number, flat: number): number {
     const b = baseRec[k] ?? 0;
     return totalCondition(estPct(k) ? b + Math.ceil((b * pct) / 100) + flat : b + flat, k, requirement, AUCUNE_AURA_PROPRE);
@@ -3994,7 +4026,8 @@ export function* pairBuckets(
           // `additionalSetActivationHeadroom` — le bonus qu'un set NON
           // demandé, ou DÉJÀ demandé mais activé PLUS de fois que le
           // minimum, pourrait apporter en s'activant sur les emplacements
-          // « libres » — mais reste une borne GLOBALE, pas garantie
+          // « libres » — et `auraResPreHeadroom` (auras RES/PRE propres,
+          // toggle actif), mais reste une borne GLOBALE, pas garantie
           // atteignable par CETTE paire précise de demi-builds (voir son
           // commentaire) ; seule la revérification via `computeStats` reste
           // la décision finale.

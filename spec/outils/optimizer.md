@@ -2063,6 +2063,14 @@ différent, coopératif (voir « Interruption »).
     même avec le meilleur trouvé dans le pool réellement possédé de chacun
     des 5 autres emplacements, un minimum demandé reste hors de portée — ou
     si elle dépasse déjà, à elle seule, un maximum demandé.
+    ⚠️ **Côté minimum, la borne compte aussi ce que les sets pourraient
+    encore ajouter** sur les emplacements libres : le bonus d'un set non
+    demandé, ou d'une activation de plus d'un set demandé ; et, interrupteur
+    RES/PRE activé, 8 points par activation Tolerance/Accuracy **propre**
+    possible, une Intangible pouvant en compléter la dernière pièce (lot
+    6bis-b3b). Côté maximum, seul l'inévitable compte : aucune de ces
+    activations n'y est supposée. Les bornes rapides de l'appariement et le
+    diagnostic de faisabilité reprennent les mêmes bornes.
     ⚠️ **L'apport des artéfacts y compte pour ce que l'INVENTAIRE peut
     donner, jamais pour ce qu'une paire choisie d'avance apporte.** Deux
     bornes distinctes : le meilleur apport atteignable pour juger d'un

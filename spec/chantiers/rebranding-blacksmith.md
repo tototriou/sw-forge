@@ -101,7 +101,8 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | fait — sept questions posées | 2026-09-28, [lot-R0.md](rebranding-preuves/lot-R0.md) |
 | R1 jetons : deux thèmes, police de texte, arrondis | J | **validé par Thomas** (« continues », après les décisions 11 à 13) | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
 | R2 nom et logo | J | **validé par Thomas** (« continues », image de partage comprise) | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
-| R3 `src/ui/` aux planches « Composants » | J | à faire | |
+| R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | en cours | |
+| R3 `src/ui/` aux planches « Composants » | J | relevé et décisions faits (`dc9bee00`) ; R3a en pause, mis de côté (`git stash`, « R3a en cours ») pour le R2 bis | |
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | à faire | |
 | R5 Accueil (bureau et téléphone) | J | à faire | |
 | R6 Siège et Recommandations | J | à faire | |
@@ -180,6 +181,20 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
     contour. Libellés inchangés, focus sur l'action sans perte.
 23. **Notification : en bas à droite au bureau** ; au téléphone, au-dessus des
     onglets, comme aujourd'hui. 6 s et une à la fois, inchangés.
+
+**24 à 26 — la nouvelle identité de logo (Thomas, 2026-09-29)**, envoyée en
+image pendant le R3a (« voilà ce que je veux comme identité de logo ») : une
+enclume blanche surmontée d'un cristal de braise et de deux éclats, le nom en
+linéale large en capitales espacées, la devise « Analyse · Optimise ·
+Progresse ». Elle ne vient pas de la toile.
+
+24. **Elle remplace le logo et le nom seulement** : symbole, police du nom,
+    favicon, icône d'app, image de partage. La palette de l'app reste celle de
+    la toile (R1) — l'image propose un fond #0E1116 et un accent #FF7A32,
+    écartés.
+25. **Le symbole est redessiné en SVG** d'après l'image (il n'existe qu'en
+    rendu), et montré à Thomas avant d'être posé.
+26. **La devise va sur l'image de partage.**
 
 ## Partie B — les lots
 
@@ -285,6 +300,25 @@ contrat :
 
 Restent l'image de partage (décision 16, montrée avant son commit) et la
 relecture de Thomas.
+
+### R2 bis — le logo de la nouvelle identité · J
+
+**Écrit au démarrage (2026-09-29)**, décisions 24 à 26. Même contrat que le R2,
+sur les mêmes fichiers : `SymboleLogo` et `Logo` (`src/components/Logo.tsx`),
+`public/favicon.svg`, `public/favicon.png`, `public/og-image.png` (déjà
+permis). Le nom reste écrit une fois (`src/marque.ts`).
+1. **Symbole redessiné en SVG** d'après l'image, en couleurs de jetons
+   (enclume et éclats `ink`, cristal `accent`) ; montré à Thomas en grand, en
+   32 et en 16 px, dans les deux thèmes, AVANT d'être posé.
+2. **Police du nom** : une linéale large de Google Fonts, choisie par Thomas
+   sur un rendu comparatif. Elle ne sert qu'au NOM : les titres de l'app
+   restent en Cinzel (décision 24).
+3. **Pose** : composant, favicon (32 : symbole complet ; 16 : à juger sur le
+   rendu), icône d'app 512, image de partage avec la devise.
+
+**Preuve** : `rebranding-preuves/lot-R2bis.md`, avec les rendus comparatifs ;
+build ; tests `marque`, `rendu` ; inventaire. **Ne fait pas** : la palette,
+les titres, les bannières Discord (hors de l'app).
 
 ### R3 — la librairie aux planches « Composants » · J
 

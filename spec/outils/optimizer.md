@@ -2094,9 +2094,11 @@ différent, coopératif (voir « Interruption »).
 - **Statistique principale imposée (slots 2/4/6)** : appliquée avant tout le
   reste, dans la construction même du pool par slot.
 - **Élagages SÛRS, ensuite — jamais un faux rejet**, avant même le
-  pré-filtrage heuristique qui suit, auras **propres** au build et Intangible
-  comprises : un oracle exhaustif indépendant le vérifie depuis le lot
-  6bis-b3b (voir [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
+  pré-filtrage heuristique qui suit, auras **propres** au build, Intangible
+  et effet unique de la relique compris : un oracle exhaustif indépendant le
+  vérifie depuis le lot 6bis-b3b, noté depuis le lot 6bis-b3c par la note
+  de production de l'équipement complet (voir
+  [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
   - **Dominance** : une rune strictement moins bonne qu'une autre du MÊME
     slot (sur toutes les stats suivies, avantage strict quelque part) ne
     sert jamais à rien. Deux runes du même set se comparent toujours ; un set
@@ -2107,7 +2109,14 @@ différent, coopératif (voir « Interruption »).
     le portent, une Intangible comprise, dans la limite des emplacements
     libres) **et dont la stat est utile** — une condition minimum ou
     maximum (pour une aura, seulement RES/PRE avec l'interrupteur activé),
-    ou une stat de l'objectif ; « Efficience » maximise toutes les stats.
+    une stat de l'objectif, ou une stat dont dépend l'effet unique d'une
+    relique que la recherche peut équiper — sa stat de référence (« tous les
+    X pts de … », lue au début du combat) ou la stat qu'il améliore
+    (Bravoure, Éternité, Origine) ; la relique portée, ou toutes les
+    reliques éligibles quand la relique est cherchée (lot 6bis-b3c). Ainsi,
+    en « PV effectifs » avec une relique Ténacité sur l'ATQ, un Fight reste :
+    son aura peut faire franchir une tranche. « Efficience » maximise toutes
+    les stats.
     Le Taux Crit ne compte que sous un minimum de Taux Crit, jamais par
     l'objectif. S'y ajoute, dès qu'une Intangible est disponible, tout set
     qui peut être complet avec ses seules vraies runes, puisque le joker ne
@@ -2115,9 +2124,9 @@ différent, coopératif (voir « Interruption »).
     réels » avec des minimums ATQ, Taux Crit et Dgts Crit, une Blade dominée
     reste et un Focus dominé part ; en « Efficience », Endure ou Blade
     formables restent, Violent ou Revenge partent. ⚠️ L'optimum n'est
-    garanti que pour les conditions, l'objectif et l'efficience : un tri
-    après coup sur une autre stat peut manquer un build qu'un bonus de set
-    inutile à la recherche aurait porté.
+    garanti que pour les conditions, l'objectif (effet unique de la relique
+    compris) et l'efficience : un tri après coup sur une autre stat peut
+    manquer un build qu'un bonus de set inutile à la recherche aurait porté.
     ⚠️ Sur une stat PLAFONNÉE (un maximum est
     demandé dessus), le sens s'inverse — seule l'égalité stricte y est sûre
     à comparer.

@@ -49,7 +49,7 @@ import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
 // Le canal exclusive du lot 7 — `relicExclusive.ts` ne dépend que de
 // `effects`/`stats`/`damage`, jamais de ce module : aucun cycle.
-import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
+import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, statsAvecApport, statsDeLEffetUnique } from './relicExclusive';
 // ⚠️ Type SEUL : `relicQueue.ts` importe ce module à l'exécution — un import
 // de valeur fermerait le cycle.
 import type { EtatRelique } from './relicQueue';
@@ -1623,8 +1623,12 @@ export function filterSlot(
 //    FORMER — assez d'emplacements distincts portant ce set, un joker
 //    compris, dans la limite des emplacements libres — et dont la stat est
 //    UTILE : une condition min/max (pour une aura, seulement RES/PRE et
-//    toggle actif — PV/ATQ/DEF n'entrent dans aucune condition) ou une stat
-//    de l'objectif ; « Efficience » (ou aucun objectif) maximise TOUTES les
+//    toggle actif — PV/ATQ/DEF n'entrent dans aucune condition), une stat
+//    de l'objectif, ou une stat dont dépend l'effet unique d'une relique que
+//    la recherche peut équiper (`reliquesEquipables`) : sa stat de référence
+//    ou la stat qu'il améliore (6bis-b3c — en « PV effectifs », Fight fait
+//    franchir une tranche de Ténacité·ATQ alors que l'ATQ n'est pas lue) ;
+//    « Efficience » (ou aucun objectif) maximise TOUTES les
 //    stats. Décisions de l'utilisateur (2026-09-29) : le Taux Crit ne compte
 //    que sous un minimum de Taux Crit, jamais par l'objectif ; un Focus sans
 //    condition PRE ne protège rien en « Dégâts réels » ; en « Efficience »,
@@ -1637,21 +1641,39 @@ export function filterSlot(
 //    incomplet dans tout build : le remplacer ne change rien au joker.
 // Les sets demandés et l'Intangible ne se comparent qu'entre eux.
 // ⚠️ Conséquence assumée : l'optimum n'est garanti que pour les conditions,
-// l'objectif et l'efficience — un tri après coup sur une AUTRE stat peut
-// manquer un build qu'un bonus de set inutile à la recherche aurait porté.
+// l'objectif (effet unique de la relique compris) et l'efficience — un tri
+// après coup sur une AUTRE stat peut manquer un build qu'un bonus de set
+// inutile à la recherche aurait porté.
 export interface ContexteDominance {
   // Sets hors combo dont une rune peut être remplacée par une rune d'un autre
   // set de la liste sans changer aucune stat utile ni la validité du build.
   interchangeables: ReadonlySet<string>;
 }
 
+/**
+ * Les reliques que CETTE recherche peut équiper — celles dont la dominance
+ * protège l'effet unique (6bis-b3c) :
+ * - relique fixe (`off`, `equipped`, contexte absent) : `SearchParams.relic`,
+ *   la relique que le moteur applique ;
+ * - mode `recherche` : tout `RelicContext.eligibles`, pris AVANT la dominance
+ *   des reliques — un sur-ensemble sûr de celle que la résolution retiendra.
+ */
+export function reliquesEquipables(relic: RelicDetail | undefined, relicContext: RelicContext | undefined): readonly RelicDetail[] {
+  if (relicContext?.mode === 'recherche') return relicContext.eligibles;
+  return relic ? [relic] : [];
+}
+
 // `runes` : le pool APRÈS statistique principale imposée et verrous — les
 // runes que la dominance compare, et les seules qui peuvent former un set.
+// `reliques` : OBLIGATOIRE (`reliquesEquipables`), pour que `tsc` signale
+// tout appelant qui n'en dirait rien — un étage de dominance calculé sans
+// elles diverge en silence de la production.
 export function contexteDominance(
   requirement: BuildRequirement,
   runes: RuneDetail[],
   objective: Objective | undefined,
-  objectiveStats: StatKey[] | undefined
+  objectiveStats: StatKey[] | undefined,
+  reliques: readonly RelicDetail[]
 ): ContexteDominance {
   const libres = Math.max(0, MAX_SET_PIECES - setsCost(requirement.sets));
   const demandes = new Set(requirement.sets);
@@ -1669,13 +1691,16 @@ export function contexteDominance(
   );
   const toutesStats = objective === undefined || objective === 'efficience';
   const objectif = new Set<string>(objectiveKeysOf(objective, objectiveStats));
+  // Aucune restriction par objectif : la seule règle est « une relique
+  // équipable dont l'effet unique chiffré dépend de cette stat ».
+  const exclusive = statsDeLEffetUnique(reliques);
   const effetUtile = (set: string): boolean => {
     const bonus = SET_STAT_BONUS[set];
-    if (bonus) return toutesStats || conditions.has(bonus.stat) || objectif.has(bonus.stat);
+    if (bonus) return toutesStats || conditions.has(bonus.stat) || objectif.has(bonus.stat) || exclusive.has(bonus.stat);
     if (!(set in STAT_DE_L_AURA)) return false;
     const stat = STAT_DE_L_AURA[set as SetAura];
     const enCondition = (stat === 'res' || stat === 'acc') && requirement.auraResPre?.compter === true && conditions.has(stat);
-    return toutesStats || enCondition || objectif.has(stat);
+    return toutesStats || enCondition || objectif.has(stat) || exclusive.has(stat);
   };
   const interchangeables = new Set<string>();
   for (const [set, slots] of emplacements) {
@@ -3566,7 +3591,7 @@ export function poolMinSlotSafe(
 ): number {
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds, relicContext);
   let bySlot = mainStatFilteredBySlot(pool, requirement);
-  const dominance = contexteDominance(requirement, bySlot.flat(), objective, objectiveStats);
+  const dominance = contexteDominance(requirement, bySlot.flat(), objective, objectiveStats, reliquesEquipables(relic, relicContext));
   bySlot = bySlot.map((list) => pruneDominated(list, ctx.maxKeys, dominance));
   bySlot = eliminateInfeasible(
     bySlot,
@@ -3938,7 +3963,7 @@ export function prepareSearch(
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   onStage?.('mainstat', bySlot);
   tracerEtage('mainstat', bySlot);
-  const dominance = contexteDominance(requirement, bySlot.flat(), params.objective, params.objectiveStats);
+  const dominance = contexteDominance(requirement, bySlot.flat(), params.objective, params.objectiveStats, reliquesEquipables(relic, relicContext));
   bySlot = bySlot.map((list) => pruneDominated(list, maxKeys, dominance));
   onStage?.('dominance', bySlot);
   tracerEtage('dominance', bySlot);

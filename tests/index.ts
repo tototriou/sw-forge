@@ -60,6 +60,14 @@ import {
   testRuneOptimAurasCoupesDifferentiel,
   testRuneOptimAurasCoupesDominance,
 } from './rune-optim-auras-coupes.test';
+import {
+  testDominanceReliqueCasMinimal,
+  testDominanceReliqueCouverture,
+  testDominanceReliqueRecherche,
+  testDominanceReliqueTemoins,
+  testDominanceReliqueWorkers,
+  testDominanceReliqueDifferentiel,
+} from './rune-optim-dominance-relique.test';
 import testRelicOptim from './relic-optim.test';
 import testRelicOracle from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
@@ -175,6 +183,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimAurasCoupesBladeIntangible', testRuneOptimAurasCoupesBladeIntangible],
   ['testRuneOptimAurasCoupesDifferentiel', testRuneOptimAurasCoupesDifferentiel],
   ['testRuneOptimAurasCoupesDominance', testRuneOptimAurasCoupesDominance],
+  ['testDominanceReliqueCasMinimal', testDominanceReliqueCasMinimal],
+  ['testDominanceReliqueCouverture', testDominanceReliqueCouverture],
+  ['testDominanceReliqueRecherche', testDominanceReliqueRecherche],
+  ['testDominanceReliqueTemoins', testDominanceReliqueTemoins],
+  ['testDominanceReliqueWorkers', testDominanceReliqueWorkers],
+  ['testDominanceReliqueDifferentiel', testDominanceReliqueDifferentiel],
   ['testRelicOptim', testRelicOptim],
   ['testRelicOracle', testRelicOracle],
   ['testRelicSearch', testRelicSearch],

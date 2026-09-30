@@ -32,9 +32,10 @@
 // absorbé en silence.
 
 import { ElementKey, RelicDetail } from '../types';
-import { RELIC_UNIQUE, RelicGroupeNom } from './effects';
+import { RELIC_UNIQUE, RelicGroupeNom, StatKey } from './effects';
 import { StatRow } from './stats';
 import { AurasPropres, DamageSetup, statsDebutCombat } from './damage';
+import { exclusiveChiffrable, relicUniqueNature } from './relicOptim';
 
 /**
  * Ce qu'une relique apporte au score, par BRACKET — jamais un scalaire unique,
@@ -88,6 +89,34 @@ const CLE_AMELIOREE: Partial<Record<RelicGroupeNom, 'hp' | 'atk' | 'def'>> = {
 // peuvent donc pas se dériver l'un de l'autre par le typage — c'est
 // `tests/relic-exclusive.test.ts` qui verrouille leur accord, type par type,
 // sur les seize.
+
+/**
+ * Les statistiques dont dépend l'effet unique de ces reliques : sa stat de
+ * RÉFÉRENCE (`Y`, lue au début du combat, auras propres comprises —
+ * `RELIC_UNIQUE[type].stat`) et, pour Bravoure, Éternité et Origine, la stat
+ * qu'il AMÉLIORE (`relicUniqueNature`), pour chaque type CHIFFRABLE
+ * (`exclusiveChiffrable`).
+ *
+ * Consommée par la dominance des runes (`contexteDominance`, degats-et-aura
+ * 6bis-b3c) : un set dont le bonus porte sur l'une d'elles peut faire
+ * franchir une tranche, il n'est jamais interchangeable avec un set sans
+ * effet. ⚠️ **Sur-ensemble assumé** : ni l'objectif ni `percent` ne
+ * restreignent rien. Protéger une stat que le score ne lit pas ne coûte que de
+ * l'élagage ; en oublier une perd l'optimum. Régénération et un type inconnu
+ * n'ajoutent rien : aucune note ne les lit.
+ */
+export function statsDeLEffetUnique(reliques: readonly RelicDetail[]): Set<StatKey> {
+  const stats = new Set<StatKey>();
+  for (const r of reliques) {
+    const type = r.unique?.type;
+    if (type == null || !exclusiveChiffrable(type)) continue;
+    const ref = CLE_DE_REFERENCE[RELIC_UNIQUE[type].stat.court];
+    if (ref) stats.add(ref);
+    const nature = relicUniqueNature(type);
+    if (nature?.sorte === 'buffStat') stats.add(nature.stat);
+  }
+  return stats;
+}
 
 /**
  * Le nombre de TRANCHES entières d'une pièce sur une assiette `Y` — ⌊Y / t⌋,

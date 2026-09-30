@@ -7,7 +7,7 @@ import { apportExclusive } from '../src/lib/relicExclusive';
 import { evaluerPourRegime, type DegatsContext } from '../src/lib/artifactEvaluation';
 import { chercherPaires } from '../src/lib/artifactOptim';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, scoreDuCandidat, searchBuilds, sortCandidates, contexteDominance, totalPairCount } from '../src/lib/runeBuildOptim';
+import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, scoreDuCandidat, searchBuilds, sortCandidates, contexteDominance, reliquesEquipables, totalPairCount } from '../src/lib/runeBuildOptim';
 import { readFileSync } from 'node:fs';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { PARALLEL_PAIRING_THRESHOLD, driveParallelPairing } from '../src/workers/parallelPairing';
@@ -947,7 +947,7 @@ export async function testAurasPariteRegimes() {
     return ids;
   };
   egal(apresDominance(tranche), apresDominance(params), 'dominance : même pool côté principal et côté tranche');
-  const interchangeables = (p: typeof params) => [...contexteDominance(p.requirement, p.pool, p.objective, p.objectiveStats).interchangeables].sort();
+  const interchangeables = (p: typeof params) => [...contexteDominance(p.requirement, p.pool, p.objective, p.objectiveStats, reliquesEquipables(p.relic, p.relicContext)).interchangeables].sort();
   egal(interchangeables(tranche), interchangeables(params), 'contexteDominance : mêmes objective/objectiveStats, même contexte');
 
   // Scores : même classement des deux côtés, auras externes + propres.

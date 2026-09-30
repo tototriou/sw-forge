@@ -67,7 +67,7 @@ interface BuildOracle {
  * L'oracle
  * ----------------------------------------------------------------------- */
 
-function setsSatisfaits(demandes: string[], actifs: string[]): boolean {
+export function setsSatisfaits(demandes: string[], actifs: string[]): boolean {
   const reste = new Map<string, number>();
   for (const s of actifs) reste.set(s, (reste.get(s) ?? 0) + 1);
   for (const s of demandes) {
@@ -175,7 +175,8 @@ function parametres(cas: Cas, extra: Partial<SearchParams> = {}): SearchParams {
 }
 
 // Première coupe traversée par un build (6 identifiants), lue dans la trace.
-function premiereCoupe(t: TraceCandidat | undefined, tronque: boolean): string {
+// Réutilisée par l'oracle de 6bis-b3c (`rune-optim-dominance-relique.test.ts`).
+export function premiereCoupe(t: TraceCandidat | undefined, tronque: boolean): string {
   if (!t) return 'trace:absente';
   for (const e of t.preparation) if (!e.presentes.every(Boolean)) return `preparation:${e.etage}`;
   for (const h of ['A', 'B'] as const) {
@@ -194,8 +195,8 @@ function premiereCoupe(t: TraceCandidat | undefined, tronque: boolean): string {
 
 // Élagages heuristiques (sans garantie d'optimum) et retrait par dominance :
 // tout le reste est une coupe SÛRE, qui ne doit jamais rejeter un build valide.
-const HEURISTIQUES = new Set(['preparation:filterslot', 'moitieA:filterSlot', 'moitieB:filterSlot', 'moitieA:retention', 'moitieB:retention', 'troncature']);
-const DOMINANCE = 'preparation:dominance';
+export const HEURISTIQUES = new Set(['preparation:filterslot', 'moitieA:filterSlot', 'moitieB:filterSlot', 'moitieA:retention', 'moitieB:retention', 'troncature']);
+export const DOMINANCE = 'preparation:dominance';
 
 interface Verdict {
   resultat: SearchResult;

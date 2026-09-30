@@ -146,6 +146,8 @@ affirmations contradictoires, notamment sur 411.
 | Artéfact 411 | Premier coup du tour seulement ; s'il est en zone, chaque adversaire recevant CE coup en profite. Jamais sur Tempest, même sélectionné seul, ni sur le coup de zone de Blade Surge | utilisateur, correction explicite en revue |
 | Cible secondaire | « Autres ennemis » = dégâts sur **un** autre ennemi, jamais somme sur tous | utilisateur, précision de revue |
 | Tempest seul | Une seule contribution, jamais un second déclenchement de lui-même | utilisateur, précision de revue |
+| Conquête et lignes 218–221 | Le bonus Conquête vit dans le terme DMG% : il ne s'applique jamais au bucket Additionnel, dont font partie les dégâts supplémentaires 218–221 | utilisateur, 2026-09-30 ; concorde avec la spec (`degats-reels/artefacts-et-degats-bruts.md`, bucket Additionnel sans DMG%, relevés Julie et Jessica) et le code (`damage.ts`, `dmgPct` vs `horsCoupBrut`) |
+| Points de relique et lignes 218–221 | Les points de Bravoure (ATQ), Éternité (DEF) et Origine (PV), acquis au début du combat, augmentent la stat dont les lignes 218–221 prennent leur pourcentage | utilisateur, 2026-09-30 |
 
 ⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
 chantier ne la modélise pas.** C'est précisément pourquoi la condition d'ignore
@@ -494,7 +496,7 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-b3a — conditions exactes et filtre final | J | terminé, preuves et deux mutations rejouées par le pilote | `6b1ff763` ; reçu `6b1ff76` ↔ `11be57d` / 2026-09-29 |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | terminé, preuves rejouées par le pilote ; rétention sur compte réel arrêtée par décision utilisateur | `bdbd952c`…`3f9be574` ; reçu `3f9be57` ↔ `bc01ad2` / 2026-09-29 |
 | 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
-| 6bis-b5 — effets uniques de relique : cartes, tri, Comparer, Meilleurs artéfacts | J | contrat proposé ; une question de jeu ouverte (218–221) | — |
+| 6bis-b5 — effets uniques de relique : cartes, tri, Comparer, Meilleurs artéfacts | J | contrat proposé ; question de jeu 218–221 tranchée le 2026-09-30 | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5 ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -2907,10 +2909,13 @@ le CLI ne compte aucun effet unique.
    « Dégâts réels » qu'en EHP.
 4. Les effets uniques restent hors des conditions min/max (`reliques.md`
    § 5 : l'exclusive classe, la principale sert les minimums).
-5. Mécanique du cran « Dégâts supplémentaires » (lignes 218–221, dégâts
-   bruts) : **question de jeu ouverte**, à trancher par l'utilisateur ou un
-   relevé en jeu (`game-data-curation`), jamais par analogie. Tant qu'elle
-   n'est pas tranchée, ce cran reste inchangé et le lot le dit.
+5. Cran « Dégâts supplémentaires » (lignes 218–221, dégâts bruts), tranché
+   par l'utilisateur le 2026-09-30 (A.2 ter) : les points de Bravoure,
+   Éternité et Origine de la relique portée entrent dans la stat lue
+   (`statsAvecApport`, comme le score « Dégâts réels ») ; **Conquête n'y
+   entre jamais** (bucket Additionnel, sans DMG% : `damage.ts` `dmgPct`
+   L4366–4368 contre `horsCoupBrut` L4475/L4586). Tests : un cas Bravoure
+   qui augmente ce cran, un cas Conquête qui le laisse identique.
 
 **Intrant borné :** `reliques.md` § 5 et § 8 (vérifier si § 8 est soldé par
 le chantier relique), `invariants.md` § Artéfacts ; `OptimizerSection.tsx`

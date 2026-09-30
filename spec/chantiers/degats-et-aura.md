@@ -492,7 +492,7 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-b2 — aura propre et scores | J | terminé, preuves rejouées par le pilote ; Brita/Gideon confirmés par l'utilisateur | `dbd4ee54` + `b0a2e84d` ; reçu `b0a2e84` ↔ `5e32fe6` / 2026-09-29 |
 | 6bis-b3a — conditions exactes et filtre final | J | terminé, preuves et deux mutations rejouées par le pilote | `6b1ff763` ; reçu `6b1ff76` ↔ `11be57d` / 2026-09-29 |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | terminé, preuves rejouées par le pilote ; rétention sur compte réel arrêtée par décision utilisateur | `bdbd952c`…`3f9be574` ; reçu `3f9be57` ↔ `bc01ad2` / 2026-09-29 |
-| 6bis-b4 — écran, Workers, caches et parité | J | lançable | — |
+| 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b4 ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -2837,6 +2837,39 @@ indépendamment coupes sûres, double compte et parité ; corriger les
 objections et rejouer avant d'autoriser le lot 7.
 **Ne fait pas :** rendu visuel ou contrôles de saisie du lot 7, fusion du
 code sur `main`, suite complète `npm test` avant cette fusion.
+
+**Résultat du lot 6bis-b4 — 2026-09-30.** Quatre commits : le harnais classe
+« Dégâts réels » avec le contexte du CLI (`d716b7be`) ; les cartes « Dégâts
+réels » et « PV effectifs » affichent `scoreDuCandidat`, avec les options du
+tri affiché (`8d816ec3`) — la carte omettait la Conquête de la relique
+retenue et « PV effectifs » la Ténacité, constat hérité de b2 confirmé et
+corrigé ; le CLI affiche score, sets actifs, Intangible et auras propres des
+20 premiers (`5772364d`) ; tests de parité des régimes et du cache T5
+(`56ee3b99`). Reçu `56ee3b9` ↔ `ce2e842`, notes intégrées au main
+documentaire `f1d40e7`. Preuve privée `controle-6bis-b4.md` (562 lignes).
+Seconde recette gelée `recette-6bis-degats.json` (Lushen Rage + Fight,
+« Dégâts réels »), sha256 `5f95fc47…`, composition et seuils fournis par
+l'utilisateur. Le pilote a relu le diff et rejoué sur `56ee3b99` :
+`npx tsc --noEmit` → 0 ;
+`node tests/run.mjs auras artefact artifact relic diagnostic runeoptim` →
+3 642 vérifications passées, 0 KO ; build, `spec-lint`, `git diff --check`
+verts ; « Reçu valide » ; empreintes des deux recettes vérifiées. Rapportés,
+non rejoués : régime parallèle RÉEL sur la recette « Dégâts réels »
+(133,9 M paires, 4 tranches, recherche complète, mêmes 29 376 builds et
+mêmes cinq premiers que le séquentiel) ; mutations des nouveaux tests. Sur
+le vrai compte, un seul Fight propre : 2 et 3 Fight propres prouvés par
+`testAurasPariteRegimes` seulement, régime forcé marqué. Écart : un
+`sed -i` sur `tests/index.ts`, contre CLAUDE.md, résultat relu et correct.
+Non prouvé : coquille Web Worker au navigateur, rendu réel des cartes,
+Web Workers de construction des moitiés, optimum de la recette EHP
+(tronquée).
+**Pour la revue technique :** le JSDoc d'`aurasPropresParRunes` précède
+désormais celui de `scoreDuCandidat` et documente la mauvaise fonction ;
+`relicOracle.ts` porte une fonction locale homonyme `scoreDuCandidat` ; le
+harnais rend « INCOHÉRENT — incomplet, motif non déductible » en parallèle
+réel (ATQ 3000 / DC 220), non investigué ; `invariants.md` L35 → L37 (legs
+de b3b).
+
 
 ### Lot 7 — sets d'aura : l'écran
 

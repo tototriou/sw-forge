@@ -124,7 +124,7 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | **validé par Thomas** — écran gardé (48 à 50) ; rouge d'état et icône « Ami » `2f4fc0c5` | 2026-09-30, [lot-R7.md](rebranding-preuves/lot-R7.md) |
 | R8 Mon compte (Monstres, Runes, Artéfacts) | J | **validé par Thomas** — écrans gardés (51 à 53) ; rouges d'état `999a4c25`, tuiles d'Optimisation (54) `d52c438e` | 2026-09-30, [lot-R8.md](rebranding-preuves/lot-R8.md) |
 | R9a Bestiaire | J | **validé par Thomas** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
-| R9b Mécaniques, Nouveautés | J | à faire | |
+| R9b Mécaniques, Nouveautés | J | **validé par Thomas** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | à faire | |
 | Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris | J | en attente de la livraison de Thomas | |
 | Refonte 12 — `npm test` complet, fusion sur `main`, numéro de version | M | à faire | |
@@ -348,6 +348,19 @@ Relevé dans [lot-R9a.md](rebranding-preuves/lot-R9a.md).
 
 Non proposés (47) : « Uniquement les miens » et « Dans ta box », qui
 croiseraient le Bestiaire avec le compte.
+
+#### 57 à 59 — les questions du R9b, Mécaniques et Nouveautés (Thomas, 2026-09-30)
+
+Relevé dans [lot-R9b.md](rebranding-preuves/lot-R9b.md).
+
+57. **Titres à l'encre unie, grand titre gardé** : plus de dégradé encre →
+    braise (`title-gradient`, retiré) ; la spec générale suit.
+58. **Sommaire des Mécaniques gardé** (liste sans cadre).
+59. **Mise en page des Nouveautés gardée** (deux colonnes, changements
+    étiquetés), pas de frise.
+
+Non proposés (47) : le surlignage de la section lue (suivi du défilement)
+et les grilles des sets et des effets (du contenu nouveau).
 
 ## Partie B — les lots
 
@@ -600,7 +613,16 @@ allers-retours avec Thomas avant son « validé ».
 Écran gardé (55, 56). Un commit, `d3218f56` : le grimoire sur l'état « aucun
 monstre » (44). Rien pour la décision 43.
 
-### R9b à R10
+### R9b — Mécaniques et Nouveautés · J
+
+**Écrit au démarrage (2026-09-30)**. Intrant : planches `BsMecaniques` et
+`BsNouveautes`, `MechanicsPage.tsx`, `ReleasesPage.tsx`.
+
+**Résultat (2026-09-30)** — preuve [lot-R9b.md](rebranding-preuves/lot-R9b.md).
+Pages gardées (58, 59). Un commit, `e8e65c92` : titres à l'encre unie (57).
+Rien pour les décisions 43 et 44.
+
+### R10
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

@@ -65,7 +65,7 @@ node .claude/skills/run-sw-forge/driver.mjs [compte.json] [monstre] [set]
 
 Sans argument, le driver cherche un export de compte réel à la racine
 (`tototriou-12889591.json`, `ß☆Enzo-6399149.json` — voir « Comptes réels »
-ci-dessous), sélectionne **Lora** et le set **Fatal** dans l'Optimizer,
+ci-dessous), sélectionne **Lushen** et le set **Fatal** dans l'Optimizer,
 lance une recherche, et pilote la pagination des résultats (page
 suivante, puis saisie directe d'un numéro de page). Capture à chaque étape
 clé.
@@ -87,6 +87,39 @@ précis) :
 ```bash
 node .claude/skills/run-sw-forge/driver.mjs tototriou-12889591.json Veromos Violent
 ```
+
+## Import seul — puis n'importe où
+
+Le scénario ci-dessus ne sert que l'Optimizer. Pour tout autre écran, on ne
+réécrit PAS l'import (c'est lui qui a piégé la session du 2026-09-30, voir
+Gotchas) : il vit dans [session.mjs](session.mjs), à côté du driver.
+
+**Une capture d'un écran après import** — sans script :
+
+```bash
+node .claude/skills/run-sw-forge/driver.mjs --import-seul [compte.json] [route] [--telephone]
+# ex. : --import-seul tests/fixtures/compte-miniature.json '#/compte/runes/optimisation'
+```
+
+Route par défaut `#/compte/runes`, capture `screenshots/import.png` (échelle
+×2). `--telephone` = fenêtre de 390 px, import par l'input du pied.
+
+**Un parcours (cliquer, basculer, ouvrir…)** — script jetable qui importe
+`ouvrirSession` et reprend la main juste après l'import :
+
+```js
+import { ouvrirSession, DEV_URL } from '/chemin/absolu/du/depot/.claude/skills/run-sw-forge/session.mjs';
+const { browser, page } = await ouvrirSession({ compte, format: 'bureau', echelle: 2 });
+await page.goto(`${DEV_URL}/#/compte/runes/courbes`, { waitUntil: 'networkidle' });
+// … le parcours voulu
+await browser.close();
+```
+
+Ce script peut vivre dans le **scratchpad** : c'est `session.mjs`, dans le
+dépôt, qui importe `playwright` (voir Troubleshooting, « Cannot find
+package »). `ouvrirSession` gère aussi le repli Chromium du conteneur Linux,
+la boîte de consentement, et **lève une erreur si l'import est refusé** —
+au lieu de laisser capturer un écran vide.
 
 ## Cadrer une capture sur un bloc précis
 
@@ -198,8 +231,8 @@ ici : le lire dans la sortie de `npm test` du jour.
 - ⚠️ **Le premier `input[type=file]` de l'accueil n'importe PAS le compte.**
   C'est l'import RTA : `setInputFiles` dessus ne lève aucune erreur, affiche
   en rouge « Aucun monstre favori RTA ni preset de runes RTA trouvé… », et
-  l'écran reste sur « Aucune donnée de compte chargée ». Le driver passe
-  désormais par le bouton **« Importer un compte »** de la barre latérale
+  l'écran reste sur « Aucune donnée de compte chargée ». `importerCompte`
+  ([session.mjs](session.mjs)) passe par le bouton **« Importer un compte »** de la barre latérale
   (`SidebarCompte.tsx`), en interceptant `filechooser` — barre qui n'existe
   qu'au format bureau. Au téléphone (barre repliée), viser l'input du pied :
   `input[type="file"][accept*="json"]` en `.last()` (constaté à 390 px).
@@ -292,13 +325,13 @@ ici : le lire dans la sortie de `npm test` du jour.
 
 ## Troubleshooting
 
-- **`Cannot find package 'playwright'` en lançant le driver** : le script
-  a été exécuté depuis un répertoire hors du dépôt (ex. un scratchpad
-  temporaire) — la résolution de module Node remonte les répertoires
-  parents à la recherche de `node_modules`, qui n'existe que sous la
-  racine du dépôt. Lancer `node .claude/skills/run-sw-forge/driver.mjs`
-  depuis la racine (ou tout sous-dossier du dépôt), jamais depuis un
-  chemin extérieur.
+- **`Cannot find package 'playwright'`** : un script situé HORS du dépôt
+  (ex. un scratchpad temporaire) importe `playwright` lui-même — Node
+  résout un import depuis l'emplacement du FICHIER qui l'écrit, en
+  remontant vers un `node_modules` qui n'existe que sous la racine du
+  dépôt. Remède : ne pas importer `playwright` dans le script jetable,
+  mais `session.mjs` par son chemin absolu (voir « Import seul ») — c'est
+  lui qui importe Playwright, depuis le dépôt.
 - **`locator.click: Timeout … element is not enabled`** sur un bouton de
   set dans `SetComboPicker` : très probablement le piège « un clic = tout
   le set » ci-dessus (clic répété sur un set déjà complet).

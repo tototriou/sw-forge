@@ -62,6 +62,9 @@ export default function SiegeBoard({
   const [creationOuverte, setCreationOuverte] = useState(false);
 
   const noun = side === 'defense' ? 'défense' : 'attaque';
+  // ⚠️ L'élision se choisit AVEC le mot : `d'${noun}` écrivait « équipes
+  // d'défense ».
+  const deNoun = side === 'defense' ? 'de défense' : "d'attaque";
 
   // Supprimer une équipe SE DÉFAIT au lieu de se confirmer (lot 13, décision
   // 29) : immédiat, puis « Équipe retirée · Annuler » la remet à SA place,
@@ -360,7 +363,7 @@ export default function SiegeBoard({
                   ? 'Aucune équipe à exporter'
                   : filtre
                     ? 'Exporter les équipes affichées (celles de la recherche) en fichier .json'
-                    : `Télécharger tes équipes d'${noun} en fichier .json, pour les partager ou les garder de côté`,
+                    : `Télécharger tes équipes ${deNoun} en fichier .json, pour les partager ou les garder de côté`,
               onClick: exporter,
             },
             {
@@ -489,7 +492,7 @@ export default function SiegeBoard({
 
       {effacementAConfirmer && (
         <ConfirmDialog
-          titre={`Effacer toutes les équipes d'${noun} ?`}
+          titre={`Effacer toutes les équipes ${deNoun} ?`}
           message="Toutes les équipes de ce côté seront supprimées, avec leurs monstres et leurs vitesses. L'autre côté n'est pas touché."
           libelleAction="Tout effacer"
           destructif
@@ -517,7 +520,7 @@ export default function SiegeBoard({
             )}
           </div>
           <p className="text-ink-dim text-sm max-w-md">
-            Aucune équipe d'{noun} pour l'instant. Clique sur{' '}
+            Aucune équipe {deNoun} pour l'instant. Clique sur{' '}
             <b className="text-ink">Ajouter une équipe</b> pour composer, ou importe ton compte
             depuis la barre du haut.
           </p>

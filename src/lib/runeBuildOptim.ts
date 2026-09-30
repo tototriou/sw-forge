@@ -970,6 +970,25 @@ export function sortCandidates(
  * reconstruction de l'équipement d'un candidat à l'écran (`runeById.get(id)`
  * puis `filter(Boolean)`), pour que les deux lisent les mêmes runes.
  */
+/**
+ * Le score d'UN candidat, EXACTEMENT celui qui le classe dans
+ * `sortCandidates` avec les mêmes `opts` — pour qu'une carte de résultat ou
+ * un script AFFICHE la valeur qui ordonne, jamais une formule recopiée à côté.
+ * ⚠️ La carte « Dégâts réels » recopiait `computeTotalDamage` sans l'apport
+ * de la relique retenue (Conquête), et « PV effectifs » `pvEffectifs` sans
+ * Ténacité ni points Bravoure/Éternité/Origine : deux chiffres différents de
+ * celui du tri (degats-et-aura 6bis-b4). `null` quand le tri laisserait
+ * l'ordre en place, faute de contexte.
+ */
+export function scoreDuCandidat(
+  candidate: BuildCandidate,
+  sortBy: StatKey | Objective,
+  opts: Parameters<typeof sortCandidates>[2]
+): number | null {
+  const score = scorerPour(sortBy, opts);
+  return score ? score(candidate) : null;
+}
+
 export function aurasPropresParRunes(runeById: Map<number, { set: string }>): (c: { runeIds: number[] }) => AurasPropres {
   return (c) => aurasPropresDesRunes(c.runeIds.map((id) => runeById.get(id)).filter((r): r is { set: string } => r != null));
 }

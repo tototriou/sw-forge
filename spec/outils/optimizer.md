@@ -1561,6 +1561,15 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     fonction que celle qui classe** — extraite d'`objectiveScore` pour ça,
     plutôt que recopiée côté écran où elle aurait divergé au premier
     ajustement du facteur de défense.
+    ⚠️ **Les deux chiffres passent par `scoreDuCandidat`** (degats-et-aura
+    6bis-b4), avec les options mêmes du classement affiché : auras externes
+    et activations propres du build, profil d'artéfacts de SA paire, apport
+    de SA relique retenue (Conquête pour les dégâts ; Ténacité et points
+    Bravoure/Éternité/Origine pour les PV effectifs). La carte recopiait
+    `computeTotalDamage` puis `pvEffectifs` sans cet apport : en mode
+    relique `recherche`, un build classé premier par sa Conquête affichait un
+    chiffre inférieur à celui du suivant. L'écart « Comparer » reste calculé
+    contre la fiche sans exclusive de relique : voir `pistes.md`.
     ⚠️ **« Valider ce build »**, sur chaque carte — réserve les 6 runes de CE
     résultat (elles n'apparaissent plus dans les recherches suivantes de la
     même liste de travail), jusqu'à libération explicite : voir « Listes de

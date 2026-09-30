@@ -7,7 +7,8 @@ import { apportExclusive } from '../src/lib/relicExclusive';
 import { evaluerPourRegime, type DegatsContext } from '../src/lib/artifactEvaluation';
 import { chercherPaires } from '../src/lib/artifactOptim';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
+import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, scoreDuCandidat, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
+import { readFileSync } from 'node:fs';
 import type { BuildCandidate, BuildRequirement, RealDamageContext, TraceCandidat } from '../src/lib/runeBuildOptim';
 import { drain } from '../scripts/lib/drain';
 import { candidatAvecSaPaire, cleBuild, signatureArtefacts } from '../src/lib/artifactQueue';
@@ -767,4 +768,70 @@ export function testAurasConditionsPropresPairBuckets() {
     'minimum RES 8, toggle éteint : la part propre (8) ne le franchit pas');
   const minTrop = pairBucketsSeul(req({ res: 17 }, {}, true), TOLERANCE);
   egal(minTrop.trace.appariement.validationFinale, false, 'minimum RES 17 : non franchi, aucun double compte');
+}
+
+/* --------------------------------------------------------------------------
+ * 6bis-b4 — la carte de résultat affiche le chiffre qui CLASSE. Constat hérité
+ * de b2 : la carte « Dégâts réels » omettait la Conquête de la relique
+ * retenue, que le tri compte ; « PV effectifs » omettait de même Ténacité et
+ * points Bravoure/Éternité/Origine. Les deux cartes passent désormais par
+ * `scoreDuCandidat`, la fonction même du tri.
+ * ----------------------------------------------------------------------- */
+
+export function testAurasCarteEgaleTri() {
+  titre('Cartes de résultat · le chiffre affiché est celui du tri (Conquête, Ténacité)');
+  const competence: Competence = { id: 1, com2usId: 1, nom: 'Test', description: null,
+    slot: 1, passif: false, aoe: false, cooldown: null, coups: 1, niveauMax: 1,
+    formule: '3.0*{ATK}', scale: [], ameliorations: [], icone: null, effets: [] };
+  const actif = skillDamageProfile(competence);
+  if (!actif || !estPrisEnCharge(actif)) throw new Error('profil synthétique non calculable');
+  const setup = avecExternes({ fight: 3 });
+  const realDamage: RealDamageContext = { profile: actif, passifs: [], setup, element: null, artefacts: ARTIFACT_DAMAGE_NEUTRE,
+    critSiPlusRapide: false, bonusDegatsSelonVit: null, bonusDegatsStack: null, monsterWide: {}, bonusDegatsConditionnel: null,
+    bonusDegatsSelonCr: null, bonusDegatsSelonDef: null, bonusSiAtqSeuil: null };
+  // A : ATQ +63 % en principale, relique sans exclusive. B : aucune ATQ, mais
+  // 2 Fight propres et une relique Conquête retenue (tranche 10, 5 %).
+  const runesA = [1, 2, 3, 4, 5, 6].map((slot) => rune(9300 + slot, slot, slot === 2 ? [4, 63] : [8, 0]));
+  const runesB = runesDeSets(9400, ['fight', 'fight', 'fight', 'fight', 'will', 'will']);
+  const cA: BuildCandidate = { runeIds: runesA.map((r) => r.id), stats: computeStats({ base: BASE, runes: runesA, artifacts: [] }), effTotal: 0 };
+  const cB: BuildCandidate = { runeIds: runesB.map((r) => r.id), stats: computeStats({ base: BASE, runes: runesB, artifacts: [] }), effTotal: 0 };
+  const aurasPropresDe = aurasPropresParRunes(new Map([...runesA, ...runesB].map((r) => [r.id, r])));
+  const conquete: RelicDetail = { id: 1, upgrade: 9, main: { code: 101, value: 0 }, unique: { type: 1, tranche: 10, percent: 5 } };
+  const apportB = apportExclusive(conquete, cB.stats, setup, aurasPropresDe(cB));
+  ok(apportB.dmgPct > 0, `Conquête de B : +${apportB.dmgPct} % de dégâts (Y = ATQ de combat, 3 externes + 2 propres)`);
+  const opts = { realDamage, damageSetup: setup, aurasPropresDe,
+    exclusiveDuBuild: (c: BuildCandidate) => (c === cB ? apportB : null) };
+
+  // Le constat, tel qu'il était : l'ancienne formule de la carte.
+  const ancienneCarte = (c: BuildCandidate) => computeTotalDamage(actif, [], c.stats, setup, aurasPropresDe(c), null, ARTIFACT_DAMAGE_NEUTRE,
+    false, null, null, {}, null, null, null, null);
+  const tri = sortCandidates([cA, cB], 'degats_reels', opts);
+  egal(tri.map((c) => c.runeIds), [cB.runeIds, cA.runeIds], 'tri : B passe devant grâce à sa Conquête');
+  ok(ancienneCarte(cB) < ancienneCarte(cA),
+    `constat confirmé : l'ancienne carte affichait ${Math.round(ancienneCarte(cB))} sur B, au-dessus de ${Math.round(ancienneCarte(cA))} sur A`);
+  egal(scoreDuCandidat(cB, 'degats_reels', opts), objectiveScore(cB, 'degats_reels', aurasPropresDe(cB), realDamage, apportB),
+    'scoreDuCandidat(B) = objectiveScore avec la Conquête retenue');
+  ok(scoreDuCandidat(cB, 'degats_reels', opts)! > scoreDuCandidat(cA, 'degats_reels', opts)!,
+    'le chiffre affiché suit le rang : B au-dessus de A');
+  egal(scoreDuCandidat(cA, 'degats_reels', opts), ancienneCarte(cA), 'sans exclusive, la carte ne change pas (A)');
+
+  // PV effectifs : Ténacité (type 6, sur les PV) — terme de Réductions.
+  const tenace: RelicDetail = { id: 2, upgrade: 9, main: { code: 100, value: 0 }, unique: { type: 6, tranche: 100, percent: 2 } };
+  const apportT = apportExclusive(tenace, cA.stats, setup, aurasPropresDe(cA));
+  ok(apportT.reductionPct > 0, `Ténacité de A : ${apportT.reductionPct} % de réduction`);
+  const optsEhp = { damageSetup: setup, aurasPropresDe, exclusiveDuBuild: (c: BuildCandidate) => (c === cA ? apportT : null) };
+  ok(pvEffectifs(cA.stats, aurasPropresDe(cA), setup) !== scoreDuCandidat(cA, 'ehp', optsEhp),
+    'constat PV effectifs : l’ancienne carte (pvEffectifs seul) omettait la Ténacité que le tri compte');
+  egal(scoreDuCandidat(cA, 'ehp', optsEhp), objectiveScore(cA, 'ehp', aurasPropresDe(cA), undefined, apportT, setup),
+    'scoreDuCandidat(A, ehp) = objectiveScore avec la Ténacité');
+  egal(scoreDuCandidat(cB, 'ehp', optsEhp), pvEffectifs(cB.stats, aurasPropresDe(cB), setup),
+    'sans exclusive, PV effectifs inchangés (B)');
+  egal(scoreDuCandidat(cA, 'degats_reels', { damageSetup: setup, aurasPropresDe }), null, 'sans contexte de dégâts : null, comme le tri');
+
+  // L'écran : les deux cartes lisent `scoreDuCandidat`, plus de formule recopiée.
+  const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
+  ok(/degatsReels=\{[\s\S]{0,700}?scoreDuCandidat\(c, 'degats_reels'/.test(ecran), 'écran : la carte « Dégâts réels » lit scoreDuCandidat');
+  ok(/pvEffectifs:\s*[\s\S]{0,300}?scoreDuCandidat\(c, 'ehp'/.test(ecran), 'écran : la carte « PV effectifs » lit scoreDuCandidat');
+  ok(!/computeTotalDamage\(\s*realDamage\.profile,\s*realDamage\.passifs,\s*c\.stats/.test(ecran),
+    'écran : plus de computeTotalDamage recopié sur les stats du candidat');
 }

@@ -71,6 +71,7 @@ import {
   conditionsPaireFixePosees,
   respecteConditionsPaireFixe,
   sortCandidates,
+  scoreDuCandidat,
   candidateMetricTotal,
   pvEffectifs,
   aurasPropresParRunes,
@@ -2291,6 +2292,45 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const profilArtefactsDuBuild = (c: BuildCandidate) => profilsParBuild.get(cleBuild(c)) ?? null;
 
   /**
+   * Les options du classement AFFICHÉ (`affichees` ci-dessous) — partagées
+   * avec les cartes, qui affichent leur chiffre par `scoreDuCandidat` avec
+   * CET objet : la carte montre la valeur même qui l'a classée (6bis-b4 : la
+   * carte « Dégâts réels » recopiait `computeTotalDamage` sans la Conquête de
+   * la relique retenue, « PV effectifs » `pvEffectifs` sans Ténacité).
+   */
+  const optionsDuTriAffiche = useMemo(
+    (): Parameters<typeof sortCandidates>[2] => ({
+      realDamage,
+      damageSetup,
+      runeById,
+      metric,
+      aurasPropresDe,
+      // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
+      // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
+      // doivent suivre. Sinon on note les stats d'un modèle avec les effets
+      // d'un autre.
+      artefactsDuBuild: (c) => profilArtefactsDuBuild(c),
+      // ⚠️ Lot 7 — même raison qu'`artefactsDuBuild` : la relique retenue
+      // par ce build apporte un gain chiffré, et le classement doit le voir,
+      // sinon il noterait autrement que le choix (D6, jamais deux notes).
+      // Un candidat encore « en attente » n'a pas d'entrée : apport neutre.
+      // `c.stats` sont déjà celles du couple retenu (`candidatAvecSaPaire`),
+      // principale de la relique comprise : c'est bien l'assiette que
+      // l'exclusive lit.
+      exclusiveDuBuild: (c) =>
+        apportExclusive(
+          fileArtefacts.parBuild.get(cleBuild(c))?.relique,
+          c.stats,
+          contexteExclusive.setup,
+          aurasPropresDe(c),
+          contexteExclusive.element
+        ),
+    }),
+    // `profilArtefactsDuBuild` ne lit que `profilsParBuild`.
+    [profilsParBuild, fileArtefacts.parBuild, realDamage, damageSetup, runeById, metric, contexteExclusive, aurasPropresDe]
+  );
+
+  /**
    * Le classement RÉEL : chaque build vu à travers sa vraie paire dès qu'elle
    * est connue, puis retrié.
    *
@@ -2340,34 +2380,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       (c) => fileArtefacts.parBuild.get(cleBuild(c))?.relique?.id
     );
     const avecPaire = conformes.map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
-    return sortCandidates(avecPaire, sortBy, {
-      realDamage,
-      damageSetup,
-      runeById,
-      metric,
-      aurasPropresDe,
-      // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
-      // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
-      // doivent suivre. Sinon on note les stats d'un modèle avec les effets
-      // d'un autre.
-      artefactsDuBuild: (c) => profilArtefactsDuBuild(c),
-      // ⚠️ Lot 7 — même raison qu'`artefactsDuBuild` : la relique retenue
-      // par ce build apporte un gain chiffré, et le classement doit le voir,
-      // sinon il noterait autrement que le choix (D6, jamais deux notes).
-      // Un candidat encore « en attente » n'a pas d'entrée : apport neutre.
-      // `c.stats` sont déjà celles du couple retenu (`candidatAvecSaPaire`
-      // ci-dessus), principale de la relique comprise : c'est bien l'assiette
-      // que l'exclusive lit.
-      exclusiveDuBuild: (c) =>
-        apportExclusive(
-          fileArtefacts.parBuild.get(cleBuild(c))?.relique,
-          c.stats,
-          contexteExclusive.setup,
-          aurasPropresDe(c),
-          contexteExclusive.element
-        ),
-    });
-  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, realDamage, runeById, metric, contexteExclusive, aurasPropresDe]);
+    return sortCandidates(avecPaire, sortBy, optionsDuTriAffiche);
+  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche]);
 
   const pageCandidates = useMemo(
     () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
@@ -4967,15 +4981,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     // dégâts réels : on peut avoir cherché sur un objectif puis
                     // re-trié par PV effectifs, auquel cas le chiffre qui
                     // ordonne les cartes doit être visible dessus.
+                    // ⚠️ `scoreDuCandidat` avec les options du classement
+                    // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
+                    // points de la relique retenue compris (6bis-b4).
                     pvEffectifs:
                       objective === 'ehp' || sortBy === 'ehp'
-                        ? {
-                            total: pvEffectifs(c.stats, aurasPropresDe(c), damageSetup),
-                            delta:
-                              compare && refEhp != null
-                                ? pvEffectifs(c.stats, aurasPropresDe(c), damageSetup) - refEhp
-                                : undefined,
-                          }
+                        ? (() => {
+                            const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
+                            return { total, delta: compare && refEhp != null ? total - refEhp : undefined };
+                          })()
                         : undefined,
                     metricDelta:
                       compare && refMetric != null
@@ -5005,23 +5019,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 degatsReels={
                   realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
                     ? (() => {
-                        const total = computeTotalDamage(
-                          realDamage.profile,
-                          realDamage.passifs,
-                          c.stats,
-                          realDamage.setup,
-                          aurasPropresDe(c),
-                          realDamage.element,
-                          profilArtefactsDuBuild(c) ?? realDamage.artefacts,
-                          realDamage.critSiPlusRapide,
-                          realDamage.bonusDegatsSelonVit,
-                          realDamage.bonusDegatsStack,
-                          realDamage.monsterWide,
-                          realDamage.bonusDegatsConditionnel,
-                          realDamage.bonusDegatsSelonCr,
-                          realDamage.bonusDegatsSelonDef,
-                          realDamage.bonusSiAtqSeuil
-                        );
+                        // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
+                        // avec les options du classement affiché — profil
+                        // d'artéfacts de CE build et Conquête de sa relique
+                        // retenue compris. Une recopie de `computeTotalDamage`
+                        // omettait la Conquête que le tri compte (6bis-b4).
+                        const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
                         return {
                           total,
                           partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,

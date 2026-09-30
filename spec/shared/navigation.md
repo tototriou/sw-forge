@@ -150,7 +150,9 @@ médaillon (Artéfacts), tenailles (Outils), compas (Optimizer), chronomètre
 Hors de la nav, **une icône qui nomme une section prend la sienne** : cartes
 de l'accueil (décision 37) ; au Siège, états vides (bouclier ou épée selon le
 côté, parchemin des Recommandations), « Voir le speed tune » (chronomètre),
-« Importer un deck d'offense » et « Fort contre » (épée) — décision 44.
+« Importer un deck d'offense » et « Fort contre » (épée) — décision 44 ; à la
+RTA, l'état vide, le bouton d'ouverture et l'en-tête d'une prépa d'« Ami »
+(compagnons).
 ⚠️ `InventaireIcon` n'est pas touché : il reste le rendu du jeu des écrans du
 compte (tête de monstre, rune, médaillon) ; la nav a ses propres icônes des
 trois inventaires.

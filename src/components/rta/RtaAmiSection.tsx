@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Users } from 'lucide-react';
+// Les compagnons de l'entrée « Ami » de la nav (rebranding, décision 44).
+import { IconeAmi } from '../IconesAtelier';
 import { Monster } from '../../types';
 import { ImportReport, RtaVueAmi, validateRtaImport, versVueAmi } from '../../lib/rtaShare';
 import { mapRtaVueAmi } from '../../lib/applyAccount';
@@ -161,7 +162,7 @@ export default function RtaAmiSection({
   const bouton = (
     <Bouton
       onClick={() => fichier.current?.click()}
-      icone={<Users size={14} />}
+      icone={<IconeAmi size={14} />}
       libelle={vue ? 'Ouvrir une autre prépa' : "Ouvrir la prépa d'un ami"}
       title="Ouvrir un .json en lecture : une prépa exportée, ou un export SWEX complet dont on ne lira que la box RTA. Ta prépa n'est pas touchée."
     />
@@ -189,7 +190,7 @@ export default function RtaAmiSection({
               redescendre une prépa entière. */}
           <div className="mb-4 flex flex-wrap items-center gap-2">{bouton}</div>
           {msg && (
-            <p className={`mb-3 text-xs ${msg.error ? 'text-fire' : 'text-good'}`} role="status">
+            <p className={`mb-3 text-xs ${msg.error ? 'text-bad' : 'text-good'}`} role="status">
               {msg.text}
             </p>
           )}
@@ -206,7 +207,7 @@ export default function RtaAmiSection({
            ⚠️ `max-w-sm` + centrage : la phrase se lit pareil au doigt et sur un
            écran large, où une ligne pleine largeur ferait quinze mots de long. */
         <div className="mt-10 flex flex-col items-center text-center text-ink-dim">
-          <Users size={34} className="mb-3 opacity-70" />
+          <IconeAmi size={34} className="mb-3 opacity-70" />
           <p className="text-base font-semibold text-ink">Aucune prépa consultée</p>
           <p className="mt-1 max-w-sm text-sm">
             Ouvre le <b className="text-ink">.json</b> qu'un ami t'a partagé : sa prépa exportée
@@ -217,7 +218,7 @@ export default function RtaAmiSection({
           </p>
           <div className="mt-4">{bouton}</div>
           {msg && (
-            <p className={`mt-3 text-xs ${msg.error ? 'text-fire' : 'text-good'}`} role="status">
+            <p className={`mt-3 text-xs ${msg.error ? 'text-bad' : 'text-good'}`} role="status">
               {msg.text}
             </p>
           )}

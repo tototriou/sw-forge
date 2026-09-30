@@ -531,7 +531,7 @@ export default function RtaBackupBar({
       />
 
       {msg && (
-        <p className={`mt-2 text-xs ${enMenu ? 'basis-full' : ''} ${msg.error ? 'text-fire' : 'text-good'}`} role="status">
+        <p className={`mt-2 text-xs ${enMenu ? 'basis-full' : ''} ${msg.error ? 'text-bad' : 'text-good'}`} role="status">
           {msg.text}
         </p>
       )}

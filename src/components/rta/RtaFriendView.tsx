@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { X, ChevronDown, EyeOff, Users } from 'lucide-react';
+import { X, ChevronDown, EyeOff } from 'lucide-react';
+// Les compagnons de l'entrée « Ami » de la nav (rebranding, décision 44).
+import { IconeAmi } from '../IconesAtelier';
 import { RtaEntry, Monster, sectionLabel, sectionAccent, RTA_UNASSIGNED, RTA_OTHER } from '../../types';
 import { RtaVueAmi } from '../../lib/rtaShare';
 import ElementIcon from '../ElementIcon';
@@ -290,7 +292,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
     <section className="mt-5 rounded-2xl border border-accent bg-panel2/40 p-4">
       <div className="flex items-baseline gap-x-3 gap-y-1 flex-wrap pb-2.5 mb-4 border-b border-border">
         <span className="flex items-center gap-1.5 text-accent">
-          <Users size={16} />
+          <IconeAmi size={16} />
         </span>
         <h2 className="font-display text-lg tracking-wide">{titre}</h2>
         {vue.auteur && vue.nom && (

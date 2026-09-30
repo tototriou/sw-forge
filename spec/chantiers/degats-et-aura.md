@@ -312,6 +312,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-a4d1 → 6bis-a4d2
         → amendement et revue pilote
         → 6bis-b1 → 6bis-b2 → 6bis-b3a → 6bis-b3b → 6bis-b4
+        → 6bis-b5 (effets uniques de relique affichés, demande du 2026-09-30)
         → revue technique indépendante → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -324,7 +325,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
   6bis-a2a1-suite-finalisation-preuve, 6bis-a2a2,
   6bis-a2b1, 6bis-a2b2, 6bis-a2b3, 6bis-a3a, 6bis-a3b,
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
-  6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4,
+  6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5,
   7, 12, tous les 13b-* → 14
 ```
 
@@ -493,7 +494,8 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-b3a — conditions exactes et filtre final | J | terminé, preuves et deux mutations rejouées par le pilote | `6b1ff763` ; reçu `6b1ff76` ↔ `11be57d` / 2026-09-29 |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | terminé, preuves rejouées par le pilote ; rétention sur compte réel arrêtée par décision utilisateur | `bdbd952c`…`3f9be574` ; reçu `3f9be57` ↔ `bc01ad2` / 2026-09-29 |
 | 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
-| 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b4 ; preuve `controle-6bis-b-revue-technique.md` | — |
+| 6bis-b5 — effets uniques de relique : cartes, tri, Comparer, Meilleurs artéfacts | J | contrat proposé ; une question de jeu ouverte (218–221) | — |
+| 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5 ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -2870,6 +2872,63 @@ harnais rend « INCOHÉRENT — incomplet, motif non déductible » en parallèl
 réel (ATQ 3000 / DC 220), non investigué ; `invariants.md` L35 → L37 (legs
 de b3b).
 
+##### 6bis-b5 — effets uniques de relique : cartes, tri, Comparer, Meilleurs artéfacts
+
+**Cat. J ; requiert b4.** Demandes de l'utilisateur du 2026-09-30, nées des
+constats de b4. La revue technique indépendante passe après b5 et couvre
+aussi ce lot.
+
+**Constats de départ** (b4, lecture sans test) : le tri et les cartes ne
+comptent l'effet unique de la relique qu'en mode `recherche`, une fois le
+build résolu (`exclusiveDuBuild` de `optionsDuTriAffiche`,
+`OptimizerSection.tsx`) ; hors de ce mode, la relique portée est absente du
+classement alors que le choix de la paire d'artéfacts la compte ; la
+référence « Comparer » (`refEhp`, dégâts de la fiche) l'ignore, donc
+l'écart surestime le gain en mode `recherche` ; la paire représentative de
+la fiche la reçoit en régime EHP mais pas en « Dégâts réels » ; le bloc
+« Meilleurs artéfacts » en « Dégâts réels » (`evaluerReel`) ne la reçoit pas ;
+le CLI ne compte aucun effet unique.
+
+**Contrat :**
+
+1. Sur chaque carte de résultat, les scores « Dégâts réels » et « PV
+   effectifs » comptent l'effet unique de la relique **quel que soit le mode**
+   (`off`, `equipped`, `recherche` : `useOptimizerState.ts` L81) : en
+   `recherche`, la relique retenue du build ; sinon, la relique réellement
+   portée par ce build (vérifier ce que `off` porte) ; aucune relique →
+   apport neutre. Le tri suit, par les mêmes options (`scoreDuCandidat`,
+   une seule note). Le CLI suit pour la parité écran/CLI.
+2. La référence « Comparer » compte l'effet unique de la relique portée par
+   la fiche, avec ses auras propres (`aurasPropresFiche`) : l'écart compare
+   deux valeurs calculées de la même façon.
+3. « Meilleurs artéfacts offensifs pour ce build » : l'effet unique de la
+   relique portée entre dans la valeur affichée et dans la comparaison à la
+   paire portée, pour les deux crans. Paire représentative : même règle en
+   « Dégâts réels » qu'en EHP.
+4. Les effets uniques restent hors des conditions min/max (`reliques.md`
+   § 5 : l'exclusive classe, la principale sert les minimums).
+5. Mécanique du cran « Dégâts supplémentaires » (lignes 218–221, dégâts
+   bruts) : **question de jeu ouverte**, à trancher par l'utilisateur ou un
+   relevé en jeu (`game-data-curation`), jamais par analogie. Tant qu'elle
+   n'est pas tranchée, ce cran reste inchangé et le lot le dit.
+
+**Intrant borné :** `reliques.md` § 5 et § 8 (vérifier si § 8 est soldé par
+le chantier relique), `invariants.md` § Artéfacts ; `OptimizerSection.tsx`
+par sites nommés (`optionsDuTriAffiche`, `refEhp` et la référence dégâts,
+paire représentative, bloc « Meilleurs artéfacts » et `evaluerReel`) ;
+`relicExclusive.ts` (`apportExclusive`, `statsAvecApport`),
+`artifactEvaluation.ts` (`evaluerPourRegime`), `scripts/optimizer-search.ts`
+et `scripts/lib/recipeToSearchParams.ts`.
+
+**Preuves :** tests nommés, rouges avant puis verts : carte = tri pour les
+trois modes avec une relique Conquête puis Ténacité ; « Comparer » : même
+fonction de calcul des deux côtés ; « Meilleurs artéfacts » : valeur et
+écart avec l'effet unique, par cran ; parité écran/CLI sur la recette
+« Dégâts réels » gelée. `tsc`, tests ciblés, build, spec-lint,
+diff-check ; mise à jour de `optimizer.md`, `reliques.md` (modifiable,
+A.5) et `invariants.md` ; preuve `controle-6bis-b5.md`.
+**Ne fait pas :** effet unique dans les conditions, nouvelle valeur de jeu,
+saisie des auras (lot 7), objectif « Vitesse » (`reliques.md` § 5.3).
 
 ### Lot 7 — sets d'aura : l'écran
 

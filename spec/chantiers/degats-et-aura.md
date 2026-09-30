@@ -615,7 +615,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | terminé, preuves rejouées par le pilote ; restauration des notes relique, revue externe corrigée | `2e896bfa`…`d52d2e94` ; reçu `d52d2e9` ↔ `da2886f` / 2026-09-30 |
 | 6bis-b3c — dominance et effet unique de la relique | J | terminé, preuves et mutation rejouées par le pilote | `756eb09c` + `ca15a281` ; reçu `ca15a28` ↔ `61364e2` / 2026-09-30 |
 | O — verrous de `chantier ouvrir` et `livrer` | J | terminé, rouge et preuves rejoués par le pilote ; installé le 2026-10-01 @ `62bb877` | `32a5da12` + `ea6a37f3` ; reçu `32a5da1` ↔ `c8b6323` / 2026-10-01 |
-| 6bis-b5b — Meilleurs artéfacts et paire représentative | J | attend O | — |
+| 6bis-b5b — Meilleurs artéfacts et paire représentative | J | lançable ; intrant recalé le 2026-10-01 | — |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | attend b5b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5c ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
@@ -3016,7 +3016,8 @@ après b5c et couvre les trois.
   L5034–5036 affirme l'inverse) ; l'écart peut être faux dans les deux sens ;
 - paire représentative de la fiche : effet unique compté en EHP, pas en
   « Dégâts réels » ; elle alimente la RECHERCHE (stats collectées,
-  `artFlatFige` et replis, `runeBuildOptim.ts` L3284–3287 et L4174–4202) ;
+  `artFlatFige` et replis, `runeBuildOptim.ts` L3284–3287 et L4174–4202 au
+  2026-09-30, L3368–3440 et L4290–4330 depuis b3c) ;
 - « Meilleurs artéfacts » en « Dégâts réels » (`evaluerReel`) : effet unique
   absent ;
 - CLI : l'effet unique n'entre que dans sa paire représentative EHP
@@ -3397,11 +3398,20 @@ mesurer la performance sur une recherche non plafonnée.
 
 ##### 6bis-b5b — « Meilleurs artéfacts » et paire représentative
 
-**Cat. J ; requiert b5a.** Intrant borné (≈ 471 lignes) :
-`OptimizerSection.tsx` L1385–1450 (paire représentative) et L1452–1640
-(bloc) ; `artifactEvaluation.ts` L80–170 ; `artifactOptim.ts` L890–925 ;
-`runeBuildOptim.ts` L3275–3295 et L4170–4205 ; `damage.ts` L3925–3945 et
-L4576–4586.
+**Cat. J ; requiert b5a, puis 6bis-b3c et O (ordre A.7).** Intrant borné,
+recalé le 2026-10-01 sur `423be54c` après b5a et b3c (≈ 550 lignes) :
+
+- `OptimizerSection.tsx` L1378–1468 (paire représentative : `artifactParams`,
+  `searchArtifacts`) et L1470–1653 (bloc) ;
+- `artifactEvaluation.ts` L80–170 ;
+- `artifactOptim.ts` L890–925 ;
+- `runeBuildOptim.ts` L3368–3440 (`deriveMinMaxContext` : `artFlatFige` et
+  repli) et L4290–4330 (validation par `artPossibles`) ;
+- `damage.ts` L3925–3945 et L4576–4586.
+
+Depuis b3c, la dominance lit les reliques équipables (`reliquesEquipables`) ;
+b5b n'y touche pas. A.6 bis s'applique à son différentiel : la note de
+référence est celle de la production, effet unique compris.
 
 **Contrat :** « Meilleurs artéfacts offensifs pour ce build » compte
 l'effet unique de la relique de la fiche dans la valeur et dans l'écart à

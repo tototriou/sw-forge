@@ -614,7 +614,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
 | 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | terminé, preuves rejouées par le pilote ; restauration des notes relique, revue externe corrigée | `2e896bfa`…`d52d2e94` ; reçu `d52d2e9` ↔ `da2886f` / 2026-09-30 |
 | 6bis-b3c — dominance et effet unique de la relique | J | terminé, preuves et mutation rejouées par le pilote | `756eb09c` + `ca15a281` ; reçu `ca15a28` ↔ `61364e2` / 2026-09-30 |
-| O — verrous de `chantier ouvrir` et `livrer` | J | terminé, rouge et preuves rejoués par le pilote ; `installer` à soumettre à l'utilisateur | `32a5da12` + `ea6a37f3` ; reçu `32a5da1` ↔ `c8b6323` / 2026-10-01 |
+| O — verrous de `chantier ouvrir` et `livrer` | J | terminé, rouge et preuves rejoués par le pilote ; installé le 2026-10-01 @ `62bb877` | `32a5da12` + `ea6a37f3` ; reçu `32a5da1` ↔ `c8b6323` / 2026-10-01 |
 | 6bis-b5b — Meilleurs artéfacts et paire représentative | J | attend O | — |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | attend b5b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5c ; preuve `controle-6bis-b-revue-technique.md` | — |
@@ -3700,8 +3700,16 @@ Non prouvé :
 - le hook `pre-commit` n'a pas été éprouvé, puisqu'il ne change qu'après
   `installer`.
 
-**`installer` reste à soumettre à l'utilisateur** : d'ici là, l'outil
-installé n'a aucun verrou.
+**`installer` lancé le 2026-10-01**, sur décision de l'utilisateur, depuis
+`forge/degats-et-aura` @ `62bb877` (installation identique au source, hook
+`pre-commit` recâblé, hooks Codex non touchés). Relevé aussitôt, en lecture
+seule, avec l'outil installé :
+
+- `degats-et-aura` : base reconstruite depuis le reçu (`c8b6323`) ; seul KO,
+  le code postérieur au reçu (commits de cadrage), attendu ;
+- `optimizer-workers` : « Reçu valide », garde qui passerait, miroir vide ;
+- `implementation-relique` : ses deux KO préexistants (sa ligne jamais
+  livrée), garde qui passerait, miroir d'un seul fichier modifié.
 
 ### Lot 7 — sets d'aura : l'écran
 

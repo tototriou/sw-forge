@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Sparkles, BookOpen, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+// Le grimoire de l'entrée « Bestiaire » de la nav (rebranding, décision 44).
+import { IconeBestiaire } from '../components/IconesAtelier';
 import SearchBar from '../components/SearchBar';
 import MobileSheet from '../ui/MobileSheet';
 import Champ from '../ui/Champ';
@@ -237,7 +239,7 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
 
       {totalShown === 0 ? (
         <div className="text-center py-16 text-ink-dim">
-          <Sparkles className="mx-auto mb-3 opacity-40" />
+          <IconeBestiaire className="mx-auto mb-3 opacity-40" />
           Aucun monstre ne correspond à ces filtres.
         </div>
       ) : (

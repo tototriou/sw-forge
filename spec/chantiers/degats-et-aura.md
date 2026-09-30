@@ -614,7 +614,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
 | 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | terminé, preuves rejouées par le pilote ; restauration des notes relique, revue externe corrigée | `2e896bfa`…`d52d2e94` ; reçu `d52d2e9` ↔ `da2886f` / 2026-09-30 |
 | 6bis-b3c — dominance et effet unique de la relique | J | terminé, preuves et mutation rejouées par le pilote | `756eb09c` + `ca15a281` ; reçu `ca15a28` ↔ `61364e2` / 2026-09-30 |
-| O — verrous de `chantier ouvrir` et `livrer` | J | contrat amendé après contre-revue et contre-vérification ciblée du point 3 ; lançable | — |
+| O — verrous de `chantier ouvrir` et `livrer` | J | terminé, rouge et preuves rejoués par le pilote ; `installer` à soumettre à l'utilisateur | `32a5da12` + `ea6a37f3` ; reçu `32a5da1` ↔ `c8b6323` / 2026-10-01 |
 | 6bis-b5b — Meilleurs artéfacts et paire représentative | J | attend O | — |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | attend b5b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5c ; preuve `controle-6bis-b-revue-technique.md` | — |
@@ -3638,6 +3638,70 @@ privée modifiée hors de sa preuve.
 **Conséquence assumée :** tant que `installer` n'a pas été lancé, l'outil
 installé n'a aucun verrou. Le pilote propose `installer` à l'utilisateur dès
 la validation de O, avant toute nouvelle ouverture de chantier.
+
+#### Résultat du lot O — 2026-10-01
+
+Un commit, `32a5da12` : verrous d'`ouvrir` et de `livrer` sur la base
+synchronisée, dans `scripts/chantier.mjs`, avec cinq tests,
+`orchestration-parallele.md` et `CLAUDE.md`. Reçu `32a5da1` ↔ `c8b6323`
+(897 fichiers, sans aucune suppression), notes intégrées au main
+documentaire `66b6aa3`. Preuve privée `controle-O.md`, avec ses sorties
+complètes et trois scripts rejouables.
+
+Le pilote a relu la garde et rejoué sur `32a5da12` :
+
+- `npx tsc --noEmit` → 0 ;
+- `node tests/run.mjs chantier hookscodex` → 239 vérifications passées ;
+- spec-lint vert ; « Reçu valide » ;
+- **rouge rejoué par le pilote** : l'outil de `aa4169b3` remis
+  temporairement, `node tests/run.mjs IncidentNotesEnRetard` donne 6 échecs
+  sur 8, dont « rien n'a quitté la branche documentaire » ; outil restauré
+  depuis git, puis 8 sur 8.
+
+Rapportés, non rejoués :
+
+- tous les scénarios du contrat, du cas absent à la migration ;
+- la correction de la faiblesse de reprise L352 : un journal
+  `{ operation, depuis, etatAttendu }`, rouge prouvé sur l'ancien outil ;
+- simulation `livrer --simulation` depuis les trois worktrees réels : la
+  garde passerait partout, sans aucune écriture (instantanés identiques).
+
+Écarts :
+
+1. `livrer --adopter` lève la garde sur l'arbre, pas celle sur le worktree :
+   c'est la seule issue d'une fusion manuelle. **Accepté par le pilote, sous
+   condition** (`ea6a37f3`) : `CLAUDE.md` et `orchestration-parallele.md`
+   réservent `--adopter` à une décision explicite de l'utilisateur, après
+   `livrer --simulation` ; un agent ne le lance jamais de lui-même.
+2. La reconnaissance d'une fusion manuelle n'avance plus la révision
+   attendue ; `rafraichir` accepte des notes égales à une base
+   documentaire ; à la reprise d'une fusion manuelle, les notes locales
+   doivent être celles du premier parent. Acceptés : ils ferment des
+   blocages réels.
+3. Recherche d'ancêtres par `rev-list --full-history` ; inventaire physique
+   sans hachage du disque. Acceptés.
+4. Ajouts non demandés, testés : reprise d'un `ouvrir` coupé, réalignement
+   de casse, refus d'une collision avant la fusion de `rafraichir`, une
+   ligne de `fermer` qui signale les sauvegardes. Acceptés.
+
+Relevé, non corrigé : `--archive` et `--sans-cablage` placés en dernier
+argument sont ignorés (défaut préexistant). La zone de tests `chantier`
+passe d'environ 1 min à 3 min.
+
+Non prouvé :
+
+- pas de run sous Linux ;
+- renommage de casse d'un DOSSIER ;
+- un fichier exécutable (`100755`) donnerait un faux « inédit » : un refus,
+  jamais une perte ;
+- l'écrivain concurrent, limite écrite ;
+- `ouvrir` et `rafraichir` du nouvel outil n'ont pas tourné sur les
+  chantiers réels ;
+- le hook `pre-commit` n'a pas été éprouvé, puisqu'il ne change qu'après
+  `installer`.
+
+**`installer` reste à soumettre à l'utilisateur** : d'ici là, l'outil
+installé n'a aucun verrou.
 
 ### Lot 7 — sets d'aura : l'écran
 

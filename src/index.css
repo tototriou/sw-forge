@@ -1102,14 +1102,6 @@ button[data-bouton]:not(:disabled):not([draggable]):not([role='switch']):active 
   }
 }
 
-.title-gradient {
-  /* Un TEXTE : il finit sur la braise lisible, pas sur la vive. */
-  background: linear-gradient(135deg, rgb(var(--ink)) 0%, rgb(var(--accent-lisible)) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 .hex-frame {
   clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
 }

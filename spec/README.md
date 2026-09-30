@@ -325,8 +325,12 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     de l'Optimizer (voir [outils/optimizer.md](outils/optimizer.md)), premier
     endroit de l'app à passer un `min` positif non trivial (tous les usages
     précédents étaient à 0 ou 1, jamais heurtés par ce piège).
-- **Titre de page** : `font-display` en dégradé (`title-gradient`), taille
-  `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
+- **Titre de page** : `font-display` à l'**encre unie** (`text-ink`). Les
+  pages de lecture (Mécaniques, Nouveautés) gardent le grand titre
+  (`clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`) ; les
+  écrans d'outil (Siège, RTA, Bestiaire…) un titre `text-xl` dans leur ligne
+  d'en-tête. Le dégradé encre → braise (`title-gradient`) a été retiré au
+  rebranding (décision 57), comme la toile.
 - **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)
   **et dès que la barre ne tient plus sur une ligne** (voir « Shell applicatif »).
   Le drag & drop natif ne fonctionne pas au tactile → chaque zone drag propose

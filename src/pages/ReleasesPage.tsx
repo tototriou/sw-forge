@@ -21,7 +21,8 @@ export default function ReleasesPage() {
   // devenait une ligne isolée au milieu du vide.
   return (
     <div className="mx-auto max-w-[900px]">
-      <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-2">
+      {/* Encre unie, plus de dégradé (rebranding, décision 57). */}
+      <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] text-ink mb-2">
         Nouveautés
       </h1>
       <p className="text-ink-dim text-sm leading-relaxed mb-6 max-w-2xl">

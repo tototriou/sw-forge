@@ -116,8 +116,10 @@ reste l'aplat ; tout ce qui se lit ou se trace prend `accent-lisible` (4,52 à
 ou `border-accent` et reçoit la bonne braise — aucun renommage, et un
 `text-accent` écrit demain sera lisible d'office. Même partage pour `ctx`
 (`--ctx-lisible`), dont la valeur par défaut est l'accent. Ce que Tailwind ne
-voit pas s'écrit à la main : l'anneau `:focus-visible` et `.title-gradient`
-(index.css), les traits SVG des courbes (`rgb(var(--accent-lisible))`).
+voit pas s'écrit à la main : l'anneau `:focus-visible` (index.css), les traits
+SVG des courbes (`rgb(var(--accent-lisible))`). (`.title-gradient`, le dégradé
+des grands titres, a disparu avec la décision 57 du rebranding : les titres
+sont à l'encre unie.)
 
 ⚠️ **L'avertissement ressemble à l'accent — assumé** (décision 12). La toile
 donne à `warn` la valeur du survol de la braise : ΔE 6,7 avec l'accent en

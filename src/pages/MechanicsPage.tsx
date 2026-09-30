@@ -58,7 +58,10 @@ export default function MechanicsPage() {
                  lg:grid lg:grid-cols-[220px_minmax(0,720px)] lg:justify-center lg:gap-x-12"
     >
       <header className="lg:col-start-2 lg:row-start-1">
-        <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] title-gradient mb-1.5">
+        {/* Encre unie, plus de dégradé (rebranding, décision 57) — comme les
+            titres des autres écrans ; le grand titre reste, c'est une page de
+            lecture. */}
+        <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] text-ink mb-1.5">
           Mécaniques du jeu
         </h1>
         <p className="text-ink-dim text-sm leading-relaxed max-w-2xl">

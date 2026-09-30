@@ -125,8 +125,8 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R8 Mon compte (Monstres, Runes, Artéfacts) | J | **validé par Thomas** — écrans gardés (51 à 53) ; rouges d'état `999a4c25`, tuiles d'Optimisation (54) `d52c438e` | 2026-09-30, [lot-R8.md](rebranding-preuves/lot-R8.md) |
 | R9a Bestiaire | J | **validé par Thomas** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
 | R9b Mécaniques, Nouveautés | J | **validé par Thomas** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
-| R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | à faire | |
-| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris | J | en attente de la livraison de Thomas | |
+| R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par Thomas** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
+| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | en attente de la livraison de Thomas | |
 | Refonte 12 — `npm test` complet, fusion sur `main`, numéro de version | M | à faire | |
 
 ### A.8 Décisions prises en cours de chantier
@@ -361,6 +361,17 @@ Relevé dans [lot-R9b.md](rebranding-preuves/lot-R9b.md).
 
 Non proposés (47) : le surlignage de la section lue (suivi du défilement)
 et les grilles des sets et des effets (du contenu nouveau).
+
+#### 60 — la question du R10, les Outils (Thomas, 2026-09-30)
+
+Relevé dans [lot-R10.md](rebranding-preuves/lot-R10.md) : sans planche, seules
+les décisions 43 et 44 s'appliquent ; une seule icône à changer.
+
+60. **L'écran vide de l'Optimizer attend les lots de l'Optimizer** : la clé à
+    molette d'`OutilsPage.tsx` (« Aucune donnée de compte chargée ») passera
+    aux tenailles des Outils avec les lots 9a / 11e — même raison que le
+    renommage `swforge-optimizer` (R2) : rien sur l'Optimizer avant la
+    livraison de Thomas.
 
 ## Partie B — les lots
 
@@ -622,9 +633,16 @@ monstre » (44). Rien pour la décision 43.
 Pages gardées (58, 59). Un commit, `e8e65c92` : titres à l'encre unie (57).
 Rien pour les décisions 43 et 44.
 
-### R10
+### R10 — les Outils (Speed tuning, Arène) · J
 
-Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
-§ B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts
-planche ↔ écran, décisions de Thomas avant le code, preuve. Chaque section
-est écrite au démarrage de son lot, avec les lignes relevées à ce moment.
+**Écrit au démarrage (2026-09-30)**. Pas de planche : relevé des décisions
+43 et 44 et des contrôles hors librairie dans `SpeedTuningSection.tsx`,
+`SpeedTuneModale.tsx`, `OutilsPage.tsx`, `ComingSoon.tsx`.
+
+**Résultat (2026-09-30)** — preuve [lot-R10.md](rebranding-preuves/lot-R10.md).
+Un commit, `f1870822` : le chronomètre dans la pastille de l'en-tête du Speed
+tuning au téléphone (44). Rien pour 43 ni pour la librairie. L'écran vide
+de l'Optimizer attend ses lots (60).
+
+Les lots d'écran R5 à R10 sont tous passés. Restent les lots 9a / 11e de la
+refonte (l'Optimizer, en attente de la livraison de Thomas) et le lot 12.

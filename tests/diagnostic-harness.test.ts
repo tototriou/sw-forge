@@ -14,8 +14,14 @@
 // avec l'autorité d'un diagnostic.
 
 import { egal, ok, titre } from './outils';
-import { admissibiliteBuild, executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scripts/lib/diagnosticHarness';
-import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
+import { admissibiliteBuild, classer, executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scripts/lib/diagnosticHarness';
+import { ConfigResolue, resoudreConfig } from '../scripts/lib/diagnosticConfig';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
+import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
+import { computeStats } from '../src/lib/stats';
+import { RuneDetail } from '../src/types';
+import { rune } from './relic-search.test';
 import { ConfigHarnais, EtagePopulation } from '../scripts/lib/diagnosticTypes';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import {
@@ -1004,4 +1010,42 @@ export default async function testDiagnosticHarness() {
     !recap.includes('perf-battery-compare.ts.\n') || !recap.includes(complet.temps!.avertissementComparaison),
     'le récapitulatif ne REMPLACE pas cet avertissement par le sien — les deux répondent à des questions différentes'
   );
+}
+
+/**
+ * degats-et-aura 6bis-b4 — `classer` en « Dégâts réels » reçoit le contexte
+ * de dégâts construit comme le CLI (`buildRealDamageContext`). Sans lui,
+ * `sortCandidates` rendait l'ordre de COLLECTE en silence, sous un titre
+ * « classés par sortCandidates ».
+ */
+export function testDiagnosticHarnessClassementDegatsReels() {
+  titre('Harnais · classement « Dégâts réels » avec le contexte du CLI');
+  const base = { hp: 9225, atk: 900, def: 461, spd: 103, cr: 15, cd: 50, res: 15, acc: 0 };
+  // Mêmes emplacements ; seul le « fort » porte une principale ATQ +63 %.
+  const faible = [1, 2, 3, 4, 5, 6].map((slot) => rune(9100 + slot, slot, [8, 0]));
+  const fort = [1, 2, 3, 4, 5, 6].map((slot) => rune(9200 + slot, slot, slot === 2 ? [4, 63] : [8, 0]));
+  const candidat = (runes: RuneDetail[]) => ({ runeIds: runes.map((r) => r.id), stats: computeStats({ base, runes, artifacts: [] }), effTotal: 0 });
+  const cFaible = candidat(faible);
+  const cFort = candidat(fort);
+  const recette = buildOptimizerRecipe({
+    monsterCom2usId: 13413, monsterName: 'Lushen',
+    requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: DEFAULT_DAMAGE_SETUP,
+    compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
+    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
+    ignoreArtifacts: true, artifactMainByKind: {},
+  });
+  ok(buildRealDamageContext(recette, 13413, []) !== null, 'Lushen : un sort calculable, donc un contexte de dégâts');
+  const resolue = {
+    recette, monstre: { com2usId: 13413 }, poolInitial: [...faible, ...fort],
+    params: { artifacts: [], metric: 'eff', objective: 'degats_reels' },
+  } as unknown as ConfigResolue;
+  egal(classer([cFaible, cFort], resolue).classes.map((c) => c.runeIds), [cFort.runeIds, cFaible.runeIds],
+    'recette « Dégâts réels » : le build à l’ATQ +63 % passe devant, quel que soit l’ordre de collecte');
+  egal(classer([cFort, cFaible], resolue).classes.map((c) => c.runeIds), [cFort.runeIds, cFaible.runeIds],
+    'ordre d’entrée inversé : même classement');
+  // Témoin : sans monstre chargé (source synthétique), pas de contexte — l'ordre
+  // de collecte reste, comme `sortCandidates` le documente.
+  egal(classer([cFaible, cFort], { ...resolue, monstre: undefined } as ConfigResolue).classes.map((c) => c.runeIds),
+    [cFaible.runeIds, cFort.runeIds], 'témoin sans contexte : ordre de collecte conservé');
 }

@@ -38,7 +38,7 @@ import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimOnStage from './rune-optim-onstage.test';
 import testRandomPool from './random-pool.test';
-import testDiagnosticHarness from './diagnostic-harness.test';
+import testDiagnosticHarness, { testDiagnosticHarnessClassementDegatsReels } from './diagnostic-harness.test';
 import testDiagnosticProfils from './diagnostic-profils.test';
 import testDiagnosticDifferentiel from './diagnostic-differentiel.test';
 import testDiagnosticDecouverte from './diagnostic-decouverte.test';
@@ -138,6 +138,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimOnStage', testRuneOptimOnStage],
   ['testRandomPool', testRandomPool],
   ['testDiagnosticHarness', async () => { await testDiagnosticHarness(); }],
+  ['testDiagnosticHarnessClassementDegatsReels', testDiagnosticHarnessClassementDegatsReels],
   ['testDiagnosticProfils', async () => { await testDiagnosticProfils(); }],
   ['testDiagnosticDifferentiel', async () => { await testDiagnosticDifferentiel(); }],
   ['testDiagnosticDecouverte', async () => { await testDiagnosticDecouverte(); }],

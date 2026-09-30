@@ -64,6 +64,7 @@ import { PARALLEL_PAIRING_THRESHOLD } from '../../src/workers/parallelPairing';
 import { driveParallelPairing } from '../../src/workers/parallelPairing';
 import { RuneDetail } from '../../src/types';
 import { drain } from './drain';
+import { buildRealDamageContext } from './realDamageCli';
 import { ConfigResolue, resoudreConfig } from './diagnosticConfig';
 import { ensurePairSliceBundle, makeSpawnSliceNode } from './spawnSliceNode';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
@@ -1986,14 +1987,25 @@ export const TAILLE_TOP_RENDU = 20;
  * candidats collectés, un build au rang 250 lu dans un top-20 déjà coupé
  * serait indistinguable d'un build ABSENT. La troncature à `TAILLE_TOP_RENDU`
  * est le fait de l'AFFICHAGE, pas du classement.
+ *
+ * ⚠️ **« Dégâts réels » exige son contexte** (sort, passifs, adversaire),
+ * construit comme le CLI (`buildRealDamageContext`, `optimizer-search.ts`).
+ * Il manquait ici jusqu'à degats-et-aura 6bis-b4 : `sortCandidates` laisse
+ * alors l'ordre de COLLECTE, sans lever — et la sortie annonçait « classés
+ * par sortCandidates » un top 20 qui n'était pas classé.
  */
-function classer(
+export function classer(
   candidats: BuildCandidate[],
   resolue: ConfigResolue
 ): { classes: BuildCandidate[]; total: (c: BuildCandidate) => number } {
   const runeById = new Map(resolue.poolInitial.map((r) => [r.id, r]));
   const objectif = resolue.recette?.objective ?? resolue.params.objective ?? 'efficience';
+  const realDamage =
+    resolue.recette && resolue.monstre
+      ? buildRealDamageContext(resolue.recette, resolue.monstre.com2usId, resolue.params.artifacts)
+      : null;
   const classes = sortCandidates(candidats, objectif, {
+    realDamage,
     runeById,
     metric: resolue.params.metric,
     damageSetup: resolue.recette?.damageSetup,

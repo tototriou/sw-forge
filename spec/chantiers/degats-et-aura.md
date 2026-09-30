@@ -41,6 +41,11 @@ les modifications de `degats-reels.md` (2a/2b).
 Le lot 6 a livré des auras comme total d'équipe figé ; la décision du
 2026-09-25 les sépare désormais en auras **externes** saisies et auras
 **propres au build** calculées. Le lot 6bis corrige le modèle avant l'écran 7.
+Deux lots s'ajoutent le 2026-09-30, après la restauration des notes relique
+et sa revue externe : **6bis-b3c** corrige la dominance, qui ignorait l'effet
+unique de la relique, et **O** durcit l'outil `chantier` (`ouvrir`,
+`livrer`). O sort du sujet dégâts ; il est porté ici pour ne pas être oublié
+(décision utilisateur du 2026-09-30).
 
 ### A.2 Cible et périmètre
 
@@ -246,6 +251,27 @@ chantier-ci peut donc modifier `reliques.md` quand un lot l'exige, avec
 `rafraichir` avant la modification et `livrer` → `verifier` → `integrer`
 ensuite, comme toute note privée.
 
+⚠️ **Incident, découvert le 2026-09-30.** Les notes locales de ce dossier
+étaient restées à l'état `bcbb49a` du `main` documentaire (17/09). `ouvrir`
+les a gardées avec un simple avertissement, puis le premier `livrer`
+(`a190130`, 23/09) les a recopiées en miroir. Il a ainsi retiré du `main`
+documentaire tout le travail du chantier relique : 529 fichiers et le
+contenu relique de 7 notes. Les lots suivants ont lu un `invariants.md`
+sans sa section « Reliques ». La restauration par fusion à trois voies a
+été revue par une session externe, corrigée, puis intégrée (`6559ecc`) ;
+preuve `controle-restauration-relique.md`. **Jusqu'au lot O**, un
+avertissement « Les notes locales diffèrent de la base documentaire » à
+l'ouverture d'un chantier arrête tout, et `rafraichir` ne se lance pas sur
+un chantier dont les notes locales seraient restées en retard.
+
+**Fichiers transverses du lot O** (décision utilisateur du 2026-09-30) :
+`scripts/chantier.mjs`, `tests/chantier.test.ts` (et `tests/index.ts` si un
+test s'ajoute), `spec/chantiers/orchestration-parallele.md` pour les sections
+sur `ouvrir` et `livrer`, et le passage de `CLAUDE.md` « Les notes privées se
+LIVRENT ». Le lot ne lance pas `node scripts/chantier.mjs installer` : cette
+commande remplace l'outil de tous les chantiers de la machine. Le pilote la
+soumet à l'utilisateur après validation.
+
 ### A.6 Si une vérification échoue, si un cas est ambigu
 
 - **Vérification échouée → pas de commit.** Le lot s'arrête et rapporte.
@@ -286,6 +312,14 @@ Un lot dont la seule sortie est un relevé ou un inventaire n'a pas de commit
 de code : sa preuve est son fichier **et** le commit
 `docs(cadrage): lot <n> terminé — …` qui embarque commandes et sorties.
 
+⚠️ **Un oracle se valide aussi sur sa NOTE** (leçon de 6bis-b3b, 2026-09-30).
+Un oracle qui note avec un score simplifié, par exemple sans l'effet unique
+de la relique, valide des coupes qui perdent l'optimum du vrai score. Il
+reste d'accord avec le moteur précisément là où les deux ont tort. Toute
+preuve par oracle, et sa validation par le pilote, vérifie que la note est
+celle de la production pour l'équipement complet : auras propres, relique,
+effet unique.
+
 ### A.7 Dépendances, ordre, suivi
 
 #### Graphe et validations
@@ -314,7 +348,12 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-a4d1 → 6bis-a4d2
         → amendement et revue pilote
         → 6bis-b1 → 6bis-b2 → 6bis-b3a → 6bis-b3b → 6bis-b4
-        → 6bis-b5a → 6bis-b5b → 6bis-b5c (effets uniques de relique, demande du 2026-09-30)
+        → 6bis-b5a
+        → contre-revue des contrats b3c et O
+        → 6bis-b3c (dominance et effet unique, revue externe du 2026-09-30)
+        → O (outil chantier ; placé ici par ordre d'exécution, il ne
+             dépend d'aucun lot 6bis)
+        → 6bis-b5b → 6bis-b5c (effets uniques de relique, demande du 2026-09-30)
         → revue technique indépendante → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -327,8 +366,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
   6bis-a2a1-suite-finalisation-preuve, 6bis-a2a2,
   6bis-a2b1, 6bis-a2b2, 6bis-a2b3, 6bis-a3a, 6bis-a3b,
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
-  6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b5b, 6bis-b5c,
-  7, 12, tous les 13b-* → 14
+  6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
+  6bis-b5b, 6bis-b5c, 7, 12, tous les 13b-* → 14
 ```
 
 L'ordre d'exécution est l'ordre des numéros, avec 2a puis 2b, et 13a avant
@@ -452,6 +491,33 @@ aligné sur la fin du chantier relique ; `totalPairCount` nommé en b4 ;
 recompte rendu rejouable. b3a, corrigé selon la correction minimale
 proposée par la revue elle-même, est lançable après b2.
 
+##### Validation de 6bis-b5a, restauration des notes relique, lots b3c et O
+
+Le pilote valide 6bis-b5a le 2026-09-30 (détail sous son contrat).
+b5a a signalé que `reliques.md` était revenu à une version antérieure. Le
+diagnostic du pilote a mis au jour l'incident décrit en A.5, et le pilote a
+restauré les notes du chantier relique. Une revue externe, par une session
+qui n'avait pas écrit la restauration, conclut « à corriger avant
+integrer » :
+
+- restauration fidèle ;
+- règles relique périmées remises en circulation, corrigées par le pilote ;
+- **défaut de code dans 6bis-b3b**, reproduit par le pilote. La dominance
+  (`contexteDominance`) ignore les stats dont dépend l'effet unique de la
+  relique.
+
+Notes intégrées au `main` documentaire `6559ecc` ; preuve
+`controle-restauration-relique.md`.
+
+**Validation de b3b rouverte en partie.** Sa garantie « élagages sûrs » ne
+tient pas quand l'effet unique de la relique dépend d'une stat hors
+conditions et hors objectif. `invariants.md` porte la réserve jusqu'à
+6bis-b3c. Son oracle notait sans l'effet unique, et le pilote l'a rejoué
+sans remettre en cause cette note (règle ajoutée en A.6 bis).
+
+**Deux lots s'insèrent avant b5b** : 6bis-b3c, puis O. Leurs contrats
+passent une contre-revue indépendante avant tout lancement.
+
 #### Suivi des lots
 
 | Lot | Cat. | Statut | Commit / date |
@@ -496,8 +562,10 @@ proposée par la revue elle-même, est lançable après b2.
 | 6bis-b3a — conditions exactes et filtre final | J | terminé, preuves et deux mutations rejouées par le pilote | `6b1ff763` ; reçu `6b1ff76` ↔ `11be57d` / 2026-09-29 |
 | 6bis-b3b — coupes, diagnostics et différentiel | J | terminé, preuves rejouées par le pilote ; rétention sur compte réel arrêtée par décision utilisateur | `bdbd952c`…`3f9be574` ; reçu `3f9be57` ↔ `bc01ad2` / 2026-09-29 |
 | 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
-| 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | scindé après contre-revue ; lançable | — |
-| 6bis-b5b — Meilleurs artéfacts et paire représentative | J | attend b5a | — |
+| 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | terminé, preuves rejouées par le pilote ; restauration des notes relique, revue externe corrigée | `2e896bfa`…`d52d2e94` ; reçu `d52d2e9` ↔ `da2886f` / 2026-09-30 |
+| 6bis-b3c — dominance et effet unique de la relique | J | attend la contre-revue de son contrat | — |
+| O — verrous de `chantier ouvrir` et `livrer` | J | attend la contre-revue de son contrat, puis b3c | — |
+| 6bis-b5b — Meilleurs artéfacts et paire représentative | J | attend O | — |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | attend b5b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5c ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
@@ -2971,6 +3039,183 @@ preuve `controle-6bis-b5a.md`.
 **Ne fait pas :** « Meilleurs artéfacts » et paire représentative (b5b),
 résolution CLI en recherche (b5c).
 
+**Résultat du lot 6bis-b5a — 2026-09-30.** Cinq commits :
+
+- `2e896bfa` : le tri et les cartes comptent l'effet unique dans les trois
+  modes, par `optionsDeClassement`, producteur que partagent l'écran, le CLI
+  et le harnais ;
+- `41db8858` : « Comparer » note la fiche avec sa propre paire et sa
+  relique (`scoreDeReference`) ;
+- `ef88c08f` : le CLI passe par le même producteur en `off` et `equipped` ;
+- hors contrat, acceptés par le pilote : `99513bcf`, l'ordre de base de
+  l'écran compte l'effet unique d'une relique fixe (ordre affiché tel quel
+  quand l'optimisation d'artéfacts est coupée) ; `d52d2e94`, le harnais
+  classe comme le CLI (invariant « Harnais »).
+
+Reçu `d52d2e9` ↔ `da2886f`, notes intégrées au main documentaire `9f2d15f`.
+Preuve privée `controle-6bis-b5a.md` (837 lignes). Recette gelée
+`recette-6bis-b5a-equipped.json`, sha256 `f4dc0a6c…`.
+
+Le pilote a relu le diff et rejoué sur `d52d2e94` :
+
+- `npx tsc --noEmit` → 0 ;
+- `node tests/run.mjs testRelicClassementParMode testRelicReferenceComparer`
+  → 53 vérifications passées ;
+- `node tests/run.mjs auras relic artifact` → 2 335 passées ;
+- `npm run build` vert ; « Reçu valide ».
+
+Rapportés, non rejoués :
+
+- 12 KO avant correction, sur `off` et `equipped` ;
+- écart « Comparer » à équipement identique : 260,95 en dégâts et 7 047,37
+  en PV effectifs avant la correction, 0 après ;
+- CLI sur Lushen : les 19 builds communs sont multipliés par 1,03986 et
+  l'ancien n° 17 sort du top 20.
+
+Écarts :
+
+- commits 2 à 5 passés par un here-string PowerShell puis `git commit -F`,
+  Bash refusant de démarrer ;
+- `reliques.md` § 8 réconcilié sur une version périmée du fichier (incident
+  A.5), puis fusionné dans la version restaurée.
+
+Consigné sans correction (hors demande) : en tri PV/ATQ/DEF, la carte
+affiche la stat hors combat alors que le tri compte les points de Bravoure,
+Éternité et Origine (`optimizer.md`, `pistes.md`). Non prouvé : rendu réel
+des cartes et de « Comparer », mode `recherche` au CLI (b5c), Ténacité et
+Bravoure sur le vrai compte, lignes 218–221 avec les points (b5b).
+**Pour la revue technique :**
+
+- `relicOracle.ts` L267 trie ses candidats finaux sans l'effet unique de
+  leur relique retenue ;
+- sur Lushen, le rapport vaut 1,03986 au lieu de 1,04 : une part des dégâts
+  échappe au terme `DMG%`, sans être identifiée ;
+- l'écart carte/tri en PV/ATQ/DEF décrit plus haut ;
+- l'oracle relique (garantie E) partage le moteur de runes, donc sa
+  dominance ; le revérifier après 6bis-b3c.
+
+##### 6bis-b3c — dominance et effet unique de la relique
+
+**Cat. J ; requiert b5a (base de code) et la contre-revue de ce contrat.**
+Défaut trouvé par la revue externe de la restauration, reproduit par le
+pilote sur `d52d2e94`. Il est décrit dans `pistes.md`, entrée « DÉFAUT — la
+dominance des runes ignore l'exclusive de la relique ».
+
+`effetUtile` (`runeBuildOptim.ts` L1672-1679) ne protège le bonus d'un set
+que si sa stat est une condition ou une stat de l'objectif. L'effet unique
+de la relique peut pourtant rendre utile une autre stat :
+
+- sa stat de référence `Y`, lue au début du combat, auras propres
+  comprises (`RELIC_UNIQUE[type].stat`) ;
+- la stat qu'il améliore (Bravoure → ATQ, Éternité → DEF, Origine → PV,
+  `relicUniqueNature`).
+
+Deux sets aux runes de stats identiques deviennent alors interchangeables,
+et la dominance jette l'optimum.
+
+**Cas minimal à rejouer**, recopié de la sonde :
+
+- **Monstre** : base PV 10 000, ATQ 660, DEF 600, VIT 100, TC 15, DCC 50,
+  RES 15, PRE 0.
+- **Principales** par emplacement : 1 → code 3 (160), 2 → code 2 (63),
+  3 → code 5 (160), 4 → code 2 (63), 5 → code 1 (2 448), 6 → code 2 (63) ;
+  aucune sous-stat ; rang 6, rareté 5, niveau 15.
+- **Pool** : Violent aux emplacements 1 à 4 (id 1 à 4) ; Will aux
+  emplacements 5 et 6 (id 5, 6) ; Fight aux emplacements 5 et 6 (id 105,
+  106).
+- **Relique** : id 900, +6, principale code 100 à 9, effet unique type 4
+  (Ténacité·ATQ), tranche 1 000, 1 %.
+- **Recherche** : sets `['violent']`, sans minimum, objectif `ehp`,
+  `slotFilterCap` 80, `maxMs` infini.
+
+Attendu : Violent + Fight 125 627,78 (ATQ de début de combat 1 005,
+réduction 1 %) contre Violent + Will 124 371,51. Aujourd'hui, les ids 105 et
+106 tombent à l'étage de dominance.
+
+**Intrant borné.**
+
+- `runeBuildOptim.ts` :
+  - L1607-1760 : commentaire, `contexteDominance`, `isSetComparable`,
+    `isDominated`, `pruneDominated` ;
+  - L654-680 : `objectiveKeysOf` ;
+  - L762-800 : `objectiveScore` ;
+  - L3550-3600 : `poolMinSlotSafe` ;
+  - L3866-3960 : `prepareSearch`.
+- `relicOptim.ts` L60-99 et L300-356.
+- `effects.ts` L346-370 (`SET_STAT_BONUS`) et L646-689 (`RELIC_UNIQUE`).
+- `damage.ts` L3259-3270 (`STAT_DE_L_AURA`).
+- `relicExclusive.ts` L100-200.
+- `tests/rune-optim-auras-coupes.test.ts` : l'oracle de b3b et sa note,
+  repérés par grep.
+- Commentaires périmés : `relicQueue.ts` L45-56 et `OptimizerSection.tsx`
+  L2266-2283.
+
+###### 6bis-b3c — contrat et preuves
+
+**Contrat.**
+
+- **Stat utile.** Une stat devient aussi « utile » dès que l'effet unique
+  d'une relique que la recherche peut porter la lit dans le score de
+  l'objectif (stat de référence ou stat améliorée) :
+  - relique fixe (`off`, `equipped`, contexte absent) : `params.relic` ;
+  - mode `recherche` : l'union sur `relicContext.eligibles`.
+- **Base sûre.** Tout type chiffrable (`exclusiveChiffrable`) présent.
+  Restreindre aux types pertinents pour l'objectif (`dimensionsRetenues`)
+  seulement si la preuve montre que le score de cet objectif ne lit pas les
+  autres ; sinon A.6.
+- **Appelants.** `prepareSearch` et `poolMinSlotSafe` reçoivent la même
+  information. Les deux régimes Worker relancent `prepareSearch` : vérifier
+  qu'ils la transmettent.
+- **Périmètre de la modification.** Seule l'interchangeabilité des sets
+  change. La comparaison des stats des runes, `DOMINANCE_MAX_POOL`, la
+  rétention et le score ne bougent pas. `algo-verify` s'applique.
+- **Oracle.** Il est exhaustif, part du pool **avant** préparation, et
+  n'appelle ni `prepareSearch` ni ses coupes. **Sa note est celle de la
+  production** pour l'équipement complet (A.6 bis) : `objectiveScore`, auras
+  propres (`aurasPropresDesRunes`), `apportExclusive`. En mode `recherche`,
+  un build vaut la meilleure relique éligible, calculée avec la candidate
+  à la place de `gear.relic`.
+- **Comparaison.** Elle porte sur la **présence** des builds optimaux de
+  l'oracle parmi les candidats du moteur (`findIndex`, jamais
+  `candidates[0]`), avec `truncated = false` et `explored` confronté à
+  `totalPairCount`.
+- **Commentaires.** Corriger les deux commentaires périmés (« minimums
+  seuls, T11 »).
+
+**Preuves.**
+
+- **Test nommé** : le cas minimal, rouge puis vert.
+- **Couverture des types** : chacun des 15 types chiffrables au moins une
+  fois, avec un set dont l'aura ou le bonus de fiche porte sa stat de
+  référence ou sa stat améliorée. Auras : Fight, Determination, Enhance.
+  Bonus de fiche : Fatal, Guard, Energy, Swift. En « PV effectifs » et en
+  « Dégâts réels ».
+- **Mode `recherche`** : deux reliques éligibles aux stats de référence
+  différentes.
+- **Témoins sans changement** : sans relique, Régénération, type inconnu,
+  objectif « Efficience ».
+- **Différentiel** sur seeds fixes.
+- **Mutation** : retirer la nouvelle protection doit faire échouer l'oracle.
+- **Performance** : relever `interchangeables` avant et après sur les
+  recettes gelées (`recette-6bis-externe.json`, `recette-6bis-degats.json`,
+  `recette-6bis-b5a-equipped.json`).
+  - S'il ne change pas, aucune mesure de temps ; le dire.
+  - S'il change, mesure selon `optimizer-perf-testing` : min, médiane,
+    dispersion, répétitions entrelacées, au créneau sans concurrent
+    confirmé par l'utilisateur.
+- **Documentation** :
+  - lever la réserve d'`invariants.md` (élagages sûrs, dominance) dans le
+    même commit que le code ;
+  - fermer l'entrée de `pistes.md` ;
+  - mettre à jour la section de dominance d'`algorithme.md` et
+    `optimizer.md` s'il en décrit la portée ;
+  - `spec-hygiene` (c) pour les invariants.
+- **Contrôles** : `tsc`, tests ciblés, build, spec-lint, diff-check ;
+  preuve `controle-6bis-b3c.md`.
+
+**Ne fait pas :** changement du score, de la sélection de relique, de
+`filterSlot` ou de la rétention ; suite complète `npm test`.
+
 ##### 6bis-b5b — « Meilleurs artéfacts » et paire représentative
 
 **Cat. J ; requiert b5a.** Intrant borné (≈ 471 lignes) :
@@ -3021,6 +3266,89 @@ fonctions extraites en b5a ; troncature signalée. Preuve
 `controle-6bis-b5c.md`.
 **Ne fait pas :** changement du moteur de recherche ni de la sélection de
 relique elle-même.
+
+### Lot O — verrous de `chantier ouvrir` et `livrer`
+
+**Cat. J ; requiert la contre-revue de ce contrat ; exécuté après
+6bis-b3c**, sans dépendance de code (ordre A.7). Incident : A.5 ; diagnostic
+et chronologie : `controle-restauration-relique.md` § Diagnostic. Deux trous :
+
+- `ouvrir` garde des notes locales différentes de la base avec un simple
+  avertissement ;
+- `livrer` recopie en miroir (`copierMiroir`), suppressions comprises, sans
+  comparer à ce que les notes locales ont reçu.
+
+**Intrant borné.**
+
+- `scripts/chantier.mjs`, identique à la copie installée au 2026-09-30 :
+  - `empreinteArbre` L135 ;
+  - `lireChantier` et `ecrireChantier` L184-209 ;
+  - `copierMiroir` L210-231 ;
+  - `ouvrir` L424-497 ;
+  - `livrer` L534-686 ;
+  - `rafraichir` L1206 à la fin de la fonction ;
+  - `integrer` L1075-1205, en lecture seulement.
+- `tests/chantier.test.ts` : `testChantier` L612, `testChantierRafraichir`
+  L352, `testChantierDeuxChantiers` L156.
+- `spec/chantiers/orchestration-parallele.md` : sections `ouvrir` (L239-246),
+  `livrer` (L247-271), `rafraichir` (L329-415), « Ouvrir un chantier »
+  (L447-518).
+- Le passage de `CLAUDE.md` « Les notes privées se LIVRENT ».
+
+**Contrat**, repris de la revue externe (point H) :
+
+1. **Base synchronisée, conservée durablement.** Le registre du chantier
+   garde l'état avec lequel les notes locales ont été synchronisées en
+   dernier : révision documentaire, liste des fichiers et empreintes.
+   - Qui la pose : `ouvrir`, `livrer` après son commit, et `rafraichir`.
+   - Son écriture résiste à une interruption entre copie, commit et reçu,
+     avec la même discipline que `livraisonEnCours`.
+   - Un reçu seul ne la remplace pas.
+2. **`ouvrir`**, quand les notes locales diffèrent de la base (celle de
+   `--base` si elle est donnée, sinon `HEAD` ; une base explicite est
+   respectée) :
+   - **arbre identique à une révision antérieure connue** de l'historique
+     documentaire : les notes sont en retard, et `ouvrir` les remplace par
+     la base, avec sauvegarde et liste de ce qui change. Une égalité avec un
+     ancien arbre prouve un contenu connu ; un retour arrière voulu se fait
+     après l'ouverture, par une livraison ;
+   - **aucune révision connue** : contenu inédit. `ouvrir` refuse et donne
+     la marche à suivre, soit livrer depuis le chantier d'origine, soit une
+     option explicite qui garde les notes et les enregistre comme base ;
+   - **politique de fins de ligne écrite et testée** (cas réel :
+     `artefacts.md`, CRLF dans l'historique et LF localement).
+3. **`livrer`** : comparaison à trois voies entre la base synchronisée, les
+   notes locales et la branche documentaire.
+   - Il refuse d'effacer ou de ramener en arrière un fichier que les notes
+     locales n'ont jamais reçu, en listant les chemins.
+   - Il accepte la suppression ou la modification locale d'un fichier reçu.
+   - Il ne refuse pas des changements disjoints.
+   - Un renommage se traite comme une suppression plus un ajout.
+4. **Migration des chantiers ouverts sans base enregistrée**
+   (`optimizer-workers`, `implementation-relique`, `degats-et-aura`) : une
+   règle définie et testée, sans faux refus ni faux passage.
+5. **Documentation** : `orchestration-parallele.md` et `CLAUDE.md` décrivent
+   le nouveau comportement dans le même commit.
+
+**Preuves.**
+
+- **Test qui rejoue l'incident** sur des dépôts jetables : un `main`
+  documentaire porte des fichiers que des notes locales en retard n'ont
+  pas ; `ouvrir`, puis `livrer` ne supprime rien de non reçu. Rouge sur
+  l'outil actuel, puis vert.
+- **Scénarios** : notes en retard, notes inédites, `--base` explicite,
+  suppression légitime, modifications disjointes des deux côtés, renommage,
+  interruption entre commit et registre, fins de ligne, migration.
+- **Non-régression** : les `testChantier*` existants restent verts.
+- **Chantiers réels ouverts, sans écriture** : `verifier` et simulation du
+  nouveau contrôle sur `optimizer-workers`, `implementation-relique` et
+  `degats-et-aura`.
+- **Contrôles** : `node tests/run.mjs chantier`, spec-lint, diff-check ;
+  preuve `controle-O.md`.
+
+**Ne fait pas :** `node scripts/chantier.mjs installer` (A.5 : le pilote le
+soumet à l'utilisateur) ; aucun `rafraichir`, `livrer` ni `integrer` sur un
+autre chantier ; aucune note privée modifiée hors de sa preuve.
 
 ### Lot 7 — sets d'aura : l'écran
 

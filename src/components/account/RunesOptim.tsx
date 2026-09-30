@@ -226,6 +226,10 @@ export default function RunesOptim({
   // Sens du tri — le même axe que dans la Liste, le même bouton (voir lib/tri.ts).
   const [sens, setSens] = useStickyState<SensTri>('optim.sens', SENS_PAR_DEFAUT);
   const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('optim.gemMode', 'gem');
+  // « Autoriser un regemme différent » — éteint par défaut : la stat d'une rune
+  // DÉJÀ gemmée reste celle choisie par le joueur (choix produit, voir
+  // runeOptim.ts). Allumé, sa ligne gemmée peut passer à une autre stat.
+  const [regemLibre, setRegemLibre] = useStickyState('optim.regemLibre', false);
   // Antiques : elles ont leurs propres tables de max, donc un potentiel qui ne
   // se compare pas aux runes normales — pouvoir les écarter (ou n'avoir qu'elles)
   // évite de mélanger deux échelles dans un même classement.
@@ -394,10 +398,10 @@ export default function RunesOptim({
         (rune, id): OptimRow => ({
           rune,
           id,
-          pot: runePotential(rune, withGem, metric, verifie, verifie ? dispoPour(rune) : undefined),
+          pot: runePotential(rune, withGem, metric, verifie, verifie ? dispoPour(rune) : undefined, regemLibre),
         })
       ),
-    [runes, withGem, metric, verifie, dispoPour]
+    [runes, withGem, metric, verifie, dispoPour, regemLibre]
   );
 
   // Une rune est retenue si le plan **restreint à la réserve** apporte encore
@@ -407,11 +411,11 @@ export default function RunesOptim({
     if (!verifie) return null;
     const ok = new Set<number>();
     for (const r of rows) {
-      const plan = runePlan(r.rune, scenario, withGem, metric, true, dispoPour(r.rune));
+      const plan = runePlan(r.rune, scenario, withGem, metric, true, dispoPour(r.rune), regemLibre);
       if (planNeeds(plan).length > 0 && plan.targetEff > plan.eff) ok.add(r.id);
     }
     return ok;
-  }, [verifie, rows, scenario, withGem, metric, dispoPour]);
+  }, [verifie, rows, scenario, withGem, metric, dispoPour, regemLibre]);
 
   // Runes dont l'efficience actuelle dépasse le palier, triées selon le mode choisi.
   const filtered = useMemo(() => {
@@ -489,8 +493,8 @@ export default function RunesOptim({
   // se fait en décochant tout puis en cochant celle-là.
   const tousMarqueurs = choixMarqueurs.every((c) => !marqueursExclus.has(c.k));
 
-  // Palier, mesure gemme/meule, filtre antique, « Faisable », « Sans les
-  // immémoriaux », « Runes utilisées » et « Marqueurs » — écrits UNE fois,
+  // Palier, mesure gemme/meule, « Autoriser un regemme différent », filtre
+  // antique, « Faisable », « Sans les immémoriaux », « Runes utilisées » et « Marqueurs » — écrits UNE fois,
   // posés à deux endroits : en ligne au bureau, dans le panneau « Options » au
   // doigt (comme les filtres de la Liste). `large` élargit les segmentés à toute
   // la largeur du panneau ; en ligne ils restent serrés.
@@ -534,6 +538,25 @@ export default function RunesOptim({
             hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
           },
         ]}
+      />
+
+      {/* Grisé en « Meule seule » : sans gemme, il n'y a rien à regemmer. */}
+      <Bouton
+        onClick={() => {
+          setRegemLibre((v) => !v);
+          setPage(0);
+        }}
+        disabled={!withGem}
+        actif={regemLibre}
+        taille="sm"
+        pleineLargeur={large}
+        title={
+          withGem
+            ? 'Rune déjà gemmée : proposer aussi de regemmer sa ligne gemmée avec une autre stat, absente de la rune'
+            : 'Sans objet en « Meule seule » : aucune gemme n’est proposée'
+        }
+        icone={<Gem size={14} />}
+        libelle="Autoriser un regemme différent"
       />
 
       <div className={large ? 'flex flex-col gap-1' : 'flex items-center gap-2'}>
@@ -719,14 +742,14 @@ export default function RunesOptim({
           />
         </div>
 
-        {/* Palier, mesure gemme/meule, filtre antique, « Faisable avec ma
-            réserve », « Sans les immémoriaux », « Runes utilisées » et
+        {/* Palier, mesure gemme/meule, « Autoriser un regemme différent »,
+            filtre antique, « Faisable avec ma réserve », « Sans les immémoriaux », « Runes utilisées » et
             « Marqueurs » : au BUREAU en ligne ici, sur TÉLÉPHONE dans le panneau
             « Options » (bouton de la barre de nav, voir la fin du composant).
 
             ⚠️ **`flex-wrap`, comme la rangée qui le contient.** Ce groupe est
             UN seul élément de la rangée parente : sans retour à la ligne
-            interne, il ne peut pas se réduire sous la largeur de ses sept
+            interne, il ne peut pas se réduire sous la largeur de ses huit
             contrôles et c'est la PAGE qui déborde par la droite — la rangée
             parente, elle, n'a rien à passer à la ligne, elle ne voit qu'un
             bloc. Le `gap-y` sépare les lignes ainsi créées. */}
@@ -757,7 +780,9 @@ export default function RunesOptim({
                 gemmée, on prend la stat grindable la plus rentable (PV%/ATQ%/DEF%/VIT, sinon un flat), sans
                 doublon et en respectant les emplacements (slot 1 sans DEF, slot 3 sans ATQ) — la stat de la
                 ligne elle-même compte (une ATQ% faible peut être regemmée en ATQ%). Si elle est déjà gemmée, on
-                garde la stat que tu as choisie : on ne fait que la « procker » au max.
+                garde la stat que tu as choisie : on ne fait que la « procker » au max — sauf avec{' '}
+                <b className="text-ink">Autoriser un regemme différent</b>, qui propose aussi de la remplacer
+                par une autre stat absente de la rune (seule la ligne déjà gemmée peut l'être).
               </p>
               <p className="mt-2">
                 <span className="text-ink font-semibold">Gain</span> = potentiel − efficience actuelle : ce
@@ -853,8 +878,8 @@ export default function RunesOptim({
         </div>
       </div>
 
-      {/* AU DOIGT : panneau « Options » (palier, mesure gemme/meule, filtre
-          antique, « Faisable avec ma réserve », « Sans les immémoriaux »,
+      {/* AU DOIGT : panneau « Options » (palier, mesure gemme/meule, regemme
+          différent, filtre antique, « Faisable avec ma réserve », « Sans les immémoriaux »,
           « Runes utilisées », « Marqueurs »). Le bouton qui l'ouvre vit dans la
           barre de nav — voir App.tsx (`pageAPanneau`). Sets, slots, tri et aide
           restent dans la page. */}
@@ -903,6 +928,7 @@ export default function RunesOptim({
             row={row}
             scenario={scenario}
             withGem={withGem}
+            regemLibre={regemLibre}
             noDowngrade={verifie}
             restreint={verifie}
             stock={stockDispo ? stock : null}
@@ -940,6 +966,7 @@ export const OptimTile = memo(function OptimTile({
   row,
   scenario,
   withGem,
+  regemLibre,
   noDowngrade,
   restreint,
   stock,
@@ -950,6 +977,7 @@ export const OptimTile = memo(function OptimTile({
   row: OptimRow;
   scenario: 'hero' | 'legend';
   withGem: boolean;
+  regemLibre: boolean;
   noDowngrade: boolean;
   restreint: boolean; // le plan se limite à ce que la réserve permet
   stock: CraftStock | null;
@@ -1024,6 +1052,7 @@ export const OptimTile = memo(function OptimTile({
           rune={rune}
           scenario={scenario}
           withGem={withGem}
+          regemLibre={regemLibre}
           noDowngrade={noDowngrade}
           restreint={restreint}
           stock={stock}
@@ -1112,6 +1141,7 @@ export function OptimPlanBox({
   rune,
   scenario,
   withGem,
+  regemLibre = false,
   noDowngrade = false,
   restreint = false,
   stock = null,
@@ -1119,6 +1149,7 @@ export function OptimPlanBox({
   rune: RuneDetail;
   scenario: 'hero' | 'legend';
   withGem: boolean;
+  regemLibre?: boolean;
   noDowngrade?: boolean;
   restreint?: boolean;
   stock?: CraftStock | null;
@@ -1133,7 +1164,7 @@ export function OptimPlanBox({
 
   // Le plan affiché doit être CELUI du chiffre affiché : sous le filtre, il se
   // limite lui aussi à ce que la réserve permet.
-  const plan = runePlan(rune, scenario, withGem, metric, noDowngrade, restreint ? dispo : undefined);
+  const plan = runePlan(rune, scenario, withGem, metric, noDowngrade, restreint ? dispo : undefined, regemLibre);
   const gain = plan.targetEff - plan.eff;
 
   return (

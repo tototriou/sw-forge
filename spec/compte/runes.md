@@ -626,7 +626,10 @@ un écran de résultats, et la place libérée profite immédiatement.
 - **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques (`AncientFilter`,
   le **3 états** commun — voir l'onglet Optimisation).
 - **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
-- **Mode** : **Gemme + meule** / **Meule seule** (voir Optimisation).
+- **Mode** : **Gemme + meule** / **Meule seule** (voir Optimisation), suivi du
+  bouton **« Autoriser un regemme différent »** (éteint par défaut, grisé en
+  « Meule seule » — voir Optimisation § Modes). La rangée passe à la ligne
+  (`flex-wrap`) au lieu de déborder sur téléphone.
 - **Aide « ? »** superposée en coin du graphe (popup fermable au clic extérieur)
   expliquant la lecture et renvoyant vers l'Optimisation.
 
@@ -867,9 +870,12 @@ distinctes**) :
     **procker au max** (porter la base de la gemme au max si elle n'y est pas
     déjà). Rien si déjà au max.
     - ⚠️ **Choix produit, pas règle du jeu.** Le jeu permet de regemmer la ligne
-      gemmée avec **une autre stat** absente de la rune. On ne le propose pas :
-      l'outil n'optimise que l'efficience, et le joueur a pu gemmer cette stat
-      pour une autre raison — on ne remet pas sa décision en cause.
+      gemmée avec **une autre stat** absente de la rune. On ne le propose pas
+      **par défaut** : l'outil n'optimise que l'efficience, et le joueur a pu
+      gemmer cette stat pour une autre raison — on ne remet pas sa décision en
+      cause. Le bouton **« Autoriser un regemme différent »** (voir Modes) lève
+      ce choix ; seule la ligne **déjà gemmée** peut alors changer de stat (une
+      gemme par rune).
   - total de la stat gemmée = `gemMax + grindMax`.
 
 **Toutes les tables de valeurs** (grind max & base max de gemme,
@@ -881,6 +887,16 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
 - **Gemme + meule** (défaut) : potentiel complet ci-dessus.
 - **Meule seule** : garde les **stats actuelles** (aucune gemme), ne pousse que les
   meules → pour repérer les runes à **grinder en priorité**.
+- **« Autoriser un regemme différent »** — bouton, **éteint par défaut**, mémorisé
+  (`optim.regemLibre`). Allumé, une rune **déjà gemmée** peut voir sa ligne
+  gemmée remplacée par **une autre stat** absente de la rune (mêmes exclusions et
+  emplacements qu'une rune vierge) ; éteint, sa stat reste figée. **Grisé en
+  « Meule seule »** : sans gemme, rien à regemmer. Même bouton dans **Courbes**,
+  réglage mémorisé à part (`runesCurve.regemLibre`), comme le mode gemme/meule.
+  - ⚠️ **Un réglage du CALCUL, pas un filtre** : il change le potentiel, le
+    gain, le plan « Actuel | Optimisé » et la faisabilité sous « Faisable avec
+    ma réserve » (la gemme réclamée peut devenir une autre). Le Résumé, lui,
+    n'a pas ce bouton et reste sur la règle par défaut.
 
 ### Affichage & interactions
 
@@ -940,18 +956,18 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
 - **Aide « ? »** sur la ligne des filtres — le composant partagé
   [HelpPopover](src/components/HelpPopover.tsx) (bulle à la souris, **panneau
   montant** au doigt), voir l'onglet Courbes § « L'aide a DEUX supports ». Elle
-  détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce qu'il
+  détaille les deux modes, le choix de la gemme (dont le regemme différent), le gain, **le palier** (ce qu'il
   mesure et sa reconversion), **les icônes marteau/gemme** du plan, le filtre
   de réserve, **« Sans les immémoriaux »**, **« Runes utilisées »** et
   **« Marqueurs »**.
 
-#### ⚠️ Le panneau « Options » (mobile) ne prend que sept contrôles
+#### ⚠️ Le panneau « Options » (mobile) ne prend que huit contrôles
 
 Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
 téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
 **grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
-sept** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
-**filtre antique**, **« Faisable avec ma réserve »**, **« Sans les
+huit** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
+**« Autoriser un regemme différent »**, **filtre antique**, **« Faisable avec ma réserve »**, **« Sans les
 immémoriaux »**, **« Runes utilisées »** et **« Marqueurs »**. **Sets, slot, tri
 et l'aide restent dans la page**, à tous les formats.
 
@@ -961,12 +977,13 @@ et l'aide restent dans la page**, à tous les formats.
   de ses contrôles, et c'est la **page** qui déborde par la droite — la
   rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Constaté au
   sixième contrôle, sur un écran de bureau ordinaire.
-- Les sept sont écrits **une fois** (`optionsControls`) et posés à deux
+- Les huit sont écrits **une fois** (`optionsControls`) et posés à deux
   endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
   doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
   largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
-- ⚠️ **Dans le panneau, tout occupe la largeur — les quatre boutons aussi.**
-  Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve »,
+- ⚠️ **Dans le panneau, tout occupe la largeur — les cinq boutons aussi.**
+  Les segmentés sont pleins (`size="lg"`) ; « Autoriser un regemme différent »,
+  « Faisable avec ma réserve »,
   « Sans les immémoriaux », « Runes utilisées » et « Marqueurs » prennent donc
   eux aussi toute la colonne (`pleineLargeur={large}`), sinon ils pendaient
   seuls, à la largeur de leur texte, sous des contrôles pleins. En ligne au
@@ -990,7 +1007,7 @@ et l'aide restent dans la page**, à tous les formats.
   son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
   active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
   voir [AncientFilter](src/components/account/AncientFilter.tsx).
-- ⚠️ Au **bureau, rien ne change** : les sept restent visibles dans la rangée
+- ⚠️ Au **bureau, rien ne change** : les huit restent visibles dans la rangée
   de filtres. Le panneau n'existe que sous `lg`.
 
 ### Filtres à cases — `FiltreACases`

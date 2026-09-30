@@ -442,3 +442,72 @@ export function testGemmeMemeStat() {
   };
   egal(runePotential(gemmee, true, 'eff').legendGem, null, 'rune gemmée : la stat choisie par le joueur n’est pas remplacée');
 }
+
+export function testRegemmeDifferent() {
+  titre('« Autoriser un regemme différent »');
+
+  // Règles du jeu relevées par l'utilisateur : une rune déjà gemmée peut
+  // regemmer sa ligne gemmée avec une AUTRE stat absente de la rune — mais
+  // seulement cette ligne-là (une gemme par rune). Par défaut l'outil ne le
+  // propose pas (choix produit) ; l'option le lève.
+  const base: RuneDetail = {
+    id: 21,
+    slot: 2,
+    set: 'violent',
+    rank: 6,
+    rarity: 5,
+    level: 15,
+    main: { code: 1, value: 2448 },
+    subs: [],
+  };
+
+  // DEF plat gemmée, déjà à sa base max (40) ; DEF% absente de la rune.
+  const defPlate: RuneDetail = {
+    ...base,
+    subs: [
+      { code: 5, value: 40, enchant: true },
+      { code: 4, value: 8 },
+      { code: 2, value: 8 },
+      { code: 8, value: 6 },
+    ],
+  };
+  egal(runePotential(defPlate, true, 'eff').legendGem, null, 'éteinte : la DEF plate gemmée reste en place');
+  const libre = runePotential(defPlate, true, 'eff', false, undefined, true);
+  egal(libre.legendGem, 6, 'allumée : la ligne gemmée passe en DEF%');
+  ok(libre.legendEff > runePotential(defPlate, true, 'eff').legendEff, 'et le potentiel augmente');
+
+  const plan = runePlan(defPlate, 'legend', true, 'eff', false, undefined, true);
+  const ligne = plan.subs[0];
+  ok(ligne.isGem && ligne.fromCode === 5 && ligne.code === 6, 'le plan remplace la ligne gemmée, pas une autre');
+  egal([ligne.base, ligne.grind], [13, 10], 'gemme DEF% légendaire (13) puis meule (10)');
+  ok(
+    planNeeds(plan).some((n) => n.kind === 'gem' && n.stat === 6),
+    'la réserve est interrogée sur une gemme DEF%, plus sur une DEF plate'
+  );
+
+  // ⚠️ Seule la ligne DÉJÀ gemmée peut changer : l'ATQ% faible (5) gagnerait
+  // plus à devenir DEF%, mais la rune a déjà sa gemme sur la VIT.
+  const vitGemmee: RuneDetail = {
+    ...base,
+    subs: [
+      { code: 4, value: 5 },
+      { code: 8, value: 10, enchant: true },
+      { code: 2, value: 8 },
+      { code: 11, value: 8 },
+    ],
+  };
+  const planVit = runePlan(vitGemmee, 'legend', true, 'eff', false, undefined, true);
+  egal(planVit.gemCode, 6, 'un regemme est bien proposé (VIT → DEF%) — le test ne passe pas à vide');
+  ok(
+    planVit.subs.every((s, j) => !s.isGem || j === 1),
+    'aucune autre ligne que la ligne gemmée n’est regemmée'
+  );
+
+  // Rune vierge : l'option ne change rien, toute ligne y était déjà candidate.
+  const vierge: RuneDetail = { ...vitGemmee, subs: vitGemmee.subs.map((s) => ({ ...s, enchant: undefined })) };
+  egal(
+    runePotential(vierge, true, 'eff', false, undefined, true),
+    runePotential(vierge, true, 'eff'),
+    'rune jamais gemmée → même potentiel avec ou sans l’option'
+  );
+}

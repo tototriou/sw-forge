@@ -312,7 +312,10 @@ Total d'une stat gemmée = **`gemMax + grindMax`** (même code).
 3. **Gemme** :
    - Rune **déjà gemmée** (un substat a `enchant`) : la stat est **figée** —
      **choix produit** : le jeu autoriserait de la regemmer vers une autre stat
-     absente de la rune, voir [runes.md](runes.md). Seule option = **proc max** : base du gemmé =
+     absente de la rune, voir [runes.md](runes.md) ; l'option `regemLibre`
+     (« Autoriser un regemme différent ») lève ce choix : la **ligne gemmée seule**
+     est alors traitée comme le *slot* d'une rune non gemmée ci-dessous (toute stat
+     `Y` candidate, base `max(base, gemMax)` si `Y` = sa stat). Sans l'option, seule option = **proc max** : base du gemmé =
      `max(base actuelle, gemMax[code])`, puis grind. On garde si l'efficience
      augmente ; **si la gemme est déjà à sa base max, aucun gain gemme** (on reste
      sur le grind seul).

@@ -1581,7 +1581,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     relique, neutre. Hors `recherche`, le tri et les cartes ignoraient
     l'effet unique de la relique portée, que la file comptait pourtant pour
     choisir la paire. Les options viennent d'`optionsDeClassement`
-    (runeBuildOptim.ts), le producteur même que les tests appellent.
+    (runeBuildOptim.ts), le producteur même que les tests appellent — et
+    le script CLI (`optimizer-search.ts`) : en `off`/`equipped`, son tri et
+    ses scores comptent l'effet unique de la relique portée ; en
+    `recherche`, apport neutre, faute de résolution de la relique de chaque
+    build au CLI (à venir, degats-et-aura 6bis-b5c). Sa console le dit
+    (« Effet unique de relique dans le tri : … »).
     Même règle pour un **tri par PV, ATQ ou DEF** : les points
     Bravoure/Éternité/Origine entrent dans la valeur qui classe. ⚠️ Écart
     connu, non corrigé : la carte affiche les stats hors combat

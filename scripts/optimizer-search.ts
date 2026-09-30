@@ -55,7 +55,8 @@ import {
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { buildRealDamageContext } from './lib/realDamageCli';
-import { NearMiss, RechercheRefusee, aurasPropresParRunes, candidateMetricTotal, scoreDuCandidat, sortCandidates } from '../src/lib/runeBuildOptim';
+import { NearMiss, RechercheRefusee, aurasPropresParRunes, candidateMetricTotal, optionsDeClassement, scoreDuCandidat, sortCandidates } from '../src/lib/runeBuildOptim';
+import { etatReliqueDuBuild } from '../src/lib/relicQueue';
 import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -416,14 +417,35 @@ if (recipe.objective === 'degats_reels' && !realDamage) {
   console.warn(`⚠️ Aucun sort calculable pour ${loaded.monsterName} — le classement reste dans l'ordre de collecte.`);
 }
 const runeByIdPool = new Map(params.pool.map((r) => [r.id, r]));
-const optionsDuTri = {
+const setupDuTri = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+// ⚠️ Le MÊME producteur que l'écran (`optionsDeClassement`, 6bis-b5a) : un
+// champ ajouté d'un côté ne peut plus manquer de l'autre en silence.
+const optionsDuTri = optionsDeClassement({
   realDamage,
-  damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+  damageSetup: setupDuTri,
   runeById: runeByIdPool,
   metric: recipe.metric,
   // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
   aurasPropresDe: aurasPropresParRunes(runeByIdPool),
-};
+  // Aucune paire résolue par build au CLI : celle de `params.artifacts`,
+  // déjà portée par `realDamage`, pour tous.
+  artefactsDuBuild: () => null,
+  // Aucune résolution de relique par build non plus (6bis-b5c) : sans
+  // cache, `etatReliqueDuBuild` rend `fixe` en `off`/`equipped` — la relique
+  // de la fiche, `params.relic` (= `loaded.gear.relic`), celle dont le moteur
+  // a posé la principale dans `c.stats` — et `en attente` en `recherche` :
+  // neutre, sans repli, comme l'écran avant résolution.
+  etatReliqueDe: () => etatReliqueDuBuild(undefined, params.relicContext, params.relic),
+  contexteExclusive: { setup: setupDuTri, element: loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null },
+});
+{
+  const etat = etatReliqueDuBuild(undefined, params.relicContext, params.relic);
+  console.log(
+    etat.etat === 'fixe'
+      ? `Effet unique de relique dans le tri : ${etat.relique ? 'compté (relique de la fiche)' : 'aucune relique'}`
+      : 'Effet unique de relique dans le tri : neutre (mode recherche — aucune relique résolue par build au CLI)'
+  );
+}
 const classes = sortCandidates(result.candidates, recipe.objective, optionsDuTri);
 console.log(`\nLes 20 meilleurs pour l'objectif « ${recipe.objective} » :`);
 // ⚠️ Le score affiché est `scoreDuCandidat` avec les options MÊMES du tri

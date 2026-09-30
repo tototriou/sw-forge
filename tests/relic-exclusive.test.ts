@@ -425,6 +425,11 @@ export function testRelicClassementParMode() {
     ok(/etatRelique=\{etatReliqueDe\(c\)\}/.test(ecran), 'écran : la relique affichée par la carte est celle que le score compte');
     ok(/const etatReliqueDe = useCallback\([\s\S]{0,300}?\[fileArtefacts\.parBuild, relicContextRecherche, selected\?\.gear\.relic\]/.test(ecran),
       'écran : etatReliqueDe dépend de la PIÈCE de la fiche (objet), pas de son identifiant');
+    // Le CLI : même producteur ; sans cache de file, `fixe` en off/equipped
+    // (relique de la fiche, `SearchParams.relic`), `en attente` en recherche.
+    const cli = readFileSync('scripts/optimizer-search.ts', 'utf8');
+    ok(/const optionsDuTri = optionsDeClassement\(\{[\s\S]{0,1500}?etatReliqueDe: \(\) => etatReliqueDuBuild\(undefined, params\.relicContext, params\.relic\)/.test(cli),
+      'CLI : les options du tri viennent d’optionsDeClassement, relique de la fiche via SearchParams.relic');
   }
 }
 

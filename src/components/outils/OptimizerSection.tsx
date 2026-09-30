@@ -72,6 +72,7 @@ import {
   sortCandidates,
   scoreDuCandidat,
   optionsDeClassement,
+  scoreDeReference,
   candidateMetricTotal,
   pvEffectifs,
   aurasPropresParRunes,
@@ -86,7 +87,6 @@ import { monsterBaseStats } from '../../lib/stats';
 import {
   DEFAULT_DAMAGE_SETUP,
   aurasPropresDesRunes,
-  computeTotalDamage,
   damageRelevantStats,
   degatsBrutsArtefactsParCoup,
   monsterBonusDegatsConditionnel,
@@ -1166,22 +1166,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // (paire représentative, bloc « Meilleurs artéfacts »). Sans rune, zéro.
   const aurasPropresFiche = useMemo(() => aurasPropresDesRunes(selected?.gear.runes ?? []), [selected]);
   /**
-   * Les deux autres valeurs de référence du bouton « Comparer » : les PV
-   * effectifs et l'efficience/score total de la fiche.
-   *
-   * ⚠️ `pvEffectifs` vient de `runeBuildOptim`, la même fonction que celle qui
-   * CLASSE les candidats — recopier sa formule ici aurait donné deux nombres
-   * qui divergent au premier ajustement du facteur de défense.
+   * La référence d'efficience/score total du bouton « Comparer » (celles des
+   * PV effectifs et des dégâts réels : `refEhp`/`refDegats`, plus bas).
    *
    * ⚠️ L'efficience se somme sur les runes de la fiche dans la mesure
    * COURANTE, comme `candidateMetricTotal` le fait pour un candidat : figer la
    * mesure de la recherche donnerait un écart faux dès qu'on bascule
    * Efficience ↔ Score sans relancer.
    */
-  const refEhp = useMemo(
-    () => (statsReference ? pvEffectifs(statsReference, aurasPropresFiche, damageSetup) : null),
-    [statsReference, aurasPropresFiche, damageSetup]
-  );
   const refMetric = useMemo(
     () =>
       selected
@@ -1349,6 +1341,32 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const contexteExclusive = useMemo(
     () => ({ setup: damageSetup, element: speciesMonster?.element ?? null }),
     [damageSetup, speciesMonster?.element]
+  );
+
+  /**
+   * Les valeurs de référence « PV effectifs » et « Dégâts réels » du bouton
+   * « Comparer » : la FICHE notée comme un candidat, par `scoreDeReference`
+   * (runeBuildOptim.ts) — ses stats, ses auras propres, le profil de SA paire
+   * d'artéfacts et l'effet unique de SA relique, avec des options propres à
+   * la référence, jamais les accesseurs du cache des résultats.
+   *
+   * ⚠️ Jusqu'à 6bis-b4, l'écart « Dégâts réels » mêlait les stats de la fiche
+   * au profil de `searchArtifacts` (la paire de la recherche, hypothétique
+   * comprise) et omettait l'effet unique des deux côtés de la référence :
+   * faux dans les deux sens (degats-et-aura 6bis-b5a). Déclarées APRÈS
+   * `contexteExclusive`, qu'elles lisent pendant le rendu.
+   */
+  const contexteReference = useMemo(
+    () => ({ degats: contexteDegatsArtefacts, damageSetup, exclusive: contexteExclusive }),
+    [contexteDegatsArtefacts, damageSetup, contexteExclusive]
+  );
+  const refEhp = useMemo(
+    () => (selected ? scoreDeReference('ehp', selected.gear, contexteReference) : null),
+    [selected, contexteReference]
+  );
+  const refDegats = useMemo(
+    () => (selected ? scoreDeReference('degats_reels', selected.gear, contexteReference) : null),
+    [selected, contexteReference]
   );
 
   const sortesFigees = useMemo<ArtifactKind[]>(
@@ -5030,31 +5048,13 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                           total,
                           partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
                           // ⚠️ L'écart se calcule contre les dégâts de la
-                          // RÉFÉRENCE, recalculés avec ses propres stats et sa
-                          // propre paire d'artéfacts — jamais contre le total
-                          // d'un autre candidat. `realDamage.artefacts` est la
-                          // paire de la fiche, celle qui accompagne
-                          // `statsReference`.
+                          // RÉFÉRENCE (`refDegats`) : la fiche notée avec SES
+                          // stats, SA paire d'artéfacts et SA relique — jamais
+                          // contre le total d'un autre candidat, jamais avec
+                          // la paire de la recherche (6bis-b5a).
                           delta:
-                            compareKey === c.runeIds.join('-') && statsReference
-                              ? total -
-                                computeTotalDamage(
-                                  realDamage.profile,
-                                  realDamage.passifs,
-                                  statsReference,
-                                  realDamage.setup,
-                                  aurasPropresFiche,
-                                  realDamage.element,
-                                  realDamage.artefacts,
-                                  realDamage.critSiPlusRapide,
-                                  realDamage.bonusDegatsSelonVit,
-                                  realDamage.bonusDegatsStack,
-                                  realDamage.monsterWide,
-                                  realDamage.bonusDegatsConditionnel,
-                                  realDamage.bonusDegatsSelonCr,
-                                  realDamage.bonusDegatsSelonDef,
-                                  realDamage.bonusSiAtqSeuil
-                                )
+                            compareKey === c.runeIds.join('-') && refDegats != null
+                              ? total - refDegats
                               : undefined,
                         };
                       })()

@@ -1568,8 +1568,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     Bravoure/Éternité/Origine pour les PV effectifs). La carte recopiait
     `computeTotalDamage` puis `pvEffectifs` sans cet apport : en mode
     relique `recherche`, un build classé premier par sa Conquête affichait un
-    chiffre inférieur à celui du suivant. L'écart « Comparer » reste calculé
-    contre la fiche sans exclusive de relique : voir `pistes.md`.
+    chiffre inférieur à celui du suivant. L'écart « Comparer » note la fiche
+    de la même façon, avec SA paire et SA relique : voir « Comparer, valider
+    sans recherche et persistance ».
     ⚠️ **L'effet unique compte dans les trois modes de relique**
     (degats-et-aura 6bis-b5a) — la relique est celle que la carte affiche
     (`etatReliqueDuBuild`, une seule expression pour la case et le score) :
@@ -1814,6 +1815,17 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     comparaison qui compte.
   - ⚠️ L'écart de **dégâts** est recalculé contre les stats ET la paire
     d'artéfacts de la référence, jamais contre le total d'un autre candidat.
+  - ⚠️ **Les écarts de dégâts et de PV effectifs notent la fiche comme un
+    candidat** (degats-et-aura 6bis-b5a, `scoreDeReference`,
+    runeBuildOptim.ts) : ses stats, les activations d'aura de ses runes, le
+    profil de SA paire d'artéfacts et l'effet unique de SA relique
+    (Conquête ; Ténacité et points Bravoure/Éternité/Origine), par la même
+    fonction de score que les cartes, avec des options propres à la
+    référence — jamais celles du cache des résultats. Tout se déduit de la
+    fiche : aucun appelant ne peut mêler deux équipements. Auparavant, les
+    stats de la fiche étaient notées avec le profil de la paire de la
+    RECHERCHE (`searchArtifacts`), et sans l'effet unique : l'écart pouvait
+    être faux dans les deux sens. À équipement identique, l'écart vaut 0.
   - ⚠️ Les écarts **nuls sont affichés**, en gris. Ne montrer que les stats
     qui changent ferait une liste de longueur variable d'une carte à l'autre,
     et laisserait croire qu'une stat absente n'a pas été comparée.

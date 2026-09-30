@@ -67,6 +67,7 @@ import {
   DamageSetup,
   aurasPropresDesRunes,
   aurasPropresDesSetsActifs,
+  artifactDamageProfile,
   nombreAura,
   pointsAuraResPre,
   pointsAuraResPrePropres,
@@ -1049,6 +1050,41 @@ export function optionsDeClassement(e: {
       );
     },
   };
+}
+
+/**
+ * La valeur de RÉFÉRENCE du bouton « Comparer » : la FICHE (`selected.gear`,
+ * build validé compris) notée comme un candidat, par `scoreDuCandidat`, avec
+ * des options PROPRES à la référence — jamais les accesseurs du cache des
+ * résultats (degats-et-aura 6bis-b5a).
+ *
+ * Tout se déduit de `fiche`, pour qu'aucun appelant ne puisse mêler deux
+ * équipements : ses stats (`computeStats`, principale de la relique
+ * comprise), ses auras propres, le profil de SA paire d'artéfacts et l'effet
+ * unique de SA relique. ⚠️ Le profil d'artéfacts éventuellement présent dans
+ * `contexte.degats` est IGNORÉ : l'ancien écart « Dégâts réels » notait les
+ * stats de la fiche avec le profil de `searchArtifacts` (la paire de la
+ * recherche), et sans l'effet unique — faux dans les deux sens.
+ */
+export function scoreDeReference(
+  critere: StatKey | Objective,
+  fiche: GearSet,
+  contexte: {
+    degats: Omit<RealDamageContext, 'artefacts'> | null;
+    damageSetup: DamageSetup;
+    exclusive: { setup: DamageSetup; element: ElementKey | null };
+  }
+): number | null {
+  const stats = computeStats(fiche);
+  const propres = aurasPropresDesRunes(fiche.runes);
+  const apport = apportExclusive(fiche.relic, stats, contexte.exclusive.setup, propres, contexte.exclusive.element);
+  const pseudo: BuildCandidate = { runeIds: [], stats, effTotal: 0 };
+  return scoreDuCandidat(pseudo, critere, {
+    realDamage: contexte.degats ? { ...contexte.degats, artefacts: artifactDamageProfile(fiche.artifacts) } : null,
+    damageSetup: contexte.damageSetup,
+    aurasPropresDe: () => propres,
+    exclusiveDuBuild: () => apport,
+  });
 }
 
 // Le score d'UN candidat pour ce critère — `null` quand le contexte nécessaire

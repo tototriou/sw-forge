@@ -23,6 +23,8 @@ import {
   AUCUNE_AURA_PROPRE, ARTIFACT_DAMAGE_NEUTRE,
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
+  artifactDamageProfile,
+  computeTotalDamage,
   computeSkillDamageDetail,
   estPrisEnCharge,
   skillDamageProfile,
@@ -35,13 +37,13 @@ import { Competence } from '../src/lib/monsterSkills';
 import { APPORT_NEUTRE, apportExclusive, facteurTenacite, statsAvecApport, tranchesAtteintes } from '../src/lib/relicExclusive';
 import { exclusiveChiffrable } from '../src/lib/relicOptim';
 import { RELIC_UNIQUE } from '../src/lib/effects';
-import { aurasPropresParRunes, objectiveScore, optionsDeClassement, pvEffectifs, scoreDuCandidat, sortCandidates, statTotal } from '../src/lib/runeBuildOptim';
+import { aurasPropresParRunes, objectiveScore, optionsDeClassement, pvEffectifs, scoreDeReference, scoreDuCandidat, sortCandidates, statTotal } from '../src/lib/runeBuildOptim';
 import type { BuildCandidate, RealDamageContext } from '../src/lib/runeBuildOptim';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import { etatReliqueDuBuild } from '../src/lib/relicQueue';
 import { cleBuild, signatureArtefacts, type ResultatArtefacts } from '../src/lib/artifactQueue';
 import type { RelicIntent } from '../src/hooks/useOptimizerState';
-import type { RuneDetail } from '../src/types';
+import type { ArtifactDetail, GearSet, RuneDetail } from '../src/types';
 import { readFileSync } from 'node:fs';
 import { rune } from './relic-search.test';
 import { egal, ok, titre } from './outils';
@@ -424,4 +426,100 @@ export function testRelicClassementParMode() {
     ok(/const etatReliqueDe = useCallback\([\s\S]{0,300}?\[fileArtefacts\.parBuild, relicContextRecherche, selected\?\.gear\.relic\]/.test(ecran),
       'écran : etatReliqueDe dépend de la PIÈCE de la fiche (objet), pas de son identifiant');
   }
+}
+
+/* --------------------------------------------------------------------------
+ * degats-et-aura 6bis-b5a — « Comparer » : la FICHE notée comme un candidat
+ * (`scoreDeReference`, le producteur que l'écran appelle) — ses stats, ses
+ * auras propres, le profil de SA paire d'artéfacts, l'effet unique de SA
+ * relique. L'ancienne référence mêlait les stats de la fiche au profil de
+ * `searchArtifacts` et omettait l'effet unique. Attentes à la main :
+ * `computeTotalDamage` / `pvEffectifs` avec l'apport écrit en dur.
+ * ----------------------------------------------------------------------- */
+
+function artefact(id: number, kind: 'element' | 'archetype', subs: [number, number][]): ArtifactDetail {
+  return {
+    id, kind, ...(kind === 'element' ? { element: 'fire' as const } : { archetype: 'attack' as const }),
+    level: 15, rarity: 5, main: { code: 102, value: 100 }, subs: subs.map(([code, value]) => ({ code, value })),
+  };
+}
+
+export function testRelicReferenceComparer() {
+  titre('Relique — « Comparer » : la fiche notée avec SES artéfacts et SA relique (6bis-b5a)');
+
+  // Fiche : deux runes Fight (une activation propre) et quatre Violent ; sa
+  // paire porte 5 % de dégâts bruts sur l'ATQ (219). La paire de la
+  // recherche ne la porte pas. Principales d'artéfact identiques (DEF +100) :
+  // les stats sont les mêmes, seul le profil de dégâts diffère.
+  const runes = [1, 2, 3, 4, 5, 6].map((slot) => rune(7500 + slot, slot, [8, 0], [], slot <= 2 ? 'fight' : 'violent'));
+  const artsFiche = [artefact(7601, 'element', [[219, 5]]), artefact(7602, 'archetype', [])];
+  const artsRecherche = [artefact(7603, 'element', []), artefact(7604, 'archetype', [])];
+  const fiche = (relic: RelicDetail | undefined): GearSet => ({ base: BASE, runes, artifacts: artsFiche, relic });
+  const fightUne = { ...AUCUNE_AURA_PROPRE, fight: 1 };
+  const profilFiche = artifactDamageProfile(artsFiche);
+  const profilRecherche = artifactDamageProfile(artsRecherche);
+  egal([profilFiche.brutPctAtk, profilRecherche.brutPctAtk], [5, 0], 'précondition : les deux paires diffèrent par la ligne 219');
+
+  // Le contexte que l'écran passe : celui du combat. On y laisse EXPRÈS le
+  // profil de la paire de la recherche (ce que lisait l'ancienne référence) :
+  // la référence doit l'ignorer.
+  const degatsRecherche: RealDamageContext = { ...DEGATS, artefacts: profilRecherche };
+  const ctxRef = { degats: degatsRecherche, damageSetup: SETUP, exclusive: { setup: SETUP, element: null } };
+  const degats = (stats: ReturnType<typeof computeStats>, profil: typeof profilFiche, dmgPct: number) =>
+    computeTotalDamage(SORT_ATQ, [], stats, SETUP, fightUne, null, profil, false, null, null, {}, null, null, null, null, dmgPct);
+  const proche = (a: number | null, b: number) => a != null && Math.abs(a - b) < 1e-9 * Math.max(1, Math.abs(b));
+
+  /* ── Dégâts réels, Conquête ──────────────────────────────────────────── */
+  // ATQ 2 200 ; Y = 2 200 + ⌈2 000 × (20 invocateur + 8 Fight propre) %⌉
+  // = 2 760 → ⌊2 760 / 1 000⌋ × 2 = 4 %.
+  const statsConq = computeStats(fiche(CONQUETE));
+  egal(statTotal(statsConq, 'atk'), 2200, 'précondition : ATQ de la fiche 2 200');
+  const attenduConq = degats(statsConq, profilFiche, 4);
+  const ancienne = degats(statsConq, profilRecherche, 0);
+  ok(Math.abs(attenduConq - ancienne) > 1, `constat : l'ancienne référence (paire de la recherche, sans Conquête) valait ${ancienne.toFixed(1)}, la fiche vaut ${attenduConq.toFixed(1)}`);
+  ok(proche(scoreDeReference('degats_reels', fiche(CONQUETE), ctxRef), attenduConq),
+    `référence « Dégâts réels » : paire de la FICHE et Conquête 4 % (${attenduConq.toFixed(3)})`);
+  egal(scoreDeReference('degats_reels', fiche(undefined), ctxRef), degats(computeStats(fiche(undefined)), profilFiche, 0),
+    'référence sans relique : neutre, paire de la fiche');
+  const conqueteBis: RelicDetail = { ...CONQUETE, unique: { type: 1, tranche: 1000, percent: 3 } };
+  ok(proche(scoreDeReference('degats_reels', fiche(conqueteBis), ctxRef), degats(statsConq, profilFiche, 6)),
+    'référence : Conquête réimportée à 3 % (même id) → 6 %, la pièce et non son identifiant');
+
+  /* ── Écart nul à équipement identique ─────────────────────────────────── */
+  const runeById = new Map(runes.map((r) => [r.id, r]));
+  const candidat = (relic: RelicDetail): BuildCandidate => ({ runeIds: runes.map((r) => r.id), stats: computeStats(fiche(relic)), effTotal: 0 });
+  // Le build IDENTIQUE à la fiche, tel que l'écran le classe en `off` : sa
+  // paire résolue est celle de la fiche, la paire supposée celle de la
+  // recherche.
+  const optionsOff = (relic: RelicDetail) => optionsDeClassement({
+    realDamage: degatsRecherche, damageSetup: SETUP, runeById, metric: 'eff', aurasPropresDe: aurasPropresParRunes(runeById),
+    artefactsDuBuild: () => profilFiche,
+    etatReliqueDe: (c) => etatReliqueDuBuild(undefined, resoudreContexteRelique(intention('off'), relic, [relic]), relic),
+    contexteExclusive: { setup: SETUP, element: null },
+  });
+  const cConq = candidat(CONQUETE);
+  const ecartDegats = scoreDuCandidat(cConq, 'degats_reels', optionsOff(CONQUETE))! - scoreDeReference('degats_reels', fiche(CONQUETE), ctxRef)!;
+  ok(Math.abs(ecartDegats) < 1e-9, `« Comparer », Dégâts réels, équipement identique (Conquête) : écart ${ecartDegats}`);
+
+  /* ── PV effectifs, Ténacité ──────────────────────────────────────────── */
+  // PV 27 500 ; Y = 27 500 + ⌈25 000 × 20 %⌉ = 32 500 → 3 tranches × 1 = 3 %.
+  const statsTen = computeStats(fiche(TENACITE));
+  egal(statTotal(statsTen, 'hp'), 27500, 'précondition : PV de la fiche 27 500');
+  const attenduTen = pvEffectifs(statsTen, fightUne, SETUP) / (1 - 3 / 100);
+  ok(proche(scoreDeReference('ehp', fiche(TENACITE), ctxRef), attenduTen),
+    `référence « PV effectifs » : Ténacité 3 % (${attenduTen.toFixed(3)} ; sans elle ${pvEffectifs(statsTen, fightUne, SETUP).toFixed(3)})`);
+  const cTen = candidat(TENACITE);
+  const ecartEhp = scoreDuCandidat(cTen, 'ehp', optionsOff(TENACITE))! - scoreDeReference('ehp', fiche(TENACITE), ctxRef)!;
+  ok(Math.abs(ecartEhp) < 1e-9, `« Comparer », PV effectifs, équipement identique (Ténacité) : écart ${ecartEhp}`);
+
+  /* ── L'écran : les deux écarts lisent CE producteur ──────────────────── */
+  const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
+  ok(/scoreDeReference\('degats_reels', selected\.gear, contexteReference\)/.test(ecran) && /total - refDegats/.test(ecran),
+    'écran : l’écart « Dégâts réels » se calcule contre scoreDeReference');
+  ok(/scoreDeReference\('ehp', selected\.gear, contexteReference\)/.test(ecran) && /total - refEhp/.test(ecran),
+    'écran : l’écart « PV effectifs » se calcule contre scoreDeReference');
+  ok(!/computeTotalDamage\(/.test(ecran), 'écran : plus aucun computeTotalDamage recopié (ni candidat, ni référence)');
+  ok(/const contexteReference = useMemo\([\s\S]{0,200}?\[contexteDegatsArtefacts, damageSetup, contexteExclusive\]/.test(ecran)
+    && /const refDegats = useMemo\([\s\S]{0,200}?\[selected, contexteReference\]/.test(ecran),
+    'écran : les références dépendent de la fiche entière et du contexte de combat, jamais du cache des résultats');
 }

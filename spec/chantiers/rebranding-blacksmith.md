@@ -102,6 +102,9 @@ V0 → R7 (on ne refait pas un écran de plus sur des lots non relus)
    choisit.
 2. **Code, sans commit** — captures avant / après, bureau et téléphone,
    Forge et Atelier. Arrêt : Thomas regarde et dit « validé » ou corrige.
+   ⚠️ **L'arrêt donne la LISTE DES PAGES à vérifier** (Thomas, 2026-09-30) :
+   pour chacune, l'adresse (`#/…`), le geste à faire et ce qu'on doit voir,
+   numérotées pour qu'il réponde par numéro.
 3. **Commit, preuve, cadrage** — seulement après « validé ».
 
 « Continue » fait passer à l'étape suivante ; ce n'est pas une validation.
@@ -119,7 +122,7 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R6 Siège et Recommandations | J | fait — écrans gardés (38 à 40, 42, 45) ; couleurs d'état `a329378c`, icônes `f3198798`, carte d'ajout `fb770b5c` ; relecture de Thomas en attente | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
 | V0 relecture par Thomas de R3, R4, R6 et de la décision 46 (commités sans avoir été vus) | — | **validé par Thomas** (« tout est ok », sur une liste de 16 points) ; faute « équipe d'défense » à corriger | 2026-09-30 |
 | R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | **validé par Thomas** — écran gardé (48 à 50) ; rouge d'état et icône « Ami » `2f4fc0c5` | 2026-09-30, [lot-R7.md](rebranding-preuves/lot-R7.md) |
-| R8 Mon compte (Monstres, Runes, Artéfacts) | J | à faire | |
+| R8 Mon compte (Monstres, Runes, Artéfacts) | J | **validé par Thomas** — écrans gardés (51 à 53) ; rouges d'état `999a4c25`, tuiles d'Optimisation (54) `d52c438e` | 2026-09-30, [lot-R8.md](rebranding-preuves/lot-R8.md) |
 | R9a Bestiaire | J | à faire | |
 | R9b Mécaniques, Nouveautés | J | à faire | |
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | à faire | |
@@ -315,6 +318,25 @@ seules les décisions 43 et 44 s'y appliquent.
 
 L'en-tête et « Non classé » en tête de page sont gardés sans question, comme
 l'en-tête du Siège (décision 38) ; dit à Thomas.
+
+#### 51 à 54 — les questions du R8, Mon compte (Thomas, 2026-09-30)
+
+Relevé dans [lot-R8.md](rebranding-preuves/lot-R8.md). La refonte avait déjà
+reconstruit ces écrans sur sa maquette : la planche n'apporte rien qu'ils
+n'aient. Thomas demande à la relecture : « est-ce que tu ne ferais pas
+quelque chose qui a déjà été fait ? » — vérifié : les rouges `fire` du compte
+n'avaient été touchés par aucun commit.
+
+51. **Structure gardée** : trois inventaires, vues dans la barre latérale.
+52. **Cartes de rune du jeu gardées** (pas de tableau).
+53. **Icônes des vues gardées en lucide** (symboles de vue, comme les
+    actions).
+54. **Tuiles de l'Optimisation : une couleur par ligne** (demandé à la
+    relecture) — « Héro » tout en violet, « Légend » tout en or, la ligne
+    « actuelle » en braise, choisie sur planche (encre, braise, bleu ciel,
+    vert). Le vert / rouge du gain ne reste que dans le plan détaillé.
+    ⚠️ En Atelier, sur une légendaire, la braise foncée est quasi la couleur
+    d'avant (`166 79 17` contre `166 88 12`) : dit à Thomas.
 
 ## Partie B — les lots
 
@@ -547,7 +569,18 @@ planche dessine un classement S / A / B, qui n'est pas repris.
 icône « Ami » d'atelier (44). Premier lot aux deux arrêts de la décision 47 :
 relevé puis questions, code montré sans commit, « validé » de Thomas, commit.
 
-### R8 à R10
+### R8 — Mon compte · J
+
+**Écrit au démarrage (2026-09-30)**. Intrant : planche `BsCompte`,
+`spec/compte/` (sommaires), les dix vues capturées (Ma box, sept vues de
+Runes, deux d'Artéfacts).
+
+**Résultat (2026-09-30)** — preuve [lot-R8.md](rebranding-preuves/lot-R8.md).
+Écrans gardés (51 à 53). Deux commits : rouges d'état (43) `999a4c25` ;
+tuiles de l'Optimisation, une couleur par ligne (54) `d52c438e`, trois
+allers-retours avec Thomas avant son « validé ».
+
+### R9a à R10
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

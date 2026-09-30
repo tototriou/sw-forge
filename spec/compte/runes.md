@@ -856,11 +856,20 @@ distinctes**) :
 - **Gemme** :
   - rune **non gemmée** → on choisit **le meilleur substat à remplacer** par la
     **meilleure stat grindable** (PV%/ATQ%/DEF%/VIT, sinon un flat), **sans
-    doublon** (≠ principale / innée / autres substats) et en respectant les
+    doublon** (≠ principale / innée / **autres** substats) et en respectant les
     **emplacements** (slot 1 : pas de DEF ; slot 3 : pas d'ATQ) ;
-  - rune **déjà gemmée** → la stat gemmée est **figée** (on ne peut pas en gemmer
-    une autre) ; seul gain possible = **procker au max** (porter la base de la
-    gemme au max si elle n'y est pas déjà). Rien si déjà au max.
+    - ⚠️ **la stat du substat lui-même est candidate** : une ATQ% à 7 peut
+      recevoir une gemme ATQ% (base 13 en légendaire). Règle du jeu relevée par
+      l'utilisateur ; le calcul l'excluait jusque-là, ce qui **sous-estimait** le
+      potentiel quand les autres stats étaient déjà présentes ou interdites.
+      Retenue seulement si la base de gemme dépasse la base actuelle ;
+  - rune **déjà gemmée** → la stat gemmée est **figée** ; seul gain possible =
+    **procker au max** (porter la base de la gemme au max si elle n'y est pas
+    déjà). Rien si déjà au max.
+    - ⚠️ **Choix produit, pas règle du jeu.** Le jeu permet de regemmer la ligne
+      gemmée avec **une autre stat** absente de la rune. On ne le propose pas :
+      l'outil n'optimise que l'efficience, et le joueur a pu gemmer cette stat
+      pour une autre raison — on ne remet pas sa décision en cause.
   - total de la stat gemmée = `gemMax + grindMax`.
 
 **Toutes les tables de valeurs** (grind max & base max de gemme,

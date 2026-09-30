@@ -755,8 +755,9 @@ export default function RunesOptim({
               <p className="mt-2">
                 <span className="text-ink font-semibold">Choix de la gemme</span> : si la rune n'est pas
                 gemmée, on prend la stat grindable la plus rentable (PV%/ATQ%/DEF%/VIT, sinon un flat), sans
-                doublon et en respectant les emplacements (slot 1 sans DEF, slot 3 sans ATQ). Si elle est déjà
-                gemmée, la stat est figée : on ne fait que la « procker » au max.
+                doublon et en respectant les emplacements (slot 1 sans DEF, slot 3 sans ATQ) — la stat de la
+                ligne elle-même compte (une ATQ% faible peut être regemmée en ATQ%). Si elle est déjà gemmée, on
+                garde la stat que tu as choisie : on ne fait que la « procker » au max.
               </p>
               <p className="mt-2">
                 <span className="text-ink font-semibold">Gain</span> = potentiel − efficience actuelle : ce

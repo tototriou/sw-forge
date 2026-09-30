@@ -373,3 +373,72 @@ export function testPalier() {
   egal(paires.filter((p) => p.apres >= 300).length, 1, 'une seule rune passait, une seule passe encore');
   ok(paires.filter((p) => p.apres >= 204).length === 2, 'là où un ratio en aurait laissé passer deux');
 }
+
+export function testGemmeMemeStat() {
+  titre('Gemme : la stat de la ligne elle-même est candidate');
+
+  // ⚠️ RÈGLE DU JEU relevée par l'utilisateur, pas déduite : une rune jamais
+  // gemmée peut gemmer une ligne PAR SA PROPRE STAT (ATQ% faible → gemme ATQ%).
+  // Le calcul l'excluait (« gemme = remplacer par une AUTRE stat »).
+  //
+  // Montage : PV plat en principale et DEF plat en innée, ATQ% / PV% / DEF% /
+  // VIT en substats. Seule autre candidate : l'ATQ plate, qui ne vaut pas
+  // l'ATQ% qu'elle remplacerait. Ancienne règle → AUCUNE gemme proposée.
+  const vierge: RuneDetail = {
+    id: 11,
+    slot: 2,
+    set: 'violent',
+    rank: 6,
+    rarity: 5,
+    level: 15,
+    main: { code: 1, value: 2448 },
+    innate: { code: 5, value: 20 },
+    subs: [
+      { code: 4, value: 5 },
+      { code: 2, value: 8 },
+      { code: 6, value: 8 },
+      { code: 8, value: 6 },
+    ],
+  };
+  const pot = runePotential(vierge, true, 'eff');
+  egal(pot.legendGem, 4, 'légendaire : l’ATQ% faible est regemmée en ATQ%');
+  egal(pot.heroGem, 4, 'héroïque : idem');
+  ok(pot.legendGain > runePotential(vierge, false, 'eff').legendGain, 'et le potentiel dépasse la meule seule');
+
+  const plan = runePlan(vierge, 'legend', true, 'eff');
+  const ligne = plan.subs[0];
+  ok(ligne.isGem && ligne.fromCode === 4 && ligne.code === 4, 'le plan gemme la ligne ATQ% en ATQ%');
+  egal([ligne.base, ligne.grind], [13, 10], 'base de gemme légendaire (13) puis meule légendaire (10)');
+  ok(
+    planNeeds(plan).some((n) => n.kind === 'gem' && n.stat === 4),
+    'le plan réclame une gemme ATQ% à la réserve'
+  );
+
+  // Une ligne déjà au-dessus de la base de gemme ne se regemme pas : ce serait
+  // une perte, `best` ne la garde pas.
+  const haute: RuneDetail = {
+    ...vierge,
+    subs: [
+      { code: 4, value: 25 },
+      { code: 2, value: 25 },
+      { code: 6, value: 25 },
+      { code: 8, value: 22 },
+    ],
+  };
+  egal(runePotential(haute, true, 'eff').legendGem, null, 'lignes au-dessus du max de gemme → aucune gemme');
+
+  // ⚠️ CHOIX PRODUIT, pas règle du jeu : une rune DÉJÀ gemmée garde sa stat,
+  // même quand la regemmer vers une autre (ici DEF plat → DEF%, absente de la
+  // rune) rapporterait plus. DEF plat déjà à sa base max (40) → rien à faire.
+  const gemmee: RuneDetail = {
+    ...vierge,
+    innate: undefined,
+    subs: [
+      { code: 5, value: 40, enchant: true },
+      { code: 4, value: 8 },
+      { code: 2, value: 8 },
+      { code: 8, value: 6 },
+    ],
+  };
+  egal(runePotential(gemmee, true, 'eff').legendGem, null, 'rune gemmée : la stat choisie par le joueur n’est pas remplacée');
+}

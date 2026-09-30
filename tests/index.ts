@@ -7,7 +7,7 @@
 import { bilan } from './outils';
 import testImport from './import.test';
 import testPersistance from './persistance.test';
-import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
+import testMeules, { testGemmeMemeStat, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testArtefactOptim, {
   testRecettePartagee,
@@ -139,6 +139,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtifactPaireReelleEhp', testArtifactPaireReelleEhp],
   ['testRegistre', testRegistre],
   ['testSansDowngrade', testSansDowngrade],
+  ['testGemmeMemeStat', testGemmeMemeStat],
   ['testPalier', testPalier],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],

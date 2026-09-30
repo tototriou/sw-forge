@@ -143,7 +143,10 @@ function best(
 
   const gemmedIdx = subs.findIndex((s) => s.enchant);
 
-  // Rune DÉJÀ gemmée : la stat gemmée est FIXE (on ne peut pas en gemmer une autre).
+  // Rune DÉJÀ gemmée : la stat gemmée reste FIXE. ⚠️ C'est un CHOIX PRODUIT, pas
+  // une règle du jeu : le jeu permet de regemmer la ligne avec une autre stat
+  // absente de la rune, mais le joueur a peut-être gemmé pour autre chose que
+  // l'efficience, et on ne remet pas sa décision en cause.
   // Seul gain possible : « procker au max » — porter sa base au max de gemme si elle
   // n'y est pas déjà — puis grind. (Rien à faire si le proc est déjà au max.)
   if (gemmedIdx >= 0) {
@@ -168,7 +171,11 @@ function best(
     return { eff: bestEff, gemSlot: bestSlot, gemCode: bestCode };
   }
 
-  // Rune NON gemmée : on peut gemmer n'importe quel substat vers une AUTRE stat.
+  // Rune NON gemmée : on peut gemmer n'importe quel substat, vers une stat
+  // absente du reste de la rune — **y compris sa propre stat** (ATQ% à 7 →
+  // gemme ATQ% à 13) : règle du jeu relevée par l'utilisateur. Ce n'est
+  // retenu que si la base de gemme dépasse la base actuelle, sinon la valeur
+  // baisse et `best` ne le garde pas.
   // Stats interdites selon l'emplacement : slot 1 → pas de DEF (5/6), slot 3 → pas d'ATQ (3/4).
   const forbidden = new Set<number>();
   if (rune.slot === 1) {
@@ -184,7 +191,6 @@ function best(
       if (M[Y] == null) continue;
       if (dispo && !dispo('gem', Y)) continue; // gemme absente de la réserve
       if (forbidden.has(Y)) continue; // interdit sur cet emplacement
-      if (Y === subs[slot].code) continue; // gemme = remplacer par une AUTRE stat
       if (Y === rune.main.code) continue;
       if (rune.innate && Y === rune.innate.code) continue;
       let dup = false;
@@ -299,8 +305,9 @@ export function runePlan(
     const curBase = s.value - curGrind;
     if (j === b.gemSlot && b.gemCode != null) {
       const gmax = M[b.gemCode] ?? 0;
-      // Re-proc de la MÊME stat (rune déjà gemmée) → base = max(base actuelle, gemMax) ;
-      // nouvelle gemme (stat différente) → base = gemMax.
+      // Gemme de la MÊME stat (re-proc d'une rune gemmée, ou gemme de sa propre
+      // stat sur une rune vierge) → base = max(base actuelle, gemMax) — `best` ne
+      // la choisit que si gemMax l'emporte ; autre stat → base = gemMax.
       const base = b.gemCode === s.code ? Math.max(curBase, gmax) : gmax;
       const grind = gGemPlan(b.gemCode);
       return {

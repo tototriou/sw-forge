@@ -547,6 +547,27 @@ corriger ».**
 - La contre-revue a lu les registres par un `node -e`, en lecture seule,
   contre la consigne.
 
+**Contre-vérification ciblée du point 3 de O, le 2026-09-30, sur
+`080a4e28` : « à corriger ».** La garde suivie du miroir est conservée, sans
+fusion fichier par fichier, mais sous trois conditions :
+
+- la garde porte aussi sur l'inventaire physique du worktree documentaire,
+  fichiers ignorés compris (un fichier exclu passait sous une garde limitée
+  à l'arbre Git) ;
+- elle vient après une reprise vérifiée des opérations interrompues ;
+- la base de `rafraichir` n'avance qu'après la copie.
+
+Également relevés :
+
+- `integrer` ne touche pas la branche du chantier : aucun faux refus ;
+- aucune conversion de fins de ligne, puisque `.gitattributes` vaut
+  `* -text` ;
+- la casse se compare sur les chemins, jamais sur les empreintes ;
+- une faiblesse de reprise préexistante (L352) ;
+- sur les trois chantiers, la garde passerait aujourd'hui.
+
+Le pilote a amendé le contrat point par point ; **O est lançable**.
+
 #### Suivi des lots
 
 | Lot | Cat. | Statut | Commit / date |
@@ -593,7 +614,7 @@ corriger ».**
 | 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
 | 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | terminé, preuves rejouées par le pilote ; restauration des notes relique, revue externe corrigée | `2e896bfa`…`d52d2e94` ; reçu `d52d2e9` ↔ `da2886f` / 2026-09-30 |
 | 6bis-b3c — dominance et effet unique de la relique | J | terminé, preuves et mutation rejouées par le pilote | `756eb09c` + `ca15a281` ; reçu `ca15a28` ↔ `61364e2` / 2026-09-30 |
-| O — verrous de `chantier ouvrir` et `livrer` | J | contrat amendé après contre-revue ; contre-vérification ciblée du choix de `livrer` (point 3), puis après b3c | — |
+| O — verrous de `chantier ouvrir` et `livrer` | J | contrat amendé après contre-revue et contre-vérification ciblée du point 3 ; lançable | — |
 | 6bis-b5b — Meilleurs artéfacts et paire représentative | J | attend O | — |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | attend b5b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5c ; preuve `controle-6bis-b-revue-technique.md` | — |
@@ -3447,7 +3468,10 @@ et chronologie : `controle-restauration-relique.md` § Diagnostic. Deux trous :
   - `rafraichir` L1206 à la fin de la fonction ;
   - `integrer` L1075-1205, en lecture seulement ;
   - `dossierEtat` L158, `controlerIdentite` L271-306 (casse normalisée
-    sous win32, L275), `verifier` L687-1074.
+    sous win32, L275), `verifier` L687-1074 ;
+  - `estPropre` L99-100 et `listerFichiers` L111-130 ;
+  - reprises : `livraisonEnCours` L331-359, fusion de `rafraichir`
+    reconnue L377-397.
 - `tests/chantier.test.ts` : `testChantier` L612, `testChantierRafraichir`
   L352, `testChantierDeuxChantiers` L156.
 - `spec/chantiers/orchestration-parallele.md` : sections `ouvrir` (L239-246),
@@ -3465,7 +3489,18 @@ contre-revue du 2026-09-30 (O1 à O9).
    dernier : révision documentaire, liste des fichiers et empreintes.
    - Qui la pose : `ouvrir`, `livrer` après son commit, et `rafraichir`.
    - Son écriture résiste à une interruption entre copie, commit et
-     registre, avec la même discipline que `livraisonEnCours`.
+     registre, avec la même discipline que `livraisonEnCours`. Le journal
+     de reprise identifie l'**état attendu des notes**, pas seulement
+     « une avance qui touche les notes ou les reçus ». Faiblesse
+     préexistante à corriger : après le commit des notes, `revisionDocAttendue`
+     avance (L602) mais `livraisonEnCours.depuis` garde l'ancienne valeur,
+     si bien qu'une interruption après le commit du reçu échoue à la
+     reprise (L352). Une livraison qui ne change que le reçu n'a, elle,
+     aucun marqueur.
+   - `rafraichir` ne fait avancer la base qu'après la copie complète vers
+     les notes locales et son contrôle d'égalité (L1353-1363). Jamais à la
+     reconnaissance de la fusion (L390-391), qui avance déjà
+     `revisionDocAttendue`.
    - Coût : les empreintes par fichier viennent de la même lecture que
      `empreinteArbre`, sans passe de hachage en plus (`verifier` complet :
      1,4 s pour 874 fichiers et 261 Mo).
@@ -3491,27 +3526,52 @@ contre-revue du 2026-09-30 (O1 à O9).
        comme base.
      - Un retour arrière voulu se fait après l'ouverture, par une
        livraison.
-   - **Fins de ligne** : politique écrite et testée, pour la comparaison
-     comme pour la copie. Le dépôt documentaire a `core.autocrlf=true` ;
-     `artefacts.md` est en CRLF à `bcbb49a` et `153df29`, en LF à `6559ecc`.
-   - **Casse sous Windows** : comparaison insensible à la casse sous win32,
-     comme `controlerIdentite`. Un renommage qui ne change que la casse
-     passe par une suppression puis un ajout explicites, jamais par le seul
-     miroir.
-3. **`livrer`** commence par une garde : l'arbre des notes de la branche
-   documentaire doit être égal à la base synchronisée.
-   - Sinon, cette branche porte du contenu que les notes locales n'ont
-     jamais reçu : refus nommé, liste des chemins, marche à suivre
-     (`rafraichir`, ou fusion manuelle si les notes ont été adoptées).
-   - Une fois la garde passée, la copie miroir actuelle est exactement le
-     delta base → notes locales : suppressions, modifications et renommages
-     locaux légitimes passent.
-   - Après le commit, la base devient le nouvel état.
-   - La branche documentaire ne change que par `livrer` et `rafraichir`,
-     qui posent tous deux la base : la garde ne crée aucun faux refus dans
-     le flux normal. Ce choix remplace la fusion fichier par fichier
-     proposée par la revue, inutile dans ce flux ; `copierMiroir` reste,
-     derrière la garde.
+   - **Fins de ligne** : comparaison des octets tels que le dépôt
+     documentaire les archive, sans normalisation. Son `.gitattributes`
+     (`* -text`) désactive toute conversion, quel que soit `core.autocrlf`.
+     Une différence CRLF/LF entre deux révisions est donc réelle :
+     `artefacts.md` est en CRLF à `bcbb49a` et `153df29`, en LF à `6559ecc`
+     (contre-vérification du 2026-09-30).
+   - **Casse sous Windows** : la correspondance des CHEMINS est insensible à
+     la casse sous win32, comme `controlerIdentite`, sans toucher aux
+     empreintes de contenu ; deux chemins Git distincts qui donnent la même
+     clé Windows sont refusés. Un renommage qui ne change que la casse passe
+     par une suppression puis un ajout explicites, jamais par le seul miroir
+     (`copierMiroir` utilise un `Set` sensible à la casse, L212-216).
+
+#### Lot O — contrat, suite : `livrer`, migration, autres commandes
+
+3. **`livrer`** suit cet ordre, validé par la contre-vérification ciblée du
+   2026-09-30 :
+   - **(a) reprise vérifiée** de toute opération interrompue, livraison ou
+     rafraîchissement, jusqu'à l'état attendu du journal (point 1) ;
+   - **(b) garde**, sur deux égalités à la base synchronisée :
+     - le sous-arbre Git `spec/outils/optimizer/` de la tête de la branche
+       documentaire (le sous-arbre, pas le commit : la tête est souvent un
+       commit de reçu) ;
+     - l'**inventaire physique exhaustif** des notes du worktree
+       documentaire, **fichiers ignorés compris**. `estPropre` ne voit pas un
+       fichier exclu par `.git/info/exclude`, alors que `copierMiroir`
+       l'effacerait (L99-100, L111-130, L212-216) : c'est le faux passage
+       qu'une garde sur l'arbre Git seul laisse ouvert.
+
+     Si l'une des deux échoue, la branche ou son worktree portent un
+     contenu que les notes locales n'ont pas reçu : refus nommé, liste des
+     chemins, marche à suivre (`rafraichir`, ou fusion manuelle si les
+     notes ont été adoptées). Un « différent » dû à une opération
+     interrompue est traité par (a), jamais pris pour un contenu non reçu ;
+   - **(c) miroir** : `copierMiroir` reste. Derrière la garde, il copie
+     exactement le delta base → notes locales : suppressions, modifications
+     et renommages locaux légitimes passent ;
+   - **(d) enregistrement durable** de la nouvelle base, après le commit.
+
+   Hors interventions externes, les notes documentaires ne changent que par
+   une livraison ou par un rafraîchissement, y compris la résolution
+   manuelle de ses conflits dans le worktree documentaire. Leur
+   synchronisation doit être achevée ou reprise avant la garde. La fusion
+   fichier par fichier reste inutile tant que ces préconditions tiennent.
+   La garde ne protège pas d'un écrivain concurrent entre son contrôle et
+   le miroir : c'est une limite écrite.
 4. **Migration des chantiers ouverts sans base** (`optimizer-workers`,
    `implementation-relique`, `degats-et-aura`).
    - La base se reconstruit depuis le plus récent de
@@ -3520,6 +3580,12 @@ contre-revue du 2026-09-30 (O1 à O9).
      (`chantier.mjs` L555-568).
    - Sans l'un ni l'autre, il n'y a pas de base : `livrer` refuse par
      défaut, et l'option d'adoption enregistre l'état local courant.
+   - Relevé du 2026-09-30, lecture seule : sur les trois chantiers, le
+     sous-arbre des notes de la base reconstruite égale celui de la tête
+     documentaire. La garde passerait aujourd'hui partout.
+     `implementation-relique` a une ligne locale jamais livrée (hash `4ef3542`
+     inscrit dans son cadrage, rév. 45) : c'est une avance locale normale,
+     que la garde laisse passer.
 5. **`verifier`** affiche la présence de la base et l'égalité de l'arbre
    documentaire avec elle.
 6. **`integrer` reste inchangé.** Une fusion ne propage que ce que la
@@ -3542,9 +3608,16 @@ contre-revue du 2026-09-30 (O1 à O9).
   - `--base` explicite plus ancienne que les notes : refus, jamais de
     retour arrière ;
   - suppression légitime, renommage, dont un renommage de casse sous
-    win32 ;
-  - interruption entre commit et registre ;
-  - fins de ligne ;
+    win32, et une collision de casse refusée ;
+  - fichier ignoré (`.git/info/exclude`) présent dans le worktree
+    documentaire : `livrer` refuse, rien n'est effacé ;
+  - interruptions : pendant le miroir ; après le commit des notes, avant le
+    registre ; après le commit du reçu ; pendant la copie de `rafraichir` ;
+    entre la reconnaissance d'une fusion et la fin de sa copie. Chaque
+    reprise mène à l'état attendu, sans faux refus ;
+  - rafraîchissement en conflit → résolution dans le worktree documentaire
+    → reprise complète → `livrer` ;
+  - fins de ligne : une différence CRLF/LF archivée est détectée ;
   - migration : reçu seul, rafraîchissement plus récent, ni l'un ni
     l'autre.
 - **Non-régression** : les `testChantier*` existants restent verts.

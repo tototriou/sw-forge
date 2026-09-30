@@ -47,10 +47,12 @@ export interface EntreeResolution {
   gear: GearSet;
   faireParams: (relique: RelicDetail | undefined) => ArtifactSearchParams;
   /**
-   * Le prédicat de conformité d'AVANT ce lot — `respecteMinimums` sur les
-   * MINIMUMS seulement (T11, défaut préexistant côté artéfacts, hors
-   * chantier) — appliqué hors mode `recherche` pour rester byte-identique à
-   * la base. `null` = aucun minimum posé, toute paire convient.
+   * Le prédicat de conformité hors mode `recherche` —
+   * `respecteConditionsPaireFixe` : les minimums, plus les seuls maximums
+   * RES/PRE, auras propres du build et toggle compris (degats-et-aura lot 6
+   * puis 6bis-b3a). Les autres maximums restent hors de ce filtre (T11,
+   * défaut préexistant côté artéfacts, hors chantier). `null` = aucune de ces
+   * conditions posée (`conditionsPaireFixePosees`), toute paire convient.
    */
   respecteConditions: ((artefacts: ArtifactDetail[]) => boolean) | null;
   // Minimums ET maximums — le filtre exact de la dimension relique, mode

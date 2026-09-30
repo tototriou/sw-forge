@@ -2267,9 +2267,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
    * file : `resoudreEquipementDuBuild` (relicQueue.ts, lot 5b), la partie
    * pure que `tests/relic-queue.test.ts` compare à l'oracle. Ici on ne fait
-   * que lui donner le build, le prédicat d'avant (minimums seuls, T11), les
-   * conditions complètes et le contexte relique de la recherche LANCÉE
-   * (garantie G : jamais une relecture des trois champs).
+   * que lui donner le build, le prédicat à relique fixe
+   * (`respecteConditionsPaireFixe` : minimums et maximums RES/PRE, les
+   * autres maximums restant hors filtre, T11), les conditions complètes et
+   * le contexte relique de la recherche LANCÉE (garantie G : jamais une
+   * relecture des trois champs).
    */
   const resoudreEquipement = useMemo(() => {
     if (!faireParamsArtefacts || !selected) return null;
@@ -2277,7 +2279,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // facultatif : la recherche valide les minimums contre une borne PAR STAT
     // ISOLÉE (`searchArtifactBounds`), des builds arrivent donc ici sans
     // qu'aucune paire réelle ne les rende équipables (mesuré : 99 sur 105).
-    // `null` quand aucun minimum n'est posé. Hors mode `recherche` de la
+    // `null` quand aucun minimum ni maximum RES/PRE n'est posé
+    // (`conditionsPaireFixePosees`). Hors mode `recherche` de la
     // relique seulement ; en mode `recherche`, `respecteConditionsAvecRelique`
     // (minimums ET maximums, avec la candidate) le remplace.
     const conditionsPosees = conditionsPaireFixePosees(requirementAvecAuras);

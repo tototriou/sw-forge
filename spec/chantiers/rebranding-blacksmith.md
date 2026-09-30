@@ -126,8 +126,8 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R9a Bestiaire | J | **validé par Thomas** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
 | R9b Mécaniques, Nouveautés | J | **validé par Thomas** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par Thomas** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
-| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | en attente de la livraison de Thomas | |
-| Refonte 12 — `npm test` complet, fusion sur `main`, numéro de version | M | à faire | |
+| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **sorti de cette branche** (décision 61) : chantier à part, après la fusion | |
+| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 61 à 63) | M | en cours — 12a contrôles | |
 
 ### A.8 Décisions prises en cours de chantier
 
@@ -372,6 +372,22 @@ les décisions 43 et 44 s'appliquent ; une seule icône à changer.
     aux tenailles des Outils avec les lots 9a / 11e — même raison que le
     renommage `swforge-optimizer` (R2) : rien sur l'Optimizer avant la
     livraison de Thomas.
+
+#### 61 à 63 — la fin du chantier (Thomas, 2026-09-30)
+
+« Saute la partie Optimizer. »
+
+61. **L'Optimizer sort de cette branche** : les lots 9a et 11e de la refonte,
+    avec leurs points différés (renommage `swforge-optimizer`, décision 14 ;
+    écran vide des Outils, décision 60), deviennent un chantier à part,
+    cadré après la fusion et reparti de `main` quand la livraison de Thomas
+    sera là. Le lot 12 se fait sans eux.
+62. **Version 2.0.0** : nouveau nom, nouveau logo, nouvelle interface.
+63. **Fusion par pull request** vers `main` ; Thomas la relit et fusionne.
+
+Le lot 12 garde les deux arrêts de la décision 47 : 12a contrôles (rien
+modifié), 12b relecture générale par Thomas sur une liste de pages, 12c
+note de version montrée avant commit, 12d branche poussée et PR ouverte.
 
 ## Partie B — les lots
 

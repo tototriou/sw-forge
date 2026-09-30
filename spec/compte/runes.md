@@ -1023,9 +1023,11 @@ donc demandé le même bouton que « Runes utilisées ».
   suivant doit arriver coché, pas décoché en silence. Une exclusion qui ne vise
   plus aucun marqueur présent ne compte pas. L'interrupteur est
   `optim.markersOnly`.
-- **Masqué quand aucune rune ne porte de marqueur** (export sans marqueurs,
-  compte conservé avant leur lecture). Il est masqué plutôt que grisé : aucun
-  réimport ne le rendrait utile sur un compte sans marqueurs.
+- **Masqué quand aucune rune ne porte de marqueur** (export sans marqueurs). Il
+  est masqué plutôt que grisé : aucun réimport ne le rendrait utile sur un
+  compte sans marqueurs. Un compte conservé avant la lecture des marqueurs est
+  ignoré en entier (`ACCOUNT_SCHEMA` 7), il ne s'affiche donc jamais « sans
+  marqueurs » à tort.
 - Le compteur rappelle « · marqueurs », avec « (N exclus) » dès qu'une case est
   décochée. Le message de liste vide propose de désactiver « Marqueurs ».
 - Il **se cumule** avec tous les autres filtres.
@@ -1066,10 +1068,11 @@ elles qu'il combat.
 - ⚠️ **Conservée dans IndexedDB** (`usedRuneIds`, `ACCOUNT_SCHEMA` 7) : les decks
   ne vivent que dans l'**export brut**, jamais stocké (5 à 8 Mo). Sans ça le
   filtre s'éteindrait à chaque rechargement d'un compte conservé.
-- **Désactivé sans decks lus** (compte conservé sous un schéma antérieur, export
-  sans aucun deck), avec l'explication en infobulle — même règle que le filtre de
-  réserve : un bouton grisé qui dit pourquoi vaut mieux qu'une liste vidée sans
-  raison.
+- **Désactivé sans decks lus** (export sans aucun deck), avec l'explication en
+  infobulle — même règle que le filtre de réserve : un bouton grisé qui dit
+  pourquoi vaut mieux qu'une liste vidée sans raison. Un compte conservé sous un
+  schéma antérieur n'arrive pas jusqu'ici : il est ignoré en entier, et l'app
+  invite à réimporter.
 - Le compteur rappelle le filtre actif (« · utilisées ») et le message de liste
   vide propose de le désactiver.
 - Il **se cumule** avec tous les autres (palier, sets, slot, antiques, réserve) :

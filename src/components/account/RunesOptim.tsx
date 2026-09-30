@@ -265,9 +265,10 @@ export default function RunesOptim({
       { k: SANS_MARQUEUR, n: sans },
     ];
   }, [runes]);
-  // ⚠️ Masqué quand aucune rune n'est marquée (export sans marqueurs, compte
-  // conservé avant leur lecture) : un filtre qui ne peut rien retirer n'aide
-  // personne — plutôt que grisé, puisqu'aucun réimport ne le rendrait utile.
+  // ⚠️ Masqué quand aucune rune n'est marquée (export sans marqueurs) : un
+  // filtre qui ne peut rien retirer n'aide personne — plutôt que grisé,
+  // puisqu'aucun réimport ne le rendrait utile. Un compte conservé avant la
+  // lecture des marqueurs n'arrive pas jusqu'ici (`ACCOUNT_SCHEMA` 7).
   const marqueursDispo = choixMarqueurs.length > 0;
   const filtreMarqueurs = marqueursActif && marqueursDispo;
   // Une exclusion qui ne vise aucun choix présent (marqueur retiré en jeu

@@ -16,7 +16,7 @@
 import { printMonsterSummary } from './lib/loadMonster';
 import { resolveArtifacts } from './lib/recipeToSearchParams';
 import { chargerRecette } from './lib/chargerRecette';
-import { artifactSubName } from '../src/lib/effects';
+import { activeSets, artifactSubName } from '../src/lib/effects';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
@@ -55,7 +55,7 @@ import {
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { buildRealDamageContext } from './lib/realDamageCli';
-import { NearMiss, RechercheRefusee, aurasPropresParRunes, candidateMetricTotal, sortCandidates } from '../src/lib/runeBuildOptim';
+import { NearMiss, RechercheRefusee, aurasPropresParRunes, candidateMetricTotal, scoreDuCandidat, sortCandidates } from '../src/lib/runeBuildOptim';
 import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -416,17 +416,30 @@ if (recipe.objective === 'degats_reels' && !realDamage) {
   console.warn(`⚠️ Aucun sort calculable pour ${loaded.monsterName} — le classement reste dans l'ordre de collecte.`);
 }
 const runeByIdPool = new Map(params.pool.map((r) => [r.id, r]));
-const classes = sortCandidates(result.candidates, recipe.objective, {
+const optionsDuTri = {
   realDamage,
   damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
   runeById: runeByIdPool,
   metric: recipe.metric,
   // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
   aurasPropresDe: aurasPropresParRunes(runeByIdPool),
-});
+};
+const classes = sortCandidates(result.candidates, recipe.objective, optionsDuTri);
 console.log(`\nLes 20 meilleurs pour l'objectif « ${recipe.objective} » :`);
+// ⚠️ Le score affiché est `scoreDuCandidat` avec les options MÊMES du tri
+// (6bis-b4) : la valeur qui classe, jamais une formule recopiée. Les sets
+// actifs viennent d'`activeSets` et les activations d'aura propres du même
+// `aurasPropresDe` que le score — ce qui permet de lire, sur un vrai compte,
+// combien de sets d'aura CE build ajoute aux auras externes.
 for (const c of classes.slice(0, 20)) {
-  console.log(`  runes [${c.runeIds.join(',')}]`);
+  const score = scoreDuCandidat(c, recipe.objective, optionsDuTri);
+  const sets = activeSets(c.runeIds.map((id) => runeByIdPool.get(id)?.set ?? ''));
+  const propres = Object.entries(optionsDuTri.aurasPropresDe(c)).filter(([, n]) => n > 0).map(([set, n]) => `${set} ${n}`);
+  const joker = c.runeIds.some((id) => runeByIdPool.get(id)?.set === 'intangible');
+  console.log(
+    `  runes [${c.runeIds.join(',')}] — score ${score == null ? '—' : score.toFixed(1)} — ` +
+      `sets [${sets.join('+') || 'aucun'}]${joker ? ' (Intangible)' : ''} — auras propres ${propres.join(', ') || 'aucune'}`
+  );
 }
 if (classes.length > 20) console.log(`  … et ${classes.length - 20} de plus.`);
 

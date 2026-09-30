@@ -7,8 +7,13 @@ import { apportExclusive } from '../src/lib/relicExclusive';
 import { evaluerPourRegime, type DegatsContext } from '../src/lib/artifactEvaluation';
 import { chercherPaires } from '../src/lib/artifactOptim';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, scoreDuCandidat, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
+import { aurasPropresParRunes, avecAurasConditions, buildBuckets, conditionsPaireFixePosees, diagnoseFeasibility, objectiveScore, pairBuckets, prepareSearch, pvEffectifs, respecteConditionsAvecRelique, respecteConditionsPaireFixe, respecteMinEtMax, scoreDuCandidat, searchBuilds, sortCandidates, contexteDominance, totalPairCount } from '../src/lib/runeBuildOptim';
 import { readFileSync } from 'node:fs';
+import { prepareOrRefuse } from '../src/workers/prepareForSearch';
+import { PARALLEL_PAIRING_THRESHOLD, driveParallelPairing } from '../src/workers/parallelPairing';
+import { ensurePairSliceBundle, makeSpawnSliceNode } from '../scripts/lib/spawnSliceNode';
+import { runSearchToCompletion } from '../scripts/lib/runSearch';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import type { BuildCandidate, BuildRequirement, RealDamageContext, TraceCandidat } from '../src/lib/runeBuildOptim';
 import { drain } from '../scripts/lib/drain';
 import { candidatAvecSaPaire, cleBuild, signatureArtefacts } from '../src/lib/artifactQueue';
@@ -293,8 +298,8 @@ export function testAurasPariteEcranCliEtCache() {
   const r = recette();
   const loaded: LoadedMonster = { unitId: 1, com2usId: r.monsterCom2usId, monsterName: r.monsterName,
     gear: { base: BASE, runes: [], artifacts: [] }, allRunes: [], allArtifacts: [], allRelics: [] };
-  const params = recipeToSearchParams(r, loaded);
-  egal(params.requirement.auraResPre, avecAurasConditions(r.requirement, r.damageSetup, true).auraResPre,
+  const paramsCli = recipeToSearchParams(r, loaded);
+  egal(paramsCli.requirement.auraResPre, avecAurasConditions(r.requirement, r.damageSetup, true).auraResPre,
     'CLI et écran construisent les mêmes bonus de condition');
   egal(recipeToSearchParams({ ...r, compterAurasResPre: false }, loaded).requirement.auraResPre, { res: 0, acc: 0, compter: false },
     'CLI désactivé : les deux conditions sont hors aura');
@@ -314,6 +319,42 @@ export function testAurasPariteEcranCliEtCache() {
     compterAurasResPre: true, regimeEquipement: 'ehp', ignoreArtifacts: false, principaleParSorte: {},
     lignesVerrouillees: [], relique: null, nbArtefacts: 0, empreinteRelique: null,
     requirement: { minStats: { res: 8 }, maxStats: {} } }) !== signature(true), 'la liste invalide le cache');
+
+  // 6bis-b4 — cache (T5). La signature GLOBALE suit le nombre d'auras
+  // externes, le toggle et le régime ; la clé PAR BUILD (six runeIds, sans
+  // ordre) porte les activations propres, qui ne dépendent que des runes.
+  const sig = (externes: Partial<Record<SetAura, number>>, compter: boolean, regime: string) => signatureArtefacts({
+    monstreCom2usId: 1, damageSetup: avecExternes(externes), compterAurasResPre: compter, regimeEquipement: regime,
+    ignoreArtifacts: false, principaleParSorte: {}, lignesVerrouillees: [], relique: null, nbArtefacts: 0,
+    empreinteRelique: null, requirement: { minStats: { res: 8 }, maxStats: {} } });
+  ok(sig({ fight: 3 }, true, 'degats_reels') !== sig({ fight: 2 }, true, 'degats_reels'), 'cache : 3 → 2 Fight externes invalide');
+  ok(sig({ fight: 3 }, true, 'degats_reels') !== sig({ fight: 3 }, false, 'degats_reels'), 'cache : toggle RES/PRE invalide');
+  ok(sig({ fight: 3 }, true, 'degats_reels') !== sig({ fight: 3 }, true, 'ehp'), 'cache : changement de régime invalide');
+  egal(sig({ fight: 3 }, true, 'degats_reels'), sig({ fight: 3 }, true, 'degats_reels'), 'cache : mêmes réglages, même signature (résultats conservés)');
+
+  // Relique FIXE (sans contexte relique) : deux builds aux fiches identiques,
+  // mêmes auras externes, auras propres différentes → deux résultats.
+  const runesAura = runesDeSets(8000, ['enhance', 'enhance', 'determination', 'determination', 'will', 'will']);
+  const runesSans = runesDeSets(8100, ['violent', 'violent', 'violent', 'violent', 'will', 'will']);
+  const pool = [...runesAura, ...runesSans];
+  const candidat = (runes: RuneDetail[]): BuildCandidate =>
+    ({ runeIds: runes.map((x) => x.id), stats: computeStats({ base: BASE, runes, artifacts: [] }), effTotal: 0 });
+  const cAura = candidat(runesAura);
+  const cSans = candidat(runesSans);
+  const p = params(pool, { sets: [], minStats: {} }, { base: BASE, objective: 'ehp' });
+  const reglages = (externes: Partial<Record<SetAura, number>>): ReglagesDifferentiel => ({ critere: 'ehp',
+    porteur: { element: 'fire', archetype: 'attack' }, exclusive: { setup: avecExternes(externes), element: null } });
+  const aura = resoudreCandidat(p, cAura, undefined, reglages({ enhance: 3 }));
+  const sans = resoudreCandidat(p, cSans, undefined, reglages({ enhance: 3 }));
+  ok(proche(aura.paire?.score, ehpMain(4, 1)) && proche(sans.paire?.score, ehpMain(3, 0)),
+    `relique fixe : 3 externes + propres par build — ${aura.paire?.score} / ${sans.paire?.score}`);
+  const cache = new Map([[cleBuild(cAura), aura], [cleBuild(cSans), sans]]);
+  const permute: BuildCandidate = { ...cAura, runeIds: [...cAura.runeIds].reverse() };
+  ok(cache.get(cleBuild(permute)) === aura, 'cache : mêmes six runeIds dans un autre ordre → même entrée');
+  egal(resoudreCandidat(p, permute, undefined, reglages({ enhance: 3 })), aura, 'cache : même build, mêmes réglages → même résultat recalculé');
+  const moinsUne = resoudreCandidat(p, cAura, undefined, reglages({ enhance: 2 }));
+  ok(proche(moinsUne.paire?.score, ehpMain(3, 1)) && !proche(moinsUne.paire?.score, aura.paire!.score),
+    'auras externes changées : le résultat change, d’où l’invalidation de la signature');
 }
 
 export function testAurasRechercheDifferentielle() {
@@ -834,4 +875,102 @@ export function testAurasCarteEgaleTri() {
   ok(/pvEffectifs:\s*[\s\S]{0,300}?scoreDuCandidat\(c, 'ehp'/.test(ecran), 'écran : la carte « PV effectifs » lit scoreDuCandidat');
   ok(!/computeTotalDamage\(\s*realDamage\.profile,\s*realDamage\.passifs,\s*c\.stats/.test(ecran),
     'écran : plus de computeTotalDamage recopié sur les stats du candidat');
+}
+
+/* --------------------------------------------------------------------------
+ * 6bis-b4 — le MÊME build par les constructeurs de l'écran et du CLI, le
+ * Worker séquentiel (préparation sur le message cloné, comme `postMessage`)
+ * et l'appariement PARALLÈLE de production : `driveParallelPairing` + vrais
+ * `worker_threads` exécutant `runPairSlice` (`scripts/lib/pair-slice-worker.ts`).
+ * ⚠️ FIDÉLITÉ : DIVERGE DE LA PROD — sur ce petit pool, `totalPairCount` est
+ * sous le seuil de 100 M : la production choisirait le séquentiel, le
+ * parallèle est FORCÉ ici. Le cas réel au-dessus du seuil est la recette
+ * gelée `recette-6bis-degats.json` (preuve privée de 6bis-b4).
+ * ----------------------------------------------------------------------- */
+
+export async function testAurasPariteRegimes() {
+  titre('Auras · même build : écran/CLI, Worker séquentiel, parallèle forcé (vrais worker_threads)');
+  const rng = mulberry32(6400);
+  const MAINS: Record<number, [number, number]> = { 1: [3, 160], 2: [4, 63], 3: [5, 160], 4: [10, 80], 5: [1, 2448], 6: [4, 63] };
+  const pool: RuneDetail[] = [];
+  for (let slot = 1; slot <= 6; slot++) {
+    const sets = ['fight', 'fight', 'rage', 'rage', 'will', ...(slot === 3 ? ['intangible'] : []), ...(slot === 5 ? ['tolerance'] : [])];
+    sets.forEach((set, i) => pool.push(rune(20000 + slot * 10 + i, slot, MAINS[slot],
+      [[4, 5 + Math.floor(rng() * 20)], [10, 5 + Math.floor(rng() * 20)], [9, Math.floor(rng() * 10)]], set)));
+  }
+  const intangible = pool.find((r) => r.set === 'intangible')!.id;
+  const setup = avecExternes({ fight: 3 });
+  const r = buildOptimizerRecipe({
+    monsterCom2usId: 13413, monsterName: 'Lushen',
+    requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: setup,
+    compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
+    adaptiveTrancheWeighting: false, exhaustiveSearch: true,
+    excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
+    ignoreArtifacts: true, artifactMainByKind: {},
+  });
+  const loaded: LoadedMonster = { unitId: 1, com2usId: 13413, monsterName: 'Lushen',
+    gear: { base: { hp: 9225, atk: 900, def: 461, spd: 103, cr: 15, cd: 50, res: 15, acc: 0 }, runes: [], artifacts: [] },
+    allRunes: pool, allArtifacts: [], allRelics: [] };
+
+  // Constructeurs : le CLI (`recipeToSearchParams`) et ceux de l'écran.
+  const params = recipeToSearchParams(r, loaded);
+  egal(params.requirement, avecAurasConditions(r.requirement, setup, true), 'conditions : CLI = écran (avecAurasConditions)');
+  ok(params.objective === 'degats_reels' && (params.objectiveStats ?? []).includes('atk'),
+    `objectif et stats d'objectif transmis : ${params.objective} [${(params.objectiveStats ?? []).join(', ')}]`);
+
+  // Worker séquentiel : la préparation reçoit le message CLONÉ.
+  const message = structuredClone(params);
+  const issue = prepareOrRefuse(message);
+  if (issue.kind !== 'prepared') throw new Error(`préparation : ${issue.kind}`);
+  const prepared = issue.prepared;
+  const bucketsA = drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
+  const bucketsB = drain(buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB, undefined, params.adaptiveTrancheWeighting, params.combosOrderMode));
+  const totalPairs = totalPairCount(prepared, bucketsA, bucketsB);
+  ok(totalPairs < PARALLEL_PAIRING_THRESHOLD,
+    `FIDÉLITÉ : DIVERGE DE LA PROD — ${totalPairs} paires < ${PARALLEL_PAIRING_THRESHOLD} : parallèle FORCÉ, ${Math.min(4, bucketsA.length)} tranches`);
+  ok(Math.min(4, bucketsA.length) >= 2, 'au moins deux tranches : le découpage est réellement exercé');
+  const sequentiel = drain(pairBuckets(prepared, bucketsA, bucketsB));
+  const cli = runSearchToCompletion(params);
+  const bundle = await ensurePairSliceBundle();
+  const parallele = await driveParallelPairing(makeSpawnSliceNode(bundle), message, prepared, bucketsA, bucketsB, () => {}, prepared.startedAt);
+  ok(!sequentiel.truncated && !parallele.truncated && !cli.truncated,
+    `trois recherches complètes (truncated=false) : ${sequentiel.candidates.length} candidats`);
+  const cles = (res: { candidates: BuildCandidate[] }) => res.candidates.map(cleBuild).sort();
+  egal(cles(parallele), cles(sequentiel), 'parallèle (worker_threads) = Worker séquentiel : mêmes builds');
+  egal(cles(cli), cles(sequentiel), 'CLI (runSearchToCompletion) = Worker séquentiel : mêmes builds');
+
+  // Legs de b3b : chaque tranche relance `prepareSearch` sur SES paramètres.
+  const tranche = structuredClone({ ...params, maxCollected: Math.ceil(prepared.maxCollected / Math.min(4, bucketsA.length)) });
+  const apresDominance = (p: typeof params) => {
+    let ids: number[][] = [];
+    prepareSearch(p, (etage, listes) => { if (etage === 'dominance') ids = listes.map((l) => l.map((x) => x.id)); });
+    return ids;
+  };
+  egal(apresDominance(tranche), apresDominance(params), 'dominance : même pool côté principal et côté tranche');
+  const interchangeables = (p: typeof params) => [...contexteDominance(p.requirement, p.pool, p.objective, p.objectiveStats).interchangeables].sort();
+  egal(interchangeables(tranche), interchangeables(params), 'contexteDominance : mêmes objective/objectiveStats, même contexte');
+
+  // Scores : même classement des deux côtés, auras externes + propres.
+  const realDamage = buildRealDamageContext(r, 13413, params.artifacts);
+  if (!realDamage) throw new Error('Lushen : sort non calculable');
+  const aurasPropresDe = aurasPropresParRunes(new Map(pool.map((x) => [x.id, x])));
+  const opts = { realDamage, damageSetup: setup, aurasPropresDe };
+  const triSeq = sortCandidates(sequentiel.candidates, 'degats_reels', opts);
+  const triPar = sortCandidates(parallele.candidates, 'degats_reels', opts);
+  egal(cleBuild(triPar[0]), cleBuild(triSeq[0]), 'même meilleur build dans les deux régimes');
+  egal(scoreDuCandidat(triPar[0], 'degats_reels', opts), scoreDuCandidat(triSeq[0], 'degats_reels', opts), 'même score du meilleur build');
+  for (const n of [1, 2, 3]) {
+    const c = triSeq.find((x) => aurasPropresDe(x).fight === n);
+    if (!c) { ok(false, `un build à ${n} Fight propre(s) existe`); continue; }
+    egal(nombreAuraEffectif(setup, aurasPropresDe(c), 'fight'), 3 + n, `${n} Fight propre(s) : 3 externes + ${n} = ${3 + n}`);
+    ok(scoreDuCandidat(c, 'degats_reels', opts)! > objectiveScore(c, 'degats_reels', AUCUNE_AURA_PROPRE, realDamage),
+      `${n} Fight propre(s) : le score les compte (plus haut que sans aura propre)`);
+    egal(scoreDuCandidat(triPar.find((x) => cleBuild(x) === cleBuild(c))!, 'degats_reels', opts), scoreDuCandidat(c, 'degats_reels', opts),
+      `${n} Fight propre(s) : même score dans le résultat parallèle`);
+  }
+  const joker = triSeq.find((x) => x.runeIds.includes(intangible) && aurasPropresDe(x).fight === 1
+    && x.runeIds.filter((id) => pool.find((p) => p.id === id)!.set === 'fight').length === 1);
+  ok(joker != null, 'Intangible : un build à une seule rune Fight active Fight grâce au joker');
+  if (joker) egal(scoreDuCandidat(joker, 'degats_reels', opts), objectiveScore(joker, 'degats_reels', vecteur({ fight: 1 }), realDamage),
+    'Intangible : score avec 1 Fight propre');
 }

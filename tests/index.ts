@@ -51,7 +51,7 @@ import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
-import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle, testAurasPropresResolution, testAurasPropresCombatEtScore, testAurasPvEffectifsCeilUnique, testAurasPropresNoteDesCouples, testAurasConditionsPropresFonctions, testAurasConditionsPropresResolution, testAurasConditionsPropresPairBuckets, testAurasCarteEgaleTri } from './auras-modele.test';
+import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle, testAurasPropresResolution, testAurasPropresCombatEtScore, testAurasPvEffectifsCeilUnique, testAurasPropresNoteDesCouples, testAurasConditionsPropresFonctions, testAurasConditionsPropresResolution, testAurasConditionsPropresPairBuckets, testAurasCarteEgaleTri, testAurasPariteRegimes } from './auras-modele.test';
 import {
   testRuneOptimAurasCoupesMinimum,
   testRuneOptimAurasCoupesDiagnostics,
@@ -168,6 +168,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAurasConditionsPropresResolution', testAurasConditionsPropresResolution],
   ['testAurasConditionsPropresPairBuckets', testAurasConditionsPropresPairBuckets],
   ['testAurasCarteEgaleTri', testAurasCarteEgaleTri],
+  ['testAurasPariteRegimes', async () => { await testAurasPariteRegimes(); }],
   ['testRuneOptimAurasCoupesMinimum', testRuneOptimAurasCoupesMinimum],
   ['testRuneOptimAurasCoupesDiagnostics', testRuneOptimAurasCoupesDiagnostics],
   ['testRuneOptimAurasCoupesRetention', testRuneOptimAurasCoupesRetention],

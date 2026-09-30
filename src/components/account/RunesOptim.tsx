@@ -477,7 +477,13 @@ export default function RunesOptim({
              PERMANENCE sous le bouton : leur place est réservée, et aucun
              flottant ne s'ouvre dans le tiroir (règles `[data-tiroir]`).
           Les cases n'agissent que filtre allumé : grisées sinon. */}
-      <div className={large ? 'flex flex-col gap-2' : 'flex items-center gap-1'}>
+      {/* ⚠️ `w-full` au doigt : le panneau aligne ses `.flex-col` à gauche
+          (`[data-tiroir] .flex-col`, index.css). Sans lui, ce conteneur prend
+          la largeur de son contenu, et le `w-full` du bouton ne remplit plus que
+          lui — « Runes utilisées » redevenait plus étroit que ses voisins (vu
+          en capture). `flex-col` est gardé pour que le bouton reçoive les mêmes
+          règles `.flex-col > button` que les deux autres. */}
+      <div className={large ? 'flex w-full flex-col gap-2' : 'flex items-center gap-1'}>
         <Bouton
           onClick={() => {
             setUsedOnly((v) => !v);

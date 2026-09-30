@@ -592,7 +592,7 @@ corriger ».**
 | 6bis-b3b — coupes, diagnostics et différentiel | J | terminé, preuves rejouées par le pilote ; rétention sur compte réel arrêtée par décision utilisateur | `bdbd952c`…`3f9be574` ; reçu `3f9be57` ↔ `bc01ad2` / 2026-09-29 |
 | 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
 | 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | terminé, preuves rejouées par le pilote ; restauration des notes relique, revue externe corrigée | `2e896bfa`…`d52d2e94` ; reçu `d52d2e9` ↔ `da2886f` / 2026-09-30 |
-| 6bis-b3c — dominance et effet unique de la relique | J | contrat amendé après contre-revue ; lançable | — |
+| 6bis-b3c — dominance et effet unique de la relique | J | terminé, preuves et mutation rejouées par le pilote | `756eb09c` + `ca15a281` ; reçu `ca15a28` ↔ `61364e2` / 2026-09-30 |
 | O — verrous de `chantier ouvrir` et `livrer` | J | contrat amendé après contre-revue ; contre-vérification ciblée du choix de `livrer` (point 3), puis après b3c | — |
 | 6bis-b5b — Meilleurs artéfacts et paire représentative | J | attend O | — |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | attend b5b | — |
@@ -3302,6 +3302,77 @@ réduction 1 %) contre Violent + Will 124 371,51. Aujourd'hui, les ids 105 et
 
 **Ne fait pas :** changement du score, de la sélection de relique, de
 `filterSlot` ou de la rétention ; suite complète `npm test`.
+
+###### Résultat du lot 6bis-b3c — 2026-09-30
+
+Deux commits :
+
+- `756eb09c` : la dominance tient pour utiles la stat de référence et la
+  stat améliorée de tout type chiffrable (`statsDeLEffetUnique`,
+  `relicExclusive.ts`), pour les reliques que la recherche peut équiper
+  (`reliquesEquipables`). Paramètre obligatoire de `contexteDominance`,
+  cinq appelants raccordés. Le commit porte aussi le test nommé
+  `rune-optim-dominance-relique` et les specs publiques.
+- `ca15a281` : commentaires « minimums seuls » périmés corrigés.
+
+Reçu `ca15a28` ↔ `61364e2`, notes intégrées au main documentaire `95c3f06`.
+Preuve privée `controle-6bis-b3c.md`. Nouvelle recette gelée
+`recette-6bis-b3c.json`, sha256 `9ec4ddf3…`. Commits de code poussés par le
+pilote.
+
+Le pilote a relu le diff et rejoué sur `ca15a281` :
+
+- `npx tsc --noEmit` → 0 ;
+- `node tests/run.mjs dominance-relique` → 656 vérifications passées ;
+- `node tests/run.mjs runeoptim auras intangible diagnostic relic` →
+  3 474 passées ;
+- `npm run build` vert ; « Reçu valide » ;
+- la sonde du cas minimal : Violent + Fight (125 627,78) est rendu, les
+  runes 105 et 106 passent la dominance, recherche non tronquée ;
+- **mutation du pilote** (`statsDeLEffetUnique` vidé) : 54 échecs sur 656 ;
+  fichier restauré depuis git, puis 656 passées ;
+- l'oracle note par `objectiveScore` avec auras propres et
+  `apportExclusive` ; en mode `recherche`, par `respecteConditionsAvecRelique`
+  et la vraie résolution (A.6 bis tenu).
+
+Couverture : les 15 types chiffrables, rouge → vert → échec sous mutation
+pour 13 d'entre eux. Ténacité 5 et 6 sont déjà protégées par l'objectif,
+prouvé par test.
+
+Rapportés, non rejoués :
+
+- `interchangeables` inchangé sur les trois recettes gelées existantes
+  (export `ß☆Enzo`, Lushen du siège 15, relique Conquête·ATQ) ;
+- sur la nouvelle recette, construite avec des runes imposées, Fatal devient
+  protégé (1 878 → 1 881 runes après dominance) ;
+- performance, 5 répétitions entrelacées : min 2 400 → 2 300 ms, dispersion
+  8,3 % et 13,0 %, même travail (1 274 464 paires). Les deux côtés
+  s'arrêtent au plafond de 100 000 candidats : aucun coût démontré, sur une
+  recherche plafonnée.
+
+Écarts acceptés :
+
+- le rouge du différentiel a tourné sur une première version du test, et
+  c'est la mutation qui tient lieu de rouge ;
+- en mode `recherche`, le filtre final passe par la vraie résolution
+  (`resoudreCandidat`) plutôt que par une copie ;
+- le cas réel gelé repose sur des runes imposées ;
+- quatre `export` ajoutés au test de b3b.
+
+Limites :
+
+- sous mutation, le différentiel aléatoire reste vert (constaté aussi par le
+  pilote) : seuls les cas écrits à la main détectent le défaut ;
+- la protection de la stat améliorée n'est nécessaire dans aucun cas, car le
+  score ne la lit que si elle est déjà dans l'objectif. Elle est gardée comme
+  sur-ensemble sans coût ;
+- aucun cas réel connu où la correction change un optimum ;
+  `tototriou-12889591.json` n'a pas été exploré ;
+- la coquille Worker du navigateur n'a pas été exercée.
+
+**Pour la revue technique :** cibler le générateur du différentiel (reliques
+chiffrables, sets porteurs formables) pour qu'il détecte la mutation ;
+mesurer la performance sur une recherche non plafonnée.
 
 ##### 6bis-b5b — « Meilleurs artéfacts » et paire représentative
 

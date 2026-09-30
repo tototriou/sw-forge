@@ -118,7 +118,7 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R5 Accueil (bureau et téléphone) | J | fait — accueil gardé (décisions 31 à 36) ; icônes d'atelier sur les cartes (37) | 2026-09-29, [lot-R5.md](rebranding-preuves/lot-R5.md) |
 | R6 Siège et Recommandations | J | fait — écrans gardés (38 à 40, 42, 45) ; couleurs d'état `a329378c`, icônes `f3198798`, carte d'ajout `fb770b5c` ; relecture de Thomas en attente | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
 | V0 relecture par Thomas de R3, R4, R6 et de la décision 46 (commités sans avoir été vus) | — | **validé par Thomas** (« tout est ok », sur une liste de 16 points) ; faute « équipe d'défense » à corriger | 2026-09-30 |
-| R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | à faire | |
+| R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | **validé par Thomas** — écran gardé (48 à 50) ; rouge d'état et icône « Ami » `2f4fc0c5` | 2026-09-30, [lot-R7.md](rebranding-preuves/lot-R7.md) |
 | R8 Mon compte (Monstres, Runes, Artéfacts) | J | à faire | |
 | R9a Bestiaire | J | à faire | |
 | R9b Mécaniques, Nouveautés | J | à faire | |
@@ -303,6 +303,18 @@ classement en RTA, ne touche pas au fonctionnel, on fait juste une refonte ».
     (classement S / A / B) n'est pas un modèle à suivre, seulement une source
     d'affichage. Ce qui dans une planche suppose une fonction absente de
     l'app ne se propose pas.
+
+#### 48 à 50 — les questions du R7, la RTA (Thomas, 2026-09-30)
+
+Relevé dans [lot-R7.md](rebranding-preuves/lot-R7.md). Thomas garde l'écran ;
+seules les décisions 43 et 44 s'y appliquent.
+
+48. **Sections gardées** : titre avec l'icône du set, sans cadre ni bandeau.
+49. **Ordre des tours gardé** : pleine largeur sous les sections, en cartes.
+50. **Glisser-déposer gardé** : pas d'emplacement « Déposer ici ».
+
+L'en-tête et « Non classé » en tête de page sont gardés sans question, comme
+l'en-tête du Siège (décision 38) ; dit à Thomas.
 
 ## Partie B — les lots
 
@@ -524,7 +536,18 @@ les deux thèmes. Ses corrections deviennent des commits propres, montrés
 avant d'être commités. **Ne fait pas** : de nouveaux changements de son propre
 chef.
 
-### R7 à R10
+### R7 — la RTA · J
+
+**Écrit au démarrage (2026-09-30)**. Intrant : planche `BsRTA` de la toile,
+`spec/rta/README.md`, `components/rta/`, `RtaPage.tsx`. Décision 47 : la
+planche dessine un classement S / A / B, qui n'est pas repris.
+
+**Résultat (2026-09-30)** — preuve [lot-R7.md](rebranding-preuves/lot-R7.md).
+Écran gardé (48 à 50). Un commit, `2f4fc0c5` : erreurs en rouge d'état (43),
+icône « Ami » d'atelier (44). Premier lot aux deux arrêts de la décision 47 :
+relevé puis questions, code montré sans commit, « validé » de Thomas, commit.
+
+### R8 à R10
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

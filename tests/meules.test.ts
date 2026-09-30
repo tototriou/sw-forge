@@ -10,6 +10,7 @@ import {
   buildCraftStock,
   craftLabel,
   craftsToSpend,
+  dispoReserve,
   missingCrafts,
   ownsCraft,
   pickCraft,
@@ -510,4 +511,54 @@ export function testRegemmeDifferent() {
     runePotential(vierge, true, 'eff'),
     'rune jamais gemmée → même potentiel avec ou sans l’option'
   );
+}
+
+export function testReserveParGrade() {
+  titre('« Faisable » : chaque potentiel contre la réserve de SON grade');
+
+  // VIT meulable, les trois autres substats non meulables : seule la meule VIT
+  // compte. Dans le sac, UNE meule VIT **héroïque** Violent, rien d'autre.
+  const rune: RuneDetail = {
+    id: 31,
+    slot: 2,
+    set: 'violent',
+    rank: 6,
+    rarity: 5,
+    level: 15,
+    main: { code: 8, value: 42 },
+    subs: [
+      { code: 8, value: 5, grind: 0 },
+      { code: 9, value: 6 },
+      { code: 11, value: 7 },
+      { code: 12, value: 8 },
+    ],
+  };
+  const heroique = stock([{ kind: 'grind' as const, stat: 8, grade: 4 }]);
+  const parGrade = (s: ReturnType<typeof stock>) => ({
+    hero: dispoReserve(s, rune, 'hero'),
+    legend: dispoReserve(s, rune, 'legend'),
+  });
+
+  const pot = runePotential(rune, false, 'eff', true, parGrade(heroique));
+  ok(pot.heroGain > 0, 'héroïque : la meule héroïque en réserve est comptée');
+  egal(pot.legendGain, 0, 'légendaire : une meule héroïque ne vaut pas une légendaire, rien à pousser');
+  egal(
+    runePlan(rune, 'hero', false, 'eff', true, dispoReserve(heroique, rune, 'hero')).subs[0].grind,
+    4,
+    'le plan héroïque pose bien la meule (+4)'
+  );
+
+  // ⚠️ Le défaut corrigé : une SEULE dispo pour les deux chiffres, celle du
+  // grade du tri. Trié en héroïque (grade 4), le chiffre légendaire comptait
+  // la meule héroïque avec la table légendaire (+5).
+  const ancienTriHero = runePotential(rune, false, 'eff', true, {
+    hero: dispoReserve(heroique, rune, 'hero'),
+    legend: dispoReserve(heroique, rune, 'hero'),
+  });
+  ok(ancienTriHero.legendEff > pot.legendEff, 'l’ancien câblage (grade du tri pour les deux) surestimait le légendaire');
+
+  // Grade ≥ scénario : une meule LÉGENDAIRE sert aux deux chiffres.
+  const legendaire = stock([{ kind: 'grind' as const, stat: 8, grade: 5 }]);
+  const pot5 = runePotential(rune, false, 'eff', true, parGrade(legendaire));
+  ok(pot5.heroGain > 0 && pot5.legendGain > pot5.heroGain, 'une meule légendaire compte en héroïque ET en légendaire');
 }

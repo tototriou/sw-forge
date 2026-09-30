@@ -1142,6 +1142,16 @@ vue séparée obligeait à tout y réimplémenter.
 
 - Le **scénario suit le tri** (gain/potentiel héroïque → grade 4, sinon 5) :
   trier par gain héroïque tout en filtrant sur du légendaire n'aurait aucun sens.
+  Ce grade décide des runes **gardées** et du **plan** ouvert au clic.
+- ⚠️ **Mais chaque chiffre de la tuile se vérifie contre la réserve de SON
+  grade**, quel que soit le tri : **Héro** contre les consommables héroïques ou
+  mieux, **Légend** contre les légendaires (`dispoReserve` dans
+  [crafts.ts](src/lib/crafts.ts), une par scénario). Les deux chiffres étaient
+  calculés avec la seule réserve du grade du tri : trié en héroïque, une meule
+  héroïque faisait compter au chiffre légendaire la table légendaire
+  (**surestimé** — un potentiel annoncé faisable qui ne l'était pas) ; trié
+  autrement, le chiffre héroïque refusait une meule héroïque présente
+  (**sous-estimé**). Verrouillé par le test `testReserveParGrade`.
 - Les plans ne sont calculés **que si le filtre est actif** — c'est plus lourd
   qu'un potentiel, et inutile tant qu'on ne le demande pas.
 - Une rune **sans rien à appliquer** est écartée : la question posée est « que

@@ -23,6 +23,14 @@ export type OptimMetric = 'eff' | 'score';
 // disparaître un chantier qu'il pouvait parfaitement mener.
 export type CraftDispo = (kind: 'grind' | 'gem', stat: number) => boolean;
 
+// Une `CraftDispo` PAR scénario, pour `runePotential` qui calcule les deux :
+// chaque chiffre se vérifie contre la réserve de SON grade (voir
+// `dispoReserve` dans crafts.ts). Un scénario absent = sans contrainte.
+export interface DispoParScenario {
+  hero?: CraftDispo;
+  legend?: CraftDispo;
+}
+
 type Tbl = Record<number, number>;
 
 // Grind max (valeur ajoutée) par code de substat. RES/Préci/TC/DCC non grindables.
@@ -213,7 +221,7 @@ export function runePotential(
   withGem = true,
   metric: OptimMetric = 'eff',
   noDowngrade = false,
-  dispo?: CraftDispo,
+  dispo?: DispoParScenario,
   regemLibre = false
 ): RunePotential {
   const anc = rune.rank > 10;
@@ -225,7 +233,7 @@ export function runePotential(
     withGem,
     metric,
     noDowngrade,
-    dispo,
+    dispo?.hero,
     regemLibre
   );
   const l = best(
@@ -235,7 +243,7 @@ export function runePotential(
     withGem,
     metric,
     noDowngrade,
-    dispo,
+    dispo?.legend,
     regemLibre
   );
   // Arrondi en sortie, puis gains calculés SUR LES VALEURS ARRONDIES : le gain

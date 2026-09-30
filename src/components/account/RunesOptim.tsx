@@ -9,7 +9,7 @@ import {
   RunesUtilisees,
   unionRunesUtilisees,
 } from '../../lib/importAccount';
-import { CraftStock, EMPTY_STOCK, GRADE_SCENARIO, buildCraftStock, ownsCraft } from '../../lib/crafts';
+import { CraftStock, EMPTY_STOCK, buildCraftStock, dispoReserve } from '../../lib/crafts';
 import { useRuneMetric, formatRuneMetric, convertirPalier, runeMetricValue } from '../../hooks/useRuneMetric';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useMediaQuery, SOUS_LG } from '../../hooks/useMediaQuery';
@@ -380,28 +380,33 @@ export default function RunesOptim({
   // Swift dont trois substats sur quatre étaient meulables disparaissait parce
   // qu'il manquait la meule VIT. Le gain affiché est donc celui qu'on peut
   // vraiment aller chercher aujourd'hui, ni plus ni moins.
-  const dispoPour = useCallback(
-    (rune: RuneDetail) => (kind: 'grind' | 'gem', stat: number) =>
-      ownsCraft(stock, {
-        kind,
-        setKey: rune.set,
-        stat,
-        grade: GRADE_SCENARIO[scenario],
-        ancient: rune.rank > 10,
-      }),
-    [stock, scenario]
-  );
-
+  //
+  // ⚠️ **Chaque chiffre contre la réserve de SON grade** (`dispoReserve`) : le
+  // potentiel héroïque d'une tuile contre les consommables héroïques ou mieux,
+  // le légendaire contre les légendaires — quel que soit le tri. Une seule
+  // réserve, celle du grade du tri, surestimait le chiffre légendaire (trié en
+  // héroïque, une meule héroïque y passait pour légendaire) et sous-estimait
+  // l'héroïque (trié autrement, une meule héroïque présente était refusée).
+  // Le tri ne choisit plus que le grade du FILTRE et du PLAN, plus bas.
   const rows = useMemo(
     () =>
       runes.map(
         (rune, id): OptimRow => ({
           rune,
           id,
-          pot: runePotential(rune, withGem, metric, verifie, verifie ? dispoPour(rune) : undefined, regemLibre),
+          pot: runePotential(
+            rune,
+            withGem,
+            metric,
+            verifie,
+            verifie
+              ? { hero: dispoReserve(stock, rune, 'hero'), legend: dispoReserve(stock, rune, 'legend') }
+              : undefined,
+            regemLibre
+          ),
         })
       ),
-    [runes, withGem, metric, verifie, dispoPour, regemLibre]
+    [runes, withGem, metric, verifie, stock, regemLibre]
   );
 
   // Une rune est retenue si le plan **restreint à la réserve** apporte encore
@@ -411,11 +416,11 @@ export default function RunesOptim({
     if (!verifie) return null;
     const ok = new Set<number>();
     for (const r of rows) {
-      const plan = runePlan(r.rune, scenario, withGem, metric, true, dispoPour(r.rune), regemLibre);
+      const plan = runePlan(r.rune, scenario, withGem, metric, true, dispoReserve(stock, r.rune, scenario), regemLibre);
       if (planNeeds(plan).length > 0 && plan.targetEff > plan.eff) ok.add(r.id);
     }
     return ok;
-  }, [verifie, rows, scenario, withGem, metric, dispoPour, regemLibre]);
+  }, [verifie, rows, scenario, withGem, metric, stock, regemLibre]);
 
   // Runes dont l'efficience actuelle dépasse le palier, triées selon le mode choisi.
   const filtered = useMemo(() => {
@@ -1158,9 +1163,8 @@ export function OptimPlanBox({
   // ⚠️ **Quelle ligne puis-je poser MAINTENANT.** Le plan dit quoi faire, la
   // réserve dit ce qui est à portée : sans le croisement, il faut aller compter
   // ses meules ailleurs pour savoir par où commencer.
-  const grade = GRADE_SCENARIO[scenario];
-  const dispo = (kind: 'grind' | 'gem', stat: number) =>
-    !!stock && ownsCraft(stock, { kind, setKey: rune.set, stat, grade, ancient: rune.rank > 10 });
+  // Même règle que la liste (`dispoReserve`) : il n'y en a qu'une.
+  const dispo = stock ? dispoReserve(stock, rune, scenario) : () => false;
 
   // Le plan affiché doit être CELUI du chiffre affiché : sous le filtre, il se
   // limite lui aussi à ce que la réserve permet.

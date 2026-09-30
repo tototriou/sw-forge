@@ -7,7 +7,7 @@
 
 import { CraftKind, CraftLine } from '../types';
 import { RUNE_EFFECT } from './effects';
-import { RunePlan } from './runeOptim';
+import { CraftDispo, RunePlan } from './runeOptim';
 
 // Un consommable qu'un plan réclame. Pas de quantité : un plan ne demande
 // jamais deux fois le même (une gemme par rune, une meule par substat).
@@ -120,6 +120,25 @@ export function missingCrafts(
 
 // Grade de consommable exigé par un scénario : héroïque → 4, légendaire → 5.
 export const GRADE_SCENARIO: Record<RunePlan['scenario'], number> = { hero: 4, legend: 5 };
+
+// « Ai-je ce consommable pour CE scénario ? » — la `CraftDispo` que le calcul
+// de potentiel attend (voir runeOptim.ts), liée à une rune et à un grade.
+//
+// ⚠️ **Une par scénario, jamais une pour deux.** Le potentiel héroïque et le
+// potentiel légendaire d'une tuile se vérifient chacun contre la réserve de
+// LEUR grade. Une seule fonction — celle du grade du tri — faisait compter au
+// chiffre légendaire une meule héroïque (surestimé, trié en héroïque) et
+// refusait au chiffre héroïque une meule héroïque présente (sous-estimé, trié
+// autrement).
+export function dispoReserve(
+  stock: CraftStock,
+  rune: { set: string; rank: number },
+  scenario: RunePlan['scenario']
+): CraftDispo {
+  const grade = GRADE_SCENARIO[scenario];
+  const ancient = rune.rank > 10;
+  return (kind, stat) => ownsCraft(stock, { kind, setKey: rune.set, stat, grade, ancient });
+}
 
 // Les lots qui seraient consommés en appliquant ce plan, sous forme de clés de
 // registre — c'est exactement ce qu'on décompte quand l'utilisateur déclare

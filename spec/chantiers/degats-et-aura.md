@@ -349,10 +349,11 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → amendement et revue pilote
         → 6bis-b1 → 6bis-b2 → 6bis-b3a → 6bis-b3b → 6bis-b4
         → 6bis-b5a
-        → contre-revue des contrats b3c et O
+        → contre-revue des contrats b3c et O → amendement pilote
         → 6bis-b3c (dominance et effet unique, revue externe du 2026-09-30)
-        → O (outil chantier ; placé ici par ordre d'exécution, il ne
-             dépend d'aucun lot 6bis)
+        → O (outil chantier, après contre-vérification ciblée de son
+             point 3 ; placé ici par ordre d'exécution, il ne dépend
+             d'aucun lot 6bis)
         → 6bis-b5b → 6bis-b5c (effets uniques de relique, demande du 2026-09-30)
         → revue technique indépendante → 7
                             (inventaire, cartographies bornées, réconciliation,
@@ -518,6 +519,34 @@ sans remettre en cause cette note (règle ajoutée en A.6 bis).
 **Deux lots s'insèrent avant b5b** : 6bis-b3c, puis O. Leurs contrats
 passent une contre-revue indépendante avant tout lancement.
 
+**Contre-revue du 2026-09-30, sur `93f9388e` : les deux lots « à
+corriger ».**
+
+- **b3c.** Le défaut est reproduit au chiffre près, perdu à la dominance
+  seule, sans autre coupe sûre touchée ; le score est monotone dans chaque
+  stat. Le pilote a rejoué chaque objection dans le code et amendé :
+  - trois appelants de `contexteDominance` ajoutés ;
+  - une seule règle de protection, sans `dimensionsRetenues`, qui n'a aucun
+    consommateur de production ;
+  - couverture par type sans cas vide ;
+  - oracle du mode `recherche` avec le filtre final ;
+  - comparaison sur le modèle de `verifier()` de b3b ;
+  - performance sur un cas où `interchangeables` change.
+
+  Nuance au constat B5 : `verifier()` tolère la dominance par construction
+  et garantit l'optimum. Coordonnée de la revue corrigée : `eligibles` est
+  en `relicOptim.ts` L184-187, pas L271-274.
+- **O.** La conception aurait évité l'incident aux deux étapes (vérifié sur
+  les commits). Amendé : migration écrite, lieu de sauvegarde, recherche des
+  révisions ancêtres, casse sous Windows, cas dégénérés, `verifier`,
+  `integrer` inchangé et motivé, preuve sur les chantiers réels exécutable,
+  conséquence d'`installer`. **Écart du pilote à la revue** : pour
+  `livrer`, une garde « arbre documentaire = base », suivie du miroir
+  actuel, plutôt que la fusion fichier par fichier proposée ; motif écrit
+  au contrat.
+- La contre-revue a lu les registres par un `node -e`, en lecture seule,
+  contre la consigne.
+
 #### Suivi des lots
 
 | Lot | Cat. | Statut | Commit / date |
@@ -563,8 +592,8 @@ passent une contre-revue indépendante avant tout lancement.
 | 6bis-b3b — coupes, diagnostics et différentiel | J | terminé, preuves rejouées par le pilote ; rétention sur compte réel arrêtée par décision utilisateur | `bdbd952c`…`3f9be574` ; reçu `3f9be57` ↔ `bc01ad2` / 2026-09-29 |
 | 6bis-b4 — écran, Workers, caches et parité | J | terminé, preuves rejouées par le pilote | `d716b7be`…`56ee3b99` ; reçu `56ee3b9` ↔ `ce2e842` / 2026-09-30 |
 | 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | terminé, preuves rejouées par le pilote ; restauration des notes relique, revue externe corrigée | `2e896bfa`…`d52d2e94` ; reçu `d52d2e9` ↔ `da2886f` / 2026-09-30 |
-| 6bis-b3c — dominance et effet unique de la relique | J | attend la contre-revue de son contrat | — |
-| O — verrous de `chantier ouvrir` et `livrer` | J | attend la contre-revue de son contrat, puis b3c | — |
+| 6bis-b3c — dominance et effet unique de la relique | J | contrat amendé après contre-revue ; lançable | — |
+| O — verrous de `chantier ouvrir` et `livrer` | J | contrat amendé après contre-revue ; contre-vérification ciblée du choix de `livrer` (point 3), puis après b3c | — |
 | 6bis-b5b — Meilleurs artéfacts et paire représentative | J | attend O | — |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | attend b5b | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5c ; preuve `controle-6bis-b-revue-technique.md` | — |
@@ -3141,12 +3170,20 @@ réduction 1 %) contre Violent + Will 124 371,51. Aujourd'hui, les ids 105 et
   - L762-800 : `objectiveScore` ;
   - L3550-3600 : `poolMinSlotSafe` ;
   - L3866-3960 : `prepareSearch`.
-- `relicOptim.ts` L60-99 et L300-356.
+- `relicOptim.ts` L60-99 (`exclusiveChiffrable`, `relicUniqueNature`).
 - `effects.ts` L346-370 (`SET_STAT_BONUS`) et L646-689 (`RELIC_UNIQUE`).
 - `damage.ts` L3259-3270 (`STAT_DE_L_AURA`).
 - `relicExclusive.ts` L100-200.
-- `tests/rune-optim-auras-coupes.test.ts` : l'oracle de b3b et sa note,
-  repérés par grep.
+- `relicQueue.ts` L155-195 : filtre final avec la candidate et
+  `conforme: false`, que l'oracle du mode `recherche` reproduit.
+- Les trois autres appelants de `contexteDominance` (contre-revue du
+  2026-09-30) :
+  - `scripts/diagnostic-harness-parite.ts` L85-95, dont le commentaire
+    promet un étage identique entre les deux chemins ;
+  - `scripts/monster-search-rank-diag.ts` L60-66 ;
+  - `tests/auras-modele.test.ts` L945-955.
+- `tests/rune-optim-auras-coupes.test.ts` : l'oracle de b3b, sa note et
+  `verifier()` (L235-252), repérés par grep.
 - Commentaires périmés : `relicQueue.ts` L45-56 et `OptimizerSection.tsx`
   L2266-2283.
 
@@ -3154,58 +3191,108 @@ réduction 1 %) contre Violent + Will 124 371,51. Aujourd'hui, les ids 105 et
 
 **Contrat.**
 
-- **Stat utile.** Une stat devient aussi « utile » dès que l'effet unique
-  d'une relique que la recherche peut porter la lit dans le score de
-  l'objectif (stat de référence ou stat améliorée) :
+- **Une seule règle de protection.** Une stat devient aussi « utile » dès
+  qu'elle est la stat de référence (`RELIC_UNIQUE[type].stat`) ou la stat
+  améliorée (`relicUniqueNature`) d'un type chiffrable (`exclusiveChiffrable`)
+  porté par une relique que la recherche peut équiper :
   - relique fixe (`off`, `equipped`, contexte absent) : `params.relic` ;
-  - mode `recherche` : l'union sur `relicContext.eligibles`.
-- **Base sûre.** Tout type chiffrable (`exclusiveChiffrable`) présent.
-  Restreindre aux types pertinents pour l'objectif (`dimensionsRetenues`)
-  seulement si la preuve montre que le score de cet objectif ne lit pas les
-  autres ; sinon A.6.
-- **Appelants.** `prepareSearch` et `poolMinSlotSafe` reçoivent la même
-  information. Les deux régimes Worker relancent `prepareSearch` : vérifier
-  qu'ils la transmettent.
+  - mode `recherche` : l'union sur `relicContext.eligibles`, pris avant la
+    dominance des reliques (`relicOptim.ts` L184-187, `RelicContext.eligibles`),
+    donc un sur-ensemble sûr.
+
+  Aucune restriction par objectif. `dimensionsRetenues` n'a aucun
+  consommateur de production, et sa pertinence en « Dégâts réels » suit le
+  scaling du sort, pas `objectiveStats` ni les passifs. Protéger une stat que
+  le score ne lit pas ne coûte que de l'élagage.
+- **Appelants.** L'information entre par un paramètre **obligatoire** de
+  `contexteDominance`, pour que `tsc` signale chaque appelant. Les cinq
+  appelants reçoivent la même information que la production, et le harnais
+  de parité tient sa promesse d'un étage identique. Les régimes Worker
+  transmettent `SearchParams` entier (contre-revue) : un test le confirme.
 - **Périmètre de la modification.** Seule l'interchangeabilité des sets
-  change. La comparaison des stats des runes, `DOMINANCE_MAX_POOL`, la
-  rétention et le score ne bougent pas. `algo-verify` s'applique.
+  change. La comparaison des stats des runes, `DOMINANCE_MAX_POOL` et le
+  score ne bougent pas. La rétention (`filterSlot`, clés de rétention) reste
+  aveugle aux stats de l'effet unique, comme à toute stat hors objectif :
+  hors périmètre, et la preuve le dit. `algo-verify` s'applique.
 - **Oracle.** Il est exhaustif, part du pool **avant** préparation, et
   n'appelle ni `prepareSearch` ni ses coupes. **Sa note est celle de la
   production** pour l'équipement complet (A.6 bis) : `objectiveScore`, auras
-  propres (`aurasPropresDesRunes`), `apportExclusive`. En mode `recherche`,
-  un build vaut la meilleure relique éligible, calculée avec la candidate
-  à la place de `gear.relic`.
-- **Comparaison.** Elle porte sur la **présence** des builds optimaux de
-  l'oracle parmi les candidats du moteur (`findIndex`, jamais
-  `candidates[0]`), avec `truncated = false` et `explored` confronté à
-  `totalPairCount`.
+  propres (`aurasPropresDesRunes`), `apportExclusive`. Artéfacts : aucun, ou
+  la paire fixe `SearchParams.artifacts`, dont le profil est
+  `artifactDamageProfile(params.artifacts)` en « Dégâts réels ».
+  En mode `recherche`, un build est noté par la meilleure relique éligible
+  **dont le couple passe `respecteConditionsAvecRelique`** avec la candidate
+  à la place de `gear.relic`. Sans telle relique, le build n'est pas valide
+  (production : `conforme: false`, jamais affiché).
+- **Comparaison.** Même structure que `verifier()` de b3b, avec la note de
+  production comme critère :
+  - recherche complète : `truncated = false`, `explored` confronté à
+    `totalPairCount` ;
+  - aucun faux positif ; en mode `recherche`, compté après le filtre final
+    de la résolution, jamais sur les candidats bruts (bornes relâchées) ;
+  - même verdict de faisabilité ;
+  - zéro faux rejet par une coupe sûre autre que la dominance (première
+    coupe lue par le traceur) ;
+  - l'optimum de la note de production conservé, et ses builds présents
+    parmi les candidats (`findIndex`, jamais `candidates[0]`).
+
+  La dominance a le droit de retirer un build valide, jamais l'optimum.
 - **Commentaires.** Corriger les deux commentaires périmés (« minimums
   seuls, T11 »).
 
-**Preuves.**
+###### 6bis-b3c — preuves
 
 - **Test nommé** : le cas minimal, rouge puis vert.
-- **Couverture des types** : chacun des 15 types chiffrables au moins une
-  fois, avec un set dont l'aura ou le bonus de fiche porte sa stat de
-  référence ou sa stat améliorée. Auras : Fight, Determination, Enhance.
-  Bonus de fiche : Fatal, Guard, Energy, Swift. En « PV effectifs » et en
-  « Dégâts réels ».
+- **Couverture des 15 types chiffrables, sans cas vide.** Chaque cas
+  réunit quatre conditions :
+  - la stat protégée est hors conditions et hors `objectiveKeysOf` de la
+    recherche ;
+  - le score de l'objectif lit l'effet unique ;
+  - le set porteur est formable. Swift est un 4 pièces : il faut au moins
+    4 emplacements libres (set demandé de 2 pièces au plus, ou aucun) et
+    4 runes Swift sur 4 emplacements distincts ;
+  - le cas échoue sous la mutation (protection retirée).
+
+  Repères, à confirmer par la mutation :
+  - Conquête 1 à 3 en « Dégâts réels », avec un sort qui ne s'appuie pas
+    sur la stat de référence ;
+  - Ténacité 4 en « PV effectifs » ;
+  - Bravoure 7 à 9 en « Dégâts réels », avec un sort sur l'ATQ ;
+  - Éternité 10 et 11, Origine 13 et 14 en « PV effectifs » ;
+  - Éternité 12 en « Dégâts réels » avec un sort sur la DEF ;
+  - Origine 15 en « Dégâts réels » avec un sort sur les PV.
+
+  `pvEffectifs` ne lit que PV et DEF (`runeBuildOptim.ts` L832-846).
+  Ténacité 5 et 6 ne sont lues qu'en « PV effectifs », où leur stat de
+  référence est déjà dans l'objectif. Un type dont les dépendances sont
+  toujours déjà protégées là où le score le lit se justifie par un test qui
+  prouve cette protection AVANT la correction, jamais par un cas vide.
+
+  Sets porteurs : auras Fight, Determination, Enhance ; bonus de fiche
+  Fatal, Guard, Energy, Swift.
 - **Mode `recherche`** : deux reliques éligibles aux stats de référence
-  différentes.
+  différentes, et un minimum qui écarte l'une d'elles au filtre final pour
+  un build.
 - **Témoins sans changement** : sans relique, Régénération, type inconnu,
   objectif « Efficience ».
-- **Différentiel** sur seeds fixes.
-- **Mutation** : retirer la nouvelle protection doit faire échouer l'oracle.
-- **Performance** : relever `interchangeables` avant et après sur les
-  recettes gelées (`recette-6bis-externe.json`, `recette-6bis-degats.json`,
-  `recette-6bis-b5a-equipped.json`).
-  - S'il ne change pas, aucune mesure de temps ; le dire.
-  - S'il change, mesure selon `optimizer-perf-testing` : min, médiane,
-    dispersion, répétitions entrelacées, au créneau sans concurrent
-    confirmé par l'utilisateur.
+- **Différentiel** sur seeds fixes, puis **mutation** : retirer la nouvelle
+  protection fait échouer chaque cas de couverture.
+- **Performance.** Les recettes gelées ne portent aucun pool : elles
+  tournent sur un export de compte.
+  - Pour chacune (`recette-6bis-externe.json`, `recette-6bis-degats.json`,
+    `recette-6bis-b5a-equipped.json`), nommer l'export et la relique portée
+    ou le contexte, puis relever `interchangeables` avant et après.
+  - « Aucune mesure de temps » n'est admis que si au moins un cas réel fait
+    changer `interchangeables`. Faute de tel cas, en geler un (sha256) sur
+    un vrai export avec une relique chiffrable.
+  - Dès que `interchangeables` change : mesure selon
+    `optimizer-perf-testing` (min, médiane, dispersion, répétitions
+    entrelacées), au créneau sans concurrent confirmé par l'utilisateur.
 - **Documentation** :
   - lever la réserve d'`invariants.md` (élagages sûrs, dominance) dans le
-    même commit que le code ;
+    même commit que le code, en ces termes : les stats dont dépend l'effet
+    unique rejoignent la garantie de l'objectif, dans les mêmes limites,
+    rétention heuristique comprise ;
   - fermer l'entrée de `pistes.md` ;
   - mettre à jour la section de dominance d'`algorithme.md` et
     `optimizer.md` s'il en décrit la portée ;
@@ -3287,7 +3374,9 @@ et chronologie : `controle-restauration-relique.md` § Diagnostic. Deux trous :
   - `ouvrir` L424-497 ;
   - `livrer` L534-686 ;
   - `rafraichir` L1206 à la fin de la fonction ;
-  - `integrer` L1075-1205, en lecture seulement.
+  - `integrer` L1075-1205, en lecture seulement ;
+  - `dossierEtat` L158, `controlerIdentite` L271-306 (casse normalisée
+    sous win32, L275), `verifier` L687-1074.
 - `tests/chantier.test.ts` : `testChantier` L612, `testChantierRafraichir`
   L352, `testChantierDeuxChantiers` L156.
 - `spec/chantiers/orchestration-parallele.md` : sections `ouvrir` (L239-246),
@@ -3295,60 +3384,116 @@ et chronologie : `controle-restauration-relique.md` § Diagnostic. Deux trous :
   (L447-518).
 - Le passage de `CLAUDE.md` « Les notes privées se LIVRENT ».
 
-**Contrat**, repris de la revue externe (point H) :
+#### Lot O — contrat
+
+Repris de la revue externe de la restauration (point H) et de la
+contre-revue du 2026-09-30 (O1 à O9).
 
 1. **Base synchronisée, conservée durablement.** Le registre du chantier
    garde l'état avec lequel les notes locales ont été synchronisées en
    dernier : révision documentaire, liste des fichiers et empreintes.
    - Qui la pose : `ouvrir`, `livrer` après son commit, et `rafraichir`.
-   - Son écriture résiste à une interruption entre copie, commit et reçu,
-     avec la même discipline que `livraisonEnCours`.
-   - Un reçu seul ne la remplace pas.
-2. **`ouvrir`**, quand les notes locales diffèrent de la base (celle de
-   `--base` si elle est donnée, sinon `HEAD` ; une base explicite est
-   respectée) :
-   - **arbre identique à une révision antérieure connue** de l'historique
-     documentaire : les notes sont en retard, et `ouvrir` les remplace par
-     la base, avec sauvegarde et liste de ce qui change. Une égalité avec un
-     ancien arbre prouve un contenu connu ; un retour arrière voulu se fait
-     après l'ouverture, par une livraison ;
-   - **aucune révision connue** : contenu inédit. `ouvrir` refuse et donne
-     la marche à suivre, soit livrer depuis le chantier d'origine, soit une
-     option explicite qui garde les notes et les enregistre comme base ;
-   - **politique de fins de ligne écrite et testée** (cas réel :
-     `artefacts.md`, CRLF dans l'historique et LF localement).
-3. **`livrer`** : comparaison à trois voies entre la base synchronisée, les
-   notes locales et la branche documentaire.
-   - Il refuse d'effacer ou de ramener en arrière un fichier que les notes
-     locales n'ont jamais reçu, en listant les chemins.
-   - Il accepte la suppression ou la modification locale d'un fichier reçu.
-   - Il ne refuse pas des changements disjoints.
-   - Un renommage se traite comme une suppression plus un ajout.
-4. **Migration des chantiers ouverts sans base enregistrée**
-   (`optimizer-workers`, `implementation-relique`, `degats-et-aura`) : une
-   règle définie et testée, sans faux refus ni faux passage.
-5. **Documentation** : `orchestration-parallele.md` et `CLAUDE.md` décrivent
+   - Son écriture résiste à une interruption entre copie, commit et
+     registre, avec la même discipline que `livraisonEnCours`.
+   - Coût : les empreintes par fichier viennent de la même lecture que
+     `empreinteArbre`, sans passe de hachage en plus (`verifier` complet :
+     1,4 s pour 874 fichiers et 261 Mo).
+2. **`ouvrir`** compare l'arbre ENTIER des notes locales à la base, celle
+   de `--base` si elle est donnée (elle est respectée), sinon `HEAD` :
+   - **absent** : copie de la base, comme aujourd'hui ;
+   - **identique à la base** : rien à faire ;
+   - **identique à une révision ancêtre de la base** : notes en retard,
+     remplacées par la base, avec liste de ce qui change.
+     - Recherche parmi `git rev-list <base> -- spec/outils/optimizer`, par
+       hash d'arbre git du sous-chemin (un calcul pour l'arbre local, puis
+       un `rev-parse` par révision).
+     - `git merge-base --is-ancestor <rev> <base>` est exigé.
+     - Sauvegarde sous `.git/forge/sauvegardes/<chantier>/<horodatage>/`
+       (répertoire Git commun, hors de l'arbre des notes, jamais livrée) ;
+       ce que `fermer` en fait est écrit.
+   - **tout autre cas** (inédit, vide, partiel, ou égal à une révision qui
+     n'est PAS ancêtre de la base, par exemple une `--base` plus ancienne
+     que les notes) : refus.
+     - Le message donne un diagnostic par fichier (« X identiques à
+       `<rev>`, Y inédits ») et la marche à suivre.
+     - Une option explicite d'adoption garde les notes et les enregistre
+       comme base.
+     - Un retour arrière voulu se fait après l'ouverture, par une
+       livraison.
+   - **Fins de ligne** : politique écrite et testée, pour la comparaison
+     comme pour la copie. Le dépôt documentaire a `core.autocrlf=true` ;
+     `artefacts.md` est en CRLF à `bcbb49a` et `153df29`, en LF à `6559ecc`.
+   - **Casse sous Windows** : comparaison insensible à la casse sous win32,
+     comme `controlerIdentite`. Un renommage qui ne change que la casse
+     passe par une suppression puis un ajout explicites, jamais par le seul
+     miroir.
+3. **`livrer`** commence par une garde : l'arbre des notes de la branche
+   documentaire doit être égal à la base synchronisée.
+   - Sinon, cette branche porte du contenu que les notes locales n'ont
+     jamais reçu : refus nommé, liste des chemins, marche à suivre
+     (`rafraichir`, ou fusion manuelle si les notes ont été adoptées).
+   - Une fois la garde passée, la copie miroir actuelle est exactement le
+     delta base → notes locales : suppressions, modifications et renommages
+     locaux légitimes passent.
+   - Après le commit, la base devient le nouvel état.
+   - La branche documentaire ne change que par `livrer` et `rafraichir`,
+     qui posent tous deux la base : la garde ne crée aucun faux refus dans
+     le flux normal. Ce choix remplace la fusion fichier par fichier
+     proposée par la revue, inutile dans ce flux ; `copierMiroir` reste,
+     derrière la garde.
+4. **Migration des chantiers ouverts sans base** (`optimizer-workers`,
+   `implementation-relique`, `degats-et-aura`).
+   - La base se reconstruit depuis le plus récent de
+     `dernierRecu.commitDoc` et `dernierRafraichissement.apres`. Le reçu
+     prouve l'égalité des notes locales avec l'état livré
+     (`chantier.mjs` L555-568).
+   - Sans l'un ni l'autre, il n'y a pas de base : `livrer` refuse par
+     défaut, et l'option d'adoption enregistre l'état local courant.
+5. **`verifier`** affiche la présence de la base et l'égalité de l'arbre
+   documentaire avec elle.
+6. **`integrer` reste inchangé.** Une fusion ne propage que ce que la
+   branche a changé, et la garde de `livrer` empêche désormais la branche de
+   perdre un contenu jamais reçu. Cette raison s'écrit dans
+   `orchestration-parallele.md`.
+7. **Documentation** : `orchestration-parallele.md` et `CLAUDE.md` décrivent
    le nouveau comportement dans le même commit.
 
-**Preuves.**
+#### Lot O — preuves
 
 - **Test qui rejoue l'incident** sur des dépôts jetables : un `main`
-  documentaire porte des fichiers que des notes locales en retard n'ont
-  pas ; `ouvrir`, puis `livrer` ne supprime rien de non reçu. Rouge sur
-  l'outil actuel, puis vert.
-- **Scénarios** : notes en retard, notes inédites, `--base` explicite,
-  suppression légitime, modifications disjointes des deux côtés, renommage,
-  interruption entre commit et registre, fins de ligne, migration.
+  documentaire porte des fichiers que des notes locales en retard n'ont pas.
+  - `ouvrir` remplace ces notes.
+  - Si les notes ont été adoptées, `livrer` refuse.
+  - Rouge sur l'outil actuel, puis vert.
+- **Scénarios** :
+  - notes absentes, identiques, en retard (ancêtre), inédites, vides,
+    partielles ;
+  - `--base` explicite plus ancienne que les notes : refus, jamais de
+    retour arrière ;
+  - suppression légitime, renommage, dont un renommage de casse sous
+    win32 ;
+  - interruption entre commit et registre ;
+  - fins de ligne ;
+  - migration : reçu seul, rafraîchissement plus récent, ni l'un ni
+    l'autre.
 - **Non-régression** : les `testChantier*` existants restent verts.
-- **Chantiers réels ouverts, sans écriture** : `verifier` et simulation du
-  nouveau contrôle sur `optimizer-workers`, `implementation-relique` et
-  `degats-et-aura`.
+- **Chantiers réels ouverts, sans écriture.**
+  - `controlerIdentite` refuse un chantier depuis un autre worktree. Le
+    NOUVEAU source se lance donc avec, pour dossier courant, chaque
+    worktree visé : `sw-forge-optimizer-workers`,
+    `sw-forge-implementation-relique` et `sw-forge`.
+  - Il y tourne en mode simulation qui n'écrit rien, prévu dans l'outil ou
+    dans un script de preuve.
+  - `verifier` de l'outil installé complète le relevé.
 - **Contrôles** : `node tests/run.mjs chantier`, spec-lint, diff-check ;
   preuve `controle-O.md`.
 
-**Ne fait pas :** `node scripts/chantier.mjs installer` (A.5 : le pilote le
-soumet à l'utilisateur) ; aucun `rafraichir`, `livrer` ni `integrer` sur un
-autre chantier ; aucune note privée modifiée hors de sa preuve.
+**Ne fait pas :** `node scripts/chantier.mjs installer` (A.5) ; aucun
+`rafraichir`, `livrer` ni `integrer` sur un autre chantier ; aucune note
+privée modifiée hors de sa preuve.
+**Conséquence assumée :** tant que `installer` n'a pas été lancé, l'outil
+installé n'a aucun verrou. Le pilote propose `installer` à l'utilisateur dès
+la validation de O, avant toute nouvelle ouverture de chantier.
 
 ### Lot 7 — sets d'aura : l'écran
 

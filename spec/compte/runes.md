@@ -933,69 +933,94 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
   montant** au doigt), voir l'onglet Courbes § « L'aide a DEUX supports ». Elle
   détaille les deux modes, le choix de la gemme, le gain, **le palier** (ce qu'il
   mesure et sa reconversion), **les icônes marteau/gemme** du plan, le filtre
-  de réserve, **« Sans les immémoriaux »** et **« Runes utilisées »**.
+  de réserve, **« Sans les immémoriaux »**, **« Runes utilisées »** et
+  **« Marqueurs »**.
 
-#### ⚠️ Le panneau « Options » (mobile) ne prend que six contrôles
+#### ⚠️ Le panneau « Options » (mobile) ne prend que sept contrôles
 
 Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
 téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
 **grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
-six** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
+sept** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
 **filtre antique**, **« Faisable avec ma réserve »**, **« Sans les
-immémoriaux »** et **« Runes utilisées »**. **Sets, slot, tri et l'aide restent
-dans la page**, à tous les formats.
+immémoriaux »**, **« Runes utilisées »** et **« Marqueurs »**. **Sets, slot, tri
+et l'aide restent dans la page**, à tous les formats.
 
 - ⚠️ **Au bureau, le groupe en ligne passe à la ligne tout seul**
   (`lg:flex-wrap`). Il est **un seul élément** de la rangée de filtres : sans
   retour à la ligne interne, il ne peut pas se réduire sous la largeur cumulée
-  de ses six contrôles, et c'est la **page** qui déborde par la droite — la
+  de ses contrôles, et c'est la **page** qui déborde par la droite — la
   rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Constaté au
   sixième contrôle, sur un écran de bureau ordinaire.
-- Les six sont écrits **une fois** (`optionsControls`) et posés à deux
+- Les sept sont écrits **une fois** (`optionsControls`) et posés à deux
   endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
   doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
   largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
-- ⚠️ **Dans le panneau, tout occupe la largeur — les trois boutons aussi.**
+- ⚠️ **Dans le panneau, tout occupe la largeur — les quatre boutons aussi.**
   Les segmentés sont pleins (`size="lg"`) ; « Faisable avec ma réserve »,
-  « Sans les immémoriaux » et « Runes utilisées » prennent donc eux aussi toute la colonne
-  (`pleineLargeur={large}`), sinon ils pendaient seuls, à la largeur de leur
-  texte, sous des contrôles pleins. En ligne au bureau (`large` faux) ils
-  restent serrés.
-- Sous « Runes utilisées », le panneau montre **en permanence** les six cases de
-  périmètre (grisées filtre éteint). Au bureau, elles vivent dans un flottant
-  ouvert par un chevron : voir « Les périmètres » plus bas.
+  « Sans les immémoriaux », « Runes utilisées » et « Marqueurs » prennent donc
+  eux aussi toute la colonne (`pleineLargeur={large}`), sinon ils pendaient
+  seuls, à la largeur de leur texte, sous des contrôles pleins. En ligne au
+  bureau (`large` faux) ils restent serrés.
+- Sous « Runes utilisées » et « Marqueurs », le panneau montre **en
+  permanence** leurs cases (grisées filtre éteint). Au bureau, elles vivent dans
+  un flottant ouvert par un chevron : voir « Filtres à cases » plus bas.
+  ⚠️ Le conteneur bouton + cases porte `w-full` au doigt : sans lui,
+  `[data-tiroir] .flex-col` (aligné à gauche) le réduit à la largeur de son
+  contenu, et le bouton redevient plus étroit que ses voisins — constaté en
+  capture.
 - ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
   crans se partagent la largeur à égalité et « Antiques uniquement » débordait
   son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
   active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
   voir [AncientFilter](src/components/account/AncientFilter.tsx).
-- ⚠️ Au **bureau, rien ne change** : les six restent visibles dans la rangée
+- ⚠️ Au **bureau, rien ne change** : les sept restent visibles dans la rangée
   de filtres. Le panneau n'existe que sous `lg`.
+
+### Filtres à cases — `FiltreACases`
+
+« Runes utilisées » et « Marqueurs » partagent **un seul gabarit**, le
+composant `FiltreACases` de [RunesOptim.tsx](src/components/account/RunesOptim.tsx) :
+un **bouton-interrupteur** qui allume le filtre, et des **`Case`** qui
+choisissent ce qu'il garde, chacune suivie de son nombre de runes. Même geste,
+même rendu, un seul endroit où ils pourraient diverger.
+
+- ⚠️ **Deux supports, un par format, et aucun ne déplace ce qu'on clique :**
+  - **au bureau**, un `BoutonIcone` (chevron) collé au bouton ouvre les cases
+    dans un `FlottantAuto`, hors du flux. Un clic ailleurs ou Échap le ferme ;
+  - **dans le panneau « Options » au doigt**, les cases sont rendues **en
+    permanence** sous le bouton. Leur place est réservée, et aucun flottant ne
+    s'ouvre dans le tiroir (règles descendantes `[data-tiroir]`).
+- **Inactives filtre éteint** : chevron désactivé au bureau, cases grisées dans
+  le panneau. Elles n'auraient aucun effet.
+- Le filtre allumé avec tout coché ne retire rien : c'est le défaut.
 
 ### « Marqueurs » — le filtre des marqueurs posés en jeu
 
-Une rangée de `Pastille` intitulée **Marqueurs**, dans la rangée de filtres
-**de la page** aux deux formats, comme sets et slot. C'est un critère de
-sélection des runes, pas un réglage du calcul : il ne descend pas dans le
-panneau « Options ».
+Un filtre à cases (voir ci-dessus), dans le groupe d'options : en ligne au
+bureau, dans le panneau « Options » au doigt. Il a d'abord été une rangée de
+pastilles dans la page. Avec des libellés longs et agrandis pour le doigt, elle
+prenait **quatre lignes** sur téléphone avant la première rune. L'utilisateur a
+donc demandé le même bouton que « Runes utilisées ».
 
-- **Une pastille par marqueur réellement posé** dans l'inventaire, plus « Sans
-  marqueur ». Le libellé est **celui saisi en jeu**, tel quel. Un marqueur jamais
-  nommé s'affiche « Marqueur N ». Données : `RuneDetail.marker` et
-  `runeMarkerLabels`, voir
+- **Une case par marqueur réellement posé** dans l'inventaire, plus « Sans
+  marqueur », chacune avec son nombre de runes. Le libellé est **celui saisi en
+  jeu**, tel quel. Un marqueur jamais nommé s'affiche « Marqueur N ». Données :
+  `RuneDetail.marker` et `runeMarkerLabels`, voir
   [shared/import-compte.md](../shared/import-compte.md).
-- **Tout affiché par défaut.** Décocher une pastille exclut ses runes. La
-  pastille **« Tous »**, en tête, bascule tout / rien comme la tuile « Tout » des
-  sets : pour ne garder qu'un marqueur, on vide puis on coche celui-là.
-- ⚠️ **L'état retient ce qui est EXCLU** (`optim.marqueursExclus`), pas ce qui est
-  affiché, à l'inverse des sets. Un marqueur qui apparaît au réimport suivant
-  doit s'afficher, pas arriver décoché en silence. Une exclusion qui ne vise
-  plus aucun marqueur présent ne compte pas.
-- **Masquée quand aucune rune ne porte de marqueur** (export sans marqueurs,
-  compte conservé avant leur lecture) : un filtre qui ne peut rien retirer
-  n'aide personne.
-- Le compteur rappelle « · N marqueurs exclus », et le message de liste vide
-  propose de réafficher tous les marqueurs.
+- **Tout coché par défaut.** Une case **« Tous »** en tête coche ou décoche
+  l'ensemble : pour ne garder qu'un marqueur, on décoche « Tous » puis on coche
+  celui-là. Jusqu'à neuf cases, les décocher une à une serait fastidieux.
+- ⚠️ **L'état retient ce qui est EXCLU** (`optim.marqueursExclus`), pas ce qui
+  est coché, à l'inverse des périmètres. Un marqueur qui apparaît au réimport
+  suivant doit arriver coché, pas décoché en silence. Une exclusion qui ne vise
+  plus aucun marqueur présent ne compte pas. L'interrupteur est
+  `optim.markersOnly`.
+- **Masqué quand aucune rune ne porte de marqueur** (export sans marqueurs,
+  compte conservé avant leur lecture). Il est masqué plutôt que grisé : aucun
+  réimport ne le rendrait utile sur un compte sans marqueurs.
+- Le compteur rappelle « · marqueurs », avec « (N exclus) » dès qu'une case est
+  décochée. Le message de liste vide propose de désactiver « Marqueurs ».
 - Il **se cumule** avec tous les autres filtres.
 
 ### « Runes utilisées » — le filtre qui regarde les decks
@@ -1059,17 +1084,10 @@ contient (union).
 | Arène — défense | défense d'arène et d'arène de serveur |
 | Autres decks | tout autre `deck_type` (donjons, ToA, labyrinthe…) |
 
-- Des **`Case`**, chacune suivie de son nombre de runes (« RTA (212) »). L'état
-  est collant (`optim.usedScopes`, liste blanche).
-- ⚠️ **Deux supports, un par format, et aucun ne déplace ce qu'on clique :**
-  - **au bureau**, un `BoutonIcone` (chevron) collé à « Runes utilisées » ouvre
-    les cases dans un `FlottantAuto`, qui sort du flux. Un clic ailleurs ou Échap
-    le ferme ;
-  - **dans le panneau « Options » au doigt**, les cases sont rendues **en
-    permanence** sous le bouton. Leur place est réservée, et aucun flottant ne
-    s'ouvre dans le tiroir (règles descendantes `[data-tiroir]`).
-- **Inactives filtre éteint** : chevron désactivé au bureau, cases grisées dans
-  le panneau. Elles n'auraient aucun effet.
+- Un **filtre à cases** (voir « Filtres à cases » plus haut : chevron et
+  flottant au bureau, cases permanentes au doigt, inactives filtre éteint). Chaque
+  case est suivie de son nombre de runes (« RTA (212) »). L'état est collant
+  (`optim.usedScopes`, liste blanche).
 - « Désactivé sans decks lus » se juge sur **tous** les périmètres, pas sur ceux
   cochés : tout décocher n'est pas « aucun deck lu ». Cela donne une liste vide,
   que le message explique (« aucun périmètre coché »).

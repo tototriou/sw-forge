@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCw, AlertTriangle, PackageCheck, Swords, Lock, Hammer, Gem, ChevronDown } from 'lucide-react';
+import { memo, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RotateCw, AlertTriangle, PackageCheck, Swords, Lock, Hammer, Gem, ChevronDown, Tag } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
 import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
@@ -18,7 +18,6 @@ import Pager from './Pager';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import NumberField from '../../ui/NumberField';
-import Pastille from '../../ui/Pastille';
 import Selecteur from '../../ui/Selecteur';
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
@@ -91,6 +90,128 @@ export const effColor = (e: number, base: number) =>
 // Valeur de filtre d'une rune SANS marqueur. Les marqueurs du jeu vont de 1 à 8.
 const SANS_MARQUEUR = 0;
 
+// Une case d'un filtre à cases : son libellé (nombre de runes compris), son
+// état, et l'action qui la bascule.
+interface ChoixCase {
+  cle: string | number;
+  libelle: string;
+  coche: boolean;
+  basculer: () => void;
+}
+
+// FILTRE À CASES — un bouton qui allume le filtre, et des cases qui choisissent
+// ce qu'il garde. « Runes utilisées » (périmètres) et « Marqueurs » partagent ce
+// gabarit : même geste, même rendu, un seul endroit où il peut diverger.
+//
+// ⚠️ **Deux supports, un par format**, et aucun ne déplace ce qu'on clique :
+//  - au BUREAU (`large` faux), un bouton d'icône voisin ouvre les cases dans
+//    un `FlottantAuto` — hors du flux. Fermé par un clic ailleurs ou Échap ;
+//  - dans le panneau « Options » au DOIGT (`large`), les cases sont rendues EN
+//    PERMANENCE sous le bouton : leur place est réservée, et aucun flottant ne
+//    s'ouvre dans le tiroir (règles descendantes `[data-tiroir]`).
+// Les cases n'agissent que filtre allumé : chevron désactivé / cases grisées
+// sinon.
+//
+// ⚠️ `w-full` au doigt : le panneau aligne ses `.flex-col` à gauche
+// (`[data-tiroir] .flex-col`, index.css). Sans lui, ce conteneur prend la
+// largeur de son contenu, et le `w-full` du bouton ne remplit plus que lui —
+// le bouton redevenait plus étroit que ses voisins (vu en capture). `flex-col`
+// est gardé pour que le bouton reçoive les mêmes règles `.flex-col > button`
+// que « Faisable avec ma réserve ».
+function FiltreACases({
+  large,
+  actif,
+  disabled = false,
+  onBascule,
+  title,
+  icone,
+  libelle,
+  libelleChoix,
+  tous,
+  choix,
+}: {
+  large: boolean;
+  actif: boolean;
+  disabled?: boolean;
+  onBascule: () => void;
+  title: string;
+  icone: ReactNode;
+  libelle: string;
+  // `aria-label` du chevron qui ouvre les cases au bureau.
+  libelleChoix: string;
+  // Case « Tous » en tête, qui coche / décoche l'ensemble — utile quand les
+  // choix sont nombreux et qu'on veut n'en garder qu'un.
+  tous?: { coche: boolean; basculer: () => void };
+  choix: ChoixCase[];
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const ancre = useRef<HTMLSpanElement>(null);
+  const visible = ouvert && actif;
+  useEffect(() => {
+    if (!visible) return;
+    const onDown = (e: MouseEvent) => {
+      if (ancre.current && !ancre.current.contains(e.target as Node)) setOuvert(false);
+    };
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setOuvert(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [visible]);
+
+  const cases = (grisees: boolean) => (
+    <div className={`flex flex-col gap-1.5 ${grisees ? 'opacity-50' : ''}`}>
+      {tous && (
+        <Case checked={tous.coche} disabled={grisees} onChange={tous.basculer} libelle="Tous" />
+      )}
+      {choix.map((c) => (
+        <Case key={c.cle} checked={c.coche} disabled={grisees} onChange={c.basculer} libelle={c.libelle} />
+      ))}
+    </div>
+  );
+
+  return (
+    <div className={large ? 'flex w-full flex-col gap-2' : 'flex items-center gap-1'}>
+      <Bouton
+        onClick={onBascule}
+        disabled={disabled}
+        actif={actif}
+        taille="sm"
+        pleineLargeur={large}
+        title={title}
+        icone={icone}
+        libelle={libelle}
+      />
+      {large ? (
+        cases(!actif)
+      ) : (
+        <span ref={ancre} className="relative inline-flex flex-none">
+          <BoutonIcone
+            onClick={() => setOuvert((v) => !v)}
+            disabled={!actif}
+            actif={visible}
+            aria-expanded={visible}
+            cadre
+            icone={<ChevronDown size={14} />}
+            libelle={libelleChoix}
+          />
+          <FlottantAuto
+            ouvert={visible}
+            ancre={ancre}
+            largeur={240}
+            hauteur={(choix.length + (tous ? 1 : 0)) * 26 + 32}
+            rembourrage="md"
+          >
+            {cases(false)}
+          </FlottantAuto>
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function RunesOptim({
   runes,
   crafts,
@@ -114,24 +235,46 @@ export default function RunesOptim({
   // aucun coché = rien.
   const [sets, setSets] = useStickyState<Set<string>>('optim.sets', new Set(runes.map((r) => r.set)));
   const [slots, setSlots] = useStickyState<Set<number>>('optim.slots', new Set([1, 2, 3, 4, 5, 6]));
-  // Marqueurs posés en jeu (voir `RuneDetail.marker`). ⚠️ **On retient ce qui
-  // est EXCLU**, pas ce qui est affiché — à l'inverse des sets : un marqueur
-  // qui apparaît au réimport suivant doit s'afficher, pas arriver décoché en
-  // silence. Vide = tout affiché, le défaut.
+  // Marqueurs posés en jeu (voir `RuneDetail.marker`). MÊME grammaire que
+  // « Runes utilisées » : un bouton qui allume le filtre, et des cases pour
+  // choisir ce qu'il garde.
+  //
+  // ⚠️ **On retient ce qui est EXCLU**, pas ce qui est coché — à l'inverse des
+  // périmètres : un marqueur qui apparaît au réimport suivant doit arriver
+  // coché, pas décoché en silence. Vide = tout coché, le défaut.
+  const [marqueursActif, setMarqueursActif] = useStickyState('optim.markersOnly', false);
   const [marqueursExclus, setMarqueursExclus] = useStickyState<Set<number>>(
     'optim.marqueursExclus',
     new Set()
   );
-  // Les choix proposés : les marqueurs réellement posés dans l'inventaire, et
-  // « Sans marqueur ». Proposer un marqueur que ne porte aucune rune ne filtre rien.
+  // Les choix proposés, avec leur nombre de runes : les marqueurs réellement
+  // posés dans l'inventaire, puis « Sans marqueur ». Proposer un marqueur que ne
+  // porte aucune rune ne filtre rien.
   const choixMarqueurs = useMemo(() => {
-    const presents = new Set<number>();
-    for (const r of runes) if (r.marker !== undefined) presents.add(r.marker);
-    return presents.size === 0 ? [] : [...Array.from(presents).sort((a, b) => a - b), SANS_MARQUEUR];
+    const compte = new Map<number, number>();
+    let sans = 0;
+    for (const r of runes) {
+      if (r.marker === undefined) sans++;
+      else compte.set(r.marker, (compte.get(r.marker) ?? 0) + 1);
+    }
+    if (compte.size === 0) return [];
+    return [
+      ...Array.from(compte.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([k, n]) => ({ k, n })),
+      { k: SANS_MARQUEUR, n: sans },
+    ];
   }, [runes]);
+  // ⚠️ Masqué quand aucune rune n'est marquée (export sans marqueurs, compte
+  // conservé avant leur lecture) : un filtre qui ne peut rien retirer n'aide
+  // personne — plutôt que grisé, puisqu'aucun réimport ne le rendrait utile.
+  const marqueursDispo = choixMarqueurs.length > 0;
+  const filtreMarqueurs = marqueursActif && marqueursDispo;
   // Une exclusion qui ne vise aucun choix présent (marqueur retiré en jeu
   // depuis) ne compte pas : elle ne retire rien.
-  const nbMarqueursExclus = choixMarqueurs.filter((k) => marqueursExclus.has(k)).length;
+  const nbMarqueursExclus = filtreMarqueurs
+    ? choixMarqueurs.filter((c) => marqueursExclus.has(c.k)).length
+    : 0;
   const libelleMarqueur = (k: number) =>
     k === SANS_MARQUEUR ? 'Sans marqueur' : runeMarkerLabels[k] ?? `Marqueur ${k}`;
   const [page, setPage] = useState(0);
@@ -213,23 +356,12 @@ export default function RunesOptim({
     setPerimetres(next);
     setPage(0);
   };
-  // Choix des périmètres au BUREAU : un flottant ancré au bouton voisin — il
-  // sort du flux, rien ne bouge au clic. Fermé par un clic ailleurs ou Échap.
-  const [perimOuvert, setPerimOuvert] = useState(false);
-  const ancrePerim = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!perimOuvert) return;
-    const onDown = (e: MouseEvent) => {
-      if (ancrePerim.current && !ancrePerim.current.contains(e.target as Node)) setPerimOuvert(false);
-    };
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setPerimOuvert(false);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [perimOuvert]);
+  const basculerMarqueur = (k: number) => {
+    const next = new Set(marqueursExclus);
+    next.has(k) ? next.delete(k) : next.add(k);
+    setMarqueursExclus(next);
+    setPage(0);
+  };
   const scenario = scenarioOf(sort);
 
   // Potentiel calculé une fois par import (linéaire, mémoïsé).
@@ -292,7 +424,7 @@ export default function RunesOptim({
           (!filtreUtilisees || utilisees.has(r.rune.id)) &&
           sets.has(r.rune.set) &&
           slots.has(r.rune.slot) &&
-          (nbMarqueursExclus === 0 || !marqueursExclus.has(r.rune.marker ?? SANS_MARQUEUR)) &&
+          (!filtreMarqueurs || !marqueursExclus.has(r.rune.marker ?? SANS_MARQUEUR)) &&
           (!faisable || faisable.has(r.id))
       )
       .sort((a, b) => signe * (val(b.pot) - val(a.pot)));
@@ -303,7 +435,7 @@ export default function RunesOptim({
     ancient,
     sets,
     slots,
-    nbMarqueursExclus,
+    filtreMarqueurs,
     marqueursExclus,
     faisable,
     filtreUtilisees,
@@ -339,26 +471,28 @@ export default function RunesOptim({
   const safePage = Math.min(page, pageCount - 1);
   const shown = filtered.slice(safePage * PAGE, safePage * PAGE + PAGE);
 
-  // Palier, mesure gemme/meule, filtre antique et « Faisable » — écrits UNE fois,
+  // Les cases des deux filtres « à cases », chacune avec son nombre de runes.
+  const choixPerimetres: ChoixCase[] = PERIMETRES_UTILISES.map((p) => ({
+    cle: p.key,
+    libelle: `${p.libelle} (${usedRuneIds[p.key].length})`,
+    coche: perimetres.has(p.key),
+    basculer: () => basculerPerimetre(p.key),
+  }));
+  const choixMarqueursCases: ChoixCase[] = choixMarqueurs.map((c) => ({
+    cle: c.k,
+    libelle: `${libelleMarqueur(c.k)} (${c.n})`,
+    coche: !marqueursExclus.has(c.k),
+    basculer: () => basculerMarqueur(c.k),
+  }));
+  // « Tous » en tête des marqueurs — jusqu'à neuf cases : n'en garder qu'une
+  // se fait en décochant tout puis en cochant celle-là.
+  const tousMarqueurs = choixMarqueurs.every((c) => !marqueursExclus.has(c.k));
+
+  // Palier, mesure gemme/meule, filtre antique, « Faisable », « Sans les
+  // immémoriaux », « Runes utilisées » et « Marqueurs » — écrits UNE fois,
   // posés à deux endroits : en ligne au bureau, dans le panneau « Options » au
   // doigt (comme les filtres de la Liste). `large` élargit les segmentés à toute
   // la largeur du panneau ; en ligne ils restent serrés.
-  // Les six cases de périmètre, chacune avec son nombre de runes. Écrites une
-  // fois, posées dans le flottant (bureau) ou sous le bouton (panneau).
-  const casesPerimetres = (grisees: boolean) => (
-    <div className={`flex flex-col gap-1.5 ${grisees ? 'opacity-50' : ''}`}>
-      {PERIMETRES_UTILISES.map((p) => (
-        <Case
-          key={p.key}
-          checked={perimetres.has(p.key)}
-          disabled={grisees}
-          onChange={() => basculerPerimetre(p.key)}
-          libelle={`${p.libelle} (${usedRuneIds[p.key].length})`}
-        />
-      ))}
-    </div>
-  );
-
   const optionsControls = (large: boolean) => (
     <>
       <div className="flex items-center gap-2">
@@ -465,67 +599,49 @@ export default function RunesOptim({
         libelle="Sans les immémoriaux"
       />
 
-      {/* ⚠️ Même gabarit que le bouton ci-dessus (`pleineLargeur={large}`) :
-          dans le panneau « Options », les deux prennent la largeur de la
-          colonne ; en ligne au bureau, ils restent serrés côte à côte. */}
-      {/* « Runes utilisées » + le choix de ses périmètres.
-          ⚠️ **Deux supports, un par format**, et aucun ne déplace ce qu'on
-          clique :
-           - au BUREAU, un bouton d'icône voisin ouvre les cases dans un
-             `FlottantAuto` — hors du flux ;
-           - dans le panneau « Options » au DOIGT, les cases sont rendues EN
-             PERMANENCE sous le bouton : leur place est réservée, et aucun
-             flottant ne s'ouvre dans le tiroir (règles `[data-tiroir]`).
-          Les cases n'agissent que filtre allumé : grisées sinon. */}
-      {/* ⚠️ `w-full` au doigt : le panneau aligne ses `.flex-col` à gauche
-          (`[data-tiroir] .flex-col`, index.css). Sans lui, ce conteneur prend
-          la largeur de son contenu, et le `w-full` du bouton ne remplit plus que
-          lui — « Runes utilisées » redevenait plus étroit que ses voisins (vu
-          en capture). `flex-col` est gardé pour que le bouton reçoive les mêmes
-          règles `.flex-col > button` que les deux autres. */}
-      <div className={large ? 'flex w-full flex-col gap-2' : 'flex items-center gap-1'}>
-        <Bouton
-          onClick={() => {
-            setUsedOnly((v) => !v);
+      {/* « Runes utilisées » et « Marqueurs » : deux filtres À CASES, même
+          gabarit (voir `FiltreACases`). */}
+      <FiltreACases
+        large={large}
+        actif={filtreUtilisees}
+        disabled={!utiliseesDispo}
+        onBascule={() => {
+          setUsedOnly((v) => !v);
+          setPage(0);
+        }}
+        title={
+          utiliseesDispo
+            ? `Ne garder que les ${utilisees.size} runes qui jouent dans les périmètres cochés`
+            : 'Aucun deck lu dans les données chargées — réimporte ton compte'
+        }
+        icone={<Swords size={14} />}
+        libelle="Runes utilisées"
+        libelleChoix="Choisir les périmètres des runes utilisées"
+        choix={choixPerimetres}
+      />
+
+      {marqueursDispo && (
+        <FiltreACases
+          large={large}
+          actif={filtreMarqueurs}
+          onBascule={() => {
+            setMarqueursActif((v) => !v);
             setPage(0);
           }}
-          disabled={!utiliseesDispo}
-          actif={filtreUtilisees}
-          taille="sm"
-          pleineLargeur={large}
-          title={
-            utiliseesDispo
-              ? `Ne garder que les ${utilisees.size} runes qui jouent dans les périmètres cochés`
-              : 'Aucun deck lu dans les données chargées — réimporte ton compte'
-          }
-          icone={<Swords size={14} />}
-          libelle="Runes utilisées"
+          title="Ne garder que les runes des marqueurs cochés"
+          icone={<Tag size={14} />}
+          libelle="Marqueurs"
+          libelleChoix="Choisir les marqueurs"
+          tous={{
+            coche: tousMarqueurs,
+            basculer: () => {
+              setMarqueursExclus(tousMarqueurs ? new Set(choixMarqueurs.map((c) => c.k)) : new Set());
+              setPage(0);
+            },
+          }}
+          choix={choixMarqueursCases}
         />
-        {large ? (
-          casesPerimetres(!filtreUtilisees)
-        ) : (
-          <span ref={ancrePerim} className="relative inline-flex flex-none">
-            <BoutonIcone
-              onClick={() => setPerimOuvert((v) => !v)}
-              disabled={!filtreUtilisees}
-              actif={perimOuvert && filtreUtilisees}
-              aria-expanded={perimOuvert && filtreUtilisees}
-              cadre
-              icone={<ChevronDown size={14} />}
-              libelle="Choisir les périmètres des runes utilisées"
-            />
-            <FlottantAuto
-              ouvert={perimOuvert && filtreUtilisees}
-              ancre={ancrePerim}
-              largeur={220}
-              hauteur={190}
-              rembourrage="md"
-            >
-              {casesPerimetres(false)}
-            </FlottantAuto>
-          </span>
-        )}
-      </div>
+      )}
     </>
   );
 
@@ -558,43 +674,6 @@ export default function RunesOptim({
           }}
         />
 
-        {/* Marqueurs posés en jeu — DANS la page aux deux formats, comme sets
-            et slot : c'est un critère de sélection des runes, pas un réglage du
-            calcul. Libellés tels que saisis en jeu, sinon le numéro.
-            ⚠️ Masqué quand aucune rune ne porte de marqueur : export sans
-            marqueurs, ou compte conservé avant leur lecture. Un filtre qui ne
-            peut rien retirer n'aide personne. */}
-        {choixMarqueurs.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="label mr-1">Marqueurs</span>
-            {/* Bascule TOUT / RIEN en tête, comme la tuile « Tout » des sets :
-                pour n'en garder qu'un, on vide puis on coche celui-là. */}
-            <Pastille
-              actif={nbMarqueursExclus === 0}
-              onClick={() => {
-                setMarqueursExclus(nbMarqueursExclus === 0 ? new Set(choixMarqueurs) : new Set());
-                setPage(0);
-              }}
-              title={nbMarqueursExclus === 0 ? 'Tout désélectionner' : 'Tout sélectionner'}
-              libelle="Tous"
-            />
-            {choixMarqueurs.map((k) => (
-              <Pastille
-                key={k}
-                actif={!marqueursExclus.has(k)}
-                onClick={() => {
-                  const next = new Set(marqueursExclus);
-                  next.has(k) ? next.delete(k) : next.add(k);
-                  setMarqueursExclus(next);
-                  setPage(0);
-                }}
-                title={k === SANS_MARQUEUR ? 'Runes sans marqueur' : `Marqueur ${k}`}
-                libelle={libelleMarqueur(k)}
-              />
-            ))}
-          </div>
-        )}
-
         <div className="flex items-center gap-2">
           <span className="label">Trier par</span>
           <Selecteur
@@ -621,13 +700,13 @@ export default function RunesOptim({
         </div>
 
         {/* Palier, mesure gemme/meule, filtre antique, « Faisable avec ma
-            réserve », « Sans les immémoriaux » et « Runes utilisées » : au
-            BUREAU en ligne ici, sur TÉLÉPHONE dans le panneau « Options »
-            (bouton de la barre de nav, voir la fin du composant).
+            réserve », « Sans les immémoriaux », « Runes utilisées » et
+            « Marqueurs » : au BUREAU en ligne ici, sur TÉLÉPHONE dans le panneau
+            « Options » (bouton de la barre de nav, voir la fin du composant).
 
             ⚠️ **`flex-wrap`, comme la rangée qui le contient.** Ce groupe est
             UN seul élément de la rangée parente : sans retour à la ligne
-            interne, il ne peut pas se réduire sous la largeur de ses six
+            interne, il ne peut pas se réduire sous la largeur de ses sept
             contrôles et c'est la PAGE qui déborde par la droite — la rangée
             parente, elle, n'a rien à passer à la ligne, elle ne voit qu'un
             bloc. Le `gap-y` sépare les lignes ainsi créées. */}
@@ -743,17 +822,19 @@ export default function RunesOptim({
               </p>
 
               <p className="mt-2">
-                <span className="text-ink font-semibold">Marqueurs</span> : les marqueurs que tu poses sur tes
-                runes en jeu, avec les noms que tu leur as donnés (un marqueur jamais nommé s'affiche par son
-                numéro). Tout est affiché par défaut ; décoche un marqueur pour l'exclure, ou « Tous » puis
-                un seul marqueur pour ne garder que lui.
+                <span className="text-ink font-semibold">Marqueurs</span> : ne garde que les runes des
+                marqueurs que tu poses en jeu, avec les noms que tu leur as donnés (un marqueur jamais nommé
+                s'affiche par son numéro). Même principe que « Runes utilisées » : le bouton allume le filtre,
+                les cases choisissent les marqueurs gardés — tous cochés par défaut. Décoche « Tous » puis
+                coche un seul marqueur pour ne garder que lui.
               </p>
           </HelpPopover>
         </div>
       </div>
 
       {/* AU DOIGT : panneau « Options » (palier, mesure gemme/meule, filtre
-          antique, « Faisable avec ma réserve »). Le bouton qui l'ouvre vit dans la
+          antique, « Faisable avec ma réserve », « Sans les immémoriaux »,
+          « Runes utilisées », « Marqueurs »). Le bouton qui l'ouvre vit dans la
           barre de nav — voir App.tsx (`pageAPanneau`). Sets, slots, tri et aide
           restent dans la page. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options d'optimisation">
@@ -776,8 +857,10 @@ export default function RunesOptim({
                 .map((p) => p.libelle)
                 .join(', ') || 'aucun périmètre'
             })`}
-          {nbMarqueursExclus > 0 &&
-            ` · ${nbMarqueursExclus} marqueur${nbMarqueursExclus > 1 ? 's' : ''} exclu${nbMarqueursExclus > 1 ? 's' : ''}`}
+          {filtreMarqueurs &&
+            ` · marqueurs${
+              nbMarqueursExclus > 0 ? ` (${nbMarqueursExclus} exclu${nbMarqueursExclus > 1 ? 's' : ''})` : ''
+            }`}
         </p>
         <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
       </div>
@@ -819,7 +902,7 @@ export default function RunesOptim({
           . Baisse le palier
           {ancient !== 'all' ? ' ou repasse sur « Toutes »' : ''}
           {filtreUtilisees ? ' ou désactive « Runes utilisées »' : ''}
-          {nbMarqueursExclus > 0 ? ' ou réaffiche tous les marqueurs' : ''} pour en voir plus.
+          {filtreMarqueurs ? ' ou désactive « Marqueurs »' : ''} pour en voir plus.
         </p>
       )}
 

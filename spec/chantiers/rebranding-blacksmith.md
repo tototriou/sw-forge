@@ -92,9 +92,20 @@ que la refonte : `node scripts/inventaire-ui.mjs --verifier`,
 R0 → R1 (les jetons se posent sur le relevé, pas de mémoire)
 R1 → R2, R3 (nom, logo et librairie se jugent sur les nouveaux jetons)
 R3 → R4 (la coquille consomme la librairie)
-R4 → R5 … R9 (un écran se refait sur la coquille finale)
-{R5 … R9} → refonte lot 12 (une seule validation finale, une seule fusion)
+R4 → R5 … R10 (un écran se refait sur la coquille finale)
+V0 → R7 (on ne refait pas un écran de plus sur des lots non relus)
+{R5 … R10, refonte 9a / 11e} → refonte lot 12 (une seule validation finale, une seule fusion)
 ```
+
+⚠️ **Deux arrêts par lot, à partir du V0** (décision 47) :
+1. **Relevé** — planche contre écran, captures, questions. Arrêt : Thomas
+   choisit.
+2. **Code, sans commit** — captures avant / après, bureau et téléphone,
+   Forge et Atelier. Arrêt : Thomas regarde et dit « validé » ou corrige.
+3. **Commit, preuve, cadrage** — seulement après « validé ».
+
+« Continue » fait passer à l'étape suivante ; ce n'est pas une validation.
+Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
@@ -106,9 +117,14 @@ R4 → R5 … R9 (un écran se refait sur la coquille finale)
 | R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | fait — relecture de Thomas en attente | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
 | R5 Accueil (bureau et téléphone) | J | fait — accueil gardé (décisions 31 à 36) ; icônes d'atelier sur les cartes (37) | 2026-09-29, [lot-R5.md](rebranding-preuves/lot-R5.md) |
 | R6 Siège et Recommandations | J | fait — écrans gardés (38 à 40, 42, 45) ; couleurs d'état `a329378c`, icônes `f3198798`, carte d'ajout `fb770b5c` ; relecture de Thomas en attente | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
-| R7 RTA | J | à faire | |
-| R8 Mon compte | J | à faire | |
-| R9 Bestiaire, Mécaniques, Nouveautés | J | à faire | |
+| V0 relecture par Thomas de R3, R4, R6 et de la décision 46 (commités sans avoir été vus) | — | à faire | |
+| R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | à faire | |
+| R8 Mon compte (Monstres, Runes, Artéfacts) | J | à faire | |
+| R9a Bestiaire | J | à faire | |
+| R9b Mécaniques, Nouveautés | J | à faire | |
+| R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | à faire | |
+| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris | J | en attente de la livraison de Thomas | |
+| Refonte 12 — `npm test` complet, fusion sur `main`, numéro de version | M | à faire | |
 
 ### A.8 Décisions prises en cours de chantier
 
@@ -273,6 +289,20 @@ valait exactement `accent-hover`.
     hors construction (`#FBEDB7`) : les deux constructions du R1 donnaient une
     crème indiscernable de `panel2`. Le code et les specs appellent encore ce
     statut « orange » : `design.md` dit de lire `warn`.
+
+#### 47 — le plan en lots, validé par Thomas (2026-09-30)
+
+« Refais-moi un plan en lots que je valide, j'ai l'impression que je ne
+valide pas ton travail », puis : « ok continue, mais je ne veux pas de
+classement en RTA, ne touche pas au fonctionnel, on fait juste une refonte ».
+
+47. **Deux arrêts par lot** (relevé, puis code avant tout commit) et un lot
+    **V0** de relecture de ce qui a été commité sans être vu ; les lots R9a,
+    R9b et R10 (Outils, qu'aucun lot ne couvrait) ; voir A.7. **Aucun
+    changement fonctionnel** dans les lots restants : la planche `BsRTA`
+    (classement S / A / B) n'est pas un modèle à suivre, seulement une source
+    d'affichage. Ce qui dans une planche suppose une fonction absente de
+    l'app ne se propose pas.
 
 ## Partie B — les lots
 
@@ -486,7 +516,15 @@ la place exacte de la carte, sans défilement). Choix faits sans question,
 « au-dessus du tick » garde le bleu de l'Eau. Défaut antérieur relevé, non
 corrigé : « Aucune équipe d'défense ».
 
-### R7 à R9
+### V0 — relecture de ce qui est commité · —
+
+Pour chaque lot commité avant d'avoir été vu (R3, R4, R6, décision 46) : la
+liste de ce que Thomas regarde, écran par écran, sur son serveur de dev, dans
+les deux thèmes. Ses corrections deviennent des commits propres, montrés
+avant d'être commités. **Ne fait pas** : de nouveaux changements de son propre
+chef.
+
+### R7 à R10
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

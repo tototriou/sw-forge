@@ -599,8 +599,27 @@ export default function RunesOptim({
         libelle="Sans les immémoriaux"
       />
 
-      {/* « Runes utilisées » et « Marqueurs » : deux filtres À CASES, même
-          gabarit (voir `FiltreACases`). */}
+      {/* ⚠️ Au DOIGT, côte à côte sur deux colonnes : empilés, bouton + six
+          cases + bouton + neuf cases faisaient défiler le panneau sur plus d'un
+          écran. `w-full` : le panneau aligne ses `.flex-col` à gauche, la
+          grille ne prendrait sinon que la largeur de son contenu. Une seule
+          colonne s'il n'y a pas de marqueurs — « Runes utilisées » ne se
+          réduit pas à une demi-largeur pour rien. `items-start` : les deux
+          listes n'ont pas la même hauteur. */}
+      {large ? (
+        <div className={`grid w-full items-start gap-3 ${marqueursDispo ? 'grid-cols-2' : ''}`}>
+          {filtresACases(true)}
+        </div>
+      ) : (
+        filtresACases(false)
+      )}
+    </>
+  );
+
+  // « Runes utilisées » et « Marqueurs » : deux filtres À CASES, même gabarit
+  // (voir `FiltreACases`).
+  const filtresACases = (large: boolean) => (
+    <>
       <FiltreACases
         large={large}
         actif={filtreUtilisees}

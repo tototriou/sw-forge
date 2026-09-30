@@ -965,6 +965,13 @@ et l'aide restent dans la page**, à tous les formats.
 - Sous « Runes utilisées » et « Marqueurs », le panneau montre **en
   permanence** leurs cases (grisées filtre éteint). Au bureau, elles vivent dans
   un flottant ouvert par un chevron : voir « Filtres à cases » plus bas.
+- **Les deux filtres à cases sont côte à côte, sur deux colonnes** (demande de
+  l'utilisateur). Empilés, bouton + six cases + bouton + neuf cases faisaient
+  défiler le panneau sur plus d'un écran. Mesuré à 390 px : deux boutons de
+  173 px, et chaque libellé de case tient sur une ligne. La grille porte `w-full`
+  (même raison que ci-dessous) et `items-start`, car les deux listes n'ont pas la
+  même hauteur. **Une seule colonne sans marqueurs** : « Runes utilisées » ne se
+  réduit pas à une demi-largeur pour rien.
   ⚠️ Le conteneur bouton + cases porte `w-full` au doigt : sans lui,
   `[data-tiroir] .flex-col` (aligné à gauche) le réduit à la largeur de son
   contenu, et le bouton redevient plus étroit que ses voisins — constaté en

@@ -141,7 +141,7 @@ export default function RunesCompare({ runes }: Props) {
         )}
       </div>
 
-      {msg && <p className={`text-xs mb-3 ${msg.ok ? 'text-wind' : 'text-fire'}`}>{msg.text}</p>}
+      {msg && <p className={`text-xs mb-3 ${msg.ok ? 'text-good' : 'text-bad'}`}>{msg.text}</p>}
 
       {onglet === 'courbes' ? (
         <OngletCourbes

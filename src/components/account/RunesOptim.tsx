@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCw, AlertTriangle, PackageCheck, Swords, Lock, Hammer, Gem } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
-import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
+import { formatRuneEffect, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
 import { CraftStock, EMPTY_STOCK, GRADE_SCENARIO, buildCraftStock, ownsCraft } from '../../lib/crafts';
 import { useRuneMetric, formatRuneMetric, convertirPalier, runeMetricValue } from '../../hooks/useRuneMetric';
@@ -73,10 +73,6 @@ const scenarioOf = (s: SortMode): 'hero' | 'legend' =>
 // Gain signé (« +2.3 » / « -1.4 »), à la précision de la mesure (score = entier).
 export const signed = (g: number, metric: 'eff' | 'score') =>
   (g >= 0 ? '+' : '') + (metric === 'eff' ? g.toFixed(1) : String(Math.round(g)));
-
-// Couleur d'une efficience potentielle vs l'actuelle : vert au-dessus, rouge en dessous.
-export const effColor = (e: number, base: number) =>
-  e > base + 0.05 ? 'text-good' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
 
 export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onFermerMenu }: Props) {
   const [threshold, setThreshold] = useStickyState('optim.threshold', 100);
@@ -525,10 +521,11 @@ export default function RunesOptim({ runes, crafts, usedRuneIds, menuOuvert, onF
               </p>
               <p className="mt-2">
                 <span className="text-ink font-semibold">Gain</span> = potentiel − efficience actuelle : ce
-                que la rune gagnerait. Sur chaque carte, il est affiché en{' '}
-                <span className="text-good">vert</span> si le potentiel est au-dessus de l'actuelle, en{' '}
-                <span className="text-fire">rouge</span> s'il est en dessous (ex. une rune déjà grindée
-                légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).
+                que la rune gagnerait. Sur chaque carte, sa ligne garde la couleur de la rareté visée ;
+                dans le détail d'une rune, il est en <span className="text-good">vert</span> s'il est
+                positif, en <span className="text-bad">rouge</span> s'il est négatif (ex. une rune déjà
+                grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma
+                réserve »).
               </p>
               <p className="mt-2">
                 <b className="text-ink">Tri</b> : efficience actuelle, potentiel ou gain. Clique une rune pour
@@ -698,7 +695,6 @@ export const OptimTile = memo(function OptimTile({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const { rune, pot } = row;
-  const meta = RARITY_META[rune.rarity] ?? RARITY_META[1];
   const ancient = rune.rank > 10;
   const metric = useRuneMetric();
   const fmt = (v: number) => formatRuneMetric(v, metric);
@@ -726,22 +722,30 @@ export const OptimTile = memo(function OptimTile({
           <div className={`font-bold text-ink leading-tight truncate ${etroit ? 'text-nano' : 'text-xs'}`}>
             {formatRuneEffect(rune.main)}
           </div>
-          <div className={`font-mono text-ink leading-tight ${etroit ? 'text-nano' : 'text-xs'}`}>
-            {/* Texte, donc `meta.ink` — voir RARITY_META. */}
-            actuelle <b style={{ color: meta.ink }}>{fmt(pot.eff)}</b>
+          <div className={`font-mono text-accent leading-tight ${etroit ? 'text-nano' : 'text-xs'}`}>
+            {/* ⚠️ Toute la ligne en BRAISE (`text-accent`, donc la braise
+                lisible), mot compris — une couleur par ligne, comme « Héro » et
+                « Légend ». Choisie par Thomas sur planche (rebranding R8 ;
+                essayés : encre, bleu ciel, vert). Dans la couleur de la rareté
+                (`meta.ink`), la valeur se confondait avec la ligne de même
+                rareté juste dessous — violette comme « Héro » sur une rune
+                héroïque, orange près de l'or de « Légend » sur une légendaire. */}
+            actuelle <b>{fmt(pot.eff)}</b>
           </div>
           <div
             className={`font-mono leading-tight ${etroit ? 'text-nano' : 'text-micro'}`}
             style={{ color: 'rgb(var(--rarity-4))' }}
           >
-            Héro {signed(pot.heroGain, metric)}{' '}
-            <span className={effColor(pot.heroEff, pot.eff)}>→ {fmt(pot.heroEff)}</span>
+            {/* ⚠️ UNE couleur par ligne, celle de sa rareté (Thomas, rebranding
+                R8) : la flèche et la valeur cible suivaient le vert / rouge du
+                gain, et la ligne « Héro » se lisait en deux couleurs. Le signe du
+                gain dit déjà s'il monte ou descend ; le vert / rouge reste dans
+                le plan détaillé (`OptimPlanBox`). */}
+            Héro {signed(pot.heroGain, metric)} → {fmt(pot.heroEff)}
           </div>
           <div className={`font-mono leading-tight font-bold text-star ${etroit ? 'text-nano' : 'text-micro'}`}>
             Légend {signed(pot.legendGain, metric)}{' '}
-            <span className={`font-normal ${effColor(pot.legendEff, pot.eff)}`}>
-              → {fmt(pot.legendEff)}
-            </span>
+            <span className="font-normal">→ {fmt(pot.legendEff)}</span>
           </div>
         </div>
       </button>
@@ -882,7 +886,7 @@ export function OptimPlanBox({
         <span className="font-mono text-ink-dim text-micro">
           {formatRuneMetric(plan.eff, metric)} →{' '}
           <b className="text-star">{formatRuneMetric(plan.targetEff, metric)}</b>{' '}
-          <span className={gain >= 0 ? 'text-good' : 'text-fire'}>({signed(gain, metric)})</span>
+          <span className={gain >= 0 ? 'text-good' : 'text-bad'}>({signed(gain, metric)})</span>
         </span>
       </div>
 

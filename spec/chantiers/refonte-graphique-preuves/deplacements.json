@@ -316,5 +316,23 @@
     "vers": "src/components/siege/SiegeBoard.tsx",
     "devient": "texte:Aucune équipe",
     "pourquoi": "Faute corrigée (V0 du rebranding, Thomas) : « Aucune équipe d'défense » ; l'élision vient désormais avec le mot."
+  },
+  "src/components/account/RunesOptim.tsx :: texte:= potentiel − efficience actuelle : ce que la rune gagnerait. Sur chaque carte, il est affiché en": {
+    "de": "src/components/account/RunesOptim.tsx",
+    "vers": "src/components/account/RunesOptim.tsx",
+    "devient": "texte:= potentiel − efficience actuelle : ce que la rune gagnerait. Sur chaque carte, sa ligne garde la couleur de la rareté visée ; dans le détail d'une rune, il est en",
+    "pourquoi": "Rebranding R8 (Thomas) : sur les tuiles de l'Optimisation, une couleur par ligne, celle de la rareté ; le vert / rouge du gain ne vit plus que dans le plan détaillé. L'aide le dit."
+  },
+  "src/components/account/RunesOptim.tsx :: texte:si le potentiel est au-dessus de l'actuelle, en": {
+    "de": "src/components/account/RunesOptim.tsx",
+    "vers": "src/components/account/RunesOptim.tsx",
+    "devient": "texte:s'il est positif, en",
+    "pourquoi": "Rebranding R8 (Thomas) : même reformulation de l'aide, le vert / rouge décrit le gain du plan détaillé."
+  },
+  "src/components/account/RunesOptim.tsx :: texte:s'il est en dessous (ex. une rune déjà grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).": {
+    "de": "src/components/account/RunesOptim.tsx",
+    "vers": "src/components/account/RunesOptim.tsx",
+    "devient": "texte:s'il est négatif (ex. une rune déjà grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).",
+    "pourquoi": "Rebranding R8 (Thomas) : même reformulation de l'aide."
   }
 }

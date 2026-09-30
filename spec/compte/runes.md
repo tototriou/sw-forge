@@ -1040,8 +1040,21 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
     (« hors antiques » / « antiques seules »), pour qu'un résultat vide ne passe
     pas pour une absence de runes.
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
-  et l'efficience cible colorée **vert** (au-dessus de l'actuelle) / **rouge** (en
-  dessous — seulement hors filtre de réserve, voir `noDowngrade`).
+  et l'efficience cible.
+  - ⚠️ **Une couleur par ligne, celle de sa rareté** (Thomas, rebranding R8,
+    2026-09-30) : « Héro −7,1 → 133,0 % » tout en violet (`rarity-4`),
+    « Légend » tout en or (`star`). La cible était colorée **vert** / **rouge** selon
+    qu'elle passait au-dessus ou en dessous de l'actuelle, et la ligne se
+    lisait en deux couleurs. Le signe du gain porte le sens ; le vert / rouge
+    ne vit plus que dans le plan détaillé d'une rune (`OptimPlanBox`), un gain
+    négatif n'existant d'ailleurs que hors filtre de réserve (`noDowngrade`).
+  - ⚠️ **La ligne « actuelle » en braise**, mot compris, la valeur en gras
+    (`text-accent`, la braise lisible ; Thomas, même jour, sur planche :
+    encre, braise, bleu ciel, vert) — une couleur par ligne, comme les deux
+    autres.
+    Dans la couleur de la rareté de la rune, elle se confondait avec la ligne
+    de même rareté (violette comme « Héro » sur une héroïque, orange près de
+    l'or de « Légend » sur une légendaire).
   Pagination 60/page.
   - ⚠️ **DEUX grilles, une par format** (même patron que l'onglet Liste) : sous
     `lg`, **deux colonnes fixes** ; à partir de `lg`, l'`auto-fill` à 230 px. Sur

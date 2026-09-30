@@ -44,18 +44,33 @@ if (!accountFile || !existsSync(accountFile)) {
   process.exit(1);
 }
 
-const browser = await chromium.launch();
+// ⚠️ Conteneur Linux (claude.ai/code) : Chromium y est préinstallé dans
+// /opt/pw-browsers, mais pour une AUTRE version de Playwright que celle du
+// dépôt — `launch()` échoue alors en réclamant `npx playwright install`. On
+// retombe sur le binaire préinstallé plutôt que d'en télécharger un.
+const CHROMIUM_PREINSTALLE = '/opt/pw-browsers/chromium';
+const browser = await chromium.launch().catch((err) => {
+  if (!existsSync(CHROMIUM_PREINSTALLE)) throw err;
+  return chromium.launch({ executablePath: CHROMIUM_PREINSTALLE });
+});
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 page.on('pageerror', (err) => console.error('[pageerror]', err.message));
 page.on('console', (msg) => {
   if (msg.type() === 'error') console.error('[console.error]', msg.text());
 });
 
-console.log(`→ ${DEV_URL}`);
-await page.goto(DEV_URL, { waitUntil: 'networkidle' });
+// ⚠️ Import par le bouton « Importer un compte » de la barre latérale
+// (SidebarCompte.tsx), PAS par le premier `input[type=file]` de l'accueil :
+// celui-là est l'import RTA, il ne charge aucun compte. Le bouton ouvre le
+// sélecteur natif, qu'on intercepte par l'événement `filechooser`. La barre
+// latérale n'existe qu'au format bureau — d'où la fenêtre large ci-dessus.
+console.log(`→ ${DEV_URL}/#/compte/runes`);
+await page.goto(`${DEV_URL}/#/compte/runes`, { waitUntil: 'networkidle' });
 
 console.log(`→ import ${path.basename(accountFile)}`);
-await page.locator('input[type="file"]').first().setInputFiles(accountFile);
+const importer = page.getByRole('button', { name: 'Importer un compte' }).filter({ visible: true }).first();
+const [selecteur] = await Promise.all([page.waitForEvent('filechooser'), importer.click()]);
+await selecteur.setFiles(accountFile);
 await page.waitForTimeout(2500);
 // ⚠️ Boîte de dialogue de consentement (IndexedDB) au tout premier import
 // de la session navigateur — voir Gotchas dans SKILL.md.

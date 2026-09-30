@@ -25,6 +25,13 @@ Chromium tourne headless nativement sous Windows sans display virtuel. Sur
 Linux, `npx playwright install --with-deps chromium` couvre l'équivalent
 (dépendances système + navigateur en une commande).
 
+⚠️ **Conteneur Linux de claude.ai/code** (constaté le 2026-09-30) : NE PAS
+lancer `npx playwright install`. Chromium y est préinstallé dans
+`/opt/pw-browsers`, mais pour une autre version de Playwright que celle du
+dépôt : `chromium.launch()` échoue en réclamant l'installation. Le driver
+retombe alors tout seul sur `executablePath: '/opt/pw-browsers/chromium'` ;
+un script jetable doit faire de même.
+
 ## Prérequis
 
 ```bash
@@ -188,6 +195,25 @@ ici : le lire dans la sortie de `npm test` du jour.
   uniquement sur les machines des développeurs) est nécessaire pour une
   démonstration réaliste — sans lui, le driver s'arrête avec un message
   explicite plutôt que d'échouer en silence.
+- ⚠️ **Le premier `input[type=file]` de l'accueil n'importe PAS le compte.**
+  C'est l'import RTA : `setInputFiles` dessus ne lève aucune erreur, affiche
+  en rouge « Aucun monstre favori RTA ni preset de runes RTA trouvé… », et
+  l'écran reste sur « Aucune donnée de compte chargée ». Le driver passe
+  désormais par le bouton **« Importer un compte »** de la barre latérale
+  (`SidebarCompte.tsx`), en interceptant `filechooser` — barre qui n'existe
+  qu'au format bureau. Au téléphone (barre repliée), viser l'input du pied :
+  `input[type="file"][accept*="json"]` en `.last()` (constaté à 390 px).
+- ⚠️ **Un compte factice doit porter les listes RTA.** Un export réduit à
+  `wizard_info` + `unit_list: []` + `runes` a été refusé avec le même message
+  rouge, même par le bon bouton. Pour une démo sur des runes choisies à la
+  main, partir de `tests/fixtures/compte-miniature.json` et AJOUTER les runes
+  voulues à son tableau `runes` (fichier fusionné dans le scratchpad, jamais
+  committé). Format d'une substat : `[stat, valeur, gemmée 0/1, meule]`.
+- **Palier de l'Optimisation à 100 % par défaut** : des runes de démo modestes
+  n'y apparaissent pas (« 0 rune ≥ 100% »). Le baisser d'abord —
+  `getByLabel('Palier')` filtré `visible` (au téléphone, il vit dans le
+  panneau « Options », qu'on ouvre par `getByText('Options', { exact: true })`
+  — `getByRole('button', { name: /Options/ })` ne l'a pas trouvé).
 - **Boîte de dialogue « Garder tes données sur cet appareil ? »** apparaît
   après le TOUT PREMIER import de la session navigateur (persistance
   IndexedDB, voir `usePersistence`). Le driver clique « Garder mes données »

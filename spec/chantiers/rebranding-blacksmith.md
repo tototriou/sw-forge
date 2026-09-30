@@ -123,7 +123,7 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | V0 relecture par Thomas de R3, R4, R6 et de la décision 46 (commités sans avoir été vus) | — | **validé par Thomas** (« tout est ok », sur une liste de 16 points) ; faute « équipe d'défense » à corriger | 2026-09-30 |
 | R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | **validé par Thomas** — écran gardé (48 à 50) ; rouge d'état et icône « Ami » `2f4fc0c5` | 2026-09-30, [lot-R7.md](rebranding-preuves/lot-R7.md) |
 | R8 Mon compte (Monstres, Runes, Artéfacts) | J | **validé par Thomas** — écrans gardés (51 à 53) ; rouges d'état `999a4c25`, tuiles d'Optimisation (54) `d52c438e` | 2026-09-30, [lot-R8.md](rebranding-preuves/lot-R8.md) |
-| R9a Bestiaire | J | à faire | |
+| R9a Bestiaire | J | **validé par Thomas** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
 | R9b Mécaniques, Nouveautés | J | à faire | |
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | à faire | |
 | Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris | J | en attente de la livraison de Thomas | |
@@ -337,6 +337,17 @@ n'avaient été touchés par aucun commit.
     vert). Le vert / rouge du gain ne reste que dans le plan détaillé.
     ⚠️ En Atelier, sur une légendaire, la braise foncée est quasi la couleur
     d'avant (`166 79 17` contre `166 88 12`) : dit à Thomas.
+
+#### 55 et 56 — les questions du R9a, le Bestiaire (Thomas, 2026-09-30)
+
+Relevé dans [lot-R9a.md](rebranding-preuves/lot-R9a.md).
+
+55. **En-tête et filtres gardés** (titre + compteur, pastilles aux couleurs
+    des éléments, tri sur la ligne de la pagination).
+56. **Cartes gardées** : le gabarit de « Ma box », 10 par ligne.
+
+Non proposés (47) : « Uniquement les miens » et « Dans ta box », qui
+croiseraient le Bestiaire avec le compte.
 
 ## Partie B — les lots
 
@@ -580,7 +591,16 @@ Runes, deux d'Artéfacts).
 tuiles de l'Optimisation, une couleur par ligne (54) `d52c438e`, trois
 allers-retours avec Thomas avant son « validé ».
 
-### R9a à R10
+### R9a — le Bestiaire · J
+
+**Écrit au démarrage (2026-09-30)**. Intrant : planche `BsBestiaire`,
+`spec/bestiaire.md` (l. 1–68), `BestiaryPage.tsx`.
+
+**Résultat (2026-09-30)** — preuve [lot-R9a.md](rebranding-preuves/lot-R9a.md).
+Écran gardé (55, 56). Un commit, `d3218f56` : le grimoire sur l'état « aucun
+monstre » (44). Rien pour la décision 43.
+
+### R9b à R10
 
 Même contrat que les lots d'écran de la refonte (`refonte-graphique.md`
 § B.5 à B.10) : tests de rendu de la zone d'abord, relevé des écarts

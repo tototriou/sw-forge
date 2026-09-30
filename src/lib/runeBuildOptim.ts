@@ -49,7 +49,10 @@ import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
 // Le canal exclusive du lot 7 — `relicExclusive.ts` ne dépend que de
 // `effects`/`stats`/`damage`, jamais de ce module : aucun cycle.
-import { APPORT_NEUTRE, ApportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
+import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
+// ⚠️ Type SEUL : `relicQueue.ts` importe ce module à l'exécution — un import
+// de valeur fermerait le cycle.
+import type { EtatRelique } from './relicQueue';
 // ⚠️ `import type` UNIQUEMENT — `relicOptim.ts` importe déjà `Objective`
 // d'ici (type seul) : un import de valeur ferait un cycle au runtime.
 import type { RelicContext, RelicVide } from './relicOptim';
@@ -991,6 +994,61 @@ export function scoreDuCandidat(
 
 export function aurasPropresParRunes(runeById: Map<number, { set: string }>): (c: { runeIds: number[] }) => AurasPropres {
   return (c) => aurasPropresDesRunes(c.runeIds.map((id) => runeById.get(id)).filter((r): r is { set: string } => r != null));
+}
+
+export type OptionsDeClassement = Parameters<typeof sortCandidates>[2];
+
+/**
+ * Les options du classement AFFICHÉ — construites ICI pour l'écran (tri et
+ * cartes « Dégâts réels » / « PV effectifs », `optionsDuTriAffiche`) et pour le
+ * CLI : un oubli dans l'un des deux ne peut plus diverger en silence, et le
+ * test appelle le même producteur que l'écran (degats-et-aura 6bis-b5a).
+ *
+ * ⚠️ **La relique dont l'effet unique est compté suit `etatReliqueDe`**, l'état
+ * que la carte AFFICHE (`etatReliqueDuBuild`, relicQueue.ts) — jamais une
+ * seconde lecture :
+ * - `fixe` (`off`, `equipped`, pas de contexte) : la relique de la fiche,
+ *   connue sans attendre la file ; `c.stats` contiennent déjà sa principale
+ *   (le moteur la pose, `SearchParams.relic`) ;
+ * - `resolue` : la relique RETENUE pour ce build ;
+ * - `en attente` et `rejete` : apport NEUTRE, jamais un repli sur la relique
+ *   de la fiche (les stats d'un build en attente sont celles du moteur, sans
+ *   relique).
+ * Jusqu'à 6bis-b4, seule la relique retenue comptait : hors `recherche`, la
+ * carte et le tri ignoraient l'effet unique de la relique portée, que la file
+ * comptait pourtant en notant ses paires.
+ *
+ * L'effet unique s'applique UNE fois, dans le score (`scorerPour`), sur ces
+ * stats : jamais dans `computeStats`, jamais dans les conditions.
+ */
+export function optionsDeClassement(e: {
+  realDamage: RealDamageContext | null;
+  damageSetup: DamageSetup;
+  runeById: Map<number, RuneDetail>;
+  metric: OptimMetric;
+  aurasPropresDe: (c: BuildCandidate) => AurasPropres;
+  artefactsDuBuild: (c: BuildCandidate) => ArtifactDamageProfile | null;
+  etatReliqueDe: (c: BuildCandidate) => EtatRelique;
+  contexteExclusive: { setup: DamageSetup; element: ElementKey | null };
+}): OptionsDeClassement {
+  return {
+    realDamage: e.realDamage,
+    damageSetup: e.damageSetup,
+    runeById: e.runeById,
+    metric: e.metric,
+    aurasPropresDe: e.aurasPropresDe,
+    artefactsDuBuild: e.artefactsDuBuild,
+    exclusiveDuBuild: (c) => {
+      const etat = e.etatReliqueDe(c);
+      return apportExclusive(
+        etat.etat === 'fixe' || etat.etat === 'resolue' ? etat.relique : undefined,
+        c.stats,
+        e.contexteExclusive.setup,
+        e.aurasPropresDe(c),
+        e.contexteExclusive.element
+      );
+    },
+  };
 }
 
 // Le score d'UN candidat pour ce critère — `null` quand le contexte nécessaire

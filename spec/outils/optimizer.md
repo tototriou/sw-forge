@@ -1570,6 +1570,22 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     relique `recherche`, un build classé premier par sa Conquête affichait un
     chiffre inférieur à celui du suivant. L'écart « Comparer » reste calculé
     contre la fiche sans exclusive de relique : voir `pistes.md`.
+    ⚠️ **L'effet unique compte dans les trois modes de relique**
+    (degats-et-aura 6bis-b5a) — la relique est celle que la carte affiche
+    (`etatReliqueDuBuild`, une seule expression pour la case et le score) :
+    interrupteur coupé ou « Garder la relique équipée », **la relique de la
+    fiche**, dès la collecte, sans attendre la file ; mode `recherche`, **la
+    relique retenue** pour ce build, et un apport **neutre** tant que la file
+    ne l'a pas résolu — jamais un repli sur la relique portée ; aucune
+    relique, neutre. Hors `recherche`, le tri et les cartes ignoraient
+    l'effet unique de la relique portée, que la file comptait pourtant pour
+    choisir la paire. Les options viennent d'`optionsDeClassement`
+    (runeBuildOptim.ts), le producteur même que les tests appellent.
+    Même règle pour un **tri par PV, ATQ ou DEF** : les points
+    Bravoure/Éternité/Origine entrent dans la valeur qui classe. ⚠️ Écart
+    connu, non corrigé : la carte affiche les stats hors combat
+    (`candidate.stats`), sans ces points — la valeur montrée n'est alors pas
+    celle qui classe.
     ⚠️ **« Valider ce build »**, sur chaque carte — réserve les 6 runes de CE
     résultat (elles n'apparaissent plus dans les recherches suivantes de la
     même liste de travail), jusqu'à libération explicite : voir « Listes de

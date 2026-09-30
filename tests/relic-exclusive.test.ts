@@ -35,7 +35,15 @@ import { Competence } from '../src/lib/monsterSkills';
 import { APPORT_NEUTRE, apportExclusive, facteurTenacite, statsAvecApport, tranchesAtteintes } from '../src/lib/relicExclusive';
 import { exclusiveChiffrable } from '../src/lib/relicOptim';
 import { RELIC_UNIQUE } from '../src/lib/effects';
-import { objectiveScore, pvEffectifs } from '../src/lib/runeBuildOptim';
+import { aurasPropresParRunes, objectiveScore, optionsDeClassement, pvEffectifs, scoreDuCandidat, sortCandidates, statTotal } from '../src/lib/runeBuildOptim';
+import type { BuildCandidate, RealDamageContext } from '../src/lib/runeBuildOptim';
+import { resoudreContexteRelique } from '../src/lib/relicOptim';
+import { etatReliqueDuBuild } from '../src/lib/relicQueue';
+import { cleBuild, signatureArtefacts, type ResultatArtefacts } from '../src/lib/artifactQueue';
+import type { RelicIntent } from '../src/hooks/useOptimizerState';
+import type { RuneDetail } from '../src/types';
+import { readFileSync } from 'node:fs';
+import { rune } from './relic-search.test';
 import { egal, ok, titre } from './outils';
 
 /* --------------------------------------------------------------------------
@@ -257,5 +265,163 @@ export default function testRelicExclusive() {
     egal(accord, 16, 'les 16 types : exclusiveChiffrable ⟺ apportExclusive rend un apport non neutre');
     egal(exclusiveChiffrable(16), false, 'Régénération (16) n’est pas chiffrable — et n’est jamais pertinente, donc ne rend rien partiel');
     egal(exclusiveChiffrable(99), false, 'un type inconnu n’est pas chiffrable');
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * degats-et-aura 6bis-b5a — l'effet unique dans le classement AFFICHÉ (tri et
+ * cartes « Dégâts réels » / « PV effectifs »), dans les TROIS modes.
+ *
+ * Producteur réel : `optionsDeClassement`, que l'écran appelle tel quel ;
+ * l'état de relique vient d'`etatReliqueDuBuild` sur les contextes de
+ * `resoudreContexteRelique` — les deux mêmes fonctions que l'écran. Règle 1
+ * du cadrage : `off`/`equipped` → la relique de la fiche ; `recherche` → la
+ * relique RETENUE ; non résolue → neutre, sans repli ; aucune → neutre.
+ *
+ * Attentes calculées À LA MAIN, jamais par `scoreDuCandidat` : l'apport
+ * (`⌊Y / t⌋ × percent`, relevé T4) puis `objectiveScore` ou `pvEffectifs`
+ * avec cet apport écrit en dur.
+ * ----------------------------------------------------------------------- */
+
+const SORT_ATQ = sortSynthetique('3.0*{ATK}');
+const DEGATS: RealDamageContext = {
+  profile: SORT_ATQ, passifs: [], setup: SETUP, element: null, artefacts: ARTIFACT_DAMAGE_NEUTRE,
+  critSiPlusRapide: false, bonusDegatsSelonVit: null, bonusDegatsStack: null, monsterWide: {},
+  bonusDegatsConditionnel: null, bonusDegatsSelonCr: null, bonusDegatsSelonDef: null, bonusSiAtqSeuil: null,
+};
+
+// Conquête (type 1, ATQ de référence), principale ATQ +10 % : ATQ 2 200,
+// Y = 2 200 + ⌈2 000 × 20 %⌉ = 2 600 → ⌊2 600 / 1 000⌋ × 2 = 4 % de dégâts.
+const CONQUETE = piece(701, 101, 10, 9, 1, 1000, 2);
+// Ténacité (type 6, PV de référence), principale PV +10 % : PV 27 500,
+// Y = 27 500 + ⌈25 000 × 20 %⌉ = 32 500 → ⌊32 500 / 10 000⌋ × 1 = 3 % de réduction.
+const TENACITE = piece(702, 100, 10, 9, 6, 10000, 1);
+// Régénération (16) : aucun objectif ne la mesure → neutre. MÊMES principales
+// que les deux ci-dessus : les stats ne changent pas, seul l'effet unique.
+const REGEN_ATQ = piece(703, 101, 10, 9, 16, 1000, 5);
+const REGEN_PV = piece(704, 100, 10, 9, 16, 1000, 5);
+
+const intention = (mode: RelicIntent['mode']): RelicIntent => ({ mode, principale: 'libre', type: 'libre', seuil: 0 });
+
+function candidatDe(idBase: number, relique: RelicDetail | undefined, mains: Partial<Record<number, [number, number]>> = {}) {
+  const runes: RuneDetail[] = [1, 2, 3, 4, 5, 6].map((slot) => rune(idBase + slot, slot, mains[slot] ?? [8, 0]));
+  const c: BuildCandidate = { runeIds: runes.map((r) => r.id), stats: computeStats({ base: BASE, runes, artifacts: [], relic: relique }), effTotal: 0 };
+  return { c, runes };
+}
+
+// La paire et la relique RETENUES d'un build résolu, telles que la file les
+// met en cache (`fileArtefacts.parBuild`).
+function resolu(c: BuildCandidate, relique: RelicDetail | undefined): ResultatArtefacts {
+  return { paire: null, artefacts: [], stats: c.stats, meilleurSansVerrous: null, conforme: true, ...(relique ? { relique } : {}) };
+}
+
+export function testRelicClassementParMode() {
+  titre('Relique — effet unique dans le tri et les cartes, dans les trois modes (6bis-b5a)');
+
+  const ctxOff = resoudreContexteRelique(intention('off'), CONQUETE, [CONQUETE]);
+  const ctxEquipped = resoudreContexteRelique(intention('equipped'), CONQUETE, [CONQUETE]);
+  const ctxRecherche = resoudreContexteRelique(intention('recherche'), REGEN_ATQ, [REGEN_ATQ, REGEN_PV, CONQUETE, TENACITE]);
+  egal([ctxOff.mode, ctxEquipped.mode, ctxRecherche.mode], ['off', 'equipped', 'recherche'], 'les trois contextes du vrai producteur');
+  egal(ctxRecherche.eligibles.length, 4, 'recherche : les quatre pièces sont éligibles (seuil +0, principale et type libres)');
+
+  const { c: cAtq, runes: runesAtq } = candidatDe(7100, CONQUETE);
+  const { c: cPv, runes: runesPv } = candidatDe(7200, TENACITE);
+  egal(statTotal(cAtq.stats, 'atk'), 2200, 'précondition : ATQ 2 000 + principale 10 % = 2 200');
+  egal(statTotal(cPv.stats, 'hp'), 27500, 'précondition : PV 25 000 + principale 10 % = 27 500');
+  const runeById = new Map([...runesAtq, ...runesPv].map((r) => [r.id, r]));
+  const aurasPropresDe = aurasPropresParRunes(runeById);
+
+  const options = (etatReliqueDe: (c: BuildCandidate) => ReturnType<typeof etatReliqueDuBuild>) =>
+    optionsDeClassement({
+      realDamage: DEGATS, damageSetup: SETUP, runeById, metric: 'eff', aurasPropresDe,
+      artefactsDuBuild: () => null, etatReliqueDe, contexteExclusive: { setup: SETUP, element: null },
+    });
+  // L'expression MÊME de l'écran (`etatReliqueDe`) : cache de la file, contexte
+  // de la recherche lancée, relique de la fiche.
+  const etat = (ctx: typeof ctxOff, fiche: RelicDetail | undefined, cache: Map<string, ResultatArtefacts> = new Map()) =>
+    (c: BuildCandidate) => etatReliqueDuBuild(cache.get(cleBuild(c)), ctx, fiche);
+
+  // Attentes à la main.
+  const degatsNeutres = objectiveScore(cAtq, 'degats_reels', AUCUNE_AURA_PROPRE, DEGATS);
+  const degatsConquete = objectiveScore(cAtq, 'degats_reels', AUCUNE_AURA_PROPRE, DEGATS, { ...APPORT_NEUTRE, dmgPct: 4 });
+  ok(Math.abs(degatsConquete / degatsNeutres - 1.04) < 1e-12, 'Conquête additive dans DMG% (T4) : ×1,04 sur un sort sans autre bonus');
+  const ehpNeutres = pvEffectifs(cPv.stats, AUCUNE_AURA_PROPRE, SETUP);
+  const ehpTenacite = ehpNeutres / (1 - 3 / 100);
+  const proche = (a: number | null, b: number) => a != null && Math.abs(a - b) < 1e-9 * Math.max(1, Math.abs(b));
+
+  const cas: { nom: string; etatDegats: (c: BuildCandidate) => ReturnType<typeof etatReliqueDuBuild>; etatEhp: (c: BuildCandidate) => ReturnType<typeof etatReliqueDuBuild>; compte: boolean }[] = [
+    { nom: 'off, build pas encore résolu → relique de la fiche', etatDegats: etat(ctxOff, CONQUETE), etatEhp: etat(ctxOff, TENACITE), compte: true },
+    { nom: 'off, paire résolue (la file ne renseigne pas la relique) → relique de la fiche',
+      etatDegats: etat(ctxOff, CONQUETE, new Map([[cleBuild(cAtq), resolu(cAtq, undefined)]])),
+      etatEhp: etat(ctxOff, TENACITE, new Map([[cleBuild(cPv), resolu(cPv, undefined)]])), compte: true },
+    { nom: 'equipped → relique de la fiche', etatDegats: etat(ctxEquipped, CONQUETE), etatEhp: etat(ctxEquipped, TENACITE), compte: true },
+    { nom: 'recherche résolue → relique RETENUE (la fiche porte une Régénération)',
+      etatDegats: etat(ctxRecherche, REGEN_ATQ, new Map([[cleBuild(cAtq), resolu(cAtq, CONQUETE)]])),
+      etatEhp: etat(ctxRecherche, REGEN_PV, new Map([[cleBuild(cPv), resolu(cPv, TENACITE)]])), compte: true },
+    { nom: 'recherche résolue sur une Régénération → neutre, jamais l’effet de la fiche',
+      etatDegats: etat(ctxRecherche, CONQUETE, new Map([[cleBuild(cAtq), resolu(cAtq, REGEN_ATQ)]])),
+      etatEhp: etat(ctxRecherche, TENACITE, new Map([[cleBuild(cPv), resolu(cPv, REGEN_PV)]])), compte: false },
+    { nom: 'recherche non résolue → neutre, sans repli sur la relique de la fiche',
+      etatDegats: etat(ctxRecherche, CONQUETE), etatEhp: etat(ctxRecherche, TENACITE), compte: false },
+    { nom: 'aucune relique → neutre', etatDegats: etat(ctxOff, undefined), etatEhp: etat(ctxOff, undefined), compte: false },
+  ];
+  for (const k of cas) {
+    const d = scoreDuCandidat(cAtq, 'degats_reels', options(k.etatDegats));
+    ok(proche(d, k.compte ? degatsConquete : degatsNeutres), `Dégâts réels, ${k.nom} : ${d?.toFixed(3)} (attendu ${(k.compte ? degatsConquete : degatsNeutres).toFixed(3)})`);
+    const p = scoreDuCandidat(cPv, 'ehp', options(k.etatEhp));
+    ok(proche(p, k.compte ? ehpTenacite : ehpNeutres), `PV effectifs, ${k.nom} : ${p?.toFixed(3)} (attendu ${(k.compte ? ehpTenacite : ehpNeutres).toFixed(3)})`);
+  }
+
+  /* ── Tri PV/ATQ/DEF : la même règle, et ce que la carte affiche ─────────── */
+  {
+    // Bravoure (type 9 : ATQ depuis les PV) — tranche 12 000, 5 %, principale
+    // DEF +0. A : ATQ 2 300, PV 25 000 → Y 30 000 → 2 tranches → +10 % de
+    // 2 000 = +200. B : ATQ 2 250, PV 31 000 → Y 36 000 → 3 tranches → +300.
+    const bravoure = piece(705, 102, 0, 9, 9, 12000, 5);
+    const { c: a, runes: ra } = candidatDe(7300, bravoure, { 1: [3, 300] });
+    const { c: b, runes: rb } = candidatDe(7400, bravoure, { 1: [3, 250], 5: [1, 6000] });
+    egal([statTotal(a.stats, 'atk'), statTotal(b.stats, 'atk'), statTotal(b.stats, 'hp')], [2300, 2250, 31000], 'précondition : ATQ 2 300 / 2 250, PV de B 31 000');
+    const parId = new Map([...ra, ...rb].map((r) => [r.id, r]));
+    const opts = (e: (c: BuildCandidate) => ReturnType<typeof etatReliqueDuBuild>) => optionsDeClassement({
+      realDamage: null, damageSetup: SETUP, runeById: parId, metric: 'eff', aurasPropresDe: aurasPropresParRunes(parId),
+      artefactsDuBuild: () => null, etatReliqueDe: e, contexteExclusive: { setup: SETUP, element: null },
+    });
+    for (const [nom, e] of [['off', etat(ctxOff, bravoure)], ['equipped', etat(ctxEquipped, bravoure)]] as const) {
+      egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [2500, 2550], `tri ATQ, ${nom} : 2 300 + 200 et 2 250 + 300 (points Bravoure de la fiche)`);
+      egal(sortCandidates([a, b], 'atk', opts(e)).map(cleBuild), [b, a].map(cleBuild), `tri ATQ, ${nom} : B passe devant A grâce à ses points`);
+    }
+    const nonResolu = etat(ctxRecherche, bravoure);
+    egal(scoreDuCandidat(a, 'atk', opts(nonResolu)), 2300, 'tri ATQ, recherche non résolue : neutre (2 300)');
+    egal(sortCandidates([a, b], 'atk', opts(nonResolu)).map(cleBuild), [a, b].map(cleBuild), 'tri ATQ, recherche non résolue : ordre des stats seules');
+    // Constat consigné (hors demande, non corrigé) : la carte affiche
+    // `candidate.stats` (`StatPanel`), sans les points — 2 300, pas les 2 500
+    // qui classent A.
+    ok(statTotal(a.stats, 'atk') !== scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure))),
+      'constat consigné : la carte montre l’ATQ hors combat (2 300), le tri classe sur 2 500 — écart non corrigé (hors demande)');
+  }
+
+  /* ── Règle 6 : effet unique modifié, identifiant de relique constant ───── */
+  {
+    const conqueteBis: RelicDetail = { ...CONQUETE, unique: { type: 1, tranche: 1000, percent: 3 } };
+    egal(conqueteBis.id, CONQUETE.id, 'même identifiant de relique');
+    const attendu = objectiveScore(cAtq, 'degats_reels', AUCUNE_AURA_PROPRE, DEGATS, { ...APPORT_NEUTRE, dmgPct: 6 });
+    ok(proche(scoreDuCandidat(cAtq, 'degats_reels', options(etat(ctxOff, conqueteBis))), attendu),
+      'Conquête réimportée à 3 % (même id) : le score suit la pièce, 6 % et non 4 % — aucune lecture par identifiant');
+    const reglages = {
+      monstreCom2usId: 1, damageSetup: SETUP, regimeEquipement: 'degats_reels', ignoreArtifacts: false, principaleParSorte: {},
+      lignesVerrouillees: [] as { code: number; min: number }[], nbArtefacts: 0, empreinteRelique: null, requirement: { minStats: {}, maxStats: {} },
+    };
+    ok(signatureArtefacts({ ...reglages, relique: CONQUETE }) !== signatureArtefacts({ ...reglages, relique: conqueteBis }),
+      'signature de la file : l’effet unique la change à identifiant constant (paires renotées)');
+  }
+
+  /* ── L'écran appelle CE producteur, et la carte lit la MÊME relique ────── */
+  {
+    const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
+    ok(/const optionsDuTriAffiche = useMemo\(\s*\(\) =>\s*optionsDeClassement\(\{[\s\S]{0,900}?etatReliqueDe,/.test(ecran),
+      'écran : les options du tri affiché viennent d’optionsDeClassement, avec etatReliqueDe');
+    ok(/etatRelique=\{etatReliqueDe\(c\)\}/.test(ecran), 'écran : la relique affichée par la carte est celle que le score compte');
+    ok(/const etatReliqueDe = useCallback\([\s\S]{0,300}?\[fileArtefacts\.parBuild, relicContextRecherche, selected\?\.gear\.relic\]/.test(ecran),
+      'écran : etatReliqueDe dépend de la PIÈCE de la fiche (objet), pas de son identifiant');
   }
 }

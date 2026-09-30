@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState, useEffect } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Search,
   Square,
@@ -26,7 +26,6 @@ import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
-import { apportExclusive } from '../../lib/relicExclusive';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
 import {
@@ -72,6 +71,7 @@ import {
   respecteConditionsPaireFixe,
   sortCandidates,
   scoreDuCandidat,
+  optionsDeClassement,
   candidateMetricTotal,
   pvEffectifs,
   aurasPropresParRunes,
@@ -2291,43 +2291,43 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   }, [fileArtefacts.parBuild]);
   const profilArtefactsDuBuild = (c: BuildCandidate) => profilsParBuild.get(cleBuild(c)) ?? null;
 
+  // L'état de la relique d'un candidat, tel que sa carte l'AFFICHE — et la
+  // relique dont son score compte l'effet unique : une seule expression pour
+  // les deux (6bis-b5a). ⚠️ Dépend de la PIÈCE de la fiche (l'objet), jamais
+  // de son identifiant : une relique réimportée avec un autre effet unique
+  // sous le même `rid` doit renoter.
+  const etatReliqueDe = useCallback(
+    (c: BuildCandidate) => etatReliqueDuBuild(fileArtefacts.parBuild.get(cleBuild(c)), relicContextRecherche, selected?.gear.relic),
+    [fileArtefacts.parBuild, relicContextRecherche, selected?.gear.relic]
+  );
   /**
    * Les options du classement AFFICHÉ (`affichees` ci-dessous) — partagées
    * avec les cartes, qui affichent leur chiffre par `scoreDuCandidat` avec
    * CET objet : la carte montre la valeur même qui l'a classée (6bis-b4 : la
    * carte « Dégâts réels » recopiait `computeTotalDamage` sans la Conquête de
    * la relique retenue, « PV effectifs » `pvEffectifs` sans Ténacité).
+   * Construites par `optionsDeClassement` (runeBuildOptim.ts), le producteur
+   * que le CLI et les tests appellent aussi : l'effet unique y compte dans
+   * les trois modes de relique (6bis-b5a).
    */
   const optionsDuTriAffiche = useMemo(
-    (): Parameters<typeof sortCandidates>[2] => ({
-      realDamage,
-      damageSetup,
-      runeById,
-      metric,
-      aurasPropresDe,
-      // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
-      // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
-      // doivent suivre. Sinon on note les stats d'un modèle avec les effets
-      // d'un autre.
-      artefactsDuBuild: (c) => profilArtefactsDuBuild(c),
-      // ⚠️ Lot 7 — même raison qu'`artefactsDuBuild` : la relique retenue
-      // par ce build apporte un gain chiffré, et le classement doit le voir,
-      // sinon il noterait autrement que le choix (D6, jamais deux notes).
-      // Un candidat encore « en attente » n'a pas d'entrée : apport neutre.
-      // `c.stats` sont déjà celles du couple retenu (`candidatAvecSaPaire`),
-      // principale de la relique comprise : c'est bien l'assiette que
-      // l'exclusive lit.
-      exclusiveDuBuild: (c) =>
-        apportExclusive(
-          fileArtefacts.parBuild.get(cleBuild(c))?.relique,
-          c.stats,
-          contexteExclusive.setup,
-          aurasPropresDe(c),
-          contexteExclusive.element
-        ),
-    }),
+    () =>
+      optionsDeClassement({
+        realDamage,
+        damageSetup,
+        runeById,
+        metric,
+        aurasPropresDe,
+        // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
+        // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
+        // doivent suivre. Sinon on note les stats d'un modèle avec les effets
+        // d'un autre.
+        artefactsDuBuild: profilArtefactsDuBuild,
+        etatReliqueDe,
+        contexteExclusive,
+      }),
     // `profilArtefactsDuBuild` ne lit que `profilsParBuild`.
-    [profilsParBuild, fileArtefacts.parBuild, realDamage, damageSetup, runeById, metric, contexteExclusive, aurasPropresDe]
+    [profilsParBuild, realDamage, damageSetup, runeById, metric, aurasPropresDe, etatReliqueDe, contexteExclusive]
   );
 
   /**
@@ -4954,8 +4954,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 // `etatReliqueDuBuild` lit le cache de la file, jamais
                 // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
                 // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
-                // classement écarte déjà ces builds, B.5b).
-                etatRelique={etatReliqueDuBuild(fileArtefacts.parBuild.get(cleBuild(c)), relicContextRecherche, selected?.gear.relic)}
+                // classement écarte déjà ces builds, B.5b). Par
+                // `etatReliqueDe` : la relique que le score compte (6bis-b5a).
+                etatRelique={etatReliqueDe(c)}
                 relicUsageById={relicUsageById}
                 // ⚠️ Signalé SEULEMENT quand la file tourne pour de bon : hors
                 // « Dégâts réels » ou file inactive, il n'y a rien à attendre,

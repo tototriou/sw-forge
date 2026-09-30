@@ -152,7 +152,10 @@ de l'accueil (décision 37) ; au Siège, états vides (bouclier ou épée selon 
 côté, parchemin des Recommandations), « Voir le speed tune » (chronomètre),
 « Importer un deck d'offense » et « Fort contre » (épée) — décision 44 ; à la
 RTA, l'état vide, le bouton d'ouverture et l'en-tête d'une prépa d'« Ami »
-(compagnons) ; au Bestiaire, « Aucun monstre ne correspond » (grimoire).
+(compagnons) ; au Bestiaire, « Aucun monstre ne correspond » (grimoire) ; au
+Speed tuning, la pastille de l'en-tête au téléphone (chronomètre). L'écran
+vide de l'Optimizer (clé à molette) attend les lots de l'Optimizer
+(décision 60).
 ⚠️ `InventaireIcon` n'est pas touché : il reste le rendu du jeu des écrans du
 compte (tête de monstre, rune, médaillon) ; la nav a ses propres icônes des
 trois inventaires.

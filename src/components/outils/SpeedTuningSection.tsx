@@ -1,5 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
+import { Search, Plus, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
+// Le chronomètre de l'entrée « Speed tuning » de la nav (rebranding, décision 44).
+import { IconeSpeedTuning } from '../IconesAtelier';
 import { ELEMENTS, Monster, SiegeTeam } from '../../types';
 import { LeadInfo, combatSpeed, leadsDeVitesse, runeSpeedForTarget, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -413,7 +415,7 @@ export default function SpeedTuningSection({
         // la pastille d'icône, la règle des ticks dessous.
         <header className="flex items-start gap-3">
           <span className="flex h-8 w-8 flex-none items-center justify-center rounded bg-accent-soft text-accent lg:hidden">
-            <Timer size={18} />
+            <IconeSpeedTuning size={18} />
           </span>
           <div>
             <h1 className="text-lg font-semibold leading-tight lg:font-display lg:text-xl lg:font-normal lg:tracking-wide lg:text-ink">

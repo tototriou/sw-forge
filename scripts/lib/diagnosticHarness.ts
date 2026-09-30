@@ -50,6 +50,7 @@ import {
   runeContribution,
   satisfiesSets,
   aurasPropresParRunes,
+  optionsDeClassement,
   sortCandidates,
   totalPairCount,
   trancheReallocation,
@@ -65,6 +66,9 @@ import { driveParallelPairing } from '../../src/workers/parallelPairing';
 import { RuneDetail } from '../../src/types';
 import { drain } from './drain';
 import { buildRealDamageContext } from './realDamageCli';
+import { loadMonstersList } from './monstersData';
+import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
+import { etatReliqueDuBuild } from '../../src/lib/relicQueue';
 import { ConfigResolue, resoudreConfig } from './diagnosticConfig';
 import { ensurePairSliceBundle, makeSpawnSliceNode } from './spawnSliceNode';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
@@ -2004,14 +2008,23 @@ export function classer(
     resolue.recette && resolue.monstre
       ? buildRealDamageContext(resolue.recette, resolue.monstre.com2usId, resolue.params.artifacts)
       : null;
-  const classes = sortCandidates(candidats, objectif, {
+  // ⚠️ Le producteur MÊME du CLI et de l'écran (`optionsDeClassement`,
+  // 6bis-b5a), avec les mêmes choix que le CLI : paire de `params.artifacts`
+  // pour tous, relique de la fiche (`params.relic`) en `off`/`equipped`,
+  // neutre en `recherche` (aucune résolution par build ici non plus).
+  const setup = resolue.recette?.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+  const element = resolue.monstre ? (loadMonstersList().find((m) => m.com2usId === resolue.monstre!.com2usId)?.element ?? null) : null;
+  const classes = sortCandidates(candidats, objectif, optionsDeClassement({
     realDamage,
     runeById,
     metric: resolue.params.metric,
-    damageSetup: resolue.recette?.damageSetup,
+    damageSetup: setup,
     // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
     aurasPropresDe: aurasPropresParRunes(runeById),
-  });
+    artefactsDuBuild: () => null,
+    etatReliqueDe: () => etatReliqueDuBuild(undefined, resolue.params.relicContext, resolue.params.relic),
+    contexteExclusive: { setup, element },
+  }));
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
   // est appliqué à la DEMANDE, pas à toute la liste : le classement peut

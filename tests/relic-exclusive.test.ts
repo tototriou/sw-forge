@@ -45,6 +45,9 @@ import { cleBuild, signatureArtefacts, type ResultatArtefacts } from '../src/lib
 import type { RelicIntent } from '../src/hooks/useOptimizerState';
 import type { ArtifactDetail, GearSet, RuneDetail } from '../src/types';
 import { readFileSync } from 'node:fs';
+import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { classer } from '../scripts/lib/diagnosticHarness';
+import type { ConfigResolue } from '../scripts/lib/diagnosticConfig';
 import { rune } from './relic-search.test';
 import { egal, ok, titre } from './outils';
 
@@ -406,6 +409,38 @@ export function testRelicClassementParMode() {
     // qui classent A.
     ok(statTotal(a.stats, 'atk') !== scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure))),
       'constat consigné : la carte montre l’ATQ hors combat (2 300), le tri classe sur 2 500 — écart non corrigé (hors demande)');
+  }
+
+  /* ── Harnais : classé comme le CLI (invariant « Harnais ») ──────────────── */
+  {
+    // Lushen (base ATQ 900, PV 9 225), « Dégâts réels » (sort à l'ATQ).
+    // Bravoure (type 9 : ATQ depuis les PV), tranche 3 000, 10 %.
+    // A : ATQ 1 200, PV 9 225 → Y = 9 225 + ⌈9 225 × 20 %⌉ = 11 070 → 3
+    //     tranches → +30 % de 900 = +270 → 1 470.
+    // B : ATQ 1 150, PV 12 225 → Y = 14 070 → 4 tranches → +360 → 1 510.
+    const lushen = { hp: 9225, atk: 900, def: 461, spd: 103, cr: 15, cd: 50, res: 15, acc: 0 };
+    const bravoure = piece(706, 102, 0, 9, 9, 3000, 10);
+    const runesA = [1, 2, 3, 4, 5, 6].map((slot) => rune(7700 + slot, slot, slot === 1 ? [3, 300] : [8, 0]));
+    const runesB = [1, 2, 3, 4, 5, 6].map((slot) => rune(7800 + slot, slot, slot === 1 ? [3, 250] : slot === 5 ? [1, 3000] : [8, 0]));
+    const cand = (runes: RuneDetail[]): BuildCandidate => ({ runeIds: runes.map((r) => r.id), stats: computeStats({ base: lushen, runes, artifacts: [], relic: bravoure }), effTotal: 0 });
+    const [ca, cb] = [cand(runesA), cand(runesB)];
+    egal([statTotal(ca.stats, 'atk'), statTotal(cb.stats, 'atk'), statTotal(cb.stats, 'hp')], [1200, 1150, 12225], 'harnais, précondition : ATQ 1 200 / 1 150, PV de B 12 225');
+    const recette = buildOptimizerRecipe({
+      monsterCom2usId: 13413, monsterName: 'Lushen',
+      requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: DEFAULT_DAMAGE_SETUP,
+      compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
+      adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+      excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
+      ignoreArtifacts: true, artifactMainByKind: {},
+    });
+    const resolue = {
+      recette, monstre: { com2usId: 13413 }, poolInitial: [...runesA, ...runesB],
+      params: { artifacts: [], metric: 'eff', objective: 'degats_reels', relic: bravoure, relicContext: resoudreContexteRelique(intention('off'), bravoure, []) },
+    } as unknown as ConfigResolue;
+    egal(classer([ca, cb], resolue).classes.map(cleBuild), [cb, ca].map(cleBuild),
+      'harnais, mode off : B passe devant A par les points Bravoure de la relique portée, comme au CLI');
+    egal(classer([ca, cb], { ...resolue, params: { ...resolue.params, relicContext: resoudreContexteRelique(intention('recherche'), bravoure, [bravoure]) } } as ConfigResolue).classes.map(cleBuild),
+      [ca, cb].map(cleBuild), 'harnais, mode recherche sans résolution : neutre, A devant B');
   }
 
   /* ── Règle 6 : effet unique modifié, identifiant de relique constant ───── */

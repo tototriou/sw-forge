@@ -392,6 +392,12 @@ export function testRelicClassementParMode() {
       egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [2500, 2550], `tri ATQ, ${nom} : 2 300 + 200 et 2 250 + 300 (points Bravoure de la fiche)`);
       egal(sortCandidates([a, b], 'atk', opts(e)).map(cleBuild), [b, a].map(cleBuild), `tri ATQ, ${nom} : B passe devant A grâce à ses points`);
     }
+    // Constat : l'ancien ordre de BASE de l'écran (options sans effet unique),
+    // affiché tel quel tant que la file n'a rien résolu — toujours en `off`,
+    // où la file est coupée — contredisait les chiffres des cartes.
+    const ancienneBase = sortCandidates([a, b], 'atk', { runeById: parId, metric: 'eff', damageSetup: SETUP, aurasPropresDe: aurasPropresParRunes(parId) });
+    ok(cleBuild(ancienneBase[0]!) === cleBuild(a) && scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure)))! < scoreDuCandidat(b, 'atk', opts(etat(ctxOff, bravoure)))!,
+      'constat : l’ancien ordre de base mettait A devant B, sous des cartes à 2 500 et 2 550');
     const nonResolu = etat(ctxRecherche, bravoure);
     egal(scoreDuCandidat(a, 'atk', opts(nonResolu)), 2300, 'tri ATQ, recherche non résolue : neutre (2 300)');
     egal(sortCandidates([a, b], 'atk', opts(nonResolu)).map(cleBuild), [a, b].map(cleBuild), 'tri ATQ, recherche non résolue : ordre des stats seules');
@@ -423,6 +429,13 @@ export function testRelicClassementParMode() {
     ok(/const optionsDuTriAffiche = useMemo\(\s*\(\) =>\s*optionsDeClassement\(\{[\s\S]{0,900}?etatReliqueDe,/.test(ecran),
       'écran : les options du tri affiché viennent d’optionsDeClassement, avec etatReliqueDe');
     ok(/etatRelique=\{etatReliqueDe\(c\)\}/.test(ecran), 'écran : la relique affichée par la carte est celle que le score compte');
+    // L'ordre de BASE (`fullSortedCandidates`) est affiché TEL QUEL tant que
+    // la file n'a rien résolu — toujours, quand l'optimisation d'artéfacts
+    // est coupée (mode `off`). Il doit compter la relique fixe, sans lire le
+    // cache de la file (qui se nourrit de cet ordre).
+    ok(/const etatReliqueDeBase = useCallback\(\s*\(_c: BuildCandidate\) => etatReliqueDuBuild\(undefined, relicContextRecherche, selected\?\.gear\.relic\)/.test(ecran)
+      && /const fullSortedCandidates = useMemo\([\s\S]{0,700}?optionsDeClassement\(\{[\s\S]{0,600}?etatReliqueDe: etatReliqueDeBase/.test(ecran),
+      'écran : l’ordre de base compte la relique fixe (off, equipped), sans lire le cache de la file');
     ok(/const etatReliqueDe = useCallback\([\s\S]{0,300}?\[fileArtefacts\.parBuild, relicContextRecherche, selected\?\.gear\.relic\]/.test(ecran),
       'écran : etatReliqueDe dépend de la PIÈCE de la fiche (objet), pas de son identifiant');
     // Le CLI : même producteur ; sans cache de file, `fixe` en off/equipped

@@ -1575,7 +1575,10 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     (degats-et-aura 6bis-b5a) — la relique est celle que la carte affiche
     (`etatReliqueDuBuild`, une seule expression pour la case et le score) :
     interrupteur coupé ou « Garder la relique équipée », **la relique de la
-    fiche**, dès la collecte, sans attendre la file ; mode `recherche`, **la
+    fiche**, dès la collecte, sans attendre la file — ordre de BASE compris,
+    celui que la file lit et qui s'affiche tel quel tant qu'elle n'a rien
+    résolu, donc toujours quand l'optimisation d'artéfacts est coupée
+    (sans cache de la file : aucune boucle) ; mode `recherche`, **la
     relique retenue** pour ce build, et un apport **neutre** tant que la file
     ne l'a pas résolu — jamais un repli sur la relique portée ; aucune
     relique, neutre. Hors `recherche`, le tri et les cartes ignoraient

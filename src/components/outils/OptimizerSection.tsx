@@ -2088,12 +2088,36 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // consommateur. Les scripts CLI prenaient `candidates[0]` ou
   // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
   // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
+  // ⚠️ La relique de l'ordre de BASE, SANS le cache de la file : la file lit
+  // cet ordre (`triees`), il ne peut donc jamais se nourrir de ses résultats.
+  // Mais une relique FIXE (`off`, `equipped`) est connue d'avance : son effet
+  // unique compte dès ici (6bis-b5a) — cet ordre est affiché tel quel tant que
+  // la file n'a rien résolu, toujours quand l'optimisation d'artéfacts est
+  // coupée, et les cartes le comptent. En `recherche` : neutre (`en attente`).
+  const etatReliqueDeBase = useCallback(
+    (_c: BuildCandidate) => etatReliqueDuBuild(undefined, relicContextRecherche, selected?.gear.relic),
+    [relicContextRecherche, selected?.gear.relic]
+  );
   const fullSortedCandidates = useMemo(
     () =>
       candidatesSource
-        ? sortCandidates(candidatesSource, sortBy, { realDamage, runeById, metric, damageSetup, aurasPropresDe })
+        ? sortCandidates(
+            candidatesSource,
+            sortBy,
+            optionsDeClassement({
+              realDamage,
+              damageSetup,
+              runeById,
+              metric,
+              aurasPropresDe,
+              // La paire SUPPOSÉE pour tous (`realDamage.artefacts`).
+              artefactsDuBuild: () => null,
+              etatReliqueDe: etatReliqueDeBase,
+              contexteExclusive,
+            })
+          )
         : [],
-    [candidatesSource, sortBy, runeById, metric, realDamage, damageSetup, aurasPropresDe]
+    [candidatesSource, sortBy, runeById, metric, realDamage, damageSetup, aurasPropresDe, etatReliqueDeBase, contexteExclusive]
   );
 
   const RESULTS_PAGE_SIZE = 20;

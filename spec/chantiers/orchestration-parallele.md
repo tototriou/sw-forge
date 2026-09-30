@@ -342,7 +342,10 @@ ordre :
 
 `--adopter` lève la garde sur l'arbre, **pas** celle sur le worktree :
 l'utilisateur déclare avoir fusionné à la main, dans les notes locales, ce que
-la branche porte ; la sortie liste ce qui sera retiré ou remplacé. Un chantier
+la branche porte ; la sortie liste ce qui sera retiré ou remplacé. ⚠️ C'est
+une décision de l'**utilisateur**, jamais d'un agent : un agent qui reçoit
+ce refus s'arrête, lance `livrer --simulation` et montre la liste de ce qui
+serait retiré (décision du pilote de degats-et-aura, 2026-10-01). Un chantier
 ouvert avant le lot O n'a pas de base : elle se reconstruit depuis le plus
 récent du dernier reçu (qui prouve l'égalité des notes avec l'état livré) et
 du dernier rafraîchissement. Sans l'un ni l'autre, `livrer` refuse par

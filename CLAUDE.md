@@ -158,9 +158,14 @@ changerait ce qu'on mesure. Détail : cadrage §2.1.
   Verrous (lot O, incident du 2026-09-23) : `ouvrir` remplace des notes
   locales en retard sur la base, après sauvegarde, et refuse celles qu'il ne
   sait pas situer ; `livrer` refuse tant que la branche documentaire porte un
-  contenu que les notes locales n'ont pas reçu. `--adopter` lève ces refus en
-  connaissance de cause, jamais par réflexe ; `livrer --simulation` montre le
-  verdict sans rien écrire.
+  contenu que les notes locales n'ont pas reçu. `livrer --simulation` montre
+  le verdict sans rien écrire.
+  ⚠️ **Un agent ne lance JAMAIS `--adopter` de lui-même**, même si le message
+  de refus le propose : `livrer --adopter` retire de la branche documentaire
+  ce que les notes locales n'ont pas, exactement comme l'incident. Face à un
+  refus : s'arrêter, lancer `livrer --simulation`, montrer à l'utilisateur la
+  liste de ce qui serait retiré, et n'adopter que sur sa décision explicite,
+  une fois la fusion manuelle faite.
 - **Codex sur Windows : un refus de la sandbox n'est pas un échec du chantier.**
   Si Git signale `dubious ownership` sur le worktree documentaire ou refuse
   `.git/index.lock`, ou si esbuild échoue sur `Cannot read directory ...:

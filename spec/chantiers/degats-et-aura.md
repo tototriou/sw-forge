@@ -391,6 +391,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → contre-revue des contrats de correction → amendement pilote
         → 6bis-b6 → 6bis-b3d-1 → 6bis-b3d-2 → 6bis-b7 → 6bis-b8 → 6bis-b9
         → 6bis-b10 (constat de l'utilisateur au navigateur, 2026-10-01)
+        → 6bis-b11 (même occasion : la page affichée, 2026-10-02)
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -407,7 +408,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
-  6bis-b9, 6bis-b10,
+  6bis-b9, 6bis-b10, 6bis-b11,
   7, 12, tous les 13b-* → 14
 ```
 
@@ -664,8 +665,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b7 — troncature du régime parallèle | J | terminé, preuves, mutation et cas réel rejoués par le pilote ; notes complétées (dérogation étendue) | `6d238d08` + `c0b20a94` ; reçu `c0b20a9` ↔ `affd6d5` / 2026-10-01 |
 | 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | terminé, preuves, mutation et CLI réel rejoués par le pilote ; coût de la file (~8–10 %, Node) livré en l'état sur décision de l'utilisateur | `28a765cd` + `2594f1b4` ; reçu `2594f1b` ↔ `d3c186e` / 2026-10-01 |
 | 6bis-b9 — tri par stat sur la fiche | J | terminé, preuves et mutation rejouées par le pilote | `4fa6ad5c` + `f3aa265d` ; reçu `f3aa265` ↔ `fb8d549` / 2026-10-01 |
-| 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | code validé, preuves et mutation rejouées par le pilote ; vérification au navigateur par l'utilisateur en attente | `fd9d7f52` ; reçu `fd9d7f5` ↔ `12a0296` / 2026-10-02 |
-| 7 — sets d'aura : l'écran | J | attend 6bis-b10 ; intrant à recaler au brief | — |
+| 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | terminé, preuves et mutation rejouées par le pilote ; vérifié par l'utilisateur au navigateur | `fd9d7f52` ; reçu `fd9d7f5` ↔ `12a0296` / 2026-10-02 |
+| 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | lançable | — |
+| 7 — sets d'aura : l'écran | J | attend 6bis-b11 ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -4539,9 +4541,87 @@ vides sinon) ; pendant la recherche, un zéro par rejets garde l'en-tête
 « … pour l'instant — recherche en cours… » avec la ligne de raison, et
 « Aucune combinaison ne répond à ces critères » n'apparaît qu'à la fin.
 
-Non prouvé, **en attente de la vérification de l'utilisateur au navigateur**
-(preuve du contrat) : le compte qui descend en direct, la ligne de raison,
-le retour sur la dernière page, le masquage des deux contrôles.
+**Vérifié par l'utilisateur au navigateur, le 2026-10-02** (recette Kinki) :
+le compte retombe à 0, avec la ligne « 1 combinaison trouvée par la
+recherche a été écartée : aucune paire d'artéfacts ni relique réelles ne
+tient toutes les conditions. » Non vus : le retour sur la dernière page et
+le masquage des deux contrôles.
+
+À la même occasion, l'utilisateur relève que, **pendant une recherche**, la
+résolution des builds de la page affichée traîne : lot 6bis-b11.
+
+##### 6bis-b11 — la page affichée se résout sans attendre l'inactivité
+
+**Cat. J ; requiert b10.** Constat de l'utilisateur au navigateur, le
+2026-10-02 : pendant une recherche, les builds affichés restent longtemps
+« artéfacts pas encore optimisés », ce qui ne lui convient pas. Diagnostic
+du pilote, déduit du code, non mesuré au navigateur : la page passe déjà
+EN TÊTE de la file (`prochainsATraiter`, `artifactQueue.ts` L196-198),
+mais la file ne traite qu'un build par créneau d'inactivité
+(`requestIdleCallback`, attente maximale 1 s, `useArtifactOptimQueue.ts`
+L43-54). Pendant une recherche, l'écran reçoit la progression toutes les
+150 ms et retrie l'aperçu : il est rarement inactif, et chaque build peut
+attendre jusqu'à une seconde, alors qu'il coûte peu (8 ms pour la recette
+Kinki au CLI, ~77 ms en « Dégâts réels », artéfacts « Libre », 4 reliques).
+
+**Décision de l'utilisateur du 2026-10-02** : d'abord cette solution
+simple ; un Worker dédié à la résolution seulement si elle ne suffit pas,
+dans le chantier dédié que le lot 14 transmet (coût de la file).
+
+**Intrant borné**, relevé le 2026-10-02 sur `0185d4df` :
+
+- `src/hooks/useArtifactOptimQueue.ts` (218 lignes) : en-tête L1-15
+  (pourquoi pas de Worker), `planifierInactif` L43-54, effet de la boucle
+  L132-205 (`reveiller` L145, `publier` L154, `tranche` L161) ;
+- `src/lib/artifactQueue.ts` : `prochainsATraiter` L160-218 ;
+- `OptimizerSection.tsx` : appel de la file L2196-2215, `pageAfficheeRef`
+  L839 et L2362 ;
+- `tests/artefact-file.test.ts` (tests de `prochainsATraiter`) ;
+- `optimizer.md` L2428-2461 (contention, la page passe en premier) ;
+  `invariants.md` L101.
+
+**Contrat.**
+
+- **Deux voies.** Tant que la page affichée contient des builds non
+  résolus, la tranche suivante se planifie SANS attendre l'inactivité
+  (tâche immédiate, par exemple `MessageChannel` ou `setTimeout(0)`) ;
+  sinon, la voie actuelle (`requestIdleCallback`) sert l'avance de fond,
+  les K premiers. Une fonction pure décide de la voie, à partir de la page
+  et du cache ; elle est testée.
+- **Toujours un seul build par tâche**, la main rendue au navigateur entre
+  deux : jamais de boucle qui garde le fil.
+- **Publication** : la cadence de 400 ms reste ; la publication est forcée
+  quand le dernier build non résolu de la page vient de l'être, pour que
+  les cartes se mettent à jour sans attendre.
+- Inchangés : l'ordre de `prochainsATraiter`, K, le cache, la signature,
+  le coût de la résolution.
+- **Contrainte de l'utilisateur** : le travail total est le même (les mêmes
+  builds, résolus plus tôt), et la voie prioritaire est bornée à la page
+  (20 builds). La recherche tourne dans des Workers ; le lot l'écrit, et
+  dit ce qui n'est pas mesuré.
+- **Critère de bascule vers le Worker** (décision du 2026-10-02) : si,
+  après ce lot, la page affichée met encore plus de quelques secondes à se
+  résoudre pendant une recherche, ou si la barre de progression gèle
+  visiblement, on passe au Worker dédié.
+
+**Preuves.**
+
+- Test nommé de la fonction de voie, rouge puis vert : page avec des
+  builds non résolus → voie prioritaire ; page entièrement résolue ou vide
+  → voie de fond ; rien à traiter → aucune.
+- Contrôle de source : la voie prioritaire n'utilise pas
+  `requestIdleCallback`, la voie de fond si ; un build par tâche ;
+  publication forcée à la fin de la page.
+- `tests/artefact-file.test.ts` et les tests de zone restent verts.
+- **Navigateur, par l'utilisateur** (le pilote ouvre le serveur de dev) :
+  pendant une recherche en mode relique « recherche », artéfacts « Libre »,
+  la page affichée perd ses « artéfacts pas encore optimisés » en quelques
+  secondes ; une autre page ouverte aussi ; pas de gel visible.
+- `optimizer.md` et `invariants.md` L101 amendés ; `tsc`, tests ciblés,
+  build, spec-lint, diff-check ; preuve `controle-6bis-b11.md`.
+
+**Ne fait pas :** Worker dédié, changement de K, de l'ordre de la file, du
+coût de la résolution ou du throttle de progression.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

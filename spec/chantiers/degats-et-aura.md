@@ -390,6 +390,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → revue technique indépendante (2026-10-01 : corrections avant 7)
         → contre-revue des contrats de correction → amendement pilote
         → 6bis-b6 → 6bis-b3d-1 → 6bis-b3d-2 → 6bis-b7 → 6bis-b8 → 6bis-b9
+        → 6bis-b10 (constat de l'utilisateur au navigateur, 2026-10-01)
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -406,7 +407,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
-  6bis-b9,
+  6bis-b9, 6bis-b10,
   7, 12, tous les 13b-* → 14
 ```
 
@@ -663,7 +664,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b7 — troncature du régime parallèle | J | terminé, preuves, mutation et cas réel rejoués par le pilote ; notes complétées (dérogation étendue) | `6d238d08` + `c0b20a94` ; reçu `c0b20a9` ↔ `affd6d5` / 2026-10-01 |
 | 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | terminé, preuves, mutation et CLI réel rejoués par le pilote ; coût de la file (~8–10 %, Node) livré en l'état sur décision de l'utilisateur | `28a765cd` + `2594f1b4` ; reçu `2594f1b` ↔ `d3c186e` / 2026-10-01 |
 | 6bis-b9 — tri par stat sur la fiche | J | terminé, preuves et mutation rejouées par le pilote | `4fa6ad5c` + `f3aa265d` ; reçu `f3aa265` ↔ `fb8d549` / 2026-10-01 |
-| 7 — sets d'aura : l'écran | J | prérequis remplis (tous les 6bis-b-* validés) ; intrant à recaler au brief | — |
+| 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | lançable | — |
+| 7 — sets d'aura : l'écran | J | attend 6bis-b10 ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -4423,6 +4425,87 @@ pour la limite du lint ; garde `!` remplacée par le repli de `statTotal`
 Non prouvé : navigateur (carte, sélecteur de tri, file) ; nombre de builds
 dont la relique ou la paire change sur le vrai compte quand on trie par
 stat. Le CLI ne trie que par objectif : non concerné.
+
+##### 6bis-b10 — un build écarté à la résolution sort du compte, en direct
+
+**Cat. J ; requiert b9.** Constat de l'utilisateur au navigateur, le
+2026-10-01, reproduit par le pilote au CLI. Recette Kinki gelée
+(`archive/controles-degats-aura-2026-09/recette-6bis-b10-kinki.json`,
+sha256 `89175dd5…7614` ; relique « recherche », artéfacts « Libre »,
+minimums PV, ATQ, DEF, VIT et RES) : le moteur collecte 1 build sur une
+recherche complète, la résolution exacte le rejette faute de couple
+artéfacts/relique faisable (`constat-6bis-b10-cli-kinki.txt`). L'écran
+retire bien le build (`classementResolu`), mais garde « 1 combinaison(s)
+trouvée(s) » au-dessus d'une liste vide, sans explication : le bloc
+« suffirait » et le diagnostic ne s'affichent que si le MOTEUR n'a rien
+trouvé. Le CLI, lui, imprime « Aucun build ne reste… ». Défaut antérieur
+au chantier (relique, lots 5b-5c).
+
+**Intrant borné**, relevé le 2026-10-01 sur `2f56de5f` :
+
+- `OptimizerSection.tsx` : `fullSortedCandidates` L2064 et le nombre de
+  pages L2087 ; `affichees` et `pageCandidates` L2331-2342 ; la ligne de
+  progression L4583 ; l'en-tête du compte L4629-4640 ; la visibilité du
+  sélecteur « Adapter les artéfacts et reliques au tri » L4651 ; les blocs
+  à zéro L4717, L4757 et L4807 ;
+- `src/lib/artifactQueue.ts` : `ResultatArtefacts.conforme` L88,
+  `classementResolu` L372-397 ;
+- `src/hooks/useArtifactOptimQueue.ts` : `PUBLICATION_MS` L36 (cadence de
+  publication du cache) ;
+- `scripts/optimizer-search.ts` L462 (message du CLI) ;
+- `optimizer.md` § Résultats ; `invariants.md` L74 (bloc « suffirait »)
+  et L235 (un build sans couple faisable n'est jamais affiché).
+
+**Contrat (décisions de l'utilisateur du 2026-10-01).**
+
+- **Le compte affiché est celui des builds affichables** : trouvés par le
+  moteur, moins ceux que la résolution a écartés (`conforme: false`).
+  Une seule fonction pure, partagée et testée, alimente l'en-tête, la ligne
+  de progression et le nombre de pages ; plus aucun compte affiché ne lit
+  `result.candidates.length` ni `progress.found` brut.
+- **En direct** : dès qu'un build est résolu et écarté, il sort du compte,
+  en pleine recherche, à la cadence de publication du cache de la file,
+  sans attendre la fin. Pendant la recherche, la base reste le compte du
+  moteur (`progress.found`), diminué des rejets déjà résolus.
+- **À zéro après rejet** : l'en-tête dit « Aucune combinaison ne répond à
+  ces critères », puis une ligne de raison sur ce modèle : « 1 combinaison
+  trouvée par la recherche a été écartée : aucune paire d'artéfacts ni
+  relique réelles ne tient toutes les conditions. » Hors mode
+  « recherche », la relique est celle de la fiche : la ligne ne parle que
+  de la paire. Libellé exact fixé par le lot, dans ce sens.
+- **Le bloc « suffirait » et le diagnostic de faisabilité gardent leur
+  condition** (moteur vide) : leurs chiffres viennent des bornes du
+  moteur, pas de la résolution exacte. Ils ne s'affichent pas sous un zéro
+  dû aux rejets (décision du 2026-10-01).
+- Un build jamais résolu (au-delà de K) reste compté : état « en attente ».
+  Sans optimisation d'artéfacts, pas de file, rien ne change.
+- **Aucun coût dans le cas normal** : rejets = candidats reçus
+  (`fullSortedCandidates.length`) moins affichables (`affichees.length`),
+  deux longueurs déjà calculées à chaque publication ; pendant la
+  recherche, compte = `progress.found` moins ces rejets. ⚠️ Jamais compter
+  les entrées `conforme: false` du cache : il n'est vidé qu'au changement
+  de signature (`useArtifactOptimQueue.ts` L127-130), et une recherche
+  relancée aux mêmes réglages garde les rejets de la précédente, y compris
+  pour des builds qu'elle n'a pas (encore) trouvés.
+
+**Preuves.**
+
+- Test nommé de la fonction de compte, rouge puis vert : 1 trouvé et 1
+  écarté → 0 et ligne de raison ; 3 trouvés et 1 écarté → 2 ; un build en
+  attente reste compté ; sans file, compte inchangé ; pendant la recherche,
+  `progress.found` moins les rejets.
+- Contrôle de source : en-tête, ligne de progression et pagination lisent
+  cette fonction.
+- Recette Kinki gelée rejouée au CLI : 1 trouvé, 1 écarté.
+- **Navigateur, par l'utilisateur** (le pilote ouvre le serveur de dev) :
+  recette Kinki, 0 et ligne de raison ; une recette ordinaire, compte
+  inchangé.
+- `optimizer.md` § Résultats et une entrée d'`invariants.md` ; `tsc`, tests
+  ciblés, build, spec-lint, diff-check ; preuve `controle-6bis-b10.md`.
+
+**Ne fait pas :** consulter les builds écartés (option écartée par
+l'utilisateur), modifier le bloc « suffirait », la résolution ou le
+moteur.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

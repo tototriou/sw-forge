@@ -661,8 +661,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b3d-1 — dominance et lignes 218–221 : le correctif | J | terminé, preuves et mutation rejouées par le pilote | `99463b70` + `4e761e7e` ; reçu `4e761e7` ↔ `457ec7a` / 2026-10-01 |
 | 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | terminé, preuves et mutation rejouées par le pilote | `9e56c343` + `d00230e2` ; reçu `d00230e` ↔ `0e6d663` / 2026-10-01 |
 | 6bis-b7 — troncature du régime parallèle | J | terminé, preuves, mutation et cas réel rejoués par le pilote ; notes complétées (dérogation étendue) | `6d238d08` + `c0b20a94` ; reçu `c0b20a9` ↔ `affd6d5` / 2026-10-01 |
-| 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | lançable ; mesure au créneau de l'utilisateur | — |
-| 6bis-b9 — tri par stat sur la fiche | J | contrat amendé ; attend b8 | — |
+| 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | terminé, preuves, mutation et CLI réel rejoués par le pilote ; coût de la file (~8–10 %, Node) livré en l'état sur décision de l'utilisateur | `28a765cd` + `2594f1b4` ; reçu `2594f1b` ↔ `d3c186e` / 2026-10-01 |
+| 6bis-b9 — tri par stat sur la fiche | J | lançable | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -4275,6 +4275,56 @@ n'a été mesuré qu'à K = 100 (`optimizer.md` L2328).
 
 **Ne fait pas :** critère d'arrêt prouvé, ordre de base optimiste ni bouton
 « Classement exact ».
+
+###### Résultat du lot 6bis-b8 — 2026-10-01
+
+Deux commits, poussés : `28a765cd` (`kDeLaFile`, artifactQueue.ts, branchée
+sur l'écran et le CLI, `K` obligatoire dans `useArtifactOptimQueue`, test
+`testKDeLaFile` avec contrôle de source) ; `2594f1b4` (chiffres de la
+mesure dans `optimizer.md`). Reçu de l'agent `2594f1b` ↔ `d3c186e`, intégré
+au main documentaire `6fa5047`. Preuve privée `controle-6bis-b8.md`.
+
+Le pilote a relu le diff et rejoué sur `2594f1b4` :
+
+- `K` est dans les dépendances de l'effet de la file : un changement de
+  mode entre deux recherches relance la boucle ; la signature, qui porte
+  l'empreinte du contexte relique, vide le cache ;
+- `npx tsc --noEmit` → 0 ; `node tests/run.mjs kdelafile artefactfile
+  cliclassement classementresolu relicqueue` → 381 passées ; build,
+  spec-lint, diff-check verts ; « Reçu valide » ;
+- **mutation du pilote** (`kDeLaFile` rend 300 dès que le mode n'est pas
+  `off`) : 3 échecs sur 69, les assertions « Équipée » du test et du CLI ;
+  restauré depuis git, puis 69 passées ;
+- **CLI réel rejoué** (`optimizer-search.ts`, recette
+  `recette-revue-ehp-libre.json` sha256 `88f55b16…3dc5`, `--siege=15` comme
+  la sonde) : 29 367 builds, 300 résolus en 1 lot ; les 20 lignes portent
+  80 778,3, 80 730,4 et 80 537,6 aux rangs 16, 17 et 19, et 80 517,6 en
+  20ᵉ ligne — les notes de la sonde.
+
+Rapportés, non rejoués : la comparaison à `--resoudre-tout` (3 manquants
+→ 0, 20 lignes identiques en ordre et en notes ; marge −1,00 % → +3,06 %) ;
+le témoin « Équipée » sur trois recettes gelées (ensemble résolu
+identique) ; les 9 manquants de la fixture (rangs de base 305 à 399),
+limite écrite dans `limites-connues.md`, `pistes.md` et `optimizer.md` ;
+la mesure, au créneau confirmé par l'utilisateur (22:22–22:34).
+
+Mesure : charge de 77 ms par build (non effondrée). Une première campagne à
+ordre fixe plaçait K = 300 toujours en dernier ; à ordre tourné, K = 300
+contre K = 100 : +2,3 % (min), +1,3 % (médiane), dispersion 7,5 % —
+**A.6 non déclenché**. À K = 300, la file n'a pas fini à la fin de
+l'appariement (122 à 168 builds sur 300) : le reste se résout après la
+recherche, ce qui retarde le classement final sans allonger la recherche.
+
+**Découverte, décision de l'utilisateur pendant le lot** : la file
+elle-même, K = 100 comme K = 300, allonge la recherche de ~8 à 10 %
+contre une recherche sans file, dans les 11 répétitions (plancher formel
+11 %), dans un montage Node pessimiste, jamais vérifié au navigateur.
+Comportement antérieur au lot. Livré en l'état : `invariants.md` L101
+réécrit avec ces chiffres et marqué « doute », `optimizer.md` requalifie
+l'ancienne mesure (+0,3 %), piste ouverte dans `pistes.md`.
+
+Non prouvé : rien n'a été exercé au navigateur (coquille Worker,
+`requestIdleCallback`, coût réel de la file).
 
 ##### 6bis-b9 — le tri par PV, ATQ ou DEF classe sur la fiche
 

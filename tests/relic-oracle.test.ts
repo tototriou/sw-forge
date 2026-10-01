@@ -1,10 +1,13 @@
-import { activeSets } from '../src/lib/effects';
+import { activeSets, runeEfficiency } from '../src/lib/effects';
 import { parseAccountBox, parseAccountInventory, parseAccountSource } from '../src/lib/importAccount';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
-import { RechercheRefusee, aurasPropresParRunes, objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
+import { BuildCandidate, RechercheRefusee, aurasPropresParRunes, avecAurasConditions, objectiveScore, SearchParams, prepareSearch, searchBuilds } from '../src/lib/runeBuildOptim';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { computeStats } from '../src/lib/stats';
-import { ArtifactDetail, RelicDetail } from '../src/types';
+import { DEFAULT_DAMAGE_SETUP, aurasPropresDesRunes } from '../src/lib/damage';
+import { apportExclusive } from '../src/lib/relicExclusive';
+import { ArtifactDetail, BaseStats, RelicDetail, RuneDetail } from '../src/types';
+import { resoudreCandidat } from '../scripts/lib/relicDifferentiel';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { chargerPointOracle, fusionnerRunsOracle, oracleSearch, oracleSearchRuns, paireDeReference } from '../scripts/lib/relicOracle';
 import { existsSync } from 'fs';
@@ -253,4 +256,87 @@ export default function testRelicOracle() {
     ),
     'dégâts réels : le score oracle est celui de objectiveScore avec le contexte transmis'
   );
+}
+
+/* --------------------------------------------------------------------------
+ * degats-et-aura 6bis-b6 — garantie E depuis 6bis-b3c (revue technique
+ * 6bis-b, § 2.3 et § 5.2). Le cas minimal de b3c : Violent + Will / Fight en
+ * PV effectifs, une Ténacité·ATQ dont l'assiette (l'ATQ) ne monte qu'avec
+ * Fight. La note de référence est celle de la production pour l'équipement
+ * complet (`objectiveScore` + auras propres + `apportExclusive` de la
+ * relique), énumérée à la main sur les quatre builds possibles.
+ * ----------------------------------------------------------------------- */
+
+const SETUP_B3C = { ...DEFAULT_DAMAGE_SETUP };
+const EXCLUSIVE_B3C = { setup: SETUP_B3C, element: null };
+const BASE_B3C: BaseStats = { hp: 10000, atk: 660, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
+const PRINCIPALES_B3C: Record<number, [number, number]> = { 1: [3, 160], 2: [2, 63], 3: [5, 160], 4: [2, 63], 5: [1, 2448], 6: [2, 63] };
+
+function runeB3c(id: number, slot: number, set: string, pvPlat = 0): RuneDetail {
+  const [code, value] = PRINCIPALES_B3C[slot]!;
+  return { id, slot, set, rank: 6, rarity: 5, level: 15, main: { code, value }, subs: pvPlat ? [{ code: 1, value: pvPlat }] : [] };
+}
+
+// `pvWill` : PV plats sur les runes Will (0 : le cas de b3c ; 2 : Violent +
+// Will passe devant SANS l'effet unique).
+function casB3c(reliques: RelicDetail[], pvWill: number) {
+  const pool = [runeB3c(1, 1, 'violent'), runeB3c(2, 2, 'violent'), runeB3c(3, 3, 'violent'), runeB3c(4, 4, 'violent'),
+    runeB3c(5, 5, 'will', pvWill), runeB3c(6, 6, 'will', pvWill), runeB3c(105, 5, 'fight'), runeB3c(106, 6, 'fight')];
+  const ctx = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, undefined, reliques);
+  const params: SearchParams = {
+    base: BASE_B3C, artifacts: [], relic: undefined, relicContext: ctx, pool,
+    requirement: avecAurasConditions({ sets: ['violent'], minStats: {} }, SETUP_B3C, true), metric: 'eff',
+    objective: 'ehp', maxMs: Infinity, maxCollected: 1_000_000, slotFilterCap: 200, bucketCap: 100000,
+  };
+  const byId = new Map(pool.map((r) => [r.id, r]));
+  const noteProd = (runeIds: number[], rel: RelicDetail) => {
+    const runes = runeIds.map((i) => byId.get(i)!);
+    const stats = computeStats({ base: BASE_B3C, runes, artifacts: [], relic: rel });
+    const c: BuildCandidate = { runeIds, stats, effTotal: runes.reduce((s, r) => s + runeEfficiency(r), 0) };
+    const propres = aurasPropresDesRunes(runes);
+    return objectiveScore(c, 'ehp', propres, undefined, apportExclusive(rel, stats, SETUP_B3C, propres, null), SETUP_B3C);
+  };
+  // La référence exhaustive : les quatre builds (Violent en 1–4, Will ou
+  // Fight en 5 et 6) × chaque relique, sans moteur ni dominance.
+  let reference = { cle: '', note: -Infinity, rid: -1 };
+  for (const r5 of [5, 105]) for (const r6 of [6, 106]) for (const rel of reliques) {
+    const runeIds = [1, 2, 3, 4, r5, r6];
+    const note = noteProd(runeIds, rel);
+    if (note > reference.note) reference = { cle: runeIds.join(','), note, rid: rel.id };
+  }
+  return { params, ctx, noteProd, reference };
+}
+
+export function testRelicOracleGroupesEffetUnique() {
+  titre('Oracle relique (E) — deux reliques de même principale aux effets uniques différents : un run par couple (principale, stats de l’effet unique) (6bis-b6, C3)');
+
+  const regeneration: RelicDetail = { id: 899, upgrade: 6, main: { code: 100, value: 9 }, unique: { type: 16, tranche: 1000, percent: 1 } };
+  const tenacite: RelicDetail = { id: 900, upgrade: 6, main: { code: 100, value: 9 }, unique: { type: 4, tranche: 1000, percent: 1 } };
+  const { params, ctx, noteProd, reference } = casB3c([regeneration, tenacite], 0);
+  egal(reference, { cle: '1,2,3,4,105,106', note: noteProd([1, 2, 3, 4, 105, 106], tenacite), rid: 900 }, 'référence exhaustive : Violent + Fight avec la Ténacité');
+
+  const runs = oracleSearchRuns(params, ctx);
+  egal(runs.map((r) => ({ principale: r.principale, reliques: r.reliques.map((x) => x.id), posee: r.params.relic?.id })),
+    [
+      { principale: { code: 100, value: 9 }, reliques: [899], posee: 899 },
+      { principale: { code: 100, value: 9 }, reliques: [900], posee: 900 },
+    ],
+    'deux runs : même principale, effets uniques différents (Régénération : aucune stat ; Ténacité : l’ATQ)');
+
+  const o = oracleSearch(params, ctx, { realDamage: null, exclusive: EXCLUSIVE_B3C });
+  egal(o.N, 2, 'N = 2');
+  const meilleur = o.candidats.reduce((a, b) => (b.score > a.score ? b : a));
+  egal({ cle: meilleur.runeIds.join(','), note: meilleur.score, rid: meilleur.rid }, reference, 'l’oracle trouve l’optimum de la référence exhaustive (note, build, relique)');
+
+  // La production (moteur relâché + résolution exacte) ne dépasse pas
+  // l'oracle : plus de faux « surplus » au différentiel.
+  let production = { cle: '', note: -Infinity, rid: -1 };
+  for (const c of searchBuilds(params).candidates) {
+    const r = resoudreCandidat(params, c, ctx, { critere: 'ehp', degats: null, porteur: { element: 'fire', archetype: 'attack' }, exclusive: EXCLUSIVE_B3C });
+    if (!r.conforme || !r.relique) continue;
+    const note = noteProd(c.runeIds, r.relique);
+    if (note > production.note) production = { cle: c.runeIds.join(','), note, rid: r.relique.id };
+  }
+  egal(production, reference, 'la production rend l’optimum de la référence');
+  egal(production, { cle: meilleur.runeIds.join(','), note: meilleur.score, rid: meilleur.rid }, '… le même que l’oracle : aucun « surplus » au différentiel');
 }

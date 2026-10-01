@@ -20,12 +20,13 @@ import {
   searchBuilds,
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
+import type { StatKey } from '../../src/lib/effects';
 import { computeStats } from '../../src/lib/stats';
 import { ArtifactDetail, ElementKey, RelicDetail, RuneDetail } from '../../src/types';
 import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 import { PorteurArtefact, artifactFitsMonster, artifactPairAllowed } from '../../src/lib/artifacts';
 import { RelicContext, bestRelicForBuild, resoudreContexteRelique } from '../../src/lib/relicOptim';
-import { APPORT_NEUTRE, ContexteExclusive, apportExclusive } from '../../src/lib/relicExclusive';
+import { APPORT_NEUTRE, ContexteExclusive, apportExclusive, statsDeLEffetUnique } from '../../src/lib/relicExclusive';
 import { loadMonstersList } from './monstersData';
 import { buildCaseSearchParams, CASES, loadCase } from './perfShared';
 import { libelleAvecRelique, parseOptionsRelique } from './perfRelicOptions';
@@ -71,29 +72,52 @@ export interface OracleRunResultat {
 
 export interface OracleSearchRun {
   principale: { code: number; value: number } | null;
+  // Les stats dont dépend l'effet unique des reliques du run
+  // (`statsDeLEffetUnique`), triées : la seconde moitié de la clé du run.
+  statsEffetUnique: StatKey[];
   reliques: RelicDetail[];
   params: SearchParams;
 }
 
-function groupesDePrincipale(relicContext: RelicContext): { principale: { code: number; value: number } | null; reliques: RelicDetail[] }[] {
+/**
+ * Les groupes de reliques de l'oracle, un run chacun : même principale
+ * `(code, valeur)` ET mêmes stats d'effet unique (`statsDeLEffetUnique`) —
+ * degats-et-aura 6bis-b6, constat C3 de la revue technique 6bis-b.
+ *
+ * ⚠️ Depuis 6bis-b3c, la dominance d'un run protège les stats de l'effet
+ * unique de SA relique (`reliquesEquipables(relic, undefined)` = la relique
+ * posée) ; la rétention ignore la relique et la fusion renote tout. Ces stats
+ * sont donc la seule chose qui, dans un run, distingue deux reliques de même
+ * principale pour le moteur. Grouper sur la seule principale protégeait
+ * l'effet de la première relique du groupe, puis notait les autres sur des
+ * builds que la dominance avait pu perdre.
+ */
+function groupesOracle(relicContext: RelicContext): { principale: { code: number; value: number } | null; statsEffetUnique: StatKey[]; reliques: RelicDetail[] }[] {
+  const statsDe = (r: RelicDetail) => [...statsDeLEffetUnique([r])].sort();
+  const ordre = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
   if (relicContext.mode !== 'recherche') {
     const fixe = relicContext.equipee;
-    return [{ principale: fixe ? { code: fixe.main.code, value: fixe.main.value } : null, reliques: fixe ? [fixe] : [] }];
+    return [{ principale: fixe ? { code: fixe.main.code, value: fixe.main.value } : null, statsEffetUnique: fixe ? statsDe(fixe) : [], reliques: fixe ? [fixe] : [] }];
   }
 
-  const groupes = new Map<string, RelicDetail[]>();
+  const groupes = new Map<string, { statsEffetUnique: StatKey[]; reliques: RelicDetail[] }>();
   for (const relique of relicContext.eligibles) {
-    const cle = `${relique.main.code}:${relique.main.value}`;
+    const stats = statsDe(relique);
+    const cle = `${relique.main.code}:${relique.main.value}|${stats.join(',')}`;
     const groupe = groupes.get(cle);
-    if (groupe) groupe.push(relique);
-    else groupes.set(cle, [relique]);
+    if (groupe) groupe.reliques.push(relique);
+    else groupes.set(cle, { statsEffetUnique: stats, reliques: [relique] });
   }
   return [...groupes.values()]
-    .map((reliques) => ({
+    .map(({ statsEffetUnique, reliques }) => ({
       principale: { code: reliques[0]!.main.code, value: reliques[0]!.main.value },
+      statsEffetUnique,
       reliques: [...reliques].sort((a, b) => a.id - b.id),
     }))
-    .sort((a, b) => a.principale.code - b.principale.code || a.principale.value - b.principale.value);
+    .sort((a, b) =>
+      a.principale.code - b.principale.code
+      || a.principale.value - b.principale.value
+      || ordre(a.statsEffetUnique.join(','), b.statsEffetUnique.join(',')));
 }
 
 /**
@@ -102,8 +126,9 @@ function groupesDePrincipale(relicContext: RelicContext): { principale: { code: 
  * espionner ni recopier l'intérieur du moteur.
  */
 export function oracleSearchRuns(params: SearchParams, relicContext: RelicContext): OracleSearchRun[] {
-  return groupesDePrincipale(relicContext).map(({ principale, reliques }) => ({
+  return groupesOracle(relicContext).map(({ principale, statsEffetUnique, reliques }) => ({
     principale,
+    statsEffetUnique,
     reliques,
     // Remplacement, jamais cumul : c'est le même paramètre que la production.
     // ⚠️ `relicContext: undefined` — garantie E : l'oracle n'applique AUCUNE
@@ -207,7 +232,8 @@ function candidatAvecRelique(
 
 /**
  * Référence relative au moteur rune existant : N recherches de production,
- * une par couple distinct `(statistique, valeur)` de principale éligible.
+ * une par couple distinct (principale `(statistique, valeur)`, stats de
+ * l'effet unique) parmi les reliques éligibles (`groupesOracle`).
  */
 export function oracleSearch(
   params: SearchParams,

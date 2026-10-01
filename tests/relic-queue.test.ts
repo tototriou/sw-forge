@@ -561,9 +561,19 @@ export default function testRelicQueue() {
 
     // (a) Les bornes transportées au moteur ne dépendent que des principales.
     egal(ctx2.bornes, ctx1.bornes, 'granularité (a) : les bornes du contexte ne bougent pas quand seule l’exclusive change');
-    // (b) L'oracle garde le MÊME nombre de runs : sa granularité est bien le
-    //     couple (statistique, valeur), pas la pièce.
-    egal(oracleSearchRuns(p2, ctx2).length, oracleSearchRuns(p1, ctx1).length, 'granularité (b) : N identique — la granularité de l’oracle reste le couple (statistique, valeur)');
+    // (b) Depuis 6bis-b6 (constat C3), la granularité de l'oracle est le
+    //     couple (principale, stats de l'effet unique), pas la pièce : la
+    //     dominance d'un run protège les stats de l'effet unique de SA
+    //     relique. Ici une seule relique par principale : N ne bouge pas.
+    //     Deux reliques de MÊME principale dont les effets protègent des
+    //     stats différentes donnent deux runs (un seul avant 6bis-b6).
+    egal(oracleSearchRuns(p2, ctx2).length, oracleSearchRuns(p1, ctx1).length, 'granularité (b) : une relique par principale — N identique quand seule l’exclusive change');
+    const memePrincipale = (inv: RelicDetail[]) => inv.map((r) => ({ ...r, main: { code: 102, value: 14 } }));
+    const ctx3 = resoudreContexteRelique(LIBRE, undefined, memePrincipale(memeExclusive));
+    const ctx4 = resoudreContexteRelique(LIBRE, undefined, memePrincipale(autreExclusive));
+    egal([ctx3.eligibles.length, ctx4.eligibles.length], [2, 2], 'granularité (b) : précondition — deux reliques éligibles de même principale (DEF % +14)');
+    egal([oracleSearchRuns({ ...fx.p0, relicContext: ctx3 }, ctx3).length, oracleSearchRuns({ ...fx.p0, relicContext: ctx4 }, ctx4).length], [1, 2],
+      'granularité (b) : même principale — un run si les effets protègent les mêmes stats (Conquête·ATQ × 2), deux sinon (Ténacité·PV, Origine·DEF)');
     // (c) La recherche relâchée elle-même est identique, candidat par
     //     candidat, stats comprises — donc aucune valeur d'exclusive n'entre
     //     dans la faisabilité, la rétention, la collecte ni une structure

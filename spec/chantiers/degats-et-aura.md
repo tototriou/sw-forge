@@ -5221,7 +5221,12 @@ tranche.
 **Déroulé :** 1) vérifier les preuves et tests ciblés de tous les lots, le lint
 et l'absence de décision bloquante ; 2) réconcilier le suivi d'audit et les
 entrées de `pistes.md` avec leurs sources : dettes de découpage, plan du lot 13,
-familles reportées et passifs non curés ; corriger dans `invariants.md` le
+familles reportées et passifs non curés, et les deux pistes ouvertes par
+6bis-b8 — le top approximatif en mode relique « recherche », et le coût de
+la file d'artéfacts (~8 à 10 % dans un montage Node, jamais vérifié au
+navigateur), que ce chantier ne traite pas : décision de l'utilisateur du
+2026-10-01, la transmettre nommément à un chantier dédié, ouvert sur sa
+décision ; corriger dans `invariants.md` le
 nom `pair-slice-worker.ts` en `src/workers/pairSlice.worker.ts` ; 3) une fois ces contrôles passés,
 statut du cadrage → `CHANTIER terminé le <date>` et ligne de `spec/README.md`
 mise à jour ; 4) `chantier livrer` → `verifier` → `integrer` du résultat final.

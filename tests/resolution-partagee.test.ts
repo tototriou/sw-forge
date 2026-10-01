@@ -4,22 +4,27 @@
 // `entreeResolutionDuBuild` (relicQueue.ts) et `classementResolu`
 // (artifactQueue.ts).
 //
-// Référence de l'extraction : `entreeResolution` (scripts/lib/
-// relicDifferentiel.ts), copie TEL QUEL de l'assemblage d'avant de l'écran
-// (`faireParamsArtefacts` + `resoudreEquipement`). Le nouveau producteur doit
-// rendre, candidat par candidat, le même `ResultatArtefacts` sur le corpus
-// écrit à la main du lot 5a (`CORPUS_5A`), avec et sans dimension relique,
-// pour chaque régime.
+// Référence de l'extraction : `entreeResolutionAvant`, copie FIGÉE de
+// `entreeResolution` (scripts/lib/relicDifferentiel.ts) au commit 7905df36,
+// elle-même copie TEL QUEL de l'assemblage d'avant de l'écran
+// (`faireParamsArtefacts` + `resoudreEquipement`). Depuis 6bis-b6, le
+// différentiel passe par le producteur partagé : la référence vit donc ici.
+// Le nouveau producteur doit rendre, candidat par candidat, le même
+// `ResultatArtefacts` sur le corpus écrit à la main du lot 5a (`CORPUS_5A`),
+// avec et sans dimension relique, pour chaque régime — et le différentiel
+// (`resoudreCandidat`) aussi, sur ce corpus sans buff ni verrou.
 
 import { readFileSync } from 'node:fs';
 import { ArtifactArchetype, ArtifactDetail, ElementKey, RelicDetail } from '../src/types';
 import { RelicContext } from '../src/lib/relicOptim';
-import { BuildCandidate, OptionsDeClassement, SearchParams, aurasPropresParRunes, optionsDeClassement, scoreDuCandidat, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
+import { BuildCandidate, OptionsDeClassement, SearchParams, aurasPropresParRunes, conditionsPaireFixePosees, optionsDeClassement, respecteConditionsPaireFixe, scoreDuCandidat, searchBuilds, sortCandidates } from '../src/lib/runeBuildOptim';
 import { ResultatArtefacts, classementResolu, cleBuild } from '../src/lib/artifactQueue';
-import { entreeResolutionDuBuild, etatReliqueDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
+import { EntreeResolution, entreeResolutionDuBuild, etatReliqueDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { ReglagesDifferentiel, maxStatsActifsDe, regimeDe, resoudreCandidat, runesDe } from '../scripts/lib/relicDifferentiel';
-import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
-import { StatRow } from '../src/lib/stats';
+import { DEFAULT_DAMAGE_SETUP, aurasPropresDesRunes } from '../src/lib/damage';
+import { StatRow, computeStats, statsParPaire } from '../src/lib/stats';
+import { ArtifactSearchParams } from '../src/lib/artifactOptim';
+import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import { CORPUS_5A } from './relic-search.test';
 import { DEGATS_FICHE } from './artifact-fiche.test';
 import { egal, ok, titre } from './outils';
@@ -39,6 +44,40 @@ const INVENTAIRE = [
   art(901, 'element', 101, 100), art(902, 'element', 102, 100, [[219, 10]]), art(903, 'element', 100, 1500),
   art(904, 'archetype', 101, 100, [[219, 5]]), art(905, 'archetype', 100, 1500), art(906, 'archetype', 102, 100),
 ];
+
+// `entreeResolution` (scripts/lib/relicDifferentiel.ts) au commit 7905df36,
+// recopiée TELLE QUELLE (commentaires retirés) : la référence de l'extraction.
+function entreeResolutionAvant(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: ReglagesDifferentiel): EntreeResolution {
+  const gear = { base: p.base, runes: runesDe(p, c), artifacts: p.artifacts, relic: p.relic };
+  const regime = regimeDe(r);
+  const conditionsPosees = conditionsPaireFixePosees(p.requirement);
+  const fixe = r.paireFixe;
+  return {
+    gear,
+    faireParams: (rel): ArtifactSearchParams => {
+      const statsAvec = statsParPaire({ ...gear, relic: rel });
+      const exclusive = r.exclusive ? { relique: rel, setup: r.exclusive.setup, element: r.exclusive.element } : undefined;
+      const propres = aurasPropresDesRunes(gear.runes);
+      const evaluer =
+        regime === 'degats_reels'
+          ? evaluerPourRegime(regime, statsAvec, propres, r.degats!, exclusive)
+          : evaluerPourRegime(regime, statsAvec, propres, exclusive);
+      return {
+        porteur: r.porteur,
+        inventaire: fixe ? [] : (r.inventaireArtefacts ?? []),
+        equipes: fixe ?? [],
+        principaleParSorte: fixe ? { element: 'equipped', archetype: 'equipped' } : {},
+        lignesVerrouillees: fixe ? [] : (r.lignesVerrouillees ?? []),
+        maxStatsActifs: maxStatsActifsDe(p),
+        evaluer,
+      };
+    },
+    respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement, aurasPropresDesRunes(gear.runes)) : null,
+    requirement: p.requirement,
+    regimeAucun: regime === 'aucun',
+    relicContext: ctx,
+  };
+}
 
 export function testResolutionProducteurPartage() {
   titre('Résolution par build — le producteur partagé rend l’assemblage de l’écran, candidat par candidat (6bis-b5c)');
@@ -61,7 +100,9 @@ export function testResolutionProducteurPartage() {
         const differents: string[] = [];
         for (const c of candidats) {
           // La référence : l'assemblage d'avant de l'écran, recopié tel quel.
-          const ref = resoudreCandidat(p, c, ctx, reglages);
+          const ref = resoudreEquipementDuBuild(entreeResolutionAvant(p, c, ctx, reglages));
+          // Le différentiel, qui passe désormais par les producteurs (6bis-b6).
+          if (JSON.stringify(resoudreCandidat(p, c, ctx, reglages)) !== JSON.stringify(ref)) differents.push(`différentiel ${cleBuild(c)}`);
           // Le producteur partagé, avec les mêmes paramètres de paires que
           // la référence (son `evaluer` est remplacé par le producteur).
           const nouveau = resoudreEquipementDuBuild(entreeResolutionDuBuild({
@@ -80,7 +121,7 @@ export function testResolutionProducteurPartage() {
           if (JSON.stringify(nouveau) !== JSON.stringify(ref)) differents.push(cleBuild(c));
           compares++;
         }
-        egal(differents, [], `${fx.nom}, ${nomCtx}, ${critere} : ${candidats.length} candidat(s), même résultat que l’assemblage de l’écran`);
+        egal(differents, [], `${fx.nom}, ${nomCtx}, ${critere} : ${candidats.length} candidat(s), même résultat que l’assemblage de l’écran (producteur partagé et différentiel)`);
       }
     }
   }

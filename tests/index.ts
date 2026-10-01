@@ -22,7 +22,7 @@ import { testCliClassementParMode } from './cli-classement.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
-import { testArtefactsFicheParamsEcran, testArtefactsFicheParamsCliVerrous } from './artifact-params-fiche.test';
+import { testArtefactsFicheParamsEcran, testArtefactsFicheParamsCliVerrous, testArtefactsFicheParamsDifferentiel } from './artifact-params-fiche.test';
 import testArtifactRelicConditionFloor from './artifact-relic-condition-floor.test';
 import testReco, {
   testTrimPartage,
@@ -225,6 +225,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtefactsFicheDifferentiel', testArtefactsFicheDifferentiel],
   ['testArtefactsFicheParamsEcran', testArtefactsFicheParamsEcran],
   ['testArtefactsFicheParamsCliVerrous', testArtefactsFicheParamsCliVerrous],
+  ['testArtefactsFicheParamsDifferentiel', testArtefactsFicheParamsDifferentiel],
   ['testResolutionProducteurPartage', testResolutionProducteurPartage],
   ['testClassementResolu', testClassementResolu],
   ['testCliClassementParMode', testCliClassementParMode],

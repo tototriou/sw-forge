@@ -24,6 +24,7 @@ import { candidatsParSorte, chercherPaires, paireRepresentative, type ChoixPrinc
 import { parametresArtefactsFiche, sortesFigeesDe } from '../src/lib/artifactFiche';
 import { readFileSync } from 'node:fs';
 import { artefactsDuCli, recipeToSearchParams, resoudreEquipementCli } from '../scripts/lib/recipeToSearchParams';
+import { resoudreCandidat } from '../scripts/lib/relicDifferentiel';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { egal, ok, titre } from './outils';
 
@@ -263,7 +264,44 @@ export function testArtefactsFicheParamsEcran() {
     'écran : la paire représentative ne dépend toujours que d’artifactParams');
   for (const s of choix) egal(sortesFigeesDe(s), sortesFigeesAvant(s), `sortesFigeesDe = l’ancienne expression (${JSON.stringify(s)})`);
 
-  // Raccordement du CLI.
+  // Raccordements des deux autres appelants.
   const cli = readFileSync('scripts/lib/recipeToSearchParams.ts', 'utf8');
   ok(/function paramsArtefacts\([\s\S]{0,400}?\.\.\.parametresArtefactsFiche\(\{/.test(cli), 'CLI : paramsArtefacts passe par le producteur');
+  const diff = readFileSync('scripts/lib/relicDifferentiel.ts', 'utf8');
+  ok(/export function entreeResolution\([\s\S]{0,300}?return entreeResolutionDuBuild\(\{[\s\S]{0,300}?artifactParams: parametresArtefactsFiche\(\{/.test(diff),
+    'différentiel : entreeResolution passe par entreeResolutionDuBuild et le producteur');
+}
+
+/* ── C6 : l'entrée de résolution du différentiel = celle du CLI ─────────── */
+
+export function testArtefactsFicheParamsDifferentiel() {
+  titre('Différentiel relique — entreeResolution = résolution du CLI, recette « Libre » avec buff de DEF (6bis-b6, C6)');
+
+  // Lushen scale sur l'ATQ : la ligne 205 (amplification du buff de DEF),
+  // sondée seule, ne change rien ; avec une ligne 220 (dégâts supp. en prop.
+  // de DEF), elle vaut des dégâts. Sans `codesAmplification`, 901 est dominé
+  // par 902 (220 plus haute) et disparaît du choix de la paire.
+  const inventaire = [art(901, 'element', [101, 100], [[220, 20], [205, 30]]), art(902, 'element', [101, 100], [[220, 21]]), art(903, 'archetype', [101, 100], [])];
+  const loaded: LoadedMonster = {
+    unitId: 1, com2usId: LUSHEN, monsterName: 'Lushen (test)',
+    gear: { base: BASE, runes: [], artifacts: [], relic: RELIQUE },
+    allRunes: RUNES_PORTEES, allArtifacts: inventaire, allRelics: [RELIQUE],
+  };
+  const c: BuildCandidate = { runeIds: RUNES_PORTEES.map((r) => r.id), stats: [], effTotal: 0 };
+
+  for (const defBuff of [false, true]) {
+    const setup = { ...DEFAULT_DAMAGE_SETUP, defBuff };
+    const libre = recette({ damageSetup: setup });
+    const params = recipeToSearchParams(libre, loaded);
+    const a = artefactsDuCli(libre, loaded)!;
+    const cli = resoudreEquipementCli(libre, loaded, params)!(c);
+    // La traduction de la preuve : les réglages d'un appelant du
+    // différentiel qui rejoue cette recette.
+    const diff = resoudreCandidat(params, c, params.relicContext, {
+      critere: libre.objective, degats: a.degats, porteur: a.params.porteur, inventaireArtefacts: loaded.allArtifacts,
+      lignesVerrouillees: libre.lignesVerrouillees ?? [], exclusive: { setup, element: a.element },
+    });
+    egal(JSON.stringify(diff), JSON.stringify(cli), `buff de DEF ${defBuff ? 'actif' : 'inactif'} : même résultat de résolution (paire, stats, note, relique)`);
+    egal(ids(cli.artefacts), defBuff ? [901, 903] : [902, 903], `buff de DEF ${defBuff ? 'actif' : 'inactif'} : la paire attendue (${defBuff ? '205 + 220 l’emporte' : '220 la plus haute'})`);
+  }
 }

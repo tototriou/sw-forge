@@ -20,6 +20,7 @@ import { join, resolve } from 'path';
 import { SearchParams, searchBuilds } from '../src/lib/runeBuildOptim';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import { RelicDetail } from '../src/types';
+import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { chargerPointOracle, oracleSearch } from '../scripts/lib/relicOracle';
 import { cle, comparerOptionA, degatsSansArtefacts, resoudreTousLesCandidats } from '../scripts/lib/relicDifferentiel';
@@ -42,9 +43,13 @@ export default function testRelicDifferentiel() {
   const inv = [relique(9001, 100, 12), relique(9002, 100, 14), relique(9003, 102, 14)];
   const ctx = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, undefined, inv);
   const p: SearchParams = { base, artifacts: [], relic: undefined, relicContext: ctx, pool, requirement: { sets: [], minStats: {} }, metric: 'eff', objective: 'ehp', maxMs: Number.POSITIVE_INFINITY, slotFilterCap: 80 };
-  const oracle = oracleSearch(p, ctx);
+  // Le canal exclusive, OBLIGATOIRE côté A depuis 6bis-b6 (la résolution de
+  // production note toujours avec lui) : le MÊME objet va à l'oracle. Les
+  // reliques portent Conquête, neutre en PV effectifs.
+  const exclusive = { setup: DEFAULT_DAMAGE_SETUP, element: null };
+  const oracle = oracleSearch(p, ctx, { exclusive });
   const relaxed = searchBuilds(p);
-  const reglages = { critere: 'ehp' as const, porteur: PORTEUR };
+  const reglages = { critere: 'ehp' as const, porteur: PORTEUR, exclusive };
   const resolus = resoudreTousLesCandidats(p, relaxed, ctx, reglages);
   ok(oracle.candidats.length > 0 && resolus.length > 0, `fixture : ${oracle.candidats.length} candidats oracle, ${resolus.length} résolus A`);
 
@@ -105,7 +110,7 @@ export default function testRelicDifferentiel() {
     const equipee = inv[1]!;
     const ctxEq = resoudreContexteRelique({ mode: 'equipped', principale: 'equipped', type: 'libre', seuil: 6 }, equipee, inv);
     const pEq: SearchParams = { ...p, relic: equipee, relicContext: ctxEq };
-    const oracleEq = oracleSearch(pEq, ctxEq);
+    const oracleEq = oracleSearch(pEq, ctxEq, { exclusive });
     const relaxedEq = searchBuilds(pEq);
     const resolusEq = resoudreTousLesCandidats(pEq, relaxedEq, ctxEq, reglages);
     egal(oracleEq.N, 1, 'equipped : l’oracle n’a qu’un run (la relique portée)');

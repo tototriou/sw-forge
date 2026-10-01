@@ -38,6 +38,7 @@ import { ResultatArtefacts, candidatAvecSaPaire, cleBuild, signatureReglages } f
 import { EntreeResolution, etatReliqueDuBuild, reliqueEquipeeExclue, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { oracleSearch, oracleSearchRuns } from '../scripts/lib/relicOracle';
 import { DEFAULT_DAMAGE_SETUP, aurasPropresDesRunes } from '../src/lib/damage';
+import { apportExclusive, type ContexteExclusive } from '../src/lib/relicExclusive';
 import { ReglagesDifferentiel, Saturation, classerPerte, cle, comparerOptionA, entreeResolution, resoudreTousLesCandidats, runesDe, saturationDe } from '../scripts/lib/relicDifferentiel';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
@@ -54,10 +55,22 @@ import { egal, ok, titre } from './outils';
 
 const PORTEUR = { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype };
 
-type Reglages = Omit<ReglagesDifferentiel, 'porteur'>;
+type Reglages = Omit<ReglagesDifferentiel, 'porteur' | 'exclusive'> & { exclusive?: ContexteExclusive };
+
+// ⚠️ 6bis-b6 : le canal exclusive est OBLIGATOIRE dans le différentiel — la
+// résolution de production (`entreeResolutionDuBuild`) note toujours avec
+// l'effet unique de la relique essayée. Un cas qui ne le précise pas reçoit
+// le réglage par défaut de l'écran, et `differentiel` donne le MÊME objet à
+// l'oracle. Les fixtures de 5b (Conquête·ATQ, Efficience ou PV effectifs)
+// n'en dépendent pas.
+const EXCLUSIVE_PAR_DEFAUT: ContexteExclusive = { setup: DEFAULT_DAMAGE_SETUP, element: null };
+
+function complets(r: Reglages): ReglagesDifferentiel {
+  return { ...r, porteur: PORTEUR, exclusive: r.exclusive ?? EXCLUSIVE_PAR_DEFAUT };
+}
 
 function entree(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: Reglages): EntreeResolution {
-  return entreeResolution(p, c, ctx, { ...r, porteur: PORTEUR });
+  return entreeResolution(p, c, ctx, complets(r));
 }
 
 function resoudre(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: Reglages): ResultatArtefacts {
@@ -85,15 +98,16 @@ function differentiel(fx: Fixture5a, reglages: Reglages, realDamage?: RealDamage
   const nom = fx.nom;
   const p = { ...fx.p0, relicContext: fx.ctx };
   // ⚠️ Lot 7 — le canal exclusive va aux DEUX côtés, depuis la MÊME source
-  // (`reglages.exclusive`) : A le lit par `entreeResolution`/`scoreOracle`,
-  // l'oracle par `OptionsOracle`. Un canal donné d'un seul côté rendrait le
-  // différentiel vide de sens.
-  const oracle = oracleSearch(p, fx.ctx, { realDamage, exclusive: reglages.exclusive });
+  // (`reglages.exclusive`, complété par `complets`) : A le lit par
+  // `entreeResolution`/`scoreOracle`, l'oracle par `OptionsOracle`. Un canal
+  // donné d'un seul côté rendrait le différentiel vide de sens.
+  const r = complets(reglages);
+  const oracle = oracleSearch(p, fx.ctx, { realDamage, exclusive: r.exclusive });
   const relaxed = searchBuilds(p);
 
   // L'option A : chaque candidat relâché résolu par la partie pure de la
   // file — TOUS (K = ∞), pas seulement le top-K de l'écran.
-  const resolus = resoudreTousLesCandidats(p, relaxed, fx.ctx, { ...reglages, porteur: PORTEUR }, realDamage);
+  const resolus = resoudreTousLesCandidats(p, relaxed, fx.ctx, r, realDamage);
   // Aucun couple retenu ne viole ses conditions avec sa relique (assertion
   // finale redondante, côté test).
   ok(resolus.every((x) => x.conditionsRespectees), `${nom} : tout build retenu par A respecte minimums ET maximums avec sa relique`);
@@ -423,7 +437,14 @@ export default function testRelicQueue() {
     // 2. tri ATQ + bouton inactif : la relique suit l'objectif (PV effectifs).
     const ex2 = resoudre(p, c, ctx, { critere: 'ehp' });
     egal(ex2.relique?.id, 1, 'plan § 2.4 ex. 2 : tri ATQ + bouton inactif → la relique suit l’objectif (PV % +14)');
-    egal(ex2.paire?.score, pvEffectifs(ex2.stats, aurasPropresDesRunes(runesDe(p, c))), 'plan § 2.4 ex. 2 : une seule note — score de la paire = PV effectifs des stats exactes');
+    // ⚠️ 6bis-b6 (C6) : la note est celle de la production, effet unique de la
+    // relique retenue compris (PV14 porte Origine·ATQ, dont les points de PV
+    // entrent dans les PV effectifs) — jamais plus la note sans canal
+    // exclusive, que seule la copie du différentiel rendait.
+    const propres2 = aurasPropresDesRunes(runesDe(p, c));
+    const apport2 = apportExclusive(PV14, ex2.stats, DEFAULT_DAMAGE_SETUP, propres2, null);
+    ok(pvEffectifs(ex2.stats, propres2) < objectiveScore({ ...c, stats: ex2.stats }, 'ehp', propres2, undefined, apport2, DEFAULT_DAMAGE_SETUP), 'plan § 2.4 ex. 2 : précondition — l’Origine de PV14 compte dans les PV effectifs');
+    egal(ex2.paire?.score, objectiveScore({ ...c, stats: ex2.stats }, 'ehp', propres2, undefined, apport2, DEFAULT_DAMAGE_SETUP), 'plan § 2.4 ex. 2 : une seule note — score de la paire = PV effectifs des stats exactes, effet unique de la relique retenue compris');
     // 3. changement de tri PV effectifs → ATQ, bouton actif : le régime
     // effectif change, la signature aussi, la file ré-optimise.
     ok(signature(regimeArtefacts('ehp')) !== signature(regimeArtefacts('atk')), 'plan § 2.4 ex. 3 : bouton actif, changer le tri change le régime → la signature invalide le cache');

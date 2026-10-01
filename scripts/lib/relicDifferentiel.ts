@@ -5,10 +5,10 @@
 // Extrait TEL QUEL de `tests/relic-queue.test.ts` (lot 5b, revu par la revue
 // adversariale du diff), qui le réimporte : ses assertions de corpus n'ont
 // pas bougé et prouvent que rien n'a bougé ici. Aucune étape du pipeline
-// n'est réimplémentée — seuls les paramètres sont assemblés, comme l'écran
-// les assemble (`faireParamsArtefacts`, `resoudreEquipement`,
-// OptimizerSection.tsx), puis `resoudreEquipementDuBuild` (la partie pure de
-// la file), `respecteConditionsAvecRelique`, `sortCandidates`, le traceur du
+// n'est réimplémentée — l'entrée de résolution vient des producteurs de
+// l'écran et du CLI (`entreeResolutionDuBuild`, `parametresArtefactsFiche`,
+// depuis 6bis-b6), puis `resoudreEquipementDuBuild` (la partie pure de la
+// file), `respecteConditionsAvecRelique`, `sortCandidates`, le traceur du
 // moteur.
 //
 // ⚠️ Ce module ne LANCE aucune recherche de lui-même (hors `classerPerte`,
@@ -28,7 +28,6 @@
 
 import { ArtifactDetail, RelicDetail, RuneDetail } from '../../src/types';
 import { StatKey } from '../../src/lib/effects';
-import { computeStats, statsParPaire } from '../../src/lib/stats';
 import { RelicContext } from '../../src/lib/relicOptim';
 import { APPORT_NEUTRE, ContexteExclusive, apportExclusive } from '../../src/lib/relicExclusive';
 import { aurasPropresDesRunes } from '../../src/lib/damage';
@@ -45,23 +44,22 @@ import {
   objectiveScore,
   prepareSearch,
   respecteConditionsAvecRelique,
-  conditionsPaireFixePosees,
-  respecteConditionsPaireFixe,
   searchBuilds,
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
-import { ArtifactSearchParams, LigneVerrouillee } from '../../src/lib/artifactOptim';
+import { LigneVerrouillee } from '../../src/lib/artifactOptim';
 import { PorteurArtefact } from '../../src/lib/artifacts';
-import { RegimeArtefacts, evaluerPourRegime, regimeArtefacts, regimeEquipementDe } from '../../src/lib/artifactEvaluation';
+import { RegimeArtefacts, regimeArtefacts, regimeEquipementDe } from '../../src/lib/artifactEvaluation';
 import { ResultatArtefacts, candidatAvecSaPaire, cleBuild } from '../../src/lib/artifactQueue';
-import { EntreeResolution, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
+import { EntreeResolution, entreeResolutionDuBuild, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
+import { AUCUN_ARTEFACT_RESERVE, parametresArtefactsFiche } from '../../src/lib/artifactFiche';
 import { OracleResult } from './relicOracle';
 import { drain } from './drain';
 
 /* --------------------------------------------------------------------------
- * Le branchement de l'écran, reproduit TEL QUEL (OptimizerSection.tsx :
- * `faireParamsArtefacts`, `resoudreEquipement`) — aucune étape du pipeline
- * n'est réimplémentée, seuls les paramètres sont assemblés ici.
+ * Le branchement de l'écran, par ses producteurs (`entreeResolutionDuBuild`,
+ * `parametresArtefactsFiche`) — aucune étape du pipeline n'est réimplémentée,
+ * seuls les réglages sont traduits ici.
  * ----------------------------------------------------------------------- */
 
 export interface ReglagesDifferentiel {
@@ -81,19 +79,24 @@ export interface ReglagesDifferentiel {
    */
   paireFixe?: ArtifactDetail[];
   // Les verrous de la recette : neutralisés si `paireFixe` (les deux
-  // emplacements figés — OptimizerSection.tsx, `artifactParams`), transmis
-  // sinon.
+  // emplacements figés — par le producteur partagé, `parametresArtefactsFiche`),
+  // transmis sinon.
   lignesVerrouillees?: LigneVerrouillee[];
   /**
    * Le contexte de l'assiette `Y` des propriétés uniques (lot 7) — le
    * `DamageSetup` et l'élément du monstre, disponibles quel que soit
-   * l'objectif (« État de mon monstre » modifie les stats partout).
+   * l'objectif (« État de mon monstre » modifie les stats partout). Son
+   * `setup` donne aussi les codes d'amplification de buff des paires.
+   *
+   * ⚠️ **OBLIGATOIRE** depuis 6bis-b6 (constat C6) : la résolution de
+   * production (`entreeResolutionDuBuild`) note toujours avec l'effet unique
+   * de la relique essayée et le `DamageSetup` (auras externes comprises) ;
+   * l'absence faisait noter les paires EHP sans auras externes, en silence.
    *
    * ⚠️ **Le MÊME objet va à l'oracle** (`OptionsOracle.exclusive`) : c'est la
-   * condition pour que les deux scores soient comparables. Absent des deux
-   * côtés → apport neutre, le différentiel d'avant le lot 7.
+   * condition pour que les deux scores soient comparables.
    */
-  exclusive?: ContexteExclusive | null;
+  exclusive: ContexteExclusive;
 }
 
 export function regimeDe(r: ReglagesDifferentiel): RegimeArtefacts {
@@ -114,41 +117,45 @@ export function maxStatsActifsDe(p: SearchParams): StatKey[] {
   return (Object.keys(p.requirement.maxStats ?? {}) as StatKey[]).filter((k) => (p.requirement.maxStats?.[k] ?? 0) > 0);
 }
 
+/**
+ * L'entrée de résolution d'un candidat, par les producteurs de l'écran et du
+ * CLI (degats-et-aura 6bis-b6, constat C6) : `entreeResolutionDuBuild`
+ * (relicQueue.ts) et `parametresArtefactsFiche` (artifactFiche.ts). Jusque-là
+ * une copie, sans `codesAmplification` ni canal exclusive obligatoire.
+ *
+ * Traduction de `ReglagesDifferentiel` (écrite dans la preuve du lot) :
+ * - fiche = la relique et la paire des `SearchParams` (`p.relic`,
+ *   `p.artifacts`) et leur base ; ses runes sont celles du candidat ;
+ * - optimisation d'artéfacts active : la file n'existe qu'avec elle ;
+ * - `paireFixe` → les deux emplacements figés sur cette paire, inventaire
+ *   vide (verrous neutralisés par le producteur) ; sinon « Libre » des deux
+ *   côtés sur `inventaireArtefacts` ;
+ * - aucune réservation : le différentiel n'a pas de liste de travail ;
+ * - `exclusive` → canal exclusive, et son `setup` → codes d'amplification ;
+ * - maximums, conditions et régime : ceux des `SearchParams` et du critère.
+ */
 export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: ReglagesDifferentiel): EntreeResolution {
-  const gear = { base: p.base, runes: runesDe(p, c), artifacts: p.artifacts, relic: p.relic };
-  const regime = regimeDe(r);
-  const conditionsPosees = conditionsPaireFixePosees(p.requirement);
   const fixe = r.paireFixe;
-  return {
-    gear,
-    faireParams: (rel): ArtifactSearchParams => {
-      const statsAvec = statsParPaire({ ...gear, relic: rel });
-      // Le canal exclusive (lot 7) : la candidate essayée, plus le contexte de
-      // son assiette `Y` — exactement ce que l'écran pose dans
-      // `faireParamsArtefacts`.
-      const exclusive = r.exclusive ? { relique: rel, setup: r.exclusive.setup, element: r.exclusive.element } : undefined;
-      // Les auras propres de CE candidat (6bis-b2), sur les runes de `gear` —
-      // exactement ce que l'écran passe dans `faireParamsArtefacts`.
-      const propres = aurasPropresDesRunes(gear.runes);
-      const evaluer =
-        regime === 'degats_reels'
-          ? evaluerPourRegime(regime, statsAvec, propres, r.degats!, exclusive)
-          : evaluerPourRegime(regime, statsAvec, propres, exclusive);
-      return {
-        porteur: r.porteur,
-        inventaire: fixe ? [] : (r.inventaireArtefacts ?? []),
-        equipes: fixe ?? [],
-        principaleParSorte: fixe ? { element: 'equipped', archetype: 'equipped' } : {},
-        lignesVerrouillees: fixe ? [] : (r.lignesVerrouillees ?? []),
-        maxStatsActifs: maxStatsActifsDe(p),
-        evaluer,
-      };
-    },
-    respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement, aurasPropresDesRunes(gear.runes)) : null,
+  return entreeResolutionDuBuild({
+    fiche: { base: p.base, runes: [], artifacts: p.artifacts, relic: p.relic },
+    runes: runesDe(p, c),
+    artifactParams: parametresArtefactsFiche({
+      porteur: r.porteur,
+      inventaire: fixe ? [] : (r.inventaireArtefacts ?? []),
+      reserves: AUCUN_ARTEFACT_RESERVE,
+      equipes: fixe ?? [],
+      optimiserArtefacts: true,
+      principaleParSorte: fixe ? { element: 'equipped', archetype: 'equipped' } : {},
+      lignesVerrouillees: r.lignesVerrouillees ?? [],
+      damageSetup: r.exclusive.setup,
+      maxStats: p.requirement.maxStats ?? {},
+    }),
+    regime: regimeDe(r),
+    degats: r.degats ?? null,
+    exclusive: r.exclusive,
     requirement: p.requirement,
-    regimeAucun: regime === 'aucun',
     relicContext: ctx,
-  };
+  });
 }
 
 export function resoudreCandidat(p: SearchParams, c: BuildCandidate, ctx: RelicContext | undefined, r: ReglagesDifferentiel): ResultatArtefacts {

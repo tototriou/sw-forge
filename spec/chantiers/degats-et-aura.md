@@ -616,7 +616,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b3c — dominance et effet unique de la relique | J | terminé, preuves et mutation rejouées par le pilote | `756eb09c` + `ca15a281` ; reçu `ca15a28` ↔ `61364e2` / 2026-09-30 |
 | O — verrous de `chantier ouvrir` et `livrer` | J | terminé, rouge et preuves rejoués par le pilote ; installé le 2026-10-01 @ `62bb877` | `32a5da12` + `ea6a37f3` ; reçu `32a5da1` ↔ `c8b6323` / 2026-10-01 |
 | 6bis-b5b — Meilleurs artéfacts et paire représentative | J | terminé, preuves et mutation rejouées par le pilote | `597a0730` ; reçu `597a073` ↔ `76a4a2f` / 2026-10-01 |
-| 6bis-b5c — CLI en mode recherche et parité finale | J | lançable | — |
+| 6bis-b5c — CLI en mode recherche et parité finale | J | terminé, contrat amendé (option 2, décision utilisateur), preuves, mutation et CLI réel rejoués par le pilote | `808d2d36`…`b8b28f63` ; reçu `b8b28f6` ↔ `9ef88ae` / 2026-10-01 |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5c ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -3504,6 +3504,15 @@ de cette résolution sur les recettes gelées (`optimizer-perf-testing`) ; s'il
 est prohibitif, s'arrêter et rapporter les options (A.6), sans rien borner
 en silence.
 
+**Amendement du 2026-10-01** (décision de l'utilisateur, option 2, après la
+mesure de `controle-6bis-b5c-mesure.md`). La résolution de tous les
+candidats est prohibitive avec des artéfacts « Libre » : 401,5 s de
+résolution pour 20,3 s de recherche. Par défaut, le CLI résout donc comme la
+file de l'écran : les 100 premiers de l'ordre de base et ses 20 lignes
+imprimées, choisis par `prochainsATraiter`, jusqu'au point fixe.
+`--resoudre-tout` résout chaque candidat collecté et reste la référence
+exacte.
+
 **Preuves :** recette gelée « recherche » à créer (sha256), avec une relique
 retenue différente de l'équipée ; parité écran/CLI des cinq premiers et de
 leurs scores dans les trois modes, l'écran étant représenté par les
@@ -3511,6 +3520,74 @@ fonctions extraites en b5a ; troncature signalée. Preuve
 `controle-6bis-b5c.md`.
 **Ne fait pas :** changement du moteur de recherche ni de la sélection de
 relique elle-même.
+
+###### Résultat du lot 6bis-b5c — 2026-10-01
+
+Quatre commits, poussés :
+
+- `808d2d36` : la paire représentative du CLI (`artefactsDuCli`) est notée
+  par le producteur de l'écran (`evaluateursArtefactsFiche`) ; avant, son
+  effet unique ne comptait qu'en PV effectifs ;
+- `c77b34d6` : `entreeResolutionDuBuild` (`relicQueue.ts`) et
+  `classementResolu` (`artifactQueue.ts`) extraits de l'écran, sans
+  changement de comportement (règle 5 de 6bis-b5) ;
+- `5ac720ca` : le CLI résout l'équipement de chaque build et classe par ces
+  producteurs (`scripts/lib/classementCli.ts`) ;
+- `b8b28f63` : option 2 (amendement ci-dessus).
+
+Reçu courant `b8b28f6` ↔ `9ef88ae` (910 fichiers), après trois livraisons,
+toutes intégrées ; main documentaire `9397cf9`. Preuves privées
+`controle-6bis-b5c.md`, `-mesure.md` et `-option2.md`. Trois recettes
+gelées : `recette-6bis-b5c-recherche.json` (sha256 `92b84606…`),
+`-recherche-libre.json` et `-artefacts-libres.json`.
+
+Le pilote a relu le diff et rejoué sur `b8b28f63` :
+
+- `npx tsc --noEmit` → 0 ;
+- les cinq tests nommés → 178 vérifications passées ;
+- `node tests/run.mjs auras relic artifact resolution classement cli` →
+  2 506 passées ;
+- build, spec-lint, `git diff --check` verts ; « Reçu valide » ;
+- extraction de l'écran relue : même assemblage que le code retiré ;
+- **mutation du pilote** (la résolution note avec la relique portée au lieu
+  de la candidate) : 15 échecs sur 133 ; fichier restauré depuis git, puis
+  133 passées ;
+- **vrai CLI** sur `recette-6bis-b5c-recherche.json` (empreinte vérifiée),
+  bundle hors de l'arbre : « 100 build(s) sur 5100 … 0 rejeté(s) », n° 1 à
+  29 938,0 avec la relique 521159 retenue au lieu de l'équipée 34315 ;
+  résolution 104 ms pour 24,5 s de recherche.
+
+Rapportés, non rejoués :
+
+- parité exhaustive dans les trois modes (29 376, 29 376 et 5 100 scores
+  égaux à `scoreDeReference`, A.6 bis tenu) ;
+- parité du défaut avec la file de l'écran, déroulée en Node, sur quatre
+  recettes ;
+- rejet de 112 couples infaisables sur 469 (fixture) ;
+- mesures : défaut entre 0,6 % et 40,9 % de la recherche.
+
+Écarts acceptés : le CLI résout aussi en `equipped` (parité des trois
+modes) ; représentative du CLI et extraction des producteurs, nécessaires à
+la parité ; contrôle de source de b5a déplacé ; deux recettes gelées en plus
+pour le pire cas. Non prouvé : ligne de troncature en situation réelle,
+rejet sur compte réel, file réelle du navigateur, coût de `--resoudre-tout`
+au-delà des cas mesurés.
+
+**Découverte, pour la revue technique : la file de l'écran n'est pas
+exhaustive en mode `recherche`.** L'ordre de base ignore la relique. Un
+build qui monterait une fois résolu peut donc ne jamais être atteint par la
+file (100 builds, `K_BUILDS_OPTIMISES`, calibré avant le mode `recherche`).
+Sur une fixture faite pour cela, 9 des 20 premiers de l'exhaustif manquent,
+dont les n° 2 et 5. Sur les quatre recettes réelles : aucun écart. L'écran
+peut afficher un top qui n'est pas le meilleur ; aucune note n'est fausse
+pour autant.
+**Autres points pour la revue technique :**
+
+- `relicDifferentiel.entreeResolution` reste une copie de l'ancien
+  assemblage, sans `codesAmplification` ;
+- `artefactsDuCli` ≡ `artifactParams` n'est tenu que par équivalence ;
+- un écart d'environ ×3 entre les temps sous `tsx` et sous le bundle ;
+- le rapport 1,03986 au lieu de 1,04, retrouvé (29 938,0 / 28 790,2).
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

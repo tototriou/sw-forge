@@ -2373,16 +2373,25 @@ leur vraie paire, sur le temps d'inactivité — l'ordre d'appariement étant
 piloté par l'objectif, les bons builds sortent en quelques secondes là où la
 recherche s'écoule sur plusieurs minutes.
 
-⚠️ **Ce travail concurrent ne ralentit pas la recherche** — mesuré, pas
-supposé : +0,3 % sur une recherche de 25 secondes et −1,6 % sur une de 8, les
+⚠️ **Ce travail concurrent ne ralentissait pas la recherche** à la première
+mesure — mesuré, pas supposé, mais voir la réserve de 6bis-b8 ci-dessous : +0,3 % sur une recherche de 25 secondes et −1,6 % sur une de 8, les
 deux sous le plancher de bruit de la mesure. Seule une recherche d'environ une
 seconde montre ~3 %, dont une charge de calcul *pure* explique la
 quasi-totalité : c'est du partage de cœurs, pas un coût propre à ce calcul.
-⚠️ Cette mesure date d'une file de cent builds. En mode relique
-« recherche », la file en traite trois cents depuis degats-et-aura 6bis-b8
-(voir le paragraphe suivant) ; la mesure de contention à trois cents
-contre cent, sur une recette réelle à artéfacts « Libre », attend son
-créneau.
+⚠️ Cette mesure date d'une file de cent builds, avec une charge sans fin
+(`chercherPaires` en boucle) et l'appariement seul chronométré. En mode
+relique « recherche », la file en traite trois cents depuis degats-et-aura
+6bis-b8 (voir le paragraphe suivant). Mesuré alors sur une recette réelle
+(mode « recherche », 4 reliques éligibles, artéfacts « Libre », appariement
+parallèle), la vraie boucle de la file et sa vraie résolution, six
+répétitions à ordre tourné : **trois cents contre cent ne se distingue pas
+du bruit** (+2,3 % au minimum, +1,3 % en médiane, dispersion 7,5 %). En
+revanche, **la file elle-même — cent comme trois cents — allonge la
+recherche d'environ 8 à 10 %** par rapport à une recherche sans file, dans
+toutes les répétitions de deux campagnes. Ce montage Node est pessimiste
+(la file n'y cède jamais la main comme `requestIdleCallback`, et le
+coordinateur de la recherche partage son fil) ; l'écart n'a pas été
+vérifié au navigateur, et reste une piste ouverte.
 
 **La page que vous consultez passe en premier.** Les cent meilleurs builds —
 **trois cents en mode relique « recherche »** — sont traités en avance de

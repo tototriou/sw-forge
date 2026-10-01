@@ -16,7 +16,7 @@ import testArtefactOptim, {
   testAmpliMaxAtteignable,
 } from './artefact-optim.test';
 import testArtefactFile from './artefact-file.test';
-import testArtifactEvaluation, { testArtifactPaireReelleEhp } from './artifact-evaluation.test';
+import testArtifactEvaluation, { testArtifactPaireReelleEhp, testArtifactPaireReelleDegatsEffetUnique } from './artifact-evaluation.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
@@ -230,6 +230,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtefactFile', testArtefactFile],
   ['testArtifactEvaluation', testArtifactEvaluation],
   ['testArtifactPaireReelleEhp', testArtifactPaireReelleEhp],
+  ['testArtifactPaireReelleDegatsEffetUnique', testArtifactPaireReelleDegatsEffetUnique],
   ['testArtifactConditionFloor', testArtifactConditionFloor],
   ['testArtifactRelicConditionFloor', testArtifactRelicConditionFloor],
   ['testRegistre', testRegistre],

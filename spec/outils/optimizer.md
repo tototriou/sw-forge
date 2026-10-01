@@ -527,6 +527,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    l'effet unique en dégâts réels, comme elle le faisait en PV effectifs.
    Les bornes explicites de faisabilité restent indépendantes de cette note ;
    sans elles, le repli fige toujours les principales de la représentative.
+   Le script CLI note sa représentative par le même producteur
+   (`evaluateursArtefactsFiche`, via `artefactsDuCli`, degats-et-aura
+   6bis-b5c) : il ne comptait l'effet unique qu'en PV effectifs, et pouvait
+   donc lancer la recherche avec une autre paire que l'écran. Son repli
+   reste inchangé : sans sort calculable en « Dégâts réels », il garde la
+   paire portée au lieu de noter en régime « aucun » comme l'écran.
 
 #### Affichage et emplacement de la proposition
    **Chaque artéfact proposé s'affiche comme dans le jeu** : sa statistique

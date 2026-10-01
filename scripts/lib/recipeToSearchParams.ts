@@ -32,10 +32,11 @@ import {
   monsterOffensivePassives,
   resolveDamageSkill,
 } from '../../src/lib/damage';
-import { computeStats, statsParPaire } from '../../src/lib/stats';
+import { computeStats } from '../../src/lib/stats';
 import { codesAmplificationActifs } from '../../src/lib/damage';
-import { bornesArtefacts, paireRepresentative, type BornesArtefacts, type ChoixPrincipale } from '../../src/lib/artifactOptim';
-import { evaluerPourRegime, regimeArtefacts } from '../../src/lib/artifactEvaluation';
+import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams, type BornesArtefacts, type ChoixPrincipale } from '../../src/lib/artifactOptim';
+import { regimeArtefacts, type DegatsContext } from '../../src/lib/artifactEvaluation';
+import { evaluateursArtefactsFiche } from '../../src/lib/artifactFiche';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { StatKey } from '../../src/lib/effects';
@@ -173,44 +174,57 @@ export function recipeToRelicIntent(recipe: OptimizerRecipe, loaded: LoadedMonst
  * l'hypothèque.
  */
 function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDetail[] | null {
+  const a = artefactsDuCli(recipe, loaded);
+  if (!a) return null;
+  // Sort non calculable : on ne sait pas noter une paire. Repli sur
+  // l'ancien comportement (voir `resolveArtifacts`) plutôt qu'une paire
+  // arbitraire — comportement inchangé, `paireReelle` bail out ENTIÈREMENT
+  // plutôt que de rabattre le régime sur `'aucun'` comme le fait l'écran.
+  if (regimeArtefacts(recipe.objective) === 'degats_reels' && !a.degats) return null;
+  return paireRepresentative(a.params);
+}
+
+/**
+ * Le pendant CLI d'`artifactParams` (OptimizerSection.tsx) : le contexte de
+ * choix des paires, dont l'`evaluer` note la paire REPRÉSENTATIVE, et le
+ * contexte de dégâts sans profil d'artéfacts (`contexteDegatsArtefacts` de
+ * l'écran). La paire supposée (`paireReelle`) et la résolution par build
+ * (`resoudreEquipementCli`) en partent toutes deux, comme `searchArtifacts` et
+ * la file de l'écran partent d'`artifactParams`.
+ *
+ * ⚠️ La note de la représentative vient du producteur de l'écran
+ * (`evaluateursArtefactsFiche`, 6bis-b5b), jamais d'un `evaluerPourRegime`
+ * assemblé ici : jusqu'à 6bis-b5c, le CLI ne comptait l'effet unique de la
+ * relique de la fiche qu'en PV effectifs, l'écran aussi en « Dégâts réels ».
+ * `null` : espèce introuvable.
+ */
+export function artefactsDuCli(
+  recipe: OptimizerRecipe,
+  loaded: LoadedMonster
+): { params: ArtifactSearchParams; degats: DegatsContext | null } | null {
   const espece = loadMonstersList().find((m) => m.com2usId === loaded.com2usId);
   if (!espece) return null;
-
-  // ⚠️ Un seul `computeStats` pour toutes les paires — voir `statsParPaire`.
-  const statsAvec = statsParPaire(loaded.gear);
-  // Les auras propres (6bis-b2) des runes PORTÉES, celles dont `statsAvec`
-  // calcule les stats — comme l'écran (`aurasPropresFiche`).
+  // ⚠️ Contexte construit avec l'équipement PORTÉ, uniquement pour obtenir le
+  // profil de sort et les passifs — `artefacts` est recalculé par paire dans
+  // `evaluer`, donc la valeur passée ici n'influence pas le choix. `null` hors
+  // « Dégâts réels » ou sans sort calculable (`buildRealDamageContext`).
+  const ctx = buildRealDamageContext(recipe, loaded.com2usId, loaded.gear.artifacts);
+  const degats = ctx ? (({ artefacts: _artefacts, ...sansArtefacts }) => sansArtefacts)(ctx) : null;
+  // Les auras propres (6bis-b2) des runes PORTÉES — comme l'écran
+  // (`aurasPropresFiche`).
   const propres = aurasPropresDesRunes(loaded.gear.runes);
-  // ⚠️ Le score dépend du RÉGIME, pas juste de « Dégâts réels » vs le reste :
-  // `pvEffectifs` (PV effectifs) n'est PAS une somme des deux principales,
-  // contrairement à l'efficience/la VIT. `evaluerPourRegime`
-  // (`src/lib/artifactEvaluation.ts`) centralise ce contrat, partagé avec
-  // les deux sites de OptimizerSection.tsx (spec/outils/optimizer/
-  // decisions/cadrage-score-artefacts-ehp.md).
-  const regime = regimeArtefacts(recipe.objective);
-
-  let evaluer: (arts: ArtifactDetail[]) => number;
-  if (regime === 'degats_reels') {
-    // ⚠️ Contexte construit avec l'équipement PORTÉ, uniquement pour obtenir le
-    // profil de sort et les passifs — `artefacts` est recalculé par paire dans
-    // `evaluer`, donc la valeur passée ici n'influence pas le choix.
-    const ctx = buildRealDamageContext(recipe, loaded.com2usId, loaded.gear.artifacts);
-    // Sort non calculable : on ne sait pas noter une paire. Repli sur
-    // l'ancien comportement (voir `resolveArtifacts`) plutôt qu'une paire
-    // arbitraire — comportement inchangé, `paireReelle` bail out ENTIÈREMENT
-    // plutôt que de rabattre le régime sur `'aucun'` comme le fait l'écran.
-    if (!ctx) return null;
-    const { artefacts: _artefacts, ...contexteSansArtefacts } = ctx;
-    evaluer = evaluerPourRegime(regime, statsAvec, propres, contexteSansArtefacts);
-  } else {
-    evaluer = evaluerPourRegime(regime, statsAvec, propres, regime === 'ehp'
-      ? { relique: loaded.gear.relic, setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: espece.element }
-      : undefined);
-  }
-
-  return paireRepresentative(
-    paramsArtefacts(recipe, loaded, { element: espece.element, archetype: espece.archetype }, evaluer)
+  const { representatif } = evaluateursArtefactsFiche(
+    loaded.gear,
+    recipe.objective,
+    propres,
+    degats,
+    { setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: espece.element },
+    ctx?.monsterWide.combatStats
   );
+  return {
+    params: paramsArtefacts(recipe, loaded, { element: espece.element, archetype: espece.archetype }, representatif),
+    degats,
+  };
 }
 
 /**

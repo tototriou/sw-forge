@@ -18,10 +18,20 @@
 // Côté moteur, le mode `recherche` est jugé APRÈS la vraie résolution
 // (`resoudreEquipementDuBuild`, par `resoudreCandidat`), jamais sur les
 // candidats bruts, collectés sur des bornes relâchées.
+//
+// Depuis 6bis-b3d-2 (constat C8 de la revue technique), un cas peut porter
+// une PAIRE FIXE (`SearchParams.artifacts`) et un mode critique : la note
+// lit alors sa principale et le profil de ses lignes 218–221, et
+// `verifier()` confronte la note de l'oracle à celle de la production,
+// candidat par candidat (`scoreDuCandidat` en relique fixe, score du couple
+// retenu par la résolution en mode `recherche`). Le différentiel aléatoire
+// tire cette paire ; le différentiel CIBLÉ construit des scénarios où la
+// protection de l'effet unique, ou celle des lignes 218–221, porte l'optimum.
 
 import { egal, ok, titre } from './outils';
 import { DOMINANCE, HEURISTIQUES, premiereCoupe, setsSatisfaits } from './rune-optim-auras-coupes.test';
-import { RELIC_UNIQUE, activeSets, runeEfficiency, setPieces } from '../src/lib/effects';
+import { art } from './rune-optim-dominance-lignes.test';
+import { RELIC_UNIQUE, activeSets, runeEfficiency, setPieces, setsCost } from '../src/lib/effects';
 import type { StatKey } from '../src/lib/effects';
 import { computeStats } from '../src/lib/stats';
 import {
@@ -33,25 +43,28 @@ import {
   skillDamageProfile,
   statsDebutCombat,
 } from '../src/lib/damage';
-import type { DamageSetup, SkillDamageProfile } from '../src/lib/damage';
+import type { CritMode, DamageSetup, SkillDamageProfile } from '../src/lib/damage';
 import { Competence } from '../src/lib/monsterSkills';
 import { apportExclusive } from '../src/lib/relicExclusive';
-import { resoudreContexteRelique } from '../src/lib/relicOptim';
+import { exclusiveChiffrable, relicUniqueNature, resoudreContexteRelique } from '../src/lib/relicOptim';
 import {
+  aurasPropresParRunes,
   avecAurasConditions,
   buildBuckets,
   objectiveScore,
+  optionsDeClassement,
   prepareSearch,
   respecteConditionsAvecRelique,
+  scoreDuCandidat,
   searchBuilds,
   totalPairCount,
 } from '../src/lib/runeBuildOptim';
 import type { BuildCandidate, BuildRequirement, Objective, RealDamageContext, SearchParams, SearchResult } from '../src/lib/runeBuildOptim';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { drain } from '../scripts/lib/drain';
-import { mulberry32, randomPool } from '../scripts/lib/randomPool';
+import { mulberry32, randomPool, randomRune } from '../scripts/lib/randomPool';
 import { resoudreCandidat } from '../scripts/lib/relicDifferentiel';
-import type { ArtifactArchetype, BaseStats, ElementKey, RelicDetail, RuneDetail } from '../src/types';
+import type { ArtifactArchetype, ArtifactDetail, BaseStats, ElementKey, RelicDetail, RuneDetail } from '../src/types';
 
 const SETUP: DamageSetup = { ...DEFAULT_DAMAGE_SETUP };
 const BASE: BaseStats = { hp: 10000, atk: 660, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -95,28 +108,37 @@ interface Cas {
   minStats?: Partial<Record<StatKey, number>>;
   maxStats?: Partial<Record<StatKey, number>>;
   compter?: boolean;
+  // La paire FIXE (« Garder l'artéfact équipé » ×2) : `SearchParams.artifacts`,
+  // lue par la note (principales, lignes 218–221). Absente : aucun artéfact.
+  paire?: ArtifactDetail[];
+  // Le mode critique de « Dégâts réels » ; absent : le défaut de l'écran.
+  critMode?: CritMode;
 }
+
+const setupDe = (cas: Cas): DamageSetup => (cas.critMode ? { ...SETUP, critMode: cas.critMode } : SETUP);
 
 function contexteDegats(cas: Cas): RealDamageContext | undefined {
   if (!cas.sort) return undefined;
   return {
-    profile: SORTS[cas.sort], passifs: [], setup: SETUP, element: null, artefacts: artifactDamageProfile([]),
+    profile: SORTS[cas.sort], passifs: [], setup: setupDe(cas), element: null, artefacts: artifactDamageProfile(cas.paire ?? []),
     critSiPlusRapide: false, bonusDegatsSelonVit: null, bonusDegatsStack: null, monsterWide: {},
     bonusDegatsConditionnel: null, bonusDegatsSelonCr: null, bonusDegatsSelonDef: null, bonusSiAtqSeuil: null,
   };
 }
 
 function parametres(cas: Cas, extra: Partial<SearchParams> = {}): SearchParams {
-  const requirement = avecAurasConditions({ sets: cas.sets, minStats: cas.minStats ?? {}, maxStats: cas.maxStats }, SETUP, cas.compter ?? true);
+  const setup = setupDe(cas);
+  const requirement = avecAurasConditions({ sets: cas.sets, minStats: cas.minStats ?? {}, maxStats: cas.maxStats }, setup, cas.compter ?? true);
   const relicContext = cas.eligibles
     ? resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, undefined, cas.eligibles)
     : undefined;
   // Les stats privilégiées de « Dégâts réels » : celles du sort, comme l'écran.
-  const objectiveStats = cas.sort ? damageRelevantStats(SORTS[cas.sort], [], SETUP) : undefined;
+  const objectiveStats = cas.sort ? damageRelevantStats(SORTS[cas.sort], [], setup) : undefined;
   // Heuristiques NON contraignantes : pré-filtrage et rétention plus larges
-  // que le pool, collecte et temps illimités en pratique.
+  // que le pool, collecte et temps illimités en pratique. La paire est FIGÉE :
+  // `statsLignesArtefactsEquipables` reste absent, le moteur lit ses lignes.
   return {
-    base: BASE, artifacts: [], relic: cas.relique, relicContext, pool: cas.pool, requirement, metric: 'eff',
+    base: BASE, artifacts: cas.paire ?? [], relic: cas.relique, relicContext, pool: cas.pool, requirement, metric: 'eff',
     objective: cas.objective, objectiveStats, maxMs: 120000, maxCollected: 1_000_000, slotFilterCap: 200, bucketCap: 100000, ...extra,
   };
 }
@@ -125,18 +147,19 @@ function parametres(cas: Cas, extra: Partial<SearchParams> = {}): SearchParams {
  * La note de production, et l'oracle
  * ----------------------------------------------------------------------- */
 
-// La note d'UN équipement : six runes, aucun artéfact, cette relique.
+// La note d'UN équipement complet : six runes, la paire du cas, cette relique.
 function note(cas: Cas, runes: RuneDetail[], rel: RelicDetail | undefined): number {
-  const stats = computeStats({ base: BASE, runes, artifacts: [], relic: rel });
+  const setup = setupDe(cas);
+  const stats = computeStats({ base: BASE, runes, artifacts: cas.paire ?? [], relic: rel });
   const propres = aurasPropresDesRunes(runes);
   const candidat: BuildCandidate = { runeIds: runes.map((r) => r.id), stats, effTotal: runes.reduce((s, r) => s + runeEfficiency(r), 0) };
-  return objectiveScore(candidat, cas.objective, propres, contexteDegats(cas), apportExclusive(rel, stats, SETUP, propres, null), SETUP);
+  return objectiveScore(candidat, cas.objective, propres, contexteDegats(cas), apportExclusive(rel, stats, setup, propres, null), setup);
 }
 
 // Conditions jugées par l'oracle lui-même (relique fixe) : fiche
 // `computeStats`, plus 8 points RES/PRE par activation propre, toggle actif.
 function respecteOracle(cas: Cas, runes: RuneDetail[], rel: RelicDetail | undefined): boolean {
-  const stats = computeStats({ base: BASE, runes, artifacts: [], relic: rel });
+  const stats = computeStats({ base: BASE, runes, artifacts: cas.paire ?? [], relic: rel });
   const actifs = activeSets(runes.map((r) => r.set));
   const cond = (k: StatKey) => {
     const t = stats.find((s) => s.key === k)?.total ?? 0;
@@ -153,6 +176,10 @@ interface BuildOracle {
   cle: string;
   note: number;
   relique: RelicDetail | undefined;
+  // Côté moteur : la note de PRODUCTION de ce candidat (A.6 bis), à confronter
+  // à `note` — `scoreDuCandidat` en relique fixe, score du couple retenu par
+  // la résolution en mode `recherche`.
+  noteProduction?: number;
 }
 
 interface Oracle {
@@ -179,7 +206,7 @@ function oracle(cas: Cas, requirement: BuildRequirement): Oracle {
     if (cas.eligibles) {
       let meilleur: BuildOracle | null = null;
       for (const rel of cas.eligibles) {
-        const { respecte } = respecteConditionsAvecRelique({ base: BASE, runes, artifacts: [] }, rel, requirement);
+        const { respecte } = respecteConditionsAvecRelique({ base: BASE, runes, artifacts: cas.paire ?? [] }, rel, requirement);
         if (respecte !== respecteOracle(cas, runes, rel)) desaccordsFiltre++;
         if (!respecte) continue;
         const n = note(cas, runes, rel);
@@ -243,20 +270,35 @@ function lancer(cas: Cas, extra: Partial<SearchParams> = {}, traceMax = 40): Ver
   const resultat = searchBuilds(p);
   const bruts = new Set(resultat.candidates.map(cleDe));
   const retenus = new Map<string, BuildOracle>();
+  const setup = setupDe(cas);
+  const degats = contexteDegats(cas);
+  // Relique fixe : le classement de l'écran et du CLI (`optionsDeClassement`),
+  // relique de la fiche dès l'ordre de base, paire figée lue dans `realDamage`.
+  const runeById = new Map(cas.pool.map((r) => [r.id, r]));
+  const opts = optionsDeClassement({
+    realDamage: degats ?? null, damageSetup: setup, runeById, metric: 'eff', aurasPropresDe: aurasPropresParRunes(runeById),
+    artefactsDuBuild: () => null, etatReliqueDe: () => ({ etat: 'fixe', relique: cas.relique }), contexteExclusive: { setup, element: null },
+  });
   for (const c of resultat.candidates) {
     let rel = cas.relique;
+    let noteProduction: number;
     if (p.relicContext?.mode === 'recherche') {
-      const degats = contexteDegats(cas);
+      // La paire figée côté résolution (`paireFixe` → « Garder l'artéfact
+      // équipé » ×2) : sans elle, la résolution noterait sur une paire vide.
       const r = resoudreCandidat(p, c, p.relicContext, {
         critere: cas.objective,
         degats: degats ? (({ artefacts: _a, ...reste }) => reste)(degats) : null,
         porteur: PORTEUR,
-        exclusive: { setup: SETUP, element: null },
+        exclusive: { setup, element: null },
+        ...(cas.paire?.length ? { paireFixe: cas.paire } : {}),
       });
       if (!r.conforme) continue;
       rel = r.relique;
+      noteProduction = r.paire?.score ?? Number.NaN;
+    } else {
+      noteProduction = scoreDuCandidat(c, cas.objective, opts) ?? Number.NaN;
     }
-    retenus.set(cleDe(c), { cle: cleDe(c), note: note(cas, runesDuCandidat(p, c), rel), relique: rel });
+    retenus.set(cleDe(c), { cle: cleDe(c), note: note(cas, runesDuCandidat(p, c), rel), relique: rel, noteProduction });
   }
   const motifs = new Map<string, number>();
   const fauxRejets: string[] = [];
@@ -290,6 +332,10 @@ function verifier(cas: Cas, v: Verdict): boolean {
   const rejetesAuFiltre = [...v.bruts].filter((c) => o.valides.has(c) && !retenus.has(c));
   t(rejetesAuFiltre.length === 0, `${cas.nom} : aucun build valide rejeté par le filtre final (${rejetesAuFiltre.join(' ; ') || '—'})`);
   t((retenus.size > 0) === (o.valides.size > 0), `${cas.nom} : même verdict de faisabilité (moteur ${retenus.size}, oracle ${o.valides.size})`);
+  // A.6 bis : la note de l'oracle EST celle de la production, paire comprise.
+  const ecartsNote = [...retenus.values()].filter((b) => !presque(b.note, b.noteProduction ?? Number.NaN));
+  t(ecartsNote.length === 0,
+    `${cas.nom} : note de l'oracle = note de production (${cas.eligibles ? 'score du couple retenu par la résolution' : 'scoreDuCandidat'}) pour chacun des ${retenus.size} candidat(s) retenu(s) (${ecartsNote.map((b) => `${b.cle} : ${b.note} ≠ ${b.noteProduction}`).join(' ; ') || '—'})`);
   t(v.fauxRejets.length === 0, `${cas.nom} : zéro faux rejet par une coupe sûre autre que la dominance (absents : ${fmtMotifs(v.motifs)})`);
   if (o.valides.size > 0 && retenus.size > 0) {
     const meilleurOracle = Math.max(...[...o.valides.values()].map((b) => b.note));
@@ -313,8 +359,8 @@ function apresDominance(p: SearchParams): number[] {
 // placer la tranche ; la production la lit dans `relicExclusive.ts`.
 const CLE_REF: Record<string, StatKey> = { PV: 'hp', ATQ: 'atk', DEF: 'def', VIT: 'spd' };
 
-function assiette(type: number, runes: RuneDetail[], rel: RelicDetail | undefined): number {
-  const stats = computeStats({ base: BASE, runes, artifacts: [], relic: rel });
+function assiette(type: number, runes: RuneDetail[], rel: RelicDetail | undefined, paire: ArtifactDetail[] = []): number {
+  const stats = computeStats({ base: BASE, runes, artifacts: paire, relic: rel });
   return statsDebutCombat(stats, SETUP, aurasPropresDesRunes(runes), null)[CLE_REF[RELIC_UNIQUE[type].stat.court] as 'hp' | 'atk' | 'def' | 'spd'];
 }
 
@@ -591,6 +637,41 @@ function quantile(vals: number[], q: number): number {
   return s[Math.min(s.length - 1, Math.floor(q * s.length))];
 }
 
+// Les lignes 218–221 et la stat qu'elles lisent — table de FIXTURE pour
+// placer les tirages ; la production la lit dans `statsDesLignesBrutes`.
+const LIGNE_STAT: Record<number, StatKey> = { 218: 'hp', 219: 'atk', 220: 'def', 221: 'spd' };
+// Échelles tirées (% de la stat, par artéfact) : 218 vaut au plus 1,5 % des
+// PV quand 221 se compte en dizaines de % de la VIT (damage.ts, CODE_BRUT_*).
+const LIGNE_MAX: Record<number, number> = { 218: 1.5, 219: 4, 220: 4, 221: 40 };
+// Mode critique tiré. ⚠️ Blade n'entre jamais dans un pool tiré en
+// « Moyenne » : la dominance n'y protège pas le Taux Crit, décision de
+// l'utilisateur du 2026-09-29 — une limite acceptée, pas un défaut à trouver.
+const CRIT_MODES: CritMode[] = ['crit', 'normal', 'moyenne'];
+
+const melange = <T>(rng: () => number, xs: T[]): T[] => {
+  const out = [...xs];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+};
+
+// Une paire FIXE tirée, éligible pour le porteur (feu / attaque) : une pièce
+// d'attribut et une de type, principales PV, ATQ ou DEF, et les lignes
+// `codes` réparties au hasard sur les deux pièces.
+function paireTiree(rng: () => number, codes: number[]): ArtifactDetail[] {
+  const subs: [number, number][][] = [[], []];
+  for (const code of codes) subs[Math.floor(rng() * 2)].push([code, Math.round(10 * LIGNE_MAX[code] * (0.3 + 0.7 * rng())) / 10]);
+  const principale = (): [number, number] => {
+    const code = ([100, 101, 102] as const)[Math.floor(rng() * 3)];
+    return [code, code === 100 ? 1200 + Math.floor(rng() * 600) : 70 + Math.floor(rng() * 60)];
+  };
+  return [art(501, 'element', principale(), subs[0]), art(502, 'archetype', principale(), subs[1])];
+}
+
+const decrirePaire = (paire: ArtifactDetail[]) => `[${paire.flatMap((a) => a.subs.map((s) => `${s.code}:${s.value}`)).join(',')}]`;
+
 export function testDominanceReliqueDifferentiel() {
   titre('Dominance · effet unique de la relique — différentiel aléatoire (seeds 6400..6479)');
   let scenarios = 0;
@@ -648,6 +729,12 @@ export function testDominanceReliqueDifferentiel() {
       cas.minStats = { [k]: quantile(vals, 0.3 + 0.4 * rng()) };
       cas.nom += ` min=${JSON.stringify(cas.minStats)}`;
     }
+    // Tirés APRÈS tout le reste (6bis-b3d-2) : la suite des tirages
+    // précédents est inchangée. Une paire fixe portant zéro, une ou deux
+    // lignes 218–221, et le mode critique (aucune Blade dans ces pools).
+    cas.paire = paireTiree(rng, melange(rng, [218, 219, 220, 221]).slice(0, Math.floor(rng() * 3)));
+    cas.critMode = CRIT_MODES[Math.floor(rng() * CRIT_MODES.length)];
+    cas.nom += ` paire=${decrirePaire(cas.paire)} crit=${cas.critMode}`;
     const p = parametres(cas);
     const sansRelique = apresDominance({ ...p, relic: undefined, relicContext: undefined });
     if (sansRelique.join(',') !== apresDominance(p).join(',')) protectionActive++;
@@ -661,4 +748,269 @@ export function testDominanceReliqueDifferentiel() {
   ok(scenarios >= 35, `différentiel : ${scenarios} scénarios sur 80 seeds (${recherche} en mode recherche), ${valides} builds valides à l'oracle`);
   ok(protectionActive > 0, `différentiel : la relique change l'étage de dominance dans ${protectionActive} scénario(s)`);
   egal(echecs, 0, `différentiel : aucun scénario en échec — absents par motif : ${fmtMotifs(motifs)}`);
+}
+
+/* --------------------------------------------------------------------------
+ * Différentiel CIBLÉ (seeds fixes) — 6bis-b3d-2, constat C8
+ * ----------------------------------------------------------------------- */
+
+// Le différentiel ci-dessus ne détecte pas la mutation de sa propre
+// protection (revue technique 6bis-b § 5.5) : un clone par emplacement, au
+// set tiré parmi dix, rarement porteur, et une tranche sans rapport avec lui.
+// Ici, chaque scénario est CONSTRUIT pour que la protection porte l'optimum,
+// puis noyé dans du bruit :
+//  1. un pool de bruit : le set demandé sur ses emplacements, des sets
+//     NEUTRES (ni bonus de fiche, ni aura) sur les emplacements libres ;
+//  2. B* = l'optimum de l'oracle sur ce bruit (effet unique visé inerte) ;
+//  3. le build protégé P = B* dont les runes de `setPieces(porteur)`
+//     emplacements libres sont CLONÉES au set porteur, identifiant plus
+//     grand : sans protection, le départage par identifiant les fait tomber ;
+//  4. effet unique : la tranche est placée entre l'assiette de B* et celle
+//     de P ; lignes 218–221 : la paire porte la ligne de la stat du porteur.
+// Les pièges du contrat, traités explicitement :
+//  - l'effet unique protège souvent déjà PV/ATQ/DEF : un scénario « ligne »
+//    tourne sans relique, ou avec des reliques dont l'effet ne protège pas
+//    la stat de la ligne ; un scénario « effet unique » porte une paire dont
+//    aucune ligne ne lit la stat du porteur ;
+//  - Blade n'entre pas dans le bruit d'un scénario en « Moyenne » ;
+//  - deux seeds sur trois tournent SANS Intangible. Avec elle, la règle du
+//    joker protège tout set complet avec ses vraies runes : P porte alors
+//    `setPieces − 1` clones et une Intangible (formable par le joker
+//    seulement), et chaque emplacement libre a son set neutre PROPRE, que
+//    ses vraies runes ne complètent jamais.
+// Critère (contrat b3d-2) : chaque mutation — `statsDeLEffetUnique` vidé,
+// `statsLuesParLesLignes` vidé — fait échouer au moins un scénario d'ici.
+const NEUTRES = ['will', 'shield', 'revenge', 'nemesis', 'destroy', 'despair', 'vampire'];
+const STAT_PORTEUR: Record<string, StatKey> = { fight: 'atk', fatal: 'atk', determination: 'def', guard: 'def', enhance: 'hp', energy: 'hp', swift: 'spd' };
+// Porteur, ligne qui lit sa stat, et sorts dont l'objectif ne la lit pas.
+const CIBLES_LIGNE: { porteur: string; ligne: number; sorts: SortCle[] }[] = [
+  { porteur: 'energy', ligne: 218, sorts: ['atk', 'def'] },
+  { porteur: 'enhance', ligne: 218, sorts: ['atk', 'def'] },
+  { porteur: 'fatal', ligne: 219, sorts: ['def', 'hp'] },
+  { porteur: 'fight', ligne: 219, sorts: ['def', 'hp'] },
+  { porteur: 'guard', ligne: 220, sorts: ['atk', 'hp'] },
+  { porteur: 'determination', ligne: 220, sorts: ['atk', 'hp'] },
+  { porteur: 'swift', ligne: 221, sorts: ['atk', 'def', 'hp'] },
+];
+// Les (type, porteur, objectif) de la couverture : ses quatre conditions y
+// sont vérifiées. Ténacité 5 et 6, déjà protégées par l'objectif, exclues.
+const CIBLES_RELIQUE = COUVERTURE.filter((c) => !c.dejaProtege);
+const TRANCHE_INERTE = 1e9;
+
+// Les stats dont l'effet unique d'un type fait dépendre la dominance — table
+// de FIXTURE qui écarte les tirages masqués. La production la lit dans
+// `statsDeLEffetUnique` (relicExclusive.ts), que la mutation 1 vide : le
+// générateur n'en dépend pas, pour tirer les MÊMES scénarios sous mutation.
+function statsDuType(type: number): StatKey[] {
+  if (!RELIC_UNIQUE[type] || !exclusiveChiffrable(type)) return [];
+  const out: StatKey[] = [];
+  const ref = CLE_REF[RELIC_UNIQUE[type].stat.court];
+  if (ref) out.push(ref);
+  const nature = relicUniqueNature(type);
+  if (nature?.sorte === 'buffStat') out.push(nature.stat);
+  return out;
+}
+
+interface ScenarioCible {
+  cas: Cas;
+  cible: 'effet unique' | 'ligne';
+  stat: StatKey;
+  // Les clones porteurs, et le build protégé P (clé des six ids).
+  porteurIds: number[];
+  cleProtegee: string;
+  joker: boolean;
+}
+
+// Le scénario d'une seed, ou le motif pour lequel il n'en a pas.
+function scenarioCible(seed: number): ScenarioCible | string {
+  const rng = mulberry32(seed);
+  const joker = seed % 3 === 2;
+  const cible: ScenarioCible['cible'] = rng() < 0.5 ? 'effet unique' : 'ligne';
+  const cr = CIBLES_RELIQUE[Math.floor(rng() * CIBLES_RELIQUE.length)];
+  const cl = CIBLES_LIGNE[Math.floor(rng() * CIBLES_LIGNE.length)];
+  const porteur = cible === 'effet unique' ? cr.porteur : cl.porteur;
+  const objective: Objective = cible === 'effet unique' ? cr.objective : 'degats_reels';
+  const sort = cible === 'effet unique' ? cr.sort : cl.sorts[Math.floor(rng() * cl.sorts.length)];
+  const stat = STAT_PORTEUR[porteur];
+  const critMode = objective === 'degats_reels' ? CRIT_MODES[Math.floor(rng() * CRIT_MODES.length)] : undefined;
+  const k = setPieces(porteur);
+  // Avec l'Intangible, EXACTEMENT k emplacements libres : le joker ne
+  // complète le porteur que s'il est le seul set incomplet (`activeSets`).
+  const combos: string[][] = k === 2
+    ? (joker ? [['violent']] : [['violent'], ['will'], []])
+    : (joker ? [['will'], ['shield']] : [['will'], ['shield'], []]);
+  const sets = combos[Math.floor(rng() * combos.length)];
+  const demandes = setsCost(sets);
+  const libres = [1, 2, 3, 4, 5, 6].filter((s) => s > demandes);
+  const neutres = NEUTRES.filter((x) => !sets.includes(x));
+  const propres = melange(rng, neutres);
+  const bruitLibre = critMode === 'moyenne' ? neutres : [...neutres, 'blade'];
+  const bruit: RuneDetail[] = [];
+  let id = 1;
+  for (let slot = 1; slot <= 6; slot++) {
+    const setsDuSlot = slot <= demandes ? sets : joker ? [propres[libres.indexOf(slot)]] : bruitLibre;
+    for (let i = 0; i < 3; i++) bruit.push(randomRune(id++, slot, rng, setsDuSlot));
+  }
+  // La paire : la ligne visée (« ligne »), plus, une fois sur deux, une
+  // ligne qui ne lit PAS la stat du porteur.
+  const autres = [218, 219, 220, 221].filter((c) => LIGNE_STAT[c] !== stat);
+  const extra = rng() < 0.5 ? [autres[Math.floor(rng() * autres.length)]] : [];
+  const paire = paireTiree(rng, cible === 'ligne' ? [cl.ligne, ...extra] : extra);
+  // Les reliques. Tranche des reliques « de bruit » placée dans la
+  // distribution de l'assiette de builds tirés, comme le différentiel aléatoire.
+  const parSlot: RuneDetail[][] = [[], [], [], [], [], []];
+  for (const x of bruit) parSlot[x.slot - 1].push(x);
+  const echantillon: RuneDetail[][] = [];
+  for (let n = 0; n < 40; n++) echantillon.push(parSlot.map((l) => l[Math.floor(rng() * l.length)]));
+  const trancheTiree = (type: number) =>
+    (RELIC_UNIQUE[type] ? Math.max(1, quantile(echantillon.map((b) => assiette(type, b, undefined, paire)), 0.5 + 0.45 * rng())) : 1000);
+  const reliqueTiree = (rid: number, type: number, tranche: number) =>
+    relique(rid, type, tranche, 1 + Math.floor(rng() * 2), ([100, 101, 102] as const)[Math.floor(rng() * 3)], 5 + Math.floor(rng() * 8));
+  const enRecherche = rng() < 0.3;
+  const reliques: RelicDetail[] = [];
+  if (cible === 'effet unique') {
+    reliques.push(reliqueTiree(900, cr.type, TRANCHE_INERTE));
+    if (enRecherche) {
+      const n = 1 + Math.floor(rng() * 2);
+      for (let i = 0; i < n; i++) {
+        const type = TYPES[Math.floor(rng() * TYPES.length)];
+        reliques.push(reliqueTiree(901 + i, type, trancheTiree(type)));
+      }
+    }
+  } else if (rng() >= 0.4) {
+    // Aucune relique dont l'effet unique protégerait la stat de la ligne.
+    const types = TYPES.filter((t) => !statsDuType(t).includes(stat));
+    const n = enRecherche ? 2 + Math.floor(rng() * 2) : 1;
+    for (let i = 0; i < n; i++) {
+      const type = types[Math.floor(rng() * types.length)];
+      reliques.push(reliqueTiree(900 + i, type, trancheTiree(type)));
+    }
+  }
+  const recherche = enRecherche && reliques.length > 0;
+  const casDe = (pool: RuneDetail[], rels: RelicDetail[], minStats?: Partial<Record<StatKey, number>>): Cas => ({
+    nom: '', pool, sets, objective, sort, paire, critMode, minStats,
+    ...(recherche ? { eligibles: rels } : rels.length > 0 ? { relique: rels[0] } : {}),
+  });
+  // B* : l'optimum de l'oracle sur le bruit seul.
+  const brouillon = casDe(bruit, reliques);
+  const o = oracle(brouillon, parametres(brouillon).requirement);
+  if (o.valides.size === 0) return 'aucun build valide sur le bruit';
+  const bStar = [...o.valides.values()].reduce((m, b) => (b.note > m.note ? b : m));
+  const byId = new Map(bruit.map((r) => [r.id, r]));
+  const runesB = bStar.cle.split(',').map((i) => byId.get(Number(i))!);
+  // P : B* dont les runes d'emplacements libres tirés sont clonées.
+  const ordre = melange(rng, libres);
+  const nbPorteurs = joker ? k - 1 : k;
+  const clones: RuneDetail[] = [];
+  const runesP = [...runesB];
+  ordre.slice(0, nbPorteurs + (joker ? 1 : 0)).forEach((s, i) => {
+    const clone = i < nbPorteurs ? { ...runesB[s - 1], id: 100 + s, set: porteur } : { ...runesB[s - 1], id: 200 + s, set: 'intangible' };
+    clones.push(clone);
+    runesP[s - 1] = clone;
+  });
+  if (cible === 'effet unique') {
+    const provisoire = reliques[0];
+    const yP = assiette(cr.type, runesP, provisoire, paire);
+    const yB = assiette(cr.type, runesB, provisoire, paire);
+    if (yP <= yB) return `assiette du build protégé (${yP}) non supérieure à celle de B* (${yB})`;
+    const tranche = yP - Math.floor(rng() * Math.max(1, Math.floor((yP - yB) / 2)));
+    reliques[0] = { ...provisoire, unique: { ...provisoire.unique!, tranche } };
+  }
+  // Une fois sur quatre, un minimum sur une AUTRE stat de fiche, que P tient.
+  let minStats: Partial<Record<StatKey, number>> | undefined;
+  if (rng() < 0.25) {
+    const cle = (['hp', 'atk', 'def', 'spd'] as const).filter((x) => x !== stat)[Math.floor(rng() * 3)];
+    const fiche = (runes: RuneDetail[]) => computeStats({ base: BASE, runes, artifacts: paire, relic: reliques[0] }).find((x) => x.key === cle)?.total ?? 0;
+    const vals = [...o.valides.keys()].map((c) => fiche(c.split(',').map((i) => byId.get(Number(i))!)));
+    minStats = { [cle]: Math.min(quantile(vals, 0.1 + 0.3 * rng()), fiche(runesP)) };
+  }
+  const cas = casDe([...bruit, ...clones], reliques, minStats);
+  cas.nom = `seed ${seed} ${cible} porteur=${porteur}×${nbPorteurs}${joker ? '+Intangible' : ''} sets=${JSON.stringify(sets)} ${objective}${sort ? `/${sort}` : ''}`
+    + `${critMode ? ` crit=${critMode}` : ''} ${recherche ? 'recherche' : reliques.length > 0 ? 'fixe' : 'sans relique'}`
+    + ` reliques=${reliques.map((r) => `${r.unique!.type}@${r.unique!.tranche}`).join('+') || '—'} paire=${decrirePaire(paire)}`
+    + `${minStats ? ` min=${JSON.stringify(minStats)}` : ''}`;
+  return {
+    cas, cible, stat, joker,
+    porteurIds: clones.filter((c) => c.set === porteur).map((c) => c.id),
+    cleProtegee: runesP.map((r) => r.id).join(','),
+  };
+}
+
+export function testDominanceReliqueDifferentielCible() {
+  titre('Dominance · effet unique et lignes 218–221 — différentiel ciblé (seeds 6500..6559, 6bis-b3d-2)');
+  const ignores: string[] = [];
+  const violations: string[] = [];
+  const echecs: string[] = [];
+  // `optimal` : P est parmi les optimaux. `exige` : TOUS les optimaux portent
+  // les clones — sinon un build sans eux (une autre relique éligible rend le
+  // porteur inutile) fait jeu égal, et aucune mutation ne peut perdre
+  // l'optimum. `detecteurs` : la protection agit ET l'optimum l'exige — les
+  // scénarios qu'une mutation doit faire échouer.
+  const parCible = new Map<string, { scenarios: number; agit: number; optimal: number; exige: number; detecteurs: string[] }>();
+  let scenarios = 0;
+  let sansIntangible = 0;
+  let sansRelique = 0;
+  let recherche = 0;
+  let moyenne = 0;
+  let valides = 0;
+  const motifs = new Map<string, number>();
+  for (let s = 0; s < 60; s++) {
+    const seed = 6500 + s;
+    const sc = scenarioCible(seed);
+    if (typeof sc === 'string') {
+      ignores.push(`seed ${seed} : ${sc}`);
+      continue;
+    }
+    const { cas } = sc;
+    const p = parametres(cas);
+    // Préconditions : rien d'autre que la protection visée ne garde la stat
+    // du porteur (conditions, objectif, l'AUTRE canal de protection).
+    const objectif = new Set<string>(p.objectiveStats ?? (cas.objective === 'ehp' ? ['hp', 'def'] : []));
+    const conditions = Object.entries(p.requirement.minStats).filter(([, v]) => v != null && v > 0).map(([k]) => k);
+    const lignes = (cas.paire ?? []).flatMap((a) => a.subs.map((x) => LIGNE_STAT[x.code]));
+    const reliques = cas.eligibles ?? (cas.relique ? [cas.relique] : []);
+    const parReliques = reliques.flatMap((r) => statsDuType(r.unique!.type));
+    const viole = (cond: boolean, motif: string) => { if (cond) violations.push(`${cas.nom} : ${motif}`); };
+    viole(objectif.has(sc.stat), `${sc.stat} dans l'objectif`);
+    viole(conditions.includes(sc.stat), `${sc.stat} sous condition`);
+    viole(sc.cible === 'effet unique' ? lignes.includes(sc.stat) : parReliques.includes(sc.stat), `${sc.stat} protégée par l'autre canal`);
+    viole(sc.cible === 'effet unique' ? !parReliques.includes(sc.stat) : !lignes.includes(sc.stat), `${sc.stat} non protégée par la cible`);
+    viole(sc.joker !== cas.pool.some((r) => r.set === 'intangible'), 'Intangible contraire au tirage');
+    viole(cas.critMode === 'moyenne' && cas.pool.some((r) => r.set === 'blade'), 'Blade dans un pool en « Moyenne »');
+    // La protection agit : les clones passent la dominance avec elle, pas sans.
+    const dom = apresDominance(p);
+    const sans = apresDominance(sc.cible === 'effet unique' ? { ...p, relic: undefined, relicContext: undefined } : { ...p, artifacts: [] });
+    const agit = sc.porteurIds.every((i) => dom.includes(i)) && !sc.porteurIds.every((i) => sans.includes(i));
+    const v = lancer(cas, {}, 25);
+    const tient = verifier(cas, v);
+    const meilleur = Math.max(...[...v.o.valides.values()].map((b) => b.note));
+    const optimal = presque(v.o.valides.get(sc.cleProtegee)?.note ?? Number.NaN, meilleur);
+    const optimaux = [...v.o.valides.values()].filter((b) => presque(b.note, meilleur)).map((b) => b.cle.split(',').map(Number));
+    const exige = optimal && optimaux.every((ids) => sc.porteurIds.every((i) => ids.includes(i)));
+    const c = parCible.get(sc.cible) ?? { scenarios: 0, agit: 0, optimal: 0, exige: 0, detecteurs: [] };
+    c.scenarios++;
+    if (agit) c.agit++;
+    if (optimal) c.optimal++;
+    if (exige) c.exige++;
+    if (agit && exige) c.detecteurs.push(String(seed));
+    parCible.set(sc.cible, c);
+    scenarios++;
+    if (!sc.joker) sansIntangible++;
+    if (reliques.length === 0) sansRelique++;
+    if (cas.eligibles) recherche++;
+    if (cas.critMode === 'moyenne') moyenne++;
+    valides += v.o.valides.size;
+    for (const [k, n] of v.motifs) motifs.set(k, (motifs.get(k) ?? 0) + n);
+    if (!tient) echecs.push(`${sc.cible} — ${cas.nom}`);
+  }
+  ok(scenarios >= 50, `différentiel ciblé : ${scenarios} scénarios sur 60 seeds (${recherche} en mode recherche, ${moyenne} en « Moyenne », sans Blade), ${valides} builds valides à l'oracle${ignores.length ? ` ; ignorées : ${ignores.join(' ; ')}` : ''}`);
+  ok(2 * sansIntangible >= scenarios, `différentiel ciblé : ${sansIntangible} scénario(s) sur ${scenarios} sans Intangible (au moins la moitié)`);
+  ok(sansRelique > 0, `différentiel ciblé : ${sansRelique} scénario(s) « ligne » sans aucune relique`);
+  egal(violations, [], 'différentiel ciblé : préconditions — la stat du porteur n\'est gardée que par la protection visée');
+  egal([...parCible.keys()].sort(), ['effet unique', 'ligne'], 'différentiel ciblé : les deux protections sont tirées');
+  for (const [cible, c] of [...parCible].sort()) {
+    ok(c.detecteurs.length > 0,
+      `différentiel ciblé, ${cible} : ${c.scenarios} scénario(s) ; la protection garde les clones porteurs dans ${c.agit} ; le build protégé est parmi les optimaux dans ${c.optimal}, l'optimum exige ses clones dans ${c.exige} ; détecteurs (protection active ET optimum qui l'exige) : ${c.detecteurs.length}, seeds ${c.detecteurs.join(', ')}`);
+  }
+  egal(echecs, [], `différentiel ciblé : aucun scénario en échec — absents par motif : ${fmtMotifs(motifs)}`);
 }

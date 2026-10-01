@@ -82,6 +82,7 @@ import {
   testDominanceReliqueTemoins,
   testDominanceReliqueWorkers,
   testDominanceReliqueDifferentiel,
+  testDominanceReliqueDifferentielCible,
 } from './rune-optim-dominance-relique.test';
 import {
   testDominanceLignesQuatrePorteurs,
@@ -216,6 +217,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDominanceReliqueTemoins', testDominanceReliqueTemoins],
   ['testDominanceReliqueWorkers', testDominanceReliqueWorkers],
   ['testDominanceReliqueDifferentiel', testDominanceReliqueDifferentiel],
+  ['testDominanceReliqueDifferentielCible', testDominanceReliqueDifferentielCible],
   ['testDominanceLignesQuatrePorteurs', testDominanceLignesQuatrePorteurs],
   ['testDominanceLignesJoker', testDominanceLignesJoker],
   ['testDominanceLignesLibre', testDominanceLignesLibre],

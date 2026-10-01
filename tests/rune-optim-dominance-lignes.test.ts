@@ -45,6 +45,7 @@ import {
   objectiveScore,
   optionsDeClassement,
   prepareSearch,
+  scoreDuCandidat,
   searchBuilds,
   sortCandidates,
   statsLuesParLesLignes,
@@ -227,6 +228,11 @@ function verifierPaireFixe(cas: Cas): Bilan & { tout: boolean } {
     realDamage: contexteDegats(cas, cas.paire), damageSetup: setup, runeById, metric: 'eff', aurasPropresDe: aurasPropresParRunes(runeById),
     artefactsDuBuild: () => null, etatReliqueDe: () => ({ etat: 'fixe', relique: undefined }), contexteExclusive: { setup, element: null },
   });
+  // A.6 bis : la note de l'oracle EST celle de la production — pour chaque
+  // candidat, le chiffre de la carte et du tri (`scoreDuCandidat`).
+  const ecartsNote = resultat.candidates.filter((c) => !presque(scoreDuCandidat(c, 'degats_reels', opts) ?? Number.NaN, valides.get(cleDe(c)) ?? Number.NaN));
+  t(ecartsNote.length === 0,
+    `${cas.nom} : note de l’oracle = scoreDuCandidat de la production pour chacun des ${resultat.candidates.length} candidat(s) (${ecartsNote.map(cleDe).join(' ; ') || '—'})`);
   const premier = sortCandidates(resultat.candidates, 'degats_reels', opts)[0];
   const notePremier = premier ? valides.get(cleDe(premier)) ?? Number.NaN : Number.NaN;
   t(rang >= 0 && presque(notePremier, meilleur),

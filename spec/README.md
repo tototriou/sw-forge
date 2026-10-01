@@ -374,7 +374,7 @@ Le cadre commun (nav, routing par hash, footer) vit dans
   en encre tertiaire (la toile) ; au bureau, la colonne de liens se cale à
   droite mais ses lignes s'alignent à gauche, pour que les icônes restent
   dans l'axe.
-- Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.
+- Routing par `window.location.hash` (`parseHash()`, dans `App.tsx`), pas de router externe.
 - Nav desktop (pilules) + nav repliée (hamburger qui se referme à la navigation),
   avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.
 - **Repli de la barre du haut — mesuré, pas fixé à un breakpoint.** ⚠️ La barre

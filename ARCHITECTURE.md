@@ -36,7 +36,8 @@ npm run benchmark:optim
 Fichier central, gros et volontairement : il tient tout ce qui doit être partagé
 entre pages.
 
-- **Routing** `routeFromHash()` sur `window.location.hash`.
+- **Routing** `parseHash()` sur `window.location.hash` — table des adresses
+  et garde-fou : `spec/shared/navigation.md` § Adresses.
 - **Nav** : barre latérale (`Sidebar`), barre supérieure (`TopBar`), onglets
   mobiles (`MobileTabs`), recherche de nav (`SidebarSearch`).
 - **Repli de la barre supérieure : mesuré, pas fixé à un breakpoint**

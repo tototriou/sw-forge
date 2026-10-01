@@ -43,6 +43,7 @@ import {
   pruneDominated,
   relicPctBonus,
   reliquesEquipables,
+  statsLuesParLesLignes,
 } from '../src/lib/runeBuildOptim';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
@@ -81,7 +82,10 @@ function pipelineHistorique(
   objective: Parameters<typeof filterSlot>[5],
   // Les reliques équipables de la recherche du HARNAIS (6bis-b3c) : la
   // dominance protège l'effet unique de chacune.
-  reliques: readonly RelicDetail[]
+  reliques: readonly RelicDetail[],
+  // Les stats des lignes 218–221 de la recherche du HARNAIS (6bis-b3d-1),
+  // même provenance que `reliques`.
+  lignes: ReadonlySet<StatKey>
 ): EtatsHistoriques {
   const step1 = mainStatFilteredBySlot(pool, requirement);
 
@@ -90,9 +94,9 @@ function pipelineHistorique(
     .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
   // La dominance de production, avec le contexte que la recette du harnais
-  // lui donne (toggle RES/PRE actif, objectif du cas, reliques équipables) :
-  // cet étage doit rester IDENTIQUE entre les deux chemins.
-  const dominance = contexteDominance(avecAurasConditions(requirement, DEFAULT_DAMAGE_SETUP, true), step1.flat(), objective, undefined, reliques);
+  // lui donne (toggle RES/PRE actif, objectif du cas, reliques équipables,
+  // lignes 218–221) : cet étage doit rester IDENTIQUE entre les deux chemins.
+  const dominance = contexteDominance(avecAurasConditions(requirement, DEFAULT_DAMAGE_SETUP, true), step1.flat(), objective, undefined, reliques, lignes);
   const step2 = step1.map((list) => pruneDominated(list, maxKeys, dominance));
 
   const minEntries = statKeys
@@ -179,7 +183,8 @@ async function comparerCas(index: number): Promise<boolean> {
     // puis `executerHarnaisResolu`.
     const resolue = resoudreConfig(config);
     ancien = pipelineHistorique(allRunes, gear.base, requirement, statKeys, gear.artifacts, gear.relic, cap, c.objective,
-      reliquesEquipables(resolue.params.relic, resolue.params.relicContext));
+      reliquesEquipables(resolue.params.relic, resolue.params.relicContext),
+      statsLuesParLesLignes(resolue.params.objective, resolue.params.artifacts, resolue.params.statsLignesArtefactsEquipables));
     nouveau = await executerHarnaisResolu(resolue, config);
   } finally {
     unlinkSync(chemin);

@@ -595,6 +595,21 @@ export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDama
   return p;
 }
 
+// Les stats de combat que lisent les lignes 218-221 d'un profil — exactement
+// celles d'`ajoutArtefactBrut` (`computeSkillDamageDetail`), lues sur ces
+// mêmes champs : aucune seconde table code → stat. Consommée par la dominance
+// des runes (degats-et-aura 6bis-b3d-1), qui doit protéger un bonus de set
+// dont la stat nourrit ces lignes, alors que `damageRelevantStats` les exclut
+// volontairement (décision de rétention, voir son en-tête).
+export function statsDesLignesBrutes(p: ArtifactDamageProfile): StatKey[] {
+  const stats: StatKey[] = [];
+  if (p.brutPctPv !== 0) stats.push('hp');
+  if (p.brutPctAtk !== 0) stats.push('atk');
+  if (p.brutPctDef !== 0) stats.push('def');
+  if (p.brutPctVit !== 0) stats.push('spd');
+  return stats;
+}
+
 // Amplification du seul buff de VIT — `maVitCombat` n'a besoin que de
 // celle-là, et la vitesse de combat se calcule dans des contextes qui
 // n'ont rien à voir avec les dégâts.

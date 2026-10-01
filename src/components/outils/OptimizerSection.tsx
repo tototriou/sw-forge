@@ -39,7 +39,7 @@ import {
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
-import { evaluateursArtefactsFiche, parametresArtefactsFiche, sortesFigeesDe } from '../../lib/artifactFiche';
+import { evaluateursArtefactsFiche, parametresArtefactsFiche, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
 import {
   CAPPED_STATS,
   RUNE_EFFECT,
@@ -1763,6 +1763,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // ⚠️ La FAISABILITÉ se décide ici, plus sur `artifacts` — voir
       // `searchArtifactBounds` et SearchParams.artifactBounds.
       artifactBounds: searchArtifactBounds,
+      // Les lignes 218–221 de TOUTES les pièces que la file peut retenir, pas
+      // seulement de la représentative : la dominance protège les bonus de
+      // set qui les nourrissent (6bis-b3d-1). Même producteur que le CLI.
+      statsLignesArtefactsEquipables: artifactParams ? statsLignesArtefactsEquipables(artifactParams) : undefined,
       relic: selected.gear.relic,
       // ⚠️ **Troisième producteur de `relicContext`** (implementation-relique,
       // B.5c — les deux autres : `recipeToSearchParams.ts` pour le CLI,

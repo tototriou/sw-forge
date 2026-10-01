@@ -120,8 +120,12 @@ par celle d'un autre set. Depuis le lot 6bis-b3c, une aura dont la stat
 entre dans l'effet unique d'une relique que la recherche peut équiper — stat
 de référence, lue au début du combat, ou stat améliorée — est utile au même
 titre : Fight peut faire franchir une tranche de Ténacité sur l'ATQ en
-« PV effectifs ». Un oracle exhaustif indépendant le vérifie, noté par la
-note de production de l'équipement complet. Le
+« PV effectifs ». Depuis le lot 6bis-b3d-1, de même en « Dégâts réels »
+pour une aura dont la stat nourrit une ligne d'artéfact 218–221 qu'un
+artéfact équipable porte : Enhance avec la ligne 218 (PV), Determination
+avec la 220 (DEF), même hors de l'objectif. Un oracle exhaustif indépendant
+le vérifie, noté par la note de production de l'équipement complet, paire
+d'artéfacts comprise. Le
 pré-filtrage par emplacement et la rétention par compartiment restent
 **heuristiques** : ils ne valorisent pas l'aura propre et ne garantissent
 aucun optimum.

@@ -35,7 +35,7 @@ import {
 import { computeStats } from '../../src/lib/stats';
 import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams, type BornesArtefacts } from '../../src/lib/artifactOptim';
 import { regimeArtefacts, regimeEquipementDe, type DegatsContext } from '../../src/lib/artifactEvaluation';
-import { AUCUN_ARTEFACT_RESERVE, evaluateursArtefactsFiche, parametresArtefactsFiche } from '../../src/lib/artifactFiche';
+import { AUCUN_ARTEFACT_RESERVE, evaluateursArtefactsFiche, parametresArtefactsFiche, statsLignesArtefactsEquipables } from '../../src/lib/artifactFiche';
 import { entreeResolutionDuBuild, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
 import type { ResultatArtefacts } from '../../src/lib/artifactQueue';
 import { buildRealDamageContext } from './realDamageCli';
@@ -356,6 +356,26 @@ export function resolveArtifactBounds(
   return bornesArtefacts(params, avecMinimum, avecMaximum);
 }
 
+/**
+ * Les stats lues par les lignes 218–221 des artéfacts que la résolution peut
+ * équiper — `SearchParams.statsLignesArtefactsEquipables`, par le producteur
+ * de l'écran (`statsLignesArtefactsEquipables`, artifactFiche.ts,
+ * degats-et-aura 6bis-b3d-1), sur le même contexte de paires
+ * (`artefactsDuCli`).
+ *
+ * ⚠️ Écart documenté : sans liste de travail, aucun artéfact réservé — l'union
+ * du CLI peut être plus large que celle de l'écran, jamais plus étroite.
+ *
+ * `undefined` sous `ignoreArtifacts` : la paire est FIGÉE sur les pièces
+ * portées (`resolveArtifacts`), que le moteur lit déjà dans
+ * `SearchParams.artifacts` ; et quand l'espèce est introuvable.
+ */
+export function resolveStatsLignesArtefacts(recipe: OptimizerRecipe, loaded: LoadedMonster): StatKey[] | undefined {
+  if (recipe.ignoreArtifacts) return undefined;
+  const a = artefactsDuCli(recipe, loaded);
+  return a ? statsLignesArtefactsEquipables(a.params) : undefined;
+}
+
 // Même logique que `pool` (OptimizerSection.tsx) : `excludeUsedRunes` coché
 // → exclut les runes déjà utilisées dans `recipe.excludeUsedScope` (RTA/
 // Défenses siège/Box, un seul à la fois — voir `autoExcludedRuneIds`) ;
@@ -459,6 +479,9 @@ export function recipeToSearchParams(
     // d'artéfact avant la recherche là où l'écran ne le fige plus — il
     // rejouerait donc un moteur qui n'existe plus, en silence.
     artifactBounds: resolveArtifactBounds(recipe, loaded),
+    // Le pendant de l'écran (`handleSearch`) : les lignes 218–221 que la
+    // dominance protège au-delà de la paire représentative (6bis-b3d-1).
+    statsLignesArtefactsEquipables: resolveStatsLignesArtefacts(recipe, loaded),
     relic: loaded.gear.relic,
     // ⚠️ **Deuxième des trois producteurs de `relicContext`** (lot 5a — les
     // autres : `buildCaseSearchParams` de perfShared.ts, et l'écran au lot

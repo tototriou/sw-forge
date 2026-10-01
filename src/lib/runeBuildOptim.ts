@@ -68,6 +68,7 @@ import {
   aurasPropresDesRunes,
   aurasPropresDesSetsActifs,
   artifactDamageProfile,
+  statsDesLignesBrutes,
   nombreAura,
   pointsAuraResPre,
   pointsAuraResPrePropres,
@@ -204,6 +205,19 @@ export interface SearchParams {
      */
     possibles: Record<string, number>[];
   };
+  /**
+   * Les stats lues par les lignes 218–221 des artéfacts que la résolution
+   * peut équiper, AU-DELÀ de `artifacts` — produit par
+   * `statsLignesArtefactsEquipables` (artifactFiche.ts), que l'écran et le CLI
+   * appellent (degats-et-aura 6bis-b3d-1). Lu par la dominance seulement, en
+   * « Dégâts réels » (`statsLuesParLesLignes`).
+   *
+   * ⚠️ Le moteur l'UNIT TOUJOURS avec les lignes de `artifacts` : absent, il
+   * reste juste pour une paire FIGÉE (scripts, harnais, tests), jamais pour
+   * une paire résolue par build en « Libre », où une pièce autre que la
+   * représentative peut porter la ligne.
+   */
+  statsLignesArtefactsEquipables?: StatKey[];
   // La relique PORTÉE — reste ce paramètre-là même quand une relique est
   // cherchée (garantie G : une candidate le REMPLACE au moment de la
   // résolution exacte, lot 5b — jamais un cumul avec lui).
@@ -1627,10 +1641,15 @@ export function filterSlot(
 //    de l'objectif, ou une stat dont dépend l'effet unique d'une relique que
 //    la recherche peut équiper (`reliquesEquipables`) : sa stat de référence
 //    ou la stat qu'il améliore (6bis-b3c — en « PV effectifs », Fight fait
-//    franchir une tranche de Ténacité·ATQ alors que l'ATQ n'est pas lue) ;
+//    franchir une tranche de Ténacité·ATQ alors que l'ATQ n'est pas lue), ou,
+//    en « Dégâts réels », une stat que lit une ligne 218–221 d'un artéfact
+//    que la recherche peut équiper (`statsLuesParLesLignes`, 6bis-b3d-1 —
+//    Energy nourrit la ligne 218 alors que les PV sont hors de l'objectif) ;
 //    « Efficience » (ou aucun objectif) maximise TOUTES les
 //    stats. Décisions de l'utilisateur (2026-09-29) : le Taux Crit ne compte
-//    que sous un minimum de Taux Crit, jamais par l'objectif ; un Focus sans
+//    que sous un minimum de Taux Crit, jamais par l'objectif — même en mode
+//    Moyenne, où « Dégâts réels » le lit pourtant : une Blade peut y tomber
+//    face à un Will ; un Focus sans
 //    condition PRE ne protège rien en « Dégâts réels » ; en « Efficience »,
 //    Endure ou Blade formables restent, Violent ou Revenge s'élaguent ;
 //  - un set qui peut être COMPLET avec ses seules vraies runes compte encore
@@ -1641,9 +1660,10 @@ export function filterSlot(
 //    incomplet dans tout build : le remplacer ne change rien au joker.
 // Les sets demandés et l'Intangible ne se comparent qu'entre eux.
 // ⚠️ Conséquence assumée : l'optimum n'est garanti que pour les conditions,
-// l'objectif (effet unique de la relique compris) et l'efficience — un tri
-// après coup sur une AUTRE stat peut manquer un build qu'un bonus de set
-// inutile à la recherche aurait porté.
+// l'objectif (effet unique de la relique et lignes 218–221 compris, hors Taux
+// Crit en mode Moyenne) et l'efficience — un tri après coup sur une AUTRE
+// stat peut manquer un build qu'un bonus de set inutile à la recherche aurait
+// porté.
 export interface ContexteDominance {
   // Sets hors combo dont une rune peut être remplacée par une rune d'un autre
   // set de la liste sans changer aucune stat utile ni la validité du build.
@@ -1663,17 +1683,40 @@ export function reliquesEquipables(relic: RelicDetail | undefined, relicContext:
   return relic ? [relic] : [];
 }
 
+/**
+ * Les stats que lisent les lignes 218–221 des artéfacts que CETTE recherche
+ * peut équiper — celles dont la dominance protège les bonus de set
+ * (6bis-b3d-1) : les lignes de la paire `artifacts`, TOUJOURS, unies au
+ * champ `statsLignesArtefactsEquipables` (les autres pièces que la résolution
+ * peut retenir en « Libre ») ; un sur-ensemble sûr.
+ *
+ * Seulement en « Dégâts réels », le seul score de recherche qui lit ces
+ * lignes (`ajoutArtefactBrut`). `damageRelevantStats` ne change pas : la
+ * rétention garde la décision de l'utilisateur (les artéfacts récoltent les
+ * stats du build, ils n'en font pas chercher d'autres).
+ */
+export function statsLuesParLesLignes(
+  objective: Objective | undefined,
+  artifacts: ArtifactDetail[],
+  statsLignesArtefactsEquipables: readonly StatKey[] | undefined
+): ReadonlySet<StatKey> {
+  if (objective !== 'degats_reels') return new Set();
+  return new Set([...statsDesLignesBrutes(artifactDamageProfile(artifacts)), ...(statsLignesArtefactsEquipables ?? [])]);
+}
+
 // `runes` : le pool APRÈS statistique principale imposée et verrous — les
 // runes que la dominance compare, et les seules qui peuvent former un set.
 // `reliques` : OBLIGATOIRE (`reliquesEquipables`), pour que `tsc` signale
 // tout appelant qui n'en dirait rien — un étage de dominance calculé sans
-// elles diverge en silence de la production.
+// elles diverge en silence de la production. `lignes` de même
+// (`statsLuesParLesLignes`, 6bis-b3d-1).
 export function contexteDominance(
   requirement: BuildRequirement,
   runes: RuneDetail[],
   objective: Objective | undefined,
   objectiveStats: StatKey[] | undefined,
-  reliques: readonly RelicDetail[]
+  reliques: readonly RelicDetail[],
+  lignes: ReadonlySet<StatKey>
 ): ContexteDominance {
   const libres = Math.max(0, MAX_SET_PIECES - setsCost(requirement.sets));
   const demandes = new Set(requirement.sets);
@@ -1696,11 +1739,11 @@ export function contexteDominance(
   const exclusive = statsDeLEffetUnique(reliques);
   const effetUtile = (set: string): boolean => {
     const bonus = SET_STAT_BONUS[set];
-    if (bonus) return toutesStats || conditions.has(bonus.stat) || objectif.has(bonus.stat) || exclusive.has(bonus.stat);
+    if (bonus) return toutesStats || conditions.has(bonus.stat) || objectif.has(bonus.stat) || exclusive.has(bonus.stat) || lignes.has(bonus.stat);
     if (!(set in STAT_DE_L_AURA)) return false;
     const stat = STAT_DE_L_AURA[set as SetAura];
     const enCondition = (stat === 'res' || stat === 'acc') && requirement.auraResPre?.compter === true && conditions.has(stat);
-    return toutesStats || enCondition || objectif.has(stat) || exclusive.has(stat);
+    return toutesStats || enCondition || objectif.has(stat) || exclusive.has(stat) || lignes.has(stat);
   };
   const interchangeables = new Set<string>();
   for (const [set, slots] of emplacements) {
@@ -3587,11 +3630,15 @@ export function poolMinSlotSafe(
   // Même borne relique que la recherche (lot 5a) — les trois consommateurs
   // reçoivent le même contexte, sinon le diagnostic prouverait une
   // impossibilité sur une borne plus étroite que celle qui a élagué.
-  relicContext?: RelicContext
+  relicContext?: RelicContext,
+  // Même protection des lignes 218–221 que la recherche (6bis-b3d-1) ;
+  // absent, celles de `artifacts` seules — juste pour une paire figée.
+  statsLignesArtefactsEquipables?: StatKey[]
 ): number {
   const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds, relicContext);
   let bySlot = mainStatFilteredBySlot(pool, requirement);
-  const dominance = contexteDominance(requirement, bySlot.flat(), objective, objectiveStats, reliquesEquipables(relic, relicContext));
+  const dominance = contexteDominance(requirement, bySlot.flat(), objective, objectiveStats, reliquesEquipables(relic, relicContext),
+    statsLuesParLesLignes(objective, artifacts, statsLignesArtefactsEquipables));
   bySlot = bySlot.map((list) => pruneDominated(list, ctx.maxKeys, dominance));
   bySlot = eliminateInfeasible(
     bySlot,
@@ -3615,7 +3662,7 @@ export function rankBlockingConditions(params: SearchParams): BlockingConditions
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return { baselineMinSlot: 0, impacts: [] };
 
   function poolMinSlot(req: BuildRequirement): number {
-    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.objective, params.objectiveStats, params.artifactBounds, params.relicContext);
+    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.objective, params.objectiveStats, params.artifactBounds, params.relicContext, params.statsLignesArtefactsEquipables);
   }
 
   // Borne pour la recherche côté MAXIMUM : le plus grand total qu'un pool
@@ -3963,7 +4010,8 @@ export function prepareSearch(
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   onStage?.('mainstat', bySlot);
   tracerEtage('mainstat', bySlot);
-  const dominance = contexteDominance(requirement, bySlot.flat(), params.objective, params.objectiveStats, reliquesEquipables(relic, relicContext));
+  const dominance = contexteDominance(requirement, bySlot.flat(), params.objective, params.objectiveStats, reliquesEquipables(relic, relicContext),
+    statsLuesParLesLignes(params.objective, params.artifacts, params.statsLignesArtefactsEquipables));
   bySlot = bySlot.map((list) => pruneDominated(list, maxKeys, dominance));
   onStage?.('dominance', bySlot);
   tracerEtage('dominance', bySlot);

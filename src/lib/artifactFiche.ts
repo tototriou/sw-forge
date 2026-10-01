@@ -5,10 +5,10 @@ import { ARTIFACT_KINDS, type ArtifactDetail, type ArtifactKind, type GearSet } 
 import type { Objective } from './runeBuildOptim';
 import type { StatKey } from './effects';
 import type { PorteurArtefact } from './artifacts';
-import type { ArtifactSearchParams, ChoixPrincipale, LigneVerrouillee } from './artifactOptim';
+import { candidatsParSorte, type ArtifactSearchParams, type ChoixPrincipale, type LigneVerrouillee } from './artifactOptim';
 import { statsParPaire } from './stats';
 import {
-  artifactDamageProfile, codesAmplificationActifs, degatsBrutsArtefactsParCoup,
+  artifactDamageProfile, codesAmplificationActifs, degatsBrutsArtefactsParCoup, statsDesLignesBrutes,
   type AurasPropres, type DamageSetup, type MonsterWideDamageModifiers,
 } from './damage';
 import {
@@ -80,6 +80,27 @@ export function parametresArtefactsFiche(e: {
     codesAmplification: codesAmplificationActifs(e.damageSetup),
     maxStatsActifs: (Object.keys(e.maxStats) as StatKey[]).filter((k) => (e.maxStats[k] ?? 0) > 0),
   };
+}
+
+/**
+ * Les stats lues par les lignes 218–221 des artéfacts que la résolution peut
+ * équiper avec ces paramètres — `SearchParams.statsLignesArtefactsEquipables`,
+ * que la dominance des runes protège en « Dégâts réels » (degats-et-aura
+ * 6bis-b3d-1, constat B1 de la revue technique 6bis-b). Appelé par l'écran
+ * (`handleSearch`, sur `artifactParams`) et par le CLI
+ * (`resolveStatsLignesArtefacts`, sur `artefactsDuCli`).
+ *
+ * L'union porte sur les candidats de `candidatsParSorte`, des deux sortes :
+ * la vue COMPLÈTE, avant élagage et sans verrous, dont la résolution
+ * (`chercherPaires`, par `candidatsPourRecherche`) ne tire qu'une partie — un
+ * sur-ensemble sûr. Elle suit donc la principale imposée et « Garder
+ * l'artéfact équipé » par sorte (cas mixte compris) et, sans optimisation,
+ * se réduit aux pièces portées. Le CLI n'a pas de réservations : son union
+ * peut être plus large que celle de l'écran, jamais plus étroite.
+ */
+export function statsLignesArtefactsEquipables(params: ArtifactSearchParams): StatKey[] {
+  const pieces = ARTIFACT_KINDS.flatMap(({ key }) => candidatsParSorte(params, key)).filter((a): a is ArtifactDetail => a != null);
+  return statsDesLignesBrutes(artifactDamageProfile(pieces));
 }
 
 export function evaluateursArtefactsFiche(

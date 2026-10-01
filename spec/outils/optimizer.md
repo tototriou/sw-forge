@@ -2147,10 +2147,11 @@ différent, coopératif (voir « Interruption »).
 - **Statistique principale imposée (slots 2/4/6)** : appliquée avant tout le
   reste, dans la construction même du pool par slot.
 - **Élagages SÛRS, ensuite — jamais un faux rejet**, avant même le
-  pré-filtrage heuristique qui suit, auras **propres** au build, Intangible
-  et effet unique de la relique compris : un oracle exhaustif indépendant le
-  vérifie depuis le lot 6bis-b3b, noté depuis le lot 6bis-b3c par la note
-  de production de l'équipement complet (voir
+  pré-filtrage heuristique qui suit, auras **propres** au build, Intangible,
+  effet unique de la relique et lignes d'artéfact 218–221 compris : un
+  oracle exhaustif indépendant le vérifie depuis le lot 6bis-b3b, noté
+  depuis le lot 6bis-b3c par la note de production de l'équipement complet,
+  paire d'artéfacts comprise depuis le lot 6bis-b3d-1 (voir
   [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
   - **Dominance** : une rune strictement moins bonne qu'une autre du MÊME
     slot (sur toutes les stats suivies, avantage strict quelque part) ne
@@ -2168,18 +2169,31 @@ différent, coopératif (voir « Interruption »).
     (Bravoure, Éternité, Origine) ; la relique portée, ou toutes les
     reliques éligibles quand la relique est cherchée (lot 6bis-b3c). Ainsi,
     en « PV effectifs » avec une relique Ténacité sur l'ATQ, un Fight reste :
-    son aura peut faire franchir une tranche. « Efficience » maximise toutes
-    les stats.
+    son aura peut faire franchir une tranche. En « Dégâts réels », une stat
+    que lit une ligne d'artéfact 218–221 (dégâts supplémentaires en
+    proportion des PV, de l'ATQ, de la DEF ou de la VIT) est utile au même
+    titre : celles de la paire supposée par la recherche, et, en « Libre »,
+    de tout artéfact éligible que le choix de la paire peut retenir —
+    moins ceux qu'une autre liste réserve, à l'écran (lot 6bis-b3d-1). Ainsi,
+    un Energy reste face à un Will dès qu'un artéfact éligible porte la
+    ligne 218, même si les PV ne sont pas une stat du sort. Ces lignes ne
+    changent ni le pré-filtrage ni la rétention : un artéfact récolte les
+    stats que le build possède déjà, il n'en fait pas chercher d'autres
+    (voir [dégâts supplémentaires](degats-reels/artefacts-et-degats-bruts.md)).
+    « Efficience » maximise toutes les stats.
     Le Taux Crit ne compte que sous un minimum de Taux Crit, jamais par
-    l'objectif. S'y ajoute, dès qu'une Intangible est disponible, tout set
+    l'objectif — même en mode « Moyenne », où « Dégâts réels » le lit
+    pourtant : une Blade peut y tomber face à un Will (décision du
+    2026-09-29). S'y ajoute, dès qu'une Intangible est disponible, tout set
     qui peut être complet avec ses seules vraies runes, puisque le joker ne
     complète un set que s'il est le seul incomplet. Ainsi, en « Dégâts
     réels » avec des minimums ATQ, Taux Crit et Dgts Crit, une Blade dominée
     reste et un Focus dominé part ; en « Efficience », Endure ou Blade
     formables restent, Violent ou Revenge partent. ⚠️ L'optimum n'est
     garanti que pour les conditions, l'objectif (effet unique de la relique
-    compris) et l'efficience : un tri après coup sur une autre stat peut
-    manquer un build qu'un bonus de set inutile à la recherche aurait porté.
+    et lignes 218–221 compris, hors Taux Crit en mode « Moyenne ») et
+    l'efficience : un tri après coup sur une autre stat peut manquer un
+    build qu'un bonus de set inutile à la recherche aurait porté.
     ⚠️ Sur une stat PLAFONNÉE (un maximum est
     demandé dessus), le sens s'inverse — seule l'égalité stricte y est sûre
     à comparer.

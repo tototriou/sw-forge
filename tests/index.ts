@@ -83,6 +83,13 @@ import {
   testDominanceReliqueWorkers,
   testDominanceReliqueDifferentiel,
 } from './rune-optim-dominance-relique.test';
+import {
+  testDominanceLignesQuatrePorteurs,
+  testDominanceLignesJoker,
+  testDominanceLignesLibre,
+  testDominanceLignesProducteurs,
+  testDominanceLignesWorkers,
+} from './rune-optim-dominance-lignes.test';
 import testRelicOptim from './relic-optim.test';
 import testRelicOracle, { testRelicOracleGroupesEffetUnique, testRelicOracleOptimumParScore } from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
@@ -209,6 +216,11 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDominanceReliqueTemoins', testDominanceReliqueTemoins],
   ['testDominanceReliqueWorkers', testDominanceReliqueWorkers],
   ['testDominanceReliqueDifferentiel', testDominanceReliqueDifferentiel],
+  ['testDominanceLignesQuatrePorteurs', testDominanceLignesQuatrePorteurs],
+  ['testDominanceLignesJoker', testDominanceLignesJoker],
+  ['testDominanceLignesLibre', testDominanceLignesLibre],
+  ['testDominanceLignesProducteurs', testDominanceLignesProducteurs],
+  ['testDominanceLignesWorkers', testDominanceLignesWorkers],
   ['testRelicOptim', testRelicOptim],
   ['testRelicOracle', testRelicOracle],
   ['testRelicOracleGroupesEffetUnique', testRelicOracleGroupesEffetUnique],

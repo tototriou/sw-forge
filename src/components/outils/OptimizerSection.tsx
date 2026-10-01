@@ -40,6 +40,7 @@ import {
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { evaluerPourRegime, regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
+import { evaluateursArtefactsFiche } from '../../lib/artifactFiche';
 import {
   CAPPED_STATS,
   RUNE_EFFECT,
@@ -88,7 +89,6 @@ import {
   DEFAULT_DAMAGE_SETUP,
   aurasPropresDesRunes,
   damageRelevantStats,
-  degatsBrutsArtefactsParCoup,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
@@ -1375,6 +1375,13 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     [artifactMainByKind]
   );
 
+  const evaluateursFiche = useMemo(
+    () => selected ? evaluateursArtefactsFiche(
+      selected.gear, objective, aurasPropresFiche, contexteDegatsArtefacts, contexteExclusive, combatStats
+    ) : null,
+    [selected, objective, aurasPropresFiche, contexteDegatsArtefacts, contexteExclusive, combatStats]
+  );
+
   const artifactParams = useMemo(() => {
     // ⚠️ **Optimisation désactivée ≠ sans artéfact.** Les paramètres restent
     // construits, avec « Garder l'artéfact équipé » IMPOSÉ des deux côtés : le
@@ -1382,7 +1389,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // on cesse seulement d'en chercher d'autres. Le réglage retirait avant
     // TOUTE contribution d'artéfact, ce qui rendait les conditions minimales
     // plus dures à franchir sans que rien ne le dise.
-    if (!selected) return null;
+    if (!selected || !evaluateursFiche) return null;
     const espece = selected.monster;
     // ⚠️ Le score de la paire dépend de l'OBJECTIF, et PAS de la même façon
     // pour tous : `pvEffectifs` (PV effectifs) n'est PAS une somme des deux
@@ -1402,17 +1409,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // fiche du monstre, jamais des artéfacts — c'est ce qui évite la
     // circularité avec `realDamage`, qui est construit APRÈS ce bloc et lit
     // `searchArtifacts`.
-    const statsAvec = statsParPaire(selected.gear);
-    const regimeBrut = regimeArtefacts(objective);
-    // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
-    // paramètre `degats` optionnel silencieusement absorbé par le helper.
-    const regimeRepresentatif: RegimeArtefacts = regimeEquipementDe(regimeBrut, !!contexteDegatsArtefacts);
-    const evaluer =
-      regimeRepresentatif === 'degats_reels'
-        ? evaluerPourRegime(regimeRepresentatif, statsAvec, aurasPropresFiche, contexteDegatsArtefacts!)
-        : evaluerPourRegime(regimeRepresentatif, statsAvec, aurasPropresFiche, regimeRepresentatif === 'ehp'
-          ? { ...contexteExclusive, relique: selected.gear.relic }
-          : undefined);
+    const evaluer = evaluateursFiche.representatif;
     return {
       porteur: { element: espece.element, archetype: espece.archetype },
       // ⚠️ **Amputé des artéfacts RÉSERVÉS** par les autres builds validés de
@@ -1459,7 +1456,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       maxStatsActifs: (Object.keys(maxStats) as StatKey[]).filter((k) => (maxStats[k] ?? 0) > 0),
       evaluer,
     };
-  }, [selected, aurasPropresFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, contexteDegatsArtefacts, maxStats]);
+  }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -1495,12 +1492,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // d'artéfacts, et il répondrait « la meilleure paire est celle que tu
     // portes » — vrai, mais uniquement parce qu'on lui a interdit d'en
     // chercher une autre. Une réponse qui n'est vraie que par construction.
-    if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    const espece = selected.monster;
+    if (!artifactParams || !selected || !evaluateursFiche || !optimiserArtefacts) return null;
     // ⚠️ Un seul `computeStats` pour toutes les paires : l’apport d’un artefact
     // est PLAT, donc les stats sans artefact se calculent une fois et chaque
     // paire ne coute plus que trois additions (voir `statsParPaire`).
-    const statsAvecAffiche = statsParPaire(selected.gear);
     /**
      * ⚠️ **Les dégâts BRUTS des artéfacts (218-221), et rien d'autre.**
      *
@@ -1520,15 +1515,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
      * ⚠️ Le nombre de coups n'entre pas : il multiplie toutes les paires
      * pareil et ne change donc aucun classement.
      */
-    const evaluerBrut = (arts: ArtifactDetail[]) =>
-      degatsBrutsArtefactsParCoup(
-        statsAvecAffiche(arts),
-        damageSetup,
-        aurasPropresFiche,
-        espece.element,
-        artifactDamageProfile(arts),
-        { combatStats }
-      );
+    const evaluerBrut = evaluateursFiche.brut;
     /**
      * ⚠️ **Le cran « Dégâts réels » choisit une AUTRE paire**, il ne réaffiche
      * pas la même autrement — décision explicite. Il maximise les dégâts
@@ -1546,8 +1533,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
      * ⚠️ Le contexte complet est le même que celui du moteur et de la file
      * (voir `contexteDegatsArtefacts`) : modificateurs monstre-wide compris.
      */
-    const evaluerReel =
-      contexteDegatsArtefacts && evaluerPourRegime('degats_reels', statsAvecAffiche, aurasPropresFiche, contexteDegatsArtefacts);
+    const evaluerReel = evaluateursFiche.reel;
     // ⚠️ Repli sur le brut si aucun sort n'est calculable pour ce monstre —
     // jamais un bloc vide : le cran resterait sur « Dégâts réels » sans que
     // rien n'explique le silence.
@@ -1649,7 +1635,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, aurasPropresFiche, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, contexteDegatsArtefacts]);
+  }, [artifactParams, selected, evaluateursFiche, optimiserArtefacts, sortesFigees, lignesVerrouillees, critereArtefacts]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.

@@ -18,6 +18,8 @@ import testArtefactOptim, {
 import testArtefactFile from './artefact-file.test';
 import testArtifactEvaluation, { testArtifactPaireReelleEhp } from './artifact-evaluation.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
+import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
+import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
 import testArtifactRelicConditionFloor from './artifact-relic-condition-floor.test';
 import testReco, {
   testTrimPartage,
@@ -214,6 +216,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicExclusive', testRelicExclusive],
   ['testRelicClassementParMode', testRelicClassementParMode],
   ['testRelicReferenceComparer', testRelicReferenceComparer],
+  ['testArtefactsFichePoints', testArtefactsFichePoints],
+  ['testArtefactsFicheConqueteTenacite', testArtefactsFicheConqueteTenacite],
+  ['testArtefactsFicheCache', testArtefactsFicheCache],
+  ['testArtefactsFicheDifferentiel', testArtefactsFicheDifferentiel],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

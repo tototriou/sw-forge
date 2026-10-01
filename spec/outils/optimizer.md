@@ -515,6 +515,19 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    dégâts supplémentaires **en le disant** — jamais un bloc vide ni un chiffre
    brut sous un libellé « Dégâts réels ».
 
+   **Relique de la fiche (6bis-b5b).** Les deux crans comptent son effet
+   unique, recalculé pour chaque paire essayée, dans la valeur et dans
+   l'écart à la paire portée. Les points de Bravoure, Éternité et Origine
+   augmentent les statistiques lues par les lignes 218–221 ; Conquête
+   n'augmente jamais ces dégâts supplémentaires. En dégâts réels, Conquête
+   entre dans le terme DMG% ; Ténacité reste sans effet sur les dégâts
+   infligés. La principale n'est jamais comptée deux fois, les conditions
+   min/max restent hors combat et aucun arrondi de points n'est ajouté.
+   La paire représentative utilisée pour lancer la recherche compte aussi
+   l'effet unique en dégâts réels, comme elle le faisait en PV effectifs.
+   Les bornes explicites de faisabilité restent indépendantes de cette note ;
+   sans elles, le repli fige toujours les principales de la représentative.
+
 #### Affichage et emplacement de la proposition
    **Chaque artéfact proposé s'affiche comme dans le jeu** : sa statistique
    principale en tête, puis **une ligne par sous-propriété** avec le nombre de

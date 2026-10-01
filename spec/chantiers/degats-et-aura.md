@@ -629,8 +629,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b — revue technique indépendante avant le lot 7 | J | terminée : corrections avant le lot 7 ; B1 rejoué par le pilote ; preuve archivée | `controle-6bis-b-revue-technique.md`, notes `3b7d237` / 2026-10-01 |
 | 6bis-b6 — paramètres d'artéfacts partagés et outils de preuve relique | J | terminé, preuves et mutation rejouées par le pilote | `d80274ba`…`4957a782` ; reçu `4957a78` ↔ `3e26c7f` / 2026-10-01 |
 | 6bis-b3d-1 — dominance et lignes 218–221 : le correctif | J | terminé, preuves et mutation rejouées par le pilote | `99463b70` + `4e761e7e` ; reçu `4e761e7` ↔ `457ec7a` / 2026-10-01 |
-| 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | lançable | — |
-| 6bis-b7 — troncature du régime parallèle | J | contrat amendé ; attend b3d-2 | — |
+| 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | terminé, preuves et mutation rejouées par le pilote | `9e56c343` + `d00230e2` ; reçu `d00230e` ↔ `0e6d663` / 2026-10-01 |
+| 6bis-b7 — troncature du régime parallèle | J | lançable | — |
 | 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | contrat amendé ; attend b7 | — |
 | 6bis-b9 — tri par stat sur la fiche | J | contrat amendé ; attend b8 | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
@@ -3981,6 +3981,80 @@ lui-même ; `tsc`, tests ciblés, spec-lint, diff-check ; preuve
 `controle-6bis-b3d-2.md`.
 
 **Ne fait pas :** changement de code de production.
+
+###### Résultat du lot 6bis-b3d-2 — 2026-10-01
+
+Deux commits de test, poussés, sans code de production :
+
+- `9e56c343` : l'oracle de b3c note avec la paire fixe du cas (principale,
+  lignes 218–221) et le mode critique tiré ; `verifier()` confronte sa note
+  à celle de la production, candidat par candidat ; nouveau différentiel
+  ciblé `testDominanceReliqueDifferentielCible` (seeds 6500..6559) ;
+- `d00230e2` : la cécité de l'oracle de b3b, consignée en tête de
+  `rune-optim-auras-coupes.test.ts`.
+
+Reçu `d00230e` ↔ `0e6d663` (975 fichiers), notes intégrées au main
+documentaire `5f5ac33`. Preuve privée `controle-6bis-b3d-2.md` et ses
+sorties brutes (`6bis-b3d-2/`) ; nouvelle sous-section d'`algorithme.md`
+« Vérification — oracle noté, paire tirée et différentiel ciblé ».
+
+Le pilote a relu le diff et vérifié la note dans le code (A.6 bis) :
+
+- relique fixe : `scoreDuCandidat` par `optionsDeClassement` ;
+  `artefactsDuBuild` rend `null`, donc `scorerPour` retombe sur
+  `realDamage.artefacts`, le profil de la paire du cas : c'est l'ordre de
+  base de l'écran avec une paire figée ;
+- mode `recherche` : `resoudreCandidat` avec `paireFixe` (b6 : « Garder
+  l'artéfact équipé » ×2 par le producteur partagé), score du couple
+  retenu par la vraie résolution.
+
+Rejoué sur `d00230e2` :
+
+- `npx tsc --noEmit` → 0 ;
+- `node tests/run.mjs dominance auras-coupes runeoptim` → 3 035
+  vérifications passées, contrôles « note de l'oracle = note de
+  production » compris ;
+- build, spec-lint et `git diff --check` verts (spec-lint relancé en
+  PowerShell après un `fork: Permission denied` de Bash) ; « Reçu valide » ;
+- **mutation du pilote** (`statsLuesParLesLignes` ne lit que la première
+  pièce de la paire, `artifacts.slice(0, 1)`) : 12 échecs sur 2 193, tous
+  dans le différentiel ciblé, soit 11 scénarios « ligne » (seeds 6503,
+  6510, 6511, 6513, 6531, 6535, 6538, 6544, 6547, 6553, 6558) plus la
+  synthèse. L'ancien différentiel et les tests de b3d-1 restent verts :
+  seul le différentiel ciblé voit un défaut partiel de la paire. Fichier
+  restauré depuis git, puis 2 193 passées ;
+- générateur par seed (`mulberry32(seed)`) : les tirages ajoutés en fin
+  d'ancien différentiel ne changent pas ses scénarios antérieurs.
+
+Rapportés, non rejoués :
+
+- note = production sur 136 scénarios et 130 074 candidats, dont 32 464
+  en mode `recherche` ; 103 scénarios avec paire tirée, dont 74 portent
+  une ligne 218–221 ;
+- mutations du contrat, sur le différentiel lui-même :
+  `statsDeLEffetUnique` vidé, 26 scénarios « effet unique » en échec
+  (82 échecs au total) ; `statsLuesParLesLignes` vidé, 30 « ligne » (49) ;
+  les seeds en échec sont les seeds détectrices annoncées par le test ;
+- générateur : 60 scénarios, 40 sans Intangible, 12 « ligne » sans
+  relique, 14 en mode `recherche`, 15 en « Moyenne » sans Blade ;
+  protection active dans 60, optimum qui exige les clones dans 56 ; les
+  quatre autres (6523, 6530, 6536, 6559, mode `recherche`), où une autre
+  relique éligible rend le porteur inutile, sont comptés à part ;
+- l'oracle de b3b reste vert sous les deux mutations (920 vérifications).
+
+Écarts acceptés :
+
+- un différentiel ajouté plutôt que l'ancien remplacé : l'ancien
+  (6400..6479) reçoit seulement la paire et le mode critique, tirés en
+  dernier, et reste aveugle aux deux mutations, mesuré ;
+- les échelles des lignes du générateur (`LIGNE_MAX`) sont des valeurs de
+  test, pas des valeurs de jeu ; la paire tirée a toujours ses deux pièces.
+
+Non prouvé : la branche « Libre » dans un différentiel aléatoire (seul le
+test écrit de b3d-1 la couvre) ; les autres lignes d'artéfact, jamais
+tirées (amplification 204–206 et 226, critiques 400–411, 222/223) ; la
+mutation partielle qui retire seulement la stat améliorée de l'effet
+unique. Aucun code de production : le navigateur est sans objet.
 
 ##### 6bis-b7 — troncature du régime parallèle
 

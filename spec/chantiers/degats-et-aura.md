@@ -662,8 +662,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | terminé, preuves et mutation rejouées par le pilote | `9e56c343` + `d00230e2` ; reçu `d00230e` ↔ `0e6d663` / 2026-10-01 |
 | 6bis-b7 — troncature du régime parallèle | J | terminé, preuves, mutation et cas réel rejoués par le pilote ; notes complétées (dérogation étendue) | `6d238d08` + `c0b20a94` ; reçu `c0b20a9` ↔ `affd6d5` / 2026-10-01 |
 | 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | terminé, preuves, mutation et CLI réel rejoués par le pilote ; coût de la file (~8–10 %, Node) livré en l'état sur décision de l'utilisateur | `28a765cd` + `2594f1b4` ; reçu `2594f1b` ↔ `d3c186e` / 2026-10-01 |
-| 6bis-b9 — tri par stat sur la fiche | J | lançable | — |
-| 7 — sets d'aura : l'écran | J | à faire | — |
+| 6bis-b9 — tri par stat sur la fiche | J | terminé, preuves et mutation rejouées par le pilote | `4fa6ad5c` + `f3aa265d` ; reçu `f3aa265` ↔ `fb8d549` / 2026-10-01 |
+| 7 — sets d'aura : l'écran | J | prérequis remplis (tous les 6bis-b-* validés) ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -4375,6 +4375,54 @@ consigné par b5a) ; `invariants.md` L76, L77 et L237 ;
   `controle-6bis-b9.md`.
 
 **Ne fait pas :** tri sur les stats de début de combat (option b, écartée).
+
+###### Résultat du lot 6bis-b9 — 2026-10-01
+
+Deux commits, poussés :
+
+- `4fa6ad5c` : `scorerPour` (tri par stat) et `evaluerPourRegime`
+  (régimes `hp`, `atk`, `def`) lisent la même expression, `statTotal` sur
+  la fiche — principale de la relique comprise, effet unique exclu ; un
+  calcul retiré ; `optimizer.md` remplace l'écart consigné par b5a par la
+  règle et écrit la conséquence voulue ;
+- `f3aa265d` : départage en régime de stat — la relique portée l'emporte si
+  elle est parmi les meilleures, sinon la plus petite `id`
+  (`bestRelicForBuild`, `departagePortee`) ; `EntreeResolution.regimeDeStat`
+  obligatoire, `tsc` a désigné les quatre constructeurs de test.
+
+Reçu de l'agent `f3aa265` ↔ `fb8d549` (1 006 fichiers), intégré au main
+documentaire `e833f21`. Preuve privée `controle-6bis-b9.md`.
+
+Le pilote a relu le diff et rejoué sur `f3aa265d` :
+
+- l'oracle relique appelle `bestRelicForBuild` sans `departagePortee` :
+  garantie E inchangée ;
+- `npx tsc --noEmit` → 0 ; `node tests/run.mjs triparstatsurlafiche
+  departagereliqueportee relicexclusive relicclassementparmode relicqueue
+  cliclassement artifactevaluation artefactsficheparams relicoracle
+  resolutionpartagee artifactficherecherche` → 598 passées ; build,
+  spec-lint, diff-check verts ; « Reçu valide » ;
+- **mutation du pilote** (départage par la portée étendu à tout régime
+  noté) : 1 échec sur 337, le témoin « PV effectifs » (695 au lieu de
+  690) ; restauré depuis git, puis 337 passées ;
+- piste « Tri par PV, ATQ ou DEF » fermée dans `pistes.md` avec ses
+  commits, en même temps que `optimizer.md` (règle du ledger).
+
+Rapportés, non rejoués : rouge (anciennes attentes sur le nouveau code,
+6 échecs sur 735 ; nouveaux tests sur `ed57e8f0`, 15 sur 36) ; carte = tri
+dans les trois modes et `classementResolu` (A 2 500, B 2 450, A devant) ;
+témoins « Dégâts réels » (Bravoure retenue, +300 ATQ) et « PV effectifs »
+(plus petite `id`).
+
+Écarts acceptés : deux commits pour deux décisions ; `reliques.md` précisé
+(L429, effet unique hors tri par stat) après une livraison intermédiaire
+puis `rafraichir` sans changement ; nouvelle section d'`algorithme-relique.md`
+pour la limite du lint ; garde `!` remplacée par le repli de `statTotal`
+(`computeStats` garantit les huit lignes).
+
+Non prouvé : navigateur (carte, sélecteur de tri, file) ; nombre de builds
+dont la relique ou la paire change sur le vrai compte quand on trie par
+stat. Le CLI ne trie que par objectif : non concerné.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

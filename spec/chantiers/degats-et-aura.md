@@ -318,7 +318,11 @@ de la relique, valide des coupes qui perdent l'optimum du vrai score. Il
 reste d'accord avec le moteur précisément là où les deux ont tort. Toute
 preuve par oracle, et sa validation par le pilote, vérifie que la note est
 celle de la production pour l'équipement complet : auras propres, relique,
-effet unique.
+effet unique, **et paire d'artéfacts** (profil des lignes 218–221, paire
+résolue par build en « Libre » ; ajout de la contre-revue du 2026-10-01,
+après le défaut B1). L'oracle relique (garantie E) note avec
+`params.artifacts`, la paire représentative : il reste exact pour la seule
+dimension relique.
 
 ### A.7 Dépendances, ordre, suivi
 
@@ -356,8 +360,9 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
              d'aucun lot 6bis)
         → 6bis-b5b → 6bis-b5c (effets uniques de relique, demande du 2026-09-30)
         → revue technique indépendante (2026-10-01 : corrections avant 7)
-        → contre-revue des contrats b3d, b6, b7, b8, b9 → amendement pilote
-        → 6bis-b3d → 6bis-b6 → 6bis-b7 → 6bis-b8 → 6bis-b9 → 7
+        → contre-revue des contrats de correction → amendement pilote
+        → 6bis-b6 → 6bis-b3d-1 → 6bis-b3d-2 → 6bis-b7 → 6bis-b8 → 6bis-b9
+        → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
                             tous les sous-lots validés)
@@ -370,7 +375,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
   6bis-a2b1, 6bis-a2b2, 6bis-a2b3, 6bis-a3a, 6bis-a3b,
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
-  6bis-b5b, 6bis-b5c, 6bis-b3d, 6bis-b6, 6bis-b7, 6bis-b8, 6bis-b9,
+  6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
+  6bis-b9,
   7, 12, tous les 13b-* → 14
 ```
 
@@ -621,11 +627,12 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b5b — Meilleurs artéfacts et paire représentative | J | terminé, preuves et mutation rejouées par le pilote | `597a0730` ; reçu `597a073` ↔ `76a4a2f` / 2026-10-01 |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | terminé, contrat amendé (option 2, décision utilisateur), preuves, mutation et CLI réel rejoués par le pilote | `808d2d36`…`b8b28f63` ; reçu `b8b28f6` ↔ `9ef88ae` / 2026-10-01 |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | terminée : corrections avant le lot 7 ; B1 rejoué par le pilote ; preuve archivée | `controle-6bis-b-revue-technique.md`, notes `3b7d237` / 2026-10-01 |
-| 6bis-b3d — dominance et lignes 218–221 | J | attend la contre-revue de son contrat | — |
-| 6bis-b6 — paramètres d'artéfacts partagés et outils de preuve relique | J | attend la contre-revue, puis b3d | — |
-| 6bis-b7 — troncature du régime parallèle | J | attend la contre-revue, puis b6 | — |
-| 6bis-b8 — file en mode relique « recherche » (300 builds) | J | attend la contre-revue, puis b7 | — |
-| 6bis-b9 — tri par stat sur la fiche | J | attend la contre-revue, puis b8 | — |
+| 6bis-b6 — paramètres d'artéfacts partagés et outils de preuve relique | J | contrat amendé après contre-revue ; lançable | — |
+| 6bis-b3d-1 — dominance et lignes 218–221 : le correctif | J | contrat amendé ; attend b6 | — |
+| 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | contrat amendé ; attend b3d-1 | — |
+| 6bis-b7 — troncature du régime parallèle | J | contrat amendé ; attend b3d-2 | — |
+| 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | contrat amendé ; attend b7 | — |
+| 6bis-b9 — tri par stat sur la fiche | J | contrat amendé ; attend b8 | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -3639,167 +3646,272 @@ homonyme), repris par b6.
   l'écran** ; la limite ne s'écrit que dans les notes internes.
 - C2 : seulement l'indicateur « tronqué », sans prolonger la recherche.
 - C7 : option (a), le tri par stat classe sur la fiche.
-- Ordre : les corrections passent avant le lot 7 (b3d → b6 → b7 → b8 →
-  b9), après une contre-revue unique de leurs cinq contrats.
+- Ordre : les corrections passent avant le lot 7, après une contre-revue
+  unique de leurs contrats. L'ordre initial (b3d → b6 → b7 → b8 → b9) a
+  été amendé après cette contre-revue : voir le bloc suivant.
 
-##### 6bis-b3d — dominance et lignes 218–221 des artéfacts
+##### Contre-revue des contrats de correction — 2026-10-01
 
-**Cat. J ; requiert la revue technique et la contre-revue de ce contrat.**
-Constat B1 de la revue (§ 2.1), reproduit par le pilote. En « Dégâts réels »,
-les lignes d'artéfact 218–221 ajoutent un pourcentage des PV, de l'ATQ, de
-la DEF ou de la VIT de combat (`damage.ts` L4576-4580). Or
-`damageRelevantStats` exclut volontairement ces stats de l'objectif
-(L5030-5037, décision de rétention : « les artéfacts récoltent »), et la
-dominance reprend ce choix. Un set dont le bonus ou l'aura porte sur une
-de ces stats devient interchangeable et tombe, même si la ligne lui donne
-du poids.
+Contre-revue indépendante, sur `eac1862c`, des cinq contrats d'origine :
+**tous à corriger**, dont deux bloquants.
 
-**Intrant borné.**
+- **b3d** : sa preuve d'identité tournait sur des recettes qui ne pouvaient
+  rien montrer (« PV effectifs », ou Rage + Fight sans emplacement libre) ;
+  la garantie « déjà protégé par le joker » est fausse pour un set formable
+  seulement grâce à l'Intangible ; son intrant n'était pas borné (un champ
+  requis casse 101 sites dans 39 fichiers).
+- **b8** : la file tourne PENDANT la recherche, pas après.
 
-- `runeBuildOptim.ts` : L1607-1720 (`reliquesEquipables`, `contexteDominance`,
-  `isSetComparable`) et les deux appelants de production (L3594, L3966) ;
-- les trois autres appelants : `scripts/diagnostic-harness-parite.ts` L95,
-  `scripts/monster-search-rank-diag.ts` L66, `tests/auras-modele.test.ts`
-  L950 ;
-- `damage.ts` L495-580 (profil d'artéfacts : `brutPctPv` et les autres),
-  L4568-4584, L5025-5040 ;
-- constructeurs de `SearchParams` : écran (`OptimizerSection.tsx`, par grep
-  de `artifactBounds`), CLI (`recipeToSearchParams.ts`), harnais et
-  scripts de perf ;
-- les deux oracles : `tests/rune-optim-auras-coupes.test.ts` et
-  `tests/rune-optim-dominance-relique.test.ts` (générateur L600-620) ;
-- sonde de la revue :
-  `archive/controles-degats-aura-2026-09/revue-technique-6bis-b/sonde-dominance-218.ts`.
+Le pilote a vérifié les deux bloquants dans le code et amendé chaque contrat.
 
-**Contrat.**
+**Décisions de l'utilisateur du 2026-10-01, en réponse :**
 
-- Sur le modèle de `reliquesEquipables`, une information **obligatoire**
-  (champ requis de `SearchParams`, puis paramètre de `contexteDominance`) :
-  les stats lues par les lignes 218–221 des artéfacts que la recherche peut
-  équiper.
-  - Paire figée : les lignes de cette paire.
-  - « Libre » : l'union sur l'inventaire éligible (élément, archétype, non
-    réservé), un sur-ensemble sûr.
-  - Seulement en « Dégâts réels », le seul score qui les lit.
-- Tous les constructeurs de `SearchParams` la renseignent ; `tsc` signale un
-  oubli, puisque le champ est requis.
-- `damageRelevantStats` ne change pas : la rétention garde la décision de
-  l'utilisateur.
-- `invariants.md` L35 et L37 et `algorithme.md` L79-84 amendés, avec le
-  **Taux Crit en mode Moyenne nommé** comme décision utilisateur du
-  2026-09-29.
-- **Contrainte du 2026-10-01 : aucun alourdissement du fonctionnement
-  normal.** Avec une Intangible dans le pool, ces sets sont déjà protégés
-  par la règle du joker : `interchangeables` doit rester **identique** sur
-  les recettes gelées réelles. S'il change sur l'une d'elles, A.6 :
-  s'arrêter et rapporter.
+- **b8** : 300 builds en mode recherche **dès la recherche**, pas seulement
+  après. La contention se mesure, et un ralentissement au-delà de la
+  dispersion s'arrête sur A.6.
+- **b3d** : le surcoût rare de la correction est accepté. Il n'apparaît
+  que là où le résultat actuel est faux : sans Intangible, ou pour un set
+  formable seulement grâce au joker. Sur les recettes réelles avec
+  Intangible, la sonde n'en voit aucun.
+- **b9** : en cas d'égalité entre reliques dans un régime de stat, la
+  **relique portée** l'emporte si elle est candidate.
 
-**Preuves.**
-
-- La sonde de la revue devient un test nommé : quatre porteurs (Energy,
-  Guard, Enhance, Determination), rouge puis vert, plus le témoin sans
-  ligne et la variante avec Intangible.
-- **C8** : les deux oracles notent avec une paire fixe tirée au hasard,
-  portant parfois les lignes 218–221. Le générateur de b3c est ciblé
-  (porteur sur assez d'emplacements, tranche entre porteur et neutre, pools
-  **sans Intangible** dans au moins la moitié des seeds, `critMode` tiré).
-  Critère : les mutations de `statsDeLEffetUnique` et de la nouvelle
-  protection font échouer le différentiel lui-même.
-- `interchangeables` avant/après sur `recette-6bis-externe.json`,
-  `recette-6bis-degats.json`, `recette-6bis-b5a-equipped.json` et
-  `recette-6bis-b3c.json` (export et relique nommés) ; identique attendu.
-- `tsc`, tests ciblés, build, spec-lint, diff-check ; preuve
-  `controle-6bis-b3d.md`.
-
-**Ne fait pas :** changement de `damageRelevantStats`, de la rétention ou du
-score ; mesure de temps (la preuve d'identité la remplace dans le cas
-normal).
+**Nouvel ordre**, pour la dépendance b3d → b6 (l'oracle étendu par b3d-2
+filtre, en mode recherche, par la copie que b6 corrige) :
+b6 → b3d-1 → b3d-2 → b7 → b8 → b9.
 
 ##### 6bis-b6 — paramètres d'artéfacts partagés et outils de preuve relique
 
-**Cat. J ; requiert b3d.** Constats C5, C6, C3, C4 et legs de b4 (revue
-§ 4.2, § 4.3, § 2.3, § 5.2, § 5.7).
+**Cat. J ; requiert la contre-revue (faite) ; premier des lots de
+correction.** Constats C5, C6, C3, C4 et legs de b4 (revue § 4.2, § 4.3,
+§ 2.3, § 5.2, § 5.7).
 
 **Intrant borné.**
 
 - `OptimizerSection.tsx` L1378-1468 (`artifactParams` : verrous neutralisés
-  L1444, réservations L1423, `codesAmplificationActifs` L1448) ;
+  L1444, réservations L1423, `codesAmplificationActifs` L1449) ;
 - `scripts/lib/recipeToSearchParams.ts` L170-330 (`artefactsDuCli`,
   `paramsArtefacts`) ;
-- `scripts/lib/relicDifferentiel.ts` L117-175 ;
-- `scripts/lib/relicOracle.ts` L85-280 (groupes de principale, `relic:
-  reliques[0]`, `scoreDuCandidat` local L142, `candidatAvecRelique`,
-  `fusionnerRunsOracle`) ;
+- `scripts/lib/relicDifferentiel.ts` L60-175 (`ReglagesDifferentiel`,
+  `entreeResolution`, `resoudreCandidat`) ;
+- `scripts/lib/relicOracle.ts` L85-280, et L480-495 (sortie du CLI de
+  l'oracle) ;
+- `scripts/relic-differentiel.ts` L320-360 (traceur, optimum archivé) ;
+- `relicQueue.ts` L240-300 (`entreeResolutionDuBuild`) ;
 - `runeBuildOptim.ts` L925-1000 (JSDoc d'`aurasPropresParRunes`) ;
+- tests dont l'attente peut changer : `relic-queue.test.ts` L60, L265-364 et
+  L545 (« N identique — granularité (statistique, valeur) ») ;
+  `auras-modele.test.ts` L347-355 et L617-632 ; `relic-differentiel.test.ts` ;
+  `rune-optim-dominance-relique.test.ts` (par `resoudreCandidat`) ;
 - sondes de la revue `sonde-verrous-cli.ts`, `sonde-oracle-e-groupe.ts`,
-  `sonde-oracle-relique-l267.ts` et leurs recettes, dans
-  `revue-technique-6bis-b/`.
+  `sonde-oracle-relique-l267.ts` et leurs recettes
+  (`revue-technique-6bis-b/`).
 
 **Contrat.**
 
 - **C5** : un producteur pur des `ArtifactSearchParams` de la fiche,
-  neutralisation des verrous comprise, appelé par l'écran
-  (`artifactParams`) et par le CLI (`artefactsDuCli`). Une recette exportée
-  par l'écran donne au CLI les mêmes paramètres. Écart documenté : le CLI
-  n'a pas de liste, donc pas de réservations.
+  neutralisation des verrous comprise, appelé par l'écran **dans le même
+  `useMemo`, avec les mêmes dépendances** (sinon `paireRepresentative` se
+  recalculerait à chaque rendu), et par le CLI (`artefactsDuCli`). Écart
+  documenté : le CLI n'a pas de liste, donc pas de réservations.
 - **C6** : `relicDifferentiel.entreeResolution` passe par
-  `entreeResolutionDuBuild` et par ce producteur. Plus de copie.
-- **C3** : l'oracle relique lance un run par relique dont l'effet unique
-  chiffrable diffère au sein d'un groupe de principale. Invariant
-  « Oracle (E) » amendé.
-- **C4** : `fusionnerRunsOracle` classe par `OracleCandidate.score` (effet
-  unique de la relique retenue compris).
+  `entreeResolutionDuBuild` et par ce producteur. Le contrat de traduction
+  s'écrit dans la preuve : comment `ReglagesDifferentiel` devient les
+  entrées du producteur, d'où viennent `exclusive` (`setup`, `element`) et
+  le `damageSetup` des amplifications.
+- **C3** : l'oracle relique lance un run par couple
+  `(principale, statsDeLEffetUnique([r]))`. C'est la seule chose qui, dans un
+  run, distingue deux reliques d'un même groupe pour le moteur : la
+  rétention ignore la relique, et la fusion renote tout. Invariant
+  « Oracle (E) » amendé ; l'attente de `relic-queue.test.ts` L545 bascule,
+  et la preuve le justifie.
+- **C4** : `fusionnerRunsOracle` classe par `OracleCandidate.score`. Ordre
+  des ex æquo : score décroissant, puis `rid` croissant, puis ordre
+  d'insertion.
 - Legs de b4 : JSDoc d'`aurasPropresParRunes` replacé avant sa fonction ;
   `scoreDuCandidat` local de `relicOracle.ts` renommé.
 - **Contrainte du 2026-10-01** : l'écran garde exactement le même
-  comportement. Prouvé par l'égalité des `ArtifactSearchParams` produits
-  avant et après, sur fixtures.
+  comportement. La preuve compare les champs des `ArtifactSearchParams`
+  produits avant et après (copie figée de l'ancien corps du mémo dans le
+  test), et les valeurs d'`evaluer` sur N paires. Un contrôle de source
+  vérifie l'appel dans le `useMemo` et ses dépendances.
 
 **Preuves.**
 
 - Tests nommés, rouges puis verts : recette verrouillée (CLI = écran) ;
-  oracle E sur deux reliques de même principale ; optimum de l'oracle égal
-  au meilleur `score` ; égalité de `entreeResolution` avec la résolution du
-  CLI sur une recette « Libre » avec buff (`codesAmplification`).
+  oracle E sur deux reliques de même principale aux effets différents ;
+  optimum de l'oracle égal au meilleur `score` ; égalité de
+  `entreeResolution` avec la résolution du CLI sur une recette « Libre »
+  avec buff (`codesAmplification`).
 - Mutation qui retire la neutralisation des verrous : échec attendu.
+- `node tests/run.mjs dominance-relique auras-coupes relic-queue relic auras`
+  rejoué ; chaque attente modifiée est listée avec sa raison.
 - `tsc`, tests ciblés, build, spec-lint, diff-check ; preuve
   `controle-6bis-b6.md`.
 
 **Ne fait pas :** changement du moteur, du score, ni de la file.
 
-##### 6bis-b7 — troncature du régime parallèle
+##### 6bis-b3d-1 — dominance et lignes 218–221 : le correctif
 
-**Cat. J ; requiert b6.** Constat C2 de la revue (§ 4.1), vérifié par le
-pilote, antérieur au chantier (revue externe du 2026-08-19, point 4). Une
-tranche qui atteint son quota (`perWorkerMaxCollected`) s'arrête
-(`pairBuckets`, `if (candidates.length >= maxCollected)`). Pourtant,
-`combineParallelPairingResults` ne déclare la recherche tronquée que si le
-total atteint le plafond global, ou si une tranche manque de temps. Une
-recherche peut donc être annoncée complète alors qu'une partie de son espace
-n'a jamais été visitée : c'est l'« INCOHÉRENT » relevé en b4 (Lushen
-ATQ 3000 / DC 220).
+**Cat. J ; requiert b6.** Constat B1 de la revue (§ 2.1), reproduit par le
+pilote. En « Dégâts réels », les lignes d'artéfact 218–221 ajoutent un
+pourcentage des PV, de l'ATQ, de la DEF ou de la VIT de combat (`damage.ts`
+L4576-4580). Or `damageRelevantStats` exclut ces stats de l'objectif
+(L5025-5040, décision de rétention), et la dominance reprend ce choix.
 
-**Intrant borné.** `runeBuildOptim.ts` L4340-4430 (`pairBuckets` jusqu'à
-`combineParallelPairingResults`) ; `src/workers/parallelPairing.ts`
-L85-160 ; `scripts/lib/diagnosticHarness.ts` L1610-1625 ; `invariants.md`
-L182 ; `spec/outils/optimizer/parallelisation-partagee.md` § 4.1 ; sonde
-`revue-technique-6bis-b/sonde-combine-parallele.ts`.
+**Intrant borné.**
+
+- `runeBuildOptim.ts` L1607-1720 (`reliquesEquipables`, `contexteDominance`,
+  `isSetComparable`) ; les appelants L3594 et L3966 ; `poolMinSlotSafe`
+  L3550-3600 ;
+- `damage.ts` L495-580 (profil d'artéfacts), L4568-4584, L5025-5040 ;
+- `artifactOptim.ts` L490-520 (`candidatsParSorte`, règles d'éligibilité) ;
+- le producteur des `ArtifactSearchParams` livré par b6 et ses deux
+  appelants ;
+- `recipeToSearchParams.ts` L100-110 (`ignoreArtifacts` au CLI) ;
+- sondes : `revue-technique-6bis-b/sonde-dominance-218.ts` ; celles de la
+  contre-revue (`sonde-joker-b3d.ts`, `sonde-compte-b3d.ts`), à archiver dans
+  le dossier de preuves de ce lot.
 
 **Contrat.**
 
-- Dès qu'une tranche s'arrête sur son quota, la recherche combinée est
-  déclarée **tronquée**. Le motif (quota de tranche ou temps) reste
-  disponible pour l'affichage.
+- Un champ de `SearchParams` porte **les stats lues par les lignes
+  218–221 des artéfacts équipables AU-DELÀ de `params.artifacts`**. Le
+  moteur l'unit toujours avec les lignes de la paire représentative : un
+  constructeur qui ne le remplit pas reste juste pour une paire figée.
+  - Calcul : l'union des lignes des candidats de `candidatsParSorte` sur les
+    deux sortes (vue complète, sans verrous ni principale imposée : un
+    sur-ensemble sûr), plus les lignes de `params.artifacts`. Le cas mixte
+    (une sorte figée, l'autre « Libre ») et `ignoreArtifacts` au CLI sont
+    couverts. Le CLI, sans réservations, a une union plus large :
+    documenté.
+  - Rempli par le producteur de b6, donc par l'écran et par le CLI ; un
+    contrôle de source vérifie les deux.
+  - Seulement en « Dégâts réels », le seul score de recherche qui lit ces
+    lignes.
+- `damageRelevantStats` ne change pas : la rétention garde la décision de
+  l'utilisateur.
+- `invariants.md` L35 et L37 et `algorithme.md` L79-84 amendés, avec le
+  **Taux Crit en mode Moyenne nommé** comme décision du 2026-09-29.
+- **Garantie de coût, définie précisément (décision du 2026-10-01).** Le
+  cas normal est « un pool qui contient une Intangible après principale
+  imposée et verrous ». Avec une Intangible, la règle du joker protège déjà
+  les sets **complets avec leurs seules vraies runes** : pour eux, rien ne
+  change. Un set formable SEULEMENT grâce au joker n'était pas protégé : le
+  garder EST la correction, acceptée par l'utilisateur. Sans Intangible,
+  l'écart (+2 à +4 % de runes après dominance sur le vrai compte) est aussi
+  la correction ; il n'est pas chronométré, et c'est écrit comme limite.
+
+###### 6bis-b3d-1 — preuves
+
+- La sonde de la revue devient un test nommé : quatre porteurs (Energy,
+  Guard, Enhance, Determination), rouge puis vert, plus le témoin sans
+  ligne et la variante avec Intangible.
+- Test nommé, rouge puis vert, d'un set formable seulement par le joker
+  (Fatal sur trois emplacements + Intangible, Blade demandé, sort PV,
+  ligne 219).
+- **Branche « Libre »** : un test où la paire représentative ne porte pas
+  la ligne mais où un autre artéfact éligible la porte, noté par la vraie
+  résolution (`entreeResolutionDuBuild` → `resoudreEquipementDuBuild`). Une
+  mutation qui réduit l'union à la paire représentative doit le faire
+  échouer.
+- **Identité dans le cas normal** : geler avec leur sha256 deux recettes
+  « Dégâts réels » à emplacements libres (variantes `[rage]` et `[blade]`
+  de `recette-6bis-b5c-artefacts-libres.json`), en relique `equipped` puis
+  `recherche`. Relever `interchangeables` et le nombre de runes après
+  dominance, avant et après, avec et sans Intangible. Attendu : identique
+  avec Intangible. Sans Intangible, l'écart se consigne sans déclencher
+  A.6.
+- `tsc`, tests ciblés, build, spec-lint, diff-check ; preuve
+  `controle-6bis-b3d-1.md`.
+
+**Ne fait pas :** les oracles et le générateur (b3d-2) ; aucune mesure de
+temps.
+
+##### 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé
+
+**Cat. J ; requiert b3d-1.** Constat C8 de la revue (§ 5.5).
+
+**Intrant borné.** `tests/rune-optim-dominance-relique.test.ts` (oracle,
+note, générateur L597-620) ; `tests/rune-optim-auras-coupes.test.ts` L80-130
+(`criteresUtiles`) et L575-590 ; `scripts/lib/relicDifferentiel.ts`
+(`resoudreCandidat`, corrigé par b6).
+
+**Contrat.**
+
+- L'oracle de b3c note avec une paire fixe tirée au hasard, portant
+  parfois les lignes 218–221, dans un `RealDamageContext` à sort
+  synthétique : c'est la note de production (A.6 bis).
+- **L'oracle de b3b ne note pas** : il compare un maximum par critère, sans
+  sort. Le critère de mutation des lignes 218–221 revient donc à l'oracle de
+  b3c ; la cécité de celui de b3b s'écrit comme limite.
+- Générateur ciblé : porteur sur assez d'emplacements, tranche placée entre
+  le build porteur et le neutre, pools **sans Intangible** dans au moins la
+  moitié des seeds. Trois pièges prévus :
+  - l'effet unique de la relique protège souvent déjà PV, ATQ et DEF :
+    prévoir des seeds sans relique, ou dont l'effet ne protège pas la stat
+    de la ligne ;
+  - Blade en mode « Moyenne » : exclu des tirages de `critMode`, puisque sa
+    limite est une décision du 2026-09-29 ;
+  - critère chiffré : chaque mutation (`statsDeLEffetUnique` vidé,
+    protection 218–221 retirée) fait échouer au moins un scénario sur les
+    seeds fixes.
+
+**Preuves :** les deux mutations, rejouées, font échouer le différentiel
+lui-même ; `tsc`, tests ciblés, spec-lint, diff-check ; preuve
+`controle-6bis-b3d-2.md`.
+
+**Ne fait pas :** changement de code de production.
+
+##### 6bis-b7 — troncature du régime parallèle
+
+**Cat. J ; requiert b3d-2.** Constat C2 de la revue (§ 4.1), vérifié par le
+pilote, antérieur au chantier. Une tranche qui atteint son quota s'arrête
+(`pairBuckets`), mais `combineParallelPairingResults` ne déclare la
+recherche tronquée que si le total atteint le plafond global, ou si une
+tranche manque de temps.
+
+**Intrant borné.**
+
+- `runeBuildOptim.ts` L470-500 (`SearchResult`) et L4340-4430
+  (`pairBuckets` jusqu'à `combineParallelPairingResults`) ;
+- `src/workers/parallelPairing.ts` L85-160 ;
+- `scripts/lib/diagnosticHarness.ts` L1610-1625 et L1830-1850
+  (`evaluerCompletude` : le motif y est DÉDUIT du plafond global) ;
+- `OptimizerSection.tsx` L4890-4900 (message affiché) ;
+- `invariants.md` L182 ; `parallelisation-partagee.md` § 4.1 ;
+  `harnais-diagnostic.md` § 6.2 ;
+- tests dont l'attente bascule : `rune-optim-parallel-truncated.test.ts`
+  L55-68 (cas « LE BUG CORRIGÉ ») ; `diagnostic-harness.test.ts` L417-439.
+
+**Contrat.**
+
+- Une tranche arrêtée sur son quota rend la recherche **tronquée**, à
+  condition qu'il reste des paires non visitées (`explored <
+  totalPairCount`) : une tranche pleine sur sa toute dernière paire ne
+  déclare pas de troncature.
+- Le **motif** (quota de tranche, plafond global ou temps) est transmis par
+  `combineParallelPairingResults` dans le résultat, pour le harnais et le
+  CLI. `evaluerCompletude` le lit au lieu de le déduire, son JSDoc et
+  `harnais-diagnostic.md` § 6.2 sont amendés. Sans cela, le harnais
+  afficherait « motif : maxMs », faux.
 - **Décision du 2026-10-01 : seul l'indicateur change.** Aucune exploration
-  supplémentaire, ni quota partagé ou redistribué : la recherche ne
-  s'allonge jamais.
+  supplémentaire, ni quota partagé ; aucune relance n'existe, et le CLI est
+  séquentiel.
+- **Effet visible, à écrire** : sur ces recherches parallèles, l'écran
+  affichera « Recherche interrompue après examen de N combinaisons —
+  resserre tes critères » (`OptimizerSection.tsx` L4896).
 - `invariants.md` L182 et `parallelisation-partagee.md` § 4.1 amendés.
 
 **Preuves.**
 
-- Test pur, rouge puis vert, sur `combineParallelPairingResults`.
-- Cas réel (ATQ 3000 / DC 220) en vrais `worker_threads` : le harnais rend
-  « tronqué », et plus « INCOHÉRENT ».
+- Test pur, rouge puis vert, sur `combineParallelPairingResults`, dont le
+  cas « quota atteint sur la dernière paire ».
+- Les deux tests qui figent l'ancienne attente sont listés, avec leur sortie
+  rouge conservée et la justification de l'attente inversée.
+- Le cas réel « ATQ 3000 / DC 220 » de b4 gelé en recette (sha256 et
+  commande), puis rejoué en vrais `worker_threads` : le harnais rend
+  « tronqué » avec le bon motif, et plus « INCOHÉRENT ».
 - Témoin : un cas sous les quotas reste « complet ».
 - `tsc`, tests ciblés, build, spec-lint, diff-check ; preuve
   `controle-6bis-b7.md`.
@@ -3810,79 +3922,115 @@ l'appariement.
 ##### 6bis-b8 — la file de l'écran en mode relique « recherche »
 
 **Cat. J ; requiert b7.** Constat C1 de la revue (§ 5.1). En mode
-`recherche`, l'ordre de base note sans relique. La file résout la page
-affichée puis les `K_BUILDS_OPTIMISES` (100) premiers de cet ordre, si bien
-qu'un build qui monterait une fois résolu peut n'être jamais atteint. Sur le
-vrai compte, en PV effectifs, les rangs exhaustifs 16, 17 et 19 manquaient ;
-ils venaient des rangs de base 107 à 117.
+`recherche`, l'ordre de base note sans relique, et la file ne résout que la
+page affichée puis les 100 premiers de cet ordre. Sur le vrai compte, en PV
+effectifs, les rangs exhaustifs 16, 17 et 19 manquaient ; ils venaient des
+rangs de base 107 à 117.
 
-**Intrant borné.** `src/hooks/useArtifactOptimQueue.ts` L20-30 et L100-110
-(`K_BUILDS_OPTIMISES`, option `K`) ; `src/lib/artifactQueue.ts` L140-170
-(`prochainsATraiter`) ; l'appel de la file dans `OptimizerSection.tsx` (par
-grep de `useArtifactOptimQueue({`) ; `scripts/lib/classementCli.ts` L75-140 ;
-sonde `revue-technique-6bis-b/sonde-file-marge.ts` et sa recette
-`recette-revue-ehp-libre.json`.
+⚠️ **La file tourne PENDANT la recherche** (`useArtifactOptimQueue.ts`
+L1-2 ; `OptimizerSection.tsx` L2062), sur le temps libre du fil principal.
+L'invariant L101 (« ne ralentit jamais la recherche de façon perceptible »)
+n'a été mesuré qu'à K = 100 (`optimizer.md` L2328).
+
+**Intrant borné.**
+
+- `src/hooks/useArtifactOptimQueue.ts` L1-30 et L100-110 ;
+- `src/lib/artifactQueue.ts` L140-170 (`prochainsATraiter`) ;
+- `OptimizerSection.tsx` : l'appel de la file (par grep de
+  `useArtifactOptimQueue({`) et `relicContextRecherche` (L491) ;
+- `scripts/lib/classementCli.ts` L1-140 ; `scripts/optimizer-search.ts`
+  L445-460 ;
+- `scripts/artifact-contention-diag.ts` (mesure de contention) ;
+- tests et textes qui changent : `cli-classement.test.ts` L146 et L255 ;
+  `optimizer.md` L1616 et L2334 ; `invariants.md` L77 et L101 ;
+  `algorithme-relique.md` L202 ; commentaires de `classementCli.ts` L11 et
+  L79 ;
+- sonde `revue-technique-6bis-b/sonde-file-marge.ts` et sa recette
+  `recette-revue-ehp-libre.json`.
 
 **Contrat (décisions de l'utilisateur du 2026-10-01).**
 
-- La file résout **300 builds en mode relique « recherche »**, et **100 en
-  « Équipée » et « Off », strictement inchangé**. Le CLI suit la même règle
-  par défaut, pour garder la parité ; `--resoudre-tout` reste la référence
-  exacte.
+- Une fonction pure, `kDeLaFile(relicContext)`, partagée par l'écran et par
+  `classementCli.ts`, rend **300 en mode relique « recherche »** et **100
+  sinon**, **dès le début de la recherche**. Son entrée est le contexte de
+  la recherche LANCÉE (`relicContextRecherche` à l'écran,
+  `params.relicContext` au CLI), jamais l'état courant des réglages.
+- « Équipée » strictement inchangé ; en « Off », il n'y a pas de file (le
+  témoin y est trivialement vrai, et c'est écrit).
+- Le mode recherche fait partie du fonctionnement courant : c'est le défaut
+  de tout monstre sans relique (`useOptimizerState.ts` L67). L'utilisateur
+  a accepté le coût en le sachant.
 - **Aucun bandeau ni mention à l'écran.** La limite (le top en mode
   recherche reste une approximation) s'écrit dans `limites-connues.md`,
-  `pistes.md` et `optimizer.md`, jamais dans l'interface.
-- Coût accepté par l'utilisateur, en mode recherche seulement : la file
-  traite jusqu'à trois fois plus de builds, en arrière-plan après la
-  recherche.
+  `pistes.md` et `optimizer.md`.
 
-**Preuves.**
+###### 6bis-b8 — preuves
 
-- Test nommé : K vaut 300 en mode `recherche` et 100 sinon, à l'écran
-  (hook) et au CLI.
-- **Témoin du fonctionnement normal** : en « Équipée » et « Off », le même
-  ensemble de builds résolus qu'avant, sur les recettes gelées.
-- Recette réelle `recette-revue-ehp-libre.json` : rangs 16, 17 et 19
-  rattrapés (3 manquants → 0), comparé à `--resoudre-tout`.
+- Test nommé de `kDeLaFile`, plus un contrôle de source de ses deux appels
+  (le dépôt n'a pas d'infrastructure de test React).
+- Témoin « Équipée » : le même ensemble de builds résolus qu'avant, sur les
+  recettes gelées.
+- `recette-revue-ehp-libre.json` : rangs 16, 17 et 19 rattrapés (3
+  manquants → 0), comparé à `--resoudre-tout`.
 - Fixture de b5c : le reste des manquants consigné comme limite.
-- Temps de la file en mode recherche, K = 100 contre 300, sur
-  `recette-6bis-b5c-artefacts-libres.json`, selon `optimizer-perf-testing`,
-  au créneau confirmé par l'utilisateur.
+- **Mesure de contention** selon `optimizer-perf-testing`, au créneau
+  confirmé par l'utilisateur : temps de la recherche avec la file à K = 100
+  contre K = 300, en mode recherche, artéfacts « Libre », sur une recette
+  réelle (`artifact-contention-diag.ts` ou équivalent fidèle). Min, médiane,
+  dispersion, répétitions entrelacées. `invariants.md` L101 réécrit avec le
+  chiffre mesuré. **Si la recherche ralentit au-delà de la dispersion :
+  A.6, s'arrêter et rapporter le chiffre à l'utilisateur avant de livrer.**
+- Les attentes et textes listés dans l'intrant, mis à jour avec leur
+  raison.
 - `tsc`, tests ciblés, build, spec-lint, diff-check ; preuve
   `controle-6bis-b8.md`.
 
 **Ne fait pas :** critère d'arrêt prouvé, ordre de base optimiste ni bouton
-« Classement exact » (écartés ou différés par l'utilisateur).
+« Classement exact ».
 
 ##### 6bis-b9 — le tri par PV, ATQ ou DEF classe sur la fiche
 
-**Cat. J ; requiert b8.** Constat C7 de la revue (§ 5.4), consigné par b5a.
-`scorerPour` (`runeBuildOptim.ts` L1123) classe sur
-`statsAvecApport(c.stats, apport)` : la fiche plus les points de Bravoure,
-Éternité et Origine, mais sans les auras, le lead ni l'invocateur. C'est
-une grandeur mixte, alors que la carte affiche la fiche. Même mélange dans
-l'évaluateur de paire des régimes `hp`, `atk` et `def`
-(`artifactEvaluation.ts` L165-172).
+**Cat. J ; requiert b8.** Constat C7 de la revue (§ 5.4). `scorerPour`
+(`runeBuildOptim.ts` L1123) classe sur la fiche plus les points de
+Bravoure, Éternité et Origine, sans les auras, le lead ni l'invocateur ; la
+carte affiche la fiche. Même mélange dans l'évaluateur de paire des
+régimes `hp`, `atk` et `def` (`artifactEvaluation.ts` L165-172).
 
 **Intrant borné.** `runeBuildOptim.ts` L1090-1130 (`scorerPour`) ;
-`artifactEvaluation.ts` L120-175 ; `tests/relic-exclusive.test.ts`
-(`testRelicClassementParMode`, attentes PV/ATQ/DEF) ; `optimizer.md`, section
-de l'écart consigné par b5a ; `invariants.md` (entrées du classement affiché).
+`artifactEvaluation.ts` L120-175 ; `relicOptim.ts` L430-460
+(`bestRelicForBuild`, ex æquo) ; `tests/relic-exclusive.test.ts`
+(`testRelicClassementParMode`, attentes PV/ATQ/DEF, et L410 « le tri classe
+sur 2 500 — écart non corrigé », qui bascule) ; `optimizer.md`, section de
+l'écart consigné par b5a ; `invariants.md` L76, L77 et L236 ; la doc
+relique qui décrit le choix de relique par régime.
 
-**Contrat (décision de l'utilisateur du 2026-10-01, option a).** Le tri par
-stat et l'évaluateur de paire des régimes `hp`, `atk` et `def` jugent la
-**fiche**, sans les points de relique, comme la carte et les conditions
-min/max. Une seule expression pour les trois. Les régimes « Dégâts réels »
-et « PV effectifs » ne changent pas. Le calcul retiré ne coûte rien de plus.
+**Contrat (décisions de l'utilisateur du 2026-10-01).**
+
+- **Option (a)** : le tri par stat et l'évaluateur de paire des régimes
+  `hp`, `atk` et `def` jugent la **fiche**, sans les points de relique,
+  comme la carte et les conditions min/max. Une seule expression pour les
+  trois. Le calcul retiré ne coûte rien.
+- **Conséquence voulue, à écrire** : `adapterArtefactsAuTri` étant vrai par
+  défaut, le régime d'équipement suit le tri (régime unique, D7). En mode
+  recherche, quand on trie par stat, une relique Bravoure, Éternité ou
+  Origine n'est plus préférée pour ses points : la relique et la paire
+  affichées peuvent changer.
+- **Ex æquo dans un régime de stat (décision a)** : la relique **portée**
+  l'emporte si elle est candidate, sinon la plus petite `id`. Les régimes
+  « Dégâts réels », « PV effectifs » et `aucun` gardent leur règle, et
+  l'oracle relique, qui n'utilise pas les régimes de stat, n'est pas
+  touché.
 
 **Preuves.**
 
 - Test nommé : la carte égale le tri, sur un build qui franchit une tranche
   de Bravoure.
-- Les attentes de `testRelicClassementParMode` qui comptaient les points en
-  PV/ATQ/DEF sont modifiées, et listées une par une dans la preuve, avec
-  leur raison.
-- Témoins : « Dégâts réels » et « PV effectifs » inchangés.
+- Test nommé : mode recherche, tri ATQ, deux reliques de même principale
+  dont une Bravoure. La relique portée l'emporte à égalité.
+- Les attentes modifiées (`testRelicClassementParMode`, L410) sont listées
+  avec leur raison. Témoins : « Dégâts réels » et « PV effectifs »
+  inchangés.
+- `invariants.md` L76, L77 et L236 et la doc relique amendés.
 - `tsc`, tests ciblés, build, spec-lint, diff-check ; preuve
   `controle-6bis-b9.md`.
 

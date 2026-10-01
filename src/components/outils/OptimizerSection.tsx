@@ -21,10 +21,10 @@ import {
   Pencil,
 } from 'lucide-react';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
-import { computeStats, statsParPaire } from '../../lib/stats';
+import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
-import { resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
+import { classementResolu, cleBuild, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { entreeResolutionDuBuild, resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
@@ -39,7 +39,7 @@ import {
   type ChoixPrincipale,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
-import { evaluerPourRegime, regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
+import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import { evaluateursArtefactsFiche } from '../../lib/artifactFiche';
 import {
   CAPPED_STATS,
@@ -68,8 +68,6 @@ import {
   statTotal,
   objectiveScore,
   avecAurasConditions,
-  conditionsPaireFixePosees,
-  respecteConditionsPaireFixe,
   sortCandidates,
   scoreDuCandidat,
   optionsDeClassement,
@@ -2145,7 +2143,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         damageSetup,
         compterAurasResPre,
         // ⚠️ Le TRI, pas l'objectif : c'est lui qui décide désormais du critère
-        // de choix de la paire (voir `faireParamsArtefacts`). Changer de tri
+        // de choix de la paire (voir `resoudreEquipement`). Changer de tri
         // entre Dégâts réels et PV effectifs change donc la meilleure paire, et
         // doit vider le cache. Entre Efficience et Vitesse, rien ne change —
         // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
@@ -2155,7 +2153,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // brut** (B.5b bis, contrôle 4 — hypothèse confirmée de la revue) :
         // `regimePaire` ne rabat PAS « Dégâts réels » sur `aucun` quand le
         // sort n'est pas encore calculable — c'est `regimeEquipement` qui le
-        // fait, une fois, AVANT `faireParamsArtefacts`. Utiliser `regimePaire`
+        // fait, une fois, AVANT `entreeResolutionDuBuild`. Utiliser `regimePaire`
         // ici laissait la signature identique pendant la transition « sort
         // indisponible → calculable » (`contexteDegatsArtefacts` passe de
         // `null` à un contexte, `regimePaire` reste `'degats_reels'` dans les
@@ -2186,105 +2184,46 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     [selected?.monster.com2usId, selected?.gear.relic, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras]
   );
 
-  const faireParamsArtefacts = useMemo(() => {
-    // ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
-    // possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
-    // faire passer par la file lui ferait « choisir » entre un seul candidat,
-    // pour un résultat identique et cent tranches de temps masqué en pure
-    // perte.
-    if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    // ⚠️ `relique` : la candidate que la résolution exacte (lot 5b) essaie
-    // pour ce build — elle REMPLACE la portée dans les stats qui notent chaque
-    // paire (garantie G, jamais un cumul). Hors mode `recherche`, la file
-    // passe la portée elle-même : strictement le comportement d'avant.
-    return (c: BuildCandidate, relique: RelicDetail | undefined): ArtifactSearchParams => {
-      // ⚠️ Les stats sont recalculées avec LES RUNES DE CE CANDIDAT, pas celles
-      // de l'équipement affiché : la stat principale d'un artéfact entre dans
-      // les stats du monstre, donc comparer des paires sur un autre build
-      // comparerait des scores faux.
-      const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean), relic: relique };
-      // ⚠️ **UN seul `computeStats` par build, pas un par paire.** L’évaluateur
-      // tourne pour CHAQUE paire autorisée — quelques milliers en « Dégâts
-      // réels », où la dominance n’élague plus rien. L’apport d’un artéfact
-      // étant PLAT, les stats sans artéfact se calculent une fois et chaque
-      // paire ne coûte plus que trois additions (voir `statsParPaire`).
-      const statsAvec = statsParPaire(gear);
-      const espece = selected.monster;
-      /**
-       * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`,
-       * via `regimePaire`), pas sur une somme de statistiques principales —
-       * voir `evaluerPourRegime` (`artifactEvaluation.ts`) pour le contrat
-       * partagé avec la paire représentative plus haut et le CLI.
-       *
-       * ⚠️ **Et c'est `sortBy`, pas `objective`.** L'objectif fige le critère au
-       * lancement ; le tri, lui, peut changer après coup. Une paire optimisée
-       * pour les dégâts affichée dans une liste triée par PV effectifs
-       * montrerait une valeur qui n'est pas la meilleure atteignable.
-       *
-       * ⚠️ Sur Efficience et Vitesse (régime `'aucun'`), il n'y a RIEN à
-       * maximiser : `runeEfficiency` ne lit que les runes, et aucun artéfact
-       * ne donne de VIT. Deux paires valides y laissent le score identique —
-       * on garde donc la somme des principales, qui départage au moins sur la
-       * valeur brute, et le seul travail qui compte est la faisabilité
-       * (§12.6 d'artefacts.md).
-       */
-      // ⚠️ Le régime EFFECTIF (`regimeEquipement`), le même pour la paire ET
-      // la relique (D7 : un seul régime pour l'équipement complet) — jamais
-      // un paramètre `degats` optionnel silencieusement absorbé par le helper.
-      const regime = regimeEquipement;
-      // ⚠️ Le canal exclusive (lot 7) : la candidate qu'on essaie, plus le
-      // contexte de son assiette `Y`. C'est la MÊME note qui choisit la
-      // paire, choisit la relique et classe — jamais un score d'exclusive
-      // ajouté après coup (D6).
-      const exclusive = { relique, setup: contexteExclusive.setup, element: contexteExclusive.element };
-      // ⚠️ Les auras propres de CE candidat (6bis-b2), résolues sur les mêmes
-      // runes que `gear` : chaque paire et chaque relique essayées pour lui
-      // sont notées avec elles, puis la paire et la relique retenues.
-      const propres = aurasPropresDesRunes(gear.runes);
-      const evaluer =
-        regime === 'degats_reels'
-          ? evaluerPourRegime(regime, statsAvec, propres, contexteDegatsArtefacts!, exclusive)
-          : evaluerPourRegime(regime, statsAvec, propres, exclusive);
-      return { ...artifactParams, evaluer };
-    };
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive]);
-
   /**
    * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
    * file : `resoudreEquipementDuBuild` (relicQueue.ts, lot 5b), la partie
-   * pure que `tests/relic-queue.test.ts` compare à l'oracle. Ici on ne fait
-   * que lui donner le build, le prédicat à relique fixe
-   * (`respecteConditionsPaireFixe` : minimums et maximums RES/PRE, les
+   * pure que `tests/relic-queue.test.ts` compare à l'oracle, avec l'entrée
+   * construite par `entreeResolutionDuBuild` — le producteur que le CLI
+   * appelle aussi (degats-et-aura 6bis-b5c) : le build, le prédicat à relique
+   * fixe (`respecteConditionsPaireFixe` : minimums et maximums RES/PRE, les
    * autres maximums restant hors filtre, T11), les conditions complètes et
    * le contexte relique de la recherche LANCÉE (garantie G : jamais une
    * relecture des trois champs).
+   *
+   * ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
+   * possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
+   * faire passer par la file lui ferait « choisir » entre un seul candidat,
+   * pour un résultat identique et cent tranches de temps masqué en pure
+   * perte.
+   *
+   * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** : le régime
+   * effectif (`regimeEquipement`) suit `sortBy`, pas `objective`, quand
+   * « Adapter les artéfacts et reliques au tri » est activé. L'objectif fige
+   * le critère au lancement ; le tri, lui, peut changer après coup. Une paire
+   * optimisée pour les dégâts affichée dans une liste triée par PV effectifs
+   * montrerait une valeur qui n'est pas la meilleure atteignable.
    */
   const resoudreEquipement = useMemo(() => {
-    if (!faireParamsArtefacts || !selected) return null;
-    // ⚠️ Le filtre final du §12.5 d'avant ce lot — obligatoire, pas
-    // facultatif : la recherche valide les minimums contre une borne PAR STAT
-    // ISOLÉE (`searchArtifactBounds`), des builds arrivent donc ici sans
-    // qu'aucune paire réelle ne les rende équipables (mesuré : 99 sur 105).
-    // `null` quand aucun minimum ni maximum RES/PRE n'est posé
-    // (`conditionsPaireFixePosees`). Hors mode `recherche` de la
-    // relique seulement ; en mode `recherche`, `respecteConditionsAvecRelique`
-    // (minimums ET maximums, avec la candidate) le remplace.
-    const conditionsPosees = conditionsPaireFixePosees(requirementAvecAuras);
-    return (c: BuildCandidate) => {
-      const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
-      const propres = aurasPropresDesRunes(gear.runes);
-      return resoudreEquipementDuBuild({
-        gear,
-        faireParams: (relique) => faireParamsArtefacts(c, relique),
-        respecteConditions: conditionsPosees
-          ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), requirementAvecAuras, propres)
-          : null,
-        requirement: requirementAvecAuras,
-        regimeAucun: regimeEquipement === 'aucun',
-        relicContext: relicContextRecherche,
-      });
-    };
-  }, [faireParamsArtefacts, selected, runeById, requirement, requirementAvecAuras, regimeEquipement, relicContextRecherche]);
+    if (!artifactParams || !selected || !optimiserArtefacts) return null;
+    return (c: BuildCandidate) =>
+      resoudreEquipementDuBuild(
+        entreeResolutionDuBuild({
+          fiche: selected.gear,
+          runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
+          artifactParams,
+          regime: regimeEquipement,
+          degats: contexteDegatsArtefacts,
+          exclusive: contexteExclusive,
+          requirement: requirementAvecAuras,
+          relicContext: relicContextRecherche,
+        })
+      );
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
@@ -2390,29 +2329,26 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * pas exact tant que la file ne l'a pas traité — la page affichée passe
    * en priorité.
    */
-  const affichees = useMemo(() => {
-    if (fileArtefacts.parBuild.size === 0) return fullSortedCandidates;
-    // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
-    // ICI** (§12.5). Ils ont franchi la borne du moteur, calculée par stat
-    // isolée, sans qu'une paire puisse fournir les appoints simultanément.
-    // Un build non conforme reste AFFICHÉ tant que sa paire n'a pas été
-    // cherchée (absent du cache) : c'est le seul état honnête — on ne sait pas
-    // encore. La file traite la page affichée en priorité, donc le verdict
-    // arrive vite sur ce qu'on regarde.
-    // ⚠️ **B.5b bis, mineur de la revue** : `sortCandidates` est un tri
-    // STABLE, à score égal l'ordre d'entrée est préservé — mais cet ordre
-    // d'entrée (celui de l'appariement) n'a rien de canonique. Le départage
-    // (`ordonnerParDepartage`, `rid` croissant puis `cleBuild`, la convention
-    // du contrat, la même que l'oracle) est appliqué AVANT, sur les candidats
-    // conformes : le tri stable qui suit préserve ensuite CET ordre pour
-    // toute égalité de score, quel que soit l'ordre d'arrivée des Workers.
-    const conformes = ordonnerParDepartage(
-      fullSortedCandidates.filter((c) => fileArtefacts.parBuild.get(cleBuild(c))?.conforme !== false),
-      (c) => fileArtefacts.parBuild.get(cleBuild(c))?.relique?.id
-    );
-    const avecPaire = conformes.map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
-    return sortCandidates(avecPaire, sortBy, optionsDuTriAffiche);
-  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche]);
+  // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
+  // ICI** (§12.5). Ils ont franchi la borne du moteur, calculée par stat
+  // isolée, sans qu'une paire puisse fournir les appoints simultanément.
+  // Un build non conforme reste AFFICHÉ tant que sa paire n'a pas été
+  // cherchée (absent du cache) : c'est le seul état honnête — on ne sait pas
+  // encore. La file traite la page affichée en priorité, donc le verdict
+  // arrive vite sur ce qu'on regarde.
+  // ⚠️ **B.5b bis, mineur de la revue** : `sortCandidates` est un tri
+  // STABLE, à score égal l'ordre d'entrée est préservé — mais cet ordre
+  // d'entrée (celui de l'appariement) n'a rien de canonique. Le départage
+  // (`ordonnerParDepartage`, `rid` croissant puis `cleBuild`, la convention
+  // du contrat, la même que l'oracle) est appliqué AVANT, sur les candidats
+  // conformes : le tri stable qui suit préserve ensuite CET ordre pour
+  // toute égalité de score, quel que soit l'ordre d'arrivée des Workers.
+  // Les trois étapes vivent dans `classementResolu` (artifactQueue.ts), que le
+  // CLI appelle aussi (degats-et-aura 6bis-b5c).
+  const affichees = useMemo(
+    () => classementResolu(fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche),
+    [fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche]
+  );
 
   const pageCandidates = useMemo(
     () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
@@ -4993,7 +4929,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 // « Dégâts réels » ou file inactive, il n'y a rien à attendre,
                 // et annoncer une optimisation qui n'aura pas lieu serait faux.
                 paireProvisoire={
-                  faireParamsArtefacts != null &&
+                  resoudreEquipement != null &&
                   objective === 'degats_reels' &&
                   !fileArtefacts.parBuild.has(cleBuild(c))
                 }

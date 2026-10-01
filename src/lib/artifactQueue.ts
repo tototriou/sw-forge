@@ -17,7 +17,8 @@
 // fil principal), le « comment » dans `artifactOptim.ts`. Trois responsabilités
 // séparées, dont celle-ci est la seule testable sans navigateur.
 
-import { BuildCandidate, BuildRequirement } from './runeBuildOptim';
+import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, sortCandidates } from './runeBuildOptim';
+import { StatKey } from './effects';
 import { StatRow } from './stats';
 import { ArtifactDetail, RelicDetail } from '../types';
 import { PaireArtefacts } from './artifactOptim';
@@ -328,4 +329,40 @@ export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readon
     const cb = cleBuild(b);
     return ca < cb ? -1 : ca > cb ? 1 : 0;
   });
+}
+
+/**
+ * Le classement RÉEL : chaque build vu à travers son équipement résolu dès
+ * qu'il est connu (`parBuild`, le cache de la file), puis retrié — le
+ * producteur du classement affiché de l'écran (`affichees`,
+ * OptimizerSection.tsx) et du CLI (`optimizer-search.ts`), pour que les deux
+ * classent un même cache de la même façon (degats-et-aura 6bis-b5c).
+ *
+ * - `base` : l'ordre de BASE (paire supposée), déjà trié par
+ *   `sortCandidates` ; rendu tel quel tant que rien n'est résolu.
+ * - Les builds qu'AUCUN couple réel ne rend équipables (`conforme: false`)
+ *   sont écartés ICI (§12.5) ; un build absent du cache reste, car on ne sait
+ *   pas encore.
+ * - Départage canonique AVANT le tri stable (`ordonnerParDepartage`), puis
+ *   stats remplacées par celles de l'équipement retenu (`candidatAvecSaPaire`,
+ *   relique retenue comprise en mode `recherche`).
+ * - `options` : celles du classement affiché (`optionsDeClassement`), dont
+ *   le profil d'artéfacts et la relique de CHAQUE build lus dans ce même
+ *   cache.
+ *
+ * ⚠️ **Un build optimisé peut donc passer devant, et c'est le comportement
+ * voulu** — voir `candidatAvecSaPaire` pour l'argument de convergence.
+ */
+export function classementResolu(
+  base: BuildCandidate[],
+  parBuild: ReadonlyMap<string, ResultatArtefacts>,
+  sortBy: StatKey | Objective,
+  options: OptionsDeClassement
+): BuildCandidate[] {
+  if (parBuild.size === 0) return base;
+  const conformes = ordonnerParDepartage(
+    base.filter((c) => parBuild.get(cleBuild(c))?.conforme !== false),
+    (c) => parBuild.get(cleBuild(c))?.relique?.id
+  );
+  return sortCandidates(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
 }

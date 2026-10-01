@@ -24,12 +24,20 @@
 // contre l'oracle (`tests/relic-queue.test.ts`) exerce sur TOUS les candidats
 // d'une recherche, sans navigateur.
 
-import { ArtifactDetail, GearSet, RelicDetail } from '../types';
-import { StatRow, computeStats } from './stats';
+import { ArtifactDetail, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
+import { StatRow, computeStats, statsParPaire } from './stats';
 import { ArtifactSearchParams, PaireArtefacts, chercherPaires } from './artifactOptim';
-import { BuildRequirement, RechercheRefusee, respecteConditionsAvecRelique } from './runeBuildOptim';
+import {
+  BuildRequirement,
+  RechercheRefusee,
+  conditionsPaireFixePosees,
+  respecteConditionsAvecRelique,
+  respecteConditionsPaireFixe,
+} from './runeBuildOptim';
 import { RelicContext, bestRelicForBuild } from './relicOptim';
 import { ResultatArtefacts } from './artifactQueue';
+import { DegatsContext, RegimeArtefacts, evaluerPourRegime } from './artifactEvaluation';
+import { DamageSetup, aurasPropresDesRunes } from './damage';
 
 /**
  * Ce qu'il faut pour résoudre l'équipement d'UN build.
@@ -211,6 +219,97 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
     conforme: true,
     relique: meilleure.relique,
     ...(meilleure.sansEffetSurLeTri ? { sansEffetSurLeTri: true as const } : {}),
+  };
+}
+
+/**
+ * L'entrée de `resoudreEquipementDuBuild` pour UN candidat, assemblée comme
+ * l'écran l'assemble — le producteur que l'écran (`resoudreEquipement`,
+ * OptimizerSection.tsx) et le CLI (`resoudreEquipementCli`,
+ * recipeToSearchParams.ts) appellent tous deux, pour que la résolution du
+ * CLI soit celle de l'écran par construction (degats-et-aura 6bis-b5c).
+ *
+ * - `fiche` : l'équipement de la fiche (`selected.gear`, `loaded.gear`) — sa
+ *   base, ses artéfacts et sa relique PORTÉS ; seules ses runes sont
+ *   remplacées par celles du candidat.
+ * - `artifactParams` : le contexte de choix des paires (`artifactParams` de
+ *   l'écran, `artefactsDuCli` au CLI) ; son `evaluer` est REMPLACÉ ici.
+ * - `regime` : le régime EFFECTIF (`regimeEquipement`), le même pour la paire
+ *   ET la relique (D7 : un seul régime pour l'équipement complet) — jamais un
+ *   contexte de dégâts optionnel silencieusement absorbé par le helper.
+ * - `requirement` : les conditions AVEC auras (`avecAurasConditions`).
+ * - `relicContext` : celui de la recherche LANCÉE (garantie G : jamais une
+ *   relecture des trois champs de l'écran).
+ */
+export function entreeResolutionDuBuild(e: {
+  fiche: GearSet;
+  runes: RuneDetail[];
+  artifactParams: Omit<ArtifactSearchParams, 'evaluer'>;
+  regime: RegimeArtefacts;
+  degats: DegatsContext | null;
+  exclusive: { setup: DamageSetup; element: ElementKey | null };
+  requirement: BuildRequirement;
+  relicContext: RelicContext | undefined;
+}): EntreeResolution {
+  // ⚠️ Les stats sont recalculées avec LES RUNES DE CE CANDIDAT, pas celles
+  // de l'équipement affiché : la stat principale d'un artéfact entre dans
+  // les stats du monstre, donc comparer des paires sur un autre build
+  // comparerait des scores faux.
+  const gear: GearSet = { ...e.fiche, runes: e.runes };
+  // ⚠️ Les auras propres de CE candidat (6bis-b2), résolues sur les mêmes
+  // runes que `gear` : chaque paire et chaque relique essayées pour lui
+  // sont notées avec elles, puis la paire et la relique retenues.
+  const propres = aurasPropresDesRunes(gear.runes);
+  if (e.regime === 'degats_reels' && !e.degats) {
+    // `regimeEquipementDe` rabat « Dégâts réels » sans sort sur `aucun` :
+    // arriver ici est une incohérence de l'appelant, jamais un repli.
+    throw new Error('entreeResolutionDuBuild : régime « Dégâts réels » sans contexte de dégâts — régime effectif non rabattu.');
+  }
+  // ⚠️ Le filtre final du §12.5 — obligatoire, pas facultatif : la recherche
+  // valide les minimums contre une borne PAR STAT ISOLÉE
+  // (`searchArtifactBounds`), des builds arrivent donc ici sans qu'aucune
+  // paire réelle ne les rende équipables (mesuré : 99 sur 105). `null` quand
+  // aucun minimum ni maximum RES/PRE n'est posé (`conditionsPaireFixePosees`).
+  // Hors mode `recherche` de la relique seulement ; en mode `recherche`,
+  // `respecteConditionsAvecRelique` (minimums ET maximums, avec la
+  // candidate) le remplace.
+  const conditionsPosees = conditionsPaireFixePosees(e.requirement);
+  return {
+    gear,
+    // ⚠️ `relique` : la candidate que la résolution exacte (lot 5b) essaie
+    // pour ce build — elle REMPLACE la portée dans les stats qui notent chaque
+    // paire (garantie G, jamais un cumul). Hors mode `recherche`, la
+    // résolution passe la portée elle-même.
+    faireParams: (relique) => {
+      // ⚠️ **UN seul `computeStats` par build et par relique, pas un par
+      // paire.** L'évaluateur tourne pour CHAQUE paire autorisée — quelques
+      // milliers en « Dégâts réels », où la dominance n'élague plus rien.
+      // L'apport d'un artéfact étant PLAT, les stats sans artéfact se
+      // calculent une fois et chaque paire ne coûte plus que trois additions
+      // (voir `statsParPaire`).
+      const statsAvec = statsParPaire({ ...gear, relic: relique });
+      // ⚠️ Le canal exclusive (lot 7) : la candidate qu'on essaie, plus le
+      // contexte de son assiette `Y`. C'est la MÊME note qui choisit la
+      // paire, choisit la relique et classe — jamais un score d'exclusive
+      // ajouté après coup (D6).
+      const exclusive = { relique, setup: e.exclusive.setup, element: e.exclusive.element };
+      // ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (le
+      // régime effectif), pas sur une somme de statistiques principales —
+      // voir `evaluerPourRegime` (`artifactEvaluation.ts`). Sur Efficience et
+      // Vitesse (régime `'aucun'`), il n'y a RIEN à maximiser : le seul
+      // travail qui compte est la faisabilité (§12.6 d'artefacts.md).
+      const evaluer =
+        e.regime === 'degats_reels'
+          ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive)
+          : evaluerPourRegime(e.regime, statsAvec, propres, exclusive);
+      return { ...e.artifactParams, evaluer };
+    },
+    respecteConditions: conditionsPosees
+      ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), e.requirement, propres)
+      : null,
+    requirement: e.requirement,
+    regimeAucun: e.regime === 'aucun',
+    relicContext: e.relicContext,
   };
 }
 

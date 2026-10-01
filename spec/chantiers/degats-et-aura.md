@@ -628,8 +628,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b5c — CLI en mode recherche et parité finale | J | terminé, contrat amendé (option 2, décision utilisateur), preuves, mutation et CLI réel rejoués par le pilote | `808d2d36`…`b8b28f63` ; reçu `b8b28f6` ↔ `9ef88ae` / 2026-10-01 |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | terminée : corrections avant le lot 7 ; B1 rejoué par le pilote ; preuve archivée | `controle-6bis-b-revue-technique.md`, notes `3b7d237` / 2026-10-01 |
 | 6bis-b6 — paramètres d'artéfacts partagés et outils de preuve relique | J | terminé, preuves et mutation rejouées par le pilote | `d80274ba`…`4957a782` ; reçu `4957a78` ↔ `3e26c7f` / 2026-10-01 |
-| 6bis-b3d-1 — dominance et lignes 218–221 : le correctif | J | lançable | — |
-| 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | contrat amendé ; attend b3d-1 | — |
+| 6bis-b3d-1 — dominance et lignes 218–221 : le correctif | J | terminé, preuves et mutation rejouées par le pilote | `99463b70` + `4e761e7e` ; reçu `4e761e7` ↔ `457ec7a` / 2026-10-01 |
+| 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | lançable | — |
 | 6bis-b7 — troncature du régime parallèle | J | contrat amendé ; attend b3d-2 | — |
 | 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | contrat amendé ; attend b7 | — |
 | 6bis-b9 — tri par stat sur la fiche | J | contrat amendé ; attend b8 | — |
@@ -3885,6 +3885,67 @@ L4576-4580). Or `damageRelevantStats` exclut ces stats de l'objectif
 
 **Ne fait pas :** les oracles et le générateur (b3d-2) ; aucune mesure de
 temps.
+
+###### Résultat du lot 6bis-b3d-1 — 2026-10-01
+
+Deux commits, poussés :
+
+- `99463b70` : la dominance protège, en « Dégâts réels », les bonus de set
+  dont la stat nourrit une ligne 218–221 (`statsLuesParLesLignes` :
+  les lignes de la paire `artifacts`, toujours, unies au champ optionnel
+  `statsLignesArtefactsEquipables`, que l'écran remplit dans
+  `handleSearch` et le CLI dans `resolveStatsLignesArtefacts`). Le commit
+  porte aussi le test nommé et trois specs publiques.
+- `4e761e7e` : la note de l'oracle 218–221 égale `scoreDuCandidat`,
+  candidat par candidat.
+
+Reçu `4e761e7` ↔ `457ec7a` (968 fichiers), notes intégrées au main
+documentaire `d4fbb27`. Preuve privée `controle-6bis-b3d-1.md`. Quatre
+recettes gelées (`[rage]` et `[blade]`, relique `equipped` et `recherche` ;
+sha256 `4c3eb265…`, `fab1fa70…`, `aff0e366…`, `d9a602a6…`).
+
+Le pilote a relu le diff et rejoué sur `4e761e7e` :
+
+- `npx tsc --noEmit` → 0 ;
+- `node tests/run.mjs dominancelignes` → 99 vérifications passées ;
+- `node tests/run.mjs dominance auras-coupes artefactsficheparams runeoptim
+  cli auras` → 2 953 passées ; build et spec-lint verts ; « Reçu valide » ;
+- **mutation du pilote** (`statsLuesParLesLignes` vidé) : 17 échecs sur
+  99, dont « Energy passe la dominance » et le cas `ignoreArtifacts` du CLI ;
+  fichier restauré depuis git, puis 99 passées.
+
+Rapportés, non rejoués :
+
+- les quatre porteurs, rouges sur `f40e049f` (10 échecs sur 50, aux chiffres
+  de la sonde de la revue), puis verts ;
+- le set formable seulement par le joker, rouge puis vert ;
+- la branche « Libre » par la vraie résolution, et la mutation « union
+  réduite à la paire représentative » : 5 échecs sur 91 ;
+- **garantie de coût tenue** : avec Intangible, `interchangeables` et les
+  runes après dominance sont identiques sur les quatre recettes. Sans
+  Intangible, c'est la correction : `[rage]` equipped 19 → 15
+  interchangeables (2 563 → 2 622 runes), `[blade]` equipped 18 → 13
+  (2 604 → 2 717), `[blade]` recherche 14 → 13, `[rage]` recherche inchangé.
+
+Écarts acceptés :
+
+- le champ est produit par une fonction voisine
+  (`statsLignesArtefactsEquipables`), puisque `parametresArtefactsFiche`
+  rend des `ArtifactSearchParams` ; le mémo figé par b6 ne change pas ;
+- l'union passe par `candidatsParSorte`, qui applique la principale imposée
+  et « Garder l'artéfact équipé » mais pas les verrous. La résolution les
+  applique aussi : l'union reste un sur-ensemble de ce qu'elle peut équiper ;
+- `ignoreArtifacts` au CLI : le champ reste absent, et le moteur lit la
+  paire portée ;
+- pas de rouge pour la branche « Libre » (le producteur n'existait pas) :
+  la mutation en tient lieu ;
+- `algorithme.md` reçoit deux sous-sections, pour un bloc qui dépassait la
+  limite du lint.
+
+Non prouvé : le navigateur (couvert par contrôle de source) ; le temps sans
+Intangible, comme prévu ; un cas réel où l'optimum affiché change ; les
+variantes Swift ×3 et Energy ×1 en tests nommés. La sonde `sonde-joker-b3d.ts`
+est archivée telle quelle et ne compile plus (paramètre ajouté).
 
 ##### 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé
 

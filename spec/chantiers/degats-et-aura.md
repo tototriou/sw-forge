@@ -278,6 +278,20 @@ LIVRENT ». Le lot ne lance pas `node scripts/chantier.mjs installer` : cette
 commande remplace l'outil de tous les chantiers de la machine. Le pilote la
 soumet à l'utilisateur après validation.
 
+**Audit parallèle de la prose des sorts** (décision utilisateur du
+2026-10-01). Une session distincte audite les sorts qui ne seraient pas
+encore bien implémentés. Elle travaille hors de ce worktree : aucune
+écriture dans l'arbre de code, aucune commande git sur cette branche (un
+fichier temporaire à sa racine a bloqué `livrer` le 2026-10-01), aucune
+modification de `damage.ts` avant les lots 8 à 11. Son livrable est un
+relevé, sans code ; son chemin, inconnu au 2026-10-01, s'inscrit ici à sa
+remise. Il nourrit la fin du chantier :
+
+- un constat sur une famille des lots 8 à 11 rejoint ce lot, par
+  amendement pilote avant son brief ; si l'audit n'est pas remis à ce
+  moment, le pilote demande à l'utilisateur s'il attend ;
+- tout le reste est un intrant de 13a (voir son contrat).
+
 ### A.6 Si une vérification échoue, si un cas est ambigu
 
 - **Vérification échouée → pas de commit.** Le lot s'arrête et rapporte.
@@ -375,6 +389,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
 1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
+audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
+                            pilote quand il touche leur famille
 3, 4, 5, 6, 6bis-a1, 6bis-a2a1-contexte, 6bis-a2a1-suite,
   6bis-a2a1-suite-correction-stats-chain,
   6bis-a2a1-suite-finalisation-preuve, 6bis-a2a2,
@@ -4958,7 +4974,8 @@ rien — il **constate**.
 ### Lot 13 — le reliquat de l'inventaire : un plan, pas une promesse
 
 **Deux étapes : 13a (C), puis 13b (J, plusieurs sessions bornées).**
-Requiert les lots 1, 11 et 12, y compris les corrections qu'exige le lot 12.
+Requiert les lots 1, 11 et 12, y compris les corrections qu'exige le lot 12,
+et la remise de l'audit parallèle de la prose des sorts (A.5).
 Le plan n'est pas une implémentation du reliquat.
 
 **Le volume, mesuré le 2026-09-23** (script d'extraction à rejouer et joindre
@@ -4990,7 +5007,12 @@ l'intrant en lignes.
 #### 13a — extraction et réconciliation, sans jugement de mécanique
 
 **Intrants bornés :** les 695 lignes d'audit du CSV, le suivi d'implémentation, les
-preuves des lots 1/8/9/10/11/12. Conserver un instantané des intrants et leur
+preuves des lots 1/8/9/10/11/12, et le relevé de l'audit parallèle de la prose
+des sorts (A.5), pour ce qui n'a pas rejoint les lots 8 à 11. Chacun de ses
+constats est rattaché à l'un des 243 constats, à un lot du chantier, ou classé
+découverte hors inventaire avec un identifiant distinct. Il reste un indice,
+qualifié en 13b (`game-data-curation`), jamais un verdict de mécanique.
+Conserver un instantané des intrants et leur
 révision avec le script d'extraction dans `controle-13a.md`.
 Commande du recomptage initial (PowerShell, depuis la racine) :
 

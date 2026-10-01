@@ -2277,7 +2277,11 @@ différent, coopératif (voir « Interruption »).
       le régime de l'équipement suit le tri ; en relique « recherche », trier
       par une stat ne fait donc plus préférer une Bravoure, une Éternité ou
       une Origine pour ses points, et la relique et la paire affichées
-      peuvent changer par rapport à avant ce lot.
+      peuvent changer par rapport à avant ce lot. Deux reliques de même
+      principale y sont alors souvent **ex æquo** : la relique **portée**
+      l'emporte si elle est parmi les meilleures, sinon la plus petite `id`
+      (décision de l'utilisateur du 2026-10-01). Ce départage ne choisit que
+      la relique affichée ; les autres régimes gardent la plus petite `id`.
     - **PV effectifs** et **Dégâts réels** — la paire maximise l’objectif.
     - **Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance, Précision** —
       aucun artéfact n’entre dans ces classements : rien à y maximiser, seule

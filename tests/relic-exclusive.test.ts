@@ -39,8 +39,8 @@ import { exclusiveChiffrable } from '../src/lib/relicOptim';
 import { RELIC_UNIQUE } from '../src/lib/effects';
 import { aurasPropresParRunes, objectiveScore, optionsDeClassement, pvEffectifs, scoreDeReference, scoreDuCandidat, sortCandidates, statTotal } from '../src/lib/runeBuildOptim';
 import type { BuildCandidate, RealDamageContext } from '../src/lib/runeBuildOptim';
-import { resoudreContexteRelique } from '../src/lib/relicOptim';
-import { etatReliqueDuBuild } from '../src/lib/relicQueue';
+import { bestRelicForBuild, resoudreContexteRelique } from '../src/lib/relicOptim';
+import { entreeResolutionDuBuild, etatReliqueDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { classementResolu, cleBuild, signatureArtefacts, type ResultatArtefacts } from '../src/lib/artifactQueue';
 import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import type { RelicIntent } from '../src/hooks/useOptimizerState';
@@ -676,4 +676,48 @@ export function testTriParStatSurLaFiche() {
   ok(evaluerPourRegime('ehp', () => b.stats, propresB, { relique: origine, setup: SETUP, element: null })([])
     > evaluerPourRegime('ehp', () => b.stats, propresB, { relique: undefined, setup: SETUP, element: null })([]),
     'témoin, évaluateur de paire « PV effectifs » : les points Origine comptent');
+}
+
+export function testDepartageReliquePortee() {
+  titre('Mode recherche, régime de stat — à égalité, la relique PORTÉE l’emporte (6bis-b9)');
+
+  // Le build B du test précédent : il franchit 3 tranches de Bravoure.
+  const runes: RuneDetail[] = [1, 2, 3, 4, 5, 6].map((slot) => rune(7700 + slot, slot, slot === 1 ? [3, 250] : slot === 5 ? [1, 6000] : [8, 0]));
+  // Même principale (ATQ +10 %) que la Bravoure 690, plus grande `id` :
+  // l'ancienne note (points) ET la seule règle de l'`id` retiendraient 690.
+  const portee = piece(695, 101, 10, 9, 16, 1000, 5);
+  const autre = piece(696, 101, 10, 9, 16, 1000, 5);
+  const principalePv = piece(697, 100, 10, 9, 16, 1000, 5);
+
+  const resoudre = (regime: 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels', eligibles: RelicDetail[], porteeDuMonstre: RelicDetail) =>
+    resoudreEquipementDuBuild(entreeResolutionDuBuild({
+      fiche: { base: BASE, runes: [], artifacts: [], relic: porteeDuMonstre },
+      runes,
+      artifactParams: { porteur: { element: 'fire', archetype: 'attack' }, inventaire: [], equipes: [], principaleParSorte: {} },
+      regime,
+      degats: regime === 'degats_reels' ? DEGATS : null,
+      exclusive: { setup: SETUP, element: null },
+      requirement: { sets: [], minStats: {}, maxStats: {} },
+      relicContext: resoudreContexteRelique(intention('recherche'), porteeDuMonstre, eligibles),
+    }));
+
+  egal(resoudreContexteRelique(intention('recherche'), portee, [BRAVOURE_ATQ, portee]).eligibles.map((r) => r.id), [690, 695], 'précondition : les deux reliques sont candidates');
+  for (const regime of ['atk', 'hp', 'def'] as const) {
+    const r = resoudre(regime, [BRAVOURE_ATQ, portee], portee);
+    egal([r.conforme, r.relique?.id], [true, 695], `régime ${regime} : Bravoure (690) et portée (695) ex æquo sur la fiche → la portée`);
+  }
+  egal(resoudre('atk', [BRAVOURE_ATQ, autre, principalePv], principalePv).relique?.id, 690,
+    'régime atk : portée candidate mais moins bonne (principale PV) → la plus petite id des ex æquo (690)');
+
+  // Témoins : les autres régimes gardent leur règle.
+  egal(resoudre('degats_reels', [BRAVOURE_ATQ, portee], portee).relique?.id, 690, 'témoin Dégâts réels : la Bravoure gagne par ses points, pas d’égalité');
+  egal(resoudre('ehp', [BRAVOURE_ATQ, portee], portee).relique?.id, 690,
+    'témoin PV effectifs : ex æquo (les points d’ATQ ne touchent pas les PV) → plus petite id, la portée ne passe pas d’abord');
+
+  // `bestRelicForBuild` seul : le départage n'existe que sur demande.
+  const constante = () => 1;
+  egal(bestRelicForBuild([BRAVOURE_ATQ, portee], constante, { equipee: portee, departagePortee: true })?.relique.id, 695, 'bestRelicForBuild, departagePortee : la portée ex æquo l’emporte');
+  egal(bestRelicForBuild([BRAVOURE_ATQ, portee], constante, { equipee: portee })?.relique.id, 690, 'bestRelicForBuild, sans departagePortee : plus petite id (convention de l’oracle)');
+  egal(bestRelicForBuild([BRAVOURE_ATQ, portee], (r) => (r.id === 690 ? 2 : 1), { equipee: portee, departagePortee: true })?.relique.id, 690,
+    'bestRelicForBuild, departagePortee : la portée moins bien notée ne passe pas devant');
 }

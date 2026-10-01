@@ -429,10 +429,17 @@ export interface MeilleureRelique {
 // score constant pour toute candidate faisable ; le choix privilégie la
 // relique déjà équipée si elle est candidate et faisable pour CE build,
 // sinon la première faisable par `id` croissant.
+//
+// `departagePortee` : régimes de stat `hp`/`atk`/`def` (degats-et-aura
+// 6bis-b9, décision de l'utilisateur du 2026-10-01) — `evaluate` y note la
+// FICHE, sans l'effet unique, et deux reliques de même principale sont ex
+// æquo : la relique PORTÉE l'emporte si elle est parmi les meilleures, sinon
+// la plus petite `id`. Ce départage ne touche que le CHOIX de la relique ;
+// les autres régimes, et l'oracle (garantie E), gardent l'`id` croissant.
 export function bestRelicForBuild(
   candidates: RelicDetail[],
   evaluate: (relique: RelicDetail) => RelicEvaluation,
-  options?: { regimeAucun?: boolean; equipee?: RelicDetail }
+  options?: { regimeAucun?: boolean; equipee?: RelicDetail; departagePortee?: boolean }
 ): MeilleureRelique | undefined {
   const faisables: [RelicDetail, number][] = [];
   for (const r of candidates) {
@@ -449,10 +456,13 @@ export function bestRelicForBuild(
   }
 
   const maxScore = Math.max(...faisables.map(([, s]) => s));
+  const exAequo = faisables.filter(([, s]) => s === maxScore);
+  const portee = options?.departagePortee && options.equipee != null
+    ? exAequo.find(([r]) => r.id === options.equipee!.id)
+    : undefined;
+  if (portee) return { relique: portee[0] };
   // Ex æquo → première par `id` croissant, ÉCRIT (trié), jamais l'ordre
   // d'itération de `candidates`.
-  const meilleure = faisables
-    .filter(([, s]) => s === maxScore)
-    .sort((x, y) => x[0].id - y[0].id)[0]![0];
+  const meilleure = exAequo.sort((x, y) => x[0].id - y[0].id)[0]![0];
   return { relique: meilleure };
 }

@@ -75,6 +75,9 @@ function entreeResolutionAvant(p: SearchParams, c: BuildCandidate, ctx: RelicCon
     respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement, aurasPropresDesRunes(gear.runes)) : null,
     requirement: p.requirement,
     regimeAucun: regime === 'aucun',
+    // Seul ajout à la copie (6bis-b9) : le champ obligatoire du départage
+    // des régimes de stat, qui n'existait pas au commit 7905df36.
+    regimeDeStat: regime === 'hp' || regime === 'atk' || regime === 'def',
     relicContext: ctx,
   };
 }

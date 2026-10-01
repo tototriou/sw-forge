@@ -34,7 +34,7 @@ export function classerFicheCollectee(params: SearchParams, resultat: SearchResu
         evaluer: evaluerPourRegime('degats_reels', statsParPaire({ ...gear, relic: relique }), propres,
           degats, { relique, setup: degats.setup, element: degats.element }) }),
       respecteConditions: (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), params.requirement, propres),
-      requirement: params.requirement, regimeAucun: false, relicContext: params.relicContext,
+      requirement: params.requirement, regimeAucun: false, regimeDeStat: false, relicContext: params.relicContext,
     }));
   }
   const opts = optionsDeClassement({

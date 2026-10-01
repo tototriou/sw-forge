@@ -70,6 +70,12 @@ export interface EntreeResolution {
   // RES, PRE) ? La relique n'a alors aucun effet sur le tri : contrat de B.3
   // (équipée si candidate et faisable, sinon première par `id`).
   regimeAucun: boolean;
+  // Le régime effectif est-il `hp`, `atk` ou `def` ? La paire et la relique y
+  // sont notées sur la fiche, sans l'effet unique : deux reliques de même
+  // principale sont ex æquo, et la PORTÉE l'emporte si elle est parmi les
+  // meilleures (`bestRelicForBuild`, `departagePortee` — degats-et-aura
+  // 6bis-b9). Obligatoire, pour que `tsc` signale un constructeur oublié.
+  regimeDeStat: boolean;
   // Le contexte canonique de la recherche dont ce build est issu (garantie
   // G) — jamais recalculé ici. Absent : chemin écran d'avant le lot 5c.
   relicContext: RelicContext | undefined;
@@ -186,9 +192,10 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
       return 'infaisable';
     },
     // (6) Le meilleur couple faisable entre candidates — ex æquo : `id`
-    // croissant (`bestRelicForBuild`, la même convention que l'oracle) ;
+    // croissant (`bestRelicForBuild`, la même convention que l'oracle),
+    // sauf en régime de stat, où la portée passe d'abord (6bis-b9) ;
     // régime `aucun` : contrat de B.3.
-    { regimeAucun: e.regimeAucun, equipee: ctx.equipee }
+    { regimeAucun: e.regimeAucun, equipee: ctx.equipee, departagePortee: e.regimeDeStat }
   );
 
   // (7) Aucun couple faisable : rejeté.
@@ -309,6 +316,7 @@ export function entreeResolutionDuBuild(e: {
       : null,
     requirement: e.requirement,
     regimeAucun: e.regime === 'aucun',
+    regimeDeStat: e.regime === 'hp' || e.regime === 'atk' || e.regime === 'def',
     relicContext: e.relicContext,
   };
 }

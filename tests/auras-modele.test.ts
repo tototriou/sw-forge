@@ -225,7 +225,7 @@ export function testAurasChoixEffectifReliqueEhp() {
     ok(Math.abs(scores[1]! - oracle.def) < 1e-9, `${nom} : score chiffré de la relique DEF`);
     egal(scores[0]! > scores[1]!, oracle.retenue === pv.id, `${nom} : classement chiffré des deux candidates`);
     const resolution = resoudreEquipementDuBuild({ gear, faireParams, respecteConditions: null,
-      requirement: { minStats: {}, maxStats: {} }, regimeAucun: false, relicContext: ctx });
+      requirement: { minStats: {}, maxStats: {} }, regimeAucun: false, regimeDeStat: false, relicContext: ctx });
     egal(resolution.conforme, true, `${nom} : un couple faisable est retenu`);
     egal(resolution.relique?.id, oracle.retenue, `${nom} : relique effectivement retenue par la résolution`);
     ok(Math.abs((resolution.paire?.score ?? NaN) - Math.max(oracle.pv, oracle.def)) < 1e-9,
@@ -728,7 +728,7 @@ export function testAurasConditionsPropresResolution() {
       evaluer: evaluerPourRegime('ehp', statsParPaire({ ...gear, relic: relique }), propres, { relique, setup: SETUP, element: null }),
     });
     const conforme = (req: BuildRequirement) => resoudreEquipementDuBuild({ gear, faireParams, respecteConditions: null,
-      requirement: req, regimeAucun: false, relicContext: ctx }).conforme;
+      requirement: req, regimeAucun: false, regimeDeStat: false, relicContext: ctx }).conforme;
     egal(conforme(conditions({ res }, {}, true)), true, `${nom} : minimum RES ${res} franchi, couple retenu`);
     egal(conforme(conditions({ res }, {}, false)), false, `${nom} : toggle éteint, minimum RES ${res} non franchi`);
     egal(conforme(conditions({}, { res: res - 1 }, true)), false, `${nom} : maximum RES ${res - 1} dépassé, aucun couple`);

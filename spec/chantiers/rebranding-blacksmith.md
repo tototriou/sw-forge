@@ -127,7 +127,7 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R9b Mécaniques, Nouveautés | J | **validé par Thomas** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par Thomas** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
 | Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **sorti de cette branche** (décision 61) : chantier à part, après la fusion | |
-| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 61 à 63) | M | en cours — 12a contrôles | |
+| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 61 à 63) | M | en cours — 12a fait : `tsc`, build, inventaire, chemins interdits verts ; `npm test` 5 KO, tous sur le hook `pre-commit` de l'outil `chantier` (non exécutable sous Linux, préexistant, hors refonte) — **décision de Thomas en attente** ; garde-fou de navigation ajouté (64) `015cad83` | 2026-10-01 |
 
 ### A.8 Décisions prises en cours de chantier
 
@@ -388,6 +388,18 @@ les décisions 43 et 44 s'appliquent ; une seule icône à changer.
 Le lot 12 garde les deux arrêts de la décision 47 : 12a contrôles (rien
 modifié), 12b relecture générale par Thomas sur une liste de pages, 12c
 note de version montrée avant commit, 12d branche poussée et PR ouverte.
+
+#### 64 — un garde-fou sur la navigation simple (Thomas, 2026-10-01)
+
+« Je veux un garde-fou à ce niveau-là. »
+
+64. **Toute adresse a sa page, tout lien est inscrit** :
+    `tests/navigation-adresses.test.ts` tient la table des adresses ;
+    `testRenduAppLiensMorts` y confronte chaque lien affiché, sur chaque page
+    (`015cad83`, [navigation.md](../shared/navigation.md) § Adresses). Hors couverture : le
+    panneau mobile, la palette Ctrl K et le retour du ⚙. Relevé sans
+    correction (aucun changement fonctionnel, 47) : une barre oblique finale
+    casse `#/bestiary/` (→ accueil) et `#/siege/offense/` (→ Défense).
 
 ## Partie B — les lots
 

@@ -275,8 +275,11 @@ ce piège s'est reproduit alors qu'il était déjà connu. D'où deux défauts
   … message, backticks compris …
   FIN
   ```
-  `<<'FIN'` entre apostrophes = aucune expansion. En PowerShell, l'équivalent
-  est le here-string `@'…'@` (voir la description de l'outil PowerShell).
+  `<<'FIN'` entre apostrophes = aucune expansion. **En PowerShell, pas de
+  here-string** : envoyé par un tube (`@'…'@ | git commit -F -`), il a déjà
+  glissé un BOM en tête d'un message, et passé en argument, git le prend
+  pour un chemin. Écrire le message dans un fichier (UTF-8 sans BOM, par
+  l'outil `Write`), puis `git commit -F <fichier>`.
 - **Un script ne se lance jamais en ligne** (`node -e "…"`) : il s'écrit dans
   un fichier du scratchpad et se lance par son chemin. Vaut aussi pour un
   fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`

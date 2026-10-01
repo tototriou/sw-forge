@@ -16,6 +16,17 @@
 // ils servent à comparer l'OPTIMUM du moteur à celui de l'oracle, évalués
 // par la MÊME fonction des deux côtés — une dominance qui retire une rune
 // Fight utile fait baisser le meilleur score, c'est tout ce qu'on mesure.
+//
+// ⚠️ **Limite assumée : cet oracle NE NOTE PAS** (degats-et-aura 6bis-b3d-2,
+// constat C8). Il compare un maximum PAR CRITÈRE, sans sort, sans artéfact
+// ni relique : il est aveugle à l'effet unique de la relique et aux lignes
+// d'artéfact 218–221. Mesuré : `statsDeLEffetUnique` ou `statsLuesParLesLignes`
+// vidé, il reste entièrement vert. Ces deux protections de la dominance sont
+// portées par l'oracle NOTÉ de `rune-optim-dominance-relique.test.ts` (note
+// de production, paire fixe tirée, différentiel ciblé) et par
+// `rune-optim-dominance-lignes.test.ts`. Ne pas étendre `criteresUtiles`
+// aux stats de l'effet unique ou des lignes : il recopierait la règle de
+// `contexteDominance` qu'il contrôle, au lieu de la juger.
 
 import { egal, ok, titre } from './outils';
 import { activeSets, runeEfficiency } from '../src/lib/effects';

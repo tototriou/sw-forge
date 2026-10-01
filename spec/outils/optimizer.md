@@ -533,6 +533,17 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    donc lancer la recherche avec une autre paire que l'écran. Son repli
    reste inchangé : sans sort calculable en « Dégâts réels », il garde la
    paire portée au lieu de noter en régime « aucun » comme l'écran.
+   Les paramètres de choix des paires (inventaire, pièces portées,
+   principales, verrous, amplifications de buff, maximums actifs) viennent
+   eux aussi d'un seul producteur, `parametresArtefactsFiche`
+   (degats-et-aura 6bis-b6), que l'écran appelle dans le même mémo
+   qu'avant, le script CLI et le différentiel relique aussi. Le script
+   neutralise donc les verrous de sous-propriété comme l'écran quand les
+   deux emplacements sont sur « Garder l'artéfact équipé » : il cherchait
+   jusque-là une paire qui les tienne, n'en trouvait aucune et rejetait
+   chaque build d'une recette que l'écran résolvait. Seul écart : le script
+   n'a pas de liste de travail, donc aucun artéfact réservé n'est retiré de
+   son inventaire.
 
 #### Affichage et emplacement de la proposition
    **Chaque artéfact proposé s'affiche comme dans le jeu** : sa statistique

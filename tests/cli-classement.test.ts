@@ -10,7 +10,8 @@
 // les conditions recalculées depuis la recette (`avecAurasConditions`, comme
 // `requirementAvecAuras`). Seul `artifactParams` (un mémo React) n'a pas
 // d'équivalent hors navigateur : son pendant CLI, `artefactsDuCli`, en tient
-// lieu — c'est le maillon que ce test ne prouve pas.
+// lieu. Depuis 6bis-b6, les deux passent par le même producteur
+// (`parametresArtefactsFiche`) — prouvé à part, `artifact-params-fiche.test.ts`.
 //
 // Attentes INDÉPENDANTES du chemin testé (A.6 bis : la note de référence est
 // celle de la production pour l'équipement complet) :

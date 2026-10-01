@@ -36,11 +36,10 @@ import {
   nombreDePairesRetenues,
   paireRepresentative,
   respecteMinimums,
-  type ChoixPrincipale,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
-import { evaluateursArtefactsFiche } from '../../lib/artifactFiche';
+import { evaluateursArtefactsFiche, parametresArtefactsFiche, sortesFigeesDe } from '../../lib/artifactFiche';
 import {
   CAPPED_STATS,
   RUNE_EFFECT,
@@ -111,7 +110,6 @@ import {
   monsterOffensivePassives,
   resolveDamageSkill,
   champsDuCombat,
-  codesAmplificationActifs,
   CRIT_MODE_LABELS,
   SUMMONER_SKILLS_LABELS,
   type DamageSetup,
@@ -1367,11 +1365,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     [selected, contexteReference]
   );
 
-  const sortesFigees = useMemo<ArtifactKind[]>(
-    () =>
-      ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (artifactMainByKind[key] ?? 'libre') === 'equipped'),
-    [artifactMainByKind]
-  );
+  const sortesFigees = useMemo<ArtifactKind[]>(() => sortesFigeesDe(artifactMainByKind), [artifactMainByKind]);
 
   const evaluateursFiche = useMemo(
     () => selected ? evaluateursArtefactsFiche(
@@ -1407,51 +1401,32 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // fiche du monstre, jamais des artéfacts — c'est ce qui évite la
     // circularité avec `realDamage`, qui est construit APRÈS ce bloc et lit
     // `searchArtifacts`.
+    //
+    // ⚠️ **Producteur partagé** (`parametresArtefactsFiche`, 6bis-b6) : le CLI
+    // et le différentiel relique l'appellent aussi, neutralisation des verrous
+    // comprise. Appelé DANS ce mémo, avec ses dépendances d'avant : sorti du
+    // mémo, `paireRepresentative` se recalculerait à chaque rendu.
+    // `sortesFigees` y reste : dérivé d'`artifactMainByKind` seul, il change
+    // exactement avec lui.
+    //
+    // ⚠️ `artefactsReserves` : les artéfacts RÉSERVÉS par les autres builds
+    // validés de la liste active sortent de l'inventaire — un artéfact
+    // physique ne se porte que sur un monstre à la fois, comme une rune. Ceux
+    // que CE monstre a lui-même réservés restent disponibles (auto-exemption
+    // dans `otherValidatedArtifactIds`).
     const evaluer = evaluateursFiche.representatif;
     return {
-      porteur: { element: espece.element, archetype: espece.archetype },
-      // ⚠️ **Amputé des artéfacts RÉSERVÉS** par les autres builds validés de
-      // la liste active : un artéfact physique ne se porte que sur un monstre à
-      // la fois, exactement comme une rune. Sans ça, deux monstres d'une même
-      // liste se verraient proposer la même pièce, et le plan serait
-      // inapplicable en jeu.
-      //
-      // ⚠️ Les artéfacts que CE monstre a lui-même réservés restent
-      // disponibles (auto-exemption dans `otherValidatedArtifactIds`) : sans
-      // elle, relancer une recherche sur un monstre déjà validé se
-      // priverait de ses propres pièces.
-      inventaire: artefactsReserves.size === 0 ? artifacts : artifacts.filter((a) => !artefactsReserves.has(a.id)),
-      equipes: selected.gear.artifacts,
-      principaleParSorte: (optimiserArtefacts
-        ? artifactMainByKind
-        : // ⚠️ Optimisation coupée : on GARDE ce qui est porté, des deux
-          // côtés. `candidatsParSorte` ne propose alors qu'un seul candidat
-          // par emplacement — la pièce réelle, avec ses sous-propriétés —, donc
-          // rien n'est cherché mais tout est compté.
-          { element: 'equipped', archetype: 'equipped' }) as Partial<Record<ArtifactKind, ChoixPrincipale>>,
-      // ⚠️ **Un verrou n'a aucun sens sans recherche.** Sans optimisation, ou
-      // avec les DEUX emplacements sur « Garder l'artéfact équipé », il n'y a
-      // qu'une paire possible : l'écarter parce qu'elle ne tient pas une ligne
-      // ne laisse aucune solution de rechange — `paireRepresentative` rend un
-      // tableau vide et la recherche refuse de partir. On les neutralise donc
-      // ici, en plus de les griser dans l'éditeur (voir `sortesFigees`).
-      //
-      // ⚠️ Les verrous restants ne sont PAS filtrés ligne par ligne : une ligne
-      // exclusive à une sorte figée est déjà retirée du choix par l'éditeur, et
-      // en garder une posée avant le changement reste FIDÈLE — elle exprime une
-      // exigence que la pièce figée doit satisfaire, ce que `paireRespecteLignes`
-      // vérifie correctement.
-      lignesVerrouillees:
-        optimiserArtefacts && sortesFigees.length < ARTIFACT_KINDS.length ? lignesVerrouillees : [],
-      // ⚠️ Sans ça, une amplification de buff est éliminée par dominance alors
-      // qu'elle vaut des dégâts — la sonde de pertinence ne peut pas la voir
-      // (voir `codesAmplificationActifs`, damage.ts).
-      codesAmplification: codesAmplificationActifs(damageSetup),
-      // ⚠️ **B.5b bis, bloquant 1** : sous un maximum actif, une principale
-      // plus grande n'est plus « au moins aussi bonne » — voir le commentaire
-      // de `maxStatsActifs` sur `ArtifactSearchParams`. Filtré aux entrées
-      // RÉELLEMENT posées (> 0), comme `avecMaximum` plus bas.
-      maxStatsActifs: (Object.keys(maxStats) as StatKey[]).filter((k) => (maxStats[k] ?? 0) > 0),
+      ...parametresArtefactsFiche({
+        porteur: { element: espece.element, archetype: espece.archetype },
+        inventaire: artifacts,
+        reserves: artefactsReserves,
+        equipes: selected.gear.artifacts,
+        optimiserArtefacts,
+        principaleParSorte: artifactMainByKind,
+        lignesVerrouillees,
+        damageSetup,
+        maxStats,
+      }),
       evaluer,
     };
   }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats]);

@@ -33,10 +33,9 @@ import {
   resolveDamageSkill,
 } from '../../src/lib/damage';
 import { computeStats } from '../../src/lib/stats';
-import { codesAmplificationActifs } from '../../src/lib/damage';
-import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams, type BornesArtefacts, type ChoixPrincipale } from '../../src/lib/artifactOptim';
+import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams, type BornesArtefacts } from '../../src/lib/artifactOptim';
 import { regimeArtefacts, regimeEquipementDe, type DegatsContext } from '../../src/lib/artifactEvaluation';
-import { evaluateursArtefactsFiche } from '../../src/lib/artifactFiche';
+import { AUCUN_ARTEFACT_RESERVE, evaluateursArtefactsFiche, parametresArtefactsFiche } from '../../src/lib/artifactFiche';
 import { entreeResolutionDuBuild, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
 import type { ResultatArtefacts } from '../../src/lib/artifactQueue';
 import { buildRealDamageContext } from './realDamageCli';
@@ -282,10 +281,13 @@ export function resoudreEquipementCli(
  * (`paireReelle`) et les bornes de faisabilité (`resolveArtifactBounds`)
  * partent EXACTEMENT du même contexte.
  *
- * ⚠️ **Second constructeur d'`ArtifactSearchParams`** (l'autre est
- * `artifactParams`, OptimizerSection.tsx). Un champ ajouté là-bas doit l'être
- * ici — `tsc` ne le dira pas tant qu'il reste optionnel (voir CLAUDE.md,
- * « un type partagé a PLUSIEURS constructeurs »).
+ * ⚠️ **Le producteur de l'écran** (`parametresArtefactsFiche`,
+ * artifactFiche.ts, 6bis-b6), jamais un assemblage local : jusque-là, ce
+ * second constructeur ne neutralisait pas les verrous quand les deux
+ * emplacements sont figés, et rejetait chaque build d'une recette que
+ * l'écran résolvait (constat C5 de la revue technique 6bis-b). Seul écart
+ * documenté : le CLI n'a pas de liste de travail, donc aucun artéfact
+ * réservé (`AUCUN_ARTEFACT_RESERVE`).
  */
 function paramsArtefacts(
   recipe: OptimizerRecipe,
@@ -294,30 +296,20 @@ function paramsArtefacts(
   evaluer: (arts: ArtifactDetail[]) => number
 ): Parameters<typeof paireRepresentative>[0] {
   return {
-    porteur,
-    inventaire: loaded.allArtifacts,
-    equipes: loaded.gear.artifacts,
-    principaleParSorte: recipe.artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
-    // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas.
-    //
-    // ⚠️ Les verrous s'appliquent DÈS ICI, sur la paire supposée : chaque
-    // ligne verrouillée mange un emplacement de sous-propriété qui aurait pu
-    // porter une ligne de dégâts. Une paire supposée qui les ignorerait
-    // noterait tous les candidats sur un potentiel que la paire finale ne
-    // pourra pas atteindre.
-    lignesVerrouillees: recipe.lignesVerrouillees ?? [],
-    // ⚠️ Sans cette ligne, le CLI élaguerait des artéfacts que l'écran garde,
-    // et ne reproduirait donc pas la même paire supposée. Une amplification de
-    // buff est invisible à la sonde de pertinence — voir
-    // `codesAmplificationActifs` (damage.ts).
-    codesAmplification: codesAmplificationActifs(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP),
-    // ⚠️ B.5b bis, bloquant 1 (dominance sous maximum actif) : `paireRepresentative`
-    // passe par `chercherPaires`, donc par la même dominance — sans ce champ,
-    // le CLI reproduirait le défaut que l'écran corrige (`artifactParams`,
-    // OptimizerSection.tsx), et « second constructeur » divergerait.
-    maxStatsActifs: (Object.keys(recipe.requirement.maxStats ?? {}) as StatKey[]).filter(
-      (k) => (recipe.requirement.maxStats?.[k] ?? 0) > 0
-    ),
+    ...parametresArtefactsFiche({
+      porteur,
+      inventaire: loaded.allArtifacts,
+      reserves: AUCUN_ARTEFACT_RESERVE,
+      equipes: loaded.gear.artifacts,
+      // Toujours vrai ici (les appelants s'arrêtent sur `ignoreArtifacts`),
+      // dit pour que le producteur décide comme à l'écran.
+      optimiserArtefacts: !recipe.ignoreArtifacts,
+      principaleParSorte: recipe.artifactMainByKind,
+      // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas.
+      lignesVerrouillees: recipe.lignesVerrouillees ?? [],
+      damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+      maxStats: recipe.requirement.maxStats ?? {},
+    }),
     evaluer,
   };
 }

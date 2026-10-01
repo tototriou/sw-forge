@@ -4210,19 +4210,21 @@ L1-2 ; `OptimizerSection.tsx` L2062), sur le temps libre du fil principal.
 L'invariant L101 (« ne ralentit jamais la recherche de façon perceptible »)
 n'a été mesuré qu'à K = 100 (`optimizer.md` L2328).
 
-**Intrant borné.**
+**Intrant borné**, recalé le 2026-10-01 sur `4bf8e84a` :
 
-- `src/hooks/useArtifactOptimQueue.ts` L1-30 et L100-110 ;
-- `src/lib/artifactQueue.ts` L140-170 (`prochainsATraiter`) ;
-- `OptimizerSection.tsx` : l'appel de la file (par grep de
-  `useArtifactOptimQueue({`) et `relicContextRecherche` (L491) ;
-- `scripts/lib/classementCli.ts` L1-140 ; `scripts/optimizer-search.ts`
-  L445-460 ;
+- `src/hooks/useArtifactOptimQueue.ts` L1-30 (`K_BUILDS_OPTIMISES` L24) et
+  L95-110 (usage L103) ;
+- `src/lib/artifactQueue.ts` L140-170 (`prochainsATraiter` L145) ;
+- `OptimizerSection.tsx` : `relicContextRecherche` L486-489, appel de la
+  file L2207 ;
+- `scripts/lib/classementCli.ts` L1-140 (usages L11, L37, L79, L130) ;
+  `scripts/optimizer-search.ts` L425-455 (appel L439, message qui cite
+  `K_BUILDS_OPTIMISES`) ;
 - `scripts/artifact-contention-diag.ts` (mesure de contention) ;
-- tests et textes qui changent : `cli-classement.test.ts` L146 et L255 ;
-  `optimizer.md` L1616 et L2334 ; `invariants.md` L77 et L101 ;
-  `algorithme-relique.md` L202 ; commentaires de `classementCli.ts` L11 et
-  L79 ;
+- tests et textes qui changent : `cli-classement.test.ts` L49, L106, L147
+  et L256 ; `optimizer.md` L1627-1640 et L2360-2378 ; `invariants.md` L77
+  et L101 ; `algorithme-relique.md` L202 ; commentaires de
+  `classementCli.ts` L11 et L79 ;
 - sonde `revue-technique-6bis-b/sonde-file-marge.ts` et sa recette
   `recette-revue-ehp-libre.json`.
 
@@ -4254,7 +4256,11 @@ n'a été mesuré qu'à K = 100 (`optimizer.md` L2328).
 - **Mesure de contention** selon `optimizer-perf-testing`, au créneau
   confirmé par l'utilisateur : temps de la recherche avec la file à K = 100
   contre K = 300, en mode recherche, artéfacts « Libre », sur une recette
-  réelle (`artifact-contention-diag.ts` ou équivalent fidèle). Min, médiane,
+  réelle (`artifact-contention-diag.ts` ou équivalent fidèle). La charge est
+  celle de la file en mode recherche (`resoudreEquipementDuBuild` par build,
+  reliques éligibles comprises), pas `chercherPaires` seul, et le script
+  affiche sa propre fidélité (coût par build, fourchette attendue) avant les
+  temps. Aucune autre session ne tourne pendant la mesure. Min, médiane,
   dispersion, répétitions entrelacées. `invariants.md` L101 réécrit avec le
   chiffre mesuré. **Si la recherche ralentit au-delà de la dispersion :
   A.6, s'arrêter et rapporter le chiffre à l'utilisateur avant de livrer.**

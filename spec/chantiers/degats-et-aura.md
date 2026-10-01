@@ -4334,13 +4334,15 @@ Bravoure, Éternité et Origine, sans les auras, le lead ni l'invocateur ; la
 carte affiche la fiche. Même mélange dans l'évaluateur de paire des
 régimes `hp`, `atk` et `def` (`artifactEvaluation.ts` L165-172).
 
-**Intrant borné.** `runeBuildOptim.ts` L1090-1130 (`scorerPour`) ;
-`artifactEvaluation.ts` L120-175 ; `relicOptim.ts` L430-460
-(`bestRelicForBuild`, ex æquo) ; `tests/relic-exclusive.test.ts`
-(`testRelicClassementParMode`, attentes PV/ATQ/DEF, et L410 « le tri classe
-sur 2 500 — écart non corrigé », qui bascule) ; `optimizer.md`, section de
-l'écart consigné par b5a ; `invariants.md` L76, L77 et L236 ; la doc
-relique qui décrit le choix de relique par régime.
+**Intrant borné**, recalé le 2026-10-01 sur `0336257e` :
+`runeBuildOptim.ts` L1110-1160 (`scorerPour` L1127, tri par stat L1158) ;
+`artifactEvaluation.ts` L90-175 (`evaluerPourRegime`, régimes de stat
+L165) ; `relicOptim.ts` L430-460 (`bestRelicForBuild` L432, ex æquo L452) ;
+`tests/relic-exclusive.test.ts` (`testRelicClassementParMode` L323,
+attentes PV/ATQ/DEF L395-403, et L407-411 « le tri classe sur 2 500 —
+écart non corrigé », qui bascule) ; `optimizer.md` L1654-1658 (l'écart
+consigné par b5a) ; `invariants.md` L76, L77 et L237 ;
+`algorithme-relique.md` L130-150 (choix entre candidates, ex æquo L139).
 
 **Contrat (décisions de l'utilisateur du 2026-10-01).**
 

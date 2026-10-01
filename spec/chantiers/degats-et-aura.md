@@ -392,6 +392,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b6 → 6bis-b3d-1 → 6bis-b3d-2 → 6bis-b7 → 6bis-b8 → 6bis-b9
         → 6bis-b10 (constat de l'utilisateur au navigateur, 2026-10-01)
         → 6bis-b11 (même occasion : la page affichée, 2026-10-02)
+        → 6bis-b12 (mesure, critère de b11 non tenu)
+        → 6bis-b13 (correction choisie sur les chiffres, contrat à créer)
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -408,7 +410,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
-  6bis-b9, 6bis-b10, 6bis-b11,
+  6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13,
   7, 12, tous les 13b-* → 14
 ```
 
@@ -667,7 +669,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b9 — tri par stat sur la fiche | J | terminé, preuves et mutation rejouées par le pilote | `4fa6ad5c` + `f3aa265d` ; reçu `f3aa265` ↔ `fb8d549` / 2026-10-01 |
 | 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | terminé, preuves et mutation rejouées par le pilote ; vérifié par l'utilisateur au navigateur | `fd9d7f52` ; reçu `fd9d7f5` ↔ `12a0296` / 2026-10-02 |
 | 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | code validé par le pilote ; **critère non tenu au navigateur** (saccades, page lente) ; mesure 6bis-b12 avant correction | `bfe6f6d7` ; reçu `bfe6f6d` ↔ `f17ad7e` / 2026-10-02 |
-| 7 — sets d'aura : l'écran | J | attend 6bis-b11 ; intrant à recaler au brief | — |
+| 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | lançable au créneau de l'utilisateur | — |
+| 6bis-b13 — correction choisie sur les chiffres de b12 | J | contrat à créer après b12 et la décision de l'utilisateur | — |
+| 7 — sets d'aura : l'écran | J | attend 6bis-b13 ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -4653,6 +4657,68 @@ fil de l'écran indépendamment de la file ; la voie prioritaire s'y ajoute.
 Un Worker de résolution seul ne réglerait pas des saccades dues au tri.
 **Suite : mesurer avant de corriger** (lot 6bis-b12). `bfe6f6d7` reste dans
 la branche en attendant ; rien n'est publié.
+
+##### 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré
+
+**Cat. C (mesure) ; requiert b11.** Décision de l'utilisateur du
+2026-10-02 : mesurer avant de corriger, par un agent qui pilote un
+Chromium sans affichage (skill `run-sw-forge`, accord explicite donné).
+Aucun code de production ne change.
+
+**Intrant borné**, relevé sur `9d75b75c` :
+
+- `OptimizerSection.tsx` : `candidatesSource` L2041, `fullSortedCandidates`
+  L2064-2084, `affichees` et `compteAffiche` après L2322 ;
+- `src/hooks/useArtifactOptimQueue.ts` (les deux voies de b11) ;
+- `src/lib/artifactQueue.ts` (`classementResolu`, `voieDeLaFile`) ;
+- `.claude/skills/run-sw-forge/` (driver, import du compte) ;
+- skill `optimizer-perf-testing` (protocole, contention, fidélité de la
+  charge) ; recette gelée `recette-6bis-b5c-artefacts-libres.json` (relique
+  « recherche », 4 reliques, artéfacts « Libre », « Dégâts réels »,
+  appariement parallèle, ~16 s au CLI).
+
+**Contrat.**
+
+- **Trois conditions**, sur la même recette, répétitions entrelacées
+  (au moins trois par condition), min, médiane, dispersion :
+  - (A) code actuel, voie prioritaire de b11 ;
+  - (B) code d'avant b11 (`727d52e2`), dans un worktree de MESURE
+    (cadrage `orchestration-parallele.md` § 2.1 : junction de
+    `node_modules`, déliée dans un `finally`) ;
+  - (C) optimisation d'artéfacts désactivée : pas de file, le tri seul.
+    Elle change la recherche elle-même ; c'est écrit.
+- **Deux modes de l'application** : le serveur de dev (où l'utilisateur a
+  observé les saccades : React en mode développement) et la version
+  construite servie localement (`npm run build` puis `vite preview`), la
+  seule représentative des utilisateurs. L'attribution par fonction se fait
+  en dev (noms lisibles) ; les chiffres de saccade, dans les deux.
+- **Ce qui se mesure, pendant la recherche** :
+  - les tâches longues du fil de l'écran (> 50 ms) : nombre, durée totale,
+    plus longue ;
+  - leur attribution, par profil CPU (protocole Chrome DevTools) : tri de
+    l'aperçu (`sortCandidates`), reclassement (`classementResolu`),
+    résolution de la file (`resoudreEquipementDuBuild`), rendu React,
+    autres ;
+  - le délai jusqu'à ce que la première page n'ait plus aucune carte
+    « artéfacts pas encore optimisés », et la même chose après un
+    changement de page en pleine recherche ;
+  - la durée de la recherche.
+- **Fidélité affichée avant les chiffres** : régime d'appariement réel,
+  taille de l'aperçu reçu, nombre de reliques éligibles, version du code
+  mesurée (sha), mode de l'application.
+- **Sortie** : `controle-6bis-b12.md`, les chiffres par condition et par
+  mode, puis une recommandation chiffrée parmi : Worker de résolution,
+  allègement du tri ou du rendu de l'aperçu, ou les deux. La décision
+  revient à l'utilisateur, puis un contrat de correction (6bis-b13).
+- Le script de mesure, réutilisable pour comparer la correction, peut
+  entrer dans `scripts/` (outil, commit à part) ; sinon il reste dans le
+  dossier de preuves.
+
+**Créneau** : la mesure ne se lance qu'au créneau confirmé par
+l'utilisateur — aucun autre agent, aucun `npm run dev` du pilote, aucun jeu
+ouvert (b8 : le jeu tournait pendant un échauffement).
+
+**Ne fait pas :** aucune correction, aucun changement de `src/`.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

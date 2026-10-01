@@ -10,7 +10,6 @@ import { pathToFileURL } from 'url';
 import { parseAccountInventory, parseAccountSource } from '../../src/lib/importAccount';
 import {
   BuildCandidate,
-  Objective,
   RechercheRefusee,
   SearchParams,
   aurasPropresParRunes,
@@ -18,7 +17,6 @@ import {
   objectiveScore,
   RealDamageContext,
   searchBuilds,
-  sortCandidates,
 } from '../../src/lib/runeBuildOptim';
 import type { StatKey } from '../../src/lib/effects';
 import { computeStats } from '../../src/lib/stats';
@@ -289,15 +287,15 @@ export function fusionnerRunsOracle(
   }
 
   const candidats = ordre.map((cle) => fusion.get(cle)!);
-  const objectif: Objective = params.objective ?? 'efficience';
-  const tries = sortCandidates(candidats, objectif, {
-    runeById,
-    metric: params.metric,
-    realDamage: options.realDamage,
-    damageSetup: options.exclusive?.setup,
-    aurasPropresDe: aurasPropresParRunes(runeById),
-  });
-  const optimum = (tries[0] as OracleCandidate | undefined) ?? null;
+  // ⚠️ L'optimum se classe par `OracleCandidate.score` — la note qui porte
+  // l'apport de la relique retenue —, jamais par `sortCandidates`, qui
+  // renotait sans l'effet unique et pouvait désigner un autre build
+  // (degats-et-aura 6bis-b6, constat C4). Ex æquo : `rid` croissant, puis
+  // ordre d'insertion — la convention de la fusion ci-dessus.
+  let optimum: OracleCandidate | null = null;
+  for (const c of candidats) {
+    if (!optimum || c.score > optimum.score || (c.score === optimum.score && (c.rid ?? Infinity) < (optimum.rid ?? Infinity))) optimum = c;
+  }
   return { candidats, optimum, rid: optimum?.rid, N: runs.length, runs: issues, complet: issues.every((r) => !r.truncated) };
 }
 

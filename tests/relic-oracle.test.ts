@@ -340,3 +340,41 @@ export function testRelicOracleGroupesEffetUnique() {
   egal(production, reference, 'la production rend l’optimum de la référence');
   egal(production, { cle: meilleur.runeIds.join(','), note: meilleur.score, rid: meilleur.rid }, '… le même que l’oracle : aucun « surplus » au différentiel');
 }
+
+export function testRelicOracleOptimumParScore() {
+  titre('Oracle relique — l’optimum est le meilleur OracleCandidate.score, ex æquo par rid puis ordre d’insertion (6bis-b6, C4)');
+
+  // Will à +2 PV : SANS l'effet unique, Violent + Will passerait devant.
+  const tenacite: RelicDetail = { id: 900, upgrade: 6, main: { code: 100, value: 9 }, unique: { type: 4, tranche: 1000, percent: 1 } };
+  const { params, ctx, noteProd, reference } = casB3c([tenacite], 2);
+  const o = oracleSearch(params, ctx, { realDamage: null, exclusive: EXCLUSIVE_B3C });
+  ok(o.complet && o.candidats.length === 4, `précondition : 4 candidats, oracle complet (${o.candidats.length})`);
+  ok(o.candidats.every((c) => c.score === noteProd(c.runeIds, tenacite)), 'chaque score de candidat = la note de production');
+  const meilleur = o.candidats.reduce((a, b) => (b.score > a.score ? b : a));
+  egal(o.optimum?.runeIds, meilleur.runeIds, 'optimum = le candidat au meilleur score');
+  egal(o.optimum?.score, reference.note, '… celui de la référence exhaustive (Violent + Fight)');
+  egal(o.rid, 900, '… et son rid');
+
+  // Ex æquo : deux builds de même score (Efficience, runes de même
+  // efficacité), rendus par deux runs aux reliques différentes. Le rid le plus
+  // petit l'emporte, quel que soit l'ordre d'insertion ; à rid égal, l'ordre
+  // d'insertion.
+  const pool = [1, 2, 3, 4, 5, 6].map((s) => runeB3c(s, s, 'violent', 10)).concat([runeB3c(16, 6, 'violent', 10), runeB3c(15, 5, 'violent', 10)]);
+  const r1: RelicDetail = { id: 1, upgrade: 6, main: { code: 100, value: 9 } };
+  const r2: RelicDetail = { id: 2, upgrade: 6, main: { code: 101, value: 9 } };
+  const ctxEff = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 0 }, undefined, [r1, r2]);
+  const pEff: SearchParams = { ...params, pool, objective: 'efficience', relicContext: ctxEff, requirement: { sets: [], minStats: {} } };
+  const runsEff = oracleSearchRuns(pEff, ctxEff);
+  egal(runsEff.map((r) => r.params.relic?.id), [1, 2], 'précondition : deux runs, reliques 1 puis 2');
+  const brut = (runeIds: number[]): BuildCandidate => ({ runeIds, stats: [], effTotal: 0 });
+  const X = [1, 2, 3, 4, 5, 6], Y = [1, 2, 3, 4, 5, 16], Z = [1, 2, 3, 4, 15, 6];
+  // X seul dans le run de la relique 2 (inséré en premier), Y et Z dans
+  // celui de la relique 1, dans cet ordre.
+  const fusion = fusionnerRunsOracle(pEff, [runsEff[1]!, runsEff[0]!], [
+    { candidates: [brut(X)], truncated: false, explored: 1 },
+    { candidates: [brut(Y), brut(Z)], truncated: false, explored: 2 },
+  ]);
+  ok(fusion.candidats.length === 3 && new Set(fusion.candidats.map((c) => c.score)).size === 1, 'précondition : trois candidats ex æquo au score');
+  egal(fusion.candidats.map((c) => [c.runeIds.join(','), c.rid]), [[X.join(','), 2], [Y.join(','), 1], [Z.join(','), 1]], 'précondition : ordre d’insertion X (rid 2), Y (rid 1), Z (rid 1)');
+  egal([fusion.optimum?.runeIds, fusion.rid], [Y, 1], 'ex æquo : rid croissant d’abord (Y, rid 1, avant X, rid 2), puis ordre d’insertion (Y avant Z)');
+}

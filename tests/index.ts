@@ -84,7 +84,7 @@ import {
   testDominanceReliqueDifferentiel,
 } from './rune-optim-dominance-relique.test';
 import testRelicOptim from './relic-optim.test';
-import testRelicOracle, { testRelicOracleGroupesEffetUnique } from './relic-oracle.test';
+import testRelicOracle, { testRelicOracleGroupesEffetUnique, testRelicOracleOptimumParScore } from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
 import testRelicQueue from './relic-queue.test';
 import testPerfRelicOptions from './perf-relic-options.test';
@@ -212,6 +212,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicOptim', testRelicOptim],
   ['testRelicOracle', testRelicOracle],
   ['testRelicOracleGroupesEffetUnique', testRelicOracleGroupesEffetUnique],
+  ['testRelicOracleOptimumParScore', testRelicOracleOptimumParScore],
   ['testRelicSearch', testRelicSearch],
   ['testRelicQueue', testRelicQueue],
   ['testPerfRelicOptions', testPerfRelicOptions],

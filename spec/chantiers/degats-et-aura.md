@@ -288,8 +288,12 @@ encore bien implémentés. Elle travaille hors de ce worktree : aucune
 écriture dans l'arbre de code, aucune commande git sur cette branche (un
 fichier temporaire à sa racine a bloqué `livrer` le 2026-10-01), aucune
 modification de `damage.ts` avant les lots 8 à 11. Son livrable est un
-relevé, sans code ; son chemin, inconnu au 2026-10-01, s'inscrit ici à sa
-remise. Il nourrit la fin du chantier :
+relevé, sans code, **remis le 2026-10-01** et importé par le pilote :
+`spec/outils/optimizer/archive/audit-prose-sorts-2026-10-01/` (relevé de
+39 constats sur `a6661f77`, CSV, balayage et scripts ; notes `96b3e44`).
+Routage vérifié par le pilote : aucun de ses 73 identifiants de compétence
+n'appartient aux familles des lots 8 à 11, les 39 constats vont à 13a. Il
+nourrit la fin du chantier :
 
 - un constat sur une famille des lots 8 à 11 rejoint ce lot, par
   amendement pilote avant son brief ; si l'audit n'est pas remis à ce
@@ -5070,7 +5074,9 @@ l'intrant en lignes.
 
 **Intrants bornés :** les 695 lignes d'audit du CSV, le suivi d'implémentation, les
 preuves des lots 1/8/9/10/11/12, et le relevé de l'audit parallèle de la prose
-des sorts (A.5), pour ce qui n'a pas rejoint les lots 8 à 11. Chacun de ses
+des sorts (A.5 ; `archive/audit-prose-sorts-2026-10-01/`, 39 constats), pour
+ce qui n'a pas rejoint les lots 8 à 11. Son balayage initial n'est pas
+rejouable tel quel (script supprimé) : 13a refait l'extraction. Chacun de ses
 constats est rattaché à l'un des 243 constats, à un lot du chantier, ou classé
 découverte hors inventaire avec un identifiant distinct. Il reste un indice,
 qualifié en 13b (`game-data-curation`), jamais un verdict de mécanique.

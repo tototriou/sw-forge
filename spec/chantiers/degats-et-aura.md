@@ -627,8 +627,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b5b — Meilleurs artéfacts et paire représentative | J | terminé, preuves et mutation rejouées par le pilote | `597a0730` ; reçu `597a073` ↔ `76a4a2f` / 2026-10-01 |
 | 6bis-b5c — CLI en mode recherche et parité finale | J | terminé, contrat amendé (option 2, décision utilisateur), preuves, mutation et CLI réel rejoués par le pilote | `808d2d36`…`b8b28f63` ; reçu `b8b28f6` ↔ `9ef88ae` / 2026-10-01 |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | terminée : corrections avant le lot 7 ; B1 rejoué par le pilote ; preuve archivée | `controle-6bis-b-revue-technique.md`, notes `3b7d237` / 2026-10-01 |
-| 6bis-b6 — paramètres d'artéfacts partagés et outils de preuve relique | J | contrat amendé après contre-revue ; lançable | — |
-| 6bis-b3d-1 — dominance et lignes 218–221 : le correctif | J | contrat amendé ; attend b6 | — |
+| 6bis-b6 — paramètres d'artéfacts partagés et outils de preuve relique | J | terminé, preuves et mutation rejouées par le pilote | `d80274ba`…`4957a782` ; reçu `4957a78` ↔ `3e26c7f` / 2026-10-01 |
+| 6bis-b3d-1 — dominance et lignes 218–221 : le correctif | J | lançable | — |
 | 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | contrat amendé ; attend b3d-1 | — |
 | 6bis-b7 — troncature du régime parallèle | J | contrat amendé ; attend b3d-2 | — |
 | 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | contrat amendé ; attend b7 | — |
@@ -3750,6 +3750,64 @@ correction.** Constats C5, C6, C3, C4 et legs de b4 (revue § 4.2, § 4.3,
   `controle-6bis-b6.md`.
 
 **Ne fait pas :** changement du moteur, du score, ni de la file.
+
+###### Résultat du lot 6bis-b6 — 2026-10-01
+
+Cinq commits, poussés :
+
+- `d80274ba` : legs de b4 (JSDoc replacé, homonyme renommé) ;
+- `810745a7` : un seul producteur des paramètres de paires
+  (`parametresArtefactsFiche`, `src/lib/artifactFiche.ts`), appelé par
+  l'écran dans le même `useMemo` et par le CLI, qui neutralise désormais les
+  verrous (C5) ;
+- `40ccc426` : le différentiel relique résout par les producteurs de
+  l'écran, avec un canal exclusive obligatoire (C6) ;
+- `72783391` : l'oracle lance un run par couple (principale, stats de
+  l'effet unique) (C3) ;
+- `4957a782` : l'optimum de l'oracle est son meilleur score, ex æquo par
+  `rid` (C4).
+
+Reçu `4957a78` ↔ `3e26c7f` (934 fichiers), notes intégrées au main
+documentaire `946cab2`. Preuve privée `controle-6bis-b6.md`.
+
+Le pilote a relu le diff de l'écran (appel dans le même `useMemo`, mêmes
+dépendances) et rejoué sur `4957a782` :
+
+- `npx tsc --noEmit` → 0 ;
+- `node tests/run.mjs artefactsficheparams relicoraclegroupes
+  relicoracleoptimum` → 44 vérifications passées ;
+- `node tests/run.mjs dominance-relique auras-coupes relic-queue relic auras
+  cli` → 3 073 passées ;
+- build, spec-lint, diff-check verts ; « Reçu valide » ;
+- **mutation du pilote** (stats d'effet unique retirées de la clé de
+  regroupement de l'oracle) : 5 échecs sur 266, dont l'optimum manqué et la
+  granularité (b) ; fichier restauré depuis git, puis 266 passées.
+
+Rapportés, non rejoués :
+
+- rouge de 14 échecs sur 30 ;
+- « écran identique » : 972 combinaisons d'entrées et 3 321 paires notées à
+  l'identique, contrôle de source du `useMemo` ;
+- mutation de la neutralisation des verrous : 7 échecs ;
+- traduction de `ReglagesDifferentiel` vers les producteurs (§ 7 de la
+  preuve) ;
+- cas réel Ciri : N de 8 à 10, optimum et statut « fidèle » inchangés.
+
+Attentes modifiées, justifiées dans la preuve : la note de « plan § 2.4
+ex. 2 » compte désormais l'effet unique Origine (37 451,28 → 48 620,96) ; la
+granularité (b) s'étend au cas qui bascule ; `resolution-partagee.test.ts`
+fige sa référence, pour qu'elle ne devienne pas circulaire.
+
+Écarts acceptés : `ReglagesDifferentiel.exclusive` rendu obligatoire, pour
+que `tsc` désigne chaque appelant ; `sortesFigeesDe` partagé ; lectures hors
+intrant listées. Relevé : un BOM entré dans un message de commit par la forme
+`@'…'@ | git commit -F -` du brief, corrigé avant le push. Les briefs suivants
+prescrivent seulement `git commit -F <fichier>`. Non fait : le journal de
+l'orchestrateur (`relic-differentiel.ts` L222) ne distingue pas deux runs de
+même principale. Non prouvé : mémoïsation React au navigateur ; C3 en
+général, argument appuyé par les tests sans démonstration ; CLI avec
+`ignoreArtifacts` vrai ; différentiel B.6 sur une recette réelle en
+« Dégâts réels ».
 
 ##### 6bis-b3d-1 — dominance et lignes 218–221 : le correctif
 

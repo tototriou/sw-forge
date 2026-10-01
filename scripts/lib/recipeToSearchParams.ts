@@ -6,7 +6,7 @@
 // runeBuildOptim.ts, pas d'une copie locale) pour qu'un script ne puisse
 // plus diverger silencieusement de l'écran comme c'est arrivé cette session.
 
-import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE, avecAurasConditions } from '../../src/lib/runeBuildOptim';
+import { BuildCandidate, SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE, avecAurasConditions } from '../../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { DEFAULT_RELIC_MIN_UPGRADE, RelicIntent, defaultRelicMainChoice } from '../../src/hooks/useOptimizerState';
@@ -35,12 +35,14 @@ import {
 import { computeStats } from '../../src/lib/stats';
 import { codesAmplificationActifs } from '../../src/lib/damage';
 import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams, type BornesArtefacts, type ChoixPrincipale } from '../../src/lib/artifactOptim';
-import { regimeArtefacts, type DegatsContext } from '../../src/lib/artifactEvaluation';
+import { regimeArtefacts, regimeEquipementDe, type DegatsContext } from '../../src/lib/artifactEvaluation';
 import { evaluateursArtefactsFiche } from '../../src/lib/artifactFiche';
+import { entreeResolutionDuBuild, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
+import type { ResultatArtefacts } from '../../src/lib/artifactQueue';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { StatKey } from '../../src/lib/effects';
-import { ArtifactDetail, ArtifactKind, RuneDetail } from '../../src/types';
+import { ArtifactDetail, ArtifactKind, ElementKey, RuneDetail } from '../../src/types';
 import { PorteurArtefact } from '../../src/lib/artifacts';
 import { LoadedMonster } from './loadMonster';
 import { loadMonsterSkills } from './skillsData';
@@ -201,7 +203,7 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
 export function artefactsDuCli(
   recipe: OptimizerRecipe,
   loaded: LoadedMonster
-): { params: ArtifactSearchParams; degats: DegatsContext | null } | null {
+): { params: ArtifactSearchParams; degats: DegatsContext | null; element: ElementKey } | null {
   const espece = loadMonstersList().find((m) => m.com2usId === loaded.com2usId);
   if (!espece) return null;
   // ⚠️ Contexte construit avec l'équipement PORTÉ, uniquement pour obtenir le
@@ -224,7 +226,55 @@ export function artefactsDuCli(
   return {
     params: paramsArtefacts(recipe, loaded, { element: espece.element, archetype: espece.archetype }, representatif),
     degats,
+    element: espece.element,
   };
+}
+
+/**
+ * La résolution de l'équipement par build du CLI — celle de la file de
+ * l'écran (`resoudreEquipement`, OptimizerSection.tsx), par le même
+ * producteur (`entreeResolutionDuBuild`, relicQueue.ts) et la même partie
+ * pure (`resoudreEquipementDuBuild`) : paire ET relique ensemble en mode
+ * `recherche` (rejet des couples infaisables, stats recalculées avec le
+ * couple retenu), paire seule avec la relique de la fiche sinon
+ * (degats-et-aura 6bis-b5c).
+ *
+ * Entrées, chacune le pendant de celle de l'écran : la fiche
+ * (`loaded.gear` ↔ `selected.gear`), le contexte de paires (`artefactsDuCli`
+ * ↔ `artifactParams`), le régime effectif (`regimeEquipementDe`, critère =
+ * l'objectif : le CLI trie par l'objectif), les conditions avec auras et le
+ * contexte relique de la recherche lancée (`params.requirement`,
+ * `params.relicContext`).
+ *
+ * `null` là où l'écran n'a pas de file : optimisation d'artéfacts coupée
+ * (`ignoreArtifacts`, qui met aussi la relique en mode `off`), ou espèce
+ * introuvable.
+ */
+export function resoudreEquipementCli(
+  recipe: OptimizerRecipe,
+  loaded: LoadedMonster,
+  params: SearchParams
+): ((c: BuildCandidate) => ResultatArtefacts) | null {
+  if (recipe.ignoreArtifacts) return null;
+  const a = artefactsDuCli(recipe, loaded);
+  if (!a) return null;
+  const regime = regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null);
+  const runeById = new Map(params.pool.map((r) => [r.id, r]));
+  const exclusive = { setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: a.element };
+  return (c) =>
+    resoudreEquipementDuBuild(
+      entreeResolutionDuBuild({
+        fiche: loaded.gear,
+        // Une rune absente du pool est ignorée, comme à l'écran.
+        runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
+        artifactParams: a.params,
+        regime,
+        degats: a.degats,
+        exclusive,
+        requirement: params.requirement,
+        relicContext: params.relicContext,
+      })
+    );
 }
 
 /**

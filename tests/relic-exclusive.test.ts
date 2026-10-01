@@ -475,9 +475,13 @@ export function testRelicClassementParMode() {
       'écran : etatReliqueDe dépend de la PIÈCE de la fiche (objet), pas de son identifiant');
     // Le CLI : même producteur ; sans cache de file, `fixe` en off/equipped
     // (relique de la fiche, `SearchParams.relic`), `en attente` en recherche.
-    const cli = readFileSync('scripts/optimizer-search.ts', 'utf8');
+    // Depuis 6bis-b5c, ces options de l'ordre de BASE vivent dans
+    // `classerCommeLEcran` (scripts/lib/classementCli.ts), que le script
+    // appelle ; la résolution par build les complète ensuite.
+    const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');
     ok(/const optionsDuTri = optionsDeClassement\(\{[\s\S]{0,1500}?etatReliqueDe: \(\) => etatReliqueDuBuild\(undefined, params\.relicContext, params\.relic\)/.test(cli),
       'CLI : les options du tri viennent d’optionsDeClassement, relique de la fiche via SearchParams.relic');
+    ok(/classerCommeLEcran\(\{/.test(readFileSync('scripts/optimizer-search.ts', 'utf8')), 'CLI : le script classe par classerCommeLEcran');
   }
 }
 

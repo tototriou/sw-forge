@@ -55,8 +55,11 @@ import {
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { buildRealDamageContext } from './lib/realDamageCli';
-import { NearMiss, RechercheRefusee, aurasPropresParRunes, candidateMetricTotal, optionsDeClassement, scoreDuCandidat, sortCandidates } from '../src/lib/runeBuildOptim';
+import { NearMiss, RechercheRefusee, candidateMetricTotal, scoreDuCandidat } from '../src/lib/runeBuildOptim';
 import { etatReliqueDuBuild } from '../src/lib/relicQueue';
+import { cleBuild } from '../src/lib/artifactQueue';
+import { K_BUILDS_OPTIMISES } from '../src/hooks/useArtifactOptimQueue';
+import { classerCommeLEcran } from './lib/classementCli';
 import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -373,15 +376,15 @@ if (recipe.objective === 'degats_reels') {
 
 // Le contexte relique (lot 5a, garantie G) — la même ligne que le harnais
 // (`diagnosticConfig.ts`) : en mode `recherche` les bornes sont RELÂCHÉES
-// et, tant que la résolution exacte (5b) n'existe pas, les candidats
-// sortent SANS relique et leur score est provisoire.
+// et les candidats sortent SANS relique ; la relique de chaque build est
+// résolue après la recherche, comme la file de l'écran (6bis-b5c).
 {
   const rc = params.relicContext;
   if (rc) {
     console.log(
       `Relique : mode ${rc.mode} (principale ${String(rc.principale)}, type ${String(rc.type)}, seuil +${rc.seuil}) — ` +
         `${rc.eligibles.length} éligible(s)${rc.vide ? `, pool vide (${rc.vide})` : ''}` +
-        (rc.mode === 'recherche' ? ' — bornes relâchées, candidats collectés sans relique (résolution exacte : lot 5b)' : '')
+        (rc.mode === 'recherche' ? ' — bornes relâchées, candidats collectés sans relique, relique résolue par build après la recherche' : '')
     );
   }
 }
@@ -417,50 +420,63 @@ if (recipe.objective === 'degats_reels' && !realDamage) {
   console.warn(`⚠️ Aucun sort calculable pour ${loaded.monsterName} — le classement reste dans l'ordre de collecte.`);
 }
 const runeByIdPool = new Map(params.pool.map((r) => [r.id, r]));
-const setupDuTri = recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP;
-// ⚠️ Le MÊME producteur que l'écran (`optionsDeClassement`, 6bis-b5a) : un
-// champ ajouté d'un côté ne peut plus manquer de l'autre en silence.
-const optionsDuTri = optionsDeClassement({
+// ⚠️ Les producteurs MÊMES de l'écran (6bis-b5a, 6bis-b5c), assemblés dans
+// `classerCommeLEcran` (scripts/lib/classementCli.ts) : l'ordre de base
+// (`optionsDeClassement`), puis — là où l'écran a une file, optimisation
+// d'artéfacts active (`ignoreArtifacts` faux) — la résolution de
+// l'équipement de CHAQUE candidat collecté et le classement de l'écran
+// (`classementResolu`). Mode `recherche` : couple artéfacts/relique résolu
+// ensemble, couples infaisables rejetés ; sinon la paire seule, avec la
+// relique de la fiche.
+const { classes, options: optionsAffichees, resolu } = classerCommeLEcran({
+  recipe,
+  loaded,
+  params,
+  candidates: result.candidates,
   realDamage,
-  damageSetup: setupDuTri,
-  runeById: runeByIdPool,
-  metric: recipe.metric,
-  // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
-  aurasPropresDe: aurasPropresParRunes(runeByIdPool),
-  // Aucune paire résolue par build au CLI : celle de `params.artifacts`,
-  // déjà portée par `realDamage`, pour tous.
-  artefactsDuBuild: () => null,
-  // Aucune résolution de relique par build non plus (6bis-b5c) : sans
-  // cache, `etatReliqueDuBuild` rend `fixe` en `off`/`equipped` — la relique
-  // de la fiche, `params.relic` (= `loaded.gear.relic`), celle dont le moteur
-  // a posé la principale dans `c.stats` — et `en attente` en `recherche` :
-  // neutre, sans repli, comme l'écran avant résolution.
-  etatReliqueDe: () => etatReliqueDuBuild(undefined, params.relicContext, params.relic),
-  contexteExclusive: { setup: setupDuTri, element: loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null },
 });
+if (resolu) {
+  console.log(
+    `Équipement résolu par build, comme la file de l'écran : ${resolu.parBuild.size} build(s), ` +
+      `${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms ` +
+      `(l'écran ne résout que les ${K_BUILDS_OPTIMISES} premiers de l'ordre de base et la page affichée ; le CLI résout tout)`
+  );
+  if (result.truncated) {
+    console.log(`⚠️ Recherche tronquée : le classement résolu ne porte que sur les ${result.candidates.length} candidat(s) collecté(s).`);
+  }
+  if (classes.length === 0 && result.candidates.length > 0) {
+    console.log('⚠️ Aucun build ne reste : chaque candidat collecté est rejeté faute de couple artéfacts/relique faisable.');
+  }
+}
 {
   const etat = etatReliqueDuBuild(undefined, params.relicContext, params.relic);
   console.log(
     etat.etat === 'fixe'
       ? `Effet unique de relique dans le tri : ${etat.relique ? 'compté (relique de la fiche)' : 'aucune relique'}`
-      : 'Effet unique de relique dans le tri : neutre (mode recherche — aucune relique résolue par build au CLI)'
+      : resolu
+        ? 'Effet unique de relique dans le tri : compté (relique retenue par build, après résolution)'
+        : 'Effet unique de relique dans le tri : neutre (mode recherche sans résolution — espèce introuvable)'
   );
 }
-const classes = sortCandidates(result.candidates, recipe.objective, optionsDuTri);
 console.log(`\nLes 20 meilleurs pour l'objectif « ${recipe.objective} » :`);
-// ⚠️ Le score affiché est `scoreDuCandidat` avec les options MÊMES du tri
-// (6bis-b4) : la valeur qui classe, jamais une formule recopiée. Les sets
-// actifs viennent d'`activeSets` et les activations d'aura propres du même
-// `aurasPropresDe` que le score — ce qui permet de lire, sur un vrai compte,
-// combien de sets d'aura CE build ajoute aux auras externes.
+// ⚠️ Le score affiché est `scoreDuCandidat` avec les options MÊMES du
+// classement (6bis-b4) : la valeur qui classe, jamais une formule recopiée.
+// Les sets actifs viennent d'`activeSets` et les activations d'aura propres
+// du même `aurasPropresDe` que le score — ce qui permet de lire, sur un vrai
+// compte, combien de sets d'aura CE build ajoute aux auras externes. Après
+// résolution, la relique et les artéfacts RETENUS pour ce build.
 for (const c of classes.slice(0, 20)) {
-  const score = scoreDuCandidat(c, recipe.objective, optionsDuTri);
+  const score = scoreDuCandidat(c, recipe.objective, optionsAffichees);
   const sets = activeSets(c.runeIds.map((id) => runeByIdPool.get(id)?.set ?? ''));
-  const propres = Object.entries(optionsDuTri.aurasPropresDe(c)).filter(([, n]) => n > 0).map(([set, n]) => `${set} ${n}`);
+  const propres = Object.entries(optionsAffichees.aurasPropresDe(c)).filter(([, n]) => n > 0).map(([set, n]) => `${set} ${n}`);
   const joker = c.runeIds.some((id) => runeByIdPool.get(id)?.set === 'intangible');
+  const r = resolu?.parBuild.get(cleBuild(c));
+  const equipement = r
+    ? ` — relique ${r.relique?.id ?? params.relic?.id ?? 'aucune'}${r.relique ? '' : ' (fiche)'} — artéfacts [${r.artefacts.map((a) => a.id).join(',')}]`
+    : '';
   console.log(
     `  runes [${c.runeIds.join(',')}] — score ${score == null ? '—' : score.toFixed(1)} — ` +
-      `sets [${sets.join('+') || 'aucun'}]${joker ? ' (Intangible)' : ''} — auras propres ${propres.join(', ') || 'aucune'}`
+      `sets [${sets.join('+') || 'aucun'}]${joker ? ' (Intangible)' : ''} — auras propres ${propres.join(', ') || 'aucune'}${equipement}`
   );
 }
 if (classes.length > 20) console.log(`  … et ${classes.length - 20} de plus.`);

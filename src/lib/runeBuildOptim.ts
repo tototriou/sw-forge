@@ -968,13 +968,6 @@ export function sortCandidates(
 }
 
 /**
- * `aurasPropresDe` de `sortCandidates` depuis le pool : les activations
- * d'aura des runes réelles de chaque candidat (`aurasPropresDesRunes`,
- * `activeSets`). Une rune absente du pool est ignorée, exactement comme la
- * reconstruction de l'équipement d'un candidat à l'écran (`runeById.get(id)`
- * puis `filter(Boolean)`), pour que les deux lisent les mêmes runes.
- */
-/**
  * Le score d'UN candidat, EXACTEMENT celui qui le classe dans
  * `sortCandidates` avec les mêmes `opts` — pour qu'une carte de résultat ou
  * un script AFFICHE la valeur qui ordonne, jamais une formule recopiée à côté.
@@ -993,6 +986,13 @@ export function scoreDuCandidat(
   return score ? score(candidate) : null;
 }
 
+/**
+ * `aurasPropresDe` de `sortCandidates` depuis le pool : les activations
+ * d'aura des runes réelles de chaque candidat (`aurasPropresDesRunes`,
+ * `activeSets`). Une rune absente du pool est ignorée, exactement comme la
+ * reconstruction de l'équipement d'un candidat à l'écran (`runeById.get(id)`
+ * puis `filter(Boolean)`), pour que les deux lisent les mêmes runes.
+ */
 export function aurasPropresParRunes(runeById: Map<number, { set: string }>): (c: { runeIds: number[] }) => AurasPropres {
   return (c) => aurasPropresDesRunes(c.runeIds.map((id) => runeById.get(id)).filter((r): r is { set: string } => r != null));
 }

@@ -156,12 +156,13 @@ export function resoudreCandidat(p: SearchParams, c: BuildCandidate, ctx: RelicC
 }
 
 // Le score d'un candidat RÉSOLU, par la fonction que l'oracle utilise
-// (`scoreDuCandidat`) — jamais une formule propre. En Efficience, la métrique
-// des runes (`candidateMetricTotal`), pas le score de paire (régime `aucun`).
+// (`scoreOracleDuCandidat`) — jamais une formule propre. En Efficience, la
+// métrique des runes (`candidateMetricTotal`), pas le score de paire (régime
+// `aucun`).
 //
 // ⚠️ `relique` + `exclusive` (lot 7) : l'apport de la propriété unique de la
 // relique RETENUE par ce candidat, calculé par le même module et depuis le
-// même contexte que côté oracle (`scoreDuCandidat`, relicOracle.ts). Sans
+// même contexte que côté oracle (`scoreOracleDuCandidat`, relicOracle.ts). Sans
 // eux, A noterait sans exclusive ce que l'oracle note avec — et F ne
 // comparerait plus rien.
 export function scoreOracle(

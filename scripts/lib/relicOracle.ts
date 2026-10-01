@@ -139,7 +139,7 @@ export interface OptionsOracle {
  * `exclusive` absent → apport neutre : l'oracle d'avant le lot 7, à
  * l'identique.
  */
-function scoreDuCandidat(
+function scoreOracleDuCandidat(
   candidate: BuildCandidate,
   params: SearchParams,
   runeById: Map<number, RuneDetail>,
@@ -179,7 +179,7 @@ function candidatAvecRelique(
       stats: computeStats({ base: params.base, runes, artifacts: params.artifacts }),
     };
     // Aucune relique : aucun apport possible, quel que soit le contexte.
-    return { ...sansRelique, score: scoreDuCandidat(sansRelique, params, runeById, realDamage, undefined, exclusive) };
+    return { ...sansRelique, score: scoreOracleDuCandidat(sansRelique, params, runeById, realDamage, undefined, exclusive) };
   }
 
   const evaluations = new Map<number, BuildCandidate>();
@@ -190,7 +190,7 @@ function candidatAvecRelique(
       stats: computeStats({ base: params.base, runes, artifacts: params.artifacts, relic: relique }),
     };
     evaluations.set(relique.id, evalue);
-    return scoreDuCandidat(evalue, params, runeById, realDamage, relique, exclusive);
+    return scoreOracleDuCandidat(evalue, params, runeById, realDamage, relique, exclusive);
   }, { regimeAucun: objectif === 'efficience' || objectif === 'vitesse', equipee: params.relic });
 
   if (!meilleure) return null;
@@ -201,7 +201,7 @@ function candidatAvecRelique(
   return {
     ...evalue,
     rid: meilleure.relique.id,
-    score: scoreDuCandidat(evalue, params, runeById, realDamage, meilleure.relique, exclusive),
+    score: scoreOracleDuCandidat(evalue, params, runeById, realDamage, meilleure.relique, exclusive),
   };
 }
 

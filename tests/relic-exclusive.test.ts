@@ -41,7 +41,8 @@ import { aurasPropresParRunes, objectiveScore, optionsDeClassement, pvEffectifs,
 import type { BuildCandidate, RealDamageContext } from '../src/lib/runeBuildOptim';
 import { resoudreContexteRelique } from '../src/lib/relicOptim';
 import { etatReliqueDuBuild } from '../src/lib/relicQueue';
-import { cleBuild, signatureArtefacts, type ResultatArtefacts } from '../src/lib/artifactQueue';
+import { classementResolu, cleBuild, signatureArtefacts, type ResultatArtefacts } from '../src/lib/artifactQueue';
+import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import type { RelicIntent } from '../src/hooks/useOptimizerState';
 import type { ArtifactDetail, GearSet, RuneDetail } from '../src/types';
 import { readFileSync } from 'node:fs';
@@ -377,7 +378,7 @@ export function testRelicClassementParMode() {
     ok(proche(p, k.compte ? ehpTenacite : ehpNeutres), `PV effectifs, ${k.nom} : ${p?.toFixed(3)} (attendu ${(k.compte ? ehpTenacite : ehpNeutres).toFixed(3)})`);
   }
 
-  /* ── Tri PV/ATQ/DEF : la même règle, et ce que la carte affiche ─────────── */
+  /* ── Tri PV/ATQ/DEF : la fiche, comme la carte (6bis-b9) ────────────────── */
   {
     // Bravoure (type 9 : ATQ depuis les PV) — tranche 12 000, 5 %, principale
     // DEF +0. A : ATQ 2 300, PV 25 000 → Y 30 000 → 2 tranches → +10 % de
@@ -387,28 +388,33 @@ export function testRelicClassementParMode() {
     const { c: b, runes: rb } = candidatDe(7400, bravoure, { 1: [3, 250], 5: [1, 6000] });
     egal([statTotal(a.stats, 'atk'), statTotal(b.stats, 'atk'), statTotal(b.stats, 'hp')], [2300, 2250, 31000], 'précondition : ATQ 2 300 / 2 250, PV de B 31 000');
     const parId = new Map([...ra, ...rb].map((r) => [r.id, r]));
+    const propresDe = aurasPropresParRunes(parId);
+    egal([apportExclusive(bravoure, a.stats, SETUP, propresDe(a), null).atk, apportExclusive(bravoure, b.stats, SETUP, propresDe(b), null).atk], [200, 300],
+      'précondition : les points Bravoure existent (+200, +300) — B franchit une tranche de plus');
     const opts = (e: (c: BuildCandidate) => ReturnType<typeof etatReliqueDuBuild>) => optionsDeClassement({
-      realDamage: null, damageSetup: SETUP, runeById: parId, metric: 'eff', aurasPropresDe: aurasPropresParRunes(parId),
+      realDamage: null, damageSetup: SETUP, runeById: parId, metric: 'eff', aurasPropresDe: propresDe,
       artefactsDuBuild: () => null, etatReliqueDe: e, contexteExclusive: { setup: SETUP, element: null },
     });
+    // Attentes modifiées en 6bis-b9 (option (a) de l'utilisateur) : jusque-là
+    // [2 500, 2 550] et B devant A, les points Bravoure comptés dans le tri.
     for (const [nom, e] of [['off', etat(ctxOff, bravoure)], ['equipped', etat(ctxEquipped, bravoure)]] as const) {
-      egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [2500, 2550], `tri ATQ, ${nom} : 2 300 + 200 et 2 250 + 300 (points Bravoure de la fiche)`);
-      egal(sortCandidates([a, b], 'atk', opts(e)).map(cleBuild), [b, a].map(cleBuild), `tri ATQ, ${nom} : B passe devant A grâce à ses points`);
+      egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [2300, 2250], `tri ATQ, ${nom} : la fiche, 2 300 et 2 250 — les points Bravoure ne classent plus (6bis-b9)`);
+      egal(sortCandidates([a, b], 'atk', opts(e)).map(cleBuild), [a, b].map(cleBuild), `tri ATQ, ${nom} : A reste devant B, que ses points ne font plus passer (6bis-b9)`);
     }
-    // Constat : l'ancien ordre de BASE de l'écran (options sans effet unique),
-    // affiché tel quel tant que la file n'a rien résolu — toujours en `off`,
-    // où la file est coupée — contredisait les chiffres des cartes.
-    const ancienneBase = sortCandidates([a, b], 'atk', { runeById: parId, metric: 'eff', damageSetup: SETUP, aurasPropresDe: aurasPropresParRunes(parId) });
-    ok(cleBuild(ancienneBase[0]!) === cleBuild(a) && scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure)))! < scoreDuCandidat(b, 'atk', opts(etat(ctxOff, bravoure)))!,
-      'constat : l’ancien ordre de base mettait A devant B, sous des cartes à 2 500 et 2 550');
+    // L'ancien ordre de BASE de l'écran (options sans effet unique), affiché
+    // tel quel tant que la file n'a rien résolu, contredisait les cartes
+    // (6bis-b5a). Depuis 6bis-b9, il coïncide avec le classement affiché.
+    const ancienneBase = sortCandidates([a, b], 'atk', { runeById: parId, metric: 'eff', damageSetup: SETUP, aurasPropresDe: propresDe });
+    egal(ancienneBase.map(cleBuild), sortCandidates([a, b], 'atk', opts(etat(ctxOff, bravoure))).map(cleBuild),
+      'ordre de base sans effet unique et classement affiché : le même ordre (6bis-b9)');
     const nonResolu = etat(ctxRecherche, bravoure);
     egal(scoreDuCandidat(a, 'atk', opts(nonResolu)), 2300, 'tri ATQ, recherche non résolue : neutre (2 300)');
     egal(sortCandidates([a, b], 'atk', opts(nonResolu)).map(cleBuild), [a, b].map(cleBuild), 'tri ATQ, recherche non résolue : ordre des stats seules');
-    // Constat consigné (hors demande, non corrigé) : la carte affiche
-    // `candidate.stats` (`StatPanel`), sans les points — 2 300, pas les 2 500
-    // qui classent A.
-    ok(statTotal(a.stats, 'atk') !== scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure))),
-      'constat consigné : la carte montre l’ATQ hors combat (2 300), le tri classe sur 2 500 — écart non corrigé (hors demande)');
+    // Bascule de 6bis-b9 : l'écart consigné par 6bis-b5a (« la carte montre
+    // 2 300, le tri classe sur 2 500 ») est corrigé — la carte (`StatPanel`,
+    // `candidate.stats`) montre la valeur qui classe.
+    egal(scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure))), statTotal(a.stats, 'atk'),
+      'écart corrigé (6bis-b9) : la carte montre l’ATQ de la fiche (2 300), le tri classe sur 2 300');
   }
 
   /* ── Harnais : classé comme le CLI (invariant « Harnais ») ──────────────── */
@@ -579,4 +585,95 @@ export function testRelicReferenceComparer() {
   ok(/const contexteReference = useMemo\([\s\S]{0,200}?\[contexteDegatsArtefacts, damageSetup, contexteExclusive\]/.test(ecran)
     && /const refDegats = useMemo\([\s\S]{0,200}?\[selected, contexteReference\]/.test(ecran),
     'écran : les références dépendent de la fiche entière et du contexte de combat, jamais du cache des résultats');
+}
+
+/* --------------------------------------------------------------------------
+ * 6bis-b9 — le tri par PV, ATQ ou DEF classe sur la FICHE (constat C7 de la
+ * revue technique 6bis-b, option (a) de l'utilisateur, 2026-10-01) : le tri,
+ * l'évaluateur de paire des régimes `hp`/`atk`/`def` et la carte lisent une
+ * seule valeur, sans les points Bravoure/Éternité/Origine. « Dégâts réels »
+ * et « PV effectifs » les comptent toujours (témoins).
+ * ----------------------------------------------------------------------- */
+
+// Bravoure (type 9 : ATQ depuis les PV), principale ATQ +10 %, tranche
+// 12 000, 5 %. A : ATQ 2 000 + 300 + 200 = 2 500, PV 25 000 → Y = 25 000 +
+// ⌈25 000 × 20 %⌉ = 30 000 → 2 tranches → +10 % de 2 000 = +200 → 2 700 en
+// combat. B : ATQ 2 450, PV 31 000 → Y 36 000 → 3 tranches → +300 → 2 750.
+// B franchit une tranche de plus : il passait devant A, alors que sa carte
+// montre 2 450 contre 2 500.
+const BRAVOURE_ATQ = piece(690, 101, 10, 9, 9, 12000, 5);
+
+export function testTriParStatSurLaFiche() {
+  titre('Tri par PV, ATQ ou DEF — la carte égale le tri, sur la fiche (6bis-b9)');
+
+  const { c: a, runes: ra } = candidatDe(7500, BRAVOURE_ATQ, { 1: [3, 300] });
+  const { c: b, runes: rb } = candidatDe(7600, BRAVOURE_ATQ, { 1: [3, 250], 5: [1, 6000] });
+  const parId = new Map([...ra, ...rb].map((r) => [r.id, r]));
+  const propresDe = aurasPropresParRunes(parId);
+  egal([statTotal(a.stats, 'atk'), statTotal(b.stats, 'atk'), statTotal(b.stats, 'hp')], [2500, 2450, 31000], 'précondition : fiche, ATQ 2 500 / 2 450, PV de B 31 000');
+  egal([apportExclusive(BRAVOURE_ATQ, a.stats, SETUP, propresDe(a), null).atk, apportExclusive(BRAVOURE_ATQ, b.stats, SETUP, propresDe(b), null).atk], [200, 300],
+    'précondition : points Bravoure +200 et +300 — B franchit une tranche de plus et passerait devant avec eux (2 750 > 2 700)');
+
+  const opts = (e: (c: BuildCandidate) => ReturnType<typeof etatReliqueDuBuild>) => optionsDeClassement({
+    realDamage: DEGATS, damageSetup: SETUP, runeById: parId, metric: 'eff', aurasPropresDe: propresDe,
+    artefactsDuBuild: () => null, etatReliqueDe: e, contexteExclusive: { setup: SETUP, element: null },
+  });
+  const etat = (ctx: ReturnType<typeof resoudreContexteRelique>, cache: Map<string, ResultatArtefacts> = new Map()) =>
+    (c: BuildCandidate) => etatReliqueDuBuild(cache.get(cleBuild(c)), ctx, BRAVOURE_ATQ);
+  const ctxRecherche = resoudreContexteRelique(intention('recherche'), BRAVOURE_ATQ, [BRAVOURE_ATQ]);
+  const cacheResolu = new Map([[cleBuild(a), resolu(a, BRAVOURE_ATQ)], [cleBuild(b), resolu(b, BRAVOURE_ATQ)]]);
+  // Ce que la carte affiche : `StatPanel` lit `row.total` de `candidate.stats`.
+  const carte = (c: BuildCandidate, k: 'hp' | 'atk' | 'def') => c.stats.find((r) => r.key === k)!.total;
+
+  const modes: [string, (c: BuildCandidate) => ReturnType<typeof etatReliqueDuBuild>][] = [
+    ['off', etat(resoudreContexteRelique(intention('off'), BRAVOURE_ATQ, [BRAVOURE_ATQ]))],
+    ['equipped', etat(resoudreContexteRelique(intention('equipped'), BRAVOURE_ATQ, [BRAVOURE_ATQ]))],
+    ['recherche résolue sur la Bravoure', etat(ctxRecherche, cacheResolu)],
+  ];
+  for (const [nom, e] of modes) {
+    egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [carte(a, 'atk'), carte(b, 'atk')], `${nom} : le tri ATQ vaut la carte (2 500 et 2 450), sans les points`);
+    egal(sortCandidates([b, a], 'atk', opts(e)).map(cleBuild), [a, b].map(cleBuild), `${nom} : A devant B, comme leurs cartes`);
+    for (const k of ['hp', 'def'] as const) {
+      egal(scoreDuCandidat(b, k, opts(e)), carte(b, k), `${nom} : tri ${k === 'hp' ? 'PV' : 'DEF'} = carte`);
+    }
+  }
+  // Le classement AFFICHÉ (`classementResolu`, cache de la file) : chaque
+  // carte montre la valeur qui la classe.
+  const resolue = modes[2]![1];
+  const affiche = classementResolu(sortCandidates([b, a], 'atk', opts(resolue)), cacheResolu, 'atk', opts(resolue));
+  egal(affiche.map(cleBuild), [a, b].map(cleBuild), 'classement affiché (recherche résolue) : A devant B');
+  egal(affiche.map((c) => scoreDuCandidat(c, 'atk', opts(resolue))), affiche.map((c) => carte(c, 'atk')), 'classement affiché : chaque carte montre la valeur qui la classe');
+
+  // L'évaluateur de paire des régimes `hp`/`atk`/`def` : la MÊME valeur, le
+  // canal exclusive porté par une relique dont les points touchent la stat.
+  // Éternité (type 12 : DEF depuis les PV), 12 000, 5 % : Y 36 000 → 3
+  // tranches → +15 % de 1 800 = +270. Origine (type 13 : PV depuis l'ATQ),
+  // 1 000, 1 % : Y = 2 450 + ⌈2 000 × 20 %⌉ = 2 850 → 2 tranches → +2 % de
+  // 25 000 = +500.
+  const eternite = piece(691, 101, 10, 9, 12, 12000, 5);
+  const origine = piece(692, 101, 10, 9, 13, 1000, 1);
+  const propresB = propresDe(b);
+  for (const [k, relique, points] of [['atk', BRAVOURE_ATQ, 300], ['def', eternite, 270], ['hp', origine, 500]] as const) {
+    egal(apportExclusive(relique, b.stats, SETUP, propresB, null)[k], points, `précondition : ${points} points de ${k} pour B`);
+    egal(evaluerPourRegime(k, () => b.stats, propresB, { relique, setup: SETUP, element: null })([]), carte(b, k),
+      `évaluateur de paire, régime ${k} : la fiche (${carte(b, k)}), jamais + ${points}`);
+  }
+
+  // Témoins : « Dégâts réels » et « PV effectifs » comptent toujours les
+  // points, au tri, à la carte et dans l'évaluateur de paire.
+  const proche = (x: number | null, y: number) => x != null && Math.abs(x - y) < 1e-9 * Math.max(1, Math.abs(y));
+  const fixe = modes[0]![1];
+  const degatsAttendus = objectiveScore(b, 'degats_reels', propresB, DEGATS, { ...APPORT_NEUTRE, atk: 300 });
+  ok(proche(scoreDuCandidat(b, 'degats_reels', opts(fixe)), degatsAttendus) && degatsAttendus > objectiveScore(b, 'degats_reels', propresB, DEGATS),
+    `témoin Dégâts réels : le tri compte +300 ATQ de Bravoure (${degatsAttendus.toFixed(3)})`);
+  const etatOrigine = () => etatReliqueDuBuild(undefined, undefined, origine);
+  const ehpAttendus = objectiveScore(b, 'ehp', propresB, undefined, { ...APPORT_NEUTRE, hp: 500 }, SETUP);
+  ok(proche(scoreDuCandidat(b, 'ehp', opts(etatOrigine)), ehpAttendus) && ehpAttendus > objectiveScore(b, 'ehp', propresB, undefined, APPORT_NEUTRE, SETUP),
+    `témoin PV effectifs : le tri compte +500 PV d’Origine (${ehpAttendus.toFixed(3)})`);
+  ok(evaluerPourRegime('degats_reels', () => b.stats, propresB, DEGATS, { relique: BRAVOURE_ATQ, setup: SETUP, element: null })([])
+    > evaluerPourRegime('degats_reels', () => b.stats, propresB, DEGATS, { relique: undefined, setup: SETUP, element: null })([]),
+    'témoin, évaluateur de paire « Dégâts réels » : les points Bravoure comptent');
+  ok(evaluerPourRegime('ehp', () => b.stats, propresB, { relique: origine, setup: SETUP, element: null })([])
+    > evaluerPourRegime('ehp', () => b.stats, propresB, { relique: undefined, setup: SETUP, element: null })([]),
+    'témoin, évaluateur de paire « PV effectifs » : les points Origine comptent');
 }

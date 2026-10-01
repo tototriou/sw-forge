@@ -12,7 +12,7 @@
 
 import { ArtifactDetail, ElementKey, RelicDetail } from '../types';
 import { StatKey } from './effects';
-import { Objective, pvEffectifs, type RealDamageContext } from './runeBuildOptim';
+import { Objective, pvEffectifs, statTotal, type RealDamageContext } from './runeBuildOptim';
 import { StatRow } from './stats';
 import { AurasPropres, DamageSetup, artifactDamageProfile, computeTotalDamage } from './damage';
 import { APPORT_NEUTRE, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
@@ -73,6 +73,8 @@ export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
  * auquel on ajouterait un score d'exclusive.
  *
  * Absent → apport neutre, comportement strictement d'avant le lot 7.
+ * Lu par les régimes `degats_reels` et `ehp` seulement : les régimes
+ * `hp`/`atk`/`def` jugent la fiche (degats-et-aura 6bis-b9).
  */
 export interface CanalExclusive {
   relique: RelicDetail | undefined;
@@ -163,13 +165,13 @@ export function evaluerPourRegime(
     };
   }
   if (regime === 'hp' || regime === 'atk' || regime === 'def') {
-    // `!` et non `?? 0` : computeStats() garantit une entrée par StatKey —
-    // si elle manquait un jour, on veut un plantage, pas un score à 0 qui
-    // ferait perdre silencieusement cette stat dans le classement.
-    return (arts) => {
-      const brutes = statsAvec(arts);
-      return statsAvecApport(brutes, apportPour(brutes)).find((r) => r.key === regime)!.total;
-    };
+    // ⚠️ **La FICHE, sans l'effet unique** : `statTotal`, l'expression MÊME
+    // du tri par stat (`scorerPour`), que la carte affiche (`row.total`) et
+    // que jugent les conditions min/max. Le canal exclusive est ignoré ici —
+    // les points Bravoure/Éternité/Origine ne départagent plus ni les paires
+    // ni les reliques (degats-et-aura 6bis-b9, option (a) de l'utilisateur).
+    // `computeStats` garantit une entrée par `StatKey`.
+    return (arts) => statTotal(statsAvec(arts), regime);
   }
   if (regime === 'aucun') {
     // Aucun artéfact n'entre dans ce score (§12.6 d'artefacts.md) — la somme

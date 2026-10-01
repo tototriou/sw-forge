@@ -1155,7 +1155,13 @@ function scorerPour(
   }
   if (sortBy === 'ehp' || sortBy === 'vitesse')
     return (c) => objectiveScore(c, sortBy, opts.aurasPropresDe(c), undefined, apportDe(c), opts.damageSetup);
-  return (c) => statTotal(statsAvecApport(c.stats, apportDe(c)), sortBy);
+  // ⚠️ **Un tri par stat juge la FICHE** (`c.stats`), comme la carte
+  // (`StatPanel`, `row.total`) et les conditions min/max : jamais les points
+  // Bravoure/Éternité/Origine, acquis au début du combat comme les auras, le
+  // lead et l'invocateur, qu'il ne compte pas non plus (degats-et-aura
+  // 6bis-b9, constat C7, option (a) de l'utilisateur). La MÊME expression
+  // note une paire dans les régimes `hp`/`atk`/`def` (`evaluerPourRegime`).
+  return (c) => statTotal(c.stats, sortBy);
 }
 
 // ⚠️ **Il n'existe PLUS de budget de PAIRES** (`DEFAULT_MAX_NODES`, puis

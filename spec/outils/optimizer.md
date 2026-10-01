@@ -1651,11 +1651,17 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     recherche, et quelle relique compte (« Effet unique de relique dans le
     tri : … »). Interrupteur coupé (mode `off`) : ni l'écran ni le CLI ne
     résolvent rien.
-    Même règle pour un **tri par PV, ATQ ou DEF** : les points
-    Bravoure/Éternité/Origine entrent dans la valeur qui classe. ⚠️ Écart
-    connu, non corrigé : la carte affiche les stats hors combat
-    (`candidate.stats`), sans ces points — la valeur montrée n'est alors pas
-    celle qui classe.
+    ⚠️ **Un tri par PV, ATQ ou DEF classe sur la FICHE** (degats-et-aura
+    6bis-b9, option (a) de l'utilisateur, 2026-10-01) : la stat que la
+    carte affiche (`candidate.stats`, le panneau de stats) et que jugent les
+    conditions minimum et maximum — sans les points Bravoure, Éternité ni
+    Origine, acquis au début du combat comme les auras, le lead et
+    l'invocateur, qu'il ne comptait pas non plus. Jusque-là, le tri ajoutait
+    ces seuls points et la carte ne les montrait pas : la valeur affichée
+    n'était pas celle qui classait. La même valeur note la paire
+    d'artéfacts dans ces régimes (voir « Recherche des runes —
+    meet-in-the-middle et élagages »). Les tris « Dégâts réels » et « PV
+    effectifs » gardent l'effet unique, comme ci-dessus.
     ⚠️ **« Valider ce build »**, sur chaque carte — réserve les 6 runes de CE
     résultat (elles n'apparaissent plus dans les recherches suivantes de la
     même liste de travail), jusqu'à libération explicite : voir « Listes de
@@ -2264,7 +2270,14 @@ différent, coopératif (voir « Interruption »).
     - **PV, ATQ ou DEF** — la paire maximise CETTE stat. Auparavant elle
       maximisait la somme des principales : trier par ATQ classait donc sur
       une ATQ qu’une autre paire aurait dépassée (PV+1500 × 2 vaut 3000 en
-      somme, ATQ+100 × 2 seulement 200).
+      somme, ATQ+100 × 2 seulement 200). La stat est celle de la **fiche**,
+      sans les points Bravoure, Éternité ni Origine — la valeur que la carte
+      affiche et qui classe (degats-et-aura 6bis-b9). ⚠️ Conséquence voulue :
+      « Adapter les artéfacts et reliques au tri » étant activé par défaut,
+      le régime de l'équipement suit le tri ; en relique « recherche », trier
+      par une stat ne fait donc plus préférer une Bravoure, une Éternité ou
+      une Origine pour ses points, et la relique et la paire affichées
+      peuvent changer par rapport à avant ce lot.
     - **PV effectifs** et **Dégâts réels** — la paire maximise l’objectif.
     - **Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance, Précision** —
       aucun artéfact n’entre dans ces classements : rien à y maximiser, seule

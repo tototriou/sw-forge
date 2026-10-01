@@ -1607,19 +1607,31 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     le script CLI (`optimizer-search.ts`).
     ⚠️ **Le CLI classe comme l'écran, équipement résolu compris**
     (degats-et-aura 6bis-b5c). Dès que l'optimisation d'artéfacts est active
-    (là où l'écran a une file), il résout l'équipement de CHAQUE candidat
-    collecté par les producteurs mêmes de la file : `entreeResolutionDuBuild`
-    puis `resoudreEquipementDuBuild` — la paire seule avec la relique de la
-    fiche en `equipped`, le couple paire/relique en `recherche`, un build sans
+    (là où l'écran a une file), il résout l'équipement par les producteurs
+    mêmes de la file : `entreeResolutionDuBuild` puis
+    `resoudreEquipementDuBuild` — la paire seule avec la relique de la fiche
+    en `equipped`, le couple paire/relique en `recherche`, un build sans
     couple faisable étant rejeté. Il classe ensuite par `classementResolu`,
     le producteur d'`affichees`, avec l'effet unique de la relique retenue.
-    Différence assumée : l'écran ne résout que les 100 premiers de l'ordre
-    de base et la page affichée, le CLI résout tout ce qu'il a collecté. Sa
-    console imprime le nombre de builds résolus et rejetés, la durée de la
-    résolution, la relique et les artéfacts retenus de chaque ligne, la
-    troncature éventuelle de la recherche, et quelle relique compte (« Effet
-    unique de relique dans le tri : … »). Interrupteur coupé (mode `off`) :
-    ni l'écran ni le CLI ne résolvent rien.
+    **Par défaut, il résout COMME LA FILE DE L'ÉCRAN** : les 100 premiers de
+    l'ordre de base et ses 20 lignes imprimées (sa « page »), choisis par
+    `prochainsATraiter`, par lots, jusqu'à ce que toutes les lignes imprimées
+    soient résolues ; les autres candidats restent dans l'ordre de base.
+    `--resoudre-tout` résout TOUS les candidats collectés. Décision
+    utilisateur du 2026-10-01 (option 2), après mesure : avec des artéfacts
+    « Libre » — le défaut de l'écran —, la résolution complète coûtait
+    environ 20 fois la recherche (6,7 min pour 5 100 builds × 4 reliques).
+    ⚠️ Comme celui de l'écran, ce classement n'est pas exhaustif : en mode
+    `recherche`, l'ordre de base ignore la relique, et un build au-delà des
+    100 premiers peut remonter très haut une fois résolu sans que la file le
+    résolve (constaté sur une fixture : 9 des 20 premiers exhaustifs
+    manquants, venus des rangs 305 à 399). `--resoudre-tout` reste la
+    référence exacte. Sa console imprime le mode, le nombre de builds
+    résolus et rejetés, la durée de la résolution, la relique et les
+    artéfacts retenus de chaque ligne, la troncature éventuelle de la
+    recherche, et quelle relique compte (« Effet unique de relique dans le
+    tri : … »). Interrupteur coupé (mode `off`) : ni l'écran ni le CLI ne
+    résolvent rien.
     Même règle pour un **tri par PV, ATQ ou DEF** : les points
     Bravoure/Éternité/Origine entrent dans la valeur qui classe. ⚠️ Écart
     connu, non corrigé : la carte affiche les stats hors combat

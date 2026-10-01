@@ -6,11 +6,16 @@
 // reconstruction manuelle sujette aux mêmes erreurs de fidélité que celles
 // rencontrées cette session-là (voir le skill algo-verify).
 //
-// Usage : optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]]
+// Usage : optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]] [--resoudre-tout]
 //   --rta   : charge le monstre depuis son preset RTA (favoris/runé RTA) au
 //             lieu de son build « Mon compte » (défaut).
 //   --siege : charge le monstre depuis un deck de siège précis — offense par
 //             défaut, `--siege=15:defense` pour un deck de défense.
+//   --resoudre-tout : résout l'équipement (paire d'artéfacts, relique) de
+//             TOUS les candidats collectés, au lieu de faire comme la file de
+//             l'écran (100 premiers de l'ordre de base et lignes imprimées).
+//             Exhaustif, mais jusqu'à des dizaines de minutes avec des
+//             artéfacts « Libre » (degats-et-aura 6bis-b5c).
 // Un seul mode à la fois : sans `--rta` ni `--siege`, box (« Mon compte »).
 
 import { printMonsterSummary } from './lib/loadMonster';
@@ -59,14 +64,15 @@ import { NearMiss, RechercheRefusee, candidateMetricTotal, scoreDuCandidat } fro
 import { etatReliqueDuBuild } from '../src/lib/relicQueue';
 import { cleBuild } from '../src/lib/artifactQueue';
 import { K_BUILDS_OPTIMISES } from '../src/hooks/useArtifactOptimQueue';
-import { classerCommeLEcran } from './lib/classementCli';
+import { LIGNES_IMPRIMEES, classerCommeLEcran } from './lib/classementCli';
 import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const rtaMode = process.argv.includes('--rta');
 const siegeArg = process.argv.find((a) => a.startsWith('--siege='))?.slice('--siege='.length);
+const toutResoudre = process.argv.includes('--resoudre-tout');
 if (!exportPath || !recipePath) {
-  console.error('Usage: optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]]');
+  console.error('Usage: optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]] [--resoudre-tout]');
   process.exit(1);
 }
 if (rtaMode && siegeArg != null) {
@@ -424,8 +430,10 @@ const runeByIdPool = new Map(params.pool.map((r) => [r.id, r]));
 // `classerCommeLEcran` (scripts/lib/classementCli.ts) : l'ordre de base
 // (`optionsDeClassement`), puis — là où l'écran a une file, optimisation
 // d'artéfacts active (`ignoreArtifacts` faux) — la résolution de
-// l'équipement de CHAQUE candidat collecté et le classement de l'écran
-// (`classementResolu`). Mode `recherche` : couple artéfacts/relique résolu
+// l'équipement et le classement de l'écran (`classementResolu`). Par défaut
+// comme la file de l'écran (100 premiers de l'ordre de base et lignes
+// imprimées, jusqu'au point fixe) ; tous les candidats avec
+// `--resoudre-tout`. Mode `recherche` : couple artéfacts/relique résolu
 // ensemble, couples infaisables rejetés ; sinon la paire seule, avec la
 // relique de la fiche.
 const { classes, options: optionsAffichees, resolu } = classerCommeLEcran({
@@ -434,12 +442,17 @@ const { classes, options: optionsAffichees, resolu } = classerCommeLEcran({
   params,
   candidates: result.candidates,
   realDamage,
+  toutResoudre,
 });
 if (resolu) {
   console.log(
-    `Équipement résolu par build, comme la file de l'écran : ${resolu.parBuild.size} build(s), ` +
-      `${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms ` +
-      `(l'écran ne résout que les ${K_BUILDS_OPTIMISES} premiers de l'ordre de base et la page affichée ; le CLI résout tout)`
+    resolu.mode === 'tout'
+      ? `Équipement résolu pour TOUS les candidats (--resoudre-tout) : ${resolu.parBuild.size} build(s), ` +
+          `${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms`
+      : `Équipement résolu comme la file de l'écran : ${resolu.parBuild.size} build(s) sur ${result.candidates.length} — ` +
+          `les ${K_BUILDS_OPTIMISES} premiers de l'ordre de base et les ${LIGNES_IMPRIMEES} lignes imprimées, jusqu'au point fixe ` +
+          `(${resolu.lots} lot(s)) — ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
+          `Les autres candidats restent classés dans l'ordre de base, non résolus ; --resoudre-tout pour tout résoudre.`
   );
   if (result.truncated) {
     console.log(`⚠️ Recherche tronquée : le classement résolu ne porte que sur les ${result.candidates.length} candidat(s) collecté(s).`);
@@ -447,6 +460,8 @@ if (resolu) {
   if (classes.length === 0 && result.candidates.length > 0) {
     console.log('⚠️ Aucun build ne reste : chaque candidat collecté est rejeté faute de couple artéfacts/relique faisable.');
   }
+} else if (toutResoudre) {
+  console.log('--resoudre-tout sans effet : aucune résolution ici (optimisation d’artéfacts coupée, comme l’écran sans file).');
 }
 {
   const etat = etatReliqueDuBuild(undefined, params.relicContext, params.relic);
@@ -454,18 +469,18 @@ if (resolu) {
     etat.etat === 'fixe'
       ? `Effet unique de relique dans le tri : ${etat.relique ? 'compté (relique de la fiche)' : 'aucune relique'}`
       : resolu
-        ? 'Effet unique de relique dans le tri : compté (relique retenue par build, après résolution)'
+        ? `Effet unique de relique dans le tri : compté (relique retenue par build résolu${resolu.mode === 'file' ? ' ; neutre pour un build non résolu' : ''})`
         : 'Effet unique de relique dans le tri : neutre (mode recherche sans résolution — espèce introuvable)'
   );
 }
-console.log(`\nLes 20 meilleurs pour l'objectif « ${recipe.objective} » :`);
+console.log(`\nLes ${LIGNES_IMPRIMEES} meilleurs pour l'objectif « ${recipe.objective} » :`);
 // ⚠️ Le score affiché est `scoreDuCandidat` avec les options MÊMES du
 // classement (6bis-b4) : la valeur qui classe, jamais une formule recopiée.
 // Les sets actifs viennent d'`activeSets` et les activations d'aura propres
 // du même `aurasPropresDe` que le score — ce qui permet de lire, sur un vrai
 // compte, combien de sets d'aura CE build ajoute aux auras externes. Après
 // résolution, la relique et les artéfacts RETENUS pour ce build.
-for (const c of classes.slice(0, 20)) {
+for (const c of classes.slice(0, LIGNES_IMPRIMEES)) {
   const score = scoreDuCandidat(c, recipe.objective, optionsAffichees);
   const sets = activeSets(c.runeIds.map((id) => runeByIdPool.get(id)?.set ?? ''));
   const propres = Object.entries(optionsAffichees.aurasPropresDe(c)).filter(([, n]) => n > 0).map(([set, n]) => `${set} ${n}`);
@@ -479,7 +494,7 @@ for (const c of classes.slice(0, 20)) {
       `sets [${sets.join('+') || 'aucun'}]${joker ? ' (Intangible)' : ''} — auras propres ${propres.join(', ') || 'aucune'}${equipement}`
   );
 }
-if (classes.length > 20) console.log(`  … et ${classes.length - 20} de plus.`);
+if (classes.length > LIGNES_IMPRIMEES) console.log(`  … et ${classes.length - LIGNES_IMPRIMEES} de plus.`);
 
 // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
 // near-miss-appariement.md) — jamais recalculé, seulement mis en forme.

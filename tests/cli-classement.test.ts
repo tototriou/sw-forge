@@ -44,14 +44,15 @@ import {
   scoreDuCandidat,
   sortCandidates,
 } from '../src/lib/runeBuildOptim';
-import { ResultatArtefacts, classementResolu, cleBuild } from '../src/lib/artifactQueue';
+import { ResultatArtefacts, classementResolu, cleBuild, prochainsATraiter } from '../src/lib/artifactQueue';
+import { K_BUILDS_OPTIMISES } from '../src/hooks/useArtifactOptimQueue';
 import { entreeResolutionDuBuild, etatReliqueDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { regimeArtefacts, regimeEquipementDe } from '../src/lib/artifactEvaluation';
 import { artefactsDuCli, recipeToSearchParams } from '../scripts/lib/recipeToSearchParams';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { runSearchToCompletion } from '../scripts/lib/runSearch';
-import { classerCommeLEcran } from '../scripts/lib/classementCli';
+import { LIGNES_IMPRIMEES, classerCommeLEcran } from '../scripts/lib/classementCli';
 import { egal, ok, titre } from './outils';
 
 const LUSHEN = 13413;
@@ -99,10 +100,13 @@ const LOADED: LoadedMonster = {
 /**
  * Le classement de l'écran, assemblé avec ses producteurs : l'ordre de base
  * (`fullSortedCandidates`), puis — optimisation d'artéfacts active — la file
- * résolue sur TOUS les candidats (son point fixe sur la page affichée) et
- * `affichees`.
+ * et `affichees`. `file` vrai : la file comme le hook `useArtifactOptimQueue`
+ * la déroule, sans navigateur — UN build par tranche, le premier de
+ * `prochainsATraiter(ordre de base, cache, K_BUILDS_OPTIMISES, page)`, la page
+ * (20 lignes, `RESULTS_PAGE_SIZE`) recalculée à chaque tranche, jusqu'à ce
+ * qu'il ne reste rien. `file` faux : tous les candidats résolus.
  */
-function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], realDamage: ReturnType<typeof buildRealDamageContext>) {
+function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], realDamage: ReturnType<typeof buildRealDamageContext>, file: boolean) {
   const params = recipeToSearchParams(recipe, LOADED);
   const fiche = LOADED.gear; // `selected.gear`
   const relicContextRecherche = params.relicContext; // `run(params)` à l'écran
@@ -117,25 +121,36 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
   const optimiserArtefacts = !recipe.ignoreArtifacts;
   if (!optimiserArtefacts) {
     const options = optionsDeClassement({ ...commun, artefactsDuBuild: () => null, etatReliqueDe: () => etatReliqueDuBuild(undefined, relicContextRecherche, fiche.relic) });
-    return { affichees: fullSortedCandidates, options, parBuild: new Map<string, ResultatArtefacts>() };
+    return { affichees: fullSortedCandidates, options, parBuild: new Map<string, ResultatArtefacts>(), fullSortedCandidates };
   }
   const a = artefactsDuCli(recipe, LOADED)!; // pendant d'`artifactParams` (voir en-tête)
   const regimeEquipement = regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null);
   const requirementAvecAuras = avecAurasConditions(recipe.requirement, damageSetup, recipe.compterAurasResPre ?? true);
   const parBuild = new Map<string, ResultatArtefacts>();
-  for (const c of fullSortedCandidates) {
-    parBuild.set(cleBuild(c), resoudreEquipementDuBuild(entreeResolutionDuBuild({
-      fiche, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean), artifactParams: a.params, regime: regimeEquipement,
-      degats: a.degats, exclusive: contexteExclusive, requirement: requirementAvecAuras, relicContext: relicContextRecherche,
-    })));
-  }
-  const profils = new Map([...parBuild].map(([k, r]) => [k, artifactDamageProfile(r.artefacts)]));
+  const resoudre = (c: BuildCandidate) => resoudreEquipementDuBuild(entreeResolutionDuBuild({
+    fiche, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean), artifactParams: a.params, regime: regimeEquipement,
+    degats: a.degats, exclusive: contexteExclusive, requirement: requirementAvecAuras, relicContext: relicContextRecherche,
+  }));
+  // `profilsParBuild` de l'écran, recalculé depuis le cache courant.
   const options = optionsDeClassement({
     ...commun,
-    artefactsDuBuild: (c) => profils.get(cleBuild(c)) ?? null,
+    artefactsDuBuild: (c) => {
+      const r = parBuild.get(cleBuild(c));
+      return r ? artifactDamageProfile(r.artefacts) : null;
+    },
     etatReliqueDe: (c) => etatReliqueDuBuild(parBuild.get(cleBuild(c)), relicContextRecherche, fiche.relic),
   });
-  return { affichees: classementResolu(fullSortedCandidates, parBuild, recipe.objective, options), options, parBuild };
+  if (file) {
+    for (;;) {
+      const page = classementResolu(fullSortedCandidates, parBuild, recipe.objective, options).slice(0, 20);
+      const suivant = prochainsATraiter(fullSortedCandidates, new Set(parBuild.keys()), K_BUILDS_OPTIMISES, page)[0];
+      if (!suivant) break;
+      parBuild.set(cleBuild(suivant), resoudre(suivant));
+    }
+  } else {
+    for (const c of fullSortedCandidates) parBuild.set(cleBuild(c), resoudre(c));
+  }
+  return { affichees: classementResolu(fullSortedCandidates, parBuild, recipe.objective, options), options, parBuild, fullSortedCandidates };
 }
 
 export function testCliClassementParMode() {
@@ -155,12 +170,14 @@ export function testCliClassementParMode() {
     const realDamage = buildRealDamageContext(recipe, LUSHEN, params.artifacts);
     ok(realDamage != null, `${mode} : sort calculable`);
 
-    // Le CLI : la fonction même que le script appelle.
-    const cli = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: res.candidates, realDamage });
+    // Le CLI : la fonction même que le script appelle — ici avec
+    // `--resoudre-tout` (tous les candidats) ; le mode par défaut, comme la
+    // file de l'écran, est vérifié plus bas.
+    const cli = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: res.candidates, realDamage, toutResoudre: true });
     egal(cli.resolu != null, mode !== 'off', `${mode} : résolution par build ${mode === 'off' ? 'absente (optimisation coupée, comme l’écran sans file)' : 'présente'}`);
 
-    // L'écran, par ses producteurs.
-    const ecran = classementEcran(recipe, res.candidates, realDamage);
+    // L'écran, par ses producteurs, file résolue sur tous les candidats.
+    const ecran = classementEcran(recipe, res.candidates, realDamage, false);
     const top = (classes: BuildCandidate[], options: OptionsDeClassement) =>
       classes.slice(0, 5).map((c) => ({ cle: cleBuild(c), score: scoreDuCandidat(c, recipe.objective, options) }));
     const topCli = top(cli.classes, cli.options);
@@ -219,6 +236,48 @@ export function testCliClassementParMode() {
     if (mode === 'equipped') {
       const etats = cli.classes.slice(0, 5).map((c) => cli.resolu!.parBuild.get(cleBuild(c))!.relique);
       ok(etats.every((r) => r === undefined), 'equipped : aucune relique résolue, celle de la fiche compte (état « fixe »)');
+    }
+
+    // Mode par DÉFAUT du CLI, comme la file de l'écran (décision utilisateur
+    // du 2026-10-01, option 2) : comparé au hook déroulé build par build.
+    const cliFile = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: res.candidates, realDamage, toutResoudre: false });
+    const ecranFile = classementEcran(recipe, res.candidates, realDamage, true);
+    const lignes = (classes: BuildCandidate[], options: OptionsDeClassement) =>
+      classes.slice(0, LIGNES_IMPRIMEES).map((c) => ({ cle: cleBuild(c), score: scoreDuCandidat(c, recipe.objective, options) }));
+    const lCli = lignes(cliFile.classes, cliFile.options);
+    const lEcran = lignes(ecranFile.affichees, ecranFile.options);
+    egal(lCli.map((x) => x.cle), lEcran.map((x) => x.cle), `${mode}, file : mêmes ${LIGNES_IMPRIMEES} lignes que la file de l’écran`);
+    ok(lCli.every((x, i) => proche(x.score, lEcran[i].score)), `${mode}, file : mêmes scores que la file de l’écran`);
+    if (mode !== 'off') {
+      const r = cliFile.resolu!;
+      egal(r.mode, 'file', `${mode}, file : mode par défaut`);
+      ok(cliFile.classes.slice(0, LIGNES_IMPRIMEES).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${LIGNES_IMPRIMEES} lignes imprimées sont toutes résolues`);
+      ok(cliFile.base.slice(0, K_BUILDS_OPTIMISES).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${K_BUILDS_OPTIMISES} premiers de l’ordre de base sont résolus`);
+      ok(r.parBuild.size < res.candidates.length,
+        `${mode}, file : ${r.parBuild.size} résolus sur ${res.candidates.length} en ${r.lots} lot(s) (la file de l’écran, build par build : ${ecranFile.parBuild.size})`);
+      const equipementFile = (c: BuildCandidate) => {
+        const e = r.parBuild.get(cleBuild(c))!;
+        return { base: BASE, runes: c.runeIds.map((id) => runeById.get(id)!), artifacts: e.artefacts, relic: e.relique ?? LOADED.gear.relic };
+      };
+      egal(cliFile.classes.slice(0, LIGNES_IMPRIMEES)
+        .filter((c) => !proche(scoreDuCandidat(c, recipe.objective, cliFile.options), scoreDeReference(recipe.objective, equipementFile(c), ref)))
+        .map(cleBuild), [], `${mode}, file : les ${LIGNES_IMPRIMEES} scores imprimés = note de production de l’équipement complet`);
+      // ⚠️ La file n'est PAS exhaustive (le prix de l'option 2, comme à
+      // l'écran) : en `recherche`, l'ordre de base ignore la relique, et un
+      // build au-delà des 100 premiers peut remonter très haut une fois
+      // résolu — la file ne le résout pas. Ce qui est garanti : un build des
+      // vingt premiers de `--resoudre-tout` absent des lignes de la file n'a
+      // JAMAIS été résolu par elle (un build résolu y aurait sa note exacte,
+      // et vingt lignes résolues au-dessus de lui contrediraient son rang
+      // exhaustif). Le manque vient de la non-résolution, jamais d'une note
+      // fausse ; il est affiché pour rester visible.
+      const tout = lignes(cli.classes, cli.options).map((x) => x.cle);
+      const dansFile = new Set(lCli.map((x) => x.cle));
+      const manquants = tout.filter((k) => !dansFile.has(k));
+      const rangsBase = manquants.map((k) => cliFile.base.findIndex((c) => cleBuild(c) === k));
+      egal(manquants.filter((k) => r.parBuild.has(k)), [],
+        `${mode}, file : ${manquants.length} des ${LIGNES_IMPRIMEES} premiers de --resoudre-tout absents de la file, aucun résolu par elle` +
+          (manquants.length ? ` (rangs exhaustifs ${JSON.stringify(manquants.map((k) => tout.indexOf(k) + 1))}, rangs dans l'ordre de base ${JSON.stringify(rangsBase.map((i) => i + 1))})` : ''));
     }
   }
 }

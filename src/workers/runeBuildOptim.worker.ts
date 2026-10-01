@@ -369,7 +369,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     // `runParallelPairing`, n'était jamais atteint).
     try {
       const finalResult = await driveParallelPairing(
-        pairSliceInWorker, params, prepared, bucketsA, bucketsB, postProgress, startedAt,
+        pairSliceInWorker, params, prepared, bucketsA, bucketsB, totalPairs, postProgress, startedAt,
         (handles) => { activePairingWorkers = handles; }
       );
       const result: WorkerResultMessage = { type: 'result', ...finalResult };

@@ -352,7 +352,10 @@ export interface TraceCandidat {
     validationFinale?: boolean;
     collecte: boolean;
   };
-  budget: { tronque: boolean; motif: 'maxMs' | 'maxCollected' | null };
+  // `quotaTranche` n'apparaît que sur la trace d'un résultat FUSIONNÉ du
+  // régime parallèle (`combineParallelPairingResults`) ; `pairBuckets` ne
+  // connaît que son propre plafond et ne produit que les deux autres.
+  budget: { tronque: boolean; motif: MotifTroncature | null };
   compteurs: {
     poolParSlot: number[];
     filtreParSlot: number[];
@@ -491,6 +494,14 @@ export interface NearMiss {
   shortfalls: StatShortfall[];
 }
 
+// Pourquoi une recherche s'est arrêtée avant d'avoir parcouru tout l'espace :
+// le temps (`maxMs` — en régime parallèle, l'arrêt manuel d'une tranche s'y
+// range aussi, comme l'a toujours fait la déduction par comptage), le plafond
+// GLOBAL de candidats (`maxCollected`), ou, en régime parallèle seulement, une
+// tranche arrêtée sur SA part du plafond alors qu'il restait des paires
+// (`quotaTranche`, degats-et-aura 6bis-b7).
+export type MotifTroncature = 'maxMs' | 'maxCollected' | 'quotaTranche';
+
 export interface SearchResult {
   // ⚠️ **L'ORDRE N'EST PAS CELUI DE L'OBJECTIF.** Les candidats sortent dans
   // l'ordre où l'appariement les a collectés, pas classés par ce qu'on a
@@ -506,6 +517,16 @@ export interface SearchResult {
   candidates: BuildCandidate[];
   explored: number;
   truncated: boolean;
+  // Le motif de `truncated`, posé par `combineParallelPairingResults` SEUL :
+  // présent ssi le résultat fusionné du régime parallèle est tronqué. Le
+  // séquentiel (`pairBuckets`, CLI) ne le porte pas — son motif se déduit
+  // exactement du plafond global, voir `evaluerCompletude` (harnais). Optionnel
+  // à dessein : les reconstructions explicites d'un résultat de TRANCHE
+  // (`spawnSliceNode.ts`, `pairSliceInWorker`, `drivePairing`) et les résultats
+  // vides n'ont rien à transmettre ; le résultat fusionné, lui, voyage par
+  // décomposition (`{ type: 'result', ...finalResult }`, puis `...res` dans
+  // `useBuildOptimSearch`).
+  motifTroncature?: MotifTroncature;
   /**
    * Pour chaque condition posée où AU MOINS une paire explorée a satisfait
    * TOUTES LES AUTRES conditions : la MEILLEURE (le plus petit manque sur
@@ -4448,6 +4469,19 @@ export function* pairBuckets(
 // `true`, `candidates.length` vaut EXACTEMENT `perWorkerMaxCollected` si
 // la cause est (a), et STRICTEMENT MOINS si la cause est (b) (sinon la
 // troncature par quota aurait déjà eu lieu à une itération précédente).
+//
+// ⚠️⚠️ **Mais (a) N'EST PAS « complet » pour autant** (degats-et-aura 6bis-b7,
+// constat C2 de la revue technique du 2026-10-01). Le correctif de 2026-08-19
+// distinguait bien le MOTIF et concluait à tort : une tranche qui atteint
+// son quota S'ARRÊTE (`break outer`), le reste de SA tranche n'est jamais
+// visité. Cas réel (ATQ 3000 / DC 220, b4) : 30 M de paires jamais visitées,
+// recherche annoncée complète. Règle actuelle : (a) rend la recherche
+// tronquée, motif `quotaTranche`, dès qu'il reste des paires non visitées
+// (`explored < totalPairs`) — un quota atteint sur la toute dernière paire
+// ne laisse rien. `totalPairs` est l'espace EXACT (`totalPairCount`) que
+// l'appelant a déjà calculé pour choisir le régime : transmis, jamais
+// recalculé ici (aucun coût ajouté). Seul l'indicateur change : on
+// n'explore rien de plus, et le partage des quotas est inchangé.
 // ⚠️ Chaque worker calcule son near-miss sur SA SEULE tranche de `bucketsA`
 // (voir `PairSliceRequest`) — fusionner, c'est garder le MEILLEUR entre
 // tranches, exactement comme `pairBuckets` garde le meilleur entre paires
@@ -4461,12 +4495,22 @@ function betterNearMiss(a: NearMiss, b: NearMiss, distanceOf: (m: NearMiss) => n
 export function combineParallelPairingResults(
   results: SearchResult[],
   perWorkerMaxCollected: number,
-  globalMaxCollected: number
+  globalMaxCollected: number,
+  totalPairs: number
 ): SearchResult {
   const candidates = results.flatMap((r) => r.candidates);
   const explored = results.reduce((s, r) => s + r.explored, 0);
   const realBudgetExhausted = results.some((r) => r.truncated && r.candidates.length < perWorkerMaxCollected);
-  const truncated = candidates.length >= globalMaxCollected || realBudgetExhausted;
+  const sliceQuotaWithPairsLeft = explored < totalPairs && results.some((r) => r.truncated && r.candidates.length >= perWorkerMaxCollected);
+  // Ordre du motif quand plusieurs causes coexistent : le plafond global (ce
+  // que le séquentiel aurait aussi atteint), puis le temps, puis le quota de
+  // tranche (le seul propre au parallèle).
+  const motifTroncature: MotifTroncature | undefined =
+    candidates.length >= globalMaxCollected ? 'maxCollected'
+    : realBudgetExhausted ? 'maxMs'
+    : sliceQuotaWithPairsLeft ? 'quotaTranche'
+    : undefined;
+  const truncated = motifTroncature != null;
 
   const nearMissByCondition = new Map<string, { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }>();
   for (const r of results) {
@@ -4489,11 +4533,18 @@ export function combineParallelPairingResults(
   // Diagnostic : la trace du traceur est celle du worker dont la tranche
   // contient sa moitié A (les tranches de bucketsA sont disjointes — un seul
   // worker peut avoir visité sa paire) ; sinon la première, avec ses
-  // compteurs partiels.
+  // compteurs partiels. Son `budget` est remplacé par celui du résultat
+  // FUSIONNÉ (6bis-b7) : celui de la tranche ne dit que si ELLE a été coupée,
+  // ce qui contredisait `truncated` dès qu'une autre tranche l'était. Copie,
+  // jamais mutation de la trace reçue.
   const traces = results.map((r) => r.traceur).filter((t): t is TraceCandidat => t != null);
-  const traceur = traces.find((t) => t.appariement.paireAtteinte) ?? traces[0];
+  const traceTranche = traces.find((t) => t.appariement.paireAtteinte) ?? traces[0];
+  const traceur = traceTranche ? { ...traceTranche, budget: { tronque: truncated, motif: motifTroncature ?? null } } : undefined;
 
-  return { candidates, explored, truncated, nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss, ...(traceur ? { traceur } : {}) };
+  return {
+    candidates, explored, truncated, ...(motifTroncature ? { motifTroncature } : {}),
+    nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss, ...(traceur ? { traceur } : {}),
+  };
 }
 
 // ⚠️ Simple ORCHESTRATION de `prepareSearch` → `buildBuckets` (×2) →

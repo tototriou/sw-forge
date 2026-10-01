@@ -1059,7 +1059,7 @@ async function unPassage(
   const observateur = cibleComplete ? new ObservateurDecouverte(cibleComplete, totalPairs) : null;
   const resultat =
     regime === 'parallele'
-      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, cheminBundleTranches!, observateur)
+      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, totalPairs, cheminBundleTranches!, observateur)
       : observateur
         ? drainEnObservant(pairBuckets(prepared, bucketsA, bucketsB), observateur)
         : drain(pairBuckets(prepared, bucketsA, bucketsB));
@@ -1085,6 +1085,7 @@ async function apparierEnParallele(
   prepared: PreparedSearch,
   bucketsA: Bucket[],
   bucketsB: Bucket[],
+  totalPairs: number,
   cheminBundle: string,
   observateur: ObservateurDecouverte | null
 ): Promise<SearchResult> {
@@ -1105,6 +1106,9 @@ async function apparierEnParallele(
     prepared,
     bucketsA,
     bucketsB,
+    // Le même `totalPairs` que celui qui a choisi le régime : la fusion en
+    // déduit qu'une tranche arrêtée sur son quota a laissé des paires.
+    totalPairs,
     (explored, found, newCandidates) => {
       cumul = found;
       observateur?.observer(explored, newCandidates, cumul);
@@ -1620,7 +1624,10 @@ function etatCompletude(completude: Completude | null): string {
   if (completude.incoherence) {
     return `⚠️ Run INCOHÉRENT (${compte}) — annoncé complet sans avoir parcouru tout l’espace, motif NON déductible.`;
   }
-  if (!completude.complet) return `⚠️ Run TRONQUÉ (motif : ${completude.motif}, ${compte}).`;
+  if (!completude.complet) {
+    const glose = completude.motif === 'quotaTranche' ? ' — une tranche parallèle a atteint sa part du plafond de candidats' : '';
+    return `⚠️ Run TRONQUÉ (motif : ${completude.motif}${glose}, ${compte}).`;
+  }
   return `✅ Run COMPLET (${compte}) : tout l’espace a été parcouru.`;
 }
 
@@ -1810,13 +1817,19 @@ function divergence(
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **`SearchResult` ne porte pas le motif de troncature**, juste un
- * booléen. On le déduit SANS toucher au moteur, par la règle déjà prouvée et
- * documentée dans `combineParallelPairingResults` : `pairBuckets` teste le
+ * ⚠️ **Le motif se LIT quand le résultat le porte** (`motifTroncature`,
+ * depuis degats-et-aura 6bis-b7) : c'est le cas du résultat fusionné du
+ * régime parallèle, le seul qui puisse être tronqué par le quota d'UNE
+ * tranche (`quotaTranche`) avec moins de candidats que le plafond global. Le
+ * déduire ici rendait « maxMs » — faux.
+ *
+ * Sinon (régime séquentiel, `pairBuckets` nu) il se DÉDUIT, par la règle
+ * prouvée dans `combineParallelPairingResults` : `pairBuckets` teste le
  * budget-TEMPS *avant* de pousser un candidat et ne tronque par quota
  * qu'*après* un push. Donc au moment où `truncated` sort vrai, le nombre de
  * candidats vaut exactement le plafond si la cause est le quota, et
- * strictement moins si c'est le temps.
+ * strictement moins si c'est le temps. Exacte en séquentiel, où le plafond
+ * de `pairBuckets` EST le plafond global.
  */
 export function evaluerCompletude(resultat: SearchResult, totalPairs: number, params: SearchParams): Completude {
   const plafond = params.maxCollected!;
@@ -1838,7 +1851,9 @@ export function evaluerCompletude(resultat: SearchResult, totalPairs: number, pa
     // recherche n'est pas complète ; on ne sait PAS pourquoi — la déduction
     // quota/temps ne vaut que quand `truncated` sort vrai, et il est faux
     // ici. Inventer `maxMs` par défaut serait un diagnostic inventé.
-    motif: annonceComplet ? undefined : resultat.candidates.length >= plafond ? 'maxCollected' : 'maxMs',
+    motif: annonceComplet
+      ? undefined
+      : resultat.motifTroncature ?? (resultat.candidates.length >= plafond ? 'maxCollected' : 'maxMs'),
     explored: resultat.explored,
     totalPairs,
   };

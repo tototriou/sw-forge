@@ -932,7 +932,7 @@ export async function testAurasPariteRegimes() {
   const sequentiel = drain(pairBuckets(prepared, bucketsA, bucketsB));
   const cli = runSearchToCompletion(params);
   const bundle = await ensurePairSliceBundle();
-  const parallele = await driveParallelPairing(makeSpawnSliceNode(bundle), message, prepared, bucketsA, bucketsB, () => {}, prepared.startedAt);
+  const parallele = await driveParallelPairing(makeSpawnSliceNode(bundle), message, prepared, bucketsA, bucketsB, totalPairs, () => {}, prepared.startedAt);
   ok(!sequentiel.truncated && !parallele.truncated && !cli.truncated,
     `trois recherches complètes (truncated=false) : ${sequentiel.candidates.length} candidats`);
   const cles = (res: { candidates: BuildCandidate[] }) => res.candidates.map(cleBuild).sort();

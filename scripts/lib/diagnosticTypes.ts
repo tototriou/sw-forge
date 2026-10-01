@@ -10,7 +10,7 @@
 // écarté quoi, quel régime s'est appliqué, pourquoi la recherche s'est
 // arrêtée), jamais un état que le moteur ne produirait pas lui-même.
 
-import { PrepareStage, SearchResult, TraceCandidat } from '../../src/lib/runeBuildOptim';
+import { MotifTroncature, PrepareStage, SearchResult, TraceCandidat } from '../../src/lib/runeBuildOptim';
 import { ModeChargement } from './chargerRecette';
 
 /* --------------------------------------------------------------------------
@@ -217,10 +217,13 @@ export interface Fidelite {
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **DEUX motifs, et deux seulement** depuis la piste 8 : le budget de
- * paires n'existe plus.
+ * ⚠️ **TROIS motifs, et trois seulement** : le budget de paires n'existe plus
+ * depuis la piste 8, et `quotaTranche` (une tranche parallèle arrêtée sur sa
+ * part du plafond avec des paires restantes) s'ajoute en degats-et-aura
+ * 6bis-b7. Le type vit dans le moteur, qui le transmet sur le résultat
+ * fusionné : une seule définition.
  */
-export type MotifTroncature = 'maxMs' | 'maxCollected';
+export type { MotifTroncature };
 
 export interface Completude {
   /**

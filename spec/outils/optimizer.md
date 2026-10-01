@@ -2101,6 +2101,21 @@ Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un
 plafond atteint dit « resserre tes critères » (une limite subie).
 
+⚠️ **Sur une grosse recherche (appariement parallèle, au-delà de 100 M de
+combinaisons), le plafond de candidats est partagé en quatre** : chaque
+tranche en reçoit le quart et s'arrête quand elle l'a rempli. Depuis
+degats-et-aura 6bis-b7 (2026-10-01), une tranche arrêtée ainsi alors qu'il
+restait des combinaisons à examiner rend la recherche **tronquée**, même si
+le total reste sous le plafond : l'écran affiche alors « Recherche
+interrompue après examen de N combinaisons — resserre tes critères pour un
+résultat exhaustif. » (`OptimizerSection.tsx`), là où il présentait jusque-là
+le résultat comme complet. Seul le message change : la recherche n'examine
+rien de plus, et le partage du plafond est inchangé. Une tranche qui remplit
+son quart sur sa toute dernière combinaison ne laisse rien de côté et ne
+déclenche pas le message. Le moteur transmet le motif (`motifTroncature` :
+temps, plafond global ou quota de tranche) ; l'écran ne l'affiche pas, il
+n'en lit que le booléen `truncated`.
+
 ### Barre de progression
 
 Poste des messages de progression **entre** les points de passage internes,

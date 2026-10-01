@@ -1624,20 +1624,28 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     en `equipped`, le couple paire/relique en `recherche`, un build sans
     couple faisable étant rejeté. Il classe ensuite par `classementResolu`,
     le producteur d'`affichees`, avec l'effet unique de la relique retenue.
-    **Par défaut, il résout COMME LA FILE DE L'ÉCRAN** : les 100 premiers de
+    **Par défaut, il résout COMME LA FILE DE L'ÉCRAN** : les K premiers de
     l'ordre de base et ses 20 lignes imprimées (sa « page »), choisis par
     `prochainsATraiter`, par lots, jusqu'à ce que toutes les lignes imprimées
     soient résolues ; les autres candidats restent dans l'ordre de base.
+    K vaut **300 en mode relique `recherche`, 100 sinon** : `kDeLaFile`
+    (artifactQueue.ts), la fonction même de l'écran, lue sur le contexte
+    relique de la recherche lancée (`params.relicContext`) —
+    degats-et-aura 6bis-b8.
     `--resoudre-tout` résout TOUS les candidats collectés. Décision
     utilisateur du 2026-10-01 (option 2), après mesure : avec des artéfacts
     « Libre » — le défaut de l'écran —, la résolution complète coûtait
     environ 20 fois la recherche (6,7 min pour 5 100 builds × 4 reliques).
     ⚠️ Comme celui de l'écran, ce classement n'est pas exhaustif : en mode
     `recherche`, l'ordre de base ignore la relique, et un build au-delà des
-    100 premiers peut remonter très haut une fois résolu sans que la file le
-    résolve (constaté sur une fixture : 9 des 20 premiers exhaustifs
-    manquants, venus des rangs 305 à 399). `--resoudre-tout` reste la
-    référence exacte. Sa console imprime le mode, le nombre de builds
+    K premiers peut remonter très haut une fois résolu sans que la file le
+    résolve. Sur le vrai compte, en PV effectifs, K = 100 laissait manquer
+    les rangs exhaustifs 16, 17 et 19 (rangs de base 107 à 117) ; K = 300
+    les rattrape. Sur une fixture construite pour cela, 9 des 20 premiers
+    exhaustifs manquent encore à K = 300 (rangs de base 305 à 399) : le top
+    affiché en mode `recherche` reste une approximation, dite ici et dans
+    les notes internes, jamais à l'écran (décision utilisateur du
+    2026-10-01). `--resoudre-tout` reste la référence exacte. Sa console imprime le mode, le nombre de builds
     résolus et rejetés, la durée de la résolution, la relique et les
     artéfacts retenus de chaque ligne, la troncature éventuelle de la
     recherche, et quelle relique compte (« Effet unique de relique dans le
@@ -2370,10 +2378,24 @@ supposé : +0,3 % sur une recherche de 25 secondes et −1,6 % sur une de 8, les
 deux sous le plancher de bruit de la mesure. Seule une recherche d'environ une
 seconde montre ~3 %, dont une charge de calcul *pure* explique la
 quasi-totalité : c'est du partage de cœurs, pas un coût propre à ce calcul.
+⚠️ Cette mesure date d'une file de cent builds. En mode relique
+« recherche », la file en traite trois cents depuis degats-et-aura 6bis-b8
+(voir le paragraphe suivant) ; la mesure de contention à trois cents
+contre cent, sur une recette réelle à artéfacts « Libre », attend son
+créneau.
 
-**La page que vous consultez passe en premier.** Les cent meilleurs builds sont
-traités en avance de fond, mais c'est la page affichée qui est servie d'abord —
-sans quoi aucune page au-delà de la centième position n'aurait jamais sa paire.
+**La page que vous consultez passe en premier.** Les cent meilleurs builds —
+**trois cents en mode relique « recherche »** — sont traités en avance de
+fond, mais c'est la page affichée qui est servie d'abord — sans quoi aucune
+page au-delà de ces positions n'aurait jamais sa paire. La taille de la file
+(`kDeLaFile`, artifactQueue.ts) est fixée dès le lancement par le contexte
+relique de la recherche LANCÉE, jamais par les réglages courants : les
+changer après coup ne la modifie pas. Pourquoi trois cents : en mode
+« recherche », l'ordre de base note sans relique, et un build classé au-delà
+du centième peut remonter dans la première page une fois sa relique
+résolue (constaté sur le vrai compte, en PV effectifs). Trois cents réduit
+ce manque sans l'annuler ; « Équipée » garde cent, inchangé, et sans
+optimisation d'artéfacts il n'y a pas de file.
 Changer de page ou de tri repriorise immédiatement, sans rien recalculer de ce
 qui est déjà connu.
 

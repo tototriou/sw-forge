@@ -18,11 +18,6 @@ import { useEffect, useRef, useState } from 'react';
 import { BuildCandidate } from '../lib/runeBuildOptim';
 import { ResultatArtefacts, cleBuild, prochainsATraiter } from '../lib/artifactQueue';
 
-// Combien de builds on optimise au maximum. Mesuré : le vainqueur final venait
-// du rang initial #1, et il faut les 7 premiers pour un top 5 exact — 100 laisse
-// une marge confortable, soit 5 pages de résultats entièrement justes.
-export const K_BUILDS_OPTIMISES = 100;
-
 /**
  * Intervalle minimal entre deux PUBLICATIONS du cache à l’écran.
  *
@@ -98,9 +93,13 @@ export function useArtifactOptimQueue(opts: {
   // Change dès qu'un réglage modifie le score d'une paire ou le pool de
   // reliques — vide le cache.
   signature: string;
-  K?: number;
+  // Combien de builds résoudre hors page affichée : `kDeLaFile` (artifactQueue.ts)
+  // du contexte relique de la recherche LANCÉE — 300 en mode « recherche »,
+  // 100 sinon. Obligatoire, sans défaut : un appel qui l'oublierait garderait
+  // 100 en mode « recherche » sans que `tsc` le voie (6bis-b8).
+  K: number;
 }): UseArtifactOptimQueue {
-  const { triees, pageAffichee, resoudre, signature, K = K_BUILDS_OPTIMISES } = opts;
+  const { triees, pageAffichee, resoudre, signature, K } = opts;
   const [parBuild, setParBuild] = useState<ReadonlyMap<string, ResultatArtefacts>>(new Map());
   const [enAttente, setEnAttente] = useState(0);
 

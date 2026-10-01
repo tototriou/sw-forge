@@ -22,6 +22,7 @@ import { StatKey } from './effects';
 import { StatRow } from './stats';
 import { ArtifactDetail, RelicDetail } from '../types';
 import { PaireArtefacts } from './artifactOptim';
+import { RelicContext } from './relicOptim';
 
 /**
  * Identité d'un build, pour ne pas l'optimiser deux fois.
@@ -126,6 +127,34 @@ export interface ResultatArtefacts {
 export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string, ResultatArtefacts>): BuildCandidate {
   const r = cache.get(cleBuild(c));
   return r ? { ...c, stats: r.stats } : c;
+}
+
+// Combien de builds la file résout au maximum, hors page affichée. Mesuré :
+// le vainqueur final venait du rang initial #1, et il faut les 7 premiers pour
+// un top 5 exact — 100 laisse une marge confortable, soit 5 pages de résultats
+// entièrement justes. Calibré AVANT le mode relique « recherche ».
+export const K_BUILDS_OPTIMISES = 100;
+
+// ⚠️ **En mode relique « recherche », 300** (degats-et-aura 6bis-b8, décision
+// utilisateur du 2026-10-01). L'ordre de base y note SANS relique : un build
+// au-delà des 100 premiers peut remonter très haut une fois résolu (sur le
+// vrai compte, en PV effectifs, les rangs exhaustifs 16, 17 et 19 venaient
+// des rangs de base 107 à 117). 300 réduit le manque, ne l'annule pas : le
+// top affiché reste une approximation (limites-connues.md).
+export const K_BUILDS_RECHERCHE_RELIQUE = 300;
+
+/**
+ * La taille de la file pour UNE recherche — partagée par l'écran
+ * (`useArtifactOptimQueue`) et le CLI (`classerApresResolution`).
+ *
+ * ⚠️ L'entrée est le contexte relique de la recherche LANCÉE
+ * (`relicContextRecherche` à l'écran, `params.relicContext` au CLI), jamais
+ * l'état courant des réglages : changer un réglage après le lancement ne
+ * change pas K. « Équipée » et « Off » gardent 100 (en « Off », il n'y a de
+ * toute façon pas de file : l'optimisation d'artéfacts est coupée).
+ */
+export function kDeLaFile(relicContext: RelicContext | undefined): number {
+  return relicContext?.mode === 'recherche' ? K_BUILDS_RECHERCHE_RELIQUE : K_BUILDS_OPTIMISES;
 }
 
 /**

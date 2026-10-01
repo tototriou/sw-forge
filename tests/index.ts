@@ -19,6 +19,7 @@ import testArtefactFile from './artefact-file.test';
 import testArtifactEvaluation, { testArtifactPaireReelleEhp, testArtifactPaireReelleDegatsEffetUnique } from './artifact-evaluation.test';
 import { testResolutionProducteurPartage, testClassementResolu } from './resolution-partagee.test';
 import { testCliClassementParMode } from './cli-classement.test';
+import { testKDeLaFile } from './file-k.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
@@ -245,6 +246,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testResolutionProducteurPartage', testResolutionProducteurPartage],
   ['testClassementResolu', testClassementResolu],
   ['testCliClassementParMode', testCliClassementParMode],
+  ['testKDeLaFile', testKDeLaFile],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

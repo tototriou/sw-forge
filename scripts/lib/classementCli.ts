@@ -8,9 +8,11 @@
 //
 // ⚠️ **Par défaut, le CLI résout COMME LA FILE DE L'ÉCRAN** (décision
 // utilisateur du 2026-10-01, option 2, après la mesure de 6bis-b5c) : les
-// `K_BUILDS_OPTIMISES` (100) premiers de l'ordre de base et sa « page
-// affichée » — les `LIGNES_IMPRIMEES` lignes qu'il imprime —, choisis par
-// `prochainsATraiter`, la fonction pure de la file, jusqu'au point fixe.
+// K premiers de l'ordre de base — `kDeLaFile` du contexte relique de la
+// recherche, comme l'écran : 300 en mode « recherche », 100 sinon (6bis-b8) —
+// et sa « page affichée » — les `LIGNES_IMPRIMEES` lignes qu'il imprime —,
+// choisis par `prochainsATraiter`, la fonction pure de la file, jusqu'au
+// point fixe.
 // Résoudre TOUS les candidats collectés coûtait jusqu'à 20 fois la recherche
 // avec des artéfacts « Libre » (le défaut de l'écran) : 6,7 min pour 5 100
 // builds × 4 reliques. Cette résolution exhaustive reste disponible,
@@ -19,7 +21,7 @@
 // ⚠️ La file de l'écran traite UN build par tranche, avec une page publiée au
 // plus toutes les 400 ms ; le CLI traite par LOTS, page recalculée entre deux
 // lots. La condition d'arrêt est la même — plus rien à résoudre parmi la page
-// et les 100 premiers —, mais l'écran peut avoir résolu en chemin des builds
+// et les K premiers —, mais l'écran peut avoir résolu en chemin des builds
 // passés un instant sur sa page, que le CLI ne résout pas.
 
 import {
@@ -31,10 +33,9 @@ import {
   optionsDeClassement,
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
-import { ResultatArtefacts, classementResolu, cleBuild, prochainsATraiter } from '../../src/lib/artifactQueue';
+import { ResultatArtefacts, classementResolu, cleBuild, kDeLaFile, prochainsATraiter } from '../../src/lib/artifactQueue';
 import { etatReliqueDuBuild } from '../../src/lib/relicQueue';
 import { ArtifactDamageProfile, DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../../src/lib/damage';
-import { K_BUILDS_OPTIMISES } from '../../src/hooks/useArtifactOptimQueue';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { LoadedMonster } from './loadMonster';
 import { loadMonstersList } from './monstersData';
@@ -51,6 +52,9 @@ export const LIGNES_IMPRIMEES = 20;
 export interface ClassementResoluCli {
   // `file` (défaut) : comme la file de l'écran ; `tout` : `--resoudre-tout`.
   mode: 'file' | 'tout';
+  // La taille de la file en mode `file` (`kDeLaFile` du contexte relique de
+  // la recherche) — celle que la console cite.
+  K: number;
   // Le cache de résolution, par `cleBuild` — le pendant de `parBuild` de la
   // file. En mode `file`, seuls les builds résolus y figurent ; les autres
   // gardent leurs stats de base (relique neutre en mode `recherche`).
@@ -76,9 +80,10 @@ export interface ClassementResoluCli {
  *
  * - `toutResoudre` faux (défaut du script) : comme la file de l'écran. À
  *   chaque lot, `prochainsATraiter` — les `LIGNES_IMPRIMEES` premières du
- *   classement courant, puis les `K_BUILDS_OPTIMISES` premiers de l'ordre de
- *   base, déjà résolus exclus — ; on s'arrête quand le lot est vide : toutes
- *   les lignes imprimées sont résolues.
+ *   classement courant, puis les K premiers de l'ordre de base
+ *   (`kDeLaFile(params.relicContext)`, la fonction de l'écran : 300 en mode
+ *   relique « recherche », 100 sinon), déjà résolus exclus — ; on s'arrête
+ *   quand le lot est vide : toutes les lignes imprimées sont résolues.
  * - `toutResoudre` vrai : tous les candidats, en une passe.
  *
  * `null` là où l'écran n'a pas de file (`resoudreEquipementCli`) : le
@@ -117,6 +122,9 @@ export function classerApresResolution(e: {
     // recherche lancée, relique de la fiche (`SearchParams.relic`).
     etatReliqueDe: (c) => etatReliqueDuBuild(parBuild.get(cleBuild(c)), e.params.relicContext, e.params.relic),
   });
+  // Le contexte de la recherche LANCÉE, comme `relicContextRecherche` à
+  // l'écran : jamais relu dans la recette.
+  const K = kDeLaFile(e.params.relicContext);
   const t0 = performance.now();
   let lots = 0;
   if (e.toutResoudre) {
@@ -127,7 +135,7 @@ export function classerApresResolution(e: {
     // plus tard quand tout est résolu.
     for (;;) {
       const page = classementResolu(e.base, parBuild, e.recipe.objective, options).slice(0, LIGNES_IMPRIMEES);
-      const lot = prochainsATraiter(e.base, new Set(parBuild.keys()), K_BUILDS_OPTIMISES, page);
+      const lot = prochainsATraiter(e.base, new Set(parBuild.keys()), K, page);
       if (lot.length === 0) break;
       for (const c of lot) parBuild.set(cleBuild(c), resoudre(c));
       lots++;
@@ -137,7 +145,7 @@ export function classerApresResolution(e: {
   const classes = classementResolu(e.base, parBuild, e.recipe.objective, options);
   let rejetes = 0;
   for (const r of parBuild.values()) if (!r.conforme) rejetes++;
-  return { mode: e.toutResoudre ? 'tout' : 'file', parBuild, classes, options, rejetes, lots, ms };
+  return { mode: e.toutResoudre ? 'tout' : 'file', K, parBuild, classes, options, rejetes, lots, ms };
 }
 
 export interface ClassementCli {

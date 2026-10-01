@@ -23,7 +23,7 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { classementResolu, cleBuild, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { classementResolu, cleBuild, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { entreeResolutionDuBuild, resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
@@ -2220,6 +2220,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // et un tri par ATQ porterait sur une valeur périmée.
     resoudre: resoudreEquipement,
     signature: signatureArtefacts,
+    // ⚠️ 300 en mode relique « recherche », 100 sinon (6bis-b8), dès le
+    // lancement : le contexte de la recherche LANCÉE, jamais les réglages
+    // courants — les changer après coup ne change pas K.
+    K: kDeLaFile(relicContextRecherche),
   });
 
   /**

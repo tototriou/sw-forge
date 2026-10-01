@@ -45,8 +45,7 @@ import {
   scoreDuCandidat,
   sortCandidates,
 } from '../src/lib/runeBuildOptim';
-import { ResultatArtefacts, classementResolu, cleBuild, prochainsATraiter } from '../src/lib/artifactQueue';
-import { K_BUILDS_OPTIMISES } from '../src/hooks/useArtifactOptimQueue';
+import { K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE, ResultatArtefacts, classementResolu, cleBuild, kDeLaFile, prochainsATraiter } from '../src/lib/artifactQueue';
 import { entreeResolutionDuBuild, etatReliqueDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { regimeArtefacts, regimeEquipementDe } from '../src/lib/artifactEvaluation';
 import { artefactsDuCli, recipeToSearchParams } from '../scripts/lib/recipeToSearchParams';
@@ -103,7 +102,8 @@ const LOADED: LoadedMonster = {
  * (`fullSortedCandidates`), puis — optimisation d'artéfacts active — la file
  * et `affichees`. `file` vrai : la file comme le hook `useArtifactOptimQueue`
  * la déroule, sans navigateur — UN build par tranche, le premier de
- * `prochainsATraiter(ordre de base, cache, K_BUILDS_OPTIMISES, page)`, la page
+ * `prochainsATraiter(ordre de base, cache, kDeLaFile(contexte lancé), page)`
+ * — 300 en mode « recherche », 100 sinon (6bis-b8) —, la page
  * (20 lignes, `RESULTS_PAGE_SIZE`) recalculée à chaque tranche, jusqu'à ce
  * qu'il ne reste rien. `file` faux : tous les candidats résolus.
  */
@@ -144,7 +144,7 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
   if (file) {
     for (;;) {
       const page = classementResolu(fullSortedCandidates, parBuild, recipe.objective, options).slice(0, 20);
-      const suivant = prochainsATraiter(fullSortedCandidates, new Set(parBuild.keys()), K_BUILDS_OPTIMISES, page)[0];
+      const suivant = prochainsATraiter(fullSortedCandidates, new Set(parBuild.keys()), kDeLaFile(relicContextRecherche), page)[0];
       if (!suivant) break;
       parBuild.set(cleBuild(suivant), resoudre(suivant));
     }
@@ -253,7 +253,11 @@ export function testCliClassementParMode() {
       const r = cliFile.resolu!;
       egal(r.mode, 'file', `${mode}, file : mode par défaut`);
       ok(cliFile.classes.slice(0, LIGNES_IMPRIMEES).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${LIGNES_IMPRIMEES} lignes imprimées sont toutes résolues`);
-      ok(cliFile.base.slice(0, K_BUILDS_OPTIMISES).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${K_BUILDS_OPTIMISES} premiers de l’ordre de base sont résolus`);
+      // 6bis-b8 : la file en mode `recherche` résout 300 builds, 100 en
+      // `equipped` — valeur attendue écrite en dur, indépendante de `kDeLaFile`.
+      egal(r.K, mode === 'recherche' ? K_BUILDS_RECHERCHE_RELIQUE : K_BUILDS_OPTIMISES, `${mode}, file : K = ${r.K}`);
+      egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles de file décidées le 2026-10-01');
+      ok(cliFile.base.slice(0, r.K).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${r.K} premiers de l’ordre de base sont résolus`);
       ok(r.parBuild.size < res.candidates.length,
         `${mode}, file : ${r.parBuild.size} résolus sur ${res.candidates.length} en ${r.lots} lot(s) (la file de l’écran, build par build : ${ecranFile.parBuild.size})`);
       const equipementFile = (c: BuildCandidate) => {
@@ -265,8 +269,10 @@ export function testCliClassementParMode() {
         .map(cleBuild), [], `${mode}, file : les ${LIGNES_IMPRIMEES} scores imprimés = note de production de l’équipement complet`);
       // ⚠️ La file n'est PAS exhaustive (le prix de l'option 2, comme à
       // l'écran) : en `recherche`, l'ordre de base ignore la relique, et un
-      // build au-delà des 100 premiers peut remonter très haut une fois
-      // résolu — la file ne le résout pas. Ce qui est garanti : un build des
+      // build au-delà des K premiers (300 depuis 6bis-b8) peut remonter très
+      // haut une fois résolu — la file ne le résout pas. Sur cette fixture,
+      // faite pour cela, les manquants viennent des rangs de base 305 à 399 :
+      // 300 ne les atteint pas, c'est la limite consignée. Ce qui est garanti : un build des
       // vingt premiers de `--resoudre-tout` absent des lignes de la file n'a
       // JAMAIS été résolu par elle (un build résolu y aurait sa note exacte,
       // et vingt lignes résolues au-dessus de lui contrediraient son rang

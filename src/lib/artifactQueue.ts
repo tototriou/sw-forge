@@ -395,3 +395,62 @@ export function classementResolu(
   );
   return sortCandidates(conformes.map((c) => candidatAvecSaPaire(c, parBuild)), sortBy, options);
 }
+
+export interface CompteAffichable {
+  // Builds affichables : trouvés par le moteur, moins les écartés.
+  compte: number;
+  // Écartés par la résolution exacte (`conforme: false`) parmi les reçus.
+  ecartes: number;
+  // Pages de la liste réellement paginée (reçus moins écartés), au moins 1.
+  pages: number;
+  // La ligne qui explique un zéro dû aux seuls écartés ; `null` sinon.
+  raison: string | null;
+}
+
+/**
+ * Le compte AFFICHÉ des builds — l'unique source de l'en-tête, de la ligne de
+ * progression et du nombre de pages de l'écran (degats-et-aura 6bis-b10).
+ *
+ * - `trouves` : le compte du MOTEUR — `result.candidates.length` à la fin,
+ *   `progress.found` pendant l'appariement (il n'est pas plafonné, l'aperçu
+ *   l'est : `PREVIEW_CANDIDATES_CAP`).
+ * - `recus` / `affichables` : les longueurs de l'ordre de base
+ *   (`fullSortedCandidates`) et du classement affiché (`affichees`, sortie de
+ *   `classementResolu`) — leur différence est le nombre d'écartés, recalculée
+ *   à chaque publication du cache de la file, pendant et après la recherche.
+ *   Un build pas encore résolu reste dans les deux : il est compté.
+ *
+ * ⚠️ **Jamais les entrées `conforme: false` du cache.** Il n'est vidé qu'au
+ * changement de signature : une recherche relancée aux mêmes réglages garde
+ * les rejets de la précédente, y compris pour des builds qu'elle n'a pas
+ * (encore) trouvés. La différence des deux longueurs ne compte que les
+ * candidats de CETTE recherche.
+ *
+ * ⚠️ `modeRecherche` : relique « recherche » de la recherche LANCÉE — la ligne
+ * de raison parle alors de la paire ET de la relique ; sinon la relique est
+ * celle de la fiche, et seule la paire est en cause.
+ */
+export function compteAffichable(e: {
+  trouves: number;
+  recus: number;
+  affichables: number;
+  taillePage: number;
+  modeRecherche: boolean;
+}): CompteAffichable {
+  const ecartes = Math.max(0, e.recus - e.affichables);
+  const compte = Math.max(0, e.trouves - ecartes);
+  const pages = Math.max(1, Math.ceil(e.affichables / e.taillePage));
+  const raison =
+    compte === 0 && ecartes > 0
+      ? `${ecartes.toLocaleString('fr-FR')} ${
+          ecartes === 1
+            ? 'combinaison trouvée par la recherche a été écartée'
+            : 'combinaisons trouvées par la recherche ont été écartées'
+        } : ${
+          e.modeRecherche
+            ? "aucune paire d'artéfacts ni relique réelles ne tient toutes les conditions."
+            : "aucune paire d'artéfacts réelle ne tient toutes les conditions."
+        }`
+      : null;
+  return { compte, ecartes, pages, raison };
+}

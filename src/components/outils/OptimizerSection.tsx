@@ -23,7 +23,7 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { classementResolu, cleBuild, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { classementResolu, cleBuild, compteAffichable, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { entreeResolutionDuBuild, resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
@@ -2084,17 +2084,6 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   );
 
   const RESULTS_PAGE_SIZE = 20;
-  const totalResultsPages = Math.max(1, Math.ceil(fullSortedCandidates.length / RESULTS_PAGE_SIZE));
-
-  // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
-  // (pendant la phase d'appariement) grandit au fil de la recherche sans
-  // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
-  // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
-  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
-  // de tri (classement entièrement différent) remettent explicitement à 1.
-  useEffect(() => {
-    setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
-  }, [totalResultsPages, setResultsPage]);
 
   // ⚠️ `pageCandidates` est défini PLUS BAS, après la file d'optimisation
   // d'artéfacts : la page affichée dépend du classement corrigé par les paires
@@ -2332,6 +2321,37 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     () => classementResolu(fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche),
     [fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche]
   );
+
+  // Le compte AFFICHÉ (degats-et-aura 6bis-b10) : trouvés par le moteur, moins
+  // les builds que la résolution a écartés — ces derniers mesurés comme reçus
+  // moins affichables, jamais lus dans le cache de la file (voir
+  // `compteAffichable`). `affichees` change à chaque publication du cache : le
+  // compte suit, en pleine recherche comme après. Seule source de l'en-tête, de
+  // la ligne de progression et du nombre de pages.
+  const compteAffiche = useMemo(
+    () =>
+      compteAffichable({
+        trouves: result ? result.candidates.length : progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length,
+        recus: fullSortedCandidates.length,
+        affichables: affichees.length,
+        taillePage: RESULTS_PAGE_SIZE,
+        modeRecherche: relicContextRecherche?.mode === 'recherche',
+      }),
+    [result, progress, fullSortedCandidates.length, affichees.length, relicContextRecherche?.mode]
+  );
+  const totalResultsPages = compteAffiche.pages;
+
+  // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
+  // (pendant la phase d'appariement) grandit au fil de la recherche sans
+  // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
+  // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
+  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
+  // de tri (classement entièrement différent) remettent explicitement à 1.
+  // Le nombre de pages peut aussi DIMINUER (builds écartés à la résolution,
+  // 6bis-b10) : la page courante revient alors sur la dernière.
+  useEffect(() => {
+    setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
+  }, [totalResultsPages, setResultsPage]);
 
   const pageCandidates = useMemo(
     () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
@@ -4580,7 +4600,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'
-              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
+              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
           {progress !== null && (
             <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
@@ -4629,14 +4649,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       {(result || fullSortedCandidates.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            {/* ⚠️ Le compte AFFICHABLE (`compteAffiche`, 6bis-b10) : un build
+                que la résolution a écarté n'est ni affiché ni compté. */}
             <p className="label">
               {result
-                ? result.candidates.length === 0
+                ? compteAffiche.compte === 0
                   ? 'Aucune combinaison ne répond à ces critères'
-                  : `${result.candidates.length} combinaison(s) trouvée(s)`
-                : `${(progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length).toLocaleString(
-                    'fr-FR'
-                  )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
+                  : `${compteAffiche.compte} combinaison(s) trouvée(s)`
+                : `${compteAffiche.compte.toLocaleString('fr-FR')} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
             </p>
             {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
                 DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
@@ -4648,7 +4668,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 qu’une paire possible, celle qui est portée. Une saisie sans
                 effet est pire qu’une saisie absente — même règle que les
                 sélecteurs de principale et les sous-propriétés verrouillées. */}
-            {optimiserArtefacts && (result ? result.candidates.length > 0 : true) && (
+            {optimiserArtefacts && (result ? compteAffiche.compte > 0 : true) && (
               <div className="ml-auto flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
                 <HelpPopover title="Adapter les artéfacts et reliques au tri">
@@ -4672,7 +4692,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 />
               </div>
             )}
-            {(result ? result.candidates.length > 0 : true) && (
+            {(result ? compteAffiche.compte > 0 : true) && (
               <Selecteur
                 value={sortBy}
                 onChange={(e) => {
@@ -4706,6 +4726,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               </Selecteur>
             )}
           </div>
+
+          {/* ⚠️ Zéro dû aux seuls builds écartés par la résolution (6bis-b10) :
+              le moteur a trouvé, aucun couple réel ne tient. Les blocs
+              ci-dessous (diagnostic, « suffirait ») gardent leur condition,
+              moteur vide : leurs chiffres viennent des bornes du moteur. */}
+          {compteAffiche.raison && (
+            <p className="mb-3 text-xs text-ink-dim">{compteAffiche.raison}</p>
+          )}
 
           {/* ⚠️ Diagnostic affiché UNIQUEMENT sur 0 résultat — voir
               `diagnoseFeasibility` dans runeBuildOptim.ts pour ce qu'il

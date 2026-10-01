@@ -1544,6 +1544,41 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
       s'il existe au moins un tel résultat parmi ce que la recherche a
       réellement exploré — un near-miss encore plus proche, jamais atteint
       avant l'arrêt de la recherche, resterait invisible.
+    Ces trois encadrés ne portent que sur un **moteur vide**
+    (`result.candidates.length === 0`) : leurs chiffres viennent des bornes
+    du moteur, pas de la résolution exacte.
+    ⚠️ **Le compte affiché est celui des builds affichables** (degats-et-aura
+    6bis-b10, décisions de l'utilisateur du 2026-10-01) : trouvés par le
+    moteur — `result.candidates.length` à la fin, `progress.found` pendant
+    l'appariement — moins ceux que la résolution exacte a écartés faute de
+    couple artéfacts/relique faisable (`conforme: false`). Les écartés se
+    mesurent comme candidats reçus (`fullSortedCandidates`) moins
+    affichables (`affichees`), jamais en comptant les entrées
+    `conforme: false` du cache de la file : il n'est vidé qu'au changement
+    de signature, et une recherche relancée aux mêmes réglages garderait
+    les rejets de la précédente. Une seule fonction pure,
+    `compteAffichable` (artifactQueue.ts), alimente l'en-tête
+    (« N combinaison(s) trouvée(s) »), la ligne de progression et le nombre
+    de pages, compté sur la liste réellement paginée (reçus moins écartés :
+    l'aperçu en direct est plafonné, `progress.found` non) ; si ce nombre
+    diminue, la page courante revient sur la dernière. Le compte suit
+    chaque publication du cache de la file (400 ms), en pleine recherche
+    comme après sa fin. Un build pas encore résolu (au-delà de K, « en
+    attente ») reste compté ; sans optimisation d'artéfacts, pas de file :
+    rien ne change. **À zéro avec au moins un écarté**, l'en-tête dit
+    « Aucune combinaison ne répond à ces critères », suivi d'une ligne de
+    raison : « 1 combinaison trouvée par la recherche a été écartée :
+    aucune paire d'artéfacts ni relique réelles ne tient toutes les
+    conditions. » (pluriel : « N combinaisons trouvées par la recherche ont
+    été écartées »). Hors relique « recherche » de la recherche lancée, la
+    relique est celle de la fiche et la ligne ne parle que de la paire
+    (« aucune paire d'artéfacts réelle ne tient toutes les conditions. »).
+    Les trois encadrés ci-dessus ne s'affichent pas sous un tel zéro, et
+    le sélecteur « Trier par » comme l'interrupteur « Adapter les
+    artéfacts et reliques au tri » se masquent, comme sur un moteur vide.
+    Pendant la recherche, l'en-tête garde « … pour l'instant — recherche
+    en cours… » avec ce compte, et la ligne de raison s'affiche dès qu'il
+    tombe à zéro par écartement.
     Un sélecteur **« Trier par »** re-trie **côté
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes

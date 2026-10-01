@@ -3479,11 +3479,22 @@ parité CLI en recherche (b5c).
 
 ##### 6bis-b5c — CLI en mode recherche et parité finale
 
-**Cat. J ; requiert b5b.** Intrant borné (≈ 330 lignes) :
-`scripts/optimizer-search.ts` L370–440 ; `relicQueue.ts` L100–215 ;
-`scripts/lib/relicDifferentiel.ts` (`entreeResolution`, ~L120–160) ;
-`scripts/lib/recipeToSearchParams.ts` L180–215 ; `OptimizerSection.tsx`
-L2195–2260 (résolution de l'écran).
+**Cat. J ; requiert b5b.** Intrant borné, recalé le 2026-10-01 sur
+`31cf01be` (≈ 400 lignes) :
+
+- `scripts/optimizer-search.ts` L380–475 (`optionsDuTri` par
+  `optionsDeClassement`, tri, 20 premiers) ;
+- `relicQueue.ts` L100–265 (`resoudreEquipementDuBuild`,
+  `etatReliqueDuBuild`) ;
+- `scripts/lib/relicDifferentiel.ts` L117–175 (`entreeResolution`,
+  `resoudreCandidat`) ;
+- `scripts/lib/recipeToSearchParams.ts` L180–215, inchangé ;
+- `OptimizerSection.tsx` L2195–2300 (`faireParamsArtefacts`,
+  `resoudreEquipement` : la résolution de l'écran).
+
+`resoudreCandidat` sert déjà de résolution de production au test de
+6bis-b3c (`tests/rune-optim-dominance-relique.test.ts`). A.6 bis s'applique
+à la parité : la note de référence est celle de la production.
 
 **Contrat :** en mode `recherche`, le CLI résout comme l'écran le couple
 artéfacts/relique de chaque candidat collecté (`resoudreEquipementDuBuild`,

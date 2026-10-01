@@ -7,6 +7,7 @@
 import { bilan } from './outils';
 import testImport from './import.test';
 import testNavigation from './navigation.test';
+import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
 import testPersistance from './persistance.test';
 import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
@@ -74,7 +75,7 @@ import {
 import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, testRenduSiegeEdition } from './rendu/siege.test';
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
 import { testPalette } from './palette.test';
-import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil } from './rendu/app.test';
+import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
 import { testRenduAccueil, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense } from './rendu/recos.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
@@ -178,6 +179,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduAppNavigation', testRenduAppNavigation],
   ['testRenduAppMobile', testRenduAppMobile],
   ['testRenduAppFil', testRenduAppFil],
+  ['testRenduAppLiensMorts', testRenduAppLiensMorts],
   ['testRenduAccueil', testRenduAccueil],
   ['testRenduAccueilEspace', testRenduAccueilEspace],
   ['testRenduRtaPrepa', testRenduRtaPrepa],
@@ -190,6 +192,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRtaAmi', testRenduRtaAmi],
   ['testImport', testImport],
   ['testNavigation', testNavigation],
+  ['testNavigationAdresses', testNavigationAdresses],
+  ['testNavigationAdressesDefauts', testNavigationAdressesDefauts],
+  ['testNavigationVuesCompte', testNavigationVuesCompte],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],

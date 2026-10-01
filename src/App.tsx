@@ -158,7 +158,9 @@ export type ToolSub = 'optimizer' | 'speed-tuning';
 
 // Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
 // + sous-section « Outils » déduites du hash.
-function parseHash(): {
+// ⚠️ Exportée, et le hash en paramètre : c'est ce qui la rend testable seule
+// (tests/navigation-adresses.test.ts, spec/shared/navigation.md § Adresses).
+export function parseHash(hash: string = window.location.hash): {
   route: Route;
   rtaSub: RtaSub;
   siegeTab: SiegeTab;
@@ -166,7 +168,7 @@ function parseHash(): {
   accountView: AccountView;
   toolSub: ToolSub;
 } {
-  const h = window.location.hash.replace(/^#\/?/, '');
+  const h = hash.replace(/^#\/?/, '');
   const base = {
     rtaSub: 'prepa' as RtaSub,
     siegeTab: 'defense' as SiegeTab,

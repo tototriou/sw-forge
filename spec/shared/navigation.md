@@ -54,6 +54,31 @@ Siège. Aucune destination ne disparaît — vérifié par
 `tests/rendu/app.test.tsx`. Les onglets mobiles gardent leurs cinq entrées
 (le téléphone a son propre lot).
 
+## Adresses — ce que lit la barre d'adresse
+
+Routage par hash, sans routeur : `parseHash` ([App.tsx](src/App.tsx)) lit
+l'adresse et en déduit la page et ses sous-niveaux.
+
+| Adresse | Page |
+| --- | --- |
+| `#/` | Accueil |
+| `#/rta`, `#/rta/ami` | RTA · Ma prépa, Ami |
+| `#/siege/defense`, `/offense`, `/recommandations` | Siège |
+| `#/compte/<inventaire>/<vue>` | Mon compte — vues de [accountViews.ts](src/lib/accountViews.ts) |
+| `#/outils/optimizer`, `/speed-tuning` | Outils |
+| `#/arene`, `#/bestiary`, `#/mecaniques`, `#/releases`, `#/parametres` | une page chacune |
+
+- ⚠️ **Une adresse tronquée mène au défaut de sa section**, jamais à un écran
+  vide : `#/siege` → Défense, `#/compte` → Monstres, `#/compte/runes` →
+  Résumé, `#/outils` → Optimizer. L'accueil s'en sert (`#/compte/runes`).
+- ⚠️ **Une sous-page inconnue retombe sur le défaut de SA section**
+  (`#/compte/artefacts/courbes` → Artéfacts · Résumé, par `vueValide`) ; une
+  **section inconnue** retombe sur l'accueil. Jamais d'exception.
+- ⚠️ **Garde-fou** (Thomas, 2026-10-01) : `tests/navigation-adresses.test.ts`
+  tient la table de toutes les adresses et de leur page. Tout lien `#/…`
+  affiché par l'app doit y figurer — un lien ajouté sans y être inscrit, ou qui
+  ne mène plus où la table le dit, fait échouer `npm test`.
+
 ## ⚠️ La barre navigue SEULE
 
 **La page ne change qu'au choix d'une destination.** C'est la règle qui

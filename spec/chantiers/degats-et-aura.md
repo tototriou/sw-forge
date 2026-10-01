@@ -95,6 +95,12 @@ unique de la relique, et **O** durcit l'outil `chantier` (`ouvrir`,
   ces deux fichiers dans ce chantier**, confirmée lors de la revue. Elle ne
   dispense ni de la cohérence des règles ni de la mise à jour des invariants.
   Une entrée de `pistes.md` note la dette (lot 14).
+  **Étendue le 2026-10-01 à `harnais-diagnostic.md`** (exception du lint,
+  chantier `harnais`), décision de l'utilisateur avant 6bis-b7, qui amende
+  sa § 6.2 : mêmes conditions, ajouts dans les sections existantes, dette
+  au lot 14. Elle régularise l'ajout normatif de 6bis-b4 à sa § 3
+  (`sortCandidates` et contexte de dégâts), fait sans dérogation et validé
+  sans que le pilote le relève.
   Réparer leurs liens au lot 2b ne déclenche aucun découpage : `spec-hygiene`
   exclut explicitement les liens de son déclencheur normatif.
 - **Les parties 3 et 4 de l'audit des dégâts conditionnels.** Elles restent
@@ -4064,25 +4070,32 @@ pilote, antérieur au chantier. Une tranche qui atteint son quota s'arrête
 recherche tronquée que si le total atteint le plafond global, ou si une
 tranche manque de temps.
 
-**Intrant borné.**
+**Intrant borné**, recalé le 2026-10-01 sur `32278567` (b3d-1 a décalé
+`runeBuildOptim.ts`) :
 
-- `runeBuildOptim.ts` L470-500 (`SearchResult`) et L4340-4430
-  (`pairBuckets` jusqu'à `combineParallelPairingResults`) ;
-- `src/workers/parallelPairing.ts` L85-160 ;
-- `scripts/lib/diagnosticHarness.ts` L1610-1625 et L1830-1850
-  (`evaluerCompletude` : le motif y est DÉDUIT du plafond global) ;
-- `OptimizerSection.tsx` L4890-4900 (message affiché) ;
-- `invariants.md` L182 ; `parallelisation-partagee.md` § 4.1 ;
-  `harnais-diagnostic.md` § 6.2 ;
+- `runeBuildOptim.ts` L494-539 (`SearchResult`) et L4395-4497 (fin de
+  `pairBuckets`, arrêt sur quota L4404, puis `combineParallelPairingResults`
+  L4461) ;
+- `src/workers/parallelPairing.ts` L85-160 ; `runeBuildOptim.worker.ts`
+  L330-345 (`totalPairs`, choix du régime) ;
+- `scripts/lib/diagnosticHarness.ts` L1612-1625 (`etatCompletude`) et
+  L1812-1855 (`evaluerCompletude` : le motif y est DÉDUIT du plafond
+  global) ;
+- `OptimizerSection.tsx` L4870-4880 (message affiché) ;
+- `invariants.md` L183 ; `parallelisation-partagee.md` § 4.1 (L192-206) ;
+  `harnais-diagnostic.md` § 6.2 (L544-600), sous la dérogation de A.2
+  étendue le 2026-10-01 ;
 - tests dont l'attente bascule : `rune-optim-parallel-truncated.test.ts`
-  L55-68 (cas « LE BUG CORRIGÉ ») ; `diagnostic-harness.test.ts` L417-439.
+  L55-70 (cas « LE BUG CORRIGÉ ») ; `diagnostic-harness.test.ts` L390-440.
 
 **Contrat.**
 
 - Une tranche arrêtée sur son quota rend la recherche **tronquée**, à
   condition qu'il reste des paires non visitées (`explored <
   totalPairCount`) : une tranche pleine sur sa toute dernière paire ne
-  déclare pas de troncature.
+  déclare pas de troncature. `totalPairs` est déjà calculé pour choisir le
+  régime (Worker L334, harnais) : il se transmet, jamais recalculé
+  (contrainte du 2026-10-01).
 - Le **motif** (quota de tranche, plafond global ou temps) est transmis par
   `combineParallelPairingResults` dans le résultat, pour le harnais et le
   CLI. `evaluerCompletude` le lit au lieu de le déduire, son JSDoc et
@@ -4093,8 +4106,8 @@ tranche manque de temps.
   séquentiel.
 - **Effet visible, à écrire** : sur ces recherches parallèles, l'écran
   affichera « Recherche interrompue après examen de N combinaisons —
-  resserre tes critères » (`OptimizerSection.tsx` L4896).
-- `invariants.md` L182 et `parallelisation-partagee.md` § 4.1 amendés.
+  resserre tes critères » (`OptimizerSection.tsx` L4875).
+- `invariants.md` L183 et `parallelisation-partagee.md` § 4.1 amendés.
 
 **Preuves.**
 

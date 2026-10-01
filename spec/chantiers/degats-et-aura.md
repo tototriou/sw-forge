@@ -666,7 +666,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | terminé, preuves, mutation et CLI réel rejoués par le pilote ; coût de la file (~8–10 %, Node) livré en l'état sur décision de l'utilisateur | `28a765cd` + `2594f1b4` ; reçu `2594f1b` ↔ `d3c186e` / 2026-10-01 |
 | 6bis-b9 — tri par stat sur la fiche | J | terminé, preuves et mutation rejouées par le pilote | `4fa6ad5c` + `f3aa265d` ; reçu `f3aa265` ↔ `fb8d549` / 2026-10-01 |
 | 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | terminé, preuves et mutation rejouées par le pilote ; vérifié par l'utilisateur au navigateur | `fd9d7f52` ; reçu `fd9d7f5` ↔ `12a0296` / 2026-10-02 |
-| 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | lançable | — |
+| 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | code validé par le pilote ; **critère non tenu au navigateur** (saccades, page lente) ; mesure 6bis-b12 avant correction | `bfe6f6d7` ; reçu `bfe6f6d` ↔ `f17ad7e` / 2026-10-02 |
 | 7 — sets d'aura : l'écran | J | attend 6bis-b11 ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -4622,6 +4622,37 @@ dans le chantier dédié que le lot 14 transmet (coût de la file).
 
 **Ne fait pas :** Worker dédié, changement de K, de l'ordre de la file, du
 coût de la résolution ou du throttle de progression.
+
+###### Résultat du lot 6bis-b11 — 2026-10-02
+
+Un commit, poussé : `bfe6f6d7` (`voieDeLaFile`, hook à deux voies,
+`testVoieDeLaFile`, `optimizer.md`). Reçu de l'agent `bfe6f6d` ↔ `f17ad7e`,
+intégré au main documentaire `8f26d5b`. Preuve privée
+`controle-6bis-b11.md`.
+
+Code validé par le pilote sur `bfe6f6d7` : une seule tâche en attente,
+piège du changement de page traité (tranche de fond annulée, page
+replanifiée), un build par tâche ; `tsc` 0, tests de zone 433 passés,
+build, spec-lint, diff-check verts, « Reçu valide » ; **mutation du
+pilote** (publication forcée à la fin de la page retirée) : 1 échec sur
+76, restauré (sha256 du hook `831a0dc5`, identique au commit). Écart
+accepté : file vide, rien n'est plus programmé (avant, chaque créneau
+d'inactivité republiait et retriait l'aperçu) — déduit du code.
+
+**Vérification de l'utilisateur au navigateur, le 2026-10-02 : critère
+non tenu.** Pendant la recherche, l'écran saccade au point d'être
+désagréable ; sur la première page, la première relique est résolue, les
+suivantes arrivent après plusieurs secondes, voire dizaines de secondes.
+
+Lecture du pilote, dans le code, non mesurée : à chaque message de
+progression (150 ms), l'écran retrie tout l'aperçu en recalculant le
+score de chaque candidat (`fullSortedCandidates`, `OptimizerSection.tsx`
+L2064-2084 ; en « Dégâts réels », un calcul de combat par candidat), puis
+le reclasse (`classementResolu`) et réaffiche. Ce travail peut saturer le
+fil de l'écran indépendamment de la file ; la voie prioritaire s'y ajoute.
+Un Worker de résolution seul ne réglerait pas des saccades dues au tri.
+**Suite : mesurer avant de corriger** (lot 6bis-b12). `bfe6f6d7` reste dans
+la branche en attendant ; rien n'est publié.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

@@ -2421,7 +2421,8 @@ donc aucune heuristique à valider — voir
 noter les candidats, avant qu'aucun build n'existe : elle en **suppose** une
 (la meilleure pour l'équipement affiché, sous les mêmes contraintes). Puis,
 **pendant que la recherche tourne**, les meilleurs builds reçoivent chacun
-leur vraie paire, sur le temps d'inactivité — l'ordre d'appariement étant
+leur vraie paire, sur le fil principal : la page affichée sans attendre, les
+autres sur le temps d'inactivité (voir plus bas) — l'ordre d'appariement étant
 piloté par l'objectif, les bons builds sortent en quelques secondes là où la
 recherche s'écoule sur plusieurs minutes.
 
@@ -2459,6 +2460,32 @@ ce manque sans l'annuler ; « Équipée » garde cent, inchangé, et sans
 optimisation d'artéfacts il n'y a pas de file.
 Changer de page ou de tri repriorise immédiatement, sans rien recalculer de ce
 qui est déjà connu.
+
+**La page affichée n'attend pas l'inactivité** (degats-et-aura 6bis-b11).
+Pendant une recherche, l'écran reçoit la progression toutes les 150 ms et
+retrie l'aperçu : il est rarement inactif, et chaque build de la page
+pouvait attendre jusqu'à une seconde son créneau. La file a donc deux voies,
+décidées par une seule fonction pure, `voieDeLaFile` (artifactQueue.ts), à
+partir de la page affichée et du cache : tant que la page contient un build
+non résolu, la tranche suivante part par une tâche immédiate
+(`MessageChannel`, jamais `requestIdleCallback`) ; sinon, l'avance de fond
+attend l'inactivité, comme avant ; rien à traiter, rien n'est programmé.
+Toujours un seul build par tâche, la main rendue au navigateur entre deux,
+et une seule tâche en attente à la fois : si une tranche de fond attend son
+créneau quand la page acquiert des builds non résolus (changement de page,
+nouveaux candidats), elle est annulée et replanifiée en voie prioritaire.
+La voie ne change ni les builds traités ni leur ordre (`prochainsATraiter`) :
+le travail total est le même, la voie prioritaire est bornée à la page. Les
+résultats se publient toujours au plus toutes les 400 ms, et tout de suite
+quand le dernier build non résolu de la page vient de l'être. La recherche
+elle-même tourne dans des Workers ; la file reste sur le fil principal, où
+la voie de la page accepte le coût de ses tranches pour une page au plus.
+**Non mesuré** : le délai de résolution de la page au navigateur, le gel
+éventuel de l'interface et ce que la voie prioritaire coûte à la recherche.
+Décision de l'utilisateur du 2026-10-02 : un Worker dédié à la résolution
+seulement si, pendant une recherche, la page affichée met encore plus de
+quelques secondes à se résoudre ou si la barre de progression gèle
+visiblement.
 
 Une carte dont la paire n'est pas encore calculée le **dit** (« artéfacts pas
 encore optimisés ») plutôt que de laisser croire à un résultat définitif. ⚠️ La

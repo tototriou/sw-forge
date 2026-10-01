@@ -21,6 +21,7 @@ import { testResolutionProducteurPartage, testClassementResolu } from './resolut
 import { testCliClassementParMode } from './cli-classement.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
+import { testVoieDeLaFile } from './file-voie.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
@@ -251,6 +252,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCliClassementParMode', testCliClassementParMode],
   ['testKDeLaFile', testKDeLaFile],
   ['testCompteAffichable', testCompteAffichable],
+  ['testVoieDeLaFile', testVoieDeLaFile],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

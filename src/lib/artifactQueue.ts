@@ -12,10 +12,12 @@
 //  - le travail perdu sur un build évincé plus tard ne coûte RIEN s'il a été
 //    fait pendant que les Workers cherchaient. Attendre la fin, si.
 //
-// ⚠️ Ce module ne planifie rien : il dit seulement QUI traiter et dans quel
-// ordre. Le « quand » vit dans `useArtifactOptimQueue` (temps d'inactivité du
-// fil principal), le « comment » dans `artifactOptim.ts`. Trois responsabilités
-// séparées, dont celle-ci est la seule testable sans navigateur.
+// ⚠️ Ce module ne planifie rien : il dit seulement QUI traiter, dans quel
+// ordre, et par quelle voie (`voieDeLaFile` : la page affichée sans attendre,
+// le fond sur l'inactivité). Le « quand » vit dans `useArtifactOptimQueue`
+// (fil principal), le « comment » dans `artifactOptim.ts`. Trois
+// responsabilités séparées, dont celle-ci est la seule testable sans
+// navigateur.
 
 import { BuildCandidate, BuildRequirement, Objective, OptionsDeClassement, sortCandidates } from './runeBuildOptim';
 import { StatKey } from './effects';
@@ -215,6 +217,40 @@ export function prochainsATraiter(
     out.push(c);
   }
   return out;
+}
+
+/**
+ * Par quelle voie la file planifie sa prochaine tranche (degats-et-aura
+ * 6bis-b11) : `page` = tâche immédiate, `fond` = temps d'inactivité,
+ * `aucune` = rien à planifier.
+ */
+export type VoieDeLaFile = 'page' | 'fond' | 'aucune';
+
+/**
+ * La voie de la prochaine tranche : la PAGE AFFICHÉE tant qu'elle contient un
+ * build non résolu, le FOND (les K premiers) ensuite, rien quand tout est fait.
+ *
+ * ⚠️ **Elle ne choisit pas QUI traiter**, seulement QUAND : `restants` est la
+ * sortie de `prochainsATraiter`, qui place déjà la page en tête. Le travail
+ * total ne change donc pas ; la voie prioritaire est bornée aux builds de la
+ * page, et le premier restant en est un dès qu'elle vaut `page`.
+ *
+ * Pourquoi deux voies : pendant une recherche, l'écran reçoit la progression
+ * toutes les 150 ms et retrie l'aperçu. Il est rarement inactif, et chaque
+ * build de la page pouvait attendre jusqu'à une seconde (`timeout` de
+ * `requestIdleCallback`) — constat de l'utilisateur au navigateur, le
+ * 2026-10-02. L'avance de fond, elle, peut attendre.
+ *
+ * `deja` est lu par `has` seulement : le cache du hook (une `Map`) s'y passe
+ * tel quel, sans copier ses clés.
+ */
+export function voieDeLaFile(
+  restants: readonly BuildCandidate[],
+  pageAffichee: readonly BuildCandidate[],
+  deja: { has(cle: string): boolean }
+): VoieDeLaFile {
+  if (restants.length === 0) return 'aucune';
+  return pageAffichee.some((c) => !deja.has(cleBuild(c))) ? 'page' : 'fond';
 }
 
 /**

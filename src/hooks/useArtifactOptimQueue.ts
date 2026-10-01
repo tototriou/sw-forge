@@ -1,22 +1,48 @@
 // Optimise les artéfacts des meilleurs builds PENDANT que la recherche de
-// runes tourne, sur le temps d'inactivité du fil principal.
+// runes tourne, sur le fil principal, par DEUX VOIES (degats-et-aura 6bis-b11) :
 //
-// ⚠️ **Pourquoi le fil principal et pas un Worker.** L'appariement occupe déjà
-// 5 fils au pic (le coordinateur + `PARALLEL_PAIRING_WORKERS = 4`) ; un 6ᵉ
+//  - la PAGE AFFICHÉE, par une tâche immédiate (`planifierImmediat`) : tant
+//    qu'elle contient un build non résolu, la tranche suivante part sans
+//    attendre l'inactivité ;
+//  - l'avance de FOND (les K premiers hors page), sur le temps d'inactivité
+//    (`planifierInactif`), comme avant.
+//
+// La voie se décide par une fonction pure, testée sans navigateur
+// (`voieDeLaFile`, artifactQueue.ts). Elle ne change ni QUI est traité ni dans
+// quel ordre (`prochainsATraiter`), seulement QUAND : le travail total est le
+// même, et la voie prioritaire est bornée à la page (20 builds).
+//
+// Pourquoi deux voies : pendant une recherche, l'écran reçoit la progression
+// toutes les 150 ms et retrie l'aperçu. Il est rarement inactif, et chaque
+// build de la page attendait jusqu'à une seconde (`timeout` de
+// `requestIdleCallback`), alors qu'il coûte peu (8 ms pour la recette Kinki au
+// CLI, ~77 ms en « Dégâts réels », artéfacts « Libre », 4 reliques). Constat
+// de l'utilisateur au navigateur, le 2026-10-02.
+//
+// ⚠️ **Pourquoi le fil principal et pas un Worker.** La recherche, elle, tourne
+// déjà dans des Workers : le coordinateur (`runeBuildOptim.worker.ts`), qui
+// lance les deux constructions de demi-builds puis, au-delà du seuil,
+// `PARALLEL_PAIRING_WORKERS = 4` fils d'appariement — 5 fils au pic. Un de plus
 // aggraverait la concurrence, et il faudrait sérialiser tout l'inventaire
-// d'artéfacts (~2 500 pièces) à chaque recherche. `requestIdleCallback` donne
-// à la place le temps dont le fil principal n'a pas besoin, et le REPREND dès
-// qu'il se passe autre chose — ce qui règle aussi le vrai risque immédiat, qui
-// n'est pas les cœurs mais le JANK : une tranche de 74 ms sur ce fil fige la
-// barre de progression et l'aperçu en direct.
+// d'artéfacts (~2 500 pièces) à chaque recherche. La file reste donc sur le
+// fil principal, où le vrai risque immédiat n'est pas les cœurs mais le JANK :
+// une tranche de 74 ms y fige la barre de progression et l'aperçu en direct.
+// Les deux voies rendent la main au navigateur entre deux builds ; la voie de
+// la page accepte ce coût pour une page au plus, l'inactivité ne protège plus
+// que l'avance de fond. Décision de l'utilisateur du 2026-10-02 : cette
+// solution d'abord ; un Worker dédié à la résolution si, pendant une
+// recherche, la page affichée met encore plus de quelques secondes à se
+// résoudre ou si la barre de progression gèle visiblement.
 //
-// ⚠️ Aucune API JavaScript ne permet de choisir un cœur. La seule vérification
-// honnête est de MESURER si la recherche ralentit, dos à dos — pas de supposer
-// que le temps est masqué.
+// ⚠️ **Non mesuré** : ni le délai de résolution de la page au navigateur, ni
+// le gel éventuel de l'interface, ni ce que la voie prioritaire coûte à la
+// recherche — seul le navigateur le montre. Aucune API JavaScript ne permet de
+// choisir un cœur : la seule vérification honnête est de MESURER si la
+// recherche ralentit, dos à dos — pas de supposer que le temps est masqué.
 
 import { useEffect, useRef, useState } from 'react';
 import { BuildCandidate } from '../lib/runeBuildOptim';
-import { ResultatArtefacts, cleBuild, prochainsATraiter } from '../lib/artifactQueue';
+import { ResultatArtefacts, cleBuild, prochainsATraiter, voieDeLaFile } from '../lib/artifactQueue';
 
 /**
  * Intervalle minimal entre deux PUBLICATIONS du cache à l’écran.
@@ -35,12 +61,13 @@ import { ResultatArtefacts, cleBuild, prochainsATraiter } from '../lib/artifactQ
  */
 const PUBLICATION_MS = 400;
 
-// ⚠️ `requestIdleCallback` n'existe pas partout (Safari l'a ajouté tard). Le
-// repli `setTimeout` ne rend PAS le même service — il ne sait pas si le fil est
-// occupé — mais il cède au moins la main entre deux builds, ce qui suffit à ne
-// pas geler l'interface.
-type Inactif = { annuler: () => void };
-function planifierInactif(faire: () => void): Inactif {
+type Planifie = { annuler: () => void };
+
+// Voie de FOND. ⚠️ `requestIdleCallback` n'existe pas partout (Safari l'a
+// ajouté tard). Le repli `setTimeout` ne rend PAS le même service — il ne sait
+// pas si le fil est occupé — mais il cède au moins la main entre deux builds,
+// ce qui suffit à ne pas geler l'interface.
+function planifierInactif(faire: () => void): Planifie {
   const w = window as unknown as {
     requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
     cancelIdleCallback?: (id: number) => void;
@@ -48,6 +75,37 @@ function planifierInactif(faire: () => void): Inactif {
   if (typeof w.requestIdleCallback === 'function') {
     const id = w.requestIdleCallback(faire, { timeout: 1000 });
     return { annuler: () => w.cancelIdleCallback?.(id) };
+  }
+  const id = window.setTimeout(faire, 0);
+  return { annuler: () => window.clearTimeout(id) };
+}
+
+/**
+ * Voie de la PAGE : une tâche immédiate, qui part dès que le navigateur a
+ * traité ce qui la précède (messages des Workers, rendu), sans attendre qu'il
+ * soit inactif. ⚠️ Jamais `requestIdleCallback` : c'est précisément l'attente
+ * qu'elle supprime.
+ *
+ * `MessageChannel` plutôt que `setTimeout(0)` : des rappels `setTimeout`
+ * enchaînés sont ramenés à 4 ms minimum au-delà de cinq imbrications
+ * (spécification HTML), un message de canal non. Repli `setTimeout` quand
+ * `MessageChannel` manque.
+ */
+function planifierImmediat(faire: () => void): Planifie {
+  if (typeof MessageChannel === 'function') {
+    const canal = new MessageChannel();
+    let annule = false;
+    canal.port1.onmessage = () => {
+      canal.port1.close();
+      if (!annule) faire();
+    };
+    canal.port2.postMessage(null);
+    return {
+      annuler: () => {
+        annule = true;
+        canal.port1.close();
+      },
+    };
   }
   const id = window.setTimeout(faire, 0);
   return { annuler: () => window.clearTimeout(id) };
@@ -103,7 +161,7 @@ export function useArtifactOptimQueue(opts: {
   const [parBuild, setParBuild] = useState<ReadonlyMap<string, ResultatArtefacts>>(new Map());
   const [enAttente, setEnAttente] = useState(0);
 
-  // ⚠️ Les valeurs volatiles passent par des refs : la boucle d'inactivité est
+  // ⚠️ Les valeurs volatiles passent par des refs : la boucle est
   // relancée à chaque tranche et doit voir l'état FRAIS sans que sa
   // reprogrammation dépende de l'identité des props (un tableau `triees`
   // recréé à chaque rendu relancerait l'effet en boucle).
@@ -132,22 +190,44 @@ export function useArtifactOptimQueue(opts: {
   useEffect(() => {
     if (!resoudre) return;
     let vivant = true;
-    let planifie: Inactif | null = null;
+    // UNE seule tâche en attente, toutes voies confondues, avec sa voie.
+    let planifie: (Planifie & { voie: 'page' | 'fond' }) | null = null;
+
+    const aTraiter = () => prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K, pageRef.current());
 
     /**
-     * Programme une tranche, si aucune ne l'est déjà.
+     * Programme une tranche, par la voie que demande l'état courant.
      *
      * ⚠️ **IDEMPOTENT, et c'est indispensable** : `reveiller` est appelé à
      * chaque rendu. Sans la garde `planifie`, chaque rendu empilerait un rappel
      * de plus — et pendant une recherche, les rendus s'enchaînent toutes les
-     * ~150 ms.
+     * ~150 ms. Une tâche déjà programmée suffit si elle a la voie demandée, ou
+     * si c'est une tâche de la page : elle part tout de suite, et la tranche
+     * qu'elle lance sert de toute façon le premier restant.
+     *
+     * ⚠️ **Le piège : une tranche de fond attend un créneau d'inactivité**
+     * (jusqu'à une seconde) quand la page acquiert des builds non résolus —
+     * changement de page, nouveaux candidats. La garder ferait attendre la
+     * page derrière elle : on l'ANNULE et on replanifie en voie prioritaire.
+     *
+     * Rien à traiter : rien n'est programmé. C'est la tranche qui a résolu le
+     * dernier build qui publie, et le prochain rendu qui apporte du travail
+     * qui réveille.
      */
     const reveiller = () => {
-      if (!vivant || planifie) return;
-      planifie = planifierInactif(() => {
-        planifie = null;
-        tranche();
-      });
+      if (!vivant) return;
+      const voie = voieDeLaFile(aTraiter(), pageRef.current(), cacheRef.current);
+      if (voie === 'aucune') return setEnAttente(0);
+      if (planifie && (planifie.voie === voie || planifie.voie === 'page')) return;
+      planifie?.annuler();
+      const planifier = voie === 'page' ? planifierImmediat : planifierInactif;
+      planifie = {
+        voie,
+        ...planifier(() => {
+          planifie = null;
+          tranche();
+        }),
+      };
     };
 
     let dernierePublication = 0;
@@ -162,22 +242,32 @@ export function useArtifactOptimQueue(opts: {
       if (!vivant) return;
       const faire = resoudreRef.current;
       if (!faire) return;
-      const restants = prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K, pageRef.current());
+      const restants = aTraiter();
       setEnAttente(restants.length);
       const suivant = restants[0];
-      // Plus rien à traiter : on S'ENDORT sans se reprogrammer. C'est
-      // `reveiller` qui relancera quand de nouveaux candidats arriveront ou que
-      // la page changera.
+      // Plus rien à traiter (une nouvelle recherche a vidé la liste depuis la
+      // programmation) : on S'ENDORT sans se reprogrammer. C'est `reveiller`
+      // qui relancera quand de nouveaux candidats arriveront ou que la page
+      // changera.
       // ⚠️ Publication FORCÉE avant de dormir : sans elle, les derniers builds
       // resteraient dans le cache sans jamais atteindre l'écran.
       if (!suivant) return publier(true);
-      // ⚠️ UN SEUL build par tranche. Une boucle « tant qu'il reste du temps »
-      // garderait le fil au-delà de ce que le navigateur a accordé, et le jank
-      // reviendrait exactement là où `requestIdleCallback` devait l'éviter.
+      const page = pageRef.current();
+      const voie = voieDeLaFile(restants, page, cacheRef.current);
+      // ⚠️ UN SEUL build par tranche, quelle que soit la voie. Une boucle « tant
+      // qu'il reste du temps » garderait le fil au-delà de ce que le navigateur
+      // a accordé, et le jank reviendrait — la voie de la page, qui n'attend
+      // pas l'inactivité, en dépend plus encore.
       // ⚠️ Le résultat entre TOUJOURS dans le cache ; c'est sa PUBLICATION à
-      // l'écran qui est regroupée (voir `publier` plus bas).
+      // l'écran qui est regroupée (voir `publier` plus haut).
       cacheRef.current.set(cleBuild(suivant), faire(suivant));
-      publier(false);
+      // ⚠️ Publication FORCÉE quand ce build était le dernier non résolu de la
+      // page — les cartes affichées se mettent à jour sans attendre la cadence —
+      // ou le dernier de la file, qui s'endort : sans elle, les derniers builds
+      // resteraient dans le cache sans jamais atteindre l'écran. La file après
+      // ce build est `restants.slice(1)` : le cache n'a grandi que de lui.
+      const voieApres = voieDeLaFile(restants.slice(1), page, cacheRef.current);
+      publier(voieApres === 'aucune' || (voie === 'page' && voieApres !== 'page'));
       reveiller();
     };
 
@@ -185,6 +275,8 @@ export function useArtifactOptimQueue(opts: {
     reveillerRef.current = reveiller;
     return () => {
       vivant = false;
+      // La tâche en attente, QUELLE QUE SOIT sa voie — il n'y en a jamais
+      // qu'une.
       planifie?.annuler();
       planifie = null;
       reveillerRef.current = null;
@@ -208,8 +300,10 @@ export function useArtifactOptimQueue(opts: {
   // rien à traiter ; il faut donc la relancer quand de nouveaux candidats
   // arrivent, quand l'utilisateur change de page, ou quand il change de tri.
   // Plutôt que d'énumérer ces déclencheurs — et d'en oublier un —, on réveille
-  // systématiquement : `reveiller` est idempotent et ne coûte qu'une garde
-  // quand une tranche est déjà programmée.
+  // systématiquement : `reveiller` est idempotent. Il recalcule la voie à
+  // chaque rendu (`prochainsATraiter` sur la page et les K premiers, clés
+  // mémoïsées) : c'est ce qui fait passer une tranche de fond en attente sur
+  // la voie de la page dès que celle-ci change.
   useEffect(() => {
     reveillerRef.current?.();
   });

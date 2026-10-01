@@ -664,7 +664,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b7 — troncature du régime parallèle | J | terminé, preuves, mutation et cas réel rejoués par le pilote ; notes complétées (dérogation étendue) | `6d238d08` + `c0b20a94` ; reçu `c0b20a9` ↔ `affd6d5` / 2026-10-01 |
 | 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | terminé, preuves, mutation et CLI réel rejoués par le pilote ; coût de la file (~8–10 %, Node) livré en l'état sur décision de l'utilisateur | `28a765cd` + `2594f1b4` ; reçu `2594f1b` ↔ `d3c186e` / 2026-10-01 |
 | 6bis-b9 — tri par stat sur la fiche | J | terminé, preuves et mutation rejouées par le pilote | `4fa6ad5c` + `f3aa265d` ; reçu `f3aa265` ↔ `fb8d549` / 2026-10-01 |
-| 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | lançable | — |
+| 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | code validé, preuves et mutation rejouées par le pilote ; vérification au navigateur par l'utilisateur en attente | `fd9d7f52` ; reçu `fd9d7f5` ↔ `12a0296` / 2026-10-02 |
 | 7 — sets d'aura : l'écran | J | attend 6bis-b10 ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -4506,6 +4506,42 @@ au chantier (relique, lots 5b-5c).
 **Ne fait pas :** consulter les builds écartés (option écartée par
 l'utilisateur), modifier le bloc « suffirait », la résolution ou le
 moteur.
+
+###### Résultat du lot 6bis-b10 — 2026-10-02
+
+Un commit, poussé : `fd9d7f52` — `compteAffichable` (artifactQueue.ts),
+l'écran (en-tête, ligne de progression, pagination, ligne de raison), le
+test `testCompteAffichable` et `optimizer.md` § Résultats. Notes : entrée
+nouvelle d'`invariants.md` (L75), preuve `controle-6bis-b10.md`. Reçu de
+l'agent `fd9d7f5` ↔ `12a0296`, intégré au main documentaire `9479774`.
+
+Le pilote a relu le diff et rejoué sur `fd9d7f52` :
+
+- rejets = reçus moins affichables, jamais le cache de la file ; trois
+  lecteurs du compte, et la page courante ramenée sur la dernière si le
+  nombre de pages diminue ;
+- `npx tsc --noEmit` → 0 ; `node tests/run.mjs compteaffichable
+  cliclassement classementresolu artefactfile relicqueue kdelafile` → 402
+  passées ; build, spec-lint, diff-check verts ; « Reçu valide » ;
+- **mutation du pilote** (ligne de raison dès qu'un build est écarté, même
+  si le compte n'est pas nul) : 2 échecs sur 21 ; restauré depuis git,
+  puis 21 passées.
+
+Rapportés, non rejoués : rouge, 14 échecs sur 21 avec une version
+provisoire reproduisant l'ancien comportement ; CLI Kinki sur `fd9d7f52`,
+1 trouvé et 1 rejeté.
+
+Interprétations de l'agent, acceptées par le pilote : « Trier par » se
+masque aussi sous un zéro dû aux rejets (même condition que « Adapter… ») ;
+le nombre de pages se calcule sur la liste réellement paginée (l'aperçu est
+plafonné à 3 000 pendant la recherche, le compte du moteur non : des pages
+vides sinon) ; pendant la recherche, un zéro par rejets garde l'en-tête
+« … pour l'instant — recherche en cours… » avec la ligne de raison, et
+« Aucune combinaison ne répond à ces critères » n'apparaît qu'à la fin.
+
+Non prouvé, **en attente de la vérification de l'utilisateur au navigateur**
+(preuve du contrat) : le compte qui descend en direct, la ligne de raison,
+le retour sur la dernière page, le masquage des deux contrôles.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

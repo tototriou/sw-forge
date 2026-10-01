@@ -615,8 +615,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b5a — cartes, tri, Comparer et CLI à relique fixe | J | terminé, preuves rejouées par le pilote ; restauration des notes relique, revue externe corrigée | `2e896bfa`…`d52d2e94` ; reçu `d52d2e9` ↔ `da2886f` / 2026-09-30 |
 | 6bis-b3c — dominance et effet unique de la relique | J | terminé, preuves et mutation rejouées par le pilote | `756eb09c` + `ca15a281` ; reçu `ca15a28` ↔ `61364e2` / 2026-09-30 |
 | O — verrous de `chantier ouvrir` et `livrer` | J | terminé, rouge et preuves rejoués par le pilote ; installé le 2026-10-01 @ `62bb877` | `32a5da12` + `ea6a37f3` ; reçu `32a5da1` ↔ `c8b6323` / 2026-10-01 |
-| 6bis-b5b — Meilleurs artéfacts et paire représentative | J | lançable ; intrant recalé le 2026-10-01 | — |
-| 6bis-b5c — CLI en mode recherche et parité finale | J | attend b5b | — |
+| 6bis-b5b — Meilleurs artéfacts et paire représentative | J | terminé, preuves et mutation rejouées par le pilote | `597a0730` ; reçu `597a073` ↔ `76a4a2f` / 2026-10-01 |
+| 6bis-b5c — CLI en mode recherche et parité finale | J | lançable | — |
 | 6bis-b — revue technique indépendante avant le lot 7 | J | à faire après b5c ; preuve `controle-6bis-b-revue-technique.md` | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -3431,6 +3431,51 @@ Différentiel de recherche sur seeds fixes et sur `recette-6bis-degats.json`.
 Mesure de performance seulement si le volume collecté change, selon
 `optimizer-perf-testing`. Preuve `controle-6bis-b5b.md`.
 **Ne fait pas :** cartes, tri, « Comparer » (b5a), CLI en recherche (b5c).
+
+**Résultat du lot 6bis-b5b — 2026-10-01.** Un commit, `597a0730` : un
+producteur unique, `evaluateursArtefactsFiche` (`src/lib/artifactFiche.ts`),
+sert la paire représentative et les deux crans. Cran « Dégâts
+supplémentaires » : l'effet unique est recalculé paire par paire, et seuls
+ses points entrent dans le brut. Cran « Dégâts réels » et paire
+représentative en « Dégâts réels » : effet unique compté, comme en EHP.
+
+Reçu `597a073` ↔ `76a4a2f` (904 fichiers), première base synchronisée
+enregistrée par l'outil du lot O ; notes intégrées au main documentaire
+`d9985f3`. Preuve privée `controle-6bis-b5b.md` (820 lignes). `reliques.md`
+§ 8 : le point 2 renvoie aux tests ; l'arrondi des points reste ouvert.
+Commit de code poussé par le pilote.
+
+Le pilote a relu le diff et rejoué sur `597a0730` :
+
+- `npx tsc --noEmit` → 0 ;
+- `node tests/run.mjs ArtefactsFiche` → 405 vérifications passées ;
+- `node tests/run.mjs auras relic artifact` → 2 335 passées ; build vert ;
+  « Reçu valide » ;
+- **mutation du pilote** (effet unique retiré des deux crans de
+  `artifactFiche.ts`) : 39 échecs sur 405 ; fichier restauré depuis git,
+  puis 405 passées.
+
+Rapportés, non rejoués :
+
+- rouge de 14 échecs sur 44, sur un bundle jetable ;
+- différentiel synthétique : 24 seeds × trois chemins (avec bornes, sans,
+  repli `artFlatFige`) × avant/après. Avec bornes, candidats et classement
+  final identiques ; les replis changent le volume dans 46 comparaisons.
+  3 198 notes finales égales à `scoreDeReference`, la note de production
+  (A.6 bis tenu) ;
+- `recette-6bis-degats.json`, six recherches complètes : ensembles et
+  classements identiques, et la note de la fiche (24 026,63) égale à la
+  référence de production. La recette impose les artéfacts équipés : ses
+  variantes avec bornes sont instrumentales ;
+- mesure sur le seul repli synthétique sensible, écart sous la dispersion.
+
+Écarts acceptés : lectures supplémentaires bornées pour raccorder les
+producteurs réels ; scripts de contrôle dans `.claude/scratchpad/`, ignoré
+par git ; dépendance de mémo `artefactsReserves` ajoutée à `artifactParams`.
+Elle y était lue sans être déclarée : c'est un mémo périmé corrigé en
+passant. Non prouvé : rendu React au navigateur, arrondi en jeu des points,
+optimalité des rétentions heuristiques et des replis, coût navigateur,
+parité CLI en recherche (b5c).
 
 ##### 6bis-b5c — CLI en mode recherche et parité finale
 

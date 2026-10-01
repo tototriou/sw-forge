@@ -100,7 +100,11 @@ unique de la relique, et **O** durcit l'outil `chantier` (`ouvrir`,
   sa § 6.2 : mêmes conditions, ajouts dans les sections existantes, dette
   au lot 14. Elle régularise l'ajout normatif de 6bis-b4 à sa § 3
   (`sortCandidates` et contexte de dégâts), fait sans dérogation et validé
-  sans que le pilote le relève.
+  sans que le pilote le relève. **Étendue de même le 2026-10-01 à
+  `harnais-diagnostic-extensions.md`** (exception, chantier `harnais`),
+  décision de l'utilisateur à la validation de 6bis-b7 : notes de
+  correction en tête des § 9.2 et 9.3, deux renvois ajustés, rien d'autre
+  réécrit ; dette au lot 14.
   Réparer leurs liens au lot 2b ne déclenche aucun découpage : `spec-hygiene`
   exclut explicitement les liens de son déclencheur normatif.
 - **Les parties 3 et 4 de l'audit des dégâts conditionnels.** Elles restent
@@ -652,8 +656,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b6 — paramètres d'artéfacts partagés et outils de preuve relique | J | terminé, preuves et mutation rejouées par le pilote | `d80274ba`…`4957a782` ; reçu `4957a78` ↔ `3e26c7f` / 2026-10-01 |
 | 6bis-b3d-1 — dominance et lignes 218–221 : le correctif | J | terminé, preuves et mutation rejouées par le pilote | `99463b70` + `4e761e7e` ; reçu `4e761e7` ↔ `457ec7a` / 2026-10-01 |
 | 6bis-b3d-2 — oracles avec artéfacts et différentiel ciblé | J | terminé, preuves et mutation rejouées par le pilote | `9e56c343` + `d00230e2` ; reçu `d00230e` ↔ `0e6d663` / 2026-10-01 |
-| 6bis-b7 — troncature du régime parallèle | J | lançable | — |
-| 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | contrat amendé ; attend b7 | — |
+| 6bis-b7 — troncature du régime parallèle | J | terminé, preuves, mutation et cas réel rejoués par le pilote ; notes complétées (dérogation étendue) | `6d238d08` + `c0b20a94` ; reçu `c0b20a9` ↔ `affd6d5` / 2026-10-01 |
+| 6bis-b8 — file en mode relique « recherche » (300 builds dès la recherche) | J | lançable ; mesure au créneau de l'utilisateur | — |
 | 6bis-b9 — tri par stat sur la fiche | J | contrat amendé ; attend b8 | — |
 | 7 — sets d'aura : l'écran | J | à faire | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -4140,6 +4144,58 @@ tranche manque de temps.
 
 **Ne fait pas :** changement du partage des quotas, du séquentiel ni de
 l'appariement.
+
+###### Résultat du lot 6bis-b7 — 2026-10-01
+
+Un commit, poussé par le pilote : `6d238d08`. Moteur, orchestration,
+Worker, harnais, tests et `optimizer.md` § Interruption (dérogation A.2),
+pour une même raison.
+
+- `combineParallelPairingResults` reçoit `totalPairs`, celui qui a choisi
+  le régime (Worker, harnais), transmis par `driveParallelPairing`, jamais
+  recalculé. Une tranche pleine rend la recherche tronquée si
+  `explored < totalPairs`.
+- Le motif voyage dans `SearchResult.motifTroncature`, optionnel, posé par
+  la fusion seule ; ordre : plafond global, temps, quota de tranche. Le
+  harnais le lit ; le séquentiel le déduit toujours. La trace retenue porte
+  le budget fusionné, copiée sans muter celle de la tranche.
+
+Reçu de l'agent `6d238d0` ↔ `2e94db3` (977 fichiers), intégré au main
+documentaire `b3601f5`. Preuve privée `controle-6bis-b7.md` ; recette gelée
+`recette-6bis-b7-atq3000-dc220.json` (sha256 `6666e38c…dbba02`).
+
+Le pilote a relu le diff et rejoué sur `6d238d08` :
+
+- `pairBuckets` compte la paire (`explored++`) avant de pousser : un quota
+  atteint sur la dernière paire laisse bien `explored` = total ;
+- `npx tsc --noEmit` → 0 ; `node tests/run.mjs parallel diagnosticharness
+  auraspariteregimes relicsearch runeoptim cli` → 2 342 passées ; build,
+  spec-lint, diff-check verts ; « Reçu valide » ;
+- **mutation du pilote** (`explored < totalPairs` → `<=`) : 4 échecs sur
+  505, les assertions « dernière paire » des deux fichiers ; restauré
+  depuis git, puis 505 passées ;
+- **cas réel rejoué** par le harnais, même sha256, `maxMs` 600 000
+  (recette), fidélité conforme, régime parallèle non forcé : « incomplet —
+  raison : quotaTranche », `explored` 83 061 707 / 116 963 286, appariement
+  12,2 s (mesure unique, non comparative).
+
+Rapportés, non rejoués : le rouge (7 échecs sur 27, 4 sur 203) ; l'état
+« avant » du cas réel (« INCOHÉRENT », même `explored`), obtenu par un
+`git stash` dans le worktree du chantier, restauré ; le témoin sous les
+quotas, complet (133 890 677 / 133 890 677).
+
+Écarts acceptés : type du motif du traceur élargi ; libellé « DEUX motifs »
+devenu « TROIS ». **Complément du pilote**, sur décision de l'utilisateur
+(A.2) : notes de correction dans `harnais-diagnostic.md` (préambule, couvert
+par la dérogation) et `harnais-diagnostic-extensions.md` (§ 3.5, 9.2, 9.3,
+tableau) — la démonstration d'exclusion temps / quota reste juste, seule la
+conclusion « tranche pleine = complète » était fausse ; skill
+`optimizer-perf-testing` (`c0b20a94`). Reçu `c0b20a9` ↔ `affd6d5`, intégré
+au main documentaire `9a28523`.
+
+Non prouvé : la coquille Worker du navigateur (message à l'écran jamais vu
+sur une vraie recherche) ; l'arrêt manuel d'une tranche, rangé sous `maxMs`
+comme avant, non rejoué.
 
 ##### 6bis-b8 — la file de l'écran en mode relique « recherche »
 

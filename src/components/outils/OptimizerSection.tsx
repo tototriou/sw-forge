@@ -23,7 +23,7 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { classementResolu, cleBuild, compositionDePage, compteAffichable, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
@@ -2379,24 +2379,44 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     [fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche]
   );
 
-  // Le compte AFFICHÉ (degats-et-aura 6bis-b10) : trouvés par le moteur, moins
-  // les builds que la résolution a écartés — ces derniers mesurés comme reçus
-  // moins affichables, jamais lus dans le cache de la file (voir
+  // Le compte du MOTEUR : les candidats du résultat à la fin, le compte de la
+  // progression pendant l'appariement (non plafonné, contrairement à l'aperçu).
+  const trouvesParLeMoteur = result ? result.candidates.length : progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length;
+  // Le compte des TROUVÉES (degats-et-aura 6bis-b10) : trouvés par le moteur,
+  // moins les builds que la résolution a écartés — ces derniers mesurés comme
+  // reçus moins affichables, jamais lus dans le cache de la file (voir
   // `compteAffichable`). `affichees` change à chaque publication du cache : le
-  // compte suit, en pleine recherche comme après. Seule source de l'en-tête, de
-  // la ligne de progression et du nombre de pages.
+  // compte suit, en pleine recherche comme après. Seule source de la ligne de
+  // progression et de la ligne de raison ; depuis 6bis-b18, l'en-tête et les
+  // pages lisent les CONFIRMÉES (`compteConfirmes`, ci-dessous).
   const compteAffiche = useMemo(
     () =>
       compteAffichable({
-        trouves: result ? result.candidates.length : progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length,
+        trouves: trouvesParLeMoteur,
         recus: fullSortedCandidates.length,
         affichables: affichees.length,
-        taillePage: RESULTS_PAGE_SIZE,
         modeRecherche: relicContextRecherche?.mode === 'recherche',
       }),
-    [result, progress, fullSortedCandidates.length, affichees.length, relicContextRecherche?.mode]
+    [trouvesParLeMoteur, fullSortedCandidates.length, affichees.length, relicContextRecherche?.mode]
   );
-  const totalResultsPages = compteAffiche.pages;
+  // Le compte des CONFIRMÉES (degats-et-aura 6bis-b18, décision de
+  // l'utilisateur du 2026-10-02) : les builds de cette recherche résolus ET
+  // conformes, lus dans le cache publié de la file — un compte qui ne baisse
+  // jamais pendant une recherche. Seule source de l'en-tête, du nombre de pages
+  // et des contrôles masqués sous « Aucune combinaison… ». Sans file
+  // (optimisation d'artéfacts coupée), les trouvés, comme avant.
+  const compteConfirmes = useMemo(
+    () =>
+      compteConfirme({
+        recus: fullSortedCandidates,
+        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
+        trouves: trouvesParLeMoteur,
+        taillePage: RESULTS_PAGE_SIZE,
+        termine: result != null,
+      }),
+    [fullSortedCandidates, resoudreEquipement, fileArtefacts.parBuild, trouvesParLeMoteur, result]
+  );
+  const totalResultsPages = compteConfirmes.pages;
 
   // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
   // (pendant la phase d'appariement) grandit au fil de la recherche sans
@@ -2404,8 +2424,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
   // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
   // de tri (classement entièrement différent) remettent explicitement à 1.
-  // Le nombre de pages peut aussi DIMINUER (builds écartés à la résolution,
-  // 6bis-b10) : la page courante revient alors sur la dernière.
+  // Le nombre de pages peut aussi DIMINUER (6bis-b10, transposé en 6bis-b18 :
+  // la page au-delà des confirmées disparaît quand ses derniers builds non
+  // vérifiés sont écartés) : la page courante revient alors sur la dernière.
   useEffect(() => {
     setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
   }, [totalResultsPages, setResultsPage]);
@@ -4722,15 +4743,34 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       {(result || fullSortedCandidates.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            {/* ⚠️ Le compte AFFICHABLE (`compteAffiche`, 6bis-b10) : un build
-                que la résolution a écarté n'est ni affiché ni compté. */}
-            <p className="label">
-              {result
-                ? compteAffiche.compte === 0
-                  ? 'Aucune combinaison ne répond à ces critères'
-                  : `${compteAffiche.compte} combinaison(s) trouvée(s)`
-                : `${compteAffiche.compte.toLocaleString('fr-FR')} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
-            </p>
+            {/* ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`, 6bis-b18) :
+                seulement les builds vérifiés (résolus et conformes), un
+                compte qui ne baisse jamais pendant une recherche. « Aucune
+                combinaison… » seulement quand tout est vérifié sans aucune
+                confirmée. La ligne de progression garde les trouvées
+                (6bis-b10) : l'infobulle dit la différence. */}
+            <div className="flex items-center gap-1.5">
+              <p className="label">
+                {result
+                  ? compteConfirmes.aucune
+                    ? 'Aucune combinaison ne répond à ces critères'
+                    : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s)`
+                  : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s) pour l'instant — recherche en cours…`}
+              </p>
+              {/* Seulement quand une file vérifie : sans elle, confirmées et
+                  trouvées sont le même nombre. */}
+              {resoudreEquipement != null && !compteConfirmes.aucune && (
+                <HelpPopover title="Combinaisons confirmées">
+                  Une combinaison est <b className="text-ink">confirmée</b> quand ses artéfacts et sa relique ont
+                  été vérifiés avec les pièces de ton inventaire : elle tient vraiment toutes les conditions.
+                  <br />
+                  <br />
+                  Le nombre « trouvée(s) » de la barre de progression compte tout ce que la recherche a retenu stat
+                  par stat : une estimation optimiste, pas encore vérifiée. Une partie de ces combinaisons est
+                  écartée à la vérification.
+                </HelpPopover>
+              )}
+            </div>
             {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
                 DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
                 changeait de tri pour explorer — alors qu’on veut souvent
@@ -4741,7 +4781,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 qu’une paire possible, celle qui est portée. Une saisie sans
                 effet est pire qu’une saisie absente — même règle que les
                 sélecteurs de principale et les sous-propriétés verrouillées. */}
-            {optimiserArtefacts && (result ? compteAffiche.compte > 0 : true) && (
+            {optimiserArtefacts && !compteConfirmes.aucune && (
               <div className="ml-auto flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
                 <HelpPopover title="Adapter les artéfacts et reliques au tri">
@@ -4765,7 +4805,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 />
               </div>
             )}
-            {(result ? compteAffiche.compte > 0 : true) && (
+            {/* Masqués (avec « Adapter… ») seulement quand tout est vérifié
+                sans aucune confirmée (6bis-b10, transposé en 6bis-b18). */}
+            {!compteConfirmes.aucune && (
               <Selecteur
                 value={sortBy}
                 onChange={(e) => {
@@ -4817,10 +4859,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           )}
 
           {/* ⚠️ Zéro dû aux seuls builds écartés par la résolution (6bis-b10) :
-              le moteur a trouvé, aucun couple réel ne tient. Les blocs
-              ci-dessous (diagnostic, « suffirait ») gardent leur condition,
-              moteur vide : leurs chiffres viennent des bornes du moteur. */}
-          {compteAffiche.raison && (
+              le moteur a trouvé, aucun couple réel ne tient. Depuis 6bis-b18,
+              sous « Aucune combinaison… » seulement — tout vérifié, aucune
+              confirmée —, la ligne qu'elle explique. Les blocs ci-dessous
+              (diagnostic, « suffirait ») gardent leur condition, moteur vide :
+              leurs chiffres viennent des bornes du moteur. */}
+          {compteConfirmes.aucune && compteAffiche.raison && (
             <p className="mb-3 text-xs text-ink-dim">{compteAffiche.raison}</p>
           )}
 

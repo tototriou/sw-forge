@@ -520,15 +520,19 @@ export interface CompteAffichable {
   compte: number;
   // Écartés par la résolution exacte (`conforme: false`) parmi les reçus.
   ecartes: number;
-  // Pages de la liste réellement paginée (reçus moins écartés), au moins 1.
-  pages: number;
   // La ligne qui explique un zéro dû aux seuls écartés ; `null` sinon.
   raison: string | null;
 }
 
 /**
- * Le compte AFFICHÉ des builds — l'unique source de l'en-tête, de la ligne de
- * progression et du nombre de pages de l'écran (degats-et-aura 6bis-b10).
+ * Le compte des builds TROUVÉS moins les écartés connus — l'unique source de la
+ * ligne de progression (« … · Z trouvée(s) ») et de la ligne de raison sous un
+ * zéro dû aux écartés (degats-et-aura 6bis-b10).
+ *
+ * ⚠️ Depuis 6bis-b18, l'en-tête des résultats et le nombre de pages ne lisent
+ * plus ce compte, mais celui des CONFIRMÉES (`compteConfirme`) : celui-ci est
+ * une borne optimiste, qui baisse à mesure que la vérification écarte des
+ * builds.
  *
  * - `trouves` : le compte du MOTEUR — `result.candidates.length` à la fin,
  *   `progress.found` pendant l'appariement (il n'est pas plafonné, l'aperçu
@@ -553,12 +557,10 @@ export function compteAffichable(e: {
   trouves: number;
   recus: number;
   affichables: number;
-  taillePage: number;
   modeRecherche: boolean;
 }): CompteAffichable {
   const ecartes = Math.max(0, e.recus - e.affichables);
   const compte = Math.max(0, e.trouves - ecartes);
-  const pages = Math.max(1, Math.ceil(e.affichables / e.taillePage));
   const raison =
     compte === 0 && ecartes > 0
       ? `${ecartes.toLocaleString('fr-FR')} ${
@@ -571,7 +573,81 @@ export function compteAffichable(e: {
             : "aucune paire d'artéfacts réelle ne tient toutes les conditions."
         }`
       : null;
-  return { compte, ecartes, pages, raison };
+  return { compte, ecartes, raison };
+}
+
+export interface CompteConfirme {
+  /**
+   * Les combinaisons CONFIRMÉES : les builds de CETTE recherche (les reçus)
+   * résolus ET conformes. Sans file, tous les trouvés : l'équipement est alors
+   * celui de la fiche, que le moteur a déjà jugé exactement.
+   */
+  confirmees: number;
+  // Les reçus pas encore résolus — ni confirmés ni écartés. 0 sans file.
+  nonVerifies: number;
+  /**
+   * Les pages : celles des confirmées, plus une tant qu'il reste des builds non
+   * vérifiés qui n'ont pas de place sur la dernière ; au moins 1. Sans file,
+   * les pages des reçus, comme avant.
+   */
+  pages: number;
+  // Recherche finie, tout vérifié, aucune confirmée : « Aucune combinaison ne
+  // répond à ces critères ».
+  aucune: boolean;
+}
+
+/**
+ * Le compte des combinaisons CONFIRMÉES — l'unique source de l'en-tête des
+ * résultats, du nombre de pages et des contrôles masqués sous « Aucune
+ * combinaison… » (degats-et-aura 6bis-b18, décision de l'utilisateur du
+ * 2026-10-02 : « ne compter qu'après vérification »).
+ *
+ * - `recus` : l'ordre de base (`fullSortedCandidates`), les candidats de CETTE
+ *   recherche. Seules leurs entrées du cache comptent : les rejets d'une
+ *   recherche précédente aux mêmes réglages, restés en cache, n'y sont pas.
+ * - `parBuild` : le cache PUBLIÉ de la file, `null` sans file.
+ * - `trouves` : le compte du moteur, lu seulement sans file.
+ *
+ * ⚠️ **Le compte ne baisse jamais pendant une recherche** : le cache ne fait que
+ * grandir (une entrée n'est jamais retirée ni réécrite sous une même
+ * signature) et l'aperçu des reçus aussi (`PREVIEW_CANDIDATES_CAP` arrête ses
+ * ajouts, ne retire rien). Seul un changement de signature, qui vide le cache,
+ * le remet à zéro : la vérification recommence avec les nouveaux réglages.
+ *
+ * ⚠️ **Les pages restent cohérentes avec `compositionDePage`** : la page k
+ * montre les confirmées de rang 20 (k − 1) + 1 à 20 k, puis des places
+ * « Vérification… » tant qu'il reste des non vérifiés. Le nombre de pages vaut
+ * `min(⌈(confirmées + non vérifiés) / taille⌉, ⌈confirmées / taille⌉ + 1)` :
+ * jamais une page vide, et une seule page au-delà des confirmées — l'ouvrir
+ * les vérifie (6bis-b16).
+ */
+export function compteConfirme(e: {
+  recus: readonly BuildCandidate[];
+  parBuild: ReadonlyMap<string, { conforme: boolean }> | null;
+  trouves: number;
+  taillePage: number;
+  termine: boolean;
+}): CompteConfirme {
+  if (e.parBuild === null) {
+    return {
+      confirmees: e.trouves,
+      nonVerifies: 0,
+      pages: Math.max(1, Math.ceil(e.recus.length / e.taillePage)),
+      aucune: e.termine && e.trouves === 0,
+    };
+  }
+  let confirmees = 0;
+  let resolus = 0;
+  for (const c of e.recus) {
+    const r = e.parBuild.get(cleBuild(c));
+    if (r === undefined) continue;
+    resolus++;
+    if (r.conforme) confirmees++;
+  }
+  const nonVerifies = e.recus.length - resolus;
+  const pagesConfirmees = Math.ceil(confirmees / e.taillePage);
+  const pages = Math.max(1, Math.min(Math.ceil((confirmees + nonVerifies) / e.taillePage), pagesConfirmees + 1));
+  return { confirmees, nonVerifies, pages, aucune: e.termine && confirmees === 0 && nonVerifies === 0 };
 }
 
 export interface CompositionDePage {
@@ -615,10 +691,10 @@ export interface CompositionDePage {
  * - `parBuild` : le cache PUBLIÉ de la file ; `null` sans file (optimisation
  *   d'artéfacts coupée) : rien n'est à vérifier, la page est la tranche du
  *   classement, comme avant.
- * - Les places attendues se comptent sur le classement (reçus moins écartés,
- *   comme le nombre de pages de `compteAffichable`) : une page au-delà des
- *   vérifiés — page profonde, ou page 1 avant toute résolution — montre
- *   toutes ses places en attente.
+ * - Les places attendues se comptent sur le classement (reçus moins écartés) :
+ *   une page au-delà des vérifiés — page profonde, ou page 1 avant toute
+ *   résolution — montre toutes ses places en attente. Le nombre de pages
+ *   (`compteConfirme`, 6bis-b18) n'en ouvre qu'une au-delà des confirmées.
  * - `aVerifier` : pour remplir la page, il faut `début + attendues` vérifiés ;
  *   il en manque `manque`, pris dans l'ordre du classement parmi les non
  *   résolus — au plus une page à la fois. La file les résout, publie, l'écran

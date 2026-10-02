@@ -1559,7 +1559,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     Ces trois encadrés ne portent que sur un **moteur vide**
     (`result.candidates.length === 0`) : leurs chiffres viennent des bornes
     du moteur, pas de la résolution exacte.
-    ⚠️ **Le compte affiché est celui des builds affichables** (degats-et-aura
+    ⚠️ **La ligne de progression compte les trouvées** (degats-et-aura
     6bis-b10, décisions de l'utilisateur du 2026-10-01) : trouvés par le
     moteur — `result.candidates.length` à la fin, `progress.found` pendant
     l'appariement — moins ceux que la résolution exacte a écartés faute de
@@ -1569,28 +1569,60 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     `conforme: false` du cache de la file : il n'est vidé qu'au changement
     de signature, et une recherche relancée aux mêmes réglages garderait
     les rejets de la précédente. Une seule fonction pure,
-    `compteAffichable` (artifactQueue.ts), alimente l'en-tête
-    (« N combinaison(s) trouvée(s) »), la ligne de progression et le nombre
-    de pages, compté sur la liste réellement paginée (reçus moins écartés :
-    l'aperçu en direct est plafonné, `progress.found` non) ; si ce nombre
-    diminue, la page courante revient sur la dernière. Le compte suit
-    chaque publication du cache de la file (400 ms), en pleine recherche
-    comme après sa fin. Un build pas encore résolu (au-delà de K, « en
-    attente ») reste compté ; sans optimisation d'artéfacts, pas de file :
-    rien ne change. **À zéro avec au moins un écarté**, l'en-tête dit
-    « Aucune combinaison ne répond à ces critères », suivi d'une ligne de
-    raison : « 1 combinaison trouvée par la recherche a été écartée :
-    aucune paire d'artéfacts ni relique réelles ne tient toutes les
-    conditions. » (pluriel : « N combinaisons trouvées par la recherche ont
-    été écartées »). Hors relique « recherche » de la recherche lancée, la
-    relique est celle de la fiche et la ligne ne parle que de la paire
-    (« aucune paire d'artéfacts réelle ne tient toutes les conditions. »).
-    Les trois encadrés ci-dessus ne s'affichent pas sous un tel zéro, et
-    le sélecteur « Trier par » comme l'interrupteur « Adapter les
+    `compteAffichable` (artifactQueue.ts), alimente la ligne de progression
+    (« X / Y combinaisons examinées · Z trouvée(s) ») et la ligne de raison
+    ci-dessous. Le compte suit chaque publication du cache de la file
+    (400 ms), en pleine recherche comme après sa fin ; un build pas encore
+    résolu reste compté : c'est une borne optimiste, qui baisse à mesure que
+    la vérification écarte des builds. Sans optimisation d'artéfacts, pas de
+    file : rien ne change. Depuis 6bis-b18, l'en-tête des résultats et le
+    nombre de pages ne lisent plus ce compte, mais celui des confirmées
+    (ci-dessous). **Sous « Aucune combinaison ne répond à ces critères »**
+    (tout vérifié, aucune confirmée), une ligne de raison : « 1 combinaison
+    trouvée par la recherche a été écartée : aucune paire d'artéfacts ni
+    relique réelles ne tient toutes les conditions. » (pluriel : « N
+    combinaisons trouvées par la recherche ont été écartées »). Hors relique
+    « recherche » de la recherche lancée, la relique est celle de la fiche
+    et la ligne ne parle que de la paire (« aucune paire d'artéfacts réelle
+    ne tient toutes les conditions. »). Les trois encadrés ci-dessus ne
+    s'affichent pas sous un tel zéro.
+    ⚠️ **L'en-tête compte les combinaisons confirmées** (degats-et-aura
+    6bis-b18, décisions de l'utilisateur du 2026-10-02, après l'essai de
+    6bis-b16 : « stabiliser le nombre de combinaisons trouvées, et ne compter
+    qu'après vérification »). Pendant la recherche, « XX combinaison(s)
+    confirmée(s) pour l'instant — recherche en cours… », puis « XX
+    combinaison(s) confirmée(s) » : seulement les builds de cette recherche
+    vérifiés (résolus ET conformes), lus dans le cache publié de la file. Le
+    compte **ne baisse jamais pendant une recherche** : le cache ne fait que
+    grandir, l'aperçu des reçus aussi ; seul un changement de signature (un
+    réglage qui change la note d'une paire, dont un tri qui change de régime
+    avec « Adapter les artéfacts et reliques au tri ») vide le cache et fait
+    recommencer la vérification, donc le compte. Une petite infobulle
+    (« Combinaisons confirmées », à droite de l'en-tête, quand une file
+    vérifie) dit la différence avec les trouvées de la ligne de progression :
+    une combinaison confirmée tient vraiment toutes les conditions avec les
+    pièces de l'inventaire ; « trouvée(s) » est une estimation optimiste,
+    retenue stat par stat, dont une partie est écartée à la vérification.
+    **« Aucune combinaison ne répond à ces critères »** ne s'affiche qu'une
+    fois la recherche finie et tout vérifié sans aucune confirmée — la file
+    va jusqu'au dernier build trouvé faute de K confirmées (voir « Le choix
+    des artéfacts ») ; alors seulement « Trier par » et « Adapter les
     artéfacts et reliques au tri » se masquent, comme sur un moteur vide.
-    Pendant la recherche, l'en-tête garde « … pour l'instant — recherche
-    en cours… » avec ce compte, et la ligne de raison s'affiche dès qu'il
-    tombe à zéro par écartement.
+    **Les pages suivent les confirmées** : les pages des confirmées, plus
+    une tant qu'il reste des builds non vérifiés qui n'ont pas de place sur
+    la dernière — ses places « Vérification… » se résolvent quand on
+    l'ouvre (ci-dessous) —, soit `min(⌈(confirmées + non vérifiés) / 20⌉,
+    ⌈confirmées / 20⌉ + 1)`, au moins 1 : jamais une page vide. En
+    « Dégâts réels » de référence (5 100 trouvées, 300 confirmées), 16 pages
+    au lieu de 255. Si le nombre de pages diminue (la page au-delà des
+    confirmées perd ses derniers non vérifiés, ou la vérification
+    recommence), la page courante revient sur la dernière. Une seule
+    fonction pure, `compteConfirme` (artifactQueue.ts), donne le compte, les
+    non vérifiés, les pages et l'état « Aucune combinaison… », à partir des
+    reçus et du cache publié. Sans optimisation d'artéfacts, pas de file :
+    l'équipement est celui de la fiche, déjà jugé exactement par le moteur —
+    les confirmées sont les trouvées, les pages celles des reçus, comme
+    avant, et l'infobulle ne s'affiche pas.
     ⚠️ **Une carte n'apparaît qu'une fois vérifiée** (degats-et-aura
     6bis-b16, décision de l'utilisateur du 2026-10-02, après l'essai du
     Worker : les cartes qui apparaissaient puis se retiraient étaient
@@ -1621,7 +1653,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     résolution ne changent. Une seule fonction pure, `compositionDePage`
     (artifactQueue.ts), donne les cartes, les places et les builds à
     vérifier, à partir du classement affiché et du cache publié de la file.
-    Le compte garde sa règle (ci-dessus) ; une ligne sous l'en-tête dit
+    Les comptes gardent leur règle (ci-dessus) ; une ligne sous l'en-tête dit
     combien la file doit encore vérifier (« N combinaison(s) en
     vérification… » : le reste de la file, places en attente puis avance de
     fond), sa place réservée tant que la file tourne. Sans optimisation

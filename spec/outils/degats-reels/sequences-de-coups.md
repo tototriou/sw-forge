@@ -72,12 +72,22 @@ retenue.
   nouveau.
 - Son résultat n’est **jamais** une soustraction du premier cran : la part du
   coup de zone dans le cran « visée » lit des PV déjà entamés (222/223).
-- Une clé `'secondaire'` posée sur un sort sans coup de zone curé est sans
-  effet (`cibleSecondairePriseEnCharge`, table de capacité lue par
-  l’identifiant seul).
+- Pour le calcul, une clé `'secondaire'` posée sur un sort sans coup de zone
+  curé est sans effet (`cibleSecondairePriseEnCharge`, table de capacité lue
+  par l’identifiant seul) ; la recette, elle, la refuse (ci-dessous).
 - Le champ est classé `'sort'` (`DAMAGE_SETUP_CLASSIFICATION`) : vidé au
   changement d’espèce et à l’import de compte, conservé au changement
   d’exemplaire.
+- **Recette** (degats-et-aura 8b) : le champ voyage dans
+  `OptimizerRecipe.damageSetup`. Absent, la recette reste valide (cible
+  visée, comme toute recette antérieure). Présent, `parseOptimizerRecipe`
+  exige un objet dont chaque clé est l’identifiant entier positif d’un sort à
+  coup de zone curé — la même table de capacité que l’écran,
+  `cibleSecondairePriseEnCharge` — et chaque valeur `'visee'` ou
+  `'secondaire'`. Tout écart est refusé avec son chemin
+  (`damageSetup.cibleDegatsParSort.<identifiant>`), jamais corrigé ni ignoré
+  en silence. L’import restaure la valeur telle quelle, sans reset ultérieur ;
+  l’aller-retour export → import ne perd ni n’ajoute rien.
 
 ## Les lignes d’artéfact et les skillups, coup par coup
 
@@ -123,3 +133,9 @@ refus d’une curation périmée, montant des deux crans écrit à la main sur l
 onze formes, apport exact de 224, 400 et 411 dans chaque cran, PV propres à
 chaque cran pour 222/223 comparés au chemin ordinaire d’un sort d’un seul
 groupe, part additionnelle par coup, classement et clonage du réglage.
+
+`tests/blade-surge-propagation.test.ts` (même filtre) :
+`testBladeSurgeRecette` — valeur absente, les deux crans acceptés sur les
+huit identifiants, refus avec chemin (champ mal typé, clé invalide, valeur
+hors de l’union, sort sans coup de zone curé), aller-retour export/import,
+resets au changement d’espèce et à l’import de compte.

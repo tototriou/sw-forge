@@ -14,7 +14,7 @@
 // à connaître la base du monstre pour le réinterpréter, une source d'erreur
 // de plus, pas de moins.
 import { BuildRequirement, Objective, SLOT_FILTER_PRESETS, SLOT_MAIN_OPTIONS } from './runeBuildOptim';
-import { DamageSetup, IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID, cransDeLaRegleIgnoreDef } from './damage';
+import { DamageSetup, IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID, cibleSecondairePriseEnCharge, cransDeLaRegleIgnoreDef } from './damage';
 import { erreurAurasExternes } from './aurasExternes';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind, RUNE_SETS } from '../types';
@@ -341,6 +341,25 @@ function validerDamageSetup(value: unknown): string | null {
   if (ePassifs) return ePassifs;
   const eStatsCombat = validerRecordBooleen(setup.statsCombatActives, 'damageSetup.statsCombatActives');
   if (eStatsCombat) return eStatsCombat;
+  // Cible calculée d'un sort à séquence curée (degats-et-aura 8b, cadrage B.0) :
+  // clé = identifiant entier positif du SORT, valeur dans l'union, et
+  // seulement pour un sort dont la séquence curée porte un coup de zone — la
+  // MÊME table de capacité que celle qui décide d'afficher les deux crans
+  // (`cibleSecondairePriseEnCharge`, DamageSetupCard.tsx). Jamais un cran
+  // appliqué en silence à un sort sans cette capacité.
+  if (setup.cibleDegatsParSort !== undefined) {
+    if (!estObjet(setup.cibleDegatsParSort)) {
+      return erreur('damageSetup.cibleDegatsParSort', 'doit être un objet indexé par identifiant de compétence');
+    }
+    for (const [skillId, cible] of Object.entries(setup.cibleDegatsParSort)) {
+      const path = `damageSetup.cibleDegatsParSort.${skillId}`;
+      if (!/^\d+$/.test(skillId) || Number(skillId) <= 0) return erreur(path, "utilise un identifiant de compétence invalide");
+      if (cible !== 'visee' && cible !== 'secondaire') return erreur(path, 'doit valoir « visee » ou « secondaire »');
+      if (!cibleSecondairePriseEnCharge(Number(skillId))) {
+        return erreur(path, 'désigne un sort sans coup de zone curé, dont la cible calculée ne se choisit pas');
+      }
+    }
+  }
 
   if (setup.scenariosEffetsEntreCoups !== undefined) {
     if (!estObjet(setup.scenariosEffetsEntreCoups)) {

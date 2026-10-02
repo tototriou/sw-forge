@@ -25,8 +25,11 @@ import {
   DamageSetup,
   SkillDamageProfile,
   computeSkillDamage,
+  computeTotalDamage,
   critiqueGarantiParReglage,
   estPrisEnCharge,
+  monsterBonusParEffetCible,
+  monsterBonusStatFixe,
   monsterDamageSkills,
 } from '../src/lib/damage';
 import { DetailMonstre } from '../src/lib/monsterSkills';
@@ -142,5 +145,59 @@ export function testCouvertureGarantiesCritique() {
     ok(computeSkillDamage(p, build, feu, AUCUNE_AURA_PROPRE, 'water') < computeSkillDamage(p, build, enCritique(feu), AUCUNE_AURA_PROPRE, 'water'),
       `${etiquette} : cible Feu, aucune garantie`);
     egal(Math.round(computeSkillDamage(p, build, feu, AUCUNE_AURA_PROPRE, 'water')), 6620, `${etiquette} : total attendu contre une cible Feu`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// TC-2 — bonus de Taux Crit et de Dgts Crit propres, livrés depuis 826fb331
+// Source : controle-13b-critiques-bonus-tc-dc.md § 2 et § 3, sonde 05-sortie.txt
+// § 1 et § 3. Depuis le lot CM (mode « Moyenne » supprimé), un bonus de TC seul
+// ne change AUCUN total : le contrôle le dit (inerte), il ne l'ignore pas ;
+// un bonus de DC ne compte qu'en « Critique » (Fire Wall : ×1,4082).
+// ---------------------------------------------------------------------------
+
+export function testCouvertureBonusCritique() {
+  titre('Bonus de critique propres livrés — 287, 289, 293, 303, 304 (degats-et-aura 15a, TC-2)');
+
+  egal(monsterBonusStatFixe(fiche(10735)), { cr: 20, cd: 0 }, '287 — Gorgo (1865, forme 10735) : +20 points de TC, aucun point de DC');
+
+  const eludain = profilDe(11734, 2759);
+  egal(eludain.critRatePoints, 50, '293 — Eludain (2759, forme 11734) : +50 points de TC');
+  const sansTc = { ...eludain, critRatePoints: 0 };
+  for (const mode of ['normal', 'crit'] as const) {
+    egal(
+      computeSkillDamage(eludain, build, { ...base, critMode: mode }, AUCUNE_AURA_PROPRE, 'fire'),
+      computeSkillDamage(sansTc, build, { ...base, critMode: mode }, AUCUNE_AURA_PROPRE, 'fire'),
+      `293 — Eludain : le TC seul ne change aucun total depuis le lot CM (mode ${mode})`
+    );
+  }
+
+  // 289 — Naomi 2A : la garantie de Tiger's Appearance vient d'un débuff sur la
+  // cible (la `note` de l'effet dit l'inverse, la prose fait foi).
+  const naomi = fiche(15033);
+  const bonusNaomi = monsterBonusParEffetCible(naomi)!;
+  egal(bonusNaomi.skillCom2usId, 6163, '289 — Naomi 2A (6163, forme 15033) : passif par débuff exact');
+  egal(bonusNaomi.critiqueGarantiSiPresent, true, '289 — Naomi 2A : la garantie suit la présence d\'un débuff');
+  const chain = profilDe(15033, 6158);
+  const totalNaomi = (setup: DamageSetup) =>
+    computeTotalDamage(chain, [], build, setup, AUCUNE_AURA_PROPRE, 'wind', undefined, false, null, null, { bonusParEffetCible: bonusNaomi });
+  const avecDebuff = { ...base, effetsCibleCount: { 6163: 1 } };
+  egal(totalNaomi(avecDebuff), totalNaomi(enCritique(avecDebuff)), '289 — Naomi 2A : un débuff sur la cible, « Non critique » égale « Critique »');
+  ok(totalNaomi(base) < totalNaomi(enCritique(base)), '289 — Naomi 2A : sans débuff sur la cible, aucune garantie');
+
+  // 303 et 304 — Fire Wall (Triss) et Flame Eruption (Enshia) : +100 points de DC.
+  for (const [constat, nom, forme, sort] of [[303, 'Triss', 29512, 19212], [304, 'Enshia', 29912, 19612]] as const) {
+    const p = profilDe(forme, sort);
+    const sansDc = { ...p, critDamagePoints: 0 };
+    const etiquette = `${constat} — ${nom} (${sort}, forme ${forme})`;
+    egal(p.critDamagePoints, 100, `${etiquette} : +100 points de DC`);
+    egal(
+      computeSkillDamage(p, build, base, AUCUNE_AURA_PROPRE, 'fire'),
+      computeSkillDamage(sansDc, build, base, AUCUNE_AURA_PROPRE, 'fire'),
+      `${etiquette} : le DC ne change pas un coup non critique`
+    );
+    const rapport = computeSkillDamage(p, build, enCritique(base), AUCUNE_AURA_PROPRE, 'fire') /
+      computeSkillDamage(sansDc, build, enCritique(base), AUCUNE_AURA_PROPRE, 'fire');
+    ok(Math.abs(rapport - 1.4082) < 1e-4, `${etiquette} : rapport critique avec / sans le bonus de 1,4082 (reçu ${rapport.toFixed(4)})`);
   }
 }

@@ -395,7 +395,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b12 (mesure, critère de b11 non tenu)
         → 6bis-b13 (coût par build, décision de l'utilisateur)
         → 6bis-b13bis (Worker, conditionnel ; non déclenché le 2026-10-02)
-        → 6bis-b14 (fluidité, sans Worker) → 6bis-b15 (relique de la carte)
+        → 6bis-b14 (fluidité), 6bis-b15 (relique de la carte), indépendants
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -675,8 +675,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | terminé, chiffres recoupés par le pilote : la résolution sature (66 %), pas le tri | reçu `f0e77a4` ↔ `a4b54d7` / 2026-10-02 |
 | 6bis-b13 — la résolution d'un build coûte moins, à résultat identique | J | terminé, preuves et mutation rejouées par le pilote ; essai de l'utilisateur : reliques « très bien », fluidité à améliorer | `88e4c76a` ; reçu `88e4c76` ↔ `069d7c0` / 2026-10-02 |
 | 6bis-b13bis — Worker de résolution | J | non déclenché : l'utilisateur préfère d'abord une fluidité sans Worker (b14) | — |
-| 6bis-b14 — fluidité de la barre et du compte pendant la recherche | J | contrat à écrire après la décision de l'utilisateur | — |
-| 6bis-b15 — la relique de la carte de résultat ne déborde plus | J | contrat à écrire après la décision de l'utilisateur (format, disposition) | — |
+| 6bis-b14 — la résolution rend la main entre deux reliques | J | contrat écrit ; en attente de l'accord de l'utilisateur | — |
+| 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | lançable | — |
 | 7 — sets d'aura : l'écran | J | attend 6bis-b13 (et b13bis s'il a lieu) ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -4872,6 +4872,84 @@ de la barre de progression et du compte de builds, sans Worker si
 possible. Le Worker (b13bis) n'est pas déclenché ; la fluidité passe par
 6bis-b14. Remarque à la même occasion : sur la carte de résultat, la fiche
 de stats déborde à gauche et la relique à droite (6bis-b15).
+
+##### 6bis-b14 — la résolution rend la main entre deux reliques
+
+**Cat. J ; requiert b13. En attente de l'accord de l'utilisateur**
+(question du 2026-10-02 : « est-ce que ça ralentit la recherche ? » —
+réponse du pilote : par construction non, le même calcul en morceaux ; la
+mesure le vérifie, avec arrêt sinon). Constat de b13 : chaque build résolu
+reste une tâche d'environ 55 ms d'un seul tenant sur le fil de l'écran ;
+la barre et le compte ne se mettent pas à jour pendant ce temps.
+
+**Intrant borné**, relevé sur `a2691658` : `relicQueue.ts`
+(`resoudreEquipementDuBuild`, `resoudreReliqueFixe`) ; `relicOptim.ts`
+(`bestRelicForBuild`) ; `src/hooks/useArtifactOptimQueue.ts` (tranche,
+deux voies) ; `controle-6bis-b13.md` et le script de mesure de b12/b13.
+
+**Contrat.**
+
+- La résolution d'un build se fait **par étapes** : au moins une étape
+  par relique essayée, plus fine (paquets de paires) si une étape dépasse
+  encore 50 ms. Le navigateur reprend la main entre deux étapes.
+- **Résultat identique** : la résolution par étapes menée à son terme égale
+  `resoudreEquipementDuBuild`, build par build (différentiel sur les trois
+  recettes gelées de b13) ; le CLI garde le chemin d'un seul tenant, ou le
+  même mené d'un coup.
+- **Un build commencé se termine** avant qu'un autre commence ; une
+  nouvelle recherche ou un changement de signature jette l'état partiel.
+  La page passe devant le fond, au plus une étape de retard.
+- **Garantie de l'utilisateur** : durée de la recherche mesurée avant
+  (`a2691658`) et après, entrelacées ; **un ralentissement au-delà de la
+  dispersion arrête le lot (A.6), chiffre rapporté avant toute
+  livraison**. Le délai de résolution de la page est mesuré aussi : c'est
+  le prix possible de la fluidité, à juger par l'utilisateur.
+- Mesure au créneau (script de b12/b13, version construite) : tâches
+  longues (nombre, part, plus longue), page 1 et 2, durée de la recherche ;
+  puis essai de l'utilisateur.
+
+**Ne fait pas :** Worker, changement de résultat, de K, de l'ordre de la
+file ou du coût de la résolution.
+
+##### 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur)
+
+**Cat. J ; requiert b13.** Constat de l'utilisateur, le 2026-10-02, sur
+**ordinateur** : dans la carte de résultat, la fiche de stats déborde à
+gauche et la relique à droite. La carte vaut au moins ~360 px (deux cartes
+par ligne, `optimizer.md` L1489-1496), la fiche a une largeur fixe de
+200 px, et la relique, ajoutée par le chantier relique, partage la ligne
+de la fiche, des artéfacts et de la roue (`BuildCandidateCard.tsx` L338,
+`flex … sm:flex-row` ; `RelicSlot` L393).
+
+**Décision de l'utilisateur** : quand la place manque, la relique passe
+**sous** la ligne fiche / artéfacts / roue, avec son texte complet ;
+aucun libellé du jeu raccourci.
+
+**Intrant borné**, relevé sur `a2691658` : `BuildCandidateCard.tsx`
+L240-420 ; `src/components/RelicSlot.tsx` ; `src/hooks/useMediaQuery.ts`
+L40-60 (`COMPACT`) et la variante `compact:` de `tailwind.config.js` ;
+`optimizer.md` L1489-1501 ; `spec/shared/design.md` (contours, tokens, un
+clic ne déplace rien).
+
+**Contrat.**
+
+- **Ordinateur seulement** (pointeur fin) : le tactile garde son rendu,
+  qui relève de la passe responsive (README L334-339) ; une correction
+  pour un format ne touche pas l'autre (CLAUDE.md).
+- Le plancher de deux cartes par ligne et la largeur fixe de la fiche
+  restent ; la bascule base+bonus / total ne déplace toujours rien.
+- Aucune couleur ni valeur en dur ; contrôles de `src/ui/` ; la classe
+  Tailwind utilisée est vérifiée dans le CSS construit.
+- **Navigateur, par l'utilisateur** (le pilote ouvre la version
+  construite) : carte large (relique sur la ligne), carte au plancher
+  (relique dessous), aucun débordement.
+
+**Preuves :** contrôle de source (portée ordinateur), classe émise dans le
+CSS construit, `optimizer.md` amendé, `tsc`, tests de zone, build,
+spec-lint, diff-check ; preuve `controle-6bis-b15.md`.
+
+**Ne fait pas :** le rendu tactile, la grille des cartes, le contenu de la
+relique.
 
 ##### 6bis-b13bis — Worker de résolution (conditionnel)
 

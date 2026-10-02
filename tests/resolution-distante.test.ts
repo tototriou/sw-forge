@@ -24,6 +24,10 @@
 //    (`entreeResolutionDuBuild` + `resoudreEquipementDuBuild`), chaque
 //    écriture contrôlée au moment où elle a lieu ; elle suit `publier` avec
 //    la cadence du hook : sur toute file vide et à la fin, publié = cache ;
+//    elle couvre aussi (6bis-b13bis-c) un repli en cours de route — réponse
+//    d'erreur, envoi qui lève, repli du hook : cache intact, plus rien
+//    d'envoyé ni d'écrit ensuite — et des entrées changées à signature
+//    égale : nouveau contexte, cache gardé, comme le chemin direct ;
 // 7. le hook et l'écran, contrôlés sur la source (le dépôt n'a pas
 //    d'infrastructure de test React) ;
 // 8. un seul producteur des runes d'un build (`runesDuBuild`), testé, et
@@ -59,6 +63,8 @@ function aleatoire(graine: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+const memeObjet = (a: unknown, b: unknown) => a === b;
 
 function sansCommentaires(source: string): string {
   return source.replace(/\r\n/g, '\n').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
@@ -96,6 +102,23 @@ export interface ScenarioFile {
   pas: number;
   changementsDeContexte: number;
   progressif: boolean;
+  /**
+   * 6bis-b13bis-c — changements des ENTRÉES à signature égale (nouvelle
+   * recherche aux mêmes réglages, par exemple) : le rendu passe au contexte
+   * suivant SANS changer la signature, l'effet du Worker ne repart pas et le
+   * cache est GARDÉ, comme sur le chemin direct ; le module doit renvoyer un
+   * contexte. Absent = aucun.
+   */
+  changementsDEntrees?: number;
+  /**
+   * 6bis-b13bis-c — un repli EN COURS DE ROUTE, et son origine : réponse
+   * d'erreur du corps (`erreur`), envoi qui lève (`envoi`) — tous deux passent
+   * par le module —, ou repli du hook (`hook` : erreur du Worker, branchée
+   * comme `basculerEnRepli` — `renoncer`, publication forcée s'il rend vrai).
+   * Le cache doit rester intact, et plus rien n'est envoyé ni écrit ensuite,
+   * même si des réponses arrivent encore. Absent = aucun repli attendu.
+   */
+  repli?: 'erreur' | 'envoi' | 'hook';
 }
 
 export interface BilanFile {
@@ -116,6 +139,16 @@ export interface BilanFile {
   publicationsForcees: number;
   publicationsRetenues: number;
   controlesPublication: number;
+  // 6bis-b13bis-c : contextes renvoyés après un changement des entrées à
+  // signature égale, entrées du cache gardées à ce changement, entrées d'un
+  // ancien contexte encore en cache à la fin (gardées, comme le chemin direct).
+  contextesSurEntrees: number;
+  entreesGardees: number;
+  entreesAnciennesFinales: number;
+  // 6bis-b13bis-c : le repli est-il survenu, et combien de réponses sont
+  // encore arrivées après lui (toutes ignorées).
+  repliSurvenu: boolean;
+  reponsesApresRepli: number;
   // Vide = conforme.
   ecarts: string[];
 }
@@ -148,10 +181,18 @@ const CADENCE_SIMULEE_MS = 400;
  *   effet, réponse), si la file est vide, ce que l'écran a reçu égale le
  *   cache — sinon une écriture resterait non publiée, plus rien ne
  *   publiant ;
- * - après vidange : chaque demande a reçu exactement une réponse, la file est
- *   vide (`prochainsATraiter` ne rend plus rien), chaque entrée du cache est
- *   identique à la référence du contexte final, ce qui est publié égale le
- *   cache, aucun repli.
+ * - toute demande part sous le contexte COURANT (index et signature) : après
+ *   un changement des entrées à signature égale, le module renvoie un
+ *   contexte avant de redemander (6bis-b13bis-c) ;
+ * - repli en cours de route (6bis-b13bis-c) : à cet instant l'écran a reçu
+ *   le cache ; ensuite plus aucun envoi, plus aucune écriture, et le cache
+ *   reste le même objet, entrées inchangées, jusqu'à la fin ;
+ * - après vidange : chaque demande a reçu exactement une réponse, chaque
+ *   entrée du cache est identique à la référence du contexte sous lequel
+ *   elle a été écrite (le contexte final, sauf entrées gardées d'un
+ *   changement à signature égale), ce qui est publié égale le cache ; sans
+ *   repli attendu, la file est vide (`prochainsATraiter` ne rend plus rien)
+ *   et le module n'a pas renoncé.
  */
 export function simulerFile(s: ScenarioFile): BilanFile {
   const r = aleatoire(s.graine);
@@ -165,9 +206,28 @@ export function simulerFile(s: ScenarioFile): BilanFile {
   const bilan: BilanFile = {
     ecritures: 0, reponsesPerimeesRecues: 0, reponsesAnnuleesRecues: 0, contextesEnvoyes: 0, annulationsEnvoyees: 0,
     changementsDePage: 0, maxEnVol: 0, maxFileDuCorps: 0, cacheFinal: 0,
-    publications: 0, publicationsForcees: 0, publicationsRetenues: 0, controlesPublication: 0, ecarts,
+    publications: 0, publicationsForcees: 0, publicationsRetenues: 0, controlesPublication: 0,
+    contextesSurEntrees: 0, entreesGardees: 0, entreesAnciennesFinales: 0, repliSurvenu: false, reponsesApresRepli: 0, ecarts,
   };
   let cache = new Map<string, ResultatArtefacts>();
+  // Sous quel contexte (index) chaque entrée du cache a été écrite.
+  // et sous quelle génération d'entrées (une de plus à chaque changement à
+  // signature égale : avec deux contextes, l'index seul revient au départ).
+  let ecriteSous = new Map<string, { ctx: number; generation: number }>();
+  let generationEntrees = 0;
+  let entreesRestantes = s.changementsDEntrees ?? 0;
+  // Les entrées ont changé à signature égale ; le prochain contexte envoyé est
+  // celui qu'elles appellent.
+  let entreesChangees = false;
+  // Le repli en cours de route : armé à `pasDuRepli` (hors fenêtre rendu →
+  // effet), survenu quand `repli` est appelé ; le cache et son contenu à cet
+  // instant.
+  const pasDuRepli = s.repli ? Math.floor(s.pas / 4) + (s.graine % Math.floor(s.pas / 2)) : Infinity;
+  let repliArme = false;
+  let erreurInjectee = false;
+  let envoiLeve = false;
+  let cacheAuRepli: Map<string, ResultatArtefacts> | null = null;
+  let contenuAuRepli = new Map<string, ResultatArtefacts>();
   // Ce que l'écran a reçu (`setParBuild`), et la cadence du hook.
   let publie = new Map<string, ResultatArtefacts>();
   let horloge = 0;
@@ -204,12 +264,22 @@ export function simulerFile(s: ScenarioFile): BilanFile {
     page: () => page,
     cache: () => cache,
     envoyer: (m) => {
+      if (bilan.repliSurvenu) ecarts.push(`envoi APRÈS le repli : ${m.type}`);
+      // `postMessage` qui lève (clonage impossible), une fois, avant tout effet.
+      if (repliArme && s.repli === 'envoi' && !envoiLeve) {
+        envoiLeve = true;
+        throw new DOMException('clonage impossible (simulé)', 'DataCloneError');
+      }
       if (m.type === 'contexte') {
         bilan.contextesEnvoyes++;
+        if (entreesChangees) bilan.contextesSurEntrees++;
+        entreesChangees = false;
         contexteDeId.set(m.idContexte, { ctx, signature });
         dernierIdContexte.v = m.idContexte;
       } else if (m.type === 'resoudre') {
         if (demandes.has(m.idDemande)) ecarts.push(`demande #${m.idDemande} envoyée deux fois`);
+        const sous = contexteDeId.get(m.idContexte);
+        if (!sous || sous.ctx !== ctx || sous.signature !== signature) ecarts.push(`demande #${m.idDemande} envoyée sous un contexte qui n’est pas le courant (${m.idContexte})`);
         demandes.set(m.idDemande, { idContexte: m.idContexte, reponses: 0 });
       } else {
         bilan.annulationsEnvoyees++;
@@ -231,13 +301,33 @@ export function simulerFile(s: ScenarioFile): BilanFile {
     },
     enAttente: () => {},
     repli: (raison, detail) => {
-      ecarts.push(`repli : ${raison} — ${String(detail)}`);
+      if (!s.repli || bilan.repliSurvenu) ecarts.push(`repli inattendu : ${raison} — ${String(detail)}`);
+      constaterRepli(`repli (${raison})`);
     },
   };
   const publieEgalCache = () => publie.size === cache.size && [...cache].every(([k, v]) => publie.get(k) === v);
-  // Après un appel du module : une file vide ne publiera plus rien d'elle-même.
+  // Le repli vient d'avoir lieu : l'écran doit avoir reçu le cache, qui ne
+  // doit plus bouger.
+  function constaterRepli(moment: string) {
+    bilan.repliSurvenu = true;
+    cacheAuRepli = cache;
+    contenuAuRepli = new Map(cache);
+    if (!publieEgalCache()) ecarts.push(`${moment} : l’écran n’a pas reçu le cache (${publie.size} publiés, ${cache.size} en cache)`);
+  }
+  // Le repli du HOOK (erreur du Worker, réponse illisible), branché comme
+  // `basculerEnRepli` : `renoncer`, puis publication forcée s'il rend vrai.
+  const repliDuHook = () => {
+    if (pilote.renoncer()) {
+      publie = new Map(cache);
+      bilan.publications++;
+      bilan.publicationsForcees++;
+    }
+    constaterRepli('repli du hook');
+  };
+  // Après un appel du module : une file vide — ou repliée — ne publiera plus
+  // rien d'elle-même.
   const controlerPublication = (moment: string) => {
-    if (ports.restants().length > 0) return;
+    if (ports.restants().length > 0 && !bilan.repliSurvenu) return;
     bilan.controlesPublication++;
     if (!publieEgalCache()) ecarts.push(`${moment} : file vide, mais l’écran n’a pas reçu le cache (${publie.size} publiés, ${cache.size} en cache)`);
   };
@@ -254,7 +344,12 @@ export function simulerFile(s: ScenarioFile): BilanFile {
     for (const rep of corps.recevoir(m)) versEcran.push(structuredClone(rep));
   };
   const etapeDuCorps = () => {
-    const rep = corps.etape();
+    let rep = corps.etape();
+    // La résolution lève dans le Worker : la réponse devient une erreur, une fois.
+    if (rep && rep.type === 'resultat' && repliArme && s.repli === 'erreur' && !erreurInjectee) {
+      erreurInjectee = true;
+      rep = { type: 'erreur', idContexte: rep.idContexte, idDemande: rep.idDemande, cle: rep.cle, nom: 'Error', message: 'erreur simulée dans la résolution' };
+    }
     if (rep) versEcran.push(structuredClone(rep));
   };
   const livrerALEcran = () => {
@@ -262,6 +357,8 @@ export function simulerFile(s: ScenarioFile): BilanFile {
     const d = demandes.get(rep.idDemande);
     if (!d) ecarts.push(`réponse à une demande jamais envoyée #${rep.idDemande}`);
     else d.reponses++;
+    const repliAvantReponse = bilan.repliSurvenu;
+    if (repliAvantReponse) bilan.reponsesApresRepli++;
     const origine = contexteDeId.get(rep.idContexte);
     const perimee = !origine || origine.ctx !== ctx || origine.signature !== signature || rep.idContexte !== dernierIdContexte.v;
     if (rep.type === 'resultat' && perimee) bilan.reponsesPerimeesRecues++;
@@ -270,6 +367,10 @@ export function simulerFile(s: ScenarioFile): BilanFile {
     pilote.surReponse(rep, ports);
     if (rep.type === 'resultat' && cacheAvant.get(rep.cle) === rep.resultat) {
       bilan.ecritures++;
+      if (cacheAvant === cache) ecriteSous.set(rep.cle, { ctx, generation: generationEntrees });
+      // (Un envoi qui lève APRÈS cette écriture, dans le même tour, déclenche
+      // le repli : seul compte un repli antérieur à la réponse.)
+      if (repliAvantReponse) ecarts.push(`écriture APRÈS le repli : #${rep.idDemande} ${rep.cle}`);
       if (perimee) ecarts.push(`réponse PÉRIMÉE écrite : #${rep.idDemande} (contexte ${rep.idContexte}, courant ${dernierIdContexte.v}) ${rep.cle}`);
       if (annulees.has(rep.idDemande)) ecarts.push(`réponse d’une demande ANNULÉE écrite : #${rep.idDemande} ${rep.cle}`);
       if (cacheAvant === cache && !identiques(rep.resultat, reference(ctx, rep.cle))) ecarts.push(`écriture différente de la résolution directe : ${rep.cle}`);
@@ -293,9 +394,20 @@ export function simulerFile(s: ScenarioFile): BilanFile {
     signature = `signature-${++numSignature}`;
     effetEnAttente = true;
   };
+  // Les entrées changent, PAS la signature : le rendu met à jour les refs,
+  // l'effet du Worker ne repart pas (ses dépendances n'ont pas changé), le
+  // cache est gardé ; c'est le prochain `pomper` qui renvoie le contexte.
+  const changerDEntrees = () => {
+    entreesRestantes--;
+    ctx = (ctx + 1) % s.contextes.length;
+    generationEntrees++;
+    entreesChangees = true;
+    bilan.entreesGardees += cache.size;
+  };
   const effetDuContexte = () => {
     effetEnAttente = false;
     cache = new Map();
+    ecriteSous = new Map();
     // L'effet de la signature publie le cache vide (`setParBuild(new Map())`) ;
     // l'effet du Worker repart, cadence remise à zéro.
     publie = new Map();
@@ -306,6 +418,12 @@ export function simulerFile(s: ScenarioFile): BilanFile {
 
   for (let pas = 0; pas < s.pas; pas++) {
     horloge += Math.floor(rHorloge() * 120);
+    // Le repli s'arme hors de la fenêtre rendu → effet : un effet de signature
+    // en attente remplacerait le cache, ce qui n'est pas l'affaire du repli.
+    if (!repliArme && pas >= pasDuRepli && !effetEnAttente) {
+      repliArme = true;
+      if (s.repli === 'hook') repliDuHook();
+    }
     const choix: [number, () => void][] = [];
     if (versCorps.length) choix.push([3, livrerAuCorps]);
     if (corps.demandesEnAttente > 0) choix.push([3, etapeDuCorps]);
@@ -314,7 +432,10 @@ export function simulerFile(s: ScenarioFile): BilanFile {
     else choix.push([2, rendu]);
     choix.push([0.4, changerDePage]);
     if (visibles < s.triees.length) choix.push([0.4, () => { visibles = Math.min(s.triees.length, visibles + Math.max(1, Math.ceil(s.triees.length / 6))); }]);
-    if (changementsRestants > 0 && !effetEnAttente && s.contextes.length > 1) choix.push([0.15, changerDeContexte]);
+    // Après le repli, plus de changement de contexte : le cache doit rester
+    // celui du repli (un changement de signature le remplacerait, hors sujet).
+    if (changementsRestants > 0 && !effetEnAttente && s.contextes.length > 1 && !repliArme) choix.push([0.15, changerDeContexte]);
+    if (entreesRestantes > 0 && !effetEnAttente && s.contextes.length > 1 && !repliArme) choix.push([0.15, changerDEntrees]);
     const total = choix.reduce((n, [p]) => n + p, 0);
     let x = r() * total;
     const action = choix.find(([p]) => (x -= p) < 0)?.[1] ?? choix[choix.length - 1]![1];
@@ -325,6 +446,10 @@ export function simulerFile(s: ScenarioFile): BilanFile {
   visibles = s.triees.length;
   for (let garde = 0; garde < 1_000_000; garde++) {
     horloge += Math.floor(rHorloge() * 120);
+    if (!repliArme && s.repli && !effetEnAttente) {
+      repliArme = true;
+      if (s.repli === 'hook') repliDuHook();
+    }
     if (effetEnAttente) effetDuContexte();
     else if (versCorps.length) livrerAuCorps();
     else if (corps.demandesEnAttente > 0) etapeDuCorps();
@@ -337,11 +462,27 @@ export function simulerFile(s: ScenarioFile): BilanFile {
     surveiller();
   }
   for (const [id, d] of demandes) if (d.reponses !== 1) ecarts.push(`demande #${id} : ${d.reponses} réponse(s)`);
-  const restants = ports.restants();
-  if (restants.length) ecarts.push(`file non vidée : ${restants.length} build(s) restant(s)`);
-  for (const [cle, v] of cache) if (!identiques(v, reference(ctx, cle))) ecarts.push(`cache final ≠ résolution directe : ${cle}`);
+  // Chaque entrée = la référence du contexte sous lequel elle a été écrite :
+  // le contexte final, ou un ancien gardé par un changement à signature égale.
+  for (const [cle, v] of cache) {
+    const o = ecriteSous.get(cle);
+    if (o === undefined) ecarts.push(`entrée du cache sans écriture observée : ${cle}`);
+    else if (!identiques(v, reference(o.ctx, cle))) ecarts.push(`cache final ≠ résolution directe de son contexte : ${cle}`);
+    else if (o.generation !== generationEntrees) bilan.entreesAnciennesFinales++;
+  }
   if (!publieEgalCache()) ecarts.push(`à la fin : ce qui est publié (${publie.size}) ≠ le cache (${cache.size})`);
-  if (pilote.enRepli) ecarts.push('le module a renoncé au Worker');
+  if (s.repli) {
+    // Le chemin direct reprendrait ici ; le module, lui, n'a plus rien touché.
+    if (!bilan.repliSurvenu || !pilote.enRepli) ecarts.push(`repli attendu (${s.repli}), jamais survenu`);
+    // (`cacheAuRepli` est posé dans une fermeture : `tsc` le croit toujours nul.)
+    else if (!memeObjet(cache, cacheAuRepli) || cache.size !== contenuAuRepli.size || [...contenuAuRepli].some(([k, v]) => cache.get(k) !== v)) {
+      ecarts.push('le cache a changé après le repli');
+    }
+  } else {
+    const restants = ports.restants();
+    if (restants.length) ecarts.push(`file non vidée : ${restants.length} build(s) restant(s)`);
+    if (pilote.enRepli) ecarts.push('le module a renoncé au Worker');
+  }
   bilan.cacheFinal = cache.size;
   return bilan;
 }
@@ -649,19 +790,45 @@ export function testResolutionDistante() {
   let publicationsRetenues = 0;
   let publicationsForcees = 0;
   let controlesPublication = 0;
+  let contextesSurEntrees = 0;
+  let entreesGardees = 0;
+  let entreesAnciennesFinales = 0;
+  let replis = 0;
+  let reponsesApresRepli = 0;
   const tousEcarts: string[] = [];
+  // Graines 1 à 6 : les files de 6bis-b13bis-b, inchangées. Graines 7 à 12
+  // (6bis-b13bis-c) : entrées changées à signature égale (sans changement de
+  // signature, qui viderait le cache : les entrées gardées vont jusqu'à la
+  // fin), repli en cours de route par ses trois origines, puis les deux
+  // ensemble.
+  const VARIANTES: Partial<Pick<ScenarioFile, 'changementsDEntrees' | 'repli' | 'changementsDeContexte'>>[] = [
+    { changementsDEntrees: 3, changementsDeContexte: 0 },
+    { changementsDEntrees: 3, changementsDeContexte: 0 },
+    { repli: 'erreur' },
+    { repli: 'envoi' },
+    { repli: 'hook', changementsDEntrees: 2 },
+    { repli: 'erreur', changementsDEntrees: 2 },
+  ];
+  let scenariosARepli = 0;
   for (const fx of Object.values(CORPUS_5A)) {
     const pp: SearchParams = { ...fx.p0, relicContext: fx.ctx };
     const triees = searchBuilds(pp).candidates;
     if (triees.length < 3) continue;
     const ctxA = contexteSimule(pp, 'degats_reels', fx.ctx);
     const ctxB = contexteSimule(pp, 'ehp', undefined);
-    for (let graine = 1; graine <= 6; graine++) {
+    for (let graine = 1; graine <= 6 + VARIANTES.length; graine++) {
       const bl = simulerFile({
         graine: graine * 7919 + triees.length, triees, runesDe: (c) => runesDe(pp, c), contextes: [ctxA, ctxB],
         K: Math.min(triees.length, 4 + (graine % 3) * 4), taillePage: 3 + (graine % 3), pas: 300, changementsDeContexte: 3, progressif: graine % 2 === 0,
+        ...(graine > 6 ? VARIANTES[graine - 7] : {}),
       });
       scenarios++;
+      if (graine > 6 && VARIANTES[graine - 7]!.repli) scenariosARepli++;
+      contextesSurEntrees += bl.contextesSurEntrees;
+      entreesGardees += bl.entreesGardees;
+      entreesAnciennesFinales += bl.entreesAnciennesFinales;
+      if (bl.repliSurvenu) replis++;
+      reponsesApresRepli += bl.reponsesApresRepli;
       ecritures += bl.ecritures;
       perimees += bl.reponsesPerimeesRecues;
       annuleesRecues += bl.reponsesAnnuleesRecues;
@@ -675,7 +842,11 @@ export function testResolutionDistante() {
       tousEcarts.push(...bl.ecarts.map((e) => `${fx.nom} graine ${graine} : ${e}`));
     }
   }
-  egal(tousEcarts.slice(0, 5), [], `${scenarios} files simulées : chaque écriture = résolution directe du contexte courant, cache final identique, file vidée, une réponse par demande, publié = cache sur toute file vide et à la fin, aucun repli`);
+  egal(tousEcarts.slice(0, 5), [], `${scenarios} files simulées : chaque écriture = résolution directe du contexte courant, toute demande sous le contexte courant, cache final identique à la résolution directe de son contexte, une réponse par demande, publié = cache sur toute file vide, au repli et à la fin ; sans repli attendu, file vidée et aucun repli ; avec repli, cache intact et plus rien d’envoyé ni d’écrit ensuite`);
+  ok(contextesSurEntrees > 0 && entreesGardees > 0 && entreesAnciennesFinales > 0,
+    `couverture des entrées changées à signature égale : ${contextesSurEntrees} contextes renvoyés, ${entreesGardees} entrées gardées au changement, ${entreesAnciennesFinales} entrées d’un ancien contexte encore en cache à la fin (gardées, comme le chemin direct)`);
+  ok(replis === scenariosARepli && reponsesApresRepli > 0,
+    `couverture du repli en cours de route : ${replis} replis survenus sur ${scenariosARepli} files qui l’attendaient (réponse d’erreur, envoi qui lève, repli du hook), ${reponsesApresRepli} réponses arrivées après lui, toutes ignorées`);
   ok(ecritures > 200 && perimees > 0 && annuleesRecues > 0 && annulations > 0 && changementsPage > 0 && contextes > scenarios,
     `couverture : ${ecritures} écritures, ${perimees} réponses périmées reçues (ignorées), ${annuleesRecues} réponses de demandes annulées reçues (ignorées), ${annulations} annulations, ${changementsPage} changements de page, ${contextes} contextes envoyés`);
   ok(publicationsRetenues > 0 && publicationsForcees > 0 && controlesPublication > scenarios,

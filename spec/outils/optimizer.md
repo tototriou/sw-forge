@@ -2525,6 +2525,8 @@ MÊME résolution (`entreeResolutionDuBuild` puis
   fil de l'écran. Chaque demande porte les runes de son build, produites par
   `runesDuBuild` (relicQueue.ts), le producteur que la résolution du fil de
   l'écran appelle aussi : jamais une seconde expression (6bis-b13bis-c).
+  Un nouveau contexte ne vide pas le cache de la file : seul un changement
+  de signature le vide, comme sur le chemin direct.
 - **Une réponse périmée n'est jamais écrite dans le cache** : celle d'un
   contexte remplacé — reconnue à son identifiant de contexte, et, entre le
   rendu qui change un réglage et le renvoi du contexte, à l'identité des
@@ -2554,7 +2556,10 @@ candidats et de contextes — remplit un cache identique à la résolution
 directe, sur les fixtures et sur les trois recettes de référence
 (`tests/resolution-distante.test.ts`, preuve du lot) ; depuis
 6bis-b13bis-c, elle suit aussi la publication, avec la cadence du hook :
-sur toute file vide et à la fin, l'écran a reçu le cache entier.
+sur toute file vide et à la fin, l'écran a reçu le cache entier. Elle
+couvre un repli en cours de route (réponse d'erreur, envoi qui lève, repli
+du hook : cache intact, plus rien d'envoyé ni d'écrit ensuite) et des
+entrées changées à signature égale (nouveau contexte, cache gardé).
 
 **Mesuré au navigateur** (6bis-b13bis-b ; version construite, Chromium
 sans affichage, 8 cœurs, passages entrelacés ; A-après contre A-avant —

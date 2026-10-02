@@ -398,8 +398,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b13bis-a → 6bis-b13bis-b (Worker de résolution, décidé le
           2026-10-02 : « Dégâts réels » encore trop lent ; il remplace b14)
         → revue indépendante du Worker → 6bis-b13bis-c (ses corrections)
-        → décision de l'utilisateur sur b13bis-b (et 6bis-b13bis-d si
-          option 2)
+        → décision de l'utilisateur sur b13bis-b (Worker gardé, 2026-10-02)
         → 7a → 7b (recalé et scindé le 2026-10-02)
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -683,9 +682,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b14 — la résolution rend la main entre deux reliques | J | sans objet : remplacé par le Worker (décision de l'utilisateur du 2026-10-02) | — |
 | 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | terminé ; vérifié par l'utilisateur à l'écran | `7b3ec767` ; reçu `7b3ec76` ↔ `1d50ccc` / 2026-10-02 |
 | 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
-| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | **arrêté avant livraison (A.6)** : recherche +4 à +7 % en « Dégâts réels », résultat complet −27 % ; preuves rejouées par le pilote ; **décision de l'utilisateur attendue** (A.8) ; revue indépendante faite : rien de bloquant, cinq mutations du branchement survivent | `9a7202a8`, `534de15a` locaux, ni livrés ni poussés / 2026-10-02 |
-| 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; vaut pour les options 1 et 2 ; livré avec b13bis-b après la décision | `11abb68d`…`f951f3e9` locaux, ni livrés ni poussés / 2026-10-02 |
-| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02 ; attend la décision sur le Worker (6bis-b13bis-b, -c livrés) et les réponses Q1-Q3 (A.8) | — |
+| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | terminé : arrêté avant livraison (A.6, recherche +4 à +7 %, résultat complet −27 %), puis **Worker gardé par l'utilisateur** le 2026-10-02 ; revue indépendante : rien de bloquant | `9a7202a8`, `534de15a` ; livré avec 6bis-b13bis-c / 2026-10-02 |
+| 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; livré avec b13bis-b | `11abb68d`…`f951f3e9` / 2026-10-02 |
+| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02 ; attend les réponses Q1-Q3 (A.8) | — |
 | 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | attend 7a et les réponses Q4-Q7 (A.8) | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -743,7 +742,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b7 | Facultatif : recette `recette-6bis-b7-atq3000-dc220.json` (Lushen, siège 15) → « Recherche interrompue après examen de N combinaisons » | en attente |
 | 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | en attente (le 0 et la ligne de raison : vus le 2026-10-02) |
 | 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
-| 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | après la décision ci-dessous |
+| 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | en attente (Worker gardé le 2026-10-02) |
 | 7a, 7b | Écran des sets d'aura, sur ordinateur ET sur téléphone | après les lots |
 | 8, 9, 10 | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) | après les lots |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
@@ -755,7 +754,8 @@ décision, rayée avec la date et la réponse.
 
 | Lot | Question | État |
 | --- | --- | --- |
-| 6bis-b13bis-b | Garder le Worker malgré une recherche +4 à +7 % plus longue en « Dégâts réels », pour un résultat complet ~27 % plus tôt et un fil de l'écran libéré ? Trois options, chiffres et recommandation : Résultat du lot | posée le 2026-10-02 |
+| 6bis-b13bis-b | ~~Garder le Worker malgré une recherche +4 à +7 % plus longue en « Dégâts réels », pour un résultat complet ~27 % plus tôt et un fil de l'écran libéré ?~~ | ✔ 2026-10-02 : **garder tel quel** (option 1) |
+| 8 | ~~À quels coups de Blade Surge s'appliquent 224 et 400 ?~~ | ✔ 2026-10-02 (utilisateur) : **224 sur les coups 1 et 2, 400 sur les trois** |
 | revue du Worker | Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature. Le corriger dans ce chantier (petit lot), ou le laisser en piste ? | posée le 2026-10-02 |
 | 7a, Q1 | Libellé de l'interrupteur des réglages avancés. Recommandation : « Compter les auras RES et PRE dans les conditions » | posée le 2026-10-02 |
 | 7a, Q2 | Place des lignes d'aura dans « État de mon monstre ». Recommandation : un bouton « Ajouter un set d'aura » fixe, les lignes s'ajoutant SOUS lui (le bouton cliqué ne bouge jamais) ; autre choix : cinq lignes réservées d'avance | posée le 2026-10-02 |
@@ -5261,6 +5261,10 @@ en attente). Options présentées :
    (6bis-b13bis-d, après les corrections de 6bis-b13bis-c), même mesure.
 3. **Renoncer au Worker** : `git revert` des deux commits, retour au
    chemin direct de b13.
+
+**Décision de l'utilisateur, le 2026-10-02 : garder le Worker tel quel
+(option 1).** b13bis-b et b13bis-c sont livrés ensemble ; 6bis-b13bis-d
+n'a pas lieu.
 
 **Écarts signalés par l'agent, hors périmètre** : `CLAUDE.md` annonce
 « 45 vérifications », le registre en compte 149 (affiché par

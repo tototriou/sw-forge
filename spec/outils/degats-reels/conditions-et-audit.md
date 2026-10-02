@@ -121,7 +121,11 @@ Crane gardent une seule description pour leurs deux compteurs. Elle
 n'apparaît pas non plus quand un bloc de « Passifs offensifs » la rend déjà
 pour la même compétence (Berserk, Thunderer de Dyeus, Dark Guardian,
 Vengeful Fire) : cette exclusion se déduit des blocs affichés, jamais d'une
-liste de monstres.
+liste de monstres. Pour les passifs offensifs, ce sont ceux que leur bloc
+rend pour le sort choisi (`passifsSuivants`) : un passif masqué — choisi
+lui-même comme sort, ou qui ne suit pas le sort choisi — qui porterait aussi
+des stats de combat garde ici sa prose et son en-tête (degats-et-aura 9c ;
+aucun cas au corpus aujourd'hui).
 
 
 ## Conditions binaires de buffs adverses et lecture des sorts

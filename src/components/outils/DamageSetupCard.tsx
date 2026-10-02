@@ -436,11 +436,22 @@ export default function DamageSetupCard({
     ...conditionsManuelles.map(({ key }) => key),
     ...(bonusDegatsConditionnel ? [bonusDegatsConditionnel.skillCom2usId] : []),
   ]);
+  // Les passifs qui PEUVENT frapper après le sort choisi (`passifPeutSuivre`,
+  // la porte de `passifCompte`) — les seuls affichés. Un passif choisi
+  // lui-même comme sort (Tempest seul) n'est jamais ajouté à lui-même : son
+  // interrupteur est MASQUÉ (réponse n° 10 de l'utilisateur, 2026-10-02,
+  // degats-et-aura 9b) ; de même pour un passif dont les slots déclencheurs
+  // excluent le sort choisi — un bouton sans effet possible n'est jamais
+  // montré (principe 2 ci-dessus).
+  const passifsSuivants = passifs.filter((p) => passifPeutSuivre(p, resolved));
   // ⚠️ **La prose d'une compétence n'est rendue qu'UNE fois dans la carte**
   // (degats-et-aura 11). Les huit blocs ci-dessous, sous « Passifs offensifs »,
   // la rendent déjà pour leurs compétences : « Stats acquises en combat » ne
   // la répète pas, et n'en rend qu'une par passif (`renduStatsCombat`). Un
-  // bloc qui se met à rendre une prose rejoint cette liste.
+  // bloc qui se met à rendre une prose rejoint cette liste. Pour les passifs
+  // offensifs, c'est ce que leur bloc rend VRAIMENT, `passifsSuivants` : un
+  // passif masqué qui porte aussi des stats de combat garde sa prose ici
+  // (degats-et-aura 9c ; jusque-là `...passifs` la perdait des deux côtés).
   const renduCombat = renduStatsCombat(
     combatStats,
     clesProseDejaRendue([
@@ -451,17 +462,9 @@ export default function DamageSetupCard({
       bonusParEffetCibleMonstre,
       bonusParEffetPropre,
       bonusSacrifice,
-      ...passifs,
+      ...passifsSuivants,
     ])
   );
-  // Les passifs qui PEUVENT frapper après le sort choisi (`passifPeutSuivre`,
-  // la porte de `passifCompte`) — les seuls affichés. Un passif choisi
-  // lui-même comme sort (Tempest seul) n'est jamais ajouté à lui-même : son
-  // interrupteur est MASQUÉ (réponse n° 10 de l'utilisateur, 2026-10-02,
-  // degats-et-aura 9b) ; de même pour un passif dont les slots déclencheurs
-  // excluent le sort choisi — un bouton sans effet possible n'est jamais
-  // montré (principe 2 ci-dessus).
-  const passifsSuivants = passifs.filter((p) => passifPeutSuivre(p, resolved));
   // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
   // après le sort — inutile d'encombrer l'écran si aucun passif ne peut le
   // suivre, ou si le sort ne pose pas de réduction de défense.

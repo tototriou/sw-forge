@@ -59,6 +59,7 @@ import {
   skillDamageProfile,
 } from '../src/lib/damage';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { clesProseDejaRendue, renduStatsCombat } from '../src/lib/proseStatsCombat';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const DOSSIER_SORTS = resolve(racine, 'public/data/skills');
@@ -484,40 +485,53 @@ export function testLot12IgnoreDefDepuisUnCoup() {
 export function testLot12PassifMasqueEtStatsDeCombat() {
   titre('Lot 12, point à constater — un passif masqué porte-t-il aussi des stats de combat ? (sentinelle du corpus)');
 
-  // Le bloc des passifs ne rend que `passifsSuivants` ; « Stats acquises en
-  // combat » écarte la prose de TOUS les passifs (`clesProseDejaRendue([...passifs])`).
-  // Un passif masqué qui porterait aussi un réglage de stats de combat perdrait
-  // donc sa prose ET son en-tête. Aujourd'hui, deux causes de masquage existent :
-  // être soi-même le sort choisi (`selectionnableCommeSort`) et ne pas suivre le
-  // slot du sort (`slotsDeclencheurs`). On balaie chaque forme du corpus, avec
-  // chacun des sorts qu'elle propose.
+  // Le bloc des passifs ne rend que `passifsSuivants`. Jusqu'au lot 9c,
+  // « Stats acquises en combat » écartait la prose de TOUS les passifs
+  // (`clesProseDejaRendue([...passifs])`) : un passif masqué qui porterait aussi
+  // un réglage de stats de combat aurait perdu sa prose ET son en-tête. Depuis
+  // 9c, l'exclusion lit `passifsSuivants` (testProseStatsCombatCarte,
+  // testProseStatsCombatPassifMasque). Deux causes de masquage existent : être
+  // soi-même le sort choisi (`selectionnableCommeSort`) et ne pas suivre le slot
+  // du sort (`slotsDeclencheurs`). On balaie chaque forme du corpus, avec chacun
+  // des sorts qu'elle propose.
   const masquables = new Set<number>();
   const masques = new Set<string>();
   const partagesAvecStats: string[] = [];
+  const prosesPerdues: string[] = [];
   for (const f of readdirSync(DOSSIER_SORTS).filter((n) => n.endsWith('.json'))) {
     const d: DetailMonstre = JSON.parse(readFileSync(resolve(DOSSIER_SORTS, f), 'utf8'));
     const passifs = monsterOffensivePassives(d);
     if (passifs.length === 0) continue;
-    const idsStats = new Set(monsterCombatStatProfiles(d).map((p) => p.skillCom2usId));
+    const profilsStats = monsterCombatStatProfiles(d);
+    const idsStats = new Set(profilsStats.map((p) => p.skillCom2usId));
     for (const p of passifs) {
       if (p.selectionnableCommeSort || p.slotsDeclencheurs) masquables.add(p.skillCom2usId);
       if (idsStats.has(p.skillCom2usId)) partagesAvecStats.push(`${d.com2usId}:${p.skillCom2usId}`);
     }
     for (const sort of monsterDamageSkills(d)) {
       if (!estPrisEnCharge(sort)) continue;
+      const suivants = passifs.filter((p) => passifPeutSuivre(p, sort));
       for (const p of passifs) {
-        if (!passifPeutSuivre(p, sort)) masques.add(`${p.skillCom2usId}`);
+        if (!suivants.includes(p)) masques.add(`${p.skillCom2usId}`);
+      }
+      // Ce que la carte rend : un passif à prose qui partage son identifiant
+      // avec des stats de combat la voit rendue par son bloc s'il suit le sort,
+      // sinon par « Stats acquises en combat » — jamais nulle part.
+      const rendu = renduStatsCombat(profilsStats, clesProseDejaRendue([...suivants]));
+      for (const p of passifs) {
+        const i = profilsStats.findIndex((s) => s.skillCom2usId === p.skillCom2usId);
+        if (i < 0 || !p.description) continue;
+        const parSonBloc = suivants.includes(p);
+        const parLesStats = rendu[i].prose != null;
+        if (parSonBloc === parLesStats) prosesPerdues.push(`${d.com2usId}:${p.skillCom2usId} après ${sort.skillCom2usId}`);
       }
     }
   }
   egal([...masquables].sort((a, b) => a - b), [3213], 'corpus : seul Tempest (3213) peut être masqué par construction (slots déclencheurs, choix comme sort)');
   egal([...masques].sort(), ['3213'], 'corpus : sur tous les sorts proposés par toutes les formes, seul Tempest est effectivement masqué');
-  // Mesure : AUCUN passif offensif du corpus ne partage son identifiant avec un
-  // réglage de stats de combat. `...passifs` dans `clesProseDejaRendue` n'écarte
-  // donc aujourd'hui aucune prose de stats de combat, masquée ou non : le
-  // défaut n'a pas de cas. Cette sentinelle échouera le jour où un cas naît —
-  // c'est elle qui l'annonce, avant que l'écran ne perde une prose.
-  egal(partagesAvecStats, [], 'corpus : aucun passif offensif ne partage son identifiant avec un réglage de stats de combat — rien n’est perdu aujourd’hui');
-  const masquablesPartages = partagesAvecStats.filter((s) => masquables.has(Number(s.split(':')[1])));
-  egal(masquablesPartages, [], 'corpus : aucun passif masquable ne partage son identifiant avec des stats de combat');
+  // Aucun passif offensif ne partage aujourd'hui son identifiant avec un
+  // réglage de stats de combat (mesure dans le libellé) ; un cas qui naîtrait
+  // n'est plus un défaut (9c) : la règle le vérifie sur chaque sort.
+  egal(prosesPerdues, [],
+    `corpus, chaque sort proposé : la prose d’un passif qui porte aussi des stats de combat est rendue une fois — par son bloc s’il suit le sort, sinon par « Stats acquises en combat » (${partagesAvecStats.length} cas aujourd’hui${partagesAvecStats.length ? ` : ${partagesAvecStats.join(', ')}` : ''})`);
 }

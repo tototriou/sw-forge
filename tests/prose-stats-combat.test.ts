@@ -13,11 +13,17 @@
 //    d'infrastructure de test React, voir tests/run.mjs) : la prose passe par
 //    `renduStatsCombat`, à un seul endroit, entre ce qui nomme le passif et
 //    le réglage ; les blocs que la carte exclut sont ceux qui rendent une prose.
+// 3. `testProseStatsCombatPassifMasque` — degats-et-aura 9c : un passif
+//    offensif MASQUÉ (choisi comme sort, ou qui ne suit pas le sort choisi)
+//    et porteur de stats de combat garde sa prose, puisque l'exclusion ne lit
+//    que les passifs que leur bloc rend (`passifsSuivants`).
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   CombatStatProfile,
+  type PassifOffensifProfile,
+  type SkillDamageProfile,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsStackable,
   monsterBonusParEffetCible,
@@ -25,8 +31,11 @@ import {
   monsterBonusSacrifice,
   monsterCombatStatProfiles,
   monsterConditionsCombat,
+  monsterDamageSkills,
   monsterModificateursVit,
   monsterOffensivePassives,
+  passifPeutSuivre,
+  resolveDamageSkill,
 } from '../src/lib/damage';
 import { DetailMonstre } from '../src/lib/monsterSkills';
 import { ProseDUnBloc, clesProseDejaRendue, renduStatsCombat } from '../src/lib/proseStatsCombat';
@@ -36,8 +45,14 @@ const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Z
 const dossierSorts = resolve(racine, 'public/data/skills');
 
 // Les huit blocs voisins, dans l'ordre de la carte, chacun construit par le
-// producteur dont l'écran passe le résultat à `DamageSetupCard`.
+// producteur dont l'écran passe le résultat à `DamageSetupCard` ; les passifs
+// offensifs sont ceux que leur bloc rend pour le sort retenu à l'ouverture
+// (le sort par défaut : `passifsSuivants`, degats-et-aura 9c). Les 80 formes à
+// stats de combat ont toutes un sort par défaut : sans lui, la carte ne
+// s'afficherait pas, et le test échoue plutôt que d'inventer un repli.
 function blocsVoisins(fiche: DetailMonstre): (ProseDUnBloc | null)[] {
+  const sort = resolveDamageSkill(monsterDamageSkills(fiche), null);
+  if (!sort) throw new Error(`${fiche.com2usId} : aucun sort par défaut — la carte « Dégâts réels » ne s'afficherait pas`);
   return [
     ...monsterConditionsCombat(fiche),
     ...monsterModificateursVit(fiche),
@@ -46,7 +61,7 @@ function blocsVoisins(fiche: DetailMonstre): (ProseDUnBloc | null)[] {
     monsterBonusParEffetCible(fiche),
     monsterBonusParEffetPropre(fiche),
     monsterBonusSacrifice(fiche),
-    ...monsterOffensivePassives(fiche),
+    ...monsterOffensivePassives(fiche).filter((p) => passifPeutSuivre(p, sort)),
   ];
 }
 
@@ -172,8 +187,11 @@ export function testProseStatsCombatCarte() {
   const exclusion = appel.match(/clesProseDejaRendue\(\[([\s\S]*?)\]\)/)?.[1] ?? '';
   egal(exclusion.split(',').map((s) => s.trim()).filter(Boolean),
     ['...conditionsCombatMonstre', '...modificateursVit', 'bonusDegatsStack', 'bonusDegatsConditionnel',
-      'bonusParEffetCibleMonstre', 'bonusParEffetPropre', 'bonusSacrifice', '...passifs'],
-    'l’exclusion lit ces huit blocs, et eux seuls');
+      'bonusParEffetCibleMonstre', 'bonusParEffetPropre', 'bonusSacrifice', '...passifsSuivants'],
+    'l’exclusion lit ces huit blocs, et eux seuls — pour les passifs offensifs, ceux que leur bloc rend (`passifsSuivants`, degats-et-aura 9c)');
+  const definition = 'const passifsSuivants = passifs.filter((p) => passifPeutSuivre(p, resolved));';
+  ok(carte.includes(definition) && carte.indexOf(definition) < carte.indexOf('const renduCombat = renduStatsCombat('),
+    '`passifsSuivants` (passifPeutSuivre, la porte du calcul) est défini avant l’exclusion qui le lit');
   ok(/renduStatsCombat\(\s*combatStats,/.test(appel), 'le rendu porte sur les profils affichés (`combatStats`), dans leur ordre');
 
   const bloc = entre(carte, '{combatStats.map((profile, index) => {', '\n            })}');
@@ -202,4 +220,58 @@ export function testProseStatsCombatCarte() {
   ]) {
     egal(brute.split(fragment).length - 1, 1, `ancre unique dans la carte : ${fragment}`);
   }
+}
+
+/**
+ * degats-et-aura 9c, point 4 — un passif offensif MASQUÉ qui porte aussi un
+ * réglage de stats de combat garde sa prose. Aucun cas au corpus (sentinelle
+ * `testLot12PassifMasqueEtStatsDeCombat`) : le passif est SYNTHÉTIQUE, posé
+ * sur l'identifiant d'un réglage RÉEL ; l'exclusion est calculée comme la
+ * carte (`passifsSuivants` = `passifPeutSuivre(p, resolved)`, vérifié sur la
+ * source par `testProseStatsCombatCarte`).
+ */
+export function testProseStatsCombatPassifMasque() {
+  titre('Stats acquises en combat — un passif masqué porteur de stats de combat garde sa prose (degats-et-aura 9c)');
+
+  // Un réglage de stats de combat RÉEL qui porte une prose : le premier du corpus.
+  let reglage: CombatStatProfile | undefined;
+  for (const nom of readdirSync(dossierSorts).filter((f) => f.endsWith('.json')).sort()) {
+    const fiche: DetailMonstre = JSON.parse(readFileSync(resolve(dossierSorts, nom), 'utf8'));
+    reglage = monsterCombatStatProfiles(fiche).find((p) => !!p.description);
+    if (reglage) break;
+  }
+  if (!reglage) {
+    ok(false, 'précondition : un réglage de stats de combat avec prose dans le corpus');
+    return;
+  }
+  const prose = reglage.description;
+  // Passif offensif SYNTHÉTIQUE sur le même identifiant, qui ne suit que le slot 2.
+  const passif = {
+    skillCom2usId: reglage.skillCom2usId,
+    nom: reglage.nom,
+    description: prose,
+    slotsDeclencheurs: [2],
+  } as unknown as PassifOffensifProfile;
+  const sort = (slot: number, skillCom2usId = 999_100 + slot) => ({ skillCom2usId, slot }) as SkillDamageProfile;
+  // La carte : le bloc des passifs rend `passifsSuivants`, l'exclusion lit la même liste.
+  const rendu = (choisi: SkillDamageProfile) => {
+    const suivants = [passif].filter((p) => passifPeutSuivre(p, choisi));
+    return { suivants, stats: renduStatsCombat([reglage!], clesProseDejaRendue([...suivants]))[0] };
+  };
+
+  const masqueParSlot = rendu(sort(1));
+  egal(masqueParSlot.suivants, [], 'sort de slot 1 : le passif (slots déclencheurs [2]) est masqué, son bloc ne le rend pas');
+  egal(masqueParSlot.stats, { ouvre: true, prose }, '… et « Stats acquises en combat » ouvre le passif avec sa prose : rien n’est perdu');
+
+  const masqueCommeSort = rendu(sort(2, reglage.skillCom2usId));
+  egal(masqueCommeSort.suivants, [], 'passif choisi lui-même comme sort : masqué');
+  egal(masqueCommeSort.stats, { ouvre: true, prose }, '… et sa prose reste rendue par « Stats acquises en combat »');
+
+  const suit = rendu(sort(2));
+  egal(suit.suivants.length, 1, 'sort de slot 2 : le passif suit, son bloc rend sa prose');
+  egal(suit.stats, { ouvre: false, prose: null }, '… et « Stats acquises en combat » ne la répète pas : une prose, une fois');
+
+  // Témoin : l'ancienne exclusion (`...passifs`, tous) la perdait des deux côtés.
+  egal(renduStatsCombat([reglage], clesProseDejaRendue([passif]))[0], { ouvre: false, prose: null },
+    'témoin : exclure TOUS les passifs (avant 9c) aurait retiré prose et en-tête, alors que le bloc des passifs ne la rend pas');
 }

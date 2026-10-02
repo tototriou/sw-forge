@@ -723,7 +723,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 8d — une seule règle de clé d'identifiant pour toute la recette | M | terminé (agent `lot-m`), preuves et mutation rejouées par le pilote | `52717fe0` ; reçu `52717fe` ↔ `5af83df` / 2026-10-02 |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `50e46aea`, `e5dc87ae` / 2026-10-02 |
 | 9b — Tempest comme sort, écran, mécanisme générique | J | terminé (lot parallèle, seconde vague), preuves rejouées ; mutation du pilote d'abord survivante, test complété par l'agent puis rejoué ; intégré ; vérification à l'œil en attente (A.8) | `db32bbd9`, `2402e91d`, `badea22f` / 2026-10-02 |
-| 9c — l'attaque appelée active, la prose des passifs masqués (suites du lot 12) | J | contrat écrit le 2026-10-02 ; **lançable** | — |
+| 9c — l'attaque appelée active, la prose des passifs masqués (suites du lot 12) | J | terminé, preuves et mutations rejouées par le pilote ; 11 amorces acceptables, 6 classées ; table vide en production | `38223c94`, `783df03d`, `39145f17` ; reçu `39145f1` ↔ `1b86eb0` / 2026-10-02 |
 | 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `db913084`, `dc8e4b5f` / 2026-10-02 |
 | 10b — Blade Dancers : recette, écran, CLI | J | terminé (lot parallèle, seconde vague) après correction de l'import selon B.0 (erreur du brief du pilote), preuves et mutation rejouées, intégré ; vérification à l'œil en attente (A.8) | `784378b9`…`072c7c3f` / 2026-10-02 |
 | 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `92de9890`, `d6ff1b6a`, `5a21fd78` / 2026-10-02 |
@@ -7019,6 +7019,57 @@ nouvelle (rien de visible sans entrée de production).
 ni la Marque, ni Head Press (constat 155), ni les voisins classés par le
 lot 12 (lot 13) ; aucun changement de la règle de calcul ni de Tempest.
 
+#### Résultat du lot 9c — 2026-10-02
+
+Agent lancé par le pilote (A.8), dans le worktree du chantier. Trois
+commits : `38223c94` — `ATTAQUES_APPELEES_PAR_DECLENCHEUR` (clé = sort
+déclencheur, valeur = slot appelé et source ; **vide en production**), lue
+par `attaquesAppeleesDeLaFiche` à la fin de `monsterOffensivePassives` :
+profil de la compétence active du slot appelé par `skillDamageProfile`
+(sans marqueur `passif`), après le seul slot du déclencheur, retenu
+seulement si ce slot et le slot appelé ne portent qu'une compétence ; deux
+déclencheurs vers le même slot → un profil, un interrupteur ; calcul
+intact ; test `testAttaqueAppelee…` (`tests/degats-attaque-appelee.test.ts`)
+et spec `attaque-apres-un-sort.md` (deux natures, effets posés par le
+déclencheur, Marque à relever, tableau des 17 amorces),
+`conditions-et-audit.md` ; `783df03d` — la carte passe `...passifsSuivants`
+à `clesProseDejaRendue` ; tests du lot 11 et sentinelle du lot 12 suivis,
+`testProseStatsCombatPassifMasque` ; `39145f17` — le refus d'une clé sans
+règle d'ignore DEF ne compte plus les sorts, `formules-et-combat.md`
+suit. Invariants : une entrée neuve (attaque appelée), une amendée (prose).
+Reçu `39145f1` ↔ `1b86eb0` ; preuve `controle-9c.md` (264 lignes) et
+`controle-9c-intrants/`.
+
+**Les 17 amorces** : **11 acceptables** par une entrée chacune (même total
+que le profil construit à la main du lot 12, au centième, sur 4 réglages) —
+13907, 13908, 13910, 14407, 14408, 14410 (constat 178) ; 8107, 8110, 8113,
+8114 et 8115 (Maîtres ivres, 8115 avec une limite en mode Moyenne) ;
+**6 classées** — 8106, 8108, 8109 (One More Drink est un soin sans profil ;
+Rolling Punch y prendrait le 411), 8111 (le buff de VIT de Seal Punch lu par
+la ligne 221), 8112 (le buff d'ATQ de Tiger Punch), 6161 (Mina : déclenché
+par tout coup critique, S1 comprise, qui s'appellerait elle-même).
+**Espace de clés** : aucun partage pour les 12 compétences appelées ;
+`testAttaqueAppeleeEspaceDeCles` le garde (structure, score du CLI, garde du
+corpus pour les entrées futures).
+
+**Rejoué par le pilote sur `39145f17`** : reçu valide ; `tsc` 0 ; 2 187
+vérifications (9 filtres) ; build, spec-lint, diff-check verts. Mutations
+de l'agent : 67, 23, 5, 1 et 2 échecs. **Mutations du pilote** : la garde
+« compétence passive au slot appelé » retirée → aucun échec, mais
+**équivalente** (`skillDamageProfile` rend déjà `null` pour un passif,
+L2945 : aucun effet observable) ; la garde « déclencheur seul à son slot »
+affaiblie → 1 échec ; restauré.
+
+**Renvoyé au lot 13 (13b, famille 08), avant toute entrée de production** :
+l'asymétrie 8115 (accepté sur la parole de l'utilisateur, amendement 1c1)
+/ 8111 (classé, rien ne le dit sans effet) ; la Marque posée par la S2 des
+six formes du constat 178, du même genre que les buffs qui ont fait classer
+8111 et 8112, à relever en jeu ; la décision d'interface au premier cas curé
+(une attaque appelée active s'afficherait sous « Passifs offensifs », avec
+« Hadoken (S1) se déclenche après ce sort »). **Non prouvé** : aucune
+valeur de jeu ni relevé ; aucun rendu (rien de visible sans entrée de
+production).
+
 ### Lot 10 — l'ignore DEF conditionnel des Blade Dancers
 
 ⚠️ **Recalé le 2026-10-02 et scindé en 10a / 10b** : lire d'abord
@@ -7651,7 +7702,10 @@ le pilote consolide ensuite les résultats. La présence d'une formule ou d'une
    Sagar : la garde « le premier groupe recopie la donnée » de la séquence
    curée refuse une donnée dont `coups` agrège deux attaques — limite
    relevée par le lot 12), la Marque posée par une S2 sur la S1 qu'elle
-   appelle (constat 178, à relever en jeu avant de curer), les 16 autres
+   appelle (constat 178, à relever en jeu avant de curer), les onze amorces
+   acceptables et les six classées par le lot 9c (Résultat du lot 9c :
+   asymétrie 8115 / 8111, interface d'une attaque appelée active au premier
+   cas curé), les 16 autres
    constats de catégorie 09, les
    passifs absents de `STATS_COMBAT_PAR_ID_CONNUS` repérés au lot 13a puis
    qualifiés ici. Chacune

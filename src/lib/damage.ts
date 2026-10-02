@@ -2949,6 +2949,11 @@ interface PassifOffensifConnu {
   // pour le MÊME passif. Exclusif de `COUPS_VARIABLES_CONNUS` (une plage
   // ANNONCÉE comme variable en jeu, qui donne un champ de réglage).
   coups?: number;
+  // Slots des sorts ACTIFS après lesquels ce passif peut se déclencher, quand
+  // une valeur curée le restreint (Tempest : après S1 ou S2, cadrage
+  // degats-et-aura A.2 ter). Absent = après n'importe quel sort, comme tous
+  // les autres passifs. Comparé au `slot` du sort RETENU, dans `passifCompte`.
+  slotsDeclencheurs?: readonly number[];
   // Le nombre d'instances suit-il les COUPS DU SORT ACTIF (`true`), ou
   // reste-t-il fixe quel que soit le sort choisi (`false`/absent) ? Confirmé
   // au cas par cas — ne PAS généraliser, voir Winds and Clouds.
@@ -3102,9 +3107,13 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // instance (« once more »). `critique` reste `'suit'` : les lignes
   // d'artéfact 402/410 (Dgts CRIT) s'appliquent à Tempest (utilisateur,
   // 2026-09-23, controle-1c1-amendement), ce qui suppose qu'il critique.
+  // `slotsDeclencheurs` : « after you attack the enemy on your turn » ne dit
+  // pas quels sorts ; la valeur retenue est « après S1 ou S2 » (utilisateur,
+  // 2026-09-23, A.2 ter). Le slot 3 est Tempest lui-même.
   {
     nom: 'Tempest (Passive)',
-    categorie: { type: 'conditionnel', condition: 'sa recharge est terminée au moment où ton sort frappe (recharge non simulée)' },
+    slotsDeclencheurs: [1, 2],
+    categorie: { type: 'conditionnel', condition: 'sa recharge est terminée au moment où ton S1 ou ton S2 frappe (recharge non simulée)' },
   }, // Teshar, Phoenix (Vent)
 ];
 
@@ -3124,6 +3133,9 @@ export interface PassifOffensifProfile {
   critique: PassifCritique;
   coupsDuSortActif: boolean;
   bonusPvCible?: { seuilPct: number; pct: number };
+  // Donnée pure (traverse le Worker de résolution avec `RealDamageContext`) :
+  // absent = déclenché après n'importe quel sort. Voir `passifCompte`.
+  slotsDeclencheurs?: readonly number[];
   categorie: PassifOffensifCategorie;
   profile: SkillDamageProfile;
 }
@@ -3176,6 +3188,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
       critique: connu.critique ?? 'suit',
       coupsDuSortActif: connu.coupsDuSortActif ?? false,
       bonusPvCible: connu.bonusPvCible,
+      slotsDeclencheurs: connu.slotsDeclencheurs,
       categorie: connu.categorie,
       profile: {
         skillCom2usId: c.com2usId,
@@ -4725,7 +4738,8 @@ export function computeSkillDamage(
 // les deux autres catégories suivent `setup.passifsOffensifs`, absent =
 // désactivé. Factorisé — `computeTotalDamage` et `damageRelevantStats`
 // doivent s'accorder EXACTEMENT sur ce qui compte, sinon le pré-filtrage
-// privilégierait des stats qu'un score différent ignore (ou l'inverse).
+// privilégierait des stats qu'un score différent ignore (ou l'inverse). Les
+// deux l'appellent à travers `passifCompte`, qui ajoute le slot du sort.
 export function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boolean {
   const c = p.categorie;
   if (c.type === 'toujours' || c.type === 'bonus') return true;
@@ -4741,6 +4755,19 @@ export function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boole
   // `?.` : une recette exportée AVANT ce champ a un `damageSetup` complet
   // par ailleurs mais sans `passifsOffensifs` du tout, pas seulement la clé.
   return setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
+}
+
+// Le passif compte-t-il dans le total APRÈS CE SORT précis ? `passifActif`
+// (boutons, réduction de Défense) ET, si l'entrée curée le restreint
+// (`slotsDeclencheurs`), le slot du sort RETENU — jamais
+// `setup.skillCom2usId`, qui peut valoir `null` (« le sort par défaut ») et
+// que `passifActif` ne connaît pas. ⚠️ **Source unique** de
+// `computeTotalDamage` ET de `damageRelevantStats` : les deux doivent
+// s'accorder exactement (voir `passifActif`). Tempest (Teshar) : après S1 ou
+// S2 seulement (degats-et-aura 9a).
+export function passifCompte(p: PassifOffensifProfile, sort: SkillDamageProfile, setup: DamageSetup): boolean {
+  if (p.slotsDeclencheurs && !p.slotsDeclencheurs.includes(sort.slot)) return false;
+  return passifActif(p, setup);
 }
 
 // Réduction de Défense active APRÈS le sort choisi — celle qui était déjà là,
@@ -4762,7 +4789,8 @@ export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): 
 
 /**
  * Dégâts totaux réellement infligés : le sort actif choisi PLUS les passifs
- * offensifs de ce monstre actuellement retenus (voir `passifActif`).
+ * offensifs de ce monstre actuellement retenus après ce sort (voir
+ * `passifCompte`).
  *
  * ⚠️ **Chaque passif recalculé par `computeSkillDamage`, jamais une formule
  * séparée** — même équation de spec/mecaniques.md, même adversaire : un
@@ -4922,7 +4950,7 @@ export function computeTotalDamage(
   const artefactsPassif: ArtifactDamageProfile =
     artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
   for (const p of passifs) {
-    if (!passifActif(p, setup)) continue;
+    if (!passifCompte(p, profile, setup)) continue;
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
     // l'état de la cible au moment où le jeu évalue la condition.
     const seuilAtteint = p.bonusPvCible != null && pvCiblePct <= p.bonusPvCible.seuilPct;
@@ -5156,7 +5184,7 @@ export function damageRelevantStats(
   // Crit en mode « Non critique ».
   let critGarantiParPassif = false;
   for (const p of passifs) {
-    if (!passifActif(p, setup)) continue;
+    if (!passifCompte(p, profile, setup)) continue;
     ajouter(p.profile.variables);
     // `'toujours'` compte AUSSI : ce composant critique à coup sûr, donc les
     // Dgts Crit pèsent sur lui plus encore que sur un sort ordinaire.

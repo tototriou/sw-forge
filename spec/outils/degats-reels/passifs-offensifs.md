@@ -40,6 +40,11 @@ Quatre catégories, sur la seule question « quand ce passif compte-t-il ? » :
 | `bonus` | Les dégâts de base sont comptés **dans tous les cas** ; le bouton (désactivé par défaut) ne conditionne QUE le surplus de `pct` %, et seulement sur la contribution de ce passif | Ezio (Hidden Gun, +100 % si cible Lumière), Dominic (Improvisation, +100 % si PV > 50 %) |
 | `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | Leona (Internal Force), Giou (Comeuppance), Teshar (Tempest : recharge non simulée) |
 
+En plus de la catégorie, `slotsDeclencheurs` (curé) restreint les sorts après
+lesquels le passif compte — Tempest : S1 ou S2 (A.2 ter) ; absent, tous.
+`passifCompte` le lit avec le `slot` du sort RETENU, jamais `skillCom2usId`
+(parfois `null`), pour `computeTotalDamage` ET `damageRelevantStats`.
+
 ⚠️ **`bonus` ne met plus toute la contribution à zéro quand le bouton est
 éteint.** Le texte de ces passifs décrit une attaque supplémentaire
 INCONDITIONNELLE (« Attacks additionally … when you attack the enemy on your
@@ -170,7 +175,7 @@ du jeu de chaque entrée) :
 | Improvisation | Dominic, Weapon Master | bouton `bonus`/`dejaInclus` (+100 % si PV > 50 %, formule déjà majorée) |
 | Ruins | Silver | **3 coups**, critique normalement, déclenchement `defBreak` |
 | Slash Waves / Slash Wind | Roid | déclenchement `defBreak` (2 coups pour Slash Waves) |
-| Tempest | Teshar, Phoenix (Vent) | formule curée `3.7 × ATQ` (données vides), en zone, +30 % d'améliorations, une instance ; bouton `conditionnel` |
+| Tempest | Teshar, Phoenix (Vent) | formule curée `3.7 × ATQ` (données vides), en zone, +30 % d'améliorations, une instance ; bouton `conditionnel`, après S1 ou S2 seulement |
 
 ⚠️ Une entrée « Ruins » sans suffixe `(Passive)` visait un **boss de donjon
 non invocable** (Living Armor 2A) : retirée, elle ne pouvait jamais
@@ -482,9 +487,9 @@ par vol d'effet bénéfique, jusqu'à +150 %, 15 fois).
 
 ## Stats à privilégier dans la recherche
 
-`damageRelevantStats(profil)` renvoie les statistiques que le sort fait
-**réellement** travailler — les variables de sa formule, plus les Dgts Crit
-(sauf sur un sort à dégâts fixes, qui ne critent pas). C'est ce qui oriente
+`damageRelevantStats(profil)` renvoie les statistiques que le sort et les
+passifs retenus après lui (`passifCompte`) font **réellement** travailler —
+variables des formules, plus les Dgts Crit (hors dégâts fixes). C'est ce qui oriente
 le pré-filtrage de la recherche (`OBJECTIVE_RELEVANT_STATS`, voir
 [optimizer.md](../optimizer.md)).
 

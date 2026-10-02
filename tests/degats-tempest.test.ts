@@ -16,18 +16,26 @@ import { ok, egal, titre } from './outils';
 import { StatRow } from '../src/lib/stats';
 import { StatKey } from '../src/lib/effects';
 import { Competence, DetailMonstre } from '../src/lib/monsterSkills';
+import { ArtifactDetail } from '../src/types';
 import {
+  ARTIFACT_DAMAGE_NEUTRE,
   AUCUNE_AURA_PROPRE,
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
   SkillDamageProfile,
+  type ArtifactDamageProfile,
+  artifactDamageProfile,
   computeSkillDamage,
+  computeSkillDamageDetail,
   computeTotalDamage,
+  damageRelevantStats,
   defaultDamageSkill,
   estPrisEnCharge,
   monsterDamageSkills,
   monsterOffensivePassives,
   passifActif,
+  passifCompte,
+  resolveDamageSkill,
   skillDamageProfile,
   type PassifOffensifProfile,
 } from '../src/lib/damage';
@@ -58,14 +66,23 @@ function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
 // qu'en « Non critique » : en critique, le modèle place les améliorations dans
 // le même terme que les Dgts CRIT (additif), pas en facteur séparé.
 function referenceUnAtq(skillupDamagePct: number): SkillDamageProfile {
+  return { ...profilSynthetique('1*{ATK}', 3, true), skillupDamagePct };
+}
+
+function profilSynthetique(formule: string, slot: number, aoe: boolean): SkillDamageProfile {
   const c: Competence = {
-    id: 1, com2usId: 1, nom: 'Référence', description: null, slot: 3, passif: false, aoe: true,
-    cooldown: null, coups: 1, niveauMax: 1, formule: '1*{ATK}', scale: [], ameliorations: [],
+    id: 1, com2usId: 999_001, nom: 'Synthétique', description: null, slot, passif: false, aoe,
+    cooldown: null, coups: 1, niveauMax: 1, formule, scale: [], ameliorations: [],
     icone: null, effets: [],
   };
   const p = skillDamageProfile(c);
-  if (!p || !estPrisEnCharge(p)) throw new Error('profil de référence illisible');
-  return { ...p, skillupDamagePct };
+  if (!p || !estPrisEnCharge(p)) throw new Error(`profil synthétique illisible : ${formule}`);
+  return p;
+}
+
+function artefacts(subs: { code: number; value: number }[]): ArtifactDamageProfile {
+  const a: ArtifactDetail = { id: 0, kind: 'archetype', archetype: 'attack', level: 1, rarity: 5, main: { code: 100, value: 300 }, subs };
+  return artifactDamageProfile([a]);
 }
 
 function sortDe(detail: DetailMonstre, id: number): SkillDamageProfile {
@@ -111,7 +128,11 @@ export function testDegatsTempestFormule() {
     'Teshar : la table curée ne fait pas de Tempest un sort — le sort par défaut reste le S2 (Lightning Nova)'
   );
 
-  const tempest = tempestDe(teshar)!;
+  const tempest = tempestDe(teshar);
+  if (!tempest) {
+    ok(false, 'Teshar : Tempest absent des passifs offensifs — le calcul ne peut pas être vérifié');
+    return;
+  }
   const s2 = sortDe(teshar, LIGHTNING_NOVA);
   const st = stats({ atk: 3000, cr: 100, cd: 150 });
   const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: LIGHTNING_NOVA, summonerSkills: 'combat' };
@@ -141,4 +162,135 @@ export function testDegatsTempestFormule() {
     Math.abs(rapportSansAmelioration - 3.7 * 1.3) < 1e-9,
     `« Non critique » : contre une référence SANS amélioration, le rapport vaut 3.7 × 1.30 — les +30 % comptent (reçu ${rapportSansAmelioration.toFixed(6)})`
   );
+}
+
+const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+
+/**
+ * Point 2 — Tempest se déclenche après S1 ou S2 (A.2 ter), lu avec le slot du
+ * sort RETENU par `computeTotalDamage` ET `damageRelevantStats` ; les lignes
+ * d'artéfact suivent le chemin passif existant (prouvé ici, pas recodé).
+ */
+export function testDegatsTempestDeclenchement() {
+  titre('Tempest — déclenché après S1 ou S2 seulement, artéfacts du chemin passif');
+
+  const teshar = fiche(TESHAR);
+  const passifs = monsterOffensivePassives(teshar);
+  const tempest = tempestDe(teshar);
+  if (!tempest) {
+    ok(false, 'Teshar : Tempest absent des passifs offensifs — le déclenchement ne peut pas être vérifié');
+    return;
+  }
+  egal(tempest.slotsDeclencheurs, [1, 2], 'slots déclencheurs curés : S1 et S2 (A.2 ter)');
+
+  const s1 = sortDe(teshar, ARCANE_BLAST);
+  const s2 = sortDe(teshar, LIGHTNING_NOVA);
+  // ⚠️ Sort FICTIF : Teshar n'a aucun S3 actif (son slot 3 est Tempest
+  // lui-même). Il n'existe que pour vérifier que le champ curé est bien LU —
+  // sans lui, rien n'empêcherait Tempest de suivre un autre slot.
+  const s3Fictif: SkillDamageProfile = { ...s2, slot: 3, skillCom2usId: 999_003 };
+  const st = stats({ atk: 3000, cr: 100, cd: 150 });
+  const actif: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    summonerSkills: 'combat',
+    critMode: 'crit',
+    enemyHp: 100_000_000,
+    passifsOffensifs: { [TEMPEST]: true },
+  };
+  const attendu = 3.7 * computeSkillDamage(referenceUnAtq(30), st, actif, AUCUNE_AURA_PROPRE, null);
+  const contribution = (sort: SkillDamageProfile, setup: DamageSetup, art: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE, s = st) =>
+    computeTotalDamage(sort, passifs, s, setup, AUCUNE_AURA_PROPRE, null, art) -
+    computeSkillDamageDetail(sort, s, setup, AUCUNE_AURA_PROPRE, null, undefined, art).total;
+
+  for (const [nom, sort] of [['S1', s1], ['S2', s2]] as const) {
+    const setup = { ...actif, skillCom2usId: sort.skillCom2usId };
+    ok(passifCompte(tempest, sort, setup), `${nom} choisi, interrupteur allumé : Tempest compte`);
+    ok(proche(contribution(sort, setup), attendu), `${nom} choisi : Tempest ajoute ses 3.7 × ATQ (+30 %) au ${nom}`);
+    ok(!passifCompte(tempest, sort, { ...setup, passifsOffensifs: {} }), `${nom} choisi, interrupteur éteint : Tempest ne compte pas`);
+  }
+
+  // `setup.skillCom2usId` à `null` (« le sort par défaut ») : le slot vient du
+  // sort RÉSOLU (S2), jamais de l'identifiant stocké.
+  const parDefaut: DamageSetup = { ...actif, skillCom2usId: null };
+  const resolu = resolveDamageSkill(monsterDamageSkills(teshar), parDefaut.skillCom2usId);
+  egal(resolu?.skillCom2usId, LIGHTNING_NOVA, 'skillCom2usId null : le sort résolu est le S2');
+  ok(resolu != null && proche(contribution(resolu, parDefaut), attendu), 'skillCom2usId null : Tempest suit le S2 résolu');
+
+  const setupS3 = { ...actif, skillCom2usId: s3Fictif.skillCom2usId };
+  ok(!passifCompte(tempest, s3Fictif, setupS3), 'sort fictif de slot 3 : Tempest ne compte pas, même interrupteur allumé');
+  egal(
+    computeTotalDamage(s3Fictif, passifs, st, setupS3, AUCUNE_AURA_PROPRE, null),
+    computeSkillDamage(s3Fictif, st, setupS3, AUCUNE_AURA_PROPRE, null),
+    'sort fictif de slot 3 : le total vaut ce sort seul, au bit près — computeTotalDamage lit les slots déclencheurs'
+  );
+
+  // `damageRelevantStats` suit EXACTEMENT le même filtre (invariant « même
+  // interrupteur que computeTotalDamage ») : un sort fictif à la DEF seule ne
+  // fait travailler l'ATQ que par Tempest.
+  const defSeulS2 = profilSynthetique('1*{DEF}', 2, false);
+  const defSeulS3 = { ...defSeulS2, slot: 3 };
+  ok(damageRelevantStats(defSeulS2, passifs, actif).includes('atk'), 'stats à privilégier, sort DEF de slot 2 + Tempest allumé : l’ATQ entre (par Tempest)');
+  ok(!damageRelevantStats(defSeulS3, passifs, actif).includes('atk'), 'stats à privilégier, sort DEF de slot 3 + Tempest allumé : l’ATQ n’entre pas — damageRelevantStats lit les slots déclencheurs');
+  ok(!damageRelevantStats(defSeulS2, passifs, { ...actif, passifsOffensifs: {} }).includes('atk'), 'stats à privilégier, Tempest éteint : l’ATQ n’entre pas');
+  ok(
+    damageRelevantStats(defSeulS2, passifs, actif).includes('atk') === contribution(defSeulS2, actif) > 0 &&
+      damageRelevantStats(defSeulS3, passifs, actif).includes('atk') === contribution(defSeulS3, actif) > 0,
+    'damageRelevantStats et computeTotalDamage s’accordent sur Tempest, slot par slot'
+  );
+
+  titre('Tempest — les lignes d’artéfact après S1/S2 (chemin passif existant)');
+
+  for (const [nom, sort, ligneDuSort] of [['S1', s1, 400], ['S2', s2, 401]] as const) {
+    const setup = { ...actif, skillCom2usId: sort.skillCom2usId };
+    const nu = contribution(sort, setup);
+    const sortSeul = (art: ArtifactDamageProfile) => computeSkillDamageDetail(sort, st, setup, AUCUNE_AURA_PROPRE, null, undefined, art).total;
+
+    // 411 — « premier coup du tour seulement ; jamais sur Tempest » (A.2 ter).
+    const a411 = artefacts([{ code: 411, value: 30 }]);
+    ok(sortSeul(a411) > sortSeul(ARTIFACT_DAMAGE_NEUTRE), `${nom} : 411 majore bien le premier coup du tour, celui du ${nom}`);
+    ok(proche(contribution(sort, setup, a411), nu), `${nom} : 411 ne s’applique jamais à Tempest`);
+
+    // 402 et 410 — « s'appliquent une fois à Tempest, compétence de slot 3 »
+    // (utilisateur, 2026-09-23, controle-1c1-amendement L73-75). Oracle : les
+    // mêmes points en Dgts CRIT de fiche, une fois — jamais deux.
+    const statsPlus = (pts: number) => stats({ atk: 3000, cr: 100, cd: 150 + pts });
+    const uneFois = contribution(sort, setup, ARTIFACT_DAMAGE_NEUTRE, statsPlus(20));
+    const deuxFois = contribution(sort, setup, ARTIFACT_DAMAGE_NEUTRE, statsPlus(40));
+    for (const code of [402, 410]) {
+      const art = artefacts([{ code, value: 20 }]);
+      const avec = contribution(sort, setup, art);
+      ok(proche(avec, uneFois) && !proche(avec, deuxFois), `${nom} : ${code} (+20) s’applique UNE fois à Tempest`);
+      ok(proche(sortSeul(art), sortSeul(ARTIFACT_DAMAGE_NEUTRE)), `${nom} : ${code} ne touche pas le ${nom} (slot ${sort.slot})`);
+    }
+
+    // La ligne du sort déclencheur (400 pour S1, 401 pour S2) reste au sort :
+    // Tempest n'en hérite jamais (cadrage, lot 9 « Artéfacts »).
+    const aSort = artefacts([{ code: ligneDuSort, value: 20 }]);
+    ok(sortSeul(aSort) > sortSeul(ARTIFACT_DAMAGE_NEUTRE), `${nom} : ${ligneDuSort} majore le ${nom}`);
+    ok(proche(contribution(sort, setup, aSort), nu), `${nom} : Tempest n’hérite pas de la ligne ${ligneDuSort} du ${nom}`);
+
+    // 224 — mono-cible seulement : jamais sur Tempest, en zone.
+    const a224 = artefacts([{ code: 224, value: 20 }]);
+    ok(sortSeul(a224) > sortSeul(ARTIFACT_DAMAGE_NEUTRE), `${nom} : 224 majore le ${nom}, mono-cible`);
+    ok(proche(contribution(sort, setup, a224), nu), `${nom} : 224 ne s’applique jamais à Tempest (zone)`);
+
+    // 222/223 — Tempest voit les PV laissés par le S1/S2 (utilisateur,
+    // 2026-09-23, controle-1c1-amendement L80-81). Cible entamée par le sort :
+    // la rampe vaut `points × f` (222) ou `points × (1 − f)` (223), avec f la
+    // fraction de PV que le sort laisse — jamais celle du réglage (100 %).
+    const entamee: DamageSetup = { ...setup, enemyHp: 60_000, enemyHpPct: 100 };
+    for (const code of [222, 223]) {
+      const art = artefacts([{ code, value: 30 }]);
+      const f = computeSkillDamageDetail(sort, st, entamee, AUCUNE_AURA_PROPRE, null, undefined, art).pvRestantsPct / 100;
+      const pts = 30 * (code === 222 ? f : 1 - f);
+      const ptsSurPvInitiaux = code === 222 ? 30 : 0;
+      ok(f > 0.05 && f < 0.95, `${nom}, ${code} : le ${nom} entame bien la cible (PV restants ${(f * 100).toFixed(1)} %)`);
+      const avec = contribution(sort, entamee, art);
+      ok(
+        proche(avec, contribution(sort, entamee, ARTIFACT_DAMAGE_NEUTRE, statsPlus(pts))) &&
+          !proche(avec, contribution(sort, entamee, ARTIFACT_DAMAGE_NEUTRE, statsPlus(ptsSurPvInitiaux))),
+        `${nom}, ${code} : Tempest lit les PV laissés par le ${nom}, pas ceux du réglage`
+      );
+    }
+  }
 }

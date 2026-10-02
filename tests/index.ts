@@ -78,6 +78,12 @@ import {
 } from './blade-surge-propagation.test';
 import { testRecetteClesIdentifiant } from './recette-cles-identifiant.test';
 import testBladeDancersIgnoreDef,{ testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
+import {
+  testLot12SequenceDeCoups,
+  testLot12AttaqueDeclenchee,
+  testLot12IgnoreDefDepuisUnCoup,
+  testLot12PassifMasqueEtStatsDeCombat,
+} from './degats-lot12.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimOnStage from './rune-optim-onstage.test';
@@ -207,6 +213,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBladeDancersIgnoreDef', testBladeDancersIgnoreDef],
   ['testBladeDancersRecette', testBladeDancersRecette],
   ['testBladeDancersEcranEtCli', testBladeDancersEcranEtCli],
+  ['testLot12SequenceDeCoups', testLot12SequenceDeCoups],
+  ['testLot12AttaqueDeclenchee', testLot12AttaqueDeclenchee],
+  ['testLot12IgnoreDefDepuisUnCoup', testLot12IgnoreDefDepuisUnCoup],
+  ['testLot12PassifMasqueEtStatsDeCombat', testLot12PassifMasqueEtStatsDeCombat],
   ['testRecetteClesIdentifiant', testRecetteClesIdentifiant],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testDegatsTempestFormule', testDegatsTempestFormule],

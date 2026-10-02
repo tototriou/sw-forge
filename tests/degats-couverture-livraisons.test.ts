@@ -20,6 +20,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import {
+  ARTIFACT_DAMAGE_NEUTRE,
   AUCUNE_AURA_PROPRE,
   DEFAULT_DAMAGE_SETUP,
   DamageSetup,
@@ -30,6 +31,7 @@ import {
   estPrisEnCharge,
   monsterBonusParEffetCible,
   monsterBonusStatFixe,
+  monsterConditionsCombat,
   monsterDamageSkills,
 } from '../src/lib/damage';
 import { DetailMonstre } from '../src/lib/monsterSkills';
@@ -199,5 +201,81 @@ export function testCouvertureBonusCritique() {
     const rapport = computeSkillDamage(p, build, enCritique(base), AUCUNE_AURA_PROPRE, 'fire') /
       computeSkillDamage(sansDc, build, enCritique(base), AUCUNE_AURA_PROPRE, 'fire');
     ok(Math.abs(rapport - 1.4082) < 1e-4, `${etiquette} : rapport critique avec / sans le bonus de 1,4082 (reçu ${rapport.toFixed(4)})`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// IGN-a — ignore DEF conditionnel livré sans test
+// Source : controle-13b-ignore-def.md § 2 et § 6, sonde 04-sonde.txt (même
+// build et même réglage que `tests/audit-degats-conditionnels`, DEF de la cible
+// 1 500 sauf Guard Crush, au seuil de 600). « sans » : condition non remplie ;
+// « avec » : interrupteur actif (proc, présence de débuff, cible endormie…).
+// ---------------------------------------------------------------------------
+
+const arrondi = (x: number) => Math.round(x);
+
+// Sorts dont la condition est portée par le sort (CONDITIONS_COMBAT_PAR_ID_CONNUS).
+// [constat, nom, forme, sort, interrupteur actif, DEF de la cible, sans, avec]
+const IGNORE_DEF_PAR_SORT: [number, string, number, number, boolean, number, number, number][] = [
+  [200, "Bull's Eye Wayne", 15611, 7001, true, 1500, 720, 4098],
+  [200, "Bull's Eye Randy", 15612, 7002, true, 1500, 720, 4098],
+  [200, "Bull's Eye Roger", 15613, 7003, true, 1500, 720, 4098],
+  [200, "Bull's Eye Walkers", 15614, 7004, true, 1500, 720, 4098],
+  [200, "Bull's Eye Jamie", 15615, 7005, true, 1500, 720, 4098],
+  [200, 'Dark Dragon Attack Fei', 17315, 8215, true, 1500, 2800, 15937],
+  [201, 'Shadow Arrow Bethony', 15415, 6815, true, 1500, 818, 4658],
+  [203, 'Torrent Ragdoll', 16615, 7810, true, 1500, 1100, 6261],
+  [205, 'Guard Crush Sonia', 26113, 15908, false, 600, 1330, 3831],
+  [205, 'Guard Crush Destiny', 26115, 15910, false, 600, 1330, 3831],
+  [214, 'Black Meteor Celestara', 29915, 19615, true, 1500, 498, 2837],
+];
+
+// Passifs monstre-wide (CONDITIONS_MONSTRE_PAR_ID_CONNUS) : la condition vaut
+// pour chaque sort du monstre. [constat, nom, forme, passif, [[sort, sans, avec]]]
+const IGNORE_DEF_MONSTRE: [number, string, number, number, [number, number, number][]][] = [
+  [202, "Hawk's Eye Nangrim", 18512, 9312, [[9302, 820, 4667], [9307, 1100, 6261]]],
+  [208, 'Infinity Shadow Shun', 25914, 15714, [[15704, 731, 4159], [15709, 692, 3940]]],
+  [209, 'Dream Invader Bombay', 26015, 15815, [[15805, 840, 4781]]],
+];
+
+export function testCouvertureIgnoreDefIdentifiants() {
+  titre('Ignore DEF conditionnel livré sans test — 15 identifiants (degats-et-aura 15a, IGN-a)');
+
+  for (const [constat, nom, forme, sort, interrupteur, def, sans, avec] of IGNORE_DEF_PAR_SORT) {
+    const p = profilDe(forme, sort);
+    const etiquette = `${constat} — ${nom} (${sort}, forme ${forme})`;
+    const actif = interrupteur ? { passifsOffensifs: { [sort]: true } } : {};
+    // Sans interrupteur (Guard Crush), la condition porte sur la DEF saisie : un point de plus ne la remplit plus.
+    const dehors = interrupteur ? def : def + 1;
+    const total = (setup: Partial<DamageSetup>) => computeSkillDamage(p, build, { ...base, ...setup }, AUCUNE_AURA_PROPRE);
+    egal(arrondi(total({ enemyDef: dehors })), sans, `${etiquette} : condition non remplie, DEF de la cible ${dehors}`);
+    egal(arrondi(total({ enemyDef: def, ...actif })), avec, `${etiquette} : condition remplie, la DEF de la cible ne compte plus`);
+    egal(total({ enemyDef: def, ...actif }), total({ enemyDef: 0 }),
+      `${etiquette} : condition remplie, le total égale celui d'une DEF nulle`);
+  }
+
+  // Isael (215) : ignore 50 % de la DEF d'une cible endormie (prose seule).
+  const isael = profilDe(13315, 5315);
+  const totalIsael = (setup: Partial<DamageSetup>) => computeSkillDamage(isael, build, { ...base, ...setup }, AUCUNE_AURA_PROPRE);
+  egal(arrondi(totalIsael({ enemyDef: 1500 })), 923, '215 — Night Hag\'s Scuttle Isael (5315, forme 13315) : cible éveillée');
+  egal(arrondi(totalIsael({ enemyDef: 1500, passifsOffensifs: { 5315: true } })), 1570,
+    '215 — Night Hag\'s Scuttle Isael : cible endormie, 1 570');
+  egal(totalIsael({ enemyDef: 1500, passifsOffensifs: { 5315: true } }), totalIsael({ enemyDef: 750 }),
+    '215 — Night Hag\'s Scuttle Isael : cible endormie, le total égale celui d\'une DEF réduite de moitié (50 %)');
+
+  for (const [constat, nom, forme, passif, sorts] of IGNORE_DEF_MONSTRE) {
+    const conditions = monsterConditionsCombat(fiche(forme));
+    ok(conditions.some((c) => c.skillCom2usId === passif && c.condition.type === 'manuel'),
+      `${constat} — ${nom} (${passif}, forme ${forme}) : condition monstre-wide à interrupteur`);
+    for (const [sort, sans, avec] of sorts) {
+      const p = profilDe(forme, sort);
+      const etiquette = `${constat} — ${nom} (${passif}), sort ${sort}`;
+      const total = (setup: Partial<DamageSetup>) =>
+        computeTotalDamage(p, [], build, { ...base, ...setup }, AUCUNE_AURA_PROPRE, null, ARTIFACT_DAMAGE_NEUTRE, false, null, null,
+          { conditionsCombat: conditions });
+      egal(arrondi(total({ enemyDef: 1500 })), sans, `${etiquette} : condition non remplie`);
+      egal(arrondi(total({ enemyDef: 1500, passifsOffensifs: { [passif]: true } })), avec,
+        `${etiquette} : condition remplie, la DEF de la cible ne compte plus`);
+    }
   }
 }

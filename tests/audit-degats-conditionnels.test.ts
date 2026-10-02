@@ -1025,11 +1025,11 @@ export default function testAuditDegatsConditionnels() {
     computeSkillDamage(triss, buildAudit, {
       ...setupAudit, enemyDef: 1200, passifsOffensifs: { [triss.skillCom2usId]: true },
     }, AUCUNE_AURA_PROPRE) > trissSans,
-    '209 — Triss : un toggle de présence de débuff active l’ignore DEF'
+    '214 — Triss : un toggle de présence de débuff active l’ignore DEF'
   );
   ok(
     computeSkillDamage(triss, buildAudit, { ...setupAudit, enemyDef: 1200, brand: true }, AUCUNE_AURA_PROPRE) > trissSans,
-    '209 — Triss : Marque active automatiquement l’ignore DEF'
+    '214 — Triss : Marque active automatiquement l’ignore DEF'
   );
 
   const odin = fiche(22613);

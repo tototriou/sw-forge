@@ -104,6 +104,14 @@ lectures restent en place ; un relevé en jeu de la VIT affichée par Mei Hou
 Wang après un puis dix cumuls trancherait. Ligne correspondante dans
 spec/outils/optimizer/pistes.md. -->
 
+Rankyaku (Chun-Li vent) et Accelerando (Cordelia), toujours actifs, ajoutent
+à l'ATQ cinq fois la VIT finale : base, runes et sets, compétence
+d'invocateur, leader skill de VIT, puis buff de VIT, amplifié le cas échéant
+par un artéfact « Effet aug. VIT » (confirmation de l'utilisateur du
+2026-10-02). C'est la VIT de `maVitCombat`, jamais la VIT de fiche. Le
+calcul est vérifié de bout en bout, lead et buff actifs, jusqu'aux dégâts du
+S1 (constat 110 de l'audit).
+
 
 ## Conditions binaires de buffs adverses et lecture des sorts
 

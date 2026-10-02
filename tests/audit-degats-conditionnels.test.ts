@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import {
   AUCUNE_AURA_PROPRE, ARTIFACT_DAMAGE_NEUTRE,
+  artifactDamageProfile,
   autresBuffsPropresDepuisTotal,
   BonusDegatsConditionnelProfile,
   DEFAULT_DAMAGE_SETUP,
@@ -35,7 +36,7 @@ import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizer
 import { BuildCandidate, RealDamageContext, objectiveScore } from '../src/lib/runeBuildOptim';
 import { StatKey } from '../src/lib/effects';
 import { StatRow, computeStats, monsterBaseStats } from '../src/lib/stats';
-import { RuneDetail } from '../src/types';
+import { ArtifactDetail, RuneDetail } from '../src/types';
 import { egal, monstersJson, ok, titre } from './outils';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -1139,6 +1140,99 @@ export default function testAuditDegatsConditionnels() {
     null, null, null, { combatStats: monsterCombatStatProfiles(fiche(16812)) });
   ok(relevantesMeiHouWang.includes('atk') && relevantesMeiHouWang.includes('spd'),
     '89 — Gold Headband : ATQ et VIT restent des stats pertinentes de Mei Hou Wang (`spdBasePct` à parité avec `atkBasePct`)');
+
+  // Constat 110 — Rankyaku (`14313`, Chun-Li vent) et Accelerando (`14813`,
+  // Cordelia) : « Your Attack Power increases in proportion to the Attack
+  // Speed », formule `5*{SPD}` de la donnée. La VIT lue est la VIT FINALE
+  // (cadrage degats-et-aura, A.2 ter, confirmation de l'utilisateur du
+  // 2026-10-02) : base + runes + set + lead + effet d'augmentation de vitesse,
+  // amplifié par les artéfacts. Profils extraits des données réelles, deux
+  // vitesses connues (avec et sans Swift), lead et buff actifs ; attendus
+  // calculés À LA MAIN depuis cette définition, jamais par `maVitCombat`, dont
+  // c'est la preuve.
+  const runeVit = (id: number, slot: number, set: string, main: [number, number], subs: [number, number][]): RuneDetail => ({
+    id, slot, set, rank: 6, rarity: 5, level: 15,
+    main: { code: main[0], value: main[1] }, subs: subs.map(([code, value]) => ({ code, value })),
+  });
+  // VIT des runes 93, Swift (4 pièces) +ceil(105 × 25 %) = +27 : fiche 105 + 93 + 27 = 225.
+  const runesRapides = [
+    runeVit(11, 1, 'violent', [3, 160], [[8, 18]]),
+    runeVit(12, 2, 'swift', [8, 42], [[4, 10]]),
+    runeVit(13, 3, 'swift', [5, 160], [[8, 12]]),
+    runeVit(14, 4, 'swift', [9, 58], [[8, 6]]),
+    runeVit(15, 5, 'swift', [1, 2448], [[8, 10]]),
+    runeVit(16, 6, 'violent', [4, 63], [[8, 5]]),
+  ];
+  // VIT des runes 16, aucun set de VIT : fiche 105 + 16 = 121.
+  const runesLentes = [
+    runeVit(21, 1, 'violent', [3, 160], [[8, 9]]),
+    runeVit(22, 2, 'violent', [4, 63], [[2, 10]]),
+    runeVit(23, 3, 'violent', [5, 160], [[8, 7]]),
+    runeVit(24, 4, 'violent', [9, 58], [[4, 8]]),
+    runeVit(25, 5, 'will', [1, 2448], [[3, 20]]),
+    runeVit(26, 6, 'will', [4, 63], [[1, 300]]),
+  ];
+  // « Effet aug. VIT +6 % » (code 206) : amplifie le buff de VIT, jamais la VIT elle-même.
+  const artefactVit: ArtifactDetail = {
+    id: 31, kind: 'archetype', archetype: 'attack', level: 15, rarity: 5,
+    main: { code: 101, value: 100 }, subs: [{ code: 206, value: 6 }],
+  };
+  const leadVit = { stat: 'Attack Speed' as const, pct: 24 };
+  const cransVit: [string, Partial<DamageSetup>, boolean][] = [
+    ['compétence d’invocateur seule', {}, false],
+    ['+ lead VIT 24 %', { leaderSkill: leadVit }, false],
+    ['+ lead + buff de VIT', { leaderSkill: leadVit, spdBuff: true }, false],
+    ['+ lead + buff + artéfact « Effet aug. VIT +6 % »', { leaderSkill: leadVit, spdBuff: true }, true],
+  ];
+  // VIT finale attendue par cran, base 105 : invocateur fiche + ceil(105 × 15 %) = fiche + 16 ;
+  // lead fiche + ceil(105 × 39 %) = fiche + 41 ; buff × 1,30 ; artéfact × (1 + 0,30 × 1,06) = × 1,318.
+  const vitFinaleAttendue: [RuneDetail[], number, number[]][] = [
+    [runesRapides, 225, [241, 266, 345.8, 350.588]],
+    [runesLentes, 121, [137, 162, 210.6, 213.516]],
+  ];
+  const formesRankyaku: [number, number, string, number][] = [
+    [24413, 14313, 'Chun-Li (Rankyaku)', 14303],
+    [24913, 14813, 'Cordelia (Accelerando)', 14803],
+  ];
+  for (const [forme, sortId, nomForme, s1Id] of formesRankyaku) {
+    const profils = monsterCombatStatProfiles(fiche(forme));
+    egal(profils.map((p) => [p.skillCom2usId, p.source, p.atkDepuisSpd]), [[sortId, 'toujours', 5]],
+      `110 — ${nomForme} : profil ${sortId} extrait des données, 5 × VIT, toujours actif`);
+    egal(fiche(forme).competences.find((c) => c.com2usId === sortId)?.formule, '5*{SPD}',
+      `110 — ${nomForme} : la donnée SWARFARM porte bien \`5*{SPD}\``);
+    const monstre = monstersJson().find((m) => m.com2usId === forme);
+    egal(monstre.stats.speed, 105, `110 — ${nomForme} : précondition, VIT de base 105 (monsters.json)`);
+    for (const [runes, vitFiche, attendus] of vitFinaleAttendue) {
+      egal(computeStats({ base: monsterBaseStats(monstre), runes, artifacts: [] }).find((s) => s.key === 'spd')?.total, vitFiche,
+        `110 — ${nomForme} : précondition, VIT de fiche ${vitFiche} (base + runes + set)`);
+      cransVit.forEach(([cran, reglage, avecArtefact], i) => {
+        const gear = { base: monsterBaseStats(monstre), runes, artifacts: avecArtefact ? [artefactVit] : [] };
+        const stats = computeStats(gear);
+        const artefacts = artifactDamageProfile(gear.artifacts);
+        const setup = { ...setupAudit, ...reglage };
+        const sans = statsDeCombat(stats, setup, AUCUNE_AURA_PROPRE, 'wind', artefacts, {});
+        const avec = statsDeCombat(stats, setup, AUCUNE_AURA_PROPRE, 'wind', artefacts, { combatStats: profils });
+        const attendu = 5 * attendus[i];
+        const apportAtk = avec.atk - sans.atk;
+        const bon = procheGold(apportAtk, attendu);
+        ok(bon, `110 — ${nomForme}, fiche ${vitFiche} VIT, ${cran} : ATQ + 5 × ${attendus[i]} = +${Number(attendu.toFixed(6))}${bon ? '' : ` — reçu ${apportAtk}`}`);
+      });
+    }
+    // Bout en bout : le S1 (3,8 × ATQ, DEF adverse nulle, sans critique) suit
+    // l'ATQ augmentée de 5 × VIT finale — `computeTotalDamage` lit la même ATQ.
+    const gear = { base: monsterBaseStats(monstre), runes: runesRapides, artifacts: [artefactVit] };
+    const stats = computeStats(gear);
+    const artefacts = artifactDamageProfile(gear.artifacts);
+    const setup = { ...setupAudit, leaderSkill: leadVit, spdBuff: true };
+    const s1 = profilDe(forme, s1Id);
+    const atkSans = statsDeCombat(stats, setup, AUCUNE_AURA_PROPRE, 'wind', artefacts, {}).atk;
+    const degatsSans = computeTotalDamage(s1, [], stats, setup, AUCUNE_AURA_PROPRE, 'wind', artefacts, false, null, null, {});
+    const degatsAvec = computeTotalDamage(s1, [], stats, setup, AUCUNE_AURA_PROPRE, 'wind', artefacts, false, null, null,
+      { combatStats: profils });
+    const degatsAttendus = (degatsSans * (atkSans + 5 * 350.588)) / atkSans;
+    const bonBout = procheGold(degatsAvec, degatsAttendus);
+    ok(bonBout, `110 — ${nomForme} : dégâts du S1 = ceux sans le passif × (ATQ + 5 × 350,588) / ATQ, lead et buff actifs${bonBout ? '' : ` — reçu ${degatsAvec}, attendu ${degatsAttendus}`}`);
+  }
 
   const berserkMonstre = fiche(18811);
   const berserkS1 = profilDe(18811, 9601);

@@ -750,7 +750,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | CM — le mode critique « Moyenne » supprimé | J | terminé (lot parallèle, `lot-j`), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `f1e7d71c`, `361cc9d0`, `3ea62afe`, `3cba1d5a` / 2026-10-02 |
 | LM — la liste des monstres et sorts modifiés, tenue à chaque commit | C | terminé (`lot-c`), contrôlé par le pilote ; règle permanente en A.8 | `7d3a9d77` / 2026-10-02 |
 | 9d — le survol de Tempest retiré | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `2bca1603` / 2026-10-03 |
-| 15a à 15e — les lots prêts du plan | C / J | **15b** terminé (`dcca28a7`) ; **15c** terminé (`a65b2f28`, `f7bd6a1f`) ; 15d, 15e, 15a à suivre, un à la fois | 2026-10-03 |
+| 15a à 15e — les lots prêts du plan | C / J | **terminés**, preuves et mutations rejouées par le pilote : 15b (`dcca28a7`), 15c (`a65b2f28`, `f7bd6a1f`), 15d (`b2d44b4d`, `292716c2`, `aa052b63`), 15e (`6c2b593e`, `404472a3`), 15a (`35541133`…`4616dab1`) ; vérifications à l'œil en attente (A.8) | 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -837,6 +837,8 @@ port 5173 (même origine, le compte déjà importé reste).
 | 9d | Teshar, S1 ou S2 choisi : l'interrupteur « Tempest (S3) se déclenche après ce sort » n'a plus de bulle au survol ; la prose de Tempest se lit sous l'interrupteur et au « ? » ; la mention « recharge non simulée » a disparu (à confirmer) | en attente |
 | 15b | Leona : plus de ratio « 2 × DEF » ; interrupteur « Internal Force (+50 %) » éteint par défaut ; allumé, le total ×1,5, et la DEF du build ne change plus le total | en attente |
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
+| 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
+| 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
 
@@ -886,6 +888,8 @@ décision, rayée avec la date et la réponse.
 | nuit du 2026-10-02 | ~~Jusqu'où aller sans l'utilisateur ?~~ | ✔ 2026-10-02 : **le plan du lot 13, puis les lots déjà prêts dans ce chantier** (valeur dans la donnée, mécanique existante, décision prise, aucun relevé) — lots 15a à 15e |
 | clôture | ~~Lot 14 cette nuit ?~~ | ✔ 2026-10-02 : **après la vérification à l'œil de l'utilisateur**, guidée par la liste du lot LM |
 | 13 (consolidation) | Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ? Puis ses 65 décisions ouvertes et ses 10 valeurs de jeu (sections 5.1 et 5.2), et sa demande de 109 relevés (section 4) | en attente |
+| 15d | La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8) | en attente |
+| 15e | Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ? Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
 | 15c | Les 14 sorts masqués sur jugement (2813, 2818, 12512, 23706, 23708, 23709, 24206, 24208, 24209, 10243000, 10253000, 15607, 15608, 15609 — boucliers et buffs dont la prose dit « damage » / « attack » au sens des dégâts absorbés ou des attaques ennemies) : confirmer ? Et les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ? | en attente |
 
 ---
@@ -8805,6 +8809,98 @@ les 144 sorts à formule dont la prose ne dit ni « attack » ni « damage »
 (la plupart frappent en jeu ; quelques-uns semblent vraiment ne pas
 attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad
 Poison, Curse, Sleep Spell) — non touchés, liste au § 6 de la preuve.
+
+#### Résultat du lot 15d — 2026-10-03
+
+Agent `lot-j`. Trois commits : `b2d44b4d` (bornes : drapeau `inclusif?`
+ajouté aux deux comparaisons de DEF, strictes par défaut ; Jaara 3216 et
+Varus 2565 en strict comme leur prose et leur `note` ; Copper 7763 et
+Guard Crush 15907, 15908, 15910 reçoivent `inclusif: true` et ne changent
+pas ; Jaara et Varus affichaient « ignore DEF », ils affichent « critique
+garanti si la DEF cible < … » ; test `testBornesStrictesDef`), `292716c2`
+(Byungchul : 18603 et 18608 dans `CRITIQUES_GARANTIS_INCONDITIONNELS`, sur
+la prose du passif 18613 ; Yuji et Rick : les S2 20107, 20108, 20110,
+20707, 20708, 20710 reçoivent « débuff sur la cible » avec critique
+garanti, la réduction de DEF posée entre les coups — posée après le coup
+1, elle rend le coup 2 seul critique, par `setupsAvantChaqueCoup` qui
+existait ; `resumeCondition` lit l'effet de l'entrée) et `aa052b63` (test
+des bornes inclusives mesuré contre une DEF nulle). Liste des monstres :
+hashes inscrits par le pilote (`8273c433`). Totaux témoins (1 000 ATQ,
+100 % de Dgts Crit, « Non critique ») : Byungchul S1 1 458,4 → 2 916,8 ;
+Yuji vent, réduction posée après le coup 1, 848,5 → 1 272,8 ; Jaara à
+l'égalité 4 677,6 → 2 291,0 ; Varus à l'égalité 2 708,0 → 1 326,4 ; Copper
+et Guard Crush inchangés. Preuve `controle-15d.md` (167 lignes).
+
+**Rejoué par le pilote** : `tsc` 0 ; 1 507 vérifications ; build,
+spec-lint, diff-check verts. Mutations de l'agent : 6, rouges. **Mutation
+du pilote** (borne non stricte par défaut) : 2 échecs dans
+`testBornesStrictesDef` (« DEF cible égale… : aucune garantie ») ;
+restaurée — un premier lancement sans ce filtre l'avait laissée verte.
+**Écarts** : liste figée des effets entre les coups complétée
+(`auditdegatsconditionnels`) ; les tests « 204 — Copper » et « 205 — Guard
+Crush » avaient la même faiblesse que celle corrigée en `aa052b63` →
+renforcés par 15a. **Question pour l'utilisateur (A.8)** : la réduction de
+DEF du coup 1 de Yuji et Rick baisse-t-elle aussi la DEF du coup 2 ? (non
+modélisé ; l'autre lecture donnerait 2 231,3 au lieu de 1 272,8 sur le
+témoin). **À l'œil (A.8)** : un cadre des poses entre les coups s'affiche
+sur les six S2.
+
+#### Résultat du lot 15e — 2026-10-03
+
+Agent `lot-j`. Deux commits : `6c2b593e` — Flash Step 19014 (Ciri 29314,
+29304 †) et Turning Slash 19414 (Birgitta 29714, MOS 29704 †) : `stacks`,
+`spdFlat: 50`, `max: 5` (prose « by 50 each, up to 250 », donnée 50 et
+note « Up to 250 ») ; `testProseStatsCombat` suit (inventaire 38/40/80 →
+40/42/84, 19014 et 19414 dans les exclusions déduites des blocs) ;
+`404472a3` — Summary Justice 23515 (Theonia 34215, 34205 †) :
+`atkCibleSousAtkPropre`, `ratio: 1`, `pct: 100`, borne stricte ; le champ
+« ATQ adverse » existe déjà (`DamageSetupCard.tsx` L1427-1438, ouvert par
+`demandeAtkCible`). Tests `testVitCiriBirgitta`, `testTheoniaAtqCible` ;
+`conditions-et-audit.md` ; liste des monstres (hashes inscrits par le
+pilote, `860e8fcf`). Totaux témoins : S1 de Ciri et Birgitta à 5 cumuls
+2 056,44 → 3 038,55 (exactement le score d'un build à VIT 450) ; Theonia
+S3 contre une ATQ ennemie de 999 : 1 832,84 → 3 665,68 (×2), contre 1 000
+inchangé. Preuve `controle-15e.md` (151 lignes).
+
+**Rejoué par le pilote** : `tsc` 0 ; 2 261 vérifications ; build,
+spec-lint, diff-check verts. Mutations de l'agent : 12, 4, 9 et 35 échecs.
+**Mutation du pilote** (Theonia `pct` 100 → 50) : 7 échecs ; restaurée.
+**Pas fait** : la clause VIT de Theonia (« Attack Speed lower than yours »,
+`quantite: null`, relevé) ; la hausse du passif selon les PV de la cible.
+**À trancher (A.8)** : `enemyAtk` absent d'une ancienne recette vaut 0, ce
+qui allume le +100 % alors que le champ affiche 1 000 (comportement
+existant de Kassandra et Eleni, gardé) ; libellés « Cumuls de Flash Step »
+et « Cumuls de Turning Slash ». **À l'œil (A.8)** : le compteur de Ciri et
+de Birgitta sans en-tête ni prose (déjà sous « Passifs offensifs ») ; le
+champ « ATQ adverse » ouvert sur Summary Justice.
+
+#### Résultat du lot 15a — 2026-10-03
+
+Agent `lot-c`. Quatre commits, **349 contrôles** dans
+`tests/degats-couverture-livraisons.test.ts` (six fonctions), aucun code de
+production : `35541133` garanties de critique (151 contrôles, 22
+identifiants), `30b16a1a` bonus de critique propres (14 contrôles : 287,
+289, 293, 303, 304), `cdd40fca` ignore DEF (49 contrôles, 15 identifiants),
+`4616dab1` partie 2 (135 contrôles, 53 identifiants) ; libellés corrigés
+(« 96 — Elsharion » ×3 → 97 ; « 209 — Triss » ×2 → 214, le vrai 209 Bombay
+a son contrôle) ; « 204 — Copper » et « 205 — Guard Crush » renforcés
+(total au seuil = total à DEF nulle). **Suivi** : 59 lignes « implémenté et
+vérifié » ajoutées (82 → 141), état d'avant conservé ; non inscrits, faute
+de livraison complète : 72 (Torrent), 96 (Carlos), 123 (Thunderer), 200
+(Fei coup par coup). Aucune livraison trouvée fausse. Preuve
+`controle-15a.md`.
+
+**Rejoué par le pilote** : `tsc` 0 ; 2 298 vérifications ; spec-lint,
+diff-check verts. **Les mutations, que l'outil avait refusées à l'agent
+(édition de `damage.ts`), faites par le pilote** : une entrée retirée par
+famille (2763, `Fire Wall`, 15714, 6314 et 6511) → 15 échecs, chacun sur
+son contrôle (278 Anduril, 303, 208 Shun, 91 Judge, 249 Liesel) ;
+restaurées. `suivi-implementation.md` mis à jour par le pilote (141
+lignes, section « Réconciliation du lot 15a ») : le ledger et son CSV
+disent la même chose. **Écart** : l'agent a utilisé `sed -i` pour
+`tests/index.ts` et les imports du test (consigne enfreinte, diff conforme).
+**Toujours sans test, hors périmètre** : 2713, 3113, 12410, 8301 à 8305,
+1879, le refus de `aliveEnemies: 0`.
 
 ### Lot 14 — clôture
 

@@ -691,8 +691,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
 | 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | terminé : arrêté avant livraison (A.6, recherche +4 à +7 %, résultat complet −27 %), puis **Worker gardé par l'utilisateur** le 2026-10-02 ; revue indépendante : rien de bloquant | `9a7202a8`, `534de15a` ; livré avec 6bis-b13bis-c / 2026-10-02 |
 | 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; livré avec b13bis-b | `11abb68d`…`f951f3e9` / 2026-10-02 |
-| 6bis-b16 — une carte n'apparaît qu'une fois vérifiée | J | contrat écrit le 2026-10-02 (essai de l'utilisateur) ; **lançable** | — |
-| 6bis-b17 — le cache de la file suit les artéfacts réservés | J | contrat écrit le 2026-10-02 (revue du Worker) ; requiert b16 par l'ordre | — |
+| 6bis-b16 — une carte n'apparaît qu'une fois vérifiée | J | terminé, preuves, mesure et mutation rejouées par le pilote ; essai de l'utilisateur en attente (A.8) | `6df20ba2` ; reçu `6df20ba` ↔ `226c64d` / 2026-10-02 |
+| 6bis-b17 — le cache de la file suit les artéfacts réservés | J | contrat écrit le 2026-10-02 (revue du Worker) ; **lançable** | — |
 | 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02, réponses de l'utilisateur intégrées ; après 6bis-b16 et b17 | — |
 | 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | requiert 7a | — |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | recalé le 2026-10-02 ; à faire | — |
@@ -756,6 +756,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | ✔ vérifiée le 2026-10-02 (le 0 et la ligne de raison, puis la dernière page et les masquages) |
 | 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
 | 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | essayé le 2026-10-02 : barre **fluide** ✔ ; **va-et-vient des cartes (apparues puis retirées) jugé insupportable, bloquant** → 6bis-b16 ; à revoir après b16 (recette `swforge-optimizer-kinki-2026-10-02`) |
+| 6bis-b16 | Essai avec la recette Kinki : aucune carte qui apparaît puis disparaît ; places « Vérification… » sans saut ; page 1 complète vers 20-25 s ; changer de page et de tri | en attente |
 | 7a, 7b | Écran des sets d'aura, sur ordinateur ET sur téléphone | après les lots |
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort, à la souris ET au doigt | après le lot |
@@ -5491,6 +5492,59 @@ apparues puis retirées sur la page affichée pendant une recherche
 
 **Ne fait pas** : ni la résolution, ni K, ni l'ordre de base, ni le
 Worker ; le CLI (synchrone, il résout tout avant de classer) ne change pas.
+
+###### Résultat du lot 6bis-b16 — 2026-10-02
+
+Agent lancé par le pilote (A.8). Un commit, `6df20ba2` (code, test et spec) ;
+reçu `6df20ba` ↔ `226c64d`. Fonction pure `compositionDePage`
+(`artifactQueue.ts`) : les cartes de la page sont les builds vérifiés
+(résolus et conformes) de rang `début` à `fin` parmi les vérifiés, dans
+l'ordre réel ; les places « Vérification… » complètent la page ;
+`aVerifier` (les premiers non résolus, une page au plus) devient la page
+que la file sert en priorité (`pageAfficheeRef`). Composant
+`PlaceEnVerification` et `useHauteurDesCartes` (`BuildCandidateCard.tsx`) :
+une place a la hauteur de la plus petite carte mesurée. Ligne « N
+combinaison(s) en vérification… », place réservée. `paireProvisoire` retiré
+(plus d'appelant). Test `testCompositionDePage` (44 vérifications, 400
+tirages). Notes privées : `invariants.md` L75-76 et L103, `artefacts.md`
+§ 10, preuve `controle-6bis-b16.md` et son dossier.
+
+**Rejoué par le pilote sur `6df20ba2`** : reçu valide ; `tsc` 0 ; tests de
+zone (9 filtres) 701 passés ; build, spec-lint, diff-check verts ; diff
+relu. Mutation de l'agent (un non résolu laissé dans la page) : 17 échecs
+sur 44. **Mutation du pilote** (le filtre des écartés retiré de
+`compositionDePage`) : 1 échec, « un écarté passé directement : ni carte,
+ni place, ni à vérifier » — seconde garde, `classementResolu` les retire
+déjà ; restauré.
+
+**Mesure** (version construite, 4 passages entrelacés, médianes ;
+recoupée par le pilote avec `sortie-agregat.txt`) :
+
+| | avant (`38b98cd7`) | après |
+| --- | --- | --- |
+| Kinki : cartes écartées montrées puis retirées | 1 070 | **0** |
+| Kinki : cartes descendues sous un meilleur vérifié | 172 | 18 |
+| Kinki : page 1 définitive | 132 s | **22,7 s** |
+| Kinki : première carte | 6,56 s | 7,36 s (+12,7 %) |
+| Kinki : durée de la recherche | 137,0 s | 136,5 s (écarts appariés +0,2 %) |
+| « Dégâts réels » : cartes descendues | 34 | 3 |
+| « Dégâts réels » : première carte / recherche | 1,23 / 9,19 s | 1,40 / 9,22 s |
+
+**Conséquences signalées par l'agent, à connaître** : le compte final
+reste « trouvés moins écartés connus » (règle de b10) mais dépend du
+nombre de builds vérifiés — sur Kinki, ~693 après contre ~382 avant, le
+va-et-vient faisant vérifier ~1 000 builds de plus ; une page au-delà des
+vérifiés coûte la vérification de tous les non résolus classés avant elle
+(502 résolutions pour la page 8 dans le test) ; un changement de signature
+(tri qui change de régime) remplace toutes les cartes par des places
+jusqu'à la nouvelle résolution ; la ligne « en vérification » compte le
+reste de la file, pas les builds au-delà des K premiers.
+
+**Non prouvé** : aucun passage au navigateur ne change de page ni de tri
+(priorité de la page ouverte et coût d'une page lointaine prouvés en Node
+seulement) ; campagne au format ordinateur seulement (au téléphone, la
+hauteur des places et la ligne « en vérification » sont relevées) ; le
+confort réel attend l'essai de l'utilisateur (A.8).
 
 ##### 6bis-b17 — le cache de la file suit les artéfacts réservés
 

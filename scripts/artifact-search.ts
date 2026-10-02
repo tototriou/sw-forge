@@ -20,7 +20,9 @@
 //                        absent = « ignorer l'élément », les lignes 300-304
 //                        comptent 0
 //   --def=<n>            DEF de l'adversaire (défaut : celle de l'écran)
-//   --crit=<mode>        moyenne|crit|normal (défaut : moyenne)
+//   --crit=<mode>        crit|normal (défaut : crit, celui de l'écran) ;
+//                        l'ancien « moyenne » (mode supprimé, lot CM de
+//                        degats-et-aura) devient « crit » avec un avertissement
 //   --attribut=<choix>   equipped|none|libre|100|101|102 (défaut : libre)
 //   --type=<choix>       idem pour l'artéfact de type
 //   --top=<n>            nombre de paires à afficher (défaut : 5)
@@ -39,7 +41,7 @@ const [exportPath, monsterName] = libres;
 const opt = (nom: string) => process.argv.find((a) => a.startsWith(`--${nom}=`))?.slice(nom.length + 3);
 
 if (!exportPath || !monsterName) {
-  console.error('Usage: artifact-search.ts <export.json> <monstre> [--sort=N] [--element=fire] [--def=N] [--crit=moyenne] [--attribut=libre] [--type=libre] [--top=5]');
+  console.error('Usage: artifact-search.ts <export.json> <monstre> [--sort=N] [--element=fire] [--def=N] [--crit=crit|normal] [--attribut=libre] [--type=libre] [--top=5]');
   process.exit(1);
 }
 
@@ -67,10 +69,25 @@ if (!sortParDefaut) throw new Error(`Aucun sort calculable pour ${monsterName}.`
 const slotVoulu = opt('sort') ? Number(opt('sort')) : null;
 const sort = (slotVoulu != null ? sorts.find((s) => s.slot === slotVoulu) : null) ?? sortParDefaut;
 
+// Deux modes seulement (lot CM) : « moyenne », l'ancien mode supprimé, se
+// convertit en « crit » comme dans une recette, en le disant ; toute autre
+// valeur arrête le script plutôt que d'être lue en silence.
+const critDemande = opt('crit');
+let critMode: DamageSetup['critMode'] | undefined;
+if (critDemande === 'moyenne') {
+  console.warn("⚠️  --crit=moyenne : le mode critique « Moyenne » n'existe plus, calcul en « crit » (Critique).");
+  critMode = 'crit';
+} else if (critDemande === 'crit' || critDemande === 'normal') {
+  critMode = critDemande;
+} else if (critDemande !== undefined) {
+  console.error(`--crit=${critDemande} : mode de critique inconnu (crit ou normal).`);
+  process.exit(1);
+}
+
 const setup: DamageSetup = {
   ...DEFAULT_DAMAGE_SETUP,
   ...(opt('def') ? { enemyDef: Number(opt('def')) } : {}),
-  ...(opt('crit') ? { critMode: opt('crit') as DamageSetup['critMode'] } : {}),
+  ...(critMode ? { critMode } : {}),
   enemyElement: (opt('element') as ElementKey | undefined) ?? null,
 };
 

@@ -1494,6 +1494,19 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     un écran large. La bascule base+bonus ↔ total ne déplace jamais les
     artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/sections-runes.md](rta/sections-runes.md)).
+    ⚠️ **La relique ne déborde jamais de la carte, à la souris**
+    (degats-et-aura 6bis-b15) : fiche, artéfacts et roue font 332 px à
+    l'échelle 0,45, ce que la carte au plancher contient tout juste ; la
+    relique est un élément à part de la même ligne (`flex-wrap`), qui reste
+    à côté de la roue quand la largeur de la CARTE suffit et passe sinon
+    **sous** la ligne fiche / artéfacts / roue, en entier, centrée — aucun
+    libellé raccourci. En mode relique « recherche », sa place vaut d'avance
+    120 px, la largeur maximale de ses marques : la relique résolue ne
+    change jamais de ligne et ne fait pas grandir la carte en cours de file
+    (sous la ligne, l'apparition des marques ajoute encore leur hauteur ;
+    hors de ce mode, la relique est fixe dès le premier rendu). Au doigt
+    (`COMPACT`, pointeur seul), rendu inchangé : la ligne s'empile sous `sm`
+    et la relique reste à droite de la roue — passe responsive.
     ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
     actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la

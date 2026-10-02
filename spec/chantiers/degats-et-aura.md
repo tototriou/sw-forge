@@ -166,6 +166,7 @@ affirmations contradictoires, notamment sur 411.
 | Lignes 224 et 400 sur Blade Surge | **224** (« D.CRIT+ comp cib uniq pdt tour ») porte sur les **coups 1 et 2** seulement ; **400** (« [Comp.1] Aug. Dgts CRIT ») porte sur les **trois coups**, coup de zone compris | utilisateur, confirmation explicite du 2026-10-02 |
 | Rankyaku — `5 × VIT` | La VIT est la **VIT finale** : base + runes + set + lead + effet d'augmentation de vitesse, éventuellement augmentée par les artéfacts | utilisateur, confirmation explicite du 2026-10-02 |
 | Tempest — coups critiques | Tempest **peut infliger un coup critique** (les lignes de Dgts CRIT 402/410 s'y appliquent une fois) | utilisateur, confirmation explicite du 2026-10-02 |
+| Une attaque se lit dans la prose | Un ratio (`formule`) et un nombre de `coups` dans SWARFARM ne prouvent pas qu'un sort attaque (le soin S2 d'Anavel, historiquement ; le bouclier S2 de Frieren `24909`). Avant de traiter un sort comme offensif, vérifier dans sa prose la notion d'attaque ou de dégâts ; sans elle, ce n'est pas une attaque | utilisateur, 2026-10-02 |
 
 ⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
 chantier ne la modélise pas.** C'est précisément pourquoi la condition d'ignore
@@ -735,7 +736,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
-| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **9 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
+| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **12 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV ; variables refusées, PV et boucliers, compteurs) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
 | 13 — consolidation : plan, synthèse, recommandation (pilote) | J | après les dix-sept 13b ; recommandation soumise à l'utilisateur | — |
 | CM — le mode critique « Moyenne » supprimé | J | contrat écrit le 2026-10-02 (décisions de l'utilisateur) ; lot parallèle, worktree `sw-forge-lot-cm` | — |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
@@ -8186,6 +8187,131 @@ détonation reprend la bombe du S2, ligne vers le slot 2 cohérente ;
 `10332.json` : Incinerate (1362) `aoe: false` pour « Attacks all
 enemies », exact ; `26303.json` : la formule de 16113, `0.15*{MAX HP}`, est
 celle de son « Shield(15) », exact.
+
+Quatrième vague (trois sessions `lot-j`, le lot CM toujours dans son
+worktree) : `13b-variables-refusees`, `13b-pv-comparaisons-boucliers`,
+`13b-compteurs-etats-binaires`. Règle de l'utilisateur reçue pendant la
+vague et inscrite en A.2 ter (« Une attaque se lit dans la prose ») ; les
+boucliers comptés comme des dégâts (Frieren 24909, Internal Force 12515)
+ou refusés comme « formule de dégâts » se requalifient par elle à la
+consolidation.
+
+##### 13b-variables-refusees — 2026-10-02
+
+Preuve `controle-13b-variables-refusees.md` (259 lignes) et ses intrants
+(scripts 01 à 06). 6 constats, 8 lignes ; aucun déclaré livré. **Cases
+(lignes)** : donnée × existant 3 (sorts qui ne frappent pas : refus
+correct), donnée × neuf 1 (Dice Madness), relevé × existant 2 (Nobara et
+Aya lumière), relevé × neuf 1 (Mo Long), indéterminé 1 (Christina) ; le
+constat 81 diverge selon la ligne. **Saillants** : Mo Long (80) **livré en
+partie sans être suivi** — 12011 accepté par
+`DEGATS_FIXES_SANS_STAT_PROPRE_PRIS_EN_CHARGE` depuis `b2538ab1`, test vert,
+plafond « can't exceed your current HP » manquant ; le plan le classe
+différé et l'inventaire dit encore « refusé » (écart E1, pour la
+consolidation) ; **Dice Madness, piège de donnée** : « Ignore DEF »
+inconditionnel dans la donnée et 12111 absent de
+`IGNORE_DEF_CONDITIONNEL_PAR_ID` — accepter `DICE` sans cette ligne
+ferait ignorer la DEF sur les 5 coups ; Nobara et Aya lumière : vrais
+dégâts fixes, une ligne en `DEGATS_FIXES_SANS_STAT_PROPRE_PRIS_EN_CHARGE`
+suffit, mais le bonus élémentaire d'artéfact ne se suppose pas par
+analogie avec Mo Long ; Christina : `{Alive Allies %}` non assimilé à
+`{Living Ally %}`, deux attaques pour une formule et `coups: 1` (garde
+« premier groupe » probablement bloquante, comme au lot 12) ; variables :
+`{Alive Allies %}` et `DICE` relèvent d'une saisie (le nombre de faces d'un
+dé est une constante du jeu absente des données), `{Attacker's Level}` est
+une donnée du compte mais aucun sort de dégâts jouable ne la lit.
+**Relevés** R1 Christina, R2 Mo Long (plafond avant ou après les bonus),
+R3 Nobara/Aya (si D2), R4 Reno (si D3). **Lots** VR-1 à VR-5 (VR-5 avec le
+constat 260, critiques garantis). **Décisions formulées** D1 (un sort sans
+dégâts qui porte une formule : masqué ou refusé avec motif exact ?), D2
+(dégâts fixes indépendants des runes), D3 (tirage des dés : saisi,
+scénario ou espérance), D4 (PV actuels de Mo Long). **Découvertes** :
+DH-01 (8 identifiants de bouclier jouables, 17 formes, affichés refusés
+« formule de dégâts » — même famille que le bouclier de Frieren) ; DH-02
+(la spec liste 7 variables contre 14 dans le code ; couverture écrite
+6 073 / 115, aujourd'hui 6 077 / 113) ; DH-03 (44 attaques de monstres non
+jouables, refus juste) ; DH-04. Un `node -p` en lecture seule (écart
+déclaré).
+
+**Validé par le pilote** : `damage.ts` L2676
+(`DEGATS_FIXES_SANS_STAT_PROPRE_PRIS_EN_CHARGE = new Set([12011])`, une
+ligne d'écart avec la citation) ; fiche `21301.json` : Dice Madness (12111)
+porte « Ignore DEF » et « Guaranteed Critical Hit » sans note, la prose les
+réserve aux dés doublés, et 12111 n'est pas dans la table conditionnelle →
+exact ; `importAccount.ts` L644 lit `unit_level` → le niveau est une
+donnée du compte, exact.
+
+##### 13b-pv-comparaisons-boucliers — 2026-10-02
+
+Preuve `controle-13b-pv-comparaisons-boucliers.md` (301 lignes) et ses
+intrants (4 scripts, rejoués 4 fois à l'identique). 13 constats, 17
+lignes, 34 formes ; aucun déclaré livré. **Cases (lignes, clause la plus
+coûteuse)** : relevé × existant 9, relevé × neuf 4 (55, 65 ×2, 67), relevé
+× indéterminé 4 (60, 61, 62, 68) ; aucune pente n'est dans la donnée ; les
+clauses ATQ de Theonia (23515) et TC +30 de Lucas (prose seule, contredite
+par l'effet) sont donnée × existant ; le critique de Theonia est déjà livré.
+**Saillants** : les formes existantes couvrent la plupart des cas
+(`BONUS_DEGATS_STACKABLE_CONNUS`, `BONUS_STACK_PROPRE_PAR_ID_CONNUS`,
+`CONDITIONS_COMBAT_PAR_ID_CONNUS` avec `atkCibleSousAtkPropre`) ; partout le
+bonus manque : **calculs trop bas** ; seuls Self Repair et Path of the
+Brave Warrior sont trop favorables (état intermédiaire, bouton allumé).
+**Boucliers** : Born to Fight (Lucas) n'est compté nulle part ; **Internal
+Force (12515, constat 108) compte son bouclier `2.0*{DEF}` comme des
+dégâts** et écarte l'« Increase Damage 50 » — lecture figée par
+`tests/degats.test.ts` L2427-2435 ; à consolider avec les boucliers de
+hors-tour (Frieren) et de variables-refusées. **Relevés** R1 à R13 (dont
+R1b, R9b, R10b), Q1 (TC de Lucas), un relevé pour Internal Force. **Lots**
+PCB-1 (seul prêt : Theonia, Lucas si Q1) à PCB-8 (PCB-7a avec N-COND de
+composantes). **Décisions formulées** D1 à D7 (Self Repair et Path of the
+Brave Warrior en continu, contre une décision antérieure de l'utilisateur ;
+`ownHpPct` comme source unique ; Massacre ; PV détruits ; défaut sans
+`enemyAtk` ; TC +30 sur la prose ; mention « calcul partiel »).
+**Découvertes** -01 à -04 (commentaire périmé « aucun champ `enemyAtk` » ;
+trois passifs réunis par analogie en « PV % » ; Indomitable Will et Martial
+Artist's Will restés en bouton alors que `pvPropreSous` existe, mais
+stricte face à « 23.5% or below » ; doublon de saisie de Brawler's Will).
+
+**Validé par le pilote** : fiche `21805.json` : Internal Force (12515)
+`2.0*{DEF}`, prose « Creates a Shield equal to your Defense » puis le bonus
+de dégâts ; `tests/degats.test.ts` L2427-2435 vérifie bien la formule
+`2.0*{DEF}` comme passif offensif → bouclier compté comme des dégâts,
+exact (cas d'application de la règle « une attaque se lit dans la prose ») ;
+`damage.ts` L1320 : `pvPropreSous` compare par `<` strict, exact ; 23515
+figure dans `CRITIQUES_GARANTIS_INCONDITIONNELS` (L2682), exact.
+
+##### 13b-compteurs-etats-binaires — 2026-10-02
+
+Preuve `controle-13b-compteurs-etats-binaires.md` (260 lignes) et ses
+intrants (scripts 01 à 06). 8 constats, 14 lignes, 25 formes (14
+jouables) ; aucun déclaré livré. **Cases (lignes)** : donnée × existant 6
+(312 ×4, 314 ×2), donnée × neuf 2 (24, 306), relevé × existant 4 (14 ×2,
+25 ×2), relevé × neuf 2 (122, 311) ; quatre verdicts nommés peuvent changer
+de case (14, 25, 312, 314). **Saillants** : aucun des 14 identifiants n'est
+dans une table ni un test ; 312 (Eightfold : Zenitsu, Qilin Slasher) — une
+ligne `manuel` +50 % de `CONDITIONS_COMBAT_CONNUS` suffit, seul lot prêt
+sans relevé ; 14 (Yoga Sunburst, Chemical Gas Spray) — donnée 30 %, prose
+50 %, le compte d'effets existant serait faux (il ajoute d'office Brise
+DEF et Marque) → compteur propre au sort ; 306 (Barque) — valeur fournie
+(A.2 ter L154), mécanisme neuf (formule vide, deux attaques appelées) ; 311
+(Liliana) — dégâts de la forme transformée Lord of Hell 28715, que
+`sansDoublonDeTransformation` écarte au profit de 28615 ; 314 (Pholus,
+Himmel) — deux clauses « boss » différentes, non fusionnées ; DH13-05
+(Spirit's Wrath 1113) et DH13-06 (Mach Crush 6413, donnée 30 %, prose
+20 %) qualifiés. **Relevés** R1 à R6 (aucun ne dépend du mode « Moyenne »).
+**Lots** CEB-1 à CEB-9 (CEB-6 avec HT-1, SZ-1 et N1 ; CEB-7 avec SZ-4 ;
+CEB-2 avec IGN-e). **Décisions formulées** D1 à D7 (Eightfold ; contexte
+« boss » ; conteneur du compte de dégâts continus ; formes transformées
+choisissables ; 1113 ; Stark ; table commune de corrections de portée).
+**Découvertes** -01 (Nature of Beast 12942, Bellenus transformé) ; -02
+(Hollow Purple et Explosion and Blaze en `aoe: false` pour « all
+enemies » → ligne 224 appliquée, trop favorable) ; -03, -04.
+
+**Validé par le pilote** : fiche `24303.json` : Yoga Sunburst (14213)
+« Debuff Bonus Damage(30) » contre « increases by 50% » dans la prose,
+exact ; `32202.json`, `32204.json` : Eightfold (21607, 21609) « Increase
+Damage(50) [If the targets Attack Bar is 0] » dans la donnée, exact ;
+`monsterForms.ts` L125 `sansDoublonDeTransformation`, appliqué partout
+(L12), exact.
 
 ### Lot CM — le mode critique « Moyenne » supprimé
 

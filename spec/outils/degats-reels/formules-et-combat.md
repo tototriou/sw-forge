@@ -17,7 +17,7 @@ l'essentiel. Sont donc **déduits, jamais saisis** :
 | Statistiques qui font travailler le sort | les variables de `formule` |
 | Nombre de coups | `coups` |
 | Portée (zone / cible unique) | `aoe` |
-| Ignore la défense | un effet nommé `Ignore DEF` |
+| Ignore la défense | un effet nommé `Ignore DEF` (sauf l'ignore proportionnel à la VIT et les Blade Dancers, voir « Ignore DEF à partir d'un coup choisi ») |
 | Dégâts fixes (ni critique ni mitigation) | marqueur `(Fixed)` de la formule |
 | Bonus de dégâts des améliorations | somme des `Damage +X%` de `ameliorations` |
 
@@ -131,6 +131,66 @@ Dégâts = ( Mult × Crit × FacteurDéf + Additionnel ) × Réductions × coups
 comme le décrit [../../mecaniques.md](../../mecaniques.md) ; aucun bonus d'effet
 n'est exposé en v1) : buff d'attaque **+50 %**, buff de défense **+70 %**,
 buff de vitesse **+30 %**, réduction de défense **×0,3**, marque **+25 %**.
+
+
+## Ignore DEF à partir d'un coup choisi — les Blade Dancers
+
+Six sorts portent l'effet `Ignore DEF` avec une note qui le conditionne à la
+jauge d'attaque de la cible : « If enemy ATB at 0 », ou « If enemy ATB at 0
+or 7th hit ». Leur prose le confirme : la DEF n'est ignorée que lorsque la
+jauge de la cible est tombée à 0, ce que chaque coup rapproche. Le corpus
+balayé en entier n'en contient pas d'autre (constat 212 de l'audit, lots 1d
+et 1f du chantier degats-et-aura) : six identifiants, douze formes.
+
+| Variante | Identifiants (formes) | Coups | Crans proposés | Défaut |
+|---|---|---|---|---|
+| **A** — −50 % d'ATB par coup | `14308` (24403, 24413), `14310` (24405, 24415), `14808` (24903, 24913), `14810` (24905, 24915) | 3 × `1,8 × ATQ` | aucun ignore DEF · à partir du 2ᵉ coup · à partir du 3ᵉ | aucun ignore DEF |
+| **B** — −40 % par coup, **7ᵉ coup toujours ignoré** | `14311` (24401, 24411), `14811` (24901, 24911) | 7 × `0,85 × ATQ` | à partir du 2ᵉ · 3ᵉ · 4ᵉ · 5ᵉ · 6ᵉ coup · 7ᵉ coup seul ; « aucun » n'existe pas | 7ᵉ coup seul |
+
+**La règle est fournie par l'utilisateur** (2026-09-23, confirmation de revue
+pour les défauts) : le **coup 1 n'ignore jamais** la DEF, et **une fois
+qu'un coup ignore, tous les suivants ignorent**. Le choix se réduit donc à un
+seul nombre, le rang du premier coup qui ignore. Par défaut, seul le coup
+inconditionnel ignore : jamais une réussite supposée.
+
+⚠️ **La jauge d'ATB adverse n'est pas modélisée.** L'app ne sait pas où elle
+en est au lancement du sort : le rang est un **choix** de l'utilisateur, jamais
+déduit d'une ATB initiale ni d'un nombre de réductions réussies. Une
+justification du type `⌈100/50⌉` supposerait arbitrairement une jauge pleine.
+
+**Calcul, coup par coup.** Le booléen `ignoreDef` du profil, qui veut dire
+« tous les coups ignorent », est **faux** pour ces six sorts ; la règle curée
+(`IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID`, par identifiant, avec sa source) est
+portée par le profil. Le sort se découpe en deux tronçons au plus : les coups
+avant le rang, mitigés comme ceux de tout sort (DEF saisie, réduction de
+Défense, fractions conditionnelles), puis les coups à partir du rang, dont la
+DEF effective vaut 0. Les PV de la cible s'enchaînent d'un tronçon à
+l'autre. Les Dgts CRIT de première attaque (411) ne valent que pour le
+coup 1, qui n'ignore jamais. Comme `champsDuCombat` lit ce booléen, la DEF de
+la cible reste comptée parmi les réglages consommés, dans tous les crans.
+
+Ce mécanisme n'est ni la neutralisation d'`IGNORE_DEF_CONDITIONNEL_PAR_ID`,
+où un bouton à part active l'ignore de tout le sort, ni l'ignore
+proportionnel à la VIT, ni les conditions de combat (`ignoreDefParStack`,
+`compteurMin`, `ignoreDefPct`). Les Blade Dancers ne figurent dans aucune de
+ces tables.
+
+**Réglage.** `DamageSetup.premierCoupIgnoreDefParSort`, indexé par
+identifiant du sort : le rang choisi, ou `null` pour « aucun », permis
+seulement sans coup inconditionnel. Une clé absente donne le défaut du sort.
+Une valeur hors des crans permis, par exemple un coup 1 ou « aucun » en
+variante B, retombe aussi sur ce défaut (`resolvedPremierCoupIgnoreDef`).
+Le champ est propre au sort : vidé au changement d'espèce et à l'import de
+compte, conservé au changement d'exemplaire. Aucun contrôle de l'écran ni du
+CLI ne le règle encore, et l'import de recette ne le valide pas encore : ce
+repli du moteur est aujourd'hui la seule protection.
+
+**Garde-fou.** Les rangs ne valent que pour le nombre de coups que la
+curation suppose : si les données en annonçaient un autre, le sort serait
+refusé avec sa raison plutôt que calculé avec des rangs faux. Test :
+[tests/blade-dancers.test.ts](../../../tests/blade-dancers.test.ts) — corpus et
+famille close, chaque cran et chaque défaut, contrôle négatif sur les ignore
+DEF inconditionnels (`Hero Strike`, `Strike of Fighter`, Lushen S3).
 
 
 ## Compétences d'invocateur

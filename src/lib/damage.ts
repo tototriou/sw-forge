@@ -2218,6 +2218,14 @@ export interface SkillDamageProfile {
   // même discipline que les autres tables de ce fichier — confirmé par
   // l'utilisateur sur Rigna (126 points, donnée communautaire SWGT).
   ignoreDefSelonVit?: { ecartMax: number };
+  // Ignore la DEF COUP PAR COUP, à partir d'un rang que l'utilisateur choisit
+  // — les six sorts des Blade Dancers, curés par identifiant
+  // (`IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID`). Distinct d'`ignoreDef` (tout ou
+  // rien, alors FAUX pour ces sorts) et d'`ignoreDefSelonVit` (une fraction) :
+  // chaque coup ignore 0 ou 100 % de la DEF selon son rang. Le rang retenu se
+  // lit par `resolvedPremierCoupIgnoreDef` (`DamageSetup.premierCoupIgnoreDefParSort`).
+  // Donnée pure : traverse le Worker et `RealDamageContext` avec le profil.
+  ignoreDefAPartirDuCoup?: IgnoreDefAPartirDuCoupProfile;
   // Somme des « Damage +X% » des améliorations de compétence, en points de
   // pourcentage — la compétence est supposée MAXÉE, comme partout ailleurs
   // dans l'app (voir `paliersRechargement`, même parti pris).
@@ -2773,6 +2781,70 @@ const IGNORE_DEF_CONDITIONNEL_PAR_ID = new Set([
   7808, 7810, 7763, 15907, 15908, 15910, 19215, 19615, 5315,
 ]);
 
+// ── Ignore DEF à partir d'un coup choisi — les Blade Dancers (constat 212) ──
+//
+// Six sorts portent l'effet `Ignore DEF` avec la note « If enemy ATB at 0 »
+// (variante A, 3 coups, −50 % d'ATB par coup) ou « If enemy ATB at 0 or 7th
+// hit » (variante B, 7 coups, −40 % par coup) : la DEF n'est ignorée que
+// lorsque la jauge d'attaque de la cible est tombée à 0.
+//
+// ⚠️ **La jauge d'ATB adverse n'est pas modélisée** : l'app ne sait pas où elle
+// en est au lancement du sort. Le premier coup qui ignore la DEF est donc un
+// CHOIX de l'utilisateur, jamais déduit d'une ATB initiale ni d'un nombre de
+// réductions réussies (un `⌈100/50⌉` supposerait arbitrairement une jauge
+// pleine).
+//
+// Règle fournie par l'utilisateur (cadrage degats-et-aura, A.2 ter) : le coup 1
+// n'ignore JAMAIS la DEF ; une fois qu'un coup ignore, tous les suivants
+// ignorent. Le choix se réduit donc à UN nombre, le rang du premier coup qui
+// ignore. Par défaut, seul le coup inconditionnel ignore — le 7ᵉ en variante B,
+// aucun en variante A : jamais une réussite supposée.
+//
+// ⚠️ À ne pas confondre avec `IGNORE_DEF_CONDITIONNEL_PAR_ID` ci-dessus, qui
+// NEUTRALISE l'ignore d'un sort dont la condition passe par un bouton à part —
+// les Blade Dancers n'y figurent pas —, ni avec `ignoreDefSelonVit` (une
+// fraction selon la VIT), `ignoreDefParStack`, `compteurMin` ou l'`ignoreDefPct`
+// des conditions de combat (tout le sort, sous condition) : ici, coup par coup.
+//
+// Rôle : curation par identifiant d'une famille close sur le corpus
+// (6 identifiants, 12 formes, lots 1d et 1f), protégée par
+// `tests/blade-dancers.test.ts`, qui vérifie aussi qu'aucun autre sort ne porte
+// une note d'ignore DEF liée à l'ATB.
+export interface IgnoreDefAPartirDuCoupProfile {
+  // Nombre de coups que la curation suppose. Un sort dont les données en
+  // annoncent un autre est REFUSÉ (`skillDamageProfile`), jamais calculé avec
+  // des rangs qui ne correspondraient plus à ses coups.
+  coups: number;
+  // Rangs proposés pour le premier coup qui ignore la DEF. Jamais 1.
+  rangsPermis: readonly number[];
+  // Coup qui ignore TOUJOURS la DEF, quel que soit le rang choisi (variante B :
+  // le 7ᵉ) ; `null` = aucun. Sans lui, « aucun ignore DEF » est permis et c'est
+  // le défaut ; avec lui, « aucun » n'existe pas et le défaut est ce coup seul.
+  dernierCoupInconditionnel: number | null;
+  source: string;
+}
+
+const IGNORE_DEF_VARIANTE_A: IgnoreDefAPartirDuCoupProfile = {
+  coups: 3,
+  rangsPermis: [2, 3],
+  dernierCoupInconditionnel: null,
+  source: 'utilisateur, 2026-09-23 (cadrage degats-et-aura, A.2 ter et lot 10) ; note SWARFARM « If enemy ATB at 0 »',
+};
+const IGNORE_DEF_VARIANTE_B: IgnoreDefAPartirDuCoupProfile = {
+  coups: 7,
+  rangsPermis: [2, 3, 4, 5, 6, 7],
+  dernierCoupInconditionnel: 7,
+  source: 'utilisateur, 2026-09-23, confirmation de revue (cadrage degats-et-aura, A.2 ter et lot 10) ; note SWARFARM « If enemy ATB at 0 or 7th hit »',
+};
+export const IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID: Readonly<Record<number, IgnoreDefAPartirDuCoupProfile>> = {
+  14308: IGNORE_DEF_VARIANTE_A, // Hyakuretsukyaku — CHUN-LI vent (24403, 24413)
+  14310: IGNORE_DEF_VARIANTE_A, // Hyakuretsukyaku — CHUN-LI ténèbres (24405, 24415)
+  14808: IGNORE_DEF_VARIANTE_A, // Blade Dance of Night — Cordelia, vent (24903, 24913)
+  14810: IGNORE_DEF_VARIANTE_A, // Blade Dance of Night — Vereesa, ténèbres (24905, 24915)
+  14311: IGNORE_DEF_VARIANTE_B, // Hoyokusen — CHUN-LI eau (24401, 24411)
+  14811: IGNORE_DEF_VARIANTE_B, // Moonlight Dance — Lariel, eau (24901, 24911)
+};
+
 // Le champ `coups` du corpus vaut 1 alors que le texte propre au sort en
 // annonce quatre. Ce n'est pas une plage : pas de commande utilisateur.
 const COUPS_FIXES_CORRIGES: Record<string, number> = {
@@ -2899,18 +2971,26 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     ...(analyseFixeAdditionnelle?.variables ?? []),
     ...(sequenceDeCoups ?? []).flatMap((g) => g.variables),
   ]));
+  // `coups` vaut `null` sur quelques fiches : un sort qui inflige des
+  // dégâts en frappe au moins une fois. Un sort à coups VARIABLES connu
+  // retombe sur son minimum — jamais une surestimation par défaut, comme
+  // partout ailleurs dans ce module — SAUF `defaut` explicitement curé
+  // (Julie : voir `COUPS_VARIABLES_CONNUS`).
+  const hits = coupsVariables
+    ? coupsVariables.defaut ?? coupsVariables.min
+    : COUPS_FIXES_CORRIGES[c.nom] ?? (c.coups && c.coups > 0 ? c.coups : 1);
+  // Les rangs curés ne valent que pour le nombre de coups qu'ils supposent :
+  // des données régénérées qui en annonceraient un autre (ou une plage) font
+  // refuser le sort, avec sa raison, plutôt qu'appliquer des rangs faux.
+  const ignoreDefAPartirDuCoup = IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID[c.com2usId];
+  if (ignoreDefAPartirDuCoup && (coupsVariables || hits !== ignoreDefAPartirDuCoup.coups)) {
+    return { ...entete, raison: 'Le nombre de coups ne correspond plus à la règle d’ignore DEF curée pour ce sort.' };
+  }
   return {
     ...entete,
     icone: c.icone,
     formule: brut,
-    // `coups` vaut `null` sur quelques fiches : un sort qui inflige des
-    // dégâts en frappe au moins une fois. Un sort à coups VARIABLES connu
-    // retombe sur son minimum — jamais une surestimation par défaut, comme
-    // partout ailleurs dans ce module — SAUF `defaut` explicitement curé
-    // (Julie : voir `COUPS_VARIABLES_CONNUS`).
-    hits: coupsVariables
-      ? coupsVariables.defaut ?? coupsVariables.min
-      : COUPS_FIXES_CORRIGES[c.nom] ?? (c.coups && c.coups > 0 ? c.coups : 1),
+    hits,
     hitsRange: coupsVariables,
     aoe: c.aoe,
     // ⚠️ `ignoreDefSelonVit` prévaut : SWARFARM tague Concentrated Stab d'un
@@ -2918,11 +2998,16 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     // de VIT » vivant uniquement dans son champ `note` en texte libre, jamais
     // lu ailleurs. Sans ce garde-fou, ce booléen aurait fait ignorer 100 % de
     // la DEF EN PERMANENCE, y compris face à une cible plus rapide.
+    // ⚠️ `ignoreDefAPartirDuCoup` prévaut de même : les Blade Dancers portent
+    // l'effet « Ignore DEF », mais leur condition (« If enemy ATB at 0 ») ne
+    // vaut qu'à partir d'un coup choisi — le calcul coup par coup s'en charge.
     ignoreDef:
       !ignoreDefSelonVit &&
+      !ignoreDefAPartirDuCoup &&
       !IGNORE_DEF_CONDITIONNEL_PAR_ID.has(c.com2usId) &&
       (c.effets.some((e) => e.nom === 'Ignore DEF') || IGNORE_DEF_COMPLET_CONNUS.has(c.nom)),
     ignoreDefSelonVit,
+    ignoreDefAPartirDuCoup,
     appliqueDefBreak: c.effets.some((e) => e.nom === 'Decrease DEF' && !e.surSoi),
     fixed,
     composanteFixeAdditionnelle: analyseFixeAdditionnelle
@@ -3617,6 +3702,14 @@ export interface DamageSetup {
   // Scénario explicite de poses réussies entre les coups. Absent/inactif =
   // ancien comportement, aucune réussite implicite.
   scenariosEffetsEntreCoups?: Record<number, ScenarioEffetsEntreCoups>;
+  // Rang du PREMIER coup qui ignore la DEF, choisi pour un sort à
+  // `ignoreDefAPartirDuCoup` (les Blade Dancers), clé = `skillCom2usId` DU
+  // SORT ; les coups suivants ignorent aussi. `null` = aucun coup n'ignore,
+  // permis seulement sans coup inconditionnel. Clé absente = le défaut du sort
+  // (son seul coup inconditionnel, ou aucun), jamais une réussite supposée ;
+  // une valeur hors des rangs permis retombe sur ce même défaut. Lu par
+  // `resolvedPremierCoupIgnoreDef`, sans effet sur tout autre sort.
+  premierCoupIgnoreDefParSort?: Record<number, number | null>;
   // PV ACTUELS (%) juste avant le déclenchement d'un sacrifice (Calculated
   // Sacrifice — `bonusSacrifice`), clé = `skillCom2usId` DU SORT. Absent =
   // 100 (premier tour) — voir `resolvedPvActuelsAvantSacrificePct`, SEUL
@@ -3785,6 +3878,28 @@ export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): n
 export function cibleDegatsRetenue(profile: SkillDamageProfile, setup: DamageSetup): CibleDegats {
   const capable = profile.sequenceDeCoups?.some((g) => g.zone) ?? false;
   return capable && setup.cibleDegatsParSort?.[profile.skillCom2usId] === 'secondaire' ? 'secondaire' : 'visee';
+}
+
+/**
+ * Rang du premier coup qui ignore la DEF RÉELLEMENT retenu pour `profile`
+ * (les coups suivants l'ignorent aussi), ou `null` quand aucun coup ne
+ * l'ignore par ce mécanisme : sort sans `ignoreDefAPartirDuCoup`, ou variante
+ * sans coup inconditionnel réglée sur « aucun ». Le choix de
+ * `setup.premierCoupIgnoreDefParSort` s'il est permis, sinon le défaut du
+ * sort : son coup inconditionnel, ou aucun — jamais une ATB supposée à 0.
+ *
+ * ⚠️ Une valeur hors des rangs permis (recette éditée à la main, sort d'un
+ * autre monstre, données régénérées) retombe sur ce défaut, comme
+ * `resolvedHits` borne la sienne : jamais un coup 1 qui ignore, jamais
+ * « aucun » quand un coup est inconditionnel.
+ */
+export function resolvedPremierCoupIgnoreDef(profile: SkillDamageProfile, setup: DamageSetup): number | null {
+  const regle = profile.ignoreDefAPartirDuCoup;
+  if (!regle) return null;
+  const choisi = setup.premierCoupIgnoreDefParSort?.[profile.skillCom2usId];
+  if (choisi === null && regle.dernierCoupInconditionnel === null) return null;
+  if (typeof choisi === 'number' && regle.rangsPermis.includes(choisi)) return choisi;
+  return regle.dernierCoupInconditionnel;
 }
 
 /**
@@ -4329,28 +4444,50 @@ export function computeSkillDamageDetail(
     return { total: totalSequence, additionnel: additionnelSequence, fixeProtege: fixeProtegeSequence, pvRestantsPct: pvSequence };
   }
 
+  // Découpe COUP PAR COUP, en tronçons de coups consécutifs qui lisent le même
+  // réglage et le même état de DEF : un tronçon par coup sous un scénario de
+  // poses entre les coups (chaque coup lit l'état qui le précède), sinon au plus
+  // deux pour un ignore DEF à partir d'un rang (Blade Dancers) — les coups
+  // avant le rang, mitigés par la DEF, puis ceux à partir de lui, qui
+  // l'ignorent. Le coup 1 n'ignore jamais par ce mécanisme : le rang retenu
+  // vaut au moins 2 (`rangsPermis`). Aucune ATB n'est déduite.
   const setupsScenario = setupsAvantChaqueCoup(profile, setup, monsterWide);
-  if (setupsScenario) {
-    const profilUnCoup: SkillDamageProfile = {
-      ...profile,
-      hits: 1,
-      hitsRange: undefined,
-      effetsEntreCoups: undefined,
-    };
+  const rangIgnoreDef = resolvedPremierCoupIgnoreDef(profile, setup);
+  if (setupsScenario || rangIgnoreDef !== null) {
+    const coups = setupsScenario ? setupsScenario.length : resolvedHits(profile, setup);
+    const coupInconditionnel = profile.ignoreDefAPartirDuCoup?.dernierCoupInconditionnel ?? null;
+    const ignoreAuCoup = (n: number) =>
+      profile.ignoreDef || n === coupInconditionnel || (rangIgnoreDef !== null && n >= rangIgnoreDef);
     let totalScenario = 0;
     let additionnelScenario = 0;
     let fixeProtegeScenario = 0;
     let pvScenario = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
-    for (let i = 0; i < setupsScenario.length; i++) {
-      const artefactsCoup =
-        i === 0 || artefacts.cdPointsPremiereAttaque === 0
+    for (let premier = 1; premier <= coups; ) {
+      let dernier = premier;
+      if (!setupsScenario) {
+        while (dernier < coups && ignoreAuCoup(dernier + 1) === ignoreAuCoup(premier)) dernier++;
+      }
+      const profilTroncon: SkillDamageProfile = {
+        ...profile,
+        hits: dernier - premier + 1,
+        hitsRange: undefined,
+        effetsEntreCoups: undefined,
+        ignoreDefAPartirDuCoup: undefined,
+        ignoreDef: ignoreAuCoup(premier),
+      };
+      // 411 (« Dgts CRIT 1re attaque ») : le premier tronçon seulement, dont
+      // l'appel imbriqué ne l'applique qu'au premier coup — celui du sort.
+      const artefactsTroncon =
+        premier === 1 || artefacts.cdPointsPremiereAttaque === 0
           ? artefacts
           : { ...artefacts, cdPointsPremiereAttaque: 0 };
-      const detail = computeSkillDamageDetail(profilUnCoup, stats, setupsScenario[i], propres, element, pvScenario, artefactsCoup, monsterWide, reliqueDmgPct);
+      const setupTroncon = setupsScenario ? setupsScenario[premier - 1] : setup;
+      const detail = computeSkillDamageDetail(profilTroncon, stats, setupTroncon, propres, element, pvScenario, artefactsTroncon, monsterWide, reliqueDmgPct);
       totalScenario += detail.total;
       additionnelScenario += detail.additionnel;
       fixeProtegeScenario += detail.fixeProtege;
       pvScenario = detail.pvRestantsPct;
+      premier = dernier + 1;
     }
     return { total: totalScenario, additionnel: additionnelScenario, fixeProtege: fixeProtegeScenario, pvRestantsPct: pvScenario };
   }

@@ -18,9 +18,11 @@
 // Source des valeurs : cadrage degats-et-aura, A.2 ter (utilisateur,
 // 2026-09-23 puis 2026-09-25) — cinq autres monstres à trois sets, donc 15.
 //
-// Lot 7b : le RAPPEL au changement de monstre (`doitRappeler`, en fin de
-// fichier) — une décision de l'écran, prise ici pour être testée sans React ;
-// le composant ne fait que brancher son résultat.
+// Lot 7b : le RAPPEL au changement de monstre (`doitRappeler`) et
+// l'OUVERTURE GUIDÉE vers l'interrupteur des auras RES/PRE
+// (`guideVersResPre`), en fin de fichier — deux décisions de l'écran, prises
+// ici pour être testées sans React ; les composants ne font que brancher
+// leur résultat.
 
 import { STAT_DE_L_AURA, type DamageSetup, type SetAura } from './damage';
 import { RUNE_SETS } from '../types';
@@ -206,4 +208,46 @@ export function doitRappeler(voie: VoieChangementMonstre, avant: MonstreOptimise
   if (voie !== 'liste') return false;
   if (sommeAurasExternes(apres.aurasExternes) === 0) return false;
   return avant.espece !== apres.espece || avant.exemplaire !== apres.exemplaire;
+}
+
+// ── Ouverture guidée vers l'interrupteur des auras RES/PRE (degats-et-aura 7b)
+
+/**
+ * Les sets d'aura dont l'effet passe par une CONDITION — Accuracy (PRE) et
+ * Tolerance (RES) —, ceux que gouverne l'interrupteur `compterAurasResPre`.
+ * DÉRIVÉS de `STAT_DE_L_AURA`, jamais recopiés : les auras PV/ATQ/DEF
+ * n'entrent dans aucune condition, aucun réglage ne leur est associé.
+ */
+export const SETS_AURA_RES_PRE: readonly SetAura[] = SETS_AURA.filter(
+  (s) => STAT_DE_L_AURA[s] === 'res' || STAT_DE_L_AURA[s] === 'acc'
+);
+
+/** Les deux sources d'un set d'aura à l'écran, comparées avant et après un geste. */
+export interface SetsAuraDeLEcran {
+  /** Les auras externes (« État de mon monstre »). */
+  aurasExternes?: readonly AuraExterne[];
+  /** Le set recherché (`requirement.sets`, une entrée par activation). */
+  setsRecherches?: readonly string[];
+}
+
+/**
+ * Faut-il guider vers l'interrupteur `compterAurasResPre` ? Vrai quand
+ * Accuracy ou Tolerance vient d'APPARAÎTRE dans l'une des deux sources —
+ * ajouté aux auras externes (nouvelle ligne, ou ligne passée à ce set) ou
+ * choisi comme set recherché —, chaque source jugée pour elle seule : choisir
+ * un set recherché ne touche pas aux auras externes, et guide quand même.
+ *
+ * Faux pour Fight, Determination et Enhance (aucun réglage à montrer), pour
+ * un nombre changé sur une ligne déjà présente, une seconde activation du
+ * même set et un retrait. L'écran ne l'appelle que sur un geste de
+ * l'utilisateur, jamais à l'import ni au changement de monstre.
+ */
+export function guideVersResPre(avant: SetsAuraDeLEcran, apres: SetsAuraDeLEcran): boolean {
+  const apparu = (av: readonly string[], ap: readonly string[]) =>
+    SETS_AURA_RES_PRE.some((s) => ap.includes(s) && !av.includes(s));
+  const setsDe = (entrees: readonly AuraExterne[] | undefined) => (entrees ?? []).map((e) => e.set);
+  return (
+    apparu(setsDe(avant.aurasExternes), setsDe(apres.aurasExternes)) ||
+    apparu(avant.setsRecherches ?? [], apres.setsRecherches ?? [])
+  );
 }

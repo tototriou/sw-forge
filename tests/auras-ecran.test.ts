@@ -12,17 +12,21 @@ import { egal, ok, titre } from './outils';
 import { DEFAULT_DAMAGE_SETUP, STAT_DE_L_AURA, type SetAura } from '../src/lib/damage';
 import { damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { RUNE_SETS } from '../src/types';
 import {
   DUREE_ATTENTION_MS,
   PLAFOND_AURAS_EXTERNES,
   SETS_AURA,
+  SETS_AURA_RES_PRE,
   ajouterAura,
   changerNombreAura,
   changerSetAura,
   doitRappeler,
   echoAurasExternes,
   erreurAurasExternes,
+  guideVersResPre,
   libelleNombreAura,
+  nomSetAura,
   nombreMaxDeLaLigne,
   peutAjouterAura,
   retirerAura,
@@ -249,8 +253,10 @@ export function testAurasEcranInterrupteur() {
   const avances = sansCommentaires.slice(sansCommentaires.indexOf('const reglagesAvancesInner = '), sansCommentaires.indexOf('const reglagesAvancesTitre = '));
   const libelle = 'Compter les effets d\'auras Tolerance et Précision dans les conditions';
   // La rangée entière : de son cadre jusqu'à la fermeture qui suit l'interrupteur.
+  // Depuis 7b, la rangée porte un cadre intérieur — la cible de l'ouverture
+  // guidée (voir `testAurasEcranGuidage`) — autour du libellé et de l'interrupteur.
   const rangee = avances.match(
-    /<div className="flex items-center justify-between gap-2 py-3 last:pb-0">\s*<div className="flex items-center gap-1\.5">\s*<span className="text-\[11\.5px\] text-ink-dim">\s*Compter les effets[\s\S]*?<Interrupteur[\s\S]*?\/>\s*<\/div>/,
+    /<div className="py-2 last:pb-0">\s*<div\s+ref=\{[^}]*\}\s+className=\{`[^`]*`\}\s*>\s*<div className="flex items-center gap-1\.5">\s*<span className="text-\[11\.5px\] text-ink-dim">\s*Compter les effets[\s\S]*?<Interrupteur[\s\S]*?\/>\s*<\/div>\s*<\/div>/,
   )?.[0] ?? '';
   ok(new RegExp(`<span className="text-\\[11\\.5px\\] text-ink-dim">\\s*${libelle}\\s*</span>`).test(rangee),
     'Réglages avancés : une rangée au libellé exact de l’utilisateur');
@@ -315,13 +321,15 @@ export function testAurasEcranRappel() {
   const hook = lireSansCommentaires('src/hooks/useOptimizerState.ts');
   const reset = entre(hook, 'function resetSearch(', 'function effacerResultats(');
   ok(reset.length > 0 && !/doitRappeler|RappelAuras|rappelAuras/.test(reset), 'source : resetSearch ne rappelle rien');
-  ok(!/doitRappeler|RappelAuras|rappelAuras/.test(lireSansCommentaires('src/App.tsx')), 'source : l’import de compte (App.tsx) ne rappelle rien');
+  const app = lireSansCommentaires('src/App.tsx');
+  ok(app.includes("optimizer.resetSearch('compte')") && !/doitRappeler|RappelAuras|rappelAuras/.test(app),
+    'source : l’import de compte (App.tsx, `resetSearch(\'compte\')`) ne rappelle rien');
   ok(/setTimeout\(\(\) => setRappelAuras\(null\), DUREE_ATTENTION_MS\)/.test(ecran), 'source : effacé par une minuterie de DUREE_ATTENTION_MS');
   ok(/<EtatMonstre[\s\S]*?rappelAuras=\{rappelAuras !== null\}[\s\S]*?\/>/.test(ecran), 'source : l’état du rappel est passé à « État de mon monstre »');
 
   // Rendu : la boîte des auras recolorée au token d'attention, message à place réservée.
   const carte = lireSansCommentaires('src/components/outils/EtatMonstre.tsx');
-  ok(carte.includes('<AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} />'), 'rendu : la carte transmet le rappel à la saisie des auras');
+  ok(/<AurasExternesSaisie setup=\{setup\} maj=\{maj\} rappel=\{rappelAuras\}[^>]*\/>/.test(carte), 'rendu : la carte transmet le rappel à la saisie des auras');
   const saisie = carte.slice(Math.max(0, carte.indexOf('function AurasExternesSaisie(')));
   ok(saisie.includes("rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'"),
     'rendu : la boîte passe au token d’attention (warn / warn-soft) à la place de ses couleurs — un seul contour de 1 px');
@@ -330,4 +338,95 @@ export function testAurasEcranRappel() {
   const message = saisie.match(/<div className="col-start-1 row-start-1 self-center" aria-live="polite">\s*<p\s+className=\{`text-xs font-semibold text-warn \$\{\s*rappel \? '[^']*' : 'invisible'\s*\}`\}\s*>\s*Pense à vérifier les sets d&apos;aura externes\.\s*<\/p>/);
   ok(message !== null, 'rendu : « Pense à vérifier les sets d’aura externes. » dans la MÊME case, toujours rendu, invisible hors rappel (place réservée)');
   ok(!/\{rappel &&/.test(saisie), 'rendu : rien n’est monté sous condition du rappel — rien ne bouge quand il paraît');
+}
+
+export function testAurasEcranGuidage() {
+  titre('Auras à l’écran · ouverture guidée vers l’interrupteur : Accuracy ou Tolerance ajouté, jamais Fight / Determination / Enhance');
+
+  // Lot 7b — la décision est pure (`guideVersResPre`), sur les vraies écritures.
+  egal([...SETS_AURA_RES_PRE], ['accuracy', 'tolerance'], 'les sets qui guident sont DÉRIVÉS de STAT_DE_L_AURA : Précision et RES seulement');
+  const vide: AuraExterne[] = [];
+  ok(guideVersResPre({ aurasExternes: vide }, { aurasExternes: [a('accuracy', 1)] }), 'Accuracy ajouté aux auras externes : guide');
+  ok(guideVersResPre({ aurasExternes: vide }, { aurasExternes: [a('tolerance', 1)] }), 'Tolerance ajouté aux auras externes : guide');
+  const fight = [a('fight', 2)];
+  ok(guideVersResPre({ aurasExternes: fight }, { aurasExternes: changerSetAura(fight, 'fight', 'tolerance') }),
+    'ligne passée de Fight à Tolerance (menu de la ligne) : guide');
+  const trois = [a('fight', 1), a('determination', 1), a('enhance', 1)];
+  ok(guideVersResPre({ aurasExternes: trois }, { aurasExternes: ajouterAura(trois) }),
+    '« Ajouter un set d’aura » quand Accuracy est le premier set libre : guide');
+  ok(!guideVersResPre({ aurasExternes: vide }, { aurasExternes: ajouterAura(vide) }), '« Ajouter un set d’aura » sur une liste vide (ligne Fight) : rien');
+  for (const set of ['fight', 'determination', 'enhance'] as const) {
+    ok(!guideVersResPre({ aurasExternes: vide }, { aurasExternes: [a(set, 1)] }), `${nomSetAura(set)} ajouté aux auras externes : rien (aucun réglage associé)`);
+  }
+  ok(guideVersResPre({ aurasExternes: [a('accuracy', 1)] }, { aurasExternes: [a('accuracy', 1), a('tolerance', 1)] }),
+    'Tolerance ajouté à côté d’un Accuracy déjà présent : guide');
+  ok(!guideVersResPre({ aurasExternes: [a('accuracy', 1)] }, { aurasExternes: changerNombreAura([a('accuracy', 1)], 'accuracy', 3) }),
+    'nombre changé sur une ligne Accuracy déjà présente : rien');
+  ok(!guideVersResPre({ aurasExternes: [a('tolerance', 2)] }, { aurasExternes: retirerAura([a('tolerance', 2)], 'tolerance') }), 'ligne Tolerance retirée : rien');
+  ok(!guideVersResPre({ aurasExternes: [a('accuracy', 1)] }, { aurasExternes: changerSetAura([a('accuracy', 1)], 'accuracy', 'enhance') }),
+    'ligne passée d’Accuracy à Enhance : rien');
+  ok(guideVersResPre({ setsRecherches: ['violent'] }, { setsRecherches: ['violent', 'accuracy'] }), 'Accuracy choisi comme set recherché : guide');
+  ok(guideVersResPre({ setsRecherches: [] }, { setsRecherches: ['tolerance'] }), 'Tolerance choisi comme set recherché : guide');
+  ok(!guideVersResPre({ setsRecherches: ['accuracy'] }, { setsRecherches: ['accuracy', 'accuracy'] }), 'seconde activation d’Accuracy : rien');
+  ok(!guideVersResPre({ setsRecherches: ['tolerance', 'violent'] }, { setsRecherches: ['violent'] }), 'Tolerance retiré du set recherché : rien');
+  egal(RUNE_SETS.filter((s) => guideVersResPre({ setsRecherches: [] }, { setsRecherches: [s.key] })).map((s) => s.key).sort(), ['accuracy', 'tolerance'],
+    'parmi TOUS les sets du jeu choisis comme set recherché, seuls Accuracy et Tolerance guident');
+  ok(guideVersResPre({ aurasExternes: [a('accuracy', 2)], setsRecherches: [] }, { aurasExternes: [a('accuracy', 2)], setsRecherches: ['accuracy'] }),
+    'Accuracy déjà externe, puis choisi comme set recherché : guide (chaque source jugée pour elle seule)');
+
+  // Déclencheurs : les deux gestes de l'utilisateur, et eux seuls.
+  const ecran = lireSansCommentaires('src/components/outils/OptimizerSection.tsx');
+  const carte = lireSansCommentaires('src/components/outils/EtatMonstre.tsx');
+  const ecrire = entre(carte, 'const ecrire = (suivantes: AuraExterne[]) => {', '};');
+  ok(/maj\(\{ setsAuraExternes: suivantes \}\);\s*if \(guideVersResPre\(\{ aurasExternes: entrees \}, \{ aurasExternes: suivantes \}\)\) onGuiderResPre\(\);/.test(ecrire),
+    'source : chaque écriture des auras externes (`ecrire`, point de passage de tous les gestes de la boîte) guide quand Accuracy ou Tolerance y apparaît');
+  egal(carte.match(/guideVersResPre\(/g)?.length ?? 0, 1, 'source : la carte ne décide le guidage qu’à cet endroit');
+  ok(carte.includes('onGuiderResPre={onGuiderResPre}'), 'source : la carte transmet le guidage à la saisie des auras');
+  ok(/<EtatMonstre[\s\S]*?onGuiderResPre=\{guiderVersResPre\}[\s\S]*?\/>/.test(ecran), 'source : l’écran fournit son guidage à « État de mon monstre »');
+  const picker = entre(ecran, '<SetComboPicker', '/>');
+  ok(/if \(guideVersResPre\(\{ setsRecherches: comboSets \}, \{ setsRecherches: next \}\)\) guiderVersResPre\(\);/.test(picker),
+    'source : choisir un set recherché guide quand Accuracy ou Tolerance y apparaît, sans toucher aux auras externes');
+  egal(ecran.match(/guideVersResPre\(/g)?.length ?? 0, 1, 'source : l’écran ne décide le guidage qu’au choix du set recherché');
+  egal(ecran.match(/(?<!function )guiderVersResPre\(\)/g)?.length ?? 0, 1, 'source : guiderVersResPre n’est appelé qu’au choix du set recherché (la carte le reçoit en prop)');
+  for (const [nom, corps] of [
+    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', 'const candidatesSource =')],
+    ['pickSpecies (bestiaire)', entre(ecran, 'function pickSpecies(', 'const zoneDRef = useRef')],
+    ['le geste de la zone C (changement de monstre)', entre(ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = ('))), 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"')],
+  ] as const) {
+    ok(corps.length > 0 && !/guiderVersResPre|guideVersResPre|setShowAdvanced\(true\)|onOuvrirMenu|setAttentionResPre/.test(corps), `source : ${nom} ne guide pas`);
+  }
+  const app = lireSansCommentaires('src/App.tsx');
+  ok(app.includes("optimizer.resetSearch('compte')") && !/guiderVersResPre|guideVersResPre|onGuiderResPre/.test(app), 'source : l’import de compte (App.tsx) ne guide pas');
+
+  // Deux formes, décidées par SOUS_LG.
+  ok(ecran.includes('const sousLg = useMediaQuery(SOUS_LG);'), 'source : le format se décide par SOUS_LG, comme le panneau « Options » (MobileSheet)');
+  const guider = entre(ecran, 'function guiderVersResPre() {', '\n  }\n');
+  ok(/if \(sousLg\) \{[\s\S]*?onOuvrirMenu\(\);[\s\S]*?return;\s*\}/.test(guider),
+    'au doigt : le panneau « Options de recherche » s’ouvre par-dessus la carte, demandé à App.tsx');
+  ok(guider.includes('const ancre = avancesRef.current;') && /defilerPuis\(ancre, \(\) => \{\s*setShowAdvanced\(true\);/.test(guider),
+    'à la souris : défiler vers l’ancre (`avancesRef`), PUIS ouvrir le flottant — l’ouverture est la suite du défilement');
+  ok(guider.indexOf('defilerPuis(ancre') >= 0 && guider.indexOf('setShowAdvanced(true)') > guider.indexOf('defilerPuis(ancre'), '… jamais l’ouverture avant le défilement');
+  const defiler = entre(ecran, 'function defilerPuis(', 'function guiderVersResPre() {');
+  ok(defiler.includes("el.scrollIntoView({ behavior: 'smooth', block: 'center' });") && /addEventListener\('scrollend', fin\)/.test(defiler)
+    && /setTimeout\(fin, 1000\)/.test(defiler) && /const fin = \(\) => \{\s*annuler\(\);\s*suite\(\);/.test(defiler),
+  '… même défilement que « Set de runes recherché », la suite à sa fin (`scrollend`, repli d’une seconde)');
+  ok(/setAttentionResPre\(\(n\) => \(n \?\? 0\) \+ 1\)/.test(guider), '… puis le surlignage, par un jeton');
+  ok(/setTimeout\(\(\) => setAttentionResPre\(null\), DUREE_ATTENTION_MS\)/.test(ecran), 'le surlignage s’efface après DUREE_ATTENTION_MS (3 s)');
+  ok(/sousLg\s*\?\s*menuOuvert\s*\?\s*interrupteurResPrePanneauRef\.current\s*:\s*null\s*:\s*showAdvanced\s*\?\s*interrupteurResPreFlottantRef\.current\s*:\s*null/.test(ecran)
+    && ecran.includes("el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })"),
+  'puis l’interrupteur est amené à l’écran dans sa surface ouverte : centré dans le panneau, au plus près sous le flottant');
+
+  // La cible : cadre permanent au token d'attention, une ref par surface, un seul contenu.
+  const avances = entre(ecran, 'const reglagesAvancesInner = ', 'const reglagesAvancesTitre = ');
+  ok(/ref=\{dansPanneau \? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef\}/.test(avances),
+    'cible : une ref par surface (flottant du bureau, panneau au doigt)');
+  ok(/className=\{`-mx-1 flex items-center justify-between gap-2 rounded-md border [^`]*\$\{\s*attentionResPre !== null \? 'border-warn bg-warn-soft' : 'border-transparent'\s*\}`\}/.test(avances),
+    'cible : cadre PERMANENT (bord transparent hors guidage), au même token que le rappel — rien ne bouge quand il se colore');
+  egal(ecran.match(/const reglagesAvancesInner = /g)?.length ?? 0, 1, 'un seul `reglagesAvancesInner` : l’interrupteur reste rendu, sans condition, dans les deux surfaces');
+
+  // La prop d'ouverture du panneau, du shell à l'écran.
+  ok(/onOuvrirMenu: \(\) => void;/.test(ecran), 'prop : OptimizerSection reçoit onOuvrirMenu');
+  const outils = lireSansCommentaires('src/pages/OutilsPage.tsx');
+  ok(/onOuvrirMenu: \(\) => void;/.test(outils) && outils.includes('onOuvrirMenu={onOuvrirMenu}'), 'prop : OutilsPage la relaie');
+  ok(app.includes('onOuvrirMenu={() => setMenuPageOuvert(true)}'), 'prop : App.tsx ouvre le panneau par l’état qui le pilote (`menuPageOuvert`)');
 }

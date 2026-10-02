@@ -135,7 +135,7 @@ import {
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
-import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes } from '../../lib/aurasExternes';
+import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
 import {
   ArtifactMainChoice,
   OptimizerState,
@@ -148,7 +148,7 @@ import {
 } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
-import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
+import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import IconeInterdite from '../IconeInterdite';
 import MonsterAvatar from '../MonsterAvatar';
@@ -222,6 +222,11 @@ interface Props {
   // et Exclusion de runes y vivent au doigt ; en ligne (cartes) au bureau.
   menuOuvert: boolean;
   onFermerMenu: () => void;
+  // Ouvre ce même panneau depuis l'écran — l'ouverture guidée au doigt vers
+  // l'interrupteur des auras RES/PRE (degats-et-aura 7b). Le panneau reste
+  // piloté par App.tsx (son bouton vit dans la barre de nav) : l'écran ne
+  // peut que le DEMANDER.
+  onOuvrirMenu: () => void;
 }
 
 // ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
@@ -413,7 +418,7 @@ const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
 // vue sur le rendu du lot 5c quater).
 const LARGEUR_LIBELLE_LISTE = 'w-28';
 
-export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
+export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -1902,6 +1907,105 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [showAdvanced, setShowAdvanced]);
+
+  // ── Ouverture guidée vers l'interrupteur des auras RES/PRE (degats-et-aura 7b)
+  // Ajouter Accuracy ou Tolerance aux auras externes (« État de mon
+  // monstre ») ou le choisir comme set recherché guide vers « Compter les
+  // effets d'auras Tolerance et Précision dans les conditions ». La décision
+  // est `guideVersResPre` (aurasExternes.ts), prise au geste, jamais à
+  // l'import ni au changement de monstre.
+  // ⚠️ **Deux formes, une par format**, choisies par `SOUS_LG` comme le
+  // panneau lui-même (`MobileSheet`) et la carte du bureau (`hidden lg:block`) :
+  // - à la souris, la page défile jusqu'à l'ANCRE du flottant (`avancesRef`),
+  //   PUIS le flottant s'ouvre : `FlottantAuto` choisit son côté en mesurant
+  //   l'ancre à l'ouverture, et ouvert pendant le défilement il mesurerait une
+  //   position périmée. Le défilement peut déplacer la carte cliquée (accepté
+  //   par l'utilisateur, comme pour « Set de runes recherché ») ; le flottant
+  //   se referme au clic suivant hors de lui (effet ci-dessus) ;
+  // - au doigt, le panneau « Options de recherche » s'ouvre par-dessus la
+  //   carte (demandé à App.tsx par `onOuvrirMenu`), puis son contenu défile
+  //   jusqu'à l'interrupteur (effet plus bas).
+  // L'interrupteur est surligné `DUREE_ATTENTION_MS` (3 s), au même token que
+  // le rappel ; il reste toujours rendu dans sa surface (`reglagesAvancesInner`).
+  const sousLg = useMediaQuery(SOUS_LG);
+  const [attentionResPre, setAttentionResPre] = useState<number | null>(null);
+  useEffect(() => {
+    if (attentionResPre === null) return;
+    const t = setTimeout(() => setAttentionResPre(null), DUREE_ATTENTION_MS);
+    return () => clearTimeout(t);
+  }, [attentionResPre]);
+  // Une ref par surface : les deux exemplaires de `reglagesAvancesInner`
+  // peuvent être montés ensemble (le flottant reste monté, masqué, sous `lg`).
+  const interrupteurResPreFlottantRef = useRef<HTMLDivElement>(null);
+  const interrupteurResPrePanneauRef = useRef<HTMLDivElement>(null);
+  // Le défilement du bureau en attente de sa fin : annulé par un nouveau
+  // guidage ou au démontage, pour ne jamais ouvrir un flottant périmé.
+  const annulerDefilementGuide = useRef<(() => void) | null>(null);
+  useEffect(() => () => annulerDefilementGuide.current?.(), []);
+
+  // Défile jusqu'à `el` (patron de « Set de runes recherché » : `smooth`,
+  // `center`), PUIS appelle `suite` — à la fin du défilement (`scrollend`),
+  // ou au bout d'une seconde si l'événement n'arrive pas (navigateur qui ne le
+  // connaît pas). Déjà entièrement visible : rien à défiler, tout de suite.
+  function defilerPuis(el: HTMLElement, suite: () => void) {
+    annulerDefilementGuide.current?.();
+    const r = el.getBoundingClientRect();
+    if (r.top >= 0 && r.bottom <= window.innerHeight) {
+      suite();
+      return;
+    }
+    let filet = 0;
+    const annuler = () => {
+      document.removeEventListener('scrollend', fin);
+      window.clearTimeout(filet);
+      annulerDefilementGuide.current = null;
+    };
+    const fin = () => {
+      annuler();
+      suite();
+    };
+    document.addEventListener('scrollend', fin);
+    filet = window.setTimeout(fin, 1000);
+    annulerDefilementGuide.current = annuler;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function guiderVersResPre() {
+    if (sousLg) {
+      annulerDefilementGuide.current?.();
+      onOuvrirMenu();
+      setAttentionResPre((n) => (n ?? 0) + 1);
+      return;
+    }
+    const ancre = avancesRef.current;
+    if (!ancre) return;
+    defilerPuis(ancre, () => {
+      setShowAdvanced(true);
+      setAttentionResPre((n) => (n ?? 0) + 1);
+    });
+  }
+
+  // Puis l'interrupteur lui-même, une fois sa surface ouverte : au doigt, il
+  // est le DERNIER réglage du panneau, sous « Exclusion de runes » ; au
+  // bureau, le bas du flottant peut dépasser de l'écran (`nearest` : le
+  // moindre défilement qui le montre). `requestAnimationFrame` : le flottant
+  // choisit sa place dans un effet de mise en page, à laisser finir avant de
+  // mesurer.
+  useEffect(() => {
+    if (attentionResPre === null) return;
+    const el = sousLg
+      ? menuOuvert
+        ? interrupteurResPrePanneauRef.current
+        : null
+      : showAdvanced
+        ? interrupteurResPreFlottantRef.current
+        : null;
+    if (!el) return;
+    const image = requestAnimationFrame(() =>
+      el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })
+    );
+    return () => cancelAnimationFrame(image);
+  }, [attentionResPre, sousLg, menuOuvert, showAdvanced]);
 
   // « Exclusion de runes » (bureau) : même patron, mêmes raisons — repliée par
   // défaut (demande explicite), donc dépliée hors flux pour ne pousser ni
@@ -3544,6 +3648,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           onChange={(next) => {
             setComboSets(next);
             if (next.length > 0) setSetPickerInvalid(false);
+            // Ouverture guidée (degats-et-aura 7b) : Accuracy ou Tolerance
+            // CHOISI comme set recherché guide vers l'interrupteur des auras
+            // RES/PRE, sans toucher aux auras externes. Au geste seulement :
+            // l'import d'une recette pose `comboSets` sans passer par ici.
+            if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
           }}
         />
         {setPickerInvalid && (
@@ -4058,6 +4167,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           etroit={etroit}
           artefacts={artefactsDegats}
           rappelAuras={rappelAuras !== null}
+          onGuiderResPre={guiderVersResPre}
         />
       </div>
 
@@ -4238,28 +4348,45 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 « Options » au doigt.
                 ⚠️ EN DERNIER : la rangée conditionnelle du dessus
                 (« Vérifier toutes… ») ne le décale qu'au geste d'une autre
-                carte, jamais sous le clic. */}
-            <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11.5px] text-ink-dim">
-                  Compter les effets d'auras Tolerance et Précision dans les conditions
-                </span>
-                <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
-                  Activé, chaque set <b className="text-ink">Tolerance</b> ou <b className="text-ink">Accuracy</b> ajoute
-                  8 points de RES ou de Précision aux <b className="text-ink">minimums et aux maximums</b> de ces deux
-                  conditions : ceux des autres monstres, saisis dans « État de mon monstre », et ceux que forment les
-                  runes de chaque build.
-                  <br />
-                  <br />
-                  Désactivé, ces deux conditions portent sur les statistiques sans aucune aura. Les dégâts et les PV
-                  effectifs comptent les auras dans les deux cas.
-                </HelpPopover>
+                carte, jamais sous le clic.
+                ⚠️ **Cible de l'ouverture guidée (degats-et-aura 7b)** : le
+                cadre intérieur porte le surlignage d'attention, au même token
+                que le rappel (`warn` / `warn-soft`). Il existe EN PERMANENCE,
+                transparent : se colorer ne bouge rien. Intérieur et non sur la
+                rangée elle-même, dont le trait du haut vient de `divide-y` :
+                un contour posé dessus en ferait deux superposés. `-mx-1` le
+                tient à 4 px du cadre de la boîte ; `px-[3px]` + 1 px de bord
+                gardent le libellé aligné sur ceux du dessus, et `py-2` +
+                `py-[3px]` + 1 px refont les 12 px de `py-3`. Une ref par
+                surface (flottant, panneau), pour y défiler. */}
+            <div className="py-2 last:pb-0">
+              <div
+                ref={dansPanneau ? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef}
+                className={`-mx-1 flex items-center justify-between gap-2 rounded-md border px-[3px] py-[3px] transition-colors duration-200 ${
+                  attentionResPre !== null ? 'border-warn bg-warn-soft' : 'border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11.5px] text-ink-dim">
+                    Compter les effets d'auras Tolerance et Précision dans les conditions
+                  </span>
+                  <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
+                    Activé, chaque set <b className="text-ink">Tolerance</b> ou <b className="text-ink">Accuracy</b> ajoute
+                    8 points de RES ou de Précision aux <b className="text-ink">minimums et aux maximums</b> de ces deux
+                    conditions : ceux des autres monstres, saisis dans « État de mon monstre », et ceux que forment les
+                    runes de chaque build.
+                    <br />
+                    <br />
+                    Désactivé, ces deux conditions portent sur les statistiques sans aucune aura. Les dégâts et les PV
+                    effectifs comptent les auras dans les deux cas.
+                  </HelpPopover>
+                </div>
+                <Interrupteur
+                  actif={compterAurasResPre}
+                  onChange={setCompterAurasResPre}
+                  aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
+                />
               </div>
-              <Interrupteur
-                actif={compterAurasResPre}
-                onChange={setCompterAurasResPre}
-                aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
-              />
             </div>
           </div>
           </div>

@@ -11,6 +11,7 @@ import {
   ajouterAura,
   changerNombreAura,
   changerSetAura,
+  guideVersResPre,
   libelleNombreAura,
   nombreMaxDeLaLigne,
   nomSetAura,
@@ -64,6 +65,7 @@ export default function EtatMonstre({
   etroit,
   artefacts,
   rappelAuras,
+  onGuiderResPre,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
@@ -73,6 +75,11 @@ export default function EtatMonstre({
   // 7b) : décidé et minuté par l'écran (`doitRappeler`, OptimizerSection.tsx,
   // au seul geste de la liste de travail) ; seul son rendu vit ici.
   rappelAuras: boolean;
+  // Ouverture guidée vers l'interrupteur des auras RES/PRE (degats-et-aura
+  // 7b) : appelée quand une écriture de l'utilisateur fait APPARAÎTRE
+  // Accuracy ou Tolerance (`guideVersResPre`) ; défilement, ouverture et
+  // surlignage appartiennent à l'écran, qui connaît les deux formats.
+  onGuiderResPre: () => void;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -205,7 +212,7 @@ export default function EtatMonstre({
           ⚠️ **En dernier dans la carte** : ajouter une ligne ne pousse que
           vers le BAS, rien de ce qui précède — ni le bouton d'ajout, fixe en
           tête de sa boîte (spec/shared/design.md, réponse n° 3). */}
-      <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} />
+      <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
     </div>
   );
 }
@@ -243,21 +250,30 @@ export default function EtatMonstre({
  * temps : la case a donc déjà la hauteur du plus haut des deux, et rien ne
  * bouge quand il paraît (spec/shared/design.md, réponse n° 1). Pendant les
  * 3 s, l'en-tête s'efface derrière lui.
+ *
+ * ⚠️ **L'ouverture guidée (7b) part d'`ecrire`, et de lui seul** : c'est le
+ * point de passage de chaque geste de cette boîte, jamais celui d'une recette
+ * importée (qui écrit `damageSetup` directement) — le guidage n'est donc
+ * jamais rejoué à l'import ni au changement de monstre.
  */
 function AurasExternesSaisie({
   setup,
   maj,
   rappel,
+  onGuiderResPre,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
   rappel: boolean;
+  onGuiderResPre: () => void;
 }) {
   const entrees = setup.setsAuraExternes ?? [];
   // Le set dont le champ du nombre est momentanément VIDE (affichage seul).
   const [ligneVide, setLigneVide] = useState<SetAura | null>(null);
   const ecrire = (suivantes: AuraExterne[]) => {
-    if (suivantes !== entrees) maj({ setsAuraExternes: suivantes });
+    if (suivantes === entrees) return;
+    maj({ setsAuraExternes: suivantes });
+    if (guideVersResPre({ aurasExternes: entrees }, { aurasExternes: suivantes })) onGuiderResPre();
   };
   const total = sommeAurasExternes(entrees);
   const ajoutPossible = peutAjouterAura(entrees);

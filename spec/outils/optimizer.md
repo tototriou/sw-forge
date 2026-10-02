@@ -926,7 +926,10 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
    grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
    même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
-   Compteur `N/6 runes`, sets qui ne rentrent plus grisés.
+   Compteur `N/6 runes`, sets qui ne rentrent plus grisés. Y choisir
+   **Accuracy** ou **Tolerance** guide vers l'interrupteur des auras RES/PRE
+   des réglages avancés, sans toucher aux auras externes (degats-et-aura 7b,
+   ouverture guidée : voir « État de mon monstre »).
 
    ⚠️ **L'Intangible ne figure PAS dans la grille.** C'est un **joker à une
    pièce** qui complète n'importe quel set : on ne le vise jamais pour
@@ -1239,6 +1242,46 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    le seul `onClick` d'un membre de la zone C — jamais dans `resetSearch`
    ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
 
+   **Ouverture guidée vers l'interrupteur des auras RES/PRE**
+   (degats-et-aura 7b) — ajouter **Accuracy** ou **Tolerance** aux auras
+   externes (nouvelle ligne, ou ligne passée à ce set), ou le choisir comme
+   **set recherché** (sans toucher aux auras externes), guide vers « Compter
+   les effets d'auras Tolerance et Précision dans les conditions » (voir
+   « Réglages avancés », point 9). Fight, Determination et Enhance n'ouvrent
+   rien : leurs auras n'entrent dans aucune condition, aucun réglage ne leur
+   est associé. Un nombre changé sur une ligne déjà présente, une seconde
+   activation du même set ou un retrait ne guident pas non plus ; le
+   guidage n'est jamais rejoué à l'import d'une recette ou d'un compte, ni
+   au changement de monstre. La décision est la fonction pure
+   `guideVersResPre` (`src/lib/aurasExternes.ts`), appelée au seul geste :
+   l'écriture des auras externes (`ecrire`, point de passage de tous les
+   contrôles de leur boîte) et le choix d'un set recherché. Deux formes,
+   une par format, choisies par `SOUS_LG` comme le panneau lui-même :
+   - **À la souris** — la page défile jusqu'à la carte « Réglages avancés »,
+     l'ancre du flottant (même défilement que « Set de runes recherché » :
+     doux, centré), **puis** le flottant s'ouvre : il choisit son côté en
+     mesurant l'ancre à l'ouverture, ouvert pendant le défilement il
+     mesurerait une position périmée. Ancre déjà entièrement visible : pas
+     de défilement, ouverture directe. Le défilement peut déplacer la carte
+     cliquée et le flottant se referme au clic suivant hors de lui — deux
+     effets acceptés par l'utilisateur. Si le bas du flottant dépasse de
+     l'écran, la page défile encore du strict nécessaire pour montrer
+     l'interrupteur.
+   - **Au doigt** — le panneau « Options de recherche » s'ouvre par-dessus
+     la carte ; il reste piloté par la barre de navigation, l'écran le
+     demande par la prop `onOuvrirMenu` (`App.tsx`, relayée par
+     `OutilsPage.tsx`). Son contenu défile jusqu'à l'interrupteur, dernier
+     réglage du panneau, sous « Exclusion de runes ».
+
+   Dans les deux cas, l'interrupteur est surligné **3 s**, au même token que
+   le rappel (contour `warn`, fond `warn-soft`). ⚠️ Il reste toujours rendu
+   dans sa surface (`reglagesAvancesInner`, commun aux deux formats) :
+   guider ne le monte jamais sous condition et ne le masque jamais ensuite.
+   Son cadre de surlignage existe en permanence, transparent hors guidage,
+   et se pose À L'INTÉRIEUR de la rangée, dont le trait du haut sépare les
+   réglages : posé sur la rangée elle-même, il ferait deux contours
+   superposés.
+
    ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
    atteignables sous ce seul objectif — alors qu'ils changent les
    statistiques du monstre, donc les **dégâts supplémentaires** que lui
@@ -1538,7 +1581,10 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      apparaîtrait avec la saisie d'une autre carte ne se retrouverait pas.
      Contenu commun aux deux formats (`reglagesAvancesInner`) : flottant au
      bureau, panneau « Options » au doigt. Fermés, ni l'un ni l'autre ne
-     montre rien ; « toujours visible » porte sur leur contenu.
+     montre rien ; « toujours visible » porte sur leur contenu. Ajouter
+     Accuracy ou Tolerance aux auras externes, ou le choisir comme set
+     recherché, ouvre la surface du format et surligne cet interrupteur 3 s
+     (degats-et-aura 7b, ouverture guidée : voir « État de mon monstre »).
 
    ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** —
    contrairement à ce que le lot 5c avait prévu : il vit dans le bloc

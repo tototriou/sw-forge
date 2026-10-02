@@ -26,6 +26,7 @@ import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testVoieDeLaFile } from './file-voie.test';
 import { testCompositionDePage } from './composition-page.test';
+import { testFileConfirmees } from './file-confirmees.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
@@ -261,6 +262,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCompteAffichable', testCompteAffichable],
   ['testVoieDeLaFile', testVoieDeLaFile],
   ['testCompositionDePage', testCompositionDePage],
+  ['testFileConfirmees', testFileConfirmees],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

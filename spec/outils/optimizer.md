@@ -1611,9 +1611,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     « Dégâts réels » (388 px à l'ordinateur, 458 px au téléphone) — pour que
     la grille et la pagination ne sautent pas quand la carte arrive. La file
     résout d'abord les builds qui rempliront ces places (les premiers non
-    résolus du classement, au plus une page à la fois), puis les K premiers.
-    Une page au-delà des vérifiés (au-delà des K premiers, après la
-    recherche) montre ses places et se résout quand on l'ouvre — au prix de
+    résolus du classement, au plus une page à la fois), puis l'avance de
+    fond, qui vise K combinaisons **confirmées** (6bis-b18, voir « Le choix
+    des artéfacts »). Une page au-delà des vérifiés (au-delà des K
+    confirmées, après la recherche) montre ses places et se résout quand on
+    l'ouvre — au prix de
     tous les builds non résolus classés avant elle, puisque le rang d'un
     vérifié dépend de tous ceux du dessus. Ni l'ordre de base, ni K, ni la
     résolution ne changent. Une seule fonction pure, `compositionDePage`
@@ -1621,8 +1623,8 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     vérifier, à partir du classement affiché et du cache publié de la file.
     Le compte garde sa règle (ci-dessus) ; une ligne sous l'en-tête dit
     combien la file doit encore vérifier (« N combinaison(s) en
-    vérification… » : le reste de la file, places en attente puis K
-    premiers), sa place réservée tant que la file tourne. Sans optimisation
+    vérification… » : le reste de la file, places en attente puis avance de
+    fond), sa place réservée tant que la file tourne. Sans optimisation
     d'artéfacts, pas de file : la page est la tranche du classement, comme
     avant.
     Un sélecteur **« Trier par »** re-trie **côté
@@ -1705,26 +1707,29 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     en `equipped`, le couple paire/relique en `recherche`, un build sans
     couple faisable étant rejeté. Il classe ensuite par `classementResolu`,
     le producteur d'`affichees`, avec l'effet unique de la relique retenue.
-    **Par défaut, il résout COMME LA FILE DE L'ÉCRAN** : les K premiers de
-    l'ordre de base et ses 20 lignes imprimées (sa « page »), choisis par
-    `prochainsATraiter`, par lots, jusqu'à ce que toutes les lignes imprimées
-    soient résolues ; les autres candidats restent dans l'ordre de base.
+    **Par défaut, il résout COMME LA FILE DE L'ÉCRAN** : l'ordre de base
+    jusqu'à K combinaisons confirmées (ou jusqu'au dernier build trouvé) et
+    ses 20 lignes imprimées (sa « page »), choisis par `prochainsATraiter`,
+    par lots, jusqu'à ce que toutes les lignes imprimées soient résolues ;
+    les autres candidats restent dans l'ordre de base.
     K vaut **300 en mode relique `recherche`, 100 sinon** : `kDeLaFile`
     (artifactQueue.ts), la fonction même de l'écran, lue sur le contexte
     relique de la recherche lancée (`params.relicContext`) —
-    degats-et-aura 6bis-b8.
+    degats-et-aura 6bis-b8 ; des confirmées, plus des rangs, depuis 6bis-b18.
     `--resoudre-tout` résout TOUS les candidats collectés. Décision
     utilisateur du 2026-10-01 (option 2), après mesure : avec des artéfacts
     « Libre » — le défaut de l'écran —, la résolution complète coûtait
     environ 20 fois la recherche (6,7 min pour 5 100 builds × 4 reliques).
     ⚠️ Comme celui de l'écran, ce classement n'est pas exhaustif : en mode
-    `recherche`, l'ordre de base ignore la relique, et un build au-delà des
-    K premiers peut remonter très haut une fois résolu sans que la file le
-    résolve. Sur le vrai compte, en PV effectifs, K = 100 laissait manquer
-    les rangs exhaustifs 16, 17 et 19 (rangs de base 107 à 117) ; K = 300
-    les rattrape. Sur une fixture construite pour cela, 9 des 20 premiers
-    exhaustifs manquent encore à K = 300 (rangs de base 305 à 399) : le top
-    affiché en mode `recherche` reste une approximation, dite ici et dans
+    `recherche`, l'ordre de base ignore la relique, et un build au-delà de
+    la K-ième confirmée peut remonter très haut une fois résolu sans que la
+    file le résolve. Sur le vrai compte, en PV effectifs, K = 100 laissait
+    manquer les rangs exhaustifs 16, 17 et 19 (rangs de base 107 à 117) ;
+    K = 300 les rattrape. Sur une fixture construite pour cela, 9 des 20
+    premiers exhaustifs manquaient encore aux 300 premiers (rangs de base
+    305 à 399) ; depuis 6bis-b18, la file y continue au-delà des 112
+    écartés jusqu'à 300 confirmées (rang 412) et n'en manque plus aucun. Le
+    top affiché en mode `recherche` reste une approximation, dite ici et dans
     les notes internes, jamais à l'écran (décision utilisateur du
     2026-10-01). `--resoudre-tout` reste la référence exacte. Sa console imprime le mode, le nombre de builds
     résolus et rejetés, la durée de la résolution, la relique et les
@@ -2500,11 +2505,19 @@ vérifié au navigateur, et reste une piste ouverte. Au navigateur, depuis le
 Worker de résolution (6bis-b13bis-b, plus bas) : ~+3,6 % en « Dégâts
 réels », systématique mais sous la dispersion des séries.
 
-**La page que vous consultez passe en premier.** Les cent meilleurs builds —
-**trois cents en mode relique « recherche »** — sont traités en avance de
-fond, mais c'est la page affichée qui est servie d'abord — sans quoi aucune
-page au-delà de ces positions n'aurait jamais sa paire. La taille de la file
-(`kDeLaFile`, artifactQueue.ts) est fixée dès le lancement par le contexte
+**La page que vous consultez passe en premier.** L'avance de fond vise cent
+combinaisons **confirmées** — **trois cents en mode relique « recherche »** —,
+mais c'est la page affichée qui est servie d'abord — sans quoi aucune page
+au-delà de ces positions n'aurait jamais sa paire. **Des confirmées, plus des
+rangs** (degats-et-aura 6bis-b18, décision de l'utilisateur du 2026-10-02) :
+l'avance de fond parcourt l'ordre de base et continue au-delà des builds
+écartés à la résolution, jusqu'à ce nombre de builds résolus ET conformes, ou
+jusqu'au dernier build trouvé. Sans écarté, c'est exactement « les cent (trois
+cents) premiers », la règle d'avant ; sur une recherche aux minimums serrés
+(Kinki, environ un build vérifié sur six conforme), la file vérifie tout. Une
+seule fonction pure, `prochainsATraiter`, en décide, sur le cache lui-même
+(la conformité de chaque résultat), à l'écran comme au CLI. La cible de la
+file (`kDeLaFile`, artifactQueue.ts) est fixée dès le lancement par le contexte
 relique de la recherche LANCÉE, jamais par les réglages courants : les
 changer après coup ne la modifie pas. Pourquoi trois cents : en mode
 « recherche », l'ordre de base note sans relique, et un build classé au-delà

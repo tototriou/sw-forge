@@ -7,12 +7,13 @@
 // mêmes de l'écran.
 //
 // ⚠️ **Par défaut, le CLI résout COMME LA FILE DE L'ÉCRAN** (décision
-// utilisateur du 2026-10-01, option 2, après la mesure de 6bis-b5c) : les
-// K premiers de l'ordre de base — `kDeLaFile` du contexte relique de la
-// recherche, comme l'écran : 300 en mode « recherche », 100 sinon (6bis-b8) —
-// et sa « page affichée » — les `LIGNES_IMPRIMEES` lignes qu'il imprime —,
-// choisis par `prochainsATraiter`, la fonction pure de la file, jusqu'au
-// point fixe.
+// utilisateur du 2026-10-01, option 2, après la mesure de 6bis-b5c) : l'ordre
+// de base jusqu'à K combinaisons CONFIRMÉES (résolues et conformes) ou
+// jusqu'au dernier build trouvé — `kDeLaFile` du contexte relique de la
+// recherche, comme l'écran : 300 en mode « recherche », 100 sinon (6bis-b8),
+// des confirmées depuis 6bis-b18 — et sa « page affichée » — les
+// `LIGNES_IMPRIMEES` lignes qu'il imprime —, choisis par `prochainsATraiter`,
+// la fonction pure de la file, jusqu'au point fixe.
 // Résoudre TOUS les candidats collectés coûtait jusqu'à 20 fois la recherche
 // avec des artéfacts « Libre » (le défaut de l'écran) : 6,7 min pour 5 100
 // builds × 4 reliques. Cette résolution exhaustive reste disponible,
@@ -21,8 +22,8 @@
 // ⚠️ La file de l'écran traite UN build par tranche, avec une page publiée au
 // plus toutes les 400 ms ; le CLI traite par LOTS, page recalculée entre deux
 // lots. La condition d'arrêt est la même — plus rien à résoudre parmi la page
-// et les K premiers —, mais l'écran peut avoir résolu en chemin des builds
-// passés un instant sur sa page, que le CLI ne résout pas.
+// et la fenêtre de fond (K confirmées) —, mais l'écran peut avoir résolu en
+// chemin des builds passés un instant sur sa page, que le CLI ne résout pas.
 
 import {
   BuildCandidate,
@@ -52,8 +53,8 @@ export const LIGNES_IMPRIMEES = 20;
 export interface ClassementResoluCli {
   // `file` (défaut) : comme la file de l'écran ; `tout` : `--resoudre-tout`.
   mode: 'file' | 'tout';
-  // La taille de la file en mode `file` (`kDeLaFile` du contexte relique de
-  // la recherche) — celle que la console cite.
+  // La cible de la file en mode `file`, en combinaisons CONFIRMÉES (`kDeLaFile`
+  // du contexte relique de la recherche, 6bis-b18) — celle que la console cite.
   K: number;
   // Le cache de résolution, par `cleBuild` — le pendant de `parBuild` de la
   // file. En mode `file`, seuls les builds résolus y figurent ; les autres
@@ -80,10 +81,11 @@ export interface ClassementResoluCli {
  *
  * - `toutResoudre` faux (défaut du script) : comme la file de l'écran. À
  *   chaque lot, `prochainsATraiter` — les `LIGNES_IMPRIMEES` premières du
- *   classement courant, puis les K premiers de l'ordre de base
+ *   classement courant, puis l'ordre de base jusqu'à K confirmées
  *   (`kDeLaFile(params.relicContext)`, la fonction de l'écran : 300 en mode
  *   relique « recherche », 100 sinon), déjà résolus exclus — ; on s'arrête
- *   quand le lot est vide : toutes les lignes imprimées sont résolues.
+ *   quand le lot est vide : toutes les lignes imprimées sont résolues, et K
+ *   confirmées atteintes ou tout l'ordre de base résolu.
  * - `toutResoudre` vrai : tous les candidats, en une passe.
  *
  * `null` là où l'écran n'a pas de file (`resoudreEquipementCli`) : le
@@ -135,7 +137,7 @@ export function classerApresResolution(e: {
     // plus tard quand tout est résolu.
     for (;;) {
       const page = classementResolu(e.base, parBuild, e.recipe.objective, options).slice(0, LIGNES_IMPRIMEES);
-      const lot = prochainsATraiter(e.base, new Set(parBuild.keys()), K, page);
+      const lot = prochainsATraiter(e.base, parBuild, K, page);
       if (lot.length === 0) break;
       for (const c of lot) parBuild.set(cleBuild(c), resoudre(c));
       lots++;

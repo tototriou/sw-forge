@@ -13,8 +13,8 @@
 //             défaut, `--siege=15:defense` pour un deck de défense.
 //   --resoudre-tout : résout l'équipement (paire d'artéfacts, relique) de
 //             TOUS les candidats collectés, au lieu de faire comme la file de
-//             l'écran (300 premiers de l'ordre de base en mode relique
-//             « recherche », 100 sinon, et lignes imprimées).
+//             l'écran (l'ordre de base jusqu'à 300 combinaisons confirmées en
+//             mode relique « recherche », 100 sinon, et lignes imprimées).
 //             Exhaustif, mais jusqu'à des dizaines de minutes avec des
 //             artéfacts « Libre » (degats-et-aura 6bis-b5c).
 // Un seul mode à la fois : sans `--rta` ni `--siege`, box (« Mon compte »).
@@ -431,9 +431,9 @@ const runeByIdPool = new Map(params.pool.map((r) => [r.id, r]));
 // (`optionsDeClassement`), puis — là où l'écran a une file, optimisation
 // d'artéfacts active (`ignoreArtifacts` faux) — la résolution de
 // l'équipement et le classement de l'écran (`classementResolu`). Par défaut
-// comme la file de l'écran (`kDeLaFile` : 300 premiers de l'ordre de base en
-// mode relique « recherche », 100 sinon, et lignes imprimées, jusqu'au point
-// fixe) ; tous les candidats avec
+// comme la file de l'écran (`kDeLaFile` : l'ordre de base jusqu'à 300
+// combinaisons confirmées en mode relique « recherche », 100 sinon — 6bis-b18
+// —, et lignes imprimées, jusqu'au point fixe) ; tous les candidats avec
 // `--resoudre-tout`. Mode `recherche` : couple artéfacts/relique résolu
 // ensemble, couples infaisables rejetés ; sinon la paire seule, avec la
 // relique de la fiche.
@@ -451,7 +451,7 @@ if (resolu) {
       ? `Équipement résolu pour TOUS les candidats (--resoudre-tout) : ${resolu.parBuild.size} build(s), ` +
           `${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms`
       : `Équipement résolu comme la file de l'écran : ${resolu.parBuild.size} build(s) sur ${result.candidates.length} — ` +
-          `les ${resolu.K} premiers de l'ordre de base et les ${LIGNES_IMPRIMEES} lignes imprimées, jusqu'au point fixe ` +
+          `l'ordre de base jusqu'à ${resolu.K} combinaisons confirmées (ou jusqu'au dernier build trouvé) et les ${LIGNES_IMPRIMEES} lignes imprimées, jusqu'au point fixe ` +
           `(${resolu.lots} lot(s)) — ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
           `Les autres candidats restent classés dans l'ordre de base, non résolus ; --resoudre-tout pour tout résoudre.`
   );

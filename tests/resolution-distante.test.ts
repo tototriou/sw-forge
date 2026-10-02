@@ -265,7 +265,7 @@ export function simulerFile(s: ScenarioFile): BilanFile {
   const ports: PortsResolutionDistante = {
     courant: (): ContexteCourant => ({ entrees: s.contextes[ctx]!.entrees, signature }),
     runesDe: s.runesDe,
-    restants: () => prochainsATraiter(s.triees.slice(0, visibles), new Set(cache.keys()), s.K, page),
+    restants: () => prochainsATraiter(s.triees.slice(0, visibles), cache, s.K, page),
     page: () => page,
     cache: () => cache,
     envoyer: (m) => {
@@ -609,7 +609,7 @@ export function testResolutionDistante() {
     const ports: PortsResolutionDistante = {
       courant: () => c1,
       runesDe: sansRunes,
-      restants: () => prochainsATraiter(o.triees, new Set(o.cache.keys()), o.K, o.page),
+      restants: () => prochainsATraiter(o.triees, o.cache, o.K, o.page),
       page: () => o.page,
       cache: () => o.cache,
       envoyer: o.envoyer ?? ((m) => t.envoyes.push(m)),
@@ -681,7 +681,7 @@ export function testResolutionDistante() {
       const ports: PortsResolutionDistante = {
         courant: () => e.courant,
         runesDe: sansRunes,
-        restants: () => prochainsATraiter(e.triees, new Set(e.cache.keys()), 3, []),
+        restants: () => prochainsATraiter(e.triees, e.cache, 3, []),
         page: () => [],
         cache: () => e.cache,
         envoyer: () => {
@@ -897,7 +897,7 @@ export function testResolutionDistante() {
       const versEcran: ReponseResolution[] = [];
       const portsD: PortsResolutionDistante = {
         courant: () => courant, runesDe: (c) => runesDe(pp, c),
-        restants: () => prochainsATraiter(triees, new Set(cacheD.keys()), 4, triees.slice(0, 2)),
+        restants: () => prochainsATraiter(triees, cacheD, 4, triees.slice(0, 2)),
         page: () => triees.slice(0, 2), cache: () => cacheD,
         envoyer: (m) => { for (const rr of corps.recevoir(structuredClone(m))) versEcran.push(structuredClone(rr)); },
         publier: () => true, enAttente: () => {}, repli: (raison) => ecrit.push(`repli ${raison}`),
@@ -949,8 +949,8 @@ export function testResolutionDistante() {
     'hook : au repli, une écriture retenue par la cadence (renoncer rend vrai) est publiée de force (6bis-b13bis-c)');
   ok(/courant: \(\) => \{\s*const h = horsFilRef\.current;\s*return h \? \{ entrees: h\.entrees, signature: signatureRef\.current \} : null;/.test(effetWorker),
     'hook : le contexte courant est lu dans les refs du rendu (entrées et signature), à chaque réponse');
-  ok(/restants: \(\) => prochainsATraiter\(trieesRef\.current, new Set\(cacheRef\.current\.keys\(\)\), K, pageRef\.current\(\)\)/.test(effetWorker),
-    'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise');
+  ok(/restants: \(\) => prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(effetWorker),
+    'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise, sur le cache lui-même (6bis-b18)');
   ok(/publier: \(forcer\) => \{\s*const now = Date\.now\(\);\s*if \(!forcer && now - dernierePublication < PUBLICATION_MS\) return false;\s*dernierePublication = now;\s*setParBuild\(new Map\(cacheRef\.current\)\);\s*return true;\s*\},/.test(effetWorker),
     'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache (6bis-b13bis-c)');
   ok(/return \(\) => \{\s*vivant = false;\s*distant\.surReponse = \(r\) => reponseAuRepos\(distant\.pilote, r\);/.test(effetWorker),

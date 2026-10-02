@@ -15,8 +15,10 @@ import { VoieDeLaFile, cleBuild, prochainsATraiter, voieDeLaFile } from '../src/
 import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
-// Le cache du hook est une `Map` (clé → résultat) : seule sa clé compte ici.
-const cache = (...cles: string[]) => new Map(cles.map((c) => [c, null]));
+// Le cache du hook est une `Map` (clé → résultat) : des résultats conformes ici,
+// la conformité ne changeant la fenêtre que pour un écarté (6bis-b18).
+type Cache = Map<string, { conforme: boolean }>;
+const cache = (...cles: string[]): Cache => new Map(cles.map((c) => [c, { conforme: true }]));
 
 // Un bloc de code du hook, de sa déclaration à sa fermeture au même retrait.
 function bloc(src: string, debut: string, fin: string): string {
@@ -31,8 +33,8 @@ export function testVoieDeLaFile() {
 
   const triees = [build(1), build(2), build(3), build(4), build(5)];
   const K = 3;
-  const voie = (page: BuildCandidate[], deja: Map<string, null>) =>
-    voieDeLaFile(prochainsATraiter(triees, new Set(deja.keys()), K, page), page, deja);
+  const voie = (page: BuildCandidate[], deja: Cache) =>
+    voieDeLaFile(prochainsATraiter(triees, deja, K, page), page, deja);
 
   egal(voie([build(1), build(2)], cache()), 'page', 'page avec des builds non résolus : voie prioritaire');
   egal(voie([build(1), build(2)], cache('1')), 'page', 'un seul build non résolu sur la page suffit');
@@ -57,22 +59,22 @@ export function testVoieDeLaFile() {
     const forcees: string[] = [];
     let sliceFidele = true;
     for (let pas = 0; pas < 50; pas++) {
-      const restants = prochainsATraiter(triees, new Set(deja.keys()), K, page);
+      const restants = prochainsATraiter(triees, deja, K, page);
       const v = voieDeLaFile(restants, page, deja);
       const suivant = restants[0];
       if (v === 'aucune' || !suivant) break;
       voies.push(v);
-      deja.set(cleBuild(suivant), null);
+      deja.set(cleBuild(suivant), { conforme: true });
       ordre.push(cleBuild(suivant));
       const reste = restants.slice(1);
-      const recalcule = prochainsATraiter(triees, new Set(deja.keys()), K, page);
+      const recalcule = prochainsATraiter(triees, deja, K, page);
       if (reste.map(cleBuild).join('|') !== recalcule.map(cleBuild).join('|')) sliceFidele = false;
       const apres = voieDeLaFile(reste, page, deja);
       if (apres === 'aucune' || (v === 'page' && apres !== 'page')) forcees.push(cleBuild(suivant));
     }
     egal(voies, ['page', 'page', 'page', 'page', 'fond', 'fond'], 'une tâche immédiate par build non résolu de la page (4), puis le fond');
-    egal(ordre, prochainsATraiter(triees, new Set(), K, page).map(cleBuild), 'même travail, même ordre : exactement `prochainsATraiter`, chacun une fois');
-    ok(sliceFidele, 'après une tranche, `restants.slice(1)` est la file recalculée');
+    egal(ordre, prochainsATraiter(triees, cache(), K, page).map(cleBuild), 'même travail, même ordre : exactement `prochainsATraiter`, chacun une fois');
+    ok(sliceFidele, 'après une tranche conforme, `restants.slice(1)` est la file recalculée');
     egal(forcees, ['42', '3'], 'publication forcée au dernier build de la page, puis au dernier de la file');
   }
 

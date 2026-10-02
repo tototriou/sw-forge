@@ -12,7 +12,7 @@
 //
 // Ce qui ne change pas : QUI est traité et dans quel ORDRE. La priorité reste
 // décidée sur le fil de l'écran, par `prochainsATraiter` (page affichée
-// d'abord, puis les K premiers) ; ce module ne trie rien, il prend les
+// d'abord, puis l'avance de fond vers K confirmées) ; ce module ne trie rien, il prend les
 // restants dans l'ordre reçu.
 
 import { RuneDetail } from '../types';

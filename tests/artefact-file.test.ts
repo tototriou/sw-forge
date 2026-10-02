@@ -14,6 +14,9 @@ import type { ArtifactDetail } from '../src/types';
 import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
+// Le cache de la file : des builds résolus ET conformes. La conformité ne change
+// la fenêtre que pour un écarté (6bis-b18, `tests/file-confirmees.test.ts`).
+const resolus = (...cles: string[]) => new Map(cles.map((cle) => [cle, { conforme: true }]));
 
 // Pièces portées minimales (6bis-b17) : seuls `id` et `kind` sont lus par
 // `piecesFigeesDe` ; la principale distingue deux pièces d'une même sorte.
@@ -38,7 +41,7 @@ export default function testArtefactFile() {
   {
     const triees = [build(1), build(2), build(3), build(4), build(5)];
     egal(
-      prochainsATraiter(triees, new Set(), 3).map(cleBuild),
+      prochainsATraiter(triees, resolus(), 3).map(cleBuild),
       ['1', '2', '3'],
       'seuls les K mieux classés entrent en file, dans l’ordre reçu'
     );
@@ -46,15 +49,16 @@ export default function testArtefactFile() {
     // PAS. Un second tri ici finirait par diverger de celui de l’écran — le
     // défaut qui avait fait lire `candidates[0]` comme « le meilleur ».
     egal(
-      prochainsATraiter(triees, new Set(['1', '2']), 3).map(cleBuild),
+      prochainsATraiter(triees, resolus('1', '2'), 3).map(cleBuild),
       ['3'],
       'ce qui est déjà en cache ne repasse pas en file'
     );
-    egal(prochainsATraiter(triees, new Set(['1', '2', '3']), 3), [], 'les K premiers tous traités : plus rien à faire');
-    // ⚠️ Un build hors des K n'est PAS repêché parce que les K premiers sont
-    // finis : le plafond porte sur le RANG, pas sur le nombre restant.
+    egal(prochainsATraiter(triees, resolus('1', '2', '3'), 3), [], 'les K premiers tous traités : plus rien à faire');
+    // ⚠️ Un build au-delà n'est PAS repêché parce que les K premiers sont
+    // finis et CONFIRMÉS : la cible porte sur les confirmées (6bis-b18), pas
+    // sur le nombre restant.
     egal(
-      prochainsATraiter(triees, new Set(['1', '2', '3']), 3).length,
+      prochainsATraiter(triees, resolus('1', '2', '3'), 3).length,
       0,
       '… et le 4ᵉ n’est pas repêché pour autant'
     );
@@ -68,7 +72,7 @@ export default function testArtefactFile() {
     // module ne le contrôle pas.
     const avecDoublon = [build(1), build(1), build(2)];
     egal(
-      prochainsATraiter(avecDoublon, new Set(), 5).map(cleBuild),
+      prochainsATraiter(avecDoublon, resolus(), 5).map(cleBuild),
       ['1', '2'],
       'un build présent deux fois n’est mis en file qu’une seule fois'
     );
@@ -84,27 +88,27 @@ export default function testArtefactFile() {
     // L'utilisateur est sur une page profonde : ces builds sont hors du top K.
     const page = [build(40), build(41)];
     egal(
-      prochainsATraiter(triees, new Set(), 2, page).map(cleBuild),
+      prochainsATraiter(triees, resolus(), 2, page).map(cleBuild),
       ['40', '41', '1', '2'],
       'la page consultée est traitée EN PREMIER, puis le top K'
     );
     // ⚠️ Sans la page, ces builds ne seraient JAMAIS servis — c'est le défaut
     // que ce paramètre corrige.
     egal(
-      prochainsATraiter(triees, new Set(), 2).map(cleBuild),
+      prochainsATraiter(triees, resolus(), 2).map(cleBuild),
       ['1', '2'],
       'sans page fournie, seul le top K est traité (comportement d’origine)'
     );
     // ⚠️ Un build de la page figure PRESQUE TOUJOURS aussi dans le top K : la
     // déduplication n'est donc plus défensive, elle est nécessaire.
     egal(
-      prochainsATraiter(triees, new Set(), 3, [build(2)]).map(cleBuild),
+      prochainsATraiter(triees, resolus(), 3, [build(2)]).map(cleBuild),
       ['2', '1', '3'],
       'un build à la fois dans la page ET dans le top K n’est mis en file qu’UNE fois'
     );
     // Et le cache prime toujours : rien n’est refait, même sur la page.
     egal(
-      prochainsATraiter(triees, new Set(['40']), 1, page).map(cleBuild),
+      prochainsATraiter(triees, resolus('40'), 1, page).map(cleBuild),
       ['41', '1'],
       'un build déjà optimisé n’est pas repris, même s’il est à l’écran'
     );

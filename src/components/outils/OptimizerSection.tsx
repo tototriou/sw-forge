@@ -2264,7 +2264,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     signature: signatureArtefacts,
     // ⚠️ 300 en mode relique « recherche », 100 sinon (6bis-b8), dès le
     // lancement : le contexte de la recherche LANCÉE, jamais les réglages
-    // courants — les changer après coup ne change pas K.
+    // courants — les changer après coup ne change pas K. Des combinaisons
+    // CONFIRMÉES depuis 6bis-b18 : la file continue au-delà des écartés.
     K: kDeLaFile(relicContextRecherche),
     // Le Worker de résolution quand il est disponible ; `resoudre` reste le
     // chemin de repli.
@@ -2428,7 +2429,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   );
   // ⚠️ Renseignée à CHAQUE rendu : c’est ce qui fait qu’un changement de page
   // repriorise la file sans rien relancer ni invalider. La file sert ces
-  // builds avant les K premiers (`prochainsATraiter`) ; vide quand la page est
+  // builds avant l'avance de fond (`prochainsATraiter`) ; vide quand la page est
   // complète.
   pageAfficheeRef.current = composition.aVerifier;
   const hauteurCarte = useHauteurDesCartes(grilleResultatsRef);
@@ -4800,7 +4801,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           </div>
 
           {/* Combien la file doit encore vérifier (6bis-b16) : les builds des
-              places en attente de la page, puis les K premiers — le compte
+              places en attente de la page, puis l'avance de fond vers K
+              confirmées (6bis-b18) — le compte
               ci-dessus les inclut (6bis-b10, règle inchangée), la page ne les
               montre qu'une fois vérifiés. `enAttente` est le reste de la file,
               tenu par le hook pour l'affichage. ⚠️ Rangée TOUJOURS présente

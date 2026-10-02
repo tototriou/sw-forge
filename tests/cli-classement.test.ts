@@ -146,7 +146,7 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
   if (file) {
     for (;;) {
       const page = classementResolu(fullSortedCandidates, parBuild, recipe.objective, options).slice(0, 20);
-      const suivant = prochainsATraiter(fullSortedCandidates, new Set(parBuild.keys()), kDeLaFile(relicContextRecherche), page)[0];
+      const suivant = prochainsATraiter(fullSortedCandidates, parBuild, kDeLaFile(relicContextRecherche), page)[0];
       if (!suivant) break;
       parBuild.set(cleBuild(suivant), resoudre(suivant));
     }
@@ -260,6 +260,25 @@ export function testCliClassementParMode() {
       egal(r.K, mode === 'recherche' ? K_BUILDS_RECHERCHE_RELIQUE : K_BUILDS_OPTIMISES, `${mode}, file : K = ${r.K}`);
       egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles de file décidées le 2026-10-01');
       ok(cliFile.base.slice(0, r.K).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${r.K} premiers de l’ordre de base sont résolus`);
+      // 6bis-b18 : K CONFIRMÉES — attente indépendante de `prochainsATraiter`,
+      // relue sur le cache et l'ordre de base : K résolus et conformes, ou tout
+      // l'ordre de base résolu, et tout build avant la K-ième confirmée résolu.
+      // (« Rien après » ne se vérifie pas ici : la « page » du CLI change d'un
+      // lot à l'autre et fait résoudre des builds plus loin — 107 en `equipped`,
+      // comme avant ce lot ; prouvé sans page dans `testFileConfirmees`.)
+      {
+        let vues = 0;
+        let fin = cliFile.base.length;
+        for (let i = 0; i < cliFile.base.length; i++) {
+          if (r.parBuild.get(cleBuild(cliFile.base[i]!))?.conforme === true) vues++;
+          if (vues === r.K) {
+            fin = i + 1;
+            break;
+          }
+        }
+        ok(vues === r.K || fin === cliFile.base.length, `${mode}, file : ${vues} confirmées sur la fenêtre de fond (cible ${r.K}, ou tout l’ordre de base)`);
+        ok(cliFile.base.slice(0, fin).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : tout build avant la ${r.K}ᵉ confirmée (rang ${fin}) est résolu`);
+      }
       ok(r.parBuild.size < res.candidates.length,
         `${mode}, file : ${r.parBuild.size} résolus sur ${res.candidates.length} en ${r.lots} lot(s) (la file de l’écran, build par build : ${ecranFile.parBuild.size})`);
       const equipementFile = (c: BuildCandidate) => {
@@ -271,10 +290,12 @@ export function testCliClassementParMode() {
         .map(cleBuild), [], `${mode}, file : les ${LIGNES_IMPRIMEES} scores imprimés = note de production de l’équipement complet`);
       // ⚠️ La file n'est PAS exhaustive (le prix de l'option 2, comme à
       // l'écran) : en `recherche`, l'ordre de base ignore la relique, et un
-      // build au-delà des K premiers (300 depuis 6bis-b8) peut remonter très
-      // haut une fois résolu — la file ne le résout pas. Sur cette fixture,
-      // faite pour cela, les manquants viennent des rangs de base 305 à 399 :
-      // 300 ne les atteint pas, c'est la limite consignée. Ce qui est garanti : un build des
+      // build au-delà de la K-ième confirmée (300 depuis 6bis-b8) peut remonter
+      // très haut une fois résolu — la file ne le résout pas. Sur cette
+      // fixture, faite pour cela, les manquants venaient des rangs de base 305
+      // à 399 tant que la file s'arrêtait aux 300 premiers ; depuis 6bis-b18,
+      // elle continue au-delà des 112 écartés jusqu'à 300 confirmées (rang 412)
+      // et n'en manque plus aucun — la limite demeure en principe. Ce qui est garanti : un build des
       // vingt premiers de `--resoudre-tout` absent des lignes de la file n'a
       // JAMAIS été résolu par elle (un build résolu y aurait sa note exacte,
       // et vingt lignes résolues au-dessus de lui contrediraient son rang

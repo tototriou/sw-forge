@@ -203,7 +203,7 @@ export function testCompositionDePage() {
     let pas = 0;
     for (; pas < 1000; pas++) {
       const compo = composer(1);
-      const restants = prochainsATraiter(base, new Set(cache.keys()), K, compo.aVerifier);
+      const restants = prochainsATraiter(base, cache, K, compo.aVerifier);
       if (restants.length === 0) break;
       if (compo.placesEnAttente > 0) {
         if (cleBuild(restants[0]!) !== cleBuild(compo.aVerifier[0]!)) priorite = false;
@@ -226,7 +226,7 @@ export function testCompositionDePage() {
     let horsPage = 0;
     for (let i = 0; i < 2000; i++) {
       const compo = composer(8);
-      const restants = prochainsATraiter(base, new Set(cache.keys()), K, compo.aVerifier);
+      const restants = prochainsATraiter(base, cache, K, compo.aVerifier);
       if (restants.length === 0) break;
       if (!compo.aVerifier.some((c) => cleBuild(c) === cleBuild(restants[0]!))) horsPage++;
       resoudre(restants[0]!);
@@ -281,7 +281,7 @@ export function testCompositionDePage() {
       ecarteMontre += nouveau.filter((k) => issue.get(k) === false).length;
       avantNouveau = nouveau;
       avantAncien = ancien;
-      const restants = prochainsATraiter(base, new Set(cache.keys()), K, compo.aVerifier);
+      const restants = prochainsATraiter(base, cache, K, compo.aVerifier);
       const suivant = restants[0];
       if (!suivant) continue;
       const k = cleBuild(suivant);

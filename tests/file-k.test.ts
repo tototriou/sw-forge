@@ -53,13 +53,14 @@ export function testKDeLaFile() {
   // Le hook : K obligatoire, sans défaut (un appel qui l'oublierait ne compile pas).
   const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
   ok(/\n\s*K: number;/.test(hook) && !/K = /.test(hook) && !/K\?:/.test(hook), 'hook : `K` obligatoire, sans valeur par défaut');
-  ok(/prochainsATraiter\(trieesRef\.current, new Set\(cacheRef\.current\.keys\(\)\), K, pageRef\.current\(\)\)/.test(hook),
-    'hook : la file sert `prochainsATraiter` avec ce K');
+  ok(/prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(hook),
+    'hook : la file sert `prochainsATraiter` avec ce K, sur le cache lui-même (conformité lue, 6bis-b18)');
+  ok(!/new Set\(cacheRef\.current\.keys\(\)\)/.test(hook), 'hook : plus aucune copie des seules clés du cache pour la file');
 
   // Le CLI : le contexte de la recherche lancée (`params.relicContext`).
   const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');
   ok(/const K = kDeLaFile\(e\.params\.relicContext\);/.test(cli), 'CLI : `K = kDeLaFile(e.params.relicContext)`');
-  ok(/prochainsATraiter\(e\.base, new Set\(parBuild\.keys\(\)\), K, page\)/.test(cli), 'CLI : la file du CLI sert `prochainsATraiter` avec ce K');
+  ok(/prochainsATraiter\(e\.base, parBuild, K, page\)/.test(cli), 'CLI : la file du CLI sert `prochainsATraiter` avec ce K, sur son cache');
 
   // Aucun autre appel de production ne choisit sa taille de file à la main.
   const appels = [ecran, hook, cli, readFileSync('scripts/optimizer-search.ts', 'utf8')]

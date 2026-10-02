@@ -15,7 +15,7 @@
 //     - la PAGE AFFICHÉE, par une tâche immédiate (`planifierImmediat`) : tant
 //       qu'elle contient un build non résolu, la tranche suivante part sans
 //       attendre l'inactivité ;
-//     - l'avance de FOND (les K premiers hors page), sur le temps d'inactivité
+//     - l'avance de FOND (vers K confirmées, hors page), sur le temps d'inactivité
 //       (`planifierInactif`).
 //    La voie se décide par une fonction pure, testée sans navigateur
 //    (`voieDeLaFile`, artifactQueue.ts). Elle ne change ni QUI est traité ni
@@ -112,7 +112,8 @@ function planifierImmediat(faire: () => void): Planifie {
 export interface UseArtifactOptimQueue {
   // Résultat par `cleBuild`. Absent = pas encore optimisé.
   parBuild: ReadonlyMap<string, ResultatArtefacts>;
-  // Combien restent à traiter dans les K premiers — pour l'affichage.
+  // Combien restent à traiter (page, puis avance de fond vers K confirmées) —
+  // pour l'affichage.
   enAttente: number;
 }
 
@@ -143,11 +144,11 @@ export function useArtifactOptimQueue(opts: {
   // Candidats DÉJÀ TRIÉS par l'objectif (via `sortCandidates`).
   triees: readonly BuildCandidate[];
   /**
-   * La page RÉELLEMENT affichée — traitée EN PRIORITÉ sur le top-K.
+   * La page RÉELLEMENT affichée — traitée EN PRIORITÉ sur l'avance de fond.
    *
-   * ⚠️ **Sans elle, aucune page au-delà de la K-ième n'aurait jamais sa
-   * paire**, quelle que soit la valeur de K. Le top-K est une avance de fond
-   * pour les premières pages ; ce qu'on regarde doit passer devant.
+   * ⚠️ **Sans elle, aucune page au-delà des K confirmées n'aurait jamais sa
+   * paire**, quelle que soit la valeur de K. L'avance de fond sert les
+   * premières pages ; ce qu'on regarde doit passer devant.
    *
    * ⚠️ Un ACCESSEUR, pas une valeur : la page affichée se calcule APRÈS la
    * file (elle dépend de son résultat), donc elle n'existe pas encore au
@@ -172,10 +173,13 @@ export function useArtifactOptimQueue(opts: {
   // Change dès qu'un réglage modifie le score d'une paire ou le pool de
   // reliques — vide le cache.
   signature: string;
-  // Combien de builds résoudre hors page affichée : `kDeLaFile` (artifactQueue.ts)
-  // du contexte relique de la recherche LANCÉE — 300 en mode « recherche »,
-  // 100 sinon. Obligatoire, sans défaut : un appel qui l'oublierait garderait
-  // 100 en mode « recherche » sans que `tsc` le voie (6bis-b8).
+  // Combien de combinaisons CONFIRMÉES (résolues et conformes) l'avance de fond
+  // vise hors page affichée : `kDeLaFile` (artifactQueue.ts) du contexte relique
+  // de la recherche LANCÉE — 300 en mode « recherche », 100 sinon ; la file
+  // continue au-delà des écartés, dans l'ordre de base, jusqu'à K confirmées
+  // ou jusqu'au dernier build trouvé (6bis-b18). Obligatoire, sans défaut : un
+  // appel qui l'oublierait garderait 100 en mode « recherche » sans que `tsc`
+  // le voie (6bis-b8).
   K: number;
   /**
    * La résolution hors du fil de l'écran (6bis-b13bis-b) — `null` quand
@@ -228,7 +232,9 @@ export function useArtifactOptimQueue(opts: {
     // UNE seule tâche en attente, toutes voies confondues, avec sa voie.
     let planifie: (Planifie & { voie: 'page' | 'fond' }) | null = null;
 
-    const aTraiter = () => prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K, pageRef.current());
+    // ⚠️ Le cache LUI-MÊME, jamais une copie de ses clés : la file lit la
+    // conformité de chaque résultat pour viser K confirmées (6bis-b18).
+    const aTraiter = () => prochainsATraiter(trieesRef.current, cacheRef.current, K, pageRef.current());
 
     /**
      * Programme une tranche, par la voie que demande l'état courant.
@@ -301,6 +307,10 @@ export function useArtifactOptimQueue(opts: {
       // ou le dernier de la file, qui s'endort : sans elle, les derniers builds
       // resteraient dans le cache sans jamais atteindre l'écran. La file après
       // ce build est `restants.slice(1)` : le cache n'a grandi que de lui.
+      // ⚠️ Depuis 6bis-b18, s'il a été ÉCARTÉ, la fenêtre de fond s'allonge
+      // d'un build : `restants.slice(1)` n'en est que le début. La seule
+      // différence possible est une publication forcée un peu tôt (file crue
+      // vide) — sans perte : `reveiller()` ci-dessous recalcule la vraie file.
       const voieApres = voieDeLaFile(restants.slice(1), page, cacheRef.current);
       publier(voieApres === 'aucune' || (voie === 'page' && voieApres !== 'page'));
       reveiller();
@@ -410,7 +420,7 @@ export function useArtifactOptimQueue(opts: {
         return h ? { entrees: h.entrees, signature: signatureRef.current } : null;
       },
       runesDe: (c) => horsFilRef.current?.runesDe(c) ?? [],
-      restants: () => prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K, pageRef.current()),
+      restants: () => prochainsATraiter(trieesRef.current, cacheRef.current, K, pageRef.current()),
       page: () => pageRef.current(),
       cache: () => cacheRef.current,
       envoyer: (m) => distant.worker.postMessage(m),
@@ -448,7 +458,7 @@ export function useArtifactOptimQueue(opts: {
   // arrivent, quand l'utilisateur change de page, ou quand il change de tri.
   // Plutôt que d'énumérer ces déclencheurs — et d'en oublier un —, on réveille
   // systématiquement : `reveiller` est idempotent. Il recalcule la voie à
-  // chaque rendu (`prochainsATraiter` sur la page et les K premiers, clés
+  // chaque rendu (`prochainsATraiter` sur la page et l'avance de fond, clés
   // mémoïsées) : c'est ce qui fait passer une tranche de fond en attente sur
   // la voie de la page dès que celle-ci change.
   useEffect(() => {

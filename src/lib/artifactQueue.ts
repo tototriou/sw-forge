@@ -111,9 +111,12 @@ export interface ResultatArtefacts {
  * candidates, donc le maximum sur cet ensemble lui est toujours supérieur ou
  * égal. Conséquence : un build optimisé monte ou reste, un build non optimisé
  * ne peut qu'être repoussé vers le bas — aucun ne peut ENTRER dans les K
- * premiers du fait de ce mécanisme. L'ensemble à traiter ne s'élargit jamais,
- * il rétrécit ; la boucle « trier → optimiser → retrier » converge donc en au
- * plus K étapes, sans emballement.
+ * premiers du fait de ce mécanisme. La boucle « trier → optimiser → retrier »
+ * converge donc, sans emballement : la file lit l'ordre de BASE, que la
+ * résolution ne touche pas, et chaque étape résout un build de plus (le cache
+ * ne fait que grandir). Depuis degats-et-aura 6bis-b18, sa fenêtre s'allonge
+ * d'un build par écarté, jusqu'à K confirmées : au plus autant d'étapes que de
+ * builds trouvés.
  *
  * C'est ce qui autorise à laisser un build passer devant dans l'ordre plutôt
  * que d'afficher une inversion visible entre le rang et le total.
@@ -146,8 +149,14 @@ export const K_BUILDS_OPTIMISES = 100;
 export const K_BUILDS_RECHERCHE_RELIQUE = 300;
 
 /**
- * La taille de la file pour UNE recherche — partagée par l'écran
- * (`useArtifactOptimQueue`) et le CLI (`classerApresResolution`).
+ * La cible de la file pour UNE recherche, en combinaisons CONFIRMÉES —
+ * partagée par l'écran (`useArtifactOptimQueue`) et le CLI
+ * (`classerApresResolution`).
+ *
+ * ⚠️ **Des confirmées, plus des rangs** (degats-et-aura 6bis-b18, décision de
+ * l'utilisateur du 2026-10-02). La valeur ne change pas (300 / 100) ; son sens,
+ * si : la file ne s'arrête plus aux K premiers de l'ordre de base, mais quand
+ * K builds y sont résolus ET conformes (voir `prochainsATraiter`).
  *
  * ⚠️ L'entrée est le contexte relique de la recherche LANCÉE
  * (`relicContextRecherche` à l'écran, `params.relicContext` au CLI), jamais
@@ -160,8 +169,24 @@ export function kDeLaFile(relicContext: RelicContext | undefined): number {
 }
 
 /**
- * Les builds à traiter ensuite : les `K` mieux classés qui n'ont pas encore
- * leur paire, dans l'ordre de priorité.
+ * Les builds à traiter ensuite, dans l'ordre de priorité : la page affichée,
+ * puis l'avance de fond, qui vise `K` combinaisons CONFIRMÉES (degats-et-aura
+ * 6bis-b18).
+ *
+ * L'avance de fond parcourt `triees` dans l'ordre et s'arrête dès que les
+ * confirmées rencontrées (résolues ET conformes) plus les non résolues
+ * rencontrées atteignent `K` : elle rend ces non résolues — celles qu'il faut
+ * encore vérifier pour atteindre K confirmées si elles le sont toutes. Une
+ * écartée (`conforme: false`) ne compte pas : la fenêtre s'allonge d'autant, et
+ * la file continue, dans l'ordre du classement, jusqu'à K confirmées ou
+ * jusqu'au dernier build trouvé. **Sans écartée, c'est exactement « les K
+ * premiers non résolus »**, la règle d'avant ce lot : rien ne change dans le cas
+ * normal (« Dégâts réels » de référence : 300 conformes sur 300).
+ *
+ * ⚠️ `cache` est le cache de la file lui-même (`cleBuild` → résultat), jamais
+ * une copie de ses clés : la conformité de chaque résultat y est lue. Seules
+ * les entrées des builds de `triees` comptent — les rejets d'une recherche
+ * précédente aux mêmes réglages, restés en cache, n'y figurent pas.
  *
  * ⚠️ `triees` doit ARRIVER trié par l'objectif (via `sortCandidates`, la source
  * unique). Ce module ne trie pas : un second tri ici finirait par diverger de
@@ -169,21 +194,22 @@ export function kDeLaFile(relicContext: RelicContext | undefined): number {
  * `candidates[0]` comme « le meilleur » alors qu'il ne l'était pas.
  *
  * ⚠️ Le classement se fait sur les dégâts SANS artéfacts optimisés — c'est le
- * seul disponible pendant la recherche. Un build peut donc entrer dans les `K`
- * puis en sortir quand de meilleurs arrivent ; son résultat déjà calculé reste
- * en cache et ne coûte plus rien. C'est le pari du temps masqué, assumé.
+ * seul disponible pendant la recherche. Un build peut donc entrer dans la
+ * fenêtre puis en sortir quand de meilleurs arrivent ; son résultat déjà
+ * calculé reste en cache et ne coûte plus rien. C'est le pari du temps masqué,
+ * assumé.
  */
 export function prochainsATraiter(
   triees: readonly BuildCandidate[],
-  deja: ReadonlySet<string>,
+  cache: ReadonlyMap<string, { conforme: boolean }>,
   K: number,
   /**
-   * La page RÉELLEMENT affichée, traitée EN PRIORITÉ sur le top-K.
+   * La page RÉELLEMENT affichée, traitée EN PRIORITÉ sur l'avance de fond.
    *
-   * ⚠️ **Sans elle, aucune page au-delà de la K-ième n'aurait jamais sa
-   * paire** — quelle que soit la valeur de K. Le top-K est une avance de fond
-   * pour les premières pages ; c'est celle qu'on regarde qui doit être servie
-   * d'abord, parce qu'elle est sous les yeux.
+   * ⚠️ **Sans elle, aucune page au-delà des K confirmées n'aurait jamais sa
+   * paire** — quelle que soit la valeur de K. L'avance de fond sert les
+   * premières pages ; c'est celle qu'on regarde qui doit être servie d'abord,
+   * parce qu'elle est sous les yeux.
    *
    * ⚠️ Passer la page AFFICHÉE (et non la page de l'ordre de base) crée bien
    * une dépendance de la file envers sa propre sortie. Elle CONVERGE, par le
@@ -194,27 +220,43 @@ export function prochainsATraiter(
   pageAffichee: readonly BuildCandidate[] = []
 ): BuildCandidate[] {
   const out: BuildCandidate[] = [];
+  // ⚠️ `vusDansCeLot` en plus du cache — et ce n'est PLUS une garde défensive
+  // depuis que la page affichée précède l'avance de fond : un build de la page
+  // figure presque toujours AUSSI dans la fenêtre de fond. Sans cette garde, il
+  // partirait deux fois en file.
+  //
+  // ⚠️ Le flux de candidats, lui, n'en produit pas : vérifié plutôt que
+  // supposé — le générateur d'appariement n'est jamais relancé en cours de
+  // route, les deltas sont découpés par un curseur strictement monotone
+  // (`allCandidates.slice(candidatesSent)`, runeBuildOptim.worker.ts), les
+  // tranches de `bucketsA` sont disjointes, et la réception est un pur
+  // `concat`.
   const vusDansCeLot = new Set<string>();
-  // La page d'abord, puis le top-K — sans dépasser K au total : la file reste
-  // bornée, et une page profonde ne déclenche pas un travail illimité.
-  const aParcourir = [...pageAffichee, ...triees.slice(0, K)];
-  for (let i = 0; i < aParcourir.length; i++) {
-    const c = aParcourir[i]!;
-    const cle = cleBuild(c);
-    // ⚠️ `vusDansCeLot` en plus de `deja` — et ce n'est PLUS une garde
-    // défensive depuis que la page affichée précède le top-K : un build de la
-    // page figure presque toujours AUSSI dans le top-K, donc deux fois dans
-    // `aParcourir`. Sans cette garde, il partirait deux fois en file.
-    //
-    // ⚠️ Le flux de candidats, lui, n'en produit pas : vérifié plutôt que
-    // supposé — le générateur d'appariement n'est jamais relancé en cours de
-    // route, les deltas sont découpés par un curseur strictement monotone
-    // (`allCandidates.slice(candidatesSent)`, runeBuildOptim.worker.ts), les
-    // tranches de `bucketsA` sont disjointes, et la réception est un pur
-    // `concat`.
-    if (deja.has(cle) || vusDansCeLot.has(cle)) continue;
+  const ajouter = (c: BuildCandidate, cle: string) => {
+    if (vusDansCeLot.has(cle)) return;
     vusDansCeLot.add(cle);
     out.push(c);
+  };
+  // La page d'abord : elle est bornée par l'écran (au plus une page).
+  for (const c of pageAffichee) {
+    const cle = cleBuild(c);
+    if (!cache.has(cle)) ajouter(c, cle);
+  }
+  // Puis l'avance de fond, vers K confirmées. Un build non résolu compte dans
+  // la fenêtre même s'il vient d'être pris par la page (il n'est pas ajouté
+  // deux fois) : la fenêtre ne dépend que de l'ordre de base et du cache.
+  let confirmees = 0;
+  let aVerifier = 0;
+  for (let i = 0; i < triees.length && confirmees + aVerifier < K; i++) {
+    const c = triees[i]!;
+    const cle = cleBuild(c);
+    const r = cache.get(cle);
+    if (r === undefined) {
+      aVerifier++;
+      ajouter(c, cle);
+    } else if (r.conforme) {
+      confirmees++;
+    }
   }
   return out;
 }
@@ -228,7 +270,7 @@ export type VoieDeLaFile = 'page' | 'fond' | 'aucune';
 
 /**
  * La voie de la prochaine tranche : la PAGE AFFICHÉE tant qu'elle contient un
- * build non résolu, le FOND (les K premiers) ensuite, rien quand tout est fait.
+ * build non résolu, le FOND (vers K confirmées) ensuite, rien quand tout est fait.
  *
  * ⚠️ **Elle ne choisit pas QUI traiter**, seulement QUAND : `restants` est la
  * sortie de `prochainsATraiter`, qui place déjà la page en tête. Le travail
@@ -547,7 +589,7 @@ export interface CompositionDePage {
   /**
    * Les builds qui rempliront ces places : les premiers non résolus du
    * classement, au plus une page — la « page affichée » que la file sert
-   * AVANT les K premiers (`prochainsATraiter`). Vide quand la page est
+   * AVANT l'avance de fond (`prochainsATraiter`). Vide quand la page est
    * complète, ou sans file.
    */
   aVerifier: BuildCandidate[];

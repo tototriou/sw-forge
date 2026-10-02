@@ -41,8 +41,9 @@ function aleatoire(graine: number) {
 
 // Un inventaire « Libre » éligible (fire / attack) : principales PV, ATQ ou
 // DEF, quatre sous-propriétés tirées parmi les lignes que la sorte peut
-// porter, à une valeur sous leur plafond ; quelques intangibles.
-function inventaire(graine: number, parSorte: number): ArtifactDetail[] {
+// porter, à une valeur sous leur plafond ; quelques intangibles. Réutilisé
+// par `resolution-worker.test.ts` (6bis-b13bis-a).
+export function inventaire(graine: number, parSorte: number): ArtifactDetail[] {
   const r = aleatoire(graine);
   const codesDe = (kind: ArtifactKind) => Object.keys(ARTIFACT_SUB_MAX).map(Number).filter((c) => artifactSubKinds(c).includes(kind));
   const pieces: ArtifactDetail[] = [];

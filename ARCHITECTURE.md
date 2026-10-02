@@ -161,7 +161,7 @@ Spec : [`spec/shared/librairie-ui.md`](spec/shared/librairie-ui.md).
 | `Champ.tsx` / `NumberField.tsx` | saisie texte / numérique (⚠️ jamais `type="number"`) |
 | `Selecteur.tsx` | liste déroulante |
 | `Case.tsx` / `Interrupteur.tsx` | à cocher / à glissière |
-| `Option.tsx` | choix riche : icône + titre + explication |
+| `Option.tsx` | choix riche : icône + titre + explication ; action optionnelle juste à droite du titre (`actionTitre`, hors du bouton principal : le « ? » d'une prose de sort) |
 | `Dialogs.tsx` | `Modale` (portalisée), `ConfirmDialog`, `PromptDialog`, `KeepAccountDialog` |
 | `PiedDeDialogue.tsx` | la rangée d'actions d'un dialogue |
 | `Flottant.tsx` / `FlottantAuto.tsx` | surface ancrée ; la variante **mesure et choisit son côté avant peinture** |

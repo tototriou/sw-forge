@@ -2596,9 +2596,10 @@ le code de 6bis-b13 — et C, sans optimisation d'artéfacts) :
   −27 % (6 paires sur 6). Le Worker résout 162 builds pendant la recherche
   (85 avant) ; le chemin direct finissait l'essentiel APRÈS elle, sur le
   fil de l'écran, par tranches d'environ 36 ms.
-- ⚠️ **Écart à la garantie « la recherche ne ralentit pas »** :
-  6bis-b13bis-b est arrêté avant livraison, et garder le Worker reste
-  soumis à la décision de l'utilisateur.
+- **Écart accepté par l'utilisateur** (décision du 2026-10-02) : la
+  garantie du lot était « la recherche ne ralentit pas » ; le Worker est
+  gardé, ce ralentissement contre un résultat complet plus tôt et un fil de
+  l'écran libéré.
 - **Processeur bridé ×4** (fil de l'écran seulement, la recherche dans ses
   Workers ne l'est pas) : en « Dégâts réels », page 1 en 3,4 s contre
   10,4 s, et avant cela elle n'était jamais résolue avant la fin de la

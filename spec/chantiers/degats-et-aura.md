@@ -735,7 +735,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
-| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **6 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
+| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **9 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
 | 13 — consolidation : plan, synthèse, recommandation (pilote) | J | après les dix-sept 13b ; recommandation soumise à l'utilisateur | — |
 | CM — le mode critique « Moyenne » supprimé | J | contrat écrit le 2026-10-02 (décisions de l'utilisateur) ; lot parallèle, worktree `sw-forge-lot-cm` | — |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
@@ -8070,6 +8070,122 @@ attendant, portée de God's Weapon). Un `node -e 0` vide (écart déclaré).
 Shadow Assault de Tanya ; Stella (10711) : prose « up to 7 hits
 accordingly to your Attack Speed », `coups: 7` = le maximum → compté
 toujours, trop favorable, exact.
+
+Troisième vague (trois sessions `lot-j`, pendant que le lot CM tourne dans
+son worktree) : `13b-composantes-supplementaires`,
+`13b-hors-tour-cooperation`, `13b-pertes-pv`.
+
+##### 13b-composantes-supplementaires — 2026-10-02
+
+Preuve `controle-13b-composantes-supplementaires.md` (218 lignes) et ses
+intrants (4 scripts). 15 constats (124 à 138), 29 lignes, 56 formes ;
+aucun déclaré livré. **Cases (lignes)** : donnée × existant 4 (131, 132,
+137) ; donnée × neuf 14 (127 en prose seule, 134, 135, 136) ; relevé ×
+existant 4 (124, 138) ; relevé × neuf 5 (125, 128, 129, 130, 133) ; relevé
+× indéterminé 2 (126). **Saillants** : aucun des sept sorts actifs n'a sa
+composante dans le calcul — l'effet « Increase Damage » n'est lu nulle
+part — d'où des calculs **trop bas en silence** (Paul et Duke ×3, Cleaving
+Light! ×3,27 à 50 % de PV) ; une ligne de table suffit pour 131, 132, 137
+(`FORMULES_CUREES_PAR_ID` si la composante est mitigée,
+`COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID` si elle est brute ; pour 132, sur
+le sort actif 25110, pas sur le passif 25115) ; aucune condition existante
+ne porte une composante plate → mécanisme neuf N-COND (133, 135, 136) ;
+126 : sens de l'écart de DEF indéterminé ; 129 (Lydia) avec le constat 313
+(stock saisi, lot L-e des amorces). **Relevés** : R-B (composante brute ou
+mitigée) puis R1 à R12, cible à ~3 000 de DEF. **Lots** CS-a à CS-g.
+**Décisions formulées** D1 à D7 (en attendant R-B, laisser 131/132/137 trop
+bas ou les refuser ; variantes « boss », à consolider avec D4 de
+13b-ignore-def ; conditions de N-COND ; Lucifer ; Deva ; Kiki ; Disdain).
+**Découvertes** : -01 (`Disdain (Passive)` porte aussi 5613 et 5678 → clé
+par identifiant) ; -02 (Bullet Assassination et Shining Butterfly en
+`aoe: false` pour une prose « all enemies » → la ligne 224 mono-cible leur
+est appliquée, trop favorable) ; -03 (buff de DEF posé par Hollyberry ou
+Audrey absent de `STATS_COMBAT_PAR_ID_CONNUS`). Deux WebFetch sur swcalc,
+cités comme source tierce (écart déclaré).
+
+**Validé par le pilote** : « Increase Damage » n'apparaît dans `src/` qu'en
+commentaires (`damage.ts` L1039, L1563, L5055, L5061) — aucun code ne lit
+l'effet par son nom, exact ; nuance : quelques passifs qui le portent
+(Backup Code, Blessing of Curse) passent par des tables par nom ; fiche
+`35905.json` : le passif 25115 « deals additional damage equal to 15% of
+your MAX HP when using [Lightning Strike!] » → ligne sur l'actif 25110,
+exact ; `ConditionCombatProfile` (`damage.ts` L2006) n'a aucune variante
+qui porte une composante plate, exact.
+
+##### 13b-hors-tour-cooperation — 2026-10-02
+
+Preuve `controle-13b-hors-tour-cooperation.md` (282 lignes) et ses
+intrants (6 scripts, un patch en mémoire). 9 constats, 34 lignes ; aucun
+déclaré livré. **Cases (lignes)** : donnée × existant 21 (dont 17 derrière
+la garde ci-dessous), donnée × neuf 1, relevé × existant 9, relevé ×
+indéterminé 3 ; 236 et 324 divergent selon la ligne. **Garde bloquante** :
+`skillDamageProfile` (`damage.ts` L2945) rend `null` sur une formule vide
+AVANT de lire `FORMULES_CUREES_PAR_ID` (L2946) — pour les 21 actifs à
+formule vide, une ligne de table ne suffit pas tant que la garde n'est pas
+déplacée une fois (comme au lot 9a pour les passifs), et le commentaire de
+la table (L2651-2655) dit le contraire. **Mécanisme existant prouvé** :
+l'« événement choisi seul » (`selectionnableCommeSort`,
+`slotsDeclencheurs: []`) passe par le vrai chemin (24 identifiants
+patchés, rapport constant 0,254561, aucun total de sort actif changé).
+Horn of Protection (18811) écarté par `estSoinSansDegats` → exception
+inverse par identifiant. A.2 ter L152 ne couvre aucune ligne (elle vise la
+cible, pas l'auteur : les attaques des alliés restent à décider).
+**Relevés** R1 à R9 (dont le facteur de riposte, « 75 % of the Attack
+Power » selon l'effet `Counter`), Q1. **Lots** HT-1 (la garde + 17 formules
+auxiliaires, à consolider avec D2 de sequences-zone) à HT-7, HT-2 avec DV-h
+(Sapsaree). **Décisions formulées** D1 à D7 (événements hors tour choisis
+seuls ou exclus ; attaques des alliés ; l'auxiliaire de l'API comme seule
+source ; libellés ; nombres saisis ; interrupteur « riposte » ; boucliers).
+**Découvertes** : DH-01 (le S2 de Frieren, 24909, est proposé comme sort et
+son bouclier calculé comme des dégâts — 19 identifiants candidats, aucun
+lot) ; DH-02 (la garde et son commentaire) ; DH-03 à DH-05 (donnée de
+Thrash, homonymes non jouables, facteur de riposte des 48 passifs de
+riposte). WebFetch de 12 fiches de l'API SWARFARM (écart déclaré).
+
+**Validé par le pilote** : `damage.ts` L2945-2946 (garde `!c.formule`
+avant la table) et L2651-2655 (le commentaire annonce une formule
+« absente » fournie par la table) → contradiction exacte ; fiche
+`35704.json` : Spell to Create a Field of Flowers (24909) `2.8*{ATK}`,
+`coups: 0`, effets « Immunity » et « Shield », aucun soin → rien ne
+l'écarte, bouclier compté comme des dégâts, exact.
+
+##### 13b-pertes-pv — 2026-10-02
+
+Preuve `controle-13b-pertes-pv.md` (338 lignes) et ses intrants (8
+scripts, sorties rejouées à l'identique). 18 constats, 46 lignes, 82
+formes ; aucun déclaré livré. **Cases (lignes)** : donnée × existant 1
+(Seara), donnée × neuf 4, prose seule × neuf 3, relevé × existant 1 (John),
+relevé × neuf 37 ; par constat, 13 relevé × neuf, 1 donnée × neuf (230), 4
+divergents (220, 231, 232, 325). **Ce qui structure tout** : ni une perte
+de PV ni un effet différé n'entrent dans `computeTotalDamage` (seule
+exception : la bombe qui pose sans frapper, comptée comme son explosion) ;
+18 lignes se ferment sans code si l'utilisateur exclut les pertes de PV
+(D1), 8 de plus s'il exclut les explosions différées (D2). **Existant** :
+Seara, une ligne `ATTAQUES_APPELEES_PAR_DECLENCHEUR[7113] = { slotAppele: 2 }`
+(l'explosion de Fate of Destruction est déjà calculée) ; John, une ligne de
+`FORMULES_CUREES_PAR_ID` après R3. **Calculs faux en silence** : trop bas —
+Sword of Destruction (5 identifiants, 14 formes), Devil's Bargain, Dorothy,
+toutes les détonations de 230 et 231 ; Hellfire ×2,36 trop bas à 1 500 de
+DEF si sa propre Brise DEF s'applique avant le coup (R6) ; Incinerate (1362)
+en `aoe: false` pour une prose « Attacks all enemies » → ligne 224 ajoutée
+à tort. **Relevés** R1 à R7 (R8, R9 seulement si le hors-tour et la
+destruction de PV entrent dans le modèle). **Lots** PV-1 à PV-9 et PV-T
+(PV-8 avec le constat 323, PV-9 avec hors-tour ; seul PV-T est prêt sans
+relevé). **Décisions formulées** D1 à D8 (pertes de PV, effets différés,
+état saisi des détonations, état d'autres monstres, mention « calcul
+partiel », libellé de Seara, Hellfire en attendant R6, Sath).
+**Découvertes** DH13b-pertes-pv-01 à 09 (dont 6 bombes qui frappent et
+posent sans ligne d'audit, Risky Dash 1879 signalé à `13b-verif-partie2`,
+la `formule` de 16113 et 16613 qui est celle du bouclier, l'homonyme
+Camouflage 8715) ; DH13-01 à 03 qualifiés : la destruction de PV vient
+après les dégâts et ne relève que de D2.
+
+**Validé par le pilote** : fiche `15703.json` : Promised Time (7113)
+« sets off the bombs on the target », frappe tous les ennemis → la
+détonation reprend la bombe du S2, ligne vers le slot 2 cohérente ;
+`10332.json` : Incinerate (1362) `aoe: false` pour « Attacks all
+enemies », exact ; `26303.json` : la formule de 16113, `0.15*{MAX HP}`, est
+celle de son « Shield(15) », exact.
 
 ### Lot CM — le mode critique « Moyenne » supprimé
 

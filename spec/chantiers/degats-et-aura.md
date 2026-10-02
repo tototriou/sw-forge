@@ -401,6 +401,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
           2026-10-02 : « Dégâts réels » encore trop lent ; il remplace b14)
         → revue indépendante du Worker → 6bis-b13bis-c (ses corrections)
         → décision de l'utilisateur sur b13bis-b (Worker gardé, 2026-10-02)
+        → 6bis-b16 (cartes vérifiées seulement, essai de l'utilisateur)
+        → 6bis-b17 (cache et artéfacts réservés, revue du Worker)
         → 7a → 7b (recalé et scindé le 2026-10-02)
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -421,7 +423,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
-  6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c,
+  6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17,
   7a, 7b, 11bis, 12, tous les 13b-* → 14
 ```
 
@@ -689,7 +691,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
 | 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | terminé : arrêté avant livraison (A.6, recherche +4 à +7 %, résultat complet −27 %), puis **Worker gardé par l'utilisateur** le 2026-10-02 ; revue indépendante : rien de bloquant | `9a7202a8`, `534de15a` ; livré avec 6bis-b13bis-c / 2026-10-02 |
 | 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; livré avec b13bis-b | `11abb68d`…`f951f3e9` / 2026-10-02 |
-| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02, réponses de l'utilisateur intégrées ; **lançable** | — |
+| 6bis-b16 — une carte n'apparaît qu'une fois vérifiée | J | contrat écrit le 2026-10-02 (essai de l'utilisateur) ; **lançable** | — |
+| 6bis-b17 — le cache de la file suit les artéfacts réservés | J | contrat écrit le 2026-10-02 (revue du Worker) ; requiert b16 par l'ordre | — |
+| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02, réponses de l'utilisateur intégrées ; après 6bis-b16 et b17 | — |
 | 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | requiert 7a | — |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | recalé le 2026-10-02 ; à faire | — |
 | 8b — Blade Surge : recette, écran, CLI | J | requiert 8a | — |
@@ -698,7 +702,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | recalé le 2026-10-02 ; à faire | — |
 | 10b — Blade Dancers : recette, écran, CLI | J | requiert 10a | — |
 | 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | recalé le 2026-10-02 ; à faire | — |
-| 11bis — proses de sort au clic, deux formats | J | contrat écrit le 2026-10-02 ; une question ouverte (A.8) | — |
+| 11bis — proses de sort au clic, deux formats | J | contrat écrit le 2026-10-02, périmètre fixé par l'utilisateur | — |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
 | 13b-* — contrats de qualification à créer par le pilote après 13a | J | non lançables avant amendement et revue | — |
@@ -746,12 +750,12 @@ port 5173 (même origine, le compte déjà importé reste).
 
 | Lot | À vérifier | État |
 | --- | --- | --- |
-| 6bis-b9 | « Trier par » ATQ, PV puis DEF : la valeur de la carte décroît de haut en bas | en attente |
-| — | Bouton « Arrêter » en pleine recherche : les résultats trouvés restent, message « meilleur trouvé jusque-là » | en attente |
+| 6bis-b9 | « Trier par » ATQ, PV puis DEF : la valeur de la carte décroît de haut en bas | ✔ vérifiée le 2026-10-02 |
+| — | Bouton « Arrêter » en pleine recherche : les résultats trouvés restent, message « meilleur trouvé jusque-là » | ✔ vérifiée le 2026-10-02 (les builds restent et sont résolus, puis retirés s'ils n'atteignent pas les minimums) |
 | 6bis-b7 | Facultatif : recette `recette-6bis-b7-atq3000-dc220.json` (Lushen, siège 15) → « Recherche interrompue après examen de N combinaisons » | en attente |
-| 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | en attente (le 0 et la ligne de raison : vus le 2026-10-02) |
+| 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | ✔ vérifiée le 2026-10-02 (le 0 et la ligne de raison, puis la dernière page et les masquages) |
 | 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
-| 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | en attente (Worker gardé le 2026-10-02) |
+| 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | essayé le 2026-10-02 : barre **fluide** ✔ ; **va-et-vient des cartes (apparues puis retirées) jugé insupportable, bloquant** → 6bis-b16 ; à revoir après b16 (recette `swforge-optimizer-kinki-2026-10-02`) |
 | 7a, 7b | Écran des sets d'aura, sur ordinateur ET sur téléphone | après les lots |
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort, à la souris ET au doigt | après le lot |
@@ -766,9 +770,10 @@ décision, rayée avec la date et la réponse.
 | --- | --- | --- |
 | 6bis-b13bis-b | ~~Garder le Worker malgré une recherche +4 à +7 % plus longue en « Dégâts réels », pour un résultat complet ~27 % plus tôt et un fil de l'écran libéré ?~~ | ✔ 2026-10-02 : **garder tel quel** (option 1) |
 | 8 | ~~À quels coups de Blade Surge s'appliquent 224 et 400 ?~~ | ✔ 2026-10-02 (utilisateur) : **224 sur les coups 1 et 2, 400 sur les trois** |
-| revue du Worker | Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature. Le corriger dans ce chantier (petit lot), ou le laisser en piste ? | posée le 2026-10-02 |
+| revue du Worker | ~~Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature.~~ | ✔ 2026-10-02 : **corriger dans ce chantier** → 6bis-b17 |
+| essai du Worker | ~~Comment supprimer le va-et-vient des cartes ?~~ | ✔ 2026-10-02 : **n'afficher que les builds vérifiés**, places en attente marquées « Vérification… » → 6bis-b16, avant 7a |
 | 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
-| 11bis | Nouveau point de l'utilisateur, 2026-10-02 : les proses de sort au survol deviennent une infobulle cliquable (« ? » à droite du nom, dans la case du sort). Les textes d'effet au survol (pastilles de la fiche monstre, vignettes d'effet de « Dégâts réels ») entrent-ils dans le même lot ? | posée le 2026-10-02 |
+| 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
 
 ---
 
@@ -5428,6 +5433,91 @@ est un petit suivi, à faire avec la livraison si le Worker est gardé.
 publication forcée et le repli au navigateur ; les trois recettes gelées
 avec les nouveaux contrôles de publication.
 
+##### 6bis-b16 — une carte n'apparaît qu'une fois vérifiée
+
+**Cat. J ; requiert b13bis-c ; avant 7a.** Essai du Worker par
+l'utilisateur, le 2026-10-02 : la barre est fluide, mais « les va-et-vient
+des cartes de résultat qui apparaissent puis se retirent sont
+insupportables, on ne peut pas garder la fonctionnalité comme ça ». Cause
+(`OptimizerSection.tsx` L2343-2349) : un build reçu de la recherche est
+affiché tout de suite avec sa paire supposée, puis retiré à la résolution
+s'il n'atteint pas les minimums ; le Worker résolvant vite, les retraits
+s'enchaînent sous les yeux. Recette de l'utilisateur :
+`recette-6bis-b16-kinki.json` (Kinki, « Dégâts réels », minimums serrés).
+Décision de l'utilisateur : **n'afficher que les builds vérifiés**.
+
+**Intrant borné.** `src/lib/artifactQueue.ts` (492 l. : `prochainsATraiter`
+L176, `voieDeLaFile` L247, `classementResolu` L421, `compteAffichable`
+L469) ; `OptimizerSection.tsx` L2330-2402 (`affichees`, `compteAffiche`,
+page courante, `pageCandidates`, `pageAfficheeRef`) et L4950-4975 (rendu
+des cartes) ; `useArtifactOptimQueue.ts` (ports `page` et `restants`) ;
+`src/workers/resolutionDistante.ts` ; tests `compteaffichable`,
+`classementresolu`, `voiedelafile`, `resolutiondistante` ; `optimizer.md`
+§ du compte affiché et de la file ; `invariants.md` L75 et L102.
+
+**Contrat.**
+
+- **Aucune carte non vérifiée n'est affichée**, pendant la recherche comme
+  après : une carte n'apparaît qu'une fois son équipement résolu (paire,
+  relique) et conforme. Un build écarté à la résolution n'est **jamais**
+  montré.
+- **Les places pas encore vérifiées de la page courante** affichent
+  « Vérification… » : autant de places que la page en attend (au plus la
+  taille de page), de hauteur réservée, pour que rien ne saute. Quand un
+  build vérifié arrive, il prend sa place dans le classement réel ;
+  qu'une carte descende sous un meilleur build vérifié reste permis (comme
+  avant le Worker).
+- **La priorité suit** : la file résout d'abord les builds qui rempliront
+  les places en attente de la page courante, puis les K premiers ; une
+  page plus loin que les builds vérifiés (au-delà des K premiers, après la
+  recherche) montre ses places en attente et se résout quand on l'ouvre.
+  Ni l'ordre de base, ni K, ni la résolution ne changent.
+- **Le compte ne change pas de règle** (6bis-b10) : trouvés moins écartés,
+  en direct ; une ligne dit combien sont en vérification. Les
+  comportements de b10 tiennent (compte retombé à zéro, retour à la
+  dernière page, masquages).
+- La composition d'une page (cartes vérifiées et places en attente) est
+  une **fonction pure** testée en Node, dérivée d'une seule source, comme
+  `compteAffichable`.
+
+**Preuves** : tests de la fonction pure (aucun build non vérifié dans une
+page ; écarté jamais présent ; places en attente bornées) ; mutation (un
+build non vérifié laissé dans la page) ; **mesure au navigateur sur la
+recette Kinki**, version construite, avant et après : nombre de cartes
+apparues puis retirées sur la page affichée pendant une recherche
+(attendu 0 après) et délai jusqu'aux premières cartes de la page 1 ;
+`tsc`, tests de zone, build, spec-lint, diff-check ; preuve
+`controle-6bis-b16.md`. L'essai de l'utilisateur est inscrit en A.8.
+
+**Ne fait pas** : ni la résolution, ni K, ni l'ordre de base, ni le
+Worker ; le CLI (synchrone, il résout tout avant de classer) ne change pas.
+
+##### 6bis-b17 — le cache de la file suit les artéfacts réservés
+
+**Cat. J ; requiert b13bis-c ; avant 7a.** Défaut antérieur relevé par la
+revue du Worker ; décision de l'utilisateur du 2026-10-02 : le corriger
+ici. `artefactsReserves` (`OptimizerSection.tsx` L1221, réservations des
+autres builds validés de la liste active) entre dans les paramètres
+d'artéfacts (L1423) mais pas dans la signature (L2106-2153) : libérer les
+artéfacts d'un autre monstre de la liste (bouton de sa ligne, zone C) ou
+changer de liste active laisse dans le cache des paires calculées avec
+l'ancien inventaire, même après une nouvelle recherche.
+
+**Contrat.** La signature des réglages change quand les artéfacts réservés
+changent (ensemble trié, l'ordre de la liste sans effet) ; le cache se vide
+alors, et le Worker reçoit le nouveau contexte. Le lot dresse la table des
+entrées de `artifactParams` et de `resoudreEquipement` face à la signature
+(couverte / non couverte / sans effet sur la paire, avec la raison) ; une
+autre entrée non couverte de même nature se corrige ici, une de nature
+différente se rapporte au pilote.
+
+**Preuves** : test de la signature (réservations changées → signature
+changée ; même ensemble dans un autre ordre → inchangée) ; contrôle de
+source (l'écran passe les réservations à la signature) ; mutation ; `tsc`,
+tests de zone, build, spec-lint ; preuve `controle-6bis-b17.md`.
+
+**Ne fait pas** : ne change ni la règle des réservations, ni la résolution.
+
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 
 **Cat. J ; requiert la contre-revue de ce contrat ; exécuté après
@@ -6423,10 +6513,17 @@ L390, et `aria-description` L394). La fiche monstre
 - Les deux formats sont de premier rang : vérifier le panneau montant au
   doigt sous la carte (piège `[data-tiroir]`, `ARCHITECTURE.md` § 7).
 
-**Question ouverte à l'utilisateur (A.8)** : les autres textes visibles
-seulement au survol — pastilles d'effet de la fiche monstre
-(`MonsterDetailDialog.tsx` L384), vignettes d'effet de « Dégâts réels »
-(`EffetVignette.tsx` L36) — entrent-ils dans ce lot ?
+**Les textes d'effet** (décision de l'utilisateur du 2026-10-02 : pas une
+infobulle par effet, trop lourd) : l'infobulle existante de « Effets
+actifs » (`DamageSetupCard.tsx` L1505, texte écrit à la main aujourd'hui)
+regroupe la description de chaque vignette d'effet affichée pour le sort
+choisi, **construite à partir des mêmes descriptions que les vignettes**
+(`EffetVignette`, prop `description`) : une seule source, seulement les
+effets présents. Le survol de chaque vignette (`EffetVignette.tsx` L36)
+reste en complément. La fiche monstre ne change pas : la prose du sort y
+est déjà en clair au-dessus des pastilles d'effet (`MonsterDetailDialog.tsx`
+L362-364), dont le survol reste (précision du pilote, à confirmer par
+l'utilisateur).
 
 **Preuves** : test de source (plus aucun `title={s.description}` dans la
 carte ; le « ? » est hors du bouton de la case) ; `tsc`, tests de zone,

@@ -118,14 +118,20 @@ export default function testDegatsSortsSansAttaque() {
 
   // Aucun passif dans la table aujourd'hui : la garde se vérifie sur Teshar,
   // dont Tempest (3213) est un passif offensif curé, rebaptisé d'un
-  // identifiant de la table. Sans la garde, il resterait offensif.
+  // identifiant de la table. ⚠️ Sa fiche porte `formule: ""` (Tempest
+  // n'existe que par `FORMULES_CUREES_PAR_ID[3213]`) : rebaptisé, il perdrait
+  // sa formule et sortirait de lui-même, sans la garde. D'où sa formule
+  // recopiée (`3.7*{ATK}`, A.2 ter) et le témoin juste dessous, qui prouve
+  // que le maquillage SANS identifiant de la table reste offensif.
   const teshar = fiche(14513);
   ok(monsterOffensivePassives(teshar).some((p) => p.skillCom2usId === 3213), 'Teshar : Tempest est un passif offensif (témoin)');
-  const tesharMaquille: DetailMonstre = {
+  const maquiller = (id: number): DetailMonstre => ({
     ...teshar,
-    competences: teshar.competences.map((c) => (c.com2usId === 3213 ? { ...c, com2usId: 24909 } : c)),
-  };
-  ok(monsterOffensivePassives(tesharMaquille).every((p) => p.skillCom2usId !== 24909),
+    competences: teshar.competences.map((c) => (c.com2usId === 3213 ? { ...c, com2usId: id, formule: '3.7*{ATK}' } : c)),
+  });
+  ok(monsterOffensivePassives(maquiller(99999999)).some((p) => p.skillCom2usId === 99999999),
+    'témoin : Tempest rebaptisé d’un identifiant hors table reste offensif');
+  ok(monsterOffensivePassives(maquiller(24909)).every((p) => p.skillCom2usId !== 24909),
     'un passif dont l’identifiant est dans la table n’est jamais offensif');
 
   titre('Sorts sans attaque — candidats laissés hors table');

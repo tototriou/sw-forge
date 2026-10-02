@@ -99,6 +99,13 @@ retenue.
   séquence entière (`resumeSequenceDeCoups` : « 2 coups · Cible unique, puis
   1 coup · Zone ») et ne lit jamais le cran : rien au-dessus du contrôle ne
   change de hauteur quand on bascule, il ne bouge donc pas sous le pointeur.
+- **CLI** (`scripts/optimizer-search.ts`, degats-et-aura 8b) : la recette
+  passe par le même parseur, et son `damageSetup` entier par le même
+  contexte de dégâts que l’écran (`buildRealDamageContext`) — parité écran/CLI.
+  La ligne « Dégâts réels : sort … » donne la séquence entière
+  (`resumeSequenceDeCoups`, au lieu des coups et de la portée de la seule
+  donnée SWARFARM) et, pour un sort qui le permet, le libellé du cran calculé
+  (« Dégâts sur la cible visée » ou « Dégâts sur les autres ennemis »).
 
 ## Les lignes d’artéfact et les skillups, coup par coup
 
@@ -152,4 +159,6 @@ hors de l’union, sort sans coup de zone curé), aller-retour export/import,
 resets au changement d’espèce et à l’import de compte ;
 `testBladeSurgeEcran` — libellés des crans, garde de capacité en tête du
 contrôle, place sous la liste, écriture de la seule clé du sort, résumé qui
-ne lit pas le cran, aide.
+ne lit pas le cran, aide ; `testBladeSurgePariteEcranCli` — même score à
+l’écran et au CLI pour les deux crans et la clé absente, rapport des deux
+crans `(0,5 × 2 + 3,0) / 3,0`, points de passage du champ et ligne du CLI.

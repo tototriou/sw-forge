@@ -26,9 +26,12 @@ import { activeSets, artifactSubName } from '../src/lib/effects';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
+  CIBLE_DEGATS_LABELS,
   DEFAULT_DAMAGE_SETUP,
   bonusDegatsConditionnelActif,
   bonusPassifActif,
+  cibleDegatsRetenue,
+  cibleSecondairePriseEnCharge,
   damageRelevantStats,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonCr,
@@ -58,6 +61,7 @@ import {
   resolvedStackPct,
   resolvedStackTrigger,
   resumeIgnoreDefRetenu,
+  resumeSequenceDeCoups,
   artifactDamageProfile,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
@@ -199,13 +203,22 @@ if (recipe.objective === 'degats_reels') {
     // Blade Dancers (degats-et-aura 10b) : le cran d'ignore DEF RETENU par le
     // calcul, dans la MÊME phrase que le résumé du sort à l'écran.
     const ignoreDefRetenu = resumeIgnoreDefRetenu(profile, s);
+    // Séquence curée (Blade Surge) : la séquence ENTIÈRE et la cible calculée,
+    // avec les textes mêmes de l'écran (`resumeSequenceDeCoups`,
+    // `CIBLE_DEGATS_LABELS`) — `resolvedHits` et `aoe` ne décrivent que le
+    // premier groupe de la donnée (degats-et-aura 8b).
+    const sequence = profile.sequenceDeCoups;
+    const cibleCalculee = cibleSecondairePriseEnCharge(profile.skillCom2usId)
+      ? CIBLE_DEGATS_LABELS.find((c) => c.key === cibleDegatsRetenue(profile, s))?.label
+      : undefined;
     console.log(
-      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
+      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${resolvedHits(profile, s)} coup(s)`}` +
         `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
-        `${profile.aoe ? ', zone' : ''}${profile.ignoreDef ? ', ignore la DEF' : ''}` +
+        `${!sequence && profile.aoe ? ', zone' : ''}${profile.ignoreDef ? ', ignore la DEF' : ''}` +
         `${ignoreDefRetenu ? `, ${ignoreDefRetenu.charAt(0).toLowerCase()}${ignoreDefRetenu.slice(1)}` : ''}` +
         `${profile.ignoreDefSelonVit ? `, ignore la DEF selon l'écart de VIT (100 % à ${profile.ignoreDefSelonVit.ecartMax}+ pts)` : ''}` +
         `${profile.skillupDamagePct ? `, +${profile.skillupDamagePct} % d'améliorations` : ''}) — ` +
+        `${cibleCalculee ? `${cibleCalculee} — ` : ''}` +
         `cible ${s.enemyHp} PV / ${s.enemyDef} DEF` +
         `${profile.variables.some((v) => v === 'Relative SPD' || v === 'Target SPD') ? ` / ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd} VIT` : ''} — ${critInterdit ? 'critique impossible' : `crit ${s.critMode}`}` +
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +

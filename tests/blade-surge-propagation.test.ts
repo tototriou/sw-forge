@@ -19,17 +19,24 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { egal, ok, titre } from './outils';
 import {
+  AUCUNE_AURA_PROPRE,
   CIBLE_DEGATS_LABELS,
   DEFAULT_DAMAGE_SETUP,
   type DamageSetup,
   type SkillDamageProfile,
   cibleDegatsRetenue,
+  computeTotalDamage,
   monsterDamageSkills,
+  monsterOffensivePassives,
   resolveDamageSkill,
   resumeSequenceDeCoups,
 } from '../src/lib/damage';
 import { damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
 import { buildOptimizerRecipe, parseOptimizerRecipe, type OptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { objectiveScore, type BuildCandidate } from '../src/lib/runeBuildOptim';
+import { computeStats } from '../src/lib/stats';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
+import { loadMonstersList } from '../scripts/lib/monstersData';
 import { loadMonsterSkills } from '../scripts/lib/skillsData';
 
 const LAPIS = 19811;
@@ -222,4 +229,66 @@ export function testBladeSurgeEcran() {
   ok(CIBLE_DEGATS_LABELS.every(({ label }) => aide.includes(label)), 'aide : les libellés exacts des deux crans');
   ok(aide.includes('les champs de l&apos;adversaire décrivent alors cet autre ennemi'),
     'aide : les champs de l’adversaire décrivent l’autre ennemi, aucun champ nouveau');
+}
+
+const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+
+export function testBladeSurgePariteEcranCli() {
+  titre('Blade Surge · parité écran/CLI — la recette porte la cible, le CLI calcule celle de l’écran (degats-et-aura 8b)');
+
+  const bs = bladeSurgeDeLapis();
+  const detail = loadMonsterSkills(LAPIS);
+  const element = loadMonstersList().find((m) => m.com2usId === LAPIS)?.element ?? null;
+  // Une fiche fixe : seul le cran change d'un calcul à l'autre.
+  const candidat: BuildCandidate = {
+    runeIds: [],
+    effTotal: 0,
+    stats: computeStats({ base: { hp: 10000, atk: 1000, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 }, runes: [], artifacts: [] }),
+  };
+  const relire = (setup: DamageSetup) => parseOptimizerRecipe(JSON.stringify(recette(setup))).recipe;
+  // Le CLI : `chargerRecette` lit la recette par `parseOptimizerRecipe`, puis
+  // `buildRealDamageContext` transmet son `damageSetup` entier au score.
+  const scoreCli = (setup: DamageSetup) => {
+    const relue = relire(setup);
+    const contexte = relue && buildRealDamageContext(relue, LAPIS, []);
+    return contexte ? objectiveScore(candidat, 'degats_reels', AUCUNE_AURA_PROPRE, contexte) : NaN;
+  };
+  // L'écran : l'import écrit `recipe.damageSetup` tel quel dans l'état, que
+  // `contexteDegatsArtefacts` (puis `realDamage`) transmet entier au calcul.
+  const scoreEcran = (setup: DamageSetup) => {
+    const relue = relire(setup);
+    return relue
+      ? computeTotalDamage(bs, monsterOffensivePassives(detail), candidat.stats, relue.damageSetup, AUCUNE_AURA_PROPRE, element)
+      : NaN;
+  };
+  const VISEE: DamageSetup = { ...SECONDAIRE, cibleDegatsParSort: { [BLADE_SURGE_LAPIS]: 'visee' } };
+  const SANS: DamageSetup = { ...SECONDAIRE, cibleDegatsParSort: undefined };
+
+  for (const [setup, nom] of [[VISEE, 'cible visée'], [SECONDAIRE, 'autres ennemis'], [SANS, 'clé absente']] as [DamageSetup, string][]) {
+    const cli = scoreCli(setup);
+    ok(Number.isFinite(cli) && cli === scoreEcran(setup), `${nom} : même score au CLI et à l’écran (${cli.toFixed(1)})`);
+  }
+  ok(scoreCli(SECONDAIRE) < scoreCli(VISEE), 'le CLI applique le cran : un autre ennemi reçoit moins que la cible visée');
+  egal(scoreCli(SANS), scoreCli(VISEE), 'clé absente = cible visée, au CLI aussi');
+  ok(proche(scoreCli(VISEE) / scoreCli(SECONDAIRE), (0.5 * 2 + 3.0) / 3.0),
+    'cible visée / autres ennemis = (0,5 × 2 + 3,0) / 3,0 — valeurs curées ; Lapis sans passif offensif, sans artéfact');
+
+  // Les points de passage, à leur source : rien ne filtre le champ en route.
+  const ecran = sansCommentaires(lireSource('src/components/outils/OptimizerSection.tsx'));
+  ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP)'), 'écran : l’import écrit le damageSetup de la recette tel quel, cible comprise');
+  ok(/profile: resolvedSkill,\s*setup: damageSetup,/.test(ecran), 'écran : le contexte de dégâts transmet le damageSetup entier');
+  ok(/const recipe = buildOptimizerRecipe\(\{[\s\S]*?\n\s*damageSetup,\n/.test(ecran), 'écran : l’export écrit le damageSetup entier, cible comprise');
+  ok(sansCommentaires(lireSource('scripts/lib/realDamageCli.ts')).includes('setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,'),
+    'CLI : le contexte de dégâts transmet le damageSetup de la recette entier');
+  ok(sansCommentaires(lireSource('scripts/lib/chargerRecette.ts')).includes('parseOptimizerRecipe(readFileSync(cheminRecette'),
+    'CLI : la recette passe par le même parseur que l’écran, donc par les mêmes refus');
+
+  // La ligne du sort du CLI : la séquence et la cible, avec les textes de l'écran.
+  const cli = sansCommentaires(lireSource('scripts/optimizer-search.ts'));
+  ok(/const sequence = profile\.sequenceDeCoups;/.test(cli) && cli.includes('${sequence ? resumeSequenceDeCoups(sequence) : `${resolvedHits(profile, s)} coup(s)`}'),
+    'ligne du CLI : la séquence entière, par la fonction du résumé de l’écran');
+  ok(cli.includes('${!sequence && profile.aoe ? \', zone\' : \'\'}'), 'ligne du CLI : la portée du sort seulement hors séquence (la donnée ne décrit que le premier groupe)');
+  ok(/const cibleCalculee = cibleSecondairePriseEnCharge\(profile\.skillCom2usId\)\s*\?\s*CIBLE_DEGATS_LABELS\.find\(\(c\) => c\.key === cibleDegatsRetenue\(profile, s\)\)\?\.label\s*:\s*undefined;/.test(cli)
+    && cli.includes('${cibleCalculee ? `${cibleCalculee} — ` : \'\'}'),
+    'ligne du CLI : la cible calculée, avec le libellé du cran de l’écran, pour un sort qui le permet');
 }

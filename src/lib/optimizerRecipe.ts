@@ -416,8 +416,10 @@ function validerDamageSetup(value: unknown): string | null {
       // le refuse d'abord (degats-et-aura 8d).
       if (!estIdentifiantDeCompetence(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
       const regle = IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID[Number(skillId)];
+      // Le message ne compte ni ne nomme les sorts de la table : il resterait
+      // faux dès une entrée de plus (degats-et-aura 9c, relevé du lot 12).
       if (!regle) {
-        return erreur(path, "désigne un sort sans réglage d'ignore DEF par coup (seuls les six sorts des Blade Dancers en ont un)");
+        return erreur(path, "désigne un sort sans réglage d'ignore DEF par coup");
       }
       const permis = cransDeLaRegleIgnoreDef(regle).map((c) => c.rang);
       if (!permis.includes(rang as number | null)) {

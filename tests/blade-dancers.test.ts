@@ -344,8 +344,8 @@ export function testBladeDancersRecette() {
   ] as [unknown, string, string][]) {
     ok(refuse(avecChamp(champ), chemin), `refusé avec son chemin : ${motif}`);
   }
-  ok(!!avecChamp({ 4713: 2 }).error?.includes(`${CHEMIN}.4713 désigne un sort sans réglage d'ignore DEF par coup`),
-    'message : le sort n’a pas ce réglage');
+  egal(avecChamp({ 4713: 2 }).error, `Fichier invalide : ${CHEMIN}.4713 désigne un sort sans réglage d'ignore DEF par coup.`,
+    'message : le sort n’a pas ce réglage — sans compter ni nommer les sorts de la table (degats-et-aura 9c)');
 
   // Mal typé ou mal indexé : refusé avec son chemin.
   for (const [champ, chemin, motif] of [

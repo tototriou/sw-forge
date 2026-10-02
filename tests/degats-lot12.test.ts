@@ -474,6 +474,12 @@ export function testLot12IgnoreDefDepuisUnCoup() {
       ok(r.recipe === null && !!r.error?.includes(`${chemin} `), `recette refusée avec son chemin : ${motif}`);
     }
     ok(!!lire({ [ID_E]: 2 }).error?.includes(`${CHEMIN}.${ID_E} doit valoir null, 3, 4 pour ce sort`), 'recette : message avec les valeurs permises de E (dérivées de la règle)');
+    // degats-et-aura 9c : avec huit entrées, le refus d'une clé sans règle ne
+    // compte ni ne nomme les sorts de la table (il disait « seuls les six sorts
+    // des Blade Dancers en ont un »).
+    egal(Object.keys(table).length, 8, 'précondition : la table compte huit entrées, fixtures C et E comprises');
+    egal(lire({ 4713: 2 }).error, `Fichier invalide : ${CHEMIN}.4713 désigne un sort sans réglage d'ignore DEF par coup.`,
+      'recette : clé sans règle refusée par un message qui ne dépend pas du contenu de la table');
   } finally {
     for (const f of FIXTURES_IGNORE) delete table[f.id];
   }

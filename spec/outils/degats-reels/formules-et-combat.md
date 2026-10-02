@@ -210,7 +210,10 @@ curée que les crans de l'écran (`cransDeLaRegleIgnoreDef`). Toute autre
 valeur (coup 1, 9ᵉ coup, 0, « aucun » en variante B, texte…), et la clé d'un
 sort sans cette règle (Lushen S3, autre monstre), font **refuser** la
 recette avec le chemin exact (`damageSetup.premierCoupIgnoreDefParSort.<identifiant>`),
-jamais ramenées en silence au défaut. Une recette antérieure, sans le champ,
+jamais ramenées en silence au défaut. Le message d'une clé sans règle,
+« désigne un sort sans réglage d'ignore DEF par coup », ne compte ni ne nomme
+les sorts de la table : il reste juste quand elle grandit (degats-et-aura 9c,
+relevé du lot 12). Une recette antérieure, sans le champ,
 garde le défaut de chaque sort. L'écran et le CLI lisent la recette par le
 même parseur, et le CLI passe `damageSetup` entier au calcul, comme
 l'écran : le rang s'y applique à l'identique (degats-et-aura 10b).

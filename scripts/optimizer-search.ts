@@ -20,7 +20,7 @@
 // Un seul mode à la fois : sans `--rta` ni `--siege`, box (« Mon compte »).
 
 import { printMonsterSummary } from './lib/loadMonster';
-import { resolveArtifacts } from './lib/recipeToSearchParams';
+import { resolveArtifacts, toutVerifierDeLaRecette } from './lib/recipeToSearchParams';
 import { chargerRecette } from './lib/chargerRecette';
 import { activeSets, artifactSubName } from '../src/lib/effects';
 import { loadMonsterSkills } from './lib/skillsData';
@@ -117,7 +117,7 @@ console.log(
     `métrique ${recipe.metric} — préfiltrage ${recipe.slotFilterPreset} — ` +
     `piste B ${recipe.adaptiveTrancheWeighting ? 'ON' : 'off'} — exclure les runes déjà utilisées ${
       recipe.excludeUsedRunes ? `ON (${recipe.excludeUsedScope})` : 'off'
-    }`
+    } — vérifier toutes les combinaisons trouvées ${toutVerifierDeLaRecette(recipe) ? 'ON' : 'off'}`
 );
 console.log(`minStats : ${JSON.stringify(recipe.requirement.minStats)}`);
 console.log(
@@ -451,8 +451,11 @@ if (resolu) {
       ? `Équipement résolu pour TOUS les candidats (--resoudre-tout) : ${resolu.parBuild.size} build(s), ` +
           `${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms`
       : `Équipement résolu comme la file de l'écran : ${resolu.parBuild.size} build(s) sur ${result.candidates.length} — ` +
-          `l'ordre de base jusqu'à ${resolu.K} combinaisons confirmées (ou jusqu'au dernier build trouvé) et les ${LIGNES_IMPRIMEES} lignes imprimées, jusqu'au point fixe ` +
-          `(${resolu.lots} lot(s)) — ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
+          (Number.isFinite(resolu.K)
+            ? `l'ordre de base jusqu'à ${resolu.K} combinaisons confirmées (ou jusqu'au dernier build trouvé)`
+            : `toutes les combinaisons trouvées (« Vérifier toutes les combinaisons trouvées » dans la recette)`) +
+          ` et les ${LIGNES_IMPRIMEES} lignes imprimées, jusqu'au point fixe ` +
+          `(${resolu.lots} lot(s)) — ${resolu.parBuild.size - resolu.rejetes} confirmée(s), ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
           `Les autres candidats restent classés dans l'ordre de base, non résolus ; --resoudre-tout pour tout résoudre.`
   );
   if (result.truncated) {

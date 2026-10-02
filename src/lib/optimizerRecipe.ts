@@ -34,7 +34,9 @@ export const OPTIMIZER_RECIPE_VERSION = 1;
 // 1. `OptimizerSection.tsx` — `exportRecipe`/`importRecipe`/`handleSearch`
 //    (l'écran, source de vérité).
 // 2. `scripts/lib/recipeToSearchParams.ts` — `recipeToSearchParams` (rejoue
-//    une recette depuis un script, utilisé par `scripts/optimizer-search.ts`).
+//    une recette depuis un script, utilisé par `scripts/optimizer-search.ts`),
+//    et ses lecteurs des champs qui n'entrent pas dans `SearchParams`
+//    (`toutVerifierDeLaRecette`, lu par `classementCli.ts`).
 /**
  * Les choix de principale d'une recette, adaptés au compte qui la LIT.
  *
@@ -138,6 +140,18 @@ export interface OptimizerRecipe {
   slotFilterPreset: SlotFilterPresetKey;
   adaptiveTrancheWeighting: boolean;
   exhaustiveSearch: boolean;
+  /**
+   * « Vérifier toutes les combinaisons trouvées » (degats-et-aura 6bis-b18) :
+   * la file de résolution vérifie tous les builds trouvés au lieu de s'arrêter
+   * à K confirmées (`cibleDeLaFile`, artifactQueue.ts).
+   *
+   * ⚠️ **OPTIONNEL, et il doit le rester** : une recette exportée avant ce
+   * champ ne le porte pas, et tout lecteur applique `?? false` — l'écran
+   * (`importRecipe`), le CLI (`toutVerifierDeLaRecette`, recipeToSearchParams.ts).
+   * Il n'entre pas dans `SearchParams` : le moteur de runes l'ignore, seule la
+   * file le lit. Purement de la saisie, rien à re-résoudre chez qui importe.
+   */
+  verifierToutesLesCombinaisons?: boolean;
   // ⚠️ Remplace l'ancien `exploreAll` (COCHÉ par défaut, portait uniquement
   // sur la box, signification inverse) — voir OptimizerSection.tsx pour le
   // repli de lecture appliqué aux recettes exportées AVANT ce renommage.
@@ -428,7 +442,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
     }
   }
 
-  for (const champ of ['adaptiveTrancheWeighting', 'exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts', 'compterAurasResPre']) {
+  for (const champ of ['adaptiveTrancheWeighting', 'exhaustiveSearch', 'excludeUsedRunes', 'ignoreArtifacts', 'compterAurasResPre', 'verifierToutesLesCombinaisons']) {
     if (d[champ] !== undefined && typeof d[champ] !== 'boolean') return { recipe: null, error: erreur(champ, 'doit être un booléen') };
   }
   if (d.excludeUsedScope !== undefined && !['rta', 'siege-defense', 'box'].includes(String(d.excludeUsedScope))) {

@@ -280,6 +280,15 @@ export interface OptimizerState {
   // candidats collectés, qui reste une limite indépendante.
   exhaustiveSearch: boolean;
   setExhaustiveSearch: Dispatch<SetStateAction<boolean>>;
+  // Toggle « Vérifier toutes les combinaisons trouvées » (degats-et-aura
+  // 6bis-b18) — désactivé par défaut : la file de résolution s'arrête à K
+  // combinaisons confirmées (300 en relique « recherche », 100 sinon) ; activé,
+  // elle vérifie tous les builds trouvés (`cibleDeLaFile`). Un RÉGLAGE AVANCÉ,
+  // comme `exhaustiveSearch` : `resetSearch` ne le remet pas à zéro. Lu en
+  // direct par la file, pas par `handleSearch` : il ne change pas la recherche
+  // de runes. Gardé dans la recette (`OptimizerRecipe.verifierToutesLesCombinaisons`).
+  verifierToutesLesCombinaisons: boolean;
+  setVerifierToutesLesCombinaisons: Dispatch<SetStateAction<boolean>>;
   sortBy: OptimizerSortKey;
   setSortBy: Dispatch<SetStateAction<OptimizerSortKey>>;
   // Pagination des résultats affichés (1-indexé) — état d'AFFICHAGE pur, pas
@@ -375,6 +384,7 @@ export function useOptimizerState(): OptimizerState {
   const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
   const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
   const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
+  const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
   const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
   const [resultsPage, setResultsPage] = useState(1);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -468,6 +478,8 @@ export function useOptimizerState(): OptimizerState {
     setAdaptiveTrancheWeighting,
     exhaustiveSearch,
     setExhaustiveSearch,
+    verifierToutesLesCombinaisons,
+    setVerifierToutesLesCombinaisons,
     sortBy,
     setSortBy,
     resultsPage,

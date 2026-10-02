@@ -1426,6 +1426,22 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
      une recette (voir plus bas).
+   - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut
+     (degats-et-aura 6bis-b18, libellé proposé par le pilote, retenu par
+     l'utilisateur le 2026-10-02) : la file de résolution vérifie tous les
+     builds trouvés au lieu de s'arrêter à 100 combinaisons confirmées (300
+     en mode relique « recherche », voir « Le choix des artéfacts ») — le
+     compte des confirmées devient complet, au prix de plusieurs minutes
+     possibles ; son aide le dit. ⚠️ **Lu EN DIRECT par la file**, jamais par
+     « Rechercher » : il ne change pas la recherche de runes, seulement
+     jusqu'où la file vérifie ; l'activer après une recherche vérifie le
+     reste sans la relancer, le couper ne perd rien de déjà vérifié.
+     ⚠️ **Masqué quand l'optimisation d'artéfacts est désactivée** : sans
+     file, rien n'est vérifié — même règle que « Adapter les artéfacts et
+     reliques au tri ». Fait partie des réglages exportés/importés dans une
+     recette, champ optionnel `verifierToutesLesCombinaisons` (une recette
+     exportée avant le relit désactivé), et le CLI le respecte (voir
+     « Résultats »).
 
    ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** —
    contrairement à ce que le lot 5c avait prévu : il vit dans le bloc
@@ -1602,7 +1618,10 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     vérifie) dit la différence avec les trouvées de la ligne de progression :
     une combinaison confirmée tient vraiment toutes les conditions avec les
     pièces de l'inventaire ; « trouvée(s) » est une estimation optimiste,
-    retenue stat par stat, dont une partie est écartée à la vérification.
+    retenue stat par stat, dont une partie est écartée à la vérification ;
+    la vérification s'arrête à 100 confirmées (300 quand la relique est
+    cherchée), et « Vérifier toutes les combinaisons trouvées » (Réglages
+    avancés) va jusqu'au bout.
     **« Aucune combinaison ne répond à ces critères »** ne s'affiche qu'une
     fois la recherche finie et tout vérifié sans aucune confirmée — la file
     va jusqu'au dernier build trouvé faute de K confirmées (voir « Le choix
@@ -1748,6 +1767,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     (artifactQueue.ts), la fonction même de l'écran, lue sur le contexte
     relique de la recherche lancée (`params.relicContext`) —
     degats-et-aura 6bis-b8 ; des confirmées, plus des rangs, depuis 6bis-b18.
+    Avec « Vérifier toutes les combinaisons trouvées » dans la recette
+    (`verifierToutesLesCombinaisons`, lu par `toutVerifierDeLaRecette`,
+    recipeToSearchParams.ts, repli `?? false` comme l'écran), la cible est
+    infinie (`cibleDeLaFile`, la fonction de l'écran) : le CLI résout tous
+    les candidats, comme la file de l'écran avec l'interrupteur, et son
+    classement est alors celui de `--resoudre-tout` ; sa console le dit.
     `--resoudre-tout` résout TOUS les candidats collectés. Décision
     utilisateur du 2026-10-01 (option 2), après mesure : avec des artéfacts
     « Libre » — le défaut de l'écran —, la résolution complète coûtait
@@ -2548,7 +2573,10 @@ jusqu'au dernier build trouvé. Sans écarté, c'est exactement « les cent (tro
 cents) premiers », la règle d'avant ; sur une recherche aux minimums serrés
 (Kinki, environ un build vérifié sur six conforme), la file vérifie tout. Une
 seule fonction pure, `prochainsATraiter`, en décide, sur le cache lui-même
-(la conformité de chaque résultat), à l'écran comme au CLI. La cible de la
+(la conformité de chaque résultat), à l'écran comme au CLI. L'interrupteur
+« Vérifier toutes les combinaisons trouvées » (Réglages avancés, désactivé
+par défaut) rend la cible infinie — `cibleDeLaFile`, lu en direct : tous les
+builds trouvés sont vérifiés. La cible de la
 file (`kDeLaFile`, artifactQueue.ts) est fixée dès le lancement par le contexte
 relique de la recherche LANCÉE, jamais par les réglages courants : les
 changer après coup ne la modifie pas. Pourquoi trois cents : en mode

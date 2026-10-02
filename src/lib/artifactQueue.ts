@@ -169,6 +169,23 @@ export function kDeLaFile(relicContext: RelicContext | undefined): number {
 }
 
 /**
+ * La cible de la file que l'écran et le CLI passent à `prochainsATraiter` :
+ * `kDeLaFile` confirmées, ou TOUT avec l'interrupteur « Vérifier toutes les
+ * combinaisons trouvées » (`Infinity` : la fenêtre de fond ne s'arrête qu'au
+ * dernier build trouvé) — degats-et-aura 6bis-b18.
+ *
+ * - `relicContext` : celui de la recherche LANCÉE (voir `kDeLaFile`).
+ * - `toutVerifier` : l'interrupteur (`verifierToutesLesCombinaisons`, réglage
+ *   avancé, désactivé par défaut, gardé dans la recette). ⚠️ Lu EN DIRECT à
+ *   l'écran, pas figé au lancement : il ne change pas la recherche, seulement
+ *   jusqu'où la file vérifie ; l'activer après coup vérifie le reste sans
+ *   relancer, et rien de déjà vérifié n'est perdu en le coupant.
+ */
+export function cibleDeLaFile(e: { relicContext: RelicContext | undefined; toutVerifier: boolean }): number {
+  return e.toutVerifier ? Number.POSITIVE_INFINITY : kDeLaFile(e.relicContext);
+}
+
+/**
  * Les builds à traiter ensuite, dans l'ordre de priorité : la page affichée,
  * puis l'avance de fond, qui vise `K` combinaisons CONFIRMÉES (degats-et-aura
  * 6bis-b18).
@@ -181,7 +198,9 @@ export function kDeLaFile(relicContext: RelicContext | undefined): number {
  * la file continue, dans l'ordre du classement, jusqu'à K confirmées ou
  * jusqu'au dernier build trouvé. **Sans écartée, c'est exactement « les K
  * premiers non résolus »**, la règle d'avant ce lot : rien ne change dans le cas
- * normal (« Dégâts réels » de référence : 300 conformes sur 300).
+ * normal (« Dégâts réels » de référence : 300 conformes sur 300). `K` infini
+ * (`cibleDeLaFile`, « Vérifier toutes les combinaisons trouvées ») : tous les
+ * non résolus, dans l'ordre.
  *
  * ⚠️ `cache` est le cache de la file lui-même (`cleBuild` → résultat), jamais
  * une copie de ses clés : la conformité de chaque résultat y est lue. Seules

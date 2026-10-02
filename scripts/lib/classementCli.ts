@@ -34,13 +34,13 @@ import {
   optionsDeClassement,
   sortCandidates,
 } from '../../src/lib/runeBuildOptim';
-import { ResultatArtefacts, classementResolu, cleBuild, kDeLaFile, prochainsATraiter } from '../../src/lib/artifactQueue';
+import { ResultatArtefacts, cibleDeLaFile, classementResolu, cleBuild, prochainsATraiter } from '../../src/lib/artifactQueue';
 import { etatReliqueDuBuild } from '../../src/lib/relicQueue';
 import { ArtifactDamageProfile, DEFAULT_DAMAGE_SETUP, artifactDamageProfile } from '../../src/lib/damage';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { LoadedMonster } from './loadMonster';
 import { loadMonstersList } from './monstersData';
-import { resoudreEquipementCli } from './recipeToSearchParams';
+import { resoudreEquipementCli, toutVerifierDeLaRecette } from './recipeToSearchParams';
 
 // Ce que les deux jeux d'options (ordre de base, classement résolu) ont en
 // commun — tout sauf les deux accesseurs qui lisent le cache de résolution.
@@ -53,8 +53,10 @@ export const LIGNES_IMPRIMEES = 20;
 export interface ClassementResoluCli {
   // `file` (défaut) : comme la file de l'écran ; `tout` : `--resoudre-tout`.
   mode: 'file' | 'tout';
-  // La cible de la file en mode `file`, en combinaisons CONFIRMÉES (`kDeLaFile`
-  // du contexte relique de la recherche, 6bis-b18) — celle que la console cite.
+  // La cible de la file en mode `file`, en combinaisons CONFIRMÉES
+  // (`cibleDeLaFile` : `kDeLaFile` du contexte relique de la recherche, ou
+  // `Infinity` avec « Vérifier toutes les combinaisons trouvées » dans la
+  // recette, 6bis-b18) — celle que la console cite.
   K: number;
   // Le cache de résolution, par `cleBuild` — le pendant de `parBuild` de la
   // file. En mode `file`, seuls les builds résolus y figurent ; les autres
@@ -83,9 +85,11 @@ export interface ClassementResoluCli {
  *   chaque lot, `prochainsATraiter` — les `LIGNES_IMPRIMEES` premières du
  *   classement courant, puis l'ordre de base jusqu'à K confirmées
  *   (`kDeLaFile(params.relicContext)`, la fonction de l'écran : 300 en mode
- *   relique « recherche », 100 sinon), déjà résolus exclus — ; on s'arrête
- *   quand le lot est vide : toutes les lignes imprimées sont résolues, et K
- *   confirmées atteintes ou tout l'ordre de base résolu.
+ *   relique « recherche », 100 sinon ; tous avec « Vérifier toutes les
+ *   combinaisons trouvées » dans la recette, `cibleDeLaFile`), déjà résolus
+ *   exclus — ; on s'arrête quand le lot est vide : toutes les lignes
+ *   imprimées sont résolues, et K confirmées atteintes ou tout l'ordre de
+ *   base résolu.
  * - `toutResoudre` vrai : tous les candidats, en une passe.
  *
  * `null` là où l'écran n'a pas de file (`resoudreEquipementCli`) : le
@@ -125,8 +129,10 @@ export function classerApresResolution(e: {
     etatReliqueDe: (c) => etatReliqueDuBuild(parBuild.get(cleBuild(c)), e.params.relicContext, e.params.relic),
   });
   // Le contexte de la recherche LANCÉE, comme `relicContextRecherche` à
-  // l'écran : jamais relu dans la recette.
-  const K = kDeLaFile(e.params.relicContext);
+  // l'écran : jamais relu dans la recette. L'interrupteur « Vérifier toutes les
+  // combinaisons trouvées », lui, vient de la recette, comme l'écran le lit
+  // dans ses réglages (6bis-b18) : tous les candidats, dans l'ordre de base.
+  const K = cibleDeLaFile({ relicContext: e.params.relicContext, toutVerifier: toutVerifierDeLaRecette(e.recipe) });
   const t0 = performance.now();
   let lots = 0;
   if (e.toutResoudre) {

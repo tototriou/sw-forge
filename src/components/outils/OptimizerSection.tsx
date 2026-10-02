@@ -23,7 +23,7 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
@@ -467,6 +467,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     setAdaptiveTrancheWeighting,
     exhaustiveSearch,
     setExhaustiveSearch,
+    verifierToutesLesCombinaisons,
+    setVerifierToutesLesCombinaisons,
     sortBy,
     setSortBy,
     resultsPage,
@@ -1821,6 +1823,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       slotFilterPreset,
       adaptiveTrancheWeighting,
       exhaustiveSearch,
+      verifierToutesLesCombinaisons,
       excludeUsedRunes,
       excludeUsedScope,
       excludedSelectors,
@@ -1951,6 +1954,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // champ (`undefined`) — repli sur le défaut plutôt que de propager une
       // valeur non booléenne à l'état.
       setExhaustiveSearch(recipe.exhaustiveSearch ?? false);
+      // ⚠️ `?? false`, même repli (6bis-b18) : une recette exportée avant ce
+      // champ ne le porte pas — désactivé, le défaut.
+      setVerifierToutesLesCombinaisons(recipe.verifierToutesLesCombinaisons ?? false);
       // ⚠️ Repli sur l'ANCIEN champ `exploreAll` (recette exportée avant ce
       // renommage/inversion) : `exploreAll` coché = pas d'exclusion
       // (`excludeUsedRunes = false`, comportement identique) ; décoché =
@@ -2265,8 +2271,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // ⚠️ 300 en mode relique « recherche », 100 sinon (6bis-b8), dès le
     // lancement : le contexte de la recherche LANCÉE, jamais les réglages
     // courants — les changer après coup ne change pas K. Des combinaisons
-    // CONFIRMÉES depuis 6bis-b18 : la file continue au-delà des écartés.
-    K: kDeLaFile(relicContextRecherche),
+    // CONFIRMÉES depuis 6bis-b18 : la file continue au-delà des écartés ; et
+    // TOUT avec « Vérifier toutes les combinaisons trouvées », lu EN DIRECT
+    // (il ne change pas la recherche de runes, seulement jusqu'où la file
+    // vérifie — voir `cibleDeLaFile`).
+    K: cibleDeLaFile({ relicContext: relicContextRecherche, toutVerifier: verifierToutesLesCombinaisons }),
     // Le Worker de résolution quand il est disponible ; `resoudre` reste le
     // chemin de repli.
     horsFil: resolutionHorsFil,
@@ -4022,7 +4031,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // réglage qu'on vient de toucher sans d'abord refermer le panneau.
         const reglagesAvancesInner = (dansPanneau: boolean) => (
           /* ⚠️ **DEUX colonnes dès que la place le permet** (demande explicite)
-              — le pré-filtrage et son avertissement d'un côté, les trois
+              — le pré-filtrage et son avertissement d'un côté, les
               interrupteurs de l'autre.
               ⚠️ `auto-fit`/`minmax` et NON un point de rupture d'écran
               (`sm:`/`xl:`) : ce qui décide ici est la largeur du PANNEAU, pas
@@ -4124,6 +4133,37 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 aria-label="Prioriser les stats les plus difficiles"
               />
             </div>
+
+            {/* « Vérifier toutes les combinaisons trouvées » (degats-et-aura
+                6bis-b18) : désactivé par défaut, lu EN DIRECT par la file
+                (`cibleDeLaFile`), jamais par `handleSearch` — il ne change pas
+                la recherche de runes, seulement jusqu'où la file vérifie.
+                MASQUÉ sans optimisation d'artéfacts : sans file, rien n'est
+                vérifié, et une saisie sans effet est pire qu'une saisie
+                absente (même règle que « Adapter les artéfacts et reliques
+                au tri »). L'interrupteur qui le masque vit dans une autre
+                carte : rien ne bouge sous le clic. */}
+            {optimiserArtefacts && (
+              <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11.5px] text-ink-dim">Vérifier toutes les combinaisons trouvées</span>
+                  <HelpPopover title="Vérifier toutes les combinaisons trouvées">
+                    Par défaut, la vérification des artéfacts et de la relique s'arrête dès que{' '}
+                    <b className="text-ink">100 combinaisons sont confirmées</b> (300 quand la relique est cherchée) :
+                    les suivantes ne sont vérifiées que si tu ouvres leur page.
+                    <br />
+                    <br />
+                    Activé, toutes les combinaisons trouvées sont vérifiées, au-delà de ces confirmées : le compte
+                    devient complet, mais cela peut prendre plusieurs minutes.
+                  </HelpPopover>
+                </div>
+                <Interrupteur
+                  actif={verifierToutesLesCombinaisons}
+                  onChange={setVerifierToutesLesCombinaisons}
+                  aria-label="Vérifier toutes les combinaisons trouvées"
+                />
+              </div>
+            )}
           </div>
           </div>
         );
@@ -4768,6 +4808,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   Le nombre « trouvée(s) » de la barre de progression compte tout ce que la recherche a retenu stat
                   par stat : une estimation optimiste, pas encore vérifiée. Une partie de ces combinaisons est
                   écartée à la vérification.
+                  <br />
+                  <br />
+                  La vérification s'arrête à 100 confirmées (300 quand la relique est cherchée) ; « Vérifier toutes
+                  les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
                 </HelpPopover>
               )}
             </div>

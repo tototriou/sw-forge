@@ -45,7 +45,7 @@ import {
   scoreDuCandidat,
   sortCandidates,
 } from '../src/lib/runeBuildOptim';
-import { K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE, ResultatArtefacts, classementResolu, cleBuild, kDeLaFile, prochainsATraiter } from '../src/lib/artifactQueue';
+import { K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE, ResultatArtefacts, cibleDeLaFile, classementResolu, cleBuild, prochainsATraiter } from '../src/lib/artifactQueue';
 import { entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { regimeArtefacts, regimeEquipementDe } from '../src/lib/artifactEvaluation';
 import { artefactsDuCli, recipeToSearchParams } from '../scripts/lib/recipeToSearchParams';
@@ -102,8 +102,9 @@ const LOADED: LoadedMonster = {
  * (`fullSortedCandidates`), puis — optimisation d'artéfacts active — la file
  * et `affichees`. `file` vrai : la file comme le hook `useArtifactOptimQueue`
  * la déroule, sans navigateur — UN build par tranche, le premier de
- * `prochainsATraiter(ordre de base, cache, kDeLaFile(contexte lancé), page)`
- * — 300 en mode « recherche », 100 sinon (6bis-b8) —, la page
+ * `prochainsATraiter(ordre de base, cache, cibleDeLaFile(contexte lancé,
+ * interrupteur), page)` — 300 confirmées en mode « recherche », 100 sinon
+ * (6bis-b8, 6bis-b18), tout avec l'interrupteur —, la page
  * (20 lignes, `RESULTS_PAGE_SIZE`) recalculée à chaque tranche, jusqu'à ce
  * qu'il ne reste rien. `file` faux : tous les candidats résolus.
  */
@@ -146,7 +147,10 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
   if (file) {
     for (;;) {
       const page = classementResolu(fullSortedCandidates, parBuild, recipe.objective, options).slice(0, 20);
-      const suivant = prochainsATraiter(fullSortedCandidates, parBuild, kDeLaFile(relicContextRecherche), page)[0];
+      // L'interrupteur de l'écran (`verifierToutesLesCombinaisons`), posé par
+      // l'import de la recette avec le même repli (`?? false`).
+      const K = cibleDeLaFile({ relicContext: relicContextRecherche, toutVerifier: recipe.verifierToutesLesCombinaisons ?? false });
+      const suivant = prochainsATraiter(fullSortedCandidates, parBuild, K, page)[0];
       if (!suivant) break;
       parBuild.set(cleBuild(suivant), resoudre(suivant));
     }
@@ -308,6 +312,22 @@ export function testCliClassementParMode() {
       egal(manquants.filter((k) => r.parBuild.has(k)), [],
         `${mode}, file : ${manquants.length} des ${LIGNES_IMPRIMEES} premiers de --resoudre-tout absents de la file, aucun résolu par elle` +
           (manquants.length ? ` (rangs exhaustifs ${JSON.stringify(manquants.map((k) => tout.indexOf(k) + 1))}, rangs dans l'ordre de base ${JSON.stringify(rangsBase.map((i) => i + 1))})` : ''));
+
+      // 6bis-b18 : « Vérifier toutes les combinaisons trouvées » dans la
+      // recette — le CLI, en mode par défaut, résout TOUT, comme la file de
+      // l'écran avec l'interrupteur ; et son classement est celui de
+      // `--resoudre-tout`.
+      const recetteTout = { ...recipe, verifierToutesLesCombinaisons: true };
+      const cliTout = classerCommeLEcran({ recipe: recetteTout, loaded: LOADED, params, candidates: res.candidates, realDamage, toutResoudre: false });
+      const ecranTout = classementEcran(recetteTout, res.candidates, realDamage, true);
+      const rt = cliTout.resolu!;
+      egal([rt.mode, rt.K], ['file', Number.POSITIVE_INFINITY], `${mode}, interrupteur : mode par défaut, cible infinie`);
+      egal([rt.parBuild.size, ecranTout.parBuild.size], [res.candidates.length, res.candidates.length],
+        `${mode}, interrupteur : les ${res.candidates.length} candidats vérifiés, au CLI comme à l’écran`);
+      const lTout = lignes(cliTout.classes, cliTout.options);
+      egal(lTout.map((x) => x.cle), lignes(ecranTout.affichees, ecranTout.options).map((x) => x.cle), `${mode}, interrupteur : mêmes ${LIGNES_IMPRIMEES} lignes que l’écran`);
+      egal([cliTout.classes.map(cleBuild).join('|') === cli.classes.map(cleBuild).join('|'), cliTout.classes.length], [true, cli.classes.length],
+        `${mode}, interrupteur : le classement entier est celui de --resoudre-tout (${cli.classes.length} builds)`);
     }
   }
 }

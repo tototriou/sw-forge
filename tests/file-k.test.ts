@@ -47,8 +47,13 @@ export function testKDeLaFile() {
   ok(/relicContext: relicContextRecherche, run, stop \} = search;/.test(ecran),
     'écran : `relicContextRecherche` est le contexte de la recherche lancée (`useBuildOptimSearch`)');
   const appelFile = ecran.match(/useArtifactOptimQueue\(\{[\s\S]*?\n {2}\}\);/)?.[0] ?? '';
-  ok(/\n\s*K: kDeLaFile\(relicContextRecherche\),/.test(appelFile), 'écran : la file reçoit `K: kDeLaFile(relicContextRecherche)`');
-  egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 1, 'écran : un seul appel à `kDeLaFile`');
+  // Depuis 6bis-b18, par `cibleDeLaFile`, qui rend `kDeLaFile` du même contexte
+  // sans l'interrupteur « Vérifier toutes les combinaisons trouvées »
+  // (tests/verifier-toutes.test.ts).
+  ok(/\n\s*K: cibleDeLaFile\(\{ relicContext: relicContextRecherche, toutVerifier: verifierToutesLesCombinaisons \}\),/.test(appelFile),
+    'écran : la file reçoit `K: cibleDeLaFile({ relicContext: relicContextRecherche, … })`');
+  egal((ecran.match(/cibleDeLaFile\(/g) ?? []).length, 1, 'écran : un seul appel à `cibleDeLaFile`');
+  egal((ecran.match(/kDeLaFile\(/g) ?? []).length, 0, 'écran : plus aucun appel direct à `kDeLaFile`');
 
   // Le hook : K obligatoire, sans défaut (un appel qui l'oublierait ne compile pas).
   const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
@@ -59,7 +64,8 @@ export function testKDeLaFile() {
 
   // Le CLI : le contexte de la recherche lancée (`params.relicContext`).
   const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');
-  ok(/const K = kDeLaFile\(e\.params\.relicContext\);/.test(cli), 'CLI : `K = kDeLaFile(e.params.relicContext)`');
+  ok(/const K = cibleDeLaFile\(\{ relicContext: e\.params\.relicContext, toutVerifier: toutVerifierDeLaRecette\(e\.recipe\) \}\);/.test(cli),
+    'CLI : `K = cibleDeLaFile({ relicContext: e.params.relicContext, … })`');
   ok(/prochainsATraiter\(e\.base, parBuild, K, page\)/.test(cli), 'CLI : la file du CLI sert `prochainsATraiter` avec ce K, sur son cache');
 
   // Aucun autre appel de production ne choisit sa taille de file à la main.

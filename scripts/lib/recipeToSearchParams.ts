@@ -230,6 +230,21 @@ export function artefactsDuCli(
 }
 
 /**
+ * « Vérifier toutes les combinaisons trouvées » lu dans la recette, pour la
+ * file du CLI (`classerApresResolution`, classementCli.ts) — le pendant de
+ * l'interrupteur de l'écran (degats-et-aura 6bis-b18).
+ *
+ * ⚠️ **Le seul point de lecture du champ côté CLI**, avec le repli de l'écran
+ * (`?? false`) : une recette exportée avant ce champ ne le porte pas. Il
+ * n'entre pas dans `SearchParams` — le moteur de runes l'ignore, seule la file
+ * le lit (`cibleDeLaFile`) —, d'où cette fonction plutôt qu'un champ de
+ * `recipeToSearchParams`.
+ */
+export function toutVerifierDeLaRecette(recipe: OptimizerRecipe): boolean {
+  return recipe.verifierToutesLesCombinaisons ?? false;
+}
+
+/**
  * La résolution de l'équipement par build du CLI — celle de la file de
  * l'écran (`resoudreEquipement`, OptimizerSection.tsx), par le même
  * producteur (`entreeResolutionDuBuild`, relicQueue.ts) et la même partie

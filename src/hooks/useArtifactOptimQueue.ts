@@ -177,9 +177,10 @@ export function useArtifactOptimQueue(opts: {
   // vise hors page affichée : `kDeLaFile` (artifactQueue.ts) du contexte relique
   // de la recherche LANCÉE — 300 en mode « recherche », 100 sinon ; la file
   // continue au-delà des écartés, dans l'ordre de base, jusqu'à K confirmées
-  // ou jusqu'au dernier build trouvé (6bis-b18). Obligatoire, sans défaut : un
-  // appel qui l'oublierait garderait 100 en mode « recherche » sans que `tsc`
-  // le voie (6bis-b8).
+  // ou jusqu'au dernier build trouvé (6bis-b18) ; `Infinity` avec « Vérifier
+  // toutes les combinaisons trouvées » — l'écran passe `cibleDeLaFile`.
+  // Obligatoire, sans défaut : un appel qui l'oublierait garderait 100 en mode
+  // « recherche » sans que `tsc` le voie (6bis-b8).
   K: number;
   /**
    * La résolution hors du fil de l'écran (6bis-b13bis-b) — `null` quand

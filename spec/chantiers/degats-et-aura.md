@@ -680,8 +680,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b14 — la résolution rend la main entre deux reliques | J | sans objet : remplacé par le Worker (décision de l'utilisateur du 2026-10-02) | — |
 | 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | terminé ; vérifié par l'utilisateur à l'écran | `7b3ec767` ; reçu `7b3ec76` ↔ `1d50ccc` / 2026-10-02 |
 | 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
-| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | lançable ; créneau de mesure libre (A.8) | — |
-| 7 — sets d'aura : l'écran | J | attend 6bis-b13bis-b ; intrant à recaler au brief | — |
+| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | **arrêté avant livraison (A.6)** : recherche +4 à +7 % en « Dégâts réels », résultat complet −27 % ; preuves rejouées par le pilote ; **décision de l'utilisateur attendue** (A.8) ; revue indépendante du Worker à faire avant 7 | `9a7202a8`, `534de15a` locaux, ni livrés ni poussés / 2026-10-02 |
+| 7 — sets d'aura : l'écran | J | attend la décision sur 6bis-b13bis-b et la revue du Worker ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -738,10 +738,19 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b7 | Facultatif : recette `recette-6bis-b7-atq3000-dc220.json` (Lushen, siège 15) → « Recherche interrompue après examen de N combinaisons » | en attente |
 | 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | en attente (le 0 et la ligne de raison : vus le 2026-10-02) |
 | 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
-| 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | après le lot |
+| 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | après la décision ci-dessous |
 | 7 | Écran des sets d'aura, sur ordinateur ET sur téléphone | après le lot |
 | 8, 9, 10 | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) | après les lots |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
+
+#### Décisions de l'utilisateur en attente
+
+Tenue comme la table précédente : une ligne quand le pilote s'arrête sur une
+décision, rayée avec la date et la réponse.
+
+| Lot | Question | État |
+| --- | --- | --- |
+| 6bis-b13bis-b | Garder le Worker malgré une recherche +4 à +7 % plus longue en « Dégâts réels », pour un résultat complet ~27 % plus tôt et un fil de l'écran libéré ? Trois options, chiffres et recommandation : Résultat du lot | posée le 2026-10-02 |
 
 ---
 
@@ -5156,6 +5165,92 @@ tests de zone, build, spec-lint, diff-check ; preuve
 
 **Ne fait pas :** changement de la résolution, de K, de l'ordre de la file,
 du compte affiché ; le CLI reste synchrone.
+
+###### Résultat du lot 6bis-b13bis-b — 2026-10-02 (arrêté avant livraison)
+
+Agent lancé par le pilote (A.8). **Arrêt A.6 avant `livrer`** : la recherche
+ralentit en « Dégâts réels ». Deux commits locaux, ni livrés ni poussés :
+`9a7202a8` — module pur `src/workers/resolutionDistante.ts`
+(`ResolutionDistante` : contexte envoyé seulement s'il y a du travail et
+qu'il a changé ; au plus `DEMANDES_EN_VOL_MAX` = 2 demandes sans réponse ;
+au changement de page, annulation des demandes non commencées, jamais de la
+plus ancienne en vol ; réponse écrite seulement si elle est du contexte
+courant, par `idContexte` ET par l'identité des entrées et de la
+signature ; `publicationForcee`). Le hook ne fait que le brancher : un
+Worker pour la vie du hook, terminé au démontage ; repli définitif sur les
+deux voies de b11, cache gardé. `OptimizerSection.tsx` construit
+`entreesResolution` par `entreesSerialisables` et passe `horsFil`.
+`tests/resolution-distante.test.ts` : 67 vérifications, dont 24 files
+simulées (module et corps derrière `structuredClone`) contre la résolution
+directe ; trois recettes gelées identiques au CLI. `534de15a` : chiffres de
+la mesure dans `optimizer.md`. Notes privées amendées, non livrées :
+`invariants.md` L102 et L191, `parallelisation-partagee.md` § 3.7, preuves
+`controle-6bis-b13bis-b.md` (agent) et `controle-6bis-b13bis-b-pilote.md`
+(pilote).
+
+**Rejoué par le pilote sur `534de15a`** : `tsc` 0 ; tests de zone (11
+filtres) 797 passés ; build, spec-lint, diff-check verts. Relecture : le
+corps répond `annule` à chaque demande touchée par `contexte` ou
+`annuler`, donc aucune demande ne reste en vol (pas d'interblocage) ; le
+cache ne se vide qu'au changement de signature, donc le repli le garde.
+Mutation du pilote (une demande en vol n'est plus annulée tant que son
+build reste dans la file) : 1 échec sur 67, l'assertion du changement de
+page ; restauré. Mutations de l'agent : réponse périmée acceptée, 9
+échecs ; garde rendu→effet retirée, 6.
+
+**Mesure de l'agent** (12 paires « Dégâts réels », 4 « PV effectifs », 4
+bridées ×4) : le fil de l'écran se libère (tâches longues 4 % contre 28 %,
+plus longue 82 contre 101 ms, page 1 en 1,3 contre 1,9 s, page 2 en 0,9
+contre 1,6 s ; contexte 4 ms, ~800 Ko, un envoi par recherche) ; **la
+recherche est plus lente dans 11 paires sur 12, médiane des écarts
++3,6 %** (p = 0,006), sous la dispersion des séries ; « PV effectifs » :
+rien de lisible.
+
+**Mesure complémentaire du pilote : quand le résultat est-il complet ?**
+La campagne de l'agent s'arrêtait 3 s après la fin, sans savoir si les 300
+premiers étaient résolus. Instrument : réponses du Worker (A), tranches
+`requestIdleCallback` et `MessageChannel` du chemin direct (B), jusqu'à 5 s
+de silence ; 6 paires entrelacées, 3 bridées ×4 :
+
+| « Dégâts réels », médianes | A (Worker) | B (avant) | apparié |
+| --- | --- | --- | --- |
+| recherche | 9 510 ms | 8 883 ms | +7,2 % (6/6) |
+| résultat complet (recherche finie, 300 résolus) | 15,2 s | 20,7 s | −26,9 % (6/6) |
+| résolus avant / après la fin | 162 / 139 | 85 / 216 | |
+| bridé ×4 : recherche / complet | 9,9 / 24,5 s | 11,1 / 113,5 s | −11 % / −80 % |
+
+B finissait l'essentiel de sa file APRÈS la recherche, sur le fil de
+l'écran, par tranches d'environ 36 ms : sous le seuil de 50 ms des tâches
+longues, d'où leur absence de la mesure de l'agent.
+
+**Lecture.** Le Worker fait le travail PENDANT la recherche au lieu
+d'après : la recherche s'allonge de +4 à +7 % (0,35 à 0,6 s sur 9 s ;
+deux campagnes, leur écart n'est pas expliqué), le résultat complet arrive
+~5,5 s plus tôt, et bien plus tôt sur un fil de l'écran lent. Le contrat
+garantissait « la recherche ne ralentit pas » ; l'invariant L102 dit « pas
+de façon perceptible ». Le choix revient à l'utilisateur (A.8, décisions
+en attente). Options présentées :
+
+1. **Garder le Worker tel quel** (recommandation du pilote) : livrer,
+   intégrer, essai à l'écran (A.8).
+2. **Le Worker ne résout que la page pendant la recherche, le reste
+   après** : la recherche devrait retrouver sa durée, le résultat complet
+   revenir vers celui d'avant (~20 s, estimation : 280 builds à ~42 ms
+   après la fin), fil libéré et page rapide conservés. Un lot de plus
+   (6bis-b13bis-c), même mesure.
+3. **Renoncer au Worker** : `git revert` des deux commits, retour au
+   chemin direct de b13.
+
+**Écarts signalés par l'agent, hors périmètre** : `CLAUDE.md` annonce
+« 45 vérifications », le registre en compte 149 (affiché par
+`node tests/run.mjs`) ; une erreur 404 de ressource dans A, B et C, non
+instruite.
+
+**Non prouvé** : le hook sous React en mode développement (StrictMode) ;
+le repli, l'annulation réelle et l'arrêt sans fuite du Worker au
+navigateur ; le renvoi du contexte quand un réglage change après la
+recherche ; un vrai téléphone ; l'identité du classement affiché entre A
+et B à l'écran (prouvée en Node seulement).
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

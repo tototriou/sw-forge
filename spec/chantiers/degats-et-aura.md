@@ -425,9 +425,11 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 8c → 8d                    (8d étend à toute la recette la règle de clé que
                             8c a alignée sur 10b)
 8b, 9b, 10b → 12           (12 éprouve les mécanismes qu'ils livrent)
+12 → 9c                    (12 a trouvé le mécanisme 9 en défaut sur son
+                            contrat : 9c le corrige avant 13a)
 11bis                      (proses de sort au clic, demande du 2026-10-02 ;
                             aucune dépendance de code, après 11 par l'ordre)
-1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
+1f, 11, 12, 9c → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
 audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
                             pilote quand il touche leur famille
@@ -721,11 +723,12 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 8d — une seule règle de clé d'identifiant pour toute la recette | M | terminé (agent `lot-m`), preuves et mutation rejouées par le pilote | `52717fe0` ; reçu `52717fe` ↔ `5af83df` / 2026-10-02 |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `50e46aea`, `e5dc87ae` / 2026-10-02 |
 | 9b — Tempest comme sort, écran, mécanisme générique | J | terminé (lot parallèle, seconde vague), preuves rejouées ; mutation du pilote d'abord survivante, test complété par l'agent puis rejoué ; intégré ; vérification à l'œil en attente (A.8) | `db32bbd9`, `2402e91d`, `badea22f` / 2026-10-02 |
+| 9c — l'attaque appelée active, la prose des passifs masqués (suites du lot 12) | J | contrat écrit le 2026-10-02 ; **lançable** | — |
 | 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `db913084`, `dc8e4b5f` / 2026-10-02 |
 | 10b — Blade Dancers : recette, écran, CLI | J | terminé (lot parallèle, seconde vague) après correction de l'import selon B.0 (erreur du brief du pilote), preuves et mutation rejouées, intégré ; vérification à l'œil en attente (A.8) | `784378b9`…`072c7c3f` / 2026-10-02 |
 | 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `92de9890`, `d6ff1b6a`, `5a21fd78` / 2026-10-02 |
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
-| 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
+| 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
 | 13b-* — contrats de qualification à créer par le pilote après 13a | J | non lançables avant amendement et revue | — |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
@@ -6949,6 +6952,73 @@ de combat perdrait sa prose. Tempest n'en porte pas. **Non prouvé** : rendu
 à l'œil (A.8) ; valeur en jeu de Tempest seul ; Worker de résolution avec
 un passif comme sort (pas de cas dédié).
 
+#### Lot 9c — l'attaque appelée active, la prose des passifs masqués
+
+**Cat. J ; requiert 12.** Le lot 12 a trouvé le mécanisme 9 en défaut sur
+son contrat (Résultat du lot 12 ; `controle-12.md` § 3.3 et § 5) : le
+contrat 9 exigeait qu'il accepte les 81 identifiants de même architecture,
+dont les **17 amorces des constats 168 (Mina), 178 (RYU et Striker) et 179
+(Maîtres ivres)** ; or une attaque appelée qui est une compétence ACTIVE
+(la S2 de RYU appelle sa S1) ne peut pas être fournie par une ligne de
+table. Règle du lot 12 : correction, puis nouvelle preuve avant clôture.
+
+**Intrant** : ce contrat ; Résultats des lots 9a, 9b et 12 ; contrat du lot
+9 (« Le mécanisme, lui, est générique… ») ; `controle-12.md` § 3 et § 5
+avec `controle-12-intrants/experience-9-attaque-appelee.ts` ;
+`attaque-apres-un-sort.md` (en entier) ; `damage.ts` par plages
+(`PASSIFS_OFFENSIFS_CONNUS`, `monsterOffensivePassives`, `passifPeutSuivre`,
+`passifCompte`, `computeTotalDamage`, `damageRelevantStats`) ;
+`DamageSetupCard.tsx` (`clesProseDejaRendue`, `passifsSuivants`) ;
+`tests/degats-tempest.test.ts`, `tests/degats-lot12.test.ts`,
+`tests/prose-stats-combat.test.ts` ; `optimizerRecipe.ts` L415-425.
+
+**Contrat.**
+
+1. **Approvisionnement d'une attaque appelée active.** Une table curée
+   clée par l'identifiant du **sort déclencheur** et le **slot appelé**
+   (jamais par nom : « Hadoken » est porté par 12 formes, dont 6 sans
+   Shoryuken), lue par le chemin des passifs offensifs ou par un chemin
+   frère qui produit le même `PassifOffensifProfile` : le profil de
+   l'attaque est celui de la compétence active de ce slot dans la MÊME
+   fiche, déclenchée après ce seul sort. Le calcul ne change pas (le lot 12
+   l'a trouvé générique). Le marqueur `passif` du profil dit la vérité (une
+   S1 n'est pas un passif) sans changer le sort par défaut, la neutralisation
+   de 411 ni l'exclusion par identifiant de `passifPeutSuivre`. **Aucune
+   entrée de production** (le contrat 9 : « n'en code aucune ») : la preuve
+   injecte les entrées dans un test et les retire (`finally`).
+2. **Couverture prouvée** : les 6 formes du constat 178 acceptées par UNE
+   entrée chacune (même total que le profil construit à la main du lot 12,
+   au centième près) ; les amorces des constats 168 et 179 examinées une
+   par une — acceptées de la même façon, ou classées avec leur raison
+   (mécanique voisine, donnée manquante) ; jamais forcées.
+3. **Espace de clés de l'interrupteur** (`controle-12.md` § 3.3, point 5) :
+   pour les 17 amorces, dire si l'interrupteur d'une attaque appelée peut
+   partager sa clé de `passifsOffensifs` avec un réglage du même sort ; si
+   oui, une clé distincte ; si non, un test qui le garde.
+4. **Prose des passifs masqués** : l'exclusion de `clesProseDejaRendue`
+   lit ce que le bloc des passifs rend vraiment (`passifsSuivants`), pas
+   tous les `passifs` ; le test de source du lot 11 et la sentinelle du lot
+   12 suivent ; un passif masqué synthétique porteur de stats de combat
+   reçoit sa prose.
+5. **Spec** : `attaque-apres-un-sort.md` § « Ce qu'il faudra fournir pour
+   un autre cas » dit les deux natures (passif clé par nom ; attaque
+   appelée active clé par déclencheur et slot), et la limite de la Marque
+   posée par le déclencheur (non modélisée, à relever avant de curer).
+6. **Annexe, lot 10** : le message de refus `optimizerRecipe.ts` L420 ne
+   dit plus « seuls les six sorts des Blade Dancers » ; il ne compte plus
+   les entrées de la table.
+
+**Preuves** : tests nommés ; mutation par point APRÈS le commit (A.8) ;
+`tsc`, `node tests/run.mjs tempest lot12 prosestatscombat bladedancers
+degats auditdegatsconditionnels optimizerdamagetransitions` + filtres
+neufs, build, spec-lint, diff-check ; tous les tests de 9a, 9b et Tempest
+inchangés et verts ; preuve `controle-9c.md`. Aucune vérification à l'œil
+nouvelle (rien de visible sans entrée de production).
+
+**Ne fait pas** : aucune entrée de production pour l'un des 81 identifiants ;
+ni la Marque, ni Head Press (constat 155), ni les voisins classés par le
+lot 12 (lot 13) ; aucun changement de la règle de calcul ni de Tempest.
+
 ### Lot 10 — l'ignore DEF conditionnel des Blade Dancers
 
 ⚠️ **Recalé le 2026-10-02 et scindé en 10a / 10b** : lire d'abord
@@ -7441,6 +7511,39 @@ stats de combat perdrait sa prose. Aucun cas aujourd'hui : dire s'il en
 existe un dans le corpus, et sinon si le mécanisme générique de 9b peut en
 créer un.
 
+#### Résultat du lot 12 — 2026-10-02
+
+Premier lot confié à l'agent `lot-c` (Sonnet 5.5, effort moyen, A.4). Un
+commit, `6f16ce5d` : `tests/degats-lot12.test.ts` (quatre tests, 227
+vérifications) ; aucun fichier de `src/`. Reçu `6f16ce5` ↔ `c222480` ;
+preuve `controle-12.md` (419 lignes) et `controle-12-intrants/`
+(expériences par patch en mémoire, sorties).
+
+| Mécanisme | Cas | Verdict de l'agent | Arbitrage du pilote |
+| --- | --- | --- | --- |
+| 8 — séquence, cible secondaire | 3 fixtures synthétiques (premier coup en zone ; portées entrelacées ; sans zone), `testLot12SequenceDeCoups` (45) ; expérience : une ligne de table suffit sur trois sorts réels | générique ; la garde « le premier groupe recopie la donnée » (`damage.ts` L2965-2971) refuse Head Press (M. BISON, Sagar, constat 155 : `coups: 2` agrège deux attaques) | **extension → lot 13** : le contrat 8 ne promettait que Blade Surge (8 identifiants) ; la limite de la garde va à la famille 08 (13b), avec le constat 155 |
+| 9 — attaque déclenchée | constat 178 réel (6 S2 de RYU et Striker qui appellent leur S1), `testLot12AttaqueDeclenchee` (122), profil construit à la main | calcul générique ; **approvisionnement à retoucher** : `monsterOffensivePassives` n'admet que `c.passif` (L3394), clé par nom (« Hadoken » : 12 formes, dont 6 sans Shoryuken) | **échec sur le contrat promis → lot 9c** : le contrat 9 exigeait que le mécanisme accepte les 81 identifiants de même architecture, dont les 17 amorces des constats 168, 178 et 179 |
+| 10 — ignore DEF depuis un coup | aucun cas réel indépendant (les 17 entrées de catégorie 09 classées : 212 est le mécanisme lui-même, 16 voisines) ; règles synthétiques C et E, `testLot12IgnoreDefDepuisUnCoup` (56) | générique ; seul le message `optimizerRecipe.ts` L420 (« seuls les six sorts des Blade Dancers ») devient faux dès une septième entrée | message corrigé **dans 9c** (point annexe) |
+| point à constater | aucun cas au corpus (aucun passif offensif ne partage son identifiant avec un réglage de stats de combat) ; sentinelle `testLot12PassifMasqueEtStatsDeCombat` (4) | le mécanisme de 9b PEUT en créer un : passif masqué synthétique → la carte rend `{ ouvre: false, prose: null }` | **défaut latent du mécanisme générique → 9c** |
+
+**Rejoué par le pilote sur `6f16ce5d`** : reçu valide ; `tsc` 0 ; 1 974
+vérifications (`lot12 bladesurge tempest bladedancers degats`) ;
+spec-lint, diff-check verts ; `git diff --stat dd26bef3..HEAD -- src`
+vide. Mutations de l'agent (sur les tests, après le commit) : 19, 6, 36,
+4 et 2 échecs. **Mutation du pilote** (sur la production : 411 rendu aux
+attaques de la boucle des passifs, `damage.ts` L5472) : 6 échecs, « 411 :
+la S2 seule… », un par forme ; restauré.
+
+**Défauts de contrat relevés par l'agent** : la liste « ce qu'il faudra
+fournir » d'`attaque-apres-un-sort.md` (L92-113) omet le filtre `c.passif`
+et la clé par nom (→ 9c) ; le contrat 12 supposait un cas réel de
+catégorie 09 (aucun ne convient) ; la garde du lot 8 est écrite comme un
+garde-fou, jamais comme une limite (→ 13b, famille 08). **Non prouvé** :
+aucune valeur de jeu nouvelle (fixtures synthétiques, coefficients non
+curés) ; la Marque posée par la S2 sur la S1 enchaînée (ni modélisée ni
+relevée — relevé à demander en 13b, constat 178) ; aucun balayage
+automatique du corpus pour la catégorie 09 (lecture des 17 entrées).
+
 ### Lot 13 — le reliquat de l'inventaire : un plan, pas une promesse
 
 **Deux étapes : 13a (C), puis 13b (J, plusieurs sessions bornées).**
@@ -7544,7 +7647,12 @@ le pilote consolide ensuite les résultats. La présence d'une formule ou d'une
 2. **Les familles reportées par ce chantier, nominativement** : les 17 lignes d'audit
    d'attaque déclenchée (constats 168, 178 et 179), les deux lignes du constat
    313 à stock de dégâts et compteur manuel, les constats 163, 173,
-   180 voisins de Blade Surge, les 16 autres constats de catégorie 09, les
+   180 voisins de Blade Surge, le constat 155 (Head Press, M. BISON et
+   Sagar : la garde « le premier groupe recopie la donnée » de la séquence
+   curée refuse une donnée dont `coups` agrège deux attaques — limite
+   relevée par le lot 12), la Marque posée par une S2 sur la S1 qu'elle
+   appelle (constat 178, à relever en jeu avant de curer), les 16 autres
+   constats de catégorie 09, les
    passifs absents de `STATS_COMBAT_PAR_ID_CONNUS` repérés au lot 13a puis
    qualifiés ici. Chacune
    avec son numéro de constat — **jamais un « plus tard » sans numéro**.

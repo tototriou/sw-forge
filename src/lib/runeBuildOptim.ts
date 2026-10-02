@@ -1674,9 +1674,9 @@ export function filterSlot(
 //    Energy nourrit la ligne 218 alors que les PV sont hors de l'objectif) ;
 //    « Efficience » (ou aucun objectif) maximise TOUTES les
 //    stats. Décisions de l'utilisateur (2026-09-29) : le Taux Crit ne compte
-//    que sous un minimum de Taux Crit, jamais par l'objectif — même en mode
-//    Moyenne, où « Dégâts réels » le lit pourtant : une Blade peut y tomber
-//    face à un Will ; un Focus sans
+//    que sous un minimum de Taux Crit, jamais par l'objectif (la réserve
+//    « même en mode Moyenne » est sans objet depuis la suppression de ce
+//    mode, lot CM de degats-et-aura) ; un Focus sans
 //    condition PRE ne protège rien en « Dégâts réels » ; en « Efficience »,
 //    Endure ou Blade formables restent, Violent ou Revenge s'élaguent ;
 //  - un set qui peut être COMPLET avec ses seules vraies runes compte encore
@@ -1687,8 +1687,8 @@ export function filterSlot(
 //    incomplet dans tout build : le remplacer ne change rien au joker.
 // Les sets demandés et l'Intangible ne se comparent qu'entre eux.
 // ⚠️ Conséquence assumée : l'optimum n'est garanti que pour les conditions,
-// l'objectif (effet unique de la relique et lignes 218–221 compris, hors Taux
-// Crit en mode Moyenne) et l'efficience — un tri après coup sur une AUTRE
+// l'objectif (effet unique de la relique et lignes 218–221 compris) et
+// l'efficience — un tri après coup sur une AUTRE
 // stat peut manquer un build qu'un bonus de set inutile à la recherche aurait
 // porté.
 export interface ContexteDominance {

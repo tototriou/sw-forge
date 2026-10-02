@@ -322,20 +322,20 @@ export default function testDegats() {
   ok(s3 !== null && Math.abs(computeSkillDamage(s3, build, critique, AUCUNE_AURA_PROPRE) - attendu) < 0.01, 'le total suit l’équation de spec/mecaniques.md');
 
   const normal = computeSkillDamage(s3!, build, { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }, AUCUNE_AURA_PROPRE);
-  const moyenne = computeSkillDamage(s3!, build, { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne' }, AUCUNE_AURA_PROPRE);
   const crit = computeSkillDamage(s3!, build, critique, AUCUNE_AURA_PROPRE);
-  ok(normal < moyenne && moyenne < crit, 'non critique < moyenne < critique');
+  ok(normal < crit, 'non critique < critique');
 
-  // Taux Crit plafonné à 100 % : `computeStats` renvoie le total brut, mais
-  // au-delà de 100 % il ne rapporte plus rien en jeu.
-  // ⚠️ `critMode: 'moyenne'` EXPLICITE — seul mode où le Taux Crit pèse sur
-  // le résultat (`crit`/`normal` l'ignorent entièrement) ; s'appuyer sur le
-  // défaut de l'écran (désormais « crit ») rendrait ce test VACUEUX : il
-  // passerait toujours, mais plus pour la raison qu'il prétend vérifier.
-  const critModeMoyenne: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne' };
-  const cr100 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 100 }), critModeMoyenne, AUCUNE_AURA_PROPRE);
-  const cr130 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 130 }), critModeMoyenne, AUCUNE_AURA_PROPRE);
-  egal(cr130, cr100, 'au-delà de 100 % de Taux Crit, plus aucun dégât supplémentaire');
+  // Deux modes seulement depuis la suppression de « Moyenne » (degats-et-aura,
+  // lot CM) : le Taux Crit n'entre plus dans la part critique — 0 ou 1 —, ni
+  // sous 100 % ni au-delà. Converti de l'ancien test « au-delà de 100 % de
+  // Taux Crit, plus aucun dégât », qui ne se lisait qu'en mode Moyenne.
+  for (const critMode of ['crit', 'normal'] as const) {
+    const setupMode: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode };
+    const cr30 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 30 }), setupMode, AUCUNE_AURA_PROPRE);
+    const cr100 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 100 }), setupMode, AUCUNE_AURA_PROPRE);
+    const cr130 = computeSkillDamage(s3!, stats({ atk: 2000, cd: 200, cr: 130 }), setupMode, AUCUNE_AURA_PROPRE);
+    egal([cr30, cr130], [cr100, cr100], `mode ${critMode} : le Taux Crit (30, 100 ou 130 %) ne change pas les dégâts`);
+  }
 
   // Ignore défense : la DEF de la cible et la réduction de défense n’y
   // changent rien — c’est ce qui permet à l’écran de masquer ces réglages.
@@ -401,11 +401,11 @@ export default function testDegats() {
   const buildInvoc: StatRow[] = stats({ atk: 2000, cd: 200, cr: 50 }).map((r) =>
     r.key === 'atk' ? { ...r, base: 800, bonus: 1200, total: 2000 } : r
   );
-  // ⚠️ `critMode: 'moyenne'` EXPLICITE — le ratio attendu ci-dessous suppose
-  // `partCrit = cr` (0,5), vrai UNIQUEMENT sous ce mode (`crit`, le défaut de
-  // l'écran, donnerait `partCrit = 1` et casserait le calcul).
-  const combatSansElement = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, null);
-  const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, 'wind');
+  // Le ratio attendu ci-dessous ne dépend que de l'ATQ : la part critique est
+  // la même des deux côtés (l'élément ne touche pas aux Dgts Crit). Converti
+  // du mode « Moyenne », supprimé (lot CM), vers « Critique », le défaut.
+  const combatSansElement = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, null);
+  const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, 'wind');
   ok(avecCombat > combatSansElement, 'la compétence de Combat élémentaire augmente les dégâts du bon élément');
   // Le socle Combat sans élément apporte déjà 20 % de la base ; le bon
   // élément ajoute 21 points, toujours sur la BASE, jamais sur le total runé.
@@ -1072,16 +1072,23 @@ export default function testDegats() {
   // Taux Crit / Dégâts Crit — des POINTS FLATS ajoutés à la stat, jamais un
   // pourcentage de la base : même famille que les compétences d'invocateur
   // et Euldong, PAS la même famille que PV/ATQ/DEF/VIT ci-dessus.
-  const crSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'combat' };
-  const crStats = stats({ atk: 2000, cd: 200, cr: 50 });
-  const crSansLead = computeSkillDamage(s3!, crStats, crSetup, AUCUNE_AURA_PROPRE);
-  const crAvecLead38 = computeSkillDamage(s3!, crStats, { ...crSetup, leaderSkill: { stat: 'Critical Rate', pct: 38 } }, AUCUNE_AURA_PROPRE);
+  // ⚠️ Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM), où le
+  // Taux Crit pesait sur la part critique : en « Critique », il ne se lit plus
+  // que par le surplus au-delà de 100 % reversé en Dgts Crit (Wolf School
+  // Training, `critRateSelonVit`). 50 + 20 (VIT 240 / 12) = 70 % sans lead :
+  // aucun surplus ; 70 + 38 = 108 % avec : 8 points reversés. Un lead compté
+  // en pourcentage de la base ne franchirait pas 100 %.
+  const crSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
+  const crStats = stats({ atk: 2000, cd: 200, cr: 50, spd: 240 });
+  const leadCrConfig = { critRateSelonVit: { ptsParVit: 12 } };
+  const crSansLead = computeSkillDamageDetail(s3!, crStats, crSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, leadCrConfig).total;
+  const crAvecLead38 = computeSkillDamageDetail(s3!, crStats, { ...crSetup, leaderSkill: { stat: 'Critical Rate', pct: 38 } }, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, leadCrConfig).total;
   const skillup = s3!.skillupDamagePct / 100;
-  const critTermCrSans = 1 + skillup + 0.5 * 2.25;
-  const critTermCrAvec = 1 + skillup + Math.min(1, (50 + 38) / 100) * 2.25;
+  const critTermCrSans = 1 + skillup + 2.25;
+  const critTermCrAvec = 1 + skillup + 2.25 + 0.08;
   ok(
     Math.abs(crAvecLead38 / crSansLead - critTermCrAvec / critTermCrSans) < 1e-9,
-    'un lead Taux Crit ajoute 38 POINTS à la stat (50 % → 88 %), jamais un pourcentage de la base'
+    'un lead Taux Crit ajoute 38 POINTS à la stat (70 % → 108 %, 8 points de surplus reversés), jamais un pourcentage de la base'
   );
 
   const cdSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
@@ -1422,23 +1429,27 @@ export default function testDegats() {
   // maVit = 240 (base VIT nulle dans ce fixture, donc Combat n'ajoute rien) → crDepuisVit =
   // floor(240/12) = 20 pts.
   const critVitStatsSansOverflow = stats({ atk: 2000, cd: 100, cr: 40, spd: 240 });
-  const critVitSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne', summonerSkills: 'combat' };
+  // ⚠️ Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM) : en
+  // « Critique », la part critique vaut 1 et le Taux Crit ne se lit plus que
+  // par le surplus reversé — les 20 pts sous 100 % ne changent plus rien.
+  const critVitSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
   const skillupS3 = s3!.skillupDamagePct / 100;
   const detailAvecVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, critVitConfig);
   const detailSansVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
-  ok(
-    Math.abs(detailAvecVit.total / detailSansVit.total - (1 + skillupS3 + 0.6 * 1.25) / (1 + skillupS3 + 0.4 * 1.25)) < 1e-9,
+  egal(
+    detailAvecVit.total,
+    detailSansVit.total,
     '20 pts de Taux Crit ajoutés par la VIT (40 % → 60 %), sans dépasser 100 % : aucun reversement en Dgts Crit'
   );
   // Même stats mais cr=90 : crBrut = 90+20 = 110 → 10 pts de surplus
-  // reversés en Dgts Crit, cr plafonné à 100 %.
+  // reversés en Dgts Crit.
   const critVitStatsOverflow = stats({ atk: 2000, cd: 100, cr: 90, spd: 240 });
   const detailOverflow = computeSkillDamageDetail(s3!, critVitStatsOverflow, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, critVitConfig);
   const detailOverflowSansPassif = computeSkillDamageDetail(s3!, critVitStatsOverflow, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
   ok(
     Math.abs(
       detailOverflow.total / detailOverflowSansPassif.total -
-        (1 + skillupS3 + 1 * 1.35) / (1 + skillupS3 + 0.9 * 1.25)
+        (1 + skillupS3 + 1.35) / (1 + skillupS3 + 1.25)
     ) < 1e-9,
     'le surplus de Taux Crit au-delà de 100 % (10 pts) se reverse en Dgts Crit, 1 pour 1'
   );
@@ -1459,9 +1470,24 @@ export default function testDegats() {
   const detailSansFixe = computeSkillDamageDetail(s3!, fixeStats, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
   ok(
     Math.abs(
-      detailAvecFixe.total / detailSansFixe.total - (1 + skillupS3 + 0.7 * 1.45) / (1 + skillupS3 + 0.5 * 1.25)
+      detailAvecFixe.total / detailSansFixe.total - (1 + skillupS3 + 1.45) / (1 + skillupS3 + 1.25)
     ) < 1e-9,
-    'Detect Weakspot : +20 pts de Taux Crit ET +20 pts de Dgts Crit, toujours actif'
+    'Detect Weakspot : +20 pts de Dgts Crit, toujours actif'
+  );
+  // Les +20 pts de Taux Crit ne se lisent plus qu'au-delà de 100 % (lot CM,
+  // voir plus haut) : combinaison SYNTHÉTIQUE avec le reversement de Wolf
+  // School Training, qu'aucun monstre ne porte avec Detect Weakspot — elle
+  // éprouve seulement que `crBrutEffectif` additionne `bonusStatFixe.cr`.
+  // 70 + 20 (VIT 240 / 12) = 90 % sans le passif ; 110 % avec : 10 pts
+  // reversés, qui s'ajoutent aux 20 pts de Dgts Crit du passif.
+  const fixeVitStats = stats({ atk: 2000, cd: 100, cr: 70, spd: 240 });
+  const detailFixeVit = computeSkillDamageDetail(s3!, fixeVitStats, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, { ...critVitConfig, bonusStatFixe: { cr: 20, cd: 20 } });
+  const detailVitSeul = computeSkillDamageDetail(s3!, fixeVitStats, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, critVitConfig);
+  ok(
+    Math.abs(
+      detailFixeVit.total / detailVitSeul.total - (1 + skillupS3 + 1.25 + 0.2 + 0.1) / (1 + skillupS3 + 1.25)
+    ) < 1e-9,
+    'Detect Weakspot : les +20 pts de Taux Crit comptent dans le Taux Crit brut (surplus de 10 pts reversé)'
   );
 
   // Bonus conditionnel à bouton — douze passifs sans formule propre,
@@ -1973,9 +1999,11 @@ export default function testDegats() {
     !damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }).includes('cd'),
     "« Non critique » : Dégâts Crit ne pèse plus sur aucun dégât, donc plus retenu au pré-filtrage"
   );
+  // Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM), vers
+  // « Critique » : le seul autre mode où Dégâts Crit pèse.
   ok(
-    damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'moyenne' }).includes('cd'),
-    '« Moyenne » (espérance) : Dégâts Crit compte toujours, contrairement à « Non critique »'
+    damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit' }).includes('cd'),
+    '« Critique » : Dégâts Crit compte toujours, contrairement à « Non critique »'
   );
   ok(
     damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }, true).includes('cd'),

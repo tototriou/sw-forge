@@ -1401,8 +1401,7 @@ function conditionCrPoints(
 // Ce prédicat ne tente pas de deviner une comparaison qui dépend du build
 // candidat (ATQ/DEF/VIT). Il couvre les états entièrement portés par le
 // réglage — toggle, élément, buffs/débuffs, PV cible — afin que l'écran puisse
-// neutraliser les modes « Non critique » et « Moyenne » quand ils n'ont plus
-// aucun sens.
+// neutraliser le mode « Non critique » quand il n'a plus aucun sens.
 export function conditionCritiqueGarantiParReglage(
   condition: ConditionCombatProfile,
   key: number,
@@ -3662,21 +3661,20 @@ export function resolveDamageSkill(
 
 // ── Réglage de combat (saisi par l'utilisateur) ──────────────────────────
 
-// Comment traiter le coup critique dans le score.
-//  - `'moyenne'` : espérance sur le taux de critique réellement atteint —
-//    ce que le joueur observe sur beaucoup de coups, et le seul mode qui
-//    fasse participer le Taux Crit au classement.
-//  - `'crit'` / `'normal'` : le plafond haut / le plancher d'un coup unique.
-export type CritMode = 'moyenne' | 'crit' | 'normal';
+// Comment traiter le coup critique dans le score : `'crit'` / `'normal'`, le
+// plafond haut / le plancher d'un coup unique.
+// ⚠️ L'ancien mode `'moyenne'` (espérance pondérée par le Taux Crit) est
+// SUPPRIMÉ (décision de l'utilisateur du 2026-10-02, degats-et-aura lot CM) :
+// une recette qui le porte encore est convertie en `'crit'` à l'import, avec
+// un avertissement (`parseOptimizerRecipe`, optimizerRecipe.ts) — jamais
+// refusée, jamais changée en silence.
+export type CritMode = 'crit' | 'normal';
 
-// ⚠️ Ordre d'AFFICHAGE (demande explicite) : Moyenne tout à droite — les deux
-// bornes littérales (Critique/Non critique) d'abord, l'espérance théorique en
-// dernier. N'affecte QUE `Segmented`, pas le type `CritMode` ni sa valeur par
-// défaut (voir `DEFAULT_DAMAGE_SETUP.critMode`, ci-dessous : `'crit'`).
+// Ordre d'AFFICHAGE : le défaut d'abord (voir `DEFAULT_DAMAGE_SETUP.critMode`,
+// ci-dessous : `'crit'`). N'affecte QUE `Segmented`, pas le type `CritMode`.
 export const CRIT_MODE_LABELS: { key: CritMode; label: string }[] = [
   { key: 'crit', label: 'Critique' },
   { key: 'normal', label: 'Non critique' },
-  { key: 'moyenne', label: 'Moyenne' },
 ];
 
 // ⚠️ Sérialisable et STABLE : ce réglage part dans `OptimizerRecipe` (fichier
@@ -3947,10 +3945,8 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   transmissionActif: false,
   velaskaActif: false,
   // ⚠️ Demande explicite de l'utilisateur : « critique » comme valeur par
-  // défaut — le plafond d'un coup isolé, pas l'espérance « Moyenne »
-  // (repositionnée tout à droite dans `CRIT_MODE_LABELS`, jugée trop
-  // théorique comme défaut — voir l'avertissement affiché sous ce mode
-  // dans DamageSetupCard.tsx).
+  // défaut — le plafond d'un coup isolé. C'est aussi la valeur vers laquelle
+  // une recette portant l'ancien mode « Moyenne » est convertie (lot CM).
   critMode: 'crit',
   // ⚠️ « Combat » est le seul défaut possible : ces compétences s'appliquent
   // en permanence en jeu. « Guilde » ne s'ajoute que lorsque l'utilisateur
@@ -4890,7 +4886,6 @@ export function computeSkillDamageDetail(
     conditionCrPoints(profile.conditionsCombat, setup, profile.skillCom2usId, element, pctDepart, combat) +
     crConditionsMonstre;
   const overflowVersCd = monsterWide.critRateSelonVit ? Math.max(0, crBrut - 100) : 0;
-  const cr = Math.min(crBrut, 100) / 100;
   const cd =
     (total(stats, 'cd') +
       bonus.cdPoints +
@@ -4924,14 +4919,16 @@ export function computeSkillDamageDetail(
     (monsterWide.conditionsCombat ?? []).some((p) =>
       conditionForceCrit([p.condition], setup, p.skillCom2usId, element, pctDepart, combat)
     );
+  // Deux modes seulement (lot CM) : la part critique vaut 1 ou 0, jamais le
+  // Taux Crit — qui ne pèse plus sur ce terme que par le surplus reversé en
+  // Dgts Crit (`overflowVersCd`, plus haut). Toute valeur autre que
+  // `'normal'` vaut « Critique », le défaut.
   const partCrit =
     profile.fixed || monsterWide.critInterdit
       ? 0
-      : profile.critiqueGaranti || critiqueConditionnel || setup.critMode === 'crit'
+      : profile.critiqueGaranti || critiqueConditionnel || setup.critMode !== 'normal'
         ? 1
-        : setup.critMode === 'normal'
-          ? 0
-          : cr;
+        : 0;
   const critTerm = 1 + profile.skillupDamagePct / 100 + partCrit * cd;
 
   // Ignore une fraction de la DEF, proportionnelle à l'écart de VIT — 0 % si
@@ -5141,7 +5138,7 @@ export function computeSkillDamageDetail(
   // ⚠️ **Rien à recalculer, malgré les apparences.** On pourrait croire qu'il
   // faut refaire tout `horsCoup` à chaque coup, puisque ces lignes changent
   // les Dgts Crit et que les PV de la cible baissent en cours de sort. Non :
-  // `cr`, `cd` et `partCrit` sont calculés UNE fois, seul `pvFrac` varie. Le
+  // `cd` et `partCrit` sont calculés UNE fois, seul `pvFrac` varie. Le
   // terme est donc AFFINE en `pvFrac` :
   //
   //   horsCoup(coup i) = horsCoup + coefCdParCoup × deltaCdPoints(i, pvFrac)
@@ -5721,8 +5718,11 @@ export function computeTotalDamage(
  * d'une recette en ligne de commande (`recipeToSearchParams.ts`) : deux
  * calculs séparés divergeraient en silence, sans que `tsc` puisse le voir.
  *
- * ⚠️ **Le Taux Crit n'y figure jamais**, même en mode « Moyenne » — même
- * raison que l'objectif « Dégâts » : il est plafonné à 100 % en jeu, donc
+ * ⚠️ **Le Taux Crit n'y figure jamais** (sauf Zenitsu/Qilin Slasher, voir
+ * `bonusDegatsSelonCr`) — même raison que l'objectif « Dégâts » : il est
+ * plafonné à 100 % en jeu, et ni « Critique » ni « Non critique » ne le
+ * lisent dans le terme Crit (l'ancien mode « Moyenne », le seul qui le
+ * lisait, est supprimé depuis le lot CM de degats-et-aura) ; donc
  * c'est une CONDITION à atteindre (via un minimum posé), pas une cible à
  * maximiser indéfiniment. L'y mettre pousserait la rétention à garder des
  * demi-builds pour un potentiel de crit qui ne sert plus à rien.

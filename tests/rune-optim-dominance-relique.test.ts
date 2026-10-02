@@ -643,10 +643,11 @@ const LIGNE_STAT: Record<number, StatKey> = { 218: 'hp', 219: 'atk', 220: 'def',
 // Échelles tirées (% de la stat, par artéfact) : 218 vaut au plus 1,5 % des
 // PV quand 221 se compte en dizaines de % de la VIT (damage.ts, CODE_BRUT_*).
 const LIGNE_MAX: Record<number, number> = { 218: 1.5, 219: 4, 220: 4, 221: 40 };
-// Mode critique tiré. ⚠️ Blade n'entre jamais dans un pool tiré en
-// « Moyenne » : la dominance n'y protège pas le Taux Crit, décision de
-// l'utilisateur du 2026-09-29 — une limite acceptée, pas un défaut à trouver.
-const CRIT_MODES: CritMode[] = ['crit', 'normal', 'moyenne'];
+// Mode critique tiré, parmi les deux modes restants. L'ancienne exclusion de
+// Blade des pools tirés en « Moyenne » (la dominance n'y protégeait pas le
+// Taux Crit, décision du 2026-09-29) est sans objet depuis la suppression de
+// ce mode (degats-et-aura, lot CM).
+const CRIT_MODES: CritMode[] = ['crit', 'normal'];
 
 const melange = <T>(rng: () => number, xs: T[]): T[] => {
   const out = [...xs];
@@ -772,7 +773,6 @@ export function testDominanceReliqueDifferentiel() {
 //    tourne sans relique, ou avec des reliques dont l'effet ne protège pas
 //    la stat de la ligne ; un scénario « effet unique » porte une paire dont
 //    aucune ligne ne lit la stat du porteur ;
-//  - Blade n'entre pas dans le bruit d'un scénario en « Moyenne » ;
 //  - deux seeds sur trois tournent SANS Intangible. Avec elle, la règle du
 //    joker protège tout set complet avec ses vraies runes : P porte alors
 //    `setPieces − 1` clones et une Intangible (formable par le joker
@@ -844,7 +844,7 @@ function scenarioCible(seed: number): ScenarioCible | string {
   const libres = [1, 2, 3, 4, 5, 6].filter((s) => s > demandes);
   const neutres = NEUTRES.filter((x) => !sets.includes(x));
   const propres = melange(rng, neutres);
-  const bruitLibre = critMode === 'moyenne' ? neutres : [...neutres, 'blade'];
+  const bruitLibre = [...neutres, 'blade'];
   const bruit: RuneDetail[] = [];
   let id = 1;
   for (let slot = 1; slot <= 6; slot++) {
@@ -951,7 +951,6 @@ export function testDominanceReliqueDifferentielCible() {
   let sansIntangible = 0;
   let sansRelique = 0;
   let recherche = 0;
-  let moyenne = 0;
   let valides = 0;
   const motifs = new Map<string, number>();
   for (let s = 0; s < 60; s++) {
@@ -976,7 +975,6 @@ export function testDominanceReliqueDifferentielCible() {
     viole(sc.cible === 'effet unique' ? lignes.includes(sc.stat) : parReliques.includes(sc.stat), `${sc.stat} protégée par l'autre canal`);
     viole(sc.cible === 'effet unique' ? !parReliques.includes(sc.stat) : !lignes.includes(sc.stat), `${sc.stat} non protégée par la cible`);
     viole(sc.joker !== cas.pool.some((r) => r.set === 'intangible'), 'Intangible contraire au tirage');
-    viole(cas.critMode === 'moyenne' && cas.pool.some((r) => r.set === 'blade'), 'Blade dans un pool en « Moyenne »');
     // La protection agit : les clones passent la dominance avec elle, pas sans.
     const dom = apresDominance(p);
     const sans = apresDominance(sc.cible === 'effet unique' ? { ...p, relic: undefined, relicContext: undefined } : { ...p, artifacts: [] });
@@ -998,12 +996,11 @@ export function testDominanceReliqueDifferentielCible() {
     if (!sc.joker) sansIntangible++;
     if (reliques.length === 0) sansRelique++;
     if (cas.eligibles) recherche++;
-    if (cas.critMode === 'moyenne') moyenne++;
     valides += v.o.valides.size;
     for (const [k, n] of v.motifs) motifs.set(k, (motifs.get(k) ?? 0) + n);
     if (!tient) echecs.push(`${sc.cible} — ${cas.nom}`);
   }
-  ok(scenarios >= 50, `différentiel ciblé : ${scenarios} scénarios sur 60 seeds (${recherche} en mode recherche, ${moyenne} en « Moyenne », sans Blade), ${valides} builds valides à l'oracle${ignores.length ? ` ; ignorées : ${ignores.join(' ; ')}` : ''}`);
+  ok(scenarios >= 50, `différentiel ciblé : ${scenarios} scénarios sur 60 seeds (${recherche} en mode recherche), ${valides} builds valides à l'oracle${ignores.length ? ` ; ignorées : ${ignores.join(' ; ')}` : ''}`);
   ok(2 * sansIntangible >= scenarios, `différentiel ciblé : ${sansIntangible} scénario(s) sur ${scenarios} sans Intangible (au moins la moitié)`);
   ok(sansRelique > 0, `différentiel ciblé : ${sansRelique} scénario(s) « ligne » sans aucune relique`);
   egal(violations, [], 'différentiel ciblé : préconditions — la stat du porteur n\'est gardée que par la protection visée');

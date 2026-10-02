@@ -182,7 +182,7 @@ L'état de PV n'est pas interpolé : un interrupteur « PV actuels inférieurs �
 de la compétence ; elle ne transforme pas le sort en critique garanti.
 
 Lorsqu'un sort garantit son critique, ou qu'une condition sélectionnée le
-garantit, « Non critique » et « Moyenne » sont désactivés dans la modale et
+garantit, « Non critique » est désactivé dans la modale et
 « Critique » devient la seule lecture possible. Les conditions qui dépendent
 du build candidat restent évaluées par candidat dans le moteur.
 

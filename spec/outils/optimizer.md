@@ -940,15 +940,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        monstre, sans rien demander. Détail des valeurs :
        [degats-reels/effets-equipe-et-leaders.md#leader-skill-déquipe](degats-reels/effets-equipe-et-leaders.md#leader-skill-déquipe).
      - **Coup critique** — Critique (défaut, le plafond d'un coup isolé) /
-       Non critique (le plancher) / Moyenne (espérance sur le Taux Crit
-       réellement atteint — le seul mode où le Taux Crit pèse sur le
-       classement), rangée volontairement tout à droite. ⚠️ Sous
-       **Moyenne** uniquement, un avertissement rappelle que la valeur
-       affichée est une ESPÉRANCE théorique, pas ce qu'un combat réel (tour
-       par tour) produit coup après coup — absent des deux autres modes,
-       qui sont déjà des bornes littérales. Si le sort garantit son critique,
-       ou si le réglage actif remplit sa condition de critique garanti, les
-       crans Non critique et Moyenne sont grisés et non sélectionnables.
+       Non critique (le plancher). Si le sort garantit son critique, ou si
+       le réglage actif remplit sa condition de critique garanti, le cran
+       Non critique est grisé et non sélectionnable. L'ancien mode
+       « Moyenne » (espérance sur le Taux Crit) est supprimé (degats-et-aura,
+       lot CM).
      ⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
      défense ne montre ni la DEF ennemie ni la réduction de défense ; un
      sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un
@@ -2594,16 +2590,16 @@ différent, coopératif (voir « Interruption »).
     (voir [dégâts supplémentaires](degats-reels/artefacts-et-degats-bruts.md)).
     « Efficience » maximise toutes les stats.
     Le Taux Crit ne compte que sous un minimum de Taux Crit, jamais par
-    l'objectif — même en mode « Moyenne », où « Dégâts réels » le lit
-    pourtant : une Blade peut y tomber face à un Will (décision du
-    2026-09-29). S'y ajoute, dès qu'une Intangible est disponible, tout set
+    l'objectif (décision du 2026-09-29 ; sa réserve « même en mode
+    Moyenne » est sans objet depuis la suppression de ce mode, lot CM de
+    degats-et-aura). S'y ajoute, dès qu'une Intangible est disponible, tout set
     qui peut être complet avec ses seules vraies runes, puisque le joker ne
     complète un set que s'il est le seul incomplet. Ainsi, en « Dégâts
     réels » avec des minimums ATQ, Taux Crit et Dgts Crit, une Blade dominée
     reste et un Focus dominé part ; en « Efficience », Endure ou Blade
     formables restent, Violent ou Revenge partent. ⚠️ L'optimum n'est
     garanti que pour les conditions, l'objectif (effet unique de la relique
-    et lignes 218–221 compris, hors Taux Crit en mode « Moyenne ») et
+    et lignes 218–221 compris) et
     l'efficience : un tri après coup sur une autre stat peut manquer un
     build qu'un bonus de set inutile à la recherche aurait porté.
     ⚠️ Sur une stat PLAFONNÉE (un maximum est

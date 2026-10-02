@@ -111,13 +111,14 @@ Dégâts = ( Mult × Crit × FacteurDéf + Additionnel ) × Réductions × coups
 - **Mult** — la formule du sort évaluée sur les stats du build, buffs
   appliqués.
 - **Crit** — `1 + améliorations% + part_crit × DgtsCrit%`, où `part_crit`
-  dépend du mode choisi : `1` (Critique), `0` (Non critique), ou le **Taux
-  Crit du build** (Moyenne — l'espérance, seul mode où le Taux Crit
-  participe au classement).
-  ⚠️ **Taux Crit écrêté à 100 %** dans le calcul : `computeStats` renvoie
-  volontairement le total brut (un dépassement reste une marge légitime
-  contre la résistance adverse), mais au-delà de 100 % il ne rapporte plus
-  aucun dégât en jeu.
+  dépend du mode choisi : `1` (Critique) ou `0` (Non critique). Le Taux
+  Crit du build n'y entre pas : l'ancien mode « Moyenne », qui le prenait
+  pour `part_crit` (l'espérance), est supprimé (degats-et-aura, lot CM).
+  ⚠️ **Taux Crit écrêté à 100 %** : `computeStats` renvoie volontairement
+  le total brut (un dépassement reste une marge légitime contre la
+  résistance adverse), mais au-delà de 100 % il ne rapporte plus aucun
+  dégât en jeu — sauf le surplus que Wolf School Training reverse en Dgts
+  Crit (voir [catalogue-des-passifs.md](catalogue-des-passifs.md)).
 - **FacteurDéf** — `1000 / (1140 + 3,5 × DEF_effective)`, avec
   `DEF_effective = DEF_ennemie × (0 si ignore défense) × (0,3 si réduction
   de défense)`. ⚠️ **Source unique du facteur de défense pour toute l'app** :

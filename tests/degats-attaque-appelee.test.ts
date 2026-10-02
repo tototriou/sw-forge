@@ -278,7 +278,7 @@ const VERDICTS: Record<number, { constat: number; verdict: 'acceptée' | 'class�
   8112: { constat: 179, verdict: 'classée', raison: 'buff d’ATQ posé par Tiger Punch, actif pour Rolling Punch (amendement 1c1) ; la boucle des passifs ne lit que le buff saisi' },
   8113: { constat: 179, verdict: 'acceptée', raison: 'la réduction de DEF posée par Phoenix Kick est sans effet : Rolling Punch ignore la DEF (amendement 1c1)' },
   8114: { constat: 179, verdict: 'acceptée', raison: 'le soin de Stork Kick ne porte que sur lui (amendement 1c1), Unrecoverable n’entre pas dans le calcul' },
-  8115: { constat: 179, verdict: 'acceptée', raison: 'la hausse de TC de Snake Punch ne change pas le calcul visé (amendement 1c1) ; limite : mode Moyenne' },
+  8115: { constat: 179, verdict: 'acceptée', raison: 'la hausse de TC de Snake Punch ne change pas le calcul visé (amendement 1c1) ; la limite du mode Moyenne est tombée avec ce mode (lot CM)' },
   13907: { constat: 178, verdict: 'acceptée', raison: 'Shoryuken ; Marque posée par la S2 non modélisée, à relever avant de curer' },
   13908: { constat: 178, verdict: 'acceptée', raison: 'idem 13907' },
   13910: { constat: 178, verdict: 'acceptée', raison: 'idem 13907' },
@@ -359,12 +359,13 @@ export function testAttaqueAppeleeCouverture() {
     'Tien Qin : Stork Kick ne pose que Unrecoverable, un soin et l’attaque supplémentaire (fiche), rien que le calcul lise');
   const rpWei = sortDe(fiche(17215), 8105);
   const tc = (cr: number) => stats({ hp: 20000, atk: ATQ, def: 800, spd: 200, cr, cd: 100 });
+  // Les deux modes restants : la « LIMITE ASSUMÉE » du mode Moyenne (la hausse
+  // de TC posée par Snake Punch n'y était pas appliquée à Rolling Punch) est
+  // retirée avec ce mode (degats-et-aura, lot CM).
   for (const critMode of ['normal', 'crit'] as const) {
     ok(proche(rpCalcul(rpWei, { ...BASE, critMode }, tc(50)), rpCalcul(rpWei, { ...BASE, critMode }, tc(80))),
       `Wei Shin, mode ${critMode} : une hausse de TC ne change pas Rolling Punch`);
   }
-  ok(!proche(rpCalcul(rpWei, { ...BASE, critMode: 'moyenne' }, tc(50)), rpCalcul(rpWei, { ...BASE, critMode: 'moyenne' }, tc(80))),
-    'Wei Shin, LIMITE ASSUMÉE (amendement 1c1 : « ce buff ne change pas le calcul visé ») : en mode Moyenne, la hausse de TC posée par Snake Punch n’est PAS appliquée à Rolling Punch');
 
   titre('Constat 179 — Wei Shin : deux déclencheurs (S2 et S3) pour la même S1, un seul interrupteur');
   const wei = fiche(17215);

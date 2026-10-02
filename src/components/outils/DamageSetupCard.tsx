@@ -1910,9 +1910,7 @@ export default function DamageSetupCard({
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Coup critique</p>
             <HelpPopover title="Coup critique">
-              <b className="text-ink">Moyenne</b> pondère par le Taux Crit réellement atteint — c&apos;est ce
-              qu&apos;on observe sur beaucoup de coups, et le seul mode où le Taux Crit pèse sur le
-              classement. <b className="text-ink">Critique</b> et <b className="text-ink">Non critique</b>{' '}
+              <b className="text-ink">Critique</b> et <b className="text-ink">Non critique</b>{' '}
               donnent le plafond et le plancher d&apos;un coup isolé.
             </HelpPopover>
           </div>
@@ -1930,17 +1928,10 @@ export default function DamageSetupCard({
               Ce sort inflige forcément un coup critique dans l’état sélectionné.
             </p>
           )}
-          {/* « Moyenne » est une ESPÉRANCE (pondérée par le Taux Crit) —
-              jamais ce qu'un combat réel, tour par tour, produit coup après
-              coup. Demande explicite de l'utilisateur : le dire, UNIQUEMENT
-              sous ce mode (Critique/Non critique sont déjà des bornes
-              littérales, pas une moyenne, rien à nuancer). */}
-          {setup.critMode === 'moyenne' && (
-            <p className="mt-1.5 text-xs text-warn">
-              Attention, la valeur affichée est purement théorique et ne correspond pas à la réalité d&apos;un jeu au
-              tour par tour.
-            </p>
-          )}
+          {/* L'ancien mode « Moyenne » et son avertissement « purement
+              théorique » sont supprimés (degats-et-aura, lot CM) : une recette
+              qui le porte est convertie en « Critique » à l'import, et le
+              message d'import le dit. */}
         </div>
       )}
       {critInterdit && (

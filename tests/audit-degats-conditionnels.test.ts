@@ -997,7 +997,7 @@ export default function testAuditDegatsConditionnels() {
     '70 — Yuji : critique garanti même quand le bonus de PV non détruits est inactif'
   );
   const bearHunt = profilDe(10501, 1611);
-  ok(critiqueGarantiParReglage(bearHunt, setupAudit), 'UI — Bear Hunt désactive toujours Non critique et Moyenne');
+  ok(critiqueGarantiParReglage(bearHunt, setupAudit), 'UI — Bear Hunt désactive toujours Non critique');
   const nightmare = profilDe(11215, 2215);
   ok(!critiqueGarantiParReglage(nightmare, setupAudit), 'UI — Nightmare ne force pas le critique sans cible endormie');
   ok(
@@ -1251,26 +1251,29 @@ export default function testAuditDegatsConditionnels() {
   const dyeus = fiche(28314);
   const dyeusS1 = profilDe(28314, 18124);
   const dyeusWide = { conditionsCombat: monsterConditionsCombat(dyeus), combatStats: monsterCombatStatProfiles(dyeus) };
-  const dyeusSetup = { ...setupAudit, critMode: 'moyenne' as const };
+  // Les trois cas ci-dessous éprouvaient le critique forcé « en mode
+  // Moyenne », supprimé (degats-et-aura, lot CM) : convertis en « Non
+  // critique », le seul mode restant où un critique forcé change le calcul.
+  const dyeusSetup = { ...setupAudit, critMode: 'normal' as const };
   const dyeusSans = computeTotalDamage(dyeusS1, [], buildAudit, dyeusSetup, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
   const dyeusActifSetup = { ...dyeusSetup, passifsOffensifs: { 18139: true } };
   const dyeusActif = computeTotalDamage(dyeusS1, [], buildAudit, dyeusActifSetup, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
-  ok(dyeusActif > dyeusSans, '268 — Dyeus : Thunderer force le critique en mode Moyenne');
+  ok(dyeusActif > dyeusSans, '268 — Dyeus : Thunderer force le critique en mode Non critique');
   egal(dyeusActif, computeTotalDamage(dyeusS1, [], buildAudit, { ...dyeusActifSetup, critMode: 'crit' }, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide),
     '268 — Dyeus : critique déjà forcé quand le mode Critique est choisi');
 
   const toma = profilDe(18711, 9511);
-  const tomaSetup = { ...setupAudit, critMode: 'moyenne' as const, enemyDef: 0 };
+  const tomaSetup = { ...setupAudit, critMode: 'normal' as const, enemyDef: 0 };
   egal(computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true }, AUCUNE_AURA_PROPRE),
     computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true, critMode: 'crit' }, AUCUNE_AURA_PROPRE),
-    '244 — Toma : Brise DEF force le critique même en mode Moyenne');
+    '244 — Toma : Brise DEF force le critique même en mode Non critique');
   ok(computeSkillDamage(toma, buildAudit, tomaSetup, AUCUNE_AURA_PROPRE) < computeSkillDamage(toma, buildAudit, { ...tomaSetup, defBreak: true }, AUCUNE_AURA_PROPRE),
     '244 — Toma : sans Brise DEF, le critique n’est pas garanti');
   const squall = profilDe(14611, 4206);
-  egal(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'moyenne' }, AUCUNE_AURA_PROPRE),
+  egal(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'normal' }, AUCUNE_AURA_PROPRE),
     computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 199, critMode: 'crit' }, AUCUNE_AURA_PROPRE),
     '246 — Squall : VIT propre strictement supérieure force le critique');
-  ok(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'moyenne' }, AUCUNE_AURA_PROPRE) <
+  ok(computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'normal' }, AUCUNE_AURA_PROPRE) <
     computeSkillDamage(squall, buildAudit, { ...setupAudit, enemySpd: 200, critMode: 'crit' }, AUCUNE_AURA_PROPRE),
     '246 — Squall : égalité de VIT ne force pas le critique');
 

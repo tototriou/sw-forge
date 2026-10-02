@@ -157,7 +157,8 @@ export function testDegatsTempestFormule() {
   const actif: DamageSetup = { ...base, passifsOffensifs: { [TEMPEST]: true } };
   const contributionTempest = (setup: DamageSetup) =>
     computeTotalDamage(s2, passifs, st, setup, AUCUNE_AURA_PROPRE, null) - computeSkillDamage(s2, st, setup, AUCUNE_AURA_PROPRE, null);
-  for (const critMode of ['normal', 'crit', 'moyenne'] as const) {
+  // « Moyenne » retiré de la boucle avec le mode lui-même (degats-et-aura, lot CM).
+  for (const critMode of ['normal', 'crit'] as const) {
     const setup = { ...actif, critMode };
     const rapport = contributionTempest(setup) / computeSkillDamage(referenceUnAtq(30), st, setup, AUCUNE_AURA_PROPRE, null);
     ok(

@@ -229,10 +229,11 @@ fixent : `.claude/agents/lot-c.md` (Sonnet, `effort: medium`) et
 `lot-m.md` (Sonnet, `effort: low`), types `lot-c` et `lot-m`. Actives à
 partir de la session suivante (dossier absent au démarrage de celle-ci).
 `lot-j.md` (Opus, `effort: high`, ajouté le 2026-10-02 au soir) applique de
-même la ligne « J → Opus, effort élevé » ; malgré la documentation (dossier
-surveillé à chaud), la session qui l'a écrit ne l'a pas vu : actif à la
-reprise suivante. Jusque-là, les lots J (8c, 9c, premiers 13b) tournent en
-`general-purpose` + Opus à l'effort de la session (max).
+même la ligne « J → Opus, effort élevé » ; la surveillance à chaud l'a pris
+avec plusieurs minutes de retard (deux essais refusés à 15 secondes
+d'écart, disponible une vague plus tard). Les lots J d'avant (8c, 9c,
+première vague de 13b) ont tourné en `general-purpose` + Opus à l'effort de
+la session (max).
 
 ### A.5 Branche, chantier, fichiers transverses
 
@@ -734,7 +735,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
-| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **lançables**, plusieurs à la fois | — |
+| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **3 / 17 validés** (amorces, séquences-zone, ignore-def) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
 | 13 — consolidation : plan, synthèse, recommandation (pilote) | J | après les dix-sept 13b ; recommandation soumise à l'utilisateur | — |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
 
@@ -835,6 +836,8 @@ décision, rayée avec la date et la réponse.
 | A.4 | ~~Effort des sous-agents : l'outil de lancement ne le règle pas, il suit celui de la session (xhigh, puis max, le 2026-10-02) ; les 24 sous-agents étaient Opus 5.5. Créer des définitions d'agent pour les lots C et M ?~~ | ✔ 2026-10-02 (utilisateur) : **oui** — `lot-c` (Sonnet, medium) et `lot-m` (Sonnet, low), actives à la session suivante (A.4) ; le lot 12 attend donc la prochaine session |
 | 8c | ~~Douze autres champs de la recette indexés par identifiant acceptent une clé à zéro de tête : les aligner dans ce chantier, ou laisser ?~~ | ✔ 2026-10-02 (utilisateur) : **aligner dans ce chantier** → lot 8d |
 | 8c | ~~Le résumé sous l'objectif doit-il aussi dire le cran d'ignore DEF des Blade Dancers ?~~ | ✔ 2026-10-02 (utilisateur) : **non**, pas de résumé pour les Blade Dancers |
+| 13b (découverte) | Le mode critique « Moyenne », dit par l'utilisateur « non utilisé et devant être supprimé » (amendement 1c1, L64-66), existe toujours et aucun lot ne porte sa suppression : l'ajouter à ce chantier ? | en attente |
+| 13b (constat) | Des calculs faux en silence sont en production : Madness Judgement (211), Liam (213) et Thunder Strike (7713) ignorent 100 % de la DEF en permanence ; Thunder Break et Abigail mal calculés (`13b-sequences-zone`). Mesure conservatoire maintenant (neutraliser ou refuser ces sorts en attendant les relevés), ou au plan du lot 13 ? | en attente |
 
 ---
 
@@ -7856,6 +7859,123 @@ fois (contrôle du script `06-plan-13b.mjs`, rejoué) ; chaque renvoi
 nominatif du lot 13 (point 2) et des Résultats 9c, 11 et 12 a son
 sous-lot ; aucune session n'écrit un fichier commun ; aucune n'a besoin
 d'un outil créé plus tard.
+
+#### Résultats des sous-lots 13b
+
+Première vague (trois sessions `general-purpose` + Opus, après un premier
+lancement de six arrêté net par la limite d'usage de la session, sans
+fichier écrit) : `13b-declenchee-amorces`, `13b-sequences-zone`,
+`13b-ignore-def`. Les vagues suivantes passent par `lot-j` (A.4).
+
+##### 13b-declenchee-amorces — 2026-10-02
+
+Preuve `controle-13b-declenchee-amorces.md` (473 lignes) et ses intrants
+(scripts 01 à 04, sorties). 4 constats, 19 lignes d'audit, 27 formes (14
+jouables) ; aucun déclaré livré. **Cases (par ligne)** : donnée × existant 9
+(8107, 8110, 8113, 8114 exactes ; 8115 et 8111 avec limite nommée ; One More
+Drink 8106/8108/8109 sans entrée : choisir « Rolling Punch (S1) » seul donne
+déjà ce total) ; donnée × neuf 3 (8112, 22415, 22915) ; relevé × existant 6
+(le constat 178, qui passe à « neuf » si la Marque posée compte) ; relevé ×
+neuf 1 (6161, Mina). Un seul mécanisme neuf rendrait exacts 8112, 8111, 8115
+et la Marque du 178 : un état « posé par le déclencheur », lu comme
+`defBreakApres`. Mina (6161) liée au constat 288 (`13b-critiques-bonus-tc-dc`).
+**Relevés** : R1 (S1 enchaînée avec et sans Marque déjà posée ; seuil 0,90),
+R2 (Energy Punch de Mina après un critique de la S1, de la S2, d'un Energy
+Punch appelé), Q-313 (question à l'utilisateur sur les termes appliqués au
+stock de Jin/Kai, relevé R3 seulement à défaut). **Lots proposés** : L-a à
+L-f. **Décisions formulées pour l'utilisateur** : D1 asymétrie 8115/8111 ;
+D2 interface d'une attaque appelée active ; D3 One More Drink ; D4 « attacks
+a random enemy » (rien n'établit que Rolling Punch frappe la cible
+configurée : les 10 lignes du 179 en dépendent) ; D5 Mina, interrupteur ou
+mode critique ; D6 étendue de R1 et repli. **Découvertes** :
+DH13b-declenchee-amorces-01 (contre-attaques de RYU feu et Douglas feu, 13912
+et 14412, absentes de l'inventaire) ; -02 (le mode critique « Moyenne »,
+dit « devant être supprimé » par l'utilisateur dans l'amendement 1c1, existe
+toujours et aucun lot ne porte sa suppression → soumis à l'utilisateur, A.8).
+
+**Validé par le pilote** : citations de code relues (`damage.ts` L3543 garde
+du déclencheur passif, L3440, L5369 exclusion par identifiant, L5385 et
+L5626 `defBreakApres`) ; deux verdicts recoupés sur les fiches
+(`public/data/skills/17202.json`, `17212.json` : Tiger Punch 8112 pose
+« Increase ATK » +50 % sur tous les alliés avant Rolling Punch → donnée ×
+neuf, exact ; `17201.json`, `17211.json` : One More Drink 8106 n'a qu'une
+formule de soin, effet « Heal » → le total est celui de Rolling Punch seul,
+exact) ; spec-lint vert, `git status` vide.
+
+##### 13b-sequences-zone — 2026-10-02
+
+Preuve `controle-13b-sequences-zone.md` (327 lignes) et ses intrants.
+12 constats, 20 lignes d'audit, 36 formes ; aucun déclaré livré. **Cases
+(par ligne)** : donnée × existant 4, donnée × neuf 3, donnée × indéterminé
+1 ; relevé × existant 6, relevé × neuf 4, relevé × indéterminé 2 ; 6 des 8
+« donnée » viennent d'auxiliaires de l'API (`other_skill`) absents de
+l'import ; 154 et 163 divergent selon la ligne. **Verdict structurant** :
+la limite de la garde « le premier groupe recopie la donnée » n'est pas
+propre à Head Press — éprouvée avec le vrai `skillDamageProfile` (patch en
+mémoire), elle refuse 8 sorts actifs sur 19 (10613, 2908, 14113, 14613,
+13913, 14413, 10132, 9515) et bloque 6 constats ; six motifs différents
+relient `coups`/`aoe` aux phases ; seule une « empreinte de la donnée » par
+entrée les couvre tous. Une ligne de table suffit pour 13311, 13314, 158,
+159, 163 ; 180 (Jackie) : valeur fournie (A.2 ter L148), une ligne de
+`COUPS_VARIABLES_CONNUS` ; 173 (Danu) : une ligne de
+`PASSIFS_OFFENSIFS_CONNUS` si l'interrupteur est retenu. **Calcul faux en
+silence** aujourd'hui sur plusieurs sorts (Thunder Break +67 % si les 20 %
+se recalculent par cible ; Abigail −56 %). **Relevés** : R1 à R12, rapports
+à la phase connue avec règle de décision annoncée (R3, Guilty Sentence : 3 %
+entre les hypothèses ; R11, R12 : confirmations). **Lots proposés** : SZ-1
+(garde par empreinte) à SZ-7 (Jackie avec Hwa, constat 166) ; SZ-5 à
+consolider avec 321 (`13b-coups-variables`). **Décisions formulées** : D1
+forme de la garde ; D2 l'auxiliaire de l'API comme seule source ; D3
+Guilty Sentence (second coup sur l'ennemi de plus faible DEF) ; D4 Danu ;
+D5 Jackie ; D6 refuser en attendant les 19 sorts mal calculés ; D7 effets
+entre groupes. **Découvertes** : DH13b-sequences-zone-01 (10112, Cow Girl
+non éveillée) ; -02 (Triple Crush de Kashmir a ses effets entre coups,
+Triple Combo de RYU non, pour les mêmes effets en fiche).
+
+**Validé par le pilote** : Great Sword of the End (Sagar, 14613) porte
+`coups: 2` et `aoe: true` dans `public/data/skills/24703.json` et
+`24713.json` (précision au lot 12 exacte) ; Head Press (M. BISON, 14113)
+`coups: 2`, `aoe: false` ; A.2 ter L148 fournit bien « Exploding Hands
+répète une fois son ratio 7.4 × ATQ » ; la garde est écrite en `damage.ts`
+L2886. Un `node -p` en lecture seule (écart déclaré).
+
+##### 13b-ignore-def — 2026-10-02
+
+Preuve `controle-13b-ignore-def.md` (291 lignes) et ses intrants (11
+scripts). 16 constats, 28 lignes, 58 formes. **Cases** : donnée × existant
+12 constats (22 lignes) ; relevé × neuf 4 (210, 211, 213, 216 : 6 lignes).
+**Les douze déclarés livrés** : 5 établis (203 à 207), 7 partiels (200,
+201, 202, 208, 209, 214, 215 : surtout sans test — Bull's Eye ×5, Shadow
+Arrow, Hawk's Eye, Shun, Bombay, Celestara, Isael — et, pour 200, la
+décision A.2 ter L151 « Fei choisit l'ignore DEF séparément pour chaque
+coup » non implémentée : un seul interrupteur pour ses 4 coups) ; aucun
+infirmé ; `auditdegatsconditionnels` 411 vérifications. **Calcul trop
+favorable en production** : Madness Judgement (211) et Unlimited Power de
+Liam (213) ignorent 100 % de la DEF en permanence (×5,7 à 1 500 de DEF) ;
+même cas hors inventaire pour Thunder Strike 7713 (Copper éveillé), et à
+consolider pour Katarina 6013 et Barbara 13611. Les contrôles libellés
+« 209 — Triss » testent le constat 214 ; Bombay (le vrai 209) n'a aucun
+test. **Relevés** : R1 Madness Judgement, R2 Liam, R3 Ezio/Patrick, R4
+Agrius (swcalc : plein ignore à +200 de VIT, lu par WebFetch seulement), R5
+Meteor Strike, R6 Silver Chakram (facultatif), Q1 premier coup de Fei.
+**Lots proposés** : IGN-a (tests seuls, 15 identifiants), IGN-b (Thunder
+Strike 7713), IGN-c (mesure conservatoire 211/213, sur décision), IGN-d1 à
+IGN-g après relevés. **Décisions formulées** : D1 en attendant les relevés,
+211/213 tels quels, neutralisés ou refusés ? D2 choix coup par coup étendu
+aux autres sorts à chance par coup ? D3 afficher la chance de 25 % ? D4
+contexte « combat de boss » ? D5 borne stricte pour 7713 ? D6 scénario
+Meteor Strike actif par défaut ? **Découvertes** : DH13b-ignore-def-01
+(7713) à -05 (dont Silver Chakram 12614 à 25 % sans prose, libellés de
+test erronés, Meteor Strike, `formules-et-combat.md` L20).
+
+**Validé par le pilote** : `damage.ts` L3037-3041 (`ignoreDef` = effet
+« Ignore DEF » sauf table conditionnelle) et L2802-2805
+(`IGNORE_DEF_CONDITIONNEL_PAR_ID`, sans 13406, 13410 ni 15511) ; fiches
+`23101`, `23105` (Madness Judgement : « Ignore DEF ») et `25701` (Unlimited
+Power : « Ignore DEF [If 3 or less enemies] ») → trop favorable, exact ;
+`tests/audit-degats-conditionnels.test.ts` L1026 et L1030 « 209 — Triss »
+alors que Triss est le constat 214 (plan) → exact ; A.2 ter L151 porte bien
+la décision Fei → exact.
 
 ### Lot 14 — clôture
 

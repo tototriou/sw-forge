@@ -699,7 +699,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b18 — le compte ne compte que les combinaisons confirmées | J | terminé, preuves, mesure et mutation rejouées par le pilote ; essai de l'utilisateur en attente (A.8) | `734d4dd6`…`a9fa6b48` ; reçu `a9fa6b4` ↔ `04da233` / 2026-10-02 |
 | 6bis-b19 — réimport du compte et changement d'exemplaire | J | terminé, preuves et mutation rejouées par le pilote ; deux cas voisins soumis à l'utilisateur (A.8) | `92db894b`, `62ac3eeb` ; reçu `62ac3ee` ↔ `16d8d7a` / 2026-10-02 |
 | 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `1baecf9e`…`3bc596af` ; reçu `3bc596a` ↔ `42f1a43` / 2026-10-02 |
-| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | **lançable** | — |
+| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | terminé, preuves et mutation rejouées par le pilote ; une question d'interface soumise à l'utilisateur (A.8) | `cc85a596`, `9291e1c8` ; reçu `9291e1c` ↔ `9ca4172` / 2026-10-02 |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | en cours en parallèle (worktree `sw-forge-lot-8a`, depuis `0899b541`) | — |
 | 8b — Blade Surge : recette, écran, CLI | J | requiert 8a | — |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | en cours en parallèle (worktree `sw-forge-lot-9a`, depuis `0899b541`) | — |
@@ -776,7 +776,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b19 | Réimporter le compte puis relancer : les paires suivent ; passer à un autre exemplaire de la même espèce efface les résultats | après le lot |
 | 6bis-b16 | Essai avec la recette Kinki : aucune carte qui apparaît puis disparaît ; places « Vérification… » sans saut ; page 1 complète vers 20-25 s ; changer de page et de tri | ✔ 2026-10-02 : « c'est parfait » ; demande nouvelle : stabiliser le compte et ne compter qu'après vérification (décision en A.8) |
 | 7a | Carte « État de mon monstre » : boîte « Sets d'aura des autres monstres » (hauteur, largeur du menu sur un téléphone étroit), libellé explicite placé **sous** les contrôles de chaque ligne (choix de l'agent, pour que le menu cliqué ne bouge pas), compteur « X / 15 » ajouté, bouton « Ajouter un set d'aura » désactivé à 15 ; champ du nombre vidé puis quitté → 1 ; interrupteur « Compter les effets d'auras Tolerance et Précision dans les conditions », placé en dernier des réglages avancés, dans le flottant (ordinateur) ET le panneau « Options » (téléphone) ; écho de la fenêtre « Dégâts réels » | en attente |
-| 7b | Rappel au changement de monstre en liste de travail ; ouverture guidée, ordinateur ET téléphone | après le lot |
+| 7b | Rappel au changement de monstre en liste de travail (message 3 s à la place de l'en-tête de la boîte des auras) ; ouverture guidée vers l'interrupteur en ajoutant Accuracy ou Tolerance, ordinateur (défilement puis flottant) ET téléphone (panneau « Options de recherche ») | en attente |
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort, à la souris ET au doigt | après le lot |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
@@ -794,6 +794,7 @@ décision, rayée avec la date et la réponse.
 | essai du Worker | ~~Comment supprimer le va-et-vient des cartes ?~~ | ✔ 2026-10-02 : **n'afficher que les builds vérifiés**, places en attente marquées « Vérification… » → 6bis-b16, avant 7a |
 | 6bis-b17 | ~~Deux cas voisins rapportés : réimport du compte à nombre égal ; changement d'exemplaire de la même espèce.~~ | ✔ 2026-10-02 : **corriger les deux** — chaque import vide le cache ; changer d'exemplaire efface les résultats comme un changement d'espèce → 6bis-b19 |
 | 6bis-b19 | ~~Deux cas voisins rapportés : autres chemins de changement d'exemplaire ; cache qui ne suit pas l'exemplaire.~~ | ✔ 2026-10-02 : (1) **liste de travail seulement** — puces de source, zone D et bestiaire inchangés ; (2) **écarté, faux problème** : l'utilisateur n'utilise que des monstres niveau 40, dont les stats de base sont identiques d'un exemplaire à l'autre |
+| 7b | Le rappel s'affiche dans « État de mon monstre », souvent hors de l'écran quand on clique dans la zone C (toujours au téléphone). L'afficher aussi sous la liste de la zone C (même message, même token, place réservée) ? Recommandation de l'agent : oui | posée le 2026-10-02 |
 | essai de b16 | ~~Quel compte afficher ?~~ | ✔ 2026-10-02 : progression inchangée (« Z trouvée(s) ») ; en-tête « XX combinaison(s) confirmée(s) » avec infobulle ; la file vise **K confirmées** ; interrupteur « Vérifier toutes les combinaisons trouvées », désactivé par défaut ; mesure courte → 6bis-b18 |
 | 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
 | 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
@@ -6291,6 +6292,51 @@ LF).
 vidé puis quitté n'est prouvé que par la fonction pure et un contrôle de
 source ; pas de test de bout en bout de l'interrupteur sur une vraie
 recherche (branchement déjà testé en 6bis-b3a et b4).
+
+#### Résultat du lot 7b — 2026-10-02
+
+Agent lancé par le pilote (A.8), dans le worktree du chantier. Deux
+commits : `cc85a596` — rappel : `doitRappeler(voie, avant, après)` et
+`DUREE_ATTENTION_MS = 3000` (`aurasExternes.ts`), seul appel dans le
+`onClick` d'un membre de la zone C, après la séquence de 6bis-b19 ; la
+boîte des auras passe en `border-warn bg-warn-soft`, le message « Pense à
+vérifier les sets d'aura externes. » occupe la case de l'en-tête, place
+réservée ; `9291e1c8` — ouverture guidée : `guideVersResPre` et
+`SETS_AURA_RES_PRE` (dérivés de `STAT_DE_L_AURA`), au doigt le panneau
+« Options de recherche » s'ouvre par la prop `onOuvrirMenu` (`App.tsx` →
+`OutilsPage` → `OptimizerSection`), à la souris défilement vers
+`avancesRef` puis ouverture du flottant sur `scrollend` (repli après
+1 s) ; cadre `border-warn bg-warn-soft` sur l'interrupteur. Reçu `9291e1c`
+↔ `9ca4172`.
+
+**Rejoué par le pilote sur `9291e1c8`** : reçu valide ; `tsc` 0 ; tests de
+zone (4 filtres) 229 passés ; build vert, `bg-warn-soft`, `border-warn` et
+l'animation contrôlés dans le CSS construit ; spec-lint, diff-check verts.
+Mutations de l'agent : 6, 2, 4 et 2 échecs. **Mutation du pilote** (le
+rappel ne réagit plus qu'au changement d'espèce) : 1 échec, « liste de
+travail, MÊME espèce, autre exemplaire : rappel » ; restauré.
+
+**Question de l'agent, soumise à l'utilisateur (A.8)** : le rappel
+s'affiche dans « État de mon monstre », souvent hors de l'écran quand on
+clique dans la zone C (toujours au téléphone) ; il peut s'éteindre sans
+avoir été vu. Recommandation de l'agent : le même message, même token et
+place réservée, sous la liste de la zone C.
+
+**Choix de l'agent, à juger à l'œil (A.8)** : le message remplace
+l'en-tête de la boîte pendant 3 s ; pas de défilement si l'ancre est déjà
+visible ; au téléphone, le panneau défile pendant qu'il monte ; la boîte
+des réglages avancés gagne 4 px en bas ; choisir un monstre de la liste
+quand aucun n'était sélectionné déclenche aussi le rappel (si des auras
+sont saisies).
+
+**Incohérences relevées, non corrigées** : `spec/shared/design.md` donne
+`warn` Atelier `#b7791f` alors qu'`index.css` porte 138 87 12 ;
+`invariants.md` dit que l'ouverture des réglages avancés n'est jamais dans
+`useOptimizerState`, où vit pourtant `showAdvanced`.
+
+**Non prouvé** : aucun rendu à l'œil ; `scrollend` et son repli par lecture
+du source seulement ; au clavier, les flèches sur le menu d'une ligne
+pourraient déclencher le guidage plusieurs fois (non examiné).
 
 ### Lot 8 — Blade Surge : le 3ᵉ coup, en zone
 

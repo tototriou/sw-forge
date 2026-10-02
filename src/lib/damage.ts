@@ -2188,6 +2188,9 @@ export interface SkillDamageProfile {
   // (Tempest, degats-et-aura 9b) ; choisi, il n'est jamais le sort par défaut
   // (`defaultDamageSkill`), jamais le premier coup du tour (411,
   // `computeTotalDamage`) et jamais ajouté à lui-même (`passifPeutSuivre`).
+  // Une attaque appelée ACTIVE que `monsterOffensivePassives` reprend
+  // (degats-et-aura 9c) garde le profil de `skillDamageProfile`, donc ce champ
+  // absent : une S1 n'est pas un passif.
   // Donnée pure : traverse le Worker de résolution avec le profil.
   passif?: boolean;
   nom: string;
@@ -3353,11 +3356,44 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   }, // Teshar, Phoenix (Vent)
 ];
 
+// Attaque appelée ACTIVE (degats-et-aura 9c) : un sort qui enchaîne une AUTRE
+// compétence active de la même fiche — la S2 de RYU (Shoryuken) appelle sa S1
+// (Hadoken), « [Hadoken] will be activated in succession ». Même architecture
+// que Tempest (une compétence à profil propre, après ce seul sort, sur
+// interrupteur), mais l'attaque n'est PAS un passif : `PASSIFS_OFFENSIFS_CONNUS`
+// ne peut pas la porter, faute de `c.passif`, et sa clé par nom serait fausse.
+export interface AttaqueAppeleeConnue {
+  // Slot de la compétence ACTIVE appelée, cherchée dans la MÊME fiche que le
+  // déclencheur : son identifiant change d'une forme à l'autre (Hadoken 13902,
+  // 13903, 13905), son slot non.
+  slotAppele: number;
+  // D'où viennent le déclencheur et le slot appelé (prose, constat, cadrage).
+  source: string;
+}
+
+// Clé = `com2usId` du SORT DÉCLENCHEUR, jamais un nom : « Hadoken » est porté
+// par 12 formes du corpus, dont 6 sans Shoryuken pour le déclencher, et
+// « Energy Punch » par 20 (controle-12.md § 3.3). Lue par
+// `attaquesAppeleesDeLaFiche`, qui rend le même `PassifOffensifProfile` que le
+// chemin des passifs : le calcul ne change pas (`passifCompte`,
+// `computeTotalDamage`, `damageRelevantStats`).
+//
+// ⚠️ **Vide en production** : le contrat du lot 9 « n'en code aucune ». Les 17
+// amorces des constats 168, 178 et 179 ont été examinées au lot 9c (onze
+// acceptables par une entrée chacune, six classées avec leur raison :
+// `tests/degats-attaque-appelee.test.ts`, qui injecte ses entrées et les
+// retire). Ce qu'il faut fournir pour en ajouter une :
+// spec/outils/degats-reels/attaque-apres-un-sort.md.
+export const ATTAQUES_APPELEES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAppeleeConnue>> = {};
+
 // Profil de dégâts d'un passif offensif CONNU (voir la liste ci-dessus),
 // prêt à passer par `computeSkillDamage` comme n'importe quel sort actif.
 export interface PassifOffensifProfile {
   // `Competence.com2usId` du PASSIF (pas du sort actif choisi) — clé de
-  // `DamageSetup.passifsOffensifs`, stable pour CE monstre.
+  // `DamageSetup.passifsOffensifs`, stable pour CE monstre. Pour une attaque
+  // appelée active (`ATTAQUES_APPELEES_PAR_DECLENCHEUR`, degats-et-aura 9c),
+  // celui de la compétence APPELÉE : l'exclusion par identifiant de
+  // `passifPeutSuivre` l'écarte quand elle est elle-même le sort choisi.
   skillCom2usId: number;
   nom: string;
   // Texte SWARFARM brut du passif (`Competence.description`), affiché tel
@@ -3386,6 +3422,10 @@ export interface PassifOffensifProfile {
  * reste analysable (une formule qui a changé de forme depuis la
  * catégorisation ci-dessus est silencieusement ignorée, jamais un plantage
  * ni un nombre inventé). Liste vide si la fiche est absente.
+ *
+ * ⚠️ **Plus les attaques appelées actives** curées par déclencheur
+ * (`attaquesAppeleesDeLaFiche`, degats-et-aura 9c), en fin de liste : un seul
+ * chemin pour l'écran, le CLI et le Worker, donc une seule porte de calcul.
  */
 export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOffensifProfile[] {
   if (!detail) return [];
@@ -3469,7 +3509,67 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
       },
     });
   }
+  out.push(...attaquesAppeleesDeLaFiche(detail));
   return out;
+}
+
+/**
+ * Les attaques appelées ACTIVES de cette fiche (`ATTAQUES_APPELEES_PAR_DECLENCHEUR`,
+ * degats-et-aura 9c), au format du chemin des passifs : la compétence active
+ * du slot appelé, dans la MÊME fiche, déclenchée après le seul sort
+ * déclencheur, sur interrupteur (catégorie `conditionnel`, désactivé par
+ * défaut, cadrage A.2 ter « Attaques supplémentaires conditionnelles »).
+ *
+ * - **Le profil est celui du sort actif**, construit par `skillDamageProfile`
+ *   comme dans « Compétence utilisée » — jamais celui du déclencheur (ni ratio
+ *   ni améliorations transférés). Son marqueur `passif` reste donc absent (une
+ *   S1 n'est pas un passif) : le sort par défaut, la neutralisation de 411
+ *   (toute la boucle des passifs) et l'exclusion par identifiant de
+ *   `passifPeutSuivre` n'en dépendent pas.
+ * - **Après ce seul sort** : `slotsDeclencheurs` vaut le slot du déclencheur,
+ *   et l'entrée n'est retenue que si aucune autre compétence de la fiche
+ *   n'occupe ce slot — le slot désigne alors le déclencheur et lui seul.
+ * - **Une attaque par compétence appelée** : deux déclencheurs qui appellent
+ *   le même slot (la S2 et la S3 d'un même Maître ivre) donnent un seul
+ *   profil, un seul interrupteur, aux slots déclencheurs réunis.
+ * - Toute garde non tenue (déclencheur passif, slot appelé vide, occupé par
+ *   un passif ou par plusieurs compétences, sort non calculable) écarte
+ *   l'entrée en silence, comme une formule devenue illisible plus haut :
+ *   `tests/degats-attaque-appelee.test.ts` le vérifie.
+ */
+function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile[] {
+  const parAppelee = new Map<number, { profil: SkillDamageProfile; slots: number[] }>();
+  for (const declencheur of detail.competences) {
+    if (declencheur.passif || declencheur.com2usId == null || declencheur.slot == null) continue;
+    const connue = ATTAQUES_APPELEES_PAR_DECLENCHEUR[declencheur.com2usId];
+    if (!connue) continue;
+    const memeSlot = detail.competences.filter((k) => k.slot === declencheur.slot);
+    const auSlotAppele = detail.competences.filter((k) => k.slot === connue.slotAppele);
+    if (memeSlot.length !== 1 || auSlotAppele.length !== 1) continue;
+    const appelee = auSlotAppele[0];
+    if (appelee.passif || appelee === declencheur) continue;
+    const profil = skillDamageProfile(appelee);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    const deja = parAppelee.get(profil.skillCom2usId);
+    if (deja) {
+      if (!deja.slots.includes(declencheur.slot)) deja.slots.push(declencheur.slot);
+    } else {
+      parAppelee.set(profil.skillCom2usId, { profil, slots: [declencheur.slot] });
+    }
+  }
+  return [...parAppelee.values()].map(({ profil, slots }) => ({
+    skillCom2usId: profil.skillCom2usId,
+    nom: profil.nom,
+    description: profil.description,
+    critique: 'suit',
+    coupsDuSortActif: false,
+    slotsDeclencheurs: [...slots].sort((a, b) => a - b),
+    categorie: {
+      type: 'conditionnel',
+      condition: `${profil.nom} se déclenche à la suite de ce sort (probabilité du jeu non tirée)`,
+    },
+    profile: profil,
+  }));
 }
 
 /**

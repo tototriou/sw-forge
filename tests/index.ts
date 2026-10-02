@@ -84,6 +84,11 @@ import {
   testLot12IgnoreDefDepuisUnCoup,
   testLot12PassifMasqueEtStatsDeCombat,
 } from './degats-lot12.test';
+import {
+  testAttaqueAppeleeApprovisionnement,
+  testAttaqueAppeleeCouverture,
+  testAttaqueAppeleeEspaceDeCles,
+} from './degats-attaque-appelee.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimOnStage from './rune-optim-onstage.test';
@@ -217,6 +222,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testLot12AttaqueDeclenchee', testLot12AttaqueDeclenchee],
   ['testLot12IgnoreDefDepuisUnCoup', testLot12IgnoreDefDepuisUnCoup],
   ['testLot12PassifMasqueEtStatsDeCombat', testLot12PassifMasqueEtStatsDeCombat],
+  ['testAttaqueAppeleeApprovisionnement', testAttaqueAppeleeApprovisionnement],
+  ['testAttaqueAppeleeCouverture', testAttaqueAppeleeCouverture],
+  ['testAttaqueAppeleeEspaceDeCles', testAttaqueAppeleeEspaceDeCles],
   ['testRecetteClesIdentifiant', testRecetteClesIdentifiant],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testDegatsTempestFormule', testDegatsTempestFormule],

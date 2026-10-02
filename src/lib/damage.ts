@@ -1930,6 +1930,25 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   Cover: { pct: 100, condition: 'tu es sous Dissimulation' }, // Gollum — état posé par le S2, bonus sur les attaques
   Permeate: { pct: 100, condition: 'tu es sous Dissimulation' }, // Lob Ear — collaboration équivalente
   "The Night's Comfort (Passive)": { pct: 50, condition: 'tu as un bouclier actif' }, // Dusky
+  // Internal Force (12515, Paladin 21805 et Leona 21815 — nom porté par ce
+  // seul identifiant dans tout le corpus) : « Creates a Shield equal to your
+  // Defense for 2 turns when you are attacked. Increases the damage dealt by
+  // 50% when you have a Shield. » Effet `Increase Damage`, `quantite: 50`,
+  // note « When you have a Shield. » : la valeur est dans la donnée.
+  // ⚠️ Lecture RENVERSÉE au lot 15b (décision de l'utilisateur du
+  // 2026-10-02, cadrage degats-et-aura A.8) : le passif était un
+  // `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` qui ajoutait `2.0*{DEF}` (le
+  // Bouclier) aux dégâts et écartait le +50 %, réputé porter sur les dégâts
+  // absorbés. Or le Bouclier se crée « when you are attacked » : ce n'est
+  // pas une attaque (A.2 ter, « Une attaque se lit dans la prose »), il ne
+  // compte plus. Le +50 % « damage dealt » est compté ici, sous le bouton
+  // « bouclier actif », désactivé par défaut — même clé de stockage
+  // (`passifsOffensifs[12515]`) que l'ancien bouton, même condition.
+  // Non mesuré en jeu : qu'il majore le total comme les autres entrées de
+  // cette table (multiplicatif, hors bucket Additionnel) reste l'hypothèse
+  // de la famille. L'égalisation ATQ/DEF du début de combat reste hors
+  // modèle (mécanisme neuf, au plan du lot 13).
+  'Internal Force (Passive)': { pct: 50, condition: 'tu as un bouclier actif' }, // Paladin, Leona
   'Indomitable (Passive)': { pct: 50, condition: 'tes incapacités ont été dissipées au début de ce tour' }, // Ongyouki
   'Magic Power Explosion (Passive)': { pct: 30, condition: 'tu es en état Magic Power Explosion' }, // Homunculus Attaque
   'Anatman (Passive)': { pct: 100, condition: "tu n'as pas été attaqué depuis ton dernier tour" }, // DHALSIM Eau
@@ -3300,17 +3319,9 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
     },
   }, // Roid
   // — Conditionnel, formule PROPRE (compte à 100 % activé, 0 % éteint) —
-  // « Creates a Shield equal to your Defense for 2 turns when you are
-  // attacked. Increases the damage dealt by 50% when you have a Shield. »
-  // `formule: 2.0*{DEF}` EST le Bouclier lui-même — ce n'est PAS un bonus en
-  // % du total (contrairement à ce que le catalogue laissait supposer),
-  // c'est une SOURCE DE DÉGÂTS À PART ENTIÈRE (comme Winds and Clouds/Final
-  // Strike), juste gatée par un bouton plutôt que « toujours ». Le +50 %
-  // décrit dans le texte s'applique aux dégâts que le Bouclier absorbe (hors
-  // modèle, défensif) — PAS un second multiplicateur à ajouter ici. Balance
-  // ATQ/DEF au début du combat (« the value of the lower stat will equal
-  // that of the higher ») laissée hors modèle (état de combat non simulé).
-  { nom: 'Internal Force (Passive)', categorie: { type: 'conditionnel', condition: 'tu as un Bouclier actif' } }, // Paladin, Leona
+  // ⚠️ Internal Force (Paladin, Leona, 12515) n'est PLUS ici depuis le lot
+  // 15b (degats-et-aura) : son `2.0*{DEF}` est un Bouclier, pas une attaque
+  // — il vit désormais dans `BONUS_DEGATS_CONDITIONNEL_CONNUS` (voir là-bas).
   // « Deals additional damage that's proportional to the enemy's MAX HP...
   // when attacking the suppressed Monster. » `formule: 0.2*{Target MAX HP}`
   // confirmé (capture du panneau de compétence, bestiaire) — ne dépend QUE

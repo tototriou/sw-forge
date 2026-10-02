@@ -295,6 +295,14 @@ Formes : 34704 Legolas †, 34714 Legolas.
 | --- | --- | --- | --- | --- |
 | « Quick Steps (Passive) » · 23914 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Charges de Quick Steps » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Quick Steps (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
 
+### Leona
+
+Formes : 21805 Paladin †, 21815 Leona.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Internal Force (Passive) » · 12515 · S3 | Le Bouclier (`2.0*{DEF}`) n'est plus compté comme des dégâts : le passif n'est plus un passif offensif à formule propre. Le « +50 % de dégâts infligés quand tu as un Bouclier » de la donnée est compté sur tous les sorts de Leona, sous un interrupteur désactivé par défaut (même clé de stockage que l'ancien bouton : un réglage déjà allumé donne désormais +50 % au lieu de +2 × DEF). L'égalisation ATQ/DEF de début de combat reste hors calcul. | 15b | commit du lot 15b (hash au Résultat du lot 15b) | Chemin commun → Leona → « Passifs offensifs » : un interrupteur « Internal Force (+50 %) », éteint, « Se déclenche si tu as un bouclier actif. », la prose du passif dessous ; plus de ratio « 2 × DEF ». Éteint : le total est celui du sort seul. Allumé : le total de S1 comme de S2 est multiplié par 1,5 ; changer la DEF du build ne change plus le total. |
+
 ### Lupinus
 
 Formes : 19813 Lupinus.
@@ -554,9 +562,13 @@ Rien de ce qui suit n'est à chercher à l'écran.
 - **Stone Claws** : la prose est rendue sous le compteur ET au « ? » de la
   case du sort ; décision de l'utilisateur : garder les deux.
 - **Calculs faux en silence encore en production** (Madness Judgement, Liam,
-  Thunder Strike `7713`, Barbara, boucliers de Frieren et d'Internal Force…) :
-  hors de cette liste, décision de l'utilisateur du 2026-10-02 d'attendre le
-  plan du lot 13.
+  Thunder Strike `7713`, Barbara, bouclier de Frieren…) : hors de cette
+  liste, décision de l'utilisateur du 2026-10-02 d'attendre le plan du
+  lot 13. Le bouclier d'Internal Force en est sorti au lot 15b (Leona, § 1).
+- **Internal Force** (lot 15b) : aucun relevé en jeu du +50 % ; qu'il
+  multiplie le total comme le reste des bonus conditionnels à bouton (hors
+  bucket Additionnel) est l'hypothèse de la famille, non mesurée pour
+  Leona.
 - **Valeurs en jeu** : aucune des valeurs de Blade Surge, Tempest et Blade
   Dancers n'a de relevé en jeu ; elles viennent de l'utilisateur (A.2 ter).
 

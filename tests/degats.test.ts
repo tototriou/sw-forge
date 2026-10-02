@@ -2450,20 +2450,45 @@ export default function testDegats() {
   // répondues dans le même message. Les données réelles ont prévalu.
   egal(monsterBonusDegatsConditionnel(fiche(22011))?.pct, 20, 'Female Warrior : 20 %, PAS 200 % — les données SWARFARM prévalent sur une réponse en aparté imprécise');
 
-  // Internal Force (Paladin/Leona) — PAS un `BONUS_DEGATS_CONDITIONNEL_CONNUS`
-  // malgré la demande initiale d'un « toggle » : il a sa PROPRE formule dans
-  // les données SWARFARM (`2.0*{DEF}`) — un `PASSIFS_OFFENSIFS_CONNUS`
-  // `conditionnel` (bouton, compte à 100 % activé), la même catégorie que
-  // Roid/Ruins, jamais un pourcentage du TOTAL.
+  // Internal Force (12515 ; Paladin 21805, Leona 21815) — lot 15b du chantier
+  // degats-et-aura, décision de l'utilisateur du 2026-10-02. ⚠️ Ce test
+  // FIGEAIT l'inverse : un `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` dont la
+  // formule `2.0*{DEF}` (le Bouclier) s'ajoutait aux dégâts, le +50 % étant
+  // réputé porter sur les dégâts absorbés. Renversé : le Bouclier se crée
+  // « when you are attacked », ce n'est pas une attaque (cadrage A.2 ter,
+  // « Une attaque se lit dans la prose ») ; le +50 % « damage dealt » de la
+  // donnée (`Increase Damage`, `quantite: 50`, note « When you have a
+  // Shield. ») majore les dégâts du monstre sous le bouton « bouclier
+  // actif ». Hypothèse non mesurée, celle de toute la famille : le +50 %
+  // multiplie le total (hors bucket Additionnel).
   const leona = fiche(21815);
-  const internalForcePassif = monsterOffensivePassives(leona).find((p) => p.nom === 'Internal Force (Passive)');
-  ok(internalForcePassif != null, 'Leona : Internal Force reconnu comme passif offensif');
-  egal(internalForcePassif?.categorie, { type: 'conditionnel', condition: 'tu as un Bouclier actif' }, 'Internal Force : catégorie conditionnel, formule propre');
-  egal(internalForcePassif?.profile.formule, '2.0*{DEF}', 'Internal Force : le Bouclier vaut 2×DEF');
-  ok(!passifActif(internalForcePassif!, { ...DEFAULT_DAMAGE_SETUP }), 'désactivé par défaut, jamais deviné actif');
+  for (const id of [21805, 21815]) {
+    ok(
+      !monsterOffensivePassives(fiche(id)).some((p) => p.nom === 'Internal Force (Passive)'),
+      `${id} : Internal Force n'est plus un passif offensif — son Bouclier n'est pas une attaque`
+    );
+    const bonusIf = monsterBonusDegatsConditionnel(fiche(id));
+    egal(
+      bonusIf && { id: bonusIf.skillCom2usId, nom: bonusIf.nom, pct: bonusIf.pct, condition: bonusIf.condition },
+      { id: 12515, nom: 'Internal Force (Passive)', pct: 50, condition: 'tu as un bouclier actif' },
+      `${id} : Internal Force = +50 % de dégâts sous « bouclier actif » (valeur de la donnée)`
+    );
+  }
+  const bonusLeona = monsterBonusDegatsConditionnel(leona)!;
+  ok(!bonusDegatsConditionnelActif(bonusLeona, { ...DEFAULT_DAMAGE_SETUP }), 'Internal Force : désactivé par défaut, jamais deviné actif');
+  const s1Leona = resolveDamageSkill(monsterDamageSkills(leona), 12520)!;
+  const passifsLeona = monsterOffensivePassives(leona);
+  const leonaSetupEteint: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: 12520, enemyDef: 1000, passifsOffensifs: { 12515: false } };
+  const leonaSetupAllume: DamageSetup = { ...leonaSetupEteint, passifsOffensifs: { 12515: true } };
+  const totalLeona = (def: number, setup: DamageSetup) =>
+    computeTotalDamage(s1Leona, passifsLeona, stats({ atk: 2500, def, cr: 100, cd: 200 }), setup, AUCUNE_AURA_PROPRE, null,
+      ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, bonusLeona);
+  const seulS1 = computeSkillDamageDetail(s1Leona, stats({ atk: 2500, def: 1500, cr: 100, cd: 200 }), leonaSetupEteint, AUCUNE_AURA_PROPRE, null).total;
+  ok(Math.abs(totalLeona(1500, leonaSetupEteint) - seulS1) < 1e-6, 'Leona, bouton éteint : le S1 seul, aucun +50 % ni Bouclier');
+  ok(Math.abs(totalLeona(1500, leonaSetupAllume) / totalLeona(1500, leonaSetupEteint) - 1.5) < 1e-9, 'Leona, bouton allumé : exactement ×1,5');
   ok(
-    passifActif(internalForcePassif!, { ...DEFAULT_DAMAGE_SETUP, passifsOffensifs: { [internalForcePassif!.skillCom2usId]: true } }),
-    'activé une fois le bouton coché'
+    Math.abs(totalLeona(3000, leonaSetupAllume) - totalLeona(1500, leonaSetupAllume)) < 1e-6,
+    'Leona, bouton allumé : doubler la DEF ne change rien — le Bouclier 2×DEF n\'est plus compté'
   );
 
   // Comeuppance (Onmyouji/Giou) — D'ABORD exclu à tort de
@@ -2481,7 +2506,7 @@ export default function testDegats() {
   ok(comeuppancePassif != null, 'Giou : Comeuppance reconnu comme passif offensif');
   egal(comeuppancePassif?.profile.formule, '0.2*{Target MAX HP}', 'Comeuppance : 20 % des PV max de la cible');
   egal(comeuppancePassif?.critique, 'jamais', 'Comeuppance ne critique jamais, confirmé par l’utilisateur');
-  egal(comeuppancePassif?.categorie.type, 'conditionnel', 'Comeuppance : catégorie conditionnel, comme Internal Force');
+  egal(comeuppancePassif?.categorie.type, 'conditionnel', 'Comeuppance : catégorie conditionnel (bouton, formule propre)');
   ok(!passifActif(comeuppancePassif!, { ...DEFAULT_DAMAGE_SETUP }), 'désactivé par défaut, jamais deviné actif');
   ok(
     passifActif(comeuppancePassif!, { ...DEFAULT_DAMAGE_SETUP, passifsOffensifs: { [comeuppancePassif!.skillCom2usId]: true } }),

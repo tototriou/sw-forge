@@ -214,16 +214,33 @@ condition non déductible) :
   Rosemary** (point 43) : « +200% if you attack the frozen enemy on your
   turn » — confirmé en données (`quantite: 200`).
 
+**Internal Force/Paladin, Leona** (point 28, identifiant 12515) —
+`BONUS_DEGATS_CONDITIONNEL_CONNUS` depuis le lot 15b du chantier
+degats-et-aura (décision de l'utilisateur du 2026-10-02, cadrage A.8) :
+« Creates a Shield equal to your Defense for 2 turns when you are attacked.
+Increases the damage dealt by 50% when you have a Shield. »
+
+- **Le Bouclier n'est pas compté.** `formule: 2.0*{DEF}` décrit le Bouclier,
+  créé « when you are attacked » : ce n'est pas une attaque (cadrage A.2
+  ter, « Une attaque se lit dans la prose »).
+- **Le +50 % est compté** : effet `Increase Damage`, `quantite: 50`, note
+  « When you have a Shield. » ; `+50 %` sur les dégâts du monstre sous le
+  bouton « bouclier actif », désactivé par défaut (même clé de stockage,
+  `passifsOffensifs[12515]`, que l'ancien bouton). Qu'il majore le total
+  comme le reste de la famille (multiplicatif, hors bucket Additionnel)
+  n'est pas mesuré en jeu.
+- ⚠️ **Lecture renversée.** Jusqu'au lot 15b, le passif était un
+  `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` dont le `2.0*{DEF}` s'ajoutait
+  aux dégâts bouton allumé, le +50 % étant réputé porter sur les dégâts que
+  le Bouclier absorbe ; le test qui figeait cette lecture dit désormais
+  pourquoi elle est tombée.
+- L'égalisation ATQ/DEF du début de combat (« the value of the lower stat
+  will equal that of the higher ») reste hors modèle : mécanisme neuf, au
+  plan du lot 13.
+
 **Nouveau `PASSIFS_OFFENSIFS_CONNUS` `conditionnel`** (toggle, formule
 PROPRE au passif, pas un % du total) :
 
-- **Internal Force/Paladin, Leona** (point 28) : « Creates a Shield equal
-  to your Defense... Increases the damage dealt by 50% when you have a
-  Shield. » `formule: 2.0*{DEF}` EST le Bouclier — ce n'est PAS un % du
-  total (contrairement à ce que le catalogue laissait supposer), c'est une
-  source de dégâts À PART ENTIÈRE gatée par un bouton, exactement comme
-  Roid. Le +50 % du texte s'applique aux dégâts que le Bouclier ABSORBE
-  (défensif, hors modèle).
 - **Comeuppance/Onmyouji, Giou** (point 41) : `formule: 0.2*{Target MAX HP}`
   confirmée (capture du bestiaire à l'appui — d'abord exclue à tort par
   analogie avec `skillDamageProfile`, qui rejette un sort ACTIF
@@ -234,7 +251,7 @@ PROPRE au passif, pas un % du total) :
   `monsterOffensivePassives` (seule une formule vraiment illisible reste
   rejetée) — aucune autre entrée de la table n'est affectée, toutes
   dépendaient déjà d'au moins une stat de l'attaquant. `critique: 'jamais'`,
-  catégorie `conditionnel` (bouton, comme Internal Force).
+  catégorie `conditionnel` (bouton).
 
 **Nouveau `BONUS_DEGATS_STACKABLE_CONNUS`** (compteur saisi manuellement, 0
 par défaut, même mécanisme que Momo) :

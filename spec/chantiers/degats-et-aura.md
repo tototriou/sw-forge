@@ -6700,9 +6700,17 @@ grep `optimizerRecipe` dans `tests/`) ; le Résultat de 8c ci-dessus.
    invalide »).
 3. Test nommé : pour chacun des quatorze champs, la clé « 010616 » est
    refusée avec son chemin exact, et une clé valide du même champ reste
-   acceptée. La liste des champs du test est écrite une fois et comparée au
-   nombre d'appels de la fonction dans le parseur (un champ ajouté plus tard
-   sans test fait échouer).
+   acceptée. La liste des quatorze champs est écrite une fois dans le test.
+   Garde de source : le test compte les sites d'appel de
+   `estIdentifiantDeCompetence(` dans `optimizerRecipe.ts` — **cinq**
+   (`validerRecordNumerique`, `validerRecordBooleen`,
+   `scenariosEffetsEntreCoups`, `cibleDegatsParSort`,
+   `premierCoupIgnoreDefParSort` ; les neuf champs des deux tableaux
+   passent par `validerRecordNumerique`) — et relit les deux tableaux de
+   champs du parseur pour vérifier qu'ils sont dans sa liste : un site ou un
+   champ ajouté plus tard sans test fait échouer. (Corrigé par le pilote
+   avant le lancement : la première rédaction comparait quatorze champs à
+   un nombre d'appels.)
 
 **Preuve** : `grep -n` dans `optimizerRecipe.ts` → plus aucun `/^\d+$/`
 ni `/^[1-9]\d*$/` hors de la fonction ; mutation (la fonction revient à

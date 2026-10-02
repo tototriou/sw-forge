@@ -69,8 +69,12 @@ export function chargerRecette(
 ): RecetteChargee {
   const avertissements: string[] = [];
 
-  const { recipe, error } = parseOptimizerRecipe(readFileSync(cheminRecette, 'utf8'));
+  const { recipe, error, avertissements: conversions } = parseOptimizerRecipe(readFileSync(cheminRecette, 'utf8'));
   if (!recipe) throw new Error(`Recette invalide : ${error}`);
+  // Ce que le parseur a CONVERTI (l'ancien mode critique « Moyenne » →
+  // « Critique », degats-et-aura lot CM) : le même texte que le message
+  // d'import de l'écran, jamais une conversion silencieuse.
+  avertissements.push(...(conversions ?? []));
 
   // ⚠️ Un objectif RETIRÉ (`speed_nuker`, `degats`) peut encore apparaître
   // dans une recette exportée avant son retrait — `parseOptimizerRecipe` ne

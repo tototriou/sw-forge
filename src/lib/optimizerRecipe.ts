@@ -198,7 +198,25 @@ export function buildOptimizerRecipe(input: Omit<OptimizerRecipe, 'version'>): O
 export interface RecipeValidationResult {
   recipe: OptimizerRecipe | null;
   error?: string;
+  /**
+   * Ce que l'import a CONVERTI pour rendre la recette lisible (jamais une
+   * erreur : la recette est rendue). Chaque entrée nomme le champ, l'ancienne
+   * et la nouvelle valeur. ⚠️ Optionnel, donc invisible pour `tsc` chez un
+   * lecteur qui l'ignore : l'écran (`importRecipe`) l'ajoute au message
+   * d'import, le CLI et le harnais le reçoivent par les `avertissements` de
+   * `chargerRecette`. Absent quand rien n'a été converti.
+   */
+  avertissements?: string[];
 }
+
+// L'ancien mode critique « Moyenne », supprimé (degats-et-aura, lot CM,
+// décision de l'utilisateur du 2026-10-02) : une recette exportée avant le
+// porte encore. Elle est CONVERTIE en « Critique », le défaut — jamais
+// refusée, jamais changée en silence. Toute autre valeur inconnue reste
+// refusée (`validerDamageSetup`).
+const CRIT_MODE_SUPPRIME = 'moyenne';
+export const AVERTISSEMENT_CRIT_MOYENNE =
+  "damageSetup.critMode : « moyenne » → « crit » — le mode critique « Moyenne » n'existe plus, la recette est passée en « Critique ».";
 
 const OBJECTIFS_ACCEPTES = new Set(['efficience', 'ehp', 'vitesse', 'degats_reels', 'speed_nuker', 'degats']);
 const METRIQUES_ACCEPTEES = new Set(['eff', 'score']);
@@ -324,7 +342,9 @@ function validerDamageSetup(value: unknown): string | null {
   ]) {
     if (setup[champ] !== undefined && typeof setup[champ] !== 'boolean') return erreur(`damageSetup.${champ}`, 'doit être un booléen');
   }
-  if (setup.critMode !== undefined && !['moyenne', 'crit', 'normal'].includes(String(setup.critMode))) {
+  // `CRIT_MODE_SUPPRIME` reste accepté ICI uniquement pour être converti par
+  // `parseOptimizerRecipe`, avec son avertissement.
+  if (setup.critMode !== undefined && ![CRIT_MODE_SUPPRIME, 'crit', 'normal'].includes(String(setup.critMode))) {
     return erreur('damageSetup.critMode', 'contient un mode de critique inconnu');
   }
   // ⚠️ « aucune » n'existe plus dans l'écran ni dans `SummonerSkills`, mais
@@ -539,9 +559,18 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   // L'ancien `setsAura`, accepté seulement absent ou vide (voir
   // `validerDamageSetup`), est retiré : aucune clé hors de `DamageSetup` ne
   // survit à l'import ni ne repart dans l'export suivant.
+  // L'ancien mode critique « Moyenne » devient « Critique », DIT par un
+  // avertissement (voir `AVERTISSEMENT_CRIT_MOYENNE`) : même normalisation
+  // centrale, pour l'écran comme pour le CLI.
+  const avertissements: string[] = [];
   let normalisee = d;
   if (estObjet(d.damageSetup)) {
-    const { setsAura: _ancienTotal, ...setup } = d.damageSetup;
+    const { setsAura: _ancienTotal, ...setupLu } = d.damageSetup;
+    let setup = setupLu;
+    if (setup.critMode === CRIT_MODE_SUPPRIME) {
+      setup = { ...setup, critMode: 'crit' };
+      avertissements.push(AVERTISSEMENT_CRIT_MOYENNE);
+    }
     normalisee = {
       ...d,
       damageSetup: ['combat', 'guilde'].includes(String(setup.summonerSkills)) ? setup : { ...setup, summonerSkills: 'combat' },
@@ -555,5 +584,8 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
     d.relicMinUpgrade !== undefined
       ? { ...normalisee, relicMinUpgrade: Math.min(15, Math.max(0, d.relicMinUpgrade as number)) }
       : normalisee;
-  return { recipe: avecSeuilNormalise as unknown as OptimizerRecipe };
+  return {
+    recipe: avecSeuilNormalise as unknown as OptimizerRecipe,
+    ...(avertissements.length > 0 ? { avertissements } : {}),
+  };
 }

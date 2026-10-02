@@ -353,7 +353,11 @@ function validerDamageSetup(value: unknown): string | null {
     }
     for (const [skillId, cible] of Object.entries(setup.cibleDegatsParSort)) {
       const path = `damageSetup.cibleDegatsParSort.${skillId}`;
-      if (!/^\d+$/.test(skillId) || Number(skillId) <= 0) return erreur(path, "utilise un identifiant de compétence invalide");
+      // Entier positif sans zéro de tête, comme `premierCoupIgnoreDefParSort`
+      // (degats-et-aura 8c) : « 010616 » passerait la table de capacité
+      // (`Number` le ramène à 10616), mais le calcul lit la clé « 10616 » et
+      // ne la verrait jamais.
+      if (!/^[1-9]\d*$/.test(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
       if (cible !== 'visee' && cible !== 'secondaire') return erreur(path, 'doit valoir « visee » ou « secondaire »');
       if (!cibleSecondairePriseEnCharge(Number(skillId))) {
         return erreur(path, 'désigne un sort sans coup de zone curé, dont la cible calculée ne se choisit pas');

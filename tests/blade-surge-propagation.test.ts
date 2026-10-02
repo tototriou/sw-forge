@@ -74,7 +74,7 @@ function bladeSurgeDeLapis(): SkillDamageProfile {
 }
 
 export function testBladeSurgeRecette() {
-  titre('Blade Surge · recette — cibleDegatsParSort validé, refusé avec son chemin, aller-retour et resets (degats-et-aura 8b)');
+  titre('Blade Surge · recette — cibleDegatsParSort validé, refusé avec son chemin, aller-retour et resets (degats-et-aura 8b, 8c)');
 
   const lire = (valeur: unknown) => parseOptimizerRecipe(JSON.stringify(valeur));
   const avecCible = (cibleDegatsParSort: unknown) =>
@@ -113,6 +113,10 @@ export function testBladeSurgeRecette() {
     [{ '-10616': 'secondaire' }, `${champ}.-10616`, 'clé négative'],
     [{ 0: 'secondaire' }, `${champ}.0`, 'clé nulle'],
     [{ '10616.5': 'secondaire' }, `${champ}.10616.5`, 'clé non entière'],
+    // `Number` la ramène à Blade Surge de Lapis, mais le calcul lit la clé
+    // « 10616 » : la même règle que `premierCoupIgnoreDefParSort` (8c).
+    [{ [`0${BLADE_SURGE_LAPIS}`]: 'secondaire' }, `${champ}.0${BLADE_SURGE_LAPIS}`, 'clé à zéro de tête'],
+    [{ '00': 'secondaire' }, `${champ}.00`, 'clé nulle à zéro de tête'],
     [{ [BLADE_SURGE_LAPIS]: 'autre' }, `${champ}.${BLADE_SURGE_LAPIS}`, 'valeur inconnue'],
     [{ [BLADE_SURGE_LAPIS]: 'Secondaire' }, `${champ}.${BLADE_SURGE_LAPIS}`, 'valeur à la mauvaise casse'],
     [{ [BLADE_SURGE_LAPIS]: '' }, `${champ}.${BLADE_SURGE_LAPIS}`, 'valeur vide'],
@@ -122,6 +126,13 @@ export function testBladeSurgeRecette() {
   ] as [unknown, string, string][]) {
     ok(refuse(avecCible(valeur), chemin), `refusé avec son chemin : ${motif}`);
   }
+  // Clé à zéro de tête : refusée par la règle de la clé, pas par la table de
+  // capacité (`Number` la ramènerait à un sort qui a la capacité) ; la même
+  // clé écrite sans zéro de tête est acceptée et relue telle quelle (8c).
+  const zeroDeTete = avecCible({ [`0${BLADE_SURGE_LAPIS}`]: 'secondaire' }).error ?? '';
+  ok(zeroDeTete.includes('identifiant de compétence invalide'), `clé à zéro de tête : la raison est la clé — « ${zeroDeTete} »`);
+  egal(avecCible({ [BLADE_SURGE_LAPIS]: 'secondaire' }).recipe?.damageSetup.cibleDegatsParSort, { [BLADE_SURGE_LAPIS]: 'secondaire' },
+    'la même clé sans zéro de tête : acceptée, relue telle quelle');
 
   // Un sort sans coup de zone curé : refusé quelle que soit la valeur, sur la
   // table de capacité (cadrage B.0) — jamais un cran posé en silence sur un

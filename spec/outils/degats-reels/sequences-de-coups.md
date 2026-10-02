@@ -84,7 +84,10 @@ retenue.
   exige un objet dont chaque clé est l’identifiant entier positif d’un sort à
   coup de zone curé — la même table de capacité que l’écran,
   `cibleSecondairePriseEnCharge` — et chaque valeur `'visee'` ou
-  `'secondaire'`. Tout écart est refusé avec son chemin
+  `'secondaire'`. La clé s’écrit sans zéro de tête, comme celle de
+  `premierCoupIgnoreDefParSort` (degats-et-aura 8c) : « 010616 » passerait la
+  table de capacité, mais le calcul lit la clé « 10616 » et ne la verrait
+  jamais. Tout écart est refusé avec son chemin
   (`damageSetup.cibleDegatsParSort.<identifiant>`), jamais corrigé ni ignoré
   en silence. L’import restaure la valeur telle quelle, sans reset ultérieur ;
   l’aller-retour export → import ne perd ni n’ajoute rien.

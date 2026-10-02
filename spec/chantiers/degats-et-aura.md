@@ -669,7 +669,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b9 — tri par stat sur la fiche | J | terminé, preuves et mutation rejouées par le pilote | `4fa6ad5c` + `f3aa265d` ; reçu `f3aa265` ↔ `fb8d549` / 2026-10-01 |
 | 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | terminé, preuves et mutation rejouées par le pilote ; vérifié par l'utilisateur au navigateur | `fd9d7f52` ; reçu `fd9d7f5` ↔ `12a0296` / 2026-10-02 |
 | 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | code validé par le pilote ; **critère non tenu au navigateur** (saccades, page lente) ; mesure 6bis-b12 avant correction | `bfe6f6d7` ; reçu `bfe6f6d` ↔ `f17ad7e` / 2026-10-02 |
-| 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | lançable au créneau de l'utilisateur | — |
+| 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | terminé, chiffres recoupés par le pilote : la résolution sature (66 %), pas le tri | reçu `f0e77a4` ↔ `a4b54d7` / 2026-10-02 |
 | 6bis-b13 — correction choisie sur les chiffres de b12 | J | contrat à créer après b12 et la décision de l'utilisateur | — |
 | 7 — sets d'aura : l'écran | J | attend 6bis-b13 ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
@@ -4719,6 +4719,48 @@ l'utilisateur — aucun autre agent, aucun `npm run dev` du pilote, aucun jeu
 ouvert (b8 : le jeu tournait pendant un échauffement).
 
 **Ne fait pas :** aucune correction, aucun changement de `src/`.
+
+###### Résultat du lot 6bis-b12 — 2026-10-02
+
+Mesure au créneau (01:46–01:59), aucun commit de code (le script, à chemins
+en dur, reste dans le dossier de preuves). Reçu `f0e77a4` ↔ `a4b54d7`,
+notes intégrées (`faa4511`). Preuve `controle-6bis-b12.md`, sorties brutes
+dans `controle-6bis-b12/`. Fidélité : même recette gelée, `totalPairs`
+120 782 375 égal au harnais pour A et B, 7 Workers (régime parallèle),
+5 100 builds ; A = `f0e77a47`, B = `727d52e2` (worktree de mesure supprimé),
+C = sans optimisation d'artéfacts ; dev (`StrictMode`) et version
+construite ; Chromium sans affichage ; 5 passages entrelacés par condition.
+
+Le pilote a recoupé le rapport avec `sortie-agregat.txt` : chiffres
+identiques. Version construite, médianes :
+
+| | A (b11) | B (avant b11) | C (sans file) |
+| --- | --- | --- | --- |
+| tâches longues pendant la recherche | 65 / 6,6 s | 44 / 4,1 s | 11 / 0,9 s |
+| part du fil en tâches longues | 71 % | 42 % | 10 % |
+| page 1 résolue | 4,1 s | 6,6 s | immédiat |
+| page 2 après changement | 3,7 s | 3,7 s (n = 2) | 0,2 s |
+| durée de la recherche | 9,5 s | 9,3 s | 8,8 s |
+
+Dispersions : 5 à 13 % sur les tâches longues ; images/s non exploitables
+(jusqu'à 206 %). Attribution (dev, A, temps en tâches longues) :
+résolution 66 % (4,0 s ; chaque build, une tâche de 94 à 108 ms), rendu
+React 16 %, reclassement 8 %, tri de l'aperçu 2 %. Dans la résolution,
+premier temps propre : `artifactDamageProfile` (722 ms), puis
+`preFiltrerCandidats` (494 ms) — relevé par le pilote dans l'agrégat.
+
+**La lecture du pilote écrite au résultat de b11 (« le tri peut saturer »)
+est fausse** : c'est la résolution qui sature. b11 avance la page 1 (6,6 →
+4,1 s) en faisant passer le fil de 42 à 71 % de tâches longues. Durée de la
+recherche : aucun écart lisible sous la dispersion (10 à 12 %).
+
+Recommandation de l'agent : un Worker de résolution d'abord ; alléger le
+tri n'est pas justifié ; reclassement et rendu des cartes à remesurer
+après. Écarts : dev puis construit en deux blocs (entrelacés à l'intérieur
+de chacun) ; Chrome personnel ouvert et un processus Codex inactif pendant
+la campagne. Non prouvé : le gain d'un Worker (estimé) ; l'écart de
+`totalPairs` sur C entre l'écran (120 782 375) et le harnais (121 834 136),
+non instruit ; tout chiffre pour un téléphone ou un vrai écran.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

@@ -29,7 +29,7 @@ import { loadBoxMonster, printMonsterSummary } from './lib/loadMonster';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import { meilleuresPairesArtefacts, nombreDePaires, type ArtifactSearchParams, type ChoixPrincipale } from '../src/lib/artifactOptim';
-import { artifactDamageProfile, aurasPropresDesRunes, computeTotalDamage, defaultDamageSkill, monsterDamageSkills, monsterOffensivePassives, DEFAULT_DAMAGE_SETUP, type DamageSetup, type SkillDamageProfile } from '../src/lib/damage';
+import { artifactDamageProfile, aurasPropresDesRunes, computeTotalDamage, defaultDamageSkill, monsterDamageSkills, monsterOffensivePassives, resumeSequenceDeCoups, DEFAULT_DAMAGE_SETUP, type DamageSetup, type SkillDamageProfile } from '../src/lib/damage';
 import { computeStats } from '../src/lib/stats';
 import { artifactSubName } from '../src/lib/effects';
 import { ARTIFACT_KINDS, type ArtifactDetail, type ArtifactKind, type ElementKey } from '../src/types';
@@ -102,7 +102,14 @@ const parSorte = ARTIFACT_KINDS.map(({ key, label }) => {
   const n = loaded.allArtifacts.filter((a) => a.kind === key).length;
   return `${label} : ${n} en inventaire`;
 }).join(' · ');
-console.log(`\nSort : ${sort.nom} (slot ${sort.slot}, ${sort.hits} coup(s)${sort.aoe ? ', zone' : ''}${sort.bombe ? ', BOMBE' : ''})`);
+// Séquence curée (Blade Surge) : la séquence ENTIÈRE, par la fonction du
+// résumé de l'écran et de la ligne du CLI (`resumeSequenceDeCoups`) — `hits`
+// et `aoe` ne décrivent que le premier groupe de la donnée (degats-et-aura 8c).
+const sequence = sort.sequenceDeCoups;
+console.log(
+  `\nSort : ${sort.nom} (slot ${sort.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}` +
+    `${!sequence && sort.aoe ? ', zone' : ''}${sort.bombe ? ', BOMBE' : ''})`
+);
 console.log(`Cible : ${setup.enemyDef} DEF · élément visé : ${setup.enemyElement ?? 'ignoré'} · critique : ${setup.critMode}`);
 console.log(`Inventaire — ${parSorte}`);
 console.log(`Paires réellement parcourues (éligibilité + contrainte d'intangible) : ${nombreDePaires(params)}`);

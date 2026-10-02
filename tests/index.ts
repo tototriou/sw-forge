@@ -69,7 +69,12 @@ import {
   testDegatsTempestEcran,
 } from './degats-tempest.test';
 import testDegatsBladeSurge from './degats-blade-surge.test';
-import { testBladeSurgeRecette, testBladeSurgeEcran, testBladeSurgePariteEcranCli } from './blade-surge-propagation.test';
+import {
+  testBladeSurgeRecette,
+  testBladeSurgeEcran,
+  testBladeSurgePariteEcranCli,
+  testBladeSurgeLigneArtifactSearch,
+} from './blade-surge-propagation.test';
 import testBladeDancersIgnoreDef, { testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
@@ -195,6 +200,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBladeSurgeRecette', testBladeSurgeRecette],
   ['testBladeSurgeEcran', testBladeSurgeEcran],
   ['testBladeSurgePariteEcranCli', testBladeSurgePariteEcranCli],
+  ['testBladeSurgeLigneArtifactSearch', testBladeSurgeLigneArtifactSearch],
   ['testBladeDancersIgnoreDef', testBladeDancersIgnoreDef],
   ['testBladeDancersRecette', testBladeDancersRecette],
   ['testBladeDancersEcranEtCli', testBladeDancersEcranEtCli],

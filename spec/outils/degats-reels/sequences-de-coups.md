@@ -109,6 +109,10 @@ retenue.
   (`resumeSequenceDeCoups`, au lieu des coups et de la portée de la seule
   donnée SWARFARM) et, pour un sort qui le permet, le libellé du cran calculé
   (« Dégâts sur la cible visée » ou « Dégâts sur les autres ennemis »).
+- **Script de diagnostic des artéfacts** (`scripts/artifact-search.ts`,
+  degats-et-aura 8c) : sa ligne « Sort : … » donne la même séquence
+  (`resumeSequenceDeCoups`) au lieu de « 2 coup(s) ». Il n’a aucune option de
+  cran et calcule toujours la cible visée.
 
 ## Les lignes d’artéfact et les skillups, coup par coup
 

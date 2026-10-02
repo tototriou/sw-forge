@@ -303,3 +303,15 @@ export function testBladeSurgePariteEcranCli() {
     && cli.includes('${cibleCalculee ? `${cibleCalculee} — ` : \'\'}'),
     'ligne du CLI : la cible calculée, avec le libellé du cran de l’écran, pour un sort qui le permet');
 }
+
+export function testBladeSurgeLigneArtifactSearch() {
+  titre('Blade Surge · script de diagnostic des artéfacts — la ligne du sort dit la séquence curée, comme le CLI (degats-et-aura 8c)');
+
+  const script = sansCommentaires(lireSource('scripts/artifact-search.ts'));
+  ok(/const sequence = sort\.sequenceDeCoups;/.test(script) && script.includes('${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}'),
+    'ligne « Sort : … » : la séquence entière, par la fonction du résumé de l’écran et de la ligne du CLI');
+  ok(script.includes('${!sequence && sort.aoe ? \', zone\' : \'\'}'), '… la portée seulement hors séquence (la donnée ne décrit que le premier groupe)');
+  egal((script.match(/coup\(s\)/g) ?? []).length, 1, '« coup(s) » ne reste que dans le repli hors séquence');
+  egal(resumeSequenceDeCoups(bladeSurgeDeLapis().sequenceDeCoups ?? []), '2 coups · Cible unique, puis 1 coup · Zone',
+    'Blade Surge de Lapis : ce que la ligne écrit désormais, au lieu de « 2 coup(s) »');
+}

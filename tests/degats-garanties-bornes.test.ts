@@ -223,15 +223,19 @@ export function testBornesStrictesDef() {
   egal(varus(defVarus - 1), varus(defVarus - 1, 'crit'), '2565 Varus — DEF cible sous sa DEF de combat : critique garanti');
 
   // Copper (« half or lower ») et Guard Crush (« 60% or less ») : l'égalité
-  // ignore toujours la DEF.
-  const copper = profilDe(16533, 7763);
-  ok(computeSkillDamage(copper, build, { ...base, enemyDef: 400 }, AUCUNE_AURA_PROPRE) >
-    computeSkillDamage(copper, build, { ...base, enemyDef: 401 }, AUCUNE_AURA_PROPRE),
+  // ignore toujours la DEF. ⚠️ Comparer au total contre une DEF NULLE, pas
+  // au total un point de DEF plus haut : une DEF plus basse augmente déjà
+  // les dégâts sans aucun ignore DEF, et `seuil > seuil + 1` passait encore
+  // sous une borne stricte (mutation du lot 15d). Stats de combat = celles
+  // du build (aucun passif de stat transmis) : 800 DEF, 1 000 ATQ.
+  const ignoreAuSeuil = (p: SkillDamageProfile, seuil: number) => {
+    const degats = (def: number) => computeSkillDamage(p, build, { ...base, enemyDef: def }, AUCUNE_AURA_PROPRE);
+    return degats(seuil) === degats(0) && degats(seuil + 1) < degats(0);
+  };
+  ok(ignoreAuSeuil(profilDe(16533, 7763), 400),
     '7763 Copper — égalité à la moitié de sa DEF : ignore DEF (inclusif, inchangé)');
   for (const [forme, sort] of [[26112, 15907], [26113, 15908], [26115, 15910]]) {
-    const gc = profilDe(forme, sort);
-    ok(computeSkillDamage(gc, build, { ...base, enemyDef: 600 }, AUCUNE_AURA_PROPRE) >
-      computeSkillDamage(gc, build, { ...base, enemyDef: 601 }, AUCUNE_AURA_PROPRE),
+    ok(ignoreAuSeuil(profilDe(forme, sort), 600),
       `${sort} Guard Crush — égalité à 60 % de son ATQ : ignore DEF (inclusif, inchangé)`);
   }
 }

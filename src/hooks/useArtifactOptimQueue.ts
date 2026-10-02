@@ -338,14 +338,19 @@ export function useArtifactOptimQueue(opts: {
 
   // ⚠️ Toute défaillance du Worker est JOURNALISÉE, jamais tue ; il est
   // terminé, et le chemin direct reprend avec le cache tel qu'il est. Ne lit
-  // que des refs et un setter stable : la version capturée par les
+  // que des refs et des setters stables : la version capturée par les
   // gestionnaires du Worker à sa création reste juste.
+  // ⚠️ Une écriture que la cadence avait retenue est publiée DE FORCE
+  // (6bis-b13bis-c) : le chemin direct qui reprend n'a peut-être plus rien à
+  // traiter, donc plus rien à publier. C'est le module qui le sait
+  // (`renoncer` rend vrai) ; quand le repli vient de lui (`basculer`), il a
+  // déjà publié et `renoncer` rend faux ici.
   const basculerEnRepli = useCallback((raison: string, detail: unknown) => {
     console.error(`File de résolution : ${raison} — repli sur le fil de l’écran (degats-et-aura 6bis-b13bis-b).`, detail);
     const d = distantRef.current;
     distantRef.current = null;
     if (d) {
-      d.pilote.renoncer();
+      if (d.pilote.renoncer()) setParBuild(new Map(cacheRef.current));
       d.worker.terminate();
     }
     setEnRepli(true);
@@ -397,12 +402,15 @@ export function useArtifactOptimQueue(opts: {
       page: () => pageRef.current(),
       cache: () => cacheRef.current,
       envoyer: (m) => distant.worker.postMessage(m),
-      // Même cadence que le chemin direct (voir `PUBLICATION_MS`).
+      // Même cadence que le chemin direct (voir `PUBLICATION_MS`). Rend faux
+      // quand la cadence retient la publication : le module sait ainsi
+      // qu'une écriture attend, et la publie de force quand la file se vide.
       publier: (forcer) => {
         const now = Date.now();
-        if (!forcer && now - dernierePublication < PUBLICATION_MS) return;
+        if (!forcer && now - dernierePublication < PUBLICATION_MS) return false;
         dernierePublication = now;
         setParBuild(new Map(cacheRef.current));
+        return true;
       },
       enAttente: (n) => setEnAttente(n),
       repli: basculerEnRepli,

@@ -14,12 +14,16 @@
 //    file l'a renvoyé) ou d'une demande annulée — ne sont JAMAIS écrites ;
 // 5. le repli : un envoi qui lève ou une réponse d'erreur fait renoncer au
 //    Worker, l'erreur passant par `repli`, jamais tue ;
+//    5 bis. rien d'écrit ne reste non publié (6bis-b13bis-c) : une écriture
+//    retenue par la cadence est publiée de force quand la file se vide
+//    (réponse ignorée comprise) et au repli ;
 // 6. différentiel : une file SIMULÉE — le module, le corps derrière
 //    `structuredClone` (ce que fait `postMessage`), entrelacements aléatoires
 //    à graine fixe, changements de page, de candidats et de contexte — remplit
 //    un cache IDENTIQUE à la résolution directe de production
 //    (`entreeResolutionDuBuild` + `resoudreEquipementDuBuild`), chaque
-//    écriture contrôlée au moment où elle a lieu ;
+//    écriture contrôlée au moment où elle a lieu ; elle suit `publier` avec
+//    la cadence du hook : sur toute file vide et à la fin, publié = cache ;
 // 7. le hook et l'écran, contrôlés sur la source (le dépôt n'a pas
 //    d'infrastructure de test React) ;
 // 8. un seul producteur des runes d'un build (`runesDuBuild`), testé, et
@@ -106,9 +110,22 @@ export interface BilanFile {
   maxEnVol: number;
   maxFileDuCorps: number;
   cacheFinal: number;
+  // 6bis-b13bis-c : publications effectives (forcées comprises), retenues par
+  // la cadence, et contrôles « publié = cache » faits sur une file vide.
+  publications: number;
+  publicationsForcees: number;
+  publicationsRetenues: number;
+  controlesPublication: number;
   // Vide = conforme.
   ecarts: string[];
 }
+
+/**
+ * La cadence de publication du hook (`PUBLICATION_MS`, 400 ms, non exportée :
+ * le hook importe React), sur une horloge simulée qui avance à chaque
+ * événement de 0 à 119 ms — la cadence retient donc souvent une publication.
+ */
+const CADENCE_SIMULEE_MS = 400;
 
 /**
  * La file branchée comme dans le hook (`pomper` au rendu et après chaque
@@ -126,12 +143,20 @@ export interface BilanFile {
  *   contexte COURANT (contrôle indépendant des valeurs, par les identifiants
  *   observés à l'envoi) et elle est identique à la référence de production ;
  * - au plus `DEMANDES_EN_VOL_MAX` demandes sans réponse, à tout instant ;
+ * - la PUBLICATION (6bis-b13bis-c) : `publier` est suivi avec la cadence du
+ *   hook sur une horloge simulée ; après chaque appel du module (rendu,
+ *   effet, réponse), si la file est vide, ce que l'écran a reçu égale le
+ *   cache — sinon une écriture resterait non publiée, plus rien ne
+ *   publiant ;
  * - après vidange : chaque demande a reçu exactement une réponse, la file est
  *   vide (`prochainsATraiter` ne rend plus rien), chaque entrée du cache est
- *   identique à la référence du contexte final, aucun repli.
+ *   identique à la référence du contexte final, ce qui est publié égale le
+ *   cache, aucun repli.
  */
 export function simulerFile(s: ScenarioFile): BilanFile {
   const r = aleatoire(s.graine);
+  // L'horloge a sa propre graine : la suite des événements ne change pas.
+  const rHorloge = aleatoire(s.graine ^ 0x2545f491);
   const pilote = new ResolutionDistante();
   const corps = new CorpsResolution();
   const versCorps: MessageVersResolution[] = [];
@@ -139,9 +164,14 @@ export function simulerFile(s: ScenarioFile): BilanFile {
   const ecarts: string[] = [];
   const bilan: BilanFile = {
     ecritures: 0, reponsesPerimeesRecues: 0, reponsesAnnuleesRecues: 0, contextesEnvoyes: 0, annulationsEnvoyees: 0,
-    changementsDePage: 0, maxEnVol: 0, maxFileDuCorps: 0, cacheFinal: 0, ecarts,
+    changementsDePage: 0, maxEnVol: 0, maxFileDuCorps: 0, cacheFinal: 0,
+    publications: 0, publicationsForcees: 0, publicationsRetenues: 0, controlesPublication: 0, ecarts,
   };
   let cache = new Map<string, ResultatArtefacts>();
+  // Ce que l'écran a reçu (`setParBuild`), et la cadence du hook.
+  let publie = new Map<string, ResultatArtefacts>();
+  let horloge = 0;
+  let dernierePublication = -Infinity;
   let ctx = 0;
   let numSignature = 0;
   let signature = 'signature-0';
@@ -187,11 +217,29 @@ export function simulerFile(s: ScenarioFile): BilanFile {
       }
       versCorps.push(structuredClone(m));
     },
-    publier: () => {},
+    // La publication du hook : même cadence, l'écran reçoit une copie du cache.
+    publier: (forcer) => {
+      if (!forcer && horloge - dernierePublication < CADENCE_SIMULEE_MS) {
+        bilan.publicationsRetenues++;
+        return false;
+      }
+      dernierePublication = horloge;
+      publie = new Map(cache);
+      bilan.publications++;
+      if (forcer) bilan.publicationsForcees++;
+      return true;
+    },
     enAttente: () => {},
     repli: (raison, detail) => {
       ecarts.push(`repli : ${raison} — ${String(detail)}`);
     },
+  };
+  const publieEgalCache = () => publie.size === cache.size && [...cache].every(([k, v]) => publie.get(k) === v);
+  // Après un appel du module : une file vide ne publiera plus rien d'elle-même.
+  const controlerPublication = (moment: string) => {
+    if (ports.restants().length > 0) return;
+    bilan.controlesPublication++;
+    if (!publieEgalCache()) ecarts.push(`${moment} : file vide, mais l’écran n’a pas reçu le cache (${publie.size} publiés, ${cache.size} en cache)`);
   };
   const surveiller = () => {
     let sansReponse = 0;
@@ -226,8 +274,12 @@ export function simulerFile(s: ScenarioFile): BilanFile {
       if (annulees.has(rep.idDemande)) ecarts.push(`réponse d’une demande ANNULÉE écrite : #${rep.idDemande} ${rep.cle}`);
       if (cacheAvant === cache && !identiques(rep.resultat, reference(ctx, rep.cle))) ecarts.push(`écriture différente de la résolution directe : ${rep.cle}`);
     }
+    controlerPublication(`réponse #${rep.idDemande} (${rep.type})`);
   };
-  const rendu = () => pilote.pomper(ports);
+  const rendu = () => {
+    pilote.pomper(ports);
+    controlerPublication('rendu');
+  };
   const changerDePage = () => {
     bilan.changementsDePage++;
     const n = s.triees.slice(0, visibles).length;
@@ -244,10 +296,16 @@ export function simulerFile(s: ScenarioFile): BilanFile {
   const effetDuContexte = () => {
     effetEnAttente = false;
     cache = new Map();
+    // L'effet de la signature publie le cache vide (`setParBuild(new Map())`) ;
+    // l'effet du Worker repart, cadence remise à zéro.
+    publie = new Map();
+    dernierePublication = -Infinity;
     pilote.pomper(ports);
+    controlerPublication('effet du nouveau contexte');
   };
 
   for (let pas = 0; pas < s.pas; pas++) {
+    horloge += Math.floor(rHorloge() * 120);
     const choix: [number, () => void][] = [];
     if (versCorps.length) choix.push([3, livrerAuCorps]);
     if (corps.demandesEnAttente > 0) choix.push([3, etapeDuCorps]);
@@ -266,6 +324,7 @@ export function simulerFile(s: ScenarioFile): BilanFile {
   // Vidange : tous les candidats arrivés, plus aucun changement.
   visibles = s.triees.length;
   for (let garde = 0; garde < 1_000_000; garde++) {
+    horloge += Math.floor(rHorloge() * 120);
     if (effetEnAttente) effetDuContexte();
     else if (versCorps.length) livrerAuCorps();
     else if (corps.demandesEnAttente > 0) etapeDuCorps();
@@ -281,6 +340,7 @@ export function simulerFile(s: ScenarioFile): BilanFile {
   const restants = ports.restants();
   if (restants.length) ecarts.push(`file non vidée : ${restants.length} build(s) restant(s)`);
   for (const [cle, v] of cache) if (!identiques(v, reference(ctx, cle))) ecarts.push(`cache final ≠ résolution directe : ${cle}`);
+  if (!publieEgalCache()) ecarts.push(`à la fin : ce qui est publié (${publie.size}) ≠ le cache (${cache.size})`);
   if (pilote.enRepli) ecarts.push('le module a renoncé au Worker');
   bilan.cacheFinal = cache.size;
   return bilan;
@@ -407,7 +467,11 @@ export function testResolutionDistante() {
       page: () => o.page,
       cache: () => o.cache,
       envoyer: o.envoyer ?? ((m) => t.envoyes.push(m)),
-      publier: (f) => t.publications.push(f),
+      // La cadence retient toute publication non forcée.
+      publier: (f) => {
+        t.publications.push(f);
+        return f;
+      },
       enAttente: (n) => t.enAttente.push(n),
       repli: (raison, detail) => t.replis.push(`${raison} : ${String(detail)}`),
     };
@@ -448,6 +512,108 @@ export function testResolutionDistante() {
   egal([publicationForcee('page', 'page'), publicationForcee('page', 'fond'), publicationForcee('page', 'aucune'), publicationForcee('fond', 'fond'), publicationForcee('fond', 'aucune')],
     [false, true, true, false, true], 'publicationForcee : la règle de la tranche directe');
 
+  /* ── 5 bis. Rien d'écrit ne reste non publié (6bis-b13bis-c) ─────────── */
+  titre('Résolution hors du fil — rien d’écrit ne reste non publié (6bis-b13bis-c)');
+  {
+    // File [1, 2], K = 3, pas de page ; `retient` : la cadence retient toute
+    // publication non forcée. Le journal mêle publications et replis, dans
+    // l'ordre ; `publie` est ce que l'écran a reçu.
+    const monter = (retient: boolean) => {
+      const e = { triees: [b(1), b(2)], courant: c1, cache: new Map<string, ResultatArtefacts>(), leverALEnvoi: false };
+      const t = { journal: [] as string[], publie: new Map<string, ResultatArtefacts>() };
+      const ports: PortsResolutionDistante = {
+        courant: () => e.courant,
+        runesDe: sansRunes,
+        restants: () => prochainsATraiter(e.triees, new Set(e.cache.keys()), 3, []),
+        page: () => [],
+        cache: () => e.cache,
+        envoyer: () => {
+          if (e.leverALEnvoi) throw new DOMException('clonage impossible', 'DataCloneError');
+        },
+        publier: (f) => {
+          t.journal.push(`publier(${f})`);
+          if (!f && retient) return false;
+          t.publie = new Map(e.cache);
+          return true;
+        },
+        enAttente: () => {},
+        repli: (raison) => t.journal.push(`repli : ${raison}`),
+      };
+      const publieEgalCache = () => t.publie.size === e.cache.size && [...e.cache].every(([k, v]) => t.publie.get(k) === v);
+      return { e, t, ports, publieEgalCache };
+    };
+    {
+      const q = new ResolutionDistante();
+      const { e, t, ports, publieEgalCache } = monter(true);
+      q.pomper(ports);
+      q.surReponse(resultat(1, 1, '1'), ports);
+      ok(q.ecritureNonPubliee && t.publie.size === 0 && e.cache.size === 1, 'une écriture retenue par la cadence : le module sait qu’elle attend');
+      // Nouvelle recherche aux mêmes réglages : plus de candidats, nouvelles entrées.
+      e.triees = [];
+      e.courant = { entrees: E2, signature: 's' };
+      q.pomper(ports);
+      egal(t.journal, ['publier(false)', 'publier(true)'], 'la file se vide au rendu (nouvelle recherche) : publication FORCÉE de l’écriture retenue');
+      ok(publieEgalCache() && !q.ecritureNonPubliee, '… l’écran a reçu le cache entier');
+      q.surReponse(resultat(1, 2, '2'), ports);
+      egal(t.journal, ['publier(false)', 'publier(true)'], 'la réponse de l’ancien contexte, ignorée, ne republie rien : une publication de plus, au plus');
+    }
+    {
+      const q = new ResolutionDistante();
+      const { e, t, ports, publieEgalCache } = monter(true);
+      q.pomper(ports);
+      q.surReponse(resultat(1, 1, '1'), ports);
+      // Le rendu a changé les refs, l'effet de réveil n'est pas encore passé.
+      e.triees = [];
+      e.courant = { entrees: E2, signature: 's' };
+      q.surReponse(resultat(1, 2, '2'), ports);
+      egal(t.journal, ['publier(false)', 'publier(true)'], 'une réponse IGNORÉE vide la file : publication FORCÉE de l’écriture retenue');
+      ok(publieEgalCache(), '… l’écran a reçu le cache entier');
+    }
+    {
+      const q = new ResolutionDistante();
+      const { t, ports, publieEgalCache } = monter(true);
+      q.pomper(ports);
+      q.surReponse(resultat(1, 1, '1'), ports);
+      q.surReponse({ type: 'erreur', idContexte: 1, idDemande: 2, cle: '2', nom: 'Error', message: 'boum' }, ports);
+      egal(t.journal, ['publier(false)', 'publier(true)', 'repli : la résolution a levé dans le Worker (Error)'],
+        'repli sur une réponse d’erreur : l’écriture retenue est publiée de force, AVANT de rendre la main au chemin direct');
+      ok(q.enRepli && publieEgalCache(), '… l’écran a reçu le cache entier');
+    }
+    {
+      const q = new ResolutionDistante();
+      const { e, t, ports, publieEgalCache } = monter(true);
+      e.triees = [b(1), b(2), b(3)];
+      q.pomper(ports);
+      e.leverALEnvoi = true;
+      q.surReponse(resultat(1, 1, '1'), ports);
+      egal(t.journal, ['publier(false)', 'publier(true)', 'repli : envoi au Worker impossible (resoudre)'],
+        'repli sur un envoi qui lève, juste après une écriture retenue : publication forcée avant le repli');
+      ok(q.enRepli && publieEgalCache(), '… l’écran a reçu le cache entier');
+    }
+    {
+      const q = new ResolutionDistante();
+      const { ports } = monter(true);
+      q.pomper(ports);
+      q.surReponse(resultat(1, 1, '1'), ports);
+      const premier = q.renoncer();
+      const second = q.renoncer();
+      ok(premier && !second && !q.ecritureNonPubliee,
+        'renoncer rend VRAI s’il restait une écriture retenue — le hook publie alors de force (repli venu du Worker) — et une seule fois');
+      ok(!new ResolutionDistante().renoncer(), 'renoncer sans écriture retenue rend faux : rien à publier');
+    }
+    {
+      const q = new ResolutionDistante();
+      const { e, t, ports, publieEgalCache } = monter(false);
+      q.pomper(ports);
+      q.surReponse(resultat(1, 1, '1'), ports);
+      e.triees = [];
+      e.courant = { entrees: E2, signature: 's' };
+      q.pomper(ports);
+      egal(t.journal, ['publier(false)'], 'une écriture que la cadence a laissée passer : la file vide ne republie rien');
+      ok(publieEgalCache() && !q.ecritureNonPubliee, '… et l’écran a bien le cache entier');
+    }
+  }
+
   /* ── 6. Différentiel : file simulée = résolution directe ─────────────── */
   titre('Résolution hors du fil — file simulée contre la résolution directe de production');
   const PORTEUR = { element: 'fire' as const, archetype: 'attack' as const };
@@ -480,6 +646,9 @@ export function testResolutionDistante() {
   let changementsPage = 0;
   let contextes = 0;
   let maxEnVol = 0;
+  let publicationsRetenues = 0;
+  let publicationsForcees = 0;
+  let controlesPublication = 0;
   const tousEcarts: string[] = [];
   for (const fx of Object.values(CORPUS_5A)) {
     const pp: SearchParams = { ...fx.p0, relicContext: fx.ctx };
@@ -500,12 +669,17 @@ export function testResolutionDistante() {
       changementsPage += bl.changementsDePage;
       contextes += bl.contextesEnvoyes;
       maxEnVol = Math.max(maxEnVol, bl.maxEnVol);
+      publicationsRetenues += bl.publicationsRetenues;
+      publicationsForcees += bl.publicationsForcees;
+      controlesPublication += bl.controlesPublication;
       tousEcarts.push(...bl.ecarts.map((e) => `${fx.nom} graine ${graine} : ${e}`));
     }
   }
-  egal(tousEcarts.slice(0, 5), [], `${scenarios} files simulées : chaque écriture = résolution directe du contexte courant, cache final identique, file vidée, une réponse par demande, aucun repli`);
+  egal(tousEcarts.slice(0, 5), [], `${scenarios} files simulées : chaque écriture = résolution directe du contexte courant, cache final identique, file vidée, une réponse par demande, publié = cache sur toute file vide et à la fin, aucun repli`);
   ok(ecritures > 200 && perimees > 0 && annuleesRecues > 0 && annulations > 0 && changementsPage > 0 && contextes > scenarios,
     `couverture : ${ecritures} écritures, ${perimees} réponses périmées reçues (ignorées), ${annuleesRecues} réponses de demandes annulées reçues (ignorées), ${annulations} annulations, ${changementsPage} changements de page, ${contextes} contextes envoyés`);
+  ok(publicationsRetenues > 0 && publicationsForcees > 0 && controlesPublication > scenarios,
+    `couverture de la publication : ${publicationsRetenues} retenues par la cadence, ${publicationsForcees} forcées, ${controlesPublication} contrôles « publié = cache » sur une file vide`);
   ok(maxEnVol <= DEMANDES_EN_VOL_MAX && maxEnVol > 1, `au plus ${DEMANDES_EN_VOL_MAX} demandes sans réponse à tout instant (maximum observé ${maxEnVol})`);
   {
     // Précondition de sensibilité : les deux contextes donnent des résultats
@@ -539,7 +713,7 @@ export function testResolutionDistante() {
         restants: () => prochainsATraiter(triees, new Set(cacheD.keys()), 4, triees.slice(0, 2)),
         page: () => triees.slice(0, 2), cache: () => cacheD,
         envoyer: (m) => { for (const rr of corps.recevoir(structuredClone(m))) versEcran.push(structuredClone(rr)); },
-        publier: () => {}, enAttente: () => {}, repli: (raison) => ecrit.push(`repli ${raison}`),
+        publier: () => true, enAttente: () => {}, repli: (raison) => ecrit.push(`repli ${raison}`),
       };
       q.pomper(portsD);
       const r1 = corps.etape()!;
@@ -582,12 +756,14 @@ export function testResolutionDistante() {
   const repli = bloc(hook, 'const basculerEnRepli = useCallback(', '}, []);');
   ok(/console\.error\(/.test(repli) && /d\.worker\.terminate\(\);/.test(repli) && /setEnRepli\(true\);/.test(repli),
     'hook : le repli journalise (console.error), termine le Worker et rend la main au chemin direct');
+  ok(/if \(d\) \{\s*if \(d\.pilote\.renoncer\(\)\) setParBuild\(new Map\(cacheRef\.current\)\);\s*d\.worker\.terminate\(\);/.test(repli),
+    'hook : au repli, une écriture retenue par la cadence (renoncer rend vrai) est publiée de force (6bis-b13bis-c)');
   ok(/courant: \(\) => \{\s*const h = horsFilRef\.current;\s*return h \? \{ entrees: h\.entrees, signature: signatureRef\.current \} : null;/.test(effetWorker),
     'hook : le contexte courant est lu dans les refs du rendu (entrées et signature), à chaque réponse');
   ok(/restants: \(\) => prochainsATraiter\(trieesRef\.current, new Set\(cacheRef\.current\.keys\(\)\), K, pageRef\.current\(\)\)/.test(effetWorker),
     'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise');
-  ok(/publier: \(forcer\) => \{\s*const now = Date\.now\(\);\s*if \(!forcer && now - dernierePublication < PUBLICATION_MS\) return;/.test(effetWorker),
-    'hook : même cadence de publication que le chemin direct');
+  ok(/publier: \(forcer\) => \{\s*const now = Date\.now\(\);\s*if \(!forcer && now - dernierePublication < PUBLICATION_MS\) return false;\s*dernierePublication = now;\s*setParBuild\(new Map\(cacheRef\.current\)\);\s*return true;\s*\},/.test(effetWorker),
+    'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache (6bis-b13bis-c)');
   ok(/return \(\) => \{\s*vivant = false;\s*distant\.surReponse = \(r\) => reponseAuRepos\(distant\.pilote, r\);/.test(effetWorker),
     'hook : hors effet actif, une réponse libère sa place sans rien écrire');
 

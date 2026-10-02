@@ -2530,6 +2530,13 @@ MÊME résolution (`entreeResolutionDuBuild` puis
   rendu qui change un réglage et le renvoi du contexte, à l'identité des
   entrées et de la signature — ou d'une demande annulée. Elle libère
   seulement sa place en vol.
+- **Publication** : même cadence que le chemin direct (au plus toutes les
+  400 ms, tout de suite quand le dernier build non résolu de la page ou de
+  la file vient de l'être). **Rien d'écrit ne reste hors de l'écran**
+  (6bis-b13bis-c) : une écriture que la cadence a retenue est publiée de
+  force quand la file se vide sans nouvelle écriture (réponse ignorée,
+  changement de page, nouvelle recherche) et au repli — une publication de
+  plus par file, au plus.
 - **Repli** : un Worker impossible à créer, qui lève, dont une réponse est
   illisible, ou dont la résolution a levé, est journalisé dans la console
   (jamais en silence), terminé, et la file reprend sur le fil principal par
@@ -2545,7 +2552,9 @@ que le brancher. Preuve : une file simulée — ce module, le corps derrière
 `structuredClone`, des entrelacements aléatoires de messages, de pages, de
 candidats et de contextes — remplit un cache identique à la résolution
 directe, sur les fixtures et sur les trois recettes de référence
-(`tests/resolution-distante.test.ts`, preuve du lot).
+(`tests/resolution-distante.test.ts`, preuve du lot) ; depuis
+6bis-b13bis-c, elle suit aussi la publication, avec la cadence du hook :
+sur toute file vide et à la fin, l'écran a reçu le cache entier.
 
 **Mesuré au navigateur** (6bis-b13bis-b ; version construite, Chromium
 sans affichage, 8 cœurs, passages entrelacés ; A-après contre A-avant —

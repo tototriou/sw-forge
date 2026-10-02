@@ -61,8 +61,13 @@ export interface PortsResolutionDistante {
   cache(): Map<string, ResultatArtefacts>;
   /** `postMessage` vers le Worker ; peut lever (clonage impossible). */
   envoyer(m: MessageVersResolution): void;
-  /** Publie le cache à l'écran — `forcer` passe outre la cadence. */
-  publier(forcer: boolean): void;
+  /**
+   * Publie le cache à l'écran — `forcer` passe outre la cadence. Rend VRAI si
+   * l'écran a reçu le cache, FAUX si la cadence l'a retenu (jamais faux quand
+   * `forcer`) : c'est ainsi que le module sait qu'une écriture attend encore
+   * (6bis-b13bis-c).
+   */
+  publier(forcer: boolean): boolean;
   /** Combien restent à traiter, pour l'affichage. */
   enAttente(n: number): void;
   /** Renoncer au Worker : journaliser, le terminer, rendre la main au chemin direct. */
@@ -106,6 +111,10 @@ export class ResolutionDistante {
   // dans lequel le corps les traite.
   private enVol: DemandeEnVol[] = [];
   private renonce = false;
+  // Une écriture dans le cache que l'écran n'a pas reçue : la cadence l'a
+  // retenue (`publier` a rendu faux). Remis à faux par toute publication
+  // effective, et par `renoncer`, qui la rend à l'appelant.
+  private nonPubliee = false;
 
   constructor(readonly maxEnVol: number = DEMANDES_EN_VOL_MAX) {}
 
@@ -115,6 +124,15 @@ export class ResolutionDistante {
 
   get enRepli(): boolean {
     return this.renonce;
+  }
+
+  /** Une écriture attend-elle encore sa publication (retenue par la cadence) ? */
+  get ecritureNonPubliee(): boolean {
+    return this.nonPubliee;
+  }
+
+  private publier(p: PortsResolutionDistante, forcer: boolean): void {
+    if (p.publier(forcer)) this.nonPubliee = false;
   }
 
   private estCourant(courant: ContexteCourant | null): boolean {
@@ -206,14 +224,26 @@ export class ResolutionDistante {
     return { issue: 'ecrite', cle: d.cle };
   }
 
-  /** Plus rien n'est envoyé ni écrit ; les demandes en vol sont oubliées. */
-  renoncer(): void {
+  /**
+   * Plus rien n'est envoyé ni écrit ; les demandes en vol sont oubliées.
+   *
+   * Rend VRAI s'il restait une écriture non publiée : l'appelant publie alors
+   * le cache DE FORCE (6bis-b13bis-c) — le chemin direct qui reprend n'a
+   * peut-être plus rien à traiter, donc plus rien à publier. `basculer` le
+   * fait lui-même ; le hook le fait pour les replis qui ne passent pas par le
+   * module (erreur du Worker, réponse illisible). Un second appel rend faux.
+   */
+  renoncer(): boolean {
     this.renonce = true;
     this.enVol = [];
+    const nonPubliee = this.nonPubliee;
+    this.nonPubliee = false;
+    return nonPubliee;
   }
 
   /**
-   * Un tour de file : met à jour le compte en attente, puis envoie ce que
+   * Un tour de file : met à jour le compte en attente, publie de force si la
+   * file s'est vidée sur une écriture non publiée, puis envoie ce que
    * `planifier` demande. Un envoi qui lève (clonage impossible) fait
    * renoncer au Worker — l'erreur passe par `repli`, jamais tue.
    */
@@ -221,6 +251,12 @@ export class ResolutionDistante {
     if (this.renonce) return;
     const restants = p.restants();
     p.enAttente(restants.length);
+    // ⚠️ **La file s'est vidée sans nouvelle écriture** — réponse ignorée,
+    // changement de page, nouvelle recherche — alors que la cadence a retenu
+    // la dernière : publication FORCÉE (6bis-b13bis-c). Sans elle, ce résultat
+    // resterait dans le cache sans jamais atteindre l'écran, puisque plus
+    // rien ne publierait. Le chemin direct fait de même quand il s'endort.
+    if (restants.length === 0 && this.nonPubliee) this.publier(p, true);
     for (const m of this.planifier(p.courant(), restants, (c) => p.runesDe(c))) {
       try {
         p.envoyer(m);
@@ -233,8 +269,9 @@ export class ResolutionDistante {
 
   /**
    * Une réponse du Worker, branchée sur la file : écrite si elle est bonne,
-   * publication forcée selon `publicationForcee`, puis un tour de file. Une
-   * réponse `erreur` fait renoncer au Worker.
+   * publication forcée selon `publicationForcee`, puis un tour de file (qui
+   * publie de force si la file s'est vidée sur une écriture retenue — réponse
+   * ignorée comprise). Une réponse `erreur` fait renoncer au Worker.
    */
   surReponse(r: ReponseResolution, p: PortsResolutionDistante): void {
     if (this.renonce) return;
@@ -246,13 +283,19 @@ export class ResolutionDistante {
       this.basculer(p, `la résolution a levé dans le Worker (${issue.nom})`, issue.message);
       return;
     }
-    if (issue.issue === 'ecrite') p.publier(publicationForcee(avant, voieDeLaFile(p.restants(), page, cache)));
+    if (issue.issue === 'ecrite') {
+      this.nonPubliee = true;
+      this.publier(p, publicationForcee(avant, voieDeLaFile(p.restants(), page, cache)));
+    }
     this.pomper(p);
   }
 
-  /** Renoncer, puis rendre la main au chemin direct par `repli`. */
+  /**
+   * Renoncer, publier de force une écriture que la cadence avait retenue,
+   * puis rendre la main au chemin direct par `repli`.
+   */
   basculer(p: PortsResolutionDistante, raison: string, detail: unknown): void {
-    this.renoncer();
+    if (this.renoncer()) p.publier(true);
     p.repli(raison, detail);
   }
 }

@@ -693,8 +693,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | terminé : arrêté avant livraison (A.6, recherche +4 à +7 %, résultat complet −27 %), puis **Worker gardé par l'utilisateur** le 2026-10-02 ; revue indépendante : rien de bloquant | `9a7202a8`, `534de15a` ; livré avec 6bis-b13bis-c / 2026-10-02 |
 | 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; livré avec b13bis-b | `11abb68d`…`f951f3e9` / 2026-10-02 |
 | 6bis-b16 — une carte n'apparaît qu'une fois vérifiée | J | terminé, preuves, mesure et mutation rejouées par le pilote ; essai de l'utilisateur en attente (A.8) | `6df20ba2` ; reçu `6df20ba` ↔ `226c64d` / 2026-10-02 |
-| 6bis-b17 — le cache de la file suit les artéfacts réservés | J | contrat écrit le 2026-10-02 (revue du Worker) ; **lançable** (premier lancement coupé sans effet) | — |
-| 6bis-b18 — le compte ne compte que les combinaisons confirmées | J | contrat écrit le 2026-10-02 (demande de l'utilisateur) ; requiert b17 | — |
+| 6bis-b17 — le cache de la file suit les artéfacts réservés | J | terminé, preuves et mutation rejouées par le pilote ; deux cas voisins soumis à l'utilisateur (A.8) | `d8132284`, `c1d96fd5` ; reçu `c1d96fd` ↔ `13ac9f3` / 2026-10-02 |
+| 6bis-b18 — le compte ne compte que les combinaisons confirmées | J | contrat écrit le 2026-10-02 (demande de l'utilisateur) ; **lançable** | — |
 | 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02, réponses de l'utilisateur intégrées ; après 6bis-b16 et b17 | — |
 | 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | requiert 7a | — |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | recalé le 2026-10-02 ; à faire | — |
@@ -776,6 +776,7 @@ décision, rayée avec la date et la réponse.
 | 8 | ~~À quels coups de Blade Surge s'appliquent 224 et 400 ?~~ | ✔ 2026-10-02 (utilisateur) : **224 sur les coups 1 et 2, 400 sur les trois** |
 | revue du Worker | ~~Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature.~~ | ✔ 2026-10-02 : **corriger dans ce chantier** → 6bis-b17 |
 | essai du Worker | ~~Comment supprimer le va-et-vient des cartes ?~~ | ✔ 2026-10-02 : **n'afficher que les builds vérifiés**, places en attente marquées « Vérification… » → 6bis-b16, avant 7a |
+| 6bis-b17 | Deux cas voisins rapportés : (1) un réimport du compte qui change des artéfacts ou des runes sans changer leur nombre ni leurs identifiants laisse le cache intact ; (2) changer d'exemplaire de la même espèce laisse affichée la recherche faite avec l'ancien. Les corriger dans ce chantier ? | posée le 2026-10-02 |
 | essai de b16 | ~~Quel compte afficher ?~~ | ✔ 2026-10-02 : progression inchangée (« Z trouvée(s) ») ; en-tête « XX combinaison(s) confirmée(s) » avec infobulle ; la file vise **K confirmées** ; interrupteur « Vérifier toutes les combinaisons trouvées », désactivé par défaut ; mesure courte → 6bis-b18 |
 | 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
 | 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
@@ -5575,6 +5576,41 @@ source (l'écran passe les réservations à la signature) ; mutation ; `tsc`,
 tests de zone, build, spec-lint ; preuve `controle-6bis-b17.md`.
 
 **Ne fait pas** : ne change ni la règle des réservations, ni la résolution.
+
+###### Résultat du lot 6bis-b17 — 2026-10-02
+
+Agent lancé par le pilote (A.8 ; un premier lancement, coupé par une
+interruption avant toute action, a été relancé). Deux commits :
+`d8132284` — `artefactsReserves`, champ obligatoire de `signatureReglages`
+et `signatureArtefacts`, lu comme un ensemble trié (ni l'ordre ni un
+doublon ne comptent ; vide, la signature est identique octet pour octet à
+celle d'avant, chaînes épinglées dans le test) ; `c1d96fd5` —
+`piecesFigees` (`piecesFigeesDe`, artifactFiche.ts) : sur un emplacement en
+« Garder l'artéfact équipé », la pièce portée est le seul candidat, et elle
+changeait sans la signature (validation d'un build du monstre, « Voir le
+runage réellement porté », autre exemplaire). Le CLI n'utilise pas la
+signature. Reçu `c1d96fd` ↔ `13ac9f3`. Table de 20 entrées dans la preuve
+`controle-6bis-b17.md` : 12 couvertes, 2 corrigées, 5 sans effet sur la
+paire, 3 rapportées.
+
+**Rejoué par le pilote sur `c1d96fd5`** : reçu valide ; `tsc` 0 ; tests de
+zone (8 filtres) 580 passés ; build, spec-lint, diff-check verts ; diff
+relu (la signature reste une chaîne comparée par valeur : recalculer le
+mémo plus souvent ne vide pas le cache pour rien). Mutations de l'agent :
+4, 1 et 2 échecs. **Mutation du pilote** (tri des réservations retiré) :
+1 échec, « le même ensemble de réservations dans un autre ordre ne change
+rien » ; restauré.
+
+**Rapporté par l'agent, soumis à l'utilisateur (A.8)** : un réimport du
+compte qui change le contenu des artéfacts à nombre égal, ou celui des
+runes à identifiant égal (le cache est indexé par les identifiants de
+runes), ne change pas la signature ; changer d'exemplaire de la même
+espèce laisse affichée la recherche faite avec l'ancien exemplaire, ni
+relancée ni effacée.
+
+**Non prouvé** : rien au navigateur (le vidage du cache est prouvé par la
+fonction pure, le contrôle de source et le test du Worker « signature
+changée : nouveau contexte ») ; coût des vidages en plus non mesuré.
 
 ##### 6bis-b18 — le compte ne compte que les combinaisons confirmées
 

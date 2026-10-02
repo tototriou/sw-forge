@@ -31,12 +31,18 @@ import {
   estPrisEnCharge,
   monsterBonusParEffetCible,
   monsterBonusStatFixe,
+  monsterCombatStatProfiles,
   monsterConditionsCombat,
   monsterDamageSkills,
+  statsDeCombat,
 } from '../src/lib/damage';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { DetailMonstre } from '../src/lib/monsterSkills';
+import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { BuildCandidate, objectiveScore } from '../src/lib/runeBuildOptim';
 import { StatKey } from '../src/lib/effects';
 import { StatRow } from '../src/lib/stats';
+import type { ElementKey } from '../src/types';
 import { egal, ok, titre } from './outils';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -277,5 +283,261 @@ export function testCouvertureIgnoreDefIdentifiants() {
       egal(arrondi(total({ enemyDef: 1500, passifsOffensifs: { [passif]: true } })), avec,
         `${etiquette} : condition remplie, la DEF de la cible ne compte plus`);
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// VP-a — livraisons de la partie 2 dont des identifiants n'avaient aucun test
+// Source : controle-13b-verif-partie2.md § 2, § 5 et § 6 ; sonde 08-sonde.ts /
+// 08-sonde.txt : chemin de production du CLI (`buildRealDamageContext`, puis
+// `objectiveScore`) sur un build à BASE NON NULLE (une base nulle masque
+// l'assiette des statistiques de combat). Les attendus sont des RAPPORTS écrits
+// à la main depuis la formule de la donnée ou le coefficient de la prose :
+// invocateur, compétences et multiplicateurs communs s'annulent.
+// ---------------------------------------------------------------------------
+
+const BASE_SONDE: Record<StatKey, number> = { hp: 10000, atk: 800, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
+const TOTAL_SONDE: Record<StatKey, number> = { hp: 25000, atk: 2000, def: 1200, spd: 200, cr: 30, cd: 150, res: 15, acc: 0 };
+const buildSonde: StatRow[] = (Object.keys(BASE_SONDE) as StatKey[]).map((key) => ({
+  key, label: key, base: BASE_SONDE[key], bonus: TOTAL_SONDE[key] - BASE_SONDE[key], total: TOTAL_SONDE[key], suffix: '',
+}));
+const candidatSonde = { stats: buildSonde, effTotal: 0, runeIds: [] } as unknown as BuildCandidate;
+const baseSonde: DamageSetup = {
+  ...DEFAULT_DAMAGE_SETUP, enemyDef: 0, enemyHp: 1_000_000, enemyHpPct: 100, critMode: 'normal',
+};
+
+// Le chemin du moteur : recette → contexte du CLI → `objectiveScore`.
+function contexteSonde(forme: number, sort: number, patch: Partial<DamageSetup>) {
+  const recette = buildOptimizerRecipe({
+    monsterCom2usId: forme,
+    monsterName: String(forme),
+    requirement: { sets: [], minStats: {} },
+    objective: 'degats_reels',
+    damageSetup: { ...baseSonde, ...patch, skillCom2usId: sort },
+    metric: 'eff',
+    slotFilterPreset: 'bas',
+    adaptiveTrancheWeighting: false,
+    exhaustiveSearch: false,
+    excludeUsedRunes: false,
+    excludeUsedScope: 'rta',
+    excludedSelectors: [],
+    ignoreArtifacts: true,
+    artifactMainByKind: {},
+  });
+  const ctx = buildRealDamageContext(recette, forme, []);
+  if (!ctx) throw new Error(`contexte ${forme}/${sort} introuvable`);
+  if (ctx.profile.skillCom2usId !== sort) throw new Error(`sort résolu ${ctx.profile.skillCom2usId} ≠ ${sort}`);
+  return ctx;
+}
+
+function scoreSonde(forme: number, sort: number, patch: Partial<DamageSetup>): number {
+  return objectiveScore(candidatSonde, 'degats_reels', AUCUNE_AURA_PROPRE, contexteSonde(forme, sort, patch));
+}
+
+// Stats de combat du candidat, lues sur le contexte de production (jamais recopiées).
+function combatSonde(forme: number, sort: number) {
+  const ctx = contexteSonde(forme, sort, {});
+  return statsDeCombat(buildSonde, ctx.setup, AUCUNE_AURA_PROPRE, ctx.element, ctx.artefacts, ctx.monsterWide);
+}
+
+const proche = (a: number, b: number, tolerance = 1e-6) => Math.abs(a - b) <= tolerance * Math.max(1, Math.abs(b));
+
+function rapportSonde(libelle: string, forme: number, sort: number, a: Partial<DamageSetup>, b: Partial<DamageSetup>, attendu: number) {
+  const r = scoreSonde(forme, sort, b) / scoreSonde(forme, sort, a);
+  ok(proche(r, attendu), proche(r, attendu) ? libelle : `${libelle} — reçu ${r}, attendu ${attendu}`);
+}
+
+// Critique imposé ⇔ « Non critique » égale « Critique ».
+function critiqueImpose(forme: number, sort: number, patch: Partial<DamageSetup>): boolean {
+  return scoreSonde(forme, sort, { ...patch, critMode: 'normal' }) === scoreSonde(forme, sort, { ...patch, critMode: 'crit' });
+}
+
+// [constat, formule, sort, forme, rapport] — formules `{Current HP %}` : rapport
+// d'un total à PV propres 0 % sur le total à 100 %, lu dans la formule de la donnée.
+const FORMULES_PV: [number, string, number, number, number][] = [
+  [72, 'Destructive Blow {DEF}*(8,5 − 3,0·h)', 8707, 17812, 8.5 / 5.5],
+  [72, 'Destructive Blow {DEF}*(8,5 − 3,0·h)', 8709, 17814, 8.5 / 5.5],
+  [72, 'Crushing Armor {ATK}*(4,0 + 3,5·h)', 5407, 14812, 4 / 7.5],
+  [72, 'Crushing Armor {ATK}*(4,0 + 3,5·h)', 5408, 14813, 4 / 7.5],
+  [72, 'Crushing Armor {ATK}*(4,0 + 3,5·h)', 5410, 14815, 4 / 7.5],
+  [72, 'Dagger of Grudge {ATK}*(2,2 + 0,6·h)', 9115, 18315, 2.2 / 2.8],
+  [72, 'Devour/Razor Cut {ATK}*(3,4 + 1,6·h)', 21507, 32112, 3.4 / 5],
+  [72, 'Devour/Razor Cut {ATK}*(3,4 + 1,6·h)', 21508, 32113, 3.4 / 5],
+  [72, 'Devour/Razor Cut {ATK}*(3,4 + 1,6·h)', 21510, 32115, 3.4 / 5],
+  [72, 'Devour/Razor Cut {ATK}*(3,4 + 1,6·h)', 22107, 32812, 3.4 / 5],
+  [72, 'Devour/Razor Cut {ATK}*(3,4 + 1,6·h)', 22108, 32813, 3.4 / 5],
+  [72, 'Devour/Razor Cut {ATK}*(3,4 + 1,6·h)', 22110, 32815, 3.4 / 5],
+];
+
+export function testCouvertureVariablesFormule() {
+  titre('Variables de formule : PV propres et alliés vivants — constats 72, 73, 75 (degats-et-aura 15a, VP-a)');
+
+  for (const [constat, nom, sort, forme, attendu] of FORMULES_PV) {
+    rapportSonde(`${constat} — ${nom} (${sort}, forme ${forme}) : PV propres 100 % → 0 %, rapport ${attendu.toFixed(4)}`,
+      forme, sort, { ownHpPct: 100 }, { ownHpPct: 0 }, attendu);
+  }
+
+  // 72 — Torrent de Ragdoll (7810) : coefficient CONSTANT 5,5 × ATQ, comme celui de
+  // Leo (7808, déjà gardé). ⚠️ C'est la décision livrée de la partie 2, dont la
+  // source n'est écrite nulle part (relevé R1 de la preuve : la donnée dit
+  // 7,5 − 2,0·h) : ce contrôle garde la livraison, il ne la déclare pas établie.
+  egal(profilDe(16615, 7810).formule, '5.5*{ATK}', '72 — Torrent de Ragdoll (7810, forme 16615) : coefficient constant de la décision livrée');
+  rapportSonde('72 — Torrent de Ragdoll (7810) : PV propres 100 % → 31 %, total inchangé', 16615, 7810, { ownHpPct: 100 }, { ownHpPct: 31 }, 1);
+
+  // 73 — Risky Dash de Lusha (1864) : 1,4 × PV actuels, PV saisis AVANT le sort.
+  rapportSonde('73 — Risky Dash (1864, forme 10734) : PV propres 100 % → 50 %, total ×0,5', 10734, 1864, { ownHpPct: 100 }, { ownHpPct: 50 }, 0.5);
+
+  // 75 — Justice : {ATK}*(13,5 − 5,5 × alliés vivants %) → 8 à 100 %, 13,5 à 0 %.
+  for (const [sort, forme] of [[7806, 16611], [7807, 16612], [7809, 16614]] as const) {
+    rapportSonde(`75 — Justice (${sort}, forme ${forme}) : alliés vivants 100 % → 0 %, rapport 13,5 / 8`,
+      forme, sort, { livingAlliesPct: 100 }, { livingAlliesPct: 0 }, 13.5 / 8);
+  }
+}
+
+export function testCouvertureConditionsSort() {
+  titre('Conditions de sort : bornes et interrupteurs — constats 63, 70, 246, 249, 264 (degats-et-aura 15a, VP-a)');
+
+  // 63 — Eleni (17913) : +30 % si l'ATQ de la cible est STRICTEMENT inférieure à la sienne.
+  {
+    const atq = combatSonde(28113, 17913).atk;
+    rapportSonde(`63 — Eleni (17913, forme 28113) : ATQ cible ${atq} (égale) → ${atq - 1}, +30 %`,
+      28113, 17913, { enemyAtk: atq }, { enemyAtk: atq - 1 }, 1.3);
+    egal(scoreSonde(28113, 17913, { enemyAtk: atq }), scoreSonde(28113, 17913, { enemyAtk: atq + 1 }),
+      '63 — Eleni : à l\'égalité d\'ATQ, aucun bonus (borne stricte)');
+  }
+
+  // 70 — Rick feu (20712) : +50 % sur une cible dont les PV ne sont pas détruits ; critique garanti sans condition.
+  rapportSonde('70 — Rick feu (20712, forme 31012) : PV non détruits faux → vrai, +50 %', 31012, 20712,
+    { enemyHpNotDestroyed: false }, { enemyHpNotDestroyed: true }, 1.5);
+  ok(critiqueImpose(31012, 20712, { enemyHpNotDestroyed: false }),
+    '70 — Rick feu : critique garanti même sans le bonus de PV non détruits');
+
+  // 246 — Squall : critique garanti si la VIT de la cible est STRICTEMENT inférieure à la sienne.
+  for (const [nom, sort, forme] of [['Lagmaron', 4208, 14613], ['Shan', 4209, 14614]] as const) {
+    const vit = combatSonde(forme, sort).spd;
+    ok(critiqueImpose(forme, sort, { enemySpd: vit - 1 }), `246 — Squall ${nom} (${sort}, forme ${forme}) : VIT cible ${vit - 1} < ${vit}, critique garanti`);
+    ok(!critiqueImpose(forme, sort, { enemySpd: vit }), `246 — Squall ${nom} (${sort}) : VIT cible égale, aucune garantie`);
+  }
+
+  // 249 — Liesel (6511) : critique garanti contre un monstre Feu.
+  ok(critiqueImpose(14711, 6511, { enemyElement: 'fire' }), '249 — Liesel (6511, forme 14711) : cible Feu, critique garanti');
+  ok(!critiqueImpose(14711, 6511, { enemyElement: 'water' }), '249 — Liesel (6511) : cible Eau, aucune garantie');
+
+  // 264 — Hiva 2A (6258) : critique garanti si les PV de la cible sont à 30 % ou moins (prose, inclusive).
+  ok(critiqueImpose(16033, 6258, { enemyHpPct: 30 }), '264 — Hiva 2A (6258, forme 16033) : PV cible 30 %, critique garanti');
+  ok(!critiqueImpose(16033, 6258, { enemyHpPct: 31 }), '264 — Hiva 2A (6258) : PV cible 31 %, aucune garantie');
+}
+
+// Statistiques de combat des passifs (STATS_COMBAT_PAR_ID_CONNUS), constats
+// 90-106, 114, 116, 123. Le contrôle mesure l'apport de chaque stat (ATQ, DEF,
+// PV, VIT) entre `statsDeCombat` SANS le passif et AVEC lui, au cumul 1, au
+// plafond et au-delà du plafond. Attendus : coefficient et plafond de la prose
+// ou de l'effet (sonde § 4), écrits à la main.
+//
+// ⚠️ Ce que ce contrôle garde : le COEFFICIENT et le PLAFOND de chaque entrée.
+// L'ASSIETTE d'un pourcentage (stat de combat totale, livrée aujourd'hui, ou
+// stat de base) est INDÉTERMINÉE pour les 26 lignes concernées (I-1 de
+// 13b-stats-passifs, relevé R2) : les pourcentages sont lus ici en part de la
+// stat de combat sans le passif, comme le calcul actuel, et un relevé qui
+// trancherait contre cette assiette fera rougir ces lignes — à mettre à jour
+// alors, en connaissance de cause.
+type CleStat = 'atk' | 'def' | 'hp' | 'spd';
+const CLES_STATS: CleStat[] = ['atk', 'def', 'hp', 'spd'];
+
+function statsSansEtAvec(forme: number, patch: Partial<DamageSetup>, element: ElementKey) {
+  const sans = statsDeCombat(buildSonde, baseSonde, AUCUNE_AURA_PROPRE, element, undefined, {});
+  const avec = statsDeCombat(buildSonde, { ...baseSonde, ...patch }, AUCUNE_AURA_PROPRE, element, undefined,
+    { combatStats: monsterCombatStatProfiles(fiche(forme)) });
+  return { sans, avec };
+}
+
+// Vrai si, pour chaque stat, l'apport vaut `pct` % de la stat sans le passif plus `pts` points.
+function apportConforme(forme: number, patch: Partial<DamageSetup>, element: ElementKey,
+  pct: Partial<Record<CleStat, number>>, pts: Partial<Record<CleStat, number>>, facteur: number): string | null {
+  const { sans, avec } = statsSansEtAvec(forme, patch, element);
+  for (const k of CLES_STATS) {
+    const attendu = ((pct[k] ?? 0) * sans[k] / 100 + (pts[k] ?? 0)) * facteur;
+    const recu = avec[k] - sans[k];
+    if (!proche(recu, attendu, 1e-9)) return `${k} : reçu ${recu}, attendu ${attendu}`;
+  }
+  return null;
+}
+
+const cumuls = (id: number) => (n: number): Partial<DamageSetup> => ({ stackPersonnalise: { [id]: n } });
+const buffsPropres = (id: number) => (n: number): Partial<DamageSetup> => ({ buffsPropresCount: { [id]: n } });
+const debuffsPropres = (id: number) => (n: number): Partial<DamageSetup> => ({ effetsPropresCount: { [id]: n } });
+
+// [constat, monstre, identifiant, forme, compteur, % par cumul, points par cumul, plafond]
+type LigneCumul = [number, string, number, number, (n: number) => Partial<DamageSetup>,
+  Partial<Record<CleStat, number>>, Partial<Record<CleStat, number>>, number];
+const CUMULS: LigneCumul[] = [
+  [90, 'Punish (Elpuria)', 2314, 11314, cumuls(2314), { atk: 20, def: 20 }, {}, 10],
+  [91, 'Judge (Artamiel)', 6314, 17014, cumuls(6314), { def: 10 }, {}, 10],
+  [92, "King's Rage", 7814, 16614, cumuls(7814), { atk: 50 }, {}, 5],
+  [93, 'King of the Dead', 7515, 16315, cumuls(7515), { atk: 100 }, {}, 3],
+  [94, "Underworld King's Return", 11213, 20413, cumuls(11213), { atk: 100 }, {}, 3],
+  [95, 'Undergo Hardship', 15011, 25111, cumuls(15011), { atk: 10 }, {}, 25],
+  [98, 'Addicted Power (Valdemar)', 19315, 29615, buffsPropres(19315), { atk: 100 }, {}, 3],
+  [99, 'Strange Reversible Reaction, buffs (Crane)', 11663, 20833, buffsPropres(11663), { def: 25 }, {}, 10],
+  [99, 'Strange Reversible Reaction, débuffs (Crane)', 11663, 20833, debuffsPropres(11663), {}, { spd: 25 }, 10],
+  [100, 'Constant Training (Mayasura)', 18311, 28511, cumuls(18311), {}, { atk: 100 }, 10],
+  [101, 'Quick Steps (Legolas)', 23914, 34714, cumuls(23914), { atk: 10, def: 10 }, {}, 15],
+  [101, 'Deer Steps (Elder Horn)', 24414, 35314, cumuls(24414), { atk: 10, def: 10 }, {}, 15],
+  [102, 'Reincarnate (Chamie)', 2214, 11214, cumuls(2214), { atk: 50, def: 50 }, {}, 5],
+  [103, 'Crouch (Dagora)', 1856, 10731, cumuls(1856), { hp: 20 }, {}, 5],
+  [104, 'Stone Claws (Tanzaite)', 13501, 23311, cumuls(13501), { def: 30 }, {}, 5],
+  [104, 'Stone Claws (Kunite)', 13502, 23312, cumuls(13502), { def: 30 }, {}, 5],
+  [104, 'Stone Claws (Malite)', 13503, 23313, cumuls(13503), { def: 30 }, {}, 5],
+  [104, 'Stone Claws (Phenaka)', 13504, 23314, cumuls(13504), { def: 30 }, {}, 5],
+  [104, 'Stone Claws (Onyx)', 13505, 23315, cumuls(13505), { def: 30 }, {}, 5],
+];
+
+// Passifs permanents ou à interrupteur : [constat, nom, identifiant, forme, élément, réglage, % ATQ/DEF/PV/VIT]
+type LigneFixe = [number, string, number, number, ElementKey, Partial<DamageSetup>, Partial<Record<CleStat, number>>];
+const FIXES: LigneFixe[] = [
+  [105, 'Fierce Attack! (Inosuke), ATQ', 21515, 32115, 'fire', {}, { atk: 30 }],
+  [105, 'Attack Instinct (White Tiger), ATQ', 22115, 32815, 'fire', {}, { atk: 30 }],
+  [106, 'Dark Guardian (Varus)', 2565, 11535, 'dark', {}, { def: 50 }],
+  [114, 'Inverted Output (Alesia), malus d\'ATQ inversé', 19814, 30114, 'fire', { atkDebuff: true }, { atk: 50 }],
+  [114, 'Inverted Output (Alesia), malus de DEF inversé', 19814, 30114, 'fire', { defDebuff: true }, { def: 70 }],
+  [114, 'Inverted Output (Alesia), malus de VIT inversé', 19814, 30114, 'fire', { spdDebuff: true }, { spd: 30 }],
+  [116, 'Berserk (9612)', 9612, 18812, 'water', { passifsOffensifs: { 9612: true } }, { def: -30, spd: 20 }],
+  [116, 'Berserk (9613)', 9613, 18813, 'water', { passifsOffensifs: { 9613: true } }, { def: -30, spd: 20 }],
+  [116, 'Berserk (9614)', 9614, 18814, 'water', { passifsOffensifs: { 9614: true } }, { def: -30, spd: 20 }],
+  [116, 'Berserk (9615)', 9615, 18815, 'water', { passifsOffensifs: { 9615: true } }, { def: -30, spd: 20 }],
+  [123, 'Thunderer, DEF (18136)', 18136, 28311, 'fire', { statsCombatActives: { 18136: true } }, { def: 100 }],
+  [123, 'Thunderer, ATQ (18137)', 18137, 28312, 'fire', { statsCombatActives: { 18137: true } }, { atk: 100 }],
+  [123, 'Thunderer, VIT (18138)', 18138, 28313, 'fire', { statsCombatActives: { 18138: true } }, { spd: 100 }],
+  [123, 'Thunderer, PV (18140)', 18140, 28315, 'fire', { statsCombatActives: { 18140: true } }, { hp: 30 }],
+];
+
+export function testCouvertureStatsCombat() {
+  titre('Statistiques de combat des passifs — constats 90 à 106, 114, 116, 123 (degats-et-aura 15a, VP-a)');
+
+  for (const [constat, nom, id, forme, compteur, pct, pts, plafond] of CUMULS) {
+    const etiquette = `${constat} — ${nom} (${id}, forme ${forme})`;
+    for (const [n, facteur, quand] of [[1, 1, '1 cumul'], [plafond, plafond, `plafond de ${plafond}`], [plafond + 1, plafond, `${plafond + 1} cumuls, plafonné à ${plafond}`]] as const) {
+      const ecart = apportConforme(forme, compteur(n), 'fire', pct, pts, facteur);
+      ok(ecart === null, ecart === null ? `${etiquette} : ${quand}` : `${etiquette} : ${quand} — ${ecart}`);
+    }
+    ok(apportConforme(forme, compteur(0), 'fire', pct, pts, 0) === null, `${etiquette} : sans cumul, aucun apport`);
+  }
+
+  for (const [constat, nom, id, forme, element, reglage, pct] of FIXES) {
+    const etiquette = `${constat} — ${nom} (${id}, forme ${forme})`;
+    const ecart = apportConforme(forme, reglage, element, pct, {}, 1);
+    ok(ecart === null, ecart === null ? `${etiquette} : apport attendu` : `${etiquette} : apport attendu — ${ecart}`);
+    if (Object.keys(reglage).length > 0) {
+      ok(apportConforme(forme, {}, element, {}, {}, 1) === null, `${etiquette} : sans l'interrupteur, aucun apport`);
+    }
+  }
+
+  // 105 — la part de Taux Crit (+20 points) ne se lit pas dans ces stats ; depuis le lot CM
+  // elle ne change aucun total, la ligne ne porte donc que l'ATQ.
+
+  // 116 — Berserk : la même ligne majore aussi les dégâts de +100 % (prose « damage dealt … increased by 100% »).
+  for (const [id, forme, sort] of [[9612, 18812, 9602], [9613, 18813, 9603], [9614, 18814, 9604], [9615, 18815, 9605]] as const) {
+    rapportSonde(`116 — Berserk (${id}, forme ${forme}) : dégâts du sort ${sort} avec l'interrupteur, ×2`,
+      forme, sort, {}, { passifsOffensifs: { [id]: true } }, 2);
   }
 }

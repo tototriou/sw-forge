@@ -1007,18 +1007,19 @@ export default function testAuditDegatsConditionnels() {
     'UI — Nightmare force le critique quand son toggle de sommeil est actif'
   );
 
-  const copper = profilDe(16533, 7763);
-  ok(
-    computeSkillDamage(copper, buildAudit, { ...setupAudit, enemyDef: 400 }, AUCUNE_AURA_PROPRE) >
-      computeSkillDamage(copper, buildAudit, { ...setupAudit, enemyDef: 401 }, AUCUNE_AURA_PROPRE),
-    '204 — Copper : ignore DEF au seuil inclusif de la moitié de sa DEF'
-  );
-  const guardCrush = profilDe(26112, 15907);
-  ok(
-    computeSkillDamage(guardCrush, buildAudit, { ...setupAudit, enemyDef: 600 }, AUCUNE_AURA_PROPRE) >
-      computeSkillDamage(guardCrush, buildAudit, { ...setupAudit, enemyDef: 601 }, AUCUNE_AURA_PROPRE),
-    '205 — Guard Crush : ignore DEF au seuil inclusif de 60 % de son ATQ'
-  );
+  // ⚠️ La borne inclusive se mesure CONTRE UNE DEF NULLE : au seuil, le total
+  // égale celui d'une cible sans DEF (la DEF est réellement ignorée), un point
+  // au-dessus il lui reste inférieur. L'ancienne forme `seuil > seuil + 1`
+  // passait encore quand la borne était devenue stricte, puisqu'une DEF plus
+  // basse augmente déjà les dégâts sans aucun ignore (mutation du lot 15d).
+  const ignoreAuSeuil = (profil: SkillDamageProfile, seuil: number) => {
+    const degats = (enemyDef: number) => computeSkillDamage(profil, buildAudit, { ...setupAudit, enemyDef }, AUCUNE_AURA_PROPRE);
+    return degats(seuil) === degats(0) && degats(seuil + 1) < degats(0);
+  };
+  ok(ignoreAuSeuil(profilDe(16533, 7763), 400),
+    '204 — Copper : ignore DEF au seuil inclusif de la moitié de sa DEF (total égal à celui d’une DEF nulle)');
+  ok(ignoreAuSeuil(profilDe(26112, 15907), 600),
+    '205 — Guard Crush : ignore DEF au seuil inclusif de 60 % de son ATQ (total égal à celui d’une DEF nulle)');
   const triss = profilDe(29515, 19215);
   const trissSans = computeSkillDamage(triss, buildAudit, { ...setupAudit, enemyDef: 1200 }, AUCUNE_AURA_PROPRE);
   ok(
@@ -1068,14 +1069,14 @@ export default function testAuditDegatsConditionnels() {
   const elsharionNu = statsDeCombat(buildAudit, elsharionSetup(0, 0), AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
   const elsharionDefBuff = statsDeCombat(buildAudit, { ...elsharionSetup(0, 0), defBuff: true }, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
   ok(elsharionDefBuff.atk > elsharionNu.atk,
-    '96 — Elsharion : buff DEF explicite compte comme un buff propre et augmente son ATQ');
+    '97 — Elsharion : buff DEF explicite compte comme un buff propre et augmente son ATQ');
   const elsharionPlein = statsDeCombat(buildAudit, elsharionSetup(10, 20), AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats });
   ok(elsharionPlein.atk > elsharionNu.atk && elsharionPlein.spd > elsharionNu.spd,
-    '96 — Elsharion : buffs propres et alliés alimentent deux stats distinctes');
+    '97 — Elsharion : buffs propres et alliés alimentent deux stats distinctes');
   egal(
     statsDeCombat(buildAudit, elsharionSetup(50, 50), AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, { combatStats: elsharionStats }),
     elsharionPlein,
-    '96 — Elsharion : deux plafonds indépendants à 10 et 20'
+    '97 — Elsharion : deux plafonds indépendants à 10 et 20'
   );
   const geraltStats = monsterCombatStatProfiles(fiche(29215));
   const geraltTrois = statsDeCombat(buildAudit, {

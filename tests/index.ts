@@ -79,7 +79,7 @@ import {
   testResumeConditionDebuff,
 } from './degats-garanties-bornes.test';
 import { testVitCiriBirgitta, testTheoniaAtqCible } from './degats-vit-atq-cible.test';
-import { testCouvertureGarantiesCritique, testCouvertureBonusCritique, testCouvertureIgnoreDefIdentifiants } from './degats-couverture-livraisons.test';
+import { testCouvertureGarantiesCritique, testCouvertureBonusCritique, testCouvertureIgnoreDefIdentifiants, testCouvertureVariablesFormule, testCouvertureConditionsSort, testCouvertureStatsCombat } from './degats-couverture-livraisons.test';
 import {
   testBladeSurgeRecette,
   testBladeSurgeEcran,
@@ -235,6 +235,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCouvertureGarantiesCritique', testCouvertureGarantiesCritique],
   ['testCouvertureBonusCritique', testCouvertureBonusCritique],
   ['testCouvertureIgnoreDefIdentifiants', testCouvertureIgnoreDefIdentifiants],
+  ['testCouvertureVariablesFormule', testCouvertureVariablesFormule],
+  ['testCouvertureConditionsSort', testCouvertureConditionsSort],
+  ['testCouvertureStatsCombat', testCouvertureStatsCombat],
   ['testBladeSurgeRecette', testBladeSurgeRecette],
   ['testBladeSurgeEcran', testBladeSurgeEcran],
   ['testBladeSurgePariteEcranCli', testBladeSurgePariteEcranCli],

@@ -2484,6 +2484,14 @@ const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> 
   5812: [{ type: 'pvCibleSuperieursPvPropre', ratio: 2, pct: 50 }], // Ceres — Last Shot
   17413: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 30 }], // Kassandra vent
   17913: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 30 }], // Eleni vent
+  // Summary Justice (Theonia, Justice) : « For enemies with Attack Power lower
+  // than yours, the damage dealt increases by 100% » — borne STRICTE, valeur
+  // de la donnée (`Increase Damage` 100, `note` « For enemies with Attack
+  // Power lower than yours »), ATQ ennemie saisie (`enemyAtk`, décision de
+  // l'utilisateur du 2026-10-03). La clause sœur « Attack Speed lower than
+  // yours » n'a pas de valeur dans la donnée (`quantite: null`) : NON
+  // modélisée, en attente d'un relevé (degats-et-aura 15e, PCB-1 ; R11).
+  23515: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 100 }], // Theonia
   20112: [{ type: 'aucunPvCibleDetruit', pct: 50 }], // Yuji feu — le critique, lui, est inconditionnel
   20712: [{ type: 'aucunPvCibleDetruit', pct: 50 }], // Rick feu — le critique, lui, est inconditionnel
   // Divergent Fist (Yuji) et Shockwave Fist (Rick), S2 : « the Critical Rate

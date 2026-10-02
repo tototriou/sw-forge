@@ -78,7 +78,7 @@ import {
   testGarantieYujiRick,
   testResumeConditionDebuff,
 } from './degats-garanties-bornes.test';
-import { testVitCiriBirgitta } from './degats-vit-atq-cible.test';
+import { testVitCiriBirgitta, testTheoniaAtqCible } from './degats-vit-atq-cible.test';
 import {
   testBladeSurgeRecette,
   testBladeSurgeEcran,
@@ -230,6 +230,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testGarantieYujiRick', testGarantieYujiRick],
   ['testResumeConditionDebuff', testResumeConditionDebuff],
   ['testVitCiriBirgitta', testVitCiriBirgitta],
+  ['testTheoniaAtqCible', testTheoniaAtqCible],
   ['testBladeSurgeRecette', testBladeSurgeRecette],
   ['testBladeSurgeEcran', testBladeSurgeEcran],
   ['testBladeSurgePariteEcranCli', testBladeSurgePariteEcranCli],

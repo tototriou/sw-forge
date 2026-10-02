@@ -67,7 +67,13 @@ dit. Copper (« half or lower than your Defense ») et Guard Crush (« 60% or
 less than your Attack Power ») ignorent la DEF à l'égalité ; Jaara
 (« Defense lower than your Attack Power ») et Varus (« lower Defense than
 yours ») ne garantissent plus le critique à l'égalité, conformément à leur
-prose et à la `note` de leur effet (degats-et-aura 15d). Le résumé de la
+prose et à la `note` de leur effet (degats-et-aura 15d). Summary Justice
+(Theonia, S3) gagne +100 % quand l'ATQ ennemie saisie (« ATQ adverse »,
+`enemyAtk`) est strictement inférieure à l'ATQ du build (« For enemies with
+Attack Power lower than yours », valeur de la donnée ; décision de
+l'utilisateur du 2026-10-03), comme Kassandra et Eleni vent à +30 % ; sa
+clause sœur « Attack Speed lower than yours », sans valeur dans la donnée,
+n'est pas comptée (degats-et-aura 15e). Le résumé de la
 condition dit ce qu'elle accorde (ignore DEF ou critique garanti) et sa
 borne (≤ ou <), lus sur l'entrée : Jaara et Varus affichaient « ignore
 DEF ».

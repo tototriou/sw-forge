@@ -699,6 +699,14 @@ Formes : 19601 Mermaid †, 19611 Tetra.
 | --- | --- | --- | --- | --- |
 | « Air Shield » · 10406 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Tetra → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
+### Theonia
+
+Formes : 34205 Justice †, 34215 Theonia.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Summary Justice » · 23515 · S3 | +100 % de dégâts quand l'ATQ ennemie saisie est strictement inférieure à l'ATQ du build (« For enemies with Attack Power lower than yours ») ; le champ « ATQ adverse » s'ouvre pour ce sort. Au témoin (ATQ 1 000), 1 832,84 contre une ATQ ennemie de 1 000, 3 665,68 contre 999. La clause de VIT (« Attack Speed lower than yours ») reste non comptée. | 15e | commit du lot 15e | Chemin commun → Theonia → « Compétence utilisée » → Summary Justice : un champ « ATQ adverse » (1 000 par défaut) ; sous l'ATQ du build, le total double ; à l'égalité ou au-dessus, rien. |
+
 ### Valdemar
 
 Formes : 29605 Magic Order Guardian †, 29615 Valdemar.
@@ -906,6 +914,11 @@ Rien de ce qui suit n'est à chercher à l'écran.
   cumul de Birgitta, typé « Buff » dans la donnée (« Neutral » chez Ciri),
   n'est pas établi. La hausse des dégâts « as the target's HP status
   decreases » des deux coups du passif reste non modélisée (plancher).
+- **Theonia** (lot 15e) : une recette sans `enemyAtk` (ancienne recette)
+  calcule avec une ATQ ennemie de 0, donc le +100 % allumé, alors que le
+  champ affiche 1 000 — même comportement que Kassandra et Eleni (vent) ;
+  décision D5 de `13b-pv-comparaisons-boucliers`, non tranchée. La clause de
+  VIT attend le relevé R11.
 
 ---
 

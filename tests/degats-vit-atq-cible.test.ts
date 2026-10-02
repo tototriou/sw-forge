@@ -1,7 +1,10 @@
 // VIT en points de Ciri et Birgitta, ATQ ennemie inférieure de Theonia
 // (degats-et-aura 15e, damage.ts) :
 //   - Flash Step (19014) et Turning Slash (19414) : +50 de VIT en POINTS par
-//     cumul, 5 cumuls au plus (« up to 250 »), dans `STATS_COMBAT_PAR_ID_CONNUS`.
+//     cumul, 5 cumuls au plus (« up to 250 »), dans `STATS_COMBAT_PAR_ID_CONNUS` ;
+//   - Summary Justice (23515) : +100 % de dégâts quand l'ATQ ennemie saisie
+//     (`enemyAtk`) est STRICTEMENT inférieure à l'ATQ du build, dans
+//     `CONDITIONS_COMBAT_PAR_ID_CONNUS`.
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un cumul lu comme un pourcentage
 // (×1,5 au lieu de +50), ou un bonus accordé à l'égalité d'ATQ — le
@@ -141,4 +144,47 @@ export function testVitCiriBirgitta() {
   const recette = recetteDe(29314, { ...base, skillCom2usId: 19004, stackPersonnalise: { 19014: 3 } });
   egal(parseOptimizerRecipe(JSON.stringify(recette)).recipe?.damageSetup?.stackPersonnalise, { 19014: 3 },
     'recette : le compteur de Flash Step survit à l’export puis à la relecture');
+}
+
+export function testTheoniaAtqCible() {
+  titre('Theonia (Summary Justice) — +100 % contre une ATQ ennemie inférieure, borne stricte (degats-et-aura 15e)');
+  for (const forme of [34215, 34205]) {
+    const nom = forme === 34215 ? 'Theonia' : 'Justice (non éveillée)';
+    const c = fiche(forme).competences.find((x) => x.com2usId === 23515)!;
+    ok(c.description?.includes('For enemies with Attack Power lower than yours, the damage dealt increases by 100%') === true,
+      `23515 ${nom} — la prose porte « Attack Power lower than yours […] by 100% »`);
+    ok(c.effets.some((e) => e.nom === 'Increase Damage' && e.quantite === 100 && e.note === 'For enemies with Attack Power lower than yours'),
+      `23515 ${nom} — la donnée porte Increase Damage 100, note « For enemies with Attack Power lower than yours »`);
+    const p = profilDe(forme, 23515);
+    // ⚠️ La clause VIT (« Attack Speed lower than yours », `quantite: null`)
+    // n'est PAS modélisée : une seule condition, et c'est voulu (relevé R11).
+    egal(p.conditionsCombat, [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 100 }],
+      `23515 ${nom} — une condition, ATQ cible < ATQ propre, +100 % (clause VIT non modélisée, sans valeur en donnée)`);
+    ok(p.critiqueGaranti === true, `23515 ${nom} — critique garanti conservé`);
+
+    const total = (enemyAtk: number, valeurs = BUILD) =>
+      computeSkillDamage(p, stats(valeurs), { ...base, skillCom2usId: 23515, enemyAtk }, AUCUNE_AURA_PROPRE, 'dark');
+    const egalite = total(1000);
+    ok(proche(total(999), 2 * egalite), `23515 ${nom} — ATQ ennemie 999 contre 1 000 : total ×2 exactement`);
+    egal(total(1001), egalite, `23515 ${nom} — ATQ ennemie supérieure : aucun bonus`);
+    egal(egalite, total(5000), `23515 ${nom} — égalité d'ATQ : aucun bonus (borne stricte, « lower than yours »)`);
+    const buildFort = { ...BUILD, atk: 1001 };
+    ok(proche(total(1000, buildFort), 2 * total(5000, buildFort)),
+      `23515 ${nom} — l'ATQ du build candidat déclenche la condition (1 001 contre 1 000 : ×2)`);
+  }
+  // Le chemin du moteur, recette comprise.
+  const setup = { ...base, skillCom2usId: 23515 };
+  ok(proche(score(34215, { ...setup, enemyAtk: 999 }), 2 * score(34215, { ...setup, enemyAtk: 1000 })),
+    '23515 Theonia — moteur : ATQ ennemie 999 → score ×2 ; 1 000 → aucun bonus');
+  const recette = recetteDe(34215, { ...setup, enemyAtk: 1234 });
+  egal(parseOptimizerRecipe(JSON.stringify(recette)).recipe?.damageSetup?.enemyAtk, 1234,
+    'recette : l’ATQ ennemie saisie survit à l’export puis à la relecture');
+
+  // La fenêtre « Dégâts réels » ouvre le champ « ATQ adverse » dès qu'une
+  // condition du sort choisi est `atkCibleSousAtkPropre` : c'est ce que la
+  // ligne de Theonia active. Lu dans le source, hors commentaires.
+  const carte = readFileSync(resolve(racine, 'src/components/outils/DamageSetupCard.tsx'), 'utf8');
+  ok(carte.includes("const demandeAtkCible = conditionsAvecCle.some(({ condition }) => condition.type === 'atkCibleSousAtkPropre');")
+    && carte.includes('{demandeAtkCible && (') && carte.includes('onChange={(v) => maj({ enemyAtk: v ?? 0 })}'),
+  'écran : le champ « ATQ adverse » (`enemyAtk`) s’ouvre pour une condition `atkCibleSousAtkPropre`');
 }

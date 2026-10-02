@@ -344,7 +344,10 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    critères posés pour l'ancien monstre n'ont pas de raison de valoir pour
    le nouveau. Re-choisir le même exemplaire, ou un AUTRE exemplaire de la
    MÊME espèce, conserve les critères de recherche, le sort et ses réglages :
-   aucun nouveau sort n'est à choisir pour cette espèce. Les **réglages avancés**
+   aucun nouveau sort n'est à choisir pour cette espèce. Depuis
+   degats-et-aura 6bis-b19, un autre exemplaire choisi par un membre de la
+   liste de travail efface en revanche les **résultats affichés**, faits
+   pour l'ancien (voir la table ci-dessous). Les **réglages avancés**
    (préfiltrage, exclusions, recherche exhaustive…) ne sont jamais
    concernés : préférences générales, pas critères propres à un monstre.
    **Importer un nouveau compte** déclenche la réinitialisation complète,
@@ -392,9 +395,19 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     | Import de compte | Défauts | Défauts | `resetSearch` habituel |
 
    Cliquer un autre membre de la liste garde les autres effets de `resetSearch`
-   quand son espèce change. Naviguer entre listes sans choisir un autre
-   monstre ne change pas le monstre optimisé ; la simple re-sélection de la
-   même espèce ou d'un exemplaire de celle-ci ne vide rien. L'import de
+   quand son espèce change. **Quand il désigne un autre exemplaire de la même
+   espèce** (degats-et-aura 6bis-b19, décision de l'utilisateur du
+   2026-10-02), les résultats affichés, faits pour l'ancien exemplaire, sont
+   effacés comme au changement d'espèce et par la même fonction
+   (`effacerResultats`, useOptimizerState.ts, la partie « résultats » de
+   `resetSearch` : résultat et progression, page, arrêt manuel, détail
+   ouvert). Critères, tri et combat décrit restent, comme le dit la table, et
+   rien n'est relancé : l'utilisateur relance lui-même. Recliquer
+   l'exemplaire déjà affiché n'efface rien. Naviguer entre listes sans
+   choisir un autre monstre ne change pas le monstre optimisé ; la simple
+   re-sélection de la même espèce dans le bestiaire, ou d'un exemplaire par
+   les puces de source et la zone D, ne vide rien, et n'efface pas non plus
+   les résultats affichés. L'import de
    recette écrit directement ses valeurs après validation ; aucun effet
    différé de changement d'espèce ne les écrase.
 
@@ -1934,7 +1947,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
-  pour rappeler son exemplaire dans la recherche. **Corbeille** à droite de
+  pour rappeler son exemplaire dans la recherche — un autre exemplaire de
+  l'espèce déjà choisie efface les résultats affichés, sans toucher aux
+  critères (6bis-b19, voir « Recherche du monstre à optimiser »). **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont

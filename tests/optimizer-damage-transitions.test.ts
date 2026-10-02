@@ -56,6 +56,39 @@ export default function testOptimizerDamageTransitions() {
   ok(hook.includes("motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s)"), 'resetSearch : deux branches de production');
   ok(!hook.includes('resetDamageSkill'), 'hook : aucune transition superflue sur les listes ou exemplaires');
 
+  titre('Optimizer · changement d’exemplaire de la même espèce (6bis-b19)');
+
+  // Décision de l'utilisateur du 2026-10-02 : changer d'exemplaire efface les
+  // résultats affichés, comme un changement d'espèce ; l'utilisateur relance
+  // lui-même. Le dépôt n'a pas de test React : l'arbre syntaxique du hook
+  // établit CE qui est effacé, l'écran QUAND.
+  const sourceHook = ts.createSourceFile('useOptimizerState.ts', hook, ts.ScriptTarget.Latest, true);
+  const fonctionDuHook = (nom: string) => {
+    let trouvee: ts.FunctionDeclaration | undefined;
+    const visiter = (n: ts.Node): void => {
+      if (ts.isFunctionDeclaration(n) && n.name?.text === nom) trouvee = n;
+      else ts.forEachChild(n, visiter);
+    };
+    visiter(sourceHook);
+    return trouvee;
+  };
+  const instructions = (f: ts.FunctionDeclaration | undefined) => f?.body?.statements.map((s) => s.getText(sourceHook)) ?? [];
+  egal(
+    instructions(fonctionDuHook('effacerResultats')),
+    ['setResultsPage(1);', 'setStoppedManually(false);', 'setOpenDetailKey(null);', 'search.reset();'],
+    'effacerResultats : résultat et progression, page, arrêt manuel, détail ouvert — aucun critère, aucun réglage de combat'
+  );
+  const corpsReset = instructions(fonctionDuHook('resetSearch'));
+  ok(corpsReset.includes('effacerResultats();'), 'resetSearch (changement d’espèce) efface par la MÊME fonction');
+  ok(!corpsReset.includes('search.reset();'), '… sans copie de l’effacement qui pourrait diverger');
+  ok(/resetSearch,\s*effacerResultats,\s*\};/.test(hook), 'le hook expose effacerResultats');
+  ok(
+    /if \(id !== selectedId\) resetSearch\(\);(?:\s*\/\/[^\n]*)*\s*else if \(key !== ownSelectorKey\) effacerResultats\(\);\s*setSelectedId\(id\);/.test(ecran),
+    'membre de liste de la même espèce, autre exemplaire : résultats effacés, sans resetSearch ni relance'
+  );
+  ok(ecran.includes('const key = exclusionSelectorKey(m.selector);'), '… « autre exemplaire » = le sélecteur du membre cliqué…');
+  ok(ecran.includes('const ownSelectorKey = sourceSelector ? exclusionSelectorKey(sourceSelector) : null;'), '… comparé à celui de l’exemplaire affiché (recliquer le même n’efface rien)');
+
   const source = ts.createSourceFile('damage.ts', readFileSync('src/lib/damage.ts', 'utf8'), ts.ScriptTarget.Latest, true);
   const declaration = source.statements.find((s): s is ts.InterfaceDeclaration =>
     ts.isInterfaceDeclaration(s) && s.name.text === 'DamageSetup');

@@ -456,7 +456,8 @@ export default function testArtefactFile() {
       (appel?.[2] ?? '').split(',').map((d) => d.trim()).includes('importDuCompte'),
       'écran : … et son mémo se recalcule à chaque import'
     );
-    ok(/importDuCompte,\s*search,\s*resetSearch,\s*\}\s*=\s*optimizer;/.test(ecran), 'écran : … celle de l’état de l’Optimizer, jamais une valeur locale');
+    const lusDeLEtat = /const \{([^}]*)\}\s*=\s*optimizer;/.exec(ecran)?.[1] ?? '';
+    ok(/^\s*importDuCompte,\s*$/m.test(lusDeLEtat), 'écran : … celle de l’état de l’Optimizer, jamais une valeur locale');
     // L'identité vit dans l'état remonté dans App.tsx (jamais démonté) : un
     // import fait depuis un autre onglet l'avance aussi.
     ok(hook.includes('const [importDuCompte, setImportDuCompte] = useState(0);'), 'état : 0 avant tout import de la session');

@@ -486,6 +486,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     importDuCompte,
     search,
     resetSearch,
+    effacerResultats,
   } = optimizer;
   // `relicContextRecherche` : le contexte relique de la recherche LANCÉE
   // (garantie G) — `undefined` tant que l'écran n'en pose pas dans `run()`
@@ -3047,6 +3048,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     if (!resolved) return;
                     const id = String(resolved.monster.id);
                     if (id !== selectedId) resetSearch();
+                    // ⚠️ Même espèce, AUTRE exemplaire (6bis-b19, décision de
+                    // l'utilisateur) : la recherche affichée a été faite pour
+                    // l'ancien — sa fiche, sa relique, ses artéfacts portés.
+                    // Effacée comme au changement d'espèce (`effacerResultats`
+                    // est la partie « résultats » de `resetSearch`), sans
+                    // toucher aux critères ni au combat décrit ; jamais
+                    // relancée : l'utilisateur relance lui-même. Recliquer
+                    // l'exemplaire déjà affiché n'efface rien.
+                    else if (key !== ownSelectorKey) effacerResultats();
                     setSelectedId(id);
                     // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une
                     // des 4 puces) — `gearSource` reste sur sa dernière

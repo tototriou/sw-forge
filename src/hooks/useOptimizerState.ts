@@ -359,6 +359,21 @@ export interface OptimizerState {
   // (autre espèce ou autre pool de runes). La navigation entre exemplaires
   // d'une même espèce et listes ne passe pas par ici.
   resetSearch: (motif?: 'monstre' | 'compte') => void;
+  /**
+   * Efface les « Combinaisons trouvées » AFFICHÉES — résultat, progression,
+   * page, arrêt manuel, détail ouvert — et RIEN d'autre : ni critère, ni
+   * réglage de combat, ni tri, ni réglage avancé. C'est la partie
+   * « résultats » de `resetSearch`, qui l'appelle : changer d'espèce et
+   * changer d'exemplaire effacent donc la même chose.
+   *
+   * Appelée seule par OptimizerSection.tsx quand un membre de liste de la
+   * MÊME espèce désigne un AUTRE exemplaire (degats-et-aura 6bis-b19,
+   * décision de l'utilisateur du 2026-10-02) : la recherche affichée, faite
+   * pour l'ancien exemplaire, disparaît comme au changement d'espèce ; les
+   * critères restent, et l'utilisateur relance lui-même — jamais de relance
+   * automatique.
+   */
+  effacerResultats: () => void;
 }
 
 export function useOptimizerState(): OptimizerState {
@@ -443,7 +458,17 @@ export function useOptimizerState(): OptimizerState {
     // et une nouvelle recherche reprenait du cache des paires de l'ancien
     // compte. Avancé ici, la signature change à coup sûr.
     if (motif === 'compte') setImportDuCompte((n) => n + 1);
+    // Le tri suit l'objectif (`handleSearch` le repose dessus au lancement) :
+    // il retombe avec lui ici, et reste avec lui au changement d'exemplaire.
     setSortBy('efficience');
+    effacerResultats();
+  }
+
+  // ⚠️ **Une seule fonction pour l'effacement des résultats** (6bis-b19) :
+  // le changement d'espèce (`resetSearch`) et le changement d'exemplaire de
+  // la même espèce (OptimizerSection.tsx, zone C) effacent EXACTEMENT la même
+  // chose — une copie de ces quatre lignes divergerait au premier ajout.
+  function effacerResultats() {
     setResultsPage(1);
     setStoppedManually(false);
     setOpenDetailKey(null);
@@ -516,5 +541,6 @@ export function useOptimizerState(): OptimizerState {
     importDuCompte,
     search,
     resetSearch,
+    effacerResultats,
   };
 }

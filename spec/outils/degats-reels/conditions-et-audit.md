@@ -87,6 +87,23 @@ aucune probabilité n'est convertie en succès garanti. Les deux clauses
 d'Astar sont indépendantes : le bonus de dégâts et le +150 % d'ATQ calculé
 sur sa stat de base quand elle a été touchée.
 
+Gold Headband (Mei Hou Wang et Monkey King feu) se règle par un compteur de
+cumuls, de 0 à 10. Chaque cumul ajoute 20 % de l'ATQ de base et 12 % de la
+VIT de base, sans arrondi : pour les 116 de VIT de base de Mei Hou Wang,
++13,92 VIT par cumul et +139,2 à dix cumuls, à côté de +138,4 puis +1 384
+ATQ. Les runes, les buffs et le leader skill ne changent pas cet apport,
+calculé sur la seule base (curation de l'utilisateur du 2026-09-24, absence
+d'arrondi décidée le 2026-10-02). La VIT reste, avec l'ATQ, une stat que la
+recherche privilégie pour ce monstre.
+
+<!-- À trancher : le Speed tune lit le même passif avec un arrondi supérieur
+par cumul (`pointsDeGain`, speedTunePassif.ts) : +14 VIT par cumul et +140 à
+dix cumuls pour la base 116, contre +13,92 et +139,2 dans les dégâts. Pour
+une base de 100 (Monkey King), les deux donnent +12 et +120. Les deux
+lectures restent en place ; un relevé en jeu de la VIT affichée par Mei Hou
+Wang après un puis dix cumuls trancherait. Ligne correspondante dans
+spec/outils/optimizer/pistes.md. -->
+
 
 ## Conditions binaires de buffs adverses et lecture des sorts
 

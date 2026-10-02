@@ -1704,6 +1704,12 @@ export interface CombatStatProfile {
   hpPct?: number;
   spdPct?: number;
   spdFlat?: number;
+  /**
+   * Pourcentage ajouté depuis la VIT de BASE — distinct de `spdPct` (un
+   * multiplicateur de la VIT de combat) et de `spdFlat` (des points). Ajouté
+   * tel quel, SANS arrondi (Gold Headband, degats-et-aura 11).
+   */
+  spdBasePct?: number;
   atkFlat?: number;
   atkDepuisSpd?: number;
   crPoints?: number;
@@ -1714,7 +1720,13 @@ export interface CombatStatProfile {
 type CombatStatConfig = Omit<CombatStatProfile, 'skillCom2usId' | 'nom' | 'description' | 'icone'>;
 
 const STATS_COMBAT_PAR_ID_CONNUS: Record<number, CombatStatConfig[]> = {
-  7912: [{ source: 'stacks', label: 'Charges de Gold Headband', max: 10, atkPct: 20, spdFlat: 12 }],
+  // Gold Headband (Mei Hou Wang / Monkey King) : chaque cumul ajoute 20 % de
+  // l'ATQ de BASE et 12 % de la VIT de BASE, au plus 10 cumuls — curation de
+  // l'utilisateur du 2026-09-24 (cadrage degats-et-aura, A.2 ter). VIT sans
+  // arrondi, comme l'ATQ : 13,92 par cumul pour une base 116 (décision n° 13
+  // du 2026-10-02). L'ancienne ligne `atkPct: 20, spdFlat: 12` était fausse
+  // sur les deux assiettes (% de l'ATQ de combat, points de VIT plats).
+  7912: [{ source: 'stacks', label: 'Charges de Gold Headband', max: 10, atkBasePct: 20, spdBasePct: 12 }],
   2314: [{ source: 'stacks', label: 'Charges de Punish', max: 10, atkPct: 20, defPct: 20 }],
   6314: [{ source: 'stacks', label: 'Déclenchements de Judge', max: 10, defPct: 10 }],
   7814: [{ source: 'stacks', label: "Charges de King's Rage", max: 5, atkPct: 50 }],
@@ -4058,7 +4070,7 @@ function combatStatCount(profile: CombatStatProfile, setup: DamageSetup): number
 }
 
 function resolvedCombatStatBonuses(profiles: CombatStatProfile[], setup: DamageSetup) {
-  const out = { atkPct: 0, atkBasePct: 0, defPct: 0, hpPct: 0, spdPct: 0, spdFlat: 0, atkFlat: 0, atkDepuisSpd: 0, crPoints: 0 };
+  const out = { atkPct: 0, atkBasePct: 0, defPct: 0, hpPct: 0, spdPct: 0, spdFlat: 0, spdBasePct: 0, atkFlat: 0, atkDepuisSpd: 0, crPoints: 0 };
   for (const profile of profiles) {
     if (profile.source === 'debuffsInverses') {
       if (setup.atkDebuff) out.atkPct += 50;
@@ -4073,6 +4085,7 @@ function resolvedCombatStatBonuses(profiles: CombatStatProfile[], setup: DamageS
     out.hpPct += (profile.hpPct ?? 0) * count;
     out.spdPct += (profile.spdPct ?? 0) * count;
     out.spdFlat += (profile.spdFlat ?? 0) * count;
+    out.spdBasePct += (profile.spdBasePct ?? 0) * count;
     out.atkFlat += (profile.atkFlat ?? 0) * count;
     out.atkDepuisSpd += (profile.atkDepuisSpd ?? 0) * count;
     out.crPoints += (profile.crPoints ?? 0) * count;
@@ -4210,7 +4223,15 @@ export function statsDeCombat(
       bonusCombat.atkDepuisSpd * baseCombat.spd,
     def: (baseCombat.def * (100 + bonusCombat.defPct)) / 100,
     hp: (baseCombat.hp * (100 + bonusCombat.hpPct)) / 100,
-    spd: (baseCombat.spd * (100 + bonusCombat.spdPct)) / 100 + bonusCombat.spdFlat,
+    // `spdBasePct` (Gold Headband) : un pourcentage de la VIT de BASE ajouté
+    // tel quel, comme `atkBasePct` pour l'ATQ — SANS arrondi (13,92 par cumul
+    // pour une base 116, décision n° 13 de degats-et-aura). ⚠️ Le Speed tune
+    // (`pointsDeGain`, speedTunePassif.ts) arrondit chaque cumul au
+    // supérieur : écart à trancher, consigné dans la spec.
+    spd:
+      (baseCombat.spd * (100 + bonusCombat.spdPct)) / 100 +
+      bonusCombat.spdFlat +
+      ((stats.find((s) => s.key === 'spd')?.base ?? 0) * bonusCombat.spdBasePct) / 100,
   };
 }
 
@@ -5525,7 +5546,9 @@ export function damageRelevantStats(
     }
     if (p.defPct && !keys.includes('def')) keys.push('def');
     if (p.hpPct && !keys.includes('hp')) keys.push('hp');
-    if ((p.spdPct || p.spdFlat) && !keys.includes('spd')) keys.push('spd');
+    // `spdBasePct` à parité avec `atkBasePct` ci-dessus : sans lui, la VIT
+    // sortait des stats pertinentes de Mei Hou Wang (degats-et-aura 11).
+    if ((p.spdPct || p.spdFlat || p.spdBasePct) && !keys.includes('spd')) keys.push('spd');
   }
   const toutesConditions = [
     ...(profile.conditionsCombat ?? []),

@@ -34,8 +34,9 @@ import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { BuildCandidate, RealDamageContext, objectiveScore } from '../src/lib/runeBuildOptim';
 import { StatKey } from '../src/lib/effects';
-import { StatRow } from '../src/lib/stats';
-import { egal, ok, titre } from './outils';
+import { StatRow, computeStats, monsterBaseStats } from '../src/lib/stats';
+import { RuneDetail } from '../src/types';
+import { egal, monstersJson, ok, titre } from './outils';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const dossierSorts = resolve(racine, 'public/data/skills');
@@ -1083,15 +1084,61 @@ export default function testAuditDegatsConditionnels() {
   egal(geraltCinq.atk, geraltTrois.atk,
     'Geralt : son passif reste plafonné à trois buffs même si le total propre atteint cinq');
 
-  const goldHeadband = monsterCombatStatProfiles(fiche(16812));
-  const goldStats = (stacks: number) => statsDeCombat(
-    buildAudit, { ...setupAudit, stackPersonnalise: { 7912: stacks } },
-    AUCUNE_AURA_PROPRE,
-    'fire', ARTIFACT_DAMAGE_NEUTRE, { combatStats: goldHeadband }
-  );
-  ok(goldStats(10).atk > goldStats(0).atk && goldStats(10).spd > goldStats(0).spd,
-    '89 — Gold Headband : ATQ et VIT progressent avec les charges');
-  egal(goldStats(11), goldStats(10), '89 — Gold Headband : dix charges au maximum');
+  // Gold Headband (`7912`) — curation de l'utilisateur (cadrage degats-et-aura,
+  // A.2 ter, 2026-09-24) : chaque cumul ajoute 20 % de l'ATQ de BASE et 12 % de
+  // la VIT de BASE, au plus 10 ; la VIT SANS arrondi, comme l'ATQ (décision
+  // n° 13 du 2026-10-02 : 13,92 par cumul pour une base 116). Les attendus sont
+  // écrits en clair, pas recalculés par la formule testée. Bases réelles de
+  // monsters.json. L'ancien contrôle, seulement monotone, tournait sur
+  // `buildAudit`, dont la base est nulle : il ne pouvait pas voir l'assiette.
+  const procheGold = (a: number, b: number) => Math.abs(a - b) < 1e-9 * Math.max(1, Math.abs(b));
+  // Comme `egal`, mais à la tolérance du flottant : le reçu n'est imprimé qu'en cas d'échec.
+  const apportExact = (recu: [number, number], attendu: [number, number], libelle: string) => {
+    const bon = procheGold(recu[0], attendu[0]) && procheGold(recu[1], attendu[1]);
+    ok(bon, bon ? libelle : `${libelle} — reçu ${JSON.stringify(recu)}, attendu ${JSON.stringify(attendu)}`);
+  };
+  const runeGold: RuneDetail = {
+    id: 1, slot: 1, set: 'violent', rank: 6, rarity: 5, level: 15,
+    main: { code: 3, value: 160 }, subs: [{ code: 4, value: 20 }, { code: 8, value: 20 }],
+  };
+  const formesGold: [number, string, number, number, [number, number][]][] = [
+    // forme, nom, ATQ de base, VIT de base, [apport ATQ, apport VIT] à 1 puis 10 cumuls
+    [16812, 'Mei Hou Wang', 692, 116, [[138.4, 13.92], [1384, 139.2]]],
+    [16802, 'Monkey King', 659, 100, [[131.8, 12], [1318, 120]]],
+  ];
+  for (const [forme, nomForme, atkBase, spdBase, [unCumul, dixCumuls]] of formesGold) {
+    const monstre = monstersJson().find((m) => m.com2usId === forme);
+    const nu = computeStats({ base: monsterBaseStats(monstre), runes: [], artifacts: [] });
+    egal([nu.find((s) => s.key === 'atk')?.base, nu.find((s) => s.key === 'spd')?.base], [atkBase, spdBase],
+      `89 — Gold Headband ${nomForme} : précondition, ATQ et VIT de base de monsters.json`);
+    const goldHeadband = monsterCombatStatProfiles(fiche(forme));
+    egal(goldHeadband.map((p) => [p.skillCom2usId, p.source, p.max, p.atkBasePct, p.spdBasePct, p.atkPct, p.spdPct, p.spdFlat]),
+      [[7912, 'stacks', 10, 20, 12, undefined, undefined, undefined]],
+      `89 — Gold Headband ${nomForme} : 20 % de l'ATQ de base et 12 % de la VIT de base par cumul, 10 cumuls — ni % de combat, ni points`);
+    // Apport = stats de combat avec N cumuls − stats de combat sans le passif.
+    const apport = (stats: StatRow[], setup: DamageSetup, cumuls: number): [number, number] => {
+      const sans = statsDeCombat(stats, setup, AUCUNE_AURA_PROPRE, 'fire', ARTIFACT_DAMAGE_NEUTRE, {});
+      const avec = statsDeCombat(stats, { ...setup, stackPersonnalise: { 7912: cumuls } }, AUCUNE_AURA_PROPRE, 'fire',
+        ARTIFACT_DAMAGE_NEUTRE, { combatStats: goldHeadband });
+      return [avec.atk - sans.atk, avec.spd - sans.spd];
+    };
+    egal(apport(nu, setupAudit, 0), [0, 0], `89 — Gold Headband ${nomForme} : 0 cumul, aucun apport`);
+    apportExact(apport(nu, setupAudit, 1), unCumul,
+      `89 — Gold Headband ${nomForme} : 1 cumul = +${unCumul[0]} ATQ et +${unCumul[1]} VIT, sans arrondi`);
+    apportExact(apport(nu, setupAudit, 10), dixCumuls,
+      `89 — Gold Headband ${nomForme} : 10 cumuls = +${dixCumuls[0]} ATQ et +${dixCumuls[1]} VIT`);
+    egal(apport(nu, setupAudit, 11), apport(nu, setupAudit, 10), `89 — Gold Headband ${nomForme} : dix cumuls au maximum`);
+    // L'assiette est la BASE : runes, buffs ATQ/VIT, lead et Miriam ne changent pas l'apport.
+    const rune = computeStats({ base: monsterBaseStats(monstre), runes: [runeGold], artifacts: [] });
+    apportExact(apport(rune, {
+      ...setupAudit, atkBuff: true, spdBuff: true, miriamActif: true, leaderSkill: { stat: 'Attack Speed', pct: 24 },
+    }, 1), unCumul,
+    `89 — Gold Headband ${nomForme} : runes, buffs, lead et Miriam actifs, l'apport d'un cumul reste +${unCumul[0]} ATQ / +${unCumul[1]} VIT`);
+  }
+  const relevantesMeiHouWang = damageRelevantStats(profilDe(16812, 7902), [], setupAudit, false, null, null, null, false,
+    null, null, null, { combatStats: monsterCombatStatProfiles(fiche(16812)) });
+  ok(relevantesMeiHouWang.includes('atk') && relevantesMeiHouWang.includes('spd'),
+    '89 — Gold Headband : ATQ et VIT restent des stats pertinentes de Mei Hou Wang (`spdBasePct` à parité avec `atkBasePct`)');
 
   const berserkMonstre = fiche(18811);
   const berserkS1 = profilDe(18811, 9601);

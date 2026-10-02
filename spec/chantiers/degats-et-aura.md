@@ -394,8 +394,9 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b11 (même occasion : la page affichée, 2026-10-02)
         → 6bis-b12 (mesure, critère de b11 non tenu)
         → 6bis-b13 (coût par build, décision de l'utilisateur)
-        → 6bis-b13bis (Worker, conditionnel ; non déclenché le 2026-10-02)
-        → 6bis-b14 (fluidité), 6bis-b15 (relique de la carte), indépendants
+        → 6bis-b15 (relique de la carte, indépendante, faite avant le Worker)
+        → 6bis-b13bis-a → 6bis-b13bis-b (Worker de résolution, décidé le
+          2026-10-02 : « Dégâts réels » encore trop lent ; il remplace b14)
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -412,10 +413,12 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
-  6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b13bis (s'il a lieu),
-  6bis-b14, 6bis-b15,
+  6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
+  6bis-b13bis-a, 6bis-b13bis-b,
   7, 12, tous les 13b-* → 14
 ```
+
+##### Ordre d'exécution et premières contre-revues
 
 L'ordre d'exécution est l'ordre des numéros, avec 2a puis 2b, et 13a avant
 les sous-lots 13b-*. Les lots 3, 4, 5 viennent après 2b et avant les auras.
@@ -674,10 +677,11 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | code validé par le pilote ; **critère non tenu au navigateur** (saccades, page lente) ; mesure 6bis-b12 avant correction | `bfe6f6d7` ; reçu `bfe6f6d` ↔ `f17ad7e` / 2026-10-02 |
 | 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | terminé, chiffres recoupés par le pilote : la résolution sature (66 %), pas le tri | reçu `f0e77a4` ↔ `a4b54d7` / 2026-10-02 |
 | 6bis-b13 — la résolution d'un build coûte moins, à résultat identique | J | terminé, preuves et mutation rejouées par le pilote ; essai de l'utilisateur : reliques « très bien », fluidité à améliorer | `88e4c76a` ; reçu `88e4c76` ↔ `069d7c0` / 2026-10-02 |
-| 6bis-b13bis — Worker de résolution | J | non déclenché : l'utilisateur préfère d'abord une fluidité sans Worker (b14) | — |
-| 6bis-b14 — la résolution rend la main entre deux reliques | J | contrat écrit ; en attente de l'accord de l'utilisateur | — |
-| 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | lançable | — |
-| 7 — sets d'aura : l'écran | J | attend 6bis-b13 (et b13bis s'il a lieu) ; intrant à recaler au brief | — |
+| 6bis-b14 — la résolution rend la main entre deux reliques | J | sans objet : remplacé par le Worker (décision de l'utilisateur du 2026-10-02) | — |
+| 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | code validé par le pilote ; vérification à l'écran par l'utilisateur en attente | `7b3ec767` ; reçu `7b3ec76` ↔ `1d50ccc` / 2026-10-02 |
+| 6bis-b13bis-a — Worker de résolution : corps et protocole | J | lançable (agent lancé par le pilote) | — |
+| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | attend b13bis-a ; mesure au créneau de l'utilisateur | — |
+| 7 — sets d'aura : l'écran | J | attend 6bis-b13bis-b ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -4872,6 +4876,11 @@ de la barre de progression et du compte de builds, sans Worker si
 possible. Le Worker (b13bis) n'est pas déclenché ; la fluidité passe par
 6bis-b14. Remarque à la même occasion : sur la carte de résultat, la fiche
 de stats déborde à gauche et la relique à droite (6bis-b15).
+**Second essai de l'utilisateur, le 2026-10-02** : la résolution est bonne
+en « PV effectifs », pas en « Dégâts réels » (le calcul de dégâts par
+paire, ~60 % du coût restant, n'a pas été allégé) : **le Worker est
+nécessaire** (6bis-b13bis-a, puis -b). b14 devient sans objet : le Worker
+retire aussi la résolution du fil de l'écran.
 
 ##### 6bis-b14 — la résolution rend la main entre deux reliques
 
@@ -4923,7 +4932,12 @@ de la fiche, des artéfacts et de la roue (`BuildCandidateCard.tsx` L338,
 
 **Décision de l'utilisateur** : quand la place manque, la relique passe
 **sous** la ligne fiche / artéfacts / roue, avec son texte complet ;
-aucun libellé du jeu raccourci.
+aucun libellé du jeu raccourci. **Révisée par l'utilisateur pendant le
+lot** (2026-10-02) : à la souris, la relique est **toujours sous la
+roue**, centrée, quelle que soit la largeur ; elle ne change jamais de
+place quand la file la résout. Les deux points du contrat qui suivent
+(« sous la ligne », « sur la ligne quand la largeur suffit ») sont
+remplacés par cette décision.
 
 **Intrant borné**, relevé sur `a2691658` : `BuildCandidateCard.tsx`
 L240-420 ; `src/components/RelicSlot.tsx` ; `src/hooks/useMediaQuery.ts`
@@ -4951,12 +4965,82 @@ spec-lint, diff-check ; preuve `controle-6bis-b15.md`.
 **Ne fait pas :** le rendu tactile, la grille des cartes, le contenu de la
 relique.
 
-##### 6bis-b13bis — Worker de résolution (conditionnel)
+###### Résultat du lot 6bis-b15 — 2026-10-02
 
-**Cat. J ; requiert b13, et seulement si l'utilisateur, à l'essai, juge
-les saccades encore gênantes.** La résolution sort du fil de l'écran : la page affichée d'abord,
-puis le fond. Contrat à écrire alors, avec une mesure processeur bridé
-(approche d'un téléphone) : un fil de plus à côté des 7 de la recherche.
+Deux commits, poussés : `add96600` (relique sous toute la ligne, remplacée)
+puis `7b3ec767` (relique sous la roue, à la souris). Reçu `7b3ec76` ↔
+`1d50ccc`, notes intégrées (`df6e403`). Preuve `controle-6bis-b15.md`
+(§ 7 fait foi). Le pilote a relu le diff : au doigt, classes et place de la
+relique inchangées ; à la souris, grille deux colonnes (artéfacts | roue,
+relique dans la case sous la roue) ; `RelicSlot` partagé, jamais copié.
+Rejoué sur `7b3ec767` : `tsc` 0 ; build ; classes
+`grid-cols-[auto_min-content]` et `col-start-2` présentes dans le CSS
+construit ; spec-lint, diff-check verts ; « Reçu valide ». Pas de test de
+rendu dans le dépôt : pas de mutation. **En attente de la vérification de
+l'utilisateur à l'écran** (relique sous la roue, artéfacts alignés, aucun
+débordement, relique « fixe » et « recherche »).
+
+##### 6bis-b13bis-a — Worker de résolution : le corps et le protocole
+
+**Cat. J ; requiert b13 (et b15, déjà fait).** Décision de l'utilisateur du
+2026-10-02, au second essai de b13 : en « Dégâts réels », la résolution
+reste trop lente sur le fil de l'écran ; le Worker est nécessaire. Ce
+premier sous-lot prépare le Worker sans le brancher : aucun changement de
+comportement à l'écran.
+
+**Intrant borné**, relevé sur `7b3ec767` : `relicQueue.ts`
+(`EntreeResolution`, `entreeResolutionDuBuild`, `resoudreEquipementDuBuild`,
+`CachesResolution`) ; `artifactOptim.ts` L174-240 (`ArtifactSearchParams`,
+dont `evaluer`, une fonction) ; `artifactEvaluation.ts` (`DegatsContext`) ;
+`OptimizerSection.tsx` (`resoudreEquipement`, appel de
+`entreeResolutionDuBuild`) ; le patron corps neutre / coquille de
+`src/workers/pairSliceBody.ts` et `parallelisation-partagee.md` § 3 ;
+`invariants.md` § Workers.
+
+**Contrat.**
+
+- **Des entrées sans fonction** : un type sérialisable de ce qu'il faut
+  pour résoudre un build (fiche, runes, paramètres de paires SANS
+  `evaluer`, régime, contexte de dégâts, exclusive, conditions, contexte
+  relique) ; un test prouve par `structuredClone` qu'aucune fonction ni
+  référence non clonable n'y reste, sur les trois recettes gelées.
+- **Un corps neutre** (module sans `self` ni `worker_threads`, comme
+  `pairSliceBody.ts`) : il reçoit ces entrées, reconstruit l'entrée de
+  production par `entreeResolutionDuBuild` et résout par
+  `resoudreEquipementDuBuild`, avec ses propres caches
+  (`nouveauxCachesResolution`), vidés à chaque nouveau contexte.
+- **Un protocole typé** : contexte (une fois par signature : inventaire,
+  réglages, contexte relique), demande de résolution d'un build,
+  résultat, annulation. Le Worker traite un build à la fois ; la priorité
+  (page d'abord) reste décidée par la file, sur le fil de l'écran.
+- **La coquille** `src/workers/…worker.ts`, écrite mais pas encore appelée.
+- **Résultat identique** : résolution par le corps, entrées passées par
+  `structuredClone`, égale à la résolution directe, build par build
+  (conformité, relique, paire, score, stats), sur les trois recettes.
+
+**Preuves :** test de sérialisabilité, différentiel corps = direct, une
+mutation (un champ d'entrée oublié dans le type sérialisable) qui le fait
+échouer ; `tsc`, tests de zone, build, spec-lint, diff-check ; preuve
+`controle-6bis-b13bis-a.md`.
+
+**Ne fait pas :** brancher le Worker dans la file, changer l'écran, la
+résolution ou le CLI.
+
+##### 6bis-b13bis-b — Worker de résolution : le branchement et la mesure
+
+**Cat. J ; requiert b13bis-a.** La file (`useArtifactOptimQueue`) confie
+chaque build au Worker quand il existe, et garde le chemin actuel en
+repli (Worker indisponible ou en erreur, dit à l'écran seulement s'il
+échoue). La page passe toujours d'abord (la file choisit le build
+suivant). Une nouvelle recherche ou un changement de signature annule
+le travail en cours et renvoie le contexte. Mesure au créneau de
+l'utilisateur (script de b12/b13, version construite) : tâches longues,
+page 1 et 2 en « Dégâts réels » et en « PV effectifs », durée de la
+recherche, puis **processeur bridé ×4** (approche d'un téléphone : un fil
+de plus à côté des 7 de la recherche) ; **un ralentissement de la
+recherche au-delà de la dispersion arrête le lot (A.6)**. Essai de
+l'utilisateur ensuite. Contrat détaillé à recaler au lancement, sur le
+protocole livré par -a.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

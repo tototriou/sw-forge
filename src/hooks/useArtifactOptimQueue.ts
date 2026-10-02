@@ -330,6 +330,12 @@ export function useArtifactOptimQueue(opts: {
 
   /* ── Le chemin Worker (6bis-b13bis-b) ─────────────────────────────────── */
 
+  // ⚠️ Le branchement ci-dessous — refs relues au rendu, gestionnaire relu à
+  // CHAQUE message, rebranché par chaque effet, réveil, port `repli` — n'est
+  // exercé par aucun test d'exécution (le dépôt n'a pas de test React) : chaque
+  // ligne est gardée par un contrôle de source nommé
+  // (tests/resolution-distante.test.ts, § 7 bis — 6bis-b13bis-c). Modifier
+  // l'une d'elles, c'est revoir son contrôle.
   const horsFilRef = useRef(horsFil);
   const signatureRef = useRef(signature);
   horsFilRef.current = horsFil;

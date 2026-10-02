@@ -2561,7 +2561,12 @@ directe, sur les fixtures et sur les trois recettes de référence
 sur toute file vide et à la fin, l'écran a reçu le cache entier. Elle
 couvre un repli en cours de route (réponse d'erreur, envoi qui lève, repli
 du hook : cache intact, plus rien d'envoyé ni d'écrit ensuite) et des
-entrées changées à signature égale (nouveau contexte, cache gardé).
+entrées changées à signature égale (nouveau contexte, cache gardé). Le
+branchement du hook (refs relues au rendu, gestionnaire des messages,
+rebranchement par effet, réveil, port de repli) et les runes envoyées par
+l'écran, qu'aucun test d'exécution n'exerce, sont gardés par des contrôles
+de source précis : chacune des cinq mutations relevées par la revue du
+Worker en fait échouer au moins un.
 
 **Mesuré au navigateur** (6bis-b13bis-b ; version construite, Chromium
 sans affichage, 8 cœurs, passages entrelacés ; A-après contre A-avant —

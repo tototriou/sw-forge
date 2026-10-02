@@ -30,6 +30,8 @@
 //    égale : nouveau contexte, cache gardé, comme le chemin direct ;
 // 7. le hook et l'écran, contrôlés sur la source (le dépôt n'a pas
 //    d'infrastructure de test React) ;
+//    7 bis. le branchement gardé (6bis-b13bis-c) : chaque ligne visée par
+//    les mutations de la revue du Worker a son contrôle de source précis ;
 // 8. un seul producteur des runes d'un build (`runesDuBuild`), testé, et
 //    passé par les deux résolutions de l'écran (6bis-b13bis-c).
 //
@@ -947,6 +949,29 @@ export function testResolutionDistante() {
     'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache (6bis-b13bis-c)');
   ok(/return \(\) => \{\s*vivant = false;\s*distant\.surReponse = \(r\) => reponseAuRepos\(distant\.pilote, r\);/.test(effetWorker),
     'hook : hors effet actif, une réponse libère sa place sans rien écrire');
+
+  /* ── 7 bis. Le branchement gardé (6bis-b13bis-c) ─────────────────────── */
+  // La revue du Worker a appliqué cinq mutations du branchement à l'écran :
+  // toutes laissaient les tests verts. Aucune de ces lignes ne s'extrait en
+  // fonction pure sans y laisser son équivalent (une ref React relue au
+  // rendu, un gestionnaire de Worker, un effet) : chacune est gardée par un
+  // contrôle de source PRÉCIS, sur la ligne entière. La mutation 1 (runes du
+  // Worker) l'est au § 8, par le producteur unique.
+  titre('Résolution hors du fil — le branchement à l’écran gardé (6bis-b13bis-c)');
+  ok(/const horsFilRef = useRef\(horsFil\);\s*const signatureRef = useRef\(signature\);\s*horsFilRef\.current = horsFil;\s*signatureRef\.current = signature;/.test(hook)
+    && /trieesRef\.current = triees;\s*pageRef\.current = pageAffichee;/.test(hook),
+    'branchement (mutation 5 de la revue) : les refs que lisent les ports — entrées, signature, candidats, page — sont remises à jour à CHAQUE rendu');
+  egal((hook.match(/signatureRef\.current = /g) ?? []).length, 1, 'branchement : la signature lue par le module n’est écrite qu’au rendu, nulle part ailleurs');
+  ok(/worker\.onmessage = \(e: MessageEvent<ReponseResolution>\) => cree\.surReponse\(e\.data\);/.test(effetWorker)
+    && (hook.match(/worker\.onmessage = /g) ?? []).length === 1,
+    'branchement (mutation 3) : le gestionnaire des messages relit `cree.surReponse` à CHAQUE message (jamais figé sur celui de la création), un seul `onmessage`');
+  ok(/distant\.surReponse = \(r\) => \{\s*if \(vivant\) distant\.pilote\.surReponse\(r, ports\);\s*else reponseAuRepos\(distant\.pilote, r\);\s*\};/.test(effetWorker),
+    'branchement (mutation 3) : chaque effet actif rebranche `surReponse` sur SES ports');
+  ok(/const pomper = \(\) => \{\s*if \(vivant\) distant\.pilote\.pomper\(ports\);\s*\};\s*pomper\(\);\s*reveillerRef\.current = pomper;/.test(effetWorker)
+    && /useEffect\(\(\) => \{\s*reveillerRef\.current\?\.\(\);\s*\}\);/.test(hook),
+    'branchement (mutation 4) : l’effet du Worker pose `reveillerRef.current = pomper`, que l’effet de réveil appelle à chaque rendu');
+  ok(/enAttente: \(n\) => setEnAttente\(n\),\s*repli: basculerEnRepli,\s*\};/.test(effetWorker),
+    'branchement (mutation 2) : le port `repli` est `basculerEnRepli` (journalise, termine le Worker, rend la main au chemin direct)');
 
   const ecran = sansCommentaires(readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8'));
   const argsDirects = bloc(ecran, 'entreeResolutionDuBuild({', '})');

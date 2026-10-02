@@ -442,6 +442,7 @@ Formes : 32805 White Tiger Blade Master †, 32815 White Tiger Blade Master.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Attack Instinct (Passive) » · 22115 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Attack Instinct » (jamais reformulée). | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (Jeton), la description du passif « Attack Instinct (Passive) » en clair ; aucun doublon ailleurs dans la carte. |
+
 ## 2. Changements transverses (tous les monstres)
 
 Chaque ligne vaut pour tout monstre ; rien n'est à chercher monstre par

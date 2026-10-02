@@ -394,8 +394,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b11 (même occasion : la page affichée, 2026-10-02)
         → 6bis-b12 (mesure, critère de b11 non tenu)
         → 6bis-b13 (coût par build, décision de l'utilisateur)
-        → 6bis-b13bis (Worker de résolution, seulement si l'utilisateur,
-          à l'essai de b13, juge les saccades encore gênantes)
+        → 6bis-b13bis (Worker, conditionnel ; non déclenché le 2026-10-02)
+        → 6bis-b14 (fluidité, sans Worker) → 6bis-b15 (relique de la carte)
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -413,6 +413,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b13bis (s'il a lieu),
+  6bis-b14, 6bis-b15,
   7, 12, tous les 13b-* → 14
 ```
 
@@ -672,8 +673,10 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | terminé, preuves et mutation rejouées par le pilote ; vérifié par l'utilisateur au navigateur | `fd9d7f52` ; reçu `fd9d7f5` ↔ `12a0296` / 2026-10-02 |
 | 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | code validé par le pilote ; **critère non tenu au navigateur** (saccades, page lente) ; mesure 6bis-b12 avant correction | `bfe6f6d7` ; reçu `bfe6f6d` ↔ `f17ad7e` / 2026-10-02 |
 | 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | terminé, chiffres recoupés par le pilote : la résolution sature (66 %), pas le tri | reçu `f0e77a4` ↔ `a4b54d7` / 2026-10-02 |
-| 6bis-b13 — la résolution d'un build coûte moins, à résultat identique | J | lançable ; mesure au créneau de l'utilisateur | — |
-| 6bis-b13bis — Worker de résolution | J | conditionnel : seulement si l'utilisateur, à l'essai de b13, juge les saccades encore gênantes | — |
+| 6bis-b13 — la résolution d'un build coûte moins, à résultat identique | J | terminé, preuves et mutation rejouées par le pilote ; essai de l'utilisateur : reliques « très bien », fluidité à améliorer | `88e4c76a` ; reçu `88e4c76` ↔ `069d7c0` / 2026-10-02 |
+| 6bis-b13bis — Worker de résolution | J | non déclenché : l'utilisateur préfère d'abord une fluidité sans Worker (b14) | — |
+| 6bis-b14 — fluidité de la barre et du compte pendant la recherche | J | contrat à écrire après la décision de l'utilisateur | — |
+| 6bis-b15 — la relique de la carte de résultat ne déborde plus | J | contrat à écrire après la décision de l'utilisateur (format, disposition) | — |
 | 7 — sets d'aura : l'écran | J | attend 6bis-b13 (et b13bis s'il a lieu) ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -4834,6 +4837,41 @@ alors qu'il semble ne dépendre que des deux pièces : à vérifier.
 
 **Ne fait pas :** Worker, changement d'un résultat, de K, de l'ordre ou des
 voies de la file.
+
+###### Résultat du lot 6bis-b13 — 2026-10-02
+
+Un commit, poussé : `88e4c76a` — quatre pistes, toutes exactes : profil de
+dégâts gardé par paire (clé : identifiants des deux pièces, pièce ≤ 0
+jamais en cache), préfiltre mémoïsé (la pertinence reste sondée à chaque
+build, sa valeur entre dans la clé), stats et effet unique calculés une
+fois par somme de principales (`statsParPaire`), tri des paires différé
+(`pairesParScore`). Caches bornés (16 384 profils, 64 préfiltres, 256
+tableaux de stats, 64 apports), durée de vie d'une file (`caches`
+obligatoire dans `entreeResolutionDuBuild`). Reçu `88e4c76` ↔ `069d7c0`,
+notes intégrées (`f67d532`). Preuve `controle-6bis-b13.md`.
+
+Rapportés par l'agent : profil Node 25,3 s → 12,7 s pour 300 builds ×
+4 reliques ; 71,6 → 35,6 ms par build au minimum ; différentiel exact
+contre `9ce8fecf` sur les trois recettes en `--resoudre-tout` (5 100,
+5 969, 1) et 300 en mode file ; quatre mutations détectées ;
+`--resoudre-tout` 400 s → 189 s ; navigateur (version construite) : tâches
+longues 64 % → 38 % du fil, durée médiane d'une tâche 104 → 55 ms, page 1
+3,1 → 1,9 s, page 2 2,8 → 1,6 s, recherche inchangée (8,9 s).
+
+Le pilote a relu le diff (`statsParPaire` et non `computeStats` ; caches
+recréés avec la signature et les paramètres de paires) et rejoué sur
+`88e4c76a` : `tsc` 0 ; tests de zone 581 passés ; build, spec-lint,
+diff-check verts ; « Reçu valide » ; **mutation du pilote** (garde des
+pièces ≤ 0 retirée) : le test de la garde et le différentiel « avec
+caches = sans caches » échouent sur six fixtures ; restauré, puis 45
+passées sur ce filtre.
+
+**Essai de l'utilisateur, version construite, le 2026-10-02** : le
+chargement des reliques est « très bien » ; il souhaite plus de fluidité
+de la barre de progression et du compte de builds, sans Worker si
+possible. Le Worker (b13bis) n'est pas déclenché ; la fluidité passe par
+6bis-b14. Remarque à la même occasion : sur la carte de résultat, la fiche
+de stats déborde à gauche et la relique à droite (6bis-b15).
 
 ##### 6bis-b13bis — Worker de résolution (conditionnel)
 

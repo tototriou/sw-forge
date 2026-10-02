@@ -393,7 +393,9 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b10 (constat de l'utilisateur au navigateur, 2026-10-01)
         → 6bis-b11 (même occasion : la page affichée, 2026-10-02)
         → 6bis-b12 (mesure, critère de b11 non tenu)
-        → 6bis-b13 (correction choisie sur les chiffres, contrat à créer)
+        → 6bis-b13 (coût par build, décision de l'utilisateur)
+        → 6bis-b13bis (Worker de résolution, seulement si le critère de
+          bascule de b13 est atteint)
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -410,7 +412,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-a4a, 6bis-a4b, 6bis-a4c1, 6bis-a4c2, 6bis-a4d1, 6bis-a4d2,
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
-  6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13,
+  6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b13bis (s'il a lieu),
   7, 12, tous les 13b-* → 14
 ```
 
@@ -670,8 +672,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b10 — un build écarté à la résolution sort du compte, en direct | J | terminé, preuves et mutation rejouées par le pilote ; vérifié par l'utilisateur au navigateur | `fd9d7f52` ; reçu `fd9d7f5` ↔ `12a0296` / 2026-10-02 |
 | 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | code validé par le pilote ; **critère non tenu au navigateur** (saccades, page lente) ; mesure 6bis-b12 avant correction | `bfe6f6d7` ; reçu `bfe6f6d` ↔ `f17ad7e` / 2026-10-02 |
 | 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | terminé, chiffres recoupés par le pilote : la résolution sature (66 %), pas le tri | reçu `f0e77a4` ↔ `a4b54d7` / 2026-10-02 |
-| 6bis-b13 — correction choisie sur les chiffres de b12 | J | contrat à créer après b12 et la décision de l'utilisateur | — |
-| 7 — sets d'aura : l'écran | J | attend 6bis-b13 ; intrant à recaler au brief | — |
+| 6bis-b13 — la résolution d'un build coûte moins, à résultat identique | J | lançable ; mesure au créneau de l'utilisateur | — |
+| 6bis-b13bis — Worker de résolution | J | conditionnel : seulement si le critère de bascule de b13 est atteint | — |
+| 7 — sets d'aura : l'écran | J | attend 6bis-b13 (et b13bis s'il a lieu) ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -4761,6 +4764,82 @@ de chacun) ; Chrome personnel ouvert et un processus Codex inactif pendant
 la campagne. Non prouvé : le gain d'un Worker (estimé) ; l'écart de
 `totalPairs` sur C entre l'écran (120 782 375) et le harnais (121 834 136),
 non instruit ; tout chiffre pour un téléphone ou un vrai écran.
+
+##### 6bis-b13 — la résolution d'un build coûte moins, à résultat identique
+
+**Cat. J ; requiert b12.** Décision de l'utilisateur du 2026-10-02 :
+alléger d'abord le coût de la résolution par build, remesurer avec le
+script de b12, et ne faire le Worker de résolution (6bis-b13bis) que si
+les saccades restent. Constat de b12 (dev, condition A) : la résolution
+fait 66 % des tâches longues, environ 100 ms par build ; premiers temps
+propres : `artifactDamageProfile` 722 ms, `preFiltrerCandidats` 494 ms,
+`computeSkillDamageDetail` 343 ms, `chercherPaires` 277 ms,
+`avecInvocateur` 234 ms. En « Dégâts réels », `evaluer` recalcule le
+profil de dégâts de CHAQUE paire essayée (`artifactEvaluation.ts` L145,
+appelé par `chercherPaires` L644), pour chaque build et chaque relique,
+alors qu'il semble ne dépendre que des deux pièces : à vérifier.
+
+**Intrant borné**, relevé sur `36668501` :
+
+- `damage.ts` L557-620 (`artifactDamageProfile`) ;
+- `artifactEvaluation.ts` L106-200 (`evaluerPourRegime`) ;
+- `artifactOptim.ts` L324-460 (`analyserPertinence`,
+  `preFiltrerCandidats`) et L623-660 (`chercherPaires`) ;
+- `relicQueue.ts` (`resoudreEquipementDuBuild`) ; `artifactFiche.ts`
+  L95-135 ;
+- `controle-6bis-b12.md`, `controle-6bis-b12/sortie-agregat.txt` et
+  `mesure-saccades.mjs` (le script à rejouer) ;
+- `invariants.md` L85, L87, L96 et L102.
+
+**Contrat.**
+
+- **Résultat identique, build par build** : même conformité, même
+  relique, même paire (identifiants), même score — test différentiel
+  contre le chemin d'avant (copie figée dans le test, ou `36668501` dans
+  un worktree de mesure), sur les recettes gelées
+  `recette-6bis-b5c-artefacts-libres.json` (« Dégâts réels »),
+  `recette-revue-ehp-libre.json` (PV effectifs) et
+  `recette-6bis-b10-kinki.json` (efficience), et sur des fixtures.
+- **Le profil d'abord** (`optimizer-perf-testing` : « le coût est-il
+  subi, ou choisi par l'implémentation ? ») : un profil CPU en Node de la
+  résolution de 300 builds de la recette « Dégâts réels » chiffre chaque
+  poste avant toute optimisation.
+- **Pistes, chacune adoptée seulement si elle est exacte et mesurée** :
+  mémoïser le profil de dégâts par paire (clé : identifiants des deux
+  pièces) ; sortir de la boucle par build ou par relique ce qui n'en
+  dépend pas (pertinence, préfiltre), avec la preuve de cette
+  indépendance ; les autres postes selon le profil.
+- **Mémoire bornée** : jamais un cache de toutes les paires de
+  l'inventaire (~2 500 pièces) ; borne écrite et testée ; cache vidé quand
+  la signature des réglages ou l'inventaire change.
+- Le CLI partage ce code : `--resoudre-tout` mesuré avant et après sur une
+  recette.
+- **Mesure au navigateur, au créneau de l'utilisateur** : `mesure-saccades.mjs`
+  rejoué en version construite, conditions A (après) et C au moins, à
+  comparer aux chiffres de b12.
+- **Critère de bascule vers le Worker (6bis-b13bis)**, proposé par le pilote
+  : en version construite, part du fil en tâches longues au-dessus de 25 %
+  pendant la recherche, ou page 1 résolue en plus de 3 s.
+
+**Preuves.**
+
+- Profil CPU avant et après (Node), poste par poste.
+- Différentiel exact, rouge sur une mutation (par exemple une clé de cache
+  qui ignore une des deux pièces), vert sur le code.
+- Mesure navigateur avant (b12) et après ; `--resoudre-tout` avant et
+  après.
+- `tsc`, tests ciblés, build, spec-lint, diff-check ; preuve
+  `controle-6bis-b13.md`.
+
+**Ne fait pas :** Worker, changement d'un résultat, de K, de l'ordre ou des
+voies de la file.
+
+##### 6bis-b13bis — Worker de résolution (conditionnel)
+
+**Cat. J ; requiert b13, et seulement si son critère de bascule est
+atteint.** La résolution sort du fil de l'écran : la page affichée d'abord,
+puis le fond. Contrat à écrire alors, avec une mesure processeur bridé
+(approche d'un téléphone) : un fil de plus à côté des 7 de la recherche.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

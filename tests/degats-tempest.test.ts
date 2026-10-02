@@ -337,21 +337,57 @@ export function testDegatsTempestCommeSort() {
   // hors `'suit'`, `coupsDuSortActif`, `bonusPvCible`, catégorie autre que
   // `conditionnel`) — choisi seul, il est calculé comme un sort. Et aucun
   // monstre du corpus n'a un passif pour sort par défaut.
+  //
+  // ⚠️ La LISTE réellement proposée (`monsterDamageSkills`) se vérifie à part
+  // du drapeau curé : lire le seul drapeau laissait passer une liste qui
+  // proposerait TOUT passif offensif (mutation de prévalidation du pilote). Les
+  // passifs de la liste sont repérés par la donnée brute de la fiche
+  // (`Competence.passif`), indépendamment du marqueur `SkillDamageProfile.passif`,
+  // dont la cohérence se vérifie aussi.
   const selectionnables: string[] = [];
   const ajustementsInterdits: string[] = [];
   const passifParDefaut: string[] = [];
+  const passifsProposes: string[] = [];
+  const ecartsListe: string[] = [];
   for (const f of readdirSync(DOSSIER_SORTS)) {
     const d: DetailMonstre = JSON.parse(readFileSync(resolve(DOSSIER_SORTS, f), 'utf8'));
+    const forme = f.replace(/\.json$/, '');
+    const attendus: number[] = [];
     for (const p of monsterOffensivePassives(d)) {
       if (!p.selectionnableCommeSort) continue;
-      selectionnables.push(`${f.replace(/\.json$/, '')}:${p.skillCom2usId}`);
+      selectionnables.push(`${forme}:${p.skillCom2usId}`);
+      attendus.push(p.skillCom2usId);
       if (p.critique !== 'suit' || p.coupsDuSortActif || p.bonusPvCible || p.categorie.type !== 'conditionnel') {
         ajustementsInterdits.push(`${f} : ${p.nom}`);
       }
     }
-    if (defaultDamageSkill(monsterDamageSkills(d))?.passif) passifParDefaut.push(f);
+    const sorts = monsterDamageSkills(d);
+    const idsPassifsFiche = new Set(d.competences.filter((c) => c.passif).map((c) => c.com2usId));
+    for (const s of sorts) {
+      const estPassifFiche = idsPassifsFiche.has(s.skillCom2usId);
+      const marque = estPrisEnCharge(s) && s.passif === true;
+      if (estPassifFiche !== marque) ecartsListe.push(`${forme}:${s.skillCom2usId} marqueur « passif » ${marque} pour une compétence ${estPassifFiche ? 'passive' : 'active'}`);
+      if (!estPassifFiche) continue;
+      passifsProposes.push(`${forme}:${s.skillCom2usId}`);
+      if (!attendus.includes(s.skillCom2usId)) ecartsListe.push(`${forme}:${s.skillCom2usId} proposé comme sort sans être sélectionnable`);
+    }
+    for (const id of attendus) {
+      if (!sorts.some((s) => s.skillCom2usId === id)) ecartsListe.push(`${forme}:${id} sélectionnable mais absent de la liste des sorts`);
+    }
+    if (defaultDamageSkill(sorts)?.passif) passifParDefaut.push(f);
   }
   egal(selectionnables.sort(), ['14503:3213', '14513:3213'], 'corpus : seul Tempest (3213) est un passif sélectionnable, sur Phoenix vent et Teshar');
+  ok(
+    ecartsListe.length === 0,
+    ecartsListe.length === 0
+      ? 'corpus : la liste des sorts proposée ne contient, en passifs, que les sélectionnables de chaque fiche, tous marqués « passif »'
+      : `corpus : liste des sorts proposée fausse — ${ecartsListe.length} écart(s), dont ${ecartsListe.slice(0, 6).join(' ; ')}`
+  );
+  passifsProposes.sort();
+  ok(
+    JSON.stringify(passifsProposes) === JSON.stringify(['14503:3213', '14513:3213']),
+    `corpus : passifs réellement proposés comme sorts = Tempest sur Phoenix vent et Teshar, rien d’autre — reçu ${passifsProposes.length} : ${passifsProposes.slice(0, 6).join(', ')}${passifsProposes.length > 6 ? ', …' : ''}`
+  );
   egal(ajustementsInterdits, [], 'corpus : aucun passif sélectionnable ne porte d’ajustement propre à la boucle des passifs');
   egal(passifParDefaut, [], 'corpus : aucun monstre n’a un passif pour sort par défaut');
 

@@ -17,6 +17,7 @@ export default function testOptimizerDamageTransitions() {
     defBreakParLeSort: true, sacrificeReservePct: 42,
     passifsOffensifs: { 123: true }, effetsCibleCount: { 123: 3 },
     effetsCibleCountAutres: false, buffsPropresCountAutres: false,
+    premierCoupIgnoreDefParSort: { 123: 2 },
   };
   const attendu = damageSetupApresChangementMonstre(avant);
   const apres = damageSetupApresChangementMonstre(avant);
@@ -27,6 +28,7 @@ export default function testOptimizerDamageTransitions() {
   egal(apres.passifsOffensifs, {}, 'espèce différente : passifs du monstre vidés');
   egal(apres.defBreakParLeSort, false, 'espèce différente : état du sort vidé');
   egal(apres.sacrificeReservePct, 0, 'espèce différente : réserve du sort vidée');
+  egal(apres.premierCoupIgnoreDefParSort, undefined, 'espèce différente : rang d’ignore DEF du sort vidé (degats-et-aura 10b)');
   egal(apres.effetsCibleCountAutres, true, 'espèce différente : marqueur associé au compteur remis au défaut');
   // L'import de recette écrit directement sa valeur ; le compte suit l'autre
   // branche explicite de resetSearch.

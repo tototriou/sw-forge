@@ -368,6 +368,25 @@ function validerDamageSetup(value: unknown): string | null {
       }
     }
   }
+  // Rang du premier coup qui ignore la DEF, par sort (les Blade Dancers,
+  // degats-et-aura 10b) : identifiants entiers positifs, rang entier ou `null`
+  // (« aucun »). ⚠️ Le TYPE seulement, comme `apresCoup` ci-dessus : un rang
+  // hors des crans permis du sort, ou la clé d'un sort sans cette règle (autre
+  // monstre, données régénérées), reste accepté et retombe au calcul sur le
+  // défaut du sort (`resolvedPremierCoupIgnoreDef`, damage.ts) — jamais appliqué
+  // tel quel : même tolérance qu'un `skillCom2usId` introuvable.
+  if (setup.premierCoupIgnoreDefParSort !== undefined) {
+    if (!estObjet(setup.premierCoupIgnoreDefParSort)) {
+      return erreur('damageSetup.premierCoupIgnoreDefParSort', 'doit être un objet indexé par identifiant de compétence');
+    }
+    for (const [skillId, rang] of Object.entries(setup.premierCoupIgnoreDefParSort)) {
+      const path = `damageSetup.premierCoupIgnoreDefParSort.${skillId}`;
+      if (!/^\d+$/.test(skillId) || Number(skillId) <= 0) return erreur(path, "utilise un identifiant de compétence invalide");
+      if (rang !== null && (typeof rang !== 'number' || !Number.isInteger(rang))) {
+        return erreur(path, 'doit être un rang de coup entier, ou null pour « aucun »');
+      }
+    }
+  }
   return null;
 }
 

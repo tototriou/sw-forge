@@ -182,8 +182,19 @@ Une valeur hors des crans permis, par exemple un coup 1 ou « aucun » en
 variante B, retombe aussi sur ce défaut (`resolvedPremierCoupIgnoreDef`).
 Le champ est propre au sort : vidé au changement d'espèce et à l'import de
 compte, conservé au changement d'exemplaire. Aucun contrôle de l'écran ni du
-CLI ne le règle encore, et l'import de recette ne le valide pas encore : ce
-repli du moteur est aujourd'hui la seule protection.
+CLI ne le règle encore.
+
+**Recette.** Le champ voyage dans `damageSetup`, et l'import n'en valide que
+le **type** : un objet indexé par identifiants entiers positifs, chaque
+valeur un entier ou `null`. Sinon, la recette est refusée avec le chemin
+exact (`damageSetup.premierCoupIgnoreDefParSort.<identifiant>`). Un rang
+entier hors des crans du sort (coup 1, 9ᵉ coup, 0…), ou la clé d'un sort
+sans cette règle (autre monstre, données régénérées), est **accepté et
+transporté tel quel**, puis ramené au défaut du sort au calcul — jamais
+appliqué. C'est la tolérance d'un sort introuvable (`skillCom2usId`) ; une
+recette antérieure, sans le champ, garde le défaut de chaque sort. Le CLI
+passe `damageSetup` entier au calcul, comme l'écran : le rang s'y applique à
+l'identique (degats-et-aura 10b).
 
 **Garde-fou.** Les rangs ne valent que pour le nombre de coups que la
 curation suppose : si les données en annonçaient un autre, le sort serait

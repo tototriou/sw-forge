@@ -34,6 +34,12 @@ import { DAMAGE_SETUP_CLASSIFICATION, damageSetupApresChangementMonstre } from '
 import { type DetailMonstre } from '../src/lib/monsterSkills';
 import { type StatKey } from '../src/lib/effects';
 import { type StatRow } from '../src/lib/stats';
+import { buildOptimizerRecipe, parseOptimizerRecipe, type OptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { objectiveScore } from '../src/lib/runeBuildOptim';
+import { signatureArtefacts } from '../src/lib/artifactQueue';
+import { recipeToSearchParams } from '../scripts/lib/recipeToSearchParams';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
+import { type LoadedMonster } from '../scripts/lib/loadMonster';
 import { egal, ok, titre } from './outils';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -244,4 +250,138 @@ export default function testBladeDancersIgnoreDef() {
     'changement d’espèce : le rang choisi est vidé, le défaut du nouveau sort s’applique');
   egal(DEFAULT_DAMAGE_SETUP.premierCoupIgnoreDefParSort, undefined, 'import de compte (défaut complet) : aucun rang choisi');
   egal(JSON.parse(JSON.stringify(regle.premierCoupIgnoreDefParSort)), { 14811: 3 }, 'le rang choisi est sérialisable tel quel');
+}
+
+// ── degats-et-aura 10b — la recette et le CLI ───────────────────────────────
+
+// Cordelia (vent, éveillée) : son S3, Blade Dance of Night (14808), est de la
+// variante A. Monstre minimal : ni runes ni artéfacts, le contexte de calcul
+// du CLI ne lit que la fiche du sort et la recette.
+const CORDELIA = 24913;
+const LOADED_CORDELIA: LoadedMonster = {
+  unitId: 1, com2usId: CORDELIA, monsterName: 'Cordelia',
+  gear: { base: { hp: 10000, atk: 800, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 }, runes: [], artifacts: [] },
+  allRunes: [], allArtifacts: [], allRelics: [],
+};
+
+function recetteCordelia(premierCoupIgnoreDefParSort?: Record<number, number | null>): OptimizerRecipe {
+  const damageSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: 14808 };
+  if (premierCoupIgnoreDefParSort !== undefined) damageSetup.premierCoupIgnoreDefParSort = premierCoupIgnoreDefParSort;
+  return buildOptimizerRecipe({
+    monsterCom2usId: CORDELIA, monsterName: 'Cordelia',
+    requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup,
+    metric: 'eff', slotFilterPreset: 'bas', adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
+    ignoreArtifacts: true, artifactMainByKind: {},
+  });
+}
+
+export function testBladeDancersRecette() {
+  titre('Blade Dancers — recette : `premierCoupIgnoreDefParSort` validé à l’import (degats-et-aura 10b)');
+
+  const lire = (value: unknown) => parseOptimizerRecipe(JSON.stringify(value));
+  const base = recetteCordelia({ 14808: 2 });
+  const avecChamp = (champ: unknown) => lire({ ...base, damageSetup: { ...base.damageSetup, premierCoupIgnoreDefParSort: champ } });
+  // `erreur` écrit « <chemin> <attente> » : l'espace final exige le chemin exact.
+  const refuse = (resultat: ReturnType<typeof lire>, chemin: string) => resultat.recipe === null && !!resultat.error?.includes(`${chemin} `);
+  const a = profilDe(CORDELIA, 14808);
+  const b = profilDe(24911, 14811);
+
+  // Absent : une recette antérieure garde le défaut du sort, rien n'est ajouté.
+  const sansChamp = lire(recetteCordelia());
+  ok(sansChamp.recipe !== null, 'champ absent : recette acceptée');
+  ok(!!sansChamp.recipe && !('premierCoupIgnoreDefParSort' in sansChamp.recipe.damageSetup), 'champ absent : aucune clé ajoutée à l’import');
+  egal(sansChamp.recipe && resolvedPremierCoupIgnoreDef(a, sansChamp.recipe.damageSetup), null,
+    'champ absent : défaut du sort au calcul (variante A, aucun ignore DEF)');
+
+  // Présent et permis : transporté tel quel.
+  for (const [champ, motif] of [
+    [{ 14808: 2 }, 'rang 2'], [{ 14808: 3 }, 'rang 3'], [{ 14808: null }, '« aucun » (null)'],
+    [{ 14811: 7, 14808: null }, 'deux sorts'], [{}, 'objet vide'],
+  ] as [Record<number, number | null>, string][]) {
+    egal(avecChamp(champ).recipe?.damageSetup.premierCoupIgnoreDefParSort, champ, `présent et permis, transporté tel quel : ${motif}`);
+  }
+
+  // Hors des crans permis : ACCEPTÉ à l'import (seul le type est validé),
+  // transporté tel quel, puis ramené au défaut du sort AU CALCUL — jamais
+  // appliqué. Lushen S3 (4713) n'a pas cette règle.
+  const horsCrans = { 14808: 9, 14811: 1, 4713: 2 };
+  const relueHors = avecChamp(horsCrans);
+  ok(relueHors.recipe !== null, 'rangs hors crans (9ᵉ coup, coup 1) et clé d’un sort sans règle : acceptés à l’import');
+  egal(relueHors.recipe?.damageSetup.premierCoupIgnoreDefParSort, horsCrans, '… et transportés tels quels, jamais réécrits');
+  if (relueHors.recipe) {
+    const s = relueHors.recipe.damageSetup;
+    egal(resolvedPremierCoupIgnoreDef(a, s), null, 'variante A, 9ᵉ coup demandé : ramené au calcul sur le défaut (aucun)');
+    egal(resolvedPremierCoupIgnoreDef(b, s), 7, 'variante B, coup 1 demandé : ramené au calcul sur le défaut (7ᵉ coup seul)');
+    egal(resolvedPremierCoupIgnoreDef(profilDe(13413, 4713), s), null, 'sort sans règle : la clé reste sans effet');
+  }
+  for (const rang of [0, -2]) {
+    const relu = avecChamp({ 14808: rang });
+    ok(relu.recipe !== null && resolvedPremierCoupIgnoreDef(a, relu.recipe.damageSetup) === null,
+      `rang entier ${rang} : accepté à l’import, ramené au défaut au calcul`);
+  }
+
+  // Mal typé ou mal indexé : refusé avec son chemin.
+  const CHEMIN = 'damageSetup.premierCoupIgnoreDefParSort';
+  for (const [champ, chemin, motif] of [
+    [{ 14808: 2.5 }, `${CHEMIN}.14808`, 'rang non entier'],
+    [{ 14808: '2' }, `${CHEMIN}.14808`, 'rang en texte'],
+    [{ 14808: true }, `${CHEMIN}.14808`, 'rang booléen'],
+    [{ 14808: [2] }, `${CHEMIN}.14808`, 'rang en liste'],
+    [{ 14808: { rang: 2 } }, `${CHEMIN}.14808`, 'rang en objet'],
+    [{ abc: 2 }, `${CHEMIN}.abc`, 'clé non numérique'],
+    [{ 0: 2 }, `${CHEMIN}.0`, 'clé nulle'],
+    [{ '-3': 2 }, `${CHEMIN}.-3`, 'clé négative'],
+    [{ '14808.5': 2 }, `${CHEMIN}.14808.5`, 'clé non entière'],
+    [[2, 3], CHEMIN, 'liste au lieu d’un objet'],
+    [2, CHEMIN, 'nombre au lieu d’un objet'],
+    [null, CHEMIN, 'null au lieu d’un objet'],
+  ] as [unknown, string, string][]) {
+    ok(refuse(avecChamp(champ), chemin), `refusé avec son chemin : ${motif}`);
+  }
+
+  // Aller-retour export → import → export : aucune clé perdue ni ajoutée.
+  const relue = lire(base).recipe;
+  egal(relue?.damageSetup, base.damageSetup, 'aller-retour : damageSetup identique, rang compris');
+  egal(relue && lire(relue).recipe, relue, 'aller-retour : un second import ne change rien');
+
+  titre('Blade Dancers — recette : le CLI applique le rang, comme l’écran (degats-et-aura 10b)');
+
+  // Le CLI passe `recipe.damageSetup` ENTIER au contexte de calcul
+  // (`recipeToSearchParams`, puis `buildRealDamageContext` sur ses artéfacts),
+  // comme l'écran (`setup: damageSetup`) : le rang voyage sans être relu
+  // champ par champ, ni d'un côté ni de l'autre.
+  const candidat = { runeIds: [], stats: BUILD, effTotal: 0 };
+  const parLeCli = (texte: OptimizerRecipe) => {
+    const recette = lire(texte).recipe;
+    if (!recette) throw new Error('recette refusée');
+    const ctx = buildRealDamageContext(recette, CORDELIA, recipeToSearchParams(recette, LOADED_CORDELIA).artifacts);
+    if (!ctx) throw new Error('contexte de calcul du CLI absent');
+    return { ctx, score: objectiveScore(candidat, 'degats_reels', AUCUNE_AURA_PROPRE, ctx) };
+  };
+  const cliDefaut = parLeCli(recetteCordelia());
+  const cliAucun = parLeCli(recetteCordelia({ 14808: null }));
+  const cliRang2 = parLeCli(recetteCordelia({ 14808: 2 }));
+  const cliRang3 = parLeCli(recetteCordelia({ 14808: 3 }));
+  const cliHors = parLeCli(recetteCordelia({ 14808: 9 }));
+  egal(cliRang2.ctx.profile.skillCom2usId, 14808, 'CLI : le sort de la recette est retenu');
+  egal(cliRang2.ctx.setup.premierCoupIgnoreDefParSort, { 14808: 2 }, 'CLI : le contexte de calcul porte le rang de la recette');
+  egal(resolvedPremierCoupIgnoreDef(cliRang2.ctx.profile, cliRang2.ctx.setup), 2, 'CLI : rang retenu, dès le 2ᵉ coup');
+  ok(cliRang2.score > cliRang3.score && cliRang3.score > cliDefaut.score,
+    `CLI : dès le 2ᵉ (${cliRang2.score.toFixed(1)}) > dès le 3ᵉ (${cliRang3.score.toFixed(1)}) > défaut (${cliDefaut.score.toFixed(1)})`);
+  egal(cliAucun.score, cliDefaut.score, 'CLI : « aucun » explicite note comme le champ absent (défaut de la variante A)');
+  egal(cliHors.score, cliDefaut.score, 'CLI : un rang hors crans note comme le défaut');
+  // L'écran : l'import pose `damageSetup` entier, sans reset ultérieur ; le
+  // contexte de calcul et l'export le reprennent entier.
+  const ecran = readFileSync(resolve(racine, 'src/components/outils/OptimizerSection.tsx'), 'utf8').replace(/\r\n/g, '\n');
+  ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);'), 'écran : l’import de recette restaure damageSetup entier, rang compris');
+  ok(/profile: resolvedSkill,\n\s*setup: damageSetup,\n/.test(ecran), 'écran : le contexte de calcul reçoit damageSetup entier, comme le CLI');
+  ok(/buildOptimizerRecipe\(\{[\s\S]*?\n\s*damageSetup,\n/.test(ecran), 'écran : l’export emporte damageSetup entier');
+  // Le cache de la file suit le rang : une autre valeur, d'autres scores.
+  const signature = (damageSetup: DamageSetup) => signatureArtefacts({ monstreCom2usId: CORDELIA, damageSetup,
+    compterAurasResPre: true, regimeEquipement: 'degats_reels', ignoreArtifacts: false, principaleParSorte: {},
+    lignesVerrouillees: [], relique: null, nbArtefacts: 0, empreinteRelique: null,
+    requirement: { minStats: {}, maxStats: {} }, artefactsReserves: [], piecesFigees: [], importDuCompte: 0 });
+  ok(signature(cliRang2.ctx.setup) !== signature(cliRang3.ctx.setup), 'cache de la file : changer de rang invalide la signature');
+  egal(signature(cliRang2.ctx.setup), signature(parLeCli(recetteCordelia({ 14808: 2 })).ctx.setup), 'cache de la file : même rang, même signature');
 }

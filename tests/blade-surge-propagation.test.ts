@@ -6,16 +6,27 @@
 // cible inconnue ou un cran posé sur un sort sans coup de zone curé — le
 // calcul retomberait en silence sur la cible visée, et l'export suivant
 // propagerait la clé fautive —, une recette qui perd le choix à l'aller-retour,
-// ou un choix qui survit à un changement d'espèce.
+// ou un choix qui survit à un changement d'espèce ; un écran qui propose les
+// deux crans pour un sort qui ne les connaît pas, ou dont le texte au-dessus
+// des crans change quand on bascule (le contrôle bougerait sous le pointeur).
+//
+// Écran : le dépôt n'a pas de test React (voir tests/run.mjs). L'arbre
+// syntaxique de DamageSetupCard.tsx établit OÙ les crans s'affichent et à
+// quelle condition ; la condition elle-même (`cibleSecondairePriseEnCharge`)
+// est balayée sur tout le corpus par `testDegatsBladeSurge`.
 
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 import { egal, ok, titre } from './outils';
 import {
+  CIBLE_DEGATS_LABELS,
   DEFAULT_DAMAGE_SETUP,
   type DamageSetup,
   type SkillDamageProfile,
   cibleDegatsRetenue,
   monsterDamageSkills,
   resolveDamageSkill,
+  resumeSequenceDeCoups,
 } from '../src/lib/damage';
 import { damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
 import { buildOptimizerRecipe, parseOptimizerRecipe, type OptimizerRecipe } from '../src/lib/optimizerRecipe';
@@ -141,4 +152,74 @@ export function testBladeSurgeRecette() {
 
 function egalProfond(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+const lireSource = (fichier: string) => readFileSync(fichier, 'utf8').replace(/\r\n/g, '\n');
+
+// Le code seul : un commentaire qui CITE le champ ou la condition ne doit ni
+// faire échouer ni faire passer un contrôle (même outil que proses-sort.test.ts).
+const sansCommentaires = (s: string) =>
+  s
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+
+function fonctionDe(source: ts.SourceFile, nom: string): ts.FunctionDeclaration | undefined {
+  let trouvee: ts.FunctionDeclaration | undefined;
+  const visiter = (n: ts.Node): void => {
+    if (ts.isFunctionDeclaration(n) && n.name?.text === nom) trouvee = n;
+    else ts.forEachChild(n, visiter);
+  };
+  visiter(source);
+  return trouvee;
+}
+
+export function testBladeSurgeEcran() {
+  titre('Blade Surge · écran — deux crans sous « Compétence utilisée », seulement pour un sort qui le permet (degats-et-aura 8b)');
+
+  egal(CIBLE_DEGATS_LABELS, [
+    { key: 'visee', label: 'Dégâts sur la cible visée' },
+    { key: 'secondaire', label: 'Dégâts sur les autres ennemis' },
+  ], 'les deux crans, libellés retenus par l’utilisateur (n° 8), la cible visée d’abord');
+  egal(DEFAULT_DAMAGE_SETUP.cibleDegatsParSort, undefined, 'défaut : aucune clé, donc la cible visée, premier cran');
+
+  const texte = lireSource('src/components/outils/DamageSetupCard.tsx');
+  const source = ts.createSourceFile('DamageSetupCard.tsx', texte, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const champ = fonctionDe(source, 'champCibleDegats');
+  ok(!!champ, 'précondition : la fonction qui rend les deux crans');
+  const instructions = champ?.body?.statements.map((s) => s.getText(source)) ?? [];
+  egal(instructions[0], 'if (!cibleSecondairePriseEnCharge(profile.skillCom2usId)) return null;',
+    'garde en tête : aucun cran pour un sort sans coup de zone curé — la table de capacité même du parseur');
+  const rendu = instructions.slice(1).join('\n');
+  ok(/<Segmented<CibleDegats>/.test(rendu), 'un Segmented de la librairie, rien de custom');
+  ok(/options=\{CIBLE_DEGATS_LABELS\}/.test(rendu), 'ses deux crans : les libellés partagés avec le CLI');
+  ok(/value=\{cibleDegatsRetenue\(profile, setup\)\}/.test(rendu), 'cran allumé : la cible que retient le calcul');
+  ok(/onChange=\{\(v\) => maj\(\{ cibleDegatsParSort: \{ \.\.\.\(setup\.cibleDegatsParSort \?\? \{\}\), \[profile\.skillCom2usId\]: v \} \}\)\}/.test(rendu),
+    'écriture : la clé du sort affiché, celles des autres sorts conservées');
+
+  const code = sansCommentaires(texte);
+  ok(/\{champCoupsVariables\(resolved, setup, maj\)\}\s*\{champCibleDegats\(resolved, setup, maj\)\}/.test(code),
+    'place : sous la liste des sorts, juste après le champ des coups variables — ce qui apparaît pousse vers le bas, la case cliquée ne bouge pas');
+  egal((code.match(/champCibleDegats\(/g) ?? []).length, 2, 'un seul point d’appel, plus la déclaration');
+  egal((code.match(/cibleDegatsParSort/g) ?? []).length, 2, 'la carte n’écrit le champ qu’à cet endroit');
+
+  // Rien au-dessus du contrôle ne lit le cran : basculer ne change pas le
+  // texte des cases de sort, donc pas leur hauteur, donc pas la place du
+  // contrôle.
+  const resume = fonctionDe(source, 'resumeSort')?.getText(source) ?? '';
+  ok(resume.length > 0, 'précondition : le résumé des sorts');
+  ok(!/cibleDegats/.test(resume), 'résumé du sort : ne lit jamais la cible choisie — le texte au-dessus des crans ne bouge pas');
+  ok(/const sequence = p\.sequenceDeCoups;/.test(resume) && /resumeSequenceDeCoups\(sequence\)/.test(resume),
+    'résumé du sort : la séquence curée, par la fonction partagée avec le CLI');
+  ok(/sequence\.map\(\(g\) => formuleLisible\(g\.formule\)\)\.join\(' puis '\)/.test(resume),
+    'ratio : la formule de chaque groupe, dans l’ordre des coups');
+  egal(resumeSequenceDeCoups(bladeSurgeDeLapis().sequenceDeCoups ?? []), '2 coups · Cible unique, puis 1 coup · Zone',
+    'Blade Surge : la séquence entière — l’ancien « 2 coups · Cible unique » oubliait le coup de zone');
+
+  // L'aide : la portée reste lue, seule la cible se choisit.
+  const aide = (code.match(/<HelpPopover title="Compétence utilisée">([\s\S]*?)<\/HelpPopover>/)?.[1] ?? '').replace(/\s+/g, ' ');
+  ok(aide.includes('jamais à saisir'), 'aide : les paramètres du sort restent lus, jamais saisis');
+  ok(CIBLE_DEGATS_LABELS.every(({ label }) => aide.includes(label)), 'aide : les libellés exacts des deux crans');
+  ok(aide.includes('les champs de l&apos;adversaire décrivent alors cet autre ennemi'),
+    'aide : les champs de l’adversaire décrivent l’autre ennemi, aucun champ nouveau');
 }

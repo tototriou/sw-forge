@@ -9,6 +9,8 @@ import {
   CombatStatProfile,
   ConditionMonstreProfile,
   BonusSacrificeProfile,
+  CIBLE_DEGATS_LABELS,
+  CibleDegats,
   CRIT_MODE_LABELS,
   CritMode,
   DamageSetup,
@@ -29,6 +31,8 @@ import {
   autresBuffsPropresDepuisTotal,
   bonusConditionnelPropreActif,
   bonusDegatsConditionnelActif,
+  cibleDegatsRetenue,
+  cibleSecondairePriseEnCharge,
   estPrisEnCharge,
   conditionCritiqueGarantiParReglage,
   critiqueGarantiParReglage,
@@ -46,6 +50,7 @@ import {
   resolvedPvActuelsAvantSacrificePctMonstre,
   resolvedStackPct,
   resolvedStackTrigger,
+  resumeSequenceDeCoups,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
 import { clesProseDejaRendue, renduStatsCombat } from '../../lib/proseStatsCombat';
@@ -226,6 +231,14 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
   }
 }
 
+// Le résumé d'un sort (voir le commentaire « Ce que le sort … nous apprend »
+// plus haut). ⚠️ Séquence curée (Blade Surge, `p.sequenceDeCoups`) : chaque groupe avec
+// SES coups, SA portée et SA formule — `hits`, `aoe` et `formule` du profil ne
+// décrivent que le premier groupe de la donnée (« 2 coups · Cible unique »
+// était faux). Ne lit JAMAIS la cible choisie (`cibleDegatsParSort`) : le
+// texte au-dessus des deux crans ne change pas quand on bascule, voir
+// `champCibleDegats` (degats-et-aura 8b).
+//
 // ⚠️ `ignoreDef` n'est PAS une entrée de `reste` : c'est le cran d'ignore DEF
 // d'un Blade Dancer (degats-et-aura 10b), qui change avec le sélecteur posé
 // SOUS la liste des sorts. Glissé dans le fil du résumé, une phrase qui
@@ -238,8 +251,10 @@ function resumeSort(
   hitsOverride?: number
 ): { ratio: string | null; reste: string; ignoreDef: string | null } {
   const hits = hitsOverride ?? resolvedHits(p, setup);
-  const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`];
-  bouts.push(p.aoe ? 'Zone' : 'Cible unique');
+  const sequence = p.sequenceDeCoups;
+  const bouts: string[] = sequence
+    ? [resumeSequenceDeCoups(sequence)]
+    : [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`, p.aoe ? 'Zone' : 'Cible unique'];
   if (p.ignoreDef) bouts.push('Ignore la DEF');
   if (p.ignoreDefSelonVit) bouts.push(`Ignore la DEF selon l'écart de VIT (100 % à ${p.ignoreDefSelonVit.ecartMax}+ pts)`);
   if (p.fixed) bouts.push('Dégâts fixes');
@@ -256,9 +271,11 @@ function resumeSort(
   if (p.critDamagePoints) bouts.push(`+${p.critDamagePoints} pts de Dgts Crit`);
   for (const condition of p.conditionsCombat ?? []) bouts.push(resumeCondition(condition));
   if (p.bonusStackPropre) bouts.push(`jusqu’à +${p.bonusStackPropre.pctMax} % par charges`);
-  const ratio = p.composanteFixeAdditionnelle
-    ? `${formuleLisible(p.formule)} + ${formuleLisible(p.composanteFixeAdditionnelle.formule)} (fixe)`
-    : formuleLisible(p.formule);
+  const ratio = sequence
+    ? sequence.map((g) => formuleLisible(g.formule)).join(' puis ')
+    : p.composanteFixeAdditionnelle
+      ? `${formuleLisible(p.formule)} + ${formuleLisible(p.composanteFixeAdditionnelle.formule)} (fixe)`
+      : formuleLisible(p.formule);
   return { ratio, reste: bouts.join(' · '), ignoreDef: resumeIgnoreDefRetenu(p, setup) };
 }
 
@@ -292,6 +309,33 @@ function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, ma
         }
         min={profile.hitsRange.min}
         max={profile.hitsRange.max}
+      />
+    </div>
+  );
+}
+
+// Cible calculée d'un sort dont la séquence curée porte un coup de zone
+// (Blade Surge, `cibleSecondairePriseEnCharge`) : deux crans, libellés retenus
+// par l'utilisateur (degats-et-aura 8b, réponse n° 8). Absent pour tout autre
+// sort : la MÊME table de capacité borne la recette (`optimizerRecipe.ts`),
+// jamais un cran posé sur un sort qui ne le connaît pas. Les champs de
+// l'adversaire décrivent alors l'autre ennemi : aucun champ nouveau.
+//
+// ⚠️ **Posé sous la liste des sorts, comme le champ des coups variables, et
+// rien de ce qui le précède ne lit le cran** (`resumeSort` ne lit pas la
+// cible) : choisir Blade Surge le fait apparaître EN DESSOUS de la case
+// cliquée, et basculer ne change la hauteur de rien au-dessus de lui — il ne
+// bouge jamais sous le pointeur (spec/shared/design.md, « Un clic ne déplace
+// JAMAIS ce qu'on vient de cliquer »).
+function champCibleDegats(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
+  if (!cibleSecondairePriseEnCharge(profile.skillCom2usId)) return null;
+  return (
+    <div className="mt-2">
+      <Segmented<CibleDegats>
+        options={CIBLE_DEGATS_LABELS}
+        value={cibleDegatsRetenue(profile, setup)}
+        onChange={(v) => maj({ cibleDegatsParSort: { ...(setup.cibleDegatsParSort ?? {}), [profile.skillCom2usId]: v } })}
+        size="lg"
       />
     </div>
   );
@@ -538,7 +582,10 @@ export default function DamageSetupCard({
             Le coefficient, le nombre de coups, la portée, l&apos;ignore défense et le bonus des
             améliorations sont <b className="text-ink">lus dans les données du sort</b> — jamais à saisir.
             Une compétence est toujours supposée <b className="text-ink">maxée</b>, comme partout ailleurs
-            dans l&apos;app.
+            dans l&apos;app. Pour un sort qui frappe sa cible puis tous les ennemis (Blade Surge), tu
+            choisis seulement la cible calculée : <b className="text-ink">Dégâts sur la cible visée</b> (tous
+            ses coups) ou <b className="text-ink">Dégâts sur les autres ennemis</b> (le coup de zone seul, sur
+            un autre ennemi) — les champs de l&apos;adversaire décrivent alors cet autre ennemi.
           </HelpPopover>
         </div>
         <div className="flex flex-col gap-1.5">
@@ -607,6 +654,7 @@ export default function DamageSetupCard({
           })}
         </div>
         {champCoupsVariables(resolved, setup, maj)}
+        {champCibleDegats(resolved, setup, maj)}
         {/* Crawler/Frankenstein (« Rage Charge ») : le compteur d'attaques
             reçues n'est pas un état que l'app simule — saisi ici, à côté
             du sort dont il modifie directement la formule. */}

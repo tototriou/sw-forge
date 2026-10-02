@@ -63,7 +63,7 @@ import testDegats, { testFormesEquivalentes } from './degats.test';
 import testAuditDegatsConditionnels from './audit-degats-conditionnels.test';
 import { testDegatsTempestFormule, testDegatsTempestDeclenchement } from './degats-tempest.test';
 import testDegatsBladeSurge from './degats-blade-surge.test';
-import { testBladeSurgeRecette } from './blade-surge-propagation.test';
+import { testBladeSurgeRecette, testBladeSurgeEcran } from './blade-surge-propagation.test';
 import testBladeDancersIgnoreDef, { testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
@@ -187,6 +187,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAuditDegatsConditionnels', testAuditDegatsConditionnels],
   ['testDegatsBladeSurge', testDegatsBladeSurge],
   ['testBladeSurgeRecette', testBladeSurgeRecette],
+  ['testBladeSurgeEcran', testBladeSurgeEcran],
   ['testBladeDancersIgnoreDef', testBladeDancersIgnoreDef],
   ['testBladeDancersRecette', testBladeDancersRecette],
   ['testBladeDancersEcranEtCli', testBladeDancersEcranEtCli],

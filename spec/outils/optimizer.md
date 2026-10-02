@@ -778,7 +778,21 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        accompagné de ce que ses données disent déjà (« 3 coups · Zone ·
        Ignore la DEF · +30 % (compétence maxée) »). ⚠️ **Rien de tout cela
        ne se saisit** : coefficient, coups, portée, ignore défense, dégâts
-       fixes et bonus des améliorations sont lus dans la fiche du sort. Par
+       fixes et bonus des améliorations sont lus dans la fiche du sort. Un
+       sort dont les coups n'ont pas tous la même formule ni la même portée
+       (Blade Surge) affiche sa séquence curée (« 0.5 × ATQ puis 3.0 × ATQ ·
+       2 coups · Cible unique, puis 1 coup · Zone »). ⚠️ **Seule exception,
+       un choix et non un paramètre** : pour un sort dont la séquence curée
+       porte un coup de zone (`cibleSecondairePriseEnCharge`, Blade Surge
+       seulement), un `Segmented` à deux crans apparaît sous la liste des
+       sorts, au même endroit que le champ des coups variables — « Dégâts
+       sur la cible visée » (défaut, les trois coups) et « Dégâts sur les
+       autres ennemis » (le coup de zone seul, sur UN autre ennemi). Les
+       champs de l'adversaire décrivent alors cet autre ennemi ; aucun champ
+       nouveau. Le résumé des sorts ne lit pas le cran : basculer ne fait
+       bouger ni le texte au-dessus, ni le contrôle (degats-et-aura 8b,
+       réglage `cibleDegatsParSort` ; détail :
+       [degats-reels/sequences-de-coups.md](degats-reels/sequences-de-coups.md)). Par
        défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
        dont la formule sort du modèle reste **affiché, grisé, avec son
        motif** — jamais absent sans explication. ⚠️ **La description du jeu

@@ -2916,6 +2916,17 @@ export function cibleSecondairePriseEnCharge(skillCom2usId: number): boolean {
 }
 
 /**
+ * Ce qu'une séquence curée dit d'elle-même, en une ligne : « 2 coups · Cible
+ * unique, puis 1 coup · Zone ». Une seule expression pour le résumé du sort à
+ * l'écran (`resumeSort`, DamageSetupCard.tsx) et la ligne du sort du CLI
+ * (optimizer-search.ts), pour qu'ils ne puissent pas se contredire. Ne dépend
+ * que de la donnée, jamais de la cible choisie (degats-et-aura 8b).
+ */
+export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'coups' | 'zone'>[]): string {
+  return sequence.map((g) => `${g.coups} coup${g.coups > 1 ? 's' : ''} · ${g.zone ? 'Zone' : 'Cible unique'}`).join(', puis ');
+}
+
+/**
  * Profil de dégâts d'une compétence, ou `null` si elle n'inflige pas de
  * dégâts calculables. Ne lève jamais.
  */
@@ -3532,6 +3543,15 @@ export const STAT_DE_L_AURA: Readonly<Record<SetAura, 'atk' | 'def' | 'hp' | 'ac
 // la cible visée, qui reçoit toute la séquence, ou UN autre ennemi, qui ne
 // reçoit que ses coups de zone.
 export type CibleDegats = 'visee' | 'secondaire';
+
+// Les deux crans, libellés retenus par l'utilisateur (degats-et-aura 8b,
+// réponse n° 8) : la cible visée d'abord, le défaut. Partagés par le
+// `Segmented` de « Compétence utilisée » (DamageSetupCard.tsx) et la ligne du
+// sort du CLI (optimizer-search.ts) : une seule écriture des libellés.
+export const CIBLE_DEGATS_LABELS: { key: CibleDegats; label: string }[] = [
+  { key: 'visee', label: 'Dégâts sur la cible visée' },
+  { key: 'secondaire', label: 'Dégâts sur les autres ennemis' },
+];
 
 export interface DamageSetup {
   // `null` = « le sort par défaut » (voir `defaultDamageSkill`) : une recette

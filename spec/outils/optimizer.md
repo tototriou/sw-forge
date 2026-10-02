@@ -2522,7 +2522,9 @@ MÊME résolution (`entreeResolutionDuBuild` puis
   entrées — seulement quand il y a des builds à résoudre : changer un
   réglage sans recherche n'envoie rien. Il est construit par
   `entreesSerialisables`, à partir des mêmes arguments que la résolution du
-  fil de l'écran. Chaque demande porte les runes de son build.
+  fil de l'écran. Chaque demande porte les runes de son build, produites par
+  `runesDuBuild` (relicQueue.ts), le producteur que la résolution du fil de
+  l'écran appelle aussi : jamais une seconde expression (6bis-b13bis-c).
 - **Une réponse périmée n'est jamais écrite dans le cache** : celle d'un
   contexte remplacé — reconnue à son identifiant de contexte, et, entre le
   rendu qui change un réglage et le renvoi du contexte, à l'identité des

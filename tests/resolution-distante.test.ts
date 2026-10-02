@@ -21,7 +21,9 @@
 //    (`entreeResolutionDuBuild` + `resoudreEquipementDuBuild`), chaque
 //    écriture contrôlée au moment où elle a lieu ;
 // 7. le hook et l'écran, contrôlés sur la source (le dépôt n'a pas
-//    d'infrastructure de test React).
+//    d'infrastructure de test React) ;
+// 8. un seul producteur des runes d'un build (`runesDuBuild`), testé, et
+//    passé par les deux résolutions de l'écran (6bis-b13bis-c).
 //
 // Les trois recettes gelées sur le compte réel : script de preuve du lot
 // (`controle-6bis-b13bis-b.md`), qui réutilise `simulerFile` d'ici.
@@ -32,7 +34,7 @@ import { DegatsContext, RegimeArtefacts } from '../src/lib/artifactEvaluation';
 import { ResultatArtefacts, cleBuild, prochainsATraiter } from '../src/lib/artifactQueue';
 import { RelicContext } from '../src/lib/relicOptim';
 import { BuildCandidate, SearchParams, searchBuilds } from '../src/lib/runeBuildOptim';
-import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild } from '../src/lib/relicQueue';
 import { CorpsResolution, EntreesResolutionSerialisables, MessageVersResolution, ReponseResolution, entreesSerialisables } from '../src/workers/resolutionBody';
 import { ContexteCourant, DEMANDES_EN_VOL_MAX, PortsResolutionDistante, ResolutionDistante, publicationForcee } from '../src/workers/resolutionDistante';
 import { maxStatsActifsDe, runesDe } from '../scripts/lib/relicDifferentiel';
@@ -600,4 +602,36 @@ export function testResolutionDistante() {
   const memoEntrees = bloc(ecran, 'const entreesResolution = useMemo(', ');\n');
   ok(/\[artifactParams, selected, optimiserArtefacts, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche\]\);/.test(ecran)
     && memoEntrees.length > 0, 'écran : les entrées sont mémoïsées sur les dépendances de la résolution directe, sans runeById ni caches');
+
+  /* ── 8. Un seul producteur des runes d'un build (6bis-b13bis-c) ──────── */
+  titre('Résolution hors du fil — un seul producteur des runes d’un build (6bis-b13bis-c)');
+  {
+    const r1 = { id: 11 } as unknown as RuneDetail;
+    const r2 = { id: 12 } as unknown as RuneDetail;
+    const r3 = { id: 13 } as unknown as RuneDetail;
+    const index = new Map([[11, r1], [12, r2], [13, r3]]);
+    const sortie = runesDuBuild({ runeIds: [13, 11, 99, 12] }, index);
+    ok(sortie.length === 3 && sortie[0] === r3 && sortie[1] === r1 && sortie[2] === r2,
+      'runesDuBuild : les runes de l’index (objets d’origine), dans l’ordre de runeIds, un identifiant absent omis');
+    egal(runesDuBuild({ runeIds: [] }, index), [], 'runesDuBuild : aucun identifiant, aucune rune');
+    const fx = CORPUS_5A.G;
+    const pp: SearchParams = { ...fx.p0, relicContext: fx.ctx };
+    const parId = new Map(pp.pool.map((r) => [r.id, r]));
+    const candidats = searchBuilds(pp).candidates;
+    const ecartsRunes = candidats.filter((c) => {
+      const attendu = runesDe(pp, c);
+      const recu = runesDuBuild(c, parId);
+      return recu.length !== 6 || recu.length !== attendu.length || recu.some((rr, i) => rr !== attendu[i]);
+    }).length;
+    ok(candidats.length > 0 && ecartsRunes === 0,
+      `runesDuBuild : sur ${candidats.length} candidats (G), les six runes de chacun, identiques à l’expression d’avant (relicDifferentiel.runesDe)`);
+  }
+  const memoDirect = bloc(ecran, 'const resoudreEquipement = useMemo(() => {', '}, [artifactParams, selected, optimiserArtefacts, runeById,');
+  const memoHorsFil = bloc(ecran, 'const resolutionHorsFil = useMemo<ResolutionHorsFil | null>(', '[entreesResolution, runeById]');
+  ok(/resoudreEquipementDuBuild\(\s*entreeResolutionDuBuild\(\{\s*fiche: selected\.gear,\s*runes: runesDuBuild\(c, runeById\),/.test(memoDirect),
+    'écran : la résolution directe prend les runes du build par runesDuBuild(c, runeById)');
+  ok(/\? \{ entrees: entreesResolution, runesDe: \(c: BuildCandidate\) => runesDuBuild\(c, runeById\) \}\s*: null,/.test(memoHorsFil),
+    'écran : la résolution hors du fil prend les runes du build par le MÊME producteur, runesDuBuild(c, runeById)');
+  egal((ecran.match(/runesDuBuild\(/g) ?? []).length, 2, 'écran : exactement deux appels à runesDuBuild, un par résolution');
+  ok(!/runeIds\.map\(/.test(ecran), 'écran : aucune autre expression des runes d’un build (plus de runeIds.map recopié)');
 }

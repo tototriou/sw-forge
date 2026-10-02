@@ -28,6 +28,7 @@ import { ArtifactDetail, ElementKey, GearSet, RelicDetail, RuneDetail } from '..
 import { StatRow, computeStats, statsParPaire } from './stats';
 import { ArtifactSearchParams, MemoPreFiltre, PaireArtefacts, pairesParScore } from './artifactOptim';
 import {
+  BuildCandidate,
   BuildRequirement,
   RechercheRefusee,
   conditionsPaireFixePosees,
@@ -252,6 +253,23 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
     relique: meilleure.relique,
     ...(meilleure.sansEffetSurLeTri ? { sansEffetSurLeTri: true as const } : {}),
   };
+}
+
+/**
+ * Les runes d'UN candidat, lues dans l'inventaire indexé par identifiant, dans
+ * l'ordre de `runeIds` (emplacements 1 à 6) ; une rune absente de l'index est
+ * omise.
+ *
+ * ⚠️ **Le seul producteur des deux résolutions de l'écran** (degats-et-aura
+ * 6bis-b13bis-c) : la directe (`resoudreEquipement`, argument `runes` de
+ * `entreeResolutionDuBuild`) et celle hors du fil (`resolutionHorsFil.runesDe`,
+ * dont les runes voyagent avec chaque demande au Worker). Deux expressions
+ * recopiées pouvaient diverger sans qu'aucun test le voie : la revue du Worker
+ * a montré qu'une copie rendant `[]` ferait résoudre au Worker des builds sans
+ * runes, tous les tests restant verts.
+ */
+export function runesDuBuild(c: Pick<BuildCandidate, 'runeIds'>, runeById: ReadonlyMap<number, RuneDetail>): RuneDetail[] {
+  return c.runeIds.map((id) => runeById.get(id)).filter((r): r is RuneDetail => r !== undefined);
 }
 
 /**

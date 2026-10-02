@@ -155,8 +155,8 @@ export function testResolutionProducteurPartage() {
 
   // Raccordement : l'écran appelle CE producteur, avec ses propres valeurs.
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
-  ok(/const resoudreEquipement = useMemo\(\(\) => \{\s*if \(!artifactParams \|\| !selected \|\| !optimiserArtefacts\) return null;[\s\S]{0,200}?resoudreEquipementDuBuild\(\s*entreeResolutionDuBuild\(\{\s*fiche: selected\.gear,\s*runes: c\.runeIds\.map\(\(id\) => runeById\.get\(id\)!\)\.filter\(Boolean\),\s*artifactParams,\s*regime: regimeEquipement,\s*degats: contexteDegatsArtefacts,\s*exclusive: contexteExclusive,\s*requirement: requirementAvecAuras,\s*relicContext: relicContextRecherche,\s*caches: cachesResolution,/.test(ecran),
-    'écran : la file résout par entreeResolutionDuBuild (fiche, runes du candidat, artifactParams, régime effectif, contexte, conditions avec auras, contexte relique lancé, caches de la file)');
+  ok(/const resoudreEquipement = useMemo\(\(\) => \{\s*if \(!artifactParams \|\| !selected \|\| !optimiserArtefacts\) return null;[\s\S]{0,200}?resoudreEquipementDuBuild\(\s*entreeResolutionDuBuild\(\{\s*fiche: selected\.gear,\s*runes: runesDuBuild\(c, runeById\),\s*artifactParams,\s*regime: regimeEquipement,\s*degats: contexteDegatsArtefacts,\s*exclusive: contexteExclusive,\s*requirement: requirementAvecAuras,\s*relicContext: relicContextRecherche,\s*caches: cachesResolution,/.test(ecran),
+    'écran : la file résout par entreeResolutionDuBuild (fiche, runes du candidat par runesDuBuild, artifactParams, régime effectif, contexte, conditions avec auras, contexte relique lancé, caches de la file)');
   ok(/\}, \[artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche, cachesResolution\]\);/.test(ecran),
     'écran : le mémo de résolution dépend de chacune de ses entrées');
   // 6bis-b13 : les caches de la file se refont avec la signature des réglages

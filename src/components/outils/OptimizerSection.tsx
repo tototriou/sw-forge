@@ -24,7 +24,7 @@ import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_S
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { classementResolu, cleBuild, compteAffichable, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
-import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
 import { useArtifactOptimQueue, type ResolutionHorsFil } from '../../hooks/useArtifactOptimQueue';
@@ -2187,7 +2187,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       resoudreEquipementDuBuild(
         entreeResolutionDuBuild({
           fiche: selected.gear,
-          runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
+          runes: runesDuBuild(c, runeById),
           artifactParams,
           regime: regimeEquipement,
           degats: contexteDegatsArtefacts,
@@ -2206,7 +2206,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // nouvel objet est un contexte renvoyé au Worker (tout l'inventaire
   // d'artéfacts) — mêmes dépendances que `resoudreEquipement`, sans
   // `runeById` (les runes voyagent avec chaque demande) ni les caches (le
-  // Worker a les siens, neufs à chaque contexte).
+  // Worker a les siens, neufs à chaque contexte). Les runes d'un build sortent
+  // du MÊME producteur que celles de `resoudreEquipement` (`runesDuBuild`,
+  // 6bis-b13bis-c) : jamais une seconde expression recopiée.
   const entreesResolution = useMemo(() => {
     if (!artifactParams || !selected || !optimiserArtefacts) return null;
     return entreesSerialisables({
@@ -2222,7 +2224,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const resolutionHorsFil = useMemo<ResolutionHorsFil | null>(
     () =>
       entreesResolution
-        ? { entrees: entreesResolution, runesDe: (c: BuildCandidate) => c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) }
+        ? { entrees: entreesResolution, runesDe: (c: BuildCandidate) => runesDuBuild(c, runeById) }
         : null,
     [entreesResolution, runeById]
   );

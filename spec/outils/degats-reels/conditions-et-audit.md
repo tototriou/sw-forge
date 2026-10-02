@@ -112,6 +112,17 @@ par un artéfact « Effet aug. VIT » (confirmation de l'utilisateur du
 calcul est vérifié de bout en bout, lead et buff actifs, jusqu'aux dégâts du
 S1 (constat 110 de l'audit).
 
+Dans la fenêtre « Dégâts réels », chaque passif de « Stats acquises en
+combat » affiche la prose du jeu, telle quelle, sous ce qui le nomme et
+avant son réglage. Un compteur ou un interrupteur d'état ne nomme pas le
+passif : son icône et son nom se posent alors au-dessus, puis la prose,
+puis le champ. La prose n'apparaît qu'une fois par passif : Elsharion et
+Crane gardent une seule description pour leurs deux compteurs. Elle
+n'apparaît pas non plus quand un bloc de « Passifs offensifs » la rend déjà
+pour la même compétence (Berserk, Thunderer de Dyeus, Dark Guardian,
+Vengeful Fire) : cette exclusion se déduit des blocs affichés, jamais d'une
+liste de monstres.
+
 
 ## Conditions binaires de buffs adverses et lecture des sorts
 

@@ -30,6 +30,7 @@ import { testFileConfirmees } from './file-confirmees.test';
 import { testCompteConfirme } from './compte-confirme.test';
 import { testVerifierToutes } from './verifier-toutes.test';
 import { testProsesSortAuClic, testEffetsActifsInfobulle } from './proses-sort.test';
+import { testProseStatsCombat, testProseStatsCombatCarte } from './prose-stats-combat.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
@@ -285,6 +286,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testVerifierToutes', testVerifierToutes],
   ['testProsesSortAuClic', testProsesSortAuClic],
   ['testEffetsActifsInfobulle', testEffetsActifsInfobulle],
+  ['testProseStatsCombat', testProseStatsCombat],
+  ['testProseStatsCombatCarte', testProseStatsCombatCarte],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

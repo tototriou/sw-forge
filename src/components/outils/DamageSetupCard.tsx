@@ -45,6 +45,7 @@ import {
   resolvedStackTrigger,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
+import { clesProseDejaRendue, renduStatsCombat } from '../../lib/proseStatsCombat';
 import EffetVignette from './EffetVignette';
 import Interrupteur from '../../ui/Interrupteur';
 import Jeton from '../../ui/Jeton';
@@ -373,6 +374,24 @@ export default function DamageSetupCard({
     ...conditionsManuelles.map(({ key }) => key),
     ...(bonusDegatsConditionnel ? [bonusDegatsConditionnel.skillCom2usId] : []),
   ]);
+  // ⚠️ **La prose d'une compétence n'est rendue qu'UNE fois dans la carte**
+  // (degats-et-aura 11). Les huit blocs ci-dessous, sous « Passifs offensifs »,
+  // la rendent déjà pour leurs compétences : « Stats acquises en combat » ne
+  // la répète pas, et n'en rend qu'une par passif (`renduStatsCombat`). Un
+  // bloc qui se met à rendre une prose rejoint cette liste.
+  const renduCombat = renduStatsCombat(
+    combatStats,
+    clesProseDejaRendue([
+      ...conditionsCombatMonstre,
+      ...modificateursVit,
+      bonusDegatsStack,
+      bonusDegatsConditionnel,
+      bonusParEffetCibleMonstre,
+      bonusParEffetPropre,
+      bonusSacrifice,
+      ...passifs,
+    ])
+  );
   // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
   // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
   // passif, ou si le sort ne pose pas de réduction de défense.
@@ -1113,68 +1132,89 @@ export default function DamageSetupCard({
               const icone = profile.icone ? (
                 <img src={profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
               ) : undefined;
+              const nom = profile.nom.replace(/\s*\(Passive\)\s*$/i, '');
+              // ⚠️ **La prose du jeu, une fois par passif** (degats-et-aura 11) :
+              // sous ce qui NOMME le passif, avant son réglage — jamais répétée
+              // pour le second compteur d'Elsharion ou de Crane, jamais quand un
+              // bloc des passifs offensifs la rend déjà (`renduStatsCombat`).
+              const { ouvre, prose } = renduCombat[index];
+              // Un compteur ou un interrupteur d'état ne nomme pas son passif :
+              // l'icône et le nom se posent au-dessus du réglage qui l'ouvre
+              // (décision de l'utilisateur n° 15, patron des passifs offensifs).
+              const nomDuPassif = ouvre ? <Jeton icone={icone} libelle={nom} /> : null;
+              let nomme: ReactNode = null;
+              let reglage: ReactNode = null;
               if (profile.source === 'debuffsInverses') {
-                return (
-                  <div key={key} className="space-y-1.5">
-                    <Jeton icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={profile.label} />
-                    <div className="flex flex-wrap gap-2">
-                      <Interrupteur actif={setup.atkDebuff ?? false} onChange={(v) => maj({ atkDebuff: v })} libelle="Malus ATQ subi" />
-                      <Interrupteur actif={setup.defDebuff ?? false} onChange={(v) => maj({ defDebuff: v })} libelle="Malus DEF subi" />
-                      <Interrupteur actif={setup.spdDebuff ?? false} onChange={(v) => maj({ spdDebuff: v })} libelle="Malus VIT subi" />
-                    </div>
+                nomme = <Jeton icone={icone} libelle={nom} detail={profile.label} />;
+                reglage = (
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    <Interrupteur actif={setup.atkDebuff ?? false} onChange={(v) => maj({ atkDebuff: v })} libelle="Malus ATQ subi" />
+                    <Interrupteur actif={setup.defDebuff ?? false} onChange={(v) => maj({ defDebuff: v })} libelle="Malus DEF subi" />
+                    <Interrupteur actif={setup.spdDebuff ?? false} onChange={(v) => maj({ spdDebuff: v })} libelle="Malus VIT subi" />
                   </div>
                 );
-              }
-              if (profile.source === 'toujours') {
-                return <Jeton key={key} icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={`${profile.label} — toujours actif`} />;
-              }
-              if (profile.source === 'toggle') {
-                return profile.togglePartageCondition && clesToggleDejaAffichees.has(profile.skillCom2usId) ? (
-                  <Jeton key={key} icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={`${profile.label} — piloté par le bouton du passif`} />
-                ) : (
-                  <PassifInterrupteur
-                    key={key}
-                    actif={setup.statsCombatActives?.[profile.skillCom2usId] ?? false}
-                    onChange={(v) => maj({ statsCombatActives: { ...(setup.statsCombatActives ?? {}), [profile.skillCom2usId]: v } })}
-                    icone={icone}
-                    libelle={profile.label}
-                    title={`${profile.label}${setup.statsCombatActives?.[profile.skillCom2usId] ? ' (activé)' : ' — désactivé par défaut'}`}
-                  />
+              } else if (profile.source === 'toujours') {
+                nomme = <Jeton icone={icone} libelle={nom} detail={`${profile.label} — toujours actif`} />;
+              } else if (profile.source === 'toggle') {
+                if (profile.togglePartageCondition && clesToggleDejaAffichees.has(profile.skillCom2usId)) {
+                  nomme = <Jeton icone={icone} libelle={nom} detail={`${profile.label} — piloté par le bouton du passif`} />;
+                } else {
+                  nomme = nomDuPassif;
+                  reglage = (
+                    <div className={nomDuPassif ? 'mt-1' : undefined}>
+                      <PassifInterrupteur
+                        actif={setup.statsCombatActives?.[profile.skillCom2usId] ?? false}
+                        onChange={(v) => maj({ statsCombatActives: { ...(setup.statsCombatActives ?? {}), [profile.skillCom2usId]: v } })}
+                        icone={nomDuPassif ? undefined : icone}
+                        libelle={profile.label}
+                        title={`${profile.label}${setup.statsCombatActives?.[profile.skillCom2usId] ? ' (activé)' : ' — désactivé par défaut'}`}
+                      />
+                    </div>
+                  );
+                }
+              } else {
+                const record = profile.source === 'buffsPropres'
+                  ? setup.buffsPropresCount
+                  : profile.source === 'buffsAllies'
+                    ? setup.buffsAlliesCount
+                    : profile.source === 'debuffsPropres'
+                      ? setup.effetsPropresCount
+                      : setup.stackPersonnalise;
+                const patcher = (value: number) => {
+                  if (profile.source === 'buffsPropres') {
+                    majBuffsPropres(profile.skillCom2usId, value);
+                  } else if (profile.source === 'buffsAllies') {
+                    maj({ buffsAlliesCount: { ...(setup.buffsAlliesCount ?? {}), [profile.skillCom2usId]: value } });
+                  } else if (profile.source === 'debuffsPropres') {
+                    maj({ effetsPropresCount: { ...(setup.effetsPropresCount ?? {}), [profile.skillCom2usId]: value } });
+                  } else {
+                    maj({ stackPersonnalise: { ...(setup.stackPersonnalise ?? {}), [profile.skillCom2usId]: value } });
+                  }
+                };
+                nomme = nomDuPassif;
+                reglage = (
+                  <label className={`${nomDuPassif ? 'mt-1 ' : ''}flex flex-wrap items-center gap-2`}>
+                    <span className="text-xs text-ink-dim">{profile.label}</span>
+                    <NumberField
+                      value={profile.source === 'buffsPropres'
+                        ? Math.min(profile.max ?? 10, resolvedBuffsPropresCount(profile.skillCom2usId, setup))
+                        : record?.[profile.skillCom2usId] ?? 0}
+                      onChange={(v) => patcher(v ?? 0)}
+                      min={0}
+                      max={profile.source === 'buffsPropres' ? Math.min(10, profile.max ?? 10) : profile.max}
+                      step={1}
+                      boxWidth="w-24"
+                      ariaLabel={profile.label}
+                    />
+                  </label>
                 );
               }
-              const record = profile.source === 'buffsPropres'
-                ? setup.buffsPropresCount
-                : profile.source === 'buffsAllies'
-                  ? setup.buffsAlliesCount
-                  : profile.source === 'debuffsPropres'
-                    ? setup.effetsPropresCount
-                    : setup.stackPersonnalise;
-              const patcher = (value: number) => {
-                if (profile.source === 'buffsPropres') {
-                  majBuffsPropres(profile.skillCom2usId, value);
-                } else if (profile.source === 'buffsAllies') {
-                  maj({ buffsAlliesCount: { ...(setup.buffsAlliesCount ?? {}), [profile.skillCom2usId]: value } });
-                } else if (profile.source === 'debuffsPropres') {
-                  maj({ effetsPropresCount: { ...(setup.effetsPropresCount ?? {}), [profile.skillCom2usId]: value } });
-                } else {
-                  maj({ stackPersonnalise: { ...(setup.stackPersonnalise ?? {}), [profile.skillCom2usId]: value } });
-                }
-              };
               return (
-                <label key={key} className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-ink-dim">{profile.label}</span>
-                  <NumberField
-                    value={profile.source === 'buffsPropres'
-                      ? Math.min(profile.max ?? 10, resolvedBuffsPropresCount(profile.skillCom2usId, setup))
-                      : record?.[profile.skillCom2usId] ?? 0}
-                    onChange={(v) => patcher(v ?? 0)}
-                    min={0}
-                    max={profile.source === 'buffsPropres' ? Math.min(10, profile.max ?? 10) : profile.max}
-                    step={1}
-                    boxWidth="w-24"
-                    ariaLabel={profile.label}
-                  />
-                </label>
+                <div key={key}>
+                  {nomme}
+                  {prose && <p className="mt-1 text-xs leading-snug text-ink-dim">{prose}</p>}
+                  {reglage}
+                </div>
               );
             })}
           </div>

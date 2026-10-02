@@ -38,12 +38,12 @@ Quatre catégories, sur la seule question « quand ce passif compte-t-il ? » :
 | `toujours` | S'ajoute d'office, aucun bouton — le texte du jeu ne pose aucune condition de combat | Feng Yan (Winds and Clouds), Sia (Great Friends), Benedict (Final Strike) |
 | `defBreak` | **Aucun bouton non plus** : le déclenchement est ENTIÈREMENT déduit des deux réglages de réduction de Défense (voir ci-dessous) | Roid (Slash Waves / Slash Wind), Silver (Ruins) |
 | `bonus` | Les dégâts de base sont comptés **dans tous les cas** ; le bouton (désactivé par défaut) ne conditionne QUE le surplus de `pct` %, et seulement sur la contribution de ce passif | Ezio (Hidden Gun, +100 % si cible Lumière), Dominic (Improvisation, +100 % si PV > 50 %) |
-| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | Leona (Internal Force), Giou (Comeuppance), Teshar (Tempest : recharge non simulée) |
+| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | Leona (Internal Force), Giou (Comeuppance), Teshar (Tempest, recharge non simulée : voir [attaque après un sort](attaque-apres-un-sort.md)) |
 
 En plus de la catégorie, `slotsDeclencheurs` (curé) restreint les sorts après
-lesquels le passif compte — Tempest : S1 ou S2 (A.2 ter) ; absent, tous.
-`passifCompte` le lit avec le `slot` du sort RETENU, jamais `skillCom2usId`
-(parfois `null`), pour `computeTotalDamage` ET `damageRelevantStats`.
+lesquels le passif compte (Tempest : S1 ou S2 ; absent, tous) ; `passifCompte`
+le lit avec le `slot` du sort RETENU, et n'ajoute jamais un passif choisi comme
+sort à lui-même ([attaque après un sort](attaque-apres-un-sort.md)).
 
 ⚠️ **`bonus` ne met plus toute la contribution à zéro quand le bouton est
 éteint.** Le texte de ces passifs décrit une attaque supplémentaire
@@ -175,7 +175,7 @@ du jeu de chaque entrée) :
 | Improvisation | Dominic, Weapon Master | bouton `bonus`/`dejaInclus` (+100 % si PV > 50 %, formule déjà majorée) |
 | Ruins | Silver | **3 coups**, critique normalement, déclenchement `defBreak` |
 | Slash Waves / Slash Wind | Roid | déclenchement `defBreak` (2 coups pour Slash Waves) |
-| Tempest | Teshar, Phoenix (Vent) | formule curée `3.7 × ATQ` (données vides), en zone, +30 % d'améliorations, une instance ; bouton `conditionnel`, après S1 ou S2 seulement |
+| Tempest | Teshar, Phoenix (Vent) | formule curée `3.7 × ATQ` (données vides), en zone, +30 % d'améliorations, une instance ; bouton `conditionnel`, après S1 ou S2 seulement ; aussi choisissable comme sort, jamais par défaut |
 
 ⚠️ Une entrée « Ruins » sans suffixe `(Passive)` visait un **boss de donjon
 non invocable** (Living Armor 2A) : retirée, elle ne pouvait jamais

@@ -793,7 +793,13 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        bouger ni le texte au-dessus, ni le contrôle (degats-et-aura 8b,
        réglage `cibleDegatsParSort` ; détail :
        [degats-reels/sequences-de-coups.md](degats-reels/sequences-de-coups.md)). Par
-       défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
+       défaut, le dernier slot calculable parmi les sorts actifs (S3 avant
+       S2 avant S1). Un passif curé « sélectionnable comme sort » figure
+       aussi dans la liste, calculé seul et une seule fois — Tempest (S3) de
+       Teshar, nom du jeu « Tempest (Passive) » —, mais n'est jamais le sort
+       par défaut : Teshar reste sur S2 (degats-et-aura 9b, réponse n° 9 de
+       l'utilisateur du 2026-10-02 ; détail
+       [degats-reels/attaque-apres-un-sort.md](degats-reels/attaque-apres-un-sort.md)). Un sort
        dont la formule sort du modèle reste **affiché, grisé, avec son
        motif** — jamais absent sans explication. ⚠️ **La description du jeu
        de chaque sort, même grisé, s'ouvre au CLIC** sur un « ? » posé

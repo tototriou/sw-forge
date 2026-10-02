@@ -61,7 +61,12 @@ import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
 import testDegats, { testFormesEquivalentes } from './degats.test';
 import testAuditDegatsConditionnels from './audit-degats-conditionnels.test';
-import { testDegatsTempestFormule, testDegatsTempestDeclenchement } from './degats-tempest.test';
+import {
+  testDegatsTempestFormule,
+  testDegatsTempestDeclenchement,
+  testDegatsTempestCommeSort,
+  testDegatsTempestRecette,
+} from './degats-tempest.test';
 import testDegatsBladeSurge from './degats-blade-surge.test';
 import { testBladeSurgeRecette, testBladeSurgeEcran, testBladeSurgePariteEcranCli } from './blade-surge-propagation.test';
 import testBladeDancersIgnoreDef, { testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
@@ -195,6 +200,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testDegatsTempestFormule', testDegatsTempestFormule],
   ['testDegatsTempestDeclenchement', testDegatsTempestDeclenchement],
+  ['testDegatsTempestCommeSort', testDegatsTempestCommeSort],
+  ['testDegatsTempestRecette', testDegatsTempestRecette],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
   ['testRuneOptimOnStage', testRuneOptimOnStage],

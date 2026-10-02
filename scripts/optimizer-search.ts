@@ -53,7 +53,8 @@ import {
   monsterCombatStatProfiles,
   monsterDamageSkills,
   monsterOffensivePassives,
-  passifActif,
+  passifCompte,
+  passifPeutSuivre,
   resolveDamageSkill,
   resolvedBuffsPropresCount,
   resolvedHits,
@@ -348,18 +349,28 @@ if (recipe.objective === 'degats_reels') {
       const detailPassifs = passifs
         .map((p) => {
           const coups = ` [${resolvedHits(p.profile, s)} coup(s)]`;
+          // L'état affiché est celui du CALCUL, `passifCompte` avec le sort
+          // RETENU (degats-et-aura 9b) — jamais `passifActif` seul, qui ignore
+          // le sort. Un passif qui ne peut pas suivre ce sort dit pourquoi,
+          // plutôt qu'un « désactivé » trompeur : lui-même choisi comme sort
+          // (Tempest seul), ou slots déclencheurs curés qui l'excluent.
+          if (!passifPeutSuivre(p, profile)) {
+            return p.skillCom2usId === profile.skillCom2usId
+              ? `${p.nom} (choisi comme sort : compté une seule fois)${coups}`
+              : `${p.nom} (ne suit pas un S${profile.slot})${coups}`;
+          }
           switch (p.categorie.type) {
             case 'toujours':
               return `${p.nom} (toujours actif)${coups}`;
             // Déclenchement DÉDUIT des deux réglages de réduction de défense —
             // aucun bouton, d'où l'état résolu affiché plutôt qu'un réglage.
             case 'defBreak':
-              return `${p.nom} (def break : ${passifActif(p, s) ? 'DÉCLENCHÉ' : 'non déclenché'})${coups}`;
+              return `${p.nom} (def break : ${passifCompte(p, profile, s) ? 'DÉCLENCHÉ' : 'non déclenché'})${coups}`;
             // La base compte toujours ; le bouton ne porte que le surplus.
             case 'bonus':
               return `${p.nom} (base comptée, +${p.categorie.pct} % ${bonusPassifActif(p, s) ? 'ACTIVÉ' : 'désactivé par défaut'})${coups}`;
             default:
-              return `${p.nom} (conditionnel, ${passifActif(p, s) ? 'activé' : 'désactivé par défaut'})${coups}`;
+              return `${p.nom} (conditionnel, ${passifCompte(p, profile, s) ? 'activé' : 'désactivé par défaut'})${coups}`;
           }
         })
         .join(', ');

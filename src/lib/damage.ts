@@ -2182,6 +2182,14 @@ export interface SkillDamageProfile {
   // la liste changerait si les données SWARFARM étaient régénérées.
   skillCom2usId: number;
   slot: number;
+  // Vrai = profil d'un PASSIF offensif, construit par `monsterOffensivePassives`
+  // (absent = sort actif, construit par `skillDamageProfile`). Un passif n'entre
+  // dans la liste des sorts que s'il est curé `selectionnableCommeSort`
+  // (Tempest, degats-et-aura 9b) ; choisi, il n'est jamais le sort par défaut
+  // (`defaultDamageSkill`), jamais le premier coup du tour (411,
+  // `computeTotalDamage`) et jamais ajouté à lui-même (`passifPeutSuivre`).
+  // Donnée pure : traverse le Worker de résolution avec le profil.
+  passif?: boolean;
   nom: string;
   description: string | null;
   icone: string | null;
@@ -3162,6 +3170,15 @@ interface PassifOffensifConnu {
   // degats-et-aura A.2 ter). Absent = après n'importe quel sort, comme tous
   // les autres passifs. Comparé au `slot` du sort RETENU, dans `passifCompte`.
   slotsDeclencheurs?: readonly number[];
+  // Le passif est-il AUSSI un choix de « Compétence utilisée », calculé seul ?
+  // Décision produit, jamais déduite (Tempest : cadrage degats-et-aura, lot 9).
+  // Choisi, il est calculé avec le profil de cette liste, inchangé : une seule
+  // source pour les deux usages, donc une seule valeur. Réservé à un passif
+  // `conditionnel` sans ajustement propre à la boucle des passifs (`critique`
+  // `'suit'`, ni `bonusPvCible` ni `coupsDuSortActif`) : choisi seul, il est
+  // calculé comme un sort, où ces ajustements n'existent pas —
+  // `tests/degats-tempest.test.ts` le vérifie sur tout le corpus.
+  selectionnableCommeSort?: boolean;
   // Le nombre d'instances suit-il les COUPS DU SORT ACTIF (`true`), ou
   // reste-t-il fixe quel que soit le sort choisi (`false`/absent) ? Confirmé
   // au cas par cas — ne PAS généraliser, voir Winds and Clouds.
@@ -3318,9 +3335,17 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // `slotsDeclencheurs` : « after you attack the enemy on your turn » ne dit
   // pas quels sorts ; la valeur retenue est « après S1 ou S2 » (utilisateur,
   // 2026-09-23, A.2 ter). Le slot 3 est Tempest lui-même.
+  // `selectionnableCommeSort` : Tempest est aussi un choix de « Compétence
+  // utilisée » (cadrage degats-et-aura, lot 9 ; degats-et-aura 9b) — sa seule
+  // contribution, une fois, sans 411 (A.2 ter : « jamais sur Tempest, même
+  // sélectionné seul » ; « une seule contribution, jamais un second
+  // déclenchement de lui-même »), 402/410 une fois (controle-1c1-amendement).
+  // Jamais le sort par défaut : Teshar reste sur S2 (réponse n° 9 de
+  // l'utilisateur, 2026-10-02).
   {
     nom: 'Tempest (Passive)',
     slotsDeclencheurs: [1, 2],
+    selectionnableCommeSort: true,
     categorie: { type: 'conditionnel', condition: 'sa recharge est terminée au moment où ton S1 ou ton S2 frappe (recharge non simulée)' },
   }, // Teshar, Phoenix (Vent)
 ];
@@ -3344,6 +3369,9 @@ export interface PassifOffensifProfile {
   // Donnée pure (traverse le Worker de résolution avec `RealDamageContext`) :
   // absent = déclenché après n'importe quel sort. Voir `passifCompte`.
   slotsDeclencheurs?: readonly number[];
+  // Donnée pure : vrai = `profile` est AUSSI proposé comme sort par
+  // `monsterDamageSkills` (voir `PassifOffensifConnu`).
+  selectionnableCommeSort?: boolean;
   categorie: PassifOffensifCategorie;
   profile: SkillDamageProfile;
 }
@@ -3397,10 +3425,12 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
       coupsDuSortActif: connu.coupsDuSortActif ?? false,
       bonusPvCible: connu.bonusPvCible,
       slotsDeclencheurs: connu.slotsDeclencheurs,
+      selectionnableCommeSort: connu.selectionnableCommeSort,
       categorie: connu.categorie,
       profile: {
         skillCom2usId: c.com2usId,
         slot: c.slot ?? 0,
+        passif: true,
         nom: c.nom,
         description: c.description,
         icone: c.icone,
@@ -3417,8 +3447,12 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         hitsRange: COUPS_VARIABLES_CONNUS[c.nom],
         aoe: c.aoe,
         ignoreDef: connu.ignoreDef ?? c.effets.some((e) => e.nom === 'Ignore DEF'),
-        // Un passif n'est jamais le « sort choisi » : ce drapeau ne sert qu'à
-        // décider de l'affichage du réglage, qui porte sur le sort ACTIF.
+        // Ce drapeau ne décide que de l'affichage du réglage `defBreakParLeSort`,
+        // qui porte sur le sort CHOISI. Un passif ne l'est que s'il est
+        // `selectionnableCommeSort` (degats-et-aura 9b) : Tempest, seul cas, ne
+        // pose aucune réduction de Défense (`Reduce Cooltime`, `Stun`), `false`
+        // reste donc exact. Un futur passif sélectionnable qui en poserait une
+        // devra lire ses effets ici, comme `skillDamageProfile`.
         appliqueDefBreak: false,
         fixed,
         // ⚠️ Aucun passif du corpus ne pose de bombe AVEC une formule (le
@@ -3440,6 +3474,14 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
  * ou non. Liste vide si la fiche du monstre est absente (monstre perso,
  * données non générées) : l'objectif « Dégâts réels » est alors indisponible,
  * pas en erreur.
+ *
+ * ⚠️ **Plus les passifs curés `selectionnableCommeSort`** (Tempest, degats-et-aura
+ * 9b), avec le profil EXACT que `monsterOffensivePassives` construit pour le
+ * chemin passif (`passif: true`) — jamais par `skillDamageProfile`, qui écarte
+ * toujours les passifs. Une seule source : Tempest choisi seul vaut ce qu'il
+ * ajoute après S1 ou S2, à l'état de la cible près (PV et réduction de
+ * Défense saisis, au lieu de ceux que le sort laisse) — sans 411 dans les
+ * deux cas (voir `computeTotalDamage`).
  */
 export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageProfile | SkillDamageUnsupported)[] {
   if (!detail) return [];
@@ -3448,6 +3490,9 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
     const p = skillDamageProfile(c);
     if (p) out.push(p);
   }
+  for (const p of monsterOffensivePassives(detail)) {
+    if (p.selectionnableCommeSort) out.push(p.profile);
+  }
   return out.sort((a, b) => a.slot - b.slot);
 }
 
@@ -3455,9 +3500,15 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
  * Le sort proposé par défaut : le dernier slot pris en charge (S3 avant S2
  * avant S1). C'est presque toujours le sort de dégâts principal, et c'est
  * celui pour lequel on optimise en pratique.
+ *
+ * ⚠️ **Parmi les sorts ACTIFS seulement** : un passif sélectionnable comme sort
+ * (`passif: true`, Tempest au slot 3) ne l'est jamais par défaut — Teshar
+ * reste sur S2 (réponse n° 9 de l'utilisateur, 2026-10-02, degats-et-aura 9b).
+ * Sans sort actif calculable, `null`, comme avant : un passif ne devient pas
+ * le défaut faute de mieux.
  */
 export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsupported)[]): SkillDamageProfile | null {
-  const ok = skills.filter(estPrisEnCharge);
+  const ok = skills.filter((s): s is SkillDamageProfile => estPrisEnCharge(s) && !s.passif);
   return ok.length > 0 ? ok[ok.length - 1] : null;
 }
 
@@ -3470,7 +3521,9 @@ export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsu
  * reçue d'un autre joueur, donc écrite pour un autre monstre) retombe
  * silencieusement sur le défaut plutôt que d'échouer — même tolérance que le
  * `monsterCom2usId` d'une recette, qui se re-résout lui aussi contre la box
- * de qui l'importe.
+ * de qui l'importe. Un passif sélectionnable (Tempest, `3213`) se résout
+ * comme un sort quand il est demandé : la recette porte alors l'identifiant
+ * d'un passif (degats-et-aura 9b).
  */
 /**
  * Quels réglages de combat le sort retenu CONSOMME réellement.
@@ -5178,17 +5231,28 @@ export function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boole
   return setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
 }
 
-// Le passif compte-t-il dans le total APRÈS CE SORT précis ? `passifActif`
-// (boutons, réduction de Défense) ET, si l'entrée curée le restreint
-// (`slotsDeclencheurs`), le slot du sort RETENU — jamais
-// `setup.skillCom2usId`, qui peut valoir `null` (« le sort par défaut ») et
-// que `passifActif` ne connaît pas. ⚠️ **Source unique** de
-// `computeTotalDamage` ET de `damageRelevantStats` : les deux doivent
-// s'accorder exactement (voir `passifActif`). Tempest (Teshar) : après S1 ou
-// S2 seulement (degats-et-aura 9a).
+// Ce passif peut-il frapper APRÈS ce sort, quels que soient les boutons ?
+// Deux exclusions, lues sur le sort RETENU :
+// - le passif est LUI-MÊME le sort choisi (passif `selectionnableCommeSort`,
+//   Tempest seul) : jamais ajouté à lui-même, même interrupteur resté allumé
+//   — une seule contribution (cadrage degats-et-aura A.2 ter, « Tempest
+//   seul », degats-et-aura 9b). Comparé par identifiant, jamais par identité
+//   d'objet : l'écran et les Workers reçoivent des copies ;
+// - l'entrée curée restreint ses déclencheurs (`slotsDeclencheurs`) et le slot
+//   du sort n'en est pas — jamais `setup.skillCom2usId`, qui peut valoir
+//   `null` (« le sort par défaut »). Tempest : après S1 ou S2 (9a).
+export function passifPeutSuivre(p: PassifOffensifProfile, sort: SkillDamageProfile): boolean {
+  if (p.skillCom2usId === sort.skillCom2usId) return false;
+  return !p.slotsDeclencheurs || p.slotsDeclencheurs.includes(sort.slot);
+}
+
+// Le passif compte-t-il dans le total APRÈS CE SORT précis ? `passifPeutSuivre`
+// (lui-même, slots déclencheurs) ET `passifActif` (boutons, réduction de
+// Défense), que `setup` seul ne permet pas de trancher. ⚠️ **Source unique**
+// de `computeTotalDamage` ET de `damageRelevantStats` : les deux doivent
+// s'accorder exactement (voir `passifActif`).
 export function passifCompte(p: PassifOffensifProfile, sort: SkillDamageProfile, setup: DamageSetup): boolean {
-  if (p.slotsDeclencheurs && !p.slotsDeclencheurs.includes(sort.slot)) return false;
-  return passifActif(p, setup);
+  return passifPeutSuivre(p, sort) && passifActif(p, setup);
 }
 
 // Réduction de Défense active APRÈS le sort choisi — celle qui était déjà là,
@@ -5211,7 +5275,9 @@ export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): 
 /**
  * Dégâts totaux réellement infligés : le sort actif choisi PLUS les passifs
  * offensifs de ce monstre actuellement retenus après ce sort (voir
- * `passifCompte`).
+ * `passifCompte`). Le sort choisi peut être un passif sélectionnable (Tempest
+ * seul, degats-et-aura 9b) : sa seule contribution, sans 411, jamais ajoutée
+ * une seconde fois par la boucle des passifs.
  *
  * ⚠️ **Chaque passif recalculé par `computeSkillDamage`, jamais une formule
  * séparée** — même équation de spec/mecaniques.md, même adversaire : un
@@ -5336,11 +5402,20 @@ export function computeTotalDamage(
   const ecartVit = maVit - Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
   const forceCrit = critSiPlusRapide && ecartVit > 0;
   const setupSort = forceCrit ? { ...setup, critMode: 'crit' as const } : setup;
+  // Un PASSIF choisi lui-même comme sort (Tempest seul, `passif: true`) n'a pas
+  // la place du premier coup du tour : ce cran isole sa contribution, mais il
+  // frappe toujours après le S1 ou le S2 qui le déclenche — 411 (« Dgts CRIT
+  // 1re attaque ») neutralisé comme pour tout passif, plus bas (cadrage
+  // degats-et-aura A.2 ter : « jamais sur Tempest, même sélectionné seul » ;
+  // degats-et-aura 9b). Hors de la boucle des passifs : un objet par appel au
+  // plus, et seulement dans ce cas.
+  const artefactsSort: ArtifactDamageProfile =
+    profile.passif && artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
   // ⚠️ Les PV de la cible sont ENCHAÎNÉS du sort actif vers les passifs :
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
   // se déduire tout seul, sans rien demander à l'utilisateur.
-  const sort = computeSkillDamageDetail(profile, stats, setupSort, propres, element, undefined, artefacts, monsterWide, reliqueDmgPct);
+  const sort = computeSkillDamageDetail(profile, stats, setupSort, propres, element, undefined, artefactsSort, monsterWide, reliqueDmgPct);
   let total = sort.total;
   // ⚠️ **Part ADDITIONNELLE mise de côté** — elle traverse la chaîne de
   // multiplicateurs ci-dessous sans en subir un seul, et n'est rendue qu'à la

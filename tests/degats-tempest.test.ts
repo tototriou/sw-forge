@@ -1,16 +1,19 @@
-// Tempest (Teshar vent, Phoenix vent) — chantier degats-et-aura, lot 9a.
+// Tempest (Teshar vent, Phoenix vent) — chantier degats-et-aura, lots 9a et 9b.
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un passif dont SWARFARM ne porte
 // AUCUNE formule (`formule: ""`) écarté en silence par la garde historique
 // `!c.formule` de `monsterOffensivePassives`, alors que sa formule curée
 // existe dans `FORMULES_CUREES_PAR_ID`. Le joueur cocherait Tempest et ne
-// verrait rien changer, sans aucun message.
+// verrait rien changer, sans aucun message. Et depuis 9b, Tempest choisi
+// comme sort compté DEUX fois (lui-même, puis le passif resté allumé), ou
+// devenu le sort par défaut de Teshar à la place de son S2.
 //
 // Valeurs de jeu (cadrage degats-et-aura, A.2 ter, utilisateur le 2026-09-23,
 // concordant avec l'audit `other_skill=1181`) : `3.7 × ATQ`, en zone, trois
-// améliorations « Damage +10% » (+30 %) appliquées à ses dégâts.
+// améliorations « Damage +10% » (+30 %) appliquées à ses dégâts ; seul, une
+// seule contribution, jamais 411 ; 402/410 une fois (controle-1c1-amendement).
 
-import { readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { ok, egal, titre } from './outils';
 import { StatRow } from '../src/lib/stats';
@@ -25,6 +28,7 @@ import {
   SkillDamageProfile,
   type ArtifactDamageProfile,
   artifactDamageProfile,
+  champsDuCombat,
   computeSkillDamage,
   computeSkillDamageDetail,
   computeTotalDamage,
@@ -35,10 +39,15 @@ import {
   monsterOffensivePassives,
   passifActif,
   passifCompte,
+  passifPeutSuivre,
   resolveDamageSkill,
   skillDamageProfile,
   type PassifOffensifProfile,
 } from '../src/lib/damage';
+import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
+import { resolveObjectiveStats } from '../scripts/lib/recipeToSearchParams';
+import { LoadedMonster } from '../scripts/lib/loadMonster';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const DOSSIER_SORTS = resolve(racine, 'public/data/skills');
@@ -125,7 +134,7 @@ export function testDegatsTempestFormule() {
   egal(
     defaultDamageSkill(monsterDamageSkills(teshar))?.skillCom2usId,
     LIGHTNING_NOVA,
-    'Teshar : la table curée ne fait pas de Tempest un sort — le sort par défaut reste le S2 (Lightning Nova)'
+    'Teshar : le sort par défaut reste le S2 (Lightning Nova), jamais Tempest (choisissable depuis 9b, voir testDegatsTempestCommeSort)'
   );
 
   const tempest = tempestDe(teshar);
@@ -293,4 +302,223 @@ export function testDegatsTempestDeclenchement() {
       );
     }
   }
+}
+
+/**
+ * 9b — Tempest comme sort (cadrage degats-et-aura, lot 9, point 3 ; A.2 ter
+ * « Artéfact 411 » et « Tempest seul » ; controle-1c1-amendement L73-75). Un
+ * passif curé `selectionnableCommeSort` entre dans la liste des sorts avec SON
+ * profil de passif ; jamais le sort par défaut ; choisi, une seule
+ * contribution (jamais ajouté à lui-même), sans 411, 402/410 une fois, sans
+ * 224 (zone), sur les PV saisis.
+ */
+export function testDegatsTempestCommeSort() {
+  titre('Tempest comme sort — liste des sorts, sort par défaut, résolution (degats-et-aura 9b)');
+
+  for (const forme of [TESHAR, PHOENIX_VENT]) {
+    const detail = fiche(forme);
+    const sorts = monsterDamageSkills(detail);
+    const tempest = tempestDe(detail);
+    const commeSort = sorts.find((s) => s.skillCom2usId === TEMPEST);
+    if (!tempest || !commeSort || !estPrisEnCharge(commeSort)) {
+      ok(false, `${forme} : Tempest absent des sorts ou des passifs — le choix comme sort ne peut pas être vérifié`);
+      continue;
+    }
+    egal(commeSort, tempest.profile, `${forme} : le sort « Tempest » EST le profil du passif, champ pour champ — une seule source`);
+    egal(commeSort.passif, true, `${forme} : profil marqué « passif »`);
+    egal(sorts.map((s) => s.slot), [1, 2, 3], `${forme} : S1, S2 puis Tempest (S3), dans l’ordre des slots`);
+    egal(defaultDamageSkill(sorts)?.skillCom2usId, LIGHTNING_NOVA, `${forme} : le sort par défaut reste le S2, jamais Tempest (réponse n° 9 de l’utilisateur)`);
+    egal(resolveDamageSkill(sorts, null)?.skillCom2usId, LIGHTNING_NOVA, `${forme} : sort non précisé (null) → S2`);
+    egal(resolveDamageSkill(sorts, TEMPEST)?.skillCom2usId, TEMPEST, `${forme} : sort 3213 demandé (l’identifiant d’un passif) → Tempest`);
+  }
+
+  // Garde du corpus : seul 3213 est sélectionnable, sur ses deux formes, sans
+  // ajustement que la boucle des passifs serait seule à porter (`critique`
+  // hors `'suit'`, `coupsDuSortActif`, `bonusPvCible`, catégorie autre que
+  // `conditionnel`) — choisi seul, il est calculé comme un sort. Et aucun
+  // monstre du corpus n'a un passif pour sort par défaut.
+  const selectionnables: string[] = [];
+  const ajustementsInterdits: string[] = [];
+  const passifParDefaut: string[] = [];
+  for (const f of readdirSync(DOSSIER_SORTS)) {
+    const d: DetailMonstre = JSON.parse(readFileSync(resolve(DOSSIER_SORTS, f), 'utf8'));
+    for (const p of monsterOffensivePassives(d)) {
+      if (!p.selectionnableCommeSort) continue;
+      selectionnables.push(`${f.replace(/\.json$/, '')}:${p.skillCom2usId}`);
+      if (p.critique !== 'suit' || p.coupsDuSortActif || p.bonusPvCible || p.categorie.type !== 'conditionnel') {
+        ajustementsInterdits.push(`${f} : ${p.nom}`);
+      }
+    }
+    if (defaultDamageSkill(monsterDamageSkills(d))?.passif) passifParDefaut.push(f);
+  }
+  egal(selectionnables.sort(), ['14503:3213', '14513:3213'], 'corpus : seul Tempest (3213) est un passif sélectionnable, sur Phoenix vent et Teshar');
+  egal(ajustementsInterdits, [], 'corpus : aucun passif sélectionnable ne porte d’ajustement propre à la boucle des passifs');
+  egal(passifParDefaut, [], 'corpus : aucun monstre n’a un passif pour sort par défaut');
+
+  titre('Tempest comme sort — une seule contribution, jamais ajouté à lui-même');
+
+  const teshar = fiche(TESHAR);
+  const passifs = monsterOffensivePassives(teshar);
+  const tempest = tempestDe(teshar);
+  if (!tempest) {
+    ok(false, 'Teshar : Tempest absent des passifs offensifs — le calcul du cran « Tempest seul » ne peut pas être vérifié');
+    return;
+  }
+  const seul = tempest.profile;
+  const s1 = sortDe(teshar, ARCANE_BLAST);
+  const s2 = sortDe(teshar, LIGHTNING_NOVA);
+  const st = stats({ atk: 3000, cr: 100, cd: 150 });
+  // Interrupteur resté ALLUMÉ : choisi comme sort, Tempest ne s'ajoute pas
+  // pour autant une seconde fois.
+  const actif: DamageSetup = {
+    ...DEFAULT_DAMAGE_SETUP,
+    summonerSkills: 'combat',
+    critMode: 'crit',
+    enemyHp: 100_000_000,
+    passifsOffensifs: { [TEMPEST]: true },
+  };
+  const choisi: DamageSetup = { ...actif, skillCom2usId: TEMPEST };
+  const setupS2: DamageSetup = { ...actif, skillCom2usId: LIGHTNING_NOVA };
+  ok(!passifPeutSuivre(tempest, seul) && !passifCompte(tempest, seul, choisi), 'Tempest choisi : son passif ne le suit pas, même interrupteur allumé');
+  ok(passifPeutSuivre(tempest, s1) && passifPeutSuivre(tempest, s2), 'S1 ou S2 choisi : Tempest peut les suivre');
+  const totalSeul = computeTotalDamage(seul, passifs, st, choisi, AUCUNE_AURA_PROPRE, null);
+  egal(
+    totalSeul,
+    computeSkillDamage(seul, st, choisi, AUCUNE_AURA_PROPRE, null),
+    'Tempest choisi, interrupteur allumé : le total vaut Tempest seul, au bit près — une seule contribution (A.2 ter, « Tempest seul »)'
+  );
+  const apresS2 = computeTotalDamage(s2, passifs, st, setupS2, AUCUNE_AURA_PROPRE, null) - computeSkillDamage(s2, st, setupS2, AUCUNE_AURA_PROPRE, null);
+  ok(proche(totalSeul, apresS2), 'Tempest seul vaut exactement ce qu’il ajoute après le S2 (même profil, sans artéfact)');
+  ok(
+    proche(totalSeul, 3.7 * computeSkillDamage(referenceUnAtq(30), st, choisi, AUCUNE_AURA_PROPRE, null)),
+    'Tempest seul = 3.7 fois un « 1 × ATQ » de référence aux mêmes +30 %'
+  );
+
+  // Mécanisme générique : un passif sélectionnable SANS slots déclencheurs (un
+  // futur cas de même architecture) suivrait n'importe quel sort — sauf
+  // lui-même. Ici, seule l'exclusion par identifiant l'empêche de doubler.
+  const sansSlots: PassifOffensifProfile = { ...tempest, slotsDeclencheurs: undefined };
+  ok(!passifPeutSuivre(sansSlots, seul), 'générique, sans slots déclencheurs : un passif ne suit jamais le sort qu’il est lui-même');
+  ok(passifPeutSuivre(sansSlots, { ...s2, slot: 3, skillCom2usId: 999_003 }), 'générique, sans slots déclencheurs : il suit un autre sort, même de slot 3');
+  egal(
+    computeTotalDamage(seul, [sansSlots], st, choisi, AUCUNE_AURA_PROPRE, null),
+    computeSkillDamage(seul, st, choisi, AUCUNE_AURA_PROPRE, null),
+    'générique, sans slots déclencheurs, choisi comme sort : une seule contribution (computeTotalDamage écarte le passif qui est le sort)'
+  );
+  // `damageRelevantStats` passe par la MÊME porte : un « sort » fictif qui
+  // porte l'identifiant de Tempest mais ne lit que la DEF ne ferait
+  // travailler l'ATQ que si le passif (ATQ) s'ajoutait à lui-même.
+  const defSeulCommeTempest: SkillDamageProfile = { ...profilSynthetique('1*{DEF}', 3, true), skillCom2usId: TEMPEST, passif: true };
+  ok(
+    !damageRelevantStats(defSeulCommeTempest, [sansSlots], choisi).includes('atk'),
+    'générique : damageRelevantStats n’ajoute pas non plus le passif qui est le sort (même porte que computeTotalDamage)'
+  );
+  egal(damageRelevantStats(seul, passifs, choisi), ['atk', 'cd'], 'Tempest choisi : stats à privilégier = ATQ (sa formule) et Dgts Crit');
+  egal(champsDuCombat(seul), { defEnnemie: true, crit: true }, 'Tempest choisi : la DEF adverse et le critique comptent (ni ignore DEF, ni dégâts fixes)');
+
+  titre('Tempest comme sort — lignes d’artéfact du cran « Tempest seul »');
+
+  const total = (setup: DamageSetup, art: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE, s = st) =>
+    computeTotalDamage(seul, passifs, s, setup, AUCUNE_AURA_PROPRE, null, art);
+  const nu = total(choisi);
+  const statsPlus = (pts: number) => stats({ atk: 3000, cr: 100, cd: 150 + pts });
+
+  // 411 — « jamais sur Tempest, même sélectionné seul » (A.2 ter). Témoin : le
+  // même profil d'artéfacts majore bien le S1 choisi seul.
+  const a411 = artefacts([{ code: 411, value: 30 }]);
+  const setupS1: DamageSetup = { ...choisi, skillCom2usId: ARCANE_BLAST, passifsOffensifs: {} };
+  ok(
+    computeTotalDamage(s1, passifs, st, setupS1, AUCUNE_AURA_PROPRE, null, a411) > computeTotalDamage(s1, passifs, st, setupS1, AUCUNE_AURA_PROPRE, null),
+    'témoin : 411 majore le S1 choisi seul (premier coup du tour)'
+  );
+  ok(proche(total(choisi, a411), nu), '411 ne s’applique jamais à Tempest seul : il frappe toujours après le S1/S2 qui le déclenche');
+
+  // 402 et 410 — une fois (controle-1c1-amendement L73-75). Oracle : les mêmes
+  // points en Dgts CRIT de fiche, une fois — jamais deux.
+  const uneFois = total(choisi, ARTIFACT_DAMAGE_NEUTRE, statsPlus(20));
+  const deuxFois = total(choisi, ARTIFACT_DAMAGE_NEUTRE, statsPlus(40));
+  for (const code of [402, 410]) {
+    const avec = total(choisi, artefacts([{ code, value: 20 }]));
+    ok(proche(avec, uneFois) && !proche(avec, deuxFois), `${code} (+20) s’applique UNE fois à Tempest seul (compétence de slot 3)`);
+  }
+  // 400/401 — lignes du S1/du S2 : jamais sur Tempest seul.
+  for (const code of [400, 401]) {
+    ok(proche(total(choisi, artefacts([{ code, value: 20 }])), nu), `${code} ne touche pas Tempest seul (slot 3)`);
+  }
+  // 224 — mono-cible seulement : jamais sur Tempest, en zone.
+  ok(proche(total(choisi, artefacts([{ code: 224, value: 20 }])), nu), '224 ne s’applique jamais à Tempest seul (zone)');
+  // 222/223 — « les PV saisis y décrivent l'état avant Tempest » (cadrage,
+  // lot 9) : 60 % saisis, soit `30 × 0.6` (222) et `30 × 0.4` (223) points ;
+  // jamais la valeur à 100 % de PV (30 et 0).
+  const pv60: DamageSetup = { ...choisi, enemyHpPct: 60 };
+  for (const [code, pts, ptsA100] of [[222, 30 * 0.6, 30], [223, 30 * 0.4, 0]] as const) {
+    const avec = total(pv60, artefacts([{ code, value: 30 }]));
+    ok(
+      proche(avec, total(pv60, ARTIFACT_DAMAGE_NEUTRE, statsPlus(pts))) && !proche(avec, total(pv60, ARTIFACT_DAMAGE_NEUTRE, statsPlus(ptsA100))),
+      `${code} : Tempest seul lit les PV saisis (60 %), soit +${pts} points`
+    );
+  }
+}
+
+/**
+ * 9b — aller-retour de recette avec `skillCom2usId` = 3213, l'identifiant d'un
+ * PASSIF (cadrage degats-et-aura, recalage du lot 9, « preuve en plus »), relue
+ * par les chemins du CLI : `buildRealDamageContext` (score) et
+ * `resolveObjectiveStats` (pré-filtrage). L'état des passifs affiché par le CLI
+ * passe par `passifCompte`, avec le sort retenu.
+ */
+export function testDegatsTempestRecette() {
+  titre('Tempest comme sort — recette portant l’identifiant d’un passif, relue par le CLI (degats-et-aura 9b)');
+
+  const damageSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: TEMPEST, passifsOffensifs: { [TEMPEST]: true } };
+  const recette = buildOptimizerRecipe({
+    monsterCom2usId: TESHAR,
+    monsterName: 'Teshar (test)',
+    requirement: { sets: [], minStats: {} },
+    objective: 'degats_reels',
+    damageSetup,
+    metric: 'eff',
+    slotFilterPreset: 'bas',
+    adaptiveTrancheWeighting: false,
+    exhaustiveSearch: false,
+    excludeUsedRunes: false,
+    excludeUsedScope: 'box',
+    excludedSelectors: [],
+    ignoreArtifacts: false,
+    artifactMainByKind: {},
+  });
+  const lue = parseOptimizerRecipe(JSON.stringify(recette));
+  ok(lue.recipe != null, `recette relue sans erreur${lue.error ? ` — ${lue.error}` : ''}`);
+  if (!lue.recipe) return;
+  egal(lue.recipe.damageSetup.skillCom2usId, TEMPEST, 'aller-retour : skillCom2usId 3213 conservé tel quel');
+  egal(lue.recipe.damageSetup, damageSetup, 'aller-retour : réglage de combat intact');
+
+  const ctx = buildRealDamageContext(lue.recipe, TESHAR, []);
+  ok(ctx != null, 'CLI : contexte « Dégâts réels » construit pour Teshar');
+  if (!ctx) return;
+  egal(ctx.profile.skillCom2usId, TEMPEST, 'CLI : le sort résolu est Tempest, pas le repli sur le S2');
+  egal(ctx.profile.passif, true, 'CLI : le sort résolu est le profil du passif');
+  ok(ctx.passifs.some((p) => p.skillCom2usId === TEMPEST), 'CLI : Tempest reste aussi dans la liste des passifs du contexte');
+  const st = stats({ atk: 3000, cr: 100, cd: 150 });
+  egal(
+    computeTotalDamage(ctx.profile, ctx.passifs, st, ctx.setup, AUCUNE_AURA_PROPRE, ctx.element, ctx.artefacts),
+    computeTotalDamage(ctx.profile, [], st, ctx.setup, AUCUNE_AURA_PROPRE, ctx.element, ctx.artefacts),
+    'CLI : le score de la recette compte Tempest une seule fois, interrupteur resté allumé'
+  );
+  const teshar: LoadedMonster = {
+    unitId: 1,
+    com2usId: TESHAR,
+    monsterName: 'Teshar (test)',
+    // Jamais lus par `resolveObjectiveStats`, qui ne lit que l'espèce.
+    gear: { base: { hp: 0, atk: 0, def: 0, spd: 0, cr: 0, cd: 0, res: 0, acc: 0 }, runes: [], artifacts: [] },
+    allRunes: [],
+    allArtifacts: [],
+    allRelics: [],
+  };
+  egal(resolveObjectiveStats(lue.recipe, teshar), ['atk', 'cd'], 'CLI : stats privilégiées de la recette = celles de Tempest (ATQ, Dgts Crit)');
+
+  const cli = readFileSync(resolve(racine, 'scripts/optimizer-search.ts'), 'utf8');
+  ok(!/\bpassifActif\(/.test(cli), 'CLI (optimizer-search.ts) : plus aucun état de passif lu par passifActif seul, qui ignore le sort');
+  egal((cli.match(/passifCompte\(p, profile, s\)/g) ?? []).length, 2, 'CLI : les états « def break » et « conditionnel » passent par passifCompte, avec le sort retenu');
+  ok(cli.includes('choisi comme sort : compté une seule fois'), 'CLI : un passif choisi comme sort est annoncé comme tel, pas « désactivé »');
 }

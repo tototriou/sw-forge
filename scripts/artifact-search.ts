@@ -29,7 +29,7 @@ import { loadBoxMonster, printMonsterSummary } from './lib/loadMonster';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import { meilleuresPairesArtefacts, nombreDePaires, type ArtifactSearchParams, type ChoixPrincipale } from '../src/lib/artifactOptim';
-import { artifactDamageProfile, aurasPropresDesRunes, computeTotalDamage, monsterDamageSkills, monsterOffensivePassives, DEFAULT_DAMAGE_SETUP, type DamageSetup, type SkillDamageProfile } from '../src/lib/damage';
+import { artifactDamageProfile, aurasPropresDesRunes, computeTotalDamage, defaultDamageSkill, monsterDamageSkills, monsterOffensivePassives, DEFAULT_DAMAGE_SETUP, type DamageSetup, type SkillDamageProfile } from '../src/lib/damage';
 import { computeStats } from '../src/lib/stats';
 import { artifactSubName } from '../src/lib/effects';
 import { ARTIFACT_KINDS, type ArtifactDetail, type ArtifactKind, type ElementKey } from '../src/types';
@@ -59,9 +59,13 @@ if (!porteur.archetype) {
 }
 
 const sorts = monsterDamageSkills(fiche).filter((s): s is SkillDamageProfile => 'noeud' in s);
-if (sorts.length === 0) throw new Error(`Aucun sort calculable pour ${monsterName}.`);
+// Sans `--sort`, le sort par défaut de l'écran (`defaultDamageSkill`, source
+// unique) : jamais le dernier de la liste, qui peut être un passif
+// sélectionnable (Tempest au slot 3, degats-et-aura 9b). `--sort 3` le choisit.
+const sortParDefaut = defaultDamageSkill(sorts);
+if (!sortParDefaut) throw new Error(`Aucun sort calculable pour ${monsterName}.`);
 const slotVoulu = opt('sort') ? Number(opt('sort')) : null;
-const sort = (slotVoulu != null ? sorts.find((s) => s.slot === slotVoulu) : null) ?? sorts[sorts.length - 1]!;
+const sort = (slotVoulu != null ? sorts.find((s) => s.slot === slotVoulu) : null) ?? sortParDefaut;
 
 const setup: DamageSetup = {
   ...DEFAULT_DAMAGE_SETUP,

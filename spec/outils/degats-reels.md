@@ -25,6 +25,7 @@ le **modèle**, pas l'interface.
 - [Dégâts réels — bombes](degats-reels/bombes.md) — état actuel
 - [Dégâts réels — séquences de coups et cible secondaire](degats-reels/sequences-de-coups.md) — état actuel
 - [Dégâts réels — passifs offensifs](degats-reels/passifs-offensifs.md) — état actuel
+- [Dégâts réels — attaque déclenchée après un sort](degats-reels/attaque-apres-un-sort.md) — état actuel
 - [Dégâts réels — effets d’équipe et leaders](degats-reels/effets-equipe-et-leaders.md) — état actuel
 - [Dégâts réels — conditions et audit](degats-reels/conditions-et-audit.md) — état actuel
 - [Dégâts réels — catalogue des passifs](degats-reels/catalogue-des-passifs.md) — état actuel

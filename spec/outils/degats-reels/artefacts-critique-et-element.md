@@ -66,6 +66,11 @@ sort a déjà consommé « la première attaque » : les passifs reçoivent donc
 profil dont `cdPointsPremiereAttaque` est remis à zéro. Sans ça, un monstre à
 trois passifs encaisserait le bonus quatre fois.
 
+Un passif choisi lui-même comme sort (Tempest seul, `SkillDamageProfile.passif`)
+garde ce profil sans 411 : il frappe toujours après le S1 ou le S2 qui le
+déclenche (cadrage degats-et-aura, A.2 ter : « jamais sur Tempest, même
+sélectionné seul ») — voir [attaque après un sort](attaque-apres-un-sort.md).
+
 Même règle pour un sort à séquence de coups (Blade Surge) : 411 ne vaut que
 pour le premier coup de la séquence, jamais pour le coup de zone, et le cran
 « autres ennemis » ne rouvre pas ce compteur — voir

@@ -40,7 +40,7 @@ import {
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
 import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
-import { evaluateursArtefactsFiche, parametresArtefactsFiche, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
+import { evaluateursArtefactsFiche, parametresArtefactsFiche, piecesFigeesDe, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
 import {
   CAPPED_STATS,
   RUNE_EFFECT,
@@ -2159,8 +2159,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // gardaient leur paire d'avant, même après une nouvelle recherche
         // (degats-et-aura 6bis-b17). Un ensemble : l'ordre est sans effet.
         artefactsReserves,
+        // ⚠️ Un emplacement figé sur « Garder l'artéfact équipé » n'a qu'un
+        // candidat : la pièce que porte la fiche. Valider un build de CE
+        // monstre, « Voir le runage réellement porté » ou changer d'exemplaire
+        // de la même espèce la remplacent (6bis-b17). Les sortes libres n'y
+        // entrent pas : leur pièce portée n'est jamais lue.
+        piecesFigees: piecesFigeesDe(artifactMainByKind, selected?.gear.artifacts ?? []),
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves]
+    [selected?.monster.com2usId, selected?.gear.relic, selected?.gear.artifacts, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves]
   );
 
   /**

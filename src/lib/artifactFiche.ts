@@ -26,6 +26,27 @@ export function sortesFigeesDe(principaleParSorte: Partial<Record<ArtifactKind, 
   return ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (principaleParSorte[key] ?? 'libre') === 'equipped');
 }
 
+/**
+ * Les pièces que la résolution ne choisit pas : celle que la fiche porte sur
+ * chaque emplacement figé (`sortesFigeesDe`), `null` pour un emplacement figé
+ * vide — exactement ce que `candidatsParSorte` (artifactOptim.ts) lit dans
+ * `equipes` en `'equipped'`, avant un contrôle d'éligibilité qui ne dépend que
+ * du porteur (l'espèce). Une sorte « Libre » ou à principale imposée n'y entre
+ * pas : sa pièce portée n'est jamais lue.
+ *
+ * Entre dans la signature de la file (degats-et-aura 6bis-b17) : valider un
+ * build de CE monstre, « Voir le runage réellement porté » ou changer
+ * d'exemplaire de la même espèce changent `selected.gear.artifacts` sans rien
+ * changer d'autre à la signature — l'emplacement figé changeait alors de pièce
+ * pour les builds encore à résoudre, pas pour ceux déjà en cache.
+ */
+export function piecesFigeesDe(
+  principaleParSorte: Partial<Record<ArtifactKind, ChoixPrincipale>>,
+  equipes: readonly ArtifactDetail[]
+): { sorte: ArtifactKind; piece: ArtifactDetail | null }[] {
+  return sortesFigeesDe(principaleParSorte).map((sorte) => ({ sorte, piece: equipes.find((a) => a.kind === sorte) ?? null }));
+}
+
 /** Ensemble vide de réservations : le CLI et le différentiel n'ont pas de liste de travail. */
 export const AUCUN_ARTEFACT_RESERVE: ReadonlySet<number> = new Set();
 

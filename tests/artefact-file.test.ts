@@ -9,9 +9,20 @@ import { readFileSync } from 'node:fs';
 import { BuildCandidate } from '../src/lib/runeBuildOptim';
 import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, prochainsATraiter, signatureReglages, signatureArtefacts } from '../src/lib/artifactQueue';
 import { regimeEquipementDe } from '../src/lib/artifactEvaluation';
+import { piecesFigeesDe } from '../src/lib/artifactFiche';
+import type { ArtifactDetail } from '../src/types';
 import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
+
+// Pièces portées minimales (6bis-b17) : seuls `id` et `kind` sont lus par
+// `piecesFigeesDe` ; la principale distingue deux pièces d'une même sorte.
+const piece = (id: number, kind: 'element' | 'archetype', code: number) =>
+  ({ id, kind, main: { code, value: 100 }, subs: [] }) as unknown as ArtifactDetail;
+const ART_ELEMENT_1 = piece(9001, 'element', 100);
+const ART_ELEMENT_2 = piece(9002, 'element', 101);
+const ART_TYPE_1 = piece(9101, 'archetype', 100);
+const ART_TYPE_2 = piece(9102, 'archetype', 102);
 
 export default function testArtefactFile() {
   titre('File d’artéfacts — identité d’un build');
@@ -155,6 +166,7 @@ export default function testArtefactFile() {
       empreinteRelique: null as string | null,
       requirement: { minStats: { atk: 100 }, maxStats: { def: 2000 } },
       artefactsReserves: [] as Iterable<number>,
+      piecesFigees: [] as readonly unknown[],
     };
     const s = signatureReglages(base);
     // ⚠️ Tout ce qui change quelles LIGNES comptent change la paire gagnante
@@ -257,6 +269,37 @@ export default function testArtefactFile() {
       'sans réservation, la signature est exactement celle d’avant 6bis-b17'
     );
     egal(signatureReglages({ ...base, artefactsReserves: new Set() }), s, '… qu’on passe un tableau vide ou un ensemble vide');
+
+    // ⚠️ **6bis-b17 — la pièce d'un emplacement FIGÉ** sur « Garder l'artéfact
+    // équipé » est le seul candidat de cet emplacement (`candidatsParSorte`) :
+    // même nature que les réservations (l'inventaire de la paire). Valider un
+    // build de CE monstre, « Voir le runage réellement porté » ou changer
+    // d'exemplaire de la même espèce la remplacent sans rien changer d'autre.
+    const portes = [ART_ELEMENT_1, ART_TYPE_1];
+    egal(piecesFigeesDe({}, portes), [], 'aucun emplacement figé : aucune pièce portée lue');
+    egal(piecesFigeesDe({ element: 'libre', archetype: 101 }, portes), [], '… ni en « Libre », ni à principale imposée');
+    egal(
+      piecesFigeesDe({ element: 'equipped' }, portes),
+      [{ sorte: 'element', piece: ART_ELEMENT_1 }],
+      'Attribut figé : la pièce d’attribut portée, et elle seule'
+    );
+    egal(
+      piecesFigeesDe({ element: 'equipped', archetype: 'equipped' }, [ART_TYPE_1]),
+      [{ sorte: 'element', piece: null }, { sorte: 'archetype', piece: ART_TYPE_1 }],
+      'emplacement figé vide : `null`, comme le candidat unique de `candidatsParSorte`'
+    );
+    const figeAvec = (equipes: ArtifactDetail[]) =>
+      signatureReglages({ ...base, principaleParSorte: { element: 'equipped' }, piecesFigees: piecesFigeesDe({ element: 'equipped' }, equipes) });
+    ok(
+      figeAvec([ART_ELEMENT_2, ART_TYPE_1]) !== figeAvec([ART_ELEMENT_1, ART_TYPE_1]),
+      '… et la pièce portée d’un emplacement figé qui change (6bis-b17)'
+    );
+    egal(
+      figeAvec([ART_ELEMENT_1, ART_TYPE_2]),
+      figeAvec([ART_ELEMENT_1, ART_TYPE_1]),
+      'la pièce portée d’un emplacement NON figé ne change rien : elle n’est jamais lue'
+    );
+    egal(signatureReglages({ ...base, piecesFigees: piecesFigeesDe({}, portes) }), s, 'sans emplacement figé, la signature d’avant 6bis-b17');
   }
 
   titre('File d’artéfacts — signatureArtefacts (la closure de l’écran, extraite, B.5c)');
@@ -279,6 +322,7 @@ export default function testArtefactFile() {
       empreinteRelique: null as string | null,
       requirement: { minStats: {}, maxStats: {} },
       artefactsReserves: [] as Iterable<number>,
+      piecesFigees: [] as readonly unknown[],
     };
     const s2 = signatureArtefacts(base2);
     egal(
@@ -315,6 +359,11 @@ export default function testArtefactFile() {
     // 6bis-b17 : les réservations traversent l'adaptateur, et leur absence
     // laisse la signature d'avant (littéral relevé sur 47cecfa9).
     ok(signatureArtefacts({ ...base2, artefactsReserves: new Set([501]) }) !== s2, 'les artéfacts réservés aussi (6bis-b17)');
+    ok(
+      signatureArtefacts({ ...base2, piecesFigees: piecesFigeesDe({ element: 'equipped' }, [ART_ELEMENT_1]) }) !==
+        signatureArtefacts({ ...base2, piecesFigees: piecesFigeesDe({ element: 'equipped' }, [ART_ELEMENT_2]) }),
+      '… et les pièces des emplacements figés (6bis-b17)'
+    );
     egal(
       s2,
       '14311§{"skillCom2usId":4713,"enemyElement":null,"atkBuff":false,"enemyHpPct":100,"enemyDef":1000,"critMode":"crit"}§true§aucun§-§{}§§null§10§§{}§{}',
@@ -331,7 +380,7 @@ export default function testArtefactFile() {
     );
   }
 
-  titre('File d’artéfacts — l’écran passe les réservations à la signature (6bis-b17)');
+  titre('File d’artéfacts — l’écran passe réservations et pièces figées à la signature (6bis-b17)');
 
   {
     // Le hook de la file ne vide son cache qu'au changement de signature
@@ -352,6 +401,16 @@ export default function testArtefactFile() {
     ok(
       /const artefactsReserves = useMemo\(\s*\(\) => otherValidatedArtifactIds\(lists\.validated, lists\.activeListId, ownSelectorKey\),\s*\[lists\.validated, lists\.activeListId, ownSelectorKey\]\s*\);/.test(ecran),
       'écran : ce sont les réservations de la liste ACTIVE — libérer, valider ou changer de liste les recalcule'
+    );
+    // Les pièces des emplacements figés : celles de la fiche affichée, pour les
+    // principales choisies — et le mémo suit les artéfacts de la fiche.
+    ok(
+      /^\s*piecesFigees: piecesFigeesDe\(artifactMainByKind, selected\?\.gear\.artifacts \?\? \[\]\),\s*$/m.test(appel?.[1] ?? ''),
+      'écran : la signature reçoit les pièces des emplacements figés de la fiche'
+    );
+    ok(
+      (appel?.[2] ?? '').split(',').map((d) => d.trim()).includes('selected?.gear.artifacts'),
+      'écran : … et son mémo se recalcule quand la fiche change d’artéfacts'
     );
   }
 

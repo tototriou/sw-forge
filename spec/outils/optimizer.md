@@ -2528,8 +2528,13 @@ validés de la liste active, lus comme un ensemble (l'ordre de la liste est
 sans effet ; sans réservation, la signature est celle d'avant). « Libérer les
 artéfacts » sur la ligne d'un autre monstre de la liste, ou changer de liste
 active, refait donc les paires déjà calculées : jusque-là, elles gardaient
-l'ancien inventaire, même après une nouvelle recherche aux mêmes réglages. Le
-Worker de résolution reçoit alors le nouveau contexte (voir plus bas).
+l'ancien inventaire, même après une nouvelle recherche aux mêmes réglages. De
+même pour la **pièce d'un emplacement figé** sur « Garder l'artéfact équipé »,
+seul candidat de cet emplacement : valider un build du monstre recherché,
+« Voir le runage réellement porté » ou changer d'exemplaire de la même espèce
+la remplacent, et les paires déjà calculées se refont. La pièce portée d'un
+emplacement libre, jamais lue, n'y entre pas. Le Worker de résolution reçoit
+alors le nouveau contexte (voir plus bas).
 
 **La page affichée n'attend pas l'inactivité** (degats-et-aura 6bis-b11).
 Pendant une recherche, l'écran reçoit la progression toutes les 150 ms et

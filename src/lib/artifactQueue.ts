@@ -323,6 +323,16 @@ export function signatureReglages(parts: {
    * (`AUCUN_ARTEFACT_RESERVE`) et n'appelle pas cette signature.
    */
   artefactsReserves: Iterable<number>;
+  /**
+   * Les pièces des emplacements figés sur « Garder l'artéfact équipé »
+   * (`piecesFigeesDe`, artifactFiche.ts) : pour un tel emplacement, la pièce
+   * portée par la fiche EST le seul candidat (`candidatsParSorte`). Valider
+   * un build de ce monstre, « Voir le runage réellement porté » ou changer
+   * d'exemplaire de la même espèce la remplacent sans rien changer d'autre
+   * ici (degats-et-aura 6bis-b17). Sérialisées ENTIÈRES, comme la relique.
+   * Obligatoire, pour la même raison qu'`artefactsReserves`.
+   */
+  piecesFigees: readonly unknown[];
 }): string {
   // ⚠️ Un minimum à 0 n'exige RIEN : le retenir ferait relancer 100
   // optimisations pour rien dès qu'on tape puis efface une valeur. L'ordre de
@@ -351,6 +361,8 @@ export function signatureReglages(parts: {
     JSON.stringify(parts.requirement.minStats),
     JSON.stringify(parts.requirement.maxStats ?? {}),
     ...(reserves ? [`reserves:${reserves}`] : []),
+    // Même règle : sans emplacement figé, composant omis, signature d'avant.
+    ...(parts.piecesFigees.length > 0 ? [`figees:${JSON.stringify(parts.piecesFigees)}`] : []),
   ].join('§');
 }
 
@@ -380,6 +392,8 @@ export function signatureArtefacts(parts: {
   // Les artéfacts réservés par les autres builds validés de la liste active
   // (`artefactsReserves` de l'écran) — voir `signatureReglages`.
   artefactsReserves: Iterable<number>;
+  // Les pièces des emplacements figés (`piecesFigeesDe`) — voir `signatureReglages`.
+  piecesFigees: readonly unknown[];
 }): string {
   return signatureReglages({
     monstreCom2usId: parts.monstreCom2usId,
@@ -394,6 +408,7 @@ export function signatureArtefacts(parts: {
     empreinteRelique: parts.empreinteRelique,
     requirement: parts.requirement,
     artefactsReserves: parts.artefactsReserves,
+    piecesFigees: parts.piecesFigees,
   });
 }
 

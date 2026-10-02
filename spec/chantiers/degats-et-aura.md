@@ -684,7 +684,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | terminé ; vérifié par l'utilisateur à l'écran | `7b3ec767` ; reçu `7b3ec76` ↔ `1d50ccc` / 2026-10-02 |
 | 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
 | 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | **arrêté avant livraison (A.6)** : recherche +4 à +7 % en « Dégâts réels », résultat complet −27 % ; preuves rejouées par le pilote ; **décision de l'utilisateur attendue** (A.8) ; revue indépendante faite : rien de bloquant, cinq mutations du branchement survivent | `9a7202a8`, `534de15a` locaux, ni livrés ni poussés / 2026-10-02 |
-| 6bis-b13bis-c — corrections de la revue du Worker | J | lancé par le pilote avant la décision (vaut pour les options 1 et 2) ; commits locaux | — |
+| 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; vaut pour les options 1 et 2 ; livré avec b13bis-b après la décision | `11abb68d`…`f951f3e9` locaux, ni livrés ni poussés / 2026-10-02 |
 | 7 — sets d'aura : l'écran | J | attend la décision sur 6bis-b13bis-b et 6bis-b13bis-c ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -5366,6 +5366,46 @@ publication forcée du point 3 (une de plus par file, au plus).
 **Ne fait pas** : ni la variante de l'option 2, ni les pistes ci-dessus, ni
 le défaut antérieur ; aucun changement de la résolution, de K, de l'ordre,
 du nombre de demandes en vol, de la recherche.
+
+###### Résultat du lot 6bis-b13bis-c — 2026-10-02
+
+Agent lancé par le pilote (A.8). Sept commits locaux sur `3aabf4ad`, ni
+livrés ni poussés (comme b13bis-b, en attente de la décision) :
+`11abb68d` producteur unique `runesDuBuild` (relicQueue.ts), appelé par
+les deux résolutions de l'écran ; `0625cfe9` publication forcée — le
+module sait qu'une écriture attend (`publier` rend vrai ou faux selon la
+cadence), la publie de force quand la file se vide (réponse ignorée
+comprise) et au repli (`renoncer` rend vrai) ; `c1c31d6a` simulation
+élargie (48 files : repli en cours de route par trois origines, entrées
+changées à signature égale ; publié = cache sur toute file vide et à la
+fin) ; `95407be1` `vide` journalisé avec l'erreur au repli
+(`repliSurErreur`) ; `380bf00d` contrôles de source du branchement ;
+`45bed237` spec et commentaires (deux mesures citées, hypothèses marquées,
+contexte par identité des entrées, portée des trois recettes) ;
+`f951f3e9` libellé de test. Preuve `controle-6bis-b13bis-c.md` et son
+dossier ; notes privées amendées, non livrées : `invariants.md` L102 et
+L191, `parallelisation-partagee.md` § 3.7.
+
+**Rejoué par le pilote sur `f951f3e9`** : `tsc` 0 ; tests de zone (11
+filtres) 831 passés (797 avant) ; build, spec-lint,
+`git diff --check 3aabf4ad..HEAD` verts ; diff relu (l'ancienne
+expression des runes et `runesDuBuild` omettent les mêmes runes absentes).
+Les six mutations de l'agent (les cinq de la revue et le retrait de la
+publication forcée), rejouées par le pilote sur le code final
+(`node tests/run.mjs resolutiondistante resolutionproducteurpartage`) :
+2, 1, 1, 1, 2 et 6 échecs sur 179, comme rapporté ; restaurées.
+**Mutation du pilote** (le port `publier` du hook rend vrai quand la
+cadence retient) : 1 échec sur 101, le contrôle « rend faux quand la
+cadence retient » ; restauré.
+
+**Écart signalé par l'agent** : le CLI (`recipeToSearchParams.ts` L271) et
+`scripts/lib/relicDifferentiel.ts` L110 gardent leur propre expression des
+runes ; le contrat ne nommait que l'écran. Les brancher sur `runesDuBuild`
+est un petit suivi, à faire avec la livraison si le Worker est gardé.
+
+**Non prouvé** : le hook sous React (contrôles de source seulement) ; la
+publication forcée et le repli au navigateur ; les trois recettes gelées
+avec les nouveaux contrôles de publication.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

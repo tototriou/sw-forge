@@ -100,8 +100,8 @@ Formes : 28903 Dokkaebi Lord †, 28913 Byungchul.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Violent Swing » · 18603 · S1 | Critique garanti, porté par le passif « Full of Spirit (Passive) » 18613 (« Your attacks will always land as a Critical Hit whenever you attack the enemy ») : en « Non critique », le total est celui de « Critique ». | 15d | commit du lot 15d (garanties) | Chemin commun → Byungchul → « Compétence utilisée » → Violent Swing : le résumé du sort dit « Critique garanti », le cran « Non critique » est désactivé ; le total ne bouge pas entre les deux modes. |
-| « Summon Heavenly Kings Gate » · 18608 · S2 | Même garantie, même source (passif 18613). | 15d | commit du lot 15d (garanties) | Même chemin, Summon Heavenly Kings Gate : « Critique garanti » au résumé, « Non critique » désactivé. |
+| « Violent Swing » · 18603 · S1 | Critique garanti, porté par le passif « Full of Spirit (Passive) » 18613 (« Your attacks will always land as a Critical Hit whenever you attack the enemy ») : en « Non critique », le total est celui de « Critique ». | 15d | `292716c2` | Chemin commun → Byungchul → « Compétence utilisée » → Violent Swing : le résumé du sort dit « Critique garanti », le cran « Non critique » est désactivé ; le total ne bouge pas entre les deux modes. |
+| « Summon Heavenly Kings Gate » · 18608 · S2 | Même garantie, même source (passif 18613). | 15d | `292716c2` | Même chemin, Summon Heavenly Kings Gate : « Critique garanti » au résumé, « Non critique » désactivé. |
 
 ### Celine
 
@@ -369,7 +369,7 @@ Formes : 14505 Phoenix †, 14515 Jaara.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Fiery Path (Passive) » · 3216 · S3 | Le critique garanti exige une DEF cible **strictement** inférieure à l'ATQ de combat de Jaara (prose « Defense lower than your Attack Power ») : à l'égalité, plus de garantie. Le jeton du passif disait « ignore DEF si la DEF cible ≤ 1× ton ATQ » ; il dit « critique garanti si la DEF cible < 1× ton ATQ ». | 15d | commit du lot 15d (bornes) | Chemin commun → Jaara → « Passifs offensifs » : le jeton « Fiery Path » dit « critique garanti si la DEF cible < 1× ton ATQ ». En « Non critique », DEF de la cible égale à l'ATQ de combat : le total n'est plus doublé ; un point de DEF de moins : critique. |
+| « Fiery Path (Passive) » · 3216 · S3 | Le critique garanti exige une DEF cible **strictement** inférieure à l'ATQ de combat de Jaara (prose « Defense lower than your Attack Power ») : à l'égalité, plus de garantie. Le jeton du passif disait « ignore DEF si la DEF cible ≤ 1× ton ATQ » ; il dit « critique garanti si la DEF cible < 1× ton ATQ ». | 15d | `b2d44b4d`, `aa052b63` | Chemin commun → Jaara → « Passifs offensifs » : le jeton « Fiery Path » dit « critique garanti si la DEF cible < 1× ton ATQ ». En « Non critique », DEF de la cible égale à l'ATQ de combat : le total n'est plus doublé ; un point de DEF de moins : critique. |
 
 ### Jade
 
@@ -615,7 +615,7 @@ Formes : 31002 Rick †, 31012 Rick.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Shockwave Fist » · 20707 · S2 | Critique garanti contre une cible affligée (« the Critical Rate increases to 100% when attacking an enemy with harmful effects ») : interrupteur « Shockwave Fist (critique garanti) », éteint par défaut, ou Brise DEF / Marque saisies → les deux coups critiques. Nouveau cadre « Prendre en compte les débuffs posés entre les coups », ligne « Réduction de DEF » : posée « Après le coup 1 », le coup 2 seul devient critique (décision de l'utilisateur, A.2 ter) ; la DEF du coup 2 n'est pas réduite. Résumé du sort : « critique garanti si la cible a un débuff ». | 15d | commit du lot 15d (garanties) | Chemin commun → Rick (feu) → « Compétence utilisée » → Shockwave Fist : le résumé, l'interrupteur et le cadre des poses entre les coups. En « Non critique » : interrupteur allumé, les deux coups critiques et « Non critique » désactivé ; interrupteur éteint et pose « Après le coup 1 », seul le second coup critique. |
+| « Shockwave Fist » · 20707 · S2 | Critique garanti contre une cible affligée (« the Critical Rate increases to 100% when attacking an enemy with harmful effects ») : interrupteur « Shockwave Fist (critique garanti) », éteint par défaut, ou Brise DEF / Marque saisies → les deux coups critiques. Nouveau cadre « Prendre en compte les débuffs posés entre les coups », ligne « Réduction de DEF » : posée « Après le coup 1 », le coup 2 seul devient critique (décision de l'utilisateur, A.2 ter) ; la DEF du coup 2 n'est pas réduite. Résumé du sort : « critique garanti si la cible a un débuff ». | 15d | `292716c2` | Chemin commun → Rick (feu) → « Compétence utilisée » → Shockwave Fist : le résumé, l'interrupteur et le cadre des poses entre les coups. En « Non critique » : interrupteur allumé, les deux coups critiques et « Non critique » désactivé ; interrupteur éteint et pose « Après le coup 1 », seul le second coup critique. |
 
 ### Rick (ténèbres)
 
@@ -623,7 +623,7 @@ Formes : 31005 Rick †, 31015 Rick.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Shockwave Fist » · 20710 · S2 | Comme Rick (feu), 20707. | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Rick (ténèbres). |
+| « Shockwave Fist » · 20710 · S2 | Comme Rick (feu), 20707. | 15d | `292716c2` | Comme Rick (feu), sur Rick (ténèbres). |
 
 ### Rick (vent)
 
@@ -631,7 +631,7 @@ Formes : 31003 Rick †, 31013 Rick.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Shockwave Fist » · 20708 · S2 | Comme Rick (feu), 20707 (le `Destroy HP` de 20708 porte 50, hors de ce lot). | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Rick (vent). |
+| « Shockwave Fist » · 20708 · S2 | Comme Rick (feu), 20707 (le `Destroy HP` de 20708 porte 50, hors de ce lot). | 15d | `292716c2` | Comme Rick (feu), sur Rick (vent). |
 
 ### Suiki
 
@@ -697,7 +697,7 @@ Formes : 11535 Varus, 47705 Griffon 2A † (forme générique, non jouable).
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Dark Guardian (Passive) » · 2565 · S3 | Le critique garanti exige une DEF cible **strictement** inférieure à la DEF de combat de Varus, +50 % du passif compris (prose « lower Defense than yours ») : à l'égalité, plus de garantie. Le jeton du passif disait « ignore DEF si la DEF cible ≤ 1× ta DEF » ; il dit « critique garanti si la DEF cible < 1× ta DEF ». | 15d | commit du lot 15d (bornes) | Chemin commun → Varus → « Passifs offensifs » : le jeton « Dark Guardian » dit « critique garanti si la DEF cible < 1× ta DEF ». En « Non critique », DEF de la cible égale à la DEF de combat : le total n'est plus doublé ; un point de moins : critique. |
+| « Dark Guardian (Passive) » · 2565 · S3 | Le critique garanti exige une DEF cible **strictement** inférieure à la DEF de combat de Varus, +50 % du passif compris (prose « lower Defense than yours ») : à l'égalité, plus de garantie. Le jeton du passif disait « ignore DEF si la DEF cible ≤ 1× ta DEF » ; il dit « critique garanti si la DEF cible < 1× ta DEF ». | 15d | `b2d44b4d`, `aa052b63` | Chemin commun → Varus → « Passifs offensifs » : le jeton « Dark Guardian » dit « critique garanti si la DEF cible < 1× ta DEF ». En « Non critique », DEF de la cible égale à la DEF de combat : le total n'est plus doublé ; un point de moins : critique. |
 
 ### Vendhan
 
@@ -730,7 +730,7 @@ Formes : 30402 이타도리 유지(불) †, 30412 Yuji Itadori.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Divergent Fist » · 20107 · S2 | Comme Rick (feu), 20707 : critique garanti contre une cible affligée (interrupteur « Divergent Fist (critique garanti) », Brise DEF ou Marque) ; « Réduction de DEF » posée « Après le coup 1 » dans le cadre des poses entre les coups → le coup 2 seul critique, sa DEF non réduite. Le S3 « Black Flash: Maximum Power » (20112) reste critique garanti sans condition. | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Yuji Itadori (feu), sort Divergent Fist. |
+| « Divergent Fist » · 20107 · S2 | Comme Rick (feu), 20707 : critique garanti contre une cible affligée (interrupteur « Divergent Fist (critique garanti) », Brise DEF ou Marque) ; « Réduction de DEF » posée « Après le coup 1 » dans le cadre des poses entre les coups → le coup 2 seul critique, sa DEF non réduite. Le S3 « Black Flash: Maximum Power » (20112) reste critique garanti sans condition. | 15d | `292716c2` | Comme Rick (feu), sur Yuji Itadori (feu), sort Divergent Fist. |
 
 ### Yuji Itadori (ténèbres)
 
@@ -738,7 +738,7 @@ Formes : 30405 이타도리 유지(어둠) †, 30415 Yuji Itadori.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Divergent Fist » · 20110 · S2 | Comme Yuji Itadori (feu), 20107. | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Yuji Itadori (ténèbres). |
+| « Divergent Fist » · 20110 · S2 | Comme Yuji Itadori (feu), 20107. | 15d | `292716c2` | Comme Rick (feu), sur Yuji Itadori (ténèbres). |
 
 ### Yuji Itadori (vent)
 
@@ -746,7 +746,7 @@ Formes : 30403 이타도리 유지(바람) †, 30413 Yuji Itadori.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Divergent Fist » · 20108 · S2 | Comme Yuji Itadori (feu), 20107. Témoin du lot (1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000, « Non critique ») : 848,5 sans débuff, 1 272,8 avec la pose après le coup 1, 1 697,1 interrupteur allumé. | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Yuji Itadori (vent). |
+| « Divergent Fist » · 20108 · S2 | Comme Yuji Itadori (feu), 20107. Témoin du lot (1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000, « Non critique ») : 848,5 sans débuff, 1 272,8 avec la pose après le coup 1, 1 697,1 interrupteur allumé. | 15d | `292716c2` | Comme Rick (feu), sur Yuji Itadori (vent). |
 
 ## 2. Changements transverses (tous les monstres)
 

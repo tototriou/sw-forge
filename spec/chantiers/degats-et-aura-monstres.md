@@ -84,7 +84,7 @@ Formes : 29704 Magic Order Swordsinger †, 29714 Birgitta.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Turning Slash (Passive) » · 19414 · S3 | Nouveau compteur « Cumuls de Turning Slash » (0 à 5) : chaque cumul ajoute +50 de VIT en points (« increases your Attack Speed by 50 each, up to 250 »), à 0 par défaut. La VIT de combat change le S1 « Double Gash » (`{SPD}`) ; au témoin (ATQ 1 000, VIT 200), le S1 passe de 2 056,44 à 3 038,55 avec 5 cumuls. | 15e | commit du lot 15e | Chemin commun → Birgitta → « Stats acquises en combat » : un compteur « Cumuls de Turning Slash » sans en-tête ni prose (le bloc « Passifs offensifs » les rend déjà) ; S1 choisi, le total monte à chaque cumul, et plus au-delà de 5. |
+| « Turning Slash (Passive) » · 19414 · S3 | Nouveau compteur « Cumuls de Turning Slash » (0 à 5) : chaque cumul ajoute +50 de VIT en points (« increases your Attack Speed by 50 each, up to 250 »), à 0 par défaut. La VIT de combat change le S1 « Double Gash » (`{SPD}`) ; au témoin (ATQ 1 000, VIT 200), le S1 passe de 2 056,44 à 3 038,55 avec 5 cumuls. | 15e | `6c2b593e` | Chemin commun → Birgitta → « Stats acquises en combat » : un compteur « Cumuls de Turning Slash » sans en-tête ni prose (le bloc « Passifs offensifs » les rend déjà) ; S1 choisi, le total monte à chaque cumul, et plus au-delà de 5. |
 
 ### Bolverk
 
@@ -178,7 +178,7 @@ Formes : 29304 시리(빛) †, 29314 Ciri.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Flash Step (Passive) » · 19014 · S3 | Nouveau compteur « Cumuls de Flash Step » (0 à 5) : chaque cumul ajoute +50 de VIT en points (« increases your Attack Speed by 50 each, up to 250 »), à 0 par défaut. La VIT de combat change le S1 « Slash » (`{SPD}`) ; au témoin (ATQ 1 000, VIT 200), le S1 passe de 2 056,44 à 3 038,55 avec 5 cumuls. | 15e | commit du lot 15e | Chemin commun → Ciri (lumière) → « Stats acquises en combat » : un compteur « Cumuls de Flash Step » sans en-tête ni prose (le bloc « Passifs offensifs » les rend déjà) ; S1 choisi, le total monte à chaque cumul, et plus au-delà de 5. |
+| « Flash Step (Passive) » · 19014 · S3 | Nouveau compteur « Cumuls de Flash Step » (0 à 5) : chaque cumul ajoute +50 de VIT en points (« increases your Attack Speed by 50 each, up to 250 »), à 0 par défaut. La VIT de combat change le S1 « Slash » (`{SPD}`) ; au témoin (ATQ 1 000, VIT 200), le S1 passe de 2 056,44 à 3 038,55 avec 5 cumuls. | 15e | `6c2b593e` | Chemin commun → Ciri (lumière) → « Stats acquises en combat » : un compteur « Cumuls de Flash Step » sans en-tête ni prose (le bloc « Passifs offensifs » les rend déjà) ; S1 choisi, le total monte à chaque cumul, et plus au-delà de 5. |
 
 ### Conrad
 
@@ -705,7 +705,7 @@ Formes : 34205 Justice †, 34215 Theonia.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Summary Justice » · 23515 · S3 | +100 % de dégâts quand l'ATQ ennemie saisie est strictement inférieure à l'ATQ du build (« For enemies with Attack Power lower than yours ») ; le champ « ATQ adverse » s'ouvre pour ce sort. Au témoin (ATQ 1 000), 1 832,84 contre une ATQ ennemie de 1 000, 3 665,68 contre 999. La clause de VIT (« Attack Speed lower than yours ») reste non comptée. | 15e | commit du lot 15e | Chemin commun → Theonia → « Compétence utilisée » → Summary Justice : un champ « ATQ adverse » (1 000 par défaut) ; sous l'ATQ du build, le total double ; à l'égalité ou au-dessus, rien. |
+| « Summary Justice » · 23515 · S3 | +100 % de dégâts quand l'ATQ ennemie saisie est strictement inférieure à l'ATQ du build (« For enemies with Attack Power lower than yours ») ; le champ « ATQ adverse » s'ouvre pour ce sort. Au témoin (ATQ 1 000), 1 832,84 contre une ATQ ennemie de 1 000, 3 665,68 contre 999. La clause de VIT (« Attack Speed lower than yours ») reste non comptée. | 15e | `404472a3` | Chemin commun → Theonia → « Compétence utilisée » → Summary Justice : un champ « ATQ adverse » (1 000 par défaut) ; sous l'ATQ du build, le total double ; à l'égalité ou au-dessus, rien. |
 
 ### Valdemar
 

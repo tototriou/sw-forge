@@ -394,8 +394,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b11 (même occasion : la page affichée, 2026-10-02)
         → 6bis-b12 (mesure, critère de b11 non tenu)
         → 6bis-b13 (coût par build, décision de l'utilisateur)
-        → 6bis-b13bis (Worker de résolution, seulement si le critère de
-          bascule de b13 est atteint)
+        → 6bis-b13bis (Worker de résolution, seulement si l'utilisateur,
+          à l'essai de b13, juge les saccades encore gênantes)
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -673,7 +673,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b11 — la page affichée se résout sans attendre l'inactivité | J | code validé par le pilote ; **critère non tenu au navigateur** (saccades, page lente) ; mesure 6bis-b12 avant correction | `bfe6f6d7` ; reçu `bfe6f6d` ↔ `f17ad7e` / 2026-10-02 |
 | 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | terminé, chiffres recoupés par le pilote : la résolution sature (66 %), pas le tri | reçu `f0e77a4` ↔ `a4b54d7` / 2026-10-02 |
 | 6bis-b13 — la résolution d'un build coûte moins, à résultat identique | J | lançable ; mesure au créneau de l'utilisateur | — |
-| 6bis-b13bis — Worker de résolution | J | conditionnel : seulement si le critère de bascule de b13 est atteint | — |
+| 6bis-b13bis — Worker de résolution | J | conditionnel : seulement si l'utilisateur, à l'essai de b13, juge les saccades encore gênantes | — |
 | 7 — sets d'aura : l'écran | J | attend 6bis-b13 (et b13bis s'il a lieu) ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -4817,9 +4817,10 @@ alors qu'il semble ne dépendre que des deux pièces : à vérifier.
 - **Mesure au navigateur, au créneau de l'utilisateur** : `mesure-saccades.mjs`
   rejoué en version construite, conditions A (après) et C au moins, à
   comparer aux chiffres de b12.
-- **Critère de bascule vers le Worker (6bis-b13bis)**, proposé par le pilote
-  : en version construite, part du fil en tâches longues au-dessus de 25 %
-  pendant la recherche, ou page 1 résolue en plus de 3 s.
+- **Bascule vers le Worker (6bis-b13bis) : décision de l'utilisateur, sur
+  son ressenti à l'essai** (2026-10-02), la mesure ci-dessus servant
+  d'éclairage ; aucun seuil chiffré. L'essai se fait sur la version
+  construite servie localement, que le pilote ouvre après validation.
 
 **Preuves.**
 
@@ -4836,8 +4837,8 @@ voies de la file.
 
 ##### 6bis-b13bis — Worker de résolution (conditionnel)
 
-**Cat. J ; requiert b13, et seulement si son critère de bascule est
-atteint.** La résolution sort du fil de l'écran : la page affichée d'abord,
+**Cat. J ; requiert b13, et seulement si l'utilisateur, à l'essai, juge
+les saccades encore gênantes.** La résolution sort du fil de l'écran : la page affichée d'abord,
 puis le fond. Contrat à écrire alors, avec une mesure processeur bridé
 (approche d'un téléphone) : un fil de plus à côté des 7 de la recherche.
 

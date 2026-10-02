@@ -136,6 +136,7 @@ import {
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
+import { classeMessageImport, delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
 import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
 import {
   ArtifactMainChoice,
@@ -1877,11 +1878,16 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // jamais mettre à jour l'état, donc le champ contrôlé revenait TOUJOURS
   // à l'ancien chiffre, rendant impossible de le vider avant de retaper.
   const [pageDraft, setPageDraft] = useState<string | null>(null);
-  const [importMsg, setImportMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [importMsg, setImportMsg] = useState<MessageImport | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!importMsg) return;
-    const t = setTimeout(() => setImportMsg(null), importMsg.error ? 9000 : 5000);
+    // Un message porteur d'un avertissement de conversion n'a pas de délai
+    // (`null`) : il reste jusqu'au prochain import (lot CM, décision du
+    // 2026-10-02) — voir `delaiEffacementImport` (messageImport.ts).
+    const delai = delaiEffacementImport(importMsg);
+    if (delai === null) return;
+    const t = setTimeout(() => setImportMsg(null), delai);
     return () => clearTimeout(t);
   }, [importMsg]);
 
@@ -2138,6 +2144,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // → « Critique », degats-et-aura lot CM) se dit aussi, mot pour mot
         // comme le CLI (`chargerRecette`) : jamais une conversion silencieuse.
         + (avertissements ?? []).map((a) => ` ${a}`).join('');
+      // Un avertissement de conversion change le TON et la DURÉE du message :
+      // token `warn`, sans effacement automatique (`messageImport.ts`).
+      const avecAvertissement = (avertissements ?? []).length > 0;
       // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
       // monstres possédés — la recherche « Monstre à optimiser » couvre
       // désormais tout le bestiaire (voir Question 1 du cadrage), donc une
@@ -2161,7 +2170,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // (même source que `pickSpecies`), jamais une constante — seulement
         // si la recette ne porte pas le champ (`relicMainResolu` absent).
         setRelicMainChoice(relicMainResolu ?? defaultRelicMainChoice(boxCandidates[0]?.gear.relic));
-        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}` });
+        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}`, avertissement: avecAvertissement });
       } else {
         // Cas limite : le `com2usId` de la recette ne correspond à AUCUN
         // monstre des données actuellement chargées (ex. retiré du jeu) —
@@ -2174,6 +2183,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         setRelicMainChoice(relicMainResolu ?? 'libre');
         setImportMsg({
           text: `Réglages importés (${recipe.monsterName}), mais ce monstre est introuvable dans les données actuelles — choisis-en un manuellement.${suffixeLocks}`,
+          avertissement: avecAvertissement,
         });
       }
     });
@@ -4937,7 +4947,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       </div>
 
       {importMsg && (
-        <p className={`text-[12.5px] ${importMsg.error ? 'text-bad' : 'text-good'}`} role="status">
+        <p className={`text-[12.5px] ${classeMessageImport(importMsg)}`} role="status">
           {importMsg.text}
         </p>
       )}

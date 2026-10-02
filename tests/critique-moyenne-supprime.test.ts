@@ -17,6 +17,7 @@ import { egal, ok, titre, monstersJson } from './outils';
 import { AVERTISSEMENT_CRIT_MOYENNE, buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { CRIT_MODE_LABELS, DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { chargerRecette } from '../scripts/lib/chargerRecette';
+import { classeMessageImport, delaiEffacementImport } from '../src/lib/messageImport';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 // Monstre de l'export miniature (unité 101), résolu par son nom comme le CLI.
@@ -83,6 +84,46 @@ export function testCritiqueMoyenneImport() {
   const reexportee = JSON.stringify(buildOptimizerRecipe({ ...lue.recipe! }));
   ok(!reexportee.includes('moyenne'), 'la recette convertie, réexportée, ne contient plus « moyenne »');
   egal(JSON.parse(reexportee).damageSetup.critMode, 'crit', '… elle porte « crit »');
+}
+
+// Décision de l'utilisateur du 2026-10-02 : le message porteur d'un
+// avertissement de conversion prend le token `warn` et ne s'efface plus après
+// 5 s — il reste jusqu'au prochain import (réussi ou refusé), qui le
+// remplace ; le message ordinaire garde sa minuterie.
+export function testCritiqueMoyenneMessageImport() {
+  titre('Coup critique — message d’import porteur d’un avertissement : token warn, sans effacement automatique (lot CM)');
+
+  egal(
+    [classeMessageImport({ text: 'x', avertissement: true }), delaiEffacementImport({ text: 'x', avertissement: true })],
+    ['text-warn', null],
+    'avertissement : token warn, jamais effacé par une minuterie'
+  );
+  egal(
+    [classeMessageImport({ text: 'x' }), delaiEffacementImport({ text: 'x' })],
+    ['text-good', 5000],
+    'succès ordinaire : inchangé (good, 5 s)'
+  );
+  egal(
+    [classeMessageImport({ text: 'x', error: true }), delaiEffacementImport({ text: 'x', error: true })],
+    ['text-bad', 9000],
+    'refus : inchangé (bad, 9 s)'
+  );
+
+  const source = readFileSync(resolve(racine, 'src/components/outils/OptimizerSection.tsx'), 'utf8').replace(/\r\n/g, '\n');
+  const debut = source.indexOf('function importRecipe');
+  const importRecipe = source.slice(debut, source.indexOf('\n  }\n', debut));
+  ok(importRecipe.includes('const avecAvertissement = (avertissements ?? []).length > 0;'), 'écran : le message est marqué dès que le parseur a converti quelque chose');
+  egal((importRecipe.match(/avertissement: avecAvertissement/g) ?? []).length, 2, 'écran : les deux branches d’un import réussi portent la marque');
+  ok(
+    /const delai = delaiEffacementImport\(importMsg\);\n\s*if \(delai === null\) return;\n\s*const t = setTimeout\(\(\) => setImportMsg\(null\), delai\);/.test(source),
+    'écran : la minuterie suit `delaiEffacementImport` et ne programme rien pour un avertissement'
+  );
+  ok(source.includes('className={`text-[12.5px] ${classeMessageImport(importMsg)}`}'), 'écran : la couleur du message vient de `classeMessageImport`');
+  // « Jusqu'au prochain import » : seuls les trois messages de `importRecipe`
+  // (refus, monstre trouvé, monstre introuvable) et la minuterie écrivent
+  // l'état — un nouvel import, réussi ou non, remplace donc l'avertissement.
+  egal((source.match(/setImportMsg\(/g) ?? []).length, 4, 'écran : seuls les trois messages d’import et la minuterie écrivent le message');
+  egal((importRecipe.match(/setImportMsg\(/g) ?? []).length, 3, '… dont les trois de `importRecipe` (refus compris)');
 }
 
 export function testCritiqueMoyenneEcranEtCli() {

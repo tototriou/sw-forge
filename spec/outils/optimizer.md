@@ -1694,6 +1694,14 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     (chemin du champ, ancienne et nouvelle valeur), que l'écran ajoute au
     message d'import et que le CLI imprime (`chargerRecette`) ; toute autre
     valeur inconnue reste refusée, et l'export n'écrit jamais « moyenne ».
+    Le message d'import qui porte un tel avertissement prend le token
+    d'avertissement (`warn`, jamais `good`) et **ne s'efface pas tout
+    seul** : il reste jusqu'au prochain import de recette, réussi ou
+    refusé, qui le remplace (décision de l'utilisateur du 2026-10-02). Le
+    message ordinaire (succès sans avertissement) s'efface après 5 s, le
+    refus après 9 s (`messageImport.ts`). Le message vit dans le flux, sous
+    la barre Rechercher / Exporter / Importer : le bouton cliqué, au-dessus,
+    ne bouge pas.
 12. **Barre de progression** — se remplit progressivement (pas une roue qui
     tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
     suivi d'un message **en gras, couleur dorée** (même que le rang `#X`

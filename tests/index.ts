@@ -61,7 +61,7 @@ import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
 import testDegats, { testFormesEquivalentes } from './degats.test';
 import testAuditDegatsConditionnels from './audit-degats-conditionnels.test';
-import { testCritiqueMoyenneImport, testCritiqueMoyenneEcranEtCli } from './critique-moyenne-supprime.test';
+import { testCritiqueMoyenneImport, testCritiqueMoyenneEcranEtCli, testCritiqueMoyenneMessageImport } from './critique-moyenne-supprime.test';
 import {
   testDegatsTempestFormule,
   testDegatsTempestDeclenchement,
@@ -212,6 +212,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAuditDegatsConditionnels', testAuditDegatsConditionnels],
   ['testCritiqueMoyenneImport', testCritiqueMoyenneImport],
   ['testCritiqueMoyenneEcranEtCli', testCritiqueMoyenneEcranEtCli],
+  ['testCritiqueMoyenneMessageImport', testCritiqueMoyenneMessageImport],
   ['testDegatsBladeSurge', testDegatsBladeSurge],
   ['testBladeSurgeRecette', testBladeSurgeRecette],
   ['testBladeSurgeEcran', testBladeSurgeEcran],

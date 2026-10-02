@@ -2433,8 +2433,9 @@ donc aucune heuristique à valider — voir
 noter les candidats, avant qu'aucun build n'existe : elle en **suppose** une
 (la meilleure pour l'équipement affiché, sous les mêmes contraintes). Puis,
 **pendant que la recherche tourne**, les meilleurs builds reçoivent chacun
-leur vraie paire, sur le fil principal : la page affichée sans attendre, les
-autres sur le temps d'inactivité (voir plus bas) — l'ordre d'appariement étant
+leur vraie paire, hors du fil de l'écran, dans un Worker dédié — la page
+affichée d'abord, puis les autres ; sur le fil principal seulement en repli
+(voir plus bas) — l'ordre d'appariement étant
 piloté par l'objectif, les bons builds sortent en quelques secondes là où la
 recherche s'écoule sur plusieurs minutes.
 
@@ -2490,14 +2491,57 @@ La voie ne change ni les builds traités ni leur ordre (`prochainsATraiter`) :
 le travail total est le même, la voie prioritaire est bornée à la page. Les
 résultats se publient toujours au plus toutes les 400 ms, et tout de suite
 quand le dernier build non résolu de la page vient de l'être. La recherche
-elle-même tourne dans des Workers ; la file reste sur le fil principal, où
-la voie de la page accepte le coût de ses tranches pour une page au plus.
-**Non mesuré** : le délai de résolution de la page au navigateur, le gel
-éventuel de l'interface et ce que la voie prioritaire coûte à la recherche.
-Décision de l'utilisateur du 2026-10-02 : un Worker dédié à la résolution
-seulement si, pendant une recherche, la page affichée met encore plus de
-quelques secondes à se résoudre ou si la barre de progression gèle
-visiblement.
+elle-même tourne dans des Workers ; sur ce chemin, la file reste sur le fil
+principal, où la voie de la page accepte le coût de ses tranches pour une
+page au plus. Mesuré au navigateur depuis (6bis-b12, puis 6bis-b13) : la
+résolution y saturait le fil de l'écran — chaque build une tâche de 35 à
+100 ms. **Ces deux voies sont devenues le chemin de REPLI** du Worker de
+résolution (paragraphe suivant), inchangées.
+
+**La résolution tourne hors du fil de l'écran** (degats-et-aura
+6bis-b13bis-b, décision de l'utilisateur du 2026-10-02 : « Dégâts réels »
+restait trop lent après 6bis-b13). La file confie chaque build à un Worker
+dédié (`resolution.worker.ts`, corps `CorpsResolution`), qui exécute la
+MÊME résolution (`entreeResolutionDuBuild` puis
+`resoudreEquipementDuBuild`) ; le fil de l'écran ne résout plus rien.
+
+- **La priorité reste sur le fil de l'écran** : la file choisit toujours le
+  build suivant par `prochainsATraiter` (page affichée d'abord, puis les K
+  premiers) et n'envoie au Worker qu'**au plus deux demandes sans
+  réponse** ; le Worker les traite dans l'ordre reçu, une à la fois. Un
+  changement de page **annule** les demandes pas encore commencées (jamais
+  la plus ancienne en vol, sans doute commencée, dont le résultat reste bon
+  à prendre). Ni les builds traités, ni leur ordre, ni K, ni le compte
+  affiché ne changent.
+- **Le contexte** (fiche, inventaire d'artéfacts et réglages de paires sans
+  leur fonction de note, régime, contexte de dégâts, assiette des effets
+  uniques, conditions, contexte relique de la recherche lancée) part UNE
+  fois, puis à chaque changement de la signature des réglages ou de ses
+  entrées — seulement quand il y a des builds à résoudre : changer un
+  réglage sans recherche n'envoie rien. Il est construit par
+  `entreesSerialisables`, à partir des mêmes arguments que la résolution du
+  fil de l'écran. Chaque demande porte les runes de son build.
+- **Une réponse périmée n'est jamais écrite dans le cache** : celle d'un
+  contexte remplacé — reconnue à son identifiant de contexte, et, entre le
+  rendu qui change un réglage et le renvoi du contexte, à l'identité des
+  entrées et de la signature — ou d'une demande annulée. Elle libère
+  seulement sa place en vol.
+- **Repli** : un Worker impossible à créer, qui lève, dont une réponse est
+  illisible, ou dont la résolution a levé, est journalisé dans la console
+  (jamais en silence), terminé, et la file reprend sur le fil principal par
+  les deux voies ci-dessus, avec le cache tel qu'il est — rien de déjà
+  résolu n'est perdu. Le repli dure jusqu'au démontage de l'écran.
+- **Un seul Worker pour la vie de l'écran Optimizer**, créé au premier
+  besoin et terminé au démontage — jamais un par recherche ni par rendu.
+
+Toute cette logique du côté de l'écran (quoi envoyer, annuler, ignorer,
+quand renoncer, quand publier) vit dans un module pur testé en Node,
+`ResolutionDistante` (resolutionDistante.ts) ; le hook de la file ne fait
+que le brancher. Preuve : une file simulée — ce module, le corps derrière
+`structuredClone`, des entrelacements aléatoires de messages, de pages, de
+candidats et de contextes — remplit un cache identique à la résolution
+directe, sur les fixtures et sur les trois recettes de référence
+(`tests/resolution-distante.test.ts`, preuve du lot).
 
 **Les builds d'une file partagent ce qui ne dépend pas d'eux**
 (degats-et-aura 6bis-b13). Mesuré sur la recette « Dégâts réels » de
@@ -2528,7 +2572,8 @@ distinctes. Trois mémoires et un tri différé, sans changer aucun résultat :
 Chaque mémoire est bornée (16 384 profils, 64 listes, 256 tableaux, 64
 apports) et se vide d'un coup à sa borne. Leur durée de vie est celle d'une
 file : l'écran les recrée avec la signature des réglages et les paramètres
-de paires (donc l'inventaire), le CLI une fois par recette — jamais un état
+de paires (donc l'inventaire), le Worker de résolution à chaque contexte
+reçu, le CLI une fois par recette — jamais un état
 global qu'un nouvel inventaire laisserait périmé. Ce qu'elles rendent est
 partagé : à lire, jamais à modifier.
 

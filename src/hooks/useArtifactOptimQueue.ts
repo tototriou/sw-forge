@@ -1,48 +1,43 @@
 // Optimise les artéfacts des meilleurs builds PENDANT que la recherche de
-// runes tourne, sur le fil principal, par DEUX VOIES (degats-et-aura 6bis-b11) :
+// runes tourne. Deux chemins, un seul cache :
 //
-//  - la PAGE AFFICHÉE, par une tâche immédiate (`planifierImmediat`) : tant
-//    qu'elle contient un build non résolu, la tranche suivante part sans
-//    attendre l'inactivité ;
-//  - l'avance de FOND (les K premiers hors page), sur le temps d'inactivité
-//    (`planifierInactif`), comme avant.
+// 1. **Le Worker de résolution** (degats-et-aura 6bis-b13bis-b), quand il est
+//    disponible : le fil de l'écran ne résout plus RIEN. Il choisit quoi
+//    résoudre (`prochainsATraiter`, page affichée d'abord), envoie au plus
+//    deux demandes à la fois à `resolution.worker.ts` et range les réponses
+//    dans le cache. Toute cette logique — quoi envoyer, annuler, ignorer, quand
+//    renoncer — vit dans un module pur testé en Node (`ResolutionDistante`,
+//    resolutionDistante.ts) ; ce hook ne fait que la brancher.
+// 2. **Le chemin direct, en REPLI** : Worker impossible à créer, qui lève, ou
+//    réponse d'erreur → l'erreur est journalisée, le Worker terminé, et la
+//    file reprend sur le fil principal, avec le cache tel qu'il est (rien de
+//    déjà résolu n'est perdu), par les DEUX VOIES de 6bis-b11 :
+//     - la PAGE AFFICHÉE, par une tâche immédiate (`planifierImmediat`) : tant
+//       qu'elle contient un build non résolu, la tranche suivante part sans
+//       attendre l'inactivité ;
+//     - l'avance de FOND (les K premiers hors page), sur le temps d'inactivité
+//       (`planifierInactif`).
+//    La voie se décide par une fonction pure, testée sans navigateur
+//    (`voieDeLaFile`, artifactQueue.ts). Elle ne change ni QUI est traité ni
+//    dans quel ordre (`prochainsATraiter`), seulement QUAND.
 //
-// La voie se décide par une fonction pure, testée sans navigateur
-// (`voieDeLaFile`, artifactQueue.ts). Elle ne change ni QUI est traité ni dans
-// quel ordre (`prochainsATraiter`), seulement QUAND : le travail total est le
-// même, et la voie prioritaire est bornée à la page (20 builds).
-//
-// Pourquoi deux voies : pendant une recherche, l'écran reçoit la progression
-// toutes les 150 ms et retrie l'aperçu. Il est rarement inactif, et chaque
-// build de la page attendait jusqu'à une seconde (`timeout` de
-// `requestIdleCallback`), alors qu'il coûte peu (8 ms pour la recette Kinki au
-// CLI, ~77 ms en « Dégâts réels », artéfacts « Libre », 4 reliques). Constat
-// de l'utilisateur au navigateur, le 2026-10-02.
-//
-// ⚠️ **Pourquoi le fil principal et pas un Worker.** La recherche, elle, tourne
-// déjà dans des Workers : le coordinateur (`runeBuildOptim.worker.ts`), qui
-// lance les deux constructions de demi-builds puis, au-delà du seuil,
-// `PARALLEL_PAIRING_WORKERS = 4` fils d'appariement — 5 fils au pic. Un de plus
-// aggraverait la concurrence, et il faudrait sérialiser tout l'inventaire
-// d'artéfacts (~2 500 pièces) à chaque recherche. La file reste donc sur le
-// fil principal, où le vrai risque immédiat n'est pas les cœurs mais le JANK :
-// une tranche de 74 ms y fige la barre de progression et l'aperçu en direct.
-// Les deux voies rendent la main au navigateur entre deux builds ; la voie de
-// la page accepte ce coût pour une page au plus, l'inactivité ne protège plus
-// que l'avance de fond. Décision de l'utilisateur du 2026-10-02 : cette
-// solution d'abord ; un Worker dédié à la résolution si, pendant une
-// recherche, la page affichée met encore plus de quelques secondes à se
-// résoudre ou si la barre de progression gèle visiblement.
-//
-// ⚠️ **Non mesuré** : ni le délai de résolution de la page au navigateur, ni
-// le gel éventuel de l'interface, ni ce que la voie prioritaire coûte à la
-// recherche — seul le navigateur le montre. Aucune API JavaScript ne permet de
-// choisir un cœur : la seule vérification honnête est de MESURER si la
-// recherche ralentit, dos à dos — pas de supposer que le temps est masqué.
+// Pourquoi le Worker : mesuré au navigateur (6bis-b12, puis 6bis-b13), la
+// résolution saturait le fil de l'écran pendant une recherche — chaque build
+// une tâche de 35 à 100 ms, la barre de progression et le compte saccadaient.
+// Les deux voies du chemin direct rendaient la main entre deux builds, mais ne
+// rendaient pas un build moins long ; décision de l'utilisateur du 2026-10-02 :
+// le Worker. Ce qu'il coûte — un fil de plus pendant la recherche, qui tourne
+// déjà dans des Workers (coordinateur, deux constructions, jusqu'à quatre fils
+// d'appariement), et l'envoi du contexte (tout l'inventaire d'artéfacts) à
+// chaque changement de réglage — est MESURÉ dans la preuve du lot, pas
+// supposé : aucune API JavaScript ne permet de choisir un cœur.
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { RuneDetail } from '../types';
 import { BuildCandidate } from '../lib/runeBuildOptim';
 import { ResultatArtefacts, cleBuild, prochainsATraiter, voieDeLaFile } from '../lib/artifactQueue';
+import { EntreesResolutionSerialisables, ReponseResolution } from '../workers/resolutionBody';
+import { PortsResolutionDistante, ResolutionDistante } from '../workers/resolutionDistante';
 
 /**
  * Intervalle minimal entre deux PUBLICATIONS du cache à l’écran.
@@ -118,6 +113,29 @@ export interface UseArtifactOptimQueue {
   enAttente: number;
 }
 
+/**
+ * La résolution HORS du fil de l'écran : les entrées du contexte, en données
+ * (`entreesSerialisables`, resolutionBody.ts — les mêmes arguments que
+ * `resoudre`, `evaluer` retiré), et les runes d'un build.
+ *
+ * ⚠️ `entrees` est comparé par IDENTITÉ : un nouvel objet = un nouveau
+ * contexte envoyé au Worker (tout l'inventaire d'artéfacts). L'appelant le
+ * mémoïse sur les mêmes dépendances que `resoudre`.
+ */
+export interface ResolutionHorsFil {
+  entrees: EntreesResolutionSerialisables;
+  runesDe: (c: BuildCandidate) => RuneDetail[];
+}
+
+// Le Worker de résolution et la logique côté écran qui va avec — un seul pour
+// la vie du hook. `surReponse` est rebranché par l'effet actif ; hors effet,
+// une réponse libère seulement sa place en vol.
+type Distant = {
+  worker: Worker;
+  pilote: ResolutionDistante;
+  surReponse: (r: ReponseResolution) => void;
+};
+
 export function useArtifactOptimQueue(opts: {
   // Candidats DÉJÀ TRIÉS par l'objectif (via `sortCandidates`).
   triees: readonly BuildCandidate[];
@@ -156,10 +174,24 @@ export function useArtifactOptimQueue(opts: {
   // 100 sinon. Obligatoire, sans défaut : un appel qui l'oublierait garderait
   // 100 en mode « recherche » sans que `tsc` le voie (6bis-b8).
   K: number;
+  /**
+   * La résolution hors du fil de l'écran (6bis-b13bis-b) — `null` quand
+   * `resoudre` l'est. Obligatoire, sans défaut : un appel qui l'oublierait
+   * résoudrait tout sur le fil de l'écran sans que `tsc` le voie.
+   */
+  horsFil: ResolutionHorsFil | null;
 }): UseArtifactOptimQueue {
-  const { triees, pageAffichee, resoudre, signature, K } = opts;
+  const { triees, pageAffichee, signature, K, horsFil } = opts;
   const [parBuild, setParBuild] = useState<ReadonlyMap<string, ResultatArtefacts>>(new Map());
   const [enAttente, setEnAttente] = useState(0);
+
+  // ⚠️ **Le repli est DÉFINITIF pour la vie du hook** : un Worker qui a manqué
+  // une fois (création, erreur, réponse d'erreur) n'est pas relancé.
+  const [enRepli, setEnRepli] = useState(false);
+  const modeHorsFil = horsFil !== null && opts.resoudre !== null && !enRepli;
+  // ⚠️ En mode Worker, le chemin direct DORT : son `resoudre` est nul, son
+  // effet ne programme rien. Le repli le réveille en lui rendant `resoudre`.
+  const resoudre = modeHorsFil ? null : opts.resoudre;
 
   // ⚠️ Les valeurs volatiles passent par des refs : la boucle est
   // relancée à chaque tranche et doit voir l'état FRAIS sans que sa
@@ -295,6 +327,101 @@ export function useArtifactOptimQueue(opts: {
     // s'est endormie faute de travail.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resoudre, signature, K]);
+
+  /* ── Le chemin Worker (6bis-b13bis-b) ─────────────────────────────────── */
+
+  const horsFilRef = useRef(horsFil);
+  const signatureRef = useRef(signature);
+  horsFilRef.current = horsFil;
+  signatureRef.current = signature;
+  const distantRef = useRef<Distant | null>(null);
+
+  // ⚠️ Toute défaillance du Worker est JOURNALISÉE, jamais tue ; il est
+  // terminé, et le chemin direct reprend avec le cache tel qu'il est. Ne lit
+  // que des refs et un setter stable : la version capturée par les
+  // gestionnaires du Worker à sa création reste juste.
+  const basculerEnRepli = useCallback((raison: string, detail: unknown) => {
+    console.error(`File de résolution : ${raison} — repli sur le fil de l’écran (degats-et-aura 6bis-b13bis-b).`, detail);
+    const d = distantRef.current;
+    distantRef.current = null;
+    if (d) {
+      d.pilote.renoncer();
+      d.worker.terminate();
+    }
+    setEnRepli(true);
+  }, []);
+
+  // ⚠️ **Un seul Worker pour la vie du hook**, terminé au démontage — jamais un
+  // par recherche ni par rendu. Créé au premier besoin (effet ci-dessous).
+  useEffect(
+    () => () => {
+      distantRef.current?.worker.terminate();
+      distantRef.current = null;
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!modeHorsFil) return;
+    // Hors d'un effet actif, une réponse libère sa place en vol, rien n'est
+    // écrit ; une réponse d'erreur fait quand même renoncer.
+    const reponseAuRepos = (pilote: ResolutionDistante, r: ReponseResolution) => {
+      const issue = pilote.recevoir(r, null, null);
+      if (issue.issue === 'erreur') basculerEnRepli(`la résolution a levé dans le Worker (${issue.nom})`, issue.message);
+    };
+    let d = distantRef.current;
+    if (!d) {
+      try {
+        const worker = new Worker(new URL('../workers/resolution.worker.ts', import.meta.url), { type: 'module' });
+        const pilote = new ResolutionDistante();
+        const cree: Distant = { worker, pilote, surReponse: (r) => reponseAuRepos(pilote, r) };
+        worker.onmessage = (e: MessageEvent<ReponseResolution>) => cree.surReponse(e.data);
+        worker.onerror = (e: ErrorEvent) => basculerEnRepli('erreur dans le Worker', e.message || e);
+        worker.onmessageerror = (e: MessageEvent) => basculerEnRepli('réponse du Worker illisible', e);
+        distantRef.current = d = cree;
+      } catch (err) {
+        basculerEnRepli('Worker impossible à créer', err);
+        return;
+      }
+    }
+    const distant = d;
+    let vivant = true;
+    let dernierePublication = 0;
+    const ports: PortsResolutionDistante = {
+      courant: () => {
+        const h = horsFilRef.current;
+        return h ? { entrees: h.entrees, signature: signatureRef.current } : null;
+      },
+      runesDe: (c) => horsFilRef.current?.runesDe(c) ?? [],
+      restants: () => prochainsATraiter(trieesRef.current, new Set(cacheRef.current.keys()), K, pageRef.current()),
+      page: () => pageRef.current(),
+      cache: () => cacheRef.current,
+      envoyer: (m) => distant.worker.postMessage(m),
+      // Même cadence que le chemin direct (voir `PUBLICATION_MS`).
+      publier: (forcer) => {
+        const now = Date.now();
+        if (!forcer && now - dernierePublication < PUBLICATION_MS) return;
+        dernierePublication = now;
+        setParBuild(new Map(cacheRef.current));
+      },
+      enAttente: (n) => setEnAttente(n),
+      repli: basculerEnRepli,
+    };
+    distant.surReponse = (r) => {
+      if (vivant) distant.pilote.surReponse(r, ports);
+      else reponseAuRepos(distant.pilote, r);
+    };
+    const pomper = () => {
+      if (vivant) distant.pilote.pomper(ports);
+    };
+    pomper();
+    reveillerRef.current = pomper;
+    return () => {
+      vivant = false;
+      distant.surReponse = (r) => reponseAuRepos(distant.pilote, r);
+      if (reveillerRef.current === pomper) reveillerRef.current = null;
+    };
+  }, [modeHorsFil, signature, K, basculerEnRepli]);
 
   // ⚠️ **Le réveil, à chaque rendu.** La boucle s'endort dès qu'elle n'a plus
   // rien à traiter ; il faut donc la relancer quand de nouveaux candidats

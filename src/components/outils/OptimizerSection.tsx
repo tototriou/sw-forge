@@ -27,7 +27,8 @@ import { classementResolu, cleBuild, compteAffichable, kDeLaFile, signatureArtef
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
-import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
+import { useArtifactOptimQueue, type ResolutionHorsFil } from '../../hooks/useArtifactOptimQueue';
+import { entreesSerialisables } from '../../workers/resolutionBody';
 import {
   bornesArtefacts,
   chercherPaires,
@@ -2198,6 +2199,34 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       );
   }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche, cachesResolution]);
 
+  // La MÊME résolution, hors du fil de l'écran (6bis-b13bis-b) : les mêmes
+  // arguments que `resoudreEquipement`, en données — `entreesSerialisables`
+  // ne retire que `evaluer`, le Worker reconstruit l'entrée par
+  // `entreeResolutionDuBuild`. ⚠️ Comparé par IDENTITÉ par la file : chaque
+  // nouvel objet est un contexte renvoyé au Worker (tout l'inventaire
+  // d'artéfacts) — mêmes dépendances que `resoudreEquipement`, sans
+  // `runeById` (les runes voyagent avec chaque demande) ni les caches (le
+  // Worker a les siens, neufs à chaque contexte).
+  const entreesResolution = useMemo(() => {
+    if (!artifactParams || !selected || !optimiserArtefacts) return null;
+    return entreesSerialisables({
+      fiche: selected.gear,
+      artifactParams,
+      regime: regimeEquipement,
+      degats: contexteDegatsArtefacts,
+      exclusive: contexteExclusive,
+      requirement: requirementAvecAuras,
+      relicContext: relicContextRecherche,
+    });
+  }, [artifactParams, selected, optimiserArtefacts, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche]);
+  const resolutionHorsFil = useMemo<ResolutionHorsFil | null>(
+    () =>
+      entreesResolution
+        ? { entrees: entreesResolution, runesDe: (c: BuildCandidate) => c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) }
+        : null,
+    [entreesResolution, runeById]
+  );
+
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
     // corrigé par ses propres résultats : se nourrir de sa sortie créerait une
@@ -2218,6 +2247,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // lancement : le contexte de la recherche LANCÉE, jamais les réglages
     // courants — les changer après coup ne change pas K.
     K: kDeLaFile(relicContextRecherche),
+    // Le Worker de résolution quand il est disponible ; `resoudre` reste le
+    // chemin de repli.
+    horsFil: resolutionHorsFil,
   });
 
   /**

@@ -8,11 +8,12 @@
 // `self.onmessage`/`postMessage` dessus. Les types du protocole vivent avec
 // le corps.
 //
-// ⚠️ **Écrite, pas encore appelée** (lot 6bis-b13bis-a) : aucun
-// `new Worker(new URL('./resolution.worker.ts', …))` ne la référence ; la file
-// (`useArtifactOptimQueue`) l'adoptera au lot 6bis-b13bis-b, en gardant le
-// chemin actuel en repli. Comme pour les autres coquilles, son comportement
-// réel (messages, arrêt, absence de fuite) ne se vérifie qu'au navigateur.
+// Branchée par la file (`useArtifactOptimQueue`) depuis le lot 6bis-b13bis-b :
+// un Worker pour la vie du hook, piloté par `ResolutionDistante`
+// (resolutionDistante.ts) — au plus deux demandes à la fois, réponses périmées
+// ignorées, chemin direct en repli. Comme pour les autres coquilles, son
+// comportement réel (messages, arrêt, absence de fuite) ne se vérifie qu'au
+// navigateur.
 
 import { CorpsResolution, MessageVersResolution, ReponseResolution } from './resolutionBody';
 

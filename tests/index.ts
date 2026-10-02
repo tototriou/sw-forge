@@ -20,6 +20,7 @@ import testArtifactEvaluation, { testArtifactPaireReelleEhp, testArtifactPaireRe
 import { testResolutionProducteurPartage, testClassementResolu } from './resolution-partagee.test';
 import { testResolutionCaches } from './resolution-caches.test';
 import { testResolutionWorker } from './resolution-worker.test';
+import { testResolutionDistante } from './resolution-distante.test';
 import { testCliClassementParMode } from './cli-classement.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
@@ -253,6 +254,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testClassementResolu', testClassementResolu],
   ['testResolutionCaches', testResolutionCaches],
   ['testResolutionWorker', testResolutionWorker],
+  ['testResolutionDistante', testResolutionDistante],
   ['testCliClassementParMode', testCliClassementParMode],
   ['testKDeLaFile', testKDeLaFile],
   ['testCompteAffichable', testCompteAffichable],

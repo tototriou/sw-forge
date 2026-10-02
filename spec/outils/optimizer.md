@@ -1260,6 +1260,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    fonction pure `doitRappeler` (`src/lib/aurasExternes.ts`), appelée dans
    le seul `onClick` d'un membre de la zone C — jamais dans `resetSearch`
    ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
+   Le même message paraît aussi sous la liste de la zone C, du même état et
+   pour la même durée (degats-et-aura 7c, voir « Zone C — Monstres de la
+   liste »).
 
    **Ouverture guidée vers l'interrupteur des auras RES/PRE**
    (degats-et-aura 7b) — ajouter **Accuracy** ou **Tolerance** aux auras
@@ -2101,7 +2104,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   critères (6bis-b19, voir « Recherche du monstre à optimiser »). Avec des
   auras externes renseignées, choisir ici une autre espèce ou un autre
   exemplaire les rappelle 3 s dans « État de mon monstre » (degats-et-aura
-  7b, voir cette section) : c'est la seule voie qui le fasse. **Corbeille** à droite de
+  7b, voir cette section) **et sous la liste** (7c, voir plus bas) : c'est
+  la seule voie qui le fasse. **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
@@ -2112,6 +2116,21 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   du nom) ET y ajoute le monstre dans le même geste. Bouton **« Libérer
   toutes les runes de cette liste »** (visible dès qu'au moins un build y
   est validé), avec sa propre confirmation dédiée.
+
+  ⚠️ **Le rappel des auras s'affiche aussi sous la liste** (degats-et-aura
+  7c, décision de l'utilisateur du 2026-10-02) — là où l'on vient de
+  cliquer : « État de mon monstre » est souvent hors de l'écran à ce
+  moment, toujours au téléphone. Même message (« Pense à vérifier les sets
+  d'aura externes. »), même token (contour `warn` de 1 px, fond
+  `warn-soft`, texte `warn`), même durée (`DUREE_ATTENTION_MS`, 3 s), même
+  déclencheur : **un seul état du rappel pour les deux rendus**, celui que
+  pose `doitRappeler` dans le `onClick` d'un membre — jamais un second
+  minuteur ni une seconde condition. Sa place est réservée sous la liste :
+  rendu avec elle, invisible hors rappel, rien ne bouge quand il paraît ni
+  quand il s'efface. Le même rendu sert les deux formats ; au téléphone, il
+  vit dans le dépliement de la zone C, ouvert au moment du clic. La boîte
+  des auras garde son surlignage ; elle seule annonce le message aux
+  lecteurs d'écran (`aria-live`), pour qu'il ne soit pas lu deux fois.
 
   ⚠️ **DEUX libérations, pas une.** Chaque ligne de monstre validé porte :
   - **« Libérer ce build »** — rend les 6 runes ET la paire d’artéfacts.

@@ -1885,6 +1885,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // patron de minuterie qu'`importMsg`. Un JETON qui s'incrémente, pas un
   // booléen : un second changement de monstre pendant les 3 s relance la
   // minuterie au lieu de laisser la première éteindre le second rappel.
+  // ⚠️ **Un seul état pour DEUX rendus** (degats-et-aura 7c) : la boîte des
+  // auras d'« État de mon monstre » et le message sous la liste de la zone C
+  // lisent tous deux `rappelAuras !== null` — aucun n'a sa minuterie à lui.
   const [rappelAuras, setRappelAuras] = useState<number | null>(null);
   useEffect(() => {
     if (rappelAuras === null) return;
@@ -3279,6 +3282,32 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             );
           })}
         </div>
+      )}
+
+      {/* ⚠️ **Le rappel des auras, AUSSI sous la liste (degats-et-aura 7c)**
+          — là où l'on vient de cliquer : « État de mon monstre » est souvent
+          hors de l'écran à ce moment, toujours au téléphone (décision de
+          l'utilisateur du 2026-10-02). Le MÊME rappel que la boîte des
+          auras : même état (`rappelAuras`, posé par le seul `onClick` d'un
+          membre ci-dessus), donc même minuterie (`DUREE_ATTENTION_MS`) —
+          jamais un second minuteur ni une seconde condition —, même message,
+          même token (`warn` / `warn-soft`, un seul contour de 1 px).
+          Rendu SANS condition du rappel, invisible le reste du temps : sa
+          place est réservée sous la liste, rien ne bouge quand il paraît ni
+          quand il s'efface (spec/shared/design.md, réponse n° 1). Monté avec
+          la liste seulement : sans membre, aucun clic ne peut le poser.
+          Pas d'`aria-live` : la boîte des auras, montée en permanence,
+          l'annonce déjà — deux régions liraient deux fois la même phrase.
+          Commun aux deux formats : au téléphone, il vit dans le dépliement
+          de la zone C, ouvert au moment du clic. */}
+      {activeMembers.length > 0 && (
+        <p
+          className={`mt-1 rounded-lg border border-warn bg-warn-soft px-2 py-1 text-xs font-semibold text-warn ${
+            rappelAuras !== null ? 'animate-[apparition_200ms_var(--ease-out)]' : 'invisible'
+          }`}
+        >
+          Pense à vérifier les sets d&apos;aura externes.
+        </p>
       )}
 
       {listHasValidated && activeList && (

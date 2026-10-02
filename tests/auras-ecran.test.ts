@@ -271,7 +271,7 @@ export function testAurasEcranInterrupteur() {
 }
 
 export function testAurasEcranRappel() {
-  titre('Auras à l’écran · rappel au changement de monstre : liste de travail seulement, autre espèce ou autre exemplaire, auras renseignées');
+  titre('Auras à l’écran · rappel au changement de monstre : liste de travail seulement, autre espèce ou autre exemplaire, auras renseignées ; un seul état, rendu dans la boîte des auras et sous la liste');
 
   // Lot 7b — la décision est pure (`doitRappeler`) ; l'écran ne fait que la
   // brancher, ce que vérifient les contrôles de source plus bas.
@@ -338,6 +338,37 @@ export function testAurasEcranRappel() {
   const message = saisie.match(/<div className="col-start-1 row-start-1 self-center" aria-live="polite">\s*<p\s+className=\{`text-xs font-semibold text-warn \$\{\s*rappel \? '[^']*' : 'invisible'\s*\}`\}\s*>\s*Pense à vérifier les sets d&apos;aura externes\.\s*<\/p>/);
   ok(message !== null, 'rendu : « Pense à vérifier les sets d’aura externes. » dans la MÊME case, toujours rendu, invisible hors rappel (place réservée)');
   ok(!/\{rappel &&/.test(saisie), 'rendu : rien n’est monté sous condition du rappel — rien ne bouge quand il paraît');
+
+  // Lot 7c — le MÊME rappel, aussi sous la liste de la zone C (décision de
+  // l'utilisateur du 2026-10-02) : un seul état (`rappelAuras`), une seule
+  // minuterie, deux rendus. Aucun déclencheur nouveau : les deux comptes plus
+  // haut (un seul `doitRappeler`, un seul `setRappelAuras` hors effacement)
+  // le prouvent déjà.
+  const corpsZoneC = entre(ecran, 'const zoneCContent = (', '\n  return (');
+  const finListe = corpsZoneC.indexOf('activeMembers.map(');
+  const liberer = corpsZoneC.indexOf('Libérer toutes les runes');
+  const sousLaListe = corpsZoneC.match(
+    /\{activeMembers\.length > 0 && \(\s*<p\s+className=\{`([^`$]*)\$\{\s*([^?]*?)\s*\?\s*'([^']*)'\s*:\s*'([^']*)'\s*\}`\}\s*>\s*([^<]*?)\s*<\/p>/
+  );
+  const debutMessage = sousLaListe?.index ?? -1;
+  ok(finListe >= 0 && debutMessage > finListe && /<\/div>\s*\)\}\s*$/.test(corpsZoneC.slice(finListe, debutMessage))
+    && (liberer < 0 || debutMessage < liberer),
+  'rendu 7c : un message SOUS la liste de la zone C — hors du conteneur qui défile, avant « Libérer toutes les runes » —, monté avec la liste');
+  const [, classes = '', condition = '', siRappel = '', sinon = '', texte = ''] = sousLaListe ?? [];
+  egal(condition, 'rappelAuras !== null', 'rendu 7c : branché sur le MÊME état que la boîte des auras, jamais une autre condition');
+  egal(sinon, 'invisible', 'rendu 7c : invisible hors rappel, jamais démonté — sa place est réservée, rien ne bouge');
+  egal(siRappel, 'animate-[apparition_200ms_var(--ease-out)]', 'rendu 7c : la même apparition que le message de la boîte des auras');
+  const jetons = classes.split(/\s+/);
+  ok(['border', 'border-warn', 'bg-warn-soft', 'text-warn'].every((c) => jetons.includes(c))
+    && jetons.filter((c) => /^border(-|$)/.test(c)).join(' ') === 'border border-warn' && !/\b(ring|outline)\b/.test(classes),
+  'rendu 7c : même token (contour warn de 1 px, fond warn-soft, texte warn), un seul contour');
+  egal(texte, 'Pense à vérifier les sets d&apos;aura externes.', 'rendu 7c : le même message, mot pour mot');
+  egal(corpsZoneC.match(/rappelAuras/g)?.length ?? 0, 1, 'rendu 7c : la zone C ne lit le rappel qu’à cet endroit — rien n’y est monté sous sa condition');
+  egal(ecran.match(/rappelAuras !== null/g)?.length ?? 0, 2,
+    'source 7c : un seul état, deux rendus — `rappelAuras !== null` lu par « État de mon monstre » et sous la liste, nulle part ailleurs');
+  egal(ecran.match(/setTimeout\([^;]*DUREE_ATTENTION_MS\)/g)?.length ?? 0, 2,
+    'source 7c : aucune minuterie de plus — celle du rappel et celle de l’ouverture guidée, seules');
+  ok(!/setTimeout/.test(carte), 'source 7c : « État de mon monstre » n’a aucune minuterie — il reçoit l’état du rappel, rien de plus');
 }
 
 export function testAurasEcranGuidage() {

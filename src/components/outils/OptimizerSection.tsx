@@ -2152,8 +2152,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // (minimums ET maximums) depuis le lot 5b ; sans lui ici, relancer
         // avec un autre maximum gardait un couple devenu infaisable en cache.
         requirement: requirementAvecAuras,
+        // ⚠️ Les artéfacts RÉSERVÉS par les autres builds validés de la liste
+        // active sortent de l'inventaire de la paire (`artifactParams`) : les
+        // libérer (« Libérer les artéfacts », zone C) ou changer de liste
+        // active doit vider le cache. Sans eux ici, les cartes déjà calculées
+        // gardaient leur paire d'avant, même après une nouvelle recherche
+        // (degats-et-aura 6bis-b17). Un ensemble : l'ordre est sans effet.
+        artefactsReserves,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras]
+    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves]
   );
 
   /**

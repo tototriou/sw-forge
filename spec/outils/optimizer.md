@@ -1890,7 +1890,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   - **« Libérer les artéfacts »** — rend la seule paire, le runage restant
     réservé. Un artéfact physique ne se porte que sur un monstre à la fois :
     on veut souvent le récupérer pour un autre sans renoncer au runage déjà
-    planifié. Affiché seulement s’il y a une paire à rendre.
+    planifié. Affiché seulement s’il y a une paire à rendre. Les paires
+    déjà calculées pour le monstre recherché se refont alors avec
+    l’inventaire libéré (degats-et-aura 6bis-b17, voir « Le choix des
+    artéfacts »).
 
   ⚠️ **Pas de « libérer les runes seules », et c’est délibéré.** Un build
   validé porte TOUJOURS 6 runes : sans elles il n’y a plus de build à qui
@@ -2513,6 +2516,20 @@ Changer de page ou de tri repriorise immédiatement, sans rien recalculer de ce
 qui est déjà connu. Depuis 6bis-b16, la « page » que la file sert d'abord est
 l'ensemble des builds qui rempliront ses places « Vérification… » (voir
 « Résultats ») : vide quand elle est complète.
+
+**Ce qui est déjà calculé se refait quand la paire peut changer.** Le cache
+de la file (paires et reliques déjà résolues) se vide à chaque changement de
+la signature des réglages (`signatureArtefacts`, artifactQueue.ts) : monstre,
+réglage de dégâts entier, régime effectif, optimisation coupée ou non,
+principales et lignes verrouillées, relique portée, taille de l'inventaire,
+contexte relique de la recherche lancée, conditions — et, depuis
+degats-et-aura 6bis-b17, les **artéfacts réservés** par les autres builds
+validés de la liste active, lus comme un ensemble (l'ordre de la liste est
+sans effet ; sans réservation, la signature est celle d'avant). « Libérer les
+artéfacts » sur la ligne d'un autre monstre de la liste, ou changer de liste
+active, refait donc les paires déjà calculées : jusque-là, elles gardaient
+l'ancien inventaire, même après une nouvelle recherche aux mêmes réglages. Le
+Worker de résolution reçoit alors le nouveau contexte (voir plus bas).
 
 **La page affichée n'attend pas l'inactivité** (degats-et-aura 6bis-b11).
 Pendant une recherche, l'écran reçoit la progression toutes les 150 ms et

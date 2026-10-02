@@ -459,6 +459,7 @@ export function testRelicClassementParMode() {
     const reglages = {
       monstreCom2usId: 1, damageSetup: SETUP, regimeEquipement: 'degats_reels', ignoreArtifacts: false, principaleParSorte: {},
       lignesVerrouillees: [] as { code: number; min: number }[], nbArtefacts: 0, empreinteRelique: null, requirement: { minStats: {}, maxStats: {} },
+      artefactsReserves: [] as number[],
     };
     ok(signatureArtefacts({ ...reglages, relique: CONQUETE }) !== signatureArtefacts({ ...reglages, relique: conqueteBis }),
       'signature de la file : l’effet unique la change à identifiant constant (paires renotées)');

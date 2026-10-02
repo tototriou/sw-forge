@@ -307,6 +307,22 @@ export function signatureReglages(parts: {
    * cache (bloquant 2, revue du lot 5b, `revue-diff-lot5b-2026-09-21.md`).
    */
   requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>;
+  /**
+   * Les artéfacts RÉSERVÉS par les autres builds validés de la liste active
+   * (`otherValidatedArtifactIds`, optimizerExclusion.ts) : ils sortent de
+   * l'inventaire de la paire (`parametresArtefactsFiche`, artifactFiche.ts).
+   * Sans ce champ, « Libérer les artéfacts » sur la ligne d'un autre monstre
+   * de la liste, ou un changement de liste active, laissait en cache des
+   * paires calculées avec l'ancien inventaire — même après une nouvelle
+   * recherche aux mêmes réglages (degats-et-aura 6bis-b17, défaut relevé par
+   * la revue du Worker).
+   *
+   * ⚠️ **Obligatoire**, pour que `tsc` signale un appelant qui l'oublierait :
+   * optionnel, l'oubli resterait parfaitement typé (CLAUDE.md, « plusieurs
+   * constructeurs »). Le CLI n'a pas de liste de travail
+   * (`AUCUN_ARTEFACT_RESERVE`) et n'appelle pas cette signature.
+   */
+  artefactsReserves: Iterable<number>;
 }): string {
   // ⚠️ Un minimum à 0 n'exige RIEN : le retenir ferait relancer 100
   // optimisations pour rien dès qu'on tape puis efface une valeur. L'ordre de
@@ -316,6 +332,11 @@ export function signatureReglages(parts: {
     .sort((a, b) => a.code - b.code)
     .map((l) => `${l.code}:${l.min}`)
     .join('|');
+  // ⚠️ Un ENSEMBLE trié : l'inventaire filtré ne dépend ni de l'ordre de la
+  // liste ni d'un doublon. Vide, le composant est OMIS — sans réservation, la
+  // signature reste exactement celle d'avant 6bis-b17, et rien n'est vidé
+  // pour rien. Son préfixe le distingue de tout autre composant facultatif.
+  const reserves = [...new Set(parts.artefactsReserves)].sort((a, b) => a - b).join(',');
   return [
     parts.monstreCom2usId,
     JSON.stringify(parts.damageSetup),
@@ -329,6 +350,7 @@ export function signatureReglages(parts: {
     parts.empreinteRelique ?? '',
     JSON.stringify(parts.requirement.minStats),
     JSON.stringify(parts.requirement.maxStats ?? {}),
+    ...(reserves ? [`reserves:${reserves}`] : []),
   ].join('§');
 }
 
@@ -355,6 +377,9 @@ export function signatureArtefacts(parts: {
   nbArtefacts: number;
   empreinteRelique: string | null;
   requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>;
+  // Les artéfacts réservés par les autres builds validés de la liste active
+  // (`artefactsReserves` de l'écran) — voir `signatureReglages`.
+  artefactsReserves: Iterable<number>;
 }): string {
   return signatureReglages({
     monstreCom2usId: parts.monstreCom2usId,
@@ -368,6 +393,7 @@ export function signatureArtefacts(parts: {
     nbArtefacts: parts.nbArtefacts,
     empreinteRelique: parts.empreinteRelique,
     requirement: parts.requirement,
+    artefactsReserves: parts.artefactsReserves,
   });
 }
 

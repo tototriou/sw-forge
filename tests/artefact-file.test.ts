@@ -5,6 +5,7 @@
 // jamais sur le moment où le travail est fait (voir `useArtifactOptimQueue`,
 // qui a besoin d'un navigateur) ni sur le choix de la paire (artefact-optim).
 
+import { readFileSync } from 'node:fs';
 import { BuildCandidate } from '../src/lib/runeBuildOptim';
 import { candidatAvecSaPaire, cleBuild, ordonnerParDepartage, prochainsATraiter, signatureReglages, signatureArtefacts } from '../src/lib/artifactQueue';
 import { regimeEquipementDe } from '../src/lib/artifactEvaluation';
@@ -153,6 +154,7 @@ export default function testArtefactFile() {
       nbArtefacts: 2518,
       empreinteRelique: null as string | null,
       requirement: { minStats: { atk: 100 }, maxStats: { def: 2000 } },
+      artefactsReserves: [] as Iterable<number>,
     };
     const s = signatureReglages(base);
     // ⚠️ Tout ce qui change quelles LIGNES comptent change la paire gagnante
@@ -221,6 +223,40 @@ export default function testArtefactFile() {
       s,
       '… mais le MÊME requirement (copie) ne change rien'
     );
+
+    // ⚠️ **6bis-b17 — les artéfacts RÉSERVÉS** par les autres builds validés
+    // de la liste active sortent de l'inventaire de la paire. Défaut relevé
+    // par la revue du Worker : « Libérer les artéfacts » sur la ligne d'un
+    // autre monstre de la liste, ou un changement de liste active, laissait la
+    // signature IDENTIQUE — les cartes déjà calculées gardaient leur paire
+    // d'avant, même après une nouvelle recherche aux mêmes réglages.
+    const reserve501 = signatureReglages({ ...base, artefactsReserves: new Set([501]) });
+    ok(reserve501 !== s, '… et la réservation d’un artéfact par un autre build validé (6bis-b17)');
+    ok(
+      signatureReglages({ ...base, artefactsReserves: new Set([501, 502]) }) !== reserve501,
+      '… et un artéfact réservé de plus — ou, lu à l’envers, un artéfact libéré'
+    );
+    ok(signatureReglages({ ...base, artefactsReserves: new Set([502]) }) !== reserve501, '… et un autre artéfact réservé à la place');
+    egal(
+      signatureReglages({ ...base, artefactsReserves: [502, 501] }),
+      signatureReglages({ ...base, artefactsReserves: new Set([501, 502]) }),
+      'le même ensemble de réservations dans un autre ordre ne change rien'
+    );
+    egal(
+      signatureReglages({ ...base, artefactsReserves: [501, 502, 501] }),
+      signatureReglages({ ...base, artefactsReserves: [501, 502] }),
+      '… un doublon non plus : c’est un ensemble'
+    );
+    // « Comme avant » : sans réservation, la signature est EXACTEMENT celle
+    // du code d'avant 6bis-b17 — littéral relevé sur 47cecfa9 avec ces mêmes
+    // réglages (controle-6bis-b17.md). Aucun cache n'est donc vidé pour rien
+    // chez qui n'a pas de liste de travail.
+    egal(
+      s,
+      '14311§{"skillCom2usId":4713,"enemyElement":null,"atkBuff":false,"enemyHpPct":100,"enemyDef":1000,"critMode":"crit"}§true§degats_reels§-§{"element":101}§§{"main":{"code":101,"value":12}}§2518§§{"atk":100}§{"def":2000}',
+      'sans réservation, la signature est exactement celle d’avant 6bis-b17'
+    );
+    egal(signatureReglages({ ...base, artefactsReserves: new Set() }), s, '… qu’on passe un tableau vide ou un ensemble vide');
   }
 
   titre('File d’artéfacts — signatureArtefacts (la closure de l’écran, extraite, B.5c)');
@@ -242,6 +278,7 @@ export default function testArtefactFile() {
       nbArtefacts: 10,
       empreinteRelique: null as string | null,
       requirement: { minStats: {}, maxStats: {} },
+      artefactsReserves: [] as Iterable<number>,
     };
     const s2 = signatureArtefacts(base2);
     egal(
@@ -275,6 +312,14 @@ export default function testArtefactFile() {
       signatureArtefacts({ ...base2, empreinteRelique: 'recherche|1:100:14:6:1/100/1|libre|libre|6' }) !== s2,
       'empreinteRelique aussi'
     );
+    // 6bis-b17 : les réservations traversent l'adaptateur, et leur absence
+    // laisse la signature d'avant (littéral relevé sur 47cecfa9).
+    ok(signatureArtefacts({ ...base2, artefactsReserves: new Set([501]) }) !== s2, 'les artéfacts réservés aussi (6bis-b17)');
+    egal(
+      s2,
+      '14311§{"skillCom2usId":4713,"enemyElement":null,"atkBuff":false,"enemyHpPct":100,"enemyDef":1000,"critMode":"crit"}§true§aucun§-§{}§§null§10§§{}§{}',
+      'sans réservation, la signature de l’écran est exactement celle d’avant 6bis-b17'
+    );
 
     // Un réglage SANS effet (minimum nul dans une ligne verrouillée, déjà
     // prouvé sur `signatureReglages`) ne change rien à travers l’adaptateur
@@ -283,6 +328,30 @@ export default function testArtefactFile() {
       signatureArtefacts({ ...base2, lignesVerrouillees: [{ code: 409, min: 0 }] }),
       s2,
       'un réglage sans effet (minimum nul) ne change pas la signature'
+    );
+  }
+
+  titre('File d’artéfacts — l’écran passe les réservations à la signature (6bis-b17)');
+
+  {
+    // Le hook de la file ne vide son cache qu'au changement de signature
+    // (`useArtifactOptimQueue`, effet sur `[signature]`) : la fonction pure a
+    // beau couvrir les réservations, encore faut-il que l'écran les lui donne
+    // — et que son mémo se recalcule quand elles changent. Le dépôt n'a pas de
+    // test React : un contrôle de source garde ce raccordement.
+    const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
+    const appel = /const signatureArtefacts = useMemo\(\s*\(\) =>\s*calculerSignatureArtefacts\(\{([\s\S]*?)\}\),\s*\[([^\]]*)\]\s*\);/.exec(ecran);
+    ok(appel !== null, 'écran : la signature de la file est calculée par signatureArtefacts, dans un mémo');
+    ok(/^\s*artefactsReserves,\s*$/m.test(appel?.[1] ?? ''), 'écran : la signature reçoit les artéfacts réservés');
+    ok(
+      (appel?.[2] ?? '').split(',').map((d) => d.trim()).includes('artefactsReserves'),
+      'écran : … et son mémo se recalcule quand ils changent'
+    );
+    // Les MÊMES réservations que celles qui filtrent l'inventaire de
+    // `artifactParams` (raccordement gardé par testArtefactsFicheParamsEcran).
+    ok(
+      /const artefactsReserves = useMemo\(\s*\(\) => otherValidatedArtifactIds\(lists\.validated, lists\.activeListId, ownSelectorKey\),\s*\[lists\.validated, lists\.activeListId, ownSelectorKey\]\s*\);/.test(ecran),
+      'écran : ce sont les réservations de la liste ACTIVE — libérer, valider ou changer de liste les recalcule'
     );
   }
 

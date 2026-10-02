@@ -19,10 +19,15 @@ reconnu.
 ⚠️ **Curation à la main, jamais une extraction automatique** —
 `PASSIFS_OFFENSIFS_CONNUS` ([damage.ts](../../../src/lib/damage.ts)) est une liste
 explicite de passifs vérifiés, par leur `Competence.nom` SWARFARM exact. La
-**formule elle-même** reste toujours lue en direct depuis les données (même
-parseur, même discipline tout-ou-rien que le sort actif) — seule l'
-**appartenance à la liste** et sa **catégorie** sont figées en dur. Un passif
-absent de la liste (immense majorité du corpus) n'est simplement jamais
+**formule elle-même** est lue en direct depuis les données (même parseur,
+même discipline tout-ou-rien que le sort actif) — seule l'**appartenance à
+la liste** et sa **catégorie** sont figées en dur. **Seule exception** :
+quand les données ne portent aucune formule, ou une fausse, elle vient de
+`FORMULES_CUREES_PAR_ID`, par identifiant et avec sa source — la même table,
+la même priorité et la même garde que pour un sort actif. Tempest (`3213`,
+Teshar et Phoenix vent) porte `formule: ""` et reçoit ainsi `3.7 × ATQ`
+(cadrage degats-et-aura, A.2 ter). Un passif absent de la liste (immense
+majorité du corpus) n'est simplement jamais
 proposé : pas de faux négatif dangereux, juste une couverture partielle et
 volontaire.
 
@@ -33,7 +38,7 @@ Quatre catégories, sur la seule question « quand ce passif compte-t-il ? » :
 | `toujours` | S'ajoute d'office, aucun bouton — le texte du jeu ne pose aucune condition de combat | Feng Yan (Winds and Clouds), Sia (Great Friends), Benedict (Final Strike) |
 | `defBreak` | **Aucun bouton non plus** : le déclenchement est ENTIÈREMENT déduit des deux réglages de réduction de Défense (voir ci-dessous) | Roid (Slash Waves / Slash Wind), Silver (Ruins) |
 | `bonus` | Les dégâts de base sont comptés **dans tous les cas** ; le bouton (désactivé par défaut) ne conditionne QUE le surplus de `pct` %, et seulement sur la contribution de ce passif | Ezio (Hidden Gun, +100 % si cible Lumière), Dominic (Improvisation, +100 % si PV > 50 %) |
-| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | (aucune entrée aujourd'hui) |
+| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | Leona (Internal Force), Giou (Comeuppance), Teshar (Tempest : recharge non simulée) |
 
 ⚠️ **`bonus` ne met plus toute la contribution à zéro quand le bouton est
 éteint.** Le texte de ces passifs décrit une attaque supplémentaire
@@ -165,6 +170,7 @@ du jeu de chaque entrée) :
 | Improvisation | Dominic, Weapon Master | bouton `bonus`/`dejaInclus` (+100 % si PV > 50 %, formule déjà majorée) |
 | Ruins | Silver | **3 coups**, critique normalement, déclenchement `defBreak` |
 | Slash Waves / Slash Wind | Roid | déclenchement `defBreak` (2 coups pour Slash Waves) |
+| Tempest | Teshar, Phoenix (Vent) | formule curée `3.7 × ATQ` (données vides), en zone, +30 % d'améliorations, une instance ; bouton `conditionnel` |
 
 ⚠️ Une entrée « Ruins » sans suffixe `(Passive)` visait un **boss de donjon
 non invocable** (Living Armor 2A) : retirée, elle ne pouvait jamais

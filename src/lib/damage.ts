@@ -2593,10 +2593,25 @@ const BOMBES_SANS_COUP_DIRECT_CONNUS = new Set(['Cursed Apple']);
 // PV : le palier de 30 % ne fait qu'activer l'ignore-DÉF. Velaska remplace sa
 // formule ATQ importée par la réserve fixe ; Lamiella conserve au contraire
 // son `1,2 × ATQ` et reçoit cette réserve comme composante SÉPARÉE plus bas.
+//
+// ⚠️ **Lue pour un sort actif (`skillDamageProfile`) ET pour un passif
+// (`monsterOffensivePassives`)**, avec la même priorité sur `Competence.formule`
+// et la même analyse tout-ou-rien. Un passif n'y entre que s'il figure AUSSI
+// dans `PASSIFS_OFFENSIFS_CONNUS` (catégorie de déclenchement) : la table ne
+// fait que fournir la formule absente ou fausse des données.
 const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   7808: '5.5*{ATK}',
   7810: '5.5*{ATK}',
   21010: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)',
+  // Tempest (Passive) — Teshar vent `14513` et Phoenix vent `14503`, seules
+  // formes du corpus à porter ce nom et cet identifiant (balayage des 8 434
+  // compétences, degats-et-aura 9a). SWARFARM donne `formule: ""`. Le ratio
+  // `3.7 × ATQ` est fourni par l'utilisateur (joueur, 2026-09-23) ET concorde
+  // avec l'audit des dégâts conditionnels (constat 164, `other_skill=1181`) :
+  // deux sources (cadrage degats-et-aura, A.2 ter). Les trois améliorations
+  // « Damage +10% » (+30 %) s'y appliquent, lues dans `ameliorations` comme
+  // pour tout passif (même source, confirmation explicite).
+  3213: '3.7*{ATK}',
 };
 
 const COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: Record<number, string> = {
@@ -2858,7 +2873,12 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 // que les sorts actifs à chaque appel de `monsterOffensivePassives` — si
 // SWARFARM corrige un coefficient demain, la valeur suit sans toucher cette
 // liste. Seule la CATÉGORISATION (qui ne peut PAS être déduite du champ
-// `formule`) est curée.
+// `formule`) est curée. **Exception unique, et pas dans cette liste** : quand
+// les données ne portent AUCUNE formule (ou une fausse), elle vient de
+// `FORMULES_CUREES_PAR_ID`, par identifiant et avec sa source, la MÊME table
+// et la même priorité que pour un sort actif — Tempest (`3213`,
+// `formule: ""`). Sans entrée dans cette table, un passif sans formule reste
+// ignoré.
 //
 // ⚠️ **Trois catégories, jamais une case « actif » à deviner** :
 // - `toujours` : le texte ne pose AUCUNE condition de combat (« whenever you
@@ -3071,6 +3091,21 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // `monsterOffensivePassives`, plus bas). Jamais critique, condition
   // "Suppressed" non précisée par le texte — bouton, comme demandé.
   { nom: 'Comeuppance (Passive)', critique: 'jamais', categorie: { type: 'conditionnel', condition: 'tu attaques la cible « Suppressed » (texte du jeu, condition non davantage précisée)' } }, // Onmyouji, Giou
+  // « Attacks all enemies with a violent storm once more … after you attack
+  // the enemy on your turn » — `formule: ""` dans SWARFARM : son `3.7 × ATQ`
+  // vient de `FORMULES_CUREES_PAR_ID` (3213, source citée là-bas). Le nom
+  // n'est porté que par 3213, sur Teshar vent `14513` et Phoenix vent `14503`
+  // (balayage du corpus, degats-et-aura 9a). `conditionnel` : l'Optimizer ne
+  // simule ni sa recharge ni sa remise à zéro sur une élimination, un
+  // interrupteur l'inclut ou l'exclut (cadrage degats-et-aura A.2 ter,
+  // décision produit du 2026-09-23), désactivé par défaut. Une seule
+  // instance (« once more »). `critique` reste `'suit'` : les lignes
+  // d'artéfact 402/410 (Dgts CRIT) s'appliquent à Tempest (utilisateur,
+  // 2026-09-23, controle-1c1-amendement), ce qui suppose qu'il critique.
+  {
+    nom: 'Tempest (Passive)',
+    categorie: { type: 'conditionnel', condition: 'sa recharge est terminée au moment où ton sort frappe (recharge non simulée)' },
+  }, // Teshar, Phoenix (Vent)
 ];
 
 // Profil de dégâts d'un passif offensif CONNU (voir la liste ci-dessus),
@@ -3095,9 +3130,9 @@ export interface PassifOffensifProfile {
 
 /**
  * Les passifs offensifs de CE monstre reconnus dans `PASSIFS_OFFENSIFS_CONNUS`
- * et dont la formule, relue depuis sa propre fiche, reste analysable et
- * dépend d'une stat de l'attaquant — même double garde que
- * `skillDamageProfile` (une formule qui a changé de forme depuis la
+ * et dont la formule — celle de `FORMULES_CUREES_PAR_ID` pour son identifiant
+ * si elle existe, sinon celle de sa propre fiche, comme `skillDamageProfile` —
+ * reste analysable (une formule qui a changé de forme depuis la
  * catégorisation ci-dessus est silencieusement ignorée, jamais un plantage
  * ni un nombre inventé). Liste vide si la fiche est absente.
  */
@@ -3105,10 +3140,14 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
   if (!detail) return [];
   const out: PassifOffensifProfile[] = [];
   for (const c of detail.competences) {
-    if (!c.passif || !c.formule || c.com2usId == null) continue;
+    if (!c.passif || c.com2usId == null) continue;
     const connu = PASSIFS_OFFENSIFS_CONNUS.find((p) => p.nom === c.nom);
     if (!connu) continue;
-    const brut = c.formule.trim();
+    // ⚠️ La garde porte sur la formule RETENUE, jamais sur `c.formule` seule :
+    // Tempest (3213) porte `formule: ""` et n'existe que par la table curée.
+    // Garder `!c.formule` ici l'écarterait en silence (degats-et-aura 9a).
+    const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule ?? '').trim();
+    if (!brut) continue;
     const fixed = RE_FIXED.test(brut);
     const analyse = analyser(brut.replace(RE_FIXED, '').trim());
     // ⚠️ Contrairement à `skillDamageProfile` (le sort ACTIF choisi comme

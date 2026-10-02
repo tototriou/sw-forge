@@ -698,16 +698,16 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b17 — le cache de la file suit les artéfacts réservés | J | terminé, preuves et mutation rejouées par le pilote ; deux cas voisins soumis à l'utilisateur (A.8) | `d8132284`, `c1d96fd5` ; reçu `c1d96fd` ↔ `13ac9f3` / 2026-10-02 |
 | 6bis-b18 — le compte ne compte que les combinaisons confirmées | J | terminé, preuves, mesure et mutation rejouées par le pilote ; essai de l'utilisateur en attente (A.8) | `734d4dd6`…`a9fa6b48` ; reçu `a9fa6b4` ↔ `04da233` / 2026-10-02 |
 | 6bis-b19 — réimport du compte et changement d'exemplaire | J | terminé, preuves et mutation rejouées par le pilote ; deux cas voisins soumis à l'utilisateur (A.8) | `92db894b`, `62ac3eeb` ; reçu `62ac3ee` ↔ `16d8d7a` / 2026-10-02 |
-| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02, réponses de l'utilisateur intégrées ; après 6bis-b16 et b17 | — |
-| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | requiert 7a | — |
-| 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | recalé le 2026-10-02 ; à faire | — |
+| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `1baecf9e`…`3bc596af` ; reçu `3bc596a` ↔ `42f1a43` / 2026-10-02 |
+| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | **lançable** | — |
+| 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | en cours en parallèle (worktree `sw-forge-lot-8a`, depuis `0899b541`) | — |
 | 8b — Blade Surge : recette, écran, CLI | J | requiert 8a | — |
-| 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | recalé le 2026-10-02 ; à faire | — |
+| 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | en cours en parallèle (worktree `sw-forge-lot-9a`, depuis `0899b541`) | — |
 | 9b — Tempest comme sort, écran, mécanisme générique | J | requiert 9a | — |
-| 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | recalé le 2026-10-02 ; à faire | — |
+| 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | en cours en parallèle (worktree `sw-forge-lot-10a`, depuis `0899b541`) | — |
 | 10b — Blade Dancers : recette, écran, CLI | J | requiert 10a | — |
 | 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | recalé le 2026-10-02 ; à faire | — |
-| 11bis — proses de sort au clic, deux formats | J | contrat écrit le 2026-10-02, périmètre fixé par l'utilisateur | — |
+| 11bis — proses de sort au clic, deux formats | J | en cours en parallèle (worktree `sw-forge-lot-11bis`, depuis `0899b541`) | — |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
 | 13b-* — contrats de qualification à créer par le pilote après 13a | J | non lançables avant amendement et revue | — |
@@ -734,6 +734,17 @@ enchaîne. L'utilisateur ne transmet plus les briefs ni les retours.
   en worktree séparé, qui casserait `livrer` et le reçu. **Le pilote ne
   modifie aucun fichier suivi pendant qu'un agent tourne** : un fichier
   modifié ferait refuser son `livrer`.
+- **Lots indépendants en parallèle** (décision de l'utilisateur du
+  2026-10-02, pour gagner du temps) : un worktree par lot, créé par le
+  pilote (`sw-forge-lot-<lot>`, branche `forge/dea-<lot>`, `npm ci`, jamais
+  de jonction `node_modules` ; comptes réels en liens physiques, lecture
+  seule). L'agent lit les notes privées dans le worktree principal sans y
+  écrire ; il dépose ses modifications de notes dans
+  `sw-forge-lot-<lot>-notes\base` (l'original) et `\notes` (sa version),
+  avec sa preuve ; ni `livrer`, ni `push`. Le pilote intègre **un lot à la
+  fois** dans la branche du chantier (commits, conflits, fusion à trois des
+  notes, rejeux sur le combiné, livraison) et supprime le worktree. Seuls
+  des lots sans mesure de temps au navigateur tournent ainsi ensemble.
 - **Créneau de mesure accordé jusqu'à nouvel ordre** : le pilote lance les
   mesures sans redemander, jamais deux agents à la fois, et sans serveur à
   lui pendant une mesure.
@@ -764,7 +775,8 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b18 | Compte « confirmée(s) » qui ne baisse jamais, infobulle de différence, interrupteur « Vérifier toutes les combinaisons trouvées » ; recette Kinki ; interrupteur activé sur une grosse recherche (« PV effectifs ») : l'écran reste-t-il fluide ? | ✔ essai OK le 2026-10-02 ; interrupteur sur une grosse recherche : à confirmer |
 | 6bis-b19 | Réimporter le compte puis relancer : les paires suivent ; passer à un autre exemplaire de la même espèce efface les résultats | après le lot |
 | 6bis-b16 | Essai avec la recette Kinki : aucune carte qui apparaît puis disparaît ; places « Vérification… » sans saut ; page 1 complète vers 20-25 s ; changer de page et de tri | ✔ 2026-10-02 : « c'est parfait » ; demande nouvelle : stabiliser le compte et ne compter qu'après vérification (décision en A.8) |
-| 7a, 7b | Écran des sets d'aura, sur ordinateur ET sur téléphone | après les lots |
+| 7a | Carte « État de mon monstre » : boîte « Sets d'aura des autres monstres » (hauteur, largeur du menu sur un téléphone étroit), libellé explicite placé **sous** les contrôles de chaque ligne (choix de l'agent, pour que le menu cliqué ne bouge pas), compteur « X / 15 » ajouté, bouton « Ajouter un set d'aura » désactivé à 15 ; champ du nombre vidé puis quitté → 1 ; interrupteur « Compter les effets d'auras Tolerance et Précision dans les conditions », placé en dernier des réglages avancés, dans le flottant (ordinateur) ET le panneau « Options » (téléphone) ; écho de la fenêtre « Dégâts réels » | en attente |
+| 7b | Rappel au changement de monstre en liste de travail ; ouverture guidée, ordinateur ET téléphone | après le lot |
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort, à la souris ET au doigt | après le lot |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
@@ -6240,6 +6252,45 @@ contrôle rendu ; l'indépendance du set recherché.
   suivant hors de lui ; rappel et guidage au même token d'attention,
   effacés après 3 s ; un autre exemplaire de la même espèce dans la liste
   déclenche le rappel.
+
+#### Résultat du lot 7a — 2026-10-02
+
+Agent lancé par le pilote (A.8), dans le worktree du chantier. Quatre
+commits : `1baecf9e` — libellés Accuracy et Tolerance à +8 points
+(`effects.ts`) ; `85c2359d` — module pur `src/lib/aurasExternes.ts`
+(bornes, ajout en dernier, changement de nombre borné de 1 à 15 − somme
+des autres lignes, champ vidé → 1, une ligne par set, validation
+`erreurAurasExternes` **partagée** avec `optimizerRecipe.ts`), saisie dans
+« État de mon monstre » (`Selecteur`, `NumberField`, `BoutonIcone`,
+`Bouton` pointillé fixe en haut ; libellé « Nombre de sets Fight des autres
+monstres de l'équipe » sous chaque ligne ; compteur « X / 15 »), tests
+`tests/auras-ecran.test.ts` ; `0b642561` — écho (« auras externes : 2 sets
+Fight, 1 set Accuracy ; les sets d'aura du build s'y ajoutent sur chaque
+résultat »), commentaire de `DamageSetupModale.tsx`, critère de coupe
+amendé ; `3bc596af` — interrupteur « Compter les effets d'auras Tolerance
+et Précision dans les conditions » dans `reglagesAvancesInner`. Reçu
+`3bc596a` ↔ `42f1a43`.
+
+**Rejoué par le pilote sur `3bc596af`** : reçu valide ; `tsc` 0 ; tests de
+zone (9 filtres) 326 passés ; build vert ; six classes nouvelles
+contrôlées dans le CSS construit, dont `grid-cols-[minmax(0,1fr)_auto_auto]`
+(virgule échappée dans la feuille minifiée) ; spec-lint, diff-check verts ;
+diff relu. Mutation de l'agent (borne haute retirée) : 6 échecs. **Mutation
+du pilote** (`peutAjouterAura` sans exiger un set libre) : 3 échecs, dont
+« cinq sets présents : ajout refusé, même liste rendue » ; restauré.
+
+**Choix d'interface de l'agent, à juger à l'œil (A.8)** : libellé
+explicite sous les contrôles (au-dessus, sa longueur variable ferait
+bouger le menu cliqué) ; compteur « X / 15 » non demandé ; interrupteur en
+dernier de la colonne des réglages avancés ; noms de sets de `RUNE_SETS`.
+Écart de méthode signalé : un `Add-Content` PowerShell au lieu de l'outil
+Edit sur le fichier de test (contrôlé : ni BOM, fins de ligne ramenées à
+LF).
+
+**Non prouvé** : aucun rendu à l'œil (ordinateur ni téléphone) ; le champ
+vidé puis quitté n'est prouvé que par la fonction pure et un contrôle de
+source ; pas de test de bout en bout de l'interrupteur sur une vraie
+recherche (branchement déjà testé en 6bis-b3a et b4).
 
 ### Lot 8 — Blade Surge : le 3ᵉ coup, en zone
 

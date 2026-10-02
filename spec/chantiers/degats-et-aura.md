@@ -422,6 +422,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
 8a → 8b ; 9a → 9b ; 10a → 10b   (recalés et scindés le 2026-10-02)
 8b → 8c                    (suites de 8b ; résumé « autres ennemis » décidé
                             par l'utilisateur le 2026-10-02)
+8c → 8d                    (8d étend à toute la recette la règle de clé que
+                            8c a alignée sur 10b)
 8b, 9b, 10b → 12           (12 éprouve les mécanismes qu'ils livrent)
 11bis                      (proses de sort au clic, demande du 2026-10-02 ;
                             aucune dépendance de code, après 11 par l'ordre)
@@ -439,7 +441,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17, 6bis-b18,
   6bis-b19,
-  7a, 7b, 7c, 8c, 11bis, 12, tous les 13b-* → 14
+  7a, 7b, 7c, 8c, 8d, 11bis, 12, tous les 13b-* → 14
 ```
 
 ##### Ordre d'exécution et premières contre-revues
@@ -716,6 +718,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `f229d2f1` / 2026-10-02 |
 | 8b — Blade Surge : recette, écran, CLI | J | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `12595440`, `d6c576b5`, `22dda1f2` / 2026-10-02 |
 | 8c — suites de 8b (résumé « autres ennemis », clé à zéro de tête, script de diagnostic) | J | terminé, preuves et mutation rejouées par le pilote ; constat de douze champs soumis à l'utilisateur ; vérification à l'œil en attente (A.8) | `66309e93`, `62dc6dce`, `b55a02ec` ; reçu `b55a02e` ↔ `48ea7df` / 2026-10-02 |
+| 8d — une seule règle de clé d'identifiant pour toute la recette | M | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; **lançable** par l'agent `lot-m` (session suivante, A.4) | — |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `50e46aea`, `e5dc87ae` / 2026-10-02 |
 | 9b — Tempest comme sort, écran, mécanisme générique | J | terminé (lot parallèle, seconde vague), preuves rejouées ; mutation du pilote d'abord survivante, test complété par l'agent puis rejoué ; intégré ; vérification à l'œil en attente (A.8) | `db32bbd9`, `2402e91d`, `badea22f` / 2026-10-02 |
 | 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `db913084`, `dc8e4b5f` / 2026-10-02 |
@@ -819,7 +822,8 @@ décision, rayée avec la date et la réponse.
 | 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
 | 8b | ~~Le résumé sous l'objectif (`resumeCombat`) doit-il dire « autres ennemis » quand ce cran de Blade Surge est choisi ?~~ | ✔ 2026-10-02 (utilisateur) : **oui** → lot 8c, avec les deux corrections techniques |
 | A.4 | ~~Effort des sous-agents : l'outil de lancement ne le règle pas, il suit celui de la session (xhigh, puis max, le 2026-10-02) ; les 24 sous-agents étaient Opus 5.5. Créer des définitions d'agent pour les lots C et M ?~~ | ✔ 2026-10-02 (utilisateur) : **oui** — `lot-c` (Sonnet, medium) et `lot-m` (Sonnet, low), actives à la session suivante (A.4) ; le lot 12 attend donc la prochaine session |
-| 8c | Douze autres champs de la recette indexés par identifiant acceptent une clé à zéro de tête (liste dans le Résultat de 8c) : les aligner sur la même règle dans ce chantier (un lot, validateur commun), ou laisser ? Sans effet au calcul ; la clé morte repart à l'export | en attente |
+| 8c | ~~Douze autres champs de la recette indexés par identifiant acceptent une clé à zéro de tête : les aligner dans ce chantier, ou laisser ?~~ | ✔ 2026-10-02 (utilisateur) : **aligner dans ce chantier** → lot 8d |
+| 8c | ~~Le résumé sous l'objectif doit-il aussi dire le cran d'ignore DEF des Blade Dancers ?~~ | ✔ 2026-10-02 (utilisateur) : **non**, pas de résumé pour les Blade Dancers |
 
 ---
 
@@ -6669,6 +6673,49 @@ repart à l'export suivant.
 passer le résumé sur une ligne de plus — derrière la fenêtre, le contrôle
 cliqué ne bouge pas. **Non prouvé** : aucun rendu ; l'écran contrôlé par la
 source seulement.
+
+#### Lot 8d — une seule règle de clé d'identifiant pour toute la recette
+
+**Cat. M ; requiert 8c.** Décision de l'utilisateur du 2026-10-02, sur le
+constat du point 2 de 8c. Agent `lot-m` (A.4). Aucune décision à prendre :
+tout est fixé ci-dessous ; un cas qui en demande une s'arrête et va dans le
+rapport.
+
+**Intrant** : `src/lib/optimizerRecipe.ts` L225-430 (`validerRecordNumerique`
+L229, `validerRecordBooleen` L241, `validerDamageSetup` à partir de L262 —
+lignes relevées sur `02f86533`) ; tests de la recette
+(`tests/blade-surge-propagation.test.ts`, `tests/blade-dancers.test.ts`,
+grep `optimizerRecipe` dans `tests/`) ; le Résultat de 8c ci-dessus.
+
+**Contrat.**
+
+1. Une fonction, `estIdentifiantDeCompetence(cle: string): boolean`, dans
+   `optimizerRecipe.ts` : `/^[1-9]\d*$/` (entier positif sans zéro de tête).
+2. Elle remplace TOUS les tests de clé d'identifiant de compétence du
+   parseur, sans autre changement : `validerRecordNumerique` (sept champs
+   entiers, deux décimaux), `validerRecordBooleen` (`passifsOffensifs`,
+   `statsCombatActives`), `scenariosEffetsEntreCoups`, `cibleDegatsParSort`
+   (8c) et `premierCoupIgnoreDefParSort` (10b) — quatorze champs. Message
+   et chemin d'erreur inchangés (« utilise un identifiant de compétence
+   invalide »).
+3. Test nommé : pour chacun des quatorze champs, la clé « 010616 » est
+   refusée avec son chemin exact, et une clé valide du même champ reste
+   acceptée. La liste des champs du test est écrite une fois et comparée au
+   nombre d'appels de la fonction dans le parseur (un champ ajouté plus tard
+   sans test fait échouer).
+
+**Preuve** : `grep -n` dans `optimizerRecipe.ts` → plus aucun `/^\d+$/`
+ni `/^[1-9]\d*$/` hors de la fonction ; mutation (la fonction revient à
+`/^\d+$/`) → échecs nommés ; `tsc`, `node tests/run.mjs optimizerrecipe
+bladesurge bladedancers recettepartagee aurasrecette cliclassement`, build,
+spec-lint, diff-check ; la spec qui décrit la validation de la recette
+(grep « identifiant de compétence invalide » ou « zéro de tête » dans
+`spec/`) dit la règle une fois ; preuve `controle-8d.md`.
+
+**Ne fait pas** : aucun autre parseur (persistance, autres fichiers) — s'il
+en trouve un qui valide une clé d'identifiant, il le signale dans le
+rapport, sans le modifier ; aucune autre règle de validation ; rien à
+l'écran.
 
 ### Lot 9 — Teshar : Tempest après S1/S2, et comme sort
 

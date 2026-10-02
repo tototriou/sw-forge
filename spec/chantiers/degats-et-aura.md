@@ -227,8 +227,10 @@ premiers, tous Opus 5.5, ont donc tourné au-dessus de cette table). Depuis
 le 2026-10-02 (décision de l'utilisateur), deux définitions suivies le
 fixent : `.claude/agents/lot-c.md` (Sonnet, `effort: medium`) et
 `lot-m.md` (Sonnet, `effort: low`), types `lot-c` et `lot-m`. Actives à
-partir de la session suivante (dossier absent au démarrage de celle-ci). Les
-lots J restent `general-purpose` + Opus, à l'effort de la session.
+partir de la session suivante (dossier absent au démarrage de celle-ci).
+Depuis les sous-lots 13b, `lot-j.md` (Opus, `effort: high`) applique de même
+la ligne « J → Opus, effort élevé » : les lots J d'avant (8c, 9c…) tournaient
+en `general-purpose` + Opus à l'effort de la session (max).
 
 ### A.5 Branche, chantier, fichiers transverses
 

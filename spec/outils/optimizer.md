@@ -803,7 +803,19 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        (0 par défaut) n'apparaît que pour l'unique sort connu dont le
        coefficient dépend d'un compteur de combat (Crawler/Frankenstein —
        « Hammer Punch »). Détail : [degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler](degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler),
-       « formule bespoke selon un compteur ».
+       « formule bespoke selon un compteur ». ⚠️ **L'ignore DEF des six
+       sorts Blade Dancers se choisit** : ils n'ignorent la DEF qu'une fois
+       la jauge d'attaque de la cible à 0, que l'app ne modélise pas. Pour
+       eux seulement, un sélecteur **« Ignore la DEF (jauge de la cible à
+       0) »** apparaît sous la liste : « Aucun » (défaut), « Dès le 2ᵉ
+       coup », « Dès le 3ᵉ coup » pour les sorts à 3 coups ; « Dès le 2ᵉ
+       coup » à « Dès le 6ᵉ coup », puis « 7ᵉ coup seul » (défaut) pour les
+       sorts à 7 coups. Le résumé du sort dit le cran retenu sur une ligne à
+       lui, d'une ligne de haut quel que soit le cran — en changer ne
+       déplace pas le sélecteur —, et la DEF de la cible reste affichée dans
+       tous les crans (degats-et-aura 10b). Détail :
+       [degats-reels/formules-et-combat.md](degats-reels/formules-et-combat.md),
+       « Ignore DEF à partir d'un coup choisi ».
      - **Passifs offensifs** — n'apparaît que si le monstre en a un
        (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo, Chun-Li, Lizardman,
        Jin Kazama…) : des dégâts **en plus** du sort choisi ci-dessus, OU un

@@ -32,6 +32,9 @@ import {
   estPrisEnCharge,
   conditionCritiqueGarantiParReglage,
   critiqueGarantiParReglage,
+  cranIgnoreDefRetenu,
+  cransIgnoreDefAPartirDuCoup,
+  resumeIgnoreDefRetenu,
   passifActif,
   resolvedBuffsPropresCount,
   resolvedBuffCiblePresent,
@@ -223,7 +226,17 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
   }
 }
 
-function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: number): { ratio: string | null; reste: string } {
+// ⚠️ `ignoreDef` n'est PAS une entrée de `reste` : c'est le cran d'ignore DEF
+// d'un Blade Dancer (degats-et-aura 10b), qui change avec le sélecteur posé
+// SOUS la liste des sorts. Glissé dans le fil du résumé, une phrase qui
+// s'allonge pourrait gagner une ligne et déplacer ce sélecteur à l'instant où
+// on vient de s'en servir. Il a donc sa ligne à lui, d'une seule ligne de haut
+// quel que soit le cran (voir la liste des sorts).
+function resumeSort(
+  p: SkillDamageProfile,
+  setup: DamageSetup,
+  hitsOverride?: number
+): { ratio: string | null; reste: string; ignoreDef: string | null } {
   const hits = hitsOverride ?? resolvedHits(p, setup);
   const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`];
   bouts.push(p.aoe ? 'Zone' : 'Cible unique');
@@ -246,7 +259,7 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: nu
   const ratio = p.composanteFixeAdditionnelle
     ? `${formuleLisible(p.formule)} + ${formuleLisible(p.composanteFixeAdditionnelle.formule)} (fixe)`
     : formuleLisible(p.formule);
-  return { ratio, reste: bouts.join(' · ') };
+  return { ratio, reste: bouts.join(' · '), ignoreDef: resumeIgnoreDefRetenu(p, setup) };
 }
 
 // Un effet de la rangée « Effets actifs ». Sa `description` est la SEULE
@@ -333,6 +346,9 @@ export default function DamageSetupCard({
 
   // Ce que le sort choisi consomme réellement — pilote l'affichage.
   const utilise = (v: DamageVariable) => resolved.variables.includes(v);
+  // Crans d'ignore DEF du sort choisi — `null` hors des six sorts Blade
+  // Dancers, et alors aucun sélecteur (degats-et-aura 10b).
+  const cransIgnoreDef = cransIgnoreDefAPartirDuCoup(resolved);
   // ⚠️ Via `champsDuCombat` (damage.ts) et non recalculés ici : la ligne de
   // résumé qui rouvre cette fenêtre doit dire EXACTEMENT ce qu'elle contient.
   // Deux copies de ces prédicats ont déjà divergé — « DEF 1000 » s'affichait
@@ -569,12 +585,16 @@ export default function DamageSetupCard({
                 description={
                   pris ? (
                     (() => {
-                      const { ratio, reste } = resumeSort(s, setup);
+                      const { ratio, reste, ignoreDef } = resumeSort(s, setup);
                       return (
                         <>
                           {ratio && <span className="font-mono text-ink">{ratio}</span>}
                           {ratio && ' · '}
                           {reste}
+                          {/* Une ligne à elle, jamais plus haute qu'une ligne
+                              (`truncate`) : le cran peut changer sans que la
+                              case grandisse — voir `resumeSort`. */}
+                          {ignoreDef && <span className="block truncate">{ignoreDef}</span>}
                         </>
                       );
                     })()
@@ -629,6 +649,39 @@ export default function DamageSetupCard({
               title={`${resolved.bonusStackPropre.aide} — 0 par défaut`}
               ariaLabel={resolved.bonusStackPropre.label}
             />
+          </label>
+        )}
+        {/* Blade Dancers (degats-et-aura 10b) : la DEF n'y est ignorée qu'une
+            fois la jauge d'attaque de la cible à 0, que l'app ne modélise pas
+            — le premier coup qui l'ignore est donc un CHOIX. Crans et
+            libellés DÉRIVÉS de la règle curée du sort
+            (`cransIgnoreDefAPartirDuCoup`, damage.ts), absents pour tout
+            autre sort ; la valeur montrée est le cran que le calcul RETIENT,
+            jamais la valeur stockée. Le résumé du sort, au-dessus, dit ce
+            cran sur une ligne à lui, d'une seule ligne quel que soit le cran :
+            en changer ne déplace jamais ce sélecteur. */}
+        {cransIgnoreDef && (
+          <label className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-ink-dim">Ignore la DEF (jauge de la cible à 0)</span>
+            <Selecteur
+              taille="sm"
+              pleineLargeur={false}
+              value={cranIgnoreDefRetenu(resolved, setup)?.rang ?? ''}
+              onChange={(e) =>
+                maj({
+                  premierCoupIgnoreDefParSort: {
+                    ...(setup.premierCoupIgnoreDefParSort ?? {}),
+                    [resolved.skillCom2usId]: e.target.value === '' ? null : Number(e.target.value),
+                  },
+                })
+              }
+            >
+              {cransIgnoreDef.map((c) => (
+                <option key={c.rang ?? 'aucun'} value={c.rang ?? ''}>
+                  {c.libelle}
+                </option>
+              ))}
+            </Selecteur>
           </label>
         )}
       </div>

@@ -57,6 +57,7 @@ import {
   resolvedLeaderSkill,
   resolvedStackPct,
   resolvedStackTrigger,
+  resumeIgnoreDefRetenu,
   artifactDamageProfile,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
@@ -195,10 +196,14 @@ if (recipe.objective === 'degats_reels') {
     const bonusAtqSeuil = monsterBonusSiAtqSeuil(detail);
     const critInterdit = monsterCritInterdit(detail);
     const scenarioEntreCoups = s.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
+    // Blade Dancers (degats-et-aura 10b) : le cran d'ignore DEF RETENU par le
+    // calcul, dans la MÊME phrase que le résumé du sort à l'écran.
+    const ignoreDefRetenu = resumeIgnoreDefRetenu(profile, s);
     console.log(
       `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
         `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
         `${profile.aoe ? ', zone' : ''}${profile.ignoreDef ? ', ignore la DEF' : ''}` +
+        `${ignoreDefRetenu ? `, ${ignoreDefRetenu.charAt(0).toLowerCase()}${ignoreDefRetenu.slice(1)}` : ''}` +
         `${profile.ignoreDefSelonVit ? `, ignore la DEF selon l'écart de VIT (100 % à ${profile.ignoreDefSelonVit.ecartMax}+ pts)` : ''}` +
         `${profile.skillupDamagePct ? `, +${profile.skillupDamagePct} % d'améliorations` : ''}) — ` +
         `cible ${s.enemyHp} PV / ${s.enemyDef} DEF` +

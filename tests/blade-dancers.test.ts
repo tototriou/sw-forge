@@ -22,12 +22,16 @@ import {
   type DamageSetup,
   IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID,
   type SkillDamageProfile,
+  champsDuCombat,
   computeSkillDamage,
   computeSkillDamageDetail,
+  cranIgnoreDefRetenu,
+  cransIgnoreDefAPartirDuCoup,
   defenseFactor,
   estPrisEnCharge,
   monsterDamageSkills,
   resolvedPremierCoupIgnoreDef,
+  resumeIgnoreDefRetenu,
   skillDamageProfile,
 } from '../src/lib/damage';
 import { DAMAGE_SETUP_CLASSIFICATION, damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
@@ -384,4 +388,127 @@ export function testBladeDancersRecette() {
     requirement: { minStats: {}, maxStats: {} }, artefactsReserves: [], piecesFigees: [], importDuCompte: 0 });
   ok(signature(cliRang2.ctx.setup) !== signature(cliRang3.ctx.setup), 'cache de la file : changer de rang invalide la signature');
   egal(signature(cliRang2.ctx.setup), signature(parLeCli(recetteCordelia({ 14808: 2 })).ctx.setup), 'cache de la file : même rang, même signature');
+}
+
+// ── degats-et-aura 10b — l'écran et la ligne du CLI ─────────────────────────
+
+const lireSource = (f: string) => readFileSync(resolve(racine, f), 'utf8').replace(/\r\n/g, '\n');
+// Le code seul : un commentaire qui cite un nom ne doit ni faire échouer ni
+// faire passer un contrôle (même outil que tests/proses-sort.test.ts).
+const sansCommentaires = (s: string) =>
+  s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+export function testBladeDancersEcranEtCli() {
+  titre('Blade Dancers — les crans du sélecteur, dérivés de la règle curée (degats-et-aura 10b)');
+
+  // Libellés retenus par l'utilisateur (recalage du lot 10, choix n° 12).
+  const CRANS_A = [
+    { rang: null, libelle: 'Aucun' }, { rang: 2, libelle: 'Dès le 2ᵉ coup' }, { rang: 3, libelle: 'Dès le 3ᵉ coup' },
+  ];
+  const CRANS_B = [
+    { rang: 2, libelle: 'Dès le 2ᵉ coup' }, { rang: 3, libelle: 'Dès le 3ᵉ coup' }, { rang: 4, libelle: 'Dès le 4ᵉ coup' },
+    { rang: 5, libelle: 'Dès le 5ᵉ coup' }, { rang: 6, libelle: 'Dès le 6ᵉ coup' }, { rang: 7, libelle: '7ᵉ coup seul' },
+  ];
+  const avec = (id: number, valeur: unknown): DamageSetup =>
+    ({ ...SETUP, premierCoupIgnoreDefParSort: { [id]: valeur } as Record<number, number | null> });
+  for (const s of SORTS) {
+    const attendus = s.variante.inconditionnel === null ? CRANS_A : CRANS_B;
+    for (const forme of s.formes) {
+      const p = profilDe(forme, s.id);
+      egal(cransIgnoreDefAPartirDuCoup(p), attendus,
+        `${forme}/${s.id} : ${attendus.map((c) => `« ${c.libelle} »`).join(', ')}`);
+    }
+    const p = profilDe(s.formes[1], s.id);
+    const defaut = attendus.find((c) => c.rang === s.variante.inconditionnel)!;
+    egal(cranIgnoreDefRetenu(p, SETUP), defaut, `${s.id} : champ absent, le sélecteur montre le défaut « ${defaut.libelle} »`);
+    for (const cran of attendus) {
+      egal(cranIgnoreDefRetenu(p, avec(s.id, cran.rang)), cran, `${s.id} : « ${cran.libelle} » choisi, montré tel quel`);
+      egal(resolvedPremierCoupIgnoreDef(p, avec(s.id, cran.rang)), cran.rang, `${s.id} : « ${cran.libelle} » = le rang du calcul`);
+    }
+    // Une valeur stockée hors crans : l'écran montre ce que le calcul applique.
+    egal(cranIgnoreDefRetenu(p, avec(s.id, 1)), defaut, `${s.id} : coup 1 stocké → le sélecteur montre le défaut, comme le calcul`);
+    egal(cranIgnoreDefRetenu(p, avec(s.id, 9)), defaut, `${s.id} : 9ᵉ coup stocké → le sélecteur montre le défaut, comme le calcul`);
+  }
+  const a = profilDe(24913, 14808);
+  const b = profilDe(24911, 14811);
+  egal(resumeIgnoreDefRetenu(a, SETUP), 'Ignore la DEF : aucun', 'résumé, variante A par défaut');
+  egal(resumeIgnoreDefRetenu(a, avec(14808, 2)), 'Ignore la DEF : dès le 2ᵉ coup', 'résumé, variante A dès le 2ᵉ coup');
+  egal(resumeIgnoreDefRetenu(b, SETUP), 'Ignore la DEF : 7ᵉ coup seul', 'résumé, variante B par défaut');
+  egal(resumeIgnoreDefRetenu(b, avec(14811, 4)), 'Ignore la DEF : dès le 4ᵉ coup', 'résumé, variante B dès le 4ᵉ coup');
+
+  titre('Blade Dancers — aucun autre sort du corpus n’a de sélecteur ni de ligne de résumé');
+
+  // Balayage COMPLET : le sélecteur n'apparaît que pour ces six sorts. Un
+  // réglage renseigné pour un autre sort n'y fait pas apparaître de ligne.
+  const avecCrans: string[] = [];
+  let autres = 0;
+  for (const f of readdirSync(dossierSorts)) {
+    if (!f.endsWith('.json')) continue;
+    const detail: DetailMonstre = JSON.parse(readFileSync(resolve(dossierSorts, f), 'utf8'));
+    for (const p of monsterDamageSkills(detail)) {
+      if (!estPrisEnCharge(p)) continue;
+      if (cransIgnoreDefAPartirDuCoup(p) !== null) avecCrans.push(`${detail.com2usId}/${p.skillCom2usId}`);
+      else if (resumeIgnoreDefRetenu(p, avec(p.skillCom2usId, 2)) === null) autres++;
+    }
+  }
+  egal(avecCrans.sort(), SORTS.flatMap((s) => s.formes.map((forme) => `${forme}/${s.id}`)).sort(),
+    'crans proposés pour les douze formes des six sorts, et pour elles seules');
+  ok(autres > 1000, `${autres} autres profils calculables : aucun cran, aucune ligne de résumé, même avec le champ renseigné`);
+  for (const [forme, sortId, nom] of [[27612, 17407, 'Hero Strike'], [13413, 4713, 'Amputation Magic']] as [number, number, string][]) {
+    egal(cransIgnoreDefAPartirDuCoup(profilDe(forme, sortId)), null, `${nom} (ignore DEF inconditionnel) : aucun sélecteur`);
+  }
+
+  titre('Blade Dancers — la DEF de la cible reste affichée dans tous les crans');
+
+  // `champsDuCombat` ne lit QUE le profil, jamais le cran : la DEF compte pour
+  // ces six sorts quel que soit le réglage, le coup 1 restant mitigé.
+  for (const s of SORTS) {
+    for (const forme of s.formes) {
+      egal(champsDuCombat(profilDe(forme, s.id)).defEnnemie, true, `${forme}/${s.id} : la DEF de la cible est un réglage consommé`);
+    }
+  }
+  const damage = lireSource('src/lib/damage.ts');
+  ok(/export function champsDuCombat\(resolved: SkillDamageProfile \| null\): \{/.test(damage),
+    '`champsDuCombat` ne reçoit que le sort, jamais le réglage : aucun cran ne peut masquer la DEF');
+  const carte = sansCommentaires(lireSource('src/components/outils/DamageSetupCard.tsx'));
+  ok(carte.includes('const { defEnnemie: montreDefEnnemie, crit: montreCritProfil } = champsDuCombat(resolved);'),
+    'fenêtre : le champ DEF suit `champsDuCombat`');
+  const section = sansCommentaires(lireSource('src/components/outils/OptimizerSection.tsx'));
+  ok(/const champs = champsDuCombat\(resolvedSkill\);\s*if \(champs\.defEnnemie\) bouts\.push\(`DEF \$\{damageSetup\.enemyDef/.test(section),
+    'résumé sous l’objectif : la DEF suit le même prédicat');
+
+  titre('Blade Dancers — le sélecteur de l’écran, sous la liste des sorts (DamageSetupCard.tsx)');
+
+  ok(carte.includes('const cransIgnoreDef = cransIgnoreDefAPartirDuCoup(resolved);'),
+    'les crans du sort CHOISI, `null` pour tout autre sort');
+  const bloc = carte.slice(carte.indexOf('{cransIgnoreDef && ('), carte.indexOf('</Selecteur>', carte.indexOf('{cransIgnoreDef && (')));
+  ok(/^\{cransIgnoreDef && \(\s*<label className="mt-1 flex items-center gap-2">\s*<span className="text-xs text-ink-dim">Ignore la DEF \(jauge de la cible à 0\)<\/span>\s*<Selecteur\b/.test(bloc),
+    'rendu sous la seule condition de crans ; libellé « Ignore la DEF (jauge de la cible à 0) »');
+  egal((carte.match(/Ignore la DEF \(jauge de la cible à 0\)/g) ?? []).length, 1, 'un seul sélecteur dans la carte');
+  ok(/taille="sm"\s*pleineLargeur=\{false\}\s*value=\{cranIgnoreDefRetenu\(resolved, setup\)\?\.rang \?\? ''\}/.test(bloc),
+    'patron `Selecteur` des réglages de sort ; valeur = le cran RETENU par le calcul');
+  ok(/premierCoupIgnoreDefParSort: \{\s*\.\.\.\(setup\.premierCoupIgnoreDefParSort \?\? \{\}\),\s*\[resolved\.skillCom2usId\]: e\.target\.value === '' \? null : Number\(e\.target\.value\),\s*\}/.test(bloc),
+    'écriture : le rang (ou null pour « Aucun ») sous l’identifiant du sort choisi, les autres sorts conservés');
+  ok(/\{cransIgnoreDef\.map\(\(c\) => \(\s*<option key=\{c\.rang \?\? 'aucun'\} value=\{c\.rang \?\? ''\}>\s*\{c\.libelle\}\s*<\/option>\s*\)\)\}/.test(bloc),
+    'options : les crans et leurs libellés, tels que dérivés de la règle');
+  egal((carte.match(/premierCoupIgnoreDefParSort/g) ?? []).length, 2, 'le réglage n’est écrit que par ce sélecteur');
+  ok(carte.indexOf('{cransIgnoreDef && (') > carte.indexOf('{champCoupsVariables(resolved, setup, maj)}'),
+    'placé SOUS la liste des sorts, dans « Compétence utilisée »');
+
+  titre('Blade Dancers — le résumé du sort dit le cran retenu, sans rien déplacer');
+
+  ok(carte.includes("return { ratio, reste: bouts.join(' · '), ignoreDef: resumeIgnoreDefRetenu(p, setup) };"),
+    '`resumeSort` rend le cran retenu À PART du fil du résumé');
+  egal((carte.match(/resumeIgnoreDefRetenu\(/g) ?? []).length, 1, 'la phrase n’entre jamais dans `reste` (une seule lecture)');
+  const sorts = carte.slice(carte.indexOf('{skills.map((s) => {'), carte.indexOf('{champCoupsVariables('));
+  ok(/const \{ ratio, reste, ignoreDef \} = resumeSort\(s, setup\);/.test(sorts), 'liste des sorts : le cran de chaque sort lu par `resumeSort`');
+  ok(/\{reste\}\s*\{ignoreDef && <span className="block truncate">\{ignoreDef\}<\/span>\}/.test(sorts),
+    'une ligne à elle, jamais plus haute qu’une ligne (`block truncate`) : changer de cran ne fait pas grandir la case');
+
+  titre('Blade Dancers — la ligne du CLI dit le même cran (scripts/optimizer-search.ts)');
+
+  const cli = sansCommentaires(lireSource('scripts/optimizer-search.ts'));
+  ok(cli.includes('const ignoreDefRetenu = resumeIgnoreDefRetenu(profile, s);'), 'CLI : la MÊME phrase que le résumé de l’écran');
+  ok(cli.includes("`${ignoreDefRetenu ? `, ${ignoreDefRetenu.charAt(0).toLowerCase()}${ignoreDefRetenu.slice(1)}` : ''}`"),
+    'CLI : ajoutée à la ligne du sort (« , ignore la DEF : … »), rien pour les autres sorts');
 }

@@ -181,8 +181,23 @@ seulement sans coup inconditionnel. Une clé absente donne le défaut du sort.
 Une valeur hors des crans permis, par exemple un coup 1 ou « aucun » en
 variante B, retombe aussi sur ce défaut (`resolvedPremierCoupIgnoreDef`).
 Le champ est propre au sort : vidé au changement d'espèce et à l'import de
-compte, conservé au changement d'exemplaire. Aucun contrôle de l'écran ni du
-CLI ne le règle encore.
+compte, conservé au changement d'exemplaire.
+
+**À l'écran et au CLI.** Pour ces six sorts seulement, un sélecteur
+**« Ignore la DEF (jauge de la cible à 0) »** apparaît sous la liste des
+sorts de « Compétence utilisée ». Variante A : « Aucun » (défaut), « Dès le
+2ᵉ coup », « Dès le 3ᵉ coup » ; variante B : « Dès le 2ᵉ coup » à « Dès le
+6ᵉ coup », puis « 7ᵉ coup seul » (défaut). Crans et libellés sont dérivés de
+la règle curée du sort (`cransIgnoreDefAPartirDuCoup`), jamais écrits par
+sort ; la valeur montrée est le cran que le calcul retient
+(`cranIgnoreDefRetenu`), jamais la valeur stockée. Le résumé du sort, dans la
+liste, dit ce cran sur une ligne à lui — « Ignore la DEF : dès le 2ᵉ coup »,
+« … : aucun », « … : 7ᵉ coup seul » —, d'une seule ligne de haut quel que
+soit le cran : en changer ne déplace pas le sélecteur. La ligne du sort du
+CLI (`scripts/optimizer-search.ts`) dit la même phrase
+(`resumeIgnoreDefRetenu`). La DEF de la cible reste affichée dans tous les
+crans, dans la fenêtre comme dans le résumé sous l'objectif (degats-et-aura
+10b).
 
 **Recette.** Le champ voyage dans `damageSetup`, et l'import n'en valide que
 le **type** : un objet indexé par identifiants entiers positifs, chaque
@@ -201,7 +216,9 @@ curation suppose : si les données en annonçaient un autre, le sort serait
 refusé avec sa raison plutôt que calculé avec des rangs faux. Test :
 [tests/blade-dancers.test.ts](../../../tests/blade-dancers.test.ts) — corpus et
 famille close, chaque cran et chaque défaut, contrôle négatif sur les ignore
-DEF inconditionnels (`Hero Strike`, `Strike of Fighter`, Lushen S3).
+DEF inconditionnels (`Hero Strike`, `Strike of Fighter`, Lushen S3) ; puis la
+recette (`testBladeDancersRecette`), le sélecteur, le résumé et la ligne du
+CLI (`testBladeDancersEcranEtCli`).
 
 
 ## Compétences d'invocateur

@@ -3915,6 +3915,60 @@ export function resolvedPremierCoupIgnoreDef(profile: SkillDamageProfile, setup:
 }
 
 /**
+ * Un cran du réglage « Ignore la DEF (jauge de la cible à 0) » : le rang du
+ * premier coup qui ignore la DEF (`null` = aucun) et son libellé d'écran.
+ */
+export interface CranIgnoreDef {
+  rang: number | null;
+  libelle: string;
+}
+
+/**
+ * Les crans proposés pour un sort à `ignoreDefAPartirDuCoup` (les Blade
+ * Dancers), dans l'ordre du sélecteur — ou `null` pour tout autre sort, et
+ * c'est ce `null` qui décide que le sélecteur n'apparaît pas. DÉRIVÉS de la
+ * règle curée du sort, jamais d'une liste par sort : sans coup inconditionnel,
+ * « Aucun » (le défaut) puis « Dès le Nᵉ coup » pour chaque rang permis ; avec,
+ * « Dès le Nᵉ coup » pour les rangs qui le précèdent, puis « Nᵉ coup seul »
+ * (le défaut) — « aucun » n'y existe pas. Libellés retenus par l'utilisateur
+ * (cadrage degats-et-aura, recalage du lot 10, choix n° 12).
+ *
+ * ⚠️ Source UNIQUE de ces libellés : le sélecteur de l'écran, le résumé du
+ * sort et la ligne du CLI les lisent ici (`resumeIgnoreDefRetenu`).
+ */
+export function cransIgnoreDefAPartirDuCoup(profile: SkillDamageProfile): CranIgnoreDef[] | null {
+  const regle = profile.ignoreDefAPartirDuCoup;
+  if (!regle) return null;
+  const crans: CranIgnoreDef[] = regle.dernierCoupInconditionnel === null ? [{ rang: null, libelle: 'Aucun' }] : [];
+  for (const rang of regle.rangsPermis) {
+    crans.push({ rang, libelle: rang === regle.dernierCoupInconditionnel ? `${rang}ᵉ coup seul` : `Dès le ${rang}ᵉ coup` });
+  }
+  return crans;
+}
+
+/**
+ * Le cran RÉELLEMENT retenu pour `profile` — celui de
+ * `resolvedPremierCoupIgnoreDef`, donc du calcul : une valeur stockée hors des
+ * crans y retombe sur le défaut du sort —, ou `null` pour un sort sans cette
+ * règle. L'écran montre ce que le calcul applique, jamais la valeur stockée.
+ */
+export function cranIgnoreDefRetenu(profile: SkillDamageProfile, setup: DamageSetup): CranIgnoreDef | null {
+  const rang = resolvedPremierCoupIgnoreDef(profile, setup);
+  return cransIgnoreDefAPartirDuCoup(profile)?.find((c) => c.rang === rang) ?? null;
+}
+
+/**
+ * La phrase qui dit le cran retenu — « Ignore la DEF : dès le 2ᵉ coup »,
+ * « … : aucun », « … : 7ᵉ coup seul » —, ou `null` pour un sort sans cette
+ * règle. UNE phrase pour le résumé du sort à l'écran et la ligne du CLI.
+ */
+export function resumeIgnoreDefRetenu(profile: SkillDamageProfile, setup: DamageSetup): string | null {
+  const cran = cranIgnoreDefRetenu(profile, setup);
+  if (!cran) return null;
+  return `Ignore la DEF : ${cran.libelle.charAt(0).toLowerCase()}${cran.libelle.slice(1)}`;
+}
+
+/**
  * Dégâts totaux du sort (tous coups confondus) pour un build donné, ET les PV
  * restants de la cible une fois le sort encaissé.
  *

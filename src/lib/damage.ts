@@ -1327,9 +1327,12 @@ function conditionCombatActive(
       return condition.inclusif ? (setup.enemyAtk ?? 0) <= seuil : (setup.enemyAtk ?? 0) < seuil;
     }
     case 'defCibleSousDefPropre':
-      return !!combat && Math.max(0, setup.enemyDef) <= combat.def * condition.ratio;
-    case 'defCibleSousAtkPropre':
-      return !!combat && Math.max(0, setup.enemyDef) <= combat.atk * condition.ratio;
+    case 'defCibleSousAtkPropre': {
+      if (!combat) return false;
+      const seuil = (condition.type === 'defCibleSousDefPropre' ? combat.def : combat.atk) * condition.ratio;
+      const defCible = Math.max(0, setup.enemyDef);
+      return condition.inclusif ? defCible <= seuil : defCible < seuil;
+    }
     case 'vitPropreSuperieure':
       return !!combat && combat.spd > Math.max(1, setup.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd!);
     case 'aucunPvCibleDetruit':
@@ -1797,6 +1800,10 @@ const CONDITIONS_MONSTRE_CONNUS: Record<string, ConditionCombatProfile[]> = {
 };
 
 const CONDITIONS_MONSTRE_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> = {
+  // Bornes STRICTES (pas d'`inclusif`) : « with Defense lower than your Attack
+  // Power » (Jaara, `note` « lower defense than your attack power ») et
+  // « who has lower Defense than yours » (Varus, `note` « If self DEF greater
+  // than target ») — à égalité, aucune garantie (degats-et-aura 15d).
   3216: [{ type: 'defCibleSousAtkPropre', ratio: 1, critiqueGaranti: true }], // Jaara
   2565: [{ type: 'defCibleSousDefPropre', ratio: 1, critiqueGaranti: true }], // Varus 2A
   9312: [{
@@ -2032,8 +2039,12 @@ export type ConditionCombatProfile = (
   | { type: 'pvPropreSous'; seuilPct: number }
   | { type: 'pvCibleSuperieursPvPropre'; ratio: number }
   | { type: 'atkCibleSousAtkPropre'; ratio: number; inclusif?: boolean }
-  | { type: 'defCibleSousDefPropre'; ratio: number }
-  | { type: 'defCibleSousAtkPropre'; ratio: number }
+  // Les trois comparaisons de stat sont STRICTES par défaut ; `inclusif`
+  // s'écrit entrée par entrée, seulement quand la prose du sort dit « or
+  // lower » / « or less » (Copper 7763, Guard Crush 15907-15910). Jaara 3216
+  // et Varus 2565 : prose et `note` strictes (degats-et-aura 15d).
+  | { type: 'defCibleSousDefPropre'; ratio: number; inclusif?: boolean }
+  | { type: 'defCibleSousAtkPropre'; ratio: number; inclusif?: boolean }
   | { type: 'vitPropreSuperieure' }
   | { type: 'aucunPvCibleDetruit' }
   | { type: 'debuffCiblePresent' }
@@ -2465,10 +2476,13 @@ const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> 
   20712: [{ type: 'aucunPvCibleDetruit', pct: 50 }], // Rick feu — le critique, lui, est inconditionnel
   7808: [{ type: 'manuel', libelle: 'tes PV actuels sont inférieurs à 30 %', ignoreDefPct: 100 }], // Leo — Torrent
   7810: [{ type: 'manuel', libelle: 'tes PV actuels sont inférieurs à 30 %', ignoreDefPct: 100 }], // Ragdoll — Torrent
-  7763: [{ type: 'defCibleSousDefPropre', ratio: 0.5, ignoreDefPct: 100 }], // Copper 2A
-  15907: [{ type: 'defCibleSousAtkPropre', ratio: 0.6, ignoreDefPct: 100 }],
-  15908: [{ type: 'defCibleSousAtkPropre', ratio: 0.6, ignoreDefPct: 100 }],
-  15910: [{ type: 'defCibleSousAtkPropre', ratio: 0.6, ignoreDefPct: 100 }],
+  // Bornes inclusives écrites par la prose : « if it is half or lower than
+  // your Defense » (Copper ; la `note`, « lower than 50% », est stricte, la
+  // prose fait foi), « 60% or less than your Attack Power » (Guard Crush).
+  7763: [{ type: 'defCibleSousDefPropre', ratio: 0.5, inclusif: true, ignoreDefPct: 100 }], // Copper 2A
+  15907: [{ type: 'defCibleSousAtkPropre', ratio: 0.6, inclusif: true, ignoreDefPct: 100 }],
+  15908: [{ type: 'defCibleSousAtkPropre', ratio: 0.6, inclusif: true, ignoreDefPct: 100 }],
+  15910: [{ type: 'defCibleSousAtkPropre', ratio: 0.6, inclusif: true, ignoreDefPct: 100 }],
   19215: [{ type: 'debuffCiblePresent', ignoreDefPct: 100 }], // Triss ténèbres
   19615: [{ type: 'debuffCiblePresent', ignoreDefPct: 100 }], // Celestara ténèbres
   5315: [{ type: 'manuel', libelle: 'la cible est endormie', ignoreDefPct: 50 }], // Isael

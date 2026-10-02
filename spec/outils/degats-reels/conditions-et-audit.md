@@ -61,6 +61,17 @@ vivants, les comparaisons de PV/ATQ/DEF/VIT, les statistiques acquises en
 combat, les seuils d'ignore DEF et les critiques garantis conditionnels.
 Chaque grandeur provenant du build est recalculée pour chaque candidat.
 
+Une comparaison de stat avec la cible est **stricte** par défaut ; une borne
+inclusive s'écrit entrée par entrée, seulement quand la prose du sort la
+dit. Copper (« half or lower than your Defense ») et Guard Crush (« 60% or
+less than your Attack Power ») ignorent la DEF à l'égalité ; Jaara
+(« Defense lower than your Attack Power ») et Varus (« lower Defense than
+yours ») ne garantissent plus le critique à l'égalité, conformément à leur
+prose et à la `note` de leur effet (degats-et-aura 15d). Le résumé de la
+condition dit ce qu'elle accorde (ignore DEF ou critique garanti) et sa
+borne (≤ ou <), lus sur l'entrée : Jaara et Varus affichaient « ignore
+DEF ».
+
 Les compteurs de débuffs ennemis sont plafonnés à 10 : Brise DEF et Marque
 actifs s'ajoutent automatiquement aux autres effets saisis. Les clauses
 binaires « au moins un effet néfaste » (Tesarion, Manannan, Arang et analogues)

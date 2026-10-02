@@ -354,6 +354,14 @@ Formes : 20403 Anubis †, 20413 Iunu.
 | --- | --- | --- | --- | --- |
 | « Underworld King's Return(Passive) » · 11213 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Résurrections déjà effectuées » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Underworld King's Return(Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
 
+### Jaara
+
+Formes : 14505 Phoenix †, 14515 Jaara.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Fiery Path (Passive) » · 3216 · S3 | Le critique garanti exige une DEF cible **strictement** inférieure à l'ATQ de combat de Jaara (prose « Defense lower than your Attack Power ») : à l'égalité, plus de garantie. Le jeton du passif disait « ignore DEF si la DEF cible ≤ 1× ton ATQ » ; il dit « critique garanti si la DEF cible < 1× ton ATQ ». | 15d | commit du lot 15d (bornes) | Chemin commun → Jaara → « Passifs offensifs » : le jeton « Fiery Path » dit « critique garanti si la DEF cible < 1× ton ATQ ». En « Non critique », DEF de la cible égale à l'ATQ de combat : le total n'est plus doublé ; un point de DEF de moins : critique. |
+
 ### Jade
 
 Formes : 26903 Macaron Guard †, 26913 Jade.
@@ -650,6 +658,14 @@ Formes : 29605 Magic Order Guardian †, 29615 Valdemar.
 | --- | --- | --- | --- | --- |
 | « Addicted Power (Passive) » · 19315 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Buffs sur Valdemar » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Addicted Power (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
 
+### Varus
+
+Formes : 11535 Varus, 47705 Griffon 2A † (forme générique, non jouable).
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Dark Guardian (Passive) » · 2565 · S3 | Le critique garanti exige une DEF cible **strictement** inférieure à la DEF de combat de Varus, +50 % du passif compris (prose « lower Defense than yours ») : à l'égalité, plus de garantie. Le jeton du passif disait « ignore DEF si la DEF cible ≤ 1× ta DEF » ; il dit « critique garanti si la DEF cible < 1× ta DEF ». | 15d | commit du lot 15d (bornes) | Chemin commun → Varus → « Passifs offensifs » : le jeton « Dark Guardian » dit « critique garanti si la DEF cible < 1× ta DEF ». En « Non critique », DEF de la cible égale à la DEF de combat : le total n'est plus doublé ; un point de moins : critique. |
+
 ### Vendhan
 
 Formes : 28312 Vendhan.
@@ -801,6 +817,12 @@ Rien de ce qui suit n'est à chercher à l'écran.
   Leona.
 - **Valeurs en jeu** : aucune des valeurs de Blade Surge, Tempest et Blade
   Dancers n'a de relevé en jeu ; elles viennent de l'utilisateur (A.2 ter).
+- **Bornes de DEF** (lot 15d) : Copper `7763` et Guard Crush `15907`,
+  `15908`, `15910` portent désormais un drapeau `inclusif` explicite ; leur
+  calcul et leur texte ne changent pas (absents du § 1). La `note` de
+  l'effet de Copper (« lower than 50% ») est stricte, sa prose (« half or
+  lower ») inclusive : la prose fait foi, comme avant. Aucune borne n'a de
+  relevé en jeu.
 
 ---
 

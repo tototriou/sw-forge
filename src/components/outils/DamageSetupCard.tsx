@@ -190,6 +190,18 @@ function libelleSourceEffet(source: 'buffs' | 'debuffs' | 'buffsEtDebuffs'): str
   }
 }
 
+// Ce que la condition accorde, lu sur l'entrée elle-même — jamais supposé
+// d'après son type : une même comparaison sert un ignore DEF (Copper, Guard
+// Crush) ou un critique garanti (Jaara, Varus), degats-et-aura 15d.
+function effetCondition(condition: ConditionMonstreProfile['condition']): string {
+  if (condition.critiqueGaranti) return 'critique garanti';
+  if (condition.ignoreDefPct != null) {
+    return condition.ignoreDefPct >= 100 ? 'ignore DEF' : `ignore ${condition.ignoreDefPct} % de la DEF`;
+  }
+  if (condition.pct) return `+${condition.pct} %`;
+  return 'condition active';
+}
+
 function resumeCondition(condition: ConditionMonstreProfile['condition']): string {
   switch (condition.type) {
     case 'buffCiblePresent':
@@ -213,9 +225,9 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
     case 'atkCibleSousAtkPropre':
       return `condition d’ATQ cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ton ATQ`;
     case 'defCibleSousDefPropre':
-      return `ignore DEF si la DEF cible ≤ ${condition.ratio}× ta DEF`;
+      return `${effetCondition(condition)} si la DEF cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ta DEF`;
     case 'defCibleSousAtkPropre':
-      return `ignore DEF si la DEF cible ≤ ${condition.ratio}× ton ATQ`;
+      return `${effetCondition(condition)} si la DEF cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ton ATQ`;
     case 'vitPropreSuperieure':
       return 'critique garanti si ta VIT dépasse celle de la cible';
     case 'aucunPvCibleDetruit':

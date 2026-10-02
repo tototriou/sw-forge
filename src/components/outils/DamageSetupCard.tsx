@@ -39,7 +39,8 @@ import {
   cranIgnoreDefRetenu,
   cransIgnoreDefAPartirDuCoup,
   resumeIgnoreDefRetenu,
-  passifActif,
+  passifCompte,
+  passifPeutSuivre,
   resolvedBuffsPropresCount,
   resolvedBuffCiblePresent,
   resolvedEffetsPropresCount,
@@ -94,8 +95,9 @@ interface Props {
   // calculable pour ce monstre.
   resolved: SkillDamageProfile | null;
   // Passifs offensifs de ce monstre reconnus (`monsterOffensivePassives`,
-  // damage.ts) — indépendants du sort choisi, voir la section dédiée
-  // plus bas. Vide = rien à afficher (la plupart des monstres).
+  // damage.ts) — affichés s'ils peuvent suivre le sort choisi
+  // (`passifPeutSuivre`), voir la section dédiée plus bas. Vide = rien à
+  // afficher (la plupart des monstres).
   passifs: PassifOffensifProfile[];
   // Modificateurs monstre-wide liés à la VIT SANS formule propre
   // (`monsterModificateursVit`, damage.ts — Ciri Eau, Rigna, Sonia…),
@@ -452,10 +454,18 @@ export default function DamageSetupCard({
       ...passifs,
     ])
   );
+  // Les passifs qui PEUVENT frapper après le sort choisi (`passifPeutSuivre`,
+  // la porte de `passifCompte`) — les seuls affichés. Un passif choisi
+  // lui-même comme sort (Tempest seul) n'est jamais ajouté à lui-même : son
+  // interrupteur est MASQUÉ (réponse n° 10 de l'utilisateur, 2026-10-02,
+  // degats-et-aura 9b) ; de même pour un passif dont les slots déclencheurs
+  // excluent le sort choisi — un bouton sans effet possible n'est jamais
+  // montré (principe 2 ci-dessus).
+  const passifsSuivants = passifs.filter((p) => passifPeutSuivre(p, resolved));
   // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
-  // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
-  // passif, ou si le sort ne pose pas de réduction de défense.
-  const montreDefBreakParLeSort = resolved.appliqueDefBreak && passifs.length > 0;
+  // après le sort — inutile d'encombrer l'écran si aucun passif ne peut le
+  // suivre, ou si le sort ne pose pas de réduction de défense.
+  const montreDefBreakParLeSort = resolved.appliqueDefBreak && passifsSuivants.length > 0;
   const critiqueForceParReglage =
     critiqueGarantiParReglage(resolved, setup, elementAttaquant) ||
     conditionsCombatMonstre.some((p) =>
@@ -734,13 +744,15 @@ export default function DamageSetupCard({
         )}
       </div>
 
-      {/* ⚠️ **Indépendant du sort choisi ci-dessus** — un passif s'applique
-          quel que soit S1/S2/S3 en cours d'optimisation, voir
-          spec/outils/degats-reels.md. Absent (la grande majorité des
-          monstres) : rien ne s'affiche, pas même un « aucun passif connu »
-          — un panneau qui parle d'une absence à chaque monstre serait plus
-          bruyant qu'utile. */}
-      {(passifs.length > 0 ||
+      {/* ⚠️ **Presque toujours indépendant du sort choisi ci-dessus** — un
+          passif s'applique quel que soit S1/S2/S3 en cours d'optimisation,
+          voir spec/outils/degats-reels.md, sauf s'il ne peut pas suivre ce
+          sort (`passifsSuivants` : lui-même choisi comme sort, ou slots
+          déclencheurs curés qui l'excluent — Tempest). Absent (la grande
+          majorité des monstres) : rien ne s'affiche, pas même un « aucun
+          passif connu » — un panneau qui parle d'une absence à chaque monstre
+          serait plus bruyant qu'utile. */}
+      {(passifsSuivants.length > 0 ||
         modificateursVit.length > 0 ||
         bonusDegatsStack ||
         bonusDegatsConditionnel ||
@@ -1050,7 +1062,7 @@ export default function DamageSetupCard({
                 </label>
               </div>
             )}
-            {passifs.map((p) => {
+            {passifsSuivants.map((p) => {
               const nom = p.nom.replace(/\s*\(Passive\)\s*$/i, '');
               const icone = p.profile.icone ? (
                 <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
@@ -1077,7 +1089,8 @@ export default function DamageSetupCard({
               // (`toujours`) : pas de bouton, on montre juste l'état courant et
               // POURQUOI, pour que le joueur puisse le contredire s'il le faut.
               if (p.categorie.type === 'toujours' || p.categorie.type === 'defBreak') {
-                const declenche = passifActif(p, setup);
+                // Même porte que le calcul (`passifCompte`, avec le sort choisi).
+                const declenche = passifCompte(p, resolved, setup);
                 return (
                   <div key={p.skillCom2usId} className={declenche ? '' : 'opacity-50'}>
                     <Jeton
@@ -1107,7 +1120,19 @@ export default function DamageSetupCard({
               // il porte le passif entier.
               const actif = setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
               const cat = p.categorie;
-              const libelle = cat.type === 'bonus' ? `${nom} (+${cat.pct} %)` : nom;
+              // Un passif qui frappe APRÈS certains sorts (`slotsDeclencheurs`
+              // curés — Tempest) : l'interrupteur dit lui-même ce que
+              // l'utilisateur suppose pour le calcul, « Tempest (S3) se
+              // déclenche après ce sort » (réponse n° 11 de l'utilisateur,
+              // 2026-10-02, degats-et-aura 9b), à la place de la phrase « Se
+              // déclenche si … », qui n'en dirait pas plus. La condition curée
+              // reste au survol, comme pour tout interrupteur de passif.
+              const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;
+              const libelle = apresSort
+                ? `${nom} (S${p.profile.slot}) se déclenche après ce sort`
+                : cat.type === 'bonus'
+                  ? `${nom} (+${cat.pct} %)`
+                  : nom;
               const condition = `${cat.condition[0].toUpperCase()}${cat.condition.slice(1)}`;
               // ⚠️ `dejaInclus` (Dominic) : le ratio affiché ci-dessus EST déjà
               // le cas majoré — décocher ne l'ajoute pas, il le RETIRE (voir
@@ -1133,7 +1158,7 @@ export default function DamageSetupCard({
                     title={`${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
                   />
                   {resume}
-                  <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>
+                  {!apresSort && <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>}
                   {texteJeu}
                   {champCoupsVariables(p.profile, setup, maj)}
                 </div>
@@ -1395,7 +1420,7 @@ export default function DamageSetupCard({
               (« dégâts proportionnels aux PV perdus ») — mais AUSSI quand un
               passif porte un seuil de PV (Final Strike : +20 % sous 30 %),
               puisque les coups du sort creusent la cible avant qu'il frappe. */}
-          {(utilise('Target Current HP %') || passifs.some((p) => p.bonusPvCible) || demandePvCible) && (
+          {(utilise('Target Current HP %') || passifsSuivants.some((p) => p.bonusPvCible) || demandePvCible) && (
             <label className="flex items-center gap-2">
               <span className="text-xs text-ink-dim">PV restants</span>
               <NumberField

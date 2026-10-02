@@ -66,6 +66,7 @@ import {
   testDegatsTempestDeclenchement,
   testDegatsTempestCommeSort,
   testDegatsTempestRecette,
+  testDegatsTempestEcran,
 } from './degats-tempest.test';
 import testDegatsBladeSurge from './degats-blade-surge.test';
 import { testBladeSurgeRecette, testBladeSurgeEcran, testBladeSurgePariteEcranCli } from './blade-surge-propagation.test';
@@ -202,6 +203,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDegatsTempestDeclenchement', testDegatsTempestDeclenchement],
   ['testDegatsTempestCommeSort', testDegatsTempestCommeSort],
   ['testDegatsTempestRecette', testDegatsTempestRecette],
+  ['testDegatsTempestEcran', testDegatsTempestEcran],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
   ['testRuneOptimOnStage', testRuneOptimOnStage],

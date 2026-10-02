@@ -861,7 +861,13 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        aucun réglage existant ne peut trancher ça à sa place) — la condition
        et le texte du jeu (`Competence.description`) sont affichés **en
        clair sous chaque passif**, pas seulement au survol, pour que le
-       joueur juge lui-même.
+       joueur juge lui-même. Pour un passif qui frappe **après certains
+       sorts** (Tempest), la condition EST le libellé de l'interrupteur :
+       « **Tempest (S3) se déclenche après ce sort** », désactivé par défaut
+       (réponse n° 11 de l'utilisateur du 2026-10-02), à la place de la
+       phrase « Se déclenche si … ». Un passif n'apparaît que s'il peut
+       suivre le sort choisi : l'interrupteur de Tempest est **masqué**
+       quand Tempest est lui-même la compétence choisie (réponse n° 10).
 #### Dégâts réels — adversaire, effets actifs et coup critique
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).

@@ -43,6 +43,18 @@ Les valeurs de Tempest sont celles du cadrage (A.2 ter, utilisateur le
   ayant été la première attaque du tour ; 402/410 la touchent une fois, par
   son slot (3) ; elle n’hérite jamais de la ligne du sort déclencheur (400
   pour S1, 401 pour S2) ; 224 l’ignore, elle est en zone.
+- À l’écran, son interrupteur dit ce que l’utilisateur suppose pour le
+  calcul : « **Tempest (S3) se déclenche après ce sort** », désactivé par
+  défaut (réponse n° 11 de l’utilisateur, 2026-10-02). Le libellé est
+  construit, `<nom> (S<slot>) se déclenche après ce sort`, pour tout passif
+  `conditionnel` à slots déclencheurs. Il remplace la phrase « Se déclenche
+  si … » des autres interrupteurs ; la condition curée reste au survol, la
+  description du jeu en dessous.
+- L’interrupteur n’est affiché que si le passif **peut suivre** le sort
+  choisi (`passifPeutSuivre`) : il est **masqué** quand le passif est
+  lui-même la compétence choisie (réponse n° 10). Même règle pour un futur
+  cas dont le sort choisi ne serait pas un déclencheur : un bouton sans effet
+  possible n’est jamais montré.
 
 ## Choisi seul — « Compétence utilisée »
 
@@ -118,4 +130,5 @@ sorts, jamais par défaut, une seule contribution — aussi pour un passif
 générique sans slots déclencheurs —, lignes 411, 402, 410, 400, 401, 224,
 222 et 223 du cran « Tempest seul », garde du corpus
 (`testDegatsTempestCommeSort`) ; aller-retour de recette avec `3213` relu par
-le CLI (`testDegatsTempestRecette`).
+le CLI (`testDegatsTempestRecette`) ; interrupteur à l’écran, lu sur la
+source (`testDegatsTempestEcran`).

@@ -3341,7 +3341,10 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // sélectionné seul » ; « une seule contribution, jamais un second
   // déclenchement de lui-même »), 402/410 une fois (controle-1c1-amendement).
   // Jamais le sort par défaut : Teshar reste sur S2 (réponse n° 9 de
-  // l'utilisateur, 2026-10-02).
+  // l'utilisateur, 2026-10-02). À l'écran, l'interrupteur dit « Tempest (S3) se
+  // déclenche après ce sort » (n° 11) au lieu de la phrase de condition, qui
+  // ne reste qu'au survol ; il est masqué quand Tempest est le sort choisi
+  // (n° 10).
   {
     nom: 'Tempest (Passive)',
     slotsDeclencheurs: [1, 2],
@@ -5241,6 +5244,8 @@ export function passifActif(p: PassifOffensifProfile, setup: DamageSetup): boole
 // - l'entrée curée restreint ses déclencheurs (`slotsDeclencheurs`) et le slot
 //   du sort n'en est pas — jamais `setup.skillCom2usId`, qui peut valoir
 //   `null` (« le sort par défaut »). Tempest : après S1 ou S2 (9a).
+// L'écran n'affiche le passif (et son interrupteur) que s'il peut suivre le
+// sort choisi : un bouton sans effet possible n'est jamais montré.
 export function passifPeutSuivre(p: PassifOffensifProfile, sort: SkillDamageProfile): boolean {
   if (p.skillCom2usId === sort.skillCom2usId) return false;
   return !p.slotsDeclencheurs || p.slotsDeclencheurs.includes(sort.slot);

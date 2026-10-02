@@ -522,3 +522,63 @@ export function testDegatsTempestRecette() {
   egal((cli.match(/passifCompte\(p, profile, s\)/g) ?? []).length, 2, 'CLI : les états « def break » et « conditionnel » passent par passifCompte, avec le sort retenu');
   ok(cli.includes('choisi comme sort : compté une seule fois'), 'CLI : un passif choisi comme sort est annoncé comme tel, pas « désactivé »');
 }
+
+// Le code seul (même parti pris que tests/proses-sort.test.ts) : un
+// commentaire qui CITE l'ancien rendu ne doit ni faire échouer ni faire
+// passer un contrôle.
+const sansCommentaires = (s: string) =>
+  s
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+
+/**
+ * 9b — l'écran (`DamageSetupCard.tsx`), lu sur la source : le dépôt n'a pas
+ * d'infrastructure de test React (tests/run.mjs). Réponses de l'utilisateur du
+ * 2026-10-02 : n° 10 (interrupteur MASQUÉ quand Tempest est la compétence
+ * choisie) et n° 11 (« Tempest (S3) se déclenche après ce sort », désactivé
+ * par défaut, à la place de la phrase de condition de 9a).
+ */
+export function testDegatsTempestEcran() {
+  titre('Tempest comme sort — l’interrupteur à l’écran (DamageSetupCard.tsx, degats-et-aura 9b)');
+
+  const carte = sansCommentaires(readFileSync(resolve(racine, 'src/components/outils/DamageSetupCard.tsx'), 'utf8').replace(/\r\n/g, '\n'));
+  ok(
+    carte.includes('const passifsSuivants = passifs.filter((p) => passifPeutSuivre(p, resolved));'),
+    'passifs affichés = ceux qui peuvent suivre le sort choisi (passifPeutSuivre, la porte du calcul)'
+  );
+  ok(carte.includes('{passifsSuivants.map((p) => {') && !carte.includes('{passifs.map('), 'chaque passif rendu vient de passifsSuivants, jamais de la liste complète');
+  ok(carte.includes('{(passifsSuivants.length > 0 ||'), 'la section « Passifs offensifs » ne compte que les passifs affichables');
+  ok(
+    carte.includes("const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;"),
+    'passif qui frappe après certains sorts = conditionnel à slots déclencheurs curés'
+  );
+  ok(/apresSort\s*\?\s*`\$\{nom\} \(S\$\{p\.profile\.slot\}\) se déclenche après ce sort`/.test(carte), 'son interrupteur s’intitule « <nom> (S<slot>) se déclenche après ce sort »');
+  ok(
+    carte.includes('{!apresSort && <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>}'),
+    'la phrase « Se déclenche si … » laisse la place à ce libellé'
+  );
+  ok(carte.includes("const nom = p.nom.replace(/\\s*\\(Passive\\)\\s*$/i, '');"), 'nom affiché : celui du jeu, sans « (Passive) »');
+  ok(carte.includes('const actif = setup.passifsOffensifs?.[p.skillCom2usId] ?? false;'), 'interrupteur éteint tant que rien n’est saisi');
+
+  const teshar = fiche(TESHAR);
+  const tempest = tempestDe(teshar);
+  if (!tempest) {
+    ok(false, 'Teshar : Tempest absent des passifs offensifs — l’interrupteur ne peut pas être vérifié');
+    return;
+  }
+  egal(
+    `${tempest.nom.replace(/\s*\(Passive\)\s*$/i, '')} (S${tempest.profile.slot}) se déclenche après ce sort`,
+    'Tempest (S3) se déclenche après ce sort',
+    'Teshar : le libellé vaut « Tempest (S3) se déclenche après ce sort » (réponse n° 11)'
+  );
+  ok(tempest.categorie.type === 'conditionnel' && tempest.slotsDeclencheurs != null, 'Teshar : Tempest prend la branche « après certains sorts »');
+  ok(!passifActif(tempest, DEFAULT_DAMAGE_SETUP), 'Teshar : interrupteur désactivé par défaut');
+  const affiches = (sort: SkillDamageProfile) =>
+    monsterOffensivePassives(teshar)
+      .filter((p) => passifPeutSuivre(p, sort))
+      .map((p) => p.skillCom2usId);
+  egal(affiches(sortDe(teshar, ARCANE_BLAST)), [TEMPEST], 'S1 choisi : l’interrupteur Tempest est affiché');
+  egal(affiches(sortDe(teshar, LIGHTNING_NOVA)), [TEMPEST], 'S2 choisi : l’interrupteur Tempest est affiché');
+  egal(affiches(tempest.profile), [], 'Tempest choisi : son interrupteur est MASQUÉ (réponse n° 10), plus aucun passif à afficher');
+}

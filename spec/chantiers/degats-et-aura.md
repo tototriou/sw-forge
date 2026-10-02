@@ -4942,6 +4942,10 @@ retire aussi la résolution du fil de l'écran.
 
 ##### 6bis-b14 — la résolution rend la main entre deux reliques
 
+**Sans objet depuis le 2026-10-02** : remplacé par le Worker de résolution
+(6bis-b13bis-a et -b, décision de l'utilisateur), qui retire la résolution
+du fil de l'écran ; tableau A.7. Le contrat ci-dessous reste pour mémoire.
+
 **Cat. J ; requiert b13. En attente de l'accord de l'utilisateur**
 (question du 2026-10-02 : « est-ce que ça ralentit la recherche ? » —
 réponse du pilote : par construction non, le même calcul en morceaux ; la

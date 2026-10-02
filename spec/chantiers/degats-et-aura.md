@@ -449,7 +449,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17, 6bis-b18,
   6bis-b19,
-  7a, 7b, 7c, 8c, 8d, 11bis, 12, tous les 13b-*, CM → 14
+  7a, 7b, 7c, 8c, 8d, 9d, 11bis, 12, tous les 13b-*, CM, LM → 14
 ```
 
 ##### Ordre d'exécution et premières contre-revues
@@ -736,9 +736,11 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
-| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **12 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV ; variables refusées, PV et boucliers, compteurs) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
+| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **15 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV ; variables refusées, PV et boucliers, compteurs ; passifs de stats, passifs du corpus, critiques garantis) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
 | 13 — consolidation : plan, synthèse, recommandation (pilote) | J | après les dix-sept 13b ; recommandation soumise à l'utilisateur | — |
-| CM — le mode critique « Moyenne » supprimé | J | contrat écrit le 2026-10-02 (décisions de l'utilisateur) ; lot parallèle, worktree `sw-forge-lot-cm` | — |
+| CM — le mode critique « Moyenne » supprimé | J | terminé (lot parallèle, `lot-j`), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `f1e7d71c`, `361cc9d0`, `3ea62afe`, `3cba1d5a` / 2026-10-02 |
+| LM — la liste des monstres et sorts modifiés, tenue à chaque commit | C | contrat écrit le 2026-10-02 (demande de l'utilisateur) ; **lançable** (`lot-c`) | — |
+| 9d — le survol de Tempest retiré | J | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; lançable après LM | — |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -790,6 +792,11 @@ enchaîne. L'utilisateur ne transmet plus les briefs ni les retours.
 - **Dans un brief, la mutation vient APRÈS le commit** : restaurée par
   `git checkout --`, une mutation faite avant efface le travail non commité
   (lot 8d).
+- **La liste des monstres et sorts modifiés**
+  (`spec/chantiers/degats-et-aura-monstres.md`, lot LM ; demande de
+  l'utilisateur du 2026-10-02) se met à jour **dans le même commit** que
+  tout changement du calcul ou de l'affichage d'un monstre ou d'un sort :
+  chaque brief le demande, chaque validation le vérifie.
 
 #### Vérifications de l'utilisateur en attente
 
@@ -814,6 +821,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 7c | Le même rappel sous la liste de la zone C, au clic sur un membre : place de 32 px réservée dès que la liste a un membre (rien ne saute à l'apparition ni à l'effacement ; deux lignes sur un téléphone étroit ?), sur les deux formats (au téléphone, dans le dépliement de la zone C) | en attente |
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels », ordinateur ET téléphone. **Blade Surge** (Lapis) : deux crans sous la liste des sorts, rien ne bouge en basculant, résumé « … puis 1 coup · Zone ». **Tempest** (Teshar, Phoenix vent) : dans la liste des sorts, jamais par défaut ; interrupteur « Tempest (S3) se déclenche après ce sort » sous S1/S2, masqué quand Tempest est choisi ; condition au survol (`title`) gardée — à retirer ? **Blade Dancers** : sélecteur « Ignore la DEF (jauge de la cible à 0) », cran retenu sur une ligne à lui sous le résumé (tronquée si étroit), DEF de la cible affichée dans tous les crans | en attente |
 | 8c | Blade Surge, cran « Dégâts sur les autres ennemis » : le résumé sous l'objectif dit « S1 Blade Surge · autres ennemis · … », rien pour la cible visée ; au téléphone, une ligne de plus possible | en attente |
+| CM | Mode critique : deux crans seulement (« Critique », « Non critique »), aide « Coup critique » réduite à une phrase ; importer une recette exportée en « Moyenne » → avertissement en couleur d'avertissement, qui reste jusqu'au prochain import, et calcul en « Critique » | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
 
@@ -839,7 +847,24 @@ décision, rayée avec la date et la réponse.
 | 8c | ~~Douze autres champs de la recette indexés par identifiant acceptent une clé à zéro de tête : les aligner dans ce chantier, ou laisser ?~~ | ✔ 2026-10-02 (utilisateur) : **aligner dans ce chantier** → lot 8d |
 | 8c | ~~Le résumé sous l'objectif doit-il aussi dire le cran d'ignore DEF des Blade Dancers ?~~ | ✔ 2026-10-02 (utilisateur) : **non**, pas de résumé pour les Blade Dancers |
 | 13b (découverte) | ~~Le mode critique « Moyenne », dit par l'utilisateur « non utilisé et devant être supprimé » (amendement 1c1, L64-66), existe toujours et aucun lot ne porte sa suppression : l'ajouter à ce chantier ?~~ | ✔ 2026-10-02 (utilisateur) : **oui** → lot CM ; une recette qui l'utilise est **convertie en « Critique » avec un avertissement visible** (écran et CLI) |
-| 13b (constat) | Des calculs faux en silence sont en production : Madness Judgement (211), Liam (213) et Thunder Strike (7713) ignorent 100 % de la DEF en permanence ; Thunder Break et Abigail mal calculés (`13b-sequences-zone`). Mesure conservatoire maintenant (neutraliser ou refuser ces sorts en attendant les relevés), ou au plan du lot 13 ? | en attente |
+| 13b (constat) | ~~Des calculs faux en silence sont en production (Madness Judgement, Liam, Thunder Strike 7713, Barbara, boucliers de Frieren et d'Internal Force…) : mesure conservatoire maintenant, ou au plan du lot 13 ?~~ | ✔ 2026-10-02 (utilisateur) : **attendre le plan du lot 13** — aucune mesure conservatoire |
+| CM | ~~Avertissement de conversion « Moyenne » : vert, effacé après 5 s ?~~ | ✔ 2026-10-02 (utilisateur) : **token warn, affiché jusqu'au prochain import** (`3cba1d5a`) |
+| 11bis | ~~Fiche monstre inchangée (prose déjà en clair) ?~~ | ✔ 2026-10-02 (utilisateur) : **confirmé** |
+| 11 | ~~Prose de Stone Claws sous le compteur ET au « ? » ?~~ | ✔ 2026-10-02 (utilisateur) : **garder les deux** |
+| 9b | ~~Condition de Tempest au survol (`title`) ?~~ | ✔ 2026-10-02 (utilisateur) : **retirer le survol** → lot 9d |
+| demande | ~~Liste des monstres et sorts modifiés~~ | ✔ 2026-10-02 (utilisateur) : liste exhaustive, **tenue à chaque commit** → lot LM et règle permanente (ci-dessus) |
+| 13b (pour le plan) | ~~Clauses « boss »~~ | ✔ 2026-10-02 : **un réglage global « combat de boss »** lu par toutes les clauses |
+| 13b (pour le plan) | ~~Pertes de PV (Hellfire, Ragnarok, Agrenia, Ereshion, Totems, Extraction…)~~ | ✔ 2026-10-02 : **comptées dans le total** — et les PV qu'elles laissent nourrissent la suite (artéfacts 222/223 selon l'état des PV ennemis, ex. Daphnis avant son S3) |
+| 13b (pour le plan) | ~~Dégâts différés~~ | ✔ 2026-10-02 : **ce qui tombe pendant le sort** (détonations de bombes, sur un état saisi) ; **les DoT ne comptent pas**, ni leurs détonations (Incinerate, Eivor, Astrid) ; bombes à retardement et propagation hors total, sauf le précédent de la bombe posée sans coup direct |
+| 13b (pour le plan) | ~~Attaques hors tour~~ | ✔ 2026-10-02 : **chaque événement du monstre choisissable seul**, sans les attaques d'alliés ; les attaques en coopération restent le **chantier distinct** déjà décidé (`decisions/attaques-conjointes-piste.md`, demande du 2026-09-25) |
+| 13b (pour le plan) | ~~Mention « calcul partiel »~~ | ✔ 2026-10-02 : **oui, visible** sur un sort calculé en partie |
+| 13b (pour le plan) | ~~Nombre de coups variable~~ | ✔ 2026-10-02 : **saisi, puis dérivé des stats** une fois la loi relevée |
+| 13b (pour le plan) | ~~Sort qui porte une formule mais n'attaque pas~~ | ✔ 2026-10-02 : **masqué** de la liste des sorts |
+| 13b (pour le plan) | ~~Formes transformées (Liliana → Lord of Hell, Bellenus, Taranys, Pater, Beast Riders)~~ | ✔ 2026-10-02 : **choisissables dans la modale « Dégâts réels »** (la forme change les sorts disponibles), **pas** comme une entrée de plus de l'Optimizer |
+| 13b (pour le plan) | ~~Internal Force (Leona)~~ | ✔ 2026-10-02 : **bouclier retiré du total, +50 % « damage dealt » compté** sous un interrupteur « bouclier actif » ; catalogue L220-226 et test à corriger |
+| 13b (pour le plan) | ~~Interrupteur d'une attaque appelée active~~ | ✔ 2026-10-02 : **en-tête à part « Attaques déclenchées »** |
+| 13b (pour le plan) | ~~Coups sur « un ennemi au hasard » (Rolling Punch, Kacey, Zenitsu, Qilin, Katarina…)~~ | ✔ 2026-10-02 : **un compteur borné** où l'utilisateur choisit combien de coups touchent la cible |
+| 13b (pour le plan) | ~~Buffs standard posés par un passif~~ | ✔ 2026-10-02 : **rappel à l'écran**, réglage manuel conservé |
 
 ---
 
@@ -8313,6 +8338,88 @@ Damage(50) [If the targets Attack Bar is 0] » dans la donnée, exact ;
 `monsterForms.ts` L125 `sansDoublonDeTransformation`, appliqué partout
 (L12), exact.
 
+Cinquième vague (trois sessions `lot-j`) : `13b-stats-passifs`,
+`13b-stats-passifs-corpus`, `13b-critiques-garantis`.
+
+##### 13b-stats-passifs — 2026-10-02
+
+Preuve `controle-13b-stats-passifs.md` (338 lignes) et ses intrants (8
+scripts, rejoués à l'identique). 11 constats, 30 lignes, 55 formes (30
+jouables) ; aucun déclaré livré. **Cases (lignes)** : donnée × existant 9,
+prose seule × existant 6, relevé acquis × existant 1 (Chilling),
+indéterminé × existant 1 (Taebaek), prose seule × neuf 2 (Leona, Chacha),
+relevé × neuf 10, sans objet 1 (Leo). **Saillants** : 108, Internal Force —
+le bouclier n'est pas une attaque (A.2 ter « Une attaque se lit dans la
+prose »), le +50 % « damage dealt » est dans la donnée, une ligne de
+`BONUS_DEGATS_CONDITIONNEL_CONNUS` suffit (contre la lecture du catalogue
+L220-226 : tranché par l'utilisateur, A.8) ; une ligne de
+`STATS_COMBAT_PAR_ID_CONNUS` suffit sans relevé pour Ciri et Birgitta
+(+50 de VIT en points, ≤ 250), et pour Chilling si l'on accepte le +20
+« mesuré » attesté par un seul commentaire ; l'assiette des « +X % » (base
+ou totale) n'est nulle part (14 lignes en dépendent) ; source « PV
+propres » neuve (7 lignes) ; clauses de TC seules rendues inertes par le
+lot CM (Huga, Ardella, Shumar ; Gorgo déjà livré) ; 83 et 86 livrés, par
+nom dans `BONUS_STAT_FIXE_CONNUS`, testés ; le test « clés de
+`STATS_COMBAT_PAR_ID_CONNUS` ⊂ corpus » n'existe pas (lot SP-0 proposé).
+**Relevés** R1 à R9b, Q1 à Q3. **Lots** SP-0 à SP-11 (prêts : SP-0, SP-1
+retrait du bouclier, SP-2). **Décisions formulées** D1 à D9.
+**Découvertes** -01 à -06, dont -02 : l'extraction de 13a manque trois
+tables (dont `BONUS_DEGATS_STACKABLE_CONNUS`) — Sleep Talk classé à tort
+« absent de toute table ».
+
+**Validé par le pilote** : `damage.ts` L708-713 (`BONUS_STAT_FIXE_CONNUS`
+par nom : Detect Weakspot, Deathblow, Elaborate Plan, Charge) → 83 et 86
+livrés, exact ; `speedTunePassif.ts` L30-33 : le +20 de The Cunning n'est
+attesté que par le commentaire « mesuré à +20 par buff », exact.
+
+##### 13b-stats-passifs-corpus — 2026-10-02
+
+Preuve `controle-13b-stats-passifs-corpus.md` et ses intrants (scripts 01
+à 04, `tri-173.csv`). Les 173 passifs hors audit lus un par un, sans arrêt.
+**Tri** : 90 oui, 82 non, 1 indéterminé (Dova) — précision des détecteurs
+de 13a : 52 %, rappel non mesurable. **Jouabilité** : 79 passifs ont une
+forme sélectionnable, 80 sans objet (non éveillées, génériques, boss), 14
+sur des formes transformées. **Les 32 oui sélectionnables** : 5 déjà
+modélisés, 20 donnée × existant (buff standard posé sur soi : le réglage
+générique existe), 4 prose seule × existant, 1 relevé × indéterminé
+(Skogul), 2 RES/PRE hors formule ; **aucun mécanisme neuf** ; les 8 oui des
+formes transformées dépendent de la décision sur ces formes (prise : A.8).
+**Lots** SPC-1 (rappel des buffs posés par un passif — décidé, A.8) à
+SPC-5 ; aucun ne justifie un chantier à part. **Découvertes** -01 à -05,
+dont -01 (l'extracteur de 13a ne lit que les déclarations de table sur une
+ligne : `BONUS_DEGATS_STACKABLE_CONNUS` L937 et
+`BONUS_COEFFICIENT_PAR_COMPTEUR_CONNUS` L2586 lui échappent — la
+consolidation ne réutilise pas sa colonne `autres_tables` sans correction)
+et -04 (Fatal Cleave de Solide, ignore DEF progressif absent).
+
+**Validé par le pilote** : `tri-173.csv` : 173 lignes, 90 / 82 / 1,
+exact ; les deux tables sont bien déclarées sur plusieurs lignes (`damage.ts`
+L937, L2586) → défaut de 13a confirmé.
+
+##### 13b-critiques-garantis — 2026-10-02
+
+Preuve `controle-13b-critiques-garantis.md` (257 lignes) et ses intrants
+(8 scripts). 30 constats, 34 lignes, 58 formes. **Cases (lignes)** :
+donnée × existant 31 — **dont 29 livrées depuis `b2538ab1`
+(2026-09-15) sans que l'inventaire l'enregistre** (23 identifiants dans
+`CRITIQUES_GARANTIS_INCONDITIONNELS`, Storm of Midnight, Fire Strike et
+Flame Strike par condition, Burst Cannon à 10 charges ; seuls 7 ont un test
+de la garantie) ; relevé × neuf 2 (Artamiel, contre-attaque hors tour ;
+Dice Madness, à fusionner avec VR-5) ; relevé × indéterminé 1 (Moria,
+formule vide). Byungchul (269, 270) : garantie portée par le passif 18613,
+sans condition ; deux lignes de table suffisent (18608, et 18603 hors
+inventaire). La garantie s'applique avant tout mode critique. **Relevés**
+R1 à R4. **Lots** CG-1 (tests et statut, prêt), CG-2 (Byungchul, prêt) à
+CG-6. **Décisions formulées** D1 (contre-attaques calculables — tranché :
+oui, seules, A.8), D2 (découvertes hors inventaire), D3 (part de l'allié de
+Moria). **Découvertes** -01 à -08, dont Deadly Swing 6207, 6208, 6209, 6257
+non couverts alors que 6258 l'est.
+
+**Validé par le pilote** : fiche `28903.json` : Full of Spirit (18613)
+« Your attacks will always land as a Critical Hit », 18608 absent de la
+table → exact ; 6258 couvert par une condition (`damage.ts` L2464,
+`pvCibleMax` 30 % avec `critiqueGaranti`), 6207 nulle part → exact.
+
 ### Lot CM — le mode critique « Moyenne » supprimé
 
 **Cat. J.** Décisions de l'utilisateur du 2026-10-02 : le mode critique
@@ -8374,6 +8481,87 @@ CLI réel avec une recette « moyenne » → avertissement et résultat de
 
 **Ne fait pas** : aucun mode nouveau ; aucune autre règle de critique
 (402, 410, critiques garantis ou interdits) ; ni `livrer` ni `push`.
+
+#### Résultat du lot CM — 2026-10-02
+
+Lot parallèle (agent `lot-j`), worktree `sw-forge-lot-cm` parti de
+`e04badb3`. Quatre commits, intégrés en `f1e7d71c` (type, écran, calcul :
+la part critique vaut 1 ou 0, la branche qui lisait le Taux Crit est
+retirée ; tests convertis), `361cc9d0` (recette : « moyenne » converti en
+« crit » par `parseOptimizerRecipe`, avertissement
+`AVERTISSEMENT_CRIT_MOYENNE` ; écran, `chargerRecette`, CLI et harnais ;
+tests `testCritiqueMoyenneImport`, `testCritiqueMoyenneEcranEtCli`),
+`3ea62afe` (`artifact-search` aux deux modes) et `3cba1d5a` (correction
+demandée par l'utilisateur : l'avertissement prend le token warn et reste
+affiché jusqu'au prochain import — `src/lib/messageImport.ts`,
+`testCritiqueMoyenneMessageImport`). Inventaire : 25 occurrences de
+`'moyenne'` dans 9 fichiers ; restent la conversion
+(`optimizerRecipe.ts`), celle d'`artifact-search --crit=moyenne`, un
+commentaire et les tests. Décision du 2026-09-29 « Taux Crit en mode
+Moyenne » dite sans objet (`invariants.md`, `algorithme.md`). CLI réel
+(Kinki, Sonia) : recette « moyenne » → avertissement, puis sortie
+identique à « crit ». Preuve `controle-cm.md`.
+
+**Rejoué par le pilote** : dans le worktree, `tsc` 0, 2 077 vérifications,
+build, spec-lint, diff-check ; **mutation du pilote** (conversion en
+« normal ») : 3 échecs ; restaurée ; correction rejouée (76 vérifications) ;
+sur le combiné, après intégration : `tsc` 0, 2 908 vérifications (16
+filtres), build, spec-lint, diff-check verts ; notes fusionnées à trois
+sans conflit. Mutations de l'agent : 7, puis 3 pour la correction.
+
+**Écarts** : `artifact-search` convertit aussi `--crit=moyenne` ; huit
+scripts de diagnostic appellent le parseur sans `chargerRecette` (recette
+convertie, avertissement non affiché) ; le message d'import reste dans le
+flux, sous la barre d'actions (le bouton cliqué ne bouge pas, ce qui est
+sous le message descend, comme avant). **Hors lot, préexistant** : le
+surplus de Taux Crit de Ciri, MOS (Feu) et Reyka change les dégâts sans être
+protégé par la dominance → consolidation 13. **Non prouvé** : aucun rendu
+à l'œil (A.8) ; les CLI réels ne départagent pas l'ancien calcul (Kinki ne
+critique pas, Sonia exige 100 % de TC).
+
+#### Lot LM — la liste des monstres et sorts modifiés
+
+**Cat. C.** Demande de l'utilisateur du 2026-10-02 : une liste exhaustive
+des monstres et sorts modifiés par ce chantier, pour tout vérifier à la
+fin, **tenue à jour à chaque commit**. Agent `lot-c`.
+
+**Sortie** : `spec/chantiers/degats-et-aura-monstres.md` (en-tête de
+cadrage : `**Statut :** CHANTIER en cours — branche forge/degats-et-aura`).
+Une table **par monstre** : monstre (formes concernées, com2usId), sort
+(nom du jeu, identifiant, slot), ce qui change dans le calcul ou
+l'affichage, lot, commit(s), comment le vérifier à l'écran ; puis une
+section des **changements transverses** (tous monstres : auras externes,
+prose des sorts au clic, mode critique « Moyenne », Worker de résolution,
+planchers d'artéfacts et de relique…), chacun avec son lot et sa
+vérification.
+
+**Intrant** : `git log` et `git diff` de la branche depuis `81284199`
+(tables curées et branches de `damage.ts`, `DamageSetupCard.tsx`, recette,
+CLI) ; les Résultats des lots de ce cadrage (par Select-String sur
+« Résultat du lot ») ; les tests nommés qui fixent chaque cas. Chaque ligne
+cite son commit ; une modification sans monstre nommable va dans les
+transverses ; un doute reste écrit, jamais tranché.
+
+**Règle permanente (A.8)** : tout commit qui change le calcul ou
+l'affichage d'un monstre ou d'un sort met à jour cette liste **dans le même
+commit**.
+
+**Preuve** : la liste, `spec-lint` vert, et un contrôle par script : chaque
+identifiant de compétence ajouté ou modifié dans une table curée de
+`damage.ts` depuis `81284199` figure dans la liste (sortie dans
+`controle-lm.md`).
+
+**Ne fait pas** : aucun code ; aucune vérification à l'œil (c'est la liste
+qui la permettra).
+
+#### Lot 9d — le survol de Tempest retiré
+
+**Cat. J.** Décision de l'utilisateur du 2026-10-02 : l'interrupteur
+« Tempest (S3) se déclenche après ce sort » ne garde plus l'ancienne
+condition au survol (`title`) — un survol n'existe pas au doigt ; la
+condition reste lisible dans la prose de Tempest (« ? », lot 11bis). Le
+test de l'écran suit ; la liste du lot LM aussi. Mutation après le commit.
+**Ne fait pas** : rien d'autre dans la carte.
 
 ### Lot 14 — clôture
 

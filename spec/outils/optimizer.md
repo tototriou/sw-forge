@@ -2517,10 +2517,12 @@ MÊME résolution (`entreeResolutionDuBuild` puis
   affiché ne changent.
 - **Le contexte** (fiche, inventaire d'artéfacts et réglages de paires sans
   leur fonction de note, régime, contexte de dégâts, assiette des effets
-  uniques, conditions, contexte relique de la recherche lancée) part UNE
-  fois, puis à chaque changement de la signature des réglages ou de ses
-  entrées — seulement quand il y a des builds à résoudre : changer un
-  réglage sans recherche n'envoie rien. Il est construit par
+  uniques, conditions, contexte relique de la recherche lancée) part à
+  chaque nouvelle IDENTITÉ de ses entrées (l'objet mémoïsé par l'écran),
+  donc au moins une fois par recherche — le contexte relique de la
+  recherche lancée en fait partie —, et à chaque changement de la
+  signature des réglages ; seulement quand il y a des builds à résoudre :
+  changer un réglage sans recherche n'envoie rien. Il est construit par
   `entreesSerialisables`, à partir des mêmes arguments que la résolution du
   fil de l'écran. Chaque demande porte les runes de son build, produites par
   `runesDuBuild` (relicQueue.ts), le producteur que la résolution du fil de
@@ -2555,8 +2557,11 @@ quand renoncer, quand publier) vit dans un module pur testé en Node,
 que le brancher. Preuve : une file simulée — ce module, le corps derrière
 `structuredClone`, des entrelacements aléatoires de messages, de pages, de
 candidats et de contextes — remplit un cache identique à la résolution
-directe, sur les fixtures et sur les trois recettes de référence
-(`tests/resolution-distante.test.ts`, preuve du lot) ; depuis
+directe, sur les fixtures (`tests/resolution-distante.test.ts`) et sur
+trois recettes gelées (preuve du lot), dont une seule exerce une vraie
+résolution : « Dégâts réels » ; en « PV effectifs », les artéfacts gardés
+équipés laissent une paire par relique, et la troisième n'a qu'un
+candidat ; depuis
 6bis-b13bis-c, elle suit aussi la publication, avec la cadence du hook :
 sur toute file vide et à la fin, l'écran a reçu le cache entier. Elle
 couvre un repli en cours de route (réponse d'erreur, envoi qui lève, repli
@@ -2577,20 +2582,35 @@ le code de 6bis-b13 — et C, sans optimisation d'artéfacts) :
   file), plus longue tâche 82 ms (101), page 1 résolue en 1,3 s (1,9 s),
   page 2 en 0,9 s (1,6 s). En « PV effectifs » (artéfacts gardés équipés,
   résolution déjà légère), rien de lisible : 4 % de part dans les deux cas.
-- **La recherche ralentit un peu en « Dégâts réels »** : plus lente dans
-  11 passages appariés sur 12, médiane des écarts +3,6 % (test du signe,
-  p = 0,006), sous la dispersion des séries (6,6 et 8,4 %) — un fil de
-  plus calcule à plein pendant que la recherche tourne. En « PV
-  effectifs », +2,0 % sur 4 paires, non concluant. ⚠️ Écart à la garantie
-  « la recherche ne ralentit pas », soumis à la décision de l'utilisateur.
+- **La recherche ralentit en « Dégâts réels »**, d'après deux campagnes :
+  celle du lot, plus lente dans 11 passages appariés sur 12, médiane des
+  écarts +3,6 % (test du signe, p = 0,006), sous la dispersion des séries
+  (6,6 et 8,4 %) ; celle du pilote (6 paires), +7,2 % (6 sur 6,
+  p = 0,031), sans cause identifiée à l'écart entre les deux — soit +4 à
+  +7 %, 0,35 à 0,6 s sur une recherche de 9 s. Hypothèse, non isolée : le
+  Worker calcule à plein pendant la recherche, sur une machine dont la
+  recherche occupe déjà cinq fils. En « PV effectifs », +2,0 % sur 4
+  paires, non concluant.
+- **Le résultat complet arrive plus tôt** (campagne du pilote : recherche
+  finie ET 300 premiers résolus, « Dégâts réels ») : 15,2 s contre 20,7 s,
+  −27 % (6 paires sur 6). Le Worker résout 162 builds pendant la recherche
+  (85 avant) ; le chemin direct finissait l'essentiel APRÈS elle, sur le
+  fil de l'écran, par tranches d'environ 36 ms.
+- ⚠️ **Écart à la garantie « la recherche ne ralentit pas »** :
+  6bis-b13bis-b est arrêté avant livraison, et garder le Worker reste
+  soumis à la décision de l'utilisateur.
 - **Processeur bridé ×4** (fil de l'écran seulement, la recherche dans ses
   Workers ne l'est pas) : en « Dégâts réels », page 1 en 3,4 s contre
   10,4 s, et avant cela elle n'était jamais résolue avant la fin de la
-  recherche ; mais le fil reste occupé à 70 % en tâches longues (76 %
-  avant) — par la publication, le reclassement et le rendu, plus par la
-  résolution. En « PV effectifs » (29 367 builds), 70 % contre 61 %, plus
-  longue tâche ~1,2 s dans les deux cas : le Worker résout plus vite, donc
-  publie plus souvent.
+  recherche ; résultat complet 24,5 s contre 113,5 s (−80 %, pilote,
+  3 paires) ; durée de la recherche bridée NON CONCLUANTE (−1,3 % dans la
+  campagne du lot, −11 % dans celle du pilote, où seul le passage bridé
+  sans Worker diffère ; n = 3). Le fil reste occupé à 70 % en tâches
+  longues (76 % avant) ; hypothèse, non mesurée tâche par tâche : par la
+  publication, le reclassement et le rendu, la résolution n'y tournant
+  plus. En « PV effectifs » (29 367 builds), 70 % contre 61 %, plus longue
+  tâche ~1,2 s dans les deux cas ; hypothèse, non vérifiée : le Worker
+  résout plus vite, donc publie plus souvent.
 - **L'envoi du contexte** coûte 4 ms sur le fil de l'écran (médiane ;
   ~19 ms bridé ×4) pour ~800 Ko (2 518 artéfacts), une fois par
   recherche.

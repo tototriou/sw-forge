@@ -110,10 +110,12 @@ export function entreesSerialisables(e: {
  * ----------------------------------------------------------------------- */
 
 /**
- * Le contexte, envoyé UNE fois par signature (inventaire, réglages, contexte
- * relique) — et de nouveau à chaque changement. Il remplace le précédent :
- * les demandes encore en attente sont annulées (motif `contexte`) et les
- * caches repartent à neuf.
+ * Le contexte (inventaire, réglages, contexte relique) — envoyé par la file à
+ * chaque nouvelle IDENTITÉ de ses entrées (l'objet mémoïsé par l'écran : une
+ * fois par recherche au moins, le contexte relique de la recherche lancée en
+ * faisant partie) ou de la signature des réglages (précisé en 6bis-b13bis-c).
+ * Il remplace le précédent : les demandes encore en attente sont annulées
+ * (motif `contexte`) et les caches repartent à neuf.
  */
 export interface MessageContexteResolution {
   type: 'contexte';

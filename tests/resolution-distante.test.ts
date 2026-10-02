@@ -36,7 +36,10 @@
 //    passé par les deux résolutions de l'écran (6bis-b13bis-c).
 //
 // Les trois recettes gelées sur le compte réel : script de preuve du lot
-// (`controle-6bis-b13bis-b.md`), qui réutilise `simulerFile` d'ici.
+// (`controle-6bis-b13bis-b.md`), qui réutilise `simulerFile` d'ici. Une
+// seule, « Dégâts réels », y exerce une vraie résolution (en « PV
+// effectifs », artéfacts gardés équipés : une paire par relique ; la
+// troisième n'a qu'un candidat).
 
 import { readFileSync } from 'node:fs';
 import { RuneDetail } from '../src/types';

@@ -29,8 +29,11 @@
 // le Worker. Ce qu'il coûte — un fil de plus pendant la recherche, qui tourne
 // déjà dans des Workers (coordinateur, deux constructions, jusqu'à quatre fils
 // d'appariement), et l'envoi du contexte (tout l'inventaire d'artéfacts) à
-// chaque changement de réglage — est MESURÉ dans la preuve du lot, pas
-// supposé : aucune API JavaScript ne permet de choisir un cœur.
+// chaque nouvelle identité des entrées, soit une fois par recherche, ou de la
+// signature — est MESURÉ dans les preuves de 6bis-b13bis-b (recherche +4 à
+// +7 %, résultat complet −27 %) ; que ce soit le fil de plus qui ralentit la
+// recherche reste une hypothèse. Aucune API JavaScript ne permet de choisir
+// un cœur.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RuneDetail } from '../types';

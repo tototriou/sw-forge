@@ -2457,7 +2457,9 @@ recherche d'environ 8 à 10 %** par rapport à une recherche sans file, dans
 toutes les répétitions de deux campagnes. Ce montage Node est pessimiste
 (la file n'y cède jamais la main comme `requestIdleCallback`, et le
 coordinateur de la recherche partage son fil) ; l'écart n'a pas été
-vérifié au navigateur, et reste une piste ouverte.
+vérifié au navigateur, et reste une piste ouverte. Au navigateur, depuis le
+Worker de résolution (6bis-b13bis-b, plus bas) : ~+3,6 % en « Dégâts
+réels », systématique mais sous la dispersion des séries.
 
 **La page que vous consultez passe en premier.** Les cent meilleurs builds —
 **trois cents en mode relique « recherche »** — sont traités en avance de
@@ -2542,6 +2544,33 @@ que le brancher. Preuve : une file simulée — ce module, le corps derrière
 candidats et de contextes — remplit un cache identique à la résolution
 directe, sur les fixtures et sur les trois recettes de référence
 (`tests/resolution-distante.test.ts`, preuve du lot).
+
+**Mesuré au navigateur** (6bis-b13bis-b ; version construite, Chromium
+sans affichage, 8 cœurs, passages entrelacés ; A-après contre A-avant —
+le code de 6bis-b13 — et C, sans optimisation d'artéfacts) :
+
+- **Le fil de l'écran se libère** en « Dégâts réels » : tâches longues
+  4 % du fil pendant la recherche (médiane, contre 28 % avant, 2 % sans
+  file), plus longue tâche 82 ms (101), page 1 résolue en 1,3 s (1,9 s),
+  page 2 en 0,9 s (1,6 s). En « PV effectifs » (artéfacts gardés équipés,
+  résolution déjà légère), rien de lisible : 4 % de part dans les deux cas.
+- **La recherche ralentit un peu en « Dégâts réels »** : plus lente dans
+  11 passages appariés sur 12, médiane des écarts +3,6 % (test du signe,
+  p = 0,006), sous la dispersion des séries (6,6 et 8,4 %) — un fil de
+  plus calcule à plein pendant que la recherche tourne. En « PV
+  effectifs », +2,0 % sur 4 paires, non concluant. ⚠️ Écart à la garantie
+  « la recherche ne ralentit pas », soumis à la décision de l'utilisateur.
+- **Processeur bridé ×4** (fil de l'écran seulement, la recherche dans ses
+  Workers ne l'est pas) : en « Dégâts réels », page 1 en 3,4 s contre
+  10,4 s, et avant cela elle n'était jamais résolue avant la fin de la
+  recherche ; mais le fil reste occupé à 70 % en tâches longues (76 %
+  avant) — par la publication, le reclassement et le rendu, plus par la
+  résolution. En « PV effectifs » (29 367 builds), 70 % contre 61 %, plus
+  longue tâche ~1,2 s dans les deux cas : le Worker résout plus vite, donc
+  publie plus souvent.
+- **L'envoi du contexte** coûte 4 ms sur le fil de l'écran (médiane ;
+  ~19 ms bridé ×4) pour ~800 Ko (2 518 artéfacts), une fois par
+  recherche.
 
 **Les builds d'une file partagent ce qui ne dépend pas d'eux**
 (degats-et-aura 6bis-b13). Mesuré sur la recette « Dégâts réels » de

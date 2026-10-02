@@ -233,11 +233,11 @@ export default function BuildCandidateCard({
               ],
             };
 
-  // Relique — à droite de la roue, comme l'emplacement de `MonsterGear.tsx`
-  // (implementation-relique, B.5c bis) : même composant partagé (`RelicSlot`),
-  // jamais une copie. `small` : case resserrée pour tenir à côté
-  // d'artéfacts/roue à l'échelle 0,45 de cette carte. Un seul élément, posé à
-  // l'un de deux endroits selon le pointeur (voir la ligne fiche/artéfacts/roue).
+  // Relique — même composant partagé que l'emplacement de `MonsterGear.tsx`
+  // (`RelicSlot`, implementation-relique, B.5c bis), jamais une copie. `small` :
+  // case resserrée à l'échelle 0,45 de cette carte. Un seul élément, posé à
+  // l'un de deux endroits selon le pointeur : à droite de la roue au doigt,
+  // SOUS la roue à la souris (voir la ligne fiche/artéfacts/roue).
   const relique = (
     <RelicSlot
       relic={relicSlot.relic}
@@ -269,11 +269,6 @@ export default function BuildCandidateCard({
       }
     />
   );
-  // ⚠️ La relique de la carte peut encore CHANGER (mode relique « recherche » :
-  // « en attente », puis résolue avec ses marques, jusqu'à 120 px de large) —
-  // hors de ce mode elle est fixe dès le premier rendu. Voir la réserve de
-  // largeur plus bas.
-  const reliqueEvolutive = !!etatRelique && etatRelique.etat !== 'fixe';
 
   return (
     <div
@@ -373,29 +368,32 @@ export default function BuildCandidateCard({
           compacte, en ligne plutôt qu'empilée verticalement (demande
           explicite : « les runes et les artefacts affichés à droite de la
           fiche de statistiques »). */}
-      {/* ⚠️ AU DOIGT, EN PILE sous `sm` : la table de stats, les artéfacts et
-          la roue de runes tiennent sur une ligne à partir de 360 px de carte,
-          pas en dessous — les trois blocs s'y écrasaient jusqu'à devenir
-          illisibles. Empilés, chacun garde sa taille de lecture. Rendu tactile
-          inchangé : il relève de la passe responsive.
-
-          ⚠️ À LA SOURIS (degats-et-aura 6bis-b15), la ligne se replie sur la
-          largeur de la CARTE, pas de l'écran : fiche 200 px + artéfacts 26 px +
-          roue 94 px (échelle 0,45) et leurs écarts font 332 px, ce qu'une carte
-          de 360 px contient tout juste — la relique en plus débordait des deux
-          côtés (`justify-center`). Elle est donc un élément de la ligne à part
-          entière : quand la place manque, elle passe SOUS la ligne fiche /
-          artéfacts / roue, en entier, centrée ; quand la place suffit, elle
-          reste à côté de la roue. */}
-      <div
-        className={
-          auDoigt
-            ? 'flex flex-col items-center justify-center gap-2 sm:flex-row'
-            : 'flex flex-wrap items-center justify-center gap-2'
-        }
-      >
+      {/* ⚠️ EN PILE sous `sm` : la table de stats, les artéfacts et la roue de
+          runes tiennent sur une ligne à partir de 360 px de carte, pas en
+          dessous — les trois blocs s'y écrasaient jusqu'à devenir illisibles.
+          Empilés, chacun garde sa taille de lecture. */}
+      <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
         <StatPanel stats={candidate.stats} />
-        <div className="flex flex-none items-center gap-1">
+        {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (degats-et-aura
+            6bis-b15, décision de l'utilisateur, carte de résultat seulement) :
+            fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
+            écarts font 332 px, ce qu'une carte de 360 px contient tout juste —
+            la relique à droite de la roue débordait des deux côtés. Grille à
+            deux colonnes : artéfacts | roue, puis la relique dans la case sous
+            la roue, centrée. Les artéfacts restent centrés sur la ROUE (la
+            rangée du haut), pas sur roue + relique. La colonne vaut
+            `min-content`, soit la largeur fixe de la roue : la relique et ses
+            marques s'y replient sans l'élargir, en entier — et la relique ne
+            change jamais de place quand la file la résout.
+            Au doigt, rendu inchangé (à droite de la roue) : il relève de la
+            passe responsive. */}
+        <div
+          className={
+            auDoigt
+              ? 'flex flex-none items-center gap-1'
+              : 'grid flex-none grid-cols-[auto_min-content] items-center gap-1'
+          }
+        >
           <ArtifactSlots
             artifacts={artifacts}
             scale={ARTIFACT_SCALE}
@@ -443,19 +441,8 @@ export default function BuildCandidateCard({
                   )
             }
           />
-          {auDoigt && relique}
+          {auDoigt ? relique : <div className="col-start-2 flex justify-center">{relique}</div>}
         </div>
-        {/* ⚠️ **Place réservée en mode « recherche »** : 120 px, la largeur
-            maximale des marques (`max-w-[120px]` de `RelicSlot`). Sans elle, la
-            relique résolue — marques comprises — s'élargirait et pourrait
-            passer sous la ligne : la carte grandirait, et toute la grille se
-            réorganiserait au fil de la file (même raison que la rangée
-            « Dégâts » toujours présente). Hors de ce mode, la relique ne change jamais :
-            elle prend sa largeur propre. La case reste centrée dans sa place ;
-            son ancre (le détail flottant) ne bouge pas au clic. */}
-        {!auDoigt && (
-          <div className={`flex flex-none justify-center ${reliqueEvolutive ? 'w-[120px]' : ''}`}>{relique}</div>
-        )}
       </div>
 
       {/* Au DOIGT : le détail sur sa propre ligne, sous artéfacts/roue/relique

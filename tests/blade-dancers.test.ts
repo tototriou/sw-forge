@@ -194,10 +194,14 @@ export default function testBladeDancersIgnoreDef() {
       `${s.id} : aucun cran n'atteint l'ancien « tous les coups ignorent » (le coup 1 reste mitigé)`);
   }
   // Sans DEF adverse, le rang ne change rien : la découpe ne fabrique ni ne
-  // perd aucun coup.
+  // perd aucun coup. Comparaison à tolérance : deux découpes somment les mêmes
+  // coups dans un autre regroupement, à un ulp près.
   const sansDef = { ...SETUP, enemyDef: 0 };
-  egal(computeSkillDamage(b, BUILD, { ...sansDef, premierCoupIgnoreDefParSort: { 14811: 2 } }, AUCUNE_AURA_PROPRE),
-    computeSkillDamage(b, BUILD, sansDef, AUCUNE_AURA_PROPRE), 'DEF adverse nulle : même total quel que soit le rang');
+  const sansDefRang2 = computeSkillDamage(b, BUILD, { ...sansDef, premierCoupIgnoreDefParSort: { 14811: 2 } }, AUCUNE_AURA_PROPRE);
+  const sansDefDefaut = computeSkillDamage(b, BUILD, sansDef, AUCUNE_AURA_PROPRE);
+  const septCoupsSansDef = VARIANTE_B.coups * VARIANTE_B.coef * 1000 * (1 + VARIANTE_B.skillupPct / 100) * defenseFactor(0);
+  ok(proche(sansDefRang2, sansDefDefaut) && proche(sansDefDefaut, septCoupsSansDef),
+    'DEF adverse nulle : même total quel que soit le rang, les sept coups comptés');
 
   titre('Blade Dancers — 411 sur le premier coup seulement, PV de la cible enchaînés');
 

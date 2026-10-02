@@ -1755,6 +1755,18 @@ const STATS_COMBAT_PAR_ID_CONNUS: Record<number, CombatStatConfig[]> = {
   13503: [{ source: 'stacks', label: 'Cumuls de Stone Claws', max: 5, defPct: 30 }],
   13504: [{ source: 'stacks', label: 'Cumuls de Stone Claws', max: 5, defPct: 30 }],
   13505: [{ source: 'stacks', label: 'Cumuls de Stone Claws', max: 5, defPct: 30 }],
+  // Flash Step (Ciri lumière) et Turning Slash (Birgitta lumière, Magic Order
+  // Swordsinger) : « attacks 2 more times […] and increases your Attack Speed
+  // by 50 each, up to 250 ». Des POINTS de VIT (`spdFlat`), jamais un % : la
+  // donnée porte 50 (`Accumulate SPD` chez Ciri, `Increase ATK SPD` [Buff]
+  // chez Birgitta), `note` « Up to 250 », d'où 5 cumuls au plus. Le compteur
+  // saisit les cumuls DÉJÀ acquis avant le sort : ceux du tour en cours
+  // tombent après lui (degats-et-aura 15e, SP-2). ⚠️ Qu'un artéfact « Effet
+  // aug. VIT » amplifie le cumul typé « Buff » de Birgitta n'est pas établi
+  // (I-3 de 13b-stats-passifs) : lu ici comme un gain propre, comme le Speed
+  // tune (speedTunePassif.ts).
+  19014: [{ source: 'stacks', label: 'Cumuls de Flash Step', max: 5, spdFlat: 50 }],
+  19414: [{ source: 'stacks', label: 'Cumuls de Turning Slash', max: 5, spdFlat: 50 }],
   21515: [{ source: 'toujours', label: 'Fierce Attack!', atkPct: 30, crPoints: 20 }],
   22115: [{ source: 'toujours', label: 'Attack Instinct', atkPct: 30, crPoints: 20 }],
   2565: [{ source: 'toujours', label: 'Dark Guardian', defPct: 50 }],

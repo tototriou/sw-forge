@@ -47,7 +47,7 @@ const dossierSorts = resolve(racine, 'public/data/skills');
 // Les huit blocs voisins, dans l'ordre de la carte, chacun construit par le
 // producteur dont l'écran passe le résultat à `DamageSetupCard` ; les passifs
 // offensifs sont ceux que leur bloc rend pour le sort retenu à l'ouverture
-// (le sort par défaut : `passifsSuivants`, degats-et-aura 9c). Les 80 formes à
+// (le sort par défaut : `passifsSuivants`, degats-et-aura 9c). Les 84 formes à
 // stats de combat ont toutes un sort par défaut : sans lui, la carte ne
 // s'afficherait pas, et le test échoue plutôt que d'inventer un repli.
 function blocsVoisins(fiche: DetailMonstre): (ProseDUnBloc | null)[] {
@@ -78,6 +78,10 @@ function controleNomme(profil: CombatStatProfile, fiche: DetailMonstre): boolean
 }
 
 const EXCLUSIONS_1E = [2565, 9611, 9612, 9613, 9614, 9615, 10612, 18139];
+// Flash Step (Ciri) et Turning Slash (Birgitta, Magic Order Swordsinger),
+// compteurs de VIT ajoutés au lot 15e de degats-et-aura : passifs offensifs
+// « toujours », ils suivent chaque sort, et leur bloc rend déjà nom et prose.
+const EXCLUSIONS_15E = [19014, 19414];
 
 export function testProseStatsCombat() {
   titre('Stats acquises en combat — quelle prose est rendue, sur tout le corpus (degats-et-aura 11)');
@@ -119,11 +123,11 @@ export function testProseStatsCombat() {
   const somme = (ids: number[]) => ids.reduce((s, id) => s + reglagesParId.get(id)!.length, 0);
   const tous = [...reglagesParId.keys()].sort((a, b) => a - b);
 
-  egal([tous.length, somme(tous), formes.length], [38, 40, 80],
-    'inventaire du lot 1e retrouvé : 38 identifiants, 40 réglages, 80 formes');
+  egal([tous.length, somme(tous), formes.length], [40, 42, 84],
+    'inventaire du lot 1e retrouvé, plus Flash Step et Turning Slash (15e, quatre formes) : 40 identifiants, 42 réglages, 84 formes');
   egal([...nonUniformes], [], 'même rendu sur toutes les formes qui partagent un identifiant');
   egal(doublons, [],
-    'aucun doublon : sur les 80 formes, aucune prose rendue deux fois par le bloc, aucune déjà rendue par un bloc voisin');
+    'aucun doublon : sur les 84 formes, aucune prose rendue deux fois par le bloc, aucune déjà rendue par un bloc voisin');
   egal(reformulees, [], 'prose du jeu telle quelle : la description de la compétence, jamais reformulée');
 
   const avecProse = tous.filter((id) => reglagesParId.get(id)!.some(([, , prose]) => prose));
@@ -138,8 +142,8 @@ export function testProseStatsCombat() {
     'Crane : une seule description, au-dessus du premier de ses deux compteurs');
 
   const exclus = tous.filter((id) => reglagesParId.get(id)!.every(([, ouvre, prose]) => !ouvre && !prose));
-  egal(exclus, EXCLUSIONS_1E,
-    'huit exclusions, déduites des blocs voisins : celles du lot 1e (2565, 9611 à 9615, 10612, 18139), ni prose ni en-tête');
+  egal(exclus, [...EXCLUSIONS_1E, ...EXCLUSIONS_15E],
+    'dix exclusions, déduites des blocs voisins : celles du lot 1e (2565, 9611 à 9615, 10612, 18139) et Flash Step, Turning Slash (15e), ni prose ni en-tête');
 
   // Décision n° 15 : l'icône et le nom au-dessus des réglages dont le contrôle ne nomme pas le passif.
   const nus = tous.filter((id) => reglagesParId.get(id)!.every(([nomme]) => !nomme));
@@ -150,8 +154,8 @@ export function testProseStatsCombat() {
   egal(nommes.map((id) => [id, reglagesParId.get(id)!.every(([, ouvre, prose]) => ouvre && prose)]),
     [[14313, true], [14813, true], [19814, true], [21515, true], [22115, true]],
     'les cinq passifs déjà nommés par un Jeton (Rankyaku, Accelerando, Inverted Output, Fierce Attack!, Attack Instinct) reçoivent leur prose sous ce Jeton, sans second en-tête');
-  egal(nus.filter((id) => exclus.includes(id)), [10612],
-    'seul réglage sans nom laissé tel quel : 10612 (Astar), dont « Passifs offensifs » rend déjà le nom et la prose');
+  egal(nus.filter((id) => exclus.includes(id)), [10612, ...EXCLUSIONS_15E],
+    'réglages sans nom laissés tels quels : 10612 (Astar), 19014 (Flash Step), 19414 (Turning Slash), dont « Passifs offensifs » rend déjà le nom et la prose — leur libellé de compteur porte le nom du passif');
 }
 
 // Le code seul : un commentaire qui cite un motif ne doit ni faire échouer ni

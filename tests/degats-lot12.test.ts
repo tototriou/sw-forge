@@ -535,9 +535,10 @@ export function testLot12PassifMasqueEtStatsDeCombat() {
   }
   egal([...masquables].sort((a, b) => a - b), [3213], 'corpus : seul Tempest (3213) peut être masqué par construction (slots déclencheurs, choix comme sort)');
   egal([...masques].sort(), ['3213'], 'corpus : sur tous les sorts proposés par toutes les formes, seul Tempest est effectivement masqué');
-  // Aucun passif offensif ne partage aujourd'hui son identifiant avec un
-  // réglage de stats de combat (mesure dans le libellé) ; un cas qui naîtrait
-  // n'est plus un défaut (9c) : la règle le vérifie sur chaque sort.
+  // Depuis le lot 15e, Flash Step (19014) et Turning Slash (19414) partagent
+  // leur identifiant avec un compteur de VIT (quatre formes, mesure dans le
+  // libellé) ; ce n'est plus un défaut (9c) : la règle le vérifie sur chaque
+  // sort.
   egal(prosesPerdues, [],
     `corpus, chaque sort proposé : la prose d’un passif qui porte aussi des stats de combat est rendue une fois — par son bloc s’il suit le sort, sinon par « Stats acquises en combat » (${partagesAvecStats.length} cas aujourd’hui${partagesAvecStats.length ? ` : ${partagesAvecStats.join(', ')}` : ''})`);
 }

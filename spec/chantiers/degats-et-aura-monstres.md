@@ -78,6 +78,14 @@ Formes : 20501 Desert Queen †, 20511 Bastet.
 | --- | --- | --- | --- | --- |
 | « Oasis's Blessing » · 11311 · S3 | Sort sans attaque (bouclier, `170*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Bastet → « Compétence utilisée » : plus de case grisée « Oasis's Blessing ». |
 
+### Birgitta
+
+Formes : 29704 Magic Order Swordsinger †, 29714 Birgitta.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Turning Slash (Passive) » · 19414 · S3 | Nouveau compteur « Cumuls de Turning Slash » (0 à 5) : chaque cumul ajoute +50 de VIT en points (« increases your Attack Speed by 50 each, up to 250 »), à 0 par défaut. La VIT de combat change le S1 « Double Gash » (`{SPD}`) ; au témoin (ATQ 1 000, VIT 200), le S1 passe de 2 056,44 à 3 038,55 avec 5 cumuls. | 15e | commit du lot 15e | Chemin commun → Birgitta → « Stats acquises en combat » : un compteur « Cumuls de Turning Slash » sans en-tête ni prose (le bloc « Passifs offensifs » les rend déjà) ; S1 choisi, le total monte à chaque cumul, et plus au-delà de 5. |
+
 ### Bolverk
 
 Formes : 22601 Lightning Emperor †, 22611 Bolverk.
@@ -163,6 +171,14 @@ Formes : 19603 Mermaid †, 19613 Cichlid.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Air Shield » · 10408 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts (pas retenu par défaut). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Cichlid → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort par défaut ne change pas. |
+
+### Ciri
+
+Formes : 29304 시리(빛) †, 29314 Ciri.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Flash Step (Passive) » · 19014 · S3 | Nouveau compteur « Cumuls de Flash Step » (0 à 5) : chaque cumul ajoute +50 de VIT en points (« increases your Attack Speed by 50 each, up to 250 »), à 0 par défaut. La VIT de combat change le S1 « Slash » (`{SPD}`) ; au témoin (ATQ 1 000, VIT 200), le S1 passe de 2 056,44 à 3 038,55 avec 5 cumuls. | 15e | commit du lot 15e | Chemin commun → Ciri (lumière) → « Stats acquises en combat » : un compteur « Cumuls de Flash Step » sans en-tête ni prose (le bloc « Passifs offensifs » les rend déjà) ; S1 choisi, le total monte à chaque cumul, et plus au-delà de 5. |
 
 ### Conrad
 
@@ -885,6 +901,11 @@ Rien de ce qui suit n'est à chercher à l'écran.
   relevé ; que cette réduction baisse aussi la DEF du coup 2 n'est ni
   relevé ni décidé (non modélisé : 1 272,8 au témoin, 2 231,3 dans l'autre
   lecture). Byungchul : un passif bloqué (Oblivion) n'est pas modélisé.
+- **Ciri et Birgitta** (lot 15e) : aucun relevé en jeu ; le +50 est lu en
+  points, comme le Speed tune. Que l'artéfact « Effet aug. VIT » amplifie le
+  cumul de Birgitta, typé « Buff » dans la donnée (« Neutral » chez Ciri),
+  n'est pas établi. La hausse des dégâts « as the target's HP status
+  decreases » des deux coups du passif reste non modélisée (plancher).
 
 ---
 

@@ -115,6 +115,13 @@ lectures restent en place ; un relevé en jeu de la VIT affichée par Mei Hou
 Wang après un puis dix cumuls trancherait. Ligne correspondante dans
 spec/outils/optimizer/pistes.md. -->
 
+Flash Step (Ciri lumière) et Turning Slash (Birgitta lumière) : un compteur
+des cumuls acquis avant le sort, de 0 à 5, chacun +50 de VIT **en points**
+(« by 50 each, up to 250 »), après les pourcentages de la VIT de combat ;
+il change leur S1, qui lit `{SPD}` (degats-et-aura 15e). Lu comme un gain
+propre, comme dans le Speed tune : qu'un artéfact « Effet aug. VIT »
+amplifie le cumul de Birgitta, typé « Buff » en donnée, n'est pas établi.
+
 Rankyaku (Chun-Li vent) et Accelerando (Cordelia), toujours actifs, ajoutent
 à l'ATQ cinq fois la VIT finale : base, runes et sets, compétence
 d'invocateur, leader skill de VIT, puis buff de VIT, amplifié le cas échéant
@@ -131,7 +138,7 @@ puis le champ. La prose n'apparaît qu'une fois par passif : Elsharion et
 Crane gardent une seule description pour leurs deux compteurs. Elle
 n'apparaît pas non plus quand un bloc de « Passifs offensifs » la rend déjà
 pour la même compétence (Berserk, Thunderer de Dyeus, Dark Guardian,
-Vengeful Fire) : cette exclusion se déduit des blocs affichés, jamais d'une
+Vengeful Fire, Flash Step, Turning Slash) : cette exclusion se déduit des blocs affichés, jamais d'une
 liste de monstres. Pour les passifs offensifs, ce sont ceux que leur bloc
 rend pour le sort choisi (`passifsSuivants`) : un passif masqué — choisi
 lui-même comme sort, ou qui ne suit pas le sort choisi — qui porterait aussi

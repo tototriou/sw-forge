@@ -718,7 +718,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `f229d2f1` / 2026-10-02 |
 | 8b — Blade Surge : recette, écran, CLI | J | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `12595440`, `d6c576b5`, `22dda1f2` / 2026-10-02 |
 | 8c — suites de 8b (résumé « autres ennemis », clé à zéro de tête, script de diagnostic) | J | terminé, preuves et mutation rejouées par le pilote ; constat de douze champs soumis à l'utilisateur ; vérification à l'œil en attente (A.8) | `66309e93`, `62dc6dce`, `b55a02ec` ; reçu `b55a02e` ↔ `48ea7df` / 2026-10-02 |
-| 8d — une seule règle de clé d'identifiant pour toute la recette | M | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; **lançable** par l'agent `lot-m` (session suivante, A.4) | — |
+| 8d — une seule règle de clé d'identifiant pour toute la recette | M | terminé (agent `lot-m`), preuves et mutation rejouées par le pilote | `52717fe0` ; reçu `52717fe` ↔ `5af83df` / 2026-10-02 |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `50e46aea`, `e5dc87ae` / 2026-10-02 |
 | 9b — Tempest comme sort, écran, mécanisme générique | J | terminé (lot parallèle, seconde vague), preuves rejouées ; mutation du pilote d'abord survivante, test complété par l'agent puis rejoué ; intégré ; vérification à l'œil en attente (A.8) | `db32bbd9`, `2402e91d`, `badea22f` / 2026-10-02 |
 | 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `db913084`, `dc8e4b5f` / 2026-10-02 |
@@ -776,6 +776,9 @@ enchaîne. L'utilisateur ne transmet plus les briefs ni les retours.
   demande. De même si un contrat ancien ne tient plus face au code.
 - **Revue indépendante** : le pilote peut lancer un ou deux sous-agents
   relecteurs, qui n'ont pas écrit le code relu.
+- **Dans un brief, la mutation vient APRÈS le commit** : restaurée par
+  `git checkout --`, une mutation faite avant efface le travail non commité
+  (lot 8d).
 
 #### Vérifications de l'utilisateur en attente
 
@@ -6724,6 +6727,37 @@ spec-lint, diff-check ; la spec qui décrit la validation de la recette
 en trouve un qui valide une clé d'identifiant, il le signale dans le
 rapport, sans le modifier ; aucune autre règle de validation ; rien à
 l'écran.
+
+#### Résultat du lot 8d — 2026-10-02
+
+Premier lot confié à l'agent `lot-m` (Sonnet 5.5, effort bas, A.4). Un
+commit, `52717fe0` : `estIdentifiantDeCompetence` (`/^[1-9]\d*$/`,
+`optimizerRecipe.ts` L234) remplace les cinq tests de clé (quatorze
+champs), message et chemin inchangés ; `testRecetteClesIdentifiant`
+(`tests/recette-cles-identifiant.test.ts`, 49 vérifications : « 010616 »
+refusé avec son chemin exact pour chaque champ, « 0 » refusé, clé valide
+acceptée ; garde de source : cinq sites, les neuf champs des deux tableaux
+dans la liste, une seule expression de clé dans le fichier). Aucune spec ne
+décrit la validation de la recette en bloc ; `formules-et-combat.md` et
+`sequences-de-coups.md` disent déjà « sans zéro de tête » pour leur champ —
+rien de modifié. Reçu `52717fe` ↔ `5af83df` ; preuve `controle-8d.md`
+(55 lignes).
+
+**Rejoué par le pilote sur `52717fe0`** : reçu valide ; `tsc` 0 ; 777
+vérifications (7 filtres) ; build, spec-lint, diff-check verts. Mutation de
+l'agent (la fonction revient à `/^\d+$/`) : 26 échecs. **Mutation du
+pilote** (un site, `scenariosEffetsEntreCoups`, réécrit avec l'ancienne
+règle en ligne) : 3 échecs — le refus, et les deux gardes de source (4
+sites au lieu de 5, 2 expressions au lieu d'une) ; restauré. Autres
+parseurs : l'agent n'a pas cherché hors du fichier ; le pilote a relevé
+`src/` et `scripts/` — les trois autres `/^\d+$/` (`Pager.tsx`,
+`SubSearchDialog.tsx`, `OptimizerSection.tsx` L5548) filtrent une frappe
+dans un champ, aucune clé de recette.
+
+**Défaut du brief** (relevé par l'agent) : la mutation y venait avant le
+commit, et la restauration par `git checkout --` a effacé le travail non
+commité, réappliqué ensuite à la main. Règle ajoutée en A.8 : muter après
+le commit.
 
 ### Lot 9 — Teshar : Tempest après S1/S2, et comme sort
 

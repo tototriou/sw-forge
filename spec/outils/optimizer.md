@@ -781,8 +781,17 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        fixes et bonus des améliorations sont lus dans la fiche du sort. Par
        défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
        dont la formule sort du modèle reste **affiché, grisé, avec son
-       motif** — jamais absent sans explication. Le survol de chaque sort,
-       même grisé, montre sa description du jeu. Les conditions « buff
+       motif** — jamais absent sans explication. ⚠️ **La description du jeu
+       de chaque sort, même grisé, s'ouvre au CLIC** sur un « ? » posé
+       juste à droite de son nom — bulle à la souris, panneau montant au
+       doigt (`HelpPopover`) —, plus au survol : un `title` natif ne
+       s'ouvre jamais au doigt, elle restait invisible sur téléphone
+       (degats-et-aura 11bis, demande de l'utilisateur du 2026-10-02). Le
+       « ? » vit dans la case mais HORS de son bouton (axe `actionTitre`
+       d'`Option`, [librairie-ui.md](../shared/librairie-ui.md)) : le
+       toucher ne choisit pas le sort, et la case ne bouge pas. Un sort
+       sans description n'a pas de « ? » ; elle reste annoncée aux
+       lecteurs d'écran par le bouton de la case (`aria-description`). Les conditions « buff
        adverse présent/absent » sont des interrupteurs, contrairement aux
        bonus proportionnels au nombre de buffs. ⚠️ **Coups variables** (« 2
        à 3 fois », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3) : un

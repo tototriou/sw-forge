@@ -29,6 +29,7 @@ import { testCompositionDePage } from './composition-page.test';
 import { testFileConfirmees } from './file-confirmees.test';
 import { testCompteConfirme } from './compte-confirme.test';
 import { testVerifierToutes } from './verifier-toutes.test';
+import { testProsesSortAuClic } from './proses-sort.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
@@ -282,6 +283,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testFileConfirmees', testFileConfirmees],
   ['testCompteConfirme', testCompteConfirme],
   ['testVerifierToutes', testVerifierToutes],
+  ['testProsesSortAuClic', testProsesSortAuClic],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

@@ -330,6 +330,27 @@ lignes de description, une icône centrée verticalement flotte en face de rien.
 > règle du [README](../README.md) : le défaut ne perd jamais rien, et ce qui perd
 > s'explique avant.
 
+- `actionTitre` — une action posée **juste à droite du titre**, dans la case
+  mais **hors du bouton principal** : le « ? » qui ouvre la prose d'un sort
+  dans « Dégâts réels » (`HelpPopover`, degats-et-aura 11bis). ⚠️ **Un axe qui
+  change la structure, pas une variante.** Posée dans `titre`, l'action ferait
+  un bouton dans un bouton (HTML invalide) et un clic sur elle choisirait aussi
+  l'option. Avec elle, la case devient un **cadre qui dessine** — le patron de
+  `BoutonGroupe` : le bouton principal, vide, couvre toute la case (bordure
+  comprise, pour que le contour de focus tombe où il tombait) et se nomme par
+  le titre et la description (`aria-labelledby`, qu'un `aria-hidden` empêche
+  d'être lus une seconde fois) ; l'action, posée après lui et positionnée sans
+  `z-index`, passe devant. Cliquer l'action ne choisit pas l'option ; partout
+  ailleurs la case se choisit comme avant, et elle s'enfonce à l'appui de son
+  seul bouton principal (`:has(> button:active)` — `:active` gagne aussi les
+  ancêtres, l'action ferait sinon enfoncer la case).
+  ⚠️ **L'action reste vive quand l'option est désactivée** (un sort refusé
+  garde le « ? » de sa prose) : seuls l'icône, le titre et la description
+  s'estompent, et le cadre prend l'opacité du `<button>` désactivé par ses
+  couleurs (`border-border/40 bg-panel2/40`) — une opacité sur le cadre
+  estomperait aussi l'action. **Sans action, l'option reste le `<button>`
+  d'avant, au caractère près.**
+
 **`Flottant`** — surface posée au-dessus de la page, ancrée à ce qui l'a ouverte :
 popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 

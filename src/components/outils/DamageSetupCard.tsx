@@ -387,43 +387,60 @@ export default function DamageSetupCard({
           {skills.map((s) => {
             const pris = estPrisEnCharge(s);
             return (
-              <div key={s.skillCom2usId} title={s.description ?? undefined}>
-                <Option
-                  actif={pris && s.skillCom2usId === resolved.skillCom2usId}
-                  disabled={!pris}
-                  aria-description={s.description ?? undefined}
-                  onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}
-                  icone={
-                    pris && s.icone ? (
-                      <img src={s.icone} alt="" className="h-7 w-7 rounded" loading="lazy" />
-                    ) : undefined
-                  }
-                  titre={
-                    <>
-                      <span className="font-mono text-micro text-ink-dim">S{s.slot}</span>
-                      {s.nom}
-                    </>
-                  }
-                  // Un sort refusé affiche POURQUOI plutôt que de disparaître :
-                  // sans ça, l'absence du sort n°2 passerait pour un oubli.
-                  description={
-                    pris ? (
-                      (() => {
-                        const { ratio, reste } = resumeSort(s, setup);
-                        return (
-                          <>
-                            {ratio && <span className="font-mono text-ink">{ratio}</span>}
-                            {ratio && ' · '}
-                            {reste}
-                          </>
-                        );
-                      })()
-                    ) : (
-                      s.raison
-                    )
-                  }
-                />
-              </div>
+              <Option
+                key={s.skillCom2usId}
+                actif={pris && s.skillCom2usId === resolved.skillCom2usId}
+                disabled={!pris}
+                // La prose reste ANNONCÉE au lecteur d'écran, sur le bouton de
+                // la case, en plus du « ? » qui l'affiche.
+                aria-description={s.description ?? undefined}
+                onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}
+                icone={
+                  pris && s.icone ? (
+                    <img src={s.icone} alt="" className="h-7 w-7 rounded" loading="lazy" />
+                  ) : undefined
+                }
+                titre={
+                  <>
+                    <span className="font-mono text-micro text-ink-dim">S{s.slot}</span>
+                    {s.nom}
+                  </>
+                }
+                // ⚠️ **La prose du sort au CLIC, plus au survol** (degats-et-aura
+                // 11bis, demande de l'utilisateur du 2026-10-02) : un `title`
+                // natif ne s'ouvre jamais au doigt, la prose restait donc
+                // invisible sur téléphone. Le « ? » juste à droite du nom ouvre
+                // une bulle à la souris et un panneau montant au doigt
+                // (`HelpPopover`). Il vit HORS du bouton de la case (axe
+                // `actionTitre` d'`Option`) : le toucher ne choisit pas le sort.
+                // Un sort sans prose n'a pas de « ? » ; un sort refusé garde le
+                // sien.
+                actionTitre={
+                  s.description ? (
+                    <HelpPopover title={s.nom} ariaLabel={`Description de ${s.nom}`}>
+                      {s.description}
+                    </HelpPopover>
+                  ) : undefined
+                }
+                // Un sort refusé affiche POURQUOI plutôt que de disparaître :
+                // sans ça, l'absence du sort n°2 passerait pour un oubli.
+                description={
+                  pris ? (
+                    (() => {
+                      const { ratio, reste } = resumeSort(s, setup);
+                      return (
+                        <>
+                          {ratio && <span className="font-mono text-ink">{ratio}</span>}
+                          {ratio && ' · '}
+                          {reste}
+                        </>
+                      );
+                    })()
+                  ) : (
+                    s.raison
+                  )
+                }
+              />
             );
           })}
         </div>

@@ -403,6 +403,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → décision de l'utilisateur sur b13bis-b (Worker gardé, 2026-10-02)
         → 6bis-b16 (cartes vérifiées seulement, essai de l'utilisateur)
         → 6bis-b17 (cache et artéfacts réservés, revue du Worker)
+        → 6bis-b18 (compte des confirmées, essai de b16)
         → 7a → 7b (recalé et scindé le 2026-10-02)
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -423,7 +424,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
-  6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17,
+  6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17, 6bis-b18,
   7a, 7b, 11bis, 12, tous les 13b-* → 14
 ```
 
@@ -692,7 +693,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | terminé : arrêté avant livraison (A.6, recherche +4 à +7 %, résultat complet −27 %), puis **Worker gardé par l'utilisateur** le 2026-10-02 ; revue indépendante : rien de bloquant | `9a7202a8`, `534de15a` ; livré avec 6bis-b13bis-c / 2026-10-02 |
 | 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; livré avec b13bis-b | `11abb68d`…`f951f3e9` / 2026-10-02 |
 | 6bis-b16 — une carte n'apparaît qu'une fois vérifiée | J | terminé, preuves, mesure et mutation rejouées par le pilote ; essai de l'utilisateur en attente (A.8) | `6df20ba2` ; reçu `6df20ba` ↔ `226c64d` / 2026-10-02 |
-| 6bis-b17 — le cache de la file suit les artéfacts réservés | J | contrat écrit le 2026-10-02 (revue du Worker) ; **lançable** | — |
+| 6bis-b17 — le cache de la file suit les artéfacts réservés | J | contrat écrit le 2026-10-02 (revue du Worker) ; **lançable** (premier lancement coupé sans effet) | — |
+| 6bis-b18 — le compte ne compte que les combinaisons confirmées | J | contrat écrit le 2026-10-02 (demande de l'utilisateur) ; requiert b17 | — |
 | 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02, réponses de l'utilisateur intégrées ; après 6bis-b16 et b17 | — |
 | 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | requiert 7a | — |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | recalé le 2026-10-02 ; à faire | — |
@@ -756,6 +758,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | ✔ vérifiée le 2026-10-02 (le 0 et la ligne de raison, puis la dernière page et les masquages) |
 | 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
 | 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | essayé le 2026-10-02 : barre **fluide** ✔ ; **va-et-vient des cartes (apparues puis retirées) jugé insupportable, bloquant** → 6bis-b16 ; à revoir après b16 (recette `swforge-optimizer-kinki-2026-10-02`) |
+| 6bis-b18 | Compte « confirmée(s) » qui ne baisse jamais, infobulle de différence, interrupteur « Vérifier toutes les combinaisons trouvées » ; recette Kinki | après le lot |
 | 6bis-b16 | Essai avec la recette Kinki : aucune carte qui apparaît puis disparaît ; places « Vérification… » sans saut ; page 1 complète vers 20-25 s ; changer de page et de tri | ✔ 2026-10-02 : « c'est parfait » ; demande nouvelle : stabiliser le compte et ne compter qu'après vérification (décision en A.8) |
 | 7a, 7b | Écran des sets d'aura, sur ordinateur ET sur téléphone | après les lots |
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
@@ -773,6 +776,7 @@ décision, rayée avec la date et la réponse.
 | 8 | ~~À quels coups de Blade Surge s'appliquent 224 et 400 ?~~ | ✔ 2026-10-02 (utilisateur) : **224 sur les coups 1 et 2, 400 sur les trois** |
 | revue du Worker | ~~Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature.~~ | ✔ 2026-10-02 : **corriger dans ce chantier** → 6bis-b17 |
 | essai du Worker | ~~Comment supprimer le va-et-vient des cartes ?~~ | ✔ 2026-10-02 : **n'afficher que les builds vérifiés**, places en attente marquées « Vérification… » → 6bis-b16, avant 7a |
+| essai de b16 | ~~Quel compte afficher ?~~ | ✔ 2026-10-02 : progression inchangée (« Z trouvée(s) ») ; en-tête « XX combinaison(s) confirmée(s) » avec infobulle ; la file vise **K confirmées** ; interrupteur « Vérifier toutes les combinaisons trouvées », désactivé par défaut ; mesure courte → 6bis-b18 |
 | 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
 | 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
 
@@ -5571,6 +5575,66 @@ source (l'écran passe les réservations à la signature) ; mutation ; `tsc`,
 tests de zone, build, spec-lint ; preuve `controle-6bis-b17.md`.
 
 **Ne fait pas** : ne change ni la règle des réservations, ni la résolution.
+
+##### 6bis-b18 — le compte ne compte que les combinaisons confirmées
+
+**Cat. J ; requiert b16 et b17 ; avant 7a.** Demande de l'utilisateur du
+2026-10-02, après l'essai de b16 : « stabiliser le nombre de combinaisons
+trouvées, et ne compter qu'après vérification ». Décisions de l'utilisateur
+le même jour :
+
+- **La ligne de progression ne change pas** : « X / Y combinaisons
+  examinées · Z trouvée(s) » (`OptimizerSection.tsx` L4662), compte de
+  6bis-b10 (trouvés moins écartés connus).
+- **L'en-tête des résultats** (L4714-4718) devient « XX combinaison(s)
+  confirmée(s) pour l'instant — recherche en cours… », puis « XX
+  combinaison(s) confirmée(s) » : seulement les builds vérifiés (résolus et
+  conformes), un compte qui ne baisse jamais pendant une recherche. Une
+  petite infobulle (`HelpPopover`) explique simplement la différence avec
+  le chiffre des trouvées (borne optimiste : admises par le moteur stat par
+  stat, pas encore toutes vérifiées).
+- **L'avance de fond vise K confirmées** (300 en mode relique
+  « recherche », 100 sinon), au lieu des K premiers du classement : la file
+  continue, dans l'ordre du classement, jusqu'à K confirmées ou jusqu'au
+  dernier build trouvé. « Aucune combinaison ne répond à ces critères » ne
+  s'affiche donc qu'après avoir tout vérifié sans rien confirmer.
+- **Un interrupteur dans « Réglages avancés »**, désactivé par défaut,
+  « Vérifier toutes les combinaisons trouvées » (libellé proposé par le
+  pilote), avec une aide : au-delà des K confirmées, tous les builds trouvés
+  sont vérifiés, ce qui peut prendre plusieurs minutes. Gardé dans les
+  recettes (champ optionnel : tous les constructeurs, écran, recette,
+  `recipeToSearchParams`, CLI) et respecté par le CLI.
+- **Pages** (proposition du pilote, non contestée) : le nombre de pages
+  suit les confirmées, plus une page tant qu'il reste des builds non
+  vérifiés ; l'ouvrir les vérifie (places « Vérification… » de b16).
+
+**Contrat.** Le compte confirmé, la cible de la file (K confirmées, ou
+tout avec l'interrupteur) et le nombre de pages sont dérivés de fonctions
+pures testées en Node ; `kDeLaFile` garde sa valeur, son sens devient
+« confirmées », au CLI comme à l'écran (parité). Les comportements de b10
+se transposent : retour à la dernière page quand le nombre de pages
+diminue ; « Trier par » et « Adapter les artéfacts… » masqués seulement
+quand tout est vérifié sans aucune confirmée. Composition de page de b16
+inchangée.
+
+**Mesure bornée** (consigne de l'utilisateur : pas de phase de mesure
+longue — une quinzaine de minutes au plus) : recette « Dégâts réels » de
+référence, avant et après, 3 passages entrelacés après un échauffement ;
+recette Kinki (`recette-6bis-b16-kinki.json`), un ou deux passages après
+seulement, comparés à la mesure de b16 (recherche 136,5 s) : durée de la
+recherche, délai après la fin jusqu'aux K confirmées, compte confirmé
+final. Une recherche nettement ralentie arrête le lot et se rapporte
+(A.6), sans campagne de plus.
+
+**Preuves** : tests des fonctions pures (la file continue au-delà des
+écartés jusqu'à K confirmées ; s'arrête à K ; épuisement ; interrupteur) ;
+aller-retour de recette avec l'interrupteur ; parité CLI ; contrôles de
+source des libellés et de l'infobulle ; mutation ; `tsc`, tests de zone,
+build, spec-lint, diff-check ; preuve `controle-6bis-b18.md`. L'essai de
+l'utilisateur est inscrit en A.8.
+
+**Ne fait pas** : ni la résolution, ni l'ordre de base, ni le Worker, ni la
+composition de page de b16.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

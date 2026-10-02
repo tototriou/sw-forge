@@ -448,7 +448,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17, 6bis-b18,
   6bis-b19,
-  7a, 7b, 7c, 8c, 8d, 11bis, 12, tous les 13b-* → 14
+  7a, 7b, 7c, 8c, 8d, 11bis, 12, tous les 13b-*, CM → 14
 ```
 
 ##### Ordre d'exécution et premières contre-revues
@@ -735,8 +735,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
-| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **3 / 17 validés** (amorces, séquences-zone, ignore-def) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
+| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **6 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
 | 13 — consolidation : plan, synthèse, recommandation (pilote) | J | après les dix-sept 13b ; recommandation soumise à l'utilisateur | — |
+| CM — le mode critique « Moyenne » supprimé | J | contrat écrit le 2026-10-02 (décisions de l'utilisateur) ; lot parallèle, worktree `sw-forge-lot-cm` | — |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -836,7 +837,7 @@ décision, rayée avec la date et la réponse.
 | A.4 | ~~Effort des sous-agents : l'outil de lancement ne le règle pas, il suit celui de la session (xhigh, puis max, le 2026-10-02) ; les 24 sous-agents étaient Opus 5.5. Créer des définitions d'agent pour les lots C et M ?~~ | ✔ 2026-10-02 (utilisateur) : **oui** — `lot-c` (Sonnet, medium) et `lot-m` (Sonnet, low), actives à la session suivante (A.4) ; le lot 12 attend donc la prochaine session |
 | 8c | ~~Douze autres champs de la recette indexés par identifiant acceptent une clé à zéro de tête : les aligner dans ce chantier, ou laisser ?~~ | ✔ 2026-10-02 (utilisateur) : **aligner dans ce chantier** → lot 8d |
 | 8c | ~~Le résumé sous l'objectif doit-il aussi dire le cran d'ignore DEF des Blade Dancers ?~~ | ✔ 2026-10-02 (utilisateur) : **non**, pas de résumé pour les Blade Dancers |
-| 13b (découverte) | Le mode critique « Moyenne », dit par l'utilisateur « non utilisé et devant être supprimé » (amendement 1c1, L64-66), existe toujours et aucun lot ne porte sa suppression : l'ajouter à ce chantier ? | en attente |
+| 13b (découverte) | ~~Le mode critique « Moyenne », dit par l'utilisateur « non utilisé et devant être supprimé » (amendement 1c1, L64-66), existe toujours et aucun lot ne porte sa suppression : l'ajouter à ce chantier ?~~ | ✔ 2026-10-02 (utilisateur) : **oui** → lot CM ; une recette qui l'utilise est **convertie en « Critique » avec un avertissement visible** (écran et CLI) |
 | 13b (constat) | Des calculs faux en silence sont en production : Madness Judgement (211), Liam (213) et Thunder Strike (7713) ignorent 100 % de la DEF en permanence ; Thunder Break et Abigail mal calculés (`13b-sequences-zone`). Mesure conservatoire maintenant (neutraliser ou refuser ces sorts en attendant les relevés), ou au plan du lot 13 ? | en attente |
 
 ---
@@ -7976,6 +7977,161 @@ Power : « Ignore DEF [If 3 or less enemies] ») → trop favorable, exact ;
 `tests/audit-degats-conditionnels.test.ts` L1026 et L1030 « 209 — Triss »
 alors que Triss est le constat 214 (plan) → exact ; A.2 ter L151 porte bien
 la décision Fei → exact.
+
+Deuxième vague (trois sessions `lot-j`) : `13b-declenchee-voisins`,
+`13b-effets-entre-coups`, `13b-coups-variables`.
+
+##### 13b-declenchee-voisins — 2026-10-02
+
+Preuve `controle-13b-declenchee-voisins.md` (297 lignes) et ses intrants
+(scripts 01 à 07, patch en mémoire). 15 constats, 43 lignes, 56 formes (32
+jouables) ; aucun déclaré livré. **Cases (par ligne)** : donnée × existant
+18, donnée × neuf 13 ; relevé × existant 1, relevé × neuf 6, relevé ×
+indéterminé 5 ; 177, 182, 184 divergent selon la ligne. **Une ligne de
+table suffit** (vérifié en mémoire par le chemin de production) : les appels
+des Kung Fu Girls (8201-8205 vers le slot 2, 8216-8219 vers le slot 3) dans
+`ATTAQUES_APPELEES_PAR_DECLENCHEUR`, total exact au point près, break DEF de
+la S1 transmis (A.2 ter L151) ; Gollum et Lob Ear, Übel dans
+`PASSIFS_OFFENSIFS_CONNUS` (+ `COUPS_VARIABLES_CONNUS`). **Bloquant** :
+répéter le sort choisi est impossible (garde `appelee === declencheur`) →
+mécanisme neuf N1 (Hwa, Vendhan, Zeratu, Elise, S1 de Bella) ; clés
+d'interrupteur prises (l'appel de 8215 allumerait aussi l'ignore DEF
+« manuel » de Dark Dragon Attack ; 23310 de même) → espace de clés distinct.
+**Calcul trop bas en silence** : Trinity Claymore (22515) et Endless Kick
+Combo (23015) ne comptent que leurs 3 × 0,8 ATQ, sans les compétences
+qu'ils appellent. Clés par nom interdites (« Swing », « Trample »,
+« Scratch », « Sonic Boom »). **Relevés** R1 à R7, questions Q1 à Q3.
+**Lots** DV-a à DV-h (DV-e à consolider avec sequences-zone et
+effets-entre-coups, DV-f avec coups-variables). **Décisions formulées** D1
+à D10 (forme de N1, Bella, Gollum/Lob Ear, Trinity Claymore choisissable,
+Sapsaree, Chain Fire…). **Découvertes** : DH-01 (Chain Effect 18212,
+Vendhan), DH-02 (Might · Hurricane 18213, Chakra), DH-03 (« Emergency
+Drive » de Rending Claw, clé par nom, proposé à des formes sans ce passif),
+DH-04 (notes de Taebaek), DH-05 (étiquettes `familles_lot1` de 13a
+fautives pour sept identifiants). Un `node -p` en lecture seule (écart
+déclaré).
+
+**Validé par le pilote** : `damage.ts` L3550 (garde `appelee ===
+declencheur`), L2473 (condition manuelle de 8215, même clé) ; fiche
+`33205.json` : Trinity Claymore `0.8*{ATK}`, 3 coups, deux « Additional
+Attack » (Backlash, Hunting Hawk) non comptées → trop bas, exact.
+
+##### 13b-effets-entre-coups — 2026-10-02
+
+Preuve `controle-13b-effets-entre-coups.md` (250 lignes) et ses intrants (9
+scripts). 13 constats, 43 lignes, 79 formes ; aucun déclaré livré. Case
+supplémentaire « prose seule » (13 lignes) ; selon qu'elle compte comme
+relevé ou donnée : donnée × existant 13 / 16, donnée × neuf 7 / 17, relevé ×
+existant 5 / 2, relevé × neuf 17 / 7, relevé × indéterminé 1 (148).
+**Saillants** : pour 13 lignes du 322, une ligne de
+`EFFETS_ENTRE_COUPS_PAR_ID_CONNUS` suffit (écart actuel ×1,13 à ×1,68) ;
+**Barbara (13611) trop favorable en production** (`ignoreDef` permanent,
+×5,69 à 1 500 de DEF) ; aucune condition limitée à un coup précis (144 à
+147) ; aucun champ pour « le sort allume son propre buff » (323).
+**Relevés** R1 à R9, Q1. **Lots** EEC-1 à EEC-6, EEC-T. **Décisions
+formulées** D1 à D7 (dont D6, le TC de Chiron qui ne compte qu'en mode
+« Moyenne », rendue sans objet par la suppression décidée, lot CM ; D7 :
+périmètre des familles découvertes). **Découvertes** : DH-01 (212 sorts à
+plusieurs coups qui posent une Brise DEF ou une Marque sans curation, dont
+173 hors inventaire — l'annexe de chronologie de l'audit, 225 sorts, n'a
+produit aucune ligne : les 243 constats ne couvrent pas cette famille),
+DH-02 (82 sorts qui posent un buff ATQ/VIT/TC), DH-03 à DH-06 (dont Triple
+Crush : prose 50 % de DEF, code 70 % ; DH13b-sequences-zone-02 confirmé).
+
+**Validé par le pilote** : fiche `23501.json` : Start of Attacking (13611)
+porte « Ignore DEF(25) [Per beneficial effect removed] » et n'est pas dans
+`IGNORE_DEF_CONDITIONNEL_PAR_ID` → `ignoreDef` vrai en permanence, trop
+favorable, exact ; `EFFETS_ENTRE_COUPS_PAR_ID_CONNUS` (`damage.ts` L2568)
+et l'entrée par nom de Triple Crush (L2563) existent.
+
+##### 13b-coups-variables — 2026-10-02
+
+Preuve `controle-13b-coups-variables.md` (303 lignes) et ses intrants (8
+scripts, 8 sorties). 15 constats, 49 lignes, 83 formes (49 jouables) ;
+aucun déclaré livré. **Cases (par ligne, nombre de coups saisi par
+l'utilisateur, D1)** : donnée × existant 27, donnée × neuf 1, relevé ×
+existant 15, relevé × neuf 6 ; les bascules si le nombre de coups est
+dérivé des stats sont listées (§ 10). **Saillants** : clé par nom
+impossible pour Whirlpool, Crow Hunt (Prilea) et Dispel! Attack! (homonymes
+jouables d'une autre mécanique) → variante par identifiant de
+`COUPS_VARIABLES_CONNUS` / `COUPS_FIXES_CORRIGES` ; **calculs faux en
+silence** : trop favorables Stella (7 coups toujours), Cannon Girls,
+Katarina, Coco, Brutal Fists ; trop bas Espresso / Tea Bunny (−25 %),
+Whirlpool, Prilea ; Lala faux dans toutes les lectures ; 321 consolidé avec
+SZ-5 (lot CV-7 : 2908, 9413, 4211) ; 183 (ROBO) et Tanya (10713) se ferment
+sans code par A.2 ter L152. **Relevés** R1 à R9 et R-COEF. **Lots** CV-1 à
+CV-8 et deux clôtures. **Décisions formulées** D1 à D9 (saisir ou dériver
+le nombre de coups, défauts des plages, ROBO sous L152, Pungbaek et Taor en
+« Autres ennemis », Lala, Coco, Katarina, sorts calculés au maximum en
+attendant, portée de God's Weapon). Un `node -e 0` vide (écart déclaré).
+
+**Validé par le pilote** : `COUPS_VARIABLES_CONNUS` indexé par nom
+(`damage.ts` L2775) ; A.2 ter L152 écarte bien la seconde attaque de
+Shadow Assault de Tanya ; Stella (10711) : prose « up to 7 hits
+accordingly to your Attack Speed », `coups: 7` = le maximum → compté
+toujours, trop favorable, exact.
+
+### Lot CM — le mode critique « Moyenne » supprimé
+
+**Cat. J.** Décisions de l'utilisateur du 2026-10-02 : le mode critique
+« Moyenne », dit « non utilisé et devant être supprimé » dans l'amendement
+1c1 (L64-66) et resté sans lot (découverte DH13b-declenchee-amorces-02),
+est **supprimé dans ce chantier** ; une recette déjà exportée ou partagée
+qui l'utilise est **convertie en « Critique » (le défaut) avec un
+avertissement visible**, à l'écran comme dans le CLI — jamais refusée,
+jamais changée en silence.
+
+**Exécution** : lot parallèle (A.8) dans le worktree `sw-forge-lot-cm`
+(branche `forge/dea-cm`, partie de la tête du chantier), pendant les
+vagues 13b, qui qualifient sur un code stable ; notes déposées dans
+`sw-forge-lot-cm-notes\base` et `\notes` ; ni `livrer` ni `push` ; le
+pilote l'intègre après la dernière vague 13b.
+
+**Intrant** : `damage.ts` (`CritMode` L3670, `CRIT_MODE_LABELS` L3676,
+puis chaque lecture de `'moyenne'`, par grep — plages seulement) ;
+`runeBuildOptim.ts` (ses lectures de `'moyenne'`) ; `optimizerRecipe.ts`
+L327 ; `DamageSetupCard.tsx` L1938 ; `useOptimizerState.ts` ; les scripts
+`scripts/lib/diagnosticConfig.ts`, `scripts/lib/diagnosticLot.ts`,
+`scripts/artifact-contention-diag.ts`, `scripts/construction-time-diag.ts`,
+`scripts/monster-search-multicount-diag.ts`, `scripts/lib/chargerRecette.ts`
+(avertissements) ; les tests qui citent la valeur (grep `'moyenne'` dans
+`tests/`) ; la décision du 2026-09-29 « Taux Crit en mode Moyenne »
+(`invariants.md` L37, `algorithme.md` L79-84) ; les specs qui décrivent les
+trois modes (grep « Moyenne » dans `spec/` hors `chantiers/`).
+
+**Contrat.**
+
+1. `CritMode` ne connaît plus que `'crit'` et `'normal'` ; les libellés,
+   le `Segmented`, l'aide et le bloc propre à « Moyenne » de la carte
+   suivent. Tout code qui lisait `'moyenne'` (score, stats pertinentes,
+   tirages des scripts de diagnostic et de mesure) est retiré ou ramené
+   aux deux modes, sans autre changement de calcul pour `'crit'` et
+   `'normal'`.
+2. **Recette** : `damageSetup.critMode: "moyenne"` s'importe en `'crit'` et
+   produit un avertissement nommé (chemin du champ, ancienne et nouvelle
+   valeur), affiché par l'écran à l'import et par le CLI (mécanisme
+   d'avertissements de `chargerRecette`). L'export n'écrit jamais
+   `'moyenne'`. Toute autre valeur inconnue reste refusée. Tous les
+   constructeurs du type (écran, recette, CLI, harnais) suivent :
+   `grep -rn` sur `src/`, `scripts/`, `tests/`.
+3. **Décision du 2026-09-29** (« Taux Crit en mode Moyenne ») : rendue sans
+   objet ; `invariants.md` et `algorithme.md` le disent (recette (c) de
+   `spec-hygiene`), sans effacer l'historique.
+4. **Tests** : un test qui éprouvait « Moyenne » est retiré ou converti,
+   sa raison écrite dans la preuve ; tests neufs : conversion à l'import
+   avec avertissement (écran et CLI), refus d'une autre valeur inconnue,
+   export sans `'moyenne'`.
+
+**Preuves** : grep `'moyenne'` dans `src/`, `scripts/`, `tests/` → la seule
+conversion (et ses tests) ; mutation APRÈS le commit (A.8) par point ;
+`tsc`, tests de zone (`degats auditdegatsconditionnels optimizerrecipe
+recettepartagee cliclassement speedtune` + ceux qui citaient la valeur),
+build (classes vérifiées dans le CSS construit), spec-lint, diff-check ;
+CLI réel avec une recette « moyenne » → avertissement et résultat de
+« Critique » ; preuve `controle-cm.md`. Vérification à l'œil en A.8.
+
+**Ne fait pas** : aucun mode nouveau ; aucune autre règle de critique
+(402, 410, critiques garantis ou interdits) ; ni `livrer` ni `push`.
 
 ### Lot 14 — clôture
 

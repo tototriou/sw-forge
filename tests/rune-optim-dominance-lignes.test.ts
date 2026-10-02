@@ -57,7 +57,7 @@ import { artifactPairAllowed } from '../src/lib/artifacts';
 import {
   AUCUN_ARTEFACT_RESERVE, evaluateursArtefactsFiche, parametresArtefactsFiche, statsLignesArtefactsEquipables,
 } from '../src/lib/artifactFiche';
-import { entreeResolutionDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { buildOptimizerRecipe, type OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { prepareOrRefuse } from '../src/workers/prepareForSearch';
 import { drain } from '../scripts/lib/drain';
@@ -388,10 +388,12 @@ export function testDominanceLignesLibre() {
   const espace = espaceExact(p);
   ok(!resultat.truncated && resultat.explored === espace, `${cas.nom} : recherche complète (explorées ${resultat.explored} / totalPairCount ${espace})`);
   const { artefacts: _a, ...degats } = contexteDegats(cas, []);
+  // Les caches de la file, partagés par tous les candidats comme à l'écran (6bis-b13).
+  const caches = nouveauxCachesResolution();
   const resolus = resultat.candidates.map((c) => {
     const r = resoudreEquipementDuBuild(entreeResolutionDuBuild({
       fiche: FICHE, runes: c.runeIds.map((id) => runeById.get(id)!), artifactParams: a, regime: 'degats_reels', degats,
-      exclusive: { setup: setupDe(cas), element: null }, requirement: p.requirement, relicContext: undefined,
+      exclusive: { setup: setupDe(cas), element: null }, requirement: p.requirement, relicContext: undefined, caches,
     }));
     return { cle: cleDe(c), score: r.paire?.score ?? Number.NEGATIVE_INFINITY, paire: r.artefacts.map((x) => x.id), conforme: r.conforme };
   });

@@ -46,7 +46,7 @@ import {
   sortCandidates,
 } from '../src/lib/runeBuildOptim';
 import { K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE, ResultatArtefacts, classementResolu, cleBuild, kDeLaFile, prochainsATraiter } from '../src/lib/artifactQueue';
-import { entreeResolutionDuBuild, etatReliqueDuBuild, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
+import { entreeResolutionDuBuild, etatReliqueDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { regimeArtefacts, regimeEquipementDe } from '../src/lib/artifactEvaluation';
 import { artefactsDuCli, recipeToSearchParams } from '../scripts/lib/recipeToSearchParams';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
@@ -128,9 +128,11 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
   const regimeEquipement = regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null);
   const requirementAvecAuras = avecAurasConditions(recipe.requirement, damageSetup, recipe.compterAurasResPre ?? true);
   const parBuild = new Map<string, ResultatArtefacts>();
+  // `cachesResolution` de l'écran : un jeu pour toute la file (6bis-b13).
+  const caches = nouveauxCachesResolution();
   const resoudre = (c: BuildCandidate) => resoudreEquipementDuBuild(entreeResolutionDuBuild({
     fiche, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean), artifactParams: a.params, regime: regimeEquipement,
-    degats: a.degats, exclusive: contexteExclusive, requirement: requirementAvecAuras, relicContext: relicContextRecherche,
+    degats: a.degats, exclusive: contexteExclusive, requirement: requirementAvecAuras, relicContext: relicContextRecherche, caches,
   }));
   // `profilsParBuild` de l'écran, recalculé depuis le cache courant.
   const options = optionsDeClassement({

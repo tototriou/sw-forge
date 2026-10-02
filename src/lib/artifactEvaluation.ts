@@ -14,8 +14,8 @@ import { ArtifactDetail, ElementKey, RelicDetail } from '../types';
 import { StatKey } from './effects';
 import { Objective, pvEffectifs, statTotal, type RealDamageContext } from './runeBuildOptim';
 import { StatRow } from './stats';
-import { AurasPropres, DamageSetup, artifactDamageProfile, computeTotalDamage } from './damage';
-import { APPORT_NEUTRE, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
+import { ArtifactDamageProfile, AurasPropres, DamageSetup, artifactDamageProfile, computeTotalDamage } from './damage';
+import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, statsAvecApport } from './relicExclusive';
 
 export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_reels';
 
@@ -82,6 +82,74 @@ export interface CanalExclusive {
   element: ElementKey | null;
 }
 
+/**
+ * Au plus tant de paires en cache (`CacheProfilsParPaire`) : un peu plus du
+ * double des 7 727 paires distinctes que parcourt la résolution de 300 builds
+ * × 4 reliques sur la recette « Dégâts réels » de référence (degats-et-aura
+ * 6bis-b13), loin des ~100 000 paires de l'inventaire entier (250 × 430
+ * candidats). Atteinte, le cache se vide d'un coup : jamais plus de cette
+ * borne d'entrées vivantes, jamais un résultat différent.
+ */
+export const BORNE_PROFILS_PAR_PAIRE = 16_384;
+
+// Au plus tant de tableaux de stats dont l'évaluateur d'une paire retient
+// l'apport (`evaluerPourRegime`) : une poignée de sommes de principales par
+// build et par relique ; pour un `statsAvec` qui rendrait un tableau neuf à
+// chaque appel, la mémoire tourne sans grandir.
+export const BORNE_APPORTS_PAR_STATS = 64;
+
+// Emplacement vide dans la clé : jamais un identifiant de pièce, puisqu'une
+// pièce d'identifiant ≤ 0 ne passe pas par le cache.
+const SANS_PIECE = -1;
+
+/**
+ * Le profil de dégâts d'une paire (`artifactDamageProfile`), mémoïsé par les
+ * identifiants de ses pièces, dans l'ordre reçu, emplacement vide compris
+ * (degats-et-aura 6bis-b13).
+ *
+ * ⚠️ **Exact parce que le profil ne lit que les pièces** : leurs
+ * sous-propriétés, rien du build, de la relique ni du réglage (damage.ts) ;
+ * le même identifiant désigne la même pièce tant que l'inventaire ne change
+ * pas — d'où la durée de vie du cache, celle d'UNE file (vidé avec la
+ * signature des réglages ou l'inventaire, voir `nouveauxCachesResolution`).
+ * Un profil rendu est partagé : aucun consommateur ne le modifie, seul
+ * `artifactDamageProfile` écrit dans l'objet qu'il construit.
+ *
+ * ⚠️ Une pièce d'identifiant ≤ 0 n'est pas une vraie pièce (les sondes de
+ * `analyserPertinence`) : jamais en cache, le profil est recalculé.
+ */
+export class CacheProfilsParPaire {
+  private parPremiere = new Map<number, Map<number, ArtifactDamageProfile>>();
+  private entrees = 0;
+
+  get taille(): number {
+    return this.entrees;
+  }
+
+  profil(arts: ArtifactDetail[]): ArtifactDamageProfile {
+    if (arts.length > 2) return artifactDamageProfile(arts);
+    const premiere = arts[0]?.id ?? SANS_PIECE;
+    const seconde = arts[1]?.id ?? SANS_PIECE;
+    if ((arts.length > 0 && premiere <= 0) || (arts.length > 1 && seconde <= 0)) return artifactDamageProfile(arts);
+    let interne = this.parPremiere.get(premiere);
+    const connu = interne?.get(seconde);
+    if (connu) return connu;
+    const p = artifactDamageProfile(arts);
+    if (this.entrees >= BORNE_PROFILS_PAR_PAIRE) {
+      this.parPremiere.clear();
+      this.entrees = 0;
+      interne = undefined;
+    }
+    if (!interne) {
+      interne = new Map();
+      this.parPremiere.set(premiere, interne);
+    }
+    interne.set(seconde, p);
+    this.entrees++;
+    return p;
+  }
+}
+
 // `propres` (6bis-b2, les deux surcharges) : les activations d'aura des runes
 // du build dont `statsAvec` calcule les stats. Constantes pour toutes ses
 // paires et reliques (ni artéfact ni relique ne porte de set), obligatoires :
@@ -89,12 +157,16 @@ export interface CanalExclusive {
 // voient toutes trois (D6, une seule note).
 // Surcharge 1 : `degats_reels` EXIGE le contexte de dégâts — omission =
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
+// `profils` (6bis-b13) : le profil de chaque paire est lu dans ce cache au
+// lieu d'être recalculé — même valeur, voir `CacheProfilsParPaire`. Absent :
+// recalculé à chaque paire, comme avant.
 export function evaluerPourRegime(
   regime: 'degats_reels',
   statsAvec: (arts: ArtifactDetail[]) => StatRow[],
   propres: AurasPropres,
   degats: DegatsContext,
-  exclusive?: CanalExclusive
+  exclusive?: CanalExclusive,
+  profils?: CacheProfilsParPaire
 ): (arts: ArtifactDetail[]) => number;
 // Surcharge 2 : tout autre régime n'a pas besoin de contexte de dégâts.
 export function evaluerPourRegime(
@@ -110,7 +182,8 @@ export function evaluerPourRegime(
   statsAvec: (arts: ArtifactDetail[]) => StatRow[],
   propres: AurasPropres,
   degatsOuExclusive?: DegatsContext | CanalExclusive,
-  exclusiveApresDegats?: CanalExclusive
+  exclusiveApresDegats?: CanalExclusive,
+  profils?: CacheProfilsParPaire
 ): (arts: ArtifactDetail[]) => number {
   // Le 4ᵉ paramètre porte le contexte de dégâts en `degats_reels`, le canal
   // exclusive partout ailleurs — les deux surcharges publiques le fixent, ce
@@ -120,6 +193,23 @@ export function evaluerPourRegime(
   // L'apport de la relique essayée, pour CETTE paire d'artéfacts.
   const apportPour = (stats: StatRow[]) =>
     exclusive ? apportExclusive(exclusive.relique, stats, exclusive.setup, propres, exclusive.element) : APPORT_NEUTRE;
+  // ⚠️ L'apport et les stats qui l'incluent ne dépendent que du TABLEAU de
+  // stats de la paire (`apportExclusive`, `statsAvecApport` : pures) :
+  // calculés une fois par tableau, reconnu à son identité — `statsParPaire`
+  // rend le même tableau aux paires de mêmes principales (degats-et-aura
+  // 6bis-b13). Exact pour tout `statsAvec` ; au plus
+  // `BORNE_APPORTS_PAR_STATS` tableaux retenus, puis la mémoire se vide.
+  const parStats = new Map<StatRow[], { stats: StatRow[]; apport: ApportExclusive }>();
+  const avecApport = (brutes: StatRow[]) => {
+    let r = parStats.get(brutes);
+    if (!r) {
+      const apport = apportPour(brutes);
+      r = { stats: statsAvecApport(brutes, apport), apport };
+      if (parStats.size >= BORNE_APPORTS_PAR_STATS) parStats.clear();
+      parStats.set(brutes, r);
+    }
+    return r;
+  };
   if (regime === 'degats_reels') {
     // ⚠️ Backstop runtime, censé être INATTEIGNABLE une fois les deux
     // surcharges en place — un appel bien typé ne peut pas arriver ici sans
@@ -130,19 +220,19 @@ export function evaluerPourRegime(
         "evaluerPourRegime('degats_reels') exige un contexte de dégâts — les surcharges publiques devraient déjà l'imposer à la compilation."
       );
     }
+    const profilDe = profils ? (arts: ArtifactDetail[]) => profils.profil(arts) : artifactDamageProfile;
     return (arts) => {
-      const brutes = statsAvec(arts);
-      const apport = apportPour(brutes);
+      // Bravoure/Éternité/Origine : des POINTS de stat, jamais posés dans
+      // `computeStats` (les minimums/maximums restent jugés hors combat).
+      const { stats, apport } = avecApport(statsAvec(arts));
       return computeTotalDamage(
         degats.profile,
         degats.passifs,
-        // Bravoure/Éternité/Origine : des POINTS de stat, jamais posés dans
-        // `computeStats` (les minimums/maximums restent jugés hors combat).
-        statsAvecApport(brutes, apport),
+        stats,
         degats.setup,
         propres,
         degats.element,
-        artifactDamageProfile(arts),
+        profilDe(arts),
         degats.critSiPlusRapide,
         degats.bonusDegatsSelonVit,
         degats.bonusDegatsStack,
@@ -158,10 +248,9 @@ export function evaluerPourRegime(
   }
   if (regime === 'ehp') {
     return (arts) => {
-      const brutes = statsAvec(arts);
-      const apport = apportPour(brutes);
+      const { stats, apport } = avecApport(statsAvec(arts));
       // Ténacité — terme de `Réductions` : des PV effectifs ÉQUIVALENTS.
-      return pvEffectifs(statsAvecApport(brutes, apport), propres, exclusive?.setup) * facteurTenacite(apport.reductionPct);
+      return pvEffectifs(stats, propres, exclusive?.setup) * facteurTenacite(apport.reductionPct);
     };
   }
   if (regime === 'hp' || regime === 'atk' || regime === 'def') {

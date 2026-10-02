@@ -2487,6 +2487,39 @@ seulement si, pendant une recherche, la page affichée met encore plus de
 quelques secondes à se résoudre ou si la barre de progression gèle
 visiblement.
 
+**Les builds d'une file partagent ce qui ne dépend pas d'eux**
+(degats-et-aura 6bis-b13). Mesuré sur la recette « Dégâts réels » de
+référence : résoudre un build essaie ~7 800 paires pour chacune des quatre
+reliques éligibles, mais 300 builds ne parcourent en tout que 7 727 paires
+distinctes. Trois mémoires et un tri différé, sans changer aucun résultat :
+
+- le **profil de dégâts d'une paire** ne lit que ses deux pièces : il se
+  calcule une fois par paire (`CacheProfilsParPaire`, clé = identifiants des
+  pièces dans l'ordre reçu, emplacement vide compris ; une pièce
+  d'identifiant ≤ 0 n'est pas une pièce et n'y entre jamais) ;
+- les **candidats élagués de chaque sorte** se recalculent seulement si
+  leurs entrées changent (`MemoPreFiltre`) : la pertinence reste sondée
+  contre le vrai calcul à chaque build et à chaque relique, et la liste
+  n'est réutilisée que pour la même pertinence, le même inventaire et les
+  mêmes réglages de paires ;
+- les **stats d'une paire** ne dépendent que de la somme de ses
+  principales : `statsParPaire` rend le même tableau aux paires de mêmes
+  principales, et l'effet unique de la relique essayée n'est calculé qu'une
+  fois par tableau ;
+- la résolution ne lit, d'ordinaire, que la **meilleure paire** (la
+  première conforme, le premier couple faisable) : `pairesParScore` la
+  trouve par un seul parcours — plus grand score, premier dans l'ordre de
+  l'inventaire en cas d'égalité, comme le tri stable — et ne trie toutes les
+  paires que si l'on lit plus loin (ou si un score vaut NaN). L'ordre rendu
+  est exactement celui de `chercherPaires`.
+
+Chaque mémoire est bornée (16 384 profils, 64 listes, 256 tableaux, 64
+apports) et se vide d'un coup à sa borne. Leur durée de vie est celle d'une
+file : l'écran les recrée avec la signature des réglages et les paramètres
+de paires (donc l'inventaire), le CLI une fois par recette — jamais un état
+global qu'un nouvel inventaire laisserait périmé. Ce qu'elles rendent est
+partagé : à lire, jamais à modifier.
+
 Une carte dont la paire n'est pas encore calculée le **dit** (« artéfacts pas
 encore optimisés ») plutôt que de laisser croire à un résultat définitif. ⚠️ La
 place de cette mention est réservée d'avance : sans ça, chaque paire trouvée

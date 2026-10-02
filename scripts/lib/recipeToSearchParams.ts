@@ -36,7 +36,7 @@ import { computeStats } from '../../src/lib/stats';
 import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams, type BornesArtefacts } from '../../src/lib/artifactOptim';
 import { regimeArtefacts, regimeEquipementDe, type DegatsContext } from '../../src/lib/artifactEvaluation';
 import { AUCUN_ARTEFACT_RESERVE, evaluateursArtefactsFiche, parametresArtefactsFiche, statsLignesArtefactsEquipables } from '../../src/lib/artifactFiche';
-import { entreeResolutionDuBuild, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
 import type { ResultatArtefacts } from '../../src/lib/artifactQueue';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
@@ -260,6 +260,9 @@ export function resoudreEquipementCli(
   const regime = regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null);
   const runeById = new Map(params.pool.map((r) => [r.id, r]));
   const exclusive = { setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: a.element };
+  // Les caches de la file de l'écran (6bis-b13) : un jeu pour toute la
+  // résolution de cette recette, comme l'écran pour une signature.
+  const caches = nouveauxCachesResolution();
   return (c) =>
     resoudreEquipementDuBuild(
       entreeResolutionDuBuild({
@@ -272,6 +275,7 @@ export function resoudreEquipementCli(
         exclusive,
         requirement: params.requirement,
         relicContext: params.relicContext,
+        caches,
       })
     );
 }

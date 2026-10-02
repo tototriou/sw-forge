@@ -26,7 +26,7 @@
 
 import { ArtifactDetail, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
 import { StatRow, computeStats, statsParPaire } from './stats';
-import { ArtifactSearchParams, PaireArtefacts, chercherPaires } from './artifactOptim';
+import { ArtifactSearchParams, MemoPreFiltre, PaireArtefacts, pairesParScore } from './artifactOptim';
 import {
   BuildRequirement,
   RechercheRefusee,
@@ -36,8 +36,29 @@ import {
 } from './runeBuildOptim';
 import { RelicContext, bestRelicForBuild } from './relicOptim';
 import { ResultatArtefacts } from './artifactQueue';
-import { DegatsContext, RegimeArtefacts, evaluerPourRegime } from './artifactEvaluation';
+import { CacheProfilsParPaire, DegatsContext, RegimeArtefacts, evaluerPourRegime } from './artifactEvaluation';
 import { DamageSetup, aurasPropresDesRunes } from './damage';
+
+/**
+ * Ce que la résolution de PLUSIEURS builds peut partager sans changer un
+ * résultat (degats-et-aura 6bis-b13) : le profil de dégâts de chaque paire
+ * (`CacheProfilsParPaire`, qui ne dépend que des deux pièces) et les
+ * candidats élagués de chaque sorte (`MemoPreFiltre`, sur leurs entrées
+ * réelles). Les deux sont bornés.
+ *
+ * ⚠️ **Durée de vie : une file** — créés par l'écran avec la signature des
+ * réglages et les paramètres de paires (donc l'inventaire), par le CLI une
+ * fois par recette ; jamais un état global du module, qu'un changement
+ * d'inventaire laisserait périmé.
+ */
+export interface CachesResolution {
+  profils: CacheProfilsParPaire;
+  preFiltre: MemoPreFiltre;
+}
+
+export function nouveauxCachesResolution(): CachesResolution {
+  return { profils: new CacheProfilsParPaire(), preFiltre: new MemoPreFiltre() };
+}
 
 /**
  * Ce qu'il faut pour résoudre l'équipement d'UN build.
@@ -79,6 +100,9 @@ export interface EntreeResolution {
   // Le contexte canonique de la recherche dont ce build est issu (garantie
   // G) — jamais recalculé ici. Absent : chemin écran d'avant le lot 5c.
   relicContext: RelicContext | undefined;
+  // Les caches partagés entre builds (6bis-b13) : le memo du préfiltre sert
+  // à chaque `chercherPaires` de la résolution. Absent : tout se recalcule.
+  caches?: CachesResolution | null;
 }
 
 function artefactsDe(p: PaireArtefacts): ArtifactDetail[] {
@@ -93,10 +117,10 @@ function artefactsDe(p: PaireArtefacts): ArtifactDetail[] {
  */
 function resoudreReliqueFixe(e: EntreeResolution, relique: RelicDetail | undefined): ResultatArtefacts {
   // ⚠️ TOUTES les paires, pas seulement la meilleure — il faut la meilleure
-  // QUI TIENT LES MINIMUMS, pas la meilleure tout court. `chercherPaires`
-  // accumule et trie déjà l'ensemble ; `combien` ne fait que trancher à la
-  // fin, demander la liste complète ne coûte donc rien.
-  const r = chercherPaires(e.faireParams(relique), Number.MAX_SAFE_INTEGER);
+  // QUI TIENT LES MINIMUMS, pas la meilleure tout court. `pairesParScore` les
+  // rend dans l'ordre de `chercherPaires`, et ne trie l'ensemble que si la
+  // meilleure ne convient pas (6bis-b13).
+  const r = pairesParScore(e.faireParams(relique), e.caches?.preFiltre);
   // Parcours par score DÉCROISSANT, arrêt à la première conforme : dans le cas
   // courant c'est la première, et on ne recalcule les stats que pour les
   // paires réellement examinées.
@@ -172,7 +196,8 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
     (relique) => {
       // (2) La candidate REMPLACE la portée (jamais un cumul) : les paires
       // sont classées avec les stats qui l'incluent.
-      const r = chercherPaires(e.faireParams(relique), Number.MAX_SAFE_INTEGER);
+      // Par score décroissant, triées seulement au-delà de la première (6bis-b13).
+      const r = pairesParScore(e.faireParams(relique), e.caches?.preFiltre);
       for (const p of r.paires) {
         const arts = artefactsDe(p);
         // (3) + (4) Stats EXACTES du couple, minimums ET maximums — un seul
@@ -247,6 +272,9 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
  * - `requirement` : les conditions AVEC auras (`avecAurasConditions`).
  * - `relicContext` : celui de la recherche LANCÉE (garantie G : jamais une
  *   relecture des trois champs de l'écran).
+ * - `caches` : ceux de la file (`nouveauxCachesResolution`), partagés par tous
+ *   ses builds — obligatoire, `null` pour tout recalculer (6bis-b13), pour
+ *   que `tsc` signale un producteur qui n'a pas choisi.
  */
 export function entreeResolutionDuBuild(e: {
   fiche: GearSet;
@@ -257,6 +285,7 @@ export function entreeResolutionDuBuild(e: {
   exclusive: { setup: DamageSetup; element: ElementKey | null };
   requirement: BuildRequirement;
   relicContext: RelicContext | undefined;
+  caches: CachesResolution | null;
 }): EntreeResolution {
   // ⚠️ Les stats sont recalculées avec LES RUNES DE CE CANDIDAT, pas celles
   // de l'équipement affiché : la stat principale d'un artéfact entre dans
@@ -307,7 +336,7 @@ export function entreeResolutionDuBuild(e: {
       // travail qui compte est la faisabilité (§12.6 d'artefacts.md).
       const evaluer =
         e.regime === 'degats_reels'
-          ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive)
+          ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive, e.caches?.profils)
           : evaluerPourRegime(e.regime, statsAvec, propres, exclusive);
       return { ...e.artifactParams, evaluer };
     },
@@ -318,6 +347,7 @@ export function entreeResolutionDuBuild(e: {
     regimeAucun: e.regime === 'aucun',
     regimeDeStat: e.regime === 'hp' || e.regime === 'atk' || e.regime === 'def',
     relicContext: e.relicContext,
+    caches: e.caches,
   };
 }
 

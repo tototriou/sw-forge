@@ -699,6 +699,7 @@ export function testDepartageReliquePortee() {
       exclusive: { setup: SETUP, element: null },
       requirement: { sets: [], minStats: {}, maxStats: {} },
       relicContext: resoudreContexteRelique(intention('recherche'), porteeDuMonstre, eligibles),
+      caches: null,
     }));
 
   egal(resoudreContexteRelique(intention('recherche'), portee, [BRAVOURE_ATQ, portee]).eligibles.map((r) => r.id), [690, 695], 'précondition : les deux reliques sont candidates');

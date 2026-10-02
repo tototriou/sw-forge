@@ -587,6 +587,54 @@ function candidatsPourRecherche(
   return preFiltrerCandidats(complets, kind, lignes, pertinence, params.maxStatsActifs);
 }
 
+// Au plus tant de listes en mémoire (`MemoPreFiltre`) : deux sortes par
+// pertinence distincte — une seule mesurée sur 1 200 appels (300 builds × 4
+// reliques, degats-et-aura 6bis-b13). Atteinte, le memo se vide d'un coup.
+export const BORNE_MEMO_PREFILTRE = 64;
+
+/**
+ * Les candidats élagués d'une sorte (`candidatsPourRecherche`), mémoïsés sur
+ * TOUTES leurs entrées (degats-et-aura 6bis-b13) : la pertinence, par sa
+ * VALEUR (codes croissants et ambigus), et les champs de `params` que lisent
+ * `candidatsParSorte` et `preFiltrerCandidats`, par identité.
+ *
+ * ⚠️ **Aucune indépendance supposée.** `analyserPertinence` reste appelée à
+ * chaque `chercherPaires`, contre le vrai `evaluer` du build et de la relique
+ * essayés : si elle diffère d'un build à l'autre, la clé diffère et le
+ * préfiltre se recalcule. Le memo ne retire que le recalcul d'une sortie
+ * déjà connue pour les mêmes entrées — `preFiltrerCandidats` est pure, et
+ * l'ordre des codes dans un ensemble ne change rien à la dominance (toutes
+ * les dimensions doivent être au moins égales). La liste rendue est
+ * partagée : `chercherPaires` ne fait que la parcourir.
+ */
+export class MemoPreFiltre {
+  private entrees: unknown[] | null = null;
+  private parCle = new Map<string, (ArtifactDetail | null)[]>();
+
+  get taille(): number {
+    return this.parCle.size;
+  }
+
+  candidats(params: ArtifactSearchParams, kind: ArtifactKind, pertinence: Pertinence): (ArtifactDetail | null)[] {
+    const entrees = [
+      params.inventaire, params.equipes, params.porteur, params.principaleParSorte,
+      params.lignesVerrouillees, params.avecCoutDesVerrous, params.maxStatsActifs,
+    ];
+    if (!this.entrees || entrees.some((v, i) => v !== this.entrees![i])) {
+      this.parCle.clear();
+      this.entrees = entrees;
+    }
+    const codes = (s: Set<number>) => [...s].sort((a, b) => a - b).join(',');
+    const cle = `${kind}|${codes(pertinence.croissants)}|${codes(pertinence.ambigus)}`;
+    const connue = this.parCle.get(cle);
+    if (connue) return connue;
+    const liste = candidatsPourRecherche(params, kind, pertinence);
+    if (this.parCle.size >= BORNE_MEMO_PREFILTRE) this.parCle.clear();
+    this.parCle.set(cle, liste);
+    return liste;
+  }
+}
+
 // La meilleure paire, ou les `combien` meilleures.
 //
 // ⚠️ **La contrainte de paire n'est PAS un détail** : deux intangibles ne
@@ -620,9 +668,69 @@ export interface ResultatPaires {
   meilleurSansVerrous: number | null;
 }
 
-export function chercherPaires(params: ArtifactSearchParams, combien = 1): ResultatPaires {
+// ⚠️ Tri DÉCROISSANT stable : à score égal, l'ordre de l'inventaire départage.
+// Un tri instable rendrait le résultat dépendant du moteur JS.
+const PAR_SCORE_DECROISSANT = (a: PaireArtefacts, b: PaireArtefacts) => b.score - a.score;
+
+// `memo` (6bis-b13) : les candidats élagués de chaque sorte, mémoïsés sur
+// leurs entrées (`MemoPreFiltre`) — même liste. Absent : recalculés.
+export function chercherPaires(params: ArtifactSearchParams, combien = 1, memo?: MemoPreFiltre): ResultatPaires {
+  const { trouvees, meilleurSansVerrous } = collecterPaires(params, memo);
+  trouvees.sort(PAR_SCORE_DECROISSANT);
+  return { paires: trouvees.slice(0, Math.max(1, combien)), meilleurSansVerrous };
+}
+
+export interface PairesParScore {
+  // Les paires respectant les verrous, dans l'ordre EXACT de
+  // `chercherPaires(params, Infinity).paires` — triées seulement si l'on lit
+  // au-delà de la première.
+  paires: Iterable<PaireArtefacts>;
+  meilleurSansVerrous: number | null;
+}
+
+/**
+ * Les paires de `chercherPaires`, toutes, par score décroissant — pour un
+ * appelant qui s'arrête à la première qui lui convient (la résolution par
+ * build : la première conforme, le premier couple faisable), degats-et-aura
+ * 6bis-b13.
+ *
+ * ⚠️ **Même ordre, au bit près.** La première se trouve par un seul parcours
+ * : le plus grand score, au PLUS PETIT indice parmi les ex æquo — celle que
+ * le tri stable met en tête. Lire la suite déclenche le tri complet, le même
+ * que `chercherPaires`, dont on vérifie qu'il commence par elle. Un score
+ * NaN, que seul le tri sait placer, déclenche le tri d'emblée. Dans le cas
+ * courant (la meilleure paire convient), on évite de trier ~8 000 paires par
+ * relique et par build.
+ */
+export function pairesParScore(params: ArtifactSearchParams, memo?: MemoPreFiltre): PairesParScore {
+  const { trouvees, meilleurSansVerrous } = collecterPaires(params, memo);
+  return { paires: parScoreDecroissant(trouvees), meilleurSansVerrous };
+}
+
+function* parScoreDecroissant(trouvees: PaireArtefacts[]): Generator<PaireArtefacts> {
+  let iMeilleure = -1;
+  let nan = false;
+  for (let i = 0; i < trouvees.length; i++) {
+    const s = trouvees[i]!.score;
+    if (Number.isNaN(s)) {
+      nan = true;
+      break;
+    }
+    if (iMeilleure < 0 || s > trouvees[iMeilleure]!.score) iMeilleure = i;
+  }
+  if (!nan && iMeilleure >= 0) yield trouvees[iMeilleure]!;
+  const triees = trouvees.slice().sort(PAR_SCORE_DECROISSANT);
+  if (!nan && iMeilleure >= 0 && triees[0] !== trouvees[iMeilleure]) {
+    throw new Error('pairesParScore : la meilleure paire ne correspond pas à la tête du tri stable — bug.');
+  }
+  for (let i = nan ? 0 : 1; i < triees.length; i++) yield triees[i]!;
+}
+
+function collecterPaires(params: ArtifactSearchParams, memo: MemoPreFiltre | undefined) {
   const pertinence = analyserPertinence(params);
-  const parSorte = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key, pertinence));
+  const parSorte = ARTIFACT_KINDS.map(({ key }) =>
+    memo ? memo.candidats(params, key, pertinence) : candidatsPourRecherche(params, key, pertinence)
+  );
   const [candidatsElement, candidatsArchetype] = parSorte;
   const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   const trouvees: PaireArtefacts[] = [];
@@ -647,11 +755,10 @@ export function chercherPaires(params: ArtifactSearchParams, combien = 1): Resul
       trouvees.push({ element, archetype, score });
     }
   }
-  // ⚠️ Tri DÉCROISSANT stable : à score égal, l'ordre de l'inventaire départage.
-  // Un tri instable rendrait le résultat dépendant du moteur JS.
-  trouvees.sort((a, b) => b.score - a.score);
+  // Dans l'ordre de l'inventaire, NON triées : `chercherPaires` trie tout,
+  // `pairesParScore` à la demande.
   return {
-    paires: trouvees.slice(0, Math.max(1, combien)),
+    trouvees,
     meilleurSansVerrous:
       meilleurSansVerrous === null || meilleurSansVerrous === Number.NEGATIVE_INFINITY
         ? null

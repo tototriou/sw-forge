@@ -155,6 +155,8 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
     exclusive: r.exclusive,
     requirement: p.requirement,
     relicContext: ctx,
+    // Un candidat à la fois, sans file : tout se recalcule (6bis-b13).
+    caches: null,
   });
 }
 

@@ -24,7 +24,7 @@ import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_S
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { classementResolu, cleBuild, compteAffichable, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
-import { entreeResolutionDuBuild, resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
 import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
@@ -2176,6 +2176,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * optimisée pour les dégâts affichée dans une liste triée par PV effectifs
    * montrerait une valeur qui n'est pas la meilleure atteignable.
    */
+  // Les caches partagés par les builds de la file (6bis-b13, `CachesResolution`) :
+  // profil de dégâts par paire et préfiltre. Neufs dès que la signature des
+  // réglages ou les paramètres de paires (donc l'inventaire) changent.
+  const cachesResolution = useMemo(() => nouveauxCachesResolution(), [signatureArtefacts, artifactParams]);
   const resoudreEquipement = useMemo(() => {
     if (!artifactParams || !selected || !optimiserArtefacts) return null;
     return (c: BuildCandidate) =>
@@ -2189,9 +2193,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           exclusive: contexteExclusive,
           requirement: requirementAvecAuras,
           relicContext: relicContextRecherche,
+          caches: cachesResolution,
         })
       );
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche]);
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche, cachesResolution]);
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà

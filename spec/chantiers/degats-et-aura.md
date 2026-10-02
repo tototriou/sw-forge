@@ -221,6 +221,15 @@ du lot 1 et son amendement pilote (A.0).
 Affectation actuelle (révisable sans toucher au reste) : **M → Sonnet, effort
 bas · C → Sonnet, effort moyen · J → Opus, effort élevé.**
 
+⚠️ **L'effort ne se règle pas à l'appel** : un sous-agent lancé par le
+pilote prend celui de la session (xhigh puis max le 2026-10-02 — les 24
+premiers, tous Opus 5.5, ont donc tourné au-dessus de cette table). Depuis
+le 2026-10-02 (décision de l'utilisateur), deux définitions suivies le
+fixent : `.claude/agents/lot-c.md` (Sonnet, `effort: medium`) et
+`lot-m.md` (Sonnet, `effort: low`), types `lot-c` et `lot-m`. Actives à
+partir de la session suivante (dossier absent au démarrage de celle-ci). Les
+lots J restent `general-purpose` + Opus, à l'effort de la session.
+
 ### A.5 Branche, chantier, fichiers transverses
 
 **Branche `forge/degats-et-aura` depuis `forge/implementation-relique`,
@@ -411,8 +420,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
                             puis contrats d'implémentation ; l'écran 7 attend
                             tous les sous-lots validés)
 8a → 8b ; 9a → 9b ; 10a → 10b   (recalés et scindés le 2026-10-02)
-8b → 8c                    (suites de 8b, contrat écrit après la réponse de
-                            l'utilisateur sur le résumé « autres ennemis »)
+8b → 8c                    (suites de 8b ; résumé « autres ennemis » décidé
+                            par l'utilisateur le 2026-10-02)
 8b, 9b, 10b → 12           (12 éprouve les mécanismes qu'ils livrent)
 11bis                      (proses de sort au clic, demande du 2026-10-02 ;
                             aucune dépendance de code, après 11 par l'ordre)
@@ -706,7 +715,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 7c — le rappel aussi sous la liste de travail | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `c60bceee` ; reçu `c60bcee` ↔ `a779e59` / 2026-10-02 |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `f229d2f1` / 2026-10-02 |
 | 8b — Blade Surge : recette, écran, CLI | J | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `12595440`, `d6c576b5`, `22dda1f2` / 2026-10-02 |
-| 8c — suites de 8b (résumé « autres ennemis », clé à zéro de tête, script de diagnostic) | J | contrat à écrire après la réponse de l'utilisateur (A.8) | — |
+| 8c — suites de 8b (résumé « autres ennemis », clé à zéro de tête, script de diagnostic) | J | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; **lançable** | — |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `50e46aea`, `e5dc87ae` / 2026-10-02 |
 | 9b — Tempest comme sort, écran, mécanisme générique | J | terminé (lot parallèle, seconde vague), preuves rejouées ; mutation du pilote d'abord survivante, test complété par l'agent puis rejoué ; intégré ; vérification à l'œil en attente (A.8) | `db32bbd9`, `2402e91d`, `badea22f` / 2026-10-02 |
 | 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `db913084`, `dc8e4b5f` / 2026-10-02 |
@@ -807,8 +816,8 @@ décision, rayée avec la date et la réponse.
 | essai de b16 | ~~Quel compte afficher ?~~ | ✔ 2026-10-02 : progression inchangée (« Z trouvée(s) ») ; en-tête « XX combinaison(s) confirmée(s) » avec infobulle ; la file vise **K confirmées** ; interrupteur « Vérifier toutes les combinaisons trouvées », désactivé par défaut ; mesure courte → 6bis-b18 |
 | 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
 | 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
-| 8b | Le résumé sous l'objectif (`resumeCombat`) doit-il dire « autres ennemis » quand ce cran de Blade Surge est choisi ? (l'agent et le pilote recommandent oui) → lot 8c | en attente |
-| A.4 | Effort des sous-agents : l'outil de lancement ne le règle pas, il suit celui de la session (xhigh, puis max, le 2026-10-02 — au-dessus de « J → Opus, effort élevé ») ; les 24 sous-agents étaient Opus 5.5. Créer des définitions d'agent (`.claude/agents/`, modèle et effort) pour les lots C et M (12, 13a, 14) ? | en attente |
+| 8b | ~~Le résumé sous l'objectif (`resumeCombat`) doit-il dire « autres ennemis » quand ce cran de Blade Surge est choisi ?~~ | ✔ 2026-10-02 (utilisateur) : **oui** → lot 8c, avec les deux corrections techniques |
+| A.4 | ~~Effort des sous-agents : l'outil de lancement ne le règle pas, il suit celui de la session (xhigh, puis max, le 2026-10-02) ; les 24 sous-agents étaient Opus 5.5. Créer des définitions d'agent pour les lots C et M ?~~ | ✔ 2026-10-02 (utilisateur) : **oui** — `lot-c` (Sonnet, medium) et `lot-m` (Sonnet, low), actives à la session suivante (A.4) ; le lot 12 attend donc la prochaine session |
 
 ---
 
@@ -6576,6 +6585,43 @@ Blade Surge ; le parseur accepte une clé à zéro de tête (« 01… »), que
 celui de 10b refuse — sans effet au calcul (clé jamais lue), mais les deux
 parseurs diffèrent (relevé par le pilote à l'intégration). **Non prouvé** :
 aucun rendu à l'œil (A.8).
+
+#### Lot 8c — suites de 8b : le résumé dit la cible, le parseur s'aligne
+
+**Cat. J ; requiert 8b.** Décision de l'utilisateur du 2026-10-02, sur
+l'écart rapporté par l'agent de 8b.
+
+**Contrat.**
+
+1. **Résumé sous l'objectif** (`resumeCombat`, `OptimizerSection.tsx`) :
+   quand le sort RÉSOLU porte la capacité (`cibleSecondairePriseEnCharge`)
+   et que la cible RETENUE par le calcul (`cibleDegatsRetenue(resolvedSkill,
+   damageSetup)`, jamais la valeur stockée — même règle que le reste de ce
+   résumé) vaut `'secondaire'`, un bout « autres ennemis » suit le sort
+   (« S3 Blade Surge · autres ennemis · vs … »). Rien pour la cible visée
+   (le défaut), rien pour tout autre sort. Le texte est dérivé de
+   `CIBLE_DEGATS_LABELS` ou écrit une seule fois à côté, jamais une seconde
+   écriture libre du libellé.
+2. **Parseur** (`optimizerRecipe.ts`, `cibleDegatsParSort`) : la clé
+   d'identifiant se valide comme celle de `premierCoupIgnoreDefParSort`
+   (10b) — entier positif sans zéro de tête, refusé avec son chemin sinon.
+   Constater (sans corriger) si d'autres champs indexés par identifiant de
+   compétence acceptent encore une clé à zéro de tête ; liste dans le
+   rapport.
+3. **Script de diagnostic** `scripts/artifact-search.ts` : la ligne du sort
+   dit la séquence curée par `resumeSequenceDeCoups`, comme le CLI
+   (`optimizer-search.ts`), au lieu de « 2 coup(s) ».
+
+**Preuves** : tests nommés (résumé : cran secondaire → le bout présent ;
+visée, autre sort, sort résolu différent de l'identifiant stocké → absent ;
+parseur : « 01… » refusé avec son chemin, clé valide acceptée) ; mutation
+de l'agent par point ; `tsc`, tests de zone, build, spec-lint, diff-check ;
+spec `optimizer.md` (ligne du résumé) et `degats-reels/sequences-de-coups.md`
+à jour ; preuve `controle-8c.md`. Vérification à l'œil en A.8.
+
+**Ne fait pas** : ni le cran d'ignore DEF des Blade Dancers dans ce résumé
+(non demandé), ni autre changement de la carte, ni correction des autres
+champs indexés (point 2 : constat seulement).
 
 ### Lot 9 — Teshar : Tempest après S1/S2, et comme sort
 

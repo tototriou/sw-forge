@@ -226,11 +226,19 @@ function validerNombre(value: unknown, path: string, entier = false): string | n
   return null;
 }
 
+// LA règle de clé d'identifiant de compétence de toute la recette (degats-et-aura
+// 8d) : entier positif SANS zéro de tête. « 010616 » désignerait bien le sort
+// 10616 par `Number`, mais le calcul lit la clé « 10616 » et ne verrait jamais
+// l'autre ; la clé morte repartirait à l'export suivant.
+function estIdentifiantDeCompetence(cle: string): boolean {
+  return /^[1-9]\d*$/.test(cle);
+}
+
 function validerRecordNumerique(value: unknown, path: string, entier = false): string | null {
   if (value === undefined) return null;
   if (!estObjet(value)) return erreur(path, 'doit être un objet indexé par identifiant de compétence');
   for (const [id, n] of Object.entries(value)) {
-    if (!/^\d+$/.test(id) || Number(id) <= 0) return erreur(`${path}.${id}`, "utilise un identifiant de compétence invalide");
+    if (!estIdentifiantDeCompetence(id)) return erreur(`${path}.${id}`, "utilise un identifiant de compétence invalide");
     const e = validerNombre(n, `${path}.${id}`, entier);
     if (e) return e;
     if ((n as number) < 0) return erreur(`${path}.${id}`, 'doit être positif ou nul');
@@ -242,7 +250,7 @@ function validerRecordBooleen(value: unknown, path: string): string | null {
   if (value === undefined) return null;
   if (!estObjet(value)) return erreur(path, 'doit être un objet indexé par identifiant de compétence');
   for (const [id, actif] of Object.entries(value)) {
-    if (!/^\d+$/.test(id) || Number(id) <= 0) return erreur(`${path}.${id}`, "utilise un identifiant de compétence invalide");
+    if (!estIdentifiantDeCompetence(id)) return erreur(`${path}.${id}`, "utilise un identifiant de compétence invalide");
     if (typeof actif !== 'boolean') return erreur(`${path}.${id}`, 'doit être un booléen');
   }
   return null;
@@ -353,11 +361,9 @@ function validerDamageSetup(value: unknown): string | null {
     }
     for (const [skillId, cible] of Object.entries(setup.cibleDegatsParSort)) {
       const path = `damageSetup.cibleDegatsParSort.${skillId}`;
-      // Entier positif sans zéro de tête, comme `premierCoupIgnoreDefParSort`
-      // (degats-et-aura 8c) : « 010616 » passerait la table de capacité
-      // (`Number` le ramène à 10616), mais le calcul lit la clé « 10616 » et
-      // ne la verrait jamais.
-      if (!/^[1-9]\d*$/.test(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
+      // « 010616 » passerait la table de capacité (`Number` le ramène à
+      // 10616) : la règle de clé la refuse d'abord (degats-et-aura 8c, 8d).
+      if (!estIdentifiantDeCompetence(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
       if (cible !== 'visee' && cible !== 'secondaire') return erreur(path, 'doit valoir « visee » ou « secondaire »');
       if (!cibleSecondairePriseEnCharge(Number(skillId))) {
         return erreur(path, 'désigne un sort sans coup de zone curé, dont la cible calculée ne se choisit pas');
@@ -371,7 +377,7 @@ function validerDamageSetup(value: unknown): string | null {
     }
     for (const [skillId, scenarioBrut] of Object.entries(setup.scenariosEffetsEntreCoups)) {
       const path = `damageSetup.scenariosEffetsEntreCoups.${skillId}`;
-      if (!/^\d+$/.test(skillId) || Number(skillId) <= 0) return erreur(path, "utilise un identifiant de compétence invalide");
+      if (!estIdentifiantDeCompetence(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
       if (!estObjet(scenarioBrut)) return erreur(path, 'doit être un objet');
       if (scenarioBrut.actif !== undefined && typeof scenarioBrut.actif !== 'boolean') return erreur(`${path}.actif`, 'doit être un booléen');
       if (
@@ -406,10 +412,9 @@ function validerDamageSetup(value: unknown): string | null {
     }
     for (const [skillId, rang] of Object.entries(setup.premierCoupIgnoreDefParSort)) {
       const path = `damageSetup.premierCoupIgnoreDefParSort.${skillId}`;
-      // Entier positif sans zéro de tête : « 014808 » désignerait bien un
-      // sort de la table, mais le calcul lit la clé « 14808 » et ne la verrait
-      // jamais.
-      if (!/^[1-9]\d*$/.test(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
+      // « 014808 » désignerait bien un sort de la table : la règle de clé
+      // le refuse d'abord (degats-et-aura 8d).
+      if (!estIdentifiantDeCompetence(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
       const regle = IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID[Number(skillId)];
       if (!regle) {
         return erreur(path, "désigne un sort sans réglage d'ignore DEF par coup (seuls les six sorts des Blade Dancers en ont un)");

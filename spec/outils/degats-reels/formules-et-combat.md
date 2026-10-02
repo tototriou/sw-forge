@@ -178,10 +178,12 @@ ces tables.
 **Réglage.** `DamageSetup.premierCoupIgnoreDefParSort`, indexé par
 identifiant du sort : le rang choisi, ou `null` pour « aucun », permis
 seulement sans coup inconditionnel. Une clé absente donne le défaut du sort.
-Une valeur hors des crans permis, par exemple un coup 1 ou « aucun » en
-variante B, retombe aussi sur ce défaut (`resolvedPremierCoupIgnoreDef`).
-Le champ est propre au sort : vidé au changement d'espèce et à l'import de
-compte, conservé au changement d'exemplaire.
+Au calcul, une valeur hors des crans permis, par exemple un coup 1 ou
+« aucun » en variante B, retombe aussi sur ce défaut
+(`resolvedPremierCoupIgnoreDef`) : seconde garde pour ce qui n'arrive pas par
+une recette, qui ne peut plus en porter (voir « Recette »). Le champ est
+propre au sort : vidé au changement d'espèce et à l'import de compte,
+conservé au changement d'exemplaire.
 
 **À l'écran et au CLI.** Pour ces six sorts seulement, un sélecteur
 **« Ignore la DEF (jauge de la cible à 0) »** apparaît sous la liste des
@@ -199,17 +201,19 @@ CLI (`scripts/optimizer-search.ts`) dit la même phrase
 crans, dans la fenêtre comme dans le résumé sous l'objectif (degats-et-aura
 10b).
 
-**Recette.** Le champ voyage dans `damageSetup`, et l'import n'en valide que
-le **type** : un objet indexé par identifiants entiers positifs, chaque
-valeur un entier ou `null`. Sinon, la recette est refusée avec le chemin
-exact (`damageSetup.premierCoupIgnoreDefParSort.<identifiant>`). Un rang
-entier hors des crans du sort (coup 1, 9ᵉ coup, 0…), ou la clé d'un sort
-sans cette règle (autre monstre, données régénérées), est **accepté et
-transporté tel quel**, puis ramené au défaut du sort au calcul — jamais
-appliqué. C'est la tolérance d'un sort introuvable (`skillCom2usId`) ; une
-recette antérieure, sans le champ, garde le défaut de chaque sort. Le CLI
-passe `damageSetup` entier au calcul, comme l'écran : le rang s'y applique à
-l'identique (degats-et-aura 10b).
+**Recette.** Le champ voyage dans `damageSetup`, et l'import le valide
+**selon la règle du sort** : un objet indexé par identifiants entiers
+positifs (sans zéro de tête), dont chaque clé désigne un des six sorts et
+chaque valeur un de ses crans — variante A `null`, 2 ou 3 ; variante B un
+entier de 2 à 7, jamais `null`. Ces valeurs sont dérivées de la même règle
+curée que les crans de l'écran (`cransDeLaRegleIgnoreDef`). Toute autre
+valeur (coup 1, 9ᵉ coup, 0, « aucun » en variante B, texte…), et la clé d'un
+sort sans cette règle (Lushen S3, autre monstre), font **refuser** la
+recette avec le chemin exact (`damageSetup.premierCoupIgnoreDefParSort.<identifiant>`),
+jamais ramenées en silence au défaut. Une recette antérieure, sans le champ,
+garde le défaut de chaque sort. L'écran et le CLI lisent la recette par le
+même parseur, et le CLI passe `damageSetup` entier au calcul, comme
+l'écran : le rang s'y applique à l'identique (degats-et-aura 10b).
 
 **Garde-fou.** Les rangs ne valent que pour le nombre de coups que la
 curation suppose : si les données en annonçaient un autre, le sort serait

@@ -17,7 +17,7 @@ export default function testOptimizerDamageTransitions() {
     defBreakParLeSort: true, sacrificeReservePct: 42,
     passifsOffensifs: { 123: true }, effetsCibleCount: { 123: 3 },
     effetsCibleCountAutres: false, buffsPropresCountAutres: false,
-    premierCoupIgnoreDefParSort: { 123: 2 },
+    premierCoupIgnoreDefParSort: { 14808: 2 },
   };
   const attendu = damageSetupApresChangementMonstre(avant);
   const apres = damageSetupApresChangementMonstre(avant);

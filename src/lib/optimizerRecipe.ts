@@ -14,7 +14,7 @@
 // à connaître la base du monstre pour le réinterpréter, une source d'erreur
 // de plus, pas de moins.
 import { BuildRequirement, Objective, SLOT_FILTER_PRESETS, SLOT_MAIN_OPTIONS } from './runeBuildOptim';
-import { DamageSetup } from './damage';
+import { DamageSetup, IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID, cransDeLaRegleIgnoreDef } from './damage';
 import { erreurAurasExternes } from './aurasExternes';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind, RUNE_SETS } from '../types';
@@ -369,21 +369,31 @@ function validerDamageSetup(value: unknown): string | null {
     }
   }
   // Rang du premier coup qui ignore la DEF, par sort (les Blade Dancers,
-  // degats-et-aura 10b) : identifiants entiers positifs, rang entier ou `null`
-  // (« aucun »). ⚠️ Le TYPE seulement, comme `apresCoup` ci-dessus : un rang
-  // hors des crans permis du sort, ou la clé d'un sort sans cette règle (autre
-  // monstre, données régénérées), reste accepté et retombe au calcul sur le
-  // défaut du sort (`resolvedPremierCoupIgnoreDef`, damage.ts) — jamais appliqué
-  // tel quel : même tolérance qu'un `skillCom2usId` introuvable.
+  // degats-et-aura 10b, contrat B.0) : validé À L'IMPORT selon la règle curée
+  // du sort, DÉRIVÉE de `IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID` par
+  // `cransDeLaRegleIgnoreDef` — les crans mêmes du sélecteur de l'écran :
+  // variante à 3 coups `null`, 2 ou 3 ; variante à 7 coups 2 à 7, jamais
+  // `null`. Toute autre valeur, et la clé d'un sort sans cette règle, est
+  // REFUSÉE avec son chemin, jamais ramenée en silence au défaut. Le repli de
+  // `resolvedPremierCoupIgnoreDef` (damage.ts) reste une seconde garde, pour ce
+  // qui n'arrive pas par une recette.
   if (setup.premierCoupIgnoreDefParSort !== undefined) {
     if (!estObjet(setup.premierCoupIgnoreDefParSort)) {
       return erreur('damageSetup.premierCoupIgnoreDefParSort', 'doit être un objet indexé par identifiant de compétence');
     }
     for (const [skillId, rang] of Object.entries(setup.premierCoupIgnoreDefParSort)) {
       const path = `damageSetup.premierCoupIgnoreDefParSort.${skillId}`;
-      if (!/^\d+$/.test(skillId) || Number(skillId) <= 0) return erreur(path, "utilise un identifiant de compétence invalide");
-      if (rang !== null && (typeof rang !== 'number' || !Number.isInteger(rang))) {
-        return erreur(path, 'doit être un rang de coup entier, ou null pour « aucun »');
+      // Entier positif sans zéro de tête : « 014808 » désignerait bien un
+      // sort de la table, mais le calcul lit la clé « 14808 » et ne la verrait
+      // jamais.
+      if (!/^[1-9]\d*$/.test(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
+      const regle = IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID[Number(skillId)];
+      if (!regle) {
+        return erreur(path, "désigne un sort sans réglage d'ignore DEF par coup (seuls les six sorts des Blade Dancers en ont un)");
+      }
+      const permis = cransDeLaRegleIgnoreDef(regle).map((c) => c.rang);
+      if (!permis.includes(rang as number | null)) {
+        return erreur(path, `doit valoir ${permis.map((r) => (r === null ? 'null' : String(r))).join(', ')} pour ce sort`);
       }
     }
   }

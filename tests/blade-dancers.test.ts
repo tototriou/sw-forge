@@ -289,7 +289,6 @@ export function testBladeDancersRecette() {
   // `erreur` écrit « <chemin> <attente> » : l'espace final exige le chemin exact.
   const refuse = (resultat: ReturnType<typeof lire>, chemin: string) => resultat.recipe === null && !!resultat.error?.includes(`${chemin} `);
   const a = profilDe(CORDELIA, 14808);
-  const b = profilDe(24911, 14811);
 
   // Absent : une recette antérieure garde le défaut du sort, rien n'est ajouté.
   const sansChamp = lire(recetteCordelia());
@@ -298,35 +297,57 @@ export function testBladeDancersRecette() {
   egal(sansChamp.recipe && resolvedPremierCoupIgnoreDef(a, sansChamp.recipe.damageSetup), null,
     'champ absent : défaut du sort au calcul (variante A, aucun ignore DEF)');
 
-  // Présent et permis : transporté tel quel.
+  // Présent et permis : chaque cran du sélecteur de l'écran, pour chacun des
+  // six sorts, est accepté et transporté tel quel — les valeurs permises de la
+  // recette et les crans de l'écran sortent de la MÊME règle curée.
+  for (const s of SORTS) {
+    for (const { rang, libelle } of cransIgnoreDefAPartirDuCoup(profilDe(s.formes[1], s.id)) ?? []) {
+      egal(avecChamp({ [s.id]: rang }).recipe?.damageSetup.premierCoupIgnoreDefParSort, { [s.id]: rang },
+        `${s.id} « ${libelle} » (${rang}) : accepté, transporté tel quel`);
+    }
+  }
   for (const [champ, motif] of [
-    [{ 14808: 2 }, 'rang 2'], [{ 14808: 3 }, 'rang 3'], [{ 14808: null }, '« aucun » (null)'],
     [{ 14811: 7, 14808: null }, 'deux sorts'], [{}, 'objet vide'],
   ] as [Record<number, number | null>, string][]) {
     egal(avecChamp(champ).recipe?.damageSetup.premierCoupIgnoreDefParSort, champ, `présent et permis, transporté tel quel : ${motif}`);
   }
 
-  // Hors des crans permis : ACCEPTÉ à l'import (seul le type est validé),
-  // transporté tel quel, puis ramené au défaut du sort AU CALCUL — jamais
-  // appliqué. Lushen S3 (4713) n'a pas cette règle.
-  const horsCrans = { 14808: 9, 14811: 1, 4713: 2 };
-  const relueHors = avecChamp(horsCrans);
-  ok(relueHors.recipe !== null, 'rangs hors crans (9ᵉ coup, coup 1) et clé d’un sort sans règle : acceptés à l’import');
-  egal(relueHors.recipe?.damageSetup.premierCoupIgnoreDefParSort, horsCrans, '… et transportés tels quels, jamais réécrits');
-  if (relueHors.recipe) {
-    const s = relueHors.recipe.damageSetup;
-    egal(resolvedPremierCoupIgnoreDef(a, s), null, 'variante A, 9ᵉ coup demandé : ramené au calcul sur le défaut (aucun)');
-    egal(resolvedPremierCoupIgnoreDef(b, s), 7, 'variante B, coup 1 demandé : ramené au calcul sur le défaut (7ᵉ coup seul)');
-    egal(resolvedPremierCoupIgnoreDef(profilDe(13413, 4713), s), null, 'sort sans règle : la clé reste sans effet');
+  // Hors des crans du sort : REFUSÉ à l'import avec son chemin (B.0), jamais
+  // ramené en silence au défaut. Le repli du calcul (`resolvedPremierCoupIgnoreDef`)
+  // ne garde plus que ce qui n'arrive pas par une recette.
+  const CHEMIN = 'damageSetup.premierCoupIgnoreDefParSort';
+  for (const [champ, chemin, motif] of [
+    [{ 14808: 1 }, `${CHEMIN}.14808`, 'variante A, coup 1 (n’ignore jamais)'],
+    [{ 14808: 4 }, `${CHEMIN}.14808`, 'variante A, 4ᵉ coup (le sort en a 3)'],
+    [{ 14808: 9 }, `${CHEMIN}.14808`, 'variante A, 9ᵉ coup'],
+    [{ 14808: 0 }, `${CHEMIN}.14808`, 'variante A, rang 0'],
+    [{ 14808: -2 }, `${CHEMIN}.14808`, 'variante A, rang négatif'],
+    [{ 14811: null }, `${CHEMIN}.14811`, 'variante B, « aucun » (le 7ᵉ coup ignore toujours)'],
+    [{ 14811: 1 }, `${CHEMIN}.14811`, 'variante B, coup 1'],
+    [{ 14811: 8 }, `${CHEMIN}.14811`, 'variante B, 8ᵉ coup (le sort en a 7)'],
+    [{ 14808: 2, 14811: null }, `${CHEMIN}.14811`, 'une entrée hors crans à côté d’une entrée permise'],
+  ] as [unknown, string, string][]) {
+    ok(refuse(avecChamp(champ), chemin), `refusé avec son chemin : ${motif}`);
   }
-  for (const rang of [0, -2]) {
-    const relu = avecChamp({ 14808: rang });
-    ok(relu.recipe !== null && resolvedPremierCoupIgnoreDef(a, relu.recipe.damageSetup) === null,
-      `rang entier ${rang} : accepté à l’import, ramené au défaut au calcul`);
+  ok(!!avecChamp({ 14808: 9 }).error?.includes(`${CHEMIN}.14808 doit valoir null, 2, 3 pour ce sort`),
+    'message : les valeurs permises de la variante A');
+  ok(!!avecChamp({ 14811: null }).error?.includes(`${CHEMIN}.14811 doit valoir 2, 3, 4, 5, 6, 7 pour ce sort`),
+    'message : les valeurs permises de la variante B');
+
+  // Clé d'un sort SANS cette règle : REFUSÉE avec son chemin (B.0) — Lushen S3
+  // (4713) et Hero Strike (17407) ignorent la DEF sur tous leurs coups.
+  for (const [champ, chemin, motif] of [
+    [{ 4713: 2 }, `${CHEMIN}.4713`, 'Lushen S3, rang 2'],
+    [{ 4713: null }, `${CHEMIN}.4713`, 'Lushen S3, « aucun »'],
+    [{ 17407: 2 }, `${CHEMIN}.17407`, 'Hero Strike, rang 2'],
+    [{ 14808: 2, 4713: 2 }, `${CHEMIN}.4713`, 'clé sans règle à côté d’une clé permise'],
+  ] as [unknown, string, string][]) {
+    ok(refuse(avecChamp(champ), chemin), `refusé avec son chemin : ${motif}`);
   }
+  ok(!!avecChamp({ 4713: 2 }).error?.includes(`${CHEMIN}.4713 désigne un sort sans réglage d'ignore DEF par coup`),
+    'message : le sort n’a pas ce réglage');
 
   // Mal typé ou mal indexé : refusé avec son chemin.
-  const CHEMIN = 'damageSetup.premierCoupIgnoreDefParSort';
   for (const [champ, chemin, motif] of [
     [{ 14808: 2.5 }, `${CHEMIN}.14808`, 'rang non entier'],
     [{ 14808: '2' }, `${CHEMIN}.14808`, 'rang en texte'],
@@ -337,6 +358,7 @@ export function testBladeDancersRecette() {
     [{ 0: 2 }, `${CHEMIN}.0`, 'clé nulle'],
     [{ '-3': 2 }, `${CHEMIN}.-3`, 'clé négative'],
     [{ '14808.5': 2 }, `${CHEMIN}.14808.5`, 'clé non entière'],
+    [{ '014808': 2 }, `${CHEMIN}.014808`, 'clé à zéro de tête (jamais lue par le calcul)'],
     [[2, 3], CHEMIN, 'liste au lieu d’un objet'],
     [2, CHEMIN, 'nombre au lieu d’un objet'],
     [null, CHEMIN, 'null au lieu d’un objet'],
@@ -367,17 +389,21 @@ export function testBladeDancersRecette() {
   const cliAucun = parLeCli(recetteCordelia({ 14808: null }));
   const cliRang2 = parLeCli(recetteCordelia({ 14808: 2 }));
   const cliRang3 = parLeCli(recetteCordelia({ 14808: 3 }));
-  const cliHors = parLeCli(recetteCordelia({ 14808: 9 }));
   egal(cliRang2.ctx.profile.skillCom2usId, 14808, 'CLI : le sort de la recette est retenu');
   egal(cliRang2.ctx.setup.premierCoupIgnoreDefParSort, { 14808: 2 }, 'CLI : le contexte de calcul porte le rang de la recette');
   egal(resolvedPremierCoupIgnoreDef(cliRang2.ctx.profile, cliRang2.ctx.setup), 2, 'CLI : rang retenu, dès le 2ᵉ coup');
   ok(cliRang2.score > cliRang3.score && cliRang3.score > cliDefaut.score,
     `CLI : dès le 2ᵉ (${cliRang2.score.toFixed(1)}) > dès le 3ᵉ (${cliRang3.score.toFixed(1)}) > défaut (${cliDefaut.score.toFixed(1)})`);
   egal(cliAucun.score, cliDefaut.score, 'CLI : « aucun » explicite note comme le champ absent (défaut de la variante A)');
-  egal(cliHors.score, cliDefaut.score, 'CLI : un rang hors crans note comme le défaut');
+  // Un rang hors crans n'atteint plus le calcul par une recette : l'écran et
+  // le CLI la lisent par le MÊME parseur, qui la refuse avec son chemin.
+  ok(refuse(lire(recetteCordelia({ 14808: 9 })), `${CHEMIN}.14808`), 'une recette au rang hors crans est refusée à la lecture');
+  const chargeur = readFileSync(resolve(racine, 'scripts/lib/chargerRecette.ts'), 'utf8');
+  ok(chargeur.includes("parseOptimizerRecipe(readFileSync(cheminRecette, 'utf8'))"), 'CLI : la recette passe par `parseOptimizerRecipe`');
   // L'écran : l'import pose `damageSetup` entier, sans reset ultérieur ; le
   // contexte de calcul et l'export le reprennent entier.
   const ecran = readFileSync(resolve(racine, 'src/components/outils/OptimizerSection.tsx'), 'utf8').replace(/\r\n/g, '\n');
+  ok(ecran.includes('const { recipe, error } = parseOptimizerRecipe(text);'), 'écran : la recette passe par le même `parseOptimizerRecipe`');
   ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);'), 'écran : l’import de recette restaure damageSetup entier, rang compris');
   ok(/profile: resolvedSkill,\n\s*setup: damageSetup,\n/.test(ecran), 'écran : le contexte de calcul reçoit damageSetup entier, comme le CLI');
   ok(/buildOptimizerRecipe\(\{[\s\S]*?\n\s*damageSetup,\n/.test(ecran), 'écran : l’export emporte damageSetup entier');

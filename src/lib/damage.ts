@@ -3938,7 +3938,17 @@ export interface CranIgnoreDef {
  */
 export function cransIgnoreDefAPartirDuCoup(profile: SkillDamageProfile): CranIgnoreDef[] | null {
   const regle = profile.ignoreDefAPartirDuCoup;
-  if (!regle) return null;
+  return regle ? cransDeLaRegleIgnoreDef(regle) : null;
+}
+
+/**
+ * Les crans d'une règle curée de `IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID` — les
+ * SEULES valeurs permises du réglage pour ce sort. Le sélecteur de l'écran
+ * (`cransIgnoreDefAPartirDuCoup`) et la validation de la recette
+ * (`validerDamageSetup`, optimizerRecipe.ts) les dérivent d'ici : une valeur
+ * que l'écran ne peut pas écrire, la recette ne l'accepte pas.
+ */
+export function cransDeLaRegleIgnoreDef(regle: IgnoreDefAPartirDuCoupProfile): CranIgnoreDef[] {
   const crans: CranIgnoreDef[] = regle.dernierCoupInconditionnel === null ? [{ rang: null, libelle: 'Aucun' }] : [];
   for (const rang of regle.rangsPermis) {
     crans.push({ rang, libelle: rang === regle.dernierCoupInconditionnel ? `${rang}ᵉ coup seul` : `Dès le ${rang}ᵉ coup` });

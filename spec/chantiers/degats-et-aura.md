@@ -746,11 +746,11 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
 | `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **17 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV ; variables refusées, PV et boucliers, compteurs ; passifs de stats, passifs du corpus, critiques garantis ; bonus TC/DC, vérification de la partie 2) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
-| 13 — consolidation : plan, synthèse, recommandation (pilote) | J | après les dix-sept 13b ; recommandation soumise à l'utilisateur | — |
+| 13 — consolidation : plan, synthèse, recommandation (pilote) | J | terminé : plan validé par le pilote, recommandation « chantier à part » **soumise à l'utilisateur** (A.8) | `decisions/plan-reliquat-degats-2026-10.md` / 2026-10-03 |
 | CM — le mode critique « Moyenne » supprimé | J | terminé (lot parallèle, `lot-j`), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `f1e7d71c`, `361cc9d0`, `3ea62afe`, `3cba1d5a` / 2026-10-02 |
 | LM — la liste des monstres et sorts modifiés, tenue à chaque commit | C | terminé (`lot-c`), contrôlé par le pilote ; règle permanente en A.8 | `7d3a9d77` / 2026-10-02 |
-| 9d — le survol de Tempest retiré | J | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; **lançable** | — |
-| 15a à 15e — les lots prêts du plan | C / J | contrats écrits le 2026-10-02 (décision de l'utilisateur) ; un à la fois, après 9d | — |
+| 9d — le survol de Tempest retiré | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `2bca1603` / 2026-10-03 |
+| 15a à 15e — les lots prêts du plan | C / J | **15b** terminé (`dcca28a7`) ; **15c** terminé (`a65b2f28`, `f7bd6a1f`) ; 15d, 15e, 15a à suivre, un à la fois | 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -806,7 +806,9 @@ enchaîne. L'utilisateur ne transmet plus les briefs ni les retours.
   (`spec/chantiers/degats-et-aura-monstres.md`, lot LM ; demande de
   l'utilisateur du 2026-10-02) se met à jour **dans le même commit** que
   tout changement du calcul ou de l'affichage d'un monstre ou d'un sort :
-  chaque brief le demande, chaque validation le vérifie.
+  chaque brief le demande, chaque validation le vérifie. Un commit ne
+  pouvant citer son propre hash, le lot écrit « commit du lot N » et le
+  pilote inscrit le hash à la validation, dans un commit documentaire.
 
 #### Vérifications de l'utilisateur en attente
 
@@ -832,6 +834,9 @@ port 5173 (même origine, le compte déjà importé reste).
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels », ordinateur ET téléphone. **Blade Surge** (Lapis) : deux crans sous la liste des sorts, rien ne bouge en basculant, résumé « … puis 1 coup · Zone ». **Tempest** (Teshar, Phoenix vent) : dans la liste des sorts, jamais par défaut ; interrupteur « Tempest (S3) se déclenche après ce sort » sous S1/S2, masqué quand Tempest est choisi ; condition au survol (`title`) gardée — à retirer ? **Blade Dancers** : sélecteur « Ignore la DEF (jauge de la cible à 0) », cran retenu sur une ligne à lui sous le résumé (tronquée si étroit), DEF de la cible affichée dans tous les crans | en attente |
 | 8c | Blade Surge, cran « Dégâts sur les autres ennemis » : le résumé sous l'objectif dit « S1 Blade Surge · autres ennemis · … », rien pour la cible visée ; au téléphone, une ligne de plus possible | en attente |
 | CM | Mode critique : deux crans seulement (« Critique », « Non critique »), aide « Coup critique » réduite à une phrase ; importer une recette exportée en « Moyenne » → avertissement en couleur d'avertissement, qui reste jusqu'au prochain import, et calcul en « Critique » | en attente |
+| 9d | Teshar, S1 ou S2 choisi : l'interrupteur « Tempest (S3) se déclenche après ce sort » n'a plus de bulle au survol ; la prose de Tempest se lit sous l'interrupteur et au « ? » ; la mention « recharge non simulée » a disparu (à confirmer) | en attente |
+| 15b | Leona : plus de ratio « 2 × DEF » ; interrupteur « Internal Force (+50 %) » éteint par défaut ; allumé, le total ×1,5, et la DEF du build ne change plus le total | en attente |
+| 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
 
@@ -880,6 +885,8 @@ décision, rayée avec la date et la réponse.
 | 13b (pour le plan) | ~~Kung Fu Girls, Trinity Claymore, Fei, Taebaek, TC en points, assiette, Mina, Yuji/Rick, effets de PV sans coup~~ | ✔ 2026-10-02 / 03 : mécaniques fournies par l'utilisateur, inscrites en A.2 ter |
 | nuit du 2026-10-02 | ~~Jusqu'où aller sans l'utilisateur ?~~ | ✔ 2026-10-02 : **le plan du lot 13, puis les lots déjà prêts dans ce chantier** (valeur dans la donnée, mécanique existante, décision prise, aucun relevé) — lots 15a à 15e |
 | clôture | ~~Lot 14 cette nuit ?~~ | ✔ 2026-10-02 : **après la vérification à l'œil de l'utilisateur**, guidée par la liste du lot LM |
+| 13 (consolidation) | Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ? Puis ses 65 décisions ouvertes et ses 10 valeurs de jeu (sections 5.1 et 5.2), et sa demande de 109 relevés (section 4) | en attente |
+| 15c | Les 14 sorts masqués sur jugement (2813, 2818, 12512, 23706, 23708, 23709, 24206, 24208, 24209, 10243000, 10253000, 15607, 15608, 15609 — boucliers et buffs dont la prose dit « damage » / « attack » au sens des dégâts absorbés ou des attaques ennemies) : confirmer ? Et les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ? | en attente |
 
 ---
 
@@ -8502,6 +8509,35 @@ exact ; `tests/audit-degats-conditionnels.test.ts` L1069-1076 : « 96 —
 Elsharion… » → libellés erronés, exact ; `partie-2.md` L112 laisse 96 en
 partie 4 alors que `partie-2.csv` le déclare livré → contradiction, exact.
 
+#### Résultat de la consolidation du lot 13 — 2026-10-03
+
+Brouillon rédigé par un agent `lot-j`, relu et **validé par le pilote**.
+Plan `spec/outils/optimizer/decisions/plan-reliquat-degats-2026-10.md`
+(472 lignes, nature décision, « plan proposé, en attente de la décision de
+l'utilisateur ») ; synthèse `controle-13.md` et scripts
+`controle-13-intrants/` (rejoués par le pilote : deux passes identiques) ;
+ligne de `pistes.md` § « Dégâts réels — reliquat de l'audit ». **Classement
+des 243** (cases élargies, dites dans le plan : DE, DN, RE, RN,
+indéterminé, livré, sans effet) : DE 59, DN 34, RE 42, RN 57, I 14, LIV
+23, SANS 14 ; avant les décisions des 2 et 3 octobre, DE 88, RE 25, LIV 24
+— les décisions déplacent 37 constats. **Les 51 déclarés livrés** (grille
+stricte, un test par identifiant) : 13 établis, 37 partiels, 1 infirmé
+(96) ; **32 livraisons non enregistrées** trouvées dans les 192 différés.
+**164 constats** à traiter hors des lots 15a-15e. **109 relevés** après
+dédoublonnage (97 nécessaires), **65 décisions ouvertes**, **10 valeurs de
+jeu à fournir**, **33 lots** proposés. **Recommandation : un chantier à
+part**, après la clôture de degats-et-aura (D65) — l'utilisateur tranche
+(A.8). Défauts de 13a corrigés (six tables sur plusieurs lignes manquées ;
+libellés « 96 — » et « 209 — ») sans changer de verdict.
+
+**Validé par le pilote** : somme des cases = 243, réconciliation 51 + 192
+écrite ; rejeu des scripts `00-rejouer.mjs` (empreintes identiques) ;
+recommandation chiffrée conforme au contrat (13b, point 4). **Choix du
+pilote sur les écarts signalés** : les 17 « +X % » déjà livrés classés RE
+(leur assiette se relève passif par passif, A.2 ter) — accepté, le relevé
+R01 peut les confirmer sans code ; l'identifiant DH13-C01 (surplus de Taux
+Crit hors dominance) accepté.
+
 ### Lot CM — le mode critique « Moyenne » supprimé
 
 **Cat. J.** Décisions de l'utilisateur du 2026-10-02 : le mode critique
@@ -8667,6 +8703,31 @@ condition reste lisible dans la prose de Tempest (« ? », lot 11bis). Le
 test de l'écran suit ; la liste du lot LM aussi. Mutation après le commit.
 **Ne fait pas** : rien d'autre dans la carte.
 
+#### Résultat du lot 9d — 2026-10-03
+
+Agent `lot-j`, dans le worktree du chantier (pendant la rédaction du plan
+du lot 13). Un commit, `2bca1603` : l'interrupteur « … se déclenche après
+ce sort » n'a plus de survol (`title={apresSort ? undefined : …}`) ; les
+autres interrupteurs de passif gardent le leur ; tests
+`testDegatsTempestEcran` (+5 vérifications 9d), specs
+`attaque-apres-un-sort.md` et `optimizer.md`, un commentaire de `damage.ts`,
+liste des monstres (ligne 9b, ligne 9d — hash inscrit par le pilote,
+`3645aff0`). La condition reste lisible par la prose du jeu de 3213, sous
+l'interrupteur (`texteJeu`) et au « ? » de la case Tempest. Disparaît de
+l'écran : la phrase rédigée « sa recharge est terminée… (recharge non
+simulée) » — à confirmer à l'œil (A.8). Preuve `controle-9d.md` (99
+lignes).
+
+**Rejoué par le pilote sur `2bca1603`** : `tsc` 0 ; 177 vérifications
+(`tempest prosessort effetsactifs`) ; build, spec-lint, diff-check verts.
+Mutation de l'agent (`title` remis) : 2 échecs. **Mutation du pilote**
+(survol retiré de TOUS les interrupteurs de passif) : 1 échec, « … les
+autres interrupteurs de passif gardent le leur » ; restauré.
+
+**Défaut du contrat** (relevé par l'agent) : un commit ne peut pas citer son
+propre hash dans la liste ; règle précisée en A.8 — le pilote inscrit le
+hash à la validation.
+
 ### Lot 15 — les lots prêts du plan (nuit du 2026-10-02)
 
 **Décision de l'utilisateur du 2026-10-02** : pendant la nuit, après le
@@ -8691,6 +8752,59 @@ réglage « combat de boss », pertes de PV, formes transformées dans la
 modale, Mina, Fei coup par coup : au plan) ; aucune des mesures
 conservatoires écartées par l'utilisateur au-delà de ces lots (Madness
 Judgement, Liam, Thunder Strike, Barbara attendent le plan).
+
+#### Résultat du lot 15b — 2026-10-03
+
+Agent `lot-j`. Un commit, `dcca28a7` : Internal Force (12515, porté par
+Paladin 21805 † et Leona 21815, aucun homonyme par nom) sort de
+`PASSIFS_OFFENSIFS_CONNUS` — le bouclier `2.0*{DEF}` n'est plus compté — et
+devient une ligne de `BONUS_DEGATS_CONDITIONNEL_CONNUS` (`pct: 50`, « tu as
+un bouclier actif », désactivé par défaut ; même clé de stockage
+`passifsOffensifs[12515]` : un réglage déjà allumé donne +50 % au lieu de
++2 × DEF) ; test réécrit (deux formes, défaut éteint, ×1,5 exact, la DEF ne
+change plus le total), libellé de Comeuppance corrigé ; catalogue et
+`passifs-offensifs.md` (499 lignes) ; liste des monstres (hash inscrit par
+le pilote, `9be732b5`). Total témoin (Leona, ATQ 2500, DEF 1500) : S1
+7 530,76 éteint ; avant, allumé 9 599,07 (bouclier +2 068,31) ; après,
+allumé 11 296,14 (×1,5). Preuve `controle-15b.md`.
+
+**Rejoué par le pilote sur `dcca28a7`** : `tsc` 0 ; 1 333 vérifications ;
+build, spec-lint, diff-check verts. Mutations de l'agent : 4 et 2 échecs.
+**Mutation du pilote** (`pct` 50 → 30) : 3 échecs ; restaurée. `pistes.md`
+L108 (historique) mis à jour par le pilote. **Non prouvé** : que le +50 %
+porte sur les dégâts infligés (relevé R9 non fait ; la donnée, la prose et
+la décision le disent) ; rendu à l'œil.
+
+#### Résultat du lot 15c — 2026-10-03
+
+Agent `lot-j`. Deux commits : `a65b2f28` (table `SORTS_SANS_ATTAQUE_PAR_ID`
+dans `damage.ts`, une prose par ligne ; `skillDamageProfile` rend `null`
+pour un sort de la table — masqué, jamais refusé ; `monsterOffensivePassives`
+écarte un passif de la table ; test `testDegatsSortsSansAttaque` ;
+`formules-et-combat.md` ; 28 sections de la liste des monstres, hashes
+inscrits par le pilote en `ab59d586`) et `f7bd6a1f` (le test de la garde
+passive passait à vide — la mutation 1 l'a montré). **33 candidats lus,
+28 masqués** : 17 étaient proposés et calculés comme des dégâts — **16
+étaient le sort par défaut**, dont le bouclier de Frieren —, 11 étaient
+affichés refusés ; 5 laissés : 16113 et 16613 (leur prose décrit une
+riposte qui inflige des dégâts), 12212 (Harmonia S3), 12215 (Vivachel S3)
+et 20913 (passif d'Aya vent) déjà hors calcul faute de formule ; Bolverk
+S3 (13111) entre dans la table. Preuve `controle-15c.md`.
+
+**Rejoué par le pilote** : `tsc` 0 ; 1 733 vérifications ; build,
+spec-lint, diff-check verts. Mutations de l'agent : 6, 57 et 1 échecs.
+**Mutation du pilote** (un sort de la table affiché refusé au lieu d'être
+masqué) : 56 échecs ; restauré. **Quatre des 14 verdicts par jugement relus
+sur leur fiche** (2813 Force Field, 12512 Cry of Threat, 15607 Beneficial
+Hammering, 24206 Floral Barrier) : bouclier ou buff seulement, les mots
+« damage » / « attack » y décrivent les dégâts absorbés ou les attaques
+ennemies → sans attaque, exact.
+
+**Soumis à l'utilisateur (A.8)** : les 14 verdicts rendus par jugement ;
+les 144 sorts à formule dont la prose ne dit ni « attack » ni « damage »
+(la plupart frappent en jeu ; quelques-uns semblent vraiment ne pas
+attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad
+Poison, Curse, Sleep Spell) — non touchés, liste au § 6 de la preuve.
 
 ### Lot 14 — clôture
 

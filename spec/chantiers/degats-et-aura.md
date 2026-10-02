@@ -411,6 +411,8 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
                             puis contrats d'implémentation ; l'écran 7 attend
                             tous les sous-lots validés)
 8a → 8b ; 9a → 9b ; 10a → 10b   (recalés et scindés le 2026-10-02)
+8b → 8c                    (suites de 8b, contrat écrit après la réponse de
+                            l'utilisateur sur le résumé « autres ennemis »)
 8b, 9b, 10b → 12           (12 éprouve les mécanismes qu'ils livrent)
 11bis                      (proses de sort au clic, demande du 2026-10-02 ;
                             aucune dépendance de code, après 11 par l'ordre)
@@ -428,7 +430,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17, 6bis-b18,
   6bis-b19,
-  7a, 7b, 7c, 11bis, 12, tous les 13b-* → 14
+  7a, 7b, 7c, 8c, 11bis, 12, tous les 13b-* → 14
 ```
 
 ##### Ordre d'exécution et premières contre-revues
@@ -703,12 +705,13 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | terminé, preuves et mutation rejouées par le pilote | `cc85a596`, `9291e1c8` ; reçu `9291e1c` ↔ `9ca4172` / 2026-10-02 |
 | 7c — le rappel aussi sous la liste de travail | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `c60bceee` ; reçu `c60bcee` ↔ `a779e59` / 2026-10-02 |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `f229d2f1` / 2026-10-02 |
-| 8b — Blade Surge : recette, écran, CLI | J | en cours en parallèle (worktree `sw-forge-lot-8b`, depuis l'intégration `22bd4590`) | — |
+| 8b — Blade Surge : recette, écran, CLI | J | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `12595440`, `d6c576b5`, `22dda1f2` / 2026-10-02 |
+| 8c — suites de 8b (résumé « autres ennemis », clé à zéro de tête, script de diagnostic) | J | contrat à écrire après la réponse de l'utilisateur (A.8) | — |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `50e46aea`, `e5dc87ae` / 2026-10-02 |
-| 9b — Tempest comme sort, écran, mécanisme générique | J | en cours en parallèle (worktree `sw-forge-lot-9b`, depuis `22bd4590`) | — |
+| 9b — Tempest comme sort, écran, mécanisme générique | J | terminé (lot parallèle, seconde vague), preuves rejouées ; mutation du pilote d'abord survivante, test complété par l'agent puis rejoué ; intégré ; vérification à l'œil en attente (A.8) | `db32bbd9`, `2402e91d`, `badea22f` / 2026-10-02 |
 | 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `db913084`, `dc8e4b5f` / 2026-10-02 |
-| 10b — Blade Dancers : recette, écran, CLI | J | en cours en parallèle (worktree `sw-forge-lot-10b`, depuis `22bd4590`) | — |
-| 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | en cours en parallèle (worktree `sw-forge-lot-11`, depuis `22bd4590`) | — |
+| 10b — Blade Dancers : recette, écran, CLI | J | terminé (lot parallèle, seconde vague) après correction de l'import selon B.0 (erreur du brief du pilote), preuves et mutation rejouées, intégré ; vérification à l'œil en attente (A.8) | `784378b9`…`072c7c3f` / 2026-10-02 |
+| 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `92de9890`, `d6ff1b6a`, `5a21fd78` / 2026-10-02 |
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
@@ -747,6 +750,9 @@ enchaîne. L'utilisateur ne transmet plus les briefs ni les retours.
   fois** dans la branche du chantier (commits, conflits, fusion à trois des
   notes, rejeux sur le combiné, livraison) et supprime le worktree. Seuls
   des lots sans mesure de temps au navigateur tournent ainsi ensemble.
+  Répétition sur une branche partie de la **tête du chantier** : propre,
+  la branche du chantier avance jusqu'à elle (`merge --ff-only`), avec
+  exactement les commits rejoués (seconde vague).
 - **Créneau de mesure accordé jusqu'à nouvel ordre** : le pilote lance les
   mesures sans redemander, jamais deux agents à la fois, et sans serveur à
   lui pendant une mesure.
@@ -780,9 +786,9 @@ port 5173 (même origine, le compte déjà importé reste).
 | 7a | Carte « État de mon monstre » : boîte « Sets d'aura des autres monstres » (hauteur, largeur du menu sur un téléphone étroit), libellé explicite placé **sous** les contrôles de chaque ligne (choix de l'agent, pour que le menu cliqué ne bouge pas), compteur « X / 15 » ajouté, bouton « Ajouter un set d'aura » désactivé à 15 ; champ du nombre vidé puis quitté → 1 ; interrupteur « Compter les effets d'auras Tolerance et Précision dans les conditions », placé en dernier des réglages avancés, dans le flottant (ordinateur) ET le panneau « Options » (téléphone) ; écho de la fenêtre « Dégâts réels » | en attente |
 | 7b | Rappel au changement de monstre en liste de travail (message 3 s à la place de l'en-tête de la boîte des auras) ; ouverture guidée vers l'interrupteur en ajoutant Accuracy ou Tolerance, ordinateur (défilement puis flottant) ET téléphone (panneau « Options de recherche ») | en attente |
 | 7c | Le même rappel sous la liste de la zone C, au clic sur un membre : place de 32 px réservée dès que la liste a un membre (rien ne saute à l'apparition ni à l'effacement ; deux lignes sur un téléphone étroit ?), sur les deux formats (au téléphone, dans le dépliement de la zone C) | en attente |
-| 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
+| 8b, 9b, 10b | Nouveaux choix de « Dégâts réels », ordinateur ET téléphone. **Blade Surge** (Lapis) : deux crans sous la liste des sorts, rien ne bouge en basculant, résumé « … puis 1 coup · Zone ». **Tempest** (Teshar, Phoenix vent) : dans la liste des sorts, jamais par défaut ; interrupteur « Tempest (S3) se déclenche après ce sort » sous S1/S2, masqué quand Tempest est choisi ; condition au survol (`title`) gardée — à retirer ? **Blade Dancers** : sélecteur « Ignore la DEF (jauge de la cible à 0) », cran retenu sur une ligne à lui sous le résumé (tronquée si étroit), DEF de la cible affichée dans tous les crans | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
-| 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
+| 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
 
 #### Décisions de l'utilisateur en attente
 
@@ -801,6 +807,8 @@ décision, rayée avec la date et la réponse.
 | essai de b16 | ~~Quel compte afficher ?~~ | ✔ 2026-10-02 : progression inchangée (« Z trouvée(s) ») ; en-tête « XX combinaison(s) confirmée(s) » avec infobulle ; la file vise **K confirmées** ; interrupteur « Vérifier toutes les combinaisons trouvées », désactivé par défaut ; mesure courte → 6bis-b18 |
 | 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
 | 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
+| 8b | Le résumé sous l'objectif (`resumeCombat`) doit-il dire « autres ennemis » quand ce cran de Blade Surge est choisi ? (l'agent et le pilote recommandent oui) → lot 8c | en attente |
+| A.4 | Effort des sous-agents : l'outil de lancement ne le règle pas, il suit celui de la session (xhigh, puis max, le 2026-10-02 — au-dessus de « J → Opus, effort élevé ») ; les 24 sous-agents étaient Opus 5.5. Créer des définitions d'agent (`.claude/agents/`, modèle et effort) pour les lots C et M (12, 13a, 14) ? | en attente |
 
 ---
 
@@ -6533,6 +6541,42 @@ le parseur ne valide pas le champ (le calcul ignore toute valeur autre que
 non amendé. **Non prouvé** : aucun relevé en jeu ; deux appels de calcul
 par évaluation quand Blade Surge est choisi, non mesuré.
 
+#### Résultat du lot 8b — 2026-10-02
+
+Lot parallèle (A.8, seconde vague), worktree `sw-forge-lot-8b` parti de
+`22bd4590`, trois commits `3f301d6c`, `79bc6c55`, `bed12a3f`, intégrés en
+`12595440`, `d6c576b5`, `22dda1f2`. **Recette** : `cibleDegatsParSort`
+validé (objet, identifiant entier positif, « visee » ou « secondaire ») ;
+la clé d'un sort sans coup de zone curé est **refusée avec son chemin**
+par la table de capacité `cibleSecondairePriseEnCharge` (B.0 L849-851 —
+appliqué par l'agent de lui-même, le brief du pilote ne le disait pas) ;
+`testBladeSurgeRecette` (33). **Écran** : `Segmented` (taille lg) sous la
+liste des sorts, après le champ des coups variables, libellés
+`CIBLE_DEGATS_LABELS` partagés avec le CLI ; `resumeSequenceDeCoups`
+(« 0.5 × ATQ puis 3.0 × ATQ · 2 coups · Cible unique, puis 1 coup ·
+Zone ») ; le résumé ne lit jamais le cran ; aide de la carte complétée ;
+`testBladeSurgeEcran` (19). **CLI** : la ligne du sort dit la séquence et
+la cible calculée ; `testBladeSurgePariteEcranCli` (14). CLI réel (Lapis,
+compte réel) : 10 031,1 sur la cible visée, 7 460,2 sur les autres
+ennemis. Invariant L133 amendé ; recettes gelées
+`recette-8b-blade-surge-visee.json` et `…-secondaire.json` ; preuve
+`controle-8b.md`.
+
+**Rejoué par le pilote** dans le worktree : `tsc` 0, 1 425 vérifications
+(10 filtres), build, spec-lint, diff-check. Mutations de l'agent : valeur
+inconnue acceptée (6 échecs), crans montrés pour un sort qui ne le permet
+pas (5). **Mutation du pilote** (clé d'un sort sans coup de zone
+acceptée) : 8 échecs ; restauré.
+
+**Laissé ouvert → lot 8c** (créé après la réponse de l'utilisateur, A.8) :
+le résumé sous l'objectif (`resumeCombat`) ne dit pas « autres ennemis »
+quand ce cran est choisi (l'agent recommande de l'ajouter) ;
+`scripts/artifact-search.ts` (diagnostic) écrit encore « 2 coup(s) » pour
+Blade Surge ; le parseur accepte une clé à zéro de tête (« 01… »), que
+celui de 10b refuse — sans effet au calcul (clé jamais lue), mais les deux
+parseurs diffèrent (relevé par le pilote à l'intégration). **Non prouvé** :
+aucun rendu à l'œil (A.8).
+
 ### Lot 9 — Teshar : Tempest après S1/S2, et comme sort
 
 ⚠️ **Recalé le 2026-10-02 et scindé en 9a / 9b** : lire d'abord
@@ -6686,6 +6730,43 @@ terminée au moment où ton S1 ou ton S2 frappe (recharge non simulée) » ;
 le CLI affiche son état par `passifActif`, sans le slot (repris par 9b).
 `passifs-offensifs.md` à 499 lignes (plafond 500).
 
+#### Résultat du lot 9b — 2026-10-02
+
+Lot parallèle (A.8, seconde vague), worktree `sw-forge-lot-9b` parti de
+`22bd4590`, trois commits `42cbce3e`, `5d66c5a2`, `33a9239d`, intégrés en
+`db32bbd9`, `2402e91d`, `badea22f`. **Moteur** : Tempest (3213) curé
+`selectionnableCommeSort` ; `monsterDamageSkills` reprend le profil EXACT
+du chemin passif (marqué `passif`), jamais `skillDamageProfile` ;
+`defaultDamageSkill` ne retient que les sorts actifs (Teshar reste sur S2,
+n° 9) ; `passifPeutSuivre` (exclusion par identifiant, puis slots de 9a)
+devient la porte de `passifCompte`, donc du total ET des stats
+pertinentes ; 411 neutralisé pour un passif choisi seul. **Écran** :
+« Tempest (S3) se déclenche après ce sort » (n° 11), désactivé par défaut,
+à la place de la phrase de 9a (la condition reste au survol, `title`) ;
+interrupteur **masqué** quand Tempest est la compétence choisie (n° 10).
+**CLI** : état des passifs par `passifCompte`, « choisi comme sort : compté
+une seule fois ». `scripts/artifact-search.ts` prenait le dernier sort de
+la liste (aurait pris Tempest) : passe au sort par défaut. Spec neuve
+`degats-reels/attaque-apres-un-sort.md` (routée) ; tests
+`testDegatsTempestCommeSort`, `…Recette`, `…Ecran`. CLI réel (Teshar) :
+recette 3213 → « Tempest (Passive) » sans repli. Preuve `controle-9b.md`.
+
+**Rejoué par le pilote** dans le worktree : `tsc` 0, 1 892 vérifications
+(14 filtres), build, spec-lint, diff-check. Mutations de l'agent : 3, 14,
+8, 1 et 1 échecs. **Mutation du pilote** (tout passif offensif proposé
+comme sort) : **survivante** au premier rendu — la garde « corpus » lisait
+le drapeau, jamais la liste réellement proposée. Renvoyée à l'agent :
+`33a9239d` vérifie la liste fiche par fiche ; la même mutation donne alors
+2 échecs (« 31 écart(s), dont 12134:3464 ») ; restauré.
+
+**Relevé à l'intégration, sans cas aujourd'hui → lot 12 (constat)** : la
+prose de « Stats acquises en combat » (lot 11) écarte les compétences des
+`...passifs`, alors que le bloc des passifs ne rend plus que
+`passifsSuivants` : un passif masqué par 9b qui porterait aussi des stats
+de combat perdrait sa prose. Tempest n'en porte pas. **Non prouvé** : rendu
+à l'œil (A.8) ; valeur en jeu de Tempest seul ; Worker de résolution avec
+un passif comme sort (pas de cas dédié).
+
 ### Lot 10 — l'ignore DEF conditionnel des Blade Dancers
 
 ⚠️ **Recalé le 2026-10-02 et scindé en 10a / 10b** : lire d'abord
@@ -6817,6 +6898,40 @@ build, spec-lint, diff-check. Mutations de l'agent : 29 et 9 échecs.
 **Effets visibles avant 10b** : `resumeSort` et la ligne du CLI
 n'affichent plus « Ignore la DEF » pour ces six sorts ; `champsDuCombat`
 montre déjà la DEF de la cible ; le parseur ne valide pas encore le champ.
+
+#### Résultat du lot 10b — 2026-10-02
+
+Lot parallèle (A.8, seconde vague), worktree `sw-forge-lot-10b` parti de
+`22bd4590`, quatre commits `f82a7e1f`, `627f8dec`, `98398a08`, `5aed8073`,
+intégrés en `784378b9`, `cc3ab044`, `89ea229f`, `072c7c3f`. **Écran** :
+sélecteur « Ignore la DEF (jauge de la cible à 0) » pour les six sorts
+seulement, crans et libellés dérivés de la règle curée
+(`cransIgnoreDefAPartirDuCoup`), valeur montrée = cran retenu par le calcul
+(`cranIgnoreDefRetenu`) ; le résumé du sort dit ce cran **sur une ligne à
+lui** (`block truncate`, une ligne quel que soit le cran : choix de
+l'agent pour que le sélecteur ne bouge pas, à juger à l'œil) ; libellés
+« Ignore la DEF : aucun » / « : dès le Nᵉ coup » / « : 7ᵉ coup seul ».
+**CLI** : la même phrase (`resumeIgnoreDefRetenu`) ; CLI réel (Cordelia,
+rang 2) : 19 320,0 → 59 606,6 (× 3,0852, conforme au calcul à la main).
+**Recette** : validée selon la règle du sort (`cransDeLaRegleIgnoreDef`,
+même source que les crans) — variante A `null`, 2, 3 ; B 2 à 7 —, refus
+avec son chemin de toute autre valeur et de la clé d'un sort sans cette
+règle ; clé à zéro de tête refusée aussi (au-delà de B.0).
+`premierCoupIgnoreDefParSort` ajouté à la table des transitions
+d'`optimizer.md`. Preuve `controle-10b.md`, recettes
+`recette-10b-cordelia-defaut.json` et `…-rang2.json`.
+
+**Erreur du pilote** : le premier brief demandait d'accepter à l'import un
+rang hors crans (repli au calcul) ; B.0 L819 et L849-851 exige de le
+REFUSER, ainsi que toute clé de sort sans la règle. `f82a7e1f` suivait le
+brief ; correction demandée à l'agent (`5aed8073`).
+
+**Rejoué par le pilote** dans le worktree, après correction : `tsc` 0,
+1 779 vérifications (10 filtres), build, spec-lint, diff-check. Mutation
+de l'agent (rang hors crans accepté) : 9 échecs. **Mutation du pilote**
+(clé d'un sort sans règle ignorée au lieu d'être refusée) : 5 échecs ;
+restauré. **Non prouvé** : rendu à l'œil (A.8) ; CLI non relancé après
+`5aed8073` (calcul inchangé) ; variante B au CLI (couverte par les tests).
 
 ### Lot 11 — les passifs « Stats acquises en combat » : prose et Gold Headband
 
@@ -6983,6 +7098,35 @@ ne touche aucun identifiant du lot.
 dit avant de commencer et le pilote coupe par sujet (Gold Headband et
 Rankyaku ; puis la prose).
 
+#### Résultat du lot 11 — 2026-10-02
+
+Lot parallèle (A.8, seconde vague), worktree `sw-forge-lot-11` parti de
+`22bd4590`, trois commits `8fbb17c5`, `98969bdb`, `6c40c946`, intégrés en
+`92de9890`, `d6ff1b6a`, `5a21fd78`. **Gold Headband** (`7912`) :
+`atkBasePct: 20, spdBasePct: 12`, sans arrondi (n° 13), `spdBasePct`
+porté par le profil, le résolveur, `statsDeCombat` et
+`damageRelevantStats` (1 cumul = +138,4 ATQ et +13,92 VIT sur Mei Hou
+Wang). **Rankyaku et Accelerando** : la VIT finale (n° 16), preuve du
+constat 110 dans `audit-degats-conditionnels.test.ts`. **Prose** :
+`proseStatsCombat.ts` (`clesProseDejaRendue`, `renduStatsCombat`, pur) —
+30 proses pour 32 réglages, une par passif, aucune en double sur les 80
+formes, huit exclusions déduites des blocs voisins ; icône et nom au-dessus
+des 27 réglages sans nom. Partie C (`valider-lot-1e.mjs`) rejouée, sans
+dérive. Preuve `controle-11.md`.
+
+**Rejoué par le pilote** dans le worktree : `tsc` 0, tests de zone, build,
+spec-lint, diff-check verts. Mutations de l'agent : `ceil` remis sur la VIT,
+`spdBasePct` retiré des stats pertinentes, prose rendue deux fois (fonction
+pure, puis carte). **Mutation du pilote** (apport de VIT par cumul retiré) :
+4 échecs ; restauré.
+
+**À confirmer par l'utilisateur (A.8)** : la prose de Stone Claws
+(`13501`-`13505`, S1 actifs) apparaît en clair sous le compteur ET au clic
+du « ? » de 11bis dans la case du sort — le recalage, qui fixe 30 / 32, ne
+compte pas une bulle à la demande comme déjà visible. **Non prouvé** :
+rendu à l'œil ; arrondi de Gold Headband en jeu (aucun relevé) ; Miriam
+dans la VIT de Rankyaku (non exercé).
+
 ### Lot 11bis — proses de sort au clic, sur les deux formats
 
 **Cat. J.** Demande de l'utilisateur du 2026-10-02 : « toutes les proses de
@@ -7105,6 +7249,15 @@ preuves avec ses intrants. Aucun test cité puis supprimé.
 
 **Ne fait pas :** n'ajoute aucune fiche au calcul de production. Ne corrige
 rien — il **constate**.
+
+**Point à constater, relevé à l'intégration de la seconde vague** (Résultat
+de 9b) : la prose de « Stats acquises en combat » (`clesProseDejaRendue`,
+lot 11) écarte les compétences de tous les `passifs`, alors que le bloc des
+passifs ne rend plus que `passifsSuivants` (9b). Un passif masqué (choisi
+comme sort, ou exclu par ses slots déclencheurs) qui porterait aussi des
+stats de combat perdrait sa prose. Aucun cas aujourd'hui : dire s'il en
+existe un dans le corpus, et sinon si le mécanisme générique de 9b peut en
+créer un.
 
 ### Lot 13 — le reliquat de l'inventaire : un plan, pas une promesse
 

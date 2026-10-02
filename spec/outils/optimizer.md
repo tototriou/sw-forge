@@ -858,7 +858,17 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
        pour comprendre la légende (au repos, tout est grisé : rien n'est
        encore choisi). Le survol décrit l'effet complet, pas seulement son
-       nom. **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
+       nom. ⚠️ **L'infobulle « ? » de la rangée regroupe ces MÊMES
+       descriptions**, pour les seuls effets affichés pour le sort choisi :
+       une seule liste (`effetsActifs`,
+       [DamageSetupCard.tsx](../../src/components/outils/DamageSetupCard.tsx))
+       rend les vignettes et l'infobulle, jamais un texte écrit à côté —
+       celui d'avant citait encore les buffs ATQ/DEF/VIT partis dans « État
+       de mon monstre ». Au doigt, où le survol n'existe pas, c'est elle
+       qui donne les descriptions ; à la souris, le survol de chaque
+       vignette reste en complément (degats-et-aura 11bis, décision de
+       l'utilisateur du 2026-10-02 : une seule infobulle, pas une par
+       effet). **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
        Miriam, Dr. Matteo, Velaska — un AUTRE monstre que celui optimisé),
        même contrôle mais **portrait du monstre** en icône plutôt qu'une
        icône de buff générique. ⚠️ Velaska porte en plus un **champ

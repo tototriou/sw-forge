@@ -248,6 +248,18 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: nu
   return { ratio, reste: bouts.join(' · ') };
 }
 
+// Un effet de la rangée « Effets actifs ». Sa `description` est la SEULE
+// écrite : sa vignette la montre au survol, l'infobulle de la rangée la
+// regroupe avec les autres (degats-et-aura 11bis).
+interface EffetActif {
+  cle: string;
+  icone: string;
+  libelle: string;
+  description: string;
+  actif: boolean;
+  basculer: () => void;
+}
+
 // Champ « nombre de coups » d'un sort/passif à coups VARIABLES en jeu (Sia,
 // Okeanos S3…) — absent si `profile.hitsRange` ne l'autorise pas. Partagé
 // entre le sort actif et un passif : même mécanisme, même champ.
@@ -370,6 +382,117 @@ export default function DamageSetupCard({
     conditionsCombatMonstre.some((p) =>
       conditionCritiqueGarantiParReglage(p.condition, p.skillCom2usId, setup, elementAttaquant)
     );
+
+  // ⚠️ **UNE SEULE SOURCE pour la rangée « Effets actifs » ET son infobulle**
+  // (degats-et-aura 11bis, décision de l'utilisateur du 2026-10-02 : une seule
+  // infobulle, pas une par effet). Chaque effet que ce sort affiche porte ici
+  // sa description : sa vignette la montre au survol, l'infobulle de la rangée
+  // les regroupe toutes — seulement les effets présents. Écrite à la main,
+  // l'infobulle avait dérivé : elle citait encore les buffs ATQ/DEF/VIT,
+  // partis dans « État de mon monstre ».
+  const effetsActifs: EffetActif[] = [];
+  if (montreDefEnnemie) {
+    effetsActifs.push({
+      cle: 'defBreak',
+      icone: DEF_BREAK_ICON,
+      libelle: montreDefBreakParLeSort ? 'Def break avant' : 'Def break',
+      description: 'Réduit de 70 % la Défense de la cible avant que le sort ne frappe.',
+      actif: setup.defBreak,
+      basculer: () => maj({ defBreak: !setup.defBreak }),
+    });
+  }
+  // ⚠️ N'apparaît QUE si le sort choisi pose lui-même une réduction de défense
+  // (effet `Decrease DEF`, lu dans les données) ET que ce monstre a un passif —
+  // sinon ce réglage ne changerait rien : la réduction atterrit APRÈS le coup du
+  // sort lui-même, elle ne peut profiter qu'à ce qui frappe ensuite. C'est ce qui
+  // distingue « Roid attaque une cible déjà réduite » de « Roid réduit puis son
+  // passif frappe » — deux passifs différents, deux mitigations différentes.
+  if (montreDefBreakParLeSort) {
+    effetsActifs.push({
+      cle: 'defBreakParLeSort',
+      icone: DEF_BREAK_ICON,
+      libelle: 'Ce sort pose le def break',
+      description: 'Le sort pose une réduction de Défense ; elle profite aux coups ou passifs qui frappent ensuite.',
+      actif: setup.defBreakParLeSort ?? false,
+      basculer: () => maj({ defBreakParLeSort: !(setup.defBreakParLeSort ?? false) }),
+    });
+  }
+  effetsActifs.push({
+    cle: 'brand',
+    icone: BRAND_ICON,
+    libelle: 'Marque',
+    description: 'La cible reçoit 25 % de dégâts supplémentaires.',
+    actif: setup.brand,
+    basculer: () => maj({ brand: !setup.brand }),
+  });
+  // Effets portés par un AUTRE monstre que celui optimisé (demande explicite de
+  // l'utilisateur) — portrait du monstre en icône plutôt qu'une icône de buff
+  // générique, mais le même contrôle « Vignette » que les effets ci-dessus : un
+  // monstre dans l'équipe reste un choix de l'utilisateur, pas une donnée
+  // déduite du monstre optimisé lui-même. Voir les constantes
+  // `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
+  // `MIRIAM_AMPLIFY_PCT` (damage.ts) pour le détail des mécaniques.
+  if (montreCrit) {
+    effetsActifs.push({
+      cle: 'euldong',
+      icone: EULDONG_ICON,
+      libelle: 'Euldong',
+      description: 'Triumph Over Evil ajoute 100 points de Dégâts Critiques aux attaques alliées.',
+      actif: setup.euldongActif ?? false,
+      basculer: () => maj({ euldongActif: !setup.euldongActif }),
+    });
+  }
+  effetsActifs.push({
+    cle: 'mirinae',
+    icone: MIRINAE_ICON,
+    libelle: 'Mirinae',
+    description: 'Cursed Music augmente de 30 % les dégâts compatibles jusqu’au prochain tour de Mirinae.',
+    actif: setup.mirinaeActif ?? false,
+    basculer: () => maj({ mirinaeActif: !setup.mirinaeActif }),
+  });
+  if (montreDefEnnemie) {
+    effetsActifs.push({
+      cle: 'deborah',
+      icone: DEBORAH_ICON,
+      libelle: 'Deborah',
+      description: 'Blacksmith’s Discernment amplifie de 30 % une réduction d’ATQ, de DEF ou de VIT déjà active.',
+      actif: setup.deborahActif ?? false,
+      basculer: () => maj({ deborahActif: !setup.deborahActif }),
+    });
+  }
+  if (
+    utilise('ATK') ||
+    utilise('DEF') ||
+    utilise('SPD') ||
+    utilise('Relative SPD') ||
+    critSiPlusRapide ||
+    bonusDegatsSelonVit
+  ) {
+    effetsActifs.push({
+      cle: 'miriam',
+      icone: MIRIAM_ICON,
+      libelle: 'Miriam',
+      description: 'Blacksmith’s Technique amplifie de 35 % les buffs d’ATQ, de DEF et de VIT déjà actifs.',
+      actif: setup.miriamActif ?? false,
+      basculer: () => maj({ miriamActif: !setup.miriamActif }),
+    });
+  }
+  effetsActifs.push({
+    cle: 'transmission',
+    icone: TRANSMISSION_ICON,
+    libelle: 'Dr. Matteo',
+    description: 'Transmission augmente de 20 % les dégâts infligés tant que Dr. Matteo est sous incapacité.',
+    actif: setup.transmissionActif ?? false,
+    basculer: () => maj({ transmissionActif: !setup.transmissionActif }),
+  });
+  effetsActifs.push({
+    cle: 'velaska',
+    icone: VELASKA_ICON,
+    libelle: 'Velaska',
+    description: 'Price of Pain augmente les dégâts compatibles de 0,5 % par 1 % de PV perdu par l’allié attaquant.',
+    actif: setup.velaskaActif ?? false,
+    basculer: () => maj({ velaskaActif: !setup.velaskaActif }),
+  });
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-panel2 p-3">
@@ -1519,23 +1642,19 @@ export default function DamageSetupCard({
       <div>
         <div className="mb-2 flex items-center gap-1.5">
           <p className="label">Effets actifs</p>
+          {/* ⚠️ Construite à partir de `effetsActifs`, la liste qui rend les
+              vignettes juste en dessous : mêmes effets, mêmes descriptions,
+              seulement ceux que ce sort affiche. Jamais un texte écrit à côté
+              (voir `effetsActifs`). */}
           <HelpPopover title="Effets actifs">
-            Buffs sur le monstre (<b className="text-ink">ATQ +50 %</b>, <b className="text-ink">DEF +70 %</b>,{' '}
-            <b className="text-ink">VIT +30 %</b>) et effets subis par la cible (
-            <b className="text-ink">réduction de défense ×0,3</b>, <b className="text-ink">marque +25 %</b>,{' '}
-            <b className="text-ink">ce sort pose le def break</b> — distingue « attaque une cible déjà réduite » de
-            « réduit puis frappe », les deux mitigations ne sont pas identiques). Seuls ceux qui changent
-            quelque chose pour ce sort sont proposés.
-            <br />
-            <br />
-            Effets d&apos;ÉQUIPE (un autre monstre que celui optimisé, présent ou non) :{' '}
-            <b className="text-ink">Euldong</b> (+100 pts de Dégâts Critiques),{' '}
-            <b className="text-ink">Mirinae</b> (+30 % de dégâts infligés, cumulable avec la marque),{' '}
-            <b className="text-ink">Deborah</b> (amplifie ×1,3 la réduction de défense active),{' '}
-            <b className="text-ink">Miriam</b> (+35 % sur les stats qui comptent pour ce sort),{' '}
-            <b className="text-ink">Dr. Matteo</b> (+20 % de dégâts infligés tant qu'il est sous
-            incapacité) et <b className="text-ink">Velaska</b> (multiplie les dégâts selon le % de PV
-            perdus par le monstre optimisé — champ dédié juste en dessous).
+            <p>Seuls les effets qui changent quelque chose pour ce sort sont proposés.</p>
+            <ul className="mt-1.5 space-y-1">
+              {effetsActifs.map((e) => (
+                <li key={e.cle}>
+                  <b className="text-ink">{e.libelle}</b> — {e.description}
+                </li>
+              ))}
+            </ul>
           </HelpPopover>
         </div>
         {/* ⚠️ L'ICÔNE est le contrôle — pas une icône décorative à côté
@@ -1562,109 +1681,17 @@ export default function DamageSetupCard({
             d'alliés sont des multiplicateurs de dégâts (voir 7798557 et
             e26118c). La coupe se vérifie donc, elle ne s'interprète pas. */}
         <div className="flex flex-wrap gap-1.5">
-          {montreDefEnnemie && (
+          {effetsActifs.map((e) => (
             <EffetVignette
-              icone={DEF_BREAK_ICON}
-              libelle={montreDefBreakParLeSort ? 'Def break avant' : 'Def break'}
-              description="Réduit de 70 % la Défense de la cible avant que le sort ne frappe."
-              onClick={() => maj({ defBreak: !setup.defBreak })}
-              actif={setup.defBreak}
+              key={e.cle}
+              icone={e.icone}
+              libelle={e.libelle}
+              description={e.description}
+              onClick={e.basculer}
+              actif={e.actif}
               etroit={etroit}
             />
-          )}
-          {/* ⚠️ N'apparaît QUE si le sort choisi pose lui-même une réduction
-              de défense (effet `Decrease DEF`, lu dans les données) ET que ce
-              monstre a un passif — sinon ce réglage ne changerait rien : la
-              réduction atterrit APRÈS le coup du sort lui-même, elle ne peut
-              profiter qu'à ce qui frappe ensuite. C'est ce qui distingue
-              « Roid attaque une cible déjà réduite » de « Roid réduit puis son
-              passif frappe » — deux passifs différents, deux mitigations
-              différentes. */}
-          {montreDefBreakParLeSort && (
-            <EffetVignette
-              icone={DEF_BREAK_ICON}
-              libelle="Ce sort pose le def break"
-              description="Le sort pose une réduction de Défense ; elle profite aux coups ou passifs qui frappent ensuite."
-              onClick={() => maj({ defBreakParLeSort: !(setup.defBreakParLeSort ?? false) })}
-              actif={setup.defBreakParLeSort ?? false}
-              etroit={etroit}
-            />
-          )}
-          <EffetVignette
-            icone={BRAND_ICON}
-            libelle="Marque"
-            description="La cible reçoit 25 % de dégâts supplémentaires."
-            onClick={() => maj({ brand: !setup.brand })}
-            actif={setup.brand}
-            etroit={etroit}
-          />
-          {/* Quatre effets portés par un AUTRE monstre que celui optimisé
-              (demande explicite de l'utilisateur) — portrait du monstre en
-              icône plutôt qu'une icône de buff générique, mais le même
-              contrôle « Vignette » que les effets ci-dessus : un monstre
-              dans l'équipe reste un choix de l'utilisateur, pas une donnée
-              déduite du monstre optimisé lui-même. Voir les constantes
-              `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
-              `MIRIAM_AMPLIFY_PCT` (damage.ts) pour le détail des mécaniques. */}
-          {montreCrit && (
-            <EffetVignette
-              icone={EULDONG_ICON}
-              libelle="Euldong"
-              description="Triumph Over Evil ajoute 100 points de Dégâts Critiques aux attaques alliées."
-              onClick={() => maj({ euldongActif: !setup.euldongActif })}
-              actif={setup.euldongActif ?? false}
-              etroit={etroit}
-            />
-          )}
-          <EffetVignette
-            icone={MIRINAE_ICON}
-            libelle="Mirinae"
-            description="Cursed Music augmente de 30 % les dégâts compatibles jusqu’au prochain tour de Mirinae."
-            onClick={() => maj({ mirinaeActif: !setup.mirinaeActif })}
-            actif={setup.mirinaeActif ?? false}
-            etroit={etroit}
-          />
-          {montreDefEnnemie && (
-            <EffetVignette
-              icone={DEBORAH_ICON}
-              libelle="Deborah"
-              description="Blacksmith’s Discernment amplifie de 30 % une réduction d’ATQ, de DEF ou de VIT déjà active."
-              onClick={() => maj({ deborahActif: !setup.deborahActif })}
-              actif={setup.deborahActif ?? false}
-              etroit={etroit}
-            />
-          )}
-          {(utilise('ATK') ||
-            utilise('DEF') ||
-            utilise('SPD') ||
-            utilise('Relative SPD') ||
-            critSiPlusRapide ||
-            bonusDegatsSelonVit) && (
-            <EffetVignette
-              icone={MIRIAM_ICON}
-              libelle="Miriam"
-              description="Blacksmith’s Technique amplifie de 35 % les buffs d’ATQ, de DEF et de VIT déjà actifs."
-              onClick={() => maj({ miriamActif: !setup.miriamActif })}
-              actif={setup.miriamActif ?? false}
-              etroit={etroit}
-            />
-          )}
-          <EffetVignette
-            icone={TRANSMISSION_ICON}
-            libelle="Dr. Matteo"
-            description="Transmission augmente de 20 % les dégâts infligés tant que Dr. Matteo est sous incapacité."
-            onClick={() => maj({ transmissionActif: !setup.transmissionActif })}
-            actif={setup.transmissionActif ?? false}
-            etroit={etroit}
-          />
-          <EffetVignette
-            icone={VELASKA_ICON}
-            libelle="Velaska"
-            description="Price of Pain augmente les dégâts compatibles de 0,5 % par 1 % de PV perdu par l’allié attaquant."
-            onClick={() => maj({ velaskaActif: !setup.velaskaActif })}
-            actif={setup.velaskaActif ?? false}
-            etroit={etroit}
-          />
+          ))}
         </div>
         {/* Velaska (« Price of Pain ») a besoin d'une VALEUR en plus du
             toggle — l'app ne simule pas les PV réellement perdus par le

@@ -397,6 +397,9 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b15 (relique de la carte, indépendante, faite avant le Worker)
         → 6bis-b13bis-a → 6bis-b13bis-b (Worker de résolution, décidé le
           2026-10-02 : « Dégâts réels » encore trop lent ; il remplace b14)
+        → revue indépendante du Worker → 6bis-b13bis-c (ses corrections)
+        → décision de l'utilisateur sur b13bis-b (et 6bis-b13bis-d si
+          option 2)
         → 7
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -414,7 +417,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b1, 6bis-b2, 6bis-b3a, 6bis-b3b, 6bis-b4, 6bis-b5a, 6bis-b3c, O,
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
-  6bis-b13bis-a, 6bis-b13bis-b,
+  6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c,
   7, 12, tous les 13b-* → 14
 ```
 
@@ -680,8 +683,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b14 — la résolution rend la main entre deux reliques | J | sans objet : remplacé par le Worker (décision de l'utilisateur du 2026-10-02) | — |
 | 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | terminé ; vérifié par l'utilisateur à l'écran | `7b3ec767` ; reçu `7b3ec76` ↔ `1d50ccc` / 2026-10-02 |
 | 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
-| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | **arrêté avant livraison (A.6)** : recherche +4 à +7 % en « Dégâts réels », résultat complet −27 % ; preuves rejouées par le pilote ; **décision de l'utilisateur attendue** (A.8) ; revue indépendante du Worker à faire avant 7 | `9a7202a8`, `534de15a` locaux, ni livrés ni poussés / 2026-10-02 |
-| 7 — sets d'aura : l'écran | J | attend la décision sur 6bis-b13bis-b et la revue du Worker ; intrant à recaler au brief | — |
+| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | **arrêté avant livraison (A.6)** : recherche +4 à +7 % en « Dégâts réels », résultat complet −27 % ; preuves rejouées par le pilote ; **décision de l'utilisateur attendue** (A.8) ; revue indépendante faite : rien de bloquant, cinq mutations du branchement survivent | `9a7202a8`, `534de15a` locaux, ni livrés ni poussés / 2026-10-02 |
+| 6bis-b13bis-c — corrections de la revue du Worker | J | lancé par le pilote avant la décision (vaut pour les options 1 et 2) ; commits locaux | — |
+| 7 — sets d'aura : l'écran | J | attend la décision sur 6bis-b13bis-b et 6bis-b13bis-c ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -751,6 +755,7 @@ décision, rayée avec la date et la réponse.
 | Lot | Question | État |
 | --- | --- | --- |
 | 6bis-b13bis-b | Garder le Worker malgré une recherche +4 à +7 % plus longue en « Dégâts réels », pour un résultat complet ~27 % plus tôt et un fil de l'écran libéré ? Trois options, chiffres et recommandation : Résultat du lot | posée le 2026-10-02 |
+| revue du Worker | Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature. Le corriger dans ce chantier (petit lot), ou le laisser en piste ? | posée le 2026-10-02 |
 
 ---
 
@@ -5217,7 +5222,11 @@ de silence ; 6 paires entrelacées, 3 bridées ×4 :
 | recherche | 9 510 ms | 8 883 ms | +7,2 % (6/6) |
 | résultat complet (recherche finie, 300 résolus) | 15,2 s | 20,7 s | −26,9 % (6/6) |
 | résolus avant / après la fin | 162 / 139 | 85 / 216 | |
-| bridé ×4 : recherche / complet | 9,9 / 24,5 s | 11,1 / 113,5 s | −11 % / −80 % |
+| bridé ×4 : recherche / complet | 9,9 / 24,5 s | 11,1 / 113,5 s | non concluant (\*) / −80 % |
+
+(\*) −11 % ici, −1,3 % dans la campagne de l'agent sur le même code ;
+seul B bridé diffère (11 067 contre 10 133 ms), n = 3. Relevé par la
+revue indépendante : ce chiffre n'est pas un gain.
 
 B finissait l'essentiel de sa file APRÈS la recherche, sur le fil de
 l'écran, par tranches d'environ 36 ms : sous le seuil de 50 ms des tâches
@@ -5237,7 +5246,7 @@ en attente). Options présentées :
    après** : la recherche devrait retrouver sa durée, le résultat complet
    revenir vers celui d'avant (~20 s, estimation : 280 builds à ~42 ms
    après la fin), fil libéré et page rapide conservés. Un lot de plus
-   (6bis-b13bis-c), même mesure.
+   (6bis-b13bis-d, après les corrections de 6bis-b13bis-c), même mesure.
 3. **Renoncer au Worker** : `git revert` des deux commits, retour au
    chemin direct de b13.
 
@@ -5251,6 +5260,112 @@ le repli, l'annulation réelle et l'arrêt sans fuite du Worker au
 navigateur ; le renvoi du contexte quand un réglage change après la
 recherche ; un vrai téléphone ; l'identité du classement affiché entre A
 et B à l'écran (prouvée en Node seulement).
+
+###### Revue indépendante du Worker — 2026-10-02
+
+Deux relecteurs lancés par le pilote (A.8), qui n'ont écrit aucune ligne du
+Worker, en lecture seule, sur `0da52574` : angle 1 concurrence, cycle de
+vie et repli ; angle 2 fidélité de la résolution, preuves, mesure et spec.
+**Rien de bloquant.** Angle 2 : les sept arguments du Worker égalent ceux
+du chemin direct, le clonage ne perd rien d'utile, les dépendances des
+mémos sont complètes, les deux différentiels comparent à la production ;
+angle 1 : aucune réponse périmée écrite, aucun interblocage tant que le
+Worker répond, StrictMode (double montage) et les quatre transitions entre
+chemins tiennent à la lecture.
+
+**Majeur, confirmé par le pilote en appliquant chaque mutation** (`tsc` 0
+et `node tests/run.mjs resolutiondistante resolutionworker` → 243 passées
+à chaque fois, fichier restauré) : le branchement à l'écran n'est gardé
+par aucun test.
+
+| Mutation | Effet si elle arrivait |
+| --- | --- |
+| `OptimizerSection.tsx` L2225 : `runesDe` rend `[]` | le Worker résout des builds sans runes ; l'expression est dupliquée de L2190 |
+| hook L408 : `repli: () => {}` | une erreur du Worker coupe la file sans rien journaliser |
+| hook L378 : `onmessage` figé sur le gestionnaire initial | rien n'est jamais écrit, les deux mêmes demandes repartent à chaque rendu |
+| hook L418 : `reveillerRef.current = pomper` retiré | les rendus ne relancent plus la file |
+| hook L336 : `signatureRef.current = signature` retiré | la garde rendu→effet ne voit plus un changement de signature |
+
+**Mineurs retenus.** Angle 1 : un résultat écrit peut rester non publié si
+la file se vide sans nouvelle écriture (`surReponse` ne publie que sur une
+écriture, `pomper` jamais ; le chemin direct force la publication quand il
+s'endort, hook L286) — faible probabilité, reproduit par le relecteur sur
+le module réel ; la simulation du test ne suit ni `publier` ni
+`enAttente`, ni un repli en cours de route, ni des entrées changées à
+signature égale. Angle 2 : `optimizer.md` écrit deux hypothèses comme des
+faits (L2559-2560 « un fil de plus calcule à plein », L2569-2570 « publie
+plus souvent ») et surestime « trois recettes de référence » (L2545 : seule
+« Dégâts réels » exerce une vraie résolution) ; il ne cite pas la mesure
+du pilote ; § 3.7 et `resolutionBody.ts` L112-113 disent « un contexte par
+signature » alors qu'il part à chaque nouvelle identité des entrées (une
+fois par recherche) ; la promesse de reconstruire `vide` (L159-161) n'est
+pas tenue ; le « −11 % » bridé du pilote ne tient pas (corrigé plus haut).
+
+**Laissés en piste, avec leur raison** : la coquille enchaîne des
+`setTimeout` imbriqués (4 ms imposées au-delà de cinq, jusqu'à ~1,2 s sur
+300 builds) — un Worker plus rapide calcule davantage pendant la recherche,
+donc lié à la décision en attente ; l'annulation d'une demande en position
+1 à tout réordonnancement peut perdre un calcul commencé (0 ou 1 annulation
+par passage mesurée) ; aucun chien de garde si le Worker se tait sans
+erreur ; un repli sur erreur déterministe rejoue l'exception sur le chemin
+direct (comportement de b11).
+
+**Défaut antérieur, hors lot, signalé par les deux relecteurs** : le cache
+de la file ne se vide qu'au changement de signature, or des entrées
+changent sans elle — `artefactsReserves` (L1221, réservations des autres
+builds validés, absent de la signature L2106-2153), l'objectif via
+`evaluateursFiche`. Des paires déjà en cache peuvent alors utiliser un
+artéfact devenu réservé, dans les deux chemins. Soumis à l'utilisateur
+(A.8, décisions en attente).
+
+##### 6bis-b13bis-c — corrections de la revue du Worker
+
+**Cat. J ; requiert b13bis-b et sa revue indépendante.** Vaut pour les
+options 1 et 2 de la décision en attente, sans objet pour l'option 3 : il
+ne tranche rien de la question posée à l'utilisateur. Lancé par le pilote
+avant la réponse, en commits locaux ; **ni `livrer`, ni `integrer`, ni
+push** — le pilote livre b13bis-b et c ensemble après la décision.
+
+**Intrant borné.** Le Résultat et la revue de b13bis-b ci-dessus ;
+`src/workers/resolutionDistante.ts` (258 l.) ; `useArtifactOptimQueue.ts`
+L331-424 ; `OptimizerSection.tsx` L2184-2230 ; `resolutionBody.ts`
+L105-170 ; `tests/resolution-distante.test.ts` (603 l.) ;
+`optimizer.md` L2500-2575 ; `parallelisation-partagee.md` § 3.7 ;
+`invariants.md` L102 et L191.
+
+**Contrat.**
+
+1. **Un seul producteur des runes d'un build**, partagé par
+   `resoudreEquipement` et `resolutionHorsFil`, testé ; les deux appels
+   le passent (contrôle de source).
+2. **Le branchement gardé** : chacune des cinq mutations du tableau
+   ci-dessus fait échouer au moins une vérification nommée. Extraire en
+   fonction pure ce qui peut l'être à faible coût, sinon un contrôle de
+   source précis (le dépôt n'a pas de test React, `ARCHITECTURE.md` § 9).
+3. **Rien d'écrit ne reste non publié** : quand la file se vide (réponse
+   ignorée comprise) alors qu'une écriture n'a pas été publiée, et au
+   repli, la publication est forcée. La simulation suit `publier` et
+   vérifie qu'à la fin, ce qui est publié égale le cache.
+4. **La simulation couvre** en plus un repli en cours de route (cache
+   intact, plus rien d'écrit ensuite) et des entrées changées à signature
+   égale (nouveau contexte, cache gardé, comme le chemin direct).
+5. **Spec et commentaires** : les mineurs d'angle 2 ci-dessus corrigés
+   (hypothèses marquées comme telles, portée des trois recettes, contexte
+   par identité des entrées, `vide` — journalisé avec l'erreur au repli ou
+   promesse retirée) ; `optimizer.md` et `invariants.md` L102 citent les
+   deux mesures (+3,6 % et +7,2 % de recherche, résultat complet −27 %,
+   recherche bridée non concluante) et restent « soumis à la décision de
+   l'utilisateur » tant qu'elle n'est pas prise.
+
+**Preuves** : les cinq mutations rejouées, chacune avec son échec ; une
+mutation du correctif 3 ; `tsc`, tests de zone, build, spec-lint,
+diff-check ; preuve `controle-6bis-b13bis-c.md`. Pas de mesure au
+navigateur : aucun changement de calcul ni de cadence, sauf la
+publication forcée du point 3 (une de plus par file, au plus).
+
+**Ne fait pas** : ni la variante de l'option 2, ni les pistes ci-dessus, ni
+le défaut antérieur ; aucun changement de la résolution, de K, de l'ordre,
+du nombre de demandes en vol, de la recherche.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

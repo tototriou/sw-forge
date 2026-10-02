@@ -678,9 +678,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b12 — ce qui sature l'écran pendant une recherche, mesuré | C | terminé, chiffres recoupés par le pilote : la résolution sature (66 %), pas le tri | reçu `f0e77a4` ↔ `a4b54d7` / 2026-10-02 |
 | 6bis-b13 — la résolution d'un build coûte moins, à résultat identique | J | terminé, preuves et mutation rejouées par le pilote ; essai de l'utilisateur : reliques « très bien », fluidité à améliorer | `88e4c76a` ; reçu `88e4c76` ↔ `069d7c0` / 2026-10-02 |
 | 6bis-b14 — la résolution rend la main entre deux reliques | J | sans objet : remplacé par le Worker (décision de l'utilisateur du 2026-10-02) | — |
-| 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | code validé par le pilote ; vérification à l'écran par l'utilisateur en attente | `7b3ec767` ; reçu `7b3ec76` ↔ `1d50ccc` / 2026-10-02 |
-| 6bis-b13bis-a — Worker de résolution : corps et protocole | J | lançable (agent lancé par le pilote) | — |
-| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | attend b13bis-a ; mesure au créneau de l'utilisateur | — |
+| 6bis-b15 — la relique de la carte de résultat ne déborde plus (ordinateur) | J | terminé ; vérifié par l'utilisateur à l'écran | `7b3ec767` ; reçu `7b3ec76` ↔ `1d50ccc` / 2026-10-02 |
+| 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
+| 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | lançable ; créneau de mesure libre (A.8) | — |
 | 7 — sets d'aura : l'écran | J | attend 6bis-b13bis-b ; intrant à recaler au brief | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
@@ -698,6 +698,50 @@ preuve est-elle un artefact ? l'outil qu'il utilise existe-t-il déjà à ce
 numéro ?* ⚠️ **Elle est conduite par l'utilisateur**, qui la soumet lui-même
 (décision du 2026-09-23) ; le prompt de revue lui est fourni sur demande. Une
 revue qui ne trouve rien au premier tour n'a pas lu le graphe.
+
+### A.8 Mode de pilotage et vérifications de l'utilisateur en attente
+
+#### Le pilote lance les sous-agents (décision du 2026-10-02)
+
+Depuis 6bis-b13bis-a, la session pilote **lance elle-même** l'agent de
+chaque lot (sous-agent, modèle selon A.4, en arrière-plan), reçoit son
+rapport, valide (rejeux, mutation, Résultat, commit, relivraison) et
+enchaîne. L'utilisateur ne transmet plus les briefs ni les retours.
+
+- **Un agent à la fois**, dans le worktree du chantier : pas d'isolation
+  en worktree séparé, qui casserait `livrer` et le reçu. **Le pilote ne
+  modifie aucun fichier suivi pendant qu'un agent tourne** : un fichier
+  modifié ferait refuser son `livrer`.
+- **Créneau de mesure accordé jusqu'à nouvel ordre** : le pilote lance les
+  mesures sans redemander, jamais deux agents à la fois, et sans serveur à
+  lui pendant une mesure.
+- **Les vérifications visuelles de l'utilisateur sont différées** : le
+  pilote ne s'arrête pas pour chacune, il les inscrit ci-dessous et
+  l'utilisateur les fait plus tard, en une séance.
+- **Les décisions restent à l'utilisateur** (produit, interface, valeur de
+  jeu manquante, relevé en jeu, chantier à part) : le pilote s'arrête et
+  demande. De même si un contrat ancien ne tient plus face au code.
+- **Revue indépendante** : le pilote peut lancer un ou deux sous-agents
+  relecteurs, qui n'ont pas écrit le code relu.
+
+#### Vérifications de l'utilisateur en attente
+
+Tenue par le pilote à chaque lot : une ligne s'ajoute quand un lot laisse
+une vérification à l'écran, et se raye (avec la date) quand l'utilisateur
+l'a faite. Serveur : le pilote construit l'application et la sert sur le
+port 5173 (même origine, le compte déjà importé reste).
+
+| Lot | À vérifier | État |
+| --- | --- | --- |
+| 6bis-b9 | « Trier par » ATQ, PV puis DEF : la valeur de la carte décroît de haut en bas | en attente |
+| — | Bouton « Arrêter » en pleine recherche : les résultats trouvés restent, message « meilleur trouvé jusque-là » | en attente |
+| 6bis-b7 | Facultatif : recette `recette-6bis-b7-atq3000-dc220.json` (Lushen, siège 15) → « Recherche interrompue après examen de N combinaisons » | en attente |
+| 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | en attente (le 0 et la ligne de raison : vus le 2026-10-02) |
+| 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
+| 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | après le lot |
+| 7 | Écran des sets d'aura, sur ordinateur ET sur téléphone | après le lot |
+| 8, 9, 10 | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) | après les lots |
+| 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
 
 ---
 
@@ -4976,9 +5020,8 @@ relique dans la case sous la roue) ; `RelicSlot` partagé, jamais copié.
 Rejoué sur `7b3ec767` : `tsc` 0 ; build ; classes
 `grid-cols-[auto_min-content]` et `col-start-2` présentes dans le CSS
 construit ; spec-lint, diff-check verts ; « Reçu valide ». Pas de test de
-rendu dans le dépôt : pas de mutation. **En attente de la vérification de
-l'utilisateur à l'écran** (relique sous la roue, artéfacts alignés, aucun
-débordement, relique « fixe » et « recherche »).
+rendu dans le dépôt : pas de mutation. **Vérifié par l'utilisateur à
+l'écran le 2026-10-02 : la carte lui convient.**
 
 ##### 6bis-b13bis-a — Worker de résolution : le corps et le protocole
 
@@ -5025,6 +5068,40 @@ mutation (un champ d'entrée oublié dans le type sérialisable) qui le fait
 
 **Ne fait pas :** brancher le Worker dans la file, changer l'écran, la
 résolution ou le CLI.
+
+###### Résultat du lot 6bis-b13bis-a — 2026-10-02
+
+Premier lot lancé par le pilote lui-même (A.8). Un commit, poussé :
+`b0c580e7` — `src/workers/resolutionBody.ts` (type
+`EntreesResolutionSerialisables`, `entreesSerialisables` qui ne retire que
+`evaluer`, protocole `contexte` / `resoudre` / `annuler` → `resultat` /
+`annule` / `erreur`, classe `CorpsResolution`), la coquille
+`src/workers/resolution.worker.ts`, référencée nulle part, et le test
+`testResolutionWorker`. Reçu `b0c580e` ↔ `5da194f`, notes intégrées
+(`8ba5e75`) : § 3.7 de `parallelisation-partagee.md` et une entrée
+d'invariant. Preuve `controle-6bis-b13bis-a.md`.
+
+Le pilote a relu le diff (corps neutre, aucune réimplémentation de la
+résolution, caches neufs à chaque contexte, une réponse par demande) et
+rejoué sur `b0c580e7` : `tsc` 0 ; `node tests/run.mjs resolutionworker
+resolutioncaches resolutionproducteurpartage classementresolu relicqueue
+artifactevaluation cliclassement` → 619 passées ; build, spec-lint,
+diff-check verts ; « Reçu valide » ; **mutation du pilote** (demande d'un
+contexte périmé acceptée) : 5 échecs sur 176 ; restauré
+(`git -c core.autocrlf=false checkout`), puis 176 passées.
+
+Rapportés, non rejoués : `structuredClone` sans perte sur les fixtures,
+les trois recettes et 6 157 contextes de dégâts du bestiaire ; différentiel
+corps = direct sur 11 070 builds des trois recettes ; garde de typage
+`ProtocoleClonable` (une fonction dans un message fait échouer `tsc`) ;
+quatre mutations de l'agent détectées. Écart : le filtre
+`resolutionpartagee` du brief ne correspondait à aucun test (les noms sont
+`resolutionproducteurpartage`, `classementresolu`).
+
+Non prouvé : la coquille elle-même (vrai `postMessage`, ordre minuterie et
+messages, absence de fuite) ; verrous, amplification, maximums et élément
+porté sur des recettes réelles (fixtures seulement) ; le coût de transfert
+du contexte, ~800 Ko pour 2 518 artéfacts — à mesurer en 6bis-b13bis-b.
 
 ##### 6bis-b13bis-b — Worker de résolution : le branchement et la mesure
 

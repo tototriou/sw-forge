@@ -135,6 +135,7 @@ import {
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
+import { echoAurasExternes } from '../../lib/aurasExternes';
 import {
   ArtifactMainChoice,
   OptimizerState,
@@ -584,11 +585,16 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * Ce que l'état du monstre suppose, en une ligne — l'écho posé dans le
    * sous-titre de la fenêtre « Dégâts réels ».
    *
-   * ⚠️ **En lecture seule, jamais des contrôles.** Ces cinq réglages vivent
-   * désormais dans la carte Artéfacts ; les rendre AUSSI dans la fenêtre en
+   * ⚠️ **En lecture seule, jamais des contrôles.** Ces réglages vivent dans
+   * la carte « État de mon monstre » ; les rendre AUSSI dans la fenêtre en
    * ferait deux exemplaires vivants du même interrupteur, visibles en même
    * temps. Qui ouvre la fenêtre pour décrire un combat doit néanmoins savoir
    * sous quelles hypothèses il travaille — d'où la phrase, et rien de plus.
+   *
+   * ⚠️ **Les auras externes y sont NOMMÉES par set** (degats-et-aura 7a) ;
+   * l'écho les ignorait. Les activations propres du build, elles, se
+   * résolvent par candidat : la fenêtre n'en connaît aucun, elle dit
+   * seulement qu'elles s'ajoutent sur chaque résultat (`echoAurasExternes`).
    */
   const echoEtatMonstre = useMemo(() => {
     const bouts = [
@@ -598,7 +604,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       damageSetup.leaderSkill && `lead ${damageSetup.leaderSkill.stat} +${damageSetup.leaderSkill.pct} %`,
       SUMMONER_SKILLS_LABELS.find((s) => s.key === damageSetup.summonerSkills)?.label,
     ].filter(Boolean);
-    return `État du monstre : ${bouts.length > 0 ? bouts.join(' · ') : 'aucun buff, aucun lead'}`;
+    return `État du monstre : ${bouts.length > 0 ? bouts.join(' · ') : 'aucun buff, aucun lead'} · ${echoAurasExternes(damageSetup.setsAuraExternes)}`;
   }, [damageSetup]);
   const critInterdit = useMemo(() => monsterCritInterdit(skillDetail), [skillDetail]);
   /**

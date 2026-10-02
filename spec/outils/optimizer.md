@@ -1230,7 +1230,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    monstre ; ce qui reste (cible, sort, critique, réduction de DEF, marque,
    effets d'alliés) n'y touche pas. Test : changer un réglage d'« État de
    mon monstre » DOIT faire bouger le « +X / coup ». Mesuré sur Lushen —
-   buff ATQ activé : **+737 → +1 068 / coup**.
+   buff ATQ activé : **+737 → +1 068 / coup**. ⚠️ **Sauf les auras
+   Accuracy et Tolerance** (degats-et-aura 7a) : elles modifient bien des
+   statistiques propres du monstre, la Précision et la RES, mais aucune
+   n'entre dans les dégâts bruts — pour elles, ce qui bouge est la
+   condition RES/PRE (minimum ou maximum), quand `compterAurasResPre` est
+   activé.
 
    ⚠️ **Rendus sans condition**, contrairement à leur ancienne place où ils
    n'apparaissaient que si la formule du sort lisait la statistique. C'était
@@ -1241,7 +1246,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    dans son sous-titre — jamais les contrôles eux-mêmes, qui feraient deux
    exemplaires vivants du même interrupteur visibles en même temps. Qui
    ouvre la fenêtre voit sous quelles hypothèses il travaille ; pour les
-   changer, il ferme.
+   changer, il ferme. Depuis degats-et-aura 7a, l'écho **nomme les auras
+   externes** par set, avec leur nombre (« auras externes : 2 sets Fight,
+   1 set Accuracy »), ou « aucune aura externe », et dit que les sets
+   d'aura du build s'y ajoutent sur chaque résultat — **sans nombre** : la
+   fenêtre ne connaît aucun candidat, ces activations se résolvent par
+   build (`echoAurasExternes`, `src/lib/aurasExternes.ts`).
 
    ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
    « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant

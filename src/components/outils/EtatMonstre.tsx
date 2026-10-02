@@ -45,7 +45,11 @@ import {
  * (défense/PV/élément de la cible, sort, critique, réduction de DEF, marque,
  * effets d'alliés) n'y touche pas — voir les correctifs 7798557 et e26118c,
  * « un bonus +X % par effet ne majore pas les dégâts bruts ». Test : changer
- * un réglage d'ici DOIT faire bouger le « +X / coup ».
+ * un réglage d'ici DOIT faire bouger le « +X / coup » — sauf les auras
+ * Accuracy et Tolerance (degats-et-aura 7a). Elles modifient bien des
+ * statistiques propres du monstre, la Précision et la RES, mais aucune
+ * n'entre dans les dégâts bruts : pour elles, ce qui bouge est la condition
+ * RES/PRE (minimum ou maximum), quand `compterAurasResPre` est activé.
  *
  * ⚠️ **Rendus INCONDITIONNELLEMENT**, contrairement à leur ancienne place. Les
  * vignettes n'apparaissaient que si la formule du sort choisi lisait la

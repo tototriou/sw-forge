@@ -18,6 +18,7 @@ import {
   ajouterAura,
   changerNombreAura,
   changerSetAura,
+  echoAurasExternes,
   erreurAurasExternes,
   libelleNombreAura,
   nombreMaxDeLaLigne,
@@ -198,4 +199,21 @@ export function testAurasEcranValidationPartagee() {
   ok(/allowEmpty/.test(saisie) && /onBlur=\{\(\) => setLigneVide\(null\)\}/.test(saisie),
     'source : un champ vidé reste vide à l’écran jusqu’à la sortie du champ, puis montre 1');
   ok(!/<(button|select|input)\b/.test(saisie), 'source : aucun contrôle natif, tout vient de src/ui');
+}
+
+export function testAurasEcranEcho() {
+  titre('Auras à l’écran · écho de la fenêtre « Dégâts réels » : externes nommées, sets du build sans nombre');
+
+  egal(echoAurasExternes([a('fight', 2), a('accuracy', 1)]),
+    'auras externes : 2 sets Fight, 1 set Accuracy ; les sets d\'aura du build s\'y ajoutent sur chaque résultat',
+    'externes nommées par set, avec leur nombre, dans l’ordre saisi');
+  egal(echoAurasExternes([]), 'aucune aura externe ; les sets d\'aura du build comptent sur chaque résultat',
+    'aucune externe : le dit, et rappelle les sets du build');
+  egal(echoAurasExternes(undefined), echoAurasExternes([]), 'liste absente : comme vide');
+  ok(!/\d/.test(echoAurasExternes([]).replace(/^.*?;/, '')) && !/\d/.test(echoAurasExternes([a('fight', 3)]).split(';')[1]),
+    'la part du build ne porte AUCUN nombre : la fenêtre ne connaît aucun candidat');
+
+  const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8').replace(/\r\n/g, '\n');
+  const echo = ecran.slice(ecran.indexOf('const echoEtatMonstre = useMemo('), ecran.indexOf('}, [damageSetup]);', ecran.indexOf('const echoEtatMonstre = useMemo(')));
+  ok(echo.includes('echoAurasExternes(damageSetup.setsAuraExternes)'), 'écran : l’écho d’état passe par echoAurasExternes');
 }

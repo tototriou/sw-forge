@@ -141,3 +141,17 @@ export function changerSetAura(entrees: AuraExterne[], ancien: SetAura, nouveau:
 export function retirerAura(entrees: AuraExterne[], set: SetAura): AuraExterne[] {
   return entrees.filter((e) => e.set !== set);
 }
+
+/**
+ * L'écho des auras dans le sous-titre de la fenêtre « Dégâts réels » : chaque
+ * set externe NOMMÉ avec son nombre, puis le rappel que les sets d'aura du
+ * build s'ajoutent sur chaque résultat — SANS nombre : la fenêtre ne connaît
+ * aucun candidat (carte a4c2), ces activations se résolvent par build. Un
+ * rendu de l'état, jamais une source de calcul.
+ */
+export function echoAurasExternes(entrees: readonly AuraExterne[] | undefined): string {
+  const liste = (entrees ?? []).map((e) => `${e.nombre} set${e.nombre > 1 ? 's' : ''} ${nomSetAura(e.set)}`);
+  return liste.length > 0
+    ? `auras externes : ${liste.join(', ')} ; les sets d'aura du build s'y ajoutent sur chaque résultat`
+    : `aucune aura externe ; les sets d'aura du build comptent sur chaque résultat`;
+}

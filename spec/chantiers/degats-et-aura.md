@@ -163,6 +163,8 @@ affirmations contradictoires, notamment sur 411.
 | Tempest seul | Une seule contribution, jamais un second déclenchement de lui-même | utilisateur, précision de revue |
 | Conquête et lignes 218–221 | Le bonus Conquête vit dans le terme DMG% : il ne s'applique jamais au bucket Additionnel, dont font partie les dégâts supplémentaires 218–221 | utilisateur, 2026-09-30 ; concorde avec la spec (`degats-reels/artefacts-et-degats-bruts.md`, bucket Additionnel sans DMG%, relevés Julie et Jessica) et le code (`damage.ts`, `dmgPct` vs `horsCoupBrut`) |
 | Points de relique et lignes 218–221 | Les points de Bravoure (ATQ), Éternité (DEF) et Origine (PV), acquis au début du combat, augmentent la stat dont les lignes 218–221 prennent leur pourcentage | utilisateur, 2026-09-30 |
+| Lignes 224 et 400 sur Blade Surge | **224** (« D.CRIT+ comp cib uniq pdt tour ») porte sur les **coups 1 et 2** seulement ; **400** (« [Comp.1] Aug. Dgts CRIT ») porte sur les **trois coups**, coup de zone compris | utilisateur, confirmation explicite du 2026-10-02 |
+| Rankyaku — `5 × VIT` | La VIT est la **VIT finale** : base + runes + set + lead + effet d'augmentation de vitesse, éventuellement augmentée par les artéfacts | utilisateur, confirmation explicite du 2026-10-02 |
 
 ⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
 chantier ne la modélise pas.** C'est précisément pourquoi la condition d'ignore
@@ -403,7 +405,10 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
                             tous les sous-lots validés)
-8, 9, 10 → 12              (12 éprouve les mécanismes qu'ils livrent)
+8a → 8b ; 9a → 9b ; 10a → 10b   (recalés et scindés le 2026-10-02)
+8b, 9b, 10b → 12           (12 éprouve les mécanismes qu'ils livrent)
+11bis                      (proses de sort au clic, demande du 2026-10-02 ;
+                            aucune dépendance de code, après 11 par l'ordre)
 1f, 11, 12 → 13a → amendement et revue pilote → 13b-*
                             (chaque contrat créé avant son exécution)
 audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
@@ -417,7 +422,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c,
-  7a, 7b, 12, tous les 13b-* → 14
+  7a, 7b, 11bis, 12, tous les 13b-* → 14
 ```
 
 ##### Ordre d'exécution et premières contre-revues
@@ -684,12 +689,16 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
 | 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | terminé : arrêté avant livraison (A.6, recherche +4 à +7 %, résultat complet −27 %), puis **Worker gardé par l'utilisateur** le 2026-10-02 ; revue indépendante : rien de bloquant | `9a7202a8`, `534de15a` ; livré avec 6bis-b13bis-c / 2026-10-02 |
 | 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; livré avec b13bis-b | `11abb68d`…`f951f3e9` / 2026-10-02 |
-| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02 ; attend les réponses Q1-Q3 (A.8) | — |
-| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | attend 7a et les réponses Q4-Q7 (A.8) | — |
-| 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
-| 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
-| 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
-| 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | C+J | à faire | — |
+| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02, réponses de l'utilisateur intégrées ; **lançable** | — |
+| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | requiert 7a | — |
+| 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | recalé le 2026-10-02 ; à faire | — |
+| 8b — Blade Surge : recette, écran, CLI | J | requiert 8a | — |
+| 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | recalé le 2026-10-02 ; à faire | — |
+| 9b — Tempest comme sort, écran, mécanisme générique | J | requiert 9a | — |
+| 10a — ignore DEF conditionnel des Blade Dancers : moteur | J | recalé le 2026-10-02 ; à faire | — |
+| 10b — Blade Dancers : recette, écran, CLI | J | requiert 10a | — |
+| 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | recalé le 2026-10-02 ; à faire | — |
+| 11bis — proses de sort au clic, deux formats | J | contrat écrit le 2026-10-02 ; une question ouverte (A.8) | — |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | à faire | — |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
 | 13b-* — contrats de qualification à créer par le pilote après 13a | J | non lançables avant amendement et revue | — |
@@ -744,7 +753,8 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
 | 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | en attente (Worker gardé le 2026-10-02) |
 | 7a, 7b | Écran des sets d'aura, sur ordinateur ET sur téléphone | après les lots |
-| 8, 9, 10 | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) | après les lots |
+| 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
+| 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort, à la souris ET au doigt | après le lot |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
 
 #### Décisions de l'utilisateur en attente
@@ -757,13 +767,8 @@ décision, rayée avec la date et la réponse.
 | 6bis-b13bis-b | ~~Garder le Worker malgré une recherche +4 à +7 % plus longue en « Dégâts réels », pour un résultat complet ~27 % plus tôt et un fil de l'écran libéré ?~~ | ✔ 2026-10-02 : **garder tel quel** (option 1) |
 | 8 | ~~À quels coups de Blade Surge s'appliquent 224 et 400 ?~~ | ✔ 2026-10-02 (utilisateur) : **224 sur les coups 1 et 2, 400 sur les trois** |
 | revue du Worker | Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature. Le corriger dans ce chantier (petit lot), ou le laisser en piste ? | posée le 2026-10-02 |
-| 7a, Q1 | Libellé de l'interrupteur des réglages avancés. Recommandation : « Compter les auras RES et PRE dans les conditions » | posée le 2026-10-02 |
-| 7a, Q2 | Place des lignes d'aura dans « État de mon monstre ». Recommandation : un bouton « Ajouter un set d'aura » fixe, les lignes s'ajoutant SOUS lui (le bouton cliqué ne bouge jamais) ; autre choix : cinq lignes réservées d'avance | posée le 2026-10-02 |
-| 7a, Q3 | Champ du nombre vidé. Recommandation : il revient à 1 à la sortie du champ, seule l'icône retire une ligne ; autre choix : la ligne disparaît | posée le 2026-10-02 |
-| 7b, Q4 | Au doigt, l'ouverture guidée ouvre « Options de recherche » par-dessus la carte (une prop venue d'`App.tsx`). Recommandation : oui, comme à la souris | posée le 2026-10-02 |
-| 7b, Q5 | À la souris, le défilement vers les réglages avancés peut déplacer la carte cliquée (précédent : « Set de runes recherché »), et le flottant se referme au clic suivant hors de lui. Recommandation : accepté | posée le 2026-10-02 |
-| 7b, Q6 | Rappel et guidage : même token d'attention, effacés après 3 s. Recommandation : oui | posée le 2026-10-02 |
-| 7b, Q7 | Choisir un autre exemplaire de la même espèce dans la liste déclenche-t-il le rappel ? Recommandation : oui (les « autres monstres » de l'équipe changent) | posée le 2026-10-02 |
+| 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
+| 11bis | Nouveau point de l'utilisateur, 2026-10-02 : les proses de sort au survol deviennent une infobulle cliquable (« ? » à droite du nom, dans la case du sort). Les textes d'effet au survol (pastilles de la fiche monstre, vignettes d'effet de « Dégâts réels ») entrent-ils dans le même lot ? | posée le 2026-10-02 |
 
 ---
 
@@ -5691,7 +5696,7 @@ seule, avec l'outil installé :
 ### Lot 7 — sets d'aura : l'écran
 
 ⚠️ **Recalé le 2026-10-02 et scindé en 7a / 7b** : lire d'abord
-« Recalage du 2026-10-02 » en fin de section, qui prévaut sur ce qui suit.
+« Recalage du lot 7 » en fin de section, qui prévaut sur ce qui suit.
 
 **Cat. J.** Requiert tous les lots 6bis-b-* validés et leur revue technique.
 L'écran saisit les auras **externes** du modèle corrigé, jamais un total
@@ -5801,7 +5806,7 @@ ce dépôt, c'est assumé (`ARCHITECTURE.md` § 9).
 **Ne fait pas :** ne change aucun calcul validé par 6bis-b-*. N'audite pas le reste de
 l'écran en mobile.
 
-#### Recalage du 2026-10-02 (sur `4467066b`) — prévaut sur ce qui précède
+#### Recalage du lot 7 — 2026-10-02, sur `4467066b`
 
 Carte établie par un agent en lecture seule ; ancrages principaux vérifiés
 par le pilote (écho, panneau au doigt, critère de coupe, flottant). Le fond
@@ -5863,11 +5868,24 @@ contrôle rendu ; l'indépendance du set recherché.
 - **7b** — rappel en liste de travail et ouverture guidée sur les deux
   formats, prop du shell comprise (~2 000 lignes) ; requiert 7a.
 
-**Questions d'interface à l'utilisateur** : Q1 à Q3 avant 7a, Q4 à Q7
-avant 7b — table A.8 des décisions en attente, avec la recommandation du
-pilote.
+**Réponses de l'utilisateur (2026-10-02)**, qui font partie du contrat :
+
+- 7a — interrupteur libellé « **Compter les effets d'auras Tolerance et
+  Précision dans les conditions** », activé par défaut, avec une aide ;
+  bouton pointillé « Ajouter un set d'aura » fixe en haut, les lignes
+  (set, nombre, corbeille) s'ajoutant SOUS lui ; un champ du nombre vidé
+  revient à 1 à la sortie du champ, seule la corbeille retire une ligne.
+- 7b — au doigt, l'ouverture guidée ouvre « Options de recherche »
+  par-dessus la carte ; à la souris, défiler vers l'ancre puis ouvrir le
+  flottant, qui peut déplacer la carte cliquée et se referme au clic
+  suivant hors de lui ; rappel et guidage au même token d'attention,
+  effacés après 3 s ; un autre exemplaire de la même espèce dans la liste
+  déclenche le rappel.
 
 ### Lot 8 — Blade Surge : le 3ᵉ coup, en zone
+
+⚠️ **Recalé le 2026-10-02 et scindé en 8a / 8b** : lire d'abord
+« Recalage du lot 8 » en fin de section, qui prévaut sur ce qui suit.
 
 **Cat. J.** Bloqué par les lots 1, son amendement pilote et 2b. Constat 151.
 Intrant commun supplémentaire : B.0, champ `cibleDegatsParSort`.
@@ -5925,7 +5943,59 @@ troisième coup, conformément à la valeur curée en A.2 ter.
 et **180** (Jackie) — voisins de catégorie, autre mécanique (lot 1, point 1) :
 ils vont au lot 13.
 
+#### Recalage du lot 8 — 2026-10-02, sur `8ea90bd9`
+
+Carte d'un agent en lecture seule ; ancrages structurants vérifiés par le
+pilote. Rien n'a été fait entre-temps sur Blade Surge (aucun identifiant
+dans `src/`, aucun champ de B.0, aucun test) : le fond tient.
+
+- **Prérequis** : 6bis-b13bis-b et -c livrés (fait le 2026-10-02). Les
+  lots 8 à 10 ne dépendent pas de 7a / 7b.
+- **Valeurs** : celles de A.2 ter (L136-140, L161-162), plus la décision de
+  l'utilisateur du 2026-10-02 — **224 sur les coups 1 et 2, 400 sur les
+  trois coups**. Aucune valeur manquante.
+- **Spec** : `spec/outils/degats-reels.md` n'est plus qu'un routeur ; le §
+  de l'artéfact 411 est `degats-reels/artefacts-critique-et-element.md`
+  L62-69. `passifs-offensifs.md` fait 488 lignes (plafond du lint 500) :
+  une section nouvelle va dans un fichier nouveau sous `degats-reels/`,
+  routé depuis `degats-reels.md`.
+- **Ancrages** : `aoe` du sort `damage.ts` L2170 ; 224 par
+  `artifactCritDamagePoints` L553-555 (appelée L4262) ; 411 neutralisé pour
+  les passifs L4874-4884 ; chemin coup par coup existant `profilUnCoup`
+  L4101-4125.
+- **Contraintes nées depuis** : `propres: AurasPropres` est obligatoire
+  dans `computeTotalDamage` / `computeSkillDamageDetail` ; tout champ
+  ajouté au profil ou au réglage reste une **donnée pure** (il traverse le
+  Worker de résolution, `ProtocoleClonable`, et `RealDamageContext`) ; la
+  classe `'sort'` de `DAMAGE_SETUP_CLASSIFICATION`
+  (`damageSetupTransition.ts`) donne le reset demandé par B.0 ; parseur
+  de recette `optimizerRecipe.ts` L240-375.
+- **Mécanisme** : une table par `com2usId` donnant la séquence des coups
+  (formule, portée), jamais un cas Blade Surge en dur ; le chemin court
+  reste celui des autres sorts.
+- **Écran (n° 8, retenu par l'utilisateur)** : sous « Compétence utilisée »
+  (`DamageSetupCard.tsx` L386-430), seulement pour Blade Surge, un
+  `Segmented` à deux crans, « Dégâts sur la cible visée » (défaut, les
+  trois coups) et « Dégâts sur les autres ennemis » (le 3ᵉ coup seul) ;
+  patron `champCoupsVariables` (L254). Les champs de cible existants
+  décrivent l'autre ennemi ; aucun champ nouveau. Amender l'aide L379-384
+  (« portée… jamais à saisir »), `resumeSort` L225-249, la ligne du CLI
+  `scripts/optimizer-search.ts` L198-203 et `invariants.md` L130.
+- **Corpus** : l'écran n'atteint que 19811-19815 et 19823 ; 10601 et 10605
+  (formes non éveillées 19801 et 19805) sont couverts par la table et le
+  test seulement.
+- **Compte réel (B.0)** : le compte porte Lapis, Astar, Iris (×3) et Lanett
+  (vérifié par script sur l'export le 2026-10-02).
+
+**Scission** (intrant estimé ~3 200 lignes) : **8a** moteur — type,
+classification, calcul, test, spec, invariant (~2 300) ; **8b**
+propagation — parseur, écran, CLI, tests B.0, CLI sur compte réel
+(~2 200) ; 8b requiert 8a.
+
 ### Lot 9 — Teshar : Tempest après S1/S2, et comme sort
+
+⚠️ **Recalé le 2026-10-02 et scindé en 9a / 9b** : lire d'abord
+« Recalage du lot 9 » en fin de section, qui prévaut sur ce qui suit.
 
 **Cat. J.** Bloqué par les lots 1, son amendement pilote et 2b. Constat 164.
 
@@ -5999,7 +6069,59 @@ déjà comprises dans les 58 identifiants initiaux. Les cinq S3 `8211` à `8215`
 curées mais présentes comme contexte sans couple propre, rejoignent également
 l'inventaire du lot 13 sans être comptées dans les 81.
 
+#### Recalage du lot 9 — 2026-10-02, sur `8ea90bd9`
+
+Carte d'un agent en lecture seule ; ancrages structurants vérifiés par le
+pilote. Rien n'a été fait entre-temps sur Tempest. Prérequis, spec
+(`degats-reels/`, nouveau fichier routé) et contraintes nées depuis
+(donnée pure, `AurasPropres`, classe `'sort'`) : comme le recalage du lot 8.
+
+- **Point 1 — ne tient plus tel quel.** `FORMULES_CUREES_PAR_ID`
+  (`damage.ts` L2596) n'est lue que par `skillDamageProfile` (L2749), qui
+  écarte les passifs (L2748) ; `monsterOffensivePassives` garde
+  `!c.formule` et lit `c.formule` (L3108-3111). La formule curée d'un
+  passif doit passer par la table curée (garde ET lecture) ; amender le
+  commentaire L2856-2861, `passifs-offensifs.md` L19-27 et `invariants.md`
+  L150. Donnée vérifiée par la carte : `14513.json`, compétence 1181,
+  `com2usId` 3213, `formule: ""`, passif, zone, +30 %.
+- **Point 2.** `PASSIFS_OFFENSIFS_CONNUS` L2946 ; « Tempest (Passive) »
+  n'est porté que par 14503 et 14513 (déjà vérifié). La restriction S1/S2
+  demande un champ curé de slots déclencheurs, lu avec `profile.slot` dans
+  `computeTotalDamage` (boucle L4885) ET dans `damageRelevantStats`
+  (L5058, invariant L159) : `passifActif` (L4690) ne connaît pas le sort
+  choisi, et `setup.skillCom2usId` peut valoir `null`. Interface
+  `conditionnel` existante (`DamageSetupCard.tsx` L846-880).
+- **Point 3, Tempest comme sort.** Retour `null` dès `c.passif` (L2748). À
+  traiter en plus : `defaultDamageSkill` (L3199-3202) ne fait jamais de
+  Tempest le sort par défaut ; neutraliser 411 pour Tempest seul (le sort
+  actif reçoit les artéfacts entiers, L4855) ; exclure le passif 3213 de la
+  boucle quand il est lui-même le sort ; amender `invariants.md` L152 et le
+  commentaire L3160 (« un passif n'est jamais le sort choisi »).
+- **Après S1/S2, les artéfacts sont déjà assurés par le chemin passif**
+  (411 neutralisé L4883-4884, 402/410 par `slot` = 3, 224 absent car
+  `aoe`, 222/223 sur PV enchaînés) : le lot le prouve, il ne le recode pas.
+- **Valeurs** : toutes présentes (A.2 ter L141-142, L161, L163) ; « 402/410
+  une fois sur Tempest » et 222/223 sont sourcés dans
+  `controle-1c1-amendement.md` L73-75 et L80-81 (utilisateur, 2026-09-23),
+  à citer. Les Samouraïs choisissent leur suite (A.2 ter L153) : la spec du
+  mécanisme générique le dit, « activée par un interrupteur » ne les couvre
+  pas.
+- **Écran (réponses de l'utilisateur du 2026-10-02)** : sort par défaut de
+  Teshar inchangé, **S2** ; l'interrupteur s'intitule « **Tempest (S3) se
+  déclenche après ce sort** », désactivé par défaut ; il est **masqué**
+  quand Tempest est lui-même la compétence choisie.
+- **Preuve en plus** : un aller-retour de recette avec `skillCom2usId` =
+  3213 (l'identifiant d'un passif). Compte réel : Teshar vent (14513)
+  présent.
+
+**Scission** (intrant estimé ~3 100 lignes) : **9a** points 1 et 2
+(~2 300) ; **9b** point 3, écran et spec du mécanisme générique (~2 300) ;
+9b requiert 9a.
+
 ### Lot 10 — l'ignore DEF conditionnel des Blade Dancers
+
+⚠️ **Recalé le 2026-10-02 et scindé en 10a / 10b** : lire d'abord
+« Recalage du lot 10 » en fin de section, qui prévaut sur ce qui suit.
 
 **Cat. J.** Bloqué par les lots 1, son amendement pilote et 2b. **Tout le
 constat 212 — et lui seul : 6 identifiants, 12 formes de corpus, deux
@@ -6071,7 +6193,42 @@ lot 1 citée dans la spec · `npx tsc --noEmit` ·
 (28 lignes d'audit restantes, lot 13a) — autres mécaniques d'ignore DEF conditionnel,
 lot 13.
 
+#### Recalage du lot 10 — 2026-10-02, sur `8ea90bd9`
+
+Carte d'un agent en lecture seule ; ancrages structurants vérifiés par le
+pilote. Rien n'a été fait entre-temps ; règle, crans, défauts, recettes et
+resets tiennent (A.2 ter L155-156, B.0, contrat ci-dessus). Prérequis,
+spec et contraintes nées depuis : comme le recalage du lot 8.
+
+- **Ancrages** : le booléen d'ignore DEF `damage.ts` L2807-2810 ; les six
+  sorts portent `Ignore DEF` (« If enemy ATB at 0 [or 7th hit] ») et sont
+  absents d'`IGNORE_DEF_CONDITIONNEL_PAR_ID` (L2732-2735) : aujourd'hui ils
+  ignorent la DEF sur tous leurs coups ; `IGNORE_DEF_COMPLET_CONNUS` L2731 ;
+  type `apresCoup` L2026-2032 ; `Selecteur` de l'écran `DamageSetupCard.tsx`
+  L1332-1350 ; découpe coup par coup L3967-4037 et L4101-4125.
+- **Mécaniques à ne pas confondre : six, pas trois** — `ignoreDefSelonVit`
+  (L2542, L2205, L4293), `ignoreDefParStack` (L2007, L1339, L1434),
+  `IGNORE_DEF_CONDITIONNEL_PAR_ID` (L2732 : il neutralise l'ignore, ne pas y
+  mettre les Blade Dancers), `compteurMin` (L2008), `ignoreDefPct` des
+  conditions de combat (L4296-4302).
+- **La DEF de la cible reste affichée** dans tous les crans de ces six
+  sorts : `champsDuCombat` (L3228-3234) la masque aujourd'hui dès que
+  `ignoreDef` est vrai (écran L327, résumé `OptimizerSection.tsx` L622).
+  Vérification à l'écran ajoutée en A.8.
+- **Écran (n° 12, retenu par l'utilisateur)** : sélecteur « Ignore la DEF
+  (jauge de la cible à 0) » ; sorts à 3 coups : « Aucun » (défaut), « Dès
+  le 2ᵉ coup », « Dès le 3ᵉ coup » ; sorts à 7 coups : « Dès le 2ᵉ coup » à
+  « Dès le 6ᵉ coup », puis « 7ᵉ coup seul » (défaut).
+- Mettre à jour `resumeSort` L229, la ligne du CLI L201, `invariants.md`
+  L130 et L161 ; **`npm run build`** dans les preuves (l'écran est touché).
+- **Compte réel** : Cordelia (vent) et Vereesa (ténèbres) présentes.
+
+**Scission** (intrant estimé ~2 800 lignes) : **10a** moteur ; **10b**
+propagation B.0 et écran, sur le patron de 8b (~1 800) ; 10b requiert 10a.
+
 ### Lot 11 — les passifs « Stats acquises en combat » : prose et Gold Headband
+
+⚠️ **Recalé le 2026-10-02** : lire d'abord « Recalage du lot 11 » en fin de section, qui prévaut.
 
 **Cat. C puis J.** Requiert le lot 1 (extraction 4 et amendement pilote) et 2b.
 L'inventaire porte 38 identifiants / 40 configurations ; huit configurations
@@ -6169,6 +6326,115 @@ preuves sont `decisions-lot-1e.json`, `controle-1e.md` et
 `valider-lot-1e.mjs`. L'écart `7912` a été tranché ensuite par l'utilisateur le
 2026-09-24 : `+20 % ATQ de base` et `+12 % VIT de base` par cumul. Le lot 11
 porte sa correction et ses tests ; le lot 1f doit conserver cette résolution.
+
+#### Recalage du lot 11 — 2026-10-02, sur `8ea90bd9`
+
+Carte d'un agent en lecture seule ; ancrages décisifs vérifiés par le
+pilote. Rien n'a bougé dans le périmètre depuis 1e (`DamageSetupCard.tsx`
+inchangé depuis `b2538ab1`, la table depuis `1cfa5128`) ; l'audit parallèle
+ne touche aucun identifiant du lot.
+
+- **Catégorie : J seul.** La partie C est faite par 1e : elle se réduit au
+  rejeu de `valider-lot-1e.mjs` et à un contrôle de non-dérive.
+- **Inventaires** : 38 identifiants / 40 configurations, tient (`damage.ts`
+  L1712-1757 ; mesure : borner la table, compter `^\s{2}\d+: \[` et
+  `source: '(\w+)'`) ; 80 formes : `controle-1e.md` L29-68. Correctif 30 /
+  32 et huit exclusions, tient : l'exclusion se **déduit des blocs** voisins
+  (patron `clesToggleDejaAffichees`, carte L360-363), jamais une liste de
+  huit identifiants ; **une prose par identifiant** (30, pas 32 : 10014 et
+  11663 portent deux réglages de même `description`).
+- **Ancrages** : interface L1688-1708, `description` L1691 (renseignée
+  L1768) ; branches L960-1042 ; la prose se place sous le jeton ou
+  l'interrupteur qui nomme le passif, **avant** le champ de saisie
+  (L586-589, L728-731).
+- **Contrat 1)** : `controle-1e.md` L29-68 (tableau) et L101-106
+  (exclusions), rejeu de `valider-lot-1e.mjs` ; `decisions-lot-1e.json`
+  (3 830 lignes) s'interroge par script, jamais lu en entier.
+- **Contrat 3)** : `spec/outils/degats-reels/conditions-et-audit.md`,
+  « partie 2 » (L56-90) ; constantes 20 %, 12 %, 10 cumuls dans
+  `invariants.md` (recette (c) de `spec-hygiene`) ; ne pas toucher
+  `passifs-vitesse.md` (généré). Habillages coréens : déjà écartés
+  (`monsterForms.ts` L29-55, L125-146) — citer ce fichier, pas A.2 ter.
+- **Gold Headband** : la ligne `{ atkPct: 20, spdFlat: 12 }` (L1713) reste
+  fausse ; `atkBasePct` existe (L1698, L3781, L3918), `spdBasePct` non. À
+  toucher : type L1688-1708, résolveur L3771 / L3785, `statsDeCombat`
+  L3923, **et `damageRelevantStats` L5143**, à parité avec `atkBasePct`
+  L5136 (sinon la VIT sort des stats pertinentes de Mei Hou Wang).
+  **Sans arrondi** (n° 13, retenu par l'utilisateur) : 13,92 de VIT par
+  cumul pour une base 116, comme l'ATQ ; l'écart avec le Speed tune
+  (`speedTunePassif.ts` L205, `ceil` par cumul) est consigné par
+  `<!-- À trancher -->` et une ligne dans `pistes.md`.
+- **Tests 0 / 1 / 10 cumuls** : 16812 Mei Hou Wang (ATQ 692, VIT 116 :
+  +138,4 / +1 384 ATQ, +13,92 / +139,2 VIT) et 16802 Monkey King (ATQ 659,
+  VIT 100 : +131,8 / +1 318, +12 / +120) ; resserrer le test seulement
+  monotone de `tests/audit-degats-conditionnels.test.ts` L1086-1094.
+- **Constat 110, Rankyaku** : la VIT de `5 × VIT` est la **VIT finale**
+  (A.2 ter, utilisateur, 2026-10-02 : base, runes, set, lead, effet
+  d'augmentation de vitesse, artéfacts). Le lot prouve que le calcul lit
+  cette VIT finale (`maVitCombat` L3646-3669, puis L3912 et L3920), avec
+  lead et buff actifs, dans `audit-degats-conditionnels.test.ts`, qui
+  importe déjà `statsDeCombat`. Il n'y a plus d'incertitude à reporter au
+  lot 13a.
+- **Écran (n° 14, 15, retenus par l'utilisateur)** : Elsharion et Crane,
+  une seule description pour leurs deux compteurs ; les 27 réglages sans
+  nom de passif reçoivent au-dessus l'icône et le nom du passif (patron
+  L577-585), puis la description. Preuve : `npm run build` et un test d'une
+  fonction pure « quelle prose est rendue » (30 / 32, aucun doublon) ; la
+  relecture à l'œil reste en A.8.
+- **À ne pas casser** : le titre exact de ce lot (ancre de
+  `valider-lot-1e.mjs` L68) ; l'unicité des fragments que ce validateur
+  (L75-79) et `scripts/audit-degats-aura-corpus.mjs` (L80-88) cherchent
+  dans la carte.
+
+**Intrant** ~2 400 lignes : une session, de justesse, sans lire le JSON de
+1e ni la Partie A en entier. Si l'agent du lot le juge trop serré, il le
+dit avant de commencer et le pilote coupe par sujet (Gold Headband et
+Rankyaku ; puis la prose).
+
+### Lot 11bis — proses de sort au clic, sur les deux formats
+
+**Cat. J.** Demande de l'utilisateur du 2026-10-02 : « toutes les proses de
+sort qui étaient indiquées par survol de l'icône du sort doivent être
+remplacées par une infobulle cliquable. Aujourd'hui sur mobile on ne pouvait
+pas voir ces informations. Le point d'interrogation cliquable pour
+l'infobulle doit être dans la case du sort, juste à droite de son nom. »
+
+**Aujourd'hui** : dans « Compétence utilisée » (`DamageSetupCard.tsx`
+L386-430), la prose du sort n'est qu'au survol (`title={s.description}`,
+L390, et `aria-description` L394). La fiche monstre
+(`MonsterDetailDialog.tsx` L362-364) l'affiche déjà en clair.
+
+**Contrat.**
+
+- Dans chaque case de sort de « Compétence utilisée », un bouton « ? »
+  juste à droite du nom ouvre la prose du sort : bulle à la souris,
+  panneau montant au doigt, par `HelpPopover` (le patron des deux
+  supports). Le survol (`title`) disparaît ; la prose reste annoncée aux
+  lecteurs d'écran.
+- ⚠️ **La case est un `<button>`** (`src/ui/Option.tsx` L37) : un « ? »
+  placé dans son `titre` ferait un bouton dans un bouton (HTML invalide),
+  et un clic sur « ? » choisirait aussi le sort. `Option` reçoit donc un
+  **axe** de plus (une action posée à droite du titre, hors du bouton
+  principal, dans la même case) — jamais une variante. Cliquer « ? » ne
+  sélectionne pas le sort ; la case cliquée ne bouge pas (la bulle sort du
+  flux).
+- Un sort sans prose n'a pas de « ? ». Un sort refusé (case désactivée)
+  garde son « ? » s'il a une prose.
+- Les deux formats sont de premier rang : vérifier le panneau montant au
+  doigt sous la carte (piège `[data-tiroir]`, `ARCHITECTURE.md` § 7).
+
+**Question ouverte à l'utilisateur (A.8)** : les autres textes visibles
+seulement au survol — pastilles d'effet de la fiche monstre
+(`MonsterDetailDialog.tsx` L384), vignettes d'effet de « Dégâts réels »
+(`EffetVignette.tsx` L36) — entrent-ils dans ce lot ?
+
+**Preuves** : test de source (plus aucun `title={s.description}` dans la
+carte ; le « ? » est hors du bouton de la case) ; `tsc`, tests de zone,
+`npm run build` (vérifier le CSS construit) ; relecture à l'écran inscrite
+en A.8, ordinateur ET téléphone.
+
+**Ne fait pas** : ne change ni le texte des proses (libellés du jeu), ni le
+choix d'un sort, ni le calcul.
 
 ### Lot 12 — les trois mécanismes rejoués sur des cas indépendants
 

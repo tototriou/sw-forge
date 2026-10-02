@@ -429,7 +429,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
                             contrat : 9c le corrige avant 13a)
 11bis                      (proses de sort au clic, demande du 2026-10-02 ;
                             aucune dépendance de code, après 11 par l'ordre)
-1f, 11, 12, 9c → 13a → amendement et revue pilote → 13b-*
+1f, 11, 12, 9c → 13a → amendement et revue pilote → 13b-* → consolidation 13
                             (chaque contrat créé avant son exécution)
 audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
                             pilote quand il touche leur famille
@@ -729,8 +729,9 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `92de9890`, `d6ff1b6a`, `5a21fd78` / 2026-10-02 |
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
-| 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | à faire | — |
-| 13b-* — contrats de qualification à créer par le pilote après 13a | J | non lançables avant amendement et revue | — |
+| 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
+| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **lançables**, plusieurs à la fois | — |
+| 13 — consolidation : plan, synthèse, recommandation (pilote) | J | après les dix-sept 13b ; recommandation soumise à l'utilisateur | — |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -7678,6 +7679,49 @@ nommée, preuve/commande attendue, frontière et dépendances. Ajouter une ligne
 par sous-lot dans A.7 et mettre à jour le graphe. Revue pilote de cet amendement
 avant tout lancement de 13b ; le contrat générique ci-dessous ne suffit pas.
 
+#### Résultat du lot 13a — 2026-10-02
+
+Agent `lot-c` (Sonnet 5.5, effort moyen). Aucun commit de code : tout est
+dans les notes privées. Reçu `cd5fe43` ↔ `35d577f` ; preuve `controle-13a.md`
+(656 lignes) et `controle-13a-intrants/` (scripts `00` à `07`, sorties,
+empreintes SHA-256 des intrants et des sorties). **Recomptage** : la commande
+du contrat rejouée rend **521 lignes d'audit / 243 constats**, ventilation
+identique. **Partition** des 325 constats / 695 lignes en quatre ensembles
+disjoints : livré avant (78 / 160), traité ici (110, 151, 164, 212 :
+4 / 14), **déclaré livré par `partie-2.csv` sans être au suivi (51 / 97)**,
+différé (192 / 424). **Suivi** (`suivi-implementation.csv`, 78 → 82
+lignes) : 110, 151, 164, 212 inscrits avec leurs preuves ; 308 passe de
+« report prévu étape 2 » à « implémenté et vérifié » (partie 2 et deux
+contrôles « 308 — » passants) ; état d'origine conservé
+(`suivi-implementation-avant-13a.*`). **Prose (39 constats)** : 26 vers des
+constats différés, 5 en partie, 8 découvertes hors inventaire DH13-01 à
+DH13-08 ; aucun vers une famille des lots 8 à 11. **Passifs de stats
+absents** : 34 signaux parmi les 62 identifiants de catégorie 05 ; balayage
+du corpus (3 073 fichiers) : 173 passifs hors audit relevés par détecteurs
+d'indice (DH13-S001 à S173). **Plan 13b** : dix-sept sous-lots couvrant les
+243 constats et les 521 lignes sans doublon (le script échoue sinon), volume
+maximal 173 lignes (seuil 800).
+
+**Rejoué par le pilote** : reçu valide ; spec-lint vert ; état livré
+sauvegardé puis `00-rejouer.mjs` relancé → **empreintes des sorties
+identiques**, notes inchangées ; contrôle indépendant (script du pilote,
+lecteur CSV qui respecte les guillemets) : `partie-2.csv` déclare livrés 52
+constats absents du suivi d'avant 13a — dont 110, traité ici — soit les
+**51** de l'agent.
+
+**Arbitrages du pilote** : (1) **les 51 constats déclarés livrés restent
+dans les 243** (= 192 différés + 51 à vérifier) et ne comptent comme livrés
+qu'une fois vérifiés en 13b (`13b-verif-partie2`, et `13b-ignore-def` pour
+ses douze) ; (2) **308**, inscrit par 13a sur la même source, rejoint
+`13b-verif-partie2` par cohérence ; (3) 149 (Arsenal of Sacrifice) y reste,
+comme proposé ; (4) les découvertes DH13-* sont dénombrées à part,
+jamais mêlées aux 243 ; (5) le contrôle permanent proposé (chaque clé de
+`STATS_COMBAT_PAR_ID_CONNUS` est un identifiant du corpus) est confié à
+`13b-stats-passifs`, qui vérifie d'abord qu'il n'existe pas déjà.
+**Non prouvé** (agent) : livraison des 51 rejouée constat par constat ;
+rappel et précision des détecteurs des 173 passifs ; formes non éveillées
+non filtrées.
+
 #### 13b — qualification et plan par familles
 
 **Cat. J. Gabarit, non lançable en l'état.** Une session par contrat 13b-*
@@ -7727,6 +7771,87 @@ Les découvertes hors corpus sont dénombrées séparément.
 **Ne fait pas :** **n'implémente aucun constat.** Ne relance aucune mesure de
 perf. Ne décide pas seul d'ouvrir un chantier — il recommande, l'utilisateur
 tranche.
+
+#### Contrats 13b-* — amendement pilote du 2026-10-02, après 13a
+
+**Contrat commun** (chaque session lit ce paragraphe, puis sa ligne de la
+table, puis sa section de `controle-13a.md`).
+
+- **Intrant** : sa section de `controle-13a.md` (plage de la table : liste
+  nominative des constats, lignes d'audit, identifiants, prose rattachée,
+  plages de code et de spec) ; ses lignes de `controle-13a-intrants/plan-13b.csv`
+  (colonne `sous_lot`) ; les lignes d'audit correspondantes de
+  `inventaire.csv` (par script, jamais en entier) ; les sections de
+  `releve-audit-prose-2026-10-01.md` de sa prose ; les fiches du corpus et
+  les plages de `damage.ts` / spec citées. Rien d'autre sans raison écrite.
+- **Par constat** (et par ligne d'audit quand elles divergent), deux
+  verdicts **cités** : (a) la valeur est-elle **dans la donnée** (formule,
+  effet, `note` : citer le champ) ou faut-il un **relevé en jeu** ? (b) la
+  mécanique **existe-t-elle** dans `damage.ts` (citer la table ou la
+  fonction : « une ligne de table suffit ») ou faut-il un **mécanisme
+  neuf** ? Une incertitude reste nommée (« indéterminé : … »), jamais forcée
+  dans une case. Le skill `game-data-curation` s'applique : la prose n'est
+  pas un discriminant, jamais d'analogie.
+- **Constat déclaré livré** (ensemble P) : verdict **livraison établie /
+  partielle / infirmée**, avec le test nommé et le chemin de code ; aucune
+  curation neuve.
+- **Sortie** : `spec/outils/optimizer/archive/controles-degats-aura-2026-09/controle-13b-<famille>.md`
+  (H1, puis `**Statut :** ARCHIVE — preuve du lot 13b-<famille> du chantier degats-et-aura`)
+  et, si besoin, `controle-13b-<famille>-intrants/` : tableau des verdicts
+  (constat, lignes, identifiants, (a), (b), citations), relevés en jeu
+  nécessaires (protocole selon `game-data-curation`, pour regroupement),
+  proposition de lots pour sa famille (bornés par les unités de A.0 et des
+  plages de lecture), incertitudes, découvertes hors inventaire avec un
+  identifiant distinct.
+- **Ne fait pas** : n'implémente rien, aucun fichier suivi modifié, aucun
+  commit ; ne touche aucune note partagée (`invariants.md`, `pistes.md`,
+  `suivi-implementation.*`, la preuve d'un autre sous-lot) ; ni `livrer` ni
+  `push` — le pilote livre après validation ; ne décide pas d'un chantier.
+- **Parallèle** (application par le pilote de la décision de l'utilisateur
+  du 2026-10-02 sur les lots indépendants) : ces sessions n'écrivent que
+  leur propre fichier de preuve et leur dossier d'intrants ; plusieurs
+  tournent donc ensemble dans le worktree du chantier, sans worktree séparé.
+- **Validation par le pilote** : relecture de la preuve et contrôle
+  indépendant d'au moins trois verdicts tirés au hasard (donnée citée et
+  chemin de code relus), écrit dans le Résultat du sous-lot.
+
+| Sous-lot | Constats (différés / déclarés livrés) | Lignes d'audit, volume | Section de `controle-13a.md` | Particularités |
+| --- | --- | --- | --- | --- |
+| `13b-declenchee-amorces` | 4 (4/0) : 168, 178, 179, 313 | 19, 19 | L415-422 | les 17 amorces de 9c (11 acceptables, 6 classées) ; asymétrie 8115 / 8111 ; Marque de la S2 (178) ; interface d'une attaque appelée active au premier cas curé ; 313 hors architecture |
+| `13b-declenchee-voisins` | 15 (15/0) | 43, 43 | L423-430 | verdicts « même architecture » de 1c2/1c3 ; les voisins classés par le lot 12 (Energy Ball, Blood Talon, Heaven's Might) |
+| `13b-sequences-zone` | 12 (12/0) | 20, 38 | L431-438 | 163, 173, 180 (voisins de Blade Surge) ; 155 Head Press et la limite de la garde « le premier groupe recopie la donnée » (lot 12) |
+| `13b-effets-entre-coups` | 13 (13/0) | 43, 97 | L439-446 | dont 322 et 323 (26 lignes) |
+| `13b-coups-variables` | 15 (15/0) | 49, 67 | L447-454 | — |
+| `13b-ignore-def` | 16 (4/12) | 28, 28 | L455-462 | douze déclarés livrés (200-209, 214, 215) à vérifier ; 210, 211, 213, 216 différés ; aucun n'est « à partir d'un coup » (lot 12) |
+| `13b-pertes-pv` | 18 (18/0) | 46, 127 | L463-470 | dont 230, 231, 232 (bombes, DoT) |
+| `13b-hors-tour-cooperation` | 9 (9/0) | 34, 52 | L471-478 | — |
+| `13b-composantes-supplementaires` | 15 (15/0) | 29, 83 | L479-486 | — |
+| `13b-pv-comparaisons-boucliers` | 13 (13/0) | 17, 53 | L487-494 | — |
+| `13b-compteurs-etats-binaires` | 8 (8/0) | 14, 68 | L495-502 | — |
+| `13b-variables-refusees` | 6 (6/0) | 8, 17 | L503-510 | — |
+| `13b-stats-passifs` | 11 (11/0) | 30, 30 | L511-518 | les 34 signaux de 13a (dont 83 et 86, livrés : présence par nom dans une autre table) ; vérifier si un test garde déjà « chaque clé de `STATS_COMBAT_PAR_ID_CONNUS` est un identifiant du corpus », sinon le proposer |
+| `13b-stats-passifs-corpus` | 0 | 0, 173 à trier | L519-526 | DH13-S001 à S173 : d'abord trier (passif de stats oui / non / indéterminé, prose et effets cités), puis (a) et (b) pour les « oui » ; découvertes hors inventaire dénombrées à part |
+| `13b-critiques-garantis` | 30 (30/0) | 34, 43 | L527-534 | condition exacte de la garantie à lire avant tout verdict |
+| `13b-critiques-bonus-tc-dc` | 18 (18/0) | 30, 30 | L535-542 | — |
+| `13b-verif-partie2` | 40 (1/39) + 308 | 77, 77 | L543-568 | livraison établie / partielle / infirmée pour les 39 déclarés livrés, 149 (Arsenal of Sacrifice, livré « hors inventaire » par la partie 2) et 308 (inscrit par 13a sur la même source) |
+
+**Consolidation — pilote, après les dix-sept** : le fichier de plan dans
+`spec/outils/optimizer/decisions/` (nature décision, en-tête posé :
+classement des 243 sur les quatre cases, familles reportées
+nominativement, relevés regroupés en **une** demande, proposition de lots,
+recommandation chiffrée « lot de plus ou chantier à part »), la synthèse
+`controle-13.md` (totaux par case, ensemble = 243 ou total réconcilié
+justifié, découvertes DH13-* dénombrées à part, incertitudes), une ligne de
+`pistes.md` qui pointe le plan. La recommandation est **soumise à
+l'utilisateur**, qui tranche.
+
+**Revue pilote de cet amendement** (2026-10-02) : chaque sous-lot a une
+liste nominative (section de `controle-13a.md`, colonne `sous_lot`) et un
+volume ≤ 173 lignes ; les 243 constats et les 521 lignes sont couverts une
+fois (contrôle du script `06-plan-13b.mjs`, rejoué) ; chaque renvoi
+nominatif du lot 13 (point 2) et des Résultats 9c, 11 et 12 a son
+sous-lot ; aucune session n'écrit un fichier commun ; aucune n'a besoin
+d'un outil créé plus tard.
 
 ### Lot 14 — clôture
 

@@ -37,7 +37,7 @@ import { RuneDetail } from '../types';
 import { BuildCandidate } from '../lib/runeBuildOptim';
 import { ResultatArtefacts, cleBuild, prochainsATraiter, voieDeLaFile } from '../lib/artifactQueue';
 import { EntreesResolutionSerialisables, ReponseResolution } from '../workers/resolutionBody';
-import { PortsResolutionDistante, ResolutionDistante } from '../workers/resolutionDistante';
+import { PortsResolutionDistante, ResolutionDistante, repliSurErreur } from '../workers/resolutionDistante';
 
 /**
  * Intervalle minimal entre deux PUBLICATIONS du cache à l’écran.
@@ -372,7 +372,10 @@ export function useArtifactOptimQueue(opts: {
     // écrit ; une réponse d'erreur fait quand même renoncer.
     const reponseAuRepos = (pilote: ResolutionDistante, r: ReponseResolution) => {
       const issue = pilote.recevoir(r, null, null);
-      if (issue.issue === 'erreur') basculerEnRepli(`la résolution a levé dans le Worker (${issue.nom})`, issue.message);
+      if (issue.issue === 'erreur') {
+        const { raison, detail } = repliSurErreur(issue);
+        basculerEnRepli(raison, detail);
+      }
     };
     let d = distantRef.current;
     if (!d) {

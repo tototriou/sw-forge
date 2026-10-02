@@ -83,6 +83,23 @@ export type IssueReponse =
     }
   | { issue: 'erreur'; nom: string; message: string; vide?: RelicVide };
 
+/**
+ * Ce qui est journalisé quand la résolution a levé dans le Worker (réponse
+ * `erreur`) : la raison du repli, et un détail qui porte le nom, le message
+ * et, pour une `RechercheRefusee`, son motif `vide` — jamais perdu en route
+ * (6bis-b13bis-c). Une seule écriture pour le module (`surReponse`) et le
+ * hook (réponse arrivée hors d'un effet actif).
+ */
+export function repliSurErreur(issue: Extract<IssueReponse, { issue: 'erreur' }>): {
+  raison: string;
+  detail: { nom: string; message: string; vide?: RelicVide };
+} {
+  return {
+    raison: `la résolution a levé dans le Worker (${issue.nom})`,
+    detail: { nom: issue.nom, message: issue.message, ...(issue.vide ? { vide: issue.vide } : {}) },
+  };
+}
+
 interface DemandeEnVol {
   idDemande: number;
   idContexte: number;
@@ -280,7 +297,8 @@ export class ResolutionDistante {
     const avant = voieDeLaFile(p.restants(), page, cache);
     const issue = this.recevoir(r, cache, p.courant());
     if (issue.issue === 'erreur') {
-      this.basculer(p, `la résolution a levé dans le Worker (${issue.nom})`, issue.message);
+      const { raison, detail } = repliSurErreur(issue);
+      this.basculer(p, raison, detail);
       return;
     }
     if (issue.issue === 'ecrite') {

@@ -44,7 +44,7 @@ import { RelicContext } from '../src/lib/relicOptim';
 import { BuildCandidate, SearchParams, searchBuilds } from '../src/lib/runeBuildOptim';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild } from '../src/lib/relicQueue';
 import { CorpsResolution, EntreesResolutionSerialisables, MessageVersResolution, ReponseResolution, entreesSerialisables } from '../src/workers/resolutionBody';
-import { ContexteCourant, DEMANDES_EN_VOL_MAX, PortsResolutionDistante, ResolutionDistante, publicationForcee } from '../src/workers/resolutionDistante';
+import { ContexteCourant, DEMANDES_EN_VOL_MAX, PortsResolutionDistante, ResolutionDistante, publicationForcee, repliSurErreur } from '../src/workers/resolutionDistante';
 import { maxStatsActifsDe, runesDe } from '../scripts/lib/relicDifferentiel';
 import { CORPUS_5A } from './relic-search.test';
 import { DEGATS_FICHE } from './artifact-fiche.test';
@@ -598,9 +598,9 @@ export function testResolutionDistante() {
     q.recevoir(resultat(2, 3, '1'), m, c2);
     ok(m.size === 0, 'après repli : plus rien n’est écrit');
   }
-  type Trace = { envoyes: MessageVersResolution[]; publications: boolean[]; replis: string[]; enAttente: number[] };
+  type Trace = { envoyes: MessageVersResolution[]; publications: boolean[]; replis: string[]; details: unknown[]; enAttente: number[] };
   const portsDe = (o: { triees: BuildCandidate[]; page: BuildCandidate[]; K: number; cache: Map<string, ResultatArtefacts>; envoyer?: (m: MessageVersResolution) => void }) => {
-    const t: Trace = { envoyes: [], publications: [], replis: [], enAttente: [] };
+    const t: Trace = { envoyes: [], publications: [], replis: [], details: [], enAttente: [] };
     const ports: PortsResolutionDistante = {
       courant: () => c1,
       runesDe: sansRunes,
@@ -614,7 +614,10 @@ export function testResolutionDistante() {
         return f;
       },
       enAttente: (n) => t.enAttente.push(n),
-      repli: (raison, detail) => t.replis.push(`${raison} : ${String(detail)}`),
+      repli: (raison, detail) => {
+        t.replis.push(`${raison} : ${String(detail)}`);
+        t.details.push(detail);
+      },
     };
     return { ports, t };
   };
@@ -633,9 +636,14 @@ export function testResolutionDistante() {
     const { ports, t } = portsDe({ triees: [b(1), b(2)], page: [], K: 2, cache: cacheP });
     q.pomper(ports);
     q.surReponse({ type: 'erreur', idContexte: 1, idDemande: 1, cle: '1', nom: 'RechercheRefusee', message: 'pool vide', vide: 'seuil' }, ports);
-    ok(q.enRepli && t.replis.length === 1 && /RechercheRefusee/.test(t.replis[0]!) && /pool vide/.test(t.replis[0]!) && cacheP.size === 0,
-      `réponse d’erreur : repli, nom et message transmis, rien d’écrit (${t.replis[0]})`);
+    ok(q.enRepli && t.replis.length === 1 && /RechercheRefusee/.test(t.replis[0]!) && cacheP.size === 0,
+      `réponse d’erreur : repli, rien d’écrit (${t.replis[0]})`);
+    egal(t.details, [{ nom: 'RechercheRefusee', message: 'pool vide', vide: 'seuil' }],
+      'réponse d’erreur : le repli journalise le nom, le message ET le motif `vide` de la RechercheRefusee (6bis-b13bis-c)');
   }
+  egal(repliSurErreur({ issue: 'erreur', nom: 'Error', message: 'boum' }),
+    { raison: 'la résolution a levé dans le Worker (Error)', detail: { nom: 'Error', message: 'boum' } },
+    'repliSurErreur : sans motif `vide`, le détail n’en invente pas');
   {
     // Publication : page [1, 2], file [1, 2, 3].
     const q = new ResolutionDistante();
@@ -924,6 +932,8 @@ export function testResolutionDistante() {
   ok(/distant\.pilote\.surReponse\(r, ports\)/.test(effetWorker) && /distant\.pilote\.pomper\(ports\)/.test(effetWorker), 'hook : les réponses et les tours de file passent par le module');
   ok(/worker\.onerror = \(e: ErrorEvent\) => basculerEnRepli\(/.test(effetWorker) && /worker\.onmessageerror = \(e: MessageEvent\) => basculerEnRepli\(/.test(effetWorker)
     && /basculerEnRepli\('Worker impossible à créer', err\)/.test(effetWorker), 'hook : erreur du Worker, réponse illisible et création impossible → repli');
+  ok(/const issue = pilote\.recevoir\(r, null, null\);\s*if \(issue\.issue === 'erreur'\) \{\s*const \{ raison, detail \} = repliSurErreur\(issue\);\s*basculerEnRepli\(raison, detail\);\s*\}/.test(effetWorker),
+    'hook : une réponse d’erreur hors effet actif journalise le même détail que le module (repliSurErreur, `vide` compris)');
   const repli = bloc(hook, 'const basculerEnRepli = useCallback(', '}, []);');
   ok(/console\.error\(/.test(repli) && /d\.worker\.terminate\(\);/.test(repli) && /setEnRepli\(true\);/.test(repli),
     'hook : le repli journalise (console.error), termine le Worker et rend la main au chemin direct');

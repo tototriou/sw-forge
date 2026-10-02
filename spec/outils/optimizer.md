@@ -2541,7 +2541,9 @@ MÊME résolution (`entreeResolutionDuBuild` puis
   plus par file, au plus.
 - **Repli** : un Worker impossible à créer, qui lève, dont une réponse est
   illisible, ou dont la résolution a levé, est journalisé dans la console
-  (jamais en silence), terminé, et la file reprend sur le fil principal par
+  (jamais en silence ; une résolution qui a levé l'est avec son nom, son
+  message et, pour un pool de reliques vide, son motif `vide` —
+  6bis-b13bis-c), terminé, et la file reprend sur le fil principal par
   les deux voies ci-dessus, avec le cache tel qu'il est — rien de déjà
   résolu n'est perdu. Le repli dure jusqu'au démontage de l'écran.
 - **Un seul Worker pour la vie de l'écran Optimizer**, créé au premier

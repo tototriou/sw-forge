@@ -157,8 +157,10 @@ export type MessageVersResolution = MessageContexteResolution | MessageDemandeRe
  * - `annule` : jamais résolue — annulée par l'appelant (`demande`), ou son
  *   contexte n'est pas (ou plus) celui du corps (`contexte`) ;
  * - `erreur` : la résolution a levé ; `vide` porte le motif d'une
- *   `RechercheRefusee` (pool de reliques vide en mode `recherche`), pour que
- *   l'appelant la reconstruise à l'identique au lieu d'un échec muet.
+ *   `RechercheRefusee` (pool de reliques vide en mode `recherche`), que
+ *   l'appelant journalise avec le nom et le message au repli
+ *   (`repliSurErreur`, resolutionDistante.ts — 6bis-b13bis-c) : le motif
+ *   structuré n'est jamais perdu en route. Il ne reconstruit pas l'erreur.
  *
  * ⚠️ Toutes portent `idContexte` et `idDemande` : un résultat d'une demande
  * annulée ou d'un contexte périmé reste RECONNAISSABLE, et l'appelant

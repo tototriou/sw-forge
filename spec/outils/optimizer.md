@@ -1146,8 +1146,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    Le trait ne suffisait pas à dire « autre métier » — une carte, si.
    Contenu : **buff ATQ**, **buff DEF**, **buff
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
-   jeu) et **compétences d'invocateur**. Ce qui rend le monstre plus fort,
-   quel que soit l'adversaire.
+   jeu), **compétences d'invocateur** et, depuis degats-et-aura 7a, les
+   **sets d'aura des autres monstres** de l'équipe. Ce qui rend le monstre
+   plus fort, quel que soit l'adversaire.
    Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
    apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
    VIT), jamais sous la VIT de l'adversaire.
@@ -1181,6 +1182,40 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    largeur** : ils occupent la même colonne de grille, en `w-full`. La largeur
    se déduit donc du plus large des deux — aucune valeur en dur à tenir à jour
    quand un libellé change.
+
+   **Sets d'aura des autres monstres** (degats-et-aura 7a) — une quatrième
+   boîte, **sous** la rangée des trois groupes et **en dernier** dans la
+   carte, qui saisit `DamageSetup.setsAuraExternes` : les sets Fight,
+   Determination, Enhance, Accuracy et Tolerance portés par les **autres**
+   monstres de l'équipe (voir
+   [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)). En tête,
+   le libellé « Sets d'aura des autres monstres », son aide — les sets du
+   monstre optimisé sont comptés automatiquement sur chaque build, même
+   s'ils ne sont pas recherchés — et le total « X / 15 ». Dessous, le bouton
+   pointillé **« Ajouter un set d'aura »**, **fixe** : les lignes s'ajoutent
+   SOUS lui (demande explicite), avec le premier set absent et le nombre 1 ;
+   ajouter ne pousse donc que vers le bas. Une ligne = le set (`Selecteur` :
+   le sien et ceux qu'aucune autre ligne ne porte — une seule ligne par
+   set), le nombre (`NumberField`) et une corbeille (`BoutonIcone`) ; sous
+   ces contrôles, le libellé explicite « Nombre de sets Fight des autres
+   monstres de l'équipe », même patron pour les cinq sets. ⚠️ **Dessous et
+   non dessus** : il change de longueur avec le set et peut passer à la
+   ligne — au-dessus, il ferait descendre le menu qu'on vient de cliquer.
+   Le menu occupe la colonne restante de sa ligne : sa largeur vient de la
+   boîte, jamais de l'option choisie. Même disposition aux deux formats.
+
+   ⚠️ **Les bornes sont celles de la fonction pure d'écriture**
+   (`src/lib/aurasExternes.ts`), pas seulement du contrôle, qui ne borne
+   qu'à la sortie du champ et à ses boutons : le nombre va de 1 à
+   `15 − somme des autres lignes`, et une frappe au-delà est ramenée au
+   maximum, jamais écrite. À somme 15, ou quand les cinq sets ont leur
+   ligne, le bouton d'ajout se désactive (raison en infobulle) sans toucher
+   aux lignes existantes. Un champ du nombre **vidé revient à 1** à la
+   sortie du champ ; **seule la corbeille retire une ligne**. Toute liste
+   écrite passe la validation de la recette — la même fonction,
+   `erreurAurasExternes`. Choisir, changer ou retirer un set recherché ne
+   crée, ne relève et ne supprime aucune aura externe : les deux sources
+   sont indépendantes.
 
    ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
    atteignables sous ce seul objectif — alors qu'ils changent les
@@ -1378,7 +1413,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      seul l'inévitable pour un maximum, sans jamais écarter un build valide ;
      le pré-filtrage et la rétention restent heuristiques et ne valorisent
      pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
-     condition. Les contrôles de saisie de ces deux champs arrivent au lot 7.
+     condition. Les auras externes se saisissent dans « État de mon
+     monstre » (voir plus haut) ; `compterAurasResPre` n'a pas encore de
+     contrôle à l'écran.
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
 8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**

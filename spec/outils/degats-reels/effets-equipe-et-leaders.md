@@ -96,7 +96,11 @@ entrée par type, un entier de 1 à 15 et une somme de tous les types au plus
 répétée ou hors bornes est refusée avec le chemin
 `damageSetup.setsAuraExternes` ou celui de son entrée. La liste survit à un
 changement d'espèce, d'exemplaire ou de liste et se vide à l'import d'un
-compte. Source des cinq valeurs et du plafond : utilisateur, 2026-09-23 puis
+compte. Depuis le lot 7a, l'écran la saisit dans la carte « État de mon
+monstre » ([spec/outils/optimizer.md § État de mon monstre](../optimizer.md)) par les
+fonctions pures de `src/lib/aurasExternes.ts`, qui bornent chaque écriture
+et portent la validation que la recette appelle (`erreurAurasExternes`) :
+ce que l'écran écrit, la recette le relit. Source des cinq valeurs et du plafond : utilisateur, 2026-09-23 puis
 2026-09-25, cadrage `spec/chantiers/degats-et-aura.md` A.2 ter.
 
 Les activations d'aura **propres** au build — les sets réellement formés par
@@ -177,7 +181,7 @@ booléen est optionnel dans la recette pour préserver les exports antérieurs ;
 ses valeurs présentes doivent être booléennes. Le modèle est livré au lot 6,
 le champ externe au lot 6bis-b1, les activations propres dans le combat et le
 score au lot 6bis-b2, dans les contrôles exacts des conditions au lot
-6bis-b3a ; ses contrôles visuels appartiennent au lot 7.
+6bis-b3a ; la saisie des auras externes à l'écran, au lot 7a.
 
 ## Leader skill d'équipe
 

@@ -77,6 +77,7 @@ import testOptimizerExclusion from './optimizer-exclusion.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
 import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle, testAurasPropresResolution, testAurasPropresCombatEtScore, testAurasPvEffectifsCeilUnique, testAurasPropresNoteDesCouples, testAurasConditionsPropresFonctions, testAurasConditionsPropresResolution, testAurasConditionsPropresPairBuckets, testAurasCarteEgaleTri, testAurasPariteRegimes } from './auras-modele.test';
+import { testAurasEcranBornes, testAurasEcranEcriture, testAurasEcranValidationPartagee } from './auras-ecran.test';
 import {
   testRuneOptimAurasCoupesMinimum,
   testRuneOptimAurasCoupesDiagnostics,
@@ -215,6 +216,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAurasConditionsPropresPairBuckets', testAurasConditionsPropresPairBuckets],
   ['testAurasCarteEgaleTri', testAurasCarteEgaleTri],
   ['testAurasPariteRegimes', async () => { await testAurasPariteRegimes(); }],
+  ['testAurasEcranBornes', testAurasEcranBornes],
+  ['testAurasEcranEcriture', testAurasEcranEcriture],
+  ['testAurasEcranValidationPartagee', testAurasEcranValidationPartagee],
   ['testRuneOptimAurasCoupesMinimum', testRuneOptimAurasCoupesMinimum],
   ['testRuneOptimAurasCoupesDiagnostics', testRuneOptimAurasCoupesDiagnostics],
   ['testRuneOptimAurasCoupesRetention', testRuneOptimAurasCoupesRetention],

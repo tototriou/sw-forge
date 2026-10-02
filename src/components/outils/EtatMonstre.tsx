@@ -1,9 +1,25 @@
-import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills } from '../../lib/damage';
+import { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills, type SetAura } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
-import { Segmented, Selecteur } from '../../ui';
+import { Bouton, BoutonIcone, NumberField, Segmented, Selecteur } from '../../ui';
 import HelpPopover from '../HelpPopover';
 import EffetVignette from './EffetVignette';
 import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON } from '../../lib/damage';
+import {
+  PLAFOND_AURAS_EXTERNES,
+  ajouterAura,
+  changerNombreAura,
+  changerSetAura,
+  libelleNombreAura,
+  nombreMaxDeLaLigne,
+  nomSetAura,
+  peutAjouterAura,
+  retirerAura,
+  setsDisponibles,
+  sommeAurasExternes,
+  type AuraExterne,
+} from '../../lib/aurasExternes';
 
 /**
  * « État de mon monstre » — ce qui rend le monstre plus fort, indépendamment
@@ -16,6 +32,11 @@ import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON } from '../../lib/damage';
  * buffs qu'il ne pouvait ni voir ni régler. Aucun champ n'est créé ici : ce
  * sont les mêmes `DamageSetup.atkBuff`/`defBuff`/`spdBuff`/`leaderSkill`/
  * `summonerSkills`, montrés ailleurs.
+ *
+ * Un sixième contexte s'y ajoute au lot 7a de degats-et-aura : les sets
+ * d'aura des AUTRES monstres de l'équipe (`DamageSetup.setsAuraExternes`),
+ * jusque-là saisissables seulement dans une recette — voir
+ * `AurasExternesSaisie` plus bas.
  *
  * ⚠️ **Le critère de la coupe, et il se vérifie** : sortent de la description
  * du combat EXACTEMENT les réglages qui modifient les statistiques propres du
@@ -50,9 +71,10 @@ export default function EtatMonstre({
         <p className="label">État de mon monstre</p>
         <HelpPopover title="État de mon monstre">
           Ce qui rend ton monstre plus fort, <b className="text-ink">quel que soit l&apos;adversaire</b> : buffs
-          reçus, leader skill de l&apos;équipe, compétences d&apos;invocateur. Ces réglages changent ses
-          statistiques, donc les <b className="text-ink">dégâts supplémentaires</b> que lui apportent des
-          artéfacts proportionnels aux PV, à l&apos;ATQ, à la DEF ou à la VIT.
+          reçus, leader skill de l&apos;équipe, compétences d&apos;invocateur, sets d&apos;aura des autres
+          monstres. Ces réglages changent ses statistiques, donc les{' '}
+          <b className="text-ink">dégâts supplémentaires</b> que lui apportent des artéfacts proportionnels
+          aux PV, à l&apos;ATQ, à la DEF ou à la VIT.
           <br />
           <br />
           Ce qui décrit <b className="text-ink">le combat</b> — le sort, la cible, le coup critique — vit dans
@@ -166,6 +188,152 @@ export default function EtatMonstre({
           )}
         </div>
       ) : null}
+
+      {/* ⚠️ **Sous la rangée des trois groupes, pas à côté** : la saisie des
+          auras grandit d'une ligne par set, et la rangée « une seule ligne »
+          (demande explicite) n'a pas à la porter. Même boîte que les trois
+          groupes — un seul contour, à l'intérieur de la carte.
+          ⚠️ **En dernier dans la carte** : ajouter une ligne ne pousse que
+          vers le BAS, rien de ce qui précède — ni le bouton d'ajout, fixe en
+          tête de sa boîte (spec/shared/design.md, réponse n° 3). */}
+      <AurasExternesSaisie setup={setup} maj={maj} />
+    </div>
+  );
+}
+
+/**
+ * Les sets d'aura des AUTRES monstres de l'équipe (`setsAuraExternes`).
+ *
+ * ⚠️ **Toute écriture passe par `aurasExternes.ts`**, qui borne le nombre de 1
+ * à `15 − somme des autres lignes` et refuse un set répété : `min`/`max` du
+ * `NumberField` ne servent qu'à ses boutons ± et à la sortie du champ — une
+ * frappe leur échappe, la fonction pure non.
+ *
+ * ⚠️ **Le bouton d'ajout est FIXE, en tête** (demande explicite) : les lignes
+ * s'ajoutent SOUS lui, il ne bouge jamais sous le clic. Désactivé à somme 15
+ * ou quand les cinq sets ont leur ligne, avec la raison en `title` — jamais
+ * retiré du rendu (spec/shared/design.md, « un bouton d'action ne disparaît
+ * jamais »).
+ *
+ * ⚠️ **Un champ vidé revient à 1 à la sortie du champ** (demande explicite) :
+ * seule la corbeille retire une ligne. Pendant qu'il est vide, l'état porte
+ * déjà 1 (la fonction pure l'écrit) ; seul l'affichage reste vide, jusqu'au
+ * `onBlur`.
+ *
+ * ⚠️ **Le libellé explicite est SOUS les contrôles de sa ligne**, jamais
+ * au-dessus : il change avec le set choisi (« Determination » est plus long
+ * que « Fight ») et peut passer à la ligne ; au-dessus, il ferait descendre
+ * le menu qu'on vient de cliquer. Dessous, il ne pousse que vers le bas. Le
+ * menu occupe la colonne `1fr` : sa largeur vient de la boîte, jamais de
+ * l'option choisie.
+ */
+function AurasExternesSaisie({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
+  const entrees = setup.setsAuraExternes ?? [];
+  // Le set dont le champ du nombre est momentanément VIDE (affichage seul).
+  const [ligneVide, setLigneVide] = useState<SetAura | null>(null);
+  const ecrire = (suivantes: AuraExterne[]) => {
+    if (suivantes !== entrees) maj({ setsAuraExternes: suivantes });
+  };
+  const total = sommeAurasExternes(entrees);
+  const ajoutPossible = peutAjouterAura(entrees);
+  const raisonAjoutImpossible = ajoutPossible
+    ? undefined
+    : total >= PLAFOND_AURAS_EXTERNES
+      ? `${PLAFOND_AURAS_EXTERNES} sets au total : cinq autres monstres à trois sets`
+      : 'Les cinq sets d’aura ont déjà leur ligne';
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-ink-dim">Sets d&apos;aura des autres monstres</span>
+          <HelpPopover title="Sets d'aura des autres monstres">
+            Les sets <b className="text-ink">Fight</b>, <b className="text-ink">Determination</b>,{' '}
+            <b className="text-ink">Enhance</b>, <b className="text-ink">Accuracy</b> et{' '}
+            <b className="text-ink">Tolerance</b> portés par les <b className="text-ink">autres</b> monstres de
+            l&apos;équipe : {PLAFOND_AURAS_EXTERNES} au plus, cinq monstres à trois sets.
+            <br />
+            <br />
+            Les sets du monstre optimisé sont <b className="text-ink">comptés automatiquement</b> sur chaque
+            build, même s&apos;ils ne sont pas recherchés : ne les saisis pas ici.
+            <br />
+            <br />
+            Fight, Determination et Enhance ajoutent chacun 8 % de l&apos;ATQ, de la DEF ou des PV de base ;
+            Accuracy et Tolerance, 8 points de Précision ou de RES.
+          </HelpPopover>
+        </div>
+        <span className="font-mono text-micro tabular-nums text-ink-dim">
+          {total} / {PLAFOND_AURAS_EXTERNES}
+        </span>
+      </div>
+
+      <Bouton
+        trait="pointille"
+        taille="sm"
+        pleineLargeur
+        icone={<Plus size={14} />}
+        libelle="Ajouter un set d'aura"
+        disabled={!ajoutPossible}
+        title={raisonAjoutImpossible}
+        onClick={() => ecrire(ajouterAura(entrees))}
+      />
+
+      {entrees.length > 0 && (
+        <div className="divide-y divide-border">
+          {entrees.map((entree, index) => {
+            const libelle = libelleNombreAura(entree.set);
+            return (
+              // ⚠️ Clé par POSITION et non par set : changer le set d'une
+              // ligne la garde montée, et le menu garde le focus.
+              <div
+                key={index}
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-0.5 py-1.5 last:pb-0"
+              >
+                <Selecteur
+                  value={entree.set}
+                  onChange={(e) => {
+                    setLigneVide(null);
+                    ecrire(changerSetAura(entrees, entree.set, e.target.value as SetAura));
+                  }}
+                  taille="sm"
+                  aria-label={`Set d'aura de la ligne ${index + 1}`}
+                >
+                  {setsDisponibles(entrees, entree.set).map((set) => (
+                    <option key={set} value={set}>
+                      {nomSetAura(set)}
+                    </option>
+                  ))}
+                </Selecteur>
+                <NumberField
+                  value={ligneVide === entree.set ? null : entree.nombre}
+                  allowEmpty
+                  onChange={(v) => {
+                    setLigneVide(v == null ? entree.set : null);
+                    ecrire(changerNombreAura(entrees, entree.set, v));
+                  }}
+                  onBlur={() => setLigneVide(null)}
+                  min={1}
+                  max={nombreMaxDeLaLigne(entrees, entree.set)}
+                  width="w-8"
+                  placeholder="1"
+                  ariaLabel={libelle}
+                  title={libelle}
+                />
+                <BoutonIcone
+                  libelle={`Retirer les sets ${nomSetAura(entree.set)}`}
+                  icone={<Trash2 size={14} />}
+                  ton="danger"
+                  onClick={() => {
+                    setLigneVide(null);
+                    ecrire(retirerAura(entrees, entree.set));
+                  }}
+                />
+                <span className="col-span-full text-micro leading-tight text-ink-dim">{libelle}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

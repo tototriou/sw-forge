@@ -15,6 +15,7 @@
 // de plus, pas de moins.
 import { BuildRequirement, Objective, SLOT_FILTER_PRESETS, SLOT_MAIN_OPTIONS } from './runeBuildOptim';
 import { DamageSetup } from './damage';
+import { erreurAurasExternes } from './aurasExternes';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind, RUNE_SETS } from '../types';
 import { ArtifactMainChoice, RelicMainChoice, RelicUniqueChoice, SlotFilterPresetKey } from '../hooks/useOptimizerState';
@@ -278,27 +279,12 @@ function validerDamageSetup(value: unknown): string | null {
       );
     }
   }
-  if (setup.setsAuraExternes !== undefined) {
-    if (!Array.isArray(setup.setsAuraExternes)) return erreur('damageSetup.setsAuraExternes', 'doit être une liste');
-    const connus = new Set(['fight', 'determination', 'enhance', 'accuracy', 'tolerance']);
-    const vus = new Set<string>();
-    let somme = 0;
-    for (const [index, entree] of setup.setsAuraExternes.entries()) {
-      const chemin = `damageSetup.setsAuraExternes.${index}`;
-      if (!estObjet(entree)) return erreur(chemin, 'doit être un objet');
-      if (typeof entree.set !== 'string' || !connus.has(entree.set) || vus.has(entree.set)) {
-        return erreur(`${chemin}.set`, 'set inconnu ou répété');
-      }
-      vus.add(entree.set);
-      if (typeof entree.nombre !== 'number' || !Number.isInteger(entree.nombre) || entree.nombre < 1 || entree.nombre > 15) {
-        return erreur(`${chemin}.nombre`, 'doit être un entier de 1 à 15');
-      }
-      somme += entree.nombre;
-    }
-    // Cinq autres monstres à trois sets au plus : 15. Les activations propres
-    // du build (jusqu'à 3) s'y ajoutent hors de ce champ.
-    if (somme > 15) return erreur('damageSetup.setsAuraExternes', 'la somme ne doit pas dépasser 15');
-  }
+  // Une ligne par set, entier de 1 à 15, somme ≤ 15 (cinq autres monstres à
+  // trois sets ; les activations propres du build s'y ajoutent hors de ce
+  // champ). ⚠️ La MÊME validation que la saisie de l'écran
+  // (`aurasExternes.ts`) : ce que l'écran écrit, la recette le relit.
+  const erreurAuras = erreurAurasExternes(setup.setsAuraExternes);
+  if (erreurAuras) return erreur(`damageSetup.setsAuraExternes${erreurAuras.chemin}`, erreurAuras.attente);
   if (setup.skillCom2usId !== undefined && setup.skillCom2usId !== null) {
     const e = validerNombre(setup.skillCom2usId, 'damageSetup.skillCom2usId', true);
     if (e) return e;

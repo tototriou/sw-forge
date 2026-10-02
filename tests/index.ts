@@ -73,6 +73,7 @@ import {
   testBladeSurgeRecette,
   testBladeSurgeEcran,
   testBladeSurgePariteEcranCli,
+  testBladeSurgeResumeObjectif,
   testBladeSurgeLigneArtifactSearch,
 } from './blade-surge-propagation.test';
 import testBladeDancersIgnoreDef, { testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
@@ -200,6 +201,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBladeSurgeRecette', testBladeSurgeRecette],
   ['testBladeSurgeEcran', testBladeSurgeEcran],
   ['testBladeSurgePariteEcranCli', testBladeSurgePariteEcranCli],
+  ['testBladeSurgeResumeObjectif', testBladeSurgeResumeObjectif],
   ['testBladeSurgeLigneArtifactSearch', testBladeSurgeLigneArtifactSearch],
   ['testBladeDancersIgnoreDef', testBladeDancersIgnoreDef],
   ['testBladeDancersRecette', testBladeDancersRecette],

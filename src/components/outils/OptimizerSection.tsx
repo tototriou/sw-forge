@@ -110,6 +110,7 @@ import {
   monsterModificateursVit,
   monsterOffensivePassives,
   resolveDamageSkill,
+  resumeCibleDegatsRetenue,
   champsDuCombat,
   CRIT_MODE_LABELS,
   SUMMONER_SKILLS_LABELS,
@@ -627,6 +628,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const resumeCombat = useMemo(() => {
     const bouts: string[] = [];
     bouts.push(resolvedSkill ? `S${resolvedSkill.slot} ${resolvedSkill.nom}` : 'Aucun sort exploitable');
+    // La cible calculée d'un sort à coup de zone curé (Blade Surge), quand ce
+    // n'est pas la cible visée : celle que RETIENT le calcul pour le sort
+    // RÉSOLU, même règle que le reste de cette ligne (degats-et-aura 8c).
+    const cibleRetenue = resolvedSkill && resumeCibleDegatsRetenue(resolvedSkill, damageSetup);
+    if (cibleRetenue) bouts.push(cibleRetenue);
     const cible = ELEMENTS.find((e) => e.key === damageSetup.enemyElement);
     bouts.push(cible ? `vs ${cible.label}` : 'élément ignoré');
     bouts.push(`PV ${damageSetup.enemyHp.toLocaleString('fr-FR')}`);

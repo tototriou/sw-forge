@@ -1,6 +1,8 @@
 // Blade Surge — propagation de la cible calculée (`cibleDegatsParSort`) :
 // recette, écran, CLI (chantier degats-et-aura, lot 8b ; le calcul est celui
-// du lot 8a, vérifié par `testDegatsBladeSurge`).
+// du lot 8a, vérifié par `testDegatsBladeSurge`), puis le résumé sous
+// l'objectif et la ligne du sort du script de diagnostic des artéfacts
+// (lot 8c).
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : une recette qui laisse passer une
 // cible inconnue ou un cran posé sur un sort sans coup de zone curé — le
@@ -25,10 +27,12 @@ import {
   type DamageSetup,
   type SkillDamageProfile,
   cibleDegatsRetenue,
+  cibleSecondairePriseEnCharge,
   computeTotalDamage,
   monsterDamageSkills,
   monsterOffensivePassives,
   resolveDamageSkill,
+  resumeCibleDegatsRetenue,
   resumeSequenceDeCoups,
 } from '../src/lib/damage';
 import { damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
@@ -302,6 +306,84 @@ export function testBladeSurgePariteEcranCli() {
   ok(/const cibleCalculee = cibleSecondairePriseEnCharge\(profile\.skillCom2usId\)\s*\?\s*CIBLE_DEGATS_LABELS\.find\(\(c\) => c\.key === cibleDegatsRetenue\(profile, s\)\)\?\.label\s*:\s*undefined;/.test(cli)
     && cli.includes('${cibleCalculee ? `${cibleCalculee} — ` : \'\'}'),
     'ligne du CLI : la cible calculée, avec le libellé du cran de l’écran, pour un sort qui le permet');
+}
+
+// Le corps et les dépendances d'un `const <nom> = useMemo(() => { … }, [...])`.
+function memoDe(source: ts.SourceFile, nom: string): { corps: string[]; deps: string } | undefined {
+  let trouvee: ts.VariableDeclaration | undefined;
+  const visiter = (n: ts.Node): void => {
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === nom) trouvee = n;
+    else ts.forEachChild(n, visiter);
+  };
+  visiter(source);
+  const appel = trouvee?.initializer;
+  if (!appel || !ts.isCallExpression(appel) || appel.expression.getText(source) !== 'useMemo') return undefined;
+  const [fn, deps] = appel.arguments;
+  if (!fn || !ts.isArrowFunction(fn) || !ts.isBlock(fn.body)) return undefined;
+  return { corps: fn.body.statements.map((s) => s.getText(source)), deps: deps?.getText(source) ?? '' };
+}
+
+export function testBladeSurgeResumeObjectif() {
+  titre('Blade Surge · résumé sous l’objectif — « autres ennemis » après le sort, pour la cible retenue du sort résolu (degats-et-aura 8c)');
+
+  const sorts = monsterDamageSkills(loadMonsterSkills(LAPIS));
+  // Ce que lit `resumeCombat` : le sort que l'écran résout (`resolvedSkill`,
+  // par `resolveDamageSkill`), puis la fonction partagée — jamais
+  // l'identifiant stocké.
+  const bout = (setup: DamageSetup) => {
+    const resolu = resolveDamageSkill(sorts, setup.skillCom2usId);
+    return resolu ? resumeCibleDegatsRetenue(resolu, setup) : null;
+  };
+
+  // Présent : le cran secondaire, sur le sort qui le permet.
+  const texte = bout(SECONDAIRE);
+  egal(texte, 'autres ennemis', 'cran « Dégâts sur les autres ennemis » sur Blade Surge : le bout présent');
+  egal(CIBLE_DEGATS_LABELS.find((c) => c.key === 'secondaire')?.label, `Dégâts sur les ${texte}`,
+    'le bout est la fin du libellé du cran : un seul texte, jamais une seconde écriture');
+
+  // Absent : la cible visée, choisie ou par défaut.
+  egal(bout({ ...SECONDAIRE, cibleDegatsParSort: { [BLADE_SURGE_LAPIS]: 'visee' } }), null, 'cran « Dégâts sur la cible visée » choisi : rien');
+  egal(bout({ ...SECONDAIRE, cibleDegatsParSort: undefined }), null, 'clé absente (défaut, cible visée) : rien');
+
+  // Absent : tout autre sort, même sous une clé « secondaire » posée à la
+  // main — le calcul l'ignore (`cibleDegatsRetenue`), le résumé aussi.
+  for (const [id, motif] of [
+    [MAGIC_SHOT_LAPIS, 'sort ordinaire (Lapis S2)'],
+    [RETRIEVE_MAGIC_LAPIS, 'sort en zone sans séquence curée (Lapis S3)'],
+  ] as [number, string][]) {
+    const setup: DamageSetup = { ...SECONDAIRE, skillCom2usId: id, cibleDegatsParSort: { [BLADE_SURGE_LAPIS]: 'secondaire', [id]: 'secondaire' } };
+    egal(resolveDamageSkill(sorts, id)?.skillCom2usId, id, `précondition : ${motif} se résout tel quel`);
+    egal(bout(setup), null, `autre sort, ${motif} : rien`);
+  }
+
+  // Absent : un identifiant stocké qui porte la capacité ET le cran
+  // secondaire, mais que le monstre affiché ne connaît pas — le sort RÉSOLU
+  // est alors le défaut de Lapis. Lire le stocké dirait « autres ennemis »
+  // d'un sort qui n'est pas celui du calcul.
+  const BLADE_SURGE_ASTAR = 10602;
+  const perime: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: BLADE_SURGE_ASTAR, cibleDegatsParSort: { [BLADE_SURGE_ASTAR]: 'secondaire' } };
+  const resolu = resolveDamageSkill(sorts, BLADE_SURGE_ASTAR);
+  ok(cibleSecondairePriseEnCharge(BLADE_SURGE_ASTAR), 'précondition : le sort stocké (Blade Surge d’Astar) porte la capacité');
+  ok(resolu !== null && resolu.skillCom2usId !== BLADE_SURGE_ASTAR,
+    `précondition : Lapis ne le connaît pas, le sort résolu est son défaut (${resolu?.nom}, S${resolu?.slot})`);
+  egal(bout(perime), null, 'sort résolu différent de l’identifiant stocké : rien');
+
+  // L'écran : le mémo `resumeCombat` (OptimizerSection.tsx), par son arbre
+  // syntaxique — le dépôt n'a pas de test React.
+  const texteEcran = lireSource('src/components/outils/OptimizerSection.tsx');
+  const source = ts.createSourceFile('OptimizerSection.tsx', texteEcran, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const memo = memoDe(source, 'resumeCombat');
+  ok(!!memo, 'précondition : le mémo du résumé sous l’objectif');
+  const corps = memo?.corps ?? [];
+  egal(corps.slice(1, 4), [
+    "bouts.push(resolvedSkill ? `S${resolvedSkill.slot} ${resolvedSkill.nom}` : 'Aucun sort exploitable');",
+    'const cibleRetenue = resolvedSkill && resumeCibleDegatsRetenue(resolvedSkill, damageSetup);',
+    'if (cibleRetenue) bouts.push(cibleRetenue);',
+  ], 'le bout suit le sort, lu sur le sort RÉSOLU par la fonction contrôlée ci-dessus');
+  ok(/^bouts\.push\(cible \? `vs /.test(corps[5] ?? ''), '… et précède l’élément visé (« S1 Blade Surge · autres ennemis · vs … »)');
+  ok(!/skillCom2usId|cibleDegatsParSort/.test(sansCommentaires(corps.join('\n'))), 'le résumé ne lit ni l’identifiant stocké, ni le champ brut');
+  egal(memo?.deps, '[resolvedSkill, damageSetup, critInterdit]', 'recalculé quand le réglage change, cran compris');
+  ok(!sansCommentaires(texteEcran).includes('autres ennemis'), 'l’écran n’écrit pas le texte lui-même');
 }
 
 export function testBladeSurgeLigneArtifactSearch() {

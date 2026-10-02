@@ -763,6 +763,15 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        qui n'en tient aucun compte, signalé à l'usage. Les deux lectures
        viennent désormais d'un seul prédicat (`champsDuCombat`,
        [damage.ts](src/lib/damage.ts)) : deux copies avaient déjà divergé.
+     - **La cible calculée de Blade Surge, quand ce n'est pas la cible
+       visée.** Le cran « Dégâts sur les autres ennemis » ajoute un bout
+       juste après le sort : `S1 Blade Surge · autres ennemis · élément
+       ignoré · PV 30 000 · DEF 1 000 · Critique`. Comme pour le sort, c'est
+       la cible que RETIENT le calcul pour le sort résolu
+       (`resumeCibleDegatsRetenue`, qui lit `cibleDegatsRetenue`), jamais
+       la valeur stockée : rien pour la cible visée (le défaut), rien pour
+       un autre sort, même sous une clé posée à la main. Le texte est la fin
+       du libellé du cran, écrit une seule fois (degats-et-aura 8c).
      - **Pas de buffs dans ce résumé** : ils ne sont plus dans la fenêtre
        qu'il rouvre, et ont leurs propres contrôles toujours visibles dans
        « État de mon monstre ».
@@ -791,7 +800,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        champs de l'adversaire décrivent alors cet autre ennemi ; aucun champ
        nouveau. Le résumé des sorts ne lit pas le cran : basculer ne fait
        bouger ni le texte au-dessus, ni le contrôle (degats-et-aura 8b,
-       réglage `cibleDegatsParSort` ; détail :
+       réglage `cibleDegatsParSort`) ; la ligne de résumé sous l'objectif,
+       elle, dit « autres ennemis » quand ce cran est retenu (8c, voir
+       « Les quatre objectifs disponibles » ; détail :
        [degats-reels/sequences-de-coups.md](degats-reels/sequences-de-coups.md)). Par
        défaut, le dernier slot calculable parmi les sorts actifs (S3 avant
        S2 avant S1). Un passif curé « sélectionnable comme sort » figure

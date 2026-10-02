@@ -3600,13 +3600,20 @@ export const STAT_DE_L_AURA: Readonly<Record<SetAura, 'atk' | 'def' | 'hp' | 'ac
 // reçoit que ses coups de zone.
 export type CibleDegats = 'visee' | 'secondaire';
 
+// Le bout que le résumé sous l'objectif (`resumeCombat`, OptimizerSection.tsx)
+// ajoute après le sort quand la cible retenue est un autre ennemi
+// (`resumeCibleDegatsRetenue`). Écrit ici une seule fois : le libellé du cran
+// ci-dessous s'en déduit, les deux textes ne peuvent pas diverger
+// (degats-et-aura 8c).
+const CIBLE_SECONDAIRE_RESUME = 'autres ennemis';
+
 // Les deux crans, libellés retenus par l'utilisateur (degats-et-aura 8b,
 // réponse n° 8) : la cible visée d'abord, le défaut. Partagés par le
 // `Segmented` de « Compétence utilisée » (DamageSetupCard.tsx) et la ligne du
 // sort du CLI (optimizer-search.ts) : une seule écriture des libellés.
 export const CIBLE_DEGATS_LABELS: { key: CibleDegats; label: string }[] = [
   { key: 'visee', label: 'Dégâts sur la cible visée' },
-  { key: 'secondaire', label: 'Dégâts sur les autres ennemis' },
+  { key: 'secondaire', label: `Dégâts sur les ${CIBLE_SECONDAIRE_RESUME}` },
 ];
 
 export interface DamageSetup {
@@ -3966,6 +3973,18 @@ export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): n
 export function cibleDegatsRetenue(profile: SkillDamageProfile, setup: DamageSetup): CibleDegats {
   const capable = profile.sequenceDeCoups?.some((g) => g.zone) ?? false;
   return capable && setup.cibleDegatsParSort?.[profile.skillCom2usId] === 'secondaire' ? 'secondaire' : 'visee';
+}
+
+/**
+ * Ce que le résumé sous l'objectif (`resumeCombat`, OptimizerSection.tsx) dit
+ * de la cible calculée, juste après le sort : « autres ennemis » quand la
+ * cible RETENUE par le calcul (`cibleDegatsRetenue`, qui porte déjà la
+ * capacité du sort) est un autre ennemi ; `null` pour la cible visée, le
+ * défaut, et pour tout sort sans coup de zone curé. `profile` est le sort
+ * RÉSOLU, jamais celui que désigne l'identifiant stocké (degats-et-aura 8c).
+ */
+export function resumeCibleDegatsRetenue(profile: SkillDamageProfile, setup: DamageSetup): string | null {
+  return cibleDegatsRetenue(profile, setup) === 'secondaire' ? CIBLE_SECONDAIRE_RESUME : null;
 }
 
 /**

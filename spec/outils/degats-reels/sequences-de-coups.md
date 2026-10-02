@@ -102,6 +102,13 @@ retenue.
   séquence entière (`resumeSequenceDeCoups` : « 2 coups · Cible unique, puis
   1 coup · Zone ») et ne lit jamais le cran : rien au-dessus du contrôle ne
   change de hauteur quand on bascule, il ne bouge donc pas sous le pointeur.
+- **Résumé sous l’objectif** (`resumeCombat`, degats-et-aura 8c, décision de
+  l’utilisateur) : la ligne qui remplace la fenêtre fermée ajoute « autres
+  ennemis » juste après le sort quand la cible que retient le calcul pour le
+  sort RÉSOLU est la cible secondaire (`resumeCibleDegatsRetenue`) — « S1
+  Blade Surge · autres ennemis · … ». Rien pour la cible visée (le défaut),
+  rien pour un autre sort, jamais la valeur stockée. Le texte est la fin du
+  libellé du cran, écrit une seule fois dans `damage.ts`.
 - **CLI** (`scripts/optimizer-search.ts`, degats-et-aura 8b) : la recette
   passe par le même parseur, et son `damageSetup` entier par le même
   contexte de dégâts que l’écran (`buildRealDamageContext`) — parité écran/CLI.

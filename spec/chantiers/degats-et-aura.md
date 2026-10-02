@@ -701,7 +701,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b19 — réimport du compte et changement d'exemplaire | J | terminé, preuves et mutation rejouées par le pilote ; deux cas voisins soumis à l'utilisateur (A.8) | `92db894b`, `62ac3eeb` ; reçu `62ac3ee` ↔ `16d8d7a` / 2026-10-02 |
 | 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `1baecf9e`…`3bc596af` ; reçu `3bc596a` ↔ `42f1a43` / 2026-10-02 |
 | 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | terminé, preuves et mutation rejouées par le pilote | `cc85a596`, `9291e1c8` ; reçu `9291e1c` ↔ `9ca4172` / 2026-10-02 |
-| 7c — le rappel aussi sous la liste de travail | J | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; **lançable** | — |
+| 7c — le rappel aussi sous la liste de travail | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `c60bceee` ; reçu `c60bcee` ↔ `a779e59` / 2026-10-02 |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `f229d2f1` / 2026-10-02 |
 | 8b — Blade Surge : recette, écran, CLI | J | en cours en parallèle (worktree `sw-forge-lot-8b`, depuis l'intégration `22bd4590`) | — |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `50e46aea`, `e5dc87ae` / 2026-10-02 |
@@ -779,6 +779,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b16 | Essai avec la recette Kinki : aucune carte qui apparaît puis disparaît ; places « Vérification… » sans saut ; page 1 complète vers 20-25 s ; changer de page et de tri | ✔ 2026-10-02 : « c'est parfait » ; demande nouvelle : stabiliser le compte et ne compter qu'après vérification (décision en A.8) |
 | 7a | Carte « État de mon monstre » : boîte « Sets d'aura des autres monstres » (hauteur, largeur du menu sur un téléphone étroit), libellé explicite placé **sous** les contrôles de chaque ligne (choix de l'agent, pour que le menu cliqué ne bouge pas), compteur « X / 15 » ajouté, bouton « Ajouter un set d'aura » désactivé à 15 ; champ du nombre vidé puis quitté → 1 ; interrupteur « Compter les effets d'auras Tolerance et Précision dans les conditions », placé en dernier des réglages avancés, dans le flottant (ordinateur) ET le panneau « Options » (téléphone) ; écho de la fenêtre « Dégâts réels » | en attente |
 | 7b | Rappel au changement de monstre en liste de travail (message 3 s à la place de l'en-tête de la boîte des auras) ; ouverture guidée vers l'interrupteur en ajoutant Accuracy ou Tolerance, ordinateur (défilement puis flottant) ET téléphone (panneau « Options de recherche ») | en attente |
+| 7c | Le même rappel sous la liste de la zone C, au clic sur un membre : place de 32 px réservée dès que la liste a un membre (rien ne saute à l'apparition ni à l'effacement ; deux lignes sur un téléphone étroit ?), sur les deux formats (au téléphone, dans le dépliement de la zone C) | en attente |
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
@@ -6364,6 +6365,36 @@ CSS construit, spec-lint, diff-check ; preuve `controle-7c.md`. Vérification
 
 **Ne fait pas** : ni nouveau déclencheur, ni changement du guidage, ni
 autre texte.
+
+#### Résultat du lot 7c — 2026-10-02
+
+Agent lancé par le pilote (A.8), dans le worktree du chantier, pendant la
+seconde vague parallèle. Un commit, `c60bceee` : sous la liste de la zone C,
+un `<p>` monté avec la liste (`activeMembers.length > 0`), hors du conteneur
+qui défile et avant « Libérer toutes les runes », branché sur
+`rappelAuras !== null` — le même état que la boîte des auras, aucun état,
+effet ni minuteur nouveau ; `invisible` hors rappel (place réservée, rien
+ne bouge), même apparition, même message, `border border-warn bg-warn-soft`.
+`testAurasEcranRappel` reçoit 10 vérifications (source : `rappelAuras !==
+null` lu deux fois exactement, deux `setTimeout` sur `DUREE_ATTENTION_MS`
+seulement) ; `optimizer.md` § Zone C, renvoi de 3 lignes dans § État de mon
+monstre ; invariant L266 amendé (« deux rendus dérivés d'un même état »).
+Reçu `c60bcee` ↔ `a779e59` ; preuve `controle-7c.md` (525 lignes).
+
+**Rejoué par le pilote sur `c60bceee`** : reçu valide ; `tsc` 0 ; tests de
+zone (`auras optimizerrecipe prosessort effetsactifs`) 1475 passés ; build,
+spec-lint, diff-check verts. Mutations de l'agent : autre condition (3
+échecs), second minuteur (4), condition ajoutée `&& zoneCOpen` (1), place
+non réservée (8). **Mutation du pilote** (contour `border-2`) : 1 échec,
+« même token […], un seul contour » ; restauré.
+
+**Choix de l'agent, à juger à l'œil (A.8)** : place permanente de 32 px
+sous la liste dès qu'elle a un membre (deux lignes possibles sur un
+téléphone étroit) ; pas d'`aria-live` sous la liste, la boîte des auras
+annonçant déjà le message.
+
+**Non prouvé** : aucun rendu à l'œil ; lecteur d'écran, liste vidée ou
+liste active changée pendant les 3 s, par lecture du source seulement.
 
 ### Lot 8 — Blade Surge : le 3ᵉ coup, en zone
 

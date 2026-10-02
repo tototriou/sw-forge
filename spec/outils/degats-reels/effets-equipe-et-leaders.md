@@ -181,7 +181,9 @@ booléen est optionnel dans la recette pour préserver les exports antérieurs ;
 ses valeurs présentes doivent être booléennes. Le modèle est livré au lot 6,
 le champ externe au lot 6bis-b1, les activations propres dans le combat et le
 score au lot 6bis-b2, dans les contrôles exacts des conditions au lot
-6bis-b3a ; la saisie des auras externes à l'écran, au lot 7a.
+6bis-b3a ; la saisie des auras externes à l'écran et l'interrupteur
+« Compter les effets d'auras Tolerance et Précision dans les conditions »
+(réglages avancés, `compterAurasResPre`), au lot 7a.
 
 ## Leader skill d'équipe
 

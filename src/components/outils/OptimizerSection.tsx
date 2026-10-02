@@ -4187,6 +4187,43 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 />
               </div>
             )}
+
+            {/* « Compter les effets d'auras Tolerance et Précision dans les
+                conditions » (degats-et-aura 7a, libellé de l'utilisateur) :
+                activé par défaut, branché sur `compterAurasResPre`, qu'une
+                recette porte déjà et que la recherche lit au clic sur
+                « Rechercher » (`avecAurasConditions`).
+                ⚠️ **Rendu SANS condition**, même sans aucune aura RES/PRE
+                saisie : les activations Tolerance/Accuracy PROPRES d'un build
+                comptent aussi, et un réglage qui apparaît et disparaît avec
+                la saisie d'une autre carte ne se retrouve pas. Ce contenu est
+                commun aux deux formats — le flottant du bureau et le panneau
+                « Options » au doigt.
+                ⚠️ EN DERNIER : la rangée conditionnelle du dessus
+                (« Vérifier toutes… ») ne le décale qu'au geste d'une autre
+                carte, jamais sous le clic. */}
+            <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11.5px] text-ink-dim">
+                  Compter les effets d'auras Tolerance et Précision dans les conditions
+                </span>
+                <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
+                  Activé, chaque set <b className="text-ink">Tolerance</b> ou <b className="text-ink">Accuracy</b> ajoute
+                  8 points de RES ou de Précision aux <b className="text-ink">minimums et aux maximums</b> de ces deux
+                  conditions : ceux des autres monstres, saisis dans « État de mon monstre », et ceux que forment les
+                  runes de chaque build.
+                  <br />
+                  <br />
+                  Désactivé, ces deux conditions portent sur les statistiques sans aucune aura. Les dégâts et les PV
+                  effectifs comptent les auras dans les deux cas.
+                </HelpPopover>
+              </div>
+              <Interrupteur
+                actif={compterAurasResPre}
+                onChange={setCompterAurasResPre}
+                aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
+              />
+            </div>
           </div>
           </div>
         );

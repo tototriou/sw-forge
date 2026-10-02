@@ -217,3 +217,30 @@ export function testAurasEcranEcho() {
   const echo = ecran.slice(ecran.indexOf('const echoEtatMonstre = useMemo('), ecran.indexOf('}, [damageSetup]);', ecran.indexOf('const echoEtatMonstre = useMemo(')));
   ok(echo.includes('echoAurasExternes(damageSetup.setsAuraExternes)'), 'écran : l’écho d’état passe par echoAurasExternes');
 }
+
+export function testAurasEcranInterrupteur() {
+  titre('Auras à l’écran · interrupteur « Compter les effets d’auras Tolerance et Précision dans les conditions »');
+
+  const lire = (f: string) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
+  ok(/const \[compterAurasResPre, setCompterAurasResPre\] = useState\(true\);/.test(lire('src/hooks/useOptimizerState.ts')),
+    'état : activé par défaut');
+
+  const ecran = lire('src/components/outils/OptimizerSection.tsx');
+  const sansCommentaires = ecran.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const avances = sansCommentaires.slice(sansCommentaires.indexOf('const reglagesAvancesInner = '), sansCommentaires.indexOf('const reglagesAvancesTitre = '));
+  const libelle = 'Compter les effets d\'auras Tolerance et Précision dans les conditions';
+  // La rangée entière : de son cadre jusqu'à la fermeture qui suit l'interrupteur.
+  const rangee = avances.match(
+    /<div className="flex items-center justify-between gap-2 py-3 last:pb-0">\s*<div className="flex items-center gap-1\.5">\s*<span className="text-\[11\.5px\] text-ink-dim">\s*Compter les effets[\s\S]*?<Interrupteur[\s\S]*?\/>\s*<\/div>/,
+  )?.[0] ?? '';
+  ok(new RegExp(`<span className="text-\\[11\\.5px\\] text-ink-dim">\\s*${libelle}\\s*</span>`).test(rangee),
+    'Réglages avancés : une rangée au libellé exact de l’utilisateur');
+  ok(rangee.includes(`<HelpPopover title="${libelle}">`), 'avec une aide');
+  ok(rangee.includes('<Interrupteur\n') && new RegExp(`<Interrupteur\\s+actif=\\{compterAurasResPre\\}\\s+onChange=\\{setCompterAurasResPre\\}\\s+aria-label="${libelle}"\\s*/>`).test(rangee),
+    'interrupteur `src/ui` branché sur compterAurasResPre');
+  const position = rangee.length > 0 ? avances.indexOf(rangee) : -1;
+  ok(position >= 0 && /\)\}\s*$/.test(avances.slice(0, position)) && /^\s*<\/div>\s*<\/div>\s*\);\s*$/.test(avances.slice(position + rangee.length)),
+    'rendu SANS condition, en dernier, dans le contenu commun aux deux formats (`reglagesAvancesInner`)');
+  egal(ecran.match(/reglagesAvancesInner\((true|false)\)/g), ['reglagesAvancesInner(false)', 'reglagesAvancesInner(true)'],
+    'le même contenu sert le flottant du bureau et le panneau « Options » au doigt');
+}

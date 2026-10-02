@@ -1424,8 +1424,8 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      le pré-filtrage et la rétention restent heuristiques et ne valorisent
      pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
      condition. Les auras externes se saisissent dans « État de mon
-     monstre » (voir plus haut) ; `compterAurasResPre` n'a pas encore de
-     contrôle à l'écran.
+     monstre » (voir plus haut) ; `compterAurasResPre` se règle dans
+     « Réglages avancés » (point 9 ci-dessous).
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
 8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
@@ -1502,6 +1502,21 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      recette, champ optionnel `verifierToutesLesCombinaisons` (une recette
      exportée avant le relit désactivé), et le CLI le respecte (voir
      « Résultats »).
+   - **« Compter les effets d'auras Tolerance et Précision dans les
+     conditions »**, activé par défaut (degats-et-aura 7a, libellé de
+     l'utilisateur) : le contrôle de `compterAurasResPre` (point 7
+     ci-dessus) — activé, chaque set Tolerance ou Accuracy, externe ou
+     propre au build, ajoute 8 points aux minimums ET aux maximums de RES
+     et de Précision ; désactivé, ces deux conditions ignorent les auras,
+     sans rien retirer des dégâts ni des PV effectifs. Son aide le dit.
+     Lu au clic sur « Rechercher », comme les autres réglages de la
+     recherche, et déjà porté par la recette. ⚠️ **Rendu sans condition**,
+     en dernier de la colonne, même sans aucune aura RES/PRE saisie : les
+     activations propres d'un build comptent aussi, et un réglage qui
+     apparaîtrait avec la saisie d'une autre carte ne se retrouverait pas.
+     Contenu commun aux deux formats (`reglagesAvancesInner`) : flottant au
+     bureau, panneau « Options » au doigt. Fermés, ni l'un ni l'autre ne
+     montre rien ; « toujours visible » porte sur leur contenu.
 
    ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** —
    contrairement à ce que le lot 5c avait prévu : il vit dans le bloc

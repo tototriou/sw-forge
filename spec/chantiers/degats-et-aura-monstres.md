@@ -94,6 +94,15 @@ Formes : 28201 Mercenary Queen †, 28211 Brita.
 | --- | --- | --- | --- | --- |
 | « Might of the Mercenary (Passive) » · 18011 · S3 | Le seuil de 1 671 ATQ (+100 %) lit l'ATQ de début de combat avec les auras Fight, externes et propres au build. | 6bis-b2 | `dbd4ee54`, `b0a2e84d` | Chemin commun → « État de mon monstre » → « Sets d'aura des autres monstres » : ajouter un set Fight ; le bonus de ce passif (lisible dans « Passifs offensifs ») réagit quand le seuil ou la jauge est franchi. Confirmé par l'utilisateur au lot 6bis-b2. |
 
+### Byungchul
+
+Formes : 28903 Dokkaebi Lord †, 28913 Byungchul.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Violent Swing » · 18603 · S1 | Critique garanti, porté par le passif « Full of Spirit (Passive) » 18613 (« Your attacks will always land as a Critical Hit whenever you attack the enemy ») : en « Non critique », le total est celui de « Critique ». | 15d | commit du lot 15d (garanties) | Chemin commun → Byungchul → « Compétence utilisée » → Violent Swing : le résumé du sort dit « Critique garanti », le cran « Non critique » est désactivé ; le total ne bouge pas entre les deux modes. |
+| « Summon Heavenly Kings Gate » · 18608 · S2 | Même garantie, même source (passif 18613). | 15d | commit du lot 15d (garanties) | Même chemin, Summon Heavenly Kings Gate : « Critique garanti » au résumé, « Non critique » désactivé. |
+
 ### Celine
 
 Formes : 25803 Rune Blacksmith †, 25813 Celine.
@@ -600,6 +609,30 @@ Formes : 21003 Harg †, 21013 Raviti.
 | --- | --- | --- | --- | --- |
 | « Deer's Song » · 11813 · S3 | Sort sans attaque (purification, immunité, bouclier, `2.5*{DEF}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Raviti → « Compétence utilisée » : plus de case « Deer's Song », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
+### Rick (feu)
+
+Formes : 31002 Rick †, 31012 Rick.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Shockwave Fist » · 20707 · S2 | Critique garanti contre une cible affligée (« the Critical Rate increases to 100% when attacking an enemy with harmful effects ») : interrupteur « Shockwave Fist (critique garanti) », éteint par défaut, ou Brise DEF / Marque saisies → les deux coups critiques. Nouveau cadre « Prendre en compte les débuffs posés entre les coups », ligne « Réduction de DEF » : posée « Après le coup 1 », le coup 2 seul devient critique (décision de l'utilisateur, A.2 ter) ; la DEF du coup 2 n'est pas réduite. Résumé du sort : « critique garanti si la cible a un débuff ». | 15d | commit du lot 15d (garanties) | Chemin commun → Rick (feu) → « Compétence utilisée » → Shockwave Fist : le résumé, l'interrupteur et le cadre des poses entre les coups. En « Non critique » : interrupteur allumé, les deux coups critiques et « Non critique » désactivé ; interrupteur éteint et pose « Après le coup 1 », seul le second coup critique. |
+
+### Rick (ténèbres)
+
+Formes : 31005 Rick †, 31015 Rick.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Shockwave Fist » · 20710 · S2 | Comme Rick (feu), 20707. | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Rick (ténèbres). |
+
+### Rick (vent)
+
+Formes : 31003 Rick †, 31013 Rick.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Shockwave Fist » · 20708 · S2 | Comme Rick (feu), 20707 (le `Destroy HP` de 20708 porte 50, hors de ce lot). | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Rick (vent). |
+
 ### Suiki
 
 Formes : 25101 Onimusha †, 25111 Suiki, 25121 Imperfect Onimusha †.
@@ -690,6 +723,30 @@ Formes : 32805 White Tiger Blade Master †, 32815 White Tiger Blade Master.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Attack Instinct (Passive) » · 22115 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Attack Instinct » (jamais reformulée). | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (Jeton), la description du passif « Attack Instinct (Passive) » en clair ; aucun doublon ailleurs dans la carte. |
+
+### Yuji Itadori (feu)
+
+Formes : 30402 이타도리 유지(불) †, 30412 Yuji Itadori.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Divergent Fist » · 20107 · S2 | Comme Rick (feu), 20707 : critique garanti contre une cible affligée (interrupteur « Divergent Fist (critique garanti) », Brise DEF ou Marque) ; « Réduction de DEF » posée « Après le coup 1 » dans le cadre des poses entre les coups → le coup 2 seul critique, sa DEF non réduite. Le S3 « Black Flash: Maximum Power » (20112) reste critique garanti sans condition. | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Yuji Itadori (feu), sort Divergent Fist. |
+
+### Yuji Itadori (ténèbres)
+
+Formes : 30405 이타도리 유지(어둠) †, 30415 Yuji Itadori.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Divergent Fist » · 20110 · S2 | Comme Yuji Itadori (feu), 20107. | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Yuji Itadori (ténèbres). |
+
+### Yuji Itadori (vent)
+
+Formes : 30403 이타도리 유지(바람) †, 30413 Yuji Itadori.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Divergent Fist » · 20108 · S2 | Comme Yuji Itadori (feu), 20107. Témoin du lot (1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000, « Non critique ») : 848,5 sans débuff, 1 272,8 avec la pose après le coup 1, 1 697,1 interrupteur allumé. | 15d | commit du lot 15d (garanties) | Comme Rick (feu), sur Yuji Itadori (vent). |
 
 ## 2. Changements transverses (tous les monstres)
 
@@ -823,6 +880,11 @@ Rien de ce qui suit n'est à chercher à l'écran.
   l'effet de Copper (« lower than 50% ») est stricte, sa prose (« half or
   lower ») inclusive : la prose fait foi, comme avant. Aucune borne n'a de
   relevé en jeu.
+- **Yuji et Rick, coup 2** (lot 15d) : la garantie du coup 2 après la
+  réduction de DEF du coup 1 est une décision de l'utilisateur, sans
+  relevé ; que cette réduction baisse aussi la DEF du coup 2 n'est ni
+  relevé ni décidé (non modélisé : 1 272,8 au témoin, 2 231,3 dans l'autre
+  lecture). Byungchul : un passif bloqué (Oblivion) n'est pas modélisé.
 
 ---
 

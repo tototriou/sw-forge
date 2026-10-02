@@ -2474,6 +2474,17 @@ const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> 
   17913: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 30 }], // Eleni vent
   20112: [{ type: 'aucunPvCibleDetruit', pct: 50 }], // Yuji feu — le critique, lui, est inconditionnel
   20712: [{ type: 'aucunPvCibleDetruit', pct: 50 }], // Rick feu — le critique, lui, est inconditionnel
+  // Divergent Fist (Yuji) et Shockwave Fist (Rick), S2 : « the Critical Rate
+  // increases to 100% when attacking an enemy with harmful effects ». Le
+  // critique du coup 2 après la réduction de DEF posée par le coup 1 passe
+  // par le scénario des poses entre les coups (`EFFETS_ENTRE_COUPS_PAR_ID_CONNUS`
+  // ci-dessous), jamais par défaut (degats-et-aura 15d).
+  20107: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Yuji feu
+  20108: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Yuji vent
+  20110: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Yuji ténèbres
+  20707: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Rick feu
+  20708: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Rick vent
+  20710: [{ type: 'debuffCiblePresent', critiqueGaranti: true }], // Rick ténèbres
   7808: [{ type: 'manuel', libelle: 'tes PV actuels sont inférieurs à 30 %', ignoreDefPct: 100 }], // Leo — Torrent
   7810: [{ type: 'manuel', libelle: 'tes PV actuels sont inférieurs à 30 %', ignoreDefPct: 100 }], // Ragdoll — Torrent
   // Bornes inclusives écrites par la prose : « if it is half or lower than
@@ -2601,6 +2612,22 @@ const EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: Record<number, EffetEntreCoupsProfile[]>
   6158: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Naomi 2A
   6173: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // collaboration équivalente
   10013: [{ id: 'unrecoverable', label: 'Irrécupérable', cumulable: false }], // Akhamamir 2A
+  // Divergent Fist / Shockwave Fist (S2 de Yuji et Rick) : « The first hit
+  // decreases its Defense for 2 turns » (effet `Decrease DEF`, note « 1st
+  // hit »). Décision de l'utilisateur du 2026-10-03 (A.2 ter du cadrage
+  // degats-et-aura) : cette réduction de DEF garantit le critique du coup 2,
+  // posée sans relevé. Elle est comptée ici comme un DÉBUFF (la condition
+  // `debuffCiblePresent` + `critiqueGaranti` du sort la lit), PAS comme une
+  // réduction de la DEF du coup 2 : aucun `effetCombat`. ⚠️ Que la DEF du
+  // coup 2 soit aussi réduite n'est ni relevé ni décidé (DH-05 du contrôle
+  // 13b-critiques-bonus-tc-dc) ; ne pas ajouter `effetCombat: 'defBreak'`
+  // par analogie avec Ghost Slash ou Triple Crush.
+  20107: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Yuji feu
+  20108: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Yuji vent
+  20110: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Yuji ténèbres
+  20707: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Rick feu
+  20708: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Rick vent
+  20710: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Rick ténèbres
 };
 
 // Formule exacte confirmée par l'utilisateur, avec démonstration algébrique :
@@ -2711,10 +2738,20 @@ const DEGATS_FIXES_SANS_STAT_PROPRE_PRIS_EN_CHARGE = new Set([12011]);
 // Relevé exhaustif du corpus des effets `Guaranteed Critical Hit`, puis
 // validation compétence par compétence : la présence de l'effet seule ne
 // suffit pas (Dice Madness et Nightmare sont conditionnels).
+//
+// ⚠️ **18603 et 18608 (Byungchul) : la garantie vient du PASSIF, pas du sort.**
+// « Full of Spirit (Passive) » (18613) : « Your attacks will always land as a
+// Critical Hit whenever you attack the enemy », sans condition. La prose de
+// ses deux sorts actifs n'en dit rien, et l'effet `Guaranteed Critical Hit`
+// porté par 18608 manque sur 18603 : le champ est infidèle, la prose du
+// passif fait foi (degats-et-aura 15d, constats 269 et 270). Byungchul n'a
+// aucun passif offensif : ces deux lignes couvrent tout ce qu'il calcule.
+// Limite nommée : un passif bloqué (Oblivion) n'est pas modélisé.
 const CRITIQUES_GARANTIS_INCONDITIONNELS = new Set([
   1611, 2713, 2763, 3113, 4211,
   8301, 8302, 8303, 8304, 8305, 8316, 8317, 8318, 8319, 8320,
   9118, 9407, 9408, 9410, 10811, 10813, 10815, 12410, 12516,
+  18603, 18608, // Byungchul S1, S2 — source : passif 18613
   20112, 20113, 20115, 20712, 20713, 20715, 23515,
 ]);
 

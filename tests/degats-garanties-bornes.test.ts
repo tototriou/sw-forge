@@ -1,6 +1,11 @@
-// Bornes strictes (degats-et-aura 15d, damage.ts) : Jaara et Varus comparent
-// la DEF de la cible STRICTEMENT, Copper et Guard Crush restant inclusifs
-// (drapeau `inclusif` par entrée).
+// Garanties de critique et bornes strictes (degats-et-aura 15d, damage.ts) :
+//   - Byungchul : la garantie de son passif 18613 sur ses deux sorts actifs
+//     (`CRITIQUES_GARANTIS_INCONDITIONNELS`) ;
+//   - Yuji et Rick (S2) : critique garanti contre une cible affligée, et sur
+//     le coup 2 quand la réduction de DEF du coup 1 est posée (scénario des
+//     poses entre les coups) ;
+//   - Jaara et Varus : comparaison de DEF STRICTE, Copper et Guard Crush
+//     restant inclusifs (drapeau `inclusif` par entrée).
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un critique compté (ou retiré) en
 // mode « Non critique », qui change le classement des builds sans rien
@@ -18,13 +23,14 @@ import {
   DamageSetup,
   SkillDamageProfile,
   computeSkillDamage,
+  critiqueGarantiParReglage,
   estPrisEnCharge,
   monsterConditionsCombat,
   monsterDamageSkills,
   statsDeCombat,
 } from '../src/lib/damage';
 import { DetailMonstre } from '../src/lib/monsterSkills';
-import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { BuildCandidate, objectiveScore } from '../src/lib/runeBuildOptim';
 import { StatKey } from '../src/lib/effects';
 import { StatRow } from '../src/lib/stats';
@@ -84,6 +90,97 @@ function contexte(forme: number, setup: DamageSetup) {
 
 function score(forme: number, setup: DamageSetup): number {
   return objectiveScore(candidat, 'degats_reels', AUCUNE_AURA_PROPRE, contexte(forme, setup).ctx);
+}
+
+export function testGarantieByungchul() {
+  titre('Byungchul — la garantie du passif 18613 sur S1 et S2 (degats-et-aura 15d)');
+  const prose = fiche(28913).competences.find((c) => c.com2usId === 18613)?.description ?? '';
+  ok(prose.includes('Your attacks will always land as a Critical Hit whenever you attack the enemy'),
+    '18613 — la prose du passif porte la garantie sans condition');
+  const actifs = monsterDamageSkills(fiche(28913)).filter(estPrisEnCharge);
+  egal(actifs.map((p) => p.skillCom2usId).sort((a, b) => a - b), [18603, 18608],
+    'Byungchul — deux sorts calculés, S1 18603 et S2 18608');
+  for (const p of actifs) {
+    ok(p.critiqueGaranti === true, `${p.skillCom2usId} — critique garanti (source : passif 18613)`);
+    ok(critiqueGarantiParReglage(p, base), `${p.skillCom2usId} — « Non critique » neutralisé à l'écran`);
+    egal(
+      computeSkillDamage(p, build, base, AUCUNE_AURA_PROPRE, 'wind'),
+      computeSkillDamage(p, build, { ...base, critMode: 'crit' }, AUCUNE_AURA_PROPRE, 'wind'),
+      `${p.skillCom2usId} — en « Non critique », le total vaut celui de « Critique »`
+    );
+  }
+  egal(score(28913, { ...base, skillCom2usId: 18608 }), score(28913, { ...base, skillCom2usId: 18608, critMode: 'crit' }),
+    '18608 — moteur : même score en « Non critique » et en « Critique »');
+}
+
+// Forme jouable → identifiant de S2. Écrite à la main, jamais dérivée de la
+// table : c'est ce qui fait échouer le test quand une ligne disparaît.
+const YUJI_RICK: [number, number, string][] = [
+  [30412, 20107, 'Yuji feu'],
+  [30413, 20108, 'Yuji vent'],
+  [30415, 20110, 'Yuji ténèbres'],
+  [31012, 20707, 'Rick feu'],
+  [31013, 20708, 'Rick vent'],
+  [31015, 20710, 'Rick ténèbres'],
+];
+
+export function testGarantieYujiRick() {
+  titre('Yuji et Rick (S2) — critique garanti contre une cible affligée, coup 2 après la réduction de DEF (degats-et-aura 15d)');
+  for (const [forme, sort, nom] of YUJI_RICK) {
+    const p = profilDe(forme, sort);
+    const c = fiche(forme).competences.find((x) => x.com2usId === sort)!;
+    ok(c.description?.includes('the Critical Rate increases to 100% when attacking an enemy with harmful effects') === true &&
+      c.description.includes('The first hit decreases its Defense'),
+      `${sort} ${nom} — la prose porte la garantie et la réduction de DEF du coup 1`);
+    egal(p.conditionsCombat, [{ type: 'debuffCiblePresent', critiqueGaranti: true }],
+      `${sort} ${nom} — condition « débuff sur la cible » qui garantit le critique`);
+    egal(p.effetsEntreCoups, [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }],
+      `${sort} ${nom} — réduction de DEF posable entre les coups, comptée comme débuff, sans effet sur la DEF`);
+
+    const element = forme % 10 === 2 ? 'fire' : forme % 10 === 3 ? 'wind' : 'dark';
+    const total = (s: Partial<DamageSetup>) =>
+      computeSkillDamage(p, build, { ...base, skillCom2usId: sort, ...s }, AUCUNE_AURA_PROPRE, element);
+    const unCoup: SkillDamageProfile = { ...p, hits: 1, hitsRange: undefined, effetsEntreCoups: undefined, conditionsCombat: undefined };
+    const coup1 = computeSkillDamage(unCoup, build, base, AUCUNE_AURA_PROPRE, element);
+    const coup2Crit = computeSkillDamage(unCoup, build, { ...base, critMode: 'crit' }, AUCUNE_AURA_PROPRE, element);
+    const scenario = (apres: number | null) => ({
+      scenariosEffetsEntreCoups: { [sort]: { actif: true, apresCoup: { 'decrease-def': apres } } },
+    });
+    egal(total({}), 2 * coup1, `${sort} ${nom} — sans débuff ni scénario : deux coups non critiques en « Non critique »`);
+    egal(total(scenario(null)), 2 * coup1, `${sort} ${nom} — scénario sans réussite : rien n'est supposé`);
+    egal(total(scenario(1)), coup1 + coup2Crit,
+      `${sort} ${nom} — réduction de DEF posée après le coup 1 : le coup 2 seul devient critique`);
+    egal(total({ passifsOffensifs: { [sort]: true } }), total({ critMode: 'crit' }),
+      `${sort} ${nom} — cible déjà affligée : les deux coups critiques`);
+    egal(total({ defBreak: true }), total({ critMode: 'crit', defBreak: true }),
+      `${sort} ${nom} — Brise DEF saisie : débuff présent, les deux coups critiques`);
+  }
+
+  // ⚠️ HYPOTHÈSE NON RELEVÉE, figée volontairement : la réduction de DEF du
+  // coup 1 ne réduit PAS la DEF du coup 2 dans le modèle (seule la garantie
+  // de critique est décidée, A.2 ter). L'autre lecture donnerait le total
+  // `coup1 + coup2 critique sous Brise DEF`, nettement plus haut : ce test
+  // échouera exprès le jour où un relevé fera changer la règle.
+  const p = profilDe(30413, 20108);
+  const unCoup: SkillDamageProfile = { ...p, hits: 1, hitsRange: undefined, effetsEntreCoups: undefined, conditionsCombat: undefined };
+  const coup1 = computeSkillDamage(unCoup, build, base, AUCUNE_AURA_PROPRE, 'wind');
+  const coup2DefReduite = computeSkillDamage(unCoup, build, { ...base, critMode: 'crit', defBreak: true }, AUCUNE_AURA_PROPRE, 'wind');
+  const scenario1 = { ...base, skillCom2usId: 20108, scenariosEffetsEntreCoups: { 20108: { actif: true, apresCoup: { 'decrease-def': 1 } } } };
+  ok(computeSkillDamage(p, build, scenario1, AUCUNE_AURA_PROPRE, 'wind') < coup1 + coup2DefReduite,
+    '20108 — hypothèse non relevée : la DEF du coup 2 n’est pas réduite par la pose du coup 1');
+
+  // Le moteur et la recette : le scénario traverse l'export/import, le
+  // score du moteur est celui de l'écran.
+  const { recette, ctx } = contexte(30413, scenario1);
+  egal(parseOptimizerRecipe(JSON.stringify(recette)).recipe?.damageSetup?.scenariosEffetsEntreCoups,
+    scenario1.scenariosEffetsEntreCoups, 'recette : le scénario « decrease-def » survit à l’export/import');
+  egal(objectiveScore(candidat, 'degats_reels', AUCUNE_AURA_PROPRE, ctx),
+    computeSkillDamage(p, build, scenario1, AUCUNE_AURA_PROPRE, 'wind'),
+    '20108 — moteur : même score que l’écran, coup 2 critique');
+
+  // Les S3 feu restent inconditionnels (garantie de la table, pas du scénario).
+  ok(profilDe(30412, 20112).critiqueGaranti === true && profilDe(31012, 20712).critiqueGaranti === true,
+    '20112, 20712 — S3 feu : critique garanti inconditionnel, inchangé');
 }
 
 export function testBornesStrictesDef() {
@@ -154,4 +251,14 @@ export function testResumeConditionDef() {
     source.includes("return `${effetCondition(condition)} si la DEF cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ton ATQ`;"),
     'comparaisons de DEF : effet et borne (≤ ou <) lus sur l’entrée');
   ok(!source.includes('`ignore DEF si la DEF cible ≤'), 'plus de texte de comparaison de DEF figé sur « ignore DEF » et « ≤ »');
+}
+
+export function testResumeConditionDebuff() {
+  titre('Résumé « débuff sur la cible » — l’effet lu sur l’entrée (DamageSetupCard.tsx, degats-et-aura 15d)');
+  const source = carte();
+  ok(source.includes("return `${effetCondition(condition)} si la cible a un débuff`;"),
+    'débuff sur la cible : l’effet suit l’entrée (Triss : ignore DEF ; Yuji, Rick : critique garanti)');
+  ok(!source.includes("'ignore DEF si la cible a un débuff'"), 'plus de texte figé sur « ignore DEF »');
+  ok(source.includes("condition.critiqueGaranti ? ' (critique garanti)'"),
+    'interrupteur « débuff présent » : le libellé dit « critique garanti » pour Yuji et Rick');
 }

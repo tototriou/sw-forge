@@ -448,6 +448,7 @@ export default function testAuditDegatsConditionnels() {
     'Arcane Burst',
     'Chain Attack',
     'Death Blow',
+    'Divergent Fist', // Yuji S2 — décision de l'utilisateur du 2026-10-03 (degats-et-aura 15d)
     'Full Burst',
     'Ghost Slash',
     'Gouge',
@@ -458,6 +459,7 @@ export default function testAuditDegatsConditionnels() {
     'Sequential Attack',
     'Shadow Blade',
     'Shinryuken',
+    'Shockwave Fist', // Rick S2 — même décision (degats-et-aura 15d)
     'Triple Crush',
     'Water Dragon Attack',
     "Will-o'-the-Wisp",

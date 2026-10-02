@@ -187,6 +187,26 @@ Yuji et Rick feu S3 utilisent un interrupteur « PV ennemis non détruits »,
 désactivé par défaut. L'activer applique +50 % de dégâts. Leur critique
 garanti est inconditionnel et ne dépend donc pas de cet interrupteur.
 
+Leur S2 (Divergent Fist, Shockwave Fist, les trois éléments) est critique
+garanti contre une cible qui porte un effet néfaste (« the Critical Rate
+increases to 100% when attacking an enemy with harmful effects ») :
+interrupteur du sort, Brise DEF ou Marque saisies, et les deux coups
+critiquent. Le scénario des poses entre les coups propose aussi la
+réduction de DEF du coup 1 : posée après le coup 1, elle rend le coup 2
+seul critique (décision de l'utilisateur du 2026-10-03, sans relevé ;
+degats-et-aura 15d). Elle compte comme un débuff, **pas** comme une
+réduction de la DEF du coup 2 : ce second effet n'est ni relevé ni décidé.
+Témoin (Yuji vent, 1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000,
+« Non critique ») : 848,5 sans débuff, 1 272,8 avec la pose après le
+coup 1, 1 697,1 contre une cible déjà affligée ; l'autre lecture, DEF du
+coup 2 réduite, donnerait 2 231,3.
+
+Byungchul critique toujours avec ses deux sorts actifs (Violent Swing,
+Summon Heavenly Kings Gate) : la garantie vient de son passif Full of
+Spirit (« Your attacks will always land as a Critical Hit whenever you
+attack the enemy »), sans condition, même si la prose des sorts n'en dit
+rien et que la donnée ne porte l'effet que sur le S2 (degats-et-aura 15d).
+
 Torrent de Leo et Ragdoll utilise un coefficient constant `5,5 × ATQ`.
 L'état de PV n'est pas interpolé : un interrupteur « PV actuels inférieurs à
 30 % » active seulement l'ignore-DÉF. Cette lecture suit la clause de seuil

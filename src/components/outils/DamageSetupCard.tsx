@@ -192,7 +192,8 @@ function libelleSourceEffet(source: 'buffs' | 'debuffs' | 'buffsEtDebuffs'): str
 
 // Ce que la condition accorde, lu sur l'entrée elle-même — jamais supposé
 // d'après son type : une même comparaison sert un ignore DEF (Copper, Guard
-// Crush) ou un critique garanti (Jaara, Varus), degats-et-aura 15d.
+// Crush, Triss) ou un critique garanti (Jaara, Varus, Yuji et Rick),
+// degats-et-aura 15d.
 function effetCondition(condition: ConditionMonstreProfile['condition']): string {
   if (condition.critiqueGaranti) return 'critique garanti';
   if (condition.ignoreDefPct != null) {
@@ -233,7 +234,7 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
     case 'aucunPvCibleDetruit':
       return `+${condition.pct ?? 0} % si les PV de la cible n'ont pas été détruits`;
     case 'debuffCiblePresent':
-      return 'ignore DEF si la cible a un débuff';
+      return `${effetCondition(condition)} si la cible a un débuff`;
     case 'defBreakPresent':
       return 'critique garanti sous Brise DEF';
     case 'manuel':
@@ -1696,7 +1697,7 @@ export default function DamageSetupCard({
                   actif={actif}
                   onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [key]: v } })}
                   icone={icone ? <img src={icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
-                  libelle={`${nom}${condition.pct ? ` (+${condition.pct} %)` : condition.ignoreDefPct ? ` (ignore ${condition.ignoreDefPct} % DEF)` : ''}`}
+                  libelle={`${nom}${condition.critiqueGaranti ? ' (critique garanti)' : condition.pct ? ` (+${condition.pct} %)` : condition.ignoreDefPct ? ` (ignore ${condition.ignoreDefPct} % DEF)` : ''}`}
                   title={actif && (setup.defBreak || setup.brand)
                     ? 'Activé automatiquement par Brise DEF ou Marque'
                     : 'Effets néfastes présents sur la cible'}

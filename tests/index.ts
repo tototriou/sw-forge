@@ -71,7 +71,13 @@ import {
 } from './degats-tempest.test';
 import testDegatsBladeSurge from './degats-blade-surge.test';
 import testDegatsSortsSansAttaque from './degats-sorts-sans-attaque.test';
-import { testBornesStrictesDef, testResumeConditionDef } from './degats-garanties-bornes.test';
+import {
+  testBornesStrictesDef,
+  testResumeConditionDef,
+  testGarantieByungchul,
+  testGarantieYujiRick,
+  testResumeConditionDebuff,
+} from './degats-garanties-bornes.test';
 import {
   testBladeSurgeRecette,
   testBladeSurgeEcran,
@@ -219,6 +225,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDegatsSortsSansAttaque', testDegatsSortsSansAttaque],
   ['testBornesStrictesDef', testBornesStrictesDef],
   ['testResumeConditionDef', testResumeConditionDef],
+  ['testGarantieByungchul', testGarantieByungchul],
+  ['testGarantieYujiRick', testGarantieYujiRick],
+  ['testResumeConditionDebuff', testResumeConditionDebuff],
   ['testBladeSurgeRecette', testBladeSurgeRecette],
   ['testBladeSurgeEcran', testBladeSurgeEcran],
   ['testBladeSurgePariteEcranCli', testBladeSurgePariteEcranCli],

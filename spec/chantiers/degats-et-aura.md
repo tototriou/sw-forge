@@ -167,6 +167,15 @@ affirmations contradictoires, notamment sur 411.
 | Rankyaku — `5 × VIT` | La VIT est la **VIT finale** : base + runes + set + lead + effet d'augmentation de vitesse, éventuellement augmentée par les artéfacts | utilisateur, confirmation explicite du 2026-10-02 |
 | Tempest — coups critiques | Tempest **peut infliger un coup critique** (les lignes de Dgts CRIT 402/410 s'y appliquent une fois) | utilisateur, confirmation explicite du 2026-10-02 |
 | Une attaque se lit dans la prose | Un ratio (`formule`) et un nombre de `coups` dans SWARFARM ne prouvent pas qu'un sort attaque (le soin S2 d'Anavel, historiquement ; le bouclier S2 de Frieren `24909`). Avant de traiter un sort comme offensif, vérifier dans sa prose la notion d'attaque ou de dégâts ; sans elle, ce n'est pas une attaque | utilisateur, 2026-10-02 |
+| Effets de PV sans coup | Bolverk S3, Harmonia S3, Vivachel S3, le passif d'Aya vent (S3) agissent sur les PV ennemis **sans infliger de coup** et ne dépendent que des stats de l'adversaire : **ignorés** par le calcul de l'Optimizer. Une perte de PV qui accompagne un coup (Hellfire de Daphnis) reste comptée | utilisateur, 2026-10-02 |
+| Chaînes des Kung Fu Girls (sens) | Une S1 peut appeler la S2 après elle, une S2 peut appeler la S3 ; une S2 n'appelle jamais la S1 et une S3 n'appelle rien. Choisir la S3 : un seul sort ; choisir la S1 : la chaîne entière possible, chaque appel sous interrupteur | utilisateur, 2026-10-03 |
+| Trinity Claymore | Le hasard (20 % par attaque, 50 % sur retrait de bonus) le **débloque pour le tour suivant** : aucun sort ne l'active en chaîne. Choisi comme sort : **toute la chaîne d'abord (son S1, puis son S2), puis ses 3 coups au ratio du sort** — Taebaek et Hwoarang ténèbres, versions Summoners War et collab | utilisateur, 2026-10-03 |
+| Chance d'ignore DEF par coup (Fei) | Chacun des 4 coups, **le premier compris**, a sa chance d'ignorer la DEF | utilisateur, 2026-10-03 |
+| Taebaek | La **prose** fait foi : 15 % / 150 (l'effet de la donnée dit 20 % / 200) | utilisateur, 2026-10-03 |
+| Bonus de Taux Crit | S'ajoute **en points** ; depuis le lot CM, il ne change un total que s'il déclenche un effet sur critique ou alimente un reversement du surplus au-delà de 100 % | utilisateur, 2026-10-03 |
+| Assiette des « +X % » de passif | Base ou totale **selon le passif** : aucune règle générale, à relever passif par passif | utilisateur, 2026-10-03 |
+| Energy Punch de Mina | Suit le mode critique : en « Critique », un Energy Punch par coup du sort ; en « Non critique », aucun | utilisateur, 2026-10-03 |
+| Yuji et Rick (S2) | La réduction de DEF posée par le 1er coup garantit le critique du 2e : **posée sans attendre de relevé** | utilisateur, 2026-10-03 |
 
 ⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
 chantier ne la modélise pas.** C'est précisément pourquoi la condition d'ignore
@@ -449,7 +458,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17, 6bis-b18,
   6bis-b19,
-  7a, 7b, 7c, 8c, 8d, 9d, 11bis, 12, tous les 13b-*, CM, LM → 14
+  7a, 7b, 7c, 8c, 8d, 9d, 11bis, 12, tous les 13b-*, CM, LM, 15a-15e → 14
 ```
 
 ##### Ordre d'exécution et premières contre-revues
@@ -736,11 +745,12 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
-| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **15 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV ; variables refusées, PV et boucliers, compteurs ; passifs de stats, passifs du corpus, critiques garantis) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
+| `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **17 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV ; variables refusées, PV et boucliers, compteurs ; passifs de stats, passifs du corpus, critiques garantis ; bonus TC/DC, vérification de la partie 2) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
 | 13 — consolidation : plan, synthèse, recommandation (pilote) | J | après les dix-sept 13b ; recommandation soumise à l'utilisateur | — |
 | CM — le mode critique « Moyenne » supprimé | J | terminé (lot parallèle, `lot-j`), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `f1e7d71c`, `361cc9d0`, `3ea62afe`, `3cba1d5a` / 2026-10-02 |
-| LM — la liste des monstres et sorts modifiés, tenue à chaque commit | C | contrat écrit le 2026-10-02 (demande de l'utilisateur) ; **lançable** (`lot-c`) | — |
-| 9d — le survol de Tempest retiré | J | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; lançable après LM | — |
+| LM — la liste des monstres et sorts modifiés, tenue à chaque commit | C | terminé (`lot-c`), contrôlé par le pilote ; règle permanente en A.8 | `7d3a9d77` / 2026-10-02 |
+| 9d — le survol de Tempest retiré | J | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; **lançable** | — |
+| 15a à 15e — les lots prêts du plan | C / J | contrats écrits le 2026-10-02 (décision de l'utilisateur) ; un à la fois, après 9d | — |
 | 14 — clôture et ledgers après contrôles | M | à faire | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -865,6 +875,11 @@ décision, rayée avec la date et la réponse.
 | 13b (pour le plan) | ~~Interrupteur d'une attaque appelée active~~ | ✔ 2026-10-02 : **en-tête à part « Attaques déclenchées »** |
 | 13b (pour le plan) | ~~Coups sur « un ennemi au hasard » (Rolling Punch, Kacey, Zenitsu, Qilin, Katarina…)~~ | ✔ 2026-10-02 : **un compteur borné** où l'utilisateur choisit combien de coups touchent la cible |
 | 13b (pour le plan) | ~~Buffs standard posés par un passif~~ | ✔ 2026-10-02 : **rappel à l'écran**, réglage manuel conservé |
+| 13b (pour le plan) | ~~Eightfold (Zenitsu, Qilin Slasher), +50 % si jauge à 0~~ | ✔ 2026-10-03 : **à partir du coup choisi** (comme les Blade Dancers) |
+| 13b (pour le plan) | ~~Theonia : comment savoir si la cible a moins d'ATQ ?~~ | ✔ 2026-10-03 : **ATQ ennemie saisie** (le champ `enemyAtk` existe déjà) |
+| 13b (pour le plan) | ~~Kung Fu Girls, Trinity Claymore, Fei, Taebaek, TC en points, assiette, Mina, Yuji/Rick, effets de PV sans coup~~ | ✔ 2026-10-02 / 03 : mécaniques fournies par l'utilisateur, inscrites en A.2 ter |
+| nuit du 2026-10-02 | ~~Jusqu'où aller sans l'utilisateur ?~~ | ✔ 2026-10-02 : **le plan du lot 13, puis les lots déjà prêts dans ce chantier** (valeur dans la donnée, mécanique existante, décision prise, aucun relevé) — lots 15a à 15e |
+| clôture | ~~Lot 14 cette nuit ?~~ | ✔ 2026-10-02 : **après la vérification à l'œil de l'utilisateur**, guidée par la liste du lot LM |
 
 ---
 
@@ -8420,6 +8435,73 @@ non couverts alors que 6258 l'est.
 table → exact ; 6258 couvert par une condition (`damage.ts` L2464,
 `pvCibleMax` 30 % avec `critiqueGaranti`), 6207 nulle part → exact.
 
+Sixième vague (deux sessions `lot-j`, sur le code où le mode « Moyenne »
+est déjà supprimé) : `13b-critiques-bonus-tc-dc`, `13b-verif-partie2`. Les
+dix-sept sous-lots sont validés.
+
+##### 13b-critiques-bonus-tc-dc — 2026-10-02
+
+Preuve `controle-13b-critiques-bonus-tc-dc.md` (298 lignes) et ses
+intrants (scripts 01 à 05, sonde de production). 18 constats, 30 lignes,
+54 formes (29 jouables). **Cases** : donnée × existant 16 / 28, donnée ×
+neuf 2 / 2 (288 Mina, 294 Übel) ; aucun relevé. **Effet du lot CM** : 19
+lignes (11 constats) ne portent qu'un bonus de Taux Crit et ne changent plus
+aucun total (sonde : totaux identiques à +0 et +50 de TC) — non comptées
+comme besoins ; 11 lignes changent un total (5 garanties conditionnelles,
+2 bonus de Dgts Crit). **5 constats livrés depuis `826fb331` avec leur
+test**, encore « Partiel » à l'inventaire (287 Gorgo, 289 Naomi, 293
+Eludain, 303 Fire Wall, 304 Flame Eruption). 290 et 291 (Yuji, Rick) : 6
+lignes de `CONDITIONS_COMBAT_PAR_ID_CONNUS` (`debuffCiblePresent` +
+`critiqueGaranti`), `resumeCondition` à généraliser (figé sur « ignore
+DEF ») ; 292 (Ice Smash 2751) à clé par identifiant (2701, homonyme, sans
+bonus) ; Mina (condition `aucunDebuffCible`) et Übel (comparaison des PV
+max) : mécanismes neufs légers. **Relevé** R-A (Yuji ou Rick : la réduction
+de DEF du coup 1 garantit-elle le critique du coup 2 ?) — **rendu inutile
+par la décision de l'utilisateur** (A.2 ter : garantie posée). **Lots**
+TC-1 à TC-5. **Décisions formulées** D1 (bonus de TC inertes : clore,
+afficher ou retirer), D2 (TC ≥ 100 % interdit-il « Non critique » ?), D3
+(Übel), D4 (Mina — tranché : suit le mode critique), D5 (Yuji/Rick —
+tranché : garantie posée). **Découvertes** DH-01 à 08 (dont la clé par nom
+« Tiger's Appearance » qui touche aussi 6113, la réduction de DEF du coup
+1 de Divergent Fist / Shockwave Fist qui n'atteint pas le coup 2 dans le
+code).
+
+**Validé par le pilote** : fiches `11731.json` (Ice Smash 2751 : « Increase
+Attack Critical Chance(50) ») et `11701.json` (2701 : aucun bonus) →
+clé par identifiant nécessaire, exact ; `Charge (Passive)` (Gorgo) présent
+dans `BONUS_STAT_FIXE_CONNUS` → livré, exact.
+
+##### 13b-verif-partie2 — 2026-10-02
+
+Preuve `controle-13b-verif-partie2.md` et ses intrants (11 scripts). 41
+constats (39 déclarés livrés, 149, 308), 78 lignes, 149 formes. **Livraisons
+: 12 établies** (51, 74, 77, 89, 97, 149, 241, 244, 254, 268, 308, 309),
+**28 partielles**, **1 infirmée (96, Carlos)** : aucun code, et les trois
+contrôles « 96 — » testent en réalité Elsharion (constat 97). 55
+identifiants sans test ; pour 24 des 28 partielles, seuls des tests
+manquent (sonde CLI conforme partout). **Saillants** : 72 Torrent — le
+coefficient livré `5,5 × ATQ` constant ne cite aucune source et contredit
+la donnée et la prose (relevé R1) ; 256 Jaara et 263 Varus — comparaison
+en `<=` alors que la prose et la `note` sont strictes ; 123 Thunderer —
+S1/S2 renforcés pendant l'état portés par les formes 28411 et 28415
+(rejoint la décision sur les formes transformées) ; Risky Dash 1879 déjà
+couvert par `Current HP`, sans test ; réserve sur 26 lignes de stats
+appliquées à la stat totale (assiette à relever passif par passif, A.2
+ter). **Relevés** R1 (Torrent), R2 (assiette, avec R4b de stats-passifs).
+**Lots** VP-a (tests manquants, libellés « 96 — » corrigés, refus de 0
+ennemi), VP-b (bornes strictes de Jaara et Varus), VP-c (Torrent après
+R1), VP-d (Carlos après D2). **Décisions formulées** D1 (Torrent constant),
+D2 (Carlos : ATQ gagnée ou des victimes, assiette du plafond 300 %), D3
+(Thunderer : rejoint les formes transformées), D4 (relevé d'assiette).
+**Découvertes** DH-01 (18216, 18217, 18218, 18220 des formes Thunderer non
+couverts) à DH-03.
+
+**Validé par le pilote** : `damage.ts` L1330 et L1332 comparent en `<=`
+(`defCibleSousDefPropre`, `defCibleSousAtkPropre`) → bornes non strictes,
+exact ; `tests/audit-degats-conditionnels.test.ts` L1069-1076 : « 96 —
+Elsharion… » → libellés erronés, exact ; `partie-2.md` L112 laisse 96 en
+partie 4 alors que `partie-2.csv` le déclare livré → contradiction, exact.
+
 ### Lot CM — le mode critique « Moyenne » supprimé
 
 **Cat. J.** Décisions de l'utilisateur du 2026-10-02 : le mode critique
@@ -8554,6 +8636,28 @@ identifiant de compétence ajouté ou modifié dans une table curée de
 **Ne fait pas** : aucun code ; aucune vérification à l'œil (c'est la liste
 qui la permettra).
 
+#### Résultat du lot LM — 2026-10-02
+
+Agent `lot-c`. Un commit, `7d3a9d77` : `spec/chantiers/degats-et-aura-monstres.md`
+(563 lignes) — 47 monstres, 48 identifiants de sort, 77 lignes monstre ×
+sort × lot (un titre par monstre, une ligne par lot pour que chaque lot
+reste vérifiable), 28 changements transverses et 6 lignes hors produit,
+une section « préparé sans effet en production », une section de doutes.
+Contrôle par script (`controle-lm-intrants/verifier-liste.mjs`) : les 16
+identifiants ajoutés ou modifiés dans les tables curées depuis `81284199`
+sont tous dans la liste ; second contrôle, les 108 commits non
+documentaires de la branche sont tous cités ; sensibilité éprouvée (un
+identifiant et un hash retirés d'une copie : signalés). Preuve
+`controle-lm.md`.
+
+**Validé par le pilote** : commit limité au seul fichier ; en-tête de
+cadrage ; lignes Blade Surge 10620 (8a, 8b, 8c) et Gold Headband 7912
+relues ; spec-lint vert. **Limites dites par l'agent** : les « comment
+vérifier » sont écrits d'après le code et les Résultats, pas observés ; le
+contrôle par script ne voit que les tables (une branche de calcul sans
+table n'est retrouvée que par les commits) ; les formes † (non éveillées,
+habillages) restent à confronter au compte réel.
+
 #### Lot 9d — le survol de Tempest retiré
 
 **Cat. J.** Décision de l'utilisateur du 2026-10-02 : l'interrupteur
@@ -8562,6 +8666,31 @@ condition au survol (`title`) — un survol n'existe pas au doigt ; la
 condition reste lisible dans la prose de Tempest (« ? », lot 11bis). Le
 test de l'écran suit ; la liste du lot LM aussi. Mutation après le commit.
 **Ne fait pas** : rien d'autre dans la carte.
+
+### Lot 15 — les lots prêts du plan (nuit du 2026-10-02)
+
+**Décision de l'utilisateur du 2026-10-02** : pendant la nuit, après le
+plan, implémenter dans ce chantier les lots déjà prêts — valeur dans la
+donnée, mécanique existante, décision prise, aucun relevé. Chaque sous-lot
+part d'un Résultat 13b cité, met à jour la liste du lot LM dans le même
+commit, mute après le commit (A.8), et s'exécute **un à la fois** dans le
+worktree du chantier (ils touchent tous `damage.ts`). Catégorie J, agent
+`lot-j`, sauf 15a (C, `lot-c`).
+
+| Sous-lot | Contenu | Source |
+| --- | --- | --- |
+| 15a | Tests de couverture des livraisons non gardées : les garanties de critique livrées sans test (22 identifiants), les 5 bonus de critiques livrés (287, 289, 293, 303, 304), les 15 identifiants d'ignore DEF sans test, les tests manquants des livraisons partielles de la partie 2 ; libellés de test faux corrigés (« 96 — » → 97, « 209 — Triss » → 214) | CG-1, TC-2, IGN-a, VP-a |
+| 15b | Internal Force (Leona, 12515) : le bouclier `2.0*{DEF}` n'est plus compté comme des dégâts ; « damage dealt +50 % » compté sous un interrupteur « bouclier actif » ; catalogue L220-226 et `tests/degats.test.ts` L2427-2435 corrigés | SP-1, décision A.8 |
+| 15c | Sorts sans attaque masqués de la liste des sorts : chaque candidat vérifié par sa **prose** (A.2 ter) — bouclier S2 de Frieren 24909, les 8 boucliers jouables affichés « formule de dégâts refusée », les candidats boucliers de hors-tour (DH-01), 16113 et 16613 — table curée par identifiant, jamais une détection automatique de la prose | VR-1, DH-01 de hors-tour et de variables-refusées, décision A.8 |
+| 15d | Garanties et bornes : Byungchul (18608, 18603) ; Yuji et Rick (garantie du 2e coup, A.2 ter ; `resumeCondition` généralisé) ; Jaara (256) et Varus (263) en bornes strictes | CG-2, TC-3, VP-b |
+| 15e | Ciri et Birgitta : +50 de VIT en points (≤ 250) dans `STATS_COMBAT_PAR_ID_CONNUS` ; Theonia (23515) : +100 % si l'ATQ ennemie saisie (`enemyAtk`) est inférieure à l'ATQ du build | SP-2, PCB-1 |
+
+**Ne fait pas** : rien qui demande un relevé ou un mécanisme neuf (chaînes
+des Kung Fu Girls et de Trinity Claymore, Eightfold à partir d'un coup,
+réglage « combat de boss », pertes de PV, formes transformées dans la
+modale, Mina, Fei coup par coup : au plan) ; aucune des mesures
+conservatoires écartées par l'utilisateur au-delà de ces lots (Madness
+Judgement, Liam, Thunder Strike, Barbara attendent le plan).
 
 ### Lot 14 — clôture
 

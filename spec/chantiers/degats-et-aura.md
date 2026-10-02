@@ -404,6 +404,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b16 (cartes vérifiées seulement, essai de l'utilisateur)
         → 6bis-b17 (cache et artéfacts réservés, revue du Worker)
         → 6bis-b18 (compte des confirmées, essai de b16)
+        → 6bis-b19 (réimport du compte, changement d'exemplaire)
         → 7a → 7b (recalé et scindé le 2026-10-02)
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
@@ -425,6 +426,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17, 6bis-b18,
+  6bis-b19,
   7a, 7b, 11bis, 12, tous les 13b-* → 14
 ```
 
@@ -694,7 +696,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; livré avec b13bis-b | `11abb68d`…`f951f3e9` / 2026-10-02 |
 | 6bis-b16 — une carte n'apparaît qu'une fois vérifiée | J | terminé, preuves, mesure et mutation rejouées par le pilote ; essai de l'utilisateur en attente (A.8) | `6df20ba2` ; reçu `6df20ba` ↔ `226c64d` / 2026-10-02 |
 | 6bis-b17 — le cache de la file suit les artéfacts réservés | J | terminé, preuves et mutation rejouées par le pilote ; deux cas voisins soumis à l'utilisateur (A.8) | `d8132284`, `c1d96fd5` ; reçu `c1d96fd` ↔ `13ac9f3` / 2026-10-02 |
-| 6bis-b18 — le compte ne compte que les combinaisons confirmées | J | contrat écrit le 2026-10-02 (demande de l'utilisateur) ; **lançable** | — |
+| 6bis-b18 — le compte ne compte que les combinaisons confirmées | J | terminé, preuves, mesure et mutation rejouées par le pilote ; essai de l'utilisateur en attente (A.8) | `734d4dd6`…`a9fa6b48` ; reçu `a9fa6b4` ↔ `04da233` / 2026-10-02 |
+| 6bis-b19 — réimport du compte et changement d'exemplaire | J | contrat écrit le 2026-10-02 (décisions de l'utilisateur) ; **lançable** | — |
 | 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02, réponses de l'utilisateur intégrées ; après 6bis-b16 et b17 | — |
 | 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | requiert 7a | — |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | recalé le 2026-10-02 ; à faire | — |
@@ -758,7 +761,8 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | ✔ vérifiée le 2026-10-02 (le 0 et la ligne de raison, puis la dernière page et les masquages) |
 | 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
 | 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | essayé le 2026-10-02 : barre **fluide** ✔ ; **va-et-vient des cartes (apparues puis retirées) jugé insupportable, bloquant** → 6bis-b16 ; à revoir après b16 (recette `swforge-optimizer-kinki-2026-10-02`) |
-| 6bis-b18 | Compte « confirmée(s) » qui ne baisse jamais, infobulle de différence, interrupteur « Vérifier toutes les combinaisons trouvées » ; recette Kinki | après le lot |
+| 6bis-b18 | Compte « confirmée(s) » qui ne baisse jamais, infobulle de différence, interrupteur « Vérifier toutes les combinaisons trouvées » ; recette Kinki ; interrupteur activé sur une grosse recherche (« PV effectifs ») : l'écran reste-t-il fluide ? | en attente |
+| 6bis-b19 | Réimporter le compte puis relancer : les paires suivent ; passer à un autre exemplaire de la même espèce efface les résultats | après le lot |
 | 6bis-b16 | Essai avec la recette Kinki : aucune carte qui apparaît puis disparaît ; places « Vérification… » sans saut ; page 1 complète vers 20-25 s ; changer de page et de tri | ✔ 2026-10-02 : « c'est parfait » ; demande nouvelle : stabiliser le compte et ne compter qu'après vérification (décision en A.8) |
 | 7a, 7b | Écran des sets d'aura, sur ordinateur ET sur téléphone | après les lots |
 | 8b, 9b, 10b | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) ; pour les Blade Dancers, la DEF de la cible reste affichée dans tous les crans | après les lots |
@@ -776,7 +780,7 @@ décision, rayée avec la date et la réponse.
 | 8 | ~~À quels coups de Blade Surge s'appliquent 224 et 400 ?~~ | ✔ 2026-10-02 (utilisateur) : **224 sur les coups 1 et 2, 400 sur les trois** |
 | revue du Worker | ~~Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature.~~ | ✔ 2026-10-02 : **corriger dans ce chantier** → 6bis-b17 |
 | essai du Worker | ~~Comment supprimer le va-et-vient des cartes ?~~ | ✔ 2026-10-02 : **n'afficher que les builds vérifiés**, places en attente marquées « Vérification… » → 6bis-b16, avant 7a |
-| 6bis-b17 | Deux cas voisins rapportés : (1) un réimport du compte qui change des artéfacts ou des runes sans changer leur nombre ni leurs identifiants laisse le cache intact ; (2) changer d'exemplaire de la même espèce laisse affichée la recherche faite avec l'ancien. Les corriger dans ce chantier ? | posée le 2026-10-02 |
+| 6bis-b17 | ~~Deux cas voisins rapportés : réimport du compte à nombre égal ; changement d'exemplaire de la même espèce.~~ | ✔ 2026-10-02 : **corriger les deux** — chaque import vide le cache ; changer d'exemplaire efface les résultats comme un changement d'espèce → 6bis-b19 |
 | essai de b16 | ~~Quel compte afficher ?~~ | ✔ 2026-10-02 : progression inchangée (« Z trouvée(s) ») ; en-tête « XX combinaison(s) confirmée(s) » avec infobulle ; la file vise **K confirmées** ; interrupteur « Vérifier toutes les combinaisons trouvées », désactivé par défaut ; mesure courte → 6bis-b18 |
 | 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
 | 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
@@ -5671,6 +5675,84 @@ l'utilisateur est inscrit en A.8.
 
 **Ne fait pas** : ni la résolution, ni l'ordre de base, ni le Worker, ni la
 composition de page de b16.
+
+###### Résultat du lot 6bis-b18 — 2026-10-02
+
+Agent lancé par le pilote (A.8). Quatre commits : `734d4dd6` — la file vise
+K confirmées (`prochainsATraiter` lit le cache et continue au-delà des
+écartés ; sans écarté, ce sont exactement les K premiers) ; `69d7ec6a` —
+`compteConfirme` (en-tête, infobulle « Combinaisons confirmées », pages,
+état « Aucune ») ; `ab1e33f0` — interrupteur « Vérifier toutes les
+combinaisons trouvées » par `cibleDeLaFile` (état, recette, CLI) ;
+`a9fa6b48` — chiffre Kinki mesuré dans `optimizer.md`. Reçu `a9fa6b4` ↔
+`04da233`. Tests nouveaux `testFileConfirmees`, `testCompteConfirme`,
+`testVerifierToutes` ; parité CLI avec l'interrupteur dans
+`testCliClassementParMode`.
+
+**Rejoué par le pilote sur `a9fa6b48`** : reçu valide ; `tsc` 0 ; tests de
+zone (10 filtres) 421 passés ; build, spec-lint, diff-check verts ; diff
+relu ; libellés vérifiés dans la source. Mutation de l'agent (la file
+s'arrête aux K premiers) : 7 échecs. **Mutation du pilote** (« Aucune »
+sans exiger que tout soit vérifié) : 2 échecs, dont « Kinki, recherche
+finie, pas encore vérifié : pas « Aucune » » ; restauré.
+
+**Mesure** (8,4 min, bornée comme convenu ; B = `432ce999`, A = `ab1e33f0`) :
+« Dégâts réels », recherche 9,30 contre 9,33 s (+0,9 % apparié), délai
+après la fin jusqu'aux 300 confirmées 7,6 contre 8,0 s (+5,8 %, signe non
+constant, 3 passages), compte final « 300 confirmée(s) » au lieu de « 5100
+trouvée(s) » ; Kinki (cible 100, relique hors recherche), recherche 111 et
+137 s (b16 : 136,5 s), file vide 0 à 0,5 s après la fin, « 100
+confirmée(s) » pour 1 112 builds vérifiés.
+
+**Interprétations de l'agent, retenues par le pilote** : une page de plus
+seulement si des non vérifiés n'ont pas de place sur la dernière (jamais
+de page vide) ; l'interrupteur lu en direct ; interrupteur et infobulle
+masqués sans optimisation d'artéfacts ; la ligne de raison de b10 sous
+« Aucune » seulement ; un changement de signature remet compte et pages à
+zéro ; `compteAffichable` ne rend plus `pages`.
+
+**Point à surveiller** : interrupteur activé, la file relit toute la liste
+à chaque réponse du Worker (quelques millisecondes sur ~29 000 builds, en
+petits morceaux ; non mesuré au-delà) — à éprouver à l'essai sur une
+grosse recherche, ligne A.8.
+
+**Non prouvé** : rien d'interactif au navigateur (page, tri, bascule de
+l'interrupteur, infobulle ouverte, téléphone) ; l'écart de +5,8 % du délai
+« Dégâts réels » à 3 passages ; Kinki sans témoin « avant » dans cette
+campagne.
+
+##### 6bis-b19 — réimport du compte et changement d'exemplaire
+
+**Cat. J ; requiert b18 ; avant 7a.** Deux cas voisins rapportés par
+6bis-b17 ; décisions de l'utilisateur du 2026-10-02 : les corriger ici.
+
+- **Réimport du compte** : un import qui change des artéfacts ou des
+  runes sans changer leur nombre ni leurs identifiants laisse le cache de
+  la file intact (il est indexé par les identifiants de runes, la
+  signature ne compte que le nombre d'artéfacts). **Chaque import de
+  compte entre dans la signature** (une identité de l'import, pas une
+  empreinte du contenu) : tout réimport vide le cache.
+- **Changement d'exemplaire de la même espèce** dans une liste de
+  travail : la recherche affichée, faite pour l'ancien exemplaire, n'est
+  ni relancée ni effacée. **Changer d'exemplaire efface les résultats
+  affichés, comme un changement d'espèce** ; l'utilisateur relance
+  lui-même.
+
+**Intrant borné.** `OptimizerSection.tsx` : zone C (sélection d'un membre
+de liste), `pickSpecies`, `resetSearch` et la signature (Grep puis
+plages) ; `useOptimizerState.ts` (`resetSearch`) ; `App.tsx` (import du
+compte, L333 environ) ; `artifactQueue.ts` (`signatureReglages`) ; tests de
+la signature et des transitions (`optimizer-damage-transitions`).
+
+**Preuves** : test de la signature (deux imports distincts → signatures
+différentes ; même import → inchangée) ; test ou contrôle de source du
+changement d'exemplaire (résultats effacés, réglages de contexte gardés
+comme au changement d'espèce) ; mutation par point ; `tsc`, tests de
+zone, build, spec-lint, diff-check ; preuve `controle-6bis-b19.md`. Pas de
+mesure au navigateur. Essai de l'utilisateur en A.8.
+
+**Ne fait pas** : ni la résolution, ni le compte, ni la recherche
+elle-même ; pas de relance automatique.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

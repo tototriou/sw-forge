@@ -333,6 +333,18 @@ export interface OptimizerState {
    */
   openDetailKey: string | null;
   setOpenDetailKey: Dispatch<SetStateAction<string | null>>;
+  /**
+   * L'IDENTITÉ de l'import du compte : son numéro dans la session, avancé
+   * d'une unité par CHAQUE `resetSearch('compte')` — App.tsx l'appelle à
+   * chaque import réel, jamais à la relecture du compte conservé. 0 tant
+   * qu'aucun import n'a eu lieu. Entre dans la signature de la file
+   * (`signatureArtefacts`) : tout réimport en vide le cache, même à nombre
+   * d'artéfacts et identifiants de runes égaux (degats-et-aura 6bis-b19).
+   *
+   * ⚠️ Une identité, pas une empreinte du contenu (décision de l'utilisateur
+   * du 2026-10-02) ; sans setter : rien d'autre qu'un import ne l'avance.
+   */
+  importDuCompte: number;
   search: ReturnType<typeof useBuildOptimSearch>;
   // Remet à zéro « Critères de recherche » (set, statistique principale
   // imposée, objectif, artéfacts, conditions min/max) ET « Combinaisons
@@ -392,6 +404,7 @@ export function useOptimizerState(): OptimizerState {
   const [diagnoseBlockingEnabled, setDiagnoseBlockingEnabled] = useState(false);
   const [stoppedManually, setStoppedManually] = useState(false);
   const [openDetailKey, setOpenDetailKey] = useState<string | null>(null);
+  const [importDuCompte, setImportDuCompte] = useState(0);
   const search = useBuildOptimSearch();
 
   function resetSearch(motif: 'monstre' | 'compte' = 'monstre') {
@@ -424,6 +437,12 @@ export function useOptimizerState(): OptimizerState {
     // contexte commun et vide les réglages indexés par sort ou passif.
     setDamageSetup((s) => motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s));
     if (motif === 'compte') setCompterAurasResPre(true);
+    // ⚠️ Chaque import est un NOUVEL import (6bis-b19) : remettre les réglages
+    // par défaut ne changeait pas toujours la signature de la file (réglages
+    // déjà par défaut, même monstre, même relique, même nombre d'artéfacts),
+    // et une nouvelle recherche reprenait du cache des paires de l'ancien
+    // compte. Avancé ici, la signature change à coup sûr.
+    if (motif === 'compte') setImportDuCompte((n) => n + 1);
     setSortBy('efficience');
     setResultsPage(1);
     setStoppedManually(false);
@@ -494,6 +513,7 @@ export function useOptimizerState(): OptimizerState {
     setStoppedManually,
     openDetailKey,
     setOpenDetailKey,
+    importDuCompte,
     search,
     resetSearch,
   };

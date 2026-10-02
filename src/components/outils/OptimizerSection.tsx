@@ -483,6 +483,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     setStoppedManually,
     openDetailKey,
     setOpenDetailKey,
+    importDuCompte,
     search,
     resetSearch,
   } = optimizer;
@@ -2171,8 +2172,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // de la même espèce la remplacent (6bis-b17). Les sortes libres n'y
         // entrent pas : leur pièce portée n'est jamais lue.
         piecesFigees: piecesFigeesDe(artifactMainByKind, selected?.gear.artifacts ?? []),
+        // ⚠️ L'identité de l'import du compte (6bis-b19) : le cache est indexé
+        // par les identifiants de runes et ne voyait de l'inventaire que le
+        // nombre d'artéfacts. Un réimport qui changeait des pièces ou des
+        // runes à nombre et identifiants égaux gardait les paires de l'ancien
+        // compte ; chaque import vide désormais le cache.
+        importDuCompte,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, selected?.gear.artifacts, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves]
+    [selected?.monster.com2usId, selected?.gear.relic, selected?.gear.artifacts, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves, importDuCompte]
   );
 
   /**

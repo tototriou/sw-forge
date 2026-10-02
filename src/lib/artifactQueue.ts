@@ -394,6 +394,23 @@ export function signatureReglages(parts: {
    * Obligatoire, pour la même raison qu'`artefactsReserves`.
    */
   piecesFigees: readonly unknown[];
+  /**
+   * L'IDENTITÉ de l'import du compte : son numéro dans la session
+   * (`importDuCompte`, useOptimizerState.ts), avancé à CHAQUE import par
+   * `resetSearch('compte')` ; 0 tant qu'aucun import n'a eu lieu (compte
+   * relu du stockage, ou aucun compte). Le cache est indexé par les
+   * identifiants de runes (`cleBuild`) et ne comptait que le NOMBRE
+   * d'artéfacts : un réimport qui changeait le contenu d'une rune ou d'un
+   * artéfact sans en changer le nombre ni les identifiants laissait des
+   * paires calculées avec l'ancien compte (degats-et-aura 6bis-b19, cas
+   * rapporté par 6bis-b17).
+   *
+   * ⚠️ **Une identité, pas une empreinte du contenu** (décision de
+   * l'utilisateur du 2026-10-02) : TOUT réimport vide le cache, même celui
+   * d'un fichier identique — aucun calcul du contenu à chaque rendu.
+   * Obligatoire, pour la même raison qu'`artefactsReserves`.
+   */
+  importDuCompte: number;
 }): string {
   // ⚠️ Un minimum à 0 n'exige RIEN : le retenir ferait relancer 100
   // optimisations pour rien dès qu'on tape puis efface une valeur. L'ordre de
@@ -424,6 +441,9 @@ export function signatureReglages(parts: {
     ...(reserves ? [`reserves:${reserves}`] : []),
     // Même règle : sans emplacement figé, composant omis, signature d'avant.
     ...(parts.piecesFigees.length > 0 ? [`figees:${JSON.stringify(parts.piecesFigees)}`] : []),
+    // Même règle encore : avant tout import de la session, composant omis,
+    // signature d'avant 6bis-b19 ; chaque import la change ensuite.
+    ...(parts.importDuCompte > 0 ? [`import:${parts.importDuCompte}`] : []),
   ].join('§');
 }
 
@@ -455,6 +475,8 @@ export function signatureArtefacts(parts: {
   artefactsReserves: Iterable<number>;
   // Les pièces des emplacements figés (`piecesFigeesDe`) — voir `signatureReglages`.
   piecesFigees: readonly unknown[];
+  // L'identité de l'import du compte (6bis-b19) — voir `signatureReglages`.
+  importDuCompte: number;
 }): string {
   return signatureReglages({
     monstreCom2usId: parts.monstreCom2usId,
@@ -470,6 +492,7 @@ export function signatureArtefacts(parts: {
     requirement: parts.requirement,
     artefactsReserves: parts.artefactsReserves,
     piecesFigees: parts.piecesFigees,
+    importDuCompte: parts.importDuCompte,
   });
 }
 

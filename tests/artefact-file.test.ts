@@ -171,6 +171,7 @@ export default function testArtefactFile() {
       requirement: { minStats: { atk: 100 }, maxStats: { def: 2000 } },
       artefactsReserves: [] as Iterable<number>,
       piecesFigees: [] as readonly unknown[],
+      importDuCompte: 0,
     };
     const s = signatureReglages(base);
     // ⚠️ Tout ce qui change quelles LIGNES comptent change la paire gagnante
@@ -304,6 +305,23 @@ export default function testArtefactFile() {
       'la pièce portée d’un emplacement NON figé ne change rien : elle n’est jamais lue'
     );
     egal(signatureReglages({ ...base, piecesFigees: piecesFigeesDe({}, portes) }), s, 'sans emplacement figé, la signature d’avant 6bis-b17');
+
+    // ⚠️ **6bis-b19 — l'IDENTITÉ de l'import du compte.** Le cache est indexé
+    // par les identifiants de runes (`cleBuild`) et ne voyait de l'inventaire
+    // que le NOMBRE d'artéfacts : un réimport qui changeait des pièces ou des
+    // runes à nombre et identifiants égaux laissait la signature IDENTIQUE —
+    // une nouvelle recherche reprenait du cache les paires de l'ancien compte.
+    // Une identité, pas une empreinte du contenu (décision de l'utilisateur) :
+    // tout réimport compte, même celui d'un fichier identique.
+    const import1 = signatureReglages({ ...base, importDuCompte: 1 });
+    const import2 = signatureReglages({ ...base, importDuCompte: 2 });
+    ok(import1 !== s, 'le premier import de la session change la signature (6bis-b19)');
+    ok(import2 !== import1, 'deux imports distincts → deux signatures différentes, à réglages et inventaire de même taille');
+    egal(signatureReglages({ ...base, importDuCompte: 1 }), import1, 'même import → signature inchangée');
+    // `base` porte `importDuCompte: 0` et `s` est épinglé plus haut sur le
+    // littéral d'avant 6bis-b17 : avant tout import de la session, la
+    // signature reste donc aussi celle d'avant 6bis-b19 (rien vidé pour rien).
+    ok(!s.includes('import:'), 'avant tout import de la session, aucun composant d’import : la signature d’avant 6bis-b19');
   }
 
   titre('File d’artéfacts — signatureArtefacts (la closure de l’écran, extraite, B.5c)');
@@ -327,6 +345,7 @@ export default function testArtefactFile() {
       requirement: { minStats: {}, maxStats: {} },
       artefactsReserves: [] as Iterable<number>,
       piecesFigees: [] as readonly unknown[],
+      importDuCompte: 0,
     };
     const s2 = signatureArtefacts(base2);
     egal(
@@ -367,6 +386,10 @@ export default function testArtefactFile() {
       signatureArtefacts({ ...base2, piecesFigees: piecesFigeesDe({ element: 'equipped' }, [ART_ELEMENT_1]) }) !==
         signatureArtefacts({ ...base2, piecesFigees: piecesFigeesDe({ element: 'equipped' }, [ART_ELEMENT_2]) }),
       '… et les pièces des emplacements figés (6bis-b17)'
+    );
+    ok(
+      signatureArtefacts({ ...base2, importDuCompte: 1 }) !== signatureArtefacts({ ...base2, importDuCompte: 2 }),
+      '… et l’identité de l’import du compte (6bis-b19)'
     );
     egal(
       s2,
@@ -415,6 +438,40 @@ export default function testArtefactFile() {
     ok(
       (appel?.[2] ?? '').split(',').map((d) => d.trim()).includes('selected?.gear.artifacts'),
       'écran : … et son mémo se recalcule quand la fiche change d’artéfacts'
+    );
+  }
+
+  titre('File d’artéfacts — chaque import du compte change la signature (6bis-b19)');
+
+  {
+    // Même raison que le bloc précédent (pas de test React) : la fonction
+    // pure distingue deux imports, encore faut-il que CHAQUE import avance
+    // l'identité et que l'écran la passe à la signature.
+    const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
+    const hook = readFileSync('src/hooks/useOptimizerState.ts', 'utf8');
+    const app = readFileSync('src/App.tsx', 'utf8');
+    const appel = /const signatureArtefacts = useMemo\(\s*\(\) =>\s*calculerSignatureArtefacts\(\{([\s\S]*?)\}\),\s*\[([^\]]*)\]\s*\);/.exec(ecran);
+    ok(/^\s*importDuCompte,\s*$/m.test(appel?.[1] ?? ''), 'écran : la signature reçoit l’identité de l’import du compte');
+    ok(
+      (appel?.[2] ?? '').split(',').map((d) => d.trim()).includes('importDuCompte'),
+      'écran : … et son mémo se recalcule à chaque import'
+    );
+    ok(/importDuCompte,\s*search,\s*resetSearch,\s*\}\s*=\s*optimizer;/.test(ecran), 'écran : … celle de l’état de l’Optimizer, jamais une valeur locale');
+    // L'identité vit dans l'état remonté dans App.tsx (jamais démonté) : un
+    // import fait depuis un autre onglet l'avance aussi.
+    ok(hook.includes('const [importDuCompte, setImportDuCompte] = useState(0);'), 'état : 0 avant tout import de la session');
+    const reset = /function resetSearch\(motif: 'monstre' \| 'compte' = 'monstre'\) \{([\s\S]*?)\r?\n  \}\r?\n/.exec(hook);
+    ok(reset !== null, 'état : resetSearch trouvé');
+    ok(
+      (reset?.[1] ?? '').includes("if (motif === 'compte') setImportDuCompte((n) => n + 1);"),
+      'état : CHAQUE resetSearch(\'compte\') avance l’identité d’une unité — deux imports, deux identités'
+    );
+    egal(hook.split('setImportDuCompte(').length - 1, 1, 'état : rien d’autre ne l’avance (un changement de monstre garde la même identité)');
+    // App.tsx appelle `resetSearch('compte')` à chaque import réel, jamais à
+    // la relecture du compte conservé (`hydrationJustAppliedRef`).
+    ok(
+      /if \(hydrationJustAppliedRef\.current\) \{\s*hydrationJustAppliedRef\.current = false;\s*return;\s*\}\s*optimizer\.resetSearch\('compte'\);/.test(app),
+      'App : resetSearch(\'compte\') à chaque import réel, pas à la relecture du compte conservé'
     );
   }
 

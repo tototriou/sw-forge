@@ -2607,8 +2607,17 @@ même pour la **pièce d'un emplacement figé** sur « Garder l'artéfact équip
 seul candidat de cet emplacement : valider un build du monstre recherché,
 « Voir le runage réellement porté » ou changer d'exemplaire de la même espèce
 la remplacent, et les paires déjà calculées se refont. La pièce portée d'un
-emplacement libre, jamais lue, n'y entre pas. Le Worker de résolution reçoit
-alors le nouveau contexte (voir plus bas).
+emplacement libre, jamais lue, n'y entre pas. Enfin, depuis 6bis-b19,
+l'**identité de l'import du compte** (`importDuCompte`, useOptimizerState.ts)
+y entre : son numéro dans la session, avancé par chaque
+`resetSearch('compte')` — donc par chaque import réel, jamais par la
+relecture du compte conservé ; 0 avant tout import (composant omis,
+signature d'avant). Le cache est indexé par les identifiants de runes et ne
+voyait de l'inventaire que le nombre d'artéfacts : un réimport qui changeait
+le contenu d'une rune ou d'un artéfact à nombre et identifiants égaux
+gardait les paires de l'ancien compte. C'est une identité, pas une empreinte
+du contenu : tout réimport vide le cache, même celui d'un fichier identique.
+Le Worker de résolution reçoit alors le nouveau contexte (voir plus bas).
 
 **La page affichée n'attend pas l'inactivité** (degats-et-aura 6bis-b11).
 Pendant une recherche, l'écran reçoit la progression toutes les 150 ms et

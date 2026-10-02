@@ -36,6 +36,24 @@ sa propre formule `2,4 × ATQ` décrit le soin. À l'inverse, `Bite`,
 leur profil offensif. Ni une recherche automatique du mot « attaque » dans
 la prose ni la valeur de `coups` prise seule ne sont des preuves fiables.
 
+Les **sorts sans attaque** sont masqués de la même façon (lot 15c du
+chantier degats-et-aura). Règle de l'utilisateur : un ratio et des `coups`
+ne prouvent pas qu'un sort attaque ; sans attaque ni dégâts infligés dans sa
+prose, ce n'en est pas une. Un tel sort n'apparaît pas dans « Compétence
+utilisée » : il n'est ni proposé ni affiché refusé, et un passif de la même
+table n'est jamais un passif offensif. La table `SORTS_SANS_ATTAQUE_PAR_ID`
+([damage.ts](../../../src/lib/damage.ts)) est curée par identifiant, une
+prose citée par ligne, jamais une détection de la prose. Elle compte
+28 sorts actifs : 25 boucliers (dont Frieren `24909`, Gandalf, Old Wood,
+les Air Shield, Force Field, Protection Field, Beneficial Hammering), Trade
+`7414`, Destiny Dice `12115` et Forbidden Galdr `13111`. Ce dernier est un
+effet de PV sans coup ; Harmonia et Vivachel S3 et le passif d'Aya vent
+n'ont pas de formule et restaient déjà hors calcul. Le mot « damage » d'un
+bouclier (dégâts absorbés) ou d'un Reflect Damage accordé ne fait pas une
+attaque. Les passifs de Pure Vanilla et Angela (`16113`, `16613`) restent
+hors table : leur prose inflige une riposte, mais leur `formule` est celle
+du bouclier.
+
 ⚠️ **La compétence est supposée MAXÉE**, comme partout ailleurs dans l'app
 (même parti pris que `paliersRechargement`, voir
 [monsterSkills.ts](../../../src/lib/monsterSkills.ts)) : les `Damage +X%` sont tous
@@ -62,7 +80,8 @@ l'Optimizer classerait les builds sur une base fausse. C'est la seule
 propriété de ce module qui serait **grave et invisible** — d'où le balayage
 du corpus **réel** en test, pas seulement des cas écrits à la main.
 
-Couverture mesurée sur le corpus complet après exclusion des 69 soins :
+Couverture mesurée sur le corpus complet après exclusion des 69 soins
+(mesure antérieure au masquage des sorts sans attaque) :
 **6 073 profils de dégâts calculables, 115 refusés explicitement** (variables hors modèle —
 `{Attacker's Level}`, `ABSORPTION_TOT_CNT`… — ou formules hors grammaire).
 `{Relative SPD}` a longtemps fait partie des variables refusées (20 sorts,

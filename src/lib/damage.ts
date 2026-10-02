@@ -2777,6 +2777,56 @@ function estSoinSansDegats(c: Competence): boolean {
     || (c.coups === 0 && c.effets.some((e) => e.nom === 'Heal'));
 }
 
+// Sorts qui portent une `formule` mais N'ATTAQUENT PAS : bouclier, échange ou
+// redistribution de PV, perte de PV sans coup (degats-et-aura 15c). Règle de
+// l'utilisateur du 2026-10-02 (cadrage A.2 ter) : un ratio et un nombre de
+// `coups` SWARFARM ne prouvent pas qu'un sort attaque ; sans la notion
+// d'attaque ou de dégâts infligés dans sa prose, ce n'est pas une attaque. Et
+// (A.8) un tel sort est MASQUÉ de « Compétence utilisée » — ni proposé, ni
+// affiché refusé. Un passif de cette table n'est jamais un passif offensif
+// (aucun aujourd'hui : les passifs candidats 16113 et 16613 infligent des
+// dégâts en riposte, leur prose le dit — laissés hors table).
+//
+// ⚠️ Curation par IDENTIFIANT, prose lue une par une (preuve
+// `controle-15c.md`), jamais une détection automatique de la prose : des
+// sorts qui frappent ne disent ni « attack » ni « damage » (« Freezes the
+// enemy for 1 turn », Ice Ball). Ce n'est PAS non plus une liste blanche
+// de ce qui attaque : la règle générale reste « une formule est un sort
+// offensif », la table ne retire que les données qui la contredisent. Ne
+// pas la « compléter » par ressemblance : chaque ligne cite sa prose.
+// Le mot « damage » de certaines proses désigne les dégâts que le bouclier
+// ABSORBE ou que le buff RENVOIE, jamais des dégâts infligés par le sort.
+export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
+  1412, // Ancestors' Blessing (Tantra) : « Creates a shield that's 50% of your MAX HP … and recovers 15% of HP at every turn. »
+  2813, // Force Field (Sylphid vent) : « Casts a shield that absorbs a certain amount of damage on all allies for 3 turns. »
+  2818, // Force Field (Acasis) : « Creates a shield that's proportionate to 30% of your HP on all allies … »
+  7414, // Trade (Conrad) : « Changes the HP ratio and harmful effects with the enemy target … and increases the Attack Bar of all allies by 20%. »
+  10406, // Air Shield (Tetra) : « Removes all harmful effects on the ally target and casts a shield that's proportionate to 25% of your MAX HP … »
+  10408, // Air Shield (Cichlid) : même prose que 10406.
+  10409, // Air Shield (Molly) : même prose que 10406.
+  10914, // Neostone Field (Illianna) : « Grants immunity on all allies … invincible … a shield that's proportionate to your level … »
+  11311, // Oasis's Blessing (Bastet) : « Increases the Attack Bar of all allies by 30%, increases their Attack Power … and creates a Shield … »
+  11813, // Deer's Song (Raviti) : « Removes all harmful effects on all allies … creates a shield that's proportionate to your Defense … »
+  12115, // Destiny Dice (Monte) : « Rolls 2 dice to redistribute the HP ratio of the enemy according to the smaller number … »
+  12512, // Cry of Threat (Ophilia) : « Grants immunity on all allies …, creates a shield … and goes under Threat state … » (seuls les ennemis y attaquent)
+  13111, // Forbidden Galdr (Bolverk) : « Decreases the current HP of the enemy target … by 10% for every Knowledge … heals all allies … » (effet de PV sans coup, A.2 ter)
+  15607, // Beneficial Hammering (Miriam) : « Increases Attack Power and Defense of all allies … creates a shield that absorbs damage … proportionate to your level. »
+  15608, // Beneficial Hammering (Celine) : même prose que 15607.
+  15609, // Beneficial Hammering (Madeleine) : même prose que 15607.
+  16213, // Cries of Unity (Hollyberry Cookie) : « Creates a shield that's proportionate to your Defense on all allies … increases their Defense … »
+  16713, // Sweet Shout (Jade) : même prose que 16213.
+  21111, // Lamplight in Darkness (Mork) : « Grants Immunity, creates a shield that's proportionate to 20% of your MAX HP, and increases the Attack Power of all allies … »
+  23706, // Guardian's Barrier (Gandalf eau) : « Creates a Shield equal to 20% of your MAX HP on all allies … and grants them Reflect Damage … »
+  23708, // Guardian's Barrier (Gandalf vent) : même prose que 23706.
+  23709, // Guardian's Barrier (Gandalf lumière) : même prose que 23706.
+  24206, // Floral Barrier (Old Wood eau) : même prose que 23706.
+  24208, // Floral Barrier (Old Wood vent) : même prose que 23706.
+  24209, // Floral Barrier (Old Wood lumière) : même prose que 23706.
+  24909, // Spell to Create a Field of Flowers (Frieren) : « Grants Immunity on all allies for 1 turn and creates a Shield … proportionate to your Attack Power. »
+  10243000, // Protection Field (Homunculus support lumière) : « Creates a shield that absorbs damage proportionate to your level on all allies and increases their Defense … »
+  10253000, // Protection Field (Homunculus support ténèbres) : même prose que 10243000.
+]);
+
 // Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à
 // 5 fois »…) — `Competence.coups` ne porte qu'UN SEUL nombre, pas toujours
 // cohérent avec le texte (ex. Rain of Fire : `coups=6` en donnée, « 3 à 5
@@ -2961,6 +3011,9 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
  */
 export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDamageUnsupported | null {
   if (c.passif || !c.formule || c.com2usId == null || estSoinSansDegats(c)) return null;
+  // Un sort sans attaque (`SORTS_SANS_ATTAQUE_PAR_ID`) est masqué, comme un
+  // soin : `null`, jamais un refus avec raison (décision A.8, lot 15c).
+  if (SORTS_SANS_ATTAQUE_PAR_ID.has(c.com2usId)) return null;
   const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule).trim();
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom, description: c.description };
   const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);
@@ -3442,6 +3495,9 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
   const out: PassifOffensifProfile[] = [];
   for (const c of detail.competences) {
     if (!c.passif || c.com2usId == null) continue;
+    // Un passif sans attaque n'est jamais offensif, même homonyme d'une
+    // entrée curée par nom (`SORTS_SANS_ATTAQUE_PAR_ID`, lot 15c).
+    if (SORTS_SANS_ATTAQUE_PAR_ID.has(c.com2usId)) continue;
     const connu = PASSIFS_OFFENSIFS_CONNUS.find((p) => p.nom === c.nom);
     if (!connu) continue;
     // ⚠️ La garde porte sur la formule RETENUE, jamais sur `c.formule` seule :

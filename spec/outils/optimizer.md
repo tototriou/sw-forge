@@ -1217,6 +1217,28 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    crée, ne relève et ne supprime aucune aura externe : les deux sources
    sont indépendantes.
 
+   **Rappel au changement de monstre** (degats-et-aura 7b) — choisir un
+   autre monstre **depuis la liste de travail** (voir « Zone C — Monstres
+   de la liste ») — autre espèce, ou autre exemplaire de la même espèce —
+   alors que des auras externes sont renseignées passe leur boîte au token
+   d'attention : contour `warn` et fond `warn-soft` à la place de ses
+   couleurs, toujours un seul contour de 1 px, et l'en-tête de la boîte
+   laisse la place à « Pense à vérifier les sets d'aura externes. »,
+   **effacé après 3 s** (réponse de l'utilisateur). Un rappel, jamais un
+   blocage : les nombres restent ceux saisis — conservés au changement de
+   monstre comme le contexte du lot 5 —, l'app ne les réécrit pas : c'est
+   l'identité du monstre optimisé qui change ce qui est « externe ».
+   ⚠️ **Sa place est réservée** : le message occupe la même case de grille
+   que l'en-tête (libellé, aide, total), invisible le reste du temps ; la
+   case a donc déjà la hauteur du plus haut des deux et rien ne bouge quand
+   il paraît. ⚠️ **Aucune autre voie** : ni le bestiaire, ni une puce de
+   source ou la zone D (la règle de 6bis-b19 reste limitée à la liste de
+   travail), ni l'import d'une recette ou d'un compte, ni un simple rendu ;
+   recliquer l'exemplaire affiché ne rappelle rien. La décision est la
+   fonction pure `doitRappeler` (`src/lib/aurasExternes.ts`), appelée dans
+   le seul `onClick` d'un membre de la zone C — jamais dans `resetSearch`
+   ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
+
    ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
    atteignables sous ce seul objectif — alors qu'ils changent les
    statistiques du monstre, donc les **dégâts supplémentaires** que lui
@@ -2011,7 +2033,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
   pour rappeler son exemplaire dans la recherche — un autre exemplaire de
   l'espèce déjà choisie efface les résultats affichés, sans toucher aux
-  critères (6bis-b19, voir « Recherche du monstre à optimiser »). **Corbeille** à droite de
+  critères (6bis-b19, voir « Recherche du monstre à optimiser »). Avec des
+  auras externes renseignées, choisir ici une autre espèce ou un autre
+  exemplaire les rappelle 3 s dans « État de mon monstre » (degats-et-aura
+  7b, voir cette section) : c'est la seule voie qui le fasse. **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont

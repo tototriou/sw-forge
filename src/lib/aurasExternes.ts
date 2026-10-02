@@ -17,6 +17,10 @@
 //
 // Source des valeurs : cadrage degats-et-aura, A.2 ter (utilisateur,
 // 2026-09-23 puis 2026-09-25) — cinq autres monstres à trois sets, donc 15.
+//
+// Lot 7b : le RAPPEL au changement de monstre (`doitRappeler`, en fin de
+// fichier) — une décision de l'écran, prise ici pour être testée sans React ;
+// le composant ne fait que brancher son résultat.
 
 import { STAT_DE_L_AURA, type DamageSetup, type SetAura } from './damage';
 import { RUNE_SETS } from '../types';
@@ -154,4 +158,52 @@ export function echoAurasExternes(entrees: readonly AuraExterne[] | undefined): 
   return liste.length > 0
     ? `auras externes : ${liste.join(', ')} ; les sets d'aura du build s'y ajoutent sur chaque résultat`
     : `aucune aura externe ; les sets d'aura du build comptent sur chaque résultat`;
+}
+
+// ── Rappel au changement de monstre (degats-et-aura 7b) ──────────────────
+
+/**
+ * Durée d'un surlignage d'attention (réponse de l'utilisateur du 2026-10-02 :
+ * « effacés après 3 s »).
+ */
+export const DUREE_ATTENTION_MS = 3000;
+
+/**
+ * Par où l'écran change le monstre optimisé :
+ * - `liste` — un membre de la liste de travail (zone C) ;
+ * - `bestiaire` — la recherche « Monstre à optimiser » (`pickSpecies`) ;
+ * - `source` — une puce de source ou la désambiguïsation d'exemplaire (zone D) ;
+ * - `recette` — l'import d'une recette ;
+ * - `compte` — l'import d'un compte ;
+ * - `rendu` — un simple rendu, premier montage compris.
+ */
+export type VoieChangementMonstre = 'liste' | 'bestiaire' | 'source' | 'recette' | 'compte' | 'rendu';
+
+/** Le monstre optimisé, tel que le rappel le compare avant et après un geste. */
+export interface MonstreOptimise {
+  /** L'espèce (`selectedId`), `null` sans monstre choisi. */
+  espece: string | null;
+  /** L'exemplaire (`exclusionSelectorKey` du sélecteur actif), `null` sans exemplaire. */
+  exemplaire: string | null;
+  /** Les auras externes en vigueur — conservées au changement de monstre (lot 5). */
+  aurasExternes: readonly AuraExterne[] | undefined;
+}
+
+/**
+ * Faut-il rappeler les auras externes ? Vrai SEULEMENT quand on change de
+ * monstre depuis la LISTE DE TRAVAIL — autre espèce, ou autre exemplaire de
+ * la même espèce (réponse de l'utilisateur, 2026-10-02) — et que des auras
+ * externes restent renseignées (celles d'après, conservées) : l'identité du
+ * monstre optimisé change ce qui est « externe », mais l'app ne réécrit
+ * jamais les nombres à la place de l'utilisateur.
+ *
+ * ⚠️ **Aucune autre voie** : ni le bestiaire, ni une puce de source ou la
+ * zone D (décision de l'utilisateur sur 6bis-b19 : la liste de travail
+ * seulement), ni l'import d'une recette ou d'un compte, ni un simple rendu.
+ * Recliquer l'exemplaire déjà affiché ne rappelle rien.
+ */
+export function doitRappeler(voie: VoieChangementMonstre, avant: MonstreOptimise, apres: MonstreOptimise): boolean {
+  if (voie !== 'liste') return false;
+  if (sommeAurasExternes(apres.aurasExternes) === 0) return false;
+  return avant.espece !== apres.espece || avant.exemplaire !== apres.exemplaire;
 }

@@ -63,11 +63,16 @@ export default function EtatMonstre({
   maj,
   etroit,
   artefacts,
+  rappelAuras,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
   etroit: boolean;
   artefacts: ArtifactDamageProfile;
+  // Rappel « Pense à vérifier les sets d'aura externes. » (degats-et-aura
+  // 7b) : décidé et minuté par l'écran (`doitRappeler`, OptimizerSection.tsx,
+  // au seul geste de la liste de travail) ; seul son rendu vit ici.
+  rappelAuras: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -200,7 +205,7 @@ export default function EtatMonstre({
           ⚠️ **En dernier dans la carte** : ajouter une ligne ne pousse que
           vers le BAS, rien de ce qui précède — ni le bouton d'ajout, fixe en
           tête de sa boîte (spec/shared/design.md, réponse n° 3). */}
-      <AurasExternesSaisie setup={setup} maj={maj} />
+      <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} />
     </div>
   );
 }
@@ -230,8 +235,24 @@ export default function EtatMonstre({
  * le menu qu'on vient de cliquer. Dessous, il ne pousse que vers le bas. Le
  * menu occupe la colonne `1fr` : sa largeur vient de la boîte, jamais de
  * l'option choisie.
+ *
+ * ⚠️ **Le rappel (degats-et-aura 7b) recolore la boîte, il ne la redessine
+ * pas** : contour `warn` et fond `warn-soft` À LA PLACE de `border-soft` et
+ * `panel2` — toujours un seul contour de 1 px. Son message occupe la MÊME
+ * case de grille que l'en-tête (libellé, aide, total), invisible le reste du
+ * temps : la case a donc déjà la hauteur du plus haut des deux, et rien ne
+ * bouge quand il paraît (spec/shared/design.md, réponse n° 1). Pendant les
+ * 3 s, l'en-tête s'efface derrière lui.
  */
-function AurasExternesSaisie({ setup, maj }: { setup: DamageSetup; maj: (patch: Partial<DamageSetup>) => void }) {
+function AurasExternesSaisie({
+  setup,
+  maj,
+  rappel,
+}: {
+  setup: DamageSetup;
+  maj: (patch: Partial<DamageSetup>) => void;
+  rappel: boolean;
+}) {
   const entrees = setup.setsAuraExternes ?? [];
   // Le set dont le champ du nombre est momentanément VIDE (affichage seul).
   const [ligneVide, setLigneVide] = useState<SetAura | null>(null);
@@ -247,8 +268,13 @@ function AurasExternesSaisie({ setup, maj }: { setup: DamageSetup; maj: (patch: 
       : 'Les cinq sets d’aura ont déjà leur ligne';
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-      <div className="flex items-center justify-between gap-2">
+    <div
+      className={`flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 transition-colors duration-200 ${
+        rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'
+      }`}
+    >
+      <div className="grid">
+      <div className={`col-start-1 row-start-1 flex items-center justify-between gap-2 ${rappel ? 'invisible' : ''}`}>
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-ink-dim">Sets d&apos;aura des autres monstres</span>
           <HelpPopover title="Sets d'aura des autres monstres">
@@ -269,6 +295,21 @@ function AurasExternesSaisie({ setup, maj }: { setup: DamageSetup; maj: (patch: 
         <span className="font-mono text-micro tabular-nums text-ink-dim">
           {total} / {PLAFOND_AURAS_EXTERNES}
         </span>
+      </div>
+      {/* ⚠️ Rendu SANS condition, dans la case de l'en-tête : c'est ce qui
+          réserve sa place (voir l'en-tête de ce composant). `aria-live` sur
+          un conteneur toujours visible : le message qui y devient visible est
+          annoncé. `apparition` : un message qui se pose en place
+          (spec/shared/design.md, Mouvement). */}
+      <div className="col-start-1 row-start-1 self-center" aria-live="polite">
+        <p
+          className={`text-xs font-semibold text-warn ${
+            rappel ? 'animate-[apparition_200ms_var(--ease-out)]' : 'invisible'
+          }`}
+        >
+          Pense à vérifier les sets d&apos;aura externes.
+        </p>
+      </div>
       </div>
 
       <Bouton

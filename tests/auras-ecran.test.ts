@@ -13,11 +13,13 @@ import { DEFAULT_DAMAGE_SETUP, STAT_DE_L_AURA, type SetAura } from '../src/lib/d
 import { damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import {
+  DUREE_ATTENTION_MS,
   PLAFOND_AURAS_EXTERNES,
   SETS_AURA,
   ajouterAura,
   changerNombreAura,
   changerSetAura,
+  doitRappeler,
   echoAurasExternes,
   erreurAurasExternes,
   libelleNombreAura,
@@ -27,10 +29,27 @@ import {
   setsDisponibles,
   sommeAurasExternes,
   type AuraExterne,
+  type MonstreOptimise,
+  type VoieChangementMonstre,
 } from '../src/lib/aurasExternes';
 import { mulberry32 } from '../scripts/lib/randomPool';
 
 const a = (set: SetAura, nombre: number): AuraExterne => ({ set, nombre });
+
+// Source sans commentaires (JSX, blocs, lignes) : un nom cité en commentaire
+// ne compte jamais comme un branchement.
+const lireSansCommentaires = (f: string) =>
+  readFileSync(f, 'utf8')
+    .replace(/\r\n/g, '\n')
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+// Le texte de `debut` (inclus) jusqu'à `fin` (exclu), cherché après `debut` ; vide si l'un manque.
+const entre = (source: string, debut: string, fin: string) => {
+  const i = source.indexOf(debut);
+  const j = i >= 0 ? source.indexOf(fin, i + debut.length) : -1;
+  return i >= 0 && j >= 0 ? source.slice(i, j) : '';
+};
 
 function recette(setsAuraExternes: unknown, sets: string[] = []) {
   const base = buildOptimizerRecipe({
@@ -243,4 +262,72 @@ export function testAurasEcranInterrupteur() {
     'rendu SANS condition, en dernier, dans le contenu commun aux deux formats (`reglagesAvancesInner`)');
   egal(ecran.match(/reglagesAvancesInner\((true|false)\)/g), ['reglagesAvancesInner(false)', 'reglagesAvancesInner(true)'],
     'le même contenu sert le flottant du bureau et le panneau « Options » au doigt');
+}
+
+export function testAurasEcranRappel() {
+  titre('Auras à l’écran · rappel au changement de monstre : liste de travail seulement, autre espèce ou autre exemplaire, auras renseignées');
+
+  // Lot 7b — la décision est pure (`doitRappeler`) ; l'écran ne fait que la
+  // brancher, ce que vérifient les contrôles de source plus bas.
+  const auras = [a('fight', 2), a('tolerance', 1)];
+  const m = (espece: string | null, exemplaire: string | null, aurasExternes: readonly AuraExterne[] | undefined = auras): MonstreOptimise =>
+    ({ espece, exemplaire, aurasExternes });
+  ok(doitRappeler('liste', m('1001', 'box:1'), m('2002', 'box:7')), 'liste de travail, autre espèce, auras renseignées : rappel');
+  ok(doitRappeler('liste', m('1001', 'box:1'), m('1001', 'siege-defense:3')),
+    'liste de travail, MÊME espèce, autre exemplaire : rappel (réponse de l’utilisateur du 2026-10-02)');
+  ok(!doitRappeler('liste', m('1001', 'box:1'), m('1001', 'box:1')), 'recliquer l’exemplaire déjà affiché : aucun rappel');
+  ok(!doitRappeler('liste', m('1001', 'box:1', []), m('2002', 'box:7', [])), 'aucune aura externe : aucun rappel');
+  // ⚠️ Objets écrits en entier : un `undefined` passé à `m` prendrait la valeur par défaut.
+  ok(!doitRappeler('liste', { espece: '1001', exemplaire: 'box:1', aurasExternes: undefined }, { espece: '2002', exemplaire: 'box:7', aurasExternes: undefined }),
+    'auras absentes : aucun rappel');
+  ok(doitRappeler('liste', m(null, null), m('2002', 'box:7')), 'liste de travail, premier monstre choisi alors qu’aucun ne l’était : rappel');
+  const autresVoies: VoieChangementMonstre[] = ['bestiaire', 'source', 'recette', 'compte', 'rendu'];
+  for (const voie of autresVoies) {
+    ok(!doitRappeler(voie, m('1001', 'box:1'), m('2002', 'box:7')), `voie « ${voie} », autre espèce, auras renseignées : aucun rappel`);
+  }
+  ok(!doitRappeler('rendu', m(null, null), m('2002', 'box:7')), 'premier rendu : aucun rappel');
+  egal(DUREE_ATTENTION_MS, 3000, 'effacé après 3 s (réponse de l’utilisateur du 2026-10-02)');
+  const setup = { ...DEFAULT_DAMAGE_SETUP, setsAuraExternes: auras };
+  egal(damageSetupApresChangementMonstre(setup).setsAuraExternes, auras,
+    'les nombres ne sont jamais réécrits : le changement de monstre conserve les auras (lot 5), le rappel ne fait que les signaler');
+
+  // Branchement : dans le seul onClick d'un membre de la liste de travail.
+  const ecran = lireSansCommentaires('src/components/outils/OptimizerSection.tsx');
+  const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
+  const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');
+  ok(clic.includes('if (!resolved) return;') && clic.includes('setSelectedId(id);') && clic.includes('effacerResultats()'),
+    'source : le geste d’un membre de la liste de travail (zone C) est localisé');
+  ok(/doitRappeler\(\s*'liste',/.test(clic), 'source : le rappel est décidé DANS ce onClick, voie « liste »');
+  ok(/\{ espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup\.setsAuraExternes \}/.test(clic)
+    && /\{ espece: id, exemplaire: key, aurasExternes: damageSetup\.setsAuraExternes \}/.test(clic),
+  '… avant = l’espèce et l’exemplaire affichés, après = le membre cliqué (espèce ET exemplaire)');
+  ok(/setRappelAuras\(\(n\) => \(n \?\? 0\) \+ 1\)/.test(clic), '… et déclenché là, par un jeton qui relance la minuterie');
+  egal(ecran.match(/doitRappeler\(/g)?.length ?? 0, 1, 'source : UN seul appel de doitRappeler dans l’écran');
+  egal(ecran.match(/setRappelAuras\((?!null\))/g)?.length ?? 0, 1,
+    'source : le rappel n’est déclenché qu’à cet endroit — jamais pickSpecies, pickSource, importRecipe ni un effet sur selectedId');
+  for (const [nom, corps] of [
+    ['pickSpecies (bestiaire)', entre(ecran, 'function pickSpecies(', 'const zoneDRef = useRef')],
+    ['pickSource (puces de source)', entre(ecran, 'function pickSource(', 'function pickSpecies(')],
+    ['importRecipe (import de recette)', entre(ecran, 'function importRecipe(', 'const candidatesSource =')],
+  ] as const) {
+    ok(corps.length > 0 && !/doitRappeler|setRappelAuras/.test(corps), `source : ${nom} ne rappelle rien`);
+  }
+  const hook = lireSansCommentaires('src/hooks/useOptimizerState.ts');
+  const reset = entre(hook, 'function resetSearch(', 'function effacerResultats(');
+  ok(reset.length > 0 && !/doitRappeler|RappelAuras|rappelAuras/.test(reset), 'source : resetSearch ne rappelle rien');
+  ok(!/doitRappeler|RappelAuras|rappelAuras/.test(lireSansCommentaires('src/App.tsx')), 'source : l’import de compte (App.tsx) ne rappelle rien');
+  ok(/setTimeout\(\(\) => setRappelAuras\(null\), DUREE_ATTENTION_MS\)/.test(ecran), 'source : effacé par une minuterie de DUREE_ATTENTION_MS');
+  ok(/<EtatMonstre[\s\S]*?rappelAuras=\{rappelAuras !== null\}[\s\S]*?\/>/.test(ecran), 'source : l’état du rappel est passé à « État de mon monstre »');
+
+  // Rendu : la boîte des auras recolorée au token d'attention, message à place réservée.
+  const carte = lireSansCommentaires('src/components/outils/EtatMonstre.tsx');
+  ok(carte.includes('<AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} />'), 'rendu : la carte transmet le rappel à la saisie des auras');
+  const saisie = carte.slice(Math.max(0, carte.indexOf('function AurasExternesSaisie(')));
+  ok(saisie.includes("rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'"),
+    'rendu : la boîte passe au token d’attention (warn / warn-soft) à la place de ses couleurs — un seul contour de 1 px');
+  ok(/className=\{`col-start-1 row-start-1 flex items-center justify-between gap-2 \$\{rappel \? 'invisible' : ''\}`\}/.test(saisie),
+    'rendu : l’en-tête occupe la case 1/1 de sa grille, effacé pendant le rappel');
+  const message = saisie.match(/<div className="col-start-1 row-start-1 self-center" aria-live="polite">\s*<p\s+className=\{`text-xs font-semibold text-warn \$\{\s*rappel \? '[^']*' : 'invisible'\s*\}`\}\s*>\s*Pense à vérifier les sets d&apos;aura externes\.\s*<\/p>/);
+  ok(message !== null, 'rendu : « Pense à vérifier les sets d’aura externes. » dans la MÊME case, toujours rendu, invisible hors rappel (place réservée)');
+  ok(!/\{rappel &&/.test(saisie), 'rendu : rien n’est monté sous condition du rappel — rien ne bouge quand il paraît');
 }

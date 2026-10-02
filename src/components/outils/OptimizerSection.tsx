@@ -135,7 +135,7 @@ import {
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
-import { echoAurasExternes } from '../../lib/aurasExternes';
+import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes } from '../../lib/aurasExternes';
 import {
   ArtifactMainChoice,
   OptimizerState,
@@ -1874,6 +1874,19 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     return () => clearTimeout(t);
   }, [importMsg]);
 
+  // Rappel « Pense à vérifier les sets d'aura externes. » (degats-et-aura 7b)
+  // — décidé par `doitRappeler` dans le seul geste de la liste de travail
+  // (zone C, plus bas), effacé après `DUREE_ATTENTION_MS` (3 s) par le même
+  // patron de minuterie qu'`importMsg`. Un JETON qui s'incrémente, pas un
+  // booléen : un second changement de monstre pendant les 3 s relance la
+  // minuterie au lieu de laisser la première éteindre le second rappel.
+  const [rappelAuras, setRappelAuras] = useState<number | null>(null);
+  useEffect(() => {
+    if (rappelAuras === null) return;
+    const t = setTimeout(() => setRappelAuras(null), DUREE_ATTENTION_MS);
+    return () => clearTimeout(t);
+  }, [rappelAuras]);
+
   // « Réglages avancés » (bureau) : ancre du `FlottantAuto`, PAS un bloc
   // inline — un panneau replié par défaut ne peut pas réserver sa place à
   // l'avance sans perdre l'intérêt d'être replié, donc il flotte PAR-DESSUS
@@ -3071,6 +3084,24 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     if (m.selector.source !== 'unowned') setGearSource(m.selector.source);
                     setSourceSelector(m.selector);
                     setZoneDOpen(false);
+                    // ⚠️ **Rappel des auras externes (degats-et-aura 7b) — ICI,
+                    // dans le geste de la liste de travail, et nulle part
+                    // ailleurs** : ni dans `resetSearch`, ni dans un effet sur
+                    // `selectedId` — l'import d'une recette ou d'un compte pose
+                    // aussi le monstre, et le bestiaire, les puces de source et
+                    // la zone D restent sans rappel (décision de l'utilisateur
+                    // sur 6bis-b19). Autre espèce OU autre exemplaire de la
+                    // même espèce ; `damageSetup` est celui du clic, et ses
+                    // auras externes survivent au changement de monstre.
+                    if (
+                      doitRappeler(
+                        'liste',
+                        { espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup.setsAuraExternes },
+                        { espece: id, exemplaire: key, aurasExternes: damageSetup.setsAuraExternes }
+                      )
+                    ) {
+                      setRappelAuras((n) => (n ?? 0) + 1);
+                    }
                   }}
                   className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 >
@@ -4021,7 +4052,13 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
           le décalage d'une rangée de tout ce qui suit. */}
       <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
-        <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} artefacts={artefactsDegats} />
+        <EtatMonstre
+          setup={damageSetup}
+          maj={majDamageSetup}
+          etroit={etroit}
+          artefacts={artefactsDegats}
+          rappelAuras={rappelAuras !== null}
+        />
       </div>
 
       {/* ⚠️ « Objectif de recherche » N'EST PLUS ICI — il a rejoint la carte

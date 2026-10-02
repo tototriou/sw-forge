@@ -406,7 +406,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → 6bis-b17 (cache et artéfacts réservés, revue du Worker)
         → 6bis-b18 (compte des confirmées, essai de b16)
         → 6bis-b19 (réimport du compte, changement d'exemplaire)
-        → 7a → 7b (recalé et scindé le 2026-10-02)
+        → 7a → 7b (recalé et scindé le 2026-10-02) → 7c (rappel sous la liste)
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
                             tous les sous-lots validés)
@@ -428,7 +428,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c, 6bis-b16, 6bis-b17, 6bis-b18,
   6bis-b19,
-  7a, 7b, 11bis, 12, tous les 13b-* → 14
+  7a, 7b, 7c, 11bis, 12, tous les 13b-* → 14
 ```
 
 ##### Ordre d'exécution et premières contre-revues
@@ -700,7 +700,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b18 — le compte ne compte que les combinaisons confirmées | J | terminé, preuves, mesure et mutation rejouées par le pilote ; essai de l'utilisateur en attente (A.8) | `734d4dd6`…`a9fa6b48` ; reçu `a9fa6b4` ↔ `04da233` / 2026-10-02 |
 | 6bis-b19 — réimport du compte et changement d'exemplaire | J | terminé, preuves et mutation rejouées par le pilote ; deux cas voisins soumis à l'utilisateur (A.8) | `92db894b`, `62ac3eeb` ; reçu `62ac3ee` ↔ `16d8d7a` / 2026-10-02 |
 | 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `1baecf9e`…`3bc596af` ; reçu `3bc596a` ↔ `42f1a43` / 2026-10-02 |
-| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | terminé, preuves et mutation rejouées par le pilote ; une question d'interface soumise à l'utilisateur (A.8) | `cc85a596`, `9291e1c8` ; reçu `9291e1c` ↔ `9ca4172` / 2026-10-02 |
+| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | terminé, preuves et mutation rejouées par le pilote | `cc85a596`, `9291e1c8` ; reçu `9291e1c` ↔ `9ca4172` / 2026-10-02 |
+| 7c — le rappel aussi sous la liste de travail | J | contrat écrit le 2026-10-02 (décision de l'utilisateur) ; **lançable** | — |
 | 8a — Blade Surge : moteur (8 identifiants / 11 formes de corpus) | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `f229d2f1` / 2026-10-02 |
 | 8b — Blade Surge : recette, écran, CLI | J | en cours en parallèle (worktree `sw-forge-lot-8b`, depuis l'intégration `22bd4590`) | — |
 | 9a — Tempest : formule curée d'un passif, déclenchement après S1/S2 | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré | `50e46aea`, `e5dc87ae` / 2026-10-02 |
@@ -795,7 +796,7 @@ décision, rayée avec la date et la réponse.
 | essai du Worker | ~~Comment supprimer le va-et-vient des cartes ?~~ | ✔ 2026-10-02 : **n'afficher que les builds vérifiés**, places en attente marquées « Vérification… » → 6bis-b16, avant 7a |
 | 6bis-b17 | ~~Deux cas voisins rapportés : réimport du compte à nombre égal ; changement d'exemplaire de la même espèce.~~ | ✔ 2026-10-02 : **corriger les deux** — chaque import vide le cache ; changer d'exemplaire efface les résultats comme un changement d'espèce → 6bis-b19 |
 | 6bis-b19 | ~~Deux cas voisins rapportés : autres chemins de changement d'exemplaire ; cache qui ne suit pas l'exemplaire.~~ | ✔ 2026-10-02 : (1) **liste de travail seulement** — puces de source, zone D et bestiaire inchangés ; (2) **écarté, faux problème** : l'utilisateur n'utilise que des monstres niveau 40, dont les stats de base sont identiques d'un exemplaire à l'autre |
-| 7b | Le rappel s'affiche dans « État de mon monstre », souvent hors de l'écran quand on clique dans la zone C (toujours au téléphone). L'afficher aussi sous la liste de la zone C (même message, même token, place réservée) ? Recommandation de l'agent : oui | posée le 2026-10-02 |
+| 7b | ~~Afficher aussi le rappel sous la liste de la zone C ?~~ | ✔ 2026-10-02 : **oui, aussi sous la liste** → lot 7c |
 | essai de b16 | ~~Quel compte afficher ?~~ | ✔ 2026-10-02 : progression inchangée (« Z trouvée(s) ») ; en-tête « XX combinaison(s) confirmée(s) » avec infobulle ; la file vise **K confirmées** ; interrupteur « Vérifier toutes les combinaisons trouvées », désactivé par défaut ; mesure courte → 6bis-b18 |
 | 7a, 7b, 8-11 | ~~Seize questions d'interface (page « Seize choix d'interface », numéros 1 à 16)~~ | ✔ 2026-10-02 (utilisateur) : recommandations du pilote retenues, sauf **n° 1**, libellé « **Compter les effets d'auras Tolerance et Précision dans les conditions** » ; **n° 10**, l'interrupteur Tempest est **masqué** quand Tempest est la compétence choisie ; **n° 11**, texte « **Tempest (S3) se déclenche après ce sort** » ; **n° 16**, VIT de Rankyaku = VIT finale (A.2 ter). Détail par lot dans chaque recalage |
 | 11bis | ~~Les textes d'effet au survol entrent-ils dans le même lot ?~~ | ✔ 2026-10-02 (utilisateur) : pas une infobulle par effet ; **une seule, celle de « Effets actifs »**, qui regroupe les textes, et le survol est gardé en complément. Précisé par le pilote : l'infobulle est construite à partir des descriptions des vignettes affichées ; la fiche monstre ne change pas (la prose du sort y est déjà en clair) — à confirmer par l'utilisateur |
@@ -6338,6 +6339,31 @@ sont saisies).
 **Non prouvé** : aucun rendu à l'œil ; `scrollend` et son repli par lecture
 du source seulement ; au clavier, les flèches sur le menu d'une ligne
 pourraient déclencher le guidage plusieurs fois (non examiné).
+
+#### Lot 7c — le rappel aussi sous la liste de travail
+
+**Cat. J ; requiert 7b.** Décision de l'utilisateur du 2026-10-02, sur la
+question de l'agent de 7b : le rappel « Pense à vérifier les sets d'aura
+externes. » s'affiche **aussi sous la liste de la zone C**, là où l'on
+vient de cliquer ; la carte « État de mon monstre » est souvent hors de
+l'écran à ce moment (toujours au téléphone).
+
+**Contrat.** Même message, même token (`warn` / `warn-soft`, contour 1 px),
+même durée (`DUREE_ATTENTION_MS`), même déclencheur (`doitRappeler`, un
+seul état du rappel pour les deux rendus — jamais un second minuteur ni une
+seconde condition) ; place réservée sous la liste (rien ne saute quand il
+apparaît ou s'efface) ; sur les deux formats (au téléphone, la zone C est
+un dépliement : le message vit dans la partie dépliée, ouverte au moment du
+clic). La carte des auras garde son surlignage de 7b.
+
+**Preuves** : contrôle de source (un seul état, deux rendus ; aucun
+déclencheur nouveau) ; mutation (le rendu de la zone C branché sur une
+autre condition) ; `tsc`, tests de zone, build, classes vérifiées dans le
+CSS construit, spec-lint, diff-check ; preuve `controle-7c.md`. Vérification
+à l'œil en A.8.
+
+**Ne fait pas** : ni nouveau déclencheur, ni changement du guidage, ni
+autre texte.
 
 ### Lot 8 — Blade Surge : le 3ᵉ coup, en zone
 

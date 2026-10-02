@@ -620,7 +620,10 @@ export function testResolutionDistante() {
       },
       enAttente: (n) => t.enAttente.push(n),
       repli: (raison, detail) => {
-        t.replis.push(`${raison} : ${String(detail)}`);
+        // Un objet nu (le détail de `repliSurErreur`) s'écrit en JSON, une
+        // erreur par son nom et son message.
+        const lisible = detail instanceof Error || detail instanceof DOMException || typeof detail !== 'object' ? String(detail) : JSON.stringify(detail);
+        t.replis.push(`${raison} : ${lisible}`);
         t.details.push(detail);
       },
     };

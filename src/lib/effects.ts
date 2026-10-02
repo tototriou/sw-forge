@@ -244,8 +244,11 @@ export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   fight: { pieces: 2, label: 'ATQ alliés +8%' },
   determination: { pieces: 2, label: 'DEF alliés +8%' },
   enhance: { pieces: 2, label: 'PV alliés +8%' },
-  accuracy: { pieces: 2, label: 'Précision alliés +10%' },
-  tolerance: { pieces: 2, label: 'Résistance alliés +10%' },
+  // ⚠️ +8 points, comme le calcul (`pointsAuraResPre`, damage.ts) : valeur
+  // curée par l'utilisateur, cadrage degats-et-aura A.2 ter. Le libellé
+  // affichait +10 % jusqu'au lot 7a.
+  accuracy: { pieces: 2, label: 'Précision alliés +8%' },
+  tolerance: { pieces: 2, label: 'Résistance alliés +8%' },
   seal: { pieces: 2, label: "Réduit les PV max de l'ennemi vaincu" },
   intangible: { pieces: 1, label: 'Joker (complète un set)' },
 };

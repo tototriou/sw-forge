@@ -2571,7 +2571,8 @@ l'avance de fond parcourt l'ordre de base et continue au-delà des builds
 écartés à la résolution, jusqu'à ce nombre de builds résolus ET conformes, ou
 jusqu'au dernier build trouvé. Sans écarté, c'est exactement « les cent (trois
 cents) premiers », la règle d'avant ; sur une recherche aux minimums serrés
-(Kinki, environ un build vérifié sur six conforme), la file vérifie tout. Une
+(Kinki : 100 conformes sur 1 112 trouvées, mesuré au navigateur en 6bis-b18),
+la file vérifie tout — dès la fin de la recherche sur cette recette. Une
 seule fonction pure, `prochainsATraiter`, en décide, sur le cache lui-même
 (la conformité de chaque résultat), à l'écran comme au CLI. L'interrupteur
 « Vérifier toutes les combinaisons trouvées » (Réglages avancés, désactivé

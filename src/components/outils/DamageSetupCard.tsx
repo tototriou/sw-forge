@@ -1128,8 +1128,13 @@ export default function DamageSetupCard({
               // l'utilisateur suppose pour le calcul, « Tempest (S3) se
               // déclenche après ce sort » (réponse n° 11 de l'utilisateur,
               // 2026-10-02, degats-et-aura 9b), à la place de la phrase « Se
-              // déclenche si … », qui n'en dirait pas plus. La condition curée
-              // reste au survol, comme pour tout interrupteur de passif.
+              // déclenche si … », qui n'en dirait pas plus. ⚠️ **Pas de survol
+              // (`title`) sur cet interrupteur-là** (décision de l'utilisateur
+              // du 2026-10-02, degats-et-aura 9d) : un survol n'existe pas au
+              // doigt. La condition du jeu reste lisible dans la prose du
+              // passif, sous l'interrupteur et au « ? » de sa case dans
+              // « Compétence utilisée » (11bis). Les autres interrupteurs de
+              // passif gardent le leur.
               const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;
               const libelle = apresSort
                 ? `${nom} (S${p.profile.slot}) se déclenche après ce sort`
@@ -1158,7 +1163,7 @@ export default function DamageSetupCard({
                     onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [p.skillCom2usId]: v } })}
                     icone={icone}
                     libelle={libelle}
-                    title={`${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
+                    title={apresSort ? undefined : `${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
                   />
                   {resume}
                   {!apresSort && <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>}

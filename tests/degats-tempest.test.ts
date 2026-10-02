@@ -574,7 +574,8 @@ const sansCommentaires = (s: string) =>
  * d'infrastructure de test React (tests/run.mjs). Réponses de l'utilisateur du
  * 2026-10-02 : n° 10 (interrupteur MASQUÉ quand Tempest est la compétence
  * choisie) et n° 11 (« Tempest (S3) se déclenche après ce sort », désactivé
- * par défaut, à la place de la phrase de condition de 9a).
+ * par défaut, à la place de la phrase de condition de 9a). 9d : cet
+ * interrupteur n'a plus de survol (`title`), décision du 2026-10-02.
  */
 export function testDegatsTempestEcran() {
   titre('Tempest comme sort — l’interrupteur à l’écran (DamageSetupCard.tsx, degats-et-aura 9b)');
@@ -595,6 +596,22 @@ export function testDegatsTempestEcran() {
     carte.includes('{!apresSort && <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>}'),
     'la phrase « Se déclenche si … » laisse la place à ce libellé'
   );
+  // 9d (décision de l'utilisateur du 2026-10-02) : plus de survol sur cet
+  // interrupteur-là — un `title` ne s'ouvre jamais au doigt ; la condition du
+  // jeu reste dans la prose du passif (sous l'interrupteur, et au « ? » de 11bis).
+  ok(
+    carte.includes("title={apresSort ? undefined : `${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}"),
+    '9d : l’interrupteur « se déclenche après ce sort » n’a plus de survol (`title`), les autres interrupteurs de passif gardent le leur'
+  );
+  ok(
+    !/title=\{`\$\{condition\}/.test(carte),
+    '9d : aucun `title` ne porte la condition curée sans la garde `apresSort`'
+  );
+  ok(carte.includes('{texteJeu}') && carte.includes('<p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>'), '9d : la prose du jeu du passif reste affichée sous l’interrupteur');
+  ok(
+    carte.includes('<HelpPopover title={s.nom} ariaLabel={`Description de ${s.nom}`}>'),
+    '9d : la prose de chaque sort, Tempest compris, reste au « ? » de sa case (11bis)'
+  );
   ok(carte.includes("const nom = p.nom.replace(/\\s*\\(Passive\\)\\s*$/i, '');"), 'nom affiché : celui du jeu, sans « (Passive) »');
   ok(carte.includes('const actif = setup.passifsOffensifs?.[p.skillCom2usId] ?? false;'), 'interrupteur éteint tant que rien n’est saisi');
 
@@ -611,6 +628,12 @@ export function testDegatsTempestEcran() {
   );
   ok(tempest.categorie.type === 'conditionnel' && tempest.slotsDeclencheurs != null, 'Teshar : Tempest prend la branche « après certains sorts »');
   ok(!passifActif(tempest, DEFAULT_DAMAGE_SETUP), 'Teshar : interrupteur désactivé par défaut');
+  ok(
+    (monsterDamageSkills(teshar).find((s) => s.skillCom2usId === TEMPEST)?.description ?? '').includes(
+      'after you attack the enemy on your turn'
+    ) && (tempest.description ?? '').includes('after you attack the enemy on your turn'),
+    '9d : sans survol, la condition du jeu reste lisible — prose de Tempest portée par le passif (sous l’interrupteur) ET par sa case de « Compétence utilisée » (« ? »)'
+  );
   const affiches = (sort: SkillDamageProfile) =>
     monsterOffensivePassives(teshar)
       .filter((p) => passifPeutSuivre(p, sort))

@@ -58,8 +58,13 @@ Les valeurs de Tempest sont celles du cadrage (A.2 ter, utilisateur le
   défaut (réponse n° 11 de l’utilisateur, 2026-10-02). Le libellé est
   construit, `<nom> (S<slot>) se déclenche après ce sort`, pour tout passif
   `conditionnel` à slots déclencheurs. Il remplace la phrase « Se déclenche
-  si … » des autres interrupteurs ; la condition curée reste au survol, la
-  description du jeu en dessous.
+  si … » des autres interrupteurs. Il n’a **pas de survol** (`title`) :
+  un survol n’existe pas au doigt (décision de l’utilisateur du 2026-10-02,
+  degats-et-aura 9d) ; les autres interrupteurs de passif gardent le leur.
+  La condition du jeu reste lisible dans la prose du passif : sous
+  l’interrupteur, et au « ? » de sa case dans « Compétence utilisée »
+  (degats-et-aura 11bis). La phrase curée (« après S1 ou S2 », recharge non
+  simulée) n’est plus affichée à l’écran.
 - L’interrupteur n’est affiché que si le passif **peut suivre** le sort
   choisi (`passifPeutSuivre`) : il est **masqué** quand le passif est
   lui-même la compétence choisie (réponse n° 10). Même règle pour un futur

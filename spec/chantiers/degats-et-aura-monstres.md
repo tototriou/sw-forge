@@ -407,7 +407,8 @@ Formes : 14503 Phoenix †, 14513 Teshar.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Tempest (Passive) » · 3213 · S3 | Tempest (Passive) se calcule : formule curée 3,7 × ATQ (les données n'en portent pas) ; interrupteur désactivé par défaut ; compté après S1 ou S2 seulement, jamais après S3 ; 411 jamais, 402/410 une fois. | 9a | `50e46aea`, `e5dc87ae` | Chemin commun → « Passifs offensifs » : « Tempest (Passive) » avec son interrupteur, éteint. L'allumer ajoute 3,7 × ATQ à S1 et à S2 ; avec S3 comme sort, rien ne s'ajoute. |
-| « Tempest (Passive) » · 3213 · S3 | Tempest devient un choix de « Compétence utilisée » (jamais le sort par défaut : Teshar reste sur S2, une seule contribution) ; interrupteur « Tempest (S3) se déclenche après ce sort », masqué quand Tempest est le sort choisi ; CLI et recette (identifiant 3213) le reprennent. | 9b | `db32bbd9`, `2402e91d`, `badea22f` | Chemin commun : Tempest dans la liste des sorts, jamais pré-choisi ; sous S1 ou S2, l'interrupteur « Tempest (S3) se déclenche après ce sort » ; choisir Tempest masque l'interrupteur. Le texte de condition au survol (`title`) est encore là à `084cd46a` : son retrait est le lot 9d, à mettre à jour ici. |
+| « Tempest (Passive) » · 3213 · S3 | Tempest devient un choix de « Compétence utilisée » (jamais le sort par défaut : Teshar reste sur S2, une seule contribution) ; interrupteur « Tempest (S3) se déclenche après ce sort », masqué quand Tempest est le sort choisi ; CLI et recette (identifiant 3213) le reprennent. | 9b | `db32bbd9`, `2402e91d`, `badea22f` | Chemin commun : Tempest dans la liste des sorts, jamais pré-choisi ; sous S1 ou S2, l'interrupteur « Tempest (S3) se déclenche après ce sort » ; choisir Tempest masque l'interrupteur. Le texte de condition au survol (`title`) de 9b n'existe plus (lot 9d, ligne suivante). |
+| « Tempest (Passive) » · 3213 · S3 | L'interrupteur « Tempest (S3) se déclenche après ce sort » n'a plus de survol (`title`) : la phrase curée (« … ton S1 ou ton S2 frappe (recharge non simulée) ») n'est plus affichée nulle part à l'écran ; la condition du jeu reste lisible dans la prose de Tempest (sous l'interrupteur, et au « ? » de sa case dans « Compétence utilisée »). Calcul inchangé ; les autres interrupteurs de passif gardent leur survol. | 9d | commit du lot 9d (hash au Résultat du lot 9d) | Chemin commun → Teshar, S1 ou S2 choisi : à la souris, rien ne s'affiche au survol de l'interrupteur « Tempest (S3) se déclenche après ce sort » ; la prose « … after you attack the enemy on your turn … » est sous l'interrupteur ; le « ? » de la case Tempest l'ouvre aussi (bulle à la souris, panneau au doigt). Un autre passif conditionnel garde son survol. |
 
 ### Valdemar
 
@@ -535,8 +536,9 @@ Rien de ce qui suit n'est à chercher à l'écran.
 
 ## 4. Doutes laissés écrits
 
-- **Lot 9d** (retrait du survol de la condition de Tempest) : non fait à
-  `084cd46a` ; la ligne Tempest du lot 9b sera à mettre à jour par le lot 9d.
+- **Lot 9d** (retrait du survol de la condition de Tempest) : fait, lignes
+  Teshar en § 1 ; la phrase curée de la condition n'est plus à l'écran,
+  seule la prose du jeu reste.
 - **Formes †** : Phoenix (vent) `14503`, les Magic Knight `19801` à `19805`,
   Imperfect Magic Knight `19823`, les habillages coréens et les formes non
   éveillées portent le même identifiant de sort que leur forme jouable ; la

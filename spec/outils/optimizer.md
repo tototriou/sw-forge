@@ -876,8 +876,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        sorts** (Tempest), la condition EST le libellé de l'interrupteur :
        « **Tempest (S3) se déclenche après ce sort** », désactivé par défaut
        (réponse n° 11 de l'utilisateur du 2026-10-02), à la place de la
-       phrase « Se déclenche si … ». Un passif n'apparaît que s'il peut
-       suivre le sort choisi : l'interrupteur de Tempest est **masqué**
+       phrase « Se déclenche si … », et **sans survol** (`title`) : un
+       survol n'existe pas au doigt (décision du 2026-10-02, degats-et-aura
+       9d) ; le texte du jeu reste sous l'interrupteur. Un passif
+       n'apparaît que s'il peut suivre le sort choisi : l'interrupteur de
+       Tempest est **masqué**
        quand Tempest est lui-même la compétence choisie (réponse n° 10).
 #### Dégâts réels — adversaire, effets actifs et coup critique
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne

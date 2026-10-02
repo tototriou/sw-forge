@@ -3344,9 +3344,9 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // déclenchement de lui-même »), 402/410 une fois (controle-1c1-amendement).
   // Jamais le sort par défaut : Teshar reste sur S2 (réponse n° 9 de
   // l'utilisateur, 2026-10-02). À l'écran, l'interrupteur dit « Tempest (S3) se
-  // déclenche après ce sort » (n° 11) au lieu de la phrase de condition, qui
-  // ne reste qu'au survol ; il est masqué quand Tempest est le sort choisi
-  // (n° 10).
+  // déclenche après ce sort » (n° 11) au lieu de la phrase de condition, sans
+  // survol (degats-et-aura 9d) ; il est masqué quand Tempest est le sort
+  // choisi (n° 10).
   {
     nom: 'Tempest (Passive)',
     slotsDeclencheurs: [1, 2],

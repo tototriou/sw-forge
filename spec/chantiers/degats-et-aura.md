@@ -5105,19 +5105,57 @@ du contexte, ~800 Ko pour 2 518 artéfacts — à mesurer en 6bis-b13bis-b.
 
 ##### 6bis-b13bis-b — Worker de résolution : le branchement et la mesure
 
-**Cat. J ; requiert b13bis-a.** La file (`useArtifactOptimQueue`) confie
-chaque build au Worker quand il existe, et garde le chemin actuel en
-repli (Worker indisponible ou en erreur, dit à l'écran seulement s'il
-échoue). La page passe toujours d'abord (la file choisit le build
-suivant). Une nouvelle recherche ou un changement de signature annule
-le travail en cours et renvoie le contexte. Mesure au créneau de
-l'utilisateur (script de b12/b13, version construite) : tâches longues,
-page 1 et 2 en « Dégâts réels » et en « PV effectifs », durée de la
-recherche, puis **processeur bridé ×4** (approche d'un téléphone : un fil
-de plus à côté des 7 de la recherche) ; **un ralentissement de la
-recherche au-delà de la dispersion arrête le lot (A.6)**. Essai de
-l'utilisateur ensuite. Contrat détaillé à recaler au lancement, sur le
-protocole livré par -a.
+**Cat. J ; requiert b13bis-a.** Contrat recalé le 2026-10-02 sur
+`3b109359`, d'après le protocole livré par -a.
+
+**Intrant borné.** `src/hooks/useArtifactOptimQueue.ts` (312 lignes, en
+entier) ; `src/workers/resolutionBody.ts` et `resolution.worker.ts` ;
+`OptimizerSection.tsx` : `contexteDegatsArtefacts` L719, `artifactParams`
+L1377, `signatureArtefacts` L2105, `cachesResolution` et
+`resoudreEquipement` L2182-2200, appel de la file L2201 ;
+`useBuildOptimSearch.ts` L131 (création d'un Worker, patron) ;
+`invariants.md` L102 et L191 ; `optimizer.md` L2441-2470 ; script de
+mesure `controle-6bis-b13/mesure-saccades.mjs`.
+
+**Contrat.**
+
+- **La file confie la résolution au Worker** (`resolution.worker.ts`) :
+  contexte envoyé à chaque changement de signature ou de paramètres de
+  paires (nouvel `idContexte`), puis une demande par build. Le fil de
+  l'écran ne résout plus rien quand le Worker est disponible.
+- **La priorité reste sur le fil de l'écran** : la file choisit le build
+  suivant (`prochainsATraiter`, page d'abord) et n'envoie au Worker
+  qu'une ou deux demandes à la fois ; un changement de page annule les
+  demandes pas encore commencées. Une réponse d'un contexte ou d'une
+  demande périmés est ignorée, jamais écrite dans le cache.
+- **La logique du côté de l'écran est un module pur, testable en Node**
+  (quoi envoyer, quoi annuler, quoi ignorer) ; le hook ne fait que la
+  brancher. Différentiel : le cache rempli par le Worker égale le cache
+  rempli par le chemin direct, sur une file simulée.
+- **Repli** : Worker indisponible, ou qui lève à la création ou en cours
+  de route → le chemin actuel (deux voies de b11) reprend, sans rien
+  perdre de ce qui est déjà résolu ; une erreur du Worker est journalisée
+  et ne se tait jamais.
+- Le Worker se termine au démontage ; aucune fuite d'un Worker par
+  recherche.
+- **Garantie de l'utilisateur** : la recherche ne ralentit pas. Mesure au
+  créneau (libre, A.8 ; sans serveur du pilote), version construite,
+  passages entrelacés : A-avant (`3b109359`, worktree de mesure), A-après,
+  C ; tâches longues (part, plus longue), page 1 et page 2 en « Dégâts
+  réels » ET en « PV effectifs », durée de la recherche, coût d'envoi du
+  contexte ; puis A-avant et A-après **processeur bridé ×4** (approche
+  d'un téléphone). **Un ralentissement de la recherche au-delà de la
+  dispersion arrête le lot (A.6) avant livraison.**
+- `invariants.md` (L102 et § Workers) et `optimizer.md` amendés.
+
+**Preuves :** tests du module pur (envoi, annulation, réponses périmées,
+repli) ; différentiel Worker = direct ; contrôle de source du hook ;
+mutation (une réponse périmée écrite dans le cache) ; mesure ; `tsc`,
+tests de zone, build, spec-lint, diff-check ; preuve
+`controle-6bis-b13bis-b.md`. L'essai de l'utilisateur est inscrit en A.8.
+
+**Ne fait pas :** changement de la résolution, de K, de l'ordre de la file,
+du compte affiché ; le CLI reste synchrone.
 
 ### Lot O — verrous de `chantier ouvrir` et `livrer`
 

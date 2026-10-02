@@ -400,7 +400,7 @@ Notation : **`A → B` signifie « B requiert A »** (prérequis à gauche).
         → revue indépendante du Worker → 6bis-b13bis-c (ses corrections)
         → décision de l'utilisateur sur b13bis-b (et 6bis-b13bis-d si
           option 2)
-        → 7
+        → 7a → 7b (recalé et scindé le 2026-10-02)
                             (inventaire, cartographies bornées, réconciliation,
                             puis contrats d'implémentation ; l'écran 7 attend
                             tous les sous-lots validés)
@@ -418,7 +418,7 @@ audit parallèle remis (A.5) → 13a ; et → 8, 9, 10, 11 par amendement
   6bis-b5b, 6bis-b5c, 6bis-b6, 6bis-b3d-1, 6bis-b3d-2, 6bis-b7, 6bis-b8,
   6bis-b9, 6bis-b10, 6bis-b11, 6bis-b12, 6bis-b13, 6bis-b15,
   6bis-b13bis-a, 6bis-b13bis-b, 6bis-b13bis-c,
-  7, 12, tous les 13b-* → 14
+  7a, 7b, 12, tous les 13b-* → 14
 ```
 
 ##### Ordre d'exécution et premières contre-revues
@@ -685,7 +685,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 6bis-b13bis-a — Worker de résolution : corps et protocole | J | terminé, preuves et mutation rejouées par le pilote (agent lancé par le pilote) | `b0c580e7` ; reçu `b0c580e` ↔ `5da194f` / 2026-10-02 |
 | 6bis-b13bis-b — Worker de résolution : branchement et mesure | J | **arrêté avant livraison (A.6)** : recherche +4 à +7 % en « Dégâts réels », résultat complet −27 % ; preuves rejouées par le pilote ; **décision de l'utilisateur attendue** (A.8) ; revue indépendante faite : rien de bloquant, cinq mutations du branchement survivent | `9a7202a8`, `534de15a` locaux, ni livrés ni poussés / 2026-10-02 |
 | 6bis-b13bis-c — corrections de la revue du Worker | J | terminé, preuves et mutation rejouées par le pilote ; vaut pour les options 1 et 2 ; livré avec b13bis-b après la décision | `11abb68d`…`f951f3e9` locaux, ni livrés ni poussés / 2026-10-02 |
-| 7 — sets d'aura : l'écran | J | attend la décision sur 6bis-b13bis-b et 6bis-b13bis-c ; intrant à recaler au brief | — |
+| 7a — sets d'aura : saisie, interrupteur, écho, libellés | J | recalé le 2026-10-02 ; attend la décision sur le Worker (6bis-b13bis-b, -c livrés) et les réponses Q1-Q3 (A.8) | — |
+| 7b — sets d'aura : rappel et ouverture guidée, deux formats | J | attend 7a et les réponses Q4-Q7 (A.8) | — |
 | 8 — Blade Surge : le 3ᵉ coup en zone (8 identifiants / 11 formes de corpus) | J | à faire | — |
 | 9 — Teshar : Tempest après S1/S2 et comme sort (1 identifiant / 2 formes ; 81 de même architecture) | J | à faire | — |
 | 10 — ignore DEF conditionnel des Blade Dancers (6 identifiants / 12 formes de corpus, deux variantes) | J | à faire | — |
@@ -743,7 +744,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 6bis-b10 | Sous un zéro dû aux rejets : retour sur la dernière page, « Trier par » et « Adapter les artéfacts… » masqués | en attente (le 0 et la ligne de raison : vus le 2026-10-02) |
 | 6bis-b15 | Relique sous la roue, à la souris | ✔ vérifiée le 2026-10-02 |
 | 6bis-b13bis-b | Essai du Worker : fluidité de la barre et du compte, résolution de la page en « Dégâts réels » et « PV effectifs » | après la décision ci-dessous |
-| 7 | Écran des sets d'aura, sur ordinateur ET sur téléphone | après le lot |
+| 7a, 7b | Écran des sets d'aura, sur ordinateur ET sur téléphone | après les lots |
 | 8, 9, 10 | Nouveaux choix de « Dégâts réels » (Blade Surge, Tempest, Blade Dancers) | après les lots |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions | après le lot |
 
@@ -756,6 +757,13 @@ décision, rayée avec la date et la réponse.
 | --- | --- | --- |
 | 6bis-b13bis-b | Garder le Worker malgré une recherche +4 à +7 % plus longue en « Dégâts réels », pour un résultat complet ~27 % plus tôt et un fil de l'écran libéré ? Trois options, chiffres et recommandation : Résultat du lot | posée le 2026-10-02 |
 | revue du Worker | Défaut antérieur : le cache de la file n'est pas vidé quand les artéfacts réservés par d'autres builds changent sans changer la signature. Le corriger dans ce chantier (petit lot), ou le laisser en piste ? | posée le 2026-10-02 |
+| 7a, Q1 | Libellé de l'interrupteur des réglages avancés. Recommandation : « Compter les auras RES et PRE dans les conditions » | posée le 2026-10-02 |
+| 7a, Q2 | Place des lignes d'aura dans « État de mon monstre ». Recommandation : un bouton « Ajouter un set d'aura » fixe, les lignes s'ajoutant SOUS lui (le bouton cliqué ne bouge jamais) ; autre choix : cinq lignes réservées d'avance | posée le 2026-10-02 |
+| 7a, Q3 | Champ du nombre vidé. Recommandation : il revient à 1 à la sortie du champ, seule l'icône retire une ligne ; autre choix : la ligne disparaît | posée le 2026-10-02 |
+| 7b, Q4 | Au doigt, l'ouverture guidée ouvre « Options de recherche » par-dessus la carte (une prop venue d'`App.tsx`). Recommandation : oui, comme à la souris | posée le 2026-10-02 |
+| 7b, Q5 | À la souris, le défilement vers les réglages avancés peut déplacer la carte cliquée (précédent : « Set de runes recherché »), et le flottant se referme au clic suivant hors de lui. Recommandation : accepté | posée le 2026-10-02 |
+| 7b, Q6 | Rappel et guidage : même token d'attention, effacés après 3 s. Recommandation : oui | posée le 2026-10-02 |
+| 7b, Q7 | Choisir un autre exemplaire de la même espèce dans la liste déclenche-t-il le rappel ? Recommandation : oui (les « autres monstres » de l'équipe changent) | posée le 2026-10-02 |
 
 ---
 
@@ -5678,6 +5686,9 @@ seule, avec l'outil installé :
 
 ### Lot 7 — sets d'aura : l'écran
 
+⚠️ **Recalé le 2026-10-02 et scindé en 7a / 7b** : lire d'abord
+« Recalage du 2026-10-02 » en fin de section, qui prévaut sur ce qui suit.
+
 **Cat. J.** Requiert tous les lots 6bis-b-* validés et leur revue technique.
 L'écran saisit les auras **externes** du modèle corrigé, jamais un total
 incluant le build.
@@ -5785,6 +5796,72 @@ ce dépôt, c'est assumé (`ARCHITECTURE.md` § 9).
 
 **Ne fait pas :** ne change aucun calcul validé par 6bis-b-*. N'audite pas le reste de
 l'écran en mobile.
+
+#### Recalage du 2026-10-02 (sur `4467066b`) — prévaut sur ce qui précède
+
+Carte établie par un agent en lecture seule ; ancrages principaux vérifiés
+par le pilote (écho, panneau au doigt, critère de coupe, flottant). Le fond
+du contrat tient ; aucune interface d'aura n'existe encore. **Déjà fait** :
+le modèle `DamageSetup.setsAuraExternes` (`damage.ts` L3347) ; la
+validation des recettes (une ligne par set, 1 à 15, somme ≤ 15 :
+`optimizerRecipe.ts` L267-287, testée) ; la conservation au changement de
+monstre (`damageSetupTransition.ts` L12, `useOptimizerState.ts` L415) ;
+l'état `compterAurasResPre` (défaut vrai, recette, conditions), sans
+contrôle rendu ; l'indépendance du set recherché.
+
+**Corrections du contrat :**
+
+- **Prérequis** : 6bis-b13bis-b et -c validés et livrés après la décision
+  de l'utilisateur (et 6bis-b13bis-d si option 2) ; 6bis-b14 sans objet.
+- **Libellés** : `effects.ts` L247-248 ; une seule surface les affiche, le
+  pied « 2 Set » du détail de rune (`PieceDetail.tsx` L353, rendu L456),
+  sur tous les écrans.
+- **Écho** : la chaîne « aucune aura » n'existe pas. L'écho est
+  `echoEtatMonstre` (`OptimizerSection.tsx` L589-598, sous-titre de
+  `DamageSetupModale.tsx` L46), qui ignore les auras : il nomme les auras
+  externes par set et dit, sans nombre, que les sets du build s'ajoutent
+  sur chaque résultat. Commentaire périmé `DamageSetupModale.tsx` L30-31.
+- **Critère de coupe** d'`EtatMonstre.tsx` (L20-27) et d'`optimizer.md`
+  (L1183-1185) : pour Accuracy et Tolerance, ce qui bouge est la condition
+  RES/PRE, pas le « +X / coup » — amender les deux phrases.
+- **Point 1** : `NumberField` ne borne qu'à la sortie du champ et aux
+  boutons (un champ vidé vaut 0) : la borne se garantit dans la fonction
+  pure d'écriture, pas seulement par `min`/`max`.
+- **Point 2, rappel** : déclenché dans le `onClick` de la zone C (liste de
+  travail, `OptimizerSection.tsx` L2972-2987), jamais dans `resetSearch` ni
+  dans un effet sur `selectedId`. Les autres voies — bestiaire
+  (`pickSpecies`, L968-1015), import de recette (L2000-2017), import de
+  compte (`App.tsx` L333) — ne le déclenchent pas.
+- **Point 3** : fermés, ni le flottant ni le panneau ne montent rien ;
+  « toujours visible » porte sur leur contenu : l'interrupteur est rendu
+  sans condition dans `reglagesAvancesInner` (L3968-4073, commun aux deux
+  formats).
+- **Point 4** : « toujours rendu » est impossible quand c'est fermé —
+  défiler vers l'ancre (`avancesRef`, L4296), puis ouvrir ; surlignage
+  temporaire par minuterie (patron `importMsg`) et tokens `warn` /
+  `warn-soft`. Au doigt, le panneau « Options de recherche » est piloté
+  par le parent (`menuOuvert`, `onFermerMenu`) : l'ouvrir demande une prop
+  venue d'`App.tsx` / `OutilsPage.tsx`, fichiers transverses que ce
+  chantier touche pour cette seule prop. Le format se décide par
+  `SOUS_LG`.
+- **Sortie** : `optimizer.md` § État de mon monstre, § Conditions… (retirer
+  « arrivent au lot 7 », L1368), § Zone C ;
+  `degats-reels/effets-equipe-et-leaders.md` L178-181 (« ses contrôles
+  visuels appartiennent au lot 7 »).
+  Logique pure dans un module neuf `src/lib/aurasExternes.ts` (bornes,
+  ajout, retrait, validation partagée avec la recette, `doitRappeler`,
+  `guideVersResPre`), tests `tests/auras-ecran.test.ts`.
+
+**Scission** (intrant estimé ~3 700 lignes, au-delà d'une session) :
+
+- **7a** — libellés, écho, critère de coupe, saisie des auras externes,
+  interrupteur, module pur et ses tests, spec (~2 000 lignes).
+- **7b** — rappel en liste de travail et ouverture guidée sur les deux
+  formats, prop du shell comprise (~2 000 lignes) ; requiert 7a.
+
+**Questions d'interface à l'utilisateur** : Q1 à Q3 avant 7a, Q4 à Q7
+avant 7b — table A.8 des décisions en attente, avec la recommandation du
+pilote.
 
 ### Lot 8 — Blade Surge : le 3ᵉ coup, en zone
 

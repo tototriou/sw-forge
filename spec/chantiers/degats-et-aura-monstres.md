@@ -42,7 +42,7 @@ Formes : 11913 Acasis.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Force Field » · 2818 · S3 | Sort sans attaque (bouclier, `0.3*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Acasis → « Compétence utilisée » : plus de case « Force Field », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Force Field » · 2818 · S3 | Sort sans attaque (bouclier, `0.3*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Acasis → « Compétence utilisée » : plus de case « Force Field », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Alesia
 
@@ -76,7 +76,7 @@ Formes : 20501 Desert Queen †, 20511 Bastet.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Oasis's Blessing » · 11311 · S3 | Sort sans attaque (bouclier, `170*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Bastet → « Compétence utilisée » : plus de case grisée « Oasis's Blessing ». |
+| « Oasis's Blessing » · 11311 · S3 | Sort sans attaque (bouclier, `170*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Bastet → « Compétence utilisée » : plus de case grisée « Oasis's Blessing ». |
 
 ### Bolverk
 
@@ -84,7 +84,7 @@ Formes : 22601 Lightning Emperor †, 22611 Bolverk.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Forbidden Galdr » · 13111 · S3 | Effet de PV sans coup (`10 (Fixed)`, A.2 ter) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d'aucune statistique du monstre. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Bolverk → « Compétence utilisée » : plus de case grisée « Forbidden Galdr » ; « Lightning Strike » (S1) reste proposé. |
+| « Forbidden Galdr » · 13111 · S3 | Effet de PV sans coup (`10 (Fixed)`, A.2 ter) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d'aucune statistique du monstre. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Bolverk → « Compétence utilisée » : plus de case grisée « Forbidden Galdr » ; « Lightning Strike » (S1) reste proposé. |
 
 ### Brita
 
@@ -100,7 +100,7 @@ Formes : 25803 Rune Blacksmith †, 25813 Celine.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Beneficial Hammering » · 15608 · S2 | Sort sans attaque (buffs et bouclier, `100*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Celine → « Compétence utilisée » : plus de case grisée « Beneficial Hammering ». |
+| « Beneficial Hammering » · 15608 · S2 | Sort sans attaque (buffs et bouclier, `100*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Celine → « Compétence utilisée » : plus de case grisée « Beneficial Hammering ». |
 
 ### Chakra
 
@@ -153,7 +153,7 @@ Formes : 19603 Mermaid †, 19613 Cichlid.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Air Shield » · 10408 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts (pas retenu par défaut). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Cichlid → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort par défaut ne change pas. |
+| « Air Shield » · 10408 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts (pas retenu par défaut). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Cichlid → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort par défaut ne change pas. |
 
 ### Conrad
 
@@ -161,7 +161,7 @@ Formes : 16204 Death Knight †, 16214 Conrad.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Trade » · 7414 · S3 | Sort sans attaque (échange des PV, `180.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Conrad → « Compétence utilisée » : plus de case grisée « Trade ». |
+| « Trade » · 7414 · S3 | Sort sans attaque (échange des PV, `180.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Conrad → « Compétence utilisée » : plus de case grisée « Trade ». |
 
 ### Cordelia
 
@@ -236,7 +236,7 @@ Formes : 35704 Frieren †, 35714 Frieren.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Spell to Create a Field of Flowers » · 24909 · S2 | Sort sans attaque (bouclier, `2.8*{ATK}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts (1 426 dans la preuve 13b) et retenu par défaut ; le sort par défaut devient « Ordinary Offensive Magic » (S1). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Frieren → « Compétence utilisée » : plus de case « Spell to Create a Field of Flowers », ni grisée ; « Ordinary Offensive Magic » coché par défaut. |
+| « Spell to Create a Field of Flowers » · 24909 · S2 | Sort sans attaque (bouclier, `2.8*{ATK}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts (1 426 dans la preuve 13b) et retenu par défaut ; le sort par défaut devient « Ordinary Offensive Magic » (S1). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Frieren → « Compétence utilisée » : plus de case « Spell to Create a Field of Flowers », ni grisée ; « Ordinary Offensive Magic » coché par défaut. |
 
 ### Gandalf (eau)
 
@@ -244,7 +244,7 @@ Formes : 34401 Gandalf †, 34411 Gandalf.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Guardian's Barrier » · 23706 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Gandalf (eau) → « Compétence utilisée » : plus de case « Guardian's Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Guardian's Barrier » · 23706 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Gandalf (eau) → « Compétence utilisée » : plus de case « Guardian's Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Gandalf (lumière)
 
@@ -252,7 +252,7 @@ Formes : 34404 Gandalf †, 34414 Gandalf, 34514 간달프(빛)(강화) †.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Guardian's Barrier » · 23709 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Gandalf (lumière) → « Compétence utilisée » : plus de case « Guardian's Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Guardian's Barrier » · 23709 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Gandalf (lumière) → « Compétence utilisée » : plus de case « Guardian's Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Gandalf (vent)
 
@@ -260,7 +260,7 @@ Formes : 34403 Gandalf †, 34413 Gandalf.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Guardian's Barrier » · 23708 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Gandalf (vent) → « Compétence utilisée » : plus de case « Guardian's Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Guardian's Barrier » · 23708 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Gandalf (vent) → « Compétence utilisée » : plus de case « Guardian's Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Geralt
 
@@ -292,7 +292,7 @@ Formes : 26403 홀리베리 쿠키(바람) †, 26413 Hollyberry Cookie.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Cries of Unity » · 16213 · S3 | Sort sans attaque (bouclier, `3.0*{DEF}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Hollyberry Cookie → « Compétence utilisée » : plus de case « Cries of Unity », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Cries of Unity » · 16213 · S3 | Sort sans attaque (bouclier, `3.0*{DEF}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Hollyberry Cookie → « Compétence utilisée » : plus de case « Cries of Unity », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Homunculus (Support) (lumière)
 
@@ -300,7 +300,7 @@ Formes : 1000204 Homunculus(Support) †, 1000214 Homunculus(Support).
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Protection Field » · 10243000 · S3 | Sort sans attaque (bouclier, `110.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Homunculus (Support) lumière → « Compétence utilisée » : plus de case grisée « Protection Field ». |
+| « Protection Field » · 10243000 · S3 | Sort sans attaque (bouclier, `110.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Homunculus (Support) lumière → « Compétence utilisée » : plus de case grisée « Protection Field ». |
 
 ### Homunculus (Support) (ténèbres)
 
@@ -308,7 +308,7 @@ Formes : 1000205 Homunculus(Support) †, 1000215 Homunculus(Support).
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Protection Field » · 10253000 · S3 | Sort sans attaque (bouclier, `110.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Homunculus (Support) ténèbres → « Compétence utilisée » : plus de case grisée « Protection Field ». |
+| « Protection Field » · 10253000 · S3 | Sort sans attaque (bouclier, `110.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Homunculus (Support) ténèbres → « Compétence utilisée » : plus de case grisée « Protection Field ». |
 
 ### Illianna
 
@@ -316,7 +316,7 @@ Formes : 20104 Neostone Agent †, 20114 Illianna.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Neostone Field » · 10914 · S3 | Sort sans attaque (immunité, invincibilité, bouclier, `150.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Illianna → « Compétence utilisée » : plus de case grisée « Neostone Field ». |
+| « Neostone Field » · 10914 · S3 | Sort sans attaque (immunité, invincibilité, bouclier, `150.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Illianna → « Compétence utilisée » : plus de case grisée « Neostone Field ». |
 
 ### Imperfect Magic Knight
 
@@ -360,7 +360,7 @@ Formes : 26903 Macaron Guard †, 26913 Jade.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Sweet Shout » · 16713 · S3 | Sort sans attaque (bouclier, `3.0*{DEF}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Jade → « Compétence utilisée » : plus de case « Sweet Shout », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Sweet Shout » · 16713 · S3 | Sort sans attaque (bouclier, `3.0*{DEF}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Jade → « Compétence utilisée » : plus de case « Sweet Shout », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Jager
 
@@ -439,7 +439,7 @@ Formes : 25804 Rune Blacksmith †, 25814 Madeleine.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Beneficial Hammering » · 15609 · S2 | Sort sans attaque (buffs et bouclier, `100*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Madeleine → « Compétence utilisée » : plus de case grisée « Beneficial Hammering ». |
+| « Beneficial Hammering » · 15609 · S2 | Sort sans attaque (buffs et bouclier, `100*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Madeleine → « Compétence utilisée » : plus de case grisée « Beneficial Hammering ». |
 
 ### Magic Knight (eau)
 
@@ -502,7 +502,7 @@ Formes : 25802 Rune Blacksmith †, 25812 Miriam.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Beneficial Hammering » · 15607 · S2 | Sort sans attaque (buffs et bouclier, `100*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Miriam → « Compétence utilisée » : plus de case grisée « Beneficial Hammering ». |
+| « Beneficial Hammering » · 15607 · S2 | Sort sans attaque (buffs et bouclier, `100*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Miriam → « Compétence utilisée » : plus de case grisée « Beneficial Hammering ». |
 
 ### Molly
 
@@ -510,7 +510,7 @@ Formes : 19604 Mermaid †, 19614 Molly.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Air Shield » · 10409 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Molly → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Air Shield » · 10409 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Molly → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Monte
 
@@ -518,7 +518,7 @@ Formes : 21305 Dice Magician †, 21315 Monte.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Destiny Dice » · 12115 · S3 | Sort sans attaque (redistribution des PV, `15.0*DICE_MIN + 15.0`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Monte → « Compétence utilisée » : plus de case grisée « Destiny Dice ». |
+| « Destiny Dice » · 12115 · S3 | Sort sans attaque (redistribution des PV, `15.0*DICE_MIN + 15.0`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Monte → « Compétence utilisée » : plus de case grisée « Destiny Dice ». |
 
 ### Mork
 
@@ -526,7 +526,7 @@ Formes : 31401 Tomb Warden †, 31411 Mork.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Lamplight in Darkness » · 21111 · S3 | Sort sans attaque (immunité, bouclier, `0.2*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Mork → « Compétence utilisée » : plus de case « Lamplight in Darkness », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Lamplight in Darkness » · 21111 · S3 | Sort sans attaque (immunité, bouclier, `0.2*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Mork → « Compétence utilisée » : plus de case « Lamplight in Darkness », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Old Wood (eau)
 
@@ -534,7 +534,7 @@ Formes : 35001 Old Wood †, 35011 Old Wood.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Floral Barrier » · 24206 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Old Wood (eau) → « Compétence utilisée » : plus de case « Floral Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Floral Barrier » · 24206 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Old Wood (eau) → « Compétence utilisée » : plus de case « Floral Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Old Wood (lumière)
 
@@ -542,7 +542,7 @@ Formes : 35004 Old Wood †, 35014 Old Wood, 35114 Old Wood †.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Floral Barrier » · 24209 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Old Wood (lumière) → « Compétence utilisée » : plus de case « Floral Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Floral Barrier » · 24209 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Old Wood (lumière) → « Compétence utilisée » : plus de case « Floral Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Old Wood (vent)
 
@@ -550,7 +550,7 @@ Formes : 35003 Old Wood †, 35013 Old Wood.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Floral Barrier » · 24208 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Old Wood (vent) → « Compétence utilisée » : plus de case « Floral Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Floral Barrier » · 24208 · S2 | Sort sans attaque (bouclier, `0.2*{MAX HP}`, et Reflect Damage accordé) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Old Wood (vent) → « Compétence utilisée » : plus de case « Floral Barrier », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Onyx
 
@@ -566,7 +566,7 @@ Formes : 21802 Paladin †, 21812 Ophilia.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Cry of Threat » · 12512 · S3 | Sort sans attaque (immunité, bouclier, `0.2*{MAX HP}`, Menace) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Ophilia → « Compétence utilisée » : plus de case « Cry of Threat », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Cry of Threat » · 12512 · S3 | Sort sans attaque (immunité, bouclier, `0.2*{MAX HP}`, Menace) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Ophilia → « Compétence utilisée » : plus de case « Cry of Threat », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Parjanya
 
@@ -590,7 +590,7 @@ Formes : 21003 Harg †, 21013 Raviti.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Deer's Song » · 11813 · S3 | Sort sans attaque (purification, immunité, bouclier, `2.5*{DEF}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Raviti → « Compétence utilisée » : plus de case « Deer's Song », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Deer's Song » · 11813 · S3 | Sort sans attaque (purification, immunité, bouclier, `2.5*{DEF}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Raviti → « Compétence utilisée » : plus de case « Deer's Song », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Suiki
 
@@ -606,7 +606,7 @@ Formes : 11903 Sylphid †, 40403 Sylphid †, 700403 Sylphid †.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Force Field » · 2813 · S3 | Sort sans attaque (bouclier, `100.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). Aucune forme jouable ne porte ce sort. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Seulement si un exemplaire du compte est une forme † : plus de case grisée « Force Field ». |
+| « Force Field » · 2813 · S3 | Sort sans attaque (bouclier, `100.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). Aucune forme jouable ne porte ce sort. | 15c | `a65b2f28`, `f7bd6a1f` | Seulement si un exemplaire du compte est une forme † : plus de case grisée « Force Field ». |
 
 ### Tantra
 
@@ -614,7 +614,7 @@ Formes : 10412 Tantra.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Ancestors' Blessing » · 1412 · S3 | Sort sans attaque (bouclier, `0.5*{MAX HP}`, et récupération) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Tantra → « Compétence utilisée » : plus de case « Ancestors' Blessing », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Ancestors' Blessing » · 1412 · S3 | Sort sans attaque (bouclier, `0.5*{MAX HP}`, et récupération) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Tantra → « Compétence utilisée » : plus de case « Ancestors' Blessing », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Tanzaite
 
@@ -640,7 +640,7 @@ Formes : 19601 Mermaid †, 19611 Tetra.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Air Shield » · 10406 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | commit du lot 15c (hash au Résultat du lot 15c) | Chemin commun → Tetra → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort coché par défaut est un sort qui frappe. |
+| « Air Shield » · 10406 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Tetra → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
 ### Valdemar
 

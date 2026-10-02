@@ -25,6 +25,7 @@ import { testCliClassementParMode } from './cli-classement.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
 import { testVoieDeLaFile } from './file-voie.test';
+import { testCompositionDePage } from './composition-page.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
@@ -259,6 +260,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testKDeLaFile', testKDeLaFile],
   ['testCompteAffichable', testCompteAffichable],
   ['testVoieDeLaFile', testVoieDeLaFile],
+  ['testCompositionDePage', testCompositionDePage],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

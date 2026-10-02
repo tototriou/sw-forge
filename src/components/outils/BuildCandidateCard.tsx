@@ -1,3 +1,4 @@
+import { RefObject, useLayoutEffect, useState } from 'react';
 import { ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 import { ArtifactDetail, RelicDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
@@ -36,9 +37,9 @@ interface Props {
   // relique — nécessaire seulement quand `etatRelique.etat === 'resolue'` ou
   // `'fixe'` avec une relique (implementation-relique, B.5c ter).
   relicUsageById?: Record<number, number>;
-  // La paire de CE build n'a pas encore été calculée : celle affichée est la
-  // paire supposée, commune. Dit explicitement plutôt que laissé croire.
-  paireProvisoire?: boolean;
+  // ⚠️ Plus de `paireProvisoire` (degats-et-aura 6bis-b16) : une carte n'est
+  // affichée qu'une fois son équipement résolu — avant, sa place dit
+  // « Vérification… » (`PlaceEnVerification`, plus bas).
   metric: RuneMetric;
   // Identité de la pièce actuellement ouverte, PARTAGÉE entre tous les
   // résultats affichés — voir OptimizerSection.tsx / useOptimizerState.ts.
@@ -160,7 +161,6 @@ export default function BuildCandidateCard({
   openDetailKey,
   onToggleDetail,
   degatsReels,
-  paireProvisoire,
   onValidate,
   conflit,
   validated,
@@ -281,6 +281,9 @@ export default function BuildCandidateCard({
       className={`rounded-xl border border-border bg-panel p-2.5 ${
         detailOuvertIci ? 'relative z-10' : ''
       }`}
+      // Lu par `useHauteurDesCartes` : les places « Vérification… » prennent
+      // la hauteur d'une carte réelle (degats-et-aura 6bis-b16).
+      data-carte-resultat=""
     >
       <div className="flex items-start justify-between mb-2">
         <span className="font-mono text-xs font-bold text-star">#{rank}</span>
@@ -328,14 +331,14 @@ export default function BuildCandidateCard({
             </span>
             {degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}
           </span>
-          {/* ⚠️ **Rangée TOUJOURS présente** — la place est réservée d’avance
-              (spec/shared/design.md). Rendue conditionnellement, elle faisait
-              varier la hauteur de la carte, et comme la file sert les builds au
-              fil de l’eau, TOUTE la grille se réorganisait à chaque paire
-              trouvée. L’espace insécable tient la hauteur quand il n’y a rien à
-              dire — un espace ordinaire s’effondrerait.
+          {/* ⚠️ **Il y avait ici une rangée réservée « artéfacts pas encore
+              optimisés »**, toujours présente pour que la hauteur de la carte
+              ne change pas quand la file trouvait sa paire. Retirée avec la
+              carte provisoire elle-même (degats-et-aura 6bis-b16) : une carte
+              n'apparaît plus qu'une fois résolue, la mention ne pouvait plus
+              s'afficher.
 
-              ⚠️ **Il y avait ici un « +X % grâce aux artéfacts ». RETIRÉ, et
+              ⚠️ **Il y avait aussi un « +X % grâce aux artéfacts ». RETIRÉ, et
               pas réparé.** Il comparait la paire retenue à la paire SUPPOSÉE —
               celle que le moteur postule pendant qu’il classe les builds. C’est
               un détail d’implémentation : personne n’a de raison de savoir
@@ -350,9 +353,6 @@ export default function BuildCandidateCard({
               build » (OptimizerSection.tsx), où les deux termes partagent le
               même build. Ici, le total affiché inclut DÉJÀ la paire retenue, et
               cette paire est montrée juste à côté : la carte se suffit. */}
-          <span className="w-full text-right text-micro text-ink-dimmer">
-            {paireProvisoire ? 'artéfacts pas encore optimisés' : ' '}
-          </span>
         </p>
       )}
 
@@ -549,4 +549,71 @@ export default function BuildCandidateCard({
       )}
     </div>
   );
+}
+
+/**
+ * Une place de la page de résultats PAS ENCORE VÉRIFIÉE (degats-et-aura
+ * 6bis-b16) : un build la remplira une fois son équipement résolu et conforme
+ * — jamais avant (`compositionDePage`, artifactQueue.ts).
+ *
+ * ⚠️ **Sa hauteur est réservée**, celle d'une carte : sans ça, chaque carte
+ * qui arrive changerait la hauteur de sa rangée et ferait sauter la grille et
+ * la pagination. Dans une rangée qui contient déjà une carte, la grille l'étire
+ * à sa hauteur ; seule, elle prend `hauteur`, la plus petite carte mesurée à
+ * l'écran (`useHauteurDesCartes`) — et, tant qu'aucune carte n'a été vue, une
+ * hauteur de repli relevée au navigateur sur une carte « Dégâts réels », par
+ * format : empilée au téléphone, en ligne à partir de `sm`.
+ *
+ * Le pointillé et le fond atténué sont ceux des emplacements vides de l'app ;
+ * rien ne s'anime (une liste de résultats se voit cent fois).
+ */
+export function PlaceEnVerification({ rank, hauteur }: { rank: number; hauteur: number | null }) {
+  return (
+    <div
+      aria-busy="true"
+      className={`flex flex-col rounded-xl border border-dashed border-border bg-panel/40 p-2.5 ${
+        hauteur == null ? 'min-h-[458px] sm:min-h-[388px]' : ''
+      }`}
+      style={hauteur == null ? undefined : { minHeight: hauteur }}
+    >
+      <span className="font-mono text-xs font-bold text-ink-dimmer">#{rank}</span>
+      <span className="flex flex-1 items-center justify-center text-xs text-ink-dim">Vérification…</span>
+    </div>
+  );
+}
+
+/**
+ * La hauteur NATURELLE de la plus petite carte de résultat de la grille — ce
+ * que prennent les places « Vérification… » seules sur leur rangée.
+ *
+ * ⚠️ **Naturelle, pas celle de la boîte** : la grille étire une carte à la
+ * hauteur de sa rangée, et une place réservée l'étirerait à son tour — la
+ * mesure se nourrirait d'elle-même. On mesure donc jusqu'au bas du dernier
+ * enfant, plus le rembourrage et le trait du bas. La plus PETITE : une carte
+ * au détail ouvert (au doigt) ou en comparaison ne gonfle pas les places.
+ *
+ * Relue après chaque rendu, avant la peinture (`useLayoutEffect`) : la carte qui
+ * arrive et les places qui s'ajustent apparaissent dans la même image. `null`
+ * tant qu'aucune carte n'a été mesurée ; la dernière mesure est gardée quand
+ * la page n'en a plus.
+ */
+export function useHauteurDesCartes(grille: RefObject<HTMLElement | null>): number | null {
+  const [hauteur, setHauteur] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const cartes = grille.current?.querySelectorAll<HTMLElement>(':scope > [data-carte-resultat]');
+    if (!cartes || cartes.length === 0) return;
+    const style = getComputedStyle(cartes[0]!);
+    const pied = parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth);
+    let min = Number.POSITIVE_INFINITY;
+    cartes.forEach((carte) => {
+      const dernier = carte.lastElementChild;
+      if (dernier) min = Math.min(min, dernier.getBoundingClientRect().bottom - carte.getBoundingClientRect().top + pied);
+    });
+    if (!Number.isFinite(min)) return;
+    // Au centième de pixel, jamais arrondie vers le haut : une place plus haute
+    // que la carte d'une fraction de pixel ferait encore bouger sa rangée.
+    const h = Math.round(min * 100) / 100;
+    setHauteur((avant) => (avant === h ? avant : h));
+  });
+  return hauteur;
 }

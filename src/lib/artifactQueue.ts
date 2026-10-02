@@ -490,3 +490,95 @@ export function compteAffichable(e: {
       : null;
   return { compte, ecartes, pages, raison };
 }
+
+export interface CompositionDePage {
+  /**
+   * Les cartes de la page : les builds VÉRIFIÉS — résolus ET conformes —, de
+   * rang `premierRang` à `premierRang + taillePage − 1` PARMI LES VÉRIFIÉS,
+   * dans l'ordre du classement réel. Jamais un build non résolu, jamais un
+   * écarté.
+   */
+  cartes: BuildCandidate[];
+  // Le rang de la première place de la page (1 en page 1).
+  premierRang: number;
+  // Les places « Vérification… » qui suivent les cartes : cartes + places ≤ taille de page.
+  placesEnAttente: number;
+  /**
+   * Les builds qui rempliront ces places : les premiers non résolus du
+   * classement, au plus une page — la « page affichée » que la file sert
+   * AVANT les K premiers (`prochainsATraiter`). Vide quand la page est
+   * complète, ou sans file.
+   */
+  aVerifier: BuildCandidate[];
+}
+
+/**
+ * La composition d'UNE page de résultats (degats-et-aura 6bis-b16) — l'unique
+ * source des cartes affichées, des places « Vérification… » et de la page que
+ * la file résout en priorité.
+ *
+ * ⚠️ **Une carte n'apparaît qu'une fois vérifiée.** Avant ce lot, un build reçu
+ * de la recherche s'affichait tout de suite avec sa paire SUPPOSÉE, puis
+ * disparaissait à la résolution s'il n'atteignait pas les minimums : avec le
+ * Worker, qui résout vite, les retraits s'enchaînaient sous les yeux (essai de
+ * l'utilisateur, 2026-10-02). Désormais la page montre les vérifiés seuls, dans
+ * l'ordre réel ; un build vérifié plus tard prend sa place dans ce classement
+ * — une carte peut donc DESCENDRE sous un meilleur build vérifié, jamais
+ * disparaître faute de conformité.
+ *
+ * - `classement` : le classement affiché (`affichees`, sortie de
+ *   `classementResolu`) — les écartés y sont déjà absents ; s'il en restait
+ *   un, il serait ignoré ici aussi, ni carte, ni place, ni à vérifier.
+ * - `parBuild` : le cache PUBLIÉ de la file ; `null` sans file (optimisation
+ *   d'artéfacts coupée) : rien n'est à vérifier, la page est la tranche du
+ *   classement, comme avant.
+ * - Les places attendues se comptent sur le classement (reçus moins écartés,
+ *   comme le nombre de pages de `compteAffichable`) : une page au-delà des
+ *   vérifiés — page profonde, ou page 1 avant toute résolution — montre
+ *   toutes ses places en attente.
+ * - `aVerifier` : pour remplir la page, il faut `début + attendues` vérifiés ;
+ *   il en manque `manque`, pris dans l'ordre du classement parmi les non
+ *   résolus — au plus une page à la fois. La file les résout, publie, l'écran
+ *   recompose : la suivante part à son tour, jusqu'à la page complète. Même
+ *   convergence que `prochainsATraiter` : le cache ne fait que grandir.
+ */
+export function compositionDePage(e: {
+  classement: readonly BuildCandidate[];
+  parBuild: ReadonlyMap<string, ResultatArtefacts> | null;
+  page: number;
+  taillePage: number;
+}): CompositionDePage {
+  const debut = Math.max(0, (e.page - 1) * e.taillePage);
+  const fin = debut + e.taillePage;
+  const premierRang = debut + 1;
+  if (e.parBuild === null) {
+    return { cartes: e.classement.slice(debut, fin), premierRang, placesEnAttente: 0, aVerifier: [] };
+  }
+  const cartes: BuildCandidate[] = [];
+  const nonResolus: BuildCandidate[] = [];
+  let verifies = 0;
+  let retenus = 0;
+  for (const c of e.classement) {
+    const r = e.parBuild.get(cleBuild(c));
+    // Écarté : jamais montré, jamais compté dans les places.
+    if (r?.conforme === false) continue;
+    retenus++;
+    if (r === undefined) {
+      if (nonResolus.length < e.taillePage) nonResolus.push(c);
+      continue;
+    }
+    if (verifies >= debut) cartes.push(c);
+    verifies++;
+    // Page complète : plus rien n'attend ici, inutile de lire la suite.
+    if (verifies === fin) return { cartes, premierRang, placesEnAttente: 0, aVerifier: [] };
+  }
+  const attendues = Math.min(e.taillePage, Math.max(0, retenus - debut));
+  const placesEnAttente = attendues - cartes.length;
+  const manque = debut + attendues - verifies;
+  return {
+    cartes,
+    premierRang,
+    placesEnAttente,
+    aVerifier: placesEnAttente > 0 ? nonResolus.slice(0, Math.min(manque, e.taillePage)) : [],
+  };
+}

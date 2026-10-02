@@ -1591,6 +1591,40 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     Pendant la recherche, l'en-tête garde « … pour l'instant — recherche
     en cours… » avec ce compte, et la ligne de raison s'affiche dès qu'il
     tombe à zéro par écartement.
+    ⚠️ **Une carte n'apparaît qu'une fois vérifiée** (degats-et-aura
+    6bis-b16, décision de l'utilisateur du 2026-10-02, après l'essai du
+    Worker : les cartes qui apparaissaient puis se retiraient étaient
+    « insupportables »). Dès qu'une file tourne (optimisation d'artéfacts
+    active), la page ne montre que des builds dont l'équipement est résolu
+    (paire, relique) ET conforme, pendant la recherche comme après : un
+    build reçu de la recherche ne s'affiche plus avec sa paire supposée, et
+    un build écarté à la résolution n'est jamais montré. Les cartes de la
+    page N sont les vérifiés de rang 20 × (N − 1) + 1 à 20 × N parmi les
+    vérifiés, dans l'ordre du classement réel ; un build vérifié plus tard
+    prend sa place dans ce classement — une carte peut descendre sous un
+    meilleur build vérifié, comme avant le Worker, jamais disparaître faute
+    de conformité. Les places que la page attend encore (comptées sur la
+    liste paginée, au plus 20) suivent les cartes, marquées
+    « Vérification… » : un emplacement en pointillé avec son rang, à la
+    hauteur d'une carte — la plus petite carte mesurée à l'écran, ou, avant
+    la première, une hauteur de repli relevée au navigateur sur une carte
+    « Dégâts réels » (388 px à l'ordinateur, 458 px au téléphone) — pour que
+    la grille et la pagination ne sautent pas quand la carte arrive. La file
+    résout d'abord les builds qui rempliront ces places (les premiers non
+    résolus du classement, au plus une page à la fois), puis les K premiers.
+    Une page au-delà des vérifiés (au-delà des K premiers, après la
+    recherche) montre ses places et se résout quand on l'ouvre — au prix de
+    tous les builds non résolus classés avant elle, puisque le rang d'un
+    vérifié dépend de tous ceux du dessus. Ni l'ordre de base, ni K, ni la
+    résolution ne changent. Une seule fonction pure, `compositionDePage`
+    (artifactQueue.ts), donne les cartes, les places et les builds à
+    vérifier, à partir du classement affiché et du cache publié de la file.
+    Le compte garde sa règle (ci-dessus) ; une ligne sous l'en-tête dit
+    combien la file doit encore vérifier (« N combinaison(s) en
+    vérification… » : le reste de la file, places en attente puis K
+    premiers), sa place réservée tant que la file tourne. Sans optimisation
+    d'artéfacts, pas de file : la page est la tranche du classement, comme
+    avant.
     Un sélecteur **« Trier par »** re-trie **côté
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes
@@ -1724,7 +1758,9 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     `etatReliqueDuBuild` (seule source) pilote la case :
     - **en attente** — la file n'a pas encore traité ce build : **la même
       case**, grisée, « en attente » — rien ne bouge à l'écran quand la file
-      résout, seul le contenu de la case change ;
+      résout, seul le contenu de la case change. Cet état ne se voit plus
+      sur une carte de résultat depuis 6bis-b16 : quand une file tourne, un
+      build non résolu n'est pas affiché, sa place dit « Vérification… » ;
     - **rejeté** — aucune relique éligible ne rend le build faisable :
       jamais affiché, le classement l'a déjà écarté ;
     - **résolue** — la relique retenue (principale dans la case ; le détail
@@ -2474,7 +2510,9 @@ résolue (constaté sur le vrai compte, en PV effectifs). Trois cents réduit
 ce manque sans l'annuler ; « Équipée » garde cent, inchangé, et sans
 optimisation d'artéfacts il n'y a pas de file.
 Changer de page ou de tri repriorise immédiatement, sans rien recalculer de ce
-qui est déjà connu.
+qui est déjà connu. Depuis 6bis-b16, la « page » que la file sert d'abord est
+l'ensemble des builds qui rempliront ses places « Vérification… » (voir
+« Résultats ») : vide quand elle est complète.
 
 **La page affichée n'attend pas l'inactivité** (degats-et-aura 6bis-b11).
 Pendant une recherche, l'écran reçoit la progression toutes les 150 ms et
@@ -2650,10 +2688,11 @@ reçu, le CLI une fois par recette — jamais un état
 global qu'un nouvel inventaire laisserait périmé. Ce qu'elles rendent est
 partagé : à lire, jamais à modifier.
 
-Une carte dont la paire n'est pas encore calculée le **dit** (« artéfacts pas
-encore optimisés ») plutôt que de laisser croire à un résultat définitif. ⚠️ La
-place de cette mention est réservée d'avance : sans ça, chaque paire trouvée
-changeait la hauteur d'une carte et réorganisait toute la grille.
+Une carte n'est affichée qu'une fois sa paire calculée (6bis-b16, voir
+« Résultats ») : avant, sa place dit « Vérification… », à la hauteur d'une
+carte, plutôt que de montrer un résultat provisoire. La mention « artéfacts pas
+encore optimisés », qui disait jusque-là qu'une carte affichée attendait encore
+sa paire, a disparu avec la carte provisoire, et sa rangée réservée avec elle.
 
 ⚠️ **Un build optimisé peut alors passer devant dans le classement**, et la
 boucle « trier → optimiser → retrier » ne s'emballe pas : optimiser un build ne

@@ -23,7 +23,7 @@ import {
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { classementResolu, cleBuild, compteAffichable, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { classementResolu, cleBuild, compositionDePage, compteAffichable, kDeLaFile, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
 import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
@@ -177,7 +177,7 @@ import OptimizerListPicker from './OptimizerListPicker';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
-import BuildCandidateCard from './BuildCandidateCard';
+import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
 import EtatMonstre from './EtatMonstre';
 
@@ -834,10 +834,13 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // mémorise que les identifiants.
   const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
 
-  // ⚠️ La page affichée, exposée à la file d’optimisation d’artéfacts. Elle est
-  // remplie APRÈS `pageCandidates` (plus bas) : une ref, parce que la file est
-  // déclarée AVANT lui et ne peut donc pas recevoir sa valeur.
+  // ⚠️ La page que la file sert en priorité : les builds qui rempliront les
+  // places « Vérification… » de la page affichée (`composition.aVerifier`,
+  // 6bis-b16). Elle est remplie APRÈS `composition` (plus bas) : une ref, parce
+  // que la file est déclarée AVANT elle et ne peut donc pas recevoir sa valeur.
   const pageAfficheeRef = useRef<BuildCandidate[]>([]);
+  // La grille des résultats : `useHauteurDesCartes` y mesure les cartes.
+  const grilleResultatsRef = useRef<HTMLDivElement>(null);
 
   /**
    * La sélection de « Équipement actuel », dérivée de la MÊME clé que les
@@ -2086,9 +2089,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
 
   const RESULTS_PAGE_SIZE = 20;
 
-  // ⚠️ `pageCandidates` est défini PLUS BAS, après la file d'optimisation
-  // d'artéfacts : la page affichée dépend du classement corrigé par les paires
-  // trouvées, qui n'existe qu'une fois la file déclarée.
+  // ⚠️ `composition` (la page affichée) est définie PLUS BAS, après la file
+  // d'optimisation d'artéfacts : elle dépend du classement corrigé par les
+  // paires trouvées, qui n'existe qu'une fois la file déclarée.
 
   /**
    * Optimisation d'artéfacts des meilleurs builds, EN TEMPS MASQUÉ pendant que
@@ -2235,9 +2238,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // boucle — chaque paire trouvée changerait le classement, donc le top K,
     // donc la file.
     triees: fullSortedCandidates,
-    // ⚠️ Accesseur : `pageCandidates` se calcule PLUS BAS (il dépend du
+    // ⚠️ Accesseur : `composition` se calcule PLUS BAS (elle dépend du
     // classement corrigé par cette file). Lu au moment de traiter, il voit
-    // toujours la page réellement à l’écran.
+    // toujours les builds qui rempliront les places en attente de la page
+    // réellement à l’écran (6bis-b16).
     pageAffichee: () => pageAfficheeRef.current,
     // Paire ET relique, ensemble — les stats du résultat sont recalculées
     // avec le couple retenu (voir `resoudreEquipement`) : sans ça, la carte
@@ -2343,10 +2347,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
   // ICI** (§12.5). Ils ont franchi la borne du moteur, calculée par stat
   // isolée, sans qu'une paire puisse fournir les appoints simultanément.
-  // Un build non conforme reste AFFICHÉ tant que sa paire n'a pas été
-  // cherchée (absent du cache) : c'est le seul état honnête — on ne sait pas
-  // encore. La file traite la page affichée en priorité, donc le verdict
-  // arrive vite sur ce qu'on regarde.
+  // Un build pas encore résolu (absent du cache) reste dans ce classement —
+  // on ne sait pas encore —, mais il n'est plus MONTRÉ : depuis 6bis-b16, la
+  // page n'affiche que les vérifiés (`compositionDePage`, plus bas), et la
+  // file résout en priorité ceux qui rempliront ses places en attente.
   // ⚠️ **B.5b bis, mineur de la revue** : `sortCandidates` est un tri
   // STABLE, à score égal l'ordre d'entrée est préservé — mais cet ordre
   // d'entrée (celui de l'appariement) n'a rien de canonique. Le départage
@@ -2392,13 +2396,29 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
   }, [totalResultsPages, setResultsPage]);
 
-  const pageCandidates = useMemo(
-    () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
-    [affichees, resultsPage]
+  // La page affichée (degats-et-aura 6bis-b16) : les builds VÉRIFIÉS seuls,
+  // dans l'ordre réel, puis des places « Vérification… » jusqu'à ce que la page
+  // attend — une seule fonction pure, `compositionDePage`. Un build reçu de la
+  // recherche ne s'affiche plus avec sa paire supposée pour disparaître à la
+  // résolution : il apparaît une fois résolu et conforme, ou jamais. Sans file
+  // (optimisation d'artéfacts coupée), rien n'est à vérifier : la tranche du
+  // classement, comme avant.
+  const composition = useMemo(
+    () =>
+      compositionDePage({
+        classement: affichees,
+        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
+        page: resultsPage,
+        taillePage: RESULTS_PAGE_SIZE,
+      }),
+    [affichees, resoudreEquipement, fileArtefacts.parBuild, resultsPage]
   );
   // ⚠️ Renseignée à CHAQUE rendu : c’est ce qui fait qu’un changement de page
-  // repriorise la file sans rien relancer ni invalider.
-  pageAfficheeRef.current = pageCandidates;
+  // repriorise la file sans rien relancer ni invalider. La file sert ces
+  // builds avant les K premiers (`prochainsATraiter`) ; vide quand la page est
+  // complète.
+  pageAfficheeRef.current = composition.aVerifier;
+  const hauteurCarte = useHauteurDesCartes(grilleResultatsRef);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
@@ -4766,6 +4786,21 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             )}
           </div>
 
+          {/* Combien la file doit encore vérifier (6bis-b16) : les builds des
+              places en attente de la page, puis les K premiers — le compte
+              ci-dessus les inclut (6bis-b10, règle inchangée), la page ne les
+              montre qu'une fois vérifiés. `enAttente` est le reste de la file,
+              tenu par le hook pour l'affichage. ⚠️ Rangée TOUJOURS présente
+              quand la file tourne : quand elle se vide, l'espace insécable
+              garde sa hauteur, et la grille ne remonte pas. */}
+          {resoudreEquipement != null && (
+            <p className="mb-2 text-xs text-ink-dim">
+              {fileArtefacts.enAttente > 0
+                ? `${fileArtefacts.enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
+                : ' '}
+            </p>
+          )}
+
           {/* ⚠️ Zéro dû aux seuls builds écartés par la résolution (6bis-b10) :
               le moteur a trouvé, aucun couple réel ne tient. Les blocs
               ci-dessous (diagnostic, « suffirait ») gardent leur condition,
@@ -4953,19 +4988,24 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               cartes affichent stats + artéfacts + roue sur une seule LIGNE
               (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
               largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
-            {pageCandidates.map((c, i) => (
+          {/* ⚠️ Les cartes VÉRIFIÉES, puis les places « Vérification… »
+              (`composition`, 6bis-b16) : aucune carte non vérifiée, pendant la
+              recherche comme après. Une place a la hauteur d'une carte
+              (`useHauteurDesCartes`), pour que rien ne saute quand la carte
+              arrive. */}
+          <div ref={grilleResultatsRef} className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
+            {composition.cartes.map((c, i) => (
               <BuildCandidateCard
                 key={c.runeIds.join('-')}
-                rank={(resultsPage - 1) * RESULTS_PAGE_SIZE + i + 1}
+                rank={composition.premierRang + i}
                 candidate={c}
                 runeById={runeById}
                 // ⚠️ La paire de CE build, jamais une paire commune : deux
                 // builds voisins n'appellent pas les mêmes artéfacts, et ce
                 // sont ces pièces-là qui ont servi à calculer ses stats.
-                // Repli sur la paire SUPPOSÉE tant que la file ne l'a pas
-                // atteint — et la carte le DIT (`paireProvisoire`) plutôt que
-                // de laisser croire que c'est le résultat final.
+                // Le repli sur la paire SUPPOSÉE ne sert plus que sans file
+                // (optimisation coupée : la paire portée, la seule possible) —
+                // avec file, une carte affichée est résolue (6bis-b16).
                 artifacts={fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts}
                 // ⚠️ **Seule source** (implementation-relique, B.5c) :
                 // `etatReliqueDuBuild` lit le cache de la file, jamais
@@ -4975,14 +5015,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 // `etatReliqueDe` : la relique que le score compte (6bis-b5a).
                 etatRelique={etatReliqueDe(c)}
                 relicUsageById={relicUsageById}
-                // ⚠️ Signalé SEULEMENT quand la file tourne pour de bon : hors
-                // « Dégâts réels » ou file inactive, il n'y a rien à attendre,
-                // et annoncer une optimisation qui n'aura pas lieu serait faux.
-                paireProvisoire={
-                  resoudreEquipement != null &&
-                  objective === 'degats_reels' &&
-                  !fileArtefacts.parBuild.has(cleBuild(c))
-                }
+                // Plus de mention « artéfacts pas encore optimisés » : avec
+                // file, une carte n'apparaît qu'une fois résolue ; sans file,
+                // rien n'est à attendre (6bis-b16).
                 metric={metric}
                 openDetailKey={openDetailKey}
                 onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
@@ -5105,6 +5140,13 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   const noms = [...new Set(conflits.map((x) => x.monsterName))];
                   return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
                 })()}
+              />
+            ))}
+            {Array.from({ length: composition.placesEnAttente }, (_, j) => (
+              <PlaceEnVerification
+                key={`verification-${composition.premierRang + composition.cartes.length + j}`}
+                rank={composition.premierRang + composition.cartes.length + j}
+                hauteur={hauteurCarte}
               />
             ))}
           </div>

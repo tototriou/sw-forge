@@ -469,8 +469,10 @@ export function codesEquivalentsAuVerrou(code: number): number[] {
   return [];
 }
 
-// « D.CRIT+ comp cib uniq pdt tour » — ne vaut que pour un sort MONO-CIBLE.
-// La portée vient des données (`aoe`), jamais d'une saisie.
+// « D.CRIT+ comp cib uniq pdt tour » — ne vaut que pour un coup MONO-CIBLE.
+// La portée vient des données (`aoe`) ou, pour un sort à séquence curée
+// (Blade Surge), de celle de chaque groupe de coups (`sequenceDeCoups`) —
+// jamais d'une saisie.
 const CODE_CD_MONO_CIBLE = 224;
 
 // « Dgts CRIT 1re attaque » — SEULEMENT le premier coup du sort. Sur un S3 de
@@ -549,7 +551,9 @@ export function artifactElementBonusPct(p: ArtifactDamageProfile, enemyElement: 
 
 // POINTS de Dgts Crit apportés par les artéfacts POUR CE SORT précis —
 // somme des lignes par compétence et, si le sort est mono-cible, de la ligne
-// 224. Tout est déduit du profil du sort, rien n'est saisi.
+// 224. Tout est déduit du profil du sort, rien n'est saisi. Pour un sort à
+// séquence curée, `computeSkillDamageDetail` passe ici le profil de CHAQUE
+// groupe de coups, dont `aoe` est la portée du groupe : 224 suit le coup.
 export function artifactCritDamagePoints(p: ArtifactDamageProfile, profile: SkillDamageProfile): number {
   return (p.cdPointsParSlot[profile.slot] ?? 0) + (profile.aoe ? 0 : p.cdPointsMonoCible);
 }
@@ -2149,6 +2153,17 @@ function evaluer(n: Noeud, valeurs: Record<DamageVariable, number>): number {
 
 // ── Profil de dégâts d'un sort ───────────────────────────────────────────
 
+// Un groupe de coups consécutifs d'une séquence curée (voir
+// `SkillDamageProfile.sequenceDeCoups`) : même formule, même portée.
+export interface GroupeDeCoups {
+  coups: number;
+  // Portée de CES coups : `true` = tous les ennemis, la cible visée comprise.
+  zone: boolean;
+  formule: string;
+  variables: DamageVariable[];
+  noeud: Noeud;
+}
+
 export interface SkillDamageProfile {
   // ⚠️ `com2usId` du SORT (`Competence.com2usId`), pas du monstre — c'est lui
   // qui est stocké dans le réglage et dans la recette exportée : l'index dans
@@ -2281,6 +2296,15 @@ export interface SkillDamageProfile {
   // `DamageSetup.compteurPersonnalise` porte le compte SAISI (0 par
   // défaut, aucun état de combat simulé).
   bonusCoefficientParCompteur?: { coeffParPoint: number; variable: DamageVariable; label: string };
+  // Présent = les coups de ce sort n'ont pas tous la même formule ni la même
+  // portée (Blade Surge) : la séquence curée, groupe par groupe, dans l'ordre
+  // où les coups tombent (`SEQUENCES_DE_COUPS_PAR_ID_CONNUS`). Le calcul passe
+  // alors CHAQUE groupe par le chemin ordinaire, avec sa formule et sa portée,
+  // pour la cible choisie (`cibleDegatsRetenue`) ; `formule`, `hits`, `aoe` et
+  // `noeud` gardent la donnée SWARFARM (le premier groupe) mais ne servent plus
+  // au calcul de ce sort. Donnée pure : le profil traverse le Worker de
+  // résolution.
+  sequenceDeCoups?: GroupeDeCoups[];
   variables: DamageVariable[];
   noeud: Noeud;
 }
@@ -2755,6 +2779,58 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
   'Pitch-Black Chain Attack': 4,
 };
 
+// Sorts dont les coups n'ont PAS tous la même formule ni la même portée.
+// `SkillDamageProfile.aoe` est un booléen DU SORT, et `formule`/`coups` ne
+// décrivent qu'un seul groupe de coups : la donnée SWARFARM de Blade Surge
+// (`0.5*{ATK}`, `coups: 2`, `aoe: false`) ne porte que ses deux coups
+// mono-cible ; son troisième coup, en zone, est ABSENT de l'API (« attacks
+// all enemies with even more powerful attack on the 3rd attack »).
+//
+// Curation par IDENTIFIANT du sort, jamais par nom ni par un cas codé en dur
+// dans le calcul : la séquence complète, groupe par groupe, dans l'ordre où
+// les coups tombent. Le premier groupe RECOPIE la donnée : `skillDamageProfile`
+// refuse le sort s'il ne la retrouve plus (données régénérées), plutôt que de
+// calculer une séquence périmée.
+//
+// Valeurs fournies par l'utilisateur (cadrage degats-et-aura, A.2 ter) :
+// coups 1 et 2 à `0.5 × ATQ` mono-cible (donnée + confirmation), coup 3 à
+// `3.0 × ATQ` en zone, cible visée comprise ; même séquence et mêmes skillups,
+// troisième coup inclus, pour les huit identifiants retenus au lot 1b (onze
+// formes du corpus, dont les Magic Knights non éveillés, que l'écran ne
+// propose pas). Les lignes d'artéfact suivent la portée de CHAQUE groupe (voir
+// `computeSkillDamageDetail`) : 224 sur les coups 1 et 2, 400 sur les trois,
+// 411 sur le premier coup du tour seulement (confirmation du 2026-10-02).
+//
+// ⚠️ Une séquence n'admet ni coups variables (`hitsRange`) ni effets entre
+// coups (`effetsEntreCoups`), et ses porteurs n'ont aucun passif offensif :
+// rien de cela n'est modélisé pour une séquence, et
+// `tests/degats-blade-surge.test.ts` vérifie sur le corpus qu'aucun porteur
+// n'en a besoin.
+const SEQUENCE_BLADE_SURGE: readonly { formule: string; coups: number; zone: boolean }[] = [
+  { formule: '0.5*{ATK}', coups: 2, zone: false },
+  { formule: '3.0*{ATK}', coups: 1, zone: true },
+];
+const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, readonly { formule: string; coups: number; zone: boolean }[]> = {
+  10601: SEQUENCE_BLADE_SURGE, // Magic Knight eau (19801, non éveillé)
+  10602: SEQUENCE_BLADE_SURGE, // Astar (19812), Magic Knight feu (19802)
+  10603: SEQUENCE_BLADE_SURGE, // Imperfect Magic Knight vent (19823), Magic Knight vent (19803)
+  10604: SEQUENCE_BLADE_SURGE, // Iris (19814), Magic Knight lumière (19804)
+  10605: SEQUENCE_BLADE_SURGE, // Magic Knight ténèbres (19805, non éveillé)
+  10616: SEQUENCE_BLADE_SURGE, // Lapis (19811)
+  10618: SEQUENCE_BLADE_SURGE, // Lupinus (19813)
+  10620: SEQUENCE_BLADE_SURGE, // Lanett (19815)
+};
+
+/**
+ * Ce sort peut-il être calculé sur la cible secondaire (« Dégâts sur les
+ * autres ennemis », `DamageSetup.cibleDegatsParSort`) ? Seulement si sa
+ * séquence curée porte au moins un coup de zone. Table de capacité lue par
+ * l'identifiant seul, sans monstre chargé.
+ */
+export function cibleSecondairePriseEnCharge(skillCom2usId: number): boolean {
+  return SEQUENCES_DE_COUPS_PAR_ID_CONNUS[skillCom2usId]?.some((g) => g.zone) ?? false;
+}
+
 /**
  * Profil de dégâts d'une compétence, ou `null` si elle n'inflige pas de
  * dégâts calculables. Ne lève jamais.
@@ -2780,6 +2856,23 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   if (!analyse.variables.some((v) => VARIABLE_STAT[v]) && !DEGATS_FIXES_SANS_STAT_PROPRE_PRIS_EN_CHARGE.has(c.com2usId)) {
     return { ...entete, raison: 'Ces dégâts ne dépendent d’aucune statistique du monstre.' };
   }
+  // Séquence curée (voir `SEQUENCES_DE_COUPS_PAR_ID_CONNUS`) : son premier
+  // groupe doit retrouver la donnée telle quelle, sinon la curation est
+  // périmée — refus explicite, jamais un calcul sur une séquence fausse.
+  const sequenceCuree = SEQUENCES_DE_COUPS_PAR_ID_CONNUS[c.com2usId];
+  let sequenceDeCoups: GroupeDeCoups[] | undefined;
+  if (sequenceCuree) {
+    const premier = sequenceCuree[0];
+    if (!premier || premier.formule !== brut || premier.coups !== c.coups || premier.zone !== c.aoe) {
+      return { ...entete, raison: 'La séquence de coups curée pour ce sort ne correspond plus à ses données.' };
+    }
+    sequenceDeCoups = [];
+    for (const groupe of sequenceCuree) {
+      const analyseGroupe = analyser(groupe.formule);
+      if (!analyseGroupe) return { ...entete, raison: 'La séquence de coups curée pour ce sort n’est pas prise en charge.' };
+      sequenceDeCoups.push({ ...groupe, ...analyseGroupe });
+    }
+  }
 
   let skillupDamagePct = 0;
   for (const a of c.ameliorations) {
@@ -2799,7 +2892,13 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   const variablesBase = ignoreDefSelonVit
     ? Array.from(new Set([...analyse.variables, 'Relative SPD' as const]))
     : analyse.variables;
-  const variables = Array.from(new Set([...variablesBase, ...(analyseFixeAdditionnelle?.variables ?? [])]));
+  // Les variables de TOUS les groupes d'une séquence : l'écran et
+  // `damageRelevantStats` lisent ce que le sort consomme en entier.
+  const variables = Array.from(new Set([
+    ...variablesBase,
+    ...(analyseFixeAdditionnelle?.variables ?? []),
+    ...(sequenceDeCoups ?? []).flatMap((g) => g.variables),
+  ]));
   return {
     ...entete,
     icone: c.icone,
@@ -2845,6 +2944,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
       BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS[c.com2usId] ??
       BONUS_CONDITIONNEL_AUDIT_CONNUS[c.nom],
     bonusCoefficientParCompteur: BONUS_COEFFICIENT_PAR_COMPTEUR_CONNUS[c.nom],
+    sequenceDeCoups,
     variables,
     noeud: analyse.noeud,
   };
@@ -3331,6 +3431,11 @@ export const STAT_DE_L_AURA: Readonly<Record<SetAura, 'atk' | 'def' | 'hp' | 'ac
   tolerance: 'res',
 };
 
+// Cible calculée d'un sort à séquence curée (voir `DamageSetup.cibleDegatsParSort`) :
+// la cible visée, qui reçoit toute la séquence, ou UN autre ennemi, qui ne
+// reçoit que ses coups de zone.
+export type CibleDegats = 'visee' | 'secondaire';
+
 export interface DamageSetup {
   // `null` = « le sort par défaut » (voir `defaultDamageSkill`) : une recette
   // partagée reste valable même si son auteur et son lecteur n'optimisent pas
@@ -3459,6 +3564,13 @@ export interface DamageSetup {
   // `passifsOffensifs`). Absent = repli sur `hitsRange.min`, voir
   // `resolvedHits`. Sans effet sur un sort dont `hitsRange` est absent.
   coupsPersonnalises?: Record<number, number>;
+  // Cible calculée pour un sort à séquence curée qui porte un coup de zone
+  // (Blade Surge, voir `cibleSecondairePriseEnCharge`), clé = `skillCom2usId`
+  // DU SORT, même espace de clés que `coupsPersonnalises`. Clé absente =
+  // `'visee'` (défaut). `'secondaire'` calcule UN autre ennemi, jamais la
+  // somme sur tous : les champs de la cible (DEF, PV, élément…) le décrivent
+  // alors. Sans effet sur un sort sans cette capacité. Voir `cibleDegatsRetenue`.
+  cibleDegatsParSort?: Record<number, CibleDegats>;
   // Pourcentage de stack CHOISI par l'utilisateur pour un passif à bonus
   // ACCUMULABLE en combat (Momo/Mage — « Secret Book »), clé =
   // `skillCom2usId` du passif, même espace de clés que `passifsOffensifs`.
@@ -3662,6 +3774,17 @@ export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): n
   const choisi = setup.coupsPersonnalises?.[profile.skillCom2usId];
   if (choisi == null) return profile.hits;
   return Math.min(profile.hitsRange.max, Math.max(profile.hitsRange.min, choisi));
+}
+
+/**
+ * La cible RÉELLEMENT calculée pour `profile` : `'secondaire'` seulement si
+ * le réglage le demande ET que la séquence curée du sort porte un coup de
+ * zone ; sinon `'visee'` — clé absente, valeur inconnue ou sort sans cette
+ * capacité, jamais un cran secondaire appliqué à un sort qui ne l'a pas.
+ */
+export function cibleDegatsRetenue(profile: SkillDamageProfile, setup: DamageSetup): CibleDegats {
+  const capable = profile.sequenceDeCoups?.some((g) => g.zone) ?? false;
+  return capable && setup.cibleDegatsParSort?.[profile.skillCom2usId] === 'secondaire' ? 'secondaire' : 'visee';
 }
 
 /**
@@ -4150,6 +4273,62 @@ export function computeSkillDamageDetail(
   fixeProtege: number;
   pvRestantsPct: number;
 } {
+  // ── Séquence curée (Blade Surge) : un appel ordinaire par groupe de coups ──
+  //
+  // La cible calculée (`cibleDegatsRetenue`) décide des groupes reçus :
+  //   - « visée » (défaut) : tous, dans l'ordre, ses PV creusés d'un groupe au
+  //     suivant (222/223 et formules à PV lisent l'état réel de chaque coup) ;
+  //   - « secondaire » : UN autre ennemi, qui ne reçoit que les coups de zone
+  //     — jamais une somme sur tous les ennemis. Ses PV de départ sont ceux
+  //     saisis (les champs de la cible le décrivent), jamais creusés par les
+  //     coups mono-cible portés à la cible visée : son résultat n'est pas une
+  //     soustraction du premier cran.
+  // Chaque groupe passe par le chemin ordinaire avec SA formule et SA portée :
+  //   - 224 suit la portée du groupe (`artifactCritDamagePoints` lit `aoe`) ;
+  //   - 400-403/410 (le slot du sort) et `skillupDamagePct` valent pour tous
+  //     les coups, coup de zone compris ;
+  //   - 411 ne vaut que pour le premier coup DU TOUR (`rang === 0`) : la cible
+  //     secondaire ne le reçoit que si ce premier coup est lui-même en zone —
+  //     jamais pour Blade Surge, dont le premier coup est mono-cible. La
+  //     première attaque sur une nouvelle cible n'est pas un nouveau premier
+  //     coup du tour (correction de l'utilisateur en revue).
+  // Les autres sorts n'ont pas de séquence : leur chemin reste celui d'avant.
+  const sequence = profile.sequenceDeCoups;
+  if (sequence) {
+    const secondaire = cibleDegatsRetenue(profile, setup) === 'secondaire';
+    let totalSequence = 0;
+    let additionnelSequence = 0;
+    let fixeProtegeSequence = 0;
+    let pvSequence = Math.min(100, Math.max(0, pvCiblePctDepart ?? setup.enemyHpPct));
+    let rang = 0;
+    for (const groupe of sequence) {
+      if (!secondaire || groupe.zone) {
+        const profilGroupe: SkillDamageProfile = {
+          ...profile,
+          formule: groupe.formule,
+          noeud: groupe.noeud,
+          variables: groupe.variables,
+          hits: groupe.coups,
+          hitsRange: undefined,
+          aoe: groupe.zone,
+          effetsEntreCoups: undefined,
+          sequenceDeCoups: undefined,
+        };
+        const artefactsGroupe =
+          rang === 0 || artefacts.cdPointsPremiereAttaque === 0
+            ? artefacts
+            : { ...artefacts, cdPointsPremiereAttaque: 0 };
+        const detail = computeSkillDamageDetail(profilGroupe, stats, setup, propres, element, pvSequence, artefactsGroupe, monsterWide, reliqueDmgPct);
+        totalSequence += detail.total;
+        additionnelSequence += detail.additionnel;
+        fixeProtegeSequence += detail.fixeProtege;
+        pvSequence = detail.pvRestantsPct;
+      }
+      rang += groupe.coups;
+    }
+    return { total: totalSequence, additionnel: additionnelSequence, fixeProtege: fixeProtegeSequence, pvRestantsPct: pvSequence };
+  }
+
   const setupsScenario = setupsAvantChaqueCoup(profile, setup, monsterWide);
   if (setupsScenario) {
     const profilUnCoup: SkillDamageProfile = {
@@ -4942,7 +5121,9 @@ export function computeTotalDamage(
   // pas pour le premier coup de chaque contribution : le sort actif l'a déjà
   // consommée ci-dessus. Sans cette neutralisation, chaque passif offensif se
   // verrait accorder le bonus à son tour — un monstre à trois passifs
-  // l'encaisserait quatre fois.
+  // l'encaisserait quatre fois. Vrai aussi quand le sort n'est calculé que sur
+  // la cible secondaire (`cibleDegatsRetenue`) : la première attaque du tour a
+  // eu lieu sur la cible visée, aucune contribution ne rouvre ce compteur.
   //
   // ⚠️ Construit UNE fois hors de la boucle : dans la boucle interne de
   // l'optimiseur, un objet par passif et par candidat serait de la pression

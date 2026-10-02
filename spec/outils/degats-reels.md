@@ -23,6 +23,7 @@ le **modèle**, pas l'interface.
 - [Dégâts réels — artéfacts et dégâts bruts](degats-reels/artefacts-et-degats-bruts.md) — état actuel
 - [Dégâts réels — critique et élément](degats-reels/artefacts-critique-et-element.md) — état actuel
 - [Dégâts réels — bombes](degats-reels/bombes.md) — état actuel
+- [Dégâts réels — séquences de coups et cible secondaire](degats-reels/sequences-de-coups.md) — état actuel
 - [Dégâts réels — passifs offensifs](degats-reels/passifs-offensifs.md) — état actuel
 - [Dégâts réels — effets d’équipe et leaders](degats-reels/effets-equipe-et-leaders.md) — état actuel
 - [Dégâts réels — conditions et audit](degats-reels/conditions-et-audit.md) — état actuel

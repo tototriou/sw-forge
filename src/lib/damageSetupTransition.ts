@@ -16,6 +16,7 @@ export const DAMAGE_SETUP_CLASSIFICATION = {
   miriamActif: 'contexte', transmissionActif: 'contexte', velaskaActif: 'contexte',
   velaskaPvPerduPct: 'contexte', critMode: 'contexte', summonerSkills: 'contexte',
   passifsOffensifs: 'sort', statsCombatActives: 'sort', coupsPersonnalises: 'sort',
+  cibleDegatsParSort: 'sort',
   stackPersonnalise: 'sort', effetsCibleCount: 'sort',
   effetsCibleCountAutres: 'legacy-sort', buffsCibleCount: 'sort',
   buffsPropresCount: 'sort', buffsPropresCountAutres: 'legacy-sort',

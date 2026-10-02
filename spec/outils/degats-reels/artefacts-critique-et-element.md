@@ -66,6 +66,11 @@ sort a déjà consommé « la première attaque » : les passifs reçoivent donc
 profil dont `cdPointsPremiereAttaque` est remis à zéro. Sans ça, un monstre à
 trois passifs encaisserait le bonus quatre fois.
 
+Même règle pour un sort à séquence de coups (Blade Surge) : 411 ne vaut que
+pour le premier coup de la séquence, jamais pour le coup de zone, et le cran
+« autres ennemis » ne rouvre pas ce compteur — voir
+[séquences de coups](sequences-de-coups.md).
+
 
 ## Dgts CRIT conditionnels au SORT (400-403, 410, 224)
 
@@ -88,6 +93,12 @@ deux formes sont gérées, un inventaire ancien pouvant porter les secondes.
 
 Tout est **déduit du profil du sort** (`slot`, `aoe`), rien n'est saisi —
 `artifactCritDamagePoints()` est la seule porte d'entrée.
+
+⚠️ **Un sort à séquence de coups reçoit 224 coup par coup.** Pour Blade
+Surge, le calcul passe à cette fonction le profil de chaque groupe de coups,
+dont `aoe` est la portée du groupe : 224 porte sur les coups 1 et 2
+(mono-cible), jamais sur le coup de zone ; 400 porte sur les trois. Voir
+[séquences de coups](sequences-de-coups.md).
 
 
 ## Dégâts de bombe (210)

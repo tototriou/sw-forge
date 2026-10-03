@@ -35,6 +35,8 @@ import {
   cibleSecondairePriseEnCharge,
   estPrisEnCharge,
   conditionCritiqueGarantiParReglage,
+  coupsEnPlusAncienneRecetteActif,
+  coupsEnPlusDeCondition,
   critiqueGarantiParReglage,
   cranIgnoreDefRetenu,
   cransIgnoreDefAPartirDuCoup,
@@ -195,6 +197,7 @@ function libelleSourceEffet(source: 'buffs' | 'debuffs' | 'buffsEtDebuffs'): str
 // Crush, Triss) ou un critique garanti (Jaara, Varus, Yuji et Rick),
 // degats-et-aura 15d.
 function effetCondition(condition: ConditionMonstreProfile['condition']): string {
+  if (condition.coupsEnPlus) return libelleCoupsEnPlus(condition.coupsEnPlus);
   if (condition.critiqueGaranti) return 'critique garanti';
   if (condition.ignoreDefPct != null) {
     return condition.ignoreDefPct >= 100 ? 'ignore DEF' : `ignore ${condition.ignoreDefPct} % de la DEF`;
@@ -203,7 +206,18 @@ function effetCondition(condition: ConditionMonstreProfile['condition']): string
   return 'condition active';
 }
 
+// « +2 coups » : l'effet d'une condition qui ajoute des coups (lot P5a2).
+function libelleCoupsEnPlus(n: number): string {
+  return `+${n} coup${n > 1 ? 's' : ''}`;
+}
+
 function resumeCondition(condition: ConditionMonstreProfile['condition']): string {
+  if (condition.coupsEnPlus && condition.type === 'atkCibleSousAtkPropre') {
+    return `${libelleCoupsEnPlus(condition.coupsEnPlus)} si ton ATQ dépasse l’ATQ adverse`;
+  }
+  if (condition.coupsEnPlus && condition.type === 'manuel') {
+    return `${condition.libelle} (${libelleCoupsEnPlus(condition.coupsEnPlus)})`;
+  }
   switch (condition.type) {
     case 'buffCiblePresent':
       return `+${condition.pct ?? 0} % si la cible a un buff`;
@@ -310,7 +324,9 @@ interface EffetActif {
 // Okeanos S3…) — absent si `profile.hitsRange` ne l'autorise pas. Partagé
 // entre le sort actif et un passif : même mécanisme, même champ.
 function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
-  if (!profile.hitsRange) return null;
+  // Un coup en plus qui ne dépend que d'une condition se règle par son
+  // interrupteur (lot P5a2), jamais par un compteur.
+  if (!profile.hitsRange || coupsEnPlusDeCondition(profile)) return null;
   return (
     <div className="mt-1 flex items-center gap-2">
       <span className="text-xs text-ink-dim">
@@ -1690,14 +1706,17 @@ export default function DamageSetupCard({
             .filter(({ condition }) => condition.type === 'debuffCiblePresent')
             .map(({ condition, key, nom, icone }) => {
               if (condition.type !== 'debuffCiblePresent') return null;
-              const actif = resolvedDebuffCiblePresent(key, setup);
+              const actif = resolvedDebuffCiblePresent(key, setup) ||
+                (!!condition.coupsEnPlus && coupsEnPlusAncienneRecetteActif(resolved, setup));
               return (
                 <PassifInterrupteur
                   key={`condition-debuff-cible-${key}`}
                   actif={actif}
                   onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [key]: v } })}
                   icone={icone ? <img src={icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
-                  libelle={`${nom}${condition.critiqueGaranti ? ' (critique garanti)' : condition.pct ? ` (+${condition.pct} %)` : condition.ignoreDefPct ? ` (ignore ${condition.ignoreDefPct} % DEF)` : ''}`}
+                  libelle={condition.coupsEnPlus
+                    ? `La cible porte un effet nocif (${libelleCoupsEnPlus(condition.coupsEnPlus)})`
+                    : `${nom}${condition.critiqueGaranti ? ' (critique garanti)' : condition.pct ? ` (+${condition.pct} %)` : condition.ignoreDefPct ? ` (ignore ${condition.ignoreDefPct} % DEF)` : ''}`}
                   title={actif && (setup.defBreak || setup.brand)
                     ? 'Activé automatiquement par Brise DEF ou Marque'
                     : 'Effets néfastes présents sur la cible'}
@@ -1708,8 +1727,11 @@ export default function DamageSetupCard({
             .filter(({ condition }) => condition.type === 'manuel')
             .map(({ condition, key, nom, icone }) => {
               if (condition.type !== 'manuel') return null;
-              const actif = setup.passifsOffensifs?.[key] ?? false;
-              const effet = condition.critiqueGaranti
+              const actif = (setup.passifsOffensifs?.[key] ?? false) ||
+                (!!condition.coupsEnPlus && coupsEnPlusAncienneRecetteActif(resolved, setup));
+              const effet = condition.coupsEnPlus
+                ? libelleCoupsEnPlus(condition.coupsEnPlus)
+                : condition.critiqueGaranti
                 ? 'critique garanti'
                 : condition.ignoreDefPct
                   ? `ignore ${condition.ignoreDefPct} % de la DEF`
@@ -1732,7 +1754,7 @@ export default function DamageSetupCard({
                     actif={actif}
                     onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [key]: v } })}
                     icone={icone ? <img src={icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
-                    libelle={`${nom} (${effet})`}
+                    libelle={condition.coupsEnPlus ? `${condition.libelle} (${effet})` : `${nom} (${effet})`}
                     title={`${condition.libelle}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
                   />
                   {(condition.chanceParBuffPropre || condition.chanceParDebuffCible) && (

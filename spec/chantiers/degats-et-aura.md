@@ -778,7 +778,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 lancé** (interrupteurs, décision du 2026-10-04) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 lancé** (affichage de Brutal Fists) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -867,7 +867,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
-| P5a | Les 20 monstres de la liste (Strafe, Hammer Punch, Pound, Whirlpool, Brutal Fists…) : un champ « nombre de coups » au minimum par défaut ; Grinding et Spinning Tea Spoon à 4 coups | en attente |
+| P5a, P5a2 | Les 20 monstres de la liste : Barrage of Madness et Sura's Seal gardent un champ « nombre de coups » (minimum par défaut) ; Whirlpool, Water Dragon Surge, Hammer Punch, Pound, Strafe, God's Weapon ont un interrupteur éteint (« … (+N coups) ») à la place du champ ; Brutal Fists suit le champ « ATQ adverse » ; Grinding et Spinning Tea Spoon à 4 coups ; libellé de Pound au téléphone | en attente |
 | P6 | Abigail, Emily, M. BISON, Sagar : total du S3 plus haut (phase de zone comptée) et cran « Dégâts sur les autres ennemis » ; Ramon, Nezuko, Vermilion : le S3 est proposé et coché par défaut ; Blade Surge inchangé | en attente |
 | P1b | Rending Claw : la case « +50 % … Mechanical Frame State » seulement chez Cynthia (feu) ; plus chez Cecilia (eau) ni Elise (ténèbres) | en attente |
 | P4b | Sia, Dominic, Benedict : réduction de DEF ou Marque posée après le 1er coup → les coups du passif qui suit (Great Friends, Improvisation, Final Strike) grossissent aussi ; sans pose, rien ne change | en attente |
@@ -9440,6 +9440,45 @@ deux compteurs inchangés), spec, liste du lot LM.
 **Preuve privée :** `controle-p5a2.md` et intrants `.txt` ; totaux avant /
 après ; mutation après le commit.
 **Ne fait pas :** Stormfist (valeur attendue) ; aucune autre table.
+
+##### Résultat du lot P5a2 — 2026-10-04
+
+Agent `lot-c`. Trois commits : `ccbab5e9` — moteur : un champ `coupsEnPlus`
+sur les `conditionsCombat` existantes (interrupteur stocké dans
+`passifsOffensifs[id]`, aucun champ de recette neuf), Brutal Fists déduit
+de l'ATQ adverse (`atkCibleSousAtkPropre`, ratio 1, strict, comme Theonia) ;
+`af9078fb` — fenêtre « Dégâts réels » : le champ du nombre de coups
+disparaît pour ces sorts, l'interrupteur `PassifInterrupteur` existant
+s'affiche (« La cible porte un effet nocif (+2 coups) », « La cible ne
+porte aucun effet nocif (+1 coup) », « Le tir en plus part (+1 coup) »…),
+aucune classe nouvelle ; `c2664595` — spec et liste (20 lignes). Une
+ancienne recette à nombre saisi reste lue, bornée, tant que l'interrupteur
+n'est pas touché ; Brutal Fists : la déduction prévaut. Totaux : défauts
+inchangés, interrupteur allumé = ancien maximum (Whirlpool 11 978,98,
+Pound 8 091,07…), Brutal Fists 5 472,85 (ATQ adverse 500) / 4 104,64
+(1 500). Reçu de l'agent `c266459` ↔ `875a89a`.
+
+**Rejoué par le pilote** : `tsc` 0 ; 2 665 vérifications ; build, spec-lint,
+diff-check verts ; diff de l'écran relu. Mutations de l'agent : quatre,
+toutes rouges. **Mutation du pilote**, distincte (+2 coups au lieu de +1
+pour Strafe) : 5 échecs ; restaurée. Hachages inscrits dans la liste.
+
+**Relevé, non traité** : le résumé de l'écran et la ligne du CLI ignorent
+l'ATQ du build et annoncent 3 coups pour Brutal Fists là où le calcul en
+déduit 4 → lot P5a3 ; Hammer Punch « aucun effet nocif » reste manuel (une
+Brise DEF ne l'éteint pas) ; le libellé de Pound est long au téléphone.
+
+#### P5a3 — Brutal Fists : le résumé et le CLI disent le nombre de coups déduit
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Suite de P5a2 : le résumé
+de l'écran (`resumeCombat` ou équivalent) et la ligne du CLI
+(`scripts/optimizer-search.ts`) affichent le nombre de coups sans l'ATQ du
+build, donc 3 pour Brutal Fists quand le calcul en compte 4. Contrat :
+l'affichage lit le même nombre que le calcul (fonction partagée, jamais une
+seconde règle) ; test (ATQ du build au-dessus et au-dessous de l'ATQ
+adverse) ; aucune autre ligne d'affichage ; aucun coût dans la boucle de
+l'optimiseur (affichage seulement). Preuve `controle-p5a3.md`, mutation après
+le commit ; liste du lot LM (ligne de Brutal Fists complétée).
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

@@ -756,7 +756,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | LM — la liste des monstres et sorts modifiés, tenue à chaque commit | C | terminé (`lot-c`), contrôlé par le pilote ; règle permanente en A.8 | `7d3a9d77` / 2026-10-02 |
 | 9d — le survol de Tempest retiré | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `2bca1603` / 2026-10-03 |
 | 15a à 15e — les lots prêts du plan | C / J | **terminés**, preuves et mutations rejouées par le pilote : 15b (`dcca28a7`), 15c (`a65b2f28`, `f7bd6a1f`), 15d (`b2d44b4d`, `292716c2`, `aa052b63`), 15e (`6c2b593e`, `404472a3`), 15a (`35541133`…`4616dab1`) ; vérifications à l'œil en attente (A.8) | 2026-10-03 |
-| 15f — Yuji et Rick : DEF du coup 2 ; ATQ ennemie absente = valeur affichée | C | à faire (décisions du 2026-10-03) | — |
+| 15f — Yuji et Rick : DEF du coup 2 ; ATQ ennemie absente = valeur affichée | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; Zaiross ajouté (quatre monstres) ; vérification à l'œil en attente (A.8) | `616e09a1`, `372168cd` / 2026-10-03 |
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | en cours : soumis par le pilote à l'utilisateur par blocs de 10 (demande du 2026-10-03), notes seules | — |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | à faire (lots parallèles, notes seules) | — |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | à faire ; P1, P2, P4 prêts, le reste attend une décision (Q) ou un relevé | — |
@@ -848,6 +848,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
+| 15f | Yuji et Rick (S2) : réduction de DEF posée après le 1er coup → le 2e coup est critique ET plus fort (DEF réduite) ; une ancienne recette sans ATQ adverse, importée : le champ affiche 1 000 et le bonus de Theonia, Kassandra, Eleni ou Zaiross suit ce 1 000 | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
 
@@ -8961,6 +8962,37 @@ contrôles touchés (`garantieyujirick` et ceux de Theonia), `npm run build`,
 `spec-lint`, `git diff --check`.
 **Ne fait pas :** les libellés « Cumuls de… » (en attente, A.8) ; aucun
 autre sort « decrease-def » ; aucune autre valeur par défaut de la recette.
+
+##### Résultat du lot 15f — 2026-10-03
+
+Agent `lot-c`. Deux commits : `616e09a1` — `effetCombat: 'defBreak'` sur
+les six entrées de Yuji et Rick, commentaire de la table réécrit, test
+`garantieyujirick` (Yuji vent 20108, pose après le coup 1 : 1 272,8044 →
+**2 231,2793** ; sans scénario 848,5363 inchangé), spec
+`conditions-et-audit.md`, six lignes de la liste ; `372168cd` —
+`conditionCombatActive` lit `setup.enemyAtk ?? DEFAULT_DAMAGE_SETUP.enemyAtk!`
+(seul lecteur du moteur ; tous les constructeurs de la recette passent par
+lui), test `theoniaatqcible` étendu. Reçu de l'agent `372168c` ↔ `2b8ba2a`.
+
+**Écart au contrat, accepté** : **quatre** monstres à condition
+`atkCibleSousAtkPropre`, pas trois — Zaiross (2912, « Fiery Breath », seuil
+inclusif à 50 % de l'ATQ, critique garanti) s'ajoute à Theonia, Kassandra
+et Eleni ; couvert par le test et la liste. Recette sans `enemyAtk`, ATQ
+900 : Theonia 3 299,1090 → 1 649,5545 ; Kassandra et Eleni 1 548,7484 →
+1 191,3449 ; Zaiross 3 578,3305 → 1 216,1646 ; chaque « après » égal au
+total avec 1 000. À 1 200, seul Zaiross change (4 771,1073 → 1 621,5528).
+
+**Rejoué par le pilote** : `tsc` 0 ; `garantieyujirick` + `theoniaatqcible`
+102 vérifications ; build, spec-lint, diff-check verts. Mutations de
+l'agent : 3 et 8 échecs. **Mutations du pilote**, distinctes : la seule
+branche inclusive remise à `?? 0` → 2 échecs (Zaiross) ; `effetCombat`
+retiré de Rick ténèbres 20710 → 2 échecs ; restaurées. Hachages inscrits
+dans la liste par le pilote.
+
+**Relevé, non traité** : commentaire périmé vers L1906 de `damage.ts`
+(« aucun champ `enemyAtk` », Almighty Strength) → au premier lot P qui
+touche cette zone ; vider le champ « ATQ adverse » écrit 0 et allume la
+condition (cohérent avec ce que montre le champ).
 
 #### 15g — revue des 144 sorts à formule sans « attack » ni « damage »
 

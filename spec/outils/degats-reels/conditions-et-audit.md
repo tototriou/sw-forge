@@ -248,3 +248,22 @@ pas. Atlas Stone et les réserves de Sacrifice ne sont pas multipliés par
 Mirinae, Price of Pain ou les autres bonus généraux ; seule Marque les
 augmente. Sur Lamiella, ces restrictions ne concernent que la réserve : la
 partie `1,2 × ATQ` reste une attaque ordinaire.
+
+Treize sorts de plus entrent dans le cadre des poses entre les coups, **par
+identifiant** et jamais par nom (« Blackout Kick » a des homonymes au texte
+différent), chacun avec l'effet de sa donnée (`Decrease DEF` → Brise DEF,
+`Brand` → Marque) : Crushed Hopes 10413 (Cichlid, coup 2), Double Strike 12608
+(Melissa), Fast Link 13606, 13607 et 13610 (Barbara, Masha, Xiana ; coup de
+la bête), Weakness Shot 15507 à 15509 (Carlos, Dominic, Benedict ; Marque),
+Harpoon Impalement 17507 et 17509 (Eivor ; Marque), Blackout Kick 3454 (Sia)
+et Reelseiden・Flurry 25206 et 25210 (Übel). Sans pose choisie le total ne
+change pas ; posé après le coup qui le pose, l'effet ne majore que les coups
+suivants (sort seul, DEF cible 1 500 : ×1,455 pour Cichlid, ×1,682 pour les
+Brise DEF du coup 1, ×1,188 pour Weakness Shot, ×1,125 pour Eivor). Le
+sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien
+(décision D21 en attente). Les coups d'un passif qui suit le sort (Great
+Friends de Sia) ne voient pas la pose. Les autres effets de ces sorts
+(Decrease ATK, Étourdissement, Irrécupérable) ne sont pas curés ; Solveig et
+Berghild (18007, 18009 : la Marque n'est que dans la prose) attendent un
+relevé en jeu. Test : `testEffetsEntreCoups322`
+(`tests/audit-degats-conditionnels.test.ts`).

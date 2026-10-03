@@ -449,22 +449,29 @@ export default function testAuditDegatsConditionnels() {
   // exige une décision de curation, jamais une inclusion par ressemblance.
   const effetsEntreCoupsAttendus = new Set([
     'Arcane Burst',
+    'Blackout Kick', // Sia 3454 seul, par identifiant — degats-et-aura P4
     'Chain Attack',
+    'Crushed Hopes', // Cichlid 10413 — degats-et-aura P4
     'Death Blow',
     'Divergent Fist', // Yuji S2 — décision de l'utilisateur du 2026-10-03 (degats-et-aura 15d)
+    'Double Strike', // Melissa 12608 — degats-et-aura P4
+    'Fast Link', // Barbara, Masha, Xiana 13606/13607/13610 — degats-et-aura P4
     'Full Burst',
     'Ghost Slash',
     'Gouge',
     'Gust',
+    'Harpoon Impalement', // Eivor 17507/17509 — degats-et-aura P4
     'Mach Crush',
     'Panda Supremacy',
     'Rain of Stones',
+    'Reelseiden・Flurry', // Übel 25206/25210 — degats-et-aura P4
     'Sequential Attack',
     'Shadow Blade',
     'Shinryuken',
     'Shockwave Fist', // Rick S2 — même décision (degats-et-aura 15d)
     'Triple Crush',
     'Water Dragon Attack',
+    'Weakness Shot', // Carlos, Dominic, Benedict 15507/15508/15509 — degats-et-aura P4
     "Will-o'-the-Wisp",
   ]);
   const effetsEntreCoupsTrouves = new Set<string>();
@@ -1451,6 +1458,89 @@ export default function testAuditDegatsConditionnels() {
 
   testClesStatsCombatParId();
   testHomonymesParIdentifiant();
+  testEffetsEntreCoups322();
+}
+
+// degats-et-aura P4 (constat 322, preuve 13b) — treize sorts dont la donnée
+// pose un `Decrease DEF` ou une `Brand` sur un coup précis sont curés PAR
+// IDENTIFIANT dans `EFFETS_ENTRE_COUPS_PAR_ID_CONNUS`, jamais par nom : un
+// nom (« Blackout Kick ») a des homonymes au texte différent. Chaque entrée a
+// son test : l'effet de la donnée, aucun changement sans scénario, et la pose
+// après le coup qui la fait réellement (coup 1, sauf Cichlid : coup 2) vaut
+// « les coups d'avant sans l'effet, les suivants avec ». Les ratios sont
+// ceux de la sonde de la preuve (DEF cible 1 500, ATQ 1 000, non critique).
+function testEffetsEntreCoups322() {
+  titre('Effets posés entre les coups, par identifiant — constat 322 (P4)');
+
+  // [forme jouable, sort, effet de la donnée, effetCombat, coup poseur, ratio « posé après le coup poseur »]
+  const entrees: [number, number, string, 'defBreak' | 'brand', number, number][] = [
+    [19613, 10413, 'decrease-def', 'defBreak', 2, 1.455], // Cichlid — « the second attack decreases the Defense »
+    [21913, 12608, 'decrease-def', 'defBreak', 1, 1.682], // Melissa — note « First hit only »
+    [23511, 13606, 'decrease-def', 'defBreak', 1, 1.682], // Barbara — « The beast's attack decreases the enemy's Defense »
+    [23512, 13607, 'decrease-def', 'defBreak', 1, 1.682], // Masha
+    [23515, 13610, 'decrease-def', 'defBreak', 1, 1.682], // Xiana
+    [25712, 15507, 'brand', 'brand', 1, 1.188], // Carlos — « leave a Branding effect … attacks 3 more times »
+    [25713, 15508, 'brand', 'brand', 1, 1.188], // Dominic
+    [25714, 15509, 'brand', 'brand', 1, 1.188], // Benedict
+    [27712, 17507, 'brand', 'brand', 1, 1.125], // Eivor — note « 1st hit »
+    [27714, 17509, 'brand', 'brand', 1, 1.125], // Eivor
+    [12134, 3454, 'decrease-def', 'defBreak', 1, 1.682], // Sia — note « First hit »
+    [36011, 25206, 'decrease-def', 'defBreak', 1, 1.682], // Übel — note « 1st hit », en zone
+    [36015, 25210, 'decrease-def', 'defBreak', 1, 1.682], // Übel
+  ];
+  const cible = { ...setupAudit, enemyDef: 1500 };
+  const total = (p: SkillDamageProfile, setup: DamageSetup) => computeSkillDamage(p, buildAudit, setup, AUCUNE_AURA_PROPRE);
+
+  for (const [forme, sort, effet, effetCombat, poseur, ratio] of entrees) {
+    const p = profilDe(forme, sort);
+    const nom = `${p.nom} ${sort}`;
+    const coups = p.hits;
+    egal(p.effetsEntreCoups?.length, 1, `${nom} : un seul effet curé (Brise DEF ou Marque, rien d'autre)`);
+    egal(p.effetsEntreCoups?.[0]?.id, effet, `${nom} : effet de la donnée`);
+    egal(p.effetsEntreCoups?.[0]?.effetCombat, effetCombat, `${nom} : change l'état de la cible (${effetCombat})`);
+    ok(coups > 1, `${nom} : sort à plusieurs coups`);
+
+    const sans = total(p, cible);
+    const scenario = (apresCoup?: number): DamageSetup => ({
+      ...cible,
+      scenariosEffetsEntreCoups: { [sort]: { actif: true, ...(apresCoup ? { apresCoup: { [effet]: apresCoup } } : {}) } },
+    });
+    egal(total(p, scenario()), sans, `${nom} : scénario actif sans réussite, total inchangé`);
+    const initial = total(p, { ...cible, ...(effetCombat === 'brand' ? { brand: true } : { defBreak: true }) });
+    ok(initial > sans, `${nom} : l'effet présent dès le coup 1 majore le total (témoin)`);
+
+    const apres = total(p, scenario(poseur));
+    ok(apres > sans && apres < initial, `${nom} : posé après le coup ${poseur}, entre sans effet et effet dès le coup 1`);
+    // Weakness Shot : la formule lit les PV actuels de la cible, qui baissent
+    // coup par coup — les coups ne sont pas égaux, l'égalité linéaire ne vaut
+    // pas ; le ratio ci-dessous le fige à la place.
+    if (!p.variables.includes('Target Current HP %')) {
+      ok(
+        Math.abs(apres - (poseur * sans + (coups - poseur) * initial) / coups) < 1e-6,
+        `${nom} : posé après le coup ${poseur} = ${poseur} coup(s) sans l'effet, ${coups - poseur} avec`
+      );
+    }
+    egal(Math.round((apres / sans) * 1000) / 1000, ratio, `${nom} : total posé après le coup ${poseur} = ×${ratio} (sonde de la preuve)`);
+  }
+
+  // Les homonymes ne reçoivent rien : 3454 « Blackout Kick » est curé par
+  // identifiant, ses homonymes (autre texte) restent sans effet curé.
+  const blackout = new Set<number>();
+  for (const f of readdirSync(dossierSorts)) {
+    if (!f.endsWith('.json')) continue;
+    const d: DetailMonstre = JSON.parse(readFileSync(resolve(dossierSorts, f), 'utf8'));
+    for (const c of d.competences) if (c.nom === 'Blackout Kick' && c.com2usId != null && c.com2usId !== 3454) blackout.add(c.com2usId);
+  }
+  ok(blackout.size > 0, 'témoin : des homonymes « Blackout Kick » existent dans le corpus');
+  for (const f of readdirSync(dossierSorts)) {
+    if (!f.endsWith('.json')) continue;
+    const d: DetailMonstre = JSON.parse(readFileSync(resolve(dossierSorts, f), 'utf8'));
+    for (const p of monsterDamageSkills(d)) {
+      if (estPrisEnCharge(p) && p.nom === 'Blackout Kick' && blackout.has(p.skillCom2usId)) {
+        ok(!p.effetsEntreCoups?.length, `Blackout Kick ${p.skillCom2usId} (forme ${d.com2usId}) : aucun effet entre les coups par homonymie`);
+      }
+    }
+  }
 }
 
 // degats-et-aura P1 (SPC-5, DH13b-stats-passifs-corpus-02,

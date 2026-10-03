@@ -2687,6 +2687,43 @@ const EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: Record<number, EffetEntreCoupsProfile[]>
   20707: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick feu
   20708: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick vent
   20710: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick ténèbres
+  // Constat 322 (degats-et-aura P4, preuve 13b) : treize sorts dont la
+  // donnée porte un effet `Decrease DEF` ou `Brand` posé par un coup précis,
+  // curés PAR IDENTIFIANT et jamais par nom (« Blackout Kick » compte quinze
+  // homonymes au texte différent). L'effet vient de la donnée de l'identifiant
+  // (`Decrease DEF` → defBreak, `Brand` → brand), le rang du coup de la note
+  // ou de la prose citée. Sans scénario rien n'est supposé posé : le total
+  // ne change pas. D'autres effets de ces sorts (Decrease ATK, Stun,
+  // Unrecoverable) ne sont pas curés ici.
+  // Crushed Hopes (Cichlid) : « the second attack decreases the Defense for
+  // 2 turns with an 80% chance » (coup 2, sans note).
+  10413: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  // Double Strike (Melissa) : note « First hit only » ; prose « decrease the
+  // Defense with the first attack ».
+  12608: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  // Fast Link (Barbara, Masha, Xiana) : « The beast's attack decreases the
+  // enemy's Defense for 1 turn » ; la bête attaque en premier (coup 1).
+  13606: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Barbara
+  13607: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Masha
+  13610: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Xiana
+  // Weakness Shot (Carlos, Dominic, Benedict) : « Attacks the enemy to leave
+  // a Branding effect for 2 turns and attacks 3 more times » (effet `Brand`
+  // 100 %, coup 1).
+  15507: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Carlos
+  15508: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Dominic
+  15509: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Benedict
+  // Harpoon Impalement (Eivor) : effet `Brand`, note « 1st hit » ; prose
+  // « The first attack leaves a Branding effect for 1 turn with a 100% chance ».
+  17507: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
+  17509: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
+  // Blackout Kick (Sia, S1) : effet `Decrease DEF`, note « First hit » ;
+  // prose « The first hit decreases Defense for 2 turns with a 50% chance ».
+  3454: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  // Reelseiden・Flurry (Übel) : effet `Decrease DEF`, note « 1st hit » ;
+  // prose « The first hit decreases their Defense for 2 turns with a 50%
+  // chance » (en zone).
+  25206: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+  25210: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
 };
 
 // Formule exacte confirmée par l'utilisateur, avec démonstration algébrique :

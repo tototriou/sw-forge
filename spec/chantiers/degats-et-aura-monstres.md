@@ -70,6 +70,14 @@ Formes : 19802 Magic Knight †, 19812 Astar.
 | « Blade Surge » · 10602 · S1 | Deux crans « Dégâts sur la cible visée » (défaut) et « Dégâts sur les autres ennemis » (3ᵉ coup seul, sur un autre ennemi à ses PV saisis) ; le résumé du sort dit la séquence ; le CLI aussi ; la recette valide le champ `cibleDegatsParSort`. | 8b | `12595440`, `d6c576b5`, `22dda1f2` | Chemin commun : sous la liste des sorts de « Compétence utilisée », deux crans à choisir ; basculer ne déplace rien ; le résumé du sort dit « … 2 coups · Cible unique, puis 1 coup · Zone ». |
 | « Blade Surge » · 10602 · S1 | Le résumé sous l'objectif ajoute « autres ennemis » quand le cran « Dégâts sur les autres ennemis » est retenu ; la ligne du sort de `scripts/artifact-search.ts` dit la séquence ; la clé de `cibleDegatsParSort` refuse un zéro de tête. | 8c | `b55a02ec`, `62dc6dce`, `66309e93` | Cran « Dégâts sur les autres ennemis » choisi : le résumé sous l'objectif dit « Blade Surge · autres ennemis · … » ; rien de tel pour la cible visée. Au téléphone, le résumé peut passer sur une ligne de plus. |
 
+### Barbara
+
+Formes : 23501 Beast Rider (eau) †, 23511 Barbara.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Fast Link » · 13606 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. L'ignore DEF de « Start of Attacking » (13611) n'est pas touché (P11). | P4 | commit du lot P4 | Chemin commun → Barbara → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+
 ### Bastet
 
 Formes : 20501 Desert Queen †, 20511 Bastet.
@@ -77,6 +85,14 @@ Formes : 20501 Desert Queen †, 20511 Bastet.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Oasis's Blessing » · 11311 · S3 | Sort sans attaque (bouclier, `170*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Bastet → « Compétence utilisée » : plus de case grisée « Oasis's Blessing ». |
+
+### Benedict
+
+Formes : 25704 Weapon Master (lumière) †, 25714 Benedict.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Weakness Shot » · 15509 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Benedict → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
 
 ### Birgitta
 
@@ -110,6 +126,14 @@ Formes : 28903 Dokkaebi Lord †, 28913 Byungchul.
 | --- | --- | --- | --- | --- |
 | « Violent Swing » · 18603 · S1 | Critique garanti, porté par le passif « Full of Spirit (Passive) » 18613 (« Your attacks will always land as a Critical Hit whenever you attack the enemy ») : en « Non critique », le total est celui de « Critique ». | 15d | `292716c2` | Chemin commun → Byungchul → « Compétence utilisée » → Violent Swing : le résumé du sort dit « Critique garanti », le cran « Non critique » est désactivé ; le total ne bouge pas entre les deux modes. |
 | « Summon Heavenly Kings Gate » · 18608 · S2 | Même garantie, même source (passif 18613). | 15d | `292716c2` | Même chemin, Summon Heavenly Kings Gate : « Critique garanti » au résumé, « Non critique » désactivé. |
+
+### Carlos
+
+Formes : 25702 Weapon Master (feu) †, 25712 Carlos.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Weakness Shot » · 15507 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Carlos → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
 
 ### Celine
 
@@ -171,6 +195,7 @@ Formes : 19603 Mermaid †, 19613 Cichlid.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Air Shield » · 10408 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts (pas retenu par défaut). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Cichlid → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort par défaut ne change pas. |
+| « Crushed Hopes » · 10413 · S3 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 80 % ; prose « the second attack decreases the Defense ») entre dans le cadre des poses entre les coups ; posée « Après le coup 2 », seul le coup 3 subit la DEF réduite (×1,455 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. Le sélecteur propose aussi « Après le coup 1 », que le sort ne pose pas (décision D21, en attente). | P4 | commit du lot P4 | Chemin commun → Cichlid → choisir « Crushed Hopes » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 2 » monte le total, « Après le coup 1 » le monte davantage (cran à ne pas lire comme réel) ; aucune pose : total inchangé. |
 
 ### Ciri
 
@@ -223,6 +248,14 @@ Formes : 28315 Devaraja.
 | --- | --- | --- | --- | --- |
 | « The Dark Thunderer » · 18140 · S4 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « État Thunderer » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (PassifInterrupteur), la description du passif « The Dark Thunderer » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
 
+### Dominic
+
+Formes : 25703 Weapon Master (vent) †, 25713 Dominic.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Weakness Shot » · 15508 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Dominic → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
+
 ### Eivor
 
 Formes : 27701 에이보르(물) †, 27711 Eivor.
@@ -230,6 +263,22 @@ Formes : 27701 에이보르(물) †, 27711 Eivor.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Might of the Clan (Passive) » · 17511 · S3 | Le seuil de 1 520 ATQ (+100 %) lit l'ATQ de début de combat avec les auras Fight, externes et propres au build. | 6bis-b2 | `dbd4ee54`, `b0a2e84d` | Chemin commun → « État de mon monstre » → « Sets d'aura des autres monstres » : ajouter un set Fight ; le bonus de ce passif (lisible dans « Passifs offensifs ») réagit quand le seuil ou la jauge est franchi. Confirmé par l'utilisateur au lot 6bis-b2. |
+
+### Eivor (feu)
+
+Formes : 27702 에이보르(불) †, 27712 Eivor.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Harpoon Impalement » · 17507 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 %, note « 1st hit » ; prose « The first attack leaves a Branding effect ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 reçoit +25 % (×1,125 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Eivor (feu) → choisir « Harpoon Impalement » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+
+### Eivor (lumière)
+
+Formes : 27704 에이보르(빛) †, 27714 Eivor.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Harpoon Impalement » · 17509 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 %, note « 1st hit » ; prose « The first attack leaves a Branding effect ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 reçoit +25 % (×1,125 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Eivor (lumière) → choisir « Harpoon Impalement » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Elder Horn
 
@@ -560,6 +609,14 @@ Formes : 23303 Gargoyle †, 23313 Malite, 23403 가고일(바람) †, 23413 �
 | --- | --- | --- | --- | --- |
 | « Stone Claws » · 13503 · S1 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Cumuls de Stone Claws » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Stone Claws » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. Stone Claws : la prose est aussi au « ? » de la case du sort S1 (11bis) — gardée aux deux endroits, décision de l'utilisateur. |
 
+### Masha
+
+Formes : 23502 Beast Rider (feu) †, 23512 Masha.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Fast Link » · 13607 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Masha → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+
 ### Mayasura
 
 Formes : 28501 Asura †, 28511 Mayasura.
@@ -576,6 +633,14 @@ Formes : 16802 Monkey King †, 16812 Mei Hou Wang.
 | --- | --- | --- | --- | --- |
 | « Gold Headband (Passive) » · 7912 · S3 | Chaque cumul ajoute 20 % de l'ATQ de BASE et 12 % de la VIT de BASE (avant : 20 % de l'ATQ de combat et 12 points de VIT), jusqu'à 10 cumuls, sans arrondi ; nouvel axe `spdBasePct`. | 11 | `92de9890` | Chemin commun → « Stats acquises en combat » : compteur « Charges de Gold Headband ». Le total monte avec le compteur ; référence du test sur Mei Hou Wang : 1 cumul = +138,4 ATQ et +13,92 VIT, 10 cumuls = +139,2 VIT (VIT de base 116). |
 | « Gold Headband (Passive) » · 7912 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Charges de Gold Headband » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Gold Headband (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
+
+### Melissa
+
+Formes : 21903 Chakram Dancer (vent) †, 21913 Melissa.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Double Strike » · 12608 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « First hit only ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Melissa → choisir « Double Strike » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Michelle
 
@@ -713,6 +778,14 @@ Formes : 31003 Rick †, 31013 Rick.
 | --- | --- | --- | --- | --- |
 | « Shockwave Fist » · 20708 · S2 | Comme Rick (feu), 20707, y compris la DEF réduite du coup 2 (15f) (le `Destroy HP` de 20708 porte 50, hors de ce lot). | 15d, 15f | `292716c2`, `616e09a1` | Comme Rick (feu), sur Rick (vent) : au témoin (1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000, « Non critique »), 848,5 sans pose, 2 231,3 avec la pose après le coup 1 (1 272,8 avant 15f). |
 
+### Sia
+
+Formes : 12134 Sia (seule forme à porter l'identifiant 3454 ; les autres « Blackout Kick » du corpus, au texte différent, ne reçoivent rien).
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Blackout Kick » · 3454 · S1 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « First hit ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose pour le sort seul, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. Les coups de « Great Friends » (passif) ne voient pas la pose : le total de l'objectif, passif compris, monte de ×1,429 seulement. | P4 | commit du lot P4 | Chemin commun → Sia → choisir « Blackout Kick » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+
 ### Suiki
 
 Formes : 25101 Onimusha †, 25111 Suiki, 25121 Imperfect Onimusha †.
@@ -779,6 +852,22 @@ Formes : 11605 Undine (ténèbres) †, 11615 Tilasha.
 | --- | --- | --- | --- | --- |
 | « Dark Return » · 2615 · S3 | Sort sans attaque (résurrection et tour gagné, `1 (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Tilasha → « Compétence utilisée » : plus de case grisée « Dark Return » ; les autres sorts de Tilasha restent proposés. |
 
+### Übel (eau)
+
+Formes : 36001 Übel †, 36011 Übel.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Reelseiden・Flurry » · 25206 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « 1st hit » ; en zone) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Übel (eau) → choisir « Reelseiden・Flurry » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+
+### Übel (ténèbres)
+
+Formes : 36005 Übel †, 36015 Übel.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Reelseiden・Flurry » · 25210 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « 1st hit » ; en zone) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Übel (ténèbres) → choisir « Reelseiden・Flurry » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+
 ### Valdemar
 
 Formes : 29605 Magic Order Guardian †, 29615 Valdemar.
@@ -819,6 +908,14 @@ Formes : 32805 White Tiger Blade Master †, 32815 White Tiger Blade Master.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Attack Instinct (Passive) » · 22115 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Attack Instinct » (jamais reformulée). | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (Jeton), la description du passif « Attack Instinct (Passive) » en clair ; aucun doublon ailleurs dans la carte. |
+
+### Xiana
+
+Formes : 23505 Beast Rider (ténèbres) †, 23515 Xiana.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Fast Link » · 13610 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. L'ATB de « Late Night Ambush » (13615) n'est pas touché. | P4 | commit du lot P4 | Chemin commun → Xiana → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Yuji Itadori (feu)
 

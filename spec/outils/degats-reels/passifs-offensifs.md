@@ -229,7 +229,7 @@ n'est possible.
 `Competence.nom` exact à une plage `{ min, max, defaut? }`, à la main,
 jamais déduite du texte anglais libre. Sert aussi bien un sort actif
 (`skillDamageProfile`) qu'un passif (`monsterOffensivePassives`) — même
-table, même clé. `SkillDamageProfile.hitsRange` porte la plage quand elle
+table, même clé (ou l'identifiant : `conditions-et-audit.md`, « Nombres de coups variables, saisis »). `SkillDamageProfile.hitsRange` porte la plage quand elle
 est connue ; `hits` retombe alors sur son **minimum**, jamais une
 surestimation par défaut — **sauf `defaut` explicitement curé** (Julie :
 6, le cas pleine vie, sur demande directe de l'utilisateur — la seule

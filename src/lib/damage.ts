@@ -3065,6 +3065,28 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
   'Arrow Attack': { min: 4, max: 6 },
 };
 
+// Même table, clée par IDENTIFIANT de compétence : pour un nom dont un
+// homonyme JOUABLE n'a pas la même mécanique (cadrage degats-et-aura, lot
+// P5a ; `controle-13b-coups-variables.md` § 2). L'identifiant l'emporte sur le
+// nom (`plageDeCoupsDe`). ⚠️ Rôle : exception curée à la règle « par nom »,
+// jamais un second chemin général — un nom sans homonyme jouable à autre
+// mécanique reste dans `COUPS_VARIABLES_CONNUS`.
+const COUPS_VARIABLES_PAR_ID_CONNUS: Record<number, { min: number; max: number; defaut?: number }> = {
+  // Whirlpool (Tanjiro Kamado, 21311) : « Attacks all enemies to Freeze them
+  // for 1 turn. Deals additional damage 2 more times to targets with harmful
+  // effects » — `coups: 1` + « 2 more times » (effet `Additional Attack`,
+  // `quantite: 2`) : 1 à 3 coups. Homonyme JOUABLE à autre mécanique : le
+  // Whirlpool de Seal 2A (3463, Seal 12133) « Attacks all enemies … inflicts
+  // Continuous Damage » n'a AUCUN coup supplémentaire ; 3413 et 3478 (Seal,
+  // non jouables) non plus. Clé par identifiant OBLIGATOIRE.
+  21311: { min: 1, max: 3 },
+};
+
+// Nombre de coups d'un sort ou passif : l'identifiant, puis le nom.
+function plageDeCoupsDe(c: { com2usId: number | null; nom: string }): { min: number; max: number; defaut?: number } | undefined {
+  return (c.com2usId == null ? undefined : COUPS_VARIABLES_PAR_ID_CONNUS[c.com2usId]) ?? COUPS_VARIABLES_CONNUS[c.nom];
+}
+
 const IGNORE_DEF_COMPLET_CONNUS = new Set(['Hero Strike', 'Strike of Fighter']);
 const IGNORE_DEF_CONDITIONNEL_PAR_ID = new Set([
   7001, 7002, 7003, 7004, 7005, 3311, 8215, 6815,
@@ -3140,6 +3162,16 @@ export const IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID: Readonly<Record<number, IgnoreD
 const COUPS_FIXES_CORRIGES: Record<string, number> = {
   'Pitch-Black Chain Attack': 4,
 };
+
+// Même table, clée par IDENTIFIANT (homonyme jouable à `coups` différent, voir
+// `COUPS_VARIABLES_PAR_ID_CONNUS`). Vide à ce jour : Crow Hunt de Prilea (1618,
+// « attack the enemy target 2 times » pour `coups: 1`) attend le relevé R9 —
+// ses homonymes jouables 1607 et 1609 portent `coups: 4`.
+const COUPS_FIXES_CORRIGES_PAR_ID: Record<number, number> = {};
+
+function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): number | undefined {
+  return (c.com2usId == null ? undefined : COUPS_FIXES_CORRIGES_PAR_ID[c.com2usId]) ?? COUPS_FIXES_CORRIGES[c.nom];
+}
 
 // Sorts dont les coups n'ont PAS tous la même formule ni la même portée.
 // `SkillDamageProfile.aoe` est un booléen DU SORT, et `formule`/`coups` ne
@@ -3342,7 +3374,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     if (m) skillupDamagePct += Number(m[1]);
   }
 
-  const coupsVariables = COUPS_VARIABLES_CONNUS[c.nom];
+  const coupsVariables = plageDeCoupsDe(c);
   const ignoreDefSelonVit = IGNORE_DEF_SELON_VIT_CONNUS[c.nom];
   // La VIT du monstre optimisé pèse sur ce sort MÊME si sa formule ne lit
   // aucune variable de VIT (`4.7*{ATK}` seul) — l'ignore-DEF, lui, en
@@ -3366,7 +3398,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   // (Julie : voir `COUPS_VARIABLES_CONNUS`).
   const hits = coupsVariables
     ? coupsVariables.defaut ?? coupsVariables.min
-    : COUPS_FIXES_CORRIGES[c.nom] ?? (c.coups && c.coups > 0 ? c.coups : 1);
+    : coupsFixesCorrigesDe(c) ?? (c.coups && c.coups > 0 ? c.coups : 1);
   // Les rangs curés ne valent que pour le nombre de coups qu'ils supposent :
   // des données régénérées qui en annonceraient un autre (ou une plage) font
   // refuser le sort, avec sa raison, plutôt qu'appliquer des rangs faux.
@@ -3836,8 +3868,8 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
         // l'ordre : plage VARIABLE connue (donne un champ de réglage), puis
         // nombre FIXE curé depuis la prose, puis 1 par défaut — jamais un
         // nombre deviné.
-        hits: COUPS_VARIABLES_CONNUS[c.nom]?.defaut ?? COUPS_VARIABLES_CONNUS[c.nom]?.min ?? connu.coups ?? 1,
-        hitsRange: COUPS_VARIABLES_CONNUS[c.nom],
+        hits: plageDeCoupsDe(c)?.defaut ?? plageDeCoupsDe(c)?.min ?? coupsFixesCorrigesDe(c) ?? connu.coups ?? 1,
+        hitsRange: plageDeCoupsDe(c),
         aoe: c.aoe,
         ignoreDef: connu.ignoreDef ?? c.effets.some((e) => e.nom === 'Ignore DEF'),
         // Ce drapeau ne décide que de l'affichage du réglage `defBreakParLeSort`,

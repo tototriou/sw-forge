@@ -305,3 +305,32 @@ Devenus le dernier sort calculable, ils sont aussi le sort par défaut de ces
 monstres. Hors périmètre : les sorts « Horn » des Anges jumeaux (forme de
 soutien sans dégât, décision Q04), qui restent sans profil. Test :
 `testDegatsFormulesApi` (`node tests/run.mjs formulesapi`).
+
+## Nombres de coups variables, saisis
+
+Décisions de l'utilisateur (degats-et-aura, lot P5a ; constat 13b-coups-
+variables) : le nombre de coups d'un sort dont la prose le dit variable est
+**saisi** par l'utilisateur, borné à la plage ; le **défaut est le minimum** ;
+un coup supplémentaire **vaut les autres coups** (même formule par coup).
+Aucune dérivation depuis les stats (ATQ, VIT, effets nocifs, PV) : les seuils
+du jeu ne sont pas relevés. Les bornes viennent de la prose ou d'un champ de
+la fiche, citées dans le test.
+
+**Deux clés.** `COUPS_VARIABLES_CONNUS` (`{ min, max, defaut? }`) et
+`COUPS_FIXES_CORRIGES` sont clées par **nom** ; `COUPS_VARIABLES_PAR_ID_CONNUS`
+et `COUPS_FIXES_CORRIGES_PAR_ID` le sont par **identifiant de compétence**, et
+l'identifiant l'emporte (`plageDeCoupsDe`, `coupsFixesCorrigesDe`, lues par
+`skillDamageProfile` ET `monsterOffensivePassives`). Une entrée passe par
+identifiant quand un homonyme **jouable** a une autre mécanique : une entrée
+par nom s'étendrait à lui en silence. `COUPS_FIXES_CORRIGES_PAR_ID` est vide :
+Crow Hunt de Prilea (1618) attend un relevé en jeu (R9), ses homonymes
+jouables 1607 et 1609 portent `coups: 4`.
+
+| Sort · identifiant · formes | Plage | Clé | Citation |
+| --- | --- | --- | --- |
+| Whirlpool · `21311` · Tanjiro Kamado `31811` (`31801` non éveillé) | 1 à 3 | identifiant | « Deals additional damage 2 more times to targets with harmful effects » ; `coups: 1`. Homonymes : `3463` (Seal 2A `12133`, **jouable**), `3413` et `3478` (Seal, non jouables) n'ont aucun coup supplémentaire — restent à 1 coup |
+
+Hors périmètre, voir le cadrage : Stormfist de Mayasura (18306…, la règle
+selon l'ATQ est une valeur à fournir), Crow Hunt (R9), Lala, Coco, Stella,
+Cleave, les coups tirés au hasard (P5b). Test : `testDegatsCoupsSaisis`
+(`node tests/run.mjs coupssaisis`).

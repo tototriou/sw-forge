@@ -73,6 +73,7 @@ import {
 import testDegatsBladeSurge from './degats-blade-surge.test';
 import { testDegatsSequencesApi, testDegatsFormulesApi } from './degats-valeurs-api.test';
 import testDegatsSortsSansAttaque from './degats-sorts-sans-attaque.test';
+import { testDegatsCoupsSaisis } from './degats-coups-saisis.test';
 import {
   testBornesStrictesDef,
   testResumeConditionDef,
@@ -229,6 +230,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDegatsSequencesApi', testDegatsSequencesApi],
   ['testDegatsFormulesApi', testDegatsFormulesApi],
   ['testDegatsSortsSansAttaque', testDegatsSortsSansAttaque],
+  ['testDegatsCoupsSaisis', testDegatsCoupsSaisis],
   ['testBornesStrictesDef', testBornesStrictesDef],
   ['testResumeConditionDef', testResumeConditionDef],
   ['testGarantieByungchul', testGarantieByungchul],

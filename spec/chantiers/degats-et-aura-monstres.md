@@ -1029,6 +1029,14 @@ Formes : 11903 Sylphid †, 40403 Sylphid †, 700403 Sylphid †.
 | --- | --- | --- | --- | --- |
 | « Force Field » · 2813 · S3 | Sort sans attaque (bouclier, `100.0*{Attacker's Level}`) masqué de « Compétence utilisée » : il était affiché refusé (« Formule non prise en charge par le calcul de dégâts. »). Aucune forme jouable ne porte ce sort. | 15c | `a65b2f28`, `f7bd6a1f` | Seulement si un exemplaire du compte est une forme † : plus de case grisée « Force Field ». |
 
+### Tanjiro Kamado
+
+Formes : 31801 카마도 탄지로(물) †, 31811 Tanjiro Kamado.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Whirlpool » · 21311 · S3 | Nombre de coups **saisi**, de 1 à 3 (« Deals additional damage 2 more times to targets with harmful effects » ; `coups: 1` en donnée) ; défaut au minimum, 1 coup : total par défaut inchangé (3 992,99 au build de la preuve). Chaque coup vaut les autres. Clé par identifiant : le Whirlpool de Seal 2A (3463) reste à 1 coup. | P5a | commit du lot P5a | Chemin commun → Tanjiro Kamado → « Compétence utilisée » → « Whirlpool » : le champ du nombre de coups, borné de 1 à 3, 1 par défaut ; 3 coups = 3 × le total d'un coup. |
+
 ### Tantra
 
 Formes : 10412 Tantra.

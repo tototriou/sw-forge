@@ -890,7 +890,8 @@ décision, rayée avec la date et la réponse.
 | 13 (consolidation) | Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ? Puis ses 65 décisions ouvertes et ses 10 valeurs de jeu (sections 5.1 et 5.2), et sa demande de 109 relevés (section 4) | en attente |
 | 15d | La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8) | en attente |
 | 15e | Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ? Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
-| 15c | Les 14 sorts masqués sur jugement (2813, 2818, 12512, 23706, 23708, 23709, 24206, 24208, 24209, 10243000, 10253000, 15607, 15608, 15609 — boucliers et buffs dont la prose dit « damage » / « attack » au sens des dégâts absorbés ou des attaques ennemies) : confirmer ? Et les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ? | en attente |
+| 15c | ~~Les 14 sorts masqués sur jugement (2813, 2818, 12512, 23706, 23708, 23709, 24206, 24208, 24209, 10243000, 10253000, 15607, 15608, 15609 — boucliers et buffs dont la prose dit « damage » / « attack » au sens des dégâts absorbés ou des attaques ennemies) : confirmer ?~~ | ✔ 2026-10-03 (utilisateur) : **les 14 confirmés**, après lecture du nom, du monstre et de la prose de chacun ; aucun sort à réafficher |
+| 15c | Les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ? | en attente |
 
 ---
 
@@ -8809,6 +8810,8 @@ les 144 sorts à formule dont la prose ne dit ni « attack » ni « damage »
 (la plupart frappent en jeu ; quelques-uns semblent vraiment ne pas
 attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad
 Poison, Curse, Sleep Spell) — non touchés, liste au § 6 de la preuve.
+**Réponse du 2026-10-03** : les 14 verdicts **confirmés** par l'utilisateur,
+sur le nom, le monstre et la prose de chacun ; les 144 restent en attente.
 
 #### Résultat du lot 15d — 2026-10-03
 

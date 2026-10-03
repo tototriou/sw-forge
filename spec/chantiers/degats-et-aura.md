@@ -778,7 +778,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 lancé** (interrupteurs, décision du 2026-10-04) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -925,7 +925,7 @@ décision, rayée avec la date et la réponse.
 | clôture | ~~Lot 14 cette nuit ?~~ | ✔ 2026-10-02 : **après la vérification à l'œil de l'utilisateur**, guidée par la liste du lot LM |
 | 13 (consolidation) | ~~Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ?~~ | ✔ 2026-10-03 (utilisateur) : **lots de plus dans ce chantier**, contre la recommandation du pilote → lots Q1, Q2 puis P1 à P26 ; rien de livré ne rejoint `main` avant leur fin (ou leur report décidé) |
 | 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en cours — questionnaire (lots Q1, Q2), 67 questions par blocs de 10 : bloc 1 (Q01-Q10) répondu le 2026-10-03 (A.2 ter ; Q01 et Q07 → relevés ; Q04 appelle une question de suite) ; bloc 2 (D01-D10) répondu le 2026-10-03 (plan § 5.2, A.2 ter) ; D01 reposée avec la prose entière (la citation du questionnaire omettait « Attacks the enemy with a swift attack »), réponse : option 1 ; bloc 3 (Q04 suite, D12-D21) répondu le 2026-10-03, D12 précisée (API par défaut sauf prose contraire) ; D11 tranchée par le pilote (empreinte) ; bloc 4 (D22-D33) répondu le 2026-10-03 (plan § 5.2, A.2 ter) |
-| P5a | Whirlpool (Tanjiro), Hammer Punch (Tractor), Pound : les coups en plus dépendent d'une condition sur la cible (effet nocif, PV) — un interrupteur « la condition est remplie » plutôt que le compteur saisi ? | en attente |
+| P5a | ~~Whirlpool (Tanjiro), Hammer Punch (Tractor), Pound : les coups en plus dépendent d'une condition sur la cible (effet nocif, PV) — un interrupteur « la condition est remplie » plutôt que le compteur saisi ?~~ | ✔ 2026-10-04 (utilisateur) : **oui, interrupteur** → lot P5a2, étendu par le pilote aux sorts de même nature (A.2 ter L144 pour les coups en plus « by chance ») |
 | bloc 4 | Valeur de jeu : Stormfist de Mayasura (18306, « increases up to 6 times according to your Attack Power ») — nombre de coups selon l'ATQ, que l'utilisateur fournira | en attente |
 | 15d | ~~La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8)~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme les cinq autres sorts du genre → lot 15f |
 | 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
@@ -9415,6 +9415,31 @@ contre « all enemies » (P22). Question soumise à l'utilisateur : Whirlpool,
 Hammer Punch et Pound ajoutent des coups selon une **condition** sur la
 cible (effet nocif, PV) — un interrupteur suivrait mieux sa règle « seuil →
 interrupteur » qu'un compteur.
+
+#### P5a2 — coups en plus sous condition : un interrupteur
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Décision de l'utilisateur
+du 2026-10-04 (A.8) : un coup en plus qui ne dépend que d'une **condition**
+se règle par un interrupteur, pas par un compteur (règle « seuil →
+interrupteur », A.2 ter D06). Classement du pilote, prose relue :
+
+| Sort | Prose (extrait) | Réglage |
+| --- | --- | --- |
+| Whirlpool 21311, Water Dragon Surge 21911 | « Deals additional damage 2 more times to targets with harmful effects » | interrupteur « la cible porte un effet nocif » : 3 coups, sinon 1 |
+| Hammer Punch (11651-11655) | « If the target is not suffering any harmful effects, 1 additional attack is added » | interrupteur « la cible ne porte aucun effet nocif » : 3, sinon 2 |
+| Pound (11664) | « 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect » | interrupteur « la condition est remplie » : 6, sinon 4 |
+| Strafe, God's Weapon | « may fire an additional shot by chance » ; « 2 to 3 times » | interrupteur du coup en plus (A.2 ter L144 : la probabilité n'est jamais tirée) |
+| Brutal Fists (18301-18305) | « you attack the enemy one more time if your Attack Power is higher than the enemy target » | **déduit** du champ « ATQ adverse » déjà présent (comme Theonia, 15e/15f) : aucun réglage neuf |
+
+**Restent des compteurs** : Barrage of Madness (3 à 5, au hasard selon les
+effets nocifs) et Sura's Seal (4 à 8 selon l'écart d'ATQ, règle inconnue).
+Interrupteurs **éteints par défaut** (le minimum, D25) ; libellés par la
+question du joueur ; composants de `src/ui/`, deux formats, rien ne bouge
+au clic. Tests (chaque interrupteur, Brutal Fists selon l'ATQ adverse, les
+deux compteurs inchangés), spec, liste du lot LM.
+**Preuve privée :** `controle-p5a2.md` et intrants `.txt` ; totaux avant /
+après ; mutation après le commit.
+**Ne fait pas :** Stormfist (valeur attendue) ; aucune autre table.
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

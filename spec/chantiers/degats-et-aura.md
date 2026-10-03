@@ -767,7 +767,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; P4, P2 prêts ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 lancé** ; P2 prêt ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -9244,6 +9244,34 @@ Restreindre la clé à 23307 retire un bouton jouable à Cecilia et Elise
 1 632 vérifications ; build, spec-lint, diff-check verts. Mutations de
 l'agent : cinq, toutes rouges. **Mutation du pilote**, distincte (clé de
 Gorgo déplacée sur 1866) : 3 échecs ; restaurée.
+
+#### P4 — effets posés entre les coups, par identifiant (constat 322)
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Plan § 6, ligne P4 (EEC-1,
+`controle-13b-effets-entre-coups.md` § 3 L63-76, § 4 L100-107, § 7 L163) ;
+aucun prérequis pour 13 identifiants. Un commit.
+
+**Contrat :** une entrée `EFFETS_ENTRE_COUPS_PAR_ID_CONNUS` par identifiant,
+**jamais par nom** (Sia : 15 homonymes « Blackout Kick » au texte différent)
+— 10413 Cichlid, 12608 Melissa, 13606 / 13607 / 13610 (Barbara, Masha,
+Xiana : réduction de DEF du coup de la bête), 15507 / 15508 / 15509
+(Carlos, Dominic, Benedict : Marque), 17507 / 17509 (Eivor), 3454 (Sia),
+25206 / 25210 (Übel) — chacune avec l'effet de la donnée (`Decrease DEF` →
+`effetCombat: 'defBreak'`, `Brand` → `'brand'`) et sa citation (note ou
+prose) ; un test par entrée (sans scénario : total inchangé ; effet posé
+après le coup qui le pose : total du témoin de la preuve, `sortie-04-sonde.txt`) ;
+l'ensemble figé des tests d'audit mis à jour ; `conditions-et-audit.md`
+(L56-73 au commit de la preuve) ; liste du lot LM, une ligne par sort jouable
+(le cadre des poses entre les coups apparaît sur ce sort).
+**Ne fait pas :** Solveig et Berghild (18007, 18009 : la Marque n'est que
+dans la prose, relevé R9) ; le sélecteur « après le coup n » qui offre un
+coup qui ne pose rien (Cichlid pose au coup 2 : décision D21, questionnaire) ;
+Barbara 13611 (ignore DEF, P11) ; aucun buff sur soi (constat 323, P12a).
+**Preuve privée :** `controle-p4.md` et `controle-p4-intrants/` (sorties
+`.txt`) ; totaux avant / après par le chemin recette → objectif ; mutation
+après le commit.
+**Vérifications :** `tsc`, `node tests/run.mjs auditdegatsconditionnels
+degats`, build, spec-lint, diff-check.
 
 ### Lot 14 — clôture
 

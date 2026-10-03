@@ -166,7 +166,7 @@ affirmations contradictoires, notamment sur 411.
 | Lignes 224 et 400 sur Blade Surge | **224** (« D.CRIT+ comp cib uniq pdt tour ») porte sur les **coups 1 et 2** seulement ; **400** (« [Comp.1] Aug. Dgts CRIT ») porte sur les **trois coups**, coup de zone compris | utilisateur, confirmation explicite du 2026-10-02 |
 | Rankyaku — `5 × VIT` | La VIT est la **VIT finale** : base + runes + set + lead + effet d'augmentation de vitesse, éventuellement augmentée par les artéfacts | utilisateur, confirmation explicite du 2026-10-02 |
 | Tempest — coups critiques | Tempest **peut infliger un coup critique** (les lignes de Dgts CRIT 402/410 s'y appliquent une fois) | utilisateur, confirmation explicite du 2026-10-02 |
-| Une attaque se lit dans la prose | Un ratio (`formule`) et un nombre de `coups` dans SWARFARM ne prouvent pas qu'un sort attaque (le soin S2 d'Anavel, historiquement ; le bouclier S2 de Frieren `24909`). Avant de traiter un sort comme offensif, vérifier dans sa prose la notion d'attaque ou de dégâts ; sans elle, ce n'est pas une attaque | utilisateur, 2026-10-02 |
+| Une attaque se lit dans la prose | Un ratio (`formule`) et un nombre de `coups` dans SWARFARM ne prouvent pas qu'un sort attaque (le soin S2 d'Anavel, historiquement ; le bouclier S2 de Frieren `24909`). Avant de traiter un sort comme offensif, vérifier dans sa prose la notion d'attaque ou de dégâts ; sans elle, ce n'est pas une attaque. **Précision du 2026-10-03** : une prose ancienne et laconique peut taire un coup réel — Sleep Spell `1161` (« ratio de 600 % × ATQ ») et Ice Ball `1206` sont jugés offensifs par l'utilisateur sans mot d'attaque dans leur prose ; un sort sans ce mot va donc à l'utilisateur, il n'est pas masqué d'office | utilisateur, 2026-10-02 et 2026-10-03 (lot 15g) |
 | Effets de PV sans coup | Bolverk S3, Harmonia S3, Vivachel S3, le passif d'Aya vent (S3) agissent sur les PV ennemis **sans infliger de coup** et ne dépendent que des stats de l'adversaire : **ignorés** par le calcul de l'Optimizer. Une perte de PV qui accompagne un coup (Hellfire de Daphnis) reste comptée | utilisateur, 2026-10-02 |
 | Chaînes des Kung Fu Girls (sens) | Une S1 peut appeler la S2 après elle, une S2 peut appeler la S3 ; une S2 n'appelle jamais la S1 et une S3 n'appelle rien. Choisir la S3 : un seul sort ; choisir la S1 : la chaîne entière possible, chaque appel sous interrupteur | utilisateur, 2026-10-03 |
 | Trinity Claymore | Le hasard (20 % par attaque, 50 % sur retrait de bonus) le **débloque pour le tour suivant** : aucun sort ne l'active en chaîne. Choisi comme sort : **toute la chaîne d'abord (son S1, puis son S2), puis ses 3 coups au ratio du sort** — Taebaek et Hwoarang ténèbres, versions Summoners War et collab | utilisateur, 2026-10-03 |
@@ -758,7 +758,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15a à 15e — les lots prêts du plan | C / J | **terminés**, preuves et mutations rejouées par le pilote : 15b (`dcca28a7`), 15c (`a65b2f28`, `f7bd6a1f`), 15d (`b2d44b4d`, `292716c2`, `aa052b63`), 15e (`6c2b593e`, `404472a3`), 15a (`35541133`…`4616dab1`) ; vérifications à l'œil en attente (A.8) | 2026-10-03 |
 | 15f — Yuji et Rick : DEF du coup 2 ; ATQ ennemie absente = valeur affichée | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; Zaiross ajouté (quatre monstres) ; vérification à l'œil en attente (A.8) | `616e09a1`, `372168cd` / 2026-10-03 |
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | en cours : soumis par le pilote à l'utilisateur par blocs de 10 (demande du 2026-10-03), notes seules | — |
-| Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | à faire (lots parallèles, notes seules) | — |
+| Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | à faire ; P1, P2, P4 prêts, le reste attend une décision (Q) ou un relevé | — |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
@@ -898,7 +898,7 @@ décision, rayée avec la date et la réponse.
 | nuit du 2026-10-02 | ~~Jusqu'où aller sans l'utilisateur ?~~ | ✔ 2026-10-02 : **le plan du lot 13, puis les lots déjà prêts dans ce chantier** (valeur dans la donnée, mécanique existante, décision prise, aucun relevé) — lots 15a à 15e |
 | clôture | ~~Lot 14 cette nuit ?~~ | ✔ 2026-10-02 : **après la vérification à l'œil de l'utilisateur**, guidée par la liste du lot LM |
 | 13 (consolidation) | ~~Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ?~~ | ✔ 2026-10-03 (utilisateur) : **lots de plus dans ce chantier**, contre la recommandation du pilote → lots Q1, Q2 puis P1 à P26 ; rien de livré ne rejoint `main` avant leur fin (ou leur report décidé) |
-| 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en attente — présentées par le questionnaire des lots Q1, Q2 |
+| 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en attente — questionnaire prêt (lots Q1, Q2) : 67 questions, soumises dans la conversation par blocs de 10 |
 | 15d | ~~La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8)~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme les cinq autres sorts du genre → lot 15f |
 | 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
 | 15e | Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
@@ -9062,6 +9062,40 @@ code est signalée, jamais reformulée au jugé.
 **Ne fait pas :** ne répond à aucune question ; ne touche ni le plan ni le
 code ; ne rédige pas la demande de relevés (§ 4 du plan), qui suit les
 réponses — certains relevés tombent avec elles.
+
+#### Résultat des lots Q1 et Q2 — 2026-10-03
+
+Deux agents `lot-j` en parallèle, aucune écriture dans le worktree du
+chantier ; preuves recopiées par le pilote dans le dossier de preuves :
+`controle-q1.md` (566 lignes, 42 entrées : 37 rédigées, 4 à retirer, 1 non
+rendue ; 59 citations de prose retrouvées) et `controle-q2.md` (725 lignes,
+32 entrées : 29 rédigées, 3 à retirer ; 58 citations retrouvées). Scripts de
+vérification rejoués par le pilote depuis le dossier de preuves : OK, OK ;
+spec-lint sans erreur. Entrées relues par sondage (D01-D08, D33, D63,
+retraits) : lisibles sans le code, prose citée, conséquence à l'écran dite.
+
+**Décisions du pilote sur les retraits proposés** : retirées D15, D24, D26
+(tranchées par A.2 ter L148, L152 et par D65), D37 (prose de Nobara vent
+identique mot pour mot à celle d'Aya vent, nommée par A.2 ter L170 —
+signalé à l'utilisateur), D64 (P26 placé ici par D65) ; Q02 réduite aux
+lignes 400-403/410 ; D11 (choix de construction) au contrat de P6. **Q04 et
+D35 restent posées** : la prose seule ne suffit plus à écarter une attaque
+(précision d'A.2 ter du 2026-10-03). Corrections portées au plan : D08 porte
+sur Hwoarang et Taebaek **ténèbres** (le plan disait « feu ») ; D63 précisé,
+six identifiants d'ignore DEF permanent (13406, 13410, 15511, 13611, 7713,
+6013), pas « cinq ».
+
+**Écart au contrat, accepté** : pas de fichier assemblé
+`decisions/questionnaire-reliquat-2026-10.md` — l'utilisateur reçoit les
+questions dans la conversation, par blocs de 10 (comme les 144 de 15g) ; les
+deux preuves sont le questionnaire, et chaque réponse est inscrite dans la
+colonne « Recommandation » du plan, § 5.2, puis en A.8.
+
+**Signalé par les agents, à dire à l'utilisateur avec chaque bloc** : sans
+recommandation applicable dans le plan, D13, D22, D33, D38, D41, D53, D61,
+D62 demandent une réponse explicite ; recommandation contestable pour D04
+(prose de Bella inconditionnelle), D07 (Hwa déjà « sur interrupteur »), D12
+(l'API comme source inclut les Anges jumeaux de Q04).
 
 ### Lots P1 à P26 — le reliquat de l'audit
 

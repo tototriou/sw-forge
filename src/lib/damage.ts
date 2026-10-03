@@ -1939,8 +1939,10 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   'Protective Power (Passive)': { pct: 50, condition: 'un allié est sous un effet d’incapacité' }, // Zenitsu Agatsuma (Feu)
   'Retributive Power (Passive)': { pct: 50, condition: 'un allié est sous un effet d’incapacité' }, // Qilin Slasher
   // « increases the damage dealt by 50% if the enemy's Attack Power is
-  // lower than yours. » — l'app connaît TON ATQ mais ne modélise pas celle
-  // de l'adversaire (aucun champ `enemyAtk`).
+  // lower than yours. » — l'ATQ de l'adversaire existe pourtant (`enemyAtk`,
+  // saisie de l'écran, lue par la condition `atkCibleSousAtkPropre` de
+  // Kassandra, Eleni, Theonia et Zaiross, lot 15f) : cette entrée reste un
+  // interrupteur manuel, jamais branché sur ce champ.
   'Almighty Strength (Passive)': { pct: 50, condition: 'ton ATQ dépasse celui de l’adversaire' }, // Panda Warrior (Ténèbres), Mi Ying
   // Carcano — « Strikes the [Hidden Aim] pose. Increases the damage dealing
   // to an enemy by 200% while in this pose... The [Hidden Aim] pose

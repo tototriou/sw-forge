@@ -1,6 +1,6 @@
 # Dégâts réels — séquences de coups et cible secondaire
 
-**Statut :** ÉTAT ACTUEL — décrit les sorts dont les coups n’ont pas tous la même formule ni la même portée (Blade Surge)
+**Statut :** ÉTAT ACTUEL — décrit les sorts dont les coups n’ont pas tous la même formule ni la même portée (Blade Surge, séquences à valeur de l’API)
 **Lire si :** on modifie une séquence de coups curée, le choix de la cible calculée (`cibleDegatsParSort`) ou l’application coup par coup des lignes 224, 400–403/410 et 411
 **Ne pas lire si :** on travaille sur un sort dont tous les coups se ressemblent, ou sur les passifs offensifs
 **Voir aussi :** spec/outils/degats-reels/artefacts-critique-et-element.md, spec/outils/degats-reels/formules-et-combat.md
@@ -63,6 +63,42 @@ groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
 Les cinq candidats écartés au lot 1b (`11015`, `18314`, `23507`, `23508`,
 `23510`) restent hors table, comme les voisins de catégorie (constats 163,
 173, 180), d’une autre mécanique.
+
+### Séquences à valeur de l’API (lot P6, SZ-2)
+
+Quatre sorts frappent d’abord l’ennemi, puis tous les ennemis ; la phase de
+zone n’est chiffrée que par la « compétence auxiliaire » (`other_skill`) de
+l’API SWARFARM, lue par l’audit des dégâts conditionnels du 2026-09-08 et
+absente de l’import du corpus. Règle D12 de l’utilisateur (2026-10-03) :
+la valeur de l’API par défaut, sauf si la prose la contredit — aucune des
+quatre proses ne la contredit. Phases et portées viennent de la prose
+(« Attacks the enemy … Afterwards, … all enemies »).
+
+| Identifiant · sort · formes | Empreinte (`formule`, `coups`, `aoe`) | Groupe 1 | Groupe 2 | Source du groupe 2 |
+| --- | --- | --- | --- | --- |
+| `13311` Fatal Extinctive Bullet · Abigail `22911` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone | auxiliaire 2476 |
+| `13314` Fatal Armor Bullet · Emily `22914` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone | auxiliaire 2478 |
+| `14113` Head Press · M. BISON `24213` (`24203` non éveillé) | `4.0*{ATK}`, 2, non | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone | auxiliaire 2762 |
+| `14613` Great Sword of the End · Sagar `24713` (`24703` non éveillé) | `4.0*{ATK}`, 2, oui | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone | auxiliaire 2830 |
+
+L’empreinte de Head Press et de Sagar ne coïncide pas avec leur premier
+groupe : `coups: 2` y compte les deux phases, et `aoe: true` de Sagar est la
+portée de la phase de zone. Ces deux sorts n’existent comme séquences que
+grâce à la garde par empreinte.
+
+Les lignes d’artéfact et la cible secondaire suivent les règles par groupe
+ci-dessous, appliquées par le calcul générique : 224 sur la phase 1, 411 sur
+le premier coup du tour, le cran « Dégâts sur les autres ennemis » calcule
+la seule phase de zone.
+
+⚠️ **Non établi, nommé** : les skillups de la fiche (+25 % pour Abigail et
+Emily, +15 % pour M. BISON et Sagar) s’appliquent aux deux phases, parce que
+le calcul recopie le profil sur chaque groupe ; rien ne l’a confirmé pour
+ces sorts, contrairement à Blade Surge. Sur la phase 1 seule, Abigail et
+Emily vaudraient `3,5 × 1,25 + 4,5 = 8,875` × ATQ au lieu de `10`, M. BISON
+et Sagar `4,0 × 1,15 + 5,2 = 9,8` au lieu de `10,58`. Un relevé du rapport
+phase 2 / phase 1 sur la cible visée tranche (relevés R1 et R2 du contrôle
+13b-sequences-zone).
 
 ## La cible calculée — `cibleDegatsParSort`
 
@@ -168,8 +204,15 @@ sort.
 
 ## Vérification
 
+`tests/degats-valeurs-api.test.ts` (`node tests/run.mjs sequencesapi`) :
+les quatre séquences à valeur de l’API sur leurs six formes — profil,
+séquence, totaux des deux crans écrits à la main, 224 et 411 par groupe,
+refus quand la fiche ne porte plus l’empreinte (dont le premier groupe de
+Head Press et de Sagar, que l’ancienne garde aurait exigé).
+
 `tests/degats-blade-surge.test.ts` (`node tests/run.mjs bladesurge`) :
-balayage du corpus (les 8 identifiants et 11 formes, aucun autre porteur),
+balayage du corpus (les 8 identifiants et 11 formes de Blade Surge, les
+quatre séquences à valeur de l’API, aucun autre porteur),
 refus d’une curation périmée, montant des deux crans écrit à la main sur les
 onze formes, apport exact de 224, 400 et 411 dans chaque cran, PV propres à
 chaque cran pour 222/223 comparés au chemin ordinaire d’un sort d’un seul

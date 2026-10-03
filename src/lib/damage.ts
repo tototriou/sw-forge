@@ -3140,8 +3140,9 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
 // ⚠️ Une séquence n'admet ni coups variables (`hitsRange`) ni effets entre
 // coups (`effetsEntreCoups`), et ses porteurs n'ont aucun passif offensif :
 // rien de cela n'est modélisé pour une séquence, et
-// `tests/degats-blade-surge.test.ts` vérifie sur le corpus qu'aucun porteur
-// n'en a besoin.
+// `tests/degats-blade-surge.test.ts` (Blade Surge) et
+// `tests/degats-valeurs-api.test.ts` (séquences à valeur de l'API) vérifient
+// sur le corpus qu'aucun porteur n'en a besoin.
 type SequenceCuree = {
   // La donnée de la fiche sur laquelle la séquence a été curée, telle quelle.
   empreinte: { formule: string; coups: number | null; aoe: boolean };
@@ -3163,6 +3164,63 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
   10616: SEQUENCE_BLADE_SURGE, // Lapis (19811)
   10618: SEQUENCE_BLADE_SURGE, // Lupinus (19813)
   10620: SEQUENCE_BLADE_SURGE, // Lanett (19815)
+
+  // Séquences dont la phase de zone n'est chiffrée que par l'API SWARFARM :
+  // la « compétence auxiliaire » (`other_skill`) du sort, lue par l'audit des
+  // dégâts conditionnels du 2026-09-08 (annexes, « Compétences auxiliaires
+  // fournies par l'API ») et absente de l'import du corpus. Règle D12 de
+  // l'utilisateur (2026-10-03) : la valeur de l'API par défaut, sauf si la
+  // prose du sort la contredit — aucune des quatre proses ne la contredit
+  // (lot P6, SZ-2). Les phases et leur portée viennent de la prose (« Attacks
+  // the enemy … Afterwards, … all enemies ») ; « all enemies » compte la cible
+  // visée parmi les ennemis touchés.
+  // ⚠️ Non établi, nommé : les skillups de la fiche s'appliquent ici aux deux
+  // phases, parce que le calcul recopie le profil sur chaque groupe ; rien ne
+  // l'a confirmé pour ces sorts (contrairement à Blade Surge). Sur la phase 1
+  // seule, Abigail et Emily vaudraient `3,5 × 1,25 + 4,5` au lieu de
+  // `(3,5 + 4,5) × 1,25` (8,875 contre 10, −11 %), M. BISON et Sagar
+  // `4,0 × 1,15 + 5,2` au lieu de `(4,0 + 5,2) × 1,15` (9,8 contre 10,58,
+  // −7 %) ; relevés R1/R2 du contrôle
+  // 13b-sequences-zone.
+  // Fatal Extinctive Bullet — Abigail (22911). Donnée : la phase 1 seule.
+  // Auxiliaire 2476 `4.5*{ATK}`.
+  13311: {
+    empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
+    groupes: [
+      { formule: '3.5*{ATK}', coups: 1, zone: false },
+      { formule: '4.5*{ATK}', coups: 1, zone: true },
+    ],
+  },
+  // Fatal Armor Bullet — Emily (22914). Donnée : la phase 1 seule.
+  // Auxiliaire 2478 `4.5*{ATK}`.
+  13314: {
+    empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
+    groupes: [
+      { formule: '3.5*{ATK}', coups: 1, zone: false },
+      { formule: '4.5*{ATK}', coups: 1, zone: true },
+    ],
+  },
+  // Head Press — M. BISON (24213 ; 24203 non éveillé). Donnée : `coups: 2`
+  // compte les deux phases, `aoe: false` est la portée de la phase 1 ; la
+  // prose décrit une attaque sur l'ennemi, puis une sur tous les ennemis.
+  // Auxiliaire 2762 `5.2*{ATK}`.
+  14113: {
+    empreinte: { formule: '4.0*{ATK}', coups: 2, aoe: false },
+    groupes: [
+      { formule: '4.0*{ATK}', coups: 1, zone: false },
+      { formule: '5.2*{ATK}', coups: 1, zone: true },
+    ],
+  },
+  // Great Sword of the End — Sagar (24713 ; 24703 non éveillé). Donnée :
+  // `coups: 2` compte les deux phases, `aoe: true` est la portée de la phase
+  // de zone ; même prose que Head Press. Auxiliaire 2830 `5.2*{ATK}`.
+  14613: {
+    empreinte: { formule: '4.0*{ATK}', coups: 2, aoe: true },
+    groupes: [
+      { formule: '4.0*{ATK}', coups: 1, zone: false },
+      { formule: '5.2*{ATK}', coups: 1, zone: true },
+    ],
+  },
 };
 
 /**

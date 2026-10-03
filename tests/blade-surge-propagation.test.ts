@@ -302,7 +302,7 @@ export function testBladeSurgePariteEcranCli() {
   const cli = sansCommentaires(lireSource('scripts/optimizer-search.ts'));
   ok(/const sequence = profile\.sequenceDeCoups;/.test(cli) && cli.includes('${sequence ? resumeSequenceDeCoups(sequence) : `${resolvedHits(profile, s)} coup(s)`}'),
     'ligne du CLI : la séquence entière, par la fonction du résumé de l’écran');
-  ok(cli.includes('${!sequence && profile.aoe ? \', zone\' : \'\'}'), 'ligne du CLI : la portée du sort seulement hors séquence (la donnée ne décrit que le premier groupe)');
+  ok(cli.includes('${!sequence && profile.aoe ? \', zone\' : \'\'}'), 'ligne du CLI : la portée du sort seulement hors séquence (la donnée ne décrit pas la séquence)');
   ok(/const cibleCalculee = cibleSecondairePriseEnCharge\(profile\.skillCom2usId\)\s*\?\s*CIBLE_DEGATS_LABELS\.find\(\(c\) => c\.key === cibleDegatsRetenue\(profile, s\)\)\?\.label\s*:\s*undefined;/.test(cli)
     && cli.includes('${cibleCalculee ? `${cibleCalculee} — ` : \'\'}'),
     'ligne du CLI : la cible calculée, avec le libellé du cran de l’écran, pour un sort qui le permet');
@@ -392,7 +392,7 @@ export function testBladeSurgeLigneArtifactSearch() {
   const script = sansCommentaires(lireSource('scripts/artifact-search.ts'));
   ok(/const sequence = sort\.sequenceDeCoups;/.test(script) && script.includes('${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}'),
     'ligne « Sort : … » : la séquence entière, par la fonction du résumé de l’écran et de la ligne du CLI');
-  ok(script.includes('${!sequence && sort.aoe ? \', zone\' : \'\'}'), '… la portée seulement hors séquence (la donnée ne décrit que le premier groupe)');
+  ok(script.includes('${!sequence && sort.aoe ? \', zone\' : \'\'}'), '… la portée seulement hors séquence (la donnée ne décrit pas la séquence)');
   egal((script.match(/coup\(s\)/g) ?? []).length, 1, '« coup(s) » ne reste que dans le repli hors séquence');
   egal(resumeSequenceDeCoups(bladeSurgeDeLapis().sequenceDeCoups ?? []), '2 coups · Cible unique, puis 1 coup · Zone',
     'Blade Surge de Lapis : ce que la ligne écrit désormais, au lieu de « 2 coup(s) »');

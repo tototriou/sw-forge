@@ -36,6 +36,14 @@ cette liste dit *quoi*, monstre par monstre.
 
 ## 1. Par monstre
 
+### Abigail
+
+Formes : 22911 Abigail.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Fatal Extinctive Bullet » · 13311 · S3 | Séquence curée : 1 coup de 3,5 × ATQ sur la cible (donnée) puis 1 coup de 4,5 × ATQ sur tous les ennemis (compétence auxiliaire 2476 de l'API SWARFARM, règle D12) ; avant, 3,5 × ATQ seul. Total « Non critique » ×2,286 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (4,5 × ATQ seul) ; 224 et 411 sur le premier coup seul. Skillups (+25 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | commit du lot P6 | Chemin commun → Abigail → « Compétence utilisée » → « Fatal Extinctive Bullet » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » ; les deux crans sous la liste ; « Dégâts sur les autres ennemis » baisse le total. |
+
 ### Acasis
 
 Formes : 11913 Acasis.
@@ -378,6 +386,14 @@ Formes : 19204 Ifrit †, 19214 Elsharion.
 | --- | --- | --- | --- | --- |
 | « Master of Magic Power (Passive) » · 10014 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Buffs sur Elsharion » + « Buffs sur les alliés » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Master of Magic Power (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
 
+### Emily
+
+Formes : 22914 Emily.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Fatal Armor Bullet » · 13314 · S3 | Séquence curée : 1 coup de 3,5 × ATQ sur la cible (donnée) puis 1 coup de 4,5 × ATQ sur tous les ennemis (compétence auxiliaire 2478 de l'API SWARFARM, règle D12) ; avant, 3,5 × ATQ seul. Total « Non critique » ×2,286 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (4,5 × ATQ seul) ; 224 et 411 sur le premier coup seul. Skillups (+25 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | commit du lot P6 | Chemin commun → Emily → « Compétence utilisée » → « Fatal Armor Bullet » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » ; les deux crans sous la liste ; « Dégâts sur les autres ennemis » baisse le total. |
+
 ### Erwin
 
 Formes : 20903 Elven Ranger †, 20913 Erwin.
@@ -685,6 +701,14 @@ Formes : 19813 Lupinus.
 | « Blade Surge » · 10618 · S1 | Deux crans « Dégâts sur la cible visée » (défaut) et « Dégâts sur les autres ennemis » (3ᵉ coup seul, sur un autre ennemi à ses PV saisis) ; le résumé du sort dit la séquence ; le CLI aussi ; la recette valide le champ `cibleDegatsParSort`. | 8b | `12595440`, `d6c576b5`, `22dda1f2` | Chemin commun : sous la liste des sorts de « Compétence utilisée », deux crans à choisir ; basculer ne déplace rien ; le résumé du sort dit « … 2 coups · Cible unique, puis 1 coup · Zone ». |
 | « Blade Surge » · 10618 · S1 | Le résumé sous l'objectif ajoute « autres ennemis » quand le cran « Dégâts sur les autres ennemis » est retenu ; la ligne du sort de `scripts/artifact-search.ts` dit la séquence ; la clé de `cibleDegatsParSort` refuse un zéro de tête. | 8c | `b55a02ec`, `62dc6dce`, `66309e93` | Cran « Dégâts sur les autres ennemis » choisi : le résumé sous l'objectif dit « Blade Surge · autres ennemis · … » ; rien de tel pour la cible visée. Au téléphone, le résumé peut passer sur une ligne de plus. |
 
+### M. BISON
+
+Formes : 24203 바이슨(바람) †, 24213 M. BISON.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Head Press » · 14113 · S3 | Séquence curée : 1 coup de 4,0 × ATQ sur la cible puis 1 coup de 5,2 × ATQ sur tous les ennemis (compétence auxiliaire 2762 de l'API SWARFARM, règle D12) ; avant, 2 coups de 4,0 × ATQ sur la cible (`coups: 2` de la donnée compte les deux phases). Total « Non critique » ×1,15 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (5,2 × ATQ seul) ; 224 et 411 sur le premier coup seul (224 portait sur les deux coups). Skillups (+15 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | commit du lot P6 | Chemin commun → M. BISON → « Compétence utilisée » → « Head Press » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » (avant : « 2 coups · Cible unique ») ; les deux crans sous la liste. |
+
 ### Madeleine
 
 Formes : 25804 Rune Blacksmith †, 25814 Madeleine.
@@ -939,6 +963,14 @@ Formes : 24001 류(물) †, 24011 RYU.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Mind's Eye (Passive) » · 13911 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Mind's Eye » (icône et nom du jeu) pose Buff ATQ — « If you receive damage during the turn of the enemy » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir RYU → carte « État de mon monstre » : sous les vignettes, la ligne « Mind's Eye » + « pose Buff ATQ — « If you receive damage during the turn of the enemy » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+
+### Sagar
+
+Formes : 24703 Slayer †, 24713 Sagar.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Great Sword of the End » · 14613 · S3 | Séquence curée : 1 coup de 4,0 × ATQ sur la cible puis 1 coup de 5,2 × ATQ sur tous les ennemis (compétence auxiliaire 2830 de l'API SWARFARM, règle D12) ; avant, 2 coups de 4,0 × ATQ en zone (`coups: 2` compte les deux phases, `aoe: true` est la portée de la seconde). Total « Non critique » ×1,15 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (5,2 × ATQ seul) ; 224 agit désormais sur le premier coup, 411 sur le premier coup seul. Skillups (+15 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | commit du lot P6 | Chemin commun → Sagar → « Compétence utilisée » → « Great Sword of the End » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » (avant : « 2 coups · Zone ») ; les deux crans sous la liste. |
 
 ### Satoru Gojo
 
@@ -1256,9 +1288,10 @@ Rien de ce qui suit n'est à chercher à l'écran.
   des stats de combat garde sa prose. Aucun cas dans le corpus aujourd'hui.
 - **Mécanismes génériques sans autre porteur** : `slotsDeclencheurs` et
   `selectionnableCommeSort` (seul Tempest), la formule curée d'un passif par
-  `FORMULES_CUREES_PAR_ID` (seul `3213`), la séquence de coups curée (seul
-  Blade Surge), l'ignore DEF à partir d'un coup (seuls les six sorts des
-  Blade Dancers).
+  `FORMULES_CUREES_PAR_ID` (seul `3213`), l'ignore DEF à partir d'un coup
+  (seuls les six sorts des Blade Dancers). La séquence de coups curée n'est
+  plus propre à Blade Surge depuis P6 (SZ-2 : Abigail, Emily, M. BISON,
+  Sagar).
 - **Les huit passifs dont la prose était déjà rendue ailleurs** (lot 11, rien
   ne doit changer, aucun doublon ne doit apparaître) : `2565` Dark Guardian
   (Varus 11535, Griffon 2A 47705) ; `9611` à `9615` Berserk déjà actif

@@ -206,8 +206,8 @@ if (recipe.objective === 'degats_reels') {
     const ignoreDefRetenu = resumeIgnoreDefRetenu(profile, s);
     // Séquence curée (Blade Surge) : la séquence ENTIÈRE et la cible calculée,
     // avec les textes mêmes de l'écran (`resumeSequenceDeCoups`,
-    // `CIBLE_DEGATS_LABELS`) — `resolvedHits` et `aoe` ne décrivent que le
-    // premier groupe de la donnée (degats-et-aura 8b).
+    // `CIBLE_DEGATS_LABELS`) — `resolvedHits` et `aoe` ne décrivent que la
+    // donnée, jamais la séquence (degats-et-aura 8b).
     const sequence = profile.sequenceDeCoups;
     const cibleCalculee = cibleSecondairePriseEnCharge(profile.skillCom2usId)
       ? CIBLE_DEGATS_LABELS.find((c) => c.key === cibleDegatsRetenue(profile, s))?.label

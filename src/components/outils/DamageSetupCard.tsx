@@ -249,8 +249,8 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
 // Le résumé d'un sort (voir le commentaire « Ce que le sort … nous apprend »
 // plus haut). ⚠️ Séquence curée (Blade Surge, `p.sequenceDeCoups`) : chaque groupe avec
 // SES coups, SA portée et SA formule — `hits`, `aoe` et `formule` du profil ne
-// décrivent que le premier groupe de la donnée (« 2 coups · Cible unique »
-// était faux). Ne lit JAMAIS la cible choisie (`cibleDegatsParSort`) : le
+// décrivent que la donnée, jamais la séquence (« 2 coups · Cible unique »
+// était faux pour Blade Surge ; Head Press compte ses deux phases en `coups`). Ne lit JAMAIS la cible choisie (`cibleDegatsParSort`) : le
 // texte au-dessus des deux crans ne change pas quand on bascule, voir
 // `champCibleDegats` (degats-et-aura 8b).
 //

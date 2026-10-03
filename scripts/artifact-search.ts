@@ -121,7 +121,7 @@ const parSorte = ARTIFACT_KINDS.map(({ key, label }) => {
 }).join(' · ');
 // Séquence curée (Blade Surge) : la séquence ENTIÈRE, par la fonction du
 // résumé de l'écran et de la ligne du CLI (`resumeSequenceDeCoups`) — `hits`
-// et `aoe` ne décrivent que le premier groupe de la donnée (degats-et-aura 8c).
+// et `aoe` ne décrivent que la donnée, jamais la séquence (degats-et-aura 8c).
 const sequence = sort.sequenceDeCoups;
 console.log(
   `\nSort : ${sort.nom} (slot ${sort.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}` +

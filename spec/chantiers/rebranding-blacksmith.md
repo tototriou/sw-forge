@@ -126,7 +126,7 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R9a Bestiaire | J | **validé par Thomas** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
 | R9b Mécaniques, Nouveautés | J | **validé par Thomas** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par Thomas** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
-| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **revenu dans la branche** (décision 64, annule 61) — en cours : tests de rendu, puis relevé | 2026-10-03 |
+| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **validé par Thomas** — revenu dans la branche (64), **sans changement de rendu** (65) : tests de rendu `c3910f40`, export `swblacksmith-optimizer` `98d50547` ; décision 60 abandonnée | 2026-10-03, [lot-9a.md](refonte-graphique-preuves/lot-9a.md) |
 | Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 62, 63) | M | 12a fait (4 534 vérifications) ; **à refaire après l'Optimizer** | |
 
 ### A.8 Décisions prises en cours de chantier
@@ -406,6 +406,19 @@ note de version montrée avant commit, 12d branche poussée et PR ouverte.
     - Les notes privées (`spec/outils/optimizer/`, `invariants.md`) et
       l'installation `chantier` sont **absentes de cette machine** : lot
       d'affichage seul, sans moteur, mené sur `spec/outils/optimizer.md`.
+
+#### 65 — l'Optimizer sans changement de rendu (Thomas, 2026-10-03)
+
+Au relevé du lot 9a, avant les questions : « je ne veux aucun changement de
+rendu par rapport à l'état actuel de la page ».
+
+65. **L'Optimizer garde son rendu tel quel** (bureau et téléphone). Les
+    lots 9a et 11e se réduisent à : les tests de rendu (`c3910f40`) et le
+    nom du fichier exporté (`98d50547`, décision 14). **La décision 60 est
+    abandonnée** : la clé à molette de l'écran « Aucune donnée de compte
+    chargée » reste, c'est la même page. Les écarts relevés contre la
+    maquette (titre, bouton en aplat, objectif, replis au téléphone) ne
+    sont pas faits.
 
 ## Partie B — les lots
 

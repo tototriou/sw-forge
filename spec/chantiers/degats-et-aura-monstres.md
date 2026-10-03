@@ -58,7 +58,7 @@ Formes : 20912 Adrian.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Strafe » · 11717 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Adrian → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Strafe » · 11717 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Adrian → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Alesia
 
@@ -116,7 +116,7 @@ Formes : 32501 Azure Dragon Swordsman †, 32511 Azure Dragon Swordsman.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Water Dragon Surge » · 21911 · S3 | Nombre de coups **saisi**, de 1 à 3 (« Deals additional damage 2 more times to targets with harmful effects » ; `coups: 1` en donnée) ; défaut au minimum, 1 coup : total par défaut inchangé (3 992,99 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Azure Dragon Swordsman → « Compétence utilisée » → « Water Dragon Surge » : le champ du nombre de coups, borné de 1 à 3, 1 par défaut ; 3 coups = 3 × le total par défaut. |
+| « Water Dragon Surge » · 21911 · S3 | Nombre de coups **saisi**, de 1 à 3 (« Deals additional damage 2 more times to targets with harmful effects » ; `coups: 1` en donnée) ; défaut au minimum, 1 coup : total par défaut inchangé (3 992,99 au build de la preuve). Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Azure Dragon Swordsman → « Compétence utilisée » → « Water Dragon Surge » : le champ du nombre de coups, borné de 1 à 3, 1 par défaut ; 3 coups = 3 × le total par défaut. |
 
 ### Barbara
 
@@ -173,7 +173,7 @@ Formes : 20812 Bulldozer †, 20832 Bulldozer.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Hammer Punch » · 11652 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Bulldozer → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Hammer Punch » · 11652 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Bulldozer → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Byungchul
 
@@ -239,7 +239,7 @@ Formes : 27003 Black Tea Bunny †, 27013 Chamomile.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Mind and Body Rest (Passive) » · 16813 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Mind and Body Rest » (icône et nom du jeu) pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Chamomile → carte « État de mon monstre » : sous les vignettes, la ligne « Mind and Body Rest » + « pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
-| « Spinning Tea Spoon » · 16808 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Chamomile → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+| « Spinning Tea Spoon » · 16808 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Chamomile → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
 
 ### CHUN-LI (eau)
 
@@ -313,7 +313,7 @@ Formes : 20833 Crane.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Strange Reversible Reaction (Passive) » · 11663 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Buffs sur Crane » + « Débuffs sur Crane » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Strange Reversible Reaction (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
-| « Hammer Punch » · 11653 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Crane → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Hammer Punch » · 11653 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Crane → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Crawler
 
@@ -321,7 +321,7 @@ Formes : 20815 Crawler †, 20835 Crawler.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Hammer Punch » · 11655 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Crawler → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Hammer Punch » · 11655 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Crawler → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Cynthia
 
@@ -337,7 +337,7 @@ Formes : 28504 Asura †, 28514 Danu.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Brutal Fists » · 18304 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Danu → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
+| « Brutal Fists » · 18304 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | `c0dbbc78` | Chemin commun → Danu → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
 
 ### Dagora
 
@@ -370,8 +370,8 @@ Formes : 20814 Driller †, 20834 Driller.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Hammer Punch » · 11654 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Driller → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
-| « Pound » · 11664 · S3 | Nombre de coups **saisi**, de 4 à 6 (« Attacks the enemy 4 times … 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect ») ; défaut au minimum, 4 coups : total par défaut inchangé (5 394,05 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Driller → « Compétence utilisée » → « Pound » : le champ du nombre de coups, borné de 4 à 6, 4 par défaut ; 6 coups = 1,5 × le total par défaut. |
+| « Hammer Punch » · 11654 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Driller → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Pound » · 11664 · S3 | Nombre de coups **saisi**, de 4 à 6 (« Attacks the enemy 4 times … 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect ») ; défaut au minimum, 4 coups : total par défaut inchangé (5 394,05 au build de la preuve). Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Driller → « Compétence utilisée » → « Pound » : le champ du nombre de coups, borné de 4 à 6, 4 par défaut ; 6 coups = 1,5 × le total par défaut. |
 
 ### Eivor
 
@@ -443,7 +443,7 @@ Formes : 20911 Eluin.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Strafe » · 11716 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Eluin → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Strafe » · 11716 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Eluin → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Emily
 
@@ -460,7 +460,7 @@ Formes : 20903 Elven Ranger †, 20913 Erwin.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Evasive Maneuver(Passive) » · 11713 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Evasive Maneuver » (icône et nom du jeu) pose Buff ATQ et Buff VIT — « When being attacked » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Erwin → carte « État de mon monstre » : sous les vignettes, la ligne « Evasive Maneuver » + « pose Buff ATQ et Buff VIT — « When being attacked » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
-| « Strafe » · 11703 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Erwin → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Strafe » · 11703 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Erwin → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Espresso Cookie
 
@@ -469,7 +469,7 @@ Formes : 26503 에스프레소맛 쿠키(바람) †, 26513 Espresso Cookie.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Caffeine (Passive) » · 16313 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Caffeine » (icône et nom du jeu) pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Espresso Cookie → carte « État de mon monstre » : sous les vignettes, la ligne « Caffeine » + « pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
-| « Grinding » · 16308 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Espresso Cookie (vent) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+| « Grinding » · 16308 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Espresso Cookie (vent) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
 
 ### Espresso Cookie (eau)
 
@@ -477,7 +477,7 @@ Formes : 26501 에스프레소맛 쿠키(물) †, 26511 Espresso Cookie.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Grinding » · 16306 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to freeze them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Espresso Cookie (eau) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+| « Grinding » · 16306 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to freeze them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Espresso Cookie (eau) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
 
 ### Espresso Cookie (ténèbres)
 
@@ -485,7 +485,7 @@ Formes : 26505 에스프레소맛 쿠키(어둠) †, 26515 Espresso Cookie.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Grinding » · 16310 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Espresso Cookie (ténèbres) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+| « Grinding » · 16310 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Espresso Cookie (ténèbres) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
 
 ### Fridrion
 
@@ -649,7 +649,7 @@ Formes : 20915 Isillen.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Strafe » · 11720 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Isillen → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Strafe » · 11720 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Isillen → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Iunu
 
@@ -758,7 +758,7 @@ Formes : 27005 Black Tea Bunny †, 27015 Lavender.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Spinning Tea Spoon » · 16810 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Lavender → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+| « Spinning Tea Spoon » · 16810 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Lavender → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
 
 ### Legolas
 
@@ -782,7 +782,7 @@ Formes : 20904 Elven Ranger †, 20914 Lucien.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Strafe » · 11704 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Lucien → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Strafe » · 11704 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Lucien → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Lukan
 
@@ -879,7 +879,7 @@ Formes : 28501 Asura †, 28511 Mayasura.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Constant Training (Passive) » · 18311 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Attaques déjà effectuées » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Constant Training (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
-| « Brutal Fists » · 18301 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. Stormfist (18306) n'est pas touché : la règle selon l'ATQ est une valeur à fournir. | P5a | commit du lot P5a | Chemin commun → Mayasura → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
+| « Brutal Fists » · 18301 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. Stormfist (18306) n'est pas touché : la règle selon l'ATQ est une valeur à fournir. | P5a | `c0dbbc78` | Chemin commun → Mayasura → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
 
 ### Mei Hou Wang
 
@@ -1080,7 +1080,7 @@ Formes : 27001 Black Tea Bunny †, 27011 Rosemary.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Spinning Tea Spoon » · 16806 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to freeze them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Rosemary → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+| « Spinning Tea Spoon » · 16806 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to freeze them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Rosemary → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
 
 ### RYU
 
@@ -1145,7 +1145,7 @@ Formes : 31801 카마도 탄지로(물) †, 31811 Tanjiro Kamado.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Whirlpool » · 21311 · S3 | Nombre de coups **saisi**, de 1 à 3 (« Deals additional damage 2 more times to targets with harmful effects » ; `coups: 1` en donnée) ; défaut au minimum, 1 coup : total par défaut inchangé (3 992,99 au build de la preuve). Chaque coup vaut les autres. Clé par identifiant : le Whirlpool de Seal 2A (3463) reste à 1 coup. | P5a | commit du lot P5a | Chemin commun → Tanjiro Kamado → « Compétence utilisée » → « Whirlpool » : le champ du nombre de coups, borné de 1 à 3, 1 par défaut ; 3 coups = 3 × le total d'un coup. |
+| « Whirlpool » · 21311 · S3 | Nombre de coups **saisi**, de 1 à 3 (« Deals additional damage 2 more times to targets with harmful effects » ; `coups: 1` en donnée) ; défaut au minimum, 1 coup : total par défaut inchangé (3 992,99 au build de la preuve). Chaque coup vaut les autres. Clé par identifiant : le Whirlpool de Seal 2A (3463) reste à 1 coup. | P5a | `5d53f99a` | Chemin commun → Tanjiro Kamado → « Compétence utilisée » → « Whirlpool » : le champ du nombre de coups, borné de 1 à 3, 1 par défaut ; 3 coups = 3 × le total d'un coup. |
 
 ### Tantra
 
@@ -1211,7 +1211,7 @@ Formes : 20811 Tractor †, 20831 Tractor.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Hammer Punch » · 11651 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Tractor → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Hammer Punch » · 11651 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Tractor → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### True Devil Kazuya
 
@@ -1243,9 +1243,9 @@ Formes : 28503 Asura †, 28513 Usha.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Brutal Fists » · 18303 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Usha → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
-| « God's Weapon » · 18308 · S2 | Nombre de coups **saisi**, de 2 à 3 (« Attacks all enemies 2 to 3 times ») ; défaut au minimum, 2 coups : total par défaut inchangé (2 189,14 au build de la preuve). Chaque coup vaut les autres. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. | P5a | commit du lot P5a | Chemin commun → Usha → « Compétence utilisée » → « God's Weapon » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
-| « Barrage of Madness » · 18313 · S3 | Nombre de coups **saisi**, de 3 à 5 (« Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance of inflicting more number of attacks ») ; défaut au minimum, 3 coups : total par défaut inchangé (4 098,07 au build de la preuve). La probabilité n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Usha → « Compétence utilisée » → « Barrage of Madness » : le champ du nombre de coups, borné de 3 à 5, 3 par défaut ; 5 coups = 5/3 × le total par défaut. |
+| « Brutal Fists » · 18303 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | `c0dbbc78` | Chemin commun → Usha → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
+| « God's Weapon » · 18308 · S2 | Nombre de coups **saisi**, de 2 à 3 (« Attacks all enemies 2 to 3 times ») ; défaut au minimum, 2 coups : total par défaut inchangé (2 189,14 au build de la preuve). Chaque coup vaut les autres. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. | P5a | `e989b74e` | Chemin commun → Usha → « Compétence utilisée » → « God's Weapon » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Barrage of Madness » · 18313 · S3 | Nombre de coups **saisi**, de 3 à 5 (« Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance of inflicting more number of attacks ») ; défaut au minimum, 3 coups : total par défaut inchangé (4 098,07 au build de la preuve). La probabilité n'est jamais tirée. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Usha → « Compétence utilisée » → « Barrage of Madness » : le champ du nombre de coups, borné de 3 à 5, 3 par défaut ; 5 coups = 5/3 × le total par défaut. |
 
 ### Valdemar
 
@@ -1261,8 +1261,8 @@ Formes : 28502 Asura †, 28512 Varuna.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Brutal Fists » · 18302 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Varuna → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
-| « Sura's Seal » · 18312 · S3 | Nombre de coups **saisi**, de 4 à 8 (« Attacks the enemy 4 times … The number of attacks increases up to 8 times according to the difference between the target and your Attack Power ») ; défaut au minimum, 4 coups : total par défaut inchangé (4 203,15 au build de la preuve). Les seuils d'ATQ ne sont pas relevés : rien n'est déduit. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Varuna → « Compétence utilisée » → « Sura's Seal » : le champ du nombre de coups, borné de 4 à 8, 4 par défaut ; 8 coups = 2 × le total par défaut. |
+| « Brutal Fists » · 18302 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | `c0dbbc78` | Chemin commun → Varuna → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
+| « Sura's Seal » · 18312 · S3 | Nombre de coups **saisi**, de 4 à 8 (« Attacks the enemy 4 times … The number of attacks increases up to 8 times according to the difference between the target and your Attack Power ») ; défaut au minimum, 4 coups : total par défaut inchangé (4 203,15 au build de la preuve). Les seuils d'ATQ ne sont pas relevés : rien n'est déduit. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Varuna → « Compétence utilisée » → « Sura's Seal » : le champ du nombre de coups, borné de 4 à 8, 4 par défaut ; 8 coups = 2 × le total par défaut. |
 
 ### Varus
 
@@ -1311,8 +1311,8 @@ Formes : 28505 Asura †, 28515 Vritra.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Brutal Fists » · 18305 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Vritra → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
-| « God's Weapon » · 18310 · S2 | Nombre de coups **saisi**, de 2 à 3 (« Attacks all enemies 2 to 3 times ») ; défaut au minimum, 2 coups : total par défaut inchangé (2 189,14 au build de la preuve). Chaque coup vaut les autres. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. | P5a | commit du lot P5a | Chemin commun → Vritra → « Compétence utilisée » → « God's Weapon » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Brutal Fists » · 18305 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | `c0dbbc78` | Chemin commun → Vritra → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
+| « God's Weapon » · 18310 · S2 | Nombre de coups **saisi**, de 2 à 3 (« Attacks all enemies 2 to 3 times ») ; défaut au minimum, 2 coups : total par défaut inchangé (2 189,14 au build de la preuve). Chaque coup vaut les autres. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. | P5a | `e989b74e` | Chemin commun → Vritra → « Compétence utilisée » → « God's Weapon » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Werner
 

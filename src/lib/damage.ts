@@ -2899,9 +2899,29 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
 // `aoe` de la donnée (règle D12 : la prose l'emporte). Lue par
 // `skillDamageProfile` seulement ; la valeur remplace `Competence.aoe` dans le
 // profil (portée du sort, 224 compris). Un test par entrée
-// (`tests/degats-valeurs-api.test.ts`).
+// (`tests/degats-valeurs-api.test.ts`). Lot P22 : les sept sorts que la donnée
+// dit « une cible » (`aoe: false`) et que la prose dit « all enemies » ; la
+// ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique
+// plus. Crush (4211, l'inverse) est HORS de la table : un relevé en jeu dira si
+// la 224 porte sur son coup principal.
 const PORTEE_CORRIGEE_PAR_ID: Record<number, boolean> = {
   21114: false, // Cursed Tombstone (Ramon) : « Attacks the enemy » contre `aoe: true`
+  // Hollow Purple (Satoru Gojo) et Explosion and Blaze (Werner) : « Removes all
+  // harmful effects on all allies and attacks all enemies to deal damage
+  // proportionate to your Defense. »
+  20014: true,
+  20614: true,
+  // God's Weapon (Usha, Vritra) : « Attacks all enemies 2 to 3 times and
+  // inflicts Continuous Damage for 2 turns with a 50% chance each. »
+  18308: true,
+  18310: true,
+  // Bullet Assassination (Nina Williams) et Shining Butterfly (Shasha) :
+  // « Attacks all enemies 4 times. The first hit grants the Seal effect … »
+  22714: true,
+  23214: true,
+  // Incinerate (Tatu 2A) : « Attacks all enemies to inflict damage. In addition,
+  // blows up the Continuous Damage granted on each target … »
+  1362: true,
 };
 
 const COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: Record<number, string> = {
@@ -3114,7 +3134,8 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
   // (Varuna). Seuils d'ATQ absents : jamais dérivé.
   "Sura's Seal": { min: 4, max: 8 },
   // « Attacks all enemies 2 to 3 times » (Usha, Vritra). ⚠️ La donnée dit
-  // `aoe: false` contre « all enemies » : portée non corrigée ici (hors P5a).
+  // `aoe: false` contre « all enemies » : portée corrigée par
+  // `PORTEE_CORRIGEE_PAR_ID` (lot P22).
   "God's Weapon": { min: 2, max: 3 },
   // « Attacks all enemies 3 to 5 times … The more harmful effects granted on
   // the target, the higher the chance » (Usha). Probabilité jamais tirée.

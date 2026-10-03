@@ -306,6 +306,30 @@ monstres. Hors périmètre : les sorts « Horn » des Anges jumeaux (forme de
 soutien sans dégât, décision Q04), qui restent sans profil. Test :
 `testDegatsFormulesApi` (`node tests/run.mjs formulesapi`).
 
+## Portée corrigée par la prose (`PORTEE_CORRIGEE_PAR_ID`)
+
+Règle D12 de l'utilisateur : la donnée vaut par défaut, sauf si la prose la
+contredit. La table `PORTEE_CORRIGEE_PAR_ID` remplace `Competence.aoe` dans le
+profil du sort (`skillDamageProfile`) ; la seule conséquence calculée est la
+ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour »), qui ne porte que sur
+un sort `aoe === false` (voir
+[artéfacts de critique](artefacts-critique-et-element.md)). Ramon (21114, lot
+P6) est corrigé dans l'autre sens (mono-cible). Lot P22 : sept sorts que la
+donnée dit « une cible » et que la prose dit « all enemies », désormais de zone
+— la 224 ne leur est plus appliquée, aucun autre total ne bouge.
+
+| Sort · identifiant · monstres | Prose de la fiche |
+| --- | --- |
+| Hollow Purple · `20014` · Satoru Gojo (`30314`) | « Removes all harmful effects on all allies and attacks all enemies to deal damage proportionate to your Defense. » |
+| Explosion and Blaze · `20614` · Werner (`30914`) | idem |
+| God's Weapon · `18308` · Usha (`28513`) ; `18310` · Vritra (`28515`) | « Attacks all enemies 2 to 3 times and inflicts Continuous Damage for 2 turns with a 50% chance each. » |
+| Bullet Assassination · `22714` · Nina Williams (`33414`) ; Shining Butterfly · `23214` · Shasha (`33914`) | « Attacks all enemies 4 times. The first hit grants the Seal effect … » |
+| Incinerate · `1362` · Tatu 2A (`10332`) | « Attacks all enemies to inflict damage. In addition, blows up the Continuous Damage granted on each target … » |
+
+Hors table : Crush de Taor (`4211`, `aoe: true` de la donnée, coup principal sur
+une cible) — l'inverse ; un relevé en jeu dira si la 224 porte sur ce coup.
+Test : `testDegatsPorteesParLaProse` (`node tests/run.mjs porteesparlaprose`).
+
 ## Nombres de coups variables, saisis
 
 Décisions de l'utilisateur (degats-et-aura, lot P5a ; constat 13b-coups-

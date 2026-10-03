@@ -99,6 +99,13 @@ deux formes sont gérées, un inventaire ancien pouvant porter les secondes.
 Tout est **déduit du profil du sort** (`slot`, `aoe`), rien n'est saisi —
 `artifactCritDamagePoints()` est la seule porte d'entrée.
 
+⚠️ **`aoe` du profil n'est pas toujours `aoe` de la donnée.** Quand la prose du
+sort contredit la donnée, `PORTEE_CORRIGEE_PAR_ID` la remplace : Hollow Purple,
+Explosion and Blaze, God's Weapon, Bullet Assassination, Shining Butterfly et
+Incinerate sont de zone (la 224 ne s'y applique plus) ; Ramon est mono-cible.
+Liste et proses : [conditions et audit](conditions-et-audit.md). Crush de Taor
+reste en `aoe: true` : sa 224 en jeu est à relever.
+
 ⚠️ **Un sort à séquence de coups reçoit 224 coup par coup.** Pour Blade
 Surge, le calcul passe à cette fonction le profil de chaque groupe de coups,
 dont `aoe` est la portée du groupe : 224 porte sur les coups 1 et 2

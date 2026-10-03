@@ -962,6 +962,14 @@ Formes : 31905 카마도 네즈코(어둠) †, 31915 Nezuko Kamado, 32015 Nezuk
 | --- | --- | --- | --- | --- |
 | « Purification, Cooperation! » · 21415 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 4,5 × ATQ, un coup, mono-cible, +20 % (compétence auxiliaire 4626 de l'API SWARFARM, règle D12). Les attaques des deux alliés restent hors calcul. Dernier sort calculable, il devient le sort coché par défaut (avant : « Triple Roundhouse Kick »). | P6 (HT-1) | `488f07b2` | Chemin commun → Nezuko Kamado → « Compétence utilisée » : une case « Purification, Cooperation! », cochée par défaut ; résumé « 1 coup · Cible unique ». |
 
+### Nina Williams
+
+Formes : 33404 니나 윌리엄스(빛) †, 33414 Nina Williams.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Bullet Assassination » · 22714 · S3 | **Portée corrigée par la prose** (règle D12) : la donnée dit « une cible » (`aoe: false`), la prose dit « Attacks all enemies 4 times. » ; le sort est de zone et la ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique plus. Total « Critique » avec un artéfact 224 (+20 points ; ATQ 2 000, DEF 800, TC 100, DC 50, DEF cible 1 000) : 4 704,29 → 4 256,26 ; sans artéfact 224, aucun total ne change. | P22 | `commit du lot P22` | Chemin commun → Nina Williams → « Compétence utilisée » : le résumé du sort annonce « Zone » (et non « Cible unique ») ; un artéfact portant « D.CRIT+ comp cib uniq pdt tour » n'augmente plus le total en mode « Critique » ; un artéfact « [Comp.N] Aug. Dgts CRIT » du slot du sort compte toujours. |
+
 ### Old Wood (eau)
 
 Formes : 35001 Old Wood †, 35011 Old Wood.
@@ -1106,6 +1114,22 @@ Formes : 30301 고죠 사토루(물) †, 30311 Satoru Gojo.
 | --- | --- | --- | --- | --- |
 | « Six Eyes (Passive) » · 20011 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Six Eyes » (icône et nom du jeu) pose Buff DEF — « whenever your turn ends » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Satoru Gojo → carte « État de mon monstre » : sous les vignettes, la ligne « Six Eyes » + « pose Buff DEF — « whenever your turn ends » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
+### Satoru Gojo (lumière)
+
+Formes : 30304 고죠 사토루(빛) †, 30314 Satoru Gojo (le Satoru Gojo d'eau, 30311, a sa section ci-dessus).
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Hollow Purple » · 20014 · S3 | **Portée corrigée par la prose** (règle D12) : la donnée dit « une cible » (`aoe: false`), la prose dit « Removes all harmful effects on all allies and attacks all enemies to deal damage proportionate to your Defense. » ; le sort est de zone et la ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique plus. Total « Critique » avec un artéfact 224 (+20 points ; ATQ 2 000, DEF 800, TC 100, DC 50, DEF cible 1 000) : 1 970,30 → 1 787,02 ; sans artéfact 224, aucun total ne change. | P22 | `commit du lot P22` | Chemin commun → Satoru Gojo (lumière) → « Compétence utilisée » : le résumé du sort annonce « Zone » (et non « Cible unique ») ; un artéfact portant « D.CRIT+ comp cib uniq pdt tour » n'augmente plus le total en mode « Critique » ; un artéfact « [Comp.N] Aug. Dgts CRIT » du slot du sort compte toujours. |
+
+### Shasha
+
+Formes : 33904 Shasha †, 33914 Shasha.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Shining Butterfly » · 23214 · S3 | **Portée corrigée par la prose** (règle D12) : la donnée dit « une cible » (`aoe: false`), la prose dit « Attacks all enemies 4 times. » ; le sort est de zone et la ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique plus. Total « Critique » avec un artéfact 224 (+20 points ; ATQ 2 000, DEF 800, TC 100, DC 50, DEF cible 1 000) : 4 704,29 → 4 256,26 ; sans artéfact 224, aucun total ne change. | P22 | `commit du lot P22` | Chemin commun → Shasha → « Compétence utilisée » : le résumé du sort annonce « Zone » (et non « Cible unique ») ; un artéfact portant « D.CRIT+ comp cib uniq pdt tour » n'augmente plus le total en mode « Critique » ; un artéfact « [Comp.N] Aug. Dgts CRIT » du slot du sort compte toujours. |
+
 ### Sia
 
 Formes : 12134 Sia (seule forme à porter l'identifiant 3454 ; les autres « Blackout Kick » du corpus, au texte différent, ne reçoivent rien).
@@ -1162,6 +1186,14 @@ Formes : 23301 Gargoyle †, 23311 Tanzaite, 23401 가고일(물) †, 23411 가
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Stone Claws » · 13501 · S1 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Cumuls de Stone Claws » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Stone Claws » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. Stone Claws : la prose est aussi au « ? » de la case du sort S1 (11bis) — gardée aux deux endroits, décision de l'utilisateur. |
+
+### Tatu
+
+Formes : 10332 Tatu (« Tatu 2A » du questionnaire), 47202 Pixie 2A † (même sort, non proposée par `formesJouables`).
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Incinerate » · 1362 · S3 | **Portée corrigée par la prose** (règle D12) : la donnée dit « une cible » (`aoe: false`), la prose dit « Attacks all enemies to inflict damage. » ; le sort est de zone et la ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique plus. Total « Critique » avec un artéfact 224 (+20 points ; ATQ 2 000, DEF 800, TC 100, DC 50, DEF cible 1 000) : 4 704,29 → 4 276,62 ; sans artéfact 224, aucun total ne change. | P22 | `commit du lot P22` | Chemin commun → Tatu → « Compétence utilisée » : le résumé du sort annonce « Zone » (et non « Cible unique ») ; un artéfact portant « D.CRIT+ comp cib uniq pdt tour » n'augmente plus le total en mode « Critique » ; un artéfact « [Comp.N] Aug. Dgts CRIT » du slot du sort compte toujours. |
 
 ### Teshar
 
@@ -1244,7 +1276,7 @@ Formes : 28503 Asura †, 28513 Usha.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Brutal Fists » · 18303 · S1 | **Coup en plus déduit** de l'ATQ adverse, sans réglage neuf (« you attack the enemy one more time if your Attack Power is higher than the enemy target ») : 3 coups, 4 si l'ATQ du build dépasse strictement le champ « ATQ adverse » (le champ de Theonia, 1 000 par défaut). Total par défaut inchangé depuis P5a (4 104,64 au build de la preuve, ATQ adverse 1 000) ; ATQ adverse sous l'ATQ du build = 5 472,85 (l'ancien maximum). Plus de champ du nombre de coups : une ancienne saisie ne s'applique plus. Le résumé du sort (écran) et la ligne du CLI, qui décrivent un réglage sans build, annoncent « 3 à 4 coups (selon l'ATQ du build) » par la fonction partagée `coupsAffichesDuSort`, jamais un « 3 » qui passerait pour le nombre du calcul. | P5a, P5a2, P5a3 | `c0dbbc78`, ``ccbab5e9`, `af9078fb``, `a25ee96e` | Chemin commun → Usha → « Compétence utilisée » → « Brutal Fists » : le champ « ATQ adverse » apparaît, aucun champ du nombre de coups ; 4 coups (= 4/3 × le total à 3 coups) quand l'ATQ adverse est sous l'ATQ du build, 3 coups à égalité ou au-dessus. |
-| « God's Weapon » · 18308 · S2 | **Interrupteur** « Le coup en plus part (+1 coup) », éteint par défaut (« Attacks all enemies 2 to 3 times ») : 2 coups éteint, 3 allumé. Total par défaut inchangé (2 189,14 au build de la preuve) ; allumé = l'ancien maximum (3 283,71). La chance du coup en plus n'est jamais tirée. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. Plus de champ du nombre de coups. Une ancienne recette à 3 coups saisis reste lue. | P5a, P5a2 | `e989b74e`, ``ccbab5e9`, `af9078fb`` | Chemin commun → Usha → « Compétence utilisée » → « God's Weapon » : l'interrupteur « Le coup en plus part (+1 coup) », éteint, aucun champ du nombre de coups ; allumé : 3 coups = 1,5 × le total par défaut. |
+| « God's Weapon » · 18308 · S2 | **Interrupteur** « Le coup en plus part (+1 coup) », éteint par défaut (« Attacks all enemies 2 to 3 times ») : 2 coups éteint, 3 allumé. Total par défaut inchangé (2 189,14 au build de la preuve) ; allumé = l'ancien maximum (3 283,71). La chance du coup en plus n'est jamais tirée. Portée corrigée au lot P22 (« all enemies » en prose contre `aoe: false` en donnée) : le sort est de zone, la ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique plus (« Critique » avec un artéfact 224 : 2 240,14 → 2 036,49 au réglage ATQ 2 000, DEF 800, TC 100, DC 50, DEF cible 1 000 ; sans 224, aucun total ne change). Plus de champ du nombre de coups. Une ancienne recette à 3 coups saisis reste lue. | P5a, P5a2, P22 | `e989b74e`, ``ccbab5e9`, `af9078fb``, `commit du lot P22` | Chemin commun → Usha → « Compétence utilisée » → « God's Weapon » : l'interrupteur « Le coup en plus part (+1 coup) », éteint, aucun champ du nombre de coups ; allumé : 3 coups = 1,5 × le total par défaut. Avec un artéfact « D.CRIT+ comp cib uniq pdt tour » en mode « Critique », la 224 ne compte pas ; le résumé annonce « Zone ». |
 | « Barrage of Madness » · 18313 · S3 | Nombre de coups **saisi**, de 3 à 5 (« Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance of inflicting more number of attacks ») ; défaut au minimum, 3 coups : total par défaut inchangé (4 098,07 au build de la preuve). La probabilité n'est jamais tirée. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Usha → « Compétence utilisée » → « Barrage of Madness » : le champ du nombre de coups, borné de 3 à 5, 3 par défaut ; 5 coups = 5/3 × le total par défaut. |
 
 ### Valdemar
@@ -1312,7 +1344,7 @@ Formes : 28505 Asura †, 28515 Vritra.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Brutal Fists » · 18305 · S1 | **Coup en plus déduit** de l'ATQ adverse, sans réglage neuf (« you attack the enemy one more time if your Attack Power is higher than the enemy target ») : 3 coups, 4 si l'ATQ du build dépasse strictement le champ « ATQ adverse » (le champ de Theonia, 1 000 par défaut). Total par défaut inchangé depuis P5a (4 104,64 au build de la preuve, ATQ adverse 1 000) ; ATQ adverse sous l'ATQ du build = 5 472,85 (l'ancien maximum). Plus de champ du nombre de coups : une ancienne saisie ne s'applique plus. Le résumé du sort (écran) et la ligne du CLI, qui décrivent un réglage sans build, annoncent « 3 à 4 coups (selon l'ATQ du build) » par la fonction partagée `coupsAffichesDuSort`, jamais un « 3 » qui passerait pour le nombre du calcul. | P5a, P5a2, P5a3 | `c0dbbc78`, ``ccbab5e9`, `af9078fb``, `a25ee96e` | Chemin commun → Vritra → « Compétence utilisée » → « Brutal Fists » : le champ « ATQ adverse » apparaît, aucun champ du nombre de coups ; 4 coups (= 4/3 × le total à 3 coups) quand l'ATQ adverse est sous l'ATQ du build, 3 coups à égalité ou au-dessus. |
-| « God's Weapon » · 18310 · S2 | **Interrupteur** « Le coup en plus part (+1 coup) », éteint par défaut (« Attacks all enemies 2 to 3 times ») : 2 coups éteint, 3 allumé. Total par défaut inchangé (2 189,14 au build de la preuve) ; allumé = l'ancien maximum (3 283,71). La chance du coup en plus n'est jamais tirée. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. Plus de champ du nombre de coups. Une ancienne recette à 3 coups saisis reste lue. | P5a, P5a2 | `e989b74e`, ``ccbab5e9`, `af9078fb`` | Chemin commun → Vritra → « Compétence utilisée » → « God's Weapon » : l'interrupteur « Le coup en plus part (+1 coup) », éteint, aucun champ du nombre de coups ; allumé : 3 coups = 1,5 × le total par défaut. |
+| « God's Weapon » · 18310 · S2 | **Interrupteur** « Le coup en plus part (+1 coup) », éteint par défaut (« Attacks all enemies 2 to 3 times ») : 2 coups éteint, 3 allumé. Total par défaut inchangé (2 189,14 au build de la preuve) ; allumé = l'ancien maximum (3 283,71). La chance du coup en plus n'est jamais tirée. Portée corrigée au lot P22 (« all enemies » en prose contre `aoe: false` en donnée) : le sort est de zone, la ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique plus (« Critique » avec un artéfact 224 : 2 240,14 → 2 036,49 au réglage ATQ 2 000, DEF 800, TC 100, DC 50, DEF cible 1 000 ; sans 224, aucun total ne change). Plus de champ du nombre de coups. Une ancienne recette à 3 coups saisis reste lue. | P5a, P5a2, P22 | `e989b74e`, ``ccbab5e9`, `af9078fb``, `commit du lot P22` | Chemin commun → Vritra → « Compétence utilisée » → « God's Weapon » : l'interrupteur « Le coup en plus part (+1 coup) », éteint, aucun champ du nombre de coups ; allumé : 3 coups = 1,5 × le total par défaut. Avec un artéfact « D.CRIT+ comp cib uniq pdt tour » en mode « Critique », la 224 ne compte pas ; le résumé annonce « Zone ». |
 
 ### Werner
 
@@ -1321,6 +1353,14 @@ Formes : 30901 Werner †, 30911 Werner.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Honored One (Passive) » · 20611 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Honored One » (icône et nom du jeu) pose Buff DEF — « whenever your turn ends » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Werner → carte « État de mon monstre » : sous les vignettes, la ligne « Honored One » + « pose Buff DEF — « whenever your turn ends » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+
+### Werner (lumière)
+
+Formes : 30904 Werner †, 30914 Werner (le Werner d'eau, 30911, a sa section ci-dessus).
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Explosion and Blaze » · 20614 · S3 | **Portée corrigée par la prose** (règle D12) : la donnée dit « une cible » (`aoe: false`), la prose dit « Removes all harmful effects on all allies and attacks all enemies to deal damage proportionate to your Defense. » ; le sort est de zone et la ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique plus. Total « Critique » avec un artéfact 224 (+20 points ; ATQ 2 000, DEF 800, TC 100, DC 50, DEF cible 1 000) : 1 970,30 → 1 787,02 ; sans artéfact 224, aucun total ne change. | P22 | `commit du lot P22` | Chemin commun → Werner (lumière) → « Compétence utilisée » : le résumé du sort annonce « Zone » (et non « Cible unique ») ; un artéfact portant « D.CRIT+ comp cib uniq pdt tour » n'augmente plus le total en mode « Critique » ; un artéfact « [Comp.N] Aug. Dgts CRIT » du slot du sort compte toujours. |
 
 ### White Tiger Blade Master
 

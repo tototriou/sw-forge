@@ -33,6 +33,7 @@ import {
   type ArtifactDamageProfile,
   type DamageSetup,
   type SkillDamageProfile,
+  artifactCritDamagePoints,
   artifactDamageProfile,
   cibleDegatsRetenue,
   cibleSecondairePriseEnCharge,
@@ -220,6 +221,56 @@ export function testDegatsFormulesApi() {
     for (const id of [18801, 18811]) {
       const horn = fiche(29111).competences.find((c) => c.com2usId === id)!;
       egal(skillDamageProfile(horn), null, `${id} « ${horn.nom} » : aucune formule curée, aucun profil (forme de soutien, Q04 → P17)`);
+    }
+  }
+}
+
+// Lot P22 — la prose dit « all enemies », la donnée dit `aoe: false` : la prose
+// l'emporte (règle D12). Une entrée par identifiant ; `prose` est le début de la
+// description de la fiche (précondition lue sur le corpus), `formes` les formes
+// porteuses (balayage du corpus, contrôle p22).
+const PORTEES_PAR_LA_PROSE: { id: number; nom: string; monstres: string; formes: number[]; prose: string }[] = [
+  { id: 20014, nom: 'Hollow Purple', monstres: 'Satoru Gojo', formes: [30304, 30314], prose: 'Removes all harmful effects on all allies and attacks all enemies to deal damage' },
+  { id: 20614, nom: 'Explosion and Blaze', monstres: 'Werner', formes: [30904, 30914], prose: 'Removes all harmful effects on all allies and attacks all enemies to deal damage' },
+  { id: 18308, nom: "God's Weapon", monstres: 'Usha', formes: [28503, 28513], prose: 'Attacks all enemies 2 to 3 times' },
+  { id: 18310, nom: "God's Weapon", monstres: 'Vritra', formes: [28505, 28515], prose: 'Attacks all enemies 2 to 3 times' },
+  { id: 22714, nom: 'Bullet Assassination', monstres: 'Nina Williams', formes: [33404, 33414], prose: 'Attacks all enemies 4 times.' },
+  { id: 23214, nom: 'Shining Butterfly', monstres: 'Shasha', formes: [33904, 33914], prose: 'Attacks all enemies 4 times.' },
+  { id: 1362, nom: 'Incinerate', monstres: 'Tatu 2A', formes: [10332, 47202], prose: 'Attacks all enemies to inflict damage.' },
+];
+
+export function testDegatsPorteesParLaProse() {
+  const st = stats({ atk: ATQ, def: 800, hp: PV, cr: 100, cd: 100 });
+  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 1000, enemyHp: 100_000_000, enemyHpPct: 100 };
+  const crit: DamageSetup = { ...base, critMode: 'crit' };
+  const a224 = artefacts([{ code: 224, value: 30 }]);
+  const a400 = artefacts([{ code: 400, value: 30 }, { code: 401, value: 30 }, { code: 224, value: 30 }]);
+  const total = (p: SkillDamageProfile, setup: DamageSetup, a: ArtifactDamageProfile) =>
+    computeSkillDamageDetail(p, st, setup, AUCUNE_AURA_PROPRE, null, undefined, a).total;
+
+  for (const e of PORTEES_PAR_LA_PROSE) {
+    titre(`Lot P22 — ${e.nom} (${e.id}, ${e.monstres}) : « ${e.prose} » l'emporte sur \`aoe: false\``);
+    for (const forme of e.formes) {
+      const brute = fiche(forme).competences.find((c) => c.com2usId === e.id)!;
+      egal(brute.aoe, false, `${e.id} sur ${forme} : la donnée dit « une cible » (précondition)`);
+      ok(brute.description?.startsWith(e.prose) === true, `${e.id} sur ${forme} : la prose dit « ${e.prose} » (précondition)`);
+      const p = sortDe(forme, e.id);
+      egal(p.aoe, true, `${e.id} sur ${forme} : profil de zone`);
+      // La ligne 224 ne compte plus : même total que sans artéfact.
+      egal(
+        artifactCritDamagePoints(a224, p), 0,
+        `${e.id} sur ${forme} : « D.CRIT+ comp cib uniq pdt tour » (224) ne compte pas`,
+      );
+      const sans = total(p, crit, ARTIFACT_DAMAGE_NEUTRE);
+      ok(proche(total(p, crit, a224), sans), `${e.id} sur ${forme} : un artéfact 224 ne change pas le total critique`);
+      // Sans 224, rien d'autre ne bouge : le profil forcé mono-cible donne le même total.
+      const monoCible = { ...p, aoe: false };
+      ok(proche(total(monoCible, crit, ARTIFACT_DAMAGE_NEUTRE), sans), `${e.id} sur ${forme} : sans artéfact, la portée ne change aucun total`);
+      ok(proche(total(p, { ...base, critMode: 'normal' }, a224), total(monoCible, { ...base, critMode: 'normal' }, a224)), `${e.id} sur ${forme} : hors critique, la portée ne change aucun total`);
+      // Témoin : mono-cible, la ligne 224 aurait compté.
+      ok(total(monoCible, crit, a224) > sans, `${e.id} sur ${forme} : témoin, mono-cible la 224 aurait compté`);
+      // Les lignes par compétence restent comptées (le slot du sort).
+      ok(artifactCritDamagePoints(a400, p) === (p.slot === 1 ? 30 : p.slot === 2 ? 30 : 0), `${e.id} sur ${forme} : la ligne du slot ${p.slot} reste comptée`);
     }
   }
 }

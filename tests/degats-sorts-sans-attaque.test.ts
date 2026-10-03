@@ -1,4 +1,5 @@
-// Sorts sans attaque masqués de « Compétence utilisée » (degats-et-aura 15c,
+// Sorts sans attaque masqués de « Compétence utilisée » (degats-et-aura 15c
+// et 15h,
 // `SORTS_SANS_ATTAQUE_PAR_ID`, damage.ts).
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un bouclier proposé — et même
@@ -61,6 +62,18 @@ const ATTENDUS: [number, number, string][] = [
   [24909, 35714, 'Spell to Create a Field of Flowers (Frieren)'],
   [10243000, 1000214, 'Protection Field (Homunculus support lumière)'],
   [10253000, 1000215, 'Protection Field (Homunculus support ténèbres)'],
+  // Lot 15h : huit sorts confirmés « sans attaque » par l'utilisateur au lot
+  // 15g (preuve `controle-15g.md`). Leurs formes † (Salamander, Undine,
+  // Chimera, Epikion Priest, Art Master…) sont couvertes par « toutes les
+  // formes qui portent le sort » plus bas.
+  [2113, 11113, 'Regenerate (Lukan)'],
+  [2611, 11611, 'Revive (Mikene)'],
+  [2615, 11615, 'Dark Return (Tilasha)'],
+  [4210, 14615, 'Unleashed Fury (Zeratu)'],
+  [6713, 15313, 'Soul Revival (Michelle)'],
+  [6714, 15314, 'Light of Revival (Iona)'],
+  [13707, 23712, 'Scroll Trap (Jeogun)'],
+  [13709, 23714, 'Scroll Trap (Hanwul)'],
 ];
 
 // Toutes les formes du corpus, lues une fois.
@@ -109,6 +122,17 @@ export default function testDegatsSortsSansAttaque() {
   ok(!!s1Bolverk && estPrisEnCharge(s1Bolverk), 'Bolverk : Lightning Strike (13101, S1) reste proposé');
   const gandalf = monsterDamageSkills(fiche(34411));
   ok(gandalf.some((s) => estPrisEnCharge(s) && s.skillCom2usId !== 23706), 'Gandalf eau : un sort qui frappe reste proposé');
+  // Lot 15h : Lukan, Zeratu et Michelle avaient pour sort coché par défaut un
+  // des huit sorts masqués (Regenerate, Unleashed Fury, Soul Revival), calculé
+  // comme des dégâts. Le défaut devient un sort qui frappe — nommé ici.
+  for (const [forme, libelle, attendu] of [
+    [11113, 'Lukan', 2108], // Sandstorm (S2)
+    [14615, 'Zeratu', 4205], // Trample (S1)
+    [15313, 'Michelle', 6703], // Absorb Mana (S1)
+  ] as const) {
+    const skills = monsterDamageSkills(fiche(forme));
+    egal(defaultDamageSkill(skills)?.skillCom2usId, attendu, `${libelle} : le sort par défaut est ${attendu}, un sort qui frappe`);
+  }
   for (const [, temoin, libelle] of ATTENDUS) {
     ok(monsterDamageSkills(fiche(temoin)).some((s) => estPrisEnCharge(s)),
       `${libelle} (${temoin}) : il reste au moins un sort calculable`);

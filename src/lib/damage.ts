@@ -2854,7 +2854,9 @@ function estSoinSansDegats(c: Competence): boolean {
 }
 
 // Sorts qui portent une `formule` mais N'ATTAQUENT PAS : bouclier, échange ou
-// redistribution de PV, perte de PV sans coup (degats-et-aura 15c). Règle de
+// redistribution de PV, perte de PV sans coup (degats-et-aura 15c) ; soin,
+// résurrection, gain de buff ou de tour, sceau (lot 15g, huit sorts « confirmé
+// par l'utilisateur, lot 15g », ajoutés au lot 15h). Règle de
 // l'utilisateur du 2026-10-02 (cadrage A.2 ter) : un ratio et un nombre de
 // `coups` SWARFARM ne prouvent pas qu'un sort attaque ; sans la notion
 // d'attaque ou de dégâts infligés dans sa prose, ce n'est pas une attaque. Et
@@ -2874,8 +2876,14 @@ function estSoinSansDegats(c: Competence): boolean {
 // ABSORBE ou que le buff RENVOIE, jamais des dégâts infligés par le sort.
 export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
   1412, // Ancestors' Blessing (Tantra) : « Creates a shield that's 50% of your MAX HP … and recovers 15% of HP at every turn. »
+  2113, // Regenerate (Lukan) : « Removes the harmful effects on itself and recovers HP accordingly to the number of effects removed. » (soin ; confirmé par l'utilisateur, lot 15g)
+  2611, // Revive (Mikene) : « Revives a dead ally with 40% HP and grants immunity for 1 turn. Grants Soul Protection for 3 turns if this skill is used on an alive ally. … » (résurrection ; confirmé par l'utilisateur, lot 15g)
+  2615, // Dark Return (Tilasha) : « Revives a dead ally with little HP and grants a turn instantly. If it's used on a living ally, decreases the current HP by 70%, grants Life Drain for 1 turn, and grants a turn instantly. » (résurrection ; confirmé par l'utilisateur, lot 15g)
   2813, // Force Field (Sylphid vent) : « Casts a shield that absorbs a certain amount of damage on all allies for 3 turns. »
   2818, // Force Field (Acasis) : « Creates a shield that's proportionate to 30% of your HP on all allies … »
+  4210, // Unleashed Fury (Zeratu) : « Gains increased Attack Power and Immunity against harmful effects for 3 turns. Instantly recovers a turn when used. » (buffs et tour ; confirmé par l'utilisateur, lot 15g)
+  6713, // Soul Revival (Michelle) : « Revives a dead ally and balances the target's HP ratio to half of your HP ratio and recovers the target's HP by 15% each turn for 2 turns. » (résurrection ; confirmé par l'utilisateur, lot 15g)
+  6714, // Light of Revival (Iona) : « Recovers the target ally's HP by 60% and increases the Defense for 3 turns. When used on a dead ally, revives the ally with 60% HP … » (soin et résurrection ; confirmé par l'utilisateur, lot 15g)
   7414, // Trade (Conrad) : « Changes the HP ratio and harmful effects with the enemy target … and increases the Attack Bar of all allies by 20%. »
   10406, // Air Shield (Tetra) : « Removes all harmful effects on the ally target and casts a shield that's proportionate to 25% of your MAX HP … »
   10408, // Air Shield (Cichlid) : même prose que 10406.
@@ -2886,6 +2894,8 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
   12115, // Destiny Dice (Monte) : « Rolls 2 dice to redistribute the HP ratio of the enemy according to the smaller number … »
   12512, // Cry of Threat (Ophilia) : « Grants immunity on all allies …, creates a shield … and goes under Threat state … » (seuls les ennemis y attaquent)
   13111, // Forbidden Galdr (Bolverk) : « Decreases the current HP of the enemy target … by 10% for every Knowledge … heals all allies … » (effet de PV sans coup, A.2 ter)
+  13707, // Scroll Trap (Jeogun) : « Seals the enemy in the scroll, leaving the enemy out of the battle for a designated period of time. The duration of the seal increases according to your Attack Speed. … Gains a turn instantly after using the skill. » (sceau, la formule est une durée ; confirmé par l'utilisateur, lot 15g)
+  13709, // Scroll Trap (Hanwul) : même prose que 13707 (confirmé par l'utilisateur, lot 15g).
   15607, // Beneficial Hammering (Miriam) : « Increases Attack Power and Defense of all allies … creates a shield that absorbs damage … proportionate to your level. »
   15608, // Beneficial Hammering (Celine) : même prose que 15607.
   15609, // Beneficial Hammering (Madeleine) : même prose que 15607.

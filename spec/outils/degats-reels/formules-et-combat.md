@@ -44,10 +44,15 @@ utilisée » : il n'est ni proposé ni affiché refusé, et un passif de la mêm
 table n'est jamais un passif offensif. La table `SORTS_SANS_ATTAQUE_PAR_ID`
 ([damage.ts](../../../src/lib/damage.ts)) est curée par identifiant, une
 prose citée par ligne, jamais une détection de la prose. Elle compte
-28 sorts actifs : 25 boucliers (dont Frieren `24909`, Gandalf, Old Wood,
+36 sorts actifs : 25 boucliers (dont Frieren `24909`, Gandalf, Old Wood,
 les Air Shield, Force Field, Protection Field, Beneficial Hammering), Trade
 `7414`, Destiny Dice `12115` et Forbidden Galdr `13111`. Ce dernier est un
-effet de PV sans coup ; Harmonia et Vivachel S3 et le passif d'Aya vent
+effet de PV sans coup. Huit autres ont été confirmés par l'utilisateur au
+lot 15g (revue des 144 sorts à formule sans « attack » ni « damage ») :
+Regenerate `2113` (Lukan), Revive `2611` (Mikene), Dark Return `2615`
+(Tilasha), Unleashed Fury `4210` (Zeratu), Soul Revival `6713` (Michelle),
+Light of Revival `6714` (Iona) et les deux Scroll Trap `13707` (Jeogun) et
+`13709` (Hanwul), dont la formule est une durée de sceau. Harmonia et Vivachel S3 et le passif d'Aya vent
 n'ont pas de formule et restaient déjà hors calcul. Le mot « damage » d'un
 bouclier (dégâts absorbés) ou d'un Reflect Damage accordé ne fait pas une
 attaque. Les passifs de Pure Vanilla et Angela (`16113`, `16613`) restent

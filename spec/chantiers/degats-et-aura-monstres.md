@@ -319,6 +319,14 @@ Formes : 16305 Lich †, 16315 Grego.
 | --- | --- | --- | --- | --- |
 | « King of the Dead (Passive) » · 7515 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Morts avant ce tour » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « King of the Dead (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
 
+### Hanwul
+
+Formes : 23704 Art Master (lumière) †, 23714 Hanwul.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Scroll Trap » · 13709 · S2 | Sort sans attaque (sceau : la formule `10*(17*{SPD} + 2900)/({SPD} + 100)` est une durée, pas des dégâts) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Hanwul → « Compétence utilisée » : plus de case « Scroll Trap », ni grisée ; les autres sorts de Hanwul restent proposés. |
+
 ### Hollyberry Cookie
 
 Formes : 26403 홀리베리 쿠키(바람) †, 26413 Hollyberry Cookie.
@@ -369,6 +377,14 @@ Formes : 32105 Inosuke Hashibira †, 32115 Inosuke Hashibira.
 | --- | --- | --- | --- | --- |
 | « Fierce Attack! (Passive) » · 21515 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Fierce Attack! » (jamais reformulée). | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (Jeton), la description du passif « Fierce Attack! (Passive) » en clair ; aucun doublon ailleurs dans la carte. |
 
+### Iona
+
+Formes : 15304 Epikion Priest (lumière) †, 15314 Iona.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Light of Revival » · 6714 · S3 | Sort sans attaque (soin et résurrection, `0.6*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Iona → « Compétence utilisée » : plus de case grisée « Light of Revival » ; les autres sorts d'Iona restent proposés. |
+
 ### Iris
 
 Formes : 19804 Magic Knight †, 19814 Iris.
@@ -410,6 +426,14 @@ Formes : 16604 Dragon Knight †, 16614 Jager.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « King's Rage (Passive) » · 7814 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Charges de King's Rage » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « King's Rage (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
+
+### Jeogun
+
+Formes : 23702 Art Master (feu) †, 23712 Jeogun.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Scroll Trap » · 13707 · S2 | Sort sans attaque (sceau : la formule `10*(17*{SPD} + 2900)/({SPD} + 100)` est une durée, pas des dégâts) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Jeogun → « Compétence utilisée » : plus de case « Scroll Trap », ni grisée ; les autres sorts de Jeogun restent proposés. |
 
 ### Kassandra (vent)
 
@@ -471,6 +495,14 @@ Formes : 21805 Paladin †, 21815 Leona.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Internal Force (Passive) » · 12515 · S3 | Le Bouclier (`2.0*{DEF}`) n'est plus compté comme des dégâts : le passif n'est plus un passif offensif à formule propre. Le « +50 % de dégâts infligés quand tu as un Bouclier » de la donnée est compté sur tous les sorts de Leona, sous un interrupteur désactivé par défaut (même clé de stockage que l'ancien bouton : un réglage déjà allumé donne désormais +50 % au lieu de +2 × DEF). L'égalisation ATQ/DEF de début de combat reste hors calcul. | 15b | `dcca28a7` | Chemin commun → Leona → « Passifs offensifs » : un interrupteur « Internal Force (+50 %) », éteint, « Se déclenche si tu as un bouclier actif. », la prose du passif dessous ; plus de ratio « 2 × DEF ». Éteint : le total est celui du sort seul. Allumé : le total de S1 comme de S2 est multiplié par 1,5 ; changer la DEF du build ne change plus le total. |
+
+### Lukan
+
+Formes : 11113 Lukan, 40803 Salamander †, 700803 Salamander †.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Regenerate » · 2113 · S3 | Sort sans attaque (soin après purge, `0.3*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Lukan → « Compétence utilisée » : plus de case « Regenerate », ni grisée ; le sort coché par défaut est « Sandstorm » (S2), un sort qui frappe. |
 
 ### Lupinus
 
@@ -544,6 +576,22 @@ Formes : 16802 Monkey King †, 16812 Mei Hou Wang.
 | --- | --- | --- | --- | --- |
 | « Gold Headband (Passive) » · 7912 · S3 | Chaque cumul ajoute 20 % de l'ATQ de BASE et 12 % de la VIT de BASE (avant : 20 % de l'ATQ de combat et 12 points de VIT), jusqu'à 10 cumuls, sans arrondi ; nouvel axe `spdBasePct`. | 11 | `92de9890` | Chemin commun → « Stats acquises en combat » : compteur « Charges de Gold Headband ». Le total monte avec le compteur ; référence du test sur Mei Hou Wang : 1 cumul = +138,4 ATQ et +13,92 VIT, 10 cumuls = +139,2 VIT (VIT de base 116). |
 | « Gold Headband (Passive) » · 7912 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Charges de Gold Headband » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Gold Headband (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
+
+### Michelle
+
+Formes : 15303 Epikion Priest (vent) †, 15313 Michelle.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Soul Revival » · 6713 · S3 | Sort sans attaque (résurrection, `0.5*{Current HP %}*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Michelle → « Compétence utilisée » : plus de case « Soul Revival », ni grisée ; le sort coché par défaut est « Absorb Mana » (S1), un sort qui frappe. |
+
+### Mikene
+
+Formes : 11601 Undine (eau) †, 11611 Mikene, 11621 Imperfect Undine †, 40501 Undine (eau) †, 700501 Undine (eau) †.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Revive » · 2611 · S3 | Sort sans attaque (résurrection, `0.4*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Mikene → « Compétence utilisée » : plus de case grisée « Revive » ; les autres sorts de Mikene restent proposés. |
 
 ### Miriam
 
@@ -723,6 +771,14 @@ Formes : 34205 Justice †, 34215 Theonia.
 | --- | --- | --- | --- | --- |
 | « Summary Justice » · 23515 · S3 | +100 % de dégâts quand l'ATQ ennemie saisie est strictement inférieure à l'ATQ du build (« For enemies with Attack Power lower than yours ») ; le champ « ATQ adverse » s'ouvre pour ce sort. Au témoin (ATQ 1 000), 1 832,84 contre une ATQ ennemie de 1 000, 3 665,68 contre 999. La clause de VIT (« Attack Speed lower than yours ») reste non comptée. Une ancienne recette sans `enemyAtk` prend la valeur affichée (1 000) au lieu de 0 : à ATQ du build 900, le total du moteur passe de 3 299,1090 (condition allumée à tort) à 1 649,5545 ; à 1 200, 4 398,8120 inchangé (15f). | 15e, 15f | `404472a3`, `372168cd` | Chemin commun → Theonia → « Compétence utilisée » → Summary Justice : un champ « ATQ adverse » (1 000 par défaut) ; sous l'ATQ du build, le total double ; à l'égalité ou au-dessus, rien. Après import d'une recette exportée avant ce champ (sans `enemyAtk`), le résultat est celui du champ affichant 1 000. |
 
+### Tilasha
+
+Formes : 11605 Undine (ténèbres) †, 11615 Tilasha.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Dark Return » · 2615 · S3 | Sort sans attaque (résurrection et tour gagné, `1 (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Tilasha → « Compétence utilisée » : plus de case grisée « Dark Return » ; les autres sorts de Tilasha restent proposés. |
+
 ### Valdemar
 
 Formes : 29605 Magic Order Guardian †, 29615 Valdemar.
@@ -795,6 +851,14 @@ Formes : 14402 Dragon †, 14412 Zaiross.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Fiery Breath » · 2912 · S3 | Une ancienne recette sans `enemyAtk` prend l'ATQ ennemie affichée par l'écran (1 000) au lieu de 0 : le +50 % et le critique garanti « if the enemy's Attack Power is half or less than your Attack Power » (seuil inclusif à 50 % de l'ATQ du build) n'étaient allumés à tort que parce que 0 passait sous le seuil. Au témoin du lot (ATQ du build 900, DEF cible 1 000, « Non critique »), 3 578,3305 avant, 1 216,1646 après ; à 1 200 d'ATQ, 4 771,1073 avant, 1 621,5528 après (seuil 600 < 1 000). | 15f | `372168cd` | Chemin commun → Zaiross → « Compétence utilisée » → Fiery Breath : le champ « ATQ adverse » affiche 1 000 ; importer une recette exportée avant ce champ donne le même total que ce champ à 1 000 (bonus et critique garanti seulement si l'ATQ du build vaut au moins 2 000). |
+
+### Zeratu
+
+Formes : 14605 Chimera (ténèbres) †, 14615 Zeratu.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Unleashed Fury » · 4210 · S2 | Sort sans attaque (gain d'ATQ, immunité et tour gagné, `3.5*{ATK}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Zeratu → « Compétence utilisée » : plus de case « Unleashed Fury », ni grisée ; le sort coché par défaut est « Trample » (S1), un sort qui frappe. |
 
 ## 2. Changements transverses (tous les monstres)
 
@@ -911,7 +975,8 @@ Rien de ce qui suit n'est à chercher à l'écran.
   liste, décision de l'utilisateur du 2026-10-02 d'attendre le plan du
   lot 13. Le bouclier d'Internal Force en est sorti au lot 15b (Leona, § 1),
   celui de Frieren au lot 15c (Frieren, § 1).
-- **Sorts sans attaque** (lot 15c) : 28 sorts masqués, chacun par sa prose ;
+- **Sorts sans attaque** (lots 15c et 15h) : 36 sorts masqués (28 au lot 15c,
+  8 confirmés au lot 15g et masqués au 15h), chacun par sa prose ;
   pour les boucliers, le mot « damage » de la prose (dégâts absorbés,
   Reflect Damage accordé) a été jugé ne pas faire une attaque. Le sort par
   défaut des monstres touchés n'a été vérifié que par test (Frieren), pas à

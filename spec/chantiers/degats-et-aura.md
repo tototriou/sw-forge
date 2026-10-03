@@ -769,7 +769,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b lancé** (Rending Claw, décision du 2026-10-03) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -916,7 +916,7 @@ décision, rayée avec la date et la réponse.
 | 15d | ~~La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8)~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme les cinq autres sorts du genre → lot 15f |
 | 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
 | 15e | Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
-| P1 | Rending Claw : le bouton « +50 % sous Mechanical Frame State » est offert aussi à Cecilia (23306) et Elise (23310), dont le kit ne porte pas Emergency Drive — le retirer (clé par identifiant, 23307 seul) ? | en attente |
+| P1 | ~~Rending Claw : le bouton « +50 % sous Mechanical Frame State » est offert aussi à Cecilia (23306) et Elise (23310), dont le kit ne porte pas Emergency Drive — le retirer (clé par identifiant, 23307 seul) ?~~ | ✔ 2026-10-03 (utilisateur) : **oui, affiché uniquement sur Cynthia** → lot P1b |
 | bloc 1 | ~~Zeratu (Q03) : les coups 2 et 3 sont des coups de Trample au ratio ÷ 2 ; le bonus selon les PV de la cible recalculé à chaque coup sur les PV restants ?~~ | ✔ 2026-10-03 (utilisateur) : **oui** (A.2 ter) |
 | P2 | ~~Frodo : le porteur du passif reçoit-il lui aussi le buff « all allies » ?~~ | ✔ 2026-10-03 (utilisateur) : **oui**, « frodo reçoit aussi le buff atk » (A.2 ter) ; le rappel sur le porteur est juste, aucun code à changer |
 | P2 | ~~Silver Tail : le porteur du passif reçoit-il lui aussi le buff « all allies » ?~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme Frodo — règle générale des versions SW et collab (A.2 ter) |
@@ -9251,6 +9251,22 @@ Restreindre la clé à 23307 retire un bouton jouable à Cecilia et Elise
 1 632 vérifications ; build, spec-lint, diff-check verts. Mutations de
 l'agent : cinq, toutes rouges. **Mutation du pilote**, distincte (clé de
 Gorgo déplacée sur 1866) : 3 échecs ; restaurée.
+
+#### P1b — Rending Claw : le bonus du cadre mécanique sur Cynthia seule
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Décision de l'utilisateur
+du 2026-10-03 (A.8) sur l'arrêt de P1 : l'interrupteur « +50 % — tu es en
+Mechanical Frame State (Emergency Drive) » n'est affiché que sur le Rending
+Claw de **Cynthia** (23307), seule à porter Emergency Drive ; Cecilia
+(23306) et Elise (23310) ne l'ont plus. Un commit : l'entrée `'Rending
+Claw'` de `BONUS_CONDITIONNEL_PROPRE_CONNUS` (`damage.ts`, vers L1488,
+lue vers L3290) passe par identifiant (23307), prioritaire sur la table par
+nom, comme les autres tables `*_PAR_ID_CONNUS` ; test (bouton et total sous
+interrupteur pour Cynthia inchangés ; aucun bouton pour Cecilia et Elise,
+total par défaut inchangé) ; liste du lot LM (Cecilia, Cynthia, Elise).
+**Preuve privée :** `controle-p1b.md` (totaux avant / après, sorties
+`.txt`) ; mutation après le commit.
+**Ne fait pas :** aucune autre entrée de la table par nom.
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

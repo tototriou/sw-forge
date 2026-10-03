@@ -14,8 +14,14 @@ import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import { ok, egal, titre } from './outils';
 import { DetailMonstre } from '../src/lib/monsterSkills';
+import { StatRow } from '../src/lib/stats';
+import { StatKey } from '../src/lib/effects';
 import {
+  AUCUNE_AURA_PROPRE,
+  DEFAULT_DAMAGE_SETUP,
+  DamageSetup,
   SORTS_SANS_ATTAQUE_PAR_ID,
+  computeTotalDamage,
   defaultDamageSkill,
   estPrisEnCharge,
   monsterDamageSkills,
@@ -167,6 +173,38 @@ export default function testDegatsSortsSansAttaque() {
   for (const [id, forme] of [[16113, 26313], [16613, 26813]] as const) {
     ok(!SORTS_SANS_ATTAQUE_PAR_ID.has(id), `${id} : hors table (la prose décrit une riposte)`);
     ok(monsterOffensivePassives(fiche(forme)).every((p) => p.skillCom2usId !== id), `${id} : pas un passif offensif`);
+  }
+
+  // degats-et-aura P1 (PV-T, DH13b-pertes-pv-08) — la `formule` de ces deux
+  // passifs est un bouclier : elle ne doit jamais valoir des dégâts, par aucune
+  // porte (ni passif offensif, ni sort proposé, ni un point du total), quels
+  // que soient les interrupteurs. La riposte de leur prose n'est pas modélisée
+  // (relevé R8 du plan). Une entrée par nom de ces passifs dans la liste des
+  // passifs offensifs ferait échouer ce test.
+  titre('Passifs de bouclier 16113 / 16613 — le bouclier n’est jamais compté comme des dégâts');
+  const valeurs: Partial<Record<StatKey, number>> = { hp: 20000, atk: 1000, def: 800, spd: 200, cr: 25, cd: 100 };
+  const build: StatRow[] = (['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'] as StatKey[]).map((key) => ({
+    key, label: key, base: 0, bonus: valeurs[key] ?? 0, total: valeurs[key] ?? 0, suffix: '',
+  }));
+  const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 1000, enemyHp: 1_000_000, enemyHpPct: 100, critMode: 'normal', summonerSkills: 'combat' };
+  for (const [id, forme] of [[16113, 26313], [16613, 26813]] as const) {
+    const d = fiche(forme);
+    const c = d.competences.find((x) => x.com2usId === id)!;
+    ok(!!c && c.passif && c.formule === '0.15*{MAX HP}', `${id} : témoin — passif dont la formule est le bouclier (0.15*{MAX HP}), forme ${forme}`);
+    ok(monsterDamageSkills(d).every((s) => s.skillCom2usId !== id), `${id} : aucun sort proposé à son identifiant`);
+    const sort = monsterDamageSkills(d).find(estPrisEnCharge);
+    ok(!!sort && estPrisEnCharge(sort), `${id} : forme ${forme} propose un sort de dégâts témoin`);
+    if (!sort || !estPrisEnCharge(sort)) continue;
+    const passifs = monsterOffensivePassives(d);
+    const tousAllumes: Record<number, boolean> = {};
+    for (const k of d.competences) if (k.com2usId != null) tousAllumes[k.com2usId] = true;
+    for (const critMode of ['normal', 'crit'] as const) {
+      const reglage = { ...setup, critMode, skillCom2usId: sort.skillCom2usId, passifsOffensifs: tousAllumes };
+      const sans = computeTotalDamage(sort, passifs.filter((p) => p.skillCom2usId !== id), build, reglage, AUCUNE_AURA_PROPRE, 'wind');
+      const avec = computeTotalDamage(sort, passifs, build, reglage, AUCUNE_AURA_PROPRE, 'wind');
+      ok(sans > 0, `${id} : total témoin non nul (${critMode})`);
+      egal(avec, sans, `${id} : le total est le même avec et sans ce passif, interrupteurs tous allumés (${critMode}) — aucun bouclier compté`);
+    }
   }
   // Effets de PV sans coup (A.2 ter) sans formule : déjà hors calcul.
   for (const [id, forme, libelle] of [[12212, 21412, 'Harmonia S3'], [12215, 21415, 'Vivachel S3']] as const) {

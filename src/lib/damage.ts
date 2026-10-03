@@ -2117,7 +2117,17 @@ export type ConditionCombatProfile = (
       chanceParDebuffCible?: number;
       chanceMax?: number;
     }
-) & { pct?: number; crPoints?: number; critiqueGaranti?: boolean; ignoreDefPct?: number };
+) & {
+  pct?: number;
+  crPoints?: number;
+  critiqueGaranti?: boolean;
+  ignoreDefPct?: number;
+  // Coups en plus quand la condition est remplie (lot P5a2) : ajoutés au minimum
+  // `hits` par `resolvedHits`. Même interrupteur que les autres effets d'une
+  // condition (`debuffCiblePresent`, `manuel`) ; `atkCibleSousAtkPropre` le
+  // déduit du champ « ATQ adverse », sans réglage neuf (Brutal Fists, comme Theonia).
+  coupsEnPlus?: number;
+};
 
 export interface EffetEntreCoupsProfile {
   id: string;
@@ -2512,6 +2522,26 @@ const BONUS_PAR_EFFET_PROPRE_CONNUS: Record<string, { pct: number; source: 'buff
 };
 
 const CONDITIONS_COMBAT_CONNUS: Record<string, ConditionCombatProfile[]> = {
+  // ── Lot P5a2 (degats-et-aura) : un coup en plus qui ne dépend que d'une
+  // CONDITION se règle par un interrupteur, éteint par défaut = le minimum
+  // (`hits`, D25) ; les bornes restent celles de `COUPS_VARIABLES_CONNUS`.
+  // Chaque entrée cite la prose de la fiche.
+  // « If the target is not suffering any harmful effects, 1 additional attack
+  // is added » — Tractor, Bulldozer, Crane, Driller, Crawler.
+  'Hammer Punch': [{ type: 'manuel', libelle: 'La cible ne porte aucun effet nocif', coupsEnPlus: 1 }],
+  // « Deals additional damage 2 more times to targets with harmful effects » ;
+  // `coups: 1`. Nom unique (21911) ; le Whirlpool de Tanjiro est par identifiant.
+  'Water Dragon Surge': [{ type: 'debuffCiblePresent', coupsEnPlus: 2 }],
+  // « Rapidly fires 2 shots, and may fire an additional shot by chance » : la
+  // probabilité n'est jamais tirée, un interrupteur inclut ou exclut le tir
+  // (A.2 ter, attaques supplémentaires conditionnelles).
+  Strafe: [{ type: 'manuel', libelle: 'Le tir en plus part', coupsEnPlus: 1 }],
+  // « Attacks all enemies 2 to 3 times » : même règle, le coup en plus par chance.
+  "God's Weapon": [{ type: 'manuel', libelle: 'Le coup en plus part', coupsEnPlus: 1 }],
+  // « you attack the enemy one more time if your Attack Power is higher than the
+  // enemy target » : ATQ du build > ATQ adverse (`enemyAtk`), STRICT — la même
+  // condition que Theonia (`atkCibleSousAtkPropre`, ratio 1), aucun réglage neuf.
+  'Brutal Fists': [{ type: 'atkCibleSousAtkPropre', ratio: 1, coupsEnPlus: 1 }],
   Airbender: [{ type: 'aucunBuffCible', pct: 30 }],
   'Magic Surge': [{ type: 'aucunBuffCible', pct: 30 }],
   'Power Surge': [{ type: 'manuel', libelle: 'tu n’as aucun effet néfaste à transférer', pct: 15 }],
@@ -2527,6 +2557,14 @@ const CONDITIONS_COMBAT_CONNUS: Record<string, ConditionCombatProfile[]> = {
 };
 
 const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> = {
+  // Whirlpool (Tanjiro Kamado, 21311) : « Deals additional damage 2 more times
+  // to targets with harmful effects ». Par identifiant : le Whirlpool de Seal 2A
+  // (3463) n'a aucun coup en plus (voir `COUPS_VARIABLES_PAR_ID_CONNUS`).
+  21311: [{ type: 'debuffCiblePresent', coupsEnPlus: 2 }],
+  // Pound (Driller, 11664) : « 2 additional attacks are added if the enemy's HP
+  // condition is worse than yours or if the target is suffering a harmful effect ».
+  // Les deux clauses se règlent ensemble : jamais devinées à partir des PV.
+  11664: [{ type: 'manuel', libelle: 'L’état des PV de la cible est pire que le tien, ou elle porte un effet nocif', coupsEnPlus: 2 }],
   2759: [{ type: 'aucunBuffCible', pct: 50 }], // Eludain — le Flash Pierce 2709 n'a pas cette clause
   5812: [{ type: 'pvCibleSuperieursPvPropre', ratio: 2, pct: 50 }], // Ceres — Last Shot
   17413: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 30 }], // Kassandra vent
@@ -4480,13 +4518,67 @@ export function pointsAuraResPrePropres(propres: AurasPropres): { res: number; a
  * sécurité, au cas où la clé viendrait d'une recette écrite pour une autre
  * plage (régénération des données SWARFARM, par exemple).
  */
-export function resolvedHits(profile: SkillDamageProfile, setup: DamageSetup): number {
+export function resolvedHits(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  // ATQ du build, seulement pour un coup en plus déduit du champ « ATQ adverse »
+  // (Brutal Fists) ; sans lui, cette condition compte pour éteinte.
+  combat?: { atk: number; def: number; hp: number; spd: number }
+): number {
   if (!profile.hitsRange) return profile.hits;
+  if (coupsEnPlusDeCondition(profile)) {
+    const deConditions = profile.hits + coupsEnPlusActifs(profile, setup, combat);
+    const ancien = coupsEnPlusSaisiAncienneRecette(profile, setup);
+    return Math.min(profile.hitsRange.max, Math.max(deConditions, ancien ?? 0));
+  }
   const choisi = setup.coupsPersonnalises?.[profile.skillCom2usId];
   if (choisi == null) return profile.hits;
   return Math.min(profile.hitsRange.max, Math.max(profile.hitsRange.min, choisi));
 }
 
+/** Ce sort règle un coup en plus par une condition (lot P5a2), pas par un champ de coups ? */
+export function coupsEnPlusDeCondition(profile: SkillDamageProfile): boolean {
+  return !!profile.conditionsCombat?.some((c) => c.coupsEnPlus);
+}
+
+function coupsEnPlusActifs(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  combat?: { atk: number; def: number; hp: number; spd: number }
+): number {
+  let extra = 0;
+  for (const c of profile.conditionsCombat ?? []) {
+    if (c.coupsEnPlus && conditionCombatActive(c, setup, profile.skillCom2usId, null, setup.enemyHpPct, combat)) {
+      extra += c.coupsEnPlus;
+    }
+  }
+  return extra;
+}
+
+/**
+ * Lecture d'une ANCIENNE recette : avant le lot P5a2, ces sorts portaient un
+ * nombre de coups saisi (`coupsPersonnalises`). Il reste lu, borné à la plage,
+ * tant que l'interrupteur du sort n'a pas été touché (clé absente de
+ * `passifsOffensifs`) ; toucher l'interrupteur, dans un sens ou l'autre, rend la
+ * main aux conditions. Réservé aux interrupteurs : un coup déduit de l'ATQ adverse
+ * (Brutal Fists) n'a plus aucune saisie qui le corrigerait, la déduction prévaut.
+ */
+function coupsEnPlusSaisiAncienneRecette(profile: SkillDamageProfile, setup: DamageSetup): number | null {
+  if (!profile.hitsRange) return null;
+  if (!profile.conditionsCombat?.some((c) => c.coupsEnPlus && c.type !== 'atkCibleSousAtkPropre')) return null;
+  const choisi = setup.coupsPersonnalises?.[profile.skillCom2usId];
+  if (choisi == null || setup.passifsOffensifs?.[profile.skillCom2usId] !== undefined) return null;
+  return Math.min(profile.hitsRange.max, Math.max(profile.hitsRange.min, choisi));
+}
+
+/**
+ * Un interrupteur de coups en plus s'affiche-t-il allumé ? Le réglage de la
+ * condition, ou une ancienne recette qui portait déjà plus que le minimum.
+ */
+export function coupsEnPlusAncienneRecetteActif(profile: SkillDamageProfile, setup: DamageSetup): boolean {
+  const ancien = coupsEnPlusSaisiAncienneRecette(profile, setup);
+  return ancien != null && ancien > profile.hits;
+}
 /**
  * La cible RÉELLEMENT calculée pour `profile` : `'secondaire'` seulement si
  * le réglage le demande ET que la séquence curée du sort porte un coup de
@@ -5134,6 +5226,15 @@ export function computeSkillDamageDetail(
   fixeProtege: number;
   pvRestantsPct: number;
 } {
+  // Coup en plus DÉDUIT de l'ATQ du build (Brutal Fists, lot P5a2) : le nombre de
+  // coups se règle ICI, une fois les stats de combat connues, puis le sort suit le
+  // chemin ordinaire avec `hits` résolu et sans plage. Même `statsDeCombat` (mêmes
+  // arguments) que plus bas : aucune seconde lecture de l'ATQ. Les interrupteurs,
+  // eux, ne lisent que le réglage (`resolvedHits`).
+  if (profile.hitsRange && profile.conditionsCombat?.some((c) => c.coupsEnPlus && c.type === 'atkCibleSousAtkPropre')) {
+    const combatPourCoups = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide);
+    profile = { ...profile, hits: resolvedHits(profile, setup, combatPourCoups), hitsRange: undefined };
+  }
   // ── Séquence curée (Blade Surge) : un appel ordinaire par groupe de coups ──
   //
   // La cible calculée (`cibleDegatsRetenue`) décide des groupes reçus :

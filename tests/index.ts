@@ -80,6 +80,7 @@ import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, te
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
+import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
@@ -153,6 +154,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduSpeedTuneVide', testRenduSpeedTuneVide],
   ['testRenduSpeedTuneCamps', testRenduSpeedTuneCamps],
   ['testRenduSpeedTuneAnalyse', testRenduSpeedTuneAnalyse],
+  ['testRenduOptimizerVide', testRenduOptimizerVide],
+  ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
+  ['testRenduOptimizerReglages', testRenduOptimizerReglages],
+  ['testRenduTelephoneOptimizer', testRenduTelephoneOptimizer],
   ['testRenduBestiaire', testRenduBestiaire],
   ['testRenduMecaniques', testRenduMecaniques],
   ['testRenduNouveautes', testRenduNouveautes],

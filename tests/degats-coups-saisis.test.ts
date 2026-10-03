@@ -75,7 +75,8 @@ const HAMMER_HOMONYMES: [number, number][] = [
   [11601, 20801], [11602, 20802], [11603, 20803], [11604, 20804], [11605, 20805], // Frankenstein 1A
   [11673, 48201], [11674, 48202], [11675, 48203], [11676, 48204], [11677, 48205], // boss
 ];
-const GRINDING = '« Attacks all enemies 3 times … and attacks them once more » : 4 coups ; `coups: 3` en donnée';
+const BRUTAL = '« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` = le maximum';
+const GRINDING ='« Attacks all enemies 3 times … and attacks them once more » : 4 coups ; `coups: 3` en donnée';
 
 const ENTREES: EntreeCoups[] = [
   { nom: 'Strafe', id: 11716, formes: [20911], plage: { min: 2, max: 3 }, cle: 'nom « Strafe »', citation: STRAFE, homonymesCouverts: STRAFE_HOMONYMES },
@@ -114,6 +115,11 @@ const ENTREES: EntreeCoups[] = [
     nom: 'Water Dragon Surge', id: 21911, formes: [32511], plage: { min: 1, max: 3 }, cle: 'nom « Water Dragon Surge »',
     citation: '« Deals additional damage 2 more times to targets with harmful effects » (effet `Additional Attack`, `quantite: 2`) ; `coups: 1`',
   },
+  { nom: 'Brutal Fists', id: 18301, formes: [28511], plage: { min: 3, max: 4 }, cle: 'nom « Brutal Fists »', citation: BRUTAL },
+  { nom: 'Brutal Fists', id: 18302, formes: [28512], plage: { min: 3, max: 4 }, cle: 'nom « Brutal Fists »', citation: BRUTAL },
+  { nom: 'Brutal Fists', id: 18303, formes: [28513], plage: { min: 3, max: 4 }, cle: 'nom « Brutal Fists »', citation: BRUTAL },
+  { nom: 'Brutal Fists', id: 18304, formes: [28514], plage: { min: 3, max: 4 }, cle: 'nom « Brutal Fists »', citation: BRUTAL },
+  { nom: 'Brutal Fists', id: 18305, formes: [28515], plage: { min: 3, max: 4 }, cle: 'nom « Brutal Fists »', citation: BRUTAL },
   { nom: 'Grinding', id: 16306, formes: [26511], fixe: 4, cle: 'nom « Grinding » (coups fixes corrigés)', citation: GRINDING },
   { nom: 'Grinding', id: 16308, formes: [26513], fixe: 4, cle: 'nom « Grinding » (coups fixes corrigés)', citation: GRINDING },
   { nom: 'Grinding', id: 16310, formes: [26515], fixe: 4, cle: 'nom « Grinding » (coups fixes corrigés)', citation: GRINDING },
@@ -167,5 +173,14 @@ export function testDegatsCoupsSaisis() {
       ok(p == null || !estPrisEnCharge(p) || p.hitsRange == null, `homonyme ${idHom} sur ${formeHom} : aucune plage (autre mécanique, hors de la clé « ${e.cle} »)`);
       if (p && estPrisEnCharge(p)) egal(p.hits, 1, `homonyme ${idHom} sur ${formeHom} : un seul coup, comme avant`);
     }
+  }
+
+  // Témoins HORS PÉRIMÈTRE de P5a : ils restent comme avant, jusqu'à leur propre lot.
+  titre('Lot P5a — témoins hors périmètre : Stormfist (valeur de l\'utilisateur attendue) et Crow Hunt (relevé R9)');
+  const stormfist = sortDe(28511, 18306);
+  egal([stormfist.hitsRange, stormfist.hits], [undefined, 3], 'Stormfist 18306 : ni plage ni correction, 3 coups comme avant (la règle selon l\'ATQ est à fournir)');
+  for (const [id, forme] of [[1607, 10512], [1609, 10514], [1618, 10513]] as const) {
+    const p = sortDe(forme, id);
+    egal([p.hitsRange, p.hits], [undefined, id === 1618 ? 1 : 4], `Crow Hunt ${id} sur ${forme} : inchangé (${id === 1618 ? '`coups: 1`, relevé R9 attendu' : '`coups: 4`'})`);
   }
 }

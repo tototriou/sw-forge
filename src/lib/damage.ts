@@ -3093,6 +3093,13 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
   // « Deals additional damage 2 more times to targets with harmful effects » ;
   // `coups: 1` (Azure Dragon Swordsman). Nom unique dans le corpus.
   'Water Dragon Surge': { min: 1, max: 3 },
+  // « Attacks the enemy 3 times … In addition, you attack the enemy one more
+  // time if your Attack Power is higher than the enemy target » — S1 des cinq
+  // Asuras (Mayasura, Varuna, Usha, Danu, Vritra : 18301-18305). `coups: 4` en
+  // donnée = le MAXIMUM ; l'app comptait 4 coups toujours, elle retombe sur 3
+  // (la condition ATQ > ATQ de la cible n'est jamais devinée : saisie). Nom
+  // exclusif à ces cinq sorts dans le corpus (balayage, contrôle 13b).
+  'Brutal Fists': { min: 3, max: 4 },
 };
 
 // Même table, clée par IDENTIFIANT de compétence : pour un nom dont un

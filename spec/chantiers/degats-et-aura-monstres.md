@@ -331,6 +331,14 @@ Formes : 34002 Arcane Weapon (feu) †, 34012 Cynthia.
 | --- | --- | --- | --- | --- |
 | « Rending Claw » · 23307 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » passe de la table par nom à une table par identifiant (23307) : Cynthia, seule fiche à porter Emergency Drive, le garde ; ses totaux sont inchangés (981,1201 par défaut, 1 471,6801 interrupteur allumé, au témoin du lot). | P1b | `f840ef7e` | Chemin commun → Cynthia → « Compétence utilisée » → « Rending Claw » : l'interrupteur « Mechanical Frame State » est présent, éteint par défaut ; l'allumer multiplie le total par 1,5 ; « Mechanical Fist » (S1) n'a pas ce bouton. |
 
+### Danu
+
+Formes : 28504 Asura †, 28514 Danu.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Brutal Fists » · 18304 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Danu → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
+
 ### Dagora
 
 Formes : 10731 Dagora.
@@ -871,6 +879,7 @@ Formes : 28501 Asura †, 28511 Mayasura.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Constant Training (Passive) » · 18311 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Attaques déjà effectuées » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Constant Training (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
+| « Brutal Fists » · 18301 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. Stormfist (18306) n'est pas touché : la règle selon l'ATQ est une valeur à fournir. | P5a | commit du lot P5a | Chemin commun → Mayasura → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
 
 ### Mei Hou Wang
 
@@ -1234,6 +1243,7 @@ Formes : 28503 Asura †, 28513 Usha.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
+| « Brutal Fists » · 18303 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Usha → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
 | « God's Weapon » · 18308 · S2 | Nombre de coups **saisi**, de 2 à 3 (« Attacks all enemies 2 to 3 times ») ; défaut au minimum, 2 coups : total par défaut inchangé (2 189,14 au build de la preuve). Chaque coup vaut les autres. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. | P5a | commit du lot P5a | Chemin commun → Usha → « Compétence utilisée » → « God's Weapon » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 | « Barrage of Madness » · 18313 · S3 | Nombre de coups **saisi**, de 3 à 5 (« Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance of inflicting more number of attacks ») ; défaut au minimum, 3 coups : total par défaut inchangé (4 098,07 au build de la preuve). La probabilité n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Usha → « Compétence utilisée » → « Barrage of Madness » : le champ du nombre de coups, borné de 3 à 5, 3 par défaut ; 5 coups = 5/3 × le total par défaut. |
 
@@ -1251,6 +1261,7 @@ Formes : 28502 Asura †, 28512 Varuna.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
+| « Brutal Fists » · 18302 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Varuna → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
 | « Sura's Seal » · 18312 · S3 | Nombre de coups **saisi**, de 4 à 8 (« Attacks the enemy 4 times … The number of attacks increases up to 8 times according to the difference between the target and your Attack Power ») ; défaut au minimum, 4 coups : total par défaut inchangé (4 203,15 au build de la preuve). Les seuils d'ATQ ne sont pas relevés : rien n'est déduit. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Varuna → « Compétence utilisée » → « Sura's Seal » : le champ du nombre de coups, borné de 4 à 8, 4 par défaut ; 8 coups = 2 × le total par défaut. |
 
 ### Varus
@@ -1300,6 +1311,7 @@ Formes : 28505 Asura †, 28515 Vritra.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
+| « Brutal Fists » · 18305 · S1 | Nombre de coups **saisi**, de 3 à 4 (« Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` en donnée = le maximum) ; défaut au minimum, 3 coups : le total par défaut **baisse** (5 472,85 → 4 104,64 au build de la preuve, ×0,75), l'app comptait 4 coups toujours. La condition d'ATQ n'est jamais devinée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Vritra → « Compétence utilisée » → « Brutal Fists » : le champ du nombre de coups, borné de 3 à 4, 3 par défaut ; 4 coups = le total d'avant. |
 | « God's Weapon » · 18310 · S2 | Nombre de coups **saisi**, de 2 à 3 (« Attacks all enemies 2 to 3 times ») ; défaut au minimum, 2 coups : total par défaut inchangé (2 189,14 au build de la preuve). Chaque coup vaut les autres. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. | P5a | commit du lot P5a | Chemin commun → Vritra → « Compétence utilisée » → « God's Weapon » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Werner

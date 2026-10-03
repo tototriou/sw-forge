@@ -744,14 +744,23 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 11 — prose et exactitude des passifs « Stats acquises en combat » (inventaire 38/40 ; correctif 30/32) | J (C fait par 1e) | terminé (lot parallèle, seconde vague), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `92de9890`, `d6ff1b6a`, `5a21fd78` / 2026-10-02 |
 | 11bis — proses de sort au clic, deux formats | J | terminé (lot parallèle), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `a34dedb5`, `aba5306e` / 2026-10-02 |
 | 12 — les trois mécanismes rejoués sur des cas indépendants | C | terminé (agent `lot-c`), preuves et mutation rejouées par le pilote ; mécanisme 9 à retoucher → 9c ; 8 → extension lot 13 | `6f16ce5d` ; reçu `6f16ce5` ↔ `c222480` / 2026-10-02 |
+
+##### Suivi des lots 13 et suivants (reliquat compris)
+
+| Lot | Cat. | Statut | Commit / date |
+| --- | --- | --- | --- |
 | 13a — extraction et réconciliation du reliquat (243 constats hors chantier) | C | terminé (agent `lot-c`), scripts rejoués par le pilote (empreintes identiques), compte des 51 recoupé ; suivi 78 → 82 | notes `35d577f` (reçu `cd5fe43`) / 2026-10-02 |
 | `13b-*` — dix-sept sous-lots de qualification (contrat commun et table : lot 13, « Contrats `13b-*` ») | J | contrats écrits et revus le 2026-10-02 ; **17 / 17 validés** (amorces, séquences-zone, ignore-def ; voisins, effets entre coups, coups variables ; composantes, hors tour, pertes de PV ; variables refusées, PV et boucliers, compteurs ; passifs de stats, passifs du corpus, critiques garantis ; bonus TC/DC, vérification de la partie 2) ; les autres par vagues de trois (`lot-j`) | Résultats : lot 13, « Résultats des sous-lots 13b » / 2026-10-02 |
-| 13 — consolidation : plan, synthèse, recommandation (pilote) | J | terminé : plan validé par le pilote, recommandation « chantier à part » **soumise à l'utilisateur** (A.8) | `decisions/plan-reliquat-degats-2026-10.md` / 2026-10-03 |
+| 13 — consolidation : plan, synthèse, recommandation (pilote) | J | terminé : plan validé par le pilote ; recommandation « chantier à part » **écartée par l'utilisateur** le 2026-10-03 (D65 : lots de plus ici → lots Q et P1 à P26) | `decisions/plan-reliquat-degats-2026-10.md` / 2026-10-03 |
 | CM — le mode critique « Moyenne » supprimé | J | terminé (lot parallèle, `lot-j`), preuves et mutation rejouées par le pilote, intégré ; vérification à l'œil en attente (A.8) | `f1e7d71c`, `361cc9d0`, `3ea62afe`, `3cba1d5a` / 2026-10-02 |
 | LM — la liste des monstres et sorts modifiés, tenue à chaque commit | C | terminé (`lot-c`), contrôlé par le pilote ; règle permanente en A.8 | `7d3a9d77` / 2026-10-02 |
 | 9d — le survol de Tempest retiré | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `2bca1603` / 2026-10-03 |
 | 15a à 15e — les lots prêts du plan | C / J | **terminés**, preuves et mutations rejouées par le pilote : 15b (`dcca28a7`), 15c (`a65b2f28`, `f7bd6a1f`), 15d (`b2d44b4d`, `292716c2`, `aa052b63`), 15e (`6c2b593e`, `404472a3`), 15a (`35541133`…`4616dab1`) ; vérifications à l'œil en attente (A.8) | 2026-10-03 |
-| 14 — clôture et ledgers après contrôles | M | à faire | — |
+| 15f — Yuji et Rick : DEF du coup 2 ; ATQ ennemie absente = valeur affichée | C | à faire (décisions du 2026-10-03) | — |
+| 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | à faire (lot parallèle, notes seules ; décision du 2026-10-03) | — |
+| Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | à faire (lots parallèles, notes seules) | — |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | à faire ; P1, P2, P4 prêts, le reste attend une décision (Q) ou un relevé | — |
+| 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
 session qui **n'a pas écrit** ce document, munie de la checklist C du skill
@@ -887,11 +896,13 @@ décision, rayée avec la date et la réponse.
 | 13b (pour le plan) | ~~Kung Fu Girls, Trinity Claymore, Fei, Taebaek, TC en points, assiette, Mina, Yuji/Rick, effets de PV sans coup~~ | ✔ 2026-10-02 / 03 : mécaniques fournies par l'utilisateur, inscrites en A.2 ter |
 | nuit du 2026-10-02 | ~~Jusqu'où aller sans l'utilisateur ?~~ | ✔ 2026-10-02 : **le plan du lot 13, puis les lots déjà prêts dans ce chantier** (valeur dans la donnée, mécanique existante, décision prise, aucun relevé) — lots 15a à 15e |
 | clôture | ~~Lot 14 cette nuit ?~~ | ✔ 2026-10-02 : **après la vérification à l'œil de l'utilisateur**, guidée par la liste du lot LM |
-| 13 (consolidation) | Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ? Puis ses 65 décisions ouvertes et ses 10 valeurs de jeu (sections 5.1 et 5.2), et sa demande de 109 relevés (section 4) | en attente |
-| 15d | La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8) | en attente |
-| 15e | Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ? Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
+| 13 (consolidation) | ~~Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ?~~ | ✔ 2026-10-03 (utilisateur) : **lots de plus dans ce chantier**, contre la recommandation du pilote → lots Q1, Q2 puis P1 à P26 ; rien de livré ne rejoint `main` avant leur fin (ou leur report décidé) |
+| 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en attente — présentées par le questionnaire des lots Q1, Q2 |
+| 15d | ~~La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8)~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme les cinq autres sorts du genre → lot 15f |
+| 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
+| 15e | Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
 | 15c | ~~Les 14 sorts masqués sur jugement (2813, 2818, 12512, 23706, 23708, 23709, 24206, 24208, 24209, 10243000, 10253000, 15607, 15608, 15609 — boucliers et buffs dont la prose dit « damage » / « attack » au sens des dégâts absorbés ou des attaques ennemies) : confirmer ?~~ | ✔ 2026-10-03 (utilisateur) : **les 14 confirmés**, après lecture du nom, du monstre et de la prose de chacun ; aucun sort à réafficher |
-| 15c | Les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ? | en attente |
+| 15c | ~~Les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ?~~ | ✔ 2026-10-03 (utilisateur) : **revue maintenant** → lot 15g ; rien n'est masqué sans confirmation de la liste des candidats |
 
 ---
 
@@ -8905,9 +8916,137 @@ disent la même chose. **Écart** : l'agent a utilisé `sed -i` pour
 **Toujours sans test, hors périmètre** : 2713, 3113, 12410, 8301 à 8305,
 1879, le refus de `aliveEnemies: 0`.
 
+### Lot 15 (suite) — 15f et 15g, décisions du 2026-10-03
+
+**Décisions de l'utilisateur du 2026-10-03** (A.8) : la réduction de DEF
+posée par le 1er coup de la S2 de Yuji et Rick baisse aussi la DEF que subit
+le 2e coup ; une recette sans `enemyAtk` prend la valeur affichée par
+l'écran (1 000) ; les 144 sorts du § 6 de `controle-15c.md` sont passés en
+revue maintenant. Règles du lot 15 : un Résultat cité, la liste du lot LM
+dans le même commit, la mutation après le commit (A.8).
+
+#### 15f — Yuji et Rick : DEF du coup 2 ; ATQ ennemie absente = valeur affichée
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Deux commits, un par
+décision.
+
+1. **Yuji et Rick.** `effetCombat: 'defBreak'` sur les six entrées 20107,
+   20108, 20110, 20707, 20708, 20710 de `EFFETS_ENTRE_COUPS_PAR_ID_CONNUS`
+   (`damage.ts`, vers L2645-2650), comme les cinq sorts « decrease-def »
+   indexés par nom (vers L2607-2627) ; le commentaire de la table dit la
+   décision du 2026-10-03 au lieu de « ni relevé ni décidé ». Le test
+   `garantieyujirick` attend, pour le témoin Yuji vent (20108) avec la
+   réduction posée après le coup 1, **2 231,2793** (total de la mutation M2b
+   de 15d, `controle-15d.md`, « Totaux témoins ») ; sans scénario, rien ne
+   change (848,5363). La section de `spec/outils/degats-reels/conditions-et-audit.md`
+   qui décrit ce cas est mise à jour ; six lignes de la liste (Yuji ×3,
+   Rick ×3).
+2. **ATQ ennemie absente.** `conditionCombatActive` lit `setup.enemyAtk ?? 0`
+   (`damage.ts`, vers L1327) alors que l'écran affiche
+   `DEFAULT_DAMAGE_SETUP.enemyAtk` (1 000, `DamageSetupCard.tsx` vers
+   L1431) : le moteur prend la valeur de l'écran. `grep -rn enemyAtk src/
+   scripts/ tests/` avant et après (la recette a plusieurs constructeurs,
+   CLAUDE.md) : tout lecteur à un autre défaut est aligné ou justifié dans
+   la preuve. Test : recette sans le champ, ATQ du build 900 → condition
+   éteinte ; 1 200 → allumée ; résultats identiques à une recette qui porte
+   1 000. Spec et liste : chaque monstre dont la condition est
+   `atkCibleSousAtkPropre` (Theonia, Kassandra, Eleni, à recompter par
+   `grep`).
+
+**Preuve privée :** `controle-15f.md` et `controle-15f-intrants/` — totaux
+témoins avant / après, sorties de `grep`, mutations de l'agent (une entrée
+sans `effetCombat` ; le défaut `?? 0` remis) et leurs échecs.
+**Vérifications :** `npx tsc --noEmit`, `node tests/run.mjs` sur les
+contrôles touchés (`garantieyujirick` et ceux de Theonia), `npm run build`,
+`spec-lint`, `git diff --check`.
+**Ne fait pas :** les libellés « Cumuls de… » (en attente, A.8) ; aucun
+autre sort « decrease-def » ; aucune autre valeur par défaut de la recette.
+
+#### 15g — revue des 144 sorts à formule sans « attack » ni « damage »
+
+**Cat. J, agent `lot-j`, lot parallèle (worktree `sw-forge-lot-15g`),
+notes seules, aucun commit de code.**
+
+**Intrant :** `controle-15c.md` § 6 (L126-139) et
+`controle-15c-intrants/03-sortie.txt` (sélection des 144, extraite par
+script) ; `04-etat.ts` du même dossier comme modèle de lecture de l'état de
+production ; fiches `public/data/skills/<forme>.json` (prose, effets,
+note) et `public/data/monsters.json` (noms, éléments) ; A.2 ter, « Une
+attaque se lit dans la prose ».
+
+**Contrat :** une ligne par sort — identifiant · nom du jeu · monstre(s) et
+élément, formes † dites · slot · formule · **état actuel à l'écran**, lu
+par le moteur (proposé ; coché par défaut ; refusé « Formule non prise en
+charge… » ; déjà masqué) · verdict **frappe** / **sans attaque** / **doute**
+· la phrase de la prose qui décide, citée. « Frappe » exige une phrase qui
+dit un coup porté à l'ennemi (le verbe exact cité : strike, hit, shoot,
+slash, inflict…), jamais l'implicite ; aucun coup dit → « sans attaque » ;
+prose ambiguë, ou contredite par les effets ou la note → « doute ». Puis
+une section **« Candidats au masquage »** : pour chaque « sans attaque » et
+« doute », nom, monstre(s), état actuel et prose complète, sous la forme
+présentée à l'utilisateur pour les 14 de 15c.
+
+**Preuve :** `controle-15g.md` et `controle-15g-intrants/` (script,
+sortie) ; 144 lignes et le compte de chaque verdict mesurés par script.
+**Livraison :** dépôt dans le worktree du lot ; le pilote recopie après
+validation, l'agent ne lance pas `livrer`.
+**Ne fait pas :** aucun masquage (lot 15h, après confirmation de la liste
+par l'utilisateur) ; ni `damage.ts` ni la liste du lot LM.
+
+### Lots Q1 et Q2 — le questionnaire du reliquat
+
+**Cat. J, agents `lot-j`, lots parallèles (worktrees `sw-forge-lot-q1` et
+`sw-forge-lot-q2`), notes seules.** Décision du 2026-10-03 (D65) : le
+reliquat se traite dans ce chantier. Ses 74 questions — 10 valeurs de jeu
+(Q01-Q10, plan § 5.1) et 64 décisions (D01-D64, § 5.2) — sont rédigées pour
+un joueur, afin que l'utilisateur réponde en une fois (« recommandations
+retenues sauf n° … », comme pour les seize choix d'interface). Q1 : Q01-Q10
+et D01-D32 ; Q2 : D33-D64.
+
+**Intrant :** le plan, §§ 3, 5 et 6 (L90-113, L261-401) ; pour chaque
+question, sa source dans la preuve 13b citée par la colonne « Origine »
+(`controle-13b-<famille>.md`, par `grep` puis plage, jamais en entier) et la
+ligne d'A.2 ter citée ; les fiches pour la prose.
+
+**Contrat, par question :** numéro inchangé ; monstre(s) et sort(s) (nom du
+jeu, identifiant) ; la prose utile citée mot pour mot ; la question dite en
+termes de joueur — ce que l'écran montre ou calcule selon la réponse, jamais
+un nom de mécanisme du code, un cran nommé par la question du joueur ; 2 à 4
+options avec leur conséquence concrète ; la recommandation du plan et sa
+raison ; le lot P qu'elle débloque. Une question déjà tranchée par A.8 ou
+A.2 ter n'est pas reposée : elle est signalée, avec la citation, pour que le
+pilote la retire. Une question qui ne se rend pas compréhensible sans le
+code est signalée, jamais reformulée au jugé.
+
+**Sortie :** `controle-q1.md`, `controle-q2.md` ; le pilote assemble
+`decisions/questionnaire-reliquat-2026-10.md` après validation.
+**Preuve :** chaque citation de prose retrouvée par script dans sa fiche
+(sortie jointe) ; compte des questions (42 et 32).
+**Ne fait pas :** ne répond à aucune question ; ne touche ni le plan ni le
+code ; ne rédige pas la demande de relevés (§ 4 du plan), qui suit les
+réponses — certains relevés tombent avec elles.
+
+### Lots P1 à P26 — le reliquat de l'audit
+
+Décision du 2026-10-03 (D65). Les lots du plan (§ 6, L348-401) deviennent
+des lots de ce chantier sous leur nom (P1 à P26, 33 avec les scissions a,
+b, c). **Le contrat de chacun est écrit par le pilote au lancement**, à
+partir de sa ligne du plan, des Résultats 13b qu'elle cite et des plages de
+`damage.ts` relevées à l'instant (elles ont bougé pendant 15a-15f) ; il
+s'ajoute ici, suivi de son Résultat. Ordre : P1, P4, P2 (prêts ; un à la
+fois dans le worktree du chantier, ils touchent tous `damage.ts`) ; P3 et
+P10 dès que leur forme d'interface est montrée et acceptée ; les autres dans
+l'ordre des réponses et des relevés revenus. Règles du lot 15 : liste du lot
+LM dans le même commit, mutation après le commit.
+
+**Ne fait pas :** un lot P ne démarre jamais avant ses prérequis (colonne
+« Prérequis » du plan) ; aucune valeur de jeu supposée.
+
 ### Lot 14 — clôture
 
-**Cat. M.**
+**Cat. M.** Depuis la décision du 2026-10-03 (D65), la clôture suit les lots
+P1 à P26, ou le report nominatif de ceux que l'utilisateur décide de sortir
+du chantier.
 
 **Déroulé :** 1) vérifier les preuves et tests ciblés de tous les lots, le lint
 et l'absence de décision bloquante ; 2) réconcilier le suivi d'audit et les

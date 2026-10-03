@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills, type SetAura } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
-import { Bouton, BoutonIcone, NumberField, Segmented, Selecteur } from '../../ui';
+import { Bouton, BoutonIcone, Jeton, NumberField, Segmented, Selecteur } from '../../ui';
+import type { RappelBuffDePassif } from '../../lib/buffsDePassif';
 import HelpPopover from '../HelpPopover';
 import EffetVignette from './EffetVignette';
 import { ATK_BUFF_ICON, DEF_BUFF_ICON, SPD_BUFF_ICON } from '../../lib/damage';
@@ -66,11 +67,16 @@ export default function EtatMonstre({
   artefacts,
   rappelAuras,
   onGuiderResPre,
+  rappelsBuffs,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
   etroit: boolean;
   artefacts: ArtifactDamageProfile;
+  // Passifs du monstre choisi qui posent un buff standard (degats-et-aura
+  // P2, `rappelsBuffsDePassif`, buffsDePassif.ts) : un rappel, jamais un
+  // réglage — le buff reste à allumer à la main dans la boîte ci-dessous.
+  rappelsBuffs: RappelBuffDePassif[];
   // Rappel « Pense à vérifier les sets d'aura externes. » (degats-et-aura
   // 7b) : décidé et minuté par l'écran (`doitRappeler`, OptimizerSection.tsx,
   // au seul geste de la liste de travail) ; seul son rendu vit ici.
@@ -189,6 +195,32 @@ export default function EtatMonstre({
         />
       </div>
       </div>
+      {/* ⚠️ **Rappel des buffs posés par un passif** (degats-et-aura P2) :
+          même grammaire que les lignes d'amplification juste dessous (texte
+          `xs` atténué sous la rangée des buffs) ; le passif est nommé comme
+          dans « Stats acquises en combat » (lot 11) — `Jeton` en lecture
+          seule, icône et nom du jeu. La condition est un extrait LITTÉRAL de
+          la prose, entre guillemets, jamais reformulé.
+          ⚠️ Il dépend du MONSTRE, jamais d'un clic dans cette carte : il
+          paraît au choix du monstre, dont le sélecteur et la liste vivent
+          dans la carte du haut (avant celle-ci au téléphone, rangée 1 au
+          bureau) — rien de ce qu'on vient de cliquer ne bouge. Les vignettes
+          au-dessus ne bougent pas non plus : il vit sous elles. */}
+      {rappelsBuffs.length > 0 && (
+        <div className="space-y-0.5 text-xs text-ink-dim">
+          {rappelsBuffs.map((r) => (
+            <p key={r.skillCom2usId} className="flex flex-wrap items-center gap-1.5">
+              <Jeton
+                icone={r.icone ? <img src={r.icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
+                libelle={r.nom}
+              />
+              <span>
+                pose {r.buffs} — « {r.condition} »
+              </span>
+            </p>
+          ))}
+        </div>
+      )}
       {(setup.atkBuff && artefacts.ampliAtkPct > 0) ||
       (setup.defBuff && artefacts.ampliDefPct > 0) ||
       (setup.spdBuff && artefacts.ampliVitPct > 0) ? (

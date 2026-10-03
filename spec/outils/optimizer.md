@@ -1223,6 +1223,31 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
    VIT), jamais sous la VIT de l'adversaire.
 
+   **Rappel des buffs posés par un passif** (degats-et-aura P2, décision de
+   l'utilisateur D1 : rappel à l'écran, réglage manuel conservé) — quand le
+   monstre choisi porte un passif qui se pose un buff standard, une ligne
+   s'affiche sous la rangée des trois groupes, avant les lignes
+   d'amplification et dans la même grammaire (texte `xs` atténué) : le
+   passif nommé comme dans « Stats acquises en combat » (`Jeton` en lecture
+   seule, icône et nom du jeu sans « (Passive) »), puis « pose Buff ATQ —
+   « when you attack on your turn » ». La condition est un **extrait
+   littéral** de la prose du jeu, jamais reformulé ; plusieurs buffs se
+   joignent par « et », ou par « ou » quand le jeu en tire un seul (« grants
+   one of the following », Caffeine et Mind and Body Rest). Le Taux Crit de
+   Transcendence (Antares) est nommé, bien qu'aucune vignette ne le règle.
+   **Un rappel, jamais un réglage** : aucun buff ne s'allume d'office, et
+   aucun calcul ne lit la table — elle n'est importée que par l'écran et la
+   carte. La table est curée **par identifiant de compétence**
+   (`BUFFS_POSES_PAR_PASSIF_CONNUS`, `src/lib/buffsDePassif.ts`) : les 24
+   passifs « buff standard » du tri du lot 13b, chacun relu dans sa prose ;
+   un passif absent de la table n'a pas de rappel, et les buffs qu'un sort
+   actif se pose lui-même n'en ont pas non plus (P12a). Le rappel dépend du
+   monstre, jamais d'un clic dans la carte : il paraît au choix du monstre,
+   dont le sélecteur et la liste vivent dans la carte du haut — rien de ce
+   qu'on vient de cliquer ne bouge. Il lit la fiche du monstre **choisi**
+   (garde d'identité : la fiche précédente, encore en mémoire pendant le
+   chargement, n'en donne aucun).
+
    Les trois groupes tiennent sur **une seule rangée** (demande explicite) :
    empilés, ils donnaient à la carte une hauteur sans rapport avec le peu
    qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt ou

@@ -82,6 +82,7 @@ import {
   type BuildCandidate,
 } from '../../lib/runeBuildOptim';
 import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
+import { rappelsBuffsDePassif } from '../../lib/buffsDePassif';
 import { monsterBaseStats } from '../../lib/stats';
 import {
   DEFAULT_DAMAGE_SETUP,
@@ -549,6 +550,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   }, [selectedCom2usId]);
 
   const damageSkills = useMemo(() => monsterDamageSkills(skillDetail), [skillDetail]);
+  // Rappel « tel passif pose tel buff » d'« État de mon monstre »
+  // (degats-et-aura P2) : affichage seul, aucun calcul ne le lit. ⚠️ Garde
+  // sur l'identité de la fiche : au changement de monstre, l'ancienne reste
+  // en mémoire le temps du chargement, et son rappel ne doit pas s'afficher
+  // sous le nouveau monstre.
+  const rappelsBuffs = useMemo(
+    () => (skillDetail?.com2usId === selectedCom2usId ? rappelsBuffsDePassif(skillDetail) : []),
+    [skillDetail, selectedCom2usId]
+  );
   // Le sort RÉELLEMENT retenu — `resolveDamageSkill` est la source unique de
   // cette résolution, partagée avec la relecture d'une recette en ligne de
   // commande (scripts/lib/recipeToSearchParams.ts).
@@ -4217,6 +4227,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           artefacts={artefactsDegats}
           rappelAuras={rappelAuras !== null}
           onGuiderResPre={guiderVersResPre}
+          rappelsBuffs={rappelsBuffs}
         />
       </div>
 

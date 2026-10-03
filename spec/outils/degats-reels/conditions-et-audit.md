@@ -207,12 +207,15 @@ interrupteur du sort, Brise DEF ou Marque saisies, et les deux coups
 critiquent. Le scénario des poses entre les coups propose aussi la
 réduction de DEF du coup 1 : posée après le coup 1, elle rend le coup 2
 seul critique (décision de l'utilisateur du 2026-10-03, sans relevé ;
-degats-et-aura 15d). Elle compte comme un débuff, **pas** comme une
-réduction de la DEF du coup 2 : ce second effet n'est ni relevé ni décidé.
+degats-et-aura 15d). Elle compte comme un débuff **et** comme une
+réduction de la DEF que subit le coup 2 (`effetCombat: 'defBreak'`, comme
+Ghost Slash ou Triple Crush ; autre décision de l'utilisateur du
+2026-10-03, degats-et-aura 15f) : le coup 2 est alors critique sous la DEF
+réduite. Sans scénario, rien n'est supposé posé et le total ne change pas.
 Témoin (Yuji vent, 1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000,
-« Non critique ») : 848,5 sans débuff, 1 272,8 avec la pose après le
-coup 1, 1 697,1 contre une cible déjà affligée ; l'autre lecture, DEF du
-coup 2 réduite, donnerait 2 231,3.
+« Non critique ») : 848,5 sans débuff ni scénario, 2 231,3 avec la pose
+après le coup 1 (coup 2 critique sous DEF réduite), 1 697,1 contre une
+cible déjà affligée (interrupteur « débuff présent »).
 
 Byungchul critique toujours avec ses deux sorts actifs (Violent Swing,
 Summon Heavenly Kings Gate) : la garantie vient de son passif Full of

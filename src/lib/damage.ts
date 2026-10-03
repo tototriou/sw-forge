@@ -2637,17 +2637,17 @@ const EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: Record<number, EffetEntreCoupsProfile[]>
   // hit »). Décision de l'utilisateur du 2026-10-03 (A.2 ter du cadrage
   // degats-et-aura) : cette réduction de DEF garantit le critique du coup 2,
   // posée sans relevé. Elle est comptée ici comme un DÉBUFF (la condition
-  // `debuffCiblePresent` + `critiqueGaranti` du sort la lit), PAS comme une
-  // réduction de la DEF du coup 2 : aucun `effetCombat`. ⚠️ Que la DEF du
-  // coup 2 soit aussi réduite n'est ni relevé ni décidé (DH-05 du contrôle
-  // 13b-critiques-bonus-tc-dc) ; ne pas ajouter `effetCombat: 'defBreak'`
-  // par analogie avec Ghost Slash ou Triple Crush.
-  20107: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Yuji feu
-  20108: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Yuji vent
-  20110: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Yuji ténèbres
-  20707: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Rick feu
-  20708: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Rick vent
-  20710: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }], // Rick ténèbres
+  // `debuffCiblePresent` + `critiqueGaranti` du sort la lit) ET, par
+  // `effetCombat: 'defBreak'`, comme une réduction de la DEF que subit le
+  // coup 2 : décision de l'utilisateur du 2026-10-03 (degats-et-aura 15f),
+  // comme les cinq sorts « decrease-def » indexés par nom plus haut. Sans
+  // scénario, rien n'est supposé posé : le total ne change pas.
+  20107: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Yuji feu
+  20108: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Yuji vent
+  20110: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Yuji ténèbres
+  20707: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick feu
+  20708: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick vent
+  20710: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Rick ténèbres
 };
 
 // Formule exacte confirmée par l'utilisateur, avec démonstration algébrique :

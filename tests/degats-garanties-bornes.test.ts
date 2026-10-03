@@ -134,8 +134,8 @@ export function testGarantieYujiRick() {
       `${sort} ${nom} — la prose porte la garantie et la réduction de DEF du coup 1`);
     egal(p.conditionsCombat, [{ type: 'debuffCiblePresent', critiqueGaranti: true }],
       `${sort} ${nom} — condition « débuff sur la cible » qui garantit le critique`);
-    egal(p.effetsEntreCoups, [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false }],
-      `${sort} ${nom} — réduction de DEF posable entre les coups, comptée comme débuff, sans effet sur la DEF`);
+    egal(p.effetsEntreCoups, [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
+      `${sort} ${nom} — réduction de DEF posable entre les coups, comptée comme débuff ET comme Brise DEF pour le coup 2 (décision du 2026-10-03)`);
 
     const element = forme % 10 === 2 ? 'fire' : forme % 10 === 3 ? 'wind' : 'dark';
     const total = (s: Partial<DamageSetup>) =>
@@ -143,31 +143,33 @@ export function testGarantieYujiRick() {
     const unCoup: SkillDamageProfile = { ...p, hits: 1, hitsRange: undefined, effetsEntreCoups: undefined, conditionsCombat: undefined };
     const coup1 = computeSkillDamage(unCoup, build, base, AUCUNE_AURA_PROPRE, element);
     const coup2Crit = computeSkillDamage(unCoup, build, { ...base, critMode: 'crit' }, AUCUNE_AURA_PROPRE, element);
+    const coup2CritDefReduite = computeSkillDamage(unCoup, build, { ...base, critMode: 'crit', defBreak: true }, AUCUNE_AURA_PROPRE, element);
     const scenario = (apres: number | null) => ({
       scenariosEffetsEntreCoups: { [sort]: { actif: true, apresCoup: { 'decrease-def': apres } } },
     });
     egal(total({}), 2 * coup1, `${sort} ${nom} — sans débuff ni scénario : deux coups non critiques en « Non critique »`);
     egal(total(scenario(null)), 2 * coup1, `${sort} ${nom} — scénario sans réussite : rien n'est supposé`);
-    egal(total(scenario(1)), coup1 + coup2Crit,
-      `${sort} ${nom} — réduction de DEF posée après le coup 1 : le coup 2 seul devient critique`);
+    egal(total(scenario(1)), coup1 + coup2CritDefReduite,
+      `${sort} ${nom} — réduction de DEF posée après le coup 1 : le coup 2 devient critique ET subit la DEF réduite`);
+    ok(coup2CritDefReduite > coup2Crit,
+      `${sort} ${nom} — la DEF réduite du coup 2 augmente bien son total (Brise DEF, pas seulement le critique)`);
     egal(total({ passifsOffensifs: { [sort]: true } }), total({ critMode: 'crit' }),
       `${sort} ${nom} — cible déjà affligée : les deux coups critiques`);
     egal(total({ defBreak: true }), total({ critMode: 'crit', defBreak: true }),
       `${sort} ${nom} — Brise DEF saisie : débuff présent, les deux coups critiques`);
   }
 
-  // ⚠️ HYPOTHÈSE NON RELEVÉE, figée volontairement : la réduction de DEF du
-  // coup 1 ne réduit PAS la DEF du coup 2 dans le modèle (seule la garantie
-  // de critique est décidée, A.2 ter). L'autre lecture donnerait le total
-  // `coup1 + coup2 critique sous Brise DEF`, nettement plus haut : ce test
-  // échouera exprès le jour où un relevé fera changer la règle.
+  // Décision de l'utilisateur du 2026-10-03 (degats-et-aura 15f) : la
+  // réduction de DEF du coup 1 baisse aussi la DEF que subit le coup 2. Les
+  // totaux du témoin Yuji vent (1 000 ATQ, 100 % de Dgts Crit, DEF cible
+  // 1 000, « Non critique ») sont figés en valeur : 848,5363 sans scénario
+  // (inchangé), 2 231,2793 avec la réduction posée après le coup 1.
   const p = profilDe(30413, 20108);
-  const unCoup: SkillDamageProfile = { ...p, hits: 1, hitsRange: undefined, effetsEntreCoups: undefined, conditionsCombat: undefined };
-  const coup1 = computeSkillDamage(unCoup, build, base, AUCUNE_AURA_PROPRE, 'wind');
-  const coup2DefReduite = computeSkillDamage(unCoup, build, { ...base, critMode: 'crit', defBreak: true }, AUCUNE_AURA_PROPRE, 'wind');
   const scenario1 = { ...base, skillCom2usId: 20108, scenariosEffetsEntreCoups: { 20108: { actif: true, apresCoup: { 'decrease-def': 1 } } } };
-  ok(computeSkillDamage(p, build, scenario1, AUCUNE_AURA_PROPRE, 'wind') < coup1 + coup2DefReduite,
-    '20108 — hypothèse non relevée : la DEF du coup 2 n’est pas réduite par la pose du coup 1');
+  egal(computeSkillDamage(p, build, { ...base, skillCom2usId: 20108 }, AUCUNE_AURA_PROPRE, 'wind').toFixed(4), '848.5363',
+    '20108 — témoin sans scénario : 848,5363, inchangé');
+  egal(computeSkillDamage(p, build, scenario1, AUCUNE_AURA_PROPRE, 'wind').toFixed(4), '2231.2793',
+    '20108 — témoin avec la réduction posée après le coup 1 : 2 231,2793 (coup 2 critique sous DEF réduite)');
 
   // Le moteur et la recette : le scénario traverse l'export/import, le
   // score du moteur est celui de l'écran.

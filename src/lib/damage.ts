@@ -1474,18 +1474,25 @@ export function bonusConditionnelPropreActif(profile: SkillDamageProfile, setup:
   return setup.passifsOffensifs?.[profile.skillCom2usId] ?? false;
 }
 
+// Même table, PAR IDENTIFIANT de compétence, prioritaire sur celle par nom.
+// « While in the mechanical frame state... deal 50% increased damage. »
+// (Emergency Drive, un PASSIF sans formule) — mais l'état ne s'obtient
+// qu'en usant automatiquement de [Rending Claw] (« Uses [Rending Claw] on
+// all enemies when you gain a turn » pendant l'état), qui porte donc CE
+// bonus, pas le TOTAL du monstre (un autre sort choisi dans l'écran
+// n'aurait aucun sens pendant cet état). `quantite: 50` confirmé en
+// données. Le nom « Rending Claw » est partagé par trois identifiants
+// (23306 Cecilia, 23307 Cynthia, 23310 Elise) mais SEULE la fiche de
+// Cynthia porte Emergency Drive : décision de l'utilisateur du 2026-10-03,
+// le bouton n'est affiché que sur 23307.
+const BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS: Record<number, { pct: number; condition: string }> = {
+  23307: { pct: 50, condition: 'tu es en Mechanical Frame State (Emergency Drive)' }, // Rending Claw de Cynthia (34012)
+};
+
 // Bonus à bouton RESTREINT À CE SORT — voir `SkillDamageProfile.
 // bonusConditionnelPropre`. Clé = `Competence.nom` DU SORT ACTIF (pas d'un
 // passif séparé), contrairement à `BONUS_DEGATS_CONDITIONNEL_CONNUS`.
 const BONUS_CONDITIONNEL_PROPRE_CONNUS: Record<string, { pct: number; condition: string }> = {
-  // « While in the mechanical frame state... deal 50% increased damage. »
-  // (Emergency Drive, un PASSIF sans formule) — mais l'état ne s'obtient
-  // qu'en usant automatiquement de [Rending Claw] (« Uses [Rending Claw] on
-  // all enemies when you gain a turn » pendant l'état), qui porte donc CE
-  // bonus, pas le TOTAL du monstre (un autre sort choisi dans l'écran
-  // n'aurait aucun sens pendant cet état). `quantite: 50` confirmé en
-  // données. Nom vérifié exclusif à la famille Arcane Weapon.
-  'Rending Claw': { pct: 50, condition: 'tu es en Mechanical Frame State (Emergency Drive)' }, // Cynthia, Arcane Weapon
   // Brandia (« Touch of Mercy ») — SECONDE clause de ce sort, distincte du
   // `bonusParEffetCible` (+40 %/effet) déjà curé : « Targets that have
   // immunity against sleep will be inflicted with 50% more damage. »
@@ -3287,6 +3294,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     bonusStackPropre: BONUS_STACK_PROPRE_PAR_ID_CONNUS[c.com2usId] ?? BONUS_STACK_PROPRE_CONNUS[c.nom],
     effetsEntreCoups: EFFETS_ENTRE_COUPS_PAR_ID_CONNUS[c.com2usId] ?? EFFETS_ENTRE_COUPS_CONNUS[c.nom],
     bonusConditionnelPropre:
+      BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS[c.com2usId] ??
       BONUS_CONDITIONNEL_PROPRE_CONNUS[c.nom] ??
       BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS[c.com2usId] ??
       BONUS_CONDITIONNEL_AUDIT_CONNUS[c.nom],

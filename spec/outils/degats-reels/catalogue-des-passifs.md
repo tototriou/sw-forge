@@ -329,7 +329,12 @@ bonusConditionnelPropre?: { pct: number; condition: string }`) :
   increased damage » UNIQUEMENT « While in the mechanical frame state », un
   état qui force l'usage de **Rending Claw** (S2) — un bouton monstre-wide
   aurait été faux dès qu'un AUTRE sort est sélectionné à l'écran. Le bouton
-  ne majore donc QUE Rending Claw, jamais Mechanical Fist (S1).
+  ne majore donc QUE Rending Claw, jamais Mechanical Fist (S1). Le nom est
+  partagé par trois identifiants (23306 Cecilia, 23307 Cynthia, 23310
+  Elise) mais seule la fiche de Cynthia porte Emergency Drive : le bouton
+  est posé **par identifiant** (23307, `BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS`,
+  prioritaire sur la table par nom) ; Cecilia et Elise n'ont pas ce bouton
+  (décision du 2026-10-03).
 
 
 ## Cinquième vague — statistiques

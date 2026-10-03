@@ -2842,6 +2842,25 @@ export default function testDegats() {
   }, AUCUNE_AURA_PROPRE);
   ok(Math.abs(cynthiaAvec / cynthiaSans - 1.5) < 1e-9, 'activé : exactement +50 % (×1,5)');
 
+  // Le nom « Rending Claw » est partagé avec Cecilia (23306) et Elise (23310),
+  // dont la fiche ne porte pas Emergency Drive : le bouton est par identifiant
+  // (23307), pas par nom — décision du 2026-10-03 (degats-et-aura P1b).
+  egal(rendingClawProfile.skillCom2usId, 23307, 'Rending Claw de Cynthia : identifiant 23307');
+  for (const [forme, sortId, qui] of [[34011, 23306, 'Cecilia'], [34015, 23310, 'Elise']] as const) {
+    const autre = monsterDamageSkills(fiche(forme)).find((s) => estPrisEnCharge(s) && s.nom === 'Rending Claw');
+    ok(autre != null && estPrisEnCharge(autre), `${qui} : Rending Claw calculable`);
+    const autreProfil = autre as SkillDamageProfile;
+    egal(autreProfil.skillCom2usId, sortId, `${qui} : Rending Claw porte l'identifiant ${sortId}`);
+    ok(!autreProfil.bonusConditionnelPropre, `${qui} : aucun bouton Mechanical Frame State sur son Rending Claw`);
+    const setupAutre: DamageSetup = { ...cynthiaSetup, skillCom2usId: sortId };
+    const sansAutre = computeSkillDamage(autreProfil, cynthiaStats, setupAutre, AUCUNE_AURA_PROPRE);
+    const interrupteurAutre = computeSkillDamage(autreProfil, cynthiaStats, {
+      ...setupAutre,
+      passifsOffensifs: { [sortId]: true },
+    }, AUCUNE_AURA_PROPRE);
+    egal(interrupteurAutre, sansAutre, `${qui} : l'interrupteur n'existe plus, le total par défaut est inchangé`);
+  }
+
   titre('Dégâts réels — propagation dans la recherche');
 
   // ⚠️ Ce bloc existe parce que `tsc --noEmit` ne peut PAS voir ces erreurs :

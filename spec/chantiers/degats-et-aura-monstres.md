@@ -168,6 +168,14 @@ Formes : 25702 Weapon Master (feu) †, 25712 Carlos.
 | --- | --- | --- | --- | --- |
 | « Weakness Shot » · 15507 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Carlos → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
 
+### Cecilia
+
+Formes : 34001 Arcane Weapon (eau) †, 34011 Cecilia.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Rending Claw » · 23306 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » disparaît : la fiche de Cecilia ne porte pas Emergency Drive (décision de l'utilisateur du 2026-10-03). Total par défaut inchangé (981,1201, au témoin du lot) ; le total « interrupteur allumé » (1 471,6801) n'existe plus. | P1b | commit du lot P1b | Chemin commun → Cecilia → « Compétence utilisée » → « Rending Claw » : aucun interrupteur « Mechanical Frame State » ; le total est celui de l'ancien état éteint. |
+
 ### Celine
 
 Formes : 25803 Rune Blacksmith †, 25813 Celine.
@@ -273,6 +281,14 @@ Formes : 20833 Crane.
 | --- | --- | --- | --- | --- |
 | « Strange Reversible Reaction (Passive) » · 11663 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Buffs sur Crane » + « Débuffs sur Crane » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Strange Reversible Reaction (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
 
+### Cynthia
+
+Formes : 34002 Arcane Weapon (feu) †, 34012 Cynthia.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Rending Claw » · 23307 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » passe de la table par nom à une table par identifiant (23307) : Cynthia, seule fiche à porter Emergency Drive, le garde ; ses totaux sont inchangés (981,1201 par défaut, 1 471,6801 interrupteur allumé, au témoin du lot). | P1b | commit du lot P1b | Chemin commun → Cynthia → « Compétence utilisée » → « Rending Claw » : l'interrupteur « Mechanical Frame State » est présent, éteint par défaut ; l'allumer multiplie le total par 1,5 ; « Mechanical Fist » (S1) n'a pas ce bouton. |
+
 ### Dagora
 
 Formes : 10731 Dagora.
@@ -337,6 +353,14 @@ Formes : 28103 Gladiatrix †, 28113 Eleni.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Vigor Crush » · 17913 · S3 | Une ancienne recette sans `enemyAtk` prend l'ATQ ennemie affichée par l'écran (1 000) au lieu de 0 : le +30 % « If the enemy's Attack Power is lower than yours » n'est plus allumé à tort. Au témoin du lot (ATQ du build 900, DEF cible 1 000, « Non critique »), 1 548,7484 avant, 1 191,3449 après ; à 1 200 d'ATQ, 2 064,9979 inchangé. | 15f | `372168cd` | Chemin commun → Eleni → « Compétence utilisée » → Vigor Crush : le champ « ATQ adverse » affiche 1 000 ; importer une recette exportée avant ce champ donne le même total que ce champ à 1 000 (bonus seulement si l'ATQ du build dépasse 1 000). |
+
+### Elise
+
+Formes : 34005 Arcane Weapon (ténèbres) †, 34015 Elise.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Rending Claw » · 23310 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » disparaît : la fiche d'Elise ne porte pas Emergency Drive (décision de l'utilisateur du 2026-10-03). Total par défaut inchangé (981,1201, au témoin du lot) ; le total « interrupteur allumé » (1 471,6801) n'existe plus. | P1b | commit du lot P1b | Chemin commun → Elise → « Compétence utilisée » → « Rending Claw » : aucun interrupteur « Mechanical Frame State » ; le total est celui de l'ancien état éteint. |
 
 ### Elpuria
 

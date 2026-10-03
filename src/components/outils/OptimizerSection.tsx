@@ -162,6 +162,7 @@ import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
 import EtatMonstre from './EtatMonstre';
+import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
   box: BoxItem[];
@@ -1732,7 +1733,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     const jour = new Date().toISOString().slice(0, 10);
     const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
     const slug = selected.monster.name.toLowerCase().normalize('NFD').replace(DIACRITICS, '').replace(/[^a-z0-9]+/g, '-');
-    download(`swforge-optimizer-${slug}-${jour}.json`, JSON.stringify(recipe, null, 2));
+    // Préfixe de la marque (rebranding, décision 14) : `swblacksmith-optimizer-…`.
+    // Seul le NOM du fichier change ; son contenu et son format, non.
+    download(`${PREFIXE_FICHIER}-optimizer-${slug}-${jour}.json`, JSON.stringify(recipe, null, 2));
   }
 
   // Reprend une recette importée (export d'un autre joueur, ou la sienne

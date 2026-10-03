@@ -709,13 +709,26 @@ const BONUS_STAT_FIXE_CONNUS: Record<string, { cr: number; cd: number }> = {
   'Detect Weakspot (Passive)': { cr: 20, cd: 20 }, // Lizardman, Glinodon
   'Deathblow (Passive)': { cr: 0, cd: 50 }, // Bremis
   'Elaborate Plan (Passive)': { cr: 0, cd: 100 }, // Guillaume
-  'Charge (Passive)': { cr: 20, cd: 0 }, // Gorgo
 };
+
+// Par IDENTIFIANT, pour un nom qui déborderait sur un homonyme : « Charge
+// (Passive) » est aussi porté par 1880 (Warbear 2A générique, 47305, forme non
+// jouable) avec la même prose — l'effet y serait juste, mais la forme est
+// ignorée (cadrage degats-et-aura A.2 ter, « Formes génériques et non
+// éveillées »), et une clé par nom l'y attacherait sans que personne l'ait
+// décidé. Prioritaire sur la table par nom (degats-et-aura P1).
+const BONUS_STAT_FIXE_PAR_ID_CONNUS: Record<number, { cr: number; cd: number }> = {
+  1865: { cr: 20, cd: 0 }, // Charge (Passive), Gorgo
+};
+
+function bonusStatFixeDe(c: Competence): { cr: number; cd: number } | undefined {
+  return (c.com2usId != null ? BONUS_STAT_FIXE_PAR_ID_CONNUS[c.com2usId] : undefined) ?? BONUS_STAT_FIXE_CONNUS[c.nom];
+}
 
 export function monsterBonusStatFixe(detail: DetailMonstre | null): { cr: number; cd: number } | null {
   if (!detail) return null;
   for (const c of detail.competences) {
-    const trouve = c.passif && BONUS_STAT_FIXE_CONNUS[c.nom];
+    const trouve = c.passif && bonusStatFixeDe(c);
     if (trouve) return trouve;
   }
   return null;
@@ -780,7 +793,7 @@ export function monsterModificateursVit(detail: DetailMonstre | null): Modificat
         detail: `toujours actif — +1 pt de Taux Crit tous les ${critVit.ptsParVit} pts de VIT, le surplus au-delà de 100 % se reverse en Dgts Crit`,
       });
     }
-    const statFixe = BONUS_STAT_FIXE_CONNUS[c.nom];
+    const statFixe = bonusStatFixeDe(c);
     if (statFixe) {
       out.push({
         skillCom2usId: c.com2usId,
@@ -1637,16 +1650,27 @@ const BONUS_MONSTRE_PAR_EFFET_CIBLE_CONNUS: Record<string, BonusParEffetProfile>
   // (`BONUS_PAR_EFFET_CIBLE_CONNUS`, un sort actif précis).
   'Backup Code (Passive)': { pct: 20, source: 'debuffs' }, // Hacker, 570RM
   "Spirit's Wrath (Passive)": { pct: 30, source: 'debuffs' }, // Aeilene
-  "Tiger's Appearance (Passive)": { pct: 20, source: 'debuffs', critiqueGarantiSiPresent: true }, // Naomi
   'Ancient Power (Passive)': { pct: 30, source: 'debuffs', maxCount: 1 }, // Tesarion
   'King of the Ruins(Passive)': { pct: 100, source: 'debuffs', maxCount: 1 }, // Manannan
+};
+
+// Par IDENTIFIANT, pour un nom qui déborderait sur un homonyme (degats-et-aura
+// P1, DH13b-stats-passifs-corpus-02). « Tiger's Appearance (Passive) » est
+// porté par trois identifiants : 6163 (Naomi 2A, jouable) et 6178 (Martial Cat
+// 2A générique, non jouable) disent « the critical rate will be at 100% if the
+// enemy has harmful effects … increased by 20% for each harmful effect » ;
+// 6113 (Naomi 1A, non jouable) dit « Gains 25% Critical Chance and deals 20%
+// more damage for every harmful effect » — pas une garantie de critique. Seul
+// 6163 est porté par une forme jouable. Prioritaire sur la table par nom.
+const BONUS_MONSTRE_PAR_EFFET_CIBLE_PAR_ID_CONNUS: Record<number, BonusParEffetProfile> = {
+  6163: { pct: 20, source: 'debuffs', critiqueGarantiSiPresent: true }, // Tiger's Appearance (Passive), Naomi
 };
 
 export function monsterBonusParEffetCible(detail: DetailMonstre | null): BonusMonstreParEffetProfile | null {
   if (!detail) return null;
   for (const c of detail.competences) {
     if (!c.passif || c.com2usId == null) continue;
-    const config = BONUS_MONSTRE_PAR_EFFET_CIBLE_CONNUS[c.nom];
+    const config = BONUS_MONSTRE_PAR_EFFET_CIBLE_PAR_ID_CONNUS[c.com2usId] ?? BONUS_MONSTRE_PAR_EFFET_CIBLE_CONNUS[c.nom];
     if (config) return { skillCom2usId: c.com2usId, nom: c.nom, description: c.description, icone: c.icone, ...config };
   }
   return null;

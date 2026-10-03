@@ -24,6 +24,7 @@ import {
   monsterConditionsCombat,
   monsterCritInterdit,
   monsterDamageSkills,
+  monsterModificateursVit,
   monsterOffensivePassives,
   resolvedBuffsPropresCount,
   resolvedBuffCiblePresent,
@@ -1449,6 +1450,35 @@ export default function testAuditDegatsConditionnels() {
   });
 
   testClesStatsCombatParId();
+  testHomonymesParIdentifiant();
+}
+
+// degats-et-aura P1 (SPC-5, DH13b-stats-passifs-corpus-02,
+// DH13b-critiques-bonus-tc-dc-01 et -02) — deux noms de passif qui
+// débordaient sur un homonyme sont passés par identifiant : l'effet reste sur
+// la forme jouable qui le porte (témoin de non-régression), et les homonymes
+// qui ne la jouent pas ne l'ont plus. Aucune valeur de jeu n'est touchée.
+function testHomonymesParIdentifiant() {
+  titre('Homonymes par nom — Tiger’s Appearance et Charge passent par identifiant');
+
+  // Tiger's Appearance : 6163 (Naomi 2A, jouable) garde +20 %/débuff et la garantie ;
+  // 6113 (Naomi 1A, « 25 % Critical Chance », pas une garantie) et 6178 (Martial
+  // Cat 2A générique) ne l'ont plus.
+  const naomi = monsterBonusParEffetCible(fiche(15033));
+  egal(naomi?.skillCom2usId, 6163, 'Naomi 2A (15033) : Tiger’s Appearance = 6163');
+  egal(naomi?.pct, 20, 'Naomi 2A : +20 % par effet nocif');
+  egal(naomi?.critiqueGarantiSiPresent, true, 'Naomi 2A : critique garanti si un effet nocif est présent');
+  for (const [forme, id] of [[15003, 6113], [15013, 6113], [47603, 6178]] as const) {
+    ok(fiche(forme).competences.some((c) => c.com2usId === id), `témoin : la forme ${forme} porte ${id}`);
+    egal(monsterBonusParEffetCible(fiche(forme)), null, `${forme} (${id}, homonyme non jouable) : plus de bonus par effet nocif ni de garantie`);
+  }
+
+  // Charge (Passive) : 1865 (Gorgo 2A) garde +20 points de TC ; 1880 (Warbear 2A générique) non.
+  egal(monsterBonusStatFixe(fiche(10735)), { cr: 20, cd: 0 }, 'Gorgo (10735, 1865) : +20 points de TC, aucun point de DC');
+  ok(fiche(47305).competences.some((c) => c.com2usId === 1880 && c.nom === 'Charge (Passive)'), 'témoin : 47305 porte 1880, « Charge (Passive) »');
+  egal(monsterBonusStatFixe(fiche(47305)), null, 'Warbear 2A (47305, 1880, homonyme non jouable) : plus de bonus de TC');
+  ok(monsterModificateursVit(fiche(47305)).every((m) => m.skillCom2usId !== 1880), '1880 : plus affiché parmi les modificateurs toujours actifs');
+  ok(monsterModificateursVit(fiche(10735)).some((m) => m.skillCom2usId === 1865), '1865 : toujours affiché pour Gorgo');
 }
 
 // degats-et-aura P1 (SP-0) — la table `STATS_COMBAT_PAR_ID_CONNUS` est écrite à

@@ -789,7 +789,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 lancé**, puis D56 (formes de boss) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -9511,6 +9511,39 @@ diff-check verts. Mutations de l'agent : trois, rouges. **Mutation du
 pilote**, distincte (plafond de la plage dépassé d'un coup) : 20 échecs ;
 restaurée. Hachage inscrit dans la liste. Écart : un `sed -i` sur une copie
 de script dans le dossier d'intrants (aucun fichier suivi).
+
+#### P22 — portées corrigées par la prose
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Plan § 6, ligne P22 (CV-8,
+CS-g, DH compteurs-02, pertes-pv-04, critiques-garantis-08) ; D46 couverte
+par D12 (la prose qui contredit la donnée l'emporte), retirée le
+2026-10-04. Questionnaire Q2, D46 (`controle-q2.md` L253-281) pour la liste.
+
+**Contrat :** entrées dans `PORTEE_CORRIGEE_PAR_ID` (table du lot P6) pour
+les sorts que la donnée dit « une cible » et que la prose dit « all
+enemies » : Satoru Gojo 20014, Werner 20614, God's Weapon 18308 et 18310,
+Nina Williams 22714, Shasha 23214, Incinerate 1362 (Tatu 2A) — et tout autre
+identifiant cité par les cinq découvertes sources, chacun avec sa prose
+citée ; la ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») cesse de
+s'y appliquer. Un test par entrée (224 éteinte, total sans 224 inchangé) ;
+spec ; liste du lot LM (le total baisse avec la ligne 224).
+**Ne fait pas :** Crush de Taor 4211 (l'inverse : son coup principal vise une
+cible, mais la 224 en jeu reste à relever) ; aucune autre conséquence de la
+portée que la ligne 224.
+**Preuve privée :** `controle-p22.md` et intrants `.txt` ; totaux avec et
+sans la ligne 224, avant / après ; mutation après le commit.
+
+#### D56 — formes de boss écartées
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Décision de l'utilisateur
+du 2026-10-04 (D56) : Azazel 2003503, Kazuya Mishima 2003601, True Devil
+Kazuya 2003705, The Witch-king of Angmar 2004003 et Solide 2004103 (6
+étoiles, rareté naturelle 1, prose « the boss's ») ne sont plus proposés.
+Contrat : `formesJouables` les écarte (critère par identifiant, cité),
+leurs entrées de la table de rappel `BUFFS_POSES_PAR_PASSIF_CONNUS` (lot
+P2 : Azazel, Kazuya, True Devil Kazuya) sont retirées, les tests qui les
+comptaient suivent ; liste du lot LM (sections de ces monstres annotées).
+Preuve `controle-d56.md` ; mutation après le commit.
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

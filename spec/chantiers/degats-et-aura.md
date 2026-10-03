@@ -776,7 +776,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 lancé** (D11, D12 levées) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -9292,6 +9292,38 @@ Reçu de l'agent `f840ef7` ↔ `2a1ab27`.
 spec-lint, diff-check verts. Mutation de l'agent (clé remise par nom) : 4
 échecs. **Mutation du pilote**, distincte (clé posée sur 23306, Cecilia, au
 lieu de Cynthia) : 4 échecs ; restaurée. Hachage inscrit dans la liste.
+
+#### P6 — garde des séquences par empreinte, valeurs de l'API
+
+**Cat. J, agent `lot-j`, worktree du chantier.** Plan § 6, ligne P6 (SZ-1,
+SZ-2 : `controle-13b-sequences-zone.md` § 7-8, L197-246 ; HT-1 :
+`controle-13b-hors-tour-cooperation.md` L80-81, L163) ; prérequis levés :
+D11 (empreinte, pilote) et D12 (utilisateur : **l'API SWARFARM par défaut,
+sauf si la prose du sort la contredit**).
+
+**Contrat :** (1) SZ-1 — garde de la séquence curée par **empreinte de la
+donnée**, posée sur les huit entrées Blade Surge sans changer aucun calcul
+(non-régression : 8 identifiants, 11 formes) ; (2) SZ-2 — séquences dont une
+phase n'est chiffrée que par l'API (`annexes.md` L298-373) : 13311
+(Abigail), 13314 (Emily), 14113 (M. BISON), 14613 (Sagar) ; (3) HT-1 —
+garde « formule vide » portée sur la formule retenue, et
+`FORMULES_CUREES_PAR_ID` pour 21114 (Ramon), 21415 et 22015 (Nezuko,
+Vermilion : les attaques des alliés restent hors calcul) ; commentaire
+corrigé. **Règle D12 appliquée identifiant par identifiant** : la valeur de
+l'API est prise sauf si la prose la contredit (alors arrêt pour cet
+identifiant, A.6, la contradiction citée) — Ramon : `aoe: true` contre
+« Attacks the enemy » → la prose l'emporte, mono-cible. Un test par entrée ;
+`sequences-de-coups.md` ; liste du lot LM (un total jouable change pour
+chaque identifiant de (2) et (3)).
+**Ne fait pas :** Guilty Sentence 23510 (le second coup suit D13 : P6b) ;
+les **Anges jumeaux** (18801-18815 : selon Q04, leurs sorts « Horn » sont
+ceux de la forme de soutien, sans dégât, et les sorts de l'archer forment
+une **forme** à part → P17 ; l'exception inverse HT-1b pour 18811 tombe) ;
+aucune séquence à valeur relevée (P6b).
+**Preuve privée :** `controle-p6.md` et intrants `.txt` ; totaux avant /
+après ; mutation après chaque commit de code.
+**Vérifications :** `tsc`, contrôles touchés (dont `bladesurge`,
+`auditdegatsconditionnels`, `degats`), build, spec-lint, diff-check.
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

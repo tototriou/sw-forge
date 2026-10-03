@@ -767,7 +767,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b lancé** (suite de P4, Sia) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -856,6 +856,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
+| P4b | Sia, Dominic, Benedict : réduction de DEF ou Marque posée après le 1er coup → les coups du passif qui suit (Great Friends, Improvisation, Final Strike) grossissent aussi ; sans pose, rien ne change | en attente |
 | P2 | Les 24 monstres de la liste (Amelia, Antares, Theomars, Zenitsu…) : dans « État de mon monstre », sous les buffs, une ligne « [passif] pose Buff … — « condition » » ; rien ne s'allume ni ne bouge au clic ; ordinateur et téléphone | en attente |
 | P4 | Cichlid, Melissa, Barbara, Masha, Xiana, Carlos, Dominic, Benedict, Eivor, Sia, Übel : sur le sort concerné, le cadre des poses entre les coups propose la réduction de DEF ou la Marque ; posée après le coup qui la pose, seuls les coups suivants grossissent | en attente |
 | 15h | Lukan, Zeratu, Michelle, Mikene, Tilasha, Iona, Jeogun, Hanwul : plus de case pour Regenerate, Unleashed Fury, Soul Revival, Revive, Dark Return, Light of Revival, Scroll Trap ; sort coché par défaut : Sandstorm (Lukan), Trample (Zeratu), Absorb Mana (Michelle) | en attente |
@@ -9383,6 +9384,38 @@ commit.
 degats`, build, spec-lint, diff-check.
 **Ne fait pas :** aucune nouvelle entrée de table ; aucune chronologie de
 buff sur soi (P12a) ; aucune attaque déclenchée neuve (P7).
+
+##### Résultat du lot P4b — 2026-10-03
+
+Agent `lot-j`. Un commit, `09ee8342` : `etatCibleApresSort` (`damage.ts`,
+vers L4781) rend l'état après le dernier coup, poses du scénario comprises,
+lu par les contributions qui suivent le sort (L5903) ; retour `null` avant
+toute allocation quand aucun scénario n'est actif (L4787), appel unique par
+`computeTotalDamage` (L5847). Inventaire sur toutes les formes jouables :
+15 passifs qui suivent, 1 qui accompagne (Winds and Clouds), aucune attaque
+appelée en production ; quatre formes ont aussi un sort à poses (Sia,
+Dominic, Benedict, Feng Yan). Sous scénario : Sia ×1,429 → **×1,935**,
+Dominic ×1,074 → ×1,225 (pose après le coup 1), Benedict ×1,097 → ×1,218,
+Feng Yan inchangé ; sans scénario, diff vide sur 7 173 totaux (2 391
+couples forme × sort, 3 réglages). Liste : Great Friends (Sia),
+Improvisation (Dominic), Final Strike (Benedict). Reçu de l'agent `09ee834`
+↔ `5e85401`.
+
+**Erreur du contrat, corrigée par l'agent** : le pilote attendait Sia
+« ×1,682 », qui est le ratio de la seule part du sort (seul le coup 2 de
+Blackout Kick subit la pose) ; les deux coups de Great Friends passant sous
+la DEF réduite (×2,364), le total vaut ×1,935. Le test fige les trois
+grandeurs (part du sort, total, et leur somme à 1e-6).
+
+**Rejoué par le pilote** : `tsc` 0 ; 1 781 vérifications ; build, spec-lint,
+diff-check verts ; garde de coût relue (L4787). Mutation de l'agent
+(ancienne lecture) : 7 échecs. **Mutation du pilote**, distincte (état
+avant le coup 1 au lieu de l'état final) : 7 échecs ; restaurée. Hachage
+inscrit dans la liste par le pilote.
+
+**À surveiller, hors contrat** : le déclenchement d'un passif `defBreak`
+(Roid, Silver) ignore le scénario — sans effet aujourd'hui, aucun de leurs
+sorts n'a de pose.
 
 ### Lot 14 — clôture
 

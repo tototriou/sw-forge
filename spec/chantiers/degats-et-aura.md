@@ -778,7 +778,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a lancé** (D25, D30 levées) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -9354,6 +9354,37 @@ liste (un par commit).
 **Non prouvé, dit par l'agent** : que les skillups s'appliquent à la phase
 de zone des quatre séquences (relevés R1/R2 du plan) ; que 224 et 411
 s'appliquent par groupe hors Blade Surge.
+
+#### P5a — nombres de coups variables, saisis
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Plan § 6, ligne P5a (CV-1,
+CV-1b, CV-2 : `controle-13b-coups-variables.md` § 2 L30-73, § 3 L74-131,
+§ 6 L185-187) ; prérequis levés : saisie puis dérivation (A.8, round 3),
+**D25** (défaut au minimum), **D30** (un coup supplémentaire vaut les
+autres).
+
+**Contrat :** `COUPS_VARIABLES_CONNUS` (plage `{ min, max }`, défaut au
+minimum) pour Strafe, Sura's Seal, God's Weapon, Barrage of Madness, Hammer
+Punch, Pound, Water Dragon Surge ; `COUPS_FIXES_CORRIGES` pour Grinding,
+Spinning Tea Spoon ; CV-1b, Brutal Fists de Mayasura `{ 3, 4 }` ; CV-2,
+tables par identifiant (`COUPS_VARIABLES_PAR_ID_CONNUS`,
+`COUPS_FIXES_CORRIGES_PAR_ID`, motif `*_PAR_ID ?? nom`, lues aussi par
+`monsterOffensivePassives`) et Whirlpool 21311 `{ 1, 3 }` par identifiant
+(son homonyme 3463, jouable, n'a pas de coup supplémentaire). Les bornes
+viennent de la prose ou d'un champ de la fiche, citées ; un nom dont un
+homonyme jouable a une autre mécanique passe par identifiant (tableau des
+homonymes § 2). Un test par entrée (homonymes couverts nommés) ; spec ;
+liste du lot LM (le total par défaut baisse là où l'app comptait le
+maximum).
+**Ne fait pas :** Stormfist de Mayasura (18306 : la règle des coups selon
+l'ATQ est une valeur que l'utilisateur fournira, A.8) ; Prilea 1618 (R9) ;
+Lala, Coco, Stella, Cleave et les coups au hasard (P5b) ; aucune dérivation
+depuis les stats.
+**Preuve privée :** `controle-p5a.md` et intrants `.txt` ; totaux par défaut
+avant / après (`sortie-06-sonde.txt` de la preuve en modèle) ; mutation après
+le commit.
+**Vérifications :** `tsc`, `node tests/run.mjs degats auditdegatsconditionnels`
+et les contrôles touchés, build, spec-lint, diff-check.
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

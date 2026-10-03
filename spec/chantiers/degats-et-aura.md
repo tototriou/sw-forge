@@ -146,7 +146,7 @@ affirmations contradictoires, notamment sur 411.
 | Stock de dégâts de Jin/Kai ténèbres | Lorsqu'un S3 élimine sa cible, l'excédent `max(0, dégâts infligés − PV restants)` devient un dégât fixe ajouté au prochain S3. Il ignore la DEF mais subit les réductions des dégâts fixes, est entièrement consommé puis remplacé par le nouvel excédent éventuel, sans plafond de jeu. L'Optimizer demande directement un stock `0..100000` à l'utilisateur ; cette borne de saisie n'est pas un plafond du jeu | utilisateur, valeurs et décision produit du 2026-09-23 |
 | Répétitions sans plafond connu | Scratch de Raoq, Sonic Boom d'Ermeda et Chain Fire utilisent un nombre total de coups saisi de `1` à `10`. Pour Raoq, l'utilisateur choisit après quel coup le break DEF réussit | utilisateur, décision produit du 2026-09-23 |
 | Déclenchements de Hwa et Jackie | Burning Whip répète exactement la S1 ou S2 initiale une fois, sans récursion, sur interrupteur. Exploding Hands répète une fois son ratio `7.4 × ATQ`, sur interrupteur, sans nouvelle tentative d'étourdissement | utilisateur, confirmation explicite du 2026-09-23 |
-| Zeratu — Forbidden Power | L'utilisateur choisit 1, 2 ou 3 attaques, défaut 3. Les attaques 2 et 3 valent chacune 50 % du ratio initial : trois attaques valent `100 % + 50 % + 50 % = 200 %` | utilisateur, confirmation explicite du 2026-09-24 |
+| Zeratu — Forbidden Power | L'utilisateur choisit 1, 2 ou 3 attaques, défaut 3. Les attaques 2 et 3 valent chacune 50 % du ratio initial : trois attaques valent `100 % + 50 % + 50 % = 200 %` ; **les skillups s'appliquent** à ces deux coups (rappel du 2026-10-03, Q03) | utilisateur, confirmation explicite du 2026-09-24 et du 2026-10-03 |
 | Sia — Great Friends | Sélecteur 2 ou 3 coups supplémentaires, défaut 2. Les deux skillups `Damage +10 %` s'appliquent à chaque coup du passif, ajouté après la S1 ou S2 sélectionnée | utilisateur, confirmation explicite du 2026-09-24 |
 | Chaînes des Kung Fu Girls | Les formes non éveillées `8206` à `8210` n'ont pas de suite et ne sont pas sélectionnables. Sur les formes éveillées, un break DEF réussi de S1 est actif pour la S2. Les cinq Dragon Attack utilisent un sélecteur de 1 à 4 coups reçus, défaut 4 ; Fei choisit l'ignore DEF séparément pour chaque coup | utilisateur, confirmations explicites des 2026-09-23 et 2026-09-24 |
 | Calcul monocible et nouvelle cible | Une contribution obligatoirement portée sur un autre monstre est ignorée : notamment la S2 après Sword of Promise des Valkyrjas et la seconde attaque de Shadow Assault de Tanya | utilisateur, décision produit du 2026-09-23 |
@@ -175,7 +175,14 @@ affirmations contradictoires, notamment sur 411.
 | Bonus de Taux Crit | S'ajoute **en points** ; depuis le lot CM, il ne change un total que s'il déclenche un effet sur critique ou alimente un reversement du surplus au-delà de 100 % | utilisateur, 2026-10-03 |
 | Assiette des « +X % » de passif | Base ou totale **selon le passif** : aucune règle générale, à relever passif par passif | utilisateur, 2026-10-03 |
 | Energy Punch de Mina | Suit le mode critique : en « Critique », un Energy Punch par coup du sort ; en « Non critique », aucun | utilisateur, 2026-10-03 |
-| Yuji et Rick (S2) | La réduction de DEF posée par le 1er coup garantit le critique du 2e : **posée sans attendre de relevé** | utilisateur, 2026-10-03 |
+| Yuji et Rick (S2) | La réduction de DEF posée par le 1er coup garantit le critique du 2e : **posée sans attendre de relevé** ; elle **baisse aussi la DEF du 2e coup** (lot 15f) | utilisateur, 2026-10-03 |
+| Dgts CRIT d'une attaque déclenchée (Q02) | Prose « attacks again » avec le ratio du passif → lignes de Dgts CRIT **du sort qui porte le passif** (son emplacement) ; prose qui nomme un sort (« attacks with [X] ») → lignes **du sort X** ; prose peu claire → soumise **sort par sort** à l'utilisateur | utilisateur, 2026-10-03 (questionnaire) |
+| Anges jumeaux (Q04) | Chaque paire a **deux jeux de sorts, un par forme** ; elle peut lancer un sort de la première forme puis un sort de la seconde **dans le même tour**. Les sorts « Horn of … » de la donnée sont ceux d'une seule forme | utilisateur, 2026-10-03 (questionnaire) |
+| Provocation (Q05) | La Provocation **n'est pas** un effet d'incapacité (Fast Charge de Dr. Richard ne coïncide jamais avec une de ses attaques) | utilisateur, 2026-10-03 (questionnaire) |
+| Tempest Sword de Lupinus (Q06) | Le 3e coup, sur tous les ennemis, a **le même ratio** que les deux premiers (`{ATK} + 0.06*{Target MAX HP}`) ; comme pour son S1, l'écran doit pouvoir calculer les dégâts sur les ennemis non ciblés | utilisateur, 2026-10-03 (questionnaire) |
+| Stella, Blade Dance of the Reaper (Q08) | Coups selon la **VIT totale en combat** (arrondie au supérieur) : < 129 → 3 ; 129 → 4 ; 154 → 5 ; 179 → 6 ; ≥ 204 → 7 | utilisateur, 2026-10-03 (questionnaire) |
+| Lord of Hell (Q09) | Garde **les runes et l'ATQ de Liliana**, puis +50 % de dégâts | utilisateur, 2026-10-03 (questionnaire) |
+| Clear Water, Precision (Q10) | +50 RES et +25 PRE en **points additifs** (utile seulement si les passifs comptent dans les conditions, D54) | utilisateur, 2026-10-03 (questionnaire) |
 
 ⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
 chantier ne la modélise pas.** C'est précisément pourquoi la condition d'ignore
@@ -760,7 +767,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | P1 lancé le 2026-10-03 ; P4, P2 prêts ; le reste attend une décision (Q) ou un relevé | — |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; P4, P2 prêts ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -900,10 +907,12 @@ décision, rayée avec la date et la réponse.
 | nuit du 2026-10-02 | ~~Jusqu'où aller sans l'utilisateur ?~~ | ✔ 2026-10-02 : **le plan du lot 13, puis les lots déjà prêts dans ce chantier** (valeur dans la donnée, mécanique existante, décision prise, aucun relevé) — lots 15a à 15e |
 | clôture | ~~Lot 14 cette nuit ?~~ | ✔ 2026-10-02 : **après la vérification à l'œil de l'utilisateur**, guidée par la liste du lot LM |
 | 13 (consolidation) | ~~Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ?~~ | ✔ 2026-10-03 (utilisateur) : **lots de plus dans ce chantier**, contre la recommandation du pilote → lots Q1, Q2 puis P1 à P26 ; rien de livré ne rejoint `main` avant leur fin (ou leur report décidé) |
-| 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en attente — questionnaire prêt (lots Q1, Q2) : 67 questions, soumises dans la conversation par blocs de 10 |
+| 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en cours — questionnaire (lots Q1, Q2), 67 questions par blocs de 10 : bloc 1 (Q01-Q10) répondu le 2026-10-03 (A.2 ter ; Q01 et Q07 → relevés ; Q04 appelle une question de suite) |
 | 15d | ~~La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8)~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme les cinq autres sorts du genre → lot 15f |
 | 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
 | 15e | Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
+| P1 | Rending Claw : le bouton « +50 % sous Mechanical Frame State » est offert aussi à Cecilia (23306) et Elise (23310), dont le kit ne porte pas Emergency Drive — le retirer (clé par identifiant, 23307 seul) ? | en attente |
+| bloc 1 | Zeratu (Q03) : les coups 2 et 3 sont des coups de Trample au ratio ÷ 2 ; le bonus selon les PV de la cible recalculé à chaque coup sur les PV restants ? | en attente |
 | 15c | ~~Les 14 sorts masqués sur jugement (2813, 2818, 12512, 23706, 23708, 23709, 24206, 24208, 24209, 10243000, 10253000, 15607, 15608, 15609 — boucliers et buffs dont la prose dit « damage » / « attack » au sens des dégâts absorbés ou des attaques ennemies) : confirmer ?~~ | ✔ 2026-10-03 (utilisateur) : **les 14 confirmés**, après lecture du nom, du monstre et de la prose de chacun ; aucun sort à réafficher |
 | 15c | ~~Les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ?~~ | ✔ 2026-10-03 (utilisateur) : **revue maintenant** → lot 15g ; rien n'est masqué sans confirmation de la liste des candidats |
 
@@ -9207,6 +9216,34 @@ seulement si un total ou un affichage jouable change (attendu : aucun).
 build, spec-lint, diff-check.
 **Ne fait pas :** aucune valeur de jeu ; aucun autre homonyme que ceux
 cités (les autres vont à P4 et P5a).
+
+##### Résultat du lot P1 — 2026-10-03
+
+Agent `lot-c`. Quatre commits : `8db128c7` — garde des clés de
+`STATS_COMBAT_PAR_ID_CONNUS` (**40** clés, pas 38 : toutes portées par une
+forme jouable) ; `c318918e` — 16113 / 16613 : le bouclier n'est compté
+nulle part aujourd'hui (aucun sort ni passif offensif à ces identifiants,
+`skillDamageProfile` nul), un test le fige ; `65cef592` — « Tiger's
+Appearance » et « Charge » passent par identifiant (6163 Naomi 2A, 1865
+Gorgo) : 6113, 6178 et 1880, portés seulement par des formes non jouables,
+ne les reçoivent plus ; `61351084` — commentaire « aucun champ `enemyAtk` »
+corrigé. Totaux jouables mesurés avant / après : 68 totaux de 9 formes,
+identiques ; l'empreinte des 3 073 fiches ne change que sur 4 formes non
+jouables. Liste du lot LM non touchée (aucun changement jouable). Reçu de
+l'agent `6135108` ↔ `95d93c4`.
+
+**Arrêté selon le contrat, remis à l'utilisateur** : « Rending Claw »
+(`BONUS_CONDITIONNEL_PROPRE_CONNUS`, +50 % sous Mechanical Frame State)
+atteint 23306 (Cecilia), 23307 (Cynthia) et 23310 (Elise) ; seule la fiche
+de Cynthia porte Emergency Drive (« While in the mechanical frame state, …
+deal 50% increased damage ») — vérifié par le pilote sur les trois kits.
+Restreindre la clé à 23307 retire un bouton jouable à Cecilia et Elise
+(1 471,68 → 981,12 sous interrupteur) : question posée en A.8.
+
+**Rejoué par le pilote** : `tsc` 0 ; `auditdegatsconditionnels` + `degats`
+1 632 vérifications ; build, spec-lint, diff-check verts. Mutations de
+l'agent : cinq, toutes rouges. **Mutation du pilote**, distincte (clé de
+Gorgo déplacée sur 1866) : 3 échecs ; restaurée.
 
 ### Lot 14 — clôture
 

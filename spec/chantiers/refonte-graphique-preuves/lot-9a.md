@@ -46,8 +46,8 @@ de sets suggérés (« Fatal + Blade · Fatal + Rage · Autre combo »), l'écar
 
 - **Fichiers téléchargés** (rebranding, décision 14) :
   `swforge-optimizer-…` → `swblacksmith-optimizer-…`.
-- **Écran vide des Outils** (décision 60) : la clé à molette → les tenailles
-  des Outils (`IconeOutils`).
+- ~~**Écran vide des Outils** (décision 60) : la clé à molette → les
+  tenailles des Outils~~ — **abandonné** (décision 65, voir § 4).
 - **Couleurs d'état** (43) : rien — l'Optimizer n'emploie déjà que `bad` et
   `warn`, aucune couleur d'élément pour un état.
 

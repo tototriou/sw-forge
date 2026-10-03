@@ -758,7 +758,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15a à 15e — les lots prêts du plan | C / J | **terminés**, preuves et mutations rejouées par le pilote : 15b (`dcca28a7`), 15c (`a65b2f28`, `f7bd6a1f`), 15d (`b2d44b4d`, `292716c2`, `aa052b63`), 15e (`6c2b593e`, `404472a3`), 15a (`35541133`…`4616dab1`) ; vérifications à l'œil en attente (A.8) | 2026-10-03 |
 | 15f — Yuji et Rick : DEF du coup 2 ; ATQ ennemie absente = valeur affichée | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; Zaiross ajouté (quatre monstres) ; vérification à l'œil en attente (A.8) | `616e09a1`, `372168cd` / 2026-10-03 |
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
-| 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | à faire | — |
+| 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | à faire ; P1, P2, P4 prêts, le reste attend une décision (Q) ou un relevé | — |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
@@ -849,6 +849,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
+| 15h | Lukan, Zeratu, Michelle, Mikene, Tilasha, Iona, Jeogun, Hanwul : plus de case pour Regenerate, Unleashed Fury, Soul Revival, Revive, Dark Return, Light of Revival, Scroll Trap ; sort coché par défaut : Sandstorm (Lukan), Trample (Zeratu), Absorb Mana (Michelle) | en attente |
 | 15f | Yuji et Rick (S2) : réduction de DEF posée après le 1er coup → le 2e coup est critique ET plus fort (DEF réduite) ; une ancienne recette sans ATQ adverse, importée : le champ affiche 1 000 et le bonus de Theonia, Kassandra, Eleni ou Zaiross suit ce 1 000 | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
@@ -9065,6 +9066,23 @@ après le commit (une entrée retirée → le test échoue) et sa sortie.
 **Vérifications :** `npx tsc --noEmit`, `node tests/run.mjs sortssansattaque`,
 `npm run build`, `spec-lint`, `git diff --check`.
 **Ne fait pas :** aucun autre sort ; aucun changement de règle.
+
+##### Résultat du lot 15h — 2026-10-03
+
+Agent `lot-c`. Un commit, `53668cc2` : huit entrées dans
+`SORTS_SANS_ATTAQUE_PAR_ID` (prose citée, « confirmé par l'utilisateur, lot
+15g »), test `degats-sorts-sans-attaque` (les huit absents sur les 20 formes
+qui les portent ; nouveaux sorts par défaut nommés : Lukan → Sandstorm
+2108, Zeratu → Trample 4205, Michelle → Absorb Mana 6703), spec
+`formules-et-combat.md` (table de 28 à 36 sorts), huit sections de la liste
+(plus la ligne des doutes, « 36 sorts », corrigée dans le même commit).
+Reçu de l'agent `53668cc` ↔ `47eb7e6`.
+
+**Rejoué par le pilote** : `tsc` 0 ; `sortssansattaque` 272 vérifications ;
+build, spec-lint, diff-check verts. Mutation de l'agent (2113 retiré) : 5
+échecs. **Mutation du pilote**, distincte (13709, un sort proposé sans être
+le sort par défaut) : 4 échecs ; restaurée. Hachage inscrit dans la liste
+par le pilote.
 
 ### Lots Q1 et Q2 — le questionnaire du reliquat
 

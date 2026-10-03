@@ -325,7 +325,7 @@ Formes : 23704 Art Master (lumière) †, 23714 Hanwul.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Scroll Trap » · 13709 · S2 | Sort sans attaque (sceau : la formule `10*(17*{SPD} + 2900)/({SPD} + 100)` est une durée, pas des dégâts) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Hanwul → « Compétence utilisée » : plus de case « Scroll Trap », ni grisée ; les autres sorts de Hanwul restent proposés. |
+| « Scroll Trap » · 13709 · S2 | Sort sans attaque (sceau : la formule `10*(17*{SPD} + 2900)/({SPD} + 100)` est une durée, pas des dégâts) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts. Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Hanwul → « Compétence utilisée » : plus de case « Scroll Trap », ni grisée ; les autres sorts de Hanwul restent proposés. |
 
 ### Hollyberry Cookie
 
@@ -383,7 +383,7 @@ Formes : 15304 Epikion Priest (lumière) †, 15314 Iona.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Light of Revival » · 6714 · S3 | Sort sans attaque (soin et résurrection, `0.6*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Iona → « Compétence utilisée » : plus de case grisée « Light of Revival » ; les autres sorts d'Iona restent proposés. |
+| « Light of Revival » · 6714 · S3 | Sort sans attaque (soin et résurrection, `0.6*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Iona → « Compétence utilisée » : plus de case grisée « Light of Revival » ; les autres sorts d'Iona restent proposés. |
 
 ### Iris
 
@@ -433,7 +433,7 @@ Formes : 23702 Art Master (feu) †, 23712 Jeogun.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Scroll Trap » · 13707 · S2 | Sort sans attaque (sceau : la formule `10*(17*{SPD} + 2900)/({SPD} + 100)` est une durée, pas des dégâts) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Jeogun → « Compétence utilisée » : plus de case « Scroll Trap », ni grisée ; les autres sorts de Jeogun restent proposés. |
+| « Scroll Trap » · 13707 · S2 | Sort sans attaque (sceau : la formule `10*(17*{SPD} + 2900)/({SPD} + 100)` est une durée, pas des dégâts) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts. Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Jeogun → « Compétence utilisée » : plus de case « Scroll Trap », ni grisée ; les autres sorts de Jeogun restent proposés. |
 
 ### Kassandra (vent)
 
@@ -502,7 +502,7 @@ Formes : 11113 Lukan, 40803 Salamander †, 700803 Salamander †.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Regenerate » · 2113 · S3 | Sort sans attaque (soin après purge, `0.3*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Lukan → « Compétence utilisée » : plus de case « Regenerate », ni grisée ; le sort coché par défaut est « Sandstorm » (S2), un sort qui frappe. |
+| « Regenerate » · 2113 · S3 | Sort sans attaque (soin après purge, `0.3*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Lukan → « Compétence utilisée » : plus de case « Regenerate », ni grisée ; le sort coché par défaut est « Sandstorm » (S2), un sort qui frappe. |
 
 ### Lupinus
 
@@ -583,7 +583,7 @@ Formes : 15303 Epikion Priest (vent) †, 15313 Michelle.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Soul Revival » · 6713 · S3 | Sort sans attaque (résurrection, `0.5*{Current HP %}*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Michelle → « Compétence utilisée » : plus de case « Soul Revival », ni grisée ; le sort coché par défaut est « Absorb Mana » (S1), un sort qui frappe. |
+| « Soul Revival » · 6713 · S3 | Sort sans attaque (résurrection, `0.5*{Current HP %}*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Michelle → « Compétence utilisée » : plus de case « Soul Revival », ni grisée ; le sort coché par défaut est « Absorb Mana » (S1), un sort qui frappe. |
 
 ### Mikene
 
@@ -591,7 +591,7 @@ Formes : 11601 Undine (eau) †, 11611 Mikene, 11621 Imperfect Undine †, 40501
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Revive » · 2611 · S3 | Sort sans attaque (résurrection, `0.4*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Mikene → « Compétence utilisée » : plus de case grisée « Revive » ; les autres sorts de Mikene restent proposés. |
+| « Revive » · 2611 · S3 | Sort sans attaque (résurrection, `0.4*{Target MAX HP} (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Mikene → « Compétence utilisée » : plus de case grisée « Revive » ; les autres sorts de Mikene restent proposés. |
 
 ### Miriam
 
@@ -777,7 +777,7 @@ Formes : 11605 Undine (ténèbres) †, 11615 Tilasha.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Dark Return » · 2615 · S3 | Sort sans attaque (résurrection et tour gagné, `1 (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Tilasha → « Compétence utilisée » : plus de case grisée « Dark Return » ; les autres sorts de Tilasha restent proposés. |
+| « Dark Return » · 2615 · S3 | Sort sans attaque (résurrection et tour gagné, `1 (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Tilasha → « Compétence utilisée » : plus de case grisée « Dark Return » ; les autres sorts de Tilasha restent proposés. |
 
 ### Valdemar
 
@@ -858,7 +858,7 @@ Formes : 14605 Chimera (ténèbres) †, 14615 Zeratu.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Unleashed Fury » · 4210 · S2 | Sort sans attaque (gain d'ATQ, immunité et tour gagné, `3.5*{ATK}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | commit du lot 15h | Chemin commun → Zeratu → « Compétence utilisée » : plus de case « Unleashed Fury », ni grisée ; le sort coché par défaut est « Trample » (S1), un sort qui frappe. |
+| « Unleashed Fury » · 4210 · S2 | Sort sans attaque (gain d'ATQ, immunité et tour gagné, `3.5*{ATK}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Zeratu → « Compétence utilisée » : plus de case « Unleashed Fury », ni grisée ; le sort coché par défaut est « Trample » (S1), un sort qui frappe. |
 
 ## 2. Changements transverses (tous les monstres)
 

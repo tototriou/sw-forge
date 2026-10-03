@@ -757,7 +757,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 9d — le survol de Tempest retiré | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `2bca1603` / 2026-10-03 |
 | 15a à 15e — les lots prêts du plan | C / J | **terminés**, preuves et mutations rejouées par le pilote : 15b (`dcca28a7`), 15c (`a65b2f28`, `f7bd6a1f`), 15d (`b2d44b4d`, `292716c2`, `aa052b63`), 15e (`6c2b593e`, `404472a3`), 15a (`35541133`…`4616dab1`) ; vérifications à l'œil en attente (A.8) | 2026-10-03 |
 | 15f — Yuji et Rick : DEF du coup 2 ; ATQ ennemie absente = valeur affichée | C | à faire (décisions du 2026-10-03) | — |
-| 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | à faire (lot parallèle, notes seules ; décision du 2026-10-03) | — |
+| 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | en cours : soumis par le pilote à l'utilisateur par blocs de 10 (demande du 2026-10-03), notes seules | — |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | à faire (lots parallèles, notes seules) | — |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | à faire ; P1, P2, P4 prêts, le reste attend une décision (Q) ou un relevé | — |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
@@ -8964,8 +8964,11 @@ autre sort « decrease-def » ; aucune autre valeur par défaut de la recette.
 
 #### 15g — revue des 144 sorts à formule sans « attack » ni « damage »
 
-**Cat. J, agent `lot-j`, lot parallèle (worktree `sw-forge-lot-15g`),
-notes seules, aucun commit de code.**
+**Cat. J, conduit par le pilote avec l'utilisateur, notes seules, aucun
+commit de code.** Demande de l'utilisateur du 2026-10-03 : les cas lui sont
+soumis **dans la conversation, par blocs de 10** — pas d'agent. Le pilote
+prépare chaque bloc (contrat ci-dessous, verdict proposé), l'utilisateur
+tranche, et son verdict est inscrit dans la preuve bloc par bloc.
 
 **Intrant :** `controle-15c.md` § 6 (L126-139) et
 `controle-15c-intrants/03-sortie.txt` (sélection des 144, extraite par
@@ -8978,25 +8981,27 @@ attaque se lit dans la prose ».
 élément, formes † dites · slot · formule · **état actuel à l'écran**, lu
 par le moteur (proposé ; coché par défaut ; refusé « Formule non prise en
 charge… » ; déjà masqué) · verdict **frappe** / **sans attaque** / **doute**
-· la phrase de la prose qui décide, citée. « Frappe » exige une phrase qui
-dit un coup porté à l'ennemi (le verbe exact cité : strike, hit, shoot,
-slash, inflict…), jamais l'implicite ; aucun coup dit → « sans attaque » ;
-prose ambiguë, ou contredite par les effets ou la note → « doute ». Puis
-une section **« Candidats au masquage »** : pour chaque « sans attaque » et
-« doute », nom, monstre(s), état actuel et prose complète, sous la forme
-présentée à l'utilisateur pour les 14 de 15c.
+· la phrase de la prose qui décide, citée · **verdict de l'utilisateur**.
+Le verdict proposé : « frappe » exige une phrase qui dit un coup porté à
+l'ennemi (le verbe exact cité : strike, hit, shoot, slash, inflict…),
+jamais l'implicite ; aucun coup dit → « sans attaque » ; prose ambiguë, ou
+contredite par les effets ou la note → « doute ». Chaque bloc montre à
+l'utilisateur le nom, le ou les monstres, l'état actuel, la prose complète
+et le verdict proposé, sous la forme des 14 de 15c.
 
 **Preuve :** `controle-15g.md` et `controle-15g-intrants/` (script,
-sortie) ; 144 lignes et le compte de chaque verdict mesurés par script.
-**Livraison :** dépôt dans le worktree du lot ; le pilote recopie après
-validation, l'agent ne lance pas `livrer`.
+sortie) ; 144 lignes, le compte de chaque verdict mesuré par script.
+**Livraison :** `livrer` par le pilote quand la revue est finie ;
+l'inscription bloc par bloc ne touche que la preuve privée.
 **Ne fait pas :** aucun masquage (lot 15h, après confirmation de la liste
 par l'utilisateur) ; ni `damage.ts` ni la liste du lot LM.
 
 ### Lots Q1 et Q2 — le questionnaire du reliquat
 
-**Cat. J, agents `lot-j`, lots parallèles (worktrees `sw-forge-lot-q1` et
-`sw-forge-lot-q2`), notes seules.** Décision du 2026-10-03 (D65) : le
+**Cat. J, agents `lot-j`, lots parallèles, notes seules.** Sans code, ils
+n'ont pas de worktree : ils lisent le worktree du chantier sans y écrire et
+déposent leur preuve dans `sw-forge-lot-q1-notes\notes` et
+`sw-forge-lot-q2-notes\notes` (A.8), que le pilote recopie. Décision du 2026-10-03 (D65) : le
 reliquat se traite dans ce chantier. Ses 74 questions — 10 valeurs de jeu
 (Q01-Q10, plan § 5.1) et 64 décisions (D01-D64, § 5.2) — sont rédigées pour
 un joueur, afin que l'utilisateur réponde en une fois (« recommandations

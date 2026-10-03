@@ -1459,6 +1459,95 @@ export default function testAuditDegatsConditionnels() {
   testClesStatsCombatParId();
   testHomonymesParIdentifiant();
   testEffetsEntreCoups322();
+  testSuiteDuSortVoitLesPosesP4b();
+}
+
+// degats-et-aura P4b — une contribution qui SUIT le sort (passif qui frappe
+// après lui, attaque appelée, Tempest) lit l'état de la cible après le dernier
+// coup du sort, poses du scénario comprises ; un passif qui ACCOMPAGNE chaque
+// coup (`coupsDuSortActif`, Feng Yan) garde sa lecture coup par coup ; sans
+// scénario, rien ne change. Les quatre formes jouables qui ont à la fois une
+// contribution post-sort et un sort à effet posable (inventaire de la preuve
+// `controle-p4b.md`) : Sia, Dominic, Benedict (suivent), Feng Yan (accompagne).
+// Chemin de production : recette → `buildRealDamageContext` → `objectiveScore`.
+// Montage des témoins de P4 : ATQ 1 000, DEF cible 1 500, non critique.
+function testSuiteDuSortVoitLesPosesP4b() {
+  titre('Les coups qui suivent le sort voient les effets qu’il a posés (P4b)');
+
+  const cible: DamageSetup = { ...setupAudit, enemyDef: 1500 };
+  const candidat = { stats: buildAudit, effTotal: 0 } as unknown as BuildCandidate;
+  const contexte = (forme: number, setup: DamageSetup): RealDamageContext => {
+    const passifsOn = Object.fromEntries(monsterOffensivePassives(fiche(forme)).map((p) => [p.skillCom2usId, true]));
+    const recette = buildOptimizerRecipe({
+      monsterCom2usId: forme,
+      monsterName: String(forme),
+      requirement: { sets: [], minStats: {} },
+      objective: 'degats_reels',
+      damageSetup: { ...setup, passifsOffensifs: passifsOn },
+      metric: 'eff',
+      slotFilterPreset: 'bas',
+      adaptiveTrancheWeighting: false,
+      exhaustiveSearch: false,
+      excludeUsedRunes: false,
+      excludeUsedScope: 'rta',
+      excludedSelectors: [],
+      ignoreArtifacts: true,
+      artifactMainByKind: {},
+    });
+    const ctx = buildRealDamageContext(recette, forme, []);
+    if (!ctx) throw new Error(`contexte ${forme} introuvable`);
+    return ctx;
+  };
+  const score = (forme: number, setup: DamageSetup, sansPassifs = false) => {
+    const ctx = contexte(forme, setup);
+    return objectiveScore(candidat, 'degats_reels', AUCUNE_AURA_PROPRE, sansPassifs ? { ...ctx, passifs: [] } : ctx);
+  };
+  const pose = (sort: number, effet: string, apresCoup?: number): Partial<DamageSetup> => ({
+    scenariosEffetsEntreCoups: { [sort]: { actif: true, ...(apresCoup ? { apresCoup: { [effet]: apresCoup } } : {}) } },
+  });
+  const arrondi = (x: number, n: number) => Math.round(x * 10 ** n) / 10 ** n;
+
+  // Sia — Blackout Kick (3454) pose sa réduction de DEF au coup 1 (note
+  // « First hit ») ; Great Friends (2 coups par défaut) frappe après le sort.
+  const sia = { ...cible, skillCom2usId: 3454 };
+  const siaSans = score(12134, sia);
+  egal(arrondi(siaSans, 4), 1292.3077, 'Sia : sans scénario, total inchangé (témoin de P4)');
+  egal(score(12134, { ...sia, ...pose(3454, 'decrease-def') }), siaSans, 'Sia : scénario actif sans réussite, total inchangé');
+  const siaPose = score(12134, { ...sia, ...pose(3454, 'decrease-def', 1) });
+  const sortSans = score(12134, sia, true);
+  const sortPose = score(12134, { ...sia, ...pose(3454, 'decrease-def', 1) }, true);
+  egal(arrondi(sortPose / sortSans, 3), 1.682, 'Sia : la part de Blackout Kick, posée après le coup 1, vaut ×1,682 (coup 2 seul sous la réduction)');
+  // La part de Great Friends sous la réduction de DEF, mesurée par le réglage
+  // manuel « réduction déjà présente » (qui existe avant P4b).
+  const passifBrise = score(12134, { ...sia, defBreak: true }) - score(12134, { ...sia, defBreak: true }, true);
+  ok(
+    Math.abs(siaPose - (sortPose + passifBrise)) < 1e-6,
+    'Sia : posée après le coup 1, Great Friends frappe entièrement sous la réduction (sort ×1,682 + passif réduit)'
+  );
+  ok(siaPose > sortPose + (siaSans - sortSans), 'Sia : le passif ne garde plus l’état d’avant la pose (ancienne lecture, ×1,429)');
+  egal(arrondi(siaPose / siaSans, 3), 1.935, 'Sia : total posé après le coup 1 = ×1,935 (sort ×1,682, passif ×2,364)');
+
+  // Feng Yan — Winds and Clouds ACCOMPAGNE chaque coup de Sequential Attack
+  // (12003) : lecture coup par coup inchangée (totaux d'avant P4b, preuve).
+  const feng = { ...cible, skillCom2usId: 12003 };
+  egal(arrondi(score(21213, feng), 4), 1547.5385, 'Feng Yan : sans scénario, total inchangé');
+  egal(arrondi(score(21213, { ...feng, ...pose(12003, 'decrease-def', 1) }), 4), 2954.9238, 'Feng Yan : posée après le coup 1, total inchangé (×1,909)');
+  egal(arrondi(score(21213, { ...feng, ...pose(12003, 'decrease-def', 2) }), 4), 2251.2311, 'Feng Yan : posée après le coup 2, total inchangé (×1,455)');
+
+  // Dominic (Improvisation) et Benedict (Final Strike) — la Marque de Weakness
+  // Shot (coup 1) majore aussi la contribution qui suit le sort.
+  for (const [forme, sort, sans, ratio, nom] of [
+    [25713, 15508, 3979.0517, 1.225, 'Dominic'],
+    [25714, 15509, 3050.1551, 1.218, 'Benedict'],
+  ] as const) {
+    const s = { ...cible, skillCom2usId: sort };
+    const total = score(forme, s);
+    egal(arrondi(total, 4), sans, `${nom} : sans scénario, total inchangé`);
+    const avec = score(forme, { ...s, ...pose(sort, 'brand', 1) });
+    const ancienne = score(forme, { ...s, ...pose(sort, 'brand', 1) }, true) + (total - score(forme, s, true));
+    ok(avec > ancienne, `${nom} : le passif voit la Marque posée après le coup 1`);
+    egal(arrondi(avec / total, 3), ratio, `${nom} : total, Marque posée après le coup 1 = ×${String(ratio).replace('.', ',')}`);
+  }
 }
 
 // degats-et-aura P4 (constat 322, preuve 13b) — treize sorts dont la donnée

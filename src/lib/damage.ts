@@ -4760,6 +4760,49 @@ function setupsAvantChaqueCoup(
   monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
   profilsSupplementaires: SkillDamageProfile[] = []
 ): DamageSetup[] | null {
+  return chronologieEffetsEntreCoups(profile, setup, monsterWide, profilsSupplementaires)?.avant ?? null;
+}
+
+/**
+ * État de la cible APRÈS le dernier coup du sort, poses du scénario comprises
+ * (Brise DEF, Marque, débuffs comptés) : celui que lit une contribution qui
+ * SUIT le sort — passif qui frappe après lui (Great Friends de Sia), attaque
+ * appelée, Tempest (degats-et-aura P4b). Un passif qui ACCOMPAGNE chaque coup
+ * (`coupsDuSortActif`, Feng Yan) garde la lecture coup par coup de
+ * `setupsAvantChaqueCoup`.
+ *
+ * `null` sans scénario actif sur un sort à effets posables : l'appelant garde
+ * alors son réglage, inchangé. ⚠️ Le test du scénario précède toute
+ * allocation — `computeTotalDamage` est dans la boucle interne de
+ * l'optimiseur, et le cas normal (aucun scénario) ne doit rien coûter de plus.
+ * Les profils des contributions qui suivent entrent dans le compte des
+ * débuffs (`profilsSupplementaires`), comme celui de Feng Yan pour ses coups.
+ */
+function etatCibleApresSort(
+  profile: SkillDamageProfile,
+  passifs: PassifOffensifProfile[],
+  setup: DamageSetup,
+  monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>
+): DamageSetup | null {
+  if (!setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId]?.actif || !profile.effetsEntreCoups?.length) return null;
+  const suivent: SkillDamageProfile[] = [];
+  for (const p of passifs) {
+    if (!p.coupsDuSortActif && passifCompte(p, profile, setup)) suivent.push(p.profile);
+  }
+  return chronologieEffetsEntreCoups(profile, setup, monsterWide, suivent)?.apres ?? null;
+}
+
+/**
+ * Chronologie d'un scénario de poses entre les coups : l'état AVANT chaque
+ * coup (`avant`, un par coup) et l'état APRÈS le dernier (`apres`). `null`
+ * sans scénario actif, sans effet posable, ou pour un sort à un seul coup.
+ */
+function chronologieEffetsEntreCoups(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  monsterWide: Pick<MonsterWideDamageModifiers, 'bonusParEffetCible' | 'conditionsCombat'>,
+  profilsSupplementaires: SkillDamageProfile[]
+): { avant: DamageSetup[]; apres: DamageSetup } | null {
   const scenario = setup.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
   const coups = resolvedHits(profile, setup);
   if (!scenario?.actif || !profile.effetsEntreCoups?.length || coups <= 1) return null;
@@ -4823,7 +4866,7 @@ function setupsAvantChaqueCoup(
       if (effet.effetCombat === 'defBreak') setupCoup = { ...setupCoup, defBreak: true };
     }
   }
-  return resultats;
+  return { avant: resultats, apres: setupCoup };
 }
 
 export function computeSkillDamageDetail(
@@ -5601,8 +5644,9 @@ export function passifCompte(p: PassifOffensifProfile, sort: SkillDamageProfile,
 }
 
 // Réduction de Défense active APRÈS le sort choisi — celle qui était déjà là,
-// ou celle que le sort vient de poser. C'est l'état que subissent TOUS les
-// passifs, qui se déclenchent après lui.
+// ou celle que le sort vient de poser. C'est l'état que subissent les
+// passifs qui SUIVENT le sort ; sous scénario de poses entre les coups, il se
+// lit sur l'état après son dernier coup (`etatCibleApresSort`, P4b).
 function defBreakApres(setup: DamageSetup): boolean {
   return setup.defBreak || (setup.defBreakParLeSort ?? false);
 }
@@ -5640,7 +5684,10 @@ export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): 
  * - `defBreak` (catégorie) — la réduction de Défense que le SORT vient de
  *   poser s'applique au passif, qui frappe après lui : d'où
  *   `defBreak: defBreakApres(setup)` sur le réglage transmis, jamais le
- *   `setup.defBreak` brut (qui, lui, décrit l'état AVANT le sort).
+ *   `setup.defBreak` brut (qui, lui, décrit l'état AVANT le sort). Sous
+ *   scénario de poses entre les coups, ce réglage est l'état après le
+ *   dernier coup (`etatCibleApresSort`, P4b) ; un passif `coupsDuSortActif`
+ *   lit, lui, l'état avant chaque coup.
  *
  * ⚠️ **Le bonus `bonus` s'applique SEULEMENT à la contribution du passif
  * concerné**, jamais au total : « +100 % si cible Lumière » double les
@@ -5792,6 +5839,12 @@ export function computeTotalDamage(
   // GC pure. Le reste du profil est partagé tel quel.
   const artefactsPassif: ArtifactDamageProfile =
     artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
+  // État de la cible après le dernier coup du sort, poses du scénario
+  // comprises, pour les contributions qui SUIVENT le sort (degats-et-aura
+  // P4b). Calculé UNE fois par appel, et seulement sous scénario actif :
+  // sinon `null`, sans aucune allocation, et chaque passif garde le réglage
+  // d'avant (voir `etatCibleApresSort`).
+  const setupApresSort = etatCibleApresSort(profile, passifs, setup, monsterWide);
   for (const p of passifs) {
     if (!passifCompte(p, profile, setup)) continue;
     // Le seuil se juge sur les PV AVANT que ce passif ne frappe — c'est bien
@@ -5844,7 +5897,11 @@ export function computeTotalDamage(
       const profilPassif = p.coupsDuSortActif
         ? { ...p.profile, hits: resolvedHits(profile, setup), hitsRange: undefined }
         : p.profile;
-      const setupPassif = avecModeCritique({ ...setup, defBreak: defBreakApres(setup) });
+      // Une contribution qui SUIT le sort lit l'état de la cible après son
+      // dernier coup : sous scénario, les poses entre les coups comprises
+      // (P4b) ; sinon le réglage, avec la réduction que le sort pose lui-même.
+      const etatCible = setupApresSort ?? setup;
+      const setupPassif = avecModeCritique({ ...etatCible, defBreak: defBreakApres(etatCible) });
       detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsPassif, monsterWide, reliqueDmgPct);
     }
     pvCiblePct = detail.pvRestantsPct;

@@ -261,9 +261,23 @@ change pas ; posé après le coup qui le pose, l'effet ne majore que les coups
 suivants (sort seul, DEF cible 1 500 : ×1,455 pour Cichlid, ×1,682 pour les
 Brise DEF du coup 1, ×1,188 pour Weakness Shot, ×1,125 pour Eivor). Le
 sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien
-(décision D21 en attente). Les coups d'un passif qui suit le sort (Great
-Friends de Sia) ne voient pas la pose. Les autres effets de ces sorts
+(décision D21 en attente). Les autres effets de ces sorts
 (Decrease ATK, Étourdissement, Irrécupérable) ne sont pas curés ; Solveig et
 Berghild (18007, 18009 : la Marque n'est que dans la prose) attendent un
 relevé en jeu. Test : `testEffetsEntreCoups322`
 (`tests/audit-degats-conditionnels.test.ts`).
+
+Une contribution qui **suit** le sort — passif qui frappe après lui, attaque
+appelée, Tempest — lit l'état de la cible **après le dernier coup** du sort,
+poses du scénario comprises (Brise DEF, Marque, débuffs comptés) ; un passif
+qui **accompagne** chaque coup (`coupsDuSortActif`, Feng Yan) garde la
+lecture coup par coup ci-dessus (degats-et-aura P4b). Sans scénario actif,
+rien ne change et rien n'est calculé de plus : l'état final se calcule une
+fois par appel de `computeTotalDamage`, seulement sous scénario
+(`etatCibleApresSort`). Formes jouables concernées : Sia (Great Friends après
+Blackout Kick, réduction posée après le coup 1 : ×1,935 = sort ×1,682 et
+passif entièrement réduit), Dominic et Benedict (Improvisation, Final Strike
+après la Marque de Weakness Shot : ×1,225 et ×1,218 posée après le coup 1) ;
+Feng Yan inchangé. Le déclenchement d'un passif `defBreak` (Roid, Silver)
+reste jugé sur les deux réglages de réduction : aucun de leurs sorts n'a de
+pose entre les coups. Test : `testSuiteDuSortVoitLesPosesP4b`.

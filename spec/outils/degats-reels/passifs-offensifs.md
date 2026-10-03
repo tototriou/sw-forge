@@ -109,13 +109,13 @@ second réglage** :
 | `defBreak` | Une réduction de Défense est **déjà active AVANT** le sort |
 | `defBreakParLeSort` | Le sort choisi **en pose une lui-même** (n'apparaît que si `profile.appliqueDefBreak`, déduit de l'effet `Decrease DEF` des données) |
 
-Le sort actif n'est JAMAIS affecté par la réduction qu'il pose lui-même
-(elle atterrit après son propre coup). Les passifs, eux, frappent **après**
-lui : leurs dégâts utilisent donc toujours l'état « après »
-(`defBreak || defBreakParLeSort`). Le déclenchement d'un passif `defBreak`,
-lui, s'évalue au `moment` que dit son texte — `'avant'` pour Roid (« if you
-attack the enemy with[out] decreased Defense »), `'apres'` pour Silver
-(« if the enemy is under Defense reduction effects AFTER you attack »).
+Le sort actif n'est JAMAIS affecté par la réduction qu'il pose lui-même (elle
+atterrit après son propre coup). Les passifs frappent **après** lui : leurs dégâts
+lisent l'état « après » (`defBreak || defBreakParLeSort`) ; sous un scénario de
+poses entre les coups, celui qui suit le dernier coup du sort, poses comprises,
+sauf un passif `coupsDuSortActif`, qui lit l'état avant chaque coup (P4b). Le
+déclenchement d'un passif `defBreak` s'évalue au `moment` que dit son texte : `'avant'` pour Roid
+(« if you attack the enemy with[out] decreased Defense »), `'apres'` pour Silver (« if the enemy is under Defense reduction effects AFTER you attack »).
 
 Les trois scénarios de Roid, épinglés en test :
 

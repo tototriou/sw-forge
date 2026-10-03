@@ -142,12 +142,13 @@ export default function testDegatsBladeSurge() {
     }
   }
 
-  titre('Blade Surge — la curation se refuse quand la donnée ne la retrouve plus');
+  titre('Blade Surge — la curation se refuse quand la donnée ne porte plus son empreinte (lot P6, SZ-1)');
   {
     const reelle = fiche(19812).competences.find((c) => c.com2usId === 10602)!;
     for (const [libelle, ecart] of [
       ['formule changée', { formule: '0.6*{ATK}' }],
       ['nombre de coups changé', { coups: 3 }],
+      ['nombre de coups absent', { coups: null }],
       ['portée changée', { aoe: true }],
     ] as const) {
       const p = skillDamageProfile({ ...reelle, ...ecart });

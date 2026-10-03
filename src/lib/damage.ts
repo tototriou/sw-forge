@@ -2419,9 +2419,10 @@ export interface SkillDamageProfile {
   // où les coups tombent (`SEQUENCES_DE_COUPS_PAR_ID_CONNUS`). Le calcul passe
   // alors CHAQUE groupe par le chemin ordinaire, avec sa formule et sa portée,
   // pour la cible choisie (`cibleDegatsRetenue`) ; `formule`, `hits`, `aoe` et
-  // `noeud` gardent la donnée SWARFARM (le premier groupe) mais ne servent plus
-  // au calcul de ce sort. Donnée pure : le profil traverse le Worker de
-  // résolution.
+  // `noeud` gardent la donnée SWARFARM (celle que vérifie l'empreinte de la
+  // séquence, qui ne décrit pas toujours le seul premier groupe) mais ne
+  // servent plus au calcul de ce sort. Donnée pure : le profil traverse le
+  // Worker de résolution.
   sequenceDeCoups?: GroupeDeCoups[];
   variables: DamageVariable[];
   noeud: Noeud;
@@ -3115,9 +3116,17 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
 //
 // Curation par IDENTIFIANT du sort, jamais par nom ni par un cas codé en dur
 // dans le calcul : la séquence complète, groupe par groupe, dans l'ordre où
-// les coups tombent. Le premier groupe RECOPIE la donnée : `skillDamageProfile`
-// refuse le sort s'il ne la retrouve plus (données régénérées), plutôt que de
-// calculer une séquence périmée.
+// les coups tombent.
+//
+// Chaque entrée porte en plus l'EMPREINTE de la donnée sur laquelle elle a été
+// curée (`formule`, `coups`, `aoe` de la fiche, tels quels) : `skillDamageProfile`
+// refuse le sort si la fiche ne la porte plus (données régénérées), plutôt que
+// de calculer une séquence périmée. L'empreinte est distincte des groupes
+// (décision D11 du chantier degats-et-aura, lot P6) : d'une fiche à l'autre, la
+// donnée décrit le premier groupe (Blade Surge), toutes les phases en `coups`,
+// ou la portée de la seule phase de zone — aucune règle ne relie ces champs
+// aux groupes (`controle-13b-sequences-zone.md` § 3, six motifs), seule une
+// empreinte par entrée tient.
 //
 // Valeurs fournies par l'utilisateur (cadrage degats-et-aura, A.2 ter) :
 // coups 1 et 2 à `0.5 × ATQ` mono-cible (donnée + confirmation), coup 3 à
@@ -3133,11 +3142,19 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
 // rien de cela n'est modélisé pour une séquence, et
 // `tests/degats-blade-surge.test.ts` vérifie sur le corpus qu'aucun porteur
 // n'en a besoin.
-const SEQUENCE_BLADE_SURGE: readonly { formule: string; coups: number; zone: boolean }[] = [
-  { formule: '0.5*{ATK}', coups: 2, zone: false },
-  { formule: '3.0*{ATK}', coups: 1, zone: true },
-];
-const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, readonly { formule: string; coups: number; zone: boolean }[]> = {
+type SequenceCuree = {
+  // La donnée de la fiche sur laquelle la séquence a été curée, telle quelle.
+  empreinte: { formule: string; coups: number | null; aoe: boolean };
+  groupes: readonly { formule: string; coups: number; zone: boolean }[];
+};
+const SEQUENCE_BLADE_SURGE: SequenceCuree = {
+  empreinte: { formule: '0.5*{ATK}', coups: 2, aoe: false },
+  groupes: [
+    { formule: '0.5*{ATK}', coups: 2, zone: false },
+    { formule: '3.0*{ATK}', coups: 1, zone: true },
+  ],
+};
+const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
   10601: SEQUENCE_BLADE_SURGE, // Magic Knight eau (19801, non éveillé)
   10602: SEQUENCE_BLADE_SURGE, // Astar (19812), Magic Knight feu (19802)
   10603: SEQUENCE_BLADE_SURGE, // Imperfect Magic Knight vent (19823), Magic Knight vent (19803)
@@ -3155,7 +3172,7 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, readonly { formule: strin
  * l'identifiant seul, sans monstre chargé.
  */
 export function cibleSecondairePriseEnCharge(skillCom2usId: number): boolean {
-  return SEQUENCES_DE_COUPS_PAR_ID_CONNUS[skillCom2usId]?.some((g) => g.zone) ?? false;
+  return SEQUENCES_DE_COUPS_PAR_ID_CONNUS[skillCom2usId]?.groupes.some((g) => g.zone) ?? false;
 }
 
 /**
@@ -3197,18 +3214,24 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   if (!analyse.variables.some((v) => VARIABLE_STAT[v]) && !DEGATS_FIXES_SANS_STAT_PROPRE_PRIS_EN_CHARGE.has(c.com2usId)) {
     return { ...entete, raison: 'Ces dégâts ne dépendent d’aucune statistique du monstre.' };
   }
-  // Séquence curée (voir `SEQUENCES_DE_COUPS_PAR_ID_CONNUS`) : son premier
-  // groupe doit retrouver la donnée telle quelle, sinon la curation est
-  // périmée — refus explicite, jamais un calcul sur une séquence fausse.
+  // Séquence curée (voir `SEQUENCES_DE_COUPS_PAR_ID_CONNUS`) : la fiche doit
+  // porter l'empreinte telle quelle (formule de la DONNÉE, avant toute formule
+  // curée ; coups ; portée), sinon la curation est périmée — refus explicite,
+  // jamais un calcul sur une séquence fausse.
   const sequenceCuree = SEQUENCES_DE_COUPS_PAR_ID_CONNUS[c.com2usId];
   let sequenceDeCoups: GroupeDeCoups[] | undefined;
   if (sequenceCuree) {
-    const premier = sequenceCuree[0];
-    if (!premier || premier.formule !== brut || premier.coups !== c.coups || premier.zone !== c.aoe) {
+    const { empreinte, groupes } = sequenceCuree;
+    if (
+      groupes.length === 0 ||
+      empreinte.formule !== (c.formule ?? '').trim() ||
+      empreinte.coups !== c.coups ||
+      empreinte.aoe !== c.aoe
+    ) {
       return { ...entete, raison: 'La séquence de coups curée pour ce sort ne correspond plus à ses données.' };
     }
     sequenceDeCoups = [];
-    for (const groupe of sequenceCuree) {
+    for (const groupe of groupes) {
       const analyseGroupe = analyser(groupe.formule);
       if (!analyseGroupe) return { ...entete, raison: 'La séquence de coups curée pour ce sort n’est pas prise en charge.' };
       sequenceDeCoups.push({ ...groupe, ...analyseGroupe });

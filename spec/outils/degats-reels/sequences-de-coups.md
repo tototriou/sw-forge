@@ -35,9 +35,17 @@ fournies par l’utilisateur le 2026-09-23 : séquence, portée de la famille,
 skillups (`skillupDamagePct`, +30 %, sur les **trois** coups) et cible du
 troisième coup (la cible visée le reçoit aussi).
 
-⚠️ **Le premier groupe recopie la donnée.** Si SWARFARM ne la porte plus
-telle quelle (formule, nombre de coups ou portée), `skillDamageProfile`
-refuse le sort avec sa raison plutôt que de calculer une séquence périmée.
+⚠️ **Chaque entrée porte l’empreinte de la donnée.** À côté des groupes,
+l’entrée garde la donnée de la fiche sur laquelle elle a été curée —
+`formule` (celle de la fiche, avant toute formule curée), `coups`, `aoe` —
+telle quelle. Si SWARFARM ne la porte plus (formule, nombre de coups ou
+portée), `skillDamageProfile` refuse le sort avec sa raison plutôt que de
+calculer une séquence périmée. L’empreinte est distincte des groupes
+(décision D11, lot P6 du chantier degats-et-aura) : d’une fiche à l’autre,
+la donnée décrit le premier groupe, toutes les phases en `coups`, ou la
+portée de la seule phase de zone, sans règle qui relie ces champs aux
+groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
+`aoe: false`) coïncide avec le premier groupe.
 
 **Couverture, en trois unités (lot 1b, validé le 2026-09-23) :**
 
@@ -154,8 +162,9 @@ cela n’est modélisé pour une séquence. Le test vérifie sur le corpus qu’
 porteur n’en a besoin ; un porteur futur qui en aurait besoin le fera échouer
 et demandera une curation.
 
-`hits` et `aoe` du profil gardent la donnée SWARFARM (deux coups mono-cible)
-et ne servent plus au calcul de ce sort.
+`hits` et `aoe` du profil gardent la donnée SWARFARM (celle de l’empreinte ;
+pour Blade Surge, deux coups mono-cible) et ne servent plus au calcul de ce
+sort.
 
 ## Vérification
 

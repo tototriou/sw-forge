@@ -1241,6 +1241,7 @@ la liste des commits de code soit complète.
 | Verrous d'`ouvrir` et de `livrer` de l'outil `chantier` | O | `32a5da12` |
 | Définitions d'agents `lot-c`, `lot-m`, `lot-j` | A.4 | `7ad98468`, `69d659dc` |
 | Tests des trois mécanismes rejoués sur des cas indépendants (aucun fichier de `src/`) | 12 | `6f16ce5d` |
+| Garde des séquences de coups curées par empreinte de la donnée (`formule`, `coups`, `aoe` de la fiche), distincte des groupes ; Blade Surge identique au chiffre près sur ses 8 identifiants et 11 formes | P6 (SZ-1) | commit du lot P6 |
 
 ## 3. Préparé mais sans effet en production
 

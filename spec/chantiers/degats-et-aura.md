@@ -757,7 +757,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 9d — le survol de Tempest retiré | J | terminé, preuves et mutation rejouées par le pilote ; vérification à l'œil en attente (A.8) | `2bca1603` / 2026-10-03 |
 | 15a à 15e — les lots prêts du plan | C / J | **terminés**, preuves et mutations rejouées par le pilote : 15b (`dcca28a7`), 15c (`a65b2f28`, `f7bd6a1f`), 15d (`b2d44b4d`, `292716c2`, `aa052b63`), 15e (`6c2b593e`, `404472a3`), 15a (`35541133`…`4616dab1`) ; vérifications à l'œil en attente (A.8) | 2026-10-03 |
 | 15f — Yuji et Rick : DEF du coup 2 ; ATQ ennemie absente = valeur affichée | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; Zaiross ajouté (quatre monstres) ; vérification à l'œil en attente (A.8) | `616e09a1`, `372168cd` / 2026-10-03 |
-| 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | en cours : soumis par le pilote à l'utilisateur par blocs de 10 (demande du 2026-10-03), notes seules | — |
+| 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
+| 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | à faire | — |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | à faire ; P1, P2, P4 prêts, le reste attend une décision (Q) ou un relevé | — |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
@@ -9027,6 +9028,43 @@ sortie) ; 144 lignes, le compte de chaque verdict mesuré par script.
 l'inscription bloc par bloc ne touche que la preuve privée.
 **Ne fait pas :** aucun masquage (lot 15h, après confirmation de la liste
 par l'utilisateur) ; ni `damage.ts` ni la liste du lot LM.
+
+##### Résultat du lot 15g — 2026-10-03
+
+Six blocs soumis dans la conversation, verdict de l'utilisateur sur chacun
+(réponses citées dans la preuve) ; preuve `controle-15g.md` (235 lignes) et
+`controle-15g-intrants/` (scripts, état avant, `verdicts.json`). Sur les
+144 : **55 jouables — 47 gardés, 8 masqués** ; 14 sorts de formes † gardés
+par le verdict de leur jumeau de même nom ; 10 sorts de vrais monstres non
+éveillés montrés et gardés ; 65 sorts d'entités qu'aucun compte ne peut
+posséder (tours, cristaux, boss de raid, tutoriel, unités de collaboration)
+inchangés — traitement des 89 accepté par l'utilisateur. **À masquer** :
+2113 Regenerate (Lukan), 2611 Revive (Mikene), 2615 Dark Return (Tilasha),
+4210 Unleashed Fury (Zeratu), 6713 Soul Revival (Michelle), 6714 Light of
+Revival (Iona), 13707 et 13709 Scroll Trap (Jeogun, Hanwul). Précision de
+la règle portée en A.2 ter (Sleep Spell, Ice Ball) ; Sleep Spell garde le
+ratio de la donnée (« utilise le ratio que tu as ») ; bombes posées seules
+confirmées comptées.
+
+#### 15h — les 8 sorts sans attaque confirmés en 15g, masqués
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Un commit.
+
+**Contrat :** les huit identifiants ci-dessus ajoutés à
+`SORTS_SANS_ATTAQUE_PAR_ID` (`damage.ts`, vers L2875), chacun avec sa prose
+citée en commentaire comme les entrées de 15c, et la mention « confirmé par
+l'utilisateur, lot 15g » ; le test `degats-sorts-sans-attaque` couvre les
+huit (absents de `monsterDamageSkills` pour chaque forme qui les porte ; le
+sort par défaut de Lukan, Zeratu et Michelle devient un sort qui frappe, à
+nommer dans le test) ; spec qui décrit la table (`grep -rn
+SORTS_SANS_ATTAQUE spec/`) ; liste du lot LM : une ligne par sort dans la
+section de chaque monstre jouable, « Vérifier à l'écran » concret.
+**Preuve privée :** `controle-15h.md` — état avant / après par forme
+(`controle-15g-intrants/04-lancer.mjs` sur les huit identifiants), mutation
+après le commit (une entrée retirée → le test échoue) et sa sortie.
+**Vérifications :** `npx tsc --noEmit`, `node tests/run.mjs sortssansattaque`,
+`npm run build`, `spec-lint`, `git diff --check`.
+**Ne fait pas :** aucun autre sort ; aucun changement de règle.
 
 ### Lots Q1 et Q2 — le questionnaire du reliquat
 

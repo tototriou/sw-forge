@@ -379,8 +379,12 @@ Brutal Fists est **déduit** : le coup en plus se règle dans
 `computeSkillDamageDetail`, avec la même `statsDeCombat` que le reste du calcul
 (`resolvedHits` reçoit l'ATQ du build), et le champ « ATQ adverse » s'ouvre sur
 ce sort. Une ancienne recette sans `enemyAtk` prend la valeur affichée (1 000,
-degats-et-aura 15f). Sans l'ATQ du build (résumé de l'écran, sortie du CLI), le
-coup en plus compte pour éteint.
+degats-et-aura 15f). Le résumé de l'écran et la ligne du CLI décrivent un
+réglage, **sans build** : ils passent par `coupsAffichesDuSort` (même règle que
+`resolvedHits`, jamais une copie) et annoncent la plage, « 3 à 4 coups (selon
+l'ATQ du build) », au lieu d'un « 3 » qui passerait pour le nombre du calcul
+(lot P5a3) ; avec les stats de combat d'un build, la fonction rend le nombre
+exact du calcul. Affichage seulement, hors de la boucle de l'optimiseur.
 
 **Anciennes recettes.** Un nombre de coups saisi (`coupsPersonnalises`) pour un
 sort à interrupteur reste **lu**, borné à la plage, tant que l'interrupteur du

@@ -57,6 +57,7 @@ import {
   passifPeutSuivre,
   resolveDamageSkill,
   resolvedBuffsPropresCount,
+  coupsAffichesDuSort,
   resolvedHits,
   resolvedLeaderSkill,
   resolvedStackPct,
@@ -212,9 +213,12 @@ if (recipe.objective === 'degats_reels') {
     const cibleCalculee = cibleSecondairePriseEnCharge(profile.skillCom2usId)
       ? CIBLE_DEGATS_LABELS.find((c) => c.key === cibleDegatsRetenue(profile, s))?.label
       : undefined;
+    // Même règle que le résumé de l'écran (`coupsAffichesDuSort`, P5a3) : sans build
+    // ici, un coup en plus déduit de l'ATQ du build s'annonce en plage.
+    const coupsAffiches = coupsAffichesDuSort(profile, s);
     console.log(
-      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${resolvedHits(profile, s)} coup(s)`}` +
-        `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
+      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${coupsAffiches.dependDuBuild ? `${coupsAffiches.hits} à ${coupsAffiches.max}` : coupsAffiches.hits} coup(s)`}` +
+        `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}${coupsAffiches.dependDuBuild ? ', selon l\'ATQ du build' : ''}]` : ''}` +
         `${!sequence && profile.aoe ? ', zone' : ''}${profile.ignoreDef ? ', ignore la DEF' : ''}` +
         `${ignoreDefRetenu ? `, ${ignoreDefRetenu.charAt(0).toLowerCase()}${ignoreDefRetenu.slice(1)}` : ''}` +
         `${profile.ignoreDefSelonVit ? `, ignore la DEF selon l'écart de VIT (100 % à ${profile.ignoreDefSelonVit.ecartMax}+ pts)` : ''}` +

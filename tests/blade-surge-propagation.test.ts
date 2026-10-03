@@ -300,7 +300,7 @@ export function testBladeSurgePariteEcranCli() {
 
   // La ligne du sort du CLI : la séquence et la cible, avec les textes de l'écran.
   const cli = sansCommentaires(lireSource('scripts/optimizer-search.ts'));
-  ok(/const sequence = profile\.sequenceDeCoups;/.test(cli) && cli.includes('${sequence ? resumeSequenceDeCoups(sequence) : `${resolvedHits(profile, s)} coup(s)`}'),
+  ok(/const sequence = profile\.sequenceDeCoups;/.test(cli) && cli.includes('${sequence ? resumeSequenceDeCoups(sequence) : `${coupsAffiches.dependDuBuild ? `${coupsAffiches.hits} à ${coupsAffiches.max}` : coupsAffiches.hits} coup(s)`}'),
     'ligne du CLI : la séquence entière, par la fonction du résumé de l’écran');
   ok(cli.includes('${!sequence && profile.aoe ? \', zone\' : \'\'}'), 'ligne du CLI : la portée du sort seulement hors séquence (la donnée ne décrit pas la séquence)');
   ok(/const cibleCalculee = cibleSecondairePriseEnCharge\(profile\.skillCom2usId\)\s*\?\s*CIBLE_DEGATS_LABELS\.find\(\(c\) => c\.key === cibleDegatsRetenue\(profile, s\)\)\?\.label\s*:\s*undefined;/.test(cli)

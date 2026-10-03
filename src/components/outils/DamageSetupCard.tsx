@@ -35,6 +35,7 @@ import {
   cibleSecondairePriseEnCharge,
   estPrisEnCharge,
   conditionCritiqueGarantiParReglage,
+  coupsAffichesDuSort,
   coupsEnPlusAncienneRecetteActif,
   coupsEnPlusDeCondition,
   critiqueGarantiParReglage,
@@ -279,11 +280,19 @@ function resumeSort(
   setup: DamageSetup,
   hitsOverride?: number
 ): { ratio: string | null; reste: string; ignoreDef: string | null } {
-  const hits = hitsOverride ?? resolvedHits(p, setup);
+  // Le nombre annoncé vient de la même règle que le calcul (`coupsAffichesDuSort`) ;
+  // sans build ici, un coup en plus déduit de l'ATQ du build s'annonce en plage.
+  const affiches = coupsAffichesDuSort(p, setup);
+  const hits = hitsOverride ?? affiches.hits;
   const sequence = p.sequenceDeCoups;
   const bouts: string[] = sequence
     ? [resumeSequenceDeCoups(sequence)]
-    : [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`, p.aoe ? 'Zone' : 'Cible unique'];
+    : [
+        hitsOverride == null && affiches.dependDuBuild
+          ? `${hits} à ${affiches.max} coups (selon l’ATQ du build)`
+          : `${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`,
+        p.aoe ? 'Zone' : 'Cible unique',
+      ];
   if (p.ignoreDef) bouts.push('Ignore la DEF');
   if (p.ignoreDefSelonVit) bouts.push(`Ignore la DEF selon l'écart de VIT (100 % à ${p.ignoreDefSelonVit.ecartMax}+ pts)`);
   if (p.fixed) bouts.push('Dégâts fixes');

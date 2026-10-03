@@ -4536,6 +4536,33 @@ export function resolvedHits(
   return Math.min(profile.hitsRange.max, Math.max(profile.hitsRange.min, choisi));
 }
 
+/**
+ * Le nombre de coups que l'AFFICHAGE annonce (résumé de l'écran, ligne du CLI) —
+ * lot P5a3. Une seule règle : celle de `resolvedHits`, jamais une seconde copie.
+ *
+ * - Avec `combat` (stats de combat d'un build) : le nombre exact que compte le
+ *   calcul, `hits === max`.
+ * - Sans build (le résumé décrit le réglage, pas un build) : si un coup en plus
+ *   dépend de l'ATQ du build (`atkCibleSousAtkPropre`, Brutal Fists), il n'est
+ *   ni acquis ni éteint — l'affichage annonce la plage (`dependDuBuild`) au lieu
+ *   d'un minimum qui passerait pour le nombre du calcul. Affichage seulement :
+ *   jamais appelée dans la boucle de l'optimiseur.
+ */
+export function coupsAffichesDuSort(
+  profile: SkillDamageProfile,
+  setup: DamageSetup,
+  combat?: { atk: number; def: number; hp: number; spd: number }
+): { hits: number; max: number; dependDuBuild: boolean } {
+  const hits = resolvedHits(profile, setup, combat);
+  const dependDuBuild =
+    !combat && !!profile.hitsRange && !!profile.conditionsCombat?.some((c) => c.coupsEnPlus && c.type === 'atkCibleSousAtkPropre');
+  if (!dependDuBuild || !profile.hitsRange) return { hits, max: hits, dependDuBuild: false };
+  const enPlus = (profile.conditionsCombat ?? [])
+    .filter((c) => c.coupsEnPlus && c.type === 'atkCibleSousAtkPropre')
+    .reduce((somme, c) => somme + (c.coupsEnPlus ?? 0), 0);
+  return { hits, max: Math.min(profile.hitsRange.max, hits + enPlus), dependDuBuild: true };
+}
+
 /** Ce sort règle un coup en plus par une condition (lot P5a2), pas par un champ de coups ? */
 export function coupsEnPlusDeCondition(profile: SkillDamageProfile): boolean {
   return !!profile.conditionsCombat?.some((c) => c.coupsEnPlus);

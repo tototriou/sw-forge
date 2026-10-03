@@ -24,10 +24,12 @@ import {
   type DamageSetup,
   type SkillDamageProfile,
   computeSkillDamage,
+  coupsAffichesDuSort,
   coupsEnPlusAncienneRecetteActif,
   estPrisEnCharge,
   monsterDamageSkills,
   resolvedHits,
+  statsDeCombat,
 } from '../src/lib/damage';
 
 const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -319,6 +321,35 @@ function testDegatsCoupsSousCondition() {
     ok(proche(total(1000, 500, 3), 4 * parCoupA(1000, 500)), `${id} : ancienne saisie à 3 ignorée, la déduction (adverse 500) donne 4`);
     // Aucun interrupteur : la clé du sort n'y change rien.
     ok(proche(calcul(p, { ...base, enemyAtk: 1500, passifsOffensifs: { [id]: true } }), 3 * parCoupA(1000, 1500)), `${id} : aucun interrupteur ne force le coup en plus`);
+  }
+
+  titre('Lot P5a3 — l\'affichage lit le même nombre de coups que le calcul (fonction partagée)');
+  for (const [id, forme] of BRUTAL_FISTS) {
+    const p = sortDe(forme, id);
+    for (const [enemyAtk, attendu] of [[500, 4], [999, 4], [1000, 3], [1500, 3]] as const) {
+      const s = { ...base, enemyAtk };
+      const combat = statsDeCombat(stat(1000), s, AUCUNE_AURA_PROPRE);
+      const avec = coupsAffichesDuSort(p, s, combat);
+      egal([avec.hits, avec.max, avec.dependDuBuild], [attendu, attendu, false], `${id} : avec le build (ATQ 1 000, adverse ${enemyAtk}), l'affichage annonce ${attendu}`);
+      ok(proche(calcul(p, s, stat(1000)), avec.hits * unCoup(p, s, stat(1000))), `${id} : adverse ${enemyAtk}, le total du calcul vaut le nombre annoncé (${attendu}) × un coup`);
+      // Sans build (résumé de l'écran, ligne du CLI) : la plage, jamais un minimum présenté comme le nombre du calcul.
+      const sans = coupsAffichesDuSort(p, s);
+      egal([sans.hits, sans.max, sans.dependDuBuild], [3, 4, true], `${id} : sans build, l'affichage annonce 3 à 4 (selon l'ATQ du build), adverse ${enemyAtk}`);
+    }
+  }
+  titre('Lot P5a3 — le résumé de l\'écran et la ligne du CLI passent par la fonction partagée');
+  {
+    const ecran = readFileSync(resolve(racine, 'src/components/outils/DamageSetupCard.tsx'), 'utf8');
+    const cli = readFileSync(resolve(racine, 'scripts/optimizer-search.ts'), 'utf8');
+    ok(ecran.includes('const affiches = coupsAffichesDuSort(p, setup);'), 'écran : resumeSort lit le nombre de coups par coupsAffichesDuSort');
+    ok(cli.includes('const coupsAffiches = coupsAffichesDuSort(profile, s);'), 'CLI : la ligne du sort lit le nombre de coups par coupsAffichesDuSort');
+    ok(!/const hits = hitsOverride \?\? resolvedHits\(/.test(ecran), 'écran : plus de lecture directe de resolvedHits dans le résumé');
+  }
+  titre('Lot P5a3 — les autres sorts : l\'affichage n\'a pas changé');
+  for (const [id, forme] of [[11664, 20834], [21311, 31811]] as const) {
+    const p = sortDe(forme, id);
+    const sans = coupsAffichesDuSort(p, base);
+    egal([sans.hits, sans.max, sans.dependDuBuild], [resolvedHits(p, base), resolvedHits(p, base), false], `${id} : un interrupteur, pas une plage selon le build : le minimum, comme avant`);
   }
 
   titre('Lot P5a2 — Barrage of Madness et Sura\'s Seal : toujours des compteurs, inchangés');

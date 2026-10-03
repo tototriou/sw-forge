@@ -769,7 +769,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b lancé** (Rending Claw, décision du 2026-10-03) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -858,6 +858,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
+| P1b | Rending Claw : la case « +50 % … Mechanical Frame State » seulement chez Cynthia (feu) ; plus chez Cecilia (eau) ni Elise (ténèbres) | en attente |
 | P4b | Sia, Dominic, Benedict : réduction de DEF ou Marque posée après le 1er coup → les coups du passif qui suit (Great Friends, Improvisation, Final Strike) grossissent aussi ; sans pose, rien ne change | en attente |
 | P2 | Les 24 monstres de la liste (Amelia, Antares, Theomars, Zenitsu…) : dans « État de mon monstre », sous les buffs, une ligne « [passif] pose Buff … — « condition » » ; rien ne s'allume ni ne bouge au clic ; ordinateur et téléphone | en attente |
 | P4 | Cichlid, Melissa, Barbara, Masha, Xiana, Carlos, Dominic, Benedict, Eivor, Sia, Übel : sur le sort concerné, le cadre des poses entre les coups propose la réduction de DEF ou la Marque ; posée après le coup qui la pose, seuls les coups suivants grossissent | en attente |
@@ -9267,6 +9268,23 @@ total par défaut inchangé) ; liste du lot LM (Cecilia, Cynthia, Elise).
 **Preuve privée :** `controle-p1b.md` (totaux avant / après, sorties
 `.txt`) ; mutation après le commit.
 **Ne fait pas :** aucune autre entrée de la table par nom.
+
+##### Résultat du lot P1b — 2026-10-03
+
+Agent `lot-c`. Un commit, `f840ef7e` : table
+`BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS` (23307 seul), lue avant la table
+par nom, d'où l'entrée « Rending Claw » est retirée ; test dans
+`degats.test.ts` ; `catalogue-des-passifs.md` ; liste (Cecilia, Cynthia,
+Elise). Totaux : Cynthia inchangée (981,12 par défaut, 1 471,68
+interrupteur allumé) ; Cecilia et Elise sans bouton, total par défaut
+inchangé (981,12). La collision de clé 23310 avec un interrupteur de
+répétition d'Elise (DH13b-declenchee-voisins-03) disparaît avec le bouton.
+Reçu de l'agent `f840ef7` ↔ `2a1ab27`.
+
+**Rejoué par le pilote** : `tsc` 0 ; 1 790 vérifications ; build,
+spec-lint, diff-check verts. Mutation de l'agent (clé remise par nom) : 4
+échecs. **Mutation du pilote**, distincte (clé posée sur 23306, Cecilia, au
+lieu de Cynthia) : 4 échecs ; restaurée. Hachage inscrit dans la liste.
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

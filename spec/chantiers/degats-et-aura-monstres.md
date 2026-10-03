@@ -174,7 +174,7 @@ Formes : 34001 Arcane Weapon (eau) †, 34011 Cecilia.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Rending Claw » · 23306 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » disparaît : la fiche de Cecilia ne porte pas Emergency Drive (décision de l'utilisateur du 2026-10-03). Total par défaut inchangé (981,1201, au témoin du lot) ; le total « interrupteur allumé » (1 471,6801) n'existe plus. | P1b | commit du lot P1b | Chemin commun → Cecilia → « Compétence utilisée » → « Rending Claw » : aucun interrupteur « Mechanical Frame State » ; le total est celui de l'ancien état éteint. |
+| « Rending Claw » · 23306 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » disparaît : la fiche de Cecilia ne porte pas Emergency Drive (décision de l'utilisateur du 2026-10-03). Total par défaut inchangé (981,1201, au témoin du lot) ; le total « interrupteur allumé » (1 471,6801) n'existe plus. | P1b | `f840ef7e` | Chemin commun → Cecilia → « Compétence utilisée » → « Rending Claw » : aucun interrupteur « Mechanical Frame State » ; le total est celui de l'ancien état éteint. |
 
 ### Celine
 
@@ -287,7 +287,7 @@ Formes : 34002 Arcane Weapon (feu) †, 34012 Cynthia.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Rending Claw » · 23307 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » passe de la table par nom à une table par identifiant (23307) : Cynthia, seule fiche à porter Emergency Drive, le garde ; ses totaux sont inchangés (981,1201 par défaut, 1 471,6801 interrupteur allumé, au témoin du lot). | P1b | commit du lot P1b | Chemin commun → Cynthia → « Compétence utilisée » → « Rending Claw » : l'interrupteur « Mechanical Frame State » est présent, éteint par défaut ; l'allumer multiplie le total par 1,5 ; « Mechanical Fist » (S1) n'a pas ce bouton. |
+| « Rending Claw » · 23307 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » passe de la table par nom à une table par identifiant (23307) : Cynthia, seule fiche à porter Emergency Drive, le garde ; ses totaux sont inchangés (981,1201 par défaut, 1 471,6801 interrupteur allumé, au témoin du lot). | P1b | `f840ef7e` | Chemin commun → Cynthia → « Compétence utilisée » → « Rending Claw » : l'interrupteur « Mechanical Frame State » est présent, éteint par défaut ; l'allumer multiplie le total par 1,5 ; « Mechanical Fist » (S1) n'a pas ce bouton. |
 
 ### Dagora
 
@@ -360,7 +360,7 @@ Formes : 34005 Arcane Weapon (ténèbres) †, 34015 Elise.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Rending Claw » · 23310 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » disparaît : la fiche d'Elise ne porte pas Emergency Drive (décision de l'utilisateur du 2026-10-03). Total par défaut inchangé (981,1201, au témoin du lot) ; le total « interrupteur allumé » (1 471,6801) n'existe plus. | P1b | commit du lot P1b | Chemin commun → Elise → « Compétence utilisée » → « Rending Claw » : aucun interrupteur « Mechanical Frame State » ; le total est celui de l'ancien état éteint. |
+| « Rending Claw » · 23310 · S2 | Le bouton « +50 % — tu es en Mechanical Frame State (Emergency Drive) » disparaît : la fiche d'Elise ne porte pas Emergency Drive (décision de l'utilisateur du 2026-10-03). Total par défaut inchangé (981,1201, au témoin du lot) ; le total « interrupteur allumé » (1 471,6801) n'existe plus. | P1b | `f840ef7e` | Chemin commun → Elise → « Compétence utilisée » → « Rending Claw » : aucun interrupteur « Mechanical Frame State » ; le total est celui de l'ancien état éteint. |
 
 ### Elpuria
 

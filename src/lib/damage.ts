@@ -1791,6 +1791,14 @@ const STATS_COMBAT_PAR_ID_CONNUS: Record<number, CombatStatConfig[]> = {
   18140: [{ source: 'toggle', label: 'État Thunderer', hpPct: 30 }],
 };
 
+// Les identifiants de `STATS_COMBAT_PAR_ID_CONNUS`, en lecture seule : la table
+// n'est pas exportée, et son test de garde (degats-et-aura P1 — chaque clé est
+// un identifiant du corpus porté par une forme jouable) ne doit pas passer par
+// une fiche pour la lire.
+export function idsStatsCombatConnus(): number[] {
+  return Object.keys(STATS_COMBAT_PAR_ID_CONNUS).map(Number);
+}
+
 export function monsterCombatStatProfiles(detail: DetailMonstre | null): CombatStatProfile[] {
   if (!detail) return [];
   const out: CombatStatProfile[] = [];

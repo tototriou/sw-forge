@@ -15,6 +15,7 @@ import {
   defenseFactor,
   damageRelevantStats,
   estPrisEnCharge,
+  idsStatsCombatConnus,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsStackable,
   monsterBonusParEffetCible,
@@ -31,6 +32,7 @@ import {
   statsDeCombat,
 } from '../src/lib/damage';
 import { DetailMonstre } from '../src/lib/monsterSkills';
+import { formesJouables } from '../src/lib/monsterForms';
 import { evaluerPourRegime } from '../src/lib/artifactEvaluation';
 import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { BuildCandidate, RealDamageContext, objectiveScore } from '../src/lib/runeBuildOptim';
@@ -1445,4 +1447,34 @@ export default function testAuditDegatsConditionnels() {
   verifierRefus('damageSetup.scenariosEffetsEntreCoups.6513.apresCoup.brand', (r) => {
     r.damageSetup.scenariosEffetsEntreCoups = { 6513: { apresCoup: { brand: 0 } } };
   });
+
+  testClesStatsCombatParId();
+}
+
+// degats-et-aura P1 (SP-0) — la table `STATS_COMBAT_PAR_ID_CONNUS` est écrite à
+// la main, par identifiant : une clé mal recopiée, orpheline, ou posée sur une
+// forme que personne ne joue n'échouait nulle part (aucun test ne la lisait).
+// Ce test garde des IDENTIFIANTS ; il ne dit rien des valeurs.
+function testClesStatsCombatParId() {
+  titre('Stats de combat par identifiant — chaque clé est un identifiant du corpus porté par au moins une forme jouable');
+
+  const jouables = new Set<number>();
+  for (const m of formesJouables(monstersJson())) if (m.com2usId != null) jouables.add(m.com2usId);
+  const formesParId = new Map<number, number[]>();
+  for (const f of readdirSync(dossierSorts)) {
+    if (!f.endsWith('.json')) continue;
+    const d: DetailMonstre = JSON.parse(readFileSync(resolve(dossierSorts, f), 'utf8'));
+    for (const c of d.competences) {
+      if (c.com2usId != null) formesParId.set(c.com2usId, [...(formesParId.get(c.com2usId) ?? []), d.com2usId]);
+    }
+  }
+
+  const cles = idsStatsCombatConnus();
+  ok(cles.length > 0, 'la table est lisible et non vide');
+  ok(jouables.size > 0, 'témoin : le filtre des formes jouables en laisse');
+  for (const id of cles) {
+    const formes = formesParId.get(id) ?? [];
+    ok(formes.length > 0, `${id} : identifiant présent dans public/data/skills`);
+    ok(formes.some((f) => jouables.has(f)), `${id} : porté par au moins une forme jouable (parmi ${formes.join(', ') || 'aucune'})`);
+  }
 }

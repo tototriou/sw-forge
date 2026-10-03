@@ -776,7 +776,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 lancé** (D11, D12 levées) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -865,6 +865,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
+| P6 | Abigail, Emily, M. BISON, Sagar : total du S3 plus haut (phase de zone comptée) et cran « Dégâts sur les autres ennemis » ; Ramon, Nezuko, Vermilion : le S3 est proposé et coché par défaut ; Blade Surge inchangé | en attente |
 | P1b | Rending Claw : la case « +50 % … Mechanical Frame State » seulement chez Cynthia (feu) ; plus chez Cecilia (eau) ni Elise (ténèbres) | en attente |
 | P4b | Sia, Dominic, Benedict : réduction de DEF ou Marque posée après le 1er coup → les coups du passif qui suit (Great Friends, Improvisation, Final Strike) grossissent aussi ; sans pose, rien ne change | en attente |
 | P2 | Les 24 monstres de la liste (Amelia, Antares, Theomars, Zenitsu…) : dans « État de mon monstre », sous les buffs, une ligne « [passif] pose Buff … — « condition » » ; rien ne s'allume ni ne bouge au clic ; ordinateur et téléphone | en attente |
@@ -920,7 +921,8 @@ décision, rayée avec la date et la réponse.
 | nuit du 2026-10-02 | ~~Jusqu'où aller sans l'utilisateur ?~~ | ✔ 2026-10-02 : **le plan du lot 13, puis les lots déjà prêts dans ce chantier** (valeur dans la donnée, mécanique existante, décision prise, aucun relevé) — lots 15a à 15e |
 | clôture | ~~Lot 14 cette nuit ?~~ | ✔ 2026-10-02 : **après la vérification à l'œil de l'utilisateur**, guidée par la liste du lot LM |
 | 13 (consolidation) | ~~Le plan du reliquat (`decisions/plan-reliquat-degats-2026-10.md`) : chantier à part après la clôture (recommandation, D65), ou lot de plus ?~~ | ✔ 2026-10-03 (utilisateur) : **lots de plus dans ce chantier**, contre la recommandation du pilote → lots Q1, Q2 puis P1 à P26 ; rien de livré ne rejoint `main` avant leur fin (ou leur report décidé) |
-| 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en cours — questionnaire (lots Q1, Q2), 67 questions par blocs de 10 : bloc 1 (Q01-Q10) répondu le 2026-10-03 (A.2 ter ; Q01 et Q07 → relevés ; Q04 appelle une question de suite) ; bloc 2 (D01-D10) répondu le 2026-10-03 (plan § 5.2, A.2 ter) ; D01 reposée avec la prose entière (la citation du questionnaire omettait « Attacks the enemy with a swift attack »), réponse : option 1 ; bloc 3 (Q04 suite, D12-D21) répondu le 2026-10-03, D12 précisée (API par défaut sauf prose contraire) ; D11 tranchée par le pilote (empreinte) |
+| 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en cours — questionnaire (lots Q1, Q2), 67 questions par blocs de 10 : bloc 1 (Q01-Q10) répondu le 2026-10-03 (A.2 ter ; Q01 et Q07 → relevés ; Q04 appelle une question de suite) ; bloc 2 (D01-D10) répondu le 2026-10-03 (plan § 5.2, A.2 ter) ; D01 reposée avec la prose entière (la citation du questionnaire omettait « Attacks the enemy with a swift attack »), réponse : option 1 ; bloc 3 (Q04 suite, D12-D21) répondu le 2026-10-03, D12 précisée (API par défaut sauf prose contraire) ; D11 tranchée par le pilote (empreinte) ; bloc 4 : D22, D23, D25, D27, D28, D29 répondus le 2026-10-03, D30-D33 à venir |
+| bloc 4 | Valeur de jeu : Stormfist de Mayasura (18306, « increases up to 6 times according to your Attack Power ») — nombre de coups selon l'ATQ, que l'utilisateur fournira | en attente |
 | 15d | ~~La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8)~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme les cinq autres sorts du genre → lot 15f |
 | 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
 | 15e | Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
@@ -9324,6 +9326,32 @@ aucune séquence à valeur relevée (P6b).
 après ; mutation après chaque commit de code.
 **Vérifications :** `tsc`, contrôles touchés (dont `bladesurge`,
 `auditdegatsconditionnels`, `degats`), build, spec-lint, diff-check.
+
+##### Résultat du lot P6 — 2026-10-03
+
+Agent `lot-j`. Trois commits : `40056029` — garde des séquences curées par
+empreinte de la donnée, Blade Surge identique à 1e-6 (8 identifiants, 11
+formes) ; `ccc2d186` — séquences à valeur de l'API : Abigail et Emily (zone
+`4.5*{ATK}`, auxiliaires 2476, 2478) 2 227,41 → 5 091,22, M. BISON et Sagar
+(`5.2*{ATK}`, 2762, 2830) 4 683,92 → 5 386,51 ; le cran « Dégâts sur les
+autres ennemis » apparaît pour ces quatre sorts ; `488f07b2` — formules de
+l'API pour Ramon (4592, mono-cible par la prose, table neuve
+`PORTEE_CORRIGEE_PAR_ID`) 3 278,74, Nezuko et Vermilion (4626, 4710) 2 749,26 ;
+le S3 devient leur sort par défaut ; garde « formule vide » sur la formule
+retenue. Verdict D12 : aucune prose ne contredit l'API, aucun identifiant
+arrêté. Test `tests/degats-valeurs-api.test.ts`, `sequences-de-coups.md`,
+`conditions-et-audit.md`, liste (7 sections). Reçu de l'agent `488f07b` ↔
+`dc749b4`.
+
+**Rejoué par le pilote** : `tsc` 0 ; 2 002 vérifications ; build, spec-lint,
+diff-check verts ; les sept valeurs relues dans `annexes.md` (L323-365).
+Mutations de l'agent : 5 sur 5 rouges. **Mutation du pilote**, distincte
+(formule de Nezuko à 4,0) : 9 échecs ; restaurée. Hachages inscrits dans la
+liste (un par commit).
+
+**Non prouvé, dit par l'agent** : que les skillups s'appliquent à la phase
+de zone des quatre séquences (relevés R1/R2 du plan) ; que 224 et 411
+s'appliquent par groupe hors Blade Surge.
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

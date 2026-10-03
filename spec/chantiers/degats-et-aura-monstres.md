@@ -42,7 +42,7 @@ Formes : 22911 Abigail.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Fatal Extinctive Bullet » · 13311 · S3 | Séquence curée : 1 coup de 3,5 × ATQ sur la cible (donnée) puis 1 coup de 4,5 × ATQ sur tous les ennemis (compétence auxiliaire 2476 de l'API SWARFARM, règle D12) ; avant, 3,5 × ATQ seul. Total « Non critique » ×2,286 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (4,5 × ATQ seul) ; 224 et 411 sur le premier coup seul. Skillups (+25 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | commit du lot P6 | Chemin commun → Abigail → « Compétence utilisée » → « Fatal Extinctive Bullet » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » ; les deux crans sous la liste ; « Dégâts sur les autres ennemis » baisse le total. |
+| « Fatal Extinctive Bullet » · 13311 · S3 | Séquence curée : 1 coup de 3,5 × ATQ sur la cible (donnée) puis 1 coup de 4,5 × ATQ sur tous les ennemis (compétence auxiliaire 2476 de l'API SWARFARM, règle D12) ; avant, 3,5 × ATQ seul. Total « Non critique » ×2,286 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (4,5 × ATQ seul) ; 224 et 411 sur le premier coup seul. Skillups (+25 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | `ccc2d186` | Chemin commun → Abigail → « Compétence utilisée » → « Fatal Extinctive Bullet » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » ; les deux crans sous la liste ; « Dégâts sur les autres ennemis » baisse le total. |
 
 ### Acasis
 
@@ -392,7 +392,7 @@ Formes : 22914 Emily.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Fatal Armor Bullet » · 13314 · S3 | Séquence curée : 1 coup de 3,5 × ATQ sur la cible (donnée) puis 1 coup de 4,5 × ATQ sur tous les ennemis (compétence auxiliaire 2478 de l'API SWARFARM, règle D12) ; avant, 3,5 × ATQ seul. Total « Non critique » ×2,286 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (4,5 × ATQ seul) ; 224 et 411 sur le premier coup seul. Skillups (+25 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | commit du lot P6 | Chemin commun → Emily → « Compétence utilisée » → « Fatal Armor Bullet » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » ; les deux crans sous la liste ; « Dégâts sur les autres ennemis » baisse le total. |
+| « Fatal Armor Bullet » · 13314 · S3 | Séquence curée : 1 coup de 3,5 × ATQ sur la cible (donnée) puis 1 coup de 4,5 × ATQ sur tous les ennemis (compétence auxiliaire 2478 de l'API SWARFARM, règle D12) ; avant, 3,5 × ATQ seul. Total « Non critique » ×2,286 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (4,5 × ATQ seul) ; 224 et 411 sur le premier coup seul. Skillups (+25 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | `ccc2d186` | Chemin commun → Emily → « Compétence utilisée » → « Fatal Armor Bullet » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » ; les deux crans sous la liste ; « Dégâts sur les autres ennemis » baisse le total. |
 
 ### Erwin
 
@@ -707,7 +707,7 @@ Formes : 24203 바이슨(바람) †, 24213 M. BISON.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Head Press » · 14113 · S3 | Séquence curée : 1 coup de 4,0 × ATQ sur la cible puis 1 coup de 5,2 × ATQ sur tous les ennemis (compétence auxiliaire 2762 de l'API SWARFARM, règle D12) ; avant, 2 coups de 4,0 × ATQ sur la cible (`coups: 2` de la donnée compte les deux phases). Total « Non critique » ×1,15 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (5,2 × ATQ seul) ; 224 et 411 sur le premier coup seul (224 portait sur les deux coups). Skillups (+15 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | commit du lot P6 | Chemin commun → M. BISON → « Compétence utilisée » → « Head Press » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » (avant : « 2 coups · Cible unique ») ; les deux crans sous la liste. |
+| « Head Press » · 14113 · S3 | Séquence curée : 1 coup de 4,0 × ATQ sur la cible puis 1 coup de 5,2 × ATQ sur tous les ennemis (compétence auxiliaire 2762 de l'API SWARFARM, règle D12) ; avant, 2 coups de 4,0 × ATQ sur la cible (`coups: 2` de la donnée compte les deux phases). Total « Non critique » ×1,15 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (5,2 × ATQ seul) ; 224 et 411 sur le premier coup seul (224 portait sur les deux coups). Skillups (+15 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | `ccc2d186` | Chemin commun → M. BISON → « Compétence utilisée » → « Head Press » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » (avant : « 2 coups · Cible unique ») ; les deux crans sous la liste. |
 
 ### Madeleine
 
@@ -858,7 +858,7 @@ Formes : 31905 카마도 네즈코(어둠) †, 31915 Nezuko Kamado, 32015 Nezuk
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Purification, Cooperation! » · 21415 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 4,5 × ATQ, un coup, mono-cible, +20 % (compétence auxiliaire 4626 de l'API SWARFARM, règle D12). Les attaques des deux alliés restent hors calcul. Dernier sort calculable, il devient le sort coché par défaut (avant : « Triple Roundhouse Kick »). | P6 (HT-1) | commit du lot P6 | Chemin commun → Nezuko Kamado → « Compétence utilisée » : une case « Purification, Cooperation! », cochée par défaut ; résumé « 1 coup · Cible unique ». |
+| « Purification, Cooperation! » · 21415 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 4,5 × ATQ, un coup, mono-cible, +20 % (compétence auxiliaire 4626 de l'API SWARFARM, règle D12). Les attaques des deux alliés restent hors calcul. Dernier sort calculable, il devient le sort coché par défaut (avant : « Triple Roundhouse Kick »). | P6 (HT-1) | `488f07b2` | Chemin commun → Nezuko Kamado → « Compétence utilisée » : une case « Purification, Cooperation! », cochée par défaut ; résumé « 1 coup · Cible unique ». |
 
 ### Old Wood (eau)
 
@@ -938,7 +938,7 @@ Formes : 31404 Tomb Warden †, 31414 Ramon.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Cursed Tombstone » · 21114 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 2,7 × ATQ + 0,29 × PV max, un coup, +15 % (compétence auxiliaire 4592 de l'API SWARFARM, règle D12). **Mono-cible** : la prose « Attacks the enemy » l'emporte sur `aoe: true` de la donnée ; 224 s'applique. Dernier sort calculable, il devient le sort coché par défaut (avant : « Coffin Bash »). | P6 (HT-1) | commit du lot P6 | Chemin commun → Ramon → « Compétence utilisée » : une case « Cursed Tombstone », cochée par défaut ; résumé « 1 coup · Cible unique » (jamais « Zone »). |
+| « Cursed Tombstone » · 21114 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 2,7 × ATQ + 0,29 × PV max, un coup, +15 % (compétence auxiliaire 4592 de l'API SWARFARM, règle D12). **Mono-cible** : la prose « Attacks the enemy » l'emporte sur `aoe: true` de la donnée ; 224 s'applique. Dernier sort calculable, il devient le sort coché par défaut (avant : « Coffin Bash »). | P6 (HT-1) | `488f07b2` | Chemin commun → Ramon → « Compétence utilisée » : une case « Cursed Tombstone », cochée par défaut ; résumé « 1 coup · Cible unique » (jamais « Zone »). |
 
 ### Raviti
 
@@ -986,7 +986,7 @@ Formes : 24703 Slayer †, 24713 Sagar.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Great Sword of the End » · 14613 · S3 | Séquence curée : 1 coup de 4,0 × ATQ sur la cible puis 1 coup de 5,2 × ATQ sur tous les ennemis (compétence auxiliaire 2830 de l'API SWARFARM, règle D12) ; avant, 2 coups de 4,0 × ATQ en zone (`coups: 2` compte les deux phases, `aoe: true` est la portée de la seconde). Total « Non critique » ×1,15 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (5,2 × ATQ seul) ; 224 agit désormais sur le premier coup, 411 sur le premier coup seul. Skillups (+15 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | commit du lot P6 | Chemin commun → Sagar → « Compétence utilisée » → « Great Sword of the End » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » (avant : « 2 coups · Zone ») ; les deux crans sous la liste. |
+| « Great Sword of the End » · 14613 · S3 | Séquence curée : 1 coup de 4,0 × ATQ sur la cible puis 1 coup de 5,2 × ATQ sur tous les ennemis (compétence auxiliaire 2830 de l'API SWARFARM, règle D12) ; avant, 2 coups de 4,0 × ATQ en zone (`coups: 2` compte les deux phases, `aoe: true` est la portée de la seconde). Total « Non critique » ×1,15 (ATQ 2 000, DEF cible 1 000). Deux crans « Dégâts sur la cible visée » / « Dégâts sur les autres ennemis » (5,2 × ATQ seul) ; 224 agit désormais sur le premier coup, 411 sur le premier coup seul. Skillups (+15 %) sur les deux coups : supposé, non confirmé. | P6 (SZ-2) | `ccc2d186` | Chemin commun → Sagar → « Compétence utilisée » → « Great Sword of the End » : résumé « 1 coup · Cible unique, puis 1 coup · Zone » (avant : « 2 coups · Zone ») ; les deux crans sous la liste. |
 
 ### Satoru Gojo
 
@@ -1150,7 +1150,7 @@ Formes : 32605 Vermilion Bird Dancer †, 32615 Vermilion Bird Dancer.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Rite of Ashes » · 22015 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 4,5 × ATQ, un coup, mono-cible, +20 % (compétence auxiliaire 4710 de l'API SWARFARM, règle D12). Les attaques des deux alliés restent hors calcul. Dernier sort calculable, il devient le sort coché par défaut (avant : « Triple Flame Kick »). | P6 (HT-1) | commit du lot P6 | Chemin commun → Vermilion Bird Dancer → « Compétence utilisée » : une case « Rite of Ashes », cochée par défaut ; résumé « 1 coup · Cible unique ». |
+| « Rite of Ashes » · 22015 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 4,5 × ATQ, un coup, mono-cible, +20 % (compétence auxiliaire 4710 de l'API SWARFARM, règle D12). Les attaques des deux alliés restent hors calcul. Dernier sort calculable, il devient le sort coché par défaut (avant : « Triple Flame Kick »). | P6 (HT-1) | `488f07b2` | Chemin commun → Vermilion Bird Dancer → « Compétence utilisée » : une case « Rite of Ashes », cochée par défaut ; résumé « 1 coup · Cible unique ». |
 
 ### Vidurr
 
@@ -1297,7 +1297,7 @@ la liste des commits de code soit complète.
 | Verrous d'`ouvrir` et de `livrer` de l'outil `chantier` | O | `32a5da12` |
 | Définitions d'agents `lot-c`, `lot-m`, `lot-j` | A.4 | `7ad98468`, `69d659dc` |
 | Tests des trois mécanismes rejoués sur des cas indépendants (aucun fichier de `src/`) | 12 | `6f16ce5d` |
-| Garde des séquences de coups curées par empreinte de la donnée (`formule`, `coups`, `aoe` de la fiche), distincte des groupes ; Blade Surge identique au chiffre près sur ses 8 identifiants et 11 formes | P6 (SZ-1) | commit du lot P6 |
+| Garde des séquences de coups curées par empreinte de la donnée (`formule`, `coups`, `aoe` de la fiche), distincte des groupes ; Blade Surge identique au chiffre près sur ses 8 identifiants et 11 formes | P6 (SZ-1) | `40056029` |
 
 ## 3. Préparé mais sans effet en production
 

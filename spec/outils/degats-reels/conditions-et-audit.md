@@ -217,6 +217,14 @@ Témoin (Yuji vent, 1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000,
 après le coup 1 (coup 2 critique sous DEF réduite), 1 697,1 contre une
 cible déjà affligée (interrupteur « débuff présent »).
 
+Une recette sans `enemyAtk` (ancienne recette) prend l'ATQ ennemie que
+l'écran affiche, `DEFAULT_DAMAGE_SETUP.enemyAtk` (1 000), et non 0 : la
+condition « ATQ cible inférieure » est éteinte sous 1 000 d'ATQ du build,
+allumée au-dessus, exactement comme avec une recette qui porte 1 000.
+Theonia, Kassandra, Eleni (vent) et Zaiross (S3 Fiery Breath, seuil
+inclusif à 50 % de l'ATQ) sont concernés (décision de l'utilisateur du
+2026-10-03, degats-et-aura 15f).
+
 Byungchul critique toujours avec ses deux sorts actifs (Violent Swing,
 Summon Heavenly Kings Gate) : la garantie vient de son passif Full of
 Spirit (« Your attacks will always land as a Critical Hit whenever you

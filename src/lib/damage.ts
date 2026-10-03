@@ -1324,7 +1324,12 @@ function conditionCombatActive(
     case 'atkCibleSousAtkPropre': {
       if (!combat) return false;
       const seuil = combat.atk * condition.ratio;
-      return condition.inclusif ? (setup.enemyAtk ?? 0) <= seuil : (setup.enemyAtk ?? 0) < seuil;
+      // Une recette sans `enemyAtk` (ancienne recette) prend la valeur que
+      // l'écran affiche (`DEFAULT_DAMAGE_SETUP.enemyAtk`, 1 000), comme
+      // `enemySpd` plus bas : décision de l'utilisateur du 2026-10-03
+      // (degats-et-aura 15f). Avant, 0 allumait la condition à tort.
+      const atqCible = setup.enemyAtk ?? DEFAULT_DAMAGE_SETUP.enemyAtk!;
+      return condition.inclusif ? atqCible <= seuil : atqCible < seuil;
     }
     case 'defCibleSousDefPropre':
     case 'defCibleSousAtkPropre': {

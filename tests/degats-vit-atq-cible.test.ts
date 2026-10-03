@@ -4,7 +4,9 @@
 //     cumul, 5 cumuls au plus (« up to 250 »), dans `STATS_COMBAT_PAR_ID_CONNUS` ;
 //   - Summary Justice (23515) : +100 % de dégâts quand l'ATQ ennemie saisie
 //     (`enemyAtk`) est STRICTEMENT inférieure à l'ATQ du build, dans
-//     `CONDITIONS_COMBAT_PAR_ID_CONNUS`.
+//     `CONDITIONS_COMBAT_PAR_ID_CONNUS` ;
+//   - une recette SANS `enemyAtk` prend l'ATQ ennemie affichée par l'écran
+//     (1 000) et non 0 : Theonia, Kassandra, Eleni, Zaiross (15f).
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un cumul lu comme un pourcentage
 // (×1,5 au lieu de +50), ou un bonus accordé à l'égalité d'ATQ — le
@@ -179,6 +181,45 @@ export function testTheoniaAtqCible() {
   const recette = recetteDe(34215, { ...setup, enemyAtk: 1234 });
   egal(parseOptimizerRecipe(JSON.stringify(recette)).recipe?.damageSetup?.enemyAtk, 1234,
     'recette : l’ATQ ennemie saisie survit à l’export puis à la relecture');
+
+  // Une recette SANS `enemyAtk` (ancienne recette) prend la valeur que
+  // l'écran affiche, 1 000 (`DEFAULT_DAMAGE_SETUP.enemyAtk`), et non 0
+  // (degats-et-aura 15f, décision de l'utilisateur du 2026-10-03). ⚠️ Un 0
+  // allumerait la condition à tort sur toute ancienne recette, sans rien
+  // afficher d'anormal : le champ montre 1 000. Les quatre monstres dont une
+  // condition est `atkCibleSousAtkPropre` sont couverts, écrits à la main.
+  // [forme, sort, nom, ATQ du build où la condition est éteinte contre 1 000,
+  //  ATQ du build où elle est allumée contre 1 000]
+  const MONSTRES_ATQ_CIBLE: [number, number, string, number, number][] = [
+    [34215, 23515, 'Theonia', 900, 1200],
+    [27613, 17413, 'Kassandra vent', 900, 1200],
+    [28113, 17913, 'Eleni vent', 900, 1200],
+    [14412, 2912, 'Zaiross (seuil inclusif à 50 % de l’ATQ)', 1900, 2000],
+  ];
+  for (const [forme, sort, nom, atqEteinte, atqAllumee] of MONSTRES_ATQ_CIBLE) {
+    const sansChamp = { ...base, skillCom2usId: sort } as Partial<DamageSetup>;
+    delete sansChamp.enemyAtk;
+    egal('enemyAtk' in sansChamp, false, `${sort} ${nom} — la recette de test ne porte pas le champ enemyAtk`);
+    const avec1000 = { ...base, skillCom2usId: sort, enemyAtk: 1000 };
+    // L'ancienne recette passe par l'export JSON puis la relecture, comme à l'import.
+    const relue = parseOptimizerRecipe(JSON.stringify(recetteDe(forme, sansChamp as DamageSetup))).recipe;
+    egal(relue?.damageSetup?.enemyAtk, undefined, `${sort} ${nom} — relue, la recette n'a toujours pas de enemyAtk`);
+    const scoreSans = (valeurs: Partial<Record<StatKey, number>>) => {
+      const ctx = buildRealDamageContext(relue!, forme, []);
+      return objectiveScore({ stats: stats(valeurs), effTotal: 0 } as unknown as BuildCandidate, 'degats_reels', AUCUNE_AURA_PROPRE, ctx!);
+    };
+    const eteinte = { ...BUILD, atk: atqEteinte };
+    const allumee = { ...BUILD, atk: atqAllumee };
+    const horsCondition = score(forme, { ...avec1000, enemyAtk: 1_000_000 }, allumee);
+    egal(scoreSans(eteinte), score(forme, { ...avec1000, enemyAtk: 1_000_000 }, eteinte),
+      `${sort} ${nom} — sans enemyAtk, ATQ du build ${atqEteinte} : condition éteinte (aucun bonus, pas de 0 allumant le +X %)`);
+    ok(scoreSans(allumee) > horsCondition,
+      `${sort} ${nom} — sans enemyAtk, ATQ du build ${atqAllumee} : condition allumée`);
+    egal(scoreSans(eteinte), score(forme, avec1000, eteinte),
+      `${sort} ${nom} — ATQ ${atqEteinte} : recette sans enemyAtk = recette qui porte 1 000`);
+    egal(scoreSans(allumee), score(forme, avec1000, allumee),
+      `${sort} ${nom} — ATQ ${atqAllumee} : recette sans enemyAtk = recette qui porte 1 000`);
+  }
 
   // La fenêtre « Dégâts réels » ouvre le champ « ATQ adverse » dès qu'une
   // condition du sort choisi est `atkCibleSousAtkPropre` : c'est ce que la

@@ -767,7 +767,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; P2 prêt ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 lancé** ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -9298,6 +9298,33 @@ du scénario (`setupsAvantChaqueCoup` n'est transmis qu'aux coups du sort
 actif) — Sia ×1,429 au lieu de ×1,682 ; Cichlid offre « après le coup 1 »,
 qui ne pose rien (×1,909, décision D21) ; autres effets de ces sorts
 (Decrease ATK, Stun, Unrecoverable) non curés.
+
+#### P2 — rappel à l'écran des buffs posés par un passif
+
+**Cat. J, agent `lot-j`, worktree du chantier.** Plan § 6, ligne P2 (SPC-1,
+`controle-13b-stats-passifs-corpus.md` L458, D1 L217-221, tableau du tri
+§ 7) ; décision de l'utilisateur (A.8) : **rappel à l'écran, réglage manuel
+conservé**.
+
+**Contrat :** (1) une table curée **par identifiant** des passifs qui posent
+un buff standard (ATQ, DEF, VIT, TC…), les 24 « J » du tri — chacun avec le
+buff, sa condition et sa prose citée ; la table ne change **aucun calcul**
+(le buff reste à allumer à la main, réglage existant d'`EtatMonstre.tsx`) ;
+(2) quand le monstre choisi porte un tel passif, une ligne de rappel près
+des buffs manuels : nom du passif (libellé du jeu), buff posé, condition —
+grammaire des rappels existants (sets d'aura, lots 7b et 7c ; prose des
+passifs, lot 11), composants de `src/ui/`, tokens, les deux formats, et rien
+ne bouge au clic ; (3) test : chaque clé est un identifiant porté par une
+forme jouable ; le rappel apparaît pour un passif de la table, jamais pour un
+autre ; aucun total ne change (mesuré avant / après) ; (4) spec de l'écran
+(grep du réglage des buffs dans `spec/`) et liste du lot LM (une ligne par
+monstre jouable : « Vérifier à l'écran » = le rappel et son texte).
+**Preuve privée :** `controle-p2.md` et `controle-p2-intrants/` (sorties
+`.txt`) ; mutation après le commit.
+**Vérifications :** `tsc`, contrôles touchés, build (une classe Tailwind
+nouvelle se vérifie dans le CSS construit), spec-lint, diff-check.
+**Ne fait pas :** n'allume aucun buff d'office ; aucun buff que le sort se
+pose lui-même (constat 323, D22, P12a) ; aucune forme non jouable.
 
 ### Lot 14 — clôture
 

@@ -313,8 +313,10 @@ variables) : le nombre de coups d'un sort dont la prose le dit variable est
 **saisi** par l'utilisateur, borné à la plage ; le **défaut est le minimum** ;
 un coup supplémentaire **vaut les autres coups** (même formule par coup).
 Aucune dérivation depuis les stats (ATQ, VIT, effets nocifs, PV) : les seuils
-du jeu ne sont pas relevés. Les bornes viennent de la prose ou d'un champ de
-la fiche, citées dans le test.
+du jeu ne sont pas relevés — **sauf** les sorts dont le coup en plus ne dépend
+que d'une condition, réglés par un interrupteur ou déduits d'un champ déjà
+présent (section « Coups en plus sous condition », lot P5a2, plus bas). Les
+bornes viennent de la prose ou d'un champ de la fiche, citées dans le test.
 
 **Deux clés.** `COUPS_VARIABLES_CONNUS` (`{ min, max, defaut? }`) et
 `COUPS_FIXES_CORRIGES` sont clées par **nom** ; `COUPS_VARIABLES_PAR_ID_CONNUS`
@@ -336,7 +338,7 @@ jouables 1607 et 1609 portent `coups: 4`.
 | Barrage of Madness · `18313` · Usha `28513` | 3 à 5 | nom (unique) | « Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance » ; la probabilité n'est jamais tirée |
 | Hammer Punch · `11651`-`11655` · Tractor `20831`, Bulldozer `20832`, Crane `20833`, Driller `20834`, Crawler `20835` | 2 à 3 | nom | « Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added » ; `coups: 2`. Homonymes `11601`-`11605` (Frankenstein 1A) et `11673`-`11677` (boss), non jouables : même prose, couverts par le nom. Le terme « Attaques reçues avant ce sort » reste par coup |
 | Pound · `11664` · Driller `20834` | 4 à 6 | nom | « Attacks the enemy 4 times … 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect » ; `coups: 4`. Homonymes `11614` (Driller 1A, condition « MAX HP **et** effet nocif ») et `11686` (boss), non jouables : même plage |
-| Brutal Fists · `18301`-`18305` · Mayasura `28511`, Varuna `28512`, Usha `28513`, Danu `28514`, Vritra `28515` | 3 à 4 | nom (exclusif aux cinq) | « Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` = le maximum. Le défaut passe de 4 à 3 coups ; la condition d'ATQ n'est jamais devinée |
+| Brutal Fists · `18301`-`18305` · Mayasura `28511`, Varuna `28512`, Usha `28513`, Danu `28514`, Vritra `28515` | 3 à 4 | nom (exclusif aux cinq) | « Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` = le maximum. Le défaut passe de 4 à 3 coups ; le coup en plus est ensuite déduit de l'ATQ adverse (lot P5a2) |
 
 Deux sorts portent à l'inverse un nombre **fixe** corrigé (`COUPS_FIXES_CORRIGES`,
 pas de saisie) : « Attacks all enemies 3 times … and attacks them once more »
@@ -351,3 +353,45 @@ Hors périmètre, voir le cadrage : Stormfist de Mayasura (18306…, la règle
 selon l'ATQ est une valeur à fournir), Crow Hunt (R9), Lala, Coco, Stella,
 Cleave, les coups tirés au hasard (P5b). Test : `testDegatsCoupsSaisis`
 (`node tests/run.mjs coupssaisis`).
+
+### Coups en plus sous condition (lot P5a2)
+
+Décision de l'utilisateur du 2026-10-04, d'après la règle « seuil →
+interrupteur » (cadrage A.2 ter, D06) : un coup en plus qui ne dépend que d'une
+**condition** se règle par un **interrupteur**, pas par un compteur. Il est
+**éteint par défaut** (le minimum, comme tout le lot) et l'allumer ajoute
+exactement les coups en plus (l'ancien maximum). Le champ du nombre de coups
+disparaît de ces sorts. Mécanique : une condition de combat (`conditionsCombat`)
+porte `coupsEnPlus`, ajouté au minimum par `resolvedHits` ; l'interrupteur est
+celui des conditions existantes, stocké dans `passifsOffensifs` sous
+l'identifiant du sort. Les bornes (`hitsRange`) restent celles de la table
+ci-dessus.
+
+| Sort | Interrupteur (libellé) | Condition | Coups |
+| --- | --- | --- | --- |
+| Whirlpool `21311`, Water Dragon Surge `21911` | « La cible porte un effet nocif (+2 coups) » | `debuffCiblePresent` : s'allume aussi tout seul sous Brise DEF ou Marque | 1, ou 3 |
+| Hammer Punch `11651`-`11655` | « La cible ne porte aucun effet nocif (+1 coup) » | manuel | 2, ou 3 |
+| Pound `11664` | « L’état des PV de la cible est pire que le tien, ou elle porte un effet nocif (+2 coups) » | manuel : les deux clauses de la prose en un seul réglage | 4, ou 6 |
+| Strafe, God's Weapon | « Le tir en plus part » / « Le coup en plus part » (+1 coup) | manuel : la probabilité du coup en plus n'est jamais tirée | 2, ou 3 |
+| Brutal Fists `18301`-`18305` | aucun | `atkCibleSousAtkPropre`, ratio 1, **strict** : ATQ du build > « ATQ adverse » (`enemyAtk`), le champ de Theonia, Kassandra et Eleni | 3, ou 4 |
+
+Brutal Fists est **déduit** : le coup en plus se règle dans
+`computeSkillDamageDetail`, avec la même `statsDeCombat` que le reste du calcul
+(`resolvedHits` reçoit l'ATQ du build), et le champ « ATQ adverse » s'ouvre sur
+ce sort. Une ancienne recette sans `enemyAtk` prend la valeur affichée (1 000,
+degats-et-aura 15f). Sans l'ATQ du build (résumé de l'écran, sortie du CLI), le
+coup en plus compte pour éteint.
+
+**Anciennes recettes.** Un nombre de coups saisi (`coupsPersonnalises`) pour un
+sort à interrupteur reste **lu**, borné à la plage, tant que l'interrupteur du
+sort n'a pas été touché (clé absente de `passifsOffensifs`) ; l'interrupteur
+s'affiche alors allumé si la saisie dépasse le minimum
+(`coupsEnPlusAncienneRecetteActif`). Toucher l'interrupteur, dans un sens ou
+l'autre, rend la main aux conditions. Un nombre intermédiaire (Pound à 5) reste
+5. Exception assumée : pour **Brutal Fists**, la déduction prévaut sur toute
+ancienne saisie, qui n'a plus de champ pour être corrigée.
+
+**Restent des compteurs** : Barrage of Madness (3 à 5, au hasard selon les
+effets nocifs) et Sura's Seal (4 à 8 selon l'écart d'ATQ, seuils inconnus).
+Le Whirlpool de Seal 2A (`3463`) n'a toujours ni plage ni interrupteur. Test :
+`testDegatsCoupsSaisis`, section « Lot P5a2 ».

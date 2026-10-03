@@ -182,6 +182,7 @@ affirmations contradictoires, notamment sur 411.
 | Tempest Sword de Lupinus (Q06) | Le 3e coup, sur tous les ennemis, a **le même ratio** que les deux premiers (`{ATK} + 0.06*{Target MAX HP}`) ; comme pour son S1, l'écran doit pouvoir calculer les dégâts sur les ennemis non ciblés | utilisateur, 2026-10-03 (questionnaire) |
 | Stella, Blade Dance of the Reaper (Q08) | Coups selon la **VIT totale en combat** (arrondie au supérieur) : < 129 → 3 ; 129 → 4 ; 154 → 5 ; 179 → 6 ; ≥ 204 → 7 | utilisateur, 2026-10-03 (questionnaire) |
 | Lord of Hell (Q09) | Garde **les runes et l'ATQ de Liliana**, puis +50 % de dégâts | utilisateur, 2026-10-03 (questionnaire) |
+| Frodo — buff « all allies » du passif | Le porteur **reçoit aussi** le buff d'ATQ (le champ `surSoi: false` de la fiche est faux) | utilisateur, 2026-10-03 (lot P2) |
 | Clear Water, Precision (Q10) | +50 RES et +25 PRE en **points additifs** (utile seulement si les passifs comptent dans les conditions, D54) | utilisateur, 2026-10-03 (questionnaire) |
 
 ⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
@@ -916,7 +917,8 @@ décision, rayée avec la date et la réponse.
 | 15e | Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
 | P1 | Rending Claw : le bouton « +50 % sous Mechanical Frame State » est offert aussi à Cecilia (23306) et Elise (23310), dont le kit ne porte pas Emergency Drive — le retirer (clé par identifiant, 23307 seul) ? | en attente |
 | bloc 1 | ~~Zeratu (Q03) : les coups 2 et 3 sont des coups de Trample au ratio ÷ 2 ; le bonus selon les PV de la cible recalculé à chaque coup sur les PV restants ?~~ | ✔ 2026-10-03 (utilisateur) : **oui** (A.2 ter) |
-| P2 | Frodo et Silver Tail : le porteur du passif reçoit-il lui aussi le buff « all allies » ? (la prose le dit, le champ `surSoi` de la fiche dit non ; le rappel s'affiche sur le porteur) | en attente |
+| P2 | ~~Frodo : le porteur du passif reçoit-il lui aussi le buff « all allies » ?~~ | ✔ 2026-10-03 (utilisateur) : **oui**, « frodo reçoit aussi le buff atk » (A.2 ter) ; le rappel sur le porteur est juste, aucun code à changer |
+| P2 | Silver Tail : le porteur du passif reçoit-il lui aussi le buff « all allies » ? (la prose le dit, le champ `surSoi` de la fiche dit non ; le rappel s'affiche sur le porteur) | en attente |
 | 15c | ~~Les 14 sorts masqués sur jugement (2813, 2818, 12512, 23706, 23708, 23709, 24206, 24208, 24209, 10243000, 10253000, 15607, 15608, 15609 — boucliers et buffs dont la prose dit « damage » / « attack » au sens des dégâts absorbés ou des attaques ennemies) : confirmer ?~~ | ✔ 2026-10-03 (utilisateur) : **les 14 confirmés**, après lecture du nom, du monstre et de la prose de chacun ; aucun sort à réafficher |
 | 15c | ~~Les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ?~~ | ✔ 2026-10-03 (utilisateur) : **revue maintenant** → lot 15g ; rien n'est masqué sans confirmation de la liste des candidats |
 

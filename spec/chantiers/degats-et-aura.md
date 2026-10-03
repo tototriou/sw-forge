@@ -146,7 +146,7 @@ affirmations contradictoires, notamment sur 411.
 | Stock de dégâts de Jin/Kai ténèbres | Lorsqu'un S3 élimine sa cible, l'excédent `max(0, dégâts infligés − PV restants)` devient un dégât fixe ajouté au prochain S3. Il ignore la DEF mais subit les réductions des dégâts fixes, est entièrement consommé puis remplacé par le nouvel excédent éventuel, sans plafond de jeu. L'Optimizer demande directement un stock `0..100000` à l'utilisateur ; cette borne de saisie n'est pas un plafond du jeu | utilisateur, valeurs et décision produit du 2026-09-23 |
 | Répétitions sans plafond connu | Scratch de Raoq, Sonic Boom d'Ermeda et Chain Fire utilisent un nombre total de coups saisi de `1` à `10`. Pour Raoq, l'utilisateur choisit après quel coup le break DEF réussit | utilisateur, décision produit du 2026-09-23 |
 | Déclenchements de Hwa et Jackie | Burning Whip répète exactement la S1 ou S2 initiale une fois, sans récursion, sur interrupteur. Exploding Hands répète une fois son ratio `7.4 × ATQ`, sur interrupteur, sans nouvelle tentative d'étourdissement | utilisateur, confirmation explicite du 2026-09-23 |
-| Zeratu — Forbidden Power | L'utilisateur choisit 1, 2 ou 3 attaques, défaut 3. Les attaques 2 et 3 valent chacune 50 % du ratio initial : trois attaques valent `100 % + 50 % + 50 % = 200 %` ; **les skillups s'appliquent** à ces deux coups (rappel du 2026-10-03, Q03) | utilisateur, confirmation explicite du 2026-09-24 et du 2026-10-03 |
+| Zeratu — Forbidden Power | L'utilisateur choisit 1, 2 ou 3 attaques, défaut 3. Les attaques 2 et 3 valent chacune 50 % du ratio initial : trois attaques valent `100 % + 50 % + 50 % = 200 %` ; **les skillups s'appliquent** à ces deux coups, et le bonus de Trample selon les PV de la cible est **recalculé à chaque coup** sur les PV restants (2026-10-03, Q03) | utilisateur, confirmation explicite du 2026-09-24 et du 2026-10-03 |
 | Sia — Great Friends | Sélecteur 2 ou 3 coups supplémentaires, défaut 2. Les deux skillups `Damage +10 %` s'appliquent à chaque coup du passif, ajouté après la S1 ou S2 sélectionnée | utilisateur, confirmation explicite du 2026-09-24 |
 | Chaînes des Kung Fu Girls | Les formes non éveillées `8206` à `8210` n'ont pas de suite et ne sont pas sélectionnables. Sur les formes éveillées, un break DEF réussi de S1 est actif pour la S2. Les cinq Dragon Attack utilisent un sélecteur de 1 à 4 coups reçus, défaut 4 ; Fei choisit l'ignore DEF séparément pour chaque coup | utilisateur, confirmations explicites des 2026-09-23 et 2026-09-24 |
 | Calcul monocible et nouvelle cible | Une contribution obligatoirement portée sur un autre monstre est ignorée : notamment la S2 après Sword of Promise des Valkyrjas et la seconde attaque de Shadow Assault de Tanya | utilisateur, décision produit du 2026-09-23 |
@@ -767,7 +767,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 lancé** ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -856,6 +856,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
+| P2 | Les 24 monstres de la liste (Amelia, Antares, Theomars, Zenitsu…) : dans « État de mon monstre », sous les buffs, une ligne « [passif] pose Buff … — « condition » » ; rien ne s'allume ni ne bouge au clic ; ordinateur et téléphone | en attente |
 | P4 | Cichlid, Melissa, Barbara, Masha, Xiana, Carlos, Dominic, Benedict, Eivor, Sia, Übel : sur le sort concerné, le cadre des poses entre les coups propose la réduction de DEF ou la Marque ; posée après le coup qui la pose, seuls les coups suivants grossissent | en attente |
 | 15h | Lukan, Zeratu, Michelle, Mikene, Tilasha, Iona, Jeogun, Hanwul : plus de case pour Regenerate, Unleashed Fury, Soul Revival, Revive, Dark Return, Light of Revival, Scroll Trap ; sort coché par défaut : Sandstorm (Lukan), Trample (Zeratu), Absorb Mana (Michelle) | en attente |
 | 15f | Yuji et Rick (S2) : réduction de DEF posée après le 1er coup → le 2e coup est critique ET plus fort (DEF réduite) ; une ancienne recette sans ATQ adverse, importée : le champ affiche 1 000 et le bonus de Theonia, Kassandra, Eleni ou Zaiross suit ce 1 000 | en attente |
@@ -913,7 +914,8 @@ décision, rayée avec la date et la réponse.
 | 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
 | 15e | Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente |
 | P1 | Rending Claw : le bouton « +50 % sous Mechanical Frame State » est offert aussi à Cecilia (23306) et Elise (23310), dont le kit ne porte pas Emergency Drive — le retirer (clé par identifiant, 23307 seul) ? | en attente |
-| bloc 1 | Zeratu (Q03) : les coups 2 et 3 sont des coups de Trample au ratio ÷ 2 ; le bonus selon les PV de la cible recalculé à chaque coup sur les PV restants ? | en attente |
+| bloc 1 | ~~Zeratu (Q03) : les coups 2 et 3 sont des coups de Trample au ratio ÷ 2 ; le bonus selon les PV de la cible recalculé à chaque coup sur les PV restants ?~~ | ✔ 2026-10-03 (utilisateur) : **oui** (A.2 ter) |
+| P2 | Frodo et Silver Tail : le porteur du passif reçoit-il lui aussi le buff « all allies » ? (la prose le dit, le champ `surSoi` de la fiche dit non ; le rappel s'affiche sur le porteur) | en attente |
 | 15c | ~~Les 14 sorts masqués sur jugement (2813, 2818, 12512, 23706, 23708, 23709, 24206, 24208, 24209, 10243000, 10253000, 15607, 15608, 15609 — boucliers et buffs dont la prose dit « damage » / « attack » au sens des dégâts absorbés ou des attaques ennemies) : confirmer ?~~ | ✔ 2026-10-03 (utilisateur) : **les 14 confirmés**, après lecture du nom, du monstre et de la prose de chacun ; aucun sort à réafficher |
 | 15c | ~~Les 144 sorts à formule sans « attack » ni « damage » dans la prose (`controle-15c.md` § 6 ; quelques-uns semblent ne pas attaquer : Unleashed Fury 4210, Scroll Trap 13707/13709, Revive, Toad Poison, Curse, Sleep Spell) : à passer en revue ?~~ | ✔ 2026-10-03 (utilisateur) : **revue maintenant** → lot 15g ; rien n'est masqué sans confirmation de la liste des candidats |
 
@@ -9325,6 +9327,33 @@ monstre jouable : « Vérifier à l'écran » = le rappel et son texte).
 nouvelle se vérifie dans le CSS construit), spec-lint, diff-check.
 **Ne fait pas :** n'allume aucun buff d'office ; aucun buff que le sort se
 pose lui-même (constat 323, D22, P12a) ; aucune forme non jouable.
+
+##### Résultat du lot P2 — 2026-10-03
+
+Agent `lot-j`. Un commit, `87e03514` : `src/lib/buffsDePassif.ts`, table
+`BUFFS_POSES_PAR_PASSIF_CONNUS` par identifiant — les **24** passifs du tri,
+lus par script dans les comptes de 13b (20 « D × E », 4 « Dp × E »), une
+forme jouable chacun, condition extraite mot pour mot de la prose (mode « un
+parmi » pour Caffeine et Mind and Body Rest) ; dans « État de mon monstre »,
+sous la rangée des buffs, une ligne par passif (`Jeton` en lecture seule,
+« pose Buff ATQ — « condition » »), dans la grammaire des lignes
+d'amplification voisines, sans classe nouvelle ; garde d'identité pendant le
+chargement (`OptimizerSection.tsx`) ; `tests/buffs-de-passif.test.ts` ;
+`optimizer.md` § État de mon monstre ; 24 sections de la liste ; une ligne
+d'`invariants.md`. Six monstres témoins, buffs éteints et allumés : totaux
+identiques. Reçu de l'agent `87e0351` ↔ `a76660f`.
+
+**Rejoué par le pilote** : `tsc` 0 ; `buffsdepassif` 257 et `degats` 1 766
+vérifications ; build, spec-lint, diff-check verts ; diff de l'écran relu.
+Mutations de l'agent : 3 et 2 échecs. **Mutation du pilote**, distincte
+(condition de 3212 tronquée) : 2 échecs ; restaurée. Hachage inscrit dans
+la liste par le pilote.
+
+**Signalé** : Frodo et Silver Tail (porteur compris dans « all allies » ?)
+→ A.8 ; Azazel, Kazuya, True Devil Kazuya, formes de boss → question D56 du
+questionnaire ; Taux Crit d'Antares nommé sans vignette qui le règle ;
+`optimizer.md` est en exception de spec-lint (découpage à prévoir, hors
+lot).
 
 ### Lot 14 — clôture
 

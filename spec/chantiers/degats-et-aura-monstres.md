@@ -58,7 +58,7 @@ Formes : 21501 Unicorn †, 21511 Amelia.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Protection Wings (Passive) » · 12311 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Protection Wings » (icône et nom du jeu) pose Buff DEF — « when you are attacked » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Amelia → carte « État de mon monstre » : sous les vignettes, la ligne « Protection Wings » + « pose Buff DEF — « when you are attacked » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Protection Wings (Passive) » · 12311 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Protection Wings » (icône et nom du jeu) pose Buff DEF — « when you are attacked » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Amelia → carte « État de mon monstre » : sous les vignettes, la ligne « Protection Wings » + « pose Buff DEF — « when you are attacked » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Antares
 
@@ -66,7 +66,7 @@ Formes : 16302 Lich †, 16312 Antares, 41202 Lich †, 701202 Lich †.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Transcendence (Passive) » · 7512 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Transcendence » (icône et nom du jeu) pose Buff ATQ et Buff Taux Crit — « Gains a turn with a 15% chance whenever an enemy's turn ends » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Le Taux Crit est nommé, mais aucune vignette ne le règle (D5 du lot 13b : il ne pèse que dans le mode « Moyenne »). | P2 | commit du lot P2 | Outils → Optimizer → choisir Antares → carte « État de mon monstre » : sous les vignettes, la ligne « Transcendence » + « pose Buff ATQ et Buff Taux Crit — « Gains a turn with a 15% chance whenever an enemy's turn ends » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Transcendence (Passive) » · 7512 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Transcendence » (icône et nom du jeu) pose Buff ATQ et Buff Taux Crit — « Gains a turn with a 15% chance whenever an enemy's turn ends » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Le Taux Crit est nommé, mais aucune vignette ne le règle (D5 du lot 13b : il ne pèse que dans le mode « Moyenne »). | P2 | `87e03514` | Outils → Optimizer → choisir Antares → carte « État de mon monstre » : sous les vignettes, la ligne « Transcendence » + « pose Buff ATQ et Buff Taux Crit — « Gains a turn with a 15% chance whenever an enemy's turn ends » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Artamiel
 
@@ -92,7 +92,7 @@ Formes : 2003503 Azazel.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Devil Gene's Origin (Passive) » · 20021103 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Devil Gene's Origin » (icône et nom du jeu) pose Buff DEF — « at the start of its turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. Forme de boss (prose « the boss's ») : jouabilité soumise à D6 du lot 13b ; prose seule, fiche sans effet. | P2 | commit du lot P2 | Outils → Optimizer → choisir Azazel → carte « État de mon monstre » : sous les vignettes, la ligne « Devil Gene's Origin » + « pose Buff DEF — « at the start of its turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Devil Gene's Origin (Passive) » · 20021103 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Devil Gene's Origin » (icône et nom du jeu) pose Buff DEF — « at the start of its turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. Forme de boss (prose « the boss's ») : jouabilité soumise à D6 du lot 13b ; prose seule, fiche sans effet. | P2 | `87e03514` | Outils → Optimizer → choisir Azazel → carte « État de mon monstre » : sous les vignettes, la ligne « Devil Gene's Origin » + « pose Buff DEF — « at the start of its turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Barbara
 
@@ -157,7 +157,7 @@ Formes : 22703 Sniper Mk.I †, 22713 Carbine, 22803 Sniper Mk.I †, 22813 Carb
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Veteran (Passive) » · 13213 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Veteran » (icône et nom du jeu) pose Buff ATQ — « whenever the enemy's attack lands as a Glancing Hit » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Prose seule : la fiche n’a que `Increase ATB`. | P2 | commit du lot P2 | Outils → Optimizer → choisir Carbine → carte « État de mon monstre » : sous les vignettes, la ligne « Veteran » + « pose Buff ATQ — « whenever the enemy's attack lands as a Glancing Hit » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Veteran (Passive) » · 13213 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Veteran » (icône et nom du jeu) pose Buff ATQ — « whenever the enemy's attack lands as a Glancing Hit » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Prose seule : la fiche n’a que `Increase ATB`. | P2 | `87e03514` | Outils → Optimizer → choisir Carbine → carte « État de mon monstre » : sous les vignettes, la ligne « Veteran » + « pose Buff ATQ — « whenever the enemy's attack lands as a Glancing Hit » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Carlos
 
@@ -197,7 +197,7 @@ Formes : 27003 Black Tea Bunny †, 27013 Chamomile.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Mind and Body Rest (Passive) » · 16813 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Mind and Body Rest » (icône et nom du jeu) pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF », « Buff VIT »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Chamomile → carte « État de mon monstre » : sous les vignettes, la ligne « Mind and Body Rest » + « pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Mind and Body Rest (Passive) » · 16813 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Mind and Body Rest » (icône et nom du jeu) pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Chamomile → carte « État de mon monstre » : sous les vignettes, la ligne « Mind and Body Rest » + « pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### CHUN-LI (eau)
 
@@ -358,7 +358,7 @@ Formes : 20903 Elven Ranger †, 20913 Erwin.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Evasive Maneuver(Passive) » · 11713 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Evasive Maneuver » (icône et nom du jeu) pose Buff ATQ et Buff VIT — « When being attacked » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff VIT »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Erwin → carte « État de mon monstre » : sous les vignettes, la ligne « Evasive Maneuver » + « pose Buff ATQ et Buff VIT — « When being attacked » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Evasive Maneuver(Passive) » · 11713 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Evasive Maneuver » (icône et nom du jeu) pose Buff ATQ et Buff VIT — « When being attacked » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Erwin → carte « État de mon monstre » : sous les vignettes, la ligne « Evasive Maneuver » + « pose Buff ATQ et Buff VIT — « When being attacked » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Espresso Cookie
 
@@ -366,7 +366,7 @@ Formes : 26503 에스프레소맛 쿠키(바람) †, 26513 Espresso Cookie.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Caffeine (Passive) » · 16313 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Caffeine » (icône et nom du jeu) pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF », « Buff VIT »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Espresso Cookie → carte « État de mon monstre » : sous les vignettes, la ligne « Caffeine » + « pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Caffeine (Passive) » · 16313 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Caffeine » (icône et nom du jeu) pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Espresso Cookie → carte « État de mon monstre » : sous les vignettes, la ligne « Caffeine » + « pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Fridrion
 
@@ -374,7 +374,7 @@ Formes : 30704 Drakan Warrior †, 30714 Fridrion.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Dragon Scales (Passive) » · 20414 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Dragon Scales » (icône et nom du jeu) pose Buff DEF — « whenever you are granted with a harmful effect » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Fridrion → carte « État de mon monstre » : sous les vignettes, la ligne « Dragon Scales » + « pose Buff DEF — « whenever you are granted with a harmful effect » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Dragon Scales (Passive) » · 20414 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Dragon Scales » (icône et nom du jeu) pose Buff DEF — « whenever you are granted with a harmful effect » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Fridrion → carte « État de mon monstre » : sous les vignettes, la ligne « Dragon Scales » + « pose Buff DEF — « whenever you are granted with a harmful effect » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Frieren
 
@@ -390,7 +390,7 @@ Formes : 34301 Frodo †, 34311 Frodo.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Will of The Shire (Passive) » · 23611 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Will of The Shire » (icône et nom du jeu) pose Buff ATQ — « If no harmful effects were removed » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Le porteur compté parmi « all allies » : lecture de la prose, l'effet de la fiche porte `surSoi: false` (non prouvé). | P2 | commit du lot P2 | Outils → Optimizer → choisir Frodo → carte « État de mon monstre » : sous les vignettes, la ligne « Will of The Shire » + « pose Buff ATQ — « If no harmful effects were removed » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Will of The Shire (Passive) » · 23611 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Will of The Shire » (icône et nom du jeu) pose Buff ATQ — « If no harmful effects were removed » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Le porteur compté parmi « all allies » : lecture de la prose, l'effet de la fiche porte `surSoi: false` (non prouvé). | P2 | `87e03514` | Outils → Optimizer → choisir Frodo → carte « État de mon monstre » : sous les vignettes, la ligne « Will of The Shire » + « pose Buff ATQ — « If no harmful effects were removed » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Gandalf (eau)
 
@@ -478,7 +478,7 @@ Formes : 11031 Icaru.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Counterattack (Passive) » · 2061 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Counterattack » (icône et nom du jeu) pose Buff ATQ — « when you attack on your turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Icaru → carte « État de mon monstre » : sous les vignettes, la ligne « Counterattack » + « pose Buff ATQ — « when you attack on your turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Counterattack (Passive) » · 2061 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Counterattack » (icône et nom du jeu) pose Buff ATQ — « when you attack on your turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Icaru → carte « État de mon monstre » : sous les vignettes, la ligne « Counterattack » + « pose Buff ATQ — « when you attack on your turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Illianna
 
@@ -570,7 +570,7 @@ Formes : 15702 Oracle †, 15712 Juno.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Loss of Cause and Effect (Passive) » · 7112 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Loss of Cause and Effect » (icône et nom du jeu) pose Buff VIT — « if you get a harmful effect » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff VIT »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Juno → carte « État de mon monstre » : sous les vignettes, la ligne « Loss of Cause and Effect » + « pose Buff VIT — « if you get a harmful effect » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Loss of Cause and Effect (Passive) » · 7112 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Loss of Cause and Effect » (icône et nom du jeu) pose Buff VIT — « if you get a harmful effect » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Juno → carte « État de mon monstre » : sous les vignettes, la ligne « Loss of Cause and Effect » + « pose Buff VIT — « if you get a harmful effect » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Kassandra (vent)
 
@@ -586,7 +586,7 @@ Formes : 2003601 Kazuya Mishima.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Devil Gene (Passive) » · 20021203 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Devil Gene » (icône et nom du jeu) pose Buff ATQ — « at the start of its turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Forme de boss (prose « the boss's ») : jouabilité soumise à D6 du lot 13b ; prose seule, fiche sans effet. | P2 | commit du lot P2 | Outils → Optimizer → choisir Kazuya Mishima → carte « État de mon monstre » : sous les vignettes, la ligne « Devil Gene » + « pose Buff ATQ — « at the start of its turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Devil Gene (Passive) » · 20021203 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Devil Gene » (icône et nom du jeu) pose Buff ATQ — « at the start of its turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Forme de boss (prose « the boss's ») : jouabilité soumise à D6 du lot 13b ; prose seule, fiche sans effet. | P2 | `87e03514` | Outils → Optimizer → choisir Kazuya Mishima → carte « État de mon monstre » : sous les vignettes, la ligne « Devil Gene » + « pose Buff ATQ — « at the start of its turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Kunite
 
@@ -703,7 +703,7 @@ Formes : 22704 Sniper Mk.I †, 22714 Magnum.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Snipe Preparation (Passive) » · 13214 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Snipe Preparation » (icône et nom du jeu) pose Buff ATQ — « whenever an enemy gains a beneficial effect from a skill » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Magnum → carte « État de mon monstre » : sous les vignettes, la ligne « Snipe Preparation » + « pose Buff ATQ — « whenever an enemy gains a beneficial effect from a skill » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Snipe Preparation (Passive) » · 13214 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Snipe Preparation » (icône et nom du jeu) pose Buff ATQ — « whenever an enemy gains a beneficial effect from a skill » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Magnum → carte « État de mon monstre » : sous les vignettes, la ligne « Snipe Preparation » + « pose Buff ATQ — « whenever an enemy gains a beneficial effect from a skill » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Malite
 
@@ -792,7 +792,7 @@ Formes : 24501 Striker †, 24511 Moore.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Overdrive (Passive) » · 14411 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Overdrive » (icône et nom du jeu) pose Buff ATQ — « If you receive damage during the turn of the enemy » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Moore → carte « État de mon monstre » : sous les vignettes, la ligne « Overdrive » + « pose Buff ATQ — « If you receive damage during the turn of the enemy » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Overdrive (Passive) » · 14411 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Overdrive » (icône et nom du jeu) pose Buff ATQ — « If you receive damage during the turn of the enemy » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Moore → carte « État de mon monstre » : sous les vignettes, la ligne « Overdrive » + « pose Buff ATQ — « If you receive damage during the turn of the enemy » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Mork
 
@@ -856,7 +856,7 @@ Formes : 14502 Phoenix †, 14512 Perna.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Eternity (Passive) » · 3212 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Eternity » (icône et nom du jeu) pose Buff ATQ — « Rises from the ashes at the moment of death » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Perna → carte « État de mon monstre » : sous les vignettes, la ligne « Eternity » + « pose Buff ATQ — « Rises from the ashes at the moment of death » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Eternity (Passive) » · 3212 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Eternity » (icône et nom du jeu) pose Buff ATQ — « Rises from the ashes at the moment of death » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Perna → carte « État de mon monstre » : sous les vignettes, la ligne « Eternity » + « pose Buff ATQ — « Rises from the ashes at the moment of death » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Phenaka
 
@@ -872,7 +872,7 @@ Formes : 32903 Qilin Slasher †, 32913 Qilin Slasher.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Against the Current (Passive) » · 22213 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Against the Current » (icône et nom du jeu) pose Buff ATQ — « When you take fatal damage from the enemy's attack » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Qilin Slasher → carte « État de mon monstre » : sous les vignettes, la ligne « Against the Current » + « pose Buff ATQ — « When you take fatal damage from the enemy's attack » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Against the Current (Passive) » · 22213 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Against the Current » (icône et nom du jeu) pose Buff ATQ — « When you take fatal damage from the enemy's attack » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Qilin Slasher → carte « État de mon monstre » : sous les vignettes, la ligne « Against the Current » + « pose Buff ATQ — « When you take fatal damage from the enemy's attack » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Raviti
 
@@ -912,7 +912,7 @@ Formes : 24001 류(물) †, 24011 RYU.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Mind's Eye (Passive) » · 13911 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Mind's Eye » (icône et nom du jeu) pose Buff ATQ — « If you receive damage during the turn of the enemy » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir RYU → carte « État de mon monstre » : sous les vignettes, la ligne « Mind's Eye » + « pose Buff ATQ — « If you receive damage during the turn of the enemy » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Mind's Eye (Passive) » · 13911 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Mind's Eye » (icône et nom du jeu) pose Buff ATQ — « If you receive damage during the turn of the enemy » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir RYU → carte « État de mon monstre » : sous les vignettes, la ligne « Mind's Eye » + « pose Buff ATQ — « If you receive damage during the turn of the enemy » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Satoru Gojo
 
@@ -920,7 +920,7 @@ Formes : 30301 고죠 사토루(물) †, 30311 Satoru Gojo.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Six Eyes (Passive) » · 20011 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Six Eyes » (icône et nom du jeu) pose Buff DEF — « whenever your turn ends » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Satoru Gojo → carte « État de mon monstre » : sous les vignettes, la ligne « Six Eyes » + « pose Buff DEF — « whenever your turn ends » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Six Eyes (Passive) » · 20011 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Six Eyes » (icône et nom du jeu) pose Buff DEF — « whenever your turn ends » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Satoru Gojo → carte « État de mon monstre » : sous les vignettes, la ligne « Six Eyes » + « pose Buff DEF — « whenever your turn ends » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Sia
 
@@ -936,7 +936,7 @@ Formes : 34901 Silver Tail †, 34911 Silver Tail.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Will of the Deep Woods (Passive) » · 24111 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Will of the Deep Woods » (icône et nom du jeu) pose Buff ATQ — « If no harmful effects were removed » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Le porteur compté parmi « all allies » : lecture de la prose, l'effet de la fiche porte `surSoi: false` (non prouvé). | P2 | commit du lot P2 | Outils → Optimizer → choisir Silver Tail → carte « État de mon monstre » : sous les vignettes, la ligne « Will of the Deep Woods » + « pose Buff ATQ — « If no harmful effects were removed » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Will of the Deep Woods (Passive) » · 24111 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Will of the Deep Woods » (icône et nom du jeu) pose Buff ATQ — « If no harmful effects were removed » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. Le porteur compté parmi « all allies » : lecture de la prose, l'effet de la fiche porte `surSoi: false` (non prouvé). | P2 | `87e03514` | Outils → Optimizer → choisir Silver Tail → carte « État de mon monstre » : sous les vignettes, la ligne « Will of the Deep Woods » + « pose Buff ATQ — « If no harmful effects were removed » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Suiki
 
@@ -994,7 +994,7 @@ Formes : 19201 Ifrit †, 19211 Theomars.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Elemental King (Passive) » · 10012 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Elemental King » (icône et nom du jeu) pose Buff ATQ — « When you take fatal damage » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Theomars → carte « État de mon monstre » : sous les vignettes, la ligne « Elemental King » + « pose Buff ATQ — « When you take fatal damage » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Elemental King (Passive) » · 10012 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Elemental King » (icône et nom du jeu) pose Buff ATQ — « When you take fatal damage » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Theomars → carte « État de mon monstre » : sous les vignettes, la ligne « Elemental King » + « pose Buff ATQ — « When you take fatal damage » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Theonia
 
@@ -1018,7 +1018,7 @@ Formes : 2003705 True Devil Kazuya.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Devil Gene Awakening (Passive) » · 20021303 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Devil Gene Awakening » (icône et nom du jeu) pose Buff ATQ et Buff DEF — « at the start of its turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF »), rien ne s'allume d'office. Forme de boss (prose « the boss's ») : jouabilité soumise à D6 du lot 13b ; prose seule, fiche sans effet. | P2 | commit du lot P2 | Outils → Optimizer → choisir True Devil Kazuya → carte « État de mon monstre » : sous les vignettes, la ligne « Devil Gene Awakening » + « pose Buff ATQ et Buff DEF — « at the start of its turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Devil Gene Awakening (Passive) » · 20021303 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Devil Gene Awakening » (icône et nom du jeu) pose Buff ATQ et Buff DEF — « at the start of its turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF »), rien ne s'allume d'office. Forme de boss (prose « the boss's ») : jouabilité soumise à D6 du lot 13b ; prose seule, fiche sans effet. | P2 | `87e03514` | Outils → Optimizer → choisir True Devil Kazuya → carte « État de mon monstre » : sous les vignettes, la ligne « Devil Gene Awakening » + « pose Buff ATQ et Buff DEF — « at the start of its turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Übel (eau)
 
@@ -1075,7 +1075,7 @@ Formes : 22402 Giant Warrior †, 22412 Vidurr.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Return of Fighter (Passive) » · 13012 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Return of Fighter » (icône et nom du jeu) pose Buff ATQ et Buff DEF — « at the moment of death to be revived with 30% HP » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Vidurr → carte « État de mon monstre » : sous les vignettes, la ligne « Return of Fighter » + « pose Buff ATQ et Buff DEF — « at the moment of death to be revived with 30% HP » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Return of Fighter (Passive) » · 13012 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Return of Fighter » (icône et nom du jeu) pose Buff ATQ et Buff DEF — « at the moment of death to be revived with 30% HP » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Vidurr → carte « État de mon monstre » : sous les vignettes, la ligne « Return of Fighter » + « pose Buff ATQ et Buff DEF — « at the moment of death to be revived with 30% HP » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Werner
 
@@ -1083,7 +1083,7 @@ Formes : 30901 Werner †, 30911 Werner.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Honored One (Passive) » · 20611 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Honored One » (icône et nom du jeu) pose Buff DEF — « whenever your turn ends » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Werner → carte « État de mon monstre » : sous les vignettes, la ligne « Honored One » + « pose Buff DEF — « whenever your turn ends » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Honored One (Passive) » · 20611 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Honored One » (icône et nom du jeu) pose Buff DEF — « whenever your turn ends » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Werner → carte « État de mon monstre » : sous les vignettes, la ligne « Honored One » + « pose Buff DEF — « whenever your turn ends » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### White Tiger Blade Master
 
@@ -1139,7 +1139,7 @@ Formes : 32203 아가츠마 젠이츠(바람) †, 32213 Zenitsu Agatsuma.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Man Strong in Crisis (Passive) » · 21613 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Man Strong in Crisis » (icône et nom du jeu) pose Buff ATQ — « When you take fatal damage from the enemy's attack » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | commit du lot P2 | Outils → Optimizer → choisir Zenitsu Agatsuma → carte « État de mon monstre » : sous les vignettes, la ligne « Man Strong in Crisis » + « pose Buff ATQ — « When you take fatal damage from the enemy's attack » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Man Strong in Crisis (Passive) » · 21613 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Man Strong in Crisis » (icône et nom du jeu) pose Buff ATQ — « When you take fatal damage from the enemy's attack » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Zenitsu Agatsuma → carte « État de mon monstre » : sous les vignettes, la ligne « Man Strong in Crisis » + « pose Buff ATQ — « When you take fatal damage from the enemy's attack » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
 ### Zeratu
 

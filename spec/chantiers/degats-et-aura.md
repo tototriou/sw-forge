@@ -760,7 +760,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | à faire ; P1, P2, P4 prêts, le reste attend une décision (Q) ou un relevé | — |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | P1 lancé le 2026-10-03 ; P4, P2 prêts ; le reste attend une décision (Q) ou un relevé | — |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -9168,6 +9168,45 @@ LM dans le même commit, mutation après le commit.
 
 **Ne fait pas :** un lot P ne démarre jamais avant ses prérequis (colonne
 « Prérequis » du plan) ; aucune valeur de jeu supposée.
+
+#### P1 — garde-fous sans valeur de jeu
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Plan § 6, ligne P1 (SP-0,
+PV-T, SPC-5) ; aucun prérequis. Un commit par raison.
+
+1. **Garde des clés de `STATS_COMBAT_PAR_ID_CONNUS`** (SP-0,
+   `controle-13b-stats-passifs.md` § 7) : un test nommé « chaque clé est un
+   identifiant du corpus porté par au moins une forme jouable » ; modèle
+   cité par la preuve.
+2. **16113 et 16613** (PV-T, `controle-13b-pertes-pv.md` L242, DH-08
+   L287) : leur `formule` `0.15*{MAX HP}` est un bouclier. ⚠️ Le lot 15c les a
+   laissés hors de `SORTS_SANS_ATTAQUE_PAR_ID` parce que leur prose dit des
+   dégâts en riposte. Le lot **établit l'état actuel** (le bouclier
+   est-il compté quelque part comme des dégâts ?) et fige par un test le
+   seul comportement juste : le bouclier jamais compté. S'il est compté
+   aujourd'hui, arrêt et rapport (A.6), sans correction.
+3. **Clés par nom qui débordent sur un homonyme** (SPC-5,
+   `controle-13b-stats-passifs-corpus.md` DH-02 L472 ;
+   `controle-13b-critiques-bonus-tc-dc.md` DH-01 L259 ;
+   `controle-13b-declenchee-voisins.md` DH-03 L240 ; `controle-13b-pertes-pv.md`
+   DH-09 L288) : « Tiger's Appearance (Passive) » → 6163 ; « Charge
+   (Passive) » ; « Rending Claw » → 23306 / 23310 ; aucune entrée par nom
+   pour « Camouflage (Passive) » (4714 contre 8715). Pour chaque clé : un
+   script liste **tous** les identifiants que le nom atteint aujourd'hui,
+   avec forme, jouabilité et prose ; la clé passe par identifiant sur ceux
+   dont la prose porte l'effet, et la preuve dit ce que perd chaque
+   homonyme (aucune forme jouable ne doit changer de total, mesuré avant /
+   après).
+4. Le commentaire périmé « aucun champ `enemyAtk` » (vers L1906, relevé au
+   lot 15f) est corrigé.
+
+**Preuve privée :** `controle-p1.md` et `controle-p1-intrants/` (sorties
+`.txt`, aucun `.md`) ; mutation après chaque commit de code. Liste du lot LM
+seulement si un total ou un affichage jouable change (attendu : aucun).
+**Vérifications :** `tsc`, contrôles touchés par `node tests/run.mjs`,
+build, spec-lint, diff-check.
+**Ne fait pas :** aucune valeur de jeu ; aucun autre homonyme que ceux
+cités (les autres vont à P4 et P5a).
 
 ### Lot 14 — clôture
 

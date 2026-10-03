@@ -3063,6 +3063,36 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
   'Comet Summoning': { min: 3, max: 4 },
   Vollzanbel: { min: 2, max: 3 },
   'Arrow Attack': { min: 4, max: 6 },
+  // ── Lot P5a (degats-et-aura) : le nombre de coups est SAISI, défaut au
+  // minimum ; un coup supplémentaire vaut les autres. Bornes citées de la prose
+  // de la fiche ; chaque entrée a son test (`degats-coups-saisis.test.ts`) qui
+  // nomme les homonymes couverts par le nom.
+  // « Rapidly fires 2 shots, and may fire an additional shot by chance » —
+  // Elven Rangers, Eluin, Adrian, Erwin, Lucien, Isillen ; mêmes mots sur
+  // 11701/11702/11705 (Elven Ranger non éveillé, non jouable).
+  Strafe: { min: 2, max: 3 },
+  // « Attacks the enemy 4 times … The number of attacks increases up to 8 times
+  // according to the difference between the target and your Attack Power »
+  // (Varuna). Seuils d'ATQ absents : jamais dérivé.
+  "Sura's Seal": { min: 4, max: 8 },
+  // « Attacks all enemies 2 to 3 times » (Usha, Vritra). ⚠️ La donnée dit
+  // `aoe: false` contre « all enemies » : portée non corrigée ici (hors P5a).
+  "God's Weapon": { min: 2, max: 3 },
+  // « Attacks all enemies 3 to 5 times … The more harmful effects granted on
+  // the target, the higher the chance » (Usha). Probabilité jamais tirée.
+  'Barrage of Madness': { min: 3, max: 5 },
+  // « Attacks the enemy 2 times … If the target is not suffering any harmful
+  // effects, 1 additional attack is added » — Tractor, Bulldozer, Crane, Driller,
+  // Crawler ; mêmes mots sur 11601-11605 (1A) et 11673-11677 (boss), non jouables.
+  'Hammer Punch': { min: 2, max: 3 },
+  // « Attacks the enemy 4 times … 2 additional attacks are added if the enemy's
+  // HP condition is worse than yours or if the target is suffering a harmful
+  // effect » (Driller). Homonymes 11614 (Driller 1A) et 11686 (boss), non jouables :
+  // même plage, condition différente.
+  Pound: { min: 4, max: 6 },
+  // « Deals additional damage 2 more times to targets with harmful effects » ;
+  // `coups: 1` (Azure Dragon Swordsman). Nom unique dans le corpus.
+  'Water Dragon Surge': { min: 1, max: 3 },
 };
 
 // Même table, clée par IDENTIFIANT de compétence : pour un nom dont un
@@ -3161,6 +3191,13 @@ export const IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID: Readonly<Record<number, IgnoreD
 // annonce quatre. Ce n'est pas une plage : pas de commande utilisateur.
 const COUPS_FIXES_CORRIGES: Record<string, number> = {
   'Pitch-Black Chain Attack': 4,
+  // Lot P5a (degats-et-aura). `coups: 3` en donnée ; la prose en annonce 4 :
+  // « Attacks all enemies 3 times … and attacks them once more to freeze them
+  // (stun them) for 1 turn with a 50% chance ». Noms exclusifs aux Espresso
+  // Cookie (16306, 16308, 16310) et Tea Bunny (16806, 16808, 16810), balayage du
+  // corpus. L'hypothèse « le coup en plus vaut les autres » (D30) vaut ici.
+  Grinding: 4,
+  'Spinning Tea Spoon': 4,
 };
 
 // Même table, clée par IDENTIFIANT (homonyme jouable à `coups` différent, voir

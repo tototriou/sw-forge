@@ -52,6 +52,14 @@ Formes : 11913 Acasis.
 | --- | --- | --- | --- | --- |
 | « Force Field » · 2818 · S3 | Sort sans attaque (bouclier, `0.3*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Acasis → « Compétence utilisée » : plus de case « Force Field », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
+### Adrian
+
+Formes : 20912 Adrian.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Strafe » · 11717 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Adrian → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+
 ### Alesia
 
 Formes : 30104 Cyborg †, 30114 Alesia.
@@ -102,6 +110,14 @@ Formes : 2003503 Azazel.
 | --- | --- | --- | --- | --- |
 | « Devil Gene's Origin (Passive) » · 20021103 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Devil Gene's Origin » (icône et nom du jeu) pose Buff DEF — « at the start of its turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff DEF »), rien ne s'allume d'office. Forme de boss (prose « the boss's ») : jouabilité soumise à D6 du lot 13b ; prose seule, fiche sans effet. | P2 | `87e03514` | Outils → Optimizer → choisir Azazel → carte « État de mon monstre » : sous les vignettes, la ligne « Devil Gene's Origin » + « pose Buff DEF — « at the start of its turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
 
+### Azure Dragon Swordsman
+
+Formes : 32501 Azure Dragon Swordsman †, 32511 Azure Dragon Swordsman.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Water Dragon Surge » · 21911 · S3 | Nombre de coups **saisi**, de 1 à 3 (« Deals additional damage 2 more times to targets with harmful effects » ; `coups: 1` en donnée) ; défaut au minimum, 1 coup : total par défaut inchangé (3 992,99 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Azure Dragon Swordsman → « Compétence utilisée » → « Water Dragon Surge » : le champ du nombre de coups, borné de 1 à 3, 1 par défaut ; 3 coups = 3 × le total par défaut. |
+
 ### Barbara
 
 Formes : 23501 Beast Rider (eau) †, 23511 Barbara.
@@ -150,6 +166,14 @@ Formes : 28201 Mercenary Queen †, 28211 Brita.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Might of the Mercenary (Passive) » · 18011 · S3 | Le seuil de 1 671 ATQ (+100 %) lit l'ATQ de début de combat avec les auras Fight, externes et propres au build. | 6bis-b2 | `dbd4ee54`, `b0a2e84d` | Chemin commun → « État de mon monstre » → « Sets d'aura des autres monstres » : ajouter un set Fight ; le bonus de ce passif (lisible dans « Passifs offensifs ») réagit quand le seuil ou la jauge est franchi. Confirmé par l'utilisateur au lot 6bis-b2. |
+
+### Bulldozer
+
+Formes : 20812 Bulldozer †, 20832 Bulldozer.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Hammer Punch » · 11652 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Bulldozer → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Byungchul
 
@@ -215,6 +239,7 @@ Formes : 27003 Black Tea Bunny †, 27013 Chamomile.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Mind and Body Rest (Passive) » · 16813 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Mind and Body Rest » (icône et nom du jeu) pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Chamomile → carte « État de mon monstre » : sous les vignettes, la ligne « Mind and Body Rest » + « pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Spinning Tea Spoon » · 16808 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Chamomile → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
 
 ### CHUN-LI (eau)
 
@@ -288,6 +313,15 @@ Formes : 20833 Crane.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Strange Reversible Reaction (Passive) » · 11663 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Buffs sur Crane » + « Débuffs sur Crane » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Strange Reversible Reaction (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
+| « Hammer Punch » · 11653 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Crane → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+
+### Crawler
+
+Formes : 20815 Crawler †, 20835 Crawler.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Hammer Punch » · 11655 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Crawler → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Cynthia
 
@@ -321,6 +355,15 @@ Formes : 25703 Weapon Master (vent) †, 25713 Dominic.
 | --- | --- | --- | --- | --- |
 | « Weakness Shot » · 15508 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Dominic → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
 | « Improvisation (Passive) » · 15513 · S3 | Le passif suit le sort (« Attacks additionally … when attacking an enemy on your turn ») : sous le scénario de poses de « Weakness Shot », il lit l'état de la cible après le dernier coup du sort, Marque posée comprise. Marque « Après le coup 1 / 2 / 3 » : total de l'objectif ×1,225 / ×1,200 / ×1,176 contre sans pose (avant : ×1,074 / ×1,050 / ×1,025), interrupteur du passif allumé, DEF cible 1 500, ATQ 1 000, non critique. Sans scénario, total inchangé. | P4b | `09ee8342` | Chemin commun → Dominic → choisir « Weakness Shot » → Marque « Après le coup 1 » : le total monte davantage qu'avant P4b ; aucune pose : total inchangé. |
+
+### Driller
+
+Formes : 20814 Driller †, 20834 Driller.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Hammer Punch » · 11654 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Driller → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Pound » · 11664 · S3 | Nombre de coups **saisi**, de 4 à 6 (« Attacks the enemy 4 times … 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect ») ; défaut au minimum, 4 coups : total par défaut inchangé (5 394,05 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Driller → « Compétence utilisée » → « Pound » : le champ du nombre de coups, borné de 4 à 6, 4 par défaut ; 6 coups = 1,5 × le total par défaut. |
 
 ### Eivor
 
@@ -386,6 +429,14 @@ Formes : 19204 Ifrit †, 19214 Elsharion.
 | --- | --- | --- | --- | --- |
 | « Master of Magic Power (Passive) » · 10014 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Buffs sur Elsharion » + « Buffs sur les alliés » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Master of Magic Power (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
 
+### Eluin
+
+Formes : 20911 Eluin.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Strafe » · 11716 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Eluin → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+
 ### Emily
 
 Formes : 22914 Emily.
@@ -401,6 +452,7 @@ Formes : 20903 Elven Ranger †, 20913 Erwin.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Evasive Maneuver(Passive) » · 11713 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Evasive Maneuver » (icône et nom du jeu) pose Buff ATQ et Buff VIT — « When being attacked » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Erwin → carte « État de mon monstre » : sous les vignettes, la ligne « Evasive Maneuver » + « pose Buff ATQ et Buff VIT — « When being attacked » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Strafe » · 11703 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Erwin → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Espresso Cookie
 
@@ -409,6 +461,23 @@ Formes : 26503 에스프레소맛 쿠키(바람) †, 26513 Espresso Cookie.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Caffeine (Passive) » · 16313 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Caffeine » (icône et nom du jeu) pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF », « Buff VIT »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Espresso Cookie → carte « État de mon monstre » : sous les vignettes, la ligne « Caffeine » + « pose Buff ATQ, Buff DEF ou Buff VIT — « when you gain a turn » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+| « Grinding » · 16308 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Espresso Cookie (vent) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+
+### Espresso Cookie (eau)
+
+Formes : 26501 에스프레소맛 쿠키(물) †, 26511 Espresso Cookie.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Grinding » · 16306 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to freeze them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Espresso Cookie (eau) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+
+### Espresso Cookie (ténèbres)
+
+Formes : 26505 에스프레소맛 쿠키(어둠) †, 26515 Espresso Cookie.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Grinding » · 16310 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Espresso Cookie (ténèbres) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
 
 ### Fridrion
 
@@ -566,6 +635,14 @@ Formes : 19804 Magic Knight †, 19814 Iris.
 | « Blade Surge » · 10604 · S1 | Deux crans « Dégâts sur la cible visée » (défaut) et « Dégâts sur les autres ennemis » (3ᵉ coup seul, sur un autre ennemi à ses PV saisis) ; le résumé du sort dit la séquence ; le CLI aussi ; la recette valide le champ `cibleDegatsParSort`. | 8b | `12595440`, `d6c576b5`, `22dda1f2` | Chemin commun : sous la liste des sorts de « Compétence utilisée », deux crans à choisir ; basculer ne déplace rien ; le résumé du sort dit « … 2 coups · Cible unique, puis 1 coup · Zone ». |
 | « Blade Surge » · 10604 · S1 | Le résumé sous l'objectif ajoute « autres ennemis » quand le cran « Dégâts sur les autres ennemis » est retenu ; la ligne du sort de `scripts/artifact-search.ts` dit la séquence ; la clé de `cibleDegatsParSort` refuse un zéro de tête. | 8c | `b55a02ec`, `62dc6dce`, `66309e93` | Cran « Dégâts sur les autres ennemis » choisi : le résumé sous l'objectif dit « Blade Surge · autres ennemis · … » ; rien de tel pour la cible visée. Au téléphone, le résumé peut passer sur une ligne de plus. |
 
+### Isillen
+
+Formes : 20915 Isillen.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Strafe » · 11720 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Isillen → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+
 ### Iunu
 
 Formes : 20403 Anubis †, 20413 Iunu.
@@ -667,6 +744,14 @@ Formes : 24901 Blade Dancer †, 24911 Lariel.
 | « Moonlight Dance » · 14811 · S3 | L'ignore DEF n'est plus « toujours » mais « à partir d'un coup choisi » (7 coups, rangs 2 à 7, 7ᵉ coup inconditionnel et défaut) ; calcul en tronçons de coups, PV enchaînés, 411 au coup 1 seulement ; la jauge d'attaque adverse n'est pas modélisée. | 10a | `db913084`, `dc8e4b5f` | Chemin commun → choisir ce sort : son résumé n'écrit plus « Ignore la DEF » ; la DEF de la cible est affichée (elle compte désormais pour les coups avant le rang). |
 | « Moonlight Dance » · 14811 · S3 | Sélecteur « Ignore la DEF (jauge de la cible à 0) » : crans « 2ᵉ » à « 7ᵉ coup » (défaut : 7ᵉ coup seul) ; ligne de résumé « Ignore la DEF : … » ; CLI et recette (`premierCoupIgnoreDefParSort`, refus avec son chemin d'un rang hors crans). | 10b | `784378b9`, `cc3ab044`, `89ea229f`, `072c7c3f` | Chemin commun : ce sort choisi, le sélecteur apparaît (ordinateur ET téléphone), rien ne bouge au clic ; le résumé dit « Ignore la DEF : aucun » / « : dès le Nᵉ coup » / « : 7ᵉ coup seul » sur une ligne à lui. |
 
+### Lavender
+
+Formes : 27005 Black Tea Bunny †, 27015 Lavender.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Spinning Tea Spoon » · 16810 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Lavender → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+
 ### Legolas
 
 Formes : 34704 Legolas †, 34714 Legolas.
@@ -682,6 +767,14 @@ Formes : 21805 Paladin †, 21815 Leona.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Internal Force (Passive) » · 12515 · S3 | Le Bouclier (`2.0*{DEF}`) n'est plus compté comme des dégâts : le passif n'est plus un passif offensif à formule propre. Le « +50 % de dégâts infligés quand tu as un Bouclier » de la donnée est compté sur tous les sorts de Leona, sous un interrupteur désactivé par défaut (même clé de stockage que l'ancien bouton : un réglage déjà allumé donne désormais +50 % au lieu de +2 × DEF). L'égalisation ATQ/DEF de début de combat reste hors calcul. | 15b | `dcca28a7` | Chemin commun → Leona → « Passifs offensifs » : un interrupteur « Internal Force (+50 %) », éteint, « Se déclenche si tu as un bouclier actif. », la prose du passif dessous ; plus de ratio « 2 × DEF ». Éteint : le total est celui du sort seul. Allumé : le total de S1 comme de S2 est multiplié par 1,5 ; changer la DEF du build ne change plus le total. |
+
+### Lucien
+
+Formes : 20904 Elven Ranger †, 20914 Lucien.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Strafe » · 11704 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Rapidly fires 2 shots, and may fire an additional shot by chance ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 502,63 au build de la preuve). La chance du tir en plus (égale au Taux Crit) n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Lucien → « Compétence utilisée » → « Strafe » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Lukan
 
@@ -972,6 +1065,14 @@ Formes : 31003 Rick †, 31013 Rick.
 | --- | --- | --- | --- | --- |
 | « Shockwave Fist » · 20708 · S2 | Comme Rick (feu), 20707, y compris la DEF réduite du coup 2 (15f) (le `Destroy HP` de 20708 porte 50, hors de ce lot). | 15d, 15f | `292716c2`, `616e09a1` | Comme Rick (feu), sur Rick (vent) : au témoin (1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000, « Non critique »), 848,5 sans pose, 2 231,3 avec la pose après le coup 1 (1 272,8 avant 15f). |
 
+### Rosemary
+
+Formes : 27001 Black Tea Bunny †, 27011 Rosemary.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Spinning Tea Spoon » · 16806 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to freeze them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Rosemary → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
+
 ### RYU
 
 Formes : 24001 류(물) †, 24011 RYU.
@@ -1095,6 +1196,14 @@ Formes : 11605 Undine (ténèbres) †, 11615 Tilasha.
 | --- | --- | --- | --- | --- |
 | « Dark Return » · 2615 · S3 | Sort sans attaque (résurrection et tour gagné, `1 (Fixed)`) masqué de « Compétence utilisée » : il était affiché refusé (« Ces dégâts ne dépendent d’aucune statistique du monstre. »). Confirmé par l'utilisateur, lot 15g. | 15h | `53668cc2` | Chemin commun → Tilasha → « Compétence utilisée » : plus de case grisée « Dark Return » ; les autres sorts de Tilasha restent proposés. |
 
+### Tractor
+
+Formes : 20811 Tractor †, 20831 Tractor.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Hammer Punch » · 11651 · S1 | Nombre de coups **saisi**, de 2 à 3 (« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added ») ; défaut au minimum, 2 coups : total par défaut inchangé (3 286,87 au build de la preuve). Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Tractor → « Compétence utilisée » → « Hammer Punch » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+
 ### True Devil Kazuya
 
 Formes : 2003705 True Devil Kazuya.
@@ -1119,6 +1228,15 @@ Formes : 36005 Übel †, 36015 Übel.
 | --- | --- | --- | --- | --- |
 | « Reelseiden・Flurry » · 25210 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « 1st hit » ; en zone) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Übel (ténèbres) → choisir « Reelseiden・Flurry » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
+### Usha
+
+Formes : 28503 Asura †, 28513 Usha.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « God's Weapon » · 18308 · S2 | Nombre de coups **saisi**, de 2 à 3 (« Attacks all enemies 2 to 3 times ») ; défaut au minimum, 2 coups : total par défaut inchangé (2 189,14 au build de la preuve). Chaque coup vaut les autres. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. | P5a | commit du lot P5a | Chemin commun → Usha → « Compétence utilisée » → « God's Weapon » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
+| « Barrage of Madness » · 18313 · S3 | Nombre de coups **saisi**, de 3 à 5 (« Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance of inflicting more number of attacks ») ; défaut au minimum, 3 coups : total par défaut inchangé (4 098,07 au build de la preuve). La probabilité n'est jamais tirée. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Usha → « Compétence utilisée » → « Barrage of Madness » : le champ du nombre de coups, borné de 3 à 5, 3 par défaut ; 5 coups = 5/3 × le total par défaut. |
+
 ### Valdemar
 
 Formes : 29605 Magic Order Guardian †, 29615 Valdemar.
@@ -1126,6 +1244,14 @@ Formes : 29605 Magic Order Guardian †, 29615 Valdemar.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Addicted Power (Passive) » · 19315 · S3 | La prose du jeu du passif s'affiche en clair, une seule fois, sous le réglage « Buffs sur Valdemar » (jamais reformulée) ; l'icône et le nom du passif coiffent le réglage. | 11 | `5a21fd78` | Chemin commun → « Stats acquises en combat » : sous le contrôle (compteur), la description du passif « Addicted Power (Passive) » en clair, avec icône et nom au-dessus ; aucun doublon ailleurs dans la carte. |
+
+### Varuna
+
+Formes : 28502 Asura †, 28512 Varuna.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Sura's Seal » · 18312 · S3 | Nombre de coups **saisi**, de 4 à 8 (« Attacks the enemy 4 times … The number of attacks increases up to 8 times according to the difference between the target and your Attack Power ») ; défaut au minimum, 4 coups : total par défaut inchangé (4 203,15 au build de la preuve). Les seuils d'ATQ ne sont pas relevés : rien n'est déduit. Chaque coup vaut les autres. | P5a | commit du lot P5a | Chemin commun → Varuna → « Compétence utilisée » → « Sura's Seal » : le champ du nombre de coups, borné de 4 à 8, 4 par défaut ; 8 coups = 2 × le total par défaut. |
 
 ### Varus
 
@@ -1167,6 +1293,14 @@ Formes : 22402 Giant Warrior †, 22412 Vidurr.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Return of Fighter (Passive) » · 13012 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Return of Fighter » (icône et nom du jeu) pose Buff ATQ et Buff DEF — « at the moment of death to be revived with 30% HP » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ », « Buff DEF »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Vidurr → carte « État de mon monstre » : sous les vignettes, la ligne « Return of Fighter » + « pose Buff ATQ et Buff DEF — « at the moment of death to be revived with 30% HP » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+
+### Vritra
+
+Formes : 28505 Asura †, 28515 Vritra.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « God's Weapon » · 18310 · S2 | Nombre de coups **saisi**, de 2 à 3 (« Attacks all enemies 2 to 3 times ») ; défaut au minimum, 2 coups : total par défaut inchangé (2 189,14 au build de la preuve). Chaque coup vaut les autres. La portée (`aoe: false` en donnée, « all enemies » en prose) n'est pas corrigée ici. | P5a | commit du lot P5a | Chemin commun → Vritra → « Compétence utilisée » → « God's Weapon » : le champ du nombre de coups, borné de 2 à 3, 2 par défaut ; 3 coups = 1,5 × le total par défaut. |
 
 ### Werner
 

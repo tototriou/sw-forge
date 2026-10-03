@@ -66,7 +66,60 @@ interface EntreeCoups {
   homonymesExclus?: [number, number][];
 }
 
+// Les cinq Strafe jouables : même prose pour les trois premiers mots, le reste
+// de la prose (effets) diffère, jamais le nombre de coups.
+const STRAFE = '« Rapidly fires 2 shots, and may fire an additional shot by chance » ; `coups: 2`, effet `Additional Attack`';
+const STRAFE_HOMONYMES: [number, number][] = [[11701, 20901], [11702, 20902], [11705, 20905]];
+const HAMMER = '« Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added » ; `coups: 2`';
+const HAMMER_HOMONYMES: [number, number][] = [
+  [11601, 20801], [11602, 20802], [11603, 20803], [11604, 20804], [11605, 20805], // Frankenstein 1A
+  [11673, 48201], [11674, 48202], [11675, 48203], [11676, 48204], [11677, 48205], // boss
+];
+const GRINDING = '« Attacks all enemies 3 times … and attacks them once more » : 4 coups ; `coups: 3` en donnée';
+
 const ENTREES: EntreeCoups[] = [
+  { nom: 'Strafe', id: 11716, formes: [20911], plage: { min: 2, max: 3 }, cle: 'nom « Strafe »', citation: STRAFE, homonymesCouverts: STRAFE_HOMONYMES },
+  { nom: 'Strafe', id: 11717, formes: [20912], plage: { min: 2, max: 3 }, cle: 'nom « Strafe »', citation: STRAFE },
+  { nom: 'Strafe', id: 11703, formes: [20913, 20903], plage: { min: 2, max: 3 }, cle: 'nom « Strafe »', citation: STRAFE },
+  { nom: 'Strafe', id: 11704, formes: [20914, 20904], plage: { min: 2, max: 3 }, cle: 'nom « Strafe »', citation: STRAFE },
+  { nom: 'Strafe', id: 11720, formes: [20915], plage: { min: 2, max: 3 }, cle: 'nom « Strafe »', citation: STRAFE },
+  {
+    nom: "Sura's Seal", id: 18312, formes: [28512], plage: { min: 4, max: 8 }, cle: "nom « Sura's Seal »",
+    citation: '« Attacks the enemy 4 times … The number of attacks increases up to 8 times according to the difference between the target and your Attack Power » ; `coups: 4`',
+  },
+  {
+    nom: "God's Weapon", id: 18308, formes: [28513], plage: { min: 2, max: 3 }, cle: "nom « God's Weapon »",
+    citation: '« Attacks all enemies 2 to 3 times »',
+  },
+  {
+    nom: "God's Weapon", id: 18310, formes: [28515], plage: { min: 2, max: 3 }, cle: "nom « God's Weapon »",
+    citation: '« Attacks all enemies 2 to 3 times »',
+  },
+  {
+    nom: 'Barrage of Madness', id: 18313, formes: [28513], plage: { min: 3, max: 5 }, cle: 'nom « Barrage of Madness »',
+    citation: '« Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance of inflicting more number of attacks »',
+  },
+  { nom: 'Hammer Punch', id: 11651, formes: [20831], plage: { min: 2, max: 3 }, cle: 'nom « Hammer Punch »', citation: HAMMER, homonymesCouverts: HAMMER_HOMONYMES },
+  { nom: 'Hammer Punch', id: 11652, formes: [20832], plage: { min: 2, max: 3 }, cle: 'nom « Hammer Punch »', citation: HAMMER },
+  { nom: 'Hammer Punch', id: 11653, formes: [20833], plage: { min: 2, max: 3 }, cle: 'nom « Hammer Punch »', citation: HAMMER },
+  { nom: 'Hammer Punch', id: 11654, formes: [20834], plage: { min: 2, max: 3 }, cle: 'nom « Hammer Punch »', citation: HAMMER },
+  { nom: 'Hammer Punch', id: 11655, formes: [20835], plage: { min: 2, max: 3 }, cle: 'nom « Hammer Punch »', citation: HAMMER },
+  {
+    nom: 'Pound', id: 11664, formes: [20834], plage: { min: 4, max: 6 }, cle: 'nom « Pound »',
+    citation: '« Attacks the enemy 4 times … 2 additional attacks are added if the enemy\'s HP condition is worse than yours or if the target is suffering a harmful effect » ; `coups: 4`',
+    // Même plage, condition différente (11614 : PV max ET effet nocif) — non jouables.
+    homonymesCouverts: [[11614, 20804], [11686, 48204]],
+  },
+  {
+    nom: 'Water Dragon Surge', id: 21911, formes: [32511], plage: { min: 1, max: 3 }, cle: 'nom « Water Dragon Surge »',
+    citation: '« Deals additional damage 2 more times to targets with harmful effects » (effet `Additional Attack`, `quantite: 2`) ; `coups: 1`',
+  },
+  { nom: 'Grinding', id: 16306, formes: [26511], fixe: 4, cle: 'nom « Grinding » (coups fixes corrigés)', citation: GRINDING },
+  { nom: 'Grinding', id: 16308, formes: [26513], fixe: 4, cle: 'nom « Grinding » (coups fixes corrigés)', citation: GRINDING },
+  { nom: 'Grinding', id: 16310, formes: [26515], fixe: 4, cle: 'nom « Grinding » (coups fixes corrigés)', citation: GRINDING },
+  { nom: 'Spinning Tea Spoon', id: 16806, formes: [27011], fixe: 4, cle: 'nom « Spinning Tea Spoon » (coups fixes corrigés)', citation: GRINDING },
+  { nom: 'Spinning Tea Spoon', id: 16808, formes: [27013], fixe: 4, cle: 'nom « Spinning Tea Spoon » (coups fixes corrigés)', citation: GRINDING },
+  { nom: 'Spinning Tea Spoon', id: 16810, formes: [27015], fixe: 4, cle: 'nom « Spinning Tea Spoon » (coups fixes corrigés)', citation: GRINDING },
   {
     nom: 'Whirlpool', id: 21311, formes: [31811], plage: { min: 1, max: 3 }, cle: 'identifiant 21311',
     citation: '« Deals additional damage 2 more times to targets with harmful effects » (effet `Additional Attack`, `quantite: 2`) ; `coups: 1`',
@@ -100,6 +153,7 @@ export function testDegatsCoupsSaisis() {
       } else {
         egal(p.hitsRange, undefined, `${e.id} sur ${forme} : pas une plage`);
         egal(p.hits, e.fixe, `${e.id} sur ${forme} : ${e.fixe} coups fixes — ${e.citation}`);
+        ok(proche(calcul(p), (e.fixe ?? 0) * calcul({ ...p, hits: 1 })), `${e.id} sur ${forme} : le total vaut ${e.fixe} × un coup (chaque coup vaut les autres)`);
       }
     }
     for (const [idHom, formeHom] of e.homonymesCouverts ?? []) {

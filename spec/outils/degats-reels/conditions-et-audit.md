@@ -329,6 +329,22 @@ jouables 1607 et 1609 portent `coups: 4`.
 | Sort · identifiant · formes | Plage | Clé | Citation |
 | --- | --- | --- | --- |
 | Whirlpool · `21311` · Tanjiro Kamado `31811` (`31801` non éveillé) | 1 à 3 | identifiant | « Deals additional damage 2 more times to targets with harmful effects » ; `coups: 1`. Homonymes : `3463` (Seal 2A `12133`, **jouable**), `3413` et `3478` (Seal, non jouables) n'ont aucun coup supplémentaire — restent à 1 coup |
+| Water Dragon Surge · `21911` · Azure Dragon Swordsman `32511` | 1 à 3 | nom (unique) | même prose que Whirlpool 21311 ; `coups: 1` |
+| Strafe · `11716`, `11717`, `11703`, `11704`, `11720` · Eluin `20911`, Adrian `20912`, Erwin `20913`, Lucien `20914`, Isillen `20915` | 2 à 3 | nom | « Rapidly fires 2 shots, and may fire an additional shot by chance. The chance … is equivalent to your Critical Rate » ; `coups: 2`. Homonymes `11701`, `11702`, `11705` (Elven Ranger non éveillé, non jouables) : même prose, couverts par le nom. La chance n'est jamais tirée |
+| Sura's Seal · `18312` · Varuna `28512` | 4 à 8 | nom (unique) | « Attacks the enemy 4 times … increases up to 8 times according to the difference between the target and your Attack Power » ; `coups: 4`. Seuils d'ATQ absents, jamais dérivés |
+| God's Weapon · `18308`, `18310` · Usha `28513`, Vritra `28515` | 2 à 3 | nom | « Attacks all enemies 2 to 3 times ». La donnée dit `aoe: false` contre « all enemies » : portée non corrigée ici |
+| Barrage of Madness · `18313` · Usha `28513` | 3 à 5 | nom (unique) | « Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance » ; la probabilité n'est jamais tirée |
+| Hammer Punch · `11651`-`11655` · Tractor `20831`, Bulldozer `20832`, Crane `20833`, Driller `20834`, Crawler `20835` | 2 à 3 | nom | « Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added » ; `coups: 2`. Homonymes `11601`-`11605` (Frankenstein 1A) et `11673`-`11677` (boss), non jouables : même prose, couverts par le nom. Le terme « Attaques reçues avant ce sort » reste par coup |
+| Pound · `11664` · Driller `20834` | 4 à 6 | nom | « Attacks the enemy 4 times … 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect » ; `coups: 4`. Homonymes `11614` (Driller 1A, condition « MAX HP **et** effet nocif ») et `11686` (boss), non jouables : même plage |
+
+Deux sorts portent à l'inverse un nombre **fixe** corrigé (`COUPS_FIXES_CORRIGES`,
+pas de saisie) : « Attacks all enemies 3 times … and attacks them once more »
+fait 4 coups pour `coups: 3` en donnée. **Grinding** (`16306`, `16308`,
+`16310` ; Espresso Cookie eau, vent, ténèbres) et **Spinning Tea Spoon**
+(`16806`, `16808`, `16810` ; Rosemary, Chamomile, Lavender), noms exclusifs à
+ces six sorts dans le corpus. Le total par défaut de ces six sorts monte donc
+de 3 à 4 coups (×1,3333), contrairement aux plages, qui retombent sur leur
+minimum.
 
 Hors périmètre, voir le cadrage : Stormfist de Mayasura (18306…, la règle
 selon l'ATQ est une valeur à fournir), Crow Hunt (R9), Lala, Coco, Stella,

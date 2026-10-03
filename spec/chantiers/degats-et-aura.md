@@ -767,7 +767,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 lancé** ; P2 prêt ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; P2 prêt ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -856,6 +856,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15c | Frieren et les 27 autres sorts masqués (liste des monstres) : plus de case pour le sort sans attaque, le sort coché par défaut est un sort qui frappe | en attente |
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
+| P4 | Cichlid, Melissa, Barbara, Masha, Xiana, Carlos, Dominic, Benedict, Eivor, Sia, Übel : sur le sort concerné, le cadre des poses entre les coups propose la réduction de DEF ou la Marque ; posée après le coup qui la pose, seuls les coups suivants grossissent | en attente |
 | 15h | Lukan, Zeratu, Michelle, Mikene, Tilasha, Iona, Jeogun, Hanwul : plus de case pour Regenerate, Unleashed Fury, Soul Revival, Revive, Dark Return, Light of Revival, Scroll Trap ; sort coché par défaut : Sandstorm (Lukan), Trample (Zeratu), Absorb Mana (Michelle) | en attente |
 | 15f | Yuji et Rick (S2) : réduction de DEF posée après le 1er coup → le 2e coup est critique ET plus fort (DEF réduite) ; une ancienne recette sans ATQ adverse, importée : le champ affiche 1 000 et le bonus de Theonia, Kassandra, Eleni ou Zaiross suit ce 1 000 | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
@@ -9272,6 +9273,31 @@ Barbara 13611 (ignore DEF, P11) ; aucun buff sur soi (constat 323, P12a).
 après le commit.
 **Vérifications :** `tsc`, `node tests/run.mjs auditdegatsconditionnels
 degats`, build, spec-lint, diff-check.
+
+##### Résultat du lot P4 — 2026-10-03
+
+Agent `lot-c`. Un commit, `730927e7` : les 13 entrées par identifiant
+(`defBreak` : Cichlid au coup 2, Melissa, Barbara, Masha, Xiana, Sia, Übel
+×2 ; `brand` : Carlos, Dominic, Benedict, Eivor ×2), chacune citant sa note
+ou sa prose ; `testEffetsEntreCoups322` (un test par entrée, homonymes de
+Blackout Kick compris), ensemble figé à jour, `conditions-et-audit.md`
+(paragraphe en fin de fichier : à sa place d'origine, le bloc dépassait 100
+lignes), liste du lot LM (Cichlid et 12 sections nouvelles). Sans scénario,
+les 13 totaux sont identiques ; posé après le coup poseur : Cichlid ×1,455,
+Melissa, Barbara, Masha, Xiana, Übel ×1,682, Carlos ×1,188, Eivor ×1,125
+(ratios de la sonde 13b retrouvés). Reçu de l'agent `730927e` ↔ `7569e7b`.
+
+**Rejoué par le pilote** : `tsc` 0 ; 1 766 vérifications ; build,
+spec-lint, diff-check verts ; Cichlid et Sia relus à la fiche. Mutations de
+l'agent : trois entrées retirées, 7, 6 et 7 échecs. **Mutation du pilote**,
+distincte (Marque de Carlos changée en réduction de DEF) : 3 échecs ;
+restaurée. Hachage inscrit dans la liste par le pilote.
+
+**Relevé, non traité** : le passif Great Friends de Sia ne voit pas la pose
+du scénario (`setupsAvantChaqueCoup` n'est transmis qu'aux coups du sort
+actif) — Sia ×1,429 au lieu de ×1,682 ; Cichlid offre « après le coup 1 »,
+qui ne pose rien (×1,909, décision D21) ; autres effets de ces sorts
+(Decrease ATK, Stun, Unrecoverable) non curés.
 
 ### Lot 14 — clôture
 

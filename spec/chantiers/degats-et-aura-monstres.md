@@ -76,7 +76,7 @@ Formes : 23501 Beast Rider (eau) †, 23511 Barbara.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Fast Link » · 13606 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. L'ignore DEF de « Start of Attacking » (13611) n'est pas touché (P11). | P4 | commit du lot P4 | Chemin commun → Barbara → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Fast Link » · 13606 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. L'ignore DEF de « Start of Attacking » (13611) n'est pas touché (P11). | P4 | `730927e7` | Chemin commun → Barbara → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Bastet
 
@@ -92,7 +92,7 @@ Formes : 25704 Weapon Master (lumière) †, 25714 Benedict.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Weakness Shot » · 15509 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Benedict → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
+| « Weakness Shot » · 15509 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Benedict → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
 
 ### Birgitta
 
@@ -133,7 +133,7 @@ Formes : 25702 Weapon Master (feu) †, 25712 Carlos.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Weakness Shot » · 15507 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Carlos → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
+| « Weakness Shot » · 15507 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Carlos → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
 
 ### Celine
 
@@ -195,7 +195,7 @@ Formes : 19603 Mermaid †, 19613 Cichlid.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Air Shield » · 10408 · S2 | Sort sans attaque (bouclier, `0.25*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé et calculé comme des dégâts (pas retenu par défaut). | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Cichlid → « Compétence utilisée » : plus de case « Air Shield », ni grisée ; le sort par défaut ne change pas. |
-| « Crushed Hopes » · 10413 · S3 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 80 % ; prose « the second attack decreases the Defense ») entre dans le cadre des poses entre les coups ; posée « Après le coup 2 », seul le coup 3 subit la DEF réduite (×1,455 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. Le sélecteur propose aussi « Après le coup 1 », que le sort ne pose pas (décision D21, en attente). | P4 | commit du lot P4 | Chemin commun → Cichlid → choisir « Crushed Hopes » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 2 » monte le total, « Après le coup 1 » le monte davantage (cran à ne pas lire comme réel) ; aucune pose : total inchangé. |
+| « Crushed Hopes » · 10413 · S3 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 80 % ; prose « the second attack decreases the Defense ») entre dans le cadre des poses entre les coups ; posée « Après le coup 2 », seul le coup 3 subit la DEF réduite (×1,455 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. Le sélecteur propose aussi « Après le coup 1 », que le sort ne pose pas (décision D21, en attente). | P4 | `730927e7` | Chemin commun → Cichlid → choisir « Crushed Hopes » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 2 » monte le total, « Après le coup 1 » le monte davantage (cran à ne pas lire comme réel) ; aucune pose : total inchangé. |
 
 ### Ciri
 
@@ -254,7 +254,7 @@ Formes : 25703 Weapon Master (vent) †, 25713 Dominic.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Weakness Shot » · 15508 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Dominic → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
+| « Weakness Shot » · 15508 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 % ; prose « leave a Branding effect for 2 turns and attacks 3 more times », donc au coup 1) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », les 3 coups suivants reçoivent +25 % (×1,188 contre sans pose, DEF cible 1 500, ATQ 1 000, sort seul). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Dominic → choisir « Weakness Shot » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total (davantage que « Après le coup 2 » ou « 3 »), aucune pose : total inchangé. |
 
 ### Eivor
 
@@ -270,7 +270,7 @@ Formes : 27702 에이보르(불) †, 27712 Eivor.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Harpoon Impalement » · 17507 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 %, note « 1st hit » ; prose « The first attack leaves a Branding effect ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 reçoit +25 % (×1,125 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Eivor (feu) → choisir « Harpoon Impalement » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Harpoon Impalement » · 17507 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 %, note « 1st hit » ; prose « The first attack leaves a Branding effect ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 reçoit +25 % (×1,125 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Eivor (feu) → choisir « Harpoon Impalement » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Eivor (lumière)
 
@@ -278,7 +278,7 @@ Formes : 27704 에이보르(빛) †, 27714 Eivor.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Harpoon Impalement » · 17509 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 %, note « 1st hit » ; prose « The first attack leaves a Branding effect ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 reçoit +25 % (×1,125 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Eivor (lumière) → choisir « Harpoon Impalement » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Harpoon Impalement » · 17509 · S2 | Effet posé entre les coups, par identifiant : « Marque » (donnée `Brand` 100 %, note « 1st hit » ; prose « The first attack leaves a Branding effect ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 reçoit +25 % (×1,125 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Eivor (lumière) → choisir « Harpoon Impalement » : le cadre des poses entre les coups apparaît avec « Marque » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Elder Horn
 
@@ -615,7 +615,7 @@ Formes : 23502 Beast Rider (feu) †, 23512 Masha.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Fast Link » · 13607 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Masha → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Fast Link » · 13607 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Masha → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Mayasura
 
@@ -640,7 +640,7 @@ Formes : 21903 Chakram Dancer (vent) †, 21913 Melissa.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Double Strike » · 12608 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « First hit only ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Melissa → choisir « Double Strike » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Double Strike » · 12608 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « First hit only ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Melissa → choisir « Double Strike » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Michelle
 
@@ -784,7 +784,7 @@ Formes : 12134 Sia (seule forme à porter l'identifiant 3454 ; les autres « Bla
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Blackout Kick » · 3454 · S1 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « First hit ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose pour le sort seul, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. Les coups de « Great Friends » (passif) ne voient pas la pose : le total de l'objectif, passif compris, monte de ×1,429 seulement. | P4 | commit du lot P4 | Chemin commun → Sia → choisir « Blackout Kick » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Blackout Kick » · 3454 · S1 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « First hit ») entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose pour le sort seul, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. Les coups de « Great Friends » (passif) ne voient pas la pose : le total de l'objectif, passif compris, monte de ×1,429 seulement. | P4 | `730927e7` | Chemin commun → Sia → choisir « Blackout Kick » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Suiki
 
@@ -858,7 +858,7 @@ Formes : 36001 Übel †, 36011 Übel.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Reelseiden・Flurry » · 25206 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « 1st hit » ; en zone) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Übel (eau) → choisir « Reelseiden・Flurry » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Reelseiden・Flurry » · 25206 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « 1st hit » ; en zone) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Übel (eau) → choisir « Reelseiden・Flurry » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Übel (ténèbres)
 
@@ -866,7 +866,7 @@ Formes : 36005 Übel †, 36015 Übel.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Reelseiden・Flurry » · 25210 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « 1st hit » ; en zone) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | commit du lot P4 | Chemin commun → Übel (ténèbres) → choisir « Reelseiden・Flurry » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Reelseiden・Flurry » · 25210 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 50 %, note « 1st hit » ; en zone) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. | P4 | `730927e7` | Chemin commun → Übel (ténèbres) → choisir « Reelseiden・Flurry » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Valdemar
 
@@ -915,7 +915,7 @@ Formes : 23505 Beast Rider (ténèbres) †, 23515 Xiana.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Fast Link » · 13610 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. L'ATB de « Late Night Ambush » (13615) n'est pas touché. | P4 | commit du lot P4 | Chemin commun → Xiana → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
+| « Fast Link » · 13610 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. L'ATB de « Late Night Ambush » (13615) n'est pas touché. | P4 | `730927e7` | Chemin commun → Xiana → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
 
 ### Yuji Itadori (feu)
 

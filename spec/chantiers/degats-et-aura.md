@@ -767,7 +767,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b lancé** (suite de P4, Sia) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -9354,6 +9354,35 @@ la liste par le pilote.
 questionnaire ; Taux Crit d'Antares nommé sans vignette qui le règle ;
 `optimizer.md` est en exception de spec-lint (découpage à prévoir, hors
 lot).
+
+#### P4b — les coups qui suivent le sort voient les effets qu'il a posés
+
+**Cat. J, agent `lot-j`, worktree du chantier.** Suite du Résultat de P4 :
+le passif Great Friends de Sia (2 ou 3 coups ajoutés après la S1 ou la S2)
+ne voit pas la réduction de DEF que le scénario pose au coup 1 de Blackout
+Kick (3454) — Sia ×1,429 au lieu de ×1,682. Cause relevée : la boucle des
+passifs (`damage.ts`, vers L5806-5848) ne reçoit les états du scénario que
+pour `coupsDuSortActif` ; les autres lisent `defBreakApres(setup)`, qui
+ignore les poses du scénario.
+
+**Contrat :** une contribution qui **suit** le sort (passif qui frappe après
+lui, attaque appelée, Tempest) lit l'état de la cible **après le dernier
+coup du sort**, poses du scénario comprises (réduction de DEF, Marque,
+débuffs comptés) ; un passif qui **accompagne** chaque coup
+(`coupsDuSortActif`, Feng Yan) garde sa lecture coup par coup ; sans
+scénario actif, rien ne change et rien n'est calculé de plus (contrainte
+utilisateur : aucune correction n'alourdit le fonctionnement normal —
+l'état final se calcule une fois par appel, seulement si un scénario est
+actif). Inventaire par script des contributions concernées et de leur total
+avant / après (témoins des preuves P4 et 15f) ; test nommé : Sia ×1,682
+posée après le coup 1, inchangée sans scénario ; liste du lot LM pour chaque
+monstre jouable dont un total sous scénario change.
+**Preuve privée :** `controle-p4b.md` et intrants `.txt` ; mutation après le
+commit.
+**Vérifications :** `tsc`, `node tests/run.mjs auditdegatsconditionnels
+degats`, build, spec-lint, diff-check.
+**Ne fait pas :** aucune nouvelle entrée de table ; aucune chronologie de
+buff sur soi (P12a) ; aucune attaque déclenchée neuve (P7).
 
 ### Lot 14 — clôture
 

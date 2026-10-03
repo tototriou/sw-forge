@@ -162,3 +162,64 @@ export function testDegatsSequencesApi() {
     }
   }
 }
+
+// HT-1 : S3 à `formule: ""` dont la formule vient de l'auxiliaire de l'API ;
+// identifiant, formes porteuses, formule, terme de stats (ATQ 2 000, PV
+// 20 000), skillups « Damage » de la fiche, portée retenue.
+const FORMULES: {
+  id: number; nom: string; formes: number[]; monstre: string; formule: string; terme: number; skillup: number; auxiliaire: number;
+}[] = [
+  { id: 21114, nom: 'Cursed Tombstone', formes: [31404, 31414], monstre: 'Ramon', formule: '2.7*{ATK} + 0.29*{MAX HP}', terme: 2.7 * ATQ + 0.29 * PV, skillup: 15, auxiliaire: 4592 },
+  { id: 21415, nom: 'Purification, Cooperation!', formes: [31905, 31915, 32015], monstre: 'Nezuko Kamado', formule: '4.5*{ATK}', terme: 4.5 * ATQ, skillup: 20, auxiliaire: 4626 },
+  { id: 22015, nom: 'Rite of Ashes', formes: [32605, 32615], monstre: 'Vermilion Bird Dancer', formule: '4.5*{ATK}', terme: 4.5 * ATQ, skillup: 20, auxiliaire: 4710 },
+];
+
+export function testDegatsFormulesApi() {
+  const st = stats({ atk: ATQ, hp: PV, cr: 100, cd: 100 });
+  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 1000, enemyHp: 100_000_000, enemyHpPct: 100 };
+  const df = defenseFactor(1000);
+  const normal: DamageSetup = { ...base, critMode: 'normal' };
+  const crit: DamageSetup = { ...base, critMode: 'crit' };
+  const a224 = artefacts([{ code: 224, value: 30 }]);
+
+  for (const f of FORMULES) {
+    titre(`Lot P6, HT-1 — ${f.nom} (${f.id}, ${f.monstre}) : formule vide de la fiche, formule de l'auxiliaire ${f.auxiliaire} de l'API`);
+    for (const forme of f.formes) {
+      const brute = fiche(forme).competences.find((c) => c.com2usId === f.id)!;
+      egal(brute.formule, '', `${f.id} sur ${forme} : la fiche ne porte aucune formule (précondition)`);
+      const p = sortDe(forme, f.id);
+      egal(
+        { nom: p.nom, slot: p.slot, formule: p.formule, hits: p.hits, aoe: p.aoe, skillup: p.skillupDamagePct, sequence: p.sequenceDeCoups },
+        { nom: f.nom, slot: 3, formule: f.formule, hits: 1, aoe: false, skillup: f.skillup, sequence: undefined },
+        `${f.id} sur ${forme} : proposé dans « Compétence utilisée », ${f.formule}, un coup, mono-cible, +${f.skillup} %`,
+      );
+      const total = computeSkillDamageDetail(p, st, normal, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+      const attendu = f.terme * (1 + f.skillup / 100) * df;
+      ok(proche(total, attendu), `${f.id} sur ${forme} : ${f.terme} × ${1 + f.skillup / 100} × FacteurDéf = ${attendu.toFixed(2)}`);
+      // Mono-cible : 224 (Dgts CRIT comp. cib. uniq.) s'applique au coup.
+      const gain = computeSkillDamageDetail(p, st, crit, AUCUNE_AURA_PROPRE, null, undefined, a224).total
+        - computeSkillDamageDetail(p, st, crit, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
+      ok(proche(gain, f.terme * 0.3 * df), `${f.id} sur ${forme}, 224 : le coup en profite (mono-cible)`);
+    }
+  }
+
+  titre('Lot P6, HT-1 — Ramon : la prose (« Attacks the enemy ») l’emporte sur `aoe: true` de la donnée');
+  {
+    const brute = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
+    egal(brute.aoe, true, 'Cursed Tombstone : la donnée dit « zone » (précondition)');
+    ok(brute.description?.startsWith('Attacks the enemy ') === true, 'Cursed Tombstone : la prose dit « Attacks the enemy » (précondition)');
+    egal(sortDe(31414, 21114).aoe, false, 'Cursed Tombstone : profil mono-cible');
+  }
+
+  titre('Lot P6, HT-1 — la garde « formule vide » porte sur la formule retenue');
+  {
+    // Même fiche, autre identifiant : aucune formule curée, la garde tient.
+    const ramon = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
+    egal(skillDamageProfile({ ...ramon, com2usId: 999_114 }), null, 'formule vide sans formule curée : aucun profil, comme avant P6');
+    // Hors périmètre (Q04) : les sorts « Horn » des Anges jumeaux restent sans profil.
+    for (const id of [18801, 18811]) {
+      const horn = fiche(29111).competences.find((c) => c.com2usId === id)!;
+      egal(skillDamageProfile(horn), null, `${id} « ${horn.nom} » : aucune formule curée, aucun profil (forme de soutien, Q04 → P17)`);
+    }
+  }
+}

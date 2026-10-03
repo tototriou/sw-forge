@@ -2813,10 +2813,14 @@ const BOMBES_SANS_COUP_DIRECT_CONNUS = new Set(['Cursed Apple']);
 // son `1,2 × ATQ` et reçoit cette réserve comme composante SÉPARÉE plus bas.
 //
 // ⚠️ **Lue pour un sort actif (`skillDamageProfile`) ET pour un passif
-// (`monsterOffensivePassives`)**, avec la même priorité sur `Competence.formule`
-// et la même analyse tout-ou-rien. Un passif n'y entre que s'il figure AUSSI
-// dans `PASSIFS_OFFENSIFS_CONNUS` (catégorie de déclenchement) : la table ne
-// fait que fournir la formule absente ou fausse des données.
+// (`monsterOffensivePassives`)**, avec la même priorité sur `Competence.formule`,
+// la même garde « formule vide » portée sur la formule RETENUE (une ligne de
+// cette table suffit donc pour une fiche à `formule: ""`, sort actif comme
+// passif — vrai pour le sort actif depuis le lot P6 du chantier
+// degats-et-aura, qui a déplacé sa garde) et la même analyse tout-ou-rien. Un
+// passif n'y entre que s'il figure AUSSI dans `PASSIFS_OFFENSIFS_CONNUS`
+// (catégorie de déclenchement) : la table ne fait que fournir la formule
+// absente ou fausse des données.
 const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   7808: '5.5*{ATK}',
   7810: '5.5*{ATK}',
@@ -2830,6 +2834,36 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   // « Damage +10% » (+30 %) s'y appliquent, lues dans `ameliorations` comme
   // pour tout passif (même source, confirmation explicite).
   3213: '3.7*{ATK}',
+  // S3 dont la fiche porte `formule: ""` : la formule est celle de la
+  // « compétence auxiliaire » (`other_skill`) de l'API SWARFARM, lue par
+  // l'audit des dégâts conditionnels du 2026-09-08 et vérifiée à la source au
+  // contrôle 13b-hors-tour-cooperation. Règle D12 de l'utilisateur
+  // (2026-10-03) : la valeur de l'API par défaut, sauf si la prose la
+  // contredit (lot P6, HT-1). Les améliorations « Damage » de la fiche s'y
+  // appliquent comme pour tout sort.
+  // Cursed Tombstone — Ramon (31414 ; 31404 non éveillé). Auxiliaire 4592.
+  // « This attack will deal more damage according to your MAX HP » concorde
+  // avec le terme de PV. La portée de la donnée (`aoe: true`, fiche et
+  // auxiliaire) est en revanche contredite par la prose (« Attacks the enemy »)
+  // : la prose l'emporte, mono-cible (`PORTEE_CORRIGEE_PAR_ID`).
+  21114: '2.7*{ATK} + 0.29*{MAX HP}',
+  // Purification, Cooperation! — Nezuko Kamado (31915 ; 31905 et 32015 non
+  // proposées par `formesJouables`) ; Rite of Ashes — Vermilion Bird Dancer
+  // (32615 ; 32605 non éveillé). Auxiliaires 4626 et 4710. « attacks the enemy target together
+  // with the target allies » : seule l'attaque du monstre est comptée ; celles
+  // des deux alliés (effet « Ally Attack ») sont des dégâts d'autres monstres,
+  // hors calcul. `coups: 0` de la fiche : un coup, comme tout sort qui frappe.
+  21415: '4.5*{ATK}',
+  22015: '4.5*{ATK}',
+};
+
+// Portée corrigée par identifiant, quand la prose du sort contredit le champ
+// `aoe` de la donnée (règle D12 : la prose l'emporte). Lue par
+// `skillDamageProfile` seulement ; la valeur remplace `Competence.aoe` dans le
+// profil (portée du sort, 224 compris). Un test par entrée
+// (`tests/degats-valeurs-api.test.ts`).
+const PORTEE_CORRIGEE_PAR_ID: Record<number, boolean> = {
+  21114: false, // Cursed Tombstone (Ramon) : « Attacks the enemy » contre `aoe: true`
 };
 
 const COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: Record<number, string> = {
@@ -3249,11 +3283,15 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
  * dégâts calculables. Ne lève jamais.
  */
 export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDamageUnsupported | null {
-  if (c.passif || !c.formule || c.com2usId == null || estSoinSansDegats(c)) return null;
+  if (c.passif || c.com2usId == null || estSoinSansDegats(c)) return null;
   // Un sort sans attaque (`SORTS_SANS_ATTAQUE_PAR_ID`) est masqué, comme un
   // soin : `null`, jamais un refus avec raison (décision A.8, lot 15c).
   if (SORTS_SANS_ATTAQUE_PAR_ID.has(c.com2usId)) return null;
-  const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule).trim();
+  // Garde « formule vide » sur la formule RETENUE (même forme que
+  // `monsterOffensivePassives`) : une fiche à `formule: ""` reste sans profil,
+  // sauf si `FORMULES_CUREES_PAR_ID` lui en donne une (lot P6, HT-1).
+  const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule ?? '').trim();
+  if (!brut) return null;
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom, description: c.description };
   const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);
   const analyse = analyser(brut.replace(RE_FIXED, '').trim());
@@ -3342,7 +3380,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     formule: brut,
     hits,
     hitsRange: coupsVariables,
-    aoe: c.aoe,
+    aoe: PORTEE_CORRIGEE_PAR_ID[c.com2usId] ?? c.aoe,
     // ⚠️ `ignoreDefSelonVit` prévaut : SWARFARM tague Concentrated Stab d'un
     // effet « Ignore DEF » PLEIN (`quantite: 100`), la nuance « selon l'écart
     // de VIT » vivant uniquement dans son champ `note` en texte libre, jamais

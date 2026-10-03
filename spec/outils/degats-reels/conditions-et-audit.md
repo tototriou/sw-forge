@@ -281,3 +281,27 @@ après la Marque de Weakness Shot : ×1,225 et ×1,218 posée après le coup 1) 
 Feng Yan inchangé. Le déclenchement d'un passif `defBreak` (Roid, Silver)
 reste jugé sur les deux réglages de réduction : aucun de leurs sorts n'a de
 pose entre les coups. Test : `testSuiteDuSortVoitLesPosesP4b`.
+
+## Formules de l'API pour les sorts à formule vide
+
+Trois S3 dont la fiche porte `formule: ""` reçoivent la formule de leur
+« compétence auxiliaire » (`other_skill`) de l'API SWARFARM, lue par l'audit
+du 2026-09-08 et vérifiée à la source au contrôle 13b-hors-tour-cooperation
+(degats-et-aura P6, HT-1 ; règle D12 de l'utilisateur : la valeur de l'API
+par défaut, sauf si la prose la contredit) :
+
+| Sort · identifiant · formes | Formule (auxiliaire) | Portée retenue | Note |
+| --- | --- | --- | --- |
+| Cursed Tombstone · `21114` · Ramon `31414` (`31404` non éveillé) | `2.7*{ATK} + 0.29*{MAX HP}` (4592) | mono-cible | la donnée dit `aoe: true` (fiche et auxiliaire), la prose « Attacks the enemy » : la prose l'emporte (`PORTEE_CORRIGEE_PAR_ID`) |
+| Purification, Cooperation! · `21415` · Nezuko Kamado `31915` (`31905` et `32015` non proposées par `formesJouables`) | `4.5*{ATK}` (4626) | mono-cible | les attaques des deux alliés (« Ally Attack ») sont hors calcul : dégâts d'autres monstres |
+| Rite of Ashes · `22015` · Vermilion Bird Dancer `32615` (`32605` non éveillé) | `4.5*{ATK}` (4710) | mono-cible | idem |
+
+Les améliorations « Damage » de la fiche s'y appliquent (+15 %, +20 %). Ces
+trois sorts n'étaient pas proposés avant P6 : `skillDamageProfile` écartait
+toute fiche à formule vide **avant** de lire `FORMULES_CUREES_PAR_ID`. La
+garde « formule vide » porte désormais sur la formule **retenue**, comme pour
+un passif : une fiche à formule vide sans formule curée reste sans profil.
+Devenus le dernier sort calculable, ils sont aussi le sort par défaut de ces
+monstres. Hors périmètre : les sorts « Horn » des Anges jumeaux (forme de
+soutien sans dégât, décision Q04), qui restent sans profil. Test :
+`testDegatsFormulesApi` (`node tests/run.mjs formulesapi`).

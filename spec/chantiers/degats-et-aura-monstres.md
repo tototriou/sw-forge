@@ -852,6 +852,14 @@ Formes : 31401 Tomb Warden †, 31411 Mork.
 | --- | --- | --- | --- | --- |
 | « Lamplight in Darkness » · 21111 · S3 | Sort sans attaque (immunité, bouclier, `0.2*{MAX HP}`) masqué de « Compétence utilisée » : il était proposé, calculé comme des dégâts et retenu par défaut. | 15c | `a65b2f28`, `f7bd6a1f` | Chemin commun → Mork → « Compétence utilisée » : plus de case « Lamplight in Darkness », ni grisée ; le sort coché par défaut est un sort qui frappe. |
 
+### Nezuko Kamado
+
+Formes : 31905 카마도 네즈코(어둠) †, 31915 Nezuko Kamado, 32015 Nezuko Kamado (non proposée par `formesJouables`).
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Purification, Cooperation! » · 21415 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 4,5 × ATQ, un coup, mono-cible, +20 % (compétence auxiliaire 4626 de l'API SWARFARM, règle D12). Les attaques des deux alliés restent hors calcul. Dernier sort calculable, il devient le sort coché par défaut (avant : « Triple Roundhouse Kick »). | P6 (HT-1) | commit du lot P6 | Chemin commun → Nezuko Kamado → « Compétence utilisée » : une case « Purification, Cooperation! », cochée par défaut ; résumé « 1 coup · Cible unique ». |
+
 ### Old Wood (eau)
 
 Formes : 35001 Old Wood †, 35011 Old Wood.
@@ -923,6 +931,14 @@ Formes : 32903 Qilin Slasher †, 32913 Qilin Slasher.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Against the Current (Passive) » · 22213 · S3 | Rappel dans « État de mon monstre », sous les vignettes des buffs : le passif « Against the Current » (icône et nom du jeu) pose Buff ATQ — « When you take fatal damage from the enemy's attack » (extrait littéral de la prose). Aucun calcul ne change : le buff reste à allumer à la main (« Buff ATQ »), rien ne s'allume d'office. | P2 | `87e03514` | Outils → Optimizer → choisir Qilin Slasher → carte « État de mon monstre » : sous les vignettes, la ligne « Against the Current » + « pose Buff ATQ — « When you take fatal damage from the enemy's attack » » ; aucune autre ligne de ce type ; le total ne bouge pas tant que la vignette reste éteinte. |
+
+### Ramon
+
+Formes : 31404 Tomb Warden †, 31414 Ramon.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Cursed Tombstone » · 21114 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 2,7 × ATQ + 0,29 × PV max, un coup, +15 % (compétence auxiliaire 4592 de l'API SWARFARM, règle D12). **Mono-cible** : la prose « Attacks the enemy » l'emporte sur `aoe: true` de la donnée ; 224 s'applique. Dernier sort calculable, il devient le sort coché par défaut (avant : « Coffin Bash »). | P6 (HT-1) | commit du lot P6 | Chemin commun → Ramon → « Compétence utilisée » : une case « Cursed Tombstone », cochée par défaut ; résumé « 1 coup · Cible unique » (jamais « Zone »). |
 
 ### Raviti
 
@@ -1128,6 +1144,14 @@ Formes : 24905 Blade Dancer †, 24915 Vereesa.
 | « Blade Dance of Night » · 14810 · S2 | L'ignore DEF n'est plus « toujours » mais « à partir d'un coup choisi » (3 coups, rangs 2 et 3, aucun par défaut) ; calcul en tronçons de coups, PV enchaînés, 411 au coup 1 seulement ; la jauge d'attaque adverse n'est pas modélisée. | 10a | `db913084`, `dc8e4b5f` | Chemin commun → choisir ce sort : son résumé n'écrit plus « Ignore la DEF » ; la DEF de la cible est affichée (elle compte désormais pour les coups avant le rang). |
 | « Blade Dance of Night » · 14810 · S2 | Sélecteur « Ignore la DEF (jauge de la cible à 0) » : crans « aucun », « dès le 2ᵉ coup », « dès le 3ᵉ coup » (défaut : aucun) ; ligne de résumé « Ignore la DEF : … » ; CLI et recette (`premierCoupIgnoreDefParSort`, refus avec son chemin d'un rang hors crans). | 10b | `784378b9`, `cc3ab044`, `89ea229f`, `072c7c3f` | Chemin commun : ce sort choisi, le sélecteur apparaît (ordinateur ET téléphone), rien ne bouge au clic ; le résumé dit « Ignore la DEF : aucun » / « : dès le Nᵉ coup » / « : 7ᵉ coup seul » sur une ligne à lui. |
 
+### Vermilion Bird Dancer
+
+Formes : 32605 Vermilion Bird Dancer †, 32615 Vermilion Bird Dancer.
+
+| Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
+| --- | --- | --- | --- | --- |
+| « Rite of Ashes » · 22015 · S3 | Sort désormais proposé et calculé (il était absent : formule vide dans la donnée) : 4,5 × ATQ, un coup, mono-cible, +20 % (compétence auxiliaire 4710 de l'API SWARFARM, règle D12). Les attaques des deux alliés restent hors calcul. Dernier sort calculable, il devient le sort coché par défaut (avant : « Triple Flame Kick »). | P6 (HT-1) | commit du lot P6 | Chemin commun → Vermilion Bird Dancer → « Compétence utilisée » : une case « Rite of Ashes », cochée par défaut ; résumé « 1 coup · Cible unique ». |
+
 ### Vidurr
 
 Formes : 22402 Giant Warrior †, 22412 Vidurr.
@@ -1288,7 +1312,8 @@ Rien de ce qui suit n'est à chercher à l'écran.
   des stats de combat garde sa prose. Aucun cas dans le corpus aujourd'hui.
 - **Mécanismes génériques sans autre porteur** : `slotsDeclencheurs` et
   `selectionnableCommeSort` (seul Tempest), la formule curée d'un passif par
-  `FORMULES_CUREES_PAR_ID` (seul `3213`), l'ignore DEF à partir d'un coup
+  `FORMULES_CUREES_PAR_ID` (seul `3213` ; pour un sort actif à formule vide,
+  `21114`, `21415`, `22015` depuis P6), l'ignore DEF à partir d'un coup
   (seuls les six sorts des Blade Dancers). La séquence de coups curée n'est
   plus propre à Blade Surge depuis P6 (SZ-2 : Abigail, Emily, M. BISON,
   Sagar).

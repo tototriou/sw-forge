@@ -126,8 +126,8 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R9a Bestiaire | J | **validé par Thomas** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
 | R9b Mécaniques, Nouveautés | J | **validé par Thomas** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par Thomas** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
-| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **sorti de cette branche** (décision 61) : chantier à part, après la fusion | |
-| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 61 à 63) | M | en cours — 12a contrôles | |
+| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **revenu dans la branche** (décision 64, annule 61) — en cours : tests de rendu, puis relevé | 2026-10-03 |
+| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 62, 63) | M | 12a fait (4 534 vérifications) ; **à refaire après l'Optimizer** | |
 
 ### A.8 Décisions prises en cours de chantier
 
@@ -388,6 +388,24 @@ les décisions 43 et 44 s'appliquent ; une seule icône à changer.
 Le lot 12 garde les deux arrêts de la décision 47 : 12a contrôles (rien
 modifié), 12b relecture générale par Thomas sur une liste de pages, 12c
 note de version montrée avant commit, 12d branche poussée et PR ouverte.
+
+#### 64 — l'Optimizer revient dans la branche (Thomas, 2026-10-03)
+
+« Je te demande de faire l'Optimizer maintenant. »
+
+64. **La décision 61 est annulée** : les lots 9a (bureau) et 11e
+    (téléphone) de la refonte se font sur cette branche, avant le lot 12,
+    avec les points différés (renommage `swforge-optimizer`, décision 14 ;
+    écran vide des Outils, décision 60) et les décisions 43 et 44.
+    - **Sans `origin/forge/implementation-relique`** (62 commits, 26
+      fichiers de `src/`, dont +549 lignes dans `OptimizerSection.tsx`) :
+      Thomas choisit de refaire l'écran actuel ; cette branche s'adaptera à
+      sa propre fusion.
+    - **Tests de rendu d'abord** (contrat B.5 à B.10 de la refonte) : il
+      n'en existait aucun pour l'Optimizer.
+    - Les notes privées (`spec/outils/optimizer/`, `invariants.md`) et
+      l'installation `chantier` sont **absentes de cette machine** : lot
+      d'affichage seul, sans moteur, mené sur `spec/outils/optimizer.md`.
 
 ## Partie B — les lots
 

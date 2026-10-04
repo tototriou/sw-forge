@@ -58,6 +58,133 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '1.14.0',
+    date: '2026-10-04',
+    title: 'Les reliques et les auras d’équipe entrent dans l’optimiseur',
+    highlights: [
+      'L’optimiseur choisit aussi la relique de chaque build, à partir de ton inventaire',
+      'Les sets d’aura de ton équipe comptent dans les dégâts et les conditions',
+      'Dégâts réels : coups multiples, ignore DEF, Tempest et des dizaines de sorts corrigés',
+    ],
+    changes: [
+      {
+        kind: 'feat',
+        scope: 'Import',
+        text: 'Ton inventaire de reliques est importé avec le compte. Réimporte-le une fois.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Chaque build est proposé avec sa relique : portée, ignorée, ou cherchée dans l’inventaire.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Les cinq sets d’aura comptent : les tiens, et ceux des autres monstres que tu saisis.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Un interrupteur compte les auras Tolerance et Précision dans les conditions de RES et PRE.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Une carte n’apparaît qu’une fois vérifiée ; un interrupteur les vérifie toutes.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Une liste peut contenir un autre exemplaire de la même espèce depuis ta Box.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Le « ? » à côté d’un sort ouvre sa description.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Dégâts réels : les coups qui varient selon l’ATQ (Stormfist, Brutal Fists…) sont comptés.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Dégâts réels : Blade Surge choisit sa cible, les Blade Dancers ignorent la DEF au coup choisi.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Dégâts réels : Tempest se choisit comme sort, ou se déclenche après le sort choisi.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Dégâts réels : les effets posés par un sort comptent pour ses coups suivants.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Une étiquette « Calcul partiel » signale les sorts dont le total est incomplet.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Optimiseur',
+        text: 'Le mode critique « Moyenne » disparaît ; une recette qui l’utilisait passe en Critique.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Filtre les runes par marqueur, avec les libellés que tu leur as donnés en jeu.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: '« Runes utilisées » se règle par contenu : RTA, siège, arène, autres decks.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Mon compte',
+        text: 'Option « Autoriser un regemme différent ».',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Le tri par PV, ATQ ou DEF classe sur la fiche, et la carte affiche ce chiffre.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Dégâts réels : critiques garantis de Byungchul, Yuji et Rick ; bonus de Theonia.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Dégâts réels : la portée en zone de sept sorts est corrigée.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Les sorts qui n’attaquent pas ne sont plus proposés dans « Compétence utilisée ».',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Cinq formes de boss ne sont plus proposées.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: '« Faisable » vérifie chaque rune contre les meules et gemmes de son grade.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Mon compte',
+        text: 'Une rune peut être gemmée sur une ligne de sa propre stat.',
+      },
+    ],
+  },
+  {
     version: '1.13.0',
     date: '2026-09-17',
     title: 'Le speed tuning dit le bon chiffre, les dégâts suivent le combat',

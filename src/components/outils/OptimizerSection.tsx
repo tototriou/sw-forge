@@ -977,11 +977,21 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // (zone D) plutôt que de deviner. Une puce désactivée (aucun candidat,
   // voir `candidatesBySource`) n'appelle jamais cette fonction (voir
   // `disabled` du `Segmented`, plus bas).
+  // Un autre exemplaire de la MÊME espèce est désigné (puce de source,
+  // zone D, même espèce rechoisie au bestiaire) : le choix de relique de
+  // l'utilisateur est gardé, sauf « Garder la relique équipée » sur un
+  // exemplaire qui n'en porte pas — la recherche tournerait alors sans
+  // relique, sans rien en dire.
+  function reliqueCoherenteAvecExemplaire(relique: RelicDetail | undefined) {
+    setRelicMainChoice((c) => relicMainChoiceApresChangementExemplaire(c, relique, true));
+  }
+
   function pickSource(source: ExclusionSource) {
     setGearSource(source);
     const candidates = candidatesBySource[source];
     if (candidates.length === 1) {
       setSourceSelector(candidates[0].selector);
+      reliqueCoherenteAvecExemplaire(candidates[0].gear.relic);
       setZoneDOpen(false);
     } else if (candidates.length > 1) {
       setSourceSelector(null);
@@ -1047,6 +1057,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       setObjective('efficience');
       setCritereArtefacts('brut');
     }
+    else reliqueCoherenteAvecExemplaire(boxCandidates[0]?.gear.relic);
     setSelectedId(id);
     setGearSource('box');
     setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData));
@@ -2707,6 +2718,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           type="button"
           onClick={() => {
             setSourceSelector(c.selector);
+            reliqueCoherenteAvecExemplaire(c.gear.relic);
             setZoneDOpen(false);
           }}
           className={`flex w-full items-center gap-3 px-3 text-left transition hoverable:bg-accent-soft ${

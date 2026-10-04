@@ -1198,11 +1198,14 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      choisi porte une relique, « Libre » sinon** — calculé au choix du
      monstre, comme pour l'artéfact, par **tous** les chemins qui en
      désignent un : bestiaire, recette importée, membre de la liste de
-     travail, « un autre exemplaire » et réimport du compte. Entre deux
-     exemplaires de la **même espèce**, le choix de l'utilisateur est
-     conservé, sauf « Garder la relique équipée » sur un exemplaire qui n'en
-     porte pas, qui redevient « Libre »
-     (`relicMainChoiceApresChangementExemplaire`).
+     travail, « un autre exemplaire », puce de source, zone D et réimport
+     du compte. Entre deux exemplaires de la **même espèce**, le choix de
+     l'utilisateur est conservé, sauf « Garder la relique équipée » sur un
+     exemplaire qui n'en porte pas, qui redevient « Libre »
+     (`relicMainChoiceApresChangementExemplaire`) : ce mode ne refuse pas la
+     recherche, il la ferait tourner sans relique, sans le dire. Une puce
+     qui ouvre la zone D (plusieurs exemplaires) ne change rien tant
+     qu'aucun n'est choisi.
    - **Propriété unique** : **« Libre »** (défaut) ou l'un des 16 types
      (`RELIC_UNIQUE`, `lib/effects.ts`), avec le libellé **« `<effet>` en
      fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de

@@ -156,8 +156,17 @@ export function testListeExemplaires() {
   'source : choisirExemplaire porte les règles de 6bis-b19 (résultats effacés, critères gardés)');
   // Revue externe de la v1.14.0, constat 1 : le défaut de relique suit
   // l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
-  ok(/setSelectedId\(id\);[\s\S]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),
-    'source : choisirExemplaire recalcule le choix de relique après le reset');
+  ok(/setSelectedId\(id\);[\s\S]*if \(autreEspece \|\| key !== ownSelectorKey\) \{[^}]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),
+    'source : choisirExemplaire recalcule le choix de relique après le reset, jamais en recliquant l’exemplaire affiché');
+  // Seconde revue ciblée, défaut 2 : les autres sites qui désignent un
+  // exemplaire de la même espèce appliquent la même règle.
+  const pickSourceSrc = entre(ecran, 'function pickSource(', 'function pickSpecies(');
+  ok(/setSourceSelector\(candidates\[0\]\.selector\);\s*reliqueCoherenteAvecExemplaire\(candidates\[0\]\.gear\.relic\);/.test(pickSourceSrc),
+    'source : une puce de source à un seul exemplaire applique la règle de relique');
+  ok(/setSourceSelector\(c\.selector\);\s*reliqueCoherenteAvecExemplaire\(c\.gear\.relic\);/.test(ecran),
+    'source : un choix en zone D applique la règle de relique');
+  ok(/else reliqueCoherenteAvecExemplaire\(boxCandidates\[0\]\?\.gear\.relic\);\s*setSelectedId\(id\);/.test(ecran),
+    'source : la même espèce rechoisie au bestiaire applique la règle de relique');
   // Seconde revue externe : le recalcul au réimport se fait UNE fois par
   // import, jamais à un simple remontage de l'écran (changement d'onglet).
   ok(/if \(importDuCompte === importReliqueTraite\.current\) return;\s*importReliqueTraite\.current = importDuCompte;\s*setRelicMainChoice\(defaultRelicMainChoice\(reliqueAffichee\.current\)\);/.test(ecran),

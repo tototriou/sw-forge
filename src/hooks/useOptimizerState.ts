@@ -77,8 +77,9 @@ export function defaultRelicMainChoice(relic: RelicDetail | undefined): RelicMai
  *   défaut se recalcule contre la relique du nouvel exemplaire, comme dans
  *   `pickSpecies`.
  * - Même espèce : les critères sont conservés (6bis-b19), sauf l'incohérence
- *   « Garder la relique équipée » sur un exemplaire qui n'en porte pas, qui
- *   ferait refuser la recherche — elle redevient « Libre ».
+ *   « Garder la relique équipée » sur un exemplaire qui n'en porte pas :
+ *   le mode `equipped` ne refuse pas la recherche, il la ferait tourner SANS
+ *   relique, sans rien en dire — elle redevient « Libre ».
  */
 export function relicMainChoiceApresChangementExemplaire(
   choixActuel: RelicMainChoice,

@@ -145,7 +145,7 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'Mon compte',
-        text: '« Runes utilisées » se choisit par périmètre : RTA, siège, arène, autres decks.',
+        text: '« Runes utilisées » se choisit par périmètre : RTA, Siège et Arène (attaque, défense), Autres decks.',
       },
       {
         kind: 'feat',
@@ -155,12 +155,12 @@ export const RELEASES: Release[] = [
       {
         kind: 'fix',
         scope: 'Optimiseur',
-        text: 'Le tri par PV, ATQ ou DEF compte les auras et le lead, comme la carte affichée.',
+        text: 'Le tri par PV, ATQ ou DEF suit le chiffre affiché sur la carte.',
       },
       {
         kind: 'fix',
         scope: 'Optimiseur',
-        text: 'Dégâts réels : critiques garantis de Byungchul, Yuji et Rick.',
+        text: 'Dégâts réels : critiques garantis de Byungchul, et de Yuji et Rick contre une cible sous effet néfaste.',
       },
       {
         kind: 'fix',

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills, type SetAura } from '../../lib/damage';
+import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills, type SetAura } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
 import { Bouton, BoutonIcone, Jeton, NumberField, Segmented, Selecteur } from '../../ui';
 import type { RappelBuffDePassif } from '../../lib/buffsDePassif';
@@ -430,8 +430,6 @@ function AurasExternesSaisie({
     </div>
   );
 }
-
-const LEADER_SKILL_STATS: LeaderSkillStat[] = ['HP', 'Attack Power', 'Defense', 'Attack Speed', 'Critical Rate', 'Critical DMG'];
 
 // Leader skill d'ÉQUIPE — demande explicite : « choisir un leader skill…
 // PV, ATQ, DEF, VIT, Taux Crit, Dégâts Crit. Il choisira d'abord le TYPE

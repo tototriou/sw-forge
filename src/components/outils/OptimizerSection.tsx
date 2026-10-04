@@ -496,6 +496,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     openDetailKey,
     setOpenDetailKey,
     importDuCompte,
+    importReliqueTraite,
     search,
     resetSearch,
     effacerResultats,
@@ -1184,13 +1185,16 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // Un réimport du compte remet les critères à zéro (`resetSearch('compte')`,
   // App.tsx) sans connaître le monstre resté sélectionné : le défaut de
   // relique se recalcule ici, contre la relique qu'il porte dans le compte
-  // réimporté. Lu par une ref : seul le compteur d'import déclenche l'effet.
+  // réimporté — UNE fois par import. ⚠️ L'écran se démonte à chaque
+  // changement d'onglet : sans `importReliqueTraite` (état partagé), chaque
+  // remontage réappliquait le défaut et écrasait le choix de l'utilisateur.
   const reliqueAffichee = useRef<RelicDetail | undefined>(undefined);
   reliqueAffichee.current = selected?.gear.relic;
   useEffect(() => {
-    if (importDuCompte === 0) return;
+    if (importDuCompte === importReliqueTraite.current) return;
+    importReliqueTraite.current = importDuCompte;
     setRelicMainChoice(defaultRelicMainChoice(reliqueAffichee.current));
-  }, [importDuCompte]);
+  }, [importDuCompte, importReliqueTraite]);
 
   /**
    * Les stats de RÉFÉRENCE du bouton « Comparer » — celles de la fiche.

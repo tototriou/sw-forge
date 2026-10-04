@@ -792,7 +792,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 et R lancés** (questionnaire terminé) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 lancé** (forme acceptée le 2026-10-04) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -882,6 +882,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
 | D56 | Azazel, Kazuya Mishima, True Devil Kazuya, The Witch-king of Angmar, Solide : absents de la liste des monstres de l'Optimizer | en attente |
+| P5a4 | Mayasura, Stormfist : le résumé dit « 3 à 6 coups (selon l'ATQ du build) » ; le total suit l'ATQ du build | en attente |
 | P22 | Satoru Gojo et Werner (lumière), Usha, Vritra, Nina, Shasha, Tatu 2A : le résumé du sort dit « Zone » ; avec un artéfact « D.CRIT+ comp cib uniq pdt tour », le total ne la compte plus | en attente |
 | P5a, P5a2 | Les 20 monstres de la liste : Barrage of Madness et Sura's Seal gardent un champ « nombre de coups » (minimum par défaut) ; Whirlpool, Water Dragon Surge, Hammer Punch, Pound, Strafe, God's Weapon ont un interrupteur éteint (« … (+N coups) ») à la place du champ ; Brutal Fists suit le champ « ATQ adverse » et son résumé dit « 3 à 4 coups (selon l'ATQ du build) » ; Grinding et Spinning Tea Spoon à 4 coups ; libellé de Pound au téléphone | en attente |
 | P6 | Abigail, Emily, M. BISON, Sagar : total du S3 plus haut (phase de zone comptée) et cran « Dégâts sur les autres ennemis » ; Ramon, Nezuko, Vermilion : le S3 est proposé et coché par défaut ; Blade Surge inchangé | en attente |
@@ -943,6 +944,9 @@ décision, rayée avec la date et la réponse.
 | 13 (consolidation) | Les 64 décisions encore ouvertes du plan (D01-D64, section 5.2), ses 10 valeurs de jeu (Q01-Q10, section 5.1), puis sa demande de 109 relevés (section 4) | en cours — questionnaire (lots Q1, Q2), 67 questions par blocs de 10 : bloc 1 (Q01-Q10) répondu le 2026-10-03 (A.2 ter ; Q01 et Q07 → relevés ; Q04 appelle une question de suite) ; bloc 2 (D01-D10) répondu le 2026-10-03 (plan § 5.2, A.2 ter) ; D01 reposée avec la prose entière (la citation du questionnaire omettait « Attacks the enemy with a swift attack »), réponse : option 1 ; bloc 3 (Q04 suite, D12-D21) répondu le 2026-10-03, D12 précisée (API par défaut sauf prose contraire) ; D11 tranchée par le pilote (empreinte) ; bloc 4 (D22-D33) répondu le 2026-10-03 (plan § 5.2, A.2 ter) ; bloc 5 (D34-D45) répondu le 2026-10-04, suites comprises ; bloc 6 : D46, D48, D50, D57, D58, D60 retirées comme déjà couvertes (sans objection), D47, D49, D52-D56 répondues le 2026-10-04 ; D59, D61, D62, D63 et la valeur de Stormfist répondus le 2026-10-04 : **le questionnaire est terminé** ; la demande de relevés (plan § 4) est à élaguer et à soumettre |
 | bloc 5 | ~~Suites de D36 et D41 : Démons, Espresso Cookie, Deragron~~ | ✔ 2026-10-04 (utilisateur) : Démons, champ « PV de l'ennemi le plus en forme » et formule fournie ; Espresso comme Jasmine et Lavender ; Deragron, soin reçu saisi (A.2 ter) |
 | P5a | ~~Whirlpool (Tanjiro), Hammer Punch (Tractor), Pound : les coups en plus dépendent d'une condition sur la cible (effet nocif, PV) — un interrupteur « la condition est remplie » plutôt que le compteur saisi ?~~ | ✔ 2026-10-04 (utilisateur) : **oui, interrupteur** → lot P5a2, étendu par le pilote aux sorts de même nature (A.2 ter L144 pour les coups en plus « by chance ») |
+| P3 | ~~Forme de la mention « calcul partiel »~~ | ✔ 2026-10-04 (utilisateur) : **une étiquette « Calcul partiel » à côté du nom du sort dans « Compétence utilisée »** ; son « ? » dit ce qui n'est pas compté (ex. « l'ignore DEF est compté en permanence ; la condition du jeu n'est pas encore modélisée ») → lot P3 |
+| P5a4 | Varuna (18307) et Danu (18309) portent un Stormfist de même prose que Mayasura : même règle (+1 coup par tranche de 60 % de l'ATQ de base) ? | en attente |
+| outillage | Les agents `lot-c` ont utilisé `sed -i` trois fois malgré le brief : un hook qui le refuse (Bash et PowerShell), ou une consigne renforcée dans les définitions d'agent ? | en attente |
 | bloc 4 | ~~Valeur de jeu : Stormfist de Mayasura (18306)~~ | ✔ 2026-10-04 (utilisateur) : +1 coup par tranche de 60 % de l'ATQ de base dans l'ATQ totale (A.2 ter) → lot P5a4 |
 | 15d | ~~La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8)~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme les cinq autres sorts du genre → lot 15f |
 | 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
@@ -9602,6 +9606,54 @@ Brutal Fists (P5a2) ; l'affichage sans build passe par `coupsAffichesDuSort`
 dans la boucle de l'optimiseur. Tests (paliers 159 %, 160 %, 220 %, 280 %,
 au-delà), spec, liste du lot LM. Preuve `controle-p5a4.md`, mutation après
 le commit.
+
+##### Résultat du lot P5a4 — 2026-10-04
+
+Agent `lot-c`. Un commit, `cbff6615` : condition `atkParTranche` (60 %,
+plafond +3) par identifiant 18306 ; « ATQ totale » = l'ATQ de combat déjà
+utilisée par la formule et par Brutal Fists, ATQ de base de la ligne `atk`
+(champ `atkBase` du nouveau type `StatsCombatPourCoups`) ; marge `+1e-9`
+avant l'arrondi pour les paliers exacts. Coups : 3 sous 160 %, 4 à 160 %, 5
+à 220 %, 6 à 280 % (base 1 000 : 4 903,68 / 8 428,20 / 12 872,15) ; sans
+build, « 3 à 6 coups (selon l'ATQ du build) ». Spec, ligne de la liste.
+Reçu de l'agent `cbff661` ↔ `b9f4369`. Aucun `sed -i` cette fois.
+
+**Rejoué par le pilote** : `tsc` 0 ; 2 728 vérifications ; build, spec-lint,
+diff-check verts. Mutations de l'agent : 19, 1 et 1 échecs. **Mutation du
+pilote**, distincte (règle posée sur Varuna 18307 au lieu de Mayasura) : 44
+échecs ; restaurée. Hachage inscrit dans la liste.
+
+**Question soumise à l'utilisateur** : Varuna (18307) et Danu (18309)
+portent un Stormfist de même prose, laissé à 3 coups fixes — même règle ?
+
+#### P3 — l'étiquette « Calcul partiel »
+
+**Cat. J, agent `lot-j`, worktree du chantier.** Plan § 6, ligne P3 (PV-2,
+`controle-13b-pertes-pv.md` L230 et les 35 lignes à profil « calculé » qu'il
+désigne) ; forme décidée par l'utilisateur le 2026-10-04 (A.8) : **une
+étiquette « Calcul partiel » à côté du nom du sort dans « Compétence
+utilisée »**, dont le « ? » dit ce qui n'est pas compté.
+
+**Contrat :** (1) une table curée par identifiant (`CALCUL_PARTIEL_PAR_ID`
+ou nom équivalent) : identifiant → phrase de ce qui manque, en français,
+courte et concrète (« l'ignore DEF est compté en permanence ; la condition
+du jeu n'est pas encore modélisée ») ; elle comprend les **six ignore DEF
+permanents de D63** (13406, 13410, 15511, 13611, 7713, 6013) et les lignes
+« calculé en partie » de PV-2 encore vraies au commit (chacune relue contre
+le code actuel : une part livrée depuis par un lot P sort de la table) ; les
+parts « non calculées, dites à l'écran » décidées en D36 (Lavender, Jasmine,
+Daniel, Espresso Cookie) y entrent aussi ; (2) l'étiquette dans la case du
+sort (composants de `src/ui/`, tokens, les deux formats, rien ne bouge au
+clic — la place est réservée ou l'étiquette tient dans la ligne du nom), le
+« ? » réutilise le mécanisme existant des proses de sort (lot 11bis) ; (3)
+aucun calcul ne change ; (4) tests (chaque entrée affichée, aucune
+étiquette hors table, chaque clé portée par une forme jouable), spec
+(`optimizer.md` ou `degats-reels/`), liste du lot LM (une ligne par sort).
+**Preuve privée :** `controle-p3.md` et intrants `.txt` ; classes Tailwind
+nouvelles vérifiées dans le CSS construit ; mutation après le commit.
+**Ne fait pas :** ne corrige aucun calcul (les six ignore DEF attendent
+P11) ; aucune mention sur les cartes de résultats (forme écartée par
+l'utilisateur).
 
 #### R — la demande de relevés, élaguée
 

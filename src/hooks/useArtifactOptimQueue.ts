@@ -215,6 +215,11 @@ export function useArtifactOptimQueue(opts: {
   // Le cache vit dans une ref ET dans l'état : la ref pour que la boucle le
   // lise sans re-rendu, l'état pour que l'écran se rafraîchisse.
   const cacheRef = useRef(new Map<string, ResultatArtefacts>());
+  // Une écriture du cache retenue par la cadence et pas encore publiée. Dans
+  // une ref, pas dans l'effet : une relance de l'effet (K qui change) perdrait
+  // sinon la trace d'une écriture faite par la boucle précédente — le
+  // pendant de `nonPubliee` du chemin Worker.
+  const nonPublieeRef = useRef(false);
 
   // Relance la boucle endormie. Posée par l’effet principal, lue par l’effet
   // de réveil — qui tourne à chaque rendu et ne connaît donc pas sa portée.
@@ -259,7 +264,14 @@ export function useArtifactOptimQueue(opts: {
     const reveiller = () => {
       if (!vivant) return;
       const voie = voieDeLaFile(aTraiter(), pageRef.current(), cacheRef.current);
-      if (voie === 'aucune') return setEnAttente(0);
+      if (voie === 'aucune') {
+        // File vide sur une écriture retenue (relance de l'effet, par exemple
+        // K qui passe de l'infini à 100) : publication FORCÉE, sinon ces
+        // résultats n'atteindraient jamais l'écran. Une seule fois : la
+        // publication remet le drapeau à faux.
+        if (nonPublieeRef.current) publier(true);
+        return setEnAttente(0);
+      }
       if (planifie && (planifie.voie === voie || planifie.voie === 'page')) return;
       planifie?.annuler();
       const planifier = voie === 'page' ? planifierImmediat : planifierInactif;
@@ -275,8 +287,12 @@ export function useArtifactOptimQueue(opts: {
     let dernierePublication = 0;
     const publier = (forcer: boolean) => {
       const now = Date.now();
-      if (!forcer && now - dernierePublication < PUBLICATION_MS) return;
+      if (!forcer && now - dernierePublication < PUBLICATION_MS) {
+        nonPublieeRef.current = true;
+        return;
+      }
       dernierePublication = now;
+      nonPublieeRef.current = false;
       setParBuild(new Map(cacheRef.current));
     };
 

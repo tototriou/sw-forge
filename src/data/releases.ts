@@ -70,12 +70,17 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'Import',
-        text: 'Ton inventaire de reliques est importé avec le compte. Réimporte-le une fois.',
+        text: 'Réimporte ton compte une fois : le compte conservé avant cette version n’est plus lu.',
+      },
+      {
+        kind: 'feat',
+        scope: 'Import',
+        text: 'Ton inventaire de reliques et les marqueurs de tes runes sont importés.',
       },
       {
         kind: 'feat',
         scope: 'Optimiseur',
-        text: 'Chaque build est proposé avec sa relique : portée, ignorée, ou cherchée dans l’inventaire.',
+        text: 'Chaque build garde la relique équipée, ou cherche la meilleure dans ton inventaire.',
       },
       {
         kind: 'feat',
@@ -85,12 +90,12 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'Optimiseur',
-        text: 'Un interrupteur compte les auras Tolerance et Précision dans les conditions de RES et PRE.',
+        text: 'Nouveau réglage « Compter les effets d’auras Tolerance et Précision dans les conditions ».',
       },
       {
         kind: 'feat',
         scope: 'Optimiseur',
-        text: 'Une carte n’apparaît qu’une fois vérifiée ; un interrupteur les vérifie toutes.',
+        text: 'Une carte n’apparaît qu’une fois vérifiée ; « Vérifier toutes les combinaisons trouvées » les vérifie toutes.',
       },
       {
         kind: 'feat',
@@ -110,7 +115,7 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'Optimiseur',
-        text: 'Dégâts réels : Blade Surge choisit sa cible, les Blade Dancers ignorent la DEF au coup choisi.',
+        text: 'Dégâts réels : Blade Surge choisit sa cible, et les Blade Dancers peuvent ignorer la DEF.',
       },
       {
         kind: 'feat',
@@ -140,22 +145,27 @@ export const RELEASES: Release[] = [
       {
         kind: 'feat',
         scope: 'Mon compte',
-        text: '« Runes utilisées » se règle par contenu : RTA, siège, arène, autres decks.',
+        text: '« Runes utilisées » se choisit par périmètre : RTA, siège, arène, autres decks.',
       },
       {
         kind: 'feat',
         scope: 'Mon compte',
-        text: 'Option « Autoriser un regemme différent ».',
+        text: '« Autoriser un regemme différent » : une ligne déjà gemmée peut changer de stat.',
       },
       {
         kind: 'fix',
         scope: 'Optimiseur',
-        text: 'Le tri par PV, ATQ ou DEF classe sur la fiche, et la carte affiche ce chiffre.',
+        text: 'Le tri par PV, ATQ ou DEF compte les auras et le lead, comme la carte affichée.',
       },
       {
         kind: 'fix',
         scope: 'Optimiseur',
-        text: 'Dégâts réels : critiques garantis de Byungchul, Yuji et Rick ; bonus de Theonia.',
+        text: 'Dégâts réels : critiques garantis de Byungchul, Yuji et Rick.',
+      },
+      {
+        kind: 'fix',
+        scope: 'Optimiseur',
+        text: 'Dégâts réels : Theonia compte son bonus contre une ATQ ennemie plus faible.',
       },
       {
         kind: 'fix',
@@ -175,12 +185,12 @@ export const RELEASES: Release[] = [
       {
         kind: 'fix',
         scope: 'Mon compte',
-        text: '« Faisable » vérifie chaque rune contre les meules et gemmes de son grade.',
+        text: '« Faisable avec ma réserve » compare chaque potentiel (Héro, Légend) à la réserve de ce grade.',
       },
       {
         kind: 'fix',
         scope: 'Mon compte',
-        text: 'Une rune peut être gemmée sur une ligne de sa propre stat.',
+        text: 'Une rune jamais gemmée peut remplacer une ligne par une gemme de la même stat.',
       },
     ],
   },

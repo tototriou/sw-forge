@@ -794,7 +794,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R validé** (demande élaguée : 22 questions puis les combats, `controle-r.md`) ; **P5a5 terminé** (`de066de0`), idem ; **le reste est reporté nominativement** (décision de l'utilisateur du 2026-10-04, « tout reporter », pour finir au plus tôt) : P5b à P26, questions sans combat ouvertes et combats, reste à faire dans `decisions/reste-a-faire-degats-2026-10.md` | P1 : `8db128c7`…`61351084` / 2026-10-03 |
-| EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | contrat écrit (formes A et B, décision du 2026-10-04) ; lancé dans `sw-forge-lot-1` | — |
+| EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | terminé (`lot-j`, worktree de lot `sw-forge-lot-1`), preuves et mutations rejouées par le pilote, intégré en avance rapide ; cas RTA soumis à l'utilisateur ; vérification à l'œil en attente (A.8) | `479ae6ec` / 2026-10-04 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après EX et la séance de vérification à l'écran ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -883,6 +883,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15f | Yuji et Rick (S2) : réduction de DEF posée après le 1er coup → le 2e coup est critique ET plus fort (DEF réduite) ; une ancienne recette sans ATQ adverse, importée : le champ affiche 1 000 et le bonus de Theonia, Kassandra, Eleni ou Zaiross suit ce 1 000 | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
+| EX | Une espèce à deux exemplaires en Box : la puce dit « Box · 2 » ; après l'ajout du premier, le bouton propose « Ajouter un autre exemplaire de … » et l'ajoute en un clic (la fiche passe au second exemplaire, résultats effacés) ; tous ajoutés → « Déjà dans « … » » ; libellé long au téléphone et à l'ordinateur, rien ne bouge au clic | en attente |
 
 #### Décisions de l'utilisateur en attente
 
@@ -943,6 +944,7 @@ décision, rayée avec la date et la réponse.
 | clôture | ~~Les lots P décidés mais pas codés : les reporter aussi ?~~ | ✔ 2026-10-04 (utilisateur) : **tout reporter** — P10, seul prêt sans relevé, compris (`decisions/reste-a-faire-degats-2026-10.md`) |
 | demande | ~~Plusieurs exemplaires d'un monstre dans une liste de travail : quel cas, et quand ?~~ | ✔ 2026-10-04 (utilisateur) : **deux exemplaires en Box**, **lot de plus ici** (EX) avant la clôture |
 | EX | ~~Forme d'interface pour choisir un autre exemplaire Box de l'espèce et l'ajouter à la liste (diagnostic : le chemin existe, caché derrière la puce « Box » déjà active)~~ | ✔ 2026-10-04 (utilisateur) : **A** (le bouton propose « Ajouter un autre exemplaire de … » et l'ajoute en un clic) **et B** (« Box · 2 » sur la puce) ; numéro d'exemplaire non retenu → lot EX |
+| EX | Exemplaire affiché venu de RTA ou du siège, déjà membre : le bouton propose aussi « un autre exemplaire » Box, qui peut être le même monstre physique. Le réserver à un exemplaire affiché venu de la Box ? | en attente (recommandation du pilote : oui) |
 | P1 | ~~Rending Claw : le bouton « +50 % sous Mechanical Frame State » est offert aussi à Cecilia (23306) et Elise (23310), dont le kit ne porte pas Emergency Drive — le retirer (clé par identifiant, 23307 seul) ?~~ | ✔ 2026-10-03 (utilisateur) : **oui, affiché uniquement sur Cynthia** → lot P1b |
 | bloc 1 | ~~Zeratu (Q03) : les coups 2 et 3 sont des coups de Trample au ratio ÷ 2 ; le bonus selon les PV de la cible recalculé à chaque coup sur les PV restants ?~~ | ✔ 2026-10-03 (utilisateur) : **oui** (A.2 ter) |
 | P2 | ~~Frodo : le porteur du passif reçoit-il lui aussi le buff « all allies » ?~~ | ✔ 2026-10-03 (utilisateur) : **oui**, « frodo reçoit aussi le buff atk » (A.2 ter) ; le rappel sur le porteur est juste, aucun code à changer |
@@ -9972,6 +9974,43 @@ exemplaire par espèce (règle du jeu) ; le sélecteur « non possédé » reste
 repéré par espèce ; aucun changement du format persisté des listes ; aucune
 modification de la liste des monstres et sorts modifiés (aucun calcul de
 dégâts touché).
+
+#### Résultat du lot EX — 2026-10-04
+
+Agent `lot-j`, worktree de lot `sw-forge-lot-1` (premier lot sous la règle
+du skill `cadrage-chantier` § G). Un commit, `479ae6ec`, intégré par avance
+rapide (la branche du chantier n'avait pas bougé). Diagnostic du pilote
+confirmé dans le code. Trois fonctions pures dans `optimizerExclusion.ts`
+(`exemplaireBoxHorsListe`, `etatAjoutListe`, `libellePuceSource`) ; à
+l'écran, le bouton lit `etatAjoutListe`, et `choisirExemplaire`, sorti du
+clic d'un membre de la zone C, est désormais le chemin unique des deux
+gestes (rappel des auras resté dans le seul `onClick` du membre) ; les
+quatre puces passent par `libellePuceSource`. Spec `optimizer.md` à jour ;
+test `testListeExemplaires` (36 vérifications), qui échouait avant (export
+absent, puis 7 échecs écran non branché). Preuve `controle-ex.md`
+(155 lignes, recomptées).
+
+**Rejoué par le pilote** dans le worktree de lot : `tsc` 0 ; 304
+vérifications (`listeexemplaires`, `optimizerexclusion`, `aurasecran`,
+`optimizerdamagetransitions`) ; build, spec-lint, diff-check verts ; diff
+relu. Mutations de l'agent : 1 et 10 échecs. **Mutation du pilote**,
+distincte (`etatAjoutListe` compte les membres de toutes les listes) :
+1 échec ; restaurée. Build du chantier refait pour le serveur.
+
+**Écarts acceptés** : `testAurasEcranRappel` ajusté — son contrôle de
+localisation cherche le changement d'exemplaire dans `choisirExemplaire`
+et l'appel de celui-ci dans le `onClick` (conséquence directe de « même
+chemin ») ; un seul commit pour A et B (une seule demande). Le pilote a
+ajouté deux invariants (`invariants.md`, skill `spec-hygiene` (c)) : le
+libellé de puce dérivé du compte, l'exemplaire visé dérivé de l'ordre de
+la zone D et de la liste active.
+
+**Signalés, soumis à l'utilisateur (A.8)** : si l'exemplaire affiché est un
+membre RTA ou siège, le bouton propose aussi « un autre exemplaire » Box,
+qui peut être le même monstre physique ; B s'applique aux quatre sources.
+**Non prouvé** : le rendu au navigateur (deux formats), le libellé long sur
+deux lignes possible dans la colonne de la zone C, un compte réel à deux
+exemplaires Box → vérifications à l'écran (A.8).
 
 ### Lot 14 — clôture
 

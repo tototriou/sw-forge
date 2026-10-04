@@ -812,38 +812,20 @@ chaque lot (sous-agent, modèle selon A.4, en arrière-plan), reçoit son
 rapport, valide (rejeux, mutation, Résultat, commit, relivraison) et
 enchaîne. L'utilisateur ne transmet plus les briefs ni les retours.
 
-- **Un agent à la fois**, dans le worktree du chantier : pas d'isolation
-  en worktree séparé, qui casserait `livrer` et le reçu. **Le pilote ne
-  modifie aucun fichier suivi pendant qu'un agent tourne** : un fichier
-  modifié ferait refuser son `livrer`.
-- **Lots indépendants en parallèle** (décision de l'utilisateur du
-  2026-10-02, pour gagner du temps) : un worktree par lot, créé par le
-  pilote (`sw-forge-lot-<lot>`, branche `forge/dea-<lot>`, `npm ci`, jamais
-  de jonction `node_modules` ; comptes réels en liens physiques, lecture
-  seule). L'agent lit les notes privées dans le worktree principal sans y
-  écrire ; il dépose ses modifications de notes dans
-  `sw-forge-lot-<lot>-notes\base` (l'original) et `\notes` (sa version),
-  avec sa preuve ; ni `livrer`, ni `push`. Le pilote intègre **un lot à la
-  fois** dans la branche du chantier (commits, conflits, fusion à trois des
-  notes, rejeux sur le combiné, livraison) et supprime le worktree. Seuls
-  des lots sans mesure de temps au navigateur tournent ainsi ensemble.
-  Répétition sur une branche partie de la **tête du chantier** : propre,
-  la branche du chantier avance jusqu'à elle (`merge --ff-only`), avec
-  exactement les commits rejoués (seconde vague).
+**Les règles de ce mode vivent dans le skill `cadrage-chantier`, § G**
+(depuis le 2026-10-04, pour servir aux chantiers suivants) : un agent à la
+fois dans ce worktree, lots indépendants en parallèle (décision de
+l'utilisateur du 2026-10-02, pour gagner du temps), rien d'écrit par le
+pilote pendant qu'un agent tourne, mutation après le commit et mutation
+distincte du pilote, décisions à l'utilisateur, vérifications à l'écran
+différées (table ci-dessous), relecteurs indépendants. Restent ici ce qui
+est propre à ce chantier :
+
+- **Branches des lots parallèles** : `forge/dea-<lot>` ; l'avance en
+  `merge --ff-only` a servi pour la seconde vague.
 - **Créneau de mesure accordé jusqu'à nouvel ordre** : le pilote lance les
   mesures sans redemander, jamais deux agents à la fois, et sans serveur à
   lui pendant une mesure.
-- **Les vérifications visuelles de l'utilisateur sont différées** : le
-  pilote ne s'arrête pas pour chacune, il les inscrit ci-dessous et
-  l'utilisateur les fait plus tard, en une séance.
-- **Les décisions restent à l'utilisateur** (produit, interface, valeur de
-  jeu manquante, relevé en jeu, chantier à part) : le pilote s'arrête et
-  demande. De même si un contrat ancien ne tient plus face au code.
-- **Revue indépendante** : le pilote peut lancer un ou deux sous-agents
-  relecteurs, qui n'ont pas écrit le code relu.
-- **Dans un brief, la mutation vient APRÈS le commit** : restaurée par
-  `git checkout --`, une mutation faite avant efface le travail non commité
-  (lot 8d).
 - **La liste des monstres et sorts modifiés**
   (`spec/chantiers/degats-et-aura-monstres.md`, lot LM ; demande de
   l'utilisateur du 2026-10-02) se met à jour **dans le même commit** que

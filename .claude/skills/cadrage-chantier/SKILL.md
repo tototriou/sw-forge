@@ -1,6 +1,6 @@
 ---
 name: cadrage-chantier
-description: Comment produire un document de cadrage de chantier (un fichier, jamais un plan dans la conversation) pour tout travail de plus d'une session ou confié à des sessions fraîches, et comment le faire vivre pendant le chantier — gabarit Partie A / Partie B, règles apprises sur spec-rangement avec leur incident, forme fixe du brief d'un lot, boucle de validation côté pilote, emplacement dans spec/chantiers/. Modèle : spec/chantiers/spec-rangement.md.
+description: Comment produire un document de cadrage de chantier (un fichier, jamais un plan dans la conversation) pour tout travail de plus d'une session ou confié à des sessions fraîches, et comment le faire vivre pendant le chantier — gabarit Partie A / Partie B, règles apprises sur spec-rangement avec leur incident, forme fixe du brief d'un lot, boucle de validation côté pilote, emplacement dans spec/chantiers/, et le mode où le pilote lance lui-même les lots (sous-agents lot-m/lot-c/lot-j, lots parallèles en worktrees, ce que le pilote s'interdit pendant qu'un agent tourne). Modèle : spec/chantiers/spec-rangement.md.
 ---
 
 # Cadrage d'un chantier (SW Forge)
@@ -151,7 +151,8 @@ dit pourquoi elle existe ; l'exemple est celui de spec-rangement.
 
 ## D. Le brief d'un lot — forme fixe
 
-Le brief est le message qui ouvre la session du lot. Il ne remplace pas le
+Le brief est le message qui ouvre la session du lot — quand le pilote lance
+les lots lui-même (G), c'est le prompt de l'agent. Il ne remplace pas le
 cadrage, il dit **où lire** dedans. Forme fixe, dans cet ordre :
 
 1. **Contexte** — worktree, branche, dernier commit (hash), lot et
@@ -188,6 +189,7 @@ quelque chose : l'y mettre, pas le mettre dans le brief.
 1. **Rejouer les preuves, pas lire le rapport.** Lancer les commandes de
    preuve de la section du lot, ouvrir le fichier de preuve, relire le
    diff. Le rapport sert à savoir *où* regarder, jamais *si* c'est bon.
+   Quand le pilote lance les lots, il y ajoute sa propre mutation (G).
 2. **Corriger le cadrage si le retour révèle un défaut du brief** — un
    critère ambigu, une dépendance manquante, un chiffre estimé : la
    correction va dans la Partie A ou dans la section du lot suivant, en
@@ -243,6 +245,103 @@ graphe.
   reste la référence citée par le code, les tests et les skills nés du
   chantier (`spec-hygiene` cite B.1, B.4, B.5, B.6, B.9).
 
+## G. Quand le pilote lance lui-même les lots
+
+Depuis le 2026-10-02 (chantier degats-et-aura, lot 6bis-b13bis-a), la
+session pilote ne se contente plus d'écrire les briefs : elle **lance
+l'agent de chaque lot** (outil `Agent`, en arrière-plan), reçoit son
+rapport, applique E et enchaîne. Raison d'être : l'utilisateur ne voulait
+plus porter les briefs et les retours d'une session à l'autre. Le cadrage
+inscrit la décision et ce qui est propre au chantier (degats-et-aura, A.8 :
+liste des monstres modifiés, créneau de mesure) ; les règles ci-dessous
+valent pour tout chantier piloté ainsi.
+
+**Lancer**
+
+- **Un type d'agent par catégorie, défini dans le dépôt** :
+  `.claude/agents/lot-m.md`, `lot-c.md`, `lot-j.md` fixent le modèle et
+  l'effort de A.4 (Sonnet bas, Sonnet moyen, Opus élevé) et la conduite
+  côté agent. L'outil de lancement ne règle pas l'effort à l'appel : les 24
+  premiers sous-agents de degats-et-aura ont pris celui de la session
+  (xhigh puis max), bien au-dessus de la table. Le brief (D) est le prompt
+  de l'appel ; l'agent démarre sans la conversation et ne sait que ce que
+  le brief et le cadrage lui donnent.
+- **Un seul agent à la fois dans le worktree du chantier**, sans
+  `isolation: "worktree"` : un worktree jetable casserait `livrer` et le
+  reçu.
+- **Lots indépendants en parallèle**, chacun dans un worktree créé par le
+  pilote : `sw-forge-lot-<lot>`, branche `forge/<abrégé du chantier>-<lot>`
+  partie de la tête du chantier, `npm ci` (worktree de chantier, jamais de
+  jonction `node_modules`), comptes réels en liens physiques, en lecture
+  seule. L'agent lit les notes privées dans le worktree principal sans y
+  écrire ; il dépose ses modifications de notes dans
+  `sw-forge-lot-<lot>-notes\base` (l'original) et `\notes` (sa version),
+  avec sa preuve ; ni `livrer`, ni `push`. Le pilote intègre **un lot à la
+  fois** dans la branche du chantier (commits, conflits, fusion à trois
+  des notes, rejeux sur le combiné, livraison), puis supprime le worktree.
+  Branche propre partie de la tête actuelle du chantier : la branche du
+  chantier avance jusqu'à elle (`merge --ff-only`), avec exactement les
+  commits rejoués. Seuls des lots sans mesure de temps au navigateur
+  tournent ainsi ensemble.
+- **Un interdit d'outillage qui revient passe par un hook, pas par le
+  brief.** Trois agents de suite ont lancé `sed -i` malgré le brief (P5a,
+  P5a3, D56, octobre 2026) ; le hook `refuse-sed-i` le refuse désormais au
+  moment de l'action (CLAUDE.md). Le pilote signale la récidive à
+  l'utilisateur et propose le hook.
+
+**Pendant qu'un agent tourne**
+
+- **Le pilote ne modifie ni fichier suivi ni note privée, et ne commite
+  pas**, dans le worktree où l'agent travaille : un fichier modifié fait
+  refuser son `livrer`. Lot 6bis-b1 : un commit du cadrage pendant la
+  livraison a bloqué `livrer`, et le reçu a porté un autre commit que
+  prévu. Lot P1 (2026-10-03) : le pilote a amendé le cadrage pendant le
+  lot ; il a fallu une copie, `git checkout --`, puis réappliquer après la
+  validation.
+- **Ce qui arrive entre-temps** (réponses et décisions de l'utilisateur,
+  amendements prévus) **s'écrit dans un fichier du scratchpad** (ex.
+  `reponses-en-attente.md`), reporté dans le cadrage une fois le lot
+  validé.
+- **Avant toute écriture du pilote** : arbre propre, HEAD inchangé depuis
+  le rapport, aucun `.git/index.lock`.
+- Le pilote ne devine pas le résultat d'un agent : il attend la
+  notification.
+
+**Valider (en plus de E)**
+
+- **La mutation vient APRÈS le commit**, dans le brief comme chez le
+  pilote : restaurée par `git checkout --`, une mutation faite avant
+  efface le travail non commité (lot 8d).
+- **Le pilote fait sa propre mutation, distincte de celles de l'agent.**
+  Celles de l'agent montrent que ses tests attrapent les pannes qu'il a
+  imaginées ; une autre montre s'ils attrapent les autres. Lot 9b : la
+  mutation du pilote (tout passif offensif proposé comme sort) a survécu —
+  la garde lisait le drapeau, jamais la liste réellement proposée ;
+  renvoyé à l'agent, le test complété donne alors 2 échecs.
+- **Toute affirmation d'un rapport ou d'un relecteur se vérifie à la
+  source** avant d'être relayée à l'utilisateur ou inscrite au cadrage.
+- **Une erreur du pilote se dit**, dans le Résultat et à l'utilisateur :
+  un brief contraire au cadrage (10b, import contraire à B.0), un contrat
+  qui attendait le mauvais rapport (P4b).
+- **Un commit ne peut pas citer son propre hash** : le lot écrit « commit
+  du lot N », le pilote inscrit le hash à la validation, dans son commit
+  `docs(cadrage)`.
+- **Revue indépendante** : un ou deux sous-agents relecteurs, qui n'ont
+  pas écrit le code relu.
+
+**Ce qui reste à l'utilisateur**
+
+- **Les décisions** (produit, interface, valeur de jeu manquante, relevé
+  en jeu, chantier à part, contrat ancien qui ne tient plus face au code) :
+  le pilote s'arrête, présente les options avec sa recommandation et
+  attend ; il enchaîne entre-temps les lots qui n'en dépendent pas.
+- **Les vérifications à l'écran sont différées** : le pilote ne s'arrête
+  pas pour chacune, il les inscrit dans le cadrage (table des
+  vérifications en attente) et l'utilisateur les fait en une séance. Pas
+  de clôture avant cette séance.
+- **La fusion sur `main` et `livrer --adopter`** : jamais sans sa décision
+  explicite (CLAUDE.md).
+
 ## Voir aussi
 
 - `spec/chantiers/spec-rangement.md` — le modèle, 16 lots, 31 amendements.
@@ -250,3 +349,5 @@ graphe.
   worktree, livraison des notes.
 - `spec-hygiene` — les recettes que les lots M et C de ce modèle appliquent
   (déplacer, découper, extraire des invariants).
+- `spec/chantiers/degats-et-aura.md` A.4 et A.8 — le premier chantier
+  piloté selon G ; `.claude/agents/lot-*.md` — les trois types d'agents.

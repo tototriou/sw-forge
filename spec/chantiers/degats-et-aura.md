@@ -795,7 +795,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R validé** (demande élaguée : 22 questions puis les combats, `controle-r.md`) ; **P5a5 terminé** (`de066de0`), idem ; **le reste est reporté nominativement** (décision de l'utilisateur du 2026-10-04, « tout reporter », pour finir au plus tôt) : P5b à P26, questions sans combat ouvertes et combats, reste à faire dans `decisions/reste-a-faire-degats-2026-10.md` | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | terminé (`lot-j`, worktree de lot `sw-forge-lot-1`), preuves et mutations rejouées par le pilote, intégré en avance rapide ; cas RTA soumis à l'utilisateur ; vérification à l'œil en attente (A.8) | `479ae6ec` / 2026-10-04 |
-| EX2 — « un autre exemplaire » seulement depuis un exemplaire affiché venu de la Box | C | contrat écrit (décision de l'utilisateur du 2026-10-04) ; lancé dans `sw-forge-lot-1` | — |
+| EX2 — « un autre exemplaire » seulement depuis un exemplaire affiché venu de la Box | C | terminé (`lot-c`, worktree de lot), preuves et mutations rejouées par le pilote, intégré en avance rapide ; vérification à l'œil avec EX (A.8) | `85d65c1e` / 2026-10-04 |
 | CP2 — « Calcul partiel » sur Leona (S1, S2) et Theonia (S3) | C | terminé (`lot-c`, worktree de lot), preuves et mutations rejouées par le pilote, intégré en avance rapide ; vérification à l'œil en attente (A.8) | `dc9e2d9d` / 2026-10-04 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après EX, CP2 et la séance de vérification à l'écran ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
 
@@ -892,7 +892,7 @@ l'utilisateur sur D56.
 | 15f | Yuji et Rick (S2) : réduction de DEF posée après le 1er coup → le 2e coup est critique ET plus fort (DEF réduite) ; une ancienne recette sans ATQ adverse, importée : le champ affiche 1 000 et le bonus de Theonia, Kassandra, Eleni ou Zaiross suit ce 1 000 | en attente |
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
-| EX | Une espèce à deux exemplaires en Box : la puce dit « Box · 2 » ; après l'ajout du premier, le bouton propose « Ajouter un autre exemplaire de … » et l'ajoute en un clic (la fiche passe au second exemplaire, résultats effacés) ; tous ajoutés → « Déjà dans « … » » ; libellé long au téléphone et à l'ordinateur, rien ne bouge au clic | en attente |
+| EX | Une espèce à deux exemplaires en Box : la puce dit « Box · 2 » ; après l'ajout du premier, le bouton propose « Ajouter un autre exemplaire de … » et l'ajoute en un clic (la fiche passe au second exemplaire, résultats effacés) ; tous ajoutés → « Déjà dans « … » » ; libellé long au téléphone et à l'ordinateur, rien ne bouge au clic ; affiché depuis RTA ou le siège et déjà membre : « Déjà dans », jamais « un autre exemplaire » (EX2) | en attente |
 | CP2 | Leona (Justice Strike, Fury of Punishment) et Theonia (Summary Justice) : étiquette « Calcul partiel » après le « ? » du sort ; son « ? » dit ce qui manque (équilibrage d'Internal Force ; bonus selon la VIT contre un ennemi plus lent) ; formulation à garder ? | en attente |
 
 #### Décisions de l'utilisateur en attente
@@ -10050,6 +10050,20 @@ spec-lint, diff-check ; mutation **après** le commit. Preuve privée
 **Ne fait pas :** rien d'autre dans le bouton ni les puces ; aucune liste
 des monstres (aucun calcul de dégâts) ; pas de cadrage, pas de notes hors
 de la preuve.
+
+#### Résultat du lot EX2 — 2026-10-04
+
+Agent `lot-c`, worktree de lot. Un commit, `85d65c1e`, intégré par avance
+rapide : la condition `p.selecteur.source === 'box'` dans `etatAjoutListe`,
+son commentaire, deux cas de test (RTA et siège affichés, membres, Box
+absents → `Déjà dans`, désactivé, suivant nul), la spec « Zone C ». Les deux
+cas échouaient avant (4 échecs sur 40), passent après. Preuve
+`controle-ex2.md` ; invariant de l'exemplaire visé complété par le pilote.
+
+**Rejoué par le pilote** dans le worktree de lot : `tsc` 0 ; 278
+vérifications ; build, spec-lint, diff-check verts ; diff relu. Mutation de
+l'agent (condition retirée) : 4 échecs. **Mutation du pilote**, distincte
+(condition `!== 'rta'`, qui laisse passer le siège) : 2 échecs ; restaurée.
 
 ### Lot CP2 — « Calcul partiel » sur Leona et Theonia
 

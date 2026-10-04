@@ -364,7 +364,11 @@ export function etatAjoutListe(p: {
   const membresListe = p.listeActiveId == null ? [] : p.membres.filter((m) => m.listId === p.listeActiveId);
   const cle = exclusionSelectorKey(p.selecteur);
   if (membresListe.some((m) => exclusionSelectorKey(m.selector) === cle)) {
-    const suivant = exemplaireBoxHorsListe(p.candidatsBox, membresListe);
+    // ⚠️ « Un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la
+    // Box (lot EX2, décision du 2026-10-04) : affiché depuis RTA ou le siège,
+    // l'exemplaire Box proposé pouvait être le même monstre physique, et
+    // « un autre exemplaire » aurait été faux.
+    const suivant = p.selecteur.source === 'box' ? exemplaireBoxHorsListe(p.candidatsBox, membresListe) : null;
     return suivant
       ? { libelle: `Ajouter un autre exemplaire de ${p.monstre} à « ${p.nomListe} »`, actif: true, exemplaireSuivant: suivant }
       : { libelle: `Déjà dans « ${p.nomListe} »`, actif: false, exemplaireSuivant: null };

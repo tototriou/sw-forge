@@ -96,6 +96,17 @@ export function testListeExemplaires() {
   const rtaMembre = etatAjoutListe({ ...base, membres: [membre('L', a.selector), membre('L', { source: 'rta', monsterId: '77' })] });
   egal(rtaMembre.exemplaireSuivant, b, 'un membre RTA de la même espèce n’occupe aucun exemplaire Box');
 
+  // Lot EX2 : « un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la Box.
+  // Venu de RTA ou du siège, l'exemplaire Box proposé pouvait être le même monstre physique.
+  const rta: ExclusionSelector = { source: 'rta', monsterId: '77' };
+  const rtaAffiche = etatAjoutListe({ ...base, selecteur: rta, membres: [membre('L', rta)] });
+  egal(rtaAffiche.libelle, 'Déjà dans « GB12 »', 'affiché RTA et membre, un Box absent : « Déjà dans » (lot EX2)');
+  ok(!rtaAffiche.actif && rtaAffiche.exemplaireSuivant === null, '… désactivé, aucun exemplaire suivant');
+  const siege: ExclusionSelector = { source: 'siege-defense', teamId: 't1', slotIndex: 0 };
+  const siegeAffiche = etatAjoutListe({ ...base, selecteur: siege, membres: [membre('L', siege)] });
+  egal(siegeAffiche.libelle, 'Déjà dans « GB12 »', 'affiché siège et membre, un Box absent : « Déjà dans » (lot EX2)');
+  ok(!siegeAffiche.actif && siegeAffiche.exemplaireSuivant === null, '… désactivé, aucun exemplaire suivant');
+
   const nonMembre = etatAjoutListe({ ...base, selecteur: b.selector, membres: [membre('L', a.selector)] });
   egal(nonMembre.libelle, 'Ajouter Lushen à « GB12 »', 'affiché non membre : libellé inchangé');
   ok(nonMembre.actif && nonMembre.exemplaireSuivant === null, '… actif, et le clic ajoute l’exemplaire affiché');

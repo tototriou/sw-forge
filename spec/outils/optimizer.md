@@ -2216,14 +2216,18 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   EX, décision de l'utilisateur du 2026-10-04) : les membres sont repérés
   par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
   exemplaires peuvent donc entrer dans la même liste. Quand l'exemplaire
-  affiché est déjà membre et qu'un autre exemplaire Box de l'espèce ne
-  l'est pas, le bouton reste **actif** : « Ajouter un autre exemplaire de
+  affiché **vient de la Box**, est déjà membre et qu'un autre exemplaire
+  Box de l'espèce ne l'est pas, le bouton reste **actif** : « Ajouter un
+  autre exemplaire de
   <monstre> à « <liste> » ». Un clic choisit le **premier exemplaire Box,
   dans l'ordre de la zone D, absent de la liste**, l'affiche (règles de
   6bis-b19 : résultats affichés effacés, critères gardés, aucun rappel des
   auras externes — voir « Recherche du monstre à optimiser ») puis
   l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
-  membres : « Déjà dans « <liste> » », désactivé. Aucun numéro
+  membres : « Déjà dans « <liste> » », désactivé. Exemplaire affiché
+  venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
+  exemplaire suivant (lot EX2, décision du 2026-10-04) — l'exemplaire Box
+  proposé pouvait être le même monstre physique. Aucun numéro
   d'exemplaire n'est affiché (non retenu) ; RTA garde un exemplaire par
   espèce (règle du jeu) ; le sélecteur « non possédé » reste repéré par
   espèce. Décision pure : `etatAjoutListe` et `exemplaireBoxHorsListe`

@@ -797,7 +797,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | terminé (`lot-j`, worktree de lot `sw-forge-lot-1`), preuves et mutations rejouées par le pilote, intégré en avance rapide ; cas RTA soumis à l'utilisateur ; vérification à l'œil en attente (A.8) | `479ae6ec` / 2026-10-04 |
 | EX2 — « un autre exemplaire » seulement depuis un exemplaire affiché venu de la Box | C | terminé (`lot-c`, worktree de lot), preuves et mutations rejouées par le pilote, intégré en avance rapide ; vérification à l'œil avec EX (A.8) | `85d65c1e` / 2026-10-04 |
 | CP2 — « Calcul partiel » sur Leona (S1, S2) et Theonia (S3) | C | terminé (`lot-c`, worktree de lot), preuves et mutations rejouées par le pilote, intégré en avance rapide ; vérification à l'œil en attente (A.8) | `dc9e2d9d` / 2026-10-04 |
-| 14 — clôture et ledgers après contrôles | M | à faire, après EX, CP2 et la séance de vérification à l'écran ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
+| 14 — clôture et ledgers après contrôles | M | lancé le 2026-10-04 (contrat amendé : `lot-m` en worktree de lot pour les étapes 1-2, pilote pour 3-4) ; EX, EX2, CP2 et la séance de vérification faits ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
 session qui **n'a pas écrit** ce document, munie de la checklist C du skill
@@ -10164,3 +10164,35 @@ recopie jamais dans le fichier privé dont le reçu vérifie le contenu.
 **Ne fait pas :** ne fusionne pas dans `main`. Cette branche ne rejoint `main`
 qu'avec ou après `forge/implementation-relique` (A.5), et la fusion est une
 décision de l'utilisateur, jamais du lot.
+
+**Amendement du pilote au lancement (2026-10-04).** État : lots P restants
+reportés nominativement (`decisions/reste-a-faire-degats-2026-10.md`), EX,
+EX2 et CP2 intégrés, séance de vérification faite (31 points), aucune
+décision ouverte en A.8. Partage selon le skill `cadrage-chantier` § G :
+
+- **Agent `lot-m`, worktree de lot `sw-forge-lot-1`, branche
+  `forge/dea-14`** : étapes 1 et 2.
+  - Étape 1, bornée : (a) chaque lot marqué « terminé » en A.7 a sa preuve
+    dans `spec/outils/optimizer/archive/controles-degats-aura-2026-09/`
+    (liste mécanique, manquants nommés ; un lot sans preuve par décision —
+    le dire, pas l'inventer) ; (b) `node scripts/spec-lint.mjs` sur tout le
+    périmètre ; (c) `npx tsc --noEmit` ; (d) aucune ligne « en attente »
+    dans les deux tables de l'A.8. **Pas de rejeu des filtres de chaque
+    lot** : la suite complète tourne juste après, avant la fusion, et la
+    rejouer lot par lot la doublerait.
+  - Étape 2 : entrées de `pistes.md` et leurs sources — dette de découpage
+    d'`optimizer.md`, `artefacts.md`, `harnais-diagnostic.md`,
+    `harnais-diagnostic-extensions.md` (A.2, ajouts normatifs sans découpage
+    préalable, dérogation de l'utilisateur) ; familles reportées et passifs
+    non curés (A.2) ; reliquat → reste à faire (déjà pointé, à vérifier) ;
+    les deux pistes de 6bis-b8 (pistes.md L198-199) dites « à transmettre à
+    un chantier dédié, ouvert sur décision de l'utilisateur » ; le nom
+    `pair-slice-worker.ts` → `src/workers/pairSlice.worker.ts` dans
+    `invariants.md` (L201). Chaque entrée et sa source disent la même chose
+    (CLAUDE.md, ledger). Notes déposées dans `sw-forge-lot-1-notes\base\`
+    (original) et `\notes\` (version modifiée), au chemin relatif sous
+    `spec/outils/optimizer/` ; preuve `controle-14.md` dans `\notes\`. Un
+    fichier public à corriger se commite sur `forge/dea-14`.
+- **Pilote** : intégration des notes et du commit éventuel, étapes 3
+  (statut du cadrage, ligne de `spec/README.md`, A.7) et 4 (`livrer`,
+  `verifier`, `integrer`, reçu inscrit dans le Résultat).

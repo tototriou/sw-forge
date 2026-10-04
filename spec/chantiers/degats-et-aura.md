@@ -1,6 +1,6 @@
 # Dégâts réels — sorts incomplets, sets d'aura, ergonomie
 
-**Statut :** CHANTIER en cours — branche forge/degats-et-aura
+**Statut :** CHANTIER terminé le 2026-10-04 — branche forge/degats-et-aura
 
 Cinq demandes d'une même session (2026-09-23) : quatre sorts au modèle
 incomplet, les effets de set d'aura absents du modèle, une réinitialisation
@@ -797,7 +797,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | terminé (`lot-j`, worktree de lot `sw-forge-lot-1`), preuves et mutations rejouées par le pilote, intégré en avance rapide ; cas RTA soumis à l'utilisateur ; vérification à l'œil en attente (A.8) | `479ae6ec` / 2026-10-04 |
 | EX2 — « un autre exemplaire » seulement depuis un exemplaire affiché venu de la Box | C | terminé (`lot-c`, worktree de lot), preuves et mutations rejouées par le pilote, intégré en avance rapide ; vérification à l'œil avec EX (A.8) | `85d65c1e` / 2026-10-04 |
 | CP2 — « Calcul partiel » sur Leona (S1, S2) et Theonia (S3) | C | terminé (`lot-c`, worktree de lot), preuves et mutations rejouées par le pilote, intégré en avance rapide ; vérification à l'œil en attente (A.8) | `dc9e2d9d` / 2026-10-04 |
-| 14 — clôture et ledgers après contrôles | M | lancé le 2026-10-04 (contrat amendé : `lot-m` en worktree de lot pour les étapes 1-2, pilote pour 3-4) ; EX, EX2, CP2 et la séance de vérification faits ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
+| 14 — clôture et ledgers après contrôles | M | **terminé** (`lot-m` en worktree de lot pour les étapes 1-2, pilote pour 3-4) ; contrôles rejoués par le pilote ; notes intégrées ; statut « terminé le 2026-10-04 » ; EX, EX2, CP2 et la séance de vérification faits ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
 session qui **n'a pas écrit** ce document, munie de la checklist C du skill
@@ -10196,3 +10196,40 @@ décision ouverte en A.8. Partage selon le skill `cadrage-chantier` § G :
 - **Pilote** : intégration des notes et du commit éventuel, étapes 3
   (statut du cadrage, ligne de `spec/README.md`, A.7) et 4 (`livrer`,
   `verifier`, `integrer`, reçu inscrit dans le Résultat).
+
+#### Résultat du lot 14 — 2026-10-04
+
+**Étapes 1 et 2** (agent `lot-m`, worktree de lot, aucun commit : aucun
+fichier public touché). (a) Les 96 lignes « terminé » de l'A.7 ont leur
+preuve ; sans fichier par décision écrite : 6bis-a2a1 et sa suite
+(interrompus), 6bis-b14 (sans objet), P23 (fermé sans code, D58). (b)
+`spec-lint` sur tout le périmètre : aucune erreur. (c) `tsc` 0. (d) aucune
+ligne « en attente » dans l'A.8. `pistes.md` : section neuve « dette de
+découpage » (les quatre fichiers d'A.2, dérogations datées) ; les deux
+pistes de 6bis-b8 dites « à transmettre à un chantier dédié, ouvert sur
+décision de l'utilisateur » ; leur source `limites-connues.md` alignée ;
+entrée du reliquat cohérente avec le reste à faire. Preuve
+`controle-14.md`.
+
+**Rejoué par le pilote** : `spec-lint` du périmètre, `tsc` 0, A.8 sans
+ligne en attente, huit preuves vérifiées par sondage ; notes déposées
+comparées à leur base (identiques aux notes du pilote : copie directe),
+diff relu ; une tournure de `limites-connues.md` reprise (« ouvert »
+répété).
+
+**Erreur du contrat, relevée par l'agent** : le « nom périmé »
+`pair-slice-worker.ts` d'`invariants.md` ne l'était pas —
+`scripts/lib/pair-slice-worker.ts` existe (coquille Node du `runPairSlice`
+de production), et l'invariant parle des implémentations Node. Le pilote
+écrit le chemin complet au lieu du remplacement prévu, qui l'aurait rendu
+faux. Ajouté par le pilote au reste à faire : les relevés non traités du
+Résultat de P4 (Cichlid « après le coup 1 » → D21, lot P12a ; effets non
+curés sans effet sur les dégâts).
+
+**Étapes 3 et 4** (pilote) : statut « CHANTIER terminé le 2026-10-04 »,
+ligne de `spec/README.md` à jour ; livraison finale (`livrer`, `verifier`,
+`integrer`) faite sur le commit qui porte ce Résultat. **Écart** : le reçu
+n'est pas recopié ici — l'écrire changerait le code livré et périmerait le
+reçu ; il vit dans `recus/degats-et-aura.json` de la branche documentaire.
+La suite complète et la fusion sur `main` restent à faire, sur décision de
+l'utilisateur.

@@ -160,7 +160,8 @@ export const VELASKA_ICON = 'https://swarfarm.com/static/herders/images/monsters
 // ici est toujours traité comme portée `'General'`, sans élément — direct
 // dans `STAT_LABEL` mais pas dans `leadIconUrl`, il faut lui fournir un
 // objet `LeaderSkill` minimal côté écran (voir DamageSetupCard.tsx).
-export type LeaderSkillStat = 'HP' | 'Attack Power' | 'Defense' | 'Attack Speed' | 'Critical Rate' | 'Critical DMG';
+export const LEADER_SKILL_STATS = ['HP', 'Attack Power', 'Defense', 'Attack Speed', 'Critical Rate', 'Critical DMG'] as const;
+export type LeaderSkillStat = (typeof LEADER_SKILL_STATS)[number];
 
 // Valeurs de palier RÉELLES du jeu, confirmées par l'utilisateur — jamais une
 // formule générique : ces paliers ne suivent aucune progression régulière, et

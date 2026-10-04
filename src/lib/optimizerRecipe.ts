@@ -14,7 +14,7 @@
 // à connaître la base du monstre pour le réinterpréter, une source d'erreur
 // de plus, pas de moins.
 import { BuildRequirement, Objective, SLOT_FILTER_PRESETS, SLOT_MAIN_OPTIONS } from './runeBuildOptim';
-import { DamageSetup, IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID, cibleSecondairePriseEnCharge, cransDeLaRegleIgnoreDef } from './damage';
+import { DamageSetup, IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID, LEADER_SKILL_STATS, cibleSecondairePriseEnCharge, cransDeLaRegleIgnoreDef } from './damage';
 import { erreurAurasExternes } from './aurasExternes';
 import { AutoExclusionScope, ExclusionSelector } from './optimizerExclusion';
 import { ArtifactKind, RUNE_SETS } from '../types';
@@ -324,6 +324,17 @@ function validerDamageSetup(value: unknown): string | null {
       const e = validerNombre(setup[champ], `damageSetup.${champ}`);
       if (e) return e;
     }
+  }
+  // Le lead s'additionne aux auras : un `pct` en texte (« "20" ») concaténait
+  // au lieu d'additionner — revue externe de la v1.14.0, constat 6.
+  if (setup.leaderSkill !== undefined) {
+    const lead = setup.leaderSkill;
+    if (!estObjet(lead)) return erreur('damageSetup.leaderSkill', 'doit être un objet');
+    if (!(LEADER_SKILL_STATS as readonly unknown[]).includes(lead.stat)) {
+      return erreur('damageSetup.leaderSkill.stat', 'contient une stat de lead inconnue');
+    }
+    const e = validerNombre(lead.pct, 'damageSetup.leaderSkill.pct');
+    if (e) return e;
   }
   for (const champ of ['ownHpPct', 'livingAlliesPct', 'sacrificeReservePct', 'enemyDestroyedHpPct']) {
     if (setup[champ] !== undefined && ((setup[champ] as number) < 0 || (setup[champ] as number) > 100)) {

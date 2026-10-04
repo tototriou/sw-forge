@@ -105,6 +105,14 @@ export function testAurasRecette() {
   }
   ok(!!lire({ ...r, compterAurasResPre: 'oui' }).error?.includes('compterAurasResPre'), 'toggle mal typé refusé avec chemin');
 
+  // Le lead s'additionne aux auras : un `pct` en texte concaténait (« 20 » +
+  // 8 → « 208 ») — revue externe de la v1.14.0, constat 6.
+  const avecLead = (leaderSkill: unknown) => lire({ ...r, damageSetup: { ...SETUP, leaderSkill } });
+  ok(avecLead({ stat: 'Attack Power', pct: 20 }).recipe !== null, 'lead ATQ 20 % accepté');
+  ok(refuse(avecLead({ stat: 'Attack Power', pct: '20' }), 'damageSetup.leaderSkill.pct'), 'lead en texte refusé avec chemin');
+  ok(refuse(avecLead({ stat: 'Vitesse', pct: 20 }), 'damageSetup.leaderSkill.stat'), 'stat de lead inconnue refusée avec chemin');
+  ok(refuse(avecLead('ATQ 20'), 'damageSetup.leaderSkill'), 'lead non objet refusé avec chemin');
+
   // Ancien `setsAura` (total d'équipe, monstre optimisé inclus) : absent ou
   // vide ne dit rien ; non vide ne se convertit pas en externe, il est refusé.
   const ancien = JSON.parse(JSON.stringify(r));

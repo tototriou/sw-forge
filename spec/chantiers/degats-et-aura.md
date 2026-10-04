@@ -845,7 +845,14 @@ chantier :
 Tenue par le pilote à chaque lot : une ligne s'ajoute quand un lot laisse
 une vérification à l'écran, et se raye (avec la date) quand l'utilisateur
 l'a faite. Serveur : le pilote construit l'application et la sert sur le
-port 5173 (même origine, le compte déjà importé reste).
+port 5173 (même origine, le compte déjà importé reste). ⚠️ Le serveur
+(`vite preview --outDir <dossier>`) sert un dossier du scratchpad du pilote,
+**pas `dist`** : avant d'annoncer « à jour », relire sa ligne de commande
+(processus à l'écoute sur 5173) et reconstruire CE dossier (`npx vite build
+--outDir <dossier> --emptyOutDir`). Incident du 2026-10-04 : le pilote a
+vérifié `dist` et annoncé le serveur à jour, alors qu'il servait un build du
+2026-10-03 (D56 et tout ce qui a suivi absents) ; découvert par
+l'utilisateur sur D56.
 
 | Lot | À vérifier | État |
 | --- | --- | --- |

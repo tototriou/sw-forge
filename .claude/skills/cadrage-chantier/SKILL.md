@@ -355,7 +355,11 @@ valent pour tout chantier piloté ainsi.
 - **Les vérifications à l'écran sont différées** : le pilote ne s'arrête
   pas pour chacune, il les inscrit dans le cadrage (table des
   vérifications en attente) et l'utilisateur les fait en une séance. Pas
-  de clôture avant cette séance.
+  de clôture avant cette séance. ⚠️ Avant de dire le serveur « à jour »,
+  lire la ligne de commande du processus qui écoute (un `vite preview
+  --outDir <dossier>` ne sert pas `dist`) et vérifier qu'une chaîne du
+  dernier lot est dans les fichiers de CE dossier : le 2026-10-04, un
+  serveur annoncé à jour servait un build de la veille.
 - **La fusion sur `main` et `livrer --adopter`** : jamais sans sa décision
   explicite (CLAUDE.md).
 

@@ -15,8 +15,18 @@
 // le near-miss de N tranches — vérifie qu'elle garde le MEILLEUR entre
 // elles, pas juste celui de la première/dernière, y compris quand une
 // tranche n'en a AUCUN.
+//
+// ⚠️ **Cas 1 INVERSÉ le 2026-10-01 (degats-et-aura 6bis-b7, constat C2 de la
+// revue technique).** La correction de 2026-08-19 avait raison sur le motif
+// (un quota de tranche n'est pas un budget-temps épuisé) et tort sur la
+// conclusion : une tranche qui atteint SON quota s'arrête (`pairBuckets`,
+// `break outer`), et le reste de SA tranche n'est jamais visité. Elle rend
+// donc la recherche TRONQUÉE dès qu'il reste des paires non visitées
+// (`explored < totalPairs`, l'espace exact que le Worker a déjà calculé pour
+// choisir le régime) — sauf si le quota tombe sur la toute dernière paire.
+// Le motif (`motifTroncature`) voyage désormais dans le résultat fusionné.
 
-import { BuildCandidate, NearMiss, SearchResult, combineParallelPairingResults } from '../src/lib/runeBuildOptim';
+import { BuildCandidate, NearMiss, SearchResult, TraceCandidat, combineParallelPairingResults } from '../src/lib/runeBuildOptim';
 import { egal, ok, titre } from './outils';
 
 function fakeCandidates(n: number): BuildCandidate[] {
@@ -42,6 +52,12 @@ function fakeResult(
   };
 }
 
+// L'espace entier parcouru : les cas near-miss décrivent des recherches
+// complètes, `totalPairs` vaut donc la somme des `explored`.
+function espaceParcouru(results: SearchResult[]): number {
+  return results.reduce((s, r) => s + r.explored, 0);
+}
+
 function fakeNearMiss(shortfall: number, requested = 100): NearMiss {
   return { runeIds: [shortfall], stats: [], effTotal: 0, shortfalls: [{ key: 'spd', kind: 'min', requested, actual: requested - shortfall, shortfall }] };
 }
@@ -52,23 +68,35 @@ export default function testRuneOptimParallelTruncated() {
   const PER_WORKER_MAX = 1000;
   const GLOBAL_MAX = 4000; // 4 workers x 1000
 
-  // ── Cas 1 (LE BUG CORRIGÉ) : un worker remplit SON PROPRE quota (tranche
-  // riche), les 3 autres finissent leur exploration ENTIÈRE sans jamais
-  // rien tronquer — total très en-deçà du plafond GLOBAL. L'ancien
-  // `results.some(r => r.truncated)` aurait annoncé `true` à tort. ──
+  // ── Cas 1 (INVERSÉ en 6bis-b7) : un worker remplit SON PROPRE quota
+  // (tranche riche) et s'arrête ; les 3 autres finissent leur tranche ENTIÈRE.
+  // Le total reste très en-deçà du plafond GLOBAL, mais 77 000 paires de la
+  // tranche riche n'ont jamais été visitées : la recherche est TRONQUÉE, motif
+  // « quota de tranche ». L'ancienne attente (`false`) annonçait complète une
+  // recherche qui ne l'était pas — c'est le « INCOHÉRENT » du cas réel de b4. ──
+  const tranchesQuota = (): SearchResult[] => [
+    fakeResult(fakeCandidates(PER_WORKER_MAX), 500_000, true), // quota rempli pile
+    fakeResult(fakeCandidates(50), 10_000, false), // fini, pas tronqué
+    fakeResult(fakeCandidates(30), 8_000, false),
+    fakeResult(fakeCandidates(20), 5_000, false),
+  ];
   {
-    const results: SearchResult[] = [
-      fakeResult(fakeCandidates(PER_WORKER_MAX), 500_000, true), // quota rempli pile
-      fakeResult(fakeCandidates(50), 10_000, false), // fini, pas tronqué
-      fakeResult(fakeCandidates(30), 8_000, false),
-      fakeResult(fakeCandidates(20), 5_000, false),
-    ];
-    const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX);
+    const out = combineParallelPairingResults(tranchesQuota(), PER_WORKER_MAX, GLOBAL_MAX, 600_000);
     egal(out.candidates.length, PER_WORKER_MAX + 50 + 30 + 20, 'total = somme des 4 tranches');
-    egal(out.truncated, false, "une tranche riche qui remplit SON quota n'annonce PAS une recherche tronquée si le total reste sous le plafond global et que le reste a fini");
+    egal(out.truncated, true, 'une tranche arrêtée sur SON quota avec des paires non visitées (523 000 < 600 000) rend la recherche tronquée, même sous le plafond global');
+    egal(out.motifTroncature, 'quotaTranche', 'motif transmis : quota de tranche, ni temps ni plafond global');
   }
 
-  // ── Cas 2 : un worker épuise son budget nœuds/temps AVANT de remplir son
+  // ── Cas 1 bis : la même tranche atteint son quota sur sa TOUTE DERNIÈRE
+  // paire — `explored` couvre exactement l'espace (523 000 = totalPairs).
+  // Rien n'a été laissé de côté : pas de troncature, pas de motif. ──
+  {
+    const out = combineParallelPairingResults(tranchesQuota(), PER_WORKER_MAX, GLOBAL_MAX, 523_000);
+    egal(out.truncated, false, 'quota atteint sur la dernière paire : explored = totalPairs, recherche complète');
+    egal(out.motifTroncature, undefined, 'aucun motif fabriqué sur une recherche complète');
+  }
+
+  // ── Cas 2 : un worker épuise son budget-temps AVANT de remplir son
   // propre quota (candidates.length < PER_WORKER_MAX, truncated=true) — une
   // VRAIE troncature, doit se propager au résultat global même si le total
   // reste loin du plafond. ──
@@ -79,8 +107,22 @@ export default function testRuneOptimParallelTruncated() {
       fakeResult(fakeCandidates(30), 8_000, false),
       fakeResult(fakeCandidates(20), 5_000, false),
     ];
-    const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX);
-    egal(out.truncated, true, 'un worker qui épuise son budget nœuds/temps AVANT son propre quota est une vraie troncature, toujours reportée');
+    const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX, 30_000_000);
+    egal(out.truncated, true, 'un worker qui épuise son budget-temps AVANT son propre quota est une vraie troncature, toujours reportée');
+    egal(out.motifTroncature, 'maxMs', 'motif transmis : le temps');
+  }
+
+  // ── Cas 2 bis : une tranche sur son quota ET une autre sur le temps — le
+  // temps l'emporte dans le motif (ordre : plafond global, temps, quota de
+  // tranche). ──
+  {
+    const results: SearchResult[] = [
+      fakeResult(fakeCandidates(PER_WORKER_MAX), 500_000, true), // quota
+      fakeResult(fakeCandidates(200), 900_000, true), // temps
+    ];
+    const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX, 5_000_000);
+    egal(out.truncated, true, 'quota + temps : tronqué');
+    egal(out.motifTroncature, 'maxMs', 'quota + temps : le motif est le temps');
   }
 
   // ── Cas 3 : aucun worker individuellement tronqué (tous en-deçà de leur
@@ -98,9 +140,20 @@ export default function testRuneOptimParallelTruncated() {
       fakeResult(fakeCandidates(1050), 100_000, false),
       fakeResult(fakeCandidates(1050), 100_000, false),
     ];
-    const out = combineParallelPairingResults(results, wideQuota, GLOBAL_MAX);
+    const out = combineParallelPairingResults(results, wideQuota, GLOBAL_MAX, 400_000);
     egal(out.candidates.length >= GLOBAL_MAX, true, 'le total atteint le plafond global dans ce scénario');
     egal(out.truncated, true, 'le total agrégé atteignant le plafond global reste tronqué, même sans aucune troncature individuelle');
+    egal(out.motifTroncature, 'maxCollected', 'motif transmis : le plafond global');
+  }
+
+  // ── Cas 3 bis : les quatre tranches pleines (plafond global atteint par
+  // la somme des quotas) — le plafond global l'emporte sur le quota de
+  // tranche dans le motif. ──
+  {
+    const results: SearchResult[] = [0, 1, 2, 3].map(() => fakeResult(fakeCandidates(PER_WORKER_MAX), 100_000, true));
+    const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX, 1_000_000);
+    egal(out.truncated, true, 'quatre quotas pleins : tronqué');
+    egal(out.motifTroncature, 'maxCollected', 'quatre quotas pleins : le motif est le plafond global');
   }
 
   // ── Cas 4 (référence) : rien tronqué nulle part, total loin du plafond —
@@ -108,9 +161,29 @@ export default function testRuneOptimParallelTruncated() {
   // cas simple). ──
   {
     const results: SearchResult[] = [fakeResult(fakeCandidates(10), 1_000, false), fakeResult(fakeCandidates(5), 500, false)];
-    const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX);
+    const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX, 1_500);
     egal(out.truncated, false, 'aucune troncature individuelle, total loin du plafond global : pas tronqué');
+    egal(out.motifTroncature, undefined, 'pas tronqué : aucun motif');
     egal(out.explored, 1_500, "'explored' reste la somme simple, inchangé par ce correctif");
+  }
+
+  // ── Traceur : la trace retenue porte le budget GLOBAL, pas celui de sa
+  // tranche. Ici la tranche dont la paire est atteinte a fini sa tranche
+  // (`tronque: false`), une autre s'est arrêtée sur son quota : le résultat
+  // fusionné est tronqué, sa trace doit le dire — sans modifier la trace de
+  // tranche reçue. ──
+  {
+    const trace = (paireAtteinte: boolean, tronque: boolean): TraceCandidat =>
+      ({ appariement: { paireAtteinte, collecte: false }, budget: { tronque, motif: tronque ? 'maxCollected' : null } }) as unknown as TraceCandidat;
+    const traceTranche = trace(true, false);
+    const results: SearchResult[] = [
+      { ...fakeResult(fakeCandidates(PER_WORKER_MAX), 500_000, true), traceur: trace(false, true) },
+      { ...fakeResult(fakeCandidates(50), 10_000, false), traceur: traceTranche },
+    ];
+    const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX, 600_000);
+    egal(out.traceur?.appariement.paireAtteinte, true, 'la trace retenue est celle de la tranche qui a atteint la paire');
+    egal(JSON.stringify(out.traceur?.budget), JSON.stringify({ tronque: true, motif: 'quotaTranche' }), 'son budget est celui du résultat fusionné');
+    egal(JSON.stringify(traceTranche.budget), JSON.stringify({ tronque: false, motif: null }), 'la trace de tranche reçue reste intacte');
   }
 
   titre('Optimizer · combineParallelPairingResults — fusion du near-miss entre tranches');
@@ -124,7 +197,7 @@ export default function testRuneOptimParallelTruncated() {
       fakeResult(fakeCandidates(0), 100, false, { nearMissByCondition: [{ key: 'spd', kind: 'min', miss: fakeNearMiss(5) }] }),
       fakeResult(fakeCandidates(0), 100, false, { nearMissByCondition: [{ key: 'spd', kind: 'min', miss: fakeNearMiss(20) }] }),
     ];
-    const out = combineParallelPairingResults(results, 1000, 4000);
+    const out = combineParallelPairingResults(results, 1000, 4000, espaceParcouru(results));
     egal(out.nearMissByCondition.length, 1, "une seule entrée pour 'spd', pas une par tranche");
     egal(out.nearMissByCondition[0]?.miss.shortfalls[0]?.shortfall, 5, 'le manque le plus PETIT (5) gagne, ni le premier (10) ni le dernier (20)');
   }
@@ -137,7 +210,7 @@ export default function testRuneOptimParallelTruncated() {
       fakeResult(fakeCandidates(0), 100, false, { nearMissByCondition: [{ key: 'spd', kind: 'min', miss: fakeNearMiss(8) }] }),
       fakeResult(fakeCandidates(0), 100, false, { nearMissByCondition: [{ key: 'acc', kind: 'min', miss: fakeNearMiss(3, 60) }] }),
     ];
-    const out = combineParallelPairingResults(results, 1000, 4000);
+    const out = combineParallelPairingResults(results, 1000, 4000, espaceParcouru(results));
     egal(out.nearMissByCondition.length, 2, 'les deux conditions survivent — aucune tranche ne les portait toutes les deux à la fois');
     ok(out.nearMissByCondition.some((e) => e.key === 'spd'), "l'entrée VIT (portée par une seule tranche) est bien présente");
     ok(out.nearMissByCondition.some((e) => e.key === 'acc'), "l'entrée Précision (portée par une seule tranche) est bien présente");
@@ -152,7 +225,7 @@ export default function testRuneOptimParallelTruncated() {
       fakeResult(fakeCandidates(0), 100, false, { globalNearMiss: null }), // rien trouvé sur cette tranche
       fakeResult(fakeCandidates(0), 100, false, { globalNearMiss: fakeNearMiss(10) }), // écart relatif 0.10 — le meilleur
     ];
-    const out = combineParallelPairingResults(results, 1000, 4000);
+    const out = combineParallelPairingResults(results, 1000, 4000, espaceParcouru(results));
     egal(out.globalNearMiss?.shortfalls[0]?.shortfall, 10, 'la tranche avec le plus petit écart relatif (10/100) gagne, malgré une tranche à null au milieu');
   }
 
@@ -160,7 +233,7 @@ export default function testRuneOptimParallelTruncated() {
   // rejeté partout) — la fusion doit rester `null`, pas planter. ──
   {
     const results: SearchResult[] = [fakeResult(fakeCandidates(0), 100, false), fakeResult(fakeCandidates(0), 100, false)];
-    const out = combineParallelPairingResults(results, 1000, 4000);
+    const out = combineParallelPairingResults(results, 1000, 4000, espaceParcouru(results));
     egal(out.globalNearMiss, null, 'aucune tranche → near-miss global toujours null, pas une erreur');
   }
 }

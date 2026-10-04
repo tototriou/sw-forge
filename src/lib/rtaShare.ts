@@ -536,7 +536,7 @@ const nombre = (v: unknown, defaut = 0): number => {
   return Number.isFinite(n) ? n : defaut;
 };
 
-function cleanGear(raw: unknown): GearSet | undefined {
+function cleanGear(raw: unknown, ctx: Issues, where: string): GearSet | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const o = raw as Record<string, unknown>;
 
@@ -601,18 +601,40 @@ function cleanGear(raw: unknown): GearSet | undefined {
     })
     .filter((a): a is NonNullable<typeof a> => !!a);
 
-  const relicMain = cleanEffect((o.relic as Record<string, unknown>)?.main);
-  const relicUnique = cleanRelicUnique(o.relic as Record<string, unknown> | undefined);
+  const relicRaw = o.relic as Record<string, unknown> | undefined;
+  const relicMain = cleanEffect(relicRaw?.main);
+  // ⚠️ `id` et `upgrade` sont non optionnels dans `RelicDetail` depuis `75f073f`
+  // (lot 1 d'implementation-relique) : un lien émis avant cette version ne les
+  // porte pas. On ne les fabrique jamais avec `undefined` — la relique entière
+  // est ignorée, avec un avertissement, plutôt que de mentir sur son typage.
+  const relicId = Number(relicRaw?.id);
+  const relicUpgrade = Number(relicRaw?.upgrade);
+  const relicIdValide = Number.isFinite(relicId) && relicId > 0;
+  const relicUpgradeValide = Number.isFinite(relicUpgrade) && relicUpgrade >= 0 && relicUpgrade <= 15;
+  let relic: GearSet['relic'];
+  if (relicMain) {
+    if (relicIdValide && relicUpgradeValide) {
+      const relicUnique = cleanRelicUnique(relicRaw);
+      relic = {
+        id: Math.round(relicId),
+        upgrade: Math.round(relicUpgrade),
+        main: relicMain,
+        ...(relicUnique ? { unique: relicUnique } : {}),
+      };
+    } else {
+      warn(ctx, `${where} : relique sans « id » ou « upgrade » valide (fichier antérieur au lot 1) — ignorée.`);
+    }
+  }
 
   // Un équipement entièrement vide ne vaut pas la peine d'être transporté :
   // il ferait apparaître un chevron « voir le détail » qui n'ouvre rien.
-  if (runes.length === 0 && artifacts.length === 0 && !relicMain) return undefined;
+  if (runes.length === 0 && artifacts.length === 0 && !relic) return undefined;
 
   return {
     base,
     runes,
     artifacts,
-    ...(relicMain ? { relic: { main: relicMain, ...(relicUnique ? { unique: relicUnique } : {}) } } : {}),
+    ...(relic ? { relic } : {}),
   } as GearSet;
 }
 
@@ -705,7 +727,7 @@ function cleanEntry(raw: unknown, ctx: Issues, where: string): RtaShareEntry | n
     ...(rang !== undefined ? { rang } : {}),
     ...(sets.length ? { sets } : {}),
     ...(() => {
-      const gear = cleanGear(o.equipement ?? o.gear);
+      const gear = cleanGear(o.equipement ?? o.gear, ctx, where);
       return gear ? { gear } : {};
     })(),
   };

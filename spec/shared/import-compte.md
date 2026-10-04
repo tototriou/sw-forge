@@ -239,8 +239,9 @@ vide pas la prépa RTA).
 
 Contrairement à RTA/siège (persistés en `localStorage`), les données de « Mon
 compte » restent **en mémoire dans [App.tsx](src/App.tsx)** (`useState` : `box`,
-`runes`, `artifacts`) → **ré-import nécessaire à chaque session**. Choix assumé de
-sobriété : un gros compte (des milliers de runes) ne remplit pas le stockage.
+`runes`, `artifacts`, `relics`) → **ré-import nécessaire à chaque session**. Choix
+assumé de sobriété : un gros compte (des milliers de runes) ne remplit pas le
+stockage.
 
 ### Box 6★ — `parseAccountBox`
 
@@ -260,8 +261,19 @@ sobriété : un gros compte (des milliers de runes) ne remplit pas le stockage.
 - Chaque rune → `RuneDetail` (slot, set, rareté = `extra`, antique = `class > 10`,
   niveau, main/innée/substats meule incluse) ; chaque artéfact → `ArtifactDetail`
   (catégorie attribut/type, rareté = `natural_rank`, main, substats, `enchant`).
+- **Toutes** les reliques possédées (`data.relics`, source première, fusionné
+  avec `unit.relics[0]` en repli via `indexRelics`, dédupliqué par `rid`).
+  Chaque relique → `RelicDetail { id, upgrade, main, unique? }` — `id` = `rid`,
+  `upgrade` = `upgrade_curr` (filtre de niveau et affichage, jamais la valeur
+  de `main`, qui reste lue dans `pri_effect`). `relicUsageById` : occupation
+  par rid, comptée sur les unités (`unit.relics[0].rid`), jamais sur
+  `data.relics.length` — voir [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)
+  § 7. `relicUpgradeMismatches` : nombre de pièces où
+  `pri_effect[1] ≠ upgrade_curr + 3`, un avertissement jamais une correction.
 - Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
-  [compte/runes.md](../compte/runes.md), [compte/artefacts.md](../compte/artefacts.md)).
+  [compte/runes.md](../compte/runes.md), [compte/artefacts.md](../compte/artefacts.md)),
+  et par l'Optimizer pour la relique (voir
+  [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)).
 
 ### Runes utilisées — `parseUsedRuneIds`
 
@@ -300,7 +312,7 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 ### Ce qu'on stocke
 
 Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
-`{ schema, savedAt, box, runes, artifacts, crafts, usedRuneIds }`.
+`{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById }`.
 
 - ⚠️ **La sortie des extracteurs (`BoxMonster[]`), jamais l'état affiché
   (`BoxItem[]`).** Un `BoxItem` embarque l'objet `Monster` complet : ça duplique
@@ -314,9 +326,10 @@ Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
   l'**export brut**, qu'on ne conserve jamais (5 à 8 Mo) : sans cette liste, le
   filtre « Runes utilisées » s'éteindrait à chaque rechargement d'un compte
   conservé. Quelques milliers d'entiers, négligeable à côté des runes.
-- `schema` (`ACCOUNT_SCHEMA`, **5** depuis la propriété unique des reliques,
-  qui remplace un `relic.sub` mal modélisé — voir
-  [compte/calcul-runes.md](../compte/calcul-runes.md)) est à
+- `schema` (`ACCOUNT_SCHEMA`, **7** depuis l'inventaire de reliques —
+  `relics` et `relicUsageById`, absents jusque-là ; 6 : `ArtifactDetail.id` ;
+  5 : la propriété unique des reliques, qui remplace un `relic.sub` mal
+  modélisé — voir [compte/calcul-runes.md](../compte/calcul-runes.md)) est à
   **incrémenter dès qu'un extracteur produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à la lecture,
   et l'app invite à réimporter — sinon elle affiche des chiffres incomplets en
   silence.

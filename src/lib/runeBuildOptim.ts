@@ -43,19 +43,39 @@
 // valable) plutôt que maximalement serrées.
 
 import { ArtifactDetail, BaseStats, ElementKey, GearSet, RelicDetail, RuneDetail } from '../types';
-import { MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces, setsCost } from './effects';
+import { INTANGIBLE_SET, MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, activeSets, runeEfficiency, runeScore, setPieces, setsCost } from './effects';
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
+// Le canal exclusive du lot 7 — `relicExclusive.ts` ne dépend que de
+// `effects`/`stats`/`damage`, jamais de ce module : aucun cycle.
+import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, statsAvecApport, statsDeLEffetUnique } from './relicExclusive';
+// ⚠️ Type SEUL : `relicQueue.ts` importe ce module à l'exécution — un import
+// de valeur fermerait le cycle.
+import type { EtatRelique } from './relicQueue';
+// ⚠️ `import type` UNIQUEMENT — `relicOptim.ts` importe déjà `Objective`
+// d'ici (type seul) : un import de valeur ferait un cycle au runtime.
+import type { RelicContext, RelicVide } from './relicOptim';
 import {
   DEF_FACTOR_CONST,
   DEF_FACTOR_COEF,
   ArtifactDamageProfile,
   BonusDegatsConditionnelProfile,
   BonusDegatsStackableProfile,
+  AUCUNE_AURA_PROPRE,
+  AurasPropres,
   DamageSetup,
+  aurasPropresDesRunes,
+  aurasPropresDesSetsActifs,
+  artifactDamageProfile,
+  statsDesLignesBrutes,
+  nombreAura,
+  pointsAuraResPre,
+  pointsAuraResPrePropres,
   MonsterWideDamageModifiers,
   PassifOffensifProfile,
+  STAT_DE_L_AURA,
+  SetAura,
   SkillDamageProfile,
   computeTotalDamage,
 } from './damage';
@@ -79,6 +99,12 @@ export interface BuildRequirement {
   minStats: Partial<Record<StatKey, number>>;
   // Maximums exigés sur le TOTAL final. Absent = non plafonné.
   maxStats?: Partial<Record<StatKey, number>>;
+  // Dérivé au lancement par `avecAurasConditions`, seul producteur ; absent
+  // d'une recette. `res`/`acc` : part EXTERNE, constante sur la recherche.
+  // `compter` : le toggle RES/PRE, seul à décider si les auras (externes ET
+  // propres au build) entrent dans les conditions. Absent = aucune aura dans
+  // les conditions ; « éteint » s'écrit `compter: false`, jamais par l'absence.
+  auraResPre?: { res: number; acc: number; compter: boolean };
   // Statistiques principales AUTORISÉES sur les slots 2/4/6 (codes RUNE_EFFECT,
   // voir SLOT_MAIN_OPTIONS). Absent/vide pour un slot = pas de contrainte.
   mainStats?: Partial<Record<2 | 4 | 6, number[]>>;
@@ -102,6 +128,21 @@ export interface BuildRequirement {
   // C'est le comportement voulu : mieux vaut zéro build qu'un build qui
   // ignore silencieusement le verrou posé.
   lockedRunes?: Partial<Record<number, number>>;
+}
+
+export function avecAurasConditions(requirement: BuildRequirement, setup: DamageSetup, compter: boolean): BuildRequirement {
+  return { ...requirement, auraResPre: { ...pointsAuraResPre(setup, compter), compter } };
+}
+
+// Le total d'une stat tel que le lisent les conditions min/max. `total` vient
+// de `computeStats` (aucune aura) : RES/PRE y reçoivent, toggle actif, la part
+// externe ET `propres` — une seule fois, jamais les stats de combat qui les
+// contiennent déjà. PV/ATQ/DEF et les autres stats : jamais d'aura.
+function totalCondition(total: number, key: string, requirement: Pick<BuildRequirement, 'auraResPre'>, propres: AurasPropres): number {
+  if (key !== 'res' && key !== 'acc') return total;
+  const aura = requirement.auraResPre;
+  if (!aura?.compter) return total;
+  return total + aura[key] + pointsAuraResPrePropres(propres)[key];
 }
 
 export interface BuildCandidate {
@@ -164,7 +205,43 @@ export interface SearchParams {
      */
     possibles: Record<string, number>[];
   };
+  /**
+   * Les stats lues par les lignes 218–221 des artéfacts que la résolution
+   * peut équiper, AU-DELÀ de `artifacts` — produit par
+   * `statsLignesArtefactsEquipables` (artifactFiche.ts), que l'écran et le CLI
+   * appellent (degats-et-aura 6bis-b3d-1). Lu par la dominance seulement, en
+   * « Dégâts réels » (`statsLuesParLesLignes`).
+   *
+   * ⚠️ Le moteur l'UNIT TOUJOURS avec les lignes de `artifacts` : absent, il
+   * reste juste pour une paire FIGÉE (scripts, harnais, tests), jamais pour
+   * une paire résolue par build en « Libre », où une pièce autre que la
+   * représentative peut porter la ligne.
+   */
+  statsLignesArtefactsEquipables?: StatKey[];
+  // La relique PORTÉE — reste ce paramètre-là même quand une relique est
+  // cherchée (garantie G : une candidate le REMPLACE au moment de la
+  // résolution exacte, lot 5b — jamais un cumul avec lui).
   relic?: RelicDetail; // fixe
+  /**
+   * Le contexte relique canonique (`resoudreContexteRelique`, relicOptim.ts —
+   * garantie G) : intention résolue UNE FOIS contre le monstre et
+   * l'inventaire, transportée telle quelle jusqu'à `PreparedSearch` pour
+   * que la file de résolution (5b) retrouve le pool éligible, la relique
+   * équipée et l'empreinte — pas seulement les bornes.
+   *
+   * ⚠️ **Absent, ou `mode` ≠ `'recherche'`** : le moteur se comporte
+   * EXACTEMENT comme avant (la relique portée entre dans les bornes des deux
+   * côtés, via `relicPctBonus(relic)`) — projection canonique byte-identique,
+   * vérifiée par tests/relic-search.test.ts.
+   *
+   * ⚠️ **`mode: 'recherche'`** : les bornes de faisabilité lisent
+   * `relicContext.bornes` À LA PLACE du pourcentage de `relic` (sinon
+   * l'équipée s'additionnerait à la candidate) — `max` sur les branches
+   * minimum, `min` sur les branches maximum, jamais l'inverse (voir
+   * `MinMaxContext.relPctMax`/`relPctMin`). Un `vide` fait REFUSER la
+   * recherche (`RechercheRefusee`), jamais une recherche « sans relique ».
+   */
+  relicContext?: RelicContext;
   pool: RuneDetail[]; // runes candidates (déjà filtrées par exclusion en amont)
   requirement: BuildRequirement;
   metric: OptimMetric;
@@ -210,6 +287,185 @@ export interface SearchParams {
   // combinedRetentionScore, repli sur relevanceScore si aucun minimum posé.
   // Jamais exposé dans l'UI.
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
+  /**
+   * DIAGNOSTIC SEULEMENT (lot 5a, instrumentation de la rétention) : un
+   * build « traceur » — ses 6 runes, alignées slot 1..6 — dont le moteur
+   * enregistre, DANS LE CODE, le verdict de chaque prédicat de faisabilité
+   * qu'il traverse et sa présence dans chaque structure bornée
+   * (`filterSlot`/`slotFilterCap`, tranches de `buildBuckets`/`bucketCap`,
+   * `MAX_COLLECTED`, `maxMs`). Rendu dans `SearchResult.traceur`.
+   *
+   * ⚠️ Absent (toute la production) : aucun chemin ne change, coût d'un
+   * test de référence par comboA et par paire de compartiments. Jamais
+   * exposé dans l'UI. Complet sur le chemin séquentiel (`searchBuilds`) ;
+   * sur le chemin Workers, `moities.*.tranches` n'est pas observable
+   * (les moitiés se construisent dans un autre fil sans ce champ).
+   */
+  traceur?: TraceurRequete;
+}
+
+export interface TraceurRequete {
+  runeIds: number[];
+}
+
+/**
+ * La trace d'UNE moitié (3 runes) du traceur dans `buildBuckets` : a-t-elle
+ * été générée, sinon quel élagage l'a coupée AVANT tout compartiment ; si
+ * oui, dans quel compartiment, retenue par quelles tranches, à quel rang.
+ */
+export interface TraceMoitie {
+  // La combinaison a été GÉNÉRÉE (elle a atteint le compartiment).
+  generee: boolean;
+  // Sinon : le prédicat qui l'a coupée avant — élagages SÛRS de set/joker,
+  // ou une rune absente du pool filtré (`filterSlot`, structure bornée n°1).
+  coupee?: 'filterSlot' | 'stillFeasible' | 'jokers' | 'demiBuildMort';
+  compartiment?: string;
+  // Combinaisons générées dans CE compartiment (occupation avant rétention).
+  generees?: number;
+  // Présence dans chaque tranche À LA CLÔTURE (après toutes les évictions),
+  // avec la capacité de la tranche et sa taille finale. Chemin séquentiel
+  // seulement.
+  tranches?: { nom: string; retenue: boolean; cap: number; taille: number }[];
+  // Présente dans `combos` du compartiment après fusion des tranches ?
+  retenue?: boolean;
+  rang?: number;
+  population?: number;
+}
+
+export interface TraceCandidat {
+  runeIds: number[];
+  // Par étage de préparation : les 6 runes du traceur encore présentes.
+  // `feasibility` est le verdict d'`eliminateInfeasible` rune par rune ;
+  // `filterslot` la première structure BORNÉE.
+  preparation: { etage: PrepareStage; presentes: boolean[] }[];
+  moities: { A?: TraceMoitie; B?: TraceMoitie };
+  appariement: {
+    // La paire de compartiments (A, B) a été VISITÉE par la boucle.
+    paireAtteinte: boolean;
+    satisfiesSets?: boolean;
+    jokers?: boolean;
+    bucketPairFeasibleMin?: boolean;
+    comboAFeasible?: boolean;
+    quickOkMin?: boolean;
+    quickOkMax?: boolean;
+    missingSets?: boolean;
+    validationFinale?: boolean;
+    collecte: boolean;
+  };
+  // `quotaTranche` n'apparaît que sur la trace d'un résultat FUSIONNÉ du
+  // régime parallèle (`combineParallelPairingResults`) ; `pairBuckets` ne
+  // connaît que son propre plafond et ne produit que les deux autres.
+  budget: { tronque: boolean; motif: MotifTroncature | null };
+  compteurs: {
+    poolParSlot: number[];
+    filtreParSlot: number[];
+    compartimentsA: number;
+    compartimentsB: number;
+    explorees: number;
+    collectes: number;
+  };
+}
+
+const LIBELLE_VIDE: Record<RelicVide, string> = {
+  inventaire: 'aucune relique dans le compte',
+  principale: 'aucune relique ne porte la principale demandée',
+  type: 'aucune relique ne porte la propriété unique demandée',
+  seuil: 'aucune relique n’atteint le seuil de niveau',
+  equipee: 'aucune relique équipée',
+};
+
+/**
+ * Refus NOMMÉ d'une recherche dont le pool de reliques est vide en mode
+ * `recherche` (D1, « pool vide = pas de recherche ») : jamais une recherche
+ * « sans relique » à la place, jamais un candidat sans relique en `libre`.
+ * Levé par `prepareSearch` — donc AVANT toute construction, sur tous les
+ * chemins (séquentiel, Worker navigateur, Node). Le CLI l'imprime tel quel,
+ * l'écran (5c) ne lance pas la recherche dans ce cas.
+ *
+ * ⚠️ `mode: 'equipped'` sans relique portée (`vide: 'equipee'`) ne refuse
+ * PAS : le moteur y reste byte-identique à avant (une recherche sans relique
+ * est exactement ce que « garder l'équipée » veut dire quand il n'y en a
+ * pas) — c'est le défaut calculé (`defaultRelicMainChoice`) qui évite ce cas
+ * à l'écran.
+ */
+export class RechercheRefusee extends Error {
+  readonly motif = 'relique-pool-vide' as const;
+  constructor(readonly vide: RelicVide) {
+    super(`Recherche refusée : aucune relique éligible (${LIBELLE_VIDE[vide]}) — élargir le seuil ou les filtres.`);
+    this.name = 'RechercheRefusee';
+  }
+}
+
+/**
+ * Un jeu de stats respecte-t-il les minimums ET les maximums demandés ?
+ *
+ * ⚠️ Pendant de `respecteMinimums` (artifactOptim.ts), qui ne lit que
+ * `minStats` — défaut préexistant côté artéfacts (T11, hors chantier).
+ * Ici les deux bornes, parce qu'en mode recherche la borne relâchée d'un
+ * MAXIMUM vaut `0` sans principale forcée : un build que TOUTE relique
+ * éligible fait dépasser passerait la recherche sans jamais être rejeté.
+ */
+export function respecteMinEtMax(
+  stats: { key: string; total: number }[],
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>,
+  propres: AurasPropres
+): boolean {
+  for (const [k, min] of Object.entries(requirement.minStats)) {
+    if (min == null || min <= 0) continue;
+    const s = stats.find((x) => x.key === k);
+    if (!s || totalCondition(s.total, k, requirement, propres) < min) return false;
+  }
+  for (const [k, max] of Object.entries(requirement.maxStats ?? {})) {
+    if (max == null || max <= 0) continue;
+    const s = stats.find((x) => x.key === k);
+    if (!s || totalCondition(s.total, k, requirement, propres) > max) return false;
+  }
+  return true;
+}
+
+// La résolution à relique fixe conservait historiquement les maximums hors
+// filtre final (T11). Le lot aura lui ajoute seulement les maximums RES/PRE,
+// nécessaires à la règle du toggle, sans changer les autres maximums.
+export function conditionsPaireFixePosees(requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>): boolean {
+  return Object.values(requirement.minStats).some((v) => (v ?? 0) > 0)
+    || (requirement.maxStats?.res ?? 0) > 0 || (requirement.maxStats?.acc ?? 0) > 0;
+}
+
+export function respecteConditionsPaireFixe(
+  stats: { key: string; total: number }[],
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>,
+  propres: AurasPropres
+): boolean {
+  return respecteMinEtMax(stats, {
+    minStats: requirement.minStats,
+    maxStats: { res: requirement.maxStats?.res, acc: requirement.maxStats?.acc },
+    auraResPre: requirement.auraResPre,
+  }, propres);
+}
+
+/**
+ * **Le filtre final EXACT de la dimension relique** (lot 5a, appelé par la
+ * résolution exacte de 5b) : les stats du build AVEC la relique candidate —
+ * qui REMPLACE `gear.relic` (garantie G, jamais un cumul avec l'équipée) —
+ * puis minimums ET maximums vérifiés sur ces stats.
+ *
+ * Obligatoire en aval d'une recherche en mode `recherche` : les bornes
+ * (`relPctMax`/`relPctMin`) sont permissives par statistique — elles
+ * accordent la meilleure PV %, ATQ % et DEF % à la fois alors qu'une relique
+ * n'a qu'UNE principale — donc des candidats survivent sans qu'aucune
+ * relique réelle ne leur fasse tenir leurs conditions.
+ *
+ * Rend aussi les `stats` calculées : l'appelant (5b) note le build dessus,
+ * un seul `computeStats` par candidate. Les auras propres se résolvent ici,
+ * sur les six runes de `gear` : l'appelant n'a rien à transmettre.
+ */
+export function respecteConditionsAvecRelique(
+  gear: GearSet,
+  relique: RelicDetail | undefined,
+  requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>
+): { stats: StatRow[]; respecte: boolean } {
+  const stats = computeStats({ ...gear, relic: relique });
+  return { stats, respecte: respecteMinEtMax(stats, requirement, aurasPropresDesRunes(gear.runes)) };
 }
 
 // Diagnostic « quasi-succès » — voir spec/outils/optimizer/
@@ -238,6 +494,14 @@ export interface NearMiss {
   shortfalls: StatShortfall[];
 }
 
+// Pourquoi une recherche s'est arrêtée avant d'avoir parcouru tout l'espace :
+// le temps (`maxMs` — en régime parallèle, l'arrêt manuel d'une tranche s'y
+// range aussi, comme l'a toujours fait la déduction par comptage), le plafond
+// GLOBAL de candidats (`maxCollected`), ou, en régime parallèle seulement, une
+// tranche arrêtée sur SA part du plafond alors qu'il restait des paires
+// (`quotaTranche`, degats-et-aura 6bis-b7).
+export type MotifTroncature = 'maxMs' | 'maxCollected' | 'quotaTranche';
+
 export interface SearchResult {
   // ⚠️ **L'ORDRE N'EST PAS CELUI DE L'OBJECTIF.** Les candidats sortent dans
   // l'ordre où l'appariement les a collectés, pas classés par ce qu'on a
@@ -253,6 +517,16 @@ export interface SearchResult {
   candidates: BuildCandidate[];
   explored: number;
   truncated: boolean;
+  // Le motif de `truncated`, posé par `combineParallelPairingResults` SEUL :
+  // présent ssi le résultat fusionné du régime parallèle est tronqué. Le
+  // séquentiel (`pairBuckets`, CLI) ne le porte pas — son motif se déduit
+  // exactement du plafond global, voir `evaluerCompletude` (harnais). Optionnel
+  // à dessein : les reconstructions explicites d'un résultat de TRANCHE
+  // (`spawnSliceNode.ts`, `pairSliceInWorker`, `drivePairing`) et les résultats
+  // vides n'ont rien à transmettre ; le résultat fusionné, lui, voyage par
+  // décomposition (`{ type: 'result', ...finalResult }`, puis `...res` dans
+  // `useBuildOptimSearch`).
+  motifTroncature?: MotifTroncature;
   /**
    * Pour chaque condition posée où AU MOINS une paire explorée a satisfait
    * TOUTES LES AUTRES conditions : la MEILLEURE (le plus petit manque sur
@@ -278,6 +552,11 @@ export interface SearchResult {
    * ou si aucune paire n'a jamais échoué (candidates déjà non vide).
    */
   globalNearMiss: NearMiss | null;
+  // Diagnostic seulement — présent ssi `SearchParams.traceur` l'était.
+  // Optionnel à dessein (contrairement aux champs near-miss) : un site qui
+  // construit un `SearchResult` sans trace n'a rien à dire, ce n'est pas un
+  // oubli à faire échouer par `tsc`.
+  traceur?: TraceCandidat;
 }
 
 // Objectifs : choisis AVANT de lancer la recherche (OptimizerSection.tsx),
@@ -497,9 +776,38 @@ export interface RealDamageContext {
   bonusSiAtqSeuil: { seuil: number; pct: number } | null;
 }
 
-export function objectiveScore(candidate: BuildCandidate, objective: Objective, realDamage?: RealDamageContext): number {
+/**
+ * Le score d'un candidat pour un objectif.
+ *
+ * `apport` — l'APPORT de la propriété unique de la relique retenue par ce
+ * candidat (implementation-relique, lot 7 ; `relicExclusive.ts`). ⚠️ **Il se
+ * PASSE, il ne se calcule pas ici** : son assiette `Y` a besoin du
+ * `DamageSetup` (leader skill, compétences d'invocateur), que cette fonction
+ * ne reçoit pas hors « Dégâts réels ». C'est l'appelant qui possède le
+ * contexte — l'écran, la file, l'oracle — et la MÊME valeur sert alors au
+ * choix de la relique et à son classement : jamais deux notes (D6).
+ * `APPORT_NEUTRE` (le défaut) = comportement strictement d'avant le lot 7,
+ * qui est aussi ce que voit le moteur pendant la recherche relâchée, où
+ * aucune relique n'est encore résolue.
+ *
+ * `propres` — les activations d'aura des six runes de CE candidat
+ * (`aurasPropresDesRunes`), obligatoires (6bis-b2) : `RealDamageContext` et
+ * `damageSetup` sont figés pour toute une recherche, pas elles.
+ */
+export function objectiveScore(
+  candidate: BuildCandidate,
+  objective: Objective,
+  propres: AurasPropres,
+  realDamage?: RealDamageContext,
+  apport: ApportExclusive = APPORT_NEUTRE,
+  damageSetup?: DamageSetup
+): number {
   if (objective === 'efficience') return candidate.effTotal;
-  const { stats } = candidate;
+  // Les points d'ATQ/DEF/PV des groupes Bravoure/Éternité/Origine entrent
+  // dans les stats QUI NOTENT, jamais dans `computeStats` (voir
+  // `statsAvecApport`) : les minimums et maximums restent jugés sur la
+  // statistique hors combat.
+  const stats = statsAvecApport(candidate.stats, apport);
   if (objective === 'vitesse') return statTotal(stats, 'spd');
   if (objective === 'degats_reels') {
     // ⚠️ Sans contexte, on ÉCHOUE bruyamment plutôt que de retomber sur EHP
@@ -516,6 +824,7 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.passifs,
       stats,
       realDamage.setup,
+      propres,
       realDamage.element,
       realDamage.artefacts,
       realDamage.critSiPlusRapide,
@@ -525,7 +834,9 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
       realDamage.bonusDegatsConditionnel,
       realDamage.bonusDegatsSelonCr,
       realDamage.bonusDegatsSelonDef,
-      realDamage.bonusSiAtqSeuil
+      realDamage.bonusSiAtqSeuil,
+      // Conquête — additive dans le bracket `DMG%` (relevé T4, rév. 41).
+      apport.dmgPct
     );
   }
   // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
@@ -535,7 +846,11 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
   if (objective !== 'ehp') {
     throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
   }
-  return pvEffectifs(stats);
+  // Ténacité — terme de `Réductions`, donc des PV effectifs ÉQUIVALENTS :
+  // `pvEffectifs / (1 − X / 100)`, dérivé de l'équation (voir
+  // `facteurTenacite`). Réduction nulle → facteur 1, valeur d'avant à
+  // l'identique.
+  return pvEffectifs(stats, propres, damageSetup) * facteurTenacite(apport.reductionPct);
 }
 
 /**
@@ -545,10 +860,18 @@ export function objectiveScore(candidate: BuildCandidate, objective: Objective, 
  * valeur que celle qui classe : le bouton « Comparer » et la ligne « PV
  * effectifs » d'une carte de résultat en ont besoin, et recopier la formule
  * là-bas aurait donné deux nombres qui divergent au premier ajustement.
+ *
+ * `propres` — activations d'aura des runes de ce build, obligatoires ;
+ * `setup` absent = aucune aura externe.
  */
-export function pvEffectifs(stats: StatRow[]): number {
-  const hp = statTotal(stats, 'hp');
-  const def = statTotal(stats, 'def');
+export function pvEffectifs(stats: StatRow[], propres: AurasPropres, setup?: DamageSetup): number {
+  // La politique EHP préexistante ne comptait ni lead ni invocateur : seul le
+  // gain d'aura rejoint ici les stats de fiche, sans les muter. ⚠️ UN seul
+  // `ceil` sur `base × 8 × (externes + propres)`, comme le `ceil` commun de
+  // `statsDebutCombat` : jamais `ceil(externe) + ceil(propre)`.
+  const aura = (set: 'enhance' | 'determination') => (setup ? nombreAura(setup, set) : 0) + propres[set];
+  const hp = statTotal(stats, 'hp') + Math.ceil((stats.find((s) => s.key === 'hp')?.base ?? 0) * 8 * aura('enhance') / 100);
+  const def = statTotal(stats, 'def') + Math.ceil((stats.find((s) => s.key === 'def')?.base ?? 0) * 8 * aura('determination') / 100);
   // ⚠️ Constantes importées de damage.ts, seule source du facteur de défense
   // pour toute l'app — l'arithmétique reste écrite TELLE QUELLE (et non
   // `hp / defenseFactor(def)`, pourtant mathématiquement identique) : passer
@@ -603,6 +926,7 @@ export function sortCandidates(
     // porter cet objectif alors que le monstre courant n'a aucun sort
     // calculable (le tri n'est alors même pas proposé à l'écran).
     realDamage?: RealDamageContext | null;
+    damageSetup?: DamageSetup;
     // Nécessaires pour `'efficience'`. ⚠️ On recalcule depuis les VRAIES runes
     // dans la mesure COURANTE plutôt que de lire `candidate.effTotal`, figé
     // dans la mesure active au moment de la recherche — sinon le classement
@@ -623,7 +947,26 @@ export function sortCandidates(
      * Absent, ou rendant `null` : on retombe sur `realDamage.artefacts`.
      */
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
-  } = {}
+    /**
+     * L'APPORT de la propriété unique de la relique retenue par un candidat
+     * (lot 7, `relicExclusive.ts`) — même rôle qu'`artefactsDuBuild` : ce qui
+     * est propre à CE candidat une fois son équipement résolu, et que le
+     * classement doit voir sous peine de noter autrement que le choix.
+     *
+     * Absent, ou rendant `null` (candidat en attente, pas de dimension
+     * relique) : apport neutre, exactement l'ordre d'avant le lot 7.
+     */
+    exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
+    /**
+     * Les activations d'aura PROPRES aux six runes d'un candidat (6bis-b2),
+     * lues par « Dégâts réels » et « PV effectifs ». ⚠️ **Obligatoire**,
+     * contrairement aux deux voisins ci-dessus : un oubli ne doit jamais
+     * retomber sur « aucune aura propre » en silence. `aurasPropresParRunes`
+     * la construit depuis le pool ; `() => AUCUNE_AURA_PROPRE` seulement pour
+     * des candidats réellement sans runes (stats synthétiques).
+     */
+    aurasPropresDe: (c: BuildCandidate) => AurasPropres;
+  }
 ): BuildCandidate[] {
   const score = scorerPour(sortBy, opts);
   // Contexte manquant (« Dégâts réels » sans sort calculable, « Efficience »
@@ -639,7 +982,8 @@ export function sortCandidates(
   // Mesuré : 1 084 ms par tri sur un compte réel, sur le FIL PRINCIPAL.
   //
   // ⚠️ **Exactement équivalent, pas une approximation.** Le score est une
-  // fonction PURE des stats du candidat : tout le reste (profil de sort,
+  // fonction PURE du candidat — ses stats, et les auras propres de ses runes
+  // (`aurasPropresDe`, 6bis-b2) : tout le reste (profil de sort,
   // passifs, adversaire, modificateurs monstre-wide) est figé pendant un tri.
   // Vérifié par différentiel sur 5 monstres × 100 000 candidats, dont les cas
   // qui mobilisent le scaling sur la VIT (Sonia), les dégâts fixes sur PV
@@ -658,17 +1002,144 @@ export function sortCandidates(
   return decore.map((d) => d.c);
 }
 
+/**
+ * Le score d'UN candidat, EXACTEMENT celui qui le classe dans
+ * `sortCandidates` avec les mêmes `opts` — pour qu'une carte de résultat ou
+ * un script AFFICHE la valeur qui ordonne, jamais une formule recopiée à côté.
+ * ⚠️ La carte « Dégâts réels » recopiait `computeTotalDamage` sans l'apport
+ * de la relique retenue (Conquête), et « PV effectifs » `pvEffectifs` sans
+ * Ténacité ni points Bravoure/Éternité/Origine : deux chiffres différents de
+ * celui du tri (degats-et-aura 6bis-b4). `null` quand le tri laisserait
+ * l'ordre en place, faute de contexte.
+ */
+export function scoreDuCandidat(
+  candidate: BuildCandidate,
+  sortBy: StatKey | Objective,
+  opts: Parameters<typeof sortCandidates>[2]
+): number | null {
+  const score = scorerPour(sortBy, opts);
+  return score ? score(candidate) : null;
+}
+
+/**
+ * `aurasPropresDe` de `sortCandidates` depuis le pool : les activations
+ * d'aura des runes réelles de chaque candidat (`aurasPropresDesRunes`,
+ * `activeSets`). Une rune absente du pool est ignorée, exactement comme la
+ * reconstruction de l'équipement d'un candidat à l'écran (`runeById.get(id)`
+ * puis `filter(Boolean)`), pour que les deux lisent les mêmes runes.
+ */
+export function aurasPropresParRunes(runeById: Map<number, { set: string }>): (c: { runeIds: number[] }) => AurasPropres {
+  return (c) => aurasPropresDesRunes(c.runeIds.map((id) => runeById.get(id)).filter((r): r is { set: string } => r != null));
+}
+
+export type OptionsDeClassement = Parameters<typeof sortCandidates>[2];
+
+/**
+ * Les options du classement AFFICHÉ — construites ICI pour l'écran (tri et
+ * cartes « Dégâts réels » / « PV effectifs », `optionsDuTriAffiche`) et pour le
+ * CLI : un oubli dans l'un des deux ne peut plus diverger en silence, et le
+ * test appelle le même producteur que l'écran (degats-et-aura 6bis-b5a).
+ *
+ * ⚠️ **La relique dont l'effet unique est compté suit `etatReliqueDe`**, l'état
+ * que la carte AFFICHE (`etatReliqueDuBuild`, relicQueue.ts) — jamais une
+ * seconde lecture :
+ * - `fixe` (`off`, `equipped`, pas de contexte) : la relique de la fiche,
+ *   connue sans attendre la file ; `c.stats` contiennent déjà sa principale
+ *   (le moteur la pose, `SearchParams.relic`) ;
+ * - `resolue` : la relique RETENUE pour ce build ;
+ * - `en attente` et `rejete` : apport NEUTRE, jamais un repli sur la relique
+ *   de la fiche (les stats d'un build en attente sont celles du moteur, sans
+ *   relique).
+ * Jusqu'à 6bis-b4, seule la relique retenue comptait : hors `recherche`, la
+ * carte et le tri ignoraient l'effet unique de la relique portée, que la file
+ * comptait pourtant en notant ses paires.
+ *
+ * L'effet unique s'applique UNE fois, dans le score (`scorerPour`), sur ces
+ * stats : jamais dans `computeStats`, jamais dans les conditions.
+ */
+export function optionsDeClassement(e: {
+  realDamage: RealDamageContext | null;
+  damageSetup: DamageSetup;
+  runeById: Map<number, RuneDetail>;
+  metric: OptimMetric;
+  aurasPropresDe: (c: BuildCandidate) => AurasPropres;
+  artefactsDuBuild: (c: BuildCandidate) => ArtifactDamageProfile | null;
+  etatReliqueDe: (c: BuildCandidate) => EtatRelique;
+  contexteExclusive: { setup: DamageSetup; element: ElementKey | null };
+}): OptionsDeClassement {
+  return {
+    realDamage: e.realDamage,
+    damageSetup: e.damageSetup,
+    runeById: e.runeById,
+    metric: e.metric,
+    aurasPropresDe: e.aurasPropresDe,
+    artefactsDuBuild: e.artefactsDuBuild,
+    exclusiveDuBuild: (c) => {
+      const etat = e.etatReliqueDe(c);
+      return apportExclusive(
+        etat.etat === 'fixe' || etat.etat === 'resolue' ? etat.relique : undefined,
+        c.stats,
+        e.contexteExclusive.setup,
+        e.aurasPropresDe(c),
+        e.contexteExclusive.element
+      );
+    },
+  };
+}
+
+/**
+ * La valeur de RÉFÉRENCE du bouton « Comparer » : la FICHE (`selected.gear`,
+ * build validé compris) notée comme un candidat, par `scoreDuCandidat`, avec
+ * des options PROPRES à la référence — jamais les accesseurs du cache des
+ * résultats (degats-et-aura 6bis-b5a).
+ *
+ * Tout se déduit de `fiche`, pour qu'aucun appelant ne puisse mêler deux
+ * équipements : ses stats (`computeStats`, principale de la relique
+ * comprise), ses auras propres, le profil de SA paire d'artéfacts et l'effet
+ * unique de SA relique. ⚠️ Le profil d'artéfacts éventuellement présent dans
+ * `contexte.degats` est IGNORÉ : l'ancien écart « Dégâts réels » notait les
+ * stats de la fiche avec le profil de `searchArtifacts` (la paire de la
+ * recherche), et sans l'effet unique — faux dans les deux sens.
+ */
+export function scoreDeReference(
+  critere: StatKey | Objective,
+  fiche: GearSet,
+  contexte: {
+    degats: Omit<RealDamageContext, 'artefacts'> | null;
+    damageSetup: DamageSetup;
+    exclusive: { setup: DamageSetup; element: ElementKey | null };
+  }
+): number | null {
+  const stats = computeStats(fiche);
+  const propres = aurasPropresDesRunes(fiche.runes);
+  const apport = apportExclusive(fiche.relic, stats, contexte.exclusive.setup, propres, contexte.exclusive.element);
+  const pseudo: BuildCandidate = { runeIds: [], stats, effTotal: 0 };
+  return scoreDuCandidat(pseudo, critere, {
+    realDamage: contexte.degats ? { ...contexte.degats, artefacts: artifactDamageProfile(fiche.artifacts) } : null,
+    damageSetup: contexte.damageSetup,
+    aurasPropresDe: () => propres,
+    exclusiveDuBuild: () => apport,
+  });
+}
+
 // Le score d'UN candidat pour ce critère — `null` quand le contexte nécessaire
 // manque, auquel cas l'appelant laisse l'ordre en place.
 function scorerPour(
   sortBy: StatKey | Objective,
   opts: {
     realDamage?: RealDamageContext | null;
+    damageSetup?: DamageSetup;
     runeById?: Map<number, RuneDetail>;
     metric?: OptimMetric;
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
+    exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
+    aurasPropresDe: (c: BuildCandidate) => AurasPropres;
   }
 ): ((c: BuildCandidate) => number) | null {
+  // Même patron qu'`artefactsDuBuild` : ce qui est PROPRE à un candidat une
+  // fois son équipement résolu. Absent, ou rendant `null` (relique pas encore
+  // résolue, aucune dimension relique) → neutre, l'ordre d'avant le lot 7.
+  const apportDe = (c: BuildCandidate) => opts.exclusiveDuBuild?.(c) ?? APPORT_NEUTRE;
   if (sortBy === 'efficience') {
     const { runeById, metric } = opts;
     if (!runeById || !metric) return null;
@@ -679,10 +1150,17 @@ function scorerPour(
     if (!ctx) return null;
     return (c) => {
       const propre = opts.artefactsDuBuild?.(c);
-      return objectiveScore(c, sortBy, propre ? { ...ctx, artefacts: propre } : ctx);
+      return objectiveScore(c, sortBy, opts.aurasPropresDe(c), propre ? { ...ctx, artefacts: propre } : ctx, apportDe(c));
     };
   }
-  if (sortBy === 'ehp' || sortBy === 'vitesse') return (c) => objectiveScore(c, sortBy);
+  if (sortBy === 'ehp' || sortBy === 'vitesse')
+    return (c) => objectiveScore(c, sortBy, opts.aurasPropresDe(c), undefined, apportDe(c), opts.damageSetup);
+  // ⚠️ **Un tri par stat juge la FICHE** (`c.stats`), comme la carte
+  // (`StatPanel`, `row.total`) et les conditions min/max : jamais les points
+  // Bravoure/Éternité/Origine, acquis au début du combat comme les auras, le
+  // lead et l'invocateur, qu'il ne compte pas non plus (degats-et-aura
+  // 6bis-b9, constat C7, option (a) de l'utilisateur). La MÊME expression
+  // note une paire dans les régimes `hp`/`atk`/`def` (`evaluerPourRegime`).
   return (c) => statTotal(c.stats, sortBy);
 }
 
@@ -1038,8 +1516,10 @@ export function relevance(rune: RuneDetail, requirement: BuildRequirement, base:
   let score = 0;
   for (const [key, min] of Object.entries(requirement.minStats)) {
     if (min == null || min <= 0) continue;
+    const restant = min - (key === 'res' || key === 'acc' ? requirement.auraResPre?.[key] ?? 0 : 0);
+    if (restant <= 0) continue;
     const c = runeContribution(rune, key as StatKey);
-    score += weightedContribution(base, key as StatKey, c.pct, c.flat) / min;
+    score += weightedContribution(base, key as StatKey, c.pct, c.flat) / restant;
   }
   // Tie-break générique : une rune globalement meilleure reste préférable
   // quand rien ne la distingue sur les stats demandées.
@@ -1107,7 +1587,8 @@ export function filterSlot(
     .map((r) => ({ r, s: relevance(r, requirement, base) }))
     .sort((a, b) => b.s - a.s);
 
-  const conditionCount = Object.values(requirement.minStats).filter((v) => v != null && v > 0).length;
+  const conditionCount = Object.entries(requirement.minStats).filter(([k, v]) =>
+    v != null && v > (k === 'res' || k === 'acc' ? requirement.auraResPre?.[k] ?? 0 : 0)).length;
   const extraCap = Math.max(0, conditionCount - FILTER_SLOT_WIDENING_THRESHOLD) * FILTER_SLOT_WIDENING_PER_CONDITION;
   const effectiveMatchCap = matchCap + extraCap;
   const effectiveFillCap = fillCap + extraCap;
@@ -1174,19 +1655,138 @@ export function filterSlot(
  * critère de tri après coup, puisqu'aucune stat ne recule.
  * ----------------------------------------------------------------------- */
 
-// ⚠️ Comparer deux runes de sets DIFFÉRENTS n'est sûr que si leur set est
-// ÉQUIVALENT du point de vue de la satisfaction du combo demandé — sinon une
-// rune moins bonne en stats brutes mais seule à apporter une pièce de set
-// manquante serait écartée à tort. Deux cas sûrs : même set (interchangeables
-// pièce pour pièce, y compris deux jokers) ; ou aucun des deux sets ne compte
-// pour le combo demandé (ni l'un ni l'autre n'apporte de pièce, donc le set
-// n'entre pas en ligne de compte).
-function isSetIrrelevant(setKey: string, requiredKeys: Set<string>): boolean {
-  return setKey !== 'intangible' && !requiredKeys.has(setKey);
+// Deux runes du MÊME set sont toujours interchangeables (pièce pour pièce, y
+// compris deux jokers) : aucun compte de pièces ne change. Entre deux sets
+// DIFFÉRENTS, la dominance reste générique pour les sets hors combo, sauf
+// quand le remplacement peut changer un résultat qui compte — faux rejets
+// prouvés par l'oracle de `rune-optim-auras-coupes.test.ts` (6bis-b3b) :
+//  - un set à bonus de fiche (Blade…) ou une aura qui peut réellement se
+//    FORMER — assez d'emplacements distincts portant ce set, un joker
+//    compris, dans la limite des emplacements libres — et dont la stat est
+//    UTILE : une condition min/max (pour une aura, seulement RES/PRE et
+//    toggle actif — PV/ATQ/DEF n'entrent dans aucune condition), une stat
+//    de l'objectif, ou une stat dont dépend l'effet unique d'une relique que
+//    la recherche peut équiper (`reliquesEquipables`) : sa stat de référence
+//    ou la stat qu'il améliore (6bis-b3c — en « PV effectifs », Fight fait
+//    franchir une tranche de Ténacité·ATQ alors que l'ATQ n'est pas lue), ou,
+//    en « Dégâts réels », une stat que lit une ligne 218–221 d'un artéfact
+//    que la recherche peut équiper (`statsLuesParLesLignes`, 6bis-b3d-1 —
+//    Energy nourrit la ligne 218 alors que les PV sont hors de l'objectif) ;
+//    « Efficience » (ou aucun objectif) maximise TOUTES les
+//    stats. Décisions de l'utilisateur (2026-09-29) : le Taux Crit ne compte
+//    que sous un minimum de Taux Crit, jamais par l'objectif (la réserve
+//    « même en mode Moyenne » est sans objet depuis la suppression de ce
+//    mode, lot CM de degats-et-aura) ; un Focus sans
+//    condition PRE ne protège rien en « Dégâts réels » ; en « Efficience »,
+//    Endure ou Blade formables restent, Violent ou Revenge s'élaguent ;
+//  - un set qui peut être COMPLET avec ses seules vraies runes compte encore
+//    pour le joker dès qu'une Intangible est disponible : l'Intangible ne
+//    complète un set que s'il est le seul incomplet (`activeSets`). Rage +
+//    Intangible + Will + Will est valide ; Will remplacé par Violent laisse
+//    trois sets incomplets. Un set qui ne peut jamais être complet reste
+//    incomplet dans tout build : le remplacer ne change rien au joker.
+// Les sets demandés et l'Intangible ne se comparent qu'entre eux.
+// ⚠️ Conséquence assumée : l'optimum n'est garanti que pour les conditions,
+// l'objectif (effet unique de la relique et lignes 218–221 compris) et
+// l'efficience — un tri après coup sur une AUTRE
+// stat peut manquer un build qu'un bonus de set inutile à la recherche aurait
+// porté.
+export interface ContexteDominance {
+  // Sets hors combo dont une rune peut être remplacée par une rune d'un autre
+  // set de la liste sans changer aucune stat utile ni la validité du build.
+  interchangeables: ReadonlySet<string>;
 }
-function isSetComparable(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>): boolean {
-  if (a.set === b.set) return true;
-  return isSetIrrelevant(a.set, requiredKeys) && isSetIrrelevant(b.set, requiredKeys);
+
+/**
+ * Les reliques que CETTE recherche peut équiper — celles dont la dominance
+ * protège l'effet unique (6bis-b3c) :
+ * - relique fixe (`off`, `equipped`, contexte absent) : `SearchParams.relic`,
+ *   la relique que le moteur applique ;
+ * - mode `recherche` : tout `RelicContext.eligibles`, pris AVANT la dominance
+ *   des reliques — un sur-ensemble sûr de celle que la résolution retiendra.
+ */
+export function reliquesEquipables(relic: RelicDetail | undefined, relicContext: RelicContext | undefined): readonly RelicDetail[] {
+  if (relicContext?.mode === 'recherche') return relicContext.eligibles;
+  return relic ? [relic] : [];
+}
+
+/**
+ * Les stats que lisent les lignes 218–221 des artéfacts que CETTE recherche
+ * peut équiper — celles dont la dominance protège les bonus de set
+ * (6bis-b3d-1) : les lignes de la paire `artifacts`, TOUJOURS, unies au
+ * champ `statsLignesArtefactsEquipables` (les autres pièces que la résolution
+ * peut retenir en « Libre ») ; un sur-ensemble sûr.
+ *
+ * Seulement en « Dégâts réels », le seul score de recherche qui lit ces
+ * lignes (`ajoutArtefactBrut`). `damageRelevantStats` ne change pas : la
+ * rétention garde la décision de l'utilisateur (les artéfacts récoltent les
+ * stats du build, ils n'en font pas chercher d'autres).
+ */
+export function statsLuesParLesLignes(
+  objective: Objective | undefined,
+  artifacts: ArtifactDetail[],
+  statsLignesArtefactsEquipables: readonly StatKey[] | undefined
+): ReadonlySet<StatKey> {
+  if (objective !== 'degats_reels') return new Set();
+  return new Set([...statsDesLignesBrutes(artifactDamageProfile(artifacts)), ...(statsLignesArtefactsEquipables ?? [])]);
+}
+
+// `runes` : le pool APRÈS statistique principale imposée et verrous — les
+// runes que la dominance compare, et les seules qui peuvent former un set.
+// `reliques` : OBLIGATOIRE (`reliquesEquipables`), pour que `tsc` signale
+// tout appelant qui n'en dirait rien — un étage de dominance calculé sans
+// elles diverge en silence de la production. `lignes` de même
+// (`statsLuesParLesLignes`, 6bis-b3d-1).
+export function contexteDominance(
+  requirement: BuildRequirement,
+  runes: RuneDetail[],
+  objective: Objective | undefined,
+  objectiveStats: StatKey[] | undefined,
+  reliques: readonly RelicDetail[],
+  lignes: ReadonlySet<StatKey>
+): ContexteDominance {
+  const libres = Math.max(0, MAX_SET_PIECES - setsCost(requirement.sets));
+  const demandes = new Set(requirement.sets);
+  const joker = runes.some((r) => r.set === INTANGIBLE_SET) ? 1 : 0;
+  const emplacements = new Map<string, Set<number>>();
+  for (const r of runes) {
+    let slots = emplacements.get(r.set);
+    if (!slots) emplacements.set(r.set, (slots = new Set()));
+    slots.add(r.slot);
+  }
+  const conditions = new Set<string>(
+    [...Object.entries(requirement.minStats), ...Object.entries(requirement.maxStats ?? {})]
+      .filter(([, v]) => v != null && v > 0)
+      .map(([k]) => k)
+  );
+  const toutesStats = objective === undefined || objective === 'efficience';
+  const objectif = new Set<string>(objectiveKeysOf(objective, objectiveStats));
+  // Aucune restriction par objectif : la seule règle est « une relique
+  // équipable dont l'effet unique chiffré dépend de cette stat ».
+  const exclusive = statsDeLEffetUnique(reliques);
+  const effetUtile = (set: string): boolean => {
+    const bonus = SET_STAT_BONUS[set];
+    if (bonus) return toutesStats || conditions.has(bonus.stat) || objectif.has(bonus.stat) || exclusive.has(bonus.stat) || lignes.has(bonus.stat);
+    if (!(set in STAT_DE_L_AURA)) return false;
+    const stat = STAT_DE_L_AURA[set as SetAura];
+    const enCondition = (stat === 'res' || stat === 'acc') && requirement.auraResPre?.compter === true && conditions.has(stat);
+    return toutesStats || enCondition || objectif.has(stat) || exclusive.has(stat) || lignes.has(stat);
+  };
+  const interchangeables = new Set<string>();
+  for (const [set, slots] of emplacements) {
+    if (set === INTANGIBLE_SET || demandes.has(set)) continue;
+    const pieces = setPieces(set);
+    const formable = Math.min(slots.size + joker, libres) >= pieces;
+    const completReel = Math.min(slots.size, libres) >= pieces;
+    const protegeBonus = formable && effetUtile(set);
+    const protegeJoker = joker === 1 && completReel;
+    if (!protegeBonus && !protegeJoker) interchangeables.add(set);
+  }
+  return { interchangeables };
+}
+
+function isSetComparable(a: RuneDetail, b: RuneDetail, contexte: ContexteDominance): boolean {
+  return a.set === b.set || (contexte.interchangeables.has(a.set) && contexte.interchangeables.has(b.set));
 }
 
 // ⚠️ **Un maximum INVERSE le sens de « mieux ».** Sur une stat SANS plafond,
@@ -1199,11 +1799,11 @@ function isSetComparable(a: RuneDetail, b: RuneDetail, requiredKeys: Set<string>
 function isDominated(
   a: RuneDetail,
   b: RuneDetail,
-  requiredKeys: Set<string>,
   maxKeys: Set<StatKey>,
+  contexte: ContexteDominance,
   contribById: Map<number, Record<StatKey, { pct: number; flat: number }>>
 ): boolean {
-  if (a.id === b.id || !isSetComparable(a, b, requiredKeys)) return false;
+  if (a.id === b.id || !isSetComparable(a, b, contexte)) return false;
   const contribA = contribById.get(a.id)!;
   const contribB = contribById.get(b.id)!;
   let strictlyBetter = false;
@@ -1246,11 +1846,11 @@ const DOMINANCE_MAX_POOL = 2000;
 // coût est payé À CHAQUE fois que `prepareSearch` tourne, y compris une
 // fois PAR WORKER en pairing parallèle (jusqu'à 4×, voir
 // `pairSlice.worker.ts`).
-export function pruneDominated(list: RuneDetail[], requiredKeys: Set<string>, maxKeys: Set<StatKey>): RuneDetail[] {
+export function pruneDominated(list: RuneDetail[], maxKeys: Set<StatKey>, contexte: ContexteDominance): RuneDetail[] {
   if (list.length > DOMINANCE_MAX_POOL) return list;
   const contribById = new Map<number, Record<StatKey, { pct: number; flat: number }>>();
   for (const r of list) contribById.set(r.id, runeContributionAllKeys(r));
-  return list.filter((a) => !list.some((b) => isDominated(a, b, requiredKeys, maxKeys, contribById)));
+  return list.filter((a) => !list.some((b) => isDominated(a, b, maxKeys, contexte, contribById)));
 }
 
 /* --------------------------------------------------------------------------
@@ -1294,7 +1894,10 @@ export function eliminateInfeasible(
   constrainedKeys: StatKey[],
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
   artFlatMax: Record<string, number>,
-  relPct: Record<string, number>,
+  // Le pourcentage de relique côté MINIMUM (`MinMaxContext.relPctMax`) —
+  // la relique portée hors mode recherche, la meilleure éligible par
+  // statistique en mode recherche.
+  relPctMax: Record<string, number>,
   totalOf: (k: StatKey, pct: number, flat: number) => number,
   // ⚠️ Réservé aux vérifications de MINIMUM (`bestPct`/`bestFlat` plus bas) —
   // `guaranteed` seul reste utilisé pour les maximums (`worstPct`/
@@ -1306,7 +1909,12 @@ export function eliminateInfeasible(
   // pour les MINIMUMS, `artFlatMin` (pessimiste) que pour les MAXIMUMS. Par
   // défaut = `artFlatMax` (comportement d'avant le §12) pour les appelants qui
   // n'ont pas d'inventaire d'artéfacts sous la main — scripts de diagnostic.
-  artFlatMin: Record<string, number> = artFlatMax
+  artFlatMin: Record<string, number> = artFlatMax,
+  // ⚠️ Même dissymétrie, côté relique (lot 5a) : `relPctMax` ne sert que les
+  // MINIMUMS, `relPctMin` (`MinMaxContext.relPctMin`) que les MAXIMUMS. Par
+  // défaut = `relPctMax` — exact pour une relique FIXÉE (les deux vecteurs
+  // coïncident), ce qu'ont les scripts de diagnostic qui appellent sans.
+  relPctMin: Record<string, number> = relPctMax
 ): RuneDetail[][] {
   if (minEntries.length === 0 && maxEntries.length === 0) return bySlot;
 
@@ -1330,7 +1938,7 @@ export function eliminateInfeasible(
         // CE slot est exclu du total (r le remplace).
         const otherPct = totalMaxPct[k] - (slotMax[i][k]?.pct ?? 0);
         const otherFlat = totalMaxFlat[k] - (slotMax[i][k]?.flat ?? 0);
-        const bestPct = c.pct + otherPct + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+        const bestPct = c.pct + otherPct + (guaranteedMin.pct[k] ?? 0) + (relPctMax[k] ?? 0);
         const bestFlat = c.flat + otherFlat + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
         if (totalOf(k, bestPct, bestFlat) < min) return false;
       }
@@ -1338,7 +1946,7 @@ export function eliminateInfeasible(
         const c = runeContribution(r, k);
         // Pire cas pour un MAXIMUM : les autres emplacements à zéro (toujours
         // atteignable — rien n'oblige un slot à contribuer à cette stat).
-        const worstPct = c.pct + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+        const worstPct = c.pct + (guaranteed.pct[k] ?? 0) + (relPctMin[k] ?? 0);
         const worstFlat = c.flat + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
         if (totalOf(k, worstPct, worstFlat) > max) return false;
       }
@@ -1421,6 +2029,12 @@ export function additionalSetActivationHeadroom(
   for (const key of requirement.sets) requestedOccurrences.set(key, (requestedOccurrences.get(key) ?? 0) + 1);
   const counts = new Map<string, number>();
   for (const r of pool) counts.set(r.set, (counts.get(r.set) ?? 0) + 1);
+  // ⚠️ Le joker (Intangible) complète UN set incomplet : une Blade physique +
+  // Intangible active Blade, trois Energy en surplus + Intangible une seconde
+  // Energy. Sans ce crédit, la borne SOUS-estimait (faux rejet prouvé par
+  // `testRuneOptimAurasCoupesBladeIntangible`, 6bis-b3b). Un crédit par set,
+  // généreux — le vrai joker n'en aide qu'un — donc toujours un majorant.
+  const joker = counts.has(INTANGIBLE_SET) ? 1 : 0;
   for (const [setKey, bonus] of Object.entries(SET_STAT_BONUS)) {
     const pieces = setPieces(setKey);
     if (pieces > freeSlots) continue;
@@ -1428,15 +2042,14 @@ export function additionalSetActivationHeadroom(
     // (0 si le set n'est pas demandé du tout) — seul ce qui reste au-delà,
     // dans le pool réel, peut fournir une activation SUPPLÉMENTAIRE.
     const alreadyReserved = (requestedOccurrences.get(setKey) ?? 0) * pieces;
-    // ⚠️ `Math.min(available, freeSlots)` : le pool peut posséder BEAUCOUP
+    // ⚠️ `Math.min(…, freeSlots)` : le pool peut posséder BEAUCOUP
     // plus de runes de ce set (au-delà de la réserve garantie) que
     // d'emplacements libres pour les accueillir — sans ce plafond, une
     // seule activation possible se compterait comme plusieurs (ex. 8 runes
     // Blade en surplus dans le pool, mais seulement 2 emplacements libres :
     // 1 activation possible, pas 4).
-    const available = (counts.get(setKey) ?? 0) - alreadyReserved;
-    if (available <= 0) continue;
-    const activations = Math.floor(Math.min(available, freeSlots) / pieces);
+    const available = Math.max(0, (counts.get(setKey) ?? 0) - alreadyReserved);
+    const activations = Math.floor(Math.min(available + joker, freeSlots) / pieces);
     if (activations <= 0) continue;
     if (bonus.pct != null) {
       if (bonus.stat === 'hp' || bonus.stat === 'atk' || bonus.stat === 'def') {
@@ -1450,6 +2063,32 @@ export function additionalSetActivationHeadroom(
     }
   }
   return { pct, flat };
+}
+
+// Auras Tolerance/Accuracy PROPRES au build : potentiel FAVORABLE pour les
+// minimums RES/PRE, toggle actif seulement (`auraResPre.compter`). Ni l'une
+// ni l'autre n'est dans `SET_STAT_BONUS` (hors `computeStats`), mais
+// `totalCondition` ajoute 8 points par activation au contrôle final. Majorant
+// sûr : les activations DEMANDÉES (garanties) plus celles que le pool peut
+// former en plus sur les emplacements libres, un joker compris — un seul
+// crédit, même généreux (`activeSets` n'aide qu'un set incomplet, jamais
+// deux). Réservé aux MINIMUMS : une activation possible n'est pas inévitable,
+// `guaranteed` (maximums) n'en porte aucune. Toggle éteint : rien.
+export function auraResPreHeadroom(
+  pool: RuneDetail[],
+  requirement: BuildRequirement
+): { pct: Record<string, number>; flat: Record<string, number> } {
+  if (!requirement.auraResPre?.compter) return { pct: {}, flat: {} };
+  const freeSlots = Math.max(0, MAX_SET_PIECES - setsCost(requirement.sets));
+  const joker = pool.some((r) => r.set === INTANGIBLE_SET) ? 1 : 0;
+  const activations = (set: 'tolerance' | 'accuracy') => {
+    const pieces = setPieces(set);
+    const demandees = requirement.sets.filter((s) => s === set).length;
+    const disponibles = Math.max(0, pool.filter((r) => r.set === set).length - demandees * pieces);
+    return demandees + Math.floor(Math.min(disponibles + joker, freeSlots) / pieces);
+  };
+  const { res, acc } = pointsAuraResPrePropres({ ...AUCUNE_AURA_PROPRE, tolerance: activations('tolerance'), accuracy: activations('accuracy') });
+  return { pct: {}, flat: { res, acc } };
 }
 
 function mergeBonus(
@@ -1763,6 +2402,10 @@ export interface BuildBucketsContext {
   // PROTOTYPE (combosOrderMode='objective') — voir son commentaire dans
   // prepareSearch. Même discipline de propagation que `base` ci-dessus.
   objectiveKeys: StatKey[];
+  // Diagnostic seulement (voir `SearchParams.traceur`) : l'état MUTABLE de
+  // la trace, rempli par `buildBuckets` pour la moitié qu'il construit.
+  // Absent sur le chemin Workers (`BuildHalfRequest` ne le porte pas).
+  traceur?: TraceCandidat;
 }
 
 // ⚠️ GÉNÉRATEUR, comme `searchBuildsSteps` — la construction d'un
@@ -1906,6 +2549,17 @@ export function* buildBuckets(
 ): Generator<BuildingProgress, Bucket[], void> {
   const { filtered, distinctKeys, constrainedKeys, retentionKeys, minEntries, bucketCap, jokerCredit, requiredPieces, base, objectiveKeys } = ctx;
   const [i0, i1, i2] = slotIdxs;
+  // Diagnostic (voir `SearchParams.traceur`) : la moitié traceuse, repérée
+  // par ses INDICES dans les trois pools filtrés — un entier à comparer par
+  // niveau de boucle, rien de plus quand il n'y a pas de traceur (−1).
+  const traceur = ctx.traceur;
+  const trIdx = [i0, i1, i2].map((si) => (traceur ? filtered[si].findIndex((r) => r.id === traceur.runeIds[si]) : -1));
+  const traceMoitie: TraceMoitie | undefined = traceur ? { generee: false } : undefined;
+  if (traceur && traceMoitie) {
+    traceur.moities[half] = traceMoitie;
+    if (trIdx.some((i) => i < 0)) traceMoitie.coupee = 'filterSlot';
+  }
+  let traceCombo: HalfCombo | undefined;
   const buckets = new Map<string, Bucket>();
   // Tas de construction, PAS le contrat final (`Bucket.combos`) : une entrée
   // par compartiment, [tranche générique, tranche combinée éventuelle, une
@@ -2036,12 +2690,20 @@ export function* buildBuckets(
     scannedR0++;
     yield { phase: 'building', half, scanned: scannedR0, total: totalR0 };
     const haveR0 = distinctKeys.map((key) => (r0.set === key ? 1 : 0));
-    if (distinctKeys.length > 0 && !stillFeasible(haveR0, [1, 2])) continue;
+    const tr0 = idx0 === trIdx[0];
+    if (distinctKeys.length > 0 && !stillFeasible(haveR0, [1, 2])) {
+      if (tr0 && traceMoitie) traceMoitie.coupee = 'stillFeasible';
+      continue;
+    }
     for (let idx1 = 0; idx1 < filtered[i1].length; idx1++) {
       const r1 = filtered[i1][idx1];
       const p1 = precompI1[idx1];
       const haveR01 = distinctKeys.map((key, k) => haveR0[k] + (r1.set === key ? 1 : 0));
-      if (distinctKeys.length > 0 && !stillFeasible(haveR01, [2])) continue;
+      const tr01 = tr0 && idx1 === trIdx[1];
+      if (distinctKeys.length > 0 && !stillFeasible(haveR01, [2])) {
+        if (tr01 && traceMoitie) traceMoitie.coupee = 'stillFeasible';
+        continue;
+      }
       // ⚠️ Sûr, PAS une heuristique : si un set demandé >3 pièces est
       // encore à 0 ET qu'aucun joker n'a été choisi (r0/r1), tout r2 qui
       // n'est NI ce set NI un joker aboutit à un demi-build mort — coupé
@@ -2058,7 +2720,10 @@ export function* buildBuckets(
       // cas, pour 0 effet sur `pairBuckets` (déjà écarté au niveau du
       // compartiment) — voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md,
       // « Suite — élagage jokers≥2 ».
-      if (jokersR01 >= 2) continue;
+      if (jokersR01 >= 2) {
+        if (tr01 && traceMoitie) traceMoitie.coupee = 'jokers';
+        continue;
+      }
       const mustRescue = hasFourPieceRequirement && jokersR01 === 0 && fourPieceKeys.some((is4p, k) => is4p && haveR01[k] === 0);
       const total2 = mustRescue ? rescueIdxI2.length : filtered[i2].length;
       for (let j2 = 0; j2 < total2; j2++) {
@@ -2067,7 +2732,11 @@ export function* buildBuckets(
         const p2 = precompI2[idx2];
         // Même raisonnement que ci-dessus : cas où jokersR01 ≤ 1 mais r2 lui
         // -même est un joker qui fait passer le total à 2.
-        if (jokersR01 + (p2.isJoker ? 1 : 0) >= 2) continue;
+        const tr012 = tr01 && idx2 === trIdx[2];
+        if (jokersR01 + (p2.isJoker ? 1 : 0) >= 2) {
+          if (tr012 && traceMoitie) traceMoitie.coupee = 'jokers';
+          continue;
+        }
         const runes: [RuneDetail, RuneDetail, RuneDetail] = [r0, r1, r2];
         // ⚠️ Réutilise `haveR01` (déjà accumulé pour `stillFeasible`) au
         // lieu de recalculer via `runes.filter(...)` — même résultat, sans
@@ -2101,7 +2770,10 @@ export function* buildBuckets(
             break;
           }
         }
-        if (demiBuildMort) continue;
+        if (demiBuildMort) {
+          if (tr012 && traceMoitie) traceMoitie.coupee = 'demiBuildMort';
+          continue;
+        }
 
         const pct: Record<string, number> = {};
         const flat: Record<string, number> = {};
@@ -2133,6 +2805,19 @@ export function* buildBuckets(
           if (flat[k] > (b.maxFlat[k] ?? 0)) b.maxFlat[k] = flat[k];
         }
         const combo: HalfCombo = { runes, counts, jokers, pct, flat, relevanceScore: score };
+        if (traceMoitie) {
+          // Occupation du compartiment traceur AVANT rétention : comptée
+          // pour toute combinaison générée dans CE compartiment, dès que
+          // celui-ci est connu (la traceuse peut arriver après d'autres).
+          if (tr012) {
+            traceCombo = combo;
+            traceMoitie.generee = true;
+            traceMoitie.compartiment = key;
+            traceMoitie.generees = (traceMoitie.generees ?? 0) + 1;
+          } else if (traceMoitie.compartiment === key) {
+            traceMoitie.generees = (traceMoitie.generees ?? 0) + 1;
+          }
+        }
         heapPush(bucketSlices![0], { item: combo, score }, genericCap);
         const retentionOffset = hasCombined ? 2 : 1;
         if (hasCombined) {
@@ -2275,6 +2960,27 @@ export function* buildBuckets(
     b.potential = pot;
   }
   out.sort((x, y) => y.potential - x.potential);
+  // Diagnostic : présence de la moitié traceuse dans chaque tranche À LA
+  // CLÔTURE (après toutes les évictions de `heapPush`), puis dans `combos`.
+  // ⚠️ `generees` n'a compté que les combinaisons vues APRÈS que le
+  // compartiment traceur est connu : c'est l'occupation à partir de la
+  // première visite du compartiment, pas depuis le début de la moitié.
+  if (traceMoitie && traceCombo && traceMoitie.compartiment != null) {
+    const bucketSlices = slices.get(traceMoitie.compartiment) ?? [];
+    const noms = ['generique', ...(hasCombined ? ['combinee'] : []), ...retentionKeys.map((k) => `stat:${k}`)];
+    traceMoitie.tranches = bucketSlices.map((slice, i) => ({
+      nom: noms[i] ?? `tranche${i}`,
+      retenue: slice.some((e) => e.item === traceCombo),
+      cap: i === 0 ? genericCap : adaptiveTrancheWeighting && i >= (hasCombined ? 2 : 1) ? reallocatedCap[retentionKeys[i - (hasCombined ? 2 : 1)]] : perOtherSliceCap,
+      taille: slice.length,
+    }));
+    const b = buckets.get(traceMoitie.compartiment);
+    const rang = b ? b.combos.indexOf(traceCombo) : -1;
+    traceMoitie.retenue = rang >= 0;
+    if (rang >= 0) traceMoitie.rang = rang + 1;
+    traceMoitie.population = b?.combos.length ?? 0;
+  }
+  if (traceur) traceur.compteurs[half === 'A' ? 'compartimentsA' : 'compartimentsB'] = out.length;
   return out;
 }
 
@@ -2348,14 +3054,15 @@ export function bucketPairFeasibleMin(
   bB: { maxPct: Record<string, number>; maxFlat: Record<string, number> },
   minEntries: { k: StatKey; min: number }[],
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> },
-  relPct: Record<string, number>,
-  // ⚠️ Cette fonction ne vérifie QUE des minimums — d'où `artFlatMax` seul,
-  // sans pendant pessimiste : il n'y a aucune branche maximum à servir ici.
+  // ⚠️ Cette fonction ne vérifie QUE des minimums — d'où `relPctMax` et
+  // `artFlatMax` seuls, sans pendant pessimiste : il n'y a aucune branche
+  // maximum à servir ici.
+  relPctMax: Record<string, number>,
   artFlatMax: Record<string, number>,
   totalOf: (k: StatKey, pct: number, flat: number) => number
 ): boolean {
   for (const { k, min } of minEntries) {
-    const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const optPct = (bA.maxPct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPctMax[k] ?? 0);
     const optFlat = (bA.maxFlat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
     if (totalOf(k, optPct, optFlat) < min) return false;
   }
@@ -2378,20 +3085,22 @@ export function comboAFeasible(
   maxEntries: { k: StatKey; max: number }[],
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> },
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> },
-  relPct: Record<string, number>,
+  relPctMax: Record<string, number>,
   artFlatMax: Record<string, number>,
   totalOf: (k: StatKey, pct: number, flat: number) => number,
   // Même repli que `guaranteedMin = guaranteed` ci-dessus : voir
   // `eliminateInfeasible`.
-  artFlatMin: Record<string, number> = artFlatMax
+  artFlatMin: Record<string, number> = artFlatMax,
+  // Même repli, côté relique (lot 5a) : voir `eliminateInfeasible`.
+  relPctMin: Record<string, number> = relPctMax
 ): boolean {
   for (const { k, min } of minEntries) {
-    const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const p = (comboA.pct[k] ?? 0) + (bB.maxPct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPctMax[k] ?? 0);
     const f = (comboA.flat[k] ?? 0) + (bB.maxFlat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
     if (totalOf(k, p, f) < min) return false;
   }
   for (const { k, max } of maxEntries) {
-    const p = (comboA.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+    const p = (comboA.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPctMin[k] ?? 0);
     const f = (comboA.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
     if (totalOf(k, p, f) > max) return false;
   }
@@ -2464,15 +3173,15 @@ export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): B
 // qui la vérifie strictement sur 15 scénarios aléatoires. Ne jamais toucher
 // à l'une des deux boucles sans l'autre.
 export function totalPairCount(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): number {
-  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, artFlatMin, totalOf } = prepared;
+  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, relPctMin, artFlatMax, artFlatMin, totalOf } = prepared;
   let total = 0;
   for (const bA of bucketsA) {
     for (const bB of bucketsB) {
       if (bA.jokers + bB.jokers > 1) continue;
       if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
-      if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf)) continue;
+      if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPctMax, artFlatMax, totalOf)) continue;
       for (const comboA of bA.combos) {
-        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) continue;
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin)) continue;
         total += bB.combos.length;
       }
     }
@@ -2641,13 +3350,14 @@ interface MinMaxContext {
   minEntries: { k: StatKey; min: number }[];
   maxEntries: { k: StatKey; max: number }[];
   constrainedKeys: StatKey[];
-  requiredKeys: Set<string>;
   maxKeys: Set<StatKey>;
   guaranteed: { pct: Record<string, number>; flat: Record<string, number> };
   // Réservé aux vérifications de MINIMUM — `guaranteed` + le bonus qu'un set
   // NON demandé, OU DÉJÀ demandé mais activable PLUS de fois que le minimum,
-  // pourrait apporter (voir `additionalSetActivationHeadroom`). Ne JAMAIS
-  // utiliser pour un maximum : voir son commentaire.
+  // pourrait apporter (voir `additionalSetActivationHeadroom`), + les points
+  // RES/PRE que des auras Tolerance/Accuracy propres pourraient apporter,
+  // toggle actif (`auraResPreHeadroom`). Ne JAMAIS utiliser pour un
+  // maximum : voir leurs commentaires.
   guaranteedMin: { pct: Record<string, number>; flat: Record<string, number> };
   /**
    * Apport d'artéfact retenu pour les vérifications de MINIMUM — le meilleur
@@ -2681,7 +3391,47 @@ interface MinMaxContext {
    * calcul des pourcentages. `total − figée[k] + autre[k]` est exact.
    */
   artFlatFige: Record<string, number>;
-  relPct: Record<string, number>;
+  /**
+   * Le pourcentage de relique qui entre dans les vérifications de MINIMUM —
+   * fondu dans le `pct` que `totalOf` arrondit (`ceil(B × (R + L) / 100)`),
+   * jamais un `ceil` séparé.
+   *
+   * Relique portée (mode `off`/`equipped`, ou sans contexte) : son propre
+   * pourcentage, des deux côtés — le comportement d'avant. Mode `recherche`
+   * (lot 5a, D5) : la MEILLEURE principale éligible de chaque statistique
+   * (`relicContext.bornes.max`, PV/ATQ/DEF indépendantes — permissif, jamais
+   * un faux négatif : `ceil` est monotone, donc `L ≤ Lmax` ⇒
+   * `ceil(B×(R+L)/100) ≤ ceil(B×(R+Lmax)/100)`).
+   *
+   * ⚠️ **Ne JAMAIS l'utiliser pour un maximum** — même dissymétrie que
+   * `guaranteedMin`/`artFlatMax` : le pendant est `relPctMin`.
+   */
+  relPctMax: Record<string, number>;
+  /**
+   * Le pourcentage de relique qui entre dans les vérifications de MAXIMUM.
+   * Mode `recherche` : `relicContext.bornes.min` — la PLUS PETITE principale
+   * éligible sur la statistique FORCÉE, `0` partout ailleurs (la relique peut
+   * être sur une autre statistique). Minorant sûr : `L ≥ Lmin` ⇒
+   * `ceil(B×(R+L)/100) ≥ ceil(B×(R+Lmin)/100)`.
+   */
+  relPctMin: Record<string, number>;
+  // Vrai ssi `relicContext.mode === 'recherche'` : les bornes ci-dessus sont
+  // RELÂCHÉES et la validation finale n'a pas de relique exacte sous la main
+  // (voir `relTermMax`/`relTermMin`, et `pairBuckets`).
+  relicRelache: boolean;
+  /**
+   * Le terme relique ADDITIF de la validation finale en mode `recherche`, où
+   * les stats viennent de `computeStats` SANS relique (un total, pas un
+   * `pct` qu'on pourrait fondre) : branche minimum `ceil(B × Lmax / 100)`
+   * — majorant du vrai incrément car `ceil(x + y) ≤ ceil(x) + ceil(y)` ;
+   * branche maximum `floor(B × Lmin / 100)` — minorant car
+   * `ceil(x + y) − ceil(x) ≥ floor(y)` (D5, rév. 7 : jamais un `ceil` séparé
+   * côté maximum — B = 101, R = L = 1 % : réel 3, `ceil` séparé 4, un
+   * maximum à 104 rejetterait un build faisable). `0` hors mode `recherche`
+   * et sur toute statistique qu'une relique ne porte pas.
+   */
+  relTermMax: (k: StatKey) => number;
+  relTermMin: (k: StatKey) => number;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
 }
 
@@ -2697,7 +3447,11 @@ function deriveMinMaxContext(
   // la dissymétrie. Ce repli est SÛR mais pas juste : il fige le choix
   // d'artéfact avant la recherche (voir spec/outils/optimizer/artefacts.md,
   // §12). Il n'existe que pour les scripts de diagnostic sans inventaire.
-  artifactBounds?: SearchParams['artifactBounds']
+  artifactBounds?: SearchParams['artifactBounds'],
+  // Le contexte relique (garantie G). Absent ou `mode` ≠ `'recherche'` : la
+  // relique PORTÉE fait les deux bornes, comme avant. Mode `recherche` : ses
+  // bornes remplacent le pourcentage de `relic` — remplacement, jamais cumul.
+  relicContext?: RelicContext
 ): MinMaxContext {
   const minEntries = ALL_STAT_KEYS
     .map((k) => ({ k, min: requirement.minStats[k] }))
@@ -2706,10 +3460,12 @@ function deriveMinMaxContext(
     .map((k) => ({ k, max: requirement.maxStats?.[k] }))
     .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
   const constrainedKeys = Array.from(new Set([...minEntries.map((e) => e.k), ...maxEntries.map((e) => e.k)]));
-  const requiredKeys = new Set(requirement.sets);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
   const guaranteed = guaranteedSetBonus(requirement, base);
-  const guaranteedMin = mergeBonus(guaranteed, additionalSetActivationHeadroom(pool, requirement, base));
+  const guaranteedMin = mergeBonus(
+    mergeBonus(guaranteed, additionalSetActivationHeadroom(pool, requirement, base)),
+    auraResPreHeadroom(pool, requirement)
+  );
   // ⚠️ L'apport de la paire REPRÉSENTATIVE ne vaut plus que comme repli. Elle
   // est choisie pour son SCORE, pas pour sa capacité à franchir les
   // conditions : s'en servir comme borne de faisabilité décide avant la
@@ -2718,13 +3474,38 @@ function deriveMinMaxContext(
   const artFlatMax = artifactBounds?.max ?? figee;
   const artFlatMin = artifactBounds?.min ?? figee;
   const artPossibles = artifactBounds?.possibles ?? [];
-  const relPct = relicPctBonus(relic);
+  const relicRelache = relicContext?.mode === 'recherche';
+  // Hors mode recherche : la relique portée, des deux côtés — le vecteur
+  // d'avant. En mode recherche : `bornes.max` côté minimum, `bornes.min` côté
+  // maximum, et `relic` n'est PAS lu (sinon l'équipée s'additionnerait à la
+  // candidate — garantie G).
+  // ⚠️ Calculé SEULEMENT hors mode recherche (revue adversariale du diff du
+  // lot 5a, « ce qui tient ») : en mode recherche, `relPctMax`/`relPctMin`
+  // valent `relicContext.bornes`, cet appel restait inutilisé.
+  const relPctFige = relicRelache ? undefined : relicPctBonus(relic);
+  const relPctMax: Record<string, number> = relicRelache ? { ...relicContext!.bornes.max } : relPctFige!;
+  const relPctMin: Record<string, number> = relicRelache ? { ...relicContext!.bornes.min } : relPctFige!;
   const baseRec = base as unknown as Record<string, number>;
+  const estPct = (k: StatKey) => k === 'hp' || k === 'atk' || k === 'def';
+  // ⚠️ Bornes, élagages et diagnostics amont : `totalOf` n'ajoute que la part
+  // externe (six runes inconnues ici). Pour un maximum, c'est un minorant
+  // sûr ; pour un minimum, le potentiel d'aura propre arrive par le `flat`
+  // de `guaranteedMin` (`auraResPreHeadroom`), jamais par `totalOf`.
   function totalOf(k: StatKey, pct: number, flat: number): number {
     const b = baseRec[k] ?? 0;
-    return k === 'hp' || k === 'atk' || k === 'def' ? b + Math.ceil((b * pct) / 100) + flat : b + flat;
+    return totalCondition(estPct(k) ? b + Math.ceil((b * pct) / 100) + flat : b + flat, k, requirement, AUCUNE_AURA_PROPRE);
   }
-  return { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige: figee, relPct, totalOf };
+  function relTermMax(k: StatKey): number {
+    return relicRelache && estPct(k) ? Math.ceil(((baseRec[k] ?? 0) * (relPctMax[k] ?? 0)) / 100) : 0;
+  }
+  function relTermMin(k: StatKey): number {
+    return relicRelache && estPct(k) ? Math.floor(((baseRec[k] ?? 0) * (relPctMin[k] ?? 0)) / 100) : 0;
+  }
+  return {
+    minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin,
+    artFlatMax, artFlatMin, artPossibles, artFlatFige: figee,
+    relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
+  };
 }
 
 // Verdict de faisabilité, PAR STAT PRISE ISOLÉMENT — pour une condition (min
@@ -2770,7 +3551,7 @@ export interface StatFeasibility {
 // sans recherche complète.
 export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
   const { base, artifacts, relic, pool, requirement } = params;
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, params.relicContext);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return [];
 
   const bySlot = mainStatFilteredBySlot(pool, requirement);
@@ -2778,7 +3559,7 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
 
   const out: StatFeasibility[] = [];
   for (const { k, min } of ctx.minEntries) {
-    const bestPct = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const bestPct = slotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPctMax[k] ?? 0);
     const bestFlat = slotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteedMin.flat[k] ?? 0) + (ctx.artFlatMax[k] ?? 0);
     const bound = ctx.totalOf(k, bestPct, bestFlat);
     out.push({ key: k, kind: 'min', requested: min, bound, satisfiable: bound >= min });
@@ -2787,7 +3568,7 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
     // Plancher incompressible : AUCUNE rune ne contribue à cette stat (le
     // pire cas le plus favorable pour un maximum) — base, bonus de set
     // garanti, artéfacts et relique restent, eux, incontournables.
-    const floorPct = (ctx.guaranteed.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const floorPct = (ctx.guaranteed.pct[k] ?? 0) + (ctx.relPctMin[k] ?? 0);
     const floorFlat = (ctx.guaranteed.flat[k] ?? 0) + (ctx.artFlatMin[k] ?? 0);
     const bound = ctx.totalOf(k, floorPct, floorFlat);
     out.push({ key: k, kind: 'max', requested: max, bound, satisfiable: bound <= max });
@@ -2867,11 +3648,25 @@ export function poolMinSlotSafe(
   relic: RelicDetail | undefined,
   pool: RuneDetail[],
   requirement: BuildRequirement,
-  artifactBounds?: SearchParams['artifactBounds']
+  // L'objectif de la recherche : la dominance protège les bonus de set
+  // utiles à ses stats (`contexteDominance`) — le même que `prepareSearch`,
+  // sinon le diagnostic élaguerait autrement que la recherche.
+  objective: Objective | undefined,
+  objectiveStats: StatKey[] | undefined,
+  artifactBounds?: SearchParams['artifactBounds'],
+  // Même borne relique que la recherche (lot 5a) — les trois consommateurs
+  // reçoivent le même contexte, sinon le diagnostic prouverait une
+  // impossibilité sur une borne plus étroite que celle qui a élagué.
+  relicContext?: RelicContext,
+  // Même protection des lignes 218–221 que la recherche (6bis-b3d-1) ;
+  // absent, celles de `artifacts` seules — juste pour une paire figée.
+  statsLignesArtefactsEquipables?: StatKey[]
 ): number {
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, artifactBounds, relicContext);
   let bySlot = mainStatFilteredBySlot(pool, requirement);
-  bySlot = bySlot.map((list) => pruneDominated(list, ctx.requiredKeys, ctx.maxKeys));
+  const dominance = contexteDominance(requirement, bySlot.flat(), objective, objectiveStats, reliquesEquipables(relic, relicContext),
+    statsLuesParLesLignes(objective, artifacts, statsLignesArtefactsEquipables));
+  bySlot = bySlot.map((list) => pruneDominated(list, ctx.maxKeys, dominance));
   bySlot = eliminateInfeasible(
     bySlot,
     ctx.minEntries,
@@ -2879,21 +3674,22 @@ export function poolMinSlotSafe(
     ctx.constrainedKeys,
     ctx.guaranteed,
     ctx.artFlatMax,
-    ctx.relPct,
+    ctx.relPctMax,
     ctx.totalOf,
     ctx.guaranteedMin,
-    ctx.artFlatMin
+    ctx.artFlatMin,
+    ctx.relPctMin
   );
   return Math.min(...bySlot.map((l) => l.length));
 }
 
 export function rankBlockingConditions(params: SearchParams): BlockingConditionsDiagnosis {
   const { base, artifacts, relic, pool, requirement } = params;
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, params.relicContext);
   if (ctx.minEntries.length === 0 && ctx.maxEntries.length === 0) return { baselineMinSlot: 0, impacts: [] };
 
   function poolMinSlot(req: BuildRequirement): number {
-    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.artifactBounds);
+    return poolMinSlotSafe(base, artifacts, relic, pool, req, params.objective, params.objectiveStats, params.artifactBounds, params.relicContext, params.statsLignesArtefactsEquipables);
   }
 
   // Borne pour la recherche côté MAXIMUM : le plus grand total qu'un pool
@@ -2910,7 +3706,7 @@ export function rankBlockingConditions(params: SearchParams): BlockingConditions
   const fullBySlot = mainStatFilteredBySlot(pool, requirement);
   const fullSlotMax = computeSlotMaxBounds(fullBySlot, ctx.constrainedKeys);
   function achievableCeiling(k: StatKey): number {
-    const bestPct = fullSlotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPct[k] ?? 0);
+    const bestPct = fullSlotMax.reduce((s, b) => s + (b[k]?.pct ?? 0), 0) + (ctx.guaranteedMin.pct[k] ?? 0) + (ctx.relPctMax[k] ?? 0);
     const bestFlat = fullSlotMax.reduce((s, b) => s + (b[k]?.flat ?? 0), 0) + (ctx.guaranteedMin.flat[k] ?? 0) + (ctx.artFlatMax[k] ?? 0);
     return ctx.totalOf(k, bestPct, bestFlat);
   }
@@ -3073,6 +3869,9 @@ export interface PreparedSearch {
   base: BaseStats;
   artifacts: ArtifactDetail[];
   relic?: RelicDetail;
+  // Transporté TEL QUEL depuis `SearchParams` (garantie G) : c'est ici que
+  // la résolution exacte (5b) retrouve le pool éligible et l'empreinte.
+  relicContext?: RelicContext;
   requirement: BuildRequirement;
   metric: OptimMetric;
   maxCollected: number;
@@ -3097,8 +3896,17 @@ export interface PreparedSearch {
   // — voir `MinMaxContext`.
   artPossibles: Record<string, number>[];
   artFlatFige: Record<string, number>;
-  relPct: Record<string, number>;
+  // Les deux vecteurs relique et le terme additif de la validation finale —
+  // voir `MinMaxContext`.
+  relPctMax: Record<string, number>;
+  relPctMin: Record<string, number>;
+  relicRelache: boolean;
+  relTermMax: (k: StatKey) => number;
+  relTermMin: (k: StatKey) => number;
   totalOf: (k: StatKey, pct: number, flat: number) => number;
+  // Diagnostic seulement — l'état MUTABLE de la trace du candidat traceur,
+  // créé par `prepareSearch`, complété par `buildBuckets` et `pairBuckets`.
+  traceur?: TraceCandidat;
   filtered: RuneDetail[][];
   requiredPieces: number[];
   jokerCredit: number;
@@ -3147,15 +3955,29 @@ export type PrepareStageObserver = (stage: PrepareStage, bySlot: RuneDetail[][])
 // les Workers (voir pairSliceBody.ts), et une fonction n'est pas
 // sérialisable — l'y placer casserait le chemin parallèle au lieu d'échouer
 // à la compilation.
-export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserver): PreparedSearch | null {
-  const { base, artifacts, relic, pool, requirement, metric } = params;
+//
+// `onReject` (diagnostic seulement, revue adversariale du diff du lot 5a,
+// MINEUR 1) : appelé avec le traceur AVANT le `return null` de rejet par
+// pré-filtrage — sans lui, ce candidat était enregistré PUIS PERDU
+// silencieusement (`searchBuildsSteps` ne reconstruisait qu'un résultat vide
+// sans trace), alors que c'est précisément le cas où l'instrumentation sert
+// le plus (un rejet à `eliminateInfeasible`).
+export function prepareSearch(
+  params: SearchParams,
+  onStage?: PrepareStageObserver,
+  onReject?: (traceur: TraceCandidat) => void
+): PreparedSearch | null {
+  const { base, artifacts, relic, relicContext, pool, requirement, metric } = params;
+  // Pool de reliques vide en mode recherche : refus nommé, AVANT toute
+  // construction (D1). Voir `RechercheRefusee`.
+  if (relicContext?.mode === 'recherche' && relicContext.vide) throw new RechercheRefusee(relicContext.vide);
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
   const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
   const slotCap = params.slotFilterCap ?? MAX_PER_SLOT_MATCH;
   const startedAt = Date.now();
 
-  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds);
-  const { minEntries, maxEntries, constrainedKeys, requiredKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf } = ctx;
+  const ctx = deriveMinMaxContext(base, artifacts, relic, requirement, pool, params.artifactBounds, relicContext);
+  const { minEntries, maxEntries, constrainedKeys, maxKeys, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf } = ctx;
   // ⚠️ Dimensions protégées à la RÉTENTION par compartiment (voir
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
@@ -3193,19 +4015,49 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
   //
   // ⚠️ `onStage` (voir son type) observe chacun de ces quatre états — le seul
   // endroit du moteur où les trois premiers existent encore.
+  // Diagnostic (voir `SearchParams.traceur`) : la présence des 6 runes du
+  // traceur après chaque étage — `feasibility` EST le verdict
+  // d'`eliminateInfeasible` rune par rune (c'est un filtre), produit ici
+  // sur la sortie réelle de l'étage, jamais rejoué.
+  const traceur: TraceCandidat | undefined = params.traceur
+    ? {
+        runeIds: [...params.traceur.runeIds],
+        preparation: [],
+        moities: {},
+        appariement: { paireAtteinte: false, collecte: false },
+        budget: { tronque: false, motif: null },
+        compteurs: { poolParSlot: [], filtreParSlot: [], compartimentsA: 0, compartimentsB: 0, explorees: 0, collectes: 0 },
+      }
+    : undefined;
+  const tracerEtage = (etage: PrepareStage, lists: RuneDetail[][]) => {
+    if (!traceur) return;
+    traceur.preparation.push({ etage, presentes: traceur.runeIds.map((id, i) => lists[i]?.some((r) => r.id === id) ?? false) });
+  };
+
   let bySlot = mainStatFilteredBySlot(pool, requirement);
   onStage?.('mainstat', bySlot);
-  bySlot = bySlot.map((list) => pruneDominated(list, requiredKeys, maxKeys));
+  tracerEtage('mainstat', bySlot);
+  const dominance = contexteDominance(requirement, bySlot.flat(), params.objective, params.objectiveStats, reliquesEquipables(relic, relicContext),
+    statsLuesParLesLignes(params.objective, params.artifacts, params.statsLignesArtefactsEquipables));
+  bySlot = bySlot.map((list) => pruneDominated(list, maxKeys, dominance));
   onStage?.('dominance', bySlot);
-  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlatMax, relPct, totalOf, guaranteedMin, artFlatMin);
+  tracerEtage('dominance', bySlot);
+  bySlot = eliminateInfeasible(bySlot, minEntries, maxEntries, constrainedKeys, guaranteed, artFlatMax, relPctMax, totalOf, guaranteedMin, artFlatMin, relPctMin);
   onStage?.('feasibility', bySlot);
+  tracerEtage('feasibility', bySlot);
   const filtered = bySlot.map((list) => filterSlot(list, requirement, base, slotCap, slotCap, params.objective, params.objectiveStats));
   onStage?.('filterslot', filtered);
+  tracerEtage('filterslot', filtered);
+  if (traceur) {
+    traceur.compteurs.poolParSlot = mainStatFilteredBySlot(pool, requirement).map((l) => l.length);
+    traceur.compteurs.filtreParSlot = filtered.map((l) => l.length);
+  }
   // ⚠️ L'observateur voit `filterslot` AVANT ce retour anticipé : un
   // emplacement vidé par le pré-filtrage est précisément ce qu'un diagnostic
   // cherche à localiser, et `prepareSearch` renvoie alors `null` — sans le
   // signal ci-dessus, il n'y aurait AUCUNE trace de l'étage fautif.
   if (filtered.some((list) => list.length === 0)) {
+    if (traceur) onReject?.(traceur);
     return null;
   }
 
@@ -3219,10 +4071,11 @@ export function prepareSearch(params: SearchParams, onStage?: PrepareStageObserv
   const bucketCap = params.bucketCap ?? bucketCapFor(slotCap);
 
   return {
-    base, artifacts, relic, requirement, metric,
+    base, artifacts, relic, relicContext, requirement, metric,
     maxCollected, maxMs, startedAt,
     minEntries, maxEntries, constrainedKeys, retentionKeys, objectiveKeys, distinctKeys,
-    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf,
+    guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf,
+    traceur,
     filtered, requiredPieces, jokerCredit, maxSetsForA, maxSetsForB, bucketCap,
   };
 }
@@ -3311,7 +4164,8 @@ export function* pairBuckets(
 ): Generator<PairingProgress, SearchResult, void> {
   const {
     base, artifacts, relic, requirement, metric, maxCollected, maxMs, startedAt,
-    minEntries, maxEntries, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige, relPct, totalOf, distinctKeys,
+    minEntries, maxEntries, guaranteed, guaranteedMin, artFlatMax, artFlatMin, artPossibles, artFlatFige,
+    relPctMax, relPctMin, relicRelache, relTermMax, relTermMin, totalOf, distinctKeys,
   } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
 
@@ -3319,7 +4173,7 @@ export function* pairBuckets(
   // compartiments — même principe que dans l'ancien moteur slot-par-slot,
   // appliqué ici au niveau d'une paire de compartiments de 3 runes.
   function pairFeasibleMin(bA: { maxPct: Record<string, number>; maxFlat: Record<string, number> }, bB: typeof bA): boolean {
-    return bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf);
+    return bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPctMax, artFlatMax, totalOf);
   }
 
   const candidates: BuildCandidate[] = [];
@@ -3369,9 +4223,41 @@ export function* pairBuckets(
     return Array.from(nearMissByCondition.values());
   }
 
+  // Diagnostic (voir `SearchParams.traceur`) : les deux moitiés traceuses,
+  // localisées UNE FOIS dans les compartiments reçus (chemin séquentiel ou
+  // Worker, peu importe d'où ils viennent) — ensuite un test de référence
+  // par paire de compartiments, un par comboA, un par comboB de la seule
+  // paire traceuse. Sans traceur : comparaisons à `undefined`, rien d'autre.
+  const traceur = prepared.traceur;
+  const localiser = (buckets: Bucket[], ids: number[]) => {
+    for (const b of buckets) for (let i = 0; i < b.combos.length; i++) {
+      const c = b.combos[i];
+      if (c.runes.every((r, j) => r.id === ids[j])) return { b, c, rang: i + 1, population: b.combos.length };
+    }
+    return undefined;
+  };
+  const trA = traceur ? localiser(bucketsA, traceur.runeIds.slice(0, 3)) : undefined;
+  const trB = traceur ? localiser(bucketsB, traceur.runeIds.slice(3, 6)) : undefined;
+  if (traceur) {
+    // Sur le chemin Workers, `buildBuckets` n'a pas vu le traceur : on
+    // complète ici ce que les compartiments reçus rendent observable.
+    for (const [half, tr] of [['A', trA], ['B', trB]] as const) {
+      const m = (traceur.moities[half] ??= { generee: tr != null });
+      if (tr) { m.retenue = true; m.rang = tr.rang; m.population = tr.population; m.compartiment ??= bucketKeyOf(tr.b.counts, tr.b.jokers); }
+      else if (m.generee && m.retenue == null) m.retenue = false;
+    }
+  }
+  const traceApp = traceur?.appariement;
+
   outer: for (const [bA, bB] of orderedCompartmentPairs(bucketsA, bucketsB)) {
     {
-      if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) continue;
+      const trPaire = trA != null && trB != null && bA === trA.b && bB === trB.b;
+      if (trPaire && traceApp) traceApp.paireAtteinte = true;
+      if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) {
+        if (trPaire && traceApp) traceApp.satisfiesSets = false;
+        continue;
+      }
+      if (trPaire && traceApp) traceApp.satisfiesSets = true;
       // ⚠️ Une seule rune Intangible peut être sertie par monstre (règle du
       // jeu, voir activeSets dans effects.ts) : deux jokers répartis entre
       // les deux moitiés (1+1, ou 2 dans une seule) ne pourraient jamais être
@@ -3379,16 +4265,30 @@ export function* pairBuckets(
       // des stats (il plafonne lui-même à 1 joker effectif). `bA.jokers`/
       // `bB.jokers` sont des comptes EXACTS (définissent le compartiment,
       // voir bucketKeyOf) : ce test ne peut jamais écarter une paire à tort.
-      if (bA.jokers + bB.jokers > 1) continue;
-      if (!pairFeasibleMin(bA, bB)) continue;
+      if (bA.jokers + bB.jokers > 1) {
+        if (trPaire && traceApp) traceApp.jokers = false;
+        continue;
+      }
+      if (trPaire && traceApp) traceApp.jokers = true;
+      if (!pairFeasibleMin(bA, bB)) {
+        if (trPaire && traceApp) traceApp.bucketPairFeasibleMin = false;
+        continue;
+      }
+      if (trPaire && traceApp) traceApp.bucketPairFeasibleMin = true;
 
       for (const comboA of bA.combos) {
+        const trComboA = trPaire && comboA === trA!.c;
         // Repli rapide côté MINIMUM ET MAXIMUM pour ce comboA précis, avant
         // d'ouvrir la boucle B en entier — voir `comboAFeasible` (factorisée
         // pour être réutilisée à l'identique par `totalPairCount`).
-        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) continue;
+        if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin)) {
+          if (trComboA && traceApp) traceApp.comboAFeasible = false;
+          continue;
+        }
+        if (trComboA && traceApp) traceApp.comboAFeasible = true;
 
         for (const comboB of bB.combos) {
+          const trPair = trComboA && comboB === trB!.c;
           explored++;
           if (explored % CHECKPOINT_EVERY === 0) {
             yield { phase: 'pairing', candidates, explored, nearMissByCondition: nearMissSnapshot(), globalNearMiss };
@@ -3416,28 +4316,31 @@ export function* pairBuckets(
           // `additionalSetActivationHeadroom` — le bonus qu'un set NON
           // demandé, ou DÉJÀ demandé mais activé PLUS de fois que le
           // minimum, pourrait apporter en s'activant sur les emplacements
-          // « libres » — mais reste une borne GLOBALE, pas garantie
+          // « libres » — et `auraResPreHeadroom` (auras RES/PRE propres,
+          // toggle actif), mais reste une borne GLOBALE, pas garantie
           // atteignable par CETTE paire précise de demi-builds (voir son
           // commentaire) ; seule la revérification via `computeStats` reste
           // la décision finale.
           let quickOk = true;
           for (const { k, min } of minEntries) {
-            const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPct[k] ?? 0);
+            const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteedMin.pct[k] ?? 0) + (relPctMax[k] ?? 0);
             const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteedMin.flat[k] ?? 0) + (artFlatMax[k] ?? 0);
             if (totalOf(k, p, f) < min) {
               quickOk = false;
               break;
             }
           }
+          if (trPair && traceApp) traceApp.quickOkMin = quickOk;
           if (quickOk) {
             for (const { k, max } of maxEntries) {
-              const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPct[k] ?? 0);
+              const p = (comboA.pct[k] ?? 0) + (comboB.pct[k] ?? 0) + (guaranteed.pct[k] ?? 0) + (relPctMin[k] ?? 0);
               const f = (comboA.flat[k] ?? 0) + (comboB.flat[k] ?? 0) + (guaranteed.flat[k] ?? 0) + (artFlatMin[k] ?? 0);
               if (totalOf(k, p, f) > max) {
                 quickOk = false;
                 break;
               }
             }
+            if (trPair && traceApp) traceApp.quickOkMax = quickOk;
           }
           if (!quickOk) continue;
 
@@ -3446,9 +4349,23 @@ export function* pairBuckets(
           // par compte est un pré-filtre sûr mais optimiste (voir
           // `satisfiesSets`), jamais la décision finale.
           const active = activeSets(runes.map((r) => r.set));
-          if (missingSets(requirement.sets, active).length > 0) continue;
+          if (missingSets(requirement.sets, active).length > 0) {
+            if (trPair && traceApp) traceApp.missingSets = false;
+            continue;
+          }
+          if (trPair && traceApp) traceApp.missingSets = true;
 
-          const gear: GearSet = { base, runes, artifacts, relic };
+          // ⚠️ Mode recherche (`relicRelache`, lot 5a) : le candidat est
+          // collecté SANS relique — la portée n'est pas une hypothèse de la
+          // recherche (D1 : le pool est filtré, elle peut ne pas en faire
+          // partie ; garantie G : remplacement, jamais cumul), et la candidate
+          // n'existe qu'à la résolution exacte (5b), qui remplace `relic`,
+          // recalcule `stats` et repasse minimums ET maximums
+          // (`respecteConditionsAvecRelique`). Le score qui ordonne ces
+          // candidats AVANT `sortCandidates` est donc NON EXACT en mode
+          // recherche — nommé dans la preuve de 5a, corrigé par 5b.
+          // Hors mode recherche : la relique portée, exactement comme avant.
+          const gear: GearSet = { base, runes, artifacts, relic: relicRelache ? undefined : relic };
           const stats = computeStats(gear);
           /**
            * ⚠️ **Test de faisabilité CONJOINT, et exact.** Les bornes en amont
@@ -3469,6 +4386,9 @@ export function* pairBuckets(
            * la paire figée, comportement d'avant.
            */
           const apports = artPossibles.length > 0 ? artPossibles : [artFlatFige];
+          // Auras RES/PRE propres : EXACTES ici, depuis les sets actifs des
+          // six runes (Intangible et set non demandé compris).
+          const propres = aurasPropresDesSetsActifs(active);
           const runeIds = runes.map((r) => r.id);
           const effTotal = runes.reduce((sum, r) => sum + valueOf(r, metric), 0);
           let ok = false;
@@ -3480,15 +4400,21 @@ export function* pairBuckets(
             // tout SAUF k » — nécessaire pour savoir s'il n'y en a qu'UNE
             // seule. `minEntries`/`maxEntries` restent petits (une poignée
             // de conditions posées), le surcoût est négligeable.
+            // ⚠️ Mode recherche : `stats` est SANS relique, le terme relique
+            // s'ajoute ici (`relTermMax`/`relTermMin`, `0` sinon) — majorant
+            // côté minimum, minorant côté maximum, jamais l'inverse. Ce test
+            // reste donc une BORNE en mode recherche (plus de faux négatif,
+            // des faux positifs possibles) : l'exactitude est le filtre
+            // final de 5b, avec la relique réelle.
             const shortfalls: StatShortfall[] = [];
             for (const { k, min } of minEntries) {
               const row = stats.find((r) => r.key === k);
-              const actual = (row?.total ?? 0) + decalage(k);
+              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMax(k), k, requirement, propres);
               if (actual < min) shortfalls.push({ key: k, kind: 'min', requested: min, actual, shortfall: min - actual });
             }
             for (const { k, max } of maxEntries) {
               const row = stats.find((r) => r.key === k);
-              const actual = (row?.total ?? 0) + decalage(k);
+              const actual = totalCondition((row?.total ?? 0) + decalage(k) + relTermMin(k), k, requirement, propres);
               if (actual > max) shortfalls.push({ key: k, kind: 'max', requested: max, actual, shortfall: actual - max });
             }
             if (shortfalls.length === 0) {
@@ -3497,8 +4423,10 @@ export function* pairBuckets(
             }
             considerNearMiss(runeIds, stats, effTotal, shortfalls);
           }
+          if (trPair && traceApp) traceApp.validationFinale = ok;
           if (!ok) continue;
 
+          if (trPair && traceApp) traceApp.collecte = true;
           candidates.push({ runeIds, stats, effTotal });
           if (candidates.length >= maxCollected) {
             truncated = true;
@@ -3509,7 +4437,16 @@ export function* pairBuckets(
     }
   }
 
-  return { candidates, explored, truncated, nearMissByCondition: nearMissSnapshot(), globalNearMiss };
+  if (traceur) {
+    traceur.budget = { tronque: truncated, motif: truncated ? (candidates.length >= maxCollected ? 'maxCollected' : 'maxMs') : null };
+    traceur.compteurs.explorees = explored;
+    traceur.compteurs.collectes = candidates.length;
+    // Les compartiments reçus — exacts aussi quand `buildBuckets` a tourné
+    // dans un autre fil sans le traceur (harnais, navigateur).
+    traceur.compteurs.compartimentsA = bucketsA.length;
+    traceur.compteurs.compartimentsB = bucketsB.length;
+  }
+  return { candidates, explored, truncated, nearMissByCondition: nearMissSnapshot(), globalNearMiss, ...(traceur ? { traceur } : {}) };
 }
 
 // Fusionne les résultats des N workers de l'appariement PARALLÈLE
@@ -3538,6 +4475,19 @@ export function* pairBuckets(
 // `true`, `candidates.length` vaut EXACTEMENT `perWorkerMaxCollected` si
 // la cause est (a), et STRICTEMENT MOINS si la cause est (b) (sinon la
 // troncature par quota aurait déjà eu lieu à une itération précédente).
+//
+// ⚠️⚠️ **Mais (a) N'EST PAS « complet » pour autant** (degats-et-aura 6bis-b7,
+// constat C2 de la revue technique du 2026-10-01). Le correctif de 2026-08-19
+// distinguait bien le MOTIF et concluait à tort : une tranche qui atteint
+// son quota S'ARRÊTE (`break outer`), le reste de SA tranche n'est jamais
+// visité. Cas réel (ATQ 3000 / DC 220, b4) : 30 M de paires jamais visitées,
+// recherche annoncée complète. Règle actuelle : (a) rend la recherche
+// tronquée, motif `quotaTranche`, dès qu'il reste des paires non visitées
+// (`explored < totalPairs`) — un quota atteint sur la toute dernière paire
+// ne laisse rien. `totalPairs` est l'espace EXACT (`totalPairCount`) que
+// l'appelant a déjà calculé pour choisir le régime : transmis, jamais
+// recalculé ici (aucun coût ajouté). Seul l'indicateur change : on
+// n'explore rien de plus, et le partage des quotas est inchangé.
 // ⚠️ Chaque worker calcule son near-miss sur SA SEULE tranche de `bucketsA`
 // (voir `PairSliceRequest`) — fusionner, c'est garder le MEILLEUR entre
 // tranches, exactement comme `pairBuckets` garde le meilleur entre paires
@@ -3551,12 +4501,22 @@ function betterNearMiss(a: NearMiss, b: NearMiss, distanceOf: (m: NearMiss) => n
 export function combineParallelPairingResults(
   results: SearchResult[],
   perWorkerMaxCollected: number,
-  globalMaxCollected: number
+  globalMaxCollected: number,
+  totalPairs: number
 ): SearchResult {
   const candidates = results.flatMap((r) => r.candidates);
   const explored = results.reduce((s, r) => s + r.explored, 0);
   const realBudgetExhausted = results.some((r) => r.truncated && r.candidates.length < perWorkerMaxCollected);
-  const truncated = candidates.length >= globalMaxCollected || realBudgetExhausted;
+  const sliceQuotaWithPairsLeft = explored < totalPairs && results.some((r) => r.truncated && r.candidates.length >= perWorkerMaxCollected);
+  // Ordre du motif quand plusieurs causes coexistent : le plafond global (ce
+  // que le séquentiel aurait aussi atteint), puis le temps, puis le quota de
+  // tranche (le seul propre au parallèle).
+  const motifTroncature: MotifTroncature | undefined =
+    candidates.length >= globalMaxCollected ? 'maxCollected'
+    : realBudgetExhausted ? 'maxMs'
+    : sliceQuotaWithPairsLeft ? 'quotaTranche'
+    : undefined;
+  const truncated = motifTroncature != null;
 
   const nearMissByCondition = new Map<string, { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }>();
   for (const r of results) {
@@ -3576,7 +4536,21 @@ export function combineParallelPairingResults(
     globalNearMiss = globalNearMiss ? betterNearMiss(globalNearMiss, r.globalNearMiss, globalDistance) : r.globalNearMiss;
   }
 
-  return { candidates, explored, truncated, nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss };
+  // Diagnostic : la trace du traceur est celle du worker dont la tranche
+  // contient sa moitié A (les tranches de bucketsA sont disjointes — un seul
+  // worker peut avoir visité sa paire) ; sinon la première, avec ses
+  // compteurs partiels. Son `budget` est remplacé par celui du résultat
+  // FUSIONNÉ (6bis-b7) : celui de la tranche ne dit que si ELLE a été coupée,
+  // ce qui contredisait `truncated` dès qu'une autre tranche l'était. Copie,
+  // jamais mutation de la trace reçue.
+  const traces = results.map((r) => r.traceur).filter((t): t is TraceCandidat => t != null);
+  const traceTranche = traces.find((t) => t.appariement.paireAtteinte) ?? traces[0];
+  const traceur = traceTranche ? { ...traceTranche, budget: { tronque: truncated, motif: motifTroncature ?? null } } : undefined;
+
+  return {
+    candidates, explored, truncated, ...(motifTroncature ? { motifTroncature } : {}),
+    nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss, ...(traceur ? { traceur } : {}),
+  };
 }
 
 // ⚠️ Simple ORCHESTRATION de `prepareSearch` → `buildBuckets` (×2) →
@@ -3589,9 +4563,15 @@ export function combineParallelPairingResults(
 // `pairBuckets` directement pour pouvoir construire A et B dans deux Workers
 // séparés, voir spec/outils/optimizer/ « Suite — parallélisation… ».
 export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
-  const prepared = prepareSearch(params);
+  // Le traceur d'un rejet par pré-filtrage (revue adversariale du diff du
+  // lot 5a, MINEUR 1) : `prepareSearch` le construit puis le perd en rendant
+  // `null` — récupéré ici via `onReject` pour qu'un résultat vide reste
+  // diagnosticable (étage `feasibility`/`filterslot` à 0), au lieu de
+  // disparaître précisément quand l'instrumentation sert le plus.
+  let traceurRejet: TraceCandidat | undefined;
+  const prepared = prepareSearch(params, undefined, (t) => { traceurRejet = t; });
   if (!prepared) {
-    return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null };
+    return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null, ...(traceurRejet ? { traceur: traceurRejet } : {}) };
   }
   const bucketsA = yield* buildBuckets(
     'A', [0, 1, 2], prepared, prepared.maxSetsForA,

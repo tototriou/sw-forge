@@ -24,7 +24,12 @@ import {
 } from '../src/lib/runeBuildOptim';
 import type { StatRow } from '../src/lib/stats';
 import { StatKey, runeEfficiency, runeScore } from '../src/lib/effects';
+import { AUCUNE_AURA_PROPRE } from '../src/lib/damage';
 import { egal, ok, titre } from './outils';
+
+// Candidats synthétiques des tests de tri, sans aucune rune réelle : aucune
+// aura propre, déclarée explicitement (6bis-b2, `aurasPropresDe` obligatoire).
+const SANS_AURA_PROPRE = { aurasPropresDe: () => AUCUNE_AURA_PROPRE };
 
 const ZERO_BASE: BaseStats = { hp: 1000, atk: 100, def: 100, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
@@ -635,18 +640,18 @@ export default function testRuneOptim() {
     // minimum demandé DIMINUE.
     let previous = -1;
     for (let t = 225; t >= 0; t--) {
-      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: t } });
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: t } }, undefined, undefined);
       ok(size >= previous, `poolMinSlot ne doit jamais décroître quand minStats.spd diminue (t=${t} → ${size}, précédent ${previous})`);
       previous = size;
     }
 
     // 2) Oracle par balayage exhaustif : le plus petit delta (le seuil le
     // plus PROCHE de 225) qui fait grandir le pool au-delà de la baseline.
-    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, requirement);
+    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, requirement, undefined, undefined);
     egal(baseline, 0, 'à spd=225, aucune variante (max 220) ne passe → pool vide');
     let oracleDelta: number | null = null;
     for (let delta = 1; delta <= 225; delta++) {
-      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: 225 - delta } });
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, spdStaircase, { ...requirement, minStats: { spd: 225 - delta } }, undefined, undefined);
       if (size > baseline) {
         oracleDelta = delta;
         break;
@@ -687,16 +692,16 @@ export default function testRuneOptim() {
 
     let previous = -1;
     for (let t = 95; t <= 200; t++) {
-      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: t } });
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: t } }, undefined, undefined);
       ok(size >= previous, `poolMinSlot ne doit jamais décroître quand maxStats.atk augmente (t=${t} → ${size}, précédent ${previous})`);
       previous = size;
     }
 
-    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, requirement);
+    const baseline = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, requirement, undefined, undefined);
     egal(baseline, 0, 'à atk≤95, même la variante ATQ%=0 (total 100) dépasse déjà le plafond → pool vide');
     let oracleDelta: number | null = null;
     for (let delta = 1; delta <= 105; delta++) {
-      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: 95 + delta } });
+      const size = poolMinSlotSafe(ZERO_BASE, [], undefined, atkStaircase, { ...requirement, maxStats: { atk: 95 + delta } }, undefined, undefined);
       if (size > baseline) {
         oracleDelta = delta;
         break;
@@ -1091,7 +1096,7 @@ export default function testRuneOptim() {
       { runeIds: [3], stats: st(180, 9000), effTotal: 0 },
     ] as unknown as Parameters<typeof sortCandidates>[0];
 
-    const parVitesse = sortCandidates(bruts, 'vitesse');
+    const parVitesse = sortCandidates(bruts, 'vitesse', SANS_AURA_PROPRE);
     egal(
       parVitesse.map((c) => c.runeIds[0]),
       [2, 3, 1],
@@ -1106,7 +1111,7 @@ export default function testRuneOptim() {
 
     // Un tri par stat brute passe par le même point d'entrée.
     egal(
-      sortCandidates(bruts, 'hp').map((c) => c.runeIds[0]),
+      sortCandidates(bruts, 'hp', SANS_AURA_PROPRE).map((c) => c.runeIds[0]),
       [3, 1, 2],
       'trié par une STAT : même porte, même contrat'
     );
@@ -1115,13 +1120,13 @@ export default function testRuneOptim() {
     // que de lever — un `sortBy` hérité d'un monstre précédent peut porter
     // cet objectif alors que le monstre courant n'a aucun sort calculable.
     egal(
-      sortCandidates(bruts, 'degats_reels').map((c) => c.runeIds[0]),
+      sortCandidates(bruts, 'degats_reels', SANS_AURA_PROPRE).map((c) => c.runeIds[0]),
       [1, 2, 3],
       '« Dégâts réels » sans contexte : ordre inchangé, jamais une exception'
     );
     // Idem pour « Efficience » sans les runes ni la mesure.
     egal(
-      sortCandidates(bruts, 'efficience').map((c) => c.runeIds[0]),
+      sortCandidates(bruts, 'efficience', SANS_AURA_PROPRE).map((c) => c.runeIds[0]),
       [1, 2, 3],
       '« Efficience » sans runeById/metric : ordre inchangé'
     );
@@ -1164,7 +1169,7 @@ export default function testRuneOptim() {
 
     for (const cle of ['spd', 'hp', 'def'] as const) {
       egal(
-        sortCandidates(lot, cle).map((c) => c.runeIds[0]),
+        sortCandidates(lot, cle, SANS_AURA_PROPRE).map((c) => c.runeIds[0]),
         referenceNaive(lot, cle).map((c) => c.runeIds[0]),
         `tri par ${cle} : le pré-calcul rend le MÊME ordre que le comparateur naïf, ex æquo compris`
       );
@@ -1174,7 +1179,7 @@ export default function testRuneOptim() {
     // Sans elle, deux builds équivalents changeraient de rang d'un rendu à
     // l'autre, sans que rien n'ait bougé à l'écran.
     egal(
-      sortCandidates(lot, 'spd').map((c) => c.runeIds[0]),
+      sortCandidates(lot, 'spd', SANS_AURA_PROPRE).map((c) => c.runeIds[0]),
       [2, 5, 1, 3, 4],
       'à score ÉGAL, l’ordre d’entrée est préservé (tri stable)'
     );

@@ -59,7 +59,7 @@ import {
   COULEUR_SIEGE_SUB,
   COULEUR_COMPTE_SUB,
 } from './data/couleursSection';
-import { ArtifactDetail, CraftLine, Monster, RuneDetail } from './types';
+import { ArtifactDetail, CraftLine, Monster, RelicDetail, RuneDetail } from './types';
 import { useMonsters } from './hooks/useMonsters';
 import { useCustomMonsters } from './hooks/useCustomMonsters';
 import { useRtaState } from './hooks/useRtaState';
@@ -282,12 +282,17 @@ export default function App() {
   const [box, setBox] = useState<BoxItem[]>([]);
   const [runes, setRunes] = useState<RuneDetail[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
+  const [relics, setRelics] = useState<RelicDetail[]>([]);
   const [crafts, setCrafts] = useState<CraftLine[]>([]);
   // Runes UTILISÉES (posées sur un monstre d'un deck ou en RTA — voir
   // `parseUsedRuneIds`). ⚠️ Instancié ICI, comme le reste du compte : les decks
   // ne vivent que dans l'export brut, cette liste est la seule trace qu'il en
   // reste une fois l'import terminé.
   const [usedRuneIds, setUsedRuneIds] = useState<number[]>([]);
+  // Occupation par rid de relique (nombre d'unités portant chaque pièce) —
+  // même raison de stockage que `usedRuneIds` : calculée à l'import, l'export
+  // brut n'est jamais conservé.
+  const [relicUsageById, setRelicUsageById] = useState<Record<number, number>>({});
 
   // Un nouveau compte importé (`appliquerImport`, `setBox` avec une NOUVELLE
   // référence) rend obsolètes les « Critères de recherche »/« Combinaisons
@@ -325,7 +330,7 @@ export default function App() {
       hydrationJustAppliedRef.current = false;
       return;
     }
-    optimizer.resetSearch();
+    optimizer.resetSearch('compte');
 
     // Listes de travail (Lot 3) — un build validé porte un INSTANTANÉ de
     // runes (voir ValidatedBuild, optimizerExclusion.ts), pas une référence
@@ -534,8 +539,10 @@ export default function App() {
         setBox(mapBoxMonsters(rec.box, monsterByCom2us));
         setRunes(rec.runes);
         setArtifacts(rec.artifacts);
+        setRelics(rec.relics);
         setCrafts(rec.crafts);
         setUsedRuneIds(rec.usedRuneIds);
+        setRelicUsageById(rec.relicUsageById);
         setAccountExportedAt(rec.exportedAt);
         setAccountName(rec.wizardName ?? null);
       }
@@ -678,8 +685,10 @@ export default function App() {
     setBox(boxItems);
     setRunes(invRes.runes ?? []);
     setArtifacts(invRes.artifacts ?? []);
+    setRelics(invRes.relics ?? []);
     setCrafts(invRes.crafts ?? []);
     setUsedRuneIds(usedRunes);
+    setRelicUsageById(invRes.relicUsageById ?? {});
 
     // Enregistrement **après** la mise à jour de l'affichage et sans attendre :
     // une écriture de 2 Mo ne doit pas retarder l'apparition du compte. Un échec
@@ -690,8 +699,10 @@ export default function App() {
         box: rawBoxRef.current,
         runes: invRes.runes ?? [],
         artifacts: invRes.artifacts ?? [],
+        relics: invRes.relics ?? [],
         crafts: invRes.crafts ?? [],
         usedRuneIds: usedRunes,
+        relicUsageById: invRes.relicUsageById ?? {},
         exportedAt: exporte,
         wizardName: nomJoueur,
       });
@@ -768,8 +779,10 @@ export default function App() {
       box: rawBoxRef.current,
       runes,
       artifacts,
+      relics,
       crafts,
       usedRuneIds,
+      relicUsageById,
       exportedAt: accountExportedAt,
       wizardName: accountName,
     });
@@ -1355,6 +1368,8 @@ export default function App() {
             box={box}
             runes={runes}
             artifacts={artifacts}
+            relics={relics}
+            relicUsageById={relicUsageById}
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}
@@ -1366,6 +1381,9 @@ export default function App() {
             accountName={accountName}
             menuOuvert={menuPageOuvert}
             onFermerMenu={() => setMenuPageOuvert(false)}
+            // L'Optimizer ouvre lui-même ce panneau pour l'ouverture guidée
+            // au doigt (degats-et-aura 7b) — seule page qui le demande.
+            onOuvrirMenu={() => setMenuPageOuvert(true)}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />

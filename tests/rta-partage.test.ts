@@ -86,6 +86,12 @@ export default function testRtaPartage() {
         subs: [{ code: 300, value: 10 }],
       },
     ],
+    relic: {
+      id: 34315,
+      upgrade: 11,
+      main: { code: 100, value: 14 },
+      unique: { type: 12, tranche: 27000, percent: 2 },
+    },
   };
 
   const state: RtaState = {
@@ -153,6 +159,16 @@ export default function testRtaPartage() {
   const rapport = validateRtaImport(json);
   ok(rapport.snapshot !== null, 'un export de SW Forge se relit sans erreur bloquante');
   egal(rapport.errors, [], 'aucune erreur sur un fichier produit par l’app');
+  egal(rapport.warnings, [], 'et aucun avertissement — la relique porte bien id et upgrade');
+
+  // ⚠️ Aller-retour toSnapshot → encodeSnapshot → validateRtaImport : `id` et
+  // `upgrade` sont non optionnels dans `RelicDetail` (lot 1), ils doivent donc
+  // arriver entiers chez le lecteur — pas seulement `main`/`unique`.
+  egal(
+    rapport.snapshot!.entries.find((e) => e.com2usId === 15214)?.gear?.relic,
+    { id: 34315, upgrade: 11, main: { code: 100, value: 14 }, unique: { type: 12, tranche: 27000, percent: 2 } },
+    'la relique de l’auteur, id et upgrade compris, traverse l’aller-retour intacte'
+  );
 
   const vue = versVueAmi(rapport.snapshot!, parCom2us(chezLui));
 
@@ -535,7 +551,12 @@ export default function testRtaPartage() {
             base: { hp: 10000, atk: 700, def: 600, spd: 107, cr: 15, cd: 50, res: 15, acc: 0 },
             runes: [],
             artifacts: [],
-            relic: { main: { code: 100, value: 11 }, unique: { type: 12, tranche: 27000, percent: 2 } },
+            relic: {
+              id: 34315,
+              upgrade: 11,
+              main: { code: 100, value: 11 },
+              unique: { type: 12, tranche: 27000, percent: 2 },
+            },
           },
         },
       ],
@@ -545,6 +566,11 @@ export default function testRtaPartage() {
     avecRelique.snapshot!.entries[0].gear?.relic?.unique,
     { type: 12, tranche: 27000, percent: 2 },
     'relique partagée : la propriété unique arrive entière'
+  );
+  egal(
+    { id: avecRelique.snapshot!.entries[0].gear?.relic?.id, upgrade: avecRelique.snapshot!.entries[0].gear?.relic?.upgrade },
+    { id: 34315, upgrade: 11 },
+    'relique partagée : id et upgrade arrivent aussi (non optionnels depuis le lot 1)'
   );
 
   // ⚠️ Un fichier exporté AVANT cette version porte `relic.sub = { code, value }`
@@ -565,7 +591,7 @@ export default function testRtaPartage() {
             base: { hp: 10000, atk: 700, def: 600, spd: 107, cr: 15, cd: 50, res: 15, acc: 0 },
             runes: [],
             artifacts: [],
-            relic: { main: { code: 100, value: 11 }, sub: { code: 12, value: 27000 } },
+            relic: { id: 34315, upgrade: 11, main: { code: 100, value: 11 }, sub: { code: 12, value: 27000 } },
           },
         },
       ],
@@ -576,4 +602,73 @@ export default function testRtaPartage() {
     { type: 12, tranche: 27000 },
     'ancien fichier : type et tranche relus, aucun pourcentage inventé'
   );
+
+  // ⚠️ Un lien émis AVANT `75f073f` (lot 1) ne porte ni `id` ni `upgrade` sur
+  // la relique — `RelicDetail` les exige pourtant. La relique est alors
+  // IGNORÉE avec un avertissement, jamais fabriquée avec `undefined` : le
+  // reste de l'équipement (runes, artéfacts) traverse quand même.
+  const sansIdNiUpgrade = validateRtaImport(
+    JSON.stringify({
+      format: 'sw-forge/prepa-rta',
+      sections: ['swift'],
+      monstres: [
+        {
+          com2usId: 15214,
+          nom: 'Trevor',
+          section: 'swift',
+          vitesse: 100,
+          gear: {
+            base: { hp: 10000, atk: 700, def: 600, spd: 107, cr: 15, cd: 50, res: 15, acc: 0 },
+            runes: [
+              {
+                id: 42,
+                slot: 2,
+                set: 'swift',
+                rank: 6,
+                rarity: 5,
+                level: 15,
+                main: { code: 8, value: 40 },
+                subs: [],
+              },
+            ],
+            artifacts: [],
+            relic: { main: { code: 100, value: 11 }, unique: { type: 12, tranche: 27000, percent: 2 } },
+          },
+        },
+      ],
+    })
+  );
+  egal(sansIdNiUpgrade.snapshot!.entries[0].gear?.relic, undefined, 'relique sans id/upgrade : ignorée, pas fabriquée');
+  egal(
+    sansIdNiUpgrade.snapshot!.entries[0].gear?.runes.length,
+    1,
+    'le reste de l’équipement (runes) traverse malgré la relique ignorée'
+  );
+  ok(
+    sansIdNiUpgrade.warnings.some((w) => w.includes('relique') && w.includes('ignorée')),
+    'un avertissement explicite signale la relique ignorée'
+  );
+
+  // Même contrôle pour un `upgrade` hors bornes ([0, 15]) : ignorée aussi.
+  const upgradeHorsBornes = validateRtaImport(
+    JSON.stringify({
+      format: 'sw-forge/prepa-rta',
+      sections: ['swift'],
+      monstres: [
+        {
+          com2usId: 15214,
+          nom: 'Trevor',
+          section: 'swift',
+          vitesse: 100,
+          gear: {
+            base: { hp: 10000, atk: 700, def: 600, spd: 107, cr: 15, cd: 50, res: 15, acc: 0 },
+            runes: [],
+            artifacts: [],
+            relic: { id: 34315, upgrade: 16, main: { code: 100, value: 11 } },
+          },
+        },
+      ],
+    })
+  );
+  egal(upgradeHorsBornes.snapshot!.entries[0]?.gear, undefined, 'relique seule, upgrade hors bornes : équipement vide');
 }

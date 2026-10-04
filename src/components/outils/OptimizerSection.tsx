@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState, useEffect } from 'react';
+import { Fragment, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Search,
   Square,
@@ -20,11 +20,15 @@ import {
   Swords,
   Pencil,
 } from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
-import { computeStats, statsParPaire } from '../../lib/stats';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
-import { candidatAvecSaPaire, cleBuild, signatureReglages } from '../../lib/artifactQueue';
-import { useArtifactOptimQueue } from '../../hooks/useArtifactOptimQueue';
+import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
+import { resoudreContexteRelique } from '../../lib/relicOptim';
+import { artifactConditionFloor, relicConditionFloor } from '../../lib/artifactConditionFloor';
+import { useArtifactOptimQueue, type ResolutionHorsFil } from '../../hooks/useArtifactOptimQueue';
+import { entreesSerialisables } from '../../workers/resolutionBody';
 import {
   bornesArtefacts,
   chercherPaires,
@@ -33,16 +37,19 @@ import {
   nombreDePairesRetenues,
   paireRepresentative,
   respecteMinimums,
-  type ChoixPrincipale,
 } from '../../lib/artifactOptim';
 import { BoxItem } from '../../lib/applyAccount';
-import { evaluerPourRegime, regimeArtefacts, type RegimeArtefacts } from '../../lib/artifactEvaluation';
+import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
+import { evaluateursArtefactsFiche, parametresArtefactsFiche, piecesFigeesDe, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
 import {
-  ARTIFACT_MAIN,
   CAPPED_STATS,
   RUNE_EFFECT,
+  RELIC_MAIN,
+  RELIC_MAIN_OPTIONS,
+  RELIC_UNIQUE,
   StatKey,
   formatArtifactMain,
+  relicUniqueEffectLabel,
   runeSetIconFilter,
   runeEfficiency,
   runeScore,
@@ -60,23 +67,27 @@ import {
   StatShortfall,
   statTotal,
   objectiveScore,
+  avecAurasConditions,
   sortCandidates,
+  scoreDuCandidat,
+  optionsDeClassement,
+  scoreDeReference,
   candidateMetricTotal,
   pvEffectifs,
+  aurasPropresParRunes,
   OBJECTIVE_LABELS,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
-  ARTIFACT_MAIN_VALUE,
   ARTIFACT_MAIN_OPTIONS,
   type BuildCandidate,
 } from '../../lib/runeBuildOptim';
 import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
+import { rappelsBuffsDePassif } from '../../lib/buffsDePassif';
 import { monsterBaseStats } from '../../lib/stats';
 import {
   DEFAULT_DAMAGE_SETUP,
-  computeTotalDamage,
+  aurasPropresDesRunes,
   damageRelevantStats,
-  degatsBrutsArtefactsParCoup,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
@@ -100,8 +111,8 @@ import {
   monsterModificateursVit,
   monsterOffensivePassives,
   resolveDamageSkill,
+  resumeCibleDegatsRetenue,
   champsDuCombat,
-  codesAmplificationActifs,
   CRIT_MODE_LABELS,
   SUMMONER_SKILLS_LABELS,
   type DamageSetup,
@@ -117,19 +128,32 @@ import {
   SOURCE_OPTIONS,
   ValidatedBuild,
   autoExcludedRuneIds,
+  etatAjoutListe,
   exclusionCandidatesFor,
   exclusionSelectorKey,
   findValidatedBuild,
+  libellePuceSource,
   otherValidatedArtifactIds,
   otherValidatedRuneIds,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
-import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe } from '../../lib/optimizerRecipe';
-import { ArtifactMainChoice, OptimizerState, OptimizerSortKey } from '../../hooks/useOptimizerState';
+import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
+import { classeMessageImport, delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
+import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
+import {
+  ArtifactMainChoice,
+  OptimizerState,
+  OptimizerSortKey,
+  RelicMainChoice,
+  RelicUniqueChoice,
+  DEFAULT_RELIC_MIN_UPGRADE,
+  defaultRelicMainChoice,
+  relicIntentDepuisEtat,
+} from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
-import { useMediaQuery, SOUS_SM } from '../../hooks/useMediaQuery';
+import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import IconeInterdite from '../IconeInterdite';
 import MonsterAvatar from '../MonsterAvatar';
@@ -159,7 +183,7 @@ import OptimizerListPicker from './OptimizerListPicker';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
 import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
-import BuildCandidateCard from './BuildCandidateCard';
+import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
 import EtatMonstre from './EtatMonstre';
 
@@ -170,6 +194,14 @@ interface Props {
   // le sélecteur de stat principale FILTRE désormais cet inventaire au lieu
   // d’hypothéquer une pièce sans lignes d’effet (voir `searchArtifacts`).
   artifacts: ArtifactDetail[];
+  // Inventaire COMPLET de reliques (implementation-relique, B.5c) — même
+  // rôle qu'`artifacts` ci-dessus pour la dimension relique : le pool que
+  // `resoudreContexteRelique` filtre en mode `recherche`.
+  relics: RelicDetail[];
+  // Occupation par `rid` — combien d'exemplaires du compte portent CETTE
+  // relique, affiché `n / 150` dans le détail d'une relique (D3 : AFFICHÉE,
+  // jamais bloquante ni exclusive — implementation-relique, B.5c ter).
+  relicUsageById: Record<number, number>;
   // Remontée dans App.tsx (voir useOptimizerState) : la page est démontée à
   // chaque changement d'onglet, comme les autres pages de l'app — sans cette
   // remontée, toute la saisie (monstre, conditions, résultats…) serait
@@ -195,6 +227,11 @@ interface Props {
   // et Exclusion de runes y vivent au doigt ; en ligne (cartes) au bureau.
   menuOuvert: boolean;
   onFermerMenu: () => void;
+  // Ouvre ce même panneau depuis l'écran — l'ouverture guidée au doigt vers
+  // l'interrupteur des auras RES/PRE (degats-et-aura 7b). Le panneau reste
+  // piloté par App.tsx (son bouton vit dans la barre de nav) : l'écran ne
+  // peut que le DEMANDER.
+  onOuvrirMenu: () => void;
 }
 
 // ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
@@ -371,7 +408,22 @@ const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
   { key: 'reel', label: 'Dégâts réels' },
 ];
 
-export default function OptimizerSection({ box, runes, artifacts, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
+// ⚠️ **Largeur fixe et commune** aux quatre listes de la carte « Artéfacts
+// et reliques » (Attribut, Type, Principale, Propriété unique) — un
+// `<select>` natif sans largeur explicite prend celle de sa plus longue
+// option (« Soins et boucliers accordés en fonction des PV » pour la
+// relique). `truncate` tronque la valeur FERMÉE par « … » ; la liste
+// ouverte garde le texte complet (comportement natif du `<select>`).
+const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
+// ⚠️ Même principe pour les LIBELLÉS des deux rangées (Attribut / Type et
+// Principale / Propriété unique / Niveau minimum) : une largeur commune,
+// dimensionnée sur le plus long (« Propriété unique »), sans quoi les
+// boutons de la seconde rangée ne tombent pas sous ceux de la première —
+// « Type » et « Propriété unique » doivent être alignés (demande explicite,
+// vue sur le rendu du lot 5c quater).
+const LARGEUR_LIBELLE_LISTE = 'w-28';
+
+export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PLUS aux `Segmented` — ils se resserrent désormais tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -398,6 +450,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setAdapterArtefactsAuTri,
     artifactMainByKind,
     setArtifactMainByKind,
+    relicMainChoice,
+    setRelicMainChoice,
+    relicUniqueChoice,
+    setRelicUniqueChoice,
+    relicMinUpgrade,
+    setRelicMinUpgrade,
     lignesVerrouillees,
     setLignesVerrouillees,
     mainStatsBySlot,
@@ -408,6 +466,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setObjective,
     damageSetup,
     setDamageSetup,
+    compterAurasResPre,
+    setCompterAurasResPre,
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,
@@ -418,6 +478,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setAdaptiveTrancheWeighting,
     exhaustiveSearch,
     setExhaustiveSearch,
+    verifierToutesLesCombinaisons,
+    setVerifierToutesLesCombinaisons,
     sortBy,
     setSortBy,
     resultsPage,
@@ -432,10 +494,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     setStoppedManually,
     openDetailKey,
     setOpenDetailKey,
+    importDuCompte,
     search,
     resetSearch,
+    effacerResultats,
   } = optimizer;
-  const { status, result, progress, run, stop } = search;
+  // `relicContextRecherche` : le contexte relique de la recherche LANCÉE
+  // (garantie G) — `undefined` tant que l'écran n'en pose pas dans `run()`
+  // (5c) ; la file de résolution le lit ici, jamais dans les trois champs.
+  const { status, result, progress, refusal, relicContext: relicContextRecherche, run, stop } = search;
 
   // Tous les monstres du BESTIAIRE, indexés par id — la recherche du
   // monstre à optimiser résout désormais une ESPÈCE dans TOUT le bestiaire
@@ -485,6 +552,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   }, [selectedCom2usId]);
 
   const damageSkills = useMemo(() => monsterDamageSkills(skillDetail), [skillDetail]);
+  // Rappel « tel passif pose tel buff » d'« État de mon monstre »
+  // (degats-et-aura P2) : affichage seul, aucun calcul ne le lit. ⚠️ Garde
+  // sur l'identité de la fiche : au changement de monstre, l'ancienne reste
+  // en mémoire le temps du chargement, et son rappel ne doit pas s'afficher
+  // sous le nouveau monstre.
+  const rappelsBuffs = useMemo(
+    () => (skillDetail?.com2usId === selectedCom2usId ? rappelsBuffsDePassif(skillDetail) : []),
+    [skillDetail, selectedCom2usId]
+  );
   // Le sort RÉELLEMENT retenu — `resolveDamageSkill` est la source unique de
   // cette résolution, partagée avec la relecture d'une recette en ligne de
   // commande (scripts/lib/recipeToSearchParams.ts).
@@ -528,11 +604,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    * Ce que l'état du monstre suppose, en une ligne — l'écho posé dans le
    * sous-titre de la fenêtre « Dégâts réels ».
    *
-   * ⚠️ **En lecture seule, jamais des contrôles.** Ces cinq réglages vivent
-   * désormais dans la carte Artéfacts ; les rendre AUSSI dans la fenêtre en
+   * ⚠️ **En lecture seule, jamais des contrôles.** Ces réglages vivent dans
+   * la carte « État de mon monstre » ; les rendre AUSSI dans la fenêtre en
    * ferait deux exemplaires vivants du même interrupteur, visibles en même
    * temps. Qui ouvre la fenêtre pour décrire un combat doit néanmoins savoir
    * sous quelles hypothèses il travaille — d'où la phrase, et rien de plus.
+   *
+   * ⚠️ **Les auras externes y sont NOMMÉES par set** (degats-et-aura 7a) ;
+   * l'écho les ignorait. Les activations propres du build, elles, se
+   * résolvent par candidat : la fenêtre n'en connaît aucun, elle dit
+   * seulement qu'elles s'ajoutent sur chaque résultat (`echoAurasExternes`).
    */
   const echoEtatMonstre = useMemo(() => {
     const bouts = [
@@ -542,7 +623,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       damageSetup.leaderSkill && `lead ${damageSetup.leaderSkill.stat} +${damageSetup.leaderSkill.pct} %`,
       SUMMONER_SKILLS_LABELS.find((s) => s.key === damageSetup.summonerSkills)?.label,
     ].filter(Boolean);
-    return `État du monstre : ${bouts.length > 0 ? bouts.join(' · ') : 'aucun buff, aucun lead'}`;
+    return `État du monstre : ${bouts.length > 0 ? bouts.join(' · ') : 'aucun buff, aucun lead'} · ${echoAurasExternes(damageSetup.setsAuraExternes)}`;
   }, [damageSetup]);
   const critInterdit = useMemo(() => monsterCritInterdit(skillDetail), [skillDetail]);
   /**
@@ -560,6 +641,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const resumeCombat = useMemo(() => {
     const bouts: string[] = [];
     bouts.push(resolvedSkill ? `S${resolvedSkill.slot} ${resolvedSkill.nom}` : 'Aucun sort exploitable');
+    // La cible calculée d'un sort à coup de zone curé (Blade Surge), quand ce
+    // n'est pas la cible visée : celle que RETIENT le calcul pour le sort
+    // RÉSOLU, même règle que le reste de cette ligne (degats-et-aura 8c).
+    const cibleRetenue = resolvedSkill && resumeCibleDegatsRetenue(resolvedSkill, damageSetup);
+    if (cibleRetenue) bouts.push(cibleRetenue);
     const cible = ELEMENTS.find((e) => e.key === damageSetup.enemyElement);
     bouts.push(cible ? `vs ${cible.label}` : 'élément ignoré');
     bouts.push(`PV ${damageSetup.enemyHp.toLocaleString('fr-FR')}`);
@@ -775,14 +861,20 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const HARD_TIMEOUT_MS = 10 * 60 * 1000;
 
   const runeById = useMemo(() => new Map(runes.map((r) => [r.id, r])), [runes]);
+  // Activations d'aura PROPRES aux runes de chaque candidat (6bis-b2), lues
+  // par le tri, les cartes et le near-miss — jamais celles de la fiche.
+  const aurasPropresDe = useMemo(() => aurasPropresParRunes(runeById), [runeById]);
   // Jumeau de `runeById` : sert à rejouer la paire d'un build validé, qui n'en
   // mémorise que les identifiants.
   const artifactById = useMemo(() => new Map(artifacts.map((a) => [a.id, a])), [artifacts]);
 
-  // ⚠️ La page affichée, exposée à la file d’optimisation d’artéfacts. Elle est
-  // remplie APRÈS `pageCandidates` (plus bas) : une ref, parce que la file est
-  // déclarée AVANT lui et ne peut donc pas recevoir sa valeur.
+  // ⚠️ La page que la file sert en priorité : les builds qui rempliront les
+  // places « Vérification… » de la page affichée (`composition.aVerifier`,
+  // 6bis-b16). Elle est remplie APRÈS `composition` (plus bas) : une ref, parce
+  // que la file est déclarée AVANT elle et ne peut donc pas recevoir sa valeur.
   const pageAfficheeRef = useRef<BuildCandidate[]>([]);
+  // La grille des résultats : `useHauteurDesCartes` y mesure les cartes.
+  const grilleResultatsRef = useRef<HTMLDivElement>(null);
 
   /**
    * La sélection de « Équipement actuel », dérivée de la MÊME clé que les
@@ -912,8 +1004,20 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // seules (demande explicite, voir ExclusionSelector « unowned »).
   function pickSpecies(monster: Monster) {
     const id = String(monster.id);
+    // ⚠️ Calculé AVANT le `if` (contrairement à avant ce lot) : le défaut de
+    // relique (D1, ci-dessous) a besoin du premier exemplaire Box pour
+    // connaître la relique RÉELLEMENT portée, comme `setSourceSelector` plus
+    // bas — un seul calcul, pas une résolution séparée qui pourrait diverger.
+    const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
     if (id !== selectedId) {
       resetSearch();
+      // ⚠️ **D1, incident artéfacts « le défaut affiché était FAUX » —
+      // jamais répété ici** : `defaultRelicMainChoice` (useOptimizerState.ts)
+      // est la SOURCE du défaut, câblée ici parce que c'est le seul site qui
+      // connaît le monstre choisi (le hook n'y a pas accès) — comme
+      // `objective` juste en dessous, remis à zéro puis surchargé au même
+      // endroit.
+      setRelicMainChoice(defaultRelicMainChoice(boxCandidates[0]?.gear.relic));
       /**
        * ⚠️ **Un sort appartient à un MONSTRE.** `skillCom2usId` désigne un
        * sort précis ; après un changement de monstre, `resolveDamageSkill`
@@ -926,15 +1030,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
        * plutôt que visible. Réoptimiser en dégâts demande alors de recliquer
        * « Dégâts réels » et de rechoisir le sort — le geste qui manquait.
        *
-       * ⚠️ **`damageSetup` n'est PAS remis à zéro pour autant.** La défense,
-       * les PV et l'élément de l'adversaire, les buffs, le lead : rien de
-       * tout cela n'est propre au monstre, et c'est le plus long à
-       * ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec le
-       * combat déjà décrit, seul le sort restant à choisir. Seul
-       * `skillCom2usId` est vidé, pour que la valeur STOCKÉE soit celle
-       * réellement utilisée — sinon un identifiant périmé traîne, inerte
-       * tant que le cran est au défaut, et ressort au prochain « Dégâts
-       * réels ».
+       * Le reset garde le contexte commun mais vide le sort et ses réglages
+       * associés. Recliquer « Dégâts réels » retrouve le combat décrit.
        *
        * ⚠️ **Ici et surtout PAS dans un `useEffect` sur le monstre
        * sélectionné** : `importRecipe` pose le monstre ET l'objectif
@@ -947,11 +1044,9 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
        */
       setObjective('efficience');
       setCritereArtefacts('brut');
-      setDamageSetup((s) => ({ ...s, skillCom2usId: null }));
     }
     setSelectedId(id);
     setGearSource('box');
-    const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
     setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData));
     setZoneDOpen(false);
   }
@@ -1100,20 +1195,19 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    * runage réellement porté », qui la désactive exprès.
    */
   const statsReference = useMemo(() => (selected ? computeStats(selected.gear) : null), [selected]);
+  // Les activations d'aura des runes de CETTE fiche (6bis-b2) : elles
+  // accompagnent `statsReference` et tout calcul fait sur `selected.gear`
+  // (paire représentative, bloc « Meilleurs artéfacts »). Sans rune, zéro.
+  const aurasPropresFiche = useMemo(() => aurasPropresDesRunes(selected?.gear.runes ?? []), [selected]);
   /**
-   * Les deux autres valeurs de référence du bouton « Comparer » : les PV
-   * effectifs et l'efficience/score total de la fiche.
-   *
-   * ⚠️ `pvEffectifs` vient de `runeBuildOptim`, la même fonction que celle qui
-   * CLASSE les candidats — recopier sa formule ici aurait donné deux nombres
-   * qui divergent au premier ajustement du facteur de défense.
+   * La référence d'efficience/score total du bouton « Comparer » (celles des
+   * PV effectifs et des dégâts réels : `refEhp`/`refDegats`, plus bas).
    *
    * ⚠️ L'efficience se somme sur les runes de la fiche dans la mesure
    * COURANTE, comme `candidateMetricTotal` le fait pour un candidat : figer la
    * mesure de la recherche donnerait un écart faux dès qu'on bascule
    * Efficience ↔ Score sans relancer.
    */
-  const refEhp = useMemo(() => (statsReference ? pvEffectifs(statsReference) : null), [statsReference]);
   const refMetric = useMemo(
     () =>
       selected
@@ -1260,11 +1354,62 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    */
   const critereArtefactsPaire = adapterArtefactsAuTri ? sortBy : objective;
   const regimePaire = regimeArtefacts(critereArtefactsPaire);
+  /**
+   * Le régime EFFECTIF de l'équipement complet — paire ET relique (D7, lot
+   * 5b : le bouton gouverne les deux, aucun interrupteur parallèle) : sort
+   * non calculable → rabattu sur `'aucun'` ICI, une seule fois, jamais un
+   * contexte de dégâts optionnel absorbé en silence par `evaluerPourRegime`.
+   */
+  const regimeEquipement: RegimeArtefacts = regimeEquipementDe(regimePaire, !!contexteDegatsArtefacts);
 
-  const sortesFigees = useMemo<ArtifactKind[]>(
-    () =>
-      ARTIFACT_KINDS.map(({ key }) => key).filter((key) => (artifactMainByKind[key] ?? 'libre') === 'equipped'),
-    [artifactMainByKind]
+  /**
+   * Le contexte de l'assiette `Y` des propriétés uniques de relique (lot 7,
+   * `relicExclusive.ts`) : le `DamageSetup` et l'élément de l'espèce.
+   *
+   * ⚠️ **Indépendant du contexte de dégâts** : « État de mon monstre » (lead,
+   * compétences d'invocateur) modifie les statistiques quel que soit
+   * l'objectif choisi, et « PV effectifs » n'a pas de sort calculable à
+   * fournir. Un seul objet, donné au choix de l'équipement ET au classement —
+   * jamais deux lectures qui divergeraient.
+   */
+  const contexteExclusive = useMemo(
+    () => ({ setup: damageSetup, element: speciesMonster?.element ?? null }),
+    [damageSetup, speciesMonster?.element]
+  );
+
+  /**
+   * Les valeurs de référence « PV effectifs » et « Dégâts réels » du bouton
+   * « Comparer » : la FICHE notée comme un candidat, par `scoreDeReference`
+   * (runeBuildOptim.ts) — ses stats, ses auras propres, le profil de SA paire
+   * d'artéfacts et l'effet unique de SA relique, avec des options propres à
+   * la référence, jamais les accesseurs du cache des résultats.
+   *
+   * ⚠️ Jusqu'à 6bis-b4, l'écart « Dégâts réels » mêlait les stats de la fiche
+   * au profil de `searchArtifacts` (la paire de la recherche, hypothétique
+   * comprise) et omettait l'effet unique des deux côtés de la référence :
+   * faux dans les deux sens (degats-et-aura 6bis-b5a). Déclarées APRÈS
+   * `contexteExclusive`, qu'elles lisent pendant le rendu.
+   */
+  const contexteReference = useMemo(
+    () => ({ degats: contexteDegatsArtefacts, damageSetup, exclusive: contexteExclusive }),
+    [contexteDegatsArtefacts, damageSetup, contexteExclusive]
+  );
+  const refEhp = useMemo(
+    () => (selected ? scoreDeReference('ehp', selected.gear, contexteReference) : null),
+    [selected, contexteReference]
+  );
+  const refDegats = useMemo(
+    () => (selected ? scoreDeReference('degats_reels', selected.gear, contexteReference) : null),
+    [selected, contexteReference]
+  );
+
+  const sortesFigees = useMemo<ArtifactKind[]>(() => sortesFigeesDe(artifactMainByKind), [artifactMainByKind]);
+
+  const evaluateursFiche = useMemo(
+    () => selected ? evaluateursArtefactsFiche(
+      selected.gear, objective, aurasPropresFiche, contexteDegatsArtefacts, contexteExclusive, combatStats
+    ) : null,
+    [selected, objective, aurasPropresFiche, contexteDegatsArtefacts, contexteExclusive, combatStats]
   );
 
   const artifactParams = useMemo(() => {
@@ -1274,7 +1419,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // on cesse seulement d'en chercher d'autres. Le réglage retirait avant
     // TOUTE contribution d'artéfact, ce qui rendait les conditions minimales
     // plus dures à franchir sans que rien ne le dise.
-    if (!selected) return null;
+    if (!selected || !evaluateursFiche) return null;
     const espece = selected.monster;
     // ⚠️ Le score de la paire dépend de l'OBJECTIF, et PAS de la même façon
     // pour tous : `pvEffectifs` (PV effectifs) n'est PAS une somme des deux
@@ -1294,57 +1439,35 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // fiche du monstre, jamais des artéfacts — c'est ce qui évite la
     // circularité avec `realDamage`, qui est construit APRÈS ce bloc et lit
     // `searchArtifacts`.
-    const statsAvec = statsParPaire(selected.gear);
-    const regimeBrut = regimeArtefacts(objective);
-    // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
-    // paramètre `degats` optionnel silencieusement absorbé par le helper.
-    const regimeRepresentatif: RegimeArtefacts = regimeBrut === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimeBrut;
-    const evaluer =
-      regimeRepresentatif === 'degats_reels'
-        ? evaluerPourRegime(regimeRepresentatif, statsAvec, contexteDegatsArtefacts!)
-        : evaluerPourRegime(regimeRepresentatif, statsAvec);
+    //
+    // ⚠️ **Producteur partagé** (`parametresArtefactsFiche`, 6bis-b6) : le CLI
+    // et le différentiel relique l'appellent aussi, neutralisation des verrous
+    // comprise. Appelé DANS ce mémo, avec ses dépendances d'avant : sorti du
+    // mémo, `paireRepresentative` se recalculerait à chaque rendu.
+    // `sortesFigees` y reste : dérivé d'`artifactMainByKind` seul, il change
+    // exactement avec lui.
+    //
+    // ⚠️ `artefactsReserves` : les artéfacts RÉSERVÉS par les autres builds
+    // validés de la liste active sortent de l'inventaire — un artéfact
+    // physique ne se porte que sur un monstre à la fois, comme une rune. Ceux
+    // que CE monstre a lui-même réservés restent disponibles (auto-exemption
+    // dans `otherValidatedArtifactIds`).
+    const evaluer = evaluateursFiche.representatif;
     return {
-      porteur: { element: espece.element, archetype: espece.archetype },
-      // ⚠️ **Amputé des artéfacts RÉSERVÉS** par les autres builds validés de
-      // la liste active : un artéfact physique ne se porte que sur un monstre à
-      // la fois, exactement comme une rune. Sans ça, deux monstres d'une même
-      // liste se verraient proposer la même pièce, et le plan serait
-      // inapplicable en jeu.
-      //
-      // ⚠️ Les artéfacts que CE monstre a lui-même réservés restent
-      // disponibles (auto-exemption dans `otherValidatedArtifactIds`) : sans
-      // elle, relancer une recherche sur un monstre déjà validé se
-      // priverait de ses propres pièces.
-      inventaire: artefactsReserves.size === 0 ? artifacts : artifacts.filter((a) => !artefactsReserves.has(a.id)),
-      equipes: selected.gear.artifacts,
-      principaleParSorte: (optimiserArtefacts
-        ? artifactMainByKind
-        : // ⚠️ Optimisation coupée : on GARDE ce qui est porté, des deux
-          // côtés. `candidatsParSorte` ne propose alors qu'un seul candidat
-          // par emplacement — la pièce réelle, avec ses sous-propriétés —, donc
-          // rien n'est cherché mais tout est compté.
-          { element: 'equipped', archetype: 'equipped' }) as Partial<Record<ArtifactKind, ChoixPrincipale>>,
-      // ⚠️ **Un verrou n'a aucun sens sans recherche.** Sans optimisation, ou
-      // avec les DEUX emplacements sur « Garder l'artéfact équipé », il n'y a
-      // qu'une paire possible : l'écarter parce qu'elle ne tient pas une ligne
-      // ne laisse aucune solution de rechange — `paireRepresentative` rend un
-      // tableau vide et la recherche refuse de partir. On les neutralise donc
-      // ici, en plus de les griser dans l'éditeur (voir `sortesFigees`).
-      //
-      // ⚠️ Les verrous restants ne sont PAS filtrés ligne par ligne : une ligne
-      // exclusive à une sorte figée est déjà retirée du choix par l'éditeur, et
-      // en garder une posée avant le changement reste FIDÈLE — elle exprime une
-      // exigence que la pièce figée doit satisfaire, ce que `paireRespecteLignes`
-      // vérifie correctement.
-      lignesVerrouillees:
-        optimiserArtefacts && sortesFigees.length < ARTIFACT_KINDS.length ? lignesVerrouillees : [],
-      // ⚠️ Sans ça, une amplification de buff est éliminée par dominance alors
-      // qu'elle vaut des dégâts — la sonde de pertinence ne peut pas la voir
-      // (voir `codesAmplificationActifs`, damage.ts).
-      codesAmplification: codesAmplificationActifs(damageSetup),
+      ...parametresArtefactsFiche({
+        porteur: { element: espece.element, archetype: espece.archetype },
+        inventaire: artifacts,
+        reserves: artefactsReserves,
+        equipes: selected.gear.artifacts,
+        optimiserArtefacts,
+        principaleParSorte: artifactMainByKind,
+        lignesVerrouillees,
+        damageSetup,
+        maxStats,
+      }),
       evaluer,
     };
-  }, [selected, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, lignesVerrouillees, objective, damageSetup, contexteDegatsArtefacts]);
+  }, [selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, sortesFigees, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats]);
 
   const searchArtifacts = useMemo<ArtifactDetail[]>(
     () => (artifactParams ? paireRepresentative(artifactParams) : []),
@@ -1380,12 +1503,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // d'artéfacts, et il répondrait « la meilleure paire est celle que tu
     // portes » — vrai, mais uniquement parce qu'on lui a interdit d'en
     // chercher une autre. Une réponse qui n'est vraie que par construction.
-    if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    const espece = selected.monster;
+    if (!artifactParams || !selected || !evaluateursFiche || !optimiserArtefacts) return null;
     // ⚠️ Un seul `computeStats` pour toutes les paires : l’apport d’un artefact
     // est PLAT, donc les stats sans artefact se calculent une fois et chaque
     // paire ne coute plus que trois additions (voir `statsParPaire`).
-    const statsAvecAffiche = statsParPaire(selected.gear);
     /**
      * ⚠️ **Les dégâts BRUTS des artéfacts (218-221), et rien d'autre.**
      *
@@ -1405,14 +1526,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
      * ⚠️ Le nombre de coups n'entre pas : il multiplie toutes les paires
      * pareil et ne change donc aucun classement.
      */
-    const evaluerBrut = (arts: ArtifactDetail[]) =>
-      degatsBrutsArtefactsParCoup(
-        statsAvecAffiche(arts),
-        damageSetup,
-        espece.element,
-        artifactDamageProfile(arts),
-        { combatStats }
-      );
+    const evaluerBrut = evaluateursFiche.brut;
     /**
      * ⚠️ **Le cran « Dégâts réels » choisit une AUTRE paire**, il ne réaffiche
      * pas la même autrement — décision explicite. Il maximise les dégâts
@@ -1430,8 +1544,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
      * ⚠️ Le contexte complet est le même que celui du moteur et de la file
      * (voir `contexteDegatsArtefacts`) : modificateurs monstre-wide compris.
      */
-    const evaluerReel =
-      contexteDegatsArtefacts && evaluerPourRegime('degats_reels', statsAvecAffiche, contexteDegatsArtefacts);
+    const evaluerReel = evaluateursFiche.reel;
     // ⚠️ Repli sur le brut si aucun sort n'est calculable pour ce monstre —
     // jamais un bloc vide : le cran resterait sur « Dégâts réels » sans que
     // rien n'explique le silence.
@@ -1533,7 +1646,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       dejaPorte: memesPieces,
       coutVerrousPct,
     };
-  }, [artifactParams, selected, optimiserArtefacts, sortesFigees, damageSetup, lignesVerrouillees, critereArtefacts, contexteDegatsArtefacts]);
+  }, [artifactParams, selected, evaluateursFiche, optimiserArtefacts, sortesFigees, lignesVerrouillees, critereArtefacts]);
 
   /**
    * Pourquoi aucune paire ne satisfait les verrous — OBSERVÉ, jamais déduit.
@@ -1577,6 +1690,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     }
     return { sets: comboSets, minStats, maxStats, mainStats: mainStatsReq, lockedRunes };
   }, [comboSets, minStats, maxStats, mainStatsBySlot, lockedRunes]);
+  const requirementAvecAuras = useMemo(
+    () => avecAurasConditions(requirement, damageSetup, compterAurasResPre),
+    [requirement, damageSetup, compterAurasResPre]
+  );
 
   /**
    * Ce que l'INVENTAIRE d'artéfacts peut apporter, borné des deux côtés —
@@ -1617,8 +1734,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // stricts avant d'attendre un résultat.
   const estimate = useMemo(() => {
     if (!selected || comboSets.length === 0) return null;
-    return estimateSearchSpace(pool, requirement, selected.gear.base, slotFilterCap, objective, objectiveStats);
-  }, [selected, comboSets, pool, requirement, slotFilterCap, objective, objectiveStats]);
+    return estimateSearchSpace(pool, requirementAvecAuras, selected.gear.base, slotFilterCap, objective, objectiveStats);
+  }, [selected, comboSets, pool, requirementAvecAuras, slotFilterCap, objective, objectiveStats]);
 
   // Diagnostic affiché UNIQUEMENT si une recherche aboutit à 0 résultat (voir
   // le rendu plus bas) : pour chaque condition posée, le meilleur cas
@@ -1631,8 +1748,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // ce que « satisfiable » garantit et ne garantit PAS.
   const feasibilityDiagnosis = useMemo<StatFeasibility[]>(() => {
     if (!selected) return [];
-    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement, metric });
-  }, [selected, searchArtifacts, searchArtifactBounds, pool, requirement, metric]);
+    return diagnoseFeasibility({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
+  }, [selected, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
   const impossibleFeasibility = useMemo(() => feasibilityDiagnosis.filter((f) => !f.satisfiable), [feasibilityDiagnosis]);
 
   // Palier 2 (voir `rankBlockingConditions` dans runeBuildOptim.ts) — bien
@@ -1644,8 +1761,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   const blockingDiagnosis = useMemo<BlockingConditionsDiagnosis | null>(() => {
     if (!selected || !diagnoseBlockingEnabled) return null;
     if (!result || result.candidates.length > 0) return null;
-    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement, metric });
-  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirement, metric]);
+    return rankBlockingConditions({ base: selected.gear.base, artifacts: searchArtifacts, artifactBounds: searchArtifactBounds, relic: selected.gear.relic, pool, requirement: requirementAvecAuras, metric });
+  }, [selected, diagnoseBlockingEnabled, result, searchArtifacts, searchArtifactBounds, pool, requirementAvecAuras, metric]);
 
   // `adaptiveTrancheWeighting` (toggle « Prioriser les stats les plus
   // difficiles », voir SearchParams dans runeBuildOptim.ts) — réalloue le
@@ -1684,9 +1801,24 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // ⚠️ La FAISABILITÉ se décide ici, plus sur `artifacts` — voir
       // `searchArtifactBounds` et SearchParams.artifactBounds.
       artifactBounds: searchArtifactBounds,
+      // Les lignes 218–221 de TOUTES les pièces que la file peut retenir, pas
+      // seulement de la représentative : la dominance protège les bonus de
+      // set qui les nourrissent (6bis-b3d-1). Même producteur que le CLI.
+      statsLignesArtefactsEquipables: artifactParams ? statsLignesArtefactsEquipables(artifactParams) : undefined,
       relic: selected.gear.relic,
+      // ⚠️ **Troisième producteur de `relicContext`** (implementation-relique,
+      // B.5c — les deux autres : `recipeToSearchParams.ts` pour le CLI,
+      // `buildCaseSearchParams` pour le harnais). L'intention vient d'UNE
+      // seule fonction pure (`relicIntentDepuisEtat`, useOptimizerState.ts),
+      // mêmes règles que `recipeToRelicIntent` — jamais une relecture séparée
+      // des trois champs ici (garantie G).
+      relicContext: resoudreContexteRelique(
+        relicIntentDepuisEtat(optimiserArtefacts, relicMainChoice, relicUniqueChoice, relicMinUpgrade),
+        selected.gear.relic,
+        relics
+      ),
       pool,
-      requirement,
+      requirement: requirementAvecAuras,
       metric,
       maxMs: exhaustiveSearch ? Number.POSITIVE_INFINITY : HARD_TIMEOUT_MS,
       slotFilterCap,
@@ -1718,16 +1850,21 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       requirement,
       objective,
       damageSetup,
+      compterAurasResPre,
       metric,
       slotFilterPreset,
       adaptiveTrancheWeighting,
       exhaustiveSearch,
+      verifierToutesLesCombinaisons,
       excludeUsedRunes,
       excludeUsedScope,
       excludedSelectors,
       ignoreArtifacts: !optimiserArtefacts,
       artifactMainByKind,
       lignesVerrouillees,
+      relicMainChoice,
+      relicUniqueChoice,
+      relicMinUpgrade,
     });
     const jour = new Date().toISOString().slice(0, 10);
     const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
@@ -1753,13 +1890,34 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // jamais mettre à jour l'état, donc le champ contrôlé revenait TOUJOURS
   // à l'ancien chiffre, rendant impossible de le vider avant de retaper.
   const [pageDraft, setPageDraft] = useState<string | null>(null);
-  const [importMsg, setImportMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const [importMsg, setImportMsg] = useState<MessageImport | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!importMsg) return;
-    const t = setTimeout(() => setImportMsg(null), importMsg.error ? 9000 : 5000);
+    // Un message porteur d'un avertissement de conversion n'a pas de délai
+    // (`null`) : il reste jusqu'au prochain import (lot CM, décision du
+    // 2026-10-02) — voir `delaiEffacementImport` (messageImport.ts).
+    const delai = delaiEffacementImport(importMsg);
+    if (delai === null) return;
+    const t = setTimeout(() => setImportMsg(null), delai);
     return () => clearTimeout(t);
   }, [importMsg]);
+
+  // Rappel « Pense à vérifier les sets d'aura externes. » (degats-et-aura 7b)
+  // — décidé par `doitRappeler` dans le seul geste de la liste de travail
+  // (zone C, plus bas), effacé après `DUREE_ATTENTION_MS` (3 s) par le même
+  // patron de minuterie qu'`importMsg`. Un JETON qui s'incrémente, pas un
+  // booléen : un second changement de monstre pendant les 3 s relance la
+  // minuterie au lieu de laisser la première éteindre le second rappel.
+  // ⚠️ **Un seul état pour DEUX rendus** (degats-et-aura 7c) : la boîte des
+  // auras d'« État de mon monstre » et le message sous la liste de la zone C
+  // lisent tous deux `rappelAuras !== null` — aucun n'a sa minuterie à lui.
+  const [rappelAuras, setRappelAuras] = useState<number | null>(null);
+  useEffect(() => {
+    if (rappelAuras === null) return;
+    const t = setTimeout(() => setRappelAuras(null), DUREE_ATTENTION_MS);
+    return () => clearTimeout(t);
+  }, [rappelAuras]);
 
   // « Réglages avancés » (bureau) : ancre du `FlottantAuto`, PAS un bloc
   // inline — un panneau replié par défaut ne peut pas réserver sa place à
@@ -1776,6 +1934,105 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [showAdvanced, setShowAdvanced]);
+
+  // ── Ouverture guidée vers l'interrupteur des auras RES/PRE (degats-et-aura 7b)
+  // Ajouter Accuracy ou Tolerance aux auras externes (« État de mon
+  // monstre ») ou le choisir comme set recherché guide vers « Compter les
+  // effets d'auras Tolerance et Précision dans les conditions ». La décision
+  // est `guideVersResPre` (aurasExternes.ts), prise au geste, jamais à
+  // l'import ni au changement de monstre.
+  // ⚠️ **Deux formes, une par format**, choisies par `SOUS_LG` comme le
+  // panneau lui-même (`MobileSheet`) et la carte du bureau (`hidden lg:block`) :
+  // - à la souris, la page défile jusqu'à l'ANCRE du flottant (`avancesRef`),
+  //   PUIS le flottant s'ouvre : `FlottantAuto` choisit son côté en mesurant
+  //   l'ancre à l'ouverture, et ouvert pendant le défilement il mesurerait une
+  //   position périmée. Le défilement peut déplacer la carte cliquée (accepté
+  //   par l'utilisateur, comme pour « Set de runes recherché ») ; le flottant
+  //   se referme au clic suivant hors de lui (effet ci-dessus) ;
+  // - au doigt, le panneau « Options de recherche » s'ouvre par-dessus la
+  //   carte (demandé à App.tsx par `onOuvrirMenu`), puis son contenu défile
+  //   jusqu'à l'interrupteur (effet plus bas).
+  // L'interrupteur est surligné `DUREE_ATTENTION_MS` (3 s), au même token que
+  // le rappel ; il reste toujours rendu dans sa surface (`reglagesAvancesInner`).
+  const sousLg = useMediaQuery(SOUS_LG);
+  const [attentionResPre, setAttentionResPre] = useState<number | null>(null);
+  useEffect(() => {
+    if (attentionResPre === null) return;
+    const t = setTimeout(() => setAttentionResPre(null), DUREE_ATTENTION_MS);
+    return () => clearTimeout(t);
+  }, [attentionResPre]);
+  // Une ref par surface : les deux exemplaires de `reglagesAvancesInner`
+  // peuvent être montés ensemble (le flottant reste monté, masqué, sous `lg`).
+  const interrupteurResPreFlottantRef = useRef<HTMLDivElement>(null);
+  const interrupteurResPrePanneauRef = useRef<HTMLDivElement>(null);
+  // Le défilement du bureau en attente de sa fin : annulé par un nouveau
+  // guidage ou au démontage, pour ne jamais ouvrir un flottant périmé.
+  const annulerDefilementGuide = useRef<(() => void) | null>(null);
+  useEffect(() => () => annulerDefilementGuide.current?.(), []);
+
+  // Défile jusqu'à `el` (patron de « Set de runes recherché » : `smooth`,
+  // `center`), PUIS appelle `suite` — à la fin du défilement (`scrollend`),
+  // ou au bout d'une seconde si l'événement n'arrive pas (navigateur qui ne le
+  // connaît pas). Déjà entièrement visible : rien à défiler, tout de suite.
+  function defilerPuis(el: HTMLElement, suite: () => void) {
+    annulerDefilementGuide.current?.();
+    const r = el.getBoundingClientRect();
+    if (r.top >= 0 && r.bottom <= window.innerHeight) {
+      suite();
+      return;
+    }
+    let filet = 0;
+    const annuler = () => {
+      document.removeEventListener('scrollend', fin);
+      window.clearTimeout(filet);
+      annulerDefilementGuide.current = null;
+    };
+    const fin = () => {
+      annuler();
+      suite();
+    };
+    document.addEventListener('scrollend', fin);
+    filet = window.setTimeout(fin, 1000);
+    annulerDefilementGuide.current = annuler;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function guiderVersResPre() {
+    if (sousLg) {
+      annulerDefilementGuide.current?.();
+      onOuvrirMenu();
+      setAttentionResPre((n) => (n ?? 0) + 1);
+      return;
+    }
+    const ancre = avancesRef.current;
+    if (!ancre) return;
+    defilerPuis(ancre, () => {
+      setShowAdvanced(true);
+      setAttentionResPre((n) => (n ?? 0) + 1);
+    });
+  }
+
+  // Puis l'interrupteur lui-même, une fois sa surface ouverte : au doigt, il
+  // est le DERNIER réglage du panneau, sous « Exclusion de runes » ; au
+  // bureau, le bas du flottant peut dépasser de l'écran (`nearest` : le
+  // moindre défilement qui le montre). `requestAnimationFrame` : le flottant
+  // choisit sa place dans un effet de mise en page, à laisser finir avant de
+  // mesurer.
+  useEffect(() => {
+    if (attentionResPre === null) return;
+    const el = sousLg
+      ? menuOuvert
+        ? interrupteurResPrePanneauRef.current
+        : null
+      : showAdvanced
+        ? interrupteurResPreFlottantRef.current
+        : null;
+    if (!el) return;
+    const image = requestAnimationFrame(() =>
+      el.scrollIntoView({ behavior: 'smooth', block: sousLg ? 'center' : 'nearest' })
+    );
+    return () => cancelAnimationFrame(image);
+  }, [attentionResPre, sousLg, menuOuvert, showAdvanced]);
 
   // « Exclusion de runes » (bureau) : même patron, mêmes raisons — repliée par
   // défaut (demande explicite), donc dépliée hors flux pour ne pousser ni
@@ -1798,7 +2055,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
 
   function importRecipe(file: File) {
     file.text().then((text) => {
-      const { recipe, error } = parseOptimizerRecipe(text);
+      const { recipe, error, avertissements } = parseOptimizerRecipe(text);
       if (!recipe) {
         setImportMsg({ text: `Import refusé : ${error}`, error: true });
         return;
@@ -1842,12 +2099,16 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // `resolveDamageSkill` qui retombe alors sur le sort par défaut, pas
       // une erreur d'import (même tolérance que le monstre lui-même, plus bas).
       setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);
+      setCompterAurasResPre(recipe.compterAurasResPre ?? true);
       setSlotFilterPreset(recipe.slotFilterPreset);
       setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
       // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
       // champ (`undefined`) — repli sur le défaut plutôt que de propager une
       // valeur non booléenne à l'état.
       setExhaustiveSearch(recipe.exhaustiveSearch ?? false);
+      // ⚠️ `?? false`, même repli (6bis-b18) : une recette exportée avant ce
+      // champ ne le porte pas — désactivé, le défaut.
+      setVerifierToutesLesCombinaisons(recipe.verifierToutesLesCombinaisons ?? false);
       // ⚠️ Repli sur l'ANCIEN champ `exploreAll` (recette exportée avant ce
       // renommage/inversion) : `exploreAll` coché = pas d'exclusion
       // (`excludeUsedRunes = false`, comportement identique) ; décoché =
@@ -1871,6 +2132,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas (voir
       // `OptimizerRecipe.lignesVerrouillees`, optionnel exprès).
       setLignesVerrouillees(recipe.lignesVerrouillees ?? []);
+      // ⚠️ **Même canal que la bascule artéfact** (D1, « mêmes trois
+      // règles ») : `relicMainPourCeCompte` (optimizerRecipe.ts) applique la
+      // bascule « equipped » → « libre » sur compte différent ; le défaut
+      // D1 (`defaultRelicMainChoice`, contre la relique réellement portée)
+      // ne s'applique QUE si la recette ne porte pas le champ (recette
+      // antérieure au lot 2) — résolu plus bas, une fois le monstre trouvé.
+      const { main: relicMainResolu, bascule: relicBascule } = relicMainPourCeCompte(recipe, accountName);
+      setRelicUniqueChoice(recipe.relicUniqueChoice ?? 'libre');
+      setRelicMinUpgrade(recipe.relicMinUpgrade ?? DEFAULT_RELIC_MIN_UPGRADE);
 
       // Les runes imposées ignorées (voir plus haut) sont signalées en
       // SUFFIXE du message d'import — un verrou perdu change réellement le
@@ -1880,7 +2150,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // change ce que la recherche va renvoyer, exactement comme un verrou
         // perdu. Une recette qui se comporte autrement que chez son auteur,
         // sans un mot, serait pire que la donnée transportée telle quelle.
-        + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '');
+        + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '')
+        + (relicBascule ? ` Cette recette vient d'un autre compte : « Garder la relique équipée » est passé sur « Libre ».` : '')
+        // ⚠️ Ce que le parseur a CONVERTI (l'ancien mode critique « Moyenne »
+        // → « Critique », degats-et-aura lot CM) se dit aussi, mot pour mot
+        // comme le CLI (`chargerRecette`) : jamais une conversion silencieuse.
+        + (avertissements ?? []).map((a) => ` ${a}`).join('');
+      // Un avertissement de conversion change le TON et la DURÉE du message :
+      // token `warn`, sans effacement automatique (`messageImport.ts`).
+      const avecAvertissement = (avertissements ?? []).length > 0;
       // ⚠️ Résolu dans TOUT le bestiaire (`allMonsters`), pas seulement les
       // monstres possédés — la recherche « Monstre à optimiser » couvre
       // désormais tout le bestiaire (voir Question 1 du cadrage), donc une
@@ -1900,15 +2178,24 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(match, box, exclusionData));
         setZoneDOpen(false);
         setSelectedId(String(match.id));
-        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}` });
+        // ⚠️ Défaut D1 calculé contre la relique de l'EXEMPLAIRE résolu ici
+        // (même source que `pickSpecies`), jamais une constante — seulement
+        // si la recette ne porte pas le champ (`relicMainResolu` absent).
+        setRelicMainChoice(relicMainResolu ?? defaultRelicMainChoice(boxCandidates[0]?.gear.relic));
+        setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}`, avertissement: avecAvertissement });
       } else {
         // Cas limite : le `com2usId` de la recette ne correspond à AUCUN
         // monstre des données actuellement chargées (ex. retiré du jeu) —
         // devrait rester rare maintenant que `allMonsters` couvre tout le
         // bestiaire (avant Lot 1, ce message apparaissait dès que le
         // monstre n'était simplement pas POSSÉDÉ, un cas bien plus courant).
+        // ⚠️ Aucun exemplaire résolu : pas de relique connue pour calculer le
+        // défaut D1, repli sur « libre » (même situation que `pickSpecies`
+        // sur une espèce possédée nulle part).
+        setRelicMainChoice(relicMainResolu ?? 'libre');
         setImportMsg({
           text: `Réglages importés (${recipe.monsterName}), mais ce monstre est introuvable dans les données actuelles — choisis-en un manuellement.${suffixeLocks}`,
+          avertissement: avecAvertissement,
         });
       }
     });
@@ -1934,27 +2221,43 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // consommateur. Les scripts CLI prenaient `candidates[0]` ou
   // `slice(0, 20)` en croyant lire les meilleurs, alors que le moteur ne
   // trie pas par l'objectif. Une seule porte, comme `damageRelevantStats`.
+  // ⚠️ La relique de l'ordre de BASE, SANS le cache de la file : la file lit
+  // cet ordre (`triees`), il ne peut donc jamais se nourrir de ses résultats.
+  // Mais une relique FIXE (`off`, `equipped`) est connue d'avance : son effet
+  // unique compte dès ici (6bis-b5a) — cet ordre est affiché tel quel tant que
+  // la file n'a rien résolu, toujours quand l'optimisation d'artéfacts est
+  // coupée, et les cartes le comptent. En `recherche` : neutre (`en attente`).
+  const etatReliqueDeBase = useCallback(
+    (_c: BuildCandidate) => etatReliqueDuBuild(undefined, relicContextRecherche, selected?.gear.relic),
+    [relicContextRecherche, selected?.gear.relic]
+  );
   const fullSortedCandidates = useMemo(
-    () => (candidatesSource ? sortCandidates(candidatesSource, sortBy, { realDamage, runeById, metric }) : []),
-    [candidatesSource, sortBy, runeById, metric, realDamage]
+    () =>
+      candidatesSource
+        ? sortCandidates(
+            candidatesSource,
+            sortBy,
+            optionsDeClassement({
+              realDamage,
+              damageSetup,
+              runeById,
+              metric,
+              aurasPropresDe,
+              // La paire SUPPOSÉE pour tous (`realDamage.artefacts`).
+              artefactsDuBuild: () => null,
+              etatReliqueDe: etatReliqueDeBase,
+              contexteExclusive,
+            })
+          )
+        : [],
+    [candidatesSource, sortBy, runeById, metric, realDamage, damageSetup, aurasPropresDe, etatReliqueDeBase, contexteExclusive]
   );
 
   const RESULTS_PAGE_SIZE = 20;
-  const totalResultsPages = Math.max(1, Math.ceil(fullSortedCandidates.length / RESULTS_PAGE_SIZE));
 
-  // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
-  // (pendant la phase d'appariement) grandit au fil de la recherche sans
-  // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
-  // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
-  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
-  // de tri (classement entièrement différent) remettent explicitement à 1.
-  useEffect(() => {
-    setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
-  }, [totalResultsPages, setResultsPage]);
-
-  // ⚠️ `pageCandidates` est défini PLUS BAS, après la file d'optimisation
-  // d'artéfacts : la page affichée dépend du classement corrigé par les paires
-  // trouvées, qui n'existe qu'une fois la file déclarée.
+  // ⚠️ `composition` (la page affichée) est définie PLUS BAS, après la file
+  // d'optimisation d'artéfacts : elle dépend du classement corrigé par les
+  // paires trouvées, qui n'existe qu'une fois la file déclarée.
 
   /**
    * Optimisation d'artéfacts des meilleurs builds, EN TEMPS MASQUÉ pendant que
@@ -1971,83 +2274,148 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    */
   const signatureArtefacts = useMemo(
     () =>
-      signatureReglages({
+      calculerSignatureArtefacts({
         monstreCom2usId: selected?.monster.com2usId ?? -1,
         // ⚠️ Le réglage ENTIER : n'en prendre que quelques champs laissait le
         // cache intact quand on changeait le buff ATQ ou les PV de la cible.
         damageSetup,
+        compterAurasResPre,
         // ⚠️ Le TRI, pas l'objectif : c'est lui qui décide désormais du critère
-        // de choix de la paire (voir `faireParamsArtefacts`). Changer de tri
+        // de choix de la paire (voir `resoudreEquipement`). Changer de tri
         // entre Dégâts réels et PV effectifs change donc la meilleure paire, et
         // doit vider le cache. Entre Efficience et Vitesse, rien ne change —
         // aucun artéfact n'entre dans ces deux scores — mais `sortBy` variant
         // quand même, le cache est refait pour rien : coût borné (K builds en
         // temps masqué), contre le risque d'afficher une paire périmée.
-        // ⚠️ **Le RÉGIME, pas le tri brut.** Deux critères ne partagent cette
-        // clé que si la paire optimale est démontrablement la même : c’est le
-        // cas de tous ceux qu’aucun artéfact ne touche (efficience, VIT, TC,
-        // DCC, RES, PRE), regroupés sous `'aucun'`. Basculer entre eux ne
-        // recalcule donc plus 100 builds pour retrouver la même paire.
-        // ⚠️ Trop regrouper afficherait une paire périmée — le régime est
-        // établi sur ce qu’un artéfact peut bouger, jamais sur une intuition.
-        objective: regimePaire,
+        // ⚠️ **Le RÉGIME EFFECTIF (`regimeEquipement`), jamais `regimePaire`
+        // brut** (B.5b bis, contrôle 4 — hypothèse confirmée de la revue) :
+        // `regimePaire` ne rabat PAS « Dégâts réels » sur `aucun` quand le
+        // sort n'est pas encore calculable — c'est `regimeEquipement` qui le
+        // fait, une fois, AVANT `entreeResolutionDuBuild`. Utiliser `regimePaire`
+        // ici laissait la signature identique pendant la transition « sort
+        // indisponible → calculable » (`contexteDegatsArtefacts` passe de
+        // `null` à un contexte, `regimePaire` reste `'degats_reels'` dans les
+        // deux cas) : le cache restait celui du régime `aucun`, périmé.
+        // ⚠️ Deux critères ne partagent cette clé que si la paire optimale
+        // est démontrablement la même : c'est le cas de tous ceux qu'aucun
+        // artéfact ne touche (efficience, VIT, TC, DCC, RES, PRE), regroupés
+        // sous `'aucun'`. Basculer entre eux ne recalcule donc plus 100
+        // builds pour retrouver la même paire. Trop regrouper afficherait une
+        // paire périmée — le régime est établi sur ce qu'un artéfact peut
+        // bouger, jamais sur une intuition.
+        regimeEquipement,
         ignoreArtifacts: !optimiserArtefacts,
         principaleParSorte: artifactMainByKind,
         lignesVerrouillees,
         relique: selected?.gear.relic ?? null,
         nbArtefacts: artifacts.length,
+        // ⚠️ La dimension relique de la recherche (lot 5b) : mode, pool
+        // éligible, choix, seuil — tout dans l'empreinte canonique. Un tri
+        // qui change de régime invalide déjà par `objective` ci-dessus ; un
+        // tri qui n'en change pas ne relance rien (plan § 8.4).
+        empreinteRelique: relicContextRecherche?.empreinte ?? null,
+        // ⚠️ B.5b bis, bloquant 2 : le résolveur consomme `requirement`
+        // (minimums ET maximums) depuis le lot 5b ; sans lui ici, relancer
+        // avec un autre maximum gardait un couple devenu infaisable en cache.
+        requirement: requirementAvecAuras,
+        // ⚠️ Les artéfacts RÉSERVÉS par les autres builds validés de la liste
+        // active sortent de l'inventaire de la paire (`artifactParams`) : les
+        // libérer (« Libérer les artéfacts », zone C) ou changer de liste
+        // active doit vider le cache. Sans eux ici, les cartes déjà calculées
+        // gardaient leur paire d'avant, même après une nouvelle recherche
+        // (degats-et-aura 6bis-b17). Un ensemble : l'ordre est sans effet.
+        artefactsReserves,
+        // ⚠️ Un emplacement figé sur « Garder l'artéfact équipé » n'a qu'un
+        // candidat : la pièce que porte la fiche. Valider un build de CE
+        // monstre, « Voir le runage réellement porté » ou changer d'exemplaire
+        // de la même espèce la remplacent (6bis-b17). Les sortes libres n'y
+        // entrent pas : leur pièce portée n'est jamais lue.
+        piecesFigees: piecesFigeesDe(artifactMainByKind, selected?.gear.artifacts ?? []),
+        // ⚠️ L'identité de l'import du compte (6bis-b19) : le cache est indexé
+        // par les identifiants de runes et ne voyait de l'inventaire que le
+        // nombre d'artéfacts. Un réimport qui changeait des pièces ou des
+        // runes à nombre et identifiants égaux gardait les paires de l'ancien
+        // compte ; chaque import vide désormais le cache.
+        importDuCompte,
       }),
-    [selected?.monster.com2usId, selected?.gear.relic, damageSetup, regimePaire, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length]
+    [selected?.monster.com2usId, selected?.gear.relic, selected?.gear.artifacts, damageSetup, compterAurasResPre, regimeEquipement, optimiserArtefacts, artifactMainByKind, lignesVerrouillees, artifacts.length, relicContextRecherche?.empreinte, requirementAvecAuras, artefactsReserves, importDuCompte]
   );
 
-  const faireParamsArtefacts = useMemo(() => {
-    // ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
-    // possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
-    // faire passer par la file lui ferait « choisir » entre un seul candidat,
-    // pour un résultat identique et cent tranches de temps masqué en pure
-    // perte.
+  /**
+   * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
+   * file : `resoudreEquipementDuBuild` (relicQueue.ts, lot 5b), la partie
+   * pure que `tests/relic-queue.test.ts` compare à l'oracle, avec l'entrée
+   * construite par `entreeResolutionDuBuild` — le producteur que le CLI
+   * appelle aussi (degats-et-aura 6bis-b5c) : le build, le prédicat à relique
+   * fixe (`respecteConditionsPaireFixe` : minimums et maximums RES/PRE, les
+   * autres maximums restant hors filtre, T11), les conditions complètes et
+   * le contexte relique de la recherche LANCÉE (garantie G : jamais une
+   * relecture des trois champs).
+   *
+   * ⚠️ `null` quand l'optimisation est coupée : il n'y a alors qu'UNE paire
+   * possible (celle qui est portée), déjà comptée par `searchArtifacts`. La
+   * faire passer par la file lui ferait « choisir » entre un seul candidat,
+   * pour un résultat identique et cent tranches de temps masqué en pure
+   * perte.
+   *
+   * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** : le régime
+   * effectif (`regimeEquipement`) suit `sortBy`, pas `objective`, quand
+   * « Adapter les artéfacts et reliques au tri » est activé. L'objectif fige
+   * le critère au lancement ; le tri, lui, peut changer après coup. Une paire
+   * optimisée pour les dégâts affichée dans une liste triée par PV effectifs
+   * montrerait une valeur qui n'est pas la meilleure atteignable.
+   */
+  // Les caches partagés par les builds de la file (6bis-b13, `CachesResolution`) :
+  // profil de dégâts par paire et préfiltre. Neufs dès que la signature des
+  // réglages ou les paramètres de paires (donc l'inventaire) changent.
+  const cachesResolution = useMemo(() => nouveauxCachesResolution(), [signatureArtefacts, artifactParams]);
+  const resoudreEquipement = useMemo(() => {
     if (!artifactParams || !selected || !optimiserArtefacts) return null;
-    return (c: BuildCandidate): ArtifactSearchParams => {
-      // ⚠️ Les stats sont recalculées avec LES RUNES DE CE CANDIDAT, pas celles
-      // de l'équipement affiché : la stat principale d'un artéfact entre dans
-      // les stats du monstre, donc comparer des paires sur un autre build
-      // comparerait des scores faux.
-      const gear = { ...selected.gear, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean) };
-      // ⚠️ **UN seul `computeStats` par build, pas un par paire.** L’évaluateur
-      // tourne pour CHAQUE paire autorisée — quelques milliers en « Dégâts
-      // réels », où la dominance n’élague plus rien. L’apport d’un artéfact
-      // étant PLAT, les stats sans artéfact se calculent une fois et chaque
-      // paire ne coûte plus que trois additions (voir `statsParPaire`).
-      const statsAvec = statsParPaire(gear);
-      const espece = selected.monster;
-      /**
-       * ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (`sortBy`,
-       * via `regimePaire`), pas sur une somme de statistiques principales —
-       * voir `evaluerPourRegime` (`artifactEvaluation.ts`) pour le contrat
-       * partagé avec la paire représentative plus haut et le CLI.
-       *
-       * ⚠️ **Et c'est `sortBy`, pas `objective`.** L'objectif fige le critère au
-       * lancement ; le tri, lui, peut changer après coup. Une paire optimisée
-       * pour les dégâts affichée dans une liste triée par PV effectifs
-       * montrerait une valeur qui n'est pas la meilleure atteignable.
-       *
-       * ⚠️ Sur Efficience et Vitesse (régime `'aucun'`), il n'y a RIEN à
-       * maximiser : `runeEfficiency` ne lit que les runes, et aucun artéfact
-       * ne donne de VIT. Deux paires valides y laissent le score identique —
-       * on garde donc la somme des principales, qui départage au moins sur la
-       * valeur brute, et le seul travail qui compte est la faisabilité
-       * (§12.6 d'artefacts.md).
-       */
-      // Sort non calculable : rabattu sur 'aucun' AVANT l'appel — jamais un
-      // paramètre `degats` optionnel silencieusement absorbé par le helper.
-      const regime: RegimeArtefacts = regimePaire === 'degats_reels' && !contexteDegatsArtefacts ? 'aucun' : regimePaire;
-      const evaluer =
-        regime === 'degats_reels'
-          ? evaluerPourRegime(regime, statsAvec, contexteDegatsArtefacts!)
-          : evaluerPourRegime(regime, statsAvec);
-      return { ...artifactParams, evaluer };
-    };
-  }, [artifactParams, selected, optimiserArtefacts, runeById, regimePaire, contexteDegatsArtefacts]);
+    return (c: BuildCandidate) =>
+      resoudreEquipementDuBuild(
+        entreeResolutionDuBuild({
+          fiche: selected.gear,
+          runes: runesDuBuild(c, runeById),
+          artifactParams,
+          regime: regimeEquipement,
+          degats: contexteDegatsArtefacts,
+          exclusive: contexteExclusive,
+          requirement: requirementAvecAuras,
+          relicContext: relicContextRecherche,
+          caches: cachesResolution,
+        })
+      );
+  }, [artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche, cachesResolution]);
+
+  // La MÊME résolution, hors du fil de l'écran (6bis-b13bis-b) : les mêmes
+  // arguments que `resoudreEquipement`, en données — `entreesSerialisables`
+  // ne retire que `evaluer`, le Worker reconstruit l'entrée par
+  // `entreeResolutionDuBuild`. ⚠️ Comparé par IDENTITÉ par la file : chaque
+  // nouvel objet est un contexte renvoyé au Worker (tout l'inventaire
+  // d'artéfacts) — mêmes dépendances que `resoudreEquipement`, sans
+  // `runeById` (les runes voyagent avec chaque demande) ni les caches (le
+  // Worker a les siens, neufs à chaque contexte). Les runes d'un build sortent
+  // du MÊME producteur que celles de `resoudreEquipement` (`runesDuBuild`,
+  // 6bis-b13bis-c) : jamais une seconde expression recopiée.
+  const entreesResolution = useMemo(() => {
+    if (!artifactParams || !selected || !optimiserArtefacts) return null;
+    return entreesSerialisables({
+      fiche: selected.gear,
+      artifactParams,
+      regime: regimeEquipement,
+      degats: contexteDegatsArtefacts,
+      exclusive: contexteExclusive,
+      requirement: requirementAvecAuras,
+      relicContext: relicContextRecherche,
+    });
+  }, [artifactParams, selected, optimiserArtefacts, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche]);
+  const resolutionHorsFil = useMemo<ResolutionHorsFil | null>(
+    () =>
+      entreesResolution
+        ? { entrees: entreesResolution, runesDe: (c: BuildCandidate) => runesDuBuild(c, runeById) }
+        : null,
+    [entreesResolution, runeById]
+  );
 
   const fileArtefacts = useArtifactOptimQueue({
     // ⚠️ La file lit l'ordre de BASE (paire supposée), jamais un ordre déjà
@@ -2055,49 +2423,28 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     // boucle — chaque paire trouvée changerait le classement, donc le top K,
     // donc la file.
     triees: fullSortedCandidates,
-    // ⚠️ Accesseur : `pageCandidates` se calcule PLUS BAS (il dépend du
+    // ⚠️ Accesseur : `composition` se calcule PLUS BAS (elle dépend du
     // classement corrigé par cette file). Lu au moment de traiter, il voit
-    // toujours la page réellement à l’écran.
+    // toujours les builds qui rempliront les places en attente de la page
+    // réellement à l’écran (6bis-b16).
     pageAffichee: () => pageAfficheeRef.current,
-    faireParams: faireParamsArtefacts,
-    // ⚠️ Les stats du candidat ont été calculées avec la paire SUPPOSÉE. La
-    // principale d'un artéfact entrant dans les stats, il faut les refaire avec
-    // la paire retenue — sinon la carte montre des stats qui ne vont pas avec
-    // les artéfacts affichés juste à côté, et un tri par ATQ porte sur une
-    // valeur périmée.
-    calculerStats: (c, arts) =>
-      selected
-        ? computeStats({
-            ...selected.gear,
-            runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
-            artifacts: arts,
-          })
-        : c.stats,
-    /**
-     * ⚠️ **Le filtre final du §12.5 — obligatoire, pas facultatif.** Depuis
-     * que la faisabilité passe par `searchArtifactBounds`, la recherche valide
-     * les minimums contre une borne calculée PAR STAT ISOLÉE : avec des
-     * minimums sur PV, ATQ et DEF à la fois, elle suppose les trois maxima
-     * réunis, alors qu'une paire ne porte que deux principales. Des builds
-     * arrivent donc ici sans qu'aucune paire réelle ne les rende équipables —
-     * mesuré sur un cas réel, 99 sur 105. Sans ce prédicat, la borne élargie
-     * AFFICHERAIT ces builds : pire que de les manquer.
-     *
-     * `null` quand aucun minimum n'est posé — il n'y a alors rien à vérifier.
-     */
-    respecteConditions:
-      Object.values(requirement.minStats).some((v) => (v ?? 0) > 0) && selected
-        ? (c, arts) =>
-            respecteMinimums(
-              computeStats({
-                ...selected.gear,
-                runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
-                artifacts: arts,
-              }),
-              requirement.minStats
-            )
-        : null,
+    // Paire ET relique, ensemble — les stats du résultat sont recalculées
+    // avec le couple retenu (voir `resoudreEquipement`) : sans ça, la carte
+    // montrerait des stats qui ne vont pas avec l'équipement affiché à côté,
+    // et un tri par ATQ porterait sur une valeur périmée.
+    resoudre: resoudreEquipement,
     signature: signatureArtefacts,
+    // ⚠️ 300 en mode relique « recherche », 100 sinon (6bis-b8), dès le
+    // lancement : le contexte de la recherche LANCÉE, jamais les réglages
+    // courants — les changer après coup ne change pas K. Des combinaisons
+    // CONFIRMÉES depuis 6bis-b18 : la file continue au-delà des écartés ; et
+    // TOUT avec « Vérifier toutes les combinaisons trouvées », lu EN DIRECT
+    // (il ne change pas la recherche de runes, seulement jusqu'où la file
+    // vérifie — voir `cibleDeLaFile`).
+    K: cibleDeLaFile({ relicContext: relicContextRecherche, toutVerifier: verifierToutesLesCombinaisons }),
+    // Le Worker de résolution quand il est disponible ; `resoudre` reste le
+    // chemin de repli.
+    horsFil: resolutionHorsFil,
   });
 
   /**
@@ -2118,6 +2465,45 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   }, [fileArtefacts.parBuild]);
   const profilArtefactsDuBuild = (c: BuildCandidate) => profilsParBuild.get(cleBuild(c)) ?? null;
 
+  // L'état de la relique d'un candidat, tel que sa carte l'AFFICHE — et la
+  // relique dont son score compte l'effet unique : une seule expression pour
+  // les deux (6bis-b5a). ⚠️ Dépend de la PIÈCE de la fiche (l'objet), jamais
+  // de son identifiant : une relique réimportée avec un autre effet unique
+  // sous le même `rid` doit renoter.
+  const etatReliqueDe = useCallback(
+    (c: BuildCandidate) => etatReliqueDuBuild(fileArtefacts.parBuild.get(cleBuild(c)), relicContextRecherche, selected?.gear.relic),
+    [fileArtefacts.parBuild, relicContextRecherche, selected?.gear.relic]
+  );
+  /**
+   * Les options du classement AFFICHÉ (`affichees` ci-dessous) — partagées
+   * avec les cartes, qui affichent leur chiffre par `scoreDuCandidat` avec
+   * CET objet : la carte montre la valeur même qui l'a classée (6bis-b4 : la
+   * carte « Dégâts réels » recopiait `computeTotalDamage` sans la Conquête de
+   * la relique retenue, « PV effectifs » `pvEffectifs` sans Ténacité).
+   * Construites par `optionsDeClassement` (runeBuildOptim.ts), le producteur
+   * que le CLI et les tests appellent aussi : l'effet unique y compte dans
+   * les trois modes de relique (6bis-b5a).
+   */
+  const optionsDuTriAffiche = useMemo(
+    () =>
+      optionsDeClassement({
+        realDamage,
+        damageSetup,
+        runeById,
+        metric,
+        aurasPropresDe,
+        // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
+        // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
+        // doivent suivre. Sinon on note les stats d'un modèle avec les effets
+        // d'un autre.
+        artefactsDuBuild: profilArtefactsDuBuild,
+        etatReliqueDe,
+        contexteExclusive,
+      }),
+    // `profilArtefactsDuBuild` ne lit que `profilsParBuild`.
+    [profilsParBuild, realDamage, damageSetup, runeById, metric, aurasPropresDe, etatReliqueDe, contexteExclusive]
+  );
+
   /**
    * Le classement RÉEL : chaque build vu à travers sa vraie paire dès qu'elle
    * est connue, puis retrié.
@@ -2137,38 +2523,112 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
    * classement-ci : c'est ce qui borne le nombre de re-tris, et c'est ce qui
    * fait que changer le tri d'affichage repriorise la file sans rien invalider
    * (le cache est indexé par build).
+   *
+   * ⚠️ Lot 5b : les stats remplacées INCLUENT la relique retenue
+   * (`ResultatArtefacts.relique`) — c'est ici, AVANT `sortCandidates`, que
+   * la résolution exacte entre dans le classement ; un build qu'aucun couple
+   * (paire, relique) ne rend faisable est `conforme: false` et sort par le
+   * même filtre que les paires. En mode `recherche`, un candidat non encore
+   * résolu (« en attente ») garde ses stats SANS relique : son rang n'est
+   * pas exact tant que la file ne l'a pas traité — la page affichée passe
+   * en priorité.
    */
-  const affichees = useMemo(() => {
-    if (fileArtefacts.parBuild.size === 0) return fullSortedCandidates;
-    // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
-    // ICI** (§12.5). Ils ont franchi la borne du moteur, calculée par stat
-    // isolée, sans qu'une paire puisse fournir les appoints simultanément.
-    // Un build non conforme reste AFFICHÉ tant que sa paire n'a pas été
-    // cherchée (absent du cache) : c'est le seul état honnête — on ne sait pas
-    // encore. La file traite la page affichée en priorité, donc le verdict
-    // arrive vite sur ce qu'on regarde.
-    const avecPaire = fullSortedCandidates
-      .filter((c) => fileArtefacts.parBuild.get(cleBuild(c))?.conforme !== false)
-      .map((c) => candidatAvecSaPaire(c, fileArtefacts.parBuild));
-    return sortCandidates(avecPaire, sortBy, {
-      realDamage,
-      runeById,
-      metric,
-      // ⚠️ Le profil de CE build, pas celui de la paire supposée : ses stats
-      // viennent d'être recalculées avec sa vraie paire, ses lignes d'effet
-      // doivent suivre. Sinon on note les stats d'un modèle avec les effets
-      // d'un autre.
-      artefactsDuBuild: (c) => profilArtefactsDuBuild(c),
-    });
-  }, [fullSortedCandidates, fileArtefacts.parBuild, sortBy, realDamage, runeById, metric]);
+  // ⚠️ **Les builds qu'AUCUNE paire réelle ne rend équipables sont écartés
+  // ICI** (§12.5). Ils ont franchi la borne du moteur, calculée par stat
+  // isolée, sans qu'une paire puisse fournir les appoints simultanément.
+  // Un build pas encore résolu (absent du cache) reste dans ce classement —
+  // on ne sait pas encore —, mais il n'est plus MONTRÉ : depuis 6bis-b16, la
+  // page n'affiche que les vérifiés (`compositionDePage`, plus bas), et la
+  // file résout en priorité ceux qui rempliront ses places en attente.
+  // ⚠️ **B.5b bis, mineur de la revue** : `sortCandidates` est un tri
+  // STABLE, à score égal l'ordre d'entrée est préservé — mais cet ordre
+  // d'entrée (celui de l'appariement) n'a rien de canonique. Le départage
+  // (`ordonnerParDepartage`, `rid` croissant puis `cleBuild`, la convention
+  // du contrat, la même que l'oracle) est appliqué AVANT, sur les candidats
+  // conformes : le tri stable qui suit préserve ensuite CET ordre pour
+  // toute égalité de score, quel que soit l'ordre d'arrivée des Workers.
+  // Les trois étapes vivent dans `classementResolu` (artifactQueue.ts), que le
+  // CLI appelle aussi (degats-et-aura 6bis-b5c).
+  const affichees = useMemo(
+    () => classementResolu(fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche),
+    [fullSortedCandidates, fileArtefacts.parBuild, sortBy, optionsDuTriAffiche]
+  );
 
-  const pageCandidates = useMemo(
-    () => affichees.slice((resultsPage - 1) * RESULTS_PAGE_SIZE, resultsPage * RESULTS_PAGE_SIZE),
-    [affichees, resultsPage]
+  // Le compte du MOTEUR : les candidats du résultat à la fin, le compte de la
+  // progression pendant l'appariement (non plafonné, contrairement à l'aperçu).
+  const trouvesParLeMoteur = result ? result.candidates.length : progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length;
+  // Le compte des TROUVÉES (degats-et-aura 6bis-b10) : trouvés par le moteur,
+  // moins les builds que la résolution a écartés — ces derniers mesurés comme
+  // reçus moins affichables, jamais lus dans le cache de la file (voir
+  // `compteAffichable`). `affichees` change à chaque publication du cache : le
+  // compte suit, en pleine recherche comme après. Seule source de la ligne de
+  // progression et de la ligne de raison ; depuis 6bis-b18, l'en-tête et les
+  // pages lisent les CONFIRMÉES (`compteConfirmes`, ci-dessous).
+  const compteAffiche = useMemo(
+    () =>
+      compteAffichable({
+        trouves: trouvesParLeMoteur,
+        recus: fullSortedCandidates.length,
+        affichables: affichees.length,
+        modeRecherche: relicContextRecherche?.mode === 'recherche',
+      }),
+    [trouvesParLeMoteur, fullSortedCandidates.length, affichees.length, relicContextRecherche?.mode]
+  );
+  // Le compte des CONFIRMÉES (degats-et-aura 6bis-b18, décision de
+  // l'utilisateur du 2026-10-02) : les builds de cette recherche résolus ET
+  // conformes, lus dans le cache publié de la file — un compte qui ne baisse
+  // jamais pendant une recherche. Seule source de l'en-tête, du nombre de pages
+  // et des contrôles masqués sous « Aucune combinaison… ». Sans file
+  // (optimisation d'artéfacts coupée), les trouvés, comme avant.
+  const compteConfirmes = useMemo(
+    () =>
+      compteConfirme({
+        recus: fullSortedCandidates,
+        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
+        trouves: trouvesParLeMoteur,
+        taillePage: RESULTS_PAGE_SIZE,
+        termine: result != null,
+      }),
+    [fullSortedCandidates, resoudreEquipement, fileArtefacts.parBuild, trouvesParLeMoteur, result]
+  );
+  const totalResultsPages = compteConfirmes.pages;
+
+  // ⚠️ CORRIGE la page courante, ne la remet PAS à 1 : un aperçu EN DIRECT
+  // (pendant la phase d'appariement) grandit au fil de la recherche sans
+  // que ce soit une NOUVELLE recherche — recommencer à la page 1 à chaque
+  // candidat qui arrive rendrait la pagination inutilisable pendant qu'une
+  // recherche tourne. Seuls `handleSearch` (nouvelle recherche) et le choix
+  // de tri (classement entièrement différent) remettent explicitement à 1.
+  // Le nombre de pages peut aussi DIMINUER (6bis-b10, transposé en 6bis-b18 :
+  // la page au-delà des confirmées disparaît quand ses derniers builds non
+  // vérifiés sont écartés) : la page courante revient alors sur la dernière.
+  useEffect(() => {
+    setResultsPage((p) => Math.min(Math.max(p, 1), totalResultsPages));
+  }, [totalResultsPages, setResultsPage]);
+
+  // La page affichée (degats-et-aura 6bis-b16) : les builds VÉRIFIÉS seuls,
+  // dans l'ordre réel, puis des places « Vérification… » jusqu'à ce que la page
+  // attend — une seule fonction pure, `compositionDePage`. Un build reçu de la
+  // recherche ne s'affiche plus avec sa paire supposée pour disparaître à la
+  // résolution : il apparaît une fois résolu et conforme, ou jamais. Sans file
+  // (optimisation d'artéfacts coupée), rien n'est à vérifier : la tranche du
+  // classement, comme avant.
+  const composition = useMemo(
+    () =>
+      compositionDePage({
+        classement: affichees,
+        parBuild: resoudreEquipement != null ? fileArtefacts.parBuild : null,
+        page: resultsPage,
+        taillePage: RESULTS_PAGE_SIZE,
+      }),
+    [affichees, resoudreEquipement, fileArtefacts.parBuild, resultsPage]
   );
   // ⚠️ Renseignée à CHAQUE rendu : c’est ce qui fait qu’un changement de page
-  // repriorise la file sans rien relancer ni invalider.
-  pageAfficheeRef.current = pageCandidates;
+  // repriorise la file sans rien relancer ni invalider. La file sert ces
+  // builds avant l'avance de fond (`prochainsATraiter`) ; vide quand la page est
+  // complète.
+  pageAfficheeRef.current = composition.aVerifier;
+  const hauteurCarte = useHauteurDesCartes(grilleResultatsRef);
 
   // Base « nue » du monstre choisi pour une stat — 0 tant qu'aucun monstre
   // n'est sélectionné. ⚠️ N'inclut PAS les artéfacts : en jeu, le mode
@@ -2182,25 +2642,31 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
     return selected ? (selected.gear.base as unknown as Record<StatKey, number>)[key] : 0;
   }
 
-  // Contribution des artéfacts EFFECTIVEMENT comptés (voir searchArtifacts)
-  // à une stat donnée — 0 si aucun artéfact n'est
-  // supposé sur cette stat. Sert de PLANCHER pour les conditions ci-dessous :
-  // avec zéro rune, un monstre a déjà AU MOINS ce bonus en jeu (voir
-  // `baseOf`) — le champ ne doit jamais laisser demander moins. N'affecte
-  // que PV/ATQ/DEF (ARTIFACT_MAIN ne couvre que ces trois stats — VIT/TC/
-  // DCC/RES/Précision ne reçoivent jamais rien d'un artéfact).
-  function artifactBonusOf(key: StatKey): number {
-    return searchArtifacts.reduce((sum, a) => {
-      const def = ARTIFACT_MAIN[a.main.code];
-      return def?.stat === key ? sum + a.main.value : sum;
-    }, 0);
+  // Plancher des conditions : compter chaque principale garantie par son
+  // choix d'emplacement, jamais la paire représentative de searchArtifacts.
+  // Les artéfacts ne contribuent qu'à PV/ATQ/DEF ; baseOf ajoute la base
+  // en affichage total et l'exclut pour ces stats en affichage bonus.
+  function artifactFloorOf(key: StatKey, base: number, bonusMode: boolean): number {
+    const choices = optimiserArtefacts
+      ? artifactMainByKind
+      : { element: 'equipped' as const, archetype: 'equipped' as const };
+    return artifactConditionFloor(key, base, bonusMode, choices, selected?.gear.artifacts ?? [])
+      + relicConditionFloor(key, base, relicMainChoice, selected?.gear.relic);
   }
 
   // Puces avec disponibilité PAR OPTION (Questions 2-3 du cadrage) — une
   // source sans AUCUN candidat pour l'espèce courante voit SA puce
   // désactivée (voir l'axe `disabled` ajouté à Segmented.tsx), le contrôle
   // entier en plus si les 4 le sont (aucune source ne possède l'espèce).
-  const sourceOptions = SOURCE_OPTIONS.map((o) => ({ ...o, disabled: candidatesBySource[o.key].length === 0 }));
+  // Dès deux exemplaires dans une source, sa puce le dit (« Box · 2 », lot EX
+  // de degats-et-aura) : c'est le seul signe qu'un clic dessus ouvre la zone D,
+  // y compris sur la puce déjà allumée. Le compte ne dépend que de l'espèce,
+  // jamais d'un clic : les puces, à largeur égale (`size="lg"`), ne bougent pas.
+  const sourceOptions = SOURCE_OPTIONS.map((o) => ({
+    ...o,
+    label: libellePuceSource(o.label, candidatesBySource[o.key].length),
+    disabled: candidatesBySource[o.key].length === 0,
+  }));
   const allSourcesEmpty = sourceOptions.every((o) => o.disabled);
 
   // Effectif par liste (Lot 3) — affiché dans `OptimizerListPicker`, à côté
@@ -2243,7 +2709,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // archive/historique/historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 »).
   const activeList = lists.lists.find((l) => l.id === lists.activeListId) ?? null;
   const activeMembers = lists.activeListId ? lists.members.filter((m) => m.listId === lists.activeListId) : [];
-  const alreadyMember = ownSelectorKey != null && activeMembers.some((m) => exclusionSelectorKey(m.selector) === ownSelectorKey);
   const listHasValidated = activeList != null && lists.validated.some((v) => v.listId === activeList.id);
 
   // « Ajouter à la liste » — agit sur `sourceSelector`, qui porte soit un
@@ -2254,22 +2719,59 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
   // mais pas encore désambiguïsée (zone D). Sans liste active, crée-en une
   // ET y ajoute le monstre dans le même geste plutôt que d'obliger un
   // aller-retour par le menu déroulant.
+  // ⚠️ Lot EX de degats-et-aura : l'exemplaire affiché déjà membre, un autre
+  // exemplaire Box de l'espèce absent de la liste → le bouton reste actif
+  // (« Ajouter un autre exemplaire de … ») et vise le premier exemplaire Box
+  // absent, dans l'ordre de la zone D. Décision pure : `etatAjoutListe`.
+  const ajoutListe = etatAjoutListe({
+    monstre: selected?.monster.name ?? null,
+    selecteur: sourceSelector,
+    listeActiveId: lists.activeListId,
+    nomListe: activeList?.name ?? '',
+    membres: lists.members,
+    candidatsBox: candidatesBySource.box,
+  });
+
+  // Change l'exemplaire optimisé — chemin UNIQUE des gestes qui désignent un
+  // exemplaire précis hors des puces de source : un membre de la zone C et
+  // le bouton « Ajouter un autre exemplaire » (lot EX). Autre espèce :
+  // `resetSearch` habituel. Même espèce, AUTRE exemplaire (6bis-b19, décision
+  // de l'utilisateur) : la recherche affichée a été faite pour l'ancien — sa
+  // fiche, sa relique, ses artéfacts portés ; effacée comme au changement
+  // d'espèce (`effacerResultats` est la partie « résultats » de
+  // `resetSearch`), sans toucher aux critères ni au combat décrit ; jamais
+  // relancée : l'utilisateur relance lui-même. Recliquer l'exemplaire déjà
+  // affiché n'efface rien. ⚠️ Aucun rappel des auras externes ici : il reste
+  // décidé dans le seul `onClick` d'un membre de la zone C (7b).
+  function choisirExemplaire(selector: ExclusionSelector, monster: Monster) {
+    const id = String(monster.id);
+    const key = exclusionSelectorKey(selector);
+    if (id !== selectedId) resetSearch();
+    else if (key !== ownSelectorKey) effacerResultats();
+    setSelectedId(id);
+    // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une des 4 puces) —
+    // `gearSource` reste sur sa dernière valeur réelle, la puce active se
+    // désallume de toute façon (`value={... || unowned ? null : gearSource}`).
+    if (selector.source !== 'unowned') setGearSource(selector.source);
+    setSourceSelector(selector);
+    setZoneDOpen(false);
+  }
+
   function handleAddToList() {
     if (!sourceSelector) return;
     if (!lists.activeListId) {
       setAddListPromptOpen('add');
       return;
     }
+    const suivant = ajoutListe.exemplaireSuivant;
+    if (suivant) {
+      choisirExemplaire(suivant.selector, suivant.monster);
+      lists.addMember(lists.activeListId, suivant.selector);
+      return;
+    }
     lists.addMember(lists.activeListId, sourceSelector);
   }
   const unowned = sourceSelector?.source === 'unowned';
-  const addLabel = !selected || !sourceSelector
-    ? 'Ajouter à la liste'
-    : alreadyMember
-      ? `Déjà dans « ${activeList?.name ?? ''} »`
-      : lists.activeListId
-        ? `Ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''} à « ${activeList?.name ?? ''} »`
-        : `Créer une liste et y ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''}`;
 
   // « Valider ce build » (sous la fiche stats+artéfacts+runes+relique,
   // demande explicite) — valide directement les runes ACTUELLEMENT
@@ -2723,8 +3225,8 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         taille="sm"
         pleineLargeur
         icone={<Plus size={14} />}
-        libelle={addLabel}
-        disabled={!selected || !sourceSelector || alreadyMember}
+        libelle={ajoutListe.libelle}
+        disabled={!ajoutListe.actif}
         onClick={handleAddToList}
         className="mb-2"
       />
@@ -2747,15 +3249,29 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   onClick={() => {
                     if (!resolved) return;
                     const id = String(resolved.monster.id);
-                    if (id !== selectedId) resetSearch();
-                    setSelectedId(id);
-                    // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une
-                    // des 4 puces) — `gearSource` reste sur sa dernière
-                    // valeur réelle, la puce active se désallume de toute
-                    // façon (`value={... || unowned ? null : gearSource}`).
-                    if (m.selector.source !== 'unowned') setGearSource(m.selector.source);
-                    setSourceSelector(m.selector);
-                    setZoneDOpen(false);
+                    // Règles de 6bis-b19 (autre espèce : `resetSearch` ; même
+                    // espèce, autre exemplaire : résultats effacés) — voir
+                    // `choisirExemplaire`, chemin partagé avec le bouton
+                    // « Ajouter un autre exemplaire » (lot EX).
+                    choisirExemplaire(m.selector, resolved.monster);
+                    // ⚠️ **Rappel des auras externes (degats-et-aura 7b) — ICI,
+                    // dans le geste de la liste de travail, et nulle part
+                    // ailleurs** : ni dans `resetSearch`, ni dans un effet sur
+                    // `selectedId` — l'import d'une recette ou d'un compte pose
+                    // aussi le monstre, et le bestiaire, les puces de source et
+                    // la zone D restent sans rappel (décision de l'utilisateur
+                    // sur 6bis-b19). Autre espèce OU autre exemplaire de la
+                    // même espèce ; `damageSetup` est celui du clic, et ses
+                    // auras externes survivent au changement de monstre.
+                    if (
+                      doitRappeler(
+                        'liste',
+                        { espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup.setsAuraExternes },
+                        { espece: id, exemplaire: key, aurasExternes: damageSetup.setsAuraExternes }
+                      )
+                    ) {
+                      setRappelAuras((n) => (n ?? 0) + 1);
+                    }
                   }}
                   className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 >
@@ -2829,6 +3345,32 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             );
           })}
         </div>
+      )}
+
+      {/* ⚠️ **Le rappel des auras, AUSSI sous la liste (degats-et-aura 7c)**
+          — là où l'on vient de cliquer : « État de mon monstre » est souvent
+          hors de l'écran à ce moment, toujours au téléphone (décision de
+          l'utilisateur du 2026-10-02). Le MÊME rappel que la boîte des
+          auras : même état (`rappelAuras`, posé par le seul `onClick` d'un
+          membre ci-dessus), donc même minuterie (`DUREE_ATTENTION_MS`) —
+          jamais un second minuteur ni une seconde condition —, même message,
+          même token (`warn` / `warn-soft`, un seul contour de 1 px).
+          Rendu SANS condition du rappel, invisible le reste du temps : sa
+          place est réservée sous la liste, rien ne bouge quand il paraît ni
+          quand il s'efface (spec/shared/design.md, réponse n° 1). Monté avec
+          la liste seulement : sans membre, aucun clic ne peut le poser.
+          Pas d'`aria-live` : la boîte des auras, montée en permanence,
+          l'annonce déjà — deux régions liraient deux fois la même phrase.
+          Commun aux deux formats : au téléphone, il vit dans le dépliement
+          de la zone C, ouvert au moment du clic. */}
+      {activeMembers.length > 0 && (
+        <p
+          className={`mt-1 rounded-lg border border-warn bg-warn-soft px-2 py-1 text-xs font-semibold text-warn ${
+            rappelAuras !== null ? 'animate-[apparition_200ms_var(--ease-out)]' : 'invisible'
+          }`}
+        >
+          Pense à vérifier les sets d&apos;aura externes.
+        </p>
       )}
 
       {listHasValidated && activeList && (
@@ -3055,7 +3597,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             </div>
             <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
               {validatedBadge}
-              <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
+              <MonsterGear
+                gear={selected?.gear ?? EMPTY_GEAR}
+                selection={selectionFiche}
+                onSelectionChange={setSelectionFiche}
+                relicUsageById={relicUsageById}
+              />
               {validateBuildButton}
             </div>
           </div>
@@ -3121,7 +3668,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               plus haut (`validatedBadge`/`validateBuildButton`). */}
           <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
             {validatedBadge}
-            <MonsterGear gear={selected?.gear ?? EMPTY_GEAR} selection={selectionFiche} onSelectionChange={setSelectionFiche} />
+            <MonsterGear
+              gear={selected?.gear ?? EMPTY_GEAR}
+              selection={selectionFiche}
+              onSelectionChange={setSelectionFiche}
+              relicUsageById={relicUsageById}
+            />
               {validateBuildButton}
           </div>
         </div>
@@ -3132,11 +3684,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           serrer sur son contenu — même patron que « Monstre & équipement »
           (carte haute à gauche, cartes plus courtes empilées à sa droite).
           ⚠️ **`xl:row-span-4`** : la colonne 2 empile QUATRE cartes —
-          Artéfacts (2), État de mon monstre (3), Exclusion de runes (4),
-          Réglages avancés (5). Ce nombre suit la colonne d'EN FACE, il ne
-          décrit pas le contenu de celle-ci : toute carte ajoutée ou retirée à
-          droite se répercute ici, et sur la rangée de la ligne d'estimation
-          (pleine largeur, toujours en dernier). */}
+          Artéfacts et reliques (2, bloc Relique fusionné dedans,
+          implementation-relique B.5c ter), État de mon monstre (3), Exclusion
+          de runes (4), Réglages avancés (5). Ce nombre suit la colonne d'EN
+          FACE, il ne décrit pas le contenu de celle-ci : toute carte ajoutée
+          ou retirée à droite se répercute ici, et sur la rangée de la ligne
+          d'estimation (pleine largeur, toujours en dernier). */}
       <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-4">
         <div className="mb-3 flex items-center gap-2">
           {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
@@ -3187,6 +3740,11 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           onChange={(next) => {
             setComboSets(next);
             if (next.length > 0) setSetPickerInvalid(false);
+            // Ouverture guidée (degats-et-aura 7b) : Accuracy ou Tolerance
+            // CHOISI comme set recherché guide vers l'interrupteur des auras
+            // RES/PRE, sans toucher aux auras externes. Au geste seulement :
+            // l'import d'une recette pose `comboSets` sans passer par ici.
+            if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
           }}
         />
         {setPickerInvalid && (
@@ -3286,7 +3844,6 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           {RECO_STATS.map((st) => {
             const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
             const base = baseOf(st.key);
-            const artBonus = artifactBonusOf(st.key);
             const capped = CAPPED_100.has(st.key);
             const bonusMode = affectedByToggle && excludeBase;
             const ceiling = capped ? (bonusMode ? 100 - base : 100) : undefined;
@@ -3294,10 +3851,10 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             // sert à la conversion affichage↔stockage, voir `baseOf`) : avec
             // zéro rune, un monstre a déjà AU MOINS ce bonus/total en jeu
             // (base nue + artéfacts éventuellement comptés) — voir
-            // `artifactBonusOf`. En mode bonus, seul l'artéfact compte (la
+            // `artifactFloorOf`. En mode bonus, seul l'artéfact compte (la
             // base nue est déjà soustraite par la conversion elle-même) ; en
             // mode total, base ET artéfact s'additionnent.
-            const floor = bonusMode ? artBonus : base + artBonus;
+            const floor = artifactFloorOf(st.key, base, bonusMode);
 
             const minTotal = minStats[st.key] ?? null;
             const minDisplayed = minTotal == null ? null : bonusMode ? minTotal - base : minTotal;
@@ -3432,8 +3989,12 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
             <GameIcon name="artifact" size={15} />
           </div>
-          <p className="text-[13.5px] font-bold text-ink">Artéfacts</p>
-          <HelpPopover title="Artéfacts">
+          {/* ⚠️ Titre étendu à la relique (implementation-relique, B.5c ter,
+              T9 re-tranché une seconde fois — voir le bloc « Relique »
+              ci-dessous) : le titre suit l'interrupteur, qui porte déjà les
+              deux mots — à confirmer par l'utilisateur au premier rendu. */}
+          <p className="text-[13.5px] font-bold text-ink">Artéfacts et reliques</p>
+          <HelpPopover title="Artéfacts et reliques">
             <b className="text-ink">« Libre »</b> cherche parmi tous tes artéfacts équipables ; une{' '}
             <b className="text-ink">principale</b> restreint la recherche à ceux qui la portent.{' '}
             <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce entière portée sur le
@@ -3447,33 +4008,42 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             <br />
             La paire retenue suit le <b className="text-ink">tri</b> affiché — trier par PV effectifs ne choisit
             pas les mêmes artéfacts que trier par dégâts.
+            <br />
+            <br />
+            La <b className="text-ink">relique</b> suit la même grammaire : une principale ET une propriété unique
+            se combinent, et la propriété unique compte pour retenir ou écarter une relique{' '}
+            <b className="text-ink">comme pour la noter</b> — son gain vaut un palier entier par tranche de
+            statistique atteinte au début du combat.
           </HelpPopover>
           {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
               et son aide restent collés, l'interrupteur part à droite — même
               lecture qu'avant, dans le gabarit d'en-tête de carte. */}
           <div className="ml-auto flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Activer l&apos;optimisation d&apos;artéfacts</span>
-            <HelpPopover title="Activer l&apos;optimisation d&apos;artéfacts">
-              Activé (défaut), chaque build reçoit la meilleure paire parmi tes artéfacts, selon les réglages
-              ci-dessous.
+            <span className="text-xs font-semibold text-ink-dim">Activer l&apos;optimisation d&apos;artéfacts et reliques</span>
+            <HelpPopover title="Activer l&apos;optimisation d&apos;artéfacts et reliques">
+              Activé (défaut), chaque build reçoit la meilleure paire d&apos;artéfacts ET la meilleure relique
+              parmi les tiennes, selon les réglages ci-dessous.
               <br />
               <br />
-              Désactivé, le monstre <b className="text-ink">garde les artéfacts qu&apos;il porte</b>, statistiques
-              comprises — on cesse simplement d&apos;en chercher d&apos;autres. Utile pour composer un runage autour
-              des pièces déjà en place.
+              Désactivé, le monstre <b className="text-ink">garde les artéfacts et la relique qu&apos;il porte</b>,
+              statistiques comprises — on cesse simplement d&apos;en chercher d&apos;autres. Utile pour composer un
+              runage autour des pièces déjà en place.
             </HelpPopover>
             <Interrupteur
               actif={optimiserArtefacts}
               onChange={setOptimiserArtefacts}
-              aria-label="Activer l'optimisation d'artéfacts"
+              aria-label="Activer l'optimisation d'artéfacts et reliques"
             />
           </div>
         </div>
+        {/* Rangée Attribut/Type — la relique a rejoint le bas de la carte
+            (implementation-relique, B.5c quater, rév. 33 : le bloc Relique
+            FERME la carte, plus de variante `xl:border-l`, voir plus bas). */}
         {optimiserArtefacts && (
           <div className="flex flex-wrap gap-3">
             {ARTIFACT_KINDS.map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1.5">
-                <span className="text-xs text-ink w-14">{label}</span>
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>{label}</span>
                 {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
                     d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
                     Ce sélecteur affichait « Garder l'artéfact équipé » tant
@@ -3494,6 +4064,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   taille="sm"
                   surface="panel2"
                   pleineLargeur={false}
+                  className={LARGEUR_SELECTEUR_LISTE}
                 >
                   {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
                       ce choix conserve la PIÈCE entière — le pool tombe à un
@@ -3524,7 +4095,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             ))}
           </div>
         )}
-        {/* ⚠️ Sous les sélecteurs, et jamais au-dessus : les lignes
+        {/* Sous les sélecteurs, et jamais au-dessus : les lignes
             verrouillées se lisent comme un raffinement du choix de pièce, pas
             comme une condition indépendante. Masqué avec le reste quand les
             artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
@@ -3552,14 +4123,128 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
             alors qu'un grep de son libellé n'en montrait qu'une — cette carte
             n'a pas de jumelle masquée. */}
         {blocArtefactsSeuls}
+        {/* ⚠️ **Relique — ferme la carte, PAS une carte propre** (T9
+            re-tranché une troisième fois à la vue du rendu, rév. 33,
+            implementation-relique B.5c quater — les variantes précédentes,
+            à droite de la rangée Attribut/Type puis carte à part, sont
+            écartées). Trait horizontal sous « Meilleurs artéfacts », un seul
+            contour, puis le sous-titre et sa rangée — même JSX pour les deux
+            formats, ordinateur et téléphone : la rangée se replie seule via
+            `flex-wrap` comme la rangée Attribut/Type juste au-dessus. Même
+            interrupteur que les listes d'artéfacts (T2 confirmé) : masqué
+            avec elles plutôt que grisé à part — plus de carte séparée à
+            expliquer, donc plus de texte « Coupée avec… » (B.5c bis). */}
+        {optimiserArtefacts && (
+          <div className="mt-3 border-t border-border-soft pt-3">
+            <div className="flex items-center gap-1">
+              <span className="label">Relique</span>
+              <HelpPopover title="Relique">
+                Une <b className="text-ink">principale</b> ET une <b className="text-ink">propriété unique</b>{' '}
+                se combinent. La propriété unique compte pour retenir ou écarter une relique, et{' '}
+                <b className="text-ink">sa valeur entre dans la note</b> : le gain vaut un palier entier par
+                tranche de statistique atteinte au début du combat, lu sur la pièce. Les soins et boucliers
+                (Régénération) ne sont mesurés par aucun objectif, donc jamais notés.
+                <br />
+                <br />
+                <b className="text-ink">« Garder la relique équipée »</b> conserve la pièce entière portée sur
+                le build affiché ci-dessus, sans rien chercher.
+              </HelpPopover>
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Principale</span>
+                <Selecteur
+                  value={String(relicMainChoice)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const next: RelicMainChoice =
+                      raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
+                    setRelicMainChoice(next);
+                  }}
+                  taille="sm"
+                  surface="panel2"
+                  pleineLargeur={false}
+                  className={LARGEUR_SELECTEUR_LISTE}
+                >
+                  <option value="equipped">Garder la relique équipée</option>
+                  <option value="libre">Libre</option>
+                  {RELIC_MAIN_OPTIONS.map((o) => (
+                    <option key={o.code} value={o.code}>
+                      {o.label}
+                    </option>
+                  ))}
+                </Selecteur>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Propriété unique</span>
+                {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (D1 :
+                    la pièce est fixée) — désactivé plutôt que retiré, et le
+                    dit, même règle que les sous-propriétés verrouillées sans
+                    effet. */}
+                <Selecteur
+                  value={String(relicUniqueChoice)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setRelicUniqueChoice(raw === 'libre' ? 'libre' : Number(raw));
+                  }}
+                  taille="sm"
+                  surface="panel2"
+                  pleineLargeur={false}
+                  className={LARGEUR_SELECTEUR_LISTE}
+                  disabled={relicMainChoice === 'equipped'}
+                  title={relicMainChoice === 'equipped' ? 'Sans effet : la relique équipée est fixée' : undefined}
+                >
+                  <option value="libre">Libre</option>
+                  {/* ⚠️ Libellé DÉRIVÉ de `RELIC_UNIQUE` (`relicUniqueEffectLabel`,
+                      effects.ts) — « <effet> en fonction <stat> » avec les mots du
+                      jeu des deux moitiés, jamais une table séparée
+                      (game-data-curation). Même libellé que sur la carte candidat
+                      (RelicSlot → `RelicDetailBox` → `formatRelicUnique`, qui
+                      reste la phrase COMPLÈTE, trop longue pour un sélecteur). */}
+                  {Object.keys(RELIC_UNIQUE)
+                    .map(Number)
+                    .map((type) => (
+                      <option key={type} value={type}>
+                        {relicUniqueEffectLabel(type)}
+                      </option>
+                    ))}
+                </Selecteur>
+                {relicMainChoice === 'equipped' && (
+                  <span className="text-nano text-ink-dimmer">sans effet : relique équipée fixée</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Niveau minimum</span>
+                {/* ⚠️ Filtre d'ENTRÉE sur le pool de reliques cherché, jamais
+                    un critère de classement (la dominance départage les
+                    reliques qui passent le seuil). Sans effet tant que
+                    « Principale » ne vaut pas « Libre » ou une principale
+                    forcée — pas désactivé pour autant : la combinaison
+                    reste rare, et un champ qui apparaît/disparaît selon un
+                    AUTRE champ de la même carte serait plus déroutant que
+                    sans effet à l'occasion (contrairement à « Propriété
+                    unique », désactivée seulement par « Garder la relique
+                    équipée », qui la rend vraiment inerte). */}
+                <NumberField
+                  value={relicMinUpgrade}
+                  onChange={(v) => setRelicMinUpgrade(v ?? DEFAULT_RELIC_MIN_UPGRADE)}
+                  min={0}
+                  max={15}
+                  title="Niveau minimum de la relique — filtre d'entrée sur le pool cherché, jamais un critère de classement"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ⚠️ **Carte à part, sous « Artéfacts »** — ces cinq réglages ne sont
-          PAS des réglages d'artéfact. Ils décrivent le monstre : buffs reçus,
-          leader skill d'équipe, compétences d'invocateur. Ils vivaient en bas
-          de la carte Artéfacts, séparés par un simple trait, ce qui laissait
-          croire qu'ils la servaient — alors qu'ils changent les statistiques
-          du monstre tout court, donc aussi bien les dégâts supplémentaires que
+      {/* ⚠️ **Carte à part, sous « Artéfacts et reliques »** — ces cinq
+          réglages ne sont PAS des réglages d'artéfact ni de relique. Ils
+          décrivent le monstre : buffs reçus, leader skill d'équipe,
+          compétences d'invocateur. Ils vivaient en bas de la carte
+          Artéfacts, séparés par un simple trait, ce qui laissait croire
+          qu'ils la servaient — alors qu'ils changent les statistiques du
+          monstre tout court, donc aussi bien les dégâts supplémentaires que
           n'importe quel calcul de dégâts réels.
           ⚠️ **Toujours visible, indépendamment de l'objectif de recherche** :
           les laisser dans la fenêtre « Dégâts réels » les rendait invisibles à
@@ -3568,7 +4253,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
           le décalage d'une rangée de tout ce qui suit. */}
       <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
-        <EtatMonstre setup={damageSetup} maj={majDamageSetup} etroit={etroit} artefacts={artefactsDegats} />
+        <EtatMonstre
+          setup={damageSetup}
+          maj={majDamageSetup}
+          etroit={etroit}
+          artefacts={artefactsDegats}
+          rappelAuras={rappelAuras !== null}
+          onGuiderResPre={guiderVersResPre}
+          rappelsBuffs={rappelsBuffs}
+        />
       </div>
 
       {/* ⚠️ « Objectif de recherche » N'EST PLUS ICI — il a rejoint la carte
@@ -3601,7 +4294,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         // réglage qu'on vient de toucher sans d'abord refermer le panneau.
         const reglagesAvancesInner = (dansPanneau: boolean) => (
           /* ⚠️ **DEUX colonnes dès que la place le permet** (demande explicite)
-              — le pré-filtrage et son avertissement d'un côté, les trois
+              — le pré-filtrage et son avertissement d'un côté, les
               interrupteurs de l'autre.
               ⚠️ `auto-fit`/`minmax` et NON un point de rupture d'écran
               (`sm:`/`xl:`) : ce qui décide ici est la largeur du PANNEAU, pas
@@ -3702,6 +4395,91 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 onChange={setAdaptiveTrancheWeighting}
                 aria-label="Prioriser les stats les plus difficiles"
               />
+            </div>
+
+            {/* « Vérifier toutes les combinaisons trouvées » (degats-et-aura
+                6bis-b18) : désactivé par défaut, lu EN DIRECT par la file
+                (`cibleDeLaFile`), jamais par `handleSearch` — il ne change pas
+                la recherche de runes, seulement jusqu'où la file vérifie.
+                MASQUÉ sans optimisation d'artéfacts : sans file, rien n'est
+                vérifié, et une saisie sans effet est pire qu'une saisie
+                absente (même règle que « Adapter les artéfacts et reliques
+                au tri »). L'interrupteur qui le masque vit dans une autre
+                carte : rien ne bouge sous le clic. */}
+            {optimiserArtefacts && (
+              <div className="flex items-center justify-between gap-2 py-3 last:pb-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11.5px] text-ink-dim">Vérifier toutes les combinaisons trouvées</span>
+                  <HelpPopover title="Vérifier toutes les combinaisons trouvées">
+                    Par défaut, la vérification des artéfacts et de la relique s'arrête dès que{' '}
+                    <b className="text-ink">100 combinaisons sont confirmées</b> (300 quand la relique est cherchée) :
+                    les suivantes ne sont vérifiées que si tu ouvres leur page.
+                    <br />
+                    <br />
+                    Activé, toutes les combinaisons trouvées sont vérifiées, au-delà de ces confirmées : le compte
+                    devient complet, mais cela peut prendre plusieurs minutes.
+                  </HelpPopover>
+                </div>
+                <Interrupteur
+                  actif={verifierToutesLesCombinaisons}
+                  onChange={setVerifierToutesLesCombinaisons}
+                  aria-label="Vérifier toutes les combinaisons trouvées"
+                />
+              </div>
+            )}
+
+            {/* « Compter les effets d'auras Tolerance et Précision dans les
+                conditions » (degats-et-aura 7a, libellé de l'utilisateur) :
+                activé par défaut, branché sur `compterAurasResPre`, qu'une
+                recette porte déjà et que la recherche lit au clic sur
+                « Rechercher » (`avecAurasConditions`).
+                ⚠️ **Rendu SANS condition**, même sans aucune aura RES/PRE
+                saisie : les activations Tolerance/Accuracy PROPRES d'un build
+                comptent aussi, et un réglage qui apparaît et disparaît avec
+                la saisie d'une autre carte ne se retrouve pas. Ce contenu est
+                commun aux deux formats — le flottant du bureau et le panneau
+                « Options » au doigt.
+                ⚠️ EN DERNIER : la rangée conditionnelle du dessus
+                (« Vérifier toutes… ») ne le décale qu'au geste d'une autre
+                carte, jamais sous le clic.
+                ⚠️ **Cible de l'ouverture guidée (degats-et-aura 7b)** : le
+                cadre intérieur porte le surlignage d'attention, au même token
+                que le rappel (`warn` / `warn-soft`). Il existe EN PERMANENCE,
+                transparent : se colorer ne bouge rien. Intérieur et non sur la
+                rangée elle-même, dont le trait du haut vient de `divide-y` :
+                un contour posé dessus en ferait deux superposés. `-mx-1` le
+                tient à 4 px du cadre de la boîte ; `px-[3px]` + 1 px de bord
+                gardent le libellé aligné sur ceux du dessus, et `py-2` +
+                `py-[3px]` + 1 px refont les 12 px de `py-3`. Une ref par
+                surface (flottant, panneau), pour y défiler. */}
+            <div className="py-2 last:pb-0">
+              <div
+                ref={dansPanneau ? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef}
+                className={`-mx-1 flex items-center justify-between gap-2 rounded-md border px-[3px] py-[3px] transition-colors duration-200 ${
+                  attentionResPre !== null ? 'border-warn bg-warn-soft' : 'border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11.5px] text-ink-dim">
+                    Compter les effets d'auras Tolerance et Précision dans les conditions
+                  </span>
+                  <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
+                    Activé, chaque set <b className="text-ink">Tolerance</b> ou <b className="text-ink">Accuracy</b> ajoute
+                    8 points de RES ou de Précision aux <b className="text-ink">minimums et aux maximums</b> de ces deux
+                    conditions : ceux des autres monstres, saisis dans « État de mon monstre », et ceux que forment les
+                    runes de chaque build.
+                    <br />
+                    <br />
+                    Désactivé, ces deux conditions portent sur les statistiques sans aucune aura. Les dégâts et les PV
+                    effectifs comptent les auras dans les deux cas.
+                  </HelpPopover>
+                </div>
+                <Interrupteur
+                  actif={compterAurasResPre}
+                  onChange={setCompterAurasResPre}
+                  aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
+                />
+              </div>
             </div>
           </div>
           </div>
@@ -4213,7 +4991,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       </div>
 
       {importMsg && (
-        <p className={`text-[12.5px] ${importMsg.error ? 'text-bad' : 'text-good'}`} role="status">
+        <p className={`text-[12.5px] ${classeMessageImport(importMsg)}`} role="status">
           {importMsg.text}
         </p>
       )}
@@ -4273,7 +5051,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
           <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'
-              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${progress.found.toLocaleString('fr-FR')} trouvée(s)`}
+              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
           </p>
           {progress !== null && (
             <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
@@ -4293,6 +5071,25 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
         <p className="text-xs text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
       )}
 
+      {/* ⚠️ Refus NOMMÉ (implementation-relique, B.5c) : `search.status ===
+          'refused'` et `search.refusal.vide` sont la SEULE source de ce
+          texte — un par raison, jamais un pool recalculé pour deviner
+          pourquoi. `'refused'` se traite ici comme `'error'` l'est
+          juste au-dessus, à la place du lancement. */}
+      {status === 'refused' && refusal && (
+        <p className="text-xs text-bad">
+          {refusal.vide === 'seuil'
+            ? 'Aucune relique éligible : abaisse le niveau minimum.'
+            : refusal.vide === 'principale'
+              ? 'Aucune relique de cette principale dans ton inventaire.'
+              : refusal.vide === 'type'
+                ? 'Aucune relique de cette propriété unique dans ton inventaire.'
+                : refusal.vide === 'inventaire'
+                  ? "Aucune relique dans le compte importé : réimporte le compte, ou coupe l'optimisation d'artéfacts et reliques."
+                  : 'Ce monstre ne porte pas de relique.'}
+        </p>
+      )}
+
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
           un candidat est trouvé (`sortedCandidates` vient alors de l'aperçu
           EN DIRECT de `progress`, pas de `result` — voir `candidatesSource`
@@ -4303,15 +5100,38 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
       {(result || fullSortedCandidates.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <p className="label">
-              {result
-                ? result.candidates.length === 0
-                  ? 'Aucune combinaison ne répond à ces critères'
-                  : `${result.candidates.length} combinaison(s) trouvée(s)`
-                : `${(progress?.phase === 'pairing' ? progress.found : fullSortedCandidates.length).toLocaleString(
-                    'fr-FR'
-                  )} combinaison(s) trouvée(s) pour l'instant — recherche en cours…`}
-            </p>
+            {/* ⚠️ Le compte des CONFIRMÉES (`compteConfirmes`, 6bis-b18) :
+                seulement les builds vérifiés (résolus et conformes), un
+                compte qui ne baisse jamais pendant une recherche. « Aucune
+                combinaison… » seulement quand tout est vérifié sans aucune
+                confirmée. La ligne de progression garde les trouvées
+                (6bis-b10) : l'infobulle dit la différence. */}
+            <div className="flex items-center gap-1.5">
+              <p className="label">
+                {result
+                  ? compteConfirmes.aucune
+                    ? 'Aucune combinaison ne répond à ces critères'
+                    : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s)`
+                  : `${compteConfirmes.confirmees.toLocaleString('fr-FR')} combinaison(s) confirmée(s) pour l'instant — recherche en cours…`}
+              </p>
+              {/* Seulement quand une file vérifie : sans elle, confirmées et
+                  trouvées sont le même nombre. */}
+              {resoudreEquipement != null && !compteConfirmes.aucune && (
+                <HelpPopover title="Combinaisons confirmées">
+                  Une combinaison est <b className="text-ink">confirmée</b> quand ses artéfacts et sa relique ont
+                  été vérifiés avec les pièces de ton inventaire : elle tient vraiment toutes les conditions.
+                  <br />
+                  <br />
+                  Le nombre « trouvée(s) » de la barre de progression compte tout ce que la recherche a retenu stat
+                  par stat : une estimation optimiste, pas encore vérifiée. Une partie de ces combinaisons est
+                  écartée à la vérification.
+                  <br />
+                  <br />
+                  La vérification s'arrête à 100 confirmées (300 quand la relique est cherchée) ; « Vérifier toutes
+                  les combinaisons trouvées », dans les réglages avancés, va jusqu'au bout.
+                </HelpPopover>
+              )}
+            </div>
             {/* ⚠️ **Le tri est une VUE, l’optimisation d’artéfacts une
                 DÉCISION.** Les coupler d’office déplaçait la paire dès qu’on
                 changeait de tri pour explorer — alors qu’on veut souvent
@@ -4322,31 +5142,33 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 qu’une paire possible, celle qui est portée. Une saisie sans
                 effet est pire qu’une saisie absente — même règle que les
                 sélecteurs de principale et les sous-propriétés verrouillées. */}
-            {optimiserArtefacts && (result ? result.candidates.length > 0 : true) && (
+            {optimiserArtefacts && !compteConfirmes.aucune && (
               <div className="ml-auto flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts au tri</span>
-                <HelpPopover title="Adapter les artéfacts au tri">
-                  Activé (défaut), chaque build reçoit les artéfacts qui maximisent le{' '}
+                <span className="text-xs font-semibold text-ink-dim">Adapter les artéfacts et reliques au tri</span>
+                <HelpPopover title="Adapter les artéfacts et reliques au tri">
+                  Activé (défaut), chaque build reçoit les artéfacts ET la relique qui maximisent le{' '}
                   <b className="text-ink">critère de tri</b> affiché : trier par ATQ ne retient pas les mêmes
                   pièces que trier par PV effectifs.
                   <br />
                   <br />
-                  Désactivé, les artéfacts restent ceux qui servent l’<b className="text-ink">objectif de la
+                  Désactivé, les artéfacts et la relique restent ceux qui servent l’<b className="text-ink">objectif de la
                   recherche</b>, quel que soit le tri. Utile pour parcourir les résultats classés autrement sans
-                  que la paire bouge — et « Valider les artéfacts » propose alors toujours la même.
+                  que l’équipement bouge — et « Valider les artéfacts » propose alors toujours le même.
                   <br />
                   <br />
                   Sans effet sur Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance et Précision : aucun
-                  artéfact n’entre dans ces classements.
+                  artéfact ni aucune propriété de relique n’entre dans ces classements.
                 </HelpPopover>
                 <Interrupteur
                   actif={adapterArtefactsAuTri}
                   onChange={setAdapterArtefactsAuTri}
-                  aria-label="Adapter les artéfacts au tri"
+                  aria-label="Adapter les artéfacts et reliques au tri"
                 />
               </div>
             )}
-            {(result ? result.candidates.length > 0 : true) && (
+            {/* Masqués (avec « Adapter… ») seulement quand tout est vérifié
+                sans aucune confirmée (6bis-b10, transposé en 6bis-b18). */}
+            {!compteConfirmes.aucune && (
               <Selecteur
                 value={sortBy}
                 onChange={(e) => {
@@ -4380,6 +5202,32 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               </Selecteur>
             )}
           </div>
+
+          {/* Combien la file doit encore vérifier (6bis-b16) : les builds des
+              places en attente de la page, puis l'avance de fond vers K
+              confirmées (6bis-b18) — le compte
+              ci-dessus les inclut (6bis-b10, règle inchangée), la page ne les
+              montre qu'une fois vérifiés. `enAttente` est le reste de la file,
+              tenu par le hook pour l'affichage. ⚠️ Rangée TOUJOURS présente
+              quand la file tourne : quand elle se vide, l'espace insécable
+              garde sa hauteur, et la grille ne remonte pas. */}
+          {resoudreEquipement != null && (
+            <p className="mb-2 text-xs text-ink-dim">
+              {fileArtefacts.enAttente > 0
+                ? `${fileArtefacts.enAttente.toLocaleString('fr-FR')} combinaison(s) en vérification…`
+                : ' '}
+            </p>
+          )}
+
+          {/* ⚠️ Zéro dû aux seuls builds écartés par la résolution (6bis-b10) :
+              le moteur a trouvé, aucun couple réel ne tient. Depuis 6bis-b18,
+              sous « Aucune combinaison… » seulement — tout vérifié, aucune
+              confirmée —, la ligne qu'elle explique. Les blocs ci-dessous
+              (diagnostic, « suffirait ») gardent leur condition, moteur vide :
+              leurs chiffres viennent des bornes du moteur. */}
+          {compteConfirmes.aucune && compteAffiche.raison && (
+            <p className="mb-3 text-xs text-ink-dim">{compteAffiche.raison}</p>
+          )}
 
           {/* ⚠️ Diagnostic affiché UNIQUEMENT sur 0 résultat — voir
               `diagnoseFeasibility` dans runeBuildOptim.ts pour ce qu'il
@@ -4495,7 +5343,7 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
               const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
               if (objective !== 'ehp') return base;
-              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats)).toLocaleString('fr-FR')}`;
+              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats, aurasPropresDe(miss), damageSetup)).toLocaleString('fr-FR')}`;
             };
             const suffiraitText = (s: StatShortfall) => {
               const st = RECO_STATS.find((r) => r.key === s.key)!;
@@ -4560,28 +5408,36 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
               cartes affichent stats + artéfacts + roue sur une seule LIGNE
               (voir BuildCandidateCard.tsx), calibrées pour tenir dans cette
               largeur (`WHEEL_SCALE`/`ARTIFACT_SCALE` = 0,45). */}
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
-            {pageCandidates.map((c, i) => (
+          {/* ⚠️ Les cartes VÉRIFIÉES, puis les places « Vérification… »
+              (`composition`, 6bis-b16) : aucune carte non vérifiée, pendant la
+              recherche comme après. Une place a la hauteur d'une carte
+              (`useHauteurDesCartes`), pour que rien ne saute quand la carte
+              arrive. */}
+          <div ref={grilleResultatsRef} className="grid grid-cols-[repeat(auto-fill,minmax(min(360px,100%),1fr))] gap-3">
+            {composition.cartes.map((c, i) => (
               <BuildCandidateCard
                 key={c.runeIds.join('-')}
-                rank={(resultsPage - 1) * RESULTS_PAGE_SIZE + i + 1}
+                rank={composition.premierRang + i}
                 candidate={c}
                 runeById={runeById}
                 // ⚠️ La paire de CE build, jamais une paire commune : deux
                 // builds voisins n'appellent pas les mêmes artéfacts, et ce
                 // sont ces pièces-là qui ont servi à calculer ses stats.
-                // Repli sur la paire SUPPOSÉE tant que la file ne l'a pas
-                // atteint — et la carte le DIT (`paireProvisoire`) plutôt que
-                // de laisser croire que c'est le résultat final.
+                // Le repli sur la paire SUPPOSÉE ne sert plus que sans file
+                // (optimisation coupée : la paire portée, la seule possible) —
+                // avec file, une carte affichée est résolue (6bis-b16).
                 artifacts={fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts}
-                // ⚠️ Signalé SEULEMENT quand la file tourne pour de bon : hors
-                // « Dégâts réels » ou file inactive, il n'y a rien à attendre,
-                // et annoncer une optimisation qui n'aura pas lieu serait faux.
-                paireProvisoire={
-                  faireParamsArtefacts != null &&
-                  objective === 'degats_reels' &&
-                  !fileArtefacts.parBuild.has(cleBuild(c))
-                }
+                // ⚠️ **Seule source** (implementation-relique, B.5c) :
+                // `etatReliqueDuBuild` lit le cache de la file, jamais
+                // recalculé ici — `fixe` (hors mode `recherche`) n'affiche
+                // rien de nouveau, `rejete` n'arrive jamais jusqu'ici (le
+                // classement écarte déjà ces builds, B.5b). Par
+                // `etatReliqueDe` : la relique que le score compte (6bis-b5a).
+                etatRelique={etatReliqueDe(c)}
+                relicUsageById={relicUsageById}
+                // Plus de mention « artéfacts pas encore optimisés » : avec
+                // file, une carte n'apparaît qu'une fois résolue ; sans file,
+                // rien n'est à attendre (6bis-b16).
                 metric={metric}
                 openDetailKey={openDetailKey}
                 onToggleDetail={(key: string) => setOpenDetailKey((cur) => (cur === key ? null : key))}
@@ -4598,12 +5454,15 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                     // dégâts réels : on peut avoir cherché sur un objectif puis
                     // re-trié par PV effectifs, auquel cas le chiffre qui
                     // ordonne les cartes doit être visible dessus.
+                    // ⚠️ `scoreDuCandidat` avec les options du classement
+                    // affiché : le chiffre qui a CLASSÉ la carte, Ténacité et
+                    // points de la relique retenue compris (6bis-b4).
                     pvEffectifs:
                       objective === 'ehp' || sortBy === 'ehp'
-                        ? {
-                            total: pvEffectifs(c.stats),
-                            delta: compare && refEhp != null ? pvEffectifs(c.stats) - refEhp : undefined,
-                          }
+                        ? (() => {
+                            const total = scoreDuCandidat(c, 'ehp', optionsDuTriAffiche)!;
+                            return { total, delta: compare && refEhp != null ? total - refEhp : undefined };
+                          })()
                         : undefined,
                     metricDelta:
                       compare && refMetric != null
@@ -4633,50 +5492,23 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                 degatsReels={
                   realDamage && (objective === 'degats_reels' || sortBy === 'degats_reels')
                     ? (() => {
-                        const total = computeTotalDamage(
-                          realDamage.profile,
-                          realDamage.passifs,
-                          c.stats,
-                          realDamage.setup,
-                          realDamage.element,
-                          profilArtefactsDuBuild(c) ?? realDamage.artefacts,
-                          realDamage.critSiPlusRapide,
-                          realDamage.bonusDegatsSelonVit,
-                          realDamage.bonusDegatsStack,
-                          realDamage.monsterWide,
-                          realDamage.bonusDegatsConditionnel,
-                          realDamage.bonusDegatsSelonCr,
-                          realDamage.bonusDegatsSelonDef,
-                          realDamage.bonusSiAtqSeuil
-                        );
+                        // ⚠️ Le chiffre qui a CLASSÉ la carte : `scoreDuCandidat`
+                        // avec les options du classement affiché — profil
+                        // d'artéfacts de CE build et Conquête de sa relique
+                        // retenue compris. Une recopie de `computeTotalDamage`
+                        // omettait la Conquête que le tri compte (6bis-b4).
+                        const total = scoreDuCandidat(c, 'degats_reels', optionsDuTriAffiche)!;
                         return {
                           total,
                           partPvCible: damageSetup.enemyHp > 0 ? (total / damageSetup.enemyHp) * 100 : 0,
                           // ⚠️ L'écart se calcule contre les dégâts de la
-                          // RÉFÉRENCE, recalculés avec ses propres stats et sa
-                          // propre paire d'artéfacts — jamais contre le total
-                          // d'un autre candidat. `realDamage.artefacts` est la
-                          // paire de la fiche, celle qui accompagne
-                          // `statsReference`.
+                          // RÉFÉRENCE (`refDegats`) : la fiche notée avec SES
+                          // stats, SA paire d'artéfacts et SA relique — jamais
+                          // contre le total d'un autre candidat, jamais avec
+                          // la paire de la recherche (6bis-b5a).
                           delta:
-                            compareKey === c.runeIds.join('-') && statsReference
-                              ? total -
-                                computeTotalDamage(
-                                  realDamage.profile,
-                                  realDamage.passifs,
-                                  statsReference,
-                                  realDamage.setup,
-                                  realDamage.element,
-                                  realDamage.artefacts,
-                                  realDamage.critSiPlusRapide,
-                                  realDamage.bonusDegatsSelonVit,
-                                  realDamage.bonusDegatsStack,
-                                  realDamage.monsterWide,
-                                  realDamage.bonusDegatsConditionnel,
-                                  realDamage.bonusDegatsSelonCr,
-                                  realDamage.bonusDegatsSelonDef,
-                                  realDamage.bonusSiAtqSeuil
-                                )
+                            compareKey === c.runeIds.join('-') && refDegats != null
+                              ? total - refDegats
                               : undefined,
                         };
                       })()
@@ -4728,6 +5560,13 @@ export default function OptimizerSection({ box, runes, artifacts, optimizer, all
                   const noms = [...new Set(conflits.map((x) => x.monsterName))];
                   return `${conflits.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste pour ${noms.join(', ')}`;
                 })()}
+              />
+            ))}
+            {Array.from({ length: composition.placesEnAttente }, (_, j) => (
+              <PlaceEnVerification
+                key={`verification-${composition.premierRang + composition.cartes.length + j}`}
+                rank={composition.premierRang + composition.cartes.length + j}
+                hauteur={hauteurCarte}
               />
             ))}
           </div>

@@ -352,15 +352,28 @@ function artifactToDetail(a: any): ArtifactDetail {
 function relicToDetail(r: any): RelicDetail | undefined {
   const main = effLine(r?.pri_effect);
   if (!main) return undefined;
+  const id = Number(r?.rid) || 0;
+  const upgrade = Number(r?.upgrade_curr) || 0;
   const sec = r?.sec_effect;
-  if (!Array.isArray(sec)) return { main };
+  if (!Array.isArray(sec)) return { id, upgrade, main };
   // `type` de la pièce s'il est là, sinon le premier nombre — les deux sont
   // égaux sur tous les exports observés.
   const type = Number(r?.type) || Number(sec[0]) || 0;
   const tranche = Number(sec[1]) || 0;
-  if (!type || !tranche) return { main };
+  if (!type || !tranche) return { id, upgrade, main };
   const percent = Number(sec[2]) || 0;
-  return { main, unique: { type, tranche, ...(percent > 0 ? { percent } : {}) } };
+  return { id, upgrade, main, unique: { type, tranche, ...(percent > 0 ? { percent } : {}) } };
+}
+
+// `pri_effect[1] = upgrade_curr + 3` (spec/outils/optimizer/reliques.md § 1.4,
+// vérifié sans exception sur 280 pièces réelles) : une RÈGLE qui SE VÉRIFIE,
+// elle ne remplace jamais la donnée — `game-data-curation`. Un écart est
+// compté, jamais corrigé silencieusement.
+function relicUpgradeMismatch(r: any): boolean {
+  const main = r?.pri_effect;
+  if (!Array.isArray(main)) return false;
+  const upgrade = Number(r?.upgrade_curr) || 0;
+  return Number(main[1]) !== upgrade + 3;
 }
 
 // Stats de base de l'unité (naked, sans runes) : con×15 pour les PV.
@@ -405,6 +418,38 @@ const indexArtifacts = memoByData((data: any): ReadonlyMap<number, any> => {
   }
   return m;
 });
+
+// Index de TOUTES les reliques par rid : inventaire (top-level `data.relics`,
+// source première — les équipées y figurent aussi, D1) + reliques embarquées
+// dans les unités (repli, exports anciens/incomplets). `data.relics` est
+// ajouté en premier : `!m.has(id)` lui laisse la priorité, jamais écrasé par
+// le repli (spec/outils/optimizer/chantiers/implementation-relique.md B.1).
+const indexRelics = memoByData((data: any): ReadonlyMap<number, any> => {
+  const m = new Map<number, any>();
+  const add = (r: any) => {
+    const id = Number(r?.rid);
+    if (Number.isFinite(id) && !m.has(id)) m.set(id, r);
+  };
+  if (Array.isArray(data?.relics)) data.relics.forEach(add);
+  if (Array.isArray(data?.unit_list)) {
+    for (const u of data.unit_list) if (Array.isArray(u?.relics)) u.relics.forEach(add);
+  }
+  return m;
+});
+
+// Occupation par rid : nombre d'UNITÉS dont la relique équipée (`relics[0]`)
+// porte ce rid — jamais la taille de `data.relics` (une relique n'est pas
+// exclusive, reliques.md § 1.2/§ 7 ; jusqu'à 96 monstres pour un même rid).
+function computeRelicUsage(data: any): Record<number, number> {
+  const usage: Record<number, number> = {};
+  if (Array.isArray(data?.unit_list)) {
+    for (const u of data.unit_list) {
+      const rid = Number((Array.isArray(u?.relics) ? u.relics : [])[0]?.rid);
+      if (Number.isFinite(rid)) usage[rid] = (usage[rid] || 0) + 1;
+    }
+  }
+  return usage;
+}
 
 // Artéfacts RTA équipés par monstre (world_arena_artifact_equip_list).
 function rtaArtifactsByUnit(data: any, artById: ReadonlyMap<number, any>): Map<number, any[]> {
@@ -613,31 +658,60 @@ export function parseAccountBox(src: AccountSource): BoxParseResult {
 export interface InventoryParseResult {
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
+  relics: RelicDetail[];
   crafts: CraftLine[];
+  // Nombre d'unités portant chaque rid de relique (`relicUsageById`), jamais
+  // déduit de `relics.length` — reliques.md § 7, une relique n'est pas exclusive.
+  relicUsageById: Record<number, number>;
+  // Pièces où `pri_effect[1] ≠ upgrade_curr + 3` — avertissement d'import,
+  // jamais une correction (`game-data-curation`).
+  relicUpgradeMismatches: number;
   error?: string;
 }
 
 export function parseAccountInventory(src: AccountSource): InventoryParseResult {
   const data = parseAccountSource(src);
-  if (!data) return { runes: [], artifacts: [], crafts: [], error: 'Fichier JSON illisible.' };
+  if (!data)
+    return {
+      runes: [],
+      artifacts: [],
+      relics: [],
+      crafts: [],
+      relicUsageById: {},
+      relicUpgradeMismatches: 0,
+      error: 'Fichier JSON illisible.',
+    };
   if (!Array.isArray(data?.unit_list)) {
     return {
       runes: [],
       artifacts: [],
+      relics: [],
       crafts: [],
+      relicUsageById: {},
+      relicUpgradeMismatches: 0,
       error: "Ce fichier ne contient pas de 'unit_list' — un export de compte SWEX est attendu.",
     };
   }
 
-  // indexRunes / indexArtifacts fusionnent déjà inventaire + équipés (dédup par id).
+  // indexRunes / indexArtifacts / indexRelics fusionnent déjà inventaire + équipés (dédup par id).
   const runes = Array.from(indexRunes(data).values())
     .map(runeToDetail)
     .filter((r) => r.main.code !== 0);
   const artifacts = Array.from(indexArtifacts(data).values())
     .map(artifactToDetail)
     .filter((a) => a.main.code !== 0);
+  const relicRaws = Array.from(indexRelics(data).values());
+  const relics = relicRaws.map(relicToDetail).filter((r): r is RelicDetail => r !== undefined);
+  const relicUpgradeMismatches = relicRaws.filter(relicUpgradeMismatch).length;
 
-  return { runes, artifacts, crafts: parseCrafts(data) };
+  return {
+    runes,
+    artifacts,
+    relics,
+    crafts: parseCrafts(data),
+    relicUsageById: computeRelicUsage(data),
+    relicUpgradeMismatches,
+  };
 }
 
 /* --------------------------------------------------------------------------

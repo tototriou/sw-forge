@@ -10,7 +10,8 @@
 //
 // ⚠️ Le build de runes est FIXE. Ce module ne cherche pas les deux ensemble :
 // un artéfact amplifie un build, il n'en déplace pas la cible (voir
-// spec/outils/degats-reels.md, « Ces lignes n'entrent PAS dans
+// spec/outils/degats-reels/artefacts-et-degats-bruts.md,
+// « Dégâts supplémentaires proportionnels à une stat (218-221) » — ces lignes n'entrent PAS dans
 // `damageRelevantStats` »).
 
 import { ARTIFACT_KINDS, ArtifactDetail, ArtifactKind, MAX_ARTIFACT_SUBS } from '../types';
@@ -198,6 +199,24 @@ export interface ArtifactSearchParams {
    */
   codesAmplification?: number[];
   /**
+   * Les statistiques principales (PV/ATQ/DEF) sous un MAXIMUM ACTIF de la
+   * recherche — `requirement.maxStats` filtré aux entrées réellement posées
+   * (> 0).
+   *
+   * ⚠️ **Retire ces stats de la dominance, jamais de la pertinence ni de
+   * l'obligation.** Sans maximum, une principale plus grande est toujours au
+   * moins aussi bonne (D5 : la borne d'artéfacts est optimiste pour les
+   * minimums) ; avec un maximum actif dessus, un artéfact « plus » peut
+   * rendre un couple infaisable là où un « moins » restait sous le plafond —
+   * exactement la leçon de la dominance des reliques (A.2 bis D6 : « aucune
+   * dominance sur une statistique sous maximum actif »), transposée ici par
+   * la revue adversariale du lot 5b (bloquant 1, `revue-diff-lot5b-2026-09-21.md`).
+   *
+   * Absent (ou vide) : comportement d'avant, byte-identique — les trois
+   * principales restent comparées sans condition.
+   */
+  maxStatsActifs?: StatKey[];
+  /**
    * Chiffrer aussi ce que les verrous coûtent SUR CE BUILD.
    *
    * ⚠️ **Ce n'est pas gratuit, et ça ne peut pas l'être** : on ne peut pas à la
@@ -358,7 +377,8 @@ export function preFiltrerCandidats(
   candidats: (ArtifactDetail | null)[],
   kind: ArtifactKind,
   lignes: LigneVerrouillee[] = [],
-  pertinence?: Pertinence
+  pertinence?: Pertinence,
+  maxStatsActifs?: StatKey[]
 ): (ArtifactDetail | null)[] {
   const obligatoires = seuilsObligatoires(lignes, kind);
   const verrous = lignes.filter((l) => l.min > 0);
@@ -390,11 +410,25 @@ export function preFiltrerCandidats(
   // seules principales comparerait deux artéfacts en ignorant toutes leurs
   // sous-propriétés : le premier venu éliminerait un artéfact bien meilleur de
   // même principale. Un défaut prudent, pas un défaut « partiel ».
+  // ⚠️ **Sauf sous un MAXIMUM ACTIF sur la stat de la principale** — voir
+  // `maxStatsActifs` sur `ArtifactSearchParams`. « Plus grand » n'y est plus
+  // « au moins aussi bon » : un artéfact au plus petit apport peut rester sous
+  // le plafond quand celui au plus grand le dépasse. Le retirer purement du
+  // vecteur ne suffit PAS : deux artéfacts qui ne diffèrent QUE sur cette
+  // principale deviendraient des vecteurs IDENTIQUES, et le départage des ex
+  // æquo (plus bas) en éliminerait un par pur artefact d'index — alors qu'ils
+  // ne sont pas équivalents, l'un peut être feasible et l'autre non. La
+  // principale reste donc DANS le vecteur (comparaison inchangée quand les
+  // deux artéfacts s'y valent), mais la paire devient INCOMPARABLE dès qu'ils
+  // y diffèrent (bloquant 1, revue du lot 5b) : ni domine, ni dominé.
   const dims = pertinence ? [...new Set([...pertinence.croissants, ...codesVerrouilles])] : null;
   const MAINS = [100, 101, 102];
+  const plafonnees = new Set(maxStatsActifs ?? []);
+  const mainsExclues = MAINS.filter((m) => plafonnees.has(ARTIFACT_MAIN[m]!.stat));
+  const mainValue = (a: ArtifactDetail, m: number) => (a.main.code === m ? a.main.value : 0);
   const vecteur = (a: ArtifactDetail): number[] => [
     ...(dims ?? []).map((c) => valeurSur(a, c)),
-    ...MAINS.map((m) => (a.main.code === m ? a.main.value : 0)),
+    ...MAINS.map((m) => mainValue(a, m)),
   ];
   const vecteurs = survivants.map(vecteur);
   // ⚠️ Un artéfact portant une ligne AMBIGUË (qui bouge les dégâts sans
@@ -423,6 +457,11 @@ export function preFiltrerCandidats(
       // ⚠️ L'inverse est SÛR : un intangible dominé par un ordinaire peut
       // disparaître, puisque substituer un ordinaire ne restreint jamais rien.
       if (survivants[j]!.intangible && !survivants[i]!.intangible) continue;
+      // ⚠️ Sous un maximum actif : deux artéfacts qui DIFFÈRENT sur la
+      // principale plafonnée ne sont jamais comparables (D6) — voir le
+      // commentaire sur `mainsExclues` ci-dessus. S'ils s'y valent, la
+      // comparaison continue normalement : rien ne change.
+      if (mainsExclues.some((m) => mainValue(survivants[i]!, m) !== mainValue(survivants[j]!, m))) continue;
       const vi = vecteurs[i]!;
       const vj = vecteurs[j]!;
       let auMoinsEgal = true;
@@ -545,7 +584,55 @@ function candidatsPourRecherche(
 ): (ArtifactDetail | null)[] {
   const complets = candidatsParSorte(params, kind);
   const lignes = params.avecCoutDesVerrous ? [] : (params.lignesVerrouillees ?? []);
-  return preFiltrerCandidats(complets, kind, lignes, pertinence);
+  return preFiltrerCandidats(complets, kind, lignes, pertinence, params.maxStatsActifs);
+}
+
+// Au plus tant de listes en mémoire (`MemoPreFiltre`) : deux sortes par
+// pertinence distincte — une seule mesurée sur 1 200 appels (300 builds × 4
+// reliques, degats-et-aura 6bis-b13). Atteinte, le memo se vide d'un coup.
+export const BORNE_MEMO_PREFILTRE = 64;
+
+/**
+ * Les candidats élagués d'une sorte (`candidatsPourRecherche`), mémoïsés sur
+ * TOUTES leurs entrées (degats-et-aura 6bis-b13) : la pertinence, par sa
+ * VALEUR (codes croissants et ambigus), et les champs de `params` que lisent
+ * `candidatsParSorte` et `preFiltrerCandidats`, par identité.
+ *
+ * ⚠️ **Aucune indépendance supposée.** `analyserPertinence` reste appelée à
+ * chaque `chercherPaires`, contre le vrai `evaluer` du build et de la relique
+ * essayés : si elle diffère d'un build à l'autre, la clé diffère et le
+ * préfiltre se recalcule. Le memo ne retire que le recalcul d'une sortie
+ * déjà connue pour les mêmes entrées — `preFiltrerCandidats` est pure, et
+ * l'ordre des codes dans un ensemble ne change rien à la dominance (toutes
+ * les dimensions doivent être au moins égales). La liste rendue est
+ * partagée : `chercherPaires` ne fait que la parcourir.
+ */
+export class MemoPreFiltre {
+  private entrees: unknown[] | null = null;
+  private parCle = new Map<string, (ArtifactDetail | null)[]>();
+
+  get taille(): number {
+    return this.parCle.size;
+  }
+
+  candidats(params: ArtifactSearchParams, kind: ArtifactKind, pertinence: Pertinence): (ArtifactDetail | null)[] {
+    const entrees = [
+      params.inventaire, params.equipes, params.porteur, params.principaleParSorte,
+      params.lignesVerrouillees, params.avecCoutDesVerrous, params.maxStatsActifs,
+    ];
+    if (!this.entrees || entrees.some((v, i) => v !== this.entrees![i])) {
+      this.parCle.clear();
+      this.entrees = entrees;
+    }
+    const codes = (s: Set<number>) => [...s].sort((a, b) => a - b).join(',');
+    const cle = `${kind}|${codes(pertinence.croissants)}|${codes(pertinence.ambigus)}`;
+    const connue = this.parCle.get(cle);
+    if (connue) return connue;
+    const liste = candidatsPourRecherche(params, kind, pertinence);
+    if (this.parCle.size >= BORNE_MEMO_PREFILTRE) this.parCle.clear();
+    this.parCle.set(cle, liste);
+    return liste;
+  }
 }
 
 // La meilleure paire, ou les `combien` meilleures.
@@ -581,9 +668,69 @@ export interface ResultatPaires {
   meilleurSansVerrous: number | null;
 }
 
-export function chercherPaires(params: ArtifactSearchParams, combien = 1): ResultatPaires {
+// ⚠️ Tri DÉCROISSANT stable : à score égal, l'ordre de l'inventaire départage.
+// Un tri instable rendrait le résultat dépendant du moteur JS.
+const PAR_SCORE_DECROISSANT = (a: PaireArtefacts, b: PaireArtefacts) => b.score - a.score;
+
+// `memo` (6bis-b13) : les candidats élagués de chaque sorte, mémoïsés sur
+// leurs entrées (`MemoPreFiltre`) — même liste. Absent : recalculés.
+export function chercherPaires(params: ArtifactSearchParams, combien = 1, memo?: MemoPreFiltre): ResultatPaires {
+  const { trouvees, meilleurSansVerrous } = collecterPaires(params, memo);
+  trouvees.sort(PAR_SCORE_DECROISSANT);
+  return { paires: trouvees.slice(0, Math.max(1, combien)), meilleurSansVerrous };
+}
+
+export interface PairesParScore {
+  // Les paires respectant les verrous, dans l'ordre EXACT de
+  // `chercherPaires(params, Infinity).paires` — triées seulement si l'on lit
+  // au-delà de la première.
+  paires: Iterable<PaireArtefacts>;
+  meilleurSansVerrous: number | null;
+}
+
+/**
+ * Les paires de `chercherPaires`, toutes, par score décroissant — pour un
+ * appelant qui s'arrête à la première qui lui convient (la résolution par
+ * build : la première conforme, le premier couple faisable), degats-et-aura
+ * 6bis-b13.
+ *
+ * ⚠️ **Même ordre, au bit près.** La première se trouve par un seul parcours
+ * : le plus grand score, au PLUS PETIT indice parmi les ex æquo — celle que
+ * le tri stable met en tête. Lire la suite déclenche le tri complet, le même
+ * que `chercherPaires`, dont on vérifie qu'il commence par elle. Un score
+ * NaN, que seul le tri sait placer, déclenche le tri d'emblée. Dans le cas
+ * courant (la meilleure paire convient), on évite de trier ~8 000 paires par
+ * relique et par build.
+ */
+export function pairesParScore(params: ArtifactSearchParams, memo?: MemoPreFiltre): PairesParScore {
+  const { trouvees, meilleurSansVerrous } = collecterPaires(params, memo);
+  return { paires: parScoreDecroissant(trouvees), meilleurSansVerrous };
+}
+
+function* parScoreDecroissant(trouvees: PaireArtefacts[]): Generator<PaireArtefacts> {
+  let iMeilleure = -1;
+  let nan = false;
+  for (let i = 0; i < trouvees.length; i++) {
+    const s = trouvees[i]!.score;
+    if (Number.isNaN(s)) {
+      nan = true;
+      break;
+    }
+    if (iMeilleure < 0 || s > trouvees[iMeilleure]!.score) iMeilleure = i;
+  }
+  if (!nan && iMeilleure >= 0) yield trouvees[iMeilleure]!;
+  const triees = trouvees.slice().sort(PAR_SCORE_DECROISSANT);
+  if (!nan && iMeilleure >= 0 && triees[0] !== trouvees[iMeilleure]) {
+    throw new Error('pairesParScore : la meilleure paire ne correspond pas à la tête du tri stable — bug.');
+  }
+  for (let i = nan ? 0 : 1; i < triees.length; i++) yield triees[i]!;
+}
+
+function collecterPaires(params: ArtifactSearchParams, memo: MemoPreFiltre | undefined) {
   const pertinence = analyserPertinence(params);
-  const parSorte = ARTIFACT_KINDS.map(({ key }) => candidatsPourRecherche(params, key, pertinence));
+  const parSorte = ARTIFACT_KINDS.map(({ key }) =>
+    memo ? memo.candidats(params, key, pertinence) : candidatsPourRecherche(params, key, pertinence)
+  );
   const [candidatsElement, candidatsArchetype] = parSorte;
   const verrous = params.lignesVerrouillees?.filter((l) => l.min > 0) ?? [];
   const trouvees: PaireArtefacts[] = [];
@@ -608,11 +755,10 @@ export function chercherPaires(params: ArtifactSearchParams, combien = 1): Resul
       trouvees.push({ element, archetype, score });
     }
   }
-  // ⚠️ Tri DÉCROISSANT stable : à score égal, l'ordre de l'inventaire départage.
-  // Un tri instable rendrait le résultat dépendant du moteur JS.
-  trouvees.sort((a, b) => b.score - a.score);
+  // Dans l'ordre de l'inventaire, NON triées : `chercherPaires` trie tout,
+  // `pairesParScore` à la demande.
   return {
-    paires: trouvees.slice(0, Math.max(1, combien)),
+    trouvees,
     meilleurSansVerrous:
       meilleurSansVerrous === null || meilleurSansVerrous === Number.NEGATIVE_INFINITY
         ? null

@@ -1,5 +1,5 @@
 {
-  "_lisezmoi": "Export SWEX MINIATURE, écrit à la main pour les tests. Il ne contient aucune donnée réelle : trois unités, six runes, deux artéfacts. Il n'a pas vocation à être réaliste, mais à exercer chaque chemin des extracteurs — box 6★, inventaire, favoris RTA avec preset de runes, défense de siège, attaque de siège. Les com2usId (unit_master_id) sont ceux de monstres réels pour que le mapping vers monsters.json aboutisse.",
+  "_lisezmoi": "Export SWEX MINIATURE, écrit à la main pour les tests. Il ne contient aucune donnée réelle : trois unités, six runes, deux artéfacts, quatre reliques. Il n'a pas vocation à être réaliste, mais à exercer chaque chemin des extracteurs — box 6★, inventaire, favoris RTA avec preset de runes, défense de siège, attaque de siège. Les com2usId (unit_master_id) sont ceux de monstres réels pour que le mapping vers monsters.json aboutisse. Reliques (data.relics) : 7001 équipée par l'unité 101 (dédoublonnée avec unit.relics[0]) ; 7002 en inventaire, sans pourcentage lisible (sec_effect à deux éléments) ; 7003 en inventaire, upgrade_curr délibérément incohérent avec pri_effect (écart compté, jamais reconstruit) ; 7004 en inventaire, sans sec_effect (propriété unique illisible, l'import ne la rejette pas).",
   "tvalue": 1786261890,
   "tvaluelocal": 1786236690,
   "wizard_info": { "wizard_id": 1, "wizard_name": "Testeur" },
@@ -189,6 +189,13 @@
       "pri_effect": [100, 8],
       "sec_effects": [[204, 3, 0, 0, 0]]
     }
+  ],
+
+  "relics": [
+    { "rid": 7001, "type": 12, "upgrade_curr": 8, "durability": 0, "pri_effect": [100, 11], "sec_effect": [12, 27000, 2] },
+    { "rid": 7002, "type": 7, "upgrade_curr": 5, "durability": 0, "pri_effect": [101, 8], "sec_effect": [7, 250] },
+    { "rid": 7003, "type": 4, "upgrade_curr": 3, "durability": 0, "pri_effect": [102, 99], "sec_effect": [4, 1000, 1] },
+    { "rid": 7004, "type": 0, "upgrade_curr": 0, "durability": 0, "pri_effect": [100, 3] }
   ],
 
   "favorite_unit_list": [{ "type": 1, "unit_id_list": [101, 102] }],

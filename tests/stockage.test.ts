@@ -25,8 +25,10 @@ export default async function testStockage() {
     box,
     runes: inv.runes,
     artifacts: inv.artifacts,
+    relics: inv.relics,
     crafts: inv.crafts,
     usedRuneIds: parseUsedRuneIds(data),
+    relicUsageById: inv.relicUsageById,
     exportedAt: 1786261890000,
   };
 
@@ -39,6 +41,13 @@ export default async function testStockage() {
   ok(relu !== null, 'relecture non nulle');
   egal(relu.box, box, 'box identique après aller-retour');
   egal(relu.runes.length, inv.runes.length, 'runes identiques');
+  egal(relu.relics, inv.relics, 'reliques identiques après aller-retour');
+  egal(relu.relicUsageById, inv.relicUsageById, "occupation par rid conservée");
+  // ⚠️ Le point précis du rév. 6 de implementation-relique : une pièce sans
+  // `sec_effect[2]` (percent illisible) doit rester SANS `percent` après le
+  // structured clone d'IndexedDB — jamais un 0 apparu au passage.
+  const relique7002 = relu.relics.find((r) => r.id === 7002);
+  ok(!!relique7002?.unique && !('percent' in relique7002.unique), 'relique sans percent : toujours absent après relecture');
   egal(relu.exportedAt, 1786261890000, "date d'export conservée");
   egal(relu.schema, ACCOUNT_SCHEMA, 'schéma estampillé');
   // ⚠️ Les decks ne vivent QUE dans l'export brut, jamais conservé : sans cette
@@ -96,6 +105,21 @@ export default async function testStockage() {
   // de calcul.
   await ecrireBrut({ schema: 99, savedAt: 1, exportedAt: null, box: [], runes: [], artifacts: [], crafts: [] });
   egal(await loadAccount(), null, 'schéma périmé → ignoré');
+
+  // ⚠️ D10 : le schéma précédent (6, sans reliques) doit être rejeté comme tout
+  // autre schéma périmé — jamais l'apparence d'un inventaire complet quand
+  // `relics`/`relicUsageById` manquent.
+  await ecrireBrut({
+    schema: 6,
+    savedAt: 1,
+    exportedAt: null,
+    box: [],
+    runes: [],
+    artifacts: [],
+    crafts: [],
+    usedRuneIds: [],
+  });
+  egal(await loadAccount(), null, 'ancien schéma 6 (sans reliques) → rejeté, réimport demandé');
 
   await ecrireBrut({ schema: ACCOUNT_SCHEMA, savedAt: 1, box: 'pas un tableau' });
   egal(await loadAccount(), null, 'enregistrement corrompu → ignoré, sans exception');

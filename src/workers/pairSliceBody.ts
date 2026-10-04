@@ -36,7 +36,7 @@
 // SA tranche, exactement comme le comportement séquentiel existant (bouton
 // « Arrêter » qui garde le meilleur trouvé jusque-là).
 
-import { prepareSearch, pairBuckets, SearchParams, Bucket, BuildCandidate, NearMiss } from '../lib/runeBuildOptim';
+import { prepareSearch, pairBuckets, SearchParams, Bucket, BuildCandidate, NearMiss, TraceCandidat } from '../lib/runeBuildOptim';
 import { StatKey } from '../lib/effects';
 import { drivePairing } from './pairingDriver';
 
@@ -74,6 +74,10 @@ export interface PairSliceResultMessage {
   truncated: boolean;
   nearMissByCondition: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }[];
   globalNearMiss: NearMiss | null;
+  // Diagnostic seulement — présent ssi `SearchParams.traceur` l'était (voir
+  // `SearchResult.traceur`). Perdu par les deux adaptateurs d'appariement
+  // parallèle avant B.5a ter (revue adversariale du diff du lot 5a, MINEUR 2).
+  traceur?: TraceCandidat;
 }
 export type PairSliceResponse = PairSliceProgressMessage | PairSliceResultMessage;
 

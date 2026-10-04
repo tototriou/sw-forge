@@ -794,7 +794,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R validé** (demande élaguée : 22 questions puis les combats, `controle-r.md`) ; **P5a5 terminé** (`de066de0`), idem ; **le reste est reporté nominativement** (décision de l'utilisateur du 2026-10-04, « tout reporter », pour finir au plus tôt) : P5b à P26, questions sans combat ouvertes et combats, reste à faire dans `decisions/reste-a-faire-degats-2026-10.md` | P1 : `8db128c7`…`61351084` / 2026-10-03 |
-| EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | à cadrer : diagnostic du pilote fait (chemin caché), forme d'interface soumise à l'utilisateur (A.8) | — |
+| EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | contrat écrit (formes A et B, décision du 2026-10-04) ; lancé dans `sw-forge-lot-1` | — |
 | 14 — clôture et ledgers après contrôles | M | à faire, après EX et la séance de vérification à l'écran ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -942,7 +942,7 @@ décision, rayée avec la date et la réponse.
 | 15e | Libellés « Cumuls de Flash Step » et « Cumuls de Turning Slash » : à confirmer | en attente — à trancher pendant la séance de vérification à l'écran |
 | clôture | ~~Les lots P décidés mais pas codés : les reporter aussi ?~~ | ✔ 2026-10-04 (utilisateur) : **tout reporter** — P10, seul prêt sans relevé, compris (`decisions/reste-a-faire-degats-2026-10.md`) |
 | demande | ~~Plusieurs exemplaires d'un monstre dans une liste de travail : quel cas, et quand ?~~ | ✔ 2026-10-04 (utilisateur) : **deux exemplaires en Box**, **lot de plus ici** (EX) avant la clôture |
-| EX | Forme d'interface pour choisir un autre exemplaire Box de l'espèce et l'ajouter à la liste (diagnostic : le chemin existe, caché derrière la puce « Box » déjà active) | en attente |
+| EX | ~~Forme d'interface pour choisir un autre exemplaire Box de l'espèce et l'ajouter à la liste (diagnostic : le chemin existe, caché derrière la puce « Box » déjà active)~~ | ✔ 2026-10-04 (utilisateur) : **A** (le bouton propose « Ajouter un autre exemplaire de … » et l'ajoute en un clic) **et B** (« Box · 2 » sur la puce) ; numéro d'exemplaire non retenu → lot EX |
 | P1 | ~~Rending Claw : le bouton « +50 % sous Mechanical Frame State » est offert aussi à Cecilia (23306) et Elise (23310), dont le kit ne porte pas Emergency Drive — le retirer (clé par identifiant, 23307 seul) ?~~ | ✔ 2026-10-03 (utilisateur) : **oui, affiché uniquement sur Cynthia** → lot P1b |
 | bloc 1 | ~~Zeratu (Q03) : les coups 2 et 3 sont des coups de Trample au ratio ÷ 2 ; le bonus selon les PV de la cible recalculé à chaque coup sur les PV restants ?~~ | ✔ 2026-10-03 (utilisateur) : **oui** (A.2 ter) |
 | P2 | ~~Frodo : le porteur du passif reçoit-il lui aussi le buff « all allies » ?~~ | ✔ 2026-10-03 (utilisateur) : **oui**, « frodo reçoit aussi le buff atk » (A.2 ter) ; le rappel sur le porteur est juste, aucun code à changer |
@@ -9912,6 +9912,66 @@ inscrit dans la liste par le pilote.
 **À surveiller, hors contrat** : le déclenchement d'un passif `defBreak`
 (Roid, Silver) ignore le scénario — sans effet aujourd'hui, aucun de leurs
 sorts n'a de pose.
+
+### Lot EX — plusieurs exemplaires Box d'une même espèce dans une liste
+
+**Cat. J, agent `lot-j`, worktree de lot `sw-forge-lot-1`, branche
+`forge/dea-ex`** (premier lot sous la règle « aucun agent dans le worktree
+du chantier », skill `cadrage-chantier` § G). Demande et décisions de
+l'utilisateur du 2026-10-04 (A.8) : deux exemplaires Box d'une même espèce
+doivent pouvoir entrer dans une liste de travail ; formes **A** et **B**
+retenues, le numéro d'exemplaire non retenu.
+
+**Diagnostic du pilote** (à revérifier, pas à croire) : les membres d'une
+liste sont déjà repérés par exemplaire (`exclusionSelectorKey`, Box =
+`box:<unitId>`, `addMember` de `src/hooks/useOptimizerLists.ts`) ; c'est le
+chemin qui est caché. Choisir l'espèce prend d'office le premier exemplaire
+Box (`pickSpecies`, `OptimizerSection.tsx`) ; la liste des exemplaires (zone
+D) ne s'ouvre qu'au clic sur une puce (`pickSource`), donc sur la puce
+« Box » déjà allumée, ce que rien n'indique ; le bouton affiche alors
+`Déjà dans « {liste} »`, désactivé.
+
+**Contrat :**
+
+- **A — le bouton enchaîne.** Quand l'exemplaire affiché est déjà membre de
+  la liste active et qu'un autre exemplaire Box de la même espèce n'y est
+  pas, le bouton d'ajout s'active avec le libellé
+  `Ajouter un autre exemplaire de {monstre} à « {liste} »`. Un clic choisit
+  le **premier exemplaire Box, dans l'ordre de la zone D, absent de la
+  liste**, et l'ajoute. Tous les exemplaires Box déjà membres :
+  `Déjà dans « {liste} »`, désactivé, comme aujourd'hui. Les autres
+  libellés (`Ajouter {monstre} à …`, `Créer une liste et y ajouter …`,
+  « (non possédé) ») ne changent pas. Le changement d'exemplaire suit les
+  règles de 6bis-b19 (résultats affichés effacés, critères gardés), par le
+  même chemin que les autres changements d'exemplaire, jamais une seconde
+  écriture ; le rappel des auras externes reste réservé au clic sur un
+  membre de la zone C (spec, « Zone C »).
+- **B — la puce dit le nombre.** Une puce de source dont l'espèce choisie a
+  **deux exemplaires ou plus** affiche `{source} · {n}` (« Box · 2 ») ;
+  une puce à zéro ou un exemplaire garde son libellé. Même règle pour les
+  quatre sources (deux équipes de siège ouvrent déjà la zone D) ; le
+  pilote le signale à l'utilisateur.
+- **Deux formats, rien ne bouge** : le bouton cliqué et la puce restent à
+  leur place (CLAUDE.md, « Un clic ne déplace jamais… ») ; vérifier au
+  téléphone et à l'ordinateur, dans le source ET le CSS construit.
+- **Spec dans le même commit** : `spec/outils/optimizer.md`, « Recherche
+  du monstre à optimiser » (L299-413) et « Zone C — Monstres de la liste »
+  (L2185-2289), plus le point « L'ajout à une liste de travail se fait UN
+  monstre à la fois » s'il faut le préciser.
+
+**Preuve :** d'abord un test nommé **qui échoue** sur le code actuel (pas
+de chemin d'ajout du second exemplaire Box), puis passe ; la logique de
+choix (exemplaire suivant, libellé, compte d'une puce) extraite en fonction
+pure testée, sur le modèle des tests existants (`optimizer-exclusion`,
+`auras-ecran`). Mutation **après** le commit. `tsc`, tests ciblés, build,
+spec-lint, diff-check. Preuve privée `controle-ex.md`, déposée dans
+`sw-forge-lot-1-notes\notes\` (dossier `base\` vide : fichier neuf).
+
+**Ne fait pas :** aucun numéro d'exemplaire (non retenu) ; RTA reste à un
+exemplaire par espèce (règle du jeu) ; le sélecteur « non possédé » reste
+repéré par espèce ; aucun changement du format persisté des listes ; aucune
+modification de la liste des monstres et sorts modifiés (aucun calcul de
+dégâts touché).
 
 ### Lot 14 — clôture
 

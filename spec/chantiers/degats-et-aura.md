@@ -795,7 +795,8 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R validé** (demande élaguée : 22 questions puis les combats, `controle-r.md`) ; **P5a5 terminé** (`de066de0`), idem ; **le reste est reporté nominativement** (décision de l'utilisateur du 2026-10-04, « tout reporter », pour finir au plus tôt) : P5b à P26, questions sans combat ouvertes et combats, reste à faire dans `decisions/reste-a-faire-degats-2026-10.md` | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | terminé (`lot-j`, worktree de lot `sw-forge-lot-1`), preuves et mutations rejouées par le pilote, intégré en avance rapide ; cas RTA soumis à l'utilisateur ; vérification à l'œil en attente (A.8) | `479ae6ec` / 2026-10-04 |
-| 14 — clôture et ledgers après contrôles | M | à faire, après EX et la séance de vérification à l'écran ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
+| CP2 — « Calcul partiel » sur Leona (S1, S2) et Theonia (S3) | C | contrat écrit (demande de l'utilisateur du 2026-10-04) ; lancé dans `sw-forge-lot-1` | — |
+| 14 — clôture et ledgers après contrôles | M | à faire, après EX, CP2 et la séance de vérification à l'écran ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
 session qui **n'a pas écrit** ce document, munie de la checklist C du skill
@@ -10018,6 +10019,50 @@ qui peut être le même monstre physique ; B s'applique aux quatre sources.
 **Non prouvé** : le rendu au navigateur (deux formats), le libellé long sur
 deux lignes possible dans la colonne de la zone C, un compte réel à deux
 exemplaires Box → vérifications à l'écran (A.8).
+
+### Lot CP2 — « Calcul partiel » sur Leona et Theonia
+
+**Cat. C, agent `lot-c`, worktree de lot `sw-forge-lot-1`, branche
+`forge/dea-cp2`.** Demande de l'utilisateur du 2026-10-04 : deux parts
+connues du jeu manquent au total ; les marquer « Calcul partiel » (forme de
+P3) et les reporter au chantier suivant (reste à faire, notes privées, tenu
+par le pilote).
+
+- **Leona** (21815), Internal Force (12515) : « When the battle begins,
+  balances the Defense and Attack Power so that the value of the lower stat
+  will equal that of the higher stat » — non modélisé (A.2 ter et 15b ne
+  portent que le +50 % sous bouclier). Il pèse sur ses deux sorts de dégâts
+  à l'ATQ : **12520** Justice Strike (S1) et **12510** Fury of Punishment
+  (S2). Balayage du corpus : la prose n'est portée que par 12515 (Leona et
+  Paladin non éveillé, non proposé). Phrase, au mot près :
+  `L’équilibrage d’Internal Force (en début de combat, la plus basse de l’ATQ et de la DEF monte au niveau de la plus haute) n’est pas encore compté.`
+- **Theonia** (34215), Summary Justice **23515** (S3) : « For enemies with
+  Attack Speed lower than yours, the damage dealt increases according to
+  your Attack Speed » — non modélisé (`quantite: null`, commentaire de
+  `CONDITIONS_COMBAT_PAR_ID_CONNUS`, damage.ts vers L2615). Seule compétence du corpus
+  à porter cette prose (Justice non éveillé, non proposé). Phrase, au mot
+  près :
+  `Le bonus de dégâts selon ta VIT, contre les ennemis plus lents que toi, n’est pas encore compté.`
+
+**Contrat :** trois entrées dans `CALCUL_PARTIEL_PAR_ID` (`damage.ts`, vers
+L3159), sous une quatrième source commentée (« demande de l'utilisateur du
+2026-10-04 : part non modélisée, reportée — Leona P16b / R88, Theonia P15 /
+R78 ») ; le commentaire de tête de la table passe de trois sources à
+quatre. `tests/calcul-partiel.test.ts` : les trois identifiants dans
+`ATTENDUS`, avec une étiquette de source nouvelle, et les comptes qui en
+dépendent. Spec `degats-reels/formules-et-combat.md` § « Calcul partiel »
+(« Trois sources, 28 identifiants » → quatre sources, 31) dans le même
+commit. Liste des monstres et sorts modifiés : sections de Leona et
+Theonia, « commit du lot CP2 ».
+
+**Preuve :** `tsc`, `node tests/run.mjs calculpartiel`, build, spec-lint,
+diff-check ; mutation **après** le commit (une des trois entrées retirée →
+le test échoue). Preuve privée `controle-cp2.md` dans
+`sw-forge-lot-1-notes\notes\` (`base\` vide).
+
+**Ne fait pas :** aucun calcul modifié (la table est d'affichage seul) ;
+aucun autre sort ajouté ; pas de modification du reste à faire ni du
+cadrage.
 
 ### Lot 14 — clôture
 

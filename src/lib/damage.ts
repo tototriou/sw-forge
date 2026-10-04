@@ -3136,7 +3136,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 // ⚠️ **Affichage seul : aucun calcul ne lit cette table.** Le total reste
 // celui d'avant ; la table dit seulement ce qu'il ne contient pas.
 //
-// Trois sources, et rien d'autre (preuve `controle-p3.md`) :
+// Quatre sources, et rien d'autre (preuves `controle-p3.md`, `controle-cp2.md`) :
 //   1. les six ignore DEF permanents de D63 (plan du reliquat, § 5.2) :
 //      l'effet `Ignore DEF` est compté sur tout le sort alors que le jeu le
 //      conditionne — trop favorable, gardé avec la mention jusqu'au lot P11 ;
@@ -3148,7 +3148,11 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 //   3. les parts « non calculées, dites à l'écran » de D36 (Lavender,
 //      Jasmine, Daniel, Espresso Cookie feu et ténèbres ; Hibiscus et
 //      Espresso Cookie lumière par la règle des jumeaux collab, A.2 ter) :
-//      « n'est pas calculée », sans « encore ».
+//      « n'est pas calculée », sans « encore » ;
+//   4. deux parts connues du jeu, non modélisées, que l'utilisateur a
+//      demandé de marquer (2026-10-04, lot CP2) : l'équilibrage ATQ/DEF
+//      d'Internal Force sur les deux sorts de dégâts de Leona, et le bonus
+//      de VIT de Summary Justice (Theonia) : « pas encore compté ».
 // Écartées de PV-2, parce que le total est complet par décision : Devil's
 // Bargain (D36, la prose se trompe), Incinerate, Rage of Helheim, Stormy Axe
 // (détonations de DoT hors total, A.8), Firecracker et Bombardment (bombes à
@@ -3188,6 +3192,11 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   16809: 'La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée.', // Dancing Teacup (Jasmine) — 492
   16315: 'L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée.', // Blending (Espresso Cookie ténèbres) — 651
   16815: 'L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée.', // Midnight Teatime (Lavender) — 652
+  // ── CP2 : demande de l'utilisateur du 2026-10-04, part non modélisée, reportée ──
+  // (Leona P16b / R88, Theonia P15 / R78)
+  12520: 'L’équilibrage d’Internal Force (en début de combat, la plus basse de l’ATQ et de la DEF monte au niveau de la plus haute) n’est pas encore compté.', // Justice Strike (Leona, S1)
+  12510: 'L’équilibrage d’Internal Force (en début de combat, la plus basse de l’ATQ et de la DEF monte au niveau de la plus haute) n’est pas encore compté.', // Fury of Punishment (Leona, S2)
+  23515: 'Le bonus de dégâts selon ta VIT, contre les ennemis plus lents que toi, n’est pas encore compté.', // Summary Justice (Theonia, S3)
 };
 
 // Identifiants de la table (tests et preuve).

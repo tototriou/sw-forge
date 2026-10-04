@@ -308,7 +308,7 @@ l'écran ne l'écrit jamais lui-même.
 - **Affichage seul** : aucun calcul ne lit la table, le total reste celui
   d'avant. Aucune mention sur les cartes de résultats (forme écartée par
   l'utilisateur).
-- **Trois sources, 28 identifiants** : les six ignore DEF comptés en
+- **Quatre sources, 31 identifiants** : les six ignore DEF comptés en
   permanence alors que le jeu les conditionne (Madness Judgement ×2,
   Unlimited Power, Start of Attacking, Thunder Strike, Sword of Discharge —
   décision D63 : total gardé avec la mention jusqu'à leur lot) ; les sorts
@@ -317,7 +317,12 @@ l'écran ne l'écrit jamais lui-même.
   codée (« pas encore comptée ») ; les parts que l'utilisateur a décidé de
   ne **pas** calculer, dites à l'écran (Daniel, Jasmine, Lavender, Espresso
   Cookie, et Hibiscus par la règle des jumeaux collab : « n'est pas
-  calculée »).
+  calculée ») ; enfin deux parts connues du jeu, non modélisées, que
+  l'utilisateur a demandé de marquer le 2026-10-04 (lot CP2) :
+  l'équilibrage ATQ/DEF d'Internal Force de début de combat sur les deux
+  sorts de dégâts de Leona (Justice Strike, Fury of Punishment) et le bonus
+  de dégâts selon la VIT contre les ennemis plus lents de Summary Justice
+  (Theonia) — « pas encore compté ».
 - **Écartés parce que le total est complet par décision** : Devil's Bargain
   (la prose se trompe), les détonations de dégâts continus et les bombes à
   retardement (hors total).

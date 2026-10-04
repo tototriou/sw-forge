@@ -36,8 +36,8 @@ function fiches(): DetailMonstre[] {
   return corpus;
 }
 
-// [identifiant, nom du sort, source] — preuve `controle-p3.md`.
-const ATTENDUS: [number, string, 'D63' | 'PV-2' | 'D36'][] = [
+// [identifiant, nom du sort, source] — preuves `controle-p3.md` (D63, PV-2, D36) et `controle-cp2.md` (CP2).
+const ATTENDUS: [number, string, 'D63' | 'PV-2' | 'D36' | 'CP2'][] = [
   [13406, 'Madness Judgement', 'D63'],
   [13410, 'Madness Judgement', 'D63'],
   [15511, 'Unlimited Power', 'D63'],
@@ -66,6 +66,9 @@ const ATTENDUS: [number, string, 'D63' | 'PV-2' | 'D36'][] = [
   [16809, 'Dancing Teacup', 'D36'],
   [16315, 'Blending', 'D36'],
   [16815, 'Midnight Teatime', 'D36'],
+  [12520, 'Justice Strike', 'CP2'],
+  [12510, 'Fury of Punishment', 'CP2'],
+  [23515, 'Summary Justice', 'CP2'],
 ];
 
 // Lignes « calculé » de PV-2 écartées : total complet par décision.
@@ -96,12 +99,13 @@ function porteurs(id: number) {
 }
 
 export function testCalculPartielTable() {
-  titre('Calcul partiel — la table par identifiant : six ignore DEF de D63, PV-2 encore incomplets, parts non calculées de D36 (degats-et-aura P3)');
+  titre('Calcul partiel — la table par identifiant : six ignore DEF de D63, PV-2 encore incomplets, parts non calculées de D36, parts non modélisées de CP2 (degats-et-aura P3)');
 
   const ids = idsCalculPartiel();
-  egal(ids.length, 28, '28 entrées : 6 (D63) + 15 (PV-2) + 7 (D36)');
+  egal(ids.length, 31, '31 entrées : 6 (D63) + 15 (PV-2) + 7 (D36) + 3 (CP2)');
   egal([...ids].sort((a, b) => a - b), ATTENDUS.map(([id]) => id).sort((a, b) => a - b), 'exactement les identifiants attendus');
   egal(ATTENDUS.filter(([, , s]) => s === 'D63').length, 6, 'six ignore DEF permanents (D63)');
+  egal(ATTENDUS.filter(([, , s]) => s === 'CP2').length, 3, 'trois parts non modélisées demandées le 2026-10-04 (CP2 : Leona ×2, Theonia)');
   for (const [id, raison] of ECARTES) ok(!ids.includes(id), `${id} écarté de la table : ${raison}`);
 
   const catalogue = monstersJson();
@@ -121,6 +125,7 @@ export function testCalculPartielTable() {
       `${id} (${source}) : une phrase qui dit ce qui n’est pas compté — « ${phrase} »`);
     if (source === 'D36') ok(phrase != null && /n’est pas calculée\.$/.test(phrase), `${id} : part non calculée par décision (D36), sans « encore »`);
     if (source === 'PV-2') ok(phrase != null && /pas encore comptée?\.$/.test(phrase), `${id} : part décidée comptée, pas encore codée (« pas encore »)`);
+    if (source === 'CP2') ok(phrase != null && /n’est pas encore compté\.$/.test(phrase), `${id} : part non modélisée, reportée (CP2) — « pas encore compté »`);
     if (source === 'D63') ok(phrase != null && phrase.startsWith('L’ignore DEF est compté'), `${id} : la phrase dit que l’ignore DEF est compté (D63)`);
 
     // Chaque clé est portée par une forme jouable, où le sort est calculé.

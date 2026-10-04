@@ -275,14 +275,54 @@ stockage.
   et par l'Optimizer pour la relique (voir
   [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)).
 
-### Runes utilisées — `parseUsedRuneIds`
+### Marqueurs de runes — `rune_lock_list` + `markers`
 
-Les `rune_id` des runes **qui jouent** : posées sur un monstre présent dans un
-**deck** (`deck_list`, **tous les `deck_type`** — arène, donjons, ToA, siège…),
-dans une **défense de siège**, dans une **défense d'arène** (`defense_deck_info`,
-`server_arena_defense_deck_info`) ou dans un **preset RTA**. Alimente le filtre
-« Runes utilisées » de l'onglet Optimisation — règles détaillées dans
+Les 8 marqueurs qu'on pose en jeu sur une rune. Relevé sur deux exports réels
+(164 et 563 entrées).
+
+- ⚠️ **Le marqueur n'est PAS dans l'objet rune.** Il vit dans une liste au premier
+  niveau, `rune_lock_list: [{ wizard_id, rune_id, lock_type }]`. `lock_type` est
+  le numéro du marqueur (1 à 8). Malgré le mot « lock », ce n'est pas un simple
+  verrou anti-vente : les 8 valeurs sont couvertes. La structure est la même que
+  `unit_marker_list` (marqueurs des monstres).
+- ⚠️ **Aucune valeur ne veut dire « aucun marqueur »** : une rune sans marqueur est
+  **absente** de la liste. Chaque `rune_id` y figure au plus une fois.
+- `indexRuneMarkers` (index mémoïsé `rune_id → lock_type`) est passé à
+  `runeToDetail`, qui pose `RuneDetail.marker` **seulement** pour une rune
+  marquée. Sinon le champ reste absent, jamais à 0. Le champ est posé à
+  l'**inventaire comme sur l'équipement** (box, RTA, siège) : une rune garde le
+  même marqueur où qu'on la regarde.
+- **Libellés** — `parseRuneMarkerLabels` → `{ numéro: texte }`, tiré de `markers[]`
+  (`type === 1`, `sub_type` = `lock_type`, texte dans `description`).
+  `type: 3` sert aux monstres, `type: 2` probablement aux artéfacts (non vérifié) :
+  ni l'un ni l'autre n'est lu. Les libellés sont gardés **au niveau du compte**,
+  jamais recopiés dans chaque rune : renommer un marqueur ne touche qu'une entrée.
+- ⚠️ **Un numéro peut n'avoir aucun libellé** : le joueur ne l'a jamais nommé. Relevé
+  sur un export : 7 numéros utilisés pour 6 libellés, dont un vide. Il est alors
+  absent du résultat, et l'écran affiche « Marqueur N ». Les espaces de bord sont
+  retirés (« raffinage␠ » relevé tel quel).
+
+### Runes utilisées — `parseUsedRuneIdsParPerimetre`
+
+Les `rune_id` des runes **qui jouent**, rangés **par périmètre** : l'onglet
+Optimisation laisse choisir lesquels comptent. Règles de l'écran dans
 [compte/runes.md](../compte/runes.md#-runes-utilisées--le-filtre-qui-regarde-les-decks).
+
+| Périmètre | Source |
+|-----------|--------|
+| `rta` | presets RTA (`world_arena_rune_equip_list`) |
+| `siege-defense` | défenses de siège (`guildsiege_defense_deck_*`) |
+| `siege-attaque` | `deck_list`, `deck_type === 22` (`SIEGE_OFFENSE_DECK_TYPE`) |
+| `arene-attaque` | `deck_list`, `deck_type === 1` (`ARENA_OFFENSE_DECK_TYPE` — relevé utilisateur, 15 decks sur chacun de deux exports réels) |
+| `arene-defense` | `defense_deck_info` et `server_arena_defense_deck_info` |
+| `autres` | `deck_list`, **tout autre `deck_type`** (donjons, ToA, labyrinthe…) |
+
+- ⚠️ **`autres` n'est pas une liste blanche.** Tout type inconnu y tombe, y compris
+  ceux que Com2uS ajoutera. Sur deux exports réels : les types 2 à 14 et 23 à 27.
+- Une même rune peut figurer dans **plusieurs** périmètres. Chaque liste est triée.
+- `parseUsedRuneIds` est l'**union** de tous les périmètres
+  (`unionRunesUtilisees`), c'est-à-dire la définition historique de « runes
+  utilisées ».
 
 ⚠️ Le preset d'un contenu **ne déplace rien en jeu** : une rune de l'inventaire
 peut jouer en RTA, et une rune posée sur un monstre qui ne joue nulle part ne
@@ -312,7 +352,7 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 ### Ce qu'on stocke
 
 Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
-`{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById }`.
+`{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById, runeMarkerLabels }`.
 
 - ⚠️ **La sortie des extracteurs (`BoxMonster[]`), jamais l'état affiché
   (`BoxItem[]`).** Un `BoxItem` embarque l'objet `Monster` complet : ça duplique
@@ -325,14 +365,25 @@ Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
 - ⚠️ **`usedRuneIds` est stocké, pas recalculé.** Les decks ne vivent que dans
   l'**export brut**, qu'on ne conserve jamais (5 à 8 Mo) : sans cette liste, le
   filtre « Runes utilisées » s'éteindrait à chaque rechargement d'un compte
-  conservé. Quelques milliers d'entiers, négligeable à côté des runes.
-- `schema` (`ACCOUNT_SCHEMA`, **7** depuis l'inventaire de reliques —
-  `relics` et `relicUsageById`, absents jusque-là ; 6 : `ArtifactDetail.id` ;
-  5 : la propriété unique des reliques, qui remplace un `relic.sub` mal
-  modélisé — voir [compte/calcul-runes.md](../compte/calcul-runes.md)) est à
+  conservé. Quelques milliers d'entiers, négligeable à côté des runes. Elle est
+  rangée **par périmètre** (un tableau par clé) : une liste plate est rejetée à
+  la lecture.
+- ⚠️ **`runeMarkerLabels` aussi** : `markers` ne vit que dans l'export brut. Le
+  marqueur de chaque rune, lui, voyage dans `runes` (`RuneDetail.marker`).
+- `schema` (`ACCOUNT_SCHEMA`, **7** : l'inventaire de reliques — `relics` et
+  `relicUsageById`, absents jusque-là —, les marqueurs de runes et les runes
+  utilisées par périmètre ; 6 : `ArtifactDetail.id` ; 5 : propriété unique des
+  reliques, qui remplace un `relic.sub` mal modélisé — voir
+  [compte/calcul-runes.md](../compte/calcul-runes.md)) est à
   **incrémenter dès qu'un extracteur produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à la lecture,
   et l'app invite à réimporter — sinon elle affiche des chiffres incomplets en
   silence.
+- ⚠️ **Le 7 réunit deux chantiers parallèles** (reliques ; marqueurs et runes
+  utilisées par périmètre), qui avaient chacun pris le 7 pour leur seule
+  moitié. Aucune version publiée n'a porté l'une sans l'autre (la v1.13.0 est
+  au 6), d'où un seul numéro. Un « 7 » incomplet, laissé par un navigateur qui
+  a fait tourner l'une des deux branches, est rejeté par la **validation** des
+  champs, pas par le numéro — vérifié dans `tests/stockage.test.ts`.
 - `exportedAt` est la date **de l'export** (`tvalue`), pas de l'enregistrement —
   voir « Âge du compte » plus bas. `savedAt` ne sert qu'au diagnostic.
 

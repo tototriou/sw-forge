@@ -236,6 +236,27 @@
         { "unit_id": 102, "rune_id_list": [2001], "artifact_id_list": [] }
       ]
     },
-    { "deck_seq": 8, "deck_type": 1, "leader_unit_id": 101, "unit_id_list": [101] }
+    { "deck_seq": 8, "deck_type": 1, "leader_unit_id": 101, "unit_id_list": [101] },
+    { "deck_seq": 9, "deck_type": 3, "leader_unit_id": 102, "unit_id_list": [102] }
+  ],
+
+  "defense_deck_info": { "unit_id_list": [102], "equip": [] },
+
+  "server_arena_defense_deck_info": {
+    "unit_id_list": [{ "unit_id": 101, "pos_id": 1 }],
+    "equip": [{ "unit_id": 101, "rune_id_list": [1004], "artifact_id_list": [] }]
+  },
+
+  "rune_lock_list": [
+    { "wizard_id": 1, "rune_id": 1002, "lock_type": 1 },
+    { "wizard_id": 1, "rune_id": 2001, "lock_type": 7 },
+    { "wizard_id": 1, "rune_id": 9001, "lock_type": 3 }
+  ],
+
+  "markers": [
+    { "type": 1, "sub_type": 1, "description": "Target reap" },
+    { "type": 1, "sub_type": 3, "description": "meule " },
+    { "type": 1, "sub_type": 7, "description": "" },
+    { "type": 3, "sub_type": 2, "description": "Monstre à ignorer" }
   ]
 }

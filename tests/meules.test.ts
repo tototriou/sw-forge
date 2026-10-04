@@ -10,6 +10,7 @@ import {
   buildCraftStock,
   craftLabel,
   craftsToSpend,
+  dispoReserve,
   missingCrafts,
   ownsCraft,
   pickCraft,
@@ -372,4 +373,192 @@ export function testPalier() {
   egal(convertirPalier(paires, 120), 300, 'palier haut : c’est le RANG qui décide, pas un facteur');
   egal(paires.filter((p) => p.apres >= 300).length, 1, 'une seule rune passait, une seule passe encore');
   ok(paires.filter((p) => p.apres >= 204).length === 2, 'là où un ratio en aurait laissé passer deux');
+}
+
+export function testGemmeMemeStat() {
+  titre('Gemme : la stat de la ligne elle-même est candidate');
+
+  // ⚠️ RÈGLE DU JEU relevée par l'utilisateur, pas déduite : une rune jamais
+  // gemmée peut gemmer une ligne PAR SA PROPRE STAT (ATQ% faible → gemme ATQ%).
+  // Le calcul l'excluait (« gemme = remplacer par une AUTRE stat »).
+  //
+  // Montage : PV plat en principale et DEF plat en innée, ATQ% / PV% / DEF% /
+  // VIT en substats. Seule autre candidate : l'ATQ plate, qui ne vaut pas
+  // l'ATQ% qu'elle remplacerait. Ancienne règle → AUCUNE gemme proposée.
+  const vierge: RuneDetail = {
+    id: 11,
+    slot: 2,
+    set: 'violent',
+    rank: 6,
+    rarity: 5,
+    level: 15,
+    main: { code: 1, value: 2448 },
+    innate: { code: 5, value: 20 },
+    subs: [
+      { code: 4, value: 5 },
+      { code: 2, value: 8 },
+      { code: 6, value: 8 },
+      { code: 8, value: 6 },
+    ],
+  };
+  const pot = runePotential(vierge, true, 'eff');
+  egal(pot.legendGem, 4, 'légendaire : l’ATQ% faible est regemmée en ATQ%');
+  egal(pot.heroGem, 4, 'héroïque : idem');
+  ok(pot.legendGain > runePotential(vierge, false, 'eff').legendGain, 'et le potentiel dépasse la meule seule');
+
+  const plan = runePlan(vierge, 'legend', true, 'eff');
+  const ligne = plan.subs[0];
+  ok(ligne.isGem && ligne.fromCode === 4 && ligne.code === 4, 'le plan gemme la ligne ATQ% en ATQ%');
+  egal([ligne.base, ligne.grind], [13, 10], 'base de gemme légendaire (13) puis meule légendaire (10)');
+  ok(
+    planNeeds(plan).some((n) => n.kind === 'gem' && n.stat === 4),
+    'le plan réclame une gemme ATQ% à la réserve'
+  );
+
+  // Une ligne déjà au-dessus de la base de gemme ne se regemme pas : ce serait
+  // une perte, `best` ne la garde pas.
+  const haute: RuneDetail = {
+    ...vierge,
+    subs: [
+      { code: 4, value: 25 },
+      { code: 2, value: 25 },
+      { code: 6, value: 25 },
+      { code: 8, value: 22 },
+    ],
+  };
+  egal(runePotential(haute, true, 'eff').legendGem, null, 'lignes au-dessus du max de gemme → aucune gemme');
+
+  // ⚠️ CHOIX PRODUIT, pas règle du jeu : une rune DÉJÀ gemmée garde sa stat,
+  // même quand la regemmer vers une autre (ici DEF plat → DEF%, absente de la
+  // rune) rapporterait plus. DEF plat déjà à sa base max (40) → rien à faire.
+  const gemmee: RuneDetail = {
+    ...vierge,
+    innate: undefined,
+    subs: [
+      { code: 5, value: 40, enchant: true },
+      { code: 4, value: 8 },
+      { code: 2, value: 8 },
+      { code: 8, value: 6 },
+    ],
+  };
+  egal(runePotential(gemmee, true, 'eff').legendGem, null, 'rune gemmée : la stat choisie par le joueur n’est pas remplacée');
+}
+
+export function testRegemmeDifferent() {
+  titre('« Autoriser un regemme différent »');
+
+  // Règles du jeu relevées par l'utilisateur : une rune déjà gemmée peut
+  // regemmer sa ligne gemmée avec une AUTRE stat absente de la rune — mais
+  // seulement cette ligne-là (une gemme par rune). Par défaut l'outil ne le
+  // propose pas (choix produit) ; l'option le lève.
+  const base: RuneDetail = {
+    id: 21,
+    slot: 2,
+    set: 'violent',
+    rank: 6,
+    rarity: 5,
+    level: 15,
+    main: { code: 1, value: 2448 },
+    subs: [],
+  };
+
+  // DEF plat gemmée, déjà à sa base max (40) ; DEF% absente de la rune.
+  const defPlate: RuneDetail = {
+    ...base,
+    subs: [
+      { code: 5, value: 40, enchant: true },
+      { code: 4, value: 8 },
+      { code: 2, value: 8 },
+      { code: 8, value: 6 },
+    ],
+  };
+  egal(runePotential(defPlate, true, 'eff').legendGem, null, 'éteinte : la DEF plate gemmée reste en place');
+  const libre = runePotential(defPlate, true, 'eff', false, undefined, true);
+  egal(libre.legendGem, 6, 'allumée : la ligne gemmée passe en DEF%');
+  ok(libre.legendEff > runePotential(defPlate, true, 'eff').legendEff, 'et le potentiel augmente');
+
+  const plan = runePlan(defPlate, 'legend', true, 'eff', false, undefined, true);
+  const ligne = plan.subs[0];
+  ok(ligne.isGem && ligne.fromCode === 5 && ligne.code === 6, 'le plan remplace la ligne gemmée, pas une autre');
+  egal([ligne.base, ligne.grind], [13, 10], 'gemme DEF% légendaire (13) puis meule (10)');
+  ok(
+    planNeeds(plan).some((n) => n.kind === 'gem' && n.stat === 6),
+    'la réserve est interrogée sur une gemme DEF%, plus sur une DEF plate'
+  );
+
+  // ⚠️ Seule la ligne DÉJÀ gemmée peut changer : l'ATQ% faible (5) gagnerait
+  // plus à devenir DEF%, mais la rune a déjà sa gemme sur la VIT.
+  const vitGemmee: RuneDetail = {
+    ...base,
+    subs: [
+      { code: 4, value: 5 },
+      { code: 8, value: 10, enchant: true },
+      { code: 2, value: 8 },
+      { code: 11, value: 8 },
+    ],
+  };
+  const planVit = runePlan(vitGemmee, 'legend', true, 'eff', false, undefined, true);
+  egal(planVit.gemCode, 6, 'un regemme est bien proposé (VIT → DEF%) — le test ne passe pas à vide');
+  ok(
+    planVit.subs.every((s, j) => !s.isGem || j === 1),
+    'aucune autre ligne que la ligne gemmée n’est regemmée'
+  );
+
+  // Rune vierge : l'option ne change rien, toute ligne y était déjà candidate.
+  const vierge: RuneDetail = { ...vitGemmee, subs: vitGemmee.subs.map((s) => ({ ...s, enchant: undefined })) };
+  egal(
+    runePotential(vierge, true, 'eff', false, undefined, true),
+    runePotential(vierge, true, 'eff'),
+    'rune jamais gemmée → même potentiel avec ou sans l’option'
+  );
+}
+
+export function testReserveParGrade() {
+  titre('« Faisable » : chaque potentiel contre la réserve de SON grade');
+
+  // VIT meulable, les trois autres substats non meulables : seule la meule VIT
+  // compte. Dans le sac, UNE meule VIT **héroïque** Violent, rien d'autre.
+  const rune: RuneDetail = {
+    id: 31,
+    slot: 2,
+    set: 'violent',
+    rank: 6,
+    rarity: 5,
+    level: 15,
+    main: { code: 8, value: 42 },
+    subs: [
+      { code: 8, value: 5, grind: 0 },
+      { code: 9, value: 6 },
+      { code: 11, value: 7 },
+      { code: 12, value: 8 },
+    ],
+  };
+  const heroique = stock([{ kind: 'grind' as const, stat: 8, grade: 4 }]);
+  const parGrade = (s: ReturnType<typeof stock>) => ({
+    hero: dispoReserve(s, rune, 'hero'),
+    legend: dispoReserve(s, rune, 'legend'),
+  });
+
+  const pot = runePotential(rune, false, 'eff', true, parGrade(heroique));
+  ok(pot.heroGain > 0, 'héroïque : la meule héroïque en réserve est comptée');
+  egal(pot.legendGain, 0, 'légendaire : une meule héroïque ne vaut pas une légendaire, rien à pousser');
+  egal(
+    runePlan(rune, 'hero', false, 'eff', true, dispoReserve(heroique, rune, 'hero')).subs[0].grind,
+    4,
+    'le plan héroïque pose bien la meule (+4)'
+  );
+
+  // ⚠️ Le défaut corrigé : une SEULE dispo pour les deux chiffres, celle du
+  // grade du tri. Trié en héroïque (grade 4), le chiffre légendaire comptait
+  // la meule héroïque avec la table légendaire (+5).
+  const ancienTriHero = runePotential(rune, false, 'eff', true, {
+    hero: dispoReserve(heroique, rune, 'hero'),
+    legend: dispoReserve(heroique, rune, 'hero'),
+  });
+  ok(ancienTriHero.legendEff > pot.legendEff, 'l’ancien câblage (grade du tri pour les deux) surestimait le légendaire');
+
+  // Grade ≥ scénario : une meule LÉGENDAIRE sert aux deux chiffres.
+  const legendaire = stock([{ kind: 'grind' as const, stat: 8, grade: 5 }]);
+  const pot5 = runePotential(rune, false, 'eff', true, parGrade(legendaire));
+  ok(pot5.heroGain > 0 && pot5.legendGain > pot5.heroGain, 'une meule légendaire compte en héroïque ET en légendaire');
 }

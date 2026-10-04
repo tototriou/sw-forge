@@ -154,6 +154,10 @@ export function testListeExemplaires() {
   ok(/if \(id !== selectedId\) resetSearch\(\);\s*else if \(key !== ownSelectorKey\) effacerResultats\(\);/.test(chemin)
     && chemin.includes('setSourceSelector(selector);') && chemin.includes('setZoneDOpen(false);'),
   'source : choisirExemplaire porte les règles de 6bis-b19 (résultats effacés, critères gardés)');
+  // Revue externe de la v1.14.0, constat 1 : le défaut de relique suit
+  // l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
+  ok(/setSelectedId\(id\);[\s\S]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),
+    'source : choisirExemplaire recalcule le choix de relique après le reset');
   ok(chemin.length > 0 && !/doitRappeler|setRappelAuras/.test(chemin), 'source : ce chemin ne rappelle rien par lui-même');
   const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
   const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');

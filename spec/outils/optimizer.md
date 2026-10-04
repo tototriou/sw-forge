@@ -317,7 +317,14 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    et se resserre tout seul (voir
    [shared/librairie-ui.md](../shared/librairie-ui.md)), comportement commun
    à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
-   choisie n'a aucun exemplaire dans cette source.
+   choisie n'a aucun exemplaire dans cette source. **Une puce dit le nombre
+   dès deux exemplaires** (degats-et-aura lot EX, décision de l'utilisateur
+   du 2026-10-04) : `{source} · {n}` (« Box · 2 »), même règle pour les
+   quatre sources ; à zéro ou un exemplaire, la puce garde son libellé.
+   C'est le seul signe qu'un clic sur la puce, même déjà allumée, ouvre la
+   zone D. Le compte ne dépend que de l'espèce, jamais d'un clic, et les
+   puces se partagent la largeur à égalité : rien ne bouge
+   (`libellePuceSource`, optimizerExclusion.ts).
    ⚠️ **Choisir une espèce résout automatiquement le PREMIER exemplaire
    Box** dès qu'il y en a au moins un (demande explicite : éviter de rouvrir
    la désambiguïsation pour tout monstre possédé en double) — la fiche
@@ -403,7 +410,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    `resetSearch` : résultat et progression, page, arrêt manuel, détail
    ouvert). Critères, tri et combat décrit restent, comme le dit la table, et
    rien n'est relancé : l'utilisateur relance lui-même. Recliquer
-   l'exemplaire déjà affiché n'efface rien. Naviguer entre listes sans
+   l'exemplaire déjà affiché n'efface rien. Le bouton « Ajouter un autre
+   exemplaire de … » de la zone C (lot EX, voir « Zone C ») change
+   d'exemplaire par le **même chemin** (`choisirExemplaire`,
+   OptimizerSection.tsx) : résultats affichés effacés, critères gardés,
+   sans rappel des auras externes, qui reste au seul clic d'un membre. Naviguer entre listes sans
    choisir un autre monstre ne change pas le monstre optimisé ; la simple
    re-sélection de la même espèce dans le bestiaire, ou d'un exemplaire par
    les puces de source et la zone D, ne vide rien, et n'efface pas non plus
@@ -2197,10 +2208,26 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
   le libellé change selon le contexte (aucun monstre choisi → désactivé ;
-  déjà dans la liste active → désactivé ; sinon → « Ajouter <monstre> à
+  déjà dans la liste active → voir ci-dessous ; sinon → « Ajouter <monstre> à
   « <liste> » », suffixé « (non possédé) » pour une espèce sans exemplaire
   réel, voir plus bas). Sans liste active, l'ajout crée une liste (prompt
-  du nom) ET y ajoute le monstre dans le même geste. Bouton **« Libérer
+  du nom) ET y ajoute le monstre dans le même geste.
+  ⚠️ **Plusieurs exemplaires Box d'une même espèce** (degats-et-aura lot
+  EX, décision de l'utilisateur du 2026-10-04) : les membres sont repérés
+  par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
+  exemplaires peuvent donc entrer dans la même liste. Quand l'exemplaire
+  affiché est déjà membre et qu'un autre exemplaire Box de l'espèce ne
+  l'est pas, le bouton reste **actif** : « Ajouter un autre exemplaire de
+  <monstre> à « <liste> » ». Un clic choisit le **premier exemplaire Box,
+  dans l'ordre de la zone D, absent de la liste**, l'affiche (règles de
+  6bis-b19 : résultats affichés effacés, critères gardés, aucun rappel des
+  auras externes — voir « Recherche du monstre à optimiser ») puis
+  l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
+  membres : « Déjà dans « <liste> » », désactivé. Aucun numéro
+  d'exemplaire n'est affiché (non retenu) ; RTA garde un exemplaire par
+  espèce (règle du jeu) ; le sélecteur « non possédé » reste repéré par
+  espèce. Décision pure : `etatAjoutListe` et `exemplaireBoxHorsListe`
+  (optimizerExclusion.ts), test `testListeExemplaires`. Bouton **« Libérer
   toutes les runes de cette liste »** (visible dès qu'au moins un build y
   est validé), avec sa propre confirmation dédiée.
 
@@ -3150,7 +3177,8 @@ plusieurs milliers de runes.
   à la liste », voir « Listes de travail et réservation de runes ») —
   l'import en masse depuis un deck de siège/une prépa RTA entière n'est pas
   construit, ni un workflow qui enchaîne automatiquement au monstre suivant
-  après validation.
+  après validation. « Ajouter un autre exemplaire de … » (lot EX, voir
+  « Zone C ») n'y change rien : chaque clic ajoute un seul exemplaire.
 - Le preset de pré-filtrage par emplacement et le filet de temps (« Réglages
   avancés ») sont réglables ; le plafond de candidats collectés reste un
   paramètre interne du moteur, non exposé dans l'UI — **« Rechercher

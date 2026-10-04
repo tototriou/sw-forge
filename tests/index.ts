@@ -120,6 +120,7 @@ import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
+import { testListeExemplaires } from './liste-exemplaires.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
 import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle, testAurasPropresResolution, testAurasPropresCombatEtScore, testAurasPvEffectifsCeilUnique, testAurasPropresNoteDesCouples, testAurasConditionsPropresFonctions, testAurasConditionsPropresResolution, testAurasConditionsPropresPairBuckets, testAurasCarteEgaleTri, testAurasPariteRegimes } from './auras-modele.test';
@@ -286,6 +287,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testOptimizerExclusion', testOptimizerExclusion],
+  ['testListeExemplaires', testListeExemplaires],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],
   ['testOptimizerDamageTransitions', testOptimizerDamageTransitions],
   ['testAurasRecette', testAurasRecette],

@@ -301,8 +301,13 @@ export function testAurasEcranRappel() {
   const ecran = lireSansCommentaires('src/components/outils/OptimizerSection.tsx');
   const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
   const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');
-  ok(clic.includes('if (!resolved) return;') && clic.includes('setSelectedId(id);') && clic.includes('effacerResultats()'),
-    'source : le geste d’un membre de la liste de travail (zone C) est localisé');
+  // Depuis le lot EX, le changement d'exemplaire vit dans `choisirExemplaire`,
+  // partagé avec le bouton « Ajouter un autre exemplaire » ; le rappel, lui,
+  // reste dans ce onClick (contrôles suivants).
+  const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
+  ok(clic.includes('if (!resolved) return;') && clic.includes('choisirExemplaire(m.selector, resolved.monster);')
+    && chemin.includes('setSelectedId(id);') && chemin.includes('effacerResultats()'),
+  'source : le geste d’un membre de la liste de travail (zone C) est localisé');
   ok(/doitRappeler\(\s*'liste',/.test(clic), 'source : le rappel est décidé DANS ce onClick, voie « liste »');
   ok(/\{ espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup\.setsAuraExternes \}/.test(clic)
     && /\{ espece: id, exemplaire: key, aurasExternes: damageSetup\.setsAuraExternes \}/.test(clic),

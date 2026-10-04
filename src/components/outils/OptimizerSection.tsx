@@ -128,9 +128,11 @@ import {
   SOURCE_OPTIONS,
   ValidatedBuild,
   autoExcludedRuneIds,
+  etatAjoutListe,
   exclusionCandidatesFor,
   exclusionSelectorKey,
   findValidatedBuild,
+  libellePuceSource,
   otherValidatedArtifactIds,
   otherValidatedRuneIds,
   resolveExcludedRuneIds,
@@ -2656,7 +2658,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // source sans AUCUN candidat pour l'espèce courante voit SA puce
   // désactivée (voir l'axe `disabled` ajouté à Segmented.tsx), le contrôle
   // entier en plus si les 4 le sont (aucune source ne possède l'espèce).
-  const sourceOptions = SOURCE_OPTIONS.map((o) => ({ ...o, disabled: candidatesBySource[o.key].length === 0 }));
+  // Dès deux exemplaires dans une source, sa puce le dit (« Box · 2 », lot EX
+  // de degats-et-aura) : c'est le seul signe qu'un clic dessus ouvre la zone D,
+  // y compris sur la puce déjà allumée. Le compte ne dépend que de l'espèce,
+  // jamais d'un clic : les puces, à largeur égale (`size="lg"`), ne bougent pas.
+  const sourceOptions = SOURCE_OPTIONS.map((o) => ({
+    ...o,
+    label: libellePuceSource(o.label, candidatesBySource[o.key].length),
+    disabled: candidatesBySource[o.key].length === 0,
+  }));
   const allSourcesEmpty = sourceOptions.every((o) => o.disabled);
 
   // Effectif par liste (Lot 3) — affiché dans `OptimizerListPicker`, à côté
@@ -2699,7 +2709,6 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // archive/historique/historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 »).
   const activeList = lists.lists.find((l) => l.id === lists.activeListId) ?? null;
   const activeMembers = lists.activeListId ? lists.members.filter((m) => m.listId === lists.activeListId) : [];
-  const alreadyMember = ownSelectorKey != null && activeMembers.some((m) => exclusionSelectorKey(m.selector) === ownSelectorKey);
   const listHasValidated = activeList != null && lists.validated.some((v) => v.listId === activeList.id);
 
   // « Ajouter à la liste » — agit sur `sourceSelector`, qui porte soit un
@@ -2710,22 +2719,59 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // mais pas encore désambiguïsée (zone D). Sans liste active, crée-en une
   // ET y ajoute le monstre dans le même geste plutôt que d'obliger un
   // aller-retour par le menu déroulant.
+  // ⚠️ Lot EX de degats-et-aura : l'exemplaire affiché déjà membre, un autre
+  // exemplaire Box de l'espèce absent de la liste → le bouton reste actif
+  // (« Ajouter un autre exemplaire de … ») et vise le premier exemplaire Box
+  // absent, dans l'ordre de la zone D. Décision pure : `etatAjoutListe`.
+  const ajoutListe = etatAjoutListe({
+    monstre: selected?.monster.name ?? null,
+    selecteur: sourceSelector,
+    listeActiveId: lists.activeListId,
+    nomListe: activeList?.name ?? '',
+    membres: lists.members,
+    candidatsBox: candidatesBySource.box,
+  });
+
+  // Change l'exemplaire optimisé — chemin UNIQUE des gestes qui désignent un
+  // exemplaire précis hors des puces de source : un membre de la zone C et
+  // le bouton « Ajouter un autre exemplaire » (lot EX). Autre espèce :
+  // `resetSearch` habituel. Même espèce, AUTRE exemplaire (6bis-b19, décision
+  // de l'utilisateur) : la recherche affichée a été faite pour l'ancien — sa
+  // fiche, sa relique, ses artéfacts portés ; effacée comme au changement
+  // d'espèce (`effacerResultats` est la partie « résultats » de
+  // `resetSearch`), sans toucher aux critères ni au combat décrit ; jamais
+  // relancée : l'utilisateur relance lui-même. Recliquer l'exemplaire déjà
+  // affiché n'efface rien. ⚠️ Aucun rappel des auras externes ici : il reste
+  // décidé dans le seul `onClick` d'un membre de la zone C (7b).
+  function choisirExemplaire(selector: ExclusionSelector, monster: Monster) {
+    const id = String(monster.id);
+    const key = exclusionSelectorKey(selector);
+    if (id !== selectedId) resetSearch();
+    else if (key !== ownSelectorKey) effacerResultats();
+    setSelectedId(id);
+    // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une des 4 puces) —
+    // `gearSource` reste sur sa dernière valeur réelle, la puce active se
+    // désallume de toute façon (`value={... || unowned ? null : gearSource}`).
+    if (selector.source !== 'unowned') setGearSource(selector.source);
+    setSourceSelector(selector);
+    setZoneDOpen(false);
+  }
+
   function handleAddToList() {
     if (!sourceSelector) return;
     if (!lists.activeListId) {
       setAddListPromptOpen('add');
       return;
     }
+    const suivant = ajoutListe.exemplaireSuivant;
+    if (suivant) {
+      choisirExemplaire(suivant.selector, suivant.monster);
+      lists.addMember(lists.activeListId, suivant.selector);
+      return;
+    }
     lists.addMember(lists.activeListId, sourceSelector);
   }
   const unowned = sourceSelector?.source === 'unowned';
-  const addLabel = !selected || !sourceSelector
-    ? 'Ajouter à la liste'
-    : alreadyMember
-      ? `Déjà dans « ${activeList?.name ?? ''} »`
-      : lists.activeListId
-        ? `Ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''} à « ${activeList?.name ?? ''} »`
-        : `Créer une liste et y ajouter ${selected.monster.name}${unowned ? ' (non possédé)' : ''}`;
 
   // « Valider ce build » (sous la fiche stats+artéfacts+runes+relique,
   // demande explicite) — valide directement les runes ACTUELLEMENT
@@ -3179,8 +3225,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         taille="sm"
         pleineLargeur
         icone={<Plus size={14} />}
-        libelle={addLabel}
-        disabled={!selected || !sourceSelector || alreadyMember}
+        libelle={ajoutListe.libelle}
+        disabled={!ajoutListe.actif}
         onClick={handleAddToList}
         className="mb-2"
       />
@@ -3203,24 +3249,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   onClick={() => {
                     if (!resolved) return;
                     const id = String(resolved.monster.id);
-                    if (id !== selectedId) resetSearch();
-                    // ⚠️ Même espèce, AUTRE exemplaire (6bis-b19, décision de
-                    // l'utilisateur) : la recherche affichée a été faite pour
-                    // l'ancien — sa fiche, sa relique, ses artéfacts portés.
-                    // Effacée comme au changement d'espèce (`effacerResultats`
-                    // est la partie « résultats » de `resetSearch`), sans
-                    // toucher aux critères ni au combat décrit ; jamais
-                    // relancée : l'utilisateur relance lui-même. Recliquer
-                    // l'exemplaire déjà affiché n'efface rien.
-                    else if (key !== ownSelectorKey) effacerResultats();
-                    setSelectedId(id);
-                    // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une
-                    // des 4 puces) — `gearSource` reste sur sa dernière
-                    // valeur réelle, la puce active se désallume de toute
-                    // façon (`value={... || unowned ? null : gearSource}`).
-                    if (m.selector.source !== 'unowned') setGearSource(m.selector.source);
-                    setSourceSelector(m.selector);
-                    setZoneDOpen(false);
+                    // Règles de 6bis-b19 (autre espèce : `resetSearch` ; même
+                    // espèce, autre exemplaire : résultats effacés) — voir
+                    // `choisirExemplaire`, chemin partagé avec le bouton
+                    // « Ajouter un autre exemplaire » (lot EX).
+                    choisirExemplaire(m.selector, resolved.monster);
                     // ⚠️ **Rappel des auras externes (degats-et-aura 7b) — ICI,
                     // dans le geste de la liste de travail, et nulle part
                     // ailleurs** : ni dans `resetSearch`, ni dans un effet sur

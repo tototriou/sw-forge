@@ -1344,6 +1344,9 @@ function conditionCombatActive(
       const atqCible = setup.enemyAtk ?? DEFAULT_DAMAGE_SETUP.enemyAtk!;
       return condition.inclusif ? atqCible <= seuil : atqCible < seuil;
     }
+    case 'atkParTranche':
+      // Un compte de coups, pas un oui/non : lu par `coupsEnPlusActifs` seulement.
+      return false;
     case 'defCibleSousDefPropre':
     case 'defCibleSousAtkPropre': {
       if (!combat) return false;
@@ -2097,6 +2100,11 @@ export type ConditionCombatProfile = (
   | { type: 'pvPropreSous'; seuilPct: number }
   | { type: 'pvCibleSuperieursPvPropre'; ratio: number }
   | { type: 'atkCibleSousAtkPropre'; ratio: number; inclusif?: boolean }
+  // Coups en plus par TRANCHE d'ATQ (Stormfist, lot P5a4) : +1 coup par tranche
+  // de `tranchePct` % de l'ATQ de base contenue dans l'ATQ de combat, jusqu'à
+  // `coupsEnPlus`. Jamais une condition booléenne (`conditionCombatActive` rend
+  // faux) : seul `coupsEnPlusActifs` la lit, avec `atkBase`.
+  | { type: 'atkParTranche'; tranchePct: number }
   // Les trois comparaisons de stat sont STRICTES par défaut ; `inclusif`
   // s'écrit entrée par entrée, seulement quand la prose du sort dit « or
   // lower » / « or less » (Copper 7763, Guard Crush 15907-15910). Jaara 3216
@@ -2128,6 +2136,31 @@ export type ConditionCombatProfile = (
   // déduit du champ « ATQ adverse », sans réglage neuf (Brutal Fists, comme Theonia).
   coupsEnPlus?: number;
 };
+
+/**
+ * Stats de combat que lit le nombre de coups (`resolvedHits`). `atkBase` = l'ATQ
+ * de BASE du monstre (ligne `atk` de `StatRow`, `base`), seulement pour les coups
+ * par tranche d'ATQ (Stormfist) ; absent, ce sort compte pour son minimum.
+ */
+export type StatsCombatPourCoups = { atk: number; def: number; hp: number; spd: number; atkBase?: number };
+
+/** Un coup en plus déduit des stats du build (Brutal Fists, Stormfist) : ni réglage ni interrupteur. */
+function coupsEnPlusDeduitDuBuild(c: ConditionCombatProfile): boolean {
+  return !!c.coupsEnPlus && (c.type === 'atkCibleSousAtkPropre' || c.type === 'atkParTranche');
+}
+
+/**
+ * Coups en plus de Stormfist : `⌊(ATQ de combat / ATQ de base − 1) / (tranchePct / 100)⌋`,
+ * borné à `[0, coupsMax]`. ⚠️ Précision flottante : un rapport de 2,2 doit donner
+ * exactement 2 tranches ; la division `(atk − base) / (0,6 × base)` peut rendre
+ * 1,999999… — un écart de 1e-9 tranche est ajouté avant le plancher (sans effet
+ * sur un rapport qui n'est pas pile au palier).
+ */
+function coupsParTranche(atk: number, atkBase: number | undefined, tranchePct: number, coupsMax: number): number {
+  if (!atkBase || atkBase <= 0 || tranchePct <= 0) return 0;
+  const tranches = Math.floor((atk - atkBase) / ((tranchePct / 100) * atkBase) + 1e-9);
+  return Math.min(coupsMax, Math.max(0, tranches));
+}
 
 export interface EffetEntreCoupsProfile {
   id: string;
@@ -2565,6 +2598,10 @@ const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> 
   // condition is worse than yours or if the target is suffering a harmful effect ».
   // Les deux clauses se règlent ensemble : jamais devinées à partir des PV.
   11664: [{ type: 'manuel', libelle: 'L’état des PV de la cible est pire que le tien, ou elle porte un effet nocif', coupsEnPlus: 2 }],
+  // Stormfist (Mayasura, 18306) : +1 coup par tranche de 60 % de l'ATQ de base
+  // contenue dans l'ATQ de combat, 3 coups en plus au plus (6 coups à 280 % de
+  // la base) — valeur de l'utilisateur du 2026-10-04 (degats-et-aura P5a4).
+  18306: [{ type: 'atkParTranche', tranchePct: 60, coupsEnPlus: 3 }],
   2759: [{ type: 'aucunBuffCible', pct: 50 }], // Eludain — le Flash Pierce 2709 n'a pas cette clause
   5812: [{ type: 'pvCibleSuperieursPvPropre', ratio: 2, pct: 50 }], // Ceres — Last Shot
   17413: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 30 }], // Kassandra vent
@@ -3160,6 +3197,7 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
   // exclusif à ces cinq sorts dans le corpus (balayage, contrôle 13b).
   'Brutal Fists': { min: 3, max: 4 },
 };
+// (Stormfist, 18306 : par identifiant, `COUPS_VARIABLES_PAR_ID_CONNUS` plus bas.)
 
 // Même table, clée par IDENTIFIANT de compétence : pour un nom dont un
 // homonyme JOUABLE n'a pas la même mécanique (cadrage degats-et-aura, lot
@@ -3176,6 +3214,12 @@ const COUPS_VARIABLES_PAR_ID_CONNUS: Record<number, { min: number; max: number; 
   // Continuous Damage » n'a AUCUN coup supplémentaire ; 3413 et 3478 (Seal,
   // non jouables) non plus. Clé par identifiant OBLIGATOIRE.
   21311: { min: 1, max: 3 },
+  // Stormfist (Mayasura, 18306) : « Attacks the enemy 3 times … The number of
+  // attacks increases up to 6 times according to your Attack Power » ; +1 coup
+  // par tranche de 60 % de l'ATQ de base dans l'ATQ de combat (valeur de
+  // l'utilisateur, 2026-10-04, `CONDITIONS_COMBAT_PAR_ID_CONNUS`). Par
+  // identifiant, comme demandé : les homonymes 18307 et 18309 ne sont pas traités.
+  18306: { min: 3, max: 6 },
 };
 
 // Nombre de coups d'un sort ou passif : l'identifiant, puis le nom.
@@ -4543,8 +4587,9 @@ export function resolvedHits(
   profile: SkillDamageProfile,
   setup: DamageSetup,
   // ATQ du build, seulement pour un coup en plus déduit du champ « ATQ adverse »
-  // (Brutal Fists) ; sans lui, cette condition compte pour éteinte.
-  combat?: { atk: number; def: number; hp: number; spd: number }
+  // (Brutal Fists) ou des tranches d'ATQ (Stormfist, avec `atkBase`) ; sans lui,
+  // cette condition compte pour éteinte.
+  combat?: StatsCombatPourCoups
 ): number {
   if (!profile.hitsRange) return profile.hits;
   if (coupsEnPlusDeCondition(profile)) {
@@ -4572,14 +4617,14 @@ export function resolvedHits(
 export function coupsAffichesDuSort(
   profile: SkillDamageProfile,
   setup: DamageSetup,
-  combat?: { atk: number; def: number; hp: number; spd: number }
+  combat?: StatsCombatPourCoups
 ): { hits: number; max: number; dependDuBuild: boolean } {
   const hits = resolvedHits(profile, setup, combat);
   const dependDuBuild =
-    !combat && !!profile.hitsRange && !!profile.conditionsCombat?.some((c) => c.coupsEnPlus && c.type === 'atkCibleSousAtkPropre');
+    !combat && !!profile.hitsRange && !!profile.conditionsCombat?.some(coupsEnPlusDeduitDuBuild);
   if (!dependDuBuild || !profile.hitsRange) return { hits, max: hits, dependDuBuild: false };
   const enPlus = (profile.conditionsCombat ?? [])
-    .filter((c) => c.coupsEnPlus && c.type === 'atkCibleSousAtkPropre')
+    .filter(coupsEnPlusDeduitDuBuild)
     .reduce((somme, c) => somme + (c.coupsEnPlus ?? 0), 0);
   return { hits, max: Math.min(profile.hitsRange.max, hits + enPlus), dependDuBuild: true };
 }
@@ -4592,10 +4637,15 @@ export function coupsEnPlusDeCondition(profile: SkillDamageProfile): boolean {
 function coupsEnPlusActifs(
   profile: SkillDamageProfile,
   setup: DamageSetup,
-  combat?: { atk: number; def: number; hp: number; spd: number }
+  combat?: StatsCombatPourCoups
 ): number {
   let extra = 0;
   for (const c of profile.conditionsCombat ?? []) {
+    if (c.type === 'atkParTranche') {
+      // Sans build : aucune tranche acquise (le minimum), jamais devinée.
+      if (combat) extra += coupsParTranche(combat.atk, combat.atkBase, c.tranchePct, c.coupsEnPlus ?? 0);
+      continue;
+    }
     if (c.coupsEnPlus && conditionCombatActive(c, setup, profile.skillCom2usId, null, setup.enemyHpPct, combat)) {
       extra += c.coupsEnPlus;
     }
@@ -4613,7 +4663,7 @@ function coupsEnPlusActifs(
  */
 function coupsEnPlusSaisiAncienneRecette(profile: SkillDamageProfile, setup: DamageSetup): number | null {
   if (!profile.hitsRange) return null;
-  if (!profile.conditionsCombat?.some((c) => c.coupsEnPlus && c.type !== 'atkCibleSousAtkPropre')) return null;
+  if (!profile.conditionsCombat?.some((c) => c.coupsEnPlus && !coupsEnPlusDeduitDuBuild(c))) return null;
   const choisi = setup.coupsPersonnalises?.[profile.skillCom2usId];
   if (choisi == null || setup.passifsOffensifs?.[profile.skillCom2usId] !== undefined) return null;
   return Math.min(profile.hitsRange.max, Math.max(profile.hitsRange.min, choisi));
@@ -5279,8 +5329,12 @@ export function computeSkillDamageDetail(
   // chemin ordinaire avec `hits` résolu et sans plage. Même `statsDeCombat` (mêmes
   // arguments) que plus bas : aucune seconde lecture de l'ATQ. Les interrupteurs,
   // eux, ne lisent que le réglage (`resolvedHits`).
-  if (profile.hitsRange && profile.conditionsCombat?.some((c) => c.coupsEnPlus && c.type === 'atkCibleSousAtkPropre')) {
-    const combatPourCoups = statsDeCombat(stats, setup, propres, element, artefacts, monsterWide);
+  if (profile.hitsRange && profile.conditionsCombat?.some(coupsEnPlusDeduitDuBuild)) {
+    const combatPourCoups: StatsCombatPourCoups = {
+      ...statsDeCombat(stats, setup, propres, element, artefacts, monsterWide),
+      // ATQ de base du monstre : la tranche de Stormfist se compte sur elle (P5a4).
+      atkBase: stats.find((s) => s.key === 'atk')?.base ?? 0,
+    };
     profile = { ...profile, hits: resolvedHits(profile, setup, combatPourCoups), hitsRange: undefined };
   }
   // ── Séquence curée (Blade Surge) : un appel ordinaire par groupe de coups ──
@@ -6471,7 +6525,7 @@ export function damageRelevantStats(
     ...(monsterWide.conditionsCombat ?? []).map((p) => p.condition),
   ];
   for (const condition of toutesConditions) {
-    if (condition.type === 'atkCibleSousAtkPropre' || condition.type === 'defCibleSousAtkPropre') {
+    if (condition.type === 'atkCibleSousAtkPropre' || condition.type === 'defCibleSousAtkPropre' || condition.type === 'atkParTranche') {
       if (!keys.includes('atk')) keys.push('atk');
     }
     if (condition.type === 'defCibleSousDefPropre' && !keys.includes('def')) keys.push('def');

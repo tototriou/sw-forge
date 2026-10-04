@@ -184,9 +184,8 @@ export function testDegatsCoupsSaisis() {
   }
 
   // Témoins HORS PÉRIMÈTRE de P5a : ils restent comme avant, jusqu'à leur propre lot.
-  titre('Lot P5a — témoins hors périmètre : Stormfist (valeur de l\'utilisateur attendue) et Crow Hunt (relevé R9)');
-  const stormfist = sortDe(28511, 18306);
-  egal([stormfist.hitsRange, stormfist.hits], [undefined, 3], 'Stormfist 18306 : ni plage ni correction, 3 coups comme avant (la règle selon l\'ATQ est à fournir)');
+  // (Stormfist, qui y figurait, a sa règle depuis le lot P5a4 : voir plus bas.)
+  titre('Lot P5a — témoins hors périmètre : Crow Hunt (relevé R9)');
   for (const [id, forme] of [[1607, 10512], [1609, 10514], [1618, 10513]] as const) {
     const p = sortDe(forme, id);
     egal([p.hitsRange, p.hits], [undefined, id === 1618 ? 1 : 4], `Crow Hunt ${id} sur ${forme} : inchangé (${id === 1618 ? '`coups: 1`, relevé R9 attendu' : '`coups: 4`'})`);
@@ -359,5 +358,71 @@ function testDegatsCoupsSousCondition() {
     egal(resolvedHits(p, { ...base, passifsOffensifs: { [id]: true } }), min, `${nom} : un interrupteur n'y change rien`);
     egal(resolvedHits(p, { ...base, coupsPersonnalises: { [id]: max } }), max, `${nom} : la saisie du compteur vaut ${max}`);
     egal(resolvedHits(p, { ...base, coupsPersonnalises: { [id]: max + 50 } }), max, `${nom} : saisie hors plage, bornée à ${max}`);
+  }
+
+  // ── Lot P5a4 — Stormfist (Mayasura, 18306) ──
+  // Valeur de l'utilisateur (2026-10-04) : 3 coups, +1 coup par tranche de 60 % de l'ATQ de base
+  // contenue dans l'ATQ de combat, 6 au plus (6 coups à 280 % de la base). Paliers écrits à la main.
+  titre('Lot P5a4 — Stormfist (18306) : coups déduits de l\'ATQ de combat, par tranche de 60 % de l\'ATQ de base');
+  {
+    const STORMFIST = 18306;
+    const p = sortDe(28511, STORMFIST);
+    egal([p.hits, p.hitsRange], [3, { min: 3, max: 6 }], 'Stormfist : 3 coups au minimum, plage 3 à 6');
+    egal(p.conditionsCombat, [{ type: 'atkParTranche', tranchePct: 60, coupsEnPlus: 3 }], 'Stormfist : +1 coup par tranche de 60 %, 3 coups en plus au plus');
+    const BASE_ATQ = 1000;
+    const statsBase = (total: number): StatRow[] =>
+      (['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'] as StatKey[]).map((key) => {
+        const v = { hp: 20000, atk: total, def: 800, spd: 200, cr: 25, cd: 100, res: 0, acc: 0 }[key];
+        const b = key === 'atk' ? BASE_ATQ : 0;
+        return { key, label: key, base: b, bonus: v - b, total: v, suffix: '' };
+      });
+    // L'ATQ de combat ajoute les compétences d'invocateur (+20 % de la base) : on la fait valoir le palier visé.
+    const decalage = statsDeCombat(statsBase(0), base, AUCUNE_AURA_PROPRE).atk;
+    const buildA = (pct: number) => statsBase((BASE_ATQ * pct) / 100 - decalage);
+    const paliers: [number, number][] = [
+      [100, 3], [150, 3], [159, 3], [160, 4], [219, 4], [220, 5], [279, 5], [280, 6], [281, 6], [400, 6], [1000, 6],
+    ];
+    for (const [pct, coups] of paliers) {
+      const st2 = buildA(pct);
+      const combat = statsDeCombat(st2, base, AUCUNE_AURA_PROPRE);
+      ok(proche(combat.atk, (BASE_ATQ * pct) / 100), `${pct} % : l'ATQ de combat vaut bien ${(BASE_ATQ * pct) / 100}`);
+      ok(proche(calcul(p, base, st2), coups * unCoup(p, base, st2)), `ATQ de combat à ${pct} % de la base : ${coups} coups dans le total`);
+      const affiche = coupsAffichesDuSort(p, base, { ...combat, atkBase: BASE_ATQ });
+      egal([affiche.hits, affiche.max, affiche.dependDuBuild], [coups, coups, false], `${pct} % : l'affichage avec build annonce ${coups}`);
+    }
+    // Précision flottante aux paliers : le rapport est calculé, jamais écrit en entier.
+    const direct = (atkBase: number, rapport: number, ecart = 0) =>
+      resolvedHits(p, base, { atk: atkBase * rapport + ecart, def: 0, hp: 0, spd: 0, atkBase });
+    for (const b of [1000, 1234, 777, 1013.7, 3.3]) {
+      egal(direct(b, 2.2), 5, `base ${b} : un rapport de 2,2 donne 5 coups`);
+      egal(direct(b, 1.6), 4, `base ${b} : un rapport de 1,6 donne 4 coups`);
+      egal(direct(b, 2.8), 6, `base ${b} : un rapport de 2,8 donne 6 coups`);
+      egal(direct(b, 2.2, -b / 1000), 4, `base ${b} : un millième de base sous 2,2, 4 coups`);
+      egal(direct(b, 1.6, -b / 1000), 3, `base ${b} : un millième de base sous 1,6, 3 coups`);
+    }
+    // Sans ATQ de base connue, ou sans build : le minimum, jamais une tranche devinée.
+    egal(resolvedHits(p, base, { atk: 9999, def: 0, hp: 0, spd: 0 }), 3, 'ATQ de base absente : 3 coups');
+    egal(resolvedHits(p, base, { atk: 9999, def: 0, hp: 0, spd: 0, atkBase: 0 }), 3, 'ATQ de base nulle : 3 coups, sans division par zéro');
+    egal(resolvedHits(p, base), 3, 'sans build : 3 coups');
+    // Affichage sans build : la plage (le résumé de l'écran et la ligne du CLI n'ont pas de build).
+    const sans = coupsAffichesDuSort(p, base);
+    egal([sans.hits, sans.max, sans.dependDuBuild], [3, 6, true], 'sans build, l\'affichage annonce 3 à 6 coups (selon l\'ATQ du build)');
+    // Aucun réglage : ni interrupteur, ni ancienne saisie, ni ATQ adverse n'y changent rien.
+    const st280 = buildA(280);
+    const reglages: DamageSetup[] = [
+      { ...base, passifsOffensifs: { [STORMFIST]: false } },
+      { ...base, coupsPersonnalises: { [STORMFIST]: 3 } },
+      { ...base, enemyAtk: 1 },
+      { ...base, enemyAtk: 99999 },
+    ];
+    for (const r of reglages) {
+      ok(proche(calcul(p, r, st280), 6 * unCoup(p, r, st280)), 'ATQ à 280 % : 6 coups quel que soit le réglage (aucun réglage ne le corrige)');
+    }
+    ok(proche(calcul(p, { ...base, coupsPersonnalises: { [STORMFIST]: 6 } }, buildA(100)), 3 * unCoup(p, base, buildA(100))), 'une ancienne saisie à 6 est ignorée : ATQ à 100 %, 3 coups');
+    // Les autres Stormfist (18307, 18309) et Brutal Fists ne sont pas touchés.
+    for (const [id, forme] of [[18307, 28512], [18309, 28514]] as const) {
+      const q = sortDe(forme, id);
+      egal([q.hits, q.hitsRange, q.conditionsCombat], [3, undefined, undefined], `${id} : Stormfist homonyme, hors de ce lot : 3 coups fixes`);
+    }
   }
 }

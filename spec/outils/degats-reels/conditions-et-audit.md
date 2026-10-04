@@ -363,6 +363,7 @@ jouables 1607 et 1609 portent `coups: 4`.
 | Hammer Punch · `11651`-`11655` · Tractor `20831`, Bulldozer `20832`, Crane `20833`, Driller `20834`, Crawler `20835` | 2 à 3 | nom | « Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added » ; `coups: 2`. Homonymes `11601`-`11605` (Frankenstein 1A) et `11673`-`11677` (boss), non jouables : même prose, couverts par le nom. Le terme « Attaques reçues avant ce sort » reste par coup |
 | Pound · `11664` · Driller `20834` | 4 à 6 | nom | « Attacks the enemy 4 times … 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect » ; `coups: 4`. Homonymes `11614` (Driller 1A, condition « MAX HP **et** effet nocif ») et `11686` (boss), non jouables : même plage |
 | Brutal Fists · `18301`-`18305` · Mayasura `28511`, Varuna `28512`, Usha `28513`, Danu `28514`, Vritra `28515` | 3 à 4 | nom (exclusif aux cinq) | « Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` = le maximum. Le défaut passe de 4 à 3 coups ; le coup en plus est ensuite déduit de l'ATQ adverse (lot P5a2) |
+| Stormfist · `18306` · Mayasura `28511` (`28501` non éveillé) | 3 à 6 | identifiant | « Attacks the enemy 3 times … The number of attacks increases up to 6 times according to your Attack Power » ; `coups: 3`. Valeur de l'utilisateur (2026-10-04) : +1 coup par tranche de 60 % de l'ATQ de base dans l'ATQ de combat (lot P5a4). Homonymes `18307` (`28512`) et `18309` (`28514`), même prose : **non traités** (un sort à la fois), restent à 3 coups fixes |
 
 Deux sorts portent à l'inverse un nombre **fixe** corrigé (`COUPS_FIXES_CORRIGES`,
 pas de saisie) : « Attacks all enemies 3 times … and attacks them once more »
@@ -398,6 +399,7 @@ ci-dessus.
 | Pound `11664` | « L’état des PV de la cible est pire que le tien, ou elle porte un effet nocif (+2 coups) » | manuel : les deux clauses de la prose en un seul réglage | 4, ou 6 |
 | Strafe, God's Weapon | « Le tir en plus part » / « Le coup en plus part » (+1 coup) | manuel : la probabilité du coup en plus n'est jamais tirée | 2, ou 3 |
 | Brutal Fists `18301`-`18305` | aucun | `atkCibleSousAtkPropre`, ratio 1, **strict** : ATQ du build > « ATQ adverse » (`enemyAtk`), le champ de Theonia, Kassandra et Eleni | 3, ou 4 |
+| Stormfist `18306` | aucun | `atkParTranche` (60 %, 3 coups en plus au plus) : `min(6, 3 + ⌊(ATQ de combat / ATQ de base − 1) / 0,6⌋)` | 3 à 6 |
 
 Brutal Fists est **déduit** : le coup en plus se règle dans
 `computeSkillDamageDetail`, avec la même `statsDeCombat` que le reste du calcul
@@ -410,6 +412,21 @@ l'ATQ du build) », au lieu d'un « 3 » qui passerait pour le nombre du calcul
 (lot P5a3) ; avec les stats de combat d'un build, la fonction rend le nombre
 exact du calcul. Affichage seulement, hors de la boucle de l'optimiseur.
 
+**Stormfist (lot P5a4)** est **déduit** de la même façon, sans réglage ni champ.
+L'« ATQ totale » est l'**ATQ de combat** (`statsDeCombat().atk` : fiche, runes,
+artéfacts, compétences d'invocateur, leader, auras, buff d'ATQ — celle que
+lisent déjà Brutal Fists et la formule) ; l'« ATQ de base » est la ligne `atk`
+de la fiche (`StatRow.base`), passée à `resolvedHits` par `atkBase`. Le nombre
+de coups vaut `min(6, 3 + ⌊(ATQ de combat / ATQ de base − 1) / 0,6⌋)` : 3 coups
+jusqu'à 159 %, 4 à 160 %, 5 à 220 %, 6 à 280 % de la base. Un rapport pile sur
+un palier compte la tranche (un écart de 1e-9 tranche est ajouté avant le
+plancher : 2,2 donne 5 coups malgré la division flottante). Sans `atkBase`
+(ou nulle) ou sans build : 3 coups, jamais une tranche devinée. Sans build,
+l'affichage annonce « 3 à 6 coups (selon l'ATQ du build) » par
+`coupsAffichesDuSort`. Aucun coût dans la boucle de l'optimiseur : le calcul
+ne lit les stats de combat une fois de plus que pour ce sort. Les deux autres
+Stormfist (`18307`, `18309`) n'ont pas été touchés.
+
 **Anciennes recettes.** Un nombre de coups saisi (`coupsPersonnalises`) pour un
 sort à interrupteur reste **lu**, borné à la plage, tant que l'interrupteur du
 sort n'a pas été touché (clé absente de `passifsOffensifs`) ; l'interrupteur
@@ -417,7 +434,7 @@ s'affiche alors allumé si la saisie dépasse le minimum
 (`coupsEnPlusAncienneRecetteActif`). Toucher l'interrupteur, dans un sens ou
 l'autre, rend la main aux conditions. Un nombre intermédiaire (Pound à 5) reste
 5. Exception assumée : pour **Brutal Fists**, la déduction prévaut sur toute
-ancienne saisie, qui n'a plus de champ pour être corrigée.
+ancienne saisie, qui n'a plus de champ pour être corrigée (Stormfist de même).
 
 **Restent des compteurs** : Barrage of Madness (3 à 5, au hasard selon les
 effets nocifs) et Sura's Seal (4 à 8 selon l'écart d'ATQ, seuils inconnus).

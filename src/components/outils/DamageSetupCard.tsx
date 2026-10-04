@@ -240,6 +240,8 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
       return `+${condition.pct ?? 0} % si les PV actuels de la cible dépassent ${condition.ratio}× les tiens`;
     case 'atkCibleSousAtkPropre':
       return `condition d’ATQ cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ton ATQ`;
+    case 'atkParTranche':
+      return `+1 coup par tranche de ${condition.tranchePct} % de l’ATQ de base dans ton ATQ (${condition.coupsEnPlus ?? 0} au plus)`;
     case 'defCibleSousDefPropre':
       return `${effetCondition(condition)} si la DEF cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ta DEF`;
     case 'defCibleSousAtkPropre':

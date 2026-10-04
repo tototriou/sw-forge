@@ -363,7 +363,7 @@ jouables 1607 et 1609 portent `coups: 4`.
 | Hammer Punch · `11651`-`11655` · Tractor `20831`, Bulldozer `20832`, Crane `20833`, Driller `20834`, Crawler `20835` | 2 à 3 | nom | « Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added » ; `coups: 2`. Homonymes `11601`-`11605` (Frankenstein 1A) et `11673`-`11677` (boss), non jouables : même prose, couverts par le nom. Le terme « Attaques reçues avant ce sort » reste par coup |
 | Pound · `11664` · Driller `20834` | 4 à 6 | nom | « Attacks the enemy 4 times … 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect » ; `coups: 4`. Homonymes `11614` (Driller 1A, condition « MAX HP **et** effet nocif ») et `11686` (boss), non jouables : même plage |
 | Brutal Fists · `18301`-`18305` · Mayasura `28511`, Varuna `28512`, Usha `28513`, Danu `28514`, Vritra `28515` | 3 à 4 | nom (exclusif aux cinq) | « Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` = le maximum. Le défaut passe de 4 à 3 coups ; le coup en plus est ensuite déduit de l'ATQ adverse (lot P5a2) |
-| Stormfist · `18306` · Mayasura `28511` (`28501` non éveillé) | 3 à 6 | identifiant | « Attacks the enemy 3 times … The number of attacks increases up to 6 times according to your Attack Power » ; `coups: 3`. Valeur de l'utilisateur (2026-10-04) : +1 coup par tranche de 60 % de l'ATQ de base dans l'ATQ de combat (lot P5a4). Homonymes `18307` (`28512`) et `18309` (`28514`), même prose : **non traités** (un sort à la fois), restent à 3 coups fixes |
+| Stormfist · `18306` · Mayasura `28511` (`28501` non éveillé), `18307` · Varuna `28512` (`28502`), `18309` · Danu `28514` (`28504`) | 3 à 6 | identifiant (un par sort) | « Attacks the enemy 3 times … The number of attacks increases up to 6 times according to your Attack Power » ; `coups: 3`. Valeur de l'utilisateur (2026-10-04) : +1 coup par tranche de 60 % de l'ATQ de base **du monstre** dans l'ATQ de combat (lots P5a4 pour Mayasura, P5a5 pour Varuna et Danu) |
 
 Deux sorts portent à l'inverse un nombre **fixe** corrigé (`COUPS_FIXES_CORRIGES`,
 pas de saisie) : « Attacks all enemies 3 times … and attacks them once more »
@@ -399,7 +399,7 @@ ci-dessus.
 | Pound `11664` | « L’état des PV de la cible est pire que le tien, ou elle porte un effet nocif (+2 coups) » | manuel : les deux clauses de la prose en un seul réglage | 4, ou 6 |
 | Strafe, God's Weapon | « Le tir en plus part » / « Le coup en plus part » (+1 coup) | manuel : la probabilité du coup en plus n'est jamais tirée | 2, ou 3 |
 | Brutal Fists `18301`-`18305` | aucun | `atkCibleSousAtkPropre`, ratio 1, **strict** : ATQ du build > « ATQ adverse » (`enemyAtk`), le champ de Theonia, Kassandra et Eleni | 3, ou 4 |
-| Stormfist `18306` | aucun | `atkParTranche` (60 %, 3 coups en plus au plus) : `min(6, 3 + ⌊(ATQ de combat / ATQ de base − 1) / 0,6⌋)` | 3 à 6 |
+| Stormfist `18306`, `18307`, `18309` | aucun | `atkParTranche` (60 %, 3 coups en plus au plus) : `min(6, 3 + ⌊(ATQ de combat / ATQ de base − 1) / 0,6⌋)` | 3 à 6 |
 
 Brutal Fists est **déduit** : le coup en plus se règle dans
 `computeSkillDamageDetail`, avec la même `statsDeCombat` que le reste du calcul
@@ -424,8 +424,22 @@ plancher : 2,2 donne 5 coups malgré la division flottante). Sans `atkBase`
 (ou nulle) ou sans build : 3 coups, jamais une tranche devinée. Sans build,
 l'affichage annonce « 3 à 6 coups (selon l'ATQ du build) » par
 `coupsAffichesDuSort`. Aucun coût dans la boucle de l'optimiseur : le calcul
-ne lit les stats de combat une fois de plus que pour ce sort. Les deux autres
-Stormfist (`18307`, `18309`) n'ont pas été touchés.
+ne lit les stats de combat une fois de plus que pour ce sort.
+
+**Varuna et Danu (lot P5a5)** : les Stormfist `18307` et `18309`, de même prose,
+ont la même condition `atkParTranche` (une entrée par identifiant). La tranche
+se compte sur l'ATQ de base **de chaque monstre** (`StatRow.base` de son
+propre build : 823 pour Varuna, 812 pour Danu à la fiche), jamais une valeur
+commune : à ATQ de combat 1 800, Varuna (1 800 / 823 = 2,187) frappe 4 fois,
+Danu (1 800 / 812 = 2,217) 5 fois.
+
+**Mayasura et Constant Training.** Les cumuls saisis de son passif
+(`STATS_COMBAT_PAR_ID_CONNUS[18311]`, +100 ATQ plats chacun, 10 au plus)
+**comptent dans l'ATQ de combat** (`statsDeCombat` les ajoute par
+`atkFlat`) qui décide les coups de Stormfist : à l'ATQ de la fiche fixée à la
+base (747), 0 cumul = 3 coups, 5 = 4, 10 = 5 (test du lot P5a5). Ce n'est vrai
+que si l'appelant passe les stats de combat du monstre (`monsterWide`,
+`monsterCombatStatProfiles`), ce que font l'écran et le CLI.
 
 **Anciennes recettes.** Un nombre de coups saisi (`coupsPersonnalises`) pour un
 sort à interrupteur reste **lu**, borné à la plage, tant que l'interrupteur du

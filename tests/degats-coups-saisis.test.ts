@@ -19,14 +19,17 @@ import { StatRow } from '../src/lib/stats';
 import { StatKey } from '../src/lib/effects';
 import { DetailMonstre } from '../src/lib/monsterSkills';
 import {
+  ARTIFACT_DAMAGE_NEUTRE,
   AUCUNE_AURA_PROPRE,
   DEFAULT_DAMAGE_SETUP,
   type DamageSetup,
   type SkillDamageProfile,
   computeSkillDamage,
+  computeSkillDamageDetail,
   coupsAffichesDuSort,
   coupsEnPlusAncienneRecetteActif,
   estPrisEnCharge,
+  monsterCombatStatProfiles,
   monsterDamageSkills,
   resolvedHits,
   statsDeCombat,
@@ -419,10 +422,97 @@ function testDegatsCoupsSousCondition() {
       ok(proche(calcul(p, r, st280), 6 * unCoup(p, r, st280)), 'ATQ à 280 % : 6 coups quel que soit le réglage (aucun réglage ne le corrige)');
     }
     ok(proche(calcul(p, { ...base, coupsPersonnalises: { [STORMFIST]: 6 } }, buildA(100)), 3 * unCoup(p, base, buildA(100))), 'une ancienne saisie à 6 est ignorée : ATQ à 100 %, 3 coups');
-    // Les autres Stormfist (18307, 18309) et Brutal Fists ne sont pas touchés.
-    for (const [id, forme] of [[18307, 28512], [18309, 28514]] as const) {
-      const q = sortDe(forme, id);
-      egal([q.hits, q.hitsRange, q.conditionsCombat], [3, undefined, undefined], `${id} : Stormfist homonyme, hors de ce lot : 3 coups fixes`);
-    }
   }
+
+  // ── Lot P5a5 — Stormfist de Varuna (18307) et de Danu (18309) ──
+  // Même règle que Mayasura (utilisateur, 2026-10-04), calculée sur l'ATQ de base DE CHAQUE monstre, lue
+  // sur sa fiche (monsters.json, stats.attack). Les paliers sont écrits à la main (rapport 1,6 / 2,2 / 2,8).
+  titre('Lot P5a5 — Stormfist de Varuna et de Danu : la règle de Mayasura sur l\'ATQ de base de chaque monstre');
+  {
+    const monstres: { com2usId: number; stats: { attack: number } }[] = JSON.parse(readFileSync(resolve(racine, 'public/data/monsters.json'), 'utf8')).monsters;
+    const atkBaseDe = (forme: number) => monstres.find((m) => m.com2usId === forme)!.stats.attack;
+    const statsDe = statsDe0;
+    // Chaque monstre : sa fiche, son ATQ de base attendue (écrite à la main, vérifiée contre la fiche).
+    const MONSTRES: { nom: string; id: number; forme: number; atkBase: number }[] = [
+      { nom: 'Varuna', id: 18307, forme: 28512, atkBase: 823 },
+      { nom: 'Danu', id: 18309, forme: 28514, atkBase: 812 },
+    ];
+    for (const m of MONSTRES) {
+      const p = sortDe(m.forme, m.id);
+      egal(atkBaseDe(m.forme), m.atkBase, `${m.nom} : l'ATQ de base de la fiche ${m.forme} vaut ${m.atkBase}`);
+      egal([p.hits, p.hitsRange], [3, { min: 3, max: 6 }], `${m.nom} : 3 coups au minimum, plage 3 à 6`);
+      egal(p.conditionsCombat, [{ type: 'atkParTranche', tranchePct: 60, coupsEnPlus: 3 }], `${m.nom} : +1 coup par tranche de 60 %, 3 coups en plus au plus`);
+      const decalage = statsDeCombat(statsDe(m.atkBase, 0), base, AUCUNE_AURA_PROPRE).atk;
+      const paliers: [number, number][] = [
+        [100, 3], [150, 3], [159, 3], [160, 4], [219, 4], [220, 5], [279, 5], [280, 6], [281, 6], [400, 6], [1000, 6],
+      ];
+      for (const [pct, coups] of paliers) {
+        const st2 = statsDe(m.atkBase, (m.atkBase * pct) / 100 - decalage);
+        const combat = statsDeCombat(st2, base, AUCUNE_AURA_PROPRE);
+        ok(proche(combat.atk, (m.atkBase * pct) / 100), `${m.nom} ${pct} % : l'ATQ de combat vaut ${(m.atkBase * pct) / 100}`);
+        ok(proche(calcul(p, base, st2), coups * unCoup(p, base, st2)), `${m.nom} : ATQ de combat à ${pct} % de sa base : ${coups} coups dans le total`);
+        const affiche = coupsAffichesDuSort(p, base, { ...combat, atkBase: m.atkBase });
+        egal([affiche.hits, affiche.max, affiche.dependDuBuild], [coups, coups, false], `${m.nom} ${pct} % : l'affichage avec build annonce ${coups}`);
+      }
+      // Sans build : la plage ; sans ATQ de base : le minimum.
+      const sans = coupsAffichesDuSort(p, base);
+      egal([sans.hits, sans.max, sans.dependDuBuild], [3, 6, true], `${m.nom} : sans build, l'affichage annonce 3 à 6 coups (selon l'ATQ du build)`);
+      egal(resolvedHits(p, base, { atk: 9999, def: 0, hp: 0, spd: 0 }), 3, `${m.nom} : ATQ de base absente, 3 coups`);
+      // Aucun réglage n'y change rien (ni interrupteur, ni ancienne saisie, ni ATQ adverse).
+      const st280 = statsDe(m.atkBase, (m.atkBase * 280) / 100 - decalage);
+      for (const r of [{ ...base, passifsOffensifs: { [m.id]: false } }, { ...base, coupsPersonnalises: { [m.id]: 3 } }, { ...base, enemyAtk: 1 }]) {
+        ok(proche(calcul(p, r, st280), 6 * unCoup(p, r, st280)), `${m.nom} : ATQ à 280 % : 6 coups quel que soit le réglage`);
+      }
+    }
+    // L'ATQ de base est celle de CHAQUE monstre : une même ATQ de combat (1 800) donne 4 coups à Varuna
+    // (1 800 / 823 = 2,187, sous 2,2) et 5 à Danu (1 800 / 812 = 2,217) — deux nombres de coups différents.
+    const pV = sortDe(28512, 18307);
+    const pD = sortDe(28514, 18309);
+    const meme = { atk: 1800, def: 0, hp: 0, spd: 0 };
+    egal(resolvedHits(pV, base, { ...meme, atkBase: 823 }), 4, 'Varuna : 1 800 / 823 = 2,187, 4 coups');
+    egal(resolvedHits(pD, base, { ...meme, atkBase: 812 }), 5, 'Danu : 1 800 / 812 = 2,217, 5 coups');
+    egal(resolvedHits(pV, base, { ...meme, atkBase: 812 }), 5, 'la tranche suit l\'ATQ de base passée, pas une valeur propre au sort');
+    // Les autres sorts de la famille ne bougent pas : God's Weapon et Brutal Fists gardent leur règle.
+    egal(sortDe(28513, 18308).conditionsCombat?.some((c) => c.type === 'atkParTranche') ?? false, false, "God's Weapon (18308) : aucune règle de tranche");
+    egal(sortDe(28514, 18304).conditionsCombat?.some((c) => c.type === 'atkParTranche') ?? false, false, 'Brutal Fists (18304) : aucune règle de tranche');
+  }
+
+  // ── Lot P5a5 — les cumuls de Constant Training (18311) comptent dans l'ATQ qui décide les coups de Mayasura ──
+  titre('Lot P5a5 — Mayasura : les cumuls de Constant Training (+100 ATQ chacun) entrent dans l\'ATQ qui compte les coups de Stormfist');
+  {
+    const mayasura = fiche(28511);
+    const mw = { combatStats: monsterCombatStatProfiles(mayasura) };
+    egal(mw.combatStats.map((c) => [c.skillCom2usId, c.source, c.max, c.atkFlat]), [[18311, 'stacks', 10, 100]], 'Mayasura : Constant Training, cumuls saisis, +100 ATQ, 10 au plus');
+    const p = sortDe(28511, 18306);
+    const B = 747; // ATQ de base de la fiche 28511
+    const sOf = (n: number) => ({ ...base, stackPersonnalise: { 18311: n } });
+    const decalage = statsDeCombat(statsDe0(B, 0), sOf(0), AUCUNE_AURA_PROPRE).atk;
+    const st0 = statsDe0(B, B - decalage); // ATQ de combat = la base à 0 cumul
+    // [cumuls, ATQ de combat attendue, coups attendus] : 747 (1,00) 3 ; 1 247 (1,67) 4 ; 1 747 (2,34) 5 ; 1 747 + 1 000 au plafond.
+    const cas: [number, number, number][] = [[0, 747, 3], [3, 1047, 3], [4, 1147, 3], [5, 1247, 4], [8, 1547, 4], [9, 1647, 5], [10, 1747, 5]];
+    for (const [n, atkAttendue, coups] of cas) {
+      const combat = statsDeCombat(st0, sOf(n), AUCUNE_AURA_PROPRE, null, ARTIFACT_DAMAGE_NEUTRE, mw);
+      ok(proche(combat.atk, atkAttendue), `${n} cumuls : l'ATQ de combat vaut ${atkAttendue} (747 + 100 par cumul)`);
+      egal(resolvedHits(p, sOf(n), { ...combat, atkBase: B }), coups, `${n} cumuls : ${coups} coups`);
+      const detail = computeSkillDamageDetail(p, st0, sOf(n), AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, mw).total;
+      const unSeul = computeSkillDamageDetail({ ...p, hits: 1, hitsRange: undefined }, st0, sOf(n), AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, mw).total;
+      ok(proche(detail, coups * unSeul), `${n} cumuls : le total du calcul compte ${coups} coups`);
+    }
+    // Sans les profils de stats de combat (sans fiche), les cumuls saisis ne comptent pas : 3 coups à tout cumul.
+    const sans = statsDeCombat(st0, sOf(10), AUCUNE_AURA_PROPRE);
+    egal(resolvedHits(p, sOf(10), { ...sans, atkBase: B }), 3, 'sans les stats de combat du monstre, 10 cumuls saisis ne changent rien : 3 coups');
+    // Le plafond de 10 cumuls tient : 50 cumuls saisis comptent comme 10.
+    const c50 = statsDeCombat(st0, sOf(50), AUCUNE_AURA_PROPRE, null, ARTIFACT_DAMAGE_NEUTRE, mw);
+    ok(proche(c50.atk, 1747), '50 cumuls saisis : bornés à 10 (ATQ de combat 1 747)');
+    // Des cumuls sur Varuna ou Danu n'existent pas : leurs fiches n'ont aucune stat de combat de ce type.
+    egal(monsterCombatStatProfiles(fiche(28512)).length + monsterCombatStatProfiles(fiche(28514)).length, 0, 'Varuna et Danu n\'ont pas de Constant Training');
+  }
+}
+
+function statsDe0(b: number, total: number): StatRow[] {
+  return (['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'] as StatKey[]).map((key) => {
+    const v = { hp: 20000, atk: total, def: 800, spd: 200, cr: 25, cd: 100, res: 0, acc: 0 }[key];
+    const bs = key === 'atk' ? b : 0;
+    return { key, label: key, base: bs, bonus: v - bs, total: v, suffix: '' };
+  });
 }

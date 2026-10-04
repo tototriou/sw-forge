@@ -2602,6 +2602,12 @@ const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> 
   // contenue dans l'ATQ de combat, 3 coups en plus au plus (6 coups à 280 % de
   // la base) — valeur de l'utilisateur du 2026-10-04 (degats-et-aura P5a4).
   18306: [{ type: 'atkParTranche', tranchePct: 60, coupsEnPlus: 3 }],
+  // Varuna (18307) et Danu (18309) : même prose, même règle (utilisateur,
+  // 2026-10-04, degats-et-aura P5a5) ; la tranche se compte sur l'ATQ de base
+  // DE CHAQUE MONSTRE (`StatRow.base` de son propre build), jamais une valeur
+  // commune. Une entrée par identifiant, comme 18306.
+  18307: [{ type: 'atkParTranche', tranchePct: 60, coupsEnPlus: 3 }],
+  18309: [{ type: 'atkParTranche', tranchePct: 60, coupsEnPlus: 3 }],
   2759: [{ type: 'aucunBuffCible', pct: 50 }], // Eludain — le Flash Pierce 2709 n'a pas cette clause
   5812: [{ type: 'pvCibleSuperieursPvPropre', ratio: 2, pct: 50 }], // Ceres — Last Shot
   17413: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 30 }], // Kassandra vent
@@ -3294,8 +3300,12 @@ const COUPS_VARIABLES_PAR_ID_CONNUS: Record<number, { min: number; max: number; 
   // attacks increases up to 6 times according to your Attack Power » ; +1 coup
   // par tranche de 60 % de l'ATQ de base dans l'ATQ de combat (valeur de
   // l'utilisateur, 2026-10-04, `CONDITIONS_COMBAT_PAR_ID_CONNUS`). Par
-  // identifiant, comme demandé : les homonymes 18307 et 18309 ne sont pas traités.
+  // identifiant ; les homonymes Varuna (18307) et Danu (18309) ont la même règle
+  // depuis le lot P5a5, chacun sur sa propre ATQ de base. Le passif de Mayasura
+  // (Constant Training, 18311 : +100 ATQ par attaque) compte dans l'ATQ de combat.
   18306: { min: 3, max: 6 },
+  18307: { min: 3, max: 6 },
+  18309: { min: 3, max: 6 },
 };
 
 // Nombre de coups d'un sort ou passif : l'identifiant, puis le nom.

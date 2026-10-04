@@ -104,7 +104,7 @@ Formes : 19802 Magic Knight †, 19812 Astar.
 
 ### Azazel
 
-Formes : 2003503 Azazel — **forme de boss, écartée** (D56, `commit du lot D56`) : `formesJouables` ne la propose plus, la ligne ci-dessous n'est plus visible à l'écran (entrée du passif retirée de la table de rappel).
+Formes : 2003503 Azazel — **forme de boss, écartée** (D56, ``d1ebf991``) : `formesJouables` ne la propose plus, la ligne ci-dessous n'est plus visible à l'écran (entrée du passif retirée de la table de rappel).
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
@@ -709,7 +709,7 @@ Formes : 27603 카산드라(바람) †, 27613 Kassandra.
 
 ### Kazuya Mishima
 
-Formes : 2003601 Kazuya Mishima — **forme de boss, écartée** (D56, `commit du lot D56`) : `formesJouables` ne la propose plus, la ligne ci-dessous n'est plus visible à l'écran (entrée du passif retirée de la table de rappel).
+Formes : 2003601 Kazuya Mishima — **forme de boss, écartée** (D56, ``d1ebf991``) : `formesJouables` ne la propose plus, la ligne ci-dessous n'est plus visible à l'écran (entrée du passif retirée de la table de rappel).
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
@@ -1247,7 +1247,7 @@ Formes : 20811 Tractor †, 20831 Tractor.
 
 ### True Devil Kazuya
 
-Formes : 2003705 True Devil Kazuya — **forme de boss, écartée** (D56, `commit du lot D56`) : `formesJouables` ne la propose plus, la ligne ci-dessous n'est plus visible à l'écran (entrée du passif retirée de la table de rappel).
+Formes : 2003705 True Devil Kazuya — **forme de boss, écartée** (D56, ``d1ebf991``) : `formesJouables` ne la propose plus, la ligne ci-dessous n'est plus visible à l'écran (entrée du passif retirée de la table de rappel).
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |

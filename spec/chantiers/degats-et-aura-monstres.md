@@ -124,7 +124,7 @@ Formes : 23102 Demon (feu) †, 23112 Bael.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Sword of Destruction » · 13402 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 476 ; D36). | P3 | commit du lot P3 | Chemin commun → Bael → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Sword of Destruction » · 13402 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 476 ; D36). | P3 | `09e32fd9` | Chemin commun → Bael → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Barbara
 
@@ -133,7 +133,7 @@ Formes : 23501 Beast Rider (eau) †, 23511 Barbara.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Fast Link » · 13606 · S2 | Effet posé entre les coups, par identifiant : « Réduction de DEF » (donnée `Decrease DEF` 100 % ; prose « The beast's attack decreases the enemy's Defense », la bête frappe en premier) entre dans le cadre des poses entre les coups ; posée « Après le coup 1 », le coup 2 subit la DEF réduite (×1,682 contre sans pose, DEF cible 1 500, ATQ 1 000). Sans pose choisie, total inchangé. L'ignore DEF de « Start of Attacking » (13611) n'est pas touché (P11). | P4 | `730927e7` | Chemin commun → Barbara → choisir « Fast Link » : le cadre des poses entre les coups apparaît avec « Réduction de DEF » ; « Après le coup 1 » monte le total, aucune pose : total inchangé. |
-| « Start of Attacking » · 13611 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en entier, en permanence ; la condition du jeu (25 % par effet bénéfique retiré par la bête) n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | commit du lot P3 | Chemin commun → Barbara → « Compétence utilisée » : sur la case « Start of Attacking », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Start of Attacking » · 13611 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en entier, en permanence ; la condition du jeu (25 % par effet bénéfique retiré par la bête) n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | `09e32fd9` | Chemin commun → Barbara → « Compétence utilisée » : sur la case « Start of Attacking », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Bastet
 
@@ -149,8 +149,8 @@ Formes : 23105 Demon (ténèbres) †, 23115 Beelzebub, 23205 데몬(어둠) †
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Sword of Destruction » · 13405 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 479 ; D36). | P3 | commit du lot P3 | Chemin commun → Beelzebub → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
-| « Madness Judgement » · 13410 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | commit du lot P3 | Chemin commun → Beelzebub → « Compétence utilisée » : sur la case « Madness Judgement », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Sword of Destruction » · 13405 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 479 ; D36). | P3 | `09e32fd9` | Chemin commun → Beelzebub → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Madness Judgement » · 13410 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | `09e32fd9` | Chemin commun → Beelzebub → « Compétence utilisée » : sur la case « Madness Judgement », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Belial
 
@@ -158,8 +158,8 @@ Formes : 23101 Demon (eau) †, 23111 Belial, 23201 데몬(물) †, 23211 데�
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Sword of Destruction » · 13401 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 475 ; D36). | P3 | commit du lot P3 | Chemin commun → Belial → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
-| « Madness Judgement » · 13406 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | commit du lot P3 | Chemin commun → Belial → « Compétence utilisée » : sur la case « Madness Judgement », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Sword of Destruction » · 13401 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 475 ; D36). | P3 | `09e32fd9` | Chemin commun → Belial → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Madness Judgement » · 13406 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | `09e32fd9` | Chemin commun → Belial → « Compétence utilisée » : sur la case « Madness Judgement », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Belita
 
@@ -167,7 +167,7 @@ Formes : 21905 Chakram Dancer (ténèbres) †, 21915 Belita.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Moonlight Blow » · 12615 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 5 % des PV par dégât continu posé sur la cible n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 483). | P3 | commit du lot P3 | Chemin commun → Belita → « Compétence utilisée » : sur la case « Moonlight Blow », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Moonlight Blow » · 12615 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 5 % des PV par dégât continu posé sur la cible n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 483). | P3 | `09e32fd9` | Chemin commun → Belita → « Compétence utilisée » : sur la case « Moonlight Blow », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Benedict
 
@@ -241,7 +241,7 @@ Formes : 19412 Carrack.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Detonation Shot » · 10222 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’explosion des bombes déjà posées sur la cible n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 498). | P3 | commit du lot P3 | Chemin commun → Carrack → « Compétence utilisée » : sur la case « Detonation Shot », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Detonation Shot » · 10222 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’explosion des bombes déjà posées sur la cible n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 498). | P3 | `09e32fd9` | Chemin commun → Carrack → « Compétence utilisée » : sur la case « Detonation Shot », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Cecilia
 
@@ -344,7 +344,7 @@ Formes : 16503 Living Armor (vent) †, 16513 Copper — éveillé sans second �
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Thunder Strike » · 7713 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en permanence ; la condition du jeu (DEF de la cible sous 50 % de la tienne) n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | commit du lot P3 | Chemin commun → Copper → « Compétence utilisée » : sur la case « Thunder Strike », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Thunder Strike » · 7713 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en permanence ; la condition du jeu (DEF de la cible sous 50 % de la tienne) n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | `09e32fd9` | Chemin commun → Copper → « Compétence utilisée » : sur la case « Thunder Strike », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Cordelia
 
@@ -388,7 +388,7 @@ Formes : 25304 Sky Surfer (lumière) †, 25314 Daniel.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Quantum Explosion » · 15214 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque qui reste à retirer, après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 488). | P3 | commit du lot P3 | Chemin commun → Daniel → « Compétence utilisée » : sur la case « Quantum Explosion », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Quantum Explosion » · 15214 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque qui reste à retirer, après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 488). | P3 | `09e32fd9` | Chemin commun → Daniel → « Compétence utilisée » : sur la case « Quantum Explosion », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Danu
 
@@ -412,7 +412,7 @@ Formes : 21102 Fairy King (feu) †, 21112 Daphnis.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Hellfire » · 11912 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 40 % des PV de la cible (15 % pour un boss) avant le coup n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 468). | P3 | commit du lot P3 | Chemin commun → Daphnis → « Compétence utilisée » : sur la case « Hellfire », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Hellfire » · 11912 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 40 % des PV de la cible (15 % pour un boss) avant le coup n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 468). | P3 | `09e32fd9` | Chemin commun → Daphnis → « Compétence utilisée » : sur la case « Hellfire », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Devaraja
 
@@ -437,7 +437,7 @@ Formes : 25204 Mage (lumière) †, 25214 Dorothy.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Time of Destruction » · 15114 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « Le bonus de dégâts selon les PV détruits de la cible (15 à 60 %) n’est pas encore compté. » Affichage seul : aucun total ne change (source : PV-2, ligne 470 ; D36). | P3 | commit du lot P3 | Chemin commun → Dorothy → « Compétence utilisée » : sur la case « Time of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Time of Destruction » · 15114 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « Le bonus de dégâts selon les PV détruits de la cible (15 à 60 %) n’est pas encore compté. » Affichage seul : aucun total ne change (source : PV-2, ligne 470 ; D36). | P3 | `09e32fd9` | Chemin commun → Dorothy → « Compétence utilisée » : sur la case « Time of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Driller
 
@@ -534,7 +534,7 @@ Formes : 30703 Drakan Warrior (vent) †, 30713 Ereshion.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Dragon Bombardment » · 20413 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV des ennemis dont un effet bénéfique est retiré n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 474). | P3 | commit du lot P3 | Chemin commun → Ereshion → « Compétence utilisée » : sur la case « Dragon Bombardment », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Dragon Bombardment » · 20413 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV des ennemis dont un effet bénéfique est retiré n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 474). | P3 | `09e32fd9` | Chemin commun → Ereshion → « Compétence utilisée » : sur la case « Dragon Bombardment », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Erwin
 
@@ -568,7 +568,7 @@ Formes : 26502 에스프레소맛 쿠키(불) †, 26512 Espresso Cookie.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Extraction » · 16307 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 489). | P3 | commit du lot P3 | Chemin commun → Espresso Cookie (feu) → « Compétence utilisée » : sur la case « Extraction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Extraction » · 16307 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 489). | P3 | `09e32fd9` | Chemin commun → Espresso Cookie (feu) → « Compétence utilisée » : sur la case « Extraction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Espresso Cookie (lumière)
 
@@ -576,7 +576,7 @@ Formes : 26504 에스프레소맛 쿠키(빛) †, 26514 Espresso Cookie.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Extraction » · 16309 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 (jumeau collab de Jasmine) ; PV-2, ligne 490). | P3 | commit du lot P3 | Chemin commun → Espresso Cookie (lumière) → « Compétence utilisée » : sur la case « Extraction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Extraction » · 16309 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 (jumeau collab de Jasmine) ; PV-2, ligne 490). | P3 | `09e32fd9` | Chemin commun → Espresso Cookie (lumière) → « Compétence utilisée » : sur la case « Extraction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Espresso Cookie (ténèbres)
 
@@ -585,7 +585,7 @@ Formes : 26505 에스프레소맛 쿠키(어둠) †, 26515 Espresso Cookie.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Grinding » · 16310 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Espresso Cookie (ténèbres) → « Compétence utilisée » → « Grinding » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
-| « Blending » · 16315 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 651). | P3 | commit du lot P3 | Chemin commun → Espresso Cookie (ténèbres) → « Compétence utilisée » : sur la case « Blending », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Blending » · 16315 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 651). | P3 | `09e32fd9` | Chemin commun → Espresso Cookie (ténèbres) → « Compétence utilisée » : sur la case « Blending », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Fridrion
 
@@ -673,7 +673,7 @@ Formes : 27002 Black Tea Bunny (feu) †, 27012 Hibiscus.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Dancing Teacup » · 16807 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 (jumeau collab d’Espresso Cookie feu) ; PV-2, ligne 491). | P3 | commit du lot P3 | Chemin commun → Hibiscus → « Compétence utilisée » : sur la case « Dancing Teacup », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Dancing Teacup » · 16807 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 (jumeau collab d’Espresso Cookie feu) ; PV-2, ligne 491). | P3 | `09e32fd9` | Chemin commun → Hibiscus → « Compétence utilisée » : sur la case « Dancing Teacup », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Hollyberry Cookie
 
@@ -797,7 +797,7 @@ Formes : 27004 Black Tea Bunny (lumière) †, 27014 Jasmine.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Dancing Teacup » · 16809 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 492). | P3 | commit du lot P3 | Chemin commun → Jasmine → « Compétence utilisée » : sur la case « Dancing Teacup », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Dancing Teacup » · 16809 · S2 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 492). | P3 | `09e32fd9` | Chemin commun → Jasmine → « Compétence utilisée » : sur la case « Dancing Teacup », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Jeogun
 
@@ -829,7 +829,7 @@ Formes : 13803 Valkyrja (vent) †, 13813 Katarina.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Sword of Discharge » · 6013 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en permanence ; la condition du jeu (sort lancé sous Invincibilité) n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | commit du lot P3 | Chemin commun → Katarina → « Compétence utilisée » : sur la case « Sword of Discharge », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Sword of Discharge » · 6013 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en permanence ; la condition du jeu (sort lancé sous Invincibilité) n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | `09e32fd9` | Chemin commun → Katarina → « Compétence utilisée » : sur la case « Sword of Discharge », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Kazuya Mishima
 
@@ -883,7 +883,7 @@ Formes : 27005 Black Tea Bunny †, 27015 Lavender.
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
 | « Spinning Tea Spoon » · 16810 · S2 | **4 coups fixes** au lieu de 3 (« Attacks all enemies 3 times … and attacks them once more to stun them ») ; pas de saisie. Total par défaut ×1,3333 : 2 390,54 → 3 187,39 au build de la preuve. Chaque coup vaut les autres. | P5a | `e989b74e` | Chemin commun → Lavender → « Compétence utilisée » → « Spinning Tea Spoon » : résumé « 4 coups », aucun champ du nombre de coups ; total = 4 × le total d'un coup. |
-| « Midnight Teatime » · 16815 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 652). | P3 | commit du lot P3 | Chemin commun → Lavender → « Compétence utilisée » : sur la case « Midnight Teatime », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Midnight Teatime » · 16815 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée. » Affichage seul : aucun total ne change (source : D36 ; PV-2, ligne 652). | P3 | `09e32fd9` | Chemin commun → Lavender → « Compétence utilisée » : sur la case « Midnight Teatime », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Legolas
 
@@ -907,7 +907,7 @@ Formes : 25701 Weapon Master (eau) †, 25711 Liam.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Unlimited Power » · 15511 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en entier, en permanence ; la condition du jeu (3 ennemis ou moins, jusqu’à 100 % selon les PV de la cible) n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | commit du lot P3 | Chemin commun → Liam → « Compétence utilisée » : sur la case « Unlimited Power », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Unlimited Power » · 15511 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’ignore DEF est compté en entier, en permanence ; la condition du jeu (3 ennemis ou moins, jusqu’à 100 % selon les PV de la cible) n’est pas encore modélisée. » Affichage seul : aucun total ne change (source : D63). | P3 | `09e32fd9` | Chemin commun → Liam → « Compétence utilisée » : sur la case « Unlimited Power », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Lucien
 
@@ -923,7 +923,7 @@ Formes : 23104 Demon (lumière) †, 23114 Lucifer.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Sword of Destruction » · 13404 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 478 ; D36). | P3 | commit du lot P3 | Chemin commun → Lucifer → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Sword of Destruction » · 13404 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 478 ; D36). | P3 | `09e32fd9` | Chemin commun → Lucifer → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Lukan
 
@@ -1019,7 +1019,7 @@ Formes : 25615 Maya.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Half Moon Tribe Totem » · 15440 · S4 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 20 % des PV des ennemis sous effet nocif n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 485). | P3 | commit du lot P3 | Chemin commun → Maya → « Compétence utilisée » : sur la case « Half Moon Tribe Totem », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Half Moon Tribe Totem » · 15440 · S4 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 20 % des PV des ennemis sous effet nocif n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 485). | P3 | `09e32fd9` | Chemin commun → Maya → « Compétence utilisée » : sur la case « Half Moon Tribe Totem », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Mayasura
 
@@ -1054,7 +1054,7 @@ Formes : 23103 Demon (vent) †, 23113 Mephisto.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Sword of Destruction » · 13403 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 477 ; D36). | P3 | commit du lot P3 | Chemin commun → Mephisto → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Sword of Destruction » · 13403 · S1 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 477 ; D36). | P3 | `09e32fd9` | Chemin commun → Mephisto → « Compétence utilisée » : sur la case « Sword of Destruction », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Michelle
 
@@ -1134,7 +1134,7 @@ Formes : 25612 Nora.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Volcanic Tribe Totem » · 15437 · S4 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 5 % des PV par effet nocif posé n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 484). | P3 | commit du lot P3 | Chemin commun → Nora → « Compétence utilisée » : sur la case « Volcanic Tribe Totem », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Volcanic Tribe Totem » · 15437 · S4 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 5 % des PV par effet nocif posé n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 484). | P3 | `09e32fd9` | Chemin commun → Nora → « Compétence utilisée » : sur la case « Volcanic Tribe Totem », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Old Wood (eau)
 
@@ -1294,7 +1294,7 @@ Formes : 15703 Oracle (vent) †, 15713 Seara.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Promised Time » · 7113 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’explosion des bombes déjà posées sur la cible n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 497). | P3 | commit du lot P3 | Chemin commun → Seara → « Compétence utilisée » : sur la case « Promised Time », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Promised Time » · 7113 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’explosion des bombes déjà posées sur la cible n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 497). | P3 | `09e32fd9` | Chemin commun → Seara → « Compétence utilisée » : sur la case « Promised Time », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### Shasha
 
@@ -1425,7 +1425,7 @@ Formes : 13805 Valkyrja (ténèbres) †, 13815 Trinity.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Ragnarok » · 6015 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 15 % des PV de tous les ennemis avant le coup n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 469). | P3 | commit du lot P3 | Chemin commun → Trinity → « Compétence utilisée » : sur la case « Ragnarok », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Ragnarok » · 6015 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « La perte de 15 % des PV de tous les ennemis avant le coup n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 469). | P3 | `09e32fd9` | Chemin commun → Trinity → « Compétence utilisée » : sur la case « Ragnarok », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ### True Devil Kazuya
 
@@ -1614,7 +1614,7 @@ Formes : 18112 Zibrolta.
 
 | Sort (nom du jeu · identifiant · slot) | Ce qui change | Lot | Commit(s) | Vérifier à l'écran |
 | --- | --- | --- | --- | --- |
-| « Meteor Bomb » · 8912 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’explosion des bombes déjà posées sur la cible n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 496). | P3 | commit du lot P3 | Chemin commun → Zibrolta → « Compétence utilisée » : sur la case « Meteor Bomb », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
+| « Meteor Bomb » · 8912 · S3 | **Étiquette « Calcul partiel »** à côté du nom du sort, après le « ? » de sa prose ; son « ? » dit : « L’explosion des bombes déjà posées sur la cible n’est pas encore comptée. » Affichage seul : aucun total ne change (source : PV-2, ligne 496). | P3 | `09e32fd9` | Chemin commun → Zibrolta → « Compétence utilisée » : sur la case « Meteor Bomb », l'étiquette « Calcul partiel » suit le « ? » de la prose ; son propre « ? » ouvre la phrase (bulle à la souris, panneau montant au doigt) ; choisir un autre sort ne la fait ni naître ni disparaître, et rien ne bouge. |
 
 ## 2. Changements transverses (tous les monstres)
 

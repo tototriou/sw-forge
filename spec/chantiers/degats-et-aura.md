@@ -792,7 +792,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 lancé** (forme acceptée le 2026-10-04) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R rendu** (à valider) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -882,6 +882,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15d | Byungchul : S1 et S2 toujours critiques ; Yuji et Rick : sur la S2, un cadre des poses entre les coups, le 2e coup critique quand la réduction de DEF est posée après le 1er ; Jaara et Varus : « critique garanti si la DEF cible < … » (plus « ignore DEF »), rien à l'égalité | en attente |
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
 | D56 | Azazel, Kazuya Mishima, True Devil Kazuya, The Witch-king of Angmar, Solide : absents de la liste des monstres de l'Optimizer | en attente |
+| P3 | Les 28 sorts de la liste (Madness Judgement, Liam, Barbara, Katarina, Daphnis, Dorothy, Jasmine, Lavender…) : une étiquette « Calcul partiel » après le « ? » du sort, son propre « ? » dit ce qui manque ; rien ne bouge au clic ; ligne du titre au téléphone ; couleur neutre du jeton | en attente |
 | P5a4 | Mayasura, Stormfist : le résumé dit « 3 à 6 coups (selon l'ATQ du build) » ; le total suit l'ATQ du build | en attente |
 | P22 | Satoru Gojo et Werner (lumière), Usha, Vritra, Nina, Shasha, Tatu 2A : le résumé du sort dit « Zone » ; avec un artéfact « D.CRIT+ comp cib uniq pdt tour », le total ne la compte plus | en attente |
 | P5a, P5a2 | Les 20 monstres de la liste : Barrage of Madness et Sura's Seal gardent un champ « nombre de coups » (minimum par défaut) ; Whirlpool, Water Dragon Surge, Hammer Punch, Pound, Strafe, God's Weapon ont un interrupteur éteint (« … (+N coups) ») à la place du champ ; Brutal Fists suit le champ « ATQ adverse » et son résumé dit « 3 à 4 coups (selon l'ATQ du build) » ; Grinding et Spinning Tea Spoon à 4 coups ; libellé de Pound au téléphone | en attente |
@@ -9654,6 +9655,33 @@ nouvelles vérifiées dans le CSS construit ; mutation après le commit.
 **Ne fait pas :** ne corrige aucun calcul (les six ignore DEF attendent
 P11) ; aucune mention sur les cartes de résultats (forme écartée par
 l'utilisateur).
+
+##### Résultat du lot P3 — 2026-10-04
+
+Agent `lot-j`. Un commit, `09e32fd9` : table `CALCUL_PARTIEL_PAR_ID`
+(`damage.ts`, lue par `calculPartielDuSort`), **28 identifiants** avec leur
+phrase — les six ignore DEF de D63 ; 15 sorts de PV-2 dont la part est
+décidée « comptée » mais pas encore codée (« … pas encore comptée ») ; 7
+parts de D36 (« … n'est pas calculée »), dont 16309 et 16807 par la règle
+des jumeaux collab ; 13 lignes de PV-2 écartées parce que leur total est
+complet par décision (Devil's Bargain, détonations de DoT, bombes à
+retardement). Écran : un `Jeton` « Calcul partiel » en lecture seule et son
+propre « ? » (`HelpPopover`), après le « ? » de la prose, hors du bouton de
+la case ; il dépend du sort seul, présent dès le rendu, rien ne bouge.
+Totaux inchangés (huit témoins). Tests (`calcul-partiel`), section
+« Calcul partiel » de `formules-et-combat.md`, une ligne d'`invariants.md`,
+28 lignes de la liste. Reçu de l'agent `09e32fd` ↔ `2dac2db`.
+
+**Rejoué par le pilote** : `tsc` 0 ; 2 971 vérifications ; build, spec-lint,
+diff-check verts ; diff de l'écran relu. Mutations de l'agent : 4 et 2
+échecs. **Mutation du pilote**, distincte (entrée de Jasmine 16809
+retirée) : 4 échecs ; restaurée. Hachage inscrit dans la liste.
+
+**Écarts** : 7713 (Thunder Strike de Copper 1A) n'est porté par aucune
+forme du bestiaire depuis le second éveil, mais reste choisissable depuis
+un compte qui possède cette forme : gardé ; les D7 de pv-comparaisons et D9
+de stats-passifs, que le plan route aussi vers P3, restent hors contrat ;
+un `node -e "0"` lancé par erreur, sans effet.
 
 #### R — la demande de relevés, élaguée
 

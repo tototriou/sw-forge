@@ -792,7 +792,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 et R lancés** (questionnaire terminé) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -9587,6 +9587,36 @@ Hachage inscrit dans la liste.
 fichier suivi (un commentaire du test) — troisième lot `lot-c` de suite
 (P5a, P5a3, D56) malgré l'interdiction du brief. Résultat vérifié correct ;
 garde-fou mécanique proposé à l'utilisateur.
+
+#### P5a4 — Stormfist : coups déduits de l'ATQ
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Valeur de l'utilisateur
+du 2026-10-04 (A.2 ter) : Stormfist (Mayasura, 18306 — « Attacks the enemy
+3 times… The number of attacks increases up to 6 times according to your
+Attack Power ») frappe **3 fois, +1 coup par tranche de 60 % de l'ATQ de
+base** contenue dans l'ATQ totale, 6 au plus — `min(6, 3 + ⌊(ATQ totale /
+ATQ de base − 1) / 0,6⌋)`. Contrat : le nombre de coups se **déduit** des
+stats du build (ATQ de combat, ATQ de base du monstre), sans réglage, comme
+Brutal Fists (P5a2) ; l'affichage sans build passe par `coupsAffichesDuSort`
+(P5a3 : « 3 à 6 coups (selon l'ATQ du build) ») ; aucun coût hors de ce sort
+dans la boucle de l'optimiseur. Tests (paliers 159 %, 160 %, 220 %, 280 %,
+au-delà), spec, liste du lot LM. Preuve `controle-p5a4.md`, mutation après
+le commit.
+
+#### R — la demande de relevés, élaguée
+
+**Cat. J, agent `lot-j`, notes seules, sans worktree** (dépôt
+`sw-forge-lot-r-notes\notes`, A.8). Le questionnaire est terminé
+(2026-10-04) ; beaucoup de relevés du plan (§ 4, L114-260) sont devenus
+inutiles. Contrat : pour chaque relevé R01-R109, un verdict **encore
+nécessaire** / **sans objet** (la réponse qui le tranche, citée : plan
+§ 5.1-5.2 ou A.2 ter) / **réduit** (ce qui reste) ; puis la **demande
+élaguée**, rédigée pour l'utilisateur dans le moule commun (skill
+`game-data-curation` § 6 bis : même monstre, même cible, même sort, une seule
+chose qui change, un rapport à lire), regroupée par monstre pour limiter
+les combats à faire. Preuve `controle-r.md` ; compte des verdicts par script.
+**Ne fait pas :** ne décide d'aucune mécanique ; ne touche ni le plan ni le
+code (le pilote reporte les verdicts au plan après validation).
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

@@ -813,16 +813,20 @@ rapport, valide (rejeux, mutation, Résultat, commit, relivraison) et
 enchaîne. L'utilisateur ne transmet plus les briefs ni les retours.
 
 **Les règles de ce mode vivent dans le skill `cadrage-chantier`, § G**
-(depuis le 2026-10-04, pour servir aux chantiers suivants) : un agent à la
-fois dans ce worktree, lots indépendants en parallèle (décision de
-l'utilisateur du 2026-10-02, pour gagner du temps), rien d'écrit par le
-pilote pendant qu'un agent tourne, mutation après le commit et mutation
-distincte du pilote, décisions à l'utilisateur, vérifications à l'écran
-différées (table ci-dessous), relecteurs indépendants. Restent ici ce qui
-est propre à ce chantier :
+(depuis le 2026-10-04, pour servir aux chantiers suivants) : **aucun agent
+dans ce worktree** (décision de l'utilisateur du 2026-10-04 : le pilote y
+amende et valide sans attendre un agent), chaque lot dans un worktree de
+lot réutilisé, intégration un lot à la fois par le pilote, lots
+indépendants en parallèle (décision du 2026-10-02, pour gagner du temps),
+mutation après le commit et mutation distincte du pilote, décisions à
+l'utilisateur, vérifications à l'écran différées (table ci-dessous),
+relecteurs indépendants. Avant le 2026-10-04, un agent travaillait dans ce
+worktree, sauf les lots parallèles. Restent ici ce qui est propre à ce
+chantier :
 
-- **Branches des lots parallèles** : `forge/dea-<lot>` ; l'avance en
-  `merge --ff-only` a servi pour la seconde vague.
+- **Branches des lots** : `forge/dea-<lot>`, dans les worktrees
+  `sw-forge-lot-1` à `-3` ; l'avance en `merge --ff-only` a servi pour la
+  seconde vague.
 - **Créneau de mesure accordé jusqu'à nouvel ordre** : le pilote lance les
   mesures sans redemander, jamais deux agents à la fois, et sans serveur à
   lui pendant une mesure.

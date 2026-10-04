@@ -1,6 +1,6 @@
 ---
 name: cadrage-chantier
-description: Comment produire un document de cadrage de chantier (un fichier, jamais un plan dans la conversation) pour tout travail de plus d'une session ou confié à des sessions fraîches, et comment le faire vivre pendant le chantier — gabarit Partie A / Partie B, règles apprises sur spec-rangement avec leur incident, forme fixe du brief d'un lot, boucle de validation côté pilote, emplacement dans spec/chantiers/, et le mode où le pilote lance lui-même les lots (sous-agents lot-m/lot-c/lot-j, lots parallèles en worktrees, ce que le pilote s'interdit pendant qu'un agent tourne). Modèle : spec/chantiers/spec-rangement.md.
+description: Comment produire un document de cadrage de chantier (un fichier, jamais un plan dans la conversation) pour tout travail de plus d'une session ou confié à des sessions fraîches, et comment le faire vivre pendant le chantier — gabarit Partie A / Partie B, règles apprises sur spec-rangement avec leur incident, forme fixe du brief d'un lot, boucle de validation côté pilote, emplacement dans spec/chantiers/, et le mode où le pilote lance lui-même les lots (sous-agents lot-m/lot-c/lot-j, chaque lot dans un worktree de lot, aucun dans celui du chantier, intégration par le pilote). Modèle : spec/chantiers/spec-rangement.md.
 ---
 
 # Cadrage d'un chantier (SW Forge)
@@ -266,23 +266,43 @@ valent pour tout chantier piloté ainsi.
   (xhigh puis max), bien au-dessus de la table. Le brief (D) est le prompt
   de l'appel ; l'agent démarre sans la conversation et ne sait que ce que
   le brief et le cadrage lui donnent.
-- **Un seul agent à la fois dans le worktree du chantier**, sans
-  `isolation: "worktree"` : un worktree jetable casserait `livrer` et le
-  reçu.
-- **Lots indépendants en parallèle**, chacun dans un worktree créé par le
-  pilote : `sw-forge-lot-<lot>`, branche `forge/<abrégé du chantier>-<lot>`
-  partie de la tête du chantier, `npm ci` (worktree de chantier, jamais de
-  jonction `node_modules`), comptes réels en liens physiques, en lecture
-  seule. L'agent lit les notes privées dans le worktree principal sans y
-  écrire ; il dépose ses modifications de notes dans
-  `sw-forge-lot-<lot>-notes\base` (l'original) et `\notes` (sa version),
-  avec sa preuve ; ni `livrer`, ni `push`. Le pilote intègre **un lot à la
-  fois** dans la branche du chantier (commits, conflits, fusion à trois
-  des notes, rejeux sur le combiné, livraison), puis supprime le worktree.
-  Branche propre partie de la tête actuelle du chantier : la branche du
-  chantier avance jusqu'à elle (`merge --ff-only`), avec exactement les
-  commits rejoués. Seuls des lots sans mesure de temps au navigateur
-  tournent ainsi ensemble.
+- **Aucun agent dans le worktree du chantier** (décision de l'utilisateur
+  du 2026-10-04) : il appartient au pilote, qui peut y amender le cadrage,
+  valider, commiter et livrer à tout moment. Chaque lot, même quand il est
+  seul à tourner, travaille dans un worktree de lot. Avant cette règle,
+  un agent travaillait dans le worktree du chantier et le pilote ne
+  pouvait rien y écrire pendant le lot, puisqu'un fichier modifié fait
+  refuser `livrer`. Lot 6bis-b1 : un commit du cadrage pendant la
+  livraison a bloqué `livrer`, et le reçu a porté un autre commit que
+  prévu. Lot P1 (2026-10-03) : le pilote a amendé le cadrage pendant le
+  lot ; il a fallu une copie, `git checkout --`, puis réappliquer après la
+  validation.
+- **Deux ou trois worktrees de lot durables, réutilisés**, créés par le
+  pilote (pas par `isolation: "worktree"`, pour en fixer le nom, la
+  branche, les dépendances et les comptes) : `sw-forge-lot-1`, `-2`, `-3`,
+  chacun avec un `npm ci` (worktree de chantier, jamais de jonction
+  `node_modules`) et les comptes réels en liens physiques, en lecture
+  seule. À chaque lancement : arbre propre, puis `git switch -C
+  forge/<abrégé du chantier>-<lot> <branche du chantier>`, donc une
+  branche partie de la tête actuelle du chantier ; nouveau `npm ci`
+  seulement si `package-lock.json` a changé depuis le précédent.
+- **Notes privées** : l'agent les lit dans le worktree du chantier sans y
+  écrire, et dépose ses modifications dans `sw-forge-lot-<n>-notes\base`
+  (la version qu'il a lue) et `\notes` (la sienne), avec sa preuve. Le
+  pilote peut modifier les notes entre-temps : la fusion à trois part de
+  `base`. Le brief remplace D.6 : commits sur la branche du lot, notes au
+  dépôt, ni `livrer`, ni `push`.
+- **Intégration, un lot à la fois**, depuis le worktree du chantier :
+  `merge --ff-only` si la branche du chantier n'a pas bougé depuis le
+  lancement, sinon `merge --no-ff` — jamais de cherry-pick ni de rebase,
+  qui changeraient les hashes que citent les preuves de l'agent. Le
+  pilote résout les conflits (la liste des éléments modifiés, que l'agent
+  et lui touchent tous deux), fusionne les notes, compare le dépôt aux
+  fichiers que cite la preuve, rejoue sur le combiné, livre, puis vide le
+  dépôt et supprime la branche du lot.
+- **En parallèle**, seuls des lots indépendants et sans mesure de temps
+  au navigateur ; un lot qui en dépend part de la tête du chantier une
+  fois son prérequis intégré.
 - **Un interdit d'outillage qui revient passe par un hook, pas par le
   brief.** Trois agents de suite ont lancé `sed -i` malgré le brief (P5a,
   P5a3, D56, octobre 2026) ; le hook `refuse-sed-i` le refuse désormais au
@@ -291,19 +311,16 @@ valent pour tout chantier piloté ainsi.
 
 **Pendant qu'un agent tourne**
 
-- **Le pilote ne modifie ni fichier suivi ni note privée, et ne commite
-  pas**, dans le worktree où l'agent travaille : un fichier modifié fait
-  refuser son `livrer`. Lot 6bis-b1 : un commit du cadrage pendant la
-  livraison a bloqué `livrer`, et le reçu a porté un autre commit que
-  prévu. Lot P1 (2026-10-03) : le pilote a amendé le cadrage pendant le
-  lot ; il a fallu une copie, `git checkout --`, puis réappliquer après la
-  validation.
-- **Ce qui arrive entre-temps** (réponses et décisions de l'utilisateur,
-  amendements prévus) **s'écrit dans un fichier du scratchpad** (ex.
-  `reponses-en-attente.md`), reporté dans le cadrage une fois le lot
-  validé.
-- **Avant toute écriture du pilote** : arbre propre, HEAD inchangé depuis
-  le rapport, aucun `.git/index.lock`.
+- **Le pilote travaille librement dans le worktree du chantier** :
+  réponses et décisions de l'utilisateur inscrites au cadrage tout de
+  suite, amendements, validation et intégration d'un autre lot rentré,
+  livraison. Un amendement qui change le contrat du lot en cours attend
+  son retour, puis lui est renvoyé si besoin : l'agent lit la copie du
+  cadrage de sa branche, pas celle du chantier.
+- **Exception, la mesure** : pendant un lot qui mesure un temps, le pilote
+  ne lance ni build ni tests ; il ne fait que modifier des fichiers.
+- **Le pilote ne touche ni au worktree ni au dépôt de notes d'un lot en
+  cours.**
 - Le pilote ne devine pas le résultat d'un agent : il attend la
   notification.
 

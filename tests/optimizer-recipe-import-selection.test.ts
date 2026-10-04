@@ -20,7 +20,11 @@
 import { readFileSync } from 'fs';
 import { egal, ok, titre } from './outils';
 import { buildOptimizerRecipe, parseOptimizerRecipe, relicMainPourCeCompte } from '../src/lib/optimizerRecipe';
-import { defaultRelicMainChoice, relicIntentDepuisEtat } from '../src/hooks/useOptimizerState';
+import {
+  defaultRelicMainChoice,
+  relicIntentDepuisEtat,
+  relicMainChoiceApresChangementExemplaire,
+} from '../src/hooks/useOptimizerState';
 import { recipeToRelicIntent } from '../scripts/lib/recipeToSearchParams';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
@@ -153,6 +157,22 @@ function testRecetteRelique() {
       'equipped',
       'monstre AVEC relique → défaut « equipped »'
     );
+  }
+
+  // Changement d'exemplaire hors du bestiaire (liste de travail, « un autre
+  // exemplaire », réimport) : revue externe de la v1.14.0, constat 1.
+  {
+    const relique = { id: 7, upgrade: 6, main: { code: 100, value: 11 } };
+    egal(relicMainChoiceApresChangementExemplaire('libre', relique, false), 'equipped',
+      'autre espèce portant une relique → « equipped », comme depuis le bestiaire');
+    egal(relicMainChoiceApresChangementExemplaire('equipped', undefined, false), 'libre',
+      'autre espèce sans relique → « libre »');
+    egal(relicMainChoiceApresChangementExemplaire('equipped', undefined, true), 'libre',
+      'même espèce, exemplaire sans relique : « equipped » ne peut plus tenir → « libre »');
+    egal(relicMainChoiceApresChangementExemplaire('libre', relique, true), 'libre',
+      'même espèce : le choix « libre » de l’utilisateur est conservé');
+    egal(relicMainChoiceApresChangementExemplaire('equipped', relique, true), 'equipped',
+      'même espèce, exemplaire avec relique : « equipped » conservé');
   }
 
   // `recipeToRelicIntent` (CLI) applique les mêmes défauts qu'un écran qui

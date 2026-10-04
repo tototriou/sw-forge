@@ -195,6 +195,10 @@ l'icône OFFICIELLE du jeu, réutilisée depuis `siege/LeadPill.tsx` —
 `leadIconUrl`/`STAT_LABEL`, jamais dupliquée), puis une valeur — **une seule
 liste déroulante** (`DamageSetup.leaderSkill: { stat, pct }`).
 
+Une recette importée est validée comme l'écran écrit : `stat` parmi les six
+de `LEADER_SKILL_STATS` (damage.ts), `pct` nombre fini. Un `pct` en texte est
+refusé avec son chemin, jamais additionné aux auras par concaténation.
+
 ⚠️ **Plus de saisie libre.** L'écran proposait un menu de « paliers courants »
 **et** un champ numérique, parce que la table ne prétendait pas être complète.
 `LEADER_SKILL_VALEURS` (damage.ts) est désormais **EXHAUSTIVE** — liste

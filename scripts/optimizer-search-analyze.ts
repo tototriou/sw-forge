@@ -56,7 +56,8 @@ if (!exportPath || !recipePath) {
   process.exit(1);
 }
 
-const { recipe, error } = parseOptimizerRecipe(readFileSync(recipePath, 'utf8'));
+const { recipe, error, avertissements } = parseOptimizerRecipe(readFileSync(recipePath, 'utf8'));
+for (const a of avertissements ?? []) console.warn(`⚠️ ${a}`);
 if (!recipe) {
   console.error(`Recette invalide : ${error}`);
   process.exit(1);

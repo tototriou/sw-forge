@@ -69,6 +69,27 @@ export function defaultRelicMainChoice(relic: RelicDetail | undefined): RelicMai
 }
 
 /**
+ * Le choix de relique après un changement d'EXEMPLAIRE optimisé, hors du
+ * bestiaire (membre de la liste de travail, « un autre exemplaire »,
+ * réimport du compte).
+ *
+ * - Autre espèce, ou compte réimporté : les critères repartent de zéro, le
+ *   défaut se recalcule contre la relique du nouvel exemplaire, comme dans
+ *   `pickSpecies`.
+ * - Même espèce : les critères sont conservés (6bis-b19), sauf l'incohérence
+ *   « Garder la relique équipée » sur un exemplaire qui n'en porte pas, qui
+ *   ferait refuser la recherche — elle redevient « Libre ».
+ */
+export function relicMainChoiceApresChangementExemplaire(
+  choixActuel: RelicMainChoice,
+  relic: RelicDetail | undefined,
+  conserverCriteres: boolean
+): RelicMainChoice {
+  if (!conserverCriteres) return defaultRelicMainChoice(relic);
+  return choixActuel === 'equipped' && !relic ? 'libre' : choixActuel;
+}
+
+/**
  * L'intention de recherche de relique — interrupteur, principale, type,
  * seuil — résolue en un objet UNIQUE (garantie G, A.3 bis) : ni l'écran, ni
  * le CLI, ni la file ne relisent les trois champs séparément. Ce lot livre

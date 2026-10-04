@@ -105,7 +105,15 @@ export function testVoieDeLaFile() {
   egal((hook.match(/\blet planifie\b/g) ?? []).length, 1, 'une seule tâche en attente, toutes voies confondues');
   const reveiller = bloc(hook, 'const reveiller = () => {', '\n    };');
   ok(/voieDeLaFile\(aTraiter\(\), pageRef\.current\(\), cacheRef\.current\)/.test(reveiller), 'réveil : la voie vient de `voieDeLaFile`');
-  ok(/if \(voie === 'aucune'\) return/.test(reveiller), 'réveil : rien à traiter, rien de planifié');
+  ok(/if \(voie === 'aucune'\) \{[^}]*return setEnAttente\(0\);\s*\}/.test(reveiller), 'réveil : rien à traiter, rien de planifié');
+  // Revue externe de la v1.14.0, constat 4 : une relance de l'effet (K qui
+  // change) trouvait la file vide sans publier les écritures retenues.
+  ok(/if \(voie === 'aucune'\) \{\s*if \(nonPublieeRef\.current\) publier\(true\);/.test(reveiller),
+    'réveil : file vide sur une écriture retenue → publication forcée, comme le chemin Worker');
+  ok(/const nonPublieeRef = useRef\(false\);/.test(hook), 'le drapeau d’écriture retenue survit à une relance de l’effet (ref)');
+  const publier = bloc(hook, 'const publier = (forcer: boolean) => {', '\n    };');
+  ok(/nonPublieeRef\.current = true;\s*return;/.test(publier) && /nonPublieeRef\.current = false;\s*setParBuild/.test(publier),
+    'publier : la cadence pose le drapeau, la publication le lève');
   ok(/if \(planifie && \(planifie\.voie === voie \|\| planifie\.voie === 'page'\)\) return;/.test(reveiller),
     'réveil idempotent : une tâche de même voie, ou de la page, déjà programmée suffit');
   ok(/planifie\?\.annuler\(\);[\s\S]*voie === 'page' \? planifierImmediat : planifierInactif/.test(reveiller),

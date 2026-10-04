@@ -792,7 +792,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R rendu** (à valider) ; **P5a5 lancé** (Stormfist de Varuna et Danu) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R validé** (demande élaguée : 22 questions puis les combats, `controle-r.md`) ; **P5a5 terminé** (`de066de0`), idem ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -883,7 +883,7 @@ port 5173 (même origine, le compte déjà importé reste).
 | 15e | Ciri et Birgitta : compteur « Cumuls de Flash Step » / « … de Turning Slash » (sans en-tête ni prose, déjà sous « Passifs offensifs »), +50 de VIT par cumul ; Theonia : le champ « ATQ adverse » s'ouvre sur Summary Justice, ×2 contre une ATQ plus faible | en attente |
 | D56 | Azazel, Kazuya Mishima, True Devil Kazuya, The Witch-king of Angmar, Solide : absents de la liste des monstres de l'Optimizer | en attente |
 | P3 | Les 28 sorts de la liste (Madness Judgement, Liam, Barbara, Katarina, Daphnis, Dorothy, Jasmine, Lavender…) : une étiquette « Calcul partiel » après le « ? » du sort, son propre « ? » dit ce qui manque ; rien ne bouge au clic ; ligne du titre au téléphone ; couleur neutre du jeton | en attente |
-| P5a4 | Mayasura, Stormfist : le résumé dit « 3 à 6 coups (selon l'ATQ du build) » ; le total suit l'ATQ du build | en attente |
+| P5a4, P5a5 | Mayasura, Varuna, Danu, Stormfist : le résumé dit « 3 à 6 coups (selon l'ATQ du build) » ; le total suit l'ATQ du build (et, pour Mayasura, les cumuls de Constant Training) | en attente |
 | P22 | Satoru Gojo et Werner (lumière), Usha, Vritra, Nina, Shasha, Tatu 2A : le résumé du sort dit « Zone » ; avec un artéfact « D.CRIT+ comp cib uniq pdt tour », le total ne la compte plus | en attente |
 | P5a, P5a2 | Les 20 monstres de la liste : Barrage of Madness et Sura's Seal gardent un champ « nombre de coups » (minimum par défaut) ; Whirlpool, Water Dragon Surge, Hammer Punch, Pound, Strafe, God's Weapon ont un interrupteur éteint (« … (+N coups) ») à la place du champ ; Brutal Fists suit le champ « ATQ adverse » et son résumé dit « 3 à 4 coups (selon l'ATQ du build) » ; Grinding et Spinning Tea Spoon à 4 coups ; libellé de Pound au téléphone | en attente |
 | P6 | Abigail, Emily, M. BISON, Sagar : total du S3 plus haut (phase de zone comptée) et cran « Dégâts sur les autres ennemis » ; Ramon, Nezuko, Vermilion : le S3 est proposé et coché par défaut ; Blade Surge inchangé | en attente |
@@ -9697,6 +9697,22 @@ par monstre (ATQ de base de la fiche de chacun, paliers) ; spec ; liste du
 lot LM (Varuna, Danu ; Mayasura si la lecture change). Preuve
 `controle-p5a5.md`, mutation après le commit.
 
+##### Résultat du lot P5a5 — 2026-10-04
+
+Agent `lot-c`. Un commit, `de066de0` : conditions `atkParTranche` (60 %,
++3 au plus) et plages 3 à 6 pour Varuna 18307 et Danu 18309, tranche
+comptée sur l'ATQ de base de chacun (fiche : Mayasura 747, Varuna 823, Danu
+812 ; 4e coup à 160 % de la base — Varuna 1 316,8, Danu 1 299,2). Les cumuls
+de Constant Training comptaient **déjà** dans l'ATQ qui décide les coups de
+Mayasura : aucune correction, un test le fige (0 à 10 cumuls). Spec, deux
+lignes de la liste, phrase périmée de la ligne de Mayasura corrigée. Reçu de
+l'agent `de066de` ↔ `2659478`. Aucun `sed -i` (le hook est actif).
+
+**Rejoué par le pilote** : `tsc` 0 ; 2 838 vérifications ; build, spec-lint,
+diff-check verts. Mutations de l'agent : 9, 16 et 23 échecs. **Mutation du
+pilote**, distincte (plafond de Danu à +2) : 13 échecs ; restaurée. Hachage
+inscrit dans la liste.
+
 #### R — la demande de relevés, élaguée
 
 **Cat. J, agent `lot-j`, notes seules, sans worktree** (dépôt
@@ -9711,6 +9727,26 @@ chose qui change, un rapport à lire), regroupée par monstre pour limiter
 les combats à faire. Preuve `controle-r.md` ; compte des verdicts par script.
 **Ne fait pas :** ne décide d'aucune mécanique ; ne touche ni le plan ni le
 code (le pilote reporte les verdicts au plan après validation).
+
+##### Résultat du lot R — 2026-10-04
+
+Agent `lot-j`, notes seules ; preuve recopiée par le pilote :
+`controle-r.md` (1 097 lignes avant validation). Sur R01-R109 : **76 encore
+nécessaires, 20 sans objet, 13 réduits** ; demande rédigée pour le joueur,
+par monstre : 24 questions sans combat d'abord, puis au plus 150 combats
+(table des assiettes R01 : 36 ; 100 blocs par monstre : 114), 5
+conditionnels, 3 facultatifs, 4 hors liste. Défauts du plan relevés : R3
+(stock de Jin/Kai) non numéroté ; D48 ouvre deux relevés absents (Grotau
+8614, Iron 7762) ; R17 mesurait Theonia au lieu d'Agrenia et Driana ; aucun
+montage pour Crush (ligne 224).
+
+**Validation du pilote** (section ajoutée à la preuve) : script rejoué ;
+les cinq paires supposées sont des jumeaux collab (vérifié dans la donnée)
+→ les 5 combats conditionnels tombent ; QR-13 (Espresso Cookie lumière,
+Hibiscus) et QR-19 (buff posé par le sort) tombent, couvertes par la règle
+des jumeaux et par D22 ; R104 sans objet aussi par P22. Restent **22
+questions sans combat**, au plus 145 combats avant réponses. Le plan (§ 4)
+renvoie à la preuve comme état à jour.
 
 #### P4 — effets posés entre les coups, par identifiant (constat 322)
 

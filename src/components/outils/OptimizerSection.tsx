@@ -2759,16 +2759,17 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const id = String(monster.id);
     const key = exclusionSelectorKey(selector);
     const autreEspece = id !== selectedId;
-    if (autreEspece) resetSearch();
+    if (id !== selectedId) resetSearch();
     else if (key !== ownSelectorKey) effacerResultats();
+    setSelectedId(id);
     // Le défaut de relique suit l'exemplaire désigné, comme dans
     // `pickSpecies` : `resetSearch` le remet à « Libre » sans connaître la
-    // relique portée.
+    // relique portée. Après lui : la mise à jour fonctionnelle s'applique
+    // dans l'ordre des appels.
     if (autreEspece || key !== ownSelectorKey) {
       const relique = resolveExclusionEntry(selector, exclusionData)?.gear.relic;
       setRelicMainChoice((c) => relicMainChoiceApresChangementExemplaire(c, relique, !autreEspece));
     }
-    setSelectedId(id);
     // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une des 4 puces) —
     // `gearSource` reste sur sa dernière valeur réelle, la puce active se
     // désallume de toute façon (`value={... || unowned ? null : gearSource}`).

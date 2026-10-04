@@ -9,12 +9,13 @@
 // le monstre choisi peut se le poser, et quand.
 //
 // ⚠️ **Curée par IDENTIFIANT de compétence, jamais par nom** : la liste est
-// celle des 24 passifs « buff standard » du tri du lot 13b (cases D × E et
+// celle des passifs « buff standard » du tri du lot 13b (cases D × E et
 // Dp × E du tableau des comptes, controle-13b-stats-passifs-corpus.md § 5.1),
 // chacun relu dans la prose de sa fiche (`public/data/skills/<forme>.json`) au
-// lot P2. Les buffs viennent de la PROSE ; l'effet de la fiche ne sert que de
-// recoupement (Veteran 13213 et les trois boss 20021103/1203/1303 n'ont aucun
-// effet dans leur fiche : prose seule). Aucune règle n'est dérivée des champs
+// lot P2 ; 24 au tri, 21 ici depuis que les trois passifs de boss
+// (20021103/1203/1303) ont perdu leur forme jouable (D56). Les buffs viennent de
+// la PROSE ; l'effet de la fiche ne sert que de recoupement (Veteran 13213
+// n'a aucun effet dans sa fiche : prose seule). Aucune règle n'est dérivée des champs
 // (skill game-data-curation § 2-4) : un passif ajouté par le jeu n'a pas de
 // rappel tant qu'il n'est pas curé ici.
 //
@@ -41,7 +42,7 @@ export interface BuffPoseParPassif {
 }
 
 /**
- * Les 24 passifs, par identifiant de compétence. Une ligne = forme jouable
+ * Les 21 passifs, par identifiant de compétence. Une ligne = forme jouable
  * qui le porte (`formesJouables`, au lot P2), puis la prose qui fonde l'entrée.
  */
 export const BUFFS_POSES_PAR_PASSIF_CONNUS: Readonly<Record<number, BuffPoseParPassif>> = {
@@ -93,13 +94,8 @@ export const BUFFS_POSES_PAR_PASSIF_CONNUS: Readonly<Record<number, BuffPoseParP
   // Carbine 22713 — « increases the Attack Power for 1 turn whenever the enemy's attack lands as a Glancing Hit »
   // (prose seule : la fiche n'a que `Increase ATB`).
   13213: { buffs: ['atk'], mode: 'tous', condition: "whenever the enemy's attack lands as a Glancing Hit" },
-  // Azazel 2003503 — « Increases the boss's Defense for 2 turns at the start of its turn » (prose seule ; forme
-  // de boss, jouabilité soumise à la décision D6 du lot 13b).
-  20021103: { buffs: ['def'], mode: 'tous', condition: 'at the start of its turn' },
-  // Kazuya Mishima 2003601 — « Increases the boss's Attack Power for 2 turns at the start of its turn » (idem).
-  20021203: { buffs: ['atk'], mode: 'tous', condition: 'at the start of its turn' },
-  // True Devil Kazuya 2003705 — « Increases the boss's Attack Power and Defense for 2 turns at the start of its turn » (idem).
-  20021303: { buffs: ['atk', 'def'], mode: 'tous', condition: 'at the start of its turn' },
+  // (Azazel, Kazuya Mishima et True Devil Kazuya, formes de boss, n'y sont plus : `formesJouables` les écarte,
+  // décision D56 du 2026-10-04.)
 };
 
 /** Les libellés des vignettes d'« État de mon monstre » ; le Taux Crit n'en a pas. */

@@ -42,8 +42,24 @@ export function estEveille(m: Monster): boolean {
 //
 // Le regroupement se fait sur (nom, élément) : deux monstres homonymes
 // d'éléments différents restent bien deux entrées distinctes.
+//
+// ⚠️ **Les formes de BOSS sont écartées, par une liste d'identifiants.**
+// Décision de l'utilisateur du 2026-10-04 (degats-et-aura, D56) : Azazel,
+// Kazuya Mishima, True Devil Kazuya, The Witch-king of Angmar et Solide (6 étoiles,
+// rareté naturelle 1, prose « the boss's ») ne se jouent pas. Aucune règle
+// déduite des champs : ces cinq-là, citées, et pas d'autre.
+export const FORMES_DE_BOSS_ECARTEES: ReadonlySet<number> = new Set([
+  2003503, // Azazel
+  2003601, // Kazuya Mishima
+  2003705, // True Devil Kazuya
+  2004003, // The Witch-king of Angmar
+  2004103, // Solide
+]);
+
 export function formesJouables(monsters: Monster[]): Monster[] {
-  const eveilles = monsters.filter(estEveille);
+  const eveilles = monsters.filter(
+    (m) => estEveille(m) && !(m.com2usId != null && FORMES_DE_BOSS_ECARTEES.has(m.com2usId))
+  );
   // Noms+élément pour lesquels une 2A existe.
   const avec2A = new Set<string>();
   for (const m of eveilles) {

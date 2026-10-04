@@ -4,7 +4,7 @@
 //
 // Trois vérifications :
 // 1. `testBuffsDePassifTable` — la table curée `BUFFS_POSES_PAR_PASSIF_CONNUS`
-//    (src/lib/buffsDePassif.ts) : exactement les 24 identifiants du tri 13b
+//    (src/lib/buffsDePassif.ts) : exactement les 21 identifiants du tri 13b encore jouables (24 moins les trois passifs de boss, D56)
 //    (cases D × E et Dp × E), chacun passif, porté par une forme jouable, et
 //    dont la condition est un extrait LITTÉRAL de la prose de CHAQUE fiche
 //    qui le porte. Chaque buff noté est nommé dans la prose (recoupement, pas
@@ -44,26 +44,34 @@ function fiches(): DetailMonstre[] {
 const fiche = (com2usId: number) => fiches().find((d) => d.com2usId === com2usId)!;
 
 // Les 24 du tri 13b (controle-13b-stats-passifs-corpus.md § 5.1, comptes
-// « D × E » puis « Dp × E »), recopiés ici pour que la table ne puisse ni
-// perdre ni gagner une entrée sans que ce test le dise.
+// « D × E » puis « Dp × E »), moins les trois passifs de boss (20021103,
+// 20021203, 20021303) dont la forme n'est plus jouable (D56, 2026-10-04) :
+// 21, recopiés ici pour que la table ne puisse ni perdre ni gagner une entrée
+// sans que ce test le dise.
 const TRI_13B = [
   2061, 3212, 7112, 7512, 10012, 11713, 12311, 13012, 13214, 13911, 14411, 16313, 16813, 20011, 20414, 20611,
-  21613, 22213, 23611, 24111, 13213, 20021103, 20021203, 20021303,
+  21613, 22213, 23611, 24111, 13213,
 ];
+const PASSIFS_DE_BOSS_RETIRES = [20021103, 20021203, 20021303];
 
 // Le mot de la prose qui nomme chaque buff (recoupement seulement).
 const MOT_DU_BUFF = { atk: 'Attack Power', def: 'Defense', spd: 'Attack Speed', cr: 'Critical Rate' } as const;
 
 export function testBuffsDePassifTable() {
-  titre('Buffs posés par un passif — la table par identifiant : les 24 du tri 13b, prose citée (degats-et-aura P2)');
+  titre('Buffs posés par un passif — la table par identifiant : les 21 du tri 13b qui ont une forme jouable, prose citée (degats-et-aura P2, D56)');
 
   const cles = Object.keys(BUFFS_POSES_PAR_PASSIF_CONNUS).map(Number);
-  egal(cles.length, 24, '24 entrées, autant que les « J » buff standard du tri 13b');
-  egal([...cles].sort((a, b) => a - b), [...TRI_13B].sort((a, b) => a - b), 'exactement les identifiants du tri 13b');
+  egal(cles.length, 21, '21 entrées : les 24 « J » buff standard du tri 13b, moins les trois passifs de boss (D56)');
+  egal([...cles].sort((a, b) => a - b), [...TRI_13B].sort((a, b) => a - b), 'exactement les identifiants du tri 13b encore jouables');
+  for (const id of PASSIFS_DE_BOSS_RETIRES) ok(!(id in BUFFS_POSES_PAR_PASSIF_CONNUS), `${id} : passif de boss, retiré de la table (D56)`);
 
   const jouables = new Set<number>();
   for (const m of formesJouables(monstersJson())) if (m.com2usId != null) jouables.add(m.com2usId);
   ok(jouables.size > 0, 'témoin : le filtre des formes jouables en laisse');
+  for (const id of [2003503, 2003601, 2003705, 2004003, 2004103]) {
+    ok(monstersJson().some((m) => m.com2usId === id), `${id} : forme de boss présente dans le corpus (D56)`);
+    ok(!jouables.has(id), `${id} : forme de boss écartée de formesJouables (D56)`);
+  }
 
   for (const id of cles) {
     const entree = BUFFS_POSES_PAR_PASSIF_CONNUS[id];
@@ -101,7 +109,7 @@ export function testBuffsDePassifRappel() {
       ok(false, `forme ${d.com2usId} : rappels ${JSON.stringify(rendus)} au lieu de ${JSON.stringify(porte)}`);
     }
   }
-  ok(avec >= 24, `au moins 24 fiches portent un passif de la table (${avec})`);
+  ok(avec >= 21, `au moins 21 fiches portent un passif de la table (${avec})`);
   ok(sans > 1000, `les autres fiches (${sans}) n'ont aucun rappel`);
   egal(rappelsBuffsDePassif(fiche(14412)), [], 'Zaiross (passif hors table) : aucun rappel');
 

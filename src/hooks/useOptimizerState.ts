@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from 'react';
+import { Dispatch, MutableRefObject, SetStateAction, useRef, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup, DEFAULT_DAMAGE_SETUP } from '../lib/damage';
@@ -366,6 +366,14 @@ export interface OptimizerState {
    * du 2026-10-02) ; sans setter : rien d'autre qu'un import ne l'avance.
    */
   importDuCompte: number;
+  /**
+   * Le dernier `importDuCompte` dont l'écran a déjà recalculé le défaut de
+   * relique. Ici, et non dans l'écran : `OptimizerSection` se démonte à
+   * chaque changement d'onglet, et un suivi local recalculait à chaque
+   * remontage, écrasant le choix de l'utilisateur (seconde revue externe de
+   * la v1.14.0). Une ref : la lire ou l'avancer ne provoque aucun rendu.
+   */
+  importReliqueTraite: MutableRefObject<number>;
   search: ReturnType<typeof useBuildOptimSearch>;
   // Remet à zéro « Critères de recherche » (set, statistique principale
   // imposée, objectif, artéfacts, conditions min/max) ET « Combinaisons
@@ -441,6 +449,7 @@ export function useOptimizerState(): OptimizerState {
   const [stoppedManually, setStoppedManually] = useState(false);
   const [openDetailKey, setOpenDetailKey] = useState<string | null>(null);
   const [importDuCompte, setImportDuCompte] = useState(0);
+  const importReliqueTraite = useRef(0);
   const search = useBuildOptimSearch();
 
   function resetSearch(motif: 'monstre' | 'compte' = 'monstre') {
@@ -560,6 +569,7 @@ export function useOptimizerState(): OptimizerState {
     openDetailKey,
     setOpenDetailKey,
     importDuCompte,
+    importReliqueTraite,
     search,
     resetSearch,
     effacerResultats,

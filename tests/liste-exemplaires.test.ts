@@ -158,6 +158,13 @@ export function testListeExemplaires() {
   // l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
   ok(/setSelectedId\(id\);[\s\S]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),
     'source : choisirExemplaire recalcule le choix de relique après le reset');
+  // Seconde revue externe : le recalcul au réimport se fait UNE fois par
+  // import, jamais à un simple remontage de l'écran (changement d'onglet).
+  ok(/if \(importDuCompte === importReliqueTraite\.current\) return;\s*importReliqueTraite\.current = importDuCompte;\s*setRelicMainChoice\(defaultRelicMainChoice\(reliqueAffichee\.current\)\);/.test(ecran),
+    'source : le défaut de relique du réimport ne se réapplique pas au remontage de l’écran');
+  const hookEtat = readFileSync('src/hooks/useOptimizerState.ts', 'utf8');
+  ok(/const importReliqueTraite = useRef\(0\);/.test(hookEtat),
+    'source : le suivi de l’import traité vit dans l’état partagé, qui survit au démontage de l’écran');
   ok(chemin.length > 0 && !/doitRappeler|setRappelAuras/.test(chemin), 'source : ce chemin ne rappelle rien par lui-même');
   const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
   const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');

@@ -150,6 +150,7 @@ import {
   DEFAULT_RELIC_MIN_UPGRADE,
   defaultRelicMainChoice,
   relicIntentDepuisEtat,
+  relicMainChoiceApresChangementExemplaire,
 } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
@@ -1179,6 +1180,17 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     if (!speciesMonster) return null;
     return { monster: speciesMonster, gear: { base: monsterBaseStats(speciesMonster), runes: [], artifacts: [] } };
   }, [sourceSelector, exclusionData, speciesMonster, ownValidatedBuild, runeById, artifactById, showRealGear]);
+
+  // Un réimport du compte remet les critères à zéro (`resetSearch('compte')`,
+  // App.tsx) sans connaître le monstre resté sélectionné : le défaut de
+  // relique se recalcule ici, contre la relique qu'il porte dans le compte
+  // réimporté. Lu par une ref : seul le compteur d'import déclenche l'effet.
+  const reliqueAffichee = useRef<RelicDetail | undefined>(undefined);
+  reliqueAffichee.current = selected?.gear.relic;
+  useEffect(() => {
+    if (importDuCompte === 0) return;
+    setRelicMainChoice(defaultRelicMainChoice(reliqueAffichee.current));
+  }, [importDuCompte]);
 
   /**
    * Les stats de RÉFÉRENCE du bouton « Comparer » — celles de la fiche.
@@ -2746,8 +2758,16 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   function choisirExemplaire(selector: ExclusionSelector, monster: Monster) {
     const id = String(monster.id);
     const key = exclusionSelectorKey(selector);
-    if (id !== selectedId) resetSearch();
+    const autreEspece = id !== selectedId;
+    if (autreEspece) resetSearch();
     else if (key !== ownSelectorKey) effacerResultats();
+    // Le défaut de relique suit l'exemplaire désigné, comme dans
+    // `pickSpecies` : `resetSearch` le remet à « Libre » sans connaître la
+    // relique portée.
+    if (autreEspece || key !== ownSelectorKey) {
+      const relique = resolveExclusionEntry(selector, exclusionData)?.gear.relic;
+      setRelicMainChoice((c) => relicMainChoiceApresChangementExemplaire(c, relique, !autreEspece));
+    }
     setSelectedId(id);
     // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une des 4 puces) —
     // `gearSource` reste sur sa dernière valeur réelle, la puce active se

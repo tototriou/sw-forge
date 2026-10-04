@@ -295,6 +295,45 @@ exportée avant ce retrait reste lisible : « Aucune » y est normalisée vers
 « Combat » avant d'atteindre l'écran ou le CLI.
 
 
+## Calcul partiel — l'étiquette par identifiant
+
+Un sort **calculé** dont le total omet une part connue du jeu porte, dans
+« Compétence utilisée », une étiquette **« Calcul partiel »** posée après le
+« ? » de sa prose, suivie de son propre « ? » qui dit ce qui n'est pas
+compté (forme décidée par l'utilisateur le 2026-10-04, degats-et-aura P3).
+La phrase vient d'une table curée par identifiant de sort
+(`CALCUL_PARTIEL_PAR_ID`, lue par `calculPartielDuSort`, `damage.ts`) ;
+l'écran ne l'écrit jamais lui-même.
+
+- **Affichage seul** : aucun calcul ne lit la table, le total reste celui
+  d'avant. Aucune mention sur les cartes de résultats (forme écartée par
+  l'utilisateur).
+- **Trois sources, 28 identifiants** : les six ignore DEF comptés en
+  permanence alors que le jeu les conditionne (Madness Judgement ×2,
+  Unlimited Power, Start of Attacking, Thunder Strike, Sword of Discharge —
+  décision D63 : total gardé avec la mention jusqu'à leur lot) ; les sorts
+  dont une perte de PV, un bonus selon les PV détruits ou retirés, ou la
+  détonation de bombes déjà posées est décidée « comptée » mais pas encore
+  codée (« pas encore comptée ») ; les parts que l'utilisateur a décidé de
+  ne **pas** calculer, dites à l'écran (Daniel, Jasmine, Lavender, Espresso
+  Cookie, et Hibiscus par la règle des jumeaux collab : « n'est pas
+  calculée »).
+- **Écartés parce que le total est complet par décision** : Devil's Bargain
+  (la prose se trompe), les détonations de dégâts continus et les bombes à
+  retardement (hors total).
+- **Seul un sort pris en charge** porte l'étiquette : un sort refusé n'a pas
+  de total, il garde son motif.
+- **Rien ne bouge au clic** : l'étiquette dépend du seul sort, jamais du sort
+  choisi ; elle vit hors du bouton de la case (axe `actionTitre` d'`Option`),
+  et son « ? » s'ouvre en bulle à la souris, en panneau montant au doigt
+  (`HelpPopover`).
+- **Une part livrée sort de la table dans le même commit.** La liste
+  attendue est écrite à part dans `tests/calcul-partiel.test.ts`, avec sa
+  source ; les six ignore DEF y sont aussi tenus pour « comptés en
+  permanence », de sorte que le lot qui les conditionne fait échouer le
+  test tant que l'entrée reste.
+
+
 ## Volontairement hors modèle
 
 Absents du résultat, **jamais approximés en silence** :

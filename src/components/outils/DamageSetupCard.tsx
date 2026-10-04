@@ -34,6 +34,7 @@ import {
   cibleDegatsRetenue,
   cibleSecondairePriseEnCharge,
   estPrisEnCharge,
+  calculPartielDuSort,
   conditionCritiqueGarantiParReglage,
   coupsAffichesDuSort,
   coupsEnPlusAncienneRecetteActif,
@@ -644,6 +645,7 @@ export default function DamageSetupCard({
         <div className="flex flex-col gap-1.5">
           {skills.map((s) => {
             const pris = estPrisEnCharge(s);
+            const partiel = calculPartielDuSort(s);
             return (
               <Option
                 key={s.skillCom2usId}
@@ -673,11 +675,31 @@ export default function DamageSetupCard({
                 // `actionTitre` d'`Option`) : le toucher ne choisit pas le sort.
                 // Un sort sans prose n'a pas de « ? » ; un sort refusé garde le
                 // sien.
+                // ⚠️ **« Calcul partiel »** (degats-et-aura P3, forme décidée par
+                // l'utilisateur le 2026-10-04) : un sort calculé dont le total
+                // omet une part connue (`calculPartielDuSort`) porte une
+                // étiquette après le « ? » de sa prose, et SON « ? » dit ce qui
+                // n'est pas compté. Elle dépend du seul sort, jamais du choix :
+                // présente dès le premier rendu, elle ne naît ni ne disparaît
+                // au clic — rien ne bouge. Hors du bouton de la case, comme le
+                // « ? » de la prose : la toucher ne choisit pas le sort.
                 actionTitre={
-                  s.description ? (
-                    <HelpPopover title={s.nom} ariaLabel={`Description de ${s.nom}`}>
-                      {s.description}
-                    </HelpPopover>
+                  s.description || partiel ? (
+                    <div className="flex items-center gap-1.5">
+                      {s.description && (
+                        <HelpPopover title={s.nom} ariaLabel={`Description de ${s.nom}`}>
+                          {s.description}
+                        </HelpPopover>
+                      )}
+                      {partiel && (
+                        <>
+                          <Jeton libelle="Calcul partiel" />
+                          <HelpPopover title="Calcul partiel" ariaLabel={`Ce que le calcul de ${s.nom} ne compte pas`}>
+                            {partiel}
+                          </HelpPopover>
+                        </>
+                      )}
+                    </div>
                   ) : undefined
                 }
                 // Un sort refusé affiche POURQUOI plutôt que de disparaître :

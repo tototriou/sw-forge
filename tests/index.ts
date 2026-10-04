@@ -32,6 +32,7 @@ import { testVerifierToutes } from './verifier-toutes.test';
 import { testProsesSortAuClic, testEffetsActifsInfobulle } from './proses-sort.test';
 import { testProseStatsCombat, testProseStatsCombatCarte, testProseStatsCombatPassifMasque } from './prose-stats-combat.test';
 import { testBuffsDePassifTable, testBuffsDePassifRappel, testBuffsDePassifEcran } from './buffs-de-passif.test';
+import { testCalculPartielTable, testCalculPartielAffichage, testCalculPartielEcran } from './calcul-partiel.test';
 import testArtifactConditionFloor from './artifact-condition-floor.test';
 import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
 import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
@@ -370,6 +371,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBuffsDePassifTable', testBuffsDePassifTable],
   ['testBuffsDePassifRappel', testBuffsDePassifRappel],
   ['testBuffsDePassifEcran', testBuffsDePassifEcran],
+  ['testCalculPartielTable', testCalculPartielTable],
+  ['testCalculPartielAffichage', testCalculPartielAffichage],
+  ['testCalculPartielEcran', testCalculPartielEcran],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],

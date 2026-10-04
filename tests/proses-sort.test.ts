@@ -68,11 +68,14 @@ export function testProsesSortAuClic() {
   ok(!/title=\{s\.description/.test(carte), 'plus aucun `title={s.description…}` dans la carte');
   const sorts = entre(carte, '{skills.map((s) => {', '{champCoupsVariables(');
   ok(sorts.length > 0, 'précondition : la liste des cases de sort');
-  egal((sorts.match(/\btitle=/g) ?? []).length, 1, 'cases de sort : un seul `title=`, celui du HelpPopover (titre de la bulle, pas un survol)');
+  // Deux `title=` depuis le lot P3 : celui de la prose et celui de « Calcul
+  // partiel » — deux titres de bulle, aucun survol.
+  egal((sorts.match(/\btitle=/g) ?? []).length, 2, 'cases de sort : deux `title=`, ceux des deux HelpPopover (titres de bulle, pas un survol)');
   ok(/<HelpPopover title=\{s\.nom\} ariaLabel=\{`Description de \$\{s\.nom\}`\}>\s*\{s\.description\}\s*<\/HelpPopover>/.test(sorts),
     '« ? » : HelpPopover (bulle à la souris, panneau montant au doigt) au nom du sort, prose du jeu telle quelle');
-  ok(/actionTitre=\{\s*s\.description \? \(\s*<HelpPopover/.test(sorts) && /<\/HelpPopover>\s*\) : undefined\s*\}/.test(sorts),
-    '« ? » : posé par l’axe `actionTitre`, sous la seule condition d’une prose — un sort refusé garde le sien');
+  ok(/actionTitre=\{\s*s\.description \|\| partiel \? \(/.test(sorts) && /\{s\.description && \(\s*<HelpPopover title=\{s\.nom\}/.test(sorts)
+    && /<\/div>\s*\) : undefined\s*\}/.test(sorts),
+    '« ? » : posé par l’axe `actionTitre`, sous la seule condition d’une prose (ou d’un calcul partiel) — un sort refusé garde le sien');
   const titreDeLaCase = entre(sorts, 'titre={', 'actionTitre={');
   ok(titreDeLaCase.length > 0 && !/HelpPopover/.test(titreDeLaCase), '« ? » : jamais dans `titre`, qui est dans le bouton de la case');
   ok(/aria-description=\{s\.description \?\? undefined\}/.test(sorts), 'prose toujours annoncée aux lecteurs d’écran (`aria-description` du bouton de la case)');

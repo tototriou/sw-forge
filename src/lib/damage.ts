@@ -3121,6 +3121,82 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
   10253000, // Protection Field (Homunculus support ténèbres) : même prose que 10243000.
 ]);
 
+// ── Calcul partiel — l'étiquette par identifiant (degats-et-aura P3) ──────
+//
+// Sorts CALCULÉS dont le total omet une part connue du jeu : l'écran pose une
+// étiquette « Calcul partiel » à côté du nom du sort dans « Compétence
+// utilisée », et son « ? » affiche la phrase ci-dessous (forme décidée par
+// l'utilisateur le 2026-10-04 ; aucune mention sur les cartes de résultats).
+// ⚠️ **Affichage seul : aucun calcul ne lit cette table.** Le total reste
+// celui d'avant ; la table dit seulement ce qu'il ne contient pas.
+//
+// Trois sources, et rien d'autre (preuve `controle-p3.md`) :
+//   1. les six ignore DEF permanents de D63 (plan du reliquat, § 5.2) :
+//      l'effet `Ignore DEF` est compté sur tout le sort alors que le jeu le
+//      conditionne — trop favorable, gardé avec la mention jusqu'au lot P11 ;
+//   2. les lignes à profil « calculé » de PV-2 (`controle-13b-pertes-pv.md`
+//      L230, 35 lignes) encore incomplètes au code actuel : perte de PV,
+//      bonus selon les PV détruits ou retirés, détonation de bombes déjà
+//      posées — décidées « comptées » (A.8), pas encore codées : « pas encore
+//      comptée » ;
+//   3. les parts « non calculées, dites à l'écran » de D36 (Lavender,
+//      Jasmine, Daniel, Espresso Cookie feu et ténèbres ; Hibiscus et
+//      Espresso Cookie lumière par la règle des jumeaux collab, A.2 ter) :
+//      « n'est pas calculée », sans « encore ».
+// Écartées de PV-2, parce que le total est complet par décision : Devil's
+// Bargain (D36, la prose se trompe), Incinerate, Rage of Helheim, Stormy Axe
+// (détonations de DoT hors total, A.8), Firecracker et Bombardment (bombes à
+// retardement hors total, A.8).
+// ⚠️ Une part livrée par un lot ultérieur SORT de la table dans le même
+// commit (le test l'exige : la liste attendue y est écrite à part). Ne pas
+// « compléter » la table par ressemblance : chaque ligne cite sa source.
+const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
+  // ── D63 : ignore DEF compté en permanence ──
+  13406: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Belial)
+  13410: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Beelzebub)
+  15511: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (3 ennemis ou moins, jusqu’à 100 % selon les PV de la cible) n’est pas encore modélisée.', // Unlimited Power (Liam)
+  13611: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (25 % par effet bénéfique retiré par la bête) n’est pas encore modélisée.', // Start of Attacking (Barbara)
+  7713: 'L’ignore DEF est compté en permanence ; la condition du jeu (DEF de la cible sous 50 % de la tienne) n’est pas encore modélisée.', // Thunder Strike (Copper éveillé, sans second éveil)
+  6013: 'L’ignore DEF est compté en permanence ; la condition du jeu (sort lancé sous Invincibilité) n’est pas encore modélisée.', // Sword of Discharge (Katarina)
+  // ── PV-2 : part décidée « comptée », pas encore codée ──
+  11912: 'La perte de 40 % des PV de la cible (15 % pour un boss) avant le coup n’est pas encore comptée.', // Hellfire (Daphnis) — ligne 468
+  6015: 'La perte de 15 % des PV de tous les ennemis avant le coup n’est pas encore comptée.', // Ragnarok (Trinity) — 469
+  15114: 'Le bonus de dégâts selon les PV détruits de la cible (15 à 60 %) n’est pas encore compté.', // Time of Destruction (Dorothy) — 470, D36
+  20413: 'La perte de PV des ennemis dont un effet bénéfique est retiré n’est pas encore comptée.', // Dragon Bombardment (Ereshion) — 474
+  13401: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Belial) — 475, D36
+  13402: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Bael) — 476
+  13403: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Mephisto) — 477
+  13404: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Lucifer) — 478
+  13405: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Beelzebub) — 479
+  12615: 'La perte de 5 % des PV par dégât continu posé sur la cible n’est pas encore comptée.', // Moonlight Blow (Belita) — 483
+  15437: 'La perte de 5 % des PV par effet nocif posé n’est pas encore comptée.', // Volcanic Tribe Totem (Nora) — 484
+  15440: 'La perte de 20 % des PV des ennemis sous effet nocif n’est pas encore comptée.', // Half Moon Tribe Totem (Maya) — 485
+  8912: 'L’explosion des bombes déjà posées sur la cible n’est pas encore comptée.', // Meteor Bomb (Zibrolta) — 496
+  7113: 'L’explosion des bombes déjà posées sur la cible n’est pas encore comptée.', // Promised Time (Seara) — 497
+  10222: 'L’explosion des bombes déjà posées sur la cible n’est pas encore comptée.', // Detonation Shot (Carrack) — 498
+  // ── D36 : part non calculée, dite à l'écran ──
+  15214: 'La perte de PV selon la jauge d’attaque qui reste à retirer, après les dégâts, n’est pas calculée.', // Quantum Explosion (Daniel) — 488
+  16307: 'La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée.', // Extraction (Espresso Cookie feu) — 489
+  16309: 'La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée.', // Extraction (Espresso Cookie lumière, jumeau de Jasmine) — 490
+  16807: 'La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée.', // Dancing Teacup (Hibiscus, jumeau d'Espresso Cookie feu) — 491
+  16809: 'La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée.', // Dancing Teacup (Jasmine) — 492
+  16315: 'L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée.', // Blending (Espresso Cookie ténèbres) — 651
+  16815: 'L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée.', // Midnight Teatime (Lavender) — 652
+};
+
+// Identifiants de la table (tests et preuve).
+export function idsCalculPartiel(): number[] {
+  return Object.keys(CALCUL_PARTIEL_PAR_ID).map(Number);
+}
+
+// Ce que le total d'un sort ne compte pas, ou `null` : seul un sort PRIS EN
+// CHARGE porte l'étiquette — un sort refusé n'a pas de total, il garde son
+// motif.
+export function calculPartielDuSort(p: SkillDamageProfile | SkillDamageUnsupported): string | null {
+  if (!estPrisEnCharge(p)) return null;
+  return CALCUL_PARTIEL_PAR_ID[p.skillCom2usId] ?? null;
+}
+
 // Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à
 // 5 fois »…) — `Competence.coups` ne porte qu'UN SEUL nombre, pas toujours
 // cohérent avec le texte (ex. Rain of Fire : `coups=6` en donnée, « 3 à 5

@@ -58,6 +58,7 @@ import testChantier, {
   testChantierReprises,
   testChantierMigration,
 } from './chantier.test';
+import testHookRefuseSedI from './hook-refuse-sed-i.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
@@ -208,6 +209,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testChantier', testChantier],
   ['testChantierDeuxChantiers', testChantierDeuxChantiers],
   ['testHooksCodex', testHooksCodex],
+  ['testHookRefuseSedI', testHookRefuseSedI],
   ['testChantierLintNotes', testChantierLintNotes],
   ['testChantierRafraichir', testChantierRafraichir],
   ['testChantierIncidentNotesEnRetard', testChantierIncidentNotesEnRetard],

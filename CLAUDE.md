@@ -295,9 +295,21 @@ l'action ne dépend d'aucune vigilance.
 ⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
 (ignoré, propre à chaque machine) : à recopier pour en bénéficier.
 ⚠️ Portée **étroite et assumée** : ni `node -e` (ses usages sans backtick sont
-sûrs et fréquents), ni `gh pr create --body`, ni `sed -i`. Couvrir la classe
+sûrs et fréquents), ni `gh pr create --body`. Couvrir la classe
 entière demanderait une analyse de quoting bash aux faux positifs permanents,
 `$(…)` étant une construction légitime.
+
+⚠️ **La seconde puce est appliquée pour `sed -i`** par un second hook,
+`PreToolUse` sur `Bash` **et** `PowerShell` :
+[.claude/hooks/refuse-sed-i.mjs](.claude/hooks/refuse-sed-i.mjs) refuse `sed`
+lancé avec une option en place (`-i`, `-i.bak`, `-Ei`, `--in-place`, derrière
+`find -exec` ou `xargs` compris), jamais le texte « sed -i » cité ni un corps
+de heredoc. Raison d'être : trois sous-agents de suite l'ont lancé malgré le
+brief (chantier degats-et-aura, octobre 2026), et un `sed -i` raté ne signale
+rien — décision de l'utilisateur du 2026-10-04. Test :
+`node tests/run.mjs hookrefusesedi`. Câblage dans `.claude/settings.json`
+(deux entrées : `Bash`, `PowerShell`), à recopier comme le premier. Côté
+Codex, non couvert.
 
 ### Un `Read` sans offset sur une grosse spec est refusé
 

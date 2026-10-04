@@ -795,7 +795,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
 | P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R validé** (demande élaguée : 22 questions puis les combats, `controle-r.md`) ; **P5a5 terminé** (`de066de0`), idem ; **le reste est reporté nominativement** (décision de l'utilisateur du 2026-10-04, « tout reporter », pour finir au plus tôt) : P5b à P26, questions sans combat ouvertes et combats, reste à faire dans `decisions/reste-a-faire-degats-2026-10.md` | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | EX — plusieurs exemplaires Box d'une même espèce dans une liste de travail | J | terminé (`lot-j`, worktree de lot `sw-forge-lot-1`), preuves et mutations rejouées par le pilote, intégré en avance rapide ; cas RTA soumis à l'utilisateur ; vérification à l'œil en attente (A.8) | `479ae6ec` / 2026-10-04 |
-| CP2 — « Calcul partiel » sur Leona (S1, S2) et Theonia (S3) | C | contrat écrit (demande de l'utilisateur du 2026-10-04) ; lancé dans `sw-forge-lot-1` | — |
+| CP2 — « Calcul partiel » sur Leona (S1, S2) et Theonia (S3) | C | terminé (`lot-c`, worktree de lot), preuves et mutations rejouées par le pilote, intégré en avance rapide ; vérification à l'œil en attente (A.8) | `dc9e2d9d` / 2026-10-04 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après EX, CP2 et la séance de vérification à l'écran ; report nominatif des lots P décidé le 2026-10-04 (`decisions/reste-a-faire-degats-2026-10.md`) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -892,6 +892,7 @@ l'utilisateur sur D56.
 | 11bis | Proses de sort : le « ? » à droite du nom ouvre la prose sans choisir le sort ni déplacer la case, à la souris (bulle) ET au doigt (panneau montant) ; titre de case agrandi à 28 px par le « ? » ; phrase d'introduction de l'infobulle « Effets actifs » (à garder ou retirer) ; case de sort refusé (couleurs à 40 %) ; survol du « ? » qui allume la bordure | en attente |
 | 11 | Description sous les passifs : Mayasura (`stacks`), Cordelia (`toujours`), aucun doublon sur les huit exclusions ; Stone Claws : prose sous le compteur ET au « ? » de la case du sort (à garder ?) | en attente |
 | EX | Une espèce à deux exemplaires en Box : la puce dit « Box · 2 » ; après l'ajout du premier, le bouton propose « Ajouter un autre exemplaire de … » et l'ajoute en un clic (la fiche passe au second exemplaire, résultats effacés) ; tous ajoutés → « Déjà dans « … » » ; libellé long au téléphone et à l'ordinateur, rien ne bouge au clic | en attente |
+| CP2 | Leona (Justice Strike, Fury of Punishment) et Theonia (Summary Justice) : étiquette « Calcul partiel » après le « ? » du sort ; son « ? » dit ce qui manque (équilibrage d'Internal Force ; bonus selon la VIT contre un ennemi plus lent) ; formulation à garder ? | en attente |
 
 #### Décisions de l'utilisateur en attente
 
@@ -10063,6 +10064,23 @@ le test échoue). Preuve privée `controle-cp2.md` dans
 **Ne fait pas :** aucun calcul modifié (la table est d'affichage seul) ;
 aucun autre sort ajouté ; pas de modification du reste à faire ni du
 cadrage.
+
+#### Résultat du lot CP2 — 2026-10-04
+
+Agent `lot-c`, worktree de lot `sw-forge-lot-1`. Un commit, `dc9e2d9d`,
+intégré par avance rapide : trois entrées sous une quatrième source de
+`CALCUL_PARTIEL_PAR_ID` (phrases du contrat), test `calcul-partiel` (28 →
+31 identifiants, source `CP2`), spec `formules-et-combat.md` (« Quatre
+sources, 31 identifiants »), liste (deux lignes pour Leona, une seconde
+ligne 23515 pour Theonia). Preuve `controle-cp2.md`. Le reste à faire
+(notes privées) porte les deux calculs complets, ajoutés par le pilote.
+
+**Rejoué par le pilote** dans le worktree de lot : `tsc` 0 ; 239
+vérifications ; build, spec-lint, diff-check verts ; diff relu. Mutation de
+l'agent (23515 retirée) : 4 échecs. **Mutation du pilote**, distincte
+(l'entrée de Fury of Punishment déplacée sur le passif 12515) : 4 échecs ;
+restaurée. Hachage inscrit dans la liste. Balayage du corpus fait par le
+pilote avant le contrat (une seule compétence par prose).
 
 ### Lot 14 — clôture
 

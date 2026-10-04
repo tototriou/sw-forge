@@ -187,7 +187,7 @@ affirmations contradictoires, notamment sur 411.
 | Seuil de PV : un interrupteur (D06) | Ce qui dépend d'un **seuil** de PV (bonus ou déclenchement « si les PV sont au-dessus de X % ») se règle par un interrupteur, pas par la saisie exacte des PV ; une valeur continue (Brawler's Will de Trevor) garde sa saisie et affiche le bonus obtenu | utilisateur, 2026-10-03 (questionnaire, règle d'interface) |
 | Dorothy, Time of Destruction (D36) | Le bonus dépend des PV détruits **de la cible** : jauge de 15 à 60 %, bonus DMG% égal au % détruit (champ déjà présent pour le passif de Borgnine) | utilisateur, 2026-10-04 (questionnaire) |
 | Parts non calculées (D36) | Égalisation des ratios de PV (Lavender), réduction de PV en % après les dégâts du ratio (Jasmine, Daniel) : **non calculées, dit à l'écran** — rien à optimiser ; Devil's Bargain (Bael) : la prose se trompe, aucune conversion des PV perdus en dégâts | utilisateur, 2026-10-04 (questionnaire) |
-| Stormfist de Mayasura (valeur) | 3 coups, **+1 coup par tranche de 60 % de l'ATQ de base** dans l'ATQ totale, 6 au plus : 6 coups à ATQ totale = 280 % de l'ATQ de base (base + 180 %) | utilisateur, 2026-10-04 |
+| Stormfist de Mayasura, Varuna, Danu (valeur) | 3 coups, **+1 coup par tranche de 60 % de l'ATQ de base** dans l'ATQ totale, 6 au plus : 6 coups à ATQ totale = 280 % de l'ATQ de base (base + 180 %) ; l'ATQ de base est **celle de chaque monstre**, et le passif de Mayasura (Constant Training, +100 ATQ par attaque) compte dans l'ATQ totale | utilisateur, 2026-10-04 |
 | Torrent de Leo et Ragdoll (D61) | Le ratio ne bouge pas (5,5 × ATQ) ; sous 30 % de PV, un interrupteur d'ignore DEF — état actuel du code | utilisateur, 2026-10-04 (questionnaire) |
 | Carlos, Collect Weapons (D62) | ATQ gagnée saisie **en %**, plafond de 300 % **de l'ATQ de base** | utilisateur, 2026-10-04 (questionnaire) |
 | Huga, Slaughter (D47) | « +30 % de dégâts critiques » = **+30 points** de Dégâts CRIT | utilisateur, 2026-10-04 (questionnaire) |
@@ -792,7 +792,7 @@ Le pilote a amendé le contrat point par point ; **O est lançable**.
 | 15g — revue des 144 sorts à formule sans « attack » ni « damage » | J | terminé : six blocs tranchés par l'utilisateur ; 8 sorts à masquer (→ 15h), 136 inchangés | `controle-15g.md` / 2026-10-03 |
 | 15h — les 8 sorts sans attaque confirmés en 15g, masqués | C | terminé (`lot-c`), preuves et mutations rejouées par le pilote ; vérification à l'œil en attente (A.8) | `53668cc2` / 2026-10-03 |
 | Q1, Q2 — le questionnaire du reliquat (valeurs Q01-Q10, décisions D01-D64) | J | terminés (`lot-j`, notes seules), vérifications rejouées par le pilote ; 67 questions à soumettre à l'utilisateur par blocs | `controle-q1.md`, `controle-q2.md` / 2026-10-03 |
-| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R rendu** (à valider) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
+| P1 à P26 — le reliquat de l'audit, lots de ce chantier (plan, section 6) | C / J | **P1 terminé** (`lot-c`), preuves et mutations rejouées ; Rending Claw remis à l'utilisateur (A.8) ; **P4 terminé** (`730927e7`), preuves et mutations rejouées ; **P2 terminé** (`87e03514`), idem ; **P4b terminé** (`09ee8342`), idem ; **P1b terminé** (`f840ef7e`), idem ; **P6 terminé** (`40056029`…`488f07b2`), idem ; **P5a terminé** (`5d53f99a`…`c0dbbc78`), idem ; **P5a2 terminé** (`ccbab5e9`…`c2664595`), idem ; **P5a3 terminé** (`a25ee96e`), idem ; P23 fermé sans code (D58) ; **P22 terminé** (`e0301b27`), idem ; **D56 terminé** (`d1ebf991`), idem ; **P5a4 terminé** (`cbff6615`), idem ; **R lancé** (questionnaire terminé) ; **P3 terminé** (`09e32fd9`), idem ; **R rendu** (à valider) ; **P5a5 lancé** (Stormfist de Varuna et Danu) ; le reste attend une décision (Q) ou un relevé | P1 : `8db128c7`…`61351084` / 2026-10-03 |
 | 14 — clôture et ledgers après contrôles | M | à faire, après les lots P (ou leur report nominatif décidé par l'utilisateur) | — |
 
 **Avant le lot 0 : la revue adversariale.** Au moins deux tours, par une
@@ -946,8 +946,8 @@ décision, rayée avec la date et la réponse.
 | bloc 5 | ~~Suites de D36 et D41 : Démons, Espresso Cookie, Deragron~~ | ✔ 2026-10-04 (utilisateur) : Démons, champ « PV de l'ennemi le plus en forme » et formule fournie ; Espresso comme Jasmine et Lavender ; Deragron, soin reçu saisi (A.2 ter) |
 | P5a | ~~Whirlpool (Tanjiro), Hammer Punch (Tractor), Pound : les coups en plus dépendent d'une condition sur la cible (effet nocif, PV) — un interrupteur « la condition est remplie » plutôt que le compteur saisi ?~~ | ✔ 2026-10-04 (utilisateur) : **oui, interrupteur** → lot P5a2, étendu par le pilote aux sorts de même nature (A.2 ter L144 pour les coups en plus « by chance ») |
 | P3 | ~~Forme de la mention « calcul partiel »~~ | ✔ 2026-10-04 (utilisateur) : **une étiquette « Calcul partiel » à côté du nom du sort dans « Compétence utilisée »** ; son « ? » dit ce qui n'est pas compté (ex. « l'ignore DEF est compté en permanence ; la condition du jeu n'est pas encore modélisée ») → lot P3 |
-| P5a4 | Varuna (18307) et Danu (18309) portent un Stormfist de même prose que Mayasura : même règle (+1 coup par tranche de 60 % de l'ATQ de base) ? | en attente |
-| outillage | Les agents `lot-c` ont utilisé `sed -i` trois fois malgré le brief : un hook qui le refuse (Bash et PowerShell), ou une consigne renforcée dans les définitions d'agent ? | en attente |
+| P5a4 | ~~Varuna (18307) et Danu (18309) portent un Stormfist de même prose que Mayasura : même règle ?~~ | ✔ 2026-10-04 (utilisateur) : **oui**, sur **l'ATQ de base de chacun** (seuils en valeur différents d'un monstre à l'autre) ; le passif de Mayasura (Constant Training) compte dans l'ATQ → lot P5a5 |
+| outillage | ~~Les agents `lot-c` ont utilisé `sed -i` trois fois malgré le brief : un hook, ou une consigne renforcée ?~~ | ✔ 2026-10-04 (utilisateur) : **un hook, Bash et PowerShell** — fait par le pilote, `2498e715` (`.claude/hooks/refuse-sed-i.mjs`, test `hookrefusesedi`, CLAUDE.md), actif dans cette session |
 | bloc 4 | ~~Valeur de jeu : Stormfist de Mayasura (18306)~~ | ✔ 2026-10-04 (utilisateur) : +1 coup par tranche de 60 % de l'ATQ de base dans l'ATQ totale (A.2 ter) → lot P5a4 |
 | 15d | ~~La réduction de DEF posée par le 1er coup de la S2 de Yuji et Rick baisse-t-elle aussi la DEF que subit le 2e coup ? (non modélisé aujourd'hui ; sur le témoin, 2 231,3 au lieu de 1 272,8)~~ | ✔ 2026-10-03 (utilisateur) : **oui**, comme les cinq autres sorts du genre → lot 15f |
 | 15e | ~~Une ancienne recette sans `enemyAtk` compte 0 : la condition de Theonia (et de Kassandra, Eleni) s'allume alors que le champ affiche 1 000 — garder, ou prendre la valeur affichée par défaut ?~~ | ✔ 2026-10-03 (utilisateur) : **la valeur affichée** (1 000) → lot 15f |
@@ -9682,6 +9682,20 @@ forme du bestiaire depuis le second éveil, mais reste choisissable depuis
 un compte qui possède cette forme : gardé ; les D7 de pv-comparaisons et D9
 de stats-passifs, que le plan route aussi vers P3, restent hors contrat ;
 un `node -e "0"` lancé par erreur, sans effet.
+
+#### P5a5 — Stormfist de Varuna et Danu
+
+**Cat. C, agent `lot-c`, worktree du chantier.** Décision de l'utilisateur
+du 2026-10-04 (A.8) : la règle de P5a4 vaut pour Varuna (18307) et Danu
+(18309), calculée sur **l'ATQ de base de chaque monstre** ; le passif de
+Mayasura, Constant Training (18311, cumuls `STATS_COMBAT_PAR_ID_CONNUS`,
++100 ATQ par attaque, 1 000 au plus), **compte dans l'ATQ totale**.
+Contrat : deux entrées `atkParTranche` par identifiant ; vérifier par un
+test que l'ATQ qui compte les coups de Mayasura inclut les cumuls de
+Constant Training saisis (et la corriger si ce n'est pas le cas) ; tests
+par monstre (ATQ de base de la fiche de chacun, paliers) ; spec ; liste du
+lot LM (Varuna, Danu ; Mayasura si la lecture change). Preuve
+`controle-p5a5.md`, mutation après le commit.
 
 #### R — la demande de relevés, élaguée
 

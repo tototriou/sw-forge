@@ -54,6 +54,7 @@ import MonsterPicker from '../MonsterPicker';
 import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import MonsterAvatar from '../MonsterAvatar';
 import LeadPill, { LeadBadge } from './LeadPill';
+import { SIEGE_TICKS, TICK_ABOVE_MARGIN, ficheSpeedForTick, siegeLeadFor, speedLeadOf } from '../../lib/speed';
 
 
 // ⚠️ **UNE reco affiche des stats de FICHE** : celles que le jeu montre sur la
@@ -1358,7 +1359,9 @@ function DeckBlock({
   // Lead porté par le slot 0 du deck recommandé.
   const leaderId = deck.slots[0]?.com2usId;
   const leaderLead = leaderId != null ? monsterByCom2us.get(leaderId)?.leaderSkill ?? null : null;
-  // Lead de VITESSE du deck (slot 0), pour le total de VIT des monstres.
+  // Lead de VITESSE du deck (slot 0), pour le raccourci « Rapide / Lent » de la
+  // saisie : la VIT de fiche qui tombe sur un tick dépend du lead.
+  const leadVitesse = speedLeadOf(leaderId != null ? monsterByCom2us.get(leaderId) : null);
 
   return (
     // ⚠️ À la souris, la carte du deck devient une LIGNE du tableau : plus de
@@ -1717,6 +1720,7 @@ function DeckBlock({
                       <StatEditor
                         slot={slot}
                         monster={monster}
+                        lead={monster ? siegeLeadFor(leadVitesse, monster.element) : 0}
                         onSet={(key, total) =>
                           recos.setSlotStat(reco.id, deckIndex, idx, key, total)
                         }
@@ -2421,15 +2425,74 @@ function baseFor(key: RecoStatKey, monster: Monster | null): number | null {
 // rappelée, et un champ où l'on ne met que le **bonus à ajouter**. Le total
 // (base + bonus) est affiché à droite — c'est lui qui est stocké et comparé,
 // pour rester une valeur absolue même si les données de base évoluent.
-function StatEditor({
+// Exporté pour les tests de rendu : sans clic, le rendu serveur n'ouvre jamais
+// l'édition d'un deck.
+export function StatEditor({
   slot,
   monster,
+  lead,
   onSet,
 }: {
   slot: RecoSlot;
   monster: Monster | null;
+  // Lead de vitesse effectif EN SIÈGE pour ce monstre (0 = aucun).
+  lead: number;
   onSet: (key: RecoStatKey, total: number | null) => void;
 }) {
+  // Raccourci « Tick rapide / Tick lent », comme sur les cartes d'équipe du
+  // siège : un clic met la VIT de FICHE qui tombe pile sur le tick, totem et
+  // lead du deck compris. ⚠️ **Rien n'est stocké** : seule la VIT l'est, et on
+  // y ajoute ensuite soi-même +1, +2… pour régler l'ordre de jeu. Le bouton
+  // reste allumé tant que la VIT tombe dans le tick (de pile à +15, la marge
+  // de `tickDanger`).
+  //
+  // ⚠️ **Désactivé quand TOUTES les possibilités de runage portent Swift** :
+  // une équipe Swift ne se cale pas au tick, elle se speed tune
+  // (spec/siege/speed-tick.md). Une seule option sans Swift suffit : le calcul
+  // se fait alors sans lui.
+  const baseVit = baseFor('spd', monster);
+  const options = slot.setOptions.filter((o) => o.length > 0);
+  const toutSwift = options.length > 0 && options.every((o) => o.includes('swift'));
+  const vit = slot.stats.spd;
+  const ticks = (
+    // Calés à DROITE, sous le champ et le total qu'ils remplissent : à gauche,
+    // sous la base, ils ne s'alignaient sur rien de ce qu'ils modifient.
+    <div className="flex basis-full items-center justify-end gap-1.5">
+      {SIEGE_TICKS.map((t) => {
+        const cible = ficheSpeedForTick(baseVit, lead, t.value);
+        const atteint = cible != null && vit != null && vit >= cible && vit <= cible + TICK_ABOVE_MARGIN;
+        return (
+          <Bouton
+            key={t.key}
+            onClick={() => cible != null && onSet('spd', cible)}
+            actif={atteint}
+            disabled={cible == null || toutSwift}
+            forme="pilule"
+            taille="xs"
+            // ⚠️ « Tick rapide », pas « Rapide 286 » comme au siège : ici la
+            // VIT écrite est celle de FICHE (269 sans lead), et un bouton qui
+            // annonçait 286 pour écrire 269 se lisait comme une erreur. Le
+            // tick visé reste dans l'infobulle.
+            libelle={`Tick ${t.label.toLowerCase()}`}
+            title={
+              toutSwift
+                ? 'Runage Swift : il se speed tune, il ne vise pas de tick'
+                : cible == null
+                  ? 'Vitesse de base inconnue : le tick ne peut pas être calculé'
+                  : `Mettre la VIT à ${cible} : tick ${t.value} en combat, totem et lead compris`
+            }
+            // Même pastille que les ticks d'une équipe de siège (`TickBtn`) :
+            // deux côte à côte, sans zone tactile étendue qui les ferait se
+            // chevaucher — c'est l'espacement qui protège du ratage. Sans
+            // `font-mono` : au siège il servait des chiffres, ici ce sont des mots.
+            data-cible-fine
+            className="select-none compact:px-1.5 compact:py-0 compact:text-nano"
+          />
+        );
+      })}
+    </div>
+  );
+
   // ⚠️ **PLUS de table qui défile.** Une table à colonnes fixes, sous sa
   // largeur mini, faisait défiler HORIZONTALEMENT dans la carte — et une
   // barre de défilement horizontale, sur trois ou quatre chiffres, est
@@ -2494,6 +2557,10 @@ function StatEditor({
             >
               {total != null ? `= ${fmtStat(total)}${st.suffix}` : '—'}
             </span>
+            {/* `basis-full` : les ticks prennent leur propre ligne sous la VIT,
+                à une place fixe — le total qui change de largeur au clic ne
+                les déplace pas. */}
+            {st.key === 'spd' && ticks}
           </div>
         );
       })}

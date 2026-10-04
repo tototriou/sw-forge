@@ -663,6 +663,47 @@ retire la stat.
 - **Changer le monstre d'un slot remet ses stats ET ses sets à zéro** (ils ne
   valaient que pour le monstre visé).
 
+#### Raccourci « Tick rapide / Tick lent » sur la VIT
+
+En saisie, sous la ligne VIT de chaque monstre, deux boutons **« Tick
+rapide »** et **« Tick lent »** — les ticks 286 et 239 des cartes d'équipe du
+siège (`SIEGE_TICKS`, voir [speed-tick.md](speed-tick.md)). Un clic met dans la
+VIT la **VIT de fiche** qui amène le monstre **pile** sur le tick en combat,
+totem (+15 %) et lead de vitesse du deck compris (`ficheSpeedForTick` dans
+[speed.ts](src/lib/speed.ts) ; lead lu sur le slot 0, appliqué au monstre selon
+son élément par `siegeLeadFor`). Demandé par Thomas le 2026-10-04.
+
+- ⚠️ **Pas de chiffre sur le bouton**, contrairement au siège (« Rapide
+  286 ») : la VIT écrite est celle de fiche — 271 pour un monstre de base 96
+  sans lead —, et un bouton qui annonçait 286 pour écrire 269 (cas relevé)
+  se lisait comme une erreur (Thomas, 2026-10-04). Le tick visé et la VIT écrite sont dans
+  l'infobulle (« Mettre la VIT à 271 : tick 286 en combat, totem et lead
+  compris »).
+
+- ⚠️ **Un raccourci de saisie, rien de plus : aucun tick n'est stocké.** Seule
+  la VIT l'est, comme avant — modèle et format d'export inchangés. Pour régler
+  l'**ordre de jeu** entre monstres au même tick, on ajoute soi-même +1, +2…
+  dans le champ bonus ; rien d'autre n'est affiché (ni vitesse de combat, ni
+  ordre calculé).
+- Le bouton est **allumé** tant que la VIT tombe dans le tick : de pile à
+  +15 au-dessus (`TICK_ABOVE_MARGIN`, la marge de `tickDanger`). Un +3 pour
+  passer devant le garde allumé. Un clic, allumé ou non, remet la VIT pile au
+  tick — il n'y a rien à « éteindre ».
+- Le lead est celui **du moment du clic** : changer de leader ensuite ne
+  recalcule pas la VIT (rien ne dit qu'elle venait d'un tick) — il faut
+  recliquer.
+- **Désactivé**, toujours affiché, avec la raison en infobulle :
+  - quand **toutes** les possibilités de runage du monstre portent **Swift** —
+    un runage Swift se speed tune, il ne vise pas de tick (même règle que les
+    équipes de siège). Une seule possibilité sans Swift suffit à l'activer : le
+    calcul se fait alors sans Swift ;
+  - quand la **vitesse de base** du monstre est inconnue.
+- Les boutons occupent **leur propre ligne** (`basis-full`), à une place fixe :
+  le total qui change de largeur au clic ne les déplace pas. Ils sont **calés à
+  droite**, sous le champ et le total qu'ils remplissent — à gauche, sous la
+  base, ils ne s'alignaient sur rien. Police du texte, pas `font-mono` : ce
+  sont des mots, pas des chiffres.
+
 ## Sets de runes recommandés
 
 Un monstre porte **6 runes** ; un set 4 pièces en coûte 4, tous les autres 2

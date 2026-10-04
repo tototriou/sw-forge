@@ -3,7 +3,7 @@
 // est faux. Elle a été corrigée trois fois avant d'arriver à la bonne règle
 // (voir spec/shared/calcul-vitesse.md).
 
-import { combatSpeed, pctSpeedBonus, swiftFlat, tickDanger, tickTeamMessage } from '../src/lib/speed';
+import { combatSpeed, ficheSpeedForTick, pctSpeedBonus, swiftFlat, tickDanger, tickTeamMessage } from '../src/lib/speed';
 import { egal, ok, titre } from './outils';
 
 export default function testVitesse() {
@@ -38,6 +38,15 @@ export default function testVitesse() {
   // déjà le bonus Swift, on le retire avant de le réintégrer dans la somme.
   egal(swiftFlat(101), 26, 'Swift sur base 101 → 26 points');
   ok(combatSpeed(null as any, 100, 0, false) === null, 'base inconnue → aucun calcul, pas une valeur fausse');
+
+  // Raccourci « Rapide / Lent » des recommandations : la VIT de FICHE à
+  // demander pour tomber pile sur le tick, totem et lead compris. Mêmes cas
+  // relevés en jeu que plus haut : fiche 96 + 175 = 271 → 286 en combat.
+  egal(ficheSpeedForTick(96, 0, 286), 271, 'base 96, sans lead → fiche 271 pour le tick 286');
+  egal(ficheSpeedForTick(105, 0, 286), 270, 'base 105, sans lead → fiche 270 (le totem y vaut +16)');
+  egal(ficheSpeedForTick(96, 24, 239), 239 - Math.ceil((96 * 39) / 100), 'base 96, lead 24 → le lead entre dans la même somme');
+  egal(combatSpeed(96, ficheSpeedForTick(96, 33, 286)! - 96, 33), 286, 'aller-retour : la fiche demandée donne bien le tick en combat');
+  ok(ficheSpeedForTick(null, 0, 286) === null, 'base inconnue → pas de VIT proposée');
 
   // ⚠️ « Pas au tick » recouvre deux situations OPPOSÉES, qui se corrigent en
   // sens contraires : il manque quelques points, ou on dépasse largement. C'est

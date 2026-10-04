@@ -7,12 +7,13 @@
 // ⚠️ Rendu BUREAU : le panneau d'actions mobile est fermé (`menuOuvert` faux).
 
 import RecoBoard from '../../src/components/siege/RecoBoard';
-import RecoCard from '../../src/components/siege/RecoCard';
+import RecoCard, { StatEditor } from '../../src/components/siege/RecoCard';
 import { useSiegeRecos } from '../../src/hooks/useSiegeRecos';
 import { chercheMonstre } from '../../src/lib/recoSearch';
 import { useSiegeState } from '../../src/hooks/useSiegeState';
-import type { Monster } from '../../src/types';
+import type { Monster, RecoSlot } from '../../src/types';
 import type { VueRecos } from '../../src/lib/recoDefenses';
+import { ficheSpeedForTick } from '../../src/lib/speed';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
 import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
 
@@ -246,4 +247,48 @@ export function testRenduRecosVueDefense() {
   const edition = rendreCarte(true, true, undefined, 'defense');
   ok(!edition.includes('data-defense-visee'), 'en édition : plus de vue Défense');
   ok(boutons(edition).some((b) => b.texte === 'Ajouter un deck vide'), 'en édition : les formulaires de la vue Attaque');
+}
+
+// Raccourci « Tick rapide / Tick lent » dans la saisie de la VIT d'un deck :
+// la VIT de FICHE qui tombe pile sur le tick, totem et lead du deck compris.
+// Rien n'est stocké d'autre que la VIT : le bouton s'allume d'après elle.
+export function testRenduRecosTicks() {
+  titre('rendu · Siège · Recommandations — ticks Rapide / Lent en édition');
+  const monstre = (nom: string, el: string) => MONSTRES.find((m) => m.com2usId === c2u(nom, el))!;
+  const veromos = monstre('Veromos', 'dark');
+  // Un lead de vitesse de 24 % : il entre dans la VIT proposée.
+  const rapide = ficheSpeedForTick(veromos.stats.speed, 24, 286)!;
+  const lent = ficheSpeedForTick(veromos.stats.speed, 24, 239)!;
+  const editeur = (extra: object) =>
+    rendre(
+      <StatEditor
+        slot={{ ...slot('Veromos', 'dark', extra), artifacts: { element: [], archetype: [] } } as RecoSlot}
+        monster={veromos}
+        lead={24}
+        onSet={() => {}}
+      />
+    );
+  const tick = (html: string, nom: string) => boutons(html).find((b) => b.texte === nom)!;
+
+  // VIT vide : les deux ticks proposés, éteints, avec la VIT qu'ils mettront.
+  const vide = editeur({});
+  ok(!!tick(vide, 'Tick rapide') && !!tick(vide, 'Tick lent'), '« Tick rapide » et « Tick lent » sous la VIT');
+  egal(tick(vide, 'Tick rapide').title, `Mettre la VIT à ${rapide} : tick 286 en combat, totem et lead compris`, 'Rapide : la VIT proposée, lead compris');
+  egal(tick(vide, 'Tick lent').title, `Mettre la VIT à ${lent} : tick 239 en combat, totem et lead compris`, 'Lent : la VIT proposée, lead compris');
+  ok(tick(vide, 'Tick rapide').presse === false && !tick(vide, 'Tick rapide').desactive, 'VIT vide : éteint, cliquable');
+
+  // +3 pour passer devant un autre monstre au même tick : toujours allumé.
+  const devant = editeur({ stats: { spd: rapide + 3 } });
+  ok(tick(devant, 'Tick rapide').presse === true, 'au tick rapide +3 : « Tick rapide » reste allumé');
+  ok(tick(devant, 'Tick lent').presse === false, '… et « Tick lent » éteint');
+  // Au-delà de la marge de 15, on n'est plus « sur » le tick.
+  ok(tick(editeur({ stats: { spd: rapide + 16 } }), 'Tick rapide').presse === false, 'tick dépassé de 16 : éteint');
+
+  // Toutes les possibilités de runage en Swift : il se speed tune.
+  const swift = editeur({ setOptions: [['swift', 'energy'], ['swift', 'will']] });
+  ok(
+    tick(swift, 'Tick rapide').desactive && tick(swift, 'Tick rapide').title === 'Runage Swift : il se speed tune, il ne vise pas de tick',
+    'Swift partout : désactivé, et pourquoi'
+  );
+  ok(!tick(editeur({ setOptions: [['swift', 'energy'], ['violent', 'will']] }), 'Tick rapide').desactive, 'une option sans Swift suffit : actif');
 }

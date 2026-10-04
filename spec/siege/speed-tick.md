@@ -48,6 +48,11 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - **But : informer**, pas modifier. Le tick ne change aucune vitesse ; il sert de
   cible pour le retour manque/surplus de **ce** monstre.
 - Réglé via `setSlotTick(teamId, idx, tick)` ([useSiegeState.ts](src/hooks/useSiegeState.ts)).
+- Les mêmes ticks servent de **raccourci de saisie** dans une
+  recommandation, sous les libellés « Tick rapide » / « Tick lent » : là, ils
+  écrivent la VIT de fiche qui tombe sur le tick, et ne stockent aucun tick
+  ([recommandations.md](recommandations.md), « Raccourci « Tick rapide / Tick
+  lent » sur la VIT »).
 - Migration : l'ancien tick d'équipe est repris comme tick par défaut de chaque
   slot au chargement.
 

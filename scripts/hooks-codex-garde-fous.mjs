@@ -49,5 +49,5 @@ function executer(entree) {
 try {
   console.log(JSON.stringify(executer(JSON.parse(readFileSync(0, 'utf8')))));
 } catch (e) {
-  console.log(JSON.stringify({ systemMessage: `Garde-fou SW Forge inactif : ${String(e?.message ?? e).slice(0, 500)}` }));
+  console.log(JSON.stringify({ systemMessage: `Garde-fou SW Blacksmith inactif : ${String(e?.message ?? e).slice(0, 500)}` }));
 }

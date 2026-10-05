@@ -40,7 +40,7 @@ function enTetesDeclares(racine = RACINE): string[] {
 
 export default function testSkillAdapters() {
   titre('Skills et agents — dépôt sans .claude/agents/');
-  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-skills-'));
+  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-skills-'));
   try {
     for (const dossier of ['.claude/skills/essai', '.agents/skills/essai']) {
       mkdirSync(join(bac, dossier), { recursive: true });

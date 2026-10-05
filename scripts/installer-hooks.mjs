@@ -123,12 +123,12 @@ function installerHooksCodex(chemin, installation, simulation) {
     return;
   }
   groupes.push({ matcher: 'Bash', hooks: [{ type: 'command', command: commande, timeout: 10,
-    statusMessage: 'SW Forge : garde-fous' }] });
+    statusMessage: 'SW Blacksmith : garde-fous' }] });
   config.hooks.PreToolUse = groupes;
   mkdirSync(dirname(chemin), { recursive: true });
-  // La copie d'avant SW Forge s'écrit une seule fois : la refaire à chaque
-  // passage remplacerait l'original par une version déjà modifiée.
-  const copie = `${chemin}.avant-sw-forge`;
+  // La copie d'avant SW Blacksmith s'écrit une seule fois : la refaire à
+  // chaque passage remplacerait l'original par une version déjà modifiée.
+  const copie = `${chemin}.avant-swblacksmith`;
   if (existsSync(chemin) && !existsSync(copie)) copyFileSync(chemin, copie);
   writeFileSync(chemin, JSON.stringify(config, null, 2) + '\n');
   console.log(`Hooks Codex configurés : ${chemin}. Les approuver dans /hooks avant utilisation.`);

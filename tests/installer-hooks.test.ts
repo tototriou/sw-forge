@@ -100,7 +100,7 @@ function memeChemin(a: string, b: string): boolean {
 export function testInstallerHooks() {
   titre('Installateur public — manifeste par entrée, câblage, hooks Codex');
   if (!gitDisponible('installateur public')) return;
-  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-installer-hooks-'));
+  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-installer-hooks-'));
   const code = join(bac, 'code');
   try {
     depotPublic(code);
@@ -182,16 +182,16 @@ export function testInstallerHooks() {
     ok(h.PreToolUse?.length === 1 && h.PreToolUse[0].hooks[0].command === commande, 'hooks.json : une entrée PreToolUse publique');
     ok(h.Stop?.length === 1 && h.Stop[0].hooks[0].command === 'echo autre', 'hooks.json : hook tiers conservé');
     ok(!h.SessionStart && !h.UserPromptSubmit, 'hooks.json : aucun autre évènement ajouté par le public');
-    ok(readFileSync(`${config}.avant-sw-forge`, 'utf8') === original, '.avant-sw-forge : copie de l’original');
+    ok(readFileSync(`${config}.avant-swblacksmith`, 'utf8') === original, '.avant-swblacksmith : copie de l’original');
     r = installerPublic(code, '--codex-hooks', config);
     h = groupes();
     ok(r.code === 0 && h.PreToolUse.length === 1, 'réinstallation : pas de doublon');
     // Entrée retirée à la main : la réinstallation la repose, et la copie
-    // d'avant SW Forge reste l'original, pas la version déjà modifiée.
+    // d'avant SW Blacksmith reste l'original, pas la version déjà modifiée.
     writeFileSync(config, JSON.stringify({ hooks: { ...h, PreToolUse: [] } }));
     r = installerPublic(code, '--codex-hooks', config);
     ok(r.code === 0 && groupes().PreToolUse.length === 1, 'entrée retirée à la main : reposée');
-    ok(readFileSync(`${config}.avant-sw-forge`, 'utf8') === original, '.avant-sw-forge : écrite une seule fois');
+    ok(readFileSync(`${config}.avant-swblacksmith`, 'utf8') === original, '.avant-swblacksmith : écrite une seule fois');
   } finally {
     // bac provient exclusivement de mkdtempSync sous tmpdir.
     rmSync(bac, { recursive: true, force: true });
@@ -201,7 +201,7 @@ export function testInstallerHooks() {
 export function testHooksCodexGardeFous() {
   titre('Garde-fou Codex public — lecture entière d’une grosse spec');
   if (!gitDisponible('garde-fou Codex')) return;
-  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-garde-fous-'));
+  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-garde-fous-'));
   const code = join(bac, 'code');
   const autre = join(bac, 'autre');
   try {

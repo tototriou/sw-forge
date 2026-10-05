@@ -17,6 +17,7 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
+| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règle pure, testée), `preload.ts`, `preuve.ts` ; compilé par `scripts/construire-bureau.mjs` vers `dist-bureau/`. Chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
 
 ⚠️ **Pas de librairie de composants.** Tout `src/ui/` est écrit à la main.
 Radix UI a été **validé mais jamais installé** — chantier en attente.
@@ -27,6 +28,9 @@ npm run build          # build de prod (⚠️ seul endroit où l'on voit le CSS
 npm test               # = node tests/run.mjs
 npm run fetch-data     # régénère les données monstres/skills depuis SWARFARM
 npm run benchmark:optim
+npm run bureau         # l'application de bureau sur le serveur de dev
+npm run bureau:local   # l'application de bureau sur le build (comme installée)
+npm run bureau:preuve  # l'app se contrôle elle-même, captures + resultats.json
 ```
 
 ---

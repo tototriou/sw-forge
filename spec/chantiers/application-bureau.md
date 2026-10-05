@@ -68,8 +68,10 @@ constat, jamais une consigne de coupe.
 ### A.4 Catégories de lots
 
 Celles du dépôt (`cadrage-chantier`) : M mécanique, C classification, J
-jugement. M → Sonnet effort bas, C → Sonnet moyen, J → Opus élevé
-(`.claude/agents/lot-*.md`).
+jugement. ⚠️ **Aucun sous-agent** (Thomas, 2026-10-05 : « tu vas tout
+faire ici ») : tous les lots sont menés dans la session principale, ni
+revue adversariale par sous-agent, ni mode pilote (G du skill). La
+catégorie sert à dire le niveau de preuve attendu, pas un modèle.
 
 ### A.5 Branche, fichiers transverses
 
@@ -95,8 +97,10 @@ rapport. Jamais de `nodeIntegration`, jamais de `webSecurity: false` pour
 ### A.6 bis Preuves
 
 `spec/chantiers/application-bureau-preuves/lot-<n>.md` : H1, en-tête
-`**Statut :** ARCHIVE de preuve — lot <n>`, commandes, sorties, captures
-(sous 5 Mo). Le message de commit cite le fichier de preuve.
+`**Statut :** CHANTIER en cours — branche forge/application-bureau` (celui
+de tout fichier sous `chantiers/`, exigé par `spec-lint`, comme les preuves
+de la refonte), commandes, sorties, captures `lot-<n>-*.png` (sous 5 Mo). Le
+message de commit cite le fichier de preuve.
 
 ### A.7 Ordre, dépendances, suivi
 
@@ -114,7 +118,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 
 | Lot | Cat. | Statut | Commit / date |
 |-----|------|--------|---------------|
-| 1 coquille Electron | J | à faire | |
+| 1 coquille Electron | J | **fait** — protocole `app://`, mode preuve, 19 tests | `dbcc1db0`, 2026-10-05 |
 | 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | à faire | |
 | 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | à faire | |
 | 4 action GitHub au tag | J | à faire | |
@@ -198,6 +202,24 @@ recherche) marchent ; capture ; `node tests/run.mjs bureau` vert, dont un
 cas `app://swblacksmith/../package.json` refusé.
 
 **Ne fait pas** : liens externes, téléchargements, empaquetage, CI.
+
+**Résultat (2026-10-05)** — `dbcc1db0`, preuve
+[lot-1.md](application-bureau-preuves/lot-1.md). L'app se contrôle
+elle-même (`npm run bureau:preuve`) : origine `app://swblacksmith`, stockage,
+aucun Node dans la page, données 200, `package.json` hors build 404, worker
+de l'Optimizer, Bestiaire à 2 859 monstres ; captures. `node tests/run.mjs
+bureau` : 19 passées ; mutation du pilote (garde « hors racine » retirée) :
+4 échecs, dont `C:\Windows\win.ini` atteint — restaurée. Écarts :
+- `ELECTRON_RUN_AS_NODE`, posée par le terminal de VS Code, faisait démarrer
+  Electron comme Node : tout lancement passe par `scripts/lib/electron.mjs`
+  qui la retire ; `bureau:local` est donc un script Node, pas `electron .`.
+- « `%2e%2e` refusé » était faux : l'analyse standard de l'URL le résout et
+  il retombe dans le build. Le critère est « jamais hors du build » ; le
+  refus par la fonction vaut pour `..` + barre encodée.
+- Le mode preuve (`bureau/preuve.ts`) n'était pas au contrat : il rend la
+  preuve rejouable par chaque lot suivant.
+- Non prouvé : une recherche complète de l'Optimizer (il faut un compte) et
+  `npm run bureau` (dev) — à la séance de vérification à l'écran.
 
 ### Lot 2 — le web dans la coquille · J
 

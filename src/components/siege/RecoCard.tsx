@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Search,
   Gauge,
+  Undo2,
 } from 'lucide-react';
 // L'épée de la section Offense, à la place des deux épées de lucide
 // (rebranding, décision 44) : « Importer un deck d'offense », « Fort contre ».
@@ -55,6 +56,14 @@ import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import MonsterAvatar from '../MonsterAvatar';
 import LeadPill, { LeadBadge } from './LeadPill';
 import { SIEGE_TICKS, TICK_ABOVE_MARGIN, ficheSpeedForTick, siegeLeadFor, speedLeadOf } from '../../lib/speed';
+import {
+  ContenuDeck,
+  MetaReco,
+  contenuDeck,
+  deckEditeApresChangement,
+  memeContenu,
+  metaReco,
+} from '../../lib/annulerEdition';
 
 
 // ⚠️ **UNE reco affiche des stats de FICHE** : celles que le jeu montre sur la
@@ -205,10 +214,61 @@ export default function RecoCard({
     notifier({ message: 'Recommandation supprimée', annuler: () => recos.restaurerReco(reco, index) });
   }
   const deckCount = reco.decks.length;
+  // ⚠️ Un deck retiré ou remis en place DÉCALE les index : le deck en édition
+  // ne serait plus le même, et « Annuler » recopierait le contenu d'un autre.
+  // Voir `deckEditeApresChangement` — seul un deck tout juste AJOUTÉ (en fin
+  // de liste) reste ouvert.
+  const deckCountAvant = useRef(deckCount);
   useEffect(() => {
     setOpenDecks(new Set());
-    setEditingDeck((cur) => (cur != null && cur >= deckCount ? null : cur));
+    const avant = deckCountAvant.current;
+    deckCountAvant.current = deckCount;
+    setEditingDeck((cur) => deckEditeApresChangement(cur, avant, deckCount));
   }, [deckCount]);
+
+  // ── Annuler une édition (Thomas, 2026-10-05) ─────────────────────────────
+  //
+  // Chaque modification s'enregistre tout de suite : annuler, c'est REMETTRE
+  // ce qu'on a mémorisé à l'ouverture de l'édition (voir annulerEdition.ts).
+  // ⚠️ **Ni confirmation, ni notification** : une confirmation serait un « OK »
+  // qui détruit ; une notification « … · Rétablir » ferait une annulation
+  // d'annulation (Thomas : « c'est bizarre »). La sortie du mode édition dit
+  // assez ce qui s'est passé.
+  const [avantReco, setAvantReco] = useState<MetaReco | null>(null);
+  const [avantDeck, setAvantDeck] = useState<{ index: number; contenu: ContenuDeck } | null>(null);
+  // ⚠️ Mémorisé quand l'édition S'OUVRE, et seulement là : `reco` n'est pas
+  // dans les dépendances, sinon chaque frappe réécrirait l'état « d'avant ».
+  useEffect(() => {
+    setAvantReco(editing ? metaReco(reco) : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
+  useEffect(() => {
+    const d = editingDeck == null ? undefined : reco.decks[editingDeck];
+    setAvantDeck(d && editingDeck != null ? { index: editingDeck, contenu: contenuDeck(d) } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingDeck]);
+
+  const deckEnCours = avantDeck ? reco.decks[avantDeck.index] : undefined;
+  const deckModifie = !!avantDeck && !!deckEnCours && !memeContenu(contenuDeck(deckEnCours), avantDeck.contenu);
+  const recoModifiee = !!avantReco && !memeContenu(metaReco(reco), avantReco);
+
+  // Le deck en édition revient à son état d'ouverture.
+  function annulerDeck() {
+    if (!avantDeck) return;
+    recos.remettreContenuDeck(reco.id, avantDeck.index, avantDeck.contenu);
+    setEditingDeck(null);
+  }
+
+  // ⚠️ Symétrique de « Terminer » sur la recommandation, qui termine aussi
+  // l'édition de son deck : « Annuler » y revient sur le nom, l'auteur, les
+  // consignes générales ET sur le deck en cours d'édition. Les decks ajoutés
+  // pendant l'édition restent.
+  function annulerReco() {
+    if (!avantReco) return;
+    recos.setMeta(reco.id, avantReco);
+    if (deckModifie && avantDeck) recos.remettreContenuDeck(reco.id, avantDeck.index, avantDeck.contenu);
+    onToggleEdit(reco.id);
+  }
   const toggleDeck = (i: number) =>
     setOpenDecks((s) => {
       const next = new Set(s);
@@ -442,6 +502,20 @@ export default function RecoCard({
                 de la librairie garde ses propres couleurs, et l'ordre de deux
                 classes de couleur rivales dans la feuille ne serait pas
                 garanti. `aria-pressed` passe directement. */}
+            {/* « Annuler les modifications » (2026-10-05) — en édition
+                seulement, À GAUCHE du ✓ : le groupe est en bout de ligne, il
+                s'allonge vers la gauche et le ✓ qu'on vient de toucher ne
+                bouge pas. Grisé tant que rien n'a changé. */}
+            {editing && (
+              <BoutonIcone
+                onClick={annulerReco}
+                disabled={!recoModifiee && !deckModifie}
+                taille="serre"
+                icone={<Undo2 size={13} />}
+                libelle="Annuler les modifications"
+                className={ICONE_ACTION}
+              />
+            )}
             <BoutonIcone
               onClick={() => onToggleEdit(reco.id)}
               aria-pressed={editing}
@@ -733,6 +807,8 @@ export default function RecoCard({
                     match={match?.decks[di] ?? null}
                     editing={editingDeck === di}
                     onToggleEdit={() => setEditingDeck((cur) => (cur === di ? null : di))}
+                    onAnnulerEdition={annulerDeck}
+                    annulable={editingDeck === di && deckModifie}
                     folded={!openDecks.has(di) && editingDeck !== di && !decksTrouves.has(di)}
                     onToggleFold={() => toggleDeck(di)}
                     hit={hitDeDeck(di)}
@@ -1311,6 +1387,8 @@ function DeckBlock({
   match,
   editing,
   onToggleEdit,
+  onAnnulerEdition,
+  annulable,
   folded,
   onToggleFold,
   hit,
@@ -1324,6 +1402,9 @@ function DeckBlock({
   match: DeckMatch | null;
   editing: boolean; // édition de CE deck (indépendante de celle de la reco)
   onToggleEdit: () => void;
+  // Sortir de l'édition en remettant le deck tel qu'il était à son ouverture.
+  onAnnulerEdition: () => void;
+  annulable: boolean; // quelque chose a changé depuis l'ouverture
   folded: boolean;
   onToggleFold: () => void;
   // Positions du monstre cherché dans CE deck, `null` hors recherche.
@@ -1507,6 +1588,21 @@ function DeckBlock({
                 cette page (spec/siege/recommandations.md), pas le marqueur
                 d'état standard. Couleur posée sur l'icône, comme dans
                 l'en-tête de la recommandation. */}
+            {/* « Annuler les modifications » (2026-10-05) — en édition
+                seulement, juste AVANT le ✓ : au doigt le groupe est calé à
+                droite, à la souris le pied aussi (`justify-end`) ; il
+                s'allonge vers la gauche, le ✓ qu'on vient de toucher ne bouge
+                pas. Grisé tant que rien n'a changé. */}
+            {editing && (
+              <BoutonIcone
+                onClick={onAnnulerEdition}
+                disabled={!annulable}
+                taille="serre"
+                icone={<Undo2 size={12} />}
+                libelle="Annuler les modifications"
+                libelleALaSouris
+              />
+            )}
             <BoutonIcone
               onClick={onToggleEdit}
               aria-pressed={editing}

@@ -128,8 +128,8 @@ function Carte({ ouverte, edition, cherche, vue }: { ouverte: boolean; edition: 
   );
 }
 
-export function rendreCarte(ouverte: boolean, edition = false, cherche?: string, vue?: VueRecos): string {
-  faussLocalStorage({ 'swblacksmith-siege-recos-v1': JSON.stringify(RECOS) });
+export function rendreCarte(ouverte: boolean, edition = false, cherche?: string, vue?: VueRecos, etat: object = RECOS): string {
+  faussLocalStorage({ 'swblacksmith-siege-recos-v1': JSON.stringify(etat) });
   return rendre(<Carte ouverte={ouverte} edition={edition} cherche={cherche} vue={vue} />);
 }
 
@@ -291,4 +291,30 @@ export function testRenduRecosTicks() {
     'Swift partout : désactivé, et pourquoi'
   );
   ok(!tick(editeur({ setOptions: [['swift', 'energy'], ['violent', 'will']] }), 'Tick rapide').desactive, 'une option sans Swift suffit : actif');
+}
+
+// « Annuler les modifications » (Thomas, 2026-10-05) : en édition seulement,
+// à côté du ✓, grisé tant que rien n'a changé. Le rendu serveur ne clique
+// pas : on vérifie la PRÉSENCE et l'état à l'ouverture, la règle elle-même
+// est testée dans annuler-edition.test.ts.
+export function testRenduRecosAnnulerEdition() {
+  titre('rendu · Siège · Recommandations — annuler une édition');
+  const annuler = (html: string) => boutons(html).filter((b) => b.ariaLabel === 'Annuler les modifications');
+
+  // Hors édition : aucun bouton d'annulation.
+  egal(annuler(rendreCarte(true, false)).length, 0, 'hors édition : pas de « Annuler les modifications »');
+
+  // Recommandation en édition : un bouton, grisé (rien n'a encore changé).
+  const reco = annuler(rendreCarte(true, true));
+  egal(reco.length, 1, 'recommandation en édition : « Annuler les modifications » dans son en-tête');
+  ok(reco[0]?.desactive === true, '… grisé tant que rien n’a changé');
+
+  // Une recommandation tout juste créée ouvre AUSSI son deck vide en édition :
+  // deux boutons, celui de la recommandation et celui du deck.
+  const neuve = {
+    recos: [{ id: 'n', origin: 'mine', name: '', author: '', note: '', decks: [{ name: '', note: '', slots: [null, null, null].map(() => ({ com2usId: null, name: '', stats: {}, setOptions: [[]], artifacts: { element: [], archetype: [] } })), counters: [] }] }],
+  };
+  const deux = annuler(rendreCarte(true, true, undefined, undefined, neuve));
+  egal(deux.length, 2, 'deck neuf en édition : un bouton pour la recommandation, un pour le deck');
+  ok(deux.every((b) => b.desactive), '… tous deux grisés à l’ouverture');
 }

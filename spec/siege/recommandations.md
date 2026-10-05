@@ -1633,6 +1633,38 @@ est un **travail de fond**. Il n'a d'ailleurs **pas de mode édition de bloc** �
 juste un « + » qui ajoute et ouvre l'entrée créée. Voir « Défenses visées » plus
 haut.
 
+#### « Annuler les modifications » — sortir sans garder (Thomas, 2026-10-05)
+
+Chaque modification s'enregistre **tout de suite** ; le ✓ termine l'édition en
+gardant tout. Pendant une édition, un bouton **« Annuler les modifications »**
+(icône ↶) termine l'édition en remettant ce qu'il y avait **à son ouverture**
+— logique pure dans [annulerEdition.ts](src/lib/annulerEdition.ts) :
+
+| Où | Ce qui revient | Ce qui reste |
+|----|----------------|--------------|
+| deck (pied à la souris, à côté du ✓ au doigt) | consignes, monstres, sets, artéfacts, stats | les **défenses visées** — édition détachée, on ne défait pas l'une avec l'autre |
+| recommandation (en-tête, à côté du ✓) | nom, auteur, consignes générales, **et** le deck en cours d'édition s'il y en a un — symétrique de « Terminer », qui termine aussi le deck | les decks **ajoutés** pendant l'édition (on les retire avec « Supprimer ce deck ») |
+
+- **Placé juste AVANT le ✓** : le groupe d'actions est en bout de ligne (au
+  doigt) ou calé à droite (pied, à la souris) ; il s'allonge vers la gauche,
+  le ✓ qu'on vient de toucher ne bouge pas. À la souris, le pied l'écrit en
+  toutes lettres, comme « Terminer l'édition de ce deck ».
+- **Grisé tant que rien n'a changé** (comparaison par valeur : retaper la même
+  chose n'est pas une modification).
+- ⚠️ **Ni confirmation, ni notification.** Une confirmation serait un « OK »
+  qui détruit ; une notification « Modifications annulées · Rétablir » —
+  essayée — faisait une **annulation d'annulation** (Thomas, 2026-10-05 :
+  « c'est bizarre »). La sortie du mode édition dit assez ce qui s'est passé ;
+  le bouton grisé tant que rien n'a changé évite le clic pour rien.
+- **Un deck tout juste ajouté** (création d'une recommandation, « Ajouter un
+  deck vide », « Importer un deck d'offense ») s'ouvre en édition : annuler le
+  remet **comme à l'ajout** (vide, ou tel qu'importé), il ne le retire pas.
+- ⚠️ **Le nombre de decks change pendant une édition** (un autre deck
+  supprimé, ou remis par « Annuler ») : les index se décalent, le deck mémorisé
+  ne serait plus le même. L'édition se **termine** alors, modifications
+  gardées — sauf pour le deck qu'on vient d'ajouter en fin de liste
+  (`deckEditeApresChangement`).
+
 ⚠️ **Un monstre choisi, le curseur passe au monstre suivant** (refonte
 graphique, décision 18 — Thomas : « quand on édite une équipe, mets un
 autofocus sur le monstre suivant une fois qu'on en a choisi un, idem pour les
@@ -1725,7 +1757,8 @@ fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
   sans passer par l'édition de la recommandation.
 - **Raccourcis** : créer une recommandation ouvre directement son deck vide en
   édition ; ajouter/importer un deck ouvre le nouveau deck en édition.
-- La suppression d'un deck demande une **confirmation**.
+- La suppression d'un deck **se défait** (« Deck supprimé · Annuler ») au
+  lieu de se confirmer, depuis le lot 13 de la refonte (décision 29).
 - **Disposition** : les recommandations sont **empilées en pleine largeur** (une
   par ligne) — elles contiennent plusieurs decks de 3 monstres, une mise en
   2 colonnes serait illisible. À l'intérieur, les decks sont empilés et chaque

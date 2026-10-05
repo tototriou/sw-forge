@@ -16,6 +16,7 @@ import {
 } from '../types';
 import { artifactSubKinds, canAddSet, isArtifactSub } from '../lib/effects';
 import { cleanArtifacts, cleanSetOptions } from '../lib/recoShare';
+import { avecContenuDeck, ContenuDeck } from '../lib/annulerEdition';
 import { saveLocal, usePersistence } from './usePersistence';
 
 // Un deck VIDE : celui que `removeDeck` pose quand on retire le dernier — trois
@@ -156,6 +157,9 @@ export interface UseRecoState {
   restaurerReco: (reco: Reco, index: number) => void;
   restaurerDeck: (id: string, deck: RecoDeck, index: number) => void;
   setDeckMeta: (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) => void;
+  // « Annuler les modifications » d'un deck : remet ce qui avait été mémorisé
+  // à l'ouverture de son édition (voir lib/annulerEdition.ts).
+  remettreContenuDeck: (id: string, deck: number, contenu: ContenuDeck) => void;
   // Défenses adverses visées par un deck (« fort contre ») — informatif.
   addCounter: (id: string, deck: number) => void;
   removeCounter: (id: string, deck: number, ci: number) => void;
@@ -266,6 +270,11 @@ export function useSiegeRecos(): UseRecoState {
     (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) =>
       updateDeck(id, deck, (d) => ({ ...d, ...patch })),
     [updateDeck]
+  );
+
+  const remettreContenuDeck = useCallback(
+    (id: string, deck: number, contenu: ContenuDeck) => update(id, (r) => avecContenuDeck(r, deck, contenu)),
+    [update]
   );
 
   /* ---- Défenses adverses visées par un deck (« fort contre ») ----------- */
@@ -453,6 +462,7 @@ export function useSiegeRecos(): UseRecoState {
     removeDeck,
     restaurerDeck,
     setDeckMeta,
+    remettreContenuDeck,
     addCounter,
     removeCounter,
     setCounterMonster,

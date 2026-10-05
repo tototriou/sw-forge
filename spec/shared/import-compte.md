@@ -351,8 +351,18 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 
 ### Ce qu'on stocke
 
-Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
+Une base `swblacksmith`, un store `account`, **une clé fixe** `current` :
 `{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById, runeMarkerLabels }`.
+
+- ⚠️ **La base s'appelait `sw-forge`** jusqu'au rebranding (décision 66,
+  [../chantiers/rebranding-blacksmith.md](../chantiers/rebranding-blacksmith.md)).
+  À la première ouverture, `reprendreAncienneBase` recopie son compte dans la
+  nouvelle, le RELIT, puis supprime l'ancienne — avant toute opération de la
+  file, sinon la première lecture rendrait « aucun compte ». Un compte déjà
+  présent dans la nouvelle base fait foi. Copie impossible : l'ancienne reste,
+  reprise au lancement suivant. ⚠️ `indexedDB.open` créerait une base absente :
+  la création est annulée (`oldVersion === 0`), aucune base `sw-forge` vide
+  n'apparaît.
 
 - ⚠️ **La sortie des extracteurs (`BoxMonster[]`), jamais l'état affiché
   (`BoxItem[]`).** Un `BoxItem` embarque l'objet `Monster` complet : ça duplique

@@ -7,6 +7,7 @@
 
 import App from '../../src/App';
 import { egal, faussLocalStorage, ok, titre } from '../outils';
+import { ADRESSES, destination } from '../navigation-adresses.test';
 import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
 
 // `window` minimal : ce que l'app lit PENDANT le rendu (la route, les requêtes
@@ -173,6 +174,36 @@ export function testRenduAppFil() {
   for (const [hash, attendu] of FILS) {
     const fil = rendreApp(hash).match(/<nav aria-label="Fil d(?:'|&#x27;)Ariane"[\s\S]*?<\/nav>/)?.[0] ?? '';
     egal(texteVisible(fil), attendu, `${hash} → « ${attendu} »`);
+  }
+}
+
+// Garde-fou de navigation (Thomas, 2026-10-01 ; spec/shared/navigation.md
+// § Adresses) : sur CHAQUE page, chaque lien `#/…` affiché — barre latérale,
+// onglets mobiles, fil d'Ariane, cartes de l'accueil, liens de page — figure
+// dans la table des adresses, et mène bien où elle le dit.
+// ⚠️ Ce que le rendu ne montre pas n'est pas couvert ici : le panneau mobile
+// (ouvert par un geste) et la palette Ctrl K naviguent sans `href`.
+export function testRenduAppLiensMorts() {
+  titre('rendu · App — aucun lien mort, sur aucune page');
+  const vus = new Map<string, string>(); // lien → première page où il apparaît
+  for (const page of Object.keys(ADRESSES)) {
+    for (const href of valeurs(rendreApp(page), 'href')) {
+      if (href.startsWith('#') && !vus.has(href)) vus.set(href, page);
+    }
+  }
+  ok(vus.size > 0, 'des liens ont bien été relevés (sinon le test ne prouverait rien)');
+  for (const [href, page] of vus) {
+    ok(href in ADRESSES, `${href} (vu sur ${page}) figure dans la table des adresses`);
+    if (href in ADRESSES) egal(destination(href), ADRESSES[href], `${href} mène à ${ADRESSES[href]}`);
+  }
+  // Ce que la table promet, l'app l'affiche quelque part : une adresse de la
+  // table qu'aucun lien ne propose est soit hors menu par décision, soit morte.
+  // Meules et Gemmes : hors menu ([retrait #6]). Paramètres : le ⚙ y mène,
+  // mais c'est un BOUTON — il ouvre et referme (§ « Le ⚙ ouvre ET referme »).
+  const horsLien = new Set(['#/compte/runes/meules', '#/compte/runes/gemmes', '#/parametres']);
+  for (const hash of Object.keys(ADRESSES)) {
+    if (horsLien.has(hash)) continue;
+    ok(vus.has(hash), `${hash} est proposé par au moins un lien`);
   }
 }
 

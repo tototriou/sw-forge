@@ -131,7 +131,7 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par Thomas** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
 | Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **validé par Thomas** — revenu dans la branche (64), **sans changement de rendu** (65) : tests de rendu `c3910f40`, export `swblacksmith-optimizer` `98d50547` ; décision 60 abandonnée | 2026-10-03, [lot-9a.md](refonte-graphique-preuves/lot-9a.md) |
 | Rebranding total (décision 66) — stockage et base IndexedDB migrés, formats `swblacksmith/…` (anciens relus), passe de texte | J | **fait** — `a677e670`, `160fab0e`, `3f52eb4e`, `83ef308e`, `65498d7f` ; état des lieux du 2026-10-05 : plus d'ancien nom hors historique, URLs et relecture de l'ancien | 2026-10-05 |
-| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 62, 63) | M | 12a fait le 2026-10-03 (`npm test` 4 602 passées), **à refaire** : la branche a reçu depuis la fusion de la v1.14.0 (`94548113`) et la décision 66 — `npm test` y passe (13 933, 0 échec) mais 12a se refait sur l'état final ; **12b** relecture générale de Thomas en attente | 2026-10-03 |
+| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 62, 63) | M | 12a fait le 2026-10-01 sous Linux (`npm test` 5 KO, tous sur le hook `pre-commit` de l'outil `chantier`, non exécutable sous Linux, préexistant, hors refonte — garde-fou de navigation ajouté, décision 67, `015cad83`) puis le 2026-10-03 (`npm test` 4 602 passées), **à refaire** : la branche a reçu depuis la fusion de la v1.14.0 (`94548113`), la décision 66 et le garde-fou de navigation — 12a se refait sur l'état final ; **12b** relecture générale de Thomas en attente | 2026-10-03 |
 
 ### A.8 Décisions prises en cours de chantier
 
@@ -450,6 +450,23 @@ et R2 (« ne bougent pas »)** pour le stockage et les formats :
        Le nom du paquet npm, lui, change.
     e. Tout le reste (commentaires, docs, specs d'état actuel, skills,
        agents, messages des scripts et des tests) prend le nouveau nom.
+
+#### 67 — un garde-fou sur la navigation simple (Thomas, 2026-10-01)
+
+⚠️ **Numérotée 64 à l'origine** (`ac9bbbe4`), dans une session menée en
+parallèle sous Linux, depuis l'état du 2026-09-30 ; la 64 d'ici (l'Optimizer
+revient, 2026-10-03) était déjà citée par des commits et la preuve du lot 9a.
+Renumérotée 67 à la réunion des deux branches (2026-10-05).
+
+« Je veux un garde-fou à ce niveau-là. »
+
+67. **Toute adresse a sa page, tout lien est inscrit** :
+    `tests/navigation-adresses.test.ts` tient la table des adresses ;
+    `testRenduAppLiensMorts` y confronte chaque lien affiché, sur chaque page
+    (`015cad83`, [navigation.md](../shared/navigation.md) § Adresses). Hors couverture : le
+    panneau mobile, la palette Ctrl K et le retour du ⚙. Relevé sans
+    correction (aucun changement fonctionnel, 47) : une barre oblique finale
+    casse `#/bestiary/` (→ accueil) et `#/siege/offense/` (→ Défense).
 
 ## Partie B — les lots
 
